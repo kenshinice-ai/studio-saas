@@ -1,0 +1,25 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Runtime data and secrets
+database.json
+database *.json
+*.tmp
+.api_secret
+.cms_password
+.cms_config.json
+backups/
+photos/
+portfolio/
+
+# Local environment files
+.env
+.env.*
+!.env.example
+!letspaint-cms-release/.env.aws.example
+
+# Logs
+*.log

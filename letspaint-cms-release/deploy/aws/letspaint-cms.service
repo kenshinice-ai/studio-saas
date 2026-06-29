@@ -1,0 +1,31 @@
+[Unit]
+Description=Let's Paint CMS (Waitress/Flask)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/letspaint-cms
+Environment=PORT=8000
+Environment=CMS_DATA_DIR=/opt/letspaint-cms/data
+Environment=LPCMS_VENV=/opt/letspaint-cms/.venv
+# 如果你已经只通过 HTTPS 域名/Cloudflare Tunnel 访问，可改为 COOKIE_SECURE=1。
+# 若还需要 http://服务器IP 直接登录，则保持 0。
+Environment=COOKIE_SECURE=0
+ExecStart=/opt/letspaint-cms/.venv/bin/python -u /opt/letspaint-cms/server.py
+Restart=always
+RestartSec=5
+TimeoutStopSec=20
+KillSignal=SIGTERM
+
+# Basic hardening. Keep ReadWritePaths broad enough for app/data/logs.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=false
+ReadWritePaths=/opt/letspaint-cms /tmp
+
+[Install]
+WantedBy=multi-user.target

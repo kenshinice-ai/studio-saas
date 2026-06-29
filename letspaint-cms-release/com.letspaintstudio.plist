@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  ══════════════════════════════════════════════════════════════
+   Let's Paint Studio CMS — macOS 开机自启动配置
+   (LaunchAgent — 登录后自动启动，无需手动开启)
+
+   安装步骤:
+     1. 把这个文件复制到:
+        ~/Library/LaunchAgents/com.letspaintstudio.plist
+
+     2. 修改下面的 CMS_PATH 为你的 CMS 实际路径
+        例如: /Users/lee/Documents/LetsPaintCMS
+
+     3. 修改 UserName 为你的 macOS 用户名
+
+     4. 加载:
+        launchctl load ~/Library/LaunchAgents/com.letspaintstudio.plist
+
+     5. 验证已启动:
+        curl http://localhost:8000/api/ping
+
+   手动控制:
+     停止: launchctl unload ~/Library/LaunchAgents/com.letspaintstudio.plist
+     启动: launchctl load   ~/Library/LaunchAgents/com.letspaintstudio.plist
+     日志: tail -f /tmp/letspaintstudio.log
+  ══════════════════════════════════════════════════════════════
+-->
+<plist version="1.0">
+<dict>
+
+  <!-- 唯一标识符（不要修改） -->
+  <key>Label</key>
+  <string>com.letspaintstudio</string>
+
+  <!-- 启动命令 — 通过 cms.sh server 启动，自动使用固定的 venv Python 环境
+       （O2: 系统升级后只需 ./cms.sh setup 重建环境，此文件无需再改） -->
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>-c</string>
+    <!--
+      ⚠️ 修改下面的路径为你的 CMS 实际路径
+    -->
+    <string>cd /Users/YOUR_USERNAME/Documents/LetsPaintCMS &amp;&amp; ./cms.sh server</string>
+  </array>
+
+  <!-- 登录后自动启动 -->
+  <key>RunAtLoad</key>
+  <true/>
+
+  <!-- 崩溃后自动重启（间隔 10 秒） -->
+  <key>KeepAlive</key>
+  <true/>
+  <key>ThrottleInterval</key>
+  <integer>10</integer>
+
+  <!-- 日志输出 -->
+  <key>StandardOutPath</key>
+  <string>/tmp/letspaintstudio.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/letspaintstudio.log</string>
+
+  <!-- 工作目录（与启动命令中的 cd 保持一致） -->
+  <key>WorkingDirectory</key>
+  <string>/Users/YOUR_USERNAME/Documents/LetsPaintCMS</string>
+
+  <!-- 环境变量（可选）
+       COOKIE_SECURE=1  → 仅在"只通过 HTTPS 隧道访问管理后台"时开启；
+                          开启后 http://局域网IP:8000 将无法保持登录！
+       CORS_ORIGIN      → 仅在别的域名需要调用本 API 时填写（一般不需要） -->
+  <!--
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>COOKIE_SECURE</key>
+    <string>1</string>
+  </dict>
+  -->
+
+</dict>
+</plist>
