@@ -5,36 +5,123 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>StudioSaaS Super Admin</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; background: #f7f8fb; color: #172033; }
-    main { max-width: 1040px; margin: 0 auto; padding: 32px 20px; }
-    header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
-    h1 { font-size: 28px; margin: 0; }
-    .layout { display: grid; grid-template-columns: 220px 1fr; gap: 20px; }
-    nav, section { background: #fff; border: 1px solid #dfe4ee; border-radius: 8px; padding: 18px; }
-    button { background: #1f6feb; color: #fff; border: 0; border-radius: 6px; padding: 10px 14px; font-size: 15px; }
-    .row { display: grid; grid-template-columns: 1.6fr .8fr .8fr .8fr; gap: 12px; padding: 12px 0; border-bottom: 1px solid #edf0f5; }
-    .muted { color: #64748b; }
+    :root { color-scheme: light; --ink:#172033; --muted:#64748b; --line:#dfe4ee; --blue:#1f6feb; --green:#0f8a5f; --bg:#f7f8fb; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    main { max-width: 1180px; margin: 0 auto; padding: 28px 20px 40px; }
+    header { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; margin-bottom: 22px; }
+    h1 { font-size: 28px; margin: 0 0 6px; }
+    h2 { font-size: 18px; margin: 0 0 14px; }
+    button, input { font: inherit; }
+    button { border: 0; border-radius: 6px; padding: 10px 14px; background: var(--blue); color: #fff; cursor: pointer; }
+    input { border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; min-width: 240px; }
+    section { margin-bottom: 20px; }
+    .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    .panel { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
+    .metric { font-size: 26px; font-weight: 700; }
+    .muted { color: var(--muted); }
+    .status { color: var(--green); font-weight: 700; }
+    table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+    th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid #edf0f5; vertical-align: top; }
+    th { font-size: 13px; color: var(--muted); background: #fbfcff; }
+    code { background: #eef2ff; border-radius: 4px; padding: 2px 5px; }
+    .error { border-color: #f2b8b5; background: #fff8f7; color: #9f1c12; }
+    @media (max-width: 860px) { .grid { grid-template-columns: repeat(2, 1fr); } header { display: block; } input { width: 100%; } }
   </style>
 </head>
 <body>
   <main>
     <header>
-      <h1>StudioSaaS Super Admin</h1>
-      <button>Create Studio</button>
+      <div>
+        <h1>StudioSaaS Super Admin</h1>
+        <div class="muted">Manage tenants, plans, usage, and audit activity.</div>
+      </div>
+      <div class="toolbar">
+        <input id="baseUrl" aria-label="API base URL" value="/v1">
+        <button id="refreshBtn">Refresh</button>
+      </div>
     </header>
-    <div class="layout">
-      <nav>
-        <p>Workspaces</p>
-        <p class="muted">Plans</p>
-        <p class="muted">Billing</p>
-        <p class="muted">Usage</p>
-        <p class="muted">Audit Logs</p>
-      </nav>
-      <section>
-        <div class="row muted"><strong>Studio</strong><strong>Status</strong><strong>Plan</strong><strong>Students</strong></div>
-        <div class="row"><span>Let's Paint Studio</span><span>trial</span><span>Studio</span><span>-</span></div>
-      </section>
-    </div>
+
+    <section id="errorBox" class="panel error" hidden></section>
+
+    <section class="grid">
+      <div class="panel"><div id="tenantCount" class="metric">-</div><div class="muted">Tenants</div></div>
+      <div class="panel"><div id="studentCount" class="metric">-</div><div class="muted">Students</div></div>
+      <div class="panel"><div id="portfolioCount" class="metric">-</div><div class="muted">Portfolio Items</div></div>
+      <div class="panel"><div id="storageCount" class="metric">-</div><div class="muted">Storage MB</div></div>
+    </section>
+
+    <section>
+      <h2>Plans</h2>
+      <table>
+        <thead><tr><th>Plan</th><th>Monthly</th><th>Students</th><th>Users</th><th>Storage</th></tr></thead>
+        <tbody id="plansBody"></tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Tenants</h2>
+      <table>
+        <thead><tr><th>Studio</th><th>Status</th><th>Plan</th><th>Students</th><th>Storage</th></tr></thead>
+        <tbody id="tenantsBody"></tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Audit Logs</h2>
+      <table>
+        <thead><tr><th>Time</th><th>Tenant</th><th>Action</th><th>Resource</th></tr></thead>
+        <tbody id="auditBody"></tbody>
+      </table>
+    </section>
   </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const text = (value) => value === null || value === undefined || value === '' ? '-' : value;
+    async function get(path) {
+      const base = $('baseUrl').value.replace(/\/$/, '');
+      const res = await fetch(base + path);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || data.error || `${res.status} ${path}`);
+      return data;
+    }
+    function row(cells) { return `<tr>${cells.map((c) => `<td>${c}</td>`).join('')}</tr>`; }
+    async function refresh() {
+      $('errorBox').hidden = true;
+      try {
+        const [usage, plans, tenants, audit] = await Promise.all([
+          get('/admin/usage'), get('/plans'), get('/admin/tenants'), get('/admin/audit-logs')
+        ]);
+        $('tenantCount').textContent = usage.usage.tenants;
+        $('studentCount').textContent = usage.usage.students;
+        $('portfolioCount').textContent = usage.usage.portfolio_items;
+        $('storageCount').textContent = usage.usage.storage_used_mb;
+        $('plansBody').innerHTML = plans.plans.map((p) => row([
+          `<strong>${text(p.name)}</strong><br><code>${p.code}</code>`,
+          `AUD ${p.monthly_price_aud}`,
+          p.student_limit,
+          p.user_limit,
+          `${p.storage_limit_mb} MB`
+        ])).join('');
+        $('tenantsBody').innerHTML = tenants.tenants.map((t) => row([
+          `<strong>${text(t.name)}</strong><br><code>${t.slug}</code>`,
+          `<span class="status">${t.status}</span>`,
+          t.plan_code,
+          t.student_count,
+          `${t.storage_used_mb} MB`
+        ])).join('');
+        $('auditBody').innerHTML = audit.auditLogs.length ? audit.auditLogs.map((a) => row([
+          text(a.created_at), text(a.tenant_slug), text(a.action), `${text(a.resource_type)} ${text(a.resource_id)}`
+        ])).join('') : row(['No audit rows yet.', '', '', '']);
+      } catch (err) {
+        $('errorBox').textContent = err.message;
+        $('errorBox').hidden = false;
+      }
+    }
+    $('refreshBtn').addEventListener('click', refresh);
+    refresh();
+  </script>
 </body>
 </html>

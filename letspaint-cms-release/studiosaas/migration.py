@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -55,3 +56,65 @@ def normalize_legacy_student(student: dict[str, Any]) -> dict[str, Any]:
         "notes": student.get("notes") or student.get("remark") or "",
         "balance": student.get("balance") or 0,
     }
+
+
+def normalize_legacy_package(package: dict[str, Any]) -> dict[str, Any]:
+    """Convert one legacy package record into StudioSaaS import fields."""
+
+    name = str(package.get("name") or "Imported Package").strip()
+    credits = package.get("credits") or package.get("sessions") or 1
+    price = package.get("price") or package.get("priceAud") or 0
+    try:
+        price_aud_cents = int(round(float(price) * 100))
+    except (TypeError, ValueError):
+        price_aud_cents = 0
+    return {
+        "name": name,
+        "credits": credits,
+        "price_aud_cents": price_aud_cents,
+        "expires_after_days": package.get("expiresAfterDays") or None,
+    }
+
+
+def normalize_legacy_registration(registration: dict[str, Any]) -> dict[str, Any]:
+    """Convert one legacy pending registration into StudioSaaS fields."""
+
+    first_name = str(registration.get("firstName") or registration.get("name") or "").strip()
+    last_name = str(registration.get("lastName") or "").strip()
+    if not first_name:
+        first_name = "Unknown"
+    legacy_id = str(registration.get("id") or f"{first_name}:{registration.get('mobile', '')}")
+    payload = dict(registration)
+    payload["legacy_id"] = legacy_id
+    return {
+        "legacy_id": legacy_id,
+        "first_name": first_name,
+        "last_name": last_name,
+        "parent_name": registration.get("parentName") or registration.get("parent") or "",
+        "mobile": registration.get("mobile") or "",
+        "email": registration.get("email") or "",
+        "message": registration.get("message") or registration.get("goals") or "",
+        "payload_json": json.dumps(payload, ensure_ascii=False),
+    }
+
+
+def legacy_log_change(log: dict[str, Any]) -> float:
+    """Return a numeric amount from a legacy log change value."""
+
+    try:
+        return float(str(log.get("change") or 0).replace("+", "").strip() or 0)
+    except ValueError:
+        return 0
+
+
+def legacy_log_type(log: dict[str, Any]) -> str:
+    """Map legacy action text to a StudioSaaS credit transaction type."""
+
+    action = str(log.get("action") or "").lower()
+    if re.search(r"签到|consume|class|lesson", action):
+        return "consume"
+    if re.search(r"充值|购课|purchase|top.?up|payment", action):
+        return "purchase"
+    if re.search(r"调整|adjust|refund|expire", action):
+        return "adjustment"
+    return "other"

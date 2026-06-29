@@ -28,6 +28,12 @@ def slug_from_request(req: Request, cfg: StudioSaaSConfig) -> tuple[str, str]:
         TenantResolutionError: If no valid tenant slug is present.
     """
 
+    path_slug = getattr(g, "path_tenant_slug", "")
+    if path_slug:
+        if not SLUG_RE.match(path_slug):
+            raise TenantResolutionError("Invalid tenant slug in path.")
+        return path_slug, "path"
+
     path_match = re.match(r"^/s/([a-z0-9][a-z0-9-]{1,62})(?:/|$)", req.path or "")
     if path_match:
         return path_match.group(1), "path"

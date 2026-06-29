@@ -108,7 +108,8 @@ CREATE TABLE IF NOT EXISTS packages (
     price_aud_cents integer NOT NULL CHECK (price_aud_cents >= 0),
     expires_after_days integer CHECK (expires_after_days IS NULL OR expires_after_days > 0),
     is_active boolean NOT NULL DEFAULT true,
-    created_at timestamptz NOT NULL DEFAULT now()
+    created_at timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (tenant_id, name)
 );
 
 CREATE TABLE IF NOT EXISTS credit_accounts (
