@@ -3,7 +3,7 @@
 
 Usage:
     STUDIOSAAS_DATABASE_URL=postgresql://... \
-      python scripts/import_lets_paint_json.py database.json lets-paint-studio
+      python scripts/import_lets_paint_json.py database.json lets-paint-studio "Let's Paint Studio"
 """
 
 from __future__ import annotations
@@ -29,12 +29,16 @@ from studiosaas.migration import (
 def main(argv: list[str]) -> int:
     """Run the legacy import."""
 
-    if len(argv) != 3:
-        print("Usage: import_lets_paint_json.py <database.json> <tenant_slug>", file=sys.stderr)
+    if len(argv) not in (3, 4):
+        print(
+            "Usage: import_lets_paint_json.py <database.json> <tenant_slug> [tenant_name]",
+            file=sys.stderr,
+        )
         return 2
 
     legacy_path = Path(argv[1])
     tenant_slug = argv[2]
+    tenant_name = argv[3] if len(argv) == 4 else "Let's Paint Studio"
     legacy = load_legacy_database(legacy_path)
 
     with connect() as conn:
@@ -48,9 +52,20 @@ def main(argv: list[str]) -> int:
                     updated_at = now()
                 RETURNING id
                 """,
-                ("Let's Paint Studio", tenant_slug, "Imported from the original Let's Paint CMS."),
+                (tenant_name, tenant_slug, "Imported from the original Let's Paint CMS."),
             )
             tenant_id = cur.fetchone()["id"]
+            cur.execute(
+                """
+                INSERT INTO subscriptions (tenant_id, plan_code, status, starts_at, ends_at)
+                VALUES (%s, 'studio', 'trialing', now(), NULL)
+                ON CONFLICT (tenant_id) DO UPDATE
+                SET plan_code = EXCLUDED.plan_code,
+                    status = EXCLUDED.status,
+                    updated_at = now()
+                """,
+                (tenant_id,),
+            )
 
             cur.execute(
                 """

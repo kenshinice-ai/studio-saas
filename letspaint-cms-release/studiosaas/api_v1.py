@@ -5,6 +5,9 @@ APIs require PostgreSQL and explicit tenant resolution; they do not fall back to
 the single-studio JSON database.
 """
 
+import json
+import re
+
 from flask import Blueprint, g, jsonify, request
 
 from .config import load_config
@@ -54,6 +57,112 @@ api_v1_by_slug.register_error_handler(
     handle_tenant_error,
 )
 
+TENANT_STATUSES = {"trial", "active", "past_due", "paused", "cancelled"}
+SUBSCRIPTION_STATUSES = {"trialing", "active", "past_due", "paused", "cancelled"}
+
+
+def _json_payload() -> dict:
+    """Return a JSON object payload or raise a request error response."""
+
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        raise ValueError("Request body must be a JSON object.")
+    return payload
+
+
+def _clean_text(payload: dict, key: str, default: str = "") -> str:
+    """Read a trimmed text field from a request payload."""
+
+    value = payload.get(key, default)
+    return str(value if value is not None else "").strip()
+
+
+def _plan_payload(payload: dict) -> dict:
+    """Validate and normalize a plan write payload."""
+
+    code = _clean_text(payload, "code").lower()
+    if code and not re.match(r"^[a-z0-9][a-z0-9-]{1,62}$", code):
+        raise ValueError("Plan code must be lowercase letters, numbers, or hyphens.")
+    name = _clean_text(payload, "name")
+    if not name:
+        raise ValueError("Plan name is required.")
+    try:
+        monthly_price_aud = int(payload.get("monthlyPriceAud", payload.get("monthly_price_aud", 0)))
+        student_limit = int(payload.get("studentLimit", payload.get("student_limit", 1)))
+        user_limit = int(payload.get("userLimit", payload.get("user_limit", 1)))
+        storage_limit_mb = int(payload.get("storageLimitMb", payload.get("storage_limit_mb", 1)))
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Plan numeric limits must be valid integers.") from exc
+    if monthly_price_aud < 0 or student_limit <= 0 or user_limit <= 0 or storage_limit_mb <= 0:
+        raise ValueError("Plan limits must be positive, and monthly price cannot be negative.")
+    features = payload.get("features", {})
+    if not isinstance(features, dict):
+        raise ValueError("Plan features must be a JSON object.")
+    return {
+        "code": code,
+        "name": name,
+        "monthly_price_aud": monthly_price_aud,
+        "student_limit": student_limit,
+        "user_limit": user_limit,
+        "storage_limit_mb": storage_limit_mb,
+        "features_json": json.dumps(features),
+    }
+
+
+def _tenant_write_payload(payload: dict, *, require_slug: bool) -> dict:
+    """Validate and normalize tenant write payloads."""
+
+    name = _clean_text(payload, "name")
+    slug = _clean_text(payload, "slug").lower()
+    plan_code = _clean_text(payload, "planCode", _clean_text(payload, "plan_code", "studio")).lower()
+    status = _clean_text(payload, "status", "trial").lower()
+    subscription_status = _clean_text(
+        payload,
+        "subscriptionStatus",
+        _clean_text(payload, "subscription_status", "trialing"),
+    ).lower()
+    if not name:
+        raise ValueError("Tenant name is required.")
+    if require_slug and not re.match(r"^[a-z0-9][a-z0-9-]{1,62}$", slug):
+        raise ValueError("Tenant slug must be lowercase letters, numbers, or hyphens.")
+    if status not in TENANT_STATUSES:
+        raise ValueError(f"Tenant status must be one of: {', '.join(sorted(TENANT_STATUSES))}.")
+    if subscription_status not in SUBSCRIPTION_STATUSES:
+        raise ValueError(
+            f"Subscription status must be one of: {', '.join(sorted(SUBSCRIPTION_STATUSES))}."
+        )
+    return {
+        "name": name,
+        "slug": slug,
+        "status": status,
+        "plan_code": plan_code,
+        "subscription_status": subscription_status,
+        "starts_at": payload.get("startsAt") or payload.get("starts_at"),
+        "ends_at": payload.get("endsAt") or payload.get("ends_at"),
+        "trial_ends_at": payload.get("trialEndsAt") or payload.get("trial_ends_at"),
+        "current_period_ends_at": payload.get("currentPeriodEndsAt")
+        or payload.get("current_period_ends_at"),
+    }
+
+
+def _audit(conn, *, tenant_id, action, resource_type, resource_id="", metadata=None):
+    """Write a compact audit log row for local admin mutations."""
+
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO audit_logs (tenant_id, action, resource_type, resource_id, metadata)
+            VALUES (%s, %s, %s, %s, %s::jsonb)
+            """,
+            (tenant_id, action, resource_type, str(resource_id or ""), json.dumps(metadata or {})),
+        )
+
+
+def _error(message: str, status: int = 400):
+    """Return a consistent JSON error response."""
+
+    return jsonify({"error": "invalid_request", "message": message}), status
+
 
 @api_v1.route("/health", methods=["GET"])
 def health():
@@ -69,10 +178,15 @@ def _tenant_response(conn):
     row = fetch_one(
         conn,
         """
-        SELECT id, name, slug, status, plan_code, primary_color, secondary_color,
-               welcome_message, contact_phone, contact_email, address, timezone
-        FROM tenants
-        WHERE id = %s
+        SELECT t.id, t.name, t.slug, t.status, t.plan_code, t.primary_color,
+               t.secondary_color, t.welcome_message, t.contact_phone,
+               t.contact_email, t.address, t.timezone,
+               t.settings->>'logo_url' AS logo_url,
+               s.status AS subscription_status, s.starts_at, s.ends_at,
+               s.trial_ends_at, s.current_period_ends_at
+        FROM tenants t
+        LEFT JOIN subscriptions s ON s.tenant_id = t.id
+        WHERE t.id = %s
         """,
         (tenant.tenant_id,),
     )
@@ -96,6 +210,78 @@ def get_tenant():
     return jsonify({"tenant": row})
 
 
+@api_v1.route("/tenant", methods=["PATCH"])
+def update_tenant():
+    """Update current tenant branding, contact details, and plan metadata."""
+
+    try:
+        payload = _json_payload()
+    except ValueError as exc:
+        return _error(str(exc))
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        current = fetch_one(
+            conn,
+            """
+            SELECT name, plan_code, primary_color, secondary_color, welcome_message,
+                   contact_phone, contact_email, address, timezone,
+                   settings->>'logo_url' AS logo_url
+            FROM tenants
+            WHERE id = %s
+            """,
+            (tenant.tenant_id,),
+        )
+        plan_code = _clean_text(payload, "planCode", current["plan_code"]).lower()
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1 FROM plans WHERE code = %s", (plan_code,))
+            if not cur.fetchone():
+                return _error(f"Plan '{plan_code}' was not found.", 404)
+            cur.execute(
+                """
+                UPDATE tenants
+                SET name = %s,
+                    plan_code = %s,
+                    primary_color = %s,
+                    secondary_color = %s,
+                    welcome_message = %s,
+                    contact_phone = %s,
+                    contact_email = %s,
+                    address = %s,
+                    timezone = %s,
+                    settings = jsonb_set(settings, '{logo_url}', to_jsonb(%s::text), true),
+                    updated_at = now()
+                WHERE id = %s
+                """,
+                (
+                    _clean_text(payload, "name", current["name"]),
+                    plan_code,
+                    _clean_text(payload, "primaryColor", current["primary_color"]),
+                    _clean_text(payload, "secondaryColor", current["secondary_color"]),
+                    _clean_text(payload, "welcomeMessage", current["welcome_message"]),
+                    _clean_text(payload, "contactPhone", current["contact_phone"]),
+                    _clean_text(payload, "contactEmail", current["contact_email"]),
+                    _clean_text(payload, "address", current["address"]),
+                    _clean_text(payload, "timezone", current["timezone"]),
+                    _clean_text(payload, "logoUrl", current["logo_url"] or ""),
+                    tenant.tenant_id,
+                ),
+            )
+            cur.execute(
+                """
+                INSERT INTO subscriptions (tenant_id, plan_code, status, starts_at, ends_at)
+                VALUES (%s, %s, 'active', now(), NULL)
+                ON CONFLICT (tenant_id) DO UPDATE
+                SET plan_code = EXCLUDED.plan_code,
+                    updated_at = now()
+                """,
+                (tenant.tenant_id, plan_code),
+            )
+        _audit(conn, tenant_id=tenant.tenant_id, action="tenant.updated", resource_type="tenant")
+        conn.commit()
+        row = _tenant_response(conn)
+    return jsonify({"tenant": row})
+
+
 @api_v1.route("/tenant/brand", methods=["GET"])
 def get_tenant_brand():
     """Return branding used by Studio Admin and Parent Portal."""
@@ -113,6 +299,7 @@ def get_tenant_brand():
                 "contactPhone": row["contact_phone"],
                 "contactEmail": row["contact_email"],
                 "address": row["address"],
+                "logoUrl": row["logo_url"],
             }
         }
     )
@@ -222,6 +409,104 @@ def list_courses():
     return jsonify({"courses": rows})
 
 
+@api_v1.route("/courses", methods=["POST"])
+def create_course():
+    """Create a course for the resolved tenant."""
+
+    try:
+        payload = _json_payload()
+    except ValueError as exc:
+        return _error(str(exc))
+    name = _clean_text(payload, "name")
+    if not name:
+        return _error("Course name is required.")
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO courses (
+                    tenant_id, name, description, category, age_range,
+                    duration_minutes, credit_unit, default_credit_debit,
+                    price_aud_cents, is_active
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
+                """,
+                (
+                    tenant.tenant_id,
+                    name,
+                    _clean_text(payload, "description"),
+                    _clean_text(payload, "category"),
+                    _clean_text(payload, "ageRange"),
+                    int(payload.get("durationMinutes") or 60),
+                    _clean_text(payload, "creditUnit", "credits"),
+                    float(payload.get("defaultCreditDebit") or 1),
+                    int(round(float(payload.get("priceAud") or 0) * 100)),
+                    bool(payload.get("isActive", True)),
+                ),
+            )
+            course_id = cur.fetchone()["id"]
+        _audit(conn, tenant_id=tenant.tenant_id, action="course.created", resource_type="course", resource_id=course_id)
+        conn.commit()
+    return jsonify({"ok": True, "id": course_id}), 201
+
+
+@api_v1.route("/courses/<course_id>", methods=["PATCH", "DELETE"])
+def mutate_course(course_id: str):
+    """Update or delete a course for the resolved tenant."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        if request.method == "DELETE":
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM courses WHERE tenant_id = %s AND id = %s", (tenant.tenant_id, course_id))
+                if cur.rowcount == 0:
+                    return _error("Course was not found.", 404)
+            _audit(conn, tenant_id=tenant.tenant_id, action="course.deleted", resource_type="course", resource_id=course_id)
+            conn.commit()
+            return jsonify({"ok": True})
+        try:
+            payload = _json_payload()
+        except ValueError as exc:
+            return _error(str(exc))
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE courses
+                SET name = COALESCE(NULLIF(%s, ''), name),
+                    description = %s,
+                    category = %s,
+                    age_range = %s,
+                    duration_minutes = %s,
+                    credit_unit = %s,
+                    default_credit_debit = %s,
+                    price_aud_cents = %s,
+                    is_active = %s,
+                    updated_at = now()
+                WHERE tenant_id = %s AND id = %s
+                """,
+                (
+                    _clean_text(payload, "name"),
+                    _clean_text(payload, "description"),
+                    _clean_text(payload, "category"),
+                    _clean_text(payload, "ageRange"),
+                    int(payload.get("durationMinutes") or 60),
+                    _clean_text(payload, "creditUnit", "credits"),
+                    float(payload.get("defaultCreditDebit") or 1),
+                    int(round(float(payload.get("priceAud") or 0) * 100)),
+                    bool(payload.get("isActive", True)),
+                    tenant.tenant_id,
+                    course_id,
+                ),
+            )
+            if cur.rowcount == 0:
+                return _error("Course was not found.", 404)
+        _audit(conn, tenant_id=tenant.tenant_id, action="course.updated", resource_type="course", resource_id=course_id)
+        conn.commit()
+    return jsonify({"ok": True})
+
+
 @api_v1.route("/packages", methods=["GET"])
 def list_packages():
     """List course packages for the resolved tenant."""
@@ -240,6 +525,90 @@ def list_packages():
             (tenant.tenant_id,),
         )
     return jsonify({"packages": rows})
+
+
+@api_v1.route("/packages", methods=["POST"])
+def create_package():
+    """Create a package for the resolved tenant."""
+
+    try:
+        payload = _json_payload()
+    except ValueError as exc:
+        return _error(str(exc))
+    name = _clean_text(payload, "name")
+    if not name:
+        return _error("Package name is required.")
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO packages (
+                    tenant_id, name, credits, price_aud_cents,
+                    expires_after_days, is_active
+                )
+                VALUES (%s, %s, %s, %s, %s, %s)
+                RETURNING id
+                """,
+                (
+                    tenant.tenant_id,
+                    name,
+                    float(payload.get("credits") or 1),
+                    int(round(float(payload.get("priceAud") or 0) * 100)),
+                    payload.get("expiresAfterDays") or None,
+                    bool(payload.get("isActive", True)),
+                ),
+            )
+            package_id = cur.fetchone()["id"]
+        _audit(conn, tenant_id=tenant.tenant_id, action="package.created", resource_type="package", resource_id=package_id)
+        conn.commit()
+    return jsonify({"ok": True, "id": package_id}), 201
+
+
+@api_v1.route("/packages/<package_id>", methods=["PATCH", "DELETE"])
+def mutate_package(package_id: str):
+    """Update or delete a package for the resolved tenant."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        if request.method == "DELETE":
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM packages WHERE tenant_id = %s AND id = %s", (tenant.tenant_id, package_id))
+                if cur.rowcount == 0:
+                    return _error("Package was not found.", 404)
+            _audit(conn, tenant_id=tenant.tenant_id, action="package.deleted", resource_type="package", resource_id=package_id)
+            conn.commit()
+            return jsonify({"ok": True})
+        try:
+            payload = _json_payload()
+        except ValueError as exc:
+            return _error(str(exc))
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE packages
+                SET name = COALESCE(NULLIF(%s, ''), name),
+                    credits = %s,
+                    price_aud_cents = %s,
+                    expires_after_days = %s,
+                    is_active = %s
+                WHERE tenant_id = %s AND id = %s
+                """,
+                (
+                    _clean_text(payload, "name"),
+                    float(payload.get("credits") or 1),
+                    int(round(float(payload.get("priceAud") or 0) * 100)),
+                    payload.get("expiresAfterDays") or None,
+                    bool(payload.get("isActive", True)),
+                    tenant.tenant_id,
+                    package_id,
+                ),
+            )
+            if cur.rowcount == 0:
+                return _error("Package was not found.", 404)
+        _audit(conn, tenant_id=tenant.tenant_id, action="package.updated", resource_type="package", resource_id=package_id)
+        conn.commit()
+    return jsonify({"ok": True})
 
 
 @api_v1.route("/registrations", methods=["GET"])
@@ -324,7 +693,8 @@ def public_brand(tenant_slug: str):
             conn,
             """
             SELECT name, slug, primary_color, secondary_color, welcome_message,
-                   contact_phone, contact_email, address
+                   contact_phone, contact_email, address,
+                   settings->>'logo_url' AS logo_url
             FROM tenants
             WHERE id = %s
             """,
@@ -386,6 +756,93 @@ def list_plans():
     return jsonify({"plans": rows})
 
 
+@api_v1.route("/plans", methods=["POST"])
+def create_plan():
+    """Create a subscription plan from Super Admin."""
+
+    try:
+        plan = _plan_payload(_json_payload())
+        if not plan["code"]:
+            raise ValueError("Plan code is required.")
+    except ValueError as exc:
+        return _error(str(exc))
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO plans (
+                    code, name, monthly_price_aud, student_limit,
+                    user_limit, storage_limit_mb, features
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s::jsonb)
+                """,
+                (
+                    plan["code"],
+                    plan["name"],
+                    plan["monthly_price_aud"],
+                    plan["student_limit"],
+                    plan["user_limit"],
+                    plan["storage_limit_mb"],
+                    plan["features_json"],
+                ),
+            )
+        _audit(conn, tenant_id=None, action="plan.created", resource_type="plan", resource_id=plan["code"])
+        conn.commit()
+    return jsonify({"ok": True, "code": plan["code"]}), 201
+
+
+@api_v1.route("/plans/<code>", methods=["PATCH", "DELETE"])
+def mutate_plan(code: str):
+    """Update or delete a subscription plan from Super Admin."""
+
+    code = code.lower()
+    with connect() as conn:
+        if request.method == "DELETE":
+            in_use = fetch_one(conn, "SELECT count(*) AS n FROM tenants WHERE plan_code = %s", (code,))
+            if in_use and in_use["n"]:
+                return _error("Plan is in use by tenants and cannot be deleted.", 409)
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM plans WHERE code = %s", (code,))
+                if cur.rowcount == 0:
+                    return _error("Plan was not found.", 404)
+            _audit(conn, tenant_id=None, action="plan.deleted", resource_type="plan", resource_id=code)
+            conn.commit()
+            return jsonify({"ok": True})
+        try:
+            payload = _json_payload()
+            payload["code"] = code
+            plan = _plan_payload(payload)
+        except ValueError as exc:
+            return _error(str(exc))
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE plans
+                SET name = %s,
+                    monthly_price_aud = %s,
+                    student_limit = %s,
+                    user_limit = %s,
+                    storage_limit_mb = %s,
+                    features = %s::jsonb
+                WHERE code = %s
+                """,
+                (
+                    plan["name"],
+                    plan["monthly_price_aud"],
+                    plan["student_limit"],
+                    plan["user_limit"],
+                    plan["storage_limit_mb"],
+                    plan["features_json"],
+                    code,
+                ),
+            )
+            if cur.rowcount == 0:
+                return _error("Plan was not found.", 404)
+        _audit(conn, tenant_id=None, action="plan.updated", resource_type="plan", resource_id=code)
+        conn.commit()
+    return jsonify({"ok": True})
+
+
 @api_v1.route("/admin/tenants", methods=["GET"])
 def admin_tenants():
     """List tenants for the local Super Admin prototype."""
@@ -398,14 +855,155 @@ def admin_tenants():
                    COALESCE(u.student_count, 0) AS student_count,
                    COALESCE(u.user_count, 0) AS user_count,
                    COALESCE(u.storage_used_mb, 0) AS storage_used_mb,
-                   t.created_at
+                   s.status AS subscription_status,
+                   s.starts_at, s.ends_at, s.trial_ends_at,
+                   s.current_period_ends_at, t.created_at
             FROM tenants t
             LEFT JOIN tenant_usage u ON u.tenant_id = t.id
+            LEFT JOIN subscriptions s ON s.tenant_id = t.id
             ORDER BY t.created_at DESC
             """,
             (),
         )
     return jsonify({"tenants": rows})
+
+
+@api_v1.route("/admin/tenants", methods=["POST"])
+def create_tenant():
+    """Create a tenant and subscription from Super Admin."""
+
+    try:
+        data = _tenant_write_payload(_json_payload(), require_slug=True)
+    except ValueError as exc:
+        return _error(str(exc))
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1 FROM plans WHERE code = %s", (data["plan_code"],))
+            if not cur.fetchone():
+                return _error(f"Plan '{data['plan_code']}' was not found.", 404)
+            cur.execute(
+                """
+                INSERT INTO tenants (name, slug, status, plan_code, welcome_message)
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING id
+                """,
+                (
+                    data["name"],
+                    data["slug"],
+                    data["status"],
+                    data["plan_code"],
+                    f"Welcome to {data['name']}.",
+                ),
+            )
+            tenant_id = cur.fetchone()["id"]
+            cur.execute(
+                """
+                INSERT INTO subscriptions (
+                    tenant_id, plan_code, status, starts_at, ends_at,
+                    trial_ends_at, current_period_ends_at
+                )
+                VALUES (%s, %s, %s, COALESCE(%s::timestamptz, now()), %s, %s, %s)
+                """,
+                (
+                    tenant_id,
+                    data["plan_code"],
+                    data["subscription_status"],
+                    data["starts_at"],
+                    data["ends_at"],
+                    data["trial_ends_at"],
+                    data["current_period_ends_at"],
+                ),
+            )
+            cur.execute(
+                """
+                INSERT INTO tenant_usage (tenant_id, student_count, user_count, storage_used_mb)
+                VALUES (%s, 0, 0, 0)
+                """,
+                (tenant_id,),
+            )
+            cur.execute(
+                """
+                INSERT INTO courses (tenant_id, name, description, category, credit_unit)
+                VALUES (%s, 'General Class', 'Default course created with tenant.', 'General', 'credits')
+                """,
+                (tenant_id,),
+            )
+        _audit(conn, tenant_id=tenant_id, action="tenant.created", resource_type="tenant", resource_id=tenant_id)
+        conn.commit()
+    return jsonify({"ok": True, "id": tenant_id}), 201
+
+
+@api_v1.route("/admin/tenants/<tenant_id>", methods=["PATCH", "DELETE"])
+def mutate_tenant(tenant_id: str):
+    """Update or delete a tenant from Super Admin."""
+
+    with connect() as conn:
+        if request.method == "DELETE":
+            existing = fetch_one(conn, "SELECT name FROM tenants WHERE id = %s", (tenant_id,))
+            if not existing:
+                return _error("Tenant was not found.", 404)
+            _audit(
+                conn,
+                tenant_id=tenant_id,
+                action="tenant.deleted",
+                resource_type="tenant",
+                resource_id=tenant_id,
+                metadata={"name": existing["name"]},
+            )
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM tenants WHERE id = %s", (tenant_id,))
+            conn.commit()
+            return jsonify({"ok": True})
+        try:
+            data = _tenant_write_payload(_json_payload(), require_slug=False)
+        except ValueError as exc:
+            return _error(str(exc))
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1 FROM plans WHERE code = %s", (data["plan_code"],))
+            if not cur.fetchone():
+                return _error(f"Plan '{data['plan_code']}' was not found.", 404)
+            cur.execute(
+                """
+                UPDATE tenants
+                SET name = %s,
+                    status = %s,
+                    plan_code = %s,
+                    updated_at = now()
+                WHERE id = %s
+                """,
+                (data["name"], data["status"], data["plan_code"], tenant_id),
+            )
+            if cur.rowcount == 0:
+                return _error("Tenant was not found.", 404)
+            cur.execute(
+                """
+                INSERT INTO subscriptions (
+                    tenant_id, plan_code, status, starts_at, ends_at,
+                    trial_ends_at, current_period_ends_at
+                )
+                VALUES (%s, %s, %s, COALESCE(%s::timestamptz, now()), %s, %s, %s)
+                ON CONFLICT (tenant_id) DO UPDATE
+                SET plan_code = EXCLUDED.plan_code,
+                    status = EXCLUDED.status,
+                    starts_at = EXCLUDED.starts_at,
+                    ends_at = EXCLUDED.ends_at,
+                    trial_ends_at = EXCLUDED.trial_ends_at,
+                    current_period_ends_at = EXCLUDED.current_period_ends_at,
+                    updated_at = now()
+                """,
+                (
+                    tenant_id,
+                    data["plan_code"],
+                    data["subscription_status"],
+                    data["starts_at"],
+                    data["ends_at"],
+                    data["trial_ends_at"],
+                    data["current_period_ends_at"],
+                ),
+            )
+        _audit(conn, tenant_id=tenant_id, action="tenant.updated", resource_type="tenant", resource_id=tenant_id)
+        conn.commit()
+    return jsonify({"ok": True})
 
 
 @api_v1.route("/admin/usage", methods=["GET"])
@@ -461,3 +1059,12 @@ for rule, view_func in (
     ("/portfolio", list_portfolio),
 ):
     api_v1_by_slug.add_url_rule(rule, view_func=view_func, methods=["GET"])
+
+for rule, view_func, methods in (
+    ("/tenant", update_tenant, ["PATCH"]),
+    ("/courses", create_course, ["POST"]),
+    ("/courses/<course_id>", mutate_course, ["PATCH", "DELETE"]),
+    ("/packages", create_package, ["POST"]),
+    ("/packages/<package_id>", mutate_package, ["PATCH", "DELETE"]),
+):
+    api_v1_by_slug.add_url_rule(rule, view_func=view_func, methods=methods)

@@ -247,6 +247,8 @@ CREATE TABLE IF NOT EXISTS subscriptions (
     tenant_id uuid NOT NULL UNIQUE REFERENCES tenants(id) ON DELETE CASCADE,
     plan_code text NOT NULL REFERENCES plans(code),
     status text NOT NULL CHECK (status IN ('trialing', 'active', 'past_due', 'paused', 'cancelled')),
+    starts_at timestamptz NOT NULL DEFAULT now(),
+    ends_at timestamptz,
     trial_ends_at timestamptz,
     current_period_ends_at timestamptz,
     external_customer_id text NOT NULL DEFAULT '',
@@ -269,3 +271,9 @@ VALUES
     ('studio', 'Studio', 99, 500, 8, 30720, '{"public_registration": true, "portfolio": true, "email_templates": true, "data_export": true}'::jsonb),
     ('growth', 'Growth', 199, 1500, 20, 102400, '{"public_registration": true, "portfolio": true, "email_templates": true, "data_export": true, "priority_support": true}'::jsonb)
 ON CONFLICT (code) DO NOTHING;
+
+ALTER TABLE subscriptions
+    ADD COLUMN IF NOT EXISTS starts_at timestamptz NOT NULL DEFAULT now();
+
+ALTER TABLE subscriptions
+    ADD COLUMN IF NOT EXISTS ends_at timestamptz;

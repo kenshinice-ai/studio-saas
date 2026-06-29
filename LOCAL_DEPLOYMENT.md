@@ -54,7 +54,16 @@ cd letspaint-cms-release
 STUDIOSAAS_DATABASE_URL=postgresql://llmacbookpro@localhost:5432/studiosaas_local_test \
 ../.venv/bin/python scripts/import_lets_paint_json.py \
   testdata/legacy_database_sample.json \
-  lets-paint-local-test
+  lets-paint-local-test \
+  "Let's Paint Studio"
+```
+
+Seed both local demo tenants, including `Let's Play Piano`:
+
+```bash
+cd letspaint-cms-release
+STUDIOSAAS_DATABASE_URL=postgresql://llmacbookpro@localhost:5432/studiosaas_local_test \
+../.venv/bin/python scripts/seed_local_test_tenants.py
 ```
 
 Verify imported records:
