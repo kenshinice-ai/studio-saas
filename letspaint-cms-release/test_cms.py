@@ -63,6 +63,10 @@ def multipart(path, fname, content, extra=None):
 # ── Seed an isolated instance in a temp dir ───────────────────────────────────
 tmp = tempfile.mkdtemp(prefix='cms_test_')
 shutil.copy2(os.path.join(HERE, 'server.py'), tmp)
+for dirname in ('studiosaas', 'frontend'):
+    src = os.path.join(HERE, dirname)
+    if os.path.isdir(src):
+        shutil.copytree(src, os.path.join(tmp, dirname))
 for page in ('index.html', 'register.html', 'manifest.json', 'manifest-student.json', 'sw.js',
              'icon-192.png', 'icon-512.png', 'apple-touch-icon.png', 'logo.png', 'logo-light.png'):
     p = os.path.join(HERE, page)

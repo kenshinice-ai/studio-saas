@@ -2,6 +2,7 @@ import json, os, re, shutil, socket, time, secrets, hashlib
 from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, send_from_directory, session
 from threading import Lock
+from studiosaas import api_v1
 
 # ── S4: Unified per-IP rate limiter (login / public upload / balance / token) ─
 # One dict per bucket; entries are swept periodically so memory never grows
@@ -56,6 +57,7 @@ def _register_ok():      return _rate_ok('register', 5, 60)   # P1: stop pending
 # Only explicit allowlist routes below may serve files (index/register/PWA/logo/icons).
 # This prevents accidental public access to database.json, .api_secret, .cms_config.json, backups, tests, etc.
 app = Flask(__name__, static_folder=None)
+app.register_blueprint(api_v1)
 PORT          = int(os.environ.get('PORT', 8000))   # overridable for tests
 APP_DIR       = os.path.dirname(os.path.abspath(__file__))
 # AWS/Linux friendly data separation:
@@ -569,6 +571,21 @@ def serve_index():
 @app.route('/register')
 def serve_register():
     return _public_file('register.html', 'text/html; charset=utf-8', 0)
+
+@app.route('/super-admin')
+def serve_super_admin():
+    return send_from_directory(os.path.join(app.root_path, 'frontend'),
+                               'super-admin.html')
+
+@app.route('/studio-admin')
+def serve_studio_admin():
+    return send_from_directory(os.path.join(app.root_path, 'frontend'),
+                               'studio-admin.html')
+
+@app.route('/parent-portal')
+def serve_parent_portal():
+    return send_from_directory(os.path.join(app.root_path, 'frontend'),
+                               'parent-portal.html')
 
 # ── G6: PWA assets (public — needed before login for install/icon) ───────────
 @app.route('/manifest.json')
