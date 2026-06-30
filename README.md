@@ -11,10 +11,15 @@ portfolio workflows.
 - Product blueprint: `StudioSaaS_MVP_Blueprint_v1.md`
 - PostgreSQL schema v1: `letspaint-cms-release/db/schema_v1.sql`
 - StudioSaaS API v1 foundation: `letspaint-cms-release/studiosaas/`
-- Frontend entry placeholders:
+- Platform dashboard:
+  - `/`
   - `/super-admin`
-  - `/studio-admin`
-  - `/parent-portal`
+- Tenant CMS routes:
+  - `/lets-paint-studio`
+  - `/lets-play-piano`
+  - `/<tenant_slug>/studio-admin`
+  - `/<tenant_slug>/register`
+- Routing and file layout: `TENANT_ROUTING_AND_STRUCTURE.md`
 
 ## Local Verification
 

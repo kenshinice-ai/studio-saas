@@ -24,6 +24,7 @@ from studiosaas.migration import (
     normalize_legacy_registration,
     normalize_legacy_student,
 )
+from studiosaas.workspaces import ensure_tenant_workspace
 
 
 def main(argv: list[str]) -> int:
@@ -55,6 +56,15 @@ def main(argv: list[str]) -> int:
                 (tenant_name, tenant_slug, "Imported from the original Let's Paint CMS."),
             )
             tenant_id = cur.fetchone()["id"]
+            workspace_path = ensure_tenant_workspace(ROOT, tenant_slug, tenant_name)
+            cur.execute(
+                """
+                UPDATE tenants
+                SET settings = jsonb_set(settings, '{workspace_path}', to_jsonb(%s::text), true)
+                WHERE id = %s
+                """,
+                (workspace_path, tenant_id),
+            )
             cur.execute(
                 """
                 INSERT INTO subscriptions (tenant_id, plan_code, status, starts_at, ends_at)

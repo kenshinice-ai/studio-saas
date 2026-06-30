@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, send_from_directory, session
 from threading import Lock
 from studiosaas import api_v1, api_v1_by_slug
+from studiosaas.workspaces import RESERVED_SLUGS, WorkspaceError, validate_tenant_slug
 
 # ── S4: Unified per-IP rate limiter (login / public upload / balance / token) ─
 # One dict per bucket; entries are swept periodically so memory never grows
@@ -567,7 +568,8 @@ def _public_file(filename, mimetype=None, cache_seconds=3600):
 
 @app.route('/')
 def serve_index():
-    return _public_file('index.html', 'text/html; charset=utf-8', 0)
+    return send_from_directory(os.path.join(app.root_path, 'platform'),
+                               'super-admin.html')
 
 @app.route('/register')
 def serve_register():
@@ -575,7 +577,7 @@ def serve_register():
 
 @app.route('/super-admin')
 def serve_super_admin():
-    return send_from_directory(os.path.join(app.root_path, 'frontend'),
+    return send_from_directory(os.path.join(app.root_path, 'platform'),
                                'super-admin.html')
 
 @app.route('/studio-admin')
@@ -587,6 +589,40 @@ def serve_studio_admin():
 def serve_parent_portal():
     return send_from_directory(os.path.join(app.root_path, 'frontend'),
                                'parent-portal.html')
+
+def _tenant_page(tenant_slug, filename):
+    try:
+        validate_tenant_slug(tenant_slug)
+    except WorkspaceError:
+        return jsonify({'error':'Not found'}), 404
+    tenant_dir = os.path.join(app.root_path, 'tenants', tenant_slug)
+    target = os.path.join(tenant_dir, filename)
+    if tenant_slug in RESERVED_SLUGS or not os.path.isfile(target):
+        return jsonify({'error':'Not found'}), 404
+    return send_from_directory(tenant_dir, filename)
+
+@app.route('/<tenant_slug>')
+@app.route('/<tenant_slug>/')
+def serve_tenant_cms(tenant_slug):
+    return _tenant_page(tenant_slug, 'index.html')
+
+@app.route('/<tenant_slug>/cms')
+def serve_tenant_cms_shell(tenant_slug):
+    try:
+        validate_tenant_slug(tenant_slug)
+    except WorkspaceError:
+        return jsonify({'error':'Not found'}), 404
+    if not os.path.isfile(os.path.join(app.root_path, 'tenants', tenant_slug, 'tenant.json')):
+        return jsonify({'error':'Not found'}), 404
+    return _public_file('index.html', 'text/html; charset=utf-8', 0)
+
+@app.route('/<tenant_slug>/studio-admin')
+def serve_tenant_studio_admin(tenant_slug):
+    return _tenant_page(tenant_slug, 'studio-admin.html')
+
+@app.route('/<tenant_slug>/register')
+def serve_tenant_register(tenant_slug):
+    return _tenant_page(tenant_slug, 'register.html')
 
 # ── G6: PWA assets (public — needed before login for install/icon) ───────────
 @app.route('/manifest.json')

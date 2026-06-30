@@ -3,7 +3,7 @@
 
 Creates two tenants from the legacy sample fixture:
 
-- `lets-paint-local-test` -> Let's Paint Studio
+- `lets-paint-studio` -> Let's Paint Studio
 - `lets-play-piano` -> Let's Play Piano
 """
 
@@ -31,9 +31,9 @@ def run_import(slug: str, name: str) -> None:
 def main() -> int:
     """Seed all local test tenants."""
 
-    run_import("lets-paint-local-test", "Let's Paint Studio")
+    run_import("lets-paint-studio", "Let's Paint Studio")
     run_import("lets-play-piano", "Let's Play Piano")
-    print("Seeded local tenants: lets-paint-local-test, lets-play-piano")
+    print("Seeded local tenants: lets-paint-studio, lets-play-piano")
     return 0
 
 

@@ -54,7 +54,7 @@ cd letspaint-cms-release
 STUDIOSAAS_DATABASE_URL=postgresql://llmacbookpro@localhost:5432/studiosaas_local_test \
 ../.venv/bin/python scripts/import_lets_paint_json.py \
   testdata/legacy_database_sample.json \
-  lets-paint-local-test \
+  lets-paint-studio \
   "Let's Paint Studio"
 ```
 
@@ -66,11 +66,11 @@ STUDIOSAAS_DATABASE_URL=postgresql://llmacbookpro@localhost:5432/studiosaas_loca
 ../.venv/bin/python scripts/seed_local_test_tenants.py
 ```
 
-Verify imported records:
+Verify imported records and workspace mapping:
 
 ```bash
 psql -h localhost -p 5432 -d studiosaas_local_test \
-  -c "select 'tenants' table_name, count(*) from tenants union all select 'students', count(*) from students union all select 'packages', count(*) from packages union all select 'registrations', count(*) from registrations union all select 'credit_transactions', count(*) from credit_transactions order by table_name;"
+  -c "select slug, name, settings->>'workspace_path' as workspace_path from tenants order by slug;"
 ```
 
 The import script is designed to be safe to rerun against the same tenant slug.
@@ -99,9 +99,13 @@ STUDIOSAAS_PUBLIC_BASE_DOMAIN=localhost \
 
 Open:
 
-- `http://localhost:8899`
+- `http://localhost:8899` - Super Admin dashboard
 - `http://localhost:8899/super-admin`
-- `http://localhost:8899/studio-admin`
+- `http://localhost:8899/lets-paint-studio` - Let's Paint Studio CMS
+- `http://localhost:8899/lets-play-piano` - Let's Play Piano CMS
+- `http://localhost:8899/lets-paint-studio/studio-admin`
+- `http://localhost:8899/lets-paint-studio/register`
+- `http://localhost:8899/studio-admin` - shared Studio Admin console
 - `http://localhost:8899/parent-portal`
 
 ## 6. API Checks
@@ -116,21 +120,21 @@ Tenant via header:
 
 ```bash
 curl -sS \
-  -H 'X-Tenant-Slug: lets-paint-local-test' \
+  -H 'X-Tenant-Slug: lets-paint-studio' \
   http://localhost:8899/v1/tenant/brand
 ```
 
 Tenant via slug path:
 
 ```bash
-curl -sS http://localhost:8899/s/lets-paint-local-test/v1/tenant/brand
+curl -sS http://localhost:8899/s/lets-paint-studio/v1/tenant/brand
 ```
 
 Tenant via subdomain-style Host header:
 
 ```bash
 curl -sS \
-  -H 'Host: lets-paint-local-test.localhost:8899' \
+  -H 'Host: lets-paint-studio.localhost:8899' \
   http://localhost:8899/v1/tenant/brand
 ```
 
@@ -138,7 +142,7 @@ Students:
 
 ```bash
 curl -sS \
-  -H 'X-Tenant-Slug: lets-paint-local-test' \
+  -H 'X-Tenant-Slug: lets-paint-studio' \
   http://localhost:8899/v1/students
 ```
 
@@ -148,7 +152,7 @@ Parent balance query:
 curl -sS \
   -H 'Content-Type: application/json' \
   -d '{"name":"Amy Wang","phone":"0412 345 678"}' \
-  http://localhost:8899/v1/public/lets-paint-local-test/balance-query
+  http://localhost:8899/v1/public/lets-paint-studio/balance-query
 ```
 
 ## 7. Troubleshooting

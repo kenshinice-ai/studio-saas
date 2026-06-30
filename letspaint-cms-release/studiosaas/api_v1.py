@@ -8,11 +8,12 @@ the single-studio JSON database.
 import json
 import re
 
-from flask import Blueprint, g, jsonify, request
+from flask import Blueprint, current_app, g, jsonify, request
 
 from .config import load_config
 from .db import DatabaseUnavailableError, connect, fetch_all, fetch_one
 from .tenant_context import TenantResolutionError, resolve_tenant, slug_from_request
+from .workspaces import WorkspaceError, ensure_tenant_workspace
 
 api_v1 = Blueprint("studiosaas_api_v1", __name__)
 api_v1_by_slug = Blueprint("studiosaas_api_v1_by_slug", __name__)
@@ -162,6 +163,15 @@ def _error(message: str, status: int = 400):
     """Return a consistent JSON error response."""
 
     return jsonify({"error": "invalid_request", "message": message}), status
+
+
+def _workspace_for(slug: str, name: str) -> str:
+    """Create tenant workspace files and return the relative path."""
+
+    try:
+        return ensure_tenant_workspace(current_app.root_path, slug, name)
+    except WorkspaceError as exc:
+        raise ValueError(str(exc)) from exc
 
 
 @api_v1.route("/health", methods=["GET"])
@@ -857,7 +867,9 @@ def admin_tenants():
                    COALESCE(u.storage_used_mb, 0) AS storage_used_mb,
                    s.status AS subscription_status,
                    s.starts_at, s.ends_at, s.trial_ends_at,
-                   s.current_period_ends_at, t.created_at
+                   s.current_period_ends_at,
+                   t.settings->>'workspace_path' AS workspace_path,
+                   t.created_at
             FROM tenants t
             LEFT JOIN tenant_usage u ON u.tenant_id = t.id
             LEFT JOIN subscriptions s ON s.tenant_id = t.id
@@ -881,6 +893,13 @@ def create_tenant():
             cur.execute("SELECT 1 FROM plans WHERE code = %s", (data["plan_code"],))
             if not cur.fetchone():
                 return _error(f"Plan '{data['plan_code']}' was not found.", 404)
+            cur.execute("SELECT 1 FROM tenants WHERE slug = %s", (data["slug"],))
+            if cur.fetchone():
+                return _error(f"Tenant slug '{data['slug']}' already exists.", 409)
+            try:
+                workspace_path = _workspace_for(data["slug"], data["name"])
+            except ValueError as exc:
+                return _error(str(exc))
             cur.execute(
                 """
                 INSERT INTO tenants (name, slug, status, plan_code, welcome_message)
@@ -896,6 +915,14 @@ def create_tenant():
                 ),
             )
             tenant_id = cur.fetchone()["id"]
+            cur.execute(
+                """
+                UPDATE tenants
+                SET settings = jsonb_set(settings, '{workspace_path}', to_jsonb(%s::text), true)
+                WHERE id = %s
+                """,
+                (workspace_path, tenant_id),
+            )
             cur.execute(
                 """
                 INSERT INTO subscriptions (
@@ -962,16 +989,24 @@ def mutate_tenant(tenant_id: str):
             cur.execute("SELECT 1 FROM plans WHERE code = %s", (data["plan_code"],))
             if not cur.fetchone():
                 return _error(f"Plan '{data['plan_code']}' was not found.", 404)
+            existing = fetch_one(conn, "SELECT slug FROM tenants WHERE id = %s", (tenant_id,))
+            if not existing:
+                return _error("Tenant was not found.", 404)
+            try:
+                workspace_path = _workspace_for(existing["slug"], data["name"])
+            except ValueError as exc:
+                return _error(str(exc))
             cur.execute(
                 """
                 UPDATE tenants
                 SET name = %s,
                     status = %s,
                     plan_code = %s,
+                    settings = jsonb_set(settings, '{workspace_path}', to_jsonb(%s::text), true),
                     updated_at = now()
                 WHERE id = %s
                 """,
-                (data["name"], data["status"], data["plan_code"], tenant_id),
+                (data["name"], data["status"], data["plan_code"], workspace_path, tenant_id),
             )
             if cur.rowcount == 0:
                 return _error("Tenant was not found.", 404)
