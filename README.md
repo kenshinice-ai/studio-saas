@@ -11,14 +11,23 @@ portfolio workflows.
 - Product blueprint: `StudioSaaS_MVP_Blueprint_v1.md`
 - PostgreSQL schema v1: `letspaint-cms-release/db/schema_v1.sql`
 - StudioSaaS API v1 foundation: `letspaint-cms-release/studiosaas/`
-- Platform dashboard:
+- Product root: `/Users/llmacbookpro/Documents/studiosaas/`
+- Backend/runtime package: `letspaint-cms-release/`
+- Platform dashboard at the project root:
   - `/`
   - `/super-admin`
+- Archived legacy single-tenant shells: `legacy-root/`
+- Tenant templates: `tenant-template/`
+- Generated tenant folders: `tenants/<tenant_slug>/`
+- Archived non-runtime references and clutter: `archive/`
+- File-level fallback checkpoints: `checkpoints/`
 - Tenant CMS routes:
   - `/lets-paint-studio`
   - `/lets-play-piano`
   - `/<tenant_slug>/studio-admin`
   - `/<tenant_slug>/register`
+- Root `/register` is intentionally closed; registration belongs to each tenant.
+- `/parent-portal` is temporarily removed from active routing.
 - Routing and file layout: `TENANT_ROUTING_AND_STRUCTURE.md`
 
 ## Local Verification
@@ -29,6 +38,16 @@ python3 test_cms.py
 ```
 
 The legacy smoke test remains the safety net while the SaaS layer is introduced.
+
+## Git Checkpoints
+
+The current Codex sandbox can edit project files but cannot write inside
+`.git/`, so `git add` and `git commit` fail when Git tries to create
+`.git/index.lock`. This is a filesystem permission boundary, not a stale lock
+file.
+
+Until `.git/` write access is available, fallback checkpoints are stored as
+patch and status files in `checkpoints/`.
 
 ## AWS Direction
 

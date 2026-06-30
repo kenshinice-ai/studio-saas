@@ -169,7 +169,7 @@ def _workspace_for(slug: str, name: str) -> str:
     """Create tenant workspace files and return the relative path."""
 
     try:
-        return ensure_tenant_workspace(current_app.root_path, slug, name)
+        return ensure_tenant_workspace(current_app.config["PROJECT_ROOT"], slug, name)
     except WorkspaceError as exc:
         raise ValueError(str(exc)) from exc
 

@@ -100,13 +100,17 @@ STUDIOSAAS_PUBLIC_BASE_DOMAIN=localhost \
 Open:
 
 - `http://localhost:8899` - Super Admin dashboard
-- `http://localhost:8899/super-admin`
+- `http://localhost:8899/super-admin` - Super Admin dashboard alias
 - `http://localhost:8899/lets-paint-studio` - Let's Paint Studio CMS
 - `http://localhost:8899/lets-play-piano` - Let's Play Piano CMS
 - `http://localhost:8899/lets-paint-studio/studio-admin`
 - `http://localhost:8899/lets-paint-studio/register`
 - `http://localhost:8899/studio-admin` - shared Studio Admin console
-- `http://localhost:8899/parent-portal`
+
+Do not use `http://localhost:8899/register`. Root registration is intentionally
+closed because each tenant has its own generated registration page.
+
+`/parent-portal` is temporarily removed from active routing.
 
 ## 6. API Checks
 

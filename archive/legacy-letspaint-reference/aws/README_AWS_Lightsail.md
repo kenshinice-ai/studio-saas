@@ -12,10 +12,11 @@ Private IPv4: 172.26.1.234
 Public IPv6: 2406:da1c:16b7:f000:a06d:9b7c:6e0e:f70f
 SSH username: ubuntu
 Browser URL: http://13.238.231.137/
-Student URL: http://13.238.231.137/register
+Student URL: http://13.238.231.137/<tenant_slug>/register
 ```
 
 > 已绑定 Lightsail Static IP：13.238.231.137。后续链接以 Static IP 为准。
+> StudioSaaS 重构后，根目录是 Super Admin；学员注册入口必须使用租户路径。
 
 ## 结论
 

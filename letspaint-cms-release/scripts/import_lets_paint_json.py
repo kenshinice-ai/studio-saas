@@ -11,9 +11,10 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+APP_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = APP_ROOT.parent
+if str(APP_ROOT) not in sys.path:
+    sys.path.insert(0, str(APP_ROOT))
 
 from studiosaas.db import connect
 from studiosaas.migration import (
@@ -56,7 +57,7 @@ def main(argv: list[str]) -> int:
                 (tenant_name, tenant_slug, "Imported from the original Let's Paint CMS."),
             )
             tenant_id = cur.fetchone()["id"]
-            workspace_path = ensure_tenant_workspace(ROOT, tenant_slug, tenant_name)
+            workspace_path = ensure_tenant_workspace(PROJECT_ROOT, tenant_slug, tenant_name)
             cur.execute(
                 """
                 UPDATE tenants

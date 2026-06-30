@@ -9,6 +9,7 @@ Platform routes:
 
 - `/` - Super Admin dashboard.
 - `/super-admin` - Super Admin dashboard alias.
+- `/register` - not a public page; registration must use a tenant URL.
 - `/v1/*` - platform and tenant API v1.
 
 Tenant routes:
@@ -31,17 +32,36 @@ Reserved slugs such as `api`, `v1`, `register`, `super-admin`, `studio-admin`,
 
 ## File Structure
 
-Platform files live here:
+The product root is:
 
 ```text
-letspaint-cms-release/platform/
+/Users/llmacbookpro/Documents/studiosaas/
+```
+
+Platform files live at the project root:
+
+```text
+/Users/llmacbookpro/Documents/studiosaas/
   super-admin.html
 ```
+
+Archived single-tenant shells live here:
+
+```text
+/Users/llmacbookpro/Documents/studiosaas/legacy-root/
+  index.html
+  register.html
+  super-admin-old.html
+```
+
+`legacy-root/index.html` and `legacy-root/register.html` are still used by
+tenant wrappers while the PostgreSQL-backed SaaS pages are being built. They
+are not exposed as root-level pages.
 
 Tenant templates live here:
 
 ```text
-letspaint-cms-release/tenant-template/
+/Users/llmacbookpro/Documents/studiosaas/tenant-template/
   index.html
   studio-admin.html
   register.html
@@ -50,11 +70,22 @@ letspaint-cms-release/tenant-template/
 Generated tenant workspaces live here:
 
 ```text
-letspaint-cms-release/tenants/<tenant_slug>/
+/Users/llmacbookpro/Documents/studiosaas/tenants/<tenant_slug>/
   index.html
   studio-admin.html
   register.html
   tenant.json
+```
+
+Backend/runtime files remain in:
+
+```text
+/Users/llmacbookpro/Documents/studiosaas/letspaint-cms-release/
+  server.py
+  studiosaas/
+  db/
+  scripts/
+  frontend/studio-admin.html
 ```
 
 When a tenant is created through the Super Admin API or imported through the
@@ -100,6 +131,21 @@ lets-play-piano   -> tenants/lets-play-piano
 This keeps the database normalized while still giving every customer an
 individual URL and folder.
 
+## Route to File Mapping
+
+| URL | File served | Tenant source |
+| --- | --- | --- |
+| `/` | `super-admin.html` | platform-wide |
+| `/super-admin` | `super-admin.html` | platform-wide |
+| `/register` | 404 JSON hint | none |
+| `/<tenant_slug>` | `tenants/<tenant_slug>/index.html` | `tenants.slug` |
+| `/<tenant_slug>/cms` | `legacy-root/index.html` | `tenants/<tenant_slug>/tenant.json` and `tenants.slug` |
+| `/<tenant_slug>/studio-admin` | `tenants/<tenant_slug>/studio-admin.html` | `tenants.slug` |
+| `/<tenant_slug>/register` | `tenants/<tenant_slug>/register.html` | `tenants.slug` |
+| `/_legacy/register` | `legacy-root/register.html` | tenant query parameter from wrapper |
+| `/v1/*` | API blueprint | header, host, or path tenant context |
+| `/s/<tenant_slug>/v1/*` | API blueprint | path tenant context |
+
 ## Tenant Creation Flow
 
 1. Super Admin creates tenant with name, slug, plan, status, and subscription dates.
@@ -113,7 +159,7 @@ The same workspace generation is used by `scripts/import_lets_paint_json.py`.
 
 ## Notes
 
-- `/parent-portal` is intentionally unchanged for now.
+- `/parent-portal` is temporarily removed from active routing.
 - The old Let’s Paint CMS is still available inside each tenant CMS wrapper.
 - The long-term direction is to move all tenant CMS behavior to PostgreSQL-backed
   `/v1` APIs and eventually retire the single JSON CMS database.

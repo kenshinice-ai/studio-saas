@@ -14,6 +14,7 @@ import urllib.request, urllib.error, http.cookiejar
 PORT = int(os.environ.get('TEST_PORT', 8765))
 BASE = f'http://127.0.0.1:{PORT}'
 HERE = os.path.dirname(os.path.abspath(__file__))
+PROJECT_HERE = os.path.dirname(HERE)
 
 # 1×1 valid PNG
 PNG = (b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01'
@@ -63,13 +64,17 @@ def multipart(path, fname, content, extra=None):
 # ── Seed an isolated instance in a temp dir ───────────────────────────────────
 tmp = tempfile.mkdtemp(prefix='cms_test_')
 shutil.copy2(os.path.join(HERE, 'server.py'), tmp)
-for dirname in ('studiosaas', 'frontend', 'platform', 'tenant-template', 'tenants'):
+for dirname in ('studiosaas', 'frontend'):
     src = os.path.join(HERE, dirname)
     if os.path.isdir(src):
         shutil.copytree(src, os.path.join(tmp, dirname))
-for page in ('index.html', 'register.html', 'manifest.json', 'manifest-student.json', 'sw.js',
+for dirname in ('legacy-root', 'tenant-template', 'tenants'):
+    src = os.path.join(PROJECT_HERE, dirname)
+    if os.path.isdir(src):
+        shutil.copytree(src, os.path.join(tmp, dirname))
+for page in ('super-admin.html', 'manifest.json', 'manifest-student.json', 'sw.js',
              'icon-192.png', 'icon-512.png', 'apple-touch-icon.png', 'logo.png', 'logo-light.png'):
-    p = os.path.join(HERE, page)
+    p = os.path.join(PROJECT_HERE if page == 'super-admin.html' else HERE, page)
     if os.path.exists(p): shutil.copy2(p, tmp)
 
 students = []
@@ -106,7 +111,7 @@ os.utime(os.path.join(tmp, 'photos', 'orphan_old.png'), (old, old))
 # iCloud-style conflict copy → server should print a loud warning
 shutil.copy2(os.path.join(tmp, 'database.json'), os.path.join(tmp, 'database 2.json'))
 
-env = dict(os.environ, PORT=str(PORT))
+env = dict(os.environ, PORT=str(PORT), STUDIOSAAS_PROJECT_ROOT=tmp)
 logf = open(os.path.join(tmp, 'server.log'), 'w')
 proc = subprocess.Popen([sys.executable, '-u', 'server.py'], cwd=tmp, env=env,
                         stdout=logf, stderr=subprocess.STDOUT)

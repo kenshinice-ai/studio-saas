@@ -15,8 +15,10 @@ Username: ubuntu
 
 ```text
 管理后台: http://13.238.231.137/
-学员入口: http://13.238.231.137/register
+学员入口: http://13.238.231.137/<tenant_slug>/register
 ```
+
+StudioSaaS 重构后，根目录是 Super Admin；每个租户都有自己的注册页。
 
 ## 如果之前已经用旧 IP 安装过
 

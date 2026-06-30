@@ -10,8 +10,10 @@ Private IPv4: 172.26.1.234
 Public IPv6: 2406:da1c:16b7:f000:a06d:9b7c:6e0e:f70f
 Username: ubuntu
 Admin URL: http://13.238.231.137/
-Student URL: http://13.238.231.137/register
+Student URL: http://13.238.231.137/<tenant_slug>/register
 ```
+
+StudioSaaS 重构后，根目录是 Super Admin；学员入口使用租户路径。
 
 ## 下一步建议
 

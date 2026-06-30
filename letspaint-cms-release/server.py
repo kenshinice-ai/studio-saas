@@ -62,6 +62,10 @@ app.register_blueprint(api_v1, url_prefix='/v1')
 app.register_blueprint(api_v1_by_slug, url_prefix='/s/<tenant_slug>/v1')
 PORT          = int(os.environ.get('PORT', 8000))   # overridable for tests
 APP_DIR       = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT  = os.environ.get('STUDIOSAAS_PROJECT_ROOT', '').strip() or os.path.dirname(APP_DIR)
+if not os.path.isabs(PROJECT_ROOT):
+    PROJECT_ROOT = os.path.abspath(os.path.join(APP_DIR, PROJECT_ROOT))
+app.config['PROJECT_ROOT'] = PROJECT_ROOT
 # AWS/Linux friendly data separation:
 #   - local/mac default: app directory, same behavior as before
 #   - AWS recommended:  CMS_DATA_DIR=/opt/letspaint-cms/data
@@ -554,13 +558,27 @@ def _rotate_backup():
 # Public static allowlist. Everything else in the project root is private by default.
 def _public_file(filename, mimetype=None, cache_seconds=3600):
     allowed = {
-        'index.html', 'register.html', 'manifest.json', 'sw.js',
+        'super-admin.html', 'manifest.json', 'sw.js',
         'logo.png', 'logo-light.png', 'icon-192.png', 'icon-512.png',
         'apple-touch-icon.png', 'manifest-student.json'
     }
-    if filename not in allowed or not os.path.isfile(filename):
+    base_dir = PROJECT_ROOT if filename == 'super-admin.html' else app.root_path
+    if filename not in allowed or not os.path.isfile(os.path.join(base_dir, filename)):
         return jsonify({'error':'Not found'}), 404
-    resp = send_from_directory(app.root_path, filename)
+    resp = send_from_directory(base_dir, filename)
+    if mimetype:
+        resp.headers['Content-Type'] = mimetype
+    resp.headers['Cache-Control'] = f'public, max-age={cache_seconds}'
+    return resp
+
+def _legacy_file(filename, mimetype=None, cache_seconds=0):
+    """Serve archived single-tenant shells only through explicit tenant routes."""
+    allowed = {'index.html', 'register.html'}
+    legacy_dir = os.path.join(PROJECT_ROOT, 'legacy-root')
+    target = os.path.join(legacy_dir, filename)
+    if filename not in allowed or not os.path.isfile(target):
+        return jsonify({'error':'Not found'}), 404
+    resp = send_from_directory(legacy_dir, filename)
     if mimetype:
         resp.headers['Content-Type'] = mimetype
     resp.headers['Cache-Control'] = f'public, max-age={cache_seconds}'
@@ -568,34 +586,31 @@ def _public_file(filename, mimetype=None, cache_seconds=3600):
 
 @app.route('/')
 def serve_index():
-    return send_from_directory(os.path.join(app.root_path, 'platform'),
-                               'super-admin.html')
+    return _public_file('super-admin.html', 'text/html; charset=utf-8', 0)
 
 @app.route('/register')
 def serve_register():
-    return _public_file('register.html', 'text/html; charset=utf-8', 0)
+    return jsonify({'error':'Use /<tenant_slug>/register for tenant registration.'}), 404
 
 @app.route('/super-admin')
 def serve_super_admin():
-    return send_from_directory(os.path.join(app.root_path, 'platform'),
-                               'super-admin.html')
+    return _public_file('super-admin.html', 'text/html; charset=utf-8', 0)
+
+@app.route('/_legacy/register')
+def serve_legacy_register():
+    return _legacy_file('register.html', 'text/html; charset=utf-8', 0)
 
 @app.route('/studio-admin')
 def serve_studio_admin():
     return send_from_directory(os.path.join(app.root_path, 'frontend'),
                                'studio-admin.html')
 
-@app.route('/parent-portal')
-def serve_parent_portal():
-    return send_from_directory(os.path.join(app.root_path, 'frontend'),
-                               'parent-portal.html')
-
 def _tenant_page(tenant_slug, filename):
     try:
         validate_tenant_slug(tenant_slug)
     except WorkspaceError:
         return jsonify({'error':'Not found'}), 404
-    tenant_dir = os.path.join(app.root_path, 'tenants', tenant_slug)
+    tenant_dir = os.path.join(PROJECT_ROOT, 'tenants', tenant_slug)
     target = os.path.join(tenant_dir, filename)
     if tenant_slug in RESERVED_SLUGS or not os.path.isfile(target):
         return jsonify({'error':'Not found'}), 404
@@ -612,9 +627,9 @@ def serve_tenant_cms_shell(tenant_slug):
         validate_tenant_slug(tenant_slug)
     except WorkspaceError:
         return jsonify({'error':'Not found'}), 404
-    if not os.path.isfile(os.path.join(app.root_path, 'tenants', tenant_slug, 'tenant.json')):
+    if not os.path.isfile(os.path.join(PROJECT_ROOT, 'tenants', tenant_slug, 'tenant.json')):
         return jsonify({'error':'Not found'}), 404
-    return _public_file('index.html', 'text/html; charset=utf-8', 0)
+    return _legacy_file('index.html', 'text/html; charset=utf-8', 0)
 
 @app.route('/<tenant_slug>/studio-admin')
 def serve_tenant_studio_admin(tenant_slug):
@@ -1444,9 +1459,10 @@ if __name__ == '__main__':
     print('\n' + '='*58)
     print("🎨  Let's Paint CMS — Server Online!")
     print('='*58)
-    print(f'  管理端    →  http://localhost:{PORT}  (需登录)')
+    print(f'  Super Admin →  http://localhost:{PORT}')
     print(f'  局域网    →  http://{lan}:{PORT}')
-    print(f'  学员注册  →  http://{lan}:{PORT}/register')
+    print(f'  租户 CMS  →  http://{lan}:{PORT}/<tenant_slug>')
+    print(f'  学员注册  →  http://{lan}:{PORT}/<tenant_slug>/register')
     print(f'  健康检查  →  http://localhost:{PORT}/api/ping')
     print(f'  数据目录  →  {DATA_DIR}')
     print(f'  数据库    →  {DB_FILE}')
