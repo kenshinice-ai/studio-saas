@@ -1,7 +1,7 @@
 # StudioSaaS API Reference
 
-Version: v2.0
-Date: 2026-07-02
+Version: v3.0
+Date: 2026-07-03
 Purpose: Complete API endpoint reference, authentication model, tenant resolution, and public endpoints.
 
 ---
@@ -59,6 +59,9 @@ Response:
 ```json
 {"ok": true, "userId": "...", "name": "...", "token": "..."}
 ```
+
+Password hashes are stored with PBKDF2-HMAC-SHA256. Legacy unsalted SHA-256
+user hashes are accepted only on successful login and are upgraded immediately.
 
 ### 3.2 Legacy CMS Login (per tenant)
 
@@ -221,7 +224,9 @@ curl -sS \
   http://localhost:8899/v1/public/lets-paint-studio/balance-query
 ```
 
-**Risk:** Currently public, not rate-limited in v1. Needs IP rate limiting and duplicate submission control.
+**Rate limiting (implemented, in-memory per process):** registrations 5/min/IP, balance-query 10/min/IP, registration media uploads 5/min/IP — all return 429 when exceeded. Limits reset on server restart (acceptable for pilot; Redis-backed limiter deferred to P3-04).
+
+**Remaining gap:** `/v1/auth/login` and legacy-login have **no** rate limiting and failed logins are not audited — tracked as **P0-05** in `codingprompt.md`.
 
 ---
 
@@ -237,6 +242,8 @@ The legacy CMS shell intercepts old `/api/data` and `/api/save` calls and rewrit
 ---
 
 ## 12. Route Protection Summary
+
+> **Audit caveat (2026-07-03):** `api_v1.py` + `server.py` expose ~114 routes but only 8 carry protection decorators; the rest rely on inline checks. The table below states the *intended* policy. A full route-by-route audit (intended vs actual) is task **P0-06** — its output will replace this caveat.
 
 | Category | Protected? | Auth Required |
 |---|---|---|

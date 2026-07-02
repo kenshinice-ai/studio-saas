@@ -235,3 +235,17 @@ After the Web SaaS stabilizes, build a teacher-side iOS App.
 **Product boundary:** Allow logo, colors, courses, fields, copy configuration. Do not write custom code per customer.
 
 This makes the system sellable, maintainable, and scalable.
+
+---
+
+## 10. Target Architecture Reference
+
+A v2 architecture overview (2026-07) defines the long-term technical north star: layered portals (CMS / Register / Parent / Teacher / Studio Admin / Super Admin), service modules (Auth, Tenant, User, Student, Course, Package, Attendance, Payment, Credit, Portfolio, CRM, Notification, Report, AI, File), shared infrastructure (Redis, S3, message queue, scheduler), and an extended data layer (read replicas, Elasticsearch, ClickHouse).
+
+Canonical Mermaid rendition and the phase-by-phase adoption policy: `docs/Architecture.md` §7. Summary of the policy:
+
+- **Now (pilot):** Flask modular monolith organised along the target module boundaries; local PostgreSQL; local media with S3-ready schema.
+- **Phase 3:** Docker/Nginx/CI, S3 media, payment and notification services.
+- **Phase 5:** heavy data infrastructure (Redis, replicas, search, analytics) — only if pilot scale demands it.
+
+The poster's simplified ER diagram is illustrative; `backend/db/schema_v1.sql` remains the schema source of truth.

@@ -1,7 +1,7 @@
 # Admin Guide
 
 > **StudioSaaS Platform Administration**
-> Last updated: 2026-07-02
+> Last updated: 2026-07-03
 
 ---
 
@@ -44,19 +44,23 @@
 
 3. **Configure environment:**
    ```bash
-   cp .env.example .env
-   # Edit .env with your settings
+   export STUDIOSAAS_DATABASE_URL="postgresql://<user>@localhost:5432/studiosaas_local_test"
+   export STUDIOSAAS_ENV="local"
+   export STUDIOSAAS_PORT="8899"
+   export STUDIOSAAS_SECRET_KEY="change-me"
    ```
 
 4. **Initialize database:**
    ```bash
-   psql "postgresql://<user>@localhost:5432/studiosaas" -f schema_v1.sql
+   createdb studiosaas_local_test
+   psql "$STUDIOSAAS_DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/db/schema_v1.sql
+   cd backend && python scripts/seed_super_admin.py
    ```
 
 5. **Start the server:**
    ```bash
-   PORT=8899 CMS_DATA_DIR=/var/lib/studiosaas/cms \
-   ../.venv/bin/python backend/server.py
+   ./start_studiosaas_local.sh
+   # or: cd backend && python server.py
    ```
 
 6. **Verify health:**
@@ -70,20 +74,21 @@
 
 ### Creating a New Tenant
 
-Via **Super-Admin Dashboard** (`/<tenant_slug>/studio-admin`):
+Via **Super-Admin Dashboard** (`/super-admin`):
 
 1. Click **"Add Tenant"**
 2. Fill in:
    - **Name:** Display name (e.g., "Academy of Art")
-   - **Slug:** URL identifier (e.g., "academy-of-art")
-   - **Plan:** Starter, Pro, or Enterprise
+   - **Slug:** URL identifier (e.g., "academy-of-art") — reserved slugs are rejected
+   - **Plan:** `starter`, `studio`, or `growth`
    - **Brand Colours:** Primary and secondary colours (hex codes)
 3. Click **"Create"**
 
-Via **API:**
+Via **API** (requires a super admin session cookie):
 
 ```bash
-curl -X POST http://localhost:8899/v1/tenants \
+curl -X POST http://localhost:8899/v1/admin/tenants \
+  -b /tmp/studiosaas.cookies \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Academy of Art",
@@ -102,22 +107,17 @@ curl -X POST http://localhost:8899/v1/tenants \
 4. Update fields as needed
 5. Click **"Save"**
 
-### Deactivating a Tenant
+### Pausing / Resuming a Tenant
 
 1. Find the tenant in Super-Admin Dashboard
-2. Click **"Deactivate"**
+2. Click **"Pause"** (or **"Resume"**)
 3. Confirm the action
 
-> **Note:** Deactivated tenants are hidden from public CMS but data is preserved.
+> **Note:** Paused tenants are hidden from public surfaces but data is preserved. Tenant lifecycle statuses: `trial`, `active`, `past_due`, `paused`, `cancelled` (see `docs/Database.md` §3).
 
 ### Deleting a Tenant
 
-> **Warning:** This is irreversible. Ensure backup is taken first.
-
-1. Navigate to Super-Admin Dashboard
-2. Find the tenant
-3. Click **"Delete"**
-4. Confirm by typing the tenant slug
+Hard delete is **not supported** in the current build — use `paused`/`cancelled` status instead. This is deliberate: no un-audited destructive operations on tenant data during the pilot.
 
 ---
 
@@ -125,25 +125,24 @@ curl -X POST http://localhost:8899/v1/tenants \
 
 ### URL Pattern
 
-`/<tenant_slug>/studio-admin` (e.g., `/super-admin/studio-admin`)
+`/super-admin` (also served at `/`)
 
 ### Features
 
 | Feature | Description |
 |---|---|
-| Tenant List | All active tenants with plan, status, page count |
-| Add Tenant | Create new tenant with branding |
-| Edit Tenant | Modify tenant details |
-| Deactivate | Hide tenant from public CMS |
-| Activate | Restore deactivated tenant |
-| Delete | Permanently remove tenant and data |
+| Tenant List | All tenants with plan, status, usage |
+| Add Tenant | Create new tenant with branding and optional studio admin account |
+| Edit Tenant | Modify tenant details, plan, subscription |
+| Pause / Resume | Toggle tenant availability without data loss |
+| Usage | Storage, student count, user count per tenant |
+| Audit Logs | Platform activity trail |
 | Search | Filter tenants by name or slug |
-| Sort | Click column headers to sort |
 
 ### Permissions
 
-- Only users with `super_admin` role can access
-- Regular tenants see only their own CMS
+- Only users with a `super_admin` membership can access
+- Studio admins see only their own tenant surfaces
 
 ---
 
@@ -309,7 +308,7 @@ tar -czf cms_backup_$(date +%Y%m%d_%H%M%S).tar.gz /var/lib/studiosaas/cms/
 
 ### Tenant Routing Issues
 
-1. Verify `TENANT_ROUTING_AND_STRUCTURE.md` URL patterns
+1. Verify URL patterns against `docs/Architecture.md` §2
 2. Check tenant exists in database: `SELECT * FROM tenants WHERE slug = '<slug>'`
 3. Confirm tenant status is `active`
 4. Clear any URL cache (if using CDN)
@@ -332,6 +331,9 @@ tar -czf cms_backup_$(date +%Y%m%d_%H%M%S).tar.gz /var/lib/studiosaas/cms/
 - **Restrict super-admin access** to known IP ranges
 - **Regular security audits** of dependencies
 - **Fail2ban** or similar for brute-force protection
+- **Password storage:** use the provided seed/reset scripts so user passwords are
+  stored with PBKDF2-HMAC-SHA256. Legacy unsalted SHA-256 user hashes are only
+  accepted for a successful login and are upgraded immediately.
 
 ### Incident Response
 

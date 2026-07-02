@@ -1,205 +1,247 @@
 # StudioSaaS
 
-A multi-tenant SaaS platform for creative studios (painting, music, gaming). Built with **Python/FastAPI**, **PostgreSQL**, and static HTML/CSS/JS.
+StudioSaaS is a multi-tenant Creative Studio Operating System for art schools, music studios, tutoring centres, creative academies, kids' activity providers, and small education businesses.
+
+It provides a lightweight SaaS-style platform for managing:
+
+- tenant websites and public registration forms
+- studio admin dashboards
+- students, registrations, courses, packages
+- credit (clock-hour) balances with ledger-style transactions
+- portfolio media and branding settings
+- platform-level tenant management
+
+**Status:** local-first pilot stage. Runs locally for development and pilot testing, with a deployment path towards AWS (managed PostgreSQL, S3 media, production WSGI).
 
 ---
 
-## Table of Contents
+## 1. Stack
 
-- [Quick Start](#quick-start)
-- [Architecture](#architecture)
-- [Documentation](#documentation)
-- [Project Structure](#project-structure)
-- [Default Credentials](#default-credentials)
-- [Verification](#verification)
-- [Roadmap](#roadmap)
+### Current (canonical)
+
+| Layer | Technology |
+|---|---|
+| Backend | Python 3.11+, Flask, Waitress |
+| Database | PostgreSQL 16+ (local), psycopg 3 |
+| Frontend | Vanilla HTML/CSS/JS, static tenant templates |
+| Auth | Session-based, role-based access control |
+| Media | Local file storage (`storage_provider` field reserved for S3) |
+
+This project does **not** currently use FastAPI, SQLAlchemy, Redis, or any microservice infrastructure.
+
+### Target (v2 vision)
+
+A target architecture (modular services: Auth/Tenant/Student/Course/Credit/Attendance/Portfolio/File/Notification/Report; Redis, S3, message queue, read replicas) is documented in `docs/Architecture.md` §7. **Adoption policy:** the current Flask monolith is organised along those module boundaries (modular monolith); heavier infrastructure is deferred to Roadmap Phase 3–5. Do not introduce it during the pilot.
 
 ---
 
-## Quick Start
+## 2. User Levels and URLs
 
-### Prerequisites
+| Level | Who | Main surface |
+|---|---|---|
+| Platform Operator | SaaS owner | `/super-admin` (also `/`) |
+| Studio Owner / Admin | One tenant studio | `/<tenant-slug>/studio-admin` |
+| Public Parent / Student | Visitors | `/<tenant-slug>`, `/<tenant-slug>/register` |
 
-- Python 3.11+
-- PostgreSQL 15+ (Homebrew on macOS)
-- Virtual environment (`.venv/`)
+Local URLs (default port 8899):
 
-### Setup
+```
+http://localhost:8899/super-admin
+http://localhost:8899/lets-paint-studio
+http://localhost:8899/lets-paint-studio/register
+http://localhost:8899/lets-paint-studio/studio-admin
+http://localhost:8899/s/lets-paint-studio/v1/tenant     # tenant-scoped API
+http://localhost:8899/v1/health
+```
+
+Root `/register` is intentionally closed (404) — registration belongs to tenants.
+
+---
+
+## 3. Project Structure
+
+```
+.
+├── README.md                     # This file
+├── codingprompt.md               # Prioritised task list P0→P3 (current sprint source of truth)
+├── START_STUDIOSAAS_LOCAL.command / start_studiosaas_local.sh
+├── super-admin.html              # Platform dashboard
+├── tenant-template/              # Template copied into tenants/<slug>/ on creation
+├── tenants/<slug>/               # Generated tenant workspaces
+├── legacy-root/                  # Transitional CMS/Register bridge shells
+├── docs/                         # Product, architecture, API, DB, QA, ops docs
+└── backend/                      # Canonical runtime
+    ├── server.py                 # Flask application (~1560 lines)
+    ├── requirements.txt
+    ├── pytest.ini
+    ├── db/schema_v1.sql          # Full schema (18 tables)
+    ├── studiosaas/
+    │   ├── api_v1.py             # All API routes (~4040 lines — split planned, P2-01)
+    │   ├── auth.py               # Auth helpers and decorators
+    │   ├── models.py             # Role/TenantStatus enums, contexts
+    │   ├── db.py / tenant_context.py / workspaces.py / audit.py / config.py / migration.py
+    ├── scripts/                  # Seed, import, verify scripts
+    ├── frontend/studio-admin.html
+    ├── test_cms.py               # Script-style smoke test (run with python, not pytest)
+    └── test_tenant_isolation.py  # Script-style isolation test
+```
+
+---
+
+## 4. Local Development Setup
+
+### 4.1 Requirements
+
+- Python 3.11+, PostgreSQL 16+ (Homebrew: 16/18 both fine), pip
+- macOS, Linux, or WSL-compatible shell
+
+### 4.2 Virtual environment
+
+The venv lives at the **project root** (`.venv/`), not inside `backend/`:
 
 ```bash
-# 1. Create and activate virtual environment
 python3 -m venv .venv
 source .venv/bin/activate
-
-# 2. Install dependencies
 pip install -r backend/requirements.txt
-
-# 3. Ensure local Postgres is running
-brew services start postgresql   # or: pg_ctl start
-
-# 4. Create database (if not exists)
-createdb studiosaas_local_test
-
-# 5. Run schema migrations
-cd backend
-STUDIOSAAS_DATABASE_URL=postgresql://llmacbookpro@localhost:5432/studiosaas_local_test \
-  python scripts/run_migrations.py
-
-# 6. Seed demo data (tenants, super admin, sample content)
-STUDIOSAAS_DATABASE_URL=postgresql://llmacbookpro@localhost:5432/studiosaas_local_test \
-  python scripts/seed_random_demo_data.py --students-per-tenant 24
-
-# 7. Start the server
-STUDIOSAAS_DATABASE_URL=postgresql://llmacbookpro@localhost:5432/studiosaas_local_test \
-  STUDIOSAAS_DATA_DIR=/tmp/studiosaas_cms_data \
-  PORT=8899 python backend/server.py
 ```
 
-### Verify
+### 4.3 Database bootstrap
+
+Local database name used throughout docs and scripts: `studiosaas_local_test`.
 
 ```bash
-# Health check
-curl -sS http://localhost:8899/v1/health
+createdb -h localhost -p 5432 studiosaas_local_test
+export STUDIOSAAS_DATABASE_URL="postgresql://$(whoami)@localhost:5432/studiosaas_local_test"
 
-# Pages (all 200)
-curl -sS -o /dev/null -w "%{http_code}" http://localhost:8899/
-curl -sS -o /dev/null -w "%{http_code}" http://localhost:8899/lets-paint-studio/cms
-curl -sS -o /dev/null -w "%{http_code}" http://localhost:8899/lets-paint-studio/register
+psql "$STUDIOSAAS_DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/db/schema_v1.sql
 ```
 
----
+> A migration runner (`backend/scripts/run_migrations.py` + `schema_migrations` table) is planned as task **P0-03** in `codingprompt.md`. Until it lands, `schema_v1.sql` is the single bootstrap path.
 
-## Architecture
-
-See [docs/Architecture.md](docs/Architecture.md) for full system diagrams, component descriptions, and data flow.
-
-**Key components:**
-
-- **`backend/server.py`** — FastAPI application entry point
-- **`backend/studiosaas/api_v1.py`** — All API routes (v1)
-- **`backend/studiosaas/auth.py`** — Authentication, session management, role checks
-- **`backend/db/schema_v1.sql`** — Database schema definition
-- **`super-admin.html`** — Platform-level admin interface
-- **`tenant-template/`** — Base template replicated per tenant
-- **`tenants/<slug>/`** — Tenant-specific static pages (CMS, register)
-- **`legacy-root/`** — Legacy root pages (migration residue)
-
----
-
-## Documentation
-
-All project documentation lives in [docs/](docs/):
-
-| Document | Purpose |
-|---|---|
-| [README.md](#readme) (this file) | Project overview and quick start |
-| [docs/StudioSaaS_Blueprint_v2.md](docs/StudioSaaS_Blueprint_v2.md) | Product vision, features, and business model |
-| [docs/Architecture.md](docs/Architecture.md) | System architecture and component diagrams |
-| [docs/Development_Roadmap.md](docs/Development_Roadmap.md) | Phased development plan (P0–P2) |
-| [docs/Current_Sprint.md](docs/Current_Sprint.md) | Active sprint tasks and blockers |
-| [docs/Design_System.md](docs/Design_System.md) | Brand colors, typography, UI components |
-| [docs/QA_Checklist.md](docs/QA_Checklist.md) | Pre-release verification checklist |
-| [docs/API.md](docs/API.md) | Complete API reference |
-| [docs/Database.md](docs/Database.md) | Schema reference and migration guide |
-| [docs/Admin_Guide.md](docs/Admin_Guide.md) | Super admin and tenant admin operations |
-
----
-
-## Project Structure
-
-```
-studiosaas/
-├── README.md                    # This file
-├── docs/                        # Documentation (single source of truth)
-│   ├── Architecture.md
-│   ├── API.md
-│   ├── Admin_Guide.md
-│   ├── Current_Sprint.md
-│   ├── Database.md
-│   ├── Design_System.md
-│   ├── Development_Roadmap.md
-│   ├── QA_Checklist.md
-│   └── StudioSaaS_Blueprint_v2.md
-├── docs/archive/                # Archived historical docs
-├── backend/
-│   ├── server.py                # FastAPI entry point
-│   ├── studiosaas/
-│   │   ├── api_v1.py            # All API routes
-│   │   └── auth.py              # Auth & role checks
-│   ├── db/
-│   │   └── schema_v1.sql        # Database schema
-│   └── scripts/                 # Migration & seed scripts
-├── super-admin.html             # Platform admin UI
-├── tenant-template/             # Per-tenant base template
-│   ├── index.html
-│   └── register.html
-├── tenants/                     # Tenant-specific pages
-│   ├── lets-paint-studio/
-│   ├── lets-play-piano/
-│   └── lets-play-game/
-└── legacy-root/                 # Legacy root pages
-```
-
----
-
-## Default Credentials (Local)
-
-### Super Admin
-
-| Field | Value |
-|---|---|
-| Email | `admin@studiosaas.local` |
-| Password | `admin123456` |
-
-Reset command:
+### 4.4 Seed local data
 
 ```bash
 cd backend
-STUDIOSAAS_DATABASE_URL=postgresql://llmacbookpro@localhost:5432/studiosaas_local_test \
-  python scripts/seed_super_admin.py --reset-password \
-    --email admin@studiosaas.local --password admin123456
+python scripts/seed_super_admin.py
+python scripts/seed_local_test_tenants.py
+python scripts/seed_random_demo_data.py --students-per-tenant 24   # optional
 ```
 
-### Studio Admin (Demo Tenants)
+### 4.5 Start the server
 
-| Tenant | Email | Password |
+```bash
+./start_studiosaas_local.sh          # from project root
+# or
+cd backend && python server.py
+```
+
+Server runs at `http://localhost:8899`.
+
+### 4.6 Default local credentials
+
+| Account | Email | Password |
 |---|---|---|
-| `lets-paint-studio` | `owner@lets-paint-studio.test` | `admin123456` |
-| `lets-play-piano` | `owner@lets-play-piano.test` | `admin123456` |
-| `lets-play-game` | `owner@lets-play-game.test` | `admin123456` |
+| Super Admin | `admin@studiosaas.local` | `admin123456` |
+| Studio owner (per demo tenant) | `owner@<slug>.test` | `admin123456` |
 
 ---
 
-## Verification
+## 5. Environment Variables
 
 ```bash
-# Full verification script
+export STUDIOSAAS_DATABASE_URL="postgresql://localhost/studiosaas_local_test"
+export STUDIOSAAS_ENV="local"
+export STUDIOSAAS_PORT="8899"
+export STUDIOSAAS_SECRET_KEY="local-dev-secret-change-me"
+export STUDIOSAAS_MEDIA_ROOT="./media"
+```
+
+Production must not rely on local secret files (`backend/.api_secret`, `backend/.cms_password` are local-only and git-ignored).
+
+---
+
+## 6. Canonical Enums (as enforced by the database today)
+
+These are the values the schema actually CHECKs. Code, seeds, UI, and docs must match them. Extensions (e.g. `archived` tenant status, richer media visibility) go through migration files — see `codingprompt.md` P0-01/P0-07.
+
+| Concept | Where | Values |
+|---|---|---|
+| Membership role | `memberships.role` | `super_admin`, `owner`, `staff`, `parent` |
+| Tenant status | `tenants.status` | `trial`, `active`, `past_due`, `paused`, `cancelled` |
+| Subscription status | `subscriptions.status` | `trialing`, `active`, `past_due`, `paused`, `cancelled` |
+| Credit transaction | `credit_transactions.transaction_type` | `purchase`, `consume`, `adjustment`, `refund`, `expire`, `migration` |
+| Registration status | `registrations.status` | `pending`, `approved`, `rejected`, `duplicate`, `contacted`, `archived` |
+| Media visibility | `media_assets.visibility` | `private`, `public_token` |
+
+**Note:** `users` has **no role column** — roles live on `memberships` (user × tenant). The Python `Role` enum currently contains extra values (`platform_super_admin`, `admin`) that the database rejects; unifying this is task **P0-01**.
+
+---
+
+## 7. Testing and Verification
+
+```bash
+# Syntax check (from project root)
+python3 -m py_compile backend/server.py backend/studiosaas/*.py backend/scripts/*.py
+
+# Script-style smoke tests (run with python, NOT pytest)
+cd backend
+../.venv/bin/python test_cms.py                 # expected: 73 checks passing
+../.venv/bin/python test_tenant_isolation.py
+
+# Full local verification
 bash backend/scripts/verify_local.sh
+```
 
-# Syntax check
-python3 -m py_compile backend/server.py backend/studiosaas/*.py backend/scripts/*.py backend/test_cms.py
+> `pytest -q` is currently **broken** (pytest not installed, duplicate key in pytest.ini, missing `backend/tests/`). Fixing it is task **P0-02** in `codingprompt.md`.
 
-# Legacy CMS smoke test (expected: 73 passing)
-cd backend && ../.venv/bin/python test_cms.py
+Manual checks with the server running:
 
-# API health
+```bash
 curl -sS http://localhost:8899/v1/health
-
-# Auth flow test (see docs/Admin_Guide.md for full sequence)
+curl -i -X POST http://localhost:8899/v1/admin/tenants \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"Bad","slug":"bad","planCode":"starter"}'   # must be 401/403
 ```
 
 ---
 
-## Roadmap
+## 8. Security Baseline
 
-See [docs/Development_Roadmap.md](docs/Development_Roadmap.md) for the full phased plan including:
-
-- **P0** — Critical fixes (route protection, schema mismatches, runtime errors)
-- **P1** — Important fixes (tenant isolation, migrations, media upload)
-- **P2** — Improvements (code splitting, test suite, documentation)
+- All admin mutation routes require authentication; tenant routes enforce membership; platform routes require super admin.
+- Public endpoints (registration, balance query, uploads) are IP rate-limited (in-memory, per-process). Login rate limiting is pending (**P0-05**).
+- Uploads validate extension/MIME/size; media is tenant-scoped; no path traversal.
+- Passwords: PBKDF2-HMAC-SHA256; legacy unsalted SHA-256 hashes are accepted once on successful login, then upgraded in place.
+- Secrets are never committed; see `.gitignore`.
+- Cross-tenant access must always fail — covered by `test_tenant_isolation.py`.
 
 ---
 
-## Archived Documentation
+## 9. Documentation Index
 
-Historical documents, fix records, and sprint retrospectives are archived in [docs/archive/](docs/archive/). These are preserved for reference but are not the single source of truth.
+| Document | Content |
+|---|---|
+| `codingprompt.md` | **Prioritised task list P0→P3 — start here for what to work on** |
+| `docs/Current_Sprint.md` | Status tracking for the task list, verification commands, credentials |
+| `docs/StudioSaaS_Blueprint_v2.md` | Product vision, market, pricing, MVP acceptance criteria |
+| `docs/Architecture.md` | Current architecture + target architecture (v2 vision) |
+| `docs/API.md` | Endpoint reference, auth model, route protection |
+| `docs/Database.md` | Schema reference, canonical enums, migration strategy |
+| `docs/Development_Roadmap.md` | Phases 0–5, target-stack adoption mapping |
+| `docs/QA_Checklist.md` | Pre-release checklist |
+| `docs/Admin_Guide.md` | Platform ops: setup, backup, troubleshooting |
+| `docs/Design_System.md` | UI tokens and component standards |
+
+---
+
+## 10. Project Philosophy
+
+**Clarity creates trust.**
+
+- For studio owners, daily operations get simpler.
+- For parents, registration feels clear and reassuring.
+- For platform operators, tenant management stays controlled and auditable.
+- For developers, the codebase gets easier to understand after every sprint.
+
+The product grows from a working local CMS → stable multi-tenant pilot platform → polished creative studio SaaS, without losing data integrity, tenant isolation, or operational clarity.
+
+Do not add payments, complex billing, or enterprise features before pilot data safety and tenant isolation are stable.

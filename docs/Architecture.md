@@ -1,12 +1,12 @@
 # StudioSaaS Architecture
 
-Version: v2.0
-Date: 2026-07-02
-Purpose: System architecture, routing model, file layout, data flow, and integration points.
+Version: v3.0
+Date: 2026-07-03
+Purpose: Current system architecture, routing model, file layout, data flow — plus the target architecture (v2 vision) and its adoption policy.
 
 ---
 
-## 1. System Architecture
+## 1. Current System Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -91,34 +91,42 @@ Purpose: System architecture, routing model, file layout, data flow, and integra
 
 ```
 studiosaas/
-├── super-admin.html              # Platform dashboard (root)
+├── super-admin.html              # Platform dashboard (~1685 lines)
 ├── start_studiosaas_local.sh     # Local startup script
 ├── START_STUDIOSAAS_LOCAL.command # macOS double-click launcher
 │
 ├── backend/                      # Canonical runtime
-│   ├── server.py                 # Flask application
+│   ├── server.py                 # Flask application (~1560 lines)
 │   ├── studiosaas/
-│   │   ├── api_v1.py             # All API routes (~2200 lines)
-│   │   ├── auth.py               # Auth helpers (placeholder)
+│   │   ├── api_v1.py             # All API routes (~4040 lines — split planned, P2-01)
+│   │   ├── auth.py               # Auth helpers, decorators (super_admin_required etc.)
+│   │   ├── models.py             # Role/TenantStatus enums, Tenant/Actor contexts
+│   │   ├── audit.py              # Audit log writer
+│   │   ├── config.py             # Environment configuration
 │   │   ├── db.py                 # Database connection
+│   │   ├── migration.py          # Legacy data migration helpers
 │   │   ├── tenant_context.py     # Tenant resolution
 │   │   └── workspaces.py         # Tenant folder generation
 │   ├── db/
-│   │   └── schema_v1.sql         # Full schema definition
+│   │   └── schema_v1.sql         # Full schema definition (18 tables)
 │   ├── scripts/
-│   │   ├── seed_super_admin.py   # Super Admin seed script
+│   │   ├── seed_super_admin.py
 │   │   ├── seed_local_test_tenants.py
 │   │   ├── seed_random_demo_data.py
 │   │   ├── import_lets_paint_json.py
-│   │   └── verify_local.sh       # Verification script
+│   │   ├── migrate_legacy_media.py
+│   │   └── verify_local.sh
 │   ├── frontend/
-│   │   └── studio-admin.html     # Shared Studio Admin page
-│   ├── test_cms.py               # Legacy smoke test (73 checks)
+│   │   └── studio-admin.html     # Shared Studio Admin page (~2426 lines)
+│   ├── vendor/                   # react/babel/tailwind runtime bundles (P2-03: prebuild)
+│   ├── test_cms.py               # Legacy smoke test (73 checks, script-style)
+│   ├── test_tenant_isolation.py  # Isolation test (script-style)
+│   ├── pytest.ini
 │   └── requirements.txt
 │
 ├── legacy-root/                  # Bridge layer (transitional)
-│   ├── index.html                # CMS shell with request bridge
-│   └── register.html             # Register shell with request bridge
+│   ├── index.html                # CMS shell with request bridge (~3668 lines)
+│   └── register.html             # Register shell with request bridge (~797 lines)
 │
 ├── tenant-template/              # Template for new tenants
 │   ├── index.html
@@ -127,17 +135,13 @@ studiosaas/
 │
 ├── tenants/                      # Generated tenant workspaces
 │   ├── lets-paint-studio/
-│   │   ├── index.html
-│   │   ├── studio-admin.html
-│   │   ├── register.html
-│   │   └── tenant.json
 │   ├── lets-play-piano/
 │   └── lets-play-game/
 ```
 
 ### 3.1 Directory Strategy
 
-- `backend/` is the canonical runtime. The previous `letspaint-cms-release/` tree has been superseded.
+- `backend/` is the canonical runtime. The previous `letspaint-cms-release/` tree has been removed (2026-07-03, intentional).
 - `legacy-root/` is a runtime bridge, not an archive. Tenant wrappers use it to host the old CMS/Register UI while request interception routes data into tenant-scoped PostgreSQL APIs.
 - `tenant-template/` is the template source. When a tenant is created, StudioSaaS copies these files into `tenants/<slug>/` and renders `{{TENANT_SLUG}}` and `{{TENANT_NAME}}`.
 - `tenants/<slug>/` are generated workspaces, one per tenant.
@@ -194,37 +198,122 @@ The legacy Register shell (`legacy-root/register.html`) intercepts `/api/registe
 |---|---|
 | PostgreSQL (local) | Homebrew PostgreSQL 16+/18, database `studiosaas_local_test` |
 | PostgreSQL (AWS) | RDS PostgreSQL — future production |
-| S3 | Media and portfolio storage — future production |
+| S3 | Media and portfolio storage — future (`media_assets.storage_provider` reserved) |
 | CloudFront | CDN for public assets and portfolio — future |
 | SES | Email delivery — future |
 | Secrets Manager / SSM | Environment variables and secrets — future |
 
 ---
 
-## 6. Known Risks and Weak Points
+## 6. Known Risks and Weak Points (verified 2026-07-03)
 
 | Area | Issue | Priority |
 |---|---|---|
-| Auth | `auth.py` is mostly a placeholder; v1 route protection not fully wired | P0 |
-| Admin API | Super Admin and Studio Admin mutations lack role checks on some routes | P0 |
-| DB integrity | Some app-level assumptions are not enforced by schema constraints | P1 |
-| Runtime bugs | Several v1 POST endpoints use tuple indexing on dict rows | P0 |
-| Credit logic | API transaction names do not match schema CHECK values | P0 |
-| Privacy | Parent balance query is public, not rate-limited in v1 | P0 |
-| Legacy residue | `legacy-root/` still has visible "Let's Paint" strings | P1 |
-| Repository hygiene | `.api_secret`, `.cms_password` must be in `.gitignore` | P0 |
-| Code size | `api_v1.py` is 2200+ lines — should be split before unmaintainable | P2 |
+| Roles | Schema CHECK, Python Role enum, auth queries, and seeds disagree; `platform_super_admin`/`admin` cannot exist in DB; seed touches nonexistent `memberships.updated_at` | P0-01 |
+| Testing | `pytest -q` broken: pytest not installed, duplicate key in pytest.ini, `backend/tests/` missing | P0-02 |
+| Migrations | No migration runner; `schema_v1.sql` is both bootstrap and patch history | P0-03 |
+| Auth | Login has no rate limiting; failed logins not audited | P0-05 |
+| Route protection | ~114 routes, only 8 protection decorators; coverage unaudited | P0-06 |
+| Enums | Tenant status lacks `archived`; `trial` vs `trialing`; media visibility only 2 values | P0-07 |
+| Attendance | `attendance_sessions` table has zero references in `api_v1.py` — credits/attendance loop unimplemented | P1-05 |
+| Legacy residue | `sw.js` still branded "Let's Paint CMS" with platform-level icon cache | P2-02 |
+| Code size | `api_v1.py` is ~4040 lines — split along target module boundaries | P2-01 |
+| Vendor JS | Runtime Babel/Tailwind compilation in browser | P2-03 |
 
-Full risk assessment: see `docs/archive/StudioSaaS_Code_Review_Bug_Risk_Scan_v1.md`.
+Resolved since last revision: public endpoint rate limiting (in-memory), dict_row indexing bugs, portfolio DELETE mapping, credit account ON CONFLICT key, `.gitignore` baseline, HTML branding residue.
 
 ---
 
-## 7. Future Architecture Goals
+## 7. Target Architecture (v2 Vision)
 
-- Split `api_v1.py` into modular route files (`routes/`, `services/`).
-- Add migration runner (`backend/db/migrations/`).
-- Add v1 media upload endpoint for portfolio assets.
-- Add browser automation smoke tests (Playwright/Selenium).
+Source: StudioSaaS v2 架构总览 (2026-07). This is the **north star**, not the current state. The diagrams below are the canonical Mermaid rendition.
+
+### 7.1 System Overview (target)
+
+```mermaid
+flowchart TD
+    subgraph Users
+        V[Visitor] --- P[Parent] --- St[Student] --- T[Teacher] --- O[Studio Owner] --- SA[Super Admin]
+    end
+    subgraph Frontend [Frontend Web / Mobile]
+        CMS[Studio CMS] --- REG[Register Portal] --- PP[Parent Portal] --- TP[Teacher Portal] --- SAD[Studio Admin] --- SUP[Super Admin UI]
+    end
+    GW[API Gateway / Nginx]
+    subgraph Services [Backend Services]
+        AUTH[Auth] --- TEN[Tenant] --- USR[User] --- STU[Student] --- CRS[Course]
+        PKG[Package] --- ATT[Attendance] --- PAY[Payment] --- CRD[Credit] --- PF[Portfolio]
+        CRM[CRM] --- NOT[Notification] --- RPT[Report] --- AI[AI] --- FILE[File]
+    end
+    subgraph Shared [Shared Services]
+        REDIS[(Redis)] --- S3[(MinIO / S3)] --- MQ[Message Queue] --- SCH[Scheduler] --- AUD[Audit Log]
+    end
+    subgraph Data [Data Layer]
+        PG[(PostgreSQL)] --- RR[(Read Replicas)] --- ES[(Elasticsearch)] --- CH[(ClickHouse)]
+    end
+    Users --> Frontend --> GW --> Services --> Data
+    Services -.-> Shared
+```
+
+### 7.2 Module Dependencies (target)
+
+```mermaid
+flowchart TD
+    AUTH[Auth Service] --> TEN[Tenant Service]
+    AUTH --> USR[User Service]
+    TEN --> STU[Student Service]
+    TEN --> CRS[Course Service]
+    USR --> STU
+    USR --> PKG[Package Service]
+    CRS --> ATT[Attendance Service]
+    CRS --> CRD[Credit Service]
+    PKG --> PAY[Payment Service]
+    PKG --> PF[Portfolio Service]
+    STU --> ATT
+    STU --> CRM[CRM Service]
+    PAY --> NOT[Notification Service]
+    CRD --> RPT[Report Service]
+    PF --> FILE[File Service]
+    CRM --> AI[AI Service]
+```
+
+### 7.3 Key Business Flows (target — partially implemented)
+
+```mermaid
+flowchart LR
+    A[Public Register] --> B[Registration Created] --> C[Studio Review] --> D{Approve?}
+    D -- Yes --> E[Create Student]
+    D -- No --> F[Archive]
+```
+
+```mermaid
+flowchart LR
+    G[Student Buys Package] --> H[Payment Success] --> I[Add Credits] --> J[Use Credits] --> K[Attend Class]
+```
+
+Flow 1 is partially implemented (registrations table + statuses exist; conversion UX is P1-04). Flow 2 is largely unimplemented past "Add Credits" — `attendance_sessions` is unused (P1-05); Payment is deferred (P3-05).
+
+### 7.4 Adoption Policy (what to take now vs later)
+
+| Target element | Adoption | When |
+|---|---|---|
+| Module boundaries (Auth/Tenant/Student/…​) | **Adopt now** as internal package structure of the Flask monolith | P2-01 split |
+| File Service (central media handling) | **Adopt now** as a media service module | P1-03 |
+| Attendance + Credit closed loop | **Adopt now** at business-logic level | P1-05 |
+| Nginx reverse proxy, Docker, CI | Adopt at staging prep | P3-02 |
+| S3/MinIO object storage | Adopt via `storage_provider` branch | P3-03 |
+| Redis, read replicas, Elasticsearch, ClickHouse, MQ, Scheduler | **Do not introduce during pilot** | P3-04 / Phase 5 |
+| Payment, CRM, Notification, Report, AI services | Deferred, pilot-feedback driven | P3-05 / Phase 3+ |
+| FastAPI + SQLAlchemy (poster tech stack) | **Not adopted** — staying on Flask + psycopg through pilot; revisit at Phase 3 | Decision log 2026-07-03 |
+| Poster ER diagram (e.g. `users.role`) | **Not canonical** — actual schema keeps roles on `memberships`; `backend/db/schema_v1.sql` wins | — |
+
+---
+
+## 8. Future Architecture Goals
+
+- Split `api_v1.py` into modular route files (`routes/`, `services/`) along §7.2 boundaries.
+- Add migration runner (`backend/db/migrations/`, P0-03).
+- Add v1 media upload endpoint for portfolio assets (P1-03).
+- Add browser automation smoke tests (Playwright, P1-06).
 - Replace legacy bridge with modern frontend build.
 - Migrate from local PostgreSQL to RDS, local files to S3.
 - Add support mode with audit trail for platform staff accessing tenant data.

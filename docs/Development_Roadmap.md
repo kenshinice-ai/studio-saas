@@ -1,7 +1,7 @@
 # StudioSaaS Development Roadmap
 
-Version: v2.0
-Date: 2026-07-02
+Version: v3.0
+Date: 2026-07-03
 Purpose: Phased development plan, milestones, current status, and deployment targets.
 
 ---
@@ -48,7 +48,7 @@ Purpose: Phased development plan, milestones, current status, and deployment tar
 - Basic backup and export
 - Basic permission controls
 
-**Current Status (as of 2026-07-02):**
+**Current Status (verified 2026-07-03):**
 
 | Feature | Status | Notes |
 |---|---|---|
@@ -62,14 +62,17 @@ Purpose: Phased development plan, milestones, current status, and deployment tar
 | Brand sync (Studio Admin → CMS) | ✅ | Logo, colors, welcome, industry |
 | Demo data seeding | ✅ | Randomized relational data |
 | Legacy smoke test | ✅ | 73 checks passing |
-| Auth login | ⚠️ | Bug fixed, needs full testing |
-| Route protection | ⚠️ | Partially wired, needs hardening |
-| Credit transaction alignment | ⚠️ | Schema/code mismatch being fixed |
-| dict_row indexing bugs | ⚠️ | Several endpoints affected |
-| Public endpoint rate limiting | ❌ | Not yet implemented |
-| Media upload endpoint (v1) | ❌ | Future — only legacy upload exists |
-| Browser smoke tests | ❌ | Future — Playwright/Selenium |
-| Migration runner | ❌ | Future — incremental migrations |
+| Public endpoint rate limiting | ✅ | In-memory: registrations 5/min, balance 10/min, uploads 5/min |
+| dict_row indexing bugs | ✅ | No tuple indexing remains in `api_v1.py` |
+| Credit transaction alignment | ✅ | `(tenant_id, student_id, course_id)` conflict key in use |
+| Role model consistency | ❌ | Schema/enum/auth/seed disagree — P0-01 |
+| pytest infrastructure | ❌ | Not installed, broken ini, missing tests/ — P0-02 |
+| Migration runner | ❌ | P0-03 |
+| Login rate limiting | ❌ | P0-05 |
+| Route protection audit | ⚠️ | ~114 routes / 8 decorators — P0-06 |
+| Attendance / credits closed loop | ❌ | `attendance_sessions` unused — P1-05 |
+| Media upload endpoint (v1) | ❌ | Only legacy upload exists — P1-03 |
+| Browser smoke tests | ❌ | Playwright — P1-06 |
 
 ---
 
@@ -151,7 +154,22 @@ Purpose: Phased development plan, milestones, current status, and deployment tar
 
 ## 8. Current Sprint Priorities
 
-See `docs/Current_Sprint.md` for active tasks, P0 priorities, and verification commands.
+See `codingprompt.md` (task definitions) and `docs/Current_Sprint.md` (status tracking) for active tasks, P0 priorities, and verification commands.
+
+## 8.1 Target Architecture Adoption Mapping
+
+The v2 architecture poster (see `docs/Architecture.md` §7) maps onto phases as follows:
+
+| Target element | Phase |
+|---|---|
+| Module boundaries as internal package structure (modular monolith) | Phase 1–2 (P2-01) |
+| Central media/File service | Phase 1 (P1-03) |
+| Attendance + credit closed loop | Phase 1 (P1-05) |
+| Docker, Nginx, GitHub Actions CI | Phase 3 (P3-02) |
+| S3/MinIO object storage | Phase 3 (P3-03) |
+| Payment (Stripe), Notification (SES), CRM, Report services | Phase 3–5 (P3-05) |
+| Redis, read replicas, Elasticsearch, ClickHouse, MQ, Scheduler | Phase 5 (P3-04) — not during pilot |
+| FastAPI + SQLAlchemy rewrite | Not planned — staying on Flask + psycopg through pilot |
 
 ## 9. Do-Not-Prioritize (Current Phase)
 
@@ -173,3 +191,6 @@ See `docs/Current_Sprint.md` for active tasks, P0 priorities, and verification c
 | 2026-07-01 | Add industry presets | Per-tenant branding customization |
 | 2026-07-02 | Studio Admin and CMS share login | Unified tenant owner account |
 | 2026-07-02 | Semi-service SaaS model | Easier early sales + customer onboarding |
+| 2026-07-03 | Delete `docs/archive/` and `letspaint-cms-release/` | Single source of truth refactor; git history retains them |
+| 2026-07-03 | Adopt v2 architecture poster as north star, modular-monolith first | Module boundaries now, heavy infra deferred |
+| 2026-07-03 | Stay on Flask + psycopg through pilot (no FastAPI rewrite) | Stability over rewrite; revisit at Phase 3 |

@@ -1,142 +1,121 @@
 # StudioSaaS Current Sprint
 
-Version: v2.0
-Date: 2026-07-02
-Purpose: Active tasks, P0 priorities, verification commands, and go/no-go criteria for the current development cycle.
+Version: v3.0
+Date: 2026-07-03
+Purpose: Status tracking for the prioritised task list in `codingprompt.md` (same numbering), verification commands, credentials, and go/no-go criteria.
+
+> Task definitions (problem/evidence/fix/verify) live in `codingprompt.md`. This file tracks **status only**. Update it after each completed task.
 
 ---
 
 ## 1. Sprint Overview
 
 **Current Status:** Phase 1 — SaaS MVP (In Progress)
-**Focus:** Stabilize tenant safety, fix critical bugs, add test coverage, prepare for pilot deployment.
+**Focus:** Data consistency (roles/enums), test infrastructure, migration runner, auth hardening — before any visual polish.
 
 **Key principle:** Do not add features before tenant isolation, upload security, auth roles, backup/restore, and browser smoke testing are solid.
 
 ---
 
-## 2. P0 Critical Fixes (Highest Priority)
+## 2. Verified Fixed (2026-07-03 code-level audit)
 
-### P0-01 — Auth Login Bug
+These items from earlier sprint docs are confirmed done — do not re-fix:
 
-**File:** `backend/studiosaas/api_v1.py:1916-1921`
-**Issue:** Login query does not select `password_hash`, but code reads `user["password_hash"]`. Runtime error on successful lookup.
-**Impact:** `/v1/auth/login` cannot work. Studio Admin/Super Admin cannot be secured.
-**Fix:** Include `password_hash` in SELECT query. Seed local admin user. Add rate limiting.
-**Status:** ✅ Fixed (code-level), needs full testing.
-
-### P0-02 — Route Protection
-
-**Files:** `backend/studiosaas/auth.py`, `backend/studiosaas/api_v1.py`
-**Issue:** Super Admin and Studio Admin mutations callable without role check.
-**Impact:** Unauthenticated mutation of platform and tenant data.
-**Fix:** Implement `require_login`, `require_platform_admin`, `require_tenant_role`. Protect all mutation routes.
-**Status:** ⚠️ Partially wired.
-
-### P0-03 — Credit Transaction Schema Mismatch
-
-**Files:** `backend/db/schema_v1.sql`, `backend/studiosaas/api_v1.py`
-**Issue:** API transaction names (`debit`, `adjustment_in`, `adjustment_out`) do not match schema CHECK values (`purchase`, `consume`, `adjustment`, `refund`, `expire`, `migration`).
-**Impact:** Runtime errors on credit operations.
-**Fix:** Map API input to schema values. Update UI labels.
-**Status:** ⚠️ Partially fixed.
-
-### P0-04 — dict_row Runtime Errors
-
-**Files:** `backend/studiosaas/api_v1.py` (lines ~1623, ~1737, ~1762, ~1834)
-**Issue:** `cur.fetchone()[0]` and `row[0]` used on dict-row cursors.
-**Impact:** Multiple POST endpoints crash at runtime.
-**Fix:** Replace all tuple indexing with dict-key access.
-**Status:** ⚠️ Partially fixed.
-
-### P0-05 — Credit Account Unique/Conflict Bug
-
-**Files:** `backend/db/schema_v1.sql`, `backend/studiosaas/api_v1.py`
-**Issue:** `ON CONFLICT (tenant_id, student_id)` does not match actual unique constraint.
-**Impact:** Upsert fails with constraint violation.
-**Fix:** Use "General Class" course account model — always create/fetch a default course.
-**Status:** ⚠️ Partially fixed.
-
-### P0-06 — Portfolio DELETE Mapping
-
-**File:** `backend/studiosaas/api_v1.py`
-**Issue:** By-slug DELETE maps to `update_portfolio_item` instead of `delete_portfolio_item`.
-**Impact:** Cannot delete portfolio items by tenant slug.
-**Fix:** Separate PATCH and DELETE route mappings.
-**Status:** ⚠️ Partially fixed.
-
-### P0-07 — Public Endpoint Rate Limiting
-
-**Files:** `backend/studiosaas/api_v1.py`
-**Issue:** `balance-query` and `registrations` are public, not rate-limited in v1.
-**Impact:** Potential abuse, no duplicate submission control.
-**Fix:** Add IP rate limiting, duplicate detection, field length caps, audit logging.
-**Status:** ❌ Not implemented.
-
-### P0-08 — Secret Cleanup
-
-**Files:** `.gitignore`, `backend/.api_secret`, `backend/.cms_password`
-**Issue:** Runtime secrets and macOS metadata in repository.
-**Impact:** Security risk if code is shared or deployed.
-**Fix:** Add `.gitignore`, document secret regeneration.
-**Status:** ⚠️ Partially addressed.
+| Legacy ID (v2 doc) | Item | Evidence |
+|---|---|---|
+| P0-01 (old) | Auth login `password_hash` SELECT bug | Fixed per code; runtime re-test pending under new P0-06 audit |
+| P0-04 (old) | dict_row tuple-indexing crashes | No `fetchone()[0]` / `row[0]` remain in `api_v1.py` |
+| P0-05 (old) | Credit account ON CONFLICT mismatch | `ON CONFLICT (tenant_id, student_id, course_id)` at `api_v1.py:2482` |
+| P0-06 (old) | Portfolio DELETE mapped to update | Separate DELETE route at `api_v1.py:3473` |
+| P0-07 (old) | Public endpoint rate limiting | Implemented in-memory: registrations 5/min, balance-query 10/min, uploads 5/min |
+| P1-03 (old) | Visible "Let's Paint" branding in HTML | Zero matches in HTML surfaces; only `sw.js` remains (new P2-02) |
 
 ---
 
-## 3. P1 Important Fixes
+## 3. Active Task Status (numbering = codingprompt.md v2)
 
-| ID | Issue | Priority | Status |
-|---|---|---|---|
-| P1-01 | Tenant isolation tests incomplete | High | ❌ |
-| P1-02 | Missing migration runner | High | ❌ |
-| P1-03 | Legacy branding residue (visible "Let's Paint" strings) | Medium | ⚠️ |
-| P1-04 | No v1 media upload endpoint | Medium | ❌ |
-| P1-05 | Super Admin support mode incomplete | Medium | ❌ |
-| P1-06 | No browser automation tests | Medium | ❌ |
-| P1-07 | No backup/restore runbook | Medium | ❌ |
+### P0 — Data consistency and security
+
+| ID | Task | Status |
+|---|---|---|
+| P0-01 | Unify role model (schema/enum/auth/seed; seed touches nonexistent `memberships.updated_at`) | ❌ Not started |
+| P0-02 | Fix pytest (install dep, dedupe pytest.ini, create `backend/tests/`) | ❌ Not started |
+| P0-03 | Migration runner (`migrations/` + `schema_migrations` + runner script) | ❌ Not started |
+| P0-04 | Repo hygiene finalisation (commit intentional deletions, untrack checkpoints, remove clutter) | ❌ Not started |
+| P0-05 | Login rate limiting + failed-login audit | ❌ Not started |
+| P0-06 | Route protection audit (~114 routes / 8 decorators) | ❌ Not started |
+| P0-07 | Status/visibility enum alignment (tenant `archived`, `trial` vs `trialing`, media visibility) | ❌ Not started |
+
+### P1 — Engineering quality and business loops
+
+| ID | Task | Status |
+|---|---|---|
+| P1-01 | Documentation sync | ✅ Done 2026-07-03 (this refresh) |
+| P1-02 | Tenant isolation negative test matrix | ❌ |
+| P1-03 | v1 media upload endpoint + central media service | ❌ |
+| P1-04 | Registration review → student conversion loop | ❌ |
+| P1-05 | Credits closed loop + attendance (`attendance_sessions` unused: 0 refs in api_v1.py) | ❌ |
+| P1-06 | Playwright browser smoke tests | ❌ |
+| P1-07 | Backup/restore script + runbook | ❌ |
+
+### P2 — Structure and UI (after P0 is green)
+
+| ID | Task | Status |
+|---|---|---|
+| P2-01 | Split `api_v1.py` (4040 lines) along target-architecture module boundaries | ❌ |
+| P2-02 | Multi-tenant PWA/sw.js (last "Let's Paint" residue) | ❌ |
+| P2-03 | Replace runtime Babel/Tailwind vendor JS with prebuilt assets | ❌ |
+| P2-04 | Super Admin platform cockpit | ❌ |
+| P2-05 | Studio Admin workflow reorganisation | ❌ |
+| P2-06 | Shared design tokens from `docs/Design_System.md` | ❌ |
+
+### P3 — Platform and deployment
+
+| ID | Task | Status |
+|---|---|---|
+| P3-01 | Config layering + secure cookies + structured logging | ❌ |
+| P3-02 | Docker + Nginx + GitHub Actions CI | ❌ |
+| P3-03 | S3/MinIO media storage branch | ❌ |
+| P3-04 | Long-term data infra (Redis/replicas/ES/ClickHouse/MQ) — explicitly deferred | ⏸ Deferred |
+| P3-05 | Extension services (Payment/CRM/Notification/Report/AI) — pilot-feedback driven | ⏸ Deferred |
 
 ---
 
-## 4. P2 Improvements (Nice to Have)
+## 4. Verification Commands
 
-- Split `api_v1.py` (2200+ lines) into modular route files
-- Add behavior-based test suite (`tests/`)
-- Add migration runner with `schema_migrations` table
-- Improve README for new developers/Codex
-- Replace vendor JS placeholders with pinned bundles
-- Server-side color contrast validation
-- Upload cleanup for replaced logos
-
----
-
-## 5. Verification Commands
-
-### Full Verification
+### Full verification
 
 ```bash
 bash backend/scripts/verify_local.sh
 ```
 
-### Syntax Check
+### Syntax check
 
 ```bash
 python3 -m py_compile backend/server.py backend/studiosaas/*.py backend/scripts/*.py backend/test_cms.py
 ```
 
-### Legacy Smoke Test
+### Script-style smoke tests
 
 ```bash
 cd backend && ../.venv/bin/python test_cms.py
 # Expected: 73 checks passing, 0 failing
+cd backend && ../.venv/bin/python test_tenant_isolation.py
 ```
 
-### API Health Check
+### Pytest (after P0-02 lands)
+
+```bash
+cd backend && ../.venv/bin/python -m pytest -q
+```
+
+### API health check
 
 ```bash
 curl -sS http://localhost:8899/v1/health
 ```
 
-### Auth Test (Local)
+### Auth test (local)
 
 ```bash
 # Login
@@ -152,7 +131,7 @@ curl -i -b /tmp/studiosaas.cookies http://localhost:8899/v1/auth/me
 curl -i -b /tmp/studiosaas.cookies -X POST http://localhost:8899/v1/auth/logout
 ```
 
-### Tenant Mutation Without Auth (Must Fail)
+### Tenant mutation without auth (must fail)
 
 ```bash
 curl -i -X POST http://localhost:8899/v1/admin/tenants \
@@ -166,7 +145,7 @@ curl -i -X PATCH http://localhost:8899/s/lets-paint-studio/v1/tenant \
 # Expected: 401 or 403
 ```
 
-### Page Open Tests
+### Page open tests
 
 ```bash
 # All should return 200
@@ -181,7 +160,7 @@ curl -sS -o /dev/null -w "%{http_code}" http://localhost:8899/register
 
 ---
 
-## 6. Default Credentials (Local)
+## 5. Default Credentials (Local)
 
 ### Super Admin
 
@@ -199,6 +178,8 @@ STUDIOSAAS_DATABASE_URL=postgresql://llmacbookpro@localhost:5432/studiosaas_loca
   --email admin@studiosaas.local --password admin123456
 ```
 
+Password storage: seed/reset scripts write PBKDF2-HMAC-SHA256 hashes. Legacy unsalted SHA-256 user hashes are verified only to complete a successful login, then upgraded in place.
+
 ### Studio Admin (Demo Tenants)
 
 | Tenant | Email | Password |
@@ -209,52 +190,30 @@ STUDIOSAAS_DATABASE_URL=postgresql://llmacbookpro@localhost:5432/studiosaas_loca
 
 ---
 
-## 7. Core Files To Recheck After Future Changes
+## 6. Core Files To Recheck After Future Changes
 
 - `backend/studiosaas/api_v1.py`
 - `backend/studiosaas/auth.py`
+- `backend/studiosaas/models.py`
+- `backend/db/schema_v1.sql`
 - `backend/frontend/studio-admin.html`
 - `super-admin.html`
-- `tenant-template/index.html`
-- `tenant-template/register.html`
-- `legacy-root/index.html`
-- `legacy-root/register.html`
+- `tenant-template/*.html`
+- `legacy-root/index.html`, `legacy-root/register.html`
 
 ---
 
-## 8. Go/No-Go Criteria
+## 7. Go/No-Go Criteria
 
-### Local Demo: GO (after dependency install and smoke tests pass)
-
-### Internal Testing: CONDITIONAL GO (after P0-01, P0-02, P0-03, P0-04, P0-05)
-
-### External Pilot: NO-GO (until all P0 fixes verified)
-
-### AWS Staging: NO-GO (P0 fixes + `.gitignore` cleanup + backup/restore runbook)
-
----
-
-## 9. Next Recommended Tasks (Ordered)
-
-1. Complete route protection for all mutation endpoints
-2. Add tenant isolation test suite (cross-tenant negative tests)
-3. Add migration runner with `schema_migrations` table
-4. Replace legacy branding residue in CMS/Register surfaces
-5. Add v1 media upload endpoint
-6. Add browser smoke test script (Playwright/Selenium)
-7. Improve Super Admin tenant lifecycle (pause/resume, plan change)
-8. Improve registration workflow (pending approval → student linkage)
-9. Add backup/export script and runbook
-10. Prepare AWS staging runbook
+| Milestone | Verdict | Condition |
+|---|---|---|
+| Local demo | **GO** | Dependency install + smoke tests pass |
+| Internal testing | **CONDITIONAL GO** | After P0-01, P0-02, P0-05, P0-06 |
+| External pilot | **NO-GO** | Until all P0 verified + P1-02 isolation matrix |
+| AWS staging | **NO-GO** | All P0 + P1-07 backup runbook + P3-01 config layering |
 
 ---
 
-## 10. Archived Sprint Records
+## 8. Historical Records
 
-Historical fix records and task lists are preserved in `docs/archive/`:
-
-- `STUDIOSAAS_FIX_SYNC_CHECKLIST.md` — executed fixes and remaining improvements
-- `StudioSaaS_Codex_5_Fixes_Prompt.md` — 5 focused fix prompt
-- `StudioSaaS_Codex_Executable_Tasks_v1.md` — 12 executable tasks (Task 0–12)
-- `StudioSaaS_Codex_P0_Fix_Prompt.md` — P0 fix prompt for next Codex session
-- `StudioSaaS_Codex_Upgrade_Masterplan_v2.md` — upgrade masterplan with next 10 tasks
+Earlier sprint documents (`docs/archive/`, Codex prompt files) were intentionally deleted in the 2026-07-03 documentation refactor. Git history before commit `1ff243d` retains them if ever needed.
