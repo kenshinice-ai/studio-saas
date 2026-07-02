@@ -1116,6 +1116,7 @@ def _tenant_context(conn):
 
 
 @api_v1.route("/tenant", methods=["GET"])
+@auth_required
 def get_tenant():
     """Return the current tenant's public and operational settings."""
 
@@ -1243,6 +1244,7 @@ def update_tenant():
 
 
 @api_v1.route("/tenant/brand", methods=["GET"])
+@auth_required
 def get_tenant_brand():
     """Return branding used by Studio Admin and Parent Portal."""
 
@@ -1273,6 +1275,7 @@ def get_tenant_brand():
 
 
 @api_v1.route("/students", methods=["GET"])
+@auth_required
 def list_students():
     """List students for the resolved tenant."""
 
@@ -1328,6 +1331,7 @@ def list_students():
 
 
 @api_v1.route("/students/<student_id>", methods=["GET"])
+@auth_required
 def get_student(student_id: str):
     """Return one student with credit summary for the resolved tenant."""
 
@@ -1354,6 +1358,7 @@ def get_student(student_id: str):
 
 
 @api_v1.route("/students/<student_id>/credits", methods=["GET"])
+@auth_required
 def get_student_credits(student_id: str):
     """Return balance account and recent credit transactions for one student."""
 
@@ -1389,6 +1394,7 @@ def get_student_credits(student_id: str):
 
 
 @api_v1.route("/courses", methods=["GET"])
+@auth_required
 def list_courses():
     """List courses for the resolved tenant."""
 
@@ -1545,6 +1551,7 @@ def mutate_course(course_id: str):
 
 
 @api_v1.route("/packages", methods=["GET"])
+@auth_required
 def list_packages():
     """List course packages for the resolved tenant."""
 
@@ -1683,6 +1690,7 @@ def mutate_package(package_id: str):
 
 
 @api_v1.route("/registrations", methods=["GET"])
+@auth_required
 def list_registrations():
     """List recent public registration submissions for the resolved tenant."""
 
@@ -1794,6 +1802,7 @@ def update_registration_status(registration_id: str):
 
 
 @api_v1.route("/portfolio", methods=["GET"])
+@auth_required
 def list_portfolio():
     """List recent portfolio items for the resolved tenant."""
 
@@ -1818,6 +1827,7 @@ def list_portfolio():
 
 
 @api_v1.route("/dashboard", methods=["GET"])
+@auth_required
 def tenant_dashboard():
     """Return dashboard metrics for the resolved tenant."""
 
@@ -2328,6 +2338,7 @@ def _legacy_data_for_tenant(conn, tenant_id: str) -> dict:
 
 
 @api_v1.route("/legacy-cms/data", methods=["GET"])
+@auth_required
 def legacy_cms_data():
     """Return a tenant-backed JSON shape compatible with the old CMS UI."""
 
@@ -3258,6 +3269,7 @@ def archive_student(student_id: str):
 # ──────────────────────────────────────────────
 
 @api_v1.route("/students/<student_id>/credit-transactions", methods=["GET"])
+@auth_required
 def list_credit_transactions(student_id: str):
     """List all credit transactions for one student in the resolved tenant."""
 

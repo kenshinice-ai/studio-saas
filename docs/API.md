@@ -243,7 +243,7 @@ The legacy CMS shell intercepts old `/api/data` and `/api/save` calls and rewrit
 
 ## 12. Route Protection Summary
 
-> **Audit caveat (2026-07-03):** `api_v1.py` + `server.py` expose ~114 routes but only 8 carry protection decorators; the rest rely on inline checks. The table below states the *intended* policy. A full route-by-route audit (intended vs actual) is task **P0-06** — its output will replace this caveat.
+> **Audit result (2026-07-03, P0-06):** all 146 routes (68 mutating) were audited by decorator scan plus live curl probes. Mutations were already protected (decorators or inline `_auth_ok`/`_rate_ok` checks in the legacy layer). The audit found tenant-scoped **GET reads were unauthenticated** — students, registrations, credits, dashboard, and legacy-cms data were readable by anyone knowing a slug. All 12 such reads now carry `@auth_required` (any active membership in the resolved tenant, or platform super admin). Regression guard: `backend/tests/test_route_protection.py`.
 
 | Category | Protected? | Auth Required |
 |---|---|---|
