@@ -3575,17 +3575,24 @@ def _repair_local_super_admin_login(conn, email: str, password: str) -> dict | N
             )
             user_id = cur.fetchone()["id"]
 
-        cur.execute("SELECT id FROM tenants")
-        tenant_rows = cur.fetchall()
-        for tenant_row in tenant_rows:
+        # Ensure the canonical platform membership (tenant_id IS NULL).
+        # UNIQUE (tenant_id, user_id) does not cover NULL rows, so upsert
+        # manually: update first, insert only when no platform row exists.
+        cur.execute(
+            """
+            UPDATE memberships
+            SET role = 'super_admin', status = 'active'
+            WHERE user_id = %s AND tenant_id IS NULL
+            """,
+            (user_id,),
+        )
+        if cur.rowcount == 0:
             cur.execute(
                 """
                 INSERT INTO memberships (tenant_id, user_id, role, status)
-                VALUES (%s, %s, 'super_admin', 'active')
-                ON CONFLICT (tenant_id, user_id) DO UPDATE
-                SET role = 'super_admin', status = 'active'
+                VALUES (NULL, %s, 'super_admin', 'active')
                 """,
-                (tenant_row["id"], user_id),
+                (user_id,),
             )
 
     conn.commit()
@@ -3696,14 +3703,16 @@ def auth_legacy_login():
             SELECT u.id, u.full_name, u.status, u.password_hash
             FROM users u
             JOIN memberships m ON m.user_id = u.id
-            WHERE m.tenant_id = %s
-              AND lower(u.email) = %s
+            WHERE lower(u.email) = %s
               AND m.status = 'active'
               AND u.status = 'active'
-              AND m.role IN ('owner', 'admin', 'platform_super_admin', 'super_admin')
+              AND (
+                    (m.tenant_id = %s AND m.role IN ('owner', 'super_admin'))
+                 OR (m.tenant_id IS NULL AND m.role = 'super_admin')
+              )
             LIMIT 1
             """,
-            (tenant.tenant_id, email),
+            (email, tenant.tenant_id),
         )
 
         if not user:
@@ -3790,15 +3799,17 @@ def auth_me():
         if not user or user["status"] != "active":
             return jsonify({"error": "unauthorized"}), 401
 
+        # LEFT JOIN keeps the platform membership (tenant_id IS NULL),
+        # which the Super Admin UI uses to gate access.
         memberships = fetch_all(
             conn,
             """
             SELECT m.id, t.slug AS tenant_slug, t.name AS tenant_name,
                    m.role, m.status AS membership_status
             FROM memberships m
-            JOIN tenants t ON t.id = m.tenant_id
+            LEFT JOIN tenants t ON t.id = m.tenant_id
             WHERE m.user_id = %s AND m.status = 'active'
-            ORDER BY t.name
+            ORDER BY t.name NULLS FIRST
             """,
             (user_id,),
         )

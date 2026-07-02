@@ -23,20 +23,8 @@ class PermissionDeniedError(RuntimeError):
 
 
 ROLE_PERMISSIONS: dict[Role, set[str]] = {
-    Role.PLATFORM_SUPER_ADMIN: {"*"},
     Role.SUPER_ADMIN: {"*"},
     Role.OWNER: {
-        "tenant:read",
-        "tenant:update",
-        "students:read",
-        "students:write",
-        "credits:write",
-        "portfolio:write",
-        "registrations:write",
-        "settings:write",
-        "plans:read",
-    },
-    Role.ADMIN: {
         "tenant:read",
         "tenant:update",
         "students:read",
@@ -167,16 +155,18 @@ def _resolve_actor(user_id: str, tenant_id: str | None = None) -> ActorContext |
     with db_connect() as conn:
         if tenant_id:
             # Tenant-scoped resolution:
-            # 1) Platform super admins can access every tenant, even if they
-            #    also have a lower role on the target tenant.
+            # 1) Super admins can access every tenant, even if they also have
+            #    a lower role on the target tenant. The canonical platform
+            #    membership has tenant_id IS NULL; per-tenant super_admin rows
+            #    are honoured for backward compatibility.
             super_admin = fetch_one(
                 conn,
                 """
                 SELECT role FROM memberships
                 WHERE user_id = %s
-                  AND role IN ('platform_super_admin', 'super_admin')
+                  AND role = 'super_admin'
                   AND status = 'active'
-                ORDER BY CASE role WHEN 'platform_super_admin' THEN 0 ELSE 1 END
+                ORDER BY CASE WHEN tenant_id IS NULL THEN 0 ELSE 1 END
                 LIMIT 1
                 """,
                 (user_id,),
@@ -207,7 +197,8 @@ def _resolve_actor(user_id: str, tenant_id: str | None = None) -> ActorContext |
             # No qualifying membership for this tenant
             return None
 
-        # Platform-level: find any active membership
+        # Platform-level: find the highest-privilege active membership,
+        # preferring the platform (tenant_id IS NULL) row within a role.
         member = fetch_one(
             conn,
             """
@@ -215,14 +206,12 @@ def _resolve_actor(user_id: str, tenant_id: str | None = None) -> ActorContext |
             WHERE user_id = %s AND status = 'active'
             ORDER BY
                 CASE role
-                    WHEN 'platform_super_admin' THEN 0
-                    WHEN 'super_admin' THEN 1
-                    WHEN 'owner' THEN 2
-                    WHEN 'admin' THEN 3
-                    WHEN 'staff' THEN 4
-                    ELSE 5
+                    WHEN 'super_admin' THEN 0
+                    WHEN 'owner' THEN 1
+                    WHEN 'staff' THEN 2
+                    ELSE 3
                 END,
-                role ASC
+                CASE WHEN tenant_id IS NULL THEN 0 ELSE 1 END
             LIMIT 1
             """,
             (user_id,),
@@ -370,7 +359,7 @@ def super_admin_required(fn: F) -> F:
                 "message": "User has no active membership.",
             }), 403
 
-        if actor.role not in {Role.PLATFORM_SUPER_ADMIN, Role.SUPER_ADMIN}:
+        if actor.role is not Role.SUPER_ADMIN:
             return jsonify({
                 "error": "forbidden",
                 "message": "Super-admin privileges required.",
@@ -408,12 +397,7 @@ def tenant_admin_required(fn: F) -> F:
                 "message": "User has no active membership.",
             }), 403
 
-        if actor.role not in {
-            Role.PLATFORM_SUPER_ADMIN,
-            Role.SUPER_ADMIN,
-            Role.OWNER,
-            Role.ADMIN,
-        }:
+        if actor.role not in {Role.SUPER_ADMIN, Role.OWNER}:
             return jsonify({
                 "error": "forbidden",
                 "message": "Tenant owner/admin privileges required.",

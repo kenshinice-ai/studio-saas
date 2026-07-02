@@ -1142,7 +1142,7 @@
     }
 
     function hasSuperAdminRole(data) {
-      return (data.memberships || []).some((membership) => ['platform_super_admin', 'super_admin'].includes(membership.role));
+      return (data.memberships || []).some((membership) => membership.role === 'super_admin');
     }
 
     async function checkSession() {

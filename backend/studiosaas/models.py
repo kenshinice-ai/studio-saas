@@ -5,12 +5,16 @@ from enum import StrEnum
 
 
 class Role(StrEnum):
-    """Supported StudioSaaS roles."""
+    """Supported StudioSaaS roles.
 
-    PLATFORM_SUPER_ADMIN = "platform_super_admin"
+    Must stay in sync with the ``memberships.role`` CHECK constraint in
+    ``backend/db/schema_v1.sql``. A platform administrator is a
+    ``super_admin`` membership whose ``tenant_id`` is NULL; per-tenant
+    ``super_admin`` rows are also honoured for backward compatibility.
+    """
+
     SUPER_ADMIN = "super_admin"
     OWNER = "owner"
-    ADMIN = "admin"
     STAFF = "staff"
     PARENT = "parent"
 

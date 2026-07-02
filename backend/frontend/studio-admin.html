@@ -1680,7 +1680,7 @@
     }
 
     function currentMembershipForSlug(memberships = [], slug) {
-      return memberships.some((m) => ['platform_super_admin', 'super_admin'].includes(m.role) || m.tenant_slug === slug || m.slug === slug);
+      return memberships.some((m) => m.role === 'super_admin' || m.tenant_slug === slug || m.slug === slug);
     }
 
     function setAuthState(user) {

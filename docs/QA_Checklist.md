@@ -10,7 +10,7 @@
 ### 1. Backend
 
 - [ ] `cd backend && ../.venv/bin/python test_tenant_isolation.py` passes all tenant-isolation tests
-- [ ] `cd backend && ../.venv/bin/python test_cms.py` passes all CMS functional tests (expected: 73 checks)
+- [ ] `cd backend && ../.venv/bin/python test_cms.py` passes all CMS functional tests (expected: 72 checks)
 - [ ] `cd backend && ../.venv/bin/python -m pytest -q` passes (after P0-02 lands)
 - [ ] `curl http://localhost:8899/v1/health` returns 200 with expected fields
 - [ ] All API routes return proper HTTP status codes (200, 201, 400, 401, 403, 404, 429, 500)

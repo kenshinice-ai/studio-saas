@@ -99,7 +99,7 @@ python3 -m py_compile backend/server.py backend/studiosaas/*.py backend/scripts/
 
 ```bash
 cd backend && ../.venv/bin/python test_cms.py
-# Expected: 73 checks passing, 0 failing
+# Expected: 72 checks passing, 0 failing
 cd backend && ../.venv/bin/python test_tenant_isolation.py
 ```
 

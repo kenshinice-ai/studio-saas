@@ -11,7 +11,8 @@ Defaults:
 
 This script:
 1. Creates a user record with the canonical PBKDF2 password hash.
-2. Creates a super_admin membership for every existing tenant.
+2. Ensures a platform-level super_admin membership (tenant_id IS NULL),
+   which grants access to every tenant — including ones created later.
 3. Prints the created user ID for reference.
 
 Security note: This is a LOCAL seed script only. Do not use in production.
@@ -81,25 +82,28 @@ def seed_super_admin(
             user_id = str(cur.fetchone()["id"])
             print(f"Created user: {email} (id={user_id})")
 
-        cur.execute("SELECT id FROM tenants ORDER BY created_at ASC")
-        tenant_rows = cur.fetchall()
-
-        for tenant_row in tenant_rows:
+        # Platform membership: tenant_id IS NULL grants access to all tenants.
+        # UNIQUE (tenant_id, user_id) does not cover NULL rows, so upsert
+        # manually: update first, insert only when no platform row exists.
+        cur.execute(
+            """
+            UPDATE memberships
+            SET role = 'super_admin', status = 'active'
+            WHERE user_id = %s AND tenant_id IS NULL
+            """,
+            (user_id,),
+        )
+        if cur.rowcount == 0:
             cur.execute(
                 """
                 INSERT INTO memberships (tenant_id, user_id, role, status)
-                VALUES (%s, %s, 'super_admin', 'active')
-                ON CONFLICT (tenant_id, user_id) DO UPDATE
-                SET role = 'super_admin', status = 'active', updated_at = now()
+                VALUES (NULL, %s, 'super_admin', 'active')
                 """,
-                (tenant_row["id"], user_id),
+                (user_id,),
             )
-
-        if tenant_rows:
-            print(f"Ensured super_admin membership for {len(tenant_rows)} tenant(s).")
+            print("Created platform super_admin membership (all tenants).")
         else:
-            print("WARNING: No tenants found. Created user but no membership.")
-            print("Create a tenant first, then re-run to add membership.")
+            print("Refreshed platform super_admin membership (all tenants).")
 
         conn.commit()
 

@@ -185,7 +185,7 @@ python3 -m py_compile backend/server.py backend/studiosaas/*.py backend/scripts/
 
 # Script-style smoke tests (run with python, NOT pytest)
 cd backend
-../.venv/bin/python test_cms.py                 # expected: 73 checks passing
+../.venv/bin/python test_cms.py                 # expected: 72 checks passing
 ../.venv/bin/python test_tenant_isolation.py
 
 # Full local verification
