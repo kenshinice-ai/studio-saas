@@ -3,17 +3,106 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-<title>Let's Paint Studio — Student Portal</title>
+<title>Studio — Student Portal</title>
 <link rel="icon" href="/icon-192.png">
 <!-- G6: PWA — 学员可把注册/查询页加到主屏幕 -->
 <link rel="manifest" href="/manifest-student.json">
 <meta name="theme-color" content="#fffdf9">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Let's Paint">
+<meta name="apple-mobile-web-app-title" content="Studio">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <script>
   if ('serviceWorker' in navigator)
     window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(()=>{}));
+</script>
+<script>
+  (() => {
+    const tenantSlug = new URLSearchParams(location.search).get('tenant') || '';
+    if (!tenantSlug) return;
+    window.STUDIOSAAS_TENANT_SLUG = tenantSlug;
+    const escHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+    const renderRegistrationProfile = (profile) => {
+      const fields = Array.isArray(profile && profile.fields) ? profile.fields : [];
+      const title = (profile && profile.title) || 'Student Preferences';
+      const titleEl = document.getElementById('preferenceSectionTitle');
+      const container = document.getElementById('preferenceFields');
+      if (!titleEl || !container) return;
+      titleEl.innerHTML = `${escHtml(title)} <span class="font-normal text-gray-300">— Optional</span>`;
+      container.innerHTML = fields.map((field) => `
+        <div>
+          <label class="block text-xs font-bold text-gray-500 mb-1">${escHtml(field.label)}</label>
+          <input data-pref-key="${escHtml(field.key)}" type="text" placeholder="${escHtml(field.placeholder || '')}"
+            class="w-full px-3 py-3 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-indigo-400">
+        </div>
+      `).join('');
+    };
+    const setTenantTheme = (brand) => {
+      if (!brand) return;
+      const root = document.documentElement;
+      const primary = brand.primary_color || brand.primaryColor || '#312e81';
+      const secondary = brand.secondary_color || brand.secondaryColor || '#6366f1';
+      const logo = brand.logo_url || brand.logoUrl || '';
+      const slogan = brand.slogan || 'Learn, grow, and feel confident.';
+      const copyPack = brand.copy_pack || brand.copyPack || {};
+      const profile = brand.registration_profile || brand.registrationProfile || {};
+      root.style.setProperty('--tenant-primary', primary);
+      root.style.setProperty('--tenant-primary-soft', `${primary}14`);
+      root.style.setProperty('--tenant-primary-border', `${primary}40`);
+      root.style.setProperty('--tenant-secondary', secondary);
+      root.style.setProperty('--tenant-secondary-soft', `${secondary}14`);
+      root.style.setProperty('--tenant-secondary-border', `${secondary}40`);
+      if (brand.name) {
+        document.title = `${brand.name} Student Portal`;
+        const footer = document.getElementById('portalFooter');
+        if (footer) footer.textContent = `${brand.name} · Student Portal`;
+        const label = document.getElementById('portalName');
+        if (label) label.textContent = `${brand.name} · ${copyPack.portal_label || copyPack.portalLabel || 'Student Portal'}`;
+      }
+      const sloganEl = document.getElementById('portalSlogan');
+      if (sloganEl) sloganEl.textContent = slogan;
+      const introEl = document.getElementById('registerIntro');
+      if (introEl) introEl.textContent = copyPack.register_intro || copyPack.registerIntro || 'Tell us about the student and their goals.';
+      renderRegistrationProfile(profile);
+      if (logo) {
+        document.querySelectorAll('img[src="/logo.png"], img[src$="/logo.png"]').forEach((img) => {
+          img.src = logo;
+          img.alt = brand.name || img.alt || 'Studio logo';
+        });
+      }
+    };
+    const scheduleTenantTheme = () => {
+      setTenantTheme(window.STUDIOSAAS_BRAND);
+      setTimeout(() => setTenantTheme(window.STUDIOSAAS_BRAND), 300);
+      setTimeout(() => setTenantTheme(window.STUDIOSAAS_BRAND), 1200);
+      setTimeout(() => setTenantTheme(window.STUDIOSAAS_BRAND), 3000);
+    };
+    window.STUDIOSAAS_APPLY_BRAND = setTenantTheme;
+    window.addEventListener('load', scheduleTenantTheme);
+    const originalFetch = window.fetch.bind(window);
+    window.fetch = (input, init) => {
+      const raw = typeof input === 'string' ? input : (input && input.url) || '';
+      const url = new URL(raw, location.origin);
+      let next = input;
+      if (url.origin === location.origin && url.pathname === '/api/register') {
+        next = `/v1/public/${encodeURIComponent(tenantSlug)}/registrations`;
+      } else if (url.origin === location.origin && url.pathname === '/api/balance') {
+        next = `/v1/public/${encodeURIComponent(tenantSlug)}/balance-query`;
+      } else if (url.origin === location.origin && url.pathname === '/api/upload-public') {
+        next = `/v1/public/${encodeURIComponent(tenantSlug)}/registration-media`;
+      } else if (url.origin === location.origin && url.pathname === '/api/portfolio/token') {
+        next = `/v1/public/${encodeURIComponent(tenantSlug)}/portfolio-token`;
+      }
+      return originalFetch(next, init);
+    };
+    originalFetch(`/v1/public/${encodeURIComponent(tenantSlug)}/brand`)
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        const brand = data && data.brand;
+        window.STUDIOSAAS_BRAND = brand;
+        scheduleTenantTheme();
+      })
+      .catch(() => {});
+  })();
 </script>
 <script src="/vendor/tailwindcss.js"></script>
 <script>if(!window.tailwind)document.write('<scr'+'ipt src="https://cdn.tailwindcss.com"></scr'+'ipt>')</script>
@@ -25,6 +114,61 @@
   @keyframes fi { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
   .tab-active   { background:#6366f1; color:#fff; }
   .tab-inactive { background:#f1f5f9; color:#64748b; }
+  :root {
+    --tenant-primary:#312e81;
+    --tenant-primary-soft:#eef2ff;
+    --tenant-primary-border:#c7d2fe;
+    --tenant-secondary:#6366f1;
+    --tenant-secondary-soft:#f5f3ff;
+    --tenant-secondary-border:#ddd6fe;
+    --surface:#ffffff;
+    --ink:#0f172a;
+    --muted:#64748b;
+    --line:#e2e8f0;
+    --shadow-sm:0 1px 2px rgba(0,0,0,.04);
+    --shadow-md:0 4px 12px rgba(0,0,0,.07), 0 1px 3px rgba(0,0,0,.05);
+    --shadow-lg:0 10px 25px rgba(0,0,0,.08), 0 4px 10px rgba(0,0,0,.04);
+    --radius:8px;
+    --radius-xl:16px;
+  }
+  body { background:#f1f5f9 !important; color:var(--ink); -webkit-font-smoothing:antialiased; }
+  header { background:rgba(255,255,255,.96) !important; border-color:var(--line) !important; box-shadow:var(--shadow-sm) !important; backdrop-filter:blur(10px); }
+  .shadow-sm { box-shadow:var(--shadow-sm) !important; }
+  .shadow-md { box-shadow:var(--shadow-md) !important; }
+  .shadow-2xl { box-shadow:var(--shadow-lg) !important; }
+  .rounded-xl { border-radius:var(--radius) !important; }
+  .rounded-2xl, .rounded-3xl { border-radius:var(--radius-xl) !important; }
+  input, textarea, select {
+    background:var(--surface) !important;
+    border-color:var(--line) !important;
+    border-radius:var(--radius) !important;
+    color:var(--ink);
+    transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  input:focus, textarea:focus, select:focus {
+    border-color:var(--tenant-primary) !important;
+    box-shadow:0 0 0 3px var(--tenant-primary-soft) !important;
+  }
+  button, label[class*="cursor-pointer"] {
+    border-radius:var(--radius) !important;
+    transition:transform .15s ease, box-shadow .15s ease, background-color .15s ease;
+  }
+  button:hover, label[class*="cursor-pointer"]:hover { transform:translateY(-1px); box-shadow:var(--shadow-sm); }
+  button:disabled { opacity:.55; cursor:not-allowed; transform:none; box-shadow:none; }
+  #sec-reg > div, #sec-bal > div, #sec-done > div {
+    border-color:var(--line) !important;
+    box-shadow:var(--shadow-sm) !important;
+  }
+  [class*="bg-indigo-600"], [class*="bg-indigo-700"], .tab-active { background-color:var(--tenant-primary) !important; }
+  [class*="bg-indigo-50"], [class*="bg-indigo-100"] { background-color:var(--tenant-primary-soft) !important; }
+  [class*="text-indigo-400"], [class*="text-indigo-500"], [class*="text-indigo-600"], [class*="text-indigo-700"], [class*="text-indigo-800"] { color:var(--tenant-primary) !important; }
+  [class*="border-indigo-"] { border-color:var(--tenant-primary-border) !important; }
+  [class*="from-indigo-"] { --tw-gradient-from:var(--tenant-primary) var(--tw-gradient-from-position) !important; --tw-gradient-to:rgb(255 255 255 / 0) var(--tw-gradient-to-position) !important; --tw-gradient-stops:var(--tw-gradient-from), var(--tw-gradient-to) !important; }
+  [class*="to-indigo-"], [class*="to-purple-"] { --tw-gradient-to:var(--tenant-secondary) var(--tw-gradient-to-position) !important; }
+  [class*="bg-purple-600"], [class*="bg-purple-700"] { background-color:var(--tenant-secondary) !important; }
+  [class*="bg-purple-50"], [class*="bg-purple-100"] { background-color:var(--tenant-secondary-soft) !important; }
+  [class*="text-purple-400"], [class*="text-purple-500"], [class*="text-purple-600"], [class*="text-purple-700"], [class*="text-purple-800"] { color:var(--tenant-secondary) !important; }
+  [class*="border-purple-"] { border-color:var(--tenant-secondary-border) !important; }
   .preview-img  { width:80px; height:80px; border-radius:50%; object-fit:cover; }
   .avatar-ph    { width:80px; height:80px; border-radius:50%; background:#e0e7ff; display:flex; align-items:center; justify-content:center; font-size:32px; }
   /* M7: image loading skeleton */
@@ -40,10 +184,10 @@
 <!-- Header (A: 品牌 logo + 标语; P1: standalone 模式避开状态栏) -->
 <header class="bg-white shadow-sm border-b border-gray-200" style="padding-top:env(safe-area-inset-top, 0px)">
   <div class="max-w-lg mx-auto px-4 py-4 flex items-center gap-4">
-    <img src="/logo.png" alt="Let's Paint" class="h-14 w-auto flex-shrink-0"/>
+    <img src="/logo.png" alt="Studio" class="h-14 w-auto flex-shrink-0"/>
     <div class="min-w-0">
-      <p class="text-[15px] text-gray-500 italic leading-snug" style="font-family:'Snell Roundhand','Savoye LET',cursive">You deserve to enjoy life more.</p>
-      <p class="text-xs text-gray-400 mt-0.5">Student Portal · 学员服务中心</p>
+      <p id="portalSlogan" class="text-[15px] text-gray-500 italic leading-snug" style="font-family:'Snell Roundhand','Savoye LET',cursive">Learn, grow, and feel confident.</p>
+      <p id="portalName" class="text-xs text-gray-400 mt-0.5">Student Portal · 学员服务中心</p>
     </div>
   </div>
 </header>
@@ -69,7 +213,7 @@
   <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-5 anim">
     <div>
       <p class="text-gray-500 text-sm leading-relaxed">
-        填写以下信息完成注册。老师审核通过后即成为正式学员。<br>
+        <span id="registerIntro">Tell us about the student and their goals.</span><br>
         <span class="text-gray-400">Fill in the form below. Your teacher will review and approve your registration.</span>
       </p>
     </div>
@@ -151,49 +295,12 @@
       <input id="r-photo" type="hidden">
     </div>
 
-    <!-- Art preferences -->
+    <!-- Tenant-configurable preferences -->
     <div class="border-t border-gray-100 pt-4 space-y-4">
-      <p class="text-xs font-bold text-gray-400 uppercase tracking-wide">
-        艺术偏好 Art Preferences <span class="font-normal text-gray-300">— 选填 / Optional</span>
+      <p id="preferenceSectionTitle" class="text-xs font-bold text-gray-400 uppercase tracking-wide">
+        Student Preferences <span class="font-normal text-gray-300">— Optional</span>
       </p>
-
-      <div>
-        <label class="block text-xs font-bold text-gray-500 mb-1">
-          喜欢的画风 Favourite Art Style
-        </label>
-        <input id="r-style" type="text" placeholder="如 印象派、水彩 / e.g. Impressionism, Watercolour"
-          class="w-full px-3 py-3 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-indigo-400">
-      </div>
-
-      <div>
-        <label class="block text-xs font-bold text-gray-500 mb-1">
-          喜欢的画家 Favourite Artist
-        </label>
-        <input id="r-artist" type="text" placeholder="如 莫奈、齐白石 / e.g. Monet, Van Gogh"
-          class="w-full px-3 py-3 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-indigo-400">
-      </div>
-
-      <div>
-        <label class="block text-xs font-bold text-gray-500 mb-1">
-          绘画经验 Experience Level
-        </label>
-        <select id="r-exp"
-          class="w-full px-3 py-3 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-indigo-400 bg-white">
-          <option value="">请选择 / Please select</option>
-          <option value="零基础 / Complete Beginner">零基础 / Complete Beginner</option>
-          <option value="初学 / Some Experience">初学 / Some Experience</option>
-          <option value="有基础 / Intermediate">有基础 / Intermediate</option>
-          <option value="进阶 / Advanced">进阶 / Advanced</option>
-        </select>
-      </div>
-
-      <div>
-        <label class="block text-xs font-bold text-gray-500 mb-1">
-          学习目标 Learning Goals
-        </label>
-        <input id="r-goals" type="text" placeholder="如 放松减压、提升技能 / e.g. Relax, Improve skills"
-          class="w-full px-3 py-3 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-indigo-400">
-      </div>
+      <div id="preferenceFields" class="space-y-4"></div>
 
       <div>
         <label class="block text-xs font-bold text-gray-500 mb-1">
@@ -206,7 +313,7 @@
 
     <!-- Error / submit -->
     <p id="reg-err" class="text-red-500 text-sm hidden"></p>
-    <button onclick="submitReg()"
+    <button id="submitRegBtn" onclick="submitReg()"
       class="w-full bg-indigo-600 active:bg-indigo-700 text-white py-4 rounded-xl font-bold text-sm shadow-md min-h-[52px]">
       提交注册 / Submit Registration
     </button>
@@ -316,8 +423,8 @@
 </div>
 
 <!-- Footer (P1: standalone 模式避开底部 Home 条) -->
-<footer class="text-center py-6 text-xs text-gray-400" style="padding-bottom:calc(24px + env(safe-area-inset-bottom, 0px))">
-  Let's Paint Studio · Student Portal
+<footer id="portalFooter" class="text-center py-6 text-xs text-gray-400" style="padding-bottom:calc(24px + env(safe-area-inset-bottom, 0px))">
+  Studio · Student Portal
 </footer>
 
 <!-- Portfolio Lightbox (full-screen, hidden by default) -->
@@ -375,7 +482,7 @@ async function handlePhotoSelect(input) {
   try {
     const fd = new FormData();
     fd.append('file', file);
-    const r   = await fetch('/api/upload-public', { method:'POST', body:fd });
+    const r   = await fetch(`/v1/public/${encodeURIComponent(window.STUDIOSAAS_TENANT_SLUG || '')}/registration-media`, { method:'POST', body:fd });
     const res = await r.json();
     if (res.filename) {
       document.getElementById('r-photo').value = res.filename;
@@ -414,28 +521,33 @@ async function submitReg() {
   if (!first) { showErr(err, '请填写 First Name / First Name is required.'); return; }
   if (!phone) { showErr(err, '请填写手机号 / Mobile number is required.'); return; }
 
-  const btn = event.currentTarget;
+  const btn = document.getElementById('submitRegBtn');
   btn.textContent = '提交中... / Submitting...';
   btn.disabled = true;
 
-  try {
-    const body = {
-      firstName:  first,
-      lastName:   document.getElementById('r-last').value.trim(),
-      mobile:     phone,
-      wechat:     document.getElementById('r-wechat').value.trim(),
-      email:      document.getElementById('r-email').value.trim(),
-      photo:      document.getElementById('r-photo').value.trim(),
-      artStyle:   document.getElementById('r-style').value.trim(),
-      favArtist:  document.getElementById('r-artist').value.trim(),
-      experience: document.getElementById('r-exp').value,
-      goals:      document.getElementById('r-goals').value.trim(),
-      birthday:   document.getElementById('r-birthday').value,
-      message:    document.getElementById('r-msg').value.trim(),
-    };
+	  try {
+	    const preferences = {};
+	    document.querySelectorAll('[data-pref-key]').forEach((input) => {
+	      preferences[input.getAttribute('data-pref-key')] = input.value.trim();
+	    });
+	    const body = {
+	      firstName:  first,
+	      lastName:   document.getElementById('r-last').value.trim(),
+	      mobile:     phone,
+	      wechat:     document.getElementById('r-wechat').value.trim(),
+	      email:      document.getElementById('r-email').value.trim(),
+	      photo:      document.getElementById('r-photo').value.trim(),
+	      preferences,
+	      artStyle:   preferences.artStyle || '',
+	      favArtist:  preferences.favArtist || '',
+	      experience: preferences.experience || preferences.level || '',
+	      goals:      preferences.goals || '',
+	      birthday:   document.getElementById('r-birthday').value,
+	      message:    document.getElementById('r-msg').value.trim(),
+	    };
     const r   = await fetch('/api/register', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
     const res = await r.json();
-    if (res.success) {
+    if (res.ok || res.success) {
       document.getElementById('sec-reg').classList.add('hidden');
       document.getElementById('sec-success').classList.remove('hidden');
     } else if (res.duplicate === 'pending') {
@@ -459,10 +571,10 @@ async function submitReg() {
 function resetReg() {
   document.getElementById('sec-reg').classList.remove('hidden');
   document.getElementById('sec-success').classList.add('hidden');
-  ['r-first','r-last','r-phone','r-wechat','r-email','r-birthday','r-style','r-artist','r-goals','r-msg'].forEach(id=>{
-    document.getElementById(id).value = '';
-  });
-  document.getElementById('r-exp').value   = '';
+	  ['r-first','r-last','r-phone','r-wechat','r-email','r-birthday','r-msg'].forEach(id=>{
+	    document.getElementById(id).value = '';
+	  });
+	  document.querySelectorAll('[data-pref-key]').forEach((input) => { input.value = ''; });
   document.getElementById('r-photo').value = '';
   document.getElementById('photo-preview').innerHTML = '📷';
   document.getElementById('photo-btn-text').textContent = '选择 / Choose';
@@ -542,7 +654,7 @@ async function queryBalance() {
       histContainer.classList.remove('hidden');
 
       // Fetch portfolio (silently — optional feature)
-      fetch('/api/portfolio/token', {
+      fetch(`/v1/public/${encodeURIComponent(window.STUDIOSAAS_TENANT_SLUG || '')}/portfolio-token`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({name, phone})
@@ -574,6 +686,16 @@ function fmtPortDate(s) {
 
 let _portItems = [], _portToken = '', _portSid = '', _lbIdx = 0;
 
+function portfolioMediaSrc(item) {
+  if (item && item.mediaUrl) return item.mediaUrl;
+  const filename = String((item && item.filename) || '');
+  if (filename.startsWith('media:') && window.STUDIOSAAS_TENANT_SLUG) {
+    const id = filename.slice(6);
+    return `/v1/public/${encodeURIComponent(window.STUDIOSAAS_TENANT_SLUG)}/media/${encodeURIComponent(id)}?token=${encodeURIComponent(_portToken)}`;
+  }
+  return `/portfolio/img/${encodeURIComponent(_portSid)}/${encodeURIComponent(filename)}?token=${encodeURIComponent(_portToken)}`;
+}
+
 function togglePortfolio() {
   const body = document.getElementById('port-body');
   const icon = document.getElementById('port-toggle-icon');
@@ -602,17 +724,15 @@ function renderPortfolio(items, sid, token) {
       div.style.aspectRatio = '1';
       div.onclick = () => openLightbox(idx);
       // Sanitise strings to prevent XSS
-      const safeSid   = encodeURIComponent(sid);
-      const safeFile  = encodeURIComponent(item.filename || '');
-      const safeToken = encodeURIComponent(token);
       const safeDate  = fmtPortDate(item.date).replace(/[<>&"]/g, '');
       // #9 fix: also show note in thumbnail (consistent with admin view)
       const safeNote  = String(item.note  || '').replace(/[<>&"]/g, '');
+      const safeSrc   = portfolioMediaSrc(item).replace(/"/g, '&quot;');
       const skId      = `sk-r-${idx}`;
       div.innerHTML =
         // M7: skeleton shown until image loads
         `<div class="img-skel" id="${skId}"></div>` +
-        `<img src="/portfolio/img/${safeSid}/${safeFile}?token=${safeToken}"
+        `<img src="${safeSrc}"
               class="w-full h-full object-cover relative"
               onload="var s=document.getElementById('${skId}');if(s)s.style.display='none';"
               onerror="this.style.display='none'"/>` +
@@ -658,7 +778,7 @@ function lbNav(dir) {
 }
 function updateLightbox() {
   const item = _portItems[_lbIdx]; if (!item) return;
-  document.getElementById('lb-img').src      = `/portfolio/img/${encodeURIComponent(_portSid)}/${encodeURIComponent(item.filename || '')}?token=${encodeURIComponent(_portToken)}`;
+  document.getElementById('lb-img').src      = portfolioMediaSrc(item);
   document.getElementById('lb-date').textContent    = fmtPortDate(item.date);
   document.getElementById('lb-note').textContent    = item.note || '';
   document.getElementById('lb-counter').textContent = `${_lbIdx+1} / ${_portItems.length}`;

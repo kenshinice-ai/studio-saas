@@ -3,18 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Let's Paint CMS</title>
+    <title>Studio CMS</title>
     <link rel="icon" href="/icon-192.png">
     <!-- G6: PWA — 添加到主屏幕 -->
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#312e81">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Paint CMS">
+    <meta name="apple-mobile-web-app-title" content="Studio CMS">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <script>
       if ('serviceWorker' in navigator)
         window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(()=>{}));
+    </script>
+    <script>
+      (() => {
+        const fromPath = location.pathname.match(/^\/([^/]+)(?:\/cms)?\/?$/);
+        const tenantSlug = new URLSearchParams(location.search).get('tenant') || (fromPath && fromPath[1]) || '';
+        if (!tenantSlug) return;
+        window.STUDIOSAAS_TENANT_SLUG = tenantSlug;
+        const setTenantTheme = (brand) => {
+          if (!brand) return;
+          const root = document.documentElement;
+          const primary = brand.primary_color || brand.primaryColor || '#312e81';
+	          const secondary = brand.secondary_color || brand.secondaryColor || '#6366f1';
+	          const logo = brand.logo_url || brand.logoUrl || '';
+	          const slogan = brand.slogan || 'Learn, grow, and feel confident.';
+	          root.style.setProperty('--tenant-primary', primary);
+          root.style.setProperty('--tenant-primary-soft', `${primary}14`);
+          root.style.setProperty('--tenant-primary-border', `${primary}40`);
+          root.style.setProperty('--tenant-secondary', secondary);
+          root.style.setProperty('--tenant-secondary-soft', `${secondary}14`);
+          root.style.setProperty('--tenant-secondary-border', `${secondary}40`);
+		          if (brand.name) document.title = `${brand.name} CMS`;
+		          document.querySelectorAll('.tenant-slogan').forEach((el) => {
+		            el.textContent = slogan;
+		          });
+                  window.dispatchEvent(new CustomEvent('studiosaas:brand', {detail: brand}));
+		          if (logo) {
+            document.querySelectorAll('img[src="/logo.png"], img[src$="/logo.png"]').forEach((img) => {
+              img.src = logo;
+              img.alt = brand.name || img.alt || 'Studio logo';
+            });
+          }
+        };
+        const scheduleTenantTheme = () => {
+          setTenantTheme(window.STUDIOSAAS_BRAND);
+          setTimeout(() => setTenantTheme(window.STUDIOSAAS_BRAND), 300);
+          setTimeout(() => setTenantTheme(window.STUDIOSAAS_BRAND), 1200);
+          setTimeout(() => setTenantTheme(window.STUDIOSAAS_BRAND), 3000);
+        };
+        window.STUDIOSAAS_REGISTER_URL = `${location.origin}/${tenantSlug}/register`;
+        window.STUDIOSAAS_APPLY_BRAND = setTenantTheme;
+        window.addEventListener('load', scheduleTenantTheme);
+        const originalFetch = window.fetch.bind(window);
+        window.fetch = (input, init) => {
+          const raw = typeof input === 'string' ? input : (input && input.url) || '';
+          const url = new URL(raw, location.origin);
+          let next = input;
+          if (url.origin === location.origin && url.pathname === '/api/data') {
+            next = `/s/${encodeURIComponent(tenantSlug)}/v1/legacy-cms/data`;
+          } else if (url.origin === location.origin && url.pathname === '/api/save') {
+            next = `/s/${encodeURIComponent(tenantSlug)}/v1/legacy-cms/save`;
+          } else if (url.origin === location.origin && url.pathname === '/api/upload') {
+            next = `/s/${encodeURIComponent(tenantSlug)}/v1/legacy-cms/media/upload`;
+          } else if (url.origin === location.origin && url.pathname === '/api/portfolio/upload') {
+            next = `/s/${encodeURIComponent(tenantSlug)}/v1/legacy-cms/portfolio/upload`;
+          } else if (url.origin === location.origin && url.pathname.startsWith('/api/portfolio/') && url.pathname !== '/api/portfolio/token') {
+            const rest = url.pathname.slice('/api/portfolio/'.length);
+            next = `/s/${encodeURIComponent(tenantSlug)}/v1/legacy-cms/portfolio/${rest}${url.search}`;
+          }
+          return originalFetch(next, init);
+        };
+        originalFetch(`/v1/public/${encodeURIComponent(tenantSlug)}/brand`)
+          .then((res) => res.ok ? res.json() : null)
+          .then((data) => {
+            const brand = data && data.brand;
+            window.STUDIOSAAS_BRAND = brand;
+            scheduleTenantTheme();
+          })
+          .catch(() => {});
+      })();
     </script>
     <!-- Local-first vendor scripts. Run ./cms.sh vendor once to download them; CDN fallback keeps current behavior. -->
     <script src="/vendor/tailwindcss.js"></script>
@@ -71,6 +140,58 @@
 
         /* ── B1: Portfolio thumbnail actions — always visible on touch screens ── */
         @media (hover:none) { .port-actions { display:flex !important; } }
+        :root {
+            --tenant-primary:#312e81;
+            --tenant-primary-soft:#eef2ff;
+            --tenant-primary-border:#c7d2fe;
+            --tenant-secondary:#6366f1;
+            --tenant-secondary-soft:#f5f3ff;
+            --tenant-secondary-border:#ddd6fe;
+            --surface:#ffffff;
+            --ink:#0f172a;
+            --muted:#64748b;
+            --line:#e2e8f0;
+            --shadow-sm:0 1px 2px rgba(0,0,0,.04);
+            --shadow-md:0 4px 12px rgba(0,0,0,.07), 0 1px 3px rgba(0,0,0,.05);
+            --shadow-lg:0 10px 25px rgba(0,0,0,.08), 0 4px 10px rgba(0,0,0,.04);
+            --radius:8px;
+            --radius-xl:16px;
+        }
+        body { background:#f1f5f9 !important; color:var(--ink); -webkit-font-smoothing:antialiased; }
+        .shadow-sm { box-shadow:var(--shadow-sm) !important; }
+        .shadow-md { box-shadow:var(--shadow-md) !important; }
+        .shadow-2xl { box-shadow:var(--shadow-lg) !important; }
+        .rounded-xl { border-radius:var(--radius) !important; }
+        .rounded-2xl, .rounded-3xl { border-radius:var(--radius-xl) !important; }
+        input, textarea, select {
+            background:var(--surface) !important;
+            border-color:var(--line) !important;
+            border-radius:var(--radius) !important;
+            color:var(--ink);
+            transition:border-color .15s ease, box-shadow .15s ease;
+        }
+        input:focus, textarea:focus, select:focus {
+            border-color:var(--tenant-primary) !important;
+            box-shadow:0 0 0 3px var(--tenant-primary-soft) !important;
+        }
+        button, a, [role="button"] {
+            border-radius:var(--radius) !important;
+            transition:transform .15s ease, box-shadow .15s ease, background-color .15s ease;
+        }
+        button:hover, a:hover, [role="button"]:hover { transform:translateY(-1px); box-shadow:var(--shadow-sm); }
+        button:disabled { opacity:.55; cursor:not-allowed; transform:none; box-shadow:none; }
+        .toast { box-shadow:var(--shadow-lg) !important; border-radius:var(--radius-xl) !important; }
+        .pin-input { border-radius:var(--radius) !important; }
+        [class*="bg-indigo-600"], [class*="bg-indigo-700"], .tab-active { background-color:var(--tenant-primary) !important; }
+        [class*="bg-indigo-50"], [class*="bg-indigo-100"] { background-color:var(--tenant-primary-soft) !important; }
+        [class*="text-indigo-400"], [class*="text-indigo-500"], [class*="text-indigo-600"], [class*="text-indigo-700"], [class*="text-indigo-800"] { color:var(--tenant-primary) !important; }
+        [class*="border-indigo-"] { border-color:var(--tenant-primary-border) !important; }
+        [class*="from-indigo-"] { --tw-gradient-from:var(--tenant-primary) var(--tw-gradient-from-position) !important; --tw-gradient-to:rgb(255 255 255 / 0) var(--tw-gradient-to-position) !important; --tw-gradient-stops:var(--tw-gradient-from), var(--tw-gradient-to) !important; }
+        [class*="to-indigo-"], [class*="to-purple-"] { --tw-gradient-to:var(--tenant-secondary) var(--tw-gradient-to-position) !important; }
+        [class*="bg-purple-600"], [class*="bg-purple-700"] { background-color:var(--tenant-secondary) !important; }
+        [class*="bg-purple-50"], [class*="bg-purple-100"] { background-color:var(--tenant-secondary-soft) !important; }
+        [class*="text-purple-400"], [class*="text-purple-500"], [class*="text-purple-600"], [class*="text-purple-700"], [class*="text-purple-800"] { color:var(--tenant-secondary) !important; }
+        [class*="border-purple-"] { border-color:var(--tenant-secondary-border) !important; }
         /* ── M6: Thumbnail active feedback on touch ── */
         .port-thumb { touch-action:manipulation; }
         .port-thumb:active { opacity:.82; transform:scale(.96); transition:opacity .08s,transform .08s; }
@@ -91,6 +212,10 @@
 <div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useMemo, useRef, useCallback } = React;
+const tenantSlug = window.STUDIOSAAS_TENANT_SLUG
+    || new URLSearchParams(location.search).get('tenant')
+    || ((location.pathname.match(/^\/([^/]+)(?:\/cms)?\/?$/) || [])[1])
+    || '';
 
 /* ═══════════════════ DATE UTILS (AU DD/MM/YYYY) ════════════════ */
 const nowAU = () => new Date().toLocaleString('en-AU', {
@@ -189,8 +314,9 @@ function PINScreen({ onUnlock }) {
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 to-indigo-950 p-4">
             <div className="bg-white rounded-3xl p-8 w-full max-w-xs shadow-2xl text-center anim">
-                <img src="/logo.png" alt="Let's Paint" className="w-36 mx-auto mb-4"/>
-                <p className="text-sm text-gray-400 mb-4">
+	                <img src="/logo.png" alt="Studio" className="w-36 mx-auto mb-3"/>
+	                <p className="tenant-slogan text-sm text-gray-500 italic mb-4">Learn, grow, and feel confident.</p>
+	                <p className="text-sm text-gray-400 mb-4">
                     {step==='set' ? '首次使用，请设置 4 位 PIN 码' : step==='confirm' ? '再次输入确认 PIN' : '输入 PIN 码解锁'}
                 </p>
                 {step !== 'confirm'
@@ -344,11 +470,29 @@ function StudentPicker({ students, value, onChange, placeholder='-- 选择学员
     );
 }
 
+function mediaSrc(value, fallbackBase='photos') {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    if (raw.startsWith('media:')) {
+        const id = raw.slice(6);
+        const slug = window.STUDIOSAAS_TENANT_SLUG || new URLSearchParams(location.search).get('tenant') || '';
+        return `/s/${encodeURIComponent(slug)}/v1/media/${encodeURIComponent(id)}`;
+    }
+    return `/${fallbackBase}/${encodeURIComponent(raw)}`;
+}
+
+function portfolioImgSrc(studentId, item) {
+    if (item?.mediaUrl) return item.mediaUrl;
+    const filename = item?.filename || '';
+    if (String(filename).startsWith('media:')) return mediaSrc(filename, 'portfolio');
+    return `/portfolio/img/${encodeURIComponent(studentId)}/${encodeURIComponent(filename)}`;
+}
+
 /* ═══════════════════ PHOTO AVATAR ════════════════════════════ */
 function PhotoAvatar({ photo, name, size='sm' }) {
     const cls = size==='sm' ? 'w-9 h-9 text-xs' : size==='md' ? 'w-14 h-14 text-base' : 'w-20 h-20 text-2xl';
     const initials = (name||'?').trim().split(/\s+/).map(w=>w[0]||'').slice(0,2).join('').toUpperCase()||'?';
-    if (photo) return <img src={`/photos/${photo}`} className={`${cls} rounded-full object-cover flex-shrink-0 border-2 border-white shadow-sm`} alt={name}/>;
+    if (photo) return <img src={mediaSrc(photo)} className={`${cls} rounded-full object-cover flex-shrink-0 border-2 border-white shadow-sm`} alt={name}/>;
     return <div className={`${cls} rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold flex-shrink-0 border-2 border-white shadow-sm`}>{initials}</div>;
 }
 
@@ -362,7 +506,7 @@ function PhotoUploader({ value, onChange }) {
         try {
             const fd = new FormData(); fd.append('file', file);
             /* S2: same-origin fetch carries the session cookie — no token needed */
-            const r  = await fetch('/api/upload', {method:'POST', body:fd});
+            const r  = await fetch(`/s/${encodeURIComponent(tenantSlug)}/v1/legacy-cms/media/upload`, {method:'POST', credentials:'include', body:fd});
             const d  = await r.json();
             if (d.filename) onChange(d.filename);
         } catch { alert('上传失败，请重试'); }
@@ -372,7 +516,7 @@ function PhotoUploader({ value, onChange }) {
     return (
         <div className="flex items-center gap-4">
             {value
-                ? <img src={`/photos/${value}`} className="w-14 h-14 rounded-full object-cover border-2 border-indigo-100 flex-shrink-0"/>
+                ? <img src={mediaSrc(value)} className="w-14 h-14 rounded-full object-cover border-2 border-indigo-100 flex-shrink-0"/>
                 : <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center text-2xl border-2 border-dashed border-gray-300 flex-shrink-0">📷</div>
             }
             <div className="space-y-1.5">
@@ -597,23 +741,24 @@ function MaintSection({ onRestored, renewTh, saveRenewTh }) {
 
 /* ═══════════════════ LOGIN SCREEN ════════════════════════════ */
 function LoginScreen({ onLogin }) {
+    const [email, setEmail] = useState(() => localStorage.getItem(`lp_admin_email_${tenantSlug}`) || '');
     const [pw,   setPw]   = useState('');
     const [busy, setBusy] = useState(false);
     const [err,  setErr]  = useState('');
 
     const submit = async (e) => {
         e && e.preventDefault();
-        if (!pw) return;
+        if (!email || !pw) { setErr('请输入管理员邮箱和密码'); return; }
         setBusy(true); setErr('');
         try {
-            const r = await fetch('/api/login', {
+            const r = await fetch('/s/' + encodeURIComponent(tenantSlug) + '/v1/auth/legacy-login', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({password: pw}),
+                body: JSON.stringify({email, password: pw}),
                 credentials: 'include'
             });
             const d = await r.json();
-            if (d.ok) { onLogin(); }
+            if (d.ok) { localStorage.setItem(`lp_admin_email_${tenantSlug}`, email); onLogin(); }
             else { setErr(d.error || '密码错误'); setPw(''); }
         } catch { setErr('连接失败，请重试'); }
         finally { setBusy(false); }
@@ -622,19 +767,27 @@ function LoginScreen({ onLogin }) {
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 to-indigo-950 p-4">
             <div className="bg-white rounded-3xl p-8 w-full max-w-xs shadow-2xl text-center anim">
-                <img src="/logo.png" alt="Let's Paint" className="w-36 mx-auto mb-4"/>
-                <p className="text-sm text-gray-400 mb-6">请输入管理员密码</p>
+	                <img src="/logo.png" alt="Studio" className="w-36 mx-auto mb-3"/>
+	                <p className="tenant-slogan text-sm text-gray-500 italic mb-4">Learn, grow, and feel confident.</p>
+	                <p className="text-sm text-gray-400 mb-6">请输入 Studio Admin 账号</p>
                 <form onSubmit={submit} className="space-y-3">
+                    <input
+                        type="email"
+                        placeholder="管理员邮箱"
+                        value={email}
+                        onChange={e => setEmail(e.target.value)}
+                        autoFocus
+                        className="w-full p-3 border border-gray-300 rounded-xl outline-none text-center text-sm focus:ring-2 focus:ring-indigo-500"
+                    />
                     <input
                         type="password"
                         placeholder="密码"
                         value={pw}
                         onChange={e => setPw(e.target.value)}
-                        autoFocus
                         className="w-full p-3 border border-gray-300 rounded-xl outline-none text-center text-lg tracking-widest focus:ring-2 focus:ring-indigo-500"
                     />
                     {err && <p className="text-red-500 text-xs font-medium">{err}</p>}
-                    <button type="submit" disabled={busy || !pw}
+                    <button type="submit" disabled={busy || !email || !pw}
                         className="w-full bg-indigo-600 active:bg-indigo-700 disabled:opacity-50 text-white py-3 rounded-xl font-bold text-sm">
                         {busy ? '验证中...' : '进入系统 →'}
                     </button>
@@ -731,6 +884,7 @@ function App() {
     const [pkgName,    setPkgName]    = useState('');
     const [pkgCredits, setPkgCredits] = useState('');
     const [pkgPrice,   setPkgPrice]   = useState('');
+    const [tenantBrand, setTenantBrand] = useState(() => window.STUDIOSAAS_BRAND || {});
 
     // Photo state for forms (shared — forms can't be open simultaneously)
     const [formPhoto, setFormPhoto] = useState('');
@@ -739,6 +893,64 @@ function App() {
     const cooldowns  = useRef(new Set());
     const wasDownRef = useRef(false);
     const showToast = (msg, type='success', action=null) => setToast({msg, type, action, key:Date.now()});
+
+    useEffect(() => {
+        const syncBrand = (event) => setTenantBrand(event?.detail || window.STUDIOSAAS_BRAND || {});
+        window.addEventListener('studiosaas:brand', syncBrand);
+        syncBrand();
+        return () => window.removeEventListener('studiosaas:brand', syncBrand);
+    }, []);
+
+    const tenantLogoUrl = tenantBrand.logo_url || tenantBrand.logoUrl || '/logo-light.png';
+    const tenantDisplayName = tenantBrand.name || tenantBrand.studioName || 'Studio';
+
+    const preferenceProfile = () => {
+        const raw = tenantBrand.registration_profile || tenantBrand.registrationProfile || {};
+        const fields = Array.isArray(raw.fields) && raw.fields.length ? raw.fields : [
+            {key:'interests', label:'Interests', placeholder:'What does the student enjoy?'},
+            {key:'experience', label:'Experience', placeholder:'Beginner, some experience, advanced'},
+            {key:'goals', label:'Goals', placeholder:'Confidence, skills, exam prep, fun'}
+        ];
+        return {
+            title: raw.title || 'Student Preferences',
+            fields: fields
+                .filter(f => f && f.key && f.label)
+                .map(f => ({
+                    key: String(f.key).trim(),
+                    label: String(f.label).trim(),
+                    placeholder: String(f.placeholder || '').trim()
+                }))
+        };
+    };
+
+    const preferenceValue = (source, key) => {
+        const prefs = source?.preferences && typeof source.preferences === 'object' ? source.preferences : {};
+        return prefs[key] ?? source?.[key] ?? '';
+    };
+
+    const collectPreferences = (fd) => {
+        const prefs = {};
+        preferenceProfile().fields.forEach(field => {
+            prefs[field.key] = (fd.get(`pref_${field.key}`) || '').trim();
+        });
+        return prefs;
+    };
+
+    const legacyPreferenceKeys = ['artStyle', 'favArtist', 'experience', 'goals'];
+    const legacyPreferenceValues = (prefs, fd=null, source=null) => {
+        const out = {};
+        legacyPreferenceKeys.forEach(key => {
+            out[key] = (prefs[key] || (fd ? fd.get(key) : '') || source?.[key] || '').trim();
+        });
+        return out;
+    };
+
+    const preferenceRows = (source) => {
+        const prefs = source?.preferences && typeof source.preferences === 'object' ? source.preferences : {};
+        return preferenceProfile().fields
+            .map(field => ({...field, value: prefs[field.key] ?? source?.[field.key] ?? ''}))
+            .filter(row => row.value);
+    };
 
     /* HTTP-safe clipboard helper — falls back to execCommand when not in secure context */
     const copyText = (str, successMsg) => {
@@ -793,9 +1005,14 @@ function App() {
 
     /* ── Auth: check session on mount ── */
     useEffect(() => {
-        fetch('/api/me', {credentials: 'include'})
+        fetch('/v1/auth/me', {credentials: 'include'})
             .then(r => r.json())
-            .then(d => { if (d.loggedIn) setLoggedIn(true); })
+            .then(d => {
+                const memberships = d.memberships || [];
+                if (d.ok && memberships.some(m => m.tenant_slug === tenantSlug && ['owner','admin','platform_super_admin','super_admin'].includes(m.role))) {
+                    setLoggedIn(true);
+                }
+            })
             .catch(() => {});
     }, []);
 
@@ -832,7 +1049,7 @@ function App() {
         return () => clearInterval(id);
     }, [loggedIn, pinOK, pinEnabled]);
     const doLogout = async () => {
-        await fetch('/api/logout', {method:'POST', credentials:'include'}).catch(()=>{});
+        await fetch('/v1/auth/logout', {method:'POST', credentials:'include'}).catch(()=>{});
         clearSess();   // reset PIN session so next login re-prompts PIN
         setPinOK(false);
         setLoggedIn(false);
@@ -847,7 +1064,7 @@ function App() {
         if (pwNew1.length < 8)  { setPwMsg('新密码至少 8 位'); return; }   /* S3 */
         setPwBusy(true); setPwMsg('');
         try {
-            const r = await fetch('/api/change-password', {
+            const r = await fetch('/v1/auth/change-password', {
                 method: 'POST',
                 headers: {'Content-Type':'application/json'},
                 body: JSON.stringify({oldPassword: pwOld, newPassword: pwNew1}),
@@ -855,7 +1072,7 @@ function App() {
             });
             const d = await r.json();
             if (d.ok) { setPwOld(''); setPwNew1(''); setPwNew2(''); setPwMsg('✅ 密码已更新'); }
-            else       { setPwMsg(`❌ ${d.error||'修改失败'}`); }
+            else       { setPwMsg(`❌ ${d.message||d.error||'修改失败'}`); }
         } catch { setPwMsg('❌ 连接失败'); }
         finally { setPwBusy(false); }
     };
@@ -874,7 +1091,7 @@ function App() {
                 email:'', wechat:'', archived:false,
                 firstName: s.name||'',
                 lastName: '',
-                photo:'', artStyle:'', favArtist:'', experience:'', goals:'', birthday:'',
+                photo:'', artStyle:'', favArtist:'', experience:'', goals:'', preferences:{}, birthday:'',
                 ...s
             }));
             if (!d.pending)  d.pending  = [];
@@ -893,6 +1110,7 @@ function App() {
             const r = await fetch('/api/save', {method:'POST', headers:apiHeaders(),
                                                 credentials:'include', body:JSON.stringify(body)});
             if (r.status === 401) { showToast('登录已过期，请重新登录 / Session expired', 'error'); setTimeout(doLogout, 1500); return; }
+            if (r.status === 403) { showToast('无权保存此租户数据 / No permission for this tenant.', 'error'); return; }
             if (r.status === 409) {
                 const d = await r.json().catch(()=>({}));
                 if (d.status === 'conflict') {
@@ -917,7 +1135,7 @@ function App() {
     const exportDB = () => {
         const a = document.createElement('a');
         a.href = URL.createObjectURL(new Blob([JSON.stringify(db,null,2)], {type:'application/json'}));
-        a.download = `LetsPaint_${todayISO()}.json`; a.click();
+        a.download = `Studio_${todayISO()}.json`; a.click();
     };
 
     /* ── F1: Activity tags (last 30 days check-in count per student) ── */
@@ -1200,7 +1418,7 @@ function App() {
             .map(r=>r.join(',')).join('\n');
         const a = document.createElement('a');
         a.href = URL.createObjectURL(new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8'}));
-        a.download = `LetsPaint_经营月报_${todayISO()}.csv`; a.click();
+        a.download = `Studio_经营月报_${todayISO()}.csv`; a.click();
     };
 
     const payBreakdown = useMemo(() => {
@@ -1237,7 +1455,7 @@ function App() {
             /* G2: 一键复制给家长的签到确认话术 */
             const confirmMsg = nb===0
                 ? `${sname} 今日已完成签到 ✓ 当前剩余 0 课时，已用完，欢迎联系老师续课～ 🎨`
-                : `${sname} 今日已完成签到 ✓ 当前剩余 ${nb} 课时。Let's Paint 感谢您的支持！🎨`;
+                : `${sname} 今日已完成签到 ✓ 当前剩余 ${nb} 课时。Studio 感谢您的支持！🎨`;
             const act = {label:'📋 复制签到确认（发家长）', onClick:()=>copyText(confirmMsg,'签到确认已复制')};
             if (nb===0) showToast(`${sname} 课时已清零！请提醒续课 🔔`, 'warn', act);
             else        showToast(`${sname} 签到 ✓ 剩余 ${nb} 课时`, 'success', act);
@@ -1351,12 +1569,12 @@ function App() {
         /* C5: 零数据兜底 — 新学员尚无记录时用欢迎语 */
         const isNew = checkins.length === 0;
         const shareMsg = isNew
-            ? `欢迎 ${s.name} 加入 Let's Paint！艺术之旅刚刚启程，期待用画笔记录每一份成长与快乐 🎨`
-            : `${s.name} 在 Let's Paint 已经学习了 ${days} 天，累计上课 ${checkins.length} 次，完成作品 ${port.length} 幅！每一笔都是成长的印记，期待继续陪伴 TA 用画笔探索世界 🎨`;
+            ? `欢迎 ${s.name} 加入 Studio！艺术之旅刚刚启程，期待用画笔记录每一份成长与快乐 🎨`
+            : `${s.name} 在 Studio 已经学习了 ${days} 天，累计上课 ${checkins.length} 次，完成作品 ${port.length} 幅！每一笔都是成长的印记，期待继续陪伴 TA 用画笔探索世界 🎨`;
 
         const portHTML = port.length ? port.map(p=>`
             <figure class="art">
-                <img src="/portfolio/img/${s.id}/${esc(p.filename)}" alt="作品"/>
+                <img src="${portfolioImgSrc(s.id, p)}" alt="作品"/>
                 <figcaption>${esc(p.note)||'　'}<span>${esc((p.date||'').split('-').reverse().join('/'))}</span></figcaption>
             </figure>`).join('') : '<p class="empty">暂无作品记录 · 上传作品后报告会更精彩 🎨</p>';
 
@@ -1364,13 +1582,19 @@ function App() {
         const barsHTML = months.map(m=>`
             <div class="bar"><span class="bn">${m.n||''}</span><div class="fill" style="height:${Math.max(3,Math.round(m.n/maxM*76))}px"></div><span class="bl">${m.l}</span></div>`).join('');
 
-        const photoHTML = s.photo ? `<img class="avatar" src="/photos/${esc(s.photo)}" alt=""/>`
-            : `<div class="avatar ph">${esc((s.name||'?').slice(0,1))}</div>`;
+	        const photoHTML = s.photo ? `<img class="avatar" src="${mediaSrc(s.photo)}" alt=""/>`
+	            : `<div class="avatar ph">${esc((s.name||'?').slice(0,1))}</div>`;
+	        const reportBrand = window.STUDIOSAAS_BRAND || {};
+	        const reportSlogan = reportBrand.slogan || 'Learn, grow, and feel confident.';
+	        const reportStudioName = reportBrand.name || 'Studio';
+	        const reportJoinText = reportBrand.category === 'art'
+	            ? '艺术之旅刚刚启程'
+	            : '学习旅程刚刚启程';
 
-        /* C6+v4.3.2: 暖色美术馆风 — 暖米白展墙 + 金铜强调色，作品做彩色主角 */
+	        /* C6+v4.3.2: 暖色美术馆风 — 暖米白展墙 + 金铜强调色，作品做彩色主角 */
         const html = `<!doctype html><html lang="zh"><head><meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>${esc(s.name)} · 成长报告 · Let's Paint</title>
+<title>${esc(s.name)} · 成长报告 · Studio</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 body{font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;background:#efeae2;color:#3a3a44;padding:24px}
@@ -1418,15 +1642,15 @@ body{font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;backgr
 </div>
 <div class="sheet">
   <div class="brandbar">
-    <img src="/logo.png" alt="Let's Paint"/>
-    <div class="slogan">You deserve to enjoy life more.</div>
+    <img src="/logo.png" alt="Studio"/>
+	    <div class="slogan">${esc(reportSlogan)}</div>
   </div>
   <div class="hero">
     ${photoHTML}
     <div>
       <span class="tag">学员成长报告 · Growth Report</span>
       <h1>${esc(s.name)}</h1>
-      <div class="sub">${isNew ? '艺术之旅刚刚启程 · 欢迎加入 Let’s Paint' : `已在画室成长陪伴 <b>${days}</b> 天 · 入学于 ${fmtD(joinDate)}`}</div>
+	      <div class="sub">${isNew ? `${esc(reportJoinText)} · 欢迎加入 ${esc(reportStudioName)}` : `已在 ${esc(reportStudioName)} 成长陪伴 <b>${days}</b> 天 · 入学于 ${fmtD(joinDate)}`}</div>
     </div>
   </div>
   <div class="stats">
@@ -1448,8 +1672,8 @@ body{font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;backgr
     <div class="msg">${esc(shareMsg)}</div>
   </div>
   <div class="foot">
-    <div class="fslogan">You deserve to enjoy life more.</div>
-    报告生成于 ${fmtD(new Date())} · Let's Paint Painting Studio
+	    <div class="fslogan">${esc(reportSlogan)}</div>
+	    报告生成于 ${fmtD(new Date())} · ${esc(reportStudioName)}
   </div>
 </div>
 <script>
@@ -1518,7 +1742,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 setTuPay('微信'); setTuStu(null);
                 /* G2: 充值确认话术 */
                 const newBal = (parseInt(s.balance,10)||0)+credits;
-                const cMsg = `${s.name} 您好！已为您成功充值 ${credits} 课时${fee?`（实收 $${fee}）`:''}，当前账户共 ${newBal} 课时。感谢您对 Let's Paint 的信任！🎨`;
+                const cMsg = `${s.name} 您好！已为您成功充值 ${credits} 课时${fee?`（实收 $${fee}）`:''}，当前账户共 ${newBal} 课时。感谢您对 Studio 的信任！🎨`;
                 showToast(`${s.name} 充值 ${credits} 课时 / $${fee}`, 'success',
                     {label:'📋 复制充值确认（发家长）', onClick:()=>copyText(cMsg,'充值确认已复制')});
             } finally { setBusy(false); }
@@ -1543,16 +1767,14 @@ document.getElementById('copybtn').addEventListener('click', function(){
         const wechat   = (fd.get('wechat')   ||'').trim();
         const balance  = parseInt(fd.get('balance')||'0',10);
         const remark   = fd.get('remark')||'';
-        const artStyle  = (fd.get('artStyle')  ||'').trim();
-        const favArtist = (fd.get('favArtist') ||'').trim();
-        const experience= (fd.get('experience')||'').trim();
-        const goals     = (fd.get('goals')     ||'').trim();
+        const preferences = collectPreferences(fd);
+        const legacyPrefs = legacyPreferenceValues(preferences, fd);
         const birthday  = (fd.get('birthday')  ||'').trim();
         const doCreate = async () => {
             if (busy) return; setBusy(true);
             try {
                 const ns = {id:Date.now(), firstName, lastName, name:fullName,
-                            mobile, email, wechat, photo:formPhoto, artStyle, favArtist, experience, goals,
+                            mobile, email, wechat, photo:formPhoto, preferences, ...legacyPrefs,
                             birthday, balance, remark, lastActive:todayISO(), archived:false};
                 await save({...db, students:[ns,...db.students], logs:[mkLog(fullName,'新生注册',`+${balance}`,'系统建档',0,{studentId:ns.id}),...db.logs]});
                 e.target.reset(); setFormPhoto(''); setTab('students'); setSrch('');
@@ -1581,15 +1803,13 @@ document.getElementById('copybtn').addEventListener('click', function(){
             const wechat  = (fd.get('wechat') ||'').trim();
             const balance = parseInt(fd.get('balance')||String(selS.balance??0), 10) || 0;
             const remark     = fd.get('remark')||'';
-            const artStyle   = (fd.get('artStyle')   ||'').trim();
-            const favArtist  = (fd.get('favArtist')  ||'').trim();
-            const experience = (fd.get('experience') ||'').trim();
-            const goals      = (fd.get('goals')      ||'').trim();
+            const preferences = collectPreferences(fd);
+            const legacyPrefs = legacyPreferenceValues(preferences, fd, selS);
             const birthday   = (fd.get('birthday')   ||'').trim();
             const diff    = balance - (parseInt(selS.balance,10)||0);
             const oldName = selS.name;
             const ns = db.students.map(s => s.id===selS.id
-                ? {...s, firstName, lastName, name:newName, mobile, email, wechat, balance, remark, artStyle, favArtist, experience, goals, birthday, photo:editPhoto, ...(diff!==0?{lastActive:todayISO()}:{})}
+                ? {...s, firstName, lastName, name:newName, mobile, email, wechat, balance, remark, preferences, ...legacyPrefs, birthday, photo:editPhoto, ...(diff!==0?{lastActive:todayISO()}:{})}
                 : s);
             // B3 fix + D3: rename logs by studentId when available (precise);
             // fall back to name match only when no other student shares the old name
@@ -1604,7 +1824,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
             const changeStr = diff!==0 ? (diff>0?`+${diff}`:`${diff}`) : '0';
             const noteStr   = diff!==0 ? '管理端校准' : (oldName!==newName?`改名: ${oldName}→${newName}`:'信息修改');
             await save({...db, students:ns, logs:[mkLog(newName, diff!==0?'调整课时':'更新档案', changeStr, noteStr, 0, {studentId:selS.id}),...nl]});
-            setSelS({...selS, firstName, lastName, name:newName, mobile, email, wechat, balance, remark, artStyle, favArtist, experience, goals, birthday, photo:editPhoto, ...(diff!==0?{lastActive:todayISO()}:{})});
+            setSelS({...selS, firstName, lastName, name:newName, mobile, email, wechat, balance, remark, preferences, ...legacyPrefs, birthday, photo:editPhoto, ...(diff!==0?{lastActive:todayISO()}:{})});
             setEditP(false);
             showToast('档案已更新');
         } finally { setBusy(false); }
@@ -1635,7 +1855,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
             fd.append('studentId', String(selS.id));
             fd.append('note', note || '');
             fd.append('date', date || todayISO());
-            const r = await fetch('/api/portfolio/upload', {
+            const r = await fetch(`/s/${encodeURIComponent(tenantSlug)}/v1/legacy-cms/portfolio/upload`, {
                 method: 'POST', credentials:'include', body: fd
             });
             if (r.status === 401) { showToast('登录已过期', 'error'); return; }
@@ -1659,7 +1879,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
         confirm(`确认删除这张作品照片？此操作不可恢复。`, async () => {
             const sid = String(selS.id);
             try {
-                const r = await fetch(`/api/portfolio/${sid}/${pid}`, {
+                const r = await fetch(`/s/${encodeURIComponent(tenantSlug)}/v1/legacy-cms/portfolio/${encodeURIComponent(sid)}/${encodeURIComponent(pid)}`, {
                     method: 'DELETE', credentials:'include'
                 });
                 if (r.status === 401) { showToast('登录已过期，请重新登录', 'error'); return; }
@@ -1681,7 +1901,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
         if (!portEdit) return;
         const {sid, item, note, date} = portEdit;
         try {
-            const r = await fetch(`/api/portfolio/${sid}/${item.id}`, {
+            const r = await fetch(`/s/${encodeURIComponent(tenantSlug)}/v1/legacy-cms/portfolio/${encodeURIComponent(sid)}/${encodeURIComponent(item.id)}`, {
                 method: 'PATCH',
                 credentials:'include', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({note, date})
@@ -1725,8 +1945,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 const ns = {
                     id: Date.now(), firstName:fn, lastName:ln, name:fullName,
                     mobile:pen.mobile||'', wechat:pen.wechat||'', email:pen.email||'',
-                    photo:pen.photo||'', artStyle:pen.artStyle||'', favArtist:pen.favArtist||'',
-                    experience:pen.experience||'', goals:pen.goals||'',
+                    photo:pen.photo||'', preferences:pen.preferences||{},
+                    ...legacyPreferenceValues(pen.preferences||{}, null, pen),
                     birthday:pen.birthday||'',
                     balance:credits, remark:pen.message||'',
                     lastActive:todayISO(), archived:false
@@ -1772,17 +1992,17 @@ document.getElementById('copybtn').addEventListener('click', function(){
     const exportStudentsCSV = () => {
         const hdr = ['Full Name','First Name','Last Name','Phone','WeChat','Email','Birthday','Balance','Last Active','Art Style','Fav Artist','Experience','Goals','Remark'];
         const rows = sortedFiltered.map(s=>[s.name,s.firstName,s.lastName,s.mobile,s.wechat,s.email,s.birthday?fmtDate(s.birthday):'',s.balance,fmtDate(s.lastActive),s.artStyle,s.favArtist,s.experience,s.goals,s.remark]);
-        dlCSV(`LetsPaint_Students_${todayISO()}.csv`, [hdr,...rows]);
+        dlCSV(`Studio_Students_${todayISO()}.csv`, [hdr,...rows]);
     };
     const exportRevenueCSV = () => {
         const hdr = ['Period','Revenue (AUD)','Check-ins','Top-ups'];
         const rows = statsData.rows.map(r=>[sPeriod==='yearly'?`${r.key}年`:fmtMK(r.key), r.revenue.toFixed(2), r.checkins, r.topups]);
-        dlCSV(`LetsPaint_Revenue_${todayISO()}.csv`, [hdr,...rows]);
+        dlCSV(`Studio_Revenue_${todayISO()}.csv`, [hdr,...rows]);
     };
     const exportLogsCSV = () => {
         const hdr = ['Date','Student','Action','Change','Fee (AUD)','Pay Method','Note'];
         const rows = filteredLogs.map(l=>[l.date, l.studentName, l.action, l.change, l.feePaid||0, l.payMethod||'', l.note||'']);
-        dlCSV(`LetsPaint_Logs_${todayISO()}.csv`, [hdr,...rows]);
+        dlCSV(`Studio_Logs_${todayISO()}.csv`, [hdr,...rows]);
     };
 
     const changePin = () => {
@@ -1864,7 +2084,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         onClick={()=>setPortLB(null)}>
                         {/* #8 fix: onError shows fallback text instead of broken-image icon */}
                         <img
-                            src={`/portfolio/img/${selS?.id}/${portLB.items[portLB.idx]?.filename}`}
+                            src={portfolioImgSrc(selS?.id, portLB.items[portLB.idx])}
                             className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
                             onClick={e=>e.stopPropagation()}
                             onError={e=>{e.target.style.display='none';e.target.nextSibling&&(e.target.nextSibling.style.display='flex');}}/>
@@ -2192,8 +2412,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">学员注册页面</p>
                             <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
-                                <span className="text-xs text-gray-500 flex-1 font-mono truncate">{window.location.origin}/register</span>
-                                <button type="button" onClick={()=>copyText(`${window.location.origin}/register`,'链接已复制')}
+                                <span className="text-xs text-gray-500 flex-1 font-mono truncate">{window.STUDIOSAAS_REGISTER_URL || `${window.location.origin}/register`}</span>
+                                <button type="button" onClick={()=>copyText(window.STUDIOSAAS_REGISTER_URL || `${window.location.origin}/register`,'链接已复制')}
                                     className="text-xs text-indigo-600 font-bold active:text-indigo-800 flex-shrink-0">复制</button>
                             </div>
                         </div>
@@ -2216,8 +2436,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
 
             {/* ── Mobile top bar (md:hidden) ── */}
             <div className="md:hidden mobile-top-bar fixed top-0 left-0 right-0 z-40 bg-indigo-900 text-white flex items-center px-3 gap-2.5 shadow-lg">
-                <img src="/logo-light.png" alt="" className="h-8 w-auto flex-shrink-0"/>
-                <span className="font-bold text-base flex-1 truncate">Let's Paint CMS</span>
+                <img src={tenantLogoUrl} alt={tenantDisplayName} className="h-8 w-auto max-w-[96px] object-contain flex-shrink-0"/>
+                <span className="font-bold text-base flex-1 truncate">{tenantDisplayName} CMS</span>
                 <button onClick={()=>{setGOpen(true);setGQ('');}} aria-label="搜索"
                     className="w-9 h-9 flex items-center justify-center rounded-lg bg-indigo-800 active:bg-indigo-700 text-indigo-200 text-base flex-shrink-0">🔍</button>
                 <button onClick={()=>setShowSettings(true)} aria-label="设置"
@@ -2229,8 +2449,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
             <aside className="hidden md:flex w-56 bg-indigo-900 text-white flex-col shadow-xl flex-shrink-0"
                 style={{paddingTop:'env(safe-area-inset-top, 0px)'}}>
                 <div className="p-4 border-b border-indigo-800 flex items-center gap-2.5">
-                    <img src="/logo-light.png" alt="" className="h-9 w-auto flex-shrink-0"/>
-                    <h1 className="hidden md:block text-base font-bold tracking-wide flex-1">Let's Paint</h1>
+                    <img src={tenantLogoUrl} alt={tenantDisplayName} className="h-9 w-auto max-w-[96px] object-contain flex-shrink-0"/>
+                    <h1 className="hidden md:block text-base font-bold tracking-wide flex-1 truncate">{tenantDisplayName}</h1>
                     <button onClick={()=>{setGOpen(true);setGQ('');}} title="全局搜索 ⌘K"
                         className="hidden md:flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-800 active:bg-indigo-700 text-indigo-300 hover:text-white text-base flex-shrink-0">🔍</button>
                 </div>
@@ -2463,7 +2683,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
             <div className="flex flex-wrap gap-2">
                 {upcomingBirthdays.map(({s,in:days,md,age})=>(
                     <button key={s.id} onClick={()=>{
-                        const msg = `${s.name} 您好！🎉 Let's Paint 全体老师祝您生日快乐！愿您在新的一岁里灵感不断、画笔生花～ 🎨🎂`;
+                        const msg = `${s.name} 您好！🎉 Studio 全体老师祝您生日快乐！愿您在新的一岁里灵感不断、画笔生花～ 🎨🎂`;
                         copyText(msg, `已复制给 ${s.name} 的生日祝福`);
                     }} className="bg-white border border-pink-200 active:bg-pink-50 rounded-xl px-3 py-2 text-left">
                         <p className="text-sm font-bold text-gray-800">{s.name} <span className="text-xs font-normal text-rose-400">{days===0?'🎉今天':`${md} (${days}天后)`}</span></p>
@@ -2524,7 +2744,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 {(db.rosters[rDate]||[]).some(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived&&s.mobile;}) && (
                     <button onClick={()=>{
                         const ids=(db.rosters[rDate]||[]);
-                        const msg=`提醒：您的上课时间是 ${fmtDate(rDate)}，请准时到课。Let's Paint 期待见到您！`;
+                        const msg=`提醒：您的上课时间是 ${fmtDate(rDate)}，请准时到课。Studio 期待见到您！`;
                         const lines=ids.map(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived&&s.mobile?`${s.name}（${s.mobile}）`:null;}).filter(Boolean);
                         copyText(lines.map(l=>`${l}\n${msg}`).join('\n\n'),`已复制 ${lines.length} 条提醒内容`);
                     }} className="bg-white border border-green-300 active:bg-green-50 text-green-700 px-3 py-1.5 rounded-xl text-xs font-bold min-h-[36px]">💬 批量提醒</button>
@@ -2552,7 +2772,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         <BalBadge n={s.balance}/>
                         <div className="flex gap-1.5 flex-shrink-0">
                             {s.mobile && (
-                                <a href={`sms:${s.mobile.replace(/\s/g,'')}?body=${encodeURIComponent(`提醒：您的上课时间是 ${fmtDate(rDate)}，请准时到课。Let's Paint 期待见到您！`)}`}
+                                <a href={`sms:${s.mobile.replace(/\s/g,'')}?body=${encodeURIComponent(`提醒：您的上课时间是 ${fmtDate(rDate)}，请准时到课。Studio 期待见到您！`)}`}
                                     className="px-3 py-2.5 bg-green-50 active:bg-green-100 text-green-700 border border-green-200 rounded-xl text-xs font-bold min-h-[44px] flex items-center">💬</a>
                             )}
                             <button onClick={()=>removeFromRoster(s.id)} disabled={busy}
@@ -2611,7 +2831,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
         <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 flex items-center justify-between gap-3 flex-wrap">
             <p className="text-sm font-bold text-orange-700">⚡ 待续课学员 {sortedFiltered.length} 人（余额 ≤{renewTh} 节）</p>
             <button onClick={()=>{
-                const lines = sortedFiltered.map(s=>`${s.name} 您好～您在 Let's Paint 的剩余课时为 ${s.balance} 节，为不影响后续上课安排，欢迎随时联系老师续课哦 🎨`);
+                const lines = sortedFiltered.map(s=>`${s.name} 您好～您在 Studio 的剩余课时为 ${s.balance} 节，为不影响后续上课安排，欢迎随时联系老师续课哦 🎨`);
                 copyText(lines.join('\n\n'), `已复制 ${lines.length} 条续课提醒，可逐条粘贴到微信`);
             }} className="bg-orange-600 active:bg-orange-700 text-white px-4 py-2 rounded-xl text-xs font-bold min-h-[40px]">📋 复制全部提醒话术</button>
         </div>
@@ -2709,39 +2929,21 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     className="w-full px-3 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"/>
             </div>
         </div>
-        {/* Art preferences */}
-        <details className="border border-gray-200 rounded-xl overflow-hidden">
-            <summary className="px-4 py-3 text-sm font-bold text-gray-500 cursor-pointer select-none bg-gray-50 active:bg-gray-100">
-                🎨 艺术偏好 Art Preferences <span className="font-normal text-gray-400">选填 / Optional</span>
-            </summary>
-            <div className="p-4 space-y-3">
-                <div>
-                    <label className="text-sm font-bold text-gray-500 mb-1 block">喜欢的画风</label>
-                    <input name="artStyle" placeholder="如 印象派、水彩、油画"
-                        className="w-full px-3 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"/>
-                </div>
-                <div>
-                    <label className="text-sm font-bold text-gray-500 mb-1 block">喜欢的画家</label>
-                    <input name="favArtist" placeholder="如 莫奈、梵高、齐白石"
-                        className="w-full px-3 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"/>
-                </div>
-                <div>
-                    <label className="text-sm font-bold text-gray-500 mb-1 block">绘画经验</label>
-                    <select name="experience" className="w-full px-3 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
-                        <option value="">请选择...</option>
-                        <option value="零基础">零基础 / Complete Beginner</option>
-                        <option value="初学">初学 / Some Experience</option>
-                        <option value="有基础">有基础 / Intermediate</option>
-                        <option value="进阶">进阶 / Advanced</option>
-                    </select>
-                </div>
-                <div>
-                    <label className="text-sm font-bold text-gray-500 mb-1 block">学习目标</label>
-                    <input name="goals" placeholder="如 放松减压、提升技能"
-                        className="w-full px-3 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"/>
-                </div>
-            </div>
-        </details>
+	        {/* Tenant-configured student preferences */}
+	        <details className="border border-gray-200 rounded-xl overflow-hidden">
+	            <summary className="px-4 py-3 text-sm font-bold text-gray-500 cursor-pointer select-none bg-gray-50 active:bg-gray-100">
+	                {preferenceProfile().title} <span className="font-normal text-gray-400">选填 / Optional</span>
+	            </summary>
+	            <div className="p-4 space-y-3">
+	                {preferenceProfile().fields.map(field => (
+	                    <div key={field.key}>
+	                        <label className="text-sm font-bold text-gray-500 mb-1 block">{field.label}</label>
+	                        <input name={`pref_${field.key}`} placeholder={field.placeholder}
+	                            className="w-full px-3 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"/>
+	                    </div>
+	                ))}
+	            </div>
+	        </details>
         <div>
             <label className="text-sm font-bold text-gray-500 mb-1 block">生日 <span className="font-normal text-gray-400">选填</span></label>
             <input type="date" name="birthday" min="1920-01-01" max="2099-12-31"
@@ -2779,7 +2981,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
             <div key={pen.id} className="bg-white rounded-2xl shadow-sm border border-amber-200 p-5 space-y-4">
                 <div className="flex items-start gap-4">
                     {pen.photo
-                        ? <img src={`/photos/${pen.photo}`} className="w-16 h-16 rounded-full object-cover flex-shrink-0 border-2 border-indigo-100" alt={fullName}/>
+                        ? <img src={mediaSrc(pen.photo)} className="w-16 h-16 rounded-full object-cover flex-shrink-0 border-2 border-indigo-100" alt={fullName}/>
                         : <div className="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center text-2xl font-bold text-indigo-600 flex-shrink-0">{(pen.firstName||'?')[0].toUpperCase()}</div>
                     }
                     <div className="flex-1 min-w-0">
@@ -2794,14 +2996,16 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         <p className="text-xs text-gray-400 mt-0.5">提交时间: {pen.submittedAt||'—'}</p>
                     </div>
                 </div>
-                {(pen.artStyle||pen.favArtist||pen.experience||pen.goals) && (
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                        {pen.artStyle   && <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100"><p className="text-xs text-gray-400 mb-1">🎨 画风</p><p className="font-bold text-gray-700 text-sm">{pen.artStyle}</p></div>}
-                        {pen.favArtist  && <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100"><p className="text-xs text-gray-400 mb-1">🖼 画家</p><p className="font-bold text-gray-700 text-sm">{pen.favArtist}</p></div>}
-                        {pen.experience && <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100"><p className="text-xs text-gray-400 mb-1">📊 经验</p><p className="font-bold text-gray-700 text-sm">{pen.experience}</p></div>}
-                        {pen.goals      && <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 col-span-2"><p className="text-xs text-gray-400 mb-1">🎯 目标</p><p className="font-bold text-gray-700 text-sm">{pen.goals}</p></div>}
-                    </div>
-                )}
+	                {preferenceRows(pen).length > 0 && (
+	                    <div className="grid grid-cols-2 gap-2 text-sm">
+	                        {preferenceRows(pen).map(row => (
+	                            <div key={row.key} className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+	                                <p className="text-xs text-gray-400 mb-1">{row.label}</p>
+	                                <p className="font-bold text-gray-700 text-sm">{row.value}</p>
+	                            </div>
+	                        ))}
+	                    </div>
+	                )}
                 {pen.message && (
                     <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-gray-700">
                         <p className="text-xs text-amber-500 font-bold mb-1">💬 留言</p>
@@ -3237,14 +3441,16 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         )}
                         {selS.birthday && <div className="bg-pink-50 p-4 rounded-2xl border border-pink-100"><p className="text-xs text-pink-400 mb-1">🎂 生日</p><p className="font-bold text-gray-800">{fmtDate(selS.birthday)}</p></div>}
                         {selS.remark && <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100"><p className="text-xs text-gray-400 mb-1">备注</p><p className="text-sm text-gray-700 whitespace-pre-wrap">{selS.remark}</p></div>}
-                        {(selS.artStyle||selS.favArtist||selS.experience||selS.goals) && (
-                            <div className="grid grid-cols-2 gap-2">
-                                {selS.artStyle   && <div className="bg-indigo-50 p-3 rounded-2xl border border-indigo-100"><p className="text-xs text-indigo-400 mb-0.5">🎨 画风</p><p className="text-sm font-bold text-indigo-800">{selS.artStyle}</p></div>}
-                                {selS.favArtist  && <div className="bg-indigo-50 p-3 rounded-2xl border border-indigo-100"><p className="text-xs text-indigo-400 mb-0.5">🖼 画家</p><p className="text-sm font-bold text-indigo-800">{selS.favArtist}</p></div>}
-                                {selS.experience && <div className="bg-indigo-50 p-3 rounded-2xl border border-indigo-100"><p className="text-xs text-indigo-400 mb-0.5">📊 经验</p><p className="text-sm font-bold text-indigo-800">{selS.experience}</p></div>}
-                                {selS.goals      && <div className="bg-indigo-50 p-3 rounded-2xl border border-indigo-100 col-span-2"><p className="text-xs text-indigo-400 mb-0.5">🎯 目标</p><p className="text-sm font-bold text-indigo-800">{selS.goals}</p></div>}
-                            </div>
-                        )}
+	                        {preferenceRows(selS).length > 0 && (
+	                            <div className="grid grid-cols-2 gap-2">
+	                                {preferenceRows(selS).map(row => (
+	                                    <div key={row.key} className="bg-indigo-50 p-3 rounded-2xl border border-indigo-100">
+	                                        <p className="text-xs text-indigo-400 mb-0.5">{row.label}</p>
+	                                        <p className="text-sm font-bold text-indigo-800">{row.value}</p>
+	                                    </div>
+	                                ))}
+	                            </div>
+	                        )}
                         {/* F2: Topup history collapsible */}
                         {(()=>{
                             const topupsAll = db.logs.filter(l=>(l.studentId===selS.id || (!l.studentId && l.studentName===selS.name))&&l.action==='充值购课');   /* D3 */
@@ -3302,7 +3508,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                                     {/* M7: skeleton shown until image loads */}
                                                     <div className="img-skel absolute inset-0" id={`sk-${item.id}`}/>
                                                     <img
-                                                        src={`/portfolio/img/${selS.id}/${item.filename}`}
+                                                        src={portfolioImgSrc(selS.id, item)}
                                                         className="w-full h-full object-cover relative"
                                                         onLoad={e=>{const sk=document.getElementById(`sk-${item.id}`);if(sk)sk.style.display='none';}}
                                                         onError={e=>{e.target.style.display='none';}}/>
@@ -3386,38 +3592,20 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                 className="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"/></div>
                         <div><label className="text-sm font-bold text-gray-500 mb-1 block">备注</label>
                             <textarea name="remark" defaultValue={selS.remark} rows="3" className="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none resize-none"></textarea></div>
-                        <details className="border border-gray-200 rounded-xl overflow-hidden">
-                            <summary className="px-4 py-3 text-sm font-bold text-gray-500 cursor-pointer select-none bg-gray-50 active:bg-gray-100">
-                                🎨 艺术偏好 Art Preferences <span className="font-normal text-gray-400">选填</span>
-                            </summary>
-                            <div className="p-4 space-y-3">
-                                <div>
-                                    <label className="text-sm font-bold text-gray-500 mb-1 block">喜欢的画风</label>
-                                    <input name="artStyle" defaultValue={selS.artStyle||''} placeholder="如 印象派、水彩、油画"
-                                        className="w-full px-3 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"/>
-                                </div>
-                                <div>
-                                    <label className="text-sm font-bold text-gray-500 mb-1 block">喜欢的画家</label>
-                                    <input name="favArtist" defaultValue={selS.favArtist||''} placeholder="如 莫奈、梵高、齐白石"
-                                        className="w-full px-3 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"/>
-                                </div>
-                                <div>
-                                    <label className="text-sm font-bold text-gray-500 mb-1 block">绘画经验</label>
-                                    <select name="experience" defaultValue={selS.experience||''} className="w-full px-3 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-white">
-                                        <option value="">请选择...</option>
-                                        <option value="零基础">零基础 / Complete Beginner</option>
-                                        <option value="初学">初学 / Some Experience</option>
-                                        <option value="有基础">有基础 / Intermediate</option>
-                                        <option value="进阶">进阶 / Advanced</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="text-sm font-bold text-gray-500 mb-1 block">学习目标</label>
-                                    <input name="goals" defaultValue={selS.goals||''} placeholder="如 放松减压、提升技能"
-                                        className="w-full px-3 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"/>
-                                </div>
-                            </div>
-                        </details>
+	                        <details className="border border-gray-200 rounded-xl overflow-hidden">
+	                            <summary className="px-4 py-3 text-sm font-bold text-gray-500 cursor-pointer select-none bg-gray-50 active:bg-gray-100">
+	                                {preferenceProfile().title} <span className="font-normal text-gray-400">选填</span>
+	                            </summary>
+	                            <div className="p-4 space-y-3">
+	                                {preferenceProfile().fields.map(field => (
+	                                    <div key={field.key}>
+	                                        <label className="text-sm font-bold text-gray-500 mb-1 block">{field.label}</label>
+	                                        <input name={`pref_${field.key}`} defaultValue={preferenceValue(selS, field.key)} placeholder={field.placeholder}
+	                                            className="w-full px-3 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"/>
+	                                    </div>
+	                                ))}
+	                            </div>
+	                        </details>
                         <div className="flex justify-between items-center pt-3 border-t border-gray-100">
                             <button type="button" onClick={()=>handleDelete(selS.id,selS.name)} disabled={busy}
                                 className="px-4 py-3 bg-red-50 active:bg-red-100 text-red-700 font-bold rounded-xl text-sm border border-red-200 min-h-[50px]">🗑️ 永久删除</button>
