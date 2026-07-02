@@ -31,8 +31,35 @@ from .workspaces import WorkspaceError, ensure_tenant_workspace
 
 api_v1 = Blueprint("studiosaas_api_v1", __name__)
 api_v1_by_slug = Blueprint("studiosaas_api_v1_by_slug", __name__)
-# Simple in-memory rate limiter for public endpoints (per-IP, per-minute)
+# Simple in-memory rate limiter for public endpoints (per-IP, per-minute).
+# Counters reset on process restart — acceptable for the local pilot; a
+# shared store (Redis) replaces this at the production stage (P3-04).
 _public_rate_limit: dict[str, list[float]] = {}
+
+
+def _login_rate_limited(email: str) -> bool:
+    """Sliding-window limiter for login attempts.
+
+    Two dimensions share the public limiter store: per client IP
+    (30 attempts/minute across all accounts — high enough for local
+    test suites, low enough to blunt spraying) and per IP+email
+    (5 attempts/minute against a single account).
+    """
+
+    now = time.time()
+    ip = request.remote_addr or "unknown"
+    limited = False
+    for key, limit in (
+        (f"login-ip:{ip}", 30),
+        (f"login-email:{ip}:{email}", 5),
+    ):
+        attempts = [t for t in _public_rate_limit.get(key, []) if now - t < 60]
+        if len(attempts) >= limit:
+            limited = True
+        else:
+            attempts.append(now)
+        _public_rate_limit[key] = attempts
+    return limited
 
 
 
@@ -3618,6 +3645,9 @@ def auth_login():
     if not email or not password:
         return _error("email and password are required.")
 
+    if _login_rate_limited(email):
+        return _error("Too many login attempts. Please wait a minute.", 429)
+
     with connect() as conn:
         user = fetch_one(
             conn,
@@ -3685,6 +3715,9 @@ def auth_legacy_login():
     if not email or not password:
         return _error("Email and password are required.", 400)
 
+    if _login_rate_limited(email):
+        return _error("Too many login attempts. Please wait a minute.", 429)
+
     # Resolve tenant from path slug (set by url_value_preprocessor)
     path_slug = getattr(g, "path_tenant_slug", None)
     if not path_slug:
@@ -3716,8 +3749,25 @@ def auth_legacy_login():
         )
 
         if not user:
+            _audit_request(
+                conn,
+                tenant_id=tenant.tenant_id,
+                action="auth.login_failed",
+                resource_type="user",
+                metadata={"email": email, "reason": "no_tenant_admin", "surface": "legacy-login"},
+            )
+            conn.commit()
             return _error("No admin user found for this tenant.", 403)
         if not _verify_and_upgrade_password(conn, user, password):
+            _audit_request(
+                conn,
+                tenant_id=tenant.tenant_id,
+                action="auth.login_failed",
+                resource_type="user",
+                resource_id=user["id"],
+                metadata={"email": email, "reason": "bad_password", "surface": "legacy-login"},
+            )
+            conn.commit()
             return _error("Invalid password.", 401)
 
     # Generate session token and store in Flask session
