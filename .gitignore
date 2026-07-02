@@ -1,26 +1,43 @@
+# ── macOS / iCloud artifacts ──
+__MACOSX/
 .DS_Store
+*.swp
+*~
+
+# ── Python ──
+*.pyc
 __pycache__/
-*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# ── Virtual environment ──
 .venv/
 venv/
 
-# Runtime data and secrets
-database.json
-database *.json
-letspaint-cms-release/LetsPaint_*.json
-*.tmp
-.api_secret
-.cms_password
-.cms_config.json
-backups/
-photos/
-portfolio/
+# ── StudioSaaS local secrets (NEVER commit) ──
+backend/.api_secret
+backend/.cms_password
+backend/.cms_config.json
+backend/database.json
+backend/backups/
+backend/photos/
+backend/portfolio/
+backend/static/uploads/
 
-# Local environment files
-.env
-.env.*
-!.env.example
-!letspaint-cms-release/.env.aws.example
+# ── Checkpoint archives ──
+checkpoints/*.tgz
 
-# Logs
-*.log
+# ── Local repair backups ──
+*.bak
+*.bak.*
+*.backup
+
+# ── Local test artifacts ──
+cms_test_*/
+test_*/
+
+# ── OS generated ──
+Thumbs.db
+ehthumbs.db
