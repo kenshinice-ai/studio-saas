@@ -65,11 +65,11 @@ Purpose: Phased development plan, milestones, current status, and deployment tar
 | Public endpoint rate limiting | ✅ | In-memory: registrations 5/min, balance 10/min, uploads 5/min |
 | dict_row indexing bugs | ✅ | No tuple indexing remains in `api_v1.py` |
 | Credit transaction alignment | ✅ | `(tenant_id, student_id, course_id)` conflict key in use |
-| Role model consistency | ❌ | Schema/enum/auth/seed disagree — P0-01 |
-| pytest infrastructure | ❌ | Not installed, broken ini, missing tests/ — P0-02 |
-| Migration runner | ❌ | P0-03 |
-| Login rate limiting | ❌ | P0-05 |
-| Route protection audit | ⚠️ | ~114 routes / 8 decorators — P0-06 |
+| Role model consistency | ✅ | Platform admin = NULL-tenant membership (P0-01, 2026-07-03) |
+| pytest infrastructure | ✅ | `pytest -q` green, 20 tests (P0-02, 2026-07-03) |
+| Migration runner | ✅ | `run_migrations.py` + `schema_migrations` (P0-03, 2026-07-03) |
+| Login rate limiting | ✅ | 5/min per IP+email, 30/min per IP (P0-05, 2026-07-03) |
+| Route protection audit | ✅ | 146 routes audited; 12 open GET reads fixed (P0-06, 2026-07-03) |
 | Attendance / credits closed loop | ❌ | `attendance_sessions` unused — P1-05 |
 | Media upload endpoint (v1) | ❌ | Only legacy upload exists — P1-03 |
 | Browser smoke tests | ❌ | Playwright — P1-06 |

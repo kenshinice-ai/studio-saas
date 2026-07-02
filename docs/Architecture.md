@@ -209,18 +209,14 @@ The legacy Register shell (`legacy-root/register.html`) intercepts `/api/registe
 
 | Area | Issue | Priority |
 |---|---|---|
-| Roles | Schema CHECK, Python Role enum, auth queries, and seeds disagree; `platform_super_admin`/`admin` cannot exist in DB; seed touches nonexistent `memberships.updated_at` | P0-01 |
-| Testing | `pytest -q` broken: pytest not installed, duplicate key in pytest.ini, `backend/tests/` missing | P0-02 |
-| Migrations | No migration runner; `schema_v1.sql` is both bootstrap and patch history | P0-03 |
-| Auth | Login has no rate limiting; failed logins not audited | P0-05 |
-| Route protection | ~114 routes, only 8 protection decorators; coverage unaudited | P0-06 |
-| Enums | Tenant status lacks `archived`; `trial` vs `trialing`; media visibility only 2 values | P0-07 |
 | Attendance | `attendance_sessions` table has zero references in `api_v1.py` — credits/attendance loop unimplemented | P1-05 |
+| Media | No v1 upload endpoint; media validation not centralised | P1-03 |
 | Legacy residue | `sw.js` still branded "Let's Paint CMS" with platform-level icon cache | P2-02 |
-| Code size | `api_v1.py` is ~4040 lines — split along target module boundaries | P2-01 |
+| Code size | `api_v1.py` is ~4100 lines — split along target module boundaries | P2-01 |
 | Vendor JS | Runtime Babel/Tailwind compilation in browser | P2-03 |
+| Rate limiting | In-memory, per-process — resets on restart (pilot-acceptable; Redis at P3-04) | P3 |
 
-Resolved since last revision: public endpoint rate limiting (in-memory), dict_row indexing bugs, portfolio DELETE mapping, credit account ON CONFLICT key, `.gitignore` baseline, HTML branding residue.
+Resolved 2026-07-03 (P0 sprint): role model unification (platform admin = NULL-tenant membership), pytest infrastructure (20 tests), migration runner (`run_migrations.py`), repo hygiene (backend/ was previously untracked by git), login rate limiting + failure audits, route-protection audit (12 unauthenticated tenant GET reads fixed), enum alignment decisions. Earlier: public endpoint rate limiting, dict_row bugs, portfolio DELETE mapping, credit account ON CONFLICT key, HTML branding residue.
 
 ---
 

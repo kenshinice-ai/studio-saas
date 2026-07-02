@@ -116,7 +116,13 @@ export STUDIOSAAS_DATABASE_URL="postgresql://$(whoami)@localhost:5432/studiosaas
 psql "$STUDIOSAAS_DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/db/schema_v1.sql
 ```
 
-> A migration runner (`backend/scripts/run_migrations.py` + `schema_migrations` table) is planned as task **P0-03** in `codingprompt.md`. Until it lands, `schema_v1.sql` is the single bootstrap path.
+Preferred bootstrap (migration runner, applies `backend/db/migrations/` in order):
+
+```bash
+cd backend && python scripts/run_migrations.py
+# existing databases bootstrapped from schema_v1.sql: baseline once first
+#   python scripts/run_migrations.py --baseline 0001_schema_v1.sql
+```
 
 ### 4.4 Seed local data
 
@@ -173,7 +179,7 @@ These are the values the schema actually CHECKs. Code, seeds, UI, and docs must 
 | Registration status | `registrations.status` | `pending`, `approved`, `rejected`, `duplicate`, `contacted`, `archived` |
 | Media visibility | `media_assets.visibility` | `private`, `public_token` |
 
-**Note:** `users` has **no role column** — roles live on `memberships` (user × tenant). The Python `Role` enum currently contains extra values (`platform_super_admin`, `admin`) that the database rejects; unifying this is task **P0-01**.
+**Note:** `users` has **no role column** — roles live on `memberships` (user × tenant). A platform administrator is a `super_admin` membership with `tenant_id IS NULL`, which grants access to every tenant including ones created later (P0-01, done 2026-07-03).
 
 ---
 
@@ -183,6 +189,9 @@ These are the values the schema actually CHECKs. Code, seeds, UI, and docs must 
 # Syntax check (from project root)
 python3 -m py_compile backend/server.py backend/studiosaas/*.py backend/scripts/*.py
 
+# Unit/boundary tests (install dev deps first: pip install -r backend/requirements-dev.txt)
+cd backend && ../.venv/bin/python -m pytest -q
+
 # Script-style smoke tests (run with python, NOT pytest)
 cd backend
 ../.venv/bin/python test_cms.py                 # expected: 72 checks passing
@@ -191,8 +200,6 @@ cd backend
 # Full local verification
 bash backend/scripts/verify_local.sh
 ```
-
-> `pytest -q` is currently **broken** (pytest not installed, duplicate key in pytest.ini, missing `backend/tests/`). Fixing it is task **P0-02** in `codingprompt.md`.
 
 Manual checks with the server running:
 

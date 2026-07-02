@@ -106,7 +106,7 @@ These items activate once P3-02 lands; they are **not** blockers for local pilot
 
 | ID | Description | Status | Workaround |
 |---|---|---|---|
-| QA-001 | `pytest -q` broken (dep + config) | Open — P0-02 | Run script-style tests with `python` directly |
+| QA-001 | `pytest -q` broken (dep + config) | ✅ Fixed 2026-07-03 (P0-02) | — |
 | QA-002 | Rate limits reset on server restart (in-memory) | Accepted for pilot | Redis-backed limiter at P3-04 |
 | QA-003 | Super-admin tenant list doesn't paginate | Open | Works for < 100 tenants |
 | QA-004 | `attendance_sessions` unused — no check-in flow | Open — P1-05 | Track attendance manually |

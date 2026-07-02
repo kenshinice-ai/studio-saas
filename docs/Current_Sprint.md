@@ -38,13 +38,13 @@ These items from earlier sprint docs are confirmed done — do not re-fix:
 
 | ID | Task | Status |
 |---|---|---|
-| P0-01 | Unify role model (schema/enum/auth/seed; seed touches nonexistent `memberships.updated_at`) | ❌ Not started |
-| P0-02 | Fix pytest (install dep, dedupe pytest.ini, create `backend/tests/`) | ❌ Not started |
-| P0-03 | Migration runner (`migrations/` + `schema_migrations` + runner script) | ❌ Not started |
-| P0-04 | Repo hygiene finalisation (commit intentional deletions, untrack checkpoints, remove clutter) | ❌ Not started |
-| P0-05 | Login rate limiting + failed-login audit | ❌ Not started |
-| P0-06 | Route protection audit (~114 routes / 8 decorators) | ❌ Not started |
-| P0-07 | Status/visibility enum alignment (tenant `archived`, `trial` vs `trialing`, media visibility) | ❌ Not started |
+| P0-01 | Unify role model — enum matches CHECK; platform admin = `tenant_id IS NULL` membership; seed fixed | ✅ Done 2026-07-03 |
+| P0-02 | Fix pytest — requirements-dev, clean pytest.ini, `backend/tests/` (20 tests) | ✅ Done 2026-07-03 |
+| P0-03 | Migration runner — `migrations/0001+0002`, `schema_migrations`, `run_migrations.py` (`--baseline`, `--dry-run`) | ✅ Done 2026-07-03 |
+| P0-04 | Repo hygiene — deletions committed, `backend/` now tracked (was never in git!), checkpoints ignored | ✅ Done 2026-07-03 |
+| P0-05 | Login rate limiting (5/min per IP+email, 30/min per IP) + legacy-login failure audit | ✅ Done 2026-07-03 |
+| P0-06 | Route audit (146 routes): mutations were safe; 12 unauthenticated tenant GET reads fixed | ✅ Done 2026-07-03 |
+| P0-07 | Enum alignment verified; `archived`/`trialing` decisions recorded in Database.md §3 | ✅ Done 2026-07-03 |
 
 ### P1 — Engineering quality and business loops
 
@@ -208,7 +208,7 @@ Password storage: seed/reset scripts write PBKDF2-HMAC-SHA256 hashes. Legacy uns
 | Milestone | Verdict | Condition |
 |---|---|---|
 | Local demo | **GO** | Dependency install + smoke tests pass |
-| Internal testing | **CONDITIONAL GO** | After P0-01, P0-02, P0-05, P0-06 |
+| Internal testing | **GO** (2026-07-03) | P0-01…P0-07 all done and verified |
 | External pilot | **NO-GO** | Until all P0 verified + P1-02 isolation matrix |
 | AWS staging | **NO-GO** | All P0 + P1-07 backup runbook + P3-01 config layering |
 

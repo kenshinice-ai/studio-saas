@@ -99,11 +99,12 @@ These are the values enforced by the database today. Code, seeds, UI, and docs m
 | Media visibility | `media_assets.visibility` | `private`, `public_token` |
 | Notification status | `notification_logs.status` | `queued`, `sent`, `failed` |
 
-Known inconsistencies tracked in `codingprompt.md`:
+Resolved / accepted decisions (2026-07-03, P0-01 and P0-07):
 
-- `tenants.status` has no `archived` value (P0-07).
-- Tenant `trial` vs subscription `trialing` naming drift (P0-07).
-- Python `Role` enum contains `platform_super_admin` and `admin`, not accepted by the DB (P0-01).
+- Python `Role` enum now matches the CHECK constraint exactly. Platform admins are memberships with `tenant_id IS NULL`, unique per user via the `memberships_platform_user_uniq` partial index (migration 0002). Per-tenant `super_admin` rows remain honoured for backward compatibility.
+- `tenants.status` deliberately has **no** `archived` value — pause/cancel cover current lifecycle needs. Extend via a migration file when the product actually needs archival.
+- Tenant `trial` vs subscription `trialing` naming drift is **accepted**: they are independent enums, both validated in `api_v1.py` (`TENANT_STATUSES`, `SUBSCRIPTION_STATUSES`) and used correctly by the Super Admin UI.
+- `media_assets.visibility` stays `private`/`public_token` until the media service (P1-03) introduces richer sharing.
 
 ### 3.1 Credit Transaction Input Mapping
 
