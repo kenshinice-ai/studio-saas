@@ -1,0 +1,2426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudioSaaS Studio Admin</title>
+  <link rel="icon" href="/logo.png" type="image/png">
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.getRegistration('/').then((registration) => {
+          if (registration) registration.update().catch(() => {});
+        }).catch(() => {});
+      });
+    }
+  </script>
+  <style>
+    :root {
+      --bg: #f1f5f9;
+      --surface: #ffffff;
+      --ink: #0f172a;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --brand: #3b82f6;
+      --brand-dark: #2563eb;
+      --brand-light: #dbeafe;
+      --brand-ultra-light: #eff6ff;
+      --green: #10b981;
+      --green-light: #d1fae5;
+      --red: #ef4444;
+      --red-light: #fee2e2;
+      --amber: #f59e0b;
+      --amber-light: #fef3c7;
+      --purple: #8b5cf6;
+      --purple-light: #ede9fe;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.05);
+      --shadow-lg: 0 10px 25px rgba(0,0,0,0.08), 0 4px 10px rgba(0,0,0,0.04);
+      --radius: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ===== HEADER ===== */
+    .header {
+      background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+      color: white;
+      box-shadow: var(--shadow-md);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-top {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 18px 32px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .brand { min-width: 0; }
+
+    .brand h1 {
+      font-size: 22px;
+      font-weight: 700;
+      margin: 0;
+      letter-spacing: -0.3px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand h1::before {
+      content: '';
+      display: inline-block;
+      width: 32px;
+      height: 32px;
+      background: var(--brand);
+      border-radius: 8px;
+      flex-shrink: 0;
+    }
+
+    .brand p {
+      color: #94a3b8;
+      font-size: 13px;
+      margin-top: 2px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .header-actions input {
+      min-width: 160px;
+      width: 180px;
+      background: rgba(255,255,255,0.1);
+      color: white;
+      border-color: rgba(255,255,255,0.2);
+    }
+
+    .header-actions input::placeholder {
+      color: rgba(255,255,255,0.5);
+    }
+
+    .auth-status {
+      color: #cbd5e1;
+      font-size: 12px;
+      max-width: 220px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Navigation Bar */
+    .nav-bar {
+      background: rgba(0,0,0,0.15);
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .nav-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 32px;
+      display: flex;
+      gap: 4px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+
+    .nav-inner::-webkit-scrollbar { display: none; }
+
+    .nav-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #94a3b8;
+      text-decoration: none;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      cursor: pointer;
+      background: none;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+    }
+
+    .nav-link:hover {
+      color: white;
+      background: rgba(255,255,255,0.05);
+    }
+
+    .nav-link.active {
+      color: white;
+      border-bottom-color: var(--brand);
+    }
+
+    .nav-icon {
+      font-size: 15px;
+    }
+
+    /* Buttons */
+    button {
+      border: none;
+      border-radius: var(--radius);
+      padding: 10px 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-size: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    button:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+    button:active { transform: translateY(0); box-shadow: none; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .btn-primary {
+      background: var(--brand);
+      color: white;
+    }
+    .btn-primary:hover { background: var(--brand-dark); }
+
+    .btn-secondary {
+      background: #f1f5f9;
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+    .btn-secondary:hover { background: #e2e8f0; }
+
+    .btn-danger {
+      background: var(--red-light);
+      color: var(--red);
+    }
+    .btn-danger:hover { background: #fecaca; }
+
+    .btn-success {
+      background: var(--green-light);
+      color: var(--green);
+    }
+    .btn-success:hover { background: #a7f3d0; }
+
+    .btn-info {
+      background: var(--brand-light);
+      color: var(--brand-dark);
+    }
+    .btn-info:hover { background: #bfdbfe; }
+
+    .btn-sm { padding: 6px 12px; font-size: 13px; }
+
+    /* Main Layout */
+    main {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px 32px 48px;
+    }
+
+    /* Section Grouping */
+    .section {
+      margin-bottom: 32px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .section-icon {
+      font-size: 20px;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--brand-ultra-light);
+      border-radius: 8px;
+      color: var(--brand);
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--ink);
+      letter-spacing: -0.2px;
+    }
+
+    .section-subtitle {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--line);
+      padding: 24px;
+      margin-bottom: 24px;
+      transition: box-shadow 0.2s ease;
+      max-width: 100%;
+      min-width: 0;
+    }
+
+    .card:hover { box-shadow: var(--shadow-md); }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 8px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      padding: 22px 20px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--line);
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+    }
+
+    .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+    .stat-card.green::before { background: var(--green); }
+    .stat-card.amber::before { background: var(--amber); }
+    .stat-card.purple::before { background: var(--purple); }
+
+    .stat-value {
+      font-size: 30px;
+      font-weight: 800;
+      color: var(--ink);
+      line-height: 1.2;
+      letter-spacing: -0.5px;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+
+    /* Filters */
+    .filters {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .filter-group label {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 10px 12px;
+      font-size: 14px;
+      transition: all 0.2s ease;
+      background: var(--surface);
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px var(--brand-light);
+    }
+
+    /* Tables */
+    .table-wrapper {
+      overflow-x: auto;
+      border-radius: var(--radius);
+      max-width: 100%;
+      min-width: 0;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    table {
+      width: 100%;
+      min-width: 680px;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    th, td {
+      padding: 12px 16px;
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    th {
+      background: #f8fafc;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      border-bottom: 2px solid var(--line);
+    }
+
+    td {
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    tr:hover td { background: #fafbfc; }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) 150px auto auto;
+      gap: 10px;
+      align-items: end;
+      margin-bottom: 14px;
+    }
+
+    .empty-state {
+      padding: 40px 16px;
+      color: var(--muted);
+      text-align: center;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .empty-state::before {
+      content: '';
+      display: block;
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 12px;
+      background: var(--line);
+      border-radius: 50%;
+      opacity: 0.5;
+    }
+
+    .edit-banner {
+      background: var(--brand-light);
+      border: 1px solid rgba(37, 99, 235, 0.15);
+      color: var(--brand-dark);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      font-weight: 600;
+      font-size: 13px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .edit-banner::before {
+      content: '✎';
+      font-size: 14px;
+    }
+
+    .action-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .btn-loading {
+      opacity: 0.72;
+      pointer-events: none;
+    }
+
+    /* Status Pills */
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .pill.active, .pill.trialing { background: var(--green-light); color: var(--green); }
+    .pill.pending { background: var(--amber-light); color: var(--amber); }
+    .pill.cancelled, .pill.paused, .pill.inactive, .pill.archived, .pill.contacted { background: #f1f5f9; color: var(--muted); }
+
+    /* Progress Bars */
+    .progress-bar {
+      height: 6px;
+      background: #e2e8f0;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 0.3s ease;
+    }
+
+    .progress-fill.blue { background: var(--brand); }
+    .progress-fill.green { background: var(--green); }
+    .progress-fill.amber { background: var(--amber); }
+    .progress-fill.red { background: var(--red); }
+
+    /* Forms */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+    }
+
+    .form-group { margin-bottom: 16px; }
+
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 6px;
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+      flex-wrap: wrap;
+    }
+
+    .content-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    .warning-text {
+      color: #92400e;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: var(--radius);
+      font-size: 13px;
+      margin-top: 8px;
+      padding: 10px 12px;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(15,23,42,0.6);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.25s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal {
+      background: var(--surface);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-lg);
+      max-width: 700px;
+      width: min(92%, 700px);
+      max-height: 85vh;
+      overflow-y: auto;
+      transform: scale(0.95) translateY(15px);
+      transition: all 0.25s ease;
+    }
+
+    .modal-overlay.active .modal {
+      transform: scale(1) translateY(0);
+    }
+
+    .modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      background: var(--surface);
+      z-index: 1;
+    }
+
+    .modal-title { font-size: 17px; font-weight: 700; }
+    .modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: var(--muted); padding: 4px 10px; border-radius: 6px; }
+    .modal-close:hover { background: #f1f5f9; color: var(--ink); }
+    .modal-body { padding: 24px; }
+
+    /* Toast Notifications */
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .toast {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 280px;
+      animation: slideIn 0.3s ease;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .toast.success { border-left: 4px solid var(--green); }
+    .toast.error { border-left: 4px solid var(--red); }
+    .toast.warning { border-left: 4px solid var(--amber); }
+
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* Loading State */
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--line);
+      border-top-color: var(--brand);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Theme Preview */
+    .theme-preview {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-top: 14px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .theme-preview .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      background: var(--preview-primary, #3b82f6);
+      color: white;
+      padding: 14px 16px;
+    }
+
+    .theme-preview .body {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 14px;
+      background: white;
+    }
+
+    .theme-preview .sample-btn {
+      border-radius: var(--radius);
+      background: var(--preview-secondary, #2563eb);
+      color: white;
+      padding: 8px 16px;
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    /* Color Warning */
+    #colorWarning {
+      color: #92400e;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: var(--radius);
+      font-size: 12px;
+      margin-top: 8px;
+      padding: 8px 12px;
+      line-height: 1.5;
+    }
+
+    /* Utility */
+    .text-muted { color: var(--muted); }
+    .mt-2 { margin-top: 8px; }
+    .mb-2 { margin-bottom: 8px; }
+    .hidden { display: none !important; }
+    .login-card { max-width: 460px; margin: 40px auto; }
+    .login-card h2 { font-size: 22px; margin-bottom: 8px; }
+    .login-card p { color: var(--muted); margin-bottom: 20px; }
+    code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 12px; font-family: "SF Mono", Monaco, monospace; }
+
+    /* Image Preview */
+    .img-preview {
+      width: 80px;
+      height: 80px;
+      object-fit: contain;
+      border-radius: var(--radius);
+      background: white;
+      border: 1px solid var(--line);
+      padding: 4px;
+    }
+
+    /* Badge */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .badge.green { background: var(--green-light); color: var(--green); }
+    .badge.amber { background: var(--amber-light); color: var(--amber); }
+    .badge.red { background: var(--red-light); color: var(--red); }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 1024px) {
+      main, .header-top, .nav-inner { padding-left: 16px; padding-right: 16px; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .content-grid { grid-template-columns: 1fr; }
+      .toolbar { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 768px) {
+      .header-top {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 14px 16px;
+        gap: 12px;
+      }
+      .brand h1 { font-size: 18px; }
+      .brand h1::before { width: 28px; height: 28px; }
+      .header-actions {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .header-actions input {
+        width: 100% !important;
+        min-width: 0;
+      }
+      .header-actions button {
+        width: 100%;
+        justify-content: center;
+      }
+      .nav-inner { padding: 0 16px; }
+      .nav-link { padding: 8px 12px; font-size: 12px; }
+      main { padding: 16px; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .stat-card { padding: 16px; }
+      .stat-value { font-size: 24px; }
+      .card { padding: 16px; border-radius: var(--radius-lg); }
+      .card-header { align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+      .toolbar { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+      .filters { grid-template-columns: 1fr; }
+      .modal { width: calc(100vw - 24px); }
+      .toast-container { left: 12px; right: 12px; top: 12px; }
+      .toast { min-width: 0; width: 100%; }
+      .theme-preview .body { grid-template-columns: 1fr; }
+      .section-header { flex-wrap: wrap; }
+    }
+
+    @media (max-width: 480px) {
+      .stats-grid { grid-template-columns: 1fr; }
+      .stat-card { padding: 14px; }
+      .stat-value { font-size: 22px; }
+      table { min-width: 500px; }
+      th, td { padding: 10px 12px; font-size: 13px; }
+    }
+
+    /* ===== PILOT POLISH OVERRIDES ===== */
+    body {
+      background:
+        radial-gradient(circle at top left, rgba(59, 130, 246, 0.08), transparent 30rem),
+        linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+    }
+
+    .header {
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--ink);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+      backdrop-filter: blur(18px);
+      box-shadow: 0 12px 36px rgba(15, 23, 42, 0.08);
+    }
+
+    .header-top { padding-top: 16px; padding-bottom: 12px; }
+
+    .brand h1 {
+      color: #0f172a;
+      font-size: 24px;
+      letter-spacing: 0;
+    }
+
+    .brand h1::before {
+      background: linear-gradient(135deg, #0ea5e9, #2563eb);
+      box-shadow: 0 8px 18px rgba(37, 99, 235, 0.24);
+    }
+
+    .brand p, .auth-status { color: #64748b; }
+
+    .header-actions {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 8px;
+    }
+
+    .header-actions input {
+      background: #ffffff;
+      color: var(--ink);
+      border-color: #dbe3ee;
+    }
+
+    .header-actions input::placeholder { color: #94a3b8; }
+
+    .nav-bar {
+      background: rgba(248, 250, 252, 0.82);
+      border-top: 1px solid rgba(226, 232, 240, 0.8);
+    }
+
+    .nav-inner { gap: 8px; padding-top: 8px; padding-bottom: 8px; }
+
+    .nav-link {
+      border: 1px solid transparent;
+      border-radius: 999px;
+      color: #64748b;
+      padding: 9px 14px;
+      background: transparent;
+    }
+
+    .nav-link:hover {
+      color: #0f172a;
+      background: #ffffff;
+      border-color: #e2e8f0;
+    }
+
+    .nav-link.active {
+      color: #0f172a;
+      background: #ffffff;
+      border-color: #bfdbfe;
+      box-shadow: 0 8px 18px rgba(37, 99, 235, 0.1);
+    }
+
+    main { padding-top: 28px; }
+
+    .section {
+      scroll-margin-top: 132px;
+      margin-bottom: 36px;
+    }
+
+    .section-header {
+      align-items: flex-start;
+      border-bottom: none;
+      margin-bottom: 14px;
+      padding-bottom: 0;
+    }
+
+    .section-icon {
+      background: #ffffff;
+      border: 1px solid #dbeafe;
+      box-shadow: 0 10px 22px rgba(37, 99, 235, 0.08);
+    }
+
+    .section-title {
+      font-size: 22px;
+      letter-spacing: 0;
+    }
+
+    .section-subtitle { font-size: 14px; color: #64748b; }
+
+    .card, .stat-card {
+      border-color: rgba(203, 213, 225, 0.86);
+      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
+    }
+
+    .card:hover, .stat-card:hover {
+      transform: none;
+      box-shadow: 0 18px 46px rgba(15, 23, 42, 0.08);
+    }
+
+    .card-header {
+      gap: 12px;
+      border-bottom-color: #eef2f7;
+    }
+
+    .card-title { font-size: 17px; }
+
+    .stat-card {
+      min-height: 120px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+
+    .stat-label { color: #64748b; }
+
+    input, select, textarea {
+      min-height: 42px;
+      border-color: #dbe3ee;
+      color: #0f172a;
+    }
+
+    textarea { min-height: 96px; resize: vertical; }
+
+    .form-group label, .filter-group label, .toolbar label {
+      color: #475569;
+      font-size: 12px;
+      letter-spacing: 0.02em;
+    }
+
+    button { min-height: 38px; }
+
+    .btn-primary {
+      background: #2563eb;
+      box-shadow: 0 8px 18px rgba(37, 99, 235, 0.18);
+    }
+
+    .btn-secondary { background: #ffffff; }
+
+    .toolbar {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .table-wrapper {
+      border: 1px solid #e2e8f0;
+      background: #ffffff;
+      box-shadow: inset 0 -1px 0 #e2e8f0;
+    }
+
+    th {
+      background: #f8fafc;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    tr:last-child td { border-bottom: none; }
+
+    .brand-preview {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 16px;
+      align-items: center;
+      padding: 16px;
+      margin-bottom: 20px;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #ffffff, #f8fafc);
+    }
+
+    .color-field {
+      display: grid;
+      grid-template-columns: 52px minmax(0, 1fr);
+      gap: 12px;
+      align-items: center;
+    }
+
+    .color-field input[type="color"] {
+      width: 52px;
+      height: 42px;
+      padding: 4px;
+      cursor: pointer;
+    }
+
+    .color-meta {
+      font-size: 12px;
+      color: #64748b;
+      overflow-wrap: anywhere;
+    }
+
+    #colorWarning {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      font-size: 13px;
+      padding: 12px 14px;
+    }
+
+    #colorWarning::before {
+      content: '!';
+      width: 20px;
+      height: 20px;
+      border-radius: 999px;
+      background: #f59e0b;
+      color: white;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+      font-weight: 800;
+      font-size: 12px;
+    }
+
+    #colorWarning.hidden { display: none !important; }
+
+    .theme-preview {
+      border-radius: 14px;
+      border-color: #dbe3ee;
+    }
+
+    .theme-preview .top { padding: 16px 18px; }
+    .theme-preview .body { padding: 18px; }
+
+    .empty-state {
+      background: #f8fafc;
+      border-radius: 10px;
+    }
+
+    .modal-footer {
+      padding: 16px 24px;
+      border-top: 1px solid var(--line);
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 768px) {
+      .header-actions {
+        border-radius: 14px;
+        padding: 10px;
+      }
+
+      .nav-inner {
+        padding-top: 10px;
+        padding-bottom: 10px;
+      }
+
+      .section { scroll-margin-top: 220px; }
+      .section-title { font-size: 19px; }
+      .brand-preview { grid-template-columns: 1fr; }
+      .modal-footer { justify-content: stretch; }
+      .modal-footer button { flex: 1 1 160px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-top">
+      <div class="brand">
+        <h1 id="studioName">Studio Admin</h1>
+        <p id="studioMeta">Loading tenant...</p>
+      </div>
+      <div class="header-actions">
+        <span id="authStatus" class="auth-status">Not signed in</span>
+        <input id="tenantSlug" aria-label="Tenant slug" value="" placeholder="tenant-slug">
+        <button id="changePasswordBtn" class="btn-secondary hidden">Change Password</button>
+        <button id="logoutBtn" class="btn-secondary hidden">Logout</button>
+        <button id="refreshBtn" class="btn-primary">
+          <span id="refreshIcon">↻</span> Refresh
+        </button>
+        <button id="openCmsBtn" class="btn-secondary">Open CMS</button>
+        <button id="openRegisterBtn" class="btn-secondary">Open Register</button>
+      </div>
+    </div>
+    <!-- Navigation Bar -->
+    <nav class="nav-bar">
+      <div class="nav-inner">
+        <a class="nav-link active" href="#section-overview" data-section="overview">
+          <span class="nav-icon">📊</span> Overview
+        </a>
+        <a class="nav-link" href="#section-settings" data-section="settings">
+          <span class="nav-icon">⚙️</span> Studio Settings
+        </a>
+        <a class="nav-link" href="#section-students" data-section="students">
+          <span class="nav-icon">👥</span> Students
+        </a>
+        <a class="nav-link" href="#section-courses" data-section="courses">
+          <span class="nav-icon">📚</span> Courses
+        </a>
+        <a class="nav-link" href="#section-packages" data-section="packages">
+          <span class="nav-icon">📦</span> Packages
+        </a>
+        <a class="nav-link" href="#section-registrations" data-section="registrations">
+          <span class="nav-icon">📋</span> Registrations
+        </a>
+        <a class="nav-link" href="#section-portfolio" data-section="portfolio">
+          <span class="nav-icon">🎨</span> Portfolio
+        </a>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Main Content -->
+  <main>
+    <!-- Login Panel -->
+    <section id="loginPanel" class="card login-card hidden">
+      <h2>Studio Admin Login</h2>
+      <p>Use the Studio Admin email and password configured in Super Admin.</p>
+      <form id="loginForm">
+        <div class="form-group">
+          <label>Email</label>
+          <input id="loginEmail" type="email" autocomplete="username" placeholder="owner@studio.test">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input id="loginPassword" type="password" autocomplete="current-password" placeholder="admin123456">
+        </div>
+        <div class="form-actions">
+          <button id="loginBtn" type="submit" class="btn-primary">Login</button>
+        </div>
+      </form>
+    </section>
+
+    <div id="adminContent" class="hidden">
+
+    <!-- ===== Overview Section ===== -->
+    <section id="section-overview" class="section">
+      <div class="section-header">
+        <div class="section-icon">📊</div>
+        <div>
+          <div class="section-title">Overview</div>
+          <div class="section-subtitle">Key metrics at a glance</div>
+        </div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div id="studentsMetric" class="stat-value">-</div>
+          <div class="stat-label">Total Students</div>
+        </div>
+        <div class="stat-card green">
+          <div id="activeMetric" class="stat-value">-</div>
+          <div class="stat-label">Active</div>
+        </div>
+        <div class="stat-card amber">
+          <div id="lowMetric" class="stat-value">-</div>
+          <div class="stat-label">Low Balance</div>
+        </div>
+        <div class="stat-card purple">
+          <div id="pendingMetric" class="stat-value">-</div>
+          <div class="stat-label">Pending</div>
+        </div>
+        <div class="stat-card">
+          <div id="portfolioMetric" class="stat-value">-</div>
+          <div class="stat-label">Portfolio Items</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Studio Settings Section ===== -->
+    <section id="section-settings" class="section">
+      <div class="section-header">
+        <div class="section-icon">⚙️</div>
+        <div>
+          <div class="section-title">Studio Settings</div>
+          <div class="section-subtitle">Branding, layout, and contact details</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="brand-preview">
+          <img id="logoPreview" class="img-preview" alt="Studio logo" src="/logo.png">
+          <div>
+            <strong id="previewName">Studio</strong>
+            <div id="previewContact" class="text-muted mt-2">Contact details</div>
+          </div>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Studio Name</label>
+            <input id="settingName">
+          </div>
+          <div class="form-group">
+            <label>Logo URL</label>
+            <input id="settingLogoUrl" placeholder="/logo.png or https://...">
+          </div>
+          <div class="form-group">
+            <label>Upload Logo</label>
+            <input id="settingLogoFile" type="file" accept="image/*">
+          </div>
+          <div class="form-group">
+            <label>Plan</label>
+            <select id="settingPlan"></select>
+          </div>
+          <div class="form-group">
+            <label>Primary Color</label>
+            <div class="color-field">
+              <input id="settingPrimaryColor" type="color">
+              <div class="color-meta">Main CMS and registration accent</div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Secondary Color</label>
+            <div class="color-field">
+              <input id="settingSecondaryColor" type="color">
+              <div class="color-meta">Buttons, highlights, and contrast support</div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>CMS Layout</label>
+            <select id="settingCmsLayout">
+              <option value="bar">Header Bar</option>
+              <option value="hero">Hero Welcome</option>
+              <option value="compact">Compact</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Show Welcome</label>
+            <select id="settingShowWelcome">
+              <option value="true">Show on CMS/Register</option>
+              <option value="false">Hide</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Studio Category</label>
+            <select id="settingCategory"></select>
+          </div>
+          <div class="form-group">
+            <label>Slogan</label>
+            <input id="settingSlogan" placeholder="Public brand slogan">
+          </div>
+          <div class="form-group">
+            <label>Timezone</label>
+            <input id="settingTimezone">
+          </div>
+          <div class="form-group">
+            <label>Phone</label>
+            <input id="settingPhone" placeholder="0400 000 000">
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input id="settingEmail" type="email" placeholder="studio@example.com">
+          </div>
+          <div class="form-group">
+            <label>Address</label>
+            <input id="settingAddress" placeholder="Studio address">
+          </div>
+          <div class="form-group">
+            <label>Welcome Message</label>
+            <input id="settingWelcome" placeholder="Welcome text for CMS and Register">
+          </div>
+          <div class="form-group">
+            <label>Portal Label</label>
+            <input id="settingPortalLabel" placeholder="Student portal label">
+          </div>
+          <div class="form-group">
+            <label>Register Intro</label>
+            <input id="settingRegisterIntro" placeholder="Registration form intro text">
+          </div>
+          <div class="form-group">
+            <label>Registration Title</label>
+            <input id="settingRegistrationTitle" placeholder="Registration form title">
+          </div>
+        </div>
+
+        <!-- Color Warning -->
+        <div id="colorWarning" class="hidden"></div>
+
+        <!-- Registration Fields Editor -->
+        <div class="form-grid mt-2" id="registrationFieldsEditor"></div>
+
+        <!-- Theme Preview -->
+        <div class="theme-preview" id="themePreview">
+          <div class="top"><strong id="themePreviewTitle">Theme Preview</strong><span id="themePreviewSlug">tenant</span></div>
+          <div class="body">
+            <div>
+              <h3 style="margin: 0; font-size: 16px;">Sample Course Title</h3>
+              <p id="themePreviewWelcome" class="text-muted" style="font-size: 13px; margin-top: 4px;">Welcome message appears on CMS and Register when enabled.</p>
+            </div>
+            <button class="sample-btn">Enroll Now</button>
+          </div>
+        </div>
+
+        <!-- Save Button -->
+        <div class="form-actions" style="justify-content: flex-end;">
+          <button id="saveSettingsBtn" class="btn-primary">Save Settings</button>
+          <button id="resetPresetBtn" class="btn-secondary">Apply Category Preset</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Students Section ===== -->
+    <section id="section-students" class="section">
+      <div class="section-header">
+        <div class="section-icon">👥</div>
+        <div>
+          <div class="section-title">Students</div>
+          <div class="section-subtitle">Manage student records and balances</div>
+        </div>
+      </div>
+      <div class="content-grid">
+        <!-- Students Table -->
+        <div class="card">
+          <div class="card-header">
+            <h2 id="studentFormTitle" class="card-title">Students</h2>
+            <button id="addStudentBtn" class="btn-primary btn-sm">+ Add Student</button>
+          </div>
+          <div class="toolbar">
+            <div>
+              <label for="studentSearch" class="text-muted">Search</label>
+              <input id="studentSearch" placeholder="Name or mobile">
+            </div>
+            <div>
+              <label for="studentStatusFilter" class="text-muted">Status</label>
+              <select id="studentStatusFilter">
+                <option value="">All active records</option>
+                <option value="active">Active</option>
+                <option value="trial">Trial</option>
+                <option value="inactive">Inactive</option>
+                <option value="archived">Archived</option>
+              </select>
+            </div>
+            <label style="display:flex; align-items:center; gap:8px; padding-bottom:10px;">
+              <input id="studentLowFilter" type="checkbox" style="width:auto;"> Low balance
+            </label>
+            <button id="clearStudentFiltersBtn" type="button" class="btn-secondary btn-sm">Clear</button>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Status</th>
+                  <th>Balances</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="studentsBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Student Form -->
+        <div class="card">
+          <div class="card-header">
+            <h2 id="studentFormTitleRight" class="card-title">Student Details</h2>
+          </div>
+          <form id="studentForm" class="hidden">
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Name</label>
+                <input id="sName" placeholder="Full name">
+              </div>
+              <div class="form-group">
+                <label>Email</label>
+                <input id="sEmail" type="email" placeholder="student@example.com">
+              </div>
+              <div class="form-group">
+                <label>Status</label>
+                <select id="sStatus">
+                  <option value="active">Active</option>
+                  <option value="trial">Trial</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Course</label>
+                <select id="sCourse"></select>
+              </div>
+              <div class="form-group">
+                <label>Packages</label>
+                <input id="sPackages" placeholder="e.g. 3,4">
+              </div>
+              <div class="form-group">
+                <label>Balance</label>
+                <input id="sBalance" type="number" step="0.01">
+              </div>
+              <div class="form-group">
+                <label>Credit Hours</label>
+                <input id="sCreditHours" type="number">
+              </div>
+              <div class="form-group">
+                <label>Phone</label>
+                <input id="sPhone" placeholder="0400 000 000">
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="button" id="saveStudentBtn" class="btn-primary">Save Student</button>
+              <button type="button" id="resetStudentBtn" class="btn-secondary">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Courses Section ===== -->
+    <section id="section-courses" class="section">
+      <div class="section-header">
+        <div class="section-icon">📚</div>
+        <div>
+          <div class="section-title">Courses</div>
+          <div class="section-subtitle">Manage course catalog and pricing</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Courses</h2>
+          <button id="addCourseBtn" class="btn-primary btn-sm">+ Add Course</button>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+                <tr>
+                  <th>Name</th>
+                <th>Category</th>
+                <th>Duration</th>
+                <th>Price</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="coursesBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Packages & Registrations Section ===== -->
+    <section id="section-packages" class="section">
+      <div class="section-header">
+        <div class="section-icon">📦</div>
+        <div>
+          <div class="section-title">Packages</div>
+          <div class="section-subtitle">Credit packages and pricing</div>
+        </div>
+      </div>
+      <div class="content-grid">
+        <!-- Packages Table -->
+        <div class="card">
+          <div class="card-header">
+            <h2 id="packageFormTitle" class="card-title">Packages</h2>
+            <button id="addPackageBtn" class="btn-primary btn-sm">+ Add Package</button>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Credits</th>
+                  <th>Expiry</th>
+                  <th>Price</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="packagesBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Registrations Section ===== -->
+    <section id="section-registrations" class="section">
+      <div class="section-header">
+        <div class="section-icon">📋</div>
+        <div>
+          <div class="section-title">Registrations</div>
+          <div class="section-subtitle">Review and manage registration requests</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Registrations</h2>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Message</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="registrationsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Portfolio Section ===== -->
+    <section id="section-portfolio" class="section">
+      <div class="section-header">
+        <div class="section-icon">🎨</div>
+        <div>
+          <div class="section-title">Portfolio</div>
+          <div class="section-subtitle">Student artwork and project showcases</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Portfolio</h2>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Image</th>
+                <th>Title</th>
+                <th>Student</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="portfolioBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    </div>
+  </main>
+
+  <!-- Modal for Add/Edit -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modalTitle" class="modal-title">Add Item</h3>
+        <button class="modal-close" onclick="closeModal()">×</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-footer" id="modalFooter" style="padding: 16px 24px; border-top: 1px solid var(--line); display: flex; justify-content: flex-end; gap: 12px;"></div>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const text = (value) => value === null || value === undefined || value === '' ? '-' : String(value);
+    const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+    const dateOnly = (value) => value ? String(value).slice(0, 10) : '';
+    const money = (value) => `$${Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+    const audFromCents = (value) => Number(value || 0) / 100;
+    const currentTenantSlug = () => $('tenantSlug').value.trim().toLowerCase();
+    const pathTenantSlug = () => {
+      const match = location.pathname.match(/^\/([^/]+)\/studio-admin\/?$/);
+      return match ? decodeURIComponent(match[1]).toLowerCase() : '';
+    };
+    const firstNameFrom = (name) => String(name || '').trim().split(/\s+/)[0] || String(name || '').trim();
+    const studentName = (s) => s.display_name || s.displayName || s.name || [s.first_name, s.last_name].filter(Boolean).join(' ') || '';
+    const studentMobile = (s) => s.mobile || s.contact_phone || s.phone || '';
+    const studentEmail = (s) => s.email || s.contact_email || '';
+    const studentStatus = (s) => s.status || 'active';
+    const isActiveItem = (item) => item.is_active !== false && item.status !== 'inactive' && item.status !== 'archived';
+    const itemStatus = (item) => isActiveItem(item) ? 'active' : 'inactive';
+
+    const INDUSTRY_PRESETS = {
+      art: { label: 'Art', slogan: 'You deserve to enjoy life more.', portalLabel: 'Student Art Portal', registerIntro: 'Tell us about the student and their creative goals.' },
+      music: { label: 'Music', slogan: 'Every student deserves a rhythm of their own.', portalLabel: 'Music Student Portal', registerIntro: 'Tell us about the student and their music goals.' },
+      tutoring: { label: 'Tutoring', slogan: 'Confidence grows one lesson at a time.', portalLabel: 'Learning Portal', registerIntro: 'Tell us what support the student needs.' },
+      dance: { label: 'Dance', slogan: 'Move with confidence, rhythm, and joy.', portalLabel: 'Dance Student Portal', registerIntro: 'Tell us about the dancer and their level.' },
+      general: { label: 'General', slogan: 'A better way to manage your studio.', portalLabel: 'Student Portal', registerIntro: 'Tell us about the student.' }
+    };
+
+    let tenant = null;
+    let plans = [];
+    let students = [];
+    let courses = [];
+    let packages = [];
+    let registrations = [];
+    let portfolioItems = [];
+    let editingStudentId = '';
+    let editingCourseCode = '';
+    let editingPackageCode = '';
+    let creditStudentId = '';
+    let currentUser = null;
+
+    function showToast(message, type = 'success') {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      $('toastContainer').appendChild(toast);
+      setTimeout(() => toast.remove(), 4200);
+    }
+
+    function pill(value) {
+      const normalized = String(value || '').toLowerCase();
+      const icons = { active: '●', trial: '●', inactive: '○', archived: '○', pending: '◌', contacted: '◌', approved: '●', rejected: '×' };
+      const cls = normalized === 'active' || normalized === 'approved' || normalized === 'trial' ? 'pill active' :
+        normalized === 'pending' ? 'pill pending' : `pill ${normalized}`;
+      return `<span class="${cls}">${icons[normalized] || ''} ${esc(text(value))}</span>`;
+    }
+
+    function emptyRow(colspan, message) {
+      return `<tr><td colspan="${colspan}"><div class="empty-state">${esc(message)}</div></td></tr>`;
+    }
+
+    async function runUiAction(buttonId, label, action) {
+      const button = $(buttonId);
+      const previous = button ? button.textContent : '';
+      if (button) {
+        button.disabled = true;
+        button.classList.add('btn-loading');
+        button.textContent = label;
+      }
+      try {
+        await action();
+      } catch (err) {
+        showToast(err.message || 'Action failed.', 'error');
+        throw err;
+      } finally {
+        if (button) {
+          button.disabled = false;
+          button.classList.remove('btn-loading');
+          button.textContent = previous;
+        }
+      }
+    }
+
+    async function authApi(path, options = {}) {
+      const headers = { ...(options.headers || {}) };
+      if (!(options.body instanceof FormData)) headers['Content-Type'] = 'application/json';
+      const res = await fetch(`/v1${path}`, { ...options, credentials: 'include', headers });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const err = new Error(data.message || data.error || `${res.status} ${path}`);
+        err.status = res.status;
+        throw err;
+      }
+      return data;
+    }
+
+    async function api(path, options = {}) {
+      const slug = currentTenantSlug();
+      if (!slug) throw new Error('Tenant slug is required.');
+      const headers = { ...(options.headers || {}), 'X-Tenant-Slug': slug };
+      if (!(options.body instanceof FormData)) headers['Content-Type'] = 'application/json';
+      const base = path === '/plans' ? '/v1' : `/s/${encodeURIComponent(slug)}/v1`;
+      const res = await fetch(base + path, { ...options, credentials: 'include', headers });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const err = new Error(data.message || data.error || `${res.status} ${path}`);
+        err.status = res.status;
+        throw err;
+      }
+      return data;
+    }
+
+    function currentMembershipForSlug(memberships = [], slug) {
+      return memberships.some((m) => ['platform_super_admin', 'super_admin'].includes(m.role) || m.tenant_slug === slug || m.slug === slug);
+    }
+
+    function setAuthState(user) {
+      currentUser = user;
+      const signedIn = Boolean(user);
+      $('loginPanel').classList.toggle('hidden', signedIn);
+      $('adminContent').classList.toggle('hidden', !signedIn);
+      $('changePasswordBtn').classList.toggle('hidden', !signedIn);
+      $('logoutBtn').classList.toggle('hidden', !signedIn);
+      $('authStatus').textContent = signedIn ? `Signed in as ${user.email || user.name || 'admin'}` : 'Not signed in';
+    }
+
+    async function checkSession() {
+      try {
+        const data = await authApi('/auth/me');
+        const slug = currentTenantSlug();
+        if (data.memberships && !currentMembershipForSlug(data.memberships, slug)) {
+          setAuthState(null);
+          showToast(`This account does not have access to ${slug}.`, 'error');
+          return;
+        }
+        setAuthState(data.user || data);
+        await refresh();
+      } catch (err) {
+        setAuthState(null);
+        if (err.status && err.status !== 401) showToast(`Session check failed: ${err.message}`, 'error');
+      }
+    }
+
+    async function loginStudioAdmin(event) {
+      event.preventDefault();
+      const email = $('loginEmail').value.trim();
+      const password = $('loginPassword').value;
+      if (!email || !password) {
+        showToast('Email and password are required.', 'error');
+        return;
+      }
+      await runUiAction('loginBtn', 'Logging in...', async () => {
+        await authApi('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
+        $('loginPassword').value = '';
+        showToast('Logged in.');
+        await checkSession();
+      });
+    }
+
+    async function logoutStudioAdmin() {
+      await authApi('/auth/logout', { method: 'POST' }).catch(() => {});
+      setAuthState(null);
+      showToast('Logged out.');
+    }
+
+    function openChangePasswordModal() {
+      const bodyHtml = `
+        <div class="form-group"><label>Current Password</label><input id="m_oldPassword" type="password" autocomplete="current-password"></div>
+        <div class="form-group"><label>New Password</label><input id="m_newPassword" type="password" autocomplete="new-password" placeholder="At least 8 characters"></div>
+        <div class="form-group"><label>Confirm New Password</label><input id="m_confirmPassword" type="password" autocomplete="new-password"></div>
+      `;
+      const footerHtml = `<button onclick="changePassword()" class="btn-primary">Update Password</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
+      openModal('Change Password', bodyHtml, footerHtml);
+    }
+
+    async function changePassword() {
+      const oldPassword = $('m_oldPassword').value;
+      const newPassword = $('m_newPassword').value;
+      const confirmPassword = $('m_confirmPassword').value;
+      if (newPassword !== confirmPassword) {
+        showToast('New passwords do not match.', 'error');
+        return;
+      }
+      await authApi('/auth/change-password', { method: 'POST', body: JSON.stringify({ oldPassword, newPassword }) });
+      closeModal();
+      showToast('Password updated.');
+    }
+
+    function openModal(title, bodyHtml, footerHtml) {
+      $('modalTitle').textContent = title;
+      $('modalBody').innerHTML = bodyHtml;
+      $('modalFooter').innerHTML = footerHtml;
+      $('modalOverlay').classList.add('active');
+    }
+
+    function closeModal() {
+      $('modalOverlay').classList.remove('active');
+    }
+
+    function categoryOptions(selected) {
+      return Object.entries(INDUSTRY_PRESETS).map(([key, preset]) => `<option value="${key}" ${key === selected ? 'selected' : ''}>${preset.label}</option>`).join('');
+    }
+
+    function defaultRegistrationProfile(category) {
+      const profileByCategory = {
+        art: {
+          title: 'Creative Preferences',
+          fields: [
+            { key: 'artStyle', label: 'Preferred style', placeholder: 'Watercolour, sketching, acrylic', type: 'text' },
+            { key: 'goals', label: 'Creative goals', placeholder: 'Relax, build technique, portfolio prep', type: 'text' }
+          ]
+        },
+        music: {
+          title: 'Music Preferences',
+          fields: [
+            { key: 'instrument', label: 'Instrument', placeholder: 'Piano, guitar, voice', type: 'text' },
+            { key: 'level', label: 'Current level', placeholder: 'Beginner, AMEB grade, self-taught', type: 'text' }
+          ]
+        },
+        tutoring: {
+          title: 'Learning Needs',
+          fields: [
+            { key: 'subject', label: 'Subject', placeholder: 'Maths, English, science', type: 'text' },
+            { key: 'yearLevel', label: 'Year level', placeholder: 'Year 4, Year 10, VCE', type: 'text' }
+          ]
+        },
+        dance: {
+          title: 'Dance Preferences',
+          fields: [
+            { key: 'style', label: 'Dance style', placeholder: 'Ballet, jazz, hip hop', type: 'text' },
+            { key: 'experience', label: 'Experience', placeholder: 'New starter, 2 years, competition', type: 'text' }
+          ]
+        },
+        general: {
+          title: 'Student Preferences',
+          fields: [
+            { key: 'goals', label: 'Goals', placeholder: 'What would the student like to achieve?', type: 'text' },
+            { key: 'experience', label: 'Experience', placeholder: 'Tell us about previous experience', type: 'text' }
+          ]
+        }
+      };
+      return JSON.parse(JSON.stringify(profileByCategory[category] || profileByCategory.general));
+    }
+
+    function hexToRgb(hex) {
+      const clean = String(hex || '').replace('#', '');
+      if (!/^[0-9a-fA-F]{6}$/.test(clean)) return null;
+      return [0, 2, 4].map((idx) => parseInt(clean.slice(idx, idx + 2), 16));
+    }
+
+    function luminance(hex) {
+      const rgb = hexToRgb(hex);
+      if (!rgb) return 0;
+      const linear = rgb.map((value) => {
+        const channel = value / 255;
+        return channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+    }
+
+    function contrastRatio(hexA, hexB) {
+      const lighter = Math.max(luminance(hexA), luminance(hexB));
+      const darker = Math.min(luminance(hexA), luminance(hexB));
+      return (lighter + 0.05) / (darker + 0.05);
+    }
+
+    function updateThemePreview() {
+      const primary = $('settingPrimaryColor').value || '#2563eb';
+      const secondary = $('settingSecondaryColor').value || '#0f172a';
+      $('themePreview').style.setProperty('--preview-primary', primary);
+      $('themePreview').style.setProperty('--preview-secondary', secondary);
+      $('themePreviewTitle').textContent = `${$('settingName').value || 'Studio'} Theme`;
+      $('themePreviewSlug').textContent = currentTenantSlug() || 'tenant';
+      const welcomeVisible = $('settingShowWelcome').value !== 'false';
+      $('themePreviewWelcome').textContent = welcomeVisible
+        ? ($('settingWelcome').value || $('settingSlogan').value || $('settingRegisterIntro').value || 'Welcome message appears on CMS and Register when enabled.')
+        : 'Welcome message is hidden on CMS/Register.';
+      $('previewName').textContent = $('settingName').value || 'Studio';
+      $('previewContact').textContent = [$('settingPhone').value, $('settingEmail').value, $('settingAddress').value].filter(Boolean).join(' · ') || 'Contact details';
+      $('logoPreview').src = $('settingLogoUrl').value || '/logo.png';
+      const issues = [];
+      const primaryWhite = contrastRatio(primary, '#ffffff');
+      const secondaryWhite = contrastRatio(secondary, '#ffffff');
+      const pairRatio = contrastRatio(primary, secondary);
+      if (primaryWhite < 3) issues.push(`Primary on white is ${primaryWhite.toFixed(1)}:1.`);
+      if (secondaryWhite < 3) issues.push(`Secondary on white is ${secondaryWhite.toFixed(1)}:1.`);
+      if (pairRatio < 3) issues.push(`Primary and secondary are close at ${pairRatio.toFixed(1)}:1.`);
+      const warning = $('colorWarning');
+      if (issues.length) {
+        warning.textContent = `${issues.join(' ')} Consider darker or more distinct brand colours for public pages.`;
+        warning.classList.remove('hidden');
+      } else {
+        warning.classList.add('hidden');
+      }
+    }
+
+    function fillRegistrationFields(profile) {
+      const fallback = defaultRegistrationProfile($('settingCategory')?.value || 'general');
+      const fields = Array.isArray(profile?.fields) && profile.fields.length ? profile.fields : fallback.fields;
+      $('registrationFieldsEditor').innerHTML = fields.map((field, index) => `
+        <div class="form-group">
+          <label>Field Label</label>
+          <input data-reg-label="${index}" value="${esc(field.label || field.key || 'Field')}">
+        </div>
+        <div class="form-group">
+          <label>Field Placeholder</label>
+          <input data-reg-placeholder="${index}" value="${esc(field.placeholder || '')}">
+          <input type="hidden" data-reg-key="${index}" value="${esc(field.key || `field${index + 1}`)}">
+          <input type="hidden" data-reg-type="${index}" value="${esc(field.type || 'text')}">
+        </div>
+      `).join('');
+    }
+
+    function collectRegistrationProfile() {
+      const fallback = defaultRegistrationProfile($('settingCategory').value);
+      const fields = [];
+      $('registrationFieldsEditor').querySelectorAll('[data-reg-label]').forEach((input, index) => {
+        const selectorKey = input.getAttribute('data-reg-label') || String(index);
+        const label = input.value.trim();
+        const key = $('registrationFieldsEditor').querySelector(`[data-reg-key="${selectorKey}"]`)?.value || `field${index + 1}`;
+        const placeholder = $('registrationFieldsEditor').querySelector(`[data-reg-placeholder="${selectorKey}"]`)?.value || '';
+        const type = $('registrationFieldsEditor').querySelector(`[data-reg-type="${selectorKey}"]`)?.value || 'text';
+        if (label) fields.push({ key, label, placeholder, type });
+      });
+      return {
+        title: $('settingRegistrationTitle').value.trim() || fallback.title,
+        fields: fields.length ? fields : fallback.fields
+      };
+    }
+
+    function fillSettings() {
+      const t = tenant || {};
+      const category = t.category || t.settings?.category || 'general';
+      const preset = INDUSTRY_PRESETS[category] || INDUSTRY_PRESETS.general;
+      $('studioName').textContent = t.name || 'Studio Admin';
+      $('studioMeta').textContent = t.slug ? `${t.slug} · ${preset.label} studio dashboard` : 'Studio dashboard';
+      $('tenantSlug').value = t.slug || currentTenantSlug();
+      $('settingName').value = t.name || '';
+      $('settingLogoUrl').value = t.logo_url || t.logoUrl || '';
+      $('settingPlan').innerHTML = plans.map((p) => `<option value="${p.code}">${esc(p.name)} (${esc(p.code)})</option>`).join('');
+      if (t.plan_code) $('settingPlan').value = t.plan_code;
+      $('settingPrimaryColor').value = t.primary_color || '#2563eb';
+      $('settingSecondaryColor').value = t.secondary_color || '#0f172a';
+      $('settingCmsLayout').value = t.cms_layout || t.cmsLayout || 'bar';
+      $('settingShowWelcome').value = String(t.show_welcome === false || t.show_welcome === 'false' ? false : true);
+      $('settingCategory').innerHTML = categoryOptions(category);
+      $('settingSlogan').value = t.slogan || preset.slogan;
+      $('settingTimezone').value = t.timezone || 'Australia/Melbourne';
+      $('settingPhone').value = t.contact_phone || t.contactPhone || '';
+      $('settingEmail').value = t.contact_email || t.contactEmail || '';
+      $('settingAddress').value = t.address || '';
+      $('settingWelcome').value = t.welcome_message || t.welcomeMessage || '';
+      $('settingPortalLabel').value = t.copy_pack?.portal_label || t.copyPack?.portalLabel || preset.portalLabel;
+      $('settingRegisterIntro').value = t.copy_pack?.register_intro || t.copyPack?.registerIntro || preset.registerIntro;
+      const profile = t.registration_profile || t.registrationProfile || defaultRegistrationProfile(category);
+      $('settingRegistrationTitle').value = profile.title || 'Student Registration';
+      fillRegistrationFields(profile);
+      updateThemePreview();
+    }
+
+    function settingsPayload() {
+      return {
+        name: $('settingName').value.trim(),
+        logoUrl: $('settingLogoUrl').value.trim(),
+        planCode: $('settingPlan').value,
+        primaryColor: $('settingPrimaryColor').value,
+        secondaryColor: $('settingSecondaryColor').value,
+        cmsLayout: $('settingCmsLayout').value,
+        showWelcome: $('settingShowWelcome').value === 'true',
+        category: $('settingCategory').value,
+        slogan: $('settingSlogan').value.trim(),
+        timezone: $('settingTimezone').value.trim(),
+        contactPhone: $('settingPhone').value.trim(),
+        contactEmail: $('settingEmail').value.trim(),
+        address: $('settingAddress').value.trim(),
+        welcomeMessage: $('settingWelcome').value.trim(),
+        copyPack: {
+          portalLabel: $('settingPortalLabel').value.trim(),
+          registerIntro: $('settingRegisterIntro').value.trim()
+        },
+        registrationProfile: collectRegistrationProfile()
+      };
+    }
+
+    async function saveSettings() {
+      const payload = settingsPayload();
+      if (!payload.name) throw new Error('Studio name is required.');
+      const data = await api('/tenant', { method: 'PATCH', body: JSON.stringify(payload) });
+      tenant = data.tenant || tenant;
+      fillSettings();
+      showToast('Studio settings saved.');
+    }
+
+    async function uploadLogo() {
+      const file = $('settingLogoFile').files[0];
+      if (!file) return;
+      const formData = new FormData();
+      formData.append('file', file);
+      const data = await api('/tenant/logo', { method: 'POST', body: formData });
+      $('settingLogoUrl').value = data.url || '';
+      updateThemePreview();
+      showToast('Logo uploaded. Save settings to publish it.');
+    }
+
+    function applyCategoryPreset() {
+      const preset = INDUSTRY_PRESETS[$('settingCategory').value] || INDUSTRY_PRESETS.general;
+      $('settingSlogan').value = preset.slogan;
+      $('settingPortalLabel').value = preset.portalLabel;
+      $('settingRegisterIntro').value = preset.registerIntro;
+      const profile = defaultRegistrationProfile($('settingCategory').value);
+      $('settingRegistrationTitle').value = profile.title;
+      fillRegistrationFields(profile);
+      updateThemePreview();
+      showToast('Category preset applied.');
+    }
+
+    function studentListPath() {
+      const params = new URLSearchParams();
+      const search = $('studentSearch')?.value.trim() || '';
+      const status = $('studentStatusFilter')?.value || '';
+      if (search) params.set('search', search);
+      if (status) {
+        params.set('status', status);
+        if (status === 'archived') params.set('includeArchived', 'true');
+      }
+      if ($('studentLowFilter')?.checked) params.set('low_balance', 'true');
+      const suffix = params.toString();
+      return `/students${suffix ? `?${suffix}` : ''}`;
+    }
+
+    function progressBar(current, limit) {
+      const pct = limit ? Math.min(100, Math.round((Number(current || 0) / Number(limit)) * 100)) : 0;
+      const color = pct > 90 ? 'red' : pct > 75 ? 'amber' : 'blue';
+      return `<div style="display:flex;justify-content:space-between;font-size:12px;"><span>${esc(text(current))} / ${esc(text(limit))}</span><span>${pct}%</span></div><div class="progress-bar"><div class="progress-fill ${color}" style="width:${pct}%"></div></div>`;
+    }
+
+    function renderStudents() {
+      $('studentsBody').innerHTML = students.map((s) => `<tr>
+        <td><strong>${esc(studentName(s))}</strong><br><span class="text-muted">${esc(text(studentMobile(s)))} · ${esc(text(studentEmail(s)))}</span></td>
+        <td>${pill(studentStatus(s))}</td>
+        <td><strong>${Number(s.balance || 0).toFixed(2)} credits</strong><br><span class="text-muted">Low threshold: ${esc(text(s.low_balance_threshold || 2))}</span></td>
+        <td><div class="action-row"><button class="btn-secondary btn-sm" onclick="editStudent('${s.id}')">Edit</button><button class="btn-info btn-sm" onclick="openAddCreditsModal('${s.id}', '${String(studentName(s)).replace(/'/g, "\\'")}', ${Number(s.balance || 0)})">+ Credits</button>${studentStatus(s) !== 'archived' ? `<button class="btn-danger btn-sm" onclick="archiveStudent('${s.id}', '${String(studentName(s)).replace(/'/g, "\\'")}')">Archive</button>` : ''}</div></td>
+      </tr>`).join('') || emptyRow(4, 'No students match the current filters.');
+    }
+
+    function resetStudentForm() {
+      editingStudentId = '';
+      $('studentFormTitle').textContent = 'Students';
+      $('studentFormTitleRight').textContent = 'Add Student';
+      ['sName','sEmail','sPackages','sBalance','sCreditHours','sPhone'].forEach((id) => { if ($(id)) $(id).value = ''; });
+      if ($('sStatus')) $('sStatus').value = 'active';
+      $('studentForm').classList.add('hidden');
+    }
+
+    function editStudent(id) {
+      const s = students.find((item) => item.id === id);
+      if (!s) return;
+      editingStudentId = id;
+      const bodyHtml = `<div class="edit-banner">Editing ${esc(studentName(s))}</div><div class="form-grid">
+        <div class="form-group"><label>Name</label><input id="m_sName" value="${esc(studentName(s))}"></div>
+        <div class="form-group"><label>Email</label><input id="m_sEmail" type="email" value="${esc(studentEmail(s))}"></div>
+        <div class="form-group"><label>Status</label><select id="m_sStatus">${['active','trial','inactive','archived'].map((st) => `<option value="${st}" ${st === studentStatus(s) ? 'selected' : ''}>${st}</option>`).join('')}</select></div>
+        <div class="form-group"><label>Balance</label><input id="m_sBalance" type="number" step="0.01" value="${Number(s.balance || 0)}"></div>
+        <div class="form-group"><label>Phone</label><input id="m_sPhone" value="${esc(studentMobile(s))}"></div>
+      </div>`;
+      const footerHtml = `<button id="modalSaveStudentBtn" onclick="saveStudentModal()" class="btn-primary">Save Changes</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
+      openModal(`Edit ${studentName(s)}`, bodyHtml, footerHtml);
+    }
+
+    async function saveStudentModal() {
+      await runUiAction('modalSaveStudentBtn', 'Saving...', async () => {
+        const name = $('m_sName').value.trim();
+        if (!name) throw new Error('Name is required.');
+        await api(`/students/${editingStudentId}`, { method: 'PATCH', body: JSON.stringify({ name, displayName: name, firstName: firstNameFrom(name), email: $('m_sEmail').value, status: $('m_sStatus').value, balance: Number($('m_sBalance').value || 0), phone: $('m_sPhone').value }) });
+        showToast('Student updated.');
+        closeModal();
+        await refresh();
+      });
+    }
+
+    function openCreateStudentModal() {
+      editingStudentId = '';
+      const bodyHtml = `<div class="form-grid">
+        <div class="form-group"><label>Name</label><input id="m_sName" placeholder="Full name"></div>
+        <div class="form-group"><label>Email</label><input id="m_sEmail" type="email" placeholder="student@example.com"></div>
+        <div class="form-group"><label>Status</label><select id="m_sStatus"><option value="active">Active</option><option value="trial">Trial</option><option value="inactive">Inactive</option></select></div>
+        <div class="form-group"><label>Phone</label><input id="m_sPhone" placeholder="0400 000 000"></div>
+      </div>`;
+      const footerHtml = `<button id="modalCreateStudentBtn" onclick="saveNewStudent()" class="btn-primary">Create Student</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
+      openModal('Add Student', bodyHtml, footerHtml);
+    }
+
+    async function saveNewStudent() {
+      await runUiAction('modalCreateStudentBtn', 'Creating...', async () => {
+        const name = $('m_sName').value.trim();
+        if (!name) throw new Error('Name is required.');
+        await api('/students', { method: 'POST', body: JSON.stringify({ name, displayName: name, firstName: firstNameFrom(name), email: $('m_sEmail').value, status: $('m_sStatus').value, phone: $('m_sPhone').value }) });
+        showToast('Student created.');
+        closeModal();
+        await refresh();
+      });
+    }
+
+    async function archiveStudent(id, name) {
+      const footerHtml = `<button id="confirmArchiveStudentBtn" onclick="confirmArchiveStudent('${id}')" class="btn-danger">Archive</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
+      openModal('Archive Student', `<p>Archive <strong>${esc(name)}</strong>? Their record and history will stay saved.</p>`, footerHtml);
+    }
+
+    async function confirmArchiveStudent(id) {
+      await runUiAction('confirmArchiveStudentBtn', 'Archiving...', async () => {
+        await api(`/students/${id}/archive`, { method: 'POST' });
+        showToast('Student archived.');
+        closeModal();
+        await refresh();
+      });
+    }
+
+    function renderCourses() {
+      const sorted = [...courses].sort((a, b) => Number(isActiveItem(b)) - Number(isActiveItem(a)) || String(a.name || '').localeCompare(String(b.name || '')));
+      $('coursesBody').innerHTML = sorted.map((c) => `<tr>
+        <td><strong>${esc(c.name)}</strong><br><span class="text-muted">${esc(text(c.description))}</span></td>
+        <td>${esc(text(c.category))}</td>
+        <td>${esc(text(c.duration_minutes || 60))} min</td>
+        <td>${money(audFromCents(c.price_aud_cents))}</td>
+        <td>${pill(itemStatus(c))}</td>
+        <td><div class="action-row"><button class="btn-secondary btn-sm" onclick="editCourse('${c.id}')">Edit</button>${isActiveItem(c) ? `<button class="btn-danger btn-sm" onclick="archiveCourse('${c.id}')">Archive</button>` : ''}</div></td>
+      </tr>`).join('') || emptyRow(6, 'No courses yet. Add your first class offering.');
+    }
+
+    function resetCourseForm() {
+      editingCourseCode = '';
+      const bodyHtml = `<div class="form-grid">
+        <div class="form-group"><label>Name</label><input id="m_cName"></div>
+        <div class="form-group"><label>Category</label><input id="m_cCategory" placeholder="General"></div>
+        <div class="form-group"><label>Duration Minutes</label><input id="m_cDuration" type="number" value="60" min="1"></div>
+        <div class="form-group"><label>Default Credit Debit</label><input id="m_cDebit" type="number" step="0.01" value="1" min="0.01"></div>
+        <div class="form-group"><label>Price (AUD)</label><input id="m_cPrice" type="number" value="199" min="0"></div>
+        <div class="form-group"><label>Status</label><select id="m_cStatus"><option value="active">Active</option><option value="inactive">Inactive</option></select></div>
+        <div class="form-group"><label>Description</label><input id="m_cDescription"></div>
+      </div>`;
+      const footerHtml = `<button id="modalSaveCourseBtn" onclick="saveCourseModal()" class="btn-primary">Save Course</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
+      openModal('Add Course', bodyHtml, footerHtml);
+    }
+
+    function editCourse(id) {
+      const c = courses.find((item) => item.id === id);
+      if (!c) return;
+      editingCourseCode = id;
+      const bodyHtml = `<div class="edit-banner">Editing ${esc(c.name)}</div><div class="form-grid">
+        <div class="form-group"><label>Name</label><input id="m_cName" value="${esc(c.name)}"></div>
+        <div class="form-group"><label>Category</label><input id="m_cCategory" value="${esc(c.category || '')}"></div>
+        <div class="form-group"><label>Duration Minutes</label><input id="m_cDuration" type="number" value="${c.duration_minutes || 60}" min="1"></div>
+        <div class="form-group"><label>Default Credit Debit</label><input id="m_cDebit" type="number" step="0.01" value="${c.default_credit_debit || 1}" min="0.01"></div>
+        <div class="form-group"><label>Price (AUD)</label><input id="m_cPrice" type="number" value="${audFromCents(c.price_aud_cents)}" min="0"></div>
+        <div class="form-group"><label>Status</label><select id="m_cStatus">${['active','inactive'].map((st) => `<option value="${st}" ${st === itemStatus(c) ? 'selected' : ''}>${st}</option>`).join('')}</select></div>
+        <div class="form-group"><label>Description</label><input id="m_cDescription" value="${esc(c.description || '')}"></div>
+      </div>`;
+      const footerHtml = `<button id="modalSaveCourseBtn" onclick="saveCourseModal()" class="btn-primary">Save Changes</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
+      openModal(`Edit ${c.name}`, bodyHtml, footerHtml);
+    }
+
+    async function saveCourseModal() {
+      await runUiAction('modalSaveCourseBtn', 'Saving...', async () => {
+        const payload = { name: $('m_cName').value.trim(), description: $('m_cDescription').value, category: $('m_cCategory').value, durationMinutes: Number($('m_cDuration').value), defaultCreditDebit: Number($('m_cDebit').value), priceAud: Number($('m_cPrice').value), isActive: $('m_cStatus').value === 'active' };
+        if (!payload.name) throw new Error('Course name is required.');
+        if (payload.priceAud < 0) throw new Error('Course price cannot be negative.');
+        await api(editingCourseCode ? `/courses/${editingCourseCode}` : '/courses', { method: editingCourseCode ? 'PATCH' : 'POST', body: JSON.stringify(payload) });
+        showToast(editingCourseCode ? 'Course updated.' : 'Course created.');
+        closeModal();
+        await refresh();
+      });
+    }
+
+    async function archiveCourse(id) {
+      const footerHtml = `<button id="confirmArchiveCourseBtn" onclick="confirmArchiveCourse('${id}')" class="btn-danger">Archive</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
+      openModal('Archive Course', '<p>Archive this course? Existing records remain available.</p>', footerHtml);
+    }
+
+    async function confirmArchiveCourse(id) {
+      await runUiAction('confirmArchiveCourseBtn', 'Archiving...', async () => {
+        await api(`/courses/${id}`, { method: 'DELETE' });
+        showToast('Course archived.');
+        closeModal();
+        await refresh();
+      });
+    }
+
+    function renderPackages() {
+      const sorted = [...packages].sort((a, b) => Number(isActiveItem(b)) - Number(isActiveItem(a)) || Number(a.price_aud_cents || 0) - Number(b.price_aud_cents || 0));
+      $('packagesBody').innerHTML = sorted.map((p) => `<tr>
+        <td><strong>${esc(p.name)}</strong></td>
+        <td>${esc(text(p.credits))}</td>
+        <td>${p.expires_after_days ? `${esc(p.expires_after_days)} days` : 'No expiry'}</td>
+        <td>${money(audFromCents(p.price_aud_cents))}</td>
+        <td>${pill(itemStatus(p))}</td>
+        <td><div class="action-row"><button class="btn-secondary btn-sm" onclick="editPackage('${p.id}')">Edit</button>${isActiveItem(p) ? `<button class="btn-danger btn-sm" onclick="archivePackage('${p.id}')">Archive</button>` : ''}</div></td>
+      </tr>`).join('') || emptyRow(6, 'No packages yet. Add a credit package for families to buy.');
+    }
+
+    function resetPackageForm() {
+      editingPackageCode = '';
+      const bodyHtml = `<div class="form-grid">
+        <div class="form-group"><label>Name</label><input id="m_pName"></div>
+        <div class="form-group"><label>Credits</label><input id="m_pCredits" type="number" step="0.01" value="10" min="0.01"></div>
+        <div class="form-group"><label>Price (AUD)</label><input id="m_pPrice" type="number" value="299" min="0"></div>
+        <div class="form-group"><label>Expiry Days</label><input id="m_pExpiry" type="number" placeholder="Optional"></div>
+        <div class="form-group"><label>Status</label><select id="m_pStatus"><option value="active">Active</option><option value="inactive">Inactive</option></select></div>
+      </div>`;
+      const footerHtml = `<button id="modalSavePackageBtn" onclick="savePackageModal()" class="btn-primary">Save Package</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
+      openModal('Add Package', bodyHtml, footerHtml);
+    }
+
+    function editPackage(id) {
+      const p = packages.find((item) => item.id === id);
+      if (!p) return;
+      editingPackageCode = id;
+      const bodyHtml = `<div class="edit-banner">Editing ${esc(p.name)}</div><div class="form-grid">
+        <div class="form-group"><label>Name</label><input id="m_pName" value="${esc(p.name)}"></div>
+        <div class="form-group"><label>Credits</label><input id="m_pCredits" type="number" step="0.01" value="${p.credits || 1}" min="0.01"></div>
+        <div class="form-group"><label>Price (AUD)</label><input id="m_pPrice" type="number" value="${audFromCents(p.price_aud_cents)}" min="0"></div>
+        <div class="form-group"><label>Expiry Days</label><input id="m_pExpiry" type="number" value="${p.expires_after_days || ''}"></div>
+        <div class="form-group"><label>Status</label><select id="m_pStatus">${['active','inactive'].map((st) => `<option value="${st}" ${st === itemStatus(p) ? 'selected' : ''}>${st}</option>`).join('')}</select></div>
+      </div>`;
+      const footerHtml = `<button id="modalSavePackageBtn" onclick="savePackageModal()" class="btn-primary">Save Changes</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
+      openModal(`Edit ${p.name}`, bodyHtml, footerHtml);
+    }
+
+    async function savePackageModal() {
+      await runUiAction('modalSavePackageBtn', 'Saving...', async () => {
+        const payload = { name: $('m_pName').value.trim(), credits: Number($('m_pCredits').value), priceAud: Number($('m_pPrice').value), expiresAfterDays: $('m_pExpiry').value ? Number($('m_pExpiry').value) : null, isActive: $('m_pStatus').value === 'active' };
+        if (!payload.name) throw new Error('Package name is required.');
+        if (!payload.credits || payload.credits <= 0) throw new Error('Package credits must be greater than 0.');
+        if (payload.priceAud < 0) throw new Error('Package price cannot be negative.');
+        await api(editingPackageCode ? `/packages/${editingPackageCode}` : '/packages', { method: editingPackageCode ? 'PATCH' : 'POST', body: JSON.stringify(payload) });
+        showToast(editingPackageCode ? 'Package updated.' : 'Package created.');
+        closeModal();
+        await refresh();
+      });
+    }
+
+    async function archivePackage(id) {
+      const footerHtml = `<button id="confirmArchivePackageBtn" onclick="confirmArchivePackage('${id}')" class="btn-danger">Archive</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
+      openModal('Archive Package', '<p>Archive this package? Existing CMS history remains compatible.</p>', footerHtml);
+    }
+
+    async function confirmArchivePackage(id) {
+      await runUiAction('confirmArchivePackageBtn', 'Archiving...', async () => {
+        await api(`/packages/${id}`, { method: 'DELETE' });
+        showToast('Package archived.');
+        closeModal();
+        await refresh();
+      });
+    }
+
+    function renderRegistrations() {
+      $('registrationsBody').innerHTML = registrations.map((r) => `<tr>
+        <td><strong>${esc([r.first_name, r.last_name].filter(Boolean).join(' ') || 'Student')}</strong><br><span class="text-muted">${esc(text(r.parent_name))} · ${esc(text(r.mobile || r.email))}</span></td>
+        <td>${esc(text(r.message))}</td>
+        <td>${pill(r.status)}</td>
+        <td>${esc(dateOnly(r.submitted_at))}</td>
+        <td><div class="action-row">${r.status === 'pending' ? `<button class="btn-info btn-sm" onclick="updateRegistrationStatus('${r.id}', 'contacted')">Contacted</button><button class="btn-success btn-sm" onclick="updateRegistrationStatus('${r.id}', 'approved')">Approve</button><button class="btn-danger btn-sm" onclick="updateRegistrationStatus('${r.id}', 'archived')">Archive</button>` : ''}</div></td>
+      </tr>`).join('') || emptyRow(5, 'No registration requests yet.');
+    }
+
+    async function updateRegistrationStatus(regId, newStatus) {
+      const labels = { contacted: 'Mark Contacted', approved: 'Approve and Create Student', archived: 'Archive' };
+      const footerHtml = `<button id="confirmRegStatusBtn" onclick="confirmRegStatus('${regId}', '${newStatus}')" class="btn-primary">${labels[newStatus] || 'Save'}</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
+      openModal(labels[newStatus] || 'Update Registration', '<p>Update this registration request?</p>', footerHtml);
+    }
+
+    async function confirmRegStatus(regId, newStatus) {
+      await runUiAction('confirmRegStatusBtn', 'Saving...', async () => {
+        const data = await api(`/registrations/${regId}`, { method: 'PATCH', body: JSON.stringify({ status: newStatus, convertToStudent: newStatus === 'approved' }) });
+        showToast(data.student_id ? 'Registration approved and student created.' : 'Registration updated.');
+        closeModal();
+        await refresh();
+      });
+    }
+
+    function renderPortfolio() {
+      $('portfolioBody').innerHTML = portfolioItems.map((p) => `<tr>
+        <td>${p.url || p.image_url ? `<img class="img-preview" src="${esc(p.url || p.image_url)}" alt="${esc(p.title || 'Portfolio')}">` : '-'}</td>
+        <td><strong>${esc(text(p.title))}</strong><br><span class="text-muted">${esc(text(p.description))}</span></td>
+        <td>${esc(text(p.student_name || p.student_id))}</td>
+        <td>${pill(p.visibility || p.status || 'visible')}</td>
+        <td><div class="action-row"><button class="btn-secondary btn-sm" onclick="viewPortfolio('${p.id}')">View</button><button class="btn-danger btn-sm" onclick="deletePortfolio('${p.id}', '${String(p.title || 'portfolio item').replace(/'/g, "\\'")}')">Delete</button></div></td>
+      </tr>`).join('') || emptyRow(5, 'No portfolio items yet.');
+    }
+
+    function viewPortfolio(id) {
+      const item = portfolioItems.find((p) => p.id === id);
+      if (!item) return;
+      const image = item.url || item.image_url;
+      const bodyHtml = `
+        ${image ? `<img src="${esc(image)}" alt="${esc(item.title || 'Portfolio')}" style="width:100%;max-height:420px;object-fit:contain;border-radius:12px;border:1px solid var(--line);background:#f8fafc;">` : ''}
+        <div class="form-grid mt-2">
+          <div class="form-group"><label>Title</label><input value="${esc(text(item.title))}" disabled></div>
+          <div class="form-group"><label>Student</label><input value="${esc(text(item.student_name || item.student_id))}" disabled></div>
+          <div class="form-group"><label>Status</label><input value="${esc(text(item.visibility || item.status || 'visible'))}" disabled></div>
+          <div class="form-group"><label>Description</label><input value="${esc(text(item.description))}" disabled></div>
+        </div>
+      `;
+      openModal(item.title || 'Portfolio Item', bodyHtml, '<button onclick="closeModal()" class="btn-secondary">Close</button>');
+    }
+
+    async function deletePortfolio(id, title) {
+      const footerHtml = `<button id="confirmDeletePortfolioBtn" onclick="confirmDeletePortfolio('${id}')" class="btn-danger">Delete</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
+      openModal('Delete Portfolio', `<p>Delete <strong>${esc(title)}</strong>?</p>`, footerHtml);
+    }
+
+    async function confirmDeletePortfolio(id) {
+      await runUiAction('confirmDeletePortfolioBtn', 'Deleting...', async () => {
+        await api(`/portfolio/${id}`, { method: 'DELETE' });
+        showToast('Portfolio item deleted.');
+        closeModal();
+        await refresh();
+      });
+    }
+
+    function openAddCreditsModal(studentId, name, currentBalance) {
+      creditStudentId = studentId;
+      const bodyHtml = `
+        <p>Add credits to <strong>${esc(name)}</strong> (current balance: ${Number(currentBalance || 0).toFixed(2)}).</p>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Transaction Type</label>
+            <select id="m_txType">
+              <option value="purchase">Purchase</option>
+              <option value="adjustment">Adjustment</option>
+              <option value="refund">Refund</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Credits Amount</label>
+            <input id="m_txAmount" type="number" step="0.01" value="1" min="0.01">
+          </div>
+          <div class="form-group">
+            <label>Fee (AUD cents)</label>
+            <input id="m_txFee" type="number" value="0" min="0">
+          </div>
+          <div class="form-group">
+            <label>Note</label>
+            <input id="m_txNote" placeholder="Optional note">
+          </div>
+        </div>
+      `;
+      const footerHtml = `<button id="confirmCreditBtn" onclick="submitCreditTransaction()" class="btn-primary">Save Credits</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
+      openModal('Add Credits', bodyHtml, footerHtml);
+    }
+
+    async function submitCreditTransaction() {
+      await runUiAction('confirmCreditBtn', 'Saving...', async () => {
+        const payload = {
+          transactionType: $('m_txType').value,
+          amount: Number($('m_txAmount').value || 0),
+          feeAudCents: Number($('m_txFee').value || 0),
+          note: $('m_txNote').value || null
+        };
+        if (!payload.amount || payload.amount <= 0) throw new Error('Please enter a valid credit amount.');
+        if (payload.feeAudCents < 0) throw new Error('Fee cannot be negative.');
+        await api(`/students/${creditStudentId}/credit-transactions`, {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        showToast('Credits updated.');
+        closeModal();
+        await refresh();
+      });
+    }
+
+    function setLoadingState(loading) {
+      $('refreshBtn').disabled = loading;
+      $('refreshIcon').textContent = loading ? '...' : '↻';
+      if (loading) {
+        ['studentsBody','coursesBody','packagesBody','registrationsBody','portfolioBody'].forEach((id) => {
+          const colspan = id === 'studentsBody' ? 4 : id === 'registrationsBody' || id === 'portfolioBody' ? 5 : 6;
+          $(id).innerHTML = emptyRow(colspan, 'Loading...');
+        });
+      }
+    }
+
+    async function refresh() {
+      if (!currentUser) return;
+      localStorage.setItem('studiosaas_tenant_slug', currentTenantSlug());
+      setLoadingState(true);
+      try {
+        const [tenantData, dashboardData, studentData, courseData, packageData, registrationData, portfolioData, planData] = await Promise.all([
+          api('/tenant'), api('/dashboard'), api(studentListPath()), api('/courses'), api('/packages'), api('/registrations'), api('/portfolio'), authApi('/plans')
+        ]);
+        tenant = tenantData.tenant || tenantData.settings || {};
+        plans = planData.plans || [];
+        students = studentData.students || [];
+        courses = courseData.courses || [];
+        packages = packageData.packages || [];
+        registrations = registrationData.registrations || [];
+        portfolioItems = portfolioData.portfolio || portfolioData.items || [];
+        const dashboard = dashboardData.dashboard || {};
+        $('studentsMetric').textContent = dashboard.students ?? students.length;
+        $('activeMetric').textContent = dashboard.active_students ?? students.filter((s) => studentStatus(s) === 'active').length;
+        $('lowMetric').textContent = dashboard.low_balance ?? students.filter((s) => Number(s.balance || 0) <= Number(s.low_balance_threshold || 2)).length;
+        $('pendingMetric').textContent = dashboard.pending_registrations ?? registrations.filter((r) => r.status === 'pending').length;
+        $('portfolioMetric').textContent = dashboard.portfolio_items ?? portfolioItems.length;
+        fillSettings();
+        renderStudents();
+        renderCourses();
+        renderPackages();
+        renderRegistrations();
+        renderPortfolio();
+      } catch (err) {
+        if (err.status === 401) setAuthState(null);
+        showToast(`Failed to load Studio Admin: ${err.message}`, 'error');
+      } finally {
+        setLoadingState(false);
+      }
+    }
+
+    function bindEvents() {
+      $('tenantSlug').value = pathTenantSlug() || localStorage.getItem('studiosaas_tenant_slug') || $('tenantSlug').value || 'lets-paint-studio';
+      $('loginForm').addEventListener('submit', loginStudioAdmin);
+      $('logoutBtn').addEventListener('click', logoutStudioAdmin);
+      $('changePasswordBtn').addEventListener('click', openChangePasswordModal);
+      $('refreshBtn').addEventListener('click', refresh);
+      $('tenantSlug').addEventListener('change', () => {
+        localStorage.setItem('studiosaas_tenant_slug', currentTenantSlug());
+        checkSession();
+      });
+      $('openCmsBtn').addEventListener('click', () => window.open(`/${currentTenantSlug()}`, '_blank'));
+      $('openRegisterBtn').addEventListener('click', () => window.open(`/${currentTenantSlug()}/register`, '_blank'));
+      $('saveSettingsBtn').addEventListener('click', () => runUiAction('saveSettingsBtn', 'Saving...', saveSettings));
+      $('settingLogoFile').addEventListener('change', () => uploadLogo().catch((err) => showToast(err.message, 'error')));
+      $('resetPresetBtn').addEventListener('click', applyCategoryPreset);
+      ['settingName','settingLogoUrl','settingPrimaryColor','settingSecondaryColor','settingWelcome','settingSlogan','settingPortalLabel','settingRegisterIntro','settingRegistrationTitle','settingPhone','settingEmail','settingAddress'].forEach((id) => $(id).addEventListener('input', updateThemePreview));
+      $('settingShowWelcome').addEventListener('change', updateThemePreview);
+      $('settingCategory').addEventListener('change', applyCategoryPreset);
+      ['studentSearch','studentStatusFilter','studentLowFilter'].forEach((id) => $(id).addEventListener('input', refresh));
+      $('clearStudentFiltersBtn').addEventListener('click', () => { $('studentSearch').value = ''; $('studentStatusFilter').value = ''; $('studentLowFilter').checked = false; refresh(); });
+      $('addStudentBtn').addEventListener('click', openCreateStudentModal);
+      $('saveStudentBtn').addEventListener('click', () => saveStudentModal().catch(() => {}));
+      $('resetStudentBtn').addEventListener('click', resetStudentForm);
+      $('addCourseBtn').addEventListener('click', resetCourseForm);
+      $('addPackageBtn').addEventListener('click', resetPackageForm);
+      document.querySelectorAll('.nav-link').forEach((link) => {
+        link.addEventListener('click', () => {
+          document.querySelectorAll('.nav-link').forEach((item) => item.classList.remove('active'));
+          link.classList.add('active');
+        });
+      });
+      $('modalOverlay').addEventListener('click', (event) => {
+        if (event.target === $('modalOverlay')) closeModal();
+      });
+    }
+
+    bindEvents();
+    checkSession();
+  </script>
+</body>
+</html>

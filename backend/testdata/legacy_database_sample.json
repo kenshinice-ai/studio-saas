@@ -1,0 +1,72 @@
+{
+  "students": [
+    {
+      "id": 2000,
+      "firstName": "Amy",
+      "lastName": "Wang",
+      "name": "Amy Wang",
+      "mobile": "0412 345 678",
+      "email": "amy.parent@example.com",
+      "wechat": "amy-parent",
+      "birthday": "2016-05-03",
+      "balance": 7,
+      "archived": false,
+      "notes": "Sample active student."
+    },
+    {
+      "id": 2001,
+      "firstName": "Lucas",
+      "lastName": "Lee",
+      "name": "Lucas Lee",
+      "mobile": "0499 999 999",
+      "email": "lucas.parent@example.com",
+      "balance": 0,
+      "archived": true,
+      "remark": "Sample archived student."
+    }
+  ],
+  "logs": [
+    {
+      "id": 1,
+      "studentId": 2000,
+      "studentName": "Amy Wang",
+      "action": "充值购课",
+      "change": 10,
+      "date": "01/06/2026 10:00"
+    },
+    {
+      "id": 2,
+      "studentId": 2000,
+      "studentName": "Amy Wang",
+      "action": "上课签到",
+      "change": -1,
+      "date": "02/06/2026 10:00"
+    }
+  ],
+  "rosters": {},
+  "pending": [
+    {
+      "id": "pending-1",
+      "firstName": "Mia",
+      "lastName": "Chen",
+      "parentName": "Ivy Chen",
+      "mobile": "0488 111 222",
+      "email": "ivy@example.com",
+      "message": "Interested in Saturday art classes."
+    }
+  ],
+  "packages": [
+    {
+      "id": 1,
+      "name": "Standard 10 Credits",
+      "credits": 10,
+      "price": 360
+    },
+    {
+      "id": 2,
+      "name": "Trial Class",
+      "credits": 1,
+      "price": 35
+    }
+  ]
+}

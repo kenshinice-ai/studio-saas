@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Let's Paint Studio CMS</title>
+  <title>Let's Play Game CMS</title>
   <style>
     :root {
       --brand:#3b82f6;
@@ -57,19 +57,19 @@
 <body class="tenant-cms">
   <header>
     <div class="brand">
-      <img id="tenantLogo" src="/logo.png" alt="Let's Paint Studio">
+      <img id="tenantLogo" src="/logo.png" alt="Let's Play Game">
       <div>
-	        <div id="tenantName" class="name">Let's Paint Studio</div>
+	        <div id="tenantName" class="name">Let's Play Game</div>
 	        <div id="tenantSlogan" class="slogan"></div>
 	        <div id="tenantContact" class="contact"></div>
       </div>
     </div>
-    <a href="/lets-paint-studio/register">Register</a>
+    <a href="/lets-play-game/register">Register</a>
   </header>
   <section id="tenantWelcome" class="welcome"></section>
-  <iframe id="cmsFrame" title="Let's Paint Studio CMS" src="/lets-paint-studio/cms"></iframe>
+  <iframe id="cmsFrame" title="Let's Play Game CMS" src="/lets-play-game/cms"></iframe>
   <script>
-    const TENANT_SLUG = 'lets-paint-studio';
+    const TENANT_SLUG = 'lets-play-game';
     const TENANT_NAME = document.getElementById('tenantName').textContent || 'Studio';
     function applyPresentation(brand) {
       const layout = brand.cms_layout || brand.cmsLayout || 'bar';

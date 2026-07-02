@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Let's Paint Studio CMS</title>
+  <title>Let's Play Game Registration</title>
   <style>
     :root {
       --brand:#3b82f6;
@@ -54,22 +54,22 @@
     }
   </style>
 </head>
-<body class="tenant-cms">
+<body class="tenant-register">
   <header>
     <div class="brand">
-      <img id="tenantLogo" src="/logo.png" alt="Let's Paint Studio">
+      <img id="tenantLogo" src="/logo.png" alt="Let's Play Game">
       <div>
-	        <div id="tenantName" class="name">Let's Paint Studio</div>
+	        <div id="tenantName" class="name">Let's Play Game</div>
 	        <div id="tenantSlogan" class="slogan"></div>
 	        <div id="tenantContact" class="contact"></div>
       </div>
     </div>
-    <a href="/lets-paint-studio/register">Register</a>
+    <a href="/lets-play-game">CMS</a>
   </header>
   <section id="tenantWelcome" class="welcome"></section>
-  <iframe id="cmsFrame" title="Let's Paint Studio CMS" src="/lets-paint-studio/cms"></iframe>
+  <iframe id="registerFrame" title="Let's Play Game Registration" src="/_legacy/register?tenant=lets-play-game"></iframe>
   <script>
-    const TENANT_SLUG = 'lets-paint-studio';
+    const TENANT_SLUG = 'lets-play-game';
     const TENANT_NAME = document.getElementById('tenantName').textContent || 'Studio';
     function applyPresentation(brand) {
       const layout = brand.cms_layout || brand.cmsLayout || 'bar';
@@ -85,15 +85,37 @@
       if (!response || !response.ok) return;
       const data = await response.json();
       const brand = data.brand || {};
-      document.title = `${brand.name || TENANT_NAME} CMS`;
-      document.documentElement.style.setProperty('--brand', brand.primary_color || brand.primaryColor || '#312e81');
-      document.documentElement.style.setProperty('--brand-2', brand.secondary_color || brand.secondaryColor || '#6366f1');
+      const primary = brand.primary_color || brand.primaryColor || '#312e81';
+      const secondary = brand.secondary_color || brand.secondaryColor || '#6366f1';
+      document.title = `${brand.name || TENANT_NAME} Registration`;
+      document.documentElement.style.setProperty('--brand', primary);
+      document.documentElement.style.setProperty('--brand-2', secondary);
 	      document.getElementById('tenantName').textContent = brand.name || TENANT_NAME;
 	      document.getElementById('tenantSlogan').textContent = brand.slogan || '';
 	      document.getElementById('tenantLogo').src = brand.logo_url || brand.logoUrl || '/logo.png';
       document.getElementById('tenantContact').textContent = [brand.contact_phone || brand.contactPhone, brand.contact_email || brand.contactEmail, brand.address].filter(Boolean).join(' · ');
       applyPresentation(brand);
     }
+    function resizeRegisterFrame() {
+      const frame = document.getElementById('registerFrame');
+      try {
+        const doc = frame.contentDocument || frame.contentWindow.document;
+        const height = Math.max(
+          900,
+          doc.documentElement.scrollHeight,
+          doc.body ? doc.body.scrollHeight : 0
+        );
+        frame.style.height = `${height}px`;
+      } catch (err) {
+        frame.style.height = '900px';
+      }
+    }
+    document.getElementById('registerFrame').addEventListener('load', () => {
+      resizeRegisterFrame();
+      setTimeout(resizeRegisterFrame, 500);
+      setTimeout(resizeRegisterFrame, 1500);
+    });
+    window.addEventListener('resize', resizeRegisterFrame);
     applyBrand();
   </script>
 </body>
