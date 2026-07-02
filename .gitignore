@@ -25,9 +25,13 @@ backend/backups/
 backend/photos/
 backend/portfolio/
 backend/static/uploads/
+backend/media/
 
 # ── Checkpoint archives ──
-checkpoints/*.tgz
+checkpoints/
+
+# ── Local packaging artefacts ──
+*.zip
 
 # ── Local repair backups ──
 *.bak
