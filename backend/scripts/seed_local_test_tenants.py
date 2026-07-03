@@ -51,6 +51,66 @@ def _ensure_media_schema(cur: Any) -> None:
     )
 
 
+def _ensure_tenant_archival_schema(cur: Any) -> None:
+    """Keep existing local databases compatible with safe tenant archival."""
+
+    cur.execute("ALTER TABLE tenants DROP CONSTRAINT IF EXISTS tenants_status_check")
+    cur.execute(
+        """
+        ALTER TABLE tenants
+        ADD CONSTRAINT tenants_status_check
+        CHECK (status IN ('trial', 'active', 'past_due', 'paused', 'cancelled', 'archived', 'deleted'))
+        """
+    )
+    cur.execute(
+        """
+        ALTER TABLE tenants
+        ADD COLUMN IF NOT EXISTS archived_at timestamptz,
+        ADD COLUMN IF NOT EXISTS archived_by uuid REFERENCES users(id) ON DELETE SET NULL,
+        ADD COLUMN IF NOT EXISTS archive_path text,
+        ADD COLUMN IF NOT EXISTS deletion_requested_at timestamptz,
+        ADD COLUMN IF NOT EXISTS deleted_at timestamptz
+        """
+    )
+    cur.execute(
+        """
+        DO $$
+        BEGIN
+            ALTER TABLE tenants
+                ADD CONSTRAINT tenants_archived_by_fkey
+                FOREIGN KEY (archived_by) REFERENCES users(id) ON DELETE SET NULL;
+        EXCEPTION WHEN duplicate_object THEN
+            NULL;
+        END $$;
+        """
+    )
+    cur.execute("ALTER TABLE subscriptions DROP CONSTRAINT IF EXISTS subscriptions_status_check")
+    cur.execute(
+        """
+        ALTER TABLE subscriptions
+        ADD CONSTRAINT subscriptions_status_check
+        CHECK (status IN ('trialing', 'active', 'past_due', 'paused', 'cancelled', 'archived'))
+        """
+    )
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS tenant_archives (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            tenant_id uuid REFERENCES tenants(id) ON DELETE SET NULL,
+            tenant_slug text NOT NULL,
+            tenant_name text NOT NULL,
+            archive_path text NOT NULL,
+            db_snapshot_path text,
+            media_archive_path text,
+            workspace_archive_path text,
+            created_by uuid REFERENCES users(id) ON DELETE SET NULL,
+            created_at timestamptz NOT NULL DEFAULT now(),
+            metadata jsonb NOT NULL DEFAULT '{}'::jsonb
+        )
+        """
+    )
+
+
 def _upsert_user(cur: Any, *, email: str, full_name: str) -> str:
     """Create or activate a local test user and return its UUID."""
 
@@ -242,6 +302,7 @@ def seed() -> dict[str, Any]:
     with connect() as conn:
         with conn.cursor() as cur:
             _ensure_media_schema(cur)
+            _ensure_tenant_archival_schema(cur)
             cur.execute(
                 """
                 INSERT INTO plans (

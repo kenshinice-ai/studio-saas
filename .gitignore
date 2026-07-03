@@ -26,6 +26,7 @@ backend/photos/
 backend/portfolio/
 backend/static/uploads/
 backend/media/
+backend/archives/
 
 # ── Checkpoint archives ──
 checkpoints/

@@ -35,6 +35,7 @@
 ### 3. Studio Admin Functionality
 
 - [ ] Studio admin login works per tenant; wrong-tenant login is rejected
+- [ ] Archived/deleted tenants cannot access tenant-scoped Studio Admin APIs
 - [ ] Student create/update/archive round-trips correctly
 - [ ] Course and package creation persist and list correctly
 - [ ] Credit transactions map correctly (`debit`→`consume`, `adjustment_in/out`→`adjustment`)
@@ -76,6 +77,8 @@
 - [ ] Session cookies HttpOnly; Secure/SameSite in production config
 - [ ] Failed logins audited
 - [ ] Sensitive admin actions write to `audit_logs`
+- [ ] Tenant deletion flow uses archive -> explicit permanent delete; direct tenant DELETE is rejected
+- [ ] Tenant archive writes `tenant_archives` row and JSON snapshots before status changes
 
 ### 7. Performance
 

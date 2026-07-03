@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS tenants (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     name text NOT NULL,
     slug text NOT NULL UNIQUE CHECK (slug ~ '^[a-z0-9][a-z0-9-]{1,62}$'),
-    status text NOT NULL CHECK (status IN ('trial', 'active', 'past_due', 'paused', 'cancelled')),
+    status text NOT NULL CHECK (status IN ('trial', 'active', 'past_due', 'paused', 'cancelled', 'archived', 'deleted')),
     plan_code text NOT NULL REFERENCES plans(code),
     primary_color text NOT NULL DEFAULT '#312e81',
     secondary_color text NOT NULL DEFAULT '#6366f1',
@@ -32,7 +32,12 @@ CREATE TABLE IF NOT EXISTS tenants (
     timezone text NOT NULL DEFAULT 'Australia/Melbourne',
     settings jsonb NOT NULL DEFAULT '{}'::jsonb,
     created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now()
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    archived_at timestamptz,
+    archived_by uuid,
+    archive_path text,
+    deletion_requested_at timestamptz,
+    deleted_at timestamptz
 );
 
 CREATE TABLE IF NOT EXISTS users (
@@ -44,6 +49,15 @@ CREATE TABLE IF NOT EXISTS users (
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+DO $$
+BEGIN
+    ALTER TABLE tenants
+        ADD CONSTRAINT tenants_archived_by_fkey
+        FOREIGN KEY (archived_by) REFERENCES users(id) ON DELETE SET NULL;
+EXCEPTION WHEN duplicate_object THEN
+    NULL;
+END $$;
 
 CREATE TABLE IF NOT EXISTS memberships (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -277,11 +291,30 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 
 CREATE INDEX IF NOT EXISTS idx_audit_logs_tenant_created ON audit_logs(tenant_id, created_at DESC);
 
+CREATE TABLE IF NOT EXISTS tenant_archives (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id uuid REFERENCES tenants(id) ON DELETE SET NULL,
+    tenant_slug text NOT NULL,
+    tenant_name text NOT NULL,
+    archive_path text NOT NULL,
+    db_snapshot_path text,
+    media_archive_path text,
+    workspace_archive_path text,
+    created_by uuid REFERENCES users(id) ON DELETE SET NULL,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    metadata jsonb NOT NULL DEFAULT '{}'::jsonb
+);
+
+CREATE INDEX IF NOT EXISTS idx_tenant_archives_tenant_created
+    ON tenant_archives(tenant_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_tenant_archives_slug_created
+    ON tenant_archives(tenant_slug, created_at DESC);
+
 CREATE TABLE IF NOT EXISTS subscriptions (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id uuid NOT NULL UNIQUE REFERENCES tenants(id) ON DELETE CASCADE,
     plan_code text NOT NULL REFERENCES plans(code),
-    status text NOT NULL CHECK (status IN ('trialing', 'active', 'past_due', 'paused', 'cancelled')),
+    status text NOT NULL CHECK (status IN ('trialing', 'active', 'past_due', 'paused', 'cancelled', 'archived')),
     starts_at timestamptz NOT NULL DEFAULT now(),
     ends_at timestamptz,
     trial_ends_at timestamptz,

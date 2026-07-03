@@ -243,6 +243,12 @@ def _request_tenant_id() -> str | None:
         return None
 
 
+def _tenant_context_required() -> bool:
+    """Return whether this request explicitly targets a tenant route."""
+
+    return bool((request.path or "").startswith("/s/") or request.headers.get("X-Tenant-Slug"))
+
+
 def auth_required(fn: F) -> F:
     """Flask decorator that requires a logged-in session.
 
@@ -263,7 +269,11 @@ def auth_required(fn: F) -> F:
         if not user_id:
             return api_error("Authentication required. Please log in.", 401)
 
-        actor = _resolve_actor(user_id, _request_tenant_id())
+        tenant_id = _request_tenant_id()
+        if tenant_id is None and _tenant_context_required():
+            return api_error("Tenant is not active or available.", 403)
+
+        actor = _resolve_actor(user_id, tenant_id)
         if not actor:
             return api_error("User has no active membership.", 403)
 
@@ -300,7 +310,11 @@ def permission_required(permission: str) -> Callable[[F], F]:
             if not user_id:
                 return api_error("Authentication required. Please log in.", 401)
 
-            actor = _resolve_actor(user_id, _request_tenant_id())
+            tenant_id = _request_tenant_id()
+            if tenant_id is None and _tenant_context_required():
+                return api_error("Tenant is not active or available.", 403)
+
+            actor = _resolve_actor(user_id, tenant_id)
             if not actor:
                 return api_error("User has no active membership.", 403)
 
@@ -335,7 +349,11 @@ def super_admin_required(fn: F) -> F:
         if not user_id:
             return api_error("Authentication required. Please log in.", 401)
 
-        actor = _resolve_actor(user_id, _request_tenant_id())
+        tenant_id = _request_tenant_id()
+        if tenant_id is None and _tenant_context_required():
+            return api_error("Tenant is not active or available.", 403)
+
+        actor = _resolve_actor(user_id, tenant_id)
         if not actor:
             return api_error("User has no active membership.", 403)
 
@@ -364,7 +382,11 @@ def tenant_admin_required(fn: F) -> F:
         if not user_id:
             return api_error("Authentication required. Please log in.", 401)
 
-        actor = _resolve_actor(user_id, _request_tenant_id())
+        tenant_id = _request_tenant_id()
+        if tenant_id is None and _tenant_context_required():
+            return api_error("Tenant is not active or available.", 403)
+
+        actor = _resolve_actor(user_id, tenant_id)
         if not actor:
             return api_error("User has no active membership.", 403)
 

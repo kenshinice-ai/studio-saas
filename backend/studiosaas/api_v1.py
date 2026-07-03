@@ -33,6 +33,12 @@ from .services.media import (
     send_media_asset,
     store_media_asset,
 )
+from .services.tenant_archive import (
+    TenantArchiveError,
+    archive_tenant,
+    permanently_delete_tenant,
+    restore_tenant,
+)
 from .tenant_context import TenantResolutionError, resolve_tenant, slug_from_request
 from .workspaces import WorkspaceError, ensure_tenant_workspace
 
@@ -95,8 +101,8 @@ def handle_tenant_error(exc: TenantResolutionError):
     return api_error(str(exc), 400, error="tenant_resolution_failed")
 
 
-TENANT_STATUSES = {"trial", "active", "past_due", "paused", "cancelled"}
-SUBSCRIPTION_STATUSES = {"trialing", "active", "past_due", "paused", "cancelled"}
+TENANT_STATUSES = {"trial", "active", "past_due", "paused", "cancelled", "archived", "deleted"}
+SUBSCRIPTION_STATUSES = {"trialing", "active", "past_due", "paused", "cancelled", "archived"}
 
 
 def _json_payload() -> dict:
@@ -3067,7 +3073,7 @@ def admin_tenants():
                    COALESCE(t.settings->>'category', 'general') AS category,
                    t.settings->>'slogan' AS slogan,
                    t.settings->>'workspace_path' AS workspace_path,
-                   t.created_at
+                   t.created_at, t.archived_at, t.archive_path, t.deletion_requested_at, t.deleted_at
             FROM tenants t
             LEFT JOIN tenant_usage u ON u.tenant_id = t.id
             LEFT JOIN subscriptions s ON s.tenant_id = t.id
@@ -3178,21 +3184,10 @@ def mutate_tenant(tenant_id: str):
 
     with connect() as conn:
         if request.method == "DELETE":
-            existing = fetch_one(conn, "SELECT name FROM tenants WHERE id = %s", (tenant_id,))
-            if not existing:
-                return _error("Tenant was not found.", 404)
-            _audit(
-                conn,
-                tenant_id=tenant_id,
-                action="tenant.deleted",
-                resource_type="tenant",
-                resource_id=tenant_id,
-                metadata={"name": existing["name"]},
+            return _error(
+                "Direct tenant deletion is disabled. Archive first, then use /admin/tenants/<id>/permanent.",
+                405,
             )
-            with conn.cursor() as cur:
-                cur.execute("DELETE FROM tenants WHERE id = %s", (tenant_id,))
-            conn.commit()
-            return jsonify({"ok": True})
         try:
             data = _tenant_write_payload(_json_payload(), require_slug=False)
         except ValueError as exc:
@@ -3267,6 +3262,60 @@ def mutate_tenant(tenant_id: str):
     return jsonify({"ok": True})
 
 
+@api_v1.route("/admin/tenants/<tenant_id>/archive", methods=["POST"])
+@super_admin_required
+def archive_tenant_route(tenant_id: str):
+    """Archive tenant data and mark the tenant unavailable."""
+
+    actor = getattr(g, "actor", None)
+    with connect() as conn:
+        try:
+            result = archive_tenant(conn, tenant_id, getattr(actor, "user_id", None))
+        except TenantArchiveError as exc:
+            return _error(str(exc), 400)
+        conn.commit()
+    return jsonify({"ok": True, **result})
+
+
+@api_v1.route("/admin/tenants/<tenant_id>/restore", methods=["POST"])
+@super_admin_required
+def restore_tenant_route(tenant_id: str):
+    """Restore an archived tenant to paused state."""
+
+    actor = getattr(g, "actor", None)
+    with connect() as conn:
+        try:
+            result = restore_tenant(conn, tenant_id, getattr(actor, "user_id", None))
+        except TenantArchiveError as exc:
+            return _error(str(exc), 400)
+        conn.commit()
+    return jsonify({"ok": True, **result})
+
+
+@api_v1.route("/admin/tenants/<tenant_id>/permanent", methods=["DELETE"])
+@super_admin_required
+def permanently_delete_tenant_route(tenant_id: str):
+    """Permanently delete an archived tenant after explicit confirmation."""
+
+    actor = getattr(g, "actor", None)
+    try:
+        payload = _json_payload()
+    except ValueError as exc:
+        return _error(str(exc))
+    with connect() as conn:
+        try:
+            result = permanently_delete_tenant(
+                conn,
+                tenant_id,
+                getattr(actor, "user_id", None),
+                str(payload.get("confirmationPhrase") or payload.get("confirmation_phrase") or ""),
+            )
+        except TenantArchiveError as exc:
+            return _error(str(exc), 400)
+        conn.commit()
+    return jsonify({"ok": True, **result})
+
+
 @api_v1.route("/admin/tenants/<tenant_id>/status", methods=["PATCH"])
 @super_admin_required
 def update_tenant_status(tenant_id: str):
@@ -3338,7 +3387,7 @@ def admin_usage():
             conn,
             """
             SELECT
-                (SELECT count(*) FROM tenants) AS tenants,
+                (SELECT count(*) FROM tenants WHERE status NOT IN ('archived', 'deleted')) AS tenants,
                 (SELECT count(*) FROM students) AS students,
                 (SELECT count(*) FROM portfolio_items) AS portfolio_items,
                 (SELECT COALESCE(sum(storage_used_mb), 0) FROM tenant_usage) AS storage_used_mb

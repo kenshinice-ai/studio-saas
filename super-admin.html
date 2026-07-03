@@ -407,10 +407,12 @@
 
     table {
       width: 100%;
-      min-width: 960px;
+      min-width: 760px;
       border-collapse: collapse;
       font-size: 14px;
     }
+
+    .tenants-table { min-width: 820px; }
 
     th, td {
       padding: 12px 16px;
@@ -495,7 +497,7 @@
       color: var(--amber);
     }
 
-    .pill.cancelled, .pill.paused {
+    .pill.cancelled, .pill.paused, .pill.archived, .pill.deleted {
       background: #f1f5f9;
       color: var(--muted);
     }
@@ -926,6 +928,7 @@
                 <option>past_due</option>
                 <option>paused</option>
                 <option>cancelled</option>
+                <option>archived</option>
               </select>
             </div>
             <div class="filter-group">
@@ -940,43 +943,32 @@
           </div>
         </section>
 
-        <div class="content-grid">
-          <section class="card">
-            <div class="card-header">
-              <h2 class="card-title">Tenants & Subscriptions</h2>
-              <button id="addTenantBtn" class="btn-primary btn-sm">+ Add Tenant</button>
-            </div>
-            <div class="table-wrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Studio</th>
-                    <th>Plan</th>
-                    <th>Status</th>
-                    <th>Owner</th>
-                    <th>Usage</th>
-                    <th>Created</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="tenantsBody"></tbody>
-              </table>
-            </div>
-            <div class="toolbar" style="margin-top:12px;justify-content:flex-end;">
-              <button id="tenantPrevBtn" class="btn-secondary btn-sm" type="button">Previous</button>
-              <span id="tenantPageLabel" class="text-muted">Page 1</span>
-              <button id="tenantNextBtn" class="btn-secondary btn-sm" type="button">Next</button>
-            </div>
-          </section>
-
-      <!-- Tenant Detail / Form -->
-      <section class="card">
-        <div class="card-header">
-          <h2 id="tenantFormTitle" class="card-title">Tenant Details</h2>
-        </div>
-        <div id="tenantDetail" class="empty-state">Select a tenant to view details.</div>
-      </section>
-    </div>
+        <section class="card">
+          <div class="card-header">
+            <h2 class="card-title">Tenants & Subscriptions</h2>
+            <button id="addTenantBtn" class="btn-primary btn-sm">+ Add Tenant</button>
+          </div>
+          <div class="table-wrapper">
+            <table class="tenants-table">
+              <thead>
+                <tr>
+                  <th>Studio</th>
+                  <th>Plan</th>
+                  <th>Status</th>
+                  <th>Owner</th>
+                  <th>Usage</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="tenantsBody"></tbody>
+            </table>
+          </div>
+          <div class="toolbar" style="margin-top:12px;justify-content:flex-end;">
+            <button id="tenantPrevBtn" class="btn-secondary btn-sm" type="button">Previous</button>
+            <span id="tenantPageLabel" class="text-muted">Page 1</span>
+            <button id="tenantNextBtn" class="btn-secondary btn-sm" type="button">Next</button>
+          </div>
+        </section>
       </section>
 
       <section id="plans" class="section">
@@ -1292,14 +1284,14 @@
 
     // Status pill with icon
     function pill(value) {
-      const icons = { active: '●', trialing: '◐', trial: '◇', past_due: '⚠', cancelled: '✕', paused: '⏸' };
+      const icons = { active: '●', trialing: '◐', trial: '◇', past_due: '⚠', cancelled: '✕', paused: '⏸', archived: '□', deleted: '✕' };
       const cls = value === 'active' || value === 'trialing' || value === 'trial' ? 'pill active' :
                   value === 'past_due' ? 'pill past_due' : 'pill';
       return `<span class="${cls}">${icons[value] || ''} ${text(value)}</span>`;
     }
 
     function appendPill(cell, value) {
-      const icons = { active: '●', trialing: '◐', trial: '◇', past_due: '⚠', cancelled: '✕', paused: '⏸' };
+      const icons = { active: '●', trialing: '◐', trial: '◇', past_due: '⚠', cancelled: '✕', paused: '⏸', archived: '□', deleted: '✕' };
       const cls = value === 'active' || value === 'trialing' || value === 'trial' ? 'pill active' :
                   value === 'past_due' ? 'pill past_due' : 'pill';
       const span = document.createElement('span');
@@ -1353,11 +1345,11 @@
         <div class="form-grid">
           <div class="form-group"><label>Name</label><input id="m_tenantName" value="${esc(t.name)}"></div>
           <div class="form-group"><label>Slug</label><input id="m_tenantSlug" value="${esc(t.slug)}" disabled></div>
-	          <div class="form-group"><label>Status</label><select id="m_tenantStatus">${['trial','active','past_due','paused','cancelled'].map(s => `<option ${s===t.status?'selected':''}>${s}</option>`).join('')}</select></div>
+	          <div class="form-group"><label>Status</label><select id="m_tenantStatus">${['trial','active','past_due','paused','cancelled','archived'].map(s => `<option ${s===t.status?'selected':''}>${s}</option>`).join('')}</select></div>
 	          <div class="form-group"><label>Plan</label><select id="m_tenantPlan">${plans.map(p => `<option value="${p.code}" ${p.code===t.plan_code?'selected':''}>${p.name}</option>`).join('')}</select></div>
 	          <div class="form-group"><label>Studio Category</label><select id="m_tenantCategory">${categoryOptions(t.category || 'general')}</select></div>
 	          <div class="form-group"><label>Slogan</label><input id="m_tenantSlogan" value="${esc(t.slogan || presetSlogan(t.category || 'general'))}"></div>
-	          <div class="form-group"><label>Sub. Status</label><select id="m_subscriptionStatus">${['trialing','active','past_due','paused','cancelled'].map(s => `<option ${s===(t.subscription_status||'')?'selected':''}>${s}</option>`).join('')}</select></div>
+	          <div class="form-group"><label>Sub. Status</label><select id="m_subscriptionStatus">${['trialing','active','past_due','paused','cancelled','archived'].map(s => `<option ${s===(t.subscription_status||'')?'selected':''}>${s}</option>`).join('')}</select></div>
           <div class="form-group"><label>Starts At</label><input id="m_startsAt" type="date" value="${dateOnly(t.starts_at)}"></div>
           <div class="form-group"><label>Ends At</label><input id="m_endsAt" type="date" value="${dateOnly(t.ends_at)}"></div>
           <div class="form-group"><label>Period Ends</label><input id="m_currentPeriodEndsAt" type="date" value="${dateOnly(t.current_period_ends_at)}"></div>
@@ -1460,23 +1452,93 @@
       await refresh();
     }
 
-    // Delete tenant with confirmation modal
-    async function deleteTenant(id, name) {
+    function openTenantActions(id) {
       const t = tenants.find((item) => item.id === id);
       if (!t) return;
-      const footerHtml = `<button onclick="confirmDeleteTenant('${id}')" class="btn-danger">Delete</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
-      openModal('Delete Tenant', `<p>Delete <strong>${esc(t.name)}</strong>? This removes tenant-owned data.</p><div class="form-group mt-2"><label>Type tenant slug to confirm</label><input id="m_deleteTenantConfirmSlug" placeholder="${esc(t.slug)}"></div>`, footerHtml);
+      openModal(`${t.name} Actions`, '<div id="m_tenantActionsMount" class="action-row"></div>', '<button onclick="closeModal()" class="btn-secondary">Close</button>');
+      const mount = $('m_tenantActionsMount');
+      mount.style.alignItems = 'stretch';
+      mount.style.flexDirection = 'column';
+      addActionButton(mount, 'Edit Tenant', 'btn-secondary', () => editTenant(id));
+      const slug = encodeURIComponent(String(t.slug || ''));
+      [
+        ['Open CMS', `/${slug}`],
+        ['Open Studio Admin', `/${slug}/studio-admin`],
+        ['Open Register Page', `/${slug}/register`],
+      ].forEach(([label, href]) => {
+        const link = document.createElement('a');
+        link.className = 'btn-secondary';
+        link.href = href;
+        link.target = '_blank';
+        link.rel = 'noopener';
+        link.textContent = label;
+        mount.appendChild(link);
+      });
+      if (t.status === 'archived') {
+        addActionButton(mount, 'Restore Tenant', 'btn-primary', () => restoreTenant(id));
+        addActionButton(mount, 'Permanent Delete', 'btn-danger', () => permanentDeleteTenant(id));
+      } else if (t.status !== 'deleted') {
+        addActionButton(
+          mount,
+          t.status === 'paused' ? 'Reactivate' : 'Pause',
+          t.status === 'paused' ? 'btn-primary' : 'btn-danger',
+          () => changeTenantOperationalState(id, t.status === 'paused' ? 'reactivate' : 'pause')
+        );
+        addActionButton(mount, 'Archive Tenant', 'btn-danger', () => archiveTenant(id));
+      }
     }
 
-    async function confirmDeleteTenant(id) {
+    function archiveTenant(id) {
       const t = tenants.find((item) => item.id === id);
       if (!t) return;
-      if (($('m_deleteTenantConfirmSlug')?.value || '').trim() !== t.slug) {
+      const footerHtml = `<button id="confirmArchiveTenantBtn" onclick="confirmArchiveTenant('${id}')" class="btn-danger">Archive Tenant</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
+      openModal('Archive Tenant', `<p>Archive <strong>${esc(t.name)}</strong>? Data remains in the database, but tenant APIs become unavailable and snapshots are written first.</p><div class="form-group mt-2"><label>Type tenant slug to confirm</label><input id="m_archiveTenantConfirmSlug" placeholder="${esc(t.slug)}"></div>`, footerHtml);
+    }
+
+    async function confirmArchiveTenant(id) {
+      const t = tenants.find((item) => item.id === id);
+      if (!t) return;
+      if (($('m_archiveTenantConfirmSlug')?.value || '').trim() !== t.slug) {
         showToast(`Type ${t.slug} to confirm.`, 'error');
         return;
       }
-      await api(`/admin/tenants/${id}`, { method: 'DELETE' });
-      showToast('Tenant deleted.');
+      $('confirmArchiveTenantBtn').disabled = true;
+      const result = await api(`/admin/tenants/${id}/archive`, { method: 'POST' });
+      showToast(`Tenant archived. Snapshot: ${result.archivePath || 'created'}`);
+      closeModal();
+      await refresh();
+    }
+
+    async function restoreTenant(id) {
+      const t = tenants.find((item) => item.id === id);
+      if (!t) return;
+      await api(`/admin/tenants/${id}/restore`, { method: 'POST' });
+      showToast('Tenant restored to paused status.');
+      closeModal();
+      await refresh();
+    }
+
+    function permanentDeleteTenant(id) {
+      const t = tenants.find((item) => item.id === id);
+      if (!t) return;
+      const footerHtml = `<button id="confirmPermanentDeleteTenantBtn" onclick="confirmPermanentDeleteTenant('${id}')" class="btn-danger">Permanent Delete</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
+      openModal('Permanent Delete Tenant', `<p>Permanently delete <strong>${esc(t.name)}</strong>? A final snapshot is written first. This action removes tenant database rows after confirmation.</p><div class="form-group mt-2"><label>Type DELETE ${esc(t.slug)} to confirm</label><input id="m_permanentDeleteTenantPhrase" placeholder="DELETE ${esc(t.slug)}"></div>`, footerHtml);
+    }
+
+    async function confirmPermanentDeleteTenant(id) {
+      const t = tenants.find((item) => item.id === id);
+      if (!t) return;
+      const phrase = ($('m_permanentDeleteTenantPhrase')?.value || '').trim();
+      if (phrase !== `DELETE ${t.slug}`) {
+        showToast(`Type DELETE ${t.slug} to confirm.`, 'error');
+        return;
+      }
+      $('confirmPermanentDeleteTenantBtn').disabled = true;
+      await api(`/admin/tenants/${id}/permanent`, {
+        method: 'DELETE',
+        body: JSON.stringify({ confirmationPhrase: phrase })
+      });
+      showToast('Tenant permanently deleted. Archive evidence was retained.');
       closeModal();
       await refresh();
     }
@@ -1484,21 +1546,10 @@
     // Select tenant to view details
     function selectTenant(id) {
       selectedTenantId = id;
-      renderTenantDetail();
+      openTenantDetailModal(id);
     }
 
-    // Render tenant detail panel
-    function renderTenantDetail() {
-      const t = tenants.find((item) => item.id === selectedTenantId);
-      const detail = $('tenantDetail');
-      if (!t) {
-        detail.classList.add('empty-state');
-        const muted = document.createElement('div');
-        muted.className = 'text-muted';
-        muted.textContent = 'Select a tenant to view details.';
-        detail.replaceChildren(muted);
-        return;
-      }
+    function buildTenantDetailGrid(t) {
       const plan = plans.find((item) => item.code === t.plan_code) || {};
       const grid = document.createElement('div');
       grid.className = 'detail-grid';
@@ -1578,10 +1629,21 @@
       addDetail('Students', (item) => addProgress(item, t.student_count, plan.student_limit));
       addDetail('Storage', (item) => addProgress(item, t.storage_used_mb, plan.storage_limit_mb));
       addDetail('Created', (item) => item.appendChild(document.createTextNode(dateOnly(t.created_at) || '-')));
+      addDetail('Archived', (item) => item.appendChild(document.createTextNode(dateOnly(t.archived_at) || '-')));
+      addDetail('Archive Path', (item) => {
+        const code = document.createElement('code');
+        code.textContent = text(t.archive_path);
+        item.appendChild(code);
+      });
       addDetail('Subscription', (item) => item.appendChild(document.createTextNode(`${dateOnly(t.starts_at) || '-'} to ${dateOnly(t.ends_at) || 'open'}`)));
-      detail.classList.remove('empty-state');
-      detail.classList.remove('hidden');
-      detail.replaceChildren(grid);
+      return grid;
+    }
+
+    function openTenantDetailModal(id) {
+      const t = tenants.find((item) => item.id === id);
+      if (!t) return;
+      openModal(`${t.name} Details`, '<div id="m_tenantDetailMount"></div>', '<button onclick="closeModal()" class="btn-secondary">Close</button>');
+      $('m_tenantDetailMount').replaceChildren(buildTenantDetailGrid(t));
     }
 
     // Filter tenants
@@ -1608,8 +1670,7 @@
       const tbody = $('tenantsBody');
       tbody.replaceChildren();
       if (!visible.length) {
-        appendEmptyRow(tbody, 7, 'No tenants match the current filters.');
-        renderTenantDetail();
+        appendEmptyRow(tbody, 6, 'No tenants match the current filters.');
         return;
       }
       visible.forEach((t) => {
@@ -1633,35 +1694,13 @@
         statusCell.appendChild(sub);
         addCell(row, text(t.owner_email || t.studio_admin_email));
         addCell(row, `${text(t.student_count)} students\n${text(t.storage_used_mb)} MB`);
-        addCell(row, dateOnly(t.created_at) || '-');
         const actions = document.createElement('div');
         actions.className = 'action-row';
         addActionButton(actions, 'View', 'btn-secondary btn-sm', () => selectTenant(t.id));
-        addActionButton(actions, 'Edit', 'btn-secondary btn-sm', () => editTenant(t.id));
-        const slug = encodeURIComponent(String(t.slug || ''));
-        [
-          ['CMS', `/${slug}`],
-          ['Admin', `/${slug}/studio-admin`],
-          ['Register', `/${slug}/register`],
-        ].forEach(([label, href]) => {
-          const link = document.createElement('a');
-          link.className = 'btn-secondary btn-sm';
-          link.href = href;
-          link.target = '_blank';
-          link.rel = 'noopener';
-          link.textContent = label;
-          actions.appendChild(link);
-        });
-        addActionButton(
-          actions,
-          t.status === 'paused' ? 'Reactivate' : 'Pause',
-          t.status === 'paused' ? 'btn-primary btn-sm' : 'btn-danger btn-sm',
-          () => changeTenantOperationalState(t.id, t.status === 'paused' ? 'reactivate' : 'pause')
-        );
+        addActionButton(actions, 'More', 'btn-secondary btn-sm', () => openTenantActions(t.id));
         addCell(row).appendChild(actions);
         tbody.appendChild(row);
       });
-      renderTenantDetail();
     }
 
     // Plan form handlers

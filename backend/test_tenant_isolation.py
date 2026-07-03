@@ -124,6 +124,7 @@ def main() -> int:
     fixtures = seed_fixtures.seed()
     owner_a = client_for(fixtures["owner_a_email"])
     owner_b = client_for(fixtures["owner_b_email"])
+    super_admin = client_for(fixtures["super_email"])
     me_response = owner_a.get("/v1/auth/me")
     me_body = me_response.get_json() or {}
     check("Authenticated /v1/auth/me succeeds", me_response.status_code == 200, f"got {me_response.status_code}")
@@ -579,6 +580,63 @@ def main() -> int:
     check("Audit exists for approved registration", audit_exists("registration.approved", "registration"))
     check("Audit exists for rejected registration", audit_exists("registration.rejected", "registration"))
     check("Audit exists for duplicate registration", audit_exists("registration.duplicate_detected", "registration"))
+
+    # Tenant archival: direct deletion is disabled; archive writes snapshots
+    # before final deletion can run.
+    direct_delete = super_admin.delete(f"/v1/admin/tenants/{fixtures['tenant_b']}")
+    check("Direct tenant DELETE is disabled", direct_delete.status_code == 405, f"got {direct_delete.status_code}")
+
+    non_archived_delete = super_admin.delete(
+        f"/v1/admin/tenants/{fixtures['tenant_a']}/permanent",
+        json={"confirmationPhrase": f"DELETE {TENANT_A}"},
+    )
+    check(
+        "Permanent delete is rejected for non-archived tenant",
+        non_archived_delete.status_code == 400 and has_error_shape(non_archived_delete),
+        f"got {non_archived_delete.status_code}",
+    )
+
+    archive_response = super_admin.post(f"/v1/admin/tenants/{fixtures['tenant_b']}/archive")
+    archive_body = archive_response.get_json(silent=True) or {}
+    archive_path = Path(str(archive_body.get("archivePath") or ""))
+    check("Super admin can archive tenant", archive_response.status_code == 200, f"got {archive_response.status_code}")
+    tenants_response = super_admin.get("/v1/admin/tenants")
+    tenant_rows = (tenants_response.get_json(silent=True) or {}).get("tenants", [])
+    archived_row = next((row for row in tenant_rows if row.get("id") == fixtures["tenant_b"]), None)
+    check("Archived tenant remains in admin tenant list", bool(archived_row), "missing archived tenant")
+    check("Archived tenant list row has archived status", (archived_row or {}).get("status") == "archived", str(archived_row))
+    archived_access = owner_b.get(f"/s/{TENANT_B}/v1/tenant")
+    check("Archived tenant cannot access Studio Admin tenant API", archived_access.status_code == 403, f"got {archived_access.status_code}")
+    check(
+        "Archive creates tenant_archives row",
+        db_count("SELECT count(*) AS n FROM tenant_archives WHERE tenant_id = %s", (fixtures["tenant_b"],)) >= 1,
+    )
+    check("Archive writes tenant snapshot file", (archive_path / "db" / "tenant.json").is_file(), str(archive_path))
+    check("Archive writes students snapshot file", (archive_path / "db" / "students.json").is_file(), str(archive_path))
+
+    wrong_phrase_delete = super_admin.delete(
+        f"/v1/admin/tenants/{fixtures['tenant_b']}/permanent",
+        json={"confirmationPhrase": "DELETE wrong-slug"},
+    )
+    check(
+        "Permanent delete is rejected with wrong confirmation phrase",
+        wrong_phrase_delete.status_code == 400 and has_error_shape(wrong_phrase_delete),
+        f"got {wrong_phrase_delete.status_code}",
+    )
+    permanent_delete = super_admin.delete(
+        f"/v1/admin/tenants/{fixtures['tenant_b']}/permanent",
+        json={"confirmationPhrase": f"DELETE {TENANT_B}"},
+    )
+    check("Permanent delete succeeds for archived tenant", permanent_delete.status_code == 200, f"got {permanent_delete.status_code}")
+    check(
+        "Permanent delete removes tenant row",
+        db_count("SELECT count(*) AS n FROM tenants WHERE id = %s", (fixtures["tenant_b"],)) == 0,
+    )
+    check(
+        "Permanent delete writes final snapshot",
+        (archive_path / "final-delete-snapshot" / "tenant.json").is_file(),
+        str(archive_path),
+    )
 
     print("\n" + "=" * 72)
     print(f"  Results: {len(passed)} passed, {len(failed)} failed")
