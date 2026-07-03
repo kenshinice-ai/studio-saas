@@ -2490,6 +2490,41 @@ def _legacy_name_parts(display_name: str) -> tuple[str, str]:
     return parts[0], " ".join(parts[1:])
 
 
+# The CMS UI filters logs by these Chinese action labels (e.g. rosterDone
+# counts '上课签到' rows) — map ledger transaction types back to them so the
+# CMS's history, stats, and undo lookups work off credit_transactions.
+LEGACY_ACTION_BY_TYPE = {
+    "consume": "上课签到",
+    "purchase": "充值购课",
+    "refund": "撤销签到",
+    "adjustment": "调整课时",
+    "migration": "期初导入",
+    "expire": "课时过期",
+}
+
+
+def _sanitize_legacy_board(value, key_limit: int = 500, id_limit: int = 200) -> dict:
+    """Sanitize CMS roster/group boards ({label: [student ids]}) for storage."""
+
+    result: dict[str, list[str]] = {}
+    if isinstance(value, dict):
+        for key, ids in list(value.items())[:key_limit]:
+            if isinstance(ids, list):
+                result[str(key)[:60]] = [str(item)[:64] for item in ids[:id_limit]]
+    return result
+
+
+def _legacy_log_change(tx_type: str, amount: float):
+    """Format a ledger amount the way legacy CMS logs express it."""
+
+    value = float(amount or 0)
+    if tx_type in ("purchase", "refund", "migration"):
+        return f"+{value:g}"
+    if tx_type in ("consume", "expire"):
+        return -abs(value)
+    return value  # adjustment: stored signed
+
+
 def _legacy_data_for_tenant(conn, tenant_id: str) -> dict:
     """Build the legacy CMS JSON shape from tenant-scoped PostgreSQL rows."""
 
@@ -2548,20 +2583,34 @@ def _legacy_data_for_tenant(conn, tenant_id: str) -> dict:
         """,
         (tenant_id,),
     )
+    # Legacy-undo semantics: a voided check-in disappears from the CMS log
+    # view (the full ledger keeps both rows — see CSV export). The reversal
+    # refund row is hidden for the same reason.
     logs = fetch_all(
         conn,
         """
         SELECT ct.id, ct.student_id, s.display_name AS student_name,
                ct.transaction_type, ct.amount::float AS amount,
-               ct.fee_aud_cents, ct.note, ct.occurred_at
+               ct.fee_aud_cents, ct.note,
+               to_char(ct.occurred_at AT TIME ZONE 'Australia/Melbourne',
+                       'DD/MM/YYYY, HH24:MI:SS') AS occurred_display,
+               att.id AS attendance_id
         FROM credit_transactions ct
         JOIN students s ON s.id = ct.student_id
+        LEFT JOIN attendance_sessions att
+          ON att.tenant_id = ct.tenant_id AND att.credit_transaction_id = ct.id
+        LEFT JOIN attendance_sessions rev
+          ON rev.tenant_id = ct.tenant_id AND rev.reversal_credit_transaction_id = ct.id
         WHERE ct.tenant_id = %s
+          AND (att.id IS NULL OR att.reversed_at IS NULL)
+          AND rev.id IS NULL
         ORDER BY ct.occurred_at DESC
         LIMIT 500
         """,
         (tenant_id,),
     )
+    settings_row = fetch_one(conn, "SELECT settings FROM tenants WHERE id = %s", (tenant_id,))
+    legacy_state = ((settings_row["settings"] if settings_row else None) or {}).get("legacy_cms") or {}
     pending = fetch_all(
         conn,
         """
@@ -2608,11 +2657,12 @@ def _legacy_data_for_tenant(conn, tenant_id: str) -> dict:
                 "id": str(row["id"]),
                 "studentId": str(row["student_id"]),
                 "studentName": row["student_name"],
-                "action": row["transaction_type"],
-                "change": row["amount"],
-                "fee": round((row["fee_aud_cents"] or 0) / 100, 2),
+                "action": LEGACY_ACTION_BY_TYPE.get(row["transaction_type"], row["transaction_type"]),
+                "change": _legacy_log_change(row["transaction_type"], row["amount"]),
+                "feePaid": round((row["fee_aud_cents"] or 0) / 100, 2),
                 "note": row["note"],
-                "date": str(row["occurred_at"]),
+                "date": row["occurred_display"],
+                "attendanceId": str(row["attendance_id"]) if row["attendance_id"] else None,
             }
             for row in logs
         ],
@@ -2628,7 +2678,8 @@ def _legacy_data_for_tenant(conn, tenant_id: str) -> dict:
             }
             for row in pending
         ],
-        "rosters": {},
+        "rosters": legacy_state.get("rosters") or {},
+        "groups": legacy_state.get("groups") or {},
         "rev": int(time.time()),
     }
 
@@ -2808,17 +2859,61 @@ def legacy_cms_save():
                             """,
                             (photo_asset_id, tenant.tenant_id, student_id),
                         )
-                balance = float(student.get("balance") or 0)
+                # Balances move only through the ledger (v1 attendance and
+                # credit endpoints). The whole-save payload's balance is
+                # ignored for existing students to stop stale-tab overwrites;
+                # brand-new students get their initial balance as a
+                # 'migration' transaction so the ledger stays complete.
                 cur.execute(
                     """
-                    INSERT INTO credit_accounts (tenant_id, student_id, course_id, balance, low_balance_threshold)
-                    VALUES (%s, %s, %s, %s, 2)
-                    ON CONFLICT (tenant_id, student_id, course_id) DO UPDATE
-                    SET balance = EXCLUDED.balance,
-                        updated_at = now()
+                    SELECT id FROM credit_accounts
+                    WHERE tenant_id = %s AND student_id = %s AND course_id IS NULL
                     """,
-                    (tenant.tenant_id, student_id, default_course_id, balance),
+                    (tenant.tenant_id, student_id),
                 )
+                if not cur.fetchone():
+                    initial_balance = float(student.get("balance") or 0)
+                    cur.execute(
+                        """
+                        INSERT INTO credit_accounts (tenant_id, student_id, course_id, balance, low_balance_threshold)
+                        VALUES (%s, %s, NULL, %s, 2)
+                        """,
+                        (tenant.tenant_id, student_id, initial_balance),
+                    )
+                    if initial_balance:
+                        cur.execute(
+                            """
+                            INSERT INTO credit_transactions (
+                                tenant_id, student_id, actor_user_id,
+                                transaction_type, amount, balance_after, note
+                            )
+                            VALUES (%s, %s, %s, 'migration', %s, %s, '期初余额（CMS 创建）')
+                            """,
+                            (
+                                tenant.tenant_id,
+                                student_id,
+                                getattr(getattr(g, "actor", None), "user_id", None),
+                                initial_balance,
+                                initial_balance,
+                            ),
+                        )
+            # Persist the CMS roster/group boards so scheduling survives
+            # reloads (they previously reset to {} on every load).
+            cur.execute(
+                """
+                UPDATE tenants
+                SET settings = jsonb_set(COALESCE(settings, '{}'::jsonb), '{legacy_cms}', %s::jsonb, true),
+                    updated_at = now()
+                WHERE id = %s
+                """,
+                (
+                    json.dumps({
+                        "rosters": _sanitize_legacy_board(payload.get("rosters")),
+                        "groups": _sanitize_legacy_board(payload.get("groups")),
+                    }),
+                    tenant.tenant_id,
+                ),
+            )
         _audit(conn, tenant_id=tenant.tenant_id, action="legacy_cms.saved", resource_type="legacy_cms")
         conn.commit()
         data = _legacy_data_for_tenant(conn, tenant.tenant_id)

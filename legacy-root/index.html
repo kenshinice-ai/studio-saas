@@ -55,6 +55,7 @@
           setTimeout(() => setTenantTheme(window.STUDIOSAAS_BRAND), 3000);
         };
         window.STUDIOSAAS_REGISTER_URL = `${location.origin}/${tenantSlug}/register`;
+        window.STUDIOSAAS_TENANT_SLUG = tenantSlug;
         window.STUDIOSAAS_APPLY_BRAND = setTenantTheme;
         window.addEventListener('load', scheduleTenantTheme);
         const originalFetch = window.fetch.bind(window);
@@ -234,6 +235,24 @@ const daysSince = (iso) => {
     const d = new Date(iso);
     return isNaN(d) ? 9999 : Math.floor((Date.now() - d) / 864e5);
 };
+/* A2: tenant 模式下签到/课时改走 v1 账本端点（与 Studio Admin 同一本账）。
+   根目录单店模式（无 tenantSlug）保持原有整包保存路径不变。 */
+const TENANT_SLUG = window.STUDIOSAAS_TENANT_SLUG || '';
+const v1Api = async (path, options = {}) => {
+    const r = await fetch(`/s/${encodeURIComponent(TENANT_SLUG)}/v1${path}`, {
+        credentials: 'include',
+        headers: {'Content-Type': 'application/json'},
+        ...options,
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) {
+        const err = new Error(d.message || d.error || `HTTP ${r.status}`);
+        err.status = r.status;
+        throw err;
+    }
+    return d;
+};
+
 const parseMonthKey = (ds) => {
     if (!ds) return null;
     const s = String(ds);
@@ -1449,9 +1468,21 @@ function App() {
         cooldowns.current.add(sid); setTimeout(() => cooldowns.current.delete(sid), 3000);
         setBusy(true);
         try {
-            const nb = Math.max(0, student.balance-1);
-            const ns = db.students.map(s=>s.id===sid?{...s,balance:nb,lastActive:todayISO()}:s);
-            await save({...db, students:ns, logs:[mkLog(sname,'上课签到',-1,'常规课程消耗',0,{studentId:sid}),...db.logs]});
+            let nb;
+            if (TENANT_SLUG) {
+                /* A2: 走 v1 账本 — 生成 attendance_sessions + consume 流水，
+                   与 Studio Admin 考勤页同一本账 */
+                const res = await v1Api('/attendance/check-in', {
+                    method: 'POST',
+                    body: JSON.stringify({studentId: sid, note: '常规课程消耗'}),
+                });
+                nb = Number(res.newBalance);
+                await load();
+            } else {
+                nb = Math.max(0, student.balance-1);
+                const ns = db.students.map(s=>s.id===sid?{...s,balance:nb,lastActive:todayISO()}:s);
+                await save({...db, students:ns, logs:[mkLog(sname,'上课签到',-1,'常规课程消耗',0,{studentId:sid}),...db.logs]});
+            }
             if (selS?.id===sid) setSelS(p=>({...p,balance:nb}));
             /* G2: 一键复制给家长的签到确认话术 */
             const confirmMsg = nb===0
@@ -1460,7 +1491,8 @@ function App() {
             const act = {label:'📋 复制签到确认（发家长）', onClick:()=>copyText(confirmMsg,'签到确认已复制')};
             if (nb===0) showToast(`${sname} 课时已清零！请提醒续课 🔔`, 'warn', act);
             else        showToast(`${sname} 签到 ✓ 剩余 ${nb} 课时`, 'success', act);
-        } finally { setBusy(false); }
+        } catch(e) { showToast(`签到失败：${e.message}`, 'error'); }
+        finally { setBusy(false); }
     };
 
     const undoCheckIn = (sid, sname) => {
@@ -1468,14 +1500,27 @@ function App() {
             if (busy) return; // Fix ④: guard against concurrent busy
             setBusy(true);
             try {
-                const idx = db.logs.findIndex(l=>(l.studentId===sid || (!l.studentId && l.studentName===sname))&&l.action==='上课签到');   /* D3 */
-                if (idx===-1) { showToast('未找到签到记录','warn'); return; }
-                const ns = db.students.map(s=>s.id===sid?{...s,balance:(parseInt(s.balance,10)||0)+1}:s);
-                const nl = db.logs.filter((_,i)=>i!==idx);
-                await save({...db, students:ns, logs:[mkLog(sname,'撤销签到','+1','管理员撤销',0,{studentId:sid}),...nl]});
+                if (TENANT_SLUG) {
+                    /* A2: 通过 v1 作废考勤（refund 流水 + 考勤标记 reversed），
+                       日志由服务端按撤销语义隐藏对应签到记录 */
+                    const entry = db.logs.find(l=>l.studentId===sid&&l.action==='上课签到'&&l.attendanceId);
+                    if (!entry) { showToast('未找到签到记录','warn'); return; }
+                    await v1Api(`/attendance/${entry.attendanceId}/void`, {
+                        method: 'POST',
+                        body: JSON.stringify({note: '管理员撤销'}),
+                    });
+                    await load();
+                } else {
+                    const idx = db.logs.findIndex(l=>(l.studentId===sid || (!l.studentId && l.studentName===sname))&&l.action==='上课签到');   /* D3 */
+                    if (idx===-1) { showToast('未找到签到记录','warn'); return; }
+                    const ns = db.students.map(s=>s.id===sid?{...s,balance:(parseInt(s.balance,10)||0)+1}:s);
+                    const nl = db.logs.filter((_,i)=>i!==idx);
+                    await save({...db, students:ns, logs:[mkLog(sname,'撤销签到','+1','管理员撤销',0,{studentId:sid}),...nl]});
+                }
                 if (selS?.id===sid) setSelS(p=>({...p,balance:(parseInt(p.balance,10)||0)+1}));
                 showToast(`已撤销 ${sname} 签到`, 'warn');
-            } finally { setBusy(false); }
+            } catch(e) { showToast(`撤销失败：${e.message}`, 'error'); }
+            finally { setBusy(false); }
         }, {confirmText:'确认撤销'});
     };
 
@@ -1505,18 +1550,35 @@ function App() {
             if (busy) return; // Fix ④
             setBusy(true);
             try {
-                let cur = {...db};
-                const base = Date.now();
-                // Fix ③: use loop index (not student id) to avoid integer overflow collisions
-                elig.forEach((id, i) => {
-                    const s=cur.students.find(x=>x.id===id); if(!s) return;
-                    const nb=Math.max(0,s.balance-1);
-                    cur = {...cur,
-                        students:cur.students.map(x=>x.id===id?{...x,balance:nb,lastActive:todayISO()}:x),
-                        logs:[{...mkLog(s.name,'上课签到',-1,'全员消课',0,{studentId:id}),id:base+i},...cur.logs]};
-                });
-                await save(cur);
-                showToast(`全员消课完成，共 ${elig.length} 人`);
+                if (TENANT_SLUG) {
+                    /* A2: 逐个走 v1 账本，失败的学员单独提示不影响其他人 */
+                    const failed = [];
+                    for (const id of elig) {
+                        const s = db.students.find(x=>x.id===id); if (!s) continue;
+                        try {
+                            await v1Api('/attendance/check-in', {
+                                method: 'POST',
+                                body: JSON.stringify({studentId: id, note: '全员消课'}),
+                            });
+                        } catch(e) { failed.push(s.name); }
+                    }
+                    await load();
+                    if (failed.length) showToast(`全员消课完成，${failed.length} 人失败：${failed.join('、')}`, 'warn');
+                    else showToast(`全员消课完成，共 ${elig.length} 人`);
+                } else {
+                    let cur = {...db};
+                    const base = Date.now();
+                    // Fix ③: use loop index (not student id) to avoid integer overflow collisions
+                    elig.forEach((id, i) => {
+                        const s=cur.students.find(x=>x.id===id); if(!s) return;
+                        const nb=Math.max(0,s.balance-1);
+                        cur = {...cur,
+                            students:cur.students.map(x=>x.id===id?{...x,balance:nb,lastActive:todayISO()}:x),
+                            logs:[{...mkLog(s.name,'上课签到',-1,'全员消课',0,{studentId:id}),id:base+i},...cur.logs]};
+                    });
+                    await save(cur);
+                    showToast(`全员消课完成，共 ${elig.length} 人`);
+                }
             } finally { setBusy(false); }
         }, {confirmText:`消课 ${elig.length} 人`});
     };
@@ -1735,9 +1797,23 @@ document.getElementById('copybtn').addEventListener('click', function(){
             setBusy(true);
             try {
                 const s = db.students.find(x=>x.id===tuStu); if (!s) return;
-                const ns = db.students.map(x=>x.id===tuStu?{...x,balance:(parseInt(x.balance,10)||0)+credits,lastActive:todayISO()}:x);
                 const noteStr = [`套餐: ${tuPkg||'自定义'}`, `付款: ${tuPay}`, ...(tuRemark?[tuRemark]:[])].join(' | ');
-                await save({...db, students:ns, logs:[mkLog(s.name,'充值购课',`+${credits}`,noteStr,fee,{payMethod:tuPay,studentId:s.id}),...db.logs]});
+                if (TENANT_SLUG) {
+                    /* A2: 充值走 v1 账本（purchase 流水，含实收金额） */
+                    await v1Api(`/students/${s.id}/credit-transactions`, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            transactionType: 'purchase',
+                            amount: credits,
+                            feeAudCents: Math.round(fee * 100),
+                            note: noteStr,
+                        }),
+                    });
+                    await load();
+                } else {
+                    const ns = db.students.map(x=>x.id===tuStu?{...x,balance:(parseInt(x.balance,10)||0)+credits,lastActive:todayISO()}:x);
+                    await save({...db, students:ns, logs:[mkLog(s.name,'充值购课',`+${credits}`,noteStr,fee,{payMethod:tuPay,studentId:s.id}),...db.logs]});
+                }
                 e.target.reset();
                 setTuCr(''); setTuFee(''); setTuPkg('');
                 setTuPay('微信'); setTuStu(null);
@@ -1746,7 +1822,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 const cMsg = `${s.name} 您好！已为您成功充值 ${credits} 课时${fee?`（实收 $${fee}）`:''}，当前账户共 ${newBal} 课时。感谢您对 Studio 的信任！🎨`;
                 showToast(`${s.name} 充值 ${credits} 课时 / $${fee}`, 'success',
                     {label:'📋 复制充值确认（发家长）', onClick:()=>copyText(cMsg,'充值确认已复制')});
-            } finally { setBusy(false); }
+            } catch(err) { showToast(`充值失败：${err.message}`, 'error'); }
+            finally { setBusy(false); }
         };
 
         if (fee === 0) {
@@ -1824,7 +1901,25 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 : db.logs;
             const changeStr = diff!==0 ? (diff>0?`+${diff}`:`${diff}`) : '0';
             const noteStr   = diff!==0 ? '管理端校准' : (oldName!==newName?`改名: ${oldName}→${newName}`:'信息修改');
-            await save({...db, students:ns, logs:[mkLog(newName, diff!==0?'调整课时':'更新档案', changeStr, noteStr, 0, {studentId:selS.id}),...nl]});
+            if (TENANT_SLUG) {
+                /* A2: 档案字段照旧整包保存（余额由服务端忽略）；
+                   课时差额单独走 v1 调整流水 */
+                await save({...db, students:ns, logs:nl});
+                if (diff !== 0) {
+                    await v1Api(`/students/${selS.id}/credit-transactions`, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            transactionType: 'adjustment',
+                            legacy_type: diff > 0 ? 'adjustment_in' : 'adjustment_out',
+                            amount: Math.abs(diff),
+                            note: '管理端校准',
+                        }),
+                    });
+                    await load();
+                }
+            } else {
+                await save({...db, students:ns, logs:[mkLog(newName, diff!==0?'调整课时':'更新档案', changeStr, noteStr, 0, {studentId:selS.id}),...nl]});
+            }
             setSelS({...selS, firstName, lastName, name:newName, mobile, email, wechat, balance, remark, preferences, ...legacyPrefs, birthday, photo:editPhoto, ...(diff!==0?{lastActive:todayISO()}:{})});
             setEditP(false);
             showToast('档案已更新');

@@ -465,18 +465,29 @@ def upsert_student(conn, rng: random.Random, tenant_id: str, index: int, courses
             ),
         )
         student_id = cur.fetchone()["id"]
+        # Canonical ledger = the general (course_id IS NULL) account; the
+        # composite UNIQUE ignores NULLs, so upsert manually (see 0007).
         cur.execute(
             """
-            INSERT INTO credit_accounts (tenant_id, student_id, course_id, balance, low_balance_threshold)
-            VALUES (%s, %s, %s, %s, 2)
-            ON CONFLICT (tenant_id, student_id, course_id) DO UPDATE
-            SET balance = EXCLUDED.balance,
-                updated_at = now()
+            UPDATE credit_accounts
+            SET balance = %s, updated_at = now()
+            WHERE tenant_id = %s AND student_id = %s AND course_id IS NULL
             RETURNING id
             """,
-            (tenant_id, student_id, course["id"], balance),
+            (balance, tenant_id, student_id),
         )
-        account_id = cur.fetchone()["id"]
+        row = cur.fetchone()
+        if not row:
+            cur.execute(
+                """
+                INSERT INTO credit_accounts (tenant_id, student_id, course_id, balance, low_balance_threshold)
+                VALUES (%s, %s, NULL, %s, 2)
+                RETURNING id
+                """,
+                (tenant_id, student_id, balance),
+            )
+            row = cur.fetchone()
+        account_id = row["id"]
         cur.execute(
             """
             INSERT INTO credit_transactions (
