@@ -112,7 +112,61 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Seed random StudioSaaS demo data.")
     parser.add_argument("--students-per-tenant", type=int, default=18)
     parser.add_argument("--seed", type=int, default=20260630)
+    parser.add_argument(
+        "--only-slug",
+        help=(
+            "Seed one EXISTING tenant by slug. Keeps the tenant's branding and "
+            "existing students/registrations (no demo reset); adds courses, "
+            "packages, students, and registrations on top."
+        ),
+    )
     return parser.parse_args()
+
+
+def seed_existing_tenant(conn, rng: random.Random, slug: str, students: int) -> None:
+    """Seed demo data into an existing tenant without touching its branding.
+
+    Unlike the configured demo tenants, this path never runs clear_demo_data,
+    so manually created records survive re-runs (student upserts are keyed on
+    (tenant_id, source_legacy_id) and stay idempotent).
+    """
+
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT id, name,
+                   COALESCE(NULLIF(settings->>'category_label', ''),
+                            initcap(COALESCE(NULLIF(settings->>'category', ''), 'studio'))) AS category_label
+            FROM tenants
+            WHERE slug = %s
+            """,
+            (slug,),
+        )
+        row = cur.fetchone()
+    if not row:
+        raise SystemExit(f"Tenant '{slug}' not found. Create it first (Super Admin), then re-run.")
+
+    tenant_id = str(row["id"])
+    name = row["name"]
+    category_label = row["category_label"]
+
+    ensure_studio_admin(conn, tenant_id, slug, name)
+    courses = upsert_courses(conn, tenant_id, category_label)
+    upsert_packages(conn, tenant_id, courses)
+    for index in range(students):
+        upsert_student(conn, rng, tenant_id, index, courses)
+    seed_registrations(conn, rng, tenant_id)
+    refresh_usage(conn, tenant_id)
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO audit_logs (tenant_id, action, resource_type, resource_id, metadata)
+            VALUES (%s, 'demo.seeded', 'tenant', %s, %s::jsonb)
+            """,
+            (tenant_id, tenant_id, '{"script":"seed_random_demo_data.py","mode":"only-slug"}'),
+        )
+    print(f"Seeded existing tenant '{slug}' ({name}) with {students} students, "
+          f"{len(courses)} courses, packages, and registrations. Existing rows kept.")
 
 
 def upsert_tenant(conn, slug: str, name: str, plan: str, primary: str, secondary: str, category: str) -> str:
@@ -532,6 +586,10 @@ def main() -> int:
     try:
         with connect() as conn:
             ensure_media_schema(conn)
+            if args.only_slug:
+                seed_existing_tenant(conn, rng, args.only_slug.strip().lower(), args.students_per_tenant)
+                conn.commit()
+                return 0
             for slug, name, plan, primary, secondary, category in TENANTS:
                 tenant_id = upsert_tenant(conn, slug, name, plan, primary, secondary, category)
                 ensure_studio_admin(conn, tenant_id, slug, name)

@@ -144,7 +144,7 @@ studiosaas/
 - `backend/` is the canonical runtime. The previous `letspaint-cms-release/` tree has been removed (2026-07-03, intentional).
 - `legacy-root/` is a runtime bridge, not an archive. Tenant wrappers use it to host the old CMS/Register UI while request interception routes data into tenant-scoped PostgreSQL APIs.
 - `tenant-template/` is the template source. When a tenant is created, StudioSaaS copies these files into `tenants/<slug>/` and renders `{{TENANT_SLUG}}` and `{{TENANT_NAME}}`.
-- `tenants/<slug>/` are generated workspaces, one per tenant.
+- `tenants/<slug>/` are generated workspaces, one per tenant. **Policy (2026-07-03):** generated workspaces are tracked in git — they are small HTML wrappers and tracking them keeps local environments reproducible. Commit new workspaces when tenants are created; they can be regenerated from `tenant-template/` at any time.
 
 ---
 
