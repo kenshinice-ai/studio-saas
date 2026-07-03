@@ -1159,7 +1159,15 @@
         </div>
         <div class="form-group">
           <label>Password</label>
-          <input id="loginPassword" type="password" autocomplete="current-password" placeholder="admin123456">
+          <div style="position:relative;">
+            <input id="loginPassword" type="password" autocomplete="current-password" placeholder="admin123456" style="padding-right:56px;">
+            <button type="button" id="loginPwToggle" class="btn-secondary btn-sm" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);">Show</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label style="display:flex;align-items:center;gap:8px;font-weight:400;">
+            <input id="loginRemember" type="checkbox" style="width:auto;"> Remember me for 30 days
+          </label>
         </div>
         <div class="form-actions">
           <button id="loginBtn" type="submit" class="btn-primary">Login</button>
@@ -1917,12 +1925,29 @@
         return;
       }
       await runUiAction('loginBtn', 'Logging in...', async () => {
-        await authApi('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
+        try {
+          await authApi('/auth/login', { method: 'POST', body: JSON.stringify({ email, password, rememberMe: $('loginRemember').checked }) });
+        } catch (err) {
+          if (err.status === 429) throw new Error('Too many login attempts — please wait a minute and try again.');
+          if (err.status === 401) throw new Error('Invalid email or password.');
+          throw err;
+        }
         $('loginPassword').value = '';
         showToast('Logged in.');
         await checkSession();
       });
     }
+
+    (function wireLoginPwToggle() {
+      const input = $('loginPassword');
+      const toggle = $('loginPwToggle');
+      if (!input || !toggle) return;
+      toggle.addEventListener('click', () => {
+        const showing = input.type === 'text';
+        input.type = showing ? 'password' : 'text';
+        toggle.textContent = showing ? 'Show' : 'Hide';
+      });
+    })();
 
     async function logoutStudioAdmin() {
       await authApi('/auth/logout', { method: 'POST' }).catch(() => {});

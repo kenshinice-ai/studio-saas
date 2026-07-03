@@ -133,6 +133,29 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
 app.config['SESSION_COOKIE_HTTPONLY']    = True
 app.config['SESSION_COOKIE_SAMESITE']    = 'Lax'
 
+# ── Session idle timeout (A5) ───────────────────────────────────────
+# v1 sessions expire after 24h of inactivity, or 30 days when the login
+# asked to be remembered. last_seen is refreshed at most once a minute
+# to avoid Set-Cookie churn. Sessions predating the policy (no last_seen)
+# are stamped on their next request.
+SESSION_IDLE_SECONDS          = 24 * 3600
+SESSION_IDLE_REMEMBER_SECONDS = 30 * 24 * 3600
+
+@app.before_request
+def _session_idle_guard():
+    if 'user_id' not in session:
+        return None
+    now = time.time()
+    last = session.get('last_seen')
+    if last is not None:
+        limit = SESSION_IDLE_REMEMBER_SECONDS if session.get('remember') else SESSION_IDLE_SECONDS
+        if now - float(last) > limit:
+            session.clear()
+            return None
+    if last is None or now - float(last) > 60:
+        session['last_seen'] = now
+    return None
+
 # ── CSRF guard (A4) ─────────────────────────────────────────────────
 # Cookie-authenticated mutations on the v1 API must carry a custom header
 # that cross-site forms cannot set. Requests without a session are exempt

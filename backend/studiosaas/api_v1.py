@@ -85,6 +85,19 @@ def _record_login(conn, user_id) -> None:
         )
 
 
+def _start_session_policy(flask_session, payload) -> None:
+    """Apply the session lifetime policy at login.
+
+    Sessions are always cookie-persistent (Flask permanent) but expire on
+    idleness, enforced by the idle guard in server.py: 24h by default,
+    30 days when the client asks to be remembered.
+    """
+
+    flask_session.permanent = True
+    flask_session["remember"] = bool(payload.get("rememberMe", payload.get("remember_me", False)))
+    flask_session["last_seen"] = time.time()
+
+
 
 @api_v1.url_value_preprocessor
 def pull_tenant_slug(endpoint, values):
@@ -4398,6 +4411,7 @@ def auth_login():
     from flask import session as _flask_session
     _flask_session["user_id"] = user["id"]
     _flask_session["token"] = token
+    _start_session_policy(_flask_session, payload)
 
     return jsonify({
         "ok": True,
@@ -4487,6 +4501,7 @@ def auth_legacy_login():
     from flask import session as _flask_session
     _flask_session["user_id"] = user["id"]
     _flask_session["token"] = token
+    _start_session_policy(_flask_session, payload)
 
     return jsonify({
         "ok": True,
