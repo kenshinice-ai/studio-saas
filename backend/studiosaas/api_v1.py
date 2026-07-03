@@ -2270,6 +2270,41 @@ def public_media_asset(tenant_slug: str, media_asset_id: str):
         return _send_media_asset(conn, tenant_id=tenant.tenant_id, media_asset_id=media_asset_id)
 
 
+@api_v1.route("/public/<tenant_slug>/programs", methods=["GET"])
+def public_programs(tenant_slug: str):
+    """Public course catalogue for the tenant landing page (B5)."""
+
+    with connect() as conn:
+        try:
+            tenant = resolve_tenant(conn, tenant_slug, "path")
+        except TenantResolutionError:
+            return _error("Unknown tenant.", 404)
+        rows = fetch_all(
+            conn,
+            """
+            SELECT name, description, category, age_range, duration_minutes,
+                   price_aud_cents
+            FROM courses
+            WHERE tenant_id = %s AND is_active
+            ORDER BY category, name
+            LIMIT 50
+            """,
+            (tenant.tenant_id,),
+        )
+    programs = [
+        {
+            "name": row["name"],
+            "description": row["description"] or "",
+            "category": row["category"] or "",
+            "ageRange": row["age_range"] or "",
+            "durationMinutes": row["duration_minutes"],
+            "priceAud": (row["price_aud_cents"] or 0) / 100.0,
+        }
+        for row in rows
+    ]
+    return jsonify({"ok": True, "programs": programs})
+
+
 @api_v1.route("/public/<tenant_slug>/registrations", methods=["POST"])
 def public_create_registration(tenant_slug: str):
     """Create a public registration for a tenant-backed register page.

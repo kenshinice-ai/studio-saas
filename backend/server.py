@@ -712,7 +712,17 @@ def _tenant_page(tenant_slug, filename):
 
 @app.route('/<tenant_slug>')
 @app.route('/<tenant_slug>/')
-def serve_tenant_cms(tenant_slug):
+def serve_tenant_home(tenant_slug):
+    # B5: the tenant root is the public landing page generated from
+    # tenant-template/index.html. The legacy CMS stays at /<slug>/cms.
+    # Fall back to the CMS shell for workspaces predating the template.
+    try:
+        validate_tenant_slug(tenant_slug)
+    except WorkspaceError:
+        return api_error('Not found', 404)
+    landing = os.path.join(PROJECT_ROOT, 'tenants', tenant_slug, 'index.html')
+    if os.path.isfile(landing):
+        return _tenant_page(tenant_slug, 'index.html')
     return serve_tenant_cms_shell(tenant_slug)
 
 @app.route('/<tenant_slug>/cms')
