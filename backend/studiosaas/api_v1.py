@@ -8,6 +8,7 @@ the single-studio JSON database.
 import json
 import os
 import re
+import secrets
 import time
 import hashlib
 import uuid as _uuid
@@ -72,6 +73,16 @@ def _login_rate_limited(email: str) -> bool:
             attempts.append(now)
         _public_rate_limit[key] = attempts
     return limited
+
+
+def _record_login(conn, user_id) -> None:
+    """Stamp users.last_login_at on successful login (any surface)."""
+
+    with conn.cursor() as cur:
+        cur.execute(
+            "UPDATE users SET last_login_at = now() WHERE id = %s",
+            (user_id,),
+        )
 
 
 
@@ -3070,6 +3081,7 @@ def admin_tenants():
                    t.settings->>'notes' AS notes,
                    t.settings->>'studio_admin_email' AS studio_admin_email,
                    t.settings->>'studio_admin_name' AS studio_admin_name,
+                   au.last_login_at AS studio_admin_last_login,
                    COALESCE(t.settings->>'category', 'general') AS category,
                    t.settings->>'slogan' AS slogan,
                    t.settings->>'workspace_path' AS workspace_path,
@@ -3077,6 +3089,7 @@ def admin_tenants():
             FROM tenants t
             LEFT JOIN tenant_usage u ON u.tenant_id = t.id
             LEFT JOIN subscriptions s ON s.tenant_id = t.id
+            LEFT JOIN users au ON lower(au.email) = lower(t.settings->>'studio_admin_email')
             ORDER BY t.created_at DESC
             LIMIT %s OFFSET %s
             """,
@@ -3314,6 +3327,136 @@ def permanently_delete_tenant_route(tenant_id: str):
             return _error(str(exc), 400)
         conn.commit()
     return jsonify({"ok": True, **result})
+
+
+PASSWORD_SETUP_TOKEN_TTL_HOURS = 24
+
+
+@api_v1.route("/admin/tenants/<tenant_id>/password-setup-link", methods=["POST"])
+@super_admin_required
+def admin_create_password_setup_link(tenant_id: str):
+    """Generate a one-time password-setup link for a tenant's studio admin.
+
+    The raw token is returned once and never stored; only its SHA-256 hash
+    is persisted. Tokens expire after PASSWORD_SETUP_TOKEN_TTL_HOURS and
+    are single-use.
+    """
+
+    payload = _json_payload()
+    with connect() as conn:
+        tenant = fetch_one(
+            conn,
+            """
+            SELECT id, slug, name, settings->>'studio_admin_email' AS studio_admin_email
+            FROM tenants WHERE id = %s
+            """,
+            (tenant_id,),
+        )
+        if not tenant:
+            return _error("Tenant not found.", 404)
+
+        email = _clean_text(payload, "email", tenant["studio_admin_email"] or "").lower().strip()
+        if not email:
+            return _error("No studio admin email configured for this tenant. Set one first.")
+
+        user = fetch_one(
+            conn,
+            """
+            SELECT u.id, u.email FROM users u
+            JOIN memberships m ON m.user_id = u.id AND m.tenant_id = %s AND m.status = 'active'
+            WHERE lower(u.email) = %s
+            """,
+            (tenant["id"], email),
+        )
+        if not user:
+            return _error("No active membership for that email on this tenant.", 404)
+
+        raw_token = secrets.token_urlsafe(32)
+        token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+        with conn.cursor() as cur:
+            # Invalidate any previous unused links for this user first.
+            cur.execute(
+                "DELETE FROM password_setup_tokens WHERE user_id = %s AND used_at IS NULL",
+                (user["id"],),
+            )
+            cur.execute(
+                """
+                INSERT INTO password_setup_tokens (user_id, tenant_id, token_hash, created_by, expires_at)
+                VALUES (%s, %s, %s, %s, now() + make_interval(hours => %s))
+                RETURNING expires_at
+                """,
+                (user["id"], tenant["id"], token_hash, g.actor.user_id, PASSWORD_SETUP_TOKEN_TTL_HOURS),
+            )
+            expires_at = cur.fetchone()["expires_at"]
+        _audit_request(
+            conn,
+            tenant_id=tenant["id"],
+            action="auth.password_setup_link_created",
+            resource_type="user",
+            resource_id=user["id"],
+            metadata={"email": email},
+        )
+        conn.commit()
+
+    return jsonify({
+        "ok": True,
+        "url": f"/setup-password?token={raw_token}",
+        "email": email,
+        "expiresAt": expires_at.isoformat(),
+    })
+
+
+@api_v1.route("/auth/setup-password", methods=["POST"])
+def auth_setup_password():
+    """Complete a one-time password-setup link. Public, rate-limited."""
+
+    payload = _json_payload()
+    raw_token = _clean_text(payload, "token")
+    password = _clean_text(payload, "password")
+    if not raw_token or not password:
+        return _error("token and password are required.")
+    if len(password) < 8:
+        return _error("Password must be at least 8 characters.")
+    if _login_rate_limited(f"setup:{raw_token[:8]}"):
+        return _error("Too many attempts. Please wait a minute.", 429)
+
+    token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+    with connect() as conn:
+        row = fetch_one(
+            conn,
+            """
+            SELECT pst.id, pst.user_id, pst.tenant_id, pst.used_at,
+                   (pst.expires_at < now()) AS expired,
+                   u.email
+            FROM password_setup_tokens pst
+            JOIN users u ON u.id = pst.user_id
+            WHERE pst.token_hash = %s
+            """,
+            (token_hash,),
+        )
+        if not row or row["used_at"] is not None or row["expired"]:
+            return _error("This link is invalid or has expired. Ask your platform admin for a new one.", 410)
+
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE users SET password_hash = %s, status = 'active', updated_at = now() WHERE id = %s",
+                (_auth_hash_password(password), row["user_id"]),
+            )
+            cur.execute(
+                "UPDATE password_setup_tokens SET used_at = now() WHERE id = %s",
+                (row["id"],),
+            )
+        _audit_request(
+            conn,
+            tenant_id=row["tenant_id"],
+            action="auth.password_setup_completed",
+            resource_type="user",
+            resource_id=row["user_id"],
+            metadata={"email": row["email"]},
+        )
+        conn.commit()
+
+    return jsonify({"ok": True, "email": row["email"]})
 
 
 @api_v1.route("/admin/tenants/<tenant_id>/status", methods=["PATCH"])
@@ -4232,6 +4375,9 @@ def auth_login():
                 conn.commit()
                 return _error("Invalid email or password.", 401)
 
+        _record_login(conn, user["id"])
+        conn.commit()
+
     # Generate session token
     token = str(_uuid.uuid4())
     # Store in session (Flask session cookie) — caller must send cookie back
@@ -4318,6 +4464,9 @@ def auth_legacy_login():
             )
             conn.commit()
             return _error("Invalid password.", 401)
+
+        _record_login(conn, user["id"])
+        conn.commit()
 
     # Generate session token and store in Flask session
     token = str(_uuid.uuid4())

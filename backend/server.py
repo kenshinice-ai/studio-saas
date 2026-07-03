@@ -629,6 +629,13 @@ def serve_studio_admin():
     return send_from_directory(os.path.join(app.root_path, 'frontend'),
                                'studio-admin.html')
 
+@app.route('/setup-password')
+def serve_setup_password():
+    # One-time password-setup page; the token arrives as a query parameter
+    # and is validated by POST /v1/auth/setup-password.
+    return send_from_directory(os.path.join(app.root_path, 'frontend'),
+                               'setup-password.html')
+
 def _tenant_page(tenant_slug, filename):
     try:
         validate_tenant_slug(tenant_slug)

@@ -1617,9 +1617,16 @@
             <div class="form-group"><label>Studio Admin Email</label><input id="m_studioAdminEmail" type="email" value="${esc(t.studio_admin_email || t.owner_email || '')}"></div>
             <div class="form-group"><label>Studio Admin Name</label><input id="m_studioAdminName" value="${esc(t.studio_admin_name || t.owner_name || '')}"></div>
             <div class="form-group"><label>Login Status</label><input value="${t.studio_admin_email ? 'Configured' : 'Not configured'}" disabled></div>
-            <div class="form-group"><label>Last Login</label><input value="Not tracked yet" disabled></div>
+            <div class="form-group"><label>Last Login</label><input value="${t.studio_admin_last_login ? new Date(t.studio_admin_last_login).toLocaleString() : 'Never logged in'}" disabled></div>
             <div class="form-group"><label>Reset Password</label><input id="m_studioAdminPassword" type="password" placeholder="Leave blank to keep existing password"><small>Leave blank to keep existing password.</small></div>
-            <div class="form-group"><label>Password Setup Link</label><input value="Not supported by backend yet" disabled></div>
+            <div class="form-group"><label>Password Setup Link</label>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <button type="button" class="btn-secondary btn-sm" onclick="generateSetupLink('${esc(t.id)}')">Generate link</button>
+                <input id="m_setupLinkOut" readonly placeholder="One-time link appears here" style="flex:1;">
+                <button type="button" class="btn-secondary btn-sm" id="m_setupLinkCopy" style="display:none;" onclick="copySetupLink()">Copy</button>
+              </div>
+              <small>Single use, expires in 24h. Generating a new link invalidates previous unused ones.</small>
+            </div>
           </div>
         </details>
         <details class="form-section">
@@ -1662,6 +1669,31 @@
 	    }
 
     // Save tenant from modal
+    async function generateSetupLink(tenantId) {
+      const out = $('m_setupLinkOut');
+      out.value = 'Generating…';
+      try {
+        const data = await api(`/v1/admin/tenants/${tenantId}/password-setup-link`, { method: 'POST', body: '{}' });
+        out.value = location.origin + data.url;
+        $('m_setupLinkCopy').style.display = '';
+        showToast(`Link created for ${data.email} (expires in 24h)`, 'success');
+      } catch (err) {
+        out.value = '';
+      }
+    }
+
+    async function copySetupLink() {
+      const out = $('m_setupLinkOut');
+      try {
+        await navigator.clipboard.writeText(out.value);
+        showToast('Link copied to clipboard', 'success');
+      } catch (err) {
+        out.select();
+        document.execCommand('copy');
+        showToast('Link copied', 'success');
+      }
+    }
+
     async function saveTenantModal() {
       const payload = {
         name: $('m_tenantName').value,
