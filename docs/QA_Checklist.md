@@ -79,6 +79,9 @@
 - [ ] Sensitive admin actions write to `audit_logs`
 - [ ] Tenant deletion flow uses archive -> explicit permanent delete; direct tenant DELETE is rejected
 - [ ] Tenant archive writes `tenant_archives` row and JSON snapshots before status changes
+- [ ] Super Admin tenant details hide Archive Path for active tenants and show it for archived tenants
+- [ ] Super Admin hides test fixture tenants by default; "Show test tenants" reveals them with a badge
+- [ ] Super Admin quick links disable correctly for paused/archived/deleted tenants and missing admin login
 
 ### 7. Performance
 

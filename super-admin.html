@@ -207,6 +207,19 @@
     }
     .btn-danger:hover { background: #fecaca; }
 
+    .btn-danger-outline {
+      background: #fff;
+      color: var(--red);
+      border: 1px solid #fecaca;
+    }
+    .btn-danger-outline:hover { background: var(--red-light); }
+
+    .btn-warning {
+      background: var(--amber-light);
+      color: #92400e;
+    }
+    .btn-warning:hover { background: #fde68a; }
+
     .btn-success {
       background: var(--green-light);
       color: var(--green);
@@ -232,6 +245,12 @@
     }
 
     a.btn-sm { padding: 6px 12px; font-size: 13px; }
+    a.is-disabled, button.is-disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      pointer-events: none;
+      filter: grayscale(0.25);
+    }
 
     .btn-sm { padding: 6px 12px; font-size: 13px; }
 
@@ -438,7 +457,7 @@
 
     .toolbar {
       display: grid;
-      grid-template-columns: minmax(220px, 1fr) repeat(3, minmax(140px, 180px)) auto;
+      grid-template-columns: minmax(220px, 1fr) repeat(3, minmax(140px, 180px)) minmax(140px, auto) auto;
       gap: 12px;
       align-items: end;
     }
@@ -467,6 +486,23 @@
       flex-wrap: wrap;
       gap: 6px;
       min-width: 260px;
+    }
+
+    .action-section {
+      display: grid;
+      gap: 8px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #f8fafc;
+    }
+
+    .action-section-title {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
     }
 
     .btn-loading {
@@ -500,6 +536,16 @@
     .pill.cancelled, .pill.paused, .pill.archived, .pill.deleted {
       background: #f1f5f9;
       color: var(--muted);
+    }
+
+    .pill.warning {
+      background: var(--amber-light);
+      color: #92400e;
+    }
+
+    .pill.fixture {
+      background: var(--purple-light);
+      color: var(--purple);
     }
 
     /* Progress Bars */
@@ -537,6 +583,98 @@
       font-weight: 600;
       color: var(--ink);
       margin-bottom: 6px;
+    }
+
+    .form-group small, .disabled-note {
+      display: block;
+      color: var(--muted);
+      margin-top: 4px;
+      font-size: 12px;
+    }
+
+    .tenant-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .summary-item {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 12px;
+      background: #f8fafc;
+      min-width: 0;
+    }
+
+    .summary-label {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .summary-value {
+      font-weight: 800;
+      overflow-wrap: anywhere;
+    }
+
+    .risk-list {
+      display: grid;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .risk-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #92400e;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .risk-item::before {
+      content: '!';
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--amber-light);
+      color: #92400e;
+      font-size: 11px;
+      flex-shrink: 0;
+    }
+
+    .link-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .form-section {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 0;
+      margin-bottom: 12px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .form-section summary {
+      cursor: pointer;
+      padding: 12px 14px;
+      background: #f8fafc;
+      font-weight: 800;
+    }
+
+    .form-section-body {
+      padding: 16px;
     }
 
     .form-actions {
@@ -939,6 +1077,10 @@
               <label>Category</label>
               <select id="categoryFilter"><option value="">All Categories</option></select>
             </div>
+            <label class="filter-group" style="display:flex;align-items:center;gap:8px;margin-bottom:0;">
+              <input id="showTestTenants" type="checkbox" style="width:auto;">
+              <span>Show test tenants</span>
+            </label>
             <button id="clearFiltersBtn" class="btn-secondary">Clear Filters</button>
           </div>
         </section>
@@ -1309,6 +1451,100 @@
               <div class="progress-bar"><div class="progress-fill ${color}" style="width:${pct}%"></div></div>`;
     }
 
+    function tenantPlan(t) {
+      return plans.find((item) => item.code === t.plan_code) || {};
+    }
+
+    function formatStorageMb(value) {
+      const mb = Number(value || 0);
+      if (mb >= 1024) return `${(mb / 1024).toFixed(mb >= 10240 ? 0 : 1)} GB`;
+      return `${mb} MB`;
+    }
+
+    function usageText(t) {
+      const plan = tenantPlan(t);
+      const students = plan.student_limit ? `${Number(t.student_count || 0)} / ${plan.student_limit} students` : `${Number(t.student_count || 0)} students`;
+      const storage = plan.storage_limit_mb
+        ? `${formatStorageMb(t.storage_used_mb)} / ${formatStorageMb(plan.storage_limit_mb)}`
+        : `${formatStorageMb(t.storage_used_mb)}`;
+      return `${students} · ${storage}`;
+    }
+
+    function isTestTenant(t) {
+      const slug = String(t.slug || '');
+      return slug.startsWith('isolation-') || slug.startsWith('test-') || String(t.owner_email || '').endsWith('@studiosaas.local');
+    }
+
+    function accessStatus(t) {
+      if (['archived', 'deleted'].includes(t.status)) return 'Disabled';
+      if (t.status === 'paused') return 'Limited';
+      return 'Enabled';
+    }
+
+    function tenantRisks(t) {
+      const plan = tenantPlan(t);
+      const risks = [];
+      if (!t.owner_email) risks.push('No owner assigned');
+      if (!t.studio_admin_email) risks.push('No admin login');
+      if (!t.billing_email) risks.push('Billing email missing');
+      if (t.ends_at && new Date(t.ends_at).getTime() < Date.now()) risks.push('Subscription expired');
+      if (plan.storage_limit_mb && percent(t.storage_used_mb, plan.storage_limit_mb) >= 85) risks.push('Storage near limit');
+      if (plan.student_limit && percent(t.student_count, plan.student_limit) >= 85) risks.push('Student limit near limit');
+      return risks;
+    }
+
+    function healthLabel(t) {
+      if (isTestTenant(t)) return 'Test fixture';
+      if (t.status === 'archived') return 'Archived';
+      if (t.status === 'paused') return 'Paused';
+      if (t.subscription_status === 'past_due') return 'Payment issue';
+      if (!t.studio_admin_email) return 'No admin login';
+      if (tenantRisks(t).length) return 'Needs setup';
+      return 'Healthy';
+    }
+
+    function appendSmallBadge(parent, label, className = 'pill') {
+      const badge = document.createElement('span');
+      badge.className = className;
+      badge.textContent = label;
+      parent.appendChild(badge);
+      return badge;
+    }
+
+    function addDisabledNote(parent, message) {
+      const note = document.createElement('div');
+      note.className = 'disabled-note';
+      note.textContent = message;
+      parent.appendChild(note);
+    }
+
+    function addActionLink(container, label, href, disabledReason = '') {
+      const link = document.createElement('a');
+      link.className = `btn-secondary${disabledReason ? ' is-disabled' : ''}`;
+      link.href = disabledReason ? '#' : href;
+      link.target = disabledReason ? '' : '_blank';
+      link.rel = disabledReason ? '' : 'noopener';
+      link.textContent = label;
+      if (disabledReason) link.title = disabledReason;
+      container.appendChild(link);
+      return link;
+    }
+
+    function slugifyTenantName(name) {
+      return String(name || '')
+        .toLowerCase()
+        .replace(/&/g, ' and ')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 63) || 'new-studio';
+    }
+
+    function addDaysIso(days) {
+      const date = new Date();
+      date.setDate(date.getDate() + days);
+      return date.toISOString().slice(0, 10);
+    }
+
     // Fill plan select dropdowns
     function fillPlanSelect() {
       $('planFilter').replaceChildren();
@@ -1342,38 +1578,87 @@
       if (!t) return;
       editingTenantId = id;
       const formHtml = `
-        <div class="form-grid">
-          <div class="form-group"><label>Name</label><input id="m_tenantName" value="${esc(t.name)}"></div>
-          <div class="form-group"><label>Slug</label><input id="m_tenantSlug" value="${esc(t.slug)}" disabled></div>
-	          <div class="form-group"><label>Status</label><select id="m_tenantStatus">${['trial','active','past_due','paused','cancelled','archived'].map(s => `<option ${s===t.status?'selected':''}>${s}</option>`).join('')}</select></div>
-	          <div class="form-group"><label>Plan</label><select id="m_tenantPlan">${plans.map(p => `<option value="${p.code}" ${p.code===t.plan_code?'selected':''}>${p.name}</option>`).join('')}</select></div>
-	          <div class="form-group"><label>Studio Category</label><select id="m_tenantCategory">${categoryOptions(t.category || 'general')}</select></div>
-	          <div class="form-group"><label>Slogan</label><input id="m_tenantSlogan" value="${esc(t.slogan || presetSlogan(t.category || 'general'))}"></div>
-	          <div class="form-group"><label>Sub. Status</label><select id="m_subscriptionStatus">${['trialing','active','past_due','paused','cancelled','archived'].map(s => `<option ${s===(t.subscription_status||'')?'selected':''}>${s}</option>`).join('')}</select></div>
-          <div class="form-group"><label>Starts At</label><input id="m_startsAt" type="date" value="${dateOnly(t.starts_at)}"></div>
-          <div class="form-group"><label>Ends At</label><input id="m_endsAt" type="date" value="${dateOnly(t.ends_at)}"></div>
-          <div class="form-group"><label>Period Ends</label><input id="m_currentPeriodEndsAt" type="date" value="${dateOnly(t.current_period_ends_at)}"></div>
-          <div class="form-group"><label>Owner Name</label><input id="m_ownerName" value="${esc(t.owner_name||'')}"></div>
-          <div class="form-group"><label>Owner Role</label><input id="m_ownerRole" value="${esc(t.owner_role||'')}"></div>
-          <div class="form-group"><label>Owner Phone</label><input id="m_ownerPhone" value="${esc(t.owner_phone||'')}"></div>
-          <div class="form-group"><label>Owner Email</label><input id="m_ownerEmail" type="email" value="${esc(t.owner_email||'')}"></div>
-          <div class="form-group"><label>Studio Admin Email</label><input id="m_studioAdminEmail" type="email" value="${esc(t.studio_admin_email || t.owner_email || '')}"></div>
-          <div class="form-group"><label>Studio Admin Name</label><input id="m_studioAdminName" value="${esc(t.studio_admin_name || t.owner_name || '')}"></div>
-          <div class="form-group"><label>Reset Studio Admin Password</label><input id="m_studioAdminPassword" type="password" placeholder="Leave blank to keep password"></div>
-          <div class="form-group"><label>Contact Phone</label><input id="m_contactPhone" value="${esc(t.contact_phone||'')}"></div>
-          <div class="form-group"><label>Contact Email</label><input id="m_contactEmail" type="email" value="${esc(t.contact_email||'')}"></div>
-          <div class="form-group"><label>Billing Email</label><input id="m_billingEmail" type="email" value="${esc(t.billing_email||'')}"></div>
-          <div class="form-group"><label>ABN</label><input id="m_tenantAbn" value="${esc(t.abn||'')}"></div>
-          <div class="form-group"><label>Website</label><input id="m_tenantWebsite" type="url" value="${esc(t.website||'')}"></div>
-          <div class="form-group" style="grid-column: span 2;"><label>Address</label><input id="m_tenantAddress" value="${esc(t.address||'')}"></div>
-        </div>
-        <div class="form-group"><label>Notes</label><textarea id="m_tenantNotes" rows="3">${esc(t.notes||'')}</textarea></div>
+        <details class="form-section" open>
+          <summary>Basic</summary>
+          <div class="form-section-body form-grid">
+            <div class="form-group"><label>Studio Name</label><input id="m_tenantName" value="${esc(t.name)}"></div>
+            <div class="form-group"><label>Slug</label><input id="m_tenantSlug" value="${esc(t.slug)}" disabled><small>Read-only after creation because it affects URLs, workspace paths, and media paths.</small></div>
+            <div class="form-group"><label>Category</label><select id="m_tenantCategory">${categoryOptions(t.category || 'general')}</select></div>
+            <div class="form-group"><label>Slogan</label><input id="m_tenantSlogan" value="${esc(t.slogan || presetSlogan(t.category || 'general'))}"></div>
+            <div class="form-group"><label>Tenant Status</label><select id="m_tenantStatus">${['trial','active','past_due','paused','cancelled','archived'].map(s => `<option ${s===t.status?'selected':''}>${s}</option>`).join('')}</select></div>
+            <div class="form-group"><label>Plan</label><select id="m_tenantPlan">${plans.map(p => `<option value="${p.code}" ${p.code===t.plan_code?'selected':''}>${p.name}</option>`).join('')}</select></div>
+          </div>
+        </details>
+        <details class="form-section" open>
+          <summary>Owner & Contact</summary>
+          <div class="form-section-body">
+            <div class="form-grid">
+              <div class="form-group"><label>Owner Name</label><input id="m_ownerName" value="${esc(t.owner_name||'')}"></div>
+              <div class="form-group"><label>Owner Role</label><input id="m_ownerRole" value="${esc(t.owner_role||'')}"></div>
+              <div class="form-group"><label>Owner Email</label><input id="m_ownerEmail" type="email" value="${esc(t.owner_email||'')}"></div>
+              <div class="form-group"><label>Owner Phone</label><input id="m_ownerPhone" value="${esc(t.owner_phone||'')}"></div>
+              <div class="form-group"><label>Contact Email</label><input id="m_contactEmail" type="email" value="${esc(t.contact_email||'')}"></div>
+              <div class="form-group"><label>Contact Phone</label><input id="m_contactPhone" value="${esc(t.contact_phone||'')}"></div>
+              <div class="form-group"><label>Website</label><input id="m_tenantWebsite" type="url" value="${esc(t.website||'')}"></div>
+              <div class="form-group"><label>ABN</label><input id="m_tenantAbn" value="${esc(t.abn||'')}"></div>
+              <div class="form-group" style="grid-column: span 2;"><label>Address</label><input id="m_tenantAddress" value="${esc(t.address||'')}"></div>
+            </div>
+            <div class="action-row" style="margin-bottom:12px;">
+              <button id="copyOwnerToContactBtn" type="button" class="btn-secondary btn-sm">Use owner email for contact</button>
+              <button id="copyOwnerToBillingBtn" type="button" class="btn-secondary btn-sm">Use owner email for billing</button>
+              <button id="copyOwnerToAdminBtn" type="button" class="btn-secondary btn-sm">Use owner email for admin login</button>
+            </div>
+            <div class="form-group"><label>Notes</label><textarea id="m_tenantNotes" rows="3">${esc(t.notes||'')}</textarea></div>
+          </div>
+        </details>
+        <details class="form-section">
+          <summary>Admin Login</summary>
+          <div class="form-section-body form-grid">
+            <div class="form-group"><label>Studio Admin Email</label><input id="m_studioAdminEmail" type="email" value="${esc(t.studio_admin_email || t.owner_email || '')}"></div>
+            <div class="form-group"><label>Studio Admin Name</label><input id="m_studioAdminName" value="${esc(t.studio_admin_name || t.owner_name || '')}"></div>
+            <div class="form-group"><label>Login Status</label><input value="${t.studio_admin_email ? 'Configured' : 'Not configured'}" disabled></div>
+            <div class="form-group"><label>Last Login</label><input value="Not tracked yet" disabled></div>
+            <div class="form-group"><label>Reset Password</label><input id="m_studioAdminPassword" type="password" placeholder="Leave blank to keep existing password"><small>Leave blank to keep existing password.</small></div>
+            <div class="form-group"><label>Password Setup Link</label><input value="Not supported by backend yet" disabled></div>
+          </div>
+        </details>
+        <details class="form-section">
+          <summary>Subscription</summary>
+          <div class="form-section-body form-grid">
+            <div class="form-group"><label>Subscription Status</label><select id="m_subscriptionStatus">${['trialing','active','past_due','paused','cancelled','archived'].map(s => `<option ${s===(t.subscription_status||'')?'selected':''}>${s}</option>`).join('')}</select></div>
+            <div class="form-group"><label>Subscription Start</label><input id="m_startsAt" type="date" value="${dateOnly(t.starts_at)}"></div>
+            <div class="form-group"><label>Current Period Ends</label><input id="m_currentPeriodEndsAt" type="date" value="${dateOnly(t.current_period_ends_at)}"></div>
+            <div class="form-group"><label>Cancellation / Expiry Date</label><input id="m_endsAt" type="date" value="${dateOnly(t.ends_at)}"></div>
+            <div class="form-group"><label>Billing Email</label><input id="m_billingEmail" type="email" value="${esc(t.billing_email||'')}"></div>
+          </div>
+        </details>
+        <details class="form-section">
+          <summary>Limits</summary>
+          <div class="form-section-body form-grid">
+            <div class="form-group"><label>Student Limit</label><input value="${esc(text(tenantPlan(t).student_limit))}" disabled><small>Inherited from ${esc(text(tenantPlan(t).name || t.plan_code))} plan.</small></div>
+            <div class="form-group"><label>Storage Limit</label><input value="${esc(formatStorageMb(tenantPlan(t).storage_limit_mb))}" disabled><small>Inherited from ${esc(text(tenantPlan(t).name || t.plan_code))} plan.</small></div>
+            <div class="form-group"><label>Admin User Limit</label><input value="${esc(text(tenantPlan(t).user_limit))}" disabled><small>Inherited from ${esc(text(tenantPlan(t).name || t.plan_code))} plan.</small></div>
+            <div class="form-group"><label>Media Upload Limit</label><input value="Canonical media service limits by asset type" disabled></div>
+          </div>
+        </details>
+        <details class="form-section">
+          <summary>Danger Zone</summary>
+          <div class="form-section-body">
+            <p class="text-muted">Use the More actions menu for pause, archive, restore, and permanent delete so confirmation phrases stay explicit.</p>
+          </div>
+        </details>
       `;
 	      const footerHtml = `<button onclick="saveTenantModal()" class="btn-primary">Save Changes</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
 	      openModal(`Edit ${t.name}`, formHtml, footerHtml);
 	      $('m_tenantCategory').addEventListener('change', () => {
 	        $('m_tenantSlogan').value = presetSlogan($('m_tenantCategory').value);
 	      });
+      $('copyOwnerToContactBtn').addEventListener('click', () => { $('m_contactEmail').value = $('m_ownerEmail').value.trim(); });
+      $('copyOwnerToBillingBtn').addEventListener('click', () => { $('m_billingEmail').value = $('m_ownerEmail').value.trim(); });
+      $('copyOwnerToAdminBtn').addEventListener('click', () => {
+        $('m_studioAdminEmail').value = $('m_ownerEmail').value.trim();
+        if (!$('m_studioAdminName').value.trim()) $('m_studioAdminName').value = $('m_ownerName').value.trim();
+      });
 	    }
 
     // Save tenant from modal
@@ -1455,36 +1740,44 @@
     function openTenantActions(id) {
       const t = tenants.find((item) => item.id === id);
       if (!t) return;
-      openModal(`${t.name} Actions`, '<div id="m_tenantActionsMount" class="action-row"></div>', '<button onclick="closeModal()" class="btn-secondary">Close</button>');
+      openModal(`${t.name} Actions`, '<div id="m_tenantActionsMount" style="display:grid;gap:12px;"></div>', '<button onclick="closeModal()" class="btn-secondary">Close</button>');
       const mount = $('m_tenantActionsMount');
-      mount.style.alignItems = 'stretch';
-      mount.style.flexDirection = 'column';
-      addActionButton(mount, 'Edit Tenant', 'btn-secondary', () => editTenant(id));
+      const section = (title) => {
+        const box = document.createElement('div');
+        const heading = document.createElement('div');
+        box.className = 'action-section';
+        heading.className = 'action-section-title';
+        heading.textContent = title;
+        box.appendChild(heading);
+        mount.appendChild(box);
+        return box;
+      };
+      const manage = section('Manage');
+      addActionButton(manage, 'View Details', 'btn-secondary', () => selectTenant(id));
+      addActionButton(manage, 'Edit Tenant', 'btn-secondary', () => editTenant(id));
       const slug = encodeURIComponent(String(t.slug || ''));
-      [
-        ['Open CMS', `/${slug}`],
-        ['Open Studio Admin', `/${slug}/studio-admin`],
-        ['Open Register Page', `/${slug}/register`],
-      ].forEach(([label, href]) => {
-        const link = document.createElement('a');
-        link.className = 'btn-secondary';
-        link.href = href;
-        link.target = '_blank';
-        link.rel = 'noopener';
-        link.textContent = label;
-        mount.appendChild(link);
-      });
+      const open = section('Open');
+      const unavailable = ['archived', 'deleted'].includes(t.status);
+      addActionLink(open, 'Open CMS', `/${slug}`, unavailable ? 'Archived or deleted tenants cannot be opened.' : '');
+      addActionLink(open, 'Open Studio Admin', `/${slug}/studio-admin`, unavailable ? 'Archived or deleted tenants cannot be opened.' : (!t.studio_admin_email ? 'Studio Admin login is not configured.' : ''));
+      addActionLink(open, 'Open Register Page', `/${slug}/register`, ['paused', 'archived', 'deleted'].includes(t.status) ? 'Registration is unavailable for paused, archived, or deleted tenants.' : '');
+      const status = section('Status');
       if (t.status === 'archived') {
-        addActionButton(mount, 'Restore Tenant', 'btn-primary', () => restoreTenant(id));
-        addActionButton(mount, 'Permanent Delete', 'btn-danger', () => permanentDeleteTenant(id));
+        addActionButton(status, 'Restore Tenant', 'btn-primary', () => restoreTenant(id));
       } else if (t.status !== 'deleted') {
         addActionButton(
-          mount,
+          status,
           t.status === 'paused' ? 'Reactivate' : 'Pause',
-          t.status === 'paused' ? 'btn-primary' : 'btn-danger',
+          t.status === 'paused' ? 'btn-primary' : 'btn-warning',
           () => changeTenantOperationalState(id, t.status === 'paused' ? 'reactivate' : 'pause')
         );
-        addActionButton(mount, 'Archive Tenant', 'btn-danger', () => archiveTenant(id));
+      }
+      const danger = section('Danger Zone');
+      if (t.status === 'archived') {
+        addActionButton(danger, 'Permanent Delete', 'btn-danger', () => permanentDeleteTenant(id));
+      } else if (t.status !== 'deleted') {
+        addActionButton(danger, 'Archive Tenant', 'btn-danger-outline', () => archiveTenant(id));
+        addDisabledNote(danger, 'Permanent Delete is available only after the tenant is archived.');
       }
     }
 
@@ -1492,7 +1785,7 @@
       const t = tenants.find((item) => item.id === id);
       if (!t) return;
       const footerHtml = `<button id="confirmArchiveTenantBtn" onclick="confirmArchiveTenant('${id}')" class="btn-danger">Archive Tenant</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
-      openModal('Archive Tenant', `<p>Archive <strong>${esc(t.name)}</strong>? Data remains in the database, but tenant APIs become unavailable and snapshots are written first.</p><div class="form-group mt-2"><label>Type tenant slug to confirm</label><input id="m_archiveTenantConfirmSlug" placeholder="${esc(t.slug)}"></div>`, footerHtml);
+      openModal('Archive Tenant', `<p>Archive <strong>${esc(t.name)}</strong>? Tenant APIs become unavailable after snapshots are written.</p><ul style="margin:12px 0 12px 20px;color:var(--muted);"><li>Database snapshot</li><li>Workspace folder copy</li><li>Media folder copy</li><li>Subscription metadata</li></ul><div class="form-group mt-2"><label>Type tenant slug to confirm</label><input id="m_archiveTenantConfirmSlug" placeholder="${esc(t.slug)}"></div>`, footerHtml);
     }
 
     async function confirmArchiveTenant(id) {
@@ -1522,7 +1815,7 @@
       const t = tenants.find((item) => item.id === id);
       if (!t) return;
       const footerHtml = `<button id="confirmPermanentDeleteTenantBtn" onclick="confirmPermanentDeleteTenant('${id}')" class="btn-danger">Permanent Delete</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
-      openModal('Permanent Delete Tenant', `<p>Permanently delete <strong>${esc(t.name)}</strong>? A final snapshot is written first. This action removes tenant database rows after confirmation.</p><div class="form-group mt-2"><label>Type DELETE ${esc(t.slug)} to confirm</label><input id="m_permanentDeleteTenantPhrase" placeholder="DELETE ${esc(t.slug)}"></div>`, footerHtml);
+      openModal('Permanent Delete Tenant', `<p>Permanently delete <strong>${esc(t.name)}</strong>? This is irreversible for live tenant records.</p><ul style="margin:12px 0 12px 20px;color:var(--muted);"><li>Final snapshot path: ${esc(t.archive_path || 'archive/final-delete-snapshot')}</li><li>Tenant database records</li><li>Archived files remain as audit evidence</li><li>Media records are removed by tenant deletion</li></ul><div class="form-group mt-2"><label>Type DELETE ${esc(t.slug)} to confirm</label><input id="m_permanentDeleteTenantPhrase" placeholder="DELETE ${esc(t.slug)}"></div>`, footerHtml);
     }
 
     async function confirmPermanentDeleteTenant(id) {
@@ -1551,6 +1844,54 @@
 
     function buildTenantDetailGrid(t) {
       const plan = plans.find((item) => item.code === t.plan_code) || {};
+      const container = document.createElement('div');
+      const summary = document.createElement('div');
+      summary.className = 'tenant-summary';
+      const addSummary = (label, value) => {
+        const item = document.createElement('div');
+        const labelEl = document.createElement('div');
+        const valueEl = document.createElement('div');
+        item.className = 'summary-item';
+        labelEl.className = 'summary-label';
+        valueEl.className = 'summary-value';
+        labelEl.textContent = label;
+        valueEl.textContent = text(value);
+        item.append(labelEl, valueEl);
+        summary.appendChild(item);
+      };
+      addSummary('Studio', t.name);
+      addSummary('Tenant Status', t.status);
+      addSummary('Subscription', t.subscription_status || '-');
+      addSummary('Plan', plan.name || t.plan_code);
+      addSummary('Category', t.category || 'general');
+      addSummary('Student Usage', plan.student_limit ? `${Number(t.student_count || 0)} / ${plan.student_limit}` : Number(t.student_count || 0));
+      addSummary('Storage Usage', plan.storage_limit_mb ? `${formatStorageMb(t.storage_used_mb)} / ${formatStorageMb(plan.storage_limit_mb)}` : formatStorageMb(t.storage_used_mb));
+      addSummary('Owner Email', t.owner_email || 'Needs owner');
+      addSummary('Health', healthLabel(t));
+      container.appendChild(summary);
+
+      const risks = tenantRisks(t);
+      const riskCard = document.createElement('div');
+      riskCard.className = 'detail-item';
+      const riskLabel = document.createElement('div');
+      riskLabel.className = 'detail-label';
+      riskLabel.textContent = 'Risk / Setup';
+      riskCard.appendChild(riskLabel);
+      if (risks.length) {
+        const list = document.createElement('div');
+        list.className = 'risk-list';
+        risks.forEach((risk) => {
+          const item = document.createElement('div');
+          item.className = 'risk-item';
+          item.textContent = risk;
+          list.appendChild(item);
+        });
+        riskCard.appendChild(list);
+      } else {
+        appendSmallBadge(riskCard, 'Healthy', 'pill active');
+      }
+      container.appendChild(riskCard);
+
       const grid = document.createElement('div');
       grid.className = 'detail-grid';
       const addDetail = (label, build) => {
@@ -1593,25 +1934,23 @@
       });
       addDetail('Category', (item) => addStrongMuted(item, t.category || 'general', t.slogan));
       addDetail('Status', (item) => {
+        item.appendChild(document.createTextNode('Tenant: '));
         appendPill(item, t.status);
-        item.appendChild(document.createTextNode(' '));
+        item.appendChild(document.createElement('br'));
+        item.appendChild(document.createTextNode('Subscription: '));
         appendPill(item, t.subscription_status || '-');
+        item.appendChild(document.createElement('br'));
+        item.appendChild(document.createTextNode('Access: '));
+        appendSmallBadge(item, accessStatus(t), accessStatus(t) === 'Enabled' ? 'pill active' : 'pill');
       });
       addDetail('Quick Links', (item) => {
-        [
-          ['Open CMS', `/${slug}`],
-          ['Open Studio Admin', `/${slug}/studio-admin`],
-          ['Open Register', `/${slug}/register`],
-        ].forEach(([label, href], index) => {
-          if (index) item.appendChild(document.createTextNode(' · '));
-          const link = document.createElement('a');
-          link.className = 'link';
-          link.href = href;
-          link.target = '_blank';
-          link.rel = 'noopener';
-          link.textContent = label;
-          item.appendChild(link);
-        });
+        const links = document.createElement('div');
+        links.className = 'link-grid';
+        const unavailable = ['archived', 'deleted'].includes(t.status);
+        addActionLink(links, 'CMS', `/${slug}`, unavailable ? 'Archived or deleted tenants cannot be opened.' : '');
+        addActionLink(links, 'Admin', `/${slug}/studio-admin`, unavailable ? 'Archived or deleted tenants cannot be opened.' : (!t.studio_admin_email ? 'Studio Admin login is not configured.' : ''));
+        addActionLink(links, 'Register', `/${slug}/register`, ['paused', 'archived', 'deleted'].includes(t.status) ? 'Registration is unavailable for paused, archived, or deleted tenants.' : '');
+        item.appendChild(links);
       });
       addDetail('Workspace', (item) => {
         const code = document.createElement('code');
@@ -1629,14 +1968,17 @@
       addDetail('Students', (item) => addProgress(item, t.student_count, plan.student_limit));
       addDetail('Storage', (item) => addProgress(item, t.storage_used_mb, plan.storage_limit_mb));
       addDetail('Created', (item) => item.appendChild(document.createTextNode(dateOnly(t.created_at) || '-')));
-      addDetail('Archived', (item) => item.appendChild(document.createTextNode(dateOnly(t.archived_at) || '-')));
-      addDetail('Archive Path', (item) => {
-        const code = document.createElement('code');
-        code.textContent = text(t.archive_path);
-        item.appendChild(code);
-      });
+      if (t.status === 'archived') {
+        addDetail('Archived', (item) => item.appendChild(document.createTextNode(dateOnly(t.archived_at) || '-')));
+        addDetail('Archive Path', (item) => {
+          const code = document.createElement('code');
+          code.textContent = text(t.archive_path);
+          item.appendChild(code);
+        });
+      }
       addDetail('Subscription', (item) => item.appendChild(document.createTextNode(`${dateOnly(t.starts_at) || '-'} to ${dateOnly(t.ends_at) || 'open'}`)));
-      return grid;
+      container.appendChild(grid);
+      return container;
     }
 
     function openTenantDetailModal(id) {
@@ -1652,9 +1994,10 @@
       const status = $('statusFilter').value;
       const plan = $('planFilter').value;
       const category = $('categoryFilter').value;
+      const showTests = $('showTestTenants')?.checked || false;
       return tenants.filter((t) => {
 	        const haystack = `${t.name} ${t.slug} ${t.status} ${t.plan_code} ${t.subscription_status || ''} ${t.category || ''} ${t.owner_email || ''} ${t.studio_admin_email || ''}`.toLowerCase();
-        return (!q || haystack.includes(q)) && (!status || t.status === status) && (!plan || t.plan_code === plan) && (!category || (t.category || 'general') === category);
+        return (showTests || !isTestTenant(t)) && (!q || haystack.includes(q)) && (!status || t.status === status) && (!plan || t.plan_code === plan) && (!category || (t.category || 'general') === category);
       });
     }
 
@@ -1684,6 +2027,10 @@
         muted.className = 'text-muted';
         muted.textContent = `${text(t.category || 'general')} · ${text(t.studio_admin_email || 'no admin login')}`;
         studioCell.append(strong, document.createElement('br'), code, document.createElement('br'), muted);
+        if (isTestTenant(t)) {
+          studioCell.appendChild(document.createElement('br'));
+          appendSmallBadge(studioCell, 'TEST FIXTURE', 'pill fixture');
+        }
         addStrongMuted(addCell(row), t.plan_code, t.category || 'general');
         const statusCell = addCell(row);
         appendPill(statusCell, t.status);
@@ -1692,8 +2039,16 @@
         sub.className = 'text-muted';
         sub.textContent = text(t.subscription_status || '-');
         statusCell.appendChild(sub);
-        addCell(row, text(t.owner_email || t.studio_admin_email));
-        addCell(row, `${text(t.student_count)} students\n${text(t.storage_used_mb)} MB`);
+        statusCell.appendChild(document.createElement('br'));
+        appendSmallBadge(statusCell, healthLabel(t), healthLabel(t) === 'Healthy' ? 'pill active' : healthLabel(t) === 'Test fixture' ? 'pill fixture' : 'pill warning');
+        const ownerCell = addCell(row);
+        ownerCell.textContent = t.owner_email || 'Needs owner';
+        if (!t.owner_email) appendSmallBadge(ownerCell, 'Needs owner', 'pill warning');
+        if (!t.studio_admin_email) {
+          ownerCell.appendChild(document.createElement('br'));
+          appendSmallBadge(ownerCell, 'No admin login', 'pill warning');
+        }
+        addCell(row, usageText(t));
         const actions = document.createElement('div');
         actions.className = 'action-row';
         addActionButton(actions, 'View', 'btn-secondary btn-sm', () => selectTenant(t.id));
@@ -1850,7 +2205,7 @@
     $('logoutBtn').addEventListener('click', logoutSuperAdmin);
     $('changePasswordBtn').addEventListener('click', openChangePasswordModal);
     $('refreshBtn').addEventListener('click', refresh);
-    ['tenantSearch','statusFilter','planFilter','categoryFilter'].forEach((id) => $(id).addEventListener('input', () => {
+    ['tenantSearch','statusFilter','planFilter','categoryFilter','showTestTenants'].forEach((id) => $(id).addEventListener('input', () => {
       tenantPage = 0;
       renderTenants();
     }));
@@ -1876,6 +2231,7 @@
       $('statusFilter').value = '';
       $('planFilter').value = '';
       $('categoryFilter').value = '';
+      $('showTestTenants').checked = false;
       tenantPage = 0;
       renderTenants();
     });
@@ -1887,54 +2243,60 @@
       editingTenantId = '';
 	      const bodyHtml = `
 	        <div class="form-grid">
-	          <div class="form-group"><label>Name</label><input id="m_tenantName"></div>
-	          <div class="form-group"><label>Slug</label><input id="m_tenantSlug"></div>
-	          <div class="form-group"><label>Status</label><select id="m_tenantStatus"><option>trial</option><option>active</option><option>past_due</option><option>paused</option><option>cancelled</option></select></div>
+	          <div class="form-group"><label>Studio Name</label><input id="m_tenantName" placeholder="Northside Art Studio"></div>
+	          <div class="form-group"><label>Slug</label><input id="m_tenantSlug" readonly><small>Auto-generated from studio name.</small></div>
 	          <div class="form-group"><label>Plan</label><select id="m_tenantPlan">${plans.map(p => `<option value="${p.code}">${p.name}</option>`).join('')}</select></div>
 	          <div class="form-group"><label>Studio Category</label><select id="m_tenantCategory">${categoryOptions('general')}</select></div>
-	          <div class="form-group"><label>Slogan</label><input id="m_tenantSlogan" value="${esc(presetSlogan('general'))}"></div>
-	          <div class="form-group"><label>Studio Admin Email</label><input id="m_studioAdminEmail" type="email" placeholder="owner@studio.test"></div>
-	          <div class="form-group"><label>Studio Admin Name</label><input id="m_studioAdminName" placeholder="Studio Owner"></div>
-	          <div class="form-group"><label>Studio Admin Password</label><input id="m_studioAdminPassword" type="password" placeholder="Default: admin123456"></div>
+	          <div class="form-group"><label>Owner Name</label><input id="m_ownerName" placeholder="Studio Owner"></div>
+	          <div class="form-group"><label>Owner Email</label><input id="m_ownerEmail" type="email" placeholder="owner@studio.test"></div>
+	          <div class="form-group" style="grid-column:span 2;"><label>Slogan</label><input id="m_tenantSlogan" value="${esc(presetSlogan('general'))}"></div>
 	        </div>
+          <div class="summary-item">
+            <div class="summary-label">Auto-filled</div>
+            <div class="summary-value">Contact email, billing email, Studio Admin login, active status, and first 30-day subscription period.</div>
+          </div>
 	      `;
 	      const footerHtml = `<button onclick="saveNewTenant()" class="btn-primary">Create Tenant</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
 	      openModal('Add Tenant', bodyHtml, footerHtml);
+        const syncSlug = () => { $('m_tenantSlug').value = slugifyTenantName($('m_tenantName').value); };
+        $('m_tenantName').addEventListener('input', syncSlug);
 	      $('m_tenantCategory').addEventListener('change', () => {
 	        $('m_tenantSlogan').value = presetSlogan($('m_tenantCategory').value);
 	      });
+        syncSlug();
 	    });
 
     async function saveNewTenant() {
+      const ownerEmail = $('m_ownerEmail').value.trim();
       const payload = {
         name: $('m_tenantName').value,
-        slug: $('m_tenantSlug').value,
-	        status: $('m_tenantStatus').value,
+        slug: $('m_tenantSlug').value || slugifyTenantName($('m_tenantName').value),
+        status: 'active',
         planCode: $('m_tenantPlan').value,
 	        category: $('m_tenantCategory').value,
 	        slogan: $('m_tenantSlogan').value,
-	        studioAdminEmail: $('m_studioAdminEmail').value,
-	        studioAdminName: $('m_studioAdminName').value,
-	        studioAdminPassword: $('m_studioAdminPassword').value,
-	        subscriptionStatus: 'trialing',
-        startsAt: null,
+        studioAdminEmail: ownerEmail,
+        studioAdminName: $('m_ownerName').value,
+        studioAdminPassword: '',
+        subscriptionStatus: 'active',
+        startsAt: new Date().toISOString().slice(0, 10),
         endsAt: null,
-        currentPeriodEndsAt: null,
-        ownerName: '',
-        ownerRole: '',
+        currentPeriodEndsAt: addDaysIso(30),
+        ownerName: $('m_ownerName').value,
+        ownerRole: 'Owner',
         ownerPhone: '',
-        ownerEmail: '',
+        ownerEmail,
         contactPhone: '',
-        contactEmail: '',
-        billingEmail: '',
+        contactEmail: ownerEmail,
+        billingEmail: ownerEmail,
         abn: '',
         website: '',
         address: '',
         notes: ''
       };
 
-      if (!payload.name || !payload.slug) {
-        showToast('Name and slug are required.', 'error');
+      if (!payload.name || !payload.slug || !payload.ownerEmail || !payload.ownerName || !payload.planCode) {
+        showToast('Studio name, owner name, owner email, slug, and plan are required.', 'error');
         return;
       }
 
