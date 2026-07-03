@@ -164,11 +164,23 @@ CREATE TABLE IF NOT EXISTS registrations (
     email text NOT NULL DEFAULT '',
     message text NOT NULL DEFAULT '',
     payload jsonb NOT NULL DEFAULT '{}'::jsonb,
+    student_id uuid REFERENCES students(id) ON DELETE SET NULL,
+    duplicate_of_registration_id uuid REFERENCES registrations(id) ON DELETE SET NULL,
     reviewed_by_user_id uuid REFERENCES users(id) ON DELETE SET NULL,
     reviewed_at timestamptz,
+    review_note text NOT NULL DEFAULT '',
     submitted_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz
 );
+
+CREATE INDEX IF NOT EXISTS idx_registrations_tenant_status_submitted
+    ON registrations (tenant_id, status, submitted_at DESC);
+CREATE INDEX IF NOT EXISTS idx_registrations_tenant_student
+    ON registrations (tenant_id, student_id)
+    WHERE student_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_registrations_tenant_duplicate
+    ON registrations (tenant_id, duplicate_of_registration_id)
+    WHERE duplicate_of_registration_id IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS media_assets (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

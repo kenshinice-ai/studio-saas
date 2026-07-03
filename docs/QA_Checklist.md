@@ -16,7 +16,7 @@
 - [ ] All API routes return proper HTTP status codes (200, 201, 400, 401, 403, 404, 429, 500)
 - [ ] Error responses include `error` and `message` keys
 - [ ] Public endpoints return 429 when rate limits are exceeded (registrations 5/min, balance-query 10/min, uploads 5/min)
-- [ ] Login rate limiting active (after P0-05 lands)
+- [ ] Login rate limiting active and failed logins audited
 
 ### 2. Tenant Routing and Isolation
 
@@ -38,6 +38,9 @@
 - [ ] Credit transactions map correctly (`debit`→`consume`, `adjustment_in/out`→`adjustment`)
 - [ ] Insufficient balance is blocked with a clear error
 - [ ] Pending registrations appear in the review queue
+- [ ] Duplicate registration attempts are visible and linked to the existing student or pending registration
+- [ ] Approving a registration creates/links a student and stores the review decision
+- [ ] Rejecting/archiving a registration stores a review note and writes audit history
 - [ ] Brand settings (logo, colors, welcome, slogan) sync to CMS/Register surfaces
 - [ ] Logo upload validates type/size and replaces preview reliably
 
@@ -68,7 +71,7 @@
 - [ ] SQL injection prevention: parameterized queries only
 - [ ] XSS prevention: no unsafe `innerHTML` for user-generated content
 - [ ] Session cookies HttpOnly; Secure/SameSite in production config
-- [ ] Failed logins audited (after P0-05 lands)
+- [ ] Failed logins audited
 - [ ] Sensitive admin actions write to `audit_logs`
 
 ### 7. Performance

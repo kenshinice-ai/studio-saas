@@ -168,6 +168,89 @@ def main() -> int:
     check("Tenant A registrations exclude Beta", "Beta" not in names(regs_a))
     check("Tenant B registrations exclude Alpha", "Alpha" not in names(regs_b))
 
+    public_client = server.app.test_client()
+    duplicate_student = public_client.post(
+        f"/v1/public/{TENANT_A}/registrations",
+        json={"firstName": "Alpha", "lastName": "Student", "mobile": "0400 000 001"},
+    )
+    duplicate_student_body = duplicate_student.get_json() or {}
+    check(
+        "Public registration detects existing active student",
+        duplicate_student.status_code == 200 and duplicate_student_body.get("duplicate") == "student",
+        f"got {duplicate_student.status_code}: {duplicate_student_body}",
+    )
+    check(
+        "Duplicate active-student registration links student_id",
+        duplicate_student_body.get("student_id") == fixtures["student_a"],
+    )
+
+    duplicate_pending = public_client.post(
+        f"/v1/public/{TENANT_A}/registrations",
+        json={"firstName": "Alpha", "lastName": "Applicant", "mobile": "0411 111 111"},
+    )
+    duplicate_pending_body = duplicate_pending.get_json() or {}
+    check(
+        "Public registration detects existing pending registration",
+        duplicate_pending.status_code == 200 and duplicate_pending_body.get("duplicate") == "pending",
+        f"got {duplicate_pending.status_code}: {duplicate_pending_body}",
+    )
+    check(
+        "Duplicate pending registration links original registration",
+        duplicate_pending_body.get("duplicate_of_registration_id") == fixtures["registration_a"],
+    )
+
+    new_registration = public_client.post(
+        f"/v1/public/{TENANT_A}/registrations",
+        json={"firstName": "Gamma", "lastName": "Applicant", "mobile": "0433333333"},
+    )
+    new_registration_body = new_registration.get_json() or {}
+    gamma_registration_id = new_registration_body.get("registration_id")
+    check("Public registration creates a pending request", new_registration.status_code == 200 and bool(gamma_registration_id))
+    approve_response = owner_a.patch(
+        f"/s/{TENANT_A}/v1/registrations/{gamma_registration_id}",
+        json={"status": "approved", "convertToStudent": True, "reviewNote": "Approved for trial class"},
+    )
+    approve_body = approve_response.get_json() or {}
+    gamma_student_id = approve_body.get("student_id")
+    check("Approve registration creates or links a student", approve_response.status_code == 200 and bool(gamma_student_id), f"got {approve_response.status_code}: {approve_body}")
+    with connect() as conn:
+        gamma_row = fetch_one(
+            conn,
+            "SELECT status, student_id, review_note FROM registrations WHERE tenant_id = %s AND id = %s",
+            (fixtures["tenant_a"], gamma_registration_id),
+        )
+    check("Approved registration row exists", bool(gamma_row))
+    check("Approved registration stores student_id", bool(gamma_row) and str(gamma_row["student_id"]) == gamma_student_id)
+    check("Approved registration stores review note", bool(gamma_row) and gamma_row["review_note"] == "Approved for trial class")
+
+    cross_tenant_review = owner_b.patch(
+        f"/s/{TENANT_A}/v1/registrations/{gamma_registration_id}",
+        json={"status": "archived", "reviewNote": "Wrong tenant"},
+    )
+    check("Tenant B cannot review Tenant A registration", cross_tenant_review.status_code == 403, f"got {cross_tenant_review.status_code}")
+
+    rejected_registration = public_client.post(
+        f"/v1/public/{TENANT_A}/registrations",
+        json={"firstName": "Delta", "lastName": "Applicant", "mobile": "0444444444"},
+    )
+    rejected_registration_id = (rejected_registration.get_json() or {}).get("registration_id")
+    reject_response = owner_a.patch(
+        f"/s/{TENANT_A}/v1/registrations/{rejected_registration_id}",
+        json={"status": "rejected", "reviewNote": "Outside current age range"},
+    )
+    with connect() as conn:
+        rejected_row = fetch_one(
+            conn,
+            "SELECT status, review_note FROM registrations WHERE tenant_id = %s AND id = %s",
+            (fixtures["tenant_a"], rejected_registration_id),
+        )
+    check("Reject registration succeeds with a review note", reject_response.status_code == 200, f"got {reject_response.status_code}")
+    check("Rejected registration row exists", bool(rejected_row))
+    check(
+        "Rejected registration stores decision reason",
+        bool(rejected_row) and rejected_row["status"] == "rejected" and rejected_row["review_note"] == "Outside current age range",
+    )
+
     # 3. Tenant A courses/packages never appear in Tenant B.
     courses_a = owner_a.get(f"/s/{TENANT_A}/v1/courses").get_json()["courses"]
     courses_b = owner_b.get(f"/s/{TENANT_B}/v1/courses").get_json()["courses"]
@@ -381,6 +464,9 @@ def main() -> int:
     check("Audit exists for credit adjustment", audit_exists("credit.adjusted", "credit_transaction"))
     check("Audit exists for student archive", audit_exists("student.archived", "student"))
     check("Audit exists for failed login", audit_exists("auth.login_failed", "user"))
+    check("Audit exists for approved registration", audit_exists("registration.approved", "registration"))
+    check("Audit exists for rejected registration", audit_exists("registration.rejected", "registration"))
+    check("Audit exists for duplicate registration", audit_exists("registration.duplicate_detected", "registration"))
 
     print("\n" + "=" * 72)
     print(f"  Results: {len(passed)} passed, {len(failed)} failed")

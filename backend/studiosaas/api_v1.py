@@ -1048,10 +1048,18 @@ def _active_from_payload(payload: dict, *, fallback: bool = True) -> bool:
 
 
 def _ensure_registration_status_constraint(conn) -> None:
-    """Allow the local registration review states used by Studio Admin."""
+    """Keep registration review columns and states available for local DBs."""
 
     with conn.cursor() as cur:
         cur.execute("ALTER TABLE registrations ADD COLUMN IF NOT EXISTS updated_at timestamptz")
+        cur.execute("ALTER TABLE registrations ADD COLUMN IF NOT EXISTS student_id uuid REFERENCES students(id) ON DELETE SET NULL")
+        cur.execute("ALTER TABLE registrations ADD COLUMN IF NOT EXISTS review_note text NOT NULL DEFAULT ''")
+        cur.execute(
+            """
+            ALTER TABLE registrations
+            ADD COLUMN IF NOT EXISTS duplicate_of_registration_id uuid REFERENCES registrations(id) ON DELETE SET NULL
+            """
+        )
         cur.execute("ALTER TABLE registrations DROP CONSTRAINT IF EXISTS registrations_status_check")
         cur.execute(
             """
@@ -1060,6 +1068,81 @@ def _ensure_registration_status_constraint(conn) -> None:
             CHECK (status IN ('pending', 'approved', 'rejected', 'duplicate', 'contacted', 'archived'))
             """
         )
+        cur.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_registrations_tenant_status_submitted
+            ON registrations (tenant_id, status, submitted_at DESC)
+            """
+        )
+        cur.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_registrations_tenant_student
+            ON registrations (tenant_id, student_id)
+            WHERE student_id IS NOT NULL
+            """
+        )
+        cur.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_registrations_tenant_duplicate
+            ON registrations (tenant_id, duplicate_of_registration_id)
+            WHERE duplicate_of_registration_id IS NOT NULL
+            """
+        )
+
+
+def _phone_digits(value: str) -> str:
+    """Normalize phone-like values for duplicate detection."""
+
+    return re.sub(r"[^0-9]", "", str(value or ""))
+
+
+def _registration_display_name(first_name: str, last_name: str) -> str:
+    """Build the canonical display name used when converting registrations."""
+
+    return f"{first_name} {last_name}".strip()
+
+
+def _find_matching_student(cur, *, tenant_id: str, first_name: str, last_name: str, mobile: str):
+    """Return an active same-tenant student that appears to match a registration."""
+
+    display_name = _registration_display_name(first_name, last_name)
+    cur.execute(
+        """
+        SELECT id, display_name
+        FROM students
+        WHERE tenant_id = %s
+          AND status <> 'archived'
+          AND regexp_replace(mobile, '[^0-9]', '', 'g') = %s
+          AND (
+                lower(display_name) = lower(%s)
+             OR (lower(first_name) = lower(%s) AND lower(last_name) = lower(%s))
+          )
+        ORDER BY updated_at DESC
+        LIMIT 1
+        """,
+        (tenant_id, _phone_digits(mobile), display_name, first_name, last_name),
+    )
+    return cur.fetchone()
+
+
+def _find_pending_registration(cur, *, tenant_id: str, first_name: str, last_name: str, mobile: str):
+    """Return an existing pending/contacted registration for the same tenant/person."""
+
+    cur.execute(
+        """
+        SELECT id
+        FROM registrations
+        WHERE tenant_id = %s
+          AND status IN ('pending', 'contacted')
+          AND regexp_replace(mobile, '[^0-9]', '', 'g') = %s
+          AND lower(first_name) = lower(%s)
+          AND lower(last_name) = lower(%s)
+        ORDER BY submitted_at DESC
+        LIMIT 1
+        """,
+        (tenant_id, _phone_digits(mobile), first_name, last_name),
+    )
+    return cur.fetchone()
 
 
 def _workspace_for(slug: str, name: str) -> str:
@@ -1700,7 +1783,9 @@ def list_registrations():
             conn,
             """
             SELECT id, status, first_name, last_name, parent_name, mobile,
-                   email, message, submitted_at
+                   email, message, submitted_at, updated_at, reviewed_at,
+                   reviewed_by_user_id, student_id, duplicate_of_registration_id,
+                   review_note
             FROM registrations
             WHERE tenant_id = %s
             ORDER BY submitted_at DESC
@@ -1721,39 +1806,42 @@ def update_registration_status(registration_id: str):
         payload = _json_payload()
         new_status = _clean_text(payload, "status", "").lower().strip()
         convert_to_student = bool(payload.get("convertToStudent", payload.get("convert_to_student", False)))
+        review_note = _clean_text(payload, "reviewNote", _clean_text(payload, "decisionReason", ""))[:500]
 
-        if new_status not in ("pending", "contacted", "approved", "rejected", "archived"):
-            return _error("status must be one of: pending, contacted, approved, rejected, archived.")
+        if new_status not in ("pending", "contacted", "approved", "rejected", "duplicate", "archived"):
+            return _error("status must be one of: pending, contacted, approved, rejected, duplicate, archived.")
+        if new_status in {"rejected", "archived"} and not review_note:
+            return _error("reviewNote is required when rejecting or archiving a registration.")
 
         with conn.cursor() as cur:
             _ensure_registration_status_constraint(conn)
             created_student_id = None
+            linked_student_id = None
+            cur.execute(
+                """
+                SELECT id, first_name, last_name, parent_name, mobile, email, message,
+                       payload, student_id
+                FROM registrations
+                WHERE tenant_id = %s AND id = %s
+                """,
+                (tenant.tenant_id, registration_id),
+            )
+            reg = cur.fetchone()
+            if not reg:
+                return _error("Registration not found.", 404)
+
             if convert_to_student or new_status == "approved":
-                cur.execute(
-                    """
-                    SELECT first_name, last_name, parent_name, mobile, email, message, payload
-                    FROM registrations
-                    WHERE tenant_id = %s AND id = %s
-                    """,
-                    (tenant.tenant_id, registration_id),
-                )
-                reg = cur.fetchone()
-                if not reg:
-                    return _error("Registration not found.", 404)
                 display_name = f"{reg['first_name']} {reg['last_name']}".strip()
-                cur.execute(
-                    """
-                    SELECT id FROM students
-                    WHERE tenant_id = %s
-                      AND lower(display_name) = lower(%s)
-                      AND regexp_replace(mobile, '[^0-9]', '', 'g') = regexp_replace(%s, '[^0-9]', '', 'g')
-                    LIMIT 1
-                    """,
-                    (tenant.tenant_id, display_name, reg["mobile"]),
+                existing_student = _find_matching_student(
+                    cur,
+                    tenant_id=tenant.tenant_id,
+                    first_name=reg["first_name"],
+                    last_name=reg["last_name"],
+                    mobile=reg["mobile"],
                 )
-                existing_student = cur.fetchone()
                 if existing_student:
                     created_student_id = str(existing_student["id"])
+                    linked_student_id = created_student_id
                 else:
                     cur.execute(
                         """
@@ -1776,26 +1864,59 @@ def update_registration_status(registration_id: str):
                         ),
                     )
                     created_student_id = str(cur.fetchone()["id"])
+                    linked_student_id = created_student_id
                     _ensure_default_credit_account(cur, tenant.tenant_id, created_student_id)
+            elif reg.get("student_id"):
+                linked_student_id = str(reg["student_id"])
+
+            actor_user_id = getattr(getattr(g, "actor", None), "user_id", None)
             cur.execute(
                 """
                 UPDATE registrations
-                SET status = %s, updated_at = now()
+                SET status = %s,
+                    student_id = COALESCE(%s, student_id),
+                    reviewed_by_user_id = %s,
+                    reviewed_at = CASE WHEN %s <> 'pending' THEN now() ELSE reviewed_at END,
+                    review_note = CASE WHEN %s <> '' THEN %s ELSE review_note END,
+                    updated_at = now()
                 WHERE tenant_id = %s AND id = %s
-                RETURNING id, status
+                RETURNING id, status, student_id, review_note
                 """,
-                (new_status, tenant.tenant_id, registration_id),
+                (
+                    new_status,
+                    linked_student_id,
+                    actor_user_id,
+                    new_status,
+                    review_note,
+                    review_note,
+                    tenant.tenant_id,
+                    registration_id,
+                ),
             )
             updated = cur.fetchone()
 
         if not updated:
-            return _error("Registration not found."), 404
+            return _error("Registration not found.", 404)
 
-        _audit(conn, tenant_id=tenant.tenant_id, action="registration.updated",
-               resource_type="registration", resource_id=registration_id)
+        _audit(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action=f"registration.{new_status}",
+            resource_type="registration",
+            resource_id=registration_id,
+            metadata={"student_id": linked_student_id, "review_note": review_note},
+        )
         conn.commit()
 
-    response = {"ok": True, "registration": {"id": updated["id"], "status": updated["status"]}}
+    response = {
+        "ok": True,
+        "registration": {
+            "id": updated["id"],
+            "status": updated["status"],
+            "student_id": str(updated["student_id"]) if updated.get("student_id") else None,
+            "review_note": updated["review_note"],
+        },
+    }
     if created_student_id:
         response["student_id"] = created_student_id
     return jsonify(response)
@@ -2151,6 +2272,86 @@ def public_create_registration(tenant_slug: str):
         tenant = resolve_tenant(conn, tenant_slug, "path")
         _ensure_registration_status_constraint(conn)
         with conn.cursor() as cur:
+            existing_student = _find_matching_student(
+                cur,
+                tenant_id=tenant.tenant_id,
+                first_name=first_name,
+                last_name=last_name,
+                mobile=mobile,
+            )
+            duplicate_registration = None
+            if not existing_student:
+                duplicate_registration = _find_pending_registration(
+                    cur,
+                    tenant_id=tenant.tenant_id,
+                    first_name=first_name,
+                    last_name=last_name,
+                    mobile=mobile,
+                )
+            if existing_student or duplicate_registration:
+                duplicate_kind = "student" if existing_student else "pending"
+                review_note = (
+                    "Matched existing active student."
+                    if existing_student
+                    else "Matched an existing pending registration."
+                )
+                cur.execute(
+                    """
+                    INSERT INTO registrations (
+                        tenant_id, status, first_name, last_name, parent_name,
+                        mobile, email, message, payload, student_id,
+                        duplicate_of_registration_id, review_note
+                    )
+                    VALUES (
+                        %s, 'duplicate', %s, %s, %s, %s, %s, %s, %s::jsonb,
+                        %s, %s, %s
+                    )
+                    RETURNING id
+                    """,
+                    (
+                        tenant.tenant_id,
+                        first_name,
+                        last_name,
+                        parent_name,
+                        mobile,
+                        email,
+                        message,
+                        json.dumps(payload),
+                        str(existing_student["id"]) if existing_student else None,
+                        str(duplicate_registration["id"]) if duplicate_registration else None,
+                        review_note,
+                    ),
+                )
+                registration_id = cur.fetchone()["id"]
+                _audit(
+                    conn,
+                    tenant_id=tenant.tenant_id,
+                    action="registration.duplicate_detected",
+                    resource_type="registration",
+                    resource_id=registration_id,
+                    metadata={
+                        "duplicate": duplicate_kind,
+                        "student_id": str(existing_student["id"]) if existing_student else None,
+                        "duplicate_of_registration_id": str(duplicate_registration["id"]) if duplicate_registration else None,
+                    },
+                )
+                conn.commit()
+                return jsonify(
+                    {
+                        "ok": False,
+                        "success": False,
+                        "duplicate": duplicate_kind,
+                        "registration_id": registration_id,
+                        "id": registration_id,
+                        "student_id": str(existing_student["id"]) if existing_student else None,
+                        "duplicate_of_registration_id": str(duplicate_registration["id"]) if duplicate_registration else None,
+                        "error": (
+                            "This student already exists. Please use the balance/portfolio lookup."
+                            if existing_student
+                            else "This registration is already waiting for review."
+                        ),
+                    }
+                )
             cur.execute(
                 """
                 INSERT INTO registrations (
@@ -4094,10 +4295,11 @@ for rule, view_func, methods in (
     ("/courses/<course_id>", mutate_course, ["PATCH", "DELETE"]),
     ("/packages", create_package, ["POST"]),
     ("/packages/<package_id>", mutate_package, ["PATCH", "DELETE"]),
-    ("/students", create_student, ["POST"]),
-    ("/students/<student_id>/archive", archive_student, ["POST"]),
-    ("/students/<student_id>/credit-transactions", create_credit_transaction, ["POST"]),
-    ("/portfolio", create_portfolio_item, ["POST"]),
+	    ("/students", create_student, ["POST"]),
+	    ("/students/<student_id>/archive", archive_student, ["POST"]),
+	    ("/students/<student_id>/credit-transactions", create_credit_transaction, ["POST"]),
+	    ("/registrations/<registration_id>", update_registration_status, ["PATCH"]),
+	    ("/portfolio", create_portfolio_item, ["POST"]),
     ("/portfolio/<portfolio_item_id>", update_portfolio_item, ["PATCH"]),
     ("/portfolio/<portfolio_item_id>", delete_portfolio_item, ["DELETE"]),
     ("/tenant/settings", update_tenant_settings, ["PATCH"]),

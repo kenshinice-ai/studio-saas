@@ -16,7 +16,7 @@
   </style>
   <script>
     localStorage.setItem('studiosaas_tenant_slug', '{{TENANT_SLUG}}');
-    window.location.replace('/studio-admin');
+    window.location.replace('/{{TENANT_SLUG}}/studio-admin');
   </script>
 </head>
 <body>
@@ -24,7 +24,7 @@
     <div class="mark" aria-hidden="true"></div>
     <h1>{{TENANT_NAME}} Admin</h1>
     <p>Opening Studio Admin...</p>
-    <a href="/studio-admin">Open Studio Admin</a>
+    <a href="/{{TENANT_SLUG}}/studio-admin">Open Studio Admin</a>
   </main>
 </body>
 </html>

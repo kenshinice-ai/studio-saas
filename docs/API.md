@@ -213,7 +213,9 @@ Requirements: Auth required, tenant quota enforced, MIME/magic-byte validated, s
 | GET | `/v1/public/{tenant_slug}/brand` | None | Public brand payload |
 | POST | `/v1/public/{tenant_slug}/registrations` | None | Submit registration |
 | POST | `/v1/public/{tenant_slug}/balance-query` | None | Parent balance lookup |
-| GET | `/v1/public/portfolio/{token}` | None | Shared portfolio view |
+| POST | `/v1/public/{tenant_slug}/registration-media` | None | Upload registration photo |
+| POST | `/v1/public/{tenant_slug}/portfolio-token` | None | Issue short-lived portfolio token |
+| GET | `/v1/public/{tenant_slug}/media/{media_asset_id}?token=...` | None/token | Serve logo or token-protected portfolio media |
 
 ### 10.1 Balance Query (Public)
 
@@ -224,9 +226,7 @@ curl -sS \
   http://localhost:8899/v1/public/lets-paint-studio/balance-query
 ```
 
-**Rate limiting (implemented, in-memory per process):** registrations 5/min/IP, balance-query 10/min/IP, registration media uploads 5/min/IP — all return 429 when exceeded. Limits reset on server restart (acceptable for pilot; Redis-backed limiter deferred to P3-04).
-
-**Remaining gap:** `/v1/auth/login` and legacy-login have **no** rate limiting and failed logins are not audited — tracked as **P0-05** in `codingprompt.md`.
+**Rate limiting (implemented, in-memory per process):** registrations 5/min/IP, balance-query 10/min/IP, registration media uploads 5/min/IP, portfolio-token 10/min/IP, and login 30/min/IP plus 5/min/IP+email — all return 429 when exceeded. Failed login attempts write `auth.login_failed` audit events. Limits reset on server restart (acceptable for pilot; Redis-backed limiter deferred to P3-04).
 
 ---
 
@@ -249,7 +249,7 @@ The legacy CMS shell intercepts old `/api/data` and `/api/save` calls and rewrit
 |---|---|---|
 | `/v1/health` | No | None |
 | `/v1/public/*` | No | None |
-| `/v1/auth/*` | Login/logout: No; change-password: Yes | Session |
+| `/v1/auth/*` | Login: public but rate-limited; logout/change-password/me: Yes | Session |
 | `/v1/admin/*` | Yes | Super admin |
 | `/v1/plans` writes | Yes | Super admin |
 | `/v1/tenant` writes | Yes | Tenant admin |
@@ -270,5 +270,5 @@ The legacy CMS shell intercepts old `/api/data` and `/api/save` calls and rewrit
 | 401 | Unauthorized — no valid session |
 | 403 | Forbidden — wrong tenant or insufficient role |
 | 404 | Not found |
-| 429 | Rate limited (public endpoints) |
+| 429 | Rate limited |
 | 500 | Internal server error |

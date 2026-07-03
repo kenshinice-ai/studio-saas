@@ -1512,6 +1512,7 @@
                 <th>Student</th>
                 <th>Message</th>
                 <th>Status</th>
+                <th>Review</th>
                 <th>Date</th>
                 <th>Actions</th>
               </tr>
@@ -1618,7 +1619,7 @@
 
     function pill(value) {
       const normalized = String(value || '').toLowerCase();
-      const icons = { active: '●', trial: '●', inactive: '○', archived: '○', pending: '◌', contacted: '◌', approved: '●', rejected: '×' };
+      const icons = { active: '●', trial: '●', inactive: '○', archived: '○', pending: '◌', contacted: '◌', approved: '●', rejected: '×', duplicate: '!' };
       const cls = normalized === 'active' || normalized === 'approved' || normalized === 'trial' ? 'pill active' :
         normalized === 'pending' ? 'pill pending' : `pill ${normalized}`;
       return `<span class="${cls}">${icons[normalized] || ''} ${esc(text(value))}</span>`;
@@ -2223,23 +2224,27 @@
 
     function renderRegistrations() {
       $('registrationsBody').innerHTML = registrations.map((r) => `<tr>
-        <td><strong>${esc([r.first_name, r.last_name].filter(Boolean).join(' ') || 'Student')}</strong><br><span class="text-muted">${esc(text(r.parent_name))} · ${esc(text(r.mobile || r.email))}</span></td>
+        <td><strong>${esc([r.first_name, r.last_name].filter(Boolean).join(' ') || 'Student')}</strong><br><span class="text-muted">${esc(text(r.parent_name))} · ${esc(text(r.mobile || r.email))}</span>${r.student_id ? `<br><span class="text-muted">Linked student: ${esc(r.student_id)}</span>` : ''}</td>
         <td>${esc(text(r.message))}</td>
         <td>${pill(r.status)}</td>
+        <td>${r.duplicate_of_registration_id ? `<span class="text-muted">Duplicate of ${esc(r.duplicate_of_registration_id)}</span><br>` : ''}${esc(text(r.review_note))}</td>
         <td>${esc(dateOnly(r.submitted_at))}</td>
-        <td><div class="action-row">${r.status === 'pending' ? `<button class="btn-info btn-sm" onclick="updateRegistrationStatus('${r.id}', 'contacted')">Contacted</button><button class="btn-success btn-sm" onclick="updateRegistrationStatus('${r.id}', 'approved')">Approve</button><button class="btn-danger btn-sm" onclick="updateRegistrationStatus('${r.id}', 'archived')">Archive</button>` : ''}</div></td>
-      </tr>`).join('') || emptyRow(5, 'No registration requests yet.');
+        <td><div class="action-row">${r.status === 'pending' ? `<button class="btn-info btn-sm" onclick="updateRegistrationStatus('${r.id}', 'contacted')">Contacted</button><button class="btn-success btn-sm" onclick="updateRegistrationStatus('${r.id}', 'approved')">Approve</button><button class="btn-danger btn-sm" onclick="updateRegistrationStatus('${r.id}', 'rejected')">Reject</button><button class="btn-danger btn-sm" onclick="updateRegistrationStatus('${r.id}', 'archived')">Archive</button>` : ''}</div></td>
+      </tr>`).join('') || emptyRow(6, 'No registration requests yet.');
     }
 
     async function updateRegistrationStatus(regId, newStatus) {
-      const labels = { contacted: 'Mark Contacted', approved: 'Approve and Create Student', archived: 'Archive' };
+      const labels = { contacted: 'Mark Contacted', approved: 'Approve and Create Student', rejected: 'Reject', archived: 'Archive' };
+      const noteRequired = newStatus === 'rejected' || newStatus === 'archived';
+      const bodyHtml = `<p>Update this registration request?</p><div class="form-group mt-2"><label>Review Note${noteRequired ? ' (required)' : ''}</label><textarea id="m_registrationReviewNote" rows="3" placeholder="${noteRequired ? 'Explain the decision for audit history' : 'Optional note'}"></textarea></div>`;
       const footerHtml = `<button id="confirmRegStatusBtn" onclick="confirmRegStatus('${regId}', '${newStatus}')" class="btn-primary">${labels[newStatus] || 'Save'}</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
-      openModal(labels[newStatus] || 'Update Registration', '<p>Update this registration request?</p>', footerHtml);
+      openModal(labels[newStatus] || 'Update Registration', bodyHtml, footerHtml);
     }
 
     async function confirmRegStatus(regId, newStatus) {
       await runUiAction('confirmRegStatusBtn', 'Saving...', async () => {
-        const data = await api(`/registrations/${regId}`, { method: 'PATCH', body: JSON.stringify({ status: newStatus, convertToStudent: newStatus === 'approved' }) });
+        const reviewNote = $('m_registrationReviewNote') ? $('m_registrationReviewNote').value.trim() : '';
+        const data = await api(`/registrations/${regId}`, { method: 'PATCH', body: JSON.stringify({ status: newStatus, convertToStudent: newStatus === 'approved', reviewNote }) });
         showToast(data.student_id ? 'Registration approved and student created.' : 'Registration updated.');
         closeModal();
         await refresh();
@@ -2342,7 +2347,7 @@
       $('refreshIcon').textContent = loading ? '...' : '↻';
       if (loading) {
         ['studentsBody','coursesBody','packagesBody','registrationsBody','portfolioBody'].forEach((id) => {
-          const colspan = id === 'studentsBody' ? 4 : id === 'registrationsBody' || id === 'portfolioBody' ? 5 : 6;
+          const colspan = id === 'studentsBody' ? 4 : id === 'registrationsBody' ? 6 : id === 'portfolioBody' ? 5 : 6;
           $(id).innerHTML = emptyRow(colspan, 'Loading...');
         });
       }

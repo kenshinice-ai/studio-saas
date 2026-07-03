@@ -40,7 +40,7 @@ A target architecture (modular services: Auth/Tenant/Student/Course/Credit/Atten
 | Level | Who | Main surface |
 |---|---|---|
 | Platform Operator | SaaS owner | `/super-admin` (also `/`) |
-| Studio Owner / Admin | One tenant studio | `/<tenant-slug>/studio-admin` |
+| Studio Owner / Admin | One tenant studio | `/<tenant-slug>/studio-admin` (tenant backend for managing Studio CMS data, registrations, students, credits, portfolio, and branding) |
 | Public Parent / Student | Visitors | `/<tenant-slug>`, `/<tenant-slug>/register` |
 
 Local URLs (default port 8899):
@@ -215,7 +215,7 @@ curl -i -X POST http://localhost:8899/v1/admin/tenants \
 ## 8. Security Baseline
 
 - All admin mutation routes require authentication; tenant routes enforce membership; platform routes require super admin.
-- Public endpoints (registration, balance query, uploads) are IP rate-limited (in-memory, per-process). Login rate limiting is pending (**P0-05**).
+- Public endpoints and login endpoints are IP/email rate-limited in memory for the local pilot; failed logins are audited.
 - Uploads validate extension/MIME/size; media is tenant-scoped; no path traversal.
 - Passwords: PBKDF2-HMAC-SHA256; legacy unsalted SHA-256 hashes are accepted once on successful login, then upgraded in place.
 - Secrets are never committed; see `.gitignore`.

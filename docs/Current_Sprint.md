@@ -51,9 +51,9 @@ These items from earlier sprint docs are confirmed done — do not re-fix:
 | ID | Task | Status |
 |---|---|---|
 | P1-01 | Documentation sync | ✅ Done 2026-07-03 (this refresh) |
-| P1-02 | Tenant isolation negative test matrix | ❌ |
+| P1-02 | Tenant isolation negative test matrix | ✅ Done 2026-07-03 (`test_tenant_isolation.py`, 63+ checks) |
 | P1-03 | v1 media upload endpoint + central media service | ❌ |
-| P1-04 | Registration review → student conversion loop | ❌ |
+| P1-04 | Registration review → student conversion loop | ✅ Done 2026-07-03 (duplicate detection, student link, review notes, audit) |
 | P1-05 | Credits closed loop + attendance (`attendance_sessions` unused: 0 refs in api_v1.py) | ❌ |
 | P1-06 | Playwright browser smoke tests | ❌ |
 | P1-07 | Backup/restore script + runbook | ❌ |
@@ -153,6 +153,7 @@ curl -sS -o /dev/null -w "%{http_code}" http://localhost:8899/
 curl -sS -o /dev/null -w "%{http_code}" http://localhost:8899/studio-admin
 curl -sS -o /dev/null -w "%{http_code}" http://localhost:8899/lets-paint-studio
 curl -sS -o /dev/null -w "%{http_code}" http://localhost:8899/lets-paint-studio/cms
+curl -sS -o /dev/null -w "%{http_code}" http://localhost:8899/lets-paint-studio/studio-admin
 curl -sS -o /dev/null -w "%{http_code}" http://localhost:8899/lets-paint-studio/register
 # /register should return 404
 curl -sS -o /dev/null -w "%{http_code}" http://localhost:8899/register
@@ -209,7 +210,7 @@ Password storage: seed/reset scripts write PBKDF2-HMAC-SHA256 hashes. Legacy uns
 |---|---|---|
 | Local demo | **GO** | Dependency install + smoke tests pass |
 | Internal testing | **GO** (2026-07-03) | P0-01…P0-07 all done and verified |
-| External pilot | **NO-GO** | Until all P0 verified + P1-02 isolation matrix |
+| External pilot | **NO-GO** | Until all P0 verified + P1-07 backup runbook |
 | AWS staging | **NO-GO** | All P0 + P1-07 backup runbook + P3-01 config layering |
 
 ---

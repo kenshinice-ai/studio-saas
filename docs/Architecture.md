@@ -71,7 +71,7 @@ Purpose: Current system architecture, routing model, file layout, data flow — 
 |---|---|
 | `/<tenant_slug>` | Tenant CMS (serves `legacy-root/index.html`) |
 | `/<tenant_slug>/cms` | Tenant CMS (explicit, same shell) |
-| `/<tenant_slug>/studio-admin` | Tenant Studio Admin |
+| `/<tenant_slug>/studio-admin` | Tenant Studio Admin: the tenant backend for managing Studio CMS data, registrations, students, credits, portfolio, and branding |
 | `/<tenant_slug>/register` | Tenant registration |
 | `/s/<tenant_slug>/v1/*` | Tenant-scoped API prefix |
 
@@ -182,7 +182,7 @@ Studio Admin → /s/<tenant_slug>/v1/* → PostgreSQL tenant_id rows → CMS/Reg
 | Packages | `/s/<slug>/v1/packages` → `packages` | Legacy CMS bridge exposes packages |
 | Students | Legacy CMS bridge → `students` | Legacy CMS returns tenant-scoped students |
 | Student balances | Legacy CMS bridge → `credit_accounts` | Register balance query |
-| Registrations | Register bridge → `/v1/public/<slug>/registrations` | Studio Admin pending queue |
+| Registrations | Register bridge → `/v1/public/<slug>/registrations`; review via `/s/<slug>/v1/registrations/<id>` | Studio Admin review queue, duplicate handling, approve-to-student |
 
 ### 4.3 Legacy Bridge Integration
 
@@ -286,7 +286,7 @@ flowchart LR
     G[Student Buys Package] --> H[Payment Success] --> I[Add Credits] --> J[Use Credits] --> K[Attend Class]
 ```
 
-Flow 1 is partially implemented (registrations table + statuses exist; conversion UX is P1-04). Flow 2 is largely unimplemented past "Add Credits" — `attendance_sessions` is unused (P1-05); Payment is deferred (P3-05).
+Flow 1 is implemented for the pilot path: public submissions create registration rows, duplicate attempts are marked, Studio Admin can approve into a student or reject/archive with a review note, and all decisions are audited. Flow 2 is largely unimplemented past "Add Credits" — `attendance_sessions` is unused (P1-05); Payment is deferred (P3-05).
 
 ### 7.4 Adoption Policy (what to take now vs later)
 
