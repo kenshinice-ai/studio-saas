@@ -1920,11 +1920,42 @@
           return;
         }
         setAuthState(data.user || data);
+        renderSupportBanner(data.support);
         await refresh();
       } catch (err) {
         setAuthState(null);
         if (err.status && err.status !== 401) showToast(`Session check failed: ${err.message}`, 'error');
       }
+    }
+
+    function renderSupportBanner(support) {
+      const existing = document.getElementById('supportBanner');
+      if (existing) existing.remove();
+      if (!support || support.slug !== currentTenantSlug()) return;
+      const banner = document.createElement('div');
+      banner.id = 'supportBanner';
+      banner.style.cssText = 'position:sticky;top:0;z-index:2000;background:#B45309;color:#fff;padding:10px 16px;display:flex;align-items:center;gap:12px;font-size:14px;';
+      const label = document.createElement('strong');
+      label.textContent = '🛟 SUPPORT MODE';
+      const detail = document.createElement('span');
+      detail.style.flex = '1';
+      detail.textContent = `Acting inside ${support.tenant_name || support.slug} — every action is audited. Reason: ${support.reason || ''}`;
+      const exitBtn = document.createElement('button');
+      exitBtn.type = 'button';
+      exitBtn.className = 'btn-secondary btn-sm';
+      exitBtn.textContent = 'Exit Support Mode';
+      exitBtn.addEventListener('click', async () => {
+        try {
+          await fetch('/v1/admin/support-session/end', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' } });
+        } catch (err) { /* best effort */ }
+        banner.remove();
+        showToast('Support mode ended.');
+        location.href = '/super-admin';
+      });
+      banner.appendChild(label);
+      banner.appendChild(detail);
+      banner.appendChild(exitBtn);
+      document.body.prepend(banner);
     }
 
     async function loginStudioAdmin(event) {

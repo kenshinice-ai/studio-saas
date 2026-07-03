@@ -521,6 +521,28 @@ def _tenant_write_payload(payload: dict, *, require_slug: bool) -> dict:
     }
 
 
+def _support_tagged(metadata) -> dict:
+    """Merge the active support-session marker into audit metadata (B4).
+
+    Every audit row written while a platform admin is in support mode is
+    tagged so tenant-facing actions taken on the customer's behalf are
+    distinguishable from the studio's own activity.
+    """
+
+    data = dict(metadata or {})
+    try:
+        from flask import session as _fs
+        support = _fs.get("support")
+        if support:
+            data["support_session"] = {
+                "reason": support.get("reason", ""),
+                "tenant_slug": support.get("slug", ""),
+            }
+    except RuntimeError:
+        pass  # outside request context
+    return data
+
+
 def _audit(conn, *, tenant_id, action, resource_type, resource_id="", metadata=None):
     """Write a compact audit log row for local admin mutations."""
 
@@ -530,7 +552,7 @@ def _audit(conn, *, tenant_id, action, resource_type, resource_id="", metadata=N
             INSERT INTO audit_logs (tenant_id, action, resource_type, resource_id, metadata)
             VALUES (%s, %s, %s, %s, %s::jsonb)
             """,
-            (tenant_id, action, resource_type, str(resource_id or ""), json.dumps(metadata or {})),
+            (tenant_id, action, resource_type, str(resource_id or ""), json.dumps(_support_tagged(metadata))),
         )
 
 
@@ -553,7 +575,7 @@ def _audit_request(conn, *, tenant_id, action, resource_type, resource_id="", me
                 action,
                 resource_type,
                 str(resource_id or ""),
-                json.dumps(metadata or {}),
+                json.dumps(_support_tagged(metadata)),
                 request.remote_addr or "",
             ),
         )
@@ -3409,6 +3431,72 @@ def permanently_delete_tenant_route(tenant_id: str):
     return jsonify({"ok": True, **result})
 
 
+# ──────────────────────────────────────────────
+# B4: Support Mode — platform admin acts inside a tenant, fully audited
+# ──────────────────────────────────────────────
+
+@api_v1.route("/admin/tenants/<tenant_id>/support-session", methods=["POST"])
+@super_admin_required
+def start_support_session(tenant_id: str):
+    """Enter support mode for one tenant. Reason is mandatory and audited."""
+
+    payload = _json_payload()
+    reason = _clean_text(payload, "reason")[:300]
+    if not reason:
+        return _error("A reason is required to enter support mode.")
+
+    with connect() as conn:
+        tenant = fetch_one(
+            conn,
+            "SELECT id, slug, name FROM tenants WHERE id = %s",
+            (tenant_id,),
+        )
+        if not tenant:
+            return _error("Tenant not found.", 404)
+        _audit_request(
+            conn,
+            tenant_id=tenant["id"],
+            action="support.session_started",
+            resource_type="tenant",
+            resource_id=str(tenant["id"]),
+            metadata={"reason": reason},
+        )
+        conn.commit()
+
+    from flask import session as _fs
+    _fs["support"] = {
+        "tenant_id": str(tenant["id"]),
+        "slug": tenant["slug"],
+        "tenant_name": tenant["name"],
+        "reason": reason,
+        "started": time.time(),
+    }
+    return jsonify({"ok": True, "url": f"/{tenant['slug']}/studio-admin", "slug": tenant["slug"]})
+
+
+@api_v1.route("/admin/support-session/end", methods=["POST"])
+def end_support_session():
+    """Exit support mode. Allowed for any logged-in session that has one."""
+
+    from flask import session as _fs
+    if "user_id" not in _fs:
+        return _error("Authentication required.", 401)
+    support = _fs.pop("support", None)
+    if not support:
+        return jsonify({"ok": True, "ended": False})
+    with connect() as conn:
+        _audit_request(
+            conn,
+            tenant_id=support.get("tenant_id"),
+            action="support.session_ended",
+            resource_type="tenant",
+            resource_id=str(support.get("tenant_id") or ""),
+            metadata={"reason": support.get("reason", "")},
+        )
+        conn.commit()
+    return jsonify({"ok": True, "ended": True})
+
+
 PASSWORD_SETUP_TOKEN_TTL_HOURS = 24
 
 
@@ -3703,6 +3791,15 @@ def create_student():
         student_id = str(cur.fetchone()["id"])
 
         _ensure_default_credit_account(cur, tenant.tenant_id, student_id)
+
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="student.created",
+            resource_type="student",
+            resource_id=student_id,
+            metadata={"display_name": display_name},
+        )
 
     return jsonify({"ok": True, "studentId": student_id}), 201
 
@@ -4928,6 +5025,7 @@ def auth_me():
             (user_id,),
         )
 
+    from flask import session as _fs
     return jsonify({
         "ok": True,
         "userId": user["id"],
@@ -4935,6 +5033,7 @@ def auth_me():
         "name": user["full_name"],
         "user": dict(user),
         "memberships": memberships,
+        "support": _fs.get("support"),
     })
 
 
@@ -5116,6 +5215,14 @@ def update_student(student_id: str):
             cur.execute(
                 f"UPDATE students SET {set_clause}, updated_at = now() WHERE tenant_id = %s AND id = %s",
                 params,
+            )
+            _audit_request(
+                conn,
+                tenant_id=tenant.tenant_id,
+                action="student.updated",
+                resource_type="student",
+                resource_id=student_id,
+                metadata={"fields": sorted(updates.keys())},
             )
 
     return jsonify({"ok": True})

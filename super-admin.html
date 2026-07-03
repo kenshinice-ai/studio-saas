@@ -1698,6 +1698,23 @@
 	    }
 
     // Save tenant from modal
+    async function enterSupportMode(tenantId) {
+      const t = tenants.find((item) => item.id === tenantId);
+      if (!t) return;
+      const reason = prompt(`Enter support mode for "${t.name}"?\n\nEvery action will be audited. Reason (required):`);
+      if (reason === null) return;
+      if (!reason.trim()) { showToast('A reason is required to enter support mode.', 'error'); return; }
+      try {
+        const data = await api(`/v1/admin/tenants/${tenantId}/support-session`, {
+          method: 'POST',
+          body: JSON.stringify({ reason: reason.trim() }),
+        });
+        showToast('Support mode started — opening Studio Admin.', 'success');
+        closeModal();
+        window.open(data.url, '_blank');
+      } catch (err) { /* api() already toasts */ }
+    }
+
     async function generateSetupLink(tenantId) {
       const out = $('m_setupLinkOut');
       out.value = 'Generating…';
@@ -1822,6 +1839,9 @@
       addActionLink(open, 'Open CMS', `/${slug}`, unavailable ? 'Archived or deleted tenants cannot be opened.' : '');
       addActionLink(open, 'Open Studio Admin', `/${slug}/studio-admin`, unavailable ? 'Archived or deleted tenants cannot be opened.' : (!t.studio_admin_email ? 'Studio Admin login is not configured.' : ''));
       addActionLink(open, 'Open Register Page', `/${slug}/register`, ['paused', 'archived', 'deleted'].includes(t.status) ? 'Registration is unavailable for paused, archived, or deleted tenants.' : '');
+      const support = section('Support');
+      const supportBtn = addActionButton(support, 'Enter Support Mode', 'btn-warning', () => enterSupportMode(id));
+      if (unavailable) { supportBtn.disabled = true; supportBtn.title = 'Archived or deleted tenants cannot be supported.'; }
       const status = section('Status');
       if (t.status === 'archived') {
         addActionButton(status, 'Restore Tenant', 'btn-primary', () => restoreTenant(id));
