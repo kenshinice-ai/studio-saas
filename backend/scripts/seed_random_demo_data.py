@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import random
 import sys
 from datetime import date, datetime, timedelta, timezone
@@ -121,6 +122,30 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     return parser.parse_args()
+
+
+# Minimal valid 1x1 JPEG so seeded portfolio metadata has a real file behind
+# it (share links and media routes then work end to end).
+_PLACEHOLDER_JPEG = __import__("base64").b64decode(
+    "/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRof"
+    "Hh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAAB"
+    "AAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AVN//2Q=="
+)
+
+
+def _write_placeholder_media(storage_key: str) -> None:
+    """Write a tiny JPEG to the local media root for a seeded storage key.
+
+    Mirrors services.media.media_root() without requiring a Flask app
+    context: STUDIOSAAS_MEDIA_DIR override, else backend/media.
+    """
+
+    root = os.environ.get("STUDIOSAAS_MEDIA_DIR") or str(Path(__file__).resolve().parents[1] / "media")
+    parts = [part for part in storage_key.split("/") if part]
+    path = Path(root).joinpath(*parts)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if not path.exists():
+        path.write_bytes(_PLACEHOLDER_JPEG)
 
 
 def seed_existing_tenant(conn, rng: random.Random, slug: str, students: int) -> None:
@@ -502,6 +527,7 @@ def upsert_student(conn, rng: random.Random, tenant_id: str, index: int, courses
             (tenant_id, student_id, storage_key, f"{legacy_id}.jpg", rng.randint(80_000, 650_000)),
         )
         media_id = cur.fetchone()["id"]
+        _write_placeholder_media(storage_key)
         cur.execute(
             """
             INSERT INTO portfolio_items (

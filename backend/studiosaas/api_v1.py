@@ -4019,6 +4019,191 @@ def check_in_attendance():
 
 
 # ──────────────────────────────────────────────
+# B2: durable portfolio share links (tenant admin + public viewer)
+# ──────────────────────────────────────────────
+
+SHARE_LINK_DEFAULT_DAYS = 30
+SHARE_LINK_MAX_DAYS = 90
+
+
+@api_v1.route("/students/<student_id>/share-links", methods=["GET"])
+@tenant_admin_required
+def list_share_links(student_id: str):
+    """List portfolio share links for one student (newest first)."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        rows = fetch_all(
+            conn,
+            """
+            SELECT id, created_at, expires_at, revoked_at,
+                   (expires_at > now() AND revoked_at IS NULL) AS active
+            FROM share_tokens
+            WHERE tenant_id = %s AND student_id = %s AND scope = 'student_portfolio'
+            ORDER BY created_at DESC
+            LIMIT 20
+            """,
+            (tenant.tenant_id, student_id),
+        )
+    return jsonify({"shareLinks": rows})
+
+
+@api_v1.route("/students/<student_id>/share-links", methods=["POST"])
+@tenant_admin_required
+def create_share_link(student_id: str):
+    """Create a durable share link for a student's portfolio.
+
+    The raw token is returned once; only its SHA-256 hash is stored. The
+    existing public media route honours these tokens (scope, expiry,
+    revocation are all enforced there too).
+    """
+
+    payload = _json_payload()
+    try:
+        days = int(payload.get("days", SHARE_LINK_DEFAULT_DAYS))
+    except (TypeError, ValueError):
+        return _error("days must be an integer.")
+    days = max(1, min(SHARE_LINK_MAX_DAYS, days))
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        student = fetch_one(
+            conn,
+            "SELECT id, display_name FROM students WHERE tenant_id = %s AND id = %s",
+            (tenant.tenant_id, student_id),
+        )
+        if not student:
+            return _error("Student not found.", 404)
+        raw_token = secrets.token_urlsafe(32)
+        token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+        row = fetch_one(
+            conn,
+            """
+            INSERT INTO share_tokens (tenant_id, student_id, token_hash, scope, expires_at)
+            VALUES (%s, %s, %s, 'student_portfolio', now() + make_interval(days => %s))
+            RETURNING id, expires_at
+            """,
+            (tenant.tenant_id, student_id, token_hash, days),
+        )
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="portfolio.share_link_created",
+            resource_type="student",
+            resource_id=student_id,
+            metadata={"days": days, "share_token_id": str(row["id"])},
+        )
+        conn.commit()
+
+    return jsonify({
+        "ok": True,
+        "id": str(row["id"]),
+        "url": f"/shared/portfolio?token={raw_token}",
+        "expiresAt": row["expires_at"].isoformat(),
+    })
+
+
+@api_v1.route("/share-links/<link_id>/revoke", methods=["POST"])
+@tenant_admin_required
+def revoke_share_link(link_id: str):
+    """Revoke one share link; the public viewer and media URLs stop working."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        row = fetch_one(
+            conn,
+            """
+            UPDATE share_tokens SET revoked_at = now()
+            WHERE id = %s AND tenant_id = %s AND scope = 'student_portfolio' AND revoked_at IS NULL
+            RETURNING student_id
+            """,
+            (link_id, tenant.tenant_id),
+        )
+        if not row:
+            return _error("Share link not found or already revoked.", 404)
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="portfolio.share_link_revoked",
+            resource_type="student",
+            resource_id=str(row["student_id"]),
+            metadata={"share_token_id": link_id},
+        )
+        conn.commit()
+    return jsonify({"ok": True})
+
+
+@api_v1.route("/public/portfolio/<raw_token>", methods=["GET"])
+def public_shared_portfolio(raw_token: str):
+    """Public JSON for the shared portfolio viewer page. Rate-limited."""
+
+    now = time.time()
+    client_key = f"shared-portfolio:{request.remote_addr or 'unknown'}"
+    _public_rate_limit[client_key] = [t for t in _public_rate_limit.get(client_key, []) if now - t < 60]
+    if len(_public_rate_limit[client_key]) >= 20:
+        return _error("Too many requests. Please wait a moment.", 429)
+    _public_rate_limit[client_key].append(now)
+
+    token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+    with connect() as conn:
+        link = fetch_one(
+            conn,
+            """
+            SELECT st.tenant_id, st.student_id, st.expires_at,
+                   t.slug AS tenant_slug, t.name AS tenant_name,
+                   t.primary_color, t.secondary_color,
+                   t.settings->>'logo_url' AS logo_url,
+                   s.display_name AS student_name
+            FROM share_tokens st
+            JOIN tenants t ON t.id = st.tenant_id
+            JOIN students s ON s.id = st.student_id
+            WHERE st.token_hash = %s
+              AND st.scope = 'student_portfolio'
+              AND st.expires_at > now()
+              AND st.revoked_at IS NULL
+            """,
+            (token_hash,),
+        )
+        if not link:
+            return _error("This link is invalid, expired, or has been revoked.", 410)
+        rows = fetch_all(
+            conn,
+            """
+            SELECT p.id, p.media_asset_id, p.description, p.artwork_date, p.created_at
+            FROM portfolio_items p
+            JOIN media_assets m ON m.id = p.media_asset_id AND m.tenant_id = p.tenant_id
+            WHERE p.tenant_id = %s AND p.student_id = %s
+            ORDER BY p.created_at DESC
+            LIMIT 200
+            """,
+            (link["tenant_id"], link["student_id"]),
+        )
+
+    slug = link["tenant_slug"]
+    items = [
+        {
+            "id": str(row["id"]),
+            "mediaUrl": f"/v1/public/{slug}/media/{row['media_asset_id']}?token={raw_token}",
+            "date": str(row["artwork_date"] or row["created_at"].date()),
+            "note": row["description"] or "",
+        }
+        for row in rows
+    ]
+    return jsonify({
+        "ok": True,
+        "studio": {
+            "name": link["tenant_name"],
+            "primaryColor": link["primary_color"],
+            "secondaryColor": link["secondary_color"],
+            "logoUrl": link["logo_url"],
+        },
+        "student": link["student_name"],
+        "expiresAt": link["expires_at"].isoformat(),
+        "items": items,
+    })
+
+
+# ──────────────────────────────────────────────
 # B1: CSV data export (tenant admin)
 # ──────────────────────────────────────────────
 

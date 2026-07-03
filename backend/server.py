@@ -692,6 +692,13 @@ def serve_setup_password():
     return send_from_directory(os.path.join(app.root_path, 'frontend'),
                                'setup-password.html')
 
+@app.route('/shared/portfolio')
+def serve_shared_portfolio():
+    # Public read-only portfolio viewer; the share token arrives as a query
+    # parameter and is validated by GET /v1/public/portfolio/<token>.
+    return send_from_directory(os.path.join(app.root_path, 'frontend'),
+                               'shared-portfolio.html')
+
 def _tenant_page(tenant_slug, filename):
     try:
         validate_tenant_slug(tenant_slug)

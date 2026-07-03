@@ -1960,6 +1960,68 @@
       });
     })();
 
+    async function openShareLinksModal(studentId, name) {
+      const bodyHtml = `
+        <p class="text-muted" style="margin:0 0 12px;font-size:13px;">Share <strong>${esc(name)}</strong>'s portfolio with their family via a read-only link. Links expire automatically and can be revoked any time.</p>
+        <div class="action-row" style="margin-bottom:12px;">
+          <button id="m_shareGenerateBtn" type="button" class="btn-primary btn-sm">Generate 30-day link</button>
+          <input id="m_shareLinkOut" readonly placeholder="New link appears here" style="flex:1;">
+          <button id="m_shareCopyBtn" type="button" class="btn-secondary btn-sm" style="display:none;">Copy</button>
+        </div>
+        <div id="m_shareLinksList" class="text-muted" style="font-size:13px;">Loading existing links…</div>`;
+      openModal(`Share Portfolio — ${name}`, bodyHtml, '<button onclick="closeModal()" class="btn-secondary">Close</button>');
+      $('m_shareGenerateBtn').addEventListener('click', async () => {
+        await runUiAction('m_shareGenerateBtn', 'Generating…', async () => {
+          const data = await api(`/students/${studentId}/share-links`, { method: 'POST', body: JSON.stringify({ days: 30 }) });
+          $('m_shareLinkOut').value = location.origin + data.url;
+          $('m_shareCopyBtn').style.display = '';
+          showToast('Share link created (expires in 30 days).');
+          await renderShareLinks(studentId);
+        });
+      });
+      $('m_shareCopyBtn').addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText($('m_shareLinkOut').value); showToast('Link copied.'); }
+        catch (err) { $('m_shareLinkOut').select(); document.execCommand('copy'); showToast('Link copied.'); }
+      });
+      await renderShareLinks(studentId);
+    }
+
+    async function renderShareLinks(studentId) {
+      const list = $('m_shareLinksList');
+      if (!list) return;
+      try {
+        const data = await api(`/students/${studentId}/share-links`);
+        const links = data.shareLinks || [];
+        list.replaceChildren();
+        if (!links.length) { list.textContent = 'No links yet.'; return; }
+        links.forEach((link) => {
+          const row = document.createElement('div');
+          row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--border,#E2E8F0);';
+          const label = document.createElement('span');
+          label.style.flex = '1';
+          const expires = new Date(link.expires_at).toLocaleDateString();
+          label.textContent = link.revoked_at ? `Revoked (was until ${expires})`
+            : link.active ? `Active — expires ${expires}` : `Expired ${expires}`;
+          row.appendChild(label);
+          if (link.active) {
+            const btn = document.createElement('button');
+            btn.className = 'btn-danger btn-sm';
+            btn.type = 'button';
+            btn.textContent = 'Revoke';
+            btn.addEventListener('click', async () => {
+              await api(`/share-links/${link.id}/revoke`, { method: 'POST' });
+              showToast('Link revoked.');
+              await renderShareLinks(studentId);
+            });
+            row.appendChild(btn);
+          }
+          list.appendChild(row);
+        });
+      } catch (err) {
+        list.textContent = 'Could not load links.';
+      }
+    }
+
     function downloadExport(kind) {
       const slug = currentTenantSlug();
       if (!slug) { showToast('Tenant slug is required.', 'error'); return; }
@@ -2273,6 +2335,7 @@
         actions.className = 'action-row';
         addActionButton(actions, 'Edit', 'btn-secondary btn-sm', () => editStudent(s.id));
         addActionButton(actions, '+ Credits', 'btn-info btn-sm', () => openAddCreditsModal(s.id, studentName(s), Number(s.balance || 0)));
+        addActionButton(actions, 'Share', 'btn-secondary btn-sm', () => openShareLinksModal(s.id, studentName(s)));
         if (studentStatus(s) !== 'archived') {
           addActionButton(actions, 'Archive', 'btn-danger btn-sm', () => archiveStudent(s.id, studentName(s)));
         }
