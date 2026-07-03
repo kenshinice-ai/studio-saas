@@ -23,7 +23,9 @@
 - [ ] `/<tenant_slug>` and `/<tenant_slug>/cms` render the correct tenant's CMS shell
 - [ ] `/<tenant_slug>/register` renders the tenant's registration page
 - [ ] `/<tenant_slug>/studio-admin` renders the tenant's admin dashboard
+- [ ] `/s/<tenant_slug>/v1/tenant`, `/dashboard`, and `/students` return 401 before login, not 404
 - [ ] Root `/register` returns 404 (registration belongs to tenants)
+- [ ] `/<tenant_slug>/manifest-student.json` uses tenant-scoped `start_url` and `scope`; root `/manifest-student.json` does not point to `/register`
 - [ ] Unknown tenant slug returns 404 (not a blank page)
 - [ ] Reserved slugs (`api`, `v1`, `register`, `super-admin`, `studio-admin`, `vendor`) rejected on tenant creation
 - [ ] Unauthenticated mutation requests return 401/403 (see Current_Sprint §4 curl checks)
@@ -70,6 +72,7 @@
 - [ ] File uploads validated (type, size, extension, magic bytes)
 - [ ] SQL injection prevention: parameterized queries only
 - [ ] XSS prevention: no unsafe `innerHTML` for user-generated content
+- [ ] Admin table/list renderers use `textContent`/DOM nodes for tenant, student, registration, attendance, and portfolio data
 - [ ] Session cookies HttpOnly; Secure/SameSite in production config
 - [ ] Failed logins audited
 - [ ] Sensitive admin actions write to `audit_logs`

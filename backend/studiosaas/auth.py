@@ -384,7 +384,7 @@ def init_auth_blueprints(app: Flask) -> None:
     is converted to a 403 JSON response.
     """
 
-    from .api_v1 import api_v1, api_v1_by_slug
+    from .api_v1 import api_v1
 
     @app.errorhandler(PermissionDeniedError)
     def handle_permission_denied(exc: PermissionDeniedError):
@@ -393,8 +393,7 @@ def init_auth_blueprints(app: Flask) -> None:
             "message": str(exc),
         }), 403
 
-    # Also register on the slug blueprint
-    api_v1_by_slug.register_error_handler(
+    api_v1.register_error_handler(
         PermissionDeniedError,
         handle_permission_denied,
     )

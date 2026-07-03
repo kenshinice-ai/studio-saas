@@ -5,6 +5,6 @@ the original single-studio Let's Paint CMS. The legacy app remains runnable
 while v1 modules are built out behind explicit routes and migration scripts.
 """
 
-from .api_v1 import api_v1, api_v1_by_slug
+from .api_v1 import api_v1
 
-__all__ = ["api_v1", "api_v1_by_slug"]
+__all__ = ["api_v1"]

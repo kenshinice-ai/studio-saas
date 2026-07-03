@@ -37,7 +37,6 @@ from .tenant_context import TenantResolutionError, resolve_tenant, slug_from_req
 from .workspaces import WorkspaceError, ensure_tenant_workspace
 
 api_v1 = Blueprint("studiosaas_api_v1", __name__)
-api_v1_by_slug = Blueprint("studiosaas_api_v1_by_slug", __name__)
 # Simple in-memory rate limiter for public endpoints (per-IP, per-minute).
 # Counters reset on process restart — acceptable for the local pilot; a
 # shared store (Redis) replaces this at the production stage (P3-04).
@@ -76,15 +75,9 @@ def pull_tenant_slug(endpoint, values):
 
     if endpoint and endpoint.startswith(f"{api_v1.name}.public_"):
         return
-    if values and "tenant_slug" in values:
-        g.path_tenant_slug = values.pop("tenant_slug")
-
-
-@api_v1_by_slug.url_value_preprocessor
-def pull_slug_route_tenant(endpoint, values):
-    """Store slug-prefix route values without passing them to views."""
-
-    if values and "tenant_slug" in values:
+    if values and "path_tenant_slug" in values:
+        g.path_tenant_slug = values.pop("path_tenant_slug")
+    elif values and "tenant_slug" in values and endpoint and ".public_" not in endpoint:
         g.path_tenant_slug = values.pop("tenant_slug")
 
 
@@ -101,15 +94,6 @@ def handle_tenant_error(exc: TenantResolutionError):
 
     return api_error(str(exc), 400, error="tenant_resolution_failed")
 
-
-api_v1_by_slug.register_error_handler(
-    DatabaseUnavailableError,
-    handle_database_unavailable,
-)
-api_v1_by_slug.register_error_handler(
-    TenantResolutionError,
-    handle_tenant_error,
-)
 
 TENANT_STATUSES = {"trial", "active", "past_due", "paused", "cancelled"}
 SUBSCRIPTION_STATUSES = {"trialing", "active", "past_due", "paused", "cancelled"}
@@ -4571,52 +4555,3 @@ def update_student(student_id: str):
             )
 
     return jsonify({"ok": True})
-
-
-
-for rule, view_func in (
-    ("/health", health),
-    ("/tenant", get_tenant),
-    ("/tenant/brand", get_tenant_brand),
-    ("/dashboard", tenant_dashboard),
-    ("/students", list_students),
-    ("/students/<student_id>", get_student),
-    ("/students/<student_id>/credits", get_student_credits),
-	    ("/students/<student_id>/credit-transactions", list_credit_transactions),
-	    ("/attendance", list_attendance_sessions),
-	    ("/courses", list_courses),
-    ("/packages", list_packages),
-    ("/registrations", list_registrations),
-    ("/portfolio", list_portfolio),
-    ("/legacy-cms/data", legacy_cms_data),
-    ("/media/<media_asset_id>", get_media_asset),
-):
-    api_v1_by_slug.add_url_rule(rule, view_func=view_func, methods=["GET"])
-
-for rule, view_func, methods in (
-    ("/tenant", update_tenant, ["PATCH"]),
-    ("/courses", create_course, ["POST"]),
-    ("/courses/<course_id>", mutate_course, ["PATCH", "DELETE"]),
-    ("/packages", create_package, ["POST"]),
-    ("/packages/<package_id>", mutate_package, ["PATCH", "DELETE"]),
-	    ("/students", create_student, ["POST"]),
-	    ("/students/<student_id>/archive", archive_student, ["POST"]),
-	    ("/students/<student_id>/credit-transactions", create_credit_transaction, ["POST"]),
-	    ("/attendance/check-in", check_in_attendance, ["POST"]),
-	    ("/attendance/<attendance_id>/void", void_attendance_session, ["POST"]),
-	    ("/registrations/<registration_id>", update_registration_status, ["PATCH"]),
-	    ("/portfolio", create_portfolio_item, ["POST"]),
-	    ("/media/upload", upload_media_asset, ["POST"]),
-    ("/portfolio/<portfolio_item_id>", update_portfolio_item, ["PATCH"]),
-    ("/portfolio/<portfolio_item_id>", delete_portfolio_item, ["DELETE"]),
-    ("/tenant/settings", update_tenant_settings, ["PATCH"]),
-    ("/tenant/logo", upload_tenant_logo, ["POST"]),
-    ("/students/<student_id>", update_student, ["PATCH"]),
-    ("/legacy-cms/save", legacy_cms_save, ["POST"]),
-    ("/legacy-cms/media/upload", legacy_cms_media_upload, ["POST"]),
-    ("/legacy-cms/portfolio/upload", legacy_cms_portfolio_upload, ["POST"]),
-    ("/legacy-cms/portfolio/<student_id>/<portfolio_item_id>", legacy_cms_portfolio_delete, ["DELETE"]),
-    ("/legacy-cms/portfolio/<student_id>/<portfolio_item_id>", legacy_cms_portfolio_update, ["PATCH"]),
-    ("/auth/legacy-login", auth_legacy_login, ["POST"]),
-):
-    api_v1_by_slug.add_url_rule(rule, view_func=view_func, methods=methods)

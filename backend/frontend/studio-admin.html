@@ -1715,6 +1715,83 @@
       return `<tr><td colspan="${colspan}"><div class="empty-state">${esc(message)}</div></td></tr>`;
     }
 
+    function appendEmptyRow(tbody, colspan, message) {
+      const row = document.createElement('tr');
+      const cell = document.createElement('td');
+      const empty = document.createElement('div');
+      cell.colSpan = colspan;
+      empty.className = 'empty-state';
+      empty.textContent = message;
+      cell.appendChild(empty);
+      row.appendChild(cell);
+      tbody.appendChild(row);
+    }
+
+    function addCell(row, textValue = '') {
+      const cell = document.createElement('td');
+      if (textValue !== '') cell.textContent = String(textValue);
+      row.appendChild(cell);
+      return cell;
+    }
+
+    function addStrongMuted(cell, strongValue, mutedValue = '') {
+      const strong = document.createElement('strong');
+      strong.textContent = text(strongValue);
+      cell.appendChild(strong);
+      if (mutedValue !== '') {
+        cell.appendChild(document.createElement('br'));
+        const muted = document.createElement('span');
+        muted.className = 'text-muted';
+        muted.textContent = text(mutedValue);
+        cell.appendChild(muted);
+      }
+      return cell;
+    }
+
+    function appendPill(cell, value) {
+      const normalized = String(value || '').toLowerCase();
+      const icons = { active: '●', trial: '●', inactive: '○', archived: '○', pending: '◌', contacted: '◌', approved: '●', rejected: '×', duplicate: '!', refunded: '↺' };
+      const span = document.createElement('span');
+      span.className = normalized === 'active' || normalized === 'approved' || normalized === 'trial'
+        ? 'pill active'
+        : normalized === 'pending'
+          ? 'pill pending'
+          : `pill ${normalized}`;
+      span.textContent = `${icons[normalized] || ''} ${text(value)}`.trim();
+      cell.appendChild(span);
+      return span;
+    }
+
+    function addActionButton(container, label, className, handler) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = className;
+      button.textContent = label;
+      button.addEventListener('click', handler);
+      container.appendChild(button);
+      return button;
+    }
+
+    function addOption(select, value, label) {
+      const option = document.createElement('option');
+      option.value = text(value);
+      option.textContent = label;
+      select.appendChild(option);
+      return option;
+    }
+
+    function safeImageUrl(value) {
+      const raw = String(value || '').trim();
+      if (!raw) return '';
+      if (raw.startsWith('/')) return raw;
+      try {
+        const parsed = new URL(raw, window.location.origin);
+        return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed.href : '';
+      } catch {
+        return '';
+      }
+    }
+
     function todayIso() {
       return new Date().toISOString().slice(0, 10);
     }
@@ -2116,12 +2193,27 @@
     }
 
     function renderStudents() {
-      $('studentsBody').innerHTML = students.map((s) => `<tr>
-        <td><strong>${esc(studentName(s))}</strong><br><span class="text-muted">${esc(text(studentMobile(s)))} · ${esc(text(studentEmail(s)))}</span></td>
-        <td>${pill(studentStatus(s))}</td>
-        <td><strong>${Number(s.balance || 0).toFixed(2)} credits</strong><br><span class="text-muted">Low threshold: ${esc(text(s.low_balance_threshold || 2))}</span></td>
-        <td><div class="action-row"><button class="btn-secondary btn-sm" onclick="editStudent('${s.id}')">Edit</button><button class="btn-info btn-sm" onclick="openAddCreditsModal('${s.id}', '${String(studentName(s)).replace(/'/g, "\\'")}', ${Number(s.balance || 0)})">+ Credits</button>${studentStatus(s) !== 'archived' ? `<button class="btn-danger btn-sm" onclick="archiveStudent('${s.id}', '${String(studentName(s)).replace(/'/g, "\\'")}')">Archive</button>` : ''}</div></td>
-      </tr>`).join('') || emptyRow(4, 'No students match the current filters.');
+      const tbody = $('studentsBody');
+      tbody.replaceChildren();
+      if (!students.length) {
+        appendEmptyRow(tbody, 4, 'No students match the current filters.');
+        return;
+      }
+      students.forEach((s) => {
+        const row = document.createElement('tr');
+        addStrongMuted(addCell(row), studentName(s), `${studentMobile(s)} · ${studentEmail(s)}`);
+        appendPill(addCell(row), studentStatus(s));
+        addStrongMuted(addCell(row), `${Number(s.balance || 0).toFixed(2)} credits`, `Low threshold: ${text(s.low_balance_threshold || 2)}`);
+        const actions = document.createElement('div');
+        actions.className = 'action-row';
+        addActionButton(actions, 'Edit', 'btn-secondary btn-sm', () => editStudent(s.id));
+        addActionButton(actions, '+ Credits', 'btn-info btn-sm', () => openAddCreditsModal(s.id, studentName(s), Number(s.balance || 0)));
+        if (studentStatus(s) !== 'archived') {
+          addActionButton(actions, 'Archive', 'btn-danger btn-sm', () => archiveStudent(s.id, studentName(s)));
+        }
+        addCell(row).appendChild(actions);
+        tbody.appendChild(row);
+      });
     }
 
     function resetStudentForm() {
@@ -2198,14 +2290,26 @@
 
     function renderCourses() {
       const sorted = [...courses].sort((a, b) => Number(isActiveItem(b)) - Number(isActiveItem(a)) || String(a.name || '').localeCompare(String(b.name || '')));
-      $('coursesBody').innerHTML = sorted.map((c) => `<tr>
-        <td><strong>${esc(c.name)}</strong><br><span class="text-muted">${esc(text(c.description))}</span></td>
-        <td>${esc(text(c.category))}</td>
-        <td>${esc(text(c.duration_minutes || 60))} min</td>
-        <td>${money(audFromCents(c.price_aud_cents))}</td>
-        <td>${pill(itemStatus(c))}</td>
-        <td><div class="action-row"><button class="btn-secondary btn-sm" onclick="editCourse('${c.id}')">Edit</button>${isActiveItem(c) ? `<button class="btn-danger btn-sm" onclick="archiveCourse('${c.id}')">Archive</button>` : ''}</div></td>
-      </tr>`).join('') || emptyRow(6, 'No courses yet. Add your first class offering.');
+      const tbody = $('coursesBody');
+      tbody.replaceChildren();
+      if (!sorted.length) {
+        appendEmptyRow(tbody, 6, 'No courses yet. Add your first class offering.');
+        return;
+      }
+      sorted.forEach((c) => {
+        const row = document.createElement('tr');
+        addStrongMuted(addCell(row), c.name, c.description);
+        addCell(row, text(c.category));
+        addCell(row, `${text(c.duration_minutes || 60)} min`);
+        addCell(row, money(audFromCents(c.price_aud_cents)));
+        appendPill(addCell(row), itemStatus(c));
+        const actions = document.createElement('div');
+        actions.className = 'action-row';
+        addActionButton(actions, 'Edit', 'btn-secondary btn-sm', () => editCourse(c.id));
+        if (isActiveItem(c)) addActionButton(actions, 'Archive', 'btn-danger btn-sm', () => archiveCourse(c.id));
+        addCell(row).appendChild(actions);
+        tbody.appendChild(row);
+      });
     }
 
     function resetCourseForm() {
@@ -2268,14 +2372,26 @@
 
     function renderPackages() {
       const sorted = [...packages].sort((a, b) => Number(isActiveItem(b)) - Number(isActiveItem(a)) || Number(a.price_aud_cents || 0) - Number(b.price_aud_cents || 0));
-      $('packagesBody').innerHTML = sorted.map((p) => `<tr>
-        <td><strong>${esc(p.name)}</strong></td>
-        <td>${esc(text(p.credits))}</td>
-        <td>${p.expires_after_days ? `${esc(p.expires_after_days)} days` : 'No expiry'}</td>
-        <td>${money(audFromCents(p.price_aud_cents))}</td>
-        <td>${pill(itemStatus(p))}</td>
-        <td><div class="action-row"><button class="btn-secondary btn-sm" onclick="editPackage('${p.id}')">Edit</button>${isActiveItem(p) ? `<button class="btn-danger btn-sm" onclick="archivePackage('${p.id}')">Archive</button>` : ''}</div></td>
-      </tr>`).join('') || emptyRow(6, 'No packages yet. Add a credit package for families to buy.');
+      const tbody = $('packagesBody');
+      tbody.replaceChildren();
+      if (!sorted.length) {
+        appendEmptyRow(tbody, 6, 'No packages yet. Add a credit package for families to buy.');
+        return;
+      }
+      sorted.forEach((p) => {
+        const row = document.createElement('tr');
+        addStrongMuted(addCell(row), p.name);
+        addCell(row, text(p.credits));
+        addCell(row, p.expires_after_days ? `${text(p.expires_after_days)} days` : 'No expiry');
+        addCell(row, money(audFromCents(p.price_aud_cents)));
+        appendPill(addCell(row), itemStatus(p));
+        const actions = document.createElement('div');
+        actions.className = 'action-row';
+        addActionButton(actions, 'Edit', 'btn-secondary btn-sm', () => editPackage(p.id));
+        if (isActiveItem(p)) addActionButton(actions, 'Archive', 'btn-danger btn-sm', () => archivePackage(p.id));
+        addCell(row).appendChild(actions);
+        tbody.appendChild(row);
+      });
     }
 
     function resetPackageForm() {
@@ -2334,46 +2450,117 @@
     }
 
     function renderRegistrations() {
-      $('registrationsBody').innerHTML = registrations.map((r) => `<tr>
-        <td><strong>${esc([r.first_name, r.last_name].filter(Boolean).join(' ') || 'Student')}</strong><br><span class="text-muted">${esc(text(r.parent_name))} · ${esc(text(r.mobile || r.email))}</span>${r.student_id ? `<br><span class="text-muted">Linked student: ${esc(r.student_id)}</span>` : ''}</td>
-        <td>${esc(text(r.message))}</td>
-        <td>${pill(r.status)}</td>
-        <td>${r.duplicate_of_registration_id ? `<span class="text-muted">Duplicate of ${esc(r.duplicate_of_registration_id)}</span><br>` : ''}${esc(text(r.review_note))}</td>
-        <td>${esc(dateOnly(r.submitted_at))}</td>
-        <td><div class="action-row">${r.status === 'pending' ? `<button class="btn-info btn-sm" onclick="updateRegistrationStatus('${r.id}', 'contacted')">Contacted</button><button class="btn-success btn-sm" onclick="updateRegistrationStatus('${r.id}', 'approved')">Approve</button><button class="btn-danger btn-sm" onclick="updateRegistrationStatus('${r.id}', 'rejected')">Reject</button><button class="btn-danger btn-sm" onclick="updateRegistrationStatus('${r.id}', 'archived')">Archive</button>` : ''}</div></td>
-      </tr>`).join('') || emptyRow(6, 'No registration requests yet.');
+      const tbody = $('registrationsBody');
+      tbody.replaceChildren();
+      if (!registrations.length) {
+        appendEmptyRow(tbody, 6, 'No registration requests yet.');
+        return;
+      }
+      registrations.forEach((r) => {
+        const row = document.createElement('tr');
+        const nameCell = addCell(row);
+        addStrongMuted(nameCell, [r.first_name, r.last_name].filter(Boolean).join(' ') || 'Student', `${text(r.parent_name)} · ${text(r.mobile || r.email)}`);
+        if (r.student_id) {
+          nameCell.appendChild(document.createElement('br'));
+          const linked = document.createElement('span');
+          linked.className = 'text-muted';
+          linked.textContent = `Linked student: ${text(r.student_id)}`;
+          nameCell.appendChild(linked);
+        }
+        addCell(row, text(r.message));
+        appendPill(addCell(row), r.status);
+        const reviewCell = addCell(row);
+        if (r.duplicate_of_registration_id) {
+          const dup = document.createElement('span');
+          dup.className = 'text-muted';
+          dup.textContent = `Duplicate of ${text(r.duplicate_of_registration_id)}`;
+          reviewCell.appendChild(dup);
+          reviewCell.appendChild(document.createElement('br'));
+        }
+        reviewCell.appendChild(document.createTextNode(text(r.review_note)));
+        addCell(row, dateOnly(r.submitted_at) || '');
+        const actions = document.createElement('div');
+        actions.className = 'action-row';
+        if (r.status === 'pending') {
+          addActionButton(actions, 'Contacted', 'btn-info btn-sm', () => updateRegistrationStatus(r.id, 'contacted'));
+          addActionButton(actions, 'Approve', 'btn-success btn-sm', () => updateRegistrationStatus(r.id, 'approved'));
+          addActionButton(actions, 'Reject', 'btn-danger btn-sm', () => updateRegistrationStatus(r.id, 'rejected'));
+          addActionButton(actions, 'Archive', 'btn-danger btn-sm', () => updateRegistrationStatus(r.id, 'archived'));
+        }
+        addCell(row).appendChild(actions);
+        tbody.appendChild(row);
+      });
     }
 
     function renderDashboardTasks() {
       const pending = registrations.filter((r) => r.status === 'pending');
       const low = lowBalanceStudents();
       $('dashboardTodayBody').classList.toggle('empty-state', attendanceItems.length === 0);
-      $('dashboardTodayBody').innerHTML = attendanceItems.length
-        ? attendanceItems.slice(0, 5).map((a) => `<div class="detail-row"><strong>${esc(text(a.student_name))}</strong><span class="text-muted">${esc(text(a.course_name || 'Attendance'))}</span></div>`).join('')
-        : 'No check-ins today.';
+      $('dashboardTodayBody').replaceChildren();
+      if (attendanceItems.length) {
+        attendanceItems.slice(0, 5).forEach((a) => {
+          const item = document.createElement('div');
+          item.className = 'detail-row';
+          addStrongMuted(item, a.student_name, a.course_name || 'Attendance');
+          $('dashboardTodayBody').appendChild(item);
+        });
+      } else {
+        $('dashboardTodayBody').textContent = 'No check-ins today.';
+      }
       $('dashboardAttentionBody').classList.toggle('empty-state', pending.length === 0 && low.length === 0);
-      $('dashboardAttentionBody').innerHTML = [
-        pending.length ? `<div><strong>${pending.length}</strong> pending registration${pending.length === 1 ? '' : 's'}</div>` : '',
-        low.length ? `<div><strong>${low.length}</strong> low-balance student${low.length === 1 ? '' : 's'}</div>` : ''
-      ].filter(Boolean).join('') || 'No urgent items.';
+      $('dashboardAttentionBody').replaceChildren();
+      [
+        pending.length ? `${pending.length} pending registration${pending.length === 1 ? '' : 's'}` : '',
+        low.length ? `${low.length} low-balance student${low.length === 1 ? '' : 's'}` : ''
+      ].filter(Boolean).forEach((label) => {
+        const item = document.createElement('div');
+        const count = document.createElement('strong');
+        const [number, ...rest] = label.split(' ');
+        count.textContent = number;
+        item.appendChild(count);
+        item.appendChild(document.createTextNode(` ${rest.join(' ')}`));
+        $('dashboardAttentionBody').appendChild(item);
+      });
+      if (!$('dashboardAttentionBody').childElementCount) $('dashboardAttentionBody').textContent = 'No urgent items.';
     }
 
     function renderAttendance() {
       const activeStudents = students.filter((s) => studentStatus(s) !== 'archived');
-      $('attendanceStudent').innerHTML = activeStudents.map((s) => `<option value="${esc(s.id)}">${esc(studentName(s))} · ${Number(s.balance || 0).toFixed(2)}</option>`).join('');
-      $('attendanceCourse').innerHTML = courses.filter(isActiveItem).map((c) => `<option value="${esc(c.id)}">${esc(c.name)} · ${Number(c.default_credit_debit || 1).toFixed(2)} credit</option>`).join('');
+      $('attendanceStudent').replaceChildren();
+      activeStudents.forEach((s) => addOption($('attendanceStudent'), s.id, `${studentName(s)} · ${Number(s.balance || 0).toFixed(2)}`));
+      $('attendanceCourse').replaceChildren();
+      courses.filter(isActiveItem).forEach((c) => addOption($('attendanceCourse'), c.id, `${text(c.name)} · ${Number(c.default_credit_debit || 1).toFixed(2)} credit`));
       const low = lowBalanceStudents();
       $('attendanceLowBalance').classList.toggle('empty-state', low.length === 0);
-      $('attendanceLowBalance').innerHTML = low.length
-        ? low.slice(0, 8).map((s) => `<div class="detail-row"><strong>${esc(studentName(s))}</strong><span class="text-muted">${Number(s.balance || 0).toFixed(2)} credits</span></div>`).join('')
-        : 'No low-balance students.';
-      $('attendanceBody').innerHTML = attendanceItems.map((a) => `<tr>
-        <td><strong>${esc(text(a.student_name))}</strong></td>
-        <td>${esc(text(a.course_name || 'General'))}</td>
-        <td>${Number(a.consumed_credits || 0).toFixed(2)}</td>
-        <td>${a.reversed_at ? pill('refunded') : pill('active')}</td>
-        <td><div class="action-row">${a.reversed_at ? '' : `<button class="btn-danger btn-sm" onclick="voidAttendance('${a.id}')">Undo</button>`}</div></td>
-      </tr>`).join('') || emptyRow(5, 'No check-ins today.');
+      $('attendanceLowBalance').replaceChildren();
+      if (low.length) {
+        low.slice(0, 8).forEach((s) => {
+          const item = document.createElement('div');
+          item.className = 'detail-row';
+          addStrongMuted(item, studentName(s), `${Number(s.balance || 0).toFixed(2)} credits`);
+          $('attendanceLowBalance').appendChild(item);
+        });
+      } else {
+        $('attendanceLowBalance').textContent = 'No low-balance students.';
+      }
+      const tbody = $('attendanceBody');
+      tbody.replaceChildren();
+      if (!attendanceItems.length) {
+        appendEmptyRow(tbody, 5, 'No check-ins today.');
+      } else {
+        attendanceItems.forEach((a) => {
+          const row = document.createElement('tr');
+          addStrongMuted(addCell(row), a.student_name);
+          addCell(row, text(a.course_name || 'General'));
+          addCell(row, Number(a.consumed_credits || 0).toFixed(2));
+          appendPill(addCell(row), a.reversed_at ? 'refunded' : 'active');
+          const actions = document.createElement('div');
+          actions.className = 'action-row';
+          if (!a.reversed_at) addActionButton(actions, 'Undo', 'btn-danger btn-sm', () => voidAttendance(a.id));
+          addCell(row).appendChild(actions);
+          tbody.appendChild(row);
+        });
+      }
       renderDashboardTasks();
     }
 
@@ -2426,13 +2613,35 @@
     }
 
     function renderPortfolio() {
-      $('portfolioBody').innerHTML = portfolioItems.map((p) => `<tr>
-        <td>${p.url || p.image_url ? `<img class="img-preview" src="${esc(p.url || p.image_url)}" alt="${esc(p.title || 'Portfolio')}">` : '-'}</td>
-        <td><strong>${esc(text(p.title))}</strong><br><span class="text-muted">${esc(text(p.description))}</span></td>
-        <td>${esc(text(p.student_name || p.student_id))}</td>
-        <td>${pill(p.visibility || p.status || 'visible')}</td>
-        <td><div class="action-row"><button class="btn-secondary btn-sm" onclick="viewPortfolio('${p.id}')">View</button><button class="btn-danger btn-sm" onclick="deletePortfolio('${p.id}', '${String(p.title || 'portfolio item').replace(/'/g, "\\'")}')">Delete</button></div></td>
-      </tr>`).join('') || emptyRow(5, 'No portfolio items yet.');
+      const tbody = $('portfolioBody');
+      tbody.replaceChildren();
+      if (!portfolioItems.length) {
+        appendEmptyRow(tbody, 5, 'No portfolio items yet.');
+        return;
+      }
+      portfolioItems.forEach((p) => {
+        const row = document.createElement('tr');
+        const imageCell = addCell(row);
+        const src = safeImageUrl(p.url || p.image_url);
+        if (src) {
+          const img = document.createElement('img');
+          img.className = 'img-preview';
+          img.src = src;
+          img.alt = text(p.title || 'Portfolio');
+          imageCell.appendChild(img);
+        } else {
+          imageCell.textContent = '-';
+        }
+        addStrongMuted(addCell(row), p.title, p.description);
+        addCell(row, text(p.student_name || p.student_id));
+        appendPill(addCell(row), p.visibility || p.status || 'visible');
+        const actions = document.createElement('div');
+        actions.className = 'action-row';
+        addActionButton(actions, 'View', 'btn-secondary btn-sm', () => viewPortfolio(p.id));
+        addActionButton(actions, 'Delete', 'btn-danger btn-sm', () => deletePortfolio(p.id, p.title || 'portfolio item'));
+        addCell(row).appendChild(actions);
+        tbody.appendChild(row);
+      });
     }
 
     function viewPortfolio(id) {
@@ -2532,17 +2741,28 @@
       localStorage.setItem('studiosaas_tenant_slug', currentTenantSlug());
       setLoadingState(true);
       try {
-        const [tenantData, dashboardData, studentData, courseData, packageData, registrationData, portfolioData, attendanceData, planData] = await Promise.all([
-          api('/tenant'), api('/dashboard'), api(studentListPath()), api('/courses'), api('/packages'), api('/registrations'), api('/portfolio'), api(`/attendance?date=${todayIso()}`), authApi('/plans')
+        const [tenantData, dashboardData, studentData] = await Promise.all([
+          api('/tenant'), api('/dashboard'), api(studentListPath())
         ]);
+        const secondary = await Promise.allSettled([
+          api('/courses'),
+          api('/packages'),
+          api('/registrations'),
+          api('/portfolio'),
+          api(`/attendance?date=${todayIso()}`),
+          authApi('/plans')
+        ]);
+        const [courseData, packageData, registrationData, portfolioData, attendanceData, planData] =
+          secondary.map((result) => result.status === 'fulfilled' ? result.value : null);
+        const failedSecondary = secondary.filter((result) => result.status === 'rejected');
         tenant = tenantData.tenant || tenantData.settings || {};
-        plans = planData.plans || [];
+        if (planData) plans = planData.plans || [];
         students = studentData.students || [];
-        courses = courseData.courses || [];
-        packages = packageData.packages || [];
-        registrations = registrationData.registrations || [];
-        portfolioItems = portfolioData.portfolio || portfolioData.items || [];
-        attendanceItems = attendanceData.attendance || [];
+        if (courseData) courses = courseData.courses || [];
+        if (packageData) packages = packageData.packages || [];
+        if (registrationData) registrations = registrationData.registrations || [];
+        if (portfolioData) portfolioItems = portfolioData.portfolio || portfolioData.items || [];
+        if (attendanceData) attendanceItems = attendanceData.attendance || [];
         const dashboard = dashboardData.dashboard || {};
         $('studentsMetric').textContent = dashboard.students ?? students.length;
         $('activeMetric').textContent = dashboard.active_students ?? students.filter((s) => studentStatus(s) === 'active').length;
@@ -2556,6 +2776,10 @@
         renderRegistrations();
         renderAttendance();
         renderPortfolio();
+        if (failedSecondary.length) {
+          const firstError = failedSecondary[0].reason || {};
+          showToast(`Loaded core Studio Admin. Some sections need retry: ${firstError.message || 'secondary API failed'}`, 'warn');
+        }
       } catch (err) {
         if (err.status === 401) setAuthState(null);
         showToast(`Failed to load Studio Admin: ${err.message}`, 'error');

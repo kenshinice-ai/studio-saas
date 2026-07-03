@@ -2,7 +2,7 @@ import errno, json, os, re, shutil, socket, time, secrets, hashlib
 from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, send_from_directory, session
 from threading import Lock
-from studiosaas import api_v1, api_v1_by_slug
+from studiosaas import api_v1
 from studiosaas.auth import init_auth_blueprints
 from studiosaas.errors import api_error
 from studiosaas.workspaces import RESERVED_SLUGS, WorkspaceError, validate_tenant_slug
@@ -62,7 +62,7 @@ def _register_ok():      return _rate_ok('register', 5, 60)   # P1: stop pending
 app = Flask(__name__, static_folder=None)
 init_auth_blueprints(app)
 app.register_blueprint(api_v1, url_prefix='/v1')
-app.register_blueprint(api_v1_by_slug, url_prefix='/s/<tenant_slug>/v1')
+app.register_blueprint(api_v1, url_prefix='/s/<path_tenant_slug>/v1', name='studiosaas_api_v1_by_slug')
 PORT          = int(os.environ.get('PORT', 8000))   # overridable for tests
 APP_DIR       = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT  = os.environ.get('STUDIOSAAS_PROJECT_ROOT', '').strip() or os.path.dirname(APP_DIR)
@@ -678,6 +678,41 @@ def serve_manifest():
 @app.route('/manifest-student.json')
 def serve_manifest_student():
     return _public_file('manifest-student.json', 'application/manifest+json', 0)
+
+@app.route('/<tenant_slug>/manifest-student.json')
+def serve_tenant_manifest_student(tenant_slug):
+    try:
+        validate_tenant_slug(tenant_slug)
+    except WorkspaceError:
+        return api_error('Not found', 404)
+    tenant_file = os.path.join(PROJECT_ROOT, 'tenants', tenant_slug, 'tenant.json')
+    if not os.path.isfile(tenant_file):
+        return api_error('Not found', 404)
+    with open(tenant_file, 'r', encoding='utf-8') as f:
+        tenant = json.load(f)
+    name = str(tenant.get('name') or tenant_slug)
+    manifest = {
+        'name': f'{name} Student Portal',
+        'short_name': name[:24],
+        'description': f'{name} student registration, balance, and portfolio portal',
+        'id': f'/{tenant_slug}/register',
+        'start_url': f'/{tenant_slug}/register',
+        'scope': f'/{tenant_slug}/',
+        'display': 'standalone',
+        'orientation': 'portrait',
+        'background_color': '#fffdf9',
+        'theme_color': '#fffdf9',
+        'lang': 'zh-CN',
+        'icons': [
+            {'src': '/icon-192.png', 'sizes': '192x192', 'type': 'image/png', 'purpose': 'any'},
+            {'src': '/icon-512.png', 'sizes': '512x512', 'type': 'image/png', 'purpose': 'any'},
+            {'src': '/icon-512.png', 'sizes': '512x512', 'type': 'image/png', 'purpose': 'maskable'},
+        ],
+    }
+    resp = jsonify(manifest)
+    resp.headers['Content-Type'] = 'application/manifest+json'
+    resp.headers['Cache-Control'] = 'public, max-age=0'
+    return resp
 
 @app.route('/sw.js')
 def serve_sw():

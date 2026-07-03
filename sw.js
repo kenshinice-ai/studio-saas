@@ -2,11 +2,10 @@
  * Network-only for app/API data; icon/logo cache only.
  * Bump CACHE_VERSION whenever PWA assets or icons change.
  */
-const CACHE_VERSION = 'v4.3.3-aws';
+const CACHE_VERSION = 'v4.3.4-tenant-pwa';
 const ICON_CACHE = `lpcms-assets-${CACHE_VERSION}`;
 const ASSETS = [
-  '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png',
-  '/logo.png', '/logo-light.png', '/manifest.json', '/manifest-student.json'
+  '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png', '/manifest.json'
 ];
 
 self.addEventListener('install', (e) => {

@@ -1,8 +1,8 @@
 {
-  "name": "Let's Paint Student Portal",
-  "short_name": "Let's Paint",
-  "description": "Let's Paint Studio 学员注册、余额查询与作品集入口",
-  "start_url": "/register",
+  "name": "StudioSaaS Student Portal",
+  "short_name": "StudioSaaS",
+  "description": "Tenant student registration, balance, and portfolio portal",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",

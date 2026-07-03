@@ -26,6 +26,21 @@ def test_tenant_reads_require_auth(client, path):
     assert client.get(path).status_code == 401
 
 
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/s/lets-paint-studio/v1/tenant",
+        "/s/lets-paint-studio/v1/dashboard",
+        "/s/lets-paint-studio/v1/students",
+    ],
+)
+def test_studio_admin_slug_routes_reach_auth_layer(client, path):
+    """Studio Admin slug API routes must not fall through to Flask 404."""
+
+    response = client.get(path)
+    assert response.status_code == 401
+
+
 MUTATIONS = [
     ("POST", "/v1/admin/tenants"),
     ("PATCH", "/s/demo/v1/tenant"),
