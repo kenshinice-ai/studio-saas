@@ -246,6 +246,22 @@ curl -sS \
 
 ---
 
+## 10.2 Endpoints added in the A/B sprint (2026-07-03)
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| POST | `/v1/admin/tenants/{id}/password-setup-link` | Super admin | One-time studio-admin password link (24h, single use) |
+| POST | `/v1/auth/setup-password` | None (token) | Complete a password-setup link |
+| POST | `/v1/admin/tenants/{id}/support-session` | Super admin | Enter support mode (reason required, audited) |
+| POST | `/v1/admin/support-session/end` | Session | Exit support mode |
+| GET | `/s/<slug>/v1/export/{students,registrations,credit-ledger}.csv` | Tenant admin | CSV export (audited) |
+| GET/POST | `/s/<slug>/v1/students/{id}/share-links` | Tenant admin | List/create portfolio share links (1–90 days) |
+| POST | `/s/<slug>/v1/share-links/{id}/revoke` | Tenant admin | Revoke a share link |
+| GET | `/v1/public/portfolio/{token}` | None (token) | Shared portfolio JSON (viewer page: `/shared/portfolio`) |
+| GET | `/v1/public/{slug}/programs` | None | Public course catalogue for the landing page |
+
+Pages: `/setup-password`, `/shared/portfolio`, and `/<slug>` now serves the generated landing page (CMS at `/<slug>/cms`).
+
 ## 11. Legacy CMS Bridge
 
 | Method | Endpoint | Auth | Description |

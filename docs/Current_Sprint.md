@@ -46,6 +46,22 @@ These items from earlier sprint docs are confirmed done — do not re-fix:
 | P0-06 | Route audit (146 routes): mutations were safe; 12 unauthenticated tenant GET reads fixed | ✅ Done 2026-07-03 |
 | P0-07 | Enum alignment verified; `archived`/`trialing` decisions recorded in Database.md §3 | ✅ Done 2026-07-03 |
 
+### A/B Sprint — codingprompt v3 (completed 2026-07-03)
+
+| ID | Task | Status |
+|---|---|---|
+| A1 | Commit in-flight work; tenants/ tracking policy; dance-dance seeded (`--only-slug`) | ✅ |
+| A2 | last_login tracking + one-time password setup links (migration 0006) | ✅ |
+| A3 | Server-side pagination for students/registrations + UI pager | ✅ |
+| A4 | CSRF guard (X-Requested-With on cookie-authed v1 mutations) | ✅ |
+| A5 | Login UX (remember me, 429, pw toggle) + idle session policy 24h/30d | ✅ |
+| A6 | Shared /assets/ui-common.js (esc + fetch patch) + escaping check in verify | ✅ |
+| B1 | CSV export: students / registrations / credit ledger (audited) | ✅ |
+| B2 | Durable portfolio share links + /shared/portfolio public viewer | ✅ |
+| B3 | Email notifications v1 (console/SMTP; registration received/approved/rejected) | ✅ |
+| B4 | Support mode with mandatory reason + audit tagging + banner | ✅ |
+| B5 | Tenant root = public landing page; /v1/public/<slug>/programs; CMS stays at /cms | ✅ |
+
 ### P1 — Engineering quality and business loops
 
 | ID | Task | Status |
