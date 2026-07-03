@@ -1234,6 +1234,17 @@
         </div>
       </div>
       <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Data Export</h2>
+        </div>
+        <p class="text-muted" style="margin:0 0 12px;font-size:13px;">Download this studio's data as CSV (Excel-compatible). Exports are recorded in the audit log.</p>
+        <div class="action-row">
+          <button type="button" class="btn-secondary btn-sm" onclick="downloadExport('students')">Students CSV</button>
+          <button type="button" class="btn-secondary btn-sm" onclick="downloadExport('registrations')">Registrations CSV</button>
+          <button type="button" class="btn-secondary btn-sm" onclick="downloadExport('credit-ledger')">Credit Ledger CSV</button>
+        </div>
+      </div>
+      <div class="card">
         <div class="brand-preview">
           <img id="logoPreview" class="img-preview" alt="Studio logo" src="/logo.png">
           <div>
@@ -1948,6 +1959,12 @@
         toggle.textContent = showing ? 'Show' : 'Hide';
       });
     })();
+
+    function downloadExport(kind) {
+      const slug = currentTenantSlug();
+      if (!slug) { showToast('Tenant slug is required.', 'error'); return; }
+      window.open(`/s/${encodeURIComponent(slug)}/v1/export/${kind}.csv`, '_blank');
+    }
 
     async function logoutStudioAdmin() {
       await authApi('/auth/logout', { method: 'POST' }).catch(() => {});

@@ -14,7 +14,10 @@ import hashlib
 import uuid as _uuid
 from pathlib import PurePath
 
-from flask import Blueprint, current_app, g, jsonify, request, send_from_directory
+import csv as _csv
+import io as _io
+
+from flask import Blueprint, Response, current_app, g, jsonify, request, send_from_directory
 from werkzeug.utils import secure_filename
 
 from .auth import (
@@ -83,6 +86,28 @@ def _record_login(conn, user_id) -> None:
             "UPDATE users SET last_login_at = now() WHERE id = %s",
             (user_id,),
         )
+
+
+def _csv_response(filename: str, header: list, rows) -> Response:
+    """Stream rows as a CSV attachment with a UTF-8 BOM (Excel-friendly)."""
+
+    def generate():
+        buf = _io.StringIO()
+        writer = _csv.writer(buf)
+        yield "\ufeff"  # UTF-8 BOM so Excel opens the file correctly
+        writer.writerow(header)
+        yield buf.getvalue()
+        buf.seek(0)
+        buf.truncate(0)
+        for row in rows:
+            writer.writerow(row)
+            yield buf.getvalue()
+            buf.seek(0)
+            buf.truncate(0)
+
+    resp = Response(generate(), mimetype="text/csv")
+    resp.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return resp
 
 
 def _start_session_policy(flask_session, payload) -> None:
@@ -3991,6 +4016,105 @@ def check_in_attendance():
             "creditsConsumed": debit,
         }
     ), 201
+
+
+# ──────────────────────────────────────────────
+# B1: CSV data export (tenant admin)
+# ──────────────────────────────────────────────
+
+def _export_audit(conn, tenant, export_type: str, row_count: int) -> None:
+    _audit_request(
+        conn,
+        tenant_id=tenant.tenant_id,
+        action="data.exported",
+        resource_type="export",
+        metadata={"type": export_type, "rows": row_count},
+    )
+    conn.commit()
+
+
+@api_v1.route("/export/students.csv", methods=["GET"])
+@tenant_admin_required
+def export_students_csv():
+    """Download all students (with balances) as CSV."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        rows = fetch_all(
+            conn,
+            """
+            SELECT s.display_name, s.first_name, s.last_name, s.status,
+                   s.parent_name, s.mobile, s.email,
+                   COALESCE(ca.balance, 0)::float AS balance,
+                   s.created_at
+            FROM students s
+            LEFT JOIN credit_accounts ca
+              ON ca.tenant_id = s.tenant_id AND ca.student_id = s.id AND ca.course_id IS NULL
+            WHERE s.tenant_id = %s
+            ORDER BY lower(s.display_name)
+            """,
+            (tenant.tenant_id,),
+        )
+        _export_audit(conn, tenant, "students", len(rows))
+    header = ["Name", "First Name", "Last Name", "Status", "Parent", "Mobile", "Email", "Balance", "Created At"]
+    data = ([r["display_name"], r["first_name"], r["last_name"], r["status"], r["parent_name"],
+             r["mobile"], r["email"], r["balance"], r["created_at"]] for r in rows)
+    return _csv_response(f"{tenant.slug}-students.csv", header, data)
+
+
+@api_v1.route("/export/registrations.csv", methods=["GET"])
+@tenant_admin_required
+def export_registrations_csv():
+    """Download all registrations as CSV."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        rows = fetch_all(
+            conn,
+            """
+            SELECT status, first_name, last_name, parent_name, mobile, email,
+                   message, review_note, submitted_at, reviewed_at
+            FROM registrations
+            WHERE tenant_id = %s
+            ORDER BY submitted_at DESC
+            """,
+            (tenant.tenant_id,),
+        )
+        _export_audit(conn, tenant, "registrations", len(rows))
+    header = ["Status", "First Name", "Last Name", "Parent", "Mobile", "Email",
+              "Message", "Review Note", "Submitted At", "Reviewed At"]
+    data = ([r["status"], r["first_name"], r["last_name"], r["parent_name"], r["mobile"], r["email"],
+             r["message"], r["review_note"], r["submitted_at"], r["reviewed_at"]] for r in rows)
+    return _csv_response(f"{tenant.slug}-registrations.csv", header, data)
+
+
+@api_v1.route("/export/credit-ledger.csv", methods=["GET"])
+@tenant_admin_required
+def export_credit_ledger_csv():
+    """Download the full credit transaction ledger as CSV."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        rows = fetch_all(
+            conn,
+            """
+            SELECT ct.occurred_at, s.display_name AS student, c.name AS course,
+                   ct.transaction_type, ct.amount::float AS amount,
+                   ct.balance_after::float AS balance_after, ct.note
+            FROM credit_transactions ct
+            LEFT JOIN students s ON s.id = ct.student_id
+            LEFT JOIN credit_accounts ca ON ca.id = ct.account_id
+            LEFT JOIN courses c ON c.id = ca.course_id
+            WHERE ct.tenant_id = %s
+            ORDER BY ct.occurred_at DESC
+            """,
+            (tenant.tenant_id,),
+        )
+        _export_audit(conn, tenant, "credit-ledger", len(rows))
+    header = ["Occurred At", "Student", "Course", "Type", "Amount", "Balance After", "Note"]
+    data = ([r["occurred_at"], r["student"], r["course"], r["transaction_type"],
+             r["amount"], r["balance_after"], r["note"]] for r in rows)
+    return _csv_response(f"{tenant.slug}-credit-ledger.csv", header, data)
 
 
 @api_v1.route("/attendance/<attendance_id>/void", methods=["POST"])
