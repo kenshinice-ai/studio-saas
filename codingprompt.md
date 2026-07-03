@@ -1,330 +1,172 @@
-# StudioSaaS Project Audit + Improvement Sprint Prompt (v2)
+# StudioSaaS Improvement Sprint Prompt (v3)
 
-Version: v2.0
+Version: v3.0
 Date: 2026-07-03
-Supersedes: codingprompt.md v1（v1 在 P0-01 中途截断，本文件为完整重写版）
+Supersedes: codingprompt.md v2（P0-01…P0-07 已全部完成；v2 全文见 git 历史 commit 81ec23f。媒体上传、考勤闭环、注册审核、租户归档、备份脚本已在后续提交中落地）
 
-你现在接手的是 StudioSaaS 多租户 creative studio CMS/SaaS 项目。
-项目已经过多轮修改，当前目标不是盲目新增功能，而是做一次系统性审计、修复、整理和提升。
-本文件是当前开发周期的**唯一任务清单来源**。产品与技术规范见 `docs/`。
+你接手的是 StudioSaaS 多租户 creative studio SaaS。本文件是**当前开发周期的唯一任务清单**，基于 2026-07-03 晚的全量代码复审（每条任务附证据）。产品与技术规范见 `docs/`，状态跟踪见 `docs/Current_Sprint.md`。
 
----
+## 工作规则
 
-## 0. 文档体系（单一事实来源）
-
-| 文件 | 用途 |
-|---|---|
-| `README.md` | 项目入口、快速启动、规范速查 |
-| `codingprompt.md`（本文件） | 按优先级排列的任务清单 P0 → P3 |
-| `docs/Current_Sprint.md` | 本清单的状态跟踪表（同一编号体系） |
-| `docs/StudioSaaS_Blueprint_v2.md` | 产品愿景、定位、商业模型 |
-| `docs/Architecture.md` | 现状架构 + 目标架构（§7 Target Architecture） |
-| `docs/Database.md` | schema、枚举值的规范来源 |
-| `docs/API.md` | API 端点参考与路由保护表 |
-| `docs/Development_Roadmap.md` | 阶段规划、目标技术栈的落位 |
-| `docs/QA_Checklist.md` | 发布前检查清单 |
-| `docs/Admin_Guide.md` | 平台运维手册 |
-| `docs/Design_System.md` | UI token 与组件规范 |
-
-**规则：文档与代码矛盾时，以代码实际行为为准，修复其一并同步另一者。**
-
----
-
-## 1. 目标架构参照（StudioSaaS v2 架构总览图）
-
-目标架构详见 `docs/Architecture.md` §7。要点：
-
-- 分层：用户角色 → 前端门户（CMS / Register / Parent / Teacher / Studio Admin / Super Admin）→ API Gateway → 后端服务模块 → 数据层。
-- 服务模块边界：Auth / Tenant / User / Student / Course / Package / Attendance / Payment / Credit / Portfolio / CRM / Notification / Report / AI / File。
-- 关键业务流程：
-  - 报名流：Public Register → Registration Created → Studio Review → Approve? → Yes: Create Student / No: Archive
-  - 课时流：Student Buy Package → Payment Success → Add Credits → Use Credits → Attend Class
-
-**采纳策略（重要）：**
-
-1. 现阶段保持 **Flask 单体**，但内部代码按上述模块边界组织（modular monolith）。P2-01 的拆分以此为蓝图。
-2. Pilot 阶段**明确不引入**：FastAPI 重写、微服务拆分、Redis、Elasticsearch、ClickHouse、消息队列、读副本、SQLAlchemy。这些是 Phase 3–5 的目标态（见 Roadmap）。
-3. `media_assets.storage_provider` 字段已为 S3 预留，媒体服务抽象（P1-03）应保持该扩展点。
-4. 架构图中的 ER 图是简化示意（例如 users 带 role 列）；**实际 schema 以 `backend/db/schema_v1.sql` 为准**（角色在 memberships 上）。
-
----
-
-## 2. 忽略清单（不要报告为问题、不要恢复）
-
-- 工作区中以下删除是**用户有意为之**：`docs/archive/`、`letspaint-cms-release/`、根级旧文档（LOCAL_DEPLOYMENT.md、StudioSaaS_MVP_Blueprint_v1.md、TENANT_ROUTING_AND_STRUCTURE.md 等）、checkpoints 旧 patch。P0-04 只需将其 commit 定格。
-- `.venv/`、`__pycache__/`、`*.bak`、`.DS_Store` 等本地产物。
-
----
-
-## 3. 工作规则
-
-1. 严格按 P0 → P1 → P2 → P3 顺序执行，禁止跳级做视觉优化。
-2. 每完成一项，运行该项的验证命令，并报告：**改动文件 / 验证结果 / 风险 / 下一步**。
-3. 不做一次性大重写。大文件渐进拆分，每步可回退。
-4. 每个 P0 项完成后，同步更新 `docs/Current_Sprint.md` 的状态表。
-5. 涉及 schema 变更的项必须走迁移文件（P0-03 之后），禁止直接改 `schema_v1.sql` 后手工同步数据库。
-
----
-
-## 4. 已核实现状快照（2026-07-03 代码级审计）
-
-> **进度更新（2026-07-03 晚）：P0-01 至 P0-07 已全部完成并验证**，逐项状态见 `docs/Current_Sprint.md` §3。下一个任务从 P1-02 开始（P1-01 文档同步已完成）。本节以下描述保留为当时的审计记录。
-
-以下结论逐项核实过，**旧文档中与此矛盾的状态标注一律以本节为准**：
-
-✅ 已完成 / 已存在：
-- 公共端点限流已实现（注册 5 次/分、余额查询 10 次/分、上传 5 次/分，进程内存实现，`api_v1.py` `_public_rate_limit`）
-- dict_row 元组索引 bug 已清零（grep 无 `fetchone()[0]` / `row[0]`）
-- portfolio DELETE 已有独立路由（`api_v1.py:3473`）
-- credit_accounts 已用 `ON CONFLICT (tenant_id, student_id, course_id)`（`api_v1.py:2482`）
-- 根 `.gitignore` 已存在且覆盖较全
-- `python3 -m py_compile` 全量通过
-- HTML 界面中 "Let's Paint" 品牌残留已清零（仅剩 `sw.js`）
-
-❌ 已确认的问题（对应下方任务）：
-- 角色枚举三处不一致 + seed 更新不存在的列（P0-01）
-- pytest 未安装、pytest.ini 重复键、tests/ 目录不存在（P0-02）
-- 迁移 runner 不存在（P0-03）
-- checkpoints patch 仍被 git 跟踪、根目录杂物、删除未提交（P0-04）
-- `/v1/auth/login` 无限流（P0-05）
-- 约 114 条路由仅 8 处保护装饰器，覆盖未经审计（P0-06）
-- 状态/可见性枚举跨层不一致（P0-07）
-- `attendance_sessions` 已接入正式 API；签到/撤销与 credit ledger 可追踪（P1-05）
-
----
-
-# P0 — 数据一致性与安全（必须先做）
-
-## P0-01 — 统一角色模型
-
-**问题：** 角色定义在 schema、Python、seed 脚本三处互相矛盾。
-
-**证据：**
-- `backend/db/schema_v1.sql:52` — `memberships.role CHECK (role IN ('super_admin','owner','staff','parent'))`；`users` 表**没有 role 列**。
-- `backend/studiosaas/models.py` — Role 枚举含 `platform_super_admin` 和 `admin`，两者永远无法写入数据库。
-- `backend/studiosaas/auth.py:177` — 查询 `role IN ('platform_super_admin','super_admin')`，前者是死条件。
-- `backend/scripts/seed_super_admin.py:93` — `ON CONFLICT ... SET updated_at = now()`，但 memberships 表**没有 updated_at 列**。
-- seed 采用"给每个已存在租户逐条插 super_admin membership"的模型：新建租户后平台管理员不会自动获得权限。
-
-**修复（第一步让代码迁就 schema，扩枚举留待 P0-03 迁移就绪后）：**
-1. Role 枚举收敛到 schema 现有 4 值，或保留 6 值但显式区分"DB 合法子集"。
-2. 删除 auth.py 中 `platform_super_admin` 死查询分支。
-3. 修复 seed_super_admin.py 的 `updated_at` 引用。
-4. 决策平台管理员表示法（二选一，写入 Database.md 决策记录）：
-   - A（推荐）：`memberships.tenant_id IS NULL` 表示平台级角色（需迁移放开约束逻辑，排 P0-03 后）；
-   - B：维持 per-tenant 模型，但在创建租户流程中自动为平台管理员补 membership。
-5. 同步 `docs/Database.md`、`README.md` 的角色描述。
-
-**验证：** `py_compile` 通过；重建数据库 → 全部 seed 脚本无报错 → super admin 登录 curl 成功；`pytest -q`（P0-02 后）。
-
-## P0-02 — 修复 pytest 基础设施
-
-**问题：** `pytest -q` 完全不可用。
-
-**证据：**
-- `.venv` 中未安装 pytest；`backend/requirements.txt` 不含 pytest。
-- `backend/pytest.ini` 存在**重复的 `norecursedirs` 键**（configparser 报 DuplicateOptionError）。
-- `testpaths = tests` 指向不存在的 `backend/tests/`。
-
-**修复：**
-1. 新增 `backend/requirements-dev.txt`（pytest，版本上限约束风格与 requirements.txt 一致）。
-2. 去重 pytest.ini。
-3. 创建 `backend/tests/`，放最小可运行用例（如 `/v1/health` 的 app test client 用例），保持 `test_cms.py` / `test_tenant_isolation.py` 脚本式运行不被收集。
-
-**验证：** `cd backend && ../.venv/bin/python -m pytest -q` 绿色通过。
-
-## P0-03 — 迁移运行器
-
-**问题：** 无迁移机制；README 曾引用不存在的 `scripts/run_migrations.py`。
-
-**修复（按 docs/Database.md §5 已有设计实现）：**
-1. `backend/db/migrations/0001_schema_v1.sql` 作为基线。
-2. `schema_migrations (version text PRIMARY KEY, applied_at timestamptz)` 表。
-3. `backend/scripts/run_migrations.py`：按序应用、跳过已应用、可重复运行、`--dry-run`。
-4. 对已存在的本地库提供基线标记方式（把 0001 标记为已应用而不重跑）。
-
-**验证：** 空库连续跑两遍无错且结果一致；现有库标记基线后跑一遍无副作用。
-
-## P0-04 — 仓库卫生收尾
-
-**问题：** 有意删除未提交定格；被跟踪与未跟踪的杂物混在工作区。
-
-**证据：**
-- `git ls-files` 仍跟踪 `checkpoints/*.patch|*.status`（.gitignore 只忽略 `checkpoints/*.tgz`）。
-- 根目录：`studiosaas.zip`（3.4MB）、`studiosaas plan.png`（1.6MB）、`super-admin.html.backup`；`backend/studiosaas/*.bak*`。
-- `docs/archive/`、`letspaint-cms-release/` 等删除停在工作区（用户确认有意，见 §2）。
-
-**修复：**
-1. commit 定格全部有意删除（单独一个 commit，信息注明 doc/legacy cleanup）。
-2. `.gitignore` 改为忽略整个 `checkpoints/`，`git rm --cached` 已跟踪的 patch/status。
-3. 移除或忽略根目录 zip/backup/bak 杂物（`studiosaas plan.png` 若需保留设计参考，移入 `docs/assets/`）。
-
-**验证：** `git status` 干净；`git ls-files | grep -E "(\.bak|checkpoints/|\.zip)"` 无输出。
-
-## P0-05 — 登录限流与失败审计
-
-**问题：** 公共端点已限流，但 `/v1/auth/login` 与 `/s/<slug>/v1/auth/legacy-login` 无任何限流；失败登录不落审计。README §16 明确要求。
-
-**修复：**
-1. 复用 `_public_rate_limit` 机制，对 login 做 IP + email 双维度限流（如 5 次/分/IP，10 次/时/email）。
-2. 失败登录写 `audit_logs`（action=`auth.login_failed`，不记录明文密码）。
-3. 在代码注释中说明内存限流的重启清零特性（pilot 可接受；生产换 Redis 时替换，见 P3-04）。
-
-**验证：** 连续错误密码 curl 触发 429；audit_logs 出现失败记录；正确凭据仍可登录。
-
-## P0-06 — 路由保护全量审计
-
-**问题：** `api_v1.py` + `server.py` 约 114 条路由，仅 8 处使用保护装饰器，其余依赖函数内手工检查——覆盖与否无人能证明。
-
-**修复：**
-1. 生成"路由 × 预期权限 × 实际检查方式"审计表（可写临时脚本遍历 `app.url_map`）。
-2. 对缺口路由补装饰器（`super_admin_required` / tenant 角色检查），公共端点显式标注 `# public by design`。
-3. 审计结果落入 `docs/API.md` §12 路由保护表。
-4. `test_tenant_isolation.py` 补充负向用例：未认证 mutation 全部 401/403；租户 A session 访问租户 B 资源 403。
-
-**验证：** 未认证 POST/PATCH/DELETE curl 逐条 401/403；隔离测试通过。
-
-## P0-07 — 状态与可见性枚举对齐
-
-**问题：** 同一概念在 schema、代码、UI、文档间取值不一致。
-
-**证据：**
-- `tenants.status` CHECK 无 `archived`（README v1 推荐 6 态含 archived）。
-- `subscriptions.status` 用 `trialing`，`tenants.status` 用 `trial`。
-- `media_assets.visibility` 仅 `('private','public_token')`，文档曾推荐 5 值。
-
-**修复：**
-1. 先在 `docs/Database.md` 建立"规范枚举表"，**如实记录现状 CHECK 值**为当前规范。
-2. 需要扩值的（archived、public 等）经 P0-03 迁移文件添加，逐个而非一次性。
-3. 核对 `super-admin.html` / studio-admin 下拉选项与 CHECK 值一致。
-
-**验证：** grep schema/代码/HTML 三方枚举一致；创建-暂停-恢复租户全流程 UI 操作无约束报错。
-
----
-
-# P1 — 工程质量与核心业务闭环
-
-## P1-01 — 文档同步 ✅（2026-07-03 已完成一轮）
-
-README.md、codingprompt.md（本文件）、docs/* 已按代码实况刷新。后续规则：每个 P0 项完成即更新 `docs/Current_Sprint.md`。
-
-## P1-02 — 租户隔离负向测试矩阵
-
-现有 `test_tenant_isolation.py` 为脚本式。纳入 pytest（P0-02 后），补全矩阵：租户 A 的 session 对租户 B 的 students / registrations / credits / portfolio / media 的读写全部 403；`X-Tenant-Slug` header 伪造不能越权。
-
-## P1-03 — v1 媒体上传端点 + 集中媒体服务（架构图 File Service）
-
-✅ Done 2026-07-03. 已实现 `POST /s/<slug>/v1/media/upload`，扩展名/MIME/magic byte/大小/路径穿越/租户配额校验集中到 `backend/studiosaas/services/media.py`；legacy 上传路径调用同一服务，保留 `storage_provider` 的 S3 扩展点。
-
-## P1-04 — 注册审核 → 学生转化闭环（架构图流程 5a）
-
-✅ Done 2026-07-03. `registrations.status` 已有 `pending/approved/rejected/duplicate/contacted/archived`；Studio Admin 支持待审队列、Approve 创建/关联 student、Reject/Archive 带 review note、重复报名标记为 duplicate，转化和决策动作写 audit_logs。
-
-## P1-05 — 课时闭环 + 考勤（架构图流程 5b）
-
-✅ Done 2026-07-03. 已实现：购买/加课时 → `purchase` 交易加课时 → 上课记录 attendance session 并产生 `consume` 交易 → 余额不足保护 → 撤销签到产生 `refund` 交易。`attendance_sessions.credit_transaction_id` / `reversal_credit_transaction_id` 可追踪账本来源。
-
-## P1-06 — Playwright 浏览器冒烟测试
-
-四条主链路：super admin 登录建租户；studio admin 登录建学生记课时；公共页提交注册；注册转化为学生。产出 `backend/tests/e2e/` 或独立 `e2e/` 目录 + 运行文档。
-
-## P1-07 — 备份/恢复脚本与 runbook
-
-✅ Done 2026-07-03. 新增 `backend/scripts/backup_postgres.py` 和 `docs/Admin_Guide.md` PostgreSQL backup/restore runbook；脚本支持 `pg_dump`、restore dry-run、保留策略、`schema_migrations` 校验。
-
----
-
-# P2 — 结构演进与 UI（P0 全绿后）
-
-## P2-01 — 按目标架构模块边界拆分 api_v1.py
-
-`api_v1.py` 现为 **4040 行**（文档旧值 2200 已过时）。按架构图模块边界渐进拆分：
-
-```
-backend/studiosaas/routes/     # auth, admin_tenants, tenant, students, courses,
-                               # packages, credits, attendance, registrations,
-                               # portfolio, media, public, legacy_bridge
-backend/studiosaas/services/   # 业务逻辑（media service 自 P1-03 起已存在）
-```
-
-每搬一个模块跑一次全量验证。禁止一次性重写。
-
-## P2-02 — PWA / sw.js 多租户化
-
-`sw.js` 仍是 "Let's Paint CMS" 命名（lpcms 缓存前缀），缓存平台级 `/logo.png` 等。多租户下 manifest 与图标应按租户分发；这是最后一处品牌残留。
-
-## P2-03 — vendor 构建产物化
-
-`backend/vendor/` 含 `babel.min.js` + `tailwindcss.js`（浏览器运行时编译）。替换为预构建产物或最小打包流程，pilot 可容忍、商用前必须完成。
-
-## P2-04 — Super Admin 平台驾驶舱
-
-按架构图与 README §13：Platform Overview / Tenant Management / Plan Management / Usage / Audit Logs / Support Mode / Settings。危险操作二次确认；support mode 可见且全程落审计。
-
-## P2-05 — Studio Admin 工作流重组
-
-按架构图与 README §14：Dashboard / Students / Registrations / Courses / Packages / Credits / Portfolio / Website / Settings。待审注册易找、余额直观、课时史读起来像账本。
-
-## P2-06 — 共享 Design Tokens 落地
-
-`docs/Design_System.md` 的 token 表落为共享 CSS（custom properties），super-admin / studio-admin / tenant-template 引用同一份，替代各页面内联重复样式。
-
----
-
-# P3 — 平台化与部署准备
-
-## P3-01 — 配置分层与生产安全基线
-
-`STUDIOSAAS_ENV` 驱动 local/staging/production 配置分离；secure cookies（Secure/HttpOnly/SameSite）；结构化日志 + request id；secrets 全部走环境变量。
-
-## P3-02 — Docker + Nginx + CI（架构图 Infra 列）
-
-Dockerfile + docker-compose（backend + postgres）；Nginx 反代模板；GitHub Actions 跑 py_compile + pytest + 冒烟。
-
-## P3-03 — 媒体存储 S3/MinIO 抽象
-
-基于 P1-03 的 media service 实现 `storage_provider='s3'` 分支，本地 MinIO 验证后接 AWS S3。
-
-## P3-04 — 远期数据基建（明确 pilot 不做）
-
-Redis（缓存/限流/会话）、读副本、Elasticsearch、ClickHouse、消息队列、Scheduler——仅当 pilot 数据量或功能需要时按 Roadmap Phase 5 评估。**在此之前任何人不得以架构图为由提前引入。**
-
-## P3-05 — 扩展服务（挂起）
-
-Payment（Stripe）、CRM、Notification（SES）、Report、AI Service——由 pilot 客户反馈驱动，进入 Roadmap Phase 3+ 再立项。
-
----
+1. 按 A → B → C 顺序执行；同级内按编号顺序。
+2. 每完成一项：跑验证命令，报告【改动文件 / 验证结果 / 风险 / 下一步】，独立 commit（格式 `fix(A2): ...`）。
+3. 不做一次性大重写；大文件渐进拆分。
+4. schema 变更必须走 `backend/db/migrations/`（已有 0001–0005 + `scripts/run_migrations.py`）。
+5. 工作区中历史删除（docs/archive、letspaint-cms-release）是有意的，不要恢复。
+6. Pilot 阶段禁止引入：FastAPI 重写、微服务、Redis、ES、ClickHouse、消息队列（见 docs/Architecture.md §7 采纳策略）。
 
 ## 验证命令合集
 
 ```bash
-# 语法
-python3 -m py_compile backend/server.py backend/studiosaas/*.py backend/scripts/*.py
-
-# 单测（P0-02 之后）
-cd backend && ../.venv/bin/python -m pytest -q
-
-# 脚本式冒烟
-cd backend && ../.venv/bin/python test_cms.py
+python3 -m py_compile backend/server.py backend/studiosaas/*.py backend/studiosaas/services/*.py backend/scripts/*.py
+cd backend && ../.venv/bin/python -m pytest -q            # 当前 34 tests
+cd backend && ../.venv/bin/python test_cms.py             # 72 checks
 cd backend && ../.venv/bin/python test_tenant_isolation.py
-
-# 全量本地验证
-bash backend/scripts/verify_local.sh
-
-# 手动检查（服务运行中）
-curl -sS http://localhost:8899/v1/health
-curl -i  http://localhost:8899/s/lets-paint-studio/v1/tenant
-curl -i  http://localhost:8899/lets-paint-studio/register
-curl -i  http://localhost:8899/super-admin
-
-# 未认证 mutation 必须 401/403
-curl -i -X POST http://localhost:8899/v1/admin/tenants \
-  -H 'Content-Type: application/json' \
-  -d '{"name":"Bad Tenant","slug":"bad-tenant","planCode":"starter"}'
+# 手动: /super-admin, /<slug>, /<slug>/register, /<slug>/studio-admin, /v1/health
 ```
 
-## 提交规范
+---
 
-- 每个 P 任务独立 commit，信息格式：`fix(P0-01): unify role model across schema/code/seeds`。
-- commit 前跑完上方验证命令合集。
-- schema 变更必须附迁移文件（P0-03 之后）。
+# A 级 — 正确性 / 安全 / 卫生（先做）
+
+## A1 — 提交在途工作，定生成目录的 git 策略
+
+**问题：** 工作区不干净，在途改动有丢失风险。
+**证据：** `super-admin.html` 有 +461/-99 未提交（租户风险评估、测试租户过滤、归档 UI 等成型功能）；`docs/QA_Checklist.md` 已改未提交；`tenants/dance-dance/` 未跟踪。
+**修复：**
+1. 审查并提交 super-admin.html 与 QA_Checklist.md 的在途改动（分逻辑 commit）。
+2. 决策 `tenants/<slug>/` 生成工作区的策略：要么一律跟踪（把 dance-dance 加入），要么整体 gitignore + 文档声明"运行时生成"；两者选一并写入 docs/Architecture.md §3.1。
+**验证：** `git status` 干净；决策记入文档。
+
+## A2 — Studio Admin 登录管理补后端（last_login + 密码设置链接）
+
+**问题：** Super Admin 的"租户编辑"弹窗里两个字段是硬编码占位，功能根本不存在。
+**证据：** `super-admin.html` Edit 弹窗：`<input value="Not tracked yet" disabled>`（Last Login）、`<input value="Not supported by backend yet" disabled>`（Password Setup Link）；`grep last_login backend/` = 0 处。
+**修复：**
+1. 迁移 0006：`users.last_login_at timestamptz`；登录成功时更新（standard + legacy-login 两处）。
+2. `/v1/admin/tenants/<id>` 响应带 `studio_admin_last_login`；UI 显示真实值。
+3. 密码设置链接：一次性 token（复用 share_tokens 模式或新表 `password_setup_tokens`，含 expires_at、used_at），Super Admin 生成 → 复制链接 → 新页面 `/setup-password?token=` 设置密码；token 单次有效、24h 过期、全程审计。
+**验证：** 登录后 last_login 更新；setup 链接完整走通且二次使用被拒；pytest 补用例。
+
+## A3 — 学生列表服务端分页与排序
+
+**问题：** 学生列表整表返回，无 LIMIT/OFFSET；growth 计划上限 1500 学生时不可用。
+**证据：** `api_v1.py` `list_students()` 只有 `search` 参数；OFFSET 在全文件仅 3 处（都不在 students）；studio-admin 前端一次性渲染全部行。
+**修复：** `GET /v1/students?search=&status=&page=&per_page=&sort=`（默认 per_page 50，返回 total）；registrations、attendance 列表同样处理；studio-admin 表格加分页控件（super-admin 租户表已有客户端分页可参考，但这次要服务端分页）。
+**验证：** 24+ 学生的 seed 租户翻页正确；search+分页组合正确；响应含 total。
+
+## A4 — CSRF 防护
+
+**问题：** 全站无 CSRF token，仅靠 `SESSION_COOKIE_SAMESITE='Lax'`；Lax 不拦截顶层 GET 导航后的同站脚本，且未来若放宽 CORS 会直接暴露。
+**证据：** `grep -c csrf backend/` = 0；server.py:134 SameSite=Lax。
+**修复：** 轻量方案——所有 fetch 带自定义头 `X-Requested-With: StudioSaaS`，后端对 `/v1/*` 的 mutation 校验该头（浏览器跨站表单无法伪造自定义头）；写成 before_request 中间件，公共端点白名单豁免。UI 三处（super-admin、studio-admin、legacy bridge 的 fetch 封装）统一加头。
+**验证：** 无头的 curl mutation → 403；带头正常；test_route_protection 补用例；72+63+34 全绿。
+
+## A5 — 登录与表单交互 UX
+
+**问题：** 登录/表单交互细节缺失，触发限流或慢网络时用户得不到反馈。
+**证据：** `grep -c "429\|Too many" super-admin.html backend/frontend/studio-admin.html` = 0（两个 admin UI 不区分 429）；登录按钮无 loading/禁用态；无密码可见性切换；`PERMANENT_SESSION_LIFETIME = 30 天`（管理后台过长）。
+**修复：**
+1. 登录表单：429 显示"尝试过多，请 1 分钟后再试"倒计时；提交时按钮 disabled + spinner；密码显隐切换；Enter 提交。
+2. 全站 fetch 封装统一处理 401（跳登录）、429（提示）、5xx（toast）。
+3. 会话策略：idle 超时 24h + "记住我" 勾选才延长到 30 天（Flask session.permanent 分支）。
+**验证：** 手动触发 429 看提示；未勾记住我时 cookie 为会话级。
+
+## A6 — XSS 防线制度化
+
+**问题：** 两个 admin UI 各自内联了一份 `esc()` 且使用普遍（好），但没有任何机制防止下一个 PR 忘记转义；两份实现漂移风险。
+**证据：** `super-admin.html:1202` 与 `studio-admin.html:1659` 定义完全相同的 esc()；共 24 处 innerHTML 赋值靠人工纪律。
+**修复：**
+1. 抽 `backend/frontend/assets/ui-common.js`（esc、fetch 封装、toast、modal 助手），两个 admin 引用同一份——顺便为 C2 共享 CSS 打地基。
+2. 写一个检查脚本（如 `scripts/check_ui_escaping.py`）：扫描 HTML 中 `innerHTML = \`...${` 模式里未包 `esc(` 的插值，接入 verify_local.sh。
+3. 对 registrationFieldsEditor 等动态模板逐处复核一遍。
+**验证：** 检查脚本 0 告警；建一个名字含 `<img onerror>` 的学生/租户，全部界面渲染为文本。
+
+---
+
+# B 级 — 功能补全（管理与门户）
+
+## B1 — CSV 数据导出
+
+**问题：** Blueprint §3.2 承诺 studio 数据导出，完全未实现；试点客户离开或对账都需要。
+**证据：** `grep -c "csv\|export" backend/frontend/studio-admin.html backend/studiosaas/api_v1.py` = 0。
+**修复：** `GET /v1/export/students.csv`、`/v1/export/registrations.csv`、`/v1/export/credit-ledger.csv`（tenant_admin_required，流式生成，UTF-8 BOM 便于 Excel）；studio-admin Settings 加"Data Export"卡片；导出动作写 audit_logs。
+**验证：** 三个 CSV 在 Excel/Numbers 打开列对齐；跨租户导出被 403；审计有记录。
+
+## B2 — 家长门户 / 作品分享闭环补完
+
+**问题：** share_tokens 有写入和查询（部分实现），但缺公开查看端与管理 UI，家长拿不到可用链接。
+**证据：** `api_v1.py:2101`（INSERT share_tokens）、`:2154`（SELECT）；无 `/v1/public/portfolio/<token>` 路由；studio-admin 无"生成/撤销分享链接"入口。
+**修复：**
+1. `GET /v1/public/portfolio/<token>`：校验 token_hash+expires_at，返回该学生公开作品集（只读、无 PII 之外内容）+ 一个移动端优先的查看页。
+2. studio-admin 学生详情：生成链接（默认 30 天）、复制、撤销、已生成列表。
+3. 过期/撤销的 token 访问 → 友好的失效页。
+**验证：** 生成→匿名窗口打开→撤销后 404/410；跨租户 token 不可用；isolation 测试补用例。
+
+## B3 — 邮件通知服务 v1
+
+**问题：** `email_templates`、`notification_logs` 两张表建了但零引用，注册提交/审核结果全靠家长自己猜。
+**证据：** `grep -c "notification_logs\|email_templates" api_v1.py` = 0。
+**修复：** `services/notifications.py`：`send(tenant_id, template_key, to, context)`，后端可切换（STUDIOSAAS_EMAIL_BACKEND=console|smtp，pilot 用 console 打日志即可）；接两个触发点——公共注册提交成功（给家长确认）、审核 approve/reject（结果通知）；每次发送落 notification_logs；模板取 email_templates，缺省用内置默认。
+**验证：** console 后端下提交注册能看到渲染后的邮件日志；notification_logs 有行；模板可被租户覆盖。
+
+## B4 — Support Mode（平台支持模式）
+
+**问题：** README §13 / Blueprint §3.1 要求的 support mode 不存在；平台运营者现在要么用 NULL-tenant 超管身份静默访问租户数据（无痕迹），要么无法支持客户。
+**证据：** `grep -ci "support.mode" super-admin.html api_v1.py` = 0。
+**修复：** Super Admin 租户操作里加"Enter Support Mode"：写 audit（support.session_started/ended，含原因必填）→ 带 support 标记跳转该租户 studio-admin → 顶部醒目横幅"Support Mode - 操作将被审计"→ 会话内所有 mutation 的 audit 额外带 support_session 标记 → 退出按钮。
+**验证：** 进入/退出/期间操作三类审计齐全；横幅在所有 section 可见。
+
+## B5 — 公共租户页升级为真实 Landing Page
+
+**问题：** 租户公开页只是壳，离 README §15 的"真实工作室网站"差距大，影响试点销售。
+**证据：** `tenant-template/index.html` 仅 6KB，无 Hero/About/Programs/Gallery/FAQ 结构（无 section id）。
+**修复：** 按 README §15 重做 tenant-template/index.html：Hero（logo+slogan+CTA）、About（welcome_message）、Programs（公开 courses）、Gallery（公开 portfolio，可空）、Contact（contact_*）、Register CTA；全部数据来自 `/v1/public/<slug>/brand` + 新增 `/v1/public/<slug>/programs`；用 Design_System token；移动端优先；空数据段落自动隐藏。老租户工作区提供再生成命令。
+**验证：** 三个 demo 租户各自品牌正确渲染；Lighthouse 移动端 ≥ 90；无跨租户数据。
+
+---
+
+# C 级 — 结构 / 美化 / 工程
+
+## C1 — 继续拆分 api_v1.py
+
+**证据：** 已到 **4606 行**；`services/` 已有 media.py、tenant_archive.py（方向正确）。
+**修复：** 按序抽离（每步全量验证一次）：registrations → attendance → credits → students → admin_tenants 到 `routes/` + `services/`；蓝图注册保持 URL 不变。目标：api_v1.py < 1500 行。
+**验证：** 每步后 34+72+63 测试全绿、URL 无变化（对比 `app.url_map` 快照）。
+
+## C2 — 设计 token 收敛 + 共享样式
+
+**证据：** studio-admin.html 硬编码 hex **91 处**、super-admin 55 处（Design_System.md 明文禁止）；两个 admin 各自维护近乎重复的内联 CSS。
+**修复：** 建 `backend/frontend/assets/ui-common.css`（token 变量 + button/card/form/table/badge/toast 组件类，值取自 docs/Design_System.md）；两个 admin 改引用，逐段替换硬编码色值；配合 A6 的 ui-common.js 完成公共层。
+**验证：** 硬编码 hex 降到 <10（图标/品牌色例外要注释）；两 admin 视觉回归手测。
+
+## C3 — Legacy CMS 去运行时 Babel + 退役计划
+
+**证据：** `legacy-root/index.html` 3668 行，是唯一使用 `vendor/babel.min.js` 的页面（浏览器内编译 JSX，首屏慢且 CSP 不友好）。
+**修复：** 短期——把 JSX 预编译为静态 JS（一次性 build 脚本），vendor 移除 babel；长期——列出 legacy CMS 仍独有的功能清单，与 studio-admin 对齐后写退役时间表进 docs/Development_Roadmap.md。
+**验证：** CMS 全功能手测（test_cms 72 项本就覆盖 root 版）；首屏无 babel 网络请求。
+
+## C4 — PWA 品牌中立化
+
+**证据：** `sw.js` 头部仍是 "Let's Paint CMS"、缓存前缀 `lpcms-assets-*`（版本号已叫 tenant-pwa 但命名残留）；根 manifest 图标是 Let's Paint 素材。
+**修复：** sw.js 改名 StudioSaaS + `ss-assets-*` 前缀（保留旧前缀清理逻辑一版）；根 manifest/图标换 StudioSaaS 中性素材；租户级 manifest 已按 slug 作用域（测试已验证），补租户自定义图标（settings.logo_url 有值时生成）。
+**验证：** 新装 PWA 名称/图标正确；旧缓存被清理；`test_health.py` 的 manifest 用例仍绿。
+
+## C5 — Playwright 浏览器冒烟 + verify_local.sh 补 pytest
+
+**证据：** API 层已有 34 个 pytest，但浏览器端 0 自动化；`verify_local.sh` 不含 pytest（grep = 0）。
+**修复：** `e2e/` + Playwright：四条链路（超管登录建租户 → studio admin 建学生记课时 → 公共页提交注册 → 审核转化为学生）；verify_local.sh 加入 `pytest -q`；README 补运行说明。
+**验证：** 本地 `npx playwright test` 四链路绿；verify_local.sh 一键全绿。
+
+## C6 — 界面语言统一策略
+
+**证据：** admin 界面全英文（中文字符 0），legacy CMS/根 register 中文（server.py 错误消息也是中文），同一产品两种语言。
+**修复：** 决策记入 Blueprint：pilot 语言 = 英文（澳洲市场）；legacy CMS 界面文案与 server.py 面向用户的错误消息切英文（内部注释可留）；租户面向家长的文案继续走 copy_pack 机制按租户配置。
+**验证：** grep 面向用户字符串无中文残留（copy_pack 数据除外）；test_cms 断言若依赖中文消息需同步更新。
+
+---
+
+## 完成定义
+
+- A 级全部完成 → 更新 docs/Current_Sprint.md 并把"External Pilot"评估从 NO-GO 重新评估。
+- 每项独立 commit + 全量验证；文档（API.md / Database.md / QA_Checklist.md）随代码同步。
