@@ -43,6 +43,7 @@ from .services.tenant_archive import (
     permanently_delete_tenant,
     restore_tenant,
 )
+from .services import notifications as _notifications
 from .tenant_context import TenantResolutionError, resolve_tenant, slug_from_request
 from .workspaces import WorkspaceError, ensure_tenant_workspace
 
@@ -1916,6 +1917,20 @@ def update_registration_status(registration_id: str):
             resource_id=registration_id,
             metadata={"student_id": linked_student_id, "review_note": review_note},
         )
+        if new_status in ("approved", "rejected") and reg.get("email"):
+            tenant_row = fetch_one(conn, "SELECT name FROM tenants WHERE id = %s", (tenant.tenant_id,))
+            _notifications.send_safely(
+                conn,
+                tenant_id=tenant.tenant_id,
+                template_key=f"registration_{new_status}",
+                to_email=reg["email"],
+                context={
+                    "parent_name": reg["parent_name"] or "there",
+                    "student_name": f"{reg['first_name']} {reg['last_name']}".strip(),
+                    "studio_name": tenant_row["name"] if tenant_row else "",
+                    "review_note_line": f"\n\nNote from the studio: {review_note}" if (new_status == "rejected" and review_note) else "",
+                },
+            )
         conn.commit()
 
     response = {
@@ -2384,6 +2399,19 @@ def public_create_registration(tenant_slug: str):
             )
             registration_id = cur.fetchone()["id"]
         _audit(conn, tenant_id=tenant.tenant_id, action="registration.created", resource_type="registration", resource_id=registration_id)
+        if email:
+            tenant_row = fetch_one(conn, "SELECT name FROM tenants WHERE id = %s", (tenant.tenant_id,))
+            _notifications.send_safely(
+                conn,
+                tenant_id=tenant.tenant_id,
+                template_key="registration_received",
+                to_email=email,
+                context={
+                    "parent_name": parent_name or "there",
+                    "student_name": f"{first_name} {last_name}".strip(),
+                    "studio_name": tenant_row["name"] if tenant_row else tenant_slug,
+                },
+            )
         conn.commit()
     return jsonify({
         "ok": True,
