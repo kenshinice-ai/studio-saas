@@ -1,194 +1,181 @@
-# StudioSaaS Improvement Sprint Prompt (v4)
+# StudioSaaS Improvement Sprint Prompt (v5 — CMS 核心版)
 
-Version: v4.0
+Version: v5.0
 Date: 2026-07-03
-Supersedes: codingprompt.md v3（v3 的 A1–A6、B1–B5 已全部完成并验证，见 `docs/Current_Sprint.md` "A/B Sprint" 表与 git 历史 875c256..eeb12a9。C 级未做的项并入本版）
+Supersedes: codingprompt.md v4（v4 基于"公共页面 = 门面"的假设，已被产品方向纠偏推翻；v3 的 A/B 项已完成，见 git 历史）
 
-你接手的是 StudioSaaS 多租户 creative studio SaaS。本文件是**当前开发周期的唯一任务清单**，基于 2026-07-03 深夜的第三轮全量复审（每条附证据）。规范见 `docs/`，状态跟踪见 `docs/Current_Sprint.md`。
+## 0. 产品定位（本版一切优先级的依据）
 
-## 已就位的能力（不要重复造）
+**这套 SaaS 的客户是 tenants（工作室老板）。** 他们绝大多数时间花在 CMS（`/<slug>/cms`，`legacy-root/index.html`）里：排课、签到、管理学生、课时与费用。**CMS 是重点中的重点。**
 
-- 认证：登录限流、记住我/空闲超时、CSRF 头守卫（`X-Requested-With: StudioSaaS`，带 cookie 的 v1 mutation 必带）、一次性密码设置链接（password_setup_tokens）、last_login 跟踪
-- 共享层：`/assets/ui-common.js`（esc + fetch 补丁）、`scripts/check_ui_escaping.py`、`scripts/run_migrations.py`（0001–0006）、`scripts/regenerate_tenant_workspaces.py`、seed `--only-slug`
-- 功能：CSV 导出、作品分享链接 + `/shared/portfolio` 查看页、邮件通知 v1（console/SMTP，`services/notifications.py`）、Support Mode（审计打标）、租户公共主页（`/<slug>`，CMS 在 `/<slug>/cms`）、考勤闭环、注册审核转化、租户归档
-- 测试：pytest 37、隔离测试 110、test_cms 72，全绿
+- CMS 不是"待退役的过渡层"——它源自真实工作室运营（Let's Paint），是 tenants 付费使用的核心工作台。文档中所有"legacy bridge is transitional"的表述在执行 A5 时修正。
+- 公共主页（`/<slug>`）意义不大：保留为未来给 tenants 客人的附加服务，页面上需要一个到 CMS 的入口，但**不投入开发资源**。
+- CMS 的中文界面是面向目标用户的特性，**不要**做"统一英文"改造。
+- studio-admin（`/<slug>/studio-admin`，英文）定位为"设置与管理面板"（品牌、注册审核、导出、分享链接），与 CMS 分工，见 A5。
 
-## 工作规则
+## 1. CMS 现状地图（2026-07-03 深夜复审）
 
-1. 按 A → B → C 顺序执行；每完成一项跑验证、报告【改动文件/验证结果/风险/下一步】、独立 commit（`feat(A2): ...`）。
-2. schema 变更必须走 `backend/db/migrations/`（下一个编号 0007）。
-3. 带 cookie 的 curl 写操作记得加 `-H 'X-Requested-With: StudioSaaS'`。
-4. 不做一次性大重写；pilot 阶段禁止引入 FastAPI/微服务/Redis/ES/MQ（docs/Architecture.md §7）。
-5. 新增 innerHTML 模板必须过 `esc()`（检查器会拦）。
+`legacy-root/index.html`（3669 行 React，浏览器内 Babel 编译）：
 
-## 验证命令合集
+| Tab | 功能 | 现状 |
+|---|---|---|
+| dashboard | 指标 + 今日排班入口 | ✔ |
+| roster | **每日排班 + 上课签到 + 一键消课 + 班次组模板** | ✔ 但只有"当日名单"模型，无周课表 |
+| students | 学生、课时余额、调整、作品、生日、活跃度分层（活跃/低频/流失风险） | ✔ |
+| topup | 充值 + 复制充值确认（发家长） | ✔ |
+| pending | 待处理报名 | ⚠ 与 v1 registrations 审核流是否同源待统一 |
+| stats | 图表统计 | ✔ |
+| logs | 操作日志 | ✔ |
+| 设置 | PIN 锁、备份导出/恢复、CSV | ⚠ 备份仍是 JSON 时代设计 |
+
+**已核实的关键问题：**
+1. CMS 的签到/充值/课时调整全部走 `legacy-cms/save` **整包写回**（grep：CMS 内 0 处调用 v1 attendance/credits 端点）→ CMS 签到**不产生** `attendance_sessions` 记录，studio-admin 的考勤页看不到 CMS 的签到，两套账本并行。
+2. CMS 界面 0 处链接到 studio-admin；landing 页脚只链 studio-admin 不链 CMS。
+3. 排课 = 每日 roster + 手动模板，没有"每周三 4pm 素描班"的周期课表。
+4. 3669 行 JSX 每次打开都在浏览器里 Babel 编译（核心产品首屏最慢）。
+
+## 2. 工作规则
+
+1. A → B → C 顺序；每项独立 commit + 全量验证 + 报告【改动文件/验证结果/风险/下一步】。
+2. schema 变更走 `backend/db/migrations/`（下一编号 0007）。
+3. **改 CMS 前先跑 `test_cms.py`（72 项）拿基线；改完必须回到全绿**——它是 CMS 的行为契约。
+4. 带 cookie 的 curl 写操作加 `-H 'X-Requested-With: StudioSaaS'`。
+5. CMS 的中文文案保持中文；新增 CMS 功能的文案用中文。
+6. 禁止引入 FastAPI/微服务/Redis/ES/MQ（docs/Architecture.md §7）。
+
+## 3. 验证命令合集
 
 ```bash
 python3 -m py_compile backend/server.py backend/studiosaas/*.py backend/studiosaas/services/*.py backend/scripts/*.py
-cd backend && ../.venv/bin/python -m pytest -q                  # 37 tests
-cd backend && ../.venv/bin/python test_tenant_isolation.py     # 110 checks
-cd backend && ../.venv/bin/python test_cms.py                  # 72 checks
+cd backend && ../.venv/bin/python -m pytest -q                  # 37
+cd backend && ../.venv/bin/python test_cms.py                   # 72 — CMS 行为契约
+cd backend && ../.venv/bin/python test_tenant_isolation.py     # 110
 python3 backend/scripts/check_ui_escaping.py
-bash backend/scripts/verify_local.sh
 ```
 
 ---
 
-# A 级 — 体验闭环与一致性（先做）
+# A 级 — CMS 核心强化（tenants 的日常工作台）
 
-## A1 — 注册页现代化（最大的割裂点）
+## A1 — 周期课表（排课系统）
 
-**问题：** 全站已是英文现代风（新主页、admin、分享页），唯独家长注册页还是 iframe 套着的**中文 legacy 页**——转化漏斗最关键的一页体验最差。
-**证据：** `tenant-template/register.html` 仅 124 行：`lang="zh-CN"`，body 里两个 iframe 指向 `/_legacy/register`（legacy-root/register.html，798 行中文 UI）。
+**问题：** "排课"是 tenants 花时间最多的事，但 CMS 只有"当日名单 + 手动模板"，每周固定班级要天天手动排。
+**证据：** roster tab 的模板功能是"保存常用班次组"（一次性名单快照）；无 weekday/时间段概念；`class_schedules` 表不存在。
 **修复：**
-1. 重写 `tenant-template/register.html` 为原生移动优先英文表单，与 B5 主页同一设计语言（品牌色运行时注入、design token）。
-2. 动态渲染 `brand.registrationProfile.fields`（后端已提供每租户自定义字段），家长/学生分组、consent 勾选、可选照片上传（走 `/v1/public/<slug>/registration-media` 现有端点）、清晰的成功/重复提交状态（后端已返回 duplicate 信息）。
-3. 提交走 `/v1/public/<slug>/registrations`（已有限流与通知）。
-4. `scripts/regenerate_tenant_workspaces.py` 全量再生成；legacy 注册壳保留 `/_legacy/register` 供过渡，写退役备注。
-**验证：** 提交→pending 出现在 studio-admin→家长收到确认邮件（console）；重复提交提示正确；上传预览可用；escaping check 通过；test_cms/isolation 全绿。
+1. migration 0007：`class_schedules`（id, tenant_id, course_id, weekday smallint 0-6, start_time time, duration_minutes, capacity, label, is_active, created_at）+ `class_schedule_students`（schedule_id, student_id, UNIQUE 对）。
+2. v1 端点（tenant_admin）：schedules CRUD + 学员名单管理 + `GET /v1/roster?date=` 返回"当日应到名单"（由 weekday 匹配的 schedules 展开 + 手动增删）。
+3. CMS roster tab 升级为两个视图：
+   - **课表视图**：按周几分列展示班次（时间、课程、人数/容量），点击编辑学员名单——中文界面，沿用 CMS 现有风格。
+   - **今日视图**（现有）：自动预填今日课表学员，保留手动加人/模板兼容；签到流程不变。
+4. 现有"班次组模板"提供一键转换为周期班次的入口（迁移用户习惯）。
+**验证：** 建"周三 16:00 素描班"+3 学员 → 周三的今日视图自动出现 3 人 → 签到扣课时正常；非周三不出现；test_cms 72 全绿（roster 旧行为兼容）；isolation 补 schedules 跨租户负向用例。
 
-## A2 — 忘记密码自助流程
+## A2 — 签到/课时账本统一（消除双轨账）
 
-**问题：** studio admin 忘记密码只能找平台管理员手动发链接，pilot 阶段就会成为支持负担。
-**证据：** 三个界面 grep "forgot|reset password" ≈ 0（super-admin 命中的 1 处是 Reset Password 输入框）；密码设置链接仅 super admin 能生成。
-**修复（复用现成积木）：**
-1. `POST /v1/auth/forgot-password` {email, tenantSlug?}：查 users+active membership → 生成 password_setup_tokens（复用 A2/v3 的表和 `/setup-password` 页）→ 用 `services/notifications.py` 发邮件（新模板 key `password_reset`）。**防枚举**：无论邮箱存在与否一律返回 `{ok:true}`；按 IP+email 限流（复用 `_login_rate_limited`）。
-2. 两个 admin 登录表单加 "Forgot password?" 链接 → 小表单提交。
-3. 审计 `auth.password_reset_requested`。
-**验证：** 有效邮箱走通全链路（邮件里链接→设密→登录）；无效邮箱同样 200 且不发邮件；限流生效；pytest 补用例。
-
-## A3 — 邮件模板管理 UI
-
-**问题：** 通知在发、`email_templates` 表就绪，但租户完全无法自定义文案。
-**证据：** 两个 admin grep email_template = 0；模板只能靠直接写库。
+**问题：** CMS 签到不写 `attendance_sessions`，studio-admin 考勤页与 CMS 各记各账；课时扣减两条路径（bridge 整包 save vs v1 credit_transactions），审计与对账不可信。
+**证据：** CMS 内 0 处调用 v1 attendance/credits 端点；`attendance_sessions` 只被 studio-admin 的 check-in 写入。
 **修复：**
-1. `GET/PUT /s/<slug>/v1/email-templates`（tenant_admin）：列出 4 个 key（registration_received/approved/rejected + password_reset）的当前值（自定义或默认）+ 保存 + `DELETE` 恢复默认。
-2. studio-admin Settings 加 "Email Templates" 卡：下拉选模板、subject/body 编辑、占位符对照表（{parent_name} {student_name} {studio_name} …）、"Send test to me" 按钮（发到 studio admin 邮箱，走 console/SMTP）。
-3. 保存审计 `settings.email_template_updated`。
-**验证：** 自定义后触发注册确认用的是新文案；恢复默认生效；XSS：模板 body 是纯文本邮件不进 HTML，UI 编辑器输出过 esc。
+1. CMS 的签到/撤销改调 `POST /s/<slug>/v1/attendance/check-in` 与 `/attendance/<id>/void`（端点已存在，含课时 consume/refund 与审计）；充值/课时调整改调 `POST /v1/students/<id>/credit-transactions`。
+2. bridge 的 `legacy-cms/save` 对 balance/签到字段改为**忽略并告警日志**（防旧 tab 覆盖，portfolio 已有同款保护先例），学生基本信息仍可整包保存。
+3. CMS 的"今日已签到"状态从 v1 attendance 读取（`GET /v1/attendance?date=`），撤销按钮映射 void。
+4. 兼容：CMS 历史 logs 展示保留；新签到同时出现在 studio-admin 考勤页。
+**验证：** CMS 签到 → studio-admin 考勤页立即可见同一条记录、课时余额两边一致、credit_transactions 出现 consume 行；撤销 → refund 行；test_cms 涉及签到的用例改走新路径后全绿；对同一学生连续两次签到的防重行为与原 CMS 一致。
 
-## A4 — 注册审核队列 UI 补强
+## A3 — CMS 首屏性能（预编译，去浏览器 Babel）
 
-**问题：** 后端能力（分页 total、status 筛选、review_note、duplicate_of、reviewed_by/at）前端只用了一半。
-**证据：** studio-admin grep registrationPager = 0（无分页）；review 相关仅 6 处（有 Approve/Reject 但审核历史与 duplicate 关联展示薄弱）；dance-dance 现有 16 条 pending 全量渲染。
+**问题：** 核心工作台每次打开都要在浏览器里编译 3669 行 JSX。
+**证据：** `legacy-root/index.html` 加载 `vendor/babel.min.js`（全站唯一使用者）；`<script type="text/babel">`。
 **修复：**
-1. registrations 表格加分页（复用 A3/v3 学生分页模式）+ 状态筛选下拉 + 待审计数徽标显示在左侧导航 "Registrations" 上（dashboard.pending_registrations 已有数据）。
-2. 每行展开/详情弹窗：message、payload 自定义字段、审核历史（reviewed_at/by、review_note）、duplicate_of 链接跳转。
-3. Reject/Archive 必须填 note（后端已存，前端强制）。
-**验证：** 16 条 pending 分页正确；筛选 approved 只见已批；reject 无 note 被前端拦截；徽标数字与 dashboard 一致。
+1. 一次性构建脚本 `backend/scripts/build_cms.py`（或 npx babel 命令写入 README）：抽出 JSX → 预编译为 `legacy-root/cms-app.js`（普通 JS）→ index.html 改为 `<script src>` 引用，删除 babel 加载。
+2. 保留源 JSX 于 `legacy-root/src/cms-app.jsx` 供后续修改，构建命令写入 docs；vendor 移除 babel.min.js。
+3. 静态资源加版本参数防缓存。
+**验证：** CMS 全功能手测（登录/PIN/roster/签到/充值/学生/作品/设置）；test_cms 72 全绿；Network 面板无 babel 请求、首屏可感知变快。
 
-## A5 — 内存限流器清扫
+## A4 — CMS pending 与 v1 注册审核统一
 
-**问题：** `_public_rate_limit` 字典只增不减——每个 IP、每个 `login-email:<ip>:<email>` 组合都永久留键，长期运行内存缓慢增长（server.py 自己的 `_rate_buckets` 有 sweep，api_v1 的没有）。
-**证据：** `grep -c "sweep\|pop\|del" api_v1.py` 对该字典 = 0。
-**修复：** 仿照 server.py：记录 last_sweep 时间戳，每 N 分钟（如 10）遍历删除所有条目全过期的键；加防御上限（键数 > 50k 时强制清扫）。写成小函数在各限流入口调用。
-**验证：** 单测：塞入过期键 → 触发清扫 → 字典缩小；限流行为不变（429 用例仍过）。
-
-## A6 — Landing 页 SEO / PWA 收尾
-
-**问题：** 新主页没有 SEO/分享元数据，收藏/安装体验缺失。
-**证据：** `tenants/dance-dance/index.html` grep "og:|description|favicon" ≈ 0；`<html lang="en">` 有了但无 meta description、无 OG 卡片、无 favicon、无 manifest link（register 模板反而有 manifest）。
+**问题：** 注册审核在 studio-admin 有完整状态机（review_note、duplicate、转化建学生、邮件通知），CMS 的 pending tab 若走旧数据路径则形成双轨流程。
+**证据：** CMS pending tab 数据来自 bridge 大 JSON；v1 registrations 有 6 状态 + 通知。
 **修复：**
-1. 模板 `<head>` 补：`<meta name="description" content="{{TENANT_NAME}} — classes, programs and registration">`、OG title/description/url、`<link rel="icon" href="/{{TENANT_SLUG}}/favicon">`。
-2. 新路由 `GET /<slug>/favicon`：租户 logo 存在则 302 到 logo URL，否则回平台 icon-192.png。
-3. landing 也挂 manifest（复用租户级 manifest 机制）。
-4. 再生成全部工作区。
-**验证：** curl 看 head 标签齐全；favicon 路由对有/无 logo 两种租户正确；Lighthouse SEO 分 ≥ 90（手测）。
+1. CMS pending tab 改为直连 `GET /s/<slug>/v1/registrations?status=pending`（读）与 `PATCH /v1/registrations/<id>`（批准/拒绝，中文按钮），批准即转化建学生 + 家长邮件——与 studio-admin 完全同一状态机。
+2. bridge save 的 pending 字段同样改为忽略（防覆盖）。
+**验证：** 公共页提交注册 → CMS pending 出现 → CMS 内批准 → 学生出现在 students tab + 家长收到邮件 + studio-admin 里状态一致；test_cms pending 相关用例调整后全绿。
+
+## A5 — 三个界面的定位、互通与入口
+
+**问题：** CMS（运营）与 studio-admin（设置）无相互入口；landing 无 CMS 入口（用户点名要求）；文档仍称 CMS 为"transitional"。
+**证据：** CMS 内 studio-admin 链接 0 处；landing 页脚只链 studio-admin。
+**修复：**
+1. CMS 设置区加"🎨 品牌与网站设置（Studio Admin）"链接；studio-admin 导航加"打开 CMS 工作台"。
+2. landing 页脚改为 "Studio Login → /<slug>/cms"（保留 studio-admin 链接次之）。
+3. docs 修正定位：Architecture/Blueprint 中 CMS 描述改为"核心运营工作台"，studio-admin 为"设置与管理面板"，landing 为"附加服务（低优）"；README 分流指引同步。
+**验证：** 三个界面互达；文档 grep "transitional" 清零（历史决策记录除外）。
 
 ---
 
-# B 级 — 功能深化
+# B 级 — 运营深化（费用 / 学生 / 员工）
 
-## B1 — 公共作品展示（Gallery）
+## B1 — 费用与课时运营闭环
 
-**问题：** README §15 的 Gallery 段缺失——主页少了艺术工作室最有说服力的内容。
-**证据：** landing 无 Gallery 段；`grep -c gallery api_v1.py` = 0；`portfolio_items.visibility` 已有 private/shared 值。
+**问题：** 低课时提醒只有界面标红，无主动通知；充值确认靠手动复制文本发家长。
 **修复：**
-1. 明确语义：新增 visibility 值 `public`（migration 0007 扩 CHECK，若现值是自由文本则直接用）或复用 'shared' 作为"官网可见"——查 schema 现状后二选一并写入 Database.md。
-2. `GET /v1/public/<slug>/gallery`：返回最多 12 件官网可见作品（媒体走公共媒体路由但**不带学生身份**，只给图 + 可选标题；隐私：默认不显示学生姓名）。
-3. studio-admin Portfolio 每件作品加 "Show on website" 开关（PATCH portfolio item visibility）。
-4. landing 加 Gallery 段（懒加载网格 + 灯箱，复用 shared-portfolio 的样式）。
-**验证：** 开关打开的作品出现在主页；关闭即消失；私有作品不可能泄漏（isolation 补负向用例：gallery 响应不含 private/shared-only 项与学生 PII）。
+1. 低课时自动提醒：`scripts/send_weekly_digest.py`（新建）每周汇总低课时学生发 studio 邮箱；tenants.settings.notifications 开关（studio-admin Settings 卡 + CMS 设置区入口）。
+2. 充值确认邮件：CMS topup 完成后，若家长有邮箱，提供"📧 邮件发送确认"按钮（新模板 `topup_receipt`，复用 notifications 服务）；无邮箱保持复制文本。
+3. 收入统计核对：stats 的金额图表数据源确认走 credit_transactions（fee_aud_cents），与 CSV 账本一致。
+**验证：** digest 对 3 个 demo 租户输出正确名单；充值后邮件（console）内容含金额课时；stats 数字与 ledger CSV 合计一致。
 
-## B2 — Studio Dashboard 升级
+## B2 — 生日与流失运营动作
 
-**问题：** Overview 只有 5 个静态计数，不是"每日驾驶舱"。
-**证据：** `/v1/dashboard` 返回 `{active_students, low_balance, pending_registrations, portfolio_items, students}`；无今日考勤、无趋势、无行动入口。
+**问题：** CMS 已有生日提醒（15 处）与活跃度分层（活跃/低频/流失风险），但只能看，没有动作。
+**修复：** 生日列表加"复制祝福（发家长）"与"📧 发送祝福"（模板 `birthday_greeting`）；流失风险名单并入每周 digest；dashboard 顶部本周生日提示。
+**验证：** 生日学生（seed 数据含生日）触发展示与发送；digest 含流失名单。
+
+## B3 — 员工（staff）账号与受限视图
+
+**问题：** schema/权限模型已有 staff 角色（可读写学生/签到，不可动设置），但无任何 UI 创建 staff，教师场景（只做签到）无法落地。
 **修复：**
-1. dashboard 端点补：`today_attendance`（attendance_sessions 当日未作废数）、`week_registrations`（7 天报名数）、`low_balance_students`（前 5 名列表带余额）、`recent_activity`（该租户 audit_logs 最近 8 条，动作翻译成人话）。
-2. Overview 区重排：四个指标卡（点击跳对应 section）+ "需要处理" 列表（待审注册、低余额学生）+ 最近活动流。
-**验证：** 数字与各 section 实际一致；点击卡片正确跳转；无数据时空状态友好。
+1. studio-admin Settings "Team" 卡：邀请 staff（邮箱 + 密码设置链接复用 password_setup_tokens）、列表、停用。
+2. v1 端点：`GET/POST /v1/team`、`PATCH /v1/team/<membership_id>`（tenant owner 权限）。
+3. CMS 按角色收敛：staff 登录 CMS 时隐藏 topup/设置/备份，保留 roster 签到与 students 只读+签到（auth /me 已返回 role）。
+**验证：** 邀请 staff → 设密登录 → CMS 只见受限功能 → 签到成功且审计 actor 正确；staff 调 settings/export 端点 403（isolation 补用例）。
 
-## B3 — 通知设置与每周摘要
+## B4 — CMS 备份/导出对接新体系
 
-**问题：** 通知只发给家长；studio 老板自己收不到任何运营信息（legacy CMS 有 weekly report，新体系没有）。
-**证据：** notifications.py 只有 3 个家长向模板；tenants.settings 无 notification 配置；无摘要任务。
-**修复：**
-1. studio-admin Settings "Notifications" 卡：接收邮箱（默认 studio_admin_email）、开关"新注册即时通知"、开关"每周摘要"。存 tenants.settings.notifications。
-2. 即时：public 注册创建后若开关开 → 给 studio 发 `new_registration_studio` 模板邮件。
-3. 摘要：`scripts/send_weekly_digest.py`（供 cron/手动）：每租户统计本周注册/考勤/低余额 → 邮件；notification_logs 落表。
-**验证：** 开关开→提交注册→studio 收到两封中的即时那封；digest 脚本对 3 个 demo 租户输出正确；关掉开关不发。
-
-## B4 — 列表批量操作
-
-**问题：** 学生 50/页、注册 16+ 条 pending，逐条点效率低。
-**证据：** 两个列表均无复选框/批量按钮。
-**修复：**
-1. 学生列表：行复选框 + 全选当页；批量归档（逐条调用现有 archive 端点即可，前端串行 + 进度提示）、"导出选中"（前端过滤生成 CSV 或加 ids 参数到导出端点）。
-2. 注册队列：批量标记 contacted / 批量归档（复用 PATCH 端点）。
-3. 危险操作（批量归档）需确认弹窗显示数量。
-**验证：** 批量归档 3 名学生审计出现 3 条；批量后列表刷新与 total 正确。
+**问题：** CMS 设置里的"备份导出/恢复"是单工作室 JSON 时代设计，误导现租户。
+**修复：** 该区块改为：租户数据导出（链接三个 CSV 端点）+ 平台备份说明（backup_postgres.py runbook 链接）；旧 JSON 导出按钮标注"旧版格式（兼容保留）"。
+**验证：** CSV 三链接在 CMS 内可用（owner 权限）；文案准确。
 
 ---
 
-# C 级 — 工程与打磨
+# C 级 — 工程与降级项
 
-## C1 — 拆分 api_v1.py（已到临界点）
+## C1 — 拆分 api_v1.py（临界）
 
-**证据：** 本轮已涨到 **5263 行**（v3 审计时 4606，一个 sprint +657——不拆会继续膨胀）。`services/` 已有 media、tenant_archive、notifications 三个先例。
-**修复：** 逐模块抽到 `backend/studiosaas/routes/`（auth, admin_tenants, students, credits_attendance, registrations, portfolio_share, export, public, legacy_bridge），blueprint 注册保持 URL 不变；每搬一个模块全量验证一次；目标 api_v1.py < 800 行（仅 blueprint 装配 + 共享助手）。
-**验证：** 每步 `app.url_map` 快照 diff 为空；37+110+72 全绿。
+**证据：** 5263 行且每 sprint +600。A1/B3 又要加路由——**先做本项或与 A1 同步做**：新功能直接写进 `routes/schedules.py`、`routes/team.py`，存量按 auth/admin/students/credits_attendance/registrations/portfolio_share/export/public/legacy 逐模块搬。
+**验证：** 每步 url_map diff 为空 + 三套件全绿。
 
-## C2 — 共享 CSS 与 token 收敛
+## C2 — E2E（CMS 主链路）+ CI
 
-**证据：** studio-admin **93** 处硬编码 hex、super-admin 55 处（Design_System.md 明令禁止）；两个 admin ~600 行近重复内联 CSS；本轮新页面（setup-password/shared-portfolio/landing）又各自内联了一份 token。
-**修复：** `/assets/ui-common.css`：token 变量 + button/card/form/table/badge/toast/modal 组件类（值取 docs/Design_System.md）；五个页面逐段替换；hex 目标 <10（品牌注入点例外注释）。
-**验证：** 视觉手测五页；grep hex 计数达标；escaping/pytest 不回归。
+改编 v4-C3：Playwright 链路以 CMS 为主——①owner 登录 CMS ②建周课表 ③今日视图签到 ④充值 ⑤pending 批准。GitHub Actions 跑 py_compile+pytest+escaping。
 
-## C3 — Playwright E2E + CI
+## C3 — 内存限流器清扫（v4-A5 降级）
 
-**证据：** e2e 目录不存在；浏览器自动化 0；无 CI。
-**修复：** `e2e/` + Playwright：①超管登录建租户 ②studio 登录建学生+记课时 ③公共页提交注册→审核转化 ④分享链接家长查看。GitHub Actions：py_compile + pytest + check_ui_escaping（DB 用 services 容器跑 isolation 可后续加）。
-**验证：** 本地 `npx playwright test` 四链路绿；push 触发 CI 绿。
+`_public_rate_limit` 无 sweep，键无限累积。仿 server.py `_rate_buckets` 加定期清扫 + 键数上限。
 
-## C4 — PWA 品牌中立化
+## C4 — 数据维护与索引（v4-C6）
 
-**证据：** `sw.js` 首行仍 "Let's Paint CMS"、缓存前缀 `lpcms-assets-*`；根 manifest 图标为 Let's Paint 素材。
-**修复：** 改名 StudioSaaS/`ss-assets-*`（保留旧前缀清理一版）；根 icons 换中性素材；与 A6 的租户 favicon/manifest 打通。
-**验证：** 新装 PWA 名称图标正确；旧缓存清除；manifest pytest 用例仍绿。
+migration 0007 顺带：`idx_notification_logs_tenant_created`；`scripts/db_maintenance.py` 清过期 tokens；Admin_Guide runbook。
 
-## C5 — Legacy 层瘦身
+## C5 — 共享 CSS / PWA 品牌中立（低优）
 
-**证据：** legacy-root/index.html 3669 行 React-in-browser（vendor babel 仅它使用）；根级单工作室 `/api/*` 仍全量暴露（test_cms 覆盖它，但产品上已无入口指向根 CMS）。
-**修复：** ①一次性预编译 JSX 为静态 JS，vendor 去 babel；②列出 legacy CMS 独有功能清单 vs studio-admin，写退役时间表进 Roadmap；③评估根 /api/* 是否加 `STUDIOSAAS_ENABLE_LEGACY_ROOT` 开关（默认本地开、staging 关）。
-**验证：** test_cms 72 项全绿（必要时调整启动方式）；CMS 手测全功能。
+ui-common.css 收敛 token（studio-admin 93 处硬编码 hex）；sw.js 去 "Let's Paint/lpcms" 命名。CMS 样式**不动**（自成体系且用户熟悉）。
 
-## C6 — 数据维护与索引补全
+## C6 — 公共面（landing/注册页）——按产品方向搁置
 
-**证据：** `notification_logs` 只有主键索引（tenant 查询将全表扫）；password_setup_tokens/share_tokens 过期行无清理；audit_logs 无保留策略。
-**修复：** migration 0007：`idx_notification_logs_tenant_created (tenant_id, created_at DESC)`；`scripts/db_maintenance.py`：删过期 30 天以上的 setup tokens、过期 90 天以上的 share tokens（已撤销/过期）、可选 audit 归档报告（不删，报告体量）；接入 Admin_Guide runbook。
-**验证：** 迁移幂等两遍；维护脚本 dry-run 输出行数、执行后计数下降。
-
-## C7 — 界面语言统一
-
-**证据：** register 模板 `lang="zh-CN"`（A1 重写时顺带解决）；legacy CMS/根 register 中文；server.py 面向用户错误消息中文（如"提交太频繁"）。
-**修复：** 决策记入 Blueprint：pilot 语言 = 英文；server.py 用户可见 message 切英文（test_cms 断言同步改）；legacy CMS 界面文案随 C5 处理；家长文案继续走 copy_pack。
-**验证：** grep 面向用户中文残留清零（copy_pack 数据除外）；test_cms 全绿。
+v4 的 A1（注册页现代化）/A6（SEO）/B1（Gallery）明确**降级搁置**：landing 保持现状仅加 CMS 入口（A5 已含）；注册页 iframe 壳可用即可；未来作为"官网附加服务"再立项。家长注册体验如影响转化率由用户判断后再提级。
 
 ---
 
 ## 完成定义
 
-- A 级完成 → 更新 docs/Current_Sprint.md，注册转化链路（主页→注册→审核→通知）可整体演示。
-- B1 完成后 isolation 测试必须包含 gallery 隐私负向用例。
-- C1 拆分期间任何一步 url_map 变化即回退重做。
+- A 级完成 = tenants 可以在 CMS 里完成"建周课表 → 每日自动排班 → 签到消课 → 充值"全流程，且每一步与 v1 账本（attendance_sessions/credit_transactions）同源一致。
+- test_cms.py 在每一项 CMS 改动后必须回到 72/72（允许因行为升级修改断言，需在 commit message 说明）。
