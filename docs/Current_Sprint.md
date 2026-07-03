@@ -127,9 +127,14 @@ curl -i -c /tmp/studiosaas.cookies \
 # Check session
 curl -i -b /tmp/studiosaas.cookies http://localhost:8899/v1/auth/me
 
-# Logout
-curl -i -b /tmp/studiosaas.cookies -X POST http://localhost:8899/v1/auth/logout
+# Logout (cookie-authenticated mutations need the CSRF header)
+curl -i -b /tmp/studiosaas.cookies -H 'X-Requested-With: StudioSaaS' \
+  -X POST http://localhost:8899/v1/auth/logout
 ```
+
+> **CSRF note (A4):** any mutation sent **with a session cookie** must include
+> `-H 'X-Requested-With: StudioSaaS'` or it returns 403. Unauthenticated and
+> public calls are unaffected.
 
 ### Tenant mutation without auth (must fail)
 

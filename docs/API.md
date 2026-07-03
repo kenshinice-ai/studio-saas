@@ -12,6 +12,7 @@ Purpose: Complete API endpoint reference, authentication model, tenant resolutio
 - **API prefix:** `/v1`
 - **Tenant-scoped prefix:** `/s/<tenant_slug>/v1`
 - **Auth:** Session cookies (Flask) with `credentials: 'include'`
+- **CSRF:** cookie-authenticated **mutations** on `/v1/*` must send `X-Requested-With: StudioSaaS` (missing header → 403). Pages get this automatically via `/assets/ui-common.js`; curl examples with cookies need `-H 'X-Requested-With: StudioSaaS'`. Sessionless/public calls are exempt.
 - **Format:** JSON
 
 ### 1.1 Tenant Resolution Order

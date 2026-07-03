@@ -132,6 +132,30 @@ app.config['MAX_CONTENT_LENGTH'] = 20 * 1024 * 1024
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
 app.config['SESSION_COOKIE_HTTPONLY']    = True
 app.config['SESSION_COOKIE_SAMESITE']    = 'Lax'
+
+# ── CSRF guard (A4) ─────────────────────────────────────────────────
+# Cookie-authenticated mutations on the v1 API must carry a custom header
+# that cross-site forms cannot set. Requests without a session are exempt
+# (they fail auth anyway, and public endpoints stay curl-friendly); the
+# legacy /api/* surface keeps its own token model and is out of scope.
+CSRF_HEADER_NAME  = 'X-Requested-With'
+CSRF_HEADER_VALUE = 'StudioSaaS'
+
+@app.before_request
+def _csrf_guard():
+    if request.method in ('GET', 'HEAD', 'OPTIONS'):
+        return None
+    path = request.path
+    if not (path.startswith('/v1/') or (path.startswith('/s/') and '/v1/' in path)):
+        return None
+    if 'user_id' not in session:
+        return None
+    if request.headers.get(CSRF_HEADER_NAME, '') == CSRF_HEADER_VALUE:
+        return None
+    return jsonify({
+        'error': 'forbidden',
+        'message': f"Missing CSRF protection header ({CSRF_HEADER_NAME}).",
+    }), 403
 # S13: opt-in Secure flag (set COOKIE_SECURE=1 when access is HTTPS-only).
 # Default off because LAN access uses plain http://<ip>:8000.
 if os.environ.get('COOKIE_SECURE') == '1':
@@ -628,6 +652,15 @@ def serve_legacy_register():
 def serve_studio_admin():
     return send_from_directory(os.path.join(app.root_path, 'frontend'),
                                'studio-admin.html')
+
+@app.route('/assets/<path:filename>')
+def serve_shared_assets(filename):
+    # Shared frontend runtime (ui-common.js, shared CSS). Same safety rules
+    # as /vendor: basename only, no traversal.
+    safe = os.path.basename(filename)
+    resp = send_from_directory(os.path.join(app.root_path, 'frontend', 'assets'), safe)
+    resp.headers['Cache-Control'] = 'no-cache'
+    return resp
 
 @app.route('/setup-password')
 def serve_setup_password():

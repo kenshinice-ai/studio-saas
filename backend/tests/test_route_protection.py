@@ -61,6 +61,41 @@ def test_mutations_require_auth(client, method, path):
     assert response.status_code in (401, 403)
 
 
+FAKE_USER = "00000000-0000-0000-0000-000000000000"
+
+
+def test_csrf_header_required_for_cookie_authed_mutations(client):
+    """A session without the custom header must be rejected before auth."""
+
+    with client.session_transaction() as sess:
+        sess["user_id"] = FAKE_USER
+    response = client.post("/s/demo/v1/students", json={})
+    assert response.status_code == 403
+    assert "CSRF" in ((response.get_json() or {}).get("message") or "")
+
+
+def test_csrf_header_lets_authed_mutations_reach_auth_layer(client):
+    """With the header present the request passes the guard (auth still applies)."""
+
+    with client.session_transaction() as sess:
+        sess["user_id"] = FAKE_USER
+    response = client.post(
+        "/s/demo/v1/students",
+        json={},
+        headers={"X-Requested-With": "StudioSaaS"},
+    )
+    assert response.status_code in (401, 403)
+    assert "CSRF" not in ((response.get_json() or {}).get("message") or "")
+
+
+def test_csrf_guard_exempts_sessionless_public_requests(client):
+    """Public callers without cookies are not affected by the guard."""
+
+    response = client.post("/v1/public/demo/registrations", json={})
+    # 404/400/429 depending on tenant resolution — but never the CSRF 403
+    assert "CSRF" not in ((response.get_json() or {}).get("message") or "")
+
+
 PUBLIC_SURFACES = [
     "/v1/health",
 ]

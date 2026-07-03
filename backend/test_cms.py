@@ -265,7 +265,7 @@ try:
     check('配置回读一致 + 首次启用预置周标记', d.get('email_to') == 'lee@test.com'
           and d.get('renew_threshold') == 3 and bool(d.get('last_sent_week')))
     code, d = jreq('POST', '/api/email-test', {})
-    check('未配密码时测试邮件给出明确错误', code == 400 and '配置' in str(d.get('error', '')))
+    check('未配密码时测试邮件给出明确错误', code == 400 and '配置' in (str(d.get('message', '')) + str(d.get('error', ''))))
     # Gmail 应用密码带空格粘贴 → 服务端应自动去除全部空白
     code, d = jreq('POST', '/api/config', {'smtp_password': 'abcd efgh ijkl mnop'})
     saved_cfg = json.load(open(os.path.join(tmp, '.cms_config.json')))
@@ -318,7 +318,7 @@ try:
     check('manifest 含 standalone 与图标', mani.get('display') == 'standalone' and len(mani.get('icons', [])) >= 2)
     code, raw = req('GET', '/manifest-student.json')
     smani = json.loads(raw)
-    check('学员 manifest 指向 /register', smani.get('start_url') == '/register')
+    check('学员 manifest 不指向已关闭的 /register', smani.get('start_url') != '/register')
     code, raw = req('GET', '/manifest.json')   # 公开（未登录也能取，安装需要）
     check('manifest 无需登录即可获取', code == 200)
 

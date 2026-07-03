@@ -33,6 +33,23 @@ from scripts import seed_local_test_tenants as seed_fixtures  # noqa: E402
 from studiosaas.db import connect, fetch_all, fetch_one  # noqa: E402
 import server  # noqa: E402
 
+from flask.testing import FlaskClient  # noqa: E402
+
+
+class _CsrfTestClient(FlaskClient):
+    """Send the CSRF protection header by default, like the real UI does."""
+
+    def open(self, *args, **kwargs):
+        headers = kwargs.get("headers")
+        if headers is None:
+            kwargs["headers"] = {"X-Requested-With": "StudioSaaS"}
+        elif isinstance(headers, dict):
+            headers.setdefault("X-Requested-With", "StudioSaaS")
+        return super().open(*args, **kwargs)
+
+
+server.app.test_client_class = _CsrfTestClient
+
 TENANT_A = seed_fixtures.TENANT_A
 TENANT_B = seed_fixtures.TENANT_B
 PASSWORD = seed_fixtures.PASSWORD

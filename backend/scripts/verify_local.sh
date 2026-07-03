@@ -92,6 +92,20 @@ if [ -x "$PYTHON" ]; then
     if $COMPILE_OK; then
         ok "All studiosaas/*.py compile"
     fi
+
+    # UI escaping check (innerHTML interpolations must use esc())
+    if "$PYTHON" "$SCRIPT_DIR/scripts/check_ui_escaping.py" >/dev/null 2>&1; then
+        ok "UI escaping check passes"
+    else
+        fail "UI escaping check found unescaped innerHTML interpolations"
+    fi
+
+    # Pytest unit/boundary suite (requires requirements-dev.txt installed)
+    if "$PYTHON" -m pytest -q --no-header -x "$SCRIPT_DIR/tests" >/dev/null 2>&1; then
+        ok "pytest suite passes"
+    else
+        fail "pytest suite failed (run: cd backend && pytest -q)"
+    fi
 else
     fail "Cannot run py_compile without Python."
 fi
