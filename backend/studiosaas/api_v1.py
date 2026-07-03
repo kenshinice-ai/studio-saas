@@ -1340,7 +1340,8 @@ def list_students():
             """
             SELECT s.id, s.display_name, s.first_name, s.last_name, s.status,
                    s.mobile, s.email, s.tags, s.created_at, s.updated_at,
-                   COALESCE(ca.balance, 0)::float AS balance
+                   COALESCE(ca.balance, 0)::float AS balance,
+                   count(*) OVER ()::int AS _total
             FROM students
             s
             LEFT JOIN credit_accounts ca
@@ -1368,7 +1369,10 @@ def list_students():
                 offset,
             ),
         )
-    return jsonify({"students": rows})
+    total = int(rows[0]["_total"]) if rows else 0
+    for row in rows:
+        row.pop("_total", None)
+    return jsonify({"students": rows, "total": total, "limit": limit, "offset": offset})
 
 
 @api_v1.route("/students/<student_id>", methods=["GET"])
@@ -1735,6 +1739,11 @@ def mutate_package(package_id: str):
 def list_registrations():
     """List recent public registration submissions for the resolved tenant."""
 
+    try:
+        limit, offset = _parse_pagination()
+    except ValueError as exc:
+        return _error(str(exc))
+    status = request.args.get("status", "").strip().lower()
     with connect() as conn:
         tenant = _tenant_context(conn)
         rows = fetch_all(
@@ -1743,15 +1752,20 @@ def list_registrations():
             SELECT id, status, first_name, last_name, parent_name, mobile,
                    email, message, submitted_at, updated_at, reviewed_at,
                    reviewed_by_user_id, student_id, duplicate_of_registration_id,
-                   review_note
+                   review_note,
+                   count(*) OVER ()::int AS _total
             FROM registrations
             WHERE tenant_id = %s
+              AND (%s = '' OR status = %s)
             ORDER BY submitted_at DESC
-            LIMIT 100
+            LIMIT %s OFFSET %s
             """,
-            (tenant.tenant_id,),
+            (tenant.tenant_id, status, status, limit, offset),
         )
-    return jsonify({"registrations": rows})
+    total = int(rows[0]["_total"]) if rows else 0
+    for row in rows:
+        row.pop("_total", None)
+    return jsonify({"registrations": rows, "total": total, "limit": limit, "offset": offset})
 
 @api_v1.route("/registrations/<registration_id>", methods=["PATCH"])
 @tenant_admin_required
