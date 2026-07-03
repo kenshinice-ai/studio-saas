@@ -107,6 +107,13 @@ def media_id_from_token(value: str) -> str:
     return str(value or "").split(":", 1)[1] if str(value or "").startswith("media:") else ""
 
 
+def has_error_shape(response) -> bool:
+    """Return whether an error response follows the canonical API shape."""
+
+    body = response.get_json(silent=True) or {}
+    return response.status_code >= 400 and isinstance(body.get("error"), str) and isinstance(body.get("message"), str)
+
+
 def main() -> int:
     """Run all isolation and privacy checks."""
 
@@ -418,6 +425,69 @@ def main() -> int:
     check("Tenant CMS media upload uses v1 media token", upload_response.status_code == 200 and bool(uploaded_media_id), f"got {upload_response.status_code}")
     cross_read = owner_b.get(f"/s/{TENANT_B}/v1/media/{uploaded_media_id}")
     check("Tenant B cannot read Tenant A uploaded media", cross_read.status_code in (403, 404), f"got {cross_read.status_code}")
+    check("Cross-tenant media error uses canonical shape", has_error_shape(cross_read))
+
+    canonical_upload = owner_a.post(
+        f"/s/{TENANT_A}/v1/media/upload",
+        data={"kind": "student_photo", "file": (BytesIO(PNG), "canonical.png", "image/png")},
+        content_type="multipart/form-data",
+    )
+    canonical_payload = canonical_upload.get_json() or {}
+    canonical_media_id = media_id_from_token(canonical_payload.get("filename", ""))
+    check("Canonical media upload succeeds", canonical_upload.status_code == 201 and bool(canonical_media_id), f"got {canonical_upload.status_code}: {canonical_payload}")
+    check("Canonical media upload returns storage provider", canonical_payload.get("storageProvider") == "local")
+    bad_type = owner_a.post(
+        f"/s/{TENANT_A}/v1/media/upload",
+        data={"kind": "student_photo", "file": (BytesIO(PNG), "bad.txt", "image/png")},
+        content_type="multipart/form-data",
+    )
+    bad_mime = owner_a.post(
+        f"/s/{TENANT_A}/v1/media/upload",
+        data={"kind": "student_photo", "file": (BytesIO(PNG), "bad.png", "text/plain")},
+        content_type="multipart/form-data",
+    )
+    bad_magic = owner_a.post(
+        f"/s/{TENANT_A}/v1/media/upload",
+        data={"kind": "student_photo", "file": (BytesIO(b"not an image"), "bad.png", "image/png")},
+        content_type="multipart/form-data",
+    )
+    bad_path = owner_a.post(
+        f"/s/{TENANT_A}/v1/media/upload",
+        data={"kind": "student_photo", "file": (BytesIO(PNG), "../bad.png", "image/png")},
+        content_type="multipart/form-data",
+    )
+    bad_size = owner_a.post(
+        f"/s/{TENANT_A}/v1/media/upload",
+        data={"kind": "student_photo", "file": (BytesIO(PNG + (b"x" * (5 * 1024 * 1024))), "huge.png", "image/png")},
+        content_type="multipart/form-data",
+    )
+    check("Canonical media rejects wrong extension", bad_type.status_code == 400 and has_error_shape(bad_type))
+    check("Canonical media rejects MIME mismatch", bad_mime.status_code == 400 and has_error_shape(bad_mime))
+    check("Canonical media rejects fake content", bad_magic.status_code == 400 and has_error_shape(bad_magic))
+    check("Canonical media rejects path traversal filename", bad_path.status_code == 400 and has_error_shape(bad_path))
+    check("Canonical media rejects oversized file", bad_size.status_code == 400 and has_error_shape(bad_size))
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("UPDATE plans SET storage_limit_mb = 1 WHERE code = 'studio'")
+            cur.execute(
+                "UPDATE media_assets SET byte_size = %s WHERE tenant_id = %s AND id = %s",
+                (1024 * 1024, fixtures["tenant_a"], canonical_media_id),
+            )
+        conn.commit()
+    quota_response = owner_a.post(
+        f"/s/{TENANT_A}/v1/media/upload",
+        data={"kind": "student_photo", "file": (BytesIO(PNG), "quota.png", "image/png")},
+        content_type="multipart/form-data",
+    )
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("UPDATE plans SET storage_limit_mb = 30720 WHERE code = 'studio'")
+            cur.execute(
+                "UPDATE media_assets SET byte_size = %s WHERE tenant_id = %s AND id = %s",
+                (len(PNG), fixtures["tenant_a"], canonical_media_id),
+            )
+        conn.commit()
+    check("Canonical media enforces tenant storage quota", quota_response.status_code == 403 and has_error_shape(quota_response), f"got {quota_response.status_code}")
 
     portfolio_upload = owner_a.post(
         f"/s/{TENANT_A}/v1/legacy-cms/portfolio/upload",
@@ -455,6 +525,46 @@ def main() -> int:
     check("Logo upload rejects path traversal filename", logo_upload(owner_a, r"..\logo.png", PNG).status_code == 400)
     check("Logo upload rejects oversized file", logo_upload(owner_a, "huge.png", PNG + (b"x" * (5 * 1024 * 1024))).status_code == 400)
 
+    credits_before = owner_a.get(f"/s/{TENANT_A}/v1/students/{fixtures['student_a']}/credits").get_json()
+    starting_balance = float((credits_before.get("account") or {}).get("balance") or 0)
+    purchase = owner_a.post(
+        f"/s/{TENANT_A}/v1/students/{fixtures['student_a']}/credit-transactions",
+        json={"transactionType": "purchase", "amount": 5, "note": "Attendance package purchase"},
+    )
+    purchased_balance = float((purchase.get_json() or {}).get("newBalance") or 0)
+    check("Package purchase credits student balance", purchase.status_code == 201 and purchased_balance == starting_balance + 5)
+    checkin = owner_a.post(
+        f"/s/{TENANT_A}/v1/attendance/check-in",
+        json={"studentId": fixtures["student_a"], "courseId": fixtures["course_a"], "note": "Trial class"},
+    )
+    checkin_body = checkin.get_json() or {}
+    attendance_id = checkin_body.get("attendanceSessionId")
+    consume_tx_id = checkin_body.get("creditTransactionId")
+    check("Attendance check-in consumes one credit", checkin.status_code == 201 and bool(attendance_id) and checkin_body.get("newBalance") == purchased_balance - 1, f"got {checkin.status_code}: {checkin_body}")
+    attendance_list = owner_a.get(f"/s/{TENANT_A}/v1/attendance?studentId={fixtures['student_a']}").get_json() or {}
+    listed_attendance = attendance_list.get("attendance") or []
+    check("Attendance list includes linked credit transaction", any(str(row.get("credit_transaction_id")) == consume_tx_id for row in listed_attendance))
+    voided = owner_a.post(
+        f"/s/{TENANT_A}/v1/attendance/{attendance_id}/void",
+        json={"note": "Entered by mistake"},
+    )
+    voided_body = voided.get_json() or {}
+    check("Attendance void refunds consumed credit", voided.status_code == 200 and voided_body.get("newBalance") == purchased_balance, f"got {voided.status_code}: {voided_body}")
+    duplicate_void = owner_a.post(f"/s/{TENANT_A}/v1/attendance/{attendance_id}/void", json={"note": "Again"})
+    check("Attendance cannot be voided twice", duplicate_void.status_code == 409 and has_error_shape(duplicate_void))
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE credit_accounts SET balance = 0 WHERE tenant_id = %s AND student_id = %s AND course_id IS NULL",
+                (fixtures["tenant_a"], fixtures["student_a"]),
+            )
+        conn.commit()
+    insufficient = owner_a.post(
+        f"/s/{TENANT_A}/v1/attendance/check-in",
+        json={"studentId": fixtures["student_a"], "courseId": fixtures["course_a"]},
+    )
+    check("Attendance check-in blocks insufficient balance", insufficient.status_code == 409 and has_error_shape(insufficient), f"got {insufficient.status_code}")
+
     # Audit events for required sensitive actions.
     owner_a.post(f"/s/{TENANT_A}/v1/students/{fixtures['student_a']}/credit-transactions", json={"transactionType": "adjustment", "amount": 1})
     owner_a.post(f"/s/{TENANT_A}/v1/students/{fixtures['student_a']}/archive")
@@ -462,6 +572,8 @@ def main() -> int:
     check("Audit exists for logo upload", audit_exists("tenant.logo_uploaded", "tenant"))
     check("Audit exists for portfolio upload", audit_exists("portfolio.uploaded", "portfolio_item"))
     check("Audit exists for credit adjustment", audit_exists("credit.adjusted", "credit_transaction"))
+    check("Audit exists for attendance check-in", audit_exists("attendance.checked_in", "attendance_session"))
+    check("Audit exists for attendance void", audit_exists("attendance.voided", "attendance_session"))
     check("Audit exists for student archive", audit_exists("student.archived", "student"))
     check("Audit exists for failed login", audit_exists("auth.login_failed", "user"))
     check("Audit exists for approved registration", audit_exists("registration.approved", "registration"))

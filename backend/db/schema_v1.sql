@@ -149,9 +149,17 @@ CREATE TABLE IF NOT EXISTS attendance_sessions (
     course_id uuid REFERENCES courses(id) ON DELETE SET NULL,
     actor_user_id uuid REFERENCES users(id) ON DELETE SET NULL,
     credit_transaction_id uuid REFERENCES credit_transactions(id) ON DELETE SET NULL,
+    reversal_credit_transaction_id uuid REFERENCES credit_transactions(id) ON DELETE SET NULL,
     attended_at timestamptz NOT NULL DEFAULT now(),
+    reversed_at timestamptz,
+    reversed_by_user_id uuid REFERENCES users(id) ON DELETE SET NULL,
     note text NOT NULL DEFAULT ''
 );
+CREATE INDEX IF NOT EXISTS idx_attendance_sessions_tenant_student_attended
+    ON attendance_sessions (tenant_id, student_id, attended_at DESC);
+CREATE INDEX IF NOT EXISTS idx_attendance_sessions_credit_transaction
+    ON attendance_sessions (tenant_id, credit_transaction_id)
+    WHERE credit_transaction_id IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS registrations (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

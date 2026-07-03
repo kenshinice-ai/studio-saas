@@ -71,8 +71,8 @@ Purpose: Phased development plan, milestones, current status, and deployment tar
 | Login rate limiting | ✅ | 5/min per IP+email, 30/min per IP (P0-05, 2026-07-03) |
 | Route protection audit | ✅ | 146 routes audited; 12 open GET reads fixed (P0-06, 2026-07-03) |
 | Registration review loop | ✅ | Duplicate detection, approve-to-student, review notes, audit (P1-04, 2026-07-03) |
-| Attendance / credits closed loop | ❌ | `attendance_sessions` unused — P1-05 |
-| Media upload endpoint (v1) | ❌ | Only legacy upload exists — P1-03 |
+| Attendance / credits closed loop | ✅ | Attendance consume/void linked to credit ledger (P1-05, 2026-07-03) |
+| Media upload endpoint (v1) | ✅ | Canonical media service + `/s/<slug>/v1/media/upload` (P1-03, 2026-07-03) |
 | Browser smoke tests | ❌ | Playwright — P1-06 |
 
 ---

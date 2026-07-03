@@ -1,5 +1,46 @@
 # Admin Guide
 
+## PostgreSQL Backup And Restore
+
+The SaaS database is PostgreSQL. Legacy CMS JSON backup/restore does not protect
+the v1 multi-tenant tables.
+
+Use the local runbook script from the project root:
+
+```bash
+STUDIOSAAS_DATABASE_URL=postgresql://llmacbookpro@localhost:5432/studiosaas_local_test \
+  .venv/bin/python backend/scripts/backup_postgres.py backup
+```
+
+This creates a custom-format `pg_dump` plus a manifest under
+`backups/postgres/`. The manifest records `schema_migrations` so a restore can
+be checked against the expected schema.
+
+Dry-run restore into a temporary sibling database:
+
+```bash
+STUDIOSAAS_DATABASE_URL=postgresql://llmacbookpro@localhost:5432/studiosaas_local_test \
+  .venv/bin/python backend/scripts/backup_postgres.py restore-dry-run backups/postgres/<dump>.dump
+```
+
+Production restore is intentionally guarded:
+
+```bash
+STUDIOSAAS_DATABASE_URL=<target-postgres-url> \
+  .venv/bin/python backend/scripts/backup_postgres.py restore <dump>.dump --confirm <database_name>
+```
+
+Retention defaults to the newest 14 dumps. Change with `backup --keep N`.
+
+Checklist:
+
+- Confirm `pg_dump`, `pg_restore`, `createdb`, `dropdb`, and `psql` are on `PATH`.
+- Run `backup` before every migration batch.
+- Run `restore-dry-run` before using a dump for a real restore.
+- Confirm `schema_migrations` is non-empty after restore.
+- Never run `restore` against a development or production database without the
+  explicit `--confirm <database_name>` guard.
+
 > **StudioSaaS Platform Administration**
 > Last updated: 2026-07-03
 

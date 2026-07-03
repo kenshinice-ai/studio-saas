@@ -4,6 +4,7 @@ from flask import Flask, request, jsonify, send_from_directory, session
 from threading import Lock
 from studiosaas import api_v1, api_v1_by_slug
 from studiosaas.auth import init_auth_blueprints
+from studiosaas.errors import api_error
 from studiosaas.workspaces import RESERVED_SLUGS, WorkspaceError, validate_tenant_slug
 
 # ── S4: Unified per-IP rate limiter (login / public upload / balance / token) ─
@@ -521,15 +522,15 @@ def handle_portfolio_options(sid, pid): return '', 204
 # ── Error handlers ────────────────────────────────────────────────────────────
 @app.errorhandler(413)
 def too_large(_):
-    return jsonify({'error': '文件或请求体过大（上限 20 MB）'}), 413
+    return api_error('文件或请求体过大（上限 20 MB）', 413)
 
 @app.errorhandler(404)
 def not_found(_):
-    return jsonify({'error': 'Not found'}), 404
+    return api_error('Not found', 404)
 
 @app.errorhandler(500)
 def server_error(e):
-    return jsonify({'error': str(e)}), 500
+    return api_error(str(e), 500)
 
 
 # ── DB helpers ────────────────────────────────────────────────────────────────
@@ -587,7 +588,7 @@ def _public_file(filename, mimetype=None, cache_seconds=3600):
     }
     base_dir = PROJECT_ROOT
     if filename not in allowed or not os.path.isfile(os.path.join(base_dir, filename)):
-        return jsonify({'error':'Not found'}), 404
+        return api_error('Not found', 404)
     resp = send_from_directory(base_dir, filename)
     if mimetype:
         resp.headers['Content-Type'] = mimetype
@@ -600,7 +601,7 @@ def _legacy_file(filename, mimetype=None, cache_seconds=0):
     legacy_dir = os.path.join(PROJECT_ROOT, 'legacy-root')
     target = os.path.join(legacy_dir, filename)
     if filename not in allowed or not os.path.isfile(target):
-        return jsonify({'error':'Not found'}), 404
+        return api_error('Not found', 404)
     resp = send_from_directory(legacy_dir, filename)
     if mimetype:
         resp.headers['Content-Type'] = mimetype
@@ -613,7 +614,7 @@ def serve_index():
 
 @app.route('/register')
 def serve_register():
-    return jsonify({'error':'Use /<tenant_slug>/register for tenant registration.'}), 404
+    return api_error('Use /<tenant_slug>/register for tenant registration.', 404)
 
 @app.route('/super-admin')
 def serve_super_admin():
@@ -632,11 +633,11 @@ def _tenant_page(tenant_slug, filename):
     try:
         validate_tenant_slug(tenant_slug)
     except WorkspaceError:
-        return jsonify({'error':'Not found'}), 404
+        return api_error('Not found', 404)
     tenant_dir = os.path.join(PROJECT_ROOT, 'tenants', tenant_slug)
     target = os.path.join(tenant_dir, filename)
     if tenant_slug in RESERVED_SLUGS or not os.path.isfile(target):
-        return jsonify({'error':'Not found'}), 404
+        return api_error('Not found', 404)
     return send_from_directory(tenant_dir, filename)
 
 @app.route('/<tenant_slug>')
@@ -649,9 +650,9 @@ def serve_tenant_cms_shell(tenant_slug):
     try:
         validate_tenant_slug(tenant_slug)
     except WorkspaceError:
-        return jsonify({'error':'Not found'}), 404
+        return api_error('Not found', 404)
     if not os.path.isfile(os.path.join(PROJECT_ROOT, 'tenants', tenant_slug, 'tenant.json')):
-        return jsonify({'error':'Not found'}), 404
+        return api_error('Not found', 404)
     return _legacy_file('index.html', 'text/html; charset=utf-8', 0)
 
 @app.route('/<tenant_slug>/studio-admin')
@@ -659,9 +660,9 @@ def serve_tenant_studio_admin(tenant_slug):
     try:
         validate_tenant_slug(tenant_slug)
     except WorkspaceError:
-        return jsonify({'error':'Not found'}), 404
+        return api_error('Not found', 404)
     if not os.path.isfile(os.path.join(PROJECT_ROOT, 'tenants', tenant_slug, 'tenant.json')):
-        return jsonify({'error':'Not found'}), 404
+        return api_error('Not found', 404)
     return send_from_directory(os.path.join(APP_DIR, 'frontend'),
                                'studio-admin.html')
 
@@ -713,10 +714,10 @@ VENDOR_FILES = {
 def serve_vendor(filename):
     safe = os.path.basename(filename)
     if safe not in VENDOR_FILES:
-        return jsonify({'error':'Not found'}), 404
+        return api_error('Not found', 404)
     path = os.path.join('vendor', safe)
     if not os.path.isfile(path):
-        return jsonify({'error':'Not found'}), 404
+        return api_error('Not found', 404)
     resp = send_from_directory(os.path.join(app.root_path, 'vendor'), safe)
     resp.headers['Content-Type'] = VENDOR_FILES[safe]
     resp.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
@@ -728,7 +729,7 @@ def serve_photo(filename):
     # S1: photos may contain student face shots — admin only.
     # Admin <img> tags are same-origin so the session cookie flows automatically.
     if not _auth_ok():
-        return jsonify({'error': 'Unauthorized'}), 401
+        return api_error('Unauthorized', 401)
     return send_from_directory(PHOTO_DIR, os.path.basename(filename))
 
 
@@ -737,10 +738,10 @@ def serve_public_asset(filename):
     """Serve vetted public uploads such as tenant logos."""
     safe = os.path.basename(filename)
     if not (safe.startswith('pub_') or safe.startswith('tenant_logo_')):
-        return jsonify({'error': 'Not found'}), 404
+        return api_error('Not found', 404)
     path = os.path.join(PHOTO_DIR, safe)
     if not os.path.isfile(path):
-        return jsonify({'error': 'Not found'}), 404
+        return api_error('Not found', 404)
     return send_from_directory(PHOTO_DIR, safe)
 
 
@@ -755,11 +756,11 @@ def login():
     """Validate password and set a 30-day session cookie."""
     # C3: Rate limit login attempts to prevent brute-force
     if not _login_ok():
-        return jsonify({'ok': False, 'error': '登录尝试过于频繁，请 5 分钟后再试 / Too many attempts, please wait 5 minutes'}), 429
+        return api_error('登录尝试过于频繁，请 5 分钟后再试 / Too many attempts, please wait 5 minutes', 429)
     data = request.json or {}
     pw   = (data.get('password') or '').strip()
     if not pw:
-        return jsonify({'ok': False, 'error': '请输入密码'}), 400
+        return api_error('请输入密码', 400)
     ok, needs_upgrade = _verify_pw(pw, _get_pw_hash())
     if ok:
         if needs_upgrade:        # S3: transparently re-hash legacy SHA-256 file
@@ -768,7 +769,7 @@ def login():
         session.permanent = True
         session['auth']   = True
         return jsonify({'ok': True})
-    return jsonify({'ok': False, 'error': '密码错误'}), 401
+    return api_error('密码错误', 401)
 
 @app.route('/api/logout', methods=['POST'])
 def logout():
@@ -779,17 +780,17 @@ def logout():
 def change_password():
     """Change the admin password. Requires active session + correct current password."""
     if not _session_ok():
-        return jsonify({'ok': False, 'error': 'Unauthorized'}), 401
+        return api_error('Unauthorized', 401)
     data    = request.json or {}
     old_pw  = (data.get('oldPassword') or '').strip()
     new_pw  = (data.get('newPassword') or '').strip()
     if not old_pw or not new_pw:
-        return jsonify({'ok': False, 'error': '请填写旧密码和新密码'}), 400
+        return api_error('请填写旧密码和新密码', 400)
     if len(new_pw) < 8:
-        return jsonify({'ok': False, 'error': '新密码至少 8 位'}), 400
+        return api_error('新密码至少 8 位', 400)
     ok, _ = _verify_pw(old_pw, _get_pw_hash())
     if not ok:
-        return jsonify({'ok': False, 'error': '旧密码错误'}), 401
+        return api_error('旧密码错误', 401)
     _set_pw_hash(new_pw)
     return jsonify({'ok': True})
 
@@ -813,21 +814,21 @@ def ping():
 @app.route('/api/data', methods=['GET'])
 def get_data():
     if not _auth_ok():
-        return jsonify({'error': 'Unauthorized'}), 401
+        return api_error('Unauthorized', 401)
     with db_lock:
         try:
             return jsonify(_load_db())
         except Exception as e:
             print(f'⚠️  读取异常: {e}')
-            return jsonify({'students':[],'logs':[],'rosters':{},'pending':[]}), 500
+            return api_error('Database read failed.', 500)
 
 @app.route('/api/save', methods=['POST'])
 def save_data():
     if not _auth_ok():
-        return jsonify({'error': 'Unauthorized'}), 401
+        return api_error('Unauthorized', 401)
     data = request.json
     if not data or not isinstance(data.get('students'), list) or not isinstance(data.get('logs'), list):
-        return jsonify({'status':'error','message':'Invalid structure'}), 400
+        return api_error('Invalid structure', 400)
     force = bool(data.pop('force', False))
     data.setdefault('pending',  [])
     data.setdefault('packages', [{'id': 1, 'name': '标准课包', 'credits': 10, 'price': 1200}])
@@ -884,7 +885,7 @@ def save_data():
             return jsonify({'status':'success', 'rev': data['rev']})
         except Exception as e:
             print(f'⚠️  写入异常: {e}')
-            return jsonify({'status':'error','message':str(e)}), 500
+            return api_error(str(e), 500)
 
 
 # ── API: photo upload ─────────────────────────────────────────────────────────
@@ -895,22 +896,22 @@ def upload_photo():
         'message': 'Use /s/<tenant_slug>/v1/legacy-cms/media/upload instead.'
     }), 410
     if not _auth_ok():
-        return jsonify({'error': 'Unauthorized'}), 401
+        return api_error('Unauthorized', 401)
     if 'file' not in request.files:
-        return jsonify({'error': 'No file part'}), 400
+        return api_error('No file part', 400)
     f = request.files['file']
     if not f.filename:
-        return jsonify({'error': 'Empty filename'}), 400
+        return api_error('Empty filename', 400)
     f.seek(0, 2); file_size = f.tell(); f.seek(0)
     if file_size > 5 * 1024 * 1024:
-        return jsonify({'error': 'File too large (max 5 MB)'}), 400
+        return api_error('File too large (max 5 MB)', 400)
     ext, upload_error = _upload_ext_error(f)
     if upload_error:
-        return jsonify({'error': upload_error}), 400
+        return api_error(upload_error, 400)
     # S5: magic-byte check — same protection as the other two upload endpoints
     header = f.read(16); f.seek(0)
     if not _is_image_bytes(header):
-        return jsonify({'error': '文件内容不是有效图片 / File is not a valid image'}), 400
+        return api_error('文件内容不是有效图片 / File is not a valid image', 400)
     os.makedirs(PHOTO_DIR, exist_ok=True)
     # S1: random suffix → unguessable filename (also kills same-ms collisions)
     filename = f'{int(time.time()*1000)}_{secrets.token_hex(4)}.{ext}'
@@ -926,22 +927,22 @@ def upload_photo_public():
         'message': 'Use /v1/public/<tenant_slug>/registration-media instead.'
     }), 410
     if not _public_upload_ok():
-        return jsonify({'error': '上传太频繁，请稍后再试 / Too many uploads, please wait'}), 429
+        return api_error('上传太频繁，请稍后再试 / Too many uploads, please wait', 429)
     if 'file' not in request.files:
-        return jsonify({'error': 'No file part'}), 400
+        return api_error('No file part', 400)
     f = request.files['file']
     if not f.filename:
-        return jsonify({'error': 'Empty filename'}), 400
+        return api_error('Empty filename', 400)
     f.seek(0, 2); file_size = f.tell(); f.seek(0)
     if file_size > 5 * 1024 * 1024:
-        return jsonify({'error': 'File too large (max 5 MB)'}), 400
+        return api_error('File too large (max 5 MB)', 400)
     ext, upload_error = _upload_ext_error(f)
     if upload_error:
-        return jsonify({'error': upload_error}), 400
+        return api_error(upload_error, 400)
     # N1: Validate magic bytes — same protection as portfolio_upload (B4)
     header = f.read(16); f.seek(0)
     if not _is_image_bytes(header):
-        return jsonify({'error': '文件内容不是有效图片 / File is not a valid image'}), 400
+        return api_error('文件内容不是有效图片 / File is not a valid image', 400)
     os.makedirs(PHOTO_DIR, exist_ok=True)
     filename = f'pub_{int(time.time()*1000)}_{secrets.token_hex(4)}.{ext}'   # S1
     f.save(os.path.join(PHOTO_DIR, filename))
@@ -953,7 +954,7 @@ def upload_photo_public():
 def register_student():
     # P1: rate-limited — a public endpoint that writes to the DB must not be floodable
     if not _register_ok():
-        return jsonify({'error': '提交太频繁，请稍后再试 / Too many submissions, please wait'}), 429
+        return api_error('提交太频繁，请稍后再试 / Too many submissions, please wait', 429)
     data  = request.json or {}
     # P2: server-side length caps — a public endpoint must never be able to
     # bloat the database with megabyte-sized strings (request cap is 20 MB).
@@ -963,7 +964,7 @@ def register_student():
     last  = fld('lastName',  80)
     phone = fld('mobile',    40)
     if not first or not phone:
-        return jsonify({'error': 'firstName and mobile are required'}), 400
+        return api_error('firstName and mobile are required', 400)
     with db_lock:
         try:
             db = _load_db()
@@ -1021,7 +1022,7 @@ def register_student():
             return jsonify({'success': True})
         except Exception as e:
             print(f'⚠️  注册异常: {e}')
-            return jsonify({'error': str(e)}), 500
+            return api_error(str(e), 500)
 
 
 # ── API: balance query (always public) ───────────────────────────────────────
@@ -1029,7 +1030,7 @@ def register_student():
 def check_balance():
     # S4: rate-limited — prevents name+phone enumeration
     if not _query_ok():
-        return jsonify({'error': '查询太频繁，请稍后再试 / Too many queries, please wait'}), 429
+        return api_error('查询太频繁，请稍后再试 / Too many queries, please wait', 429)
     data    = request.json or {}
     name_q  = str(data.get('name')  or '').strip()
     phone_q = _norm_phone(data.get('phone'))  # F2: normalize phone for comparison
@@ -1060,7 +1061,7 @@ def check_balance():
             return jsonify({'match': False})
         except Exception as e:
             print(f'⚠️  余额查询异常: {e}')
-            return jsonify({'error': str(e)}), 500
+            return api_error(str(e), 500)
 
 
 # ── API: portfolio ────────────────────────────────────────────────────────────
@@ -1072,7 +1073,7 @@ def portfolio_upload():
         'message': 'Use /s/<tenant_slug>/v1/legacy-cms/portfolio/upload instead.'
     }), 410
     if not (_auth_ok() or _session_ok()):
-        return jsonify({'error': 'Unauthorized'}), 401
+        return api_error('Unauthorized', 401)
     sid      = (request.form.get('studentId') or '').strip()
     note     = (request.form.get('note')      or '').strip()[:50]   # N2: cap at 50 chars server-side
     date_str = (request.form.get('date')      or datetime.now().strftime('%Y-%m-%d')).strip()
@@ -1080,22 +1081,22 @@ def portfolio_upload():
     if not re.match(r'^\d{4}-\d{2}-\d{2}$', date_str):
         date_str = datetime.now().strftime('%Y-%m-%d')
     if not sid:
-        return jsonify({'error': 'studentId required'}), 400
+        return api_error('studentId required', 400)
     if 'file' not in request.files:
-        return jsonify({'error': 'No file part'}), 400
+        return api_error('No file part', 400)
     f = request.files['file']
     if not f.filename:
-        return jsonify({'error': 'Empty filename'}), 400
+        return api_error('Empty filename', 400)
     f.seek(0, 2); file_size = f.tell(); f.seek(0)
     if file_size > 10 * 1024 * 1024:
-        return jsonify({'error': 'File too large (max 10 MB)'}), 400
+        return api_error('File too large (max 10 MB)', 400)
     ext, upload_error = _upload_ext_error(f)
     if upload_error:
-        return jsonify({'error': upload_error}), 400
+        return api_error(upload_error, 400)
     # B4: Validate magic bytes — extension alone is not enough
     header = f.read(16); f.seek(0)
     if not _is_image_bytes(header):
-        return jsonify({'error': '文件内容不是有效图片 / File is not a valid image'}), 400
+        return api_error('文件内容不是有效图片 / File is not a valid image', 400)
     # B9: Add random suffix to avoid millisecond-level ID collision
     pid = f"{int(time.time() * 1000)}_{secrets.token_hex(4)}"
     student_dir = os.path.join(PORTFOLIO_DIR, str(sid))
@@ -1112,7 +1113,7 @@ def portfolio_upload():
                     if s.get('archived'):
                         try: os.remove(filepath)
                         except Exception: pass
-                        return jsonify({'error': '已归档学员无法上传作品 / Student is archived'}), 403
+                        return api_error('已归档学员无法上传作品 / Student is archived', 403)
                     s.setdefault('portfolio', [])
                     item = {'id': pid, 'filename': filename, 'date': date_str, 'note': note}
                     s['portfolio'].insert(0, item)   # newest first
@@ -1123,16 +1124,16 @@ def portfolio_upload():
                         try: os.remove(filepath)
                         except Exception: pass
                         print(f'⚠️  作品集DB写入失败，已清理文件: {e}')
-                        return jsonify({'error': '保存失败，请重试'}), 500
+                        return api_error('保存失败，请重试', 500)
                     return jsonify({'ok': True, 'item': item})
         except Exception as e:
             try: os.remove(filepath)
             except Exception: pass
-            return jsonify({'error': str(e)}), 500
+            return api_error(str(e), 500)
     # Student not found — clean up orphan file
     try: os.remove(filepath)
     except Exception: pass
-    return jsonify({'error': 'Student not found'}), 404
+    return api_error('Student not found', 404)
 
 
 @app.route('/api/portfolio/<sid>/<pid>', methods=['DELETE'])
@@ -1142,7 +1143,7 @@ def portfolio_delete(sid, pid):
         'message': 'Use /s/<tenant_slug>/v1/legacy-cms/portfolio/<student_id>/<portfolio_item_id> instead.'
     }), 410
     if not (_auth_ok() or _session_ok()):
-        return jsonify({'error': 'Unauthorized'}), 401
+        return api_error('Unauthorized', 401)
     with db_lock:
         db = _load_db()
         for s in db['students']:
@@ -1150,14 +1151,14 @@ def portfolio_delete(sid, pid):
                 portfolio = s.get('portfolio', [])
                 item = next((i for i in portfolio if str(i.get('id')) == str(pid)), None)
                 if not item:
-                    return jsonify({'error': 'Not found'}), 404
+                    return api_error('Not found', 404)
                 filepath = os.path.join(PORTFOLIO_DIR, str(sid), item['filename'])
                 try: os.remove(filepath)
                 except Exception: pass
                 s['portfolio'] = [i for i in portfolio if str(i.get('id')) != str(pid)]
                 _save_db(db)
                 return jsonify({'ok': True})
-    return jsonify({'error': 'Student not found'}), 404
+    return api_error('Student not found', 404)
 
 
 @app.route('/api/portfolio/<sid>/<pid>', methods=['PATCH'])
@@ -1167,7 +1168,7 @@ def portfolio_update(sid, pid):
         'message': 'Use /s/<tenant_slug>/v1/legacy-cms/portfolio/<student_id>/<portfolio_item_id> instead.'
     }), 410
     if not (_auth_ok() or _session_ok()):
-        return jsonify({'error': 'Unauthorized'}), 401
+        return api_error('Unauthorized', 401)
     data     = request.json or {}
     note     = (data.get('note') or '').strip()[:50]   # N2: cap at 50 chars server-side
     date_str = (data.get('date') or '').strip()
@@ -1185,8 +1186,8 @@ def portfolio_update(sid, pid):
                             item['date'] = date_str
                         _save_db(db)
                         return jsonify({'ok': True})
-                return jsonify({'error': 'Item not found'}), 404
-    return jsonify({'error': 'Student not found'}), 404
+                return api_error('Item not found', 404)
+    return api_error('Student not found', 404)
 
 
 @app.route('/portfolio/img/<sid>/<filename>')
@@ -1204,7 +1205,7 @@ def serve_portfolio_img(sid, filename):
         safe_dir  = os.path.join(PORTFOLIO_DIR, os.path.basename(sid))
         safe_file = os.path.basename(filename)
         return send_from_directory(safe_dir, safe_file)
-    return jsonify({'error': 'Unauthorized'}), 401
+    return api_error('Unauthorized', 401)
 
 
 @app.route('/api/portfolio/token', methods=['POST'])
@@ -1216,7 +1217,7 @@ def get_portfolio_token():
     """Verify student name+phone; return 1-hour token + portfolio metadata."""
     # S4: rate-limited — same protection as /api/balance
     if not _query_ok():
-        return jsonify({'ok': False, 'error': '查询太频繁，请稍后再试 / Too many queries, please wait'}), 429
+        return api_error('查询太频繁，请稍后再试 / Too many queries, please wait', 429)
     data    = request.json or {}
     name_q  = str(data.get('name')  or '').strip()
     phone_q = _norm_phone(data.get('phone'))
@@ -1250,7 +1251,7 @@ def get_portfolio_token():
 @app.route('/api/config', methods=['GET', 'POST'])
 def api_config():
     if not _session_ok():
-        return jsonify({'error': 'Unauthorized'}), 401
+        return api_error('Unauthorized', 401)
     with _config_lock:
         cfg = _load_config()
         if request.method == 'GET':
@@ -1291,9 +1292,9 @@ def api_config():
 @app.route('/api/email-test', methods=['POST'])
 def email_test():
     if not _session_ok():
-        return jsonify({'error': 'Unauthorized'}), 401
+        return api_error('Unauthorized', 401)
     if not _rate_ok('email', 3, 300):
-        return jsonify({'ok': False, 'error': '测试太频繁，请 5 分钟后再试'}), 429
+        return api_error('测试太频繁，请 5 分钟后再试', 429)
     cfg = _load_config()
     try:
         with db_lock:
@@ -1303,13 +1304,13 @@ def email_test():
                     '——以下是当前每周汇总的预览——\n\n' + _weekly_report(db))
         return jsonify({'ok': True})
     except Exception as e:
-        return jsonify({'ok': False, 'error': str(e)}), 400
+        return api_error(str(e), 400)
 
 
 @app.route('/api/healthcheck', methods=['GET'])
 def api_healthcheck():
     if not _session_ok():
-        return jsonify({'error': 'Unauthorized'}), 401
+        return api_error('Unauthorized', 401)
     with db_lock:
         db = _load_db()
     return jsonify(_healthcheck(db))
@@ -1319,7 +1320,7 @@ def api_healthcheck():
 @app.route('/api/backups', methods=['GET'])
 def list_backups():
     if not _auth_ok():
-        return jsonify({'error': 'Unauthorized'}), 401
+        return api_error('Unauthorized', 401)
     if not os.path.exists(BACKUP_DIR): return jsonify([])
     files = sorted([f for f in os.listdir(BACKUP_DIR) if f.endswith('.json')], reverse=True)[:50]
     out = []
@@ -1333,11 +1334,11 @@ def list_backups():
 @app.route('/api/backups/<filename>/summary', methods=['GET'])
 def backup_summary(filename):
     if not _auth_ok():
-        return jsonify({'error': 'Unauthorized'}), 401
+        return api_error('Unauthorized', 401)
     safe = os.path.basename(filename)
     path = os.path.join(BACKUP_DIR, safe)
     if not os.path.exists(path):
-        return jsonify({'error': 'Not found'}), 404
+        return api_error('Not found', 404)
     ok, data = _validate_db(path)
     if not ok:
         return jsonify({'valid': False})
@@ -1355,14 +1356,14 @@ def restore_backup():
     """R6: One-click restore. The current DB is ALWAYS saved as a
     pre_restore_* backup first, so a restore is itself reversible."""
     if not _session_ok():
-        return jsonify({'error': 'Unauthorized'}), 401
+        return api_error('Unauthorized', 401)
     fname = os.path.basename(str((request.json or {}).get('filename') or ''))
     path  = os.path.join(BACKUP_DIR, fname)
     if not fname.endswith('.json') or not os.path.exists(path):
-        return jsonify({'error': '备份不存在'}), 404
+        return api_error('备份不存在', 404)
     ok, data = _validate_db(path)
     if not ok:
-        return jsonify({'error': '该备份文件已损坏，无法恢复'}), 400
+        return api_error('该备份文件已损坏，无法恢复', 400)
     with db_lock:
         current = _load_db()
         os.makedirs(BACKUP_DIR, exist_ok=True)
@@ -1383,10 +1384,10 @@ def restore_backup():
 @app.route('/api/backups/<filename>', methods=['GET'])
 def download_backup(filename):
     if not _auth_ok():
-        return jsonify({'error': 'Unauthorized'}), 401
+        return api_error('Unauthorized', 401)
     safe = os.path.basename(filename)
     path = os.path.join(BACKUP_DIR, safe)
-    if not os.path.exists(path): return jsonify({'error':'Not found'}), 404
+    if not os.path.exists(path): return api_error('Not found', 404)
     return send_from_directory(BACKUP_DIR, safe, as_attachment=True)
 
 

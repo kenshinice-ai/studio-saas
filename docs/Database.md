@@ -60,7 +60,7 @@ Decision pending (P0-01): either represent platform roles as memberships with `t
 | `packages` | `id`, `tenant_id`, `name`, `description`, `price_aud_cents` | Course package definitions |
 | `credit_accounts` | `id`, `tenant_id`, `student_id`, `course_id`, `balance` | Student balance accounts. Unique key: `(tenant_id, student_id, course_id)` |
 | `credit_transactions` | `id`, `tenant_id`, `student_id`, `credit_account_id`, `transaction_type`, `amount`, `description` | Ledger-style transaction log |
-| `attendance_sessions` | `id`, `tenant_id`, `student_id`, `course_id`, `date`, `status` | Class/check-in records. **Currently unused by the API (P1-05).** |
+| `attendance_sessions` | `id`, `tenant_id`, `student_id`, `course_id`, `credit_transaction_id`, `reversal_credit_transaction_id`, `attended_at`, `reversed_at` | Class/check-in records linked to credit ledger consume/refund rows |
 | `registrations` | `id`, `tenant_id`, `first_name`, `last_name`, `mobile`, `status`, `student_id`, `duplicate_of_registration_id`, `review_note`, `submitted_at` | Public registration applications and Studio Admin review decisions |
 
 ### 2.4 Content Tables

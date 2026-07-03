@@ -1055,6 +1055,17 @@
       border-radius: 10px;
     }
 
+    .detail-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .detail-row:last-child { border-bottom: 0; }
+
     .modal-footer {
       padding: 16px 24px;
       border-top: 1px solid var(--line);
@@ -1110,25 +1121,25 @@
     <nav class="nav-bar">
       <div class="nav-inner">
         <a class="nav-link active" href="#section-overview" data-section="overview">
-          <span class="nav-icon">📊</span> Overview
-        </a>
-        <a class="nav-link" href="#section-settings" data-section="settings">
-          <span class="nav-icon">⚙️</span> Studio Settings
+          <span class="nav-icon">📊</span> Dashboard
         </a>
         <a class="nav-link" href="#section-students" data-section="students">
           <span class="nav-icon">👥</span> Students
         </a>
-        <a class="nav-link" href="#section-courses" data-section="courses">
-          <span class="nav-icon">📚</span> Courses
-        </a>
-        <a class="nav-link" href="#section-packages" data-section="packages">
-          <span class="nav-icon">📦</span> Packages
-        </a>
         <a class="nav-link" href="#section-registrations" data-section="registrations">
           <span class="nav-icon">📋</span> Registrations
         </a>
+        <a class="nav-link" href="#section-attendance" data-section="attendance">
+          <span class="nav-icon">✓</span> Credits / Attendance
+        </a>
+        <a class="nav-link" href="#section-courses" data-section="courses">
+          <span class="nav-icon">📚</span> Courses / Packages
+        </a>
         <a class="nav-link" href="#section-portfolio" data-section="portfolio">
           <span class="nav-icon">🎨</span> Portfolio
+        </a>
+        <a class="nav-link" href="#section-settings" data-section="settings">
+          <span class="nav-icon">⚙️</span> Website / Brand
         </a>
       </div>
     </nav>
@@ -1162,8 +1173,8 @@
       <div class="section-header">
         <div class="section-icon">📊</div>
         <div>
-          <div class="section-title">Overview</div>
-          <div class="section-subtitle">Key metrics at a glance</div>
+          <div class="section-title">Dashboard</div>
+          <div class="section-subtitle">Today, balances, and registration work</div>
         </div>
       </div>
       <div class="stats-grid">
@@ -1184,8 +1195,22 @@
           <div class="stat-label">Pending</div>
         </div>
         <div class="stat-card">
-          <div id="portfolioMetric" class="stat-value">-</div>
-          <div class="stat-label">Portfolio Items</div>
+          <div id="todayMetric" class="stat-value">-</div>
+          <div class="stat-label">Today Check-ins</div>
+        </div>
+      </div>
+      <div class="content-grid mt-2">
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Today</h2>
+          </div>
+          <div id="dashboardTodayBody" class="empty-state">Loading...</div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Attention</h2>
+          </div>
+          <div id="dashboardAttentionBody" class="empty-state">Loading...</div>
         </div>
       </div>
     </section>
@@ -1195,7 +1220,7 @@
       <div class="section-header">
         <div class="section-icon">⚙️</div>
         <div>
-          <div class="section-title">Studio Settings</div>
+          <div class="section-title">Website / Brand</div>
           <div class="section-subtitle">Branding, layout, and contact details</div>
         </div>
       </div>
@@ -1425,13 +1450,73 @@
       </div>
     </section>
 
+    <!-- ===== Credits & Attendance Section ===== -->
+    <section id="section-attendance" class="section">
+      <div class="section-header">
+        <div class="section-icon">✓</div>
+        <div>
+          <div class="section-title">Credits / Attendance</div>
+          <div class="section-subtitle">Today check-ins, undo flow, and low balance warnings</div>
+        </div>
+      </div>
+      <div class="content-grid">
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Today Check-in</h2>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Student</label>
+              <select id="attendanceStudent"></select>
+            </div>
+            <div class="form-group">
+              <label>Course</label>
+              <select id="attendanceCourse"></select>
+            </div>
+            <div class="form-group">
+              <label>Note</label>
+              <input id="attendanceNote" placeholder="Optional note">
+            </div>
+          </div>
+          <div class="form-actions">
+            <button id="attendanceCheckInBtn" class="btn-primary" type="button">Check In</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Low Balance</h2>
+          </div>
+          <div id="attendanceLowBalance" class="empty-state">Loading...</div>
+        </div>
+      </div>
+      <div class="card mt-2">
+        <div class="card-header">
+          <h2 class="card-title">Today's Attendance</h2>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Course</th>
+                <th>Credits</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="attendanceBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
     <!-- ===== Courses Section ===== -->
     <section id="section-courses" class="section">
       <div class="section-header">
         <div class="section-icon">📚</div>
         <div>
-          <div class="section-title">Courses</div>
-          <div class="section-subtitle">Manage course catalog and pricing</div>
+          <div class="section-title">Courses / Packages</div>
+          <div class="section-subtitle">Manage course catalog, credits, and pricing</div>
         </div>
       </div>
       <div class="card">
@@ -1603,6 +1688,7 @@
     let packages = [];
     let registrations = [];
     let portfolioItems = [];
+    let attendanceItems = [];
     let editingStudentId = '';
     let editingCourseCode = '';
     let editingPackageCode = '';
@@ -1627,6 +1713,31 @@
 
     function emptyRow(colspan, message) {
       return `<tr><td colspan="${colspan}"><div class="empty-state">${esc(message)}</div></td></tr>`;
+    }
+
+    function todayIso() {
+      return new Date().toISOString().slice(0, 10);
+    }
+
+    function lowBalanceStudents() {
+      return students.filter((s) => Number(s.balance || 0) <= Number(s.low_balance_threshold || 2));
+    }
+
+    function orderSectionsForDailyWorkflow() {
+      const container = $('adminContent');
+      [
+        'section-overview',
+        'section-students',
+        'section-registrations',
+        'section-attendance',
+        'section-courses',
+        'section-packages',
+        'section-portfolio',
+        'section-settings'
+      ].forEach((id) => {
+        const section = $(id);
+        if (section) container.appendChild(section);
+      });
     }
 
     async function runUiAction(buttonId, label, action) {
@@ -2233,6 +2344,69 @@
       </tr>`).join('') || emptyRow(6, 'No registration requests yet.');
     }
 
+    function renderDashboardTasks() {
+      const pending = registrations.filter((r) => r.status === 'pending');
+      const low = lowBalanceStudents();
+      $('dashboardTodayBody').classList.toggle('empty-state', attendanceItems.length === 0);
+      $('dashboardTodayBody').innerHTML = attendanceItems.length
+        ? attendanceItems.slice(0, 5).map((a) => `<div class="detail-row"><strong>${esc(text(a.student_name))}</strong><span class="text-muted">${esc(text(a.course_name || 'Attendance'))}</span></div>`).join('')
+        : 'No check-ins today.';
+      $('dashboardAttentionBody').classList.toggle('empty-state', pending.length === 0 && low.length === 0);
+      $('dashboardAttentionBody').innerHTML = [
+        pending.length ? `<div><strong>${pending.length}</strong> pending registration${pending.length === 1 ? '' : 's'}</div>` : '',
+        low.length ? `<div><strong>${low.length}</strong> low-balance student${low.length === 1 ? '' : 's'}</div>` : ''
+      ].filter(Boolean).join('') || 'No urgent items.';
+    }
+
+    function renderAttendance() {
+      const activeStudents = students.filter((s) => studentStatus(s) !== 'archived');
+      $('attendanceStudent').innerHTML = activeStudents.map((s) => `<option value="${esc(s.id)}">${esc(studentName(s))} · ${Number(s.balance || 0).toFixed(2)}</option>`).join('');
+      $('attendanceCourse').innerHTML = courses.filter(isActiveItem).map((c) => `<option value="${esc(c.id)}">${esc(c.name)} · ${Number(c.default_credit_debit || 1).toFixed(2)} credit</option>`).join('');
+      const low = lowBalanceStudents();
+      $('attendanceLowBalance').classList.toggle('empty-state', low.length === 0);
+      $('attendanceLowBalance').innerHTML = low.length
+        ? low.slice(0, 8).map((s) => `<div class="detail-row"><strong>${esc(studentName(s))}</strong><span class="text-muted">${Number(s.balance || 0).toFixed(2)} credits</span></div>`).join('')
+        : 'No low-balance students.';
+      $('attendanceBody').innerHTML = attendanceItems.map((a) => `<tr>
+        <td><strong>${esc(text(a.student_name))}</strong></td>
+        <td>${esc(text(a.course_name || 'General'))}</td>
+        <td>${Number(a.consumed_credits || 0).toFixed(2)}</td>
+        <td>${a.reversed_at ? pill('refunded') : pill('active')}</td>
+        <td><div class="action-row">${a.reversed_at ? '' : `<button class="btn-danger btn-sm" onclick="voidAttendance('${a.id}')">Undo</button>`}</div></td>
+      </tr>`).join('') || emptyRow(5, 'No check-ins today.');
+      renderDashboardTasks();
+    }
+
+    async function checkInAttendance() {
+      await runUiAction('attendanceCheckInBtn', 'Checking in...', async () => {
+        const payload = {
+          studentId: $('attendanceStudent').value,
+          courseId: $('attendanceCourse').value,
+          note: $('attendanceNote').value.trim()
+        };
+        if (!payload.studentId) throw new Error('Select a student first.');
+        await api('/attendance/check-in', { method: 'POST', body: JSON.stringify(payload) });
+        $('attendanceNote').value = '';
+        showToast('Attendance recorded.');
+        await refresh();
+      });
+    }
+
+    async function voidAttendance(attendanceId) {
+      const footerHtml = `<button id="confirmVoidAttendanceBtn" onclick="confirmVoidAttendance('${attendanceId}')" class="btn-danger">Undo Check-in</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
+      openModal('Undo Check-in', '<p>Undo this check-in and refund the consumed credits?</p><div class="form-group mt-2"><label>Reason</label><input id="m_voidAttendanceNote" placeholder="Optional reason"></div>', footerHtml);
+    }
+
+    async function confirmVoidAttendance(attendanceId) {
+      await runUiAction('confirmVoidAttendanceBtn', 'Undoing...', async () => {
+        const note = $('m_voidAttendanceNote') ? $('m_voidAttendanceNote').value.trim() : '';
+        await api(`/attendance/${attendanceId}/void`, { method: 'POST', body: JSON.stringify({ note }) });
+        closeModal();
+        showToast('Check-in undone and credits refunded.');
+        await refresh();
+      });
+    }
+
     async function updateRegistrationStatus(regId, newStatus) {
       const labels = { contacted: 'Mark Contacted', approved: 'Approve and Create Student', rejected: 'Reject', archived: 'Archive' };
       const noteRequired = newStatus === 'rejected' || newStatus === 'archived';
@@ -2346,8 +2520,8 @@
       $('refreshBtn').disabled = loading;
       $('refreshIcon').textContent = loading ? '...' : '↻';
       if (loading) {
-        ['studentsBody','coursesBody','packagesBody','registrationsBody','portfolioBody'].forEach((id) => {
-          const colspan = id === 'studentsBody' ? 4 : id === 'registrationsBody' ? 6 : id === 'portfolioBody' ? 5 : 6;
+        ['studentsBody','coursesBody','packagesBody','registrationsBody','portfolioBody','attendanceBody'].forEach((id) => {
+          const colspan = id === 'studentsBody' ? 4 : id === 'registrationsBody' ? 6 : id === 'portfolioBody' ? 5 : id === 'attendanceBody' ? 5 : 6;
           $(id).innerHTML = emptyRow(colspan, 'Loading...');
         });
       }
@@ -2358,8 +2532,8 @@
       localStorage.setItem('studiosaas_tenant_slug', currentTenantSlug());
       setLoadingState(true);
       try {
-        const [tenantData, dashboardData, studentData, courseData, packageData, registrationData, portfolioData, planData] = await Promise.all([
-          api('/tenant'), api('/dashboard'), api(studentListPath()), api('/courses'), api('/packages'), api('/registrations'), api('/portfolio'), authApi('/plans')
+        const [tenantData, dashboardData, studentData, courseData, packageData, registrationData, portfolioData, attendanceData, planData] = await Promise.all([
+          api('/tenant'), api('/dashboard'), api(studentListPath()), api('/courses'), api('/packages'), api('/registrations'), api('/portfolio'), api(`/attendance?date=${todayIso()}`), authApi('/plans')
         ]);
         tenant = tenantData.tenant || tenantData.settings || {};
         plans = planData.plans || [];
@@ -2368,17 +2542,19 @@
         packages = packageData.packages || [];
         registrations = registrationData.registrations || [];
         portfolioItems = portfolioData.portfolio || portfolioData.items || [];
+        attendanceItems = attendanceData.attendance || [];
         const dashboard = dashboardData.dashboard || {};
         $('studentsMetric').textContent = dashboard.students ?? students.length;
         $('activeMetric').textContent = dashboard.active_students ?? students.filter((s) => studentStatus(s) === 'active').length;
         $('lowMetric').textContent = dashboard.low_balance ?? students.filter((s) => Number(s.balance || 0) <= Number(s.low_balance_threshold || 2)).length;
         $('pendingMetric').textContent = dashboard.pending_registrations ?? registrations.filter((r) => r.status === 'pending').length;
-        $('portfolioMetric').textContent = dashboard.portfolio_items ?? portfolioItems.length;
+        $('todayMetric').textContent = attendanceItems.filter((a) => !a.reversed_at).length;
         fillSettings();
         renderStudents();
         renderCourses();
         renderPackages();
         renderRegistrations();
+        renderAttendance();
         renderPortfolio();
       } catch (err) {
         if (err.status === 401) setAuthState(null);
@@ -2389,6 +2565,7 @@
     }
 
     function bindEvents() {
+      orderSectionsForDailyWorkflow();
       $('tenantSlug').value = pathTenantSlug() || localStorage.getItem('studiosaas_tenant_slug') || $('tenantSlug').value || 'lets-paint-studio';
       $('loginForm').addEventListener('submit', loginStudioAdmin);
       $('logoutBtn').addEventListener('click', logoutStudioAdmin);
@@ -2413,6 +2590,7 @@
       $('resetStudentBtn').addEventListener('click', resetStudentForm);
       $('addCourseBtn').addEventListener('click', resetCourseForm);
       $('addPackageBtn').addEventListener('click', resetPackageForm);
+      $('attendanceCheckInBtn').addEventListener('click', () => checkInAttendance().catch(() => {}));
       document.querySelectorAll('.nav-link').forEach((link) => {
         link.addEventListener('click', () => {
           document.querySelectorAll('.nav-link').forEach((item) => item.classList.remove('active'));

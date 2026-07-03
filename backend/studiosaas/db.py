@@ -36,10 +36,15 @@ def connect() -> Iterator[Any]:
         raise DatabaseUnavailableError(str(exc)) from exc
 
     try:
-        with psycopg.connect(cfg.database_url, row_factory=dict_row) as conn:
-            yield conn
+        conn = psycopg.connect(cfg.database_url, row_factory=dict_row)
     except psycopg.Error as exc:
         raise DatabaseUnavailableError(str(exc)) from exc
+
+    try:
+        with conn:
+            yield conn
+    finally:
+        conn.close()
 
 
 def fetch_one(conn: Any, query: str, params: tuple[Any, ...]) -> dict[str, Any] | None:

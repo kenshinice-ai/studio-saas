@@ -962,6 +962,11 @@
                 <tbody id="tenantsBody"></tbody>
               </table>
             </div>
+            <div class="toolbar" style="margin-top:12px;justify-content:flex-end;">
+              <button id="tenantPrevBtn" class="btn-secondary btn-sm" type="button">Previous</button>
+              <span id="tenantPageLabel" class="text-muted">Page 1</span>
+              <button id="tenantNextBtn" class="btn-secondary btn-sm" type="button">Next</button>
+            </div>
           </section>
 
       <!-- Tenant Detail / Form -->
@@ -1053,6 +1058,8 @@
     let editingTenantId = '';
     let editingPlanCode = '';
     let selectedTenantId = '';
+    let tenantPage = 0;
+    const tenantPageSize = 10;
     let isLoading = false;
     let currentUser = null;
 
@@ -1357,13 +1364,18 @@
       const body = isPause
         ? `<p>Pause <strong>${esc(t.name)}</strong>? Public tenant pages stay present, but the tenant will be marked paused for operations and billing review.</p>`
         : `<p>Reactivate <strong>${esc(t.name)}</strong>? This restores active tenant status and subscription state.</p>`;
+      const confirm = `<div class="form-group mt-2"><label>Type tenant slug to confirm</label><input id="m_tenantStateConfirmSlug" placeholder="${esc(t.slug)}"></div>`;
       const footerHtml = `<button id="confirmTenantStateBtn" onclick="confirmTenantState('${id}', '${targetStatus}', '${targetSubscription}')" class="${isPause ? 'btn-danger' : 'btn-primary'}">${verb}</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
-      openModal(title, body, footerHtml);
+      openModal(title, body + confirm, footerHtml);
     }
 
     async function confirmTenantState(id, status, subscriptionStatus) {
       const t = tenants.find((item) => item.id === id);
       if (!t) return;
+      if (($('m_tenantStateConfirmSlug')?.value || '').trim() !== t.slug) {
+        showToast(`Type ${t.slug} to confirm.`, 'error');
+        return;
+      }
       $('confirmTenantStateBtn').disabled = true;
         await api(`/admin/tenants/${id}/status`, {
           method: 'PATCH',
@@ -1376,11 +1388,19 @@
 
     // Delete tenant with confirmation modal
     async function deleteTenant(id, name) {
-      const footerHtml = `<button onclick="confirmDeleteTenant('${id}', '${esc(name)}')" class="btn-danger">Delete</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
-      openModal('Delete Tenant', `<p>Are you sure you want to delete <strong>${esc(name)}</strong>? This will remove all tenant-owned data.</p>`, footerHtml);
+      const t = tenants.find((item) => item.id === id);
+      if (!t) return;
+      const footerHtml = `<button onclick="confirmDeleteTenant('${id}')" class="btn-danger">Delete</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
+      openModal('Delete Tenant', `<p>Delete <strong>${esc(t.name)}</strong>? This removes tenant-owned data.</p><div class="form-group mt-2"><label>Type tenant slug to confirm</label><input id="m_deleteTenantConfirmSlug" placeholder="${esc(t.slug)}"></div>`, footerHtml);
     }
 
-    async function confirmDeleteTenant(id, name) {
+    async function confirmDeleteTenant(id) {
+      const t = tenants.find((item) => item.id === id);
+      if (!t) return;
+      if (($('m_deleteTenantConfirmSlug')?.value || '').trim() !== t.slug) {
+        showToast(`Type ${t.slug} to confirm.`, 'error');
+        return;
+      }
       await api(`/admin/tenants/${id}`, { method: 'DELETE' });
       showToast('Tenant deleted.');
       closeModal();
@@ -1437,7 +1457,13 @@
 
     // Render tenants table
     function renderTenants() {
-      const visible = filteredTenants();
+      const allVisible = filteredTenants();
+      const totalPages = Math.max(1, Math.ceil(allVisible.length / tenantPageSize));
+      if (tenantPage >= totalPages) tenantPage = totalPages - 1;
+      const visible = allVisible.slice(tenantPage * tenantPageSize, (tenantPage + 1) * tenantPageSize);
+      $('tenantPageLabel').textContent = `Page ${tenantPage + 1} of ${totalPages} · ${allVisible.length} tenants`;
+      $('tenantPrevBtn').disabled = tenantPage <= 0;
+      $('tenantNextBtn').disabled = tenantPage >= totalPages - 1;
       $('tenantsBody').innerHTML = visible.map((t) => `<tr>
 	        <td><strong>${esc(t.name)}</strong><br><code>${esc(t.slug)}</code><br><span class="text-muted">${esc(t.category || 'general')} · ${esc(t.studio_admin_email || 'no admin login')}</span></td>
         <td><strong>${esc(t.plan_code)}</strong><br><span class="text-muted">${esc(t.category || 'general')}</span></td>
@@ -1582,7 +1608,10 @@
     $('logoutBtn').addEventListener('click', logoutSuperAdmin);
     $('changePasswordBtn').addEventListener('click', openChangePasswordModal);
     $('refreshBtn').addEventListener('click', refresh);
-    ['tenantSearch','statusFilter','planFilter','categoryFilter'].forEach((id) => $(id).addEventListener('input', renderTenants));
+    ['tenantSearch','statusFilter','planFilter','categoryFilter'].forEach((id) => $(id).addEventListener('input', () => {
+      tenantPage = 0;
+      renderTenants();
+    }));
     const navLinks = Array.from(document.querySelectorAll('.nav-link'));
     const setActiveNav = (hash) => {
       navLinks.forEach((link) => link.classList.toggle('active', link.getAttribute('href') === hash));
@@ -1605,8 +1634,11 @@
       $('statusFilter').value = '';
       $('planFilter').value = '';
       $('categoryFilter').value = '';
+      tenantPage = 0;
       renderTenants();
     });
+    $('tenantPrevBtn').addEventListener('click', () => { tenantPage = Math.max(0, tenantPage - 1); renderTenants(); });
+    $('tenantNextBtn').addEventListener('click', () => { tenantPage += 1; renderTenants(); });
 
     // Add tenant button - open modal
     $('addTenantBtn').addEventListener('click', () => {

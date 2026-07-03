@@ -26,6 +26,13 @@ from .auth import (
 )
 from .config import load_config
 from .db import DatabaseUnavailableError, connect, fetch_all, fetch_one
+from .errors import api_error
+from .services.media import (
+    MediaQuotaExceededError,
+    MediaUploadError,
+    send_media_asset,
+    store_media_asset,
+)
 from .tenant_context import TenantResolutionError, resolve_tenant, slug_from_request
 from .workspaces import WorkspaceError, ensure_tenant_workspace
 
@@ -85,14 +92,14 @@ def pull_slug_route_tenant(endpoint, values):
 def handle_database_unavailable(exc: DatabaseUnavailableError):
     """Return a clear setup error when PostgreSQL is not ready."""
 
-    return jsonify({"error": "database_unavailable", "message": str(exc)}), 503
+    return api_error(str(exc), 503, error="database_unavailable")
 
 
 @api_v1.errorhandler(TenantResolutionError)
 def handle_tenant_error(exc: TenantResolutionError):
     """Return a clear tenant error instead of silently picking a default."""
 
-    return jsonify({"error": "tenant_resolution_failed", "message": str(exc)}), 400
+    return api_error(str(exc), 400, error="tenant_resolution_failed")
 
 
 api_v1_by_slug.register_error_handler(
@@ -515,7 +522,15 @@ def _audit_request(conn, *, tenant_id, action, resource_type, resource_id="", me
 def _error(message: str, status: int = 400):
     """Return a consistent JSON error response."""
 
-    return jsonify({"error": "invalid_request", "message": message}), status
+    return api_error(message, status)
+
+
+def _media_error(exc: Exception):
+    """Map media-service exceptions to API errors."""
+
+    if isinstance(exc, MediaQuotaExceededError):
+        return api_error(str(exc), 403, error="quota_exceeded")
+    return _error(str(exc))
 
 
 def _studio_admin_write_payload(
@@ -881,80 +896,22 @@ def _validate_media_upload(file_storage, *, kind: str) -> tuple[str, bytes, str]
 def _store_media_asset(conn, *, tenant_id: str, file_storage, kind: str, owner_student_id: str | None = None) -> dict:
     """Persist one tenant media file and insert its media_assets row."""
 
-    _ensure_media_schema(conn)
-    if owner_student_id:
-        student = fetch_one(
-            conn,
-            "SELECT id FROM students WHERE tenant_id = %s AND id = %s",
-            (tenant_id, owner_student_id),
-        )
-        if not student:
-            raise ValueError("Student was not found for this tenant.")
-
-    ext, data, mime_type = _validate_media_upload(file_storage, kind=kind)
-    media_id = str(_uuid.uuid4())
-    tenant_part = str(tenant_id)
-    safe_kind = re.sub(r"[^a-z0-9_-]", "_", kind.lower())
-    storage_key = f"{tenant_part}/{safe_kind}/{media_id}{ext}"
-    full_path = os.path.join(_media_root(), tenant_part, safe_kind, f"{media_id}{ext}")
-    os.makedirs(os.path.dirname(full_path), exist_ok=True)
-    with open(full_path, "wb") as fh:
-        fh.write(data)
-
-    try:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                INSERT INTO media_assets (
-                    id, tenant_id, owner_student_id, asset_type, storage_provider, storage_key,
-                    original_filename, mime_type, byte_size, checksum_sha256, visibility
-                )
-                VALUES (%s, %s, %s, %s, 'local', %s, %s, %s, %s, %s, 'private')
-                RETURNING id, storage_key, mime_type, byte_size
-                """,
-                (
-                    media_id,
-                    tenant_id,
-                    owner_student_id,
-                    safe_kind,
-                    storage_key,
-                    secure_filename(file_storage.filename or ""),
-                    mime_type,
-                    len(data),
-                    hashlib.sha256(data).hexdigest(),
-                ),
-            )
-            row = cur.fetchone()
-            _refresh_tenant_usage(conn, tenant_id)
-    except Exception:
-        try:
-            os.remove(full_path)
-        except OSError:
-            pass
-        raise
-    return row
+    return store_media_asset(
+        conn,
+        tenant_id=tenant_id,
+        file_storage=file_storage,
+        kind=kind,
+        owner_student_id=owner_student_id,
+    )
 
 
 def _send_media_asset(conn, *, tenant_id: str, media_asset_id: str):
     """Serve one media asset after tenant ownership has been verified."""
 
-    row = fetch_one(
-        conn,
-        """
-        SELECT storage_key
-        FROM media_assets
-        WHERE tenant_id = %s AND id = %s AND storage_provider = 'local'
-        """,
-        (tenant_id, media_asset_id),
-    )
-    if not row:
-        return _error("Media asset was not found.", 404)
-    storage_key = str(row["storage_key"] or "")
-    safe_parts = [secure_filename(part) for part in storage_key.split("/") if part]
-    if len(safe_parts) < 3:
-        return _error("Media asset path is invalid.", 404)
-    directory = os.path.join(_media_root(), *safe_parts[:-1])
-    return send_from_directory(directory, safe_parts[-1])
+    try:
+        return send_media_asset(conn, tenant_id=tenant_id, media_asset_id=media_asset_id)
+    except MediaUploadError as exc:
+        return _error(str(exc), 404)
 
 
 def _parse_bool_arg(name: str) -> bool:
@@ -2087,8 +2044,8 @@ def public_registration_media_upload(tenant_slug: str):
                 file_storage=f,
                 kind="registration_photo",
             )
-        except ValueError as exc:
-            return _error(str(exc))
+        except MediaUploadError as exc:
+            return _media_error(exc)
         _audit(
             conn,
             tenant_id=tenant.tenant_id,
@@ -2740,6 +2697,60 @@ def get_media_asset(media_asset_id: str):
         return _send_media_asset(conn, tenant_id=tenant.tenant_id, media_asset_id=media_asset_id)
 
 
+@api_v1.route("/media/upload", methods=["POST"])
+@tenant_admin_required
+def upload_media_asset():
+    """Upload one tenant media asset through the canonical v1 endpoint."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        f = request.files.get("file")
+        if not f or not f.filename:
+            return _error("No file provided.")
+        kind = str(request.form.get("kind") or "portfolio").strip() or "portfolio"
+        owner_student_id = str(
+            request.form.get("studentId")
+            or request.form.get("ownerStudentId")
+            or ""
+        ).strip() or None
+        storage_provider = str(request.form.get("storageProvider") or "local").strip().lower() or "local"
+        try:
+            media = store_media_asset(
+                conn,
+                tenant_id=tenant.tenant_id,
+                file_storage=f,
+                kind=kind,
+                owner_student_id=owner_student_id,
+                storage_provider=storage_provider,
+            )
+        except MediaUploadError as exc:
+            return _media_error(exc)
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="media.uploaded",
+            resource_type="media_asset",
+            resource_id=media["id"],
+            metadata={
+                "kind": kind,
+                "byte_size": media["byte_size"],
+                "storage_provider": media["storage_provider"],
+            },
+        )
+    media_id = str(media["id"])
+    return jsonify(
+        {
+            "ok": True,
+            "mediaAssetId": media_id,
+            "filename": _media_token(media_id),
+            "url": f"/s/{tenant.slug}/v1/media/{media_id}",
+            "mimeType": media["mime_type"],
+            "byteSize": media["byte_size"],
+            "storageProvider": media["storage_provider"],
+        }
+    ), 201
+
+
 @api_v1.route("/legacy-cms/media/upload", methods=["POST"])
 @tenant_admin_required
 def legacy_cms_media_upload():
@@ -2755,8 +2766,8 @@ def legacy_cms_media_upload():
             kind = "student_photo"
         try:
             media = _store_media_asset(conn, tenant_id=tenant.tenant_id, file_storage=f, kind=kind)
-        except ValueError as exc:
-            return _error(str(exc))
+        except MediaUploadError as exc:
+            return _media_error(exc)
         _audit_request(
             conn,
             tenant_id=tenant.tenant_id,
@@ -2808,8 +2819,8 @@ def legacy_cms_portfolio_upload():
                 kind="portfolio",
                 owner_student_id=student_id,
             )
-        except ValueError as exc:
-            return _error(str(exc))
+        except MediaUploadError as exc:
+            return _media_error(exc)
         artwork_date_val = None
         if date_str:
             try:
@@ -3043,6 +3054,10 @@ def mutate_plan(code: str):
 def admin_tenants():
     """List tenants for the local Super Admin prototype."""
 
+    try:
+        limit, offset = _parse_pagination()
+    except ValueError as exc:
+        return _error(str(exc))
     with connect() as conn:
         rows = fetch_all(
             conn,
@@ -3073,10 +3088,12 @@ def admin_tenants():
             LEFT JOIN tenant_usage u ON u.tenant_id = t.id
             LEFT JOIN subscriptions s ON s.tenant_id = t.id
             ORDER BY t.created_at DESC
+            LIMIT %s OFFSET %s
             """,
-            (),
+            (limit, offset),
         )
-    return jsonify({"tenants": rows})
+        total = fetch_one(conn, "SELECT count(*) AS n FROM tenants", ())
+    return jsonify({"tenants": rows, "limit": limit, "offset": offset, "total": int(total["n"] if total else 0)})
 
 
 @api_v1.route("/admin/tenants", methods=["POST"])
@@ -3594,6 +3611,292 @@ def create_credit_transaction(student_id: str):
     return jsonify({"ok": True, "transactionId": tx_id, "newBalance": new_balance}), 201
 
 
+@api_v1.route("/attendance", methods=["GET"])
+@auth_required
+def list_attendance_sessions():
+    """List attendance sessions for the resolved tenant."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        student_id = request.args.get("studentId", "").strip()
+        date_value = request.args.get("date", "").strip()
+        limit, offset = _parse_pagination()
+        filters = ["a.tenant_id = %s"]
+        params: list[object] = [tenant.tenant_id]
+        if student_id:
+            filters.append("a.student_id = %s")
+            params.append(student_id)
+        if date_value:
+            filters.append("a.attended_at::date = %s::date")
+            params.append(date_value)
+        params.extend([limit, offset])
+        rows = fetch_all(
+            conn,
+            f"""
+            SELECT a.id, a.student_id, s.display_name AS student_name,
+                   a.course_id, c.name AS course_name,
+                   a.credit_transaction_id, a.reversal_credit_transaction_id,
+                   a.attended_at, a.reversed_at, a.note,
+                   ct.amount::float AS consumed_credits,
+                   rt.amount::float AS refunded_credits
+            FROM attendance_sessions a
+            JOIN students s ON s.tenant_id = a.tenant_id AND s.id = a.student_id
+            LEFT JOIN courses c ON c.tenant_id = a.tenant_id AND c.id = a.course_id
+            LEFT JOIN credit_transactions ct
+              ON ct.tenant_id = a.tenant_id
+             AND ct.id = a.credit_transaction_id
+            LEFT JOIN credit_transactions rt
+              ON rt.tenant_id = a.tenant_id
+             AND rt.id = a.reversal_credit_transaction_id
+            WHERE {" AND ".join(filters)}
+            ORDER BY a.attended_at DESC
+            LIMIT %s OFFSET %s
+            """,
+            tuple(params),
+        )
+    return jsonify({"attendance": rows})
+
+
+@api_v1.route("/attendance/check-in", methods=["POST"])
+@tenant_admin_required
+def check_in_attendance():
+    """Record one attendance session and consume credits atomically."""
+
+    try:
+        payload = _json_payload()
+    except ValueError as exc:
+        return _error(str(exc))
+
+    student_id = _clean_text(payload, "studentId", _clean_text(payload, "student_id"))
+    course_id = _clean_text(payload, "courseId", _clean_text(payload, "course_id")) or None
+    note = _clean_text(payload, "note")[:500]
+    if not student_id:
+        return _error("studentId is required.")
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, status, display_name
+                FROM students
+                WHERE tenant_id = %s AND id = %s
+                FOR UPDATE
+                """,
+                (tenant.tenant_id, student_id),
+            )
+            student = cur.fetchone()
+            if not student:
+                return _error("Student was not found.", 404)
+            if student["status"] == "archived":
+                return _error("Archived students cannot be checked in.", 403)
+
+            debit = 1.0
+            if course_id:
+                cur.execute(
+                    """
+                    SELECT default_credit_debit::float AS debit
+                    FROM courses
+                    WHERE tenant_id = %s AND id = %s AND is_active = true
+                    """,
+                    (tenant.tenant_id, course_id),
+                )
+                course = cur.fetchone()
+                if not course:
+                    return _error("Course was not found.", 404)
+                debit = float(course["debit"] or 1)
+            else:
+                try:
+                    debit = float(payload.get("credits", payload.get("amount", 1)))
+                except (TypeError, ValueError):
+                    return _error("credits must be a positive number.")
+            if debit <= 0:
+                return _error("credits must be a positive number.")
+
+            _ensure_default_credit_account(cur, tenant.tenant_id, student_id)
+            cur.execute(
+                """
+                SELECT id, COALESCE(balance, 0)::numeric AS balance
+                FROM credit_accounts
+                WHERE tenant_id = %s AND student_id = %s AND course_id IS NULL
+                FOR UPDATE
+                """,
+                (tenant.tenant_id, student_id),
+            )
+            account = cur.fetchone()
+            current_balance = float(account["balance"]) if account else 0.0
+            if current_balance < debit:
+                return api_error("Insufficient credit balance for check-in.", 409)
+            new_balance = current_balance - debit
+
+            cur.execute(
+                """
+                INSERT INTO credit_transactions (
+                    tenant_id, student_id, account_id, actor_user_id,
+                    transaction_type, amount, balance_after, note
+                )
+                VALUES (%s, %s, %s, %s, 'consume', %s, %s, %s)
+                RETURNING id
+                """,
+                (
+                    tenant.tenant_id,
+                    student_id,
+                    account["id"] if account else None,
+                    getattr(g.actor, "user_id", None),
+                    debit,
+                    new_balance,
+                    note or "Attendance check-in",
+                ),
+            )
+            tx_id = str(cur.fetchone()["id"])
+            _ensure_default_credit_account(cur, tenant.tenant_id, student_id, new_balance)
+            cur.execute(
+                """
+                INSERT INTO attendance_sessions (
+                    tenant_id, student_id, course_id, actor_user_id,
+                    credit_transaction_id, note
+                )
+                VALUES (%s, %s, %s, %s, %s, %s)
+                RETURNING id, attended_at
+                """,
+                (
+                    tenant.tenant_id,
+                    student_id,
+                    course_id,
+                    getattr(g.actor, "user_id", None),
+                    tx_id,
+                    note,
+                ),
+            )
+            session_row = cur.fetchone()
+            session_id = str(session_row["id"])
+            _audit_request(
+                conn,
+                tenant_id=tenant.tenant_id,
+                action="attendance.checked_in",
+                resource_type="attendance_session",
+                resource_id=session_id,
+                metadata={"student_id": student_id, "credit_transaction_id": tx_id, "credits": debit},
+            )
+
+    return jsonify(
+        {
+            "ok": True,
+            "attendanceSessionId": session_id,
+            "creditTransactionId": tx_id,
+            "newBalance": new_balance,
+            "creditsConsumed": debit,
+        }
+    ), 201
+
+
+@api_v1.route("/attendance/<attendance_id>/void", methods=["POST"])
+@tenant_admin_required
+def void_attendance_session(attendance_id: str):
+    """Void one attendance session and refund the consumed credits."""
+
+    try:
+        payload = _json_payload()
+    except ValueError:
+        payload = {}
+    note = _clean_text(payload, "note")[:500]
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT a.id, a.student_id, a.credit_transaction_id, a.reversed_at,
+                       ct.amount::float AS consumed_credits
+                FROM attendance_sessions a
+                JOIN credit_transactions ct
+                  ON ct.tenant_id = a.tenant_id
+                 AND ct.id = a.credit_transaction_id
+                WHERE a.tenant_id = %s AND a.id = %s
+                FOR UPDATE
+                """,
+                (tenant.tenant_id, attendance_id),
+            )
+            session_row = cur.fetchone()
+            if not session_row:
+                return _error("Attendance session was not found.", 404)
+            if session_row["reversed_at"]:
+                return api_error("Attendance session has already been voided.", 409)
+
+            student_id = str(session_row["student_id"])
+            refund_amount = float(session_row["consumed_credits"] or 0)
+            _ensure_default_credit_account(cur, tenant.tenant_id, student_id)
+            cur.execute(
+                """
+                SELECT id, COALESCE(balance, 0)::numeric AS balance
+                FROM credit_accounts
+                WHERE tenant_id = %s AND student_id = %s AND course_id IS NULL
+                FOR UPDATE
+                """,
+                (tenant.tenant_id, student_id),
+            )
+            account = cur.fetchone()
+            current_balance = float(account["balance"]) if account else 0.0
+            new_balance = current_balance + refund_amount
+            cur.execute(
+                """
+                INSERT INTO credit_transactions (
+                    tenant_id, student_id, account_id, actor_user_id,
+                    transaction_type, amount, balance_after, note
+                )
+                VALUES (%s, %s, %s, %s, 'refund', %s, %s, %s)
+                RETURNING id
+                """,
+                (
+                    tenant.tenant_id,
+                    student_id,
+                    account["id"] if account else None,
+                    getattr(g.actor, "user_id", None),
+                    refund_amount,
+                    new_balance,
+                    note or "Attendance void refund",
+                ),
+            )
+            refund_tx_id = str(cur.fetchone()["id"])
+            _ensure_default_credit_account(cur, tenant.tenant_id, student_id, new_balance)
+            cur.execute(
+                """
+                UPDATE attendance_sessions
+                SET reversed_at = now(),
+                    reversed_by_user_id = %s,
+                    reversal_credit_transaction_id = %s,
+                    note = CASE WHEN %s::text = '' THEN note ELSE concat_ws(E'\n', note, %s::text) END
+                WHERE tenant_id = %s AND id = %s
+                """,
+                (
+                    getattr(g.actor, "user_id", None),
+                    refund_tx_id,
+                    note,
+                    f"Void: {note}",
+                    tenant.tenant_id,
+                    attendance_id,
+                ),
+            )
+            _audit_request(
+                conn,
+                tenant_id=tenant.tenant_id,
+                action="attendance.voided",
+                resource_type="attendance_session",
+                resource_id=attendance_id,
+                metadata={"student_id": student_id, "refund_transaction_id": refund_tx_id, "credits": refund_amount},
+            )
+
+    return jsonify(
+        {
+            "ok": True,
+            "attendanceSessionId": attendance_id,
+            "refundTransactionId": refund_tx_id,
+            "newBalance": new_balance,
+            "creditsRefunded": refund_amount,
+        }
+    )
+
+
 # ──────────────────────────────────────────────
 # P0: Portfolio CRUD
 # ──────────────────────────────────────────────
@@ -4053,14 +4356,14 @@ def auth_me():
     from flask import session as _flask_session
     user_id = _flask_session.get("user_id")
     if not user_id:
-        return jsonify({"error": "unauthorized"}), 401
+        return _error("Authentication required. Please log in.", 401)
 
     with connect() as conn:
         user = fetch_one(
             conn, "SELECT id, email, full_name, status FROM users WHERE id = %s", (user_id,),
         )
         if not user or user["status"] != "active":
-            return jsonify({"error": "unauthorized"}), 401
+            return _error("Authentication required. Please log in.", 401)
 
         # LEFT JOIN keeps the platform membership (tenant_id IS NULL),
         # which the Super Admin UI uses to gate access.
@@ -4123,8 +4426,8 @@ def upload_tenant_logo():
 
         try:
             media = _store_media_asset(conn, tenant_id=tenant.tenant_id, file_storage=f, kind="logo")
-        except ValueError as exc:
-            return _error(str(exc))
+        except MediaUploadError as exc:
+            return _media_error(exc)
 
         logo_url = f"/v1/public/{tenant.slug}/media/{media['id']}"
 
@@ -4279,8 +4582,9 @@ for rule, view_func in (
     ("/students", list_students),
     ("/students/<student_id>", get_student),
     ("/students/<student_id>/credits", get_student_credits),
-    ("/students/<student_id>/credit-transactions", list_credit_transactions),
-    ("/courses", list_courses),
+	    ("/students/<student_id>/credit-transactions", list_credit_transactions),
+	    ("/attendance", list_attendance_sessions),
+	    ("/courses", list_courses),
     ("/packages", list_packages),
     ("/registrations", list_registrations),
     ("/portfolio", list_portfolio),
@@ -4298,8 +4602,11 @@ for rule, view_func, methods in (
 	    ("/students", create_student, ["POST"]),
 	    ("/students/<student_id>/archive", archive_student, ["POST"]),
 	    ("/students/<student_id>/credit-transactions", create_credit_transaction, ["POST"]),
+	    ("/attendance/check-in", check_in_attendance, ["POST"]),
+	    ("/attendance/<attendance_id>/void", void_attendance_session, ["POST"]),
 	    ("/registrations/<registration_id>", update_registration_status, ["PATCH"]),
 	    ("/portfolio", create_portfolio_item, ["POST"]),
+	    ("/media/upload", upload_media_asset, ["POST"]),
     ("/portfolio/<portfolio_item_id>", update_portfolio_item, ["PATCH"]),
     ("/portfolio/<portfolio_item_id>", delete_portfolio_item, ["DELETE"]),
     ("/tenant/settings", update_tenant_settings, ["PATCH"]),

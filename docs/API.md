@@ -95,6 +95,7 @@ Rules: Minimum 8 characters, different from old password, requires active sessio
 | PATCH | `/v1/tenant` | Tenant admin | Update tenant settings |
 | GET | `/v1/tenant/brand` | Tenant admin | Get tenant brand payload |
 | POST | `/v1/tenant/logo` | Tenant admin | Upload tenant logo |
+| POST | `/s/{tenant_slug}/v1/media/upload` | Tenant admin | Canonical tenant media upload |
 
 ### 4.1 Tenant Settings (via PATCH)
 
@@ -176,14 +177,21 @@ Creates `tenants`, `subscriptions`, `tenant_usage` rows and generates `tenants/<
 
 ---
 
-## 8. Credits
+## 8. Credits And Attendance
 
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
 | GET | `/v1/students/{student_id}/credits` | Tenant admin | Student balance |
 | POST | `/v1/students/{student_id}/credit-transactions` | Tenant admin | Record transaction |
+| GET | `/v1/attendance?date=YYYY-MM-DD` | Tenant admin | List attendance sessions |
+| POST | `/v1/attendance/check-in` | Tenant admin | Check in one student and consume credits |
+| POST | `/v1/attendance/{attendance_id}/void` | Tenant admin | Void a check-in and refund consumed credits |
 
 Transaction types: `purchase`, `consume`, `adjustment`, `refund`, `expire`, `migration`.
+Attendance check-in blocks insufficient balances with `409 conflict`. Successful
+check-ins write `attendance_sessions.credit_transaction_id` and a linked
+`credit_transactions.consume` row. Void writes a `refund` row and stores
+`reversal_credit_transaction_id`.
 
 ---
 
@@ -196,13 +204,20 @@ Transaction types: `purchase`, `consume`, `adjustment`, `refund`, `expire`, `mig
 | PATCH | `/v1/portfolio/{portfolio_item_id}` | Tenant admin | Update portfolio item |
 | DELETE | `/v1/portfolio/{portfolio_item_id}` | Tenant admin | Delete portfolio item |
 
-### 9.1 Future: Media Upload
+### 9.1 Media Upload
 
-```
-POST /s/<slug>/v1/media/upload
+```bash
+curl -b /tmp/studio.cookies \
+  -F kind=portfolio \
+  -F studentId=<student_id> \
+  -F file=@artwork.png \
+  http://localhost:8899/s/lets-paint-studio/v1/media/upload
 ```
 
-Requirements: Auth required, tenant quota enforced, MIME/magic-byte validated, server-side storage key, tenant-scoped retrieval.
+The canonical media service validates extension, MIME, magic bytes, size, path
+traversal, student ownership, and tenant storage quota. Existing legacy CMS media,
+portfolio upload, tenant logo, and public registration-media routes call the same
+service. `storageProvider=local` is implemented; `s3` remains an extension point.
 
 ---
 
@@ -272,3 +287,12 @@ The legacy CMS shell intercepts old `/api/data` and `/api/save` calls and rewrit
 | 404 | Not found |
 | 429 | Rate limited |
 | 500 | Internal server error |
+
+All JSON API errors use:
+
+```json
+{"error": "machine_readable_code", "message": "Human readable message"}
+```
+
+In non-debug mode, `500` responses return a generic message and do not expose
+internal exception text.

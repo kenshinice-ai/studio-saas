@@ -209,8 +209,7 @@ The legacy Register shell (`legacy-root/register.html`) intercepts `/api/registe
 
 | Area | Issue | Priority |
 |---|---|---|
-| Attendance | `attendance_sessions` table has zero references in `api_v1.py` — credits/attendance loop unimplemented | P1-05 |
-| Media | No v1 upload endpoint; media validation not centralised | P1-03 |
+| Browser QA | Playwright smoke coverage is not yet in the repo | P1-06 |
 | Legacy residue | `sw.js` still branded "Let's Paint CMS" with platform-level icon cache | P2-02 |
 | Code size | `api_v1.py` is ~4100 lines — split along target module boundaries | P2-01 |
 | Vendor JS | Runtime Babel/Tailwind compilation in browser | P2-03 |
@@ -286,7 +285,7 @@ flowchart LR
     G[Student Buys Package] --> H[Payment Success] --> I[Add Credits] --> J[Use Credits] --> K[Attend Class]
 ```
 
-Flow 1 is implemented for the pilot path: public submissions create registration rows, duplicate attempts are marked, Studio Admin can approve into a student or reject/archive with a review note, and all decisions are audited. Flow 2 is largely unimplemented past "Add Credits" — `attendance_sessions` is unused (P1-05); Payment is deferred (P3-05).
+Flow 1 is implemented for the pilot path: public submissions create registration rows, duplicate attempts are marked, Studio Admin can approve into a student or reject/archive with a review note, and all decisions are audited. Flow 2 is implemented at the business-logic level for manual credit purchase/addition, attendance consume, and void/refund; Payment remains deferred (P3-05).
 
 ### 7.4 Adoption Policy (what to take now vs later)
 

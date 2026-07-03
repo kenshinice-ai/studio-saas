@@ -15,6 +15,7 @@ SENSITIVE_READS = [
     "/s/demo/v1/courses",
     "/s/demo/v1/packages",
     "/s/demo/v1/portfolio",
+    "/s/demo/v1/attendance",
     "/s/demo/v1/dashboard",
     "/s/demo/v1/legacy-cms/data",
 ]
@@ -33,6 +34,9 @@ MUTATIONS = [
     ("POST", "/s/demo/v1/packages"),
     ("DELETE", "/s/demo/v1/portfolio/00000000-0000-0000-0000-000000000000"),
     ("POST", "/s/demo/v1/students/00000000-0000-0000-0000-000000000000/credit-transactions"),
+    ("POST", "/s/demo/v1/media/upload"),
+    ("POST", "/s/demo/v1/attendance/check-in"),
+    ("POST", "/s/demo/v1/attendance/00000000-0000-0000-0000-000000000000/void"),
 ]
 
 

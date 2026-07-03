@@ -10,8 +10,9 @@ import secrets
 from functools import wraps
 from typing import Any, Callable, TypeVar
 
-from flask import Flask, current_app, g, jsonify, request
+from flask import Flask, current_app, g, request
 
+from .errors import api_error
 from .models import ActorContext, Role
 from .db import DatabaseUnavailableError, fetch_one
 
@@ -260,17 +261,11 @@ def auth_required(fn: F) -> F:
 
         user_id = flask_session.get("user_id")
         if not user_id:
-            return jsonify({
-                "error": "unauthorized",
-                "message": "Authentication required. Please log in.",
-            }), 401
+            return api_error("Authentication required. Please log in.", 401)
 
         actor = _resolve_actor(user_id, _request_tenant_id())
         if not actor:
-            return jsonify({
-                "error": "forbidden",
-                "message": "User has no active membership.",
-            }), 403
+            return api_error("User has no active membership.", 403)
 
         g.actor = actor
         return fn(*args, **kwargs)  # type: ignore[return-value]
@@ -303,26 +298,17 @@ def permission_required(permission: str) -> Callable[[F], F]:
 
             user_id = flask_session.get("user_id")
             if not user_id:
-                return jsonify({
-                    "error": "unauthorized",
-                    "message": "Authentication required. Please log in.",
-                }), 401
+                return api_error("Authentication required. Please log in.", 401)
 
             actor = _resolve_actor(user_id, _request_tenant_id())
             if not actor:
-                return jsonify({
-                    "error": "forbidden",
-                    "message": "User has no active membership.",
-                }), 403
+                return api_error("User has no active membership.", 403)
 
             # Check permission
             try:
                 require_permission(actor, permission)
             except PermissionDeniedError as exc:
-                return jsonify({
-                    "error": "forbidden",
-                    "message": str(exc),
-                }), 403
+                return api_error(str(exc), 403)
 
             g.actor = actor
             return fn(*args, **kwargs)  # type: ignore[return-value]
@@ -347,23 +333,14 @@ def super_admin_required(fn: F) -> F:
 
         user_id = flask_session.get("user_id")
         if not user_id:
-            return jsonify({
-                "error": "unauthorized",
-                "message": "Authentication required. Please log in.",
-            }), 401
+            return api_error("Authentication required. Please log in.", 401)
 
         actor = _resolve_actor(user_id, _request_tenant_id())
         if not actor:
-            return jsonify({
-                "error": "forbidden",
-                "message": "User has no active membership.",
-            }), 403
+            return api_error("User has no active membership.", 403)
 
         if actor.role is not Role.SUPER_ADMIN:
-            return jsonify({
-                "error": "forbidden",
-                "message": "Super-admin privileges required.",
-            }), 403
+            return api_error("Super-admin privileges required.", 403)
 
         g.actor = actor
         return fn(*args, **kwargs)  # type: ignore[return-value]
@@ -385,23 +362,14 @@ def tenant_admin_required(fn: F) -> F:
 
         user_id = flask_session.get("user_id")
         if not user_id:
-            return jsonify({
-                "error": "unauthorized",
-                "message": "Authentication required. Please log in.",
-            }), 401
+            return api_error("Authentication required. Please log in.", 401)
 
         actor = _resolve_actor(user_id, _request_tenant_id())
         if not actor:
-            return jsonify({
-                "error": "forbidden",
-                "message": "User has no active membership.",
-            }), 403
+            return api_error("User has no active membership.", 403)
 
         if actor.role not in {Role.SUPER_ADMIN, Role.OWNER}:
-            return jsonify({
-                "error": "forbidden",
-                "message": "Tenant owner/admin privileges required.",
-            }), 403
+            return api_error("Tenant owner/admin privileges required.", 403)
 
         g.actor = actor
         return fn(*args, **kwargs)  # type: ignore[return-value]
