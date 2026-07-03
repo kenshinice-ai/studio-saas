@@ -4274,6 +4274,238 @@ def check_in_attendance():
 
 
 # ──────────────────────────────────────────────
+# A1: recurring weekly class schedules (排课)
+# weekday: 0=Sunday .. 6=Saturday (JS Date.getDay() convention)
+# ──────────────────────────────────────────────
+
+def _schedule_payload_fields(payload):
+    """Validate and normalize class-schedule fields from a JSON payload."""
+
+    label = _clean_text(payload, "label")[:80]
+    try:
+        weekday = int(payload.get("weekday"))
+    except (TypeError, ValueError):
+        raise ValueError("weekday must be an integer 0-6 (0=Sunday).")
+    if not 0 <= weekday <= 6:
+        raise ValueError("weekday must be an integer 0-6 (0=Sunday).")
+    start_time = _clean_text(payload, "startTime", _clean_text(payload, "start_time", "16:00"))
+    if not re.match(r"^\d{2}:\d{2}$", start_time):
+        raise ValueError("startTime must look like HH:MM.")
+    try:
+        duration = int(payload.get("durationMinutes", payload.get("duration_minutes", 60)))
+        capacity = int(payload.get("capacity", 10))
+    except (TypeError, ValueError):
+        raise ValueError("durationMinutes and capacity must be integers.")
+    if duration <= 0 or capacity <= 0:
+        raise ValueError("durationMinutes and capacity must be positive.")
+    student_ids = payload.get("studentIds", payload.get("student_ids"))
+    if student_ids is not None and not isinstance(student_ids, list):
+        raise ValueError("studentIds must be a list of student ids.")
+    return label, weekday, start_time, duration, capacity, student_ids
+
+
+def _replace_schedule_students(cur, tenant_id, schedule_id, student_ids) -> int:
+    """Replace a schedule's roster; only same-tenant students are accepted."""
+
+    cur.execute("DELETE FROM class_schedule_students WHERE schedule_id = %s", (schedule_id,))
+    count = 0
+    for raw in (student_ids or [])[:200]:
+        cur.execute(
+            """
+            INSERT INTO class_schedule_students (schedule_id, student_id, tenant_id)
+            SELECT %s, s.id, s.tenant_id FROM students s
+            WHERE s.tenant_id = %s AND s.id = %s AND s.status <> 'archived'
+            ON CONFLICT DO NOTHING
+            """,
+            (schedule_id, tenant_id, str(raw)),
+        )
+        count += cur.rowcount
+    return count
+
+
+def _schedules_with_students(conn, tenant_id) -> list[dict]:
+    rows = fetch_all(
+        conn,
+        """
+        SELECT cs.id, cs.label, cs.weekday,
+               to_char(cs.start_time, 'HH24:MI') AS start_time,
+               cs.duration_minutes, cs.capacity, cs.is_active,
+               c.name AS course_name, cs.course_id
+        FROM class_schedules cs
+        LEFT JOIN courses c ON c.id = cs.course_id
+        WHERE cs.tenant_id = %s AND cs.is_active
+        ORDER BY cs.weekday, cs.start_time, lower(cs.label)
+        """,
+        (tenant_id,),
+    )
+    members = fetch_all(
+        conn,
+        """
+        SELECT css.schedule_id, s.id, s.display_name AS name
+        FROM class_schedule_students css
+        JOIN students s ON s.id = css.student_id
+        WHERE css.tenant_id = %s AND s.status <> 'archived'
+        ORDER BY lower(s.display_name)
+        """,
+        (tenant_id,),
+    )
+    by_schedule: dict[str, list[dict]] = {}
+    for m in members:
+        by_schedule.setdefault(str(m["schedule_id"]), []).append({"id": str(m["id"]), "name": m["name"]})
+    return [
+        {
+            "id": str(r["id"]),
+            "label": r["label"],
+            "weekday": r["weekday"],
+            "startTime": r["start_time"],
+            "durationMinutes": r["duration_minutes"],
+            "capacity": r["capacity"],
+            "courseId": str(r["course_id"]) if r["course_id"] else None,
+            "courseName": r["course_name"],
+            "students": by_schedule.get(str(r["id"]), []),
+        }
+        for r in rows
+    ]
+
+
+@api_v1.route("/class-schedules", methods=["GET"])
+@auth_required
+def list_class_schedules():
+    """List active weekly class schedules with their student rosters."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        schedules = _schedules_with_students(conn, tenant.tenant_id)
+    return jsonify({"schedules": schedules})
+
+
+@api_v1.route("/class-schedules", methods=["POST"])
+@tenant_admin_required
+def create_class_schedule():
+    """Create a weekly class schedule (optionally with an initial roster)."""
+
+    payload = _json_payload()
+    try:
+        label, weekday, start_time, duration, capacity, student_ids = _schedule_payload_fields(payload)
+    except ValueError as exc:
+        return _error(str(exc))
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        row = fetch_one(
+            conn,
+            """
+            INSERT INTO class_schedules (tenant_id, label, weekday, start_time, duration_minutes, capacity)
+            VALUES (%s, %s, %s, %s::time, %s, %s)
+            RETURNING id
+            """,
+            (tenant.tenant_id, label, weekday, start_time, duration, capacity),
+        )
+        schedule_id = str(row["id"])
+        with conn.cursor() as cur:
+            added = _replace_schedule_students(cur, tenant.tenant_id, schedule_id, student_ids)
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="schedule.created",
+            resource_type="class_schedule",
+            resource_id=schedule_id,
+            metadata={"label": label, "weekday": weekday, "startTime": start_time, "students": added},
+        )
+        conn.commit()
+        schedules = _schedules_with_students(conn, tenant.tenant_id)
+    return jsonify({"ok": True, "scheduleId": schedule_id, "schedules": schedules}), 201
+
+
+@api_v1.route("/class-schedules/<schedule_id>", methods=["PATCH"])
+@tenant_admin_required
+def update_class_schedule(schedule_id: str):
+    """Update a schedule's fields and/or replace its student roster."""
+
+    payload = _json_payload()
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        existing = fetch_one(
+            conn,
+            """
+            SELECT id, label, weekday, to_char(start_time, 'HH24:MI') AS start_time,
+                   duration_minutes, capacity
+            FROM class_schedules
+            WHERE tenant_id = %s AND id = %s AND is_active
+            """,
+            (tenant.tenant_id, schedule_id),
+        )
+        if not existing:
+            return _error("Schedule not found.", 404)
+        merged = {
+            "label": payload.get("label", existing["label"]),
+            "weekday": payload.get("weekday", existing["weekday"]),
+            "startTime": payload.get("startTime", payload.get("start_time", existing["start_time"])),
+            "durationMinutes": payload.get("durationMinutes", payload.get("duration_minutes", existing["duration_minutes"])),
+            "capacity": payload.get("capacity", existing["capacity"]),
+            "studentIds": payload.get("studentIds", payload.get("student_ids")),
+        }
+        try:
+            label, weekday, start_time, duration, capacity, student_ids = _schedule_payload_fields(merged)
+        except ValueError as exc:
+            return _error(str(exc))
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE class_schedules
+                SET label = %s, weekday = %s, start_time = %s::time,
+                    duration_minutes = %s, capacity = %s, updated_at = now()
+                WHERE tenant_id = %s AND id = %s
+                """,
+                (label, weekday, start_time, duration, capacity, tenant.tenant_id, schedule_id),
+            )
+            if student_ids is not None:
+                _replace_schedule_students(cur, tenant.tenant_id, schedule_id, student_ids)
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="schedule.updated",
+            resource_type="class_schedule",
+            resource_id=schedule_id,
+            metadata={"label": label, "weekday": weekday},
+        )
+        conn.commit()
+        schedules = _schedules_with_students(conn, tenant.tenant_id)
+    return jsonify({"ok": True, "schedules": schedules})
+
+
+@api_v1.route("/class-schedules/<schedule_id>", methods=["DELETE"])
+@tenant_admin_required
+def delete_class_schedule(schedule_id: str):
+    """Deactivate a schedule (kept for history; roster links cascade later)."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        row = fetch_one(
+            conn,
+            """
+            UPDATE class_schedules SET is_active = false, updated_at = now()
+            WHERE tenant_id = %s AND id = %s AND is_active
+            RETURNING label, weekday
+            """,
+            (tenant.tenant_id, schedule_id),
+        )
+        if not row:
+            return _error("Schedule not found.", 404)
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="schedule.deleted",
+            resource_type="class_schedule",
+            resource_id=schedule_id,
+            metadata={"label": row["label"], "weekday": row["weekday"]},
+        )
+        conn.commit()
+        schedules = _schedules_with_students(conn, tenant.tenant_id)
+    return jsonify({"ok": True, "schedules": schedules})
+
+
+# ──────────────────────────────────────────────
 # B2: durable portfolio share links (tenant admin + public viewer)
 # ──────────────────────────────────────────────
 

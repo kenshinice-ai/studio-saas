@@ -46,6 +46,17 @@ These items from earlier sprint docs are confirmed done — do not re-fix:
 | P0-06 | Route audit (146 routes): mutations were safe; 12 unauthenticated tenant GET reads fixed | ✅ Done 2026-07-03 |
 | P0-07 | Enum alignment verified; `archived`/`trialing` decisions recorded in Database.md §3 | ✅ Done 2026-07-03 |
 
+### CMS Core Sprint — codingprompt v5 (2026-07-04)
+
+| ID | Task | Status |
+|---|---|---|
+| A1 | Weekly class schedules (排课): class_schedules + CMS 每周课表 view, auto day-roster, template conversion | ✅ |
+| A2 | Unified ledger: CMS check-in/top-up/adjust → v1 attendance & credit endpoints; account consolidation (0007); roster persistence | ✅ |
+| A3 | CMS precompiled: JSX source at legacy-root/src/cms-app.jsx, esbuild via scripts/build_cms.sh, no in-browser Babel | ✅ |
+| A4 | CMS pending tab → v1 registration state machine (approve creates student + parent email; reject with note) | ✅ |
+| A5 | Surface links: CMS↔studio-admin, landing→CMS login; docs reposition CMS as core surface | ✅ |
+| B1-B4 | 费用提醒 / 生日流失运营 / staff 账号 / 备份对接 | ❌ next |
+
 ### A/B Sprint — codingprompt v3 (completed 2026-07-03)
 
 | ID | Task | Status |

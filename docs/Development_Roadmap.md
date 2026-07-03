@@ -44,7 +44,7 @@ Purpose: Phased development plan, milestones, current status, and deployment tar
 - Public registration page (tenant-specific)
 - Parent/Student portal (balance, portfolio, registration)
 - Super Admin (tenant lifecycle, plans, usage, audit)
-- Legacy CMS bridge (transitional, gradually retired)
+- Tenant CMS (`/<slug>/cms`) — the core daily operating surface for studio owners
 - Basic backup and export
 - Basic permission controls
 

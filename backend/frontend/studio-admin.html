@@ -1142,6 +1142,9 @@
         <a class="nav-link" href="#section-settings" data-section="settings">
           <span class="nav-icon">⚙️</span> Website / Brand
         </a>
+        <a class="nav-link" href="#" id="openCmsLink" target="_blank" rel="noopener" style="border-top:1px solid var(--border,#E2E8F0);margin-top:8px;padding-top:12px;">
+          <span class="nav-icon">🗂️</span> 打开 CMS 工作台
+        </a>
       </div>
     </nav>
   </header>
@@ -2969,6 +2972,12 @@
       $('settingCategory').addEventListener('change', applyCategoryPreset);
       ['studentSearch','studentStatusFilter','studentLowFilter'].forEach((id) => $(id).addEventListener('input', () => { studentPage = 0; refresh(); }));
       $('clearStudentFiltersBtn').addEventListener('click', () => { $('studentSearch').value = ''; $('studentStatusFilter').value = ''; $('studentLowFilter').checked = false; studentPage = 0; refresh(); });
+      const cmsLink = $('openCmsLink');
+      if (cmsLink) {
+        const slugForCms = currentTenantSlug();
+        if (slugForCms) cmsLink.href = `/${encodeURIComponent(slugForCms)}/cms`;
+        else cmsLink.style.display = 'none';
+      }
       $('studentPrevBtn').addEventListener('click', () => { if (studentPage > 0) { studentPage -= 1; refresh(); } });
       $('studentNextBtn').addEventListener('click', () => { if ((studentPage + 1) * STUDENT_PAGE_SIZE < studentTotal) { studentPage += 1; refresh(); } });
       $('addStudentBtn').addEventListener('click', openCreateStudentModal);

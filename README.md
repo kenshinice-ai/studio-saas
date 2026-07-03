@@ -68,7 +68,7 @@ Root `/register` is intentionally closed (404) — registration belongs to tenan
 ├── super-admin.html              # Platform dashboard
 ├── tenant-template/              # Template copied into tenants/<slug>/ on creation
 ├── tenants/<slug>/               # Generated tenant workspaces
-├── legacy-root/                  # Transitional CMS/Register bridge shells
+├── legacy-root/                  # Tenant CMS — the core daily surface (src/cms-app.jsx + build)
 ├── docs/                         # Product, architecture, API, DB, QA, ops docs
 └── backend/                      # Canonical runtime
     ├── server.py                 # Flask application (~1560 lines)

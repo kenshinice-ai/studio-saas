@@ -50,7 +50,7 @@ Purpose: Current system architecture, routing model, file layout, data flow — 
 - `tenant_id` is the isolation boundary for all business data.
 - Tenant context is resolved from URL path, header, or subdomain — never from request body.
 - Every mutation route must be authenticated unless explicitly public.
-- Legacy CMS bridge (`legacy-root/`) is a transitional layer, not a permanent feature.
+- The tenant CMS (`legacy-root/` served at `/<slug>/cms`) is the **core operating surface** — tenants run scheduling, check-ins, students, and fees there. studio-admin is the settings/management panel; the public landing page is a low-priority add-on.
 
 ---
 
@@ -124,7 +124,7 @@ studiosaas/
 │   ├── pytest.ini
 │   └── requirements.txt
 │
-├── legacy-root/                  # Bridge layer (transitional)
+├── legacy-root/                  # Tenant CMS (core product surface)
 │   ├── index.html                # CMS shell with request bridge (~3668 lines)
 │   └── register.html             # Register shell with request bridge (~797 lines)
 │
