@@ -5,6 +5,7 @@ APIs require PostgreSQL and explicit tenant resolution; they do not fall back to
 the single-studio JSON database.
 """
 
+import ipaddress
 import json
 import os
 import re
@@ -54,6 +55,26 @@ api_v1 = Blueprint("studiosaas_api_v1", __name__)
 _public_rate_limit: dict[str, list[float]] = {}
 
 
+def _client_ip() -> str:
+    """Real client IP for rate limiting and audit.
+
+    Proxy headers (CF-Connecting-IP / X-Forwarded-For) are only trusted when
+    the request arrives from localhost — i.e. through the local cloudflared
+    tunnel. Direct LAN clients can't spoof their way past the rate limiter
+    by sending fake headers. Mirrors server.py's _client_ip().
+    """
+
+    ra = request.remote_addr or "unknown"
+    if ra in ("127.0.0.1", "::1", "localhost"):
+        forwarded = (
+            request.headers.get("CF-Connecting-IP")
+            or request.headers.get("X-Forwarded-For")
+            or ra
+        )
+        return forwarded.split(",")[0].strip() or ra
+    return ra
+
+
 def _login_rate_limited(email: str) -> bool:
     """Sliding-window limiter for login attempts.
 
@@ -64,7 +85,7 @@ def _login_rate_limited(email: str) -> bool:
     """
 
     now = time.time()
-    ip = request.remote_addr or "unknown"
+    ip = _client_ip()
     limited = False
     for key, limit in (
         (f"login-ip:{ip}", 30),
@@ -560,6 +581,10 @@ def _audit_request(conn, *, tenant_id, action, resource_type, resource_id="", me
     """Write an audit log row with request actor and IP when available."""
 
     actor = getattr(g, "actor", None)
+    try:
+        client_ip = str(ipaddress.ip_address(_client_ip()))
+    except ValueError:
+        client_ip = ""
     with conn.cursor() as cur:
         cur.execute(
             """
@@ -576,7 +601,7 @@ def _audit_request(conn, *, tenant_id, action, resource_type, resource_id="", me
                 resource_type,
                 str(resource_id or ""),
                 json.dumps(_support_tagged(metadata)),
-                request.remote_addr or "",
+                client_ip,
             ),
         )
 
@@ -2156,7 +2181,7 @@ def public_balance_query(tenant_slug: str):
 def public_registration_media_upload(tenant_slug: str):
     """Upload a tenant-scoped registration photo before the registration is submitted."""
 
-    client_key = f"registration-media:{request.remote_addr or 'unknown'}"
+    client_key = f"registration-media:{_client_ip()}"
     now = time.time()
     _public_rate_limit[client_key] = [t for t in _public_rate_limit.get(client_key, []) if now - t < 60]
     if len(_public_rate_limit[client_key]) >= 5:
@@ -2200,7 +2225,7 @@ def public_registration_media_upload(tenant_slug: str):
 def public_portfolio_token(tenant_slug: str):
     """Return a short-lived token and tenant-scoped portfolio metadata."""
 
-    client_key = f"portfolio-token:{request.remote_addr or 'unknown'}"
+    client_key = f"portfolio-token:{_client_ip()}"
     now = time.time()
     _public_rate_limit[client_key] = [t for t in _public_rate_limit.get(client_key, []) if now - t < 60]
     if len(_public_rate_limit[client_key]) >= 10:
@@ -2354,7 +2379,7 @@ def public_create_registration(tenant_slug: str):
     """
 
     # Simple rate limiting: 5 requests per minute per IP
-    client_ip = request.remote_addr or "unknown"
+    client_ip = _client_ip()
     now = time.time()
     if client_ip not in _public_rate_limit:
         _public_rate_limit[client_ip] = []
@@ -4720,7 +4745,7 @@ def public_shared_portfolio(raw_token: str):
     """Public JSON for the shared portfolio viewer page. Rate-limited."""
 
     now = time.time()
-    client_key = f"shared-portfolio:{request.remote_addr or 'unknown'}"
+    client_key = f"shared-portfolio:{_client_ip()}"
     _public_rate_limit[client_key] = [t for t in _public_rate_limit.get(client_key, []) if now - t < 60]
     if len(_public_rate_limit[client_key]) >= 20:
         return _error("Too many requests. Please wait a moment.", 429)
