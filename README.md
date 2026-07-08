@@ -11,7 +11,7 @@ It provides a lightweight SaaS-style platform for managing:
 - portfolio media and branding settings
 - platform-level tenant management
 
-**Status:** local-first pilot stage. Runs locally for development and pilot testing, with a deployment path towards AWS (managed PostgreSQL, S3 media, production WSGI).
+**Status:** public pilot stage. Runs locally (waitress + PostgreSQL) and is exposed for pilot testing via Cloudflare Tunnel at `https://studiosaas.cc.cd` (since 2026-07-09). Deployment path towards AWS (managed PostgreSQL, S3 media) is documented in `docs/Deployment.md`.
 
 ---
 
@@ -74,9 +74,9 @@ Root `/register` is intentionally closed (404) — registration belongs to tenan
     ├── server.py                 # Flask application (~1560 lines)
     ├── requirements.txt
     ├── pytest.ini
-    ├── db/schema_v1.sql          # Full schema (18 tables)
+    ├── db/schema_v1.sql          # Full schema (18 tables; migrations through 0010)
     ├── studiosaas/
-    │   ├── api_v1.py             # All API routes (~4040 lines — split planned, P2-01)
+    │   ├── api_v1.py             # All API routes (~5700 lines — split planned, v7 P2-1)
     │   ├── auth.py               # Auth helpers and decorators
     │   ├── models.py             # Role/TenantStatus enums, contexts
     │   ├── db.py / tenant_context.py / workspaces.py / audit.py / config.py / migration.py
@@ -236,6 +236,7 @@ curl -i -X POST http://localhost:8899/v1/admin/tenants \
 | `docs/Development_Roadmap.md` | Phases 0–5, target-stack adoption mapping |
 | `docs/QA_Checklist.md` | Pre-release checklist |
 | `docs/Admin_Guide.md` | Platform ops: setup, backup, troubleshooting |
+| `docs/Deployment.md` | Deployment: local → Cloudflare Tunnel (`studiosaas.cc.cd`) → AWS |
 | `docs/Design_System.md` | UI tokens and component standards |
 
 ---

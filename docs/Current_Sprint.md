@@ -1,7 +1,7 @@
 # StudioSaaS Current Sprint
 
-Version: v3.0
-Date: 2026-07-03
+Version: v4.0
+Date: 2026-07-09
 Purpose: Status tracking for the prioritised task list in `codingprompt.md` (same numbering), verification commands, credentials, and go/no-go criteria.
 
 > Task definitions (problem/evidence/fix/verify) live in `codingprompt.md`. This file tracks **status only**. Update it after each completed task.
@@ -10,8 +10,8 @@ Purpose: Status tracking for the prioritised task list in `codingprompt.md` (sam
 
 ## 1. Sprint Overview
 
-**Current Status:** Phase 1 — SaaS MVP (In Progress)
-**Focus:** Data consistency (roles/enums), test infrastructure, migration runner, auth hardening — before any visual polish.
+**Current Status:** Phase 2 — Public pilot via Cloudflare Tunnel (v6 harvest complete 2026-07-08; tunnel live 2026-07-09)
+**Focus:** Deployment hardening per `codingprompt.md` v7 — public-pilot security baseline, then AWS readiness (`docs/Deployment.md`).
 
 **Key principle:** Do not add features before tenant isolation, upload security, auth roles, backup/restore, and browser smoke testing are solid.
 
@@ -66,6 +66,14 @@ These items from earlier sprint docs are confirmed done — do not re-fix:
 | B5 | EmptyState component, Enter-to-open search, filter count/clear | ✅ 2026-07-08 |
 | B6 | Dark mode (system-following CSS layer, harvested v5.0.x) | ✅ 2026-07-08 |
 | — | Bonus: /vendor CWD 404 fixed + real pinned react/tailwind bundles | ✅ 2026-07-08 |
+
+### Deployment Sprint — codingprompt v7 (2026-07-09)
+
+| ID | Task | Status |
+|---|---|---|
+| D1 | v1 API rate limiting/audit use real client IP behind cloudflared (`_client_ip()` trusts CF-Connecting-IP only from localhost; audit inet validated) | ✅ 2026-07-09 |
+| D2 | Cloudflare Tunnel `studiosaas` → `https://studiosaas.cc.cd` → localhost:8899 (locally-managed, config in `~/.cloudflared/config.yml`) | ✅ 2026-07-09 |
+| D3+ | Remaining deployment hardening | see `codingprompt.md` v7 |
 
 ### CMS Core Sprint — codingprompt v5 (2026-07-04)
 
@@ -263,8 +271,8 @@ Password storage: seed/reset scripts write PBKDF2-HMAC-SHA256 hashes. Legacy uns
 |---|---|---|
 | Local demo | **GO** | Dependency install + smoke tests pass |
 | Internal testing | **GO** (2026-07-03) | P0-01…P0-07 all done and verified |
-| External pilot | **NO-GO** | Until all P0 verified + P1-07 backup runbook |
-| AWS staging | **NO-GO** | All P0 + P1-07 backup runbook + P3-01 config layering |
+| External pilot (tunnel) | **GO** (2026-07-09) | P0 ✅ + P1-07 backup ✅ + D1 real-IP fix ✅. **Before inviting real users:** rotate `admin123456` passwords + enable `COOKIE_SECURE=1` + schedule daily backup (Deployment.md §2.4) |
+| AWS staging | **NO-GO** | Needs P3-01 config layering + P3-03 S3 media (plan: `docs/Deployment.md` §3) |
 
 ---
 
