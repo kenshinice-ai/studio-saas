@@ -1,5 +1,8 @@
-Local vendor placeholders for the legacy CMS shell.
+Pinned local vendor bundles (no CDN at runtime):
+  react.production.min.js       react@18.3.1 UMD
+  react-dom.production.min.js   react-dom@18.3.1 UMD
+  tailwindcss.js                tailwind play build 3.4.16
 
-The legacy pages load these paths first, then fall back to CDN scripts when the
-expected globals are not present. Replace these placeholders with real vendor
-bundles for fully offline operation.
+babel.min.js was removed — the CMS JSX is precompiled at build time
+(backend/scripts/build_cms.sh). CDN <script document.write> fallbacks in
+legacy pages remain as a safety net only.

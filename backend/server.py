@@ -821,7 +821,6 @@ def serve_favicon(): return _public_file('icon-192.png', 'image/png')
 VENDOR_FILES = {
     'react.production.min.js': 'application/javascript; charset=utf-8',
     'react-dom.production.min.js': 'application/javascript; charset=utf-8',
-    'babel.min.js': 'application/javascript; charset=utf-8',
     'tailwindcss.js': 'application/javascript; charset=utf-8',
 }
 
@@ -830,7 +829,9 @@ def serve_vendor(filename):
     safe = os.path.basename(filename)
     if safe not in VENDOR_FILES:
         return api_error('Not found', 404)
-    path = os.path.join('vendor', safe)
+    # Absolute path — the old relative check broke whenever the server was
+    # launched from a different working directory (vendor 404 -> CDN-only).
+    path = os.path.join(app.root_path, 'vendor', safe)
     if not os.path.isfile(path):
         return api_error('Not found', 404)
     resp = send_from_directory(os.path.join(app.root_path, 'vendor'), safe)
