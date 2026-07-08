@@ -24,6 +24,8 @@ Supersedes: codingprompt.md v6（v6 的 S1–S5、A1–A5、B1–B6 已全部完
 
 # P0 — 公网试点安全基线（域名已暴露，本周内完成）
 
+> **状态 2026-07-09：P0-1 ✅ / P0-2 ✅（改为隧道感知 SessionInterface，本地 http 不受影响）/ P0-3 ✅（按需一键备份 + 恢复演练通过）/ P0-4 ✅（用户选择按需模式：START/STOP_STUDIOSAAS_ONLINE.command，不装常驻；LaunchAgent 模板存 `deploy/launchd/`）/ P0-5 ⚠️ 需在 Cloudflare 仪表盘手动配置。**
+
 ## P0-1 轮换默认凭据
 `admin123456` 现在可从公网尝试登录（有限流但口令本身太弱）。super admin + 全部 demo tenant owner 改为强随机密码，记录到本地密码管理器（不入 git）。`seed_super_admin.py --reset-password` 已支持。
 

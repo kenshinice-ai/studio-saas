@@ -73,7 +73,11 @@ These items from earlier sprint docs are confirmed done — do not re-fix:
 |---|---|---|
 | D1 | v1 API rate limiting/audit use real client IP behind cloudflared (`_client_ip()` trusts CF-Connecting-IP only from localhost; audit inet validated) | ✅ 2026-07-09 |
 | D2 | Cloudflare Tunnel `studiosaas` → `https://studiosaas.cc.cd` → localhost:8899 (locally-managed, config in `~/.cloudflared/config.yml`) | ✅ 2026-07-09 |
-| D3+ | Remaining deployment hardening | see `codingprompt.md` v7 |
+| P0-1 | Rotate default `admin123456` on all 7 privileged accounts → `~/.studiosaas/pilot-credentials.txt`; LOCAL start script preserves rotated password | ✅ 2026-07-09 |
+| P0-2 | Tunnel-origin session cookies carry Secure (custom SessionInterface); local http unaffected | ✅ 2026-07-09 |
+| P0-3 | One-click backup (`BACKUP_STUDIOSAAS_NOW.command`, keep 14) + restore drill passed (restore-dry-run, 10 migrations verified) | ✅ 2026-07-09 |
+| P0-4 | On-demand ONLINE/STOP `.command` scripts (user chose no persistent daemons); LaunchAgent templates in `deploy/launchd/` if ever needed | ✅ 2026-07-09 |
+| P0-5 | Cloudflare Access email-OTP policy on `/super-admin*` | ⚠️ manual dashboard step (Zero Trust → Access → Applications; self-hosted app for `studiosaas.cc.cd/super-admin*` + `/` root alias) |
 
 ### CMS Core Sprint — codingprompt v5 (2026-07-04)
 
@@ -224,12 +228,14 @@ curl -sS -o /dev/null -w "%{http_code}" http://localhost:8899/register
 
 ## 5. Default Credentials (Local)
 
+> **Rotated 2026-07-09 (P0-1):** all seven privileged accounts (super admin + every demo owner) no longer use `admin123456`. Current passwords: `~/.studiosaas/pilot-credentials.txt` (chmod 600, outside the repo). The tables below list the **seed-time defaults** that apply only to freshly seeded databases.
+
 ### Super Admin
 
 | Field | Value |
 |---|---|
 | Email | `admin@studiosaas.local` |
-| Password | `admin123456` |
+| Password | `admin123456` (seed default — rotated on the pilot DB) |
 
 Reset command:
 

@@ -145,10 +145,7 @@ Server runs at `http://localhost:8899`.
 
 ### 4.6 Default local credentials
 
-| Account | Email | Password |
-|---|---|---|
-| Super Admin | `admin@studiosaas.local` | `admin123456` |
-| Studio owner (per demo tenant) | `owner@<slug>.test` | `admin123456` |
+Freshly seeded databases use `admin123456` for `admin@studiosaas.local` and each `owner@<slug>.test`. **The pilot database was rotated on 2026-07-09 (P0-1)** — current passwords live in `~/.studiosaas/pilot-credentials.txt` (never committed). Re-rotate with `seed_super_admin.py --reset-password` after any reseed.
 
 ---
 

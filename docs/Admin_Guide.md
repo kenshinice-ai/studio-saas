@@ -235,22 +235,29 @@ curl http://localhost:8899/v1/health
 
 ### Database Backup
 
-**Manual backup:**
+**Canonical path (P0-3):** use `backend/scripts/backup_postgres.py` — it writes a
+`pg_dump` custom-format dump plus a manifest recording `schema_migrations` to
+`backups/postgres/` (git-ignored), keeping the newest 14.
 
 ```bash
-# Full database dump
-pg_dump studiosaas > backup_$(date +%Y%m%d_%H%M%S).sql
+# One-click during the pilot (recommended before every public test session):
+双击 BACKUP_STUDIOSAAS_NOW.command
 
-# Compressed backup
-pg_dump studiosaas | gzip > backup_$(date +%Y%m%d_%H%M%S).sql.gz
+# Same thing from a shell:
+cd backend && STUDIOSAAS_DATABASE_URL=... ../.venv/bin/python scripts/backup_postgres.py backup --keep 14
 ```
 
-**Automated backup (cron):**
+**Restore drill** (run monthly; last verified 2026-07-09 — dump restored into a
+temporary database with all 10 migrations confirmed present):
 
 ```bash
-# Add to crontab: backup daily at 2 AM
-0 2 * * * pg_dump studiosaas | gzip > /backups/studiosaas_$(date +\%Y\%m\%d).sql.gz
+cd backend && STUDIOSAAS_DATABASE_URL=... ../.venv/bin/python scripts/backup_postgres.py restore-dry-run ../backups/postgres/<dump>.dump
 ```
+
+**Scheduled backup (optional):** the pilot deliberately runs on-demand, no
+daemons. If the stack ever becomes long-running, ready-made LaunchAgent
+templates live in `deploy/launchd/` (`bash deploy/install_launch_agents.sh`
+installs daily-03:00 backup + persistent tunnel).
 
 ### CMS Data Backup
 

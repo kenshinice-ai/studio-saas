@@ -22,6 +22,7 @@ backend/.cms_password
 backend/.cms_config.json
 backend/database.json
 backend/backups/
+backups/
 backend/photos/
 backend/portfolio/
 backend/static/uploads/

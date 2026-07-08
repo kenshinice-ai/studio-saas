@@ -79,26 +79,29 @@ ingress:
   - service: http_status:404
 ```
 
-### 2.3 运行
+### 2.3 运行（按需模式，2026-07-09 定稿）
 
-```bash
-# 前台调试
-cloudflared tunnel run studiosaas
+试点采用**按需开关**，不装常驻服务：
 
-# 常驻（macOS LaunchAgent，开机自启）
-sudo cloudflared service install
-```
+| 操作 | 方式 |
+|---|---|
+| 开始公网测试 | 双击 `START_STUDIOSAAS_ONLINE.command`（起服务+隧道；不重灌数据不重置密码；关窗即停） |
+| 结束测试 | 关闭该终端窗口，或双击 `STOP_STUDIOSAAS_ONLINE.command` |
+| 测试前备份 | 双击 `BACKUP_STUDIOSAAS_NOW.command` |
+| 本地开发（会重灌 demo 数据） | `START_STUDIOSAAS_LOCAL.command`（保留轮换后的 super admin 密码） |
+
+若将来要常驻：LaunchAgent 模板在 `deploy/launchd/`，`bash deploy/install_launch_agents.sh` 一键安装（备份定时 + 隧道自愈）。
 
 ### 2.4 公网试点安全清单（开 tunnel 前逐项确认）
 
 | # | 项 | 状态 / 操作 |
 |---|---|---|
-| 1 | v1 限流/审计使用真实访客 IP（信任来自 localhost 的 `CF-Connecting-IP`） | ✅ 2026-07-09 修复（api_v1.py `_client_ip()`） |
-| 2 | Secure cookie | 启动时加 `COOKIE_SECURE=1`（HTTPS-only 访问时必开；开启后本机 http://localhost 登录会失效，本机也走 https 域名即可） |
-| 3 | 默认密码 | 公网暴露前**必须**改掉 `admin123456`（super admin + 各 demo tenant owner） |
-| 4 | 每日备份 | `backend/scripts/backup_postgres.py` 挂 cron/launchd，见 Admin_Guide |
-| 5 | super-admin 面收紧（可选） | Cloudflare Zero Trust → Access → 给 `studiosaas.cc.cd/super-admin*` 加邮箱 OTP 策略 |
-| 6 | Cloudflare 区设置 | SSL/TLS 模式无所谓（tunnel 不走 origin 证书）；建议开 Bot Fight Mode |
+| 1 | v1 限流/审计使用真实访客 IP（信任来自 localhost 的 `CF-Connecting-IP`） | ✅ 2026-07-09（api_v1.py `_client_ip()`） |
+| 2 | Secure cookie | ✅ 2026-07-09：隧道来源的请求自动给 session cookie 加 Secure（自定义 SessionInterface）；本地 http 开发不受影响；`COOKIE_SECURE=1` 全局强制仍可用 |
+| 3 | 默认密码 | ✅ 2026-07-09：7 个特权账号全部轮换，新密码在 `~/.studiosaas/pilot-credentials.txt`（600）；LOCAL 启动脚本会沿用轮换密码 |
+| 4 | 备份 | ✅ 2026-07-09：`BACKUP_STUDIOSAAS_NOW.command` 一键备份（keep 14）；恢复演练通过（restore-dry-run，10 迁移核验）；按需模式不装定时，模板在 `deploy/launchd/` |
+| 5 | super-admin 面收紧 | ⚠️ 手动：Cloudflare Zero Trust → Access → 给 `studiosaas.cc.cd/super-admin*` 加邮箱 OTP 策略（仪表盘操作，见 Current_Sprint P0-5） |
+| 6 | Cloudflare 区设置 | 建议开 Bot Fight Mode（仪表盘）；SSL/TLS 模式无所谓（tunnel 不走 origin 证书） |
 
 ### 2.5 试点验证
 

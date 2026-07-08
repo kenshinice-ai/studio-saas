@@ -152,9 +152,12 @@ say "Seeding randomized demo data"
 }
 
 say "Ensuring local Super Admin login"
+# P0-1: if credentials were rotated (~/.studiosaas/pilot-credentials.txt),
+# keep the rotated password instead of resetting back to the weak default.
+PILOT_ADMIN_PW="$(awk '$1=="admin@studiosaas.local"{pw=$2} END{print pw}' "$HOME/.studiosaas/pilot-credentials.txt" 2>/dev/null || true)"
 (
   cd "$APP_ROOT"
-  STUDIOSAAS_DATABASE_URL="$DATABASE_URL" "$PYTHON" scripts/seed_super_admin.py --reset-password
+  STUDIOSAAS_DATABASE_URL="$DATABASE_URL" "$PYTHON" scripts/seed_super_admin.py --reset-password ${PILOT_ADMIN_PW:+--password "$PILOT_ADMIN_PW"}
 ) || {
   printf "\nWarning: super admin seed failed. Login may fail until an admin user is seeded.\n" >&2
   printf "Run manually:\n" >&2
