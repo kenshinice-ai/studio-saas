@@ -184,6 +184,28 @@ def _csrf_guard():
 if os.environ.get('COOKIE_SECURE') == '1':
     app.config['SESSION_COOKIE_SECURE'] = True
 
+# P0-2 (pilot): requests arriving through the cloudflared tunnel are HTTPS at
+# the Cloudflare edge, so the session cookie they receive gets the Secure
+# attribute even when the global flag is off. Local http://localhost
+# development and the in-process test clients are unaffected. The tunnel is
+# identified the same way as _client_ip(): loopback origin carrying a
+# CF-Connecting-IP header. (Flask writes the session cookie after
+# after_request hooks run, so this must live in the session interface.)
+from flask.sessions import SecureCookieSessionInterface
+
+class _TunnelAwareSessionInterface(SecureCookieSessionInterface):
+    def get_cookie_secure(self, flask_app):
+        if super().get_cookie_secure(flask_app):
+            return True
+        try:
+            return (request.remote_addr in ('127.0.0.1', '::1')
+                    and bool(request.headers.get('CF-Connecting-IP')
+                             or request.headers.get('X-Forwarded-Proto') == 'https'))
+        except RuntimeError:          # outside a request context
+            return False
+
+app.session_interface = _TunnelAwareSessionInterface()
+
 # ── CORS (S9): the SPA is same-origin, so by default NO CORS headers are sent.
 # Set env var CORS_ORIGIN only if you ever host a page on another domain.
 CORS_ORIGIN = os.environ.get('CORS_ORIGIN', '')
