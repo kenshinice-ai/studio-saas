@@ -17,6 +17,12 @@ const nowAU = () => new Date().toLocaleString('en-AU', {
     hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false
 });
 const todayISO  = () => new Date().toLocaleDateString('en-CA');
+/* B1: shift an ISO date by N days (local-safe via noon anchor) */
+const shiftDate = (iso, delta) => {
+    const d = new Date(`${iso}T12:00:00`);
+    d.setDate(d.getDate() + delta);
+    return d.toLocaleDateString('en-CA');
+};
 const fmtDate   = (s) => {
     if (!s) return '—';
     const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -173,6 +179,17 @@ function BarChart({ items, color='#6366f1', h=140, prefix='' }) {
 }
 
 /* ═══════════════════ BALANCE BADGE ════════════════════════════ */
+/* B5 (v4.7): 统一空状态组件 — 图标 + 主文 + 次文 */
+function EmptyState({icon='📭', main='暂无数据', sub=''}) {
+    return (
+        <div className="p-8 text-center">
+            <p className="text-4xl mb-2">{icon}</p>
+            <p className="font-bold text-gray-500 text-sm">{main}</p>
+            {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
+        </div>
+    );
+}
+
 function BalBadge({ n }) {
     const v = parseInt(n,10)||0;
     if (v===0) return <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-red-100 text-red-700 whitespace-nowrap">0 ⚠️</span>;
@@ -671,6 +688,8 @@ function App() {
     const [schedules, setSchedules] = useState([]);
     /* A3: 经营真账（估算），来自 v1 dashboard */
     const [bizStats, setBizStats] = useState(null);
+    /* B3: 档案页上课记录（v4.6），来自 v1 attendance */
+    const [attHistory, setAttHistory] = useState(null);
     const [schedEdit, setSchedEdit] = useState(null);   // null | {id?, label, weekday, startTime, durationMinutes, capacity, studentIds}
     const [schedPick, setSchedPick] = useState(null);
     /* F5: 待续课阈值（可在设置页调整） */
@@ -832,6 +851,17 @@ function App() {
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
     }, [portLB, portEdit, portUpload, portUpFile]);
+
+    /* B3: 选中学员时拉取上课记录（tenant 模式） */
+    useEffect(() => {
+        setAttHistory(null);
+        if (!TENANT_SLUG || !selS?.id) return;
+        let alive = true;
+        v1Api(`/attendance?studentId=${encodeURIComponent(selS.id)}&limit=20`)
+            .then(d => { if (alive) setAttHistory(d.attendance || []); })
+            .catch(() => { if (alive) setAttHistory([]); });
+        return () => { alive = false; };
+    }, [selS?.id]);
 
     /* ── Auth: check session on mount ── */
     useEffect(() => {
@@ -1386,9 +1416,21 @@ function App() {
         } catch (e) { /* 经营真账加载失败不阻塞 */ }
     };
 
+    /* B2: 判断两个班次在同一 weekday 是否时间重叠 */
+    const schedOverlap = (a, b) => {
+        if (Number(a.weekday) !== Number(b.weekday)) return false;
+        const toMin = (t) => { const [h,m] = String(t).split(':').map(Number); return h*60+(m||0); };
+        const aS = toMin(a.startTime), aE = aS + (Number(a.durationMinutes)||60);
+        const bS = toMin(b.startTime), bE = bS + (Number(b.durationMinutes)||60);
+        return aS < bE && bS < aE;
+    };
+
     const saveSchedule = async () => {
         if (!schedEdit || busy) return;
         if (!schedEdit.label.trim()) { showToast('请输入班次名称（如：周三素描班）', 'error'); return; }
+        /* B2-①: 与其他班次时间重叠时给确认提示（v5.2） */
+        const clash = schedules.find(sc => sc.id !== schedEdit.id && schedOverlap(sc, schedEdit));
+        if (clash && !window.confirm(`「${schedEdit.label.trim()}」与「${clash.label}」（${WEEKDAYS[clash.weekday]} ${clash.startTime}）时段重叠，仍要保存吗？`)) return;
         setBusy(true);
         try {
             const body = JSON.stringify({
@@ -1868,7 +1910,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
     };
 
     /* ── Portfolio helpers ── */
-    const portfolioDoUpload = async (file, note, date) => {
+    const portfolioDoUpload = async (file, note, date, title) => {
         if (!selS) return;
         setPortBusy(true);
         try {
@@ -1876,6 +1918,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
             fd.append('file', file);
             fd.append('studentId', String(selS.id));
             fd.append('note', note || '');
+            fd.append('title', title || '');   /* B4 */
             fd.append('date', date || todayISO());
             const r = await fetch(`/s/${encodeURIComponent(tenantSlug)}/v1/legacy-cms/portfolio/upload`, {
                 method: 'POST', credentials:'include', body: fd
@@ -1921,16 +1964,16 @@ document.getElementById('copybtn').addEventListener('click', function(){
 
     const portfolioDoUpdateNote = async () => {
         if (!portEdit) return;
-        const {sid, item, note, date} = portEdit;
+        const {sid, item, note, date, title} = portEdit;
         try {
             const r = await fetch(`/s/${encodeURIComponent(tenantSlug)}/v1/legacy-cms/portfolio/${encodeURIComponent(sid)}/${encodeURIComponent(item.id)}`, {
                 method: 'PATCH',
                 credentials:'include', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({note, date})
+                body: JSON.stringify({note, date, title})
             });
             if (r.status === 401) { showToast('登录已过期，请重新登录', 'error'); return; }
             if (!r.ok) { showToast('更新失败', 'error'); return; }
-            const newPort = (selS?.portfolio || []).map(i => String(i.id)===String(item.id) ? {...i,note,date} : i);
+            const newPort = (selS?.portfolio || []).map(i => String(i.id)===String(item.id) ? {...i,note,date,title} : i);
             setSelS(p => p ? ({...p, portfolio: newPort}) : p);
             setDb(d => ({...d, students: d.students.map(s => s.id===selS?.id ? {...s,portfolio:newPort} : s)}));
             // B3: Also sync lightbox items so open lightbox reflects the updated note/date
@@ -1941,7 +1984,15 @@ document.getElementById('copybtn').addEventListener('click', function(){
     };
 
     const addToRoster = async () => {
-        if (!rPick||busy) return; setBusy(true);
+        if (!rPick||busy) return;
+        /* B2-②: 已在当日名单（含课表来源）时明确提示而非静默（v5.2） */
+        if (dayIds.includes(rPick)) {
+            const s = db.students.find(x=>x.id===rPick);
+            showToast(`${s?s.name:'该学员'} 已在当日名单中`, 'warn');
+            setRPick(null);
+            return;
+        }
+        setBusy(true);
         try {
             const cur = db.rosters[rDate]||[];
             if (!cur.includes(rPick)) await save({...db, rosters:{...db.rosters,[rDate]:[...cur,rPick]}});
@@ -2121,13 +2172,14 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     <div className="flex justify-between items-center px-4 py-3 flex-shrink-0"
                         style={{paddingTop:'max(12px,env(safe-area-inset-top,12px))'}}>
                         <div className="min-w-0">
-                            <p className="text-white font-bold text-sm truncate">{fmtDate(portLB.items[portLB.idx]?.date)}</p>
-                            {portLB.items[portLB.idx]?.note && <p className="text-white/60 text-xs truncate">{portLB.items[portLB.idx].note}</p>}
+                            <p className="text-white font-bold text-sm truncate">{portLB.items[portLB.idx]?.title || fmtDate(portLB.items[portLB.idx]?.date)}</p>
+                            {portLB.items[portLB.idx]?.title && <p className="text-white/50 text-[11px] truncate">{fmtDate(portLB.items[portLB.idx]?.date)}</p>}
+                            {portLB.items[portLB.idx]?.note && <p className="text-white/60 text-xs truncate">💬 {portLB.items[portLB.idx].note}</p>}
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                             <span className="text-white/40 text-xs">{portLB.idx+1} / {portLB.items.length}</span>
                             {/* M2: Edit button in lightbox — sole access point on touch devices */}
-                            <button onClick={()=>{const cur=portLB.items[portLB.idx];if(cur&&selS)setPortEdit({sid:String(selS.id),item:cur,note:cur.note||'',date:cur.date||todayISO()});}}
+                            <button onClick={()=>{const cur=portLB.items[portLB.idx];if(cur&&selS)setPortEdit({sid:String(selS.id),item:cur,note:cur.note||'',title:cur.title||'',date:cur.date||todayISO()});}}
                                 className="text-white/80 active:text-white w-9 h-9 flex items-center justify-center text-base">✏️</button>
                             <button onClick={()=>setPortLB(null)} className="text-white text-2xl font-bold w-10 h-10 flex items-center justify-center">×</button>
                         </div>
@@ -2212,7 +2264,14 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                                 className="w-full px-3 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-400 outline-none"/>
                                         </div>
                                         <div>
-                                            <label className="text-xs font-bold text-gray-500 mb-1.5 block">💬 备注 <span className="font-normal text-gray-400">选填</span></label>
+                                            <label className="text-xs font-bold text-gray-500 mb-1.5 block">🖼 作品标题 <span className="font-normal text-gray-400">选填</span></label>
+                                            <input type="text" value={portUpFile.title||''}
+                                                onChange={e=>setPortUpFile(p=>({...p,title:e.target.value}))}
+                                                placeholder="如：星空下的向日葵" maxLength={40}
+                                                className="w-full px-3 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-400 outline-none"/>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-bold text-gray-500 mb-1.5 block">💬 老师评语 <span className="font-normal text-gray-400">选填，家长可见</span></label>
                                             <input type="text" value={portUpFile.note}
                                                 onChange={e=>setPortUpFile(p=>({...p,note:e.target.value}))}
                                                 placeholder="如：水彩练习 第1期" maxLength={50}
@@ -2224,7 +2283,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                             className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-bold text-gray-500 active:bg-gray-50 min-h-[50px]">
                                             重新选择
                                         </button>
-                                        <button onClick={()=>portfolioDoUpload(portUpFile.file,portUpFile.note,portUpFile.date)}
+                                        <button onClick={()=>portfolioDoUpload(portUpFile.file,portUpFile.note,portUpFile.date,portUpFile.title)}
                                             disabled={portBusy}
                                             className="flex-1 py-3 rounded-xl bg-purple-600 active:bg-purple-700 text-white text-sm font-bold disabled:opacity-50 min-h-[50px]">
                                             {portBusy ? '上传中...' : '✅ 确认上传'}
@@ -2256,7 +2315,14 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                     className="w-full px-3 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-400 outline-none"/>
                             </div>
                             <div>
-                                <label className="text-xs font-bold text-gray-500 mb-1.5 block">💬 备注</label>
+                                <label className="text-xs font-bold text-gray-500 mb-1.5 block">🖼 作品标题</label>
+                                <input type="text" value={portEdit.title||''}
+                                    onChange={e=>setPortEdit(p=>({...p,title:e.target.value}))}
+                                    maxLength={40}
+                                    className="w-full px-3 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-400 outline-none"/>
+                            </div>
+                            <div>
+                                <label className="text-xs font-bold text-gray-500 mb-1.5 block">💬 老师评语 <span className="font-normal text-gray-400">家长可见</span></label>
                                 <input type="text" value={portEdit.note}
                                     onChange={e=>setPortEdit(p=>({...p,note:e.target.value}))}
                                     maxLength={50}
@@ -2729,7 +2795,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
             <p className="font-bold text-gray-700 text-sm">最近操作</p>
             <button onClick={()=>setTab('logs')} className="text-indigo-500 text-xs active:text-indigo-700">全部 →</button>
         </div>
-        {analytics.recentGroups.length===0 && <div className="p-8 text-center text-gray-400 text-sm">暂无记录</div>}
+        {analytics.recentGroups.length===0 && <EmptyState icon="🧾" main="暂无记录" sub="签到与充值后这里会出现流水"/>}
         {analytics.recentGroups.map(({date, logs}) => (
             <div key={date}>
                 <div className="px-4 py-1.5 bg-gray-50 border-b border-t border-gray-100">
@@ -2843,7 +2909,11 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         <div className="flex-1">
                             <StudentPicker students={sortedAZ.filter(s=>!schedEdit.studentIds.includes(s.id))} value={schedPick} onChange={setSchedPick} placeholder="搜索并添加学员..."/>
                         </div>
-                        <button onClick={()=>{ if(schedPick){ setSchedEdit(p=>({...p,studentIds:[...p.studentIds,schedPick]})); setSchedPick(null); } }} disabled={!schedPick}
+                        <button onClick={()=>{ if(!schedPick) return;
+                            if (schedEdit.studentIds.includes(schedPick)) { showToast('该学员已在本班次中', 'warn'); setSchedPick(null); return; }
+                            const other = schedules.find(sc => sc.id !== schedEdit.id && schedOverlap(sc, schedEdit) && sc.students.some(st=>st.id===schedPick));
+                            if (other) showToast(`注意：该学员同时段已在「${other.label}」，已加入但请确认不冲突`, 'warn');
+                            setSchedEdit(p=>({...p,studentIds:[...p.studentIds,schedPick]})); setSchedPick(null); }} disabled={!schedPick}
                             className="bg-indigo-50 text-indigo-700 border border-indigo-200 active:bg-indigo-100 disabled:opacity-40 px-4 py-2.5 rounded-xl text-xs font-bold">加入班次</button>
                     </div>
                 </div>
@@ -2859,11 +2929,19 @@ document.getElementById('copybtn').addEventListener('click', function(){
 
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
         <div className="flex flex-col lg:flex-row gap-3 items-end">
-            <div className="w-full lg:w-44">
+            <div className="w-full lg:w-64">
                 <label className="text-xs font-bold text-gray-500 mb-1 block">课程日期</label>
-                <input type="date" value={rDate} onChange={e=>setRDate(e.target.value)}
-                    className="w-full px-3 py-3 border border-gray-300 rounded-xl font-bold text-indigo-900 focus:ring-2 focus:ring-indigo-500 outline-none"/>
-                <p className="text-xs text-gray-400 mt-1">{fmtDate(rDate)}</p>
+                <div className="flex gap-1.5 items-center">
+                    <button type="button" onClick={()=>setRDate(shiftDate(rDate,-1))}
+                        className="px-2.5 py-3 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-600 active:bg-gray-50">◀</button>
+                    <input type="date" value={rDate} onChange={e=>setRDate(e.target.value)}
+                        className="flex-1 px-2 py-3 border border-gray-300 rounded-xl font-bold text-indigo-900 focus:ring-2 focus:ring-indigo-500 outline-none min-w-0"/>
+                    <button type="button" onClick={()=>setRDate(shiftDate(rDate,1))}
+                        className="px-2.5 py-3 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-600 active:bg-gray-50">▶</button>
+                    {rDate!==todayISO() && <button type="button" onClick={()=>setRDate(todayISO())}
+                        className="px-2.5 py-3 bg-indigo-50 border border-indigo-200 rounded-xl text-xs font-bold text-indigo-700 active:bg-indigo-100 flex-shrink-0">今天</button>}
+                </div>
+                <p className="text-xs text-gray-400 mt-1">{fmtDate(rDate)} {WEEKDAYS[new Date(`${rDate}T12:00:00`).getDay()]}</p>
             </div>
             <div className="flex-1">
                 <label className="text-xs font-bold text-gray-500 mb-1 block">添加学员</label>
@@ -2895,6 +2973,49 @@ document.getElementById('copybtn').addEventListener('click', function(){
         </div>
     </div>
 
+    {/* B1: 迷你周视图 — 本周七天一键切换，含每日应到人数 */}
+    <div className="grid grid-cols-7 gap-1.5">
+        {(() => {
+            const anchor = new Date(`${rDate}T12:00:00`);
+            const monday = new Date(anchor); monday.setDate(anchor.getDate() - ((anchor.getDay() + 6) % 7));
+            return [0,1,2,3,4,5,6].map(i => {
+                const d = new Date(monday); d.setDate(monday.getDate() + i);
+                const iso = d.toLocaleDateString('en-CA');
+                const manual = db.rosters[iso] || [];
+                const sched = schedules.filter(sc => sc.weekday === d.getDay()).flatMap(sc => sc.students.map(st => st.id));
+                const n = new Set([...sched, ...manual]).size;
+                const isSel = iso === rDate, isToday = iso === todayISO();
+                return (
+                    <button key={iso} type="button" onClick={()=>setRDate(iso)}
+                        className={`py-2 rounded-xl border text-center ${isSel?'border-indigo-500 bg-indigo-600 text-white':'border-gray-200 bg-white text-gray-600 active:border-indigo-300'}`}>
+                        <p className="text-[10px] opacity-70">{WEEKDAYS[d.getDay()]}{isToday?'·今':''}</p>
+                        <p className="text-sm font-bold">{d.getDate()}</p>
+                        <p className={`text-[10px] font-bold ${isSel?'text-indigo-100':(n>0?'text-indigo-500':'text-gray-300')}`}>{n>0?`${n}人`:'—'}</p>
+                    </button>
+                );
+            });
+        })()}
+    </div>
+
+    {/* B1: 当日概览条 — 应到/已签/未签/低余额 */}
+    {(() => {
+        const valid = dayIds.filter(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived;});
+        const done = valid.filter(id=>rosterDone.has(id)).length;
+        const low = valid.filter(id=>{const s=db.students.find(x=>x.id===id);return s&&(parseInt(s.balance,10)||0)<=renewTh;}).length;
+        if (!valid.length) return null;
+        return (
+            <div className="flex gap-2 flex-wrap">
+                {[['应到', valid.length, 'bg-white border-gray-200 text-gray-700'],
+                  ['已签', done, 'bg-green-50 border-green-200 text-green-700'],
+                  ['未签', valid.length-done, 'bg-indigo-50 border-indigo-200 text-indigo-700'],
+                  ['低余额', low, low>0?'bg-amber-50 border-amber-300 text-amber-700':'bg-white border-gray-200 text-gray-400'],
+                ].map(([l,v,cls]) => (
+                    <span key={l} className={`px-3 py-1.5 rounded-xl border text-xs font-bold ${cls}`}>{l} {v}</span>
+                ))}
+            </div>
+        );
+    })()}
+
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="bg-gray-50 border-b px-4 py-3 flex justify-between items-center gap-2 flex-wrap">
             <p className="font-bold text-sm text-gray-800">{fmtDate(rDate)} · {dayIds.filter(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived;}).length} 人{scheduledForDate.length>0 && <span className="text-xs font-normal text-indigo-500 ml-1">（课表 {scheduledForDate.length} 班）</span>}</p>
@@ -2922,7 +3043,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
             </div>
         </div>
         <div className="divide-y divide-gray-100">
-            {!dayIds.length && <div className="p-8 text-center text-gray-400 text-sm">今日暂无排班{TENANT_SLUG?'（可在上方「每周课表」建固定班次，命中当天自动排入）':''}</div>}
+            {!dayIds.length && <EmptyState icon="📅" main="今日暂无排班" sub={TENANT_SLUG?'可在上方「每周课表」建固定班次，命中当天自动排入':''}/>}
             {/* Fix #3: skip archived students in roster */}
             {dayIds.map(sid => {
                 const s = db.students.find(x=>x.id===sid);
@@ -2981,7 +3102,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
     </div>
 
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
-        <input type="text" placeholder="🔍 搜索姓名 / 电话 / 微信 / 邮箱..." value={srch} onChange={e=>setSrch(e.target.value)}
+        <input type="text" placeholder="🔍 搜索姓名 / 电话 / 微信 / 邮箱...（回车打开唯一匹配）" value={srch} onChange={e=>setSrch(e.target.value)}
+            onKeyDown={e=>{ if (e.key==='Enter' && sortedFiltered.length===1) { setSelS(sortedFiltered[0]); setEditP(false); } }}
             className="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"/>
         <div className="overflow-x-auto -mx-1 px-1 pb-1"><div className="flex gap-2 items-center" style={{minWidth:'max-content'}}>
             <select value={sortBy} onChange={e=>setSortBy(e.target.value)}
@@ -2996,8 +3118,10 @@ document.getElementById('copybtn').addEventListener('click', function(){
             </select>
             {[['all','全部'],['active','有余额'],['low',`低余额≤${renewTh}`],['zero','已清零'],['archived','归档库'],['tag-hot','🔥 活跃'],['tag-low','💤 低频'],['tag-risk','⚠️ 流失风险']].map(([v,l]) => (
                 <button key={v} onClick={()=>setFilterBy(v)}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold border min-h-[40px] transition flex-shrink-0 ${filterBy===v?'bg-indigo-600 text-white border-indigo-600':'bg-white text-gray-600 border-gray-300 active:border-indigo-300'}`}>{l}</button>
+                    className={`px-4 py-2 rounded-xl text-xs font-bold border min-h-[40px] transition flex-shrink-0 ${filterBy===v?'bg-indigo-600 text-white border-indigo-600':'bg-white text-gray-600 border-gray-300 active:border-indigo-300'}`}>{l}{filterBy===v?` · ${sortedFiltered.length}`:''}</button>
             ))}
+            {(filterBy!=='all'||srch) && <button onClick={()=>{setFilterBy('all');setSrch('');}}
+                className="px-3 py-2 rounded-xl text-xs font-bold border border-red-200 text-red-500 bg-white active:bg-red-50 min-h-[40px] flex-shrink-0">✕ 清除</button>}
         </div></div>
     </div>
 
@@ -3011,7 +3135,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
             }} className="bg-orange-600 active:bg-orange-700 text-white px-4 py-2 rounded-xl text-xs font-bold min-h-[40px]">📋 复制全部提醒话术</button>
         </div>
     )}
-    {!sortedFiltered.length && <div className="text-center py-10 text-gray-400">无匹配学员</div>}
+    {!sortedFiltered.length && <EmptyState icon="🔍" main="无匹配学员" sub="试试调整搜索词或筛选条件"/>}
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
         {sortedFiltered.map(s => (
             <div key={s.id} className={`bg-white rounded-2xl p-4 shadow-sm border hover-row transition flex flex-col justify-between print-card ${s.archived?'border-gray-200 opacity-70':parseInt(s.balance,10)===0?'border-red-100':parseInt(s.balance,10)<=2?'border-orange-100':'border-gray-100'}`}>
@@ -3704,6 +3828,22 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                 </details>
                             );
                         })()}
+                        {/* B3: 上课记录（v4.6）— 按上课日期，撤销的标灰 */}
+                        {TENANT_SLUG && attHistory && attHistory.length > 0 && (
+                            <details className="border border-blue-100 rounded-2xl overflow-hidden">
+                                <summary className="bg-blue-50 px-4 py-3 cursor-pointer select-none text-sm font-bold text-blue-700">📅 上课记录 <span className="font-normal text-blue-400 text-xs ml-1">(近 {attHistory.length} 次)</span></summary>
+                                <div className="divide-y divide-gray-50 max-h-64 overflow-y-auto sl">
+                                    {attHistory.map(a => (
+                                        <div key={a.id} className={`px-4 py-2.5 flex items-center justify-between text-sm ${a.reversed_at?'opacity-50':''}`}>
+                                            <span className="font-bold text-gray-700">{fmtDate(String(a.class_date||a.attended_at).slice(0,10))}</span>
+                                            <span className="text-xs text-gray-400 flex-1 text-center truncate px-2">{a.note||'常规课程'}</span>
+                                            <span className={`text-xs font-bold ${a.reversed_at?'text-gray-400':'text-green-600'}`}>{a.reversed_at?'已撤销':'✓ 已签'}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </details>
+                        )}
+
                         {/* ── Portfolio section ── */}
                         {(()=>{
                             const items = selS.portfolio || [];
@@ -3739,14 +3879,14 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                                         onLoad={e=>{const sk=document.getElementById(`sk-${item.id}`);if(sk)sk.style.display='none';}}
                                                         onError={e=>{e.target.style.display='none';}}/>
                                                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-1.5 pt-4 pb-1">
-                                                        <p className="text-white text-xs leading-tight truncate">{fmtDate(item.date)}</p>
-                                                        {item.note && <p className="text-white/70 text-xs truncate">{item.note}</p>}
+                                                        {item.title && <p className="text-white text-xs font-bold leading-tight truncate">{item.title}</p>}
+                                                        <p className="text-white text-xs leading-tight truncate">{fmtDate(item.date)}{item.note?' 💬':''}</p>
                                                     </div>
                                                     {/* B1: port-actions = hidden on mouse devices (hover:flex), always visible on touch (CSS override) */}
                                                     {/* #7 fix: p-2 + min 32px ensures ≥44px total tap target incl. gap */}
                                                     <div className="port-actions absolute top-0.5 right-0.5 hidden group-hover:flex gap-1 z-10">
                                                         <button
-                                                            onClick={e=>{e.stopPropagation();setPortEdit({sid:String(selS.id),item,note:item.note||'',date:item.date||todayISO()});}}
+                                                            onClick={e=>{e.stopPropagation();setPortEdit({sid:String(selS.id),item,note:item.note||'',title:item.title||'',date:item.date||todayISO()});}}
                                                             className="bg-white/90 rounded-lg p-2 text-xs shadow leading-none min-w-[32px] min-h-[32px] flex items-center justify-center">✏️</button>
                                                         <button
                                                             onClick={e=>{e.stopPropagation();portfolioDoDelete(String(item.id));}}

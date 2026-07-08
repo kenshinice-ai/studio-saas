@@ -2608,8 +2608,8 @@ def _legacy_data_for_tenant(conn, tenant_id: str) -> dict:
     portfolio_rows = fetch_all(
         conn,
         """
-        SELECT p.id, p.student_id, p.media_asset_id, p.description, p.artwork_date,
-               p.created_at
+        SELECT p.id, p.student_id, p.media_asset_id, p.title, p.description,
+               p.artwork_date, p.created_at
         FROM portfolio_items p
         JOIN media_assets m ON m.id = p.media_asset_id AND m.tenant_id = p.tenant_id
         WHERE p.tenant_id = %s
@@ -2626,6 +2626,7 @@ def _legacy_data_for_tenant(conn, tenant_id: str) -> dict:
                 "filename": _media_token(str(row["media_asset_id"])),
                 "date": str(row["artwork_date"] or row["created_at"].date()),
                 "note": row["description"] or "",
+                "title": row["title"] or "",
             }
         )
     packages = fetch_all(
@@ -3087,6 +3088,7 @@ def legacy_cms_portfolio_upload():
         tenant = _tenant_context(conn)
         student_id = str(request.form.get("studentId") or "").strip()
         note = str(request.form.get("note") or "").strip()[:500]
+        title = str(request.form.get("title") or "").strip()[:120]   # B4
         date_str = str(request.form.get("date") or "").strip()
         if not student_id:
             return _error("studentId is required.")
@@ -3127,10 +3129,10 @@ def legacy_cms_portfolio_upload():
                     tenant_id, student_id, media_asset_id, title, description,
                     artwork_date, visibility
                 )
-                VALUES (%s, %s, %s, '', %s, %s, 'private')
+                VALUES (%s, %s, %s, %s, %s, %s, 'private')
                 RETURNING id, created_at
                 """,
-                (tenant.tenant_id, student_id, media["id"], note, artwork_date_val),
+                (tenant.tenant_id, student_id, media["id"], title, note, artwork_date_val),
             )
             item = cur.fetchone()
         _audit_request(
@@ -3150,6 +3152,7 @@ def legacy_cms_portfolio_upload():
                 "filename": _media_token(media_id),
                 "date": date_str or str(item["created_at"].date()),
                 "note": note,
+                "title": title,
                 "mediaUrl": f"/s/{tenant.slug}/v1/media/{media_id}",
             },
         }
@@ -3192,6 +3195,8 @@ def legacy_cms_portfolio_update(student_id: str, portfolio_item_id: str):
 
     payload = request.get_json(silent=True) or {}
     note = str(payload.get("note") or "").strip()[:500]
+    title_raw = payload.get("title")
+    title = None if title_raw is None else str(title_raw).strip()[:120]   # B4
     date_str = str(payload.get("date") or "").strip()
     artwork_date_val = None
     if date_str:
@@ -3207,13 +3212,14 @@ def legacy_cms_portfolio_update(student_id: str, portfolio_item_id: str):
             cur.execute(
                 """
                 UPDATE portfolio_items
-                SET description = %s,
+                SET title = COALESCE(%s, title),
+                    description = %s,
                     artwork_date = COALESCE(%s, artwork_date),
                     updated_at = now()
                 WHERE tenant_id = %s AND student_id = %s AND id = %s
                 RETURNING id
                 """,
-                (note, artwork_date_val, tenant.tenant_id, student_id, portfolio_item_id),
+                (title, note, artwork_date_val, tenant.tenant_id, student_id, portfolio_item_id),
             )
             if not cur.fetchone():
                 return _error("Portfolio item was not found.", 404)
@@ -4190,7 +4196,7 @@ def list_attendance_sessions():
             SELECT a.id, a.student_id, s.display_name AS student_name,
                    a.course_id, c.name AS course_name,
                    a.credit_transaction_id, a.reversal_credit_transaction_id,
-                   a.attended_at, a.reversed_at, a.note, a.class_date,
+                   a.attended_at, a.reversed_at, a.note, a.class_date::text AS class_date,
                    ct.amount::float AS consumed_credits,
                    rt.amount::float AS refunded_credits
             FROM attendance_sessions a
@@ -4745,7 +4751,7 @@ def public_shared_portfolio(raw_token: str):
         rows = fetch_all(
             conn,
             """
-            SELECT p.id, p.media_asset_id, p.description, p.artwork_date, p.created_at
+            SELECT p.id, p.media_asset_id, p.title, p.description, p.artwork_date, p.created_at
             FROM portfolio_items p
             JOIN media_assets m ON m.id = p.media_asset_id AND m.tenant_id = p.tenant_id
             WHERE p.tenant_id = %s AND p.student_id = %s
@@ -4762,6 +4768,7 @@ def public_shared_portfolio(raw_token: str):
             "mediaUrl": f"/v1/public/{slug}/media/{row['media_asset_id']}?token={raw_token}",
             "date": str(row["artwork_date"] or row["created_at"].date()),
             "note": row["description"] or "",
+            "title": row["title"] or "",
         }
         for row in rows
     ]

@@ -86,13 +86,20 @@
         });
         const meta = document.createElement('div');
         meta.className = 'meta';
+        if (item.title) {
+          const title = document.createElement('div');
+          title.className = 'note';
+          title.style.fontWeight = '700';
+          title.textContent = item.title;
+          meta.appendChild(title);
+        }
         const date = document.createElement('div');
         date.textContent = item.date || '';
         meta.appendChild(date);
         if (item.note) {
           const note = document.createElement('div');
           note.className = 'note';
-          note.textContent = item.note;
+          note.textContent = '💬 ' + item.note;
           meta.appendChild(note);
         }
         card.appendChild(img);
