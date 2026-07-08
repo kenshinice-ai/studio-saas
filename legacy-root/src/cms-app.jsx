@@ -300,6 +300,13 @@ function portfolioImgSrc(studentId, item) {
     return `/portfolio/img/${encodeURIComponent(studentId)}/${encodeURIComponent(filename)}`;
 }
 
+/* S3: 列表网格用 360px 缩略图（v1 媒体路由 ?thumb=1），灯箱/打印仍用原图 */
+function portfolioThumbSrc(studentId, item) {
+    const src = portfolioImgSrc(studentId, item);
+    if (src.includes('/v1/media/')) return src + (src.includes('?') ? '&' : '?') + 'thumb=1';
+    return src;
+}
+
 /* ═══════════════════ PHOTO AVATAR ════════════════════════════ */
 function PhotoAvatar({ photo, name, size='sm' }) {
     const cls = size==='sm' ? 'w-9 h-9 text-xs' : size==='md' ? 'w-14 h-14 text-base' : 'w-20 h-20 text-2xl';
@@ -3603,7 +3610,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                                     {/* M7: skeleton shown until image loads */}
                                                     <div className="img-skel absolute inset-0" id={`sk-${item.id}`}/>
                                                     <img
-                                                        src={portfolioImgSrc(selS.id, item)}
+                                                        src={portfolioThumbSrc(selS.id, item)}
+                                                        loading="lazy"
                                                         className="w-full h-full object-cover relative"
                                                         onLoad={e=>{const sk=document.getElementById(`sk-${item.id}`);if(sk)sk.style.display='none';}}
                                                         onError={e=>{e.target.style.display='none';}}/>

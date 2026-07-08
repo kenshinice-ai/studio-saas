@@ -14,8 +14,19 @@
     <meta name="apple-mobile-web-app-title" content="Studio CMS">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <script>
+      /* S1 (v6.6.5): register the SW scoped to this tenant page only, and
+       * unregister historical root-scope registrations so the SW never
+       * intercepts other surfaces. */
       if ('serviceWorker' in navigator)
-        window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(()=>{}));
+        window.addEventListener('load', () => {
+          const scope = location.pathname.replace(/\/+$/, '') || '/';
+          const cleanup = scope === '/' ? Promise.resolve() :
+            navigator.serviceWorker.getRegistrations().then((regs) =>
+              Promise.all(regs.filter((r) => new URL(r.scope).pathname === '/').map((r) => r.unregister()))
+            ).catch(() => {});
+          Promise.resolve(cleanup).then(() =>
+            navigator.serviceWorker.register('/sw.js', { scope }).catch(() => {}));
+        });
     </script>
     <script>
       (() => {

@@ -24,8 +24,24 @@ class MediaQuotaExceededError(MediaUploadError):
     """Raised when a tenant upload would exceed its plan storage limit."""
 
 
-IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+# S2 (LetsPaintCMS v4.4 U6): accept iPhone HEIC/HEIF and convert to JPEG
+# server-side. Pillow is a guarded optional dependency — when missing,
+# HEIC uploads fail with a clear message and thumbnails fall back to
+# the original file.
+try:
+    from PIL import Image as _PILImage
+    _HAS_PIL = True
+except ImportError:  # pragma: no cover - depends on environment
+    _HAS_PIL = False
+
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".heic", ".heif"}
+HEIC_EXTENSIONS = {".heic", ".heif"}
 DOCUMENT_EXTENSIONS = {".pdf"}
+
+# S3 (v4.4 U3): lazy thumbnails for list views. 360px longest side.
+THUMB_MAX = 360
+THUMB_SUFFIX = ".thumb.jpg"
+THUMB_SOURCE_MIMES = {"image/jpeg", "image/png", "image/webp"}
 MEDIA_UPLOAD_LIMITS = {
     "student_photo": (IMAGE_EXTENSIONS, 5 * 1024 * 1024),
     "registration_photo": (IMAGE_EXTENSIONS, 5 * 1024 * 1024),
@@ -42,6 +58,8 @@ MEDIA_MIME_TYPES = {
     ".webp": {"image/webp"},
     ".pdf": {"application/pdf"},
     ".svg": {"image/svg+xml", "image/svg"},
+    ".heic": {"image/heic", "image/heif", "image/heic-sequence"},
+    ".heif": {"image/heic", "image/heif", "image/heif-sequence"},
 }
 
 
@@ -172,7 +190,32 @@ def validate_media_upload(file_storage: FileStorage, *, kind: str) -> tuple[str,
         sample = data[:1024].lstrip().lower()
         if not (sample.startswith(b"<svg") or sample.startswith(b"<?xml") or b"<svg" in sample):
             raise MediaUploadError("File content does not match the selected SVG type.")
+    if ext in HEIC_EXTENSIONS and data[4:8] != b"ftyp":
+        raise MediaUploadError("File content does not match the selected image type.")
     return ext, data, detect_mime(ext)
+
+
+def convert_heic_to_jpeg(data: bytes) -> bytes | None:
+    """Convert HEIC/HEIF bytes to JPEG; returns None on any failure.
+
+    Never raises — callers decide how to report. Deliberately avoids any
+    per-pixel expansion (see the v5.2.2 OOM incident in the reference CMS).
+    """
+
+    if not _HAS_PIL:
+        return None
+    try:
+        import io as _io
+
+        from pillow_heif import register_heif_opener
+        register_heif_opener()
+        image = _PILImage.open(_io.BytesIO(data))
+        image = image.convert("RGB")
+        out = _io.BytesIO()
+        image.save(out, format="JPEG", quality=90)
+        return out.getvalue()
+    except Exception:
+        return None
 
 
 def _enforce_tenant_quota(conn: Any, *, tenant_id: str, incoming_bytes: int) -> None:
@@ -226,6 +269,13 @@ def store_media_asset(
             raise MediaUploadError("Student was not found for this tenant.")
 
     ext, data, mime_type = validate_media_upload(file_storage, kind=kind)
+    if ext in HEIC_EXTENSIONS:
+        converted = convert_heic_to_jpeg(data)
+        if converted is None:
+            raise MediaUploadError(
+                "HEIC photos could not be converted on this server. Please upload JPG or PNG."
+            )
+        data, ext, mime_type = converted, ".jpg", "image/jpeg"
     _enforce_tenant_quota(conn, tenant_id=tenant_id, incoming_bytes=len(data))
 
     media_id = str(uuid.uuid4())
@@ -272,13 +322,38 @@ def store_media_asset(
     return row
 
 
-def send_media_asset(conn: Any, *, tenant_id: str, media_asset_id: str):
-    """Serve one media asset after tenant ownership has been verified."""
+def _ensure_thumbnail(full_path: str) -> str | None:
+    """Lazily create ``<file>.thumb.jpg`` (longest side THUMB_MAX).
+
+    Returns the thumbnail filename or None when unavailable — callers
+    fall back to the original file, never error.
+    """
+
+    if not _HAS_PIL or not os.path.isfile(full_path):
+        return None
+    thumb_path = full_path + THUMB_SUFFIX
+    if os.path.isfile(thumb_path):
+        return os.path.basename(thumb_path)
+    try:
+        image = _PILImage.open(full_path)
+        image.thumbnail((THUMB_MAX, THUMB_MAX))
+        image.convert("RGB").save(thumb_path, format="JPEG", quality=85)
+        return os.path.basename(thumb_path)
+    except Exception:
+        return None
+
+
+def send_media_asset(conn: Any, *, tenant_id: str, media_asset_id: str, thumb: bool = False):
+    """Serve one media asset after tenant ownership has been verified.
+
+    ``thumb=True`` serves a lazily generated 360px thumbnail for raster
+    images (S3); anything else falls back to the original file.
+    """
 
     row = fetch_one(
         conn,
         """
-        SELECT storage_key
+        SELECT storage_key, mime_type
         FROM media_assets
         WHERE tenant_id = %s AND id = %s AND storage_provider = 'local'
         """,
@@ -291,4 +366,9 @@ def send_media_asset(conn: Any, *, tenant_id: str, media_asset_id: str):
     if len(safe_parts) < 3:
         raise MediaUploadError("Media asset path is invalid.")
     directory = os.path.join(media_root(), *safe_parts[:-1])
-    return send_from_directory(directory, safe_parts[-1])
+    filename = safe_parts[-1]
+    if thumb and str(row["mime_type"] or "") in THUMB_SOURCE_MIMES:
+        thumb_name = _ensure_thumbnail(os.path.join(directory, filename))
+        if thumb_name:
+            filename = thumb_name
+    return send_from_directory(directory, filename)

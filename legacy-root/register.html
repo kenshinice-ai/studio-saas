@@ -13,8 +13,17 @@
 <meta name="apple-mobile-web-app-title" content="Studio">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <script>
+  /* S1 (v6.6.5): scope the SW to this page's path; drop root-scope leftovers. */
   if ('serviceWorker' in navigator)
-    window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(()=>{}));
+    window.addEventListener('load', () => {
+      const scope = location.pathname.replace(/\/+$/, '') || '/';
+      const cleanup = scope === '/' ? Promise.resolve() :
+        navigator.serviceWorker.getRegistrations().then((regs) =>
+          Promise.all(regs.filter((r) => new URL(r.scope).pathname === '/').map((r) => r.unregister()))
+        ).catch(() => {});
+      Promise.resolve(cleanup).then(() =>
+        navigator.serviceWorker.register('/sw.js', { scope }).catch(() => {}));
+    });
 </script>
 <script>
   (() => {
@@ -312,6 +321,18 @@
       </div>
     </div>
 
+    <!-- S4: honeypot — hidden from humans; bots that fill it are dropped silently -->
+    <div style="position:absolute;left:-9999px;top:-9999px;" aria-hidden="true">
+      <label>Website <input id="r-website" type="text" tabindex="-1" autocomplete="off"></label>
+    </div>
+
+    <!-- S4: privacy consent (v5.0.1) -->
+    <label class="flex items-start gap-2 text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-xl px-3 py-3">
+      <input id="r-consent" type="checkbox" class="mt-0.5" style="width:auto;min-width:16px;">
+      <span>我已阅读并同意：提交的信息仅用于课程注册与联系；学员照片仅用于教学记录与作品集，未经同意不会公开展示。<br>
+      I agree that the submitted details are used only for registration and contact, and student photos are used only for class records and the portfolio.</span>
+    </label>
+
     <!-- Error / submit -->
     <p id="reg-err" class="text-red-500 text-sm hidden"></p>
     <button id="submitRegBtn" onclick="submitReg()"
@@ -521,6 +542,9 @@ async function submitReg() {
 
   if (!first) { showErr(err, '请填写 First Name / First Name is required.'); return; }
   if (!phone) { showErr(err, '请填写手机号 / Mobile number is required.'); return; }
+  if (!document.getElementById('r-consent').checked) {
+    showErr(err, '请先勾选同意隐私声明 / Please agree to the privacy notice first.'); return;
+  }
 
   const btn = document.getElementById('submitRegBtn');
   btn.textContent = '提交中... / Submitting...';
@@ -545,6 +569,8 @@ async function submitReg() {
 	      goals:      preferences.goals || '',
 	      birthday:   document.getElementById('r-birthday').value,
 	      message:    document.getElementById('r-msg').value.trim(),
+	      consent:    true,
+	      website:    document.getElementById('r-website').value, /* S4 honeypot */
 	    };
     const r   = await fetch('/api/register', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
     const res = await r.json();

@@ -46,6 +46,18 @@ These items from earlier sprint docs are confirmed done — do not re-fix:
 | P0-06 | Route audit (146 routes): mutations were safe; 12 unauthenticated tenant GET reads fixed | ✅ Done 2026-07-03 |
 | P0-07 | Enum alignment verified; `archived`/`trialing` decisions recorded in Database.md §3 | ✅ Done 2026-07-03 |
 
+### v6.6.6 Harvest — codingprompt v6 (2026-07-06)
+
+| ID | Task | Status |
+|---|---|---|
+| S1 | SW no longer intercepts non-GET (iOS upload body loss); scope tightened per tenant page, root registrations unregistered | ✅ |
+| S2 | iPhone HEIC/HEIF uploads: server-side JPEG conversion (pillow-heif) in media service | ✅ |
+| S3 | Lazy 360px thumbnails (`?thumb=1`) for CMS portfolio grid + shared portfolio page | ✅ |
+| S4 | Registration honeypot (silent bot drop) + privacy consent checkbox | ✅ |
+| S5 | verify_local.sh: compiled-bundle syntax check + forgot-to-build detection | ✅ |
+| A1–A5 | classDate 记账 / 退款退课 / 经营真账 / 充值体验 / 催费预警 | ❌ next |
+| B1–B6 | 排课打磨 / 冲突提醒 / 上课记录 / 作品评语 / EmptyState / 深色模式 | ❌ |
+
 ### CMS Core Sprint — codingprompt v5 (2026-07-04)
 
 | ID | Task | Status |

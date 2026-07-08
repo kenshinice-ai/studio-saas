@@ -1,8 +1,8 @@
-/* Let's Paint CMS — Service Worker
- * Network-only for app/API data; icon/logo cache only.
+/* StudioSaaS tenant CMS — Service Worker
+ * Icon/manifest cache only; everything else goes straight to the network.
  * Bump CACHE_VERSION whenever PWA assets or icons change.
  */
-const CACHE_VERSION = 'v4.3.4-tenant-pwa';
+const CACHE_VERSION = 'v4.4.0-tenant-pwa';
 const ICON_CACHE = `lpcms-assets-${CACHE_VERSION}`;
 const ASSETS = [
   '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png', '/manifest.json'
@@ -30,10 +30,14 @@ self.addEventListener('message', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
+  /* S1 (LetsPaintCMS v4.4 U7): only intercept GET requests for cached
+   * static assets. Everything else — especially multipart POST uploads —
+   * must NOT go through respondWith(fetch(...)): iOS WebKit drops the
+   * request body when the SW forwards it, breaking all mobile uploads. */
+  if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
   if (ASSETS.includes(url.pathname)) {
     e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
-    return;
   }
-  e.respondWith(fetch(e.request));
+  // Non-asset GETs fall through to the network without SW involvement.
 });

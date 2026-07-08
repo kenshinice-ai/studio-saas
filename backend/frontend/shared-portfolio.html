@@ -78,7 +78,7 @@
         card.className = 'item';
         const img = document.createElement('img');
         img.loading = 'lazy';
-        img.src = item.mediaUrl;
+        img.src = item.mediaUrl + (item.mediaUrl.includes('?') ? '&' : '?') + 'thumb=1';
         img.alt = item.note || 'Artwork';
         img.addEventListener('click', () => {
           document.getElementById('lightboxImg').src = item.mediaUrl;

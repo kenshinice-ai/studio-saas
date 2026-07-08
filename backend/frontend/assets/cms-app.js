@@ -278,6 +278,11 @@ function portfolioImgSrc(studentId, item) {
   if (String(filename).startsWith("media:")) return mediaSrc(filename, "portfolio");
   return `/portfolio/img/${encodeURIComponent(studentId)}/${encodeURIComponent(filename)}`;
 }
+function portfolioThumbSrc(studentId, item) {
+  const src = portfolioImgSrc(studentId, item);
+  if (src.includes("/v1/media/")) return src + (src.includes("?") ? "&" : "?") + "thumb=1";
+  return src;
+}
 function PhotoAvatar({ photo, name, size = "sm" }) {
   const cls = size === "sm" ? "w-9 h-9 text-xs" : size === "md" ? "w-14 h-14 text-base" : "w-20 h-20 text-2xl";
   const initials = (name || "?").trim().split(/\s+/).map((w) => w[0] || "").slice(0, 2).join("").toUpperCase() || "?";
@@ -3568,7 +3573,8 @@ ${msg}`).join("\n\n"), `已复制 ${lines.length} 条提醒内容`);
         /* @__PURE__ */ React.createElement(
           "img",
           {
-            src: portfolioImgSrc(selS.id, item),
+            src: portfolioThumbSrc(selS.id, item),
+            loading: "lazy",
             className: "w-full h-full object-cover relative",
             onLoad: (e) => {
               const sk = document.getElementById(`sk-${item.id}`);

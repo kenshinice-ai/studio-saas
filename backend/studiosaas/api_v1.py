@@ -968,10 +968,14 @@ def _store_media_asset(conn, *, tenant_id: str, file_storage, kind: str, owner_s
 
 
 def _send_media_asset(conn, *, tenant_id: str, media_asset_id: str):
-    """Serve one media asset after tenant ownership has been verified."""
+    """Serve one media asset after tenant ownership has been verified.
 
+    ``?thumb=1`` serves the lazily generated list-view thumbnail (S3).
+    """
+
+    thumb = str(request.args.get("thumb", "")).lower() in ("1", "true", "yes")
     try:
-        return send_media_asset(conn, tenant_id=tenant_id, media_asset_id=media_asset_id)
+        return send_media_asset(conn, tenant_id=tenant_id, media_asset_id=media_asset_id, thumb=thumb)
     except MediaUploadError as exc:
         return _error(str(exc), 404)
 
@@ -2326,6 +2330,12 @@ def public_create_registration(tenant_slug: str):
     _public_rate_limit[client_ip].append(now)
 
     payload = request.get_json(silent=True) or {}
+    # S4 (LetsPaintCMS v6.6.5): honeypot — the registration form renders a
+    # hidden `website` field humans never see. Bots that fill it get a
+    # silent fake success: nothing is stored, no signal is leaked.
+    if str(payload.get("website") or "").strip():
+        return jsonify({"ok": True, "success": True, "message": "Registration received."})
+
     first_name = str(
         payload.get("firstName")
         or payload.get("first_name")

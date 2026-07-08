@@ -100,6 +100,24 @@ if [ -x "$PYTHON" ]; then
         fail "UI escaping check found unescaped innerHTML interpolations"
     fi
 
+    # S5 (LetsPaintCMS v6.6.5 run_tests.sh): compiled CMS bundle sanity.
+    CMS_SRC="$SCRIPT_DIR/../legacy-root/src/cms-app.jsx"
+    CMS_OUT="$SCRIPT_DIR/frontend/assets/cms-app.js"
+    if command -v node >/dev/null 2>&1; then
+        if [ -f "$CMS_OUT" ] && node -e "new Function(require('fs').readFileSync('$CMS_OUT','utf8'))" 2>/dev/null; then
+            ok "cms-app.js compiled bundle is valid JS"
+        else
+            fail "cms-app.js missing or has syntax errors (run: bash backend/scripts/build_cms.sh)"
+        fi
+        if [ -f "$CMS_SRC" ] && [ -f "$CMS_OUT" ] && [ "$CMS_SRC" -nt "$CMS_OUT" ]; then
+            fail "cms-app.jsx is newer than cms-app.js — forgot to build? (bash backend/scripts/build_cms.sh)"
+        else
+            ok "CMS bundle is up to date with its source"
+        fi
+    else
+        ok "node not available — skipped CMS bundle checks"
+    fi
+
     # Pytest unit/boundary suite (requires requirements-dev.txt installed)
     if "$PYTHON" -m pytest -q --no-header -x "$SCRIPT_DIR/tests" >/dev/null 2>&1; then
         ok "pytest suite passes"
