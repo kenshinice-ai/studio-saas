@@ -55,8 +55,17 @@ These items from earlier sprint docs are confirmed done — do not re-fix:
 | S3 | Lazy 360px thumbnails (`?thumb=1`) for CMS portfolio grid + shared portfolio page | ✅ |
 | S4 | Registration honeypot (silent bot drop) + privacy consent checkbox | ✅ |
 | S5 | verify_local.sh: compiled-bundle syntax check + forgot-to-build detection | ✅ |
-| A1–A5 | classDate 记账 / 退款退课 / 经营真账 / 充值体验 / 催费预警 | ❌ next |
-| B1–B6 | 排课打磨 / 冲突提醒 / 上课记录 / 作品评语 / EmptyState / 深色模式 | ❌ |
+| A1 | Attendance accounted on class_date (make-up check-ins land on the right day) | ✅ 2026-07-08 |
+| A2+A4 | 退款退课 (negative-fee revenue netting, signed ledger) + settle-page mode toggle, recent-3, confirm cards | ✅ 2026-07-08 |
+| A3 | 经营真账 dashboard card (attended, avg price, earned vs prepaid liability vs cash) | ✅ 2026-07-08 |
+| A5 | Pre-class low-balance warning + one-tap 催费 copy | ✅ 2026-07-08 |
+| B1 | Roster workbench: date quick-nav, mini week view, day overview bar | ✅ 2026-07-08 |
+| B2 | Schedule conflict + duplicate warnings | ✅ 2026-07-08 |
+| B3 | Student profile 上课记录 (by class_date) | ✅ 2026-07-08 |
+| B4 | Artwork 标题+老师评语 end to end (CMS + share page) | ✅ 2026-07-08 |
+| B5 | EmptyState component, Enter-to-open search, filter count/clear | ✅ 2026-07-08 |
+| B6 | Dark mode (system-following CSS layer, harvested v5.0.x) | ✅ 2026-07-08 |
+| — | Bonus: /vendor CWD 404 fixed + real pinned react/tailwind bundles | ✅ 2026-07-08 |
 
 ### CMS Core Sprint — codingprompt v5 (2026-07-04)
 
