@@ -1298,7 +1298,7 @@ function App() {
                    与 Studio Admin 考勤页同一本账 */
                 const res = await v1Api('/attendance/check-in', {
                     method: 'POST',
-                    body: JSON.stringify({studentId: sid, note: '常规课程消耗'}),
+                    body: JSON.stringify({studentId: sid, note: '常规课程消耗', classDate: rDate}),
                 });
                 nb = Number(res.newBalance);
                 await load();
@@ -1439,7 +1439,7 @@ function App() {
                         try {
                             await v1Api('/attendance/check-in', {
                                 method: 'POST',
-                                body: JSON.stringify({studentId: id, note: '全员消课'}),
+                                body: JSON.stringify({studentId: id, note: '全员消课', classDate: rDate}),
                             });
                         } catch(e) { failed.push(s.name); }
                     }

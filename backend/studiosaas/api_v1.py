@@ -2602,8 +2602,11 @@ def _legacy_data_for_tenant(conn, tenant_id: str) -> dict:
         SELECT ct.id, ct.student_id, s.display_name AS student_name,
                ct.transaction_type, ct.amount::float AS amount,
                ct.fee_aud_cents, ct.note,
+               to_char(COALESCE(att.class_date,
+                                (ct.occurred_at AT TIME ZONE 'Australia/Melbourne')::date),
+                       'DD/MM/YYYY') ||
                to_char(ct.occurred_at AT TIME ZONE 'Australia/Melbourne',
-                       'DD/MM/YYYY, HH24:MI:SS') AS occurred_display,
+                       ', HH24:MI:SS') AS occurred_display,
                att.id AS attendance_id
         FROM credit_transactions ct
         JOIN students s ON s.id = ct.student_id
@@ -4120,7 +4123,9 @@ def list_attendance_sessions():
             filters.append("a.student_id = %s")
             params.append(student_id)
         if date_value:
-            filters.append("a.attended_at::date = %s::date")
+            # A1: filter on the class date (make-up check-ins belong to
+            # the day the class happened, not the day it was recorded).
+            filters.append("COALESCE(a.class_date, (a.attended_at AT TIME ZONE 'Australia/Melbourne')::date) = %s::date")
             params.append(date_value)
         params.extend([limit, offset])
         rows = fetch_all(
@@ -4129,7 +4134,7 @@ def list_attendance_sessions():
             SELECT a.id, a.student_id, s.display_name AS student_name,
                    a.course_id, c.name AS course_name,
                    a.credit_transaction_id, a.reversal_credit_transaction_id,
-                   a.attended_at, a.reversed_at, a.note,
+                   a.attended_at, a.reversed_at, a.note, a.class_date,
                    ct.amount::float AS consumed_credits,
                    rt.amount::float AS refunded_credits
             FROM attendance_sessions a
@@ -4165,6 +4170,21 @@ def check_in_attendance():
     note = _clean_text(payload, "note")[:500]
     if not student_id:
         return _error("studentId is required.")
+    # A1 (v4.6 R1): the check-in is accounted on the class date. Defaults to
+    # today (Melbourne); accepts back-dated make-ups up to 90 days and at
+    # most tomorrow (pre-logging an evening class across midnight).
+    class_date = _clean_text(payload, "classDate", _clean_text(payload, "class_date"))
+    if class_date:
+        import datetime as _dt
+        try:
+            parsed = _dt.date.fromisoformat(class_date)
+        except ValueError:
+            return _error("classDate must look like YYYY-MM-DD.")
+        today = _dt.datetime.now(_dt.timezone(_dt.timedelta(hours=10))).date()
+        if parsed > today + _dt.timedelta(days=1) or parsed < today - _dt.timedelta(days=90):
+            return _error("classDate must be within the past 90 days (or tomorrow at most).")
+    else:
+        class_date = None
 
     with connect() as conn:
         tenant = _tenant_context(conn)
@@ -4247,10 +4267,11 @@ def check_in_attendance():
                 """
                 INSERT INTO attendance_sessions (
                     tenant_id, student_id, course_id, actor_user_id,
-                    credit_transaction_id, note
+                    credit_transaction_id, note, class_date
                 )
-                VALUES (%s, %s, %s, %s, %s, %s)
-                RETURNING id, attended_at
+                VALUES (%s, %s, %s, %s, %s, %s,
+                        COALESCE(%s::date, (now() AT TIME ZONE 'Australia/Melbourne')::date))
+                RETURNING id, attended_at, class_date
                 """,
                 (
                     tenant.tenant_id,
@@ -4259,6 +4280,7 @@ def check_in_attendance():
                     getattr(g.actor, "user_id", None),
                     tx_id,
                     note,
+                    class_date,
                 ),
             )
             session_row = cur.fetchone()
@@ -4279,6 +4301,7 @@ def check_in_attendance():
             "creditTransactionId": tx_id,
             "newBalance": new_balance,
             "creditsConsumed": debit,
+            "classDate": str(session_row["class_date"]),
         }
     ), 201
 
