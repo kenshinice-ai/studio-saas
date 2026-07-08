@@ -1,181 +1,174 @@
-# StudioSaaS Improvement Sprint Prompt (v5 — CMS 核心版)
+# StudioSaaS Improvement Sprint Prompt (v6 — v6.6.6 收割版)
 
-Version: v5.0
-Date: 2026-07-03
-Supersedes: codingprompt.md v4（v4 基于"公共页面 = 门面"的假设，已被产品方向纠偏推翻；v3 的 A/B 项已完成，见 git 历史）
+Version: v6.0
+Date: 2026-07-06
+Supersedes: codingprompt.md v5（v5 的 A1–A5 已全部完成：排课系统、账本统一、CMS 预编译、审核统一、界面互通。v5 的 B 级并入本清单）
 
-## 0. 产品定位（本版一切优先级的依据）
+## 0. 本清单的来源
 
-**这套 SaaS 的客户是 tenants（工作室老板）。** 他们绝大多数时间花在 CMS（`/<slug>/cms`，`legacy-root/index.html`）里：排课、签到、管理学生、课时与费用。**CMS 是重点中的重点。**
+租户 CMS 分叉自 LetsPaintCMS **v4.3.3-aws** 基线；成熟的单店版已演进到 **v6.6.6**（真实运营 + 多轮线上事故打磨）。本清单 = 逐条比对 CHANGELOG v4.4→v6.6.6 与租户 CMS 现状后的收割计划，目标：**稳定性对齐 + 完成度对齐**。
 
-- CMS 不是"待退役的过渡层"——它源自真实工作室运营（Let's Paint），是 tenants 付费使用的核心工作台。文档中所有"legacy bridge is transitional"的表述在执行 A5 时修正。
-- 公共主页（`/<slug>`）意义不大：保留为未来给 tenants 客人的附加服务，页面上需要一个到 CMS 的入口，但**不投入开发资源**。
-- CMS 的中文界面是面向目标用户的特性，**不要**做"统一英文"改造。
-- studio-admin（`/<slug>/studio-admin`，英文）定位为"设置与管理面板"（品牌、注册审核、导出、分享链接），与 CMS 分工，见 A5。
+参照物：`~/Library/Mobile Documents/com~apple~CloudDocs/LetspaintCMS/LetsPaintCMS-v6.6.6-release.zip`（含 CHANGELOG.md、server.py 参考实现、docs/ 审查清单）。执行时优先阅读对应版本的 CHANGELOG 条目和参考实现。
 
-## 1. CMS 现状地图（2026-07-03 深夜复审）
+**多租户适配原则**：参考实现是单店 JSON 模型；租户版一律落到 v1 账本/表结构（credit_transactions / attendance_sessions / portfolio_items / media service），禁止把 JSON 整包模型带回来。
 
-`legacy-root/index.html`（3669 行 React，浏览器内 Babel 编译）：
+## 1. 工作规则
 
-| Tab | 功能 | 现状 |
-|---|---|---|
-| dashboard | 指标 + 今日排班入口 | ✔ |
-| roster | **每日排班 + 上课签到 + 一键消课 + 班次组模板** | ✔ 但只有"当日名单"模型，无周课表 |
-| students | 学生、课时余额、调整、作品、生日、活跃度分层（活跃/低频/流失风险） | ✔ |
-| topup | 充值 + 复制充值确认（发家长） | ✔ |
-| pending | 待处理报名 | ⚠ 与 v1 registrations 审核流是否同源待统一 |
-| stats | 图表统计 | ✔ |
-| logs | 操作日志 | ✔ |
-| 设置 | PIN 锁、备份导出/恢复、CSV | ⚠ 备份仍是 JSON 时代设计 |
-
-**已核实的关键问题：**
-1. CMS 的签到/充值/课时调整全部走 `legacy-cms/save` **整包写回**（grep：CMS 内 0 处调用 v1 attendance/credits 端点）→ CMS 签到**不产生** `attendance_sessions` 记录，studio-admin 的考勤页看不到 CMS 的签到，两套账本并行。
-2. CMS 界面 0 处链接到 studio-admin；landing 页脚只链 studio-admin 不链 CMS。
-3. 排课 = 每日 roster + 手动模板，没有"每周三 4pm 素描班"的周期课表。
-4. 3669 行 JSX 每次打开都在浏览器里 Babel 编译（核心产品首屏最慢）。
-
-## 2. 工作规则
-
-1. A → B → C 顺序；每项独立 commit + 全量验证 + 报告【改动文件/验证结果/风险/下一步】。
-2. schema 变更走 `backend/db/migrations/`（下一编号 0007）。
-3. **改 CMS 前先跑 `test_cms.py`（72 项）拿基线；改完必须回到全绿**——它是 CMS 的行为契约。
-4. 带 cookie 的 curl 写操作加 `-H 'X-Requested-With: StudioSaaS'`。
-5. CMS 的中文文案保持中文；新增 CMS 功能的文案用中文。
-6. 禁止引入 FastAPI/微服务/Redis/ES/MQ（docs/Architecture.md §7）。
-
-## 3. 验证命令合集
-
-```bash
-python3 -m py_compile backend/server.py backend/studiosaas/*.py backend/studiosaas/services/*.py backend/scripts/*.py
-cd backend && ../.venv/bin/python -m pytest -q                  # 37
-cd backend && ../.venv/bin/python test_cms.py                   # 72 — CMS 行为契约
-cd backend && ../.venv/bin/python test_tenant_isolation.py     # 110
-python3 backend/scripts/check_ui_escaping.py
-```
+1. S → A → B 顺序；每项独立 commit + 报告【改动文件/验证结果/风险/下一步】。
+2. 改 CMS 界面 = 改 `legacy-root/src/cms-app.jsx` → `bash backend/scripts/build_cms.sh`；禁止直接改 index.html。
+3. schema 变更走 migrations（下一编号 0009）。
+4. 每项完成后全量验证：pytest（37）、test_tenant_isolation（110）、test_cms（72）、check_ui_escaping。
+5. CMS 文案保持中文。
+6. **反面教训（v5.2.2 线上 OOM 事故）**：禁止用 PIL `list(im.getdata())` 方式剥离 EXIF——千万像素照片会把内存打爆。任何逐像素展开的图片处理都不允许。
 
 ---
 
-# A 级 — CMS 核心强化（tenants 的日常工作台）
+# S 级 — 稳定性修复（单店版踩过的线上事故，租户版还带着雷）
 
-## A1 — 周期课表（排课系统）
+## S1 — Service Worker 不拦截非 GET（手机上传丢 body 事故）
 
-**问题：** "排课"是 tenants 花时间最多的事，但 CMS 只有"当日名单 + 手动模板"，每周固定班级要天天手动排。
-**证据：** roster tab 的模板功能是"保存常用班次组"（一次性名单快照）；无 weekday/时间段概念；`class_schedules` 表不存在。
+**问题：** 我们的 `sw.js`（v4.3.3 基线）`fetch` 事件对**所有**请求 `respondWith(fetch(...))`。iOS WebKit 转发 multipart POST 时会丢失 body → 手机上传照片必失败（"No file part"）。单店版 v4.4 已修（U7），v6.6.5 进一步把 SW 作用域收紧。
+**参考：** v6.6.6 `sw.js:33-38`：`if (e.request.method !== 'GET') return;`
 **修复：**
-1. migration 0007：`class_schedules`（id, tenant_id, course_id, weekday smallint 0-6, start_time time, duration_minutes, capacity, label, is_active, created_at）+ `class_schedule_students`（schedule_id, student_id, UNIQUE 对）。
-2. v1 端点（tenant_admin）：schedules CRUD + 学员名单管理 + `GET /v1/roster?date=` 返回"当日应到名单"（由 weekday 匹配的 schedules 展开 + 手动增删）。
-3. CMS roster tab 升级为两个视图：
-   - **课表视图**：按周几分列展示班次（时间、课程、人数/容量），点击编辑学员名单——中文界面，沿用 CMS 现有风格。
-   - **今日视图**（现有）：自动预填今日课表学员，保留手动加人/模板兼容；签到流程不变。
-4. 现有"班次组模板"提供一键转换为周期班次的入口（迁移用户习惯）。
-**验证：** 建"周三 16:00 素描班"+3 学员 → 周三的今日视图自动出现 3 人 → 签到扣课时正常；非周三不出现；test_cms 72 全绿（roster 旧行为兼容）；isolation 补 schedules 跨租户负向用例。
+1. `sw.js` fetch handler 第一行加非 GET 直接 return。
+2. 顺带（v6.6.5）：SW 注册作用域评估收紧到 `/<slug>/cms` 与 `/<slug>/register`（多租户下 root 作用域会跨面拦截），并注销历史根作用域注册。
+**验证：** 手机（或 Safari responsive 模式）上传作品/头像成功；PWA 图标缓存仍工作；bump CACHE_VERSION。
 
-## A2 — 签到/课时账本统一（消除双轨账）
+## S2 — iPhone HEIC/HEIF 上传支持（服务端转 JPEG）
 
-**问题：** CMS 签到不写 `attendance_sessions`，studio-admin 考勤页与 CMS 各记各账；课时扣减两条路径（bridge 整包 save vs v1 credit_transactions），审计与对账不可信。
-**证据：** CMS 内 0 处调用 v1 attendance/credits 端点；`attendance_sessions` 只被 studio-admin 的 check-in 写入。
+**问题：** iPhone 默认拍照格式是 HEIC；我们的 media service 只收 jpg/png/gif/webp → iPhone 用户直接失败。单店版 v4.4 修复（U6）。
+**参考：** v6.6.6 `server.py:78-122`：ALLOWED_EXT 加 heic/heif；`_convert_heic_file()` 用 pillow-heif 就地转 JPEG，失败返回 None 不抛异常。
 **修复：**
-1. CMS 的签到/撤销改调 `POST /s/<slug>/v1/attendance/check-in` 与 `/attendance/<id>/void`（端点已存在，含课时 consume/refund 与审计）；充值/课时调整改调 `POST /v1/students/<id>/credit-transactions`。
-2. bridge 的 `legacy-cms/save` 对 balance/签到字段改为**忽略并告警日志**（防旧 tab 覆盖，portfolio 已有同款保护先例），学生基本信息仍可整包保存。
-3. CMS 的"今日已签到"状态从 v1 attendance 读取（`GET /v1/attendance?date=`），撤销按钮映射 void。
-4. 兼容：CMS 历史 logs 展示保留；新签到同时出现在 studio-admin 考勤页。
-**验证：** CMS 签到 → studio-admin 考勤页立即可见同一条记录、课时余额两边一致、credit_transactions 出现 consume 行；撤销 → refund 行；test_cms 涉及签到的用例改走新路径后全绿；对同一学生连续两次签到的防重行为与原 CMS 一致。
+1. `requirements.txt` 加 `pillow>=10,<12`、`pillow-heif>=0.16,<2`。
+2. `services/media.py`：允许 heic/heif 扩展与 MIME（image/heic, image/heif），保存后转 JPEG（转换失败给出明确错误）；storage_key/mime 以转换后为准。
+3. legacy 上传路径（server.py）同样处理（复用同一函数）。
+**验证：** 用真实 HEIC 文件 curl 上传 → 落盘为 .jpg、媒体路由可显示；非法文件仍被拒。
 
-## A3 — CMS 首屏性能（预编译，去浏览器 Babel）
+## S3 — 作品集缩略图 + 懒加载
 
-**问题：** 核心工作台每次打开都要在浏览器里编译 3669 行 JSX。
-**证据：** `legacy-root/index.html` 加载 `vendor/babel.min.js`（全站唯一使用者）；`<script type="text/babel">`。
+**问题：** CMS/分享页列表直接加载原图，学员多时流量与首屏都差。单店版 v4.4 加缩略图（U3）。
+**参考：** v6.6.6 `server.py` THUMB_MAX=360、Pillow 缺失时优雅回退原图；前端 `loading="lazy"`。
+**修复：** media service 生成缩略图（`<storage_key>.thumb.jpg`，最长边 360）；媒体路由支持 `?thumb=1`；CMS 作品集列表与 `/shared/portfolio` 网格用缩略图 + 懒加载，灯箱用原图。老图片首次请求时惰性生成。
+**验证：** 列表请求体积显著下降；缩略图缺失时回退原图不报错。
+
+## S4 — 注册接口蜜罐 + 隐私同意
+
+**问题：** 公开注册端点无机器人防护；注册页无隐私声明。单店版 v6.6.5 加蜜罐、v5.0.1 加隐私同意勾选。
+**参考：** v6.6.6 `server.py:976-978`：隐藏字段 `website` 被填 = 机器人，**静默返回成功**不入库。
 **修复：**
-1. 一次性构建脚本 `backend/scripts/build_cms.py`（或 npx babel 命令写入 README）：抽出 JSX → 预编译为 `legacy-root/cms-app.js`（普通 JS）→ index.html 改为 `<script src>` 引用，删除 babel 加载。
-2. 保留源 JSX 于 `legacy-root/src/cms-app.jsx` 供后续修改，构建命令写入 docs；vendor 移除 babel.min.js。
-3. 静态资源加版本参数防缓存。
-**验证：** CMS 全功能手测（登录/PIN/roster/签到/充值/学生/作品/设置）；test_cms 72 全绿；Network 面板无 babel 请求、首屏可感知变快。
+1. `public_create_registration` 开头加蜜罐检查（同名 `website` 字段，租户注册页加对应隐藏 input）。
+2. 租户注册页（legacy-root/register.html）加隐私声明短文 + 必勾 consent（payload 已可存）。
+**验证：** 填了蜜罐字段返回 success 但无记录；不勾 consent 无法提交。
 
-## A4 — CMS pending 与 v1 注册审核统一
+## S5 — 发布自检并入 verify_local.sh
 
-**问题：** 注册审核在 studio-admin 有完整状态机（review_note、duplicate、转化建学生、邮件通知），CMS 的 pending tab 若走旧数据路径则形成双轨流程。
-**证据：** CMS pending tab 数据来自 bridge 大 JSON；v1 registrations 有 6 状态 + 通知。
-**修复：**
-1. CMS pending tab 改为直连 `GET /s/<slug>/v1/registrations?status=pending`（读）与 `PATCH /v1/registrations/<id>`（批准/拒绝，中文按钮），批准即转化建学生 + 家长邮件——与 studio-admin 完全同一状态机。
-2. bridge save 的 pending 字段同样改为忽略（防覆盖）。
-**验证：** 公共页提交注册 → CMS pending 出现 → CMS 内批准 → 学生出现在 students tab + 家长收到邮件 + studio-admin 里状态一致；test_cms pending 相关用例调整后全绿。
-
-## A5 — 三个界面的定位、互通与入口
-
-**问题：** CMS（运营）与 studio-admin（设置）无相互入口；landing 无 CMS 入口（用户点名要求）；文档仍称 CMS 为"transitional"。
-**证据：** CMS 内 studio-admin 链接 0 处；landing 页脚只链 studio-admin。
-**修复：**
-1. CMS 设置区加"🎨 品牌与网站设置（Studio Admin）"链接；studio-admin 导航加"打开 CMS 工作台"。
-2. landing 页脚改为 "Studio Login → /<slug>/cms"（保留 studio-admin 链接次之）。
-3. docs 修正定位：Architecture/Blueprint 中 CMS 描述改为"核心运营工作台"，studio-admin 为"设置与管理面板"，landing 为"附加服务（低优）"；README 分流指引同步。
-**验证：** 三个界面互达；文档 grep "transitional" 清零（历史决策记录除外）。
+**问题：** 单店版 v6.6.5 靠 `scripts/run_tests.sh` 在发布前抓到过"版本号滞留"事故；我们的 verify_local.sh 缺前端产物校验。
+**参考：** v6.6.6 `scripts/run_tests.sh`：`node -e "new Function(fs.readFileSync('vendor/app.js'))"` 校验编译产物语法。
+**修复：** verify_local.sh 增加：① cms-app.js 产物语法校验（node new Function）；② cms-app.jsx 比 cms-app.js 新时警告"忘了 build"；③ sw.js CACHE_VERSION 与 git 状态提示。
+**验证：** 故意改坏产物/不 build → 自检抓到。
 
 ---
 
-# B 级 — 运营深化（费用 / 学生 / 员工）
+# A 级 — 记账与经营完成度（老板每天用的钱账）
 
-## B1 — 费用与课时运营闭环
+## A1 — 消课按上课日期记账（补签记对天）
 
-**问题：** 低课时提醒只有界面标红，无主动通知；充值确认靠手动复制文本发家长。
+**问题：** v1 `attendance_sessions.attended_at` 永远是操作时刻——补签昨天的课记到今天，周报/家长记录都错天。单店版 v4.6 用 classDate 解决（A2 账本统一时已明确记录此限制）。
+**参考：** v6.6.6 `server.py:141-148` `_checkin_display_date`（classDate 优先，回退操作时间）。
 **修复：**
-1. 低课时自动提醒：`scripts/send_weekly_digest.py`（新建）每周汇总低课时学生发 studio 邮箱；tenants.settings.notifications 开关（studio-admin Settings 卡 + CMS 设置区入口）。
-2. 充值确认邮件：CMS topup 完成后，若家长有邮箱，提供"📧 邮件发送确认"按钮（新模板 `topup_receipt`，复用 notifications 服务）；无邮箱保持复制文本。
-3. 收入统计核对：stats 的金额图表数据源确认走 credit_transactions（fee_aud_cents），与 CSV 账本一致。
-**验证：** digest 对 3 个 demo 租户输出正确名单；充值后邮件（console）内容含金额课时；stats 数字与 ledger CSV 合计一致。
+1. migration 0009：`attendance_sessions ADD COLUMN class_date date`；回填 `attended_at::date`。
+2. check-in 端点接受 `classDate`（默认今天，只允许 ≤今天+1）；CMS 签到传 `rDate`；`GET /v1/attendance?date=` 改按 class_date 过滤。
+3. CMS `rosterDone` / 日志显示 / studio-admin 考勤列表 / 桥接 logs 的日期一律以 class_date 为准（操作时间保留在 attended_at 供审计）。
+**验证：** 把 rDate 调到昨天签到 → 记录落在昨天、余额正确、今天的名单不显示已签；72/110 全绿。
 
-## B2 — 生日与流失运营动作
+## A2 — 退款 / 退课（负数冲营收，单一路径）
 
-**问题：** CMS 已有生日提醒（15 处）与活跃度分层（活跃/低频/流失风险），但只能看，没有动作。
-**修复：** 生日列表加"复制祝福（发家长）"与"📧 发送祝福"（模板 `birthday_greeting`）；流失风险名单并入每周 digest；dashboard 顶部本周生日提示。
-**验证：** 生日学生（seed 数据含生日）触发展示与发送；digest 含流失名单。
+**问题：** 学员退课只能"调整课时"硬调，退款金额没有去处，营收统计虚高。单店版 v5.3 引入、v5.5 定稿为"结算页模式切换"方案。
+**参考：** CHANGELOG v5.3.0/v5.5.0：退课节数 ≤ 余额直接扣减；退款金额以**负 feePaid** 计入营收（全站 feePaid 求和自动净额）；充值/退款同页切换、选中学员先看流水再操作、二次确认+原因+退款方式。
+**修复（租户版映射）：**
+1. v1 credit-transactions 已有 `refund` 类型但语义是"加课时"；退课需要**减课时+负费用**：允许 `transactionType:'refund'` 携带 `direction:'out'`（或新 `legacy_type:'refund_out'`）→ amount 为负、fee_aud_cents 为负；校验退课节数 ≤ 当前余额。
+2. CMS 结算页顶部「💰 充值 / 💸 退款退课」切换；选中学员显示最近流水（v1 数据已有）；退款表单（节数、金额、原因、方式）+ 二次确认卡。
+3. 桥接 logs 映射：负 refund → 显示 '退款退课'、红色负数；stats 营收求和自然净额；导出 CSV 无需改（账本本来就全）。
+**验证：** 退 2 节 $100 → 余额 -2、营收统计净额下降 $100、流水红色显示；不能退超余额。
 
-## B3 — 员工（staff）账号与受限视图
+## A3 — 经营真账卡（现金 vs 已赚）
 
-**问题：** schema/权限模型已有 staff 角色（可读写学生/签到，不可动设置），但无任何 UI 创建 staff，教师场景（只做签到）无法落地。
-**修复：**
-1. studio-admin Settings "Team" 卡：邀请 staff（邮箱 + 密码设置链接复用 password_setup_tokens）、列表、停用。
-2. v1 端点：`GET/POST /v1/team`、`PATCH /v1/team/<membership_id>`（tenant owner 权限）。
-3. CMS 按角色收敛：staff 登录 CMS 时隐藏 topup/设置/备份，保留 roster 签到与 students 只读+签到（auth /me 已返回 role）。
-**验证：** 邀请 staff → 设密登录 → CMS 只见受限功能 → 签到成功且审计 actor 正确；staff 调 settings/export 端点 403（isolation 补用例）。
+**问题：** 工作台只有"历史总营收"（现金口径），老板分不清已赚收入和预收负债。单店版 v5.3 加"经营真账(估算)"。
+**参考：** CHANGELOG v5.3.0：已上课人次（累计/本月）、已赚收入（人次×加权均价）、预收未耗负债（剩余课时×均价）、净现金收入。
+**修复：** dashboard 端点补四个指标（由 credit_transactions 聚合：加权均价 = 充值净额/充值净课时）；CMS 工作台加「📈 经营真账（估算）」卡（可折叠，注明估算口径）。
+**验证：** 手工对账一个 demo 租户：人次×均价 ≈ 已赚收入；充值-退款-已赚 ≈ 预收负债变化。
 
-## B4 — CMS 备份/导出对接新体系
+## A4 — 充值体验：最近 3 笔 + 二次确认
 
-**问题：** CMS 设置里的"备份导出/恢复"是单工作室 JSON 时代设计，误导现租户。
-**修复：** 该区块改为：租户数据导出（链接三个 CSV 端点）+ 平台备份说明（backup_postgres.py runbook 链接）；旧 JSON 导出按钮标注"旧版格式（兼容保留）"。
-**验证：** CSV 三链接在 CMS 内可用（owner 权限）；文案准确。
+**参考：** v4.5 充值二次确认卡；v4.7 充值页「最近 3 笔」。
+**修复：** CMS 结算页选中学员后显示其最近 3 笔充值/退款（桥接 logs 里已有数据）；提交前确认卡显示「学员/课时/金额/套餐」。与 A2 的流水核对合并实现。
+**验证：** 选人即见最近 3 笔；确认卡信息正确。
+
+## A5 — 低余额课前预警 + 一键催费
+
+**参考：** v4.5 排课工作台：当日名单低余额学员课前预警 + 催费话术复制。
+**修复：** 排课页当日名单：余额 ≤ 阈值的学员卡片黄色预警条 + 「💬 催费」按钮（复制话术：姓名/剩余课时/续费提示，含家长手机 sms: 链接）；余额=1 的批量提醒入口。
+**验证：** 低余额学员显示预警；复制话术内容正确。
 
 ---
 
-# C 级 — 工程与降级项
+# B 级 — 排课与档案体验
 
-## C1 — 拆分 api_v1.py（临界）
+## B1 — 排课工作台打磨
 
-**证据：** 5263 行且每 sprint +600。A1/B3 又要加路由——**先做本项或与 A1 同步做**：新功能直接写进 `routes/schedules.py`、`routes/team.py`，存量按 auth/admin/students/credits_attendance/registrations/portfolio_share/export/public/legacy 逐模块搬。
-**验证：** 每步 url_map diff 为空 + 三套件全绿。
+**参考：** v4.5：日期快捷导航（今天/昨天/明天/±1周）、迷你周视图（一周七天点选，带当天人数点标）、当日概览条（应到/已签/未签/低余额）、学员状态操作收进「···」菜单、批量工具折叠。
+**修复：** 在现有排课页（已有每周课表）之上按参考补齐这五件；迷你周视图与我们的课表数据天然契合（每天人数 = dayIds 长度）。
+**验证：** 手机宽度可用；点周视图切日期；概览条数字与名单一致。
 
-## C2 — E2E（CMS 主链路）+ CI
+## B2 — 排课冲突与重复提醒
 
-改编 v4-C3：Playwright 链路以 CMS 为主——①owner 登录 CMS ②建周课表 ③今日视图签到 ④充值 ⑤pending 批准。GitHub Actions 跑 py_compile+pytest+escaping。
+**参考：** v5.2.0：同一天同一时段多名学员给「时段重叠」确认；重复添加同一学员明确提示而非静默。
+**修复（课表版更强）：** ① 同一学员加入同 weekday 两个时间重叠的班次时提示；② 手动排班已在当日名单（含课表来源）时 toast「已在当日名单」；③ 班次编辑保存时提示与其他班次的时间重叠（同 weekday 且时间区间相交）。
+**验证：** 三种场景都有明确提示且可继续/取消。
 
-## C3 — 内存限流器清扫（v4-A5 降级）
+## B3 — 学员档案「上课记录」
 
-`_public_rate_limit` 无 sweep，键无限累积。仿 server.py `_rate_buckets` 加定期清扫 + 键数上限。
+**参考：** v4.6：档案页展示排课日期 + 签到状态。
+**修复：** CMS 学员详情加「📅 上课记录」区（近 20 条，来自 v1 attendance：class_date + 状态 + 撤销标记）；家长分享页（/shared/portfolio）可选展示最近上课记录（与 v5.2 家长端一致——低优，可后置）。
+**验证：** 与考勤表一致；撤销的记录不出现或标记。
 
-## C4 — 数据维护与索引（v4-C6）
+## B4 — 作品集结构化：标题 + 老师评语
 
-migration 0007 顺带：`idx_notification_logs_tenant_created`；`scripts/db_maintenance.py` 清过期 tokens；Admin_Guide runbook。
+**参考：** v5.2.0：每张作品标题+老师评语；家长端灯箱显示标题/日期/评语，缩略图带评语标记。
+**现状优势：** `portfolio_items` 表已有 title/description 字段，纯 UI 工作。
+**修复：** CMS 上传/编辑作品弹窗加「标题」「老师评语」输入（写 title/description）；作品缩略图有评语时角标 💬；`/shared/portfolio` 灯箱下方显示标题/日期/评语（家长看到成长记录）。
+**验证：** 录入后 CMS 与分享页都正确显示；无评语不显示空块。
 
-## C5 — 共享 CSS / PWA 品牌中立（低优）
+## B5 — 列表体验统一
 
-ui-common.css 收敛 token（studio-admin 93 处硬编码 hex）；sw.js 去 "Let's Paint/lpcms" 命名。CMS 样式**不动**（自成体系且用户熟悉）。
+**参考：** v4.7：筛选选中高亮+清除+计数（我们已有一部分）、搜索回车打开唯一匹配、统一 EmptyState 空状态组件、卡片信息密度精简。
+**修复：** CMS 内空状态统一成一个 `EmptyState` 组件（图标+主文+次文）；学员搜索回车且唯一匹配时直接打开档案；筛选条显示命中计数。
+**验证：** 全部空状态视觉一致；回车行为正确。
 
-## C6 — 公共面（landing/注册页）——按产品方向搁置
+## B6 — 深色模式（跟随系统）
 
-v4 的 A1（注册页现代化）/A6（SEO）/B1（Gallery）明确**降级搁置**：landing 保持现状仅加 CMS 入口（A5 已含）；注册页 iframe 壳可用即可；未来作为"官网附加服务"再立项。家长注册体验如影响转化率由用户判断后再提级。
+**参考：** v5.0.0/5.0.1（两轮才收口：表单控件、日期选择器、透明度变体、禁用态都要适配）。
+**修复：** Tailwind `dark:` 全面适配 CMS——工程量大，参考单店版逐区收口清单执行；**排最后**，做前先问用户是否要。
+**验证：** 系统深色下全页无"白块/白字不可读"。
 
 ---
+
+# C 级 — 门户联动（产品方向定为低优，仅存档不排期）
+
+- 公开作品墙机制（v5.6/v6.6.6）：作品「🌐 允许展示到官网」勾选 + `GET /v1/public/<slug>/gallery` 只读接口（不含学员 PII）+ 灯箱 `?full=1`。CMS 侧勾选可随 B4 顺手埋字段（portfolio_items.visibility 已支持）。
+- 门户 SEO 套件（v6.1）：robots/sitemap/JSON-LD/OG 卡片/`/cms` noindex——`/cms` 与 `/register` 加 noindex meta 是一行的事，可随 S1 顺手。
+- 家长端 Dashboard 增强（v5.2 下次课卡/续课提示）→ 我们的余额查询/分享页，随 B3 评估。
+
+---
+
+## 推荐执行顺序
+
+**第一批（稳定雷，半天）**：S1 → S2 → S4 → S5（S3 缩略图独立、次之）
+**第二批（钱账完整性）**：A1 → A2（+A4 合并做）→ A3 → A5
+**第三批（体验）**：B1 → B2 → B3 → B4 → B5（B6 问过再做）
 
 ## 完成定义
 
-- A 级完成 = tenants 可以在 CMS 里完成"建周课表 → 每日自动排班 → 签到消课 → 充值"全流程，且每一步与 v1 账本（attendance_sessions/credit_transactions）同源一致。
-- test_cms.py 在每一项 CMS 改动后必须回到 72/72（允许因行为升级修改断言，需在 commit message 说明）。
+- S 级全部完成 = 手机上传（含 iPhone HEIC）全链路可用，公开端点有机器人防护。
+- A 级全部完成 = 补签记对天、退款有单一路径且营收净额正确、老板能看清"现金 vs 已赚"。
+- 每项完成后 test_cms 72 项必须全绿（行为升级允许改断言并在 commit 说明）。
