@@ -677,6 +677,11 @@ function App() {
 
     // Topup tab
     const [tuStu, setTuStu] = useState(null);
+    /* A2: 结算页模式 — 充值 / 退款退课（v5.5 方案 B：同页切换，单一路径） */
+    const [settleMode, setSettleMode] = useState('topup');
+    const [rfCr, setRfCr] = useState('');
+    const [rfAmt, setRfAmt] = useState('');
+    const [rfReason, setRfReason] = useState('');
     const [tuCr,  setTuCr]  = useState('');
     const [tuFee, setTuFee] = useState('');
     const [tuPkg, setTuPkg] = useState('');
@@ -1707,11 +1712,45 @@ document.getElementById('copybtn').addEventListener('click', function(){
             finally { setBusy(false); }
         };
 
-        if (fee === 0) {
-            confirm(`实收金额为 $0，确认为该学员免费充 ${credits} 课时？`, doTopUp, {confirmText:'确认免费充课'});
-        } else {
-            doTopUp();
-        }
+        /* A4: 充值一律二次确认，核对学员/课时/金额 */
+        const s0 = db.students.find(x=>x.id===tuStu);
+        confirm(`确认为 ${s0?s0.name:''} 充值 ${credits} 课时，实收 $${fee}（${tuPay}）${fee===0?'——免费充课':''}？`,
+            doTopUp, {confirmText: fee===0?'确认免费充课':'确认入账'});
+    };
+
+    /* A2: 退款退课 — 节数 ≤ 余额直接扣减，退款金额以负数计入营收（净额自动） */
+    const handleRefund = async (e) => {
+        e.preventDefault();
+        const credits = parseInt(rfCr, 10);
+        const amt = parseFloat(rfAmt) || 0;
+        const s = db.students.find(x=>x.id===tuStu);
+        if (!s)                          { showToast('请选择学员','error'); return; }
+        if (isNaN(credits)||credits<=0)  { showToast('请输入有效退课节数','error'); return; }
+        if (credits > (parseInt(s.balance,10)||0)) { showToast(`退课节数不能超过剩余课时（${s.balance}）`,'error'); return; }
+        if (amt < 0)                     { showToast('退款金额无效','error'); return; }
+        if (!rfReason.trim())            { showToast('请填写退款原因','error'); return; }
+        confirm(`确认为 ${s.name} 退课 ${credits} 节、退款 $${amt}（${tuPay}）？余额将从 ${s.balance} 减为 ${(parseInt(s.balance,10)||0)-credits}。`, async () => {
+            if (busy) return;
+            setBusy(true);
+            try {
+                await v1Api(`/students/${s.id}/credit-transactions`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        transactionType: 'refund',
+                        legacy_type: 'refund_out',
+                        amount: credits,
+                        feeAudCents: Math.round(amt * 100),
+                        note: `退款退课 | 原因: ${rfReason.trim()} | 方式: ${tuPay}`,
+                    }),
+                });
+                await load();
+                setRfCr(''); setRfAmt(''); setRfReason(''); setTuStu(null);
+                const cMsg = `${s.name} 您好！已为您办理退课 ${credits} 节${amt?`、退款 $${amt}（${tuPay}）`:''}，当前剩余 ${(parseInt(s.balance,10)||0)-credits} 课时。感谢您的理解与支持。`;
+                showToast(`${s.name} 退课 ${credits} 节 / 退款 $${amt}`, 'warn',
+                    {label:'📋 复制退款确认（发家长）', onClick:()=>copyText(cMsg,'退款确认已复制')});
+            } catch(err) { showToast(`退款失败：${err.message}`, 'error'); }
+            finally { setBusy(false); }
+        }, {danger:true, confirmText:`确认退课 ${credits} 节`});
     };
 
     const handleAddStudent = (e) => {
@@ -3138,8 +3177,16 @@ document.getElementById('copybtn').addEventListener('click', function(){
 {/* ═══ TOPUP ══════════════════════════════════════════════════ */}
 {tab==='topup' && (
 <div className="anim bg-white rounded-2xl shadow-sm border border-gray-100 p-6 max-w-2xl mx-auto">
-    <h2 className="text-xl md:text-2xl font-bold mb-5 text-gray-800">💰 充值 & 结算</h2>
-    <form onSubmit={handleTopUp} className="space-y-5">
+    <h2 className="text-xl md:text-2xl font-bold mb-4 text-gray-800">💰 充值 & 结算</h2>
+    {TENANT_SLUG && (
+        <div className="flex gap-2 mb-5">
+            {[['topup','💰 充值'],['refund','💸 退款退课']].map(([m,l]) => (
+                <button key={m} type="button" onClick={()=>setSettleMode(m)}
+                    className={`flex-1 py-2.5 rounded-xl text-sm font-bold border-2 min-h-[44px] ${settleMode===m?(m==='refund'?'border-red-400 bg-red-50 text-red-700':'border-indigo-500 bg-indigo-100 text-indigo-900'):'border-gray-200 bg-white text-gray-500 active:border-indigo-300'}`}>{l}</button>
+            ))}
+        </div>
+    )}
+    <form onSubmit={settleMode==='refund'?handleRefund:handleTopUp} className="space-y-5">
         <div>
             <label className="text-sm font-bold text-gray-500 mb-1.5 block">选择学员</label>
             <StudentPicker students={sortedAZ} value={tuStu} onChange={setTuStu} placeholder="搜索学员姓名..."/>
@@ -3157,15 +3204,56 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 </div>
             ):null;})()}
             {tuStu && (()=>{
-                const lastTopup = db.logs.find(l=>{ const s=db.students.find(x=>x.id===tuStu); return s && (l.studentId===s.id || (!l.studentId && l.studentName===s.name)) && l.action==='充值购课'; });   /* D3 */
-                if (!lastTopup) return null;
+                /* A4: 最近 3 笔充值/退款流水，动手前先核对（v4.7 + v5.5） */
+                const s = db.students.find(x=>x.id===tuStu);
+                const recent = !s ? [] : db.logs.filter(l =>
+                    (l.studentId===s.id || (!l.studentId && l.studentName===s.name)) &&
+                    (l.action==='充值购课' || l.action==='退款退课')).slice(0,3);
+                if (!recent.length) return null;
                 return (
-                    <p className="mt-1 text-xs text-gray-400 pl-1">
-                        上次充值: <span className="font-bold text-gray-600">{lastTopup.change} 课时 · ${lastTopup.feePaid||0} · {String(lastTopup.date).split(',')[0]}</span>
-                    </p>
+                    <div className="mt-2 border border-gray-100 rounded-xl divide-y divide-gray-50 text-xs">
+                        {recent.map(l => (
+                            <div key={l.id} className="flex items-center justify-between px-3 py-2">
+                                <span className={l.action==='退款退课'?'text-red-500 font-bold':'text-gray-600 font-bold'}>{l.action}</span>
+                                <span className={`font-bold ${l.action==='退款退课'?'text-red-500':'text-gray-700'}`}>{String(l.change)} 课时 · ${l.feePaid||0}</span>
+                                <span className="text-gray-400">{String(l.date).split(',')[0]}</span>
+                            </div>
+                        ))}
+                    </div>
                 );
             })()}
         </div>
+        {settleMode==='refund' ? (
+        <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+                <div>
+                    <label className="text-sm font-bold text-gray-500 mb-1 block">退课节数 *</label>
+                    <input type="number" min="1" required value={rfCr} onChange={e=>setRfCr(e.target.value)}
+                        className="w-full px-3 py-3 border border-red-200 rounded-xl font-bold text-2xl focus:ring-2 focus:ring-red-400 outline-none text-red-600"/>
+                </div>
+                <div>
+                    <label className="text-sm font-bold text-gray-500 mb-1 block">退款金额 (AUD) *</label>
+                    <input type="number" min="0" step="0.01" required value={rfAmt} onChange={e=>setRfAmt(e.target.value)}
+                        className="w-full px-3 py-3 border border-red-200 rounded-xl font-bold text-2xl focus:ring-2 focus:ring-red-400 outline-none text-red-600"/>
+                </div>
+            </div>
+            <div>
+                <label className="text-sm font-bold text-gray-500 mb-1.5 block">退款方式</label>
+                <div className="flex gap-2 flex-wrap">
+                    {['现金','微信','银行转账','其他'].map(pm => (
+                        <button key={pm} type="button" onClick={()=>setTuPay(pm)}
+                            className={`px-5 py-2.5 rounded-xl text-sm font-bold border-2 min-h-[44px] ${tuPay===pm?'border-red-400 bg-red-50 text-red-700':'border-gray-200 bg-white text-gray-600 active:border-red-300'}`}>{pm}</button>
+                    ))}
+                </div>
+            </div>
+            <div>
+                <label className="text-sm font-bold text-gray-500 mb-1 block">退款原因 *</label>
+                <input type="text" required value={rfReason} onChange={e=>setRfReason(e.target.value)} placeholder="如 搬家、时间冲突、课程不合适..."
+                    className="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-400 outline-none text-sm"/>
+            </div>
+            <p className="text-xs text-gray-400 bg-red-50 border border-red-100 rounded-xl px-3 py-2">退款金额将以负数计入营收（净额自动核减）；退课节数直接从剩余课时扣减。此操作会记入账本与操作日志。</p>
+        </div>
+        ) : (
         <div>
             <label className="text-sm font-bold text-gray-500 mb-1.5 block">套餐快选</label>
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 mb-4">
@@ -3206,9 +3294,10 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     className="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm"/>
             </div>
         </div>
+        )}
         <button type="submit" disabled={busy||!tuStu}
-            className="w-full bg-indigo-600 active:bg-indigo-700 disabled:bg-gray-300 text-white py-4 rounded-xl font-bold text-sm shadow-xl min-h-[56px]">
-            {busy?'处理中...':'确认收款并入账'}
+            className={`w-full disabled:bg-gray-300 text-white py-4 rounded-xl font-bold text-sm shadow-xl min-h-[56px] ${settleMode==='refund'?'bg-red-500 active:bg-red-600':'bg-indigo-600 active:bg-indigo-700'}`}>
+            {busy?'处理中...':(settleMode==='refund'?'确认退款退课':'确认收款并入账')}
         </button>
     </form>
 </div>

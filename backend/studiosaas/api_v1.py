@@ -2528,11 +2528,19 @@ def _legacy_log_change(tx_type: str, amount: float):
     """Format a ledger amount the way legacy CMS logs express it."""
 
     value = float(amount or 0)
-    if tx_type in ("purchase", "refund", "migration"):
+    if tx_type in ("purchase", "refund", "migration") and value >= 0:
         return f"+{value:g}"
     if tx_type in ("consume", "expire"):
         return -abs(value)
-    return value  # adjustment: stored signed
+    return value  # adjustment / 退款退课: stored signed
+
+
+def _legacy_log_action(tx_type: str, amount: float) -> str:
+    """Map a ledger row to the CMS's Chinese action label."""
+
+    if tx_type == "refund" and float(amount or 0) < 0:
+        return "退款退课"  # A2: negative refund = 退课, not undo-check-in
+    return LEGACY_ACTION_BY_TYPE.get(tx_type, tx_type)
 
 
 def _legacy_data_for_tenant(conn, tenant_id: str) -> dict:
@@ -2670,7 +2678,7 @@ def _legacy_data_for_tenant(conn, tenant_id: str) -> dict:
                 "id": str(row["id"]),
                 "studentId": str(row["student_id"]),
                 "studentName": row["student_name"],
-                "action": LEGACY_ACTION_BY_TYPE.get(row["transaction_type"], row["transaction_type"]),
+                "action": _legacy_log_action(row["transaction_type"], row["amount"]),
                 "change": _legacy_log_change(row["transaction_type"], row["amount"]),
                 "feePaid": round((row["fee_aud_cents"] or 0) / 100, 2),
                 "note": row["note"],
@@ -4036,6 +4044,8 @@ def create_credit_transaction(student_id: str):
         except (TypeError, ValueError):
             return _error("fee_aud_cents must be a non-negative integer.")
 
+        legacy_type = _clean_text(payload, "legacy_type", "")
+
         # Verify student belongs to tenant
         student = fetch_one(
             conn, "SELECT id FROM students WHERE tenant_id = %s AND id = %s",
@@ -4072,7 +4082,6 @@ def create_credit_transaction(student_id: str):
             delta = amount  # fallback
 
         # Map legacy client types to schema types
-        legacy_type = _clean_text(payload, "legacy_type", "")
         if legacy_type == "debit":
             tx_type = "consume"
         elif legacy_type == "adjustment_in":
@@ -4080,9 +4089,19 @@ def create_credit_transaction(student_id: str):
         elif legacy_type == "adjustment_out":
             tx_type = "adjustment"
             delta = -abs(delta)  # negative adjustment
+        elif legacy_type == "refund_out":
+            # A2 (v5.3/v5.5 harvest): 退款退课 — credits leave the account and
+            # the refunded money is a NEGATIVE fee so revenue sums net out.
+            tx_type = "refund"
+            delta = -abs(delta)
+            fee_cents = -abs(fee_cents)
+            if abs(delta) > current_balance:
+                return _error("退课节数不能超过剩余课时。", 400)
 
         new_balance = current_balance + delta
 
+        # The ledger stores the SIGNED movement so exports and the CMS log
+        # view are self-describing (adjustment_out / refund_out are negative).
         cur.execute(
             """
             INSERT INTO credit_transactions (
@@ -4090,7 +4109,7 @@ def create_credit_transaction(student_id: str):
             ) VALUES (%s, %s, %s, %s, %s, %s, %s)
             RETURNING id
             """,
-            (tenant.tenant_id, student_id, tx_type, amount, new_balance, fee_cents, note),
+            (tenant.tenant_id, student_id, tx_type, delta, new_balance, fee_cents, note),
         )
         tx_id = str(cur.fetchone()["id"])
 
