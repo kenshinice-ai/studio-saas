@@ -669,6 +669,8 @@ function App() {
     const [grpSel, setGrpSel] = useState('');   /* F4: 班组模板选择 */
     /* A1: 每周课表（tenant 模式，存于 PostgreSQL class_schedules） */
     const [schedules, setSchedules] = useState([]);
+    /* A3: 经营真账（估算），来自 v1 dashboard */
+    const [bizStats, setBizStats] = useState(null);
     const [schedEdit, setSchedEdit] = useState(null);   // null | {id?, label, weekday, startTime, durationMinutes, capacity, studentIds}
     const [schedPick, setSchedPick] = useState(null);
     /* F5: 待续课阈值（可在设置页调整） */
@@ -1378,6 +1380,10 @@ function App() {
             const d = await v1Api('/class-schedules');
             setSchedules(d.schedules || []);
         } catch (e) { /* 课表加载失败不阻塞其余功能 */ }
+        try {
+            const dash = await v1Api('/dashboard');
+            setBizStats((dash.dashboard || {}).business || null);
+        } catch (e) { /* 经营真账加载失败不阻塞 */ }
     };
 
     const saveSchedule = async () => {
@@ -2561,6 +2567,27 @@ document.getElementById('copybtn').addEventListener('click', function(){
         ))}
     </div>
 
+    {/* A3: 经营真账（估算）— 现金 vs 已赚 vs 预收负债（v5.3） */}
+    {TENANT_SLUG && bizStats && (
+        <details className="bg-white rounded-2xl shadow-sm border border-emerald-100">
+            <summary className="cursor-pointer px-4 py-3 font-bold text-sm text-gray-800 select-none">📈 经营真账（估算） <span className="text-xs font-normal text-gray-400">已上课 {bizStats.attended_total} 人次 · 加权均价 ${bizStats.avg_price}/课时</span></summary>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-4 pb-4">
+                {[
+                    ['已上课人次', `${bizStats.attended_total} 次`, `本月 ${bizStats.attended_month} 次`, 'text-gray-800'],
+                    ['已赚收入(估)', `$${bizStats.earned_revenue}`, '人次 × 加权均价', 'text-emerald-600'],
+                    ['预收未耗(负债)', `$${bizStats.prepaid_liability}`, '剩余课时 × 均价', 'text-amber-600'],
+                    ['净现金收入', `$${bizStats.cash_net}`, '充值 − 退款', 'text-indigo-600'],
+                ].map(([l,v,sub,c]) => (
+                    <div key={l} className="bg-gray-50 border border-gray-100 rounded-xl p-3">
+                        <p className="text-[11px] text-gray-400">{l}</p>
+                        <p className={`text-xl font-bold ${c}`}>{v}</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">{sub}</p>
+                    </div>
+                ))}
+            </div>
+        </details>
+    )}
+
     {/* ⏰ 今日待办 */}
     {(()=>{
         const todoClear   = db.students.filter(s => !s.archived && (parseInt(s.balance,10)||0) === 0 && s.lastActive);
@@ -2900,13 +2927,20 @@ document.getElementById('copybtn').addEventListener('click', function(){
             {dayIds.map(sid => {
                 const s = db.students.find(x=>x.id===sid);
                 if (!s || s.archived) return null;
+                const lowBal = (parseInt(s.balance,10)||0) <= renewTh;   /* A5: 课前低余额预警（v4.5） */
                 return (
-                    <div key={sid} className="px-4 py-3 flex items-center hover-row gap-3 min-h-[64px]">
+                    <div key={sid} className={`px-4 py-3 flex items-center hover-row gap-3 min-h-[64px] ${lowBal?'bg-amber-50/60':''}`}>
                         <PhotoAvatar photo={s.photo} name={s.name} size="sm"/>
                         <div className="flex-1 min-w-0">
                             <p className="font-bold text-gray-900 truncate">{s.name}</p>
-                            <p className="text-xs text-gray-400">{s.mobile||'—'}</p>
+                            <p className="text-xs text-gray-400">{s.mobile||'—'}{lowBal && <span className="ml-1 text-amber-600 font-bold">⚡ 余额告急</span>}</p>
                         </div>
+                        {lowBal && (
+                            <button onClick={()=>{
+                                const msg = `${s.name} 家长您好！温馨提醒：当前剩余 ${s.balance} 课时${(parseInt(s.balance,10)||0)===0?'（已用完）':''}，为不影响后续上课，欢迎联系老师续课～ 🎨`;
+                                copyText(msg, `已复制给 ${s.name} 的催费提醒`);
+                            }} className="px-3 py-2.5 bg-amber-100 active:bg-amber-200 text-amber-700 border border-amber-300 rounded-xl text-xs font-bold min-h-[44px] flex-shrink-0">💬 催费</button>
+                        )}
                         {rosterDone.has(s.id) && <span className="text-[11px] font-bold text-green-600 bg-green-50 border border-green-200 rounded-full px-2 py-0.5 flex-shrink-0">✓ 已签</span>}
                         <BalBadge n={s.balance}/>
                         <div className="flex gap-1.5 flex-shrink-0">

@@ -672,6 +672,7 @@ function App() {
   const [rPick, setRPick] = useState(null);
   const [grpSel, setGrpSel] = useState("");
   const [schedules, setSchedules] = useState([]);
+  const [bizStats, setBizStats] = useState(null);
   const [schedEdit, setSchedEdit] = useState(null);
   const [schedPick, setSchedPick] = useState(null);
   const [renewTh, setRenewTh] = useState(() => parseInt(localStorage.getItem("lp_renew_threshold") || "2", 10));
@@ -1408,6 +1409,11 @@ function App() {
     try {
       const d = await v1Api("/class-schedules");
       setSchedules(d.schedules || []);
+    } catch (e) {
+    }
+    try {
+      const dash = await v1Api("/dashboard");
+      setBizStats((dash.dashboard || {}).business || null);
     } catch (e) {
     }
   };
@@ -2885,7 +2891,12 @@ document.getElementById('copybtn').addEventListener('click', function(){
       },
       /* @__PURE__ */ React.createElement("p", { className: "text-gray-400 text-xs mb-1" }, l, " ", /* @__PURE__ */ React.createElement("span", { className: "text-indigo-400" }, "→")),
       /* @__PURE__ */ React.createElement("p", { className: `text-2xl font-bold ${c}` }, v)
-    ))), (() => {
+    ))), TENANT_SLUG && bizStats && /* @__PURE__ */ React.createElement("details", { className: "bg-white rounded-2xl shadow-sm border border-emerald-100" }, /* @__PURE__ */ React.createElement("summary", { className: "cursor-pointer px-4 py-3 font-bold text-sm text-gray-800 select-none" }, "📈 经营真账（估算） ", /* @__PURE__ */ React.createElement("span", { className: "text-xs font-normal text-gray-400" }, "已上课 ", bizStats.attended_total, " 人次 · 加权均价 $", bizStats.avg_price, "/课时")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 md:grid-cols-4 gap-3 px-4 pb-4" }, [
+      ["已上课人次", `${bizStats.attended_total} 次`, `本月 ${bizStats.attended_month} 次`, "text-gray-800"],
+      ["已赚收入(估)", `$${bizStats.earned_revenue}`, "人次 × 加权均价", "text-emerald-600"],
+      ["预收未耗(负债)", `$${bizStats.prepaid_liability}`, "剩余课时 × 均价", "text-amber-600"],
+      ["净现金收入", `$${bizStats.cash_net}`, "充值 − 退款", "text-indigo-600"]
+    ].map(([l, v, sub, c]) => /* @__PURE__ */ React.createElement("div", { key: l, className: "bg-gray-50 border border-gray-100 rounded-xl p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-400" }, l), /* @__PURE__ */ React.createElement("p", { className: `text-xl font-bold ${c}` }, v), /* @__PURE__ */ React.createElement("p", { className: "text-[10px] text-gray-400 mt-0.5" }, sub))))), (() => {
       const todoClear = db.students.filter((s) => !s.archived && (parseInt(s.balance, 10) || 0) === 0 && s.lastActive);
       const todoLast = db.students.filter((s) => !s.archived && (parseInt(s.balance, 10) || 0) === 1);
       const todoRisk = db.students.filter((s) => !s.archived && (parseInt(s.balance, 10) || 0) > 0 && daysSince(s.lastActive) > inactiveDays && (activityMap[s.name] || 0) === 0);
@@ -3163,7 +3174,11 @@ ${msg}`).join("\n\n"), `已复制 ${lines.length} 条提醒内容`);
     ))), /* @__PURE__ */ React.createElement("div", { className: "divide-y divide-gray-100" }, !dayIds.length && /* @__PURE__ */ React.createElement("div", { className: "p-8 text-center text-gray-400 text-sm" }, "今日暂无排班", TENANT_SLUG ? "（可在上方「每周课表」建固定班次，命中当天自动排入）" : ""), dayIds.map((sid) => {
       const s = db.students.find((x) => x.id === sid);
       if (!s || s.archived) return null;
-      return /* @__PURE__ */ React.createElement("div", { key: sid, className: "px-4 py-3 flex items-center hover-row gap-3 min-h-[64px]" }, /* @__PURE__ */ React.createElement(PhotoAvatar, { photo: s.photo, name: s.name, size: "sm" }), /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-900 truncate" }, s.name), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400" }, s.mobile || "—")), rosterDone.has(s.id) && /* @__PURE__ */ React.createElement("span", { className: "text-[11px] font-bold text-green-600 bg-green-50 border border-green-200 rounded-full px-2 py-0.5 flex-shrink-0" }, "✓ 已签"), /* @__PURE__ */ React.createElement(BalBadge, { n: s.balance }), /* @__PURE__ */ React.createElement("div", { className: "flex gap-1.5 flex-shrink-0" }, s.mobile && /* @__PURE__ */ React.createElement(
+      const lowBal = (parseInt(s.balance, 10) || 0) <= renewTh;
+      return /* @__PURE__ */ React.createElement("div", { key: sid, className: `px-4 py-3 flex items-center hover-row gap-3 min-h-[64px] ${lowBal ? "bg-amber-50/60" : ""}` }, /* @__PURE__ */ React.createElement(PhotoAvatar, { photo: s.photo, name: s.name, size: "sm" }), /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-900 truncate" }, s.name), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400" }, s.mobile || "—", lowBal && /* @__PURE__ */ React.createElement("span", { className: "ml-1 text-amber-600 font-bold" }, "⚡ 余额告急"))), lowBal && /* @__PURE__ */ React.createElement("button", { onClick: () => {
+        const msg = `${s.name} 家长您好！温馨提醒：当前剩余 ${s.balance} 课时${(parseInt(s.balance, 10) || 0) === 0 ? "（已用完）" : ""}，为不影响后续上课，欢迎联系老师续课～ 🎨`;
+        copyText(msg, `已复制给 ${s.name} 的催费提醒`);
+      }, className: "px-3 py-2.5 bg-amber-100 active:bg-amber-200 text-amber-700 border border-amber-300 rounded-xl text-xs font-bold min-h-[44px] flex-shrink-0" }, "💬 催费"), rosterDone.has(s.id) && /* @__PURE__ */ React.createElement("span", { className: "text-[11px] font-bold text-green-600 bg-green-50 border border-green-200 rounded-full px-2 py-0.5 flex-shrink-0" }, "✓ 已签"), /* @__PURE__ */ React.createElement(BalBadge, { n: s.balance }), /* @__PURE__ */ React.createElement("div", { className: "flex gap-1.5 flex-shrink-0" }, s.mobile && /* @__PURE__ */ React.createElement(
         "a",
         {
           href: `sms:${s.mobile.replace(/\s/g, "")}?body=${encodeURIComponent(`提醒：您的上课时间是 ${fmtDate(rDate)}，请准时到课。Studio 期待见到您！`)}`,

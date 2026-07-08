@@ -2023,7 +2023,44 @@ def tenant_dashboard():
                 tenant.tenant_id,
             ),
         )
-    return jsonify({"dashboard": row})
+        # A3 (v5.3 harvest): 经营真账（估算）— split cash received from
+        # revenue actually earned, and surface the prepaid liability.
+        # avg price = net top-up money / net top-up credits (refund rows are
+        # stored signed, so plain sums net out automatically).
+        biz = fetch_one(
+            conn,
+            """
+            SELECT
+                (SELECT count(*) FROM attendance_sessions
+                  WHERE tenant_id = %s AND reversed_at IS NULL) AS attended_total,
+                (SELECT count(*) FROM attendance_sessions
+                  WHERE tenant_id = %s AND reversed_at IS NULL
+                    AND date_trunc('month', COALESCE(class_date, (attended_at AT TIME ZONE 'Australia/Melbourne')::date))
+                        = date_trunc('month', (now() AT TIME ZONE 'Australia/Melbourne')::date)) AS attended_month,
+                (SELECT COALESCE(sum(fee_aud_cents), 0) FROM credit_transactions
+                  WHERE tenant_id = %s AND transaction_type IN ('purchase', 'refund')) AS cash_net_cents,
+                (SELECT COALESCE(sum(amount), 0)::float FROM credit_transactions
+                  WHERE tenant_id = %s AND transaction_type IN ('purchase', 'refund')
+                    AND fee_aud_cents <> 0) AS paid_credits_net,
+                (SELECT COALESCE(sum(balance), 0)::float FROM credit_accounts
+                  WHERE tenant_id = %s AND course_id IS NULL) AS outstanding_credits
+            """,
+            (tenant.tenant_id,) * 5,
+        )
+        cash_net = (biz["cash_net_cents"] or 0) / 100.0
+        paid_credits = float(biz["paid_credits_net"] or 0)
+        avg_price = round(cash_net / paid_credits, 2) if paid_credits > 0 else 0.0
+        business = {
+            "attended_total": int(biz["attended_total"] or 0),
+            "attended_month": int(biz["attended_month"] or 0),
+            "avg_price": avg_price,
+            "earned_revenue": round((biz["attended_total"] or 0) * avg_price, 2),
+            "prepaid_liability": round(float(biz["outstanding_credits"] or 0) * avg_price, 2),
+            "cash_net": round(cash_net, 2),
+        }
+    payload = dict(row or {})
+    payload["business"] = business
+    return jsonify({"dashboard": payload})
 
 
 @api_v1.route("/public/<tenant_slug>/brand", methods=["GET"])
