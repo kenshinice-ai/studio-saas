@@ -1,6 +1,6 @@
 import errno, json, os, re, shutil, socket, time, secrets, hashlib
 from datetime import datetime, timedelta
-from flask import Flask, request, jsonify, send_from_directory, session
+from flask import Flask, request, jsonify, redirect, send_from_directory, session
 from threading import Lock
 from studiosaas import api_v1
 from studiosaas.auth import init_auth_blueprints
@@ -170,6 +170,11 @@ def _csrf_guard():
         return None
     path = request.path
     if not (path.startswith('/v1/') or (path.startswith('/s/') and '/v1/' in path)):
+        return None
+    # Public endpoints never authorise via the session, so CSRF adds nothing —
+    # and a logged-in staff member browsing the public portal must not be
+    # blocked from the registration/balance forms.
+    if path.startswith('/v1/public/'):
         return None
     if 'user_id' not in session:
         return None
@@ -767,6 +772,16 @@ def serve_tenant_studio_admin(tenant_slug):
         return api_error('Not found', 404)
     return send_from_directory(os.path.join(APP_DIR, 'frontend'),
                                'studio-admin.html')
+
+@app.route('/<tenant_slug>/cms/studio-admin')
+def serve_tenant_cms_studio_admin_alias(tenant_slug):
+    """Alias matching the tenant surface model (portal / cms / studio-admin /
+    register); the canonical URL stays /<slug>/studio-admin."""
+    try:
+        validate_tenant_slug(tenant_slug)
+    except WorkspaceError:
+        return api_error('Not found', 404)
+    return redirect(f'/{tenant_slug}/studio-admin', code=302)
 
 @app.route('/<tenant_slug>/register')
 def serve_tenant_register(tenant_slug):
