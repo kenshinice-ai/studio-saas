@@ -44,6 +44,13 @@ def test_new_tenant_workspace_generates_public_surface_files(tmp_path):
         content = (workspace / filename).read_text(encoding="utf-8")
         assert "{{TENANT_" not in content
         assert "new-music-studio" in content
+    register_html = (workspace / "register.html").read_text(encoding="utf-8")
+    assert "/_legacy/register" not in register_html
+    assert "customFields" in register_html
+    portal_html = (workspace / "index.html").read_text(encoding="utf-8")
+    assert "heroProfile" in portal_html
+    assert "websiteProfile" in portal_html
+    assert "visualTheme" in portal_html
 
 
 def test_existing_tenants_render_all_four_surfaces(client):
@@ -54,3 +61,14 @@ def test_existing_tenants_render_all_four_surfaces(client):
             response = client.get(f"/{slug}{suffix}")
             assert response.status_code == 200, f"{slug}{suffix or '/'}"
             assert "text/html" in response.content_type
+
+
+def test_existing_register_surfaces_are_lightweight_lead_capture_pages(client):
+    """Standalone register pages should no longer iframe the legacy registration app."""
+
+    for slug in EXISTING_TENANTS:
+        response = client.get(f"/{slug}/register")
+        assert response.status_code == 200
+        html = response.get_data(as_text=True)
+        assert "/_legacy/register" not in html
+        assert f"/v1/public/${{encodeURIComponent(TENANT_SLUG)}}/registrations" in html

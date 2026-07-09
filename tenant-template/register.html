@@ -4,120 +4,221 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{TENANT_NAME}} Registration</title>
-<script src="/assets/ui-common.js"></script>
+  <meta name="robots" content="index,follow">
   <link rel="manifest" href="/{{TENANT_SLUG}}/manifest-student.json">
+  <script src="/assets/ui-common.js"></script>
   <style>
     :root {
-      --brand:#3b82f6;
-      --brand-2:#2563eb;
-      --bg:#f1f5f9;
+      --brand:#2563eb;
+      --brand-2:#0f172a;
+      --bg:#f8fafc;
       --surface:#ffffff;
       --ink:#0f172a;
       --muted:#64748b;
       --line:#e2e8f0;
-      --shadow-sm:0 1px 2px rgba(0,0,0,.04);
-      --shadow-md:0 4px 12px rgba(0,0,0,.07), 0 1px 3px rgba(0,0,0,.05);
       --radius:8px;
-      --radius-lg:12px;
     }
     * { box-sizing:border-box; }
-    html, body { width:100%; margin:0; color:var(--ink); background:var(--bg); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif; -webkit-font-smoothing:antialiased; }
-    html, body, body.tenant-cms { height:100%; }
-    body.tenant-cms { display:grid; grid-template-rows:auto auto 1fr; }
-    body.tenant-register { min-height:100%; display:block; }
-    header { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:14px 24px; background:rgba(255,255,255,.96); border-bottom:1px solid var(--line); box-shadow:var(--shadow-sm); position:sticky; top:0; z-index:10; backdrop-filter:blur(10px); }
-    body.layout-hero header { background:var(--brand); color:#fff; border-bottom:0; }
-    body.layout-compact header { padding:8px 16px; }
+    body { margin:0; min-height:100vh; color:var(--ink); background:var(--bg); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif; -webkit-font-smoothing:antialiased; }
+    header { position:sticky; top:0; z-index:10; display:flex; justify-content:space-between; align-items:center; gap:16px; padding:14px 24px; background:rgba(255,255,255,.92); border-bottom:1px solid var(--line); backdrop-filter:blur(10px); }
     .brand { display:flex; align-items:center; gap:12px; min-width:0; }
-    .brand img { width:42px; height:42px; object-fit:contain; border:1px solid var(--line); border-radius:var(--radius); background:#fff; padding:4px; box-shadow:var(--shadow-sm); flex-shrink:0; }
-    .name { color:var(--ink); font-weight:800; font-size:15px; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .slogan { color:var(--muted); font-size:12px; font-style:italic; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:min(56vw, 640px); }
-    .contact { color:var(--muted); font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:min(56vw, 640px); }
-    body.layout-hero .name, body.layout-hero a { color:#fff; }
-    body.layout-hero .contact, body.layout-hero .slogan { color:rgba(255,255,255,.86); }
-    a { display:inline-flex; align-items:center; justify-content:center; min-height:36px; padding:8px 14px; border-radius:var(--radius); background:#f8fafc; border:1px solid var(--line); color:var(--brand); font-size:13px; font-weight:800; text-decoration:none; box-shadow:var(--shadow-sm); transition:all .15s ease; white-space:nowrap; }
-    a:hover { background:#eff6ff; border-color:#bfdbfe; transform:translateY(-1px); }
-    body.layout-hero a { background:rgba(255,255,255,.14); border-color:rgba(255,255,255,.24); color:#fff; }
-    .welcome { display:none; padding:10px 24px; background:#fff; border-bottom:1px solid var(--line); color:#334155; font-size:14px; box-shadow:var(--shadow-sm); }
-    body.show-welcome .welcome { display:block; }
-    body.layout-hero .welcome { background:var(--brand); color:#fff; border-bottom:0; padding-top:0; box-shadow:none; }
-    body.layout-compact .welcome { padding:6px 16px; font-size:13px; }
-    iframe { width:100%; border:0; display:block; background:#fff; }
-    body.tenant-cms iframe { height:100%; }
-    body.tenant-register iframe { min-height:900px; }
-    @media (max-width:720px) {
-      header { align-items:flex-start; flex-direction:column; padding:12px 16px; gap:10px; }
-      .brand { width:100%; align-items:flex-start; }
-      .brand img { width:40px; height:40px; }
-      .name, .slogan, .contact { max-width:calc(100vw - 92px); }
-      .contact { display:none; }
-      a { align-self:flex-start; min-height:34px; }
-      .welcome { padding:9px 16px; }
+    .brand img { width:42px; height:42px; object-fit:contain; border:1px solid var(--line); border-radius:var(--radius); background:#fff; padding:4px; }
+    .name { font-weight:800; font-size:15px; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .slogan, .contact { color:var(--muted); font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:min(56vw,640px); }
+    a { color:var(--brand); text-decoration:none; font-weight:800; font-size:13px; }
+    main { width:min(1040px,100%); margin:0 auto; padding:54px 24px 72px; display:grid; grid-template-columns:minmax(0,.9fr) minmax(320px,1.1fr); gap:40px; align-items:start; }
+    .intro { padding-top:18px; }
+    .eyebrow { color:var(--brand); font-size:12px; font-weight:800; letter-spacing:.16em; text-transform:uppercase; }
+    h1 { margin:14px 0 14px; font-size:clamp(34px,5vw,58px); line-height:1.05; letter-spacing:0; }
+    .lead { color:var(--muted); font-size:17px; line-height:1.7; max-width:44ch; }
+    .card { background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:28px; box-shadow:0 18px 42px rgba(15,23,42,.08); }
+    .field { margin-bottom:16px; }
+    label { display:block; margin-bottom:7px; color:#475569; font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+    input, textarea, select { width:100%; min-height:42px; border:1px solid var(--line); border-radius:var(--radius); padding:11px 12px; background:#fff; color:var(--ink); font:inherit; }
+    textarea { resize:vertical; }
+    input:focus, textarea:focus, select:focus { outline:2px solid color-mix(in srgb, var(--brand) 24%, transparent); border-color:var(--brand); }
+    .row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .consent { display:flex; gap:10px; align-items:flex-start; color:var(--muted); font-size:13px; line-height:1.5; margin:8px 0 16px; }
+    .consent input { width:16px; min-height:16px; margin-top:2px; }
+    button { width:100%; min-height:46px; border:0; border-radius:var(--radius); background:var(--brand); color:#fff; font-weight:900; cursor:pointer; }
+    button:hover { background:var(--brand-2); }
+    button:disabled { opacity:.62; cursor:wait; }
+    .error { display:none; color:#b91c1c; font-size:13px; margin:0 0 12px; }
+    .done { display:none; text-align:center; padding:38px 24px; }
+    .done .mark { color:var(--brand); font-size:56px; line-height:1; }
+    @media (max-width:760px) {
+      header { align-items:flex-start; flex-direction:column; padding:12px 16px; }
+      main { grid-template-columns:1fr; padding:34px 16px 56px; gap:24px; }
+      .row { grid-template-columns:1fr; }
+      .slogan, .contact { max-width:calc(100vw - 96px); }
     }
   </style>
 </head>
-<body class="tenant-register">
+<body>
   <header>
     <div class="brand">
       <img id="tenantLogo" src="/logo.png" alt="{{TENANT_NAME}}">
       <div>
-	        <div id="tenantName" class="name">{{TENANT_NAME}}</div>
-	        <div id="tenantSlogan" class="slogan"></div>
-	        <div id="tenantContact" class="contact"></div>
+        <div id="tenantName" class="name">{{TENANT_NAME}}</div>
+        <div id="tenantSlogan" class="slogan"></div>
+        <div id="tenantContact" class="contact"></div>
       </div>
     </div>
     <a href="/{{TENANT_SLUG}}">Portal</a>
   </header>
-  <section id="tenantWelcome" class="welcome"></section>
-  <iframe id="registerFrame" title="{{TENANT_NAME}} Registration" src="/_legacy/register?tenant={{TENANT_SLUG}}"></iframe>
+
+  <main>
+    <section class="intro">
+      <div id="heroEyebrow" class="eyebrow">Registration</div>
+      <h1 id="pageTitle">Tell us about the student</h1>
+      <p id="pageIntro" class="lead">Leave a few details and the studio will contact you with the right class and time.</p>
+    </section>
+
+    <section class="card">
+      <form id="registerForm">
+        <div class="row">
+          <div class="field"><label>Given name *</label><input id="firstName" autocomplete="given-name"></div>
+          <div class="field"><label>Family name</label><input id="lastName" autocomplete="family-name"></div>
+        </div>
+        <div class="field"><label>Mobile *</label><input id="mobile" type="tel" autocomplete="tel"></div>
+        <div class="field"><label>Email</label><input id="email" type="email" autocomplete="email"></div>
+        <div id="customFields"></div>
+        <div class="field"><label>Message</label><textarea id="message" rows="3" placeholder="Optional note"></textarea></div>
+        <div style="position:absolute;left:-9999px;top:-9999px" aria-hidden="true"><input id="website" type="text" tabindex="-1" autocomplete="off"></div>
+        <label class="consent"><input id="consent" type="checkbox"><span>I agree that my details are used only for studio contact and class management.</span></label>
+        <p id="error" class="error"></p>
+        <button id="submitBtn" type="submit">Submit registration</button>
+      </form>
+      <div id="done" class="done">
+        <div class="mark">✓</div>
+        <h2>Submitted</h2>
+        <p>The studio will be in touch soon.</p>
+      </div>
+    </section>
+  </main>
+
   <script>
     const TENANT_SLUG = '{{TENANT_SLUG}}';
-    const TENANT_NAME = document.getElementById('tenantName').textContent || 'Studio';
-    function applyPresentation(brand) {
-      const layout = brand.cms_layout || brand.cmsLayout || 'bar';
-      document.body.classList.remove('layout-bar', 'layout-hero', 'layout-compact', 'show-welcome');
-      document.body.classList.add(`layout-${layout}`);
-      const showWelcome = String(brand.show_welcome ?? brand.showWelcome ?? true) !== 'false';
-      const welcome = brand.welcome_message || brand.welcomeMessage || '';
-      document.getElementById('tenantWelcome').textContent = welcome;
-      if (showWelcome && welcome) document.body.classList.add('show-welcome');
+    const TENANT_NAME = '{{TENANT_NAME}}';
+    const esc = window.StudioSaaS.esc;
+    let registrationProfile = { title: 'Student Registration', fields: [] };
+
+    function value(id) {
+      const el = document.getElementById(id);
+      return el ? String(el.value || '').trim() : '';
+    }
+    function showError(message) {
+      const error = document.getElementById('error');
+      error.textContent = message;
+      error.style.display = 'block';
+      error.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    function renderFields(profile) {
+      registrationProfile = profile || registrationProfile;
+      const box = document.getElementById('customFields');
+      box.innerHTML = '';
+      (registrationProfile.fields || []).slice(0, 8).forEach((field) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'field';
+        const label = document.createElement('label');
+        label.textContent = `${field.label || field.key || 'Question'}${field.required ? ' *' : ''}`;
+        wrap.appendChild(label);
+        let input;
+        if (field.type === 'textarea') {
+          input = document.createElement('textarea');
+          input.rows = 2;
+        } else if (field.type === 'select') {
+          input = document.createElement('select');
+          const blank = document.createElement('option');
+          blank.value = '';
+          blank.textContent = field.placeholder || 'Please choose...';
+          input.appendChild(blank);
+          (field.options || []).forEach((option) => {
+            const opt = document.createElement('option');
+            opt.value = option;
+            opt.textContent = option;
+            input.appendChild(opt);
+          });
+        } else {
+          input = document.createElement('input');
+        }
+        input.dataset.regKey = field.key || field.label || 'question';
+        input.dataset.regLabel = field.label || field.key || 'Question';
+        input.dataset.required = field.required ? 'true' : 'false';
+        if (field.placeholder && field.type !== 'select') input.placeholder = field.placeholder;
+        wrap.appendChild(input);
+        box.appendChild(wrap);
+      });
+    }
+    function collectFields() {
+      const lines = [];
+      document.querySelectorAll('#customFields [data-reg-key]').forEach((input) => {
+        const answer = String(input.value || '').trim();
+        if (input.dataset.required === 'true' && !answer) throw new Error('Please complete the required questions.');
+        if (answer) lines.push(`${input.dataset.regLabel}: ${answer}`);
+      });
+      return lines;
     }
     async function applyBrand() {
-      const response = await fetch(`/v1/public/${TENANT_SLUG}/brand`).catch(() => null);
+      const response = await fetch(`/v1/public/${encodeURIComponent(TENANT_SLUG)}/brand`).catch(() => null);
       if (!response || !response.ok) return;
       const data = await response.json();
       const brand = data.brand || {};
-      const primary = brand.primary_color || brand.primaryColor || '#312e81';
-      const secondary = brand.secondary_color || brand.secondaryColor || '#6366f1';
-      document.title = `${brand.name || TENANT_NAME} Registration`;
+      const hero = brand.heroProfile || brand.hero_profile || {};
+      const copy = brand.copyPack || brand.copy_pack || {};
+      const visual = brand.visualTheme || brand.visual_theme || {};
+      const primary = visual.accent_color || visual.accentColor || brand.primary_color || brand.primaryColor || '#2563eb';
+      const secondary = visual.secondary_accent_color || visual.secondaryAccentColor || brand.secondary_color || brand.secondaryColor || '#0f172a';
       document.documentElement.style.setProperty('--brand', primary);
       document.documentElement.style.setProperty('--brand-2', secondary);
-	      document.getElementById('tenantName').textContent = brand.name || TENANT_NAME;
-	      document.getElementById('tenantSlogan').textContent = brand.slogan || '';
-	      document.getElementById('tenantLogo').src = brand.logo_url || brand.logoUrl || '/logo.png';
+      if (visual.background_color || visual.backgroundColor) document.documentElement.style.setProperty('--bg', visual.background_color || visual.backgroundColor);
+      if (visual.panel_color || visual.panelColor) document.documentElement.style.setProperty('--surface', visual.panel_color || visual.panelColor);
+      if (visual.text_color || visual.textColor) document.documentElement.style.setProperty('--ink', visual.text_color || visual.textColor);
+      document.title = `${brand.name || TENANT_NAME} Registration`;
+      document.getElementById('tenantName').textContent = brand.name || TENANT_NAME;
+      document.getElementById('tenantSlogan').textContent = brand.slogan || hero.subtitle || '';
+      document.getElementById('tenantLogo').src = brand.logo_url || brand.logoUrl || '/logo.png';
       document.getElementById('tenantContact').textContent = [brand.contact_phone || brand.contactPhone, brand.contact_email || brand.contactEmail, brand.address].filter(Boolean).join(' · ');
-      applyPresentation(brand);
+      document.getElementById('heroEyebrow').textContent = hero.eyebrow || brand.categoryLabel || 'Registration';
+      document.getElementById('pageTitle').textContent = (brand.registrationProfile || brand.registration_profile || {}).title || 'Tell us about the student';
+      document.getElementById('pageIntro').textContent = copy.register_intro || copy.registerIntro || 'Leave a few details and the studio will contact you with the right class and time.';
+      renderFields(brand.registrationProfile || brand.registration_profile);
     }
-    function resizeRegisterFrame() {
-      const frame = document.getElementById('registerFrame');
+    document.getElementById('registerForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      document.getElementById('error').style.display = 'none';
+      if (!value('firstName')) return showError('Please enter a given name.');
+      if (!value('mobile')) return showError('Please enter a mobile number.');
+      if (!document.getElementById('consent').checked) return showError('Please agree to the privacy note.');
+      const button = document.getElementById('submitBtn');
+      button.disabled = true;
+      button.textContent = 'Submitting...';
       try {
-        const doc = frame.contentDocument || frame.contentWindow.document;
-        const height = Math.max(
-          900,
-          doc.documentElement.scrollHeight,
-          doc.body ? doc.body.scrollHeight : 0
-        );
-        frame.style.height = `${height}px`;
+        const extra = collectFields();
+        if (value('message')) extra.push(value('message'));
+        const response = await fetch(`/v1/public/${encodeURIComponent(TENANT_SLUG)}/registrations`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            firstName: value('firstName'),
+            lastName: value('lastName'),
+            mobile: value('mobile'),
+            email: value('email'),
+            message: extra.join(' | '),
+            website: value('website')
+          })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success) throw new Error(data.message || data.error || 'Submission failed.');
+        document.getElementById('registerForm').style.display = 'none';
+        document.getElementById('done').style.display = 'block';
       } catch (err) {
-        frame.style.height = '900px';
+        showError(err.message || 'Submission failed.');
+      } finally {
+        button.disabled = false;
+        button.textContent = 'Submit registration';
       }
-    }
-    document.getElementById('registerFrame').addEventListener('load', () => {
-      resizeRegisterFrame();
-      setTimeout(resizeRegisterFrame, 500);
-      setTimeout(resizeRegisterFrame, 1500);
     });
-    window.addEventListener('resize', resizeRegisterFrame);
     applyBrand();
   </script>
 </body>

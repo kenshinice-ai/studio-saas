@@ -67,7 +67,17 @@
      radial-gradient(120% 90% at 20% 15%,#E9CDBE 0%,transparent 55%),
      radial-gradient(110% 80% at 85% 80%,#C9D3CB 0%,transparent 50%),
      linear-gradient(160deg,#F0E7DA,#E4DED2)}
+  .hero-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
+  body.hero-image .hero-art img{display:block}
+  body.hero-bold .hero{background:var(--ink);color:var(--bg)}
+  body.hero-bold .hero .slogan, body.hero-bold .hero-login{color:#D8D1C4}
+  body.hero-minimal .hero-art{display:none}
+  body.hero-minimal .hero-grid{grid-template-columns:1fr}
   .hero-art .frame-tag{position:absolute;left:20px;bottom:18px;font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:#6f665a}
+  body.button-rounded .btn{border-radius:999px}
+  body.button-sharp .btn{border-radius:0}
+  body.font-modern .serif, body.font-modern .lat{font-family:"Noto Sans SC",system-ui,sans-serif}
+  body.font-classic .serif, body.font-classic .lat{font-family:"Noto Serif SC",serif}
 
   section{padding:100px 0}
   .sec-head{max-width:640px;margin-bottom:56px}
@@ -203,23 +213,23 @@
       <span class="bn" id="brandName">Let's Play Game</span>
     </div>
     <div class="navlinks">
-      <a onclick="go('home','#artist')" data-en="Principal">主理人</a>
-      <a onclick="go('home','#courses')" data-en="Courses">课程</a>
-      <a onclick="go('home','#gallery')" data-en="Gallery">学员作品</a>
-      <a onclick="go('home','#faq')" data-en="FAQ">常见问题</a>
-      <a onclick="go('my')" data-en="Student Login">学员专区</a>
-      <a class="navcta" onclick="go('join')" data-en="Book a Trial">预约体验</a>
+      <a id="navPrincipal" onclick="go('home','#artist')" data-en="Principal">主理人</a>
+      <a id="navCourses" onclick="go('home','#courses')" data-en="Courses">课程</a>
+      <a id="navGallery" onclick="go('home','#gallery')" data-en="Gallery">学员作品</a>
+      <a id="navFaq" onclick="go('home','#faq')" data-en="FAQ">常见问题</a>
+      <a id="navStudent" onclick="go('my')" data-en="Student Login">学员专区</a>
+      <a id="navPrimaryCta" class="navcta" onclick="go('join')" data-en="Book a Trial">预约体验</a>
       <span class="langtog"><button id="lz" class="on" onclick="setLang('zh')">中</button><button id="le" onclick="setLang('en')">EN</button></span>
     </div>
     <button class="menu-btn" onclick="var m=document.getElementById('mnav');m.style.display=(m.style.display==='flex'?'none':'flex')">☰</button>
   </div>
   <div id="mnav" style="display:none;flex-direction:column;background:var(--bg);border-top:1px solid var(--line);padding:14px 28px 20px;gap:14px">
-    <a onclick="go('home','#artist')" data-en="Principal">主理人</a>
-    <a onclick="go('home','#courses')" data-en="Courses">课程</a>
-    <a onclick="go('home','#gallery')" data-en="Gallery">学员作品</a>
-    <a onclick="go('home','#faq')" data-en="FAQ">常见问题</a>
-    <a onclick="go('my')" data-en="Student Login">学员专区</a>
-    <a onclick="go('join')" data-en="Book a Trial">预约体验</a>
+    <a id="mnavPrincipal" onclick="go('home','#artist')" data-en="Principal">主理人</a>
+    <a id="mnavCourses" onclick="go('home','#courses')" data-en="Courses">课程</a>
+    <a id="mnavGallery" onclick="go('home','#gallery')" data-en="Gallery">学员作品</a>
+    <a id="mnavFaq" onclick="go('home','#faq')" data-en="FAQ">常见问题</a>
+    <a id="mnavStudent" onclick="go('my')" data-en="Student Login">学员专区</a>
+    <a id="mnavPrimaryCta" onclick="go('join')" data-en="Book a Trial">预约体验</a>
     <span class="langtog" style="align-self:flex-start"><button class="on" onclick="setLang('zh')">中</button><button onclick="setLang('en')">EN</button></span>
   </div>
 </nav>
@@ -233,12 +243,13 @@
       <h1 class="serif" id="heroName">Let's Play Game</h1>
       <p class="slogan" id="heroSlogan" data-en="Courses, class credits and student portfolios — enrolment and enquiry all in one place.">课程报名、课时管理与学员作品集，都在这里。</p>
       <div class="hero-cta">
-        <a class="btn btn-fill" onclick="go('join')" data-en="Book a Trial →">预约体验 →</a>
-        <a class="btn btn-line" onclick="go('home','#courses')" data-en="Explore courses">浏览课程</a>
+        <a id="heroPrimaryCta" class="btn btn-fill" onclick="go('join')" data-en="Book a Trial →">预约体验 →</a>
+        <a id="heroSecondaryCta" class="btn btn-line" onclick="go('home','#courses')" data-en="Explore courses">浏览课程</a>
       </div>
-      <a class="hero-login" onclick="go('my')" data-en="Student login →">学员登录 →</a>
+      <a id="heroStudentLogin" class="hero-login" onclick="go('my')" data-en="Student login →">学员登录 →</a>
     </div>
     <div class="hero-art reveal in">
+      <img id="heroImage" alt="Let's Play Game">
       <span class="frame-tag">Let's Play Game</span>
     </div>
   </div>
@@ -255,13 +266,13 @@
     <!-- ══ 主理人占位板块 PRINCIPAL PLACEHOLDER ══
          替换指引：①「主理人姓名」→ 真实姓名；② 简介/签名句 → 真实内容；
          ③ 头像放 /site/principal.jpg（缺图时自动隐藏，仅显示底纹）。 -->
-    <div class="artist-portrait reveal"><img src="/site/principal.jpg" alt="Principal" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'"><span class="nm" data-en="Principal">主理人</span></div>
+    <div class="artist-portrait reveal"><img id="principalImage" src="/site/principal.jpg" alt="Principal" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'"><span id="principalImageLabel" class="nm" data-en="Principal">主理人</span></div>
     <div class="reveal">
-      <p class="eyebrow" data-en="Founder &amp; Principal">创始人 · 主理人</p>
-      <h2 class="serif" style="font-size:clamp(30px,3.6vw,46px);font-weight:500;line-height:1.12;margin-top:14px" data-en="Principal Name">主理人姓名</h2>
+      <p id="principalTitle" class="eyebrow" data-en="Founder &amp; Principal">创始人 · 主理人</p>
+      <h2 id="principalName" class="serif" style="font-size:clamp(30px,3.6vw,46px);font-weight:500;line-height:1.12;margin-top:14px" data-en="Principal Name">主理人姓名</h2>
       <div class="roles"><span>Founder</span><span>Principal</span><span>Mentor</span></div>
-      <p class="bio" data-en="[Placeholder] Introduce the studio principal here — professional background, teaching philosophy and representative experience. Replace this paragraph with the real introduction.">【占位文案】在这里介绍工作室的主理人：专业背景、教学理念与代表经历。请将本段替换为真实介绍。</p>
-      <p class="sig-line" data-en="— A signature line from the principal.">— 主理人的一句签名式理念。</p>
+      <p id="principalBio" class="bio" data-en="[Placeholder] Introduce the studio principal here — professional background, teaching philosophy and representative experience. Replace this paragraph with the real introduction.">【占位文案】在这里介绍工作室的主理人：专业背景、教学理念与代表经历。请将本段替换为真实介绍。</p>
+      <p id="principalQuote" class="sig-line" data-en="— A signature line from the principal.">— 主理人的一句签名式理念。</p>
     </div>
   </div>
 </section>
@@ -269,7 +280,7 @@
 <section id="courses" style="background:var(--bg2)">
   <div class="wrap">
     <div class="sec-head reveal">
-      <p class="eyebrow" data-en="Courses &amp; Classes">课程与班型</p>
+      <p id="coursesLabel" class="eyebrow" data-en="Courses &amp; Classes">课程与班型</p>
       <h2 class="serif" data-en="There is a pace that fits this moment">总有一种，适合此刻的你</h2>
       <p data-en="From beginners to advanced, from children to adults — start at a pace that feels right.">从零基础到进阶，从孩子到成人，选一个舒服的节奏开始。</p>
     </div>
@@ -285,7 +296,7 @@
 <section class="gallery" id="gallery">
   <div class="wrap">
     <div class="sec-head reveal">
-      <p class="eyebrow" data-en="Student Works">学员作品</p>
+      <p id="galleryLabel" class="eyebrow" data-en="Student Works">学员作品</p>
       <h2 class="serif" data-en="What our students have made">他们的作品</h2>
       <p data-en="Works made in the studio, shared with each student's consent.">学员在这里完成的作品，经本人同意后展出。</p>
     </div>
@@ -317,10 +328,10 @@
 <section class="gallery" id="faq" style="background:var(--bg2)">
   <div class="wrap">
     <div class="sec-head reveal" style="margin-left:auto;margin-right:auto;text-align:center">
-      <p class="eyebrow" data-en="Questions &amp; Answers">问与答</p>
+      <p id="faqLabel" class="eyebrow" data-en="Questions &amp; Answers">问与答</p>
       <h2 class="serif" data-en="Good to know before you begin">开始之前，先了解这些</h2>
     </div>
-    <div class="faqwrap reveal">
+    <div class="faqwrap reveal" id="faqList">
       <details class="faq"><summary data-en="Is there a trial class?">有体验课吗？</summary><p data-en="Yes — the best way to start is a single trial class. Leave your details through the enrolment form and we'll arrange a time.">有的。最好的开始是先来一节体验课。通过报名表留下联系方式，我们为你安排时间。</p></details>
       <details class="faq"><summary data-en="How do class packs work?">课包与课时怎么算？</summary><p data-en="Classes are booked in packs. Each attended class draws one credit; your balance and history are always visible in the Student area.">课程以课包形式购买，每上一节课扣一课时；余额与记录随时可在「学员专区」查询。</p></details>
       <details class="faq"><summary data-en="What if I miss a class?">临时来不了怎么办？</summary><p data-en="Let us know ahead of time and we'll do our best to arrange a make-up class; every credit is recorded accurately.">提前告诉我们，我们会尽力安排补课；每一课时都被准确记录。</p></details>
@@ -332,7 +343,7 @@
 <section id="contact">
   <div class="wrap">
     <div class="sec-head reveal" style="margin:0 auto 36px;text-align:center">
-      <p class="eyebrow" data-en="Contact">联系我们</p>
+      <p id="contactLabel" class="eyebrow" data-en="Contact">联系我们</p>
       <h2 class="serif" data-en="Come and visit us">欢迎来工作室坐坐</h2>
     </div>
     <div class="contact-grid reveal" id="contactRows">
@@ -367,6 +378,7 @@
             <option value="家庭/多人" data-en="Family / group">家庭 · 多人</option>
           </select>
         </div>
+        <div id="joinCustomFields"></div>
         <div class="fld"><label data-en="Message">留言 <span style="color:var(--muted);font-weight:400">选填</span></label><textarea id="j-msg" rows="2" placeholder="想了解的内容 / a few words"></textarea></div>
         <!-- 蜜罐字段 — 真人看不到，机器人会填；服务端据此静默丢弃 -->
         <div style="position:absolute;left:-9999px;top:-9999px" aria-hidden="true"><input id="j-web" type="text" name="website" tabindex="-1" autocomplete="off"></div>
@@ -498,6 +510,59 @@
   }
   var LANG=(function(){try{return localStorage.getItem('pwe_lang_'+SLUG)==='en'?'en':'zh'}catch(e){return 'zh'}})();
   function T(zh,en){return (window.LANG||LANG)==='en'?en:zh;}
+  function setCopy(id, text){
+    var el=document.getElementById(id);
+    if(!el || !text) return;
+    el.textContent=text;
+    el.setAttribute('data-zh', text);
+    el.setAttribute('data-en', text);
+  }
+  function showSection(id, visible){
+    var el=document.getElementById(id);
+    if(el) el.style.display = visible ? '' : 'none';
+  }
+  function setNavVisible(ids, visible){
+    ids.forEach(function(id){ var el=document.getElementById(id); if(el) el.style.display = visible ? '' : 'none'; });
+  }
+  function renderRegistrationFields(profile){
+    var box=document.getElementById('joinCustomFields');
+    if(!box || !profile || !Array.isArray(profile.fields)) return;
+    box.innerHTML='';
+    profile.fields.slice(0,8).forEach(function(field){
+      var wrap=document.createElement('div'); wrap.className='fld';
+      var label=document.createElement('label');
+      label.textContent=(field.label||field.key||'Question')+(field.required?' *':'');
+      wrap.appendChild(label);
+      var input;
+      if(field.type==='textarea'){
+        input=document.createElement('textarea'); input.rows=2;
+      }else if(field.type==='select'){
+        input=document.createElement('select');
+        var blank=document.createElement('option'); blank.value=''; blank.textContent=field.placeholder||T('请选择…','Please choose…'); input.appendChild(blank);
+        (field.options||[]).forEach(function(option){
+          var opt=document.createElement('option'); opt.value=option; opt.textContent=option; input.appendChild(opt);
+        });
+      }else{
+        input=document.createElement('input');
+      }
+      input.dataset.regKey=field.key||field.label||'question';
+      input.dataset.regLabel=field.label||field.key||'Question';
+      input.dataset.regRequired=field.required?'true':'false';
+      if(field.placeholder && field.type!=='select') input.placeholder=field.placeholder;
+      wrap.appendChild(input);
+      box.appendChild(wrap);
+    });
+  }
+  function collectRegistrationFields(){
+    var values=[];
+    document.querySelectorAll('#joinCustomFields [data-reg-key]').forEach(function(input){
+      var value=(input.value||'').trim();
+      var label=input.dataset.regLabel||input.dataset.regKey;
+      if(input.dataset.regRequired==='true' && !value) throw new Error(T('请填写必填报名问题','Please complete the required registration questions.'));
+      if(value) values.push(label+': '+value);
+    });
+    return values;
+  }
 
   /* ── view routing ── */
   function resetJoinView(){
@@ -526,14 +591,71 @@
   /* ── brand: name/logo/slogan/welcome/contact/colors from v1 ── */
   fetch(API + '/brand').then(function(r){return r.json();}).then(function(d){
     var b=(d&&d.brand)||{};
-    if(b.primaryColor){ document.documentElement.style.setProperty('--clay', b.primaryColor); }
+    var hero=b.heroProfile||b.hero_profile||{};
+    var website=b.websiteProfile||b.website_profile||{};
+    var principal=b.principalProfile||b.principal_profile||{};
+    var visual=b.visualTheme||b.visual_theme||{};
+    if(visual.background_color||visual.backgroundColor){ document.documentElement.style.setProperty('--bg', visual.background_color||visual.backgroundColor); }
+    if(visual.panel_color||visual.panelColor){ document.documentElement.style.setProperty('--panel', visual.panel_color||visual.panelColor); }
+    if(visual.text_color||visual.textColor){ document.documentElement.style.setProperty('--ink', visual.text_color||visual.textColor); }
+    if(visual.accent_color||visual.accentColor||b.primaryColor){ document.documentElement.style.setProperty('--clay', visual.accent_color||visual.accentColor||b.primaryColor); }
+    if(b.secondaryColor){ document.documentElement.style.setProperty('--clay-d', b.secondaryColor); }
+    document.body.classList.toggle('button-rounded', (visual.button_style||visual.buttonStyle)==='rounded');
+    document.body.classList.toggle('button-sharp', (visual.button_style||visual.buttonStyle)==='sharp');
+    document.body.classList.toggle('font-modern', (visual.font_mood||visual.fontMood)==='modern');
+    document.body.classList.toggle('font-classic', (visual.font_mood||visual.fontMood)==='classic');
     if(b.name){
       document.title=b.name;
       ['brandName','heroName','footName','footName2'].forEach(function(id){ var el=document.getElementById(id); if(el) el.textContent=b.name; });
     }
     if(b.logoUrl){ var lg=document.getElementById('brandLogo'); lg.src=b.logoUrl; lg.style.display='block'; }
-    if(b.categoryLabel){ var ey=document.getElementById('heroEyebrow'); ey.textContent=b.categoryLabel; ey.setAttribute('data-zh',b.categoryLabel); ey.setAttribute('data-en',b.categoryLabel); }
-    if(b.slogan){ var sl=document.getElementById('heroSlogan'); sl.textContent=b.slogan; sl.setAttribute('data-zh',b.slogan); sl.setAttribute('data-en',b.slogan); }
+    setCopy('heroEyebrow', hero.eyebrow || b.categoryLabel);
+    setCopy('heroName', hero.title || b.name);
+    setCopy('heroSlogan', hero.subtitle || b.slogan);
+    setCopy('heroPrimaryCta', (hero.primary_cta_label || hero.primaryCtaLabel || 'Book a Trial') + ' →');
+    setCopy('heroSecondaryCta', hero.secondary_cta_label || hero.secondaryCtaLabel || 'Explore Courses');
+    setCopy('navPrimaryCta', hero.primary_cta_label || hero.primaryCtaLabel || 'Book a Trial');
+    setCopy('mnavPrimaryCta', hero.primary_cta_label || hero.primaryCtaLabel || 'Book a Trial');
+    var showStudent = String(hero.show_student_login ?? hero.showStudentLogin ?? website.show_student_area ?? website.showStudentArea ?? true) !== 'false';
+    setNavVisible(['navStudent','mnavStudent','heroStudentLogin'], showStudent);
+    var heroStyle = hero.background_style || hero.backgroundStyle || 'soft';
+    document.body.classList.toggle('hero-image', heroStyle === 'image' && Boolean(hero.hero_image_url || hero.heroImageUrl));
+    document.body.classList.toggle('hero-minimal', heroStyle === 'minimal');
+    document.body.classList.toggle('hero-bold', heroStyle === 'bold');
+    if(hero.hero_image_url || hero.heroImageUrl){ document.getElementById('heroImage').src = hero.hero_image_url || hero.heroImageUrl; }
+    setCopy('coursesLabel', website.courses_label || website.coursesLabel);
+    setCopy('galleryLabel', website.gallery_label || website.galleryLabel);
+    setCopy('faqLabel', website.faq_label || website.faqLabel);
+    setCopy('contactLabel', website.contact_label || website.contactLabel);
+    var showPrincipal = String(website.show_principal ?? website.showPrincipal ?? principal.show ?? true) !== 'false';
+    showSection('artist', showPrincipal);
+    setNavVisible(['navPrincipal','mnavPrincipal'], showPrincipal);
+    showSection('courses', String(website.show_courses ?? website.showCourses ?? true) !== 'false');
+    setNavVisible(['navCourses','mnavCourses'], String(website.show_courses ?? website.showCourses ?? true) !== 'false');
+    showSection('gallery', String(website.show_gallery ?? website.showGallery ?? true) !== 'false');
+    setNavVisible(['navGallery','mnavGallery'], String(website.show_gallery ?? website.showGallery ?? true) !== 'false');
+    showSection('faq', String(website.show_faq ?? website.showFaq ?? true) !== 'false');
+    setNavVisible(['navFaq','mnavFaq'], String(website.show_faq ?? website.showFaq ?? true) !== 'false');
+    showSection('contact', String(website.show_contact ?? website.showContact ?? true) !== 'false');
+    showSection('parent', showStudent);
+    setCopy('principalTitle', principal.title);
+    setCopy('principalName', principal.name || b.name);
+    setCopy('principalImageLabel', principal.name || 'Principal');
+    setCopy('principalBio', principal.bio);
+    setCopy('principalQuote', principal.quote);
+    if(principal.image_url || principal.imageUrl){ var pi=document.getElementById('principalImage'); pi.src=principal.image_url||principal.imageUrl; pi.style.display='block'; }
+    renderRegistrationFields(b.registrationProfile || b.registration_profile);
+    var faqItems=b.faqItems||b.faq_items||[];
+    if(faqItems.length){
+      var faqList=document.getElementById('faqList');
+      faqList.innerHTML='';
+      faqItems.slice(0,8).forEach(function(item){
+        var details=document.createElement('details'); details.className='faq';
+        var summary=document.createElement('summary'); summary.textContent=item.question||'Question';
+        var answer=document.createElement('p'); answer.textContent=item.answer||'';
+        details.appendChild(summary); details.appendChild(answer); faqList.appendChild(details);
+      });
+    }
     if(b.showWelcome!=='false' && b.welcomeMessage){
       document.getElementById('welcomeText').textContent=b.welcomeMessage;
       document.getElementById('brandband').style.display='block';
@@ -587,6 +709,8 @@
     var btn=document.getElementById('j-btn'); btn.disabled=true; btn.textContent=T('提交中…','Submitting…');
     var msgParts=[];
     if(audience) msgParts.push('报名对象: '+audience);
+    try{ msgParts = msgParts.concat(collectRegistrationFields()); }
+    catch(err){ btn.disabled=false; btn.textContent=T('提交预约','Submit booking'); return show(err.message); }
     if(msg)      msgParts.push(msg);
     var body={firstName:name, lastName:last, mobile:phone, email:email,
               message:msgParts.join(' ｜ '), website:v('j-web')};

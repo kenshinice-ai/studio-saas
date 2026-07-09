@@ -365,7 +365,15 @@ def _default_registration_profile(category: str) -> dict:
     preset = _preset_for(category)
     return {
         "title": preset["registration_title"],
-        "fields": [dict(field) for field in preset["fields"]],
+        "fields": [
+            {
+                **dict(field),
+                "type": field.get("type") or "text",
+                "required": bool(field.get("required", False)),
+                "options": list(field.get("options") or []),
+            }
+            for field in preset["fields"]
+        ],
     }
 
 
@@ -396,17 +404,26 @@ def _normalize_registration_profile(value, category: str) -> dict:
         label = str(field.get("label") or "").strip()
         placeholder = str(field.get("placeholder") or "").strip()
         input_type = str(field.get("type") or "text").strip().lower()
+        required = bool(field.get("required", False))
+        options = field.get("options") or []
         if not re.match(r"^[A-Za-z][A-Za-z0-9_]{1,40}$", key):
             raise ValueError("Registration field keys must use letters, numbers, or underscores.")
         if not label:
             raise ValueError("Registration field labels are required.")
-        if input_type not in {"text", "textarea"}:
-            raise ValueError("Registration field type must be text or textarea.")
+        if input_type not in {"text", "textarea", "select"}:
+            raise ValueError("Registration field type must be text, textarea, or select.")
+        if not isinstance(options, list):
+            raise ValueError("Registration field options must be a list.")
+        options = [str(item).strip()[:80] for item in options[:12] if str(item).strip()]
+        if input_type == "select" and not options:
+            raise ValueError("Select registration fields require at least one option.")
         normalized.append({
             "key": key,
             "label": label[:80],
             "placeholder": placeholder[:140],
             "type": input_type,
+            "required": required,
+            "options": options,
         })
     if not normalized:
         raise ValueError("At least one registration field is required.")
@@ -426,10 +443,274 @@ def _normalize_copy_pack(value, category: str) -> dict:
             raise ValueError("copy_pack must be valid JSON.") from exc
     if not isinstance(value, dict):
         raise ValueError("copy_pack must be a JSON object.")
-    for key in ("portal_label", "register_intro"):
-        incoming = str(value.get(key) or default[key]).strip()
+    aliases = {
+        "portal_label": ("portal_label", "portalLabel"),
+        "register_intro": ("register_intro", "registerIntro"),
+    }
+    for key, candidates in aliases.items():
+        incoming = ""
+        for candidate in candidates:
+            incoming = str(value.get(candidate) or "").strip()
+            if incoming:
+                break
+        incoming = incoming or default[key]
         default[key] = incoming[:180] or default[key]
     return default
+
+
+def _coerce_json_object(value, *, field_name: str) -> dict:
+    """Return ``value`` as a JSON object or raise a request validation error."""
+
+    if value in (None, ""):
+        return {}
+    if isinstance(value, str):
+        try:
+            value = json.loads(value)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"{field_name} must be valid JSON.") from exc
+    if not isinstance(value, dict):
+        raise ValueError(f"{field_name} must be a JSON object.")
+    return value
+
+
+def _coerce_json_list(value, *, field_name: str) -> list:
+    """Return ``value`` as a JSON list or raise a request validation error."""
+
+    if value in (None, ""):
+        return []
+    if isinstance(value, str):
+        try:
+            value = json.loads(value)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"{field_name} must be valid JSON.") from exc
+    if not isinstance(value, list):
+        raise ValueError(f"{field_name} must be a JSON list.")
+    return value
+
+
+def _first_text(data: dict, *keys: str, default: str = "", limit: int = 180) -> str:
+    """Read a short text value from a JSON object using snake/camel aliases."""
+
+    for key in keys:
+        value = data.get(key)
+        if value is not None:
+            text = str(value).strip()
+            if text:
+                return text[:limit]
+    return default[:limit]
+
+
+def _bool_from_json(data: dict, *keys: str, default: bool = True) -> bool:
+    """Read a boolean-ish value from JSON settings."""
+
+    value = None
+    for key in keys:
+        if key in data:
+            value = data.get(key)
+            break
+    if value is None:
+        return default
+    if isinstance(value, str):
+        return value.strip().lower() not in {"0", "false", "no", "off"}
+    return bool(value)
+
+
+def _default_hero_profile(category: str, studio_name: str = "") -> dict:
+    """Return default public hero copy for a tenant category."""
+
+    preset = _preset_for(category)
+    return {
+        "eyebrow": preset["label"],
+        "title": studio_name,
+        "subtitle": preset["slogan"],
+        "primary_cta_label": "Book a Trial",
+        "secondary_cta_label": "Explore Courses",
+        "show_student_login": True,
+        "background_style": "soft",
+        "hero_image_url": "",
+    }
+
+
+def _normalize_hero_profile(value, category: str, studio_name: str = "") -> dict:
+    """Validate public landing-page hero settings."""
+
+    data = _coerce_json_object(value, field_name="hero_profile")
+    default = _default_hero_profile(category, studio_name)
+    background_style = _first_text(
+        data,
+        "background_style",
+        "backgroundStyle",
+        default=default["background_style"],
+        limit=24,
+    ).lower()
+    if background_style not in {"soft", "image", "minimal", "bold"}:
+        raise ValueError("Hero background style must be one of: soft, image, minimal, bold.")
+    hero_image_url = _first_text(data, "hero_image_url", "heroImageUrl", limit=500)
+    if hero_image_url:
+        _validate_logo_url(hero_image_url)
+    return {
+        "eyebrow": _first_text(data, "eyebrow", default=default["eyebrow"], limit=80),
+        "title": _first_text(data, "title", default=default["title"], limit=100),
+        "subtitle": _first_text(data, "subtitle", default=default["subtitle"], limit=240),
+        "primary_cta_label": _first_text(data, "primary_cta_label", "primaryCtaLabel", default=default["primary_cta_label"], limit=40),
+        "secondary_cta_label": _first_text(data, "secondary_cta_label", "secondaryCtaLabel", default=default["secondary_cta_label"], limit=40),
+        "show_student_login": _bool_from_json(data, "show_student_login", "showStudentLogin", default=True),
+        "background_style": background_style,
+        "hero_image_url": hero_image_url,
+    }
+
+
+def _default_website_profile() -> dict:
+    """Return default public section visibility and labels."""
+
+    return {
+        "show_principal": True,
+        "show_courses": True,
+        "show_gallery": True,
+        "show_faq": True,
+        "show_contact": True,
+        "show_student_area": True,
+        "courses_label": "Courses & Classes",
+        "gallery_label": "Student Works",
+        "faq_label": "Questions & Answers",
+        "contact_label": "Contact",
+    }
+
+
+def _normalize_website_profile(value) -> dict:
+    """Validate public section visibility and label settings."""
+
+    data = _coerce_json_object(value, field_name="website_profile")
+    default = _default_website_profile()
+    profile = {
+        key: _bool_from_json(
+            data,
+            key,
+            "".join([key.split("_")[0], *(part.capitalize() for part in key.split("_")[1:])]),
+            default=default[key],
+        )
+        for key in (
+            "show_principal",
+            "show_courses",
+            "show_gallery",
+            "show_faq",
+            "show_contact",
+            "show_student_area",
+        )
+    }
+    for key in ("courses_label", "gallery_label", "faq_label", "contact_label"):
+        profile[key] = _first_text(data, key, "".join([key.split("_")[0], "Label"]), default=default[key], limit=80)
+    return profile
+
+
+def _default_principal_profile(studio_name: str = "") -> dict:
+    """Return default principal/about section content."""
+
+    return {
+        "show": True,
+        "name": "",
+        "title": "Founder & Principal",
+        "bio": f"Meet the principal behind {studio_name or 'the studio'} and the teaching philosophy that shapes every class.",
+        "quote": "Learn with care, confidence, and a rhythm that fits each student.",
+        "image_url": "",
+    }
+
+
+def _normalize_principal_profile(value, studio_name: str = "") -> dict:
+    """Validate public principal/about section settings."""
+
+    data = _coerce_json_object(value, field_name="principal_profile")
+    default = _default_principal_profile(studio_name)
+    image_url = _first_text(data, "image_url", "imageUrl", limit=500)
+    if image_url:
+        _validate_logo_url(image_url)
+    return {
+        "show": _bool_from_json(data, "show", default=default["show"]),
+        "name": _first_text(data, "name", default=default["name"], limit=100),
+        "title": _first_text(data, "title", default=default["title"], limit=100),
+        "bio": _first_text(data, "bio", default=default["bio"], limit=800),
+        "quote": _first_text(data, "quote", default=default["quote"], limit=180),
+        "image_url": image_url,
+    }
+
+
+def _default_faq_items(category: str) -> list[dict]:
+    """Return default FAQ copy for public tenant pages."""
+
+    preset = _preset_for(category)
+    return [
+        {
+            "question": "Is there a trial class?",
+            "answer": "Yes. Leave your details and the studio will contact you to arrange a suitable first session.",
+        },
+        {
+            "question": "How do class packs work?",
+            "answer": "Classes can be tracked as credits in the CMS, and families can check balances from the student area.",
+        },
+        {
+            "question": f"Which {preset['label'].lower()} level should we choose?",
+            "answer": "Start with your current experience and goals in the registration form. The studio will recommend the right class.",
+        },
+        {
+            "question": "Can parents view progress?",
+            "answer": "Yes. The public portal includes a student area for class balance and portfolio lookup when enabled.",
+        },
+    ]
+
+
+def _normalize_faq_items(value, category: str) -> list[dict]:
+    """Validate FAQ items shown on public tenant pages."""
+
+    items = _coerce_json_list(value, field_name="faq_items")
+    if not items:
+        return _default_faq_items(category)
+    normalized = []
+    for item in items[:8]:
+        if not isinstance(item, dict):
+            raise ValueError("Each FAQ item must be an object.")
+        question = _first_text(item, "question", limit=140)
+        answer = _first_text(item, "answer", limit=500)
+        if question and answer:
+            normalized.append({"question": question, "answer": answer})
+    if not normalized:
+        raise ValueError("At least one FAQ item must include a question and answer.")
+    return normalized
+
+
+def _default_visual_theme(primary_color: str = "#2563eb", secondary_color: str = "#0f172a") -> dict:
+    """Return default public visual-theme options."""
+
+    return {
+        "background_color": "#F4F0E8",
+        "panel_color": "#FBF9F4",
+        "text_color": "#23211D",
+        "accent_color": primary_color or "#2563eb",
+        "secondary_accent_color": secondary_color or "#0f172a",
+        "button_style": "soft",
+        "font_mood": "serif",
+    }
+
+
+def _normalize_visual_theme(value, primary_color: str = "#2563eb", secondary_color: str = "#0f172a") -> dict:
+    """Validate public colour and light style settings."""
+
+    data = _coerce_json_object(value, field_name="visual_theme")
+    default = _default_visual_theme(primary_color, secondary_color)
+    theme = {}
+    for key in ("background_color", "panel_color", "text_color", "accent_color", "secondary_accent_color"):
+        aliases = (key, "".join([key.split("_")[0], *(part.capitalize() for part in key.split("_")[1:])]))
+        value_text = _first_text(data, *aliases, default=default[key], limit=16)
+        _validate_hex_color(key.replace("_", " ").title(), value_text)
+        theme[key] = value_text
+    button_style = _first_text(data, "button_style", "buttonStyle", default=default["button_style"], limit=24).lower()
+    font_mood = _first_text(data, "font_mood", "fontMood", default=default["font_mood"], limit=24).lower()
+    if button_style not in {"soft", "sharp", "rounded"}:
+        raise ValueError("Button style must be one of: soft, sharp, rounded.")
+    if font_mood not in {"serif", "modern", "classic"}:
+        raise ValueError("Font mood must be one of: serif, modern, classic.")
+    theme["button_style"] = button_style
+    theme["font_mood"] = font_mood
+    return theme
 
 
 def _plan_payload(payload: dict) -> dict:
@@ -482,12 +763,33 @@ def _tenant_write_payload(payload: dict, *, require_slug: bool) -> dict:
         category,
     )
     copy_pack = _normalize_copy_pack(payload.get("copyPack", payload.get("copy_pack")), category)
+    hero_profile = _normalize_hero_profile(
+        payload.get("heroProfile", payload.get("hero_profile")),
+        category,
+        name,
+    )
+    website_profile = _normalize_website_profile(payload.get("websiteProfile", payload.get("website_profile")))
+    principal_profile = _normalize_principal_profile(
+        payload.get("principalProfile", payload.get("principal_profile")),
+        name,
+    )
+    faq_items = _normalize_faq_items(payload.get("faqItems", payload.get("faq_items")), category)
+    visual_theme = _normalize_visual_theme(
+        payload.get("visualTheme", payload.get("visual_theme")),
+        payload.get("primaryColor", payload.get("primary_color", "#2563eb")),
+        payload.get("secondaryColor", payload.get("secondary_color", "#0f172a")),
+    )
     settings = {
         "category": category,
         "category_label": preset["label"],
         "slogan": slogan,
         "registration_profile": registration_profile,
         "copy_pack": copy_pack,
+        "hero_profile": hero_profile,
+        "website_profile": website_profile,
+        "principal_profile": principal_profile,
+        "faq_items": faq_items,
+        "visual_theme": visual_theme,
         "owner_name": _clean_text(payload, "ownerName", _clean_text(payload, "owner_name", "")),
         "owner_role": _clean_text(payload, "ownerRole", _clean_text(payload, "owner_role", "Owner")),
         "owner_phone": _clean_text(payload, "ownerPhone", _clean_text(payload, "owner_phone", "")),
@@ -1227,6 +1529,11 @@ def _tenant_response(conn):
                t.settings->>'slogan' AS slogan,
                t.settings->'registration_profile' AS registration_profile,
                t.settings->'copy_pack' AS copy_pack,
+               t.settings->'hero_profile' AS hero_profile,
+               t.settings->'website_profile' AS website_profile,
+               t.settings->'principal_profile' AS principal_profile,
+               t.settings->'faq_items' AS faq_items,
+               t.settings->'visual_theme' AS visual_theme,
                s.status AS subscription_status, s.starts_at, s.ends_at,
                s.trial_ends_at, s.current_period_ends_at
         FROM tenants t
@@ -1295,6 +1602,22 @@ def update_tenant():
             category,
         )
         copy_pack = _normalize_copy_pack(payload.get("copyPack", current_settings.get("copy_pack")), category)
+        hero_profile = _normalize_hero_profile(
+            payload.get("heroProfile", current_settings.get("hero_profile")),
+            category,
+            _clean_text(payload, "name", current["name"]),
+        )
+        website_profile = _normalize_website_profile(payload.get("websiteProfile", current_settings.get("website_profile")))
+        principal_profile = _normalize_principal_profile(
+            payload.get("principalProfile", current_settings.get("principal_profile")),
+            _clean_text(payload, "name", current["name"]),
+        )
+        faq_items = _normalize_faq_items(payload.get("faqItems", current_settings.get("faq_items")), category)
+        visual_theme = _normalize_visual_theme(
+            payload.get("visualTheme", current_settings.get("visual_theme")),
+            primary_color,
+            secondary_color,
+        )
         show_welcome = payload.get("showWelcome", current_settings.get("show_welcome", "true"))
         if isinstance(show_welcome, str):
             show_welcome = show_welcome.strip().lower() != "false"
@@ -1322,6 +1645,11 @@ def update_tenant():
                 "slogan": slogan,
                 "registration_profile": registration_profile,
                 "copy_pack": copy_pack,
+                "hero_profile": hero_profile,
+                "website_profile": website_profile,
+                "principal_profile": principal_profile,
+                "faq_items": faq_items,
+                "visual_theme": visual_theme,
             }
         )
         with conn.cursor() as cur:
@@ -1400,6 +1728,11 @@ def get_tenant_brand():
                 "slogan": row["slogan"] or _preset_for(row["category"] or "general")["slogan"],
                 "registrationProfile": row["registration_profile"] or _default_registration_profile(row["category"] or "general"),
                 "copyPack": row["copy_pack"] or _preset_for(row["category"] or "general")["copy_pack"],
+                "heroProfile": row["hero_profile"] or _default_hero_profile(row["category"] or "general", row["name"]),
+                "websiteProfile": row["website_profile"] or _default_website_profile(),
+                "principalProfile": row["principal_profile"] or _default_principal_profile(row["name"]),
+                "faqItems": row["faq_items"] or _default_faq_items(row["category"] or "general"),
+                "visualTheme": row["visual_theme"] or _default_visual_theme(row["primary_color"], row["secondary_color"]),
             }
         }
     )
@@ -2106,7 +2439,12 @@ def public_brand(tenant_slug: str):
                    settings->>'category_label' AS category_label,
                    settings->>'slogan' AS slogan,
                    settings->'registration_profile' AS registration_profile,
-                   settings->'copy_pack' AS copy_pack
+                   settings->'copy_pack' AS copy_pack,
+                   settings->'hero_profile' AS hero_profile,
+                   settings->'website_profile' AS website_profile,
+                   settings->'principal_profile' AS principal_profile,
+                   settings->'faq_items' AS faq_items,
+                   settings->'visual_theme' AS visual_theme
             FROM tenants
             WHERE id = %s
             """,
@@ -2118,6 +2456,11 @@ def public_brand(tenant_slug: str):
     row["slogan"] = row["slogan"] or preset["slogan"]
     row["registration_profile"] = row["registration_profile"] or _default_registration_profile(category)
     row["copy_pack"] = row["copy_pack"] or preset["copy_pack"]
+    row["hero_profile"] = row["hero_profile"] or _default_hero_profile(category, row["name"])
+    row["website_profile"] = row["website_profile"] or _default_website_profile()
+    row["principal_profile"] = row["principal_profile"] or _default_principal_profile(row["name"])
+    row["faq_items"] = row["faq_items"] or _default_faq_items(category)
+    row["visual_theme"] = row["visual_theme"] or _default_visual_theme(row["primary_color"], row["secondary_color"])
     row["primaryColor"] = row["primary_color"]
     row["secondaryColor"] = row["secondary_color"]
     row["welcomeMessage"] = row["welcome_message"]
@@ -2129,6 +2472,11 @@ def public_brand(tenant_slug: str):
     row["categoryLabel"] = row["category_label"]
     row["registrationProfile"] = row["registration_profile"]
     row["copyPack"] = row["copy_pack"]
+    row["heroProfile"] = row["hero_profile"]
+    row["websiteProfile"] = row["website_profile"]
+    row["principalProfile"] = row["principal_profile"]
+    row["faqItems"] = row["faq_items"]
+    row["visualTheme"] = row["visual_theme"]
     return jsonify({"brand": row})
 
 

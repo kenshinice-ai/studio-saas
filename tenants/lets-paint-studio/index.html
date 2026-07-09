@@ -704,6 +704,100 @@
   }
   var LANG=(function(){try{return localStorage.getItem('lp_lang')==='en'?'en':'zh'}catch(e){return 'zh'}})();
   function T(zh,en){return LANG==='en'?en:zh;}
+  function setPublicText(el, text){
+    if(!el || !text) return;
+    el.textContent=text;
+    el.setAttribute('data-zh', text);
+    el.setAttribute('data-en', text);
+  }
+  function showPublicSection(selector, visible){
+    var el=document.querySelector(selector);
+    if(el) el.style.display = visible ? '' : 'none';
+  }
+  function renderRegistrationFields(profile){
+    var msg=document.getElementById('j-msg');
+    if(!msg || !profile || !Array.isArray(profile.fields)) return;
+    var box=document.getElementById('joinCustomFields');
+    if(!box){
+      box=document.createElement('div');
+      box.id='joinCustomFields';
+      msg.closest('.fld').parentNode.insertBefore(box, msg.closest('.fld'));
+    }
+    box.innerHTML='';
+    profile.fields.slice(0,8).forEach(function(field){
+      var wrap=document.createElement('div'); wrap.className='fld';
+      var label=document.createElement('label'); label.textContent=(field.label||field.key||'Question')+(field.required?' *':'');
+      wrap.appendChild(label);
+      var input;
+      if(field.type==='textarea'){
+        input=document.createElement('textarea'); input.rows=2;
+      }else if(field.type==='select'){
+        input=document.createElement('select');
+        var blank=document.createElement('option'); blank.value=''; blank.textContent=field.placeholder||T('请选择…','Please choose…'); input.appendChild(blank);
+        (field.options||[]).forEach(function(option){ var opt=document.createElement('option'); opt.value=option; opt.textContent=option; input.appendChild(opt); });
+      }else{
+        input=document.createElement('input');
+      }
+      input.dataset.regLabel=field.label||field.key||'Question';
+      input.dataset.regRequired=field.required?'true':'false';
+      if(field.placeholder && field.type!=='select') input.placeholder=field.placeholder;
+      wrap.appendChild(input);
+      box.appendChild(wrap);
+    });
+  }
+  function collectRegistrationFields(){
+    var out=[];
+    document.querySelectorAll('#joinCustomFields [data-reg-label]').forEach(function(input){
+      var value=(input.value||'').trim();
+      if(input.dataset.regRequired==='true' && !value) throw new Error(T('请填写必填报名问题','Please complete the required registration questions.'));
+      if(value) out.push(input.dataset.regLabel+': '+value);
+    });
+    return out;
+  }
+  fetch('/v1/public/lets-paint-studio/brand').then(function(r){return r.json();}).then(function(d){
+    var b=(d&&d.brand)||{};
+    var hero=b.heroProfile||b.hero_profile||{};
+    var website=b.websiteProfile||b.website_profile||{};
+    var principal=b.principalProfile||b.principal_profile||{};
+    var visual=b.visualTheme||b.visual_theme||{};
+    var accent=visual.accent_color||visual.accentColor||b.primaryColor||b.primary_color;
+    if(accent) document.documentElement.style.setProperty('--clay', accent);
+    if(b.secondaryColor||b.secondary_color) document.documentElement.style.setProperty('--clay-d', b.secondaryColor||b.secondary_color);
+    if(visual.background_color||visual.backgroundColor) document.documentElement.style.setProperty('--bg', visual.background_color||visual.backgroundColor);
+    if(visual.panel_color||visual.panelColor) document.documentElement.style.setProperty('--panel', visual.panel_color||visual.panelColor);
+    if(visual.text_color||visual.textColor) document.documentElement.style.setProperty('--ink', visual.text_color||visual.textColor);
+    setPublicText(document.querySelector('.hero .eyebrow'), hero.eyebrow||b.categoryLabel);
+    setPublicText(document.querySelector('.hero h1'), hero.title);
+    setPublicText(document.querySelector('.hero .slogan'), hero.subtitle||b.slogan);
+    setPublicText(document.querySelector('.hero .btn-fill'), (hero.primary_cta_label||hero.primaryCtaLabel||'Book an Experience')+' →');
+    setPublicText(document.querySelector('.hero .btn-line'), hero.secondary_cta_label||hero.secondaryCtaLabel);
+    var showStudent=String(hero.show_student_login ?? hero.showStudentLogin ?? website.show_student_area ?? website.showStudentArea ?? true)!=='false';
+    document.querySelectorAll("[onclick=\"go('my')\"], .hero-login").forEach(function(el){ el.style.display=showStudent?'':'none'; });
+    showPublicSection('#parent', showStudent);
+    var showPrincipal=String(website.show_principal ?? website.showPrincipal ?? principal.show ?? true)!=='false';
+    showPublicSection('#artist', showPrincipal);
+    showPublicSection('#courses', String(website.show_courses ?? website.showCourses ?? true)!=='false');
+    showPublicSection('#gallery', String(website.show_gallery ?? website.showGallery ?? true)!=='false');
+    showPublicSection('#faq', String(website.show_faq ?? website.showFaq ?? true)!=='false');
+    showPublicSection('#contact', String(website.show_contact ?? website.showContact ?? true)!=='false');
+    setPublicText(document.querySelector('#artist .reveal > .eyebrow'), principal.title);
+    setPublicText(document.querySelector('#artist h2'), principal.name);
+    setPublicText(document.querySelector('#artist .bio'), principal.bio);
+    setPublicText(document.querySelector('#artist .sig-line'), principal.quote);
+    if(principal.image_url||principal.imageUrl){ var img=document.querySelector('#artist img'); if(img){ img.src=principal.image_url||principal.imageUrl; img.style.display='block'; } }
+    var faqItems=b.faqItems||b.faq_items||[];
+    var faqList=document.querySelector('#faq .faqwrap');
+    if(faqList && faqItems.length){
+      faqList.innerHTML='';
+      faqItems.slice(0,8).forEach(function(item){
+        var details=document.createElement('details'); details.className='faq';
+        var summary=document.createElement('summary'); summary.textContent=item.question||'Question';
+        var answer=document.createElement('p'); answer.textContent=item.answer||'';
+        details.appendChild(summary); details.appendChild(answer); faqList.appendChild(details);
+      });
+    }
+    renderRegistrationFields(b.registrationProfile||b.registration_profile);
+  }).catch(function(){});
   /* ── 预约体验 → /api/register ── */
   function submitJoin(){
     var v=function(id){var e=document.getElementById(id);return e?(e.value||'').trim():'';};
@@ -724,6 +818,8 @@
     if(birthday) msgParts.push('生日: '+birthday);
     if(exp)      msgParts.push('经验: '+exp);
     if(goals)    msgParts.push('目标: '+goals);
+    try{ msgParts = msgParts.concat(collectRegistrationFields()); }
+    catch(err){ btn.disabled=false; btn.textContent=T('提交预约','Submit booking'); return show(err.message); }
     if(msg)      msgParts.push(msg);
     var body={firstName:name, lastName:last, mobile:phone, wechat:wechat, email:email,
               birthday:birthday, experience:exp, goals:goals, message:msgParts.join(' ｜ '),

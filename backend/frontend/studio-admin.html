@@ -1349,11 +1349,92 @@
           </div>
         </div>
 
+        <div class="section-subtitle" style="margin:20px 0 10px;">Hero, CTA, and public section controls</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Hero Eyebrow</label>
+            <input id="settingHeroEyebrow" placeholder="Creative Studio">
+          </div>
+          <div class="form-group">
+            <label>Hero Title</label>
+            <input id="settingHeroTitle" placeholder="Public hero headline">
+          </div>
+          <div class="form-group">
+            <label>Hero Subtitle</label>
+            <input id="settingHeroSubtitle" placeholder="Short public value proposition">
+          </div>
+          <div class="form-group">
+            <label>Hero Image URL</label>
+            <input id="settingHeroImageUrl" placeholder="/site/hero.jpg or https://...">
+          </div>
+          <div class="form-group">
+            <label>Primary CTA Label</label>
+            <input id="settingPrimaryCta" placeholder="Book a Trial">
+          </div>
+          <div class="form-group">
+            <label>Secondary CTA Label</label>
+            <input id="settingSecondaryCta" placeholder="Explore Courses">
+          </div>
+          <div class="form-group">
+            <label>Hero Style</label>
+            <select id="settingHeroStyle">
+              <option value="soft">Soft Art Board</option>
+              <option value="image">Image Background</option>
+              <option value="minimal">Minimal</option>
+              <option value="bold">Bold Contrast</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Student Login Link</label>
+            <select id="settingShowStudentLogin">
+              <option value="true">Show</option>
+              <option value="false">Hide</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="section-subtitle" style="margin:20px 0 10px;">Public page sections and labels</div>
+        <div class="form-grid">
+          <div class="form-group"><label>Principal Section</label><select id="settingShowPrincipal"><option value="true">Show</option><option value="false">Hide</option></select></div>
+          <div class="form-group"><label>Courses Section</label><select id="settingShowCourses"><option value="true">Show</option><option value="false">Hide</option></select></div>
+          <div class="form-group"><label>Gallery Section</label><select id="settingShowGallery"><option value="true">Show</option><option value="false">Hide</option></select></div>
+          <div class="form-group"><label>FAQ Section</label><select id="settingShowFaq"><option value="true">Show</option><option value="false">Hide</option></select></div>
+          <div class="form-group"><label>Contact Section</label><select id="settingShowContact"><option value="true">Show</option><option value="false">Hide</option></select></div>
+          <div class="form-group"><label>Student Area Section</label><select id="settingShowStudentArea"><option value="true">Show</option><option value="false">Hide</option></select></div>
+          <div class="form-group"><label>Courses Label</label><input id="settingCoursesLabel" placeholder="Courses & Classes"></div>
+          <div class="form-group"><label>Gallery Label</label><input id="settingGalleryLabel" placeholder="Student Works"></div>
+          <div class="form-group"><label>FAQ Label</label><input id="settingFaqLabel" placeholder="Questions & Answers"></div>
+          <div class="form-group"><label>Contact Label</label><input id="settingContactLabel" placeholder="Contact"></div>
+        </div>
+
+        <div class="section-subtitle" style="margin:20px 0 10px;">Principal / about block</div>
+        <div class="form-grid">
+          <div class="form-group"><label>Principal Name</label><input id="settingPrincipalName" placeholder="Name shown on public page"></div>
+          <div class="form-group"><label>Principal Title</label><input id="settingPrincipalTitle" placeholder="Founder & Principal"></div>
+          <div class="form-group"><label>Principal Image URL</label><input id="settingPrincipalImageUrl" placeholder="/site/principal.jpg or https://..."></div>
+          <div class="form-group"><label>Principal Quote</label><input id="settingPrincipalQuote" placeholder="Short signature line"></div>
+          <div class="form-group" style="grid-column:1/-1;"><label>Principal Bio</label><textarea id="settingPrincipalBio" rows="3" placeholder="Short public introduction"></textarea></div>
+        </div>
+
+        <div class="section-subtitle" style="margin:20px 0 10px;">Light visual theme</div>
+        <div class="form-grid">
+          <div class="form-group"><label>Page Background</label><input id="settingThemeBackground" type="color"></div>
+          <div class="form-group"><label>Panel Background</label><input id="settingThemePanel" type="color"></div>
+          <div class="form-group"><label>Text Color</label><input id="settingThemeText" type="color"></div>
+          <div class="form-group"><label>Accent Color</label><input id="settingThemeAccent" type="color"></div>
+          <div class="form-group"><label>Button Style</label><select id="settingButtonStyle"><option value="soft">Soft</option><option value="sharp">Sharp</option><option value="rounded">Rounded</option></select></div>
+          <div class="form-group"><label>Font Mood</label><select id="settingFontMood"><option value="serif">Serif / editorial</option><option value="modern">Modern sans</option><option value="classic">Classic balanced</option></select></div>
+        </div>
+
         <!-- Color Warning -->
         <div id="colorWarning" class="hidden"></div>
 
         <!-- Registration Fields Editor -->
+        <div class="section-subtitle" style="margin:20px 0 10px;">Registration questions</div>
         <div class="form-grid mt-2" id="registrationFieldsEditor"></div>
+
+        <div class="section-subtitle" style="margin:20px 0 10px;">FAQ items</div>
+        <div class="form-grid mt-2" id="faqItemsEditor"></div>
 
         <!-- Theme Preview -->
         <div class="theme-preview" id="themePreview">
@@ -2320,6 +2401,74 @@
       return JSON.parse(JSON.stringify(profileByCategory[category] || profileByCategory.general));
     }
 
+    function boolValue(value, fallback = true) {
+      if (value === undefined || value === null || value === '') return fallback;
+      if (typeof value === 'string') return value !== 'false';
+      return Boolean(value);
+    }
+
+    function defaultHeroProfile(category, name) {
+      const preset = INDUSTRY_PRESETS[category] || INDUSTRY_PRESETS.general;
+      return {
+        eyebrow: preset.label,
+        title: name || '',
+        subtitle: preset.slogan,
+        primary_cta_label: 'Book a Trial',
+        secondary_cta_label: 'Explore Courses',
+        show_student_login: true,
+        background_style: 'soft',
+        hero_image_url: ''
+      };
+    }
+
+    function defaultWebsiteProfile() {
+      return {
+        show_principal: true,
+        show_courses: true,
+        show_gallery: true,
+        show_faq: true,
+        show_contact: true,
+        show_student_area: true,
+        courses_label: 'Courses & Classes',
+        gallery_label: 'Student Works',
+        faq_label: 'Questions & Answers',
+        contact_label: 'Contact'
+      };
+    }
+
+    function defaultPrincipalProfile(name) {
+      return {
+        show: true,
+        name: '',
+        title: 'Founder & Principal',
+        bio: `Meet the principal behind ${name || 'the studio'} and the teaching philosophy that shapes every class.`,
+        quote: 'Learn with care, confidence, and a rhythm that fits each student.',
+        image_url: ''
+      };
+    }
+
+    function defaultFaqItems(category) {
+      const preset = INDUSTRY_PRESETS[category] || INDUSTRY_PRESETS.general;
+      return [
+        { question: 'Is there a trial class?', answer: 'Yes. Leave your details and the studio will contact you to arrange a suitable first session.' },
+        { question: 'How do class packs work?', answer: 'Classes can be tracked as credits in the CMS, and families can check balances from the student area.' },
+        { question: `Which ${String(preset.label || 'class').toLowerCase()} level should we choose?`, answer: 'Start with your current experience and goals in the registration form. The studio will recommend the right class.' },
+        { question: 'Can parents view progress?', answer: 'Yes. The public portal includes a student area for class balance and portfolio lookup when enabled.' }
+      ];
+    }
+
+    function defaultVisualTheme() {
+      return {
+        background_color: '#F4F0E8',
+        panel_color: '#FBF9F4',
+        text_color: '#23211D',
+        accent_color: $('settingPrimaryColor')?.value || '#2563eb',
+        secondary_accent_color: $('settingSecondaryColor')?.value || '#0f172a',
+        button_style: 'soft',
+        font_mood: 'serif'
+      };
+    }
+
     function hexToRgb(hex) {
       const clean = String(hex || '').replace('#', '');
       if (!/^[0-9a-fA-F]{6}$/.test(clean)) return null;
@@ -2345,13 +2494,19 @@
     function updateThemePreview() {
       const primary = $('settingPrimaryColor').value || '#2563eb';
       const secondary = $('settingSecondaryColor').value || '#0f172a';
+      const bg = $('settingThemeBackground')?.value || '#F4F0E8';
+      const panel = $('settingThemePanel')?.value || '#FBF9F4';
+      const accent = $('settingThemeAccent')?.value || primary;
       $('themePreview').style.setProperty('--preview-primary', primary);
       $('themePreview').style.setProperty('--preview-secondary', secondary);
-      $('themePreviewTitle').textContent = `${$('settingName').value || 'Studio'} Theme`;
+      $('themePreview').style.background = panel;
+      $('themePreview').style.borderColor = accent;
+      $('themePreview').style.boxShadow = `0 0 0 6px ${bg}`;
+      $('themePreviewTitle').textContent = $('settingHeroTitle')?.value || `${$('settingName').value || 'Studio'} Theme`;
       $('themePreviewSlug').textContent = currentTenantSlug() || 'tenant';
       const welcomeVisible = $('settingShowWelcome').value !== 'false';
       $('themePreviewWelcome').textContent = welcomeVisible
-        ? ($('settingWelcome').value || $('settingSlogan').value || $('settingRegisterIntro').value || 'Welcome message appears on CMS and Register when enabled.')
+        ? ($('settingHeroSubtitle')?.value || $('settingWelcome').value || $('settingSlogan').value || $('settingRegisterIntro').value || 'Welcome message appears on CMS and Register when enabled.')
         : 'Welcome message is hidden on CMS/Register.';
       $('previewName').textContent = $('settingName').value || 'Studio';
       $('previewContact').textContent = [$('settingPhone').value, $('settingEmail').value, $('settingAddress').value].filter(Boolean).join(' · ') || 'Contact details';
@@ -2384,7 +2539,20 @@
           <label>Field Placeholder</label>
           <input data-reg-placeholder="${index}" value="${esc(field.placeholder || '')}">
           <input type="hidden" data-reg-key="${index}" value="${esc(field.key || `field${index + 1}`)}">
-          <input type="hidden" data-reg-type="${index}" value="${esc(field.type || 'text')}">
+        </div>
+        <div class="form-group">
+          <label>Field Type</label>
+          <select data-reg-type="${index}">
+            ${['text','textarea','select'].map((type) => `<option value="${type}" ${type === (field.type || 'text') ? 'selected' : ''}>${type}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Required / Options</label>
+          <select data-reg-required="${index}">
+            <option value="false" ${!field.required ? 'selected' : ''}>Optional</option>
+            <option value="true" ${field.required ? 'selected' : ''}>Required</option>
+          </select>
+          <input data-reg-options="${index}" style="margin-top:8px" value="${esc((field.options || []).join(', '))}" placeholder="Select options, comma separated">
         </div>
       `).join('');
     }
@@ -2398,7 +2566,12 @@
         const key = $('registrationFieldsEditor').querySelector(`[data-reg-key="${selectorKey}"]`)?.value || `field${index + 1}`;
         const placeholder = $('registrationFieldsEditor').querySelector(`[data-reg-placeholder="${selectorKey}"]`)?.value || '';
         const type = $('registrationFieldsEditor').querySelector(`[data-reg-type="${selectorKey}"]`)?.value || 'text';
-        if (label) fields.push({ key, label, placeholder, type });
+        const required = $('registrationFieldsEditor').querySelector(`[data-reg-required="${selectorKey}"]`)?.value === 'true';
+        const options = ($('registrationFieldsEditor').querySelector(`[data-reg-options="${selectorKey}"]`)?.value || '')
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean);
+        if (label) fields.push({ key, label, placeholder, type, required, options });
       });
       return {
         title: $('settingRegistrationTitle').value.trim() || fallback.title,
@@ -2406,10 +2579,40 @@
       };
     }
 
+    function fillFaqItems(items) {
+      const fallback = defaultFaqItems($('settingCategory')?.value || 'general');
+      const faqs = Array.isArray(items) && items.length ? items : fallback;
+      $('faqItemsEditor').innerHTML = faqs.slice(0, 6).map((item, index) => `
+        <div class="form-group">
+          <label>FAQ Question</label>
+          <input data-faq-question="${index}" value="${esc(item.question || '')}">
+        </div>
+        <div class="form-group">
+          <label>FAQ Answer</label>
+          <textarea data-faq-answer="${index}" rows="2">${esc(item.answer || '')}</textarea>
+        </div>
+      `).join('');
+    }
+
+    function collectFaqItems() {
+      const items = [];
+      $('faqItemsEditor').querySelectorAll('[data-faq-question]').forEach((input, index) => {
+        const key = input.getAttribute('data-faq-question') || String(index);
+        const question = input.value.trim();
+        const answer = $('faqItemsEditor').querySelector(`[data-faq-answer="${key}"]`)?.value.trim() || '';
+        if (question && answer) items.push({ question, answer });
+      });
+      return items.length ? items : defaultFaqItems($('settingCategory').value);
+    }
+
     function fillSettings() {
       const t = tenant || {};
       const category = t.category || t.settings?.category || 'general';
       const preset = INDUSTRY_PRESETS[category] || INDUSTRY_PRESETS.general;
+      const hero = t.hero_profile || t.heroProfile || defaultHeroProfile(category, t.name);
+      const website = t.website_profile || t.websiteProfile || defaultWebsiteProfile();
+      const principal = t.principal_profile || t.principalProfile || defaultPrincipalProfile(t.name);
+      const visual = t.visual_theme || t.visualTheme || defaultVisualTheme();
       $('studioName').textContent = t.name || 'Studio Admin';
       $('studioMeta').textContent = t.slug ? `${t.slug} · ${preset.label} website and brand console` : 'Website and brand console';
       $('tenantSlug').value = t.slug || currentTenantSlug();
@@ -2434,6 +2637,36 @@
       const profile = t.registration_profile || t.registrationProfile || defaultRegistrationProfile(category);
       $('settingRegistrationTitle').value = profile.title || 'Student Registration';
       fillRegistrationFields(profile);
+      $('settingHeroEyebrow').value = hero.eyebrow || preset.label;
+      $('settingHeroTitle').value = hero.title || t.name || '';
+      $('settingHeroSubtitle').value = hero.subtitle || t.slogan || preset.slogan;
+      $('settingHeroImageUrl').value = hero.hero_image_url || hero.heroImageUrl || '';
+      $('settingPrimaryCta').value = hero.primary_cta_label || hero.primaryCtaLabel || 'Book a Trial';
+      $('settingSecondaryCta').value = hero.secondary_cta_label || hero.secondaryCtaLabel || 'Explore Courses';
+      $('settingHeroStyle').value = hero.background_style || hero.backgroundStyle || 'soft';
+      $('settingShowStudentLogin').value = String(boolValue(hero.show_student_login ?? hero.showStudentLogin, true));
+      $('settingShowPrincipal').value = String(boolValue(website.show_principal ?? website.showPrincipal, true));
+      $('settingShowCourses').value = String(boolValue(website.show_courses ?? website.showCourses, true));
+      $('settingShowGallery').value = String(boolValue(website.show_gallery ?? website.showGallery, true));
+      $('settingShowFaq').value = String(boolValue(website.show_faq ?? website.showFaq, true));
+      $('settingShowContact').value = String(boolValue(website.show_contact ?? website.showContact, true));
+      $('settingShowStudentArea').value = String(boolValue(website.show_student_area ?? website.showStudentArea, true));
+      $('settingCoursesLabel').value = website.courses_label || website.coursesLabel || 'Courses & Classes';
+      $('settingGalleryLabel').value = website.gallery_label || website.galleryLabel || 'Student Works';
+      $('settingFaqLabel').value = website.faq_label || website.faqLabel || 'Questions & Answers';
+      $('settingContactLabel').value = website.contact_label || website.contactLabel || 'Contact';
+      $('settingPrincipalName').value = principal.name || '';
+      $('settingPrincipalTitle').value = principal.title || 'Founder & Principal';
+      $('settingPrincipalBio').value = principal.bio || '';
+      $('settingPrincipalQuote').value = principal.quote || '';
+      $('settingPrincipalImageUrl').value = principal.image_url || principal.imageUrl || '';
+      $('settingThemeBackground').value = visual.background_color || visual.backgroundColor || '#F4F0E8';
+      $('settingThemePanel').value = visual.panel_color || visual.panelColor || '#FBF9F4';
+      $('settingThemeText').value = visual.text_color || visual.textColor || '#23211D';
+      $('settingThemeAccent').value = visual.accent_color || visual.accentColor || $('settingPrimaryColor').value || '#2563eb';
+      $('settingButtonStyle').value = visual.button_style || visual.buttonStyle || 'soft';
+      $('settingFontMood').value = visual.font_mood || visual.fontMood || 'serif';
+      fillFaqItems(t.faq_items || t.faqItems || defaultFaqItems(category));
       updateThemePreview();
     }
 
@@ -2457,7 +2690,47 @@
           portalLabel: $('settingPortalLabel').value.trim(),
           registerIntro: $('settingRegisterIntro').value.trim()
         },
-        registrationProfile: collectRegistrationProfile()
+        registrationProfile: collectRegistrationProfile(),
+        heroProfile: {
+          eyebrow: $('settingHeroEyebrow').value.trim(),
+          title: $('settingHeroTitle').value.trim(),
+          subtitle: $('settingHeroSubtitle').value.trim(),
+          heroImageUrl: $('settingHeroImageUrl').value.trim(),
+          primaryCtaLabel: $('settingPrimaryCta').value.trim(),
+          secondaryCtaLabel: $('settingSecondaryCta').value.trim(),
+          backgroundStyle: $('settingHeroStyle').value,
+          showStudentLogin: $('settingShowStudentLogin').value === 'true'
+        },
+        websiteProfile: {
+          showPrincipal: $('settingShowPrincipal').value === 'true',
+          showCourses: $('settingShowCourses').value === 'true',
+          showGallery: $('settingShowGallery').value === 'true',
+          showFaq: $('settingShowFaq').value === 'true',
+          showContact: $('settingShowContact').value === 'true',
+          showStudentArea: $('settingShowStudentArea').value === 'true',
+          coursesLabel: $('settingCoursesLabel').value.trim(),
+          galleryLabel: $('settingGalleryLabel').value.trim(),
+          faqLabel: $('settingFaqLabel').value.trim(),
+          contactLabel: $('settingContactLabel').value.trim()
+        },
+        principalProfile: {
+          show: $('settingShowPrincipal').value === 'true',
+          name: $('settingPrincipalName').value.trim(),
+          title: $('settingPrincipalTitle').value.trim(),
+          bio: $('settingPrincipalBio').value.trim(),
+          quote: $('settingPrincipalQuote').value.trim(),
+          imageUrl: $('settingPrincipalImageUrl').value.trim()
+        },
+        faqItems: collectFaqItems(),
+        visualTheme: {
+          backgroundColor: $('settingThemeBackground').value,
+          panelColor: $('settingThemePanel').value,
+          textColor: $('settingThemeText').value,
+          accentColor: $('settingThemeAccent').value,
+          secondaryAccentColor: $('settingSecondaryColor').value,
+          buttonStyle: $('settingButtonStyle').value,
+          fontMood: $('settingFontMood').value
+        }
       };
     }
 
@@ -2486,9 +2759,13 @@
       $('settingSlogan').value = preset.slogan;
       $('settingPortalLabel').value = preset.portalLabel;
       $('settingRegisterIntro').value = preset.registerIntro;
+      $('settingHeroEyebrow').value = preset.label;
+      $('settingHeroSubtitle').value = preset.slogan;
+      $('settingHeroTitle').value = $('settingName').value || preset.label;
       const profile = defaultRegistrationProfile($('settingCategory').value);
       $('settingRegistrationTitle').value = profile.title;
       fillRegistrationFields(profile);
+      fillFaqItems(defaultFaqItems($('settingCategory').value));
       updateThemePreview();
       showToast('Category preset applied.');
     }
@@ -3142,8 +3419,15 @@
       $('saveSettingsBtn').addEventListener('click', () => runUiAction('saveSettingsBtn', 'Saving...', saveSettings));
       $('settingLogoFile').addEventListener('change', () => uploadLogo().catch((err) => showToast(err.message, 'error')));
       $('resetPresetBtn').addEventListener('click', applyCategoryPreset);
-      ['settingName','settingLogoUrl','settingPrimaryColor','settingSecondaryColor','settingWelcome','settingSlogan','settingPortalLabel','settingRegisterIntro','settingRegistrationTitle','settingPhone','settingEmail','settingAddress'].forEach((id) => $(id).addEventListener('input', updateThemePreview));
+      [
+        'settingName','settingLogoUrl','settingPrimaryColor','settingSecondaryColor','settingWelcome','settingSlogan',
+        'settingPortalLabel','settingRegisterIntro','settingRegistrationTitle','settingPhone','settingEmail','settingAddress',
+        'settingHeroEyebrow','settingHeroTitle','settingHeroSubtitle','settingHeroImageUrl','settingPrimaryCta','settingSecondaryCta',
+        'settingPrincipalName','settingPrincipalTitle','settingPrincipalBio','settingPrincipalQuote','settingPrincipalImageUrl',
+        'settingThemeBackground','settingThemePanel','settingThemeText','settingThemeAccent'
+      ].forEach((id) => $(id).addEventListener('input', updateThemePreview));
       $('settingShowWelcome').addEventListener('change', updateThemePreview);
+      ['settingHeroStyle','settingShowStudentLogin','settingButtonStyle','settingFontMood'].forEach((id) => $(id).addEventListener('change', updateThemePreview));
       $('settingCategory').addEventListener('change', applyCategoryPreset);
       ['studentSearch','studentStatusFilter','studentLowFilter'].forEach((id) => $(id).addEventListener('input', () => { studentPage = 0; refresh(); }));
       $('clearStudentFiltersBtn').addEventListener('click', () => { $('studentSearch').value = ''; $('studentStatusFilter').value = ''; $('studentLowFilter').checked = false; studentPage = 0; refresh(); });
