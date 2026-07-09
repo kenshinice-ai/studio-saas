@@ -78,6 +78,19 @@
   .brandband .wrap{padding:64px 28px;text-align:center}
   .brandband .cn-line{color:var(--ink2);font-size:clamp(16px,2vw,22px);letter-spacing:.04em;max-width:40ch;margin:0 auto;line-height:1.8}
 
+  .artist-grid{display:grid;grid-template-columns:.82fr 1.18fr;gap:64px;align-items:center}
+  .artist-portrait{aspect-ratio:4/5;border:1px solid var(--line);position:relative;overflow:hidden;background:
+     radial-gradient(90% 70% at 30% 20%,#E4C7B4 0%,transparent 55%),
+     radial-gradient(90% 80% at 80% 90%,#CDBBA6 0%,transparent 55%),
+     linear-gradient(155deg,#EBE0D0,#DFD1BC)}
+  .artist-portrait .nm{position:absolute;left:22px;bottom:20px;font-family:"Cormorant Garamond",serif;font-size:22px;color:#6a5f50}
+  .roles{display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:22px;padding-top:22px;border-top:1px solid var(--line)}
+  .roles span{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink2)}
+  .roles span::before{content:"·";color:var(--clay);margin-right:22px;margin-left:-14px}
+  .roles span:first-child::before{content:"";margin:0}
+  .artist-grid .bio{color:var(--ink2);margin-top:24px;font-size:15.5px;max-width:52ch}
+  .sig-line{font-family:"Cormorant Garamond",serif;font-style:italic;font-size:22px;color:var(--clay);margin-top:26px}
+
   .course-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-top:1px solid var(--line)}
   .course{padding:38px 26px 34px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);transition:background .35s}
   .course:first-child{border-left:1px solid var(--line)}
@@ -171,8 +184,8 @@
   }
   @media(max-width:900px){
     .navlinks{display:none}.menu-btn{display:block}
-    .hero-grid,.parent .wrap{grid-template-columns:1fr;gap:40px}
-    .hero-art{max-height:50vh}
+    .hero-grid,.parent .wrap,.artist-grid{grid-template-columns:1fr;gap:40px}
+    .hero-art,.artist-portrait{max-height:50vh}
     .course-grid{grid-template-columns:1fr 1fr}
     .course:nth-child(2n){border-right:1px solid var(--line)}.course:nth-child(odd){border-left:1px solid var(--line)}
     .g-grid{grid-template-columns:1fr 1fr}
@@ -190,6 +203,7 @@
       <span class="bn" id="brandName">Dance Dance</span>
     </div>
     <div class="navlinks">
+      <a onclick="go('home','#artist')" data-en="Principal">主理人</a>
       <a onclick="go('home','#courses')" data-en="Courses">课程</a>
       <a onclick="go('home','#gallery')" data-en="Gallery">学员作品</a>
       <a onclick="go('home','#faq')" data-en="FAQ">常见问题</a>
@@ -200,6 +214,7 @@
     <button class="menu-btn" onclick="var m=document.getElementById('mnav');m.style.display=(m.style.display==='flex'?'none':'flex')">☰</button>
   </div>
   <div id="mnav" style="display:none;flex-direction:column;background:var(--bg);border-top:1px solid var(--line);padding:14px 28px 20px;gap:14px">
+    <a onclick="go('home','#artist')" data-en="Principal">主理人</a>
     <a onclick="go('home','#courses')" data-en="Courses">课程</a>
     <a onclick="go('home','#gallery')" data-en="Gallery">学员作品</a>
     <a onclick="go('home','#faq')" data-en="FAQ">常见问题</a>
@@ -235,7 +250,23 @@
   </div>
 </div>
 
-<section id="courses">
+<section id="artist">
+  <div class="wrap artist-grid">
+    <!-- ══ 主理人占位板块 PRINCIPAL PLACEHOLDER ══
+         替换指引：①「主理人姓名」→ 真实姓名；② 简介/签名句 → 真实内容；
+         ③ 头像放 /site/principal.jpg（缺图时自动隐藏，仅显示底纹）。 -->
+    <div class="artist-portrait reveal"><img src="/site/principal.jpg" alt="Principal" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'"><span class="nm" data-en="Principal">主理人</span></div>
+    <div class="reveal">
+      <p class="eyebrow" data-en="Founder &amp; Principal">创始人 · 主理人</p>
+      <h2 class="serif" style="font-size:clamp(30px,3.6vw,46px);font-weight:500;line-height:1.12;margin-top:14px" data-en="Principal Name">主理人姓名</h2>
+      <div class="roles"><span>Founder</span><span>Principal</span><span>Mentor</span></div>
+      <p class="bio" data-en="[Placeholder] Introduce the studio principal here — professional background, teaching philosophy and representative experience. Replace this paragraph with the real introduction.">【占位文案】在这里介绍工作室的主理人：专业背景、教学理念与代表经历。请将本段替换为真实介绍。</p>
+      <p class="sig-line" data-en="— A signature line from the principal.">— 主理人的一句签名式理念。</p>
+    </div>
+  </div>
+</section>
+
+<section id="courses" style="background:var(--bg2)">
   <div class="wrap">
     <div class="sec-head reveal">
       <p class="eyebrow" data-en="Courses &amp; Classes">课程与班型</p>

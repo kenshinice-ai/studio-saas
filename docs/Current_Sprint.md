@@ -90,6 +90,9 @@ These items from earlier sprint docs are confirmed done — do not re-fix:
 | lets-paint-studio keeps the full-content portal (artist/FAQ/contact), rewired to v1 endpoints | ✅ |
 | `/slug/cms/studio-admin` → 302 alias to `/slug/studio-admin` | ✅ |
 | CSRF guard: `/v1/public/*` exempt (session-holding staff were 403-blocked on public portal forms) | ✅ |
+| Principal (主理人) placeholder section in template + all tenants; lets-paint de-personalised (Junjun/LV refs removed) | ✅ |
+| `.keep-local` guard: workspace files listed there survive template regeneration (protects bespoke portals) | ✅ |
+| Folder tidy: portal reference → `docs/reference/`, 2026-07-03 zip snapshot → `checkpoints/`, .DS_Store purged | ✅ |
 
 ### CMS Core Sprint — codingprompt v5 (2026-07-04)
 

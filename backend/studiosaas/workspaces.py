@@ -62,8 +62,21 @@ def ensure_tenant_workspace(app_root: str | Path, slug: str, name: str) -> str:
         "{{TENANT_SLUG}}": slug,
         "{{TENANT_NAME}}": name,
     }
+    # Hand-customised workspace files (e.g. a bespoke portal) list themselves
+    # in tenants/<slug>/.keep-local, one filename per line; those are never
+    # overwritten by template regeneration.
+    keep_local: set[str] = set()
+    keep_local_path = workspace_dir / ".keep-local"
+    if keep_local_path.is_file():
+        keep_local = {
+            line.strip()
+            for line in keep_local_path.read_text(encoding="utf-8").splitlines()
+            if line.strip() and not line.strip().startswith("#")
+        }
     for template_file in template_dir.iterdir():
         if not template_file.is_file():
+            continue
+        if template_file.name in keep_local:
             continue
         content = template_file.read_text(encoding="utf-8")
         for token, value in replacements.items():
