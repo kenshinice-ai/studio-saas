@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>StudioSaaS Super Admin</title>
+  <title>PWE Studio SaaS · Super Admin</title>
   <script src="/assets/ui-common.js"></script>
   <link rel="icon" href="/logo.png" type="image/png">
   <style>
@@ -970,7 +970,7 @@
     <div class="header-top">
       <div class="brand">
         <div>
-          <h1>Super Admin Console</h1>
+          <h1>PWE Studio SaaS · Super Admin</h1>
           <p>Manage tenants, plans, subscriptions, and platform analytics</p>
         </div>
       </div>
@@ -1836,7 +1836,8 @@
       const slug = encodeURIComponent(String(t.slug || ''));
       const open = section('Open');
       const unavailable = ['archived', 'deleted'].includes(t.status);
-      addActionLink(open, 'Open CMS', `/${slug}`, unavailable ? 'Archived or deleted tenants cannot be opened.' : '');
+      addActionLink(open, 'Open Portal', `/${slug}`, unavailable ? 'Archived or deleted tenants cannot be opened.' : '');
+      addActionLink(open, 'Open CMS', `/${slug}/cms`, unavailable ? 'Archived or deleted tenants cannot be opened.' : '');
       addActionLink(open, 'Open Studio Admin', `/${slug}/studio-admin`, unavailable ? 'Archived or deleted tenants cannot be opened.' : (!t.studio_admin_email ? 'Studio Admin login is not configured.' : ''));
       addActionLink(open, 'Open Register Page', `/${slug}/register`, ['paused', 'archived', 'deleted'].includes(t.status) ? 'Registration is unavailable for paused, archived, or deleted tenants.' : '');
       const support = section('Support');
@@ -2028,7 +2029,8 @@
         const links = document.createElement('div');
         links.className = 'link-grid';
         const unavailable = ['archived', 'deleted'].includes(t.status);
-        addActionLink(links, 'CMS', `/${slug}`, unavailable ? 'Archived or deleted tenants cannot be opened.' : '');
+        addActionLink(links, 'Portal', `/${slug}`, unavailable ? 'Archived or deleted tenants cannot be opened.' : '');
+        addActionLink(links, 'CMS', `/${slug}/cms`, unavailable ? 'Archived or deleted tenants cannot be opened.' : '');
         addActionLink(links, 'Admin', `/${slug}/studio-admin`, unavailable ? 'Archived or deleted tenants cannot be opened.' : (!t.studio_admin_email ? 'Studio Admin login is not configured.' : ''));
         addActionLink(links, 'Register', `/${slug}/register`, ['paused', 'archived', 'deleted'].includes(t.status) ? 'Registration is unavailable for paused, archived, or deleted tenants.' : '');
         item.appendChild(links);

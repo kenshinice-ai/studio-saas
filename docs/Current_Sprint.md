@@ -79,6 +79,18 @@ These items from earlier sprint docs are confirmed done — do not re-fix:
 | P0-4 | On-demand ONLINE/STOP `.command` scripts (user chose no persistent daemons); LaunchAgent templates in `deploy/launchd/` if ever needed | ✅ 2026-07-09 |
 | P0-5 | Cloudflare Access email-OTP policy on `/super-admin*` | ⚠️ manual dashboard step (Zero Trust → Access → Applications; self-hosted app for `studiosaas.cc.cd/super-admin*` + `/` root alias) |
 
+### Product rename + tenant portal (2026-07-09, user-directed)
+
+| Item | Status |
+|---|---|
+| Display rename → **PWE Studio SaaS** (titles, super-admin h1, health `service`, manifests, README; internal identifiers `STUDIOSAAS_*`/CSRF value/domain unchanged) | ✅ |
+| Passwords reverted to `admin123456` (test-only pilot, owner decision) | ✅ |
+| Super-admin quick links: Portal `/slug` + CMS `/slug/cms` + Admin + Register (was: "CMS" mislinked to `/slug`) | ✅ |
+| Tenant portal v2: `tenant-template/index.html` rebuilt on the LetsPaint v6.6.6 portal design — bilingual SPA (home/join/my/privacy), brand/programs from v1 public APIs, in-page enrolment (honeypot+consent) and student area (balance + portfolio thumbs) | ✅ |
+| lets-paint-studio keeps the full-content portal (artist/FAQ/contact), rewired to v1 endpoints | ✅ |
+| `/slug/cms/studio-admin` → 302 alias to `/slug/studio-admin` | ✅ |
+| CSRF guard: `/v1/public/*` exempt (session-holding staff were 403-blocked on public portal forms) | ✅ |
+
 ### CMS Core Sprint — codingprompt v5 (2026-07-04)
 
 | ID | Task | Status |
@@ -228,14 +240,14 @@ curl -sS -o /dev/null -w "%{http_code}" http://localhost:8899/register
 
 ## 5. Default Credentials (Local)
 
-> **Rotated 2026-07-09 (P0-1):** all seven privileged accounts (super admin + every demo owner) no longer use `admin123456`. Current passwords: `~/.studiosaas/pilot-credentials.txt` (chmod 600, outside the repo). The tables below list the **seed-time defaults** that apply only to freshly seeded databases.
+> **P0-1 rotation reverted 2026-07-09 (owner decision):** the pilot is test-only, so all seven privileged accounts are back on `admin123456`. Re-rotate before inviting real users (P0-5 Cloudflare Access on /super-admin is the compensating control until then).
 
 ### Super Admin
 
 | Field | Value |
 |---|---|
 | Email | `admin@studiosaas.local` |
-| Password | `admin123456` (seed default — rotated on the pilot DB) |
+| Password | `admin123456` |
 
 Reset command:
 

@@ -1,6 +1,6 @@
-# StudioSaaS
+# PWE Studio SaaS
 
-StudioSaaS is a multi-tenant Creative Studio Operating System for art schools, music studios, tutoring centres, creative academies, kids' activity providers, and small education businesses.
+PWE Studio SaaS (repo: studiosaas) is a multi-tenant Creative Studio Operating System for art schools, music studios, tutoring centres, creative academies, kids' activity providers, and small education businesses.
 
 It provides a lightweight SaaS-style platform for managing:
 
@@ -40,8 +40,17 @@ A target architecture (modular services: Auth/Tenant/Student/Course/Credit/Atten
 | Level | Who | Main surface |
 |---|---|---|
 | Platform Operator | SaaS owner | `/super-admin` (also `/`) |
-| Studio Owner / Admin | One tenant studio | `/<tenant-slug>/studio-admin` (tenant backend for managing Studio CMS data, registrations, students, credits, portfolio, and branding) |
-| Public Parent / Student | Visitors | `/<tenant-slug>`, `/<tenant-slug>/register` |
+| Studio Owner / Admin | One tenant studio | `/<tenant-slug>/cms` (daily student management) + `/<tenant-slug>/studio-admin` (settings/registrations backend) |
+| Public Parent / Student | Visitors | `/<tenant-slug>` (portal), `/<tenant-slug>/register` |
+
+**Every tenant gets four surfaces** (created from `tenant-template/`, branded via `/v1/public/<slug>/brand`):
+
+| Surface | URL | Purpose |
+|---|---|---|
+| Portal (门户) | `/<slug>` | Public site: courses, gallery, FAQ, contact, in-page enrolment + student area (balance/portfolio by name+phone) |
+| CMS | `/<slug>/cms` | Staff daily surface: check-in, credits, portfolio, roster |
+| Studio Admin | `/<slug>/studio-admin` | Settings, registration review, branding (alias: `/<slug>/cms/studio-admin` redirects here) |
+| Register | `/<slug>/register` | Standalone public registration form |
 
 Local URLs (default port 8899):
 
@@ -145,7 +154,7 @@ Server runs at `http://localhost:8899`.
 
 ### 4.6 Default local credentials
 
-Freshly seeded databases use `admin123456` for `admin@studiosaas.local` and each `owner@<slug>.test`. **The pilot database was rotated on 2026-07-09 (P0-1)** — current passwords live in `~/.studiosaas/pilot-credentials.txt` (never committed). Re-rotate with `seed_super_admin.py --reset-password` after any reseed.
+All local/pilot accounts use `admin123456`: `admin@studiosaas.local` (super admin) and each `owner@<slug>.test`. (A P0-1 rotation was applied 2026-07-09 and then reverted by owner decision — the pilot is test-only. Rotate before any real-user pilot.)
 
 ---
 

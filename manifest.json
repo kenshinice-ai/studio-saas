@@ -1,7 +1,7 @@
 {
-  "name": "Let's Paint CMS",
-  "short_name": "Paint CMS",
-  "description": "Let's Paint Studio 学员管理系统",
+  "name": "PWE Studio SaaS",
+  "short_name": "PWE Studio",
+  "description": "PWE Studio SaaS 学员管理系统",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

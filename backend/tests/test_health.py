@@ -6,7 +6,7 @@ def test_health_returns_ok(client):
     assert response.status_code == 200
     payload = response.get_json()
     assert payload["ok"] is True
-    assert payload["service"] == "StudioSaaS API"
+    assert payload["service"] == "PWE Studio SaaS API"
 
 
 def test_admin_mutation_requires_auth(client):

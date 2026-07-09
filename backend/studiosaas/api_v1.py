@@ -1206,7 +1206,7 @@ def _workspace_for(slug: str, name: str) -> str:
 def health():
     """Health check for the StudioSaaS v1 surface."""
 
-    return jsonify({"ok": True, "service": "StudioSaaS API", "version": "v1"})
+    return jsonify({"ok": True, "service": "PWE Studio SaaS API", "version": "v1"})
 
 
 def _tenant_response(conn):
