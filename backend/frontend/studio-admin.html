@@ -780,6 +780,445 @@
       font-size: 13px;
     }
 
+    .brand-workbench {
+      display: grid;
+      gap: 18px;
+    }
+
+    .workbench-hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: end;
+      gap: 18px;
+      padding: 22px;
+      border: 1px solid #dbeafe;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
+    }
+
+    .workbench-kicker {
+      color: #2563eb;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .workbench-title {
+      margin-top: 8px;
+      color: #0f172a;
+      font-size: clamp(24px, 3vw, 34px);
+      font-weight: 800;
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+
+    .workbench-copy {
+      max-width: 62ch;
+      margin-top: 10px;
+      color: #475569;
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .workbench-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 34px;
+      padding: 8px 12px;
+      border: 1px solid #bfdbfe;
+      border-radius: 999px;
+      background: #ffffff;
+      color: #1d4ed8;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .settings-shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .settings-panel,
+    .preview-panel {
+      border: 1px solid #dbe3ee;
+      border-radius: 14px;
+      background: #ffffff;
+      box-shadow: 0 18px 46px rgba(15, 23, 42, 0.07);
+      overflow: hidden;
+    }
+
+    .settings-panel {
+      min-width: 0;
+    }
+
+    .preview-panel {
+      position: sticky;
+      top: 136px;
+    }
+
+    .studio-tabs {
+      display: flex;
+      gap: 6px;
+      padding: 10px;
+      border-bottom: 1px solid #e2e8f0;
+      background: #f8fafc;
+      overflow-x: auto;
+    }
+
+    .studio-tab,
+    .preview-tab,
+    .device-tab {
+      border: 1px solid transparent;
+      border-radius: 8px;
+      background: transparent;
+      color: #64748b;
+      min-height: 34px;
+      padding: 8px 11px;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .studio-tab:hover,
+    .preview-tab:hover,
+    .device-tab:hover {
+      background: #ffffff;
+      color: #0f172a;
+      border-color: #e2e8f0;
+    }
+
+    .studio-tab.active,
+    .preview-tab.active,
+    .device-tab.active {
+      background: #0f172a;
+      color: #ffffff;
+      border-color: #0f172a;
+    }
+
+    .tab-panel {
+      display: none;
+      padding: 22px;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    .panel-heading {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 18px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid #eef2f7;
+    }
+
+    .panel-heading h3 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.2;
+    }
+
+    .panel-heading p {
+      margin: 5px 0 0;
+      color: #64748b;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .preset-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .preset-card {
+      min-height: 82px;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      background: #ffffff;
+      padding: 12px;
+      text-align: left;
+      cursor: pointer;
+      transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+    }
+
+    .preset-card:hover {
+      border-color: #93c5fd;
+      box-shadow: 0 12px 28px rgba(37, 99, 235, 0.12);
+      transform: translateY(-1px);
+    }
+
+    .preset-card.active {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+
+    .preset-name {
+      color: #0f172a;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .preset-copy {
+      margin-top: 5px;
+      color: #64748b;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .question-list {
+      grid-template-columns: 1fr;
+    }
+
+    .question-card,
+    .faq-card {
+      display: grid;
+      grid-template-columns: minmax(150px, 0.9fr) minmax(180px, 1.1fr) minmax(120px, 0.65fr) minmax(160px, 0.9fr);
+      gap: 12px;
+      padding: 14px;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      background: #f8fafc;
+    }
+
+    .faq-card {
+      grid-template-columns: minmax(180px, 0.9fr) minmax(240px, 1.4fr);
+    }
+
+    .preview-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border-bottom: 1px solid #e2e8f0;
+      background: #f8fafc;
+    }
+
+    .preview-tabs,
+    .device-tabs {
+      display: inline-flex;
+      gap: 5px;
+      padding: 4px;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      background: #ffffff;
+    }
+
+    .preview-stage {
+      padding: 16px;
+      background: #eef2f7;
+    }
+
+    .preview-device {
+      width: 100%;
+      max-width: 620px;
+      margin: 0 auto;
+      overflow: hidden;
+      border: 1px solid #cbd5e1;
+      border-radius: 14px;
+      background: var(--preview-bg, #F4F0E8);
+      color: var(--preview-ink, #23211D);
+      box-shadow: 0 24px 54px rgba(15, 23, 42, 0.18);
+      transition: max-width .2s ease;
+    }
+
+    .preview-device.mobile {
+      max-width: 310px;
+    }
+
+    .preview-chrome {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 14px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.32);
+      background: rgba(255, 255, 255, 0.72);
+      backdrop-filter: blur(8px);
+    }
+
+    .preview-brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      font-weight: 900;
+      font-size: 12px;
+    }
+
+    .preview-logo {
+      width: 28px;
+      height: 28px;
+      object-fit: contain;
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      border-radius: 7px;
+      background: #ffffff;
+      padding: 3px;
+      flex: 0 0 auto;
+    }
+
+    .preview-link {
+      color: var(--preview-accent, #2563eb);
+      font-size: 11px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .portal-preview,
+    .register-preview {
+      display: none;
+    }
+
+    .preview-device.mode-portal .portal-preview,
+    .preview-device.mode-register .register-preview {
+      display: block;
+    }
+
+    .portal-hero {
+      display: grid;
+      gap: 16px;
+      padding: 28px;
+      min-height: 300px;
+    }
+
+    .preview-device:not(.mobile) .portal-hero {
+      grid-template-columns: minmax(0, 1fr) 160px;
+      align-items: center;
+    }
+
+    .preview-eyebrow {
+      color: var(--preview-accent, #2563eb);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .preview-h1 {
+      margin-top: 8px;
+      font-size: clamp(26px, 4vw, 42px);
+      font-weight: 900;
+      line-height: 1.04;
+      letter-spacing: 0;
+    }
+
+    .preview-subtitle {
+      margin-top: 12px;
+      color: #64748b;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .preview-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .preview-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 34px;
+      padding: 8px 13px;
+      border-radius: var(--preview-radius, 8px);
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .preview-button.primary {
+      background: var(--preview-accent, #2563eb);
+      color: #ffffff;
+    }
+
+    .preview-button.secondary {
+      border: 1px solid rgba(100, 116, 139, 0.32);
+      color: var(--preview-ink, #0f172a);
+      background: rgba(255,255,255,0.46);
+    }
+
+    .preview-art {
+      min-height: 190px;
+      border: 1px solid rgba(148, 163, 184, 0.36);
+      border-radius: 10px;
+      background:
+        radial-gradient(120% 100% at 20% 15%, rgba(234, 179, 8, .25), transparent 52%),
+        radial-gradient(120% 100% at 88% 78%, rgba(14, 165, 233, .20), transparent 48%),
+        linear-gradient(145deg, var(--preview-panel, #FBF9F4), #e2e8f0);
+    }
+
+    .preview-sections {
+      display: grid;
+      gap: 10px;
+      padding: 0 28px 26px;
+    }
+
+    .preview-section-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 11px 0;
+      border-top: 1px solid rgba(148, 163, 184, 0.28);
+      font-size: 12px;
+    }
+
+    .register-preview {
+      padding: 24px;
+    }
+
+    .register-card-preview {
+      display: grid;
+      gap: 11px;
+      padding: 18px;
+      border: 1px solid rgba(148, 163, 184, 0.34);
+      border-radius: 12px;
+      background: var(--preview-panel, #ffffff);
+    }
+
+    .preview-field {
+      min-height: 34px;
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      border-radius: 8px;
+      background: #ffffff;
+      padding: 8px 10px;
+      color: #64748b;
+      font-size: 11px;
+    }
+
+    .save-bar {
+      position: sticky;
+      bottom: 16px;
+      z-index: 8;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      margin-top: 18px;
+      padding: 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: 0 16px 44px rgba(15, 23, 42, 0.14);
+      backdrop-filter: blur(16px);
+    }
+
+    .save-bar-status {
+      color: #64748b;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
     /* Color Warning */
     #colorWarning {
       color: #92400e;
@@ -868,6 +1307,11 @@
       .card-header { align-items: flex-start; gap: 12px; flex-wrap: wrap; }
       .toolbar { grid-template-columns: 1fr; }
       .form-grid { grid-template-columns: 1fr; }
+      .settings-shell { grid-template-columns: 1fr; }
+      .preview-panel { position: static; }
+      .workbench-hero { grid-template-columns: 1fr; }
+      .question-card, .faq-card { grid-template-columns: 1fr; }
+      .save-bar { position: static; flex-direction: column; align-items: stretch; }
       .filters { grid-template-columns: 1fr; }
       .modal { width: calc(100vw - 24px); }
       .toast-container { left: 12px; right: 12px; top: 12px; }
@@ -1253,205 +1697,211 @@
           <div class="section-subtitle">Logo, colours, public copy, registration fields, and parent-facing presentation</div>
         </div>
       </div>
-      <div class="card">
-        <div class="brand-preview">
-          <img id="logoPreview" class="img-preview" alt="Studio logo" src="/logo.png">
+      <div class="brand-workbench">
+        <div class="workbench-hero">
           <div>
-            <strong id="previewName">Studio</strong>
-            <div id="previewContact" class="text-muted mt-2">Contact details</div>
+            <div class="workbench-kicker">Brand Builder</div>
+            <div class="workbench-title">Shape the public studio experience</div>
+            <div class="workbench-copy">Edit brand, hero, website sections, registration questions, and FAQs with a live preview before publishing to the tenant portal and register page.</div>
           </div>
+          <div id="workbenchStatus" class="workbench-status">Saved</div>
         </div>
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Studio Name</label>
-            <input id="settingName">
-          </div>
-          <div class="form-group">
-            <label>Logo URL</label>
-            <input id="settingLogoUrl" placeholder="/logo.png or https://...">
-          </div>
-          <div class="form-group">
-            <label>Upload Logo</label>
-            <input id="settingLogoFile" type="file" accept="image/*">
-          </div>
-          <div class="form-group">
-            <label>Plan</label>
-            <select id="settingPlan"></select>
-          </div>
-          <div class="form-group">
-            <label>Primary Color</label>
-            <div class="color-field">
-              <input id="settingPrimaryColor" type="color">
-              <div class="color-meta">Main CMS and registration accent</div>
+
+        <div class="settings-shell">
+          <div class="settings-panel">
+            <div class="studio-tabs" role="tablist" aria-label="Website settings">
+              <button type="button" class="studio-tab active" data-workbench-tab="brand">Brand</button>
+              <button type="button" class="studio-tab" data-workbench-tab="hero">Hero</button>
+              <button type="button" class="studio-tab" data-workbench-tab="website">Website</button>
+              <button type="button" class="studio-tab" data-workbench-tab="register">Register</button>
+              <button type="button" class="studio-tab" data-workbench-tab="faq">FAQ</button>
+              <button type="button" class="studio-tab" data-workbench-tab="advanced">Preview / Publish</button>
+            </div>
+
+            <div id="tab-brand" class="tab-panel active" data-workbench-panel="brand">
+              <div class="panel-heading">
+                <div>
+                  <h3>Brand foundation</h3>
+                  <p>Core identity, industry preset, colours, contact, and CMS shell presentation.</p>
+                </div>
+              </div>
+              <div id="presetGrid" class="preset-grid"></div>
+              <div class="form-grid">
+                <div class="form-group"><label>Studio Name</label><input id="settingName"></div>
+                <div class="form-group"><label>Studio Category</label><select id="settingCategory"></select></div>
+                <div class="form-group"><label>Slogan</label><input id="settingSlogan" placeholder="Public brand slogan"></div>
+                <div class="form-group"><label>Logo URL</label><input id="settingLogoUrl" placeholder="/logo.png or https://..."></div>
+                <div class="form-group"><label>Upload Logo</label><input id="settingLogoFile" type="file" accept="image/*"></div>
+                <div class="form-group"><label>Plan</label><select id="settingPlan"></select></div>
+                <div class="form-group"><label>Primary Color</label><div class="color-field"><input id="settingPrimaryColor" type="color"><div class="color-meta">Main public accent</div></div></div>
+                <div class="form-group"><label>Secondary Color</label><div class="color-field"><input id="settingSecondaryColor" type="color"><div class="color-meta">Contrast and buttons</div></div></div>
+                <div class="form-group"><label>Page Background</label><input id="settingThemeBackground" type="color"></div>
+                <div class="form-group"><label>Panel Background</label><input id="settingThemePanel" type="color"></div>
+                <div class="form-group"><label>Text Color</label><input id="settingThemeText" type="color"></div>
+                <div class="form-group"><label>Accent Color</label><input id="settingThemeAccent" type="color"></div>
+                <div class="form-group"><label>Button Style</label><select id="settingButtonStyle"><option value="soft">Soft</option><option value="sharp">Sharp</option><option value="rounded">Rounded</option></select></div>
+                <div class="form-group"><label>Font Mood</label><select id="settingFontMood"><option value="serif">Serif / editorial</option><option value="modern">Modern sans</option><option value="classic">Classic balanced</option></select></div>
+                <div class="form-group"><label>CMS Layout</label><select id="settingCmsLayout"><option value="bar">Header Bar</option><option value="hero">Hero Welcome</option><option value="compact">Compact</option></select></div>
+                <div class="form-group"><label>Show Welcome</label><select id="settingShowWelcome"><option value="true">Show on CMS/Register</option><option value="false">Hide</option></select></div>
+                <div class="form-group"><label>Timezone</label><input id="settingTimezone"></div>
+                <div class="form-group"><label>Phone</label><input id="settingPhone" placeholder="0400 000 000"></div>
+                <div class="form-group"><label>Email</label><input id="settingEmail" type="email" placeholder="studio@example.com"></div>
+                <div class="form-group"><label>Address</label><input id="settingAddress" placeholder="Studio address"></div>
+                <div class="form-group" style="grid-column:1/-1;"><label>Welcome Message</label><input id="settingWelcome" placeholder="Welcome text for CMS and Register"></div>
+              </div>
+              <div id="colorWarning" class="hidden"></div>
+            </div>
+
+            <div id="tab-hero" class="tab-panel" data-workbench-panel="hero">
+              <div class="panel-heading">
+                <div>
+                  <h3>Hero and calls to action</h3>
+                  <p>The first screen parents see on the portal.</p>
+                </div>
+              </div>
+              <div class="form-grid">
+                <div class="form-group"><label>Hero Eyebrow</label><input id="settingHeroEyebrow" placeholder="Creative Studio"></div>
+                <div class="form-group"><label>Hero Title</label><input id="settingHeroTitle" placeholder="Public hero headline"></div>
+                <div class="form-group" style="grid-column:1/-1;"><label>Hero Subtitle</label><textarea id="settingHeroSubtitle" rows="3" placeholder="Short public value proposition"></textarea></div>
+                <div class="form-group"><label>Hero Image URL</label><input id="settingHeroImageUrl" placeholder="/site/hero.jpg or https://..."></div>
+                <div class="form-group"><label>Hero Style</label><select id="settingHeroStyle"><option value="soft">Soft Art Board</option><option value="image">Image Background</option><option value="minimal">Minimal</option><option value="bold">Bold Contrast</option></select></div>
+                <div class="form-group"><label>Primary CTA Label</label><input id="settingPrimaryCta" placeholder="Book a Trial"></div>
+                <div class="form-group"><label>Secondary CTA Label</label><input id="settingSecondaryCta" placeholder="Explore Courses"></div>
+                <div class="form-group"><label>Student Login Link</label><select id="settingShowStudentLogin"><option value="true">Show</option><option value="false">Hide</option></select></div>
+              </div>
+            </div>
+
+            <div id="tab-website" class="tab-panel" data-workbench-panel="website">
+              <div class="panel-heading">
+                <div>
+                  <h3>Website sections</h3>
+                  <p>Control which public sections appear and the about/principal content.</p>
+                </div>
+              </div>
+              <div class="form-grid">
+                <div class="form-group"><label>Principal Section</label><select id="settingShowPrincipal"><option value="true">Show</option><option value="false">Hide</option></select></div>
+                <div class="form-group"><label>Courses Section</label><select id="settingShowCourses"><option value="true">Show</option><option value="false">Hide</option></select></div>
+                <div class="form-group"><label>Gallery Section</label><select id="settingShowGallery"><option value="true">Show</option><option value="false">Hide</option></select></div>
+                <div class="form-group"><label>FAQ Section</label><select id="settingShowFaq"><option value="true">Show</option><option value="false">Hide</option></select></div>
+                <div class="form-group"><label>Contact Section</label><select id="settingShowContact"><option value="true">Show</option><option value="false">Hide</option></select></div>
+                <div class="form-group"><label>Student Area Section</label><select id="settingShowStudentArea"><option value="true">Show</option><option value="false">Hide</option></select></div>
+                <div class="form-group"><label>Courses Label</label><input id="settingCoursesLabel" placeholder="Courses & Classes"></div>
+                <div class="form-group"><label>Gallery Label</label><input id="settingGalleryLabel" placeholder="Student Works"></div>
+                <div class="form-group"><label>FAQ Label</label><input id="settingFaqLabel" placeholder="Questions & Answers"></div>
+                <div class="form-group"><label>Contact Label</label><input id="settingContactLabel" placeholder="Contact"></div>
+                <div class="form-group"><label>Principal Name</label><input id="settingPrincipalName" placeholder="Name shown on public page"></div>
+                <div class="form-group"><label>Principal Title</label><input id="settingPrincipalTitle" placeholder="Founder & Principal"></div>
+                <div class="form-group"><label>Principal Image URL</label><input id="settingPrincipalImageUrl" placeholder="/site/principal.jpg or https://..."></div>
+                <div class="form-group"><label>Principal Quote</label><input id="settingPrincipalQuote" placeholder="Short signature line"></div>
+                <div class="form-group" style="grid-column:1/-1;"><label>Principal Bio</label><textarea id="settingPrincipalBio" rows="4" placeholder="Short public introduction"></textarea></div>
+              </div>
+            </div>
+
+            <div id="tab-register" class="tab-panel" data-workbench-panel="register">
+              <div class="panel-heading">
+                <div>
+                  <h3>Registration form</h3>
+                  <p>Lead capture copy and questions shown on the portal and register page.</p>
+                </div>
+              </div>
+              <div class="form-grid">
+                <div class="form-group"><label>Portal Label</label><input id="settingPortalLabel" placeholder="Student portal label"></div>
+                <div class="form-group"><label>Registration Title</label><input id="settingRegistrationTitle" placeholder="Registration form title"></div>
+                <div class="form-group" style="grid-column:1/-1;"><label>Register Intro</label><textarea id="settingRegisterIntro" rows="3" placeholder="Registration form intro text"></textarea></div>
+              </div>
+              <div class="panel-heading" style="margin-top:18px;">
+                <div>
+                  <h3>Questions</h3>
+                  <p>Short text, long text, and select fields are supported.</p>
+                </div>
+                <button type="button" id="addRegistrationQuestionBtn" class="btn-secondary btn-sm">Add Question</button>
+              </div>
+              <div class="form-grid question-list mt-2" id="registrationFieldsEditor"></div>
+            </div>
+
+            <div id="tab-faq" class="tab-panel" data-workbench-panel="faq">
+              <div class="panel-heading">
+                <div>
+                  <h3>FAQ</h3>
+                  <p>Questions shown near the bottom of the public portal.</p>
+                </div>
+                <button type="button" id="addFaqItemBtn" class="btn-secondary btn-sm">Add FAQ</button>
+              </div>
+              <div class="form-grid question-list mt-2" id="faqItemsEditor"></div>
+            </div>
+
+            <div id="tab-advanced" class="tab-panel" data-workbench-panel="advanced">
+              <div class="panel-heading">
+                <div>
+                  <h3>Preview and publish</h3>
+                  <p>Open real tenant pages after saving, or export operational data below.</p>
+                </div>
+              </div>
+              <div class="surface-grid">
+                <div class="surface-card"><strong>Portal</strong><p>Public home page with hero, courses, student area, FAQ, and contact.</p><code id="surfacePortalUrlPreview" class="surface-url">/tenant-slug</code><button type="button" class="btn-primary" onclick="openTenantSurface('portal')">Open Portal</button></div>
+                <div class="surface-card"><strong>Register</strong><p>Lightweight lead capture page using the registration fields above.</p><code id="surfaceRegisterUrlPreview" class="surface-url">/tenant-slug/register</code><button type="button" class="btn-secondary" onclick="openTenantSurface('register')">Open Register</button></div>
+                <div class="surface-card"><strong>CMS</strong><p>Daily operations: students, payments, check-ins, rosters, and portfolio work.</p><code id="surfaceCmsUrlPreview" class="surface-url">/tenant-slug/cms</code><button type="button" class="btn-secondary" onclick="openTenantSurface('cms')">Open CMS</button></div>
+                <div class="surface-card"><strong>Studio Admin</strong><p>This website and brand workspace.</p><code id="surfaceAdminUrlPreview" class="surface-url">/tenant-slug/studio-admin</code><button type="button" class="btn-secondary" onclick="openTenantSurface('studio-admin')">Open Studio Admin</button></div>
+              </div>
             </div>
           </div>
-          <div class="form-group">
-            <label>Secondary Color</label>
-            <div class="color-field">
-              <input id="settingSecondaryColor" type="color">
-              <div class="color-meta">Buttons, highlights, and contrast support</div>
+
+          <aside class="preview-panel" aria-label="Live website preview">
+            <div class="preview-toolbar">
+              <div class="preview-tabs">
+                <button type="button" class="preview-tab active" data-preview-mode="portal">Portal</button>
+                <button type="button" class="preview-tab" data-preview-mode="register">Register</button>
+              </div>
+              <div class="device-tabs">
+                <button type="button" class="device-tab active" data-preview-device="desktop">Desktop</button>
+                <button type="button" class="device-tab" data-preview-device="mobile">Mobile</button>
+              </div>
             </div>
-          </div>
-          <div class="form-group">
-            <label>CMS Layout</label>
-            <select id="settingCmsLayout">
-              <option value="bar">Header Bar</option>
-              <option value="hero">Hero Welcome</option>
-              <option value="compact">Compact</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Show Welcome</label>
-            <select id="settingShowWelcome">
-              <option value="true">Show on CMS/Register</option>
-              <option value="false">Hide</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Studio Category</label>
-            <select id="settingCategory"></select>
-          </div>
-          <div class="form-group">
-            <label>Slogan</label>
-            <input id="settingSlogan" placeholder="Public brand slogan">
-          </div>
-          <div class="form-group">
-            <label>Timezone</label>
-            <input id="settingTimezone">
-          </div>
-          <div class="form-group">
-            <label>Phone</label>
-            <input id="settingPhone" placeholder="0400 000 000">
-          </div>
-          <div class="form-group">
-            <label>Email</label>
-            <input id="settingEmail" type="email" placeholder="studio@example.com">
-          </div>
-          <div class="form-group">
-            <label>Address</label>
-            <input id="settingAddress" placeholder="Studio address">
-          </div>
-          <div class="form-group">
-            <label>Welcome Message</label>
-            <input id="settingWelcome" placeholder="Welcome text for CMS and Register">
-          </div>
-          <div class="form-group">
-            <label>Portal Label</label>
-            <input id="settingPortalLabel" placeholder="Student portal label">
-          </div>
-          <div class="form-group">
-            <label>Register Intro</label>
-            <input id="settingRegisterIntro" placeholder="Registration form intro text">
-          </div>
-          <div class="form-group">
-            <label>Registration Title</label>
-            <input id="settingRegistrationTitle" placeholder="Registration form title">
-          </div>
-        </div>
-
-        <div class="section-subtitle" style="margin:20px 0 10px;">Hero, CTA, and public section controls</div>
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Hero Eyebrow</label>
-            <input id="settingHeroEyebrow" placeholder="Creative Studio">
-          </div>
-          <div class="form-group">
-            <label>Hero Title</label>
-            <input id="settingHeroTitle" placeholder="Public hero headline">
-          </div>
-          <div class="form-group">
-            <label>Hero Subtitle</label>
-            <input id="settingHeroSubtitle" placeholder="Short public value proposition">
-          </div>
-          <div class="form-group">
-            <label>Hero Image URL</label>
-            <input id="settingHeroImageUrl" placeholder="/site/hero.jpg or https://...">
-          </div>
-          <div class="form-group">
-            <label>Primary CTA Label</label>
-            <input id="settingPrimaryCta" placeholder="Book a Trial">
-          </div>
-          <div class="form-group">
-            <label>Secondary CTA Label</label>
-            <input id="settingSecondaryCta" placeholder="Explore Courses">
-          </div>
-          <div class="form-group">
-            <label>Hero Style</label>
-            <select id="settingHeroStyle">
-              <option value="soft">Soft Art Board</option>
-              <option value="image">Image Background</option>
-              <option value="minimal">Minimal</option>
-              <option value="bold">Bold Contrast</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Student Login Link</label>
-            <select id="settingShowStudentLogin">
-              <option value="true">Show</option>
-              <option value="false">Hide</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="section-subtitle" style="margin:20px 0 10px;">Public page sections and labels</div>
-        <div class="form-grid">
-          <div class="form-group"><label>Principal Section</label><select id="settingShowPrincipal"><option value="true">Show</option><option value="false">Hide</option></select></div>
-          <div class="form-group"><label>Courses Section</label><select id="settingShowCourses"><option value="true">Show</option><option value="false">Hide</option></select></div>
-          <div class="form-group"><label>Gallery Section</label><select id="settingShowGallery"><option value="true">Show</option><option value="false">Hide</option></select></div>
-          <div class="form-group"><label>FAQ Section</label><select id="settingShowFaq"><option value="true">Show</option><option value="false">Hide</option></select></div>
-          <div class="form-group"><label>Contact Section</label><select id="settingShowContact"><option value="true">Show</option><option value="false">Hide</option></select></div>
-          <div class="form-group"><label>Student Area Section</label><select id="settingShowStudentArea"><option value="true">Show</option><option value="false">Hide</option></select></div>
-          <div class="form-group"><label>Courses Label</label><input id="settingCoursesLabel" placeholder="Courses & Classes"></div>
-          <div class="form-group"><label>Gallery Label</label><input id="settingGalleryLabel" placeholder="Student Works"></div>
-          <div class="form-group"><label>FAQ Label</label><input id="settingFaqLabel" placeholder="Questions & Answers"></div>
-          <div class="form-group"><label>Contact Label</label><input id="settingContactLabel" placeholder="Contact"></div>
-        </div>
-
-        <div class="section-subtitle" style="margin:20px 0 10px;">Principal / about block</div>
-        <div class="form-grid">
-          <div class="form-group"><label>Principal Name</label><input id="settingPrincipalName" placeholder="Name shown on public page"></div>
-          <div class="form-group"><label>Principal Title</label><input id="settingPrincipalTitle" placeholder="Founder & Principal"></div>
-          <div class="form-group"><label>Principal Image URL</label><input id="settingPrincipalImageUrl" placeholder="/site/principal.jpg or https://..."></div>
-          <div class="form-group"><label>Principal Quote</label><input id="settingPrincipalQuote" placeholder="Short signature line"></div>
-          <div class="form-group" style="grid-column:1/-1;"><label>Principal Bio</label><textarea id="settingPrincipalBio" rows="3" placeholder="Short public introduction"></textarea></div>
-        </div>
-
-        <div class="section-subtitle" style="margin:20px 0 10px;">Light visual theme</div>
-        <div class="form-grid">
-          <div class="form-group"><label>Page Background</label><input id="settingThemeBackground" type="color"></div>
-          <div class="form-group"><label>Panel Background</label><input id="settingThemePanel" type="color"></div>
-          <div class="form-group"><label>Text Color</label><input id="settingThemeText" type="color"></div>
-          <div class="form-group"><label>Accent Color</label><input id="settingThemeAccent" type="color"></div>
-          <div class="form-group"><label>Button Style</label><select id="settingButtonStyle"><option value="soft">Soft</option><option value="sharp">Sharp</option><option value="rounded">Rounded</option></select></div>
-          <div class="form-group"><label>Font Mood</label><select id="settingFontMood"><option value="serif">Serif / editorial</option><option value="modern">Modern sans</option><option value="classic">Classic balanced</option></select></div>
-        </div>
-
-        <!-- Color Warning -->
-        <div id="colorWarning" class="hidden"></div>
-
-        <!-- Registration Fields Editor -->
-        <div class="section-subtitle" style="margin:20px 0 10px;">Registration questions</div>
-        <div class="form-grid mt-2" id="registrationFieldsEditor"></div>
-
-        <div class="section-subtitle" style="margin:20px 0 10px;">FAQ items</div>
-        <div class="form-grid mt-2" id="faqItemsEditor"></div>
-
-        <!-- Theme Preview -->
-        <div class="theme-preview" id="themePreview">
-          <div class="top"><strong id="themePreviewTitle">Theme Preview</strong><span id="themePreviewSlug">tenant</span></div>
-          <div class="body">
-            <div>
-              <h3 style="margin: 0; font-size: 16px;">Sample Course Title</h3>
-              <p id="themePreviewWelcome" class="text-muted" style="font-size: 13px; margin-top: 4px;">Welcome message appears on CMS and Register when enabled.</p>
+            <div class="preview-stage">
+              <div id="previewDevice" class="preview-device mode-portal">
+                <div class="preview-chrome">
+                  <div class="preview-brand"><img id="logoPreview" class="preview-logo" alt="Studio logo" src="/logo.png"><span id="previewName">Studio</span></div>
+                  <span id="previewContact" class="preview-link">Contact</span>
+                </div>
+                <div class="portal-preview">
+                  <div class="portal-hero">
+                    <div>
+                      <div id="previewHeroEyebrow" class="preview-eyebrow">Studio</div>
+                      <div id="themePreviewTitle" class="preview-h1">Theme Preview</div>
+                      <div id="themePreviewWelcome" class="preview-subtitle">Welcome message appears on CMS and Register when enabled.</div>
+                      <div class="preview-actions">
+                        <span id="previewPrimaryCta" class="preview-button primary">Book a Trial</span>
+                        <span id="previewSecondaryCta" class="preview-button secondary">Explore Courses</span>
+                      </div>
+                    </div>
+                    <div class="preview-art"></div>
+                  </div>
+                  <div class="preview-sections" id="previewSections"></div>
+                </div>
+                <div class="register-preview">
+                  <div class="register-card-preview">
+                    <div id="previewRegisterEyebrow" class="preview-eyebrow">Registration</div>
+                    <div id="previewRegisterTitle" class="preview-h1" style="font-size:26px;">Student Registration</div>
+                    <div id="previewRegisterIntro" class="preview-subtitle" style="margin-top:0;">Tell us about the student and their goals.</div>
+                    <div class="preview-field">Given name *</div>
+                    <div class="preview-field">Mobile *</div>
+                    <div id="previewRegisterFields"></div>
+                    <span class="preview-button primary">Submit registration</span>
+                  </div>
+                </div>
+              </div>
+              <div id="themePreviewSlug" class="text-muted mt-2" style="font-size:12px;text-align:center;">tenant</div>
             </div>
-            <button class="sample-btn">Enroll Now</button>
-          </div>
+          </aside>
         </div>
 
-        <!-- Save Button -->
-        <div class="form-actions" style="justify-content: flex-end;">
-          <button id="saveSettingsBtn" class="btn-primary">Save Settings</button>
-          <button id="resetPresetBtn" class="btn-secondary">Apply Category Preset</button>
+        <div class="save-bar">
+          <div id="saveBarStatus" class="save-bar-status">No unsaved changes</div>
+          <div class="action-row">
+            <button id="resetPresetBtn" class="btn-secondary">Apply Category Preset</button>
+            <button type="button" class="btn-secondary" onclick="openTenantSurface('portal')">Open Portal</button>
+            <button id="saveSettingsBtn" class="btn-primary">Save Settings</button>
+          </div>
         </div>
       </div>
     </section>
@@ -1910,9 +2360,12 @@
     const INDUSTRY_PRESETS = {
       art: { label: 'Art', slogan: 'You deserve to enjoy life more.', portalLabel: 'Student Art Portal', registerIntro: 'Tell us about the student and their creative goals.' },
       music: { label: 'Music', slogan: 'Every student deserves a rhythm of their own.', portalLabel: 'Music Student Portal', registerIntro: 'Tell us about the student and their music goals.' },
-      tutoring: { label: 'Tutoring', slogan: 'Confidence grows one lesson at a time.', portalLabel: 'Learning Portal', registerIntro: 'Tell us what support the student needs.' },
+      math: { label: 'Math', slogan: 'Build confidence through clear thinking.', portalLabel: 'Math Learning Portal', registerIntro: 'Tell us about the learner and the topics they need help with.' },
       dance: { label: 'Dance', slogan: 'Move with confidence, rhythm, and joy.', portalLabel: 'Dance Student Portal', registerIntro: 'Tell us about the dancer and their level.' },
-      general: { label: 'General', slogan: 'A better way to manage your studio.', portalLabel: 'Student Portal', registerIntro: 'Tell us about the student.' }
+      language: { label: 'Language', slogan: 'Grow a voice for the world.', portalLabel: 'Language Student Portal', registerIntro: 'Tell us about the learner and their language goals.' },
+      sports: { label: 'Sports', slogan: 'Train with purpose and grow with every session.', portalLabel: 'Sports Student Portal', registerIntro: 'Tell us about the athlete and their training goals.' },
+      game: { label: 'Game', slogan: 'Play, think, and level up with purpose.', portalLabel: 'Game Student Portal', registerIntro: 'Tell us about the player and their learning goals.' },
+      general: { label: 'General', slogan: 'Learn, grow, and feel confident.', portalLabel: 'Student Portal', registerIntro: 'Tell us about the student.' }
     };
 
     let tenant = null;
@@ -1931,6 +2384,23 @@
     let editingPackageCode = '';
     let creditStudentId = '';
     let currentUser = null;
+    let settingsDirty = false;
+    let previewMode = 'portal';
+    let previewDevice = 'desktop';
+
+    function setSettingsDirty(isDirty = true) {
+      settingsDirty = isDirty;
+      const statusText = isDirty ? 'Unsaved changes' : 'No unsaved changes';
+      const status = $('saveBarStatus');
+      const heroStatus = $('workbenchStatus');
+      if (status) status.textContent = statusText;
+      if (heroStatus) {
+        heroStatus.textContent = isDirty ? 'Draft changes' : 'Saved';
+        heroStatus.style.color = isDirty ? '#92400e' : '#1d4ed8';
+        heroStatus.style.borderColor = isDirty ? '#fde68a' : '#bfdbfe';
+        heroStatus.style.background = isDirty ? '#fffbeb' : '#ffffff';
+      }
+    }
 
     function showToast(message, type = 'success') {
       const toast = document.createElement('div');
@@ -2085,7 +2555,11 @@
         surfacePortalUrl: 'portal',
         surfaceCmsUrl: 'cms',
         surfaceRegisterUrl: 'register',
-        surfaceAdminUrl: 'admin'
+        surfaceAdminUrl: 'admin',
+        surfacePortalUrlPreview: 'portal',
+        surfaceCmsUrlPreview: 'cms',
+        surfaceRegisterUrlPreview: 'register',
+        surfaceAdminUrlPreview: 'admin'
       };
       Object.entries(urlTargets).forEach(([id, surface]) => {
         const el = $(id);
@@ -2376,7 +2850,7 @@
             { key: 'level', label: 'Current level', placeholder: 'Beginner, AMEB grade, self-taught', type: 'text' }
           ]
         },
-        tutoring: {
+        math: {
           title: 'Learning Needs',
           fields: [
             { key: 'subject', label: 'Subject', placeholder: 'Maths, English, science', type: 'text' },
@@ -2388,6 +2862,27 @@
           fields: [
             { key: 'style', label: 'Dance style', placeholder: 'Ballet, jazz, hip hop', type: 'text' },
             { key: 'experience', label: 'Experience', placeholder: 'New starter, 2 years, competition', type: 'text' }
+          ]
+        },
+        language: {
+          title: 'Language Goals',
+          fields: [
+            { key: 'language', label: 'Language', placeholder: 'English, Mandarin, Japanese, French', type: 'text' },
+            { key: 'level', label: 'Current level', placeholder: 'Beginner, conversational, exam prep', type: 'text' }
+          ]
+        },
+        sports: {
+          title: 'Training Goals',
+          fields: [
+            { key: 'sport', label: 'Sport', placeholder: 'Tennis, swimming, basketball, soccer', type: 'text' },
+            { key: 'level', label: 'Current level', placeholder: 'Beginner, club, competition', type: 'text' }
+          ]
+        },
+        game: {
+          title: 'Game Learning Goals',
+          fields: [
+            { key: 'gameType', label: 'Game type', placeholder: 'Roblox, Minecraft, chess, coding games', type: 'text' },
+            { key: 'goals', label: 'Learning goals', placeholder: 'Strategy, coding, teamwork, confidence', type: 'text' }
           ]
         },
         general: {
@@ -2497,11 +2992,18 @@
       const bg = $('settingThemeBackground')?.value || '#F4F0E8';
       const panel = $('settingThemePanel')?.value || '#FBF9F4';
       const accent = $('settingThemeAccent')?.value || primary;
-      $('themePreview').style.setProperty('--preview-primary', primary);
-      $('themePreview').style.setProperty('--preview-secondary', secondary);
-      $('themePreview').style.background = panel;
-      $('themePreview').style.borderColor = accent;
-      $('themePreview').style.boxShadow = `0 0 0 6px ${bg}`;
+      const ink = $('settingThemeText')?.value || '#23211D';
+      const preview = $('previewDevice');
+      if (preview) {
+        preview.style.setProperty('--preview-bg', bg);
+        preview.style.setProperty('--preview-panel', panel);
+        preview.style.setProperty('--preview-ink', ink);
+        preview.style.setProperty('--preview-accent', accent);
+        preview.style.setProperty('--preview-radius', $('settingButtonStyle')?.value === 'rounded' ? '999px' : $('settingButtonStyle')?.value === 'sharp' ? '0' : '8px');
+        preview.classList.toggle('mobile', previewDevice === 'mobile');
+        preview.classList.toggle('mode-portal', previewMode === 'portal');
+        preview.classList.toggle('mode-register', previewMode === 'register');
+      }
       $('themePreviewTitle').textContent = $('settingHeroTitle')?.value || `${$('settingName').value || 'Studio'} Theme`;
       $('themePreviewSlug').textContent = currentTenantSlug() || 'tenant';
       const welcomeVisible = $('settingShowWelcome').value !== 'false';
@@ -2511,6 +3013,14 @@
       $('previewName').textContent = $('settingName').value || 'Studio';
       $('previewContact').textContent = [$('settingPhone').value, $('settingEmail').value, $('settingAddress').value].filter(Boolean).join(' · ') || 'Contact details';
       $('logoPreview').src = $('settingLogoUrl').value || '/logo.png';
+      $('previewHeroEyebrow').textContent = $('settingHeroEyebrow')?.value || $('settingCategory')?.selectedOptions?.[0]?.textContent || 'Studio';
+      $('previewPrimaryCta').textContent = $('settingPrimaryCta')?.value || 'Book a Trial';
+      $('previewSecondaryCta').textContent = $('settingSecondaryCta')?.value || 'Explore Courses';
+      $('previewRegisterEyebrow').textContent = $('settingHeroEyebrow')?.value || 'Registration';
+      $('previewRegisterTitle').textContent = $('settingRegistrationTitle')?.value || 'Student Registration';
+      $('previewRegisterIntro').textContent = $('settingRegisterIntro')?.value || 'Tell us about the student and their goals.';
+      renderPreviewSections();
+      renderPreviewRegistrationFields();
       const issues = [];
       const primaryWhite = contrastRatio(primary, '#ffffff');
       const secondaryWhite = contrastRatio(secondary, '#ffffff');
@@ -2527,32 +3037,60 @@
       }
     }
 
+    function renderPreviewSections() {
+      const box = $('previewSections');
+      if (!box) return;
+      const rows = [
+        ['Principal', $('settingShowPrincipal')?.value !== 'false', $('settingPrincipalName')?.value || 'About the studio'],
+        [$('settingCoursesLabel')?.value || 'Courses', $('settingShowCourses')?.value !== 'false', 'Program cards'],
+        [$('settingGalleryLabel')?.value || 'Gallery', $('settingShowGallery')?.value !== 'false', 'Student works'],
+        ['Student Area', $('settingShowStudentArea')?.value !== 'false', 'Balance and portfolio'],
+        [$('settingFaqLabel')?.value || 'FAQ', $('settingShowFaq')?.value !== 'false', `${collectFaqItems().length} questions`],
+        [$('settingContactLabel')?.value || 'Contact', $('settingShowContact')?.value !== 'false', $('settingEmail')?.value || $('settingPhone')?.value || 'Contact details'],
+      ].filter((row) => row[1]);
+      box.innerHTML = rows.map(([label, _show, detail]) => `
+        <div class="preview-section-row"><strong>${esc(label)}</strong><span>${esc(detail)}</span></div>
+      `).join('');
+    }
+
+    function renderPreviewRegistrationFields() {
+      const box = $('previewRegisterFields');
+      if (!box) return;
+      const profile = collectRegistrationProfile();
+      box.innerHTML = profile.fields.slice(0, 5).map((field) => `
+        <div class="preview-field">${esc(field.label || field.key || 'Question')}${field.required ? ' *' : ''}</div>
+      `).join('');
+    }
+
     function fillRegistrationFields(profile) {
       const fallback = defaultRegistrationProfile($('settingCategory')?.value || 'general');
       const fields = Array.isArray(profile?.fields) && profile.fields.length ? profile.fields : fallback.fields;
       $('registrationFieldsEditor').innerHTML = fields.map((field, index) => `
-        <div class="form-group">
-          <label>Field Label</label>
-          <input data-reg-label="${index}" value="${esc(field.label || field.key || 'Field')}">
-        </div>
-        <div class="form-group">
-          <label>Field Placeholder</label>
-          <input data-reg-placeholder="${index}" value="${esc(field.placeholder || '')}">
-          <input type="hidden" data-reg-key="${index}" value="${esc(field.key || `field${index + 1}`)}">
-        </div>
-        <div class="form-group">
-          <label>Field Type</label>
-          <select data-reg-type="${index}">
-            ${['text','textarea','select'].map((type) => `<option value="${type}" ${type === (field.type || 'text') ? 'selected' : ''}>${type}</option>`).join('')}
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Required / Options</label>
-          <select data-reg-required="${index}">
-            <option value="false" ${!field.required ? 'selected' : ''}>Optional</option>
-            <option value="true" ${field.required ? 'selected' : ''}>Required</option>
-          </select>
-          <input data-reg-options="${index}" style="margin-top:8px" value="${esc((field.options || []).join(', '))}" placeholder="Select options, comma separated">
+        <div class="question-card" data-registration-card="${index}">
+          <div class="form-group">
+            <label>Label</label>
+            <input data-reg-label="${index}" value="${esc(field.label || field.key || 'Field')}">
+            <input type="hidden" data-reg-key="${index}" value="${esc(field.key || `field${index + 1}`)}">
+          </div>
+          <div class="form-group">
+            <label>Placeholder</label>
+            <input data-reg-placeholder="${index}" value="${esc(field.placeholder || '')}">
+          </div>
+          <div class="form-group">
+            <label>Type</label>
+            <select data-reg-type="${index}">
+              ${['text','textarea','select'].map((type) => `<option value="${type}" ${type === (field.type || 'text') ? 'selected' : ''}>${type}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Required / Options</label>
+            <select data-reg-required="${index}">
+              <option value="false" ${!field.required ? 'selected' : ''}>Optional</option>
+              <option value="true" ${field.required ? 'selected' : ''}>Required</option>
+            </select>
+            <input data-reg-options="${index}" style="margin-top:8px" value="${esc((field.options || []).join(', '))}" placeholder="Select options, comma separated">
+            <button type="button" class="btn-secondary btn-sm" style="margin-top:8px" data-remove-registration="${index}">Remove</button>
+          </div>
         </div>
       `).join('');
     }
@@ -2583,13 +3121,16 @@
       const fallback = defaultFaqItems($('settingCategory')?.value || 'general');
       const faqs = Array.isArray(items) && items.length ? items : fallback;
       $('faqItemsEditor').innerHTML = faqs.slice(0, 6).map((item, index) => `
-        <div class="form-group">
-          <label>FAQ Question</label>
-          <input data-faq-question="${index}" value="${esc(item.question || '')}">
-        </div>
-        <div class="form-group">
-          <label>FAQ Answer</label>
-          <textarea data-faq-answer="${index}" rows="2">${esc(item.answer || '')}</textarea>
+        <div class="faq-card" data-faq-card="${index}">
+          <div class="form-group">
+            <label>Question</label>
+            <input data-faq-question="${index}" value="${esc(item.question || '')}">
+            <button type="button" class="btn-secondary btn-sm" style="margin-top:8px" data-remove-faq="${index}">Remove</button>
+          </div>
+          <div class="form-group">
+            <label>Answer</label>
+            <textarea data-faq-answer="${index}" rows="3">${esc(item.answer || '')}</textarea>
+          </div>
         </div>
       `).join('');
     }
@@ -2605,6 +3146,82 @@
       return items.length ? items : defaultFaqItems($('settingCategory').value);
     }
 
+    function addRegistrationQuestion() {
+      const profile = collectRegistrationProfile();
+      const index = profile.fields.length + 1;
+      profile.fields.push({
+        key: `customQuestion${index}`,
+        label: `Question ${index}`,
+        placeholder: '',
+        type: 'text',
+        required: false,
+        options: []
+      });
+      fillRegistrationFields(profile);
+      setSettingsDirty(true);
+      updateThemePreview();
+    }
+
+    function removeRegistrationQuestion(index) {
+      const profile = collectRegistrationProfile();
+      if (profile.fields.length <= 1) {
+        showToast('At least one registration question is required.', 'warning');
+        return;
+      }
+      profile.fields.splice(Number(index), 1);
+      fillRegistrationFields(profile);
+      setSettingsDirty(true);
+      updateThemePreview();
+    }
+
+    function addFaqItem() {
+      const items = collectFaqItems();
+      items.push({ question: `Question ${items.length + 1}`, answer: 'Answer this clearly for parents before they enquire.' });
+      fillFaqItems(items);
+      setSettingsDirty(true);
+      updateThemePreview();
+    }
+
+    function removeFaqItem(index) {
+      const items = collectFaqItems();
+      if (items.length <= 1) {
+        showToast('At least one FAQ item is required.', 'warning');
+        return;
+      }
+      items.splice(Number(index), 1);
+      fillFaqItems(items);
+      setSettingsDirty(true);
+      updateThemePreview();
+    }
+
+    function renderPresetGrid(selected) {
+      const grid = $('presetGrid');
+      if (!grid) return;
+      grid.innerHTML = Object.entries(INDUSTRY_PRESETS).map(([key, preset]) => `
+        <button type="button" class="preset-card ${key === selected ? 'active' : ''}" data-preset-key="${key}">
+          <div class="preset-name">${esc(preset.label)}</div>
+          <div class="preset-copy">${esc(preset.slogan)}</div>
+        </button>
+      `).join('');
+    }
+
+    function switchWorkbenchTab(tab) {
+      document.querySelectorAll('[data-workbench-tab]').forEach((button) => button.classList.toggle('active', button.dataset.workbenchTab === tab));
+      document.querySelectorAll('[data-workbench-panel]').forEach((panel) => panel.classList.toggle('active', panel.dataset.workbenchPanel === tab));
+    }
+
+    function switchPreviewMode(mode) {
+      previewMode = mode;
+      document.querySelectorAll('[data-preview-mode]').forEach((button) => button.classList.toggle('active', button.dataset.previewMode === mode));
+      updateThemePreview();
+    }
+
+    function switchPreviewDevice(device) {
+      previewDevice = device;
+      document.querySelectorAll('[data-preview-device]').forEach((button) => button.classList.toggle('active', button.dataset.previewDevice === device));
+      updateThemePreview();
+    }
+
     function fillSettings() {
       const t = tenant || {};
       const category = t.category || t.settings?.category || 'general';
@@ -2617,6 +3234,7 @@
       $('studioMeta').textContent = t.slug ? `${t.slug} · ${preset.label} website and brand console` : 'Website and brand console';
       $('tenantSlug').value = t.slug || currentTenantSlug();
       updateSurfaceLinks();
+      renderPresetGrid(category);
       $('settingName').value = t.name || '';
       $('settingLogoUrl').value = t.logo_url || t.logoUrl || '';
       $('settingPlan').innerHTML = plans.map((p) => `<option value="${p.code}">${esc(p.name)} (${esc(p.code)})</option>`).join('');
@@ -2668,6 +3286,7 @@
       $('settingFontMood').value = visual.font_mood || visual.fontMood || 'serif';
       fillFaqItems(t.faq_items || t.faqItems || defaultFaqItems(category));
       updateThemePreview();
+      setSettingsDirty(false);
     }
 
     function settingsPayload() {
@@ -2740,6 +3359,7 @@
       const data = await api('/tenant', { method: 'PATCH', body: JSON.stringify(payload) });
       tenant = data.tenant || tenant;
       fillSettings();
+      setSettingsDirty(false);
       showToast('Studio settings saved.');
     }
 
@@ -2756,6 +3376,7 @@
 
     function applyCategoryPreset() {
       const preset = INDUSTRY_PRESETS[$('settingCategory').value] || INDUSTRY_PRESETS.general;
+      renderPresetGrid($('settingCategory').value);
       $('settingSlogan').value = preset.slogan;
       $('settingPortalLabel').value = preset.portalLabel;
       $('settingRegisterIntro').value = preset.registerIntro;
@@ -2766,6 +3387,7 @@
       $('settingRegistrationTitle').value = profile.title;
       fillRegistrationFields(profile);
       fillFaqItems(defaultFaqItems($('settingCategory').value));
+      setSettingsDirty(true);
       updateThemePreview();
       showToast('Category preset applied.');
     }
@@ -3419,15 +4041,48 @@
       $('saveSettingsBtn').addEventListener('click', () => runUiAction('saveSettingsBtn', 'Saving...', saveSettings));
       $('settingLogoFile').addEventListener('change', () => uploadLogo().catch((err) => showToast(err.message, 'error')));
       $('resetPresetBtn').addEventListener('click', applyCategoryPreset);
+      $('addRegistrationQuestionBtn').addEventListener('click', addRegistrationQuestion);
+      $('addFaqItemBtn').addEventListener('click', addFaqItem);
+      document.querySelectorAll('[data-workbench-tab]').forEach((button) => {
+        button.addEventListener('click', () => switchWorkbenchTab(button.dataset.workbenchTab));
+      });
+      document.querySelectorAll('[data-preview-mode]').forEach((button) => {
+        button.addEventListener('click', () => switchPreviewMode(button.dataset.previewMode));
+      });
+      document.querySelectorAll('[data-preview-device]').forEach((button) => {
+        button.addEventListener('click', () => switchPreviewDevice(button.dataset.previewDevice));
+      });
+      $('presetGrid').addEventListener('click', (event) => {
+        const card = event.target.closest('[data-preset-key]');
+        if (!card) return;
+        $('settingCategory').value = card.dataset.presetKey;
+        applyCategoryPreset();
+      });
+      $('registrationFieldsEditor').addEventListener('click', (event) => {
+        const remove = event.target.closest('[data-remove-registration]');
+        if (remove) removeRegistrationQuestion(remove.dataset.removeRegistration);
+      });
+      $('faqItemsEditor').addEventListener('click', (event) => {
+        const remove = event.target.closest('[data-remove-faq]');
+        if (remove) removeFaqItem(remove.dataset.removeFaq);
+      });
+      $('registrationFieldsEditor').addEventListener('input', () => { setSettingsDirty(true); updateThemePreview(); });
+      $('registrationFieldsEditor').addEventListener('change', () => { setSettingsDirty(true); updateThemePreview(); });
+      $('faqItemsEditor').addEventListener('input', () => { setSettingsDirty(true); updateThemePreview(); });
       [
         'settingName','settingLogoUrl','settingPrimaryColor','settingSecondaryColor','settingWelcome','settingSlogan',
         'settingPortalLabel','settingRegisterIntro','settingRegistrationTitle','settingPhone','settingEmail','settingAddress',
         'settingHeroEyebrow','settingHeroTitle','settingHeroSubtitle','settingHeroImageUrl','settingPrimaryCta','settingSecondaryCta',
+        'settingCoursesLabel','settingGalleryLabel','settingFaqLabel','settingContactLabel',
         'settingPrincipalName','settingPrincipalTitle','settingPrincipalBio','settingPrincipalQuote','settingPrincipalImageUrl',
         'settingThemeBackground','settingThemePanel','settingThemeText','settingThemeAccent'
-      ].forEach((id) => $(id).addEventListener('input', updateThemePreview));
-      $('settingShowWelcome').addEventListener('change', updateThemePreview);
-      ['settingHeroStyle','settingShowStudentLogin','settingButtonStyle','settingFontMood'].forEach((id) => $(id).addEventListener('change', updateThemePreview));
+      ].forEach((id) => $(id).addEventListener('input', () => { setSettingsDirty(true); updateThemePreview(); }));
+      $('settingShowWelcome').addEventListener('change', () => { setSettingsDirty(true); updateThemePreview(); });
+      [
+        'settingHeroStyle','settingShowStudentLogin','settingButtonStyle','settingFontMood',
+        'settingShowPrincipal','settingShowCourses','settingShowGallery','settingShowFaq','settingShowContact','settingShowStudentArea',
+        'settingCmsLayout','settingPlan'
+      ].forEach((id) => $(id).addEventListener('change', () => { setSettingsDirty(true); updateThemePreview(); }));
       $('settingCategory').addEventListener('change', applyCategoryPreset);
       ['studentSearch','studentStatusFilter','studentLowFilter'].forEach((id) => $(id).addEventListener('input', () => { studentPage = 0; refresh(); }));
       $('clearStudentFiltersBtn').addEventListener('click', () => { $('studentSearch').value = ''; $('studentStatusFilter').value = ''; $('studentLowFilter').checked = false; studentPage = 0; refresh(); });
