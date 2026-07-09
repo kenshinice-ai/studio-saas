@@ -50,7 +50,8 @@ Purpose: Current system architecture, routing model, file layout, data flow — 
 - `tenant_id` is the isolation boundary for all business data.
 - Tenant context is resolved from URL path, header, or subdomain — never from request body.
 - Every mutation route must be authenticated unless explicitly public.
-- The tenant CMS (`legacy-root/` served at `/<slug>/cms`) is the **core operating surface** — tenants run scheduling, check-ins, students, and fees there. studio-admin is the settings/management panel; the public landing page is a low-priority add-on.
+- The tenant CMS (`legacy-root/` served at `/<slug>/cms`) is the **core operating surface** — tenants run scheduling, check-ins, students, fees, refunds, logs, analytics, registration review, and portfolio work there.
+- Studio Admin (`/<slug>/studio-admin`) is the **website/brand and lead-capture console** — logo, colours, public copy, registration fields, generated surface links, and audited exports. It must not become a second daily operations UI.
 
 ---
 
@@ -69,9 +70,9 @@ Purpose: Current system architecture, routing model, file layout, data flow — 
 
 | Route | Surface |
 |---|---|
-| `/<tenant_slug>` | Tenant CMS (serves `legacy-root/index.html`) |
-| `/<tenant_slug>/cms` | Tenant CMS (explicit, same shell) |
-| `/<tenant_slug>/studio-admin` | Tenant Studio Admin: the tenant backend for managing Studio CMS data, registrations, students, credits, portfolio, and branding |
+| `/<tenant_slug>` | Tenant public portal generated from `tenant-template/index.html` |
+| `/<tenant_slug>/cms` | Tenant CMS daily operations shell |
+| `/<tenant_slug>/studio-admin` | Website/brand and registration-form console |
 | `/<tenant_slug>/register` | Tenant registration |
 | `/s/<tenant_slug>/v1/*` | Tenant-scoped API prefix |
 
@@ -159,30 +160,27 @@ studiosaas/
 5. API stores `settings.workspace_path` on the tenant row.
 6. Audit log records `tenant.created`.
 
-### 4.2 Studio Admin to CMS Sync
+### 4.2 Studio Admin Brand Sync
 
 ```
-Studio Admin → /s/<tenant_slug>/v1/* → PostgreSQL tenant_id rows → CMS/Register
+Studio Admin → /s/<tenant_slug>/v1/tenant → PostgreSQL tenant row/settings → Portal/CMS/Register
 ```
 
-| Studio Admin area | API/database source | CMS/Register consumer |
+| Studio Admin area | API/database source | Public consumer |
 |---|---|---|
-| Studio name | `PATCH /s/<slug>/v1/tenant` → `tenants.name` | `/v1/public/<slug>/brand`, CMS/Register wrapper |
-| Logo | upload `/v1/tenant/logo` → `tenants.settings.logo_url` | CMS/Register logo replacement |
-| Primary/secondary colors | `tenants.primary_color`, `tenants.secondary_color` | CMS/Register CSS variables |
-| Welcome message | `tenants.welcome_message` | Public brand payload, CMS/Register |
+| Studio name | `PATCH /s/<slug>/v1/tenant` → `tenants.name` | `/v1/public/<slug>/brand`, portal, CMS wrapper, register wrapper |
+| Logo | upload `/s/<slug>/v1/tenant/logo` → `tenants.settings.logo_url` | Portal/CMS/Register logo replacement |
+| Primary/secondary colors | `tenants.primary_color`, `tenants.secondary_color` | Portal/CMS/Register CSS variables |
+| Welcome message | `tenants.welcome_message` | Public brand payload, portal/CMS/Register welcome areas |
 | CMS layout | `tenants.settings.cms_layout` | CMS/Register wrapper (`bar`, `hero`, `compact`) |
 | Show welcome | `tenants.settings.show_welcome` | Controls welcome visibility |
-| Industry category | `tenants.settings.category` | Super Admin preset; Studio Admin industry mode |
-| Public slogan | `tenants.settings.slogan` | CMS login surfaces, Register header |
-| Registration profile | `tenants.settings.registration_profile` | Register form labels/placeholders |
-| Copy pack | `tenants.settings.copy_pack` | Public portal labels, Register intro |
-| Contact phone/email/address | `tenants.contact_*` | Tenant wrapper contact strip |
-| Courses | `/s/<slug>/v1/courses` → `courses` | Studio Admin course management |
-| Packages | `/s/<slug>/v1/packages` → `packages` | Legacy CMS bridge exposes packages |
-| Students | Legacy CMS bridge → `students` | Legacy CMS returns tenant-scoped students |
-| Student balances | Legacy CMS bridge → `credit_accounts` | Register balance query |
-| Registrations | Register bridge → `/v1/public/<slug>/registrations`; review via `/s/<slug>/v1/registrations/<id>` | Studio Admin review queue, duplicate handling, approve-to-student |
+| Industry category | `tenants.settings.category` | Presets for public copy and registration fields |
+| Public slogan | `tenants.settings.slogan` | CMS login surfaces, portal, register header |
+| Registration profile | `tenants.settings.registration_profile` | Register form labels/placeholders and CMS create-student preferences |
+| Copy pack | `tenants.settings.copy_pack` | Public portal labels and register intro |
+| Contact phone/email/address | `tenants.contact_*` | Public contact strip |
+
+Daily operations stay in the CMS: courses/packages, students, credit ledger, attendance, registration review, rosters, logs, analytics, and portfolio edits.
 
 ### 4.3 Legacy Bridge Integration
 

@@ -602,7 +602,7 @@ function LoginScreen({ onLogin }) {
       setBusy(false);
     }
   };
-  return /* @__PURE__ */ React.createElement("div", { className: "min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 to-indigo-950 p-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-3xl p-8 w-full max-w-xs shadow-2xl text-center anim" }, /* @__PURE__ */ React.createElement("img", { src: "/logo.png", alt: "Studio", className: "w-36 mx-auto mb-3" }), /* @__PURE__ */ React.createElement("p", { className: "tenant-slogan text-sm text-gray-500 italic mb-4" }, "Learn, grow, and feel confident."), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-400 mb-6" }, "请输入 Studio Admin 账号"), /* @__PURE__ */ React.createElement("form", { onSubmit: submit, className: "space-y-3" }, /* @__PURE__ */ React.createElement(
+  return /* @__PURE__ */ React.createElement("div", { className: "min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 to-indigo-950 p-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-3xl p-8 w-full max-w-xs shadow-2xl text-center anim" }, /* @__PURE__ */ React.createElement("img", { src: "/logo.png", alt: "Studio", className: "w-36 mx-auto mb-3" }), /* @__PURE__ */ React.createElement("p", { className: "tenant-slogan text-sm text-gray-500 italic mb-4" }, "Learn, grow, and feel confident."), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-400 mb-6" }, "请输入 Studio CMS 账号"), /* @__PURE__ */ React.createElement("form", { onSubmit: submit, className: "space-y-3" }, /* @__PURE__ */ React.createElement(
     "input",
     {
       type: "email",
@@ -2612,8 +2612,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
         rel: "noopener",
         className: "block bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3 text-sm font-bold text-indigo-700 active:bg-indigo-100"
       },
-      "🎨 品牌与网站设置（Studio Admin）→",
-      /* @__PURE__ */ React.createElement("p", { className: "text-[11px] font-normal text-indigo-400 mt-0.5" }, "Logo、配色、注册表单、数据导出、作品分享链接")
+      "🎨 网站、Logo、配色与注册表设置 →",
+      /* @__PURE__ */ React.createElement("p", { className: "text-[11px] font-normal text-indigo-400 mt-0.5" }, "打开 Studio Admin 管理公开门户、注册表字段、品牌文案和页面展示")
     ), /* @__PURE__ */ React.createElement("div", { className: "space-y-2" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-gray-500 uppercase tracking-wide" }, "修改登录密码"), /* @__PURE__ */ React.createElement(
       "input",
       {

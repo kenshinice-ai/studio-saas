@@ -236,6 +236,23 @@
 
     .btn-sm { padding: 6px 12px; font-size: 13px; }
 
+    .tenant-chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 34px;
+      padding: 6px 10px;
+      border-radius: var(--radius);
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.16);
+      color: #cbd5e1;
+      font-size: 12px;
+      font-weight: 700;
+      max-width: 220px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
     /* Main Layout */
     main {
       max-width: 1400px;
@@ -559,6 +576,58 @@
       grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr);
       gap: 24px;
       align-items: start;
+    }
+
+    .surface-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .surface-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      background: #f8fafc;
+      display: grid;
+      gap: 12px;
+      align-content: start;
+      min-height: 180px;
+    }
+
+    .surface-card strong {
+      font-size: 15px;
+      color: var(--ink);
+    }
+
+    .surface-card p {
+      color: var(--muted);
+      font-size: 13px;
+      margin: 0;
+    }
+
+    .surface-url {
+      display: block;
+      color: #475569;
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 8px 10px;
+      font-family: "SF Mono", Monaco, monospace;
+      font-size: 12px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .handoff-note {
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      padding: 14px 16px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
     }
 
     .warning-text {
@@ -1108,7 +1177,8 @@
       </div>
       <div class="header-actions">
         <span id="authStatus" class="auth-status">Not signed in</span>
-        <input id="tenantSlug" aria-label="Tenant slug" value="" placeholder="tenant-slug">
+        <span id="tenantSlugLabel" class="tenant-chip">tenant</span>
+        <input id="tenantSlug" type="hidden" aria-label="Tenant slug" value="">
         <button id="changePasswordBtn" class="btn-secondary hidden">Change Password</button>
         <button id="logoutBtn" class="btn-secondary hidden">Logout</button>
         <button id="refreshBtn" class="btn-primary">
@@ -1121,29 +1191,23 @@
     <!-- Navigation Bar -->
     <nav class="nav-bar">
       <div class="nav-inner">
-        <a class="nav-link active" href="#section-overview" data-section="overview">
-          <span class="nav-icon">📊</span> Dashboard
-        </a>
-        <a class="nav-link" href="#section-students" data-section="students">
-          <span class="nav-icon">👥</span> Students
-        </a>
-        <a class="nav-link" href="#section-registrations" data-section="registrations">
-          <span class="nav-icon">📋</span> Registrations
-        </a>
-        <a class="nav-link" href="#section-attendance" data-section="attendance">
-          <span class="nav-icon">✓</span> Credits / Attendance
-        </a>
-        <a class="nav-link" href="#section-courses" data-section="courses">
-          <span class="nav-icon">📚</span> Courses / Packages
-        </a>
-        <a class="nav-link" href="#section-portfolio" data-section="portfolio">
-          <span class="nav-icon">🎨</span> Portfolio
-        </a>
-        <a class="nav-link" href="#section-settings" data-section="settings">
+        <a class="nav-link active" href="#section-settings" data-section="settings">
           <span class="nav-icon">⚙️</span> Website / Brand
         </a>
+        <a class="nav-link" href="#section-public-surfaces" data-section="public-surfaces">
+          <span class="nav-icon">🌐</span> Public Pages
+        </a>
+        <a class="nav-link" href="#registrationFieldsEditor" data-section="registration-form">
+          <span class="nav-icon">📝</span> Register Form
+        </a>
+        <a class="nav-link" href="#section-overview" data-section="overview">
+          <span class="nav-icon">📊</span> CMS Snapshot
+        </a>
+        <a class="nav-link" href="#section-advanced" data-section="advanced">
+          <span class="nav-icon">⬇</span> Advanced / Export
+        </a>
         <a class="nav-link" href="#" id="openCmsLink" target="_blank" rel="noopener" style="border-top:1px solid var(--border,#E2E8F0);margin-top:8px;padding-top:12px;">
-          <span class="nav-icon">🗂️</span> 打开 CMS 工作台
+          <span class="nav-icon">🗂</span> Open CMS
         </a>
       </div>
     </nav>
@@ -1180,71 +1244,13 @@
 
     <div id="adminContent" class="hidden">
 
-    <!-- ===== Overview Section ===== -->
-    <section id="section-overview" class="section">
-      <div class="section-header">
-        <div class="section-icon">📊</div>
-        <div>
-          <div class="section-title">Dashboard</div>
-          <div class="section-subtitle">Today, balances, and registration work</div>
-        </div>
-      </div>
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div id="studentsMetric" class="stat-value">-</div>
-          <div class="stat-label">Total Students</div>
-        </div>
-        <div class="stat-card green">
-          <div id="activeMetric" class="stat-value">-</div>
-          <div class="stat-label">Active</div>
-        </div>
-        <div class="stat-card amber">
-          <div id="lowMetric" class="stat-value">-</div>
-          <div class="stat-label">Low Balance</div>
-        </div>
-        <div class="stat-card purple">
-          <div id="pendingMetric" class="stat-value">-</div>
-          <div class="stat-label">Pending</div>
-        </div>
-        <div class="stat-card">
-          <div id="todayMetric" class="stat-value">-</div>
-          <div class="stat-label">Today Check-ins</div>
-        </div>
-      </div>
-      <div class="content-grid mt-2">
-        <div class="card">
-          <div class="card-header">
-            <h2 class="card-title">Today</h2>
-          </div>
-          <div id="dashboardTodayBody" class="empty-state">Loading...</div>
-        </div>
-        <div class="card">
-          <div class="card-header">
-            <h2 class="card-title">Attention</h2>
-          </div>
-          <div id="dashboardAttentionBody" class="empty-state">Loading...</div>
-        </div>
-      </div>
-    </section>
-
     <!-- ===== Studio Settings Section ===== -->
     <section id="section-settings" class="section">
       <div class="section-header">
         <div class="section-icon">⚙️</div>
         <div>
           <div class="section-title">Website / Brand</div>
-          <div class="section-subtitle">Branding, layout, and contact details</div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-header">
-          <h2 class="card-title">Data Export</h2>
-        </div>
-        <p class="text-muted" style="margin:0 0 12px;font-size:13px;">Download this studio's data as CSV (Excel-compatible). Exports are recorded in the audit log.</p>
-        <div class="action-row">
-          <button type="button" class="btn-secondary btn-sm" onclick="downloadExport('students')">Students CSV</button>
-          <button type="button" class="btn-secondary btn-sm" onclick="downloadExport('registrations')">Registrations CSV</button>
-          <button type="button" class="btn-secondary btn-sm" onclick="downloadExport('credit-ledger')">Credit Ledger CSV</button>
+          <div class="section-subtitle">Logo, colours, public copy, registration fields, and parent-facing presentation</div>
         </div>
       </div>
       <div class="card">
@@ -1369,8 +1375,127 @@
       </div>
     </section>
 
+    <section id="section-public-surfaces" class="section">
+      <div class="section-header">
+        <div class="section-icon">🌐</div>
+        <div>
+          <div class="section-title">Public Pages</div>
+          <div class="section-subtitle">Check the four tenant surfaces generated for every studio</div>
+        </div>
+      </div>
+      <div class="surface-grid">
+        <div class="surface-card">
+          <strong>Portal</strong>
+          <p>The public home page parents see first: courses, gallery, contact, student lookup, and enrolment entry.</p>
+          <code id="surfacePortalUrl" class="surface-url">/tenant-slug</code>
+          <button type="button" class="btn-primary" onclick="openTenantSurface('portal')">Open Portal</button>
+        </div>
+        <div class="surface-card">
+          <strong>CMS</strong>
+          <p>The daily operations workspace for students, check-ins, payments, refunds, rosters, logs, and portfolio work.</p>
+          <code id="surfaceCmsUrl" class="surface-url">/tenant-slug/cms</code>
+          <button type="button" class="btn-secondary" onclick="openTenantSurface('cms')">Open CMS</button>
+        </div>
+        <div class="surface-card">
+          <strong>Register</strong>
+          <p>The tenant-specific lead capture page. Its labels, intro copy, and preferences are controlled above.</p>
+          <code id="surfaceRegisterUrl" class="surface-url">/tenant-slug/register</code>
+          <button type="button" class="btn-secondary" onclick="openTenantSurface('register')">Open Register</button>
+        </div>
+        <div class="surface-card">
+          <strong>Studio Admin</strong>
+          <p>This control panel for how the studio appears externally. Operational editing stays in the CMS.</p>
+          <code id="surfaceAdminUrl" class="surface-url">/tenant-slug/studio-admin</code>
+          <button type="button" class="btn-secondary" onclick="openTenantSurface('admin')">Open Admin</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Overview Section ===== -->
+    <section id="section-overview" class="section">
+      <div class="section-header">
+        <div class="section-icon">📊</div>
+        <div>
+          <div class="section-title">CMS Snapshot</div>
+          <div class="section-subtitle">Read-only operational status; manage daily work in the CMS</div>
+        </div>
+      </div>
+      <div class="handoff-note mb-2">
+        CMS is the source of truth for daily operations: payments, check-ins, students, rosters, refunds, logs, statistics, registration review, and portfolio updates.
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div id="studentsMetric" class="stat-value">-</div>
+          <div class="stat-label">Students in CMS</div>
+        </div>
+        <div class="stat-card green">
+          <div id="activeMetric" class="stat-value">-</div>
+          <div class="stat-label">Active</div>
+        </div>
+        <div class="stat-card amber">
+          <div id="lowMetric" class="stat-value">-</div>
+          <div class="stat-label">Low Balance</div>
+        </div>
+        <div class="stat-card purple">
+          <div id="pendingMetric" class="stat-value">-</div>
+          <div class="stat-label">Pending Leads</div>
+        </div>
+        <div class="stat-card">
+          <div id="todayMetric" class="stat-value">-</div>
+          <div class="stat-label">Today Check-ins</div>
+        </div>
+      </div>
+      <div class="content-grid mt-2">
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Today in CMS</h2>
+          </div>
+          <div id="dashboardTodayBody" class="empty-state">Loading...</div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Needs Attention</h2>
+          </div>
+          <div id="dashboardAttentionBody" class="empty-state">Loading...</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="section-advanced" class="section">
+      <div class="section-header">
+        <div class="section-icon">⬇</div>
+        <div>
+          <div class="section-title">Advanced / Export</div>
+          <div class="section-subtitle">Audited exports and links back to the operational CMS</div>
+        </div>
+      </div>
+      <div class="content-grid">
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Data Export</h2>
+          </div>
+          <p class="text-muted" style="margin:0 0 12px;font-size:13px;">Download this studio's operational data as CSV. Exports are recorded in the audit log.</p>
+          <div class="action-row">
+            <button type="button" class="btn-secondary btn-sm" onclick="downloadExport('students')">Students CSV</button>
+            <button type="button" class="btn-secondary btn-sm" onclick="downloadExport('registrations')">Registrations CSV</button>
+            <button type="button" class="btn-secondary btn-sm" onclick="downloadExport('credit-ledger')">Credit Ledger CSV</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Operations Handoff</h2>
+          </div>
+          <p class="text-muted" style="margin:0 0 12px;font-size:13px;">Students, attendance, payments, refunds, schedules, logs, analytics, and portfolio edits live in the CMS.</p>
+          <div class="action-row">
+            <button type="button" class="btn-primary btn-sm" onclick="openTenantSurface('cms')">Open CMS Workspace</button>
+            <button type="button" class="btn-secondary btn-sm" onclick="openTenantSurface('register')">Review Register Page</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ===== Students Section ===== -->
-    <section id="section-students" class="section">
+    <section id="section-students" class="section operational-section hidden">
       <div class="section-header">
         <div class="section-icon">👥</div>
         <div>
@@ -1479,7 +1604,7 @@
     </section>
 
     <!-- ===== Credits & Attendance Section ===== -->
-    <section id="section-attendance" class="section">
+    <section id="section-attendance" class="section operational-section hidden">
       <div class="section-header">
         <div class="section-icon">✓</div>
         <div>
@@ -1539,7 +1664,7 @@
     </section>
 
     <!-- ===== Courses Section ===== -->
-    <section id="section-courses" class="section">
+    <section id="section-courses" class="section operational-section hidden">
       <div class="section-header">
         <div class="section-icon">📚</div>
         <div>
@@ -1571,7 +1696,7 @@
     </section>
 
     <!-- ===== Packages & Registrations Section ===== -->
-    <section id="section-packages" class="section">
+    <section id="section-packages" class="section operational-section hidden">
       <div class="section-header">
         <div class="section-icon">📦</div>
         <div>
@@ -1606,7 +1731,7 @@
     </section>
 
     <!-- ===== Registrations Section ===== -->
-    <section id="section-registrations" class="section">
+    <section id="section-registrations" class="section operational-section hidden">
       <div class="section-header">
         <div class="section-icon">📋</div>
         <div>
@@ -1637,7 +1762,7 @@
     </section>
 
     <!-- ===== Portfolio Section ===== -->
-    <section id="section-portfolio" class="section">
+    <section id="section-portfolio" class="section operational-section hidden">
       <div class="section-header">
         <div class="section-icon">🎨</div>
         <div>
@@ -1834,18 +1959,66 @@
     function orderSectionsForDailyWorkflow() {
       const container = $('adminContent');
       [
+        'section-settings',
+        'section-public-surfaces',
         'section-overview',
+        'section-advanced',
         'section-students',
         'section-registrations',
         'section-attendance',
         'section-courses',
         'section-packages',
-        'section-portfolio',
-        'section-settings'
+        'section-portfolio'
       ].forEach((id) => {
         const section = $(id);
         if (section) container.appendChild(section);
       });
+    }
+
+    function tenantSurfaceUrl(surface) {
+      const slug = encodeURIComponent(currentTenantSlug());
+      if (!slug) return '#';
+      const routes = {
+        portal: `/${slug}`,
+        cms: `/${slug}/cms`,
+        register: `/${slug}/register`,
+        admin: `/${slug}/studio-admin`
+      };
+      return routes[surface] || routes.portal;
+    }
+
+    function openTenantSurface(surface) {
+      const url = tenantSurfaceUrl(surface);
+      if (url === '#') {
+        showToast('Tenant slug is required.', 'error');
+        return;
+      }
+      window.open(url, '_blank');
+    }
+
+    function updateSurfaceLinks() {
+      const slug = currentTenantSlug();
+      const label = $('tenantSlugLabel');
+      if (label) label.textContent = slug || 'tenant';
+      const urlTargets = {
+        surfacePortalUrl: 'portal',
+        surfaceCmsUrl: 'cms',
+        surfaceRegisterUrl: 'register',
+        surfaceAdminUrl: 'admin'
+      };
+      Object.entries(urlTargets).forEach(([id, surface]) => {
+        const el = $(id);
+        if (el) el.textContent = tenantSurfaceUrl(surface);
+      });
+      const cmsLink = $('openCmsLink');
+      if (cmsLink) {
+        if (slug) {
+          cmsLink.href = tenantSurfaceUrl('cms');
+          cmsLink.style.display = '';
+        } else {
+          cmsLink.style.display = 'none';
+        }
+      }
     }
 
     async function runUiAction(buttonId, label, action) {
@@ -2238,8 +2411,9 @@
       const category = t.category || t.settings?.category || 'general';
       const preset = INDUSTRY_PRESETS[category] || INDUSTRY_PRESETS.general;
       $('studioName').textContent = t.name || 'Studio Admin';
-      $('studioMeta').textContent = t.slug ? `${t.slug} · ${preset.label} studio dashboard` : 'Studio dashboard';
+      $('studioMeta').textContent = t.slug ? `${t.slug} · ${preset.label} website and brand console` : 'Website and brand console';
       $('tenantSlug').value = t.slug || currentTenantSlug();
+      updateSurfaceLinks();
       $('settingName').value = t.name || '';
       $('settingLogoUrl').value = t.logo_url || t.logoUrl || '';
       $('settingPlan').innerHTML = plans.map((p) => `<option value="${p.code}">${esc(p.name)} (${esc(p.code)})</option>`).join('');
@@ -2960,10 +3134,11 @@
       $('refreshBtn').addEventListener('click', refresh);
       $('tenantSlug').addEventListener('change', () => {
         localStorage.setItem('studiosaas_tenant_slug', currentTenantSlug());
+        updateSurfaceLinks();
         checkSession();
       });
-      $('openCmsBtn').addEventListener('click', () => window.open(`/${currentTenantSlug()}`, '_blank'));
-      $('openRegisterBtn').addEventListener('click', () => window.open(`/${currentTenantSlug()}/register`, '_blank'));
+      $('openCmsBtn').addEventListener('click', () => openTenantSurface('cms'));
+      $('openRegisterBtn').addEventListener('click', () => openTenantSurface('register'));
       $('saveSettingsBtn').addEventListener('click', () => runUiAction('saveSettingsBtn', 'Saving...', saveSettings));
       $('settingLogoFile').addEventListener('change', () => uploadLogo().catch((err) => showToast(err.message, 'error')));
       $('resetPresetBtn').addEventListener('click', applyCategoryPreset);
@@ -2972,12 +3147,7 @@
       $('settingCategory').addEventListener('change', applyCategoryPreset);
       ['studentSearch','studentStatusFilter','studentLowFilter'].forEach((id) => $(id).addEventListener('input', () => { studentPage = 0; refresh(); }));
       $('clearStudentFiltersBtn').addEventListener('click', () => { $('studentSearch').value = ''; $('studentStatusFilter').value = ''; $('studentLowFilter').checked = false; studentPage = 0; refresh(); });
-      const cmsLink = $('openCmsLink');
-      if (cmsLink) {
-        const slugForCms = currentTenantSlug();
-        if (slugForCms) cmsLink.href = `/${encodeURIComponent(slugForCms)}/cms`;
-        else cmsLink.style.display = 'none';
-      }
+      updateSurfaceLinks();
       $('studentPrevBtn').addEventListener('click', () => { if (studentPage > 0) { studentPage -= 1; refresh(); } });
       $('studentNextBtn').addEventListener('click', () => { if ((studentPage + 1) * STUDENT_PAGE_SIZE < studentTotal) { studentPage += 1; refresh(); } });
       $('addStudentBtn').addEventListener('click', openCreateStudentModal);

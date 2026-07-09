@@ -605,7 +605,7 @@ function LoginScreen({ onLogin }) {
             <div className="bg-white rounded-3xl p-8 w-full max-w-xs shadow-2xl text-center anim">
 	                <img src="/logo.png" alt="Studio" className="w-36 mx-auto mb-3"/>
 	                <p className="tenant-slogan text-sm text-gray-500 italic mb-4">Learn, grow, and feel confident.</p>
-	                <p className="text-sm text-gray-400 mb-6">请输入 Studio Admin 账号</p>
+	                <p className="text-sm text-gray-400 mb-6">请输入 Studio CMS 账号</p>
                 <form onSubmit={submit} className="space-y-3">
                     <input
                         type="email"
@@ -2397,12 +2397,12 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             <h3 className="font-bold text-gray-800">⚙️ 系统设置</h3>
                             <button onClick={()=>setShowSettings(false)} className="text-gray-400 active:text-gray-700 text-xl p-1">×</button>
                         </div>
-                        {/* A5: 品牌与网站设置在 Studio Admin 面板 */}
+                        {/* A5: Public website and lead-capture settings live in Studio Admin. */}
                         {TENANT_SLUG && (
                             <a href={`/${TENANT_SLUG}/studio-admin`} target="_blank" rel="noopener"
                                 className="block bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3 text-sm font-bold text-indigo-700 active:bg-indigo-100">
-                                🎨 品牌与网站设置（Studio Admin）→
-                                <p className="text-[11px] font-normal text-indigo-400 mt-0.5">Logo、配色、注册表单、数据导出、作品分享链接</p>
+                                🎨 网站、Logo、配色与注册表设置 →
+                                <p className="text-[11px] font-normal text-indigo-400 mt-0.5">打开 Studio Admin 管理公开门户、注册表字段、品牌文案和页面展示</p>
                             </a>
                         )}
                         {/* 修改登录密码 */}

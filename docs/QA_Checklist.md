@@ -32,20 +32,26 @@
 - [ ] Tenant A session cannot read or write tenant B data (isolation tests)
 - [ ] `X-Tenant-Slug` header spoofing cannot cross tenant boundaries
 
-### 3. Studio Admin Functionality
+### 3. Studio Admin Website/Brand Console
 
 - [ ] Studio admin login works per tenant; wrong-tenant login is rejected
 - [ ] Archived/deleted tenants cannot access tenant-scoped Studio Admin APIs
-- [ ] Student create/update/archive round-trips correctly
-- [ ] Course and package creation persist and list correctly
+- [ ] Website / Brand is the default visible section
+- [ ] Operational modules are not exposed as primary Studio Admin navigation
+- [ ] Studio Admin links show all four tenant surfaces: portal, CMS, register, studio-admin
+- [ ] Brand settings (logo, colors, welcome, slogan, registration profile) sync to Portal/CMS/Register surfaces
+- [ ] Logo upload validates type/size and replaces preview reliably
+
+### 3.1 CMS Daily Operations
+
+- [ ] Student create/update/archive round-trips correctly in CMS
+- [ ] Course and package changes persist and list correctly in CMS
 - [ ] Credit transactions map correctly (`debit`→`consume`, `adjustment_in/out`→`adjustment`)
 - [ ] Insufficient balance is blocked with a clear error
-- [ ] Pending registrations appear in the review queue
+- [ ] Pending registrations appear in the CMS review queue
 - [ ] Duplicate registration attempts are visible and linked to the existing student or pending registration
 - [ ] Approving a registration creates/links a student and stores the review decision
 - [ ] Rejecting/archiving a registration stores a review note and writes audit history
-- [ ] Brand settings (logo, colors, welcome, slogan) sync to CMS/Register surfaces
-- [ ] Logo upload validates type/size and replaces preview reliably
 
 ### 4. Public Surfaces
 
@@ -121,7 +127,7 @@ These items activate once P3-02 lands; they are **not** blockers for local pilot
 | QA-001 | `pytest -q` broken (dep + config) | ✅ Fixed 2026-07-03 (P0-02) | — |
 | QA-002 | Rate limits reset on server restart (in-memory) | Accepted for pilot | Redis-backed limiter at P3-04 |
 | QA-003 | Super-admin tenant list pagination | ✅ Fixed 2026-07-03 | Client-side page controls added |
-| QA-004 | Attendance check-in flow | ✅ Fixed 2026-07-03 | Attendance API and Studio Admin flow added |
+| QA-004 | Attendance check-in flow | ✅ Fixed 2026-07-03 | Attendance API and CMS daily workflow added |
 
 ---
 

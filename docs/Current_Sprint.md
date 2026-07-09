@@ -141,7 +141,7 @@ These items from earlier sprint docs are confirmed done — do not re-fix:
 | P2-02 | Multi-tenant PWA/sw.js (last "Let's Paint" residue) | ❌ |
 | P2-03 | Replace runtime Babel/Tailwind vendor JS with prebuilt assets | ❌ |
 | P2-04 | Super Admin platform cockpit | ❌ |
-| P2-05 | Studio Admin workflow reorganisation | ❌ |
+| P2-05 | Studio Admin workflow reorganisation — Studio Admin refocused on website/brand/lead-capture settings; CMS remains daily operations | ✅ 2026-07-09 |
 | P2-06 | Shared design tokens from `docs/Design_System.md` | ❌ |
 
 ### P3 — Platform and deployment

@@ -74,9 +74,17 @@ def test_csrf_header_required_for_cookie_authed_mutations(client):
     assert "CSRF" in ((response.get_json() or {}).get("message") or "")
 
 
-def test_csrf_header_lets_authed_mutations_reach_auth_layer(client):
-    """With the header present the request passes the guard (auth still applies)."""
+def test_csrf_header_lets_authed_mutations_reach_auth_layer(client, monkeypatch):
+    """With the header present the request passes the CSRF guard.
 
+    Depending on whether a test database URL is configured, the request may
+    then stop at auth/role checks or at tenant/database availability.
+    """
+
+    monkeypatch.setenv(
+        "STUDIOSAAS_DATABASE_URL",
+        "postgresql://localhost/studiosaas_csrf_boundary_test",
+    )
     with client.session_transaction() as sess:
         sess["user_id"] = FAKE_USER
     response = client.post(
@@ -84,7 +92,7 @@ def test_csrf_header_lets_authed_mutations_reach_auth_layer(client):
         json={},
         headers={"X-Requested-With": "StudioSaaS"},
     )
-    assert response.status_code in (401, 403)
+    assert response.status_code in (401, 403, 503)
     assert "CSRF" not in ((response.get_json() or {}).get("message") or "")
 
 

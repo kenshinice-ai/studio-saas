@@ -40,7 +40,7 @@ A target architecture (modular services: Auth/Tenant/Student/Course/Credit/Atten
 | Level | Who | Main surface |
 |---|---|---|
 | Platform Operator | SaaS owner | `/super-admin` (also `/`) |
-| Studio Owner / Admin | One tenant studio | `/<tenant-slug>/cms` (daily student management) + `/<tenant-slug>/studio-admin` (settings/registrations backend) |
+| Studio Owner / Admin | One tenant studio | `/<tenant-slug>/cms` (daily operations) + `/<tenant-slug>/studio-admin` (website/brand/lead-capture settings) |
 | Public Parent / Student | Visitors | `/<tenant-slug>` (portal), `/<tenant-slug>/register` |
 
 **Every tenant gets four surfaces** (created from `tenant-template/`, branded via `/v1/public/<slug>/brand`):
@@ -48,8 +48,8 @@ A target architecture (modular services: Auth/Tenant/Student/Course/Credit/Atten
 | Surface | URL | Purpose |
 |---|---|---|
 | Portal (门户) | `/<slug>` | Public site: courses, gallery, FAQ, contact, in-page enrolment + student area (balance/portfolio by name+phone) |
-| CMS | `/<slug>/cms` | Staff daily surface: check-in, credits, portfolio, roster |
-| Studio Admin | `/<slug>/studio-admin` | Settings, registration review, branding (alias: `/<slug>/cms/studio-admin` redirects here) |
+| CMS | `/<slug>/cms` | Staff daily surface: students, roster, check-ins, credits, payments/refunds, logs, analytics, portfolio, and registration review |
+| Studio Admin | `/<slug>/studio-admin` | Website/brand console: logo, colours, public copy, registration fields, surface preview, and audited exports (alias: `/<slug>/cms/studio-admin` redirects here) |
 | Register | `/<slug>/register` | Standalone public registration form |
 
 Local URLs (default port 8899):

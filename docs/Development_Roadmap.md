@@ -39,12 +39,11 @@ Purpose: Phased development plan, milestones, current status, and deployment tar
 
 **Scope:**
 - Multi-tenant base with `tenant_id` isolation
-- Studio Admin (students, courses, packages, credits, portfolio)
-- Brand customization (logo, colors, welcome, industry presets)
+- Tenant CMS (`/<slug>/cms`) for daily operations: students, courses, packages, credits, payments/refunds, rosters, registrations, portfolio, logs, and analytics
+- Studio Admin (`/<slug>/studio-admin`) for website/brand and lead-capture settings: logo, colors, welcome, public copy, registration fields, generated surface links, and exports
 - Public registration page (tenant-specific)
 - Parent/Student portal (balance, portfolio, registration)
 - Super Admin (tenant lifecycle, plans, usage, audit)
-- Tenant CMS (`/<slug>/cms`) — the core daily operating surface for studio owners
 - Basic backup and export
 - Basic permission controls
 
@@ -56,10 +55,10 @@ Purpose: Phased development plan, milestones, current status, and deployment tar
 | Tenant workspace generation | ✅ | From `tenant-template/` |
 | PostgreSQL schema v1 | ✅ | 18 tables defined |
 | Super Admin dashboard | ✅ | Create/pause/resume tenants |
-| Studio Admin login | ✅ | Per-tenant login management |
+| Studio Admin login | ✅ | Per-tenant website/brand console |
 | Studio CMS | ✅ | Legacy bridge with tenant routing |
 | Tenant registration | ✅ | Tenant-specific registration page |
-| Brand sync (Studio Admin → CMS) | ✅ | Logo, colors, welcome, industry |
+| Brand sync (Studio Admin → public surfaces) | ✅ | Logo, colors, welcome, industry, registration profile |
 | Demo data seeding | ✅ | Randomized relational data |
 | Legacy smoke test | ✅ | 73 checks passing |
 | Public endpoint rate limiting | ✅ | In-memory: registrations 5/min, balance 10/min, uploads 5/min |
