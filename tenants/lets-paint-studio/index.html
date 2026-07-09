@@ -48,6 +48,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Noto+Serif+SC:wght@400;500;600&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="/assets/public-register.js"></script>
 <style>
   :root{
     --bg:#F4F0E8;--bg2:#ECE6DB;--panel:#FBF9F4;--ink:#23211D;--ink2:#4A473F;
@@ -723,36 +724,17 @@
       box.id='joinCustomFields';
       msg.closest('.fld').parentNode.insertBefore(box, msg.closest('.fld'));
     }
-    box.innerHTML='';
-    profile.fields.slice(0,8).forEach(function(field){
-      var wrap=document.createElement('div'); wrap.className='fld';
-      var label=document.createElement('label'); label.textContent=(field.label||field.key||'Question')+(field.required?' *':'');
-      wrap.appendChild(label);
-      var input;
-      if(field.type==='textarea'){
-        input=document.createElement('textarea'); input.rows=2;
-      }else if(field.type==='select'){
-        input=document.createElement('select');
-        var blank=document.createElement('option'); blank.value=''; blank.textContent=field.placeholder||T('请选择…','Please choose…'); input.appendChild(blank);
-        (field.options||[]).forEach(function(option){ var opt=document.createElement('option'); opt.value=option; opt.textContent=option; input.appendChild(opt); });
-      }else{
-        input=document.createElement('input');
-      }
-      input.dataset.regLabel=field.label||field.key||'Question';
-      input.dataset.regRequired=field.required?'true':'false';
-      if(field.placeholder && field.type!=='select') input.placeholder=field.placeholder;
-      wrap.appendChild(input);
-      box.appendChild(wrap);
+    window.StudioSaaSPublicRegister.renderFields(profile, {
+      container: box,
+      labelClass: 'fld',
+      fallbackTitle: T('报名信息','Registration details')
     });
   }
   function collectRegistrationFields(){
-    var out=[];
-    document.querySelectorAll('#joinCustomFields [data-reg-label]').forEach(function(input){
-      var value=(input.value||'').trim();
-      if(input.dataset.regRequired==='true' && !value) throw new Error(T('请填写必填报名问题','Please complete the required registration questions.'));
-      if(value) out.push(input.dataset.regLabel+': '+value);
+    return window.StudioSaaSPublicRegister.collectFields({
+      container: 'joinCustomFields',
+      requiredPrefix: T('请填写','Please complete')
     });
-    return out;
   }
   fetch('/v1/public/lets-paint-studio/brand').then(function(r){return r.json();}).then(function(d){
     var b=(d&&d.brand)||{};
@@ -945,8 +927,8 @@
   (function(){
     try{
       fetch('/v1/public/lets-paint-studio/gallery').then(function(r){return r.json();}).then(function(d){
-        /* v6.6.5 #6: 策展式展示 —— 真实公开作品 ≥4 张才整墙替换,避免真作与滤镜占位图混排 */
-        if(!d||!d.items||d.items.length<4) return;
+        /* StudioSaaS: 公开作品有 1 张就展示,避免后台保存后看起来未发布 */
+        if(!d||!d.items||!d.items.length) return;
         var grid=document.getElementById('galleryGrid'); if(!grid) return;
         grid.innerHTML='';
         window.GWORKS = d.items.slice(0,12);

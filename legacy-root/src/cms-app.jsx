@@ -667,8 +667,8 @@ function App() {
     // Portfolio
     const [portLB,      setPortLB]      = useState(null);  // lightbox: {items,idx}
     const [portUpload,  setPortUpload]  = useState(false); // upload modal open
-    const [portUpFile,  setPortUpFile]  = useState(null);  // {file,dataUrl,note,date}
-    const [portEdit,    setPortEdit]    = useState(null);  // {sid,item,note,date}
+    const [portUpFile,  setPortUpFile]  = useState(null);  // {file,dataUrl,note,date,public}
+    const [portEdit,    setPortEdit]    = useState(null);  // {sid,item,note,date,public}
     const [portBusy,    setPortBusy]    = useState(false);
     const lbTouchX    = useRef(0);  // M1: swipe start X
     // Fix ⑪: configurable inactive-days threshold (stored in localStorage)
@@ -1386,7 +1386,7 @@ function App() {
     };
 
     /* F4a: ids already checked in on the roster date — the batch action must
-       skip them, otherwise tapping a few students then hitting 全员消课
+       skip them, otherwise tapping a few students then hitting 批量签到/消课
        deducts those students TWICE. */
     const rosterDone = useMemo(() => {
         const m = String(rDate).match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -1478,9 +1478,9 @@ function App() {
         const ids     = dayIds;
         const already = ids.filter(id => rosterDone.has(id)).length;
         const elig    = ids.filter(id => { const s=db.students.find(x=>x.id===id); return s&&!s.archived&&s.balance>0&&!rosterDone.has(id); });
-        if (!elig.length) { showToast(already ? '今日排班学员均已签到 ✓' : '今日无可消课学员', 'warn'); return; }
+        if (!elig.length) { showToast(already ? '今日排班学员均已签到 ✓' : '今日无可签到/消课学员', 'warn'); return; }
         const skipNote = already ? `，${already} 人已单独签到将跳过` : '';
-        confirm(`确认对今日 ${elig.length} 名学员执行全员消课？（余额为 0、已归档${skipNote}）`, async () => {
+        confirm(`确认对今日 ${elig.length} 名学员执行批量签到/消课？（余额为 0、已归档${skipNote}）`, async () => {
             if (busy) return; // Fix ④
             setBusy(true);
             try {
@@ -1492,13 +1492,13 @@ function App() {
                         try {
                             await v1Api('/attendance/check-in', {
                                 method: 'POST',
-                                body: JSON.stringify({studentId: id, note: '全员消课', classDate: rDate}),
+                                body: JSON.stringify({studentId: id, note: '批量签到/消课', classDate: rDate}),
                             });
                         } catch(e) { failed.push(s.name); }
                     }
                     await load();
-                    if (failed.length) showToast(`全员消课完成，${failed.length} 人失败：${failed.join('、')}`, 'warn');
-                    else showToast(`全员消课完成，共 ${elig.length} 人`);
+                    if (failed.length) showToast(`批量签到/消课完成，${failed.length} 人失败：${failed.join('、')}`, 'warn');
+                    else showToast(`批量签到/消课完成，共 ${elig.length} 人`);
                 } else {
                     let cur = {...db};
                     const base = Date.now();
@@ -1508,13 +1508,13 @@ function App() {
                         const nb=Math.max(0,s.balance-1);
                         cur = {...cur,
                             students:cur.students.map(x=>x.id===id?{...x,balance:nb,lastActive:todayISO()}:x),
-                            logs:[{...mkLog(s.name,'上课签到',-1,'全员消课',0,{studentId:id}),id:base+i},...cur.logs]};
+                            logs:[{...mkLog(s.name,'上课签到',-1,'批量签到/消课',0,{studentId:id}),id:base+i},...cur.logs]};
                     });
                     await save(cur);
-                    showToast(`全员消课完成，共 ${elig.length} 人`);
+                    showToast(`批量签到/消课完成，共 ${elig.length} 人`);
                 }
             } finally { setBusy(false); }
-        }, {confirmText:`消课 ${elig.length} 人`});
+        }, {confirmText:`签到/消课 ${elig.length} 人`});
     };
 
     /* F4b: 班组模板 — 保存常用班次组合，任意日期一键套用 */
@@ -1542,6 +1542,32 @@ function App() {
             await save({...db, groups: g}); setGrpSel('');
             showToast('模板已删除', 'warn');
         }, {danger:true, confirmText:'删除模板'});
+    };
+
+    const isStudentScheduledOn = (sid, date) => {
+        const manual = (db.rosters[date] || []).includes(sid);
+        const wd = new Date(`${date}T12:00:00`).getDay();
+        const fixed = schedules.some(sc => Number(sc.weekday) === wd && sc.students.some(st => st.id === sid));
+        return manual || fixed;
+    };
+
+    const scheduleStudentToday = async (student) => {
+        if (!student || student.archived || busy) return;
+        const date = todayISO();
+        setRDate(date);
+        setSelS(null);
+        setEditP(false);
+        setTab('roster');
+        if (isStudentScheduledOn(student.id, date)) {
+            showToast(`${student.name} 已在今日排课中`);
+            return;
+        }
+        setBusy(true);
+        try {
+            const cur = db.rosters[date] || [];
+            await save({...db, rosters:{...db.rosters, [date]: [...cur, student.id]}});
+            showToast(`${student.name} 已加入今日排课`);
+        } finally { setBusy(false); }
     };
 
     /* G3: 学员成长报告 — 生成图文报告页（新窗口，可保存为 PDF / 截图发家长） */
@@ -1910,7 +1936,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
     };
 
     /* ── Portfolio helpers ── */
-    const portfolioDoUpload = async (file, note, date, title) => {
+    const portfolioDoUpload = async (file, note, date, title, isPublic=false) => {
         if (!selS) return;
         setPortBusy(true);
         try {
@@ -1920,6 +1946,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
             fd.append('note', note || '');
             fd.append('title', title || '');   /* B4 */
             fd.append('date', date || todayISO());
+            fd.append('public', isPublic ? '1' : '0');
             const r = await fetch(`/s/${encodeURIComponent(tenantSlug)}/v1/legacy-cms/portfolio/upload`, {
                 method: 'POST', credentials:'include', body: fd
             });
@@ -1964,16 +1991,16 @@ document.getElementById('copybtn').addEventListener('click', function(){
 
     const portfolioDoUpdateNote = async () => {
         if (!portEdit) return;
-        const {sid, item, note, date, title} = portEdit;
+        const {sid, item, note, date, title, public:isPublic=false} = portEdit;
         try {
             const r = await fetch(`/s/${encodeURIComponent(tenantSlug)}/v1/legacy-cms/portfolio/${encodeURIComponent(sid)}/${encodeURIComponent(item.id)}`, {
                 method: 'PATCH',
                 credentials:'include', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({note, date, title})
+                body: JSON.stringify({note, date, title, public:isPublic})
             });
             if (r.status === 401) { showToast('登录已过期，请重新登录', 'error'); return; }
             if (!r.ok) { showToast('更新失败', 'error'); return; }
-            const newPort = (selS?.portfolio || []).map(i => String(i.id)===String(item.id) ? {...i,note,date,title} : i);
+            const newPort = (selS?.portfolio || []).map(i => String(i.id)===String(item.id) ? {...i,note,date,title,public:isPublic,visibility:isPublic?'shared':'private'} : i);
             setSelS(p => p ? ({...p, portfolio: newPort}) : p);
             setDb(d => ({...d, students: d.students.map(s => s.id===selS?.id ? {...s,portfolio:newPort} : s)}));
             // B3: Also sync lightbox items so open lightbox reflects the updated note/date
@@ -2140,7 +2167,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
     const NAV = [
         {k:'dashboard',i:'📊',l:'工作台',  s:'工作台'},
         {k:'roster',   i:'📅',l:'每日排课', s:'排课'},
-        {k:'students', i:'👥',l:'客户档案', s:'档案'},
+        {k:'students', i:'👥',l:'学员档案', s:'档案'},
         {k:'pending',  i:'📋',l:'待审核',   s:'审核', badge: pendingCount},
         {k:'topup',    i:'💰',l:'充值结算', s:'充值'},
         {k:'logs',     i:'📜',l:'操作日志', s:'日志'},
@@ -2179,7 +2206,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         <div className="flex items-center gap-2 flex-shrink-0">
                             <span className="text-white/40 text-xs">{portLB.idx+1} / {portLB.items.length}</span>
                             {/* M2: Edit button in lightbox — sole access point on touch devices */}
-                            <button onClick={()=>{const cur=portLB.items[portLB.idx];if(cur&&selS)setPortEdit({sid:String(selS.id),item:cur,note:cur.note||'',title:cur.title||'',date:cur.date||todayISO()});}}
+                            <button onClick={()=>{const cur=portLB.items[portLB.idx];if(cur&&selS)setPortEdit({sid:String(selS.id),item:cur,note:cur.note||'',title:cur.title||'',date:cur.date||todayISO(),public:!!cur.public});}}
                                 className="text-white/80 active:text-white w-9 h-9 flex items-center justify-center text-base">✏️</button>
                             <button onClick={()=>setPortLB(null)} className="text-white text-2xl font-bold w-10 h-10 flex items-center justify-center">×</button>
                         </div>
@@ -2237,7 +2264,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                                 onChange={e=>{
                                                     const file=e.target.files[0]; if(!file) return;
                                                     if(file.size>10*1024*1024){showToast('文件太大，请先压缩','error');return;}
-                                                    setPortUpFile({file,dataUrl:URL.createObjectURL(file),note:'',date:todayISO()});
+                                                    setPortUpFile({file,dataUrl:URL.createObjectURL(file),note:'',date:todayISO(),public:false});
                                                 }}/>
                                         </label>
                                         <label className="flex-1 flex flex-col items-center justify-center gap-2 py-6 border-2 border-dashed border-indigo-300 rounded-2xl cursor-pointer active:bg-indigo-50 hover:bg-indigo-50 transition-colors">
@@ -2247,7 +2274,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                                 onChange={e=>{
                                                     const file=e.target.files[0]; if(!file) return;
                                                     if(file.size>10*1024*1024){showToast('文件太大，请先压缩','error');return;}
-                                                    setPortUpFile({file,dataUrl:URL.createObjectURL(file),note:'',date:todayISO()});
+                                                    setPortUpFile({file,dataUrl:URL.createObjectURL(file),note:'',date:todayISO(),public:false});
                                                 }}/>
                                         </label>
                                     </div>
@@ -2277,13 +2304,22 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                                 placeholder="如：水彩练习 第1期" maxLength={50}
                                                 className="w-full px-3 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-400 outline-none"/>
                                         </div>
+                                        <label className="flex items-start gap-3 rounded-xl border border-purple-100 bg-purple-50/60 p-3 text-sm text-purple-900">
+                                            <input type="checkbox" checked={!!portUpFile.public}
+                                                onChange={e=>setPortUpFile(p=>({...p,public:e.target.checked}))}
+                                                className="mt-0.5 w-4 h-4 flex-shrink-0"/>
+                                            <span>
+                                                <span className="font-bold block">展示到官网作品墙</span>
+                                                <span className="text-xs text-purple-700">只展示作品、标题和老师评语，不公开学生姓名。</span>
+                                            </span>
+                                        </label>
                                     </div>
                                     <div className="flex gap-3 mt-4">
                                         <button onClick={()=>{if(portUpFile?.dataUrl)URL.revokeObjectURL(portUpFile.dataUrl);setPortUpFile(null);}}
                                             className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-bold text-gray-500 active:bg-gray-50 min-h-[50px]">
                                             重新选择
                                         </button>
-                                        <button onClick={()=>portfolioDoUpload(portUpFile.file,portUpFile.note,portUpFile.date,portUpFile.title)}
+                                        <button onClick={()=>portfolioDoUpload(portUpFile.file,portUpFile.note,portUpFile.date,portUpFile.title,portUpFile.public)}
                                             disabled={portBusy}
                                             className="flex-1 py-3 rounded-xl bg-purple-600 active:bg-purple-700 text-white text-sm font-bold disabled:opacity-50 min-h-[50px]">
                                             {portBusy ? '上传中...' : '✅ 确认上传'}
@@ -2328,6 +2364,15 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                     maxLength={50}
                                     className="w-full px-3 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-400 outline-none"/>
                             </div>
+                            <label className="flex items-start gap-3 rounded-xl border border-purple-100 bg-purple-50/60 p-3 text-sm text-purple-900">
+                                <input type="checkbox" checked={!!portEdit.public}
+                                    onChange={e=>setPortEdit(p=>({...p,public:e.target.checked}))}
+                                    className="mt-0.5 w-4 h-4 flex-shrink-0"/>
+                                <span>
+                                    <span className="font-bold block">展示到官网作品墙</span>
+                                    <span className="text-xs text-purple-700">关闭后仍保留在学生作品集里，只是不再公开展示。</span>
+                                </span>
+                            </label>
                         </div>
                         <div className="flex gap-3 mt-4">
                             <button onClick={()=>setPortEdit(null)}
@@ -3038,7 +3083,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 )}
                 {dayIds.some(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived&&s.balance>0;}) && (
                     <button onClick={batchCheckIn} disabled={busy}
-                        className="bg-indigo-600 active:bg-indigo-700 text-white px-4 py-1.5 rounded-xl text-xs font-bold min-h-[36px]">⚡ 全员消课</button>
+                        className="bg-indigo-600 active:bg-indigo-700 text-white px-4 py-1.5 rounded-xl text-xs font-bold min-h-[36px]">⚡ 批量签到/消课</button>
                 )}
             </div>
         </div>
@@ -3092,7 +3137,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
 {tab==='students' && (
 <div className="anim space-y-4">
     <div className="flex justify-between items-center gap-3 flex-wrap">
-        <h2 className="text-xl md:text-2xl font-bold text-gray-800">客户档案 ({sortedFiltered.length})</h2>
+        <h2 className="text-xl md:text-2xl font-bold text-gray-800">学员档案 ({sortedFiltered.length})</h2>
         <div className="flex gap-2">
             <button onClick={exportStudentsCSV}
                 className="bg-white border border-gray-300 active:bg-gray-50 text-gray-600 px-4 py-2.5 rounded-xl font-bold text-sm min-h-[44px]">⬇️ CSV</button>
@@ -3164,8 +3209,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     {!s.archived && (<>
                         <button onClick={()=>{setTuStu(s.id);setTab('topup');}}
                             title="快速充值" className="px-3.5 py-3 rounded-xl text-base font-bold bg-emerald-50 active:bg-emerald-100 text-emerald-700 border border-emerald-200 min-h-[44px]">💰</button>
-                        <button onClick={()=>checkIn(s.id,s.name)} disabled={s.balance<=0||busy}
-                            className={`flex-1 py-3 rounded-xl text-sm font-bold text-white min-h-[44px] ${s.balance>0?'bg-green-600 active:bg-green-700':'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>✅ 消课</button>
+                        <button onClick={()=>scheduleStudentToday(s)} disabled={busy}
+                            className="flex-1 py-3 rounded-xl text-sm font-bold text-white min-h-[44px] bg-indigo-600 active:bg-indigo-700 disabled:bg-gray-300">📅 {isStudentScheduledOn(s.id,todayISO())?'去排课':'排课'}</button>
                     </>)}
                 </div>
             </div>
@@ -3183,7 +3228,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
 {/* ═══ NEW STUDENT ════════════════════════════════════════════ */}
 {tab==='new_student' && (
 <div className="anim bg-white rounded-2xl p-6 max-w-xl mx-auto shadow-sm border border-gray-100">
-    <h2 className="text-xl md:text-2xl font-bold mb-5 text-gray-800">➕ 新建客户档案</h2>
+    <h2 className="text-xl md:text-2xl font-bold mb-5 text-gray-800">➕ 新建学员档案</h2>
     <form onSubmit={handleAddStudent} className="space-y-4">
         {/* Photo */}
         <div>
@@ -3882,11 +3927,16 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                                         {item.title && <p className="text-white text-xs font-bold leading-tight truncate">{item.title}</p>}
                                                         <p className="text-white text-xs leading-tight truncate">{fmtDate(item.date)}{item.note?' 💬':''}</p>
                                                     </div>
+                                                    {item.public && (
+                                                        <span className="absolute top-1 left-1 rounded-full bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 shadow">
+                                                            官网
+                                                        </span>
+                                                    )}
                                                     {/* B1: port-actions = hidden on mouse devices (hover:flex), always visible on touch (CSS override) */}
                                                     {/* #7 fix: p-2 + min 32px ensures ≥44px total tap target incl. gap */}
                                                     <div className="port-actions absolute top-0.5 right-0.5 hidden group-hover:flex gap-1 z-10">
                                                         <button
-                                                            onClick={e=>{e.stopPropagation();setPortEdit({sid:String(selS.id),item,note:item.note||'',title:item.title||'',date:item.date||todayISO()});}}
+                                                            onClick={e=>{e.stopPropagation();setPortEdit({sid:String(selS.id),item,note:item.note||'',title:item.title||'',date:item.date||todayISO(),public:!!item.public});}}
                                                             className="bg-white/90 rounded-lg p-2 text-xs shadow leading-none min-w-[32px] min-h-[32px] flex items-center justify-center">✏️</button>
                                                         <button
                                                             onClick={e=>{e.stopPropagation();portfolioDoDelete(String(item.id));}}
@@ -3901,10 +3951,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         })()}
                         <div className="flex gap-2">
                             {!selS.archived && <>
-                                <button onClick={()=>checkIn(selS.id,selS.name)} disabled={selS.balance<=0||busy}
-                                    className={`flex-1 py-3 rounded-xl text-sm font-bold text-white min-h-[50px] ${selS.balance>0?'bg-green-600 active:bg-green-700':'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>✅ 消课</button>
-                                <button onClick={()=>undoCheckIn(selS.id,selS.name)} disabled={busy}
-                                    className="flex-1 py-3 rounded-xl text-sm font-bold bg-amber-50 active:bg-amber-100 text-amber-700 border border-amber-200 min-h-[50px]">↩ 撤销</button>
+                                <button onClick={()=>scheduleStudentToday(selS)} disabled={busy}
+                                    className="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-indigo-600 active:bg-indigo-700 disabled:bg-gray-300 min-h-[50px]">📅 {isStudentScheduledOn(selS.id,todayISO())?'查看今日排课':'加入今日排课'}</button>
                             </>}
                             <button onClick={()=>{setEditP(true);setEditPhoto(selS.photo||'');}}
                                 className="flex-1 py-3 rounded-xl text-sm font-bold bg-white border-2 border-indigo-100 active:bg-indigo-50 text-indigo-700 min-h-[50px]">✏️ 编辑</button>

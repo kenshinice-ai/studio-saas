@@ -21,6 +21,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Noto+Serif+SC:wght@400;500;600&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="/assets/ui-common.js"></script>
+<script src="/assets/public-register.js"></script>
 <style>
   :root{
     --bg:#F4F0E8;--bg2:#ECE6DB;--panel:#FBF9F4;--ink:#23211D;--ink2:#4A473F;
@@ -525,43 +526,17 @@
     ids.forEach(function(id){ var el=document.getElementById(id); if(el) el.style.display = visible ? '' : 'none'; });
   }
   function renderRegistrationFields(profile){
-    var box=document.getElementById('joinCustomFields');
-    if(!box || !profile || !Array.isArray(profile.fields)) return;
-    box.innerHTML='';
-    profile.fields.slice(0,8).forEach(function(field){
-      var wrap=document.createElement('div'); wrap.className='fld';
-      var label=document.createElement('label');
-      label.textContent=(field.label||field.key||'Question')+(field.required?' *':'');
-      wrap.appendChild(label);
-      var input;
-      if(field.type==='textarea'){
-        input=document.createElement('textarea'); input.rows=2;
-      }else if(field.type==='select'){
-        input=document.createElement('select');
-        var blank=document.createElement('option'); blank.value=''; blank.textContent=field.placeholder||T('请选择…','Please choose…'); input.appendChild(blank);
-        (field.options||[]).forEach(function(option){
-          var opt=document.createElement('option'); opt.value=option; opt.textContent=option; input.appendChild(opt);
-        });
-      }else{
-        input=document.createElement('input');
-      }
-      input.dataset.regKey=field.key||field.label||'question';
-      input.dataset.regLabel=field.label||field.key||'Question';
-      input.dataset.regRequired=field.required?'true':'false';
-      if(field.placeholder && field.type!=='select') input.placeholder=field.placeholder;
-      wrap.appendChild(input);
-      box.appendChild(wrap);
+    window.StudioSaaSPublicRegister.renderFields(profile, {
+      container: 'joinCustomFields',
+      labelClass: 'fld',
+      fallbackTitle: T('报名信息','Registration details')
     });
   }
   function collectRegistrationFields(){
-    var values=[];
-    document.querySelectorAll('#joinCustomFields [data-reg-key]').forEach(function(input){
-      var value=(input.value||'').trim();
-      var label=input.dataset.regLabel||input.dataset.regKey;
-      if(input.dataset.regRequired==='true' && !value) throw new Error(T('请填写必填报名问题','Please complete the required registration questions.'));
-      if(value) values.push(label+': '+value);
+    return window.StudioSaaSPublicRegister.collectFields({
+      container: 'joinCustomFields',
+      requiredPrefix: T('请填写','Please complete')
     });
-    return values;
   }
 
   /* ── view routing ── */
@@ -796,7 +771,7 @@
 
   /* ── public gallery（未来 C 级接口；今天 404 时静默保留占位格）── */
   fetch(API + '/gallery').then(function(r){return r.json();}).then(function(d){
-    if(!d||!d.items||d.items.length<4) return;
+    if(!d||!d.items||!d.items.length) return;
     var grid=document.getElementById('galleryGrid'); grid.innerHTML='';
     window.GWORKS = d.items.slice(0,12);
     window.GWORKS.forEach(function(it,i){

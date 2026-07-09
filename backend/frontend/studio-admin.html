@@ -620,6 +620,24 @@
       white-space: nowrap;
     }
 
+    .surface-health {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      width: fit-content;
+      padding: 5px 8px;
+      border-radius: 999px;
+      background: white;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      border: 1px solid var(--line);
+    }
+
+    .surface-health.ok { background: var(--green-light); color: var(--green); border-color: #bbf7d0; }
+    .surface-health.warn { background: var(--amber-light); color: var(--amber); border-color: #fde68a; }
+    .surface-health.fail { background: var(--red-light); color: var(--red); border-color: #fecaca; }
+
     .handoff-note {
       background: #f8fafc;
       border: 1px solid var(--line);
@@ -1645,7 +1663,7 @@
           <span class="nav-icon">📝</span> Register Form
         </a>
         <a class="nav-link" href="#section-overview" data-section="overview">
-          <span class="nav-icon">📊</span> CMS Snapshot
+          <span class="nav-icon">📊</span> Operations Snapshot
         </a>
         <a class="nav-link" href="#section-advanced" data-section="advanced">
           <span class="nav-icon">⬇</span> Advanced / Export
@@ -1919,24 +1937,28 @@
           <strong>Portal</strong>
           <p>The public home page parents see first: courses, gallery, contact, student lookup, and enrolment entry.</p>
           <code id="surfacePortalUrl" class="surface-url">/tenant-slug</code>
+          <span id="surfacePortalHealth" class="surface-health">Not checked</span>
           <button type="button" class="btn-primary" onclick="openTenantSurface('portal')">Open Portal</button>
         </div>
         <div class="surface-card">
           <strong>CMS</strong>
-          <p>The daily operations workspace for students, check-ins, payments, refunds, rosters, logs, and portfolio work.</p>
+          <p>The daily operations workspace for students, schedules, check-ins, payments, refunds, logs, and portfolio work.</p>
           <code id="surfaceCmsUrl" class="surface-url">/tenant-slug/cms</code>
+          <span id="surfaceCmsHealth" class="surface-health">Not checked</span>
           <button type="button" class="btn-secondary" onclick="openTenantSurface('cms')">Open CMS</button>
         </div>
         <div class="surface-card">
           <strong>Register</strong>
           <p>The tenant-specific lead capture page. Its labels, intro copy, and preferences are controlled above.</p>
           <code id="surfaceRegisterUrl" class="surface-url">/tenant-slug/register</code>
+          <span id="surfaceRegisterHealth" class="surface-health">Not checked</span>
           <button type="button" class="btn-secondary" onclick="openTenantSurface('register')">Open Register</button>
         </div>
         <div class="surface-card">
           <strong>Studio Admin</strong>
           <p>This control panel for how the studio appears externally. Operational editing stays in the CMS.</p>
           <code id="surfaceAdminUrl" class="surface-url">/tenant-slug/studio-admin</code>
+          <span id="surfaceAdminHealth" class="surface-health">Not checked</span>
           <button type="button" class="btn-secondary" onclick="openTenantSurface('admin')">Open Admin</button>
         </div>
       </div>
@@ -1947,12 +1969,12 @@
       <div class="section-header">
         <div class="section-icon">📊</div>
         <div>
-          <div class="section-title">CMS Snapshot</div>
-          <div class="section-subtitle">Read-only operational status; manage daily work in the CMS</div>
+          <div class="section-title">Operations Snapshot</div>
+          <div class="section-subtitle">Read-only health from CMS; manage daily work in the CMS workspace</div>
         </div>
       </div>
       <div class="handoff-note mb-2">
-        CMS is the source of truth for daily operations: payments, check-ins, students, rosters, refunds, logs, statistics, registration review, and portfolio updates.
+        CMS is the source of truth for daily operations: students, schedules, check-ins, payments, refunds, logs, statistics, registration review, and portfolio updates. Studio Admin only controls public brand, website, and registration configuration.
       </div>
       <div class="stats-grid">
         <div class="stat-card">
@@ -2533,7 +2555,8 @@
         portal: `/${slug}`,
         cms: `/${slug}/cms`,
         register: `/${slug}/register`,
-        admin: `/${slug}/studio-admin`
+        admin: `/${slug}/studio-admin`,
+        'studio-admin': `/${slug}/studio-admin`
       };
       return routes[surface] || routes.portal;
     }
@@ -2574,6 +2597,42 @@
           cmsLink.style.display = 'none';
         }
       }
+    }
+
+    function setSurfaceHealth(id, state, label) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.className = `surface-health ${state || ''}`.trim();
+      el.textContent = label;
+    }
+
+    async function updateSurfaceHealth() {
+      const slug = currentTenantSlug();
+      const checks = [
+        ['surfacePortalHealth', 'portal', 'Portal'],
+        ['surfaceCmsHealth', 'cms', 'CMS'],
+        ['surfaceRegisterHealth', 'register', 'Register'],
+        ['surfaceAdminHealth', 'admin', 'Studio Admin']
+      ];
+      if (!slug) {
+        checks.forEach(([id]) => setSurfaceHealth(id, 'warn', 'Missing slug'));
+        return;
+      }
+      checks.forEach(([id]) => setSurfaceHealth(id, 'warn', 'Checking...'));
+      await Promise.all(checks.map(async ([id, surface, label]) => {
+        try {
+          const response = await fetch(tenantSurfaceUrl(surface), { credentials: 'same-origin', cache: 'no-store' });
+          if (response.ok) {
+            setSurfaceHealth(id, 'ok', `${label} OK`);
+          } else if ([401, 403].includes(response.status)) {
+            setSurfaceHealth(id, 'warn', `${label} requires login`);
+          } else {
+            setSurfaceHealth(id, 'fail', `${label} ${response.status}`);
+          }
+        } catch (err) {
+          setSurfaceHealth(id, 'fail', `${label} unavailable`);
+        }
+      }));
     }
 
     async function runUiAction(buttonId, label, action) {
@@ -3234,6 +3293,7 @@
       $('studioMeta').textContent = t.slug ? `${t.slug} · ${preset.label} website and brand console` : 'Website and brand console';
       $('tenantSlug').value = t.slug || currentTenantSlug();
       updateSurfaceLinks();
+      updateSurfaceHealth().catch(() => {});
       renderPresetGrid(category);
       $('settingName').value = t.name || '';
       $('settingLogoUrl').value = t.logo_url || t.logoUrl || '';
@@ -3353,6 +3413,42 @@
       };
     }
 
+    function compactBrandSnapshot(brand = {}) {
+      const hero = brand.heroProfile || brand.hero_profile || {};
+      const profile = brand.registrationProfile || brand.registration_profile || {};
+      return {
+        name: text(brand.name),
+        logoUrl: text(brand.logoUrl || brand.logo_url),
+        primaryColor: text(brand.primaryColor || brand.primary_color).toLowerCase(),
+        secondaryColor: text(brand.secondaryColor || brand.secondary_color).toLowerCase(),
+        slogan: text(brand.slogan),
+        heroTitle: text(hero.title),
+        registerTitle: text(profile.title)
+      };
+    }
+
+    async function verifyPublicBrandPublished(expected) {
+      const slug = currentTenantSlug();
+      const response = await fetch(`/v1/public/${encodeURIComponent(slug)}/brand`, { credentials: 'same-origin' });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.message || data.error || 'Public brand did not refresh.');
+      const actual = compactBrandSnapshot(data.brand || {});
+      const wanted = compactBrandSnapshot({
+        name: expected.name,
+        logoUrl: expected.logoUrl,
+        primaryColor: expected.primaryColor,
+        secondaryColor: expected.secondaryColor,
+        slogan: expected.slogan,
+        heroProfile: expected.heroProfile,
+        registrationProfile: expected.registrationProfile
+      });
+      const mismatches = Object.keys(wanted).filter((key) => wanted[key] && wanted[key] !== actual[key]);
+      if (mismatches.length) {
+        throw new Error(`Public brand verification missed: ${mismatches.join(', ')}.`);
+      }
+      return data.brand || {};
+    }
+
     async function saveSettings() {
       const payload = settingsPayload();
       if (!payload.name) throw new Error('Studio name is required.');
@@ -3360,7 +3456,14 @@
       tenant = data.tenant || tenant;
       fillSettings();
       setSettingsDirty(false);
-      showToast('Studio settings saved.');
+      try {
+        await verifyPublicBrandPublished(payload);
+        await updateSurfaceHealth();
+        showToast('Studio settings saved and published to Portal, Register, and CMS.');
+      } catch (err) {
+        await updateSurfaceHealth().catch(() => {});
+        showToast(err.message || 'Saved, but public publish verification failed.', 'warning');
+      }
     }
 
     async function uploadLogo() {
@@ -4034,6 +4137,7 @@
       $('tenantSlug').addEventListener('change', () => {
         localStorage.setItem('studiosaas_tenant_slug', currentTenantSlug());
         updateSurfaceLinks();
+        updateSurfaceHealth().catch(() => {});
         checkSession();
       });
       $('openCmsBtn').addEventListener('click', () => openTenantSurface('cms'));

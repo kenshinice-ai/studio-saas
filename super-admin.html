@@ -432,7 +432,7 @@
       font-size: 14px;
     }
 
-    .tenants-table { min-width: 820px; }
+    .tenants-table { min-width: 1040px; }
 
     th, td {
       padding: 12px 16px;
@@ -488,6 +488,33 @@
       gap: 6px;
       min-width: 260px;
     }
+
+    .surface-link-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      min-width: 210px;
+    }
+
+    .surface-mini {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 800;
+      text-decoration: none;
+    }
+
+    .surface-mini.ok { border-color: #bbf7d0; color: var(--green); background: var(--green-light); }
+    .surface-mini.warn { border-color: #fde68a; color: #92400e; background: var(--amber-light); }
+    .surface-mini.fail { border-color: #fecaca; color: var(--red); background: var(--red-light); }
+    .surface-mini.disabled { color: var(--muted); background: #f1f5f9; pointer-events: none; }
+    .surface-mini .mark { font-size: 11px; }
 
     .action-section {
       display: grid;
@@ -1108,6 +1135,7 @@
                   <th>Status</th>
                   <th>Owner</th>
                   <th>Usage</th>
+                  <th>Surfaces</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -1557,6 +1585,79 @@
       if (disabledReason) link.title = disabledReason;
       container.appendChild(link);
       return link;
+    }
+
+    function tenantSurfaceHref(t, surface) {
+      const slug = encodeURIComponent(String(t.slug || ''));
+      const routes = {
+        portal: `/${slug}`,
+        cms: `/${slug}/cms`,
+        register: `/${slug}/register`,
+        admin: `/${slug}/studio-admin`
+      };
+      return routes[surface] || routes.portal;
+    }
+
+    function setSurfaceMiniStatus(tenantId, surface, state, mark, title) {
+      const el = document.getElementById(`surface-${tenantId}-${surface}`);
+      if (!el) return;
+      el.className = `surface-mini ${state || ''}`.trim();
+      const markEl = el.querySelector('.mark');
+      if (markEl) markEl.textContent = mark;
+      el.title = title || '';
+    }
+
+    async function checkTenantSurfaceLinks(t) {
+      const disabled = ['archived', 'deleted'].includes(t.status);
+      if (disabled) return;
+      await Promise.all(['portal', 'cms', 'register', 'admin'].map(async (surface) => {
+        if (surface === 'register' && t.status === 'paused') {
+          setSurfaceMiniStatus(t.id, surface, 'warn', '!', 'Registration is paused for this tenant.');
+          return;
+        }
+        try {
+          const response = await fetch(tenantSurfaceHref(t, surface), { credentials: 'same-origin', cache: 'no-store' });
+          if (response.ok) setSurfaceMiniStatus(t.id, surface, 'ok', '✓', 'Surface is reachable.');
+          else if ([401, 403].includes(response.status)) setSurfaceMiniStatus(t.id, surface, 'warn', '!', 'Surface requires login.');
+          else setSurfaceMiniStatus(t.id, surface, 'fail', '!', `Surface returned ${response.status}.`);
+        } catch (err) {
+          setSurfaceMiniStatus(t.id, surface, 'fail', '!', 'Surface is unavailable.');
+        }
+      }));
+    }
+
+    function renderTenantSurfaces(parent, t) {
+      const disabled = ['archived', 'deleted'].includes(t.status);
+      const grid = document.createElement('div');
+      grid.className = 'surface-link-grid';
+      [
+        ['portal', 'Portal'],
+        ['cms', 'CMS'],
+        ['register', 'Register'],
+        ['admin', 'Admin']
+      ].forEach(([surface, label]) => {
+        const link = document.createElement('a');
+        const mark = document.createElement('span');
+        const textNode = document.createElement('span');
+        link.id = `surface-${t.id}-${surface}`;
+        link.className = `surface-mini ${disabled ? 'disabled' : ''}`;
+        link.href = disabled ? '#' : tenantSurfaceHref(t, surface);
+        link.target = disabled ? '' : '_blank';
+        link.rel = disabled ? '' : 'noopener';
+        link.title = disabled ? 'Archived or deleted tenants cannot be opened.' : 'Checking surface...';
+        mark.className = 'mark';
+        mark.textContent = disabled ? '-' : '·';
+        textNode.textContent = label;
+        link.append(mark, textNode);
+        grid.appendChild(link);
+      });
+      parent.appendChild(grid);
+      if (disabled) appendSmallBadge(parent, 'Surfaces disabled', 'pill archived');
+      else {
+        if (!t.studio_admin_email) appendSmallBadge(parent, 'No admin login', 'pill warning');
+        if (t.status === 'paused') appendSmallBadge(parent, 'Register paused', 'pill warning');
+        checkTenantSurfaceLinks(t).catch(() => {});
+      }
     }
 
     function slugifyTenantName(name) {
@@ -2096,7 +2197,7 @@
       const tbody = $('tenantsBody');
       tbody.replaceChildren();
       if (!visible.length) {
-        appendEmptyRow(tbody, 6, 'No tenants match the current filters.');
+        appendEmptyRow(tbody, 7, 'No tenants match the current filters.');
         return;
       }
       visible.forEach((t) => {
@@ -2132,6 +2233,7 @@
           appendSmallBadge(ownerCell, 'No admin login', 'pill warning');
         }
         addCell(row, usageText(t));
+        renderTenantSurfaces(addCell(row), t);
         const actions = document.createElement('div');
         actions.className = 'action-row';
         addActionButton(actions, 'View', 'btn-secondary btn-sm', () => selectTenant(t.id));

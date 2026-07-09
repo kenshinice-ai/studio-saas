@@ -7,6 +7,7 @@
   <meta name="robots" content="index,follow">
   <link rel="manifest" href="/lets-paint-studio/manifest-student.json">
   <script src="/assets/ui-common.js"></script>
+  <script src="/assets/public-register.js"></script>
   <style>
     :root {
       --brand:#2563eb;
@@ -114,50 +115,17 @@
       error.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
     function renderFields(profile) {
-      registrationProfile = profile || registrationProfile;
-      const box = document.getElementById('customFields');
-      box.innerHTML = '';
-      (registrationProfile.fields || []).slice(0, 8).forEach((field) => {
-        const wrap = document.createElement('div');
-        wrap.className = 'field';
-        const label = document.createElement('label');
-        label.textContent = `${field.label || field.key || 'Question'}${field.required ? ' *' : ''}`;
-        wrap.appendChild(label);
-        let input;
-        if (field.type === 'textarea') {
-          input = document.createElement('textarea');
-          input.rows = 2;
-        } else if (field.type === 'select') {
-          input = document.createElement('select');
-          const blank = document.createElement('option');
-          blank.value = '';
-          blank.textContent = field.placeholder || 'Please choose...';
-          input.appendChild(blank);
-          (field.options || []).forEach((option) => {
-            const opt = document.createElement('option');
-            opt.value = option;
-            opt.textContent = option;
-            input.appendChild(opt);
-          });
-        } else {
-          input = document.createElement('input');
-        }
-        input.dataset.regKey = field.key || field.label || 'question';
-        input.dataset.regLabel = field.label || field.key || 'Question';
-        input.dataset.required = field.required ? 'true' : 'false';
-        if (field.placeholder && field.type !== 'select') input.placeholder = field.placeholder;
-        wrap.appendChild(input);
-        box.appendChild(wrap);
+      registrationProfile = window.StudioSaaSPublicRegister.renderFields(profile || registrationProfile, {
+        container: 'customFields',
+        labelClass: 'field',
+        fallbackTitle: 'Student Registration'
       });
     }
     function collectFields() {
-      const lines = [];
-      document.querySelectorAll('#customFields [data-reg-key]').forEach((input) => {
-        const answer = String(input.value || '').trim();
-        if (input.dataset.required === 'true' && !answer) throw new Error('Please complete the required questions.');
-        if (answer) lines.push(`${input.dataset.regLabel}: ${answer}`);
+      return window.StudioSaaSPublicRegister.collectFields({
+        container: 'customFields',
+        requiredPrefix: 'Please complete'
       });
-      return lines;
     }
     async function applyBrand() {
       const response = await fetch(`/v1/public/${encodeURIComponent(TENANT_SLUG)}/brand`).catch(() => null);

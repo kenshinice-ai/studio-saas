@@ -523,6 +523,46 @@ def main() -> int:
         portfolio_upload.status_code == 200 and str(portfolio_payload.get("item", {}).get("filename", "")).startswith("media:"),
         f"got {portfolio_upload.status_code}",
     )
+    public_client = server.app.test_client()
+    private_gallery = public_client.get(f"/v1/public/{TENANT_A}/gallery")
+    private_items = (private_gallery.get_json(silent=True) or {}).get("items", [])
+    check("Private CMS portfolio item stays off public gallery", private_gallery.status_code == 200 and not private_items)
+
+    public_portfolio_upload = owner_a.post(
+        f"/s/{TENANT_A}/v1/legacy-cms/portfolio/upload",
+        data={
+            "studentId": fixtures["student_a"],
+            "note": "Public gallery note",
+            "title": "Public Gallery Piece",
+            "date": "2026-07-03",
+            "public": "1",
+            "file": (BytesIO(PNG), "public-portfolio.png", "image/png"),
+        },
+        content_type="multipart/form-data",
+    )
+    public_portfolio_payload = public_portfolio_upload.get_json(silent=True) or {}
+    gallery_response = public_client.get(f"/v1/public/{TENANT_A}/gallery")
+    gallery_items = (gallery_response.get_json(silent=True) or {}).get("items", [])
+    gallery_item = next((item for item in gallery_items if item.get("title") == "Public Gallery Piece"), None)
+    check(
+        "Public CMS portfolio item appears in public gallery",
+        public_portfolio_upload.status_code == 200 and gallery_response.status_code == 200 and bool(gallery_item),
+        f"upload {public_portfolio_upload.status_code}, gallery {gallery_response.status_code}: {public_portfolio_payload}",
+    )
+    gallery_media_url = str((gallery_item or {}).get("mediaUrl") or "")
+    gallery_media = public_client.get(gallery_media_url) if gallery_media_url else None
+    check(
+        "Public gallery media is readable without token",
+        bool(gallery_media) and gallery_media.status_code == 200,
+        f"got {getattr(gallery_media, 'status_code', 'missing-url')}",
+    )
+    other_tenant_url = gallery_media_url.replace(f"/{TENANT_A}/", f"/{TENANT_B}/") if gallery_media_url else ""
+    other_tenant_gallery_media = public_client.get(other_tenant_url) if other_tenant_url else None
+    check(
+        "Public gallery media is tenant-scoped",
+        bool(other_tenant_gallery_media) and other_tenant_gallery_media.status_code == 404,
+        f"got {getattr(other_tenant_gallery_media, 'status_code', 'missing-url')}",
+    )
 
     public_media = server.app.test_client().post(
         f"/v1/public/{TENANT_A}/registration-media",

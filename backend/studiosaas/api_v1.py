@@ -1313,6 +1313,23 @@ def _parse_bool_arg(name: str) -> bool:
     return request.args.get(name, "").strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _public_visibility(value) -> str:
+    """Map a public-gallery toggle to the persisted portfolio visibility."""
+
+    if isinstance(value, bool):
+        return "shared" if value else "private"
+    return "shared" if str(value or "").strip().lower() in {"1", "true", "yes", "on", "shared"} else "private"
+
+
+def _validate_portfolio_visibility(value: str) -> str:
+    """Return a supported portfolio visibility value or raise a clear error."""
+
+    visibility = str(value or "private").strip().lower()
+    if visibility not in {"private", "shared"}:
+        raise ValueError("visibility must be one of: private, shared.")
+    return visibility
+
+
 def _parse_pagination() -> tuple[int, int]:
     """Return bounded `(limit, offset)` values for list endpoints."""
 
@@ -2480,6 +2497,71 @@ def public_brand(tenant_slug: str):
     return jsonify({"brand": row})
 
 
+@api_v1.route("/public/<tenant_slug>/gallery", methods=["GET"])
+def public_gallery(tenant_slug: str):
+    """Return public-gallery portfolio items explicitly shared by a tenant."""
+
+    with connect() as conn:
+        try:
+            tenant = resolve_tenant(conn, tenant_slug, "path")
+        except TenantResolutionError:
+            return _error("Unknown tenant.", 404)
+        rows = fetch_all(
+            conn,
+            """
+            SELECT p.id, p.title, p.description, p.artwork_date, p.created_at
+            FROM portfolio_items p
+            JOIN media_assets m ON m.id = p.media_asset_id AND m.tenant_id = p.tenant_id
+            JOIN students s ON s.id = p.student_id AND s.tenant_id = p.tenant_id
+            WHERE p.tenant_id = %s
+              AND p.visibility = 'shared'
+              AND s.status <> 'archived'
+            ORDER BY COALESCE(p.artwork_date, p.created_at::date) DESC, p.created_at DESC
+            LIMIT 24
+            """,
+            (tenant.tenant_id,),
+        )
+    items = [
+        {
+            "id": str(row["id"]),
+            "title": row["title"] or "",
+            "comment": row["description"] or "",
+            "date": str(row["artwork_date"] or row["created_at"].date()),
+            "mediaUrl": f"/v1/public/{tenant_slug}/gallery/{row['id']}/media",
+        }
+        for row in rows
+    ]
+    return jsonify({"items": items})
+
+
+@api_v1.route("/public/<tenant_slug>/gallery/<portfolio_item_id>/media", methods=["GET"])
+def public_gallery_media(tenant_slug: str, portfolio_item_id: str):
+    """Serve media for a public-gallery item without exposing private portfolios."""
+
+    with connect() as conn:
+        try:
+            tenant = resolve_tenant(conn, tenant_slug, "path")
+        except TenantResolutionError:
+            return _error("Unknown tenant.", 404)
+        row = fetch_one(
+            conn,
+            """
+            SELECT p.media_asset_id
+            FROM portfolio_items p
+            JOIN students s ON s.id = p.student_id AND s.tenant_id = p.tenant_id
+            WHERE p.tenant_id = %s
+              AND p.id::text = %s
+              AND p.visibility = 'shared'
+              AND s.status <> 'archived'
+            LIMIT 1
+            """,
+            (tenant.tenant_id, portfolio_item_id),
+        )
+        if not row:
+            return _error("Portfolio item was not found.", 404)
+        return _send_media_asset(conn, tenant_id=tenant.tenant_id, media_asset_id=str(row["media_asset_id"]))
+
+
 @api_v1.route("/public/<tenant_slug>/balance-query", methods=["POST"])
 def public_balance_query(tenant_slug: str):
     """Lookup a student's balance for the public parent portal."""
@@ -2982,7 +3064,7 @@ def _legacy_data_for_tenant(conn, tenant_id: str) -> dict:
         conn,
         """
         SELECT p.id, p.student_id, p.media_asset_id, p.title, p.description,
-               p.artwork_date, p.created_at
+               p.artwork_date, p.visibility, p.created_at
         FROM portfolio_items p
         JOIN media_assets m ON m.id = p.media_asset_id AND m.tenant_id = p.tenant_id
         WHERE p.tenant_id = %s
@@ -3000,6 +3082,8 @@ def _legacy_data_for_tenant(conn, tenant_id: str) -> dict:
                 "date": str(row["artwork_date"] or row["created_at"].date()),
                 "note": row["description"] or "",
                 "title": row["title"] or "",
+                "public": row["visibility"] == "shared",
+                "visibility": row["visibility"],
             }
         )
     packages = fetch_all(
@@ -3463,6 +3547,7 @@ def legacy_cms_portfolio_upload():
         note = str(request.form.get("note") or "").strip()[:500]
         title = str(request.form.get("title") or "").strip()[:120]   # B4
         date_str = str(request.form.get("date") or "").strip()
+        visibility = _public_visibility(request.form.get("public"))
         if not student_id:
             return _error("studentId is required.")
         student = fetch_one(
@@ -3502,10 +3587,10 @@ def legacy_cms_portfolio_upload():
                     tenant_id, student_id, media_asset_id, title, description,
                     artwork_date, visibility
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, 'private')
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
                 RETURNING id, created_at
                 """,
-                (tenant.tenant_id, student_id, media["id"], title, note, artwork_date_val),
+                (tenant.tenant_id, student_id, media["id"], title, note, artwork_date_val, visibility),
             )
             item = cur.fetchone()
         _audit_request(
@@ -3526,6 +3611,8 @@ def legacy_cms_portfolio_upload():
                 "date": date_str or str(item["created_at"].date()),
                 "note": note,
                 "title": title,
+                "public": visibility == "shared",
+                "visibility": visibility,
                 "mediaUrl": f"/s/{tenant.slug}/v1/media/{media_id}",
             },
         }
@@ -3570,6 +3657,7 @@ def legacy_cms_portfolio_update(student_id: str, portfolio_item_id: str):
     note = str(payload.get("note") or "").strip()[:500]
     title_raw = payload.get("title")
     title = None if title_raw is None else str(title_raw).strip()[:120]   # B4
+    visibility = _public_visibility(payload.get("public")) if "public" in payload else None
     date_str = str(payload.get("date") or "").strip()
     artwork_date_val = None
     if date_str:
@@ -3587,12 +3675,13 @@ def legacy_cms_portfolio_update(student_id: str, portfolio_item_id: str):
                 UPDATE portfolio_items
                 SET title = COALESCE(%s, title),
                     description = %s,
+                    visibility = COALESCE(%s, visibility),
                     artwork_date = COALESCE(%s, artwork_date),
                     updated_at = now()
                 WHERE tenant_id = %s AND student_id = %s AND id = %s
                 RETURNING id
                 """,
-                (title, note, artwork_date_val, tenant.tenant_id, student_id, portfolio_item_id),
+                (title, note, visibility, artwork_date_val, tenant.tenant_id, student_id, portfolio_item_id),
             )
             if not cur.fetchone():
                 return _error("Portfolio item was not found.", 404)
@@ -5383,7 +5472,10 @@ def create_portfolio_item():
         media_asset_id = _clean_text(payload, "mediaAssetId")
         title = _clean_text(payload, "title", "")
         description = _clean_text(payload, "description", "")
-        visibility = _clean_text(payload, "visibility", "private")
+        try:
+            visibility = _validate_portfolio_visibility(_clean_text(payload, "visibility", "private"))
+        except ValueError as exc:
+            return _error(str(exc))
 
         if not student_id:
             return _error("studentId is required.")
@@ -5450,7 +5542,10 @@ def update_portfolio_item(portfolio_item_id: str):
 
         title = _clean_text(payload, "title")
         description = _clean_text(payload, "description")
-        visibility = _clean_text(payload, "visibility")
+        try:
+            visibility = _validate_portfolio_visibility(_clean_text(payload, "visibility")) if "visibility" in payload else ""
+        except ValueError as exc:
+            return _error(str(exc))
         artwork_date_str = _clean_text(payload, "artworkDate")
 
         try:
