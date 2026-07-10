@@ -251,7 +251,7 @@ STUDIOSAAS_DATABASE_URL=postgresql://llmacbookpro@localhost:5432/studiosaas_loca
 ../.venv/bin/python scripts/rotate_pilot_credentials.py
 ```
 
-The generated file is `~/.studiosaas/pilot-credentials.txt` with mode `0600`. Seed scripts preserve existing password hashes. Password storage remains PBKDF2-HMAC-SHA256; legacy hashes upgrade only after a successful login.
+The generated file is `~/.studiosaas/pilot-credentials.txt` with mode `0600`. The same command also rotates the separate legacy CMS password file. Pilot and production startup fail closed when that file is missing; they never initialize the known local-development default. Seed scripts preserve existing password hashes. Password storage remains PBKDF2-HMAC-SHA256; legacy hashes upgrade only after a successful login.
 
 ---
 

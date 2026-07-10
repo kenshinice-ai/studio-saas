@@ -984,7 +984,7 @@ def _studio_admin_write_payload(
     if password and len(password) < 8:
         raise ValueError("studioAdminPassword must be at least 8 characters.")
     if require_password and not password:
-        password = "admin123456"
+        raise ValueError("studioAdminPassword is required when creating a tenant.")
 
     return {"email": email, "full_name": full_name[:120], "password": password}
 
@@ -1018,6 +1018,8 @@ def _ensure_studio_admin_account(conn, tenant_id: str, admin: dict) -> str:
                     (email, full_name, _hash_password(password), user_id),
                 )
             else:
+                if not password:
+                    raise ValueError("A password is required when creating a Studio Admin account.")
                 cur.execute(
                     """
                     UPDATE users
@@ -1052,7 +1054,7 @@ def _ensure_studio_admin_account(conn, tenant_id: str, admin: dict) -> str:
                     VALUES (%s, %s, %s, 'active')
                     RETURNING id
                     """,
-                    (email, _hash_password(password or "admin123456"), full_name),
+                    (email, _hash_password(password), full_name),
                 )
                 user_id = str(cur.fetchone()["id"])
 

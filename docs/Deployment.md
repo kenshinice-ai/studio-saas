@@ -98,7 +98,7 @@ ingress:
 |---|---|---|
 | 1 | v1 限流/审计使用真实访客 IP（信任来自 localhost 的 `CF-Connecting-IP`） | ✅ 2026-07-09（api_v1.py `_client_ip()`） |
 | 2 | Secure cookie | ✅ 2026-07-09：隧道来源的请求自动给 session cookie 加 Secure（自定义 SessionInterface）；本地 http 开发不受影响；`COOKIE_SECURE=1` 全局强制仍可用 |
-| 3 | 特权密码 | 上线前运行 `backend/scripts/rotate_pilot_credentials.py`；每个账号使用唯一随机密码，输出文件权限为 0600；seed 不覆盖已有密码 |
+| 3 | 特权密码 | 上线前运行 `backend/scripts/rotate_pilot_credentials.py`；数据库特权账号和旧版 CMS 登录分别使用唯一随机密码，输出文件权限为 0600；pilot/production 禁止自动建立已知默认密码；seed 不覆盖已有密码 |
 | 4 | 备份 | ✅ 2026-07-09：`BACKUP_STUDIOSAAS_NOW.command` 一键备份（keep 14）；恢复演练通过（restore-dry-run，10 迁移核验）；按需模式不装定时，模板在 `deploy/launchd/` |
 | 5 | super-admin 面收紧 | 应用内强密码和角色检查为必需；Cloudflare Access 邮箱 OTP 仍建议作为第二层保护，覆盖 `/` 与 `/super-admin*` |
 | 6 | Cloudflare 区设置 | 建议开 Bot Fight Mode（仪表盘）；SSL/TLS 模式无所谓（tunnel 不走 origin 证书） |

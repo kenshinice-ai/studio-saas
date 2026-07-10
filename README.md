@@ -154,7 +154,7 @@ Server runs at `http://localhost:8899`.
 
 ### 4.6 Pilot credentials
 
-Privileged pilot accounts use unique generated passwords. Rotate them with `backend/scripts/rotate_pilot_credentials.py`; protected output defaults to `~/.studiosaas/pilot-credentials.txt` with mode `0600`. Never place passwords in this repository or UI placeholders.
+Privileged pilot accounts and the separate legacy CMS login use unique generated passwords. Rotate them together with `backend/scripts/rotate_pilot_credentials.py`; protected output defaults to `~/.studiosaas/pilot-credentials.txt` with mode `0600`. Pilot and production startup refuse to create a known legacy CMS default. Never place passwords in this repository or UI placeholders.
 
 ---
 

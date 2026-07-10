@@ -271,18 +271,23 @@ def _verify_pw(pw, stored):
     return (secrets.compare_digest(_hash_pw_legacy(pw), stored), True)
 
 def _get_pw_hash():
-    """Return stored password hash, writing default on first run."""
+    """Return the legacy CMS password hash, with defaults limited to local dev."""
     if os.path.exists(PW_FILE):
         with open(PW_FILE, 'r') as f:
             h = f.read().strip()
         if h:
             return h
+    if RUNTIME_ENV in {'pilot', 'production'}:
+        raise RuntimeError(
+            'Legacy CMS password is not configured. '
+            'Run backend/scripts/rotate_pilot_credentials.py before deployment.'
+        )
     h = _hash_pw(DEFAULT_PW)
     with open(PW_FILE, 'w') as f:
         f.write(h)
     try: os.chmod(PW_FILE, 0o600)
     except Exception: pass
-    print(f'🔐  默认密码已设置（0801），哈希保存至 {PW_FILE}')
+    print(f'🔐  本地开发默认密码已设置，哈希保存至 {PW_FILE}')
     return h
 
 def _set_pw_hash(pw):
@@ -1734,7 +1739,7 @@ if __name__ == '__main__':
     print(f'  数据库    →  {DB_FILE}')
     print(f'  备份目录  →  {BACKUP_DIR}/  (保留最近 {MAX_BACKUPS} 份)')
     print(f'  作品集    →  {PORTFOLIO_DIR}/<student_id>/')
-    print(f'  默认密码  →  0801  (可在设置页修改)')
+    print(f"  旧版 CMS 密码 →  {'已配置' if RUNTIME_ENV in {'pilot', 'production'} else '本地开发密码已配置'}")
     print('='*58 + '\n')
     # ── O1: waitress (production WSGI) with automatic fallback ───────────────
     # waitress only replaces the HTTP layer; all routes/locks/logic are
