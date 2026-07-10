@@ -68,7 +68,7 @@ Decision pending (P0-01): either represent platform roles as memberships with `t
 | Table | Key Columns | Purpose |
 |---|---|---|
 | `media_assets` | `id`, `tenant_id`, `owner_student_id`, `asset_type`, `storage_provider`, `storage_key`, `mime_type`, `byte_size`, `checksum_sha256`, `visibility` | Uploaded file metadata. `UNIQUE (tenant_id, storage_key)` |
-| `portfolio_items` | `id`, `tenant_id`, `student_id`, `media_asset_id`, `title`, `is_public`, `created_at` | Student portfolio entries |
+| `portfolio_items` | `id`, `tenant_id`, `student_id`, `media_asset_id`, `title`, `visibility`, `public_consent_at`, `public_consent_by_user_id`, `created_at` | Student portfolio entries; public gallery requires recorded consent |
 | `share_tokens` | `id`, `tenant_id`, `portfolio_item_id`, `token`, `expires_at` | Parent portal security tokens |
 
 ### 2.5 System Tables
@@ -204,7 +204,7 @@ The runner (`backend/scripts/run_migrations.py`) must:
 ## 6. Data Privacy Notes
 
 - Children's photos and personal information require special handling.
-- Parent consent and image privacy rules should be documented.
+- Public artwork requires an auditable consent confirmation (`public_consent_at` + actor); withdrawing publication keeps the private portfolio item.
 - Data deletion and export mechanisms must support privacy compliance.
 - Support mode (platform staff viewing tenant data) must always log to `audit_logs`.
 - No real children's private data should appear in demo or test databases.

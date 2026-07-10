@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PWE Studio SaaS · Studio Admin</title>
   <script src="/assets/ui-common.js"></script>
+  <link rel="stylesheet" href="/assets/ui-tokens.css">
   <link rel="icon" href="/logo.png" type="image/png">
   <script>
     if ('serviceWorker' in navigator) {
@@ -1628,7 +1629,7 @@
 </head>
 <body>
   <!-- Toast Container -->
-  <div class="toast-container" id="toastContainer"></div>
+  <div class="toast-container" id="toastContainer" role="status" aria-live="polite"></div>
 
   <!-- Header -->
   <header class="header">
@@ -1643,15 +1644,15 @@
         <input id="tenantSlug" type="hidden" aria-label="Tenant slug" value="">
         <button id="changePasswordBtn" class="btn-secondary hidden">Change Password</button>
         <button id="logoutBtn" class="btn-secondary hidden">Logout</button>
-        <button id="refreshBtn" class="btn-primary">
+        <button id="refreshBtn" class="btn-primary requires-auth hidden">
           <span id="refreshIcon">↻</span> Refresh
         </button>
-        <button id="openCmsBtn" class="btn-secondary">Open CMS</button>
-        <button id="openRegisterBtn" class="btn-secondary">Open Register</button>
+        <button id="openCmsBtn" class="btn-secondary requires-auth hidden">Open CMS</button>
+        <button id="openRegisterBtn" class="btn-secondary requires-auth hidden">Open Register</button>
       </div>
     </div>
     <!-- Navigation Bar -->
-    <nav class="nav-bar">
+    <nav id="studioNav" class="nav-bar hidden" aria-label="Studio Admin sections">
       <div class="nav-inner">
         <a class="nav-link active" href="#section-settings" data-section="settings">
           <span class="nav-icon">⚙️</span> Website / Brand
@@ -1689,7 +1690,7 @@
         <div class="form-group">
           <label>Password</label>
           <div style="position:relative;">
-            <input id="loginPassword" type="password" autocomplete="current-password" placeholder="admin123456" style="padding-right:56px;">
+            <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Enter your password" style="padding-right:56px;">
             <button type="button" id="loginPwToggle" class="btn-secondary btn-sm" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);">Show</button>
           </div>
         </div>
@@ -1728,12 +1729,12 @@
         <div class="settings-shell">
           <div class="settings-panel">
             <div class="studio-tabs" role="tablist" aria-label="Website settings">
-              <button type="button" class="studio-tab active" data-workbench-tab="brand">Brand</button>
-              <button type="button" class="studio-tab" data-workbench-tab="hero">Hero</button>
-              <button type="button" class="studio-tab" data-workbench-tab="website">Website</button>
-              <button type="button" class="studio-tab" data-workbench-tab="register">Register</button>
-              <button type="button" class="studio-tab" data-workbench-tab="faq">FAQ</button>
-              <button type="button" class="studio-tab" data-workbench-tab="advanced">Preview / Publish</button>
+              <button type="button" role="tab" aria-selected="true" aria-controls="tab-brand" class="studio-tab active" data-workbench-tab="brand">Brand</button>
+              <button type="button" role="tab" aria-selected="false" aria-controls="tab-hero" class="studio-tab" data-workbench-tab="hero">Hero</button>
+              <button type="button" role="tab" aria-selected="false" aria-controls="tab-website" class="studio-tab" data-workbench-tab="website">Website</button>
+              <button type="button" role="tab" aria-selected="false" aria-controls="tab-register" class="studio-tab" data-workbench-tab="register">Register</button>
+              <button type="button" role="tab" aria-selected="false" aria-controls="tab-faq" class="studio-tab" data-workbench-tab="faq">FAQ</button>
+              <button type="button" role="tab" aria-selected="false" aria-controls="tab-advanced" class="studio-tab" data-workbench-tab="advanced">Preview / Publish</button>
             </div>
 
             <div id="tab-brand" class="tab-panel active" data-workbench-panel="brand">
@@ -2349,10 +2350,10 @@
 
   <!-- Modal for Add/Edit -->
   <div class="modal-overlay" id="modalOverlay">
-    <div class="modal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <div class="modal-header">
         <h3 id="modalTitle" class="modal-title">Add Item</h3>
-        <button class="modal-close" onclick="closeModal()">×</button>
+        <button class="modal-close" aria-label="Close dialog" onclick="closeModal()">×</button>
       </div>
       <div class="modal-body" id="modalBody"></div>
       <div class="modal-footer" id="modalFooter" style="padding: 16px 24px; border-top: 1px solid var(--line); display: flex; justify-content: flex-end; gap: 12px;"></div>
@@ -2697,6 +2698,8 @@
       $('adminContent').classList.toggle('hidden', !signedIn);
       $('changePasswordBtn').classList.toggle('hidden', !signedIn);
       $('logoutBtn').classList.toggle('hidden', !signedIn);
+      $('studioNav').classList.toggle('hidden', !signedIn);
+      document.querySelectorAll('.requires-auth').forEach((element) => element.classList.toggle('hidden', !signedIn));
       $('authStatus').textContent = signedIn ? `Signed in as ${user.email || user.name || 'admin'}` : 'Not signed in';
     }
 
@@ -2883,6 +2886,8 @@
       $('modalBody').innerHTML = bodyHtml;
       $('modalFooter').innerHTML = footerHtml;
       $('modalOverlay').classList.add('active');
+      const focusTarget = $('modalBody').querySelector('input, select, textarea, button') || $('modalFooter').querySelector('button');
+      if (focusTarget) focusTarget.focus();
     }
 
     function closeModal() {
@@ -3265,7 +3270,11 @@
     }
 
     function switchWorkbenchTab(tab) {
-      document.querySelectorAll('[data-workbench-tab]').forEach((button) => button.classList.toggle('active', button.dataset.workbenchTab === tab));
+      document.querySelectorAll('[data-workbench-tab]').forEach((button) => {
+        const active = button.dataset.workbenchTab === tab;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
       document.querySelectorAll('[data-workbench-panel]').forEach((panel) => panel.classList.toggle('active', panel.dataset.workbenchPanel === tab));
     }
 
@@ -3452,6 +3461,18 @@
     async function saveSettings() {
       const payload = settingsPayload();
       if (!payload.name) throw new Error('Studio name is required.');
+      const placeholderPattern = /placeholder|principal name|主理人姓名|占位文案/i;
+      const requiredPublicCopy = [
+        ['Hero title', payload.heroProfile.title],
+        ['Registration title', payload.registrationProfile.title],
+        ['Registration introduction', payload.copyPack.registerIntro]
+      ];
+      const missing = requiredPublicCopy.filter(([, value]) => !value || placeholderPattern.test(value)).map(([label]) => label);
+      if (!payload.contactPhone && !payload.contactEmail) missing.push('Phone or email');
+      if (payload.websiteProfile.showPrincipal && (!payload.principalProfile.name || placeholderPattern.test(payload.principalProfile.name))) {
+        missing.push('Principal or teaching team name');
+      }
+      if (missing.length) throw new Error(`Complete public content before publishing: ${missing.join(', ')}.`);
       const data = await api('/tenant', { method: 'PATCH', body: JSON.stringify(payload) });
       tenant = data.tenant || tenant;
       fillSettings();
@@ -4079,46 +4100,22 @@
       localStorage.setItem('studiosaas_tenant_slug', currentTenantSlug());
       setLoadingState(true);
       try {
-        const [tenantData, dashboardData, studentData] = await Promise.all([
-          api('/tenant'), api('/dashboard'), api(studentListPath())
+        const [tenantData, dashboardData, planData] = await Promise.all([
+          api('/tenant'), api('/dashboard'), authApi('/plans')
         ]);
-        const secondary = await Promise.allSettled([
-          api('/courses'),
-          api('/packages'),
-          api('/registrations'),
-          api('/portfolio'),
-          api(`/attendance?date=${todayIso()}`),
-          authApi('/plans')
-        ]);
-        const [courseData, packageData, registrationData, portfolioData, attendanceData, planData] =
-          secondary.map((result) => result.status === 'fulfilled' ? result.value : null);
-        const failedSecondary = secondary.filter((result) => result.status === 'rejected');
         tenant = tenantData.tenant || tenantData.settings || {};
-        if (planData) plans = planData.plans || [];
-        students = studentData.students || [];
-        studentTotal = Number(studentData.total ?? students.length);
-        if (courseData) courses = courseData.courses || [];
-        if (packageData) packages = packageData.packages || [];
-        if (registrationData) registrations = registrationData.registrations || [];
-        if (portfolioData) portfolioItems = portfolioData.portfolio || portfolioData.items || [];
-        if (attendanceData) attendanceItems = attendanceData.attendance || [];
+        plans = planData.plans || [];
         const dashboard = dashboardData.dashboard || {};
-        $('studentsMetric').textContent = dashboard.students ?? students.length;
-        $('activeMetric').textContent = dashboard.active_students ?? students.filter((s) => studentStatus(s) === 'active').length;
-        $('lowMetric').textContent = dashboard.low_balance ?? students.filter((s) => Number(s.balance || 0) <= Number(s.low_balance_threshold || 2)).length;
-        $('pendingMetric').textContent = dashboard.pending_registrations ?? registrations.filter((r) => r.status === 'pending').length;
-        $('todayMetric').textContent = attendanceItems.filter((a) => !a.reversed_at).length;
+        $('studentsMetric').textContent = dashboard.students ?? 0;
+        $('activeMetric').textContent = dashboard.active_students ?? 0;
+        $('lowMetric').textContent = dashboard.low_balance ?? 0;
+        $('pendingMetric').textContent = dashboard.pending_registrations ?? 0;
+        $('todayMetric').textContent = dashboard.today_checkins ?? 0;
         fillSettings();
-        renderStudents();
-        renderCourses();
-        renderPackages();
-        renderRegistrations();
-        renderAttendance();
-        renderPortfolio();
-        if (failedSecondary.length) {
-          const firstError = failedSecondary[0].reason || {};
-          showToast(`Loaded core Studio Admin. Some sections need retry: ${firstError.message || 'secondary API failed'}`, 'warn');
-        }
+        $('dashboardTodayBody').classList.remove('empty-state');
+        $('dashboardTodayBody').textContent = `${Number(dashboard.today_checkins || 0)} check-ins today. Open CMS for the roster and attendance details.`;
+        $('dashboardAttentionBody').classList.remove('empty-state');
+        $('dashboardAttentionBody').textContent = `${Number(dashboard.pending_registrations || 0)} pending registrations · ${Number(dashboard.low_balance || 0)} low-balance students. Open CMS to take action.`;
       } catch (err) {
         if (err.status === 401) setAuthState(null);
         showToast(`Failed to load Studio Admin: ${err.message}`, 'error');
@@ -4161,6 +4158,9 @@
         if (!card) return;
         $('settingCategory').value = card.dataset.presetKey;
         applyCategoryPreset();
+      });
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && $('modalOverlay').classList.contains('active')) closeModal();
       });
       $('registrationFieldsEditor').addEventListener('click', (event) => {
         const remove = event.target.closest('[data-remove-registration]');

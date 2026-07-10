@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Let's Play Game Registration</title>
+  <title>Let&#x27;s Play Game Registration</title>
   <meta name="robots" content="index,follow">
   <link rel="manifest" href="/lets-play-game/manifest-student.json">
   <script src="/assets/ui-common.js"></script>
@@ -58,9 +58,9 @@
 <body>
   <header>
     <div class="brand">
-      <img id="tenantLogo" src="/logo.png" alt="Let's Play Game">
+      <img id="tenantLogo" src="/logo.png" alt="Let&#x27;s Play Game">
       <div>
-        <div id="tenantName" class="name">Let's Play Game</div>
+        <div id="tenantName" class="name">Let&#x27;s Play Game</div>
         <div id="tenantSlogan" class="slogan"></div>
         <div id="tenantContact" class="contact"></div>
       </div>
@@ -78,19 +78,19 @@
     <section class="card">
       <form id="registerForm">
         <div class="row">
-          <div class="field"><label>Given name *</label><input id="firstName" autocomplete="given-name"></div>
-          <div class="field"><label>Family name</label><input id="lastName" autocomplete="family-name"></div>
+          <div class="field"><label for="firstName">Given name *</label><input id="firstName" autocomplete="given-name" required aria-required="true"></div>
+          <div class="field"><label for="lastName">Family name</label><input id="lastName" autocomplete="family-name"></div>
         </div>
-        <div class="field"><label>Mobile *</label><input id="mobile" type="tel" autocomplete="tel"></div>
-        <div class="field"><label>Email</label><input id="email" type="email" autocomplete="email"></div>
+        <div class="field"><label for="mobile">Mobile *</label><input id="mobile" type="tel" inputmode="tel" autocomplete="tel" required aria-required="true"></div>
+        <div class="field"><label for="email">Email</label><input id="email" type="email" inputmode="email" autocomplete="email"></div>
         <div id="customFields"></div>
-        <div class="field"><label>Message</label><textarea id="message" rows="3" placeholder="Optional note"></textarea></div>
+        <div class="field"><label for="message">Message</label><textarea id="message" rows="3" placeholder="Optional note"></textarea></div>
         <div style="position:absolute;left:-9999px;top:-9999px" aria-hidden="true"><input id="website" type="text" tabindex="-1" autocomplete="off"></div>
         <label class="consent"><input id="consent" type="checkbox"><span>I agree that my details are used only for studio contact and class management.</span></label>
-        <p id="error" class="error"></p>
+        <p id="error" class="error" role="alert" aria-live="assertive"></p>
         <button id="submitBtn" type="submit">Submit registration</button>
       </form>
-      <div id="done" class="done">
+      <div id="done" class="done" role="status" aria-live="polite" tabindex="-1">
         <div class="mark">✓</div>
         <h2>Submitted</h2>
         <p>The studio will be in touch soon.</p>
@@ -100,7 +100,7 @@
 
   <script>
     const TENANT_SLUG = 'lets-play-game';
-    const TENANT_NAME = 'Let's Play Game';
+    const TENANT_NAME = "Let's Play Game";
     const esc = window.StudioSaaS.esc;
     let registrationProfile = { title: 'Student Registration', fields: [] };
 
@@ -180,6 +180,7 @@
         if (!response.ok || !data.success) throw new Error(data.message || data.error || 'Submission failed.');
         document.getElementById('registerForm').style.display = 'none';
         document.getElementById('done').style.display = 'block';
+        document.getElementById('done').focus();
       } catch (err) {
         showError(err.message || 'Submission failed.');
       } finally {

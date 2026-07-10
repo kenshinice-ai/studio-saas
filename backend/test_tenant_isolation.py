@@ -59,6 +59,25 @@ passed: list[str] = []
 failed: list[str] = []
 
 
+def load_current_credentials() -> dict[str, str]:
+    """Load rotated local credentials when available, without requiring them in CI."""
+
+    configured = os.environ.get("STUDIOSAAS_CREDENTIAL_FILE", "").strip()
+    path = Path(configured).expanduser() if configured else Path.home() / ".studiosaas" / "pilot-credentials.txt"
+    if not path.is_file():
+        return {}
+    credentials: dict[str, str] = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line or line.startswith("#") or "\t" not in line:
+            continue
+        email, password = line.split("\t", 1)
+        credentials[email.strip().lower()] = password.strip()
+    return credentials
+
+
+CURRENT_CREDENTIALS = load_current_credentials()
+
+
 def check(name: str, condition: bool, detail: str = "") -> None:
     """Record a pass/fail result without stopping the whole run."""
 
@@ -72,7 +91,8 @@ def client_for(email: str):
     """Return a logged-in Flask test client for the given local fixture user."""
 
     client = server.app.test_client()
-    response = client.post("/v1/auth/login", json={"email": email, "password": PASSWORD})
+    password = CURRENT_CREDENTIALS.get(email.lower(), PASSWORD)
+    response = client.post("/v1/auth/login", json={"email": email, "password": password})
     check(f"login succeeds for {email}", response.status_code == 200, f"got {response.status_code}")
     return client
 
@@ -158,6 +178,11 @@ def main() -> int:
 
     legacy_hash = hashlib.sha256(PASSWORD.encode("utf-8")).hexdigest()
     with connect() as conn:
+        owner_b_original_hash = fetch_one(
+            conn,
+            "SELECT password_hash FROM users WHERE email = %s",
+            (fixtures["owner_b_email"],),
+        )["password_hash"]
         with conn.cursor() as cur:
             cur.execute(
                 "UPDATE users SET password_hash = %s WHERE email = %s",
@@ -176,6 +201,13 @@ def main() -> int:
         )["password_hash"]
     check("Legacy SHA-256 password login succeeds", upgrade_response.status_code == 200, f"got {upgrade_response.status_code}")
     check("Legacy SHA-256 password is upgraded after login", str(upgraded_hash).startswith("pbkdf2$"))
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE users SET password_hash = %s WHERE email = %s",
+                (owner_b_original_hash, fixtures["owner_b_email"]),
+            )
+        conn.commit()
 
     # 1. Tenant A students never appear in Tenant B.
     response = owner_a.get(f"/s/{TENANT_A}/v1/students")
@@ -300,6 +332,18 @@ def main() -> int:
     check("Public balance query can find own tenant student", balance_body.get("match") is True)
     check("Public balance query does not expose internal id", "id" not in str(balance_body).lower())
     check("Public balance query omits raw student object", "student" not in balance_body)
+    rate_response = None
+    rate_client = server.app.test_client()
+    for _ in range(9):
+        rate_response = rate_client.post(
+            f"/v1/public/{TENANT_A}/balance-query",
+            json={"name": "Unknown", "phone": "0499999999"},
+        )
+    check(
+        "Public balance query enforces ten-per-minute tenant/IP limit",
+        rate_response is not None and rate_response.status_code == 429,
+        f"got {getattr(rate_response, 'status_code', None)}",
+    )
 
     # 5. Direct guessed student_id under wrong tenant returns 403 or 404.
     response = owner_a.get(f"/s/{TENANT_A}/v1/students/{fixtures['student_b']}")
@@ -528,6 +572,22 @@ def main() -> int:
     private_items = (private_gallery.get_json(silent=True) or {}).get("items", [])
     check("Private CMS portfolio item stays off public gallery", private_gallery.status_code == 200 and not private_items)
 
+    missing_consent_upload = owner_a.post(
+        f"/s/{TENANT_A}/v1/legacy-cms/portfolio/upload",
+        data={
+            "studentId": fixtures["student_a"],
+            "title": "Must Stay Private",
+            "public": "1",
+            "file": (BytesIO(PNG), "missing-consent.png", "image/png"),
+        },
+        content_type="multipart/form-data",
+    )
+    check(
+        "Public portfolio upload requires recorded consent",
+        missing_consent_upload.status_code == 400 and has_error_shape(missing_consent_upload),
+        f"got {missing_consent_upload.status_code}",
+    )
+
     public_portfolio_upload = owner_a.post(
         f"/s/{TENANT_A}/v1/legacy-cms/portfolio/upload",
         data={
@@ -536,6 +596,7 @@ def main() -> int:
             "title": "Public Gallery Piece",
             "date": "2026-07-03",
             "public": "1",
+            "publicConsentConfirmed": "1",
             "file": (BytesIO(PNG), "public-portfolio.png", "image/png"),
         },
         content_type="multipart/form-data",

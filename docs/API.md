@@ -52,7 +52,7 @@ curl -sS http://localhost:8899/v1/health
 curl -i -c /tmp/studiosaas.cookies \
   -H 'Content-Type: application/json' \
   -X POST http://localhost:8899/v1/auth/login \
-  -d '{"email":"admin@studiosaas.local","password":"admin123456"}'
+  -d "{\"email\":\"admin@studiosaas.local\",\"password\":\"$SUPER_ADMIN_PASSWORD\"}"
 ```
 
 Response:
@@ -70,7 +70,7 @@ user hashes are accepted only on successful login and are upgraded immediately.
 curl -i -c /tmp/studio.cookies \
   -H 'Content-Type: application/json' \
   -X POST http://localhost:8899/s/lets-paint-studio/v1/auth/legacy-login \
-  -d '{"email":"owner@lets-paint-studio.test","password":"admin123456"}'
+  -d "{\"email\":\"owner@lets-paint-studio.test\",\"password\":\"$STUDIO_ADMIN_PASSWORD\"}"
 ```
 
 Verifies user is an active `owner` or `super_admin` for the specified tenant.
@@ -81,7 +81,7 @@ Verifies user is an active `owner` or `super_admin` for the specified tenant.
 curl -i -b /tmp/studiosaas.cookies \
   -H 'Content-Type: application/json' \
   -X POST http://localhost:8899/v1/auth/change-password \
-  -d '{"oldPassword":"admin123456","newPassword":"NewPass2026"}'
+  -d '{"oldPassword":"current-generated-password","newPassword":"new-generated-password"}'
 ```
 
 Rules: Minimum 8 characters, different from old password, requires active session.
@@ -147,7 +147,7 @@ Compatibility alias: `PATCH /v1/tenant/settings` writes through the same path as
   "subscription_end": "2026-08-01",
   "studioAdminEmail": "owner@new-studio.test",
   "studioAdminName": "Studio Owner",
-  "studioAdminPassword": "admin123456"
+  "studioAdminPassword": "generated-password-from-secure-channel"
 }
 ```
 

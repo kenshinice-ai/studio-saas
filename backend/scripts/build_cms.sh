@@ -12,7 +12,16 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 SRC="$ROOT/legacy-root/src/cms-app.jsx"
 OUT="$ROOT/backend/frontend/assets/cms-app.js"
 
-npx --yes esbuild "$SRC" \
+ESBUILD="$(command -v esbuild 2>/dev/null || true)"
+if [ -z "$ESBUILD" ] && [ -d "$HOME/.npm/_npx" ]; then
+  ESBUILD="$(find "$HOME/.npm/_npx" -path '*/node_modules/esbuild/bin/esbuild' -type f 2>/dev/null | head -n 1)"
+fi
+if [ -z "$ESBUILD" ]; then
+  echo "esbuild is not installed. Install it once with: npm install --global esbuild" >&2
+  exit 1
+fi
+
+"$ESBUILD" "$SRC" \
   --loader:.jsx=jsx \
   --jsx=transform \
   --charset=utf8 \

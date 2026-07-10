@@ -1449,14 +1449,21 @@ function App() {
     const bS = toMin(b.startTime), bE = bS + (Number(b.durationMinutes) || 60);
     return aS < bE && bS < aE;
   };
-  const saveSchedule = async () => {
+  const saveSchedule = async (conflictConfirmed = false) => {
     if (!schedEdit || busy) return;
     if (!schedEdit.label.trim()) {
       showToast("请输入班次名称（如：周三素描班）", "error");
       return;
     }
     const clash = schedules.find((sc) => sc.id !== schedEdit.id && schedOverlap(sc, schedEdit));
-    if (clash && !window.confirm(`「${schedEdit.label.trim()}」与「${clash.label}」（${WEEKDAYS[clash.weekday]} ${clash.startTime}）时段重叠，仍要保存吗？`)) return;
+    if (clash && !conflictConfirmed) {
+      confirm(
+        `「${schedEdit.label.trim()}」与「${clash.label}」（${WEEKDAYS[clash.weekday]} ${clash.startTime}）时段重叠，仍要保存吗？`,
+        () => saveSchedule(true),
+        { confirmText: "仍然保存" }
+      );
+      return;
+    }
     setBusy(true);
     try {
       const body = JSON.stringify({
@@ -2056,6 +2063,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
       fd.append("title", title || "");
       fd.append("date", date || todayISO());
       fd.append("public", isPublic ? "1" : "0");
+      fd.append("publicConsentConfirmed", isPublic ? "1" : "0");
       const r = await fetch(`/s/${encodeURIComponent(tenantSlug)}/v1/legacy-cms/portfolio/upload`, {
         method: "POST",
         credentials: "include",
@@ -2121,7 +2129,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ note, date, title, public: isPublic })
+        body: JSON.stringify({ note, date, title, public: isPublic, publicConsentConfirmed: isPublic })
       });
       if (r.status === 401) {
         showToast("登录已过期，请重新登录", "error");
@@ -2509,7 +2517,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
           onChange: (e) => setPortUpFile((p) => ({ ...p, public: e.target.checked })),
           className: "mt-0.5 w-4 h-4 flex-shrink-0"
         }
-      ), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("span", { className: "font-bold block" }, "展示到官网作品墙"), /* @__PURE__ */ React.createElement("span", { className: "text-xs text-purple-700" }, "只展示作品、标题和老师评语，不公开学生姓名。")))), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 mt-4" }, /* @__PURE__ */ React.createElement(
+      ), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("span", { className: "font-bold block" }, "确认已获授权并展示到官网作品墙"), /* @__PURE__ */ React.createElement("span", { className: "text-xs text-purple-700" }, "勾选即确认家长或成年学员已同意公开；标题和评语不得包含学员全名。")))), /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 mt-4" }, /* @__PURE__ */ React.createElement(
         "button",
         {
           onClick: () => {
@@ -2578,7 +2586,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
           onChange: (e) => setPortEdit((p) => ({ ...p, public: e.target.checked })),
           className: "mt-0.5 w-4 h-4 flex-shrink-0"
         }
-      ), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("span", { className: "font-bold block" }, "展示到官网作品墙"), /* @__PURE__ */ React.createElement("span", { className: "text-xs text-purple-700" }, "关闭后仍保留在学生作品集里，只是不再公开展示。")))),
+      ), /* @__PURE__ */ React.createElement("span", null, /* @__PURE__ */ React.createElement("span", { className: "font-bold block" }, "确认已获授权并展示到官网作品墙"), /* @__PURE__ */ React.createElement("span", { className: "text-xs text-purple-700" }, "每次重新公开都会记录当前管理员和确认时间；关闭后仍保留在私人作品集。")))),
       /* @__PURE__ */ React.createElement("div", { className: "flex gap-3 mt-4" }, /* @__PURE__ */ React.createElement(
         "button",
         {

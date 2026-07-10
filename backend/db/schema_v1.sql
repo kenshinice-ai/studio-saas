@@ -239,6 +239,9 @@ CREATE TABLE IF NOT EXISTS portfolio_items (
     description text NOT NULL DEFAULT '',
     artwork_date date,
     visibility text NOT NULL DEFAULT 'private' CHECK (visibility IN ('private', 'shared')),
+    public_consent_at timestamptz,
+    public_consent_by_user_id uuid REFERENCES users(id) ON DELETE SET NULL,
+    public_consent_note text NOT NULL DEFAULT '',
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now()
 );

@@ -22,6 +22,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Noto+Serif+SC:wght@400;500;600&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="/assets/ui-common.js"></script>
 <script src="/assets/public-register.js"></script>
+<link rel="stylesheet" href="/assets/ui-tokens.css">
 <style>
   :root{
     --bg:#F4F0E8;--bg2:#ECE6DB;--panel:#FBF9F4;--ink:#23211D;--ink2:#4A473F;
@@ -214,15 +215,15 @@
       <span class="bn" id="brandName">{{TENANT_NAME}}</span>
     </div>
     <div class="navlinks">
-      <a id="navPrincipal" onclick="go('home','#artist')" data-en="Principal">主理人</a>
-      <a id="navCourses" onclick="go('home','#courses')" data-en="Courses">课程</a>
-      <a id="navGallery" onclick="go('home','#gallery')" data-en="Gallery">学员作品</a>
-      <a id="navFaq" onclick="go('home','#faq')" data-en="FAQ">常见问题</a>
-      <a id="navStudent" onclick="go('my')" data-en="Student Login">学员专区</a>
-      <a id="navPrimaryCta" class="navcta" onclick="go('join')" data-en="Book a Trial">预约体验</a>
+      <a id="navPrincipal" href="#artist" onclick="go('home','#artist')" data-en="Principal">主理人</a>
+      <a id="navCourses" href="#courses" onclick="go('home','#courses')" data-en="Courses">课程</a>
+      <a id="navGallery" href="#gallery" onclick="go('home','#gallery')" data-en="Gallery">学员作品</a>
+      <a id="navFaq" href="#faq" onclick="go('home','#faq')" data-en="FAQ">常见问题</a>
+      <a id="navStudent" href="#my" onclick="go('my')" data-en="Student Login">学员专区</a>
+      <a id="navPrimaryCta" class="navcta" href="#join" onclick="go('join')" data-en="Book a Trial">预约体验</a>
       <span class="langtog"><button id="lz" class="on" onclick="setLang('zh')">中</button><button id="le" onclick="setLang('en')">EN</button></span>
     </div>
-    <button class="menu-btn" onclick="var m=document.getElementById('mnav');m.style.display=(m.style.display==='flex'?'none':'flex')">☰</button>
+    <button class="menu-btn" type="button" aria-label="打开导航菜单" aria-controls="mnav" aria-expanded="false" onclick="toggleMobileNav(this)">☰</button>
   </div>
   <div id="mnav" style="display:none;flex-direction:column;background:var(--bg);border-top:1px solid var(--line);padding:14px 28px 20px;gap:14px">
     <a id="mnavPrincipal" onclick="go('home','#artist')" data-en="Principal">主理人</a>
@@ -234,6 +235,7 @@
     <span class="langtog" style="align-self:flex-start"><button class="on" onclick="setLang('zh')">中</button><button onclick="setLang('en')">EN</button></span>
   </div>
 </nav>
+<div id="surfaceStatus" role="status" aria-live="polite" style="display:none;padding:10px 20px;background:#fff3cd;color:#6b4f00;text-align:center;font-size:13px"></div>
 
 <!-- ══════════ HOME ══════════ -->
 <div id="home" class="view active">
@@ -365,10 +367,10 @@
       </div>
       <div class="form-card reveal" id="joinForm">
         <div class="fld-row">
-          <div class="fld"><label data-en="Given name *">名字 *</label><input id="j-name" placeholder="First name"></div>
-          <div class="fld"><label data-en="Family name">姓 <span style="color:var(--muted);font-weight:400">选填</span></label><input id="j-last" placeholder="Last name"></div>
+          <div class="fld"><label for="j-name" data-en="Given name *">名字 *</label><input id="j-name" placeholder="First name" required></div>
+          <div class="fld"><label for="j-last" data-en="Family name">姓 <span style="color:var(--muted);font-weight:400">选填</span></label><input id="j-last" placeholder="Last name"></div>
         </div>
-        <div class="fld"><label data-en="Mobile *">手机号 *</label><input id="j-phone" type="tel" placeholder="04xx xxx xxx"></div>
+        <div class="fld"><label for="j-phone" data-en="Mobile *">手机号 *</label><input id="j-phone" type="tel" inputmode="tel" placeholder="04xx xxx xxx" required></div>
         <div class="fld"><label data-en="Email">邮箱 <span style="color:var(--muted);font-weight:400">选填</span></label><input id="j-email" type="email" placeholder="email"></div>
         <div class="fld"><label data-en="Who is this for?">报名对象</label>
           <select id="j-audience">
@@ -387,7 +389,7 @@
           <input type="checkbox" id="j-consent" style="margin-top:4px;width:16px;height:16px;flex-shrink:0">
           <span class="form-note" style="margin:0" data-en="🔒 I agree that my details are used only for teaching contact and management. See the Privacy note below.">🔒 我同意信息仅用于教学联系与管理。详见<a onclick="event.preventDefault();go('privacy')" style="color:var(--clay);border-bottom:1px solid var(--clay);cursor:pointer">隐私说明</a>。</span>
         </label>
-        <p id="j-err" style="display:none;color:#B4442E;font-size:13px;margin:6px 0"></p>
+        <p id="j-err" role="alert" aria-live="assertive" style="display:none;color:#B4442E;font-size:13px;margin:6px 0"></p>
         <button class="btn btn-fill" id="j-btn" style="width:100%;justify-content:center;margin-top:12px" onclick="submitJoin()" data-en="Submit booking">提交预约</button>
       </div>
       <div class="result-card" id="join-done">
@@ -409,9 +411,9 @@
         <p data-en="Enter the student's name and phone to view class balance and portfolio.">输入学员姓名与手机号，查看剩余课时与作品集。</p>
       </div>
       <div class="form-card reveal" id="myForm">
-        <div class="fld"><label data-en="Student name *">学员姓名 *</label><input id="m-name" placeholder="First name"></div>
-        <div class="fld"><label data-en="Mobile *">手机号 *</label><input id="m-phone" type="tel" placeholder="04xx xxx xxx"></div>
-        <p id="m-err" style="display:none;color:#B4442E;font-size:13px;margin:0 0 10px"></p>
+        <div class="fld"><label for="m-name" data-en="Student name *">学员姓名 *</label><input id="m-name" placeholder="First name" required></div>
+        <div class="fld"><label for="m-phone" data-en="Mobile *">手机号 *</label><input id="m-phone" type="tel" inputmode="tel" placeholder="04xx xxx xxx" required></div>
+        <p id="m-err" role="alert" aria-live="assertive" style="display:none;color:#B4442E;font-size:13px;margin:0 0 10px"></p>
         <button class="btn btn-fill" id="m-btn" style="width:100%;justify-content:center;margin-top:2px" onclick="submitMy()" data-en="Check">查询</button>
       </div>
       <div id="m-result" style="display:none;max-width:560px;margin:24px auto 0">
@@ -511,16 +513,33 @@
   }
   var LANG=(function(){try{return localStorage.getItem('pwe_lang_'+SLUG)==='en'?'en':'zh'}catch(e){return 'zh'}})();
   function T(zh,en){return (window.LANG||LANG)==='en'?en:zh;}
-  function setCopy(id, text){
+  function setCopy(id, text, mode){
     var el=document.getElementById(id);
     if(!el || !text) return;
-    el.textContent=text;
-    el.setAttribute('data-zh', text);
-    el.setAttribute('data-en', text);
+    var value=typeof text==='object' ? (text[LANG]||text.zh||text.en||'') : String(text);
+    if(!value) return;
+    if(mode==='both'){
+      el.textContent=value; el.setAttribute('data-zh',value); el.setAttribute('data-en',value); return;
+    }
+    var language=/[\u3400-\u9fff]/.test(value)?'zh':'en';
+    el.setAttribute('data-'+language,value);
+    if((window.LANG||LANG)===language) el.textContent=value;
   }
   function showSection(id, visible){
     var el=document.getElementById(id);
     if(el) el.style.display = visible ? '' : 'none';
+  }
+  function toggleMobileNav(button){
+    var menu=document.getElementById('mnav');
+    var open=menu.style.display!=='flex';
+    menu.style.display=open?'flex':'none';
+    button.setAttribute('aria-expanded', open?'true':'false');
+  }
+  function showSurfaceStatus(message){
+    var status=document.getElementById('surfaceStatus');
+    if(!status) return;
+    status.textContent=message;
+    status.style.display='block';
   }
   function setNavVisible(ids, visible){
     ids.forEach(function(id){ var el=document.getElementById(id); if(el) el.style.display = visible ? '' : 'none'; });
@@ -585,7 +604,7 @@
     }
     if(b.logoUrl){ var lg=document.getElementById('brandLogo'); lg.src=b.logoUrl; lg.style.display='block'; }
     setCopy('heroEyebrow', hero.eyebrow || b.categoryLabel);
-    setCopy('heroName', hero.title || b.name);
+      setCopy('heroName', hero.title || b.name, 'both');
     setCopy('heroSlogan', hero.subtitle || b.slogan);
     setCopy('heroPrimaryCta', (hero.primary_cta_label || hero.primaryCtaLabel || 'Book a Trial') + ' →');
     setCopy('heroSecondaryCta', hero.secondary_cta_label || hero.secondaryCtaLabel || 'Explore Courses');
@@ -614,7 +633,7 @@
     showSection('contact', String(website.show_contact ?? website.showContact ?? true) !== 'false');
     showSection('parent', showStudent);
     setCopy('principalTitle', principal.title);
-    setCopy('principalName', principal.name || b.name);
+      setCopy('principalName', principal.name || b.name, 'both');
     setCopy('principalImageLabel', principal.name || 'Principal');
     setCopy('principalBio', principal.bio);
     setCopy('principalQuote', principal.quote);
@@ -648,7 +667,7 @@
         div.appendChild(k); div.appendChild(v); box.insertBefore(div, box.firstChild);
       });
     }
-  }).catch(function(){});
+  }).catch(function(){ showSurfaceStatus(T('品牌资料暂时无法加载，页面正使用默认内容。','Brand details are temporarily unavailable; default content is shown.')); });
 
   /* ── programs → course grid (falls back to the static generic cards) ── */
   fetch(API + '/programs').then(function(r){return r.json();}).then(function(d){
@@ -668,7 +687,7 @@
         +'<a class="cbtn" onclick="go(\'join\')">'+T('报名 →','Enrol →')+'</a>';
       grid.appendChild(card);
     });
-  }).catch(function(){});
+  }).catch(function(){ showSurfaceStatus(T('课程资料暂时无法加载，请稍后重试。','Course details are temporarily unavailable. Please retry later.')); });
 
   /* ── 预约 → v1 registrations（蜜罐 + consent）── */
   function submitJoin(){
@@ -745,7 +764,7 @@
     fetch(API + '/portfolio-token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name,phone:phone})})
       .then(function(r){return r.json();}).then(function(d){
         if(d&&d.ok&&d.portfolio&&d.portfolio.length){ renderMyPortfolio(d.portfolio); }
-      }).catch(function(){});
+      }).catch(function(){ show(T('作品集暂时无法加载，请稍后重试','Portfolio is temporarily unavailable. Please retry later.')); });
   }
   function renderMyPortfolio(items){
     var box=document.getElementById('m-port'), grid=document.getElementById('m-port-grid');
@@ -783,7 +802,7 @@
       div.onclick=function(){ openGlb(i); };
       grid.appendChild(div);
     });
-  }).catch(function(){});
+  }).catch(function(){ showSurfaceStatus(T('公开作品墙暂时无法加载。','The public gallery is temporarily unavailable.')); });
 
   /* ── lightbox ── */
   var GIDX=0;

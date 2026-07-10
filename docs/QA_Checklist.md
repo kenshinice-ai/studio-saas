@@ -1,7 +1,7 @@
 # QA Checklist
 
 > **StudioSaaS Quality Assurance Reference**
-> Last updated: 2026-07-03
+> Last updated: 2026-07-10
 
 ---
 
@@ -15,17 +15,18 @@
 - [ ] `curl http://localhost:8899/v1/health` returns 200 with expected fields
 - [ ] All API routes return proper HTTP status codes (200, 201, 400, 401, 403, 404, 429, 500)
 - [ ] Error responses include `error` and `message` keys
-- [ ] Public endpoints return 429 when rate limits are exceeded (registrations 5/min, balance-query 10/min, uploads 5/min)
+- [ ] Public endpoints return 429 when rate limits are exceeded (registrations 5/min, balance-query 10/min per tenant/IP, uploads 5/min)
 - [ ] Login rate limiting active and failed logins audited
 
 ### 2. Tenant Routing and Isolation
 
-- [ ] `/<tenant_slug>` and `/<tenant_slug>/cms` render the correct tenant's CMS shell
+- [ ] `/<tenant_slug>` renders the public portal and `/<tenant_slug>/cms` renders the correct tenant CMS shell
 - [ ] `/<tenant_slug>/register` renders the tenant's registration page
 - [ ] `/<tenant_slug>/studio-admin` renders the tenant's admin dashboard
 - [ ] `/s/<tenant_slug>/v1/tenant`, `/dashboard`, and `/students` return 401 before login, not 404
 - [ ] Root `/register` returns 404 (registration belongs to tenants)
 - [ ] `/<tenant_slug>/manifest-student.json` uses tenant-scoped `start_url` and `scope`; root `/manifest-student.json` does not point to `/register`
+- [ ] `/<tenant_slug>/manifest-cms.json` starts at `/<tenant_slug>/cms` and uses tenant scope
 - [ ] Unknown tenant slug returns 404 (not a blank page)
 - [ ] Reserved slugs (`api`, `v1`, `register`, `super-admin`, `studio-admin`, `vendor`) rejected on tenant creation
 - [ ] Unauthenticated mutation requests return 401/403 (see Current_Sprint §4 curl checks)
@@ -62,6 +63,7 @@
 - [ ] CSS custom properties (brand colours) render correctly per tenant
 - [ ] Responsive breakpoints: mobile (<640px), tablet (640–1024px), desktop
 - [ ] No console errors in browser DevTools
+- [ ] Generated tenant pages pass `node backend/scripts/check_inline_scripts.mjs`, including names with apostrophes and HTML punctuation
 
 ### 5. Database
 
@@ -75,6 +77,7 @@
 ### 6. Security
 
 - [ ] No hardcoded API keys or credentials in source
+- [ ] Privileged pilot passwords are unique, rotated, and stored only in the protected local credential file
 - [ ] `.env`, `backend/.api_secret`, `backend/.cms_password` excluded from version control
 - [ ] File uploads validated (type, size, extension, magic bytes)
 - [ ] SQL injection prevention: parameterized queries only
@@ -88,6 +91,7 @@
 - [ ] Super Admin tenant details hide Archive Path for active tenants and show it for archived tenants
 - [ ] Super Admin hides test fixture tenants by default; "Show test tenants" reveals them with a badge
 - [ ] Super Admin quick links disable correctly for paused/archived/deleted tenants and missing admin login
+- [ ] Public gallery returns only items with recorded publication consent
 
 ### 7. Performance
 

@@ -104,6 +104,11 @@ if [ -x "$PYTHON" ]; then
     CMS_SRC="$SCRIPT_DIR/../legacy-root/src/cms-app.jsx"
     CMS_OUT="$SCRIPT_DIR/frontend/assets/cms-app.js"
     if command -v node >/dev/null 2>&1; then
+        if node "$SCRIPT_DIR/scripts/check_inline_scripts.mjs" >/dev/null 2>&1; then
+            ok "all inline HTML scripts compile"
+        else
+            fail "inline HTML script syntax check failed"
+        fi
         if [ -f "$CMS_OUT" ] && node -e "new Function(require('fs').readFileSync('$CMS_OUT','utf8'))" 2>/dev/null; then
             ok "cms-app.js compiled bundle is valid JS"
         else

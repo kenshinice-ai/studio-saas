@@ -60,6 +60,7 @@ def _register_ok():      return _rate_ok('register', 5, 60)   # P1: stop pending
 # Only explicit allowlist routes below may serve files (index/register/PWA/logo/icons).
 # This prevents accidental public access to database.json, .api_secret, .cms_config.json, backups, tests, etc.
 app = Flask(__name__, static_folder=None)
+RUNTIME_ENV = os.environ.get('STUDIOSAAS_ENV', 'local').strip().lower() or 'local'
 init_auth_blueprints(app)
 app.register_blueprint(api_v1, url_prefix='/v1')
 app.register_blueprint(api_v1, url_prefix='/s/<path_tenant_slug>/v1', name='studiosaas_api_v1_by_slug')
@@ -186,7 +187,7 @@ def _csrf_guard():
     }), 403
 # S13: opt-in Secure flag (set COOKIE_SECURE=1 when access is HTTPS-only).
 # Default off because LAN access uses plain http://<ip>:8000.
-if os.environ.get('COOKIE_SECURE') == '1':
+if os.environ.get('COOKIE_SECURE') == '1' or RUNTIME_ENV in {'pilot', 'production'}:
     app.config['SESSION_COOKIE_SECURE'] = True
 
 # P0-2 (pilot): requests arriving through the cloudflared tunnel are HTTPS at
@@ -218,6 +219,13 @@ CORS_ORIGIN = os.environ.get('CORS_ORIGIN', '')
 
 # ── API secret (auto-generated on first run, stored in .api_secret) ───────────
 def _get_or_create_secret():
+    configured = os.environ.get('STUDIOSAAS_SECRET_KEY', '').strip()
+    if configured:
+        if len(configured) < 32:
+            raise RuntimeError('STUDIOSAAS_SECRET_KEY must be at least 32 characters.')
+        return configured
+    if RUNTIME_ENV == 'production':
+        raise RuntimeError('STUDIOSAAS_SECRET_KEY is required in production.')
     if os.path.exists(SECRET_FILE):
         with open(SECRET_FILE, 'r') as f:
             s = f.read().strip()
@@ -700,8 +708,9 @@ def serve_legacy_register():
 
 @app.route('/studio-admin')
 def serve_studio_admin():
-    return send_from_directory(os.path.join(app.root_path, 'frontend'),
-                               'studio-admin.html')
+    # A tenant slug is mandatory for the Studio Admin context. Never recover
+    # it from browser localStorage or silently choose a demo tenant.
+    return redirect('/super-admin#tenants', code=302)
 
 @app.route('/assets/<path:filename>')
 def serve_shared_assets(filename):
@@ -824,6 +833,43 @@ def serve_tenant_manifest_student(tenant_slug):
             {'src': '/icon-192.png', 'sizes': '192x192', 'type': 'image/png', 'purpose': 'any'},
             {'src': '/icon-512.png', 'sizes': '512x512', 'type': 'image/png', 'purpose': 'any'},
             {'src': '/icon-512.png', 'sizes': '512x512', 'type': 'image/png', 'purpose': 'maskable'},
+        ],
+    }
+    resp = jsonify(manifest)
+    resp.headers['Content-Type'] = 'application/manifest+json'
+    resp.headers['Cache-Control'] = 'public, max-age=0'
+    return resp
+
+
+@app.route('/<tenant_slug>/manifest-cms.json')
+def serve_tenant_manifest_cms(tenant_slug):
+    """Return a tenant-scoped install manifest for the staff CMS."""
+
+    try:
+        validate_tenant_slug(tenant_slug)
+    except WorkspaceError:
+        return api_error('Not found', 404)
+    tenant_file = os.path.join(PROJECT_ROOT, 'tenants', tenant_slug, 'tenant.json')
+    if not os.path.isfile(tenant_file):
+        return api_error('Not found', 404)
+    with open(tenant_file, 'r', encoding='utf-8') as f:
+        tenant = json.load(f)
+    name = str(tenant.get('name') or tenant_slug)
+    manifest = {
+        'name': f'{name} CMS',
+        'short_name': f'{name[:18]} CMS',
+        'description': f'{name} staff operations workspace',
+        'id': f'/{tenant_slug}/cms',
+        'start_url': f'/{tenant_slug}/cms',
+        'scope': f'/{tenant_slug}/',
+        'display': 'standalone',
+        'orientation': 'portrait',
+        'background_color': '#312e81',
+        'theme_color': '#312e81',
+        'lang': 'zh-CN',
+        'icons': [
+            {'src': '/icon-192.png', 'sizes': '192x192', 'type': 'image/png', 'purpose': 'any'},
+            {'src': '/icon-512.png', 'sizes': '512x512', 'type': 'image/png', 'purpose': 'any maskable'},
         ],
     }
     resp = jsonify(manifest)

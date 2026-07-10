@@ -30,6 +30,15 @@ def test_tenant_student_manifest_uses_tenant_start_url(client):
     assert payload["scope"] == "/lets-paint-studio/"
 
 
+def test_tenant_cms_manifest_uses_tenant_cms_start_url(client):
+    response = client.get("/lets-paint-studio/manifest-cms.json")
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["id"] == "/lets-paint-studio/cms"
+    assert payload["start_url"] == "/lets-paint-studio/cms"
+    assert payload["scope"] == "/lets-paint-studio/"
+
+
 def test_root_student_manifest_does_not_point_at_closed_register(client):
     response = client.get("/manifest-student.json")
     assert response.status_code == 200

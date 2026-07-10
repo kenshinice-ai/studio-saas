@@ -2,6 +2,7 @@
 
 import json
 import shutil
+import subprocess
 from pathlib import Path
 
 from studiosaas.workspaces import ensure_tenant_workspace
@@ -53,6 +54,30 @@ def test_new_tenant_workspace_generates_public_surface_files(tmp_path):
     assert "visualTheme" in portal_html
 
 
+def test_workspace_escapes_tenant_name_for_html_and_javascript(tmp_path):
+    """Names with punctuation must not break generated inline scripts or markup."""
+
+    app_root = tmp_path / "app"
+    app_root.mkdir()
+    shutil.copytree(PROJECT_ROOT / "tenant-template", app_root / "tenant-template")
+    workspace_path = ensure_tenant_workspace(
+        app_root,
+        "artists-and-friends",
+        "Artist's <Friends> & Studio",
+    )
+    register_html = (app_root / workspace_path / "register.html").read_text(encoding="utf-8")
+    assert "Artist&#x27;s &lt;Friends&gt; &amp; Studio Registration" in register_html
+    assert "const TENANT_NAME = \"Artist's <Friends> & Studio\";" in register_html
+    inline_script = register_html.rsplit("<script>", 1)[1].split("</script>", 1)[0]
+    subprocess.run(
+        ["node", "--check"],
+        input=inline_script,
+        text=True,
+        check=True,
+        capture_output=True,
+    )
+
+
 def test_existing_tenants_render_all_four_surfaces(client):
     """Current pilot tenants must expose portal, CMS, register, and Studio Admin."""
 
@@ -61,6 +86,12 @@ def test_existing_tenants_render_all_four_surfaces(client):
             response = client.get(f"/{slug}{suffix}")
             assert response.status_code == 200, f"{slug}{suffix or '/'}"
             assert "text/html" in response.content_type
+
+
+def test_root_studio_admin_requires_explicit_tenant_selection(client):
+    response = client.get("/studio-admin", follow_redirects=False)
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/super-admin#tenants")
 
 
 def test_existing_register_surfaces_are_lightweight_lead_capture_pages(client):

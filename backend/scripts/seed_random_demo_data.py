@@ -287,8 +287,7 @@ def ensure_studio_admin(conn, tenant_id: str, slug: str, name: str) -> None:
             INSERT INTO users (email, password_hash, full_name, status)
             VALUES (%s, %s, %s, 'active')
             ON CONFLICT (email) DO UPDATE
-            SET password_hash = EXCLUDED.password_hash,
-                full_name = EXCLUDED.full_name,
+            SET full_name = EXCLUDED.full_name,
                 status = 'active',
                 updated_at = now()
             RETURNING id
@@ -552,7 +551,7 @@ def upsert_student(conn, rng: random.Random, tenant_id: str, index: int, courses
                 tenant_id,
                 student_id,
                 media_id,
-                f"{display}'s Demo Work",
+                f"Student Demo Work {legacy_id}",
                 date.today() - timedelta(days=rng.randint(1, 90)),
                 rng.choice(["private", "shared"]),
             ),

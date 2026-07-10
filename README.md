@@ -11,7 +11,7 @@ It provides a lightweight SaaS-style platform for managing:
 - portfolio media and branding settings
 - platform-level tenant management
 
-**Status:** public pilot stage. Runs locally (waitress + PostgreSQL) and is exposed for pilot testing via Cloudflare Tunnel at `https://studiosaas.cc.cd` (since 2026-07-09). Deployment path towards AWS (managed PostgreSQL, S3 media) is documented in `docs/Deployment.md`.
+**Status:** public pilot stage. Runs locally (waitress + PostgreSQL) and is exposed on demand via Cloudflare Tunnel at `https://studiosaas.cc.cd`. The public URL is only expected to be online while the Stage 1 launcher is running. Deployment towards AWS is documented in `docs/Deployment.md`.
 
 ---
 
@@ -152,9 +152,9 @@ cd backend && python server.py
 
 Server runs at `http://localhost:8899`.
 
-### 4.6 Default local credentials
+### 4.6 Pilot credentials
 
-All local/pilot accounts use `admin123456`: `admin@studiosaas.local` (super admin) and each `owner@<slug>.test`. (A P0-1 rotation was applied 2026-07-09 and then reverted by owner decision — the pilot is test-only. Rotate before any real-user pilot.)
+Privileged pilot accounts use unique generated passwords. Rotate them with `backend/scripts/rotate_pilot_credentials.py`; protected output defaults to `~/.studiosaas/pilot-credentials.txt` with mode `0600`. Never place passwords in this repository or UI placeholders.
 
 ---
 
@@ -202,6 +202,9 @@ cd backend && ../.venv/bin/python -m pytest -q
 cd backend
 ../.venv/bin/python test_cms.py                 # expected: 72 checks passing
 ../.venv/bin/python test_tenant_isolation.py
+
+# Reproducible source package (requires a clean committed tree)
+bash scripts/package_release.sh
 
 # Full local verification
 bash backend/scripts/verify_local.sh

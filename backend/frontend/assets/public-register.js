@@ -29,11 +29,11 @@
     if (!container) return normalizeProfile(profile, opts.fallbackTitle);
     var normalized = normalizeProfile(profile, opts.fallbackTitle);
     container.innerHTML = '';
-    normalized.fields.forEach(function (field) {
+      normalized.fields.forEach(function (field) {
       var wrap = document.createElement('div');
       wrap.className = opts.labelClass || 'dyn-field';
-      var caption = document.createElement('label');
-      caption.textContent = field.label + (field.required ? ' *' : '');
+        var caption = document.createElement('label');
+        caption.textContent = field.label + (field.required ? ' *' : '');
       var input;
       if (field.type === 'textarea' || opts.multiline) {
         input = document.createElement('textarea');
@@ -54,8 +54,11 @@
         input = document.createElement('input');
       }
       input.dataset.profileKey = field.key;
+      input.id = 'profile-' + field.key.replace(/[^a-zA-Z0-9_-]/g, '-');
+      caption.htmlFor = input.id;
       input.placeholder = field.placeholder || field.label;
       input.required = field.required;
+      if (field.required) input.setAttribute('aria-required', 'true');
       if (opts.inputClass) input.className = opts.inputClass;
       wrap.appendChild(caption);
       wrap.appendChild(input);

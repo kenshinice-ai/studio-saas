@@ -1,7 +1,7 @@
 # StudioSaaS Current Sprint
 
-Version: v4.0
-Date: 2026-07-09
+Version: v4.1
+Date: 2026-07-10
 Purpose: Status tracking for the prioritised task list in `codingprompt.md` (same numbering), verification commands, credentials, and go/no-go criteria.
 
 > Task definitions (problem/evidence/fix/verify) live in `codingprompt.md`. This file tracks **status only**. Update it after each completed task.
@@ -73,7 +73,7 @@ These items from earlier sprint docs are confirmed done — do not re-fix:
 |---|---|---|
 | D1 | v1 API rate limiting/audit use real client IP behind cloudflared (`_client_ip()` trusts CF-Connecting-IP only from localhost; audit inet validated) | ✅ 2026-07-09 |
 | D2 | Cloudflare Tunnel `studiosaas` → `https://studiosaas.cc.cd` → localhost:8899 (locally-managed, config in `~/.cloudflared/config.yml`) | ✅ 2026-07-09 |
-| P0-1 | Rotate default `admin123456` on all 7 privileged accounts → `~/.studiosaas/pilot-credentials.txt`; LOCAL start script preserves rotated password | ✅ 2026-07-09 |
+| P0-1 | Unique privileged-account rotation → `~/.studiosaas/pilot-credentials.txt` (0600); seed scripts preserve existing hashes | ✅ 2026-07-10 |
 | P0-2 | Tunnel-origin session cookies carry Secure (custom SessionInterface); local http unaffected | ✅ 2026-07-09 |
 | P0-3 | One-click backup (`BACKUP_STUDIOSAAS_NOW.command`, keep 14) + restore drill passed (restore-dry-run, 10 migrations verified) | ✅ 2026-07-09 |
 | P0-4 | On-demand ONLINE/STOP `.command` scripts (user chose no persistent daemons); LaunchAgent templates in `deploy/launchd/` if ever needed | ✅ 2026-07-09 |
@@ -84,7 +84,7 @@ These items from earlier sprint docs are confirmed done — do not re-fix:
 | Item | Status |
 |---|---|
 | Display rename → **PWE Studio SaaS** (titles, super-admin h1, health `service`, manifests, README; internal identifiers `STUDIOSAAS_*`/CSRF value/domain unchanged) | ✅ |
-| Passwords reverted to `admin123456` (test-only pilot, owner decision) | ✅ |
+| Default credential hints removed from login UI; public-pilot accounts use unique rotated passwords | ✅ 2026-07-10 |
 | Super-admin quick links: Portal `/slug` + CMS `/slug/cms` + Admin + Register (was: "CMS" mislinked to `/slug`) | ✅ |
 | Tenant portal v2: `tenant-template/index.html` rebuilt on the LetsPaint v6.6.6 portal design — bilingual SPA (home/join/my/privacy), brand/programs from v1 public APIs, in-page enrolment (honeypot+consent) and student area (balance + portfolio thumbs) | ✅ |
 | lets-paint-studio keeps the full-content portal (artist/FAQ/contact), rewired to v1 endpoints | ✅ |
@@ -197,7 +197,7 @@ curl -sS http://localhost:8899/v1/health
 curl -i -c /tmp/studiosaas.cookies \
   -H 'Content-Type: application/json' \
   -X POST http://localhost:8899/v1/auth/login \
-  -d '{"email":"admin@studiosaas.local","password":"admin123456"}'
+  -d "{\"email\":\"admin@studiosaas.local\",\"password\":\"$SUPER_ADMIN_PASSWORD\"}"
 
 # Check session
 curl -i -b /tmp/studiosaas.cookies http://localhost:8899/v1/auth/me
@@ -241,35 +241,17 @@ curl -sS -o /dev/null -w "%{http_code}" http://localhost:8899/register
 
 ---
 
-## 5. Default Credentials (Local)
+## 5. Protected Pilot Credentials
 
-> **P0-1 rotation reverted 2026-07-09 (owner decision):** the pilot is test-only, so all seven privileged accounts are back on `admin123456`. Re-rotate before inviting real users (P0-5 Cloudflare Access on /super-admin is the compensating control until then).
-
-### Super Admin
-
-| Field | Value |
-|---|---|
-| Email | `admin@studiosaas.local` |
-| Password | `admin123456` |
-
-Reset command:
+Privileged passwords are deliberately absent from the repository and login UI. Rotate every active `super_admin`, `owner`, and `staff` account before deployment:
 
 ```bash
 cd backend
 STUDIOSAAS_DATABASE_URL=postgresql://llmacbookpro@localhost:5432/studiosaas_local_test \
-../.venv/bin/python scripts/seed_super_admin.py --reset-password \
-  --email admin@studiosaas.local --password admin123456
+../.venv/bin/python scripts/rotate_pilot_credentials.py
 ```
 
-Password storage: seed/reset scripts write PBKDF2-HMAC-SHA256 hashes. Legacy unsalted SHA-256 user hashes are verified only to complete a successful login, then upgraded in place.
-
-### Studio Admin (Demo Tenants)
-
-| Tenant | Email | Password |
-|---|---|---|
-| `lets-paint-studio` | `owner@lets-paint-studio.test` | `admin123456` |
-| `lets-play-piano` | `owner@lets-play-piano.test` | `admin123456` |
-| `lets-play-game` | `owner@lets-play-game.test` | `admin123456` |
+The generated file is `~/.studiosaas/pilot-credentials.txt` with mode `0600`. Seed scripts preserve existing password hashes. Password storage remains PBKDF2-HMAC-SHA256; legacy hashes upgrade only after a successful login.
 
 ---
 
@@ -292,7 +274,7 @@ Password storage: seed/reset scripts write PBKDF2-HMAC-SHA256 hashes. Legacy uns
 |---|---|---|
 | Local demo | **GO** | Dependency install + smoke tests pass |
 | Internal testing | **GO** (2026-07-03) | P0-01…P0-07 all done and verified |
-| External pilot (tunnel) | **GO** (2026-07-09) | P0 ✅ + P1-07 backup ✅ + D1 real-IP fix ✅. **Before inviting real users:** rotate `admin123456` passwords + enable `COOKIE_SECURE=1` + schedule daily backup (Deployment.md §2.4) |
+| External pilot (tunnel) | **GO when launcher is running** | Full verification green + unique password rotation + Secure cookies + current backup. The tunnel is intentionally on demand. |
 | AWS staging | **NO-GO** | Needs P3-01 config layering + P3-03 S3 media (plan: `docs/Deployment.md` §3) |
 
 ---

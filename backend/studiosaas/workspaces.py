@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+from html import escape
 from pathlib import Path
 
 SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]{1,62}$")
@@ -60,7 +61,8 @@ def ensure_tenant_workspace(app_root: str | Path, slug: str, name: str) -> str:
     workspace_dir.mkdir(parents=True, exist_ok=True)
     replacements = {
         "{{TENANT_SLUG}}": slug,
-        "{{TENANT_NAME}}": name,
+        "{{TENANT_NAME}}": escape(name, quote=True),
+        "{{TENANT_NAME_JSON}}": json.dumps(name, ensure_ascii=False),
     }
     # Hand-customised workspace files (e.g. a bespoke portal) list themselves
     # in tenants/<slug>/.keep-local, one filename per line; those are never

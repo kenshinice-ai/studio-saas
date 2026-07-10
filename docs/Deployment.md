@@ -1,7 +1,7 @@
 # StudioSaaS Deployment Guide
 
-Version: v1.0
-Date: 2026-07-09
+Version: v1.1
+Date: 2026-07-10
 Scope: 本地部署 → Cloudflare Tunnel 公网试点（`https://studiosaas.cc.cd`）→ AWS 正式部署。
 
 部署路径分三个阶段，每个阶段都是上一阶段的超集，数据与代码不推倒重来：
@@ -39,9 +39,9 @@ PORT=8899 STUDIOSAAS_DATABASE_URL=postgresql://$(whoami)@localhost:5432/studiosa
 | 检查 | 命令 | 期望 |
 |---|---|---|
 | 健康 | `curl localhost:8899/v1/health` | `{"ok":true,...}` |
-| pytest | `cd backend && ../.venv/bin/python -m pytest -q` | 37 passed |
+| pytest | `cd backend && ../.venv/bin/python -m pytest -q` | 43+ passed |
 | CMS 冒烟 | `../.venv/bin/python test_cms.py` | 72 通过 |
-| 租户隔离 | `../.venv/bin/python test_tenant_isolation.py` | 110 passed |
+| 租户隔离 | `../.venv/bin/python test_tenant_isolation.py` | 115+ passed |
 | 页面 | `/`、`/<slug>`、`/<slug>/cms`、`/<slug>/register`、`/<slug>/studio-admin` | 200；根 `/register` 404 |
 
 ---
@@ -98,9 +98,9 @@ ingress:
 |---|---|---|
 | 1 | v1 限流/审计使用真实访客 IP（信任来自 localhost 的 `CF-Connecting-IP`） | ✅ 2026-07-09（api_v1.py `_client_ip()`） |
 | 2 | Secure cookie | ✅ 2026-07-09：隧道来源的请求自动给 session cookie 加 Secure（自定义 SessionInterface）；本地 http 开发不受影响；`COOKIE_SECURE=1` 全局强制仍可用 |
-| 3 | 默认密码 | ✅ 2026-07-09：7 个特权账号全部轮换，新密码在 `~/.studiosaas/pilot-credentials.txt`（600）；LOCAL 启动脚本会沿用轮换密码 |
+| 3 | 特权密码 | 上线前运行 `backend/scripts/rotate_pilot_credentials.py`；每个账号使用唯一随机密码，输出文件权限为 0600；seed 不覆盖已有密码 |
 | 4 | 备份 | ✅ 2026-07-09：`BACKUP_STUDIOSAAS_NOW.command` 一键备份（keep 14）；恢复演练通过（restore-dry-run，10 迁移核验）；按需模式不装定时，模板在 `deploy/launchd/` |
-| 5 | super-admin 面收紧 | ⚠️ 手动：Cloudflare Zero Trust → Access → 给 `studiosaas.cc.cd/super-admin*` 加邮箱 OTP 策略（仪表盘操作，见 Current_Sprint P0-5） |
+| 5 | super-admin 面收紧 | 应用内强密码和角色检查为必需；Cloudflare Access 邮箱 OTP 仍建议作为第二层保护，覆盖 `/` 与 `/super-admin*` |
 | 6 | Cloudflare 区设置 | 建议开 Bot Fight Mode（仪表盘）；SSL/TLS 模式无所谓（tunnel 不走 origin 证书） |
 
 ### 2.5 试点验证
@@ -109,6 +109,13 @@ ingress:
 curl -sS https://studiosaas.cc.cd/v1/health
 # 手机 4G（非 WiFi）打开 https://studiosaas.cc.cd/lets-paint-studio/register 提交注册
 # CMS 手机上传照片（验证 S1/S2 的 HEIC + SW 修复在真机生效）
+```
+
+所有验证通过并提交后生成可复现发布包：
+
+```bash
+cd backend
+bash scripts/package_release.sh
 ```
 
 ---

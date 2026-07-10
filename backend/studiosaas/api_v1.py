@@ -14,6 +14,7 @@ import time
 import hashlib
 import uuid as _uuid
 from pathlib import PurePath
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import csv as _csv
 import io as _io
@@ -53,6 +54,36 @@ api_v1 = Blueprint("studiosaas_api_v1", __name__)
 # Counters reset on process restart — acceptable for the local pilot; a
 # shared store (Redis) replaces this at the production stage (P3-04).
 _public_rate_limit: dict[str, list[float]] = {}
+
+
+def _rate_limited(key: str, limit: int, *, window_seconds: int = 60) -> bool:
+    """Apply a bounded in-memory sliding-window limit for one public action."""
+
+    now = time.time()
+    attempts = [stamp for stamp in _public_rate_limit.get(key, []) if now - stamp < window_seconds]
+    limited = len(attempts) >= limit
+    if not limited:
+        attempts.append(now)
+    _public_rate_limit[key] = attempts
+    return limited
+
+
+def _validated_timezone(value: str | None) -> str:
+    """Return a valid IANA timezone name or raise a user-facing validation error."""
+
+    timezone_name = str(value or "Australia/Melbourne").strip() or "Australia/Melbourne"
+    try:
+        ZoneInfo(timezone_name)
+    except ZoneInfoNotFoundError as exc:
+        raise ValueError("Timezone must be a valid IANA name such as Australia/Melbourne.") from exc
+    return timezone_name
+
+
+def _tenant_timezone(conn, tenant_id: str) -> str:
+    """Read and validate the business timezone for a tenant."""
+
+    row = fetch_one(conn, "SELECT timezone FROM tenants WHERE id = %s", (tenant_id,))
+    return _validated_timezone(row["timezone"] if row else None)
 
 
 def _client_ip() -> str:
@@ -1640,11 +1671,13 @@ def update_tenant():
             show_welcome = show_welcome.strip().lower() != "false"
         else:
             show_welcome = bool(show_welcome)
+        timezone_name = _clean_text(payload, "timezone", current["timezone"])
         try:
             _validate_logo_url(logo_url)
             _validate_hex_color("Primary color", primary_color)
             _validate_hex_color("Secondary color", secondary_color)
             _validate_optional_email("Contact email", contact_email)
+            timezone_name = _validated_timezone(timezone_name)
             if cms_layout not in {"bar", "hero", "compact"}:
                 raise ValueError("CMS layout must be one of: bar, hero, compact.")
         except ValueError as exc:
@@ -1698,7 +1731,7 @@ def update_tenant():
                     _clean_text(payload, "contactPhone", _clean_text(payload, "phone", current["contact_phone"])),
                     contact_email,
                     _clean_text(payload, "address", current["address"]),
-                    _clean_text(payload, "timezone", current["timezone"]),
+                    timezone_name,
                     json.dumps(current_settings),
                     tenant.tenant_id,
                 ),
@@ -2380,6 +2413,7 @@ def tenant_dashboard():
 
     with connect() as conn:
         tenant = _tenant_context(conn)
+        timezone_name = _tenant_timezone(conn, tenant.tenant_id)
         row = fetch_one(
             conn,
             """
@@ -2388,7 +2422,11 @@ def tenant_dashboard():
                 (SELECT count(*) FROM students WHERE tenant_id = %s AND status = 'active') AS active_students,
                 (SELECT count(*) FROM registrations WHERE tenant_id = %s AND status = 'pending') AS pending_registrations,
                 (SELECT count(*) FROM portfolio_items WHERE tenant_id = %s) AS portfolio_items,
-                (SELECT count(*) FROM credit_accounts WHERE tenant_id = %s AND course_id IS NULL AND balance <= low_balance_threshold) AS low_balance
+                (SELECT count(*) FROM credit_accounts WHERE tenant_id = %s AND course_id IS NULL AND balance <= low_balance_threshold) AS low_balance,
+                (SELECT count(*) FROM attendance_sessions
+                  WHERE tenant_id = %s AND reversed_at IS NULL
+                    AND COALESCE(class_date, (attended_at AT TIME ZONE %s)::date)
+                        = (now() AT TIME ZONE %s)::date) AS today_checkins
             """,
             (
                 tenant.tenant_id,
@@ -2396,6 +2434,9 @@ def tenant_dashboard():
                 tenant.tenant_id,
                 tenant.tenant_id,
                 tenant.tenant_id,
+                tenant.tenant_id,
+                timezone_name,
+                timezone_name,
             ),
         )
         # A3 (v5.3 harvest): 经营真账（估算）— split cash received from
@@ -2410,8 +2451,8 @@ def tenant_dashboard():
                   WHERE tenant_id = %s AND reversed_at IS NULL) AS attended_total,
                 (SELECT count(*) FROM attendance_sessions
                   WHERE tenant_id = %s AND reversed_at IS NULL
-                    AND date_trunc('month', COALESCE(class_date, (attended_at AT TIME ZONE 'Australia/Melbourne')::date))
-                        = date_trunc('month', (now() AT TIME ZONE 'Australia/Melbourne')::date)) AS attended_month,
+                    AND date_trunc('month', COALESCE(class_date, (attended_at AT TIME ZONE %s)::date))
+                        = date_trunc('month', (now() AT TIME ZONE %s)::date)) AS attended_month,
                 (SELECT COALESCE(sum(fee_aud_cents), 0) FROM credit_transactions
                   WHERE tenant_id = %s AND transaction_type IN ('purchase', 'refund')) AS cash_net_cents,
                 (SELECT COALESCE(sum(amount), 0)::float FROM credit_transactions
@@ -2420,7 +2461,15 @@ def tenant_dashboard():
                 (SELECT COALESCE(sum(balance), 0)::float FROM credit_accounts
                   WHERE tenant_id = %s AND course_id IS NULL) AS outstanding_credits
             """,
-            (tenant.tenant_id,) * 5,
+            (
+                tenant.tenant_id,
+                tenant.tenant_id,
+                timezone_name,
+                timezone_name,
+                tenant.tenant_id,
+                tenant.tenant_id,
+                tenant.tenant_id,
+            ),
         )
         cash_net = (biz["cash_net_cents"] or 0) / 100.0
         paid_credits = float(biz["paid_credits_net"] or 0)
@@ -2497,6 +2546,17 @@ def public_brand(tenant_slug: str):
     return jsonify({"brand": row})
 
 
+def _public_portfolio_copy(value: object) -> str:
+    """Remove obvious contact details and seeded full-name titles from public copy."""
+
+    text = str(value or "").strip()[:500]
+    if re.search(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}|(?:\+?\d[\s().-]*){8,}", text):
+        return ""
+    if re.match(r"^.+['’]s\s+Demo\s+Work$", text, re.IGNORECASE):
+        return "Student artwork"
+    return text
+
+
 @api_v1.route("/public/<tenant_slug>/gallery", methods=["GET"])
 def public_gallery(tenant_slug: str):
     """Return public-gallery portfolio items explicitly shared by a tenant."""
@@ -2515,6 +2575,7 @@ def public_gallery(tenant_slug: str):
             JOIN students s ON s.id = p.student_id AND s.tenant_id = p.tenant_id
             WHERE p.tenant_id = %s
               AND p.visibility = 'shared'
+              AND p.public_consent_at IS NOT NULL
               AND s.status <> 'archived'
             ORDER BY COALESCE(p.artwork_date, p.created_at::date) DESC, p.created_at DESC
             LIMIT 24
@@ -2524,8 +2585,8 @@ def public_gallery(tenant_slug: str):
     items = [
         {
             "id": str(row["id"]),
-            "title": row["title"] or "",
-            "comment": row["description"] or "",
+            "title": _public_portfolio_copy(row["title"]),
+            "comment": _public_portfolio_copy(row["description"]),
             "date": str(row["artwork_date"] or row["created_at"].date()),
             "mediaUrl": f"/v1/public/{tenant_slug}/gallery/{row['id']}/media",
         }
@@ -2552,6 +2613,7 @@ def public_gallery_media(tenant_slug: str, portfolio_item_id: str):
             WHERE p.tenant_id = %s
               AND p.id::text = %s
               AND p.visibility = 'shared'
+              AND p.public_consent_at IS NOT NULL
               AND s.status <> 'archived'
             LIMIT 1
             """,
@@ -2565,6 +2627,10 @@ def public_gallery_media(tenant_slug: str, portfolio_item_id: str):
 @api_v1.route("/public/<tenant_slug>/balance-query", methods=["POST"])
 def public_balance_query(tenant_slug: str):
     """Lookup a student's balance for the public parent portal."""
+
+    client_key = f"balance-query:{tenant_slug}:{_client_ip()}"
+    if _rate_limited(client_key, 10):
+        return _error("Too many balance queries. Please wait a moment.", 429)
 
     payload = request.get_json(silent=True) or {}
     name = str(payload.get("name") or "").strip().lower()
@@ -2595,16 +2661,23 @@ def public_balance_query(tenant_slug: str):
             """,
             (tenant.tenant_id, phone, name, name, name),
         )
-    if not row:
-        return jsonify({"match": False})
-    return jsonify(
-        {
-            "match": True,
-            "name": row["display_name"],
-            "balance": row["balance"],
-            "total_checkins": 0,
-        }
-    )
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="public.balance_lookup",
+            resource_type="student_lookup",
+            metadata={"matched": bool(row)},
+        )
+        conn.commit()
+        if not row:
+            return jsonify({"match": False})
+        return jsonify(
+            {
+                "match": True,
+                "name": row["display_name"],
+                "balance": row["balance"],
+            }
+        )
 
 
 @api_v1.route("/public/<tenant_slug>/registration-media", methods=["POST"])
@@ -3064,7 +3137,7 @@ def _legacy_data_for_tenant(conn, tenant_id: str) -> dict:
         conn,
         """
         SELECT p.id, p.student_id, p.media_asset_id, p.title, p.description,
-               p.artwork_date, p.visibility, p.created_at
+               p.artwork_date, p.visibility, p.public_consent_at, p.created_at
         FROM portfolio_items p
         JOIN media_assets m ON m.id = p.media_asset_id AND m.tenant_id = p.tenant_id
         WHERE p.tenant_id = %s
@@ -3082,8 +3155,9 @@ def _legacy_data_for_tenant(conn, tenant_id: str) -> dict:
                 "date": str(row["artwork_date"] or row["created_at"].date()),
                 "note": row["description"] or "",
                 "title": row["title"] or "",
-                "public": row["visibility"] == "shared",
+                "public": row["visibility"] == "shared" and row["public_consent_at"] is not None,
                 "visibility": row["visibility"],
+                "publicConsentAt": row["public_consent_at"].isoformat() if row["public_consent_at"] else None,
             }
         )
     packages = fetch_all(
@@ -3099,6 +3173,7 @@ def _legacy_data_for_tenant(conn, tenant_id: str) -> dict:
     # Legacy-undo semantics: a voided check-in disappears from the CMS log
     # view (the full ledger keeps both rows — see CSV export). The reversal
     # refund row is hidden for the same reason.
+    timezone_name = _tenant_timezone(conn, tenant_id)
     logs = fetch_all(
         conn,
         """
@@ -3106,9 +3181,9 @@ def _legacy_data_for_tenant(conn, tenant_id: str) -> dict:
                ct.transaction_type, ct.amount::float AS amount,
                ct.fee_aud_cents, ct.note,
                to_char(COALESCE(att.class_date,
-                                (ct.occurred_at AT TIME ZONE 'Australia/Melbourne')::date),
+                                (ct.occurred_at AT TIME ZONE %s)::date),
                        'DD/MM/YYYY') ||
-               to_char(ct.occurred_at AT TIME ZONE 'Australia/Melbourne',
+               to_char(ct.occurred_at AT TIME ZONE %s,
                        ', HH24:MI:SS') AS occurred_display,
                att.id AS attendance_id
         FROM credit_transactions ct
@@ -3123,7 +3198,7 @@ def _legacy_data_for_tenant(conn, tenant_id: str) -> dict:
         ORDER BY ct.occurred_at DESC
         LIMIT 500
         """,
-        (tenant_id,),
+        (timezone_name, timezone_name, tenant_id),
     )
     settings_row = fetch_one(conn, "SELECT settings FROM tenants WHERE id = %s", (tenant_id,))
     legacy_state = ((settings_row["settings"] if settings_row else None) or {}).get("legacy_cms") or {}
@@ -3548,6 +3623,9 @@ def legacy_cms_portfolio_upload():
         title = str(request.form.get("title") or "").strip()[:120]   # B4
         date_str = str(request.form.get("date") or "").strip()
         visibility = _public_visibility(request.form.get("public"))
+        public_consent_confirmed = str(request.form.get("publicConsentConfirmed") or "").strip().lower() in {"1", "true", "yes", "on"}
+        if visibility == "shared" and not public_consent_confirmed:
+            return _error("Public gallery consent must be confirmed before publishing.", 400)
         if not student_id:
             return _error("studentId is required.")
         student = fetch_one(
@@ -3585,12 +3663,20 @@ def legacy_cms_portfolio_upload():
                 """
                 INSERT INTO portfolio_items (
                     tenant_id, student_id, media_asset_id, title, description,
-                    artwork_date, visibility
+                    artwork_date, visibility, public_consent_at,
+                    public_consent_by_user_id, public_consent_note
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s,
+                        CASE WHEN %s = 'shared' THEN now() ELSE NULL END,
+                        CASE WHEN %s = 'shared' THEN %s ELSE NULL END,
+                        CASE WHEN %s = 'shared' THEN 'Confirmed in CMS before public publishing' ELSE '' END)
                 RETURNING id, created_at
                 """,
-                (tenant.tenant_id, student_id, media["id"], title, note, artwork_date_val, visibility),
+                (
+                    tenant.tenant_id, student_id, media["id"], title, note,
+                    artwork_date_val, visibility, visibility, visibility,
+                    getattr(g.actor, "user_id", None), visibility,
+                ),
             )
             item = cur.fetchone()
         _audit_request(
@@ -3658,6 +3744,9 @@ def legacy_cms_portfolio_update(student_id: str, portfolio_item_id: str):
     title_raw = payload.get("title")
     title = None if title_raw is None else str(title_raw).strip()[:120]   # B4
     visibility = _public_visibility(payload.get("public")) if "public" in payload else None
+    public_consent_confirmed = bool(payload.get("publicConsentConfirmed"))
+    if visibility == "shared" and not public_consent_confirmed:
+        return _error("Public gallery consent must be confirmed before publishing.", 400)
     date_str = str(payload.get("date") or "").strip()
     artwork_date_val = None
     if date_str:
@@ -3676,12 +3765,19 @@ def legacy_cms_portfolio_update(student_id: str, portfolio_item_id: str):
                 SET title = COALESCE(%s, title),
                     description = %s,
                     visibility = COALESCE(%s, visibility),
+                    public_consent_at = CASE WHEN %s = 'shared' THEN now() ELSE public_consent_at END,
+                    public_consent_by_user_id = CASE WHEN %s = 'shared' THEN %s ELSE public_consent_by_user_id END,
+                    public_consent_note = CASE WHEN %s = 'shared' THEN 'Confirmed in CMS before public publishing' ELSE public_consent_note END,
                     artwork_date = COALESCE(%s, artwork_date),
                     updated_at = now()
                 WHERE tenant_id = %s AND student_id = %s AND id = %s
                 RETURNING id
                 """,
-                (title, note, visibility, artwork_date_val, tenant.tenant_id, student_id, portfolio_item_id),
+                (
+                    title, note, visibility, visibility, visibility,
+                    getattr(g.actor, "user_id", None), visibility, artwork_date_val,
+                    tenant.tenant_id, student_id, portfolio_item_id,
+                ),
             )
             if not cur.fetchone():
                 return _error("Portfolio item was not found.", 404)
@@ -4638,6 +4734,7 @@ def list_attendance_sessions():
 
     with connect() as conn:
         tenant = _tenant_context(conn)
+        timezone_name = _tenant_timezone(conn, tenant.tenant_id)
         student_id = request.args.get("studentId", "").strip()
         date_value = request.args.get("date", "").strip()
         limit, offset = _parse_pagination()
@@ -4649,8 +4746,8 @@ def list_attendance_sessions():
         if date_value:
             # A1: filter on the class date (make-up check-ins belong to
             # the day the class happened, not the day it was recorded).
-            filters.append("COALESCE(a.class_date, (a.attended_at AT TIME ZONE 'Australia/Melbourne')::date) = %s::date")
-            params.append(date_value)
+            filters.append("COALESCE(a.class_date, (a.attended_at AT TIME ZONE %s)::date) = %s::date")
+            params.extend([timezone_name, date_value])
         params.extend([limit, offset])
         rows = fetch_all(
             conn,
@@ -4698,20 +4795,24 @@ def check_in_attendance():
     # today (Melbourne); accepts back-dated make-ups up to 90 days and at
     # most tomorrow (pre-logging an evening class across midnight).
     class_date = _clean_text(payload, "classDate", _clean_text(payload, "class_date"))
+    parsed_class_date = None
     if class_date:
         import datetime as _dt
         try:
-            parsed = _dt.date.fromisoformat(class_date)
+            parsed_class_date = _dt.date.fromisoformat(class_date)
         except ValueError:
             return _error("classDate must look like YYYY-MM-DD.")
-        today = _dt.datetime.now(_dt.timezone(_dt.timedelta(hours=10))).date()
-        if parsed > today + _dt.timedelta(days=1) or parsed < today - _dt.timedelta(days=90):
-            return _error("classDate must be within the past 90 days (or tomorrow at most).")
     else:
         class_date = None
 
     with connect() as conn:
         tenant = _tenant_context(conn)
+        timezone_name = _tenant_timezone(conn, tenant.tenant_id)
+        if parsed_class_date is not None:
+            import datetime as _dt
+            today = _dt.datetime.now(ZoneInfo(timezone_name)).date()
+            if parsed_class_date > today + _dt.timedelta(days=1) or parsed_class_date < today - _dt.timedelta(days=90):
+                return _error("classDate must be within the past 90 days (or tomorrow at most).")
         with conn.cursor() as cur:
             cur.execute(
                 """
@@ -4794,7 +4895,7 @@ def check_in_attendance():
                     credit_transaction_id, note, class_date
                 )
                 VALUES (%s, %s, %s, %s, %s, %s,
-                        COALESCE(%s::date, (now() AT TIME ZONE 'Australia/Melbourne')::date))
+                        COALESCE(%s::date, (now() AT TIME ZONE %s)::date))
                 RETURNING id, attended_at, class_date
                 """,
                 (
@@ -4805,6 +4906,7 @@ def check_in_attendance():
                     tx_id,
                     note,
                     class_date,
+                    timezone_name,
                 ),
             )
             session_row = cur.fetchone()
@@ -5476,6 +5578,9 @@ def create_portfolio_item():
             visibility = _validate_portfolio_visibility(_clean_text(payload, "visibility", "private"))
         except ValueError as exc:
             return _error(str(exc))
+        public_consent_confirmed = bool(payload.get("publicConsentConfirmed"))
+        if visibility == "shared" and not public_consent_confirmed:
+            return _error("Public gallery consent must be confirmed before publishing.", 400)
 
         if not student_id:
             return _error("studentId is required.")
@@ -5511,11 +5616,19 @@ def create_portfolio_item():
             """
             INSERT INTO portfolio_items (
                 tenant_id, student_id, media_asset_id, title, description,
-                artwork_date, visibility
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                artwork_date, visibility, public_consent_at,
+                public_consent_by_user_id, public_consent_note
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s,
+                      CASE WHEN %s = 'shared' THEN now() ELSE NULL END,
+                      CASE WHEN %s = 'shared' THEN %s ELSE NULL END,
+                      CASE WHEN %s = 'shared' THEN 'Confirmed before public publishing' ELSE '' END)
             RETURNING id
             """,
-            (tenant.tenant_id, student_id, media_asset_id, title, description, artwork_date_val, visibility),
+            (
+                tenant.tenant_id, student_id, media_asset_id, title, description,
+                artwork_date_val, visibility, visibility, visibility,
+                getattr(g.actor, "user_id", None), visibility,
+            ),
         )
         item_id = str(cur.fetchone()["id"])
         _audit_request(
@@ -5546,6 +5659,8 @@ def update_portfolio_item(portfolio_item_id: str):
             visibility = _validate_portfolio_visibility(_clean_text(payload, "visibility")) if "visibility" in payload else ""
         except ValueError as exc:
             return _error(str(exc))
+        if visibility == "shared" and not bool(payload.get("publicConsentConfirmed")):
+            return _error("Public gallery consent must be confirmed before publishing.", 400)
         artwork_date_str = _clean_text(payload, "artworkDate")
 
         try:
@@ -5563,12 +5678,19 @@ def update_portfolio_item(portfolio_item_id: str):
             SET title = COALESCE(NULLIF(%s, ''), title),
                 description = COALESCE(NULLIF(%s, ''), description),
                 visibility = COALESCE(NULLIF(%s, ''), visibility),
+                public_consent_at = CASE WHEN %s = 'shared' THEN now() ELSE public_consent_at END,
+                public_consent_by_user_id = CASE WHEN %s = 'shared' THEN %s ELSE public_consent_by_user_id END,
+                public_consent_note = CASE WHEN %s = 'shared' THEN 'Confirmed before public publishing' ELSE public_consent_note END,
                 artwork_date = COALESCE(%s, artwork_date),
                 updated_at = now()
             WHERE tenant_id = %s AND id = %s
             RETURNING id
             """,
-            (title, description, visibility, artwork_date_val, tenant.tenant_id, portfolio_item_id),
+            (
+                title, description, visibility, visibility, visibility,
+                getattr(g.actor, "user_id", None), visibility, artwork_date_val,
+                tenant.tenant_id, portfolio_item_id,
+            ),
         )
         if not cur.fetchone():
             return _error("Portfolio item was not found.", 404)

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PWE Studio SaaS · Super Admin</title>
   <script src="/assets/ui-common.js"></script>
+  <link rel="stylesheet" href="/assets/ui-tokens.css">
   <link rel="icon" href="/logo.png" type="image/png">
   <style>
     :root {
@@ -990,7 +991,7 @@
 </head>
 <body>
   <!-- Toast Container -->
-  <div class="toast-container" id="toastContainer"></div>
+  <div class="toast-container" id="toastContainer" role="status" aria-live="polite"></div>
 
   <!-- Header -->
   <header class="header">
@@ -1003,15 +1004,14 @@
       </div>
       <div class="header-actions">
         <span id="authStatus" class="auth-status">Not signed in</span>
-        <input id="baseUrl" aria-label="API base URL" value="/v1">
         <button id="changePasswordBtn" class="btn-secondary hidden">Change Password</button>
         <button id="logoutBtn" class="btn-secondary hidden">Logout</button>
-        <button id="refreshBtn" class="btn-primary">
+        <button id="refreshBtn" class="btn-primary requires-auth hidden">
           <span id="refreshIcon">↻</span> Refresh
         </button>
       </div>
     </div>
-    <nav class="nav-bar" aria-label="Super Admin sections">
+    <nav id="superNav" class="nav-bar hidden" aria-label="Super Admin sections">
       <div class="nav-inner">
         <a class="nav-link active" href="#overview">Overview</a>
         <a class="nav-link" href="#tenants">Tenants</a>
@@ -1028,13 +1028,13 @@
       <p>Use the local Super Admin account to manage tenants, plans, and platform settings.</p>
       <form id="loginForm">
         <div class="form-group">
-          <label>Email</label>
-          <input id="loginEmail" type="email" autocomplete="username" value="admin@studiosaas.local">
+          <label for="loginEmail">Email</label>
+          <input id="loginEmail" type="email" autocomplete="username" placeholder="admin@example.com">
         </div>
         <div class="form-group">
-          <label>Password</label>
+          <label for="loginPassword">Password</label>
           <div style="position:relative;">
-            <input id="loginPassword" type="password" autocomplete="current-password" placeholder="admin123456" style="padding-right:56px;">
+            <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Enter your password" style="padding-right:56px;">
             <button type="button" id="loginPwToggle" class="btn-secondary btn-sm" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);">Show</button>
           </div>
         </div>
@@ -1212,10 +1212,10 @@
 
   <!-- Modal for Add/Edit -->
   <div class="modal-overlay" id="modalOverlay">
-    <div class="modal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <div class="modal-header">
         <h3 id="modalTitle" class="modal-title">Add Tenant</h3>
-        <button class="modal-close" onclick="closeModal()">×</button>
+        <button class="modal-close" aria-label="Close dialog" onclick="closeModal()">×</button>
       </div>
       <div class="modal-body" id="modalBody"></div>
       <div class="modal-footer" id="modalFooter"></div>
@@ -1330,7 +1330,7 @@
 
     // API call with error handling
     async function api(path, options = {}) {
-      const base = $('baseUrl').value.replace(/\/$/, '');
+      const base = '/v1';
       try {
         const res = await fetch(base + path, {
           ...options,
@@ -1359,6 +1359,8 @@
       $('logoutBtn').classList.toggle('hidden', !signedIn);
       $('changePasswordBtn').classList.toggle('hidden', !signedIn);
       $('refreshBtn').disabled = !signedIn;
+      $('superNav').classList.toggle('hidden', !signedIn);
+      document.querySelectorAll('.requires-auth').forEach((element) => element.classList.toggle('hidden', !signedIn));
       $('authStatus').textContent = signedIn ? `Signed in: ${currentUser.email || currentUser.full_name || currentUser.id}` : 'Not signed in';
     }
 
@@ -1475,6 +1477,8 @@
       $('modalBody').innerHTML = bodyHtml;
       $('modalFooter').innerHTML = footerHtml;
       $('modalOverlay').classList.add('active');
+      const focusTarget = $('modalBody').querySelector('input, select, textarea, button') || $('modalFooter').querySelector('button');
+      if (focusTarget) focusTarget.focus();
     }
 
     function closeModal() {
@@ -1644,9 +1648,9 @@
         link.href = disabled ? '#' : tenantSurfaceHref(t, surface);
         link.target = disabled ? '' : '_blank';
         link.rel = disabled ? '' : 'noopener';
-        link.title = disabled ? 'Archived or deleted tenants cannot be opened.' : 'Checking surface...';
+        link.title = disabled ? 'Archived or deleted tenants cannot be opened.' : `Open ${label}`;
         mark.className = 'mark';
-        mark.textContent = disabled ? '-' : '·';
+        mark.textContent = disabled ? '-' : '↗';
         textNode.textContent = label;
         link.append(mark, textNode);
         grid.appendChild(link);
@@ -1656,7 +1660,8 @@
       else {
         if (!t.studio_admin_email) appendSmallBadge(parent, 'No admin login', 'pill warning');
         if (t.status === 'paused') appendSmallBadge(parent, 'Register paused', 'pill warning');
-        checkTenantSurfaceLinks(t).catch(() => {});
+        // Surface checks are intentionally on-demand in tenant details. A list
+        // refresh must not fetch four full HTML pages per tenant.
       }
     }
 
@@ -1802,25 +1807,35 @@
     async function enterSupportMode(tenantId) {
       const t = tenants.find((item) => item.id === tenantId);
       if (!t) return;
-      const reason = prompt(`Enter support mode for "${t.name}"?\n\nEvery action will be audited. Reason (required):`);
-      if (reason === null) return;
-      if (!reason.trim()) { showToast('A reason is required to enter support mode.', 'error'); return; }
+      openModal(
+        `Support ${t.name}`,
+        `<p>Every support-mode action is audited against this reason.</p><div class="form-group mt-2"><label for="m_supportReason">Reason</label><textarea id="m_supportReason" rows="4" placeholder="Describe the customer request or incident reference"></textarea></div>`,
+        `<button id="confirmSupportModeBtn" onclick="confirmSupportMode('${tenantId}')" class="btn-primary">Start Support Mode</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`,
+      );
+    }
+
+    async function confirmSupportMode(tenantId) {
+      const reason = $('m_supportReason').value.trim();
+      if (!reason) { showToast('A reason is required to enter support mode.', 'error'); return; }
+      $('confirmSupportModeBtn').disabled = true;
       try {
-        const data = await api(`/v1/admin/tenants/${tenantId}/support-session`, {
+        const data = await api(`/admin/tenants/${tenantId}/support-session`, {
           method: 'POST',
-          body: JSON.stringify({ reason: reason.trim() }),
+          body: JSON.stringify({ reason }),
         });
         showToast('Support mode started — opening Studio Admin.', 'success');
         closeModal();
         window.open(data.url, '_blank');
-      } catch (err) { /* api() already toasts */ }
+      } catch (err) {
+        $('confirmSupportModeBtn').disabled = false;
+      }
     }
 
     async function generateSetupLink(tenantId) {
       const out = $('m_setupLinkOut');
       out.value = 'Generating…';
       try {
-        const data = await api(`/v1/admin/tenants/${tenantId}/password-setup-link`, { method: 'POST', body: '{}' });
+        const data = await api(`/admin/tenants/${tenantId}/password-setup-link`, { method: 'POST', body: '{}' });
         out.value = location.origin + data.url;
         $('m_setupLinkCopy').style.display = '';
         showToast(`Link created for ${data.email} (expires in 24h)`, 'success');
@@ -2387,6 +2402,9 @@
 
     // Event listeners
     $('loginForm').addEventListener('submit', loginSuperAdmin);
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && $('modalOverlay').classList.contains('active')) closeModal();
+    });
     $('logoutBtn').addEventListener('click', logoutSuperAdmin);
     $('changePasswordBtn').addEventListener('click', openChangePasswordModal);
     $('refreshBtn').addEventListener('click', refresh);

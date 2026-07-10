@@ -119,8 +119,7 @@ def _upsert_user(cur: Any, *, email: str, full_name: str) -> str:
         INSERT INTO users (email, password_hash, full_name, status)
         VALUES (%s, %s, %s, 'active')
         ON CONFLICT (email) DO UPDATE
-        SET password_hash = EXCLUDED.password_hash,
-            full_name = EXCLUDED.full_name,
+        SET full_name = EXCLUDED.full_name,
             status = 'active',
             updated_at = now()
         RETURNING id
