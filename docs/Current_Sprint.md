@@ -140,9 +140,10 @@ These items from earlier sprint docs are confirmed done — do not re-fix:
 | P2-01 | Split `api_v1.py` (4040 lines) along target-architecture module boundaries | ❌ |
 | P2-02 | Multi-tenant PWA/sw.js (last "Let's Paint" residue) | ❌ |
 | P2-03 | Replace runtime Babel/Tailwind vendor JS with prebuilt assets | ❌ |
-| P2-04 | Super Admin platform cockpit | ❌ |
+| P2-04 | Super Admin commercial cockpit: lifecycle, MRR, trial/risk/onboarding and acquisition funnel | ✅ 2026-07-12 |
 | P2-05 | Studio Admin workflow reorganisation — Studio Admin refocused on website/brand/lead-capture settings; CMS remains daily operations | ✅ 2026-07-09 |
-| P2-06 | Shared design tokens from `docs/Design_System.md` | ❌ |
+| P2-06 | Product-surface SSOT, brand draft/publish/version flow, commercial lifecycle metrics, registration source/follow-up funnel, plan limits and explicit operational roles | ✅ code complete 2026-07-12; DB/browser acceptance pending |
+| P2-07 | Shared design tokens from `docs/Design_System.md` | ❌ |
 
 ### P3 — Platform and deployment
 

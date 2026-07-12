@@ -1,7 +1,7 @@
 # StudioSaaS Deployment Guide
 
-Version: v1.1
-Date: 2026-07-10
+Version: v1.2
+Date: 2026-07-12
 Scope: 本地部署 → Cloudflare Tunnel 公网试点（`https://studiosaas.cc.cd`）→ AWS 正式部署。
 
 部署路径分三个阶段，每个阶段都是上一阶段的超集，数据与代码不推倒重来：
@@ -39,9 +39,9 @@ PORT=8899 STUDIOSAAS_DATABASE_URL=postgresql://$(whoami)@localhost:5432/studiosa
 | 检查 | 命令 | 期望 |
 |---|---|---|
 | 健康 | `curl localhost:8899/v1/health` | `{"ok":true,...}` |
-| pytest | `cd backend && ../.venv/bin/python -m pytest -q` | 43+ passed |
+| pytest | `cd backend && ../.venv/bin/python -m pytest -q` | 65+ passed |
 | CMS 冒烟 | `../.venv/bin/python test_cms.py` | 72 通过 |
-| 租户隔离 | `../.venv/bin/python test_tenant_isolation.py` | 115+ passed |
+| 租户隔离 | `../.venv/bin/python test_tenant_isolation.py` | 需包含品牌草稿/发布/恢复、角色权限、来源漏斗与跨租户检查 |
 | 页面 | `/`、`/<slug>`、`/<slug>/cms`、`/<slug>/register`、`/<slug>/studio-admin` | 200；根 `/register` 404 |
 
 ---
@@ -117,6 +117,10 @@ curl -sS https://studiosaas.cc.cd/v1/health
 cd backend
 bash scripts/package_release.sh
 ```
+
+当前候选的逐项证据和未关闭阻塞项记录在
+[`Release_Readiness_2026-07-12.md`](Release_Readiness_2026-07-12.md)。AWS 暂不执行，
+但不得因此跳过 0012–0014 迁移、真实 PostgreSQL 隔离测试或本地浏览器链路。
 
 ---
 

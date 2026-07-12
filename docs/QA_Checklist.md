@@ -39,9 +39,15 @@
 - [ ] Archived/deleted tenants cannot access tenant-scoped Studio Admin APIs
 - [ ] Website / Brand is the default visible section
 - [ ] Operational modules are not exposed as primary Studio Admin navigation
-- [ ] Studio Admin links show all four tenant surfaces: portal, CMS, register, studio-admin
+- [ ] Studio Admin links distinguish Studio Website, Studio CMS, Quick Registration, and the Studio Admin brand workspace
 - [ ] Brand settings (logo, colors, welcome, slogan, registration profile) sync to Portal/CMS/Register surfaces
+- [ ] Save Draft leaves `/v1/public/<slug>/brand` unchanged
+- [ ] Publish creates a numbered brand version and clears the draft
+- [ ] Restore Version creates a draft and does not publish until the owner confirms
+- [ ] Studio Admin shows the current plan as read-only and cannot change tenant entitlements
+- [ ] Studio Admin HTML contains no hidden students, attendance, courses, packages, registration-review, or portfolio CRUD sections
 - [ ] Logo upload validates type/size and replaces preview reliably
+- [ ] Logo asset upload alone does not alter the public brand; only Publish makes the new logo live
 
 ### 3.1 CMS Daily Operations
 
@@ -53,6 +59,9 @@
 - [ ] Duplicate registration attempts are visible and linked to the existing student or pending registration
 - [ ] Approving a registration creates/links a student and stores the review decision
 - [ ] Rejecting/archiving a registration stores a review note and writes audit history
+- [ ] Portal and Quick Registration submissions show their source and language in the CMS queue
+- [ ] CMS can mark a lead contacted, trial booked, or waiting and store a next follow-up date
+- [ ] Conversion is blocked clearly when the plan student limit has been reached
 
 ### 4. Public Surfaces
 

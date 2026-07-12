@@ -14,7 +14,7 @@ Purpose: Single source of truth for product vision, positioning, user roles, bus
 
 **One-line Description:**
 
-> StudioSaaS helps small creative education studios manage students, clock hours, registrations, portfolios, and branded parent portals.
+> StudioSaaS helps small creative education studios run daily operations, convert registrations, publish bilingual studio websites, and give families lightweight self-service access.
 
 **Origin:** This product is a multi-tenant SaaS refactor of the existing Let's Paint CMS, which was built from real studio usage. The product logic is grounded in actual operational needs, not hypothetical assumptions.
 
@@ -69,26 +69,24 @@ For the StudioSaaS owner/operator. Manages:
 
 ### 3.2 Studio Admin (Studio Owner/Manager)
 
-For each studio's owner or manager. Manages:
-- Student profiles and data
-- Courses and course packages
-- Clock-hour balances and transactions
-- Image/portfolio uploads
-- Student registration applications
-- Brand customization (logo, colors, welcome message)
-- Staff accounts
-- Data export
+For each studio owner. Manages the public experience only:
+- Brand identity, logo, colours and contact details
+- Bilingual Studio Portal copy and section visibility
+- Registration questions and public consent copy
+- Private drafts, preview, publication versions and rollback
+- Links to the public website, Quick Registration and Studio CMS
 
-### 3.3 Student/Parent Portal (Public)
+Daily operations do not live in Studio Admin. Students, schedules, attendance, credits, payments/refunds, registration follow-up and portfolio work belong to Studio CMS.
 
-End-user surfaces for teachers, staff, parents, and students:
-- Studio public homepage
-- Registration page
-- Login (for registered users)
-- My profile
-- My clock-hour balance
-- My portfolio
-- Shared portfolio view (via token)
+### 3.3 Studio Portal and Student Area (Public)
+
+The Studio Portal is the tenant's bilingual public website and primary acquisition path:
+- Studio introduction, courses, teaching team, work gallery, FAQ and contact
+- Primary in-page registration CTA
+- Optional Student Area for balance and portfolio lookup
+- Shared portfolio view via token
+
+`/<slug>/register` is Quick Registration: an alternate focused form for campaigns, QR codes and direct links. It is not a second portal.
 
 ---
 
@@ -116,25 +114,23 @@ Core actions: Create studio, pause/resume tenant, view plans, view usage, view a
 ┌──────────────────────────────────────────────────────────┐
 │ StudioSaaS / Current Studio                              │
 ├──────────────┬───────────────────────────────────────────┤
-│ Dashboard    │ Today: check-ins, low balance, pending     │
-│ Students     │ Search | Add | Tags | Balance | Status     │
-│ Courses      │ Courses | Packages | Credit unit           │
-│ Portfolio    │ Upload | Albums | Public visibility        │
-│ Registrations│ Pending registration review                │
-│ Settings     │ Brand | Staff | Email | Data export        │
+│ Brand        │ Logo | colours | identity | contact         │
+│ Website      │ Hero | sections | bilingual copy | FAQ      │
+│ Registration │ Questions | consent | Quick Register        │
+│ Preview      │ Desktop | mobile | portal | registration     │
+│ Publish      │ Draft | publish | versions | restore         │
+│ CMS Handoff  │ Read-only snapshot | Open Studio CMS        │
 └──────────────┴───────────────────────────────────────────┘
 ```
 
-Core actions: Manage students, courses, packages, portfolio, registrations, branding, data export.
+Core actions: Save a private draft, preview the public experience, publish a version, restore a previous version, and open Studio CMS for operations.
 
-### 4.3 Student/Parent Portal
+### 4.3 Studio Portal
 
 - Studio public homepage (branded)
-- Registration page (tenant-specific)
-- Login page
-- My profile
-- My clock-hour balance
-- My portfolio
+- Primary in-page registration
+- Optional Student Area for balance and portfolio lookup
+- Quick Registration alternate route (`/<slug>/register`)
 - Shared portfolio (token-based)
 
 ---

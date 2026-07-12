@@ -30,17 +30,65 @@ ROLE_PERMISSIONS: dict[Role, set[str]] = {
         "tenant:update",
         "students:read",
         "students:write",
+        "credits:read",
+        "courses:write",
         "credits:write",
+        "attendance:read",
+        "attendance:write",
+        "portfolio:read",
         "portfolio:write",
+        "registrations:read",
         "registrations:write",
+        "analytics:read",
+        "data:export",
         "settings:write",
+        "plans:read",
+    },
+    Role.MANAGER: {
+        "tenant:read",
+        "students:read",
+        "students:write",
+        "credits:read",
+        "courses:write",
+        "credits:write",
+        "attendance:read",
+        "attendance:write",
+        "portfolio:read",
+        "portfolio:write",
+        "registrations:read",
+        "registrations:write",
+        "analytics:read",
+        "data:export",
+        "plans:read",
+    },
+    Role.TEACHER: {
+        "students:read",
+        "attendance:read",
+        "attendance:write",
+        "portfolio:read",
+        "portfolio:write",
+        "plans:read",
+    },
+    Role.FRONT_DESK: {
+        "students:read",
+        "students:write",
+        "credits:read",
+        "credits:write",
+        "attendance:read",
+        "registrations:read",
+        "registrations:write",
         "plans:read",
     },
     Role.STAFF: {
         "students:read",
         "students:write",
+        "credits:read",
         "credits:write",
+        "attendance:read",
+        "attendance:write",
+        "portfolio:read",
         "portfolio:write",
+        "registrations:read",
         "registrations:write",
         "plans:read",
     },
@@ -156,18 +204,18 @@ def _resolve_actor(user_id: str, tenant_id: str | None = None) -> ActorContext |
     with db_connect() as conn:
         if tenant_id:
             # Tenant-scoped resolution:
-            # 1) Super admins can access every tenant, even if they also have
-            #    a lower role on the target tenant. The canonical platform
-            #    membership has tenant_id IS NULL; per-tenant super_admin rows
-            #    are honoured for backward compatibility.
+            # 1) Only the canonical platform membership may cross tenant
+            #    boundaries. A legacy tenant-scoped ``super_admin`` remains
+            #    valid inside that tenant, but must never become a platform
+            #    administrator merely because its role string is privileged.
             super_admin = fetch_one(
                 conn,
                 """
                 SELECT role FROM memberships
                 WHERE user_id = %s
+                  AND tenant_id IS NULL
                   AND role = 'super_admin'
                   AND status = 'active'
-                ORDER BY CASE WHEN tenant_id IS NULL THEN 0 ELSE 1 END
                 LIMIT 1
                 """,
                 (user_id,),
@@ -225,6 +273,36 @@ def _resolve_actor(user_id: str, tenant_id: str | None = None) -> ActorContext |
             )
 
     return None
+
+
+def _has_platform_super_admin_membership(user_id: str) -> bool:
+    """Return whether ``user_id`` has an active platform administrator row.
+
+    Platform authority is represented by an active ``super_admin`` membership
+    whose ``tenant_id`` is NULL. Keeping this check explicit prevents legacy
+    tenant-scoped role rows from authorising commercial control-plane routes.
+    """
+
+    try:
+        from .db import connect as db_connect
+    except ImportError:
+        return False
+
+    with db_connect() as conn:
+        membership = fetch_one(
+            conn,
+            """
+            SELECT 1
+            FROM memberships
+            WHERE user_id = %s
+              AND tenant_id IS NULL
+              AND role = 'super_admin'
+              AND status = 'active'
+            LIMIT 1
+            """,
+            (user_id,),
+        )
+    return bool(membership)
 
 
 def _request_tenant_id() -> str | None:
@@ -357,7 +435,7 @@ def super_admin_required(fn: F) -> F:
         if not actor:
             return api_error("User has no active membership.", 403)
 
-        if actor.role is not Role.SUPER_ADMIN:
+        if actor.role is not Role.SUPER_ADMIN or not _has_platform_super_admin_membership(user_id):
             return api_error("Super-admin privileges required.", 403)
 
         g.actor = actor
@@ -390,9 +468,37 @@ def tenant_admin_required(fn: F) -> F:
         if not actor:
             return api_error("User has no active membership.", 403)
 
-        if actor.role not in {Role.SUPER_ADMIN, Role.OWNER}:
+        if actor.role not in {Role.SUPER_ADMIN, Role.OWNER, Role.MANAGER}:
             return api_error("Tenant owner/admin privileges required.", 403)
 
+        g.actor = actor
+        return fn(*args, **kwargs)  # type: ignore[return-value]
+
+    return wrapper  # type: ignore[return-value]
+
+
+def tenant_owner_required(fn: F) -> F:
+    """Require the tenant owner or platform Super Admin.
+
+    Brand, public-copy and publication routes use this stricter boundary so
+    operational managers cannot alter the tenant's public identity.
+    """
+
+    @wraps(fn)
+    def wrapper(*args: Any, **kwargs: Any) -> tuple:
+        from flask import session as flask_session
+
+        user_id = flask_session.get("user_id")
+        if not user_id:
+            return api_error("Authentication required. Please log in.", 401)
+        tenant_id = _request_tenant_id()
+        if tenant_id is None and _tenant_context_required():
+            return api_error("Tenant is not active or available.", 403)
+        actor = _resolve_actor(user_id, tenant_id)
+        if not actor:
+            return api_error("User has no active membership.", 403)
+        if actor.role not in {Role.SUPER_ADMIN, Role.OWNER}:
+            return api_error("Tenant owner privileges required.", 403)
         g.actor = actor
         return fn(*args, **kwargs)  # type: ignore[return-value]
 

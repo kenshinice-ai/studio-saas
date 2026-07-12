@@ -199,8 +199,11 @@ def refresh_usage(conn, tenant_id: str) -> None:
         conn,
         """
         SELECT
-            (SELECT count(*) FROM students WHERE tenant_id = %s) AS student_count,
-            (SELECT count(*) FROM memberships WHERE tenant_id = %s) AS user_count,
+            (SELECT count(*) FROM students WHERE tenant_id = %s AND status <> 'archived') AS student_count,
+            (
+                SELECT count(*) FROM memberships
+                WHERE tenant_id = %s AND status = 'active' AND role <> 'parent'
+            ) AS user_count,
             (SELECT COALESCE(ceil(sum(byte_size) / 1048576.0), 0) FROM media_assets WHERE tenant_id = %s) AS storage_used_mb
         """,
         (tenant_id, tenant_id, tenant_id),

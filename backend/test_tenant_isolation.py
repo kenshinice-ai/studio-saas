@@ -162,10 +162,117 @@ def main() -> int:
     owner_a = client_for(fixtures["owner_a_email"])
     owner_b = client_for(fixtures["owner_b_email"])
     super_admin = client_for(fixtures["super_email"])
+    tenant_admin = client_for(fixtures["tenant_admin_email"])
+    tenant_admin_usage = tenant_admin.get("/v1/admin/usage")
+    tenant_admin_a = tenant_admin.get(f"/s/{TENANT_A}/v1/students")
+    tenant_admin_b = tenant_admin.get(f"/s/{TENANT_B}/v1/students")
+    check(
+        "Tenant-scoped legacy super_admin cannot access the platform control plane",
+        tenant_admin_usage.status_code == 403,
+        f"got {tenant_admin_usage.status_code}",
+    )
+    check(
+        "Tenant-scoped legacy super_admin retains access to its own tenant",
+        tenant_admin_a.status_code == 200,
+        f"got {tenant_admin_a.status_code}",
+    )
+    check(
+        "Tenant-scoped legacy super_admin cannot cross into another tenant",
+        tenant_admin_b.status_code == 403,
+        f"got {tenant_admin_b.status_code}",
+    )
+    usage_response = super_admin.get("/v1/admin/usage")
+    check(
+        "Platform super_admin retains commercial control-plane access",
+        usage_response.status_code == 200,
+        f"got {usage_response.status_code}",
+    )
+    usage_body = (usage_response.get_json() or {}).get("usage") or {}
+    with connect() as conn:
+        expected_commercial = fetch_one(
+            conn,
+            """
+            SELECT
+                count(*) FILTER (WHERE s.status = 'active' AND t.status NOT IN ('archived', 'deleted')) AS paid,
+                COALESCE(sum(p.monthly_price_aud) FILTER (
+                    WHERE s.status = 'active' AND t.status NOT IN ('archived', 'deleted')
+                ), 0) AS mrr
+            FROM tenants t
+            LEFT JOIN subscriptions s ON s.tenant_id = t.id
+            LEFT JOIN plans p ON p.code = s.plan_code
+            WHERE COALESCE(t.settings->>'test_fixture', 'false') <> 'true'
+            """,
+            (),
+        )
+    check("Super Admin commercial usage endpoint succeeds", usage_response.status_code == 200)
+    check(
+        "Commercial metrics exclude explicit test fixtures",
+        int(usage_body.get("paid_tenants") or 0) == int(expected_commercial["paid"] or 0)
+        and int(usage_body.get("mrr_aud") or 0) == int(expected_commercial["mrr"] or 0),
+    )
     me_response = owner_a.get("/v1/auth/me")
     me_body = me_response.get_json() or {}
     check("Authenticated /v1/auth/me succeeds", me_response.status_code == 200, f"got {me_response.status_code}")
     check("Authenticated /v1/auth/me returns current user email", me_body.get("email") == fixtures["owner_a_email"])
+
+    # Brand publication is draft-first; tenant owners cannot change their plan.
+    brand_payload = {
+        "name": "Isolation Alpha Studio",
+        "planCode": "growth",
+        "primaryColor": "#224466",
+        "secondaryColor": "#663322",
+        "contactEmail": "hello@isolation-alpha.test",
+        "slogan": "Draft-first public experience",
+        "copyPack": {"portalLabel": "Studio Website", "registerIntro": "Tell us about the learner."},
+        "localizedCopy": {
+            "heroTitle": {"zh": "自信学习", "en": "Learn with confidence"},
+            "heroSubtitle": {"zh": "中英文公开体验", "en": "A bilingual public experience"},
+            "primaryCta": {"zh": "预约体验", "en": "Book a Trial"},
+            "secondaryCta": {"zh": "查看课程", "en": "Explore Courses"},
+            "registrationTitle": {"zh": "快速报名", "en": "Quick Registration"},
+            "registrationIntro": {"zh": "告诉我们学习目标", "en": "Tell us about the learner."},
+        },
+        "registrationProfile": {
+            "title": "Quick Registration",
+            "fields": [{"key": "goals", "label": "Learning goals", "type": "textarea", "required": False}],
+        },
+        "heroProfile": {"title": "Learn with confidence", "subtitle": "A published test", "primaryCtaLabel": "Book a Trial"},
+        "websiteProfile": {"showPrincipal": False, "showCourses": True, "showGallery": True, "showFaq": True, "showContact": True, "showStudentArea": True},
+        "principalProfile": {"show": False},
+        "faqItems": [{"question": "Can we try?", "answer": "Yes."}],
+    }
+    draft_response = owner_a.put(f"/s/{TENANT_A}/v1/tenant/brand-draft", json=brand_payload)
+    check("Studio owner can save an unpublished brand draft", draft_response.status_code == 200, f"got {draft_response.status_code}")
+    public_brand_client = server.app.test_client()
+    public_before_publish = public_brand_client.get(f"/v1/public/{TENANT_A}/brand").get_json()["brand"]
+    check("Saving a brand draft does not change public pages", public_before_publish.get("slogan") != brand_payload["slogan"])
+    workspace_before_publish = owner_a.get(f"/s/{TENANT_A}/v1/tenant/brand-workspace").get_json()
+    check("Brand workspace returns the saved draft", workspace_before_publish.get("draft", {}).get("payload", {}).get("slogan") == brand_payload["slogan"])
+    with connect() as conn:
+        plan_before_publish = fetch_one(conn, "SELECT plan_code FROM tenants WHERE id = %s", (fixtures["tenant_a"],))["plan_code"]
+    publish_response = owner_a.patch(f"/s/{TENANT_A}/v1/tenant", json=brand_payload)
+    publish_body = publish_response.get_json() or {}
+    check("Studio owner can publish a versioned brand", publish_response.status_code == 200 and publish_body.get("publishedVersion") == 1, f"got {publish_response.status_code}: {publish_body}")
+    public_after_publish = public_brand_client.get(f"/v1/public/{TENANT_A}/brand").get_json()["brand"]
+    check("Published brand reaches the public API", public_after_publish.get("slogan") == brand_payload["slogan"])
+    check("Published brand exposes explicit Chinese and English copy", public_after_publish.get("localizedCopy", {}).get("hero_title", {}).get("en") == "Learn with confidence")
+    with connect() as conn:
+        plan_after_publish = fetch_one(conn, "SELECT plan_code FROM tenants WHERE id = %s", (fixtures["tenant_a"],))["plan_code"]
+    check("Studio owner cannot change the commercial plan", plan_after_publish == plan_before_publish)
+    workspace_after_publish = owner_a.get(f"/s/{TENANT_A}/v1/tenant/brand-workspace").get_json()
+    versions = workspace_after_publish.get("versions") or []
+    check("Brand publication creates version history and clears draft", len(versions) == 1 and not workspace_after_publish.get("draft"))
+    restore_response = (
+        owner_a.post(f"/s/{TENANT_A}/v1/tenant/brand-versions/{versions[0]['id']}/restore", json={})
+        if versions
+        else None
+    )
+    check(
+        "Published brand version can be restored to draft",
+        bool(restore_response)
+        and restore_response.status_code == 200
+        and (restore_response.get_json() or {}).get("draft", {}).get("slogan") == brand_payload["slogan"],
+    )
 
     with connect() as conn:
         owner_a_hash = fetch_one(
@@ -209,6 +316,83 @@ def main() -> int:
             )
         conn.commit()
 
+    # Operational role bundles are enforced in both APIs and the aggregate CMS payload.
+    existing_account_attempt = owner_a.post(
+        f"/s/{TENANT_A}/v1/team",
+        json={
+            "fullName": "Wrong Tenant Owner",
+            "email": fixtures["owner_b_email"],
+            "role": "teacher",
+            "temporaryPassword": "MustNotReplace123",
+        },
+    )
+    with connect() as conn:
+        owner_b_hash_after_attempt = fetch_one(
+            conn,
+            "SELECT password_hash FROM users WHERE email = %s",
+            (fixtures["owner_b_email"],),
+        )["password_hash"]
+    check("Tenant owner cannot take over an existing cross-tenant account", existing_account_attempt.status_code == 409)
+    check("Cross-tenant team attempt does not replace the existing password", owner_b_hash_after_attempt == owner_b_original_hash)
+
+    teacher_email = "teacher@isolation-alpha.test"
+    teacher_password = "TeacherPass123"
+    front_desk_email = "frontdesk@isolation-alpha.test"
+    front_desk_password = "FrontDeskPass123"
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                DELETE FROM users
+                WHERE email = ANY(%s)
+                  AND NOT EXISTS (SELECT 1 FROM memberships WHERE memberships.user_id = users.id)
+                """,
+                ([teacher_email, front_desk_email],),
+            )
+        conn.commit()
+    teacher_create = owner_a.post(
+        f"/s/{TENANT_A}/v1/team",
+        json={
+            "fullName": "Isolation Teacher",
+            "email": teacher_email,
+            "role": "teacher",
+            "temporaryPassword": teacher_password,
+        },
+    )
+    check("Owner can create a teacher within the plan limit", teacher_create.status_code == 201, f"got {teacher_create.status_code}")
+    teacher = server.app.test_client()
+    teacher_login = teacher.post("/v1/auth/login", json={"email": teacher_email, "password": teacher_password})
+    check("Teacher can log in to the tenant CMS", teacher_login.status_code == 200)
+    teacher_cms = teacher.get(f"/s/{TENANT_A}/v1/legacy-cms/data")
+    teacher_data = teacher_cms.get_json() or {}
+    check("Teacher can read the projected CMS payload", teacher_cms.status_code == 200)
+    check("Teacher CMS payload excludes registrations and packages", teacher_data.get("pending") == [] and teacher_data.get("packages") == [])
+    check("Teacher cannot read registration API data", teacher.get(f"/s/{TENANT_A}/v1/registrations").status_code == 403)
+    check("Teacher cannot publish the tenant brand", teacher.patch(f"/s/{TENANT_A}/v1/tenant", json=brand_payload).status_code == 403)
+    check("Teacher cannot create student records", teacher.post(f"/s/{TENANT_A}/v1/students", json={}).status_code == 403)
+    check("Teacher cannot cross into another tenant", teacher.get(f"/s/{TENANT_B}/v1/students").status_code == 403)
+
+    front_desk_create = owner_a.post(
+        f"/s/{TENANT_A}/v1/team",
+        json={
+            "fullName": "Isolation Front Desk",
+            "email": front_desk_email,
+            "role": "front_desk",
+            "temporaryPassword": front_desk_password,
+        },
+    )
+    check("Owner can create a front-desk user within the plan limit", front_desk_create.status_code == 201, f"got {front_desk_create.status_code}")
+    front_desk = server.app.test_client()
+    front_desk_login = front_desk.post("/v1/auth/login", json={"email": front_desk_email, "password": front_desk_password})
+    check("Front Desk can log in to the tenant CMS", front_desk_login.status_code == 200)
+    front_desk_data = (front_desk.get(f"/s/{TENANT_A}/v1/legacy-cms/data").get_json() or {})
+    check(
+        "Front Desk aggregate payload excludes private portfolio records",
+        all(student.get("portfolio") == [] for student in front_desk_data.get("students", [])),
+    )
+    check("Front Desk can read registration API data", front_desk.get(f"/s/{TENANT_A}/v1/registrations").status_code == 200)
+    check("Front Desk cannot read portfolio API data", front_desk.get(f"/s/{TENANT_A}/v1/portfolio").status_code == 403)
+
     # 1. Tenant A students never appear in Tenant B.
     response = owner_a.get(f"/s/{TENANT_A}/v1/students")
     students_a = response.get_json()["students"]
@@ -226,9 +410,14 @@ def main() -> int:
     check("Tenant B registrations exclude Alpha", "Alpha" not in names(regs_b))
 
     public_client = server.app.test_client()
+    missing_consent = public_client.post(
+        f"/v1/public/{TENANT_A}/registrations",
+        json={"firstName": "No", "lastName": "Consent", "mobile": "0400999999"},
+    )
+    check("Public registration rejects missing privacy consent", missing_consent.status_code == 400)
     duplicate_student = public_client.post(
         f"/v1/public/{TENANT_A}/registrations",
-        json={"firstName": "Alpha", "lastName": "Student", "mobile": "0400 000 001"},
+        json={"firstName": "Alpha", "lastName": "Student", "mobile": "0400 000 001", "privacyConsent": True},
     )
     duplicate_student_body = duplicate_student.get_json() or {}
     check(
@@ -243,7 +432,7 @@ def main() -> int:
 
     duplicate_pending = public_client.post(
         f"/v1/public/{TENANT_A}/registrations",
-        json={"firstName": "Alpha", "lastName": "Applicant", "mobile": "0411 111 111"},
+        json={"firstName": "Alpha", "lastName": "Applicant", "mobile": "0411 111 111", "privacyConsent": True},
     )
     duplicate_pending_body = duplicate_pending.get_json() or {}
     check(
@@ -258,11 +447,35 @@ def main() -> int:
 
     new_registration = public_client.post(
         f"/v1/public/{TENANT_A}/registrations",
-        json={"firstName": "Gamma", "lastName": "Applicant", "mobile": "0433333333"},
+        json={
+            "firstName": "Gamma",
+            "lastName": "Applicant",
+            "mobile": "0433333333",
+            "source": "portal",
+            "sourcePath": f"/{TENANT_A}",
+            "language": "zh",
+            "utm_source": "isolation-test",
+            "privacyConsent": True,
+            "privacyNoticeVersion": "2026-07-12",
+        },
     )
     new_registration_body = new_registration.get_json() or {}
     gamma_registration_id = new_registration_body.get("registration_id")
     check("Public registration creates a pending request", new_registration.status_code == 200 and bool(gamma_registration_id))
+    contacted_response = owner_a.patch(
+        f"/s/{TENANT_A}/v1/registrations/{gamma_registration_id}",
+        json={"status": "contacted", "nextFollowUpAt": "2026-08-01T09:00:00"},
+    )
+    with connect() as conn:
+        funnel_row = fetch_one(
+            conn,
+            "SELECT status, source, source_language, campaign, first_contacted_at, next_follow_up_at, privacy_consent_at, privacy_notice_version FROM registrations WHERE id = %s",
+            (gamma_registration_id,),
+        )
+    check("CMS can move a registration into contacted follow-up", contacted_response.status_code == 200 and funnel_row["status"] == "contacted")
+    check("Registration keeps portal source, language, and campaign", funnel_row["source"] == "portal" and funnel_row["source_language"] == "zh" and funnel_row["campaign"].get("utm_source") == "isolation-test")
+    check("Registration follow-up timestamps are recorded", bool(funnel_row["first_contacted_at"]) and bool(funnel_row["next_follow_up_at"]))
+    check("Registration stores privacy consent evidence", bool(funnel_row["privacy_consent_at"]) and funnel_row["privacy_notice_version"] == "2026-07-12")
     approve_response = owner_a.patch(
         f"/s/{TENANT_A}/v1/registrations/{gamma_registration_id}",
         json={"status": "approved", "convertToStudent": True, "reviewNote": "Approved for trial class"},
@@ -288,7 +501,7 @@ def main() -> int:
 
     rejected_registration = public_client.post(
         f"/v1/public/{TENANT_A}/registrations",
-        json={"firstName": "Delta", "lastName": "Applicant", "mobile": "0444444444"},
+        json={"firstName": "Delta", "lastName": "Applicant", "mobile": "0444444444", "privacyConsent": True},
     )
     rejected_registration_id = (rejected_registration.get_json() or {}).get("registration_id")
     reject_response = owner_a.patch(
@@ -625,6 +838,37 @@ def main() -> int:
         f"got {getattr(other_tenant_gallery_media, 'status_code', 'missing-url')}",
     )
 
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO plans (code, name, monthly_price_aud, student_limit, user_limit, storage_limit_mb, features)
+                VALUES ('isolation-no-portfolio', 'Isolation No Portfolio', 1, 500, 8, 1024,
+                        '{"public_registration": true, "data_export": true}'::jsonb)
+                ON CONFLICT (code) DO UPDATE SET features = EXCLUDED.features
+                """
+            )
+            cur.execute("UPDATE tenants SET plan_code = 'isolation-no-portfolio' WHERE id = %s", (fixtures["tenant_a"],))
+            cur.execute("UPDATE subscriptions SET plan_code = 'isolation-no-portfolio' WHERE tenant_id = %s", (fixtures["tenant_a"],))
+        conn.commit()
+    disabled_gallery = public_client.get(f"/v1/public/{TENANT_A}/gallery").get_json() or {}
+    check("Portfolio-disabled plan hides the public gallery", disabled_gallery.get("items") == [] and disabled_gallery.get("featureEnabled") is False)
+    disabled_upload = owner_a.post(
+        f"/s/{TENANT_A}/v1/legacy-cms/portfolio/upload",
+        data={"studentId": fixtures["student_a"], "file": (BytesIO(PNG), "blocked.png", "image/png")},
+        content_type="multipart/form-data",
+    )
+    check("Portfolio-disabled plan blocks new portfolio uploads", disabled_upload.status_code == 403)
+    check(
+        "Portfolio-disabled plan blocks new share links",
+        owner_a.post(f"/s/{TENANT_A}/v1/students/{fixtures['student_a']}/share-links", json={"days": 30}).status_code == 403,
+    )
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("UPDATE tenants SET plan_code = 'studio' WHERE id = %s", (fixtures["tenant_a"],))
+            cur.execute("UPDATE subscriptions SET plan_code = 'studio' WHERE tenant_id = %s", (fixtures["tenant_a"],))
+        conn.commit()
+
     public_media = server.app.test_client().post(
         f"/v1/public/{TENANT_A}/registration-media",
         data={"file": (BytesIO(PNG), "registration.png", "image/png")},
@@ -637,7 +881,14 @@ def main() -> int:
     check("Public media cannot be read under another tenant", public_cross_read.status_code in (401, 404), f"got {public_cross_read.status_code}")
 
     # Logo upload positive and negative cases.
-    check("Valid logo upload succeeds", logo_upload(owner_a, "logo.png", PNG).status_code == 200)
+    brand_before_logo_upload = public_client.get(f"/v1/public/{TENANT_A}/brand").get_json()["brand"]
+    valid_logo_upload = logo_upload(owner_a, "logo.png", PNG)
+    brand_after_logo_upload = public_client.get(f"/v1/public/{TENANT_A}/brand").get_json()["brand"]
+    check("Valid logo upload succeeds", valid_logo_upload.status_code == 200)
+    check(
+        "Logo asset upload does not publish before explicit brand publish",
+        brand_after_logo_upload.get("logoUrl") == brand_before_logo_upload.get("logoUrl"),
+    )
     check("Logo upload rejects wrong extension", logo_upload(owner_a, "logo.txt", PNG).status_code == 400)
     check("Logo upload rejects wrong MIME", logo_upload(owner_a, "logo.png", PNG, "text/plain").status_code == 400)
     check("Logo upload rejects fake image content", logo_upload(owner_a, "logo.png", b"not an image").status_code == 400)
@@ -688,7 +939,7 @@ def main() -> int:
     owner_a.post(f"/s/{TENANT_A}/v1/students/{fixtures['student_a']}/credit-transactions", json={"transactionType": "adjustment", "amount": 1})
     owner_a.post(f"/s/{TENANT_A}/v1/students/{fixtures['student_a']}/archive")
     server.app.test_client().post("/v1/auth/login", json={"email": fixtures["owner_a_email"], "password": "wrong"})
-    check("Audit exists for logo upload", audit_exists("tenant.logo_uploaded", "tenant"))
+    check("Audit exists for logo asset upload", audit_exists("brand.logo_asset_uploaded", "media_asset"))
     check("Audit exists for portfolio upload", audit_exists("portfolio.uploaded", "portfolio_item"))
     check("Audit exists for credit adjustment", audit_exists("credit.adjusted", "credit_transaction"))
     check("Audit exists for attendance check-in", audit_exists("attendance.checked_in", "attendance_session"))

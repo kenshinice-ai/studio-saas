@@ -28,11 +28,13 @@ from .auth import (
     permission_required,
     super_admin_required,
     tenant_admin_required,
+    tenant_owner_required,
     verify_password as _auth_verify_password,
 )
 from .config import load_config
 from .db import DatabaseUnavailableError, connect, fetch_all, fetch_one
 from .errors import api_error
+from .models import Role
 from .services.media import (
     MediaQuotaExceededError,
     MediaUploadError,
@@ -203,7 +205,17 @@ def handle_tenant_error(exc: TenantResolutionError):
     return api_error(str(exc), 400, error="tenant_resolution_failed")
 
 
-TENANT_STATUSES = {"trial", "active", "past_due", "paused", "cancelled", "archived", "deleted"}
+TENANT_STATUSES = {
+    "lead",
+    "trial",
+    "onboarding",
+    "active",
+    "past_due",
+    "paused",
+    "cancelled",
+    "archived",
+    "deleted",
+}
 SUBSCRIPTION_STATUSES = {"trialing", "active", "past_due", "paused", "cancelled", "archived"}
 
 
@@ -487,6 +499,32 @@ def _normalize_copy_pack(value, category: str) -> dict:
         incoming = incoming or default[key]
         default[key] = incoming[:180] or default[key]
     return default
+
+
+def _normalize_localized_copy(value) -> dict:
+    """Validate the explicit Chinese/English public-copy bundle."""
+
+    data = _coerce_json_object(value, field_name="localized_copy")
+    limits = {
+        "hero_title": 120,
+        "hero_subtitle": 240,
+        "primary_cta": 80,
+        "secondary_cta": 80,
+        "registration_title": 120,
+        "registration_intro": 300,
+    }
+    normalized: dict[str, dict[str, str]] = {}
+    for key, limit in limits.items():
+        pair = data.get(key) or data.get("".join([key.split("_")[0], *(part.capitalize() for part in key.split("_")[1:])])) or {}
+        if isinstance(pair, str):
+            pair = {"zh": pair, "en": pair}
+        if not isinstance(pair, dict):
+            raise ValueError(f"localized_copy.{key} must contain zh/en text.")
+        normalized[key] = {
+            "zh": str(pair.get("zh") or "").strip()[:limit],
+            "en": str(pair.get("en") or "").strip()[:limit],
+        }
+    return normalized
 
 
 def _coerce_json_object(value, *, field_name: str) -> dict:
@@ -794,6 +832,7 @@ def _tenant_write_payload(payload: dict, *, require_slug: bool) -> dict:
         category,
     )
     copy_pack = _normalize_copy_pack(payload.get("copyPack", payload.get("copy_pack")), category)
+    localized_copy = _normalize_localized_copy(payload.get("localizedCopy", payload.get("localized_copy")))
     hero_profile = _normalize_hero_profile(
         payload.get("heroProfile", payload.get("hero_profile")),
         category,
@@ -816,6 +855,7 @@ def _tenant_write_payload(payload: dict, *, require_slug: bool) -> dict:
         "slogan": slogan,
         "registration_profile": registration_profile,
         "copy_pack": copy_pack,
+        "localized_copy": localized_copy,
         "hero_profile": hero_profile,
         "website_profile": website_profile,
         "principal_profile": principal_profile,
@@ -1211,8 +1251,11 @@ def _refresh_tenant_usage(conn, tenant_id: str) -> None:
         conn,
         """
         SELECT
-            (SELECT count(*) FROM students WHERE tenant_id = %s) AS student_count,
-            (SELECT count(*) FROM memberships WHERE tenant_id = %s) AS user_count,
+            (SELECT count(*) FROM students WHERE tenant_id = %s AND status <> 'archived') AS student_count,
+            (
+                SELECT count(*) FROM memberships
+                WHERE tenant_id = %s AND status = 'active' AND role <> 'parent'
+            ) AS user_count,
             (SELECT COALESCE(ceil(sum(byte_size) / 1048576.0), 0) FROM media_assets WHERE tenant_id = %s) AS storage_used_mb
         """,
         (tenant_id, tenant_id, tenant_id),
@@ -1235,6 +1278,46 @@ def _refresh_tenant_usage(conn, tenant_id: str) -> None:
                 row["storage_used_mb"] or 0,
             ),
         )
+
+
+def _student_capacity(conn, tenant_id: str) -> tuple[int, int]:
+    """Return current non-archived students and the tenant plan limit."""
+
+    with conn.cursor() as cur:
+        # Serialize student creation per tenant so concurrent requests cannot
+        # both pass the same plan-capacity check.
+        cur.execute("SELECT id FROM tenants WHERE id = %s FOR UPDATE", (tenant_id,))
+    row = fetch_one(
+        conn,
+        """
+        SELECT
+            (SELECT count(*) FROM students WHERE tenant_id = t.id AND status <> 'archived') AS current_students,
+            p.student_limit
+        FROM tenants t
+        JOIN plans p ON p.code = t.plan_code
+        WHERE t.id = %s
+        """,
+        (tenant_id,),
+    )
+    if not row:
+        raise ValueError("Tenant plan was not found.")
+    return int(row["current_students"] or 0), int(row["student_limit"] or 0)
+
+
+def _plan_feature_enabled(conn, tenant_id: str, feature: str) -> bool:
+    """Return whether the tenant's current plan enables a named feature."""
+
+    row = fetch_one(
+        conn,
+        """
+        SELECT p.features
+        FROM tenants t
+        JOIN plans p ON p.code = t.plan_code
+        WHERE t.id = %s
+        """,
+        (tenant_id,),
+    )
+    return bool(row and (row.get("features") or {}).get(feature, False))
 
 
 def _media_token(media_asset_id: str) -> str:
@@ -1454,6 +1537,17 @@ def _ensure_registration_status_constraint(conn) -> None:
         cur.execute("ALTER TABLE registrations ADD COLUMN IF NOT EXISTS updated_at timestamptz")
         cur.execute("ALTER TABLE registrations ADD COLUMN IF NOT EXISTS student_id uuid REFERENCES students(id) ON DELETE SET NULL")
         cur.execute("ALTER TABLE registrations ADD COLUMN IF NOT EXISTS review_note text NOT NULL DEFAULT ''")
+        cur.execute("ALTER TABLE registrations ADD COLUMN IF NOT EXISTS source text NOT NULL DEFAULT 'standalone_register'")
+        cur.execute("ALTER TABLE registrations ADD COLUMN IF NOT EXISTS source_path text NOT NULL DEFAULT ''")
+        cur.execute("ALTER TABLE registrations ADD COLUMN IF NOT EXISTS source_language text NOT NULL DEFAULT ''")
+        cur.execute("ALTER TABLE registrations ADD COLUMN IF NOT EXISTS campaign jsonb NOT NULL DEFAULT '{}'::jsonb")
+        cur.execute("ALTER TABLE registrations ADD COLUMN IF NOT EXISTS assigned_user_id uuid REFERENCES users(id) ON DELETE SET NULL")
+        cur.execute("ALTER TABLE registrations ADD COLUMN IF NOT EXISTS first_contacted_at timestamptz")
+        cur.execute("ALTER TABLE registrations ADD COLUMN IF NOT EXISTS next_follow_up_at timestamptz")
+        cur.execute("ALTER TABLE registrations ADD COLUMN IF NOT EXISTS converted_at timestamptz")
+        cur.execute("ALTER TABLE registrations ADD COLUMN IF NOT EXISTS loss_reason text NOT NULL DEFAULT ''")
+        cur.execute("ALTER TABLE registrations ADD COLUMN IF NOT EXISTS privacy_consent_at timestamptz")
+        cur.execute("ALTER TABLE registrations ADD COLUMN IF NOT EXISTS privacy_notice_version text NOT NULL DEFAULT ''")
         cur.execute(
             """
             ALTER TABLE registrations
@@ -1465,7 +1559,10 @@ def _ensure_registration_status_constraint(conn) -> None:
             """
             ALTER TABLE registrations
             ADD CONSTRAINT registrations_status_check
-            CHECK (status IN ('pending', 'approved', 'rejected', 'duplicate', 'contacted', 'archived'))
+            CHECK (status IN (
+                'pending', 'contacted', 'trial_booked', 'waiting', 'approved',
+                'converted', 'rejected', 'duplicate', 'lost', 'archived'
+            ))
             """
         )
         cur.execute(
@@ -1486,6 +1583,12 @@ def _ensure_registration_status_constraint(conn) -> None:
             CREATE INDEX IF NOT EXISTS idx_registrations_tenant_duplicate
             ON registrations (tenant_id, duplicate_of_registration_id)
             WHERE duplicate_of_registration_id IS NOT NULL
+            """
+        )
+        cur.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_registrations_tenant_privacy_consent
+            ON registrations (tenant_id, privacy_consent_at DESC)
             """
         )
 
@@ -1579,6 +1682,7 @@ def _tenant_response(conn):
                t.settings->>'slogan' AS slogan,
                t.settings->'registration_profile' AS registration_profile,
                t.settings->'copy_pack' AS copy_pack,
+               t.settings->'localized_copy' AS localized_copy,
                t.settings->'hero_profile' AS hero_profile,
                t.settings->'website_profile' AS website_profile,
                t.settings->'principal_profile' AS principal_profile,
@@ -1613,8 +1717,299 @@ def get_tenant():
     return jsonify({"tenant": row, "settings": row})
 
 
-@api_v1.route("/tenant", methods=["PATCH"])
+@api_v1.route("/team", methods=["GET"])
 @tenant_admin_required
+def list_tenant_team():
+    """List tenant operational users without exposing password data."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        rows = fetch_all(
+            conn,
+            """
+            SELECT m.id, m.role, m.status, m.created_at,
+                   u.id AS user_id, u.email, u.full_name, u.last_login_at
+            FROM memberships m
+            JOIN users u ON u.id = m.user_id
+            WHERE m.tenant_id = %s
+              AND m.role <> 'parent'
+            ORDER BY CASE m.role
+                WHEN 'owner' THEN 0 WHEN 'manager' THEN 1
+                WHEN 'front_desk' THEN 2 WHEN 'teacher' THEN 3 ELSE 4 END,
+                lower(u.full_name)
+            """,
+            (tenant.tenant_id,),
+        )
+    return jsonify({"team": rows})
+
+
+@api_v1.route("/team", methods=["POST"])
+@tenant_owner_required
+def create_tenant_team_member():
+    """Create or activate a tenant operational account within the plan limit."""
+
+    payload = _json_payload()
+    email = _clean_text(payload, "email").lower()
+    full_name = _clean_text(payload, "fullName", _clean_text(payload, "full_name"))
+    role = _clean_text(payload, "role").lower()
+    password = _clean_text(payload, "temporaryPassword", _clean_text(payload, "password"))
+    allowed_roles = {"manager", "teacher", "front_desk", "staff"}
+    if role not in allowed_roles:
+        return _error(f"role must be one of: {', '.join(sorted(allowed_roles))}.")
+    if not full_name:
+        return _error("fullName is required.")
+    try:
+        _validate_optional_email("email", email)
+    except ValueError as exc:
+        return _error(str(exc))
+    if not email:
+        return _error("email is required.")
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        with conn.cursor() as cur:
+            cur.execute("SELECT id, plan_code FROM tenants WHERE id = %s FOR UPDATE", (tenant.tenant_id,))
+            plan_row = fetch_one(
+                conn,
+                "SELECT p.user_limit FROM tenants t JOIN plans p ON p.code = t.plan_code WHERE t.id = %s",
+                (tenant.tenant_id,),
+            )
+            active_users = fetch_one(
+                conn,
+                "SELECT count(*) AS n FROM memberships WHERE tenant_id = %s AND status = 'active' AND role <> 'parent'",
+                (tenant.tenant_id,),
+            )
+            existing_user = fetch_one(conn, "SELECT id, status FROM users WHERE lower(email) = %s", (email,))
+            existing_membership = None
+            if existing_user:
+                existing_membership = fetch_one(
+                    conn,
+                    "SELECT id, status FROM memberships WHERE tenant_id = %s AND user_id = %s",
+                    (tenant.tenant_id, existing_user["id"]),
+                )
+                if existing_membership:
+                    return _error("This email is already on the tenant team. Update the existing member instead.", 409)
+                return _error(
+                    "This email already belongs to another StudioSaaS account. Cross-tenant access cannot be added from tenant team management.",
+                    409,
+                )
+            if int(active_users["n"] or 0) >= int(plan_row["user_limit"]):
+                return _error(
+                    f"User limit reached ({plan_row['user_limit']}). Upgrade the plan before adding another team member.",
+                    403,
+                )
+            if len(password) < 8:
+                return _error("temporaryPassword must be at least 8 characters for a new user.")
+            cur.execute(
+                """
+                INSERT INTO users (email, password_hash, full_name, status)
+                VALUES (%s, %s, %s, 'active') RETURNING id
+                """,
+                (email, _hash_password(password), full_name),
+            )
+            user_id = cur.fetchone()["id"]
+            cur.execute(
+                """
+                INSERT INTO memberships (tenant_id, user_id, role, status)
+                VALUES (%s, %s, %s, 'active')
+                ON CONFLICT (tenant_id, user_id) DO UPDATE
+                SET role = EXCLUDED.role, status = 'active'
+                RETURNING id
+                """,
+                (tenant.tenant_id, user_id, role),
+            )
+            membership_id = cur.fetchone()["id"]
+        _refresh_tenant_usage(conn, tenant.tenant_id)
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="team.member_upserted",
+            resource_type="membership",
+            resource_id=membership_id,
+            metadata={"role": role, "email": email},
+        )
+        conn.commit()
+    return jsonify({"ok": True, "membershipId": membership_id}), 201
+
+
+@api_v1.route("/team/<membership_id>", methods=["PATCH"])
+@tenant_owner_required
+def update_tenant_team_member(membership_id: str):
+    """Change an operational member's role or active state."""
+
+    try:
+        parsed_id = str(_uuid.UUID(membership_id))
+    except (ValueError, AttributeError):
+        return _error("Invalid membership id.")
+    payload = _json_payload()
+    role = _clean_text(payload, "role").lower()
+    status = _clean_text(payload, "status", "active").lower()
+    if role not in {"manager", "teacher", "front_desk", "staff"}:
+        return _error("Only operational team roles can be changed here.")
+    if status not in {"active", "disabled"}:
+        return _error("status must be active or disabled.")
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, status
+                FROM memberships
+                WHERE id = %s AND tenant_id = %s AND role <> 'owner'
+                FOR UPDATE
+                """,
+                (parsed_id, tenant.tenant_id),
+            )
+            existing = cur.fetchone()
+            if not existing:
+                return _error("Operational team membership was not found.", 404)
+            if status == "active" and existing["status"] != "active":
+                plan_row = fetch_one(
+                    conn,
+                    "SELECT p.user_limit FROM tenants t JOIN plans p ON p.code = t.plan_code WHERE t.id = %s",
+                    (tenant.tenant_id,),
+                )
+                active_users = fetch_one(
+                    conn,
+                    "SELECT count(*) AS n FROM memberships WHERE tenant_id = %s AND status = 'active' AND role <> 'parent'",
+                    (tenant.tenant_id,),
+                )
+                if int(active_users["n"] or 0) >= int(plan_row["user_limit"]):
+                    return _error(
+                        f"User limit reached ({plan_row['user_limit']}). Upgrade the plan before reactivating this member.",
+                        403,
+                    )
+            cur.execute(
+                """
+                UPDATE memberships
+                SET role = %s, status = %s
+                WHERE id = %s AND tenant_id = %s AND role <> 'owner'
+                RETURNING id
+                """,
+                (role, status, parsed_id, tenant.tenant_id),
+            )
+            cur.fetchone()
+        _refresh_tenant_usage(conn, tenant.tenant_id)
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="team.member_updated",
+            resource_type="membership",
+            resource_id=parsed_id,
+            metadata={"role": role, "status": status},
+        )
+        conn.commit()
+    return jsonify({"ok": True})
+
+
+@api_v1.route("/tenant/brand-workspace", methods=["GET"])
+@tenant_owner_required
+def get_brand_workspace():
+    """Return the tenant brand draft and recent published versions."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        draft = fetch_one(
+            conn,
+            """
+            SELECT payload, updated_at
+            FROM tenant_brand_drafts
+            WHERE tenant_id = %s
+            """,
+            (tenant.tenant_id,),
+        )
+        versions = fetch_all(
+            conn,
+            """
+            SELECT v.id, v.version_number, v.published_at,
+                   v.source_version_id, u.full_name AS published_by
+            FROM tenant_brand_versions v
+            LEFT JOIN users u ON u.id = v.published_by_user_id
+            WHERE v.tenant_id = %s
+            ORDER BY v.version_number DESC
+            LIMIT 20
+            """,
+            (tenant.tenant_id,),
+        )
+    return jsonify({"draft": draft, "versions": versions})
+
+
+@api_v1.route("/tenant/brand-draft", methods=["PUT"])
+@tenant_owner_required
+def save_brand_draft():
+    """Save an unpublished brand payload for later preview and publication."""
+
+    try:
+        payload = _json_payload()
+    except ValueError as exc:
+        return _error(str(exc))
+    if not _clean_text(payload, "name"):
+        return _error("Studio name is required.")
+    encoded = json.dumps(payload)
+    if len(encoded.encode("utf-8")) > 256_000:
+        return _error("Brand draft is too large.", 413)
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO tenant_brand_drafts (tenant_id, payload, updated_by_user_id, updated_at)
+                VALUES (%s, %s::jsonb, %s, now())
+                ON CONFLICT (tenant_id) DO UPDATE
+                SET payload = EXCLUDED.payload,
+                    updated_by_user_id = EXCLUDED.updated_by_user_id,
+                    updated_at = now()
+                """,
+                (tenant.tenant_id, encoded, getattr(g.actor, "user_id", None)),
+            )
+        _audit_request(conn, tenant_id=tenant.tenant_id, action="brand.draft_saved", resource_type="tenant_brand")
+        conn.commit()
+    return jsonify({"ok": True})
+
+
+@api_v1.route("/tenant/brand-versions/<version_id>/restore", methods=["POST"])
+@tenant_owner_required
+def restore_brand_version(version_id: str):
+    """Restore one published version into the draft workspace without going live."""
+
+    try:
+        parsed_id = str(_uuid.UUID(version_id))
+    except (ValueError, AttributeError):
+        return _error("Invalid brand version id.")
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        version = fetch_one(
+            conn,
+            "SELECT id, payload FROM tenant_brand_versions WHERE id = %s AND tenant_id = %s",
+            (parsed_id, tenant.tenant_id),
+        )
+        if not version:
+            return _error("Brand version was not found.", 404)
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO tenant_brand_drafts (tenant_id, payload, updated_by_user_id, updated_at)
+                VALUES (%s, %s::jsonb, %s, now())
+                ON CONFLICT (tenant_id) DO UPDATE
+                SET payload = EXCLUDED.payload,
+                    updated_by_user_id = EXCLUDED.updated_by_user_id,
+                    updated_at = now()
+                """,
+                (tenant.tenant_id, json.dumps(version["payload"]), getattr(g.actor, "user_id", None)),
+            )
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="brand.version_restored_to_draft",
+            resource_type="tenant_brand",
+            resource_id=parsed_id,
+        )
+        conn.commit()
+    return jsonify({"ok": True, "draft": version["payload"]})
+
+
+@api_v1.route("/tenant", methods=["PATCH"])
+@tenant_owner_required
 
 def update_tenant():
     """Update current tenant branding, contact details, and plan metadata."""
@@ -1634,40 +2029,49 @@ def update_tenant():
                    settings->>'logo_url' AS logo_url
             FROM tenants
             WHERE id = %s
+            FOR UPDATE
             """,
             (tenant.tenant_id,),
         )
         current_settings = dict(current["settings"] or {})
-        plan_code = _clean_text(payload, "planCode", current["plan_code"]).lower()
+        # Subscription plans are owned by Super Admin. Tenant owners can view
+        # their plan but cannot change commercial entitlements from Studio Admin.
+        plan_code = current["plan_code"]
         logo_url = _clean_text(payload, "logoUrl", current["logo_url"] or "")
         primary_color = _clean_text(payload, "primaryColor", current["primary_color"])
         secondary_color = _clean_text(payload, "secondaryColor", current["secondary_color"])
         contact_email = _clean_text(payload, "contactEmail", _clean_text(payload, "email", current["contact_email"])).lower()
         cms_layout = _clean_text(payload, "cmsLayout", current_settings.get("cms_layout", "bar")).lower()
-        category = _normalize_category(_clean_text(payload, "category", current_settings.get("category", "general")))
-        preset = _preset_for(category)
-        slogan = _clean_text(payload, "slogan", current_settings.get("slogan", preset["slogan"]))
-        registration_profile = _normalize_registration_profile(
-            payload.get("registrationProfile", current_settings.get("registration_profile")),
-            category,
-        )
-        copy_pack = _normalize_copy_pack(payload.get("copyPack", current_settings.get("copy_pack")), category)
-        hero_profile = _normalize_hero_profile(
-            payload.get("heroProfile", current_settings.get("hero_profile")),
-            category,
-            _clean_text(payload, "name", current["name"]),
-        )
-        website_profile = _normalize_website_profile(payload.get("websiteProfile", current_settings.get("website_profile")))
-        principal_profile = _normalize_principal_profile(
-            payload.get("principalProfile", current_settings.get("principal_profile")),
-            _clean_text(payload, "name", current["name"]),
-        )
-        faq_items = _normalize_faq_items(payload.get("faqItems", current_settings.get("faq_items")), category)
-        visual_theme = _normalize_visual_theme(
-            payload.get("visualTheme", current_settings.get("visual_theme")),
-            primary_color,
-            secondary_color,
-        )
+        try:
+            category = _normalize_category(_clean_text(payload, "category", current_settings.get("category", "general")))
+            preset = _preset_for(category)
+            slogan = _clean_text(payload, "slogan", current_settings.get("slogan", preset["slogan"]))
+            registration_profile = _normalize_registration_profile(
+                payload.get("registrationProfile", current_settings.get("registration_profile")),
+                category,
+            )
+            copy_pack = _normalize_copy_pack(payload.get("copyPack", current_settings.get("copy_pack")), category)
+            localized_copy = _normalize_localized_copy(
+                payload.get("localizedCopy", current_settings.get("localized_copy"))
+            )
+            hero_profile = _normalize_hero_profile(
+                payload.get("heroProfile", current_settings.get("hero_profile")),
+                category,
+                _clean_text(payload, "name", current["name"]),
+            )
+            website_profile = _normalize_website_profile(payload.get("websiteProfile", current_settings.get("website_profile")))
+            principal_profile = _normalize_principal_profile(
+                payload.get("principalProfile", current_settings.get("principal_profile")),
+                _clean_text(payload, "name", current["name"]),
+            )
+            faq_items = _normalize_faq_items(payload.get("faqItems", current_settings.get("faq_items")), category)
+            visual_theme = _normalize_visual_theme(
+                payload.get("visualTheme", current_settings.get("visual_theme")),
+                primary_color,
+                secondary_color,
+            )
+        except ValueError as exc:
+            return _error(str(exc))
         show_welcome = payload.get("showWelcome", current_settings.get("show_welcome", "true"))
         if isinstance(show_welcome, str):
             show_welcome = show_welcome.strip().lower() != "false"
@@ -1697,6 +2101,7 @@ def update_tenant():
                 "slogan": slogan,
                 "registration_profile": registration_profile,
                 "copy_pack": copy_pack,
+                "localized_copy": localized_copy,
                 "hero_profile": hero_profile,
                 "website_profile": website_profile,
                 "principal_profile": principal_profile,
@@ -1705,9 +2110,6 @@ def update_tenant():
             }
         )
         with conn.cursor() as cur:
-            cur.execute("SELECT 1 FROM plans WHERE code = %s", (plan_code,))
-            if not cur.fetchone():
-                return _error(f"Plan '{plan_code}' was not found.", 404)
             cur.execute(
                 """
                 UPDATE tenants
@@ -1740,24 +2142,39 @@ def update_tenant():
             )
             cur.execute(
                 """
-                INSERT INTO subscriptions (tenant_id, plan_code, status, starts_at, ends_at)
-                VALUES (%s, %s, 'active', now(), NULL)
-                ON CONFLICT (tenant_id) DO UPDATE
-                SET plan_code = EXCLUDED.plan_code,
-                    updated_at = now()
+                SELECT COALESCE(max(version_number), 0) + 1 AS next_version
+                FROM tenant_brand_versions
+                WHERE tenant_id = %s
                 """,
-                (tenant.tenant_id, plan_code),
+                (tenant.tenant_id,),
             )
-        _audit(conn, tenant_id=tenant.tenant_id, action="tenant.updated", resource_type="tenant")
+            next_version = int(cur.fetchone()["next_version"])
+            cur.execute(
+                """
+                INSERT INTO tenant_brand_versions (
+                    tenant_id, version_number, payload, published_by_user_id
+                )
+                VALUES (%s, %s, %s::jsonb, %s)
+                """,
+                (tenant.tenant_id, next_version, json.dumps(payload), getattr(g.actor, "user_id", None)),
+            )
+            cur.execute("DELETE FROM tenant_brand_drafts WHERE tenant_id = %s", (tenant.tenant_id,))
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="brand.published",
+            resource_type="tenant_brand",
+            metadata={"version": next_version},
+        )
         conn.commit()
         row = _tenant_response(conn)
-    return jsonify({"tenant": row})
+    return jsonify({"tenant": row, "publishedVersion": next_version})
 
 
 @api_v1.route("/tenant/brand", methods=["GET"])
 @auth_required
 def get_tenant_brand():
-    """Return branding used by Studio Admin and Parent Portal."""
+    """Return published branding used by Studio Admin and public surfaces."""
 
     with connect() as conn:
         row = _tenant_response(conn)
@@ -1780,6 +2197,7 @@ def get_tenant_brand():
                 "slogan": row["slogan"] or _preset_for(row["category"] or "general")["slogan"],
                 "registrationProfile": row["registration_profile"] or _default_registration_profile(row["category"] or "general"),
                 "copyPack": row["copy_pack"] or _preset_for(row["category"] or "general")["copy_pack"],
+                "localizedCopy": row["localized_copy"] or _normalize_localized_copy({}),
                 "heroProfile": row["hero_profile"] or _default_hero_profile(row["category"] or "general", row["name"]),
                 "websiteProfile": row["website_profile"] or _default_website_profile(),
                 "principalProfile": row["principal_profile"] or _default_principal_profile(row["name"]),
@@ -1791,7 +2209,7 @@ def get_tenant_brand():
 
 
 @api_v1.route("/students", methods=["GET"])
-@auth_required
+@permission_required("students:read")
 def list_students():
     """List students for the resolved tenant."""
 
@@ -1851,7 +2269,7 @@ def list_students():
 
 
 @api_v1.route("/students/<student_id>", methods=["GET"])
-@auth_required
+@permission_required("students:read")
 def get_student(student_id: str):
     """Return one student with credit summary for the resolved tenant."""
 
@@ -1878,7 +2296,7 @@ def get_student(student_id: str):
 
 
 @api_v1.route("/students/<student_id>/credits", methods=["GET"])
-@auth_required
+@permission_required("credits:read")
 def get_student_credits(student_id: str):
     """Return balance account and recent credit transactions for one student."""
 
@@ -2210,7 +2628,7 @@ def mutate_package(package_id: str):
 
 
 @api_v1.route("/registrations", methods=["GET"])
-@auth_required
+@permission_required("registrations:read")
 def list_registrations():
     """List recent public registration submissions for the resolved tenant."""
 
@@ -2227,7 +2645,10 @@ def list_registrations():
             SELECT id, status, first_name, last_name, parent_name, mobile,
                    email, message, submitted_at, updated_at, reviewed_at,
                    reviewed_by_user_id, student_id, duplicate_of_registration_id,
-                   review_note,
+                   review_note, source, source_path, source_language, campaign,
+                   assigned_user_id, first_contacted_at, next_follow_up_at,
+                   converted_at, loss_reason, privacy_consent_at,
+                   privacy_notice_version,
                    count(*) OVER ()::int AS _total
             FROM registrations
             WHERE tenant_id = %s
@@ -2243,10 +2664,10 @@ def list_registrations():
     return jsonify({"registrations": rows, "total": total, "limit": limit, "offset": offset})
 
 @api_v1.route("/registrations/<registration_id>", methods=["PATCH"])
-@tenant_admin_required
+@permission_required("registrations:write")
 
 def update_registration_status(registration_id: str):
-    """Update the status of a registration (approve/reject/archive)."""
+    """Advance a registration through follow-up, conversion, or closure."""
 
     with connect() as conn:
         tenant = _tenant_context(conn)
@@ -2254,11 +2675,17 @@ def update_registration_status(registration_id: str):
         new_status = _clean_text(payload, "status", "").lower().strip()
         convert_to_student = bool(payload.get("convertToStudent", payload.get("convert_to_student", False)))
         review_note = _clean_text(payload, "reviewNote", _clean_text(payload, "decisionReason", ""))[:500]
+        next_follow_up = _clean_text(payload, "nextFollowUpAt", _clean_text(payload, "next_follow_up_at", ""))
+        loss_reason = _clean_text(payload, "lossReason", _clean_text(payload, "loss_reason", ""))[:500]
 
-        if new_status not in ("pending", "contacted", "approved", "rejected", "duplicate", "archived"):
-            return _error("status must be one of: pending, contacted, approved, rejected, duplicate, archived.")
-        if new_status in {"rejected", "archived"} and not review_note:
-            return _error("reviewNote is required when rejecting or archiving a registration.")
+        allowed_statuses = {
+            "pending", "contacted", "trial_booked", "waiting", "approved",
+            "converted", "rejected", "duplicate", "lost", "archived",
+        }
+        if new_status not in allowed_statuses:
+            return _error(f"status must be one of: {', '.join(sorted(allowed_statuses))}.")
+        if new_status in {"rejected", "lost", "archived"} and not (review_note or loss_reason):
+            return _error("A review note or loss reason is required when closing a registration.")
 
         with conn.cursor() as cur:
             _ensure_registration_status_constraint(conn)
@@ -2290,6 +2717,12 @@ def update_registration_status(registration_id: str):
                     created_student_id = str(existing_student["id"])
                     linked_student_id = created_student_id
                 else:
+                    current_students, student_limit = _student_capacity(conn, tenant.tenant_id)
+                    if current_students >= student_limit:
+                        return _error(
+                            f"Student limit reached ({student_limit}). Upgrade the plan before converting this registration.",
+                            403,
+                        )
                     cur.execute(
                         """
                         INSERT INTO students (
@@ -2325,6 +2758,22 @@ def update_registration_status(registration_id: str):
                     reviewed_by_user_id = %s,
                     reviewed_at = CASE WHEN %s <> 'pending' THEN now() ELSE reviewed_at END,
                     review_note = CASE WHEN %s <> '' THEN %s ELSE review_note END,
+                    assigned_user_id = CASE
+                        WHEN %s IN ('contacted', 'trial_booked', 'waiting')
+                            THEN COALESCE(assigned_user_id, %s)
+                        ELSE assigned_user_id
+                    END,
+                    first_contacted_at = CASE
+                        WHEN %s = 'contacted' THEN COALESCE(first_contacted_at, now())
+                        ELSE first_contacted_at
+                    END,
+                    next_follow_up_at = COALESCE(NULLIF(%s, '')::timestamptz, next_follow_up_at),
+                    converted_at = CASE
+                        WHEN %s IN ('approved', 'converted') AND %s::uuid IS NOT NULL
+                            THEN COALESCE(converted_at, now())
+                        ELSE converted_at
+                    END,
+                    loss_reason = CASE WHEN %s <> '' THEN %s ELSE loss_reason END,
                     updated_at = now()
                 WHERE tenant_id = %s AND id = %s
                 RETURNING id, status, student_id, review_note
@@ -2336,6 +2785,14 @@ def update_registration_status(registration_id: str):
                     new_status,
                     review_note,
                     review_note,
+                    new_status,
+                    actor_user_id,
+                    new_status,
+                    next_follow_up,
+                    new_status,
+                    linked_student_id,
+                    loss_reason,
+                    loss_reason,
                     tenant.tenant_id,
                     registration_id,
                 ),
@@ -2384,7 +2841,7 @@ def update_registration_status(registration_id: str):
 
 
 @api_v1.route("/portfolio", methods=["GET"])
-@auth_required
+@permission_required("portfolio:read")
 def list_portfolio():
     """List recent portfolio items for the resolved tenant."""
 
@@ -2508,6 +2965,7 @@ def public_brand(tenant_slug: str):
                    settings->>'slogan' AS slogan,
                    settings->'registration_profile' AS registration_profile,
                    settings->'copy_pack' AS copy_pack,
+                   settings->'localized_copy' AS localized_copy,
                    settings->'hero_profile' AS hero_profile,
                    settings->'website_profile' AS website_profile,
                    settings->'principal_profile' AS principal_profile,
@@ -2524,6 +2982,7 @@ def public_brand(tenant_slug: str):
     row["slogan"] = row["slogan"] or preset["slogan"]
     row["registration_profile"] = row["registration_profile"] or _default_registration_profile(category)
     row["copy_pack"] = row["copy_pack"] or preset["copy_pack"]
+    row["localized_copy"] = row["localized_copy"] or _normalize_localized_copy({})
     row["hero_profile"] = row["hero_profile"] or _default_hero_profile(category, row["name"])
     row["website_profile"] = row["website_profile"] or _default_website_profile()
     row["principal_profile"] = row["principal_profile"] or _default_principal_profile(row["name"])
@@ -2540,6 +2999,7 @@ def public_brand(tenant_slug: str):
     row["categoryLabel"] = row["category_label"]
     row["registrationProfile"] = row["registration_profile"]
     row["copyPack"] = row["copy_pack"]
+    row["localizedCopy"] = row["localized_copy"]
     row["heroProfile"] = row["hero_profile"]
     row["websiteProfile"] = row["website_profile"]
     row["principalProfile"] = row["principal_profile"]
@@ -2568,6 +3028,8 @@ def public_gallery(tenant_slug: str):
             tenant = resolve_tenant(conn, tenant_slug, "path")
         except TenantResolutionError:
             return _error("Unknown tenant.", 404)
+        if not _plan_feature_enabled(conn, tenant.tenant_id, "portfolio"):
+            return jsonify({"items": [], "featureEnabled": False})
         rows = fetch_all(
             conn,
             """
@@ -2606,6 +3068,8 @@ def public_gallery_media(tenant_slug: str, portfolio_item_id: str):
             tenant = resolve_tenant(conn, tenant_slug, "path")
         except TenantResolutionError:
             return _error("Unknown tenant.", 404)
+        if not _plan_feature_enabled(conn, tenant.tenant_id, "portfolio"):
+            return _error("Portfolio is not enabled for this studio plan.", 404)
         row = fetch_one(
             conn,
             """
@@ -2628,7 +3092,7 @@ def public_gallery_media(tenant_slug: str, portfolio_item_id: str):
 
 @api_v1.route("/public/<tenant_slug>/balance-query", methods=["POST"])
 def public_balance_query(tenant_slug: str):
-    """Lookup a student's balance for the public parent portal."""
+    """Lookup a student's balance for the public Studio Portal student area."""
 
     client_key = f"balance-query:{tenant_slug}:{_client_ip()}"
     if _rate_limited(client_key, 10):
@@ -2695,6 +3159,8 @@ def public_registration_media_upload(tenant_slug: str):
 
     with connect() as conn:
         tenant = resolve_tenant(conn, tenant_slug, "path")
+        if not _plan_feature_enabled(conn, tenant.tenant_id, "public_registration"):
+            return _error("Public registration is not available for this studio plan.", 403)
         f = request.files.get("file")
         if not f or not f.filename:
             return _error("No file provided.")
@@ -2744,6 +3210,8 @@ def public_portfolio_token(tenant_slug: str):
         return jsonify({"ok": False}), 400
     with connect() as conn:
         tenant = resolve_tenant(conn, tenant_slug, "path")
+        if not _plan_feature_enabled(conn, tenant.tenant_id, "portfolio"):
+            return _error("Portfolio is not enabled for this studio plan.", 403)
         student = fetch_one(
             conn,
             """
@@ -2815,6 +3283,8 @@ def public_media_asset(tenant_slug: str, media_asset_id: str):
             return _error("Media asset was not found.", 404)
         if asset["asset_type"] == "logo":
             return _send_media_asset(conn, tenant_id=tenant.tenant_id, media_asset_id=media_asset_id)
+        if not _plan_feature_enabled(conn, tenant.tenant_id, "portfolio"):
+            return _error("Media asset was not found.", 404)
         if not raw_token:
             return _error("Media token is required.", 401)
         token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
@@ -2903,6 +3373,17 @@ def public_create_registration(tenant_slug: str):
     if str(payload.get("website") or "").strip():
         return jsonify({"ok": True, "success": True, "message": "Registration received."})
 
+    consent_value = payload.get(
+        "privacyConsent",
+        payload.get("privacy_consent", payload.get("consent", False)),
+    )
+    privacy_consent = consent_value is True or str(consent_value).strip().lower() in {"1", "true", "yes", "on"}
+    if not privacy_consent:
+        return _error("Privacy consent is required before submitting registration.", 400)
+    privacy_notice_version = str(
+        payload.get("privacyNoticeVersion") or payload.get("privacy_notice_version") or "2026-07-12"
+    ).strip()[:40]
+
     first_name = str(
         payload.get("firstName")
         or payload.get("first_name")
@@ -2921,6 +3402,18 @@ def public_create_registration(tenant_slug: str):
     mobile = re.sub(r"[^0-9+]", "", str(payload.get("mobile") or payload.get("phone") or ""))[:40]
     email = str(payload.get("email") or "").strip().lower()[:120]
     message = str(payload.get("message") or payload.get("notes") or "").strip()[:500]
+    source = str(payload.get("source") or "standalone_register").strip().lower()[:40]
+    if source not in {"portal", "standalone_register", "qr", "campaign"}:
+        source = "standalone_register"
+    source_path = str(payload.get("sourcePath") or payload.get("source_path") or request.referrer or "").strip()[:500]
+    source_language = str(payload.get("language") or payload.get("sourceLanguage") or "").strip().lower()[:10]
+    if source_language not in {"zh", "en", "zh-cn", "en-au"}:
+        source_language = ""
+    campaign = {
+        key: str(payload.get(key) or "").strip()[:120]
+        for key in ("utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term")
+        if str(payload.get(key) or "").strip()
+    }
     if not first_name or not mobile:
         return _error("firstName and mobile are required.")
     try:
@@ -2930,6 +3423,18 @@ def public_create_registration(tenant_slug: str):
     with connect() as conn:
         tenant = resolve_tenant(conn, tenant_slug, "path")
         _ensure_registration_status_constraint(conn)
+        plan = fetch_one(
+            conn,
+            """
+            SELECT p.features
+            FROM tenants t
+            JOIN plans p ON p.code = t.plan_code
+            WHERE t.id = %s
+            """,
+            (tenant.tenant_id,),
+        )
+        if not plan or not bool((plan.get("features") or {}).get("public_registration", False)):
+            return _error("Public registration is not available for this studio plan.", 403)
         with conn.cursor() as cur:
             existing_student = _find_matching_student(
                 cur,
@@ -2959,11 +3464,13 @@ def public_create_registration(tenant_slug: str):
                     INSERT INTO registrations (
                         tenant_id, status, first_name, last_name, parent_name,
                         mobile, email, message, payload, student_id,
-                        duplicate_of_registration_id, review_note
+                        duplicate_of_registration_id, review_note,
+                        source, source_path, source_language, campaign,
+                        privacy_consent_at, privacy_notice_version
                     )
                     VALUES (
                         %s, 'duplicate', %s, %s, %s, %s, %s, %s, %s::jsonb,
-                        %s, %s, %s
+                        %s, %s, %s, %s, %s, %s, %s::jsonb, now(), %s
                     )
                     RETURNING id
                     """,
@@ -2979,6 +3486,11 @@ def public_create_registration(tenant_slug: str):
                         str(existing_student["id"]) if existing_student else None,
                         str(duplicate_registration["id"]) if duplicate_registration else None,
                         review_note,
+                        source,
+                        source_path,
+                        source_language,
+                        json.dumps(campaign),
+                        privacy_notice_version,
                     ),
                 )
                 registration_id = cur.fetchone()["id"]
@@ -2992,6 +3504,7 @@ def public_create_registration(tenant_slug: str):
                         "duplicate": duplicate_kind,
                         "student_id": str(existing_student["id"]) if existing_student else None,
                         "duplicate_of_registration_id": str(duplicate_registration["id"]) if duplicate_registration else None,
+                        "privacy_notice_version": privacy_notice_version,
                     },
                 )
                 conn.commit()
@@ -3015,9 +3528,11 @@ def public_create_registration(tenant_slug: str):
                 """
                 INSERT INTO registrations (
                     tenant_id, status, first_name, last_name, parent_name,
-                    mobile, email, message, payload
+                    mobile, email, message, payload,
+                    source, source_path, source_language, campaign,
+                    privacy_consent_at, privacy_notice_version
                 )
-                VALUES (%s, 'pending', %s, %s, %s, %s, %s, %s, %s::jsonb)
+                VALUES (%s, 'pending', %s, %s, %s, %s, %s, %s, %s::jsonb, %s, %s, %s, %s::jsonb, now(), %s)
                 RETURNING id
                 """,
                 (
@@ -3029,10 +3544,27 @@ def public_create_registration(tenant_slug: str):
                     email,
                     message,
                     json.dumps(payload),
+                    source,
+                    source_path,
+                    source_language,
+                    json.dumps(campaign),
+                    privacy_notice_version,
                 ),
             )
             registration_id = cur.fetchone()["id"]
-        _audit(conn, tenant_id=tenant.tenant_id, action="registration.created", resource_type="registration", resource_id=registration_id)
+        _audit(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="registration.created",
+            resource_type="registration",
+            resource_id=registration_id,
+            metadata={
+                "source": source,
+                "language": source_language,
+                "campaign": campaign,
+                "privacy_notice_version": privacy_notice_version,
+            },
+        )
         if email:
             tenant_row = fetch_one(conn, "SELECT name FROM tenants WHERE id = %s", (tenant.tenant_id,))
             _notifications.send_safely(
@@ -3207,9 +3739,12 @@ def _legacy_data_for_tenant(conn, tenant_id: str) -> dict:
     pending = fetch_all(
         conn,
         """
-        SELECT id, first_name, last_name, mobile, email, message, submitted_at
+        SELECT id, status, first_name, last_name, mobile, email, message,
+               submitted_at, source, source_language, assigned_user_id,
+               first_contacted_at, next_follow_up_at
         FROM registrations
-        WHERE tenant_id = %s AND status = 'pending'
+        WHERE tenant_id = %s
+          AND status IN ('pending', 'contacted', 'trial_booked', 'waiting')
         ORDER BY submitted_at DESC
         LIMIT 100
         """,
@@ -3219,6 +3754,7 @@ def _legacy_data_for_tenant(conn, tenant_id: str) -> dict:
         "students": [
             {
                 "id": str(row["id"]),
+                "status": row["status"],
                 "firstName": row["first_name"],
                 "lastName": row["last_name"],
                 "name": row["display_name"],
@@ -3268,6 +3804,10 @@ def _legacy_data_for_tenant(conn, tenant_id: str) -> dict:
                 "email": row["email"],
                 "message": row["message"],
                 "submittedAt": str(row["submitted_at"]),
+                "source": row["source"],
+                "sourceLanguage": row["source_language"],
+                "firstContactedAt": str(row["first_contacted_at"] or ""),
+                "nextFollowUpAt": str(row["next_follow_up_at"] or ""),
             }
             for row in pending
         ],
@@ -3277,15 +3817,42 @@ def _legacy_data_for_tenant(conn, tenant_id: str) -> dict:
     }
 
 
+def _project_legacy_data_for_role(data: dict, role: Role | None) -> dict:
+    """Return the aggregate CMS payload permitted for one operational role."""
+
+    projected = {**data}
+    if role is Role.TEACHER:
+        projected["packages"] = []
+        projected["pending"] = []
+        projected["logs"] = [
+            {**row, "feePaid": 0}
+            for row in data.get("logs", [])
+            if row.get("action") in {"上课签到", "撤销签到"}
+        ]
+    elif role is Role.FRONT_DESK:
+        projected["students"] = [
+            {**student, "portfolio": []}
+            for student in data.get("students", [])
+        ]
+    return projected
+
+
 @api_v1.route("/legacy-cms/data", methods=["GET"])
 @auth_required
 def legacy_cms_data():
-    """Return a tenant-backed JSON shape compatible with the old CMS UI."""
+    """Return a role-projected tenant JSON shape for the CMS UI.
+
+    The legacy CMS consumes a single aggregate payload.  Projection here is
+    therefore a security boundary, not merely a visual preference: teachers
+    must not receive acquisition or financial history, and front-desk users
+    must not receive private portfolio records.
+    """
 
     with connect() as conn:
         tenant = _tenant_context(conn)
         data = _legacy_data_for_tenant(conn, tenant.tenant_id)
-    return jsonify(data)
+    role = getattr(getattr(g, "actor", None), "role", None)
+    return jsonify(_project_legacy_data_for_role(data, role))
 
 
 @api_v1.route("/legacy-cms/save", methods=["POST"])
@@ -3514,7 +4081,7 @@ def legacy_cms_save():
 
 
 @api_v1.route("/media/<media_asset_id>", methods=["GET"])
-@tenant_admin_required
+@permission_required("students:read")
 def get_media_asset(media_asset_id: str):
     """Serve one tenant-owned media asset for authenticated studio admins."""
 
@@ -3534,6 +4101,8 @@ def upload_media_asset():
         if not f or not f.filename:
             return _error("No file provided.")
         kind = str(request.form.get("kind") or "portfolio").strip() or "portfolio"
+        if kind == "portfolio" and not _plan_feature_enabled(conn, tenant.tenant_id, "portfolio"):
+            return _error("Portfolio is not enabled for this studio plan.", 403)
         owner_student_id = str(
             request.form.get("studentId")
             or request.form.get("ownerStudentId")
@@ -3578,7 +4147,7 @@ def upload_media_asset():
 
 
 @api_v1.route("/legacy-cms/media/upload", methods=["POST"])
-@tenant_admin_required
+@permission_required("students:write")
 def legacy_cms_media_upload():
     """Upload a tenant-scoped student photo for the legacy CMS UI."""
 
@@ -3614,12 +4183,14 @@ def legacy_cms_media_upload():
 
 
 @api_v1.route("/legacy-cms/portfolio/upload", methods=["POST"])
-@tenant_admin_required
+@permission_required("portfolio:write")
 def legacy_cms_portfolio_upload():
     """Upload and attach one portfolio image using the legacy CMS response shape."""
 
     with connect() as conn:
         tenant = _tenant_context(conn)
+        if not _plan_feature_enabled(conn, tenant.tenant_id, "portfolio"):
+            return _error("Portfolio is not enabled for this studio plan.", 403)
         student_id = str(request.form.get("studentId") or "").strip()
         note = str(request.form.get("note") or "").strip()[:500]
         title = str(request.form.get("title") or "").strip()[:120]   # B4
@@ -3708,12 +4279,14 @@ def legacy_cms_portfolio_upload():
 
 
 @api_v1.route("/legacy-cms/portfolio/<student_id>/<portfolio_item_id>", methods=["DELETE"])
-@tenant_admin_required
+@permission_required("portfolio:write")
 def legacy_cms_portfolio_delete(student_id: str, portfolio_item_id: str):
     """Delete one tenant portfolio item through the legacy CMS bridge."""
 
     with connect() as conn:
         tenant = _tenant_context(conn)
+        if visibility == "shared" and not _plan_feature_enabled(conn, tenant.tenant_id, "portfolio"):
+            return _error("Portfolio is not enabled for this studio plan.", 403)
         with conn.cursor() as cur:
             cur.execute(
                 """
@@ -3737,7 +4310,7 @@ def legacy_cms_portfolio_delete(student_id: str, portfolio_item_id: str):
 
 
 @api_v1.route("/legacy-cms/portfolio/<student_id>/<portfolio_item_id>", methods=["PATCH"])
-@tenant_admin_required
+@permission_required("portfolio:write")
 def legacy_cms_portfolio_update(student_id: str, portfolio_item_id: str):
     """Update one portfolio note/date through the legacy CMS bridge."""
 
@@ -3941,6 +4514,13 @@ def admin_tenants():
                    COALESCE(t.settings->>'category', 'general') AS category,
                    t.settings->>'slogan' AS slogan,
                    t.settings->>'workspace_path' AS workspace_path,
+                   (COALESCE(t.settings->>'test_fixture', 'false') = 'true') AS is_test,
+                   EXISTS (
+                       SELECT 1 FROM tenant_brand_versions bv WHERE bv.tenant_id = t.id
+                   ) AS portal_published,
+                   (COALESCE(t.settings->>'logo_url', '') <> '') AS logo_ready,
+                   (COALESCE(t.settings->'hero_profile'->>'title', '') <> '') AS hero_ready,
+                   (t.contact_email <> '' OR t.contact_phone <> '') AS contact_ready,
                    t.created_at, t.archived_at, t.archive_path, t.deletion_requested_at, t.deleted_at
             FROM tenants t
             LEFT JOIN tenant_usage u ON u.tenant_id = t.id
@@ -4445,17 +5025,72 @@ def update_tenant_status(tenant_id: str):
 @super_admin_required
 
 def admin_usage():
-    """Return aggregate usage for the local Super Admin prototype."""
+    """Return platform usage and commercial lifecycle metrics."""
 
     with connect() as conn:
         row = fetch_one(
             conn,
             """
+            WITH real_tenants AS (
+                SELECT id, status, created_at
+                FROM tenants
+                WHERE COALESCE(settings->>'test_fixture', 'false') <> 'true'
+            )
             SELECT
-                (SELECT count(*) FROM tenants WHERE status NOT IN ('archived', 'deleted')) AS tenants,
-                (SELECT count(*) FROM students) AS students,
-                (SELECT count(*) FROM portfolio_items) AS portfolio_items,
-                (SELECT COALESCE(sum(storage_used_mb), 0) FROM tenant_usage) AS storage_used_mb
+                (SELECT count(*) FROM real_tenants WHERE status NOT IN ('archived', 'deleted')) AS tenants,
+                (
+                    SELECT count(*) FROM subscriptions s JOIN real_tenants t ON t.id = s.tenant_id
+                    WHERE s.status = 'active' AND t.status NOT IN ('archived', 'deleted')
+                ) AS paid_tenants,
+                (
+                    SELECT count(*) FROM subscriptions s JOIN real_tenants t ON t.id = s.tenant_id
+                    WHERE s.status = 'trialing' AND t.status NOT IN ('archived', 'deleted')
+                ) AS trial_tenants,
+                (SELECT count(*) FROM real_tenants WHERE status = 'onboarding') AS onboarding_tenants,
+                (
+                    SELECT count(*) FROM subscriptions s JOIN real_tenants t ON t.id = s.tenant_id
+                    WHERE s.status = 'past_due' AND t.status NOT IN ('archived', 'deleted')
+                ) AS past_due_tenants,
+                (SELECT count(*) FROM real_tenants WHERE created_at >= now() - interval '30 days') AS new_tenants_30d,
+                (
+                    SELECT COALESCE(sum(p.monthly_price_aud), 0)
+                    FROM subscriptions s
+                    JOIN plans p ON p.code = s.plan_code
+                    JOIN real_tenants t ON t.id = s.tenant_id
+                    WHERE s.status = 'active' AND t.status NOT IN ('archived', 'deleted')
+                ) AS mrr_aud,
+                (
+                    SELECT count(*)
+                    FROM subscriptions s
+                    JOIN real_tenants t ON t.id = s.tenant_id
+                    WHERE s.status = 'trialing'
+                      AND t.status NOT IN ('archived', 'deleted')
+                      AND s.trial_ends_at >= now()
+                      AND s.trial_ends_at <= now() + interval '7 days'
+                ) AS trials_ending_7d,
+                (
+                    SELECT count(*) FROM registrations r JOIN real_tenants t ON t.id = r.tenant_id
+                    WHERE r.submitted_at >= now() - interval '30 days'
+                ) AS registrations_30d,
+                (
+                    SELECT count(*) FROM registrations r JOIN real_tenants t ON t.id = r.tenant_id
+                    WHERE r.submitted_at >= now() - interval '30 days'
+                      AND r.status IN ('approved', 'converted')
+                ) AS converted_registrations_30d,
+                (
+                    SELECT count(*) FROM registrations r JOIN real_tenants t ON t.id = r.tenant_id
+                    WHERE r.submitted_at >= now() - interval '30 days' AND r.source = 'portal'
+                ) AS portal_registrations_30d,
+                (
+                    SELECT count(*) FROM registrations r JOIN real_tenants t ON t.id = r.tenant_id
+                    WHERE r.submitted_at >= now() - interval '30 days' AND r.source <> 'portal'
+                ) AS alternate_registrations_30d,
+                (SELECT count(*) FROM students s JOIN real_tenants t ON t.id = s.tenant_id) AS students,
+                (SELECT count(*) FROM portfolio_items p JOIN real_tenants t ON t.id = p.tenant_id) AS portfolio_items,
+                (
+                    SELECT COALESCE(sum(u.storage_used_mb), 0)
+                    FROM tenant_usage u JOIN real_tenants t ON t.id = u.tenant_id
+                ) AS storage_used_mb
             """,
             (),
         )
@@ -4491,7 +5126,7 @@ def admin_audit_logs():
 # ──────────────────────────────────────────────
 
 @api_v1.route("/students", methods=["POST"])
-@tenant_admin_required
+@permission_required("students:write")
 
 def create_student():
     """Create a new student and an empty credit account for the resolved tenant."""
@@ -4499,6 +5134,13 @@ def create_student():
     with connect() as conn:
         tenant = _tenant_context(conn)
         payload = _json_payload()
+
+        current_students, student_limit = _student_capacity(conn, tenant.tenant_id)
+        if current_students >= student_limit:
+            return _error(
+                f"Student limit reached ({student_limit}). Ask the StudioSaaS administrator to upgrade the plan.",
+                403,
+            )
 
         display_name = _clean_text(payload, "displayName", _clean_text(payload, "display_name", _clean_text(payload, "name")))
         first_name = _clean_text(payload, "firstName", _clean_text(payload, "first_name", display_name.split()[0] if display_name else ""))
@@ -4559,7 +5201,7 @@ def create_student():
 
 
 @api_v1.route("/students/<student_id>/archive", methods=["POST"])
-@tenant_admin_required
+@permission_required("students:write")
 
 def archive_student(student_id: str):
     """Soft-delete (archive) a student for the resolved tenant."""
@@ -4594,7 +5236,7 @@ def archive_student(student_id: str):
 # ──────────────────────────────────────────────
 
 @api_v1.route("/students/<student_id>/credit-transactions", methods=["GET"])
-@auth_required
+@permission_required("credits:read")
 def list_credit_transactions(student_id: str):
     """List all credit transactions for one student in the resolved tenant."""
 
@@ -4616,7 +5258,7 @@ def list_credit_transactions(student_id: str):
 
 
 @api_v1.route("/students/<student_id>/credit-transactions", methods=["POST"])
-@tenant_admin_required
+@permission_required("credits:write")
 
 def create_credit_transaction(student_id: str):
     """Create a credit transaction (purchase / debit / adjustment / refund)."""
@@ -4730,7 +5372,7 @@ def create_credit_transaction(student_id: str):
 
 
 @api_v1.route("/attendance", methods=["GET"])
-@auth_required
+@permission_required("attendance:read")
 def list_attendance_sessions():
     """List attendance sessions for the resolved tenant."""
 
@@ -4779,7 +5421,7 @@ def list_attendance_sessions():
 
 
 @api_v1.route("/attendance/check-in", methods=["POST"])
-@tenant_admin_required
+@permission_required("attendance:write")
 def check_in_attendance():
     """Record one attendance session and consume credits atomically."""
 
@@ -5175,7 +5817,7 @@ SHARE_LINK_MAX_DAYS = 90
 
 
 @api_v1.route("/students/<student_id>/share-links", methods=["GET"])
-@tenant_admin_required
+@permission_required("portfolio:write")
 def list_share_links(student_id: str):
     """List portfolio share links for one student (newest first)."""
 
@@ -5197,7 +5839,7 @@ def list_share_links(student_id: str):
 
 
 @api_v1.route("/students/<student_id>/share-links", methods=["POST"])
-@tenant_admin_required
+@permission_required("portfolio:write")
 def create_share_link(student_id: str):
     """Create a durable share link for a student's portfolio.
 
@@ -5215,6 +5857,8 @@ def create_share_link(student_id: str):
 
     with connect() as conn:
         tenant = _tenant_context(conn)
+        if not _plan_feature_enabled(conn, tenant.tenant_id, "portfolio"):
+            return _error("Portfolio is not enabled for this studio plan.", 403)
         student = fetch_one(
             conn,
             "SELECT id, display_name FROM students WHERE tenant_id = %s AND id = %s",
@@ -5252,7 +5896,7 @@ def create_share_link(student_id: str):
 
 
 @api_v1.route("/share-links/<link_id>/revoke", methods=["POST"])
-@tenant_admin_required
+@permission_required("portfolio:write")
 def revoke_share_link(link_id: str):
     """Revoke one share link; the public viewer and media URLs stop working."""
 
@@ -5314,6 +5958,8 @@ def public_shared_portfolio(raw_token: str):
         )
         if not link:
             return _error("This link is invalid, expired, or has been revoked.", 410)
+        if not _plan_feature_enabled(conn, link["tenant_id"], "portfolio"):
+            return _error("This portfolio is not available for the current studio plan.", 410)
         rows = fetch_all(
             conn,
             """
@@ -5368,12 +6014,14 @@ def _export_audit(conn, tenant, export_type: str, row_count: int) -> None:
 
 
 @api_v1.route("/export/students.csv", methods=["GET"])
-@tenant_admin_required
+@permission_required("data:export")
 def export_students_csv():
     """Download all students (with balances) as CSV."""
 
     with connect() as conn:
         tenant = _tenant_context(conn)
+        if not _plan_feature_enabled(conn, tenant.tenant_id, "data_export"):
+            return _error("Data export is not enabled for this studio plan.", 403)
         rows = fetch_all(
             conn,
             """
@@ -5397,17 +6045,20 @@ def export_students_csv():
 
 
 @api_v1.route("/export/registrations.csv", methods=["GET"])
-@tenant_admin_required
+@permission_required("data:export")
 def export_registrations_csv():
     """Download all registrations as CSV."""
 
     with connect() as conn:
         tenant = _tenant_context(conn)
+        if not _plan_feature_enabled(conn, tenant.tenant_id, "data_export"):
+            return _error("Data export is not enabled for this studio plan.", 403)
         rows = fetch_all(
             conn,
             """
             SELECT status, first_name, last_name, parent_name, mobile, email,
-                   message, review_note, submitted_at, reviewed_at
+                   message, review_note, privacy_consent_at,
+                   privacy_notice_version, submitted_at, reviewed_at
             FROM registrations
             WHERE tenant_id = %s
             ORDER BY submitted_at DESC
@@ -5416,19 +6067,23 @@ def export_registrations_csv():
         )
         _export_audit(conn, tenant, "registrations", len(rows))
     header = ["Status", "First Name", "Last Name", "Parent", "Mobile", "Email",
-              "Message", "Review Note", "Submitted At", "Reviewed At"]
+              "Message", "Review Note", "Privacy Consent At", "Privacy Notice Version",
+              "Submitted At", "Reviewed At"]
     data = ([r["status"], r["first_name"], r["last_name"], r["parent_name"], r["mobile"], r["email"],
-             r["message"], r["review_note"], r["submitted_at"], r["reviewed_at"]] for r in rows)
+             r["message"], r["review_note"], r["privacy_consent_at"], r["privacy_notice_version"],
+             r["submitted_at"], r["reviewed_at"]] for r in rows)
     return _csv_response(f"{tenant.slug}-registrations.csv", header, data)
 
 
 @api_v1.route("/export/credit-ledger.csv", methods=["GET"])
-@tenant_admin_required
+@permission_required("data:export")
 def export_credit_ledger_csv():
     """Download the full credit transaction ledger as CSV."""
 
     with connect() as conn:
         tenant = _tenant_context(conn)
+        if not _plan_feature_enabled(conn, tenant.tenant_id, "data_export"):
+            return _error("Data export is not enabled for this studio plan.", 403)
         rows = fetch_all(
             conn,
             """
@@ -5451,8 +6106,37 @@ def export_credit_ledger_csv():
     return _csv_response(f"{tenant.slug}-credit-ledger.csv", header, data)
 
 
+@api_v1.route("/export/revenue.csv", methods=["GET"])
+@permission_required("data:export")
+def export_revenue_csv():
+    """Download monthly net revenue and activity totals as CSV."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        if not _plan_feature_enabled(conn, tenant.tenant_id, "data_export"):
+            return _error("Data export is not enabled for this studio plan.", 403)
+        rows = fetch_all(
+            conn,
+            """
+            SELECT to_char(date_trunc('month', occurred_at), 'YYYY-MM') AS period,
+                   round(COALESCE(sum(fee_aud_cents), 0) / 100.0, 2) AS net_revenue_aud,
+                   count(*) FILTER (WHERE transaction_type = 'purchase') AS purchases,
+                   count(*) FILTER (WHERE transaction_type = 'consume') AS checkins
+            FROM credit_transactions
+            WHERE tenant_id = %s
+            GROUP BY date_trunc('month', occurred_at)
+            ORDER BY date_trunc('month', occurred_at) DESC
+            """,
+            (tenant.tenant_id,),
+        )
+        _export_audit(conn, tenant, "revenue", len(rows))
+    header = ["Period", "Net Revenue (AUD)", "Purchases", "Check-ins"]
+    data = ([r["period"], r["net_revenue_aud"], r["purchases"], r["checkins"]] for r in rows)
+    return _csv_response(f"{tenant.slug}-revenue.csv", header, data)
+
+
 @api_v1.route("/attendance/<attendance_id>/void", methods=["POST"])
-@tenant_admin_required
+@permission_required("attendance:write")
 def void_attendance_session(attendance_id: str):
     """Void one attendance session and refund the consumed credits."""
 
@@ -5563,13 +6247,15 @@ def void_attendance_session(attendance_id: str):
 # ──────────────────────────────────────────────
 
 @api_v1.route("/portfolio", methods=["POST"])
-@tenant_admin_required
+@permission_required("portfolio:write")
 
 def create_portfolio_item():
     """Create a portfolio item linked to a media asset and student."""
 
     with connect() as conn:
         tenant = _tenant_context(conn)
+        if not _plan_feature_enabled(conn, tenant.tenant_id, "portfolio"):
+            return _error("Portfolio is not enabled for this studio plan.", 403)
         payload = _json_payload()
 
         student_id = _clean_text(payload, "studentId")
@@ -5646,7 +6332,7 @@ def create_portfolio_item():
 
 
 @api_v1.route("/portfolio/<portfolio_item_id>", methods=["PATCH"])
-@tenant_admin_required
+@permission_required("portfolio:write")
 
 def update_portfolio_item(portfolio_item_id: str):
     """Update a portfolio item's metadata for the resolved tenant."""
@@ -5663,6 +6349,8 @@ def update_portfolio_item(portfolio_item_id: str):
             return _error(str(exc))
         if visibility == "shared" and not bool(payload.get("publicConsentConfirmed")):
             return _error("Public gallery consent must be confirmed before publishing.", 400)
+        if visibility == "shared" and not _plan_feature_enabled(conn, tenant.tenant_id, "portfolio"):
+            return _error("Portfolio is not enabled for this studio plan.", 403)
         artwork_date_str = _clean_text(payload, "artworkDate")
 
         try:
@@ -5701,7 +6389,7 @@ def update_portfolio_item(portfolio_item_id: str):
 
 
 @api_v1.route("/portfolio/<portfolio_item_id>", methods=["DELETE"])
-@tenant_admin_required
+@permission_required("portfolio:write")
 
 def delete_portfolio_item(portfolio_item_id: str):
     """Delete a portfolio item for the resolved tenant."""
@@ -5947,7 +6635,7 @@ def auth_legacy_login():
               AND m.status = 'active'
               AND u.status = 'active'
               AND (
-                    (m.tenant_id = %s AND m.role IN ('owner', 'super_admin'))
+                    (m.tenant_id = %s AND m.role IN ('owner', 'manager', 'teacher', 'front_desk', 'staff', 'super_admin'))
                  OR (m.tenant_id IS NULL AND m.role = 'super_admin')
               )
             LIMIT 1
@@ -6101,7 +6789,7 @@ _os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 @api_v1.route("/tenant/settings", methods=["PATCH"])
-@tenant_admin_required
+@tenant_owner_required
 
 def update_tenant_settings():
     """Compatibility alias for old clients; writes through the canonical tenant route."""
@@ -6110,10 +6798,14 @@ def update_tenant_settings():
 
 
 @api_v1.route("/tenant/logo", methods=["POST"])
-@tenant_admin_required
+@tenant_owner_required
 
 def upload_tenant_logo():
-    """Upload a logo file for the resolved tenant."""
+    """Upload a logo asset without publishing it to the tenant brand.
+
+    The returned URL is placed into the Studio Admin editor. Save Draft or
+    Publish remains a separate explicit action, matching every other field.
+    """
 
     with connect() as conn:
         tenant = _tenant_context(conn)
@@ -6128,37 +6820,20 @@ def upload_tenant_logo():
 
         logo_url = f"/v1/public/{tenant.slug}/media/{media['id']}"
 
-        # Save to tenant settings
-        cur = conn.cursor()
-        cur.execute("SELECT settings FROM tenants WHERE id = %s", (tenant.tenant_id,),)
-        row = cur.fetchone()
-        current_settings = dict(row["settings"]) if isinstance(row["settings"], dict) else {}
-        current_settings["logoUrl"] = logo_url
-        current_settings["logo_url"] = logo_url
-
-        cur.execute(
-            """
-            UPDATE tenants
-            SET settings = %s::jsonb,
-                updated_at = now()
-            WHERE id = %s
-            """,
-            (json.dumps(current_settings), tenant.tenant_id),
-        )
         _audit_request(
             conn,
             tenant_id=tenant.tenant_id,
-            action="tenant.logo_uploaded",
-            resource_type="tenant",
-            resource_id=tenant.tenant_id,
-	            metadata={"logo_url": logo_url, "media_asset_id": str(media["id"])},
+            action="brand.logo_asset_uploaded",
+            resource_type="media_asset",
+            resource_id=media["id"],
+            metadata={"logo_url": logo_url, "media_asset_id": str(media["id"])},
         )
 
     return jsonify({"ok": True, "url": logo_url})
 
 
 @api_v1.route("/students/<student_id>", methods=["PATCH"])
-@tenant_admin_required
+@permission_required("students:write")
 
 def update_student(student_id: str):
     """Update a student record and sync balance/credit_hours to legacy CMS."""

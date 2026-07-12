@@ -40,10 +40,10 @@ Purpose: Phased development plan, milestones, current status, and deployment tar
 **Scope:**
 - Multi-tenant base with `tenant_id` isolation
 - Tenant CMS (`/<slug>/cms`) for daily operations: students, courses, packages, credits, payments/refunds, rosters, registrations, portfolio, logs, and analytics
-- Studio Admin (`/<slug>/studio-admin`) for website/brand and lead-capture settings: logo, colors, welcome, public copy, registration fields, generated surface links, and exports
-- Public registration page (tenant-specific)
-- Parent/Student portal (balance, portfolio, registration)
-- Super Admin (tenant lifecycle, plans, usage, audit)
+- Studio Admin (`/<slug>/studio-admin`) for website/brand and lead-capture settings: logo, colors, bilingual public copy, registration fields, previews, drafts, publication history, and generated surface links
+- Studio Portal (bilingual public website, primary registration CTA, balance and portfolio Student Area)
+- Quick Registration alternate page (tenant-specific QR/campaign/direct entry)
+- Super Admin commercial control plane (tenant lifecycle, plans, subscriptions, MRR, usage, risk, audit)
 - Basic backup and export
 - Basic permission controls
 
@@ -53,7 +53,7 @@ Purpose: Phased development plan, milestones, current status, and deployment tar
 |---|---|---|
 | Multi-tenant routing | ✅ | Path, header, subdomain resolution |
 | Tenant workspace generation | ✅ | From `tenant-template/` |
-| PostgreSQL schema v1 | ✅ | 18 tables defined |
+| PostgreSQL schema v1 | ✅ | 25 tables defined; bootstrap synchronized through 0014 |
 | Super Admin dashboard | ✅ | Create/pause/resume tenants |
 | Studio Admin login | ✅ | Per-tenant website/brand console |
 | Studio CMS | ✅ | Legacy bridge with tenant routing |

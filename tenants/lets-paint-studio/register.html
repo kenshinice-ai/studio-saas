@@ -8,6 +8,7 @@
   <link rel="manifest" href="/lets-paint-studio/manifest-student.json">
   <script src="/assets/ui-common.js"></script>
   <script src="/assets/public-register.js"></script>
+  <link rel="stylesheet" href="/assets/ui-tokens.css">
   <style>
     :root {
       --brand:#2563eb;
@@ -65,14 +66,14 @@
         <div id="tenantContact" class="contact"></div>
       </div>
     </div>
-    <a href="/lets-paint-studio">Portal</a>
+    <a href="/lets-paint-studio">← Back to studio website</a>
   </header>
 
   <main>
     <section class="intro">
-      <div id="heroEyebrow" class="eyebrow">Registration</div>
+      <div id="heroEyebrow" class="eyebrow">Quick Registration</div>
       <h1 id="pageTitle">Tell us about the student</h1>
-      <p id="pageIntro" class="lead">Leave a few details and the studio will contact you with the right class and time.</p>
+      <p id="pageIntro" class="lead">A focused alternative to registering on the studio website. Leave a few details and the studio will contact you with the right class and time.</p>
     </section>
 
     <section class="card">
@@ -102,7 +103,7 @@
     const TENANT_SLUG = 'lets-paint-studio';
     const TENANT_NAME = "Let's Paint Studio";
     const esc = window.StudioSaaS.esc;
-    let registrationProfile = { title: 'Student Registration', fields: [] };
+    let registrationProfile = { title: 'Quick Registration', fields: [] };
 
     function value(id) {
       const el = document.getElementById(id);
@@ -118,7 +119,7 @@
       registrationProfile = window.StudioSaaSPublicRegister.renderFields(profile || registrationProfile, {
         container: 'customFields',
         labelClass: 'field',
-        fallbackTitle: 'Student Registration'
+        fallbackTitle: 'Quick Registration'
       });
     }
     function collectFields() {
@@ -134,6 +135,7 @@
       const brand = data.brand || {};
       const hero = brand.heroProfile || brand.hero_profile || {};
       const copy = brand.copyPack || brand.copy_pack || {};
+      const localized = brand.localizedCopy || brand.localized_copy || {};
       const visual = brand.visualTheme || brand.visual_theme || {};
       const primary = visual.accent_color || visual.accentColor || brand.primary_color || brand.primaryColor || '#2563eb';
       const secondary = visual.secondary_accent_color || visual.secondaryAccentColor || brand.secondary_color || brand.secondaryColor || '#0f172a';
@@ -147,9 +149,9 @@
       document.getElementById('tenantSlogan').textContent = brand.slogan || hero.subtitle || '';
       document.getElementById('tenantLogo').src = brand.logo_url || brand.logoUrl || '/logo.png';
       document.getElementById('tenantContact').textContent = [brand.contact_phone || brand.contactPhone, brand.contact_email || brand.contactEmail, brand.address].filter(Boolean).join(' · ');
-      document.getElementById('heroEyebrow').textContent = hero.eyebrow || brand.categoryLabel || 'Registration';
-      document.getElementById('pageTitle').textContent = (brand.registrationProfile || brand.registration_profile || {}).title || 'Tell us about the student';
-      document.getElementById('pageIntro').textContent = copy.register_intro || copy.registerIntro || 'Leave a few details and the studio will contact you with the right class and time.';
+      document.getElementById('heroEyebrow').textContent = `Quick Registration · ${hero.eyebrow || brand.categoryLabel || 'Studio'}`;
+      document.getElementById('pageTitle').textContent = localized.registration_title?.en || (brand.registrationProfile || brand.registration_profile || {}).title || 'Tell us about the student';
+      document.getElementById('pageIntro').textContent = localized.registration_intro?.en || copy.register_intro || copy.registerIntro || 'Leave a few details and the studio will contact you with the right class and time.';
       renderFields(brand.registrationProfile || brand.registration_profile);
     }
     document.getElementById('registerForm').addEventListener('submit', async (event) => {
@@ -164,6 +166,11 @@
       try {
         const extra = collectFields();
         if (value('message')) extra.push(value('message'));
+        const campaign = {};
+        const params = new URLSearchParams(location.search);
+        ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'].forEach((key) => {
+          if (params.get(key)) campaign[key] = params.get(key);
+        });
         const response = await fetch(`/v1/public/${encodeURIComponent(TENANT_SLUG)}/registrations`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -173,7 +180,13 @@
             mobile: value('mobile'),
             email: value('email'),
             message: extra.join(' | '),
-            website: value('website')
+            website: value('website'),
+            source: 'standalone_register',
+            sourcePath: location.pathname,
+            language: document.documentElement.lang || 'en',
+            privacyConsent: true,
+            privacyNoticeVersion: '2026-07-12',
+            ...campaign
           })
         });
         const data = await response.json().catch(() => ({}));

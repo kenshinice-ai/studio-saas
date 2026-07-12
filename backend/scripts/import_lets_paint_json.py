@@ -307,8 +307,11 @@ def main(argv: list[str]) -> int:
                 INSERT INTO tenant_usage (tenant_id, student_count, user_count, storage_used_mb)
                 VALUES (
                     %s,
-                    (SELECT count(*) FROM students WHERE tenant_id = %s),
-                    (SELECT count(*) FROM memberships WHERE tenant_id = %s),
+                    (SELECT count(*) FROM students WHERE tenant_id = %s AND status <> 'archived'),
+                    (
+                        SELECT count(*) FROM memberships
+                        WHERE tenant_id = %s AND status = 'active' AND role <> 'parent'
+                    ),
                     0
                 )
                 ON CONFLICT (tenant_id) DO UPDATE

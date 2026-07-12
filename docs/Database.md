@@ -10,7 +10,7 @@ Purpose: Schema definition, table descriptions, canonical enums, migration strat
 
 - **Engine:** PostgreSQL 16+ (local), RDS PostgreSQL (AWS production target)
 - **Local database name:** `studiosaas_local_test`
-- **Schema file:** `backend/db/schema_v1.sql` (18 tables)
+- **Schema file:** `backend/db/schema_v1.sql` (25 tables; final state through migration 0014)
 - **Isolation model:** All business data includes `tenant_id`. All queries bind tenant context.
 
 ### 1.1 Design Principles
@@ -34,6 +34,9 @@ Purpose: Schema definition, table descriptions, canonical enums, migration strat
 | `plans` | `code`, `name`, `monthly_price_aud`, `student_limit`, `user_limit`, `storage_limit_mb` | Plan definitions (starter, studio, growth) |
 | `subscriptions` | `id`, `tenant_id`, `plan_code`, `status`, `billing_period`, `start_date`, `end_date` | Tenant subscription status |
 | `tenant_usage` | `id`, `tenant_id`, `storage_used_mb`, `student_count`, `user_count` | Per-tenant resource usage stats |
+| `tenant_brand_drafts` | `tenant_id`, `payload`, `updated_by_user_id`, `updated_at` | Private Studio Admin brand draft; never consumed by public pages |
+| `tenant_brand_versions` | `tenant_id`, `version_number`, `payload`, `published_by_user_id`, `published_at` | Immutable public-brand publication history and rollback source |
+| `memberships.role` | `super_admin`, `owner`, `manager`, `teacher`, `front_desk`, `staff`, `parent` | Explicit platform, brand-owner, operational and family access bundles |
 | `audit_logs` | `id`, `tenant_id`, `user_id`, `action`, `details` (JSONB), `created_at` | Key operation audit trail |
 
 ### 2.2 User Management Tables
@@ -61,7 +64,7 @@ Decision pending (P0-01): either represent platform roles as memberships with `t
 | `credit_accounts` | `id`, `tenant_id`, `student_id`, `course_id`, `balance` | Student balance accounts. Unique key: `(tenant_id, student_id, course_id)` |
 | `credit_transactions` | `id`, `tenant_id`, `student_id`, `credit_account_id`, `transaction_type`, `amount`, `description` | Ledger-style transaction log |
 | `attendance_sessions` | `id`, `tenant_id`, `student_id`, `course_id`, `credit_transaction_id`, `reversal_credit_transaction_id`, `attended_at`, `reversed_at` | Class/check-in records linked to credit ledger consume/refund rows |
-| `registrations` | `id`, `tenant_id`, `first_name`, `last_name`, `mobile`, `status`, `student_id`, `duplicate_of_registration_id`, `review_note`, `submitted_at` | Public registration applications and Studio Admin review decisions |
+| `registrations` | `id`, `tenant_id`, identity/contact fields, `status`, `source`, `source_language`, `campaign`, follow-up fields, `student_id`, review fields, timestamps | Portal/Quick Registration leads and the CMS conversion funnel |
 
 ### 2.4 Content Tables
 
@@ -93,7 +96,7 @@ These are the values enforced by the database today. Code, seeds, UI, and docs m
 | Membership status | `memberships.status` | `active`, `invited`, `disabled` |
 | Student status | `students.status` | `active`, `inactive`, `trial`, `archived` |
 | Credit transaction | `credit_transactions.transaction_type` | `purchase`, `consume`, `adjustment`, `refund`, `expire`, `migration` |
-| Registration status | `registrations.status` | `pending`, `approved`, `rejected`, `duplicate`, `contacted`, `archived` |
+| Registration status | `registrations.status` | `pending`, `contacted`, `trial_booked`, `waiting`, `approved`, `converted`, `rejected`, `duplicate`, `lost`, `archived` |
 | Media asset type | `media_assets.asset_type` | `student_photo`, `registration_photo`, `portfolio`, `homework`, `sheet_music`, `logo` |
 | Media storage | `media_assets.storage_provider` | `local`, `s3` |
 | Media visibility | `media_assets.visibility` | `private`, `public_token` |
@@ -181,8 +184,12 @@ backend/db/
 ├── schema_v1.sql          # Full bootstrap (read-only reference)
 └── migrations/
     ├── 0001_schema_v1.sql
-    ├── 0002_role_model_unification.sql        # P0-01 follow-up
-    └── 0003_status_enum_alignment.sql         # P0-07 follow-up
+    ├── 0002_platform_membership_index.sql
+    ├── ...
+    ├── 0011_portfolio_public_consent.sql
+    ├── 0012_product_lifecycle_and_brand_versions.sql
+    ├── 0013_tenant_role_bundles.sql
+    └── 0014_registration_privacy_consent.sql
 ```
 
 Tracking table:

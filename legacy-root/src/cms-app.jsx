@@ -727,6 +727,7 @@ function App() {
 
     // Pending approvals state
     const [approveCredits, setApproveCredits] = useState({}); // {pendingId: creditValue}
+    const [followUpDates, setFollowUpDates] = useState({}); // {registrationId: YYYY-MM-DD}
 
     // Package management state (settings)
     const [pkgEditId,  setPkgEditId]  = useState(null); // null=add new, number=editing id
@@ -734,6 +735,25 @@ function App() {
     const [pkgCredits, setPkgCredits] = useState('');
     const [pkgPrice,   setPkgPrice]   = useState('');
     const [tenantBrand, setTenantBrand] = useState(() => window.STUDIOSAAS_BRAND || {});
+    const [team, setTeam] = useState([]);
+    const [teamBusy, setTeamBusy] = useState(false);
+    const [teamForm, setTeamForm] = useState({fullName:'',email:'',role:'teacher',temporaryPassword:''});
+    const [actorRole, setActorRole] = useState('');
+    const ownerRoles = ['owner','platform_super_admin','super_admin'];
+    const roleTabs = {
+        owner: ['dashboard','roster','students','new_student','pending','topup','logs','stats'],
+        platform_super_admin: ['dashboard','roster','students','new_student','pending','topup','logs','stats'],
+        super_admin: ['dashboard','roster','students','new_student','pending','topup','logs','stats'],
+        manager: ['dashboard','roster','students','new_student','pending','topup','logs','stats'],
+        teacher: ['dashboard','students','logs'],
+        front_desk: ['dashboard','students','new_student','pending','topup','logs'],
+        staff: ['dashboard','roster','students','new_student','pending','topup','logs'],
+    };
+    const allowedTabs = roleTabs[actorRole] || ['dashboard'];
+    const canManageOperations = [...ownerRoles,'manager'].includes(actorRole);
+    const canWriteStudents = [...ownerRoles,'manager','front_desk','staff'].includes(actorRole);
+    const canWriteCredits = [...ownerRoles,'manager','front_desk','staff'].includes(actorRole);
+    const canWritePortfolio = [...ownerRoles,'manager','teacher','staff'].includes(actorRole);
 
     // Photo state for forms (shared — forms can't be open simultaneously)
     const [formPhoto, setFormPhoto] = useState('');
@@ -749,6 +769,14 @@ function App() {
         syncBrand();
         return () => window.removeEventListener('studiosaas:brand', syncBrand);
     }, []);
+
+    useEffect(() => {
+        if (showSettings && TENANT_SLUG && canManageOperations) loadTeam();
+    }, [showSettings, actorRole]);
+
+    useEffect(() => {
+        if (actorRole && !allowedTabs.includes(tab)) setTab('dashboard');
+    }, [actorRole, tab]);
 
     const tenantLogoUrl = tenantBrand.logo_url || tenantBrand.logoUrl || '/logo-light.png';
     const tenantDisplayName = tenantBrand.name || tenantBrand.studioName || 'Studio';
@@ -828,6 +856,43 @@ function App() {
     const confirm = (message, onConfirm, opts={}) =>
         setConfirmDialog({message, onConfirm, ...opts});
 
+    const loadTeam = async () => {
+        if (!TENANT_SLUG) return;
+        try {
+            const data = await v1Api('/team');
+            setTeam(data.team || []);
+        } catch (e) {
+            setTeam([]);
+            showToast(`团队成员加载失败：${e.message}`, 'error');
+        }
+    };
+
+    const createTeamMember = async () => {
+        if (teamBusy) return;
+        if (!teamForm.fullName.trim() || !teamForm.email.trim() || teamForm.temporaryPassword.length < 8) {
+            showToast('请填写姓名、邮箱和至少8位临时密码', 'warn'); return;
+        }
+        setTeamBusy(true);
+        try {
+            await v1Api('/team', {method:'POST', body:JSON.stringify(teamForm)});
+            setTeamForm({fullName:'',email:'',role:'teacher',temporaryPassword:''});
+            await loadTeam();
+            showToast('团队成员已添加，请通过安全渠道发送临时密码');
+        } catch (e) { showToast(`添加失败：${e.message}`, 'error'); }
+        finally { setTeamBusy(false); }
+    };
+
+    const updateTeamMember = async (member, status) => {
+        if (teamBusy || member.role === 'owner') return;
+        setTeamBusy(true);
+        try {
+            await v1Api(`/team/${member.id}`, {method:'PATCH', body:JSON.stringify({role:member.role,status})});
+            await loadTeam();
+            showToast(status === 'active' ? '成员已启用' : '成员已停用');
+        } catch (e) { showToast(`更新失败：${e.message}`, 'error'); }
+        finally { setTeamBusy(false); }
+    };
+
     /* G1: keyboard shortcut Cmd/Ctrl+K — must be before any early returns (Rules of Hooks) */
     useEffect(() => {
         const h = e => { if ((e.metaKey||e.ctrlKey) && e.key==='k') { e.preventDefault(); setGOpen(o=>!o); setGQ(''); } };
@@ -863,18 +928,21 @@ function App() {
         return () => { alive = false; };
     }, [selS?.id]);
 
-    /* ── Auth: check session on mount ── */
-    useEffect(() => {
-        fetch('/v1/auth/me', {credentials: 'include'})
+    /* ── Auth: check session on mount and immediately after login ── */
+    const refreshSession = () => fetch('/v1/auth/me', {credentials: 'include'})
             .then(r => r.json())
             .then(d => {
                 const memberships = d.memberships || [];
-                if (d.ok && memberships.some(m => m.tenant_slug === tenantSlug && ['owner','admin','platform_super_admin','super_admin'].includes(m.role))) {
+                const platformMembership = memberships.find(m => !m.tenant_slug && ['platform_super_admin','super_admin'].includes(m.role));
+                const tenantMembership = memberships.find(m => m.tenant_slug === tenantSlug);
+                const effectiveRole = platformMembership?.role || tenantMembership?.role || '';
+                if (d.ok && ['owner','manager','teacher','front_desk','staff','platform_super_admin','super_admin'].includes(effectiveRole)) {
+                    setActorRole(effectiveRole);
                     setLoggedIn(true);
                 }
             })
             .catch(() => {});
-    }, []);
+    useEffect(() => { refreshSession(); }, []);
 
     /* ── Network (S2: session-cookie auth only — master token never reaches the browser) ── */
     const apiHeaders = () => ({'Content-Type':'application/json'});
@@ -2119,29 +2187,48 @@ document.getElementById('copybtn').addEventListener('click', function(){
         }, {danger:true, confirmText:'确认拒绝'});
     };
 
+    const advanceRegistration = async (pid, status) => {
+        if (busy || !TENANT_SLUG) return;
+        setBusy(true);
+        try {
+            const nextDate = followUpDates[pid] || '';
+            await v1Api(`/registrations/${pid}`, {
+                method: 'PATCH',
+                body: JSON.stringify({
+                    status,
+                    nextFollowUpAt: nextDate ? `${nextDate}T09:00:00` : '',
+                    reviewNote: status === 'contacted' ? 'Studio contacted this lead.' : '',
+                }),
+            });
+            await load();
+            showToast(status === 'contacted' ? '已标记联系' : status === 'trial_booked' ? '已预约试听' : '已加入跟进');
+        } catch (e) { showToast(`更新失败：${e.message}`, 'error'); }
+        finally { setBusy(false); }
+    };
+
     /* ── Export: CSV ── */
-    const dlCSV = (filename, rows) => {
-        const bom = '﻿'; // UTF-8 BOM for Excel on Windows
-        const csv = rows.map(r => r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\r\n');
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(new Blob([bom+csv], {type:'text/csv;charset=utf-8'}));
-        a.download = filename; a.click();
+    const downloadTenantExport = async (path, fallbackName) => {
+        if (!TENANT_SLUG) return;
+        try {
+            const response = await fetch(`/s/${encodeURIComponent(TENANT_SLUG)}/v1/export/${path}`, {credentials:'include'});
+            if (!response.ok) {
+                const body = await response.json().catch(()=>({}));
+                throw new Error(body.message || `HTTP ${response.status}`);
+            }
+            const blob = await response.blob();
+            const disposition = response.headers.get('Content-Disposition') || '';
+            const match = disposition.match(/filename="?([^";]+)"?/i);
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = match?.[1] || fallbackName; a.click();
+            setTimeout(()=>URL.revokeObjectURL(url), 1000);
+        } catch (error) {
+            showToast(`导出失败：${error.message}`, 'error');
+        }
     };
-    const exportStudentsCSV = () => {
-        const hdr = ['Full Name','First Name','Last Name','Phone','WeChat','Email','Birthday','Balance','Last Active','Art Style','Fav Artist','Experience','Goals','Remark'];
-        const rows = sortedFiltered.map(s=>[s.name,s.firstName,s.lastName,s.mobile,s.wechat,s.email,s.birthday?fmtDate(s.birthday):'',s.balance,fmtDate(s.lastActive),s.artStyle,s.favArtist,s.experience,s.goals,s.remark]);
-        dlCSV(`Studio_Students_${todayISO()}.csv`, [hdr,...rows]);
-    };
-    const exportRevenueCSV = () => {
-        const hdr = ['Period','Revenue (AUD)','Check-ins','Top-ups'];
-        const rows = statsData.rows.map(r=>[sPeriod==='yearly'?`${r.key}年`:fmtMK(r.key), r.revenue.toFixed(2), r.checkins, r.topups]);
-        dlCSV(`Studio_Revenue_${todayISO()}.csv`, [hdr,...rows]);
-    };
-    const exportLogsCSV = () => {
-        const hdr = ['Date','Student','Action','Change','Fee (AUD)','Pay Method','Note'];
-        const rows = filteredLogs.map(l=>[l.date, l.studentName, l.action, l.change, l.feePaid||0, l.payMethod||'', l.note||'']);
-        dlCSV(`Studio_Logs_${todayISO()}.csv`, [hdr,...rows]);
-    };
+    const exportStudentsCSV = () => downloadTenantExport('students.csv', `Studio_Students_${todayISO()}.csv`);
+    const exportRevenueCSV = () => downloadTenantExport('revenue.csv', `Studio_Revenue_${todayISO()}.csv`);
+    const exportLogsCSV = () => downloadTenantExport('credit-ledger.csv', `Studio_Ledger_${todayISO()}.csv`);
 
     const changePin = () => {
         if (!/^\d{4}$/.test(newPin1)) { showToast('PIN 必须是 4 位数字','error'); return; }
@@ -2152,7 +2239,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
     const lockScreen = () => { if (!pinEnabled) { setShowSettings(false); confirm('确认退出登录？', doLogout, {confirmText:'退出登录'}); return; } clearSess(); setPinOK(false); setShowSettings(false); };
 
     /* ── Guards ── */
-    if (!loggedIn) return <LoginScreen onLogin={() => setLoggedIn(true)}/>;
+    if (!loggedIn) return <LoginScreen onLogin={refreshSession}/>;
     if (pinEnabled && !pinOK) return <PINScreen onUnlock={() => { markSess(); setPinOK(true); }}/>;
     if (!conn) return (
         <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white p-4">
@@ -2180,7 +2267,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
         {k:'topup',    i:'💰',l:'充值结算', s:'充值'},
         {k:'logs',     i:'📜',l:'操作日志', s:'日志'},
         {k:'stats',    i:'📈',l:'商业洞察', s:'统计'},
-    ];
+    ].filter(item => allowedTabs.includes(item.k));
 
     /* ══════════════════════════ RENDER ══════════════════════════ */
     return (
@@ -2445,19 +2532,54 @@ document.getElementById('copybtn').addEventListener('click', function(){
             {showSettings && (
                 <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4" onClick={()=>setShowSettings(false)}
                     style={{paddingTop:'max(16px, env(safe-area-inset-top, 16px))', paddingBottom:'max(16px, env(safe-area-inset-bottom, 16px))'}}>
-                    <div className="bg-white rounded-2xl p-6 w-full max-w-xs shadow-2xl anim overflow-y-auto modal-scroll" style={{maxHeight:'90dvh'}} onClick={e=>e.stopPropagation()}>
+                    <div className="bg-white rounded-2xl p-6 w-full max-w-2xl shadow-2xl anim overflow-y-auto modal-scroll" style={{maxHeight:'90dvh'}} onClick={e=>e.stopPropagation()}>
                         <div className="flex justify-between items-center mb-5">
                             <h3 className="font-bold text-gray-800">⚙️ 系统设置</h3>
                             <button onClick={()=>setShowSettings(false)} className="text-gray-400 active:text-gray-700 text-xl p-1">×</button>
                         </div>
                         {/* A5: Public website and lead-capture settings live in Studio Admin. */}
-                        {TENANT_SLUG && (
+                        {TENANT_SLUG && ownerRoles.includes(actorRole) && (
                             <a href={`/${TENANT_SLUG}/studio-admin`} target="_blank" rel="noopener"
                                 className="block bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3 text-sm font-bold text-indigo-700 active:bg-indigo-100">
                                 🎨 网站、Logo、配色与注册表设置 →
                                 <p className="text-[11px] font-normal text-indigo-400 mt-0.5">打开 Studio Admin 管理公开门户、注册表字段、品牌文案和页面展示</p>
                             </a>
                         )}
+                        {canManageOperations && <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
+                            <div>
+                                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">团队与权限</p>
+                                <p className="text-xs text-gray-400 mt-0.5">Owner管理团队；Manager负责日常运营，Teacher负责签到与作品，Front Desk负责报名、学员与课时。</p>
+                            </div>
+                            <div className="space-y-2">
+                                {team.map(member=>(
+                                    <div key={member.id} className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-bold text-gray-700 truncate">{member.full_name}</p>
+                                            <p className="text-xs text-gray-400 truncate">{member.email} · {member.role} · {member.status}</p>
+                                        </div>
+                                        {ownerRoles.includes(actorRole) && member.role!=='owner' && <button type="button" disabled={teamBusy}
+                                            onClick={()=>updateTeamMember(member,member.status==='active'?'disabled':'active')}
+                                            className="text-xs font-bold px-2 py-1 rounded-lg border border-gray-200 text-gray-600">
+                                            {member.status==='active'?'停用':'启用'}
+                                        </button>}
+                                    </div>
+                                ))}
+                            </div>
+                            {ownerRoles.includes(actorRole) ? <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-indigo-50 border border-indigo-100 rounded-xl p-3">
+                                <input value={teamForm.fullName} onChange={e=>setTeamForm(p=>({...p,fullName:e.target.value}))}
+                                    placeholder="姓名" className="px-3 py-2 border border-gray-300 rounded-xl text-sm"/>
+                                <input type="email" value={teamForm.email} onChange={e=>setTeamForm(p=>({...p,email:e.target.value}))}
+                                    placeholder="邮箱" className="px-3 py-2 border border-gray-300 rounded-xl text-sm"/>
+                                <select value={teamForm.role} onChange={e=>setTeamForm(p=>({...p,role:e.target.value}))}
+                                    className="px-3 py-2 border border-gray-300 rounded-xl text-sm">
+                                    <option value="manager">Manager</option><option value="teacher">Teacher</option><option value="front_desk">Front Desk</option><option value="staff">Staff (legacy)</option>
+                                </select>
+                                <input type="password" value={teamForm.temporaryPassword} onChange={e=>setTeamForm(p=>({...p,temporaryPassword:e.target.value}))}
+                                    placeholder="临时密码（至少8位）" className="px-3 py-2 border border-gray-300 rounded-xl text-sm"/>
+                                <button type="button" onClick={createTeamMember} disabled={teamBusy}
+                                    className="sm:col-span-2 bg-indigo-600 text-white py-2.5 rounded-xl font-bold text-sm disabled:opacity-50">添加团队成员</button>
+                            </div> : <p className="text-xs text-gray-400 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2">当前角色可查看团队；只有 Owner 可以新增、停用或更改成员角色。</p>}
+                        </div>}
                         {/* 修改登录密码 */}
                         <div className="space-y-2">
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">修改登录密码</p>
@@ -2498,6 +2620,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         </div>
                         )}
                         {/* Fix ⑪: configurable inactive-days threshold */}
+                        {canManageOperations && <>
                         <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">未到访预警天数</p>
                             <div className="flex gap-2">
@@ -2558,8 +2681,9 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                 </div>
                             )}
                         </div>
+                        </>}
                         {/* U6: Roster cleanup */}
-                        {(()=>{
+                        {canManageOperations && (()=>{
                             const cutoffStr = (() => { const d=new Date(); d.setDate(d.getDate()-90); return d.toISOString().slice(0,10); })();
                             const oldKeys = Object.keys(db.rosters||{}).filter(d=>d<cutoffStr);
                             const cleanRosters = () => {
@@ -2586,8 +2710,10 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             );
                         })()}
                         {/* F1/F5/F6: 数据体检 + 阈值 + 每周邮件 + 备份恢复 */}
-                        <MaintSection renewTh={renewTh} saveRenewTh={saveRenewTh}
-                            onRestored={()=>{ setShowSettings(false); load(); }}/>
+                        {!TENANT_SLUG && (
+                            <MaintSection renewTh={renewTh} saveRenewTh={saveRenewTh}
+                                onRestored={()=>{ setShowSettings(false); load(); }}/>
+                        )}
                         <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">学员注册页面</p>
                             <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
@@ -2603,8 +2729,9 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                 <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide pb-0.5">快捷操作</p>
                                 <button onClick={()=>{load();setShowSettings(false);}} disabled={busy}
                                     className="w-full bg-indigo-50 active:bg-indigo-100 text-indigo-700 border border-indigo-200 py-3 rounded-xl font-bold text-sm">🔄 刷新数据</button>
-                                <button onClick={()=>{exportDB();setShowSettings(false);}}
+                                {canManageOperations && !TENANT_SLUG && <button onClick={()=>{exportDB();setShowSettings(false);}}
                                     className="w-full bg-indigo-50 active:bg-indigo-100 text-indigo-700 border border-indigo-200 py-3 rounded-xl font-bold text-sm">⬇️ 备份导出</button>
+                                }
                                 <button onClick={()=>{setShowSettings(false);confirm('确认退出登录？下次进入需重新输入密码。', doLogout, {confirmText:'退出登录'});}}
                                     className="w-full bg-red-50 active:bg-red-100 text-red-600 border border-red-200 py-3 rounded-xl font-bold text-sm">🔓 退出登录</button>
                             </div>
@@ -2653,7 +2780,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             ⚠️ 日志 {db.logs.length} 条
                         </div>
                     )}
-                    <button onClick={exportDB} className="w-full bg-indigo-700 active:bg-indigo-600 p-2.5 rounded-xl text-xs font-bold min-h-[40px]">⬇️ 备份导出</button>
+                    {canManageOperations && !TENANT_SLUG && <button onClick={exportDB} className="w-full bg-indigo-700 active:bg-indigo-600 p-2.5 rounded-xl text-xs font-bold min-h-[40px]">⬇️ 备份导出</button>}
                     <button onClick={load} disabled={busy} className="w-full bg-indigo-800 active:bg-indigo-700 p-2.5 rounded-xl text-xs font-bold min-h-[40px]">🔄 刷新</button>
                     <button onClick={()=>setShowSettings(true)} className="w-full bg-indigo-800 active:bg-indigo-700 p-2.5 rounded-xl text-xs font-bold min-h-[40px]">⚙️ 设置</button>
                     <button onClick={()=>confirm('确认退出登录？下次进入需重新输入密码。', doLogout, {confirmText:'退出登录'})}
@@ -3147,10 +3274,12 @@ document.getElementById('copybtn').addEventListener('click', function(){
     <div className="flex justify-between items-center gap-3 flex-wrap">
         <h2 className="text-xl md:text-2xl font-bold text-gray-800">学员档案 ({sortedFiltered.length})</h2>
         <div className="flex gap-2">
-            <button onClick={exportStudentsCSV}
+            {canManageOperations && <button onClick={exportStudentsCSV}
                 className="bg-white border border-gray-300 active:bg-gray-50 text-gray-600 px-4 py-2.5 rounded-xl font-bold text-sm min-h-[44px]">⬇️ CSV</button>
-            <button onClick={()=>setTab('new_student')}
+            }
+            {canWriteStudents && <button onClick={()=>setTab('new_student')}
                 className="bg-indigo-600 active:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md min-h-[44px]">➕ 新建</button>
+            }
         </div>
     </div>
 
@@ -3179,7 +3308,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
     </div>
 
     {/* F5: 待续课看板 — 低余额筛选下提供一键复制提醒话术 */}
-    {filterBy==='low' && sortedFiltered.length>0 && (
+    {canWriteCredits && filterBy==='low' && sortedFiltered.length>0 && (
         <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 flex items-center justify-between gap-3 flex-wrap">
             <p className="text-sm font-bold text-orange-700">⚡ 待续课学员 {sortedFiltered.length} 人（余额 ≤{renewTh} 节）</p>
             <button onClick={()=>{
@@ -3215,10 +3344,12 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     <button onClick={()=>{setSelS(s);setEditP(false);}}
                         className="flex-1 bg-gray-50 active:bg-gray-100 border border-gray-200 text-gray-700 py-3 rounded-xl text-sm font-bold min-h-[44px]">详情</button>
                     {!s.archived && (<>
-                        <button onClick={()=>{setTuStu(s.id);setTab('topup');}}
+                        {canWriteCredits && <button onClick={()=>{setTuStu(s.id);setTab('topup');}}
                             title="快速充值" className="px-3.5 py-3 rounded-xl text-base font-bold bg-emerald-50 active:bg-emerald-100 text-emerald-700 border border-emerald-200 min-h-[44px]">💰</button>
-                        <button onClick={()=>scheduleStudentToday(s)} disabled={busy}
+                        }
+                        {canManageOperations && <button onClick={()=>scheduleStudentToday(s)} disabled={busy}
                             className="flex-1 py-3 rounded-xl text-sm font-bold text-white min-h-[44px] bg-indigo-600 active:bg-indigo-700 disabled:bg-gray-300">📅 {isStudentScheduledOn(s.id,todayISO())?'去排课':'排课'}</button>
+                        }
                     </>)}
                 </div>
             </div>
@@ -3345,7 +3476,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             const match = db.students.filter(s=>!s.archived && normP(s.mobile)===normP(pen.mobile));
                             return match.length > 0 ? <p className="text-xs text-blue-500 mt-0.5">📱 此电话已有学员：{match.map(s=>s.firstName&&s.lastName?`${s.firstName} ${s.lastName}`:s.name||'').join('、')}</p> : null;
                         })()}
-                        <p className="text-xs text-gray-400 mt-0.5">提交时间: {pen.submittedAt||'—'}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">提交时间: {pen.submittedAt||'—'} · 来源: {pen.source==='portal'?'门户网站':'快速报名'} · 状态: {pen.status||'pending'}</p>
                     </div>
                 </div>
 	                {preferenceRows(pen).length > 0 && (
@@ -3364,6 +3495,20 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         <p>{pen.message}</p>
                     </div>
                 )}
+                <div className="bg-blue-50 border border-blue-100 rounded-2xl p-3 flex flex-wrap items-end gap-2">
+                    <div>
+                        <label className="text-xs font-bold text-blue-700 mb-1 block">下次跟进</label>
+                        <input type="date" value={followUpDates[pen.id]||''}
+                            onChange={e=>setFollowUpDates(p=>({...p,[pen.id]:e.target.value}))}
+                            className="px-3 py-2 border border-blue-200 rounded-xl text-sm"/>
+                    </div>
+                    <button onClick={()=>advanceRegistration(pen.id,'contacted')} disabled={busy}
+                        className="px-3 py-2 bg-white border border-blue-200 text-blue-700 font-bold rounded-xl text-sm">已联系</button>
+                    <button onClick={()=>advanceRegistration(pen.id,'trial_booked')} disabled={busy}
+                        className="px-3 py-2 bg-white border border-blue-200 text-blue-700 font-bold rounded-xl text-sm">已约试听</button>
+                    <button onClick={()=>advanceRegistration(pen.id,'waiting')} disabled={busy}
+                        className="px-3 py-2 bg-white border border-blue-200 text-blue-700 font-bold rounded-xl text-sm">继续跟进</button>
+                </div>
                 <div className="flex items-end gap-3 pt-2 border-t border-gray-100">
                     <div className="flex-1">
                         <label className="text-xs font-bold text-gray-500 mb-1 block">初始课时数</label>
@@ -3560,8 +3705,9 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     className="px-3 py-2 bg-gray-100 active:bg-gray-200 text-gray-500 rounded-xl text-xs font-bold min-h-[40px]">✕ 清除</button>
             )}
             <span className="text-sm text-gray-400">{filteredLogs.length} 条</span>
-            <button onClick={exportLogsCSV}
+            {canManageOperations && <button onClick={exportLogsCSV}
                 className="ml-auto bg-white border border-gray-300 active:bg-gray-50 text-gray-600 px-3 py-2 rounded-xl font-bold text-xs min-h-[40px]">⬇️ CSV</button>
+            }
         </div>
     </div>
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -3854,7 +4000,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
 	                            </div>
 	                        )}
                         {/* F2: Topup history collapsible */}
-                        {(()=>{
+                        {canWriteCredits && (()=>{
                             const topupsAll = db.logs.filter(l=>(l.studentId===selS.id || (!l.studentId && l.studentName===selS.name))&&l.action==='充值购课');   /* D3 */
                             const topups = topupsAll.slice(0,10);
                             if (!topupsAll.length) return null;
@@ -3898,7 +4044,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         )}
 
                         {/* ── Portfolio section ── */}
-                        {(()=>{
+                        {canWritePortfolio && (()=>{
                             const items = selS.portfolio || [];
                             return (
                                 <div className="border border-purple-100 rounded-2xl overflow-hidden">
@@ -3958,28 +4104,31 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             );
                         })()}
                         <div className="flex gap-2">
-                            {!selS.archived && <>
+                            {canManageOperations && !selS.archived && <>
                                 <button onClick={()=>scheduleStudentToday(selS)} disabled={busy}
                                     className="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-indigo-600 active:bg-indigo-700 disabled:bg-gray-300 min-h-[50px]">📅 {isStudentScheduledOn(selS.id,todayISO())?'查看今日排课':'加入今日排课'}</button>
                             </>}
-                            <button onClick={()=>{setEditP(true);setEditPhoto(selS.photo||'');}}
+                            {canWriteStudents && <button onClick={()=>{setEditP(true);setEditPhoto(selS.photo||'');}}
                                 className="flex-1 py-3 rounded-xl text-sm font-bold bg-white border-2 border-indigo-100 active:bg-indigo-50 text-indigo-700 min-h-[50px]">✏️ 编辑</button>
+                            }
                         </div>
-                        {!selS.archived && (
+                        {canWriteCredits && !selS.archived && (
                             <button onClick={()=>{setTuStu(selS.id);setSelS(null);setEditP(false);setTab('topup');}}
                                 className="w-full py-3 rounded-xl text-sm font-bold bg-white border border-gray-200 active:bg-gray-50 text-gray-700 min-h-[50px]">
                                 💰 快速充值
                             </button>
                         )}
                         {/* G3: 学员成长报告 */}
-                        <button onClick={()=>openGrowthReport(selS)}
+                        {canWritePortfolio && <button onClick={()=>openGrowthReport(selS)}
                             className="w-full py-3 rounded-xl text-sm font-bold bg-gradient-to-r from-purple-500 to-pink-500 active:from-purple-600 active:to-pink-600 text-white min-h-[50px] shadow-sm">
                             🌟 生成成长报告（发给家长）
                         </button>
-                        <button onClick={()=>archiveStudent(selS.id,selS.name,!selS.archived)}
+                        }
+                        {canWriteStudents && <button onClick={()=>archiveStudent(selS.id,selS.name,!selS.archived)}
                             className={`w-full py-3 rounded-xl text-sm font-bold border min-h-[50px] ${selS.archived?'bg-green-50 active:bg-green-100 text-green-700 border-green-200':'bg-gray-50 active:bg-gray-100 text-gray-500 border-gray-200'}`}>
                             {selS.archived ? '📤 恢复学员' : '📦 归档学员'}
                         </button>
+                        }
                     </div>
                 ) : (
                     <form onSubmit={handleUpdateStudent} className="space-y-4">
@@ -4051,7 +4200,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
             {moreOpen && (
                 <div className="md:hidden fixed bottom-[calc(56px+env(safe-area-inset-bottom,0px))] left-0 right-0 z-[46] bg-indigo-900 border-t border-indigo-700 px-4 py-3 grid grid-cols-4 gap-2 anim"
                      onClick={e=>e.stopPropagation()}>
-                    {[{k:'logs',i:'📜',s:'日志'},{k:'stats',i:'📈',s:'统计'},{k:'pending',i:'📋',s:'待审核',badge:pendingCount},{k:'new_student',i:'➕',s:'新建'}].map(({k,i,s,badge})=>(
+                    {[{k:'logs',i:'📜',s:'日志'},{k:'stats',i:'📈',s:'统计'},{k:'pending',i:'📋',s:'待审核',badge:pendingCount},{k:'new_student',i:'➕',s:'新建'}].filter(item=>allowedTabs.includes(item.k)).map(({k,i,s,badge})=>(
                         <button key={k} onClick={()=>{setTab(k);setMoreOpen(false);}}
                             className={`flex flex-col items-center justify-center py-2.5 gap-0.5 rounded-xl relative ${['logs','stats','pending','new_student'].includes(tab)&&tab===k?'bg-indigo-700':'active:bg-indigo-800'}`}>
                             <span className="text-[22px] leading-none">{i}</span>
@@ -4063,7 +4212,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
             )}
             <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-indigo-900 border-t border-indigo-800 flex"
                  style={{paddingBottom:'env(safe-area-inset-bottom,0px)', transform:'translateZ(0)', willChange:'transform'}}>
-                {[{k:'dashboard',i:'📊',s:'工作台'},{k:'roster',i:'📅',s:'排课'},{k:'students',i:'👥',s:'档案'},{k:'topup',i:'💰',s:'充值'}].map(({k,i,s}) => (
+                {[{k:'dashboard',i:'📊',s:'工作台'},{k:'roster',i:'📅',s:'排课'},{k:'students',i:'👥',s:'档案'},{k:'topup',i:'💰',s:'充值'}].filter(item=>allowedTabs.includes(item.k)).map(({k,i,s}) => (
                     <button key={k} onClick={()=>{setTab(k);setMoreOpen(false);}}
                         className={`flex-1 flex flex-col items-center justify-center py-2 gap-0.5 min-h-[52px] relative ${tab===k?'bg-indigo-700':'active:bg-indigo-800'}`}>
                         <span className="text-[22px] leading-none">{i}</span>

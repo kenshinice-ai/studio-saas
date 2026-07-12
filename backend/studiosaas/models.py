@@ -15,6 +15,9 @@ class Role(StrEnum):
 
     SUPER_ADMIN = "super_admin"
     OWNER = "owner"
+    MANAGER = "manager"
+    TEACHER = "teacher"
+    FRONT_DESK = "front_desk"
     STAFF = "staff"
     PARENT = "parent"
 
@@ -22,7 +25,9 @@ class Role(StrEnum):
 class TenantStatus(StrEnum):
     """Tenant lifecycle states."""
 
+    LEAD = "lead"
     TRIAL = "trial"
+    ONBOARDING = "onboarding"
     ACTIVE = "active"
     PAST_DUE = "past_due"
     PAUSED = "paused"

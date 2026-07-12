@@ -75,7 +75,7 @@ def resolve_tenant(conn: Any, slug: str, source: str) -> TenantContext:
     )
     if not row:
         raise TenantResolutionError(f"Tenant '{slug}' was not found.")
-    if row["status"] not in ("trial", "active", "past_due"):
+    if row["status"] not in ("trial", "onboarding", "active", "past_due"):
         raise TenantResolutionError(f"Tenant '{slug}' is not active.")
     return TenantContext(tenant_id=str(row["id"]), slug=row["slug"], source=source)
 

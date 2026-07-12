@@ -362,8 +362,8 @@
     <div class="wrap">
       <div class="sec-head reveal" style="text-align:center;margin:0 auto 40px">
         <p class="eyebrow" data-en="Enrolment Enquiry">预约体验 · 报名咨询</p>
-        <h2 class="serif" data-en="Tell us a little about the student">告诉我们学员的基本情况</h2>
-        <p data-en="Leave a few details and the teacher will personally be in touch to find the class and time that suit you.">留下几行信息，老师会亲自与您联系，帮您找到最合适的班型与时间。</p>
+        <h2 id="joinTitle" class="serif" data-en="Tell us a little about the student">告诉我们学员的基本情况</h2>
+        <p id="joinIntro" data-en="Leave a few details and the teacher will personally be in touch to find the class and time that suit you.">留下几行信息，老师会亲自与您联系，帮您找到最合适的班型与时间。</p>
       </div>
       <div class="form-card reveal" id="joinForm">
         <div class="fld-row">
@@ -525,6 +525,13 @@
     el.setAttribute('data-'+language,value);
     if((window.LANG||LANG)===language) el.textContent=value;
   }
+  function setLocalizedCopy(id, pair){
+    var el=document.getElementById(id); if(!el||!pair||typeof pair!=='object')return;
+    if(pair.zh)el.setAttribute('data-zh',pair.zh);
+    if(pair.en)el.setAttribute('data-en',pair.en);
+    var value=(window.LANG||LANG)==='en'?(pair.en||pair.zh):(pair.zh||pair.en);
+    if(value)el.textContent=value;
+  }
   function showSection(id, visible){
     var el=document.getElementById(id);
     if(el) el.style.display = visible ? '' : 'none';
@@ -586,6 +593,7 @@
   fetch(API + '/brand').then(function(r){return r.json();}).then(function(d){
     var b=(d&&d.brand)||{};
     var hero=b.heroProfile||b.hero_profile||{};
+    var localized=b.localizedCopy||b.localized_copy||{};
     var website=b.websiteProfile||b.website_profile||{};
     var principal=b.principalProfile||b.principal_profile||{};
     var visual=b.visualTheme||b.visual_theme||{};
@@ -604,12 +612,13 @@
     }
     if(b.logoUrl){ var lg=document.getElementById('brandLogo'); lg.src=b.logoUrl; lg.style.display='block'; }
     setCopy('heroEyebrow', hero.eyebrow || b.categoryLabel);
-      setCopy('heroName', hero.title || b.name, 'both');
-    setCopy('heroSlogan', hero.subtitle || b.slogan);
-    setCopy('heroPrimaryCta', (hero.primary_cta_label || hero.primaryCtaLabel || 'Book a Trial') + ' →');
-    setCopy('heroSecondaryCta', hero.secondary_cta_label || hero.secondaryCtaLabel || 'Explore Courses');
-    setCopy('navPrimaryCta', hero.primary_cta_label || hero.primaryCtaLabel || 'Book a Trial');
-    setCopy('mnavPrimaryCta', hero.primary_cta_label || hero.primaryCtaLabel || 'Book a Trial');
+    if(localized.hero_title) setLocalizedCopy('heroName',localized.hero_title); else setCopy('heroName', hero.title || b.name, 'both');
+    if(localized.hero_subtitle) setLocalizedCopy('heroSlogan',localized.hero_subtitle); else setCopy('heroSlogan', hero.subtitle || b.slogan);
+    if(localized.primary_cta){ ['heroPrimaryCta','navPrimaryCta','mnavPrimaryCta'].forEach(function(id){setLocalizedCopy(id,localized.primary_cta);}); }
+    else { setCopy('heroPrimaryCta', hero.primary_cta_label || hero.primaryCtaLabel || 'Book a Trial'); setCopy('navPrimaryCta', hero.primary_cta_label || hero.primaryCtaLabel || 'Book a Trial'); setCopy('mnavPrimaryCta', hero.primary_cta_label || hero.primaryCtaLabel || 'Book a Trial'); }
+    if(localized.secondary_cta) setLocalizedCopy('heroSecondaryCta',localized.secondary_cta); else setCopy('heroSecondaryCta', hero.secondary_cta_label || hero.secondaryCtaLabel || 'Explore Courses');
+    if(localized.registration_title) setLocalizedCopy('joinTitle',localized.registration_title);
+    if(localized.registration_intro) setLocalizedCopy('joinIntro',localized.registration_intro);
     var showStudent = String(hero.show_student_login ?? hero.showStudentLogin ?? website.show_student_area ?? website.showStudentArea ?? true) !== 'false';
     setNavVisible(['navStudent','mnavStudent','heroStudentLogin'], showStudent);
     var heroStyle = hero.background_style || hero.backgroundStyle || 'soft';
@@ -706,8 +715,12 @@
     try{ msgParts = msgParts.concat(collectRegistrationFields()); }
     catch(err){ btn.disabled=false; btn.textContent=T('提交预约','Submit booking'); return show(err.message); }
     if(msg)      msgParts.push(msg);
-    var body={firstName:name, lastName:last, mobile:phone, email:email,
-              message:msgParts.join(' ｜ '), website:v('j-web')};
+    var campaign={};
+    try{ var params=new URLSearchParams(location.search); ['utm_source','utm_medium','utm_campaign','utm_content','utm_term'].forEach(function(k){if(params.get(k))campaign[k]=params.get(k);}); }catch(e){}
+    var body=Object.assign({firstName:name, lastName:last, mobile:phone, email:email,
+              message:msgParts.join(' ｜ '), website:v('j-web'), source:'portal',
+              sourcePath:location.pathname, language:(window.LANG||LANG),
+              privacyConsent:true, privacyNoticeVersion:'2026-07-12'},campaign);
     fetch(API + '/registrations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
       .then(function(r){return r.json().then(function(d){return {ok:r.ok,d:d};});})
       .then(function(res){

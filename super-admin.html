@@ -1054,27 +1054,51 @@
         <div class="section-header">
           <div class="section-icon">↗</div>
           <div>
-            <div class="section-title">Overview</div>
-            <div class="section-subtitle">High-level platform health and usage</div>
+            <div class="section-title">Commercial Overview</div>
+            <div class="section-subtitle">Tenant lifecycle, recurring revenue, activation, and platform usage</div>
           </div>
         </div>
         <div class="stats-grid">
           <div class="stat-card">
             <div id="tenantCount" class="stat-value">-</div>
-            <div class="stat-label">Active Tenants</div>
+            <div class="stat-label">Total Tenants</div>
           </div>
           <div class="stat-card green">
-            <div id="studentCount" class="stat-value">-</div>
-            <div class="stat-label">Total Students</div>
+            <div id="mrrCount" class="stat-value">-</div>
+            <div class="stat-label">MRR (AUD)</div>
           </div>
           <div class="stat-card amber">
-            <div id="portfolioCount" class="stat-value">-</div>
-            <div class="stat-label">Portfolio Items</div>
+            <div id="paidTenantCount" class="stat-value">-</div>
+            <div class="stat-label">Paid Tenants</div>
           </div>
           <div class="stat-card purple">
-            <div id="storageCount" class="stat-value">-</div>
-            <div class="stat-label">Storage (MB)</div>
+            <div id="trialTenantCount" class="stat-value">-</div>
+            <div class="stat-label">Trial Tenants</div>
           </div>
+          <div class="stat-card">
+            <div id="onboardingTenantCount" class="stat-value">-</div>
+            <div class="stat-label">Onboarding</div>
+          </div>
+          <div class="stat-card amber">
+            <div id="pastDueTenantCount" class="stat-value">-</div>
+            <div class="stat-label">Past Due</div>
+          </div>
+          <div class="stat-card purple">
+            <div id="trialEndingCount" class="stat-value">-</div>
+            <div class="stat-label">Trials Ending in 7 Days</div>
+          </div>
+          <div class="stat-card">
+            <div id="newTenantCount" class="stat-value">-</div>
+            <div class="stat-label">New in 30 Days</div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <div class="card-header"><h2 class="card-title">Commercial Attention</h2></div>
+          <div id="commercialAttention" class="empty-state">Loading lifecycle risks…</div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <div class="card-header"><h2 class="card-title">30-Day Acquisition Funnel</h2></div>
+          <div id="acquisitionFunnel" class="empty-state">Loading registration conversion…</div>
         </div>
       </section>
 
@@ -1097,7 +1121,9 @@
               <label>Status</label>
               <select id="statusFilter">
                 <option value="">All Statuses</option>
+                <option>lead</option>
                 <option>trial</option>
+                <option>onboarding</option>
                 <option>active</option>
                 <option>past_due</option>
                 <option>paused</option>
@@ -1487,14 +1513,14 @@
 
     // Status pill with icon
     function pill(value) {
-      const icons = { active: '●', trialing: '◐', trial: '◇', past_due: '⚠', cancelled: '✕', paused: '⏸', archived: '□', deleted: '✕' };
+      const icons = { lead: '○', onboarding: '◒', active: '●', trialing: '◐', trial: '◇', past_due: '⚠', cancelled: '✕', paused: '⏸', archived: '□', deleted: '✕' };
       const cls = value === 'active' || value === 'trialing' || value === 'trial' ? 'pill active' :
                   value === 'past_due' ? 'pill past_due' : 'pill';
       return `<span class="${cls}">${icons[value] || ''} ${text(value)}</span>`;
     }
 
     function appendPill(cell, value) {
-      const icons = { active: '●', trialing: '◐', trial: '◇', past_due: '⚠', cancelled: '✕', paused: '⏸', archived: '□', deleted: '✕' };
+      const icons = { lead: '○', onboarding: '◒', active: '●', trialing: '◐', trial: '◇', past_due: '⚠', cancelled: '✕', paused: '⏸', archived: '□', deleted: '✕' };
       const cls = value === 'active' || value === 'trialing' || value === 'trial' ? 'pill active' :
                   value === 'past_due' ? 'pill past_due' : 'pill';
       const span = document.createElement('span');
@@ -1532,6 +1558,7 @@
     }
 
     function isTestTenant(t) {
+      if (t.is_test === true) return true;
       const slug = String(t.slug || '');
       return slug.startsWith('isolation-') || slug.startsWith('test-') || String(t.owner_email || '').endsWith('@studiosaas.local');
     }
@@ -1548,10 +1575,29 @@
       if (!t.owner_email) risks.push('No owner assigned');
       if (!t.studio_admin_email) risks.push('No admin login');
       if (!t.billing_email) risks.push('Billing email missing');
+      if (!t.portal_published) risks.push('Website not published');
+      if (!t.logo_ready || !t.hero_ready || !t.contact_ready) risks.push('Brand setup incomplete');
+      if (!t.studio_admin_last_login) risks.push('Owner has not signed in');
       if (t.ends_at && new Date(t.ends_at).getTime() < Date.now()) risks.push('Subscription expired');
       if (plan.storage_limit_mb && percent(t.storage_used_mb, plan.storage_limit_mb) >= 85) risks.push('Storage near limit');
       if (plan.student_limit && percent(t.student_count, plan.student_limit) >= 85) risks.push('Student limit near limit');
       return risks;
+    }
+
+    function onboardingChecklist(t) {
+      return [
+        ['Owner assigned', Boolean(t.owner_email)],
+        ['Studio Admin login configured', Boolean(t.studio_admin_email)],
+        ['Owner has signed in', Boolean(t.studio_admin_last_login)],
+        ['Logo configured', Boolean(t.logo_ready)],
+        ['Hero and contact ready', Boolean(t.hero_ready && t.contact_ready)],
+        ['Studio Website published', Boolean(t.portal_published)]
+      ];
+    }
+
+    function onboardingProgress(t) {
+      const steps = onboardingChecklist(t);
+      return `${steps.filter(([, complete]) => complete).length} / ${steps.length}`;
     }
 
     function healthLabel(t) {
@@ -1720,7 +1766,7 @@
             <div class="form-group"><label>Slug</label><input id="m_tenantSlug" value="${esc(t.slug)}" disabled><small>Read-only after creation because it affects URLs, workspace paths, and media paths.</small></div>
             <div class="form-group"><label>Category</label><select id="m_tenantCategory">${categoryOptions(t.category || 'general')}</select></div>
             <div class="form-group"><label>Slogan</label><input id="m_tenantSlogan" value="${esc(t.slogan || presetSlogan(t.category || 'general'))}"></div>
-            <div class="form-group"><label>Tenant Status</label><select id="m_tenantStatus">${['trial','active','past_due','paused','cancelled','archived'].map(s => `<option ${s===t.status?'selected':''}>${s}</option>`).join('')}</select></div>
+            <div class="form-group"><label>Tenant Status</label><select id="m_tenantStatus">${['lead','trial','onboarding','active','past_due','paused','cancelled','archived'].map(s => `<option ${s===t.status?'selected':''}>${s}</option>`).join('')}</select></div>
             <div class="form-group"><label>Plan</label><select id="m_tenantPlan">${plans.map(p => `<option value="${p.code}" ${p.code===t.plan_code?'selected':''}>${p.name}</option>`).join('')}</select></div>
           </div>
         </details>
@@ -1952,10 +1998,10 @@
       const slug = encodeURIComponent(String(t.slug || ''));
       const open = section('Open');
       const unavailable = ['archived', 'deleted'].includes(t.status);
-      addActionLink(open, 'Open Portal', `/${slug}`, unavailable ? 'Archived or deleted tenants cannot be opened.' : '');
+      addActionLink(open, 'Open Studio Website', `/${slug}`, unavailable ? 'Archived or deleted tenants cannot be opened.' : '');
       addActionLink(open, 'Open CMS', `/${slug}/cms`, unavailable ? 'Archived or deleted tenants cannot be opened.' : '');
       addActionLink(open, 'Open Studio Admin', `/${slug}/studio-admin`, unavailable ? 'Archived or deleted tenants cannot be opened.' : (!t.studio_admin_email ? 'Studio Admin login is not configured.' : ''));
-      addActionLink(open, 'Open Register Page', `/${slug}/register`, ['paused', 'archived', 'deleted'].includes(t.status) ? 'Registration is unavailable for paused, archived, or deleted tenants.' : '');
+      addActionLink(open, 'Open Quick Registration', `/${slug}/register`, ['paused', 'archived', 'deleted'].includes(t.status) ? 'Registration is unavailable for paused, archived, or deleted tenants.' : '');
       const support = section('Support');
       const supportBtn = addActionButton(support, 'Enter Support Mode', 'btn-warning', () => enterSupportMode(id));
       if (unavailable) { supportBtn.disabled = true; supportBtn.title = 'Archived or deleted tenants cannot be supported.'; }
@@ -2065,6 +2111,7 @@
       addSummary('Student Usage', plan.student_limit ? `${Number(t.student_count || 0)} / ${plan.student_limit}` : Number(t.student_count || 0));
       addSummary('Storage Usage', plan.storage_limit_mb ? `${formatStorageMb(t.storage_used_mb)} / ${formatStorageMb(plan.storage_limit_mb)}` : formatStorageMb(t.storage_used_mb));
       addSummary('Owner Email', t.owner_email || 'Needs owner');
+      addSummary('Onboarding', onboardingProgress(t));
       addSummary('Health', healthLabel(t));
       container.appendChild(summary);
 
@@ -2145,11 +2192,20 @@
         const links = document.createElement('div');
         links.className = 'link-grid';
         const unavailable = ['archived', 'deleted'].includes(t.status);
-        addActionLink(links, 'Portal', `/${slug}`, unavailable ? 'Archived or deleted tenants cannot be opened.' : '');
-        addActionLink(links, 'CMS', `/${slug}/cms`, unavailable ? 'Archived or deleted tenants cannot be opened.' : '');
-        addActionLink(links, 'Admin', `/${slug}/studio-admin`, unavailable ? 'Archived or deleted tenants cannot be opened.' : (!t.studio_admin_email ? 'Studio Admin login is not configured.' : ''));
-        addActionLink(links, 'Register', `/${slug}/register`, ['paused', 'archived', 'deleted'].includes(t.status) ? 'Registration is unavailable for paused, archived, or deleted tenants.' : '');
+        addActionLink(links, 'Studio Website', `/${slug}`, unavailable ? 'Archived or deleted tenants cannot be opened.' : '');
+        addActionLink(links, 'Studio CMS', `/${slug}/cms`, unavailable ? 'Archived or deleted tenants cannot be opened.' : '');
+        addActionLink(links, 'Brand Workspace', `/${slug}/studio-admin`, unavailable ? 'Archived or deleted tenants cannot be opened.' : (!t.studio_admin_email ? 'Studio Admin login is not configured.' : ''));
+        addActionLink(links, 'Quick Registration', `/${slug}/register`, ['paused', 'archived', 'deleted'].includes(t.status) ? 'Registration is unavailable for paused, archived, or deleted tenants.' : '');
         item.appendChild(links);
+      });
+      addDetail('Onboarding Checklist', (item) => {
+        onboardingChecklist(t).forEach(([label, complete]) => {
+          const row = document.createElement('div');
+          row.textContent = `${complete ? '✓' : '○'} ${label}`;
+          row.style.color = complete ? 'var(--success)' : 'var(--muted)';
+          row.style.marginBottom = '4px';
+          item.appendChild(row);
+        });
       });
       addDetail('Workspace', (item) => {
         const code = document.createElement('code');
@@ -2343,9 +2399,26 @@
         fillPlanSelect();
 
         $('tenantCount').textContent = usage.usage.tenants;
-        $('studentCount').textContent = usage.usage.students;
-        $('portfolioCount').textContent = usage.usage.portfolio_items;
-        $('storageCount').textContent = usage.usage.storage_used_mb;
+        $('mrrCount').textContent = money(usage.usage.mrr_aud);
+        $('paidTenantCount').textContent = usage.usage.paid_tenants;
+        $('trialTenantCount').textContent = usage.usage.trial_tenants;
+        $('onboardingTenantCount').textContent = usage.usage.onboarding_tenants;
+        $('pastDueTenantCount').textContent = usage.usage.past_due_tenants;
+        $('trialEndingCount').textContent = usage.usage.trials_ending_7d;
+        $('newTenantCount').textContent = usage.usage.new_tenants_30d;
+        const attention = $('commercialAttention');
+        const attentionItems = [];
+        if (Number(usage.usage.past_due_tenants || 0)) attentionItems.push(`${usage.usage.past_due_tenants} tenant(s) need payment follow-up`);
+        if (Number(usage.usage.trials_ending_7d || 0)) attentionItems.push(`${usage.usage.trials_ending_7d} trial(s) end within 7 days`);
+        if (Number(usage.usage.onboarding_tenants || 0)) attentionItems.push(`${usage.usage.onboarding_tenants} tenant(s) are still onboarding`);
+        attention.classList.toggle('empty-state', !attentionItems.length);
+        attention.textContent = attentionItems.length ? attentionItems.join(' · ') : 'No immediate commercial risks.';
+        const registrations30d = Number(usage.usage.registrations_30d || 0);
+        const converted30d = Number(usage.usage.converted_registrations_30d || 0);
+        const conversionRate = registrations30d ? Math.round((converted30d / registrations30d) * 100) : 0;
+        const funnel = $('acquisitionFunnel');
+        funnel.classList.remove('empty-state');
+        funnel.textContent = `${registrations30d} registrations · ${converted30d} converted (${conversionRate}%) · ${Number(usage.usage.portal_registrations_30d || 0)} from Studio Websites · ${Number(usage.usage.alternate_registrations_30d || 0)} from Quick Registration or campaigns`;
 
         const plansBody = $('plansBody');
         plansBody.replaceChildren();
@@ -2457,7 +2530,7 @@
 	        </div>
           <div class="summary-item">
             <div class="summary-label">Auto-filled</div>
-            <div class="summary-value">Contact email, billing email, Studio Admin login, active status, and first 30-day subscription period.</div>
+            <div class="summary-value">Contact email, billing email, Studio Admin login, onboarding status, and first 30-day trial period.</div>
           </div>
 	      `;
 	      const footerHtml = `<button onclick="saveNewTenant()" class="btn-primary">Create Tenant</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
@@ -2475,16 +2548,17 @@
       const payload = {
         name: $('m_tenantName').value,
         slug: $('m_tenantSlug').value || slugifyTenantName($('m_tenantName').value),
-        status: 'active',
+        status: 'onboarding',
         planCode: $('m_tenantPlan').value,
 	        category: $('m_tenantCategory').value,
 	        slogan: $('m_tenantSlogan').value,
         studioAdminEmail: ownerEmail,
         studioAdminName: $('m_ownerName').value,
         studioAdminPassword: $('m_studioAdminPassword').value,
-        subscriptionStatus: 'active',
+        subscriptionStatus: 'trialing',
         startsAt: new Date().toISOString().slice(0, 10),
         endsAt: null,
+        trialEndsAt: addDaysIso(30),
         currentPeriodEndsAt: addDaysIso(30),
         ownerName: $('m_ownerName').value,
         ownerRole: 'Owner',

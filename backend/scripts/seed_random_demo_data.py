@@ -594,23 +594,27 @@ def refresh_usage(conn, tenant_id: str) -> None:
         conn,
         """
         SELECT
-            (SELECT count(*) FROM students WHERE tenant_id = %s) AS students,
+            (SELECT count(*) FROM students WHERE tenant_id = %s AND status <> 'archived') AS students,
+            (
+                SELECT count(*) FROM memberships
+                WHERE tenant_id = %s AND status = 'active' AND role <> 'parent'
+            ) AS users,
             (SELECT COALESCE(ceil(sum(byte_size) / 1048576.0), 0) FROM media_assets WHERE tenant_id = %s) AS storage_mb
         """,
-        (tenant_id, tenant_id),
+        (tenant_id, tenant_id, tenant_id),
     )
     with conn.cursor() as cur:
         cur.execute(
             """
             INSERT INTO tenant_usage (tenant_id, student_count, user_count, storage_used_mb, calculated_at)
-            VALUES (%s, %s, 2, %s, now())
+            VALUES (%s, %s, %s, %s, now())
             ON CONFLICT (tenant_id) DO UPDATE
             SET student_count = EXCLUDED.student_count,
                 user_count = EXCLUDED.user_count,
                 storage_used_mb = EXCLUDED.storage_used_mb,
                 calculated_at = now()
             """,
-            (tenant_id, usage["students"], usage["storage_mb"]),
+            (tenant_id, usage["students"], usage["users"], usage["storage_mb"]),
         )
 
 

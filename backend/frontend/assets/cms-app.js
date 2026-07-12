@@ -715,11 +715,31 @@ function App() {
   const [sStu, setSStu] = useState(null);
   const [sStu2, setSStu2] = useState(null);
   const [approveCredits, setApproveCredits] = useState({});
+  const [followUpDates, setFollowUpDates] = useState({});
   const [pkgEditId, setPkgEditId] = useState(null);
   const [pkgName, setPkgName] = useState("");
   const [pkgCredits, setPkgCredits] = useState("");
   const [pkgPrice, setPkgPrice] = useState("");
   const [tenantBrand, setTenantBrand] = useState(() => window.STUDIOSAAS_BRAND || {});
+  const [team, setTeam] = useState([]);
+  const [teamBusy, setTeamBusy] = useState(false);
+  const [teamForm, setTeamForm] = useState({ fullName: "", email: "", role: "teacher", temporaryPassword: "" });
+  const [actorRole, setActorRole] = useState("");
+  const ownerRoles = ["owner", "platform_super_admin", "super_admin"];
+  const roleTabs = {
+    owner: ["dashboard", "roster", "students", "new_student", "pending", "topup", "logs", "stats"],
+    platform_super_admin: ["dashboard", "roster", "students", "new_student", "pending", "topup", "logs", "stats"],
+    super_admin: ["dashboard", "roster", "students", "new_student", "pending", "topup", "logs", "stats"],
+    manager: ["dashboard", "roster", "students", "new_student", "pending", "topup", "logs", "stats"],
+    teacher: ["dashboard", "students", "logs"],
+    front_desk: ["dashboard", "students", "new_student", "pending", "topup", "logs"],
+    staff: ["dashboard", "roster", "students", "new_student", "pending", "topup", "logs"]
+  };
+  const allowedTabs = roleTabs[actorRole] || ["dashboard"];
+  const canManageOperations = [...ownerRoles, "manager"].includes(actorRole);
+  const canWriteStudents = [...ownerRoles, "manager", "front_desk", "staff"].includes(actorRole);
+  const canWriteCredits = [...ownerRoles, "manager", "front_desk", "staff"].includes(actorRole);
+  const canWritePortfolio = [...ownerRoles, "manager", "teacher", "staff"].includes(actorRole);
   const [formPhoto, setFormPhoto] = useState("");
   const [editPhoto, setEditPhoto] = useState("");
   const cooldowns = useRef(/* @__PURE__ */ new Set());
@@ -731,6 +751,12 @@ function App() {
     syncBrand();
     return () => window.removeEventListener("studiosaas:brand", syncBrand);
   }, []);
+  useEffect(() => {
+    if (showSettings && TENANT_SLUG && canManageOperations) loadTeam();
+  }, [showSettings, actorRole]);
+  useEffect(() => {
+    if (actorRole && !allowedTabs.includes(tab)) setTab("dashboard");
+  }, [actorRole, tab]);
   const tenantLogoUrl = tenantBrand.logo_url || tenantBrand.logoUrl || "/logo-light.png";
   const tenantDisplayName = tenantBrand.name || tenantBrand.studioName || "Studio";
   const preferenceProfile = () => {
@@ -797,6 +823,47 @@ function App() {
     }
   };
   const confirm = (message, onConfirm, opts = {}) => setConfirmDialog({ message, onConfirm, ...opts });
+  const loadTeam = async () => {
+    if (!TENANT_SLUG) return;
+    try {
+      const data = await v1Api("/team");
+      setTeam(data.team || []);
+    } catch (e) {
+      setTeam([]);
+      showToast(`团队成员加载失败：${e.message}`, "error");
+    }
+  };
+  const createTeamMember = async () => {
+    if (teamBusy) return;
+    if (!teamForm.fullName.trim() || !teamForm.email.trim() || teamForm.temporaryPassword.length < 8) {
+      showToast("请填写姓名、邮箱和至少8位临时密码", "warn");
+      return;
+    }
+    setTeamBusy(true);
+    try {
+      await v1Api("/team", { method: "POST", body: JSON.stringify(teamForm) });
+      setTeamForm({ fullName: "", email: "", role: "teacher", temporaryPassword: "" });
+      await loadTeam();
+      showToast("团队成员已添加，请通过安全渠道发送临时密码");
+    } catch (e) {
+      showToast(`添加失败：${e.message}`, "error");
+    } finally {
+      setTeamBusy(false);
+    }
+  };
+  const updateTeamMember = async (member, status) => {
+    if (teamBusy || member.role === "owner") return;
+    setTeamBusy(true);
+    try {
+      await v1Api(`/team/${member.id}`, { method: "PATCH", body: JSON.stringify({ role: member.role, status }) });
+      await loadTeam();
+      showToast(status === "active" ? "成员已启用" : "成员已停用");
+    } catch (e) {
+      showToast(`更新失败：${e.message}`, "error");
+    } finally {
+      setTeamBusy(false);
+    }
+  };
   useEffect(() => {
     const h = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -837,14 +904,19 @@ function App() {
       alive = false;
     };
   }, [selS?.id]);
+  const refreshSession = () => fetch("/v1/auth/me", { credentials: "include" }).then((r) => r.json()).then((d) => {
+    const memberships = d.memberships || [];
+    const platformMembership = memberships.find((m) => !m.tenant_slug && ["platform_super_admin", "super_admin"].includes(m.role));
+    const tenantMembership = memberships.find((m) => m.tenant_slug === tenantSlug);
+    const effectiveRole = platformMembership?.role || tenantMembership?.role || "";
+    if (d.ok && ["owner", "manager", "teacher", "front_desk", "staff", "platform_super_admin", "super_admin"].includes(effectiveRole)) {
+      setActorRole(effectiveRole);
+      setLoggedIn(true);
+    }
+  }).catch(() => {
+  });
   useEffect(() => {
-    fetch("/v1/auth/me", { credentials: "include" }).then((r) => r.json()).then((d) => {
-      const memberships = d.memberships || [];
-      if (d.ok && memberships.some((m) => m.tenant_slug === tenantSlug && ["owner", "admin", "platform_super_admin", "super_admin"].includes(m.role))) {
-        setLoggedIn(true);
-      }
-    }).catch(() => {
-    });
+    refreshSession();
   }, []);
   const apiHeaders = () => ({ "Content-Type": "application/json" });
   const revRef = useRef(0);
@@ -2279,29 +2351,51 @@ document.getElementById('copybtn').addEventListener('click', function(){
       }
     }, { danger: true, confirmText: "确认拒绝" });
   };
-  const dlCSV = (filename, rows) => {
-    const bom = "\uFEFF";
-    const csv = rows.map((r) => r.map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",")).join("\r\n");
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([bom + csv], { type: "text/csv;charset=utf-8" }));
-    a.download = filename;
-    a.click();
+  const advanceRegistration = async (pid, status) => {
+    if (busy || !TENANT_SLUG) return;
+    setBusy(true);
+    try {
+      const nextDate = followUpDates[pid] || "";
+      await v1Api(`/registrations/${pid}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          status,
+          nextFollowUpAt: nextDate ? `${nextDate}T09:00:00` : "",
+          reviewNote: status === "contacted" ? "Studio contacted this lead." : ""
+        })
+      });
+      await load();
+      showToast(status === "contacted" ? "已标记联系" : status === "trial_booked" ? "已预约试听" : "已加入跟进");
+    } catch (e) {
+      showToast(`更新失败：${e.message}`, "error");
+    } finally {
+      setBusy(false);
+    }
   };
-  const exportStudentsCSV = () => {
-    const hdr = ["Full Name", "First Name", "Last Name", "Phone", "WeChat", "Email", "Birthday", "Balance", "Last Active", "Art Style", "Fav Artist", "Experience", "Goals", "Remark"];
-    const rows = sortedFiltered.map((s) => [s.name, s.firstName, s.lastName, s.mobile, s.wechat, s.email, s.birthday ? fmtDate(s.birthday) : "", s.balance, fmtDate(s.lastActive), s.artStyle, s.favArtist, s.experience, s.goals, s.remark]);
-    dlCSV(`Studio_Students_${todayISO()}.csv`, [hdr, ...rows]);
+  const downloadTenantExport = async (path, fallbackName) => {
+    if (!TENANT_SLUG) return;
+    try {
+      const response = await fetch(`/s/${encodeURIComponent(TENANT_SLUG)}/v1/export/${path}`, { credentials: "include" });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.message || `HTTP ${response.status}`);
+      }
+      const blob = await response.blob();
+      const disposition = response.headers.get("Content-Disposition") || "";
+      const match = disposition.match(/filename="?([^";]+)"?/i);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = match?.[1] || fallbackName;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1e3);
+    } catch (error) {
+      showToast(`导出失败：${error.message}`, "error");
+    }
   };
-  const exportRevenueCSV = () => {
-    const hdr = ["Period", "Revenue (AUD)", "Check-ins", "Top-ups"];
-    const rows = statsData.rows.map((r) => [sPeriod === "yearly" ? `${r.key}年` : fmtMK(r.key), r.revenue.toFixed(2), r.checkins, r.topups]);
-    dlCSV(`Studio_Revenue_${todayISO()}.csv`, [hdr, ...rows]);
-  };
-  const exportLogsCSV = () => {
-    const hdr = ["Date", "Student", "Action", "Change", "Fee (AUD)", "Pay Method", "Note"];
-    const rows = filteredLogs.map((l) => [l.date, l.studentName, l.action, l.change, l.feePaid || 0, l.payMethod || "", l.note || ""]);
-    dlCSV(`Studio_Logs_${todayISO()}.csv`, [hdr, ...rows]);
-  };
+  const exportStudentsCSV = () => downloadTenantExport("students.csv", `Studio_Students_${todayISO()}.csv`);
+  const exportRevenueCSV = () => downloadTenantExport("revenue.csv", `Studio_Revenue_${todayISO()}.csv`);
+  const exportLogsCSV = () => downloadTenantExport("credit-ledger.csv", `Studio_Ledger_${todayISO()}.csv`);
   const changePin = () => {
     if (!/^\d{4}$/.test(newPin1)) {
       showToast("PIN 必须是 4 位数字", "error");
@@ -2327,7 +2421,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
     setPinOK(false);
     setShowSettings(false);
   };
-  if (!loggedIn) return /* @__PURE__ */ React.createElement(LoginScreen, { onLogin: () => setLoggedIn(true) });
+  if (!loggedIn) return /* @__PURE__ */ React.createElement(LoginScreen, { onLogin: refreshSession });
   if (pinEnabled && !pinOK) return /* @__PURE__ */ React.createElement(PINScreen, { onUnlock: () => {
     markSess();
     setPinOK(true);
@@ -2342,7 +2436,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
     { k: "topup", i: "💰", l: "充值结算", s: "充值" },
     { k: "logs", i: "📜", l: "操作日志", s: "日志" },
     { k: "stats", i: "📈", l: "商业洞察", s: "统计" }
-  ];
+  ].filter((item) => allowedTabs.includes(item.k));
   return /* @__PURE__ */ React.createElement("div", { className: "flex h-screen bg-gray-50" }, toast && /* @__PURE__ */ React.createElement(Toast, { key: toast.key, msg: toast.msg, type: toast.type, action: toast.action, onDone: () => setToast(null) }), /* @__PURE__ */ React.createElement(ConfirmDialog, { dialog: confirmDialog, onClose: () => setConfirmDialog(null) }), portLB && portLB.items.length > 0 && /* @__PURE__ */ React.createElement(
     "div",
     {
@@ -2655,7 +2749,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
       onClick: () => setShowSettings(false),
       style: { paddingTop: "max(16px, env(safe-area-inset-top, 16px))", paddingBottom: "max(16px, env(safe-area-inset-bottom, 16px))" }
     },
-    /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-2xl p-6 w-full max-w-xs shadow-2xl anim overflow-y-auto modal-scroll", style: { maxHeight: "90dvh" }, onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between items-center mb-5" }, /* @__PURE__ */ React.createElement("h3", { className: "font-bold text-gray-800" }, "⚙️ 系统设置"), /* @__PURE__ */ React.createElement("button", { onClick: () => setShowSettings(false), className: "text-gray-400 active:text-gray-700 text-xl p-1" }, "×")), TENANT_SLUG && /* @__PURE__ */ React.createElement(
+    /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-2xl p-6 w-full max-w-2xl shadow-2xl anim overflow-y-auto modal-scroll", style: { maxHeight: "90dvh" }, onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between items-center mb-5" }, /* @__PURE__ */ React.createElement("h3", { className: "font-bold text-gray-800" }, "⚙️ 系统设置"), /* @__PURE__ */ React.createElement("button", { onClick: () => setShowSettings(false), className: "text-gray-400 active:text-gray-700 text-xl p-1" }, "×")), TENANT_SLUG && ownerRoles.includes(actorRole) && /* @__PURE__ */ React.createElement(
       "a",
       {
         href: `/${TENANT_SLUG}/studio-admin`,
@@ -2665,7 +2759,62 @@ document.getElementById('copybtn').addEventListener('click', function(){
       },
       "🎨 网站、Logo、配色与注册表设置 →",
       /* @__PURE__ */ React.createElement("p", { className: "text-[11px] font-normal text-indigo-400 mt-0.5" }, "打开 Studio Admin 管理公开门户、注册表字段、品牌文案和页面展示")
-    ), /* @__PURE__ */ React.createElement("div", { className: "space-y-2" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-gray-500 uppercase tracking-wide" }, "修改登录密码"), /* @__PURE__ */ React.createElement(
+    ), canManageOperations && /* @__PURE__ */ React.createElement("div", { className: "mt-4 pt-4 border-t border-gray-100 space-y-3" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-gray-500 uppercase tracking-wide" }, "团队与权限"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-0.5" }, "Owner管理团队；Manager负责日常运营，Teacher负责签到与作品，Front Desk负责报名、学员与课时。")), /* @__PURE__ */ React.createElement("div", { className: "space-y-2" }, team.map((member) => /* @__PURE__ */ React.createElement("div", { key: member.id, className: "flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2" }, /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm font-bold text-gray-700 truncate" }, member.full_name), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 truncate" }, member.email, " · ", member.role, " · ", member.status)), ownerRoles.includes(actorRole) && member.role !== "owner" && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        disabled: teamBusy,
+        onClick: () => updateTeamMember(member, member.status === "active" ? "disabled" : "active"),
+        className: "text-xs font-bold px-2 py-1 rounded-lg border border-gray-200 text-gray-600"
+      },
+      member.status === "active" ? "停用" : "启用"
+    )))), ownerRoles.includes(actorRole) ? /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-2 bg-indigo-50 border border-indigo-100 rounded-xl p-3" }, /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        value: teamForm.fullName,
+        onChange: (e) => setTeamForm((p) => ({ ...p, fullName: e.target.value })),
+        placeholder: "姓名",
+        className: "px-3 py-2 border border-gray-300 rounded-xl text-sm"
+      }
+    ), /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        type: "email",
+        value: teamForm.email,
+        onChange: (e) => setTeamForm((p) => ({ ...p, email: e.target.value })),
+        placeholder: "邮箱",
+        className: "px-3 py-2 border border-gray-300 rounded-xl text-sm"
+      }
+    ), /* @__PURE__ */ React.createElement(
+      "select",
+      {
+        value: teamForm.role,
+        onChange: (e) => setTeamForm((p) => ({ ...p, role: e.target.value })),
+        className: "px-3 py-2 border border-gray-300 rounded-xl text-sm"
+      },
+      /* @__PURE__ */ React.createElement("option", { value: "manager" }, "Manager"),
+      /* @__PURE__ */ React.createElement("option", { value: "teacher" }, "Teacher"),
+      /* @__PURE__ */ React.createElement("option", { value: "front_desk" }, "Front Desk"),
+      /* @__PURE__ */ React.createElement("option", { value: "staff" }, "Staff (legacy)")
+    ), /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        type: "password",
+        value: teamForm.temporaryPassword,
+        onChange: (e) => setTeamForm((p) => ({ ...p, temporaryPassword: e.target.value })),
+        placeholder: "临时密码（至少8位）",
+        className: "px-3 py-2 border border-gray-300 rounded-xl text-sm"
+      }
+    ), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: createTeamMember,
+        disabled: teamBusy,
+        className: "sm:col-span-2 bg-indigo-600 text-white py-2.5 rounded-xl font-bold text-sm disabled:opacity-50"
+      },
+      "添加团队成员"
+    )) : /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2" }, "当前角色可查看团队；只有 Owner 可以新增、停用或更改成员角色。")), /* @__PURE__ */ React.createElement("div", { className: "space-y-2" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-gray-500 uppercase tracking-wide" }, "修改登录密码"), /* @__PURE__ */ React.createElement(
       "input",
       {
         type: "password",
@@ -2722,7 +2871,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
         onChange: (e) => setNewPin2(e.target.value.replace(/\D/, "").slice(0, 4)),
         className: "w-full p-3 border border-gray-300 rounded-xl outline-none tracking-widest text-center text-2xl focus:ring-2 focus:ring-indigo-500"
       }
-    ), /* @__PURE__ */ React.createElement("button", { onClick: changePin, className: "w-full bg-indigo-600 active:bg-indigo-700 text-white py-3 rounded-xl font-bold text-sm" }, "更新 PIN")), /* @__PURE__ */ React.createElement("div", { className: "mt-4 pt-4 border-t border-gray-100 space-y-2" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-gray-500 uppercase tracking-wide" }, "未到访预警天数"), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, [60, 90, 120, 180].map((d) => /* @__PURE__ */ React.createElement(
+    ), /* @__PURE__ */ React.createElement("button", { onClick: changePin, className: "w-full bg-indigo-600 active:bg-indigo-700 text-white py-3 rounded-xl font-bold text-sm" }, "更新 PIN")), canManageOperations && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "mt-4 pt-4 border-t border-gray-100 space-y-2" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-gray-500 uppercase tracking-wide" }, "未到访预警天数"), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, [60, 90, 120, 180].map((d) => /* @__PURE__ */ React.createElement(
       "button",
       {
         key: d,
@@ -2835,7 +2984,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
       setPkgCredits("");
       setPkgPrice("");
       showToast(pkgEditId === 0 ? "套餐已添加" : "套餐已更新");
-    }, className: "flex-1 py-2 bg-indigo-600 active:bg-indigo-700 text-white rounded-xl text-xs font-bold" }, "保存")))), (() => {
+    }, className: "flex-1 py-2 bg-indigo-600 active:bg-indigo-700 text-white rounded-xl text-xs font-bold" }, "保存"))))), canManageOperations && (() => {
       const cutoffStr = (() => {
         const d = /* @__PURE__ */ new Date();
         d.setDate(d.getDate() - 90);
@@ -2864,7 +3013,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
         },
         "🧹 清理旧排课"
       ));
-    })(), /* @__PURE__ */ React.createElement(
+    })(), !TENANT_SLUG && /* @__PURE__ */ React.createElement(
       MaintSection,
       {
         renewTh,
@@ -2893,7 +3042,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
         className: "w-full bg-indigo-50 active:bg-indigo-100 text-indigo-700 border border-indigo-200 py-3 rounded-xl font-bold text-sm"
       },
       "🔄 刷新数据"
-    ), /* @__PURE__ */ React.createElement(
+    ), canManageOperations && !TENANT_SLUG && /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: () => {
@@ -2963,7 +3112,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
       k === "dashboard" && analytics.lowBalance.length > 0 && /* @__PURE__ */ React.createElement("span", { className: "ml-auto bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full" }, analytics.lowBalance.length),
       badge > 0 && /* @__PURE__ */ React.createElement("span", { className: "ml-auto bg-amber-400 text-white text-xs font-bold px-1.5 py-0.5 rounded-full" }, badge)
     ))),
-    /* @__PURE__ */ React.createElement("div", { className: "p-3 border-t border-indigo-800 space-y-1.5", style: { paddingBottom: "calc(env(safe-area-inset-bottom,0px) + 12px)" } }, /* @__PURE__ */ React.createElement("div", { className: "text-xs text-green-400 text-center bg-indigo-950 rounded-lg p-1.5 border border-indigo-800" }, "🟢 已连接"), db.logs.length > 1e3 && /* @__PURE__ */ React.createElement("div", { className: "text-xs text-amber-400 text-center bg-indigo-950 rounded-lg p-1.5 border border-amber-800/40" }, "⚠️ 日志 ", db.logs.length, " 条"), /* @__PURE__ */ React.createElement("button", { onClick: exportDB, className: "w-full bg-indigo-700 active:bg-indigo-600 p-2.5 rounded-xl text-xs font-bold min-h-[40px]" }, "⬇️ 备份导出"), /* @__PURE__ */ React.createElement("button", { onClick: load, disabled: busy, className: "w-full bg-indigo-800 active:bg-indigo-700 p-2.5 rounded-xl text-xs font-bold min-h-[40px]" }, "🔄 刷新"), /* @__PURE__ */ React.createElement("button", { onClick: () => setShowSettings(true), className: "w-full bg-indigo-800 active:bg-indigo-700 p-2.5 rounded-xl text-xs font-bold min-h-[40px]" }, "⚙️ 设置"), /* @__PURE__ */ React.createElement(
+    /* @__PURE__ */ React.createElement("div", { className: "p-3 border-t border-indigo-800 space-y-1.5", style: { paddingBottom: "calc(env(safe-area-inset-bottom,0px) + 12px)" } }, /* @__PURE__ */ React.createElement("div", { className: "text-xs text-green-400 text-center bg-indigo-950 rounded-lg p-1.5 border border-indigo-800" }, "🟢 已连接"), db.logs.length > 1e3 && /* @__PURE__ */ React.createElement("div", { className: "text-xs text-amber-400 text-center bg-indigo-950 rounded-lg p-1.5 border border-amber-800/40" }, "⚠️ 日志 ", db.logs.length, " 条"), canManageOperations && !TENANT_SLUG && /* @__PURE__ */ React.createElement("button", { onClick: exportDB, className: "w-full bg-indigo-700 active:bg-indigo-600 p-2.5 rounded-xl text-xs font-bold min-h-[40px]" }, "⬇️ 备份导出"), /* @__PURE__ */ React.createElement("button", { onClick: load, disabled: busy, className: "w-full bg-indigo-800 active:bg-indigo-700 p-2.5 rounded-xl text-xs font-bold min-h-[40px]" }, "🔄 刷新"), /* @__PURE__ */ React.createElement("button", { onClick: () => setShowSettings(true), className: "w-full bg-indigo-800 active:bg-indigo-700 p-2.5 rounded-xl text-xs font-bold min-h-[40px]" }, "⚙️ 设置"), /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: () => confirm("确认退出登录？下次进入需重新输入密码。", doLogout, { confirmText: "退出登录" }),
@@ -3394,14 +3543,14 @@ ${msg}`).join("\n\n"), `已复制 ${lines.length} 条提醒内容`);
         "✅"
       )));
     })))),
-    tab === "students" && /* @__PURE__ */ React.createElement("div", { className: "anim space-y-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between items-center gap-3 flex-wrap" }, /* @__PURE__ */ React.createElement("h2", { className: "text-xl md:text-2xl font-bold text-gray-800" }, "学员档案 (", sortedFiltered.length, ")"), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, /* @__PURE__ */ React.createElement(
+    tab === "students" && /* @__PURE__ */ React.createElement("div", { className: "anim space-y-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between items-center gap-3 flex-wrap" }, /* @__PURE__ */ React.createElement("h2", { className: "text-xl md:text-2xl font-bold text-gray-800" }, "学员档案 (", sortedFiltered.length, ")"), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, canManageOperations && /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: exportStudentsCSV,
         className: "bg-white border border-gray-300 active:bg-gray-50 text-gray-600 px-4 py-2.5 rounded-xl font-bold text-sm min-h-[44px]"
       },
       "⬇️ CSV"
-    ), /* @__PURE__ */ React.createElement(
+    ), canWriteStudents && /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: () => setTab("new_student"),
@@ -3456,7 +3605,7 @@ ${msg}`).join("\n\n"), `已复制 ${lines.length} 条提醒内容`);
         className: "px-3 py-2 rounded-xl text-xs font-bold border border-red-200 text-red-500 bg-white active:bg-red-50 min-h-[40px] flex-shrink-0"
       },
       "✕ 清除"
-    )))), filterBy === "low" && sortedFiltered.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "bg-orange-50 border border-orange-200 rounded-2xl p-4 flex items-center justify-between gap-3 flex-wrap" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm font-bold text-orange-700" }, "⚡ 待续课学员 ", sortedFiltered.length, " 人（余额 ≤", renewTh, " 节）"), /* @__PURE__ */ React.createElement("button", { onClick: () => {
+    )))), canWriteCredits && filterBy === "low" && sortedFiltered.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "bg-orange-50 border border-orange-200 rounded-2xl p-4 flex items-center justify-between gap-3 flex-wrap" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm font-bold text-orange-700" }, "⚡ 待续课学员 ", sortedFiltered.length, " 人（余额 ≤", renewTh, " 节）"), /* @__PURE__ */ React.createElement("button", { onClick: () => {
       const lines = sortedFiltered.map((s) => `${s.name} 您好～您在 Studio 的剩余课时为 ${s.balance} 节，为不影响后续上课安排，欢迎随时联系老师续课哦 🎨`);
       copyText(lines.join("\n\n"), `已复制 ${lines.length} 条续课提醒，可逐条粘贴到微信`);
     }, className: "bg-orange-600 active:bg-orange-700 text-white px-4 py-2 rounded-xl text-xs font-bold min-h-[40px]" }, "📋 复制全部提醒话术")), !sortedFiltered.length && /* @__PURE__ */ React.createElement(EmptyState, { icon: "🔍", main: "无匹配学员", sub: "试试调整搜索词或筛选条件" }), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3" }, sortedFiltered.map((s) => /* @__PURE__ */ React.createElement("div", { key: s.id, className: `bg-white rounded-2xl p-4 shadow-sm border hover-row transition flex flex-col justify-between print-card ${s.archived ? "border-gray-200 opacity-70" : parseInt(s.balance, 10) === 0 ? "border-red-100" : parseInt(s.balance, 10) <= 2 ? "border-orange-100" : "border-gray-100"}` }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between items-start mb-2 gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2.5 min-w-0" }, /* @__PURE__ */ React.createElement(PhotoAvatar, { photo: s.photo, name: s.name, size: "sm" }), /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("h3", { className: "font-bold text-gray-800 break-words leading-snug" }, s.name), s.archived && /* @__PURE__ */ React.createElement("span", { className: "text-xs bg-gray-100 text-gray-500 px-1.5 rounded mt-0.5 inline-block" }, "归档"))), /* @__PURE__ */ React.createElement("div", { className: "flex flex-col items-end gap-1 flex-shrink-0" }, /* @__PURE__ */ React.createElement(BalBadge, { n: s.balance }), (() => {
@@ -3472,7 +3621,7 @@ ${msg}`).join("\n\n"), `已复制 ${lines.length} 条提醒内容`);
         className: "flex-1 bg-gray-50 active:bg-gray-100 border border-gray-200 text-gray-700 py-3 rounded-xl text-sm font-bold min-h-[44px]"
       },
       "详情"
-    ), !s.archived && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+    ), !s.archived && /* @__PURE__ */ React.createElement(React.Fragment, null, canWriteCredits && /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: () => {
@@ -3483,7 +3632,7 @@ ${msg}`).join("\n\n"), `已复制 ${lines.length} 条提醒内容`);
         className: "px-3.5 py-3 rounded-xl text-base font-bold bg-emerald-50 active:bg-emerald-100 text-emerald-700 border border-emerald-200 min-h-[44px]"
       },
       "💰"
-    ), /* @__PURE__ */ React.createElement(
+    ), canManageOperations && /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: () => scheduleStudentToday(s),
@@ -3602,7 +3751,39 @@ ${msg}`).join("\n\n"), `已复制 ${lines.length} 条提醒内容`);
         const normP = (p) => (p || "").replace(/[\s\-\(\)]+/g, "");
         const match = db.students.filter((s) => !s.archived && normP(s.mobile) === normP(pen.mobile));
         return match.length > 0 ? /* @__PURE__ */ React.createElement("p", { className: "text-xs text-blue-500 mt-0.5" }, "📱 此电话已有学员：", match.map((s) => s.firstName && s.lastName ? `${s.firstName} ${s.lastName}` : s.name || "").join("、")) : null;
-      })(), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-0.5" }, "提交时间: ", pen.submittedAt || "—"))), preferenceRows(pen).length > 0 && /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-2 text-sm" }, preferenceRows(pen).map((row) => /* @__PURE__ */ React.createElement("div", { key: row.key, className: "bg-gray-50 rounded-2xl p-4 border border-gray-100" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mb-1" }, row.label), /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-700 text-sm" }, row.value)))), pen.message && /* @__PURE__ */ React.createElement("div", { className: "bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-gray-700" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-amber-500 font-bold mb-1" }, "💬 留言"), /* @__PURE__ */ React.createElement("p", null, pen.message)), /* @__PURE__ */ React.createElement("div", { className: "flex items-end gap-3 pt-2 border-t border-gray-100" }, /* @__PURE__ */ React.createElement("div", { className: "flex-1" }, /* @__PURE__ */ React.createElement("label", { className: "text-xs font-bold text-gray-500 mb-1 block" }, "初始课时数"), /* @__PURE__ */ React.createElement(
+      })(), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-0.5" }, "提交时间: ", pen.submittedAt || "—", " · 来源: ", pen.source === "portal" ? "门户网站" : "快速报名", " · 状态: ", pen.status || "pending"))), preferenceRows(pen).length > 0 && /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-2 text-sm" }, preferenceRows(pen).map((row) => /* @__PURE__ */ React.createElement("div", { key: row.key, className: "bg-gray-50 rounded-2xl p-4 border border-gray-100" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mb-1" }, row.label), /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-700 text-sm" }, row.value)))), pen.message && /* @__PURE__ */ React.createElement("div", { className: "bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-gray-700" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-amber-500 font-bold mb-1" }, "💬 留言"), /* @__PURE__ */ React.createElement("p", null, pen.message)), /* @__PURE__ */ React.createElement("div", { className: "bg-blue-50 border border-blue-100 rounded-2xl p-3 flex flex-wrap items-end gap-2" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "text-xs font-bold text-blue-700 mb-1 block" }, "下次跟进"), /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          type: "date",
+          value: followUpDates[pen.id] || "",
+          onChange: (e) => setFollowUpDates((p) => ({ ...p, [pen.id]: e.target.value })),
+          className: "px-3 py-2 border border-blue-200 rounded-xl text-sm"
+        }
+      )), /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          onClick: () => advanceRegistration(pen.id, "contacted"),
+          disabled: busy,
+          className: "px-3 py-2 bg-white border border-blue-200 text-blue-700 font-bold rounded-xl text-sm"
+        },
+        "已联系"
+      ), /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          onClick: () => advanceRegistration(pen.id, "trial_booked"),
+          disabled: busy,
+          className: "px-3 py-2 bg-white border border-blue-200 text-blue-700 font-bold rounded-xl text-sm"
+        },
+        "已约试听"
+      ), /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          onClick: () => advanceRegistration(pen.id, "waiting"),
+          disabled: busy,
+          className: "px-3 py-2 bg-white border border-blue-200 text-blue-700 font-bold rounded-xl text-sm"
+        },
+        "继续跟进"
+      )), /* @__PURE__ */ React.createElement("div", { className: "flex items-end gap-3 pt-2 border-t border-gray-100" }, /* @__PURE__ */ React.createElement("div", { className: "flex-1" }, /* @__PURE__ */ React.createElement("label", { className: "text-xs font-bold text-gray-500 mb-1 block" }, "初始课时数"), /* @__PURE__ */ React.createElement(
         "input",
         {
           type: "number",
@@ -3830,7 +4011,7 @@ ${msg}`).join("\n\n"), `已复制 ${lines.length} 条提醒内容`);
         className: "px-3 py-2 bg-gray-100 active:bg-gray-200 text-gray-500 rounded-xl text-xs font-bold min-h-[40px]"
       },
       "✕ 清除"
-    ), /* @__PURE__ */ React.createElement("span", { className: "text-sm text-gray-400" }, filteredLogs.length, " 条"), /* @__PURE__ */ React.createElement(
+    ), /* @__PURE__ */ React.createElement("span", { className: "text-sm text-gray-400" }, filteredLogs.length, " 条"), canManageOperations && /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: exportLogsCSV,
@@ -3872,12 +4053,12 @@ ${msg}`).join("\n\n"), `已复制 ${lines.length} 条提醒内容`);
     selS && /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center sm:p-4 backdrop-blur-sm" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white w-full sm:rounded-3xl sm:max-w-lg shadow-2xl overflow-hidden anim border-t sm:border border-gray-200" }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between items-center p-4 bg-gray-50 border-b" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2.5 min-w-0" }, /* @__PURE__ */ React.createElement(PhotoAvatar, { photo: selS.photo, name: selS.name, size: "sm" }), /* @__PURE__ */ React.createElement("h3", { className: "text-lg font-bold text-gray-900 truncate" }, selS.name), /* @__PURE__ */ React.createElement(BalBadge, { n: selS.balance }), selS.archived && /* @__PURE__ */ React.createElement("span", { className: "text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full shrink-0" }, "归档")), /* @__PURE__ */ React.createElement("button", { onClick: () => {
       setSelS(null);
       setEditP(false);
-    }, className: "text-gray-400 active:text-gray-700 text-2xl font-bold p-2 -mr-1 min-h-[44px] min-w-[44px] flex items-center justify-center" }, "×")), /* @__PURE__ */ React.createElement("div", { className: "p-5 modal-scroll", style: { maxHeight: "calc(100dvh - 80px)", paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 20px)" } }, !editP ? /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-3" }, /* @__PURE__ */ React.createElement("div", { className: "bg-gray-50 p-4 rounded-2xl border border-gray-100" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mb-1" }, "First Name (名)"), /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-800" }, selS.firstName || selS.name || "—")), /* @__PURE__ */ React.createElement("div", { className: "bg-gray-50 p-4 rounded-2xl border border-gray-100" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mb-1" }, "Last Name (姓)"), /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-800" }, selS.lastName || "—"))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-3" }, /* @__PURE__ */ React.createElement("div", { className: "bg-gray-50 p-4 rounded-2xl border border-gray-100" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mb-1" }, "📞 电话"), /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-800" }, selS.mobile || "—")), /* @__PURE__ */ React.createElement("div", { className: "bg-gray-50 p-4 rounded-2xl border border-gray-100" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mb-1" }, "🗓 最近上课"), /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-800" }, fmtDate(selS.lastActive)))), (selS.wechat || selS.email) && /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-3" }, selS.wechat && /* @__PURE__ */ React.createElement("div", { className: "bg-green-50 p-4 rounded-2xl border border-green-100" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-green-500 mb-1" }, "💬 微信号"), /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-800" }, selS.wechat)), selS.email && /* @__PURE__ */ React.createElement("div", { className: "bg-gray-50 p-4 rounded-2xl border border-gray-100" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mb-1" }, "✉️ 邮箱"), /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-800 text-sm break-all" }, selS.email))), selS.birthday && /* @__PURE__ */ React.createElement("div", { className: "bg-pink-50 p-4 rounded-2xl border border-pink-100" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-400 mb-1" }, "🎂 生日"), /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-800" }, fmtDate(selS.birthday))), selS.remark && /* @__PURE__ */ React.createElement("div", { className: "bg-gray-50 p-4 rounded-2xl border border-gray-100" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mb-1" }, "备注"), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-700 whitespace-pre-wrap" }, selS.remark)), preferenceRows(selS).length > 0 && /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-2" }, preferenceRows(selS).map((row) => /* @__PURE__ */ React.createElement("div", { key: row.key, className: "bg-indigo-50 p-3 rounded-2xl border border-indigo-100" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-indigo-400 mb-0.5" }, row.label), /* @__PURE__ */ React.createElement("p", { className: "text-sm font-bold text-indigo-800" }, row.value)))), (() => {
+    }, className: "text-gray-400 active:text-gray-700 text-2xl font-bold p-2 -mr-1 min-h-[44px] min-w-[44px] flex items-center justify-center" }, "×")), /* @__PURE__ */ React.createElement("div", { className: "p-5 modal-scroll", style: { maxHeight: "calc(100dvh - 80px)", paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 20px)" } }, !editP ? /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-3" }, /* @__PURE__ */ React.createElement("div", { className: "bg-gray-50 p-4 rounded-2xl border border-gray-100" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mb-1" }, "First Name (名)"), /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-800" }, selS.firstName || selS.name || "—")), /* @__PURE__ */ React.createElement("div", { className: "bg-gray-50 p-4 rounded-2xl border border-gray-100" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mb-1" }, "Last Name (姓)"), /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-800" }, selS.lastName || "—"))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-3" }, /* @__PURE__ */ React.createElement("div", { className: "bg-gray-50 p-4 rounded-2xl border border-gray-100" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mb-1" }, "📞 电话"), /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-800" }, selS.mobile || "—")), /* @__PURE__ */ React.createElement("div", { className: "bg-gray-50 p-4 rounded-2xl border border-gray-100" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mb-1" }, "🗓 最近上课"), /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-800" }, fmtDate(selS.lastActive)))), (selS.wechat || selS.email) && /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-3" }, selS.wechat && /* @__PURE__ */ React.createElement("div", { className: "bg-green-50 p-4 rounded-2xl border border-green-100" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-green-500 mb-1" }, "💬 微信号"), /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-800" }, selS.wechat)), selS.email && /* @__PURE__ */ React.createElement("div", { className: "bg-gray-50 p-4 rounded-2xl border border-gray-100" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mb-1" }, "✉️ 邮箱"), /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-800 text-sm break-all" }, selS.email))), selS.birthday && /* @__PURE__ */ React.createElement("div", { className: "bg-pink-50 p-4 rounded-2xl border border-pink-100" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-pink-400 mb-1" }, "🎂 生日"), /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-800" }, fmtDate(selS.birthday))), selS.remark && /* @__PURE__ */ React.createElement("div", { className: "bg-gray-50 p-4 rounded-2xl border border-gray-100" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mb-1" }, "备注"), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-700 whitespace-pre-wrap" }, selS.remark)), preferenceRows(selS).length > 0 && /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-2" }, preferenceRows(selS).map((row) => /* @__PURE__ */ React.createElement("div", { key: row.key, className: "bg-indigo-50 p-3 rounded-2xl border border-indigo-100" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-indigo-400 mb-0.5" }, row.label), /* @__PURE__ */ React.createElement("p", { className: "text-sm font-bold text-indigo-800" }, row.value)))), canWriteCredits && (() => {
       const topupsAll = db.logs.filter((l) => (l.studentId === selS.id || !l.studentId && l.studentName === selS.name) && l.action === "充值购课");
       const topups = topupsAll.slice(0, 10);
       if (!topupsAll.length) return null;
       return /* @__PURE__ */ React.createElement("details", { className: "border border-gray-200 rounded-2xl overflow-hidden" }, /* @__PURE__ */ React.createElement("summary", { className: "px-4 py-3 text-sm font-bold text-gray-500 cursor-pointer select-none bg-gray-50 active:bg-gray-100 flex items-center gap-2" }, "💳 充值记录 ", /* @__PURE__ */ React.createElement("span", { className: "font-normal text-gray-400 text-xs" }, "(", topupsAll.length, " 条", topupsAll.length > 10 ? " · 显示最近10条" : "", ")")), /* @__PURE__ */ React.createElement("div", { className: "divide-y divide-gray-50" }, topups.map((l) => /* @__PURE__ */ React.createElement("div", { key: l.id, className: "px-4 py-2.5 flex justify-between items-center text-sm" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "font-bold text-indigo-700" }, "+", l.change), /* @__PURE__ */ React.createElement("span", { className: "ml-2 text-xs text-gray-400" }, l.payMethod || ""), l.note && /* @__PURE__ */ React.createElement("span", { className: "ml-1 text-xs text-gray-400 truncate" }, l.note)), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 flex-shrink-0" }, l.feePaid > 0 && /* @__PURE__ */ React.createElement("span", { className: "text-green-600 font-bold text-xs" }, "$", l.feePaid), /* @__PURE__ */ React.createElement("span", { className: "text-gray-400 text-xs" }, String(l.date).split(",")[0]))))));
-    })(), TENANT_SLUG && attHistory && attHistory.length > 0 && /* @__PURE__ */ React.createElement("details", { className: "border border-blue-100 rounded-2xl overflow-hidden" }, /* @__PURE__ */ React.createElement("summary", { className: "bg-blue-50 px-4 py-3 cursor-pointer select-none text-sm font-bold text-blue-700" }, "📅 上课记录 ", /* @__PURE__ */ React.createElement("span", { className: "font-normal text-blue-400 text-xs ml-1" }, "(近 ", attHistory.length, " 次)")), /* @__PURE__ */ React.createElement("div", { className: "divide-y divide-gray-50 max-h-64 overflow-y-auto sl" }, attHistory.map((a) => /* @__PURE__ */ React.createElement("div", { key: a.id, className: `px-4 py-2.5 flex items-center justify-between text-sm ${a.reversed_at ? "opacity-50" : ""}` }, /* @__PURE__ */ React.createElement("span", { className: "font-bold text-gray-700" }, fmtDate(String(a.class_date || a.attended_at).slice(0, 10))), /* @__PURE__ */ React.createElement("span", { className: "text-xs text-gray-400 flex-1 text-center truncate px-2" }, a.note || "常规课程"), /* @__PURE__ */ React.createElement("span", { className: `text-xs font-bold ${a.reversed_at ? "text-gray-400" : "text-green-600"}` }, a.reversed_at ? "已撤销" : "✓ 已签"))))), (() => {
+    })(), TENANT_SLUG && attHistory && attHistory.length > 0 && /* @__PURE__ */ React.createElement("details", { className: "border border-blue-100 rounded-2xl overflow-hidden" }, /* @__PURE__ */ React.createElement("summary", { className: "bg-blue-50 px-4 py-3 cursor-pointer select-none text-sm font-bold text-blue-700" }, "📅 上课记录 ", /* @__PURE__ */ React.createElement("span", { className: "font-normal text-blue-400 text-xs ml-1" }, "(近 ", attHistory.length, " 次)")), /* @__PURE__ */ React.createElement("div", { className: "divide-y divide-gray-50 max-h-64 overflow-y-auto sl" }, attHistory.map((a) => /* @__PURE__ */ React.createElement("div", { key: a.id, className: `px-4 py-2.5 flex items-center justify-between text-sm ${a.reversed_at ? "opacity-50" : ""}` }, /* @__PURE__ */ React.createElement("span", { className: "font-bold text-gray-700" }, fmtDate(String(a.class_date || a.attended_at).slice(0, 10))), /* @__PURE__ */ React.createElement("span", { className: "text-xs text-gray-400 flex-1 text-center truncate px-2" }, a.note || "常规课程"), /* @__PURE__ */ React.createElement("span", { className: `text-xs font-bold ${a.reversed_at ? "text-gray-400" : "text-green-600"}` }, a.reversed_at ? "已撤销" : "✓ 已签"))))), canWritePortfolio && (() => {
       const items = selS.portfolio || [];
       return /* @__PURE__ */ React.createElement("div", { className: "border border-purple-100 rounded-2xl overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "bg-purple-50 px-4 py-3 flex items-center justify-between" }, /* @__PURE__ */ React.createElement("span", { className: "text-sm font-bold text-purple-700" }, "🎨 作品集", /* @__PURE__ */ React.createElement("span", { className: "font-normal text-purple-400 text-xs ml-1" }, "(", items.length, " 张)")), /* @__PURE__ */ React.createElement(
         "button",
@@ -3934,7 +4115,7 @@ ${msg}`).join("\n\n"), `已复制 ${lines.length} 条提醒内容`);
           "🗑"
         ))
       ))));
-    })(), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, !selS.archived && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+    })(), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, canManageOperations && !selS.archived && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: () => scheduleStudentToday(selS),
@@ -3943,7 +4124,7 @@ ${msg}`).join("\n\n"), `已复制 ${lines.length} 条提醒内容`);
       },
       "📅 ",
       isStudentScheduledOn(selS.id, todayISO()) ? "查看今日排课" : "加入今日排课"
-    )), /* @__PURE__ */ React.createElement(
+    )), canWriteStudents && /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: () => {
@@ -3953,7 +4134,7 @@ ${msg}`).join("\n\n"), `已复制 ${lines.length} 条提醒内容`);
         className: "flex-1 py-3 rounded-xl text-sm font-bold bg-white border-2 border-indigo-100 active:bg-indigo-50 text-indigo-700 min-h-[50px]"
       },
       "✏️ 编辑"
-    )), !selS.archived && /* @__PURE__ */ React.createElement(
+    )), canWriteCredits && !selS.archived && /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: () => {
@@ -3965,14 +4146,14 @@ ${msg}`).join("\n\n"), `已复制 ${lines.length} 条提醒内容`);
         className: "w-full py-3 rounded-xl text-sm font-bold bg-white border border-gray-200 active:bg-gray-50 text-gray-700 min-h-[50px]"
       },
       "💰 快速充值"
-    ), /* @__PURE__ */ React.createElement(
+    ), canWritePortfolio && /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: () => openGrowthReport(selS),
         className: "w-full py-3 rounded-xl text-sm font-bold bg-gradient-to-r from-purple-500 to-pink-500 active:from-purple-600 active:to-pink-600 text-white min-h-[50px] shadow-sm"
       },
       "🌟 生成成长报告（发给家长）"
-    ), /* @__PURE__ */ React.createElement(
+    ), canWriteStudents && /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: () => archiveStudent(selS.id, selS.name, !selS.archived),
@@ -4016,7 +4197,7 @@ ${msg}`).join("\n\n"), `已复制 ${lines.length} 条提醒内容`);
       className: "md:hidden fixed bottom-[calc(56px+env(safe-area-inset-bottom,0px))] left-0 right-0 z-[46] bg-indigo-900 border-t border-indigo-700 px-4 py-3 grid grid-cols-4 gap-2 anim",
       onClick: (e) => e.stopPropagation()
     },
-    [{ k: "logs", i: "📜", s: "日志" }, { k: "stats", i: "📈", s: "统计" }, { k: "pending", i: "📋", s: "待审核", badge: pendingCount }, { k: "new_student", i: "➕", s: "新建" }].map(({ k, i, s, badge }) => /* @__PURE__ */ React.createElement(
+    [{ k: "logs", i: "📜", s: "日志" }, { k: "stats", i: "📈", s: "统计" }, { k: "pending", i: "📋", s: "待审核", badge: pendingCount }, { k: "new_student", i: "➕", s: "新建" }].filter((item) => allowedTabs.includes(item.k)).map(({ k, i, s, badge }) => /* @__PURE__ */ React.createElement(
       "button",
       {
         key: k,
@@ -4036,7 +4217,7 @@ ${msg}`).join("\n\n"), `已复制 ${lines.length} 条提醒内容`);
       className: "md:hidden fixed bottom-0 left-0 right-0 z-40 bg-indigo-900 border-t border-indigo-800 flex",
       style: { paddingBottom: "env(safe-area-inset-bottom,0px)", transform: "translateZ(0)", willChange: "transform" }
     },
-    [{ k: "dashboard", i: "📊", s: "工作台" }, { k: "roster", i: "📅", s: "排课" }, { k: "students", i: "👥", s: "档案" }, { k: "topup", i: "💰", s: "充值" }].map(({ k, i, s }) => /* @__PURE__ */ React.createElement(
+    [{ k: "dashboard", i: "📊", s: "工作台" }, { k: "roster", i: "📅", s: "排课" }, { k: "students", i: "👥", s: "档案" }, { k: "topup", i: "💰", s: "充值" }].filter((item) => allowedTabs.includes(item.k)).map(({ k, i, s }) => /* @__PURE__ */ React.createElement(
       "button",
       {
         key: k,

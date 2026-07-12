@@ -1648,7 +1648,7 @@
           <span id="refreshIcon">↻</span> Refresh
         </button>
         <button id="openCmsBtn" class="btn-secondary requires-auth hidden">Open CMS</button>
-        <button id="openRegisterBtn" class="btn-secondary requires-auth hidden">Open Register</button>
+        <button id="openRegisterBtn" class="btn-secondary requires-auth hidden">Open Quick Registration</button>
       </div>
     </div>
     <!-- Navigation Bar -->
@@ -1658,16 +1658,10 @@
           <span class="nav-icon">⚙️</span> Website / Brand
         </a>
         <a class="nav-link" href="#section-public-surfaces" data-section="public-surfaces">
-          <span class="nav-icon">🌐</span> Public Pages
+          <span class="nav-icon">🌐</span> Published Pages
         </a>
         <a class="nav-link" href="#registrationFieldsEditor" data-section="registration-form">
-          <span class="nav-icon">📝</span> Register Form
-        </a>
-        <a class="nav-link" href="#section-overview" data-section="overview">
-          <span class="nav-icon">📊</span> Operations Snapshot
-        </a>
-        <a class="nav-link" href="#section-advanced" data-section="advanced">
-          <span class="nav-icon">⬇</span> Advanced / Export
+          <span class="nav-icon">📝</span> Quick Registration Form
         </a>
         <a class="nav-link" href="#" id="openCmsLink" target="_blank" rel="noopener" style="border-top:1px solid var(--border,#E2E8F0);margin-top:8px;padding-top:12px;">
           <span class="nav-icon">🗂</span> Open CMS
@@ -1732,7 +1726,7 @@
               <button type="button" role="tab" aria-selected="true" aria-controls="tab-brand" class="studio-tab active" data-workbench-tab="brand">Brand</button>
               <button type="button" role="tab" aria-selected="false" aria-controls="tab-hero" class="studio-tab" data-workbench-tab="hero">Hero</button>
               <button type="button" role="tab" aria-selected="false" aria-controls="tab-website" class="studio-tab" data-workbench-tab="website">Website</button>
-              <button type="button" role="tab" aria-selected="false" aria-controls="tab-register" class="studio-tab" data-workbench-tab="register">Register</button>
+              <button type="button" role="tab" aria-selected="false" aria-controls="tab-register" class="studio-tab" data-workbench-tab="register">Registration</button>
               <button type="button" role="tab" aria-selected="false" aria-controls="tab-faq" class="studio-tab" data-workbench-tab="faq">FAQ</button>
               <button type="button" role="tab" aria-selected="false" aria-controls="tab-advanced" class="studio-tab" data-workbench-tab="advanced">Preview / Publish</button>
             </div>
@@ -1751,7 +1745,7 @@
                 <div class="form-group"><label>Slogan</label><input id="settingSlogan" placeholder="Public brand slogan"></div>
                 <div class="form-group"><label>Logo URL</label><input id="settingLogoUrl" placeholder="/logo.png or https://..."></div>
                 <div class="form-group"><label>Upload Logo</label><input id="settingLogoFile" type="file" accept="image/*"></div>
-                <div class="form-group"><label>Plan</label><select id="settingPlan"></select></div>
+                <div class="form-group"><label>Plan</label><select id="settingPlan" disabled></select><small>Managed by StudioSaaS Super Admin.</small></div>
                 <div class="form-group"><label>Primary Color</label><div class="color-field"><input id="settingPrimaryColor" type="color"><div class="color-meta">Main public accent</div></div></div>
                 <div class="form-group"><label>Secondary Color</label><div class="color-field"><input id="settingSecondaryColor" type="color"><div class="color-meta">Contrast and buttons</div></div></div>
                 <div class="form-group"><label>Page Background</label><input id="settingThemeBackground" type="color"></div>
@@ -1780,12 +1774,16 @@
               </div>
               <div class="form-grid">
                 <div class="form-group"><label>Hero Eyebrow</label><input id="settingHeroEyebrow" placeholder="Creative Studio"></div>
-                <div class="form-group"><label>Hero Title</label><input id="settingHeroTitle" placeholder="Public hero headline"></div>
-                <div class="form-group" style="grid-column:1/-1;"><label>Hero Subtitle</label><textarea id="settingHeroSubtitle" rows="3" placeholder="Short public value proposition"></textarea></div>
+                <div class="form-group"><label>Hero Title · 中文</label><input id="settingHeroTitle" placeholder="公开首页标题"></div>
+                <div class="form-group"><label>Hero Title · English</label><input id="settingHeroTitleEn" placeholder="Public hero headline"></div>
+                <div class="form-group"><label>Hero Subtitle · 中文</label><textarea id="settingHeroSubtitle" rows="3" placeholder="简短价值主张"></textarea></div>
+                <div class="form-group"><label>Hero Subtitle · English</label><textarea id="settingHeroSubtitleEn" rows="3" placeholder="Short public value proposition"></textarea></div>
                 <div class="form-group"><label>Hero Image URL</label><input id="settingHeroImageUrl" placeholder="/site/hero.jpg or https://..."></div>
                 <div class="form-group"><label>Hero Style</label><select id="settingHeroStyle"><option value="soft">Soft Art Board</option><option value="image">Image Background</option><option value="minimal">Minimal</option><option value="bold">Bold Contrast</option></select></div>
-                <div class="form-group"><label>Primary CTA Label</label><input id="settingPrimaryCta" placeholder="Book a Trial"></div>
-                <div class="form-group"><label>Secondary CTA Label</label><input id="settingSecondaryCta" placeholder="Explore Courses"></div>
+                <div class="form-group"><label>Primary CTA · 中文</label><input id="settingPrimaryCta" placeholder="预约体验"></div>
+                <div class="form-group"><label>Primary CTA · English</label><input id="settingPrimaryCtaEn" placeholder="Book a Trial"></div>
+                <div class="form-group"><label>Secondary CTA · 中文</label><input id="settingSecondaryCta" placeholder="查看课程"></div>
+                <div class="form-group"><label>Secondary CTA · English</label><input id="settingSecondaryCtaEn" placeholder="Explore Courses"></div>
                 <div class="form-group"><label>Student Login Link</label><select id="settingShowStudentLogin"><option value="true">Show</option><option value="false">Hide</option></select></div>
               </div>
             </div>
@@ -1825,8 +1823,10 @@
               </div>
               <div class="form-grid">
                 <div class="form-group"><label>Portal Label</label><input id="settingPortalLabel" placeholder="Student portal label"></div>
-                <div class="form-group"><label>Registration Title</label><input id="settingRegistrationTitle" placeholder="Registration form title"></div>
-                <div class="form-group" style="grid-column:1/-1;"><label>Register Intro</label><textarea id="settingRegisterIntro" rows="3" placeholder="Registration form intro text"></textarea></div>
+                <div class="form-group"><label>Registration Title · 中文</label><input id="settingRegistrationTitle" placeholder="报名表标题"></div>
+                <div class="form-group"><label>Registration Title · English</label><input id="settingRegistrationTitleEn" placeholder="Registration form title"></div>
+                <div class="form-group"><label>Registration Intro · 中文</label><textarea id="settingRegisterIntro" rows="3" placeholder="报名说明"></textarea></div>
+                <div class="form-group"><label>Registration Intro · English</label><textarea id="settingRegisterIntroEn" rows="3" placeholder="Registration form intro text"></textarea></div>
               </div>
               <div class="panel-heading" style="margin-top:18px;">
                 <div>
@@ -1857,10 +1857,15 @@
                 </div>
               </div>
               <div class="surface-grid">
-                <div class="surface-card"><strong>Portal</strong><p>Public home page with hero, courses, student area, FAQ, and contact.</p><code id="surfacePortalUrlPreview" class="surface-url">/tenant-slug</code><button type="button" class="btn-primary" onclick="openTenantSurface('portal')">Open Portal</button></div>
-                <div class="surface-card"><strong>Register</strong><p>Lightweight lead capture page using the registration fields above.</p><code id="surfaceRegisterUrlPreview" class="surface-url">/tenant-slug/register</code><button type="button" class="btn-secondary" onclick="openTenantSurface('register')">Open Register</button></div>
+                <div class="surface-card"><strong>Studio Website</strong><p>Primary bilingual public experience with introduction, courses, work gallery, student area, and registration CTA.</p><code id="surfacePortalUrlPreview" class="surface-url">/tenant-slug</code><button type="button" class="btn-primary" onclick="openTenantSurface('portal')">Open Website</button></div>
+                <div class="surface-card"><strong>Quick Registration</strong><p>Alternate focused registration page for QR codes, campaigns, and direct links.</p><code id="surfaceRegisterUrlPreview" class="surface-url">/tenant-slug/register</code><button type="button" class="btn-secondary" onclick="openTenantSurface('register')">Open Quick Registration</button></div>
                 <div class="surface-card"><strong>CMS</strong><p>Daily operations: students, payments, check-ins, rosters, and portfolio work.</p><code id="surfaceCmsUrlPreview" class="surface-url">/tenant-slug/cms</code><button type="button" class="btn-secondary" onclick="openTenantSurface('cms')">Open CMS</button></div>
                 <div class="surface-card"><strong>Studio Admin</strong><p>This website and brand workspace.</p><code id="surfaceAdminUrlPreview" class="surface-url">/tenant-slug/studio-admin</code><button type="button" class="btn-secondary" onclick="openTenantSurface('studio-admin')">Open Studio Admin</button></div>
+              </div>
+              <div class="card mt-2">
+                <div class="card-header"><h3 class="card-title">Publication history</h3></div>
+                <p class="text-muted" style="font-size:13px;">Restore a previous publication into the draft, review it in the preview, then publish when ready.</p>
+                <div id="brandVersionList" class="empty-state">No published versions yet.</div>
               </div>
             </div>
           </div>
@@ -1868,8 +1873,8 @@
           <aside class="preview-panel" aria-label="Live website preview">
             <div class="preview-toolbar">
               <div class="preview-tabs">
-                <button type="button" class="preview-tab active" data-preview-mode="portal">Portal</button>
-                <button type="button" class="preview-tab" data-preview-mode="register">Register</button>
+                <button type="button" class="preview-tab active" data-preview-mode="portal">Studio Website</button>
+                <button type="button" class="preview-tab" data-preview-mode="register">Quick Registration</button>
               </div>
               <div class="device-tabs">
                 <button type="button" class="device-tab active" data-preview-device="desktop">Desktop</button>
@@ -1900,7 +1905,7 @@
                 <div class="register-preview">
                   <div class="register-card-preview">
                     <div id="previewRegisterEyebrow" class="preview-eyebrow">Registration</div>
-                    <div id="previewRegisterTitle" class="preview-h1" style="font-size:26px;">Student Registration</div>
+                    <div id="previewRegisterTitle" class="preview-h1" style="font-size:26px;">Quick Registration</div>
                     <div id="previewRegisterIntro" class="preview-subtitle" style="margin-top:0;">Tell us about the student and their goals.</div>
                     <div class="preview-field">Given name *</div>
                     <div class="preview-field">Mobile *</div>
@@ -1918,8 +1923,9 @@
           <div id="saveBarStatus" class="save-bar-status">No unsaved changes</div>
           <div class="action-row">
             <button id="resetPresetBtn" class="btn-secondary">Apply Category Preset</button>
-            <button type="button" class="btn-secondary" onclick="openTenantSurface('portal')">Open Portal</button>
-            <button id="saveSettingsBtn" class="btn-primary">Save Settings</button>
+            <button type="button" class="btn-secondary" onclick="openTenantSurface('portal')">Open Website</button>
+            <button id="saveDraftBtn" class="btn-secondary">Save Draft</button>
+            <button id="publishSettingsBtn" class="btn-primary">Publish</button>
           </div>
         </div>
       </div>
@@ -1930,16 +1936,16 @@
         <div class="section-icon">🌐</div>
         <div>
           <div class="section-title">Public Pages</div>
-          <div class="section-subtitle">Check the four tenant surfaces generated for every studio</div>
+          <div class="section-subtitle">Check the published website, operational CMS, alternate registration entry, and this brand workspace</div>
         </div>
       </div>
       <div class="surface-grid">
         <div class="surface-card">
-          <strong>Portal</strong>
+          <strong>Studio Website</strong>
           <p>The public home page parents see first: courses, gallery, contact, student lookup, and enrolment entry.</p>
           <code id="surfacePortalUrl" class="surface-url">/tenant-slug</code>
           <span id="surfacePortalHealth" class="surface-health">Not checked</span>
-          <button type="button" class="btn-primary" onclick="openTenantSurface('portal')">Open Portal</button>
+          <button type="button" class="btn-primary" onclick="openTenantSurface('portal')">Open Website</button>
         </div>
         <div class="surface-card">
           <strong>CMS</strong>
@@ -1949,398 +1955,18 @@
           <button type="button" class="btn-secondary" onclick="openTenantSurface('cms')">Open CMS</button>
         </div>
         <div class="surface-card">
-          <strong>Register</strong>
+          <strong>Quick Registration</strong>
           <p>The tenant-specific lead capture page. Its labels, intro copy, and preferences are controlled above.</p>
           <code id="surfaceRegisterUrl" class="surface-url">/tenant-slug/register</code>
           <span id="surfaceRegisterHealth" class="surface-health">Not checked</span>
-          <button type="button" class="btn-secondary" onclick="openTenantSurface('register')">Open Register</button>
+          <button type="button" class="btn-secondary" onclick="openTenantSurface('register')">Open Quick Registration</button>
         </div>
         <div class="surface-card">
           <strong>Studio Admin</strong>
           <p>This control panel for how the studio appears externally. Operational editing stays in the CMS.</p>
           <code id="surfaceAdminUrl" class="surface-url">/tenant-slug/studio-admin</code>
           <span id="surfaceAdminHealth" class="surface-health">Not checked</span>
-          <button type="button" class="btn-secondary" onclick="openTenantSurface('admin')">Open Admin</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- ===== Overview Section ===== -->
-    <section id="section-overview" class="section">
-      <div class="section-header">
-        <div class="section-icon">📊</div>
-        <div>
-          <div class="section-title">Operations Snapshot</div>
-          <div class="section-subtitle">Read-only health from CMS; manage daily work in the CMS workspace</div>
-        </div>
-      </div>
-      <div class="handoff-note mb-2">
-        CMS is the source of truth for daily operations: students, schedules, check-ins, payments, refunds, logs, statistics, registration review, and portfolio updates. Studio Admin only controls public brand, website, and registration configuration.
-      </div>
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div id="studentsMetric" class="stat-value">-</div>
-          <div class="stat-label">Students in CMS</div>
-        </div>
-        <div class="stat-card green">
-          <div id="activeMetric" class="stat-value">-</div>
-          <div class="stat-label">Active</div>
-        </div>
-        <div class="stat-card amber">
-          <div id="lowMetric" class="stat-value">-</div>
-          <div class="stat-label">Low Balance</div>
-        </div>
-        <div class="stat-card purple">
-          <div id="pendingMetric" class="stat-value">-</div>
-          <div class="stat-label">Pending Leads</div>
-        </div>
-        <div class="stat-card">
-          <div id="todayMetric" class="stat-value">-</div>
-          <div class="stat-label">Today Check-ins</div>
-        </div>
-      </div>
-      <div class="content-grid mt-2">
-        <div class="card">
-          <div class="card-header">
-            <h2 class="card-title">Today in CMS</h2>
-          </div>
-          <div id="dashboardTodayBody" class="empty-state">Loading...</div>
-        </div>
-        <div class="card">
-          <div class="card-header">
-            <h2 class="card-title">Needs Attention</h2>
-          </div>
-          <div id="dashboardAttentionBody" class="empty-state">Loading...</div>
-        </div>
-      </div>
-    </section>
-
-    <section id="section-advanced" class="section">
-      <div class="section-header">
-        <div class="section-icon">⬇</div>
-        <div>
-          <div class="section-title">Advanced / Export</div>
-          <div class="section-subtitle">Audited exports and links back to the operational CMS</div>
-        </div>
-      </div>
-      <div class="content-grid">
-        <div class="card">
-          <div class="card-header">
-            <h2 class="card-title">Data Export</h2>
-          </div>
-          <p class="text-muted" style="margin:0 0 12px;font-size:13px;">Download this studio's operational data as CSV. Exports are recorded in the audit log.</p>
-          <div class="action-row">
-            <button type="button" class="btn-secondary btn-sm" onclick="downloadExport('students')">Students CSV</button>
-            <button type="button" class="btn-secondary btn-sm" onclick="downloadExport('registrations')">Registrations CSV</button>
-            <button type="button" class="btn-secondary btn-sm" onclick="downloadExport('credit-ledger')">Credit Ledger CSV</button>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header">
-            <h2 class="card-title">Operations Handoff</h2>
-          </div>
-          <p class="text-muted" style="margin:0 0 12px;font-size:13px;">Students, attendance, payments, refunds, schedules, logs, analytics, and portfolio edits live in the CMS.</p>
-          <div class="action-row">
-            <button type="button" class="btn-primary btn-sm" onclick="openTenantSurface('cms')">Open CMS Workspace</button>
-            <button type="button" class="btn-secondary btn-sm" onclick="openTenantSurface('register')">Review Register Page</button>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ===== Students Section ===== -->
-    <section id="section-students" class="section operational-section hidden">
-      <div class="section-header">
-        <div class="section-icon">👥</div>
-        <div>
-          <div class="section-title">Students</div>
-          <div class="section-subtitle">Manage student records and balances</div>
-        </div>
-      </div>
-      <div class="content-grid">
-        <!-- Students Table -->
-        <div class="card">
-          <div class="card-header">
-            <h2 id="studentFormTitle" class="card-title">Students</h2>
-            <button id="addStudentBtn" class="btn-primary btn-sm">+ Add Student</button>
-          </div>
-          <div class="toolbar">
-            <div>
-              <label for="studentSearch" class="text-muted">Search</label>
-              <input id="studentSearch" placeholder="Name or mobile">
-            </div>
-            <div>
-              <label for="studentStatusFilter" class="text-muted">Status</label>
-              <select id="studentStatusFilter">
-                <option value="">All active records</option>
-                <option value="active">Active</option>
-                <option value="trial">Trial</option>
-                <option value="inactive">Inactive</option>
-                <option value="archived">Archived</option>
-              </select>
-            </div>
-            <label style="display:flex; align-items:center; gap:8px; padding-bottom:10px;">
-              <input id="studentLowFilter" type="checkbox" style="width:auto;"> Low balance
-            </label>
-            <button id="clearStudentFiltersBtn" type="button" class="btn-secondary btn-sm">Clear</button>
-          </div>
-          <div class="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Status</th>
-                  <th>Balances</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="studentsBody"></tbody>
-            </table>
-          </div>
-          <div class="toolbar" id="studentPager" style="justify-content:flex-end;align-items:center;gap:12px;display:none;">
-            <span id="studentPageInfo" class="text-muted" style="font-size:13px;"></span>
-            <button id="studentPrevBtn" type="button" class="btn-secondary btn-sm">‹ Prev</button>
-            <button id="studentNextBtn" type="button" class="btn-secondary btn-sm">Next ›</button>
-          </div>
-        </div>
-
-        <!-- Student Form -->
-        <div class="card">
-          <div class="card-header">
-            <h2 id="studentFormTitleRight" class="card-title">Student Details</h2>
-          </div>
-          <form id="studentForm" class="hidden">
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Name</label>
-                <input id="sName" placeholder="Full name">
-              </div>
-              <div class="form-group">
-                <label>Email</label>
-                <input id="sEmail" type="email" placeholder="student@example.com">
-              </div>
-              <div class="form-group">
-                <label>Status</label>
-                <select id="sStatus">
-                  <option value="active">Active</option>
-                  <option value="trial">Trial</option>
-                  <option value="inactive">Inactive</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>Course</label>
-                <select id="sCourse"></select>
-              </div>
-              <div class="form-group">
-                <label>Packages</label>
-                <input id="sPackages" placeholder="e.g. 3,4">
-              </div>
-              <div class="form-group">
-                <label>Balance</label>
-                <input id="sBalance" type="number" step="0.01">
-              </div>
-              <div class="form-group">
-                <label>Credit Hours</label>
-                <input id="sCreditHours" type="number">
-              </div>
-              <div class="form-group">
-                <label>Phone</label>
-                <input id="sPhone" placeholder="0400 000 000">
-              </div>
-            </div>
-            <div class="form-actions">
-              <button type="button" id="saveStudentBtn" class="btn-primary">Save Student</button>
-              <button type="button" id="resetStudentBtn" class="btn-secondary">Cancel</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </section>
-
-    <!-- ===== Credits & Attendance Section ===== -->
-    <section id="section-attendance" class="section operational-section hidden">
-      <div class="section-header">
-        <div class="section-icon">✓</div>
-        <div>
-          <div class="section-title">Credits / Attendance</div>
-          <div class="section-subtitle">Today check-ins, undo flow, and low balance warnings</div>
-        </div>
-      </div>
-      <div class="content-grid">
-        <div class="card">
-          <div class="card-header">
-            <h2 class="card-title">Today Check-in</h2>
-          </div>
-          <div class="form-grid">
-            <div class="form-group">
-              <label>Student</label>
-              <select id="attendanceStudent"></select>
-            </div>
-            <div class="form-group">
-              <label>Course</label>
-              <select id="attendanceCourse"></select>
-            </div>
-            <div class="form-group">
-              <label>Note</label>
-              <input id="attendanceNote" placeholder="Optional note">
-            </div>
-          </div>
-          <div class="form-actions">
-            <button id="attendanceCheckInBtn" class="btn-primary" type="button">Check In</button>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header">
-            <h2 class="card-title">Low Balance</h2>
-          </div>
-          <div id="attendanceLowBalance" class="empty-state">Loading...</div>
-        </div>
-      </div>
-      <div class="card mt-2">
-        <div class="card-header">
-          <h2 class="card-title">Today's Attendance</h2>
-        </div>
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Student</th>
-                <th>Course</th>
-                <th>Credits</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="attendanceBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- ===== Courses Section ===== -->
-    <section id="section-courses" class="section operational-section hidden">
-      <div class="section-header">
-        <div class="section-icon">📚</div>
-        <div>
-          <div class="section-title">Courses / Packages</div>
-          <div class="section-subtitle">Manage course catalog, credits, and pricing</div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-header">
-          <h2 class="card-title">Courses</h2>
-          <button id="addCourseBtn" class="btn-primary btn-sm">+ Add Course</button>
-        </div>
-        <div class="table-wrapper">
-          <table>
-            <thead>
-                <tr>
-                  <th>Name</th>
-                <th>Category</th>
-                <th>Duration</th>
-                <th>Price</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="coursesBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- ===== Packages & Registrations Section ===== -->
-    <section id="section-packages" class="section operational-section hidden">
-      <div class="section-header">
-        <div class="section-icon">📦</div>
-        <div>
-          <div class="section-title">Packages</div>
-          <div class="section-subtitle">Credit packages and pricing</div>
-        </div>
-      </div>
-      <div class="content-grid">
-        <!-- Packages Table -->
-        <div class="card">
-          <div class="card-header">
-            <h2 id="packageFormTitle" class="card-title">Packages</h2>
-            <button id="addPackageBtn" class="btn-primary btn-sm">+ Add Package</button>
-          </div>
-          <div class="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Credits</th>
-                  <th>Expiry</th>
-                  <th>Price</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="packagesBody"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ===== Registrations Section ===== -->
-    <section id="section-registrations" class="section operational-section hidden">
-      <div class="section-header">
-        <div class="section-icon">📋</div>
-        <div>
-          <div class="section-title">Registrations</div>
-          <div class="section-subtitle">Review and manage registration requests</div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-header">
-          <h2 class="card-title">Registrations</h2>
-        </div>
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Student</th>
-                <th>Message</th>
-                <th>Status</th>
-                <th>Review</th>
-                <th>Date</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="registrationsBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- ===== Portfolio Section ===== -->
-    <section id="section-portfolio" class="section operational-section hidden">
-      <div class="section-header">
-        <div class="section-icon">🎨</div>
-        <div>
-          <div class="section-title">Portfolio</div>
-          <div class="section-subtitle">Student artwork and project showcases</div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-header">
-          <h2 class="card-title">Portfolio</h2>
-        </div>
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Image</th>
-                <th>Title</th>
-                <th>Student</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="portfolioBody"></tbody>
-          </table>
+          <button type="button" class="btn-secondary" onclick="openTenantSurface('admin')">Open Studio Admin</button>
         </div>
       </div>
     </section>
@@ -2410,6 +2036,7 @@
     let settingsDirty = false;
     let previewMode = 'portal';
     let previewDevice = 'desktop';
+    let brandVersions = [];
 
     function setSettingsDirty(isDirty = true) {
       settingsDirty = isDirty;
@@ -2535,8 +2162,6 @@
       [
         'section-settings',
         'section-public-surfaces',
-        'section-overview',
-        'section-advanced',
         'section-students',
         'section-registrations',
         'section-attendance',
@@ -2688,7 +2313,7 @@
     }
 
     function currentMembershipForSlug(memberships = [], slug) {
-      return memberships.some((m) => m.role === 'super_admin' || m.tenant_slug === slug || m.slug === slug);
+      return memberships.some((m) => m.role === 'super_admin' || (m.role === 'owner' && (m.tenant_slug === slug || m.slug === slug)));
     }
 
     function setAuthState(user) {
@@ -2709,7 +2334,7 @@
         const slug = currentTenantSlug();
         if (data.memberships && !currentMembershipForSlug(data.memberships, slug)) {
           setAuthState(null);
-          showToast(`This account does not have access to ${slug}.`, 'error');
+          showToast(`Studio Admin requires the owner role for ${slug}. Open Studio CMS for operational access.`, 'error');
           return;
         }
         setAuthState(data.user || data);
@@ -3081,7 +2706,7 @@
       $('previewPrimaryCta').textContent = $('settingPrimaryCta')?.value || 'Book a Trial';
       $('previewSecondaryCta').textContent = $('settingSecondaryCta')?.value || 'Explore Courses';
       $('previewRegisterEyebrow').textContent = $('settingHeroEyebrow')?.value || 'Registration';
-      $('previewRegisterTitle').textContent = $('settingRegistrationTitle')?.value || 'Student Registration';
+      $('previewRegisterTitle').textContent = $('settingRegistrationTitle')?.value || 'Quick Registration';
       $('previewRegisterIntro').textContent = $('settingRegisterIntro')?.value || 'Tell us about the student and their goals.';
       renderPreviewSections();
       renderPreviewRegistrationFields();
@@ -3298,6 +2923,7 @@
       const website = t.website_profile || t.websiteProfile || defaultWebsiteProfile();
       const principal = t.principal_profile || t.principalProfile || defaultPrincipalProfile(t.name);
       const visual = t.visual_theme || t.visualTheme || defaultVisualTheme();
+      const localized = t.localized_copy || t.localizedCopy || {};
       $('studioName').textContent = t.name || 'Studio Admin';
       $('studioMeta').textContent = t.slug ? `${t.slug} · ${preset.label} website and brand console` : 'Website and brand console';
       $('tenantSlug').value = t.slug || currentTenantSlug();
@@ -3308,6 +2934,14 @@
       $('settingLogoUrl').value = t.logo_url || t.logoUrl || '';
       $('settingPlan').innerHTML = plans.map((p) => `<option value="${p.code}">${esc(p.name)} (${esc(p.code)})</option>`).join('');
       if (t.plan_code) $('settingPlan').value = t.plan_code;
+      const currentPlan = plans.find((plan) => plan.code === t.plan_code) || {};
+      const canExport = Boolean((currentPlan.features || {}).data_export);
+      ['exportStudentsBtn', 'exportRegistrationsBtn', 'exportLedgerBtn'].forEach((id) => {
+        const button = $(id);
+        if (!button) return;
+        button.disabled = !canExport;
+        button.title = canExport ? '' : 'Data export is not included in the current plan.';
+      });
       $('settingPrimaryColor').value = t.primary_color || '#2563eb';
       $('settingSecondaryColor').value = t.secondary_color || '#0f172a';
       $('settingCmsLayout').value = t.cms_layout || t.cmsLayout || 'bar';
@@ -3320,16 +2954,22 @@
       $('settingAddress').value = t.address || '';
       $('settingWelcome').value = t.welcome_message || t.welcomeMessage || '';
       $('settingPortalLabel').value = t.copy_pack?.portal_label || t.copyPack?.portalLabel || preset.portalLabel;
-      $('settingRegisterIntro').value = t.copy_pack?.register_intro || t.copyPack?.registerIntro || preset.registerIntro;
+      $('settingRegisterIntro').value = localized.registration_intro?.zh || t.copy_pack?.register_intro || t.copyPack?.registerIntro || preset.registerIntro;
+      $('settingRegisterIntroEn').value = localized.registration_intro?.en || t.copy_pack?.register_intro || t.copyPack?.registerIntro || preset.registerIntro;
       const profile = t.registration_profile || t.registrationProfile || defaultRegistrationProfile(category);
-      $('settingRegistrationTitle').value = profile.title || 'Student Registration';
+      $('settingRegistrationTitle').value = localized.registration_title?.zh || profile.title || '学员报名';
+      $('settingRegistrationTitleEn').value = localized.registration_title?.en || profile.title || 'Quick Registration';
       fillRegistrationFields(profile);
       $('settingHeroEyebrow').value = hero.eyebrow || preset.label;
-      $('settingHeroTitle').value = hero.title || t.name || '';
-      $('settingHeroSubtitle').value = hero.subtitle || t.slogan || preset.slogan;
+      $('settingHeroTitle').value = localized.hero_title?.zh || hero.title || t.name || '';
+      $('settingHeroTitleEn').value = localized.hero_title?.en || hero.title || t.name || '';
+      $('settingHeroSubtitle').value = localized.hero_subtitle?.zh || hero.subtitle || t.slogan || preset.slogan;
+      $('settingHeroSubtitleEn').value = localized.hero_subtitle?.en || hero.subtitle || t.slogan || preset.slogan;
       $('settingHeroImageUrl').value = hero.hero_image_url || hero.heroImageUrl || '';
-      $('settingPrimaryCta').value = hero.primary_cta_label || hero.primaryCtaLabel || 'Book a Trial';
-      $('settingSecondaryCta').value = hero.secondary_cta_label || hero.secondaryCtaLabel || 'Explore Courses';
+      $('settingPrimaryCta').value = localized.primary_cta?.zh || hero.primary_cta_label || hero.primaryCtaLabel || '预约体验';
+      $('settingPrimaryCtaEn').value = localized.primary_cta?.en || hero.primary_cta_label || hero.primaryCtaLabel || 'Book a Trial';
+      $('settingSecondaryCta').value = localized.secondary_cta?.zh || hero.secondary_cta_label || hero.secondaryCtaLabel || '查看课程';
+      $('settingSecondaryCtaEn').value = localized.secondary_cta?.en || hero.secondary_cta_label || hero.secondaryCtaLabel || 'Explore Courses';
       $('settingHeroStyle').value = hero.background_style || hero.backgroundStyle || 'soft';
       $('settingShowStudentLogin').value = String(boolValue(hero.show_student_login ?? hero.showStudentLogin, true));
       $('settingShowPrincipal').value = String(boolValue(website.show_principal ?? website.showPrincipal, true));
@@ -3377,6 +3017,14 @@
         copyPack: {
           portalLabel: $('settingPortalLabel').value.trim(),
           registerIntro: $('settingRegisterIntro').value.trim()
+        },
+        localizedCopy: {
+          heroTitle: { zh: $('settingHeroTitle').value.trim(), en: $('settingHeroTitleEn').value.trim() },
+          heroSubtitle: { zh: $('settingHeroSubtitle').value.trim(), en: $('settingHeroSubtitleEn').value.trim() },
+          primaryCta: { zh: $('settingPrimaryCta').value.trim(), en: $('settingPrimaryCtaEn').value.trim() },
+          secondaryCta: { zh: $('settingSecondaryCta').value.trim(), en: $('settingSecondaryCtaEn').value.trim() },
+          registrationTitle: { zh: $('settingRegistrationTitle').value.trim(), en: $('settingRegistrationTitleEn').value.trim() },
+          registrationIntro: { zh: $('settingRegisterIntro').value.trim(), en: $('settingRegisterIntroEn').value.trim() }
         },
         registrationProfile: collectRegistrationProfile(),
         heroProfile: {
@@ -3458,8 +3106,7 @@
       return data.brand || {};
     }
 
-    async function saveSettings() {
-      const payload = settingsPayload();
+    function validatePublishPayload(payload) {
       if (!payload.name) throw new Error('Studio name is required.');
       const placeholderPattern = /placeholder|principal name|主理人姓名|占位文案/i;
       const requiredPublicCopy = [
@@ -3467,12 +3114,31 @@
         ['Registration title', payload.registrationProfile.title],
         ['Registration introduction', payload.copyPack.registerIntro]
       ];
+      Object.entries(payload.localizedCopy || {}).forEach(([key, pair]) => {
+        if (!pair.zh || !pair.en) requiredPublicCopy.push([`${key} in Chinese and English`, '']);
+      });
       const missing = requiredPublicCopy.filter(([, value]) => !value || placeholderPattern.test(value)).map(([label]) => label);
       if (!payload.contactPhone && !payload.contactEmail) missing.push('Phone or email');
       if (payload.websiteProfile.showPrincipal && (!payload.principalProfile.name || placeholderPattern.test(payload.principalProfile.name))) {
         missing.push('Principal or teaching team name');
       }
       if (missing.length) throw new Error(`Complete public content before publishing: ${missing.join(', ')}.`);
+    }
+
+    async function saveDraft() {
+      const payload = settingsPayload();
+      if (!payload.name) throw new Error('Studio name is required.');
+      await api('/tenant/brand-draft', { method: 'PUT', body: JSON.stringify(payload) });
+      setSettingsDirty(false);
+      $('saveBarStatus').textContent = 'Draft saved — not public';
+      $('workbenchStatus').textContent = 'Draft saved';
+      showToast('Draft saved. Public pages have not changed.');
+    }
+
+    async function publishSettings() {
+      const payload = settingsPayload();
+      validatePublishPayload(payload);
+      await api('/tenant/brand-draft', { method: 'PUT', body: JSON.stringify(payload) });
       const data = await api('/tenant', { method: 'PATCH', body: JSON.stringify(payload) });
       tenant = data.tenant || tenant;
       fillSettings();
@@ -3480,11 +3146,81 @@
       try {
         await verifyPublicBrandPublished(payload);
         await updateSurfaceHealth();
-        showToast('Studio settings saved and published to Portal, Register, and CMS.');
+        await loadBrandWorkspace();
+        showToast(`Version ${data.publishedVersion || ''} published to Portal, Quick Register, and CMS.`.trim());
       } catch (err) {
         await updateSurfaceHealth().catch(() => {});
         showToast(err.message || 'Saved, but public publish verification failed.', 'warning');
       }
+    }
+
+    function applyDraftToEditor(payload) {
+      if (!payload || typeof payload !== 'object') return;
+      tenant = {
+        ...tenant,
+        ...payload,
+        primary_color: payload.primaryColor || tenant.primary_color,
+        secondary_color: payload.secondaryColor || tenant.secondary_color,
+        contact_phone: payload.contactPhone ?? tenant.contact_phone,
+        contact_email: payload.contactEmail ?? tenant.contact_email,
+        welcome_message: payload.welcomeMessage ?? tenant.welcome_message,
+        logo_url: payload.logoUrl ?? tenant.logo_url,
+        cms_layout: payload.cmsLayout ?? tenant.cms_layout,
+        show_welcome: payload.showWelcome ?? tenant.show_welcome,
+        copy_pack: payload.copyPack ?? tenant.copy_pack,
+        localized_copy: payload.localizedCopy ?? tenant.localized_copy,
+        registration_profile: payload.registrationProfile ?? tenant.registration_profile,
+        hero_profile: payload.heroProfile ?? tenant.hero_profile,
+        website_profile: payload.websiteProfile ?? tenant.website_profile,
+        principal_profile: payload.principalProfile ?? tenant.principal_profile,
+        faq_items: payload.faqItems ?? tenant.faq_items,
+        visual_theme: payload.visualTheme ?? tenant.visual_theme
+      };
+      fillSettings();
+      $('saveBarStatus').textContent = 'Saved draft loaded — not public';
+      $('workbenchStatus').textContent = 'Draft loaded';
+    }
+
+    function renderBrandVersions() {
+      const list = $('brandVersionList');
+      list.replaceChildren();
+      if (!brandVersions.length) {
+        list.className = 'empty-state';
+        list.textContent = 'No published versions yet.';
+        return;
+      }
+      list.className = '';
+      brandVersions.forEach((version) => {
+        const row = document.createElement('div');
+        row.className = 'summary-item';
+        const detail = document.createElement('div');
+        const title = document.createElement('strong');
+        title.textContent = `Version ${version.version_number}`;
+        const meta = document.createElement('div');
+        meta.className = 'text-muted';
+        meta.textContent = `${new Date(version.published_at).toLocaleString()} · ${version.published_by || 'Studio owner'}`;
+        detail.append(title, meta);
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'btn-secondary btn-sm';
+        button.textContent = 'Restore to Draft';
+        button.addEventListener('click', () => restoreBrandVersion(version.id));
+        row.append(detail, button);
+        list.appendChild(row);
+      });
+    }
+
+    async function loadBrandWorkspace() {
+      const data = await api('/tenant/brand-workspace');
+      brandVersions = data.versions || [];
+      renderBrandVersions();
+      return data;
+    }
+
+    async function restoreBrandVersion(versionId) {
+      const data = await api(`/tenant/brand-versions/${encodeURIComponent(versionId)}/restore`, { method: 'POST', body: '{}' });
+      applyDraftToEditor(data.draft || {});
+      showToast('Previous version restored to draft. Review it before publishing.');
     }
 
     async function uploadLogo() {
@@ -3494,8 +3230,9 @@
       formData.append('file', file);
       const data = await api('/tenant/logo', { method: 'POST', body: formData });
       $('settingLogoUrl').value = data.url || '';
+      setSettingsDirty(true);
       updateThemePreview();
-      showToast('Logo uploaded. Save settings to publish it.');
+      showToast('Logo uploaded. Save Draft or Publish when you are ready.');
     }
 
     function applyCategoryPreset() {
@@ -4087,12 +3824,6 @@
     function setLoadingState(loading) {
       $('refreshBtn').disabled = loading;
       $('refreshIcon').textContent = loading ? '...' : '↻';
-      if (loading) {
-        ['studentsBody','coursesBody','packagesBody','registrationsBody','portfolioBody','attendanceBody'].forEach((id) => {
-          const colspan = id === 'studentsBody' ? 4 : id === 'registrationsBody' ? 6 : id === 'portfolioBody' ? 5 : id === 'attendanceBody' ? 5 : 6;
-          $(id).innerHTML = emptyRow(colspan, 'Loading...');
-        });
-      }
     }
 
     async function refresh() {
@@ -4100,22 +3831,15 @@
       localStorage.setItem('studiosaas_tenant_slug', currentTenantSlug());
       setLoadingState(true);
       try {
-        const [tenantData, dashboardData, planData] = await Promise.all([
-          api('/tenant'), api('/dashboard'), authApi('/plans')
+        const [tenantData, planData, workspaceData] = await Promise.all([
+          api('/tenant'), authApi('/plans'), api('/tenant/brand-workspace')
         ]);
         tenant = tenantData.tenant || tenantData.settings || {};
         plans = planData.plans || [];
-        const dashboard = dashboardData.dashboard || {};
-        $('studentsMetric').textContent = dashboard.students ?? 0;
-        $('activeMetric').textContent = dashboard.active_students ?? 0;
-        $('lowMetric').textContent = dashboard.low_balance ?? 0;
-        $('pendingMetric').textContent = dashboard.pending_registrations ?? 0;
-        $('todayMetric').textContent = dashboard.today_checkins ?? 0;
         fillSettings();
-        $('dashboardTodayBody').classList.remove('empty-state');
-        $('dashboardTodayBody').textContent = `${Number(dashboard.today_checkins || 0)} check-ins today. Open CMS for the roster and attendance details.`;
-        $('dashboardAttentionBody').classList.remove('empty-state');
-        $('dashboardAttentionBody').textContent = `${Number(dashboard.pending_registrations || 0)} pending registrations · ${Number(dashboard.low_balance || 0)} low-balance students. Open CMS to take action.`;
+        brandVersions = workspaceData.versions || [];
+        renderBrandVersions();
+        if (workspaceData.draft?.payload) applyDraftToEditor(workspaceData.draft.payload);
       } catch (err) {
         if (err.status === 401) setAuthState(null);
         showToast(`Failed to load Studio Admin: ${err.message}`, 'error');
@@ -4125,7 +3849,6 @@
     }
 
     function bindEvents() {
-      orderSectionsForDailyWorkflow();
       $('tenantSlug').value = pathTenantSlug() || localStorage.getItem('studiosaas_tenant_slug') || $('tenantSlug').value || 'lets-paint-studio';
       $('loginForm').addEventListener('submit', loginStudioAdmin);
       $('logoutBtn').addEventListener('click', logoutStudioAdmin);
@@ -4139,7 +3862,8 @@
       });
       $('openCmsBtn').addEventListener('click', () => openTenantSurface('cms'));
       $('openRegisterBtn').addEventListener('click', () => openTenantSurface('register'));
-      $('saveSettingsBtn').addEventListener('click', () => runUiAction('saveSettingsBtn', 'Saving...', saveSettings));
+      $('saveDraftBtn').addEventListener('click', () => runUiAction('saveDraftBtn', 'Saving Draft...', saveDraft));
+      $('publishSettingsBtn').addEventListener('click', () => runUiAction('publishSettingsBtn', 'Publishing...', publishSettings));
       $('settingLogoFile').addEventListener('change', () => uploadLogo().catch((err) => showToast(err.message, 'error')));
       $('resetPresetBtn').addEventListener('click', applyCategoryPreset);
       $('addRegistrationQuestionBtn').addEventListener('click', addRegistrationQuestion);
@@ -4176,7 +3900,9 @@
       [
         'settingName','settingLogoUrl','settingPrimaryColor','settingSecondaryColor','settingWelcome','settingSlogan',
         'settingPortalLabel','settingRegisterIntro','settingRegistrationTitle','settingPhone','settingEmail','settingAddress',
-        'settingHeroEyebrow','settingHeroTitle','settingHeroSubtitle','settingHeroImageUrl','settingPrimaryCta','settingSecondaryCta',
+        'settingHeroEyebrow','settingHeroTitle','settingHeroTitleEn','settingHeroSubtitle','settingHeroSubtitleEn','settingHeroImageUrl',
+        'settingPrimaryCta','settingPrimaryCtaEn','settingSecondaryCta','settingSecondaryCtaEn',
+        'settingRegistrationTitleEn','settingRegisterIntroEn',
         'settingCoursesLabel','settingGalleryLabel','settingFaqLabel','settingContactLabel',
         'settingPrincipalName','settingPrincipalTitle','settingPrincipalBio','settingPrincipalQuote','settingPrincipalImageUrl',
         'settingThemeBackground','settingThemePanel','settingThemeText','settingThemeAccent'
@@ -4185,20 +3911,10 @@
       [
         'settingHeroStyle','settingShowStudentLogin','settingButtonStyle','settingFontMood',
         'settingShowPrincipal','settingShowCourses','settingShowGallery','settingShowFaq','settingShowContact','settingShowStudentArea',
-        'settingCmsLayout','settingPlan'
+        'settingCmsLayout'
       ].forEach((id) => $(id).addEventListener('change', () => { setSettingsDirty(true); updateThemePreview(); }));
       $('settingCategory').addEventListener('change', applyCategoryPreset);
-      ['studentSearch','studentStatusFilter','studentLowFilter'].forEach((id) => $(id).addEventListener('input', () => { studentPage = 0; refresh(); }));
-      $('clearStudentFiltersBtn').addEventListener('click', () => { $('studentSearch').value = ''; $('studentStatusFilter').value = ''; $('studentLowFilter').checked = false; studentPage = 0; refresh(); });
       updateSurfaceLinks();
-      $('studentPrevBtn').addEventListener('click', () => { if (studentPage > 0) { studentPage -= 1; refresh(); } });
-      $('studentNextBtn').addEventListener('click', () => { if ((studentPage + 1) * STUDENT_PAGE_SIZE < studentTotal) { studentPage += 1; refresh(); } });
-      $('addStudentBtn').addEventListener('click', openCreateStudentModal);
-      $('saveStudentBtn').addEventListener('click', () => saveStudentModal().catch(() => {}));
-      $('resetStudentBtn').addEventListener('click', resetStudentForm);
-      $('addCourseBtn').addEventListener('click', resetCourseForm);
-      $('addPackageBtn').addEventListener('click', resetPackageForm);
-      $('attendanceCheckInBtn').addEventListener('click', () => checkInAttendance().catch(() => {}));
       document.querySelectorAll('.nav-link').forEach((link) => {
         link.addEventListener('click', () => {
           document.querySelectorAll('.nav-link').forEach((item) => item.classList.remove('active'));

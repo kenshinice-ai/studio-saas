@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS tenants (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     name text NOT NULL,
     slug text NOT NULL UNIQUE CHECK (slug ~ '^[a-z0-9][a-z0-9-]{1,62}$'),
-    status text NOT NULL CHECK (status IN ('trial', 'active', 'past_due', 'paused', 'cancelled', 'archived', 'deleted')),
+    status text NOT NULL CHECK (status IN ('lead', 'trial', 'onboarding', 'active', 'past_due', 'paused', 'cancelled', 'archived', 'deleted')),
     plan_code text NOT NULL REFERENCES plans(code),
     primary_color text NOT NULL DEFAULT '#312e81',
     secondary_color text NOT NULL DEFAULT '#6366f1',
@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash text NOT NULL,
     full_name text NOT NULL,
     status text NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'disabled')),
+    last_login_at timestamptz,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -63,12 +64,30 @@ CREATE TABLE IF NOT EXISTS memberships (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id uuid REFERENCES tenants(id) ON DELETE CASCADE,
     user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    role text NOT NULL CHECK (role IN ('super_admin', 'owner', 'staff', 'parent')),
+    role text NOT NULL CHECK (role IN ('super_admin', 'owner', 'manager', 'teacher', 'front_desk', 'staff', 'parent')),
     permissions jsonb NOT NULL DEFAULT '{}'::jsonb,
     status text NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'invited', 'disabled')),
     created_at timestamptz NOT NULL DEFAULT now(),
     UNIQUE (tenant_id, user_id)
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS memberships_platform_user_uniq
+    ON memberships (user_id)
+    WHERE tenant_id IS NULL;
+
+CREATE TABLE IF NOT EXISTS password_setup_tokens (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    tenant_id uuid REFERENCES tenants(id) ON DELETE CASCADE,
+    token_hash text NOT NULL UNIQUE,
+    created_by uuid REFERENCES users(id) ON DELETE SET NULL,
+    expires_at timestamptz NOT NULL,
+    used_at timestamptz,
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_password_setup_tokens_user
+    ON password_setup_tokens(user_id);
 
 CREATE TABLE IF NOT EXISTS students (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -126,6 +145,35 @@ CREATE TABLE IF NOT EXISTS packages (
     UNIQUE (tenant_id, name)
 );
 
+CREATE TABLE IF NOT EXISTS class_schedules (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    course_id uuid REFERENCES courses(id) ON DELETE SET NULL,
+    label text NOT NULL DEFAULT '',
+    weekday smallint NOT NULL CHECK (weekday BETWEEN 0 AND 6),
+    start_time time NOT NULL DEFAULT '16:00',
+    duration_minutes integer NOT NULL DEFAULT 60 CHECK (duration_minutes > 0),
+    capacity integer NOT NULL DEFAULT 10 CHECK (capacity > 0),
+    is_active boolean NOT NULL DEFAULT true,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_class_schedules_tenant_weekday
+    ON class_schedules (tenant_id, weekday)
+    WHERE is_active;
+
+CREATE TABLE IF NOT EXISTS class_schedule_students (
+    schedule_id uuid NOT NULL REFERENCES class_schedules(id) ON DELETE CASCADE,
+    student_id uuid NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    added_at timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (schedule_id, student_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_class_schedule_students_tenant_student
+    ON class_schedule_students (tenant_id, student_id);
+
 CREATE TABLE IF NOT EXISTS credit_accounts (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
@@ -149,7 +197,8 @@ CREATE TABLE IF NOT EXISTS credit_transactions (
     transaction_type text NOT NULL CHECK (transaction_type IN ('purchase', 'consume', 'adjustment', 'refund', 'expire', 'migration')),
     amount numeric(10,2) NOT NULL,
     balance_after numeric(10,2),
-    fee_aud_cents integer NOT NULL DEFAULT 0 CHECK (fee_aud_cents >= 0),
+    fee_aud_cents integer NOT NULL DEFAULT 0
+        CHECK (fee_aud_cents BETWEEN -100000000 AND 100000000),
     note text NOT NULL DEFAULT '',
     occurred_at timestamptz NOT NULL DEFAULT now()
 );
@@ -165,6 +214,7 @@ CREATE TABLE IF NOT EXISTS attendance_sessions (
     credit_transaction_id uuid REFERENCES credit_transactions(id) ON DELETE SET NULL,
     reversal_credit_transaction_id uuid REFERENCES credit_transactions(id) ON DELETE SET NULL,
     attended_at timestamptz NOT NULL DEFAULT now(),
+    class_date date DEFAULT (now() AT TIME ZONE 'Australia/Melbourne')::date,
     reversed_at timestamptz,
     reversed_by_user_id uuid REFERENCES users(id) ON DELETE SET NULL,
     note text NOT NULL DEFAULT ''
@@ -174,11 +224,13 @@ CREATE INDEX IF NOT EXISTS idx_attendance_sessions_tenant_student_attended
 CREATE INDEX IF NOT EXISTS idx_attendance_sessions_credit_transaction
     ON attendance_sessions (tenant_id, credit_transaction_id)
     WHERE credit_transaction_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_attendance_sessions_tenant_class_date
+    ON attendance_sessions (tenant_id, class_date DESC);
 
 CREATE TABLE IF NOT EXISTS registrations (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'duplicate', 'contacted', 'archived')),
+    status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'contacted', 'trial_booked', 'waiting', 'approved', 'converted', 'rejected', 'duplicate', 'lost', 'archived')),
     first_name text NOT NULL,
     last_name text NOT NULL DEFAULT '',
     parent_name text NOT NULL DEFAULT '',
@@ -192,7 +244,18 @@ CREATE TABLE IF NOT EXISTS registrations (
     reviewed_at timestamptz,
     review_note text NOT NULL DEFAULT '',
     submitted_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz
+    updated_at timestamptz,
+    source text NOT NULL DEFAULT 'standalone_register',
+    source_path text NOT NULL DEFAULT '',
+    source_language text NOT NULL DEFAULT '',
+    campaign jsonb NOT NULL DEFAULT '{}'::jsonb,
+    assigned_user_id uuid REFERENCES users(id) ON DELETE SET NULL,
+    first_contacted_at timestamptz,
+    next_follow_up_at timestamptz,
+    converted_at timestamptz,
+    loss_reason text NOT NULL DEFAULT '',
+    privacy_consent_at timestamptz,
+    privacy_notice_version text NOT NULL DEFAULT ''
 );
 
 CREATE INDEX IF NOT EXISTS idx_registrations_tenant_status_submitted
@@ -203,6 +266,11 @@ CREATE INDEX IF NOT EXISTS idx_registrations_tenant_student
 CREATE INDEX IF NOT EXISTS idx_registrations_tenant_duplicate
     ON registrations (tenant_id, duplicate_of_registration_id)
     WHERE duplicate_of_registration_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_registrations_tenant_follow_up
+    ON registrations(tenant_id, next_follow_up_at)
+    WHERE status IN ('pending', 'contacted', 'trial_booked', 'waiting');
+CREATE INDEX IF NOT EXISTS idx_registrations_tenant_privacy_consent
+    ON registrations (tenant_id, privacy_consent_at DESC);
 
 CREATE TABLE IF NOT EXISTS media_assets (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -335,6 +403,27 @@ CREATE TABLE IF NOT EXISTS tenant_usage (
     storage_used_mb integer NOT NULL DEFAULT 0 CHECK (storage_used_mb >= 0),
     calculated_at timestamptz NOT NULL DEFAULT now()
 );
+
+CREATE TABLE IF NOT EXISTS tenant_brand_drafts (
+    tenant_id uuid PRIMARY KEY REFERENCES tenants(id) ON DELETE CASCADE,
+    payload jsonb NOT NULL,
+    updated_by_user_id uuid REFERENCES users(id) ON DELETE SET NULL,
+    updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS tenant_brand_versions (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    version_number integer NOT NULL CHECK (version_number > 0),
+    payload jsonb NOT NULL,
+    published_by_user_id uuid REFERENCES users(id) ON DELETE SET NULL,
+    published_at timestamptz NOT NULL DEFAULT now(),
+    source_version_id uuid REFERENCES tenant_brand_versions(id) ON DELETE SET NULL,
+    UNIQUE (tenant_id, version_number)
+);
+
+CREATE INDEX IF NOT EXISTS idx_tenant_brand_versions_tenant_published
+    ON tenant_brand_versions(tenant_id, version_number DESC);
 
 INSERT INTO plans (code, name, monthly_price_aud, student_limit, user_limit, storage_limit_mb, features)
 VALUES

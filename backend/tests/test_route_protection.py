@@ -10,6 +10,8 @@ import pytest
 SENSITIVE_READS = [
     "/s/demo/v1/tenant",
     "/s/demo/v1/tenant/brand",
+    "/s/demo/v1/tenant/brand-workspace",
+    "/s/demo/v1/team",
     "/s/demo/v1/students",
     "/s/demo/v1/registrations",
     "/s/demo/v1/courses",
@@ -18,6 +20,10 @@ SENSITIVE_READS = [
     "/s/demo/v1/attendance",
     "/s/demo/v1/dashboard",
     "/s/demo/v1/legacy-cms/data",
+    "/s/demo/v1/export/students.csv",
+    "/s/demo/v1/export/registrations.csv",
+    "/s/demo/v1/export/credit-ledger.csv",
+    "/s/demo/v1/export/revenue.csv",
 ]
 
 
@@ -44,6 +50,10 @@ def test_studio_admin_slug_routes_reach_auth_layer(client, path):
 MUTATIONS = [
     ("POST", "/v1/admin/tenants"),
     ("PATCH", "/s/demo/v1/tenant"),
+    ("PUT", "/s/demo/v1/tenant/brand-draft"),
+    ("POST", "/s/demo/v1/tenant/brand-versions/00000000-0000-0000-0000-000000000000/restore"),
+    ("POST", "/s/demo/v1/team"),
+    ("PATCH", "/s/demo/v1/team/00000000-0000-0000-0000-000000000000"),
     ("POST", "/s/demo/v1/students"),
     ("POST", "/s/demo/v1/courses"),
     ("POST", "/s/demo/v1/packages"),
@@ -102,6 +112,8 @@ def test_csrf_guard_exempts_sessionless_public_requests(client):
     response = client.post("/v1/public/demo/registrations", json={})
     # 404/400/429 depending on tenant resolution — but never the CSRF 403
     assert "CSRF" not in ((response.get_json() or {}).get("message") or "")
+    assert response.status_code == 400
+    assert "Privacy consent" in ((response.get_json() or {}).get("message") or "")
 
 
 PUBLIC_SURFACES = [

@@ -711,6 +711,13 @@
     el.setAttribute('data-zh', text);
     el.setAttribute('data-en', text);
   }
+  function setLocalizedText(el, pair){
+    if(!el||!pair||typeof pair!=='object')return;
+    if(pair.zh)el.setAttribute('data-zh',pair.zh);
+    if(pair.en)el.setAttribute('data-en',pair.en);
+    var value=(window.LANG||LANG)==='en'?(pair.en||pair.zh):(pair.zh||pair.en);
+    if(value)el.textContent=value;
+  }
   function showPublicSection(selector, visible){
     var el=document.querySelector(selector);
     if(el) el.style.display = visible ? '' : 'none';
@@ -739,6 +746,7 @@
   fetch('/v1/public/lets-paint-studio/brand').then(function(r){return r.json();}).then(function(d){
     var b=(d&&d.brand)||{};
     var hero=b.heroProfile||b.hero_profile||{};
+    var localized=b.localizedCopy||b.localized_copy||{};
     var website=b.websiteProfile||b.website_profile||{};
     var principal=b.principalProfile||b.principal_profile||{};
     var visual=b.visualTheme||b.visual_theme||{};
@@ -749,10 +757,12 @@
     if(visual.panel_color||visual.panelColor) document.documentElement.style.setProperty('--panel', visual.panel_color||visual.panelColor);
     if(visual.text_color||visual.textColor) document.documentElement.style.setProperty('--ink', visual.text_color||visual.textColor);
     setPublicText(document.querySelector('.hero .eyebrow'), hero.eyebrow||b.categoryLabel);
-    setPublicText(document.querySelector('.hero h1'), hero.title);
-    setPublicText(document.querySelector('.hero .slogan'), hero.subtitle||b.slogan);
-    setPublicText(document.querySelector('.hero .btn-fill'), (hero.primary_cta_label||hero.primaryCtaLabel||'Book an Experience')+' →');
-    setPublicText(document.querySelector('.hero .btn-line'), hero.secondary_cta_label||hero.secondaryCtaLabel);
+    if(localized.hero_title)setLocalizedText(document.querySelector('.hero h1'),localized.hero_title);else setPublicText(document.querySelector('.hero h1'), hero.title);
+    if(localized.hero_subtitle)setLocalizedText(document.querySelector('.hero .slogan'),localized.hero_subtitle);else setPublicText(document.querySelector('.hero .slogan'), hero.subtitle||b.slogan);
+    if(localized.primary_cta)setLocalizedText(document.querySelector('.hero .btn-fill'),localized.primary_cta);else setPublicText(document.querySelector('.hero .btn-fill'), hero.primary_cta_label||hero.primaryCtaLabel||'Book an Experience');
+    if(localized.secondary_cta)setLocalizedText(document.querySelector('.hero .btn-line'),localized.secondary_cta);else setPublicText(document.querySelector('.hero .btn-line'), hero.secondary_cta_label||hero.secondaryCtaLabel);
+    if(localized.registration_title)setLocalizedText(document.querySelector('#join .sec-head h2'),localized.registration_title);
+    if(localized.registration_intro)setLocalizedText(document.querySelector('#join .sec-head h2 + p'),localized.registration_intro);
     var showStudent=String(hero.show_student_login ?? hero.showStudentLogin ?? website.show_student_area ?? website.showStudentArea ?? true)!=='false';
     document.querySelectorAll("[onclick=\"go('my')\"], .hero-login").forEach(function(el){ el.style.display=showStudent?'':'none'; });
     showPublicSection('#parent', showStudent);
@@ -803,9 +813,13 @@
     try{ msgParts = msgParts.concat(collectRegistrationFields()); }
     catch(err){ btn.disabled=false; btn.textContent=T('提交预约','Submit booking'); return show(err.message); }
     if(msg)      msgParts.push(msg);
-    var body={firstName:name, lastName:last, mobile:phone, wechat:wechat, email:email,
+    var campaign={};
+    try{ var params=new URLSearchParams(location.search); ['utm_source','utm_medium','utm_campaign','utm_content','utm_term'].forEach(function(k){if(params.get(k))campaign[k]=params.get(k);}); }catch(e){}
+    var body=Object.assign({firstName:name, lastName:last, mobile:phone, wechat:wechat, email:email,
               birthday:birthday, experience:exp, goals:goals, message:msgParts.join(' ｜ '),
-              website:v('j-web')};   /* 蜜罐:真人恒为空 */
+              website:v('j-web'), source:'portal', sourcePath:location.pathname,
+              language:(window.LANG||LANG), privacyConsent:true,
+              privacyNoticeVersion:'2026-07-12'},campaign);   /* 蜜罐:真人恒为空 */
     fetch('/v1/public/lets-paint-studio/registrations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
       .then(function(r){return r.json().then(function(d){return {ok:r.ok,d:d};});})
       .then(function(res){

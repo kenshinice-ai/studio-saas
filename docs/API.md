@@ -1,7 +1,7 @@
 # StudioSaaS API Reference
 
-Version: v3.0
-Date: 2026-07-03
+Version: v3.1
+Date: 2026-07-12
 Purpose: Complete API endpoint reference, authentication model, tenant resolution, and public endpoints.
 
 ---
@@ -73,7 +73,8 @@ curl -i -c /tmp/studio.cookies \
   -d "{\"email\":\"owner@lets-paint-studio.test\",\"password\":\"$STUDIO_ADMIN_PASSWORD\"}"
 ```
 
-Verifies user is an active `owner` or `super_admin` for the specified tenant.
+Verifies the user has an active operational membership (`owner`, `manager`,
+`teacher`, `front_desk`, `staff`) or is the platform `super_admin`.
 
 ### 3.3 Change Password
 
@@ -93,9 +94,12 @@ Rules: Minimum 8 characters, different from old password, requires active sessio
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
 | GET | `/v1/tenant` | Tenant admin | Get current tenant |
-| PATCH | `/v1/tenant` | Tenant admin | Update tenant settings |
-| GET | `/v1/tenant/brand` | Tenant admin | Get tenant brand payload |
-| POST | `/v1/tenant/logo` | Tenant admin | Upload tenant logo |
+| PATCH | `/v1/tenant` | Owner / Super admin | Publish tenant brand settings and create a version |
+| GET | `/v1/tenant/brand` | Session | Get published tenant brand payload |
+| GET | `/v1/tenant/brand-workspace` | Owner / Super admin | Get draft and publication history |
+| PUT | `/v1/tenant/brand-draft` | Owner / Super admin | Save an unpublished brand draft |
+| POST | `/v1/tenant/brand-versions/{version_id}/restore` | Owner / Super admin | Restore a publication into the draft |
+| POST | `/v1/tenant/logo` | Owner / Super admin | Upload a draft logo asset without publishing it |
 | POST | `/s/{tenant_slug}/v1/media/upload` | Tenant admin | Canonical tenant media upload |
 
 ### 4.1 Tenant Settings (via PATCH)
@@ -119,6 +123,23 @@ Rules: Minimum 8 characters, different from old password, requires active sessio
 ```
 
 Compatibility alias: `PATCH /v1/tenant/settings` writes through the same path as `PATCH /v1/tenant`.
+
+### 4.2 Tenant Team
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/s/{tenant_slug}/v1/team` | Owner / Manager / Super admin | List operational members |
+| POST | `/s/{tenant_slug}/v1/team` | Owner / Super admin | Create a new tenant-only operational account |
+| PATCH | `/s/{tenant_slug}/v1/team/{membership_id}` | Owner / Super admin | Change role or enable/disable membership |
+
+Team creation enforces the plan `user_limit`. Tenant team management cannot
+overwrite an existing global account or add cross-tenant access. Reactivating a
+disabled member rechecks the same limit.
+
+Role boundary: Manager handles broad daily operations; Teacher handles attendance
+and portfolio; Front Desk handles registrations, students, and credits. Brand
+publication remains Owner-only. Sensitive read routes use the same permission
+matrix, and the aggregate CMS payload is projected by role.
 
 ---
 
@@ -244,6 +265,24 @@ curl -sS \
 
 **Rate limiting (implemented, in-memory per process):** registrations 5/min/IP, balance-query 10/min/IP, registration media uploads 5/min/IP, portfolio-token 10/min/IP, and login 30/min/IP plus 5/min/IP+email — all return 429 when exceeded. Failed login attempts write `auth.login_failed` audit events. Limits reset on server restart (acceptable for pilot; Redis-backed limiter deferred to P3-04).
 
+### Brand publication workspace
+
+- `GET /s/<slug>/v1/tenant/brand-workspace` returns the private draft and the latest 20 publication versions.
+- `PUT /s/<slug>/v1/tenant/brand-draft` saves a private draft and does not change public pages.
+- `PATCH /s/<slug>/v1/tenant` validates and publishes the submitted brand payload, records a new immutable version, and clears the draft.
+- `POST /s/<slug>/v1/tenant/brand-versions/<version_id>/restore` copies a previous publication into the private draft for review. It does not publish automatically.
+- Tenant owners cannot change `plan_code` through Studio Admin; commercial plan changes belong to Super Admin.
+
+### Registration acquisition and follow-up
+
+`POST /v1/public/<slug>/registrations` accepts `source`, `sourcePath`, `language`, and `utm_*` fields. The Studio Portal sends `source=portal`; the focused `/<slug>/register` page sends `source=standalone_register`. Both paths share the same consent, rate limit, duplicate detection, storage, notification, and CMS review flow.
+
+`privacyConsent=true` is required by the API, not only by the browser form. The
+accepted notice version and server timestamp are stored on the registration for
+audit/export purposes.
+
+`PATCH /s/<slug>/v1/registrations/<id>` supports `contacted`, `trial_booked`, `waiting`, `approved`, `converted`, `rejected`, `lost`, and `archived`, plus `nextFollowUpAt` and `lossReason`.
+
 ---
 
 ## 10.2 Endpoints added in the A/B sprint (2026-07-03)
@@ -254,7 +293,7 @@ curl -sS \
 | POST | `/v1/auth/setup-password` | None (token) | Complete a password-setup link |
 | POST | `/v1/admin/tenants/{id}/support-session` | Super admin | Enter support mode (reason required, audited) |
 | POST | `/v1/admin/support-session/end` | Session | Exit support mode |
-| GET | `/s/<slug>/v1/export/{students,registrations,credit-ledger}.csv` | Tenant admin | CSV export (audited) |
+| GET | `/s/<slug>/v1/export/{students,registrations,credit-ledger,revenue}.csv` | Owner / Manager / Super admin + plan feature | Audited CSV exports |
 | GET/POST | `/s/<slug>/v1/students/{id}/share-links` | Tenant admin | List/create portfolio share links (1–90 days) |
 | POST | `/s/<slug>/v1/share-links/{id}/revoke` | Tenant admin | Revoke a share link |
 | GET | `/v1/public/portfolio/{token}` | None (token) | Shared portfolio JSON (viewer page: `/shared/portfolio`) |
@@ -275,7 +314,13 @@ The legacy CMS shell intercepts old `/api/data` and `/api/save` calls and rewrit
 
 ## 12. Route Protection Summary
 
-> **Audit result (2026-07-03, P0-06):** all 146 routes (68 mutating) were audited by decorator scan plus live curl probes. Mutations were already protected (decorators or inline `_auth_ok`/`_rate_ok` checks in the legacy layer). The audit found tenant-scoped **GET reads were unauthenticated** — students, registrations, credits, dashboard, and legacy-cms data were readable by anyone knowing a slug. All 12 such reads now carry `@auth_required` (any active membership in the resolved tenant, or platform super admin). Regression guard: `backend/tests/test_route_protection.py`.
+> **Audit result (updated 2026-07-12):** sessionless tenant reads remain blocked,
+> and sensitive student, credit, attendance, registration, portfolio, export, and
+> mutation routes now use explicit role permissions. The aggregate CMS response
+> also removes acquisition/financial data for Teacher and private portfolio data
+> for Front Desk. Regression guards live in `backend/tests/test_route_protection.py`
+> and `backend/tests/test_health.py`; database-backed role/cross-tenant checks live
+> in `backend/test_tenant_isolation.py`.
 
 | Category | Protected? | Auth Required |
 |---|---|---|

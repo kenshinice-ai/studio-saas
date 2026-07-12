@@ -13,6 +13,8 @@ It provides a lightweight SaaS-style platform for managing:
 
 **Status:** public pilot stage. Runs locally (waitress + PostgreSQL) and is exposed on demand via Cloudflare Tunnel at `https://studiosaas.cc.cd`. The public URL is only expected to be online while the Stage 1 launcher is running. Deployment towards AWS is documented in `docs/Deployment.md`.
 
+Canonical product responsibilities and names are defined in `docs/Product_Surface_Model.md`: Super Admin is the commercial control plane, Studio Admin is the tenant brand/publication workspace, Studio CMS owns daily operations, the Studio Portal is the primary public acquisition experience, and Quick Registration is an alternate tenant-scoped entry.
+
 ---
 
 ## 1. Stack
@@ -49,7 +51,7 @@ A target architecture (modular services: Auth/Tenant/Student/Course/Credit/Atten
 |---|---|---|
 | Portal (门户) | `/<slug>` | Public site: courses, gallery, FAQ, contact, in-page enrolment + student area (balance/portfolio by name+phone) |
 | CMS | `/<slug>/cms` | Staff daily surface: students, roster, check-ins, credits, payments/refunds, logs, analytics, portfolio, and registration review |
-| Studio Admin | `/<slug>/studio-admin` | Website/brand console: logo, colours, public copy, registration fields, surface preview, and audited exports (alias: `/<slug>/cms/studio-admin` redirects here) |
+| Studio Admin | `/<slug>/studio-admin` | Website/brand console: logo, colours, bilingual public copy, registration fields, preview, draft, publish, and version restore (alias: `/<slug>/cms/studio-admin` redirects here) |
 | Register | `/<slug>/register` | Standalone public registration form |
 
 Local URLs (default port 8899):
@@ -83,7 +85,7 @@ Root `/register` is intentionally closed (404) — registration belongs to tenan
     ├── server.py                 # Flask application (~1560 lines)
     ├── requirements.txt
     ├── pytest.ini
-    ├── db/schema_v1.sql          # Full schema (18 tables; migrations through 0010)
+    ├── db/schema_v1.sql          # Full schema (25 tables; migrations through 0014)
     ├── studiosaas/
     │   ├── api_v1.py             # All API routes (~5700 lines — split planned, v7 P2-1)
     │   ├── auth.py               # Auth helpers and decorators

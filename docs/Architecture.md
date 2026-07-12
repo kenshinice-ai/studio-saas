@@ -1,7 +1,7 @@
 # StudioSaaS Architecture
 
-Version: v3.0
-Date: 2026-07-03
+Version: v3.1
+Date: 2026-07-12
 Purpose: Current system architecture, routing model, file layout, data flow — plus the target architecture (v2 vision) and its adoption policy.
 
 ---
@@ -12,14 +12,14 @@ Purpose: Current system architecture, routing model, file layout, data flow — 
 ┌─────────────────────────────────────────────────────────────┐
 │  Browser (Desktop / iPad / Mobile)                          │
 └──────┬──────────────────────┬───────────────────┬──────────┘
-       │                      │                   │
-       ▼                      ▼                   ▼
-┌─────────────┐   ┌──────────────────┐  ┌─────────────────┐
-│ Super Admin │   │  Studio Admin    │  │  Parent Portal  │
-│  Dashboard  │   │   (per tenant)   │  │   (public)      │
-└──────┬──────┘   └────────┬─────────┘  └────────┬────────┘
-       │                   │                      │
-       └───────────────────┼──────────────────────┘
+       │                │                  │                  │
+       ▼                ▼                  ▼                  ▼
+┌─────────────┐ ┌──────────────┐  ┌──────────────┐  ┌─────────────────┐
+│ Super Admin │ │ Studio Admin │  │  Studio CMS  │  │  Studio Portal  │
+│ Commercial  │ │ Brand/Publish│  │ Daily Ops    │  │ Public + Signup │
+└──────┬──────┘ └──────┬───────┘  └──────┬───────┘  └────────┬────────┘
+       │               │                 │                    │
+       └───────────────┴─────────────────┼────────────────────┘
                            │
                     ┌──────▼──────┐
                     │  Flask API  │
@@ -50,8 +50,10 @@ Purpose: Current system architecture, routing model, file layout, data flow — 
 - `tenant_id` is the isolation boundary for all business data.
 - Tenant context is resolved from URL path, header, or subdomain — never from request body.
 - Every mutation route must be authenticated unless explicitly public.
+- The canonical surface responsibilities and language are defined in `docs/Product_Surface_Model.md`.
 - The tenant CMS (`legacy-root/` served at `/<slug>/cms`) is the **core operating surface** — tenants run scheduling, check-ins, students, fees, refunds, logs, analytics, registration review, and portfolio work there.
-- Studio Admin (`/<slug>/studio-admin`) is the **website/brand and lead-capture console** — logo, colours, public copy, registration fields, generated surface links, and audited exports. It must not become a second daily operations UI.
+- Studio Admin (`/<slug>/studio-admin`) is the **website/brand publication console** — logo, colours, bilingual public copy, registration fields, preview, drafts, publication versions and surface links. It must not contain duplicate operational CRUD modules.
+- The tenant root (`/<slug>`) is the public **Studio Portal** and primary registration path. `/<slug>/register` is the focused **Quick Registration** alternative for campaigns, QR codes and direct links.
 
 ---
 
@@ -109,7 +111,7 @@ studiosaas/
 │   │   ├── tenant_context.py     # Tenant resolution
 │   │   └── workspaces.py         # Tenant folder generation
 │   ├── db/
-│   │   └── schema_v1.sql         # Full schema definition (18 tables)
+│   │   └── schema_v1.sql         # Full schema definition (25 tables, through 0014)
 │   ├── scripts/
 │   │   ├── seed_super_admin.py
 │   │   ├── seed_local_test_tenants.py
@@ -229,7 +231,7 @@ flowchart TD
         V[Visitor] --- P[Parent] --- St[Student] --- T[Teacher] --- O[Studio Owner] --- SA[Super Admin]
     end
     subgraph Frontend [Frontend Web / Mobile]
-        CMS[Studio CMS] --- REG[Register Portal] --- PP[Parent Portal] --- TP[Teacher Portal] --- SAD[Studio Admin] --- SUP[Super Admin UI]
+        CMS[Studio CMS] --- REG[Quick Registration] --- PORTAL[Studio Portal plus Student Area] --- SAD[Studio Admin Brand Publish] --- SUP[Super Admin Commercial UI]
     end
     GW[API Gateway / Nginx]
     subgraph Services [Backend Services]

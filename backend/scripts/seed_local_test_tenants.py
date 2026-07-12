@@ -24,6 +24,7 @@ TENANT_B = "isolation-beta"
 OWNER_A_EMAIL = "owner.alpha@studiosaas.local"
 OWNER_B_EMAIL = "owner.beta@studiosaas.local"
 SUPER_EMAIL = "admin@studiosaas.local"
+TENANT_ADMIN_EMAIL = "tenant-admin.alpha@studiosaas.local"
 PASSWORD = "admin123456"
 
 
@@ -59,7 +60,7 @@ def _ensure_tenant_archival_schema(cur: Any) -> None:
         """
         ALTER TABLE tenants
         ADD CONSTRAINT tenants_status_check
-        CHECK (status IN ('trial', 'active', 'past_due', 'paused', 'cancelled', 'archived', 'deleted'))
+        CHECK (status IN ('lead', 'trial', 'onboarding', 'active', 'past_due', 'paused', 'cancelled', 'archived', 'deleted'))
         """
     )
     cur.execute(
@@ -139,7 +140,7 @@ def _create_tenant(cur: Any, *, slug: str, name: str) -> str:
             name, slug, status, plan_code, welcome_message,
             contact_phone, contact_email, address, settings
         )
-        VALUES (%s, %s, 'active', 'studio', %s, %s, %s, %s, '{}'::jsonb)
+        VALUES (%s, %s, 'active', 'studio', %s, %s, %s, %s, '{"test_fixture": true}'::jsonb)
         RETURNING id
         """,
         (
@@ -178,8 +179,21 @@ def _create_tenant(cur: Any, *, slug: str, name: str) -> str:
     return tenant_id
 
 
-def _add_owner_membership(cur: Any, *, tenant_id: str, user_id: str, role: str = "owner") -> None:
+def _add_owner_membership(cur: Any, *, tenant_id: str | None, user_id: str, role: str = "owner") -> None:
     """Ensure an active tenant membership for a test user."""
+
+    if tenant_id is None:
+        cur.execute(
+            """
+            INSERT INTO memberships (tenant_id, user_id, role, status)
+            VALUES (NULL, %s, %s, 'active')
+            ON CONFLICT (user_id) WHERE tenant_id IS NULL DO UPDATE
+            SET role = EXCLUDED.role,
+                status = 'active'
+            """,
+            (user_id, role),
+        )
+        return
 
     cur.execute(
         """
@@ -315,14 +329,19 @@ def seed() -> dict[str, Any]:
             owner_a = _upsert_user(cur, email=OWNER_A_EMAIL, full_name="Isolation Alpha Owner")
             owner_b = _upsert_user(cur, email=OWNER_B_EMAIL, full_name="Isolation Beta Owner")
             super_admin = _upsert_user(cur, email=SUPER_EMAIL, full_name="System Administrator")
+            tenant_admin = _upsert_user(
+                cur,
+                email=TENANT_ADMIN_EMAIL,
+                full_name="Tenant-scoped Legacy Administrator",
+            )
 
             tenant_a = _create_tenant(cur, slug=TENANT_A, name="Isolation Alpha Studio")
             tenant_b = _create_tenant(cur, slug=TENANT_B, name="Isolation Beta Studio")
 
             _add_owner_membership(cur, tenant_id=tenant_a, user_id=owner_a)
             _add_owner_membership(cur, tenant_id=tenant_b, user_id=owner_b)
-            _add_owner_membership(cur, tenant_id=tenant_a, user_id=super_admin, role="super_admin")
-            _add_owner_membership(cur, tenant_id=tenant_b, user_id=super_admin, role="super_admin")
+            _add_owner_membership(cur, tenant_id=None, user_id=super_admin, role="super_admin")
+            _add_owner_membership(cur, tenant_id=tenant_a, user_id=tenant_admin, role="super_admin")
 
             student_a = _add_student(
                 cur,
@@ -376,6 +395,7 @@ def seed() -> dict[str, Any]:
         "owner_a_email": OWNER_A_EMAIL,
         "owner_b_email": OWNER_B_EMAIL,
         "super_email": SUPER_EMAIL,
+        "tenant_admin_email": TENANT_ADMIN_EMAIL,
         "password": PASSWORD,
     }
 
