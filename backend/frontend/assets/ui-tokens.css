@@ -1,0 +1,30 @@
+:root {
+  --ui-primary: #2563eb;
+  --ui-secondary: #0f766e;
+  --ui-accent: #f59e0b;
+  --ui-bg: #f8fafc;
+  --ui-surface: #ffffff;
+  --ui-text: #0f172a;
+  --ui-muted: #64748b;
+  --ui-border: #e2e8f0;
+  --ui-error: #dc2626;
+  --ui-success: #16a34a;
+  --ui-radius-control: 8px;
+  --ui-radius-card: 12px;
+  --ui-focus: 0 0 0 3px rgba(37, 99, 235, 0.28);
+}
+
+:where(button, a, input, select, textarea):focus-visible {
+  outline: 2px solid var(--ui-primary);
+  outline-offset: 2px;
+  box-shadow: var(--ui-focus);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

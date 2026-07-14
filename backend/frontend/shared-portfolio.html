@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Student Portfolio</title>
+<style>
+  :root{--primary:#1E40AF;--secondary:#0F766E;--bg:#F8FAFC;--surface:#FFFFFF;--text:#1E293B;--text-muted:#64748B;--border:#E2E8F0;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:Inter,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+  header{background:var(--surface);border-bottom:1px solid var(--border);padding:16px;display:flex;align-items:center;gap:12px;}
+  header img{height:40px;width:40px;object-fit:contain;border-radius:8px;}
+  header .names{line-height:1.3;}
+  header .studio{font-size:13px;color:var(--text-muted);}
+  header .student{font-size:18px;font-weight:600;}
+  main{max-width:960px;margin:0 auto;padding:16px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;}
+  .item{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+  .item img{width:100%;aspect-ratio:1;object-fit:cover;display:block;cursor:pointer;}
+  .item .meta{padding:8px 10px;font-size:12px;color:var(--text-muted);}
+  .item .meta .note{color:var(--text);margin-top:2px;}
+  .state{text-align:center;padding:64px 16px;color:var(--text-muted);}
+  .expiry{text-align:center;font-size:12px;color:var(--text-muted);padding:24px 16px;}
+  #lightbox{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;padding:16px;cursor:zoom-out;}
+  #lightbox img{max-width:100%;max-height:100%;border-radius:8px;}
+  #lightbox.open{display:flex;}
+</style>
+</head>
+<body>
+  <header id="pageHeader" style="display:none;">
+    <img id="studioLogo" alt="" style="display:none;">
+    <div class="names">
+      <div class="studio" id="studioName"></div>
+      <div class="student" id="studentName"></div>
+    </div>
+  </header>
+  <main>
+    <div class="state" id="stateMsg">Loading portfolio…</div>
+    <div class="grid" id="grid"></div>
+    <div class="expiry" id="expiry"></div>
+  </main>
+  <div id="lightbox" onclick="this.classList.remove('open')"><img id="lightboxImg" alt=""></div>
+<script>
+(function(){
+  const token = new URLSearchParams(location.search).get('token') || '';
+  const state = document.getElementById('stateMsg');
+  if (!token) { state.textContent = 'This link is missing its token.'; return; }
+
+  fetch('/v1/public/portfolio/' + encodeURIComponent(token))
+    .then(async (res) => {
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) {
+        state.textContent = res.status === 410
+          ? 'This share link is no longer available — it may have expired or been revoked by the studio.'
+          : (data.message || 'Could not load this portfolio.');
+        return;
+      }
+      const s = data.studio || {};
+      if (s.primaryColor) document.documentElement.style.setProperty('--primary', s.primaryColor);
+      if (s.secondaryColor) document.documentElement.style.setProperty('--secondary', s.secondaryColor);
+      document.title = (data.student || 'Student') + ' — Portfolio';
+      document.getElementById('studioName').textContent = s.name || '';
+      document.getElementById('studentName').textContent = (data.student || '') + "'s Portfolio";
+      const logo = document.getElementById('studioLogo');
+      if (s.logoUrl) { logo.src = s.logoUrl; logo.style.display = ''; }
+      document.getElementById('pageHeader').style.display = 'flex';
+
+      const grid = document.getElementById('grid');
+      const items = data.items || [];
+      if (!items.length) {
+        state.textContent = 'No artwork has been shared yet — check back soon!';
+        return;
+      }
+      state.style.display = 'none';
+      items.forEach((item) => {
+        const card = document.createElement('div');
+        card.className = 'item';
+        const img = document.createElement('img');
+        img.loading = 'lazy';
+        img.src = item.mediaUrl + (item.mediaUrl.includes('?') ? '&' : '?') + 'thumb=1';
+        img.alt = item.note || 'Artwork';
+        img.addEventListener('click', () => {
+          document.getElementById('lightboxImg').src = item.mediaUrl;
+          document.getElementById('lightbox').classList.add('open');
+        });
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        if (item.title) {
+          const title = document.createElement('div');
+          title.className = 'note';
+          title.style.fontWeight = '700';
+          title.textContent = item.title;
+          meta.appendChild(title);
+        }
+        const date = document.createElement('div');
+        date.textContent = item.date || '';
+        meta.appendChild(date);
+        if (item.note) {
+          const note = document.createElement('div');
+          note.className = 'note';
+          note.textContent = '💬 ' + item.note;
+          meta.appendChild(note);
+        }
+        card.appendChild(img);
+        card.appendChild(meta);
+        grid.appendChild(card);
+      });
+      if (data.expiresAt) {
+        document.getElementById('expiry').textContent =
+          'This link expires on ' + new Date(data.expiresAt).toLocaleDateString();
+      }
+    })
+    .catch(() => { state.textContent = 'Network error. Please try again.'; });
+})();
+</script>
+</body>
+</html>

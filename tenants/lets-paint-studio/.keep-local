@@ -1,0 +1,4 @@
+# Files listed here are preserved when tenant workspaces are regenerated
+# from tenant-template/ (scripts/regenerate_tenant_workspaces.py).
+# One filename per line.
+index.html

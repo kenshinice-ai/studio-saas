@@ -1,0 +1,2666 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PWE Studio SaaS · Super Admin</title>
+  <script src="/assets/ui-common.js"></script>
+  <link rel="stylesheet" href="/assets/ui-tokens.css">
+  <link rel="icon" href="/logo.png" type="image/png">
+  <style>
+    :root {
+      --bg: #f1f5f9;
+      --surface: #ffffff;
+      --ink: #0f172a;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --brand: #3b82f6;
+      --brand-dark: #2563eb;
+      --brand-light: #dbeafe;
+      --brand-ultra-light: #eff6ff;
+      --green: #10b981;
+      --green-light: #d1fae5;
+      --red: #ef4444;
+      --red-light: #fee2e2;
+      --amber: #f59e0b;
+      --amber-light: #fef3c7;
+      --purple: #8b5cf6;
+      --purple-light: #ede9fe;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.05);
+      --shadow-lg: 0 10px 25px rgba(0,0,0,0.08), 0 4px 10px rgba(0,0,0,0.04);
+      --radius: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+      color: white;
+      box-shadow: var(--shadow-md);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-top {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 18px 32px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      min-width: 0;
+    }
+
+    .brand {
+      min-width: 0;
+    }
+
+    .brand h1 {
+      font-size: 22px;
+      font-weight: 700;
+      margin: 0;
+      letter-spacing: -0.3px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      overflow-wrap: anywhere;
+    }
+
+    .brand h1::before {
+      content: '';
+      display: inline-block;
+      width: 32px;
+      height: 32px;
+      background: var(--brand);
+      border-radius: 8px;
+      flex-shrink: 0;
+    }
+
+    .brand p {
+      color: #94a3b8;
+      font-size: 13px;
+      margin-top: 2px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .auth-status {
+      color: #cbd5e1;
+      font-size: 13px;
+      max-width: 260px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .header-actions input {
+      min-width: 150px;
+      width: 160px;
+      background: rgba(255,255,255,0.1);
+      color: white;
+      border-color: rgba(255,255,255,0.2);
+    }
+
+    .header-actions input::placeholder {
+      color: rgba(255,255,255,0.5);
+    }
+
+    .nav-bar {
+      background: rgba(0,0,0,0.15);
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .nav-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 32px;
+      display: flex;
+      gap: 4px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+
+    .nav-inner::-webkit-scrollbar { display: none; }
+
+    .nav-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #94a3b8;
+      text-decoration: none;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .nav-link:hover {
+      color: white;
+      background: rgba(255,255,255,0.05);
+    }
+
+    .nav-link.active {
+      color: white;
+      border-bottom-color: var(--brand);
+    }
+
+    /* Buttons */
+    button {
+      border: none;
+      border-radius: var(--radius);
+      padding: 10px 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    button:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+    button:active { transform: translateY(0); box-shadow: none; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .btn-primary {
+      background: var(--brand);
+      color: white;
+    }
+    .btn-primary:hover { background: var(--brand-dark); }
+
+    .btn-secondary {
+      background: #f1f5f9;
+      color: var(--ink);
+      border: 1px solid var(--line);
+    }
+    .btn-secondary:hover { background: #e2e8f0; }
+
+    .btn-danger {
+      background: var(--red-light);
+      color: var(--red);
+    }
+    .btn-danger:hover { background: #fecaca; }
+
+    .btn-danger-outline {
+      background: #fff;
+      color: var(--red);
+      border: 1px solid #fecaca;
+    }
+    .btn-danger-outline:hover { background: var(--red-light); }
+
+    .btn-warning {
+      background: var(--amber-light);
+      color: #92400e;
+    }
+    .btn-warning:hover { background: #fde68a; }
+
+    .btn-success {
+      background: var(--green-light);
+      color: var(--green);
+    }
+    .btn-success:hover { background: #a7f3d0; }
+
+    .btn-info {
+      background: var(--brand-light);
+      color: var(--brand-dark);
+    }
+    .btn-info:hover { background: #bfdbfe; }
+
+    a.btn-secondary, a.btn-primary, a.btn-danger, a.btn-info {
+      padding: 10px 16px;
+      border-radius: var(--radius);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.15s ease;
+    }
+
+    a.btn-sm { padding: 6px 12px; font-size: 13px; }
+    a.is-disabled, button.is-disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      pointer-events: none;
+      filter: grayscale(0.25);
+    }
+
+    .btn-sm { padding: 6px 12px; font-size: 13px; }
+
+    /* Main Layout */
+    main {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px 32px 48px;
+    }
+
+    .section {
+      margin-bottom: 32px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .section-icon {
+      font-size: 20px;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--brand-ultra-light);
+      border-radius: 8px;
+      color: var(--brand);
+      flex-shrink: 0;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--ink);
+      letter-spacing: -0.2px;
+    }
+
+    .section-subtitle {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--line);
+      padding: 24px;
+      margin-bottom: 24px;
+      transition: box-shadow 0.2s ease;
+      max-width: 100%;
+      min-width: 0;
+    }
+
+    .card:hover { box-shadow: var(--shadow-md); }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 8px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      padding: 22px 20px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--line);
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--brand);
+    }
+
+    .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+    .stat-card.green::before { background: var(--green); }
+    .stat-card.amber::before { background: var(--amber); }
+    .stat-card.purple::before { background: var(--purple); }
+
+    .stat-value {
+      font-size: 30px;
+      font-weight: 800;
+      color: var(--ink);
+      line-height: 1.2;
+      letter-spacing: -0.5px;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+
+    /* Filters */
+    .filters {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 0;
+    }
+
+    .filter-group label {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 10px 12px;
+      font-size: 14px;
+      transition: all 0.2s ease;
+      background: var(--surface);
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px var(--brand-light);
+    }
+
+    /* Tables */
+    .table-wrapper {
+      overflow-x: auto;
+      border-radius: var(--radius);
+      max-width: 100%;
+      min-width: 0;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    table {
+      width: 100%;
+      min-width: 760px;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    .tenants-table { min-width: 1040px; }
+
+    th, td {
+      padding: 12px 16px;
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    th {
+      background: #f8fafc;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      border-bottom: 2px solid var(--line);
+    }
+
+    td {
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    tr:hover td { background: #fafbfc; }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: minmax(220px, 1fr) repeat(3, minmax(140px, 180px)) minmax(140px, auto) auto;
+      gap: 12px;
+      align-items: end;
+    }
+
+    .empty-state {
+      padding: 40px 16px;
+      color: var(--muted);
+      text-align: center;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .empty-state::before {
+      content: '';
+      display: block;
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 12px;
+      background: var(--line);
+      border-radius: 50%;
+      opacity: 0.5;
+    }
+
+    .action-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      min-width: 260px;
+    }
+
+    .surface-link-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      min-width: 210px;
+    }
+
+    .surface-mini {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 800;
+      text-decoration: none;
+    }
+
+    .surface-mini.ok { border-color: #bbf7d0; color: var(--green); background: var(--green-light); }
+    .surface-mini.warn { border-color: #fde68a; color: #92400e; background: var(--amber-light); }
+    .surface-mini.fail { border-color: #fecaca; color: var(--red); background: var(--red-light); }
+    .surface-mini.disabled { color: var(--muted); background: #f1f5f9; pointer-events: none; }
+    .surface-mini .mark { font-size: 11px; }
+
+    .action-section {
+      display: grid;
+      gap: 8px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #f8fafc;
+    }
+
+    .action-section-title {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .btn-loading {
+      opacity: 0.72;
+      pointer-events: none;
+    }
+
+    /* Status Pills */
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .pill.active, .pill.trialing, .pill.trial {
+      background: var(--green-light);
+      color: var(--green);
+    }
+
+    .pill.past_due {
+      background: var(--amber-light);
+      color: var(--amber);
+    }
+
+    .pill.cancelled, .pill.paused, .pill.archived, .pill.deleted {
+      background: #f1f5f9;
+      color: var(--muted);
+    }
+
+    .pill.warning {
+      background: var(--amber-light);
+      color: #92400e;
+    }
+
+    .pill.fixture {
+      background: var(--purple-light);
+      color: var(--purple);
+    }
+
+    /* Progress Bars */
+    .progress-bar {
+      height: 6px;
+      background: #e2e8f0;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 0.3s ease;
+    }
+
+    .progress-fill.blue { background: var(--brand); }
+    .progress-fill.green { background: var(--green); }
+    .progress-fill.amber { background: var(--amber); }
+    .progress-fill.red { background: var(--red); }
+
+    /* Forms */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+    }
+
+    .form-group { margin-bottom: 16px; }
+
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 6px;
+    }
+
+    .form-group small, .disabled-note {
+      display: block;
+      color: var(--muted);
+      margin-top: 4px;
+      font-size: 12px;
+    }
+
+    .tenant-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .summary-item {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 12px;
+      background: #f8fafc;
+      min-width: 0;
+    }
+
+    .summary-label {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .summary-value {
+      font-weight: 800;
+      overflow-wrap: anywhere;
+    }
+
+    .risk-list {
+      display: grid;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .risk-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #92400e;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .risk-item::before {
+      content: '!';
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--amber-light);
+      color: #92400e;
+      font-size: 11px;
+      flex-shrink: 0;
+    }
+
+    .link-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .form-section {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 0;
+      margin-bottom: 12px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .form-section summary {
+      cursor: pointer;
+      padding: 12px 14px;
+      background: #f8fafc;
+      font-weight: 800;
+    }
+
+    .form-section-body {
+      padding: 16px;
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+      flex-wrap: wrap;
+    }
+
+    .login-card {
+      max-width: 460px;
+      margin: 32px auto;
+    }
+
+    .login-card h2 {
+      font-size: 22px;
+      margin-bottom: 8px;
+    }
+
+    .login-card p {
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+
+    .content-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(15,23,42,0.6);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.25s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal {
+      background: var(--surface);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-lg);
+      max-width: 700px;
+      width: min(92%, 700px);
+      max-height: 85vh;
+      overflow-y: auto;
+      transform: scale(0.95) translateY(15px);
+      transition: all 0.25s ease;
+    }
+
+    .modal-overlay.active .modal {
+      transform: scale(1) translateY(0);
+    }
+
+    .modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      background: var(--surface);
+      z-index: 1;
+    }
+
+    .modal-title { font-size: 17px; font-weight: 700; }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 22px;
+      cursor: pointer;
+      color: var(--muted);
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+
+    .modal-close:hover { background: #f1f5f9; color: var(--ink); }
+
+    .modal-body { padding: 24px; }
+    .modal-footer {
+      padding: 16px 24px;
+      border-top: 1px solid var(--line);
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+
+    /* Toast Notifications */
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .toast {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 280px;
+      animation: slideIn 0.3s ease;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .toast.success { border-left: 4px solid var(--green); }
+    .toast.error { border-left: 4px solid var(--red); }
+    .toast.warning { border-left: 4px solid var(--amber); }
+
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* Loading State */
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--line);
+      border-top-color: var(--brand);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Detail View */
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    .detail-item {
+      padding: 14px;
+      background: #f8fafc;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+    }
+
+    .detail-label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .detail-value {
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    /* Code/Slug */
+    code {
+      background: #f1f5f9;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: "SF Mono", Monaco, monospace;
+    }
+
+    /* Links */
+    .link {
+      color: var(--brand);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .link:hover { text-decoration: underline; }
+
+    .card:hover, .stat-card:hover {
+      transform: none;
+      box-shadow: 0 18px 46px rgba(15, 23, 42, 0.08);
+    }
+
+    .card-header {
+      gap: 12px;
+      border-bottom-color: #eef2f7;
+    }
+
+    input, select, textarea {
+      min-height: 42px;
+      border-color: #dbe3ee;
+      color: #0f172a;
+    }
+
+    textarea { min-height: 96px; resize: vertical; }
+
+    .form-group label, .filter-group label, .toolbar label {
+      color: #475569;
+      font-size: 12px;
+      letter-spacing: 0.02em;
+    }
+
+    button { min-height: 38px; }
+
+    .btn-primary {
+      background: #2563eb;
+      box-shadow: 0 8px 18px rgba(37, 99, 235, 0.18);
+    }
+
+    .btn-secondary { background: #ffffff; }
+
+    .toolbar {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .table-wrapper {
+      border: 1px solid #e2e8f0;
+      background: #ffffff;
+      box-shadow: inset 0 -1px 0 #e2e8f0;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    tr:last-child td { border-bottom: none; }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      main { padding-left: 16px; padding-right: 16px; }
+      .header-top, .nav-inner { padding-left: 16px; padding-right: 16px; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .content-grid { grid-template-columns: 1fr; }
+      .toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 768px) {
+      .header-top { flex-direction: column; align-items: stretch; }
+      .header-actions { justify-content: flex-start; }
+      .header-actions input { width: 100%; }
+      .stats-grid { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+      .filters, .toolbar { grid-template-columns: 1fr; }
+      .card { padding: 16px; }
+      .card-header { align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+      .modal { width: calc(100vw - 24px); }
+      .modal-footer { flex-wrap: wrap; }
+      .nav-inner { padding: 0 16px; }
+      .toast-container { left: 12px; right: 12px; top: 12px; }
+      .toast { min-width: 0; width: 100%; }
+    }
+
+    /* Utility */
+    .text-muted { color: var(--muted); }
+    .mt-2 { margin-top: 8px; }
+    .mb-2 { margin-bottom: 8px; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer" role="status" aria-live="polite"></div>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-top">
+      <div class="brand">
+        <div>
+          <h1>PWE Studio SaaS · Super Admin</h1>
+          <p>Manage tenants, plans, subscriptions, and platform analytics</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <span id="authStatus" class="auth-status">Not signed in</span>
+        <button id="changePasswordBtn" class="btn-secondary hidden">Change Password</button>
+        <button id="logoutBtn" class="btn-secondary hidden">Logout</button>
+        <button id="refreshBtn" class="btn-primary requires-auth hidden">
+          <span id="refreshIcon">↻</span> Refresh
+        </button>
+      </div>
+    </div>
+    <nav id="superNav" class="nav-bar hidden" aria-label="Super Admin sections">
+      <div class="nav-inner">
+        <a class="nav-link active" href="#overview">Overview</a>
+        <a class="nav-link" href="#tenants">Tenants</a>
+        <a class="nav-link" href="#plans">Plans</a>
+        <a class="nav-link" href="#audit">Audit Logs</a>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Main Content -->
+  <main>
+    <section id="loginPanel" class="card login-card hidden">
+      <h2>Super Admin Login</h2>
+      <p>Use the local Super Admin account to manage tenants, plans, and platform settings.</p>
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="loginEmail">Email</label>
+          <input id="loginEmail" type="email" autocomplete="username" placeholder="admin@example.com">
+        </div>
+        <div class="form-group">
+          <label for="loginPassword">Password</label>
+          <div style="position:relative;">
+            <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Enter your password" style="padding-right:56px;">
+            <button type="button" id="loginPwToggle" class="btn-secondary btn-sm" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);">Show</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label style="display:flex;align-items:center;gap:8px;font-weight:400;">
+            <input id="loginRemember" type="checkbox" style="width:auto;"> Remember me for 30 days
+          </label>
+        </div>
+        <div class="form-actions">
+          <button id="loginBtn" type="submit" class="btn-primary">Login</button>
+        </div>
+      </form>
+    </section>
+
+    <div id="adminContent" class="hidden">
+      <section id="overview" class="section">
+        <div class="section-header">
+          <div class="section-icon">↗</div>
+          <div>
+            <div class="section-title">Commercial Overview</div>
+            <div class="section-subtitle">Tenant lifecycle, recurring revenue, activation, and platform usage</div>
+          </div>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div id="tenantCount" class="stat-value">-</div>
+            <div class="stat-label">Total Tenants</div>
+          </div>
+          <div class="stat-card green">
+            <div id="mrrCount" class="stat-value">-</div>
+            <div class="stat-label">MRR (AUD)</div>
+          </div>
+          <div class="stat-card amber">
+            <div id="paidTenantCount" class="stat-value">-</div>
+            <div class="stat-label">Paid Tenants</div>
+          </div>
+          <div class="stat-card purple">
+            <div id="trialTenantCount" class="stat-value">-</div>
+            <div class="stat-label">Trial Tenants</div>
+          </div>
+          <div class="stat-card">
+            <div id="onboardingTenantCount" class="stat-value">-</div>
+            <div class="stat-label">Onboarding</div>
+          </div>
+          <div class="stat-card amber">
+            <div id="pastDueTenantCount" class="stat-value">-</div>
+            <div class="stat-label">Past Due</div>
+          </div>
+          <div class="stat-card purple">
+            <div id="trialEndingCount" class="stat-value">-</div>
+            <div class="stat-label">Trials Ending in 7 Days</div>
+          </div>
+          <div class="stat-card">
+            <div id="newTenantCount" class="stat-value">-</div>
+            <div class="stat-label">New in 30 Days</div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <div class="card-header"><h2 class="card-title">Commercial Attention</h2></div>
+          <div id="commercialAttention" class="empty-state">Loading lifecycle risks…</div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <div class="card-header"><h2 class="card-title">30-Day Acquisition Funnel</h2></div>
+          <div id="acquisitionFunnel" class="empty-state">Loading registration conversion…</div>
+        </div>
+      </section>
+
+      <section id="tenants" class="section">
+        <div class="section-header">
+          <div class="section-icon">▦</div>
+          <div>
+            <div class="section-title">Tenants</div>
+            <div class="section-subtitle">Manage studios, subscriptions, and safe operational state</div>
+          </div>
+        </div>
+
+        <section class="card">
+          <div class="toolbar">
+            <div class="filter-group">
+              <label>Search Tenants</label>
+              <input id="tenantSearch" placeholder="Name, slug, owner, admin...">
+            </div>
+            <div class="filter-group">
+              <label>Status</label>
+              <select id="statusFilter">
+                <option value="">All Statuses</option>
+                <option>lead</option>
+                <option>trial</option>
+                <option>onboarding</option>
+                <option>active</option>
+                <option>past_due</option>
+                <option>paused</option>
+                <option>cancelled</option>
+                <option>archived</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Plan</label>
+              <select id="planFilter"><option value="">All Plans</option></select>
+            </div>
+            <div class="filter-group">
+              <label>Category</label>
+              <select id="categoryFilter"><option value="">All Categories</option></select>
+            </div>
+            <label class="filter-group" style="display:flex;align-items:center;gap:8px;margin-bottom:0;">
+              <input id="showTestTenants" type="checkbox" style="width:auto;">
+              <span>Show test tenants</span>
+            </label>
+            <button id="clearFiltersBtn" class="btn-secondary">Clear Filters</button>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-header">
+            <h2 class="card-title">Tenants & Subscriptions</h2>
+            <button id="addTenantBtn" class="btn-primary btn-sm">+ Add Tenant</button>
+          </div>
+          <div class="table-wrapper">
+            <table class="tenants-table">
+              <thead>
+                <tr>
+                  <th>Studio</th>
+                  <th>Plan</th>
+                  <th>Status</th>
+                  <th>Owner</th>
+                  <th>Usage</th>
+                  <th>Surfaces</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="tenantsBody"></tbody>
+            </table>
+          </div>
+          <div class="toolbar" style="margin-top:12px;justify-content:flex-end;">
+            <button id="tenantPrevBtn" class="btn-secondary btn-sm" type="button">Previous</button>
+            <span id="tenantPageLabel" class="text-muted">Page 1</span>
+            <button id="tenantNextBtn" class="btn-secondary btn-sm" type="button">Next</button>
+          </div>
+        </section>
+      </section>
+
+      <section id="plans" class="section">
+        <div class="section-header">
+          <div class="section-icon">◆</div>
+          <div>
+            <div class="section-title">Plans</div>
+            <div class="section-subtitle">Pricing and platform limits available to tenants</div>
+          </div>
+        </div>
+    <section class="card">
+      <div class="card-header">
+        <h2 class="card-title">Plans & Pricing</h2>
+        <button id="addPlanBtn" class="btn-primary btn-sm">+ Add Plan</button>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Plan</th>
+              <th>Price/Month</th>
+              <th>Limits</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="plansBody"></tbody>
+        </table>
+      </div>
+    </section>
+      </section>
+
+      <section id="audit" class="section">
+        <div class="section-header">
+          <div class="section-icon">◎</div>
+          <div>
+            <div class="section-title">Audit Logs</div>
+            <div class="section-subtitle">Recent platform activity and operator changes</div>
+          </div>
+        </div>
+    <section class="card">
+      <div class="card-header">
+        <h2 class="card-title">Audit Logs</h2>
+        <span class="text-muted" style="font-size: 13px;">Recent platform activity</span>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Tenant</th>
+              <th>Action</th>
+              <th>Resource</th>
+            </tr>
+          </thead>
+          <tbody id="auditBody"></tbody>
+        </table>
+      </div>
+    </section>
+      </section>
+    </div>
+  </main>
+
+  <!-- Modal for Add/Edit -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-header">
+        <h3 id="modalTitle" class="modal-title">Add Tenant</h3>
+        <button class="modal-close" aria-label="Close dialog" onclick="closeModal()">×</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-footer" id="modalFooter"></div>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let tenants = [];
+    let plans = [];
+    let editingTenantId = '';
+    let editingPlanCode = '';
+    let selectedTenantId = '';
+    let tenantPage = 0;
+    let attentionTenantFilter = '';
+    const tenantPageSize = 10;
+    let isLoading = false;
+    let currentUser = null;
+
+    // Utility functions
+    const text = (value) => value === null || value === undefined || value === '' ? '-' : value;
+    const esc = window.StudioSaaS.esc;
+    function addCell(row, textValue = '') {
+      const cell = document.createElement('td');
+      if (textValue !== '') cell.textContent = String(textValue);
+      row.appendChild(cell);
+      return cell;
+    }
+    function addStrongMuted(cell, strongValue, mutedValue = '') {
+      const strong = document.createElement('strong');
+      strong.textContent = text(strongValue);
+      cell.appendChild(strong);
+      if (mutedValue !== '') {
+        cell.appendChild(document.createElement('br'));
+        const muted = document.createElement('span');
+        muted.className = 'text-muted';
+        muted.textContent = text(mutedValue);
+        cell.appendChild(muted);
+      }
+      return cell;
+    }
+    function addActionButton(container, label, className, handler) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = className;
+      button.textContent = label;
+      button.addEventListener('click', handler);
+      container.appendChild(button);
+      return button;
+    }
+    function appendEmptyRow(tbody, colspan, message) {
+      const row = document.createElement('tr');
+      const cell = addCell(row);
+      const empty = document.createElement('div');
+      cell.colSpan = colspan;
+      empty.className = 'empty-state';
+      empty.textContent = message;
+      cell.appendChild(empty);
+      tbody.appendChild(row);
+    }
+	    const dateOnly = (value) => value ? String(value).slice(0, 10) : '';
+	    const money = (value) => `AUD ${Number(value || 0)}`;
+	    const percent = (value, limit) => limit ? Math.min(100, Math.round((Number(value || 0) / Number(limit || 1)) * 100)) : 0;
+	    let INDUSTRY_PRESETS = {
+	      general: { label: 'General', labelZh: '通用', slogan: 'A learning path that fits every student.' }
+	    };
+	    async function loadIndustryPresets() {
+	      try {
+	        const response = await fetch('/v1/industry-presets', { credentials: 'same-origin' });
+	        if (!response.ok) throw new Error(`Preset request failed (${response.status})`);
+	        const data = await response.json();
+	        if (data.presets && Object.keys(data.presets).length) INDUSTRY_PRESETS = data.presets;
+	      } catch (error) {
+	        console.warn('Using the generic industry preset.', error);
+	      }
+	    }
+	    const categoryOptions = (selected = 'general') => Object.entries(INDUSTRY_PRESETS)
+	      .map(([key, preset]) => `<option value="${key}" ${key === selected ? 'selected' : ''}>${preset.label}</option>`)
+	      .join('');
+	    const presetSlogan = (category) => (INDUSTRY_PRESETS[category] || INDUSTRY_PRESETS.general).slogan;
+
+    // Toast notifications
+    function showToast(message, type = 'success') {
+      const container = $('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      const icon = type === 'success' ? '✓' : type === 'error' ? '✕' : '!';
+      const iconEl = document.createElement('span');
+      iconEl.style.fontSize = '18px';
+      iconEl.textContent = icon;
+      const messageEl = document.createElement('span');
+      messageEl.textContent = message;
+      toast.append(iconEl, messageEl);
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100%)';
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+
+    // Loading state
+    function setLoading(loading) {
+      isLoading = loading;
+      $('refreshBtn').classList.toggle('btn-loading', loading);
+      $('refreshIcon').textContent = loading ? '' : '↻';
+      if (loading) {
+        const spinner = document.createElement('span');
+        spinner.className = 'loading';
+        $('refreshIcon').appendChild(spinner);
+      } else {
+        const spinner = $('refreshIcon').querySelector('.loading');
+        if (spinner) spinner.remove();
+      }
+    }
+
+    // API call with error handling
+    async function api(path, options = {}) {
+      const base = '/v1';
+      try {
+        const res = await fetch(base + path, {
+          ...options,
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const err = new Error(data.message || data.error || `${res.status} ${path}`);
+          err.status = res.status;
+          err.payload = data;
+          throw err;
+        }
+        return data;
+      } catch (err) {
+        if (err.status !== 401) showToast(err.message, 'error');
+        throw err;
+      }
+    }
+
+    function setAuthState(user) {
+      currentUser = user || null;
+      const signedIn = Boolean(currentUser);
+      $('loginPanel').classList.toggle('hidden', signedIn);
+      $('adminContent').classList.toggle('hidden', !signedIn);
+      $('logoutBtn').classList.toggle('hidden', !signedIn);
+      $('changePasswordBtn').classList.toggle('hidden', !signedIn);
+      $('refreshBtn').disabled = !signedIn;
+      $('superNav').classList.toggle('hidden', !signedIn);
+      document.querySelectorAll('.requires-auth').forEach((element) => element.classList.toggle('hidden', !signedIn));
+      $('authStatus').textContent = signedIn ? `Signed in: ${currentUser.email || currentUser.full_name || currentUser.id}` : 'Not signed in';
+    }
+
+    function hasSuperAdminRole(data) {
+      return (data.memberships || []).some((membership) => membership.role === 'super_admin');
+    }
+
+    async function checkSession() {
+      try {
+        const data = await api('/auth/me');
+        if (!hasSuperAdminRole(data)) {
+          await api('/auth/logout', { method: 'POST' }).catch(() => {});
+          setAuthState(null);
+          showToast('Please log in with a Super Admin account.', 'error');
+          return;
+        }
+        setAuthState(data.user);
+        await refresh();
+      } catch (err) {
+        setAuthState(null);
+        if (err.status && err.status !== 401) showToast(`Session check failed: ${err.message}`, 'error');
+      }
+    }
+
+    async function loginSuperAdmin(event) {
+      event.preventDefault();
+      const email = $('loginEmail').value.trim();
+      const password = $('loginPassword').value;
+      if (!email || !password) {
+        showToast('Email and password are required.', 'error');
+        return;
+      }
+      const btn = $('loginBtn');
+      btn.disabled = true;
+      const originalLabel = btn.textContent;
+      btn.textContent = 'Logging in…';
+      try {
+        await api('/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ email, password, rememberMe: $('loginRemember').checked })
+        });
+        $('loginPassword').value = '';
+        showToast('Logged in.');
+        await checkSession();
+      } catch (err) {
+        if (err.status === 429) {
+          showToast('Too many login attempts — please wait a minute and try again.', 'error');
+        } else {
+          showToast(err.status === 401 ? 'Invalid email or password.' : err.message, 'error');
+        }
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalLabel;
+      }
+    }
+
+    function wirePasswordToggle(inputId, toggleId) {
+      const input = $(inputId);
+      const toggle = $(toggleId);
+      if (!input || !toggle) return;
+      toggle.addEventListener('click', () => {
+        const showing = input.type === 'text';
+        input.type = showing ? 'password' : 'text';
+        toggle.textContent = showing ? 'Show' : 'Hide';
+      });
+    }
+    wirePasswordToggle('loginPassword', 'loginPwToggle');
+
+    async function logoutSuperAdmin() {
+      await api('/auth/logout', { method: 'POST' }).catch(() => {});
+      setAuthState(null);
+      tenants = [];
+      plans = [];
+      ['tenantCount', 'studentCount', 'portfolioCount', 'storageCount'].forEach((id) => $(id).textContent = '-');
+      $('tenantsBody').innerHTML = '';
+      $('plansBody').innerHTML = '';
+      $('auditBody').innerHTML = '';
+      showToast('Logged out.');
+    }
+
+    function openChangePasswordModal() {
+      const bodyHtml = `
+        <div class="form-group"><label>Current Password</label><input id="m_oldPassword" type="password" autocomplete="current-password"></div>
+        <div class="form-group"><label>New Password</label><input id="m_newPassword" type="password" autocomplete="new-password" placeholder="At least 8 characters"></div>
+        <div class="form-group"><label>Confirm New Password</label><input id="m_confirmPassword" type="password" autocomplete="new-password"></div>
+      `;
+      const footerHtml = `<button onclick="changePassword()" class="btn-primary">Update Password</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
+      openModal('Change Password', bodyHtml, footerHtml);
+    }
+
+    async function changePassword() {
+      const oldPassword = $('m_oldPassword').value;
+      const newPassword = $('m_newPassword').value;
+      const confirmPassword = $('m_confirmPassword').value;
+      if (newPassword !== confirmPassword) {
+        showToast('New passwords do not match.', 'error');
+        return;
+      }
+      try {
+        await api('/auth/change-password', {
+          method: 'POST',
+          body: JSON.stringify({ oldPassword, newPassword })
+        });
+        closeModal();
+        showToast('Password updated.');
+      } catch (err) {
+        showToast(err.status === 401 ? 'Current password is incorrect.' : err.message, 'error');
+      }
+    }
+
+    // Modal functions
+    function openModal(title, bodyHtml, footerHtml) {
+      $('modalTitle').textContent = title;
+      $('modalBody').innerHTML = bodyHtml;
+      $('modalFooter').innerHTML = footerHtml;
+      $('modalOverlay').classList.add('active');
+      const focusTarget = $('modalBody').querySelector('input, select, textarea, button') || $('modalFooter').querySelector('button');
+      if (focusTarget) focusTarget.focus();
+    }
+
+    function closeModal() {
+      $('modalOverlay').classList.remove('active');
+    }
+
+    // Status pill with icon
+    function pill(value) {
+      const icons = { lead: '○', onboarding: '◒', active: '●', trialing: '◐', trial: '◇', past_due: '⚠', cancelled: '✕', paused: '⏸', archived: '□', deleted: '✕' };
+      const cls = value === 'active' || value === 'trialing' || value === 'trial' ? 'pill active' :
+                  value === 'past_due' ? 'pill past_due' : 'pill';
+      return `<span class="${cls}">${icons[value] || ''} ${text(value)}</span>`;
+    }
+
+    function appendPill(cell, value) {
+      const icons = { lead: '○', onboarding: '◒', active: '●', trialing: '◐', trial: '◇', past_due: '⚠', cancelled: '✕', paused: '⏸', archived: '□', deleted: '✕' };
+      const cls = value === 'active' || value === 'trialing' || value === 'trial' ? 'pill active' :
+                  value === 'past_due' ? 'pill past_due' : 'pill';
+      const span = document.createElement('span');
+      span.className = cls;
+      span.textContent = `${icons[value] || ''} ${text(value)}`.trim();
+      cell.appendChild(span);
+      return span;
+    }
+
+    // Progress bar with color coding
+    function progressBar(current, limit) {
+      const pct = percent(current, limit);
+      const color = pct > 90 ? 'red' : pct > 75 ? 'amber' : 'blue';
+      return `<div style="display: flex; justify-content: space-between; font-size: 12px;"><span>${current} / ${text(limit)}</span><span>${pct}%</span></div>
+              <div class="progress-bar"><div class="progress-fill ${color}" style="width:${pct}%"></div></div>`;
+    }
+
+    function tenantPlan(t) {
+      return plans.find((item) => item.code === t.plan_code) || {};
+    }
+
+    function formatStorageMb(value) {
+      const mb = Number(value || 0);
+      if (mb >= 1024) return `${(mb / 1024).toFixed(mb >= 10240 ? 0 : 1)} GB`;
+      return `${mb} MB`;
+    }
+
+    function usageText(t) {
+      const plan = tenantPlan(t);
+      const students = plan.student_limit ? `${Number(t.student_count || 0)} / ${plan.student_limit} students` : `${Number(t.student_count || 0)} students`;
+      const storage = plan.storage_limit_mb
+        ? `${formatStorageMb(t.storage_used_mb)} / ${formatStorageMb(plan.storage_limit_mb)}`
+        : `${formatStorageMb(t.storage_used_mb)}`;
+      return `${students} · ${storage}`;
+    }
+
+    function isTestTenant(t) {
+      if (t.is_test === true) return true;
+      const slug = String(t.slug || '');
+      return slug.startsWith('isolation-') || slug.startsWith('test-') || String(t.owner_email || '').endsWith('@studiosaas.local');
+    }
+
+    function accessStatus(t) {
+      if (['archived', 'deleted'].includes(t.status)) return 'Disabled';
+      if (t.status === 'paused') return 'Limited';
+      return 'Enabled';
+    }
+
+    function tenantRisks(t) {
+      const plan = tenantPlan(t);
+      const risks = [];
+      if (!t.owner_email) risks.push('No owner assigned');
+      if (!t.studio_admin_email) risks.push('No admin login');
+      if (!t.billing_email) risks.push('Billing email missing');
+      if (!t.portal_published) risks.push('Website not published');
+      if (!t.logo_ready || !t.hero_ready || !t.contact_ready) risks.push('Brand setup incomplete');
+      if (!t.studio_admin_last_login) risks.push('Owner has not signed in');
+      if (t.ends_at && new Date(t.ends_at).getTime() < Date.now()) risks.push('Subscription expired');
+      if (plan.storage_limit_mb && percent(t.storage_used_mb, plan.storage_limit_mb) >= 85) risks.push('Storage near limit');
+      if (plan.student_limit && percent(t.student_count, plan.student_limit) >= 85) risks.push('Student limit near limit');
+      return risks;
+    }
+
+    function onboardingChecklist(t) {
+      return [
+        ['Owner assigned', Boolean(t.owner_email)],
+        ['Studio Admin login configured', Boolean(t.studio_admin_email)],
+        ['Owner has signed in', Boolean(t.studio_admin_last_login)],
+        ['Logo configured', Boolean(t.logo_ready)],
+        ['Hero and contact ready', Boolean(t.hero_ready && t.contact_ready)],
+        ['Studio Website published', Boolean(t.portal_published)]
+      ];
+    }
+
+    function onboardingProgress(t) {
+      const steps = onboardingChecklist(t);
+      return `${steps.filter(([, complete]) => complete).length} / ${steps.length}`;
+    }
+
+    function healthLabel(t) {
+      if (isTestTenant(t)) return 'Test fixture';
+      if (t.status === 'archived') return 'Archived';
+      if (t.status === 'paused') return 'Paused';
+      if (t.subscription_status === 'past_due') return 'Payment issue';
+      if (!t.studio_admin_email) return 'No admin login';
+      if (tenantRisks(t).length) return 'Needs setup';
+      return 'Healthy';
+    }
+
+    function appendSmallBadge(parent, label, className = 'pill') {
+      const badge = document.createElement('span');
+      badge.className = className;
+      badge.textContent = label;
+      parent.appendChild(badge);
+      return badge;
+    }
+
+    function addDisabledNote(parent, message) {
+      const note = document.createElement('div');
+      note.className = 'disabled-note';
+      note.textContent = message;
+      parent.appendChild(note);
+    }
+
+    function addActionLink(container, label, href, disabledReason = '') {
+      const link = document.createElement('a');
+      link.className = `btn-secondary${disabledReason ? ' is-disabled' : ''}`;
+      link.href = disabledReason ? '#' : href;
+      link.target = disabledReason ? '' : '_blank';
+      link.rel = disabledReason ? '' : 'noopener';
+      link.textContent = label;
+      if (disabledReason) link.title = disabledReason;
+      container.appendChild(link);
+      return link;
+    }
+
+    function tenantSurfaceHref(t, surface) {
+      const slug = encodeURIComponent(String(t.slug || ''));
+      const routes = {
+        portal: `/${slug}`,
+        cms: `/${slug}/cms`,
+        register: `/${slug}/register`,
+        admin: `/${slug}/studio-admin`
+      };
+      return routes[surface] || routes.portal;
+    }
+
+    function setSurfaceMiniStatus(tenantId, surface, state, mark, title) {
+      const el = document.getElementById(`surface-${tenantId}-${surface}`);
+      if (!el) return;
+      el.className = `surface-mini ${state || ''}`.trim();
+      const markEl = el.querySelector('.mark');
+      if (markEl) markEl.textContent = mark;
+      el.title = title || '';
+    }
+
+    async function checkTenantSurfaceLinks(t) {
+      const disabled = ['archived', 'deleted'].includes(t.status);
+      if (disabled) return;
+      await Promise.all(['portal', 'cms', 'register', 'admin'].map(async (surface) => {
+        if (surface === 'register' && t.status === 'paused') {
+          setSurfaceMiniStatus(t.id, surface, 'warn', '!', 'Registration is paused for this tenant.');
+          return;
+        }
+        try {
+          const response = await fetch(tenantSurfaceHref(t, surface), { credentials: 'same-origin', cache: 'no-store' });
+          if (response.ok) setSurfaceMiniStatus(t.id, surface, 'ok', '✓', 'Surface is reachable.');
+          else if ([401, 403].includes(response.status)) setSurfaceMiniStatus(t.id, surface, 'warn', '!', 'Surface requires login.');
+          else setSurfaceMiniStatus(t.id, surface, 'fail', '!', `Surface returned ${response.status}.`);
+        } catch (err) {
+          setSurfaceMiniStatus(t.id, surface, 'fail', '!', 'Surface is unavailable.');
+        }
+      }));
+    }
+
+    function renderTenantSurfaces(parent, t) {
+      const disabled = ['archived', 'deleted'].includes(t.status);
+      const grid = document.createElement('div');
+      grid.className = 'surface-link-grid';
+      [
+        ['portal', 'Portal'],
+        ['cms', 'CMS'],
+        ['register', 'Register'],
+        ['admin', 'Admin']
+      ].forEach(([surface, label]) => {
+        const link = document.createElement('a');
+        const mark = document.createElement('span');
+        const textNode = document.createElement('span');
+        link.id = `surface-${t.id}-${surface}`;
+        link.className = `surface-mini ${disabled ? 'disabled' : ''}`;
+        link.href = disabled ? '#' : tenantSurfaceHref(t, surface);
+        link.target = disabled ? '' : '_blank';
+        link.rel = disabled ? '' : 'noopener';
+        link.title = disabled ? 'Archived or deleted tenants cannot be opened.' : `Open ${label}`;
+        mark.className = 'mark';
+        mark.textContent = disabled ? '-' : '↗';
+        textNode.textContent = label;
+        link.append(mark, textNode);
+        grid.appendChild(link);
+      });
+      parent.appendChild(grid);
+      if (disabled) appendSmallBadge(parent, 'Surfaces disabled', 'pill archived');
+      else {
+        if (!t.studio_admin_email) appendSmallBadge(parent, 'No admin login', 'pill warning');
+        if (t.status === 'paused') appendSmallBadge(parent, 'Register paused', 'pill warning');
+        // Surface checks are intentionally on-demand in tenant details. A list
+        // refresh must not fetch four full HTML pages per tenant.
+      }
+    }
+
+    function slugifyTenantName(name) {
+      return String(name || '')
+        .toLowerCase()
+        .replace(/&/g, ' and ')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 63) || 'new-studio';
+    }
+
+    function addDaysIso(days) {
+      const date = new Date();
+      date.setDate(date.getDate() + days);
+      return date.toISOString().slice(0, 10);
+    }
+
+    // Fill plan select dropdowns
+    function fillPlanSelect() {
+      $('planFilter').replaceChildren();
+      const allPlans = document.createElement('option');
+      allPlans.value = '';
+      allPlans.textContent = 'All Plans';
+      $('planFilter').appendChild(allPlans);
+      plans.forEach((p) => {
+        const option = document.createElement('option');
+        option.value = text(p.code);
+        option.textContent = text(p.name);
+        $('planFilter').appendChild(option);
+      });
+      const categories = [...new Set(tenants.map((tenant) => tenant.category || 'general'))].sort();
+      $('categoryFilter').replaceChildren();
+      const allCategories = document.createElement('option');
+      allCategories.value = '';
+      allCategories.textContent = 'All Categories';
+      $('categoryFilter').appendChild(allCategories);
+      categories.forEach((category) => {
+        const option = document.createElement('option');
+        option.value = text(category);
+        option.textContent = text((INDUSTRY_PRESETS[category] || { label: category }).label);
+        $('categoryFilter').appendChild(option);
+      });
+    }
+
+    // Edit tenant in modal
+    function editTenant(id) {
+      const t = tenants.find((item) => item.id === id);
+      if (!t) return;
+      editingTenantId = id;
+      const formHtml = `
+        <details class="form-section" open>
+          <summary>Basic</summary>
+          <div class="form-section-body form-grid">
+            <div class="form-group"><label>Studio Name</label><input id="m_tenantName" value="${esc(t.name)}"></div>
+            <div class="form-group"><label>Slug</label><input id="m_tenantSlug" value="${esc(t.slug)}" disabled><small>Read-only after creation because it affects URLs, workspace paths, and media paths.</small></div>
+            <div class="form-group"><label>Category</label><select id="m_tenantCategory">${categoryOptions(t.category || 'general')}</select></div>
+            <div class="form-group"><label>Slogan</label><input id="m_tenantSlogan" value="${esc(t.slogan || presetSlogan(t.category || 'general'))}"></div>
+            <div class="form-group"><label>Tenant Status</label><input id="m_tenantStatus" value="${esc(t.status)}" disabled><small>Use More → Status for audited lifecycle actions.</small></div>
+            <div class="form-group"><label>Plan</label><select id="m_tenantPlan">${plans.map(p => `<option value="${p.code}" ${p.code===t.plan_code?'selected':''}>${p.name}</option>`).join('')}</select></div>
+          </div>
+        </details>
+        <details class="form-section" open>
+          <summary>Owner & Contact</summary>
+          <div class="form-section-body">
+            <div class="form-grid">
+              <div class="form-group"><label>Owner Name</label><input id="m_ownerName" value="${esc(t.owner_name||'')}"></div>
+              <div class="form-group"><label>Owner Role</label><input id="m_ownerRole" value="${esc(t.owner_role||'')}"></div>
+              <div class="form-group"><label>Owner Email</label><input id="m_ownerEmail" type="email" value="${esc(t.owner_email||'')}"></div>
+              <div class="form-group"><label>Owner Phone</label><input id="m_ownerPhone" value="${esc(t.owner_phone||'')}"></div>
+              <div class="form-group"><label>Contact Email</label><input id="m_contactEmail" type="email" value="${esc(t.contact_email||'')}"></div>
+              <div class="form-group"><label>Contact Phone</label><input id="m_contactPhone" value="${esc(t.contact_phone||'')}"></div>
+              <div class="form-group"><label>Website</label><input id="m_tenantWebsite" type="url" value="${esc(t.website||'')}"></div>
+              <div class="form-group"><label>ABN</label><input id="m_tenantAbn" value="${esc(t.abn||'')}"></div>
+              <div class="form-group" style="grid-column: span 2;"><label>Address</label><input id="m_tenantAddress" value="${esc(t.address||'')}"></div>
+            </div>
+            <div class="action-row" style="margin-bottom:12px;">
+              <button id="copyOwnerToContactBtn" type="button" class="btn-secondary btn-sm">Use owner email for contact</button>
+              <button id="copyOwnerToBillingBtn" type="button" class="btn-secondary btn-sm">Use owner email for billing</button>
+              <button id="copyOwnerToAdminBtn" type="button" class="btn-secondary btn-sm">Use owner email for admin login</button>
+            </div>
+            <div class="form-group"><label>Notes</label><textarea id="m_tenantNotes" rows="3">${esc(t.notes||'')}</textarea></div>
+          </div>
+        </details>
+        <details class="form-section">
+          <summary>Admin Login</summary>
+          <div class="form-section-body form-grid">
+            <div class="form-group"><label>Studio Admin Email</label><input id="m_studioAdminEmail" type="email" value="${esc(t.studio_admin_email || t.owner_email || '')}"></div>
+            <div class="form-group"><label>Studio Admin Name</label><input id="m_studioAdminName" value="${esc(t.studio_admin_name || t.owner_name || '')}"></div>
+            <div class="form-group"><label>Login Status</label><input value="${t.studio_admin_email ? 'Configured' : 'Not configured'}" disabled></div>
+            <div class="form-group"><label>Last Login</label><input value="${t.studio_admin_last_login ? new Date(t.studio_admin_last_login).toLocaleString() : 'Never logged in'}" disabled></div>
+            <div class="form-group"><label>Reset Password</label><input id="m_studioAdminPassword" type="password" placeholder="Leave blank to keep existing password"><small>Leave blank to keep existing password.</small></div>
+            <div class="form-group"><label>Password Setup Link</label>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <button type="button" class="btn-secondary btn-sm" onclick="generateSetupLink('${esc(t.id)}')">Generate link</button>
+                <input id="m_setupLinkOut" readonly placeholder="One-time link appears here" style="flex:1;">
+                <button type="button" class="btn-secondary btn-sm" id="m_setupLinkCopy" style="display:none;" onclick="copySetupLink()">Copy</button>
+              </div>
+              <small>Single use, expires in 24h. Generating a new link invalidates previous unused ones.</small>
+            </div>
+          </div>
+        </details>
+        <details class="form-section">
+          <summary>Subscription</summary>
+          <div class="form-section-body form-grid">
+            <div class="form-group"><label>Subscription Status</label><input id="m_subscriptionStatus" value="${esc(t.subscription_status || '')}" disabled><small>Changed together with tenant lifecycle state.</small></div>
+            <div class="form-group"><label>Subscription Start</label><input id="m_startsAt" type="date" value="${dateOnly(t.starts_at)}"></div>
+            <div class="form-group"><label>Current Period Ends</label><input id="m_currentPeriodEndsAt" type="date" value="${dateOnly(t.current_period_ends_at)}"></div>
+            <div class="form-group"><label>Cancellation / Expiry Date</label><input id="m_endsAt" type="date" value="${dateOnly(t.ends_at)}"></div>
+            <div class="form-group"><label>Billing Email</label><input id="m_billingEmail" type="email" value="${esc(t.billing_email||'')}"></div>
+          </div>
+        </details>
+        <details class="form-section">
+          <summary>Limits</summary>
+          <div class="form-section-body form-grid">
+            <div class="form-group"><label>Student Limit</label><input value="${esc(text(tenantPlan(t).student_limit))}" disabled><small>Inherited from ${esc(text(tenantPlan(t).name || t.plan_code))} plan.</small></div>
+            <div class="form-group"><label>Storage Limit</label><input value="${esc(formatStorageMb(tenantPlan(t).storage_limit_mb))}" disabled><small>Inherited from ${esc(text(tenantPlan(t).name || t.plan_code))} plan.</small></div>
+            <div class="form-group"><label>Admin User Limit</label><input value="${esc(text(tenantPlan(t).user_limit))}" disabled><small>Inherited from ${esc(text(tenantPlan(t).name || t.plan_code))} plan.</small></div>
+            <div class="form-group"><label>Media Upload Limit</label><input value="Canonical media service limits by asset type" disabled></div>
+          </div>
+        </details>
+        <details class="form-section">
+          <summary>Danger Zone</summary>
+          <div class="form-section-body">
+            <p class="text-muted">Use the More actions menu for pause, archive, restore, and permanent delete so confirmation phrases stay explicit.</p>
+          </div>
+        </details>
+      `;
+	      const footerHtml = `<button onclick="saveTenantModal()" class="btn-primary">Save Changes</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
+	      openModal(`Edit ${t.name}`, formHtml, footerHtml);
+	      $('m_tenantCategory').addEventListener('change', () => {
+	        if (!$('m_tenantSlogan').value.trim()) $('m_tenantSlogan').value = presetSlogan($('m_tenantCategory').value);
+	      });
+      $('copyOwnerToContactBtn').addEventListener('click', () => { $('m_contactEmail').value = $('m_ownerEmail').value.trim(); });
+      $('copyOwnerToBillingBtn').addEventListener('click', () => { $('m_billingEmail').value = $('m_ownerEmail').value.trim(); });
+      $('copyOwnerToAdminBtn').addEventListener('click', () => {
+        $('m_studioAdminEmail').value = $('m_ownerEmail').value.trim();
+        if (!$('m_studioAdminName').value.trim()) $('m_studioAdminName').value = $('m_ownerName').value.trim();
+      });
+	    }
+
+    // Save tenant from modal
+    async function enterSupportMode(tenantId) {
+      const t = tenants.find((item) => item.id === tenantId);
+      if (!t) return;
+      openModal(
+        `Support ${t.name}`,
+        `<p>Every support-mode action is audited against this reason.</p><div class="form-group mt-2"><label for="m_supportReason">Reason</label><textarea id="m_supportReason" rows="4" placeholder="Describe the customer request or incident reference"></textarea></div>`,
+        `<button id="confirmSupportModeBtn" onclick="confirmSupportMode('${tenantId}')" class="btn-primary">Start Support Mode</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`,
+      );
+    }
+
+    async function confirmSupportMode(tenantId) {
+      const reason = $('m_supportReason').value.trim();
+      if (!reason) { showToast('A reason is required to enter support mode.', 'error'); return; }
+      $('confirmSupportModeBtn').disabled = true;
+      try {
+        const data = await api(`/admin/tenants/${tenantId}/support-session`, {
+          method: 'POST',
+          body: JSON.stringify({ reason }),
+        });
+        showToast('Support mode started — opening Studio Admin.', 'success');
+        closeModal();
+        window.open(data.url, '_blank');
+      } catch (err) {
+        $('confirmSupportModeBtn').disabled = false;
+      }
+    }
+
+    async function generateSetupLink(tenantId) {
+      const out = $('m_setupLinkOut');
+      out.value = 'Generating…';
+      try {
+        const data = await api(`/admin/tenants/${tenantId}/password-setup-link`, { method: 'POST', body: '{}' });
+        out.value = location.origin + data.url;
+        $('m_setupLinkCopy').style.display = '';
+        showToast(`Link created for ${data.email} (expires in 24h)`, 'success');
+      } catch (err) {
+        out.value = '';
+      }
+    }
+
+    async function copySetupLink() {
+      const out = $('m_setupLinkOut');
+      try {
+        await navigator.clipboard.writeText(out.value);
+        showToast('Link copied to clipboard', 'success');
+      } catch (err) {
+        out.select();
+        document.execCommand('copy');
+        showToast('Link copied', 'success');
+      }
+    }
+
+    async function saveTenantModal() {
+      const payload = {
+        name: $('m_tenantName').value,
+        slug: $('m_tenantSlug').value,
+	        status: $('m_tenantStatus').value,
+	        planCode: $('m_tenantPlan').value,
+	        category: $('m_tenantCategory').value,
+	        slogan: $('m_tenantSlogan').value,
+	        subscriptionStatus: $('m_subscriptionStatus').value,
+        startsAt: $('m_startsAt').value || null,
+        endsAt: $('m_endsAt').value || null,
+        currentPeriodEndsAt: $('m_currentPeriodEndsAt').value || null,
+        ownerName: $('m_ownerName').value,
+        ownerRole: $('m_ownerRole').value,
+        ownerPhone: $('m_ownerPhone').value,
+        ownerEmail: $('m_ownerEmail').value,
+        studioAdminEmail: $('m_studioAdminEmail').value,
+        studioAdminName: $('m_studioAdminName').value,
+        studioAdminPassword: $('m_studioAdminPassword').value,
+        contactPhone: $('m_contactPhone').value,
+        contactEmail: $('m_contactEmail').value,
+        billingEmail: $('m_billingEmail').value,
+        abn: $('m_tenantAbn').value,
+        website: $('m_tenantWebsite').value,
+        address: $('m_tenantAddress').value,
+        notes: $('m_tenantNotes').value
+      };
+
+      if (!payload.name || !payload.slug) {
+        showToast('Name and slug are required.', 'error');
+        return;
+      }
+
+      await api(editingTenantId ? `/admin/tenants/${editingTenantId}` : '/admin/tenants', {
+        method: editingTenantId ? 'PATCH' : 'POST',
+        body: JSON.stringify(payload)
+      });
+      showToast(editingTenantId ? 'Tenant updated.' : 'Tenant created.');
+      closeModal();
+      await refresh();
+    }
+
+    function changeTenantOperationalState(id, action) {
+      const t = tenants.find((item) => item.id === id);
+      if (!t) return;
+      const isPause = action === 'pause';
+      const title = isPause ? 'Pause Tenant' : 'Reactivate Tenant';
+      const targetStatus = isPause ? 'paused' : 'active';
+      const targetSubscription = isPause ? 'paused' : 'active';
+      const verb = isPause ? 'Pause' : 'Reactivate';
+      const body = isPause
+        ? `<p>Pause <strong>${esc(t.name)}</strong>? Public tenant pages stay present, but the tenant will be marked paused for operations and billing review.</p>`
+        : `<p>Reactivate <strong>${esc(t.name)}</strong>? This restores active tenant status and subscription state.</p>`;
+      const confirm = `<div class="form-group mt-2"><label>Type tenant slug to confirm</label><input id="m_tenantStateConfirmSlug" placeholder="${esc(t.slug)}"></div>`;
+      const footerHtml = `<button id="confirmTenantStateBtn" onclick="confirmTenantState('${id}', '${targetStatus}', '${targetSubscription}')" class="${isPause ? 'btn-danger' : 'btn-primary'}">${verb}</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
+      openModal(title, body + confirm, footerHtml);
+    }
+
+    async function confirmTenantState(id, status, subscriptionStatus) {
+      const t = tenants.find((item) => item.id === id);
+      if (!t) return;
+      if (($('m_tenantStateConfirmSlug')?.value || '').trim() !== t.slug) {
+        showToast(`Type ${t.slug} to confirm.`, 'error');
+        return;
+      }
+      $('confirmTenantStateBtn').disabled = true;
+        await api(`/admin/tenants/${id}/status`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status, subscriptionStatus })
+        });
+      showToast(status === 'paused' ? 'Tenant paused.' : 'Tenant reactivated.');
+      closeModal();
+      await refresh();
+    }
+
+    function openTenantActions(id) {
+      const t = tenants.find((item) => item.id === id);
+      if (!t) return;
+      openModal(`${t.name} Actions`, '<div id="m_tenantActionsMount" style="display:grid;gap:12px;"></div>', '<button onclick="closeModal()" class="btn-secondary">Close</button>');
+      const mount = $('m_tenantActionsMount');
+      const section = (title) => {
+        const box = document.createElement('div');
+        const heading = document.createElement('div');
+        box.className = 'action-section';
+        heading.className = 'action-section-title';
+        heading.textContent = title;
+        box.appendChild(heading);
+        mount.appendChild(box);
+        return box;
+      };
+      const manage = section('Manage');
+      addActionButton(manage, 'View Details', 'btn-secondary', () => selectTenant(id));
+      addActionButton(manage, 'Edit Tenant', 'btn-secondary', () => editTenant(id));
+      const slug = encodeURIComponent(String(t.slug || ''));
+      const open = section('Open');
+      const unavailable = ['archived', 'deleted'].includes(t.status);
+      addActionLink(open, 'Open Studio Website', `/${slug}`, unavailable ? 'Archived or deleted tenants cannot be opened.' : '');
+      addActionLink(open, 'Open CMS', `/${slug}/cms`, unavailable ? 'Archived or deleted tenants cannot be opened.' : '');
+      addActionLink(open, 'Open Studio Admin', `/${slug}/studio-admin`, unavailable ? 'Archived or deleted tenants cannot be opened.' : (!t.studio_admin_email ? 'Studio Admin login is not configured.' : ''));
+      addActionLink(open, 'Open Quick Registration', `/${slug}/register`, ['paused', 'archived', 'deleted'].includes(t.status) ? 'Registration is unavailable for paused, archived, or deleted tenants.' : '');
+      const support = section('Support');
+      const supportBtn = addActionButton(support, 'Enter Support Mode', 'btn-warning', () => enterSupportMode(id));
+      if (unavailable) { supportBtn.disabled = true; supportBtn.title = 'Archived or deleted tenants cannot be supported.'; }
+      const status = section('Status');
+      if (t.status === 'archived') {
+        addActionButton(status, 'Restore Tenant', 'btn-primary', () => restoreTenant(id));
+      } else if (t.status !== 'deleted') {
+        addActionButton(
+          status,
+          t.status === 'paused' ? 'Reactivate' : 'Pause',
+          t.status === 'paused' ? 'btn-primary' : 'btn-warning',
+          () => changeTenantOperationalState(id, t.status === 'paused' ? 'reactivate' : 'pause')
+        );
+      }
+      const danger = section('Danger Zone');
+      if (t.status === 'archived') {
+        addActionButton(danger, 'Permanent Delete', 'btn-danger', () => permanentDeleteTenant(id));
+      } else if (t.status !== 'deleted') {
+        addActionButton(danger, 'Archive Tenant', 'btn-danger-outline', () => archiveTenant(id));
+        addDisabledNote(danger, 'Permanent Delete is available only after the tenant is archived.');
+      }
+    }
+
+    function archiveTenant(id) {
+      const t = tenants.find((item) => item.id === id);
+      if (!t) return;
+      const footerHtml = `<button id="confirmArchiveTenantBtn" onclick="confirmArchiveTenant('${id}')" class="btn-danger">Archive Tenant</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
+      openModal('Archive Tenant', `<p>Archive <strong>${esc(t.name)}</strong>? Tenant APIs become unavailable after snapshots are written.</p><ul style="margin:12px 0 12px 20px;color:var(--muted);"><li>Database snapshot</li><li>Workspace folder copy</li><li>Media folder copy</li><li>Subscription metadata</li></ul><div class="form-group mt-2"><label>Type tenant slug to confirm</label><input id="m_archiveTenantConfirmSlug" placeholder="${esc(t.slug)}"></div>`, footerHtml);
+    }
+
+    async function confirmArchiveTenant(id) {
+      const t = tenants.find((item) => item.id === id);
+      if (!t) return;
+      if (($('m_archiveTenantConfirmSlug')?.value || '').trim() !== t.slug) {
+        showToast(`Type ${t.slug} to confirm.`, 'error');
+        return;
+      }
+      $('confirmArchiveTenantBtn').disabled = true;
+      const result = await api(`/admin/tenants/${id}/archive`, { method: 'POST' });
+      showToast(`Tenant archived. Snapshot: ${result.archivePath || 'created'}`);
+      closeModal();
+      await refresh();
+    }
+
+    async function restoreTenant(id) {
+      const t = tenants.find((item) => item.id === id);
+      if (!t) return;
+      await api(`/admin/tenants/${id}/restore`, { method: 'POST' });
+      showToast('Tenant restored to paused status.');
+      closeModal();
+      await refresh();
+    }
+
+    function permanentDeleteTenant(id) {
+      const t = tenants.find((item) => item.id === id);
+      if (!t) return;
+      const footerHtml = `<button id="confirmPermanentDeleteTenantBtn" onclick="confirmPermanentDeleteTenant('${id}')" class="btn-danger">Permanent Delete</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
+      openModal('Permanent Delete Tenant', `<p>Permanently delete <strong>${esc(t.name)}</strong>? This is irreversible for live tenant records.</p><ul style="margin:12px 0 12px 20px;color:var(--muted);"><li>Final snapshot path: ${esc(t.archive_path || 'archive/final-delete-snapshot')}</li><li>Tenant database records</li><li>Archived files remain as audit evidence</li><li>Media records are removed by tenant deletion</li></ul><div class="form-group mt-2"><label>Type DELETE ${esc(t.slug)} to confirm</label><input id="m_permanentDeleteTenantPhrase" placeholder="DELETE ${esc(t.slug)}"></div>`, footerHtml);
+    }
+
+    async function confirmPermanentDeleteTenant(id) {
+      const t = tenants.find((item) => item.id === id);
+      if (!t) return;
+      const phrase = ($('m_permanentDeleteTenantPhrase')?.value || '').trim();
+      if (phrase !== `DELETE ${t.slug}`) {
+        showToast(`Type DELETE ${t.slug} to confirm.`, 'error');
+        return;
+      }
+      $('confirmPermanentDeleteTenantBtn').disabled = true;
+      await api(`/admin/tenants/${id}/permanent`, {
+        method: 'DELETE',
+        body: JSON.stringify({ confirmationPhrase: phrase })
+      });
+      showToast('Tenant permanently deleted. Archive evidence was retained.');
+      closeModal();
+      await refresh();
+    }
+
+    // Select tenant to view details
+    function selectTenant(id) {
+      selectedTenantId = id;
+      openTenantDetailModal(id);
+    }
+
+    function buildTenantDetailGrid(t) {
+      const plan = plans.find((item) => item.code === t.plan_code) || {};
+      const container = document.createElement('div');
+      const summary = document.createElement('div');
+      summary.className = 'tenant-summary';
+      const addSummary = (label, value) => {
+        const item = document.createElement('div');
+        const labelEl = document.createElement('div');
+        const valueEl = document.createElement('div');
+        item.className = 'summary-item';
+        labelEl.className = 'summary-label';
+        valueEl.className = 'summary-value';
+        labelEl.textContent = label;
+        valueEl.textContent = text(value);
+        item.append(labelEl, valueEl);
+        summary.appendChild(item);
+      };
+      addSummary('Studio', t.name);
+      addSummary('Tenant Status', t.status);
+      addSummary('Subscription', t.subscription_status || '-');
+      addSummary('Plan', plan.name || t.plan_code);
+      addSummary('Category', t.category || 'general');
+      addSummary('Student Usage', plan.student_limit ? `${Number(t.student_count || 0)} / ${plan.student_limit}` : Number(t.student_count || 0));
+      addSummary('Storage Usage', plan.storage_limit_mb ? `${formatStorageMb(t.storage_used_mb)} / ${formatStorageMb(plan.storage_limit_mb)}` : formatStorageMb(t.storage_used_mb));
+      addSummary('Owner Email', t.owner_email || 'Needs owner');
+      addSummary('Onboarding', onboardingProgress(t));
+      addSummary('Health', healthLabel(t));
+      container.appendChild(summary);
+
+      const risks = tenantRisks(t);
+      const riskCard = document.createElement('div');
+      riskCard.className = 'detail-item';
+      const riskLabel = document.createElement('div');
+      riskLabel.className = 'detail-label';
+      riskLabel.textContent = 'Risk / Setup';
+      riskCard.appendChild(riskLabel);
+      if (risks.length) {
+        const list = document.createElement('div');
+        list.className = 'risk-list';
+        risks.forEach((risk) => {
+          const item = document.createElement('div');
+          item.className = 'risk-item';
+          item.textContent = risk;
+          list.appendChild(item);
+        });
+        riskCard.appendChild(list);
+      } else {
+        appendSmallBadge(riskCard, 'Healthy', 'pill active');
+      }
+      container.appendChild(riskCard);
+
+      const grid = document.createElement('div');
+      grid.className = 'detail-grid';
+      const addDetail = (label, build) => {
+        const item = document.createElement('div');
+        const labelEl = document.createElement('div');
+        item.className = 'detail-item';
+        labelEl.className = 'detail-label';
+        labelEl.textContent = label;
+        item.appendChild(labelEl);
+        build(item);
+        grid.appendChild(item);
+      };
+      const addProgress = (item, current, limit) => {
+        const pct = percent(current, limit);
+        const top = document.createElement('div');
+        const left = document.createElement('span');
+        const right = document.createElement('span');
+        const bar = document.createElement('div');
+        const fill = document.createElement('div');
+        top.style.display = 'flex';
+        top.style.justifyContent = 'space-between';
+        top.style.fontSize = '12px';
+        left.textContent = `${text(current)} / ${text(limit)}`;
+        right.textContent = `${pct}%`;
+        bar.className = 'progress-bar';
+        fill.className = `progress-fill ${pct > 90 ? 'red' : pct > 75 ? 'amber' : 'blue'}`;
+        fill.style.width = `${pct}%`;
+        top.append(left, right);
+        bar.appendChild(fill);
+        item.append(top, bar);
+      };
+      const slug = encodeURIComponent(String(t.slug || ''));
+
+      addDetail('Studio', (item) => {
+        const strong = document.createElement('strong');
+        const code = document.createElement('code');
+        strong.textContent = text(t.name);
+        code.textContent = text(t.slug);
+        item.append(strong, document.createElement('br'), code);
+      });
+      addDetail('Category', (item) => addStrongMuted(item, t.category || 'general', t.slogan));
+      addDetail('Status', (item) => {
+        item.appendChild(document.createTextNode('Tenant: '));
+        appendPill(item, t.status);
+        item.appendChild(document.createElement('br'));
+        item.appendChild(document.createTextNode('Subscription: '));
+        appendPill(item, t.subscription_status || '-');
+        item.appendChild(document.createElement('br'));
+        item.appendChild(document.createTextNode('Access: '));
+        appendSmallBadge(item, accessStatus(t), accessStatus(t) === 'Enabled' ? 'pill active' : 'pill');
+      });
+      addDetail('Quick Links', (item) => {
+        const links = document.createElement('div');
+        links.className = 'link-grid';
+        const unavailable = ['archived', 'deleted'].includes(t.status);
+        addActionLink(links, 'Studio Website', `/${slug}`, unavailable ? 'Archived or deleted tenants cannot be opened.' : '');
+        addActionLink(links, 'Studio CMS', `/${slug}/cms`, unavailable ? 'Archived or deleted tenants cannot be opened.' : '');
+        addActionLink(links, 'Brand Workspace', `/${slug}/studio-admin`, unavailable ? 'Archived or deleted tenants cannot be opened.' : (!t.studio_admin_email ? 'Studio Admin login is not configured.' : ''));
+        addActionLink(links, 'Quick Registration', `/${slug}/register`, ['paused', 'archived', 'deleted'].includes(t.status) ? 'Registration is unavailable for paused, archived, or deleted tenants.' : '');
+        item.appendChild(links);
+      });
+      addDetail('Onboarding Checklist', (item) => {
+        onboardingChecklist(t).forEach(([label, complete]) => {
+          const row = document.createElement('div');
+          row.textContent = `${complete ? '✓' : '○'} ${label}`;
+          row.style.color = complete ? 'var(--success)' : 'var(--muted)';
+          row.style.marginBottom = '4px';
+          item.appendChild(row);
+        });
+      });
+      addDetail('Workspace', (item) => {
+        const code = document.createElement('code');
+        code.textContent = text(t.workspace_path);
+        item.appendChild(code);
+      });
+      addDetail('Owner', (item) => addStrongMuted(item, t.owner_name, t.owner_email));
+      addDetail('Studio Admin Login', (item) => addStrongMuted(item, t.studio_admin_email, t.studio_admin_name));
+      addDetail('Contact', (item) => {
+        item.append(document.createTextNode(text(t.contact_phone)), document.createElement('br'), document.createTextNode(text(t.contact_email)));
+      });
+      addDetail('Billing', (item) => {
+        item.append(document.createTextNode(text(t.billing_email)), document.createElement('br'), document.createTextNode(`ABN ${text(t.abn)}`));
+      });
+      addDetail('Students', (item) => addProgress(item, t.student_count, plan.student_limit));
+      addDetail('Storage', (item) => addProgress(item, t.storage_used_mb, plan.storage_limit_mb));
+      addDetail('Created', (item) => item.appendChild(document.createTextNode(dateOnly(t.created_at) || '-')));
+      if (t.status === 'archived') {
+        addDetail('Archived', (item) => item.appendChild(document.createTextNode(dateOnly(t.archived_at) || '-')));
+        addDetail('Archive Path', (item) => {
+          const code = document.createElement('code');
+          code.textContent = text(t.archive_path);
+          item.appendChild(code);
+        });
+      }
+      addDetail('Subscription', (item) => item.appendChild(document.createTextNode(`${dateOnly(t.starts_at) || '-'} to ${dateOnly(t.ends_at) || 'open'}`)));
+      container.appendChild(grid);
+      return container;
+    }
+
+    function openTenantDetailModal(id) {
+      const t = tenants.find((item) => item.id === id);
+      if (!t) return;
+      openModal(`${t.name} Details`, '<div id="m_tenantDetailMount"></div>', '<button onclick="closeModal()" class="btn-secondary">Close</button>');
+      $('m_tenantDetailMount').replaceChildren(buildTenantDetailGrid(t));
+    }
+
+    // Filter tenants
+    function filteredTenants() {
+      const q = $('tenantSearch').value.trim().toLowerCase();
+      const status = $('statusFilter').value;
+      const plan = $('planFilter').value;
+      const category = $('categoryFilter').value;
+      const showTests = $('showTestTenants')?.checked || false;
+      return tenants.filter((t) => {
+	        const haystack = `${t.name} ${t.slug} ${t.status} ${t.plan_code} ${t.subscription_status || ''} ${t.category || ''} ${t.owner_email || ''} ${t.studio_admin_email || ''}`.toLowerCase();
+        const trialEnds = t.trial_ends_at ? new Date(t.trial_ends_at).getTime() : 0;
+        const now = Date.now();
+        const attentionMatch = !attentionTenantFilter
+          || (attentionTenantFilter === 'past_due' && (t.status === 'past_due' || t.subscription_status === 'past_due'))
+          || (attentionTenantFilter === 'onboarding' && t.status === 'onboarding')
+          || (attentionTenantFilter === 'trial_ending' && trialEnds >= now && trialEnds <= now + 7 * 86400000);
+        return attentionMatch && (showTests || !isTestTenant(t)) && (!q || haystack.includes(q)) && (!status || t.status === status) && (!plan || t.plan_code === plan) && (!category || (t.category || 'general') === category);
+      });
+    }
+
+    // Render tenants table
+    function renderTenants() {
+      const allVisible = filteredTenants();
+      const totalPages = Math.max(1, Math.ceil(allVisible.length / tenantPageSize));
+      if (tenantPage >= totalPages) tenantPage = totalPages - 1;
+      const visible = allVisible.slice(tenantPage * tenantPageSize, (tenantPage + 1) * tenantPageSize);
+      $('tenantPageLabel').textContent = `Page ${tenantPage + 1} of ${totalPages} · ${allVisible.length} tenants`;
+      $('tenantPrevBtn').disabled = tenantPage <= 0;
+      $('tenantNextBtn').disabled = tenantPage >= totalPages - 1;
+      const tbody = $('tenantsBody');
+      tbody.replaceChildren();
+      if (!visible.length) {
+        appendEmptyRow(tbody, 7, 'No tenants match the current filters.');
+        return;
+      }
+      visible.forEach((t) => {
+        const row = document.createElement('tr');
+        const studioCell = addCell(row);
+        const strong = document.createElement('strong');
+        const code = document.createElement('code');
+        const muted = document.createElement('span');
+        strong.textContent = text(t.name);
+        code.textContent = text(t.slug);
+        muted.className = 'text-muted';
+        muted.textContent = `${text(t.category || 'general')} · ${text(t.studio_admin_email || 'no admin login')}`;
+        studioCell.append(strong, document.createElement('br'), code, document.createElement('br'), muted);
+        if (isTestTenant(t)) {
+          studioCell.appendChild(document.createElement('br'));
+          appendSmallBadge(studioCell, 'TEST FIXTURE', 'pill fixture');
+        }
+        addStrongMuted(addCell(row), t.plan_code, t.category || 'general');
+        const statusCell = addCell(row);
+        appendPill(statusCell, t.status);
+        statusCell.appendChild(document.createElement('br'));
+        const sub = document.createElement('span');
+        sub.className = 'text-muted';
+        sub.textContent = text(t.subscription_status || '-');
+        statusCell.appendChild(sub);
+        statusCell.appendChild(document.createElement('br'));
+        appendSmallBadge(statusCell, healthLabel(t), healthLabel(t) === 'Healthy' ? 'pill active' : healthLabel(t) === 'Test fixture' ? 'pill fixture' : 'pill warning');
+        const ownerCell = addCell(row);
+        ownerCell.textContent = t.owner_email || 'Needs owner';
+        if (!t.owner_email) appendSmallBadge(ownerCell, 'Needs owner', 'pill warning');
+        if (!t.studio_admin_email) {
+          ownerCell.appendChild(document.createElement('br'));
+          appendSmallBadge(ownerCell, 'No admin login', 'pill warning');
+        }
+        addCell(row, usageText(t));
+        renderTenantSurfaces(addCell(row), t);
+        const actions = document.createElement('div');
+        actions.className = 'action-row';
+        addActionButton(actions, 'View', 'btn-secondary btn-sm', () => selectTenant(t.id));
+        addActionButton(actions, 'More', 'btn-secondary btn-sm', () => openTenantActions(t.id));
+        addCell(row).appendChild(actions);
+        tbody.appendChild(row);
+      });
+    }
+
+    // Plan form handlers
+    const KNOWN_PLAN_FEATURES = [
+      ['public_registration', 'Public registration'],
+      ['portfolio', 'Student portfolio'],
+      ['email_templates', 'Email templates'],
+      ['data_export', 'Data export'],
+      ['priority_support', 'Priority support']
+    ];
+
+    function planFeatureEditor(features = {}) {
+      const known = new Set(KNOWN_PLAN_FEATURES.map(([key]) => key));
+      const additional = Object.fromEntries(Object.entries(features || {}).filter(([key]) => !known.has(key)));
+      return `
+        <fieldset class="form-section" style="padding:14px;">
+          <legend style="padding:0 6px;font-weight:800;">Entitlements</legend>
+          <div class="form-grid">
+            ${KNOWN_PLAN_FEATURES.map(([key, label]) => `<label style="display:flex;align-items:center;gap:9px;"><input type="checkbox" data-plan-feature="${key}" style="width:auto;" ${features[key] ? 'checked' : ''}> ${label}</label>`).join('')}
+          </div>
+        </fieldset>
+        <div class="form-group"><label>Additional entitlements (JSON)</label><textarea id="m_planFeaturesAdvanced" rows="3">${esc(JSON.stringify(additional, null, 2))}</textarea><small>Only use this for feature flags not listed above.</small></div>
+      `;
+    }
+
+    function collectPlanFeatures() {
+      let additional;
+      try { additional = JSON.parse($('m_planFeaturesAdvanced').value || '{}'); }
+      catch { throw new Error('Additional entitlements must be valid JSON.'); }
+      document.querySelectorAll('[data-plan-feature]').forEach((input) => { additional[input.dataset.planFeature] = input.checked; });
+      return additional;
+    }
+
+    function enabledPlanFeatures(plan) {
+      const enabled = KNOWN_PLAN_FEATURES.filter(([key]) => Boolean((plan.features || {})[key])).map(([, label]) => label);
+      return enabled.length ? enabled.join(', ') : 'No enabled entitlements';
+    }
+
+    function resetPlanForm() {
+      editingPlanCode = '';
+      $('modalTitle').textContent = 'Add Plan';
+      const bodyHtml = `
+        <div class="form-grid">
+          <div class="form-group"><label>Code</label><input id="m_planCode" disabled></div>
+          <div class="form-group"><label>Name</label><input id="m_planName"></div>
+          <div class="form-group"><label>Price (AUD)</label><input id="m_planMonthly" type="number" value="149"></div>
+          <div class="form-group"><label>Students</label><input id="m_planStudents" type="number" min="1" value="800"></div>
+          <div class="form-group"><label>Users</label><input id="m_planUsers" type="number" min="1" value="12"></div>
+          <div class="form-group"><label>Storage (MB)</label><input id="m_planStorage" type="number" min="1" value="51200"></div>
+        </div>
+        ${planFeatureEditor({ public_registration: true, portfolio: true })}
+      `;
+      const footerHtml = `<button onclick="savePlanModal()" class="btn-primary">Save Plan</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
+      openModal('Add Plan', bodyHtml, footerHtml);
+    }
+
+    function editPlan(code) {
+      const p = plans.find((item) => item.code === code);
+      if (!p) return;
+      editingPlanCode = code;
+      const bodyHtml = `
+        <div class="form-grid">
+          <div class="form-group"><label>Code</label><input id="m_planCode" value="${esc(p.code)}" disabled></div>
+          <div class="form-group"><label>Name</label><input id="m_planName" value="${esc(p.name)}"></div>
+          <div class="form-group"><label>Price (AUD)</label><input id="m_planMonthly" type="number" value="${p.monthly_price_aud}"></div>
+          <div class="form-group"><label>Students</label><input id="m_planStudents" type="number" min="1" value="${p.student_limit}"></div>
+          <div class="form-group"><label>Users</label><input id="m_planUsers" type="number" min="1" value="${p.user_limit}"></div>
+          <div class="form-group"><label>Storage (MB)</label><input id="m_planStorage" type="number" min="1" value="${p.storage_limit_mb}"></div>
+        </div>
+        ${planFeatureEditor(p.features || {})}
+      `;
+      const footerHtml = `<button onclick="savePlanModal()" class="btn-primary">Save Plan</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
+      openModal(`Edit ${p.name}`, bodyHtml, footerHtml);
+    }
+
+    async function savePlanModal() {
+      let features;
+      try { features = collectPlanFeatures(); }
+      catch (error) { showToast(error.message, 'error'); return; }
+      const payload = {
+        code: $('m_planCode').value,
+        name: $('m_planName').value,
+        monthlyPriceAud: Number($('m_planMonthly').value),
+        studentLimit: Number($('m_planStudents').value),
+        userLimit: Number($('m_planUsers').value),
+        storageLimitMb: Number($('m_planStorage').value),
+        features
+      };
+      await api(editingPlanCode ? `/plans/${editingPlanCode}` : '/plans', {
+        method: editingPlanCode ? 'PATCH' : 'POST',
+        body: JSON.stringify(payload)
+      });
+      showToast(editingPlanCode ? 'Plan updated.' : 'Plan created.');
+      closeModal();
+      await refresh();
+    }
+
+    async function deletePlan(code) {
+      const footerHtml = `<button onclick="confirmDeletePlan('${code}')" class="btn-danger">Delete</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
+      openModal('Delete Plan', `<p>Are you sure you want to delete plan <strong>${esc(code)}</strong>?</p>`, footerHtml);
+    }
+
+    async function confirmDeletePlan(code) {
+      await api(`/plans/${code}`, { method: 'DELETE' });
+      showToast('Plan deleted.');
+      closeModal();
+      await refresh();
+    }
+
+    // Main refresh function
+    async function refresh() {
+      if (!currentUser) return;
+      setLoading(true);
+      try {
+        const [usage, planData, tenantData, audit] = await Promise.all([
+          api('/admin/usage'), api('/plans'), api('/admin/tenants'), api('/admin/audit-logs')
+        ]);
+        plans = planData.plans;
+        tenants = tenantData.tenants;
+        fillPlanSelect();
+
+        $('tenantCount').textContent = usage.usage.tenants;
+        $('mrrCount').textContent = money(usage.usage.mrr_aud);
+        $('paidTenantCount').textContent = usage.usage.paid_tenants;
+        $('trialTenantCount').textContent = usage.usage.trial_tenants;
+        $('onboardingTenantCount').textContent = usage.usage.onboarding_tenants;
+        $('pastDueTenantCount').textContent = usage.usage.past_due_tenants;
+        $('trialEndingCount').textContent = usage.usage.trials_ending_7d;
+        $('newTenantCount').textContent = usage.usage.new_tenants_30d;
+        const attention = $('commercialAttention');
+        const attentionItems = [];
+        if (Number(usage.usage.past_due_tenants || 0)) attentionItems.push(`${usage.usage.past_due_tenants} tenant(s) need payment follow-up`);
+        if (Number(usage.usage.trials_ending_7d || 0)) attentionItems.push(`${usage.usage.trials_ending_7d} trial(s) end within 7 days`);
+        if (Number(usage.usage.onboarding_tenants || 0)) attentionItems.push(`${usage.usage.onboarding_tenants} tenant(s) are still onboarding`);
+        attention.replaceChildren();
+        attention.classList.toggle('empty-state', !attentionItems.length);
+        if (!attentionItems.length) {
+          attention.textContent = 'No immediate commercial risks.';
+        } else {
+          const actions = [
+            [Number(usage.usage.past_due_tenants || 0), 'past_due', 'payment follow-up'],
+            [Number(usage.usage.trials_ending_7d || 0), 'trial_ending', 'trials ending soon'],
+            [Number(usage.usage.onboarding_tenants || 0), 'onboarding', 'onboarding incomplete']
+          ].filter(([count]) => count > 0);
+          const row = document.createElement('div');
+          row.className = 'action-row';
+          actions.forEach(([count, filter, label]) => addActionButton(row, `${count} · ${label}`, 'btn-warning btn-sm', () => {
+            attentionTenantFilter = filter;
+            $('statusFilter').value = '';
+            tenantPage = 0;
+            renderTenants();
+            location.hash = 'tenants';
+            setActiveNav('#tenants');
+          }));
+          attention.appendChild(row);
+        }
+        const registrations30d = Number(usage.usage.registrations_30d || 0);
+        const converted30d = Number(usage.usage.converted_registrations_30d || 0);
+        const conversionRate = registrations30d ? Math.round((converted30d / registrations30d) * 100) : 0;
+        const funnel = $('acquisitionFunnel');
+        funnel.classList.remove('empty-state');
+        funnel.textContent = `${registrations30d} registrations · ${converted30d} converted (${conversionRate}%) · ${Number(usage.usage.portal_registrations_30d || 0)} from Studio Websites · ${Number(usage.usage.alternate_registrations_30d || 0)} from Quick Registration or campaigns`;
+
+        const plansBody = $('plansBody');
+        plansBody.replaceChildren();
+        if (plans.length) {
+          plans.forEach((p) => {
+            const row = document.createElement('tr');
+            const nameCell = addCell(row);
+            const strong = document.createElement('strong');
+            const code = document.createElement('code');
+            strong.textContent = text(p.name);
+            code.textContent = text(p.code);
+            nameCell.append(strong, document.createElement('br'), code);
+            addCell(row, money(p.monthly_price_aud));
+            addCell(row, `${text(p.student_limit)} students\n${text(p.user_limit)} users\n${text(p.storage_limit_mb)} MB\n${enabledPlanFeatures(p)}`);
+            const actions = document.createElement('div');
+            actions.className = 'action-row';
+            addActionButton(actions, 'Edit', 'btn-secondary btn-sm', () => editPlan(p.code));
+            addActionButton(actions, 'Delete', 'btn-danger btn-sm', () => deletePlan(p.code));
+            addCell(row).appendChild(actions);
+            plansBody.appendChild(row);
+          });
+        } else {
+          appendEmptyRow(plansBody, 4, 'No plans configured.');
+        }
+
+        renderTenants();
+
+        const auditBody = $('auditBody');
+        auditBody.replaceChildren();
+        if (audit.auditLogs.length) {
+          audit.auditLogs.forEach((a) => {
+            const row = document.createElement('tr');
+            addCell(row, text(a.created_at));
+            addCell(row, text(a.tenant_slug));
+            addStrongMuted(addCell(row), a.action);
+            addCell(row, `${text(a.resource_type)} ${text(a.resource_id)}`);
+            auditBody.appendChild(row);
+          });
+        } else {
+          appendEmptyRow(auditBody, 4, 'No audit logs yet.');
+        }
+
+      } catch (err) {
+        if (err.status === 401) {
+          setAuthState(null);
+          showToast('Please log in to continue.', 'error');
+        } else {
+          showToast('Failed to load data: ' + err.message, 'error');
+        }
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    // Event listeners
+    $('loginForm').addEventListener('submit', loginSuperAdmin);
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && $('modalOverlay').classList.contains('active')) closeModal();
+    });
+    $('logoutBtn').addEventListener('click', logoutSuperAdmin);
+    $('changePasswordBtn').addEventListener('click', openChangePasswordModal);
+    $('refreshBtn').addEventListener('click', refresh);
+    ['tenantSearch','statusFilter','planFilter','categoryFilter','showTestTenants'].forEach((id) => $(id).addEventListener('input', () => {
+      attentionTenantFilter = '';
+      tenantPage = 0;
+      renderTenants();
+    }));
+    const navLinks = Array.from(document.querySelectorAll('.nav-link'));
+    const setActiveNav = (hash) => {
+      navLinks.forEach((link) => link.classList.toggle('active', link.getAttribute('href') === hash));
+    };
+    navLinks.forEach((link) => link.addEventListener('click', () => setActiveNav(link.getAttribute('href'))));
+    if ('IntersectionObserver' in window) {
+      const navObserver = new IntersectionObserver((entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (visible) setActiveNav(`#${visible.target.id}`);
+      }, { rootMargin: '-120px 0px -55% 0px', threshold: [0.1, 0.25, 0.5] });
+      ['overview', 'tenants', 'plans', 'audit'].forEach((id) => {
+        const section = $(id);
+        if (section) navObserver.observe(section);
+      });
+    }
+    $('clearFiltersBtn').addEventListener('click', () => {
+      $('tenantSearch').value = '';
+      $('statusFilter').value = '';
+      $('planFilter').value = '';
+      $('categoryFilter').value = '';
+      $('showTestTenants').checked = false;
+      attentionTenantFilter = '';
+      tenantPage = 0;
+      renderTenants();
+    });
+    $('tenantPrevBtn').addEventListener('click', () => { tenantPage = Math.max(0, tenantPage - 1); renderTenants(); });
+    $('tenantNextBtn').addEventListener('click', () => { tenantPage += 1; renderTenants(); });
+
+    // Add tenant button - open modal
+    $('addTenantBtn').addEventListener('click', () => {
+      editingTenantId = '';
+	      const bodyHtml = `
+	        <div class="form-grid">
+	          <div class="form-group"><label>Studio Name</label><input id="m_tenantName" placeholder="Northside Art Studio"></div>
+	          <div class="form-group"><label>Slug</label><input id="m_tenantSlug" readonly><small>Auto-generated from studio name.</small></div>
+	          <div class="form-group"><label>Plan</label><select id="m_tenantPlan">${plans.map(p => `<option value="${p.code}">${p.name}</option>`).join('')}</select></div>
+	          <div class="form-group"><label>Studio Category</label><select id="m_tenantCategory">${categoryOptions('general')}</select></div>
+	          <div class="form-group"><label>Owner Name</label><input id="m_ownerName" placeholder="Studio Owner"></div>
+	          <div class="form-group"><label>Owner Email</label><input id="m_ownerEmail" type="email" placeholder="owner@studio.test"></div>
+	          <div class="form-group" style="grid-column:span 2;"><label>Temporary Admin Password</label><input id="m_studioAdminPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="At least 8 characters"><small>Required for initial access. Share it through a secure channel, then ask the owner to change it.</small></div>
+	          <div class="form-group" style="grid-column:span 2;"><label>Slogan</label><input id="m_tenantSlogan" value="${esc(presetSlogan('general'))}"></div>
+	        </div>
+          <div class="summary-item">
+            <div class="summary-label">Auto-filled</div>
+            <div class="summary-value">Contact email, billing email, Studio Admin login, onboarding status, and first 30-day trial period.</div>
+          </div>
+	      `;
+	      const footerHtml = `<button onclick="saveNewTenant()" class="btn-primary">Create Tenant</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
+	      openModal('Add Tenant', bodyHtml, footerHtml);
+        const syncSlug = () => { $('m_tenantSlug').value = slugifyTenantName($('m_tenantName').value); };
+        $('m_tenantName').addEventListener('input', syncSlug);
+	      $('m_tenantCategory').addEventListener('change', () => {
+	        $('m_tenantSlogan').value = presetSlogan($('m_tenantCategory').value);
+	      });
+        syncSlug();
+	    });
+
+    async function saveNewTenant() {
+      const ownerEmail = $('m_ownerEmail').value.trim();
+      const payload = {
+        name: $('m_tenantName').value,
+        slug: $('m_tenantSlug').value || slugifyTenantName($('m_tenantName').value),
+        status: 'onboarding',
+        planCode: $('m_tenantPlan').value,
+	        category: $('m_tenantCategory').value,
+	        slogan: $('m_tenantSlogan').value,
+        studioAdminEmail: ownerEmail,
+        studioAdminName: $('m_ownerName').value,
+        studioAdminPassword: $('m_studioAdminPassword').value,
+        subscriptionStatus: 'trialing',
+        startsAt: new Date().toISOString().slice(0, 10),
+        endsAt: null,
+        trialEndsAt: addDaysIso(30),
+        currentPeriodEndsAt: addDaysIso(30),
+        ownerName: $('m_ownerName').value,
+        ownerRole: 'Owner',
+        ownerPhone: '',
+        ownerEmail,
+        contactPhone: '',
+        contactEmail: ownerEmail,
+        billingEmail: ownerEmail,
+        abn: '',
+        website: '',
+        address: '',
+        notes: ''
+      };
+
+      if (!payload.name || !payload.slug || !payload.ownerEmail || !payload.ownerName || !payload.planCode || payload.studioAdminPassword.length < 8) {
+        showToast('Studio name, owner details, plan, and an admin password of at least 8 characters are required.', 'error');
+        return;
+      }
+
+      await api('/admin/tenants', { method: 'POST', body: JSON.stringify(payload) });
+      showToast('Tenant created.');
+      closeModal();
+      await refresh();
+    }
+
+		    $('addPlanBtn').addEventListener('click', resetPlanForm);
+
+    // Close modal on overlay click
+    $('modalOverlay').addEventListener('click', (e) => {
+      if (e.target === $('modalOverlay')) closeModal();
+    });
+
+    // Initial load
+    setAuthState(null);
+    loadIndustryPresets().then(checkSession);
+  </script>
+</body>
+</html>

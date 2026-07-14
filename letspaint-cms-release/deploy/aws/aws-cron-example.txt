@@ -1,4 +1,0 @@
-# 每天凌晨 3:15 做一份服务器本地数据包备份：
-15 3 * * * /opt/letspaint-cms/deploy/aws/backup_data.sh >> /var/log/letspaint-backup.log 2>&1
-
-# 更稳妥：同时在 Lightsail 控制台开启自动快照，或把备份同步到 S3/另一台电脑。

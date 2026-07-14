@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ruby Studio Registration</title>
+  <meta name="robots" content="index,follow">
+  <link rel="manifest" href="/ruby-studio/manifest-student.json">
+  <script src="/assets/ui-common.js"></script>
+  <script src="/assets/public-register.js"></script>
+  <link rel="stylesheet" href="/assets/ui-tokens.css">
+  <style>
+    :root {
+      --brand:#2563eb;
+      --brand-2:#0f172a;
+      --bg:#f8fafc;
+      --surface:#ffffff;
+      --ink:#0f172a;
+      --muted:#64748b;
+      --line:#e2e8f0;
+      --radius:8px;
+    }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; color:var(--ink); background:var(--bg); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif; -webkit-font-smoothing:antialiased; }
+    header { position:sticky; top:0; z-index:10; display:flex; justify-content:space-between; align-items:center; gap:16px; padding:14px 24px; background:rgba(255,255,255,.92); border-bottom:1px solid var(--line); backdrop-filter:blur(10px); }
+    .brand { display:flex; align-items:center; gap:12px; min-width:0; }
+    .brand img { width:42px; height:42px; object-fit:contain; border:1px solid var(--line); border-radius:var(--radius); background:#fff; padding:4px; }
+    .name { font-weight:800; font-size:15px; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .slogan, .contact { color:var(--muted); font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:min(56vw,640px); }
+    a { color:var(--brand); text-decoration:none; font-weight:800; font-size:13px; }
+    .header-actions, .lang-switch { display:flex; align-items:center; gap:10px; }
+    .lang-switch { padding:3px; border:1px solid var(--line); border-radius:999px; background:var(--surface); }
+    .lang-switch button { width:auto; min-height:30px; padding:4px 10px; border-radius:999px; background:transparent; color:var(--muted); }
+    .lang-switch button.active { background:var(--brand); color:#fff; }
+    main { width:min(1040px,100%); margin:0 auto; padding:54px 24px 72px; display:grid; grid-template-columns:minmax(0,.9fr) minmax(320px,1.1fr); gap:40px; align-items:start; }
+    .intro { padding-top:18px; }
+    .eyebrow { color:var(--brand); font-size:12px; font-weight:800; letter-spacing:.16em; text-transform:uppercase; }
+    h1 { margin:14px 0 14px; font-size:clamp(34px,5vw,58px); line-height:1.05; letter-spacing:0; }
+    .lead { color:var(--muted); font-size:17px; line-height:1.7; max-width:44ch; }
+    .card { background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:28px; box-shadow:0 18px 42px rgba(15,23,42,.08); }
+    .field { margin-bottom:16px; }
+    label { display:block; margin-bottom:7px; color:#475569; font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+    input, textarea, select { width:100%; min-height:42px; border:1px solid var(--line); border-radius:var(--radius); padding:11px 12px; background:#fff; color:var(--ink); font:inherit; }
+    textarea { resize:vertical; }
+    input:focus, textarea:focus, select:focus { outline:2px solid color-mix(in srgb, var(--brand) 24%, transparent); border-color:var(--brand); }
+    .row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .consent { display:flex; gap:10px; align-items:flex-start; color:var(--muted); font-size:13px; line-height:1.5; margin:8px 0 16px; }
+    .consent input { width:16px; min-height:16px; margin-top:2px; }
+    button { width:100%; min-height:46px; border:0; border-radius:var(--radius); background:var(--brand); color:#fff; font-weight:900; cursor:pointer; }
+    button:hover { background:var(--brand-2); }
+    button:disabled { opacity:.62; cursor:wait; }
+    .error { display:none; color:#b91c1c; font-size:13px; margin:0 0 12px; }
+    .done { display:none; text-align:center; padding:38px 24px; }
+    .done .mark { color:var(--brand); font-size:56px; line-height:1; }
+    @media (max-width:760px) {
+      header { align-items:flex-start; flex-direction:column; padding:12px 16px; }
+      main { grid-template-columns:1fr; padding:34px 16px 56px; gap:24px; }
+      .row { grid-template-columns:1fr; }
+      .slogan, .contact { max-width:calc(100vw - 96px); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <img id="tenantLogo" src="/logo.png" alt="Ruby Studio">
+      <div>
+        <div id="tenantName" class="name">Ruby Studio</div>
+        <div id="tenantSlogan" class="slogan"></div>
+        <div id="tenantContact" class="contact"></div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <div class="lang-switch" aria-label="Language">
+        <button type="button" data-language="zh" aria-pressed="true">中</button>
+        <button type="button" data-language="en" aria-pressed="false">EN</button>
+      </div>
+      <a id="backLink" href="/ruby-studio" data-zh="← 返回工作室网站" data-en="← Back to studio website">← 返回工作室网站</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="intro">
+      <div id="heroEyebrow" class="eyebrow">快速报名</div>
+      <h1 id="pageTitle">告诉我们学员的情况</h1>
+      <p id="pageIntro" class="lead">留下基本信息，工作室会联系你并推荐合适的课程与时间。</p>
+    </section>
+
+    <section class="card">
+      <form id="registerForm">
+        <div class="row">
+          <div class="field"><label for="firstName" data-zh="名字 *" data-en="Given name *">名字 *</label><input id="firstName" autocomplete="given-name" required aria-required="true"></div>
+          <div class="field"><label for="lastName" data-zh="姓氏" data-en="Family name">姓氏</label><input id="lastName" autocomplete="family-name"></div>
+        </div>
+        <div class="field"><label for="mobile" data-zh="手机号码 *" data-en="Mobile *">手机号码 *</label><input id="mobile" type="tel" inputmode="tel" autocomplete="tel" required aria-required="true"></div>
+        <div class="field"><label for="email" data-zh="电子邮箱" data-en="Email">电子邮箱</label><input id="email" type="email" inputmode="email" autocomplete="email"></div>
+        <div id="customFields"></div>
+        <div class="field"><label for="message" data-zh="补充说明" data-en="Message">补充说明</label><textarea id="message" rows="3" placeholder="选填"></textarea></div>
+        <div style="position:absolute;left:-9999px;top:-9999px" aria-hidden="true"><input id="website" type="text" tabindex="-1" autocomplete="off"></div>
+        <label class="consent"><input id="consent" type="checkbox"><span data-zh="我同意工作室仅将这些资料用于联系与课程管理。" data-en="I agree that my details are used only for studio contact and class management.">我同意工作室仅将这些资料用于联系与课程管理。</span></label>
+        <p id="error" class="error" role="alert" aria-live="assertive"></p>
+        <button id="submitBtn" type="submit" data-zh="提交报名" data-en="Submit registration">提交报名</button>
+      </form>
+      <div id="done" class="done" role="status" aria-live="polite" tabindex="-1">
+        <div class="mark">✓</div>
+        <h2 data-zh="提交成功" data-en="Submitted">提交成功</h2>
+        <p data-zh="工作室会尽快与你联系。" data-en="The studio will be in touch soon.">工作室会尽快与你联系。</p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const TENANT_SLUG = 'ruby-studio';
+    const TENANT_NAME = "Ruby Studio";
+    const esc = window.StudioSaaS.esc;
+    let registrationProfile = { title: 'Quick Registration', fields: [] };
+    let currentBrand = {};
+    const pageParams = new URLSearchParams(location.search);
+    let currentLanguage = pageParams.get('lang') === 'en' ? 'en' : (() => {
+      try { return localStorage.getItem(`pwe_lang_${TENANT_SLUG}`) === 'en' ? 'en' : 'zh'; } catch (_) { return 'zh'; }
+    })();
+
+    function T(zh, en) { return currentLanguage === 'en' ? en : zh; }
+    function localized(pair, fallback) {
+      if (!pair || typeof pair !== 'object') return fallback || '';
+      return pair[currentLanguage] || pair.en || pair.zh || fallback || '';
+    }
+    function applyLanguage() {
+      document.documentElement.lang = currentLanguage === 'en' ? 'en' : 'zh-CN';
+      document.querySelectorAll('[data-zh][data-en]').forEach((element) => {
+        element.textContent = element.dataset[currentLanguage];
+      });
+      document.querySelectorAll('[data-language]').forEach((button) => {
+        const active = button.dataset.language === currentLanguage;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+      document.getElementById('message').placeholder = T('选填', 'Optional note');
+      try { localStorage.setItem(`pwe_lang_${TENANT_SLUG}`, currentLanguage); } catch (_) {}
+      applyBrandContent();
+    }
+
+    function value(id) {
+      const el = document.getElementById(id);
+      return el ? String(el.value || '').trim() : '';
+    }
+    function showError(message) {
+      const error = document.getElementById('error');
+      error.textContent = message;
+      error.style.display = 'block';
+      error.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    function renderFields(profile) {
+      registrationProfile = window.StudioSaaSPublicRegister.renderFields(profile || registrationProfile, {
+        container: 'customFields',
+        labelClass: 'field',
+        fallbackTitle: T('快速报名', 'Quick Registration'),
+        language: currentLanguage
+      });
+    }
+    function collectFields() {
+      return window.StudioSaaSPublicRegister.collectFields({
+        container: 'customFields',
+        requiredPrefix: T('请填写', 'Please complete')
+      });
+    }
+    function applyBrandContent() {
+      const brand = currentBrand;
+      const hero = brand.heroProfile || brand.hero_profile || {};
+      const copy = brand.copyPack || brand.copy_pack || {};
+      const localizedCopy = brand.localizedCopy || brand.localized_copy || {};
+      document.title = `${brand.name || TENANT_NAME} · ${T('报名', 'Registration')}`;
+      document.getElementById('tenantSlogan').textContent = localized(localizedCopy.hero_subtitle, brand.slogan || hero.subtitle || '');
+      document.getElementById('heroEyebrow').textContent = `${T('快速报名', 'Quick Registration')} · ${hero.eyebrow || brand.categoryLabel || T('工作室', 'Studio')}`;
+      document.getElementById('pageTitle').textContent = localized(localizedCopy.registration_title, (brand.registrationProfile || brand.registration_profile || {}).title || T('告诉我们学员的情况', 'Tell us about the student'));
+      document.getElementById('pageIntro').textContent = localized(localizedCopy.registration_intro, copy.register_intro || copy.registerIntro || T('留下基本信息，工作室会联系你并推荐合适的课程与时间。', 'Leave a few details and the studio will contact you with the right class and time.'));
+      renderFields(brand.registrationProfile || brand.registration_profile || registrationProfile);
+    }
+    async function applyBrand() {
+      const response = await fetch(`/v1/public/${encodeURIComponent(TENANT_SLUG)}/brand`).catch(() => null);
+      if (!response || !response.ok) return;
+      const data = await response.json();
+      const brand = data.brand || {};
+      const visual = brand.visualTheme || brand.visual_theme || {};
+      const primary = visual.accent_color || visual.accentColor || brand.primary_color || brand.primaryColor || '#2563eb';
+      const secondary = visual.secondary_accent_color || visual.secondaryAccentColor || brand.secondary_color || brand.secondaryColor || '#0f172a';
+      document.documentElement.style.setProperty('--brand', primary);
+      document.documentElement.style.setProperty('--brand-2', secondary);
+      if (visual.background_color || visual.backgroundColor) document.documentElement.style.setProperty('--bg', visual.background_color || visual.backgroundColor);
+      if (visual.panel_color || visual.panelColor) document.documentElement.style.setProperty('--surface', visual.panel_color || visual.panelColor);
+      if (visual.text_color || visual.textColor) document.documentElement.style.setProperty('--ink', visual.text_color || visual.textColor);
+      currentBrand = brand;
+      document.getElementById('tenantName').textContent = brand.name || TENANT_NAME;
+      document.getElementById('tenantLogo').src = brand.logo_url || brand.logoUrl || '/logo.png';
+      document.getElementById('tenantContact').textContent = [brand.contact_phone || brand.contactPhone, brand.contact_email || brand.contactEmail, brand.address].filter(Boolean).join(' · ');
+      applyBrandContent();
+    }
+    document.getElementById('registerForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      document.getElementById('error').style.display = 'none';
+      if (!value('firstName')) return showError(T('请填写名字。', 'Please enter a given name.'));
+      if (!value('mobile')) return showError(T('请填写手机号码。', 'Please enter a mobile number.'));
+      if (!document.getElementById('consent').checked) return showError(T('请勾选同意隐私说明。', 'Please agree to the privacy note.'));
+      const button = document.getElementById('submitBtn');
+      button.disabled = true;
+      button.textContent = T('提交中…', 'Submitting...');
+      try {
+        const extra = collectFields();
+        if (value('message')) extra.push(value('message'));
+        const campaign = {};
+        const params = new URLSearchParams(location.search);
+        ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'].forEach((key) => {
+          if (params.get(key)) campaign[key] = params.get(key);
+        });
+        const response = await fetch(`/v1/public/${encodeURIComponent(TENANT_SLUG)}/registrations`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            firstName: value('firstName'),
+            lastName: value('lastName'),
+            mobile: value('mobile'),
+            email: value('email'),
+            message: extra.join(' | '),
+            website: value('website'),
+            source: 'standalone_register',
+            sourcePath: location.pathname,
+            language: currentLanguage,
+            privacyConsent: true,
+            privacyNoticeVersion: '2026-07-12',
+            ...campaign
+          })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success) throw new Error(data.message || data.error || T('提交失败。', 'Submission failed.'));
+        document.getElementById('registerForm').style.display = 'none';
+        document.getElementById('done').style.display = 'block';
+        document.getElementById('done').focus();
+      } catch (err) {
+        showError(err.message || T('提交失败。', 'Submission failed.'));
+      } finally {
+        button.disabled = false;
+        button.textContent = T('提交报名', 'Submit registration');
+      }
+    });
+    document.querySelectorAll('[data-language]').forEach((button) => {
+      button.addEventListener('click', () => {
+        currentLanguage = button.dataset.language === 'en' ? 'en' : 'zh';
+        applyLanguage();
+      });
+    });
+    applyLanguage();
+    applyBrand();
+  </script>
+</body>
+</html>

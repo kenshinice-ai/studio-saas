@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dance Dance Website / Brand Console</title>
+<script src="/assets/ui-common.js"></script>
+  <style>
+    :root { --bg:#f1f5f9; --surface:#ffffff; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0; --brand:#2563eb; --shadow:0 10px 25px rgba(15,23,42,.08),0 4px 10px rgba(15,23,42,.04); --radius:16px; }
+    * { box-sizing:border-box; }
+    body { min-height:100vh; margin:0; display:grid; place-items:center; padding:24px; background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif; -webkit-font-smoothing:antialiased; }
+    .card { width:min(420px,100%); background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:28px; text-align:center; }
+    .mark { width:40px; height:40px; border-radius:8px; background:var(--brand); margin:0 auto 14px; }
+    h1 { margin:0; font-size:20px; line-height:1.25; }
+    p { margin:8px 0 20px; color:var(--muted); font-size:14px; }
+    a { display:inline-flex; min-height:40px; align-items:center; justify-content:center; padding:9px 16px; border-radius:8px; background:var(--brand); color:#fff; font-weight:700; text-decoration:none; box-shadow:0 8px 18px rgba(37,99,235,.18); }
+  </style>
+  <script>
+    localStorage.setItem('studiosaas_tenant_slug', 'dance-dance');
+    window.location.replace('/dance-dance/studio-admin');
+  </script>
+</head>
+<body>
+  <main class="card">
+    <div class="mark" aria-hidden="true"></div>
+    <h1>Dance Dance Website / Brand Console</h1>
+    <p>Opening website and brand settings...</p>
+    <a href="/dance-dance/studio-admin">Open Website / Brand Console</a>
+  </main>
+</body>
+</html>

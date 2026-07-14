@@ -1,0 +1,5 @@
+flask>=2.3,<4
+psycopg[binary]>=3.2,<4
+waitress>=2.1,<4
+pillow>=10,<12
+pillow-heif>=0.16,<2

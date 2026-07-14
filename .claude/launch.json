@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "studiosaas",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "PORT=8899 STUDIOSAAS_DATABASE_URL=postgresql://llmacbookpro@localhost:5432/studiosaas_local_test /Users/llmacbookpro/Documents/studiosaas/.venv/bin/python /Users/llmacbookpro/Documents/studiosaas/backend/server.py"],
+      "port": 8899
+    }
+  ]
+}

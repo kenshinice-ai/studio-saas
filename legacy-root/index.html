@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Studio CMS</title>
+    <script src="/assets/ui-common.js"></script>
+    <link rel="stylesheet" href="/assets/ui-tokens.css">
+    <link rel="icon" href="/icon-192.png">
+    <!-- G6: PWA — 添加到主屏幕 -->
+    <link id="cmsManifest" rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#312e81">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Studio CMS">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <script>
+      /* S1 (v6.6.5): register the SW scoped to this tenant page only, and
+       * unregister historical root-scope registrations so the SW never
+       * intercepts other surfaces. */
+      if ('serviceWorker' in navigator)
+        window.addEventListener('load', () => {
+          const match = location.pathname.match(/^\/([^/]+)\/cms\/?$/);
+          const scope = match ? `/${match[1]}/` : '/';
+          const cleanup = scope === '/' ? Promise.resolve() :
+            navigator.serviceWorker.getRegistrations().then((regs) =>
+              Promise.all(regs.filter((r) => new URL(r.scope).pathname === '/').map((r) => r.unregister()))
+            ).catch(() => {});
+          Promise.resolve(cleanup).then(() =>
+            navigator.serviceWorker.register('/sw.js', { scope }).catch(() => {}));
+        });
+    </script>
+    <script>
+      (() => {
+        const fromPath = location.pathname.match(/^\/([^/]+)(?:\/cms)?\/?$/);
+        const tenantSlug = new URLSearchParams(location.search).get('tenant') || (fromPath && fromPath[1]) || '';
+        if (!tenantSlug) return;
+        window.STUDIOSAAS_TENANT_SLUG = tenantSlug;
+        const setTenantTheme = (brand) => {
+          if (!brand) return;
+          const root = document.documentElement;
+          const primary = brand.primary_color || brand.primaryColor || '#312e81';
+	          const secondary = brand.secondary_color || brand.secondaryColor || '#6366f1';
+	          const logo = brand.logo_url || brand.logoUrl || '';
+	          const slogan = brand.slogan || 'Learn, grow, and feel confident.';
+	          root.style.setProperty('--tenant-primary', primary);
+          root.style.setProperty('--tenant-primary-soft', `${primary}14`);
+          root.style.setProperty('--tenant-primary-border', `${primary}40`);
+          root.style.setProperty('--tenant-secondary', secondary);
+          root.style.setProperty('--tenant-secondary-soft', `${secondary}14`);
+          root.style.setProperty('--tenant-secondary-border', `${secondary}40`);
+		          if (brand.name) document.title = `${brand.name} CMS`;
+		          document.querySelectorAll('.tenant-slogan').forEach((el) => {
+		            el.textContent = slogan;
+		          });
+                  window.dispatchEvent(new CustomEvent('studiosaas:brand', {detail: brand}));
+		          if (logo) {
+            document.querySelectorAll('img[src="/logo.png"], img[src$="/logo.png"]').forEach((img) => {
+              img.src = logo;
+              img.alt = brand.name || img.alt || 'Studio logo';
+            });
+          }
+        };
+        const scheduleTenantTheme = () => {
+          setTenantTheme(window.STUDIOSAAS_BRAND);
+          setTimeout(() => setTenantTheme(window.STUDIOSAAS_BRAND), 300);
+          setTimeout(() => setTenantTheme(window.STUDIOSAAS_BRAND), 1200);
+          setTimeout(() => setTenantTheme(window.STUDIOSAAS_BRAND), 3000);
+        };
+        window.STUDIOSAAS_REGISTER_URL = `${location.origin}/${tenantSlug}/register`;
+        const manifestLink = document.getElementById('cmsManifest');
+        if (manifestLink) manifestLink.href = `/${encodeURIComponent(tenantSlug)}/manifest-cms.json`;
+        window.STUDIOSAAS_TENANT_SLUG = tenantSlug;
+        window.STUDIOSAAS_APPLY_BRAND = setTenantTheme;
+        window.addEventListener('load', scheduleTenantTheme);
+        const originalFetch = window.fetch.bind(window);
+        window.fetch = (input, init) => {
+          const raw = typeof input === 'string' ? input : (input && input.url) || '';
+          const url = new URL(raw, location.origin);
+          let next = input;
+          if (url.origin === location.origin && url.pathname === '/api/data') {
+            next = `/s/${encodeURIComponent(tenantSlug)}/v1/legacy-cms/data`;
+          } else if (url.origin === location.origin && url.pathname === '/api/save') {
+            next = `/s/${encodeURIComponent(tenantSlug)}/v1/legacy-cms/save`;
+          } else if (url.origin === location.origin && url.pathname === '/api/upload') {
+            next = `/s/${encodeURIComponent(tenantSlug)}/v1/legacy-cms/media/upload`;
+          } else if (url.origin === location.origin && url.pathname === '/api/portfolio/upload') {
+            next = `/s/${encodeURIComponent(tenantSlug)}/v1/legacy-cms/portfolio/upload`;
+          } else if (url.origin === location.origin && url.pathname.startsWith('/api/portfolio/') && url.pathname !== '/api/portfolio/token') {
+            const rest = url.pathname.slice('/api/portfolio/'.length);
+            next = `/s/${encodeURIComponent(tenantSlug)}/v1/legacy-cms/portfolio/${rest}${url.search}`;
+          }
+          return originalFetch(next, init);
+        };
+        originalFetch(`/v1/public/${encodeURIComponent(tenantSlug)}/brand`)
+          .then((res) => res.ok ? res.json() : null)
+          .then((data) => {
+            const brand = data && data.brand;
+            window.STUDIOSAAS_BRAND = brand;
+            scheduleTenantTheme();
+          })
+          .catch(() => {});
+      })();
+    </script>
+    <!-- Pinned local vendor scripts: public pilot pages never execute third-party CDN fallbacks. -->
+    <script src="/vendor/tailwindcss.js"></script>
+    <script src="/vendor/react.production.min.js"></script>
+    <script src="/vendor/react-dom.production.min.js"></script>
+    <!-- A3: JSX is precompiled at build time (backend/scripts/build_cms.sh); no in-browser Babel. -->
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+
+        /* ── Fix #4: prevent iOS auto-zoom on inputs (requires font-size ≥ 16px) ── */
+        input, textarea, select { font-size: 16px !important; }
+
+
+        /* ── B6: 深色模式（跟随系统）— 收割自 LetsPaintCMS v5.0.x 两轮收口成品。
+           中性色表面/文字 + 彩色浅底(-50/-100)一并映射为深色同色调，
+           保证任何"彩底 + 文字"组合都有足够对比度。
+           如需临时关闭，把整段删掉即可，不影响其他逻辑。 */
+        @media (prefers-color-scheme: dark) {
+            html, body { background:#0e1016 !important; }
+            body { color:#e5e7eb; }
+            /* 中性表面 */
+            .bg-white { background:#1a1d27 !important; }
+            .bg-gray-50 { background:#20242f !important; }
+            .bg-gray-100 { background:#0e1016 !important; }
+            /* 中性文字 */
+            .text-gray-900, .text-gray-800 { color:#e8eaf0 !important; }
+            .text-gray-700, .text-gray-600 { color:#c3c8d4 !important; }
+            .text-gray-500, .text-gray-400 { color:#8b93a5 !important; }
+            .text-gray-300 { color:#5b6473 !important; }
+            /* 边框 */
+            .border-gray-100, .border-gray-200, .border-gray-300 { border-color:#2c313d !important; }
+            .divide-gray-50 > *, .divide-gray-100 > * { border-color:#252a35 !important; }
+            .hover-row:hover { background:#20242f !important; }
+
+            /* 表单控件：原生白底不是 .bg-white 类，需单独覆盖 */
+            input, textarea, select { background:#1a1d27 !important; color:#e8eaf0 !important; border-color:#2c313d !important; color-scheme: dark; }
+            input::placeholder, textarea::placeholder { color:#6b7280 !important; }
+
+            /* 透明度变体彩色浅底 */
+            .bg-indigo-50\/60 { background:#1e2140 !important; }
+            .bg-amber-50\/60  { background:#382e18 !important; }
+            /* 中性灰按钮/色块底 */
+            .bg-gray-200 { background:#2c313d !important; }
+            .bg-gray-300 { background:#363c4a !important; }
+            .disabled\:bg-gray-300:disabled { background:#2a2f3a !important; }
+            .disabled\:bg-gray-200:disabled { background:#262b35 !important; }
+            /* 浅色渐变横幅（生日提醒）→ 纯深色 */
+            .from-pink-50 { background-image:none !important; background-color:#3a1d28 !important; }
+            .bg-white\/70 { background:rgba(40,45,58,.7) !important; }
+
+            /* hover/active 浅色底统一深色 */
+            .hover\:bg-indigo-50:hover, .active\:bg-indigo-50:active, .active\:bg-indigo-100:active { background:#242a52 !important; }
+            .hover\:bg-gray-50:hover, .active\:bg-gray-50:active, .active\:bg-gray-100:active { background:#262b36 !important; }
+            .hover\:bg-purple-50:hover, .active\:bg-purple-50:active, .active\:bg-purple-100:active { background:#33244f !important; }
+            .active\:bg-green-50:active, .active\:bg-green-100:active { background:#1d3f29 !important; }
+            .active\:bg-emerald-100:active { background:#1c3f30 !important; }
+            .active\:bg-amber-50:active, .active\:bg-amber-100:active, .active\:bg-amber-200:active { background:#463a1f !important; }
+            .active\:bg-orange-100:active { background:#4a3418 !important; }
+            .active\:bg-red-50:active, .active\:bg-red-100:active { background:#4a262c !important; }
+            .active\:bg-pink-50:active, .active\:bg-pink-100:active { background:#4a2438 !important; }
+
+            /* 彩色浅底 → 深色同色调，文字提亮 */
+            .bg-indigo-50  { background:#1e2140 !important; }
+            .bg-indigo-100 { background:#2a2e58 !important; }
+            .bg-pink-50    { background:#3a1d2e !important; }
+            .bg-pink-100   { background:#4a2438 !important; }
+            .bg-rose-50    { background:#3a1d28 !important; }
+            .bg-red-50     { background:#3a1f24 !important; }
+            .bg-red-100    { background:#4a262c !important; }
+            .bg-orange-50  { background:#3a2a1c !important; }
+            .bg-amber-50   { background:#382e18 !important; }
+            .bg-amber-100  { background:#463a1f !important; }
+            .bg-yellow-50  { background:#38341a !important; }
+            .bg-green-50   { background:#16301f !important; }
+            .bg-green-100  { background:#1d3f29 !important; }
+            .bg-emerald-50 { background:#1a2320 !important; }
+            .bg-emerald-100{ background:#1c3f30 !important; }
+            .bg-blue-50    { background:#182a44 !important; }
+            .bg-blue-100   { background:#20375a !important; }
+            .bg-purple-50  { background:#2a1d40 !important; }
+            .bg-purple-100 { background:#382a55 !important; }
+            .bg-teal-50    { background:#153030 !important; }
+            /* 彩色文字提亮 */
+            .text-indigo-900, .text-indigo-800, .text-indigo-700 { color:#a9b4ff !important; }
+            .text-indigo-600, .text-indigo-500, .text-indigo-400 { color:#8b97f0 !important; }
+            .text-pink-700, .text-pink-600, .text-pink-500, .text-pink-400 { color:#f7a8c8 !important; }
+            .text-rose-700, .text-rose-600, .text-rose-500, .text-rose-400 { color:#f7a3ba !important; }
+            .text-red-700, .text-red-600, .text-red-500 { color:#f6a5ad !important; }
+            .text-orange-700, .text-orange-600, .text-orange-500 { color:#f4b483 !important; }
+            .text-amber-800, .text-amber-700, .text-amber-600, .text-amber-500 { color:#efc471 !important; }
+            .text-green-700, .text-green-600, .text-green-500 { color:#8fdca0 !important; }
+            .text-emerald-800, .text-emerald-700, .text-emerald-600 { color:#8ad9b4 !important; }
+            .text-blue-800, .text-blue-700, .text-blue-600, .text-blue-500 { color:#8fb8f0 !important; }
+            .text-purple-800, .text-purple-700, .text-purple-600 { color:#c3a5f2 !important; }
+            /* 彩色边框调暗（含本 fork 特有的 -100 变体） */
+            .border-indigo-100,.border-indigo-200,.border-indigo-300 { border-color:#33386a !important; }
+            .border-pink-100,.border-pink-200 { border-color:#5a2f42 !important; }
+            .border-amber-200,.border-amber-300 { border-color:#544418 !important; }
+            .border-green-200 { border-color:#274d34 !important; }
+            .border-red-100,.border-red-200 { border-color:#5a2f36 !important; }
+            .border-orange-100 { border-color:#54401f !important; }
+            .border-emerald-100,.border-emerald-200 { border-color:#245040 !important; }
+            .border-blue-100 { border-color:#28406a !important; }
+            .border-purple-100 { border-color:#43356a !important; }
+        }
+
+        /* ── Fix #6: touch-action on all interactive elements ── */
+        button, a, [role="button"] { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+
+        /* ── Animations ── */
+        .sp { border:3px solid rgba(255,255,255,.3); border-radius:50%; border-top:3px solid #fff; width:16px; height:16px; animation:spin 1s linear infinite; display:inline-block; vertical-align:middle; }
+        @keyframes spin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+        .anim { animation: fi .2s ease-out; }
+        @keyframes fi { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:translateY(0)} }
+        .toast { animation: ti .2s ease, to_ .3s ease 2.4s forwards; }
+        @keyframes ti   { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes to_  { from{opacity:1} to{opacity:0} }
+
+        /* ── Scrollbar ── */
+        .sl::-webkit-scrollbar { width:4px; }
+        .sl::-webkit-scrollbar-thumb { background:#c7d2fe; border-radius:2px; }
+
+        /* ── PIN ── */
+        .pin-dot { width:14px; height:14px; border-radius:50%; background:#e5e7eb; transition:background .12s; }
+        .pin-dot.on { background:#6366f1; }
+        /* Fix ⑦: override global 16px rule with !important so PIN digits stay large */
+        .pin-input { width:56px; height:68px; font-size:28px !important; text-align:center; border:2px solid #e5e7eb; border-radius:14px; outline:none; transition:border-color .15s; background:transparent; }
+        .pin-input:focus { border-color:#6366f1; box-shadow:0 0 0 3px rgba(99,102,241,.15); }
+
+        /* ── Fix #7: safe modal scrolling on iPad ── */
+        .modal-scroll { overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
+
+        /* ── Mobile layout: accounts for top bar + bottom nav + iOS safe areas ── */
+        .toast-bottom { bottom: calc(env(safe-area-inset-bottom, 0px) + 24px); }
+        @media (max-width: 767px) {
+            .mobile-top-bar { height: calc(56px + env(safe-area-inset-top, 0px)); padding-top: env(safe-area-inset-top, 0px); }
+            .mobile-main-top { padding-top: calc(58px + env(safe-area-inset-top, 0px)) !important; }
+            .mobile-pb { padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)) !important; }
+            .toast-bottom { bottom: calc(env(safe-area-inset-bottom, 0px) + 88px); }
+        }
+
+        /* ── Touch-friendly table rows ── */
+        @media (hover:none) { .hover-row:active { background:#f9fafb; } }
+
+        /* ── B1: Portfolio thumbnail actions — always visible on touch screens ── */
+        @media (hover:none) { .port-actions { display:flex !important; } }
+        :root {
+            --tenant-primary:#312e81;
+            --tenant-primary-soft:#eef2ff;
+            --tenant-primary-border:#c7d2fe;
+            --tenant-secondary:#6366f1;
+            --tenant-secondary-soft:#f5f3ff;
+            --tenant-secondary-border:#ddd6fe;
+            --surface:#ffffff;
+            --ink:#0f172a;
+            --muted:#64748b;
+            --line:#e2e8f0;
+            --shadow-sm:0 1px 2px rgba(0,0,0,.04);
+            --shadow-md:0 4px 12px rgba(0,0,0,.07), 0 1px 3px rgba(0,0,0,.05);
+            --shadow-lg:0 10px 25px rgba(0,0,0,.08), 0 4px 10px rgba(0,0,0,.04);
+            --radius:8px;
+            --radius-xl:16px;
+        }
+        body { background:#f1f5f9 !important; color:var(--ink); -webkit-font-smoothing:antialiased; }
+        .shadow-sm { box-shadow:var(--shadow-sm) !important; }
+        .shadow-md { box-shadow:var(--shadow-md) !important; }
+        .shadow-2xl { box-shadow:var(--shadow-lg) !important; }
+        .rounded-xl { border-radius:var(--radius) !important; }
+        .rounded-2xl, .rounded-3xl { border-radius:var(--radius-xl) !important; }
+        input, textarea, select {
+            background:var(--surface) !important;
+            border-color:var(--line) !important;
+            border-radius:var(--radius) !important;
+            color:var(--ink);
+            transition:border-color .15s ease, box-shadow .15s ease;
+        }
+        input:focus, textarea:focus, select:focus {
+            border-color:var(--tenant-primary) !important;
+            box-shadow:0 0 0 3px var(--tenant-primary-soft) !important;
+        }
+        button, a, [role="button"] {
+            border-radius:var(--radius) !important;
+            transition:transform .15s ease, box-shadow .15s ease, background-color .15s ease;
+        }
+        button:hover, a:hover, [role="button"]:hover { transform:translateY(-1px); box-shadow:var(--shadow-sm); }
+        button:disabled { opacity:.55; cursor:not-allowed; transform:none; box-shadow:none; }
+        .toast { box-shadow:var(--shadow-lg) !important; border-radius:var(--radius-xl) !important; }
+        .pin-input { border-radius:var(--radius) !important; }
+        [class*="bg-indigo-600"], [class*="bg-indigo-700"], .tab-active { background-color:var(--tenant-primary) !important; }
+        [class*="bg-indigo-50"], [class*="bg-indigo-100"] { background-color:var(--tenant-primary-soft) !important; }
+        [class*="text-indigo-400"], [class*="text-indigo-500"], [class*="text-indigo-600"], [class*="text-indigo-700"], [class*="text-indigo-800"] { color:var(--tenant-primary) !important; }
+        [class*="border-indigo-"] { border-color:var(--tenant-primary-border) !important; }
+        [class*="from-indigo-"] { --tw-gradient-from:var(--tenant-primary) var(--tw-gradient-from-position) !important; --tw-gradient-to:rgb(255 255 255 / 0) var(--tw-gradient-to-position) !important; --tw-gradient-stops:var(--tw-gradient-from), var(--tw-gradient-to) !important; }
+        [class*="to-indigo-"], [class*="to-purple-"] { --tw-gradient-to:var(--tenant-secondary) var(--tw-gradient-to-position) !important; }
+        [class*="bg-purple-600"], [class*="bg-purple-700"] { background-color:var(--tenant-secondary) !important; }
+        [class*="bg-purple-50"], [class*="bg-purple-100"] { background-color:var(--tenant-secondary-soft) !important; }
+        [class*="text-purple-400"], [class*="text-purple-500"], [class*="text-purple-600"], [class*="text-purple-700"], [class*="text-purple-800"] { color:var(--tenant-secondary) !important; }
+        [class*="border-purple-"] { border-color:var(--tenant-secondary-border) !important; }
+        /* ── M6: Thumbnail active feedback on touch ── */
+        .port-thumb { touch-action:manipulation; }
+        .port-thumb:active { opacity:.82; transform:scale(.96); transition:opacity .08s,transform .08s; }
+        /* ── M7: Image loading skeleton ── */
+        .img-skel { background:linear-gradient(90deg,#e5e7eb 25%,#f3f4f6 50%,#e5e7eb 75%); background-size:200% 100%; animation:skel-shine 1.4s infinite; }
+        @keyframes skel-shine { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+        /* ── Print styles (export feature) ── */
+        @media print {
+            aside, .no-print { display:none !important; }
+            main { padding:0 !important; overflow:visible !important; }
+            body { background:white !important; }
+            .print-card { break-inside:avoid; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+<div id="root"></div>
+<script src="/assets/cms-app.js"></script>
+</body>
+</html>
