@@ -1877,6 +1877,8 @@
                 <button type="button" class="preview-tab" data-preview-mode="register">Quick Registration</button>
               </div>
               <div class="device-tabs">
+                <button type="button" class="device-tab active" data-preview-language="zh">中文</button>
+                <button type="button" class="device-tab" data-preview-language="en">EN</button>
                 <button type="button" class="device-tab active" data-preview-device="desktop">Desktop</button>
                 <button type="button" class="device-tab" data-preview-device="mobile">Mobile</button>
               </div>
@@ -1990,52 +1992,40 @@
     const $ = (id) => document.getElementById(id);
     const text = (value) => value === null || value === undefined || value === '' ? '-' : String(value);
     const esc = window.StudioSaaS.esc;
-    const dateOnly = (value) => value ? String(value).slice(0, 10) : '';
-    const money = (value) => `$${Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
-    const audFromCents = (value) => Number(value || 0) / 100;
     const currentTenantSlug = () => $('tenantSlug').value.trim().toLowerCase();
     const pathTenantSlug = () => {
       const match = location.pathname.match(/^\/([^/]+)\/studio-admin\/?$/);
       return match ? decodeURIComponent(match[1]).toLowerCase() : '';
     };
-    const firstNameFrom = (name) => String(name || '').trim().split(/\s+/)[0] || String(name || '').trim();
-    const studentName = (s) => s.display_name || s.displayName || s.name || [s.first_name, s.last_name].filter(Boolean).join(' ') || '';
-    const studentMobile = (s) => s.mobile || s.contact_phone || s.phone || '';
-    const studentEmail = (s) => s.email || s.contact_email || '';
-    const studentStatus = (s) => s.status || 'active';
-    const isActiveItem = (item) => item.is_active !== false && item.status !== 'inactive' && item.status !== 'archived';
-    const itemStatus = (item) => isActiveItem(item) ? 'active' : 'inactive';
 
-    const INDUSTRY_PRESETS = {
-      art: { label: 'Art', slogan: 'You deserve to enjoy life more.', portalLabel: 'Student Art Portal', registerIntro: 'Tell us about the student and their creative goals.' },
-      music: { label: 'Music', slogan: 'Every student deserves a rhythm of their own.', portalLabel: 'Music Student Portal', registerIntro: 'Tell us about the student and their music goals.' },
-      math: { label: 'Math', slogan: 'Build confidence through clear thinking.', portalLabel: 'Math Learning Portal', registerIntro: 'Tell us about the learner and the topics they need help with.' },
-      dance: { label: 'Dance', slogan: 'Move with confidence, rhythm, and joy.', portalLabel: 'Dance Student Portal', registerIntro: 'Tell us about the dancer and their level.' },
-      language: { label: 'Language', slogan: 'Grow a voice for the world.', portalLabel: 'Language Student Portal', registerIntro: 'Tell us about the learner and their language goals.' },
-      sports: { label: 'Sports', slogan: 'Train with purpose and grow with every session.', portalLabel: 'Sports Student Portal', registerIntro: 'Tell us about the athlete and their training goals.' },
-      game: { label: 'Game', slogan: 'Play, think, and level up with purpose.', portalLabel: 'Game Student Portal', registerIntro: 'Tell us about the player and their learning goals.' },
-      general: { label: 'General', slogan: 'Learn, grow, and feel confident.', portalLabel: 'Student Portal', registerIntro: 'Tell us about the student.' }
+    let INDUSTRY_PRESETS = {
+      general: {
+        label: 'General', labelZh: '通用', slogan: 'A learning path that fits every student.',
+        portalLabel: 'Student Portal', registerIntro: 'Tell us about the student and their goals.',
+        registerIntroZh: '告诉我们学员的兴趣、经验与希望达成的目标。',
+        registrationTitle: 'Student Preferences', registrationTitleZh: '告诉我们学员的兴趣与学习目标',
+        localizedCopy: {}, visualTheme: {}, registrationProfile: { title: 'Student Preferences', fields: [] }
+      }
     };
+
+    async function loadIndustryPresets() {
+      try {
+        const response = await fetch('/v1/industry-presets', { credentials: 'same-origin' });
+        if (!response.ok) throw new Error(`Preset request failed (${response.status})`);
+        const data = await response.json();
+        if (data.presets && Object.keys(data.presets).length) INDUSTRY_PRESETS = data.presets;
+      } catch (error) {
+        console.warn('Using the generic industry preset.', error);
+      }
+    }
 
     let tenant = null;
     let plans = [];
-    let students = [];
-    let studentTotal = 0;
-    let studentPage = 0;
-    const STUDENT_PAGE_SIZE = 50;
-    let courses = [];
-    let packages = [];
-    let registrations = [];
-    let portfolioItems = [];
-    let attendanceItems = [];
-    let editingStudentId = '';
-    let editingCourseCode = '';
-    let editingPackageCode = '';
-    let creditStudentId = '';
     let currentUser = null;
     let settingsDirty = false;
     let previewMode = 'portal';
     let previewDevice = 'desktop';
+    let previewLanguage = 'zh';
     let brandVersions = [];
 
     function setSettingsDirty(isDirty = true) {
@@ -2058,120 +2048,6 @@
       toast.textContent = message;
       $('toastContainer').appendChild(toast);
       setTimeout(() => toast.remove(), 4200);
-    }
-
-    function pill(value) {
-      const normalized = String(value || '').toLowerCase();
-      const icons = { active: '●', trial: '●', inactive: '○', archived: '○', pending: '◌', contacted: '◌', approved: '●', rejected: '×', duplicate: '!' };
-      const cls = normalized === 'active' || normalized === 'approved' || normalized === 'trial' ? 'pill active' :
-        normalized === 'pending' ? 'pill pending' : `pill ${normalized}`;
-      return `<span class="${cls}">${icons[normalized] || ''} ${esc(text(value))}</span>`;
-    }
-
-    function emptyRow(colspan, message) {
-      return `<tr><td colspan="${colspan}"><div class="empty-state">${esc(message)}</div></td></tr>`;
-    }
-
-    function appendEmptyRow(tbody, colspan, message) {
-      const row = document.createElement('tr');
-      const cell = document.createElement('td');
-      const empty = document.createElement('div');
-      cell.colSpan = colspan;
-      empty.className = 'empty-state';
-      empty.textContent = message;
-      cell.appendChild(empty);
-      row.appendChild(cell);
-      tbody.appendChild(row);
-    }
-
-    function addCell(row, textValue = '') {
-      const cell = document.createElement('td');
-      if (textValue !== '') cell.textContent = String(textValue);
-      row.appendChild(cell);
-      return cell;
-    }
-
-    function addStrongMuted(cell, strongValue, mutedValue = '') {
-      const strong = document.createElement('strong');
-      strong.textContent = text(strongValue);
-      cell.appendChild(strong);
-      if (mutedValue !== '') {
-        cell.appendChild(document.createElement('br'));
-        const muted = document.createElement('span');
-        muted.className = 'text-muted';
-        muted.textContent = text(mutedValue);
-        cell.appendChild(muted);
-      }
-      return cell;
-    }
-
-    function appendPill(cell, value) {
-      const normalized = String(value || '').toLowerCase();
-      const icons = { active: '●', trial: '●', inactive: '○', archived: '○', pending: '◌', contacted: '◌', approved: '●', rejected: '×', duplicate: '!', refunded: '↺' };
-      const span = document.createElement('span');
-      span.className = normalized === 'active' || normalized === 'approved' || normalized === 'trial'
-        ? 'pill active'
-        : normalized === 'pending'
-          ? 'pill pending'
-          : `pill ${normalized}`;
-      span.textContent = `${icons[normalized] || ''} ${text(value)}`.trim();
-      cell.appendChild(span);
-      return span;
-    }
-
-    function addActionButton(container, label, className, handler) {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = className;
-      button.textContent = label;
-      button.addEventListener('click', handler);
-      container.appendChild(button);
-      return button;
-    }
-
-    function addOption(select, value, label) {
-      const option = document.createElement('option');
-      option.value = text(value);
-      option.textContent = label;
-      select.appendChild(option);
-      return option;
-    }
-
-    function safeImageUrl(value) {
-      const raw = String(value || '').trim();
-      if (!raw) return '';
-      if (raw.startsWith('/')) return raw;
-      try {
-        const parsed = new URL(raw, window.location.origin);
-        return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed.href : '';
-      } catch {
-        return '';
-      }
-    }
-
-    function todayIso() {
-      return new Date().toISOString().slice(0, 10);
-    }
-
-    function lowBalanceStudents() {
-      return students.filter((s) => Number(s.balance || 0) <= Number(s.low_balance_threshold || 2));
-    }
-
-    function orderSectionsForDailyWorkflow() {
-      const container = $('adminContent');
-      [
-        'section-settings',
-        'section-public-surfaces',
-        'section-students',
-        'section-registrations',
-        'section-attendance',
-        'section-courses',
-        'section-packages',
-        'section-portfolio'
-      ].forEach((id) => {
-        const section = $(id);
-        if (section) container.appendChild(section);
-      });
     }
 
     function tenantSurfaceUrl(surface) {
@@ -2409,74 +2285,6 @@
       });
     })();
 
-    async function openShareLinksModal(studentId, name) {
-      const bodyHtml = `
-        <p class="text-muted" style="margin:0 0 12px;font-size:13px;">Share <strong>${esc(name)}</strong>'s portfolio with their family via a read-only link. Links expire automatically and can be revoked any time.</p>
-        <div class="action-row" style="margin-bottom:12px;">
-          <button id="m_shareGenerateBtn" type="button" class="btn-primary btn-sm">Generate 30-day link</button>
-          <input id="m_shareLinkOut" readonly placeholder="New link appears here" style="flex:1;">
-          <button id="m_shareCopyBtn" type="button" class="btn-secondary btn-sm" style="display:none;">Copy</button>
-        </div>
-        <div id="m_shareLinksList" class="text-muted" style="font-size:13px;">Loading existing links…</div>`;
-      openModal(`Share Portfolio — ${name}`, bodyHtml, '<button onclick="closeModal()" class="btn-secondary">Close</button>');
-      $('m_shareGenerateBtn').addEventListener('click', async () => {
-        await runUiAction('m_shareGenerateBtn', 'Generating…', async () => {
-          const data = await api(`/students/${studentId}/share-links`, { method: 'POST', body: JSON.stringify({ days: 30 }) });
-          $('m_shareLinkOut').value = location.origin + data.url;
-          $('m_shareCopyBtn').style.display = '';
-          showToast('Share link created (expires in 30 days).');
-          await renderShareLinks(studentId);
-        });
-      });
-      $('m_shareCopyBtn').addEventListener('click', async () => {
-        try { await navigator.clipboard.writeText($('m_shareLinkOut').value); showToast('Link copied.'); }
-        catch (err) { $('m_shareLinkOut').select(); document.execCommand('copy'); showToast('Link copied.'); }
-      });
-      await renderShareLinks(studentId);
-    }
-
-    async function renderShareLinks(studentId) {
-      const list = $('m_shareLinksList');
-      if (!list) return;
-      try {
-        const data = await api(`/students/${studentId}/share-links`);
-        const links = data.shareLinks || [];
-        list.replaceChildren();
-        if (!links.length) { list.textContent = 'No links yet.'; return; }
-        links.forEach((link) => {
-          const row = document.createElement('div');
-          row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--border,#E2E8F0);';
-          const label = document.createElement('span');
-          label.style.flex = '1';
-          const expires = new Date(link.expires_at).toLocaleDateString();
-          label.textContent = link.revoked_at ? `Revoked (was until ${expires})`
-            : link.active ? `Active — expires ${expires}` : `Expired ${expires}`;
-          row.appendChild(label);
-          if (link.active) {
-            const btn = document.createElement('button');
-            btn.className = 'btn-danger btn-sm';
-            btn.type = 'button';
-            btn.textContent = 'Revoke';
-            btn.addEventListener('click', async () => {
-              await api(`/share-links/${link.id}/revoke`, { method: 'POST' });
-              showToast('Link revoked.');
-              await renderShareLinks(studentId);
-            });
-            row.appendChild(btn);
-          }
-          list.appendChild(row);
-        });
-      } catch (err) {
-        list.textContent = 'Could not load links.';
-      }
-    }
-
-    function downloadExport(kind) {
-      const slug = currentTenantSlug();
-      if (!slug) { showToast('Tenant slug is required.', 'error'); return; }
-      window.open(`/s/${encodeURIComponent(slug)}/v1/export/${kind}.csv`, '_blank');
-    }
-
     async function logoutStudioAdmin() {
       await authApi('/auth/logout', { method: 'POST' }).catch(() => {});
       setAuthState(null);
@@ -2524,65 +2332,8 @@
     }
 
     function defaultRegistrationProfile(category) {
-      const profileByCategory = {
-        art: {
-          title: 'Creative Preferences',
-          fields: [
-            { key: 'artStyle', label: 'Preferred style', placeholder: 'Watercolour, sketching, acrylic', type: 'text' },
-            { key: 'goals', label: 'Creative goals', placeholder: 'Relax, build technique, portfolio prep', type: 'text' }
-          ]
-        },
-        music: {
-          title: 'Music Preferences',
-          fields: [
-            { key: 'instrument', label: 'Instrument', placeholder: 'Piano, guitar, voice', type: 'text' },
-            { key: 'level', label: 'Current level', placeholder: 'Beginner, AMEB grade, self-taught', type: 'text' }
-          ]
-        },
-        math: {
-          title: 'Learning Needs',
-          fields: [
-            { key: 'subject', label: 'Subject', placeholder: 'Maths, English, science', type: 'text' },
-            { key: 'yearLevel', label: 'Year level', placeholder: 'Year 4, Year 10, VCE', type: 'text' }
-          ]
-        },
-        dance: {
-          title: 'Dance Preferences',
-          fields: [
-            { key: 'style', label: 'Dance style', placeholder: 'Ballet, jazz, hip hop', type: 'text' },
-            { key: 'experience', label: 'Experience', placeholder: 'New starter, 2 years, competition', type: 'text' }
-          ]
-        },
-        language: {
-          title: 'Language Goals',
-          fields: [
-            { key: 'language', label: 'Language', placeholder: 'English, Mandarin, Japanese, French', type: 'text' },
-            { key: 'level', label: 'Current level', placeholder: 'Beginner, conversational, exam prep', type: 'text' }
-          ]
-        },
-        sports: {
-          title: 'Training Goals',
-          fields: [
-            { key: 'sport', label: 'Sport', placeholder: 'Tennis, swimming, basketball, soccer', type: 'text' },
-            { key: 'level', label: 'Current level', placeholder: 'Beginner, club, competition', type: 'text' }
-          ]
-        },
-        game: {
-          title: 'Game Learning Goals',
-          fields: [
-            { key: 'gameType', label: 'Game type', placeholder: 'Roblox, Minecraft, chess, coding games', type: 'text' },
-            { key: 'goals', label: 'Learning goals', placeholder: 'Strategy, coding, teamwork, confidence', type: 'text' }
-          ]
-        },
-        general: {
-          title: 'Student Preferences',
-          fields: [
-            { key: 'goals', label: 'Goals', placeholder: 'What would the student like to achieve?', type: 'text' },
-            { key: 'experience', label: 'Experience', placeholder: 'Tell us about previous experience', type: 'text' }
-          ]
-        }
-      };
-      return JSON.parse(JSON.stringify(profileByCategory[category] || profileByCategory.general));
+      const preset = INDUSTRY_PRESETS[category] || INDUSTRY_PRESETS.general;
+      return JSON.parse(JSON.stringify(preset.registrationProfile || INDUSTRY_PRESETS.general.registrationProfile));
     }
 
     function boolValue(value, fallback = true) {
@@ -2641,15 +2392,12 @@
       ];
     }
 
-    function defaultVisualTheme() {
+    function defaultVisualTheme(category = $('settingCategory')?.value || 'general') {
+      const preset = INDUSTRY_PRESETS[category] || INDUSTRY_PRESETS.general;
       return {
-        background_color: '#F4F0E8',
-        panel_color: '#FBF9F4',
-        text_color: '#23211D',
-        accent_color: $('settingPrimaryColor')?.value || '#2563eb',
-        secondary_accent_color: $('settingSecondaryColor')?.value || '#0f172a',
-        button_style: 'soft',
-        font_mood: 'serif'
+        ...(preset.visualTheme || {}),
+        accent_color: $('settingPrimaryColor')?.value || preset.visualTheme?.accent_color || '#1E40AF',
+        secondary_accent_color: $('settingSecondaryColor')?.value || preset.visualTheme?.secondary_accent_color || '#0F766E'
       };
     }
 
@@ -2693,21 +2441,22 @@
         preview.classList.toggle('mode-portal', previewMode === 'portal');
         preview.classList.toggle('mode-register', previewMode === 'register');
       }
-      $('themePreviewTitle').textContent = $('settingHeroTitle')?.value || `${$('settingName').value || 'Studio'} Theme`;
+      const localizedValue = (zhId, enId, fallback) => $(previewLanguage === 'zh' ? zhId : enId)?.value || fallback;
+      $('themePreviewTitle').textContent = localizedValue('settingHeroTitle', 'settingHeroTitleEn', `${$('settingName').value || 'Studio'} Theme`);
       $('themePreviewSlug').textContent = currentTenantSlug() || 'tenant';
       const welcomeVisible = $('settingShowWelcome').value !== 'false';
       $('themePreviewWelcome').textContent = welcomeVisible
-        ? ($('settingHeroSubtitle')?.value || $('settingWelcome').value || $('settingSlogan').value || $('settingRegisterIntro').value || 'Welcome message appears on CMS and Register when enabled.')
-        : 'Welcome message is hidden on CMS/Register.';
+        ? localizedValue('settingHeroSubtitle', 'settingHeroSubtitleEn', $('settingWelcome').value || $('settingSlogan').value || 'Welcome')
+        : (previewLanguage === 'zh' ? '欢迎文案已隐藏。' : 'Welcome message is hidden.');
       $('previewName').textContent = $('settingName').value || 'Studio';
       $('previewContact').textContent = [$('settingPhone').value, $('settingEmail').value, $('settingAddress').value].filter(Boolean).join(' · ') || 'Contact details';
       $('logoPreview').src = $('settingLogoUrl').value || '/logo.png';
       $('previewHeroEyebrow').textContent = $('settingHeroEyebrow')?.value || $('settingCategory')?.selectedOptions?.[0]?.textContent || 'Studio';
-      $('previewPrimaryCta').textContent = $('settingPrimaryCta')?.value || 'Book a Trial';
-      $('previewSecondaryCta').textContent = $('settingSecondaryCta')?.value || 'Explore Courses';
+      $('previewPrimaryCta').textContent = localizedValue('settingPrimaryCta', 'settingPrimaryCtaEn', previewLanguage === 'zh' ? '预约体验' : 'Book a Trial');
+      $('previewSecondaryCta').textContent = localizedValue('settingSecondaryCta', 'settingSecondaryCtaEn', previewLanguage === 'zh' ? '查看课程' : 'Explore Courses');
       $('previewRegisterEyebrow').textContent = $('settingHeroEyebrow')?.value || 'Registration';
-      $('previewRegisterTitle').textContent = $('settingRegistrationTitle')?.value || 'Quick Registration';
-      $('previewRegisterIntro').textContent = $('settingRegisterIntro')?.value || 'Tell us about the student and their goals.';
+      $('previewRegisterTitle').textContent = localizedValue('settingRegistrationTitle', 'settingRegistrationTitleEn', previewLanguage === 'zh' ? '快速报名' : 'Quick Registration');
+      $('previewRegisterIntro').textContent = localizedValue('settingRegisterIntro', 'settingRegisterIntroEn', previewLanguage === 'zh' ? '告诉我们学员的兴趣与目标。' : 'Tell us about the student and their goals.');
       renderPreviewSections();
       renderPreviewRegistrationFields();
       const issues = [];
@@ -2747,7 +2496,7 @@
       if (!box) return;
       const profile = collectRegistrationProfile();
       box.innerHTML = profile.fields.slice(0, 5).map((field) => `
-        <div class="preview-field">${esc(field.label || field.key || 'Question')}${field.required ? ' *' : ''}</div>
+        <div class="preview-field">${esc((previewLanguage === 'zh' ? field.label_zh : field.label_en) || field.label || field.key || 'Question')}${field.required ? ' *' : ''}</div>
       `).join('');
     }
 
@@ -2757,13 +2506,21 @@
       $('registrationFieldsEditor').innerHTML = fields.map((field, index) => `
         <div class="question-card" data-registration-card="${index}">
           <div class="form-group">
-            <label>Label</label>
-            <input data-reg-label="${index}" value="${esc(field.label || field.key || 'Field')}">
+            <label>Label · English</label>
+            <input data-reg-label="${index}" value="${esc(field.label_en || field.label || field.key || 'Field')}">
             <input type="hidden" data-reg-key="${index}" value="${esc(field.key || `field${index + 1}`)}">
           </div>
           <div class="form-group">
-            <label>Placeholder</label>
-            <input data-reg-placeholder="${index}" value="${esc(field.placeholder || '')}">
+            <label>Label · 中文</label>
+            <input data-reg-label-zh="${index}" value="${esc(field.label_zh || field.label || field.key || '问题')}">
+          </div>
+          <div class="form-group">
+            <label>Placeholder · English</label>
+            <input data-reg-placeholder="${index}" value="${esc(field.placeholder_en || field.placeholder || '')}">
+          </div>
+          <div class="form-group">
+            <label>Placeholder · 中文</label>
+            <input data-reg-placeholder-zh="${index}" value="${esc(field.placeholder_zh || field.placeholder || '')}">
           </div>
           <div class="form-group">
             <label>Type</label>
@@ -2790,15 +2547,21 @@
       $('registrationFieldsEditor').querySelectorAll('[data-reg-label]').forEach((input, index) => {
         const selectorKey = input.getAttribute('data-reg-label') || String(index);
         const label = input.value.trim();
+        const labelZh = $('registrationFieldsEditor').querySelector(`[data-reg-label-zh="${selectorKey}"]`)?.value.trim() || label;
         const key = $('registrationFieldsEditor').querySelector(`[data-reg-key="${selectorKey}"]`)?.value || `field${index + 1}`;
         const placeholder = $('registrationFieldsEditor').querySelector(`[data-reg-placeholder="${selectorKey}"]`)?.value || '';
+        const placeholderZh = $('registrationFieldsEditor').querySelector(`[data-reg-placeholder-zh="${selectorKey}"]`)?.value || placeholder;
         const type = $('registrationFieldsEditor').querySelector(`[data-reg-type="${selectorKey}"]`)?.value || 'text';
         const required = $('registrationFieldsEditor').querySelector(`[data-reg-required="${selectorKey}"]`)?.value === 'true';
         const options = ($('registrationFieldsEditor').querySelector(`[data-reg-options="${selectorKey}"]`)?.value || '')
           .split(',')
           .map((item) => item.trim())
           .filter(Boolean);
-        if (label) fields.push({ key, label, placeholder, type, required, options });
+        if (label) fields.push({
+          key, label, label_en: label, label_zh: labelZh,
+          placeholder, placeholder_en: placeholder, placeholder_zh: placeholderZh,
+          type, required, options
+        });
       });
       return {
         title: $('settingRegistrationTitle').value.trim() || fallback.title,
@@ -2915,6 +2678,12 @@
       updateThemePreview();
     }
 
+    function switchPreviewLanguage(language) {
+      previewLanguage = language === 'en' ? 'en' : 'zh';
+      document.querySelectorAll('[data-preview-language]').forEach((button) => button.classList.toggle('active', button.dataset.previewLanguage === previewLanguage));
+      updateThemePreview();
+    }
+
     function fillSettings() {
       const t = tenant || {};
       const category = t.category || t.settings?.category || 'general';
@@ -2922,7 +2691,7 @@
       const hero = t.hero_profile || t.heroProfile || defaultHeroProfile(category, t.name);
       const website = t.website_profile || t.websiteProfile || defaultWebsiteProfile();
       const principal = t.principal_profile || t.principalProfile || defaultPrincipalProfile(t.name);
-      const visual = t.visual_theme || t.visualTheme || defaultVisualTheme();
+      const visual = t.visual_theme || t.visualTheme || defaultVisualTheme(category);
       const localized = t.localized_copy || t.localizedCopy || {};
       $('studioName').textContent = t.name || 'Studio Admin';
       $('studioMeta').textContent = t.slug ? `${t.slug} · ${preset.label} website and brand console` : 'Website and brand console';
@@ -2954,11 +2723,11 @@
       $('settingAddress').value = t.address || '';
       $('settingWelcome').value = t.welcome_message || t.welcomeMessage || '';
       $('settingPortalLabel').value = t.copy_pack?.portal_label || t.copyPack?.portalLabel || preset.portalLabel;
-      $('settingRegisterIntro').value = localized.registration_intro?.zh || t.copy_pack?.register_intro || t.copyPack?.registerIntro || preset.registerIntro;
+      $('settingRegisterIntro').value = localized.registration_intro?.zh || preset.registerIntroZh || t.copy_pack?.register_intro || t.copyPack?.registerIntro || preset.registerIntro;
       $('settingRegisterIntroEn').value = localized.registration_intro?.en || t.copy_pack?.register_intro || t.copyPack?.registerIntro || preset.registerIntro;
       const profile = t.registration_profile || t.registrationProfile || defaultRegistrationProfile(category);
-      $('settingRegistrationTitle').value = localized.registration_title?.zh || profile.title || '学员报名';
-      $('settingRegistrationTitleEn').value = localized.registration_title?.en || profile.title || 'Quick Registration';
+      $('settingRegistrationTitle').value = localized.registration_title?.zh || preset.registrationTitleZh || profile.title || '学员报名';
+      $('settingRegistrationTitleEn').value = localized.registration_title?.en || preset.registrationTitle || profile.title || 'Quick Registration';
       fillRegistrationFields(profile);
       $('settingHeroEyebrow').value = hero.eyebrow || preset.label;
       $('settingHeroTitle').value = localized.hero_title?.zh || hero.title || t.name || '';
@@ -3073,14 +2842,77 @@
     function compactBrandSnapshot(brand = {}) {
       const hero = brand.heroProfile || brand.hero_profile || {};
       const profile = brand.registrationProfile || brand.registration_profile || {};
+      const localized = brand.localizedCopy || brand.localized_copy || {};
+      const visual = brand.visualTheme || brand.visual_theme || {};
+      const website = brand.websiteProfile || brand.website_profile || {};
+      const principal = brand.principalProfile || brand.principal_profile || {};
+      const copy = brand.copyPack || brand.copy_pack || {};
+      const faq = brand.faqItems || brand.faq_items || [];
+      const localizedPair = (snakeKey, camelKey) => localized[snakeKey] || localized[camelKey] || {};
+      const normalizedFields = (profile.fields || []).map((field) => ({
+        key: text(field.key),
+        label_en: text(field.label_en || field.labelEn || field.label),
+        label_zh: text(field.label_zh || field.labelZh || field.label),
+        placeholder_en: text(field.placeholder_en || field.placeholderEn || field.placeholder),
+        placeholder_zh: text(field.placeholder_zh || field.placeholderZh || field.placeholder),
+        type: text(field.type || 'text'),
+        required: Boolean(field.required),
+        options: field.options || []
+      }));
       return {
         name: text(brand.name),
         logoUrl: text(brand.logoUrl || brand.logo_url),
         primaryColor: text(brand.primaryColor || brand.primary_color).toLowerCase(),
         secondaryColor: text(brand.secondaryColor || brand.secondary_color).toLowerCase(),
+        contactPhone: text(brand.contactPhone || brand.contact_phone),
+        contactEmail: text(brand.contactEmail || brand.contact_email).toLowerCase(),
+        address: text(brand.address),
+        category: text(brand.category),
         slogan: text(brand.slogan),
         heroTitle: text(hero.title),
-        registerTitle: text(profile.title)
+        registerTitle: text(profile.title),
+        portalLabel: text(copy.portal_label || copy.portalLabel),
+        registerIntro: text(copy.register_intro || copy.registerIntro),
+        registrationFields: JSON.stringify(normalizedFields),
+        heroTitleZh: text(localizedPair('hero_title', 'heroTitle').zh),
+        heroTitleEn: text(localizedPair('hero_title', 'heroTitle').en),
+        heroSubtitleZh: text(localizedPair('hero_subtitle', 'heroSubtitle').zh),
+        heroSubtitleEn: text(localizedPair('hero_subtitle', 'heroSubtitle').en),
+        primaryCtaZh: text(localizedPair('primary_cta', 'primaryCta').zh),
+        primaryCtaEn: text(localizedPair('primary_cta', 'primaryCta').en),
+        secondaryCtaZh: text(localizedPair('secondary_cta', 'secondaryCta').zh),
+        secondaryCtaEn: text(localizedPair('secondary_cta', 'secondaryCta').en),
+        registrationTitleZh: text(localizedPair('registration_title', 'registrationTitle').zh),
+        registrationTitleEn: text(localizedPair('registration_title', 'registrationTitle').en),
+        registrationIntroZh: text(localizedPair('registration_intro', 'registrationIntro').zh),
+        registrationIntroEn: text(localizedPair('registration_intro', 'registrationIntro').en),
+        heroImageUrl: text(hero.hero_image_url || hero.heroImageUrl),
+        heroStyle: text(hero.background_style || hero.backgroundStyle),
+        showStudentLogin: String(Boolean(hero.show_student_login ?? hero.showStudentLogin)),
+        websiteProfile: JSON.stringify({
+          showPrincipal: Boolean(website.show_principal ?? website.showPrincipal),
+          showCourses: Boolean(website.show_courses ?? website.showCourses),
+          showGallery: Boolean(website.show_gallery ?? website.showGallery),
+          showFaq: Boolean(website.show_faq ?? website.showFaq),
+          showContact: Boolean(website.show_contact ?? website.showContact),
+          showStudentArea: Boolean(website.show_student_area ?? website.showStudentArea),
+          coursesLabel: text(website.courses_label || website.coursesLabel),
+          galleryLabel: text(website.gallery_label || website.galleryLabel),
+          faqLabel: text(website.faq_label || website.faqLabel),
+          contactLabel: text(website.contact_label || website.contactLabel)
+        }),
+        principalProfile: JSON.stringify({
+          show: Boolean(principal.show), name: text(principal.name), title: text(principal.title),
+          bio: text(principal.bio), quote: text(principal.quote), imageUrl: text(principal.image_url || principal.imageUrl)
+        }),
+        faqItems: JSON.stringify(faq.map((item) => ({ question: text(item.question), answer: text(item.answer) }))),
+        backgroundColor: text(visual.background_color || visual.backgroundColor).toLowerCase(),
+        panelColor: text(visual.panel_color || visual.panelColor).toLowerCase(),
+        textColor: text(visual.text_color || visual.textColor).toLowerCase(),
+        accentColor: text(visual.accent_color || visual.accentColor).toLowerCase(),
+        secondaryAccentColor: text(visual.secondary_accent_color || visual.secondaryAccentColor).toLowerCase(),
+        buttonStyle: text(visual.button_style || visual.buttonStyle),
+        fontMood: text(visual.font_mood || visual.fontMood)
       };
     }
 
@@ -3095,9 +2927,19 @@
         logoUrl: expected.logoUrl,
         primaryColor: expected.primaryColor,
         secondaryColor: expected.secondaryColor,
+        contactPhone: expected.contactPhone,
+        contactEmail: expected.contactEmail,
+        address: expected.address,
+        category: expected.category,
         slogan: expected.slogan,
+        copyPack: expected.copyPack,
         heroProfile: expected.heroProfile,
-        registrationProfile: expected.registrationProfile
+        registrationProfile: expected.registrationProfile,
+        localizedCopy: expected.localizedCopy,
+        websiteProfile: expected.websiteProfile,
+        principalProfile: expected.principalProfile,
+        faqItems: expected.faqItems,
+        visualTheme: expected.visualTheme
       });
       const mismatches = Object.keys(wanted).filter((key) => wanted[key] && wanted[key] !== actual[key]);
       if (mismatches.length) {
@@ -3237,588 +3079,38 @@
 
     function applyCategoryPreset() {
       const preset = INDUSTRY_PRESETS[$('settingCategory').value] || INDUSTRY_PRESETS.general;
+      if (!window.confirm('Apply this preset? It will replace the current theme, hero, registration copy, questions, and FAQs in the editor. Nothing becomes public until you publish.')) return;
       renderPresetGrid($('settingCategory').value);
       $('settingSlogan').value = preset.slogan;
       $('settingPortalLabel').value = preset.portalLabel;
-      $('settingRegisterIntro').value = preset.registerIntro;
+      $('settingRegisterIntro').value = preset.registerIntroZh || preset.registerIntro;
+      $('settingRegisterIntroEn').value = preset.registerIntro;
       $('settingHeroEyebrow').value = preset.label;
-      $('settingHeroSubtitle').value = preset.slogan;
-      $('settingHeroTitle').value = $('settingName').value || preset.label;
+      $('settingHeroTitle').value = preset.localizedCopy?.hero_title?.zh || $('settingName').value || preset.labelZh || preset.label;
+      $('settingHeroTitleEn').value = preset.localizedCopy?.hero_title?.en || $('settingName').value || preset.label;
+      $('settingHeroSubtitle').value = preset.localizedCopy?.hero_subtitle?.zh || preset.slogan;
+      $('settingHeroSubtitleEn').value = preset.localizedCopy?.hero_subtitle?.en || preset.slogan;
+      $('settingPrimaryCta').value = preset.localizedCopy?.primary_cta?.zh || '预约体验';
+      $('settingPrimaryCtaEn').value = preset.localizedCopy?.primary_cta?.en || 'Book a Trial';
+      $('settingSecondaryCta').value = preset.localizedCopy?.secondary_cta?.zh || '查看课程';
+      $('settingSecondaryCtaEn').value = preset.localizedCopy?.secondary_cta?.en || 'Explore Programs';
       const profile = defaultRegistrationProfile($('settingCategory').value);
-      $('settingRegistrationTitle').value = profile.title;
+      $('settingRegistrationTitle').value = preset.registrationTitleZh || profile.title;
+      $('settingRegistrationTitleEn').value = preset.registrationTitle || profile.title;
       fillRegistrationFields(profile);
+      const theme = preset.visualTheme || {};
+      $('settingPrimaryColor').value = theme.accent_color || $('settingPrimaryColor').value;
+      $('settingSecondaryColor').value = theme.secondary_accent_color || $('settingSecondaryColor').value;
+      $('settingThemeBackground').value = theme.background_color || $('settingThemeBackground').value;
+      $('settingThemePanel').value = theme.panel_color || $('settingThemePanel').value;
+      $('settingThemeText').value = theme.text_color || $('settingThemeText').value;
+      $('settingThemeAccent').value = theme.accent_color || $('settingThemeAccent').value;
+      $('settingButtonStyle').value = theme.button_style || 'soft';
+      $('settingFontMood').value = theme.font_mood || 'modern';
       fillFaqItems(defaultFaqItems($('settingCategory').value));
       setSettingsDirty(true);
       updateThemePreview();
       showToast('Category preset applied.');
-    }
-
-    function studentListPath() {
-      const params = new URLSearchParams();
-      const search = $('studentSearch')?.value.trim() || '';
-      const status = $('studentStatusFilter')?.value || '';
-      if (search) params.set('search', search);
-      if (status) {
-        params.set('status', status);
-        if (status === 'archived') params.set('includeArchived', 'true');
-      }
-      if ($('studentLowFilter')?.checked) params.set('low_balance', 'true');
-      params.set('limit', String(STUDENT_PAGE_SIZE));
-      params.set('offset', String(studentPage * STUDENT_PAGE_SIZE));
-      return `/students?${params.toString()}`;
-    }
-
-    function renderStudentPager() {
-      const pager = $('studentPager');
-      if (!pager) return;
-      const totalPages = Math.max(1, Math.ceil(studentTotal / STUDENT_PAGE_SIZE));
-      pager.style.display = studentTotal > STUDENT_PAGE_SIZE ? 'flex' : 'none';
-      const from = studentTotal === 0 ? 0 : studentPage * STUDENT_PAGE_SIZE + 1;
-      const to = Math.min(studentTotal, (studentPage + 1) * STUDENT_PAGE_SIZE);
-      $('studentPageInfo').textContent = `${from}–${to} of ${studentTotal}`;
-      $('studentPrevBtn').disabled = studentPage <= 0;
-      $('studentNextBtn').disabled = studentPage >= totalPages - 1;
-    }
-
-    function progressBar(current, limit) {
-      const pct = limit ? Math.min(100, Math.round((Number(current || 0) / Number(limit)) * 100)) : 0;
-      const color = pct > 90 ? 'red' : pct > 75 ? 'amber' : 'blue';
-      return `<div style="display:flex;justify-content:space-between;font-size:12px;"><span>${esc(text(current))} / ${esc(text(limit))}</span><span>${pct}%</span></div><div class="progress-bar"><div class="progress-fill ${color}" style="width:${pct}%"></div></div>`;
-    }
-
-    function renderStudents() {
-      const tbody = $('studentsBody');
-      tbody.replaceChildren();
-      renderStudentPager();
-      if (!students.length) {
-        appendEmptyRow(tbody, 4, 'No students match the current filters.');
-        return;
-      }
-      students.forEach((s) => {
-        const row = document.createElement('tr');
-        addStrongMuted(addCell(row), studentName(s), `${studentMobile(s)} · ${studentEmail(s)}`);
-        appendPill(addCell(row), studentStatus(s));
-        addStrongMuted(addCell(row), `${Number(s.balance || 0).toFixed(2)} credits`, `Low threshold: ${text(s.low_balance_threshold || 2)}`);
-        const actions = document.createElement('div');
-        actions.className = 'action-row';
-        addActionButton(actions, 'Edit', 'btn-secondary btn-sm', () => editStudent(s.id));
-        addActionButton(actions, '+ Credits', 'btn-info btn-sm', () => openAddCreditsModal(s.id, studentName(s), Number(s.balance || 0)));
-        addActionButton(actions, 'Share', 'btn-secondary btn-sm', () => openShareLinksModal(s.id, studentName(s)));
-        if (studentStatus(s) !== 'archived') {
-          addActionButton(actions, 'Archive', 'btn-danger btn-sm', () => archiveStudent(s.id, studentName(s)));
-        }
-        addCell(row).appendChild(actions);
-        tbody.appendChild(row);
-      });
-    }
-
-    function resetStudentForm() {
-      editingStudentId = '';
-      $('studentFormTitle').textContent = 'Students';
-      $('studentFormTitleRight').textContent = 'Add Student';
-      ['sName','sEmail','sPackages','sBalance','sCreditHours','sPhone'].forEach((id) => { if ($(id)) $(id).value = ''; });
-      if ($('sStatus')) $('sStatus').value = 'active';
-      $('studentForm').classList.add('hidden');
-    }
-
-    function editStudent(id) {
-      const s = students.find((item) => item.id === id);
-      if (!s) return;
-      editingStudentId = id;
-      const bodyHtml = `<div class="edit-banner">Editing ${esc(studentName(s))}</div><div class="form-grid">
-        <div class="form-group"><label>Name</label><input id="m_sName" value="${esc(studentName(s))}"></div>
-        <div class="form-group"><label>Email</label><input id="m_sEmail" type="email" value="${esc(studentEmail(s))}"></div>
-        <div class="form-group"><label>Status</label><select id="m_sStatus">${['active','trial','inactive','archived'].map((st) => `<option value="${st}" ${st === studentStatus(s) ? 'selected' : ''}>${st}</option>`).join('')}</select></div>
-        <div class="form-group"><label>Balance</label><input id="m_sBalance" type="number" step="0.01" value="${Number(s.balance || 0)}"></div>
-        <div class="form-group"><label>Phone</label><input id="m_sPhone" value="${esc(studentMobile(s))}"></div>
-      </div>`;
-      const footerHtml = `<button id="modalSaveStudentBtn" onclick="saveStudentModal()" class="btn-primary">Save Changes</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
-      openModal(`Edit ${studentName(s)}`, bodyHtml, footerHtml);
-    }
-
-    async function saveStudentModal() {
-      await runUiAction('modalSaveStudentBtn', 'Saving...', async () => {
-        const name = $('m_sName').value.trim();
-        if (!name) throw new Error('Name is required.');
-        await api(`/students/${editingStudentId}`, { method: 'PATCH', body: JSON.stringify({ name, displayName: name, firstName: firstNameFrom(name), email: $('m_sEmail').value, status: $('m_sStatus').value, balance: Number($('m_sBalance').value || 0), phone: $('m_sPhone').value }) });
-        showToast('Student updated.');
-        closeModal();
-        await refresh();
-      });
-    }
-
-    function openCreateStudentModal() {
-      editingStudentId = '';
-      const bodyHtml = `<div class="form-grid">
-        <div class="form-group"><label>Name</label><input id="m_sName" placeholder="Full name"></div>
-        <div class="form-group"><label>Email</label><input id="m_sEmail" type="email" placeholder="student@example.com"></div>
-        <div class="form-group"><label>Status</label><select id="m_sStatus"><option value="active">Active</option><option value="trial">Trial</option><option value="inactive">Inactive</option></select></div>
-        <div class="form-group"><label>Phone</label><input id="m_sPhone" placeholder="0400 000 000"></div>
-      </div>`;
-      const footerHtml = `<button id="modalCreateStudentBtn" onclick="saveNewStudent()" class="btn-primary">Create Student</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
-      openModal('Add Student', bodyHtml, footerHtml);
-    }
-
-    async function saveNewStudent() {
-      await runUiAction('modalCreateStudentBtn', 'Creating...', async () => {
-        const name = $('m_sName').value.trim();
-        if (!name) throw new Error('Name is required.');
-        await api('/students', { method: 'POST', body: JSON.stringify({ name, displayName: name, firstName: firstNameFrom(name), email: $('m_sEmail').value, status: $('m_sStatus').value, phone: $('m_sPhone').value }) });
-        showToast('Student created.');
-        closeModal();
-        await refresh();
-      });
-    }
-
-    async function archiveStudent(id, name) {
-      const footerHtml = `<button id="confirmArchiveStudentBtn" onclick="confirmArchiveStudent('${id}')" class="btn-danger">Archive</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
-      openModal('Archive Student', `<p>Archive <strong>${esc(name)}</strong>? Their record and history will stay saved.</p>`, footerHtml);
-    }
-
-    async function confirmArchiveStudent(id) {
-      await runUiAction('confirmArchiveStudentBtn', 'Archiving...', async () => {
-        await api(`/students/${id}/archive`, { method: 'POST' });
-        showToast('Student archived.');
-        closeModal();
-        await refresh();
-      });
-    }
-
-    function renderCourses() {
-      const sorted = [...courses].sort((a, b) => Number(isActiveItem(b)) - Number(isActiveItem(a)) || String(a.name || '').localeCompare(String(b.name || '')));
-      const tbody = $('coursesBody');
-      tbody.replaceChildren();
-      if (!sorted.length) {
-        appendEmptyRow(tbody, 6, 'No courses yet. Add your first class offering.');
-        return;
-      }
-      sorted.forEach((c) => {
-        const row = document.createElement('tr');
-        addStrongMuted(addCell(row), c.name, c.description);
-        addCell(row, text(c.category));
-        addCell(row, `${text(c.duration_minutes || 60)} min`);
-        addCell(row, money(audFromCents(c.price_aud_cents)));
-        appendPill(addCell(row), itemStatus(c));
-        const actions = document.createElement('div');
-        actions.className = 'action-row';
-        addActionButton(actions, 'Edit', 'btn-secondary btn-sm', () => editCourse(c.id));
-        if (isActiveItem(c)) addActionButton(actions, 'Archive', 'btn-danger btn-sm', () => archiveCourse(c.id));
-        addCell(row).appendChild(actions);
-        tbody.appendChild(row);
-      });
-    }
-
-    function resetCourseForm() {
-      editingCourseCode = '';
-      const bodyHtml = `<div class="form-grid">
-        <div class="form-group"><label>Name</label><input id="m_cName"></div>
-        <div class="form-group"><label>Category</label><input id="m_cCategory" placeholder="General"></div>
-        <div class="form-group"><label>Duration Minutes</label><input id="m_cDuration" type="number" value="60" min="1"></div>
-        <div class="form-group"><label>Default Credit Debit</label><input id="m_cDebit" type="number" step="0.01" value="1" min="0.01"></div>
-        <div class="form-group"><label>Price (AUD)</label><input id="m_cPrice" type="number" value="199" min="0"></div>
-        <div class="form-group"><label>Status</label><select id="m_cStatus"><option value="active">Active</option><option value="inactive">Inactive</option></select></div>
-        <div class="form-group"><label>Description</label><input id="m_cDescription"></div>
-      </div>`;
-      const footerHtml = `<button id="modalSaveCourseBtn" onclick="saveCourseModal()" class="btn-primary">Save Course</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
-      openModal('Add Course', bodyHtml, footerHtml);
-    }
-
-    function editCourse(id) {
-      const c = courses.find((item) => item.id === id);
-      if (!c) return;
-      editingCourseCode = id;
-      const bodyHtml = `<div class="edit-banner">Editing ${esc(c.name)}</div><div class="form-grid">
-        <div class="form-group"><label>Name</label><input id="m_cName" value="${esc(c.name)}"></div>
-        <div class="form-group"><label>Category</label><input id="m_cCategory" value="${esc(c.category || '')}"></div>
-        <div class="form-group"><label>Duration Minutes</label><input id="m_cDuration" type="number" value="${c.duration_minutes || 60}" min="1"></div>
-        <div class="form-group"><label>Default Credit Debit</label><input id="m_cDebit" type="number" step="0.01" value="${c.default_credit_debit || 1}" min="0.01"></div>
-        <div class="form-group"><label>Price (AUD)</label><input id="m_cPrice" type="number" value="${audFromCents(c.price_aud_cents)}" min="0"></div>
-        <div class="form-group"><label>Status</label><select id="m_cStatus">${['active','inactive'].map((st) => `<option value="${st}" ${st === itemStatus(c) ? 'selected' : ''}>${st}</option>`).join('')}</select></div>
-        <div class="form-group"><label>Description</label><input id="m_cDescription" value="${esc(c.description || '')}"></div>
-      </div>`;
-      const footerHtml = `<button id="modalSaveCourseBtn" onclick="saveCourseModal()" class="btn-primary">Save Changes</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
-      openModal(`Edit ${c.name}`, bodyHtml, footerHtml);
-    }
-
-    async function saveCourseModal() {
-      await runUiAction('modalSaveCourseBtn', 'Saving...', async () => {
-        const payload = { name: $('m_cName').value.trim(), description: $('m_cDescription').value, category: $('m_cCategory').value, durationMinutes: Number($('m_cDuration').value), defaultCreditDebit: Number($('m_cDebit').value), priceAud: Number($('m_cPrice').value), isActive: $('m_cStatus').value === 'active' };
-        if (!payload.name) throw new Error('Course name is required.');
-        if (payload.priceAud < 0) throw new Error('Course price cannot be negative.');
-        await api(editingCourseCode ? `/courses/${editingCourseCode}` : '/courses', { method: editingCourseCode ? 'PATCH' : 'POST', body: JSON.stringify(payload) });
-        showToast(editingCourseCode ? 'Course updated.' : 'Course created.');
-        closeModal();
-        await refresh();
-      });
-    }
-
-    async function archiveCourse(id) {
-      const footerHtml = `<button id="confirmArchiveCourseBtn" onclick="confirmArchiveCourse('${id}')" class="btn-danger">Archive</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
-      openModal('Archive Course', '<p>Archive this course? Existing records remain available.</p>', footerHtml);
-    }
-
-    async function confirmArchiveCourse(id) {
-      await runUiAction('confirmArchiveCourseBtn', 'Archiving...', async () => {
-        await api(`/courses/${id}`, { method: 'DELETE' });
-        showToast('Course archived.');
-        closeModal();
-        await refresh();
-      });
-    }
-
-    function renderPackages() {
-      const sorted = [...packages].sort((a, b) => Number(isActiveItem(b)) - Number(isActiveItem(a)) || Number(a.price_aud_cents || 0) - Number(b.price_aud_cents || 0));
-      const tbody = $('packagesBody');
-      tbody.replaceChildren();
-      if (!sorted.length) {
-        appendEmptyRow(tbody, 6, 'No packages yet. Add a credit package for families to buy.');
-        return;
-      }
-      sorted.forEach((p) => {
-        const row = document.createElement('tr');
-        addStrongMuted(addCell(row), p.name);
-        addCell(row, text(p.credits));
-        addCell(row, p.expires_after_days ? `${text(p.expires_after_days)} days` : 'No expiry');
-        addCell(row, money(audFromCents(p.price_aud_cents)));
-        appendPill(addCell(row), itemStatus(p));
-        const actions = document.createElement('div');
-        actions.className = 'action-row';
-        addActionButton(actions, 'Edit', 'btn-secondary btn-sm', () => editPackage(p.id));
-        if (isActiveItem(p)) addActionButton(actions, 'Archive', 'btn-danger btn-sm', () => archivePackage(p.id));
-        addCell(row).appendChild(actions);
-        tbody.appendChild(row);
-      });
-    }
-
-    function resetPackageForm() {
-      editingPackageCode = '';
-      const bodyHtml = `<div class="form-grid">
-        <div class="form-group"><label>Name</label><input id="m_pName"></div>
-        <div class="form-group"><label>Credits</label><input id="m_pCredits" type="number" step="0.01" value="10" min="0.01"></div>
-        <div class="form-group"><label>Price (AUD)</label><input id="m_pPrice" type="number" value="299" min="0"></div>
-        <div class="form-group"><label>Expiry Days</label><input id="m_pExpiry" type="number" placeholder="Optional"></div>
-        <div class="form-group"><label>Status</label><select id="m_pStatus"><option value="active">Active</option><option value="inactive">Inactive</option></select></div>
-      </div>`;
-      const footerHtml = `<button id="modalSavePackageBtn" onclick="savePackageModal()" class="btn-primary">Save Package</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
-      openModal('Add Package', bodyHtml, footerHtml);
-    }
-
-    function editPackage(id) {
-      const p = packages.find((item) => item.id === id);
-      if (!p) return;
-      editingPackageCode = id;
-      const bodyHtml = `<div class="edit-banner">Editing ${esc(p.name)}</div><div class="form-grid">
-        <div class="form-group"><label>Name</label><input id="m_pName" value="${esc(p.name)}"></div>
-        <div class="form-group"><label>Credits</label><input id="m_pCredits" type="number" step="0.01" value="${p.credits || 1}" min="0.01"></div>
-        <div class="form-group"><label>Price (AUD)</label><input id="m_pPrice" type="number" value="${audFromCents(p.price_aud_cents)}" min="0"></div>
-        <div class="form-group"><label>Expiry Days</label><input id="m_pExpiry" type="number" value="${p.expires_after_days || ''}"></div>
-        <div class="form-group"><label>Status</label><select id="m_pStatus">${['active','inactive'].map((st) => `<option value="${st}" ${st === itemStatus(p) ? 'selected' : ''}>${st}</option>`).join('')}</select></div>
-      </div>`;
-      const footerHtml = `<button id="modalSavePackageBtn" onclick="savePackageModal()" class="btn-primary">Save Changes</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
-      openModal(`Edit ${p.name}`, bodyHtml, footerHtml);
-    }
-
-    async function savePackageModal() {
-      await runUiAction('modalSavePackageBtn', 'Saving...', async () => {
-        const payload = { name: $('m_pName').value.trim(), credits: Number($('m_pCredits').value), priceAud: Number($('m_pPrice').value), expiresAfterDays: $('m_pExpiry').value ? Number($('m_pExpiry').value) : null, isActive: $('m_pStatus').value === 'active' };
-        if (!payload.name) throw new Error('Package name is required.');
-        if (!payload.credits || payload.credits <= 0) throw new Error('Package credits must be greater than 0.');
-        if (payload.priceAud < 0) throw new Error('Package price cannot be negative.');
-        await api(editingPackageCode ? `/packages/${editingPackageCode}` : '/packages', { method: editingPackageCode ? 'PATCH' : 'POST', body: JSON.stringify(payload) });
-        showToast(editingPackageCode ? 'Package updated.' : 'Package created.');
-        closeModal();
-        await refresh();
-      });
-    }
-
-    async function archivePackage(id) {
-      const footerHtml = `<button id="confirmArchivePackageBtn" onclick="confirmArchivePackage('${id}')" class="btn-danger">Archive</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
-      openModal('Archive Package', '<p>Archive this package? Existing CMS history remains compatible.</p>', footerHtml);
-    }
-
-    async function confirmArchivePackage(id) {
-      await runUiAction('confirmArchivePackageBtn', 'Archiving...', async () => {
-        await api(`/packages/${id}`, { method: 'DELETE' });
-        showToast('Package archived.');
-        closeModal();
-        await refresh();
-      });
-    }
-
-    function renderRegistrations() {
-      const tbody = $('registrationsBody');
-      tbody.replaceChildren();
-      if (!registrations.length) {
-        appendEmptyRow(tbody, 6, 'No registration requests yet.');
-        return;
-      }
-      registrations.forEach((r) => {
-        const row = document.createElement('tr');
-        const nameCell = addCell(row);
-        addStrongMuted(nameCell, [r.first_name, r.last_name].filter(Boolean).join(' ') || 'Student', `${text(r.parent_name)} · ${text(r.mobile || r.email)}`);
-        if (r.student_id) {
-          nameCell.appendChild(document.createElement('br'));
-          const linked = document.createElement('span');
-          linked.className = 'text-muted';
-          linked.textContent = `Linked student: ${text(r.student_id)}`;
-          nameCell.appendChild(linked);
-        }
-        addCell(row, text(r.message));
-        appendPill(addCell(row), r.status);
-        const reviewCell = addCell(row);
-        if (r.duplicate_of_registration_id) {
-          const dup = document.createElement('span');
-          dup.className = 'text-muted';
-          dup.textContent = `Duplicate of ${text(r.duplicate_of_registration_id)}`;
-          reviewCell.appendChild(dup);
-          reviewCell.appendChild(document.createElement('br'));
-        }
-        reviewCell.appendChild(document.createTextNode(text(r.review_note)));
-        addCell(row, dateOnly(r.submitted_at) || '');
-        const actions = document.createElement('div');
-        actions.className = 'action-row';
-        if (r.status === 'pending') {
-          addActionButton(actions, 'Contacted', 'btn-info btn-sm', () => updateRegistrationStatus(r.id, 'contacted'));
-          addActionButton(actions, 'Approve', 'btn-success btn-sm', () => updateRegistrationStatus(r.id, 'approved'));
-          addActionButton(actions, 'Reject', 'btn-danger btn-sm', () => updateRegistrationStatus(r.id, 'rejected'));
-          addActionButton(actions, 'Archive', 'btn-danger btn-sm', () => updateRegistrationStatus(r.id, 'archived'));
-        }
-        addCell(row).appendChild(actions);
-        tbody.appendChild(row);
-      });
-    }
-
-    function renderDashboardTasks() {
-      const pending = registrations.filter((r) => r.status === 'pending');
-      const low = lowBalanceStudents();
-      $('dashboardTodayBody').classList.toggle('empty-state', attendanceItems.length === 0);
-      $('dashboardTodayBody').replaceChildren();
-      if (attendanceItems.length) {
-        attendanceItems.slice(0, 5).forEach((a) => {
-          const item = document.createElement('div');
-          item.className = 'detail-row';
-          addStrongMuted(item, a.student_name, a.course_name || 'Attendance');
-          $('dashboardTodayBody').appendChild(item);
-        });
-      } else {
-        $('dashboardTodayBody').textContent = 'No check-ins today.';
-      }
-      $('dashboardAttentionBody').classList.toggle('empty-state', pending.length === 0 && low.length === 0);
-      $('dashboardAttentionBody').replaceChildren();
-      [
-        pending.length ? `${pending.length} pending registration${pending.length === 1 ? '' : 's'}` : '',
-        low.length ? `${low.length} low-balance student${low.length === 1 ? '' : 's'}` : ''
-      ].filter(Boolean).forEach((label) => {
-        const item = document.createElement('div');
-        const count = document.createElement('strong');
-        const [number, ...rest] = label.split(' ');
-        count.textContent = number;
-        item.appendChild(count);
-        item.appendChild(document.createTextNode(` ${rest.join(' ')}`));
-        $('dashboardAttentionBody').appendChild(item);
-      });
-      if (!$('dashboardAttentionBody').childElementCount) $('dashboardAttentionBody').textContent = 'No urgent items.';
-    }
-
-    function renderAttendance() {
-      const activeStudents = students.filter((s) => studentStatus(s) !== 'archived');
-      $('attendanceStudent').replaceChildren();
-      activeStudents.forEach((s) => addOption($('attendanceStudent'), s.id, `${studentName(s)} · ${Number(s.balance || 0).toFixed(2)}`));
-      $('attendanceCourse').replaceChildren();
-      courses.filter(isActiveItem).forEach((c) => addOption($('attendanceCourse'), c.id, `${text(c.name)} · ${Number(c.default_credit_debit || 1).toFixed(2)} credit`));
-      const low = lowBalanceStudents();
-      $('attendanceLowBalance').classList.toggle('empty-state', low.length === 0);
-      $('attendanceLowBalance').replaceChildren();
-      if (low.length) {
-        low.slice(0, 8).forEach((s) => {
-          const item = document.createElement('div');
-          item.className = 'detail-row';
-          addStrongMuted(item, studentName(s), `${Number(s.balance || 0).toFixed(2)} credits`);
-          $('attendanceLowBalance').appendChild(item);
-        });
-      } else {
-        $('attendanceLowBalance').textContent = 'No low-balance students.';
-      }
-      const tbody = $('attendanceBody');
-      tbody.replaceChildren();
-      if (!attendanceItems.length) {
-        appendEmptyRow(tbody, 5, 'No check-ins today.');
-      } else {
-        attendanceItems.forEach((a) => {
-          const row = document.createElement('tr');
-          addStrongMuted(addCell(row), a.student_name);
-          addCell(row, text(a.course_name || 'General'));
-          addCell(row, Number(a.consumed_credits || 0).toFixed(2));
-          appendPill(addCell(row), a.reversed_at ? 'refunded' : 'active');
-          const actions = document.createElement('div');
-          actions.className = 'action-row';
-          if (!a.reversed_at) addActionButton(actions, 'Undo', 'btn-danger btn-sm', () => voidAttendance(a.id));
-          addCell(row).appendChild(actions);
-          tbody.appendChild(row);
-        });
-      }
-      renderDashboardTasks();
-    }
-
-    async function checkInAttendance() {
-      await runUiAction('attendanceCheckInBtn', 'Checking in...', async () => {
-        const payload = {
-          studentId: $('attendanceStudent').value,
-          courseId: $('attendanceCourse').value,
-          note: $('attendanceNote').value.trim()
-        };
-        if (!payload.studentId) throw new Error('Select a student first.');
-        await api('/attendance/check-in', { method: 'POST', body: JSON.stringify(payload) });
-        $('attendanceNote').value = '';
-        showToast('Attendance recorded.');
-        await refresh();
-      });
-    }
-
-    async function voidAttendance(attendanceId) {
-      const footerHtml = `<button id="confirmVoidAttendanceBtn" onclick="confirmVoidAttendance('${attendanceId}')" class="btn-danger">Undo Check-in</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
-      openModal('Undo Check-in', '<p>Undo this check-in and refund the consumed credits?</p><div class="form-group mt-2"><label>Reason</label><input id="m_voidAttendanceNote" placeholder="Optional reason"></div>', footerHtml);
-    }
-
-    async function confirmVoidAttendance(attendanceId) {
-      await runUiAction('confirmVoidAttendanceBtn', 'Undoing...', async () => {
-        const note = $('m_voidAttendanceNote') ? $('m_voidAttendanceNote').value.trim() : '';
-        await api(`/attendance/${attendanceId}/void`, { method: 'POST', body: JSON.stringify({ note }) });
-        closeModal();
-        showToast('Check-in undone and credits refunded.');
-        await refresh();
-      });
-    }
-
-    async function updateRegistrationStatus(regId, newStatus) {
-      const labels = { contacted: 'Mark Contacted', approved: 'Approve and Create Student', rejected: 'Reject', archived: 'Archive' };
-      const noteRequired = newStatus === 'rejected' || newStatus === 'archived';
-      const bodyHtml = `<p>Update this registration request?</p><div class="form-group mt-2"><label>Review Note${noteRequired ? ' (required)' : ''}</label><textarea id="m_registrationReviewNote" rows="3" placeholder="${noteRequired ? 'Explain the decision for audit history' : 'Optional note'}"></textarea></div>`;
-      const footerHtml = `<button id="confirmRegStatusBtn" onclick="confirmRegStatus('${regId}', '${newStatus}')" class="btn-primary">${labels[newStatus] || 'Save'}</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
-      openModal(labels[newStatus] || 'Update Registration', bodyHtml, footerHtml);
-    }
-
-    async function confirmRegStatus(regId, newStatus) {
-      await runUiAction('confirmRegStatusBtn', 'Saving...', async () => {
-        const reviewNote = $('m_registrationReviewNote') ? $('m_registrationReviewNote').value.trim() : '';
-        const data = await api(`/registrations/${regId}`, { method: 'PATCH', body: JSON.stringify({ status: newStatus, convertToStudent: newStatus === 'approved', reviewNote }) });
-        showToast(data.student_id ? 'Registration approved and student created.' : 'Registration updated.');
-        closeModal();
-        await refresh();
-      });
-    }
-
-    function renderPortfolio() {
-      const tbody = $('portfolioBody');
-      tbody.replaceChildren();
-      if (!portfolioItems.length) {
-        appendEmptyRow(tbody, 5, 'No portfolio items yet.');
-        return;
-      }
-      portfolioItems.forEach((p) => {
-        const row = document.createElement('tr');
-        const imageCell = addCell(row);
-        const src = safeImageUrl(p.url || p.image_url);
-        if (src) {
-          const img = document.createElement('img');
-          img.className = 'img-preview';
-          img.src = src;
-          img.alt = text(p.title || 'Portfolio');
-          imageCell.appendChild(img);
-        } else {
-          imageCell.textContent = '-';
-        }
-        addStrongMuted(addCell(row), p.title, p.description);
-        addCell(row, text(p.student_name || p.student_id));
-        appendPill(addCell(row), p.visibility || p.status || 'visible');
-        const actions = document.createElement('div');
-        actions.className = 'action-row';
-        addActionButton(actions, 'View', 'btn-secondary btn-sm', () => viewPortfolio(p.id));
-        addActionButton(actions, 'Delete', 'btn-danger btn-sm', () => deletePortfolio(p.id, p.title || 'portfolio item'));
-        addCell(row).appendChild(actions);
-        tbody.appendChild(row);
-      });
-    }
-
-    function viewPortfolio(id) {
-      const item = portfolioItems.find((p) => p.id === id);
-      if (!item) return;
-      const image = item.url || item.image_url;
-      const bodyHtml = `
-        ${image ? `<img src="${esc(image)}" alt="${esc(item.title || 'Portfolio')}" style="width:100%;max-height:420px;object-fit:contain;border-radius:12px;border:1px solid var(--line);background:#f8fafc;">` : ''}
-        <div class="form-grid mt-2">
-          <div class="form-group"><label>Title</label><input value="${esc(text(item.title))}" disabled></div>
-          <div class="form-group"><label>Student</label><input value="${esc(text(item.student_name || item.student_id))}" disabled></div>
-          <div class="form-group"><label>Status</label><input value="${esc(text(item.visibility || item.status || 'visible'))}" disabled></div>
-          <div class="form-group"><label>Description</label><input value="${esc(text(item.description))}" disabled></div>
-        </div>
-      `;
-      openModal(item.title || 'Portfolio Item', bodyHtml, '<button onclick="closeModal()" class="btn-secondary">Close</button>');
-    }
-
-    async function deletePortfolio(id, title) {
-      const footerHtml = `<button id="confirmDeletePortfolioBtn" onclick="confirmDeletePortfolio('${id}')" class="btn-danger">Delete</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
-      openModal('Delete Portfolio', `<p>Delete <strong>${esc(title)}</strong>?</p>`, footerHtml);
-    }
-
-    async function confirmDeletePortfolio(id) {
-      await runUiAction('confirmDeletePortfolioBtn', 'Deleting...', async () => {
-        await api(`/portfolio/${id}`, { method: 'DELETE' });
-        showToast('Portfolio item deleted.');
-        closeModal();
-        await refresh();
-      });
-    }
-
-    function openAddCreditsModal(studentId, name, currentBalance) {
-      creditStudentId = studentId;
-      const bodyHtml = `
-        <p>Add credits to <strong>${esc(name)}</strong> (current balance: ${Number(currentBalance || 0).toFixed(2)}).</p>
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Transaction Type</label>
-            <select id="m_txType">
-              <option value="purchase">Purchase</option>
-              <option value="adjustment">Adjustment</option>
-              <option value="refund">Refund</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Credits Amount</label>
-            <input id="m_txAmount" type="number" step="0.01" value="1" min="0.01">
-          </div>
-          <div class="form-group">
-            <label>Fee (AUD cents)</label>
-            <input id="m_txFee" type="number" value="0" min="0">
-          </div>
-          <div class="form-group">
-            <label>Note</label>
-            <input id="m_txNote" placeholder="Optional note">
-          </div>
-        </div>
-      `;
-      const footerHtml = `<button id="confirmCreditBtn" onclick="submitCreditTransaction()" class="btn-primary">Save Credits</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
-      openModal('Add Credits', bodyHtml, footerHtml);
-    }
-
-    async function submitCreditTransaction() {
-      await runUiAction('confirmCreditBtn', 'Saving...', async () => {
-        const payload = {
-          transactionType: $('m_txType').value,
-          amount: Number($('m_txAmount').value || 0),
-          feeAudCents: Number($('m_txFee').value || 0),
-          note: $('m_txNote').value || null
-        };
-        if (!payload.amount || payload.amount <= 0) throw new Error('Please enter a valid credit amount.');
-        if (payload.feeAudCents < 0) throw new Error('Fee cannot be negative.');
-        await api(`/students/${creditStudentId}/credit-transactions`, {
-          method: 'POST',
-          body: JSON.stringify(payload)
-        });
-        showToast('Credits updated.');
-        closeModal();
-        await refresh();
-      });
     }
 
     function setLoadingState(loading) {
@@ -3877,11 +3169,16 @@
       document.querySelectorAll('[data-preview-device]').forEach((button) => {
         button.addEventListener('click', () => switchPreviewDevice(button.dataset.previewDevice));
       });
+      document.querySelectorAll('[data-preview-language]').forEach((button) => {
+        button.addEventListener('click', () => switchPreviewLanguage(button.dataset.previewLanguage));
+      });
       $('presetGrid').addEventListener('click', (event) => {
         const card = event.target.closest('[data-preset-key]');
         if (!card) return;
         $('settingCategory').value = card.dataset.presetKey;
-        applyCategoryPreset();
+        renderPresetGrid(card.dataset.presetKey);
+        setSettingsDirty(true);
+        showToast('Category selected. Use “Apply Category Preset” only if you want to replace the current editor content.', 'warning');
       });
       document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape' && $('modalOverlay').classList.contains('active')) closeModal();
@@ -3913,7 +3210,11 @@
         'settingShowPrincipal','settingShowCourses','settingShowGallery','settingShowFaq','settingShowContact','settingShowStudentArea',
         'settingCmsLayout'
       ].forEach((id) => $(id).addEventListener('change', () => { setSettingsDirty(true); updateThemePreview(); }));
-      $('settingCategory').addEventListener('change', applyCategoryPreset);
+      $('settingCategory').addEventListener('change', () => {
+        renderPresetGrid($('settingCategory').value);
+        setSettingsDirty(true);
+        showToast('Category changed without replacing your custom content.', 'warning');
+      });
       updateSurfaceLinks();
       document.querySelectorAll('.nav-link').forEach((link) => {
         link.addEventListener('click', () => {
@@ -3927,7 +3228,12 @@
     }
 
     bindEvents();
-    checkSession();
+    window.addEventListener('beforeunload', (event) => {
+      if (!settingsDirty) return;
+      event.preventDefault();
+      event.returnValue = '';
+    });
+    loadIndustryPresets().then(checkSession);
   </script>
 </body>
 </html>

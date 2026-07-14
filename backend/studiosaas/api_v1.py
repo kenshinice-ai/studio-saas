@@ -34,7 +34,14 @@ from .auth import (
 from .config import load_config
 from .db import DatabaseUnavailableError, connect, fetch_all, fetch_one
 from .errors import api_error
+from .lifecycle import (
+    canonical_subscription_status,
+    validate_registration_transition,
+    validate_tenant_subscription_pair,
+    validate_tenant_transition,
+)
 from .models import Role
+from .presets import INDUSTRY_PRESETS, public_industry_presets
 from .services.media import (
     MediaQuotaExceededError,
     MediaUploadError,
@@ -49,7 +56,7 @@ from .services.tenant_archive import (
 )
 from .services import notifications as _notifications
 from .tenant_context import TenantResolutionError, resolve_tenant, slug_from_request
-from .workspaces import WorkspaceError, ensure_tenant_workspace
+from .workspaces import WorkspaceError, ensure_tenant_workspace, validate_tenant_slug
 
 api_v1 = Blueprint("studiosaas_api_v1", __name__)
 # Simple in-memory rate limiter for public endpoints (per-IP, per-minute).
@@ -271,122 +278,6 @@ def _clean_text(payload: dict, key: str, default: str = "") -> str:
     return str(value if value is not None else "").strip()
 
 
-INDUSTRY_PRESETS = {
-    "art": {
-        "label": "Art",
-        "slogan": "You deserve to enjoy life more.",
-        "registration_title": "Creative Preferences",
-        "copy_pack": {
-            "portal_label": "Student Art Portal",
-            "register_intro": "Tell us about the student and their creative goals.",
-        },
-        "fields": [
-            {"key": "artStyle", "label": "Preferred style", "placeholder": "Watercolour, sketching, acrylic"},
-            {"key": "favArtist", "label": "Favourite artist", "placeholder": "Monet, Van Gogh, Yayoi Kusama"},
-            {"key": "goals", "label": "Creative goals", "placeholder": "Relax, build technique, portfolio prep"},
-        ],
-    },
-    "music": {
-        "label": "Music",
-        "slogan": "Every student deserves a rhythm of their own.",
-        "registration_title": "Music Preferences",
-        "copy_pack": {
-            "portal_label": "Music Student Portal",
-            "register_intro": "Tell us about the student and their music goals.",
-        },
-        "fields": [
-            {"key": "instrument", "label": "Instrument", "placeholder": "Piano, guitar, violin, voice"},
-            {"key": "level", "label": "Current level", "placeholder": "Beginner, AMEB Grade 2, self-taught"},
-            {"key": "goals", "label": "Learning goals", "placeholder": "Exam prep, performance, confidence"},
-        ],
-    },
-    "math": {
-        "label": "Math",
-        "slogan": "Build confidence through clear thinking.",
-        "registration_title": "Learning Focus",
-        "copy_pack": {
-            "portal_label": "Math Learning Portal",
-            "register_intro": "Tell us about the learner and the topics they need help with.",
-        },
-        "fields": [
-            {"key": "yearLevel", "label": "Year level", "placeholder": "Year 5, Year 9, VCE"},
-            {"key": "topics", "label": "Topic focus", "placeholder": "Algebra, fractions, problem solving"},
-            {"key": "goals", "label": "Learning goals", "placeholder": "Catch up, extension, exam confidence"},
-        ],
-    },
-    "dance": {
-        "label": "Dance",
-        "slogan": "Move with confidence, discipline, and joy.",
-        "registration_title": "Dance Preferences",
-        "copy_pack": {
-            "portal_label": "Dance Student Portal",
-            "register_intro": "Tell us about the dancer and their goals.",
-        },
-        "fields": [
-            {"key": "danceStyle", "label": "Dance style", "placeholder": "Ballet, jazz, hip hop, contemporary"},
-            {"key": "level", "label": "Current level", "placeholder": "Beginner, intermediate, exam stream"},
-            {"key": "goals", "label": "Dance goals", "placeholder": "Fitness, performance, technique"},
-        ],
-    },
-    "language": {
-        "label": "Language",
-        "slogan": "Grow a voice for the world.",
-        "registration_title": "Language Goals",
-        "copy_pack": {
-            "portal_label": "Language Student Portal",
-            "register_intro": "Tell us about the learner and their language goals.",
-        },
-        "fields": [
-            {"key": "language", "label": "Language", "placeholder": "English, Mandarin, Japanese, French"},
-            {"key": "level", "label": "Current level", "placeholder": "Beginner, conversational, exam prep"},
-            {"key": "goals", "label": "Learning goals", "placeholder": "Speaking, school support, travel"},
-        ],
-    },
-    "sports": {
-        "label": "Sports",
-        "slogan": "Train with purpose and grow with every session.",
-        "registration_title": "Training Goals",
-        "copy_pack": {
-            "portal_label": "Sports Student Portal",
-            "register_intro": "Tell us about the athlete and their training goals.",
-        },
-        "fields": [
-            {"key": "sport", "label": "Sport", "placeholder": "Tennis, swimming, basketball, soccer"},
-            {"key": "level", "label": "Current level", "placeholder": "Beginner, club, competition"},
-            {"key": "goals", "label": "Training goals", "placeholder": "Fitness, technique, competition prep"},
-        ],
-    },
-    "game": {
-        "label": "Game",
-        "slogan": "Play, think, and level up with purpose.",
-        "registration_title": "Game Learning Goals",
-        "copy_pack": {
-            "portal_label": "Game Student Portal",
-            "register_intro": "Tell us about the player and their learning goals.",
-        },
-        "fields": [
-            {"key": "gameType", "label": "Game type", "placeholder": "Roblox, Minecraft, chess, coding games"},
-            {"key": "level", "label": "Current level", "placeholder": "Beginner, casual, competitive"},
-            {"key": "goals", "label": "Learning goals", "placeholder": "Strategy, coding, teamwork, confidence"},
-        ],
-    },
-    "general": {
-        "label": "General",
-        "slogan": "Learn, grow, and feel confident.",
-        "registration_title": "Student Preferences",
-        "copy_pack": {
-            "portal_label": "Student Portal",
-            "register_intro": "Tell us about the student and their goals.",
-        },
-        "fields": [
-            {"key": "interests", "label": "Interests", "placeholder": "What does the student enjoy?"},
-            {"key": "experience", "label": "Experience", "placeholder": "Beginner, some experience, advanced"},
-            {"key": "goals", "label": "Goals", "placeholder": "Confidence, skills, exam prep, fun"},
-        ],
-    },
-}
-
-
 def _preset_for(category: str) -> dict:
     """Return a supported industry preset, falling back to the general preset."""
 
@@ -440,12 +331,25 @@ def _normalize_registration_profile(value, category: str) -> dict:
     if not isinstance(fields, list):
         raise ValueError("registration_profile.fields must be a list.")
     normalized = []
+    default_fields = {field["key"]: field for field in default["fields"]}
     for field in fields[:8]:
         if not isinstance(field, dict):
             raise ValueError("Each registration field must be an object.")
         key = str(field.get("key") or "").strip()
         label = str(field.get("label") or "").strip()
         placeholder = str(field.get("placeholder") or "").strip()
+        label_en = str(field.get("label_en") or field.get("labelEn") or label).strip()
+        default_field = default_fields.get(key, {})
+        label_zh = str(
+            field.get("label_zh") or field.get("labelZh") or default_field.get("label_zh") or label
+        ).strip()
+        placeholder_en = str(field.get("placeholder_en") or field.get("placeholderEn") or placeholder).strip()
+        placeholder_zh = str(
+            field.get("placeholder_zh")
+            or field.get("placeholderZh")
+            or default_field.get("placeholder_zh")
+            or placeholder
+        ).strip()
         input_type = str(field.get("type") or "text").strip().lower()
         required = bool(field.get("required", False))
         options = field.get("options") or []
@@ -462,8 +366,12 @@ def _normalize_registration_profile(value, category: str) -> dict:
             raise ValueError("Select registration fields require at least one option.")
         normalized.append({
             "key": key,
-            "label": label[:80],
-            "placeholder": placeholder[:140],
+            "label": (label_en or label)[:80],
+            "label_en": (label_en or label)[:80],
+            "label_zh": label_zh[:80],
+            "placeholder": (placeholder_en or placeholder)[:140],
+            "placeholder_en": (placeholder_en or placeholder)[:140],
+            "placeholder_zh": placeholder_zh[:140],
             "type": input_type,
             "required": required,
             "options": options,
@@ -501,10 +409,19 @@ def _normalize_copy_pack(value, category: str) -> dict:
     return default
 
 
-def _normalize_localized_copy(value) -> dict:
+def _normalize_localized_copy(value, category: str = "general") -> dict:
     """Validate the explicit Chinese/English public-copy bundle."""
 
     data = _coerce_json_object(value, field_name="localized_copy")
+    preset = _preset_for(category)
+    defaults = {
+        "hero_title": preset["hero"]["title"],
+        "hero_subtitle": preset["hero"]["subtitle"],
+        "primary_cta": {"zh": "预约体验", "en": "Book a Trial"},
+        "secondary_cta": {"zh": "查看课程", "en": "Explore Programs"},
+        "registration_title": {"zh": preset["registration_title_zh"], "en": preset["registration_title"]},
+        "registration_intro": {"zh": preset["register_intro_zh"], "en": preset["copy_pack"]["register_intro"]},
+    }
     limits = {
         "hero_title": 120,
         "hero_subtitle": 240,
@@ -515,14 +432,14 @@ def _normalize_localized_copy(value) -> dict:
     }
     normalized: dict[str, dict[str, str]] = {}
     for key, limit in limits.items():
-        pair = data.get(key) or data.get("".join([key.split("_")[0], *(part.capitalize() for part in key.split("_")[1:])])) or {}
+        pair = data.get(key) or data.get("".join([key.split("_")[0], *(part.capitalize() for part in key.split("_")[1:])])) or defaults[key]
         if isinstance(pair, str):
             pair = {"zh": pair, "en": pair}
         if not isinstance(pair, dict):
             raise ValueError(f"localized_copy.{key} must contain zh/en text.")
         normalized[key] = {
-            "zh": str(pair.get("zh") or "").strip()[:limit],
-            "en": str(pair.get("en") or "").strip()[:limit],
+            "zh": str(pair.get("zh") or defaults[key]["zh"]).strip()[:limit],
+            "en": str(pair.get("en") or defaults[key]["en"]).strip()[:limit],
         }
     return normalized
 
@@ -746,25 +663,31 @@ def _normalize_faq_items(value, category: str) -> list[dict]:
     return normalized
 
 
-def _default_visual_theme(primary_color: str = "#2563eb", secondary_color: str = "#0f172a") -> dict:
+def _default_visual_theme(
+    primary_color: str = "",
+    secondary_color: str = "",
+    category: str = "general",
+) -> dict:
     """Return default public visual-theme options."""
 
-    return {
-        "background_color": "#F4F0E8",
-        "panel_color": "#FBF9F4",
-        "text_color": "#23211D",
-        "accent_color": primary_color or "#2563eb",
-        "secondary_accent_color": secondary_color or "#0f172a",
-        "button_style": "soft",
-        "font_mood": "serif",
-    }
+    theme = dict(_preset_for(category)["theme"])
+    if primary_color:
+        theme["accent_color"] = primary_color
+    if secondary_color:
+        theme["secondary_accent_color"] = secondary_color
+    return theme
 
 
-def _normalize_visual_theme(value, primary_color: str = "#2563eb", secondary_color: str = "#0f172a") -> dict:
+def _normalize_visual_theme(
+    value,
+    primary_color: str = "",
+    secondary_color: str = "",
+    category: str = "general",
+) -> dict:
     """Validate public colour and light style settings."""
 
     data = _coerce_json_object(value, field_name="visual_theme")
-    default = _default_visual_theme(primary_color, secondary_color)
+    default = _default_visual_theme(primary_color, secondary_color, category)
     theme = {}
     for key in ("background_color", "panel_color", "text_color", "accent_color", "secondary_accent_color"):
         aliases = (key, "".join([key.split("_")[0], *(part.capitalize() for part in key.split("_")[1:])]))
@@ -832,7 +755,10 @@ def _tenant_write_payload(payload: dict, *, require_slug: bool) -> dict:
         category,
     )
     copy_pack = _normalize_copy_pack(payload.get("copyPack", payload.get("copy_pack")), category)
-    localized_copy = _normalize_localized_copy(payload.get("localizedCopy", payload.get("localized_copy")))
+    localized_copy = _normalize_localized_copy(
+        payload.get("localizedCopy", payload.get("localized_copy")),
+        category,
+    )
     hero_profile = _normalize_hero_profile(
         payload.get("heroProfile", payload.get("hero_profile")),
         category,
@@ -846,8 +772,9 @@ def _tenant_write_payload(payload: dict, *, require_slug: bool) -> dict:
     faq_items = _normalize_faq_items(payload.get("faqItems", payload.get("faq_items")), category)
     visual_theme = _normalize_visual_theme(
         payload.get("visualTheme", payload.get("visual_theme")),
-        payload.get("primaryColor", payload.get("primary_color", "#2563eb")),
-        payload.get("secondaryColor", payload.get("secondary_color", "#0f172a")),
+        payload.get("primaryColor", payload.get("primary_color", "")),
+        payload.get("secondaryColor", payload.get("secondary_color", "")),
+        category,
     )
     settings = {
         "category": category,
@@ -885,6 +812,7 @@ def _tenant_write_payload(payload: dict, *, require_slug: bool) -> dict:
         raise ValueError(
             f"Subscription status must be one of: {', '.join(sorted(SUBSCRIPTION_STATUSES))}."
         )
+    validate_tenant_subscription_pair(status, subscription_status)
     for field_name, value in (
         ("contactEmail", contact_email),
         ("ownerEmail", settings["owner_email"]),
@@ -1530,69 +1458,6 @@ def _active_from_payload(payload: dict, *, fallback: bool = True) -> bool:
     return status not in {"inactive", "archived", "paused", "cancelled"}
 
 
-def _ensure_registration_status_constraint(conn) -> None:
-    """Keep registration review columns and states available for local DBs."""
-
-    with conn.cursor() as cur:
-        cur.execute("ALTER TABLE registrations ADD COLUMN IF NOT EXISTS updated_at timestamptz")
-        cur.execute("ALTER TABLE registrations ADD COLUMN IF NOT EXISTS student_id uuid REFERENCES students(id) ON DELETE SET NULL")
-        cur.execute("ALTER TABLE registrations ADD COLUMN IF NOT EXISTS review_note text NOT NULL DEFAULT ''")
-        cur.execute("ALTER TABLE registrations ADD COLUMN IF NOT EXISTS source text NOT NULL DEFAULT 'standalone_register'")
-        cur.execute("ALTER TABLE registrations ADD COLUMN IF NOT EXISTS source_path text NOT NULL DEFAULT ''")
-        cur.execute("ALTER TABLE registrations ADD COLUMN IF NOT EXISTS source_language text NOT NULL DEFAULT ''")
-        cur.execute("ALTER TABLE registrations ADD COLUMN IF NOT EXISTS campaign jsonb NOT NULL DEFAULT '{}'::jsonb")
-        cur.execute("ALTER TABLE registrations ADD COLUMN IF NOT EXISTS assigned_user_id uuid REFERENCES users(id) ON DELETE SET NULL")
-        cur.execute("ALTER TABLE registrations ADD COLUMN IF NOT EXISTS first_contacted_at timestamptz")
-        cur.execute("ALTER TABLE registrations ADD COLUMN IF NOT EXISTS next_follow_up_at timestamptz")
-        cur.execute("ALTER TABLE registrations ADD COLUMN IF NOT EXISTS converted_at timestamptz")
-        cur.execute("ALTER TABLE registrations ADD COLUMN IF NOT EXISTS loss_reason text NOT NULL DEFAULT ''")
-        cur.execute("ALTER TABLE registrations ADD COLUMN IF NOT EXISTS privacy_consent_at timestamptz")
-        cur.execute("ALTER TABLE registrations ADD COLUMN IF NOT EXISTS privacy_notice_version text NOT NULL DEFAULT ''")
-        cur.execute(
-            """
-            ALTER TABLE registrations
-            ADD COLUMN IF NOT EXISTS duplicate_of_registration_id uuid REFERENCES registrations(id) ON DELETE SET NULL
-            """
-        )
-        cur.execute("ALTER TABLE registrations DROP CONSTRAINT IF EXISTS registrations_status_check")
-        cur.execute(
-            """
-            ALTER TABLE registrations
-            ADD CONSTRAINT registrations_status_check
-            CHECK (status IN (
-                'pending', 'contacted', 'trial_booked', 'waiting', 'approved',
-                'converted', 'rejected', 'duplicate', 'lost', 'archived'
-            ))
-            """
-        )
-        cur.execute(
-            """
-            CREATE INDEX IF NOT EXISTS idx_registrations_tenant_status_submitted
-            ON registrations (tenant_id, status, submitted_at DESC)
-            """
-        )
-        cur.execute(
-            """
-            CREATE INDEX IF NOT EXISTS idx_registrations_tenant_student
-            ON registrations (tenant_id, student_id)
-            WHERE student_id IS NOT NULL
-            """
-        )
-        cur.execute(
-            """
-            CREATE INDEX IF NOT EXISTS idx_registrations_tenant_duplicate
-            ON registrations (tenant_id, duplicate_of_registration_id)
-            WHERE duplicate_of_registration_id IS NOT NULL
-            """
-        )
-        cur.execute(
-            """
-            CREATE INDEX IF NOT EXISTS idx_registrations_tenant_privacy_consent
-            ON registrations (tenant_id, privacy_consent_at DESC)
-            """
-        )
-
-
 def _phone_digits(value: str) -> str:
     """Normalize phone-like values for duplicate detection."""
 
@@ -1662,6 +1527,13 @@ def health():
     """Health check for the StudioSaaS v1 surface."""
 
     return jsonify({"ok": True, "service": "PWE Studio SaaS API", "version": "v1"})
+
+
+@api_v1.route("/industry-presets", methods=["GET"])
+def industry_presets():
+    """Return the shared onboarding, copy, and theme presets."""
+
+    return jsonify({"presets": public_industry_presets()})
 
 
 def _tenant_response(conn):
@@ -2052,7 +1924,8 @@ def update_tenant():
             )
             copy_pack = _normalize_copy_pack(payload.get("copyPack", current_settings.get("copy_pack")), category)
             localized_copy = _normalize_localized_copy(
-                payload.get("localizedCopy", current_settings.get("localized_copy"))
+                payload.get("localizedCopy", current_settings.get("localized_copy")),
+                category,
             )
             hero_profile = _normalize_hero_profile(
                 payload.get("heroProfile", current_settings.get("hero_profile")),
@@ -2069,6 +1942,7 @@ def update_tenant():
                 payload.get("visualTheme", current_settings.get("visual_theme")),
                 primary_color,
                 secondary_color,
+                category,
             )
         except ValueError as exc:
             return _error(str(exc))
@@ -2197,12 +2071,14 @@ def get_tenant_brand():
                 "slogan": row["slogan"] or _preset_for(row["category"] or "general")["slogan"],
                 "registrationProfile": row["registration_profile"] or _default_registration_profile(row["category"] or "general"),
                 "copyPack": row["copy_pack"] or _preset_for(row["category"] or "general")["copy_pack"],
-                "localizedCopy": row["localized_copy"] or _normalize_localized_copy({}),
+                "localizedCopy": row["localized_copy"] or _normalize_localized_copy({}, row["category"] or "general"),
                 "heroProfile": row["hero_profile"] or _default_hero_profile(row["category"] or "general", row["name"]),
                 "websiteProfile": row["website_profile"] or _default_website_profile(),
                 "principalProfile": row["principal_profile"] or _default_principal_profile(row["name"]),
                 "faqItems": row["faq_items"] or _default_faq_items(row["category"] or "general"),
-                "visualTheme": row["visual_theme"] or _default_visual_theme(row["primary_color"], row["secondary_color"]),
+                "visualTheme": row["visual_theme"] or _default_visual_theme(
+                    row["primary_color"], row["secondary_color"], row["category"] or "general"
+                ),
             }
         }
     )
@@ -2676,6 +2552,7 @@ def update_registration_status(registration_id: str):
         convert_to_student = bool(payload.get("convertToStudent", payload.get("convert_to_student", False)))
         review_note = _clean_text(payload, "reviewNote", _clean_text(payload, "decisionReason", ""))[:500]
         next_follow_up = _clean_text(payload, "nextFollowUpAt", _clean_text(payload, "next_follow_up_at", ""))
+        follow_up_supplied = "nextFollowUpAt" in payload or "next_follow_up_at" in payload
         loss_reason = _clean_text(payload, "lossReason", _clean_text(payload, "loss_reason", ""))[:500]
 
         allowed_statuses = {
@@ -2688,13 +2565,12 @@ def update_registration_status(registration_id: str):
             return _error("A review note or loss reason is required when closing a registration.")
 
         with conn.cursor() as cur:
-            _ensure_registration_status_constraint(conn)
             created_student_id = None
             linked_student_id = None
             cur.execute(
                 """
                 SELECT id, first_name, last_name, parent_name, mobile, email, message,
-                       payload, student_id
+                       payload, student_id, status
                 FROM registrations
                 WHERE tenant_id = %s AND id = %s
                 """,
@@ -2703,8 +2579,12 @@ def update_registration_status(registration_id: str):
             reg = cur.fetchone()
             if not reg:
                 return _error("Registration not found.", 404)
+            try:
+                validate_registration_transition(str(reg["status"]), new_status)
+            except ValueError as exc:
+                return _error(str(exc), 409)
 
-            if convert_to_student or new_status == "approved":
+            if convert_to_student or new_status in {"approved", "converted"}:
                 display_name = f"{reg['first_name']} {reg['last_name']}".strip()
                 existing_student = _find_matching_student(
                     cur,
@@ -2767,7 +2647,12 @@ def update_registration_status(registration_id: str):
                         WHEN %s = 'contacted' THEN COALESCE(first_contacted_at, now())
                         ELSE first_contacted_at
                     END,
-                    next_follow_up_at = COALESCE(NULLIF(%s, '')::timestamptz, next_follow_up_at),
+                    next_follow_up_at = CASE
+                        WHEN %s IN ('approved', 'converted', 'rejected', 'duplicate', 'lost', 'archived')
+                            THEN NULL
+                        WHEN %s THEN NULLIF(%s, '')::timestamptz
+                        ELSE next_follow_up_at
+                    END,
                     converted_at = CASE
                         WHEN %s IN ('approved', 'converted') AND %s::uuid IS NOT NULL
                             THEN COALESCE(converted_at, now())
@@ -2788,6 +2673,8 @@ def update_registration_status(registration_id: str):
                     new_status,
                     actor_user_id,
                     new_status,
+                    new_status,
+                    follow_up_supplied,
                     next_follow_up,
                     new_status,
                     linked_student_id,
@@ -2982,12 +2869,14 @@ def public_brand(tenant_slug: str):
     row["slogan"] = row["slogan"] or preset["slogan"]
     row["registration_profile"] = row["registration_profile"] or _default_registration_profile(category)
     row["copy_pack"] = row["copy_pack"] or preset["copy_pack"]
-    row["localized_copy"] = row["localized_copy"] or _normalize_localized_copy({})
+    row["localized_copy"] = row["localized_copy"] or _normalize_localized_copy({}, category)
     row["hero_profile"] = row["hero_profile"] or _default_hero_profile(category, row["name"])
     row["website_profile"] = row["website_profile"] or _default_website_profile()
     row["principal_profile"] = row["principal_profile"] or _default_principal_profile(row["name"])
     row["faq_items"] = row["faq_items"] or _default_faq_items(category)
-    row["visual_theme"] = row["visual_theme"] or _default_visual_theme(row["primary_color"], row["secondary_color"])
+    row["visual_theme"] = row["visual_theme"] or _default_visual_theme(
+        row["primary_color"], row["secondary_color"], category
+    )
     row["primaryColor"] = row["primary_color"]
     row["secondaryColor"] = row["secondary_color"]
     row["welcomeMessage"] = row["welcome_message"]
@@ -3422,7 +3311,6 @@ def public_create_registration(tenant_slug: str):
         return _error(str(exc))
     with connect() as conn:
         tenant = resolve_tenant(conn, tenant_slug, "path")
-        _ensure_registration_status_constraint(conn)
         plan = fetch_one(
             conn,
             """
@@ -4543,8 +4431,15 @@ def create_tenant():
 
     try:
         data = _tenant_write_payload(_json_payload(), require_slug=True)
+        validate_tenant_slug(data["slug"])
     except ValueError as exc:
         return _error(str(exc))
+    except WorkspaceError as exc:
+        return _error(str(exc))
+    workspace_path = f"tenants/{data['slug']}"
+    tenant_settings = json.loads(data["settings_json"])
+    tenant_settings["workspace_path"] = workspace_path
+    data["settings_json"] = json.dumps(tenant_settings)
     with connect() as conn:
         with conn.cursor() as cur:
             cur.execute("SELECT 1 FROM plans WHERE code = %s", (data["plan_code"],))
@@ -4553,10 +4448,6 @@ def create_tenant():
             cur.execute("SELECT 1 FROM tenants WHERE slug = %s", (data["slug"],))
             if cur.fetchone():
                 return _error(f"Tenant slug '{data['slug']}' already exists.", 409)
-            try:
-                workspace_path = _workspace_for(data["slug"], data["name"])
-            except ValueError as exc:
-                return _error(str(exc))
             cur.execute(
                 """
                 INSERT INTO tenants (
@@ -4579,14 +4470,6 @@ def create_tenant():
                 ),
             )
             tenant_id = cur.fetchone()["id"]
-            cur.execute(
-                """
-                UPDATE tenants
-                SET settings = jsonb_set(settings, '{workspace_path}', to_jsonb(%s::text), true)
-                WHERE id = %s
-                """,
-                (workspace_path, tenant_id),
-            )
             _ensure_studio_admin_account(conn, tenant_id, data["studio_admin"])
             cur.execute(
                 """
@@ -4622,6 +4505,16 @@ def create_tenant():
             )
         _audit(conn, tenant_id=tenant_id, action="tenant.created", resource_type="tenant", resource_id=tenant_id)
         conn.commit()
+    try:
+        _workspace_for(data["slug"], data["name"])
+    except ValueError as exc:
+        # Compensate for a filesystem failure so the commercial control plane
+        # never exposes a tenant whose public workspace was only half-created.
+        with connect() as cleanup_conn:
+            with cleanup_conn.cursor() as cur:
+                cur.execute("DELETE FROM tenants WHERE id = %s", (tenant_id,))
+            cleanup_conn.commit()
+        return _error(f"Tenant creation was rolled back: {exc}", 500)
     return jsonify({"ok": True, "id": tenant_id}), 201
 
 
@@ -4645,13 +4538,18 @@ def mutate_tenant(tenant_id: str):
             cur.execute("SELECT 1 FROM plans WHERE code = %s", (data["plan_code"],))
             if not cur.fetchone():
                 return _error(f"Plan '{data['plan_code']}' was not found.", 404)
-            existing = fetch_one(conn, "SELECT slug FROM tenants WHERE id = %s", (tenant_id,))
+            existing = fetch_one(
+                conn,
+                "SELECT slug, status, settings->>'workspace_path' AS workspace_path FROM tenants WHERE id = %s",
+                (tenant_id,),
+            )
             if not existing:
                 return _error("Tenant was not found.", 404)
             try:
-                workspace_path = _workspace_for(existing["slug"], data["name"])
+                validate_tenant_transition(str(existing["status"]), data["status"])
             except ValueError as exc:
-                return _error(str(exc))
+                return _error(str(exc), 409)
+            workspace_path = existing.get("workspace_path") or f"tenants/{existing['slug']}"
             cur.execute(
                 """
                 UPDATE tenants
@@ -4975,19 +4873,37 @@ def update_tenant_status(tenant_id: str):
     except ValueError as exc:
         return _error(str(exc))
     status = _clean_text(payload, "status").lower()
-    subscription_status = _clean_text(
+    requested_subscription_status = _clean_text(
         payload,
         "subscriptionStatus",
-        _clean_text(payload, "subscription_status", status),
+        _clean_text(payload, "subscription_status", ""),
     ).lower()
     if status not in TENANT_STATUSES:
         return _error(f"Tenant status must be one of: {', '.join(sorted(TENANT_STATUSES))}.")
+    subscription_status = requested_subscription_status or canonical_subscription_status(status)
     if subscription_status not in SUBSCRIPTION_STATUSES:
         return _error(
             f"Subscription status must be one of: {', '.join(sorted(SUBSCRIPTION_STATUSES))}."
         )
 
     with connect() as conn:
+        current = fetch_one(
+            conn,
+            """
+            SELECT t.status, s.status AS subscription_status
+            FROM tenants t
+            LEFT JOIN subscriptions s ON s.tenant_id = t.id
+            WHERE t.id = %s
+            """,
+            (tenant_id,),
+        )
+        if not current:
+            return _error("Tenant was not found.", 404)
+        try:
+            validate_tenant_transition(str(current["status"]), status)
+            validate_tenant_subscription_pair(status, subscription_status)
+        except ValueError as exc:
+            return _error(str(exc), 409)
         with conn.cursor() as cur:
             cur.execute(
                 """
@@ -4998,8 +4914,6 @@ def update_tenant_status(tenant_id: str):
                 """,
                 (status, tenant_id),
             )
-            if cur.rowcount == 0:
-                return _error("Tenant was not found.", 404)
             cur.execute(
                 """
                 UPDATE subscriptions

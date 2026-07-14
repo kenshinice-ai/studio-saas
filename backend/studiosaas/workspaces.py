@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
 import re
+import tempfile
 from html import escape
 from pathlib import Path
 
@@ -32,6 +34,30 @@ RESERVED_SLUGS = {
 
 class WorkspaceError(RuntimeError):
     """Raised when a tenant workspace cannot be generated safely."""
+
+
+def _atomic_write_text(path: Path, content: str) -> None:
+    """Replace a generated file without exposing a partially written page."""
+
+    temporary_name = ""
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=path.parent,
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as temporary:
+            temporary.write(content)
+            temporary.flush()
+            os.fsync(temporary.fileno())
+            temporary_name = temporary.name
+        os.replace(temporary_name, path)
+    except OSError as exc:
+        if temporary_name:
+            Path(temporary_name).unlink(missing_ok=True)
+        raise WorkspaceError(f"Could not update generated workspace file '{path.name}'.") from exc
 
 
 def validate_tenant_slug(slug: str) -> None:
@@ -83,15 +109,15 @@ def ensure_tenant_workspace(app_root: str | Path, slug: str, name: str) -> str:
         content = template_file.read_text(encoding="utf-8")
         for token, value in replacements.items():
             content = content.replace(token, value)
-        (workspace_dir / template_file.name).write_text(content, encoding="utf-8")
+        _atomic_write_text(workspace_dir / template_file.name, content)
 
     metadata = {
         "slug": slug,
         "name": name,
         "workspace_path": f"tenants/{slug}",
     }
-    (workspace_dir / "tenant.json").write_text(
+    _atomic_write_text(
+        workspace_dir / "tenant.json",
         json.dumps(metadata, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
     )
     return metadata["workspace_path"]

@@ -496,6 +496,7 @@
   var SLUG = document.body.dataset.tenantSlug;
   var API = '/v1/public/' + encodeURIComponent(SLUG);
   var esc = window.StudioSaaS.esc;
+  var currentRegistrationProfile = null;
 
   /* ── i18n ── */
   var i18nEls=[].slice.call(document.querySelectorAll('[data-en]'));
@@ -510,6 +511,7 @@
       var isZh=b.textContent.trim()==='中';
       b.classList.toggle('on', (l==='en')? !isZh : isZh);
     });
+    if(currentRegistrationProfile) renderRegistrationFields(currentRegistrationProfile);
   }
   var LANG=(function(){try{return localStorage.getItem('pwe_lang_'+SLUG)==='en'?'en':'zh'}catch(e){return 'zh'}})();
   function T(zh,en){return (window.LANG||LANG)==='en'?en:zh;}
@@ -552,10 +554,12 @@
     ids.forEach(function(id){ var el=document.getElementById(id); if(el) el.style.display = visible ? '' : 'none'; });
   }
   function renderRegistrationFields(profile){
+    currentRegistrationProfile = profile || currentRegistrationProfile;
     window.StudioSaaSPublicRegister.renderFields(profile, {
       container: 'joinCustomFields',
       labelClass: 'fld',
-      fallbackTitle: T('报名信息','Registration details')
+      fallbackTitle: T('报名信息','Registration details'),
+      language: window.LANG || LANG
     });
   }
   function collectRegistrationFields(){

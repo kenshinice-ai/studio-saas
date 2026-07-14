@@ -1,7 +1,7 @@
 # StudioSaaS API Reference
 
-Version: v3.1
-Date: 2026-07-12
+Version: v3.2
+Date: 2026-07-14
 Purpose: Complete API endpoint reference, authentication model, tenant resolution, and public endpoints.
 
 ---
@@ -30,6 +30,7 @@ Purpose: Complete API endpoint reference, authentication model, tenant resolutio
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
 | GET | `/v1/health` | None | System health check |
+| GET | `/v1/industry-presets` | None | Shared eight-industry copy, bilingual registration, and visual-theme presets |
 
 ```bash
 curl -sS http://localhost:8899/v1/health
@@ -150,6 +151,7 @@ matrix, and the aggregate CMS payload is projected by role.
 | GET | `/v1/admin/tenants` | Super admin | List all tenants |
 | POST | `/v1/admin/tenants` | Super admin | Create tenant |
 | PATCH | `/v1/admin/tenants/{tenant_id}` | Super admin | Update tenant |
+| PATCH | `/v1/admin/tenants/{tenant_id}/status` | Super admin | Perform a validated tenant/subscription lifecycle transition |
 | GET | `/v1/admin/usage` | Super admin | View usage stats |
 | GET | `/v1/admin/audit-logs` | Super admin | View audit trail |
 | GET | `/v1/plans` | Super admin | List plans |

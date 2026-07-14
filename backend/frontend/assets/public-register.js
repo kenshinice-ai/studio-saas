@@ -3,18 +3,28 @@
     return String(value == null ? '' : value).trim();
   }
 
-  function normalizeProfile(profile, fallbackTitle) {
+  function localized(field, baseKey, language) {
+    var preferred = text(field[baseKey + '_' + language]);
+    return preferred || text(field[baseKey]) || text(field[baseKey + '_en']) || text(field[baseKey + '_zh']);
+  }
+
+  function normalizeProfile(profile, fallbackTitle, language) {
     var raw = profile && typeof profile === 'object' ? profile : {};
     var fields = Array.isArray(raw.fields) ? raw.fields : [];
+    var lang = language === 'en' ? 'en' : 'zh';
     return {
       title: text(raw.title) || fallbackTitle || 'Student Registration',
       fields: fields.slice(0, 8).filter(function (field) {
-        return field && text(field.key) && text(field.label);
+        return field && text(field.key) && localized(field, 'label', lang);
       }).map(function (field) {
         return {
           key: text(field.key),
-          label: text(field.label),
-          placeholder: text(field.placeholder),
+          label: localized(field, 'label', lang),
+          label_en: localized(field, 'label', 'en'),
+          label_zh: localized(field, 'label', 'zh'),
+          placeholder: localized(field, 'placeholder', lang),
+          placeholder_en: localized(field, 'placeholder', 'en'),
+          placeholder_zh: localized(field, 'placeholder', 'zh'),
           type: text(field.type || 'text'),
           options: Array.isArray(field.options) ? field.options.map(text).filter(Boolean) : [],
           required: Boolean(field.required)
@@ -26,8 +36,8 @@
   function renderFields(profile, options) {
     var opts = options || {};
     var container = typeof opts.container === 'string' ? document.getElementById(opts.container) : opts.container;
-    if (!container) return normalizeProfile(profile, opts.fallbackTitle);
-    var normalized = normalizeProfile(profile, opts.fallbackTitle);
+    if (!container) return normalizeProfile(profile, opts.fallbackTitle, opts.language);
+    var normalized = normalizeProfile(profile, opts.fallbackTitle, opts.language);
     container.innerHTML = '';
       normalized.fields.forEach(function (field) {
       var wrap = document.createElement('div');
@@ -42,7 +52,7 @@
         input = document.createElement('select');
         var blank = document.createElement('option');
         blank.value = '';
-        blank.textContent = field.placeholder || 'Please choose...';
+        blank.textContent = field.placeholder || (opts.language === 'zh' ? '请选择…' : 'Please choose...');
         input.appendChild(blank);
         field.options.forEach(function (option) {
           var opt = document.createElement('option');

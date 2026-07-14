@@ -3,6 +3,13 @@
 # 建议每次公网测试前双击一次。恢复演练见 docs/Admin_Guide.md。
 set -euo pipefail
 
+for pg_bin in /opt/homebrew/opt/postgresql@18/bin /opt/homebrew/opt/postgresql@17/bin /opt/homebrew/opt/postgresql@16/bin; do
+  if [ -d "$pg_bin" ]; then
+    export PATH="$pg_bin:$PATH"
+    break
+  fi
+done
+
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 DATABASE_URL="${STUDIOSAAS_DATABASE_URL:-postgresql://$(whoami)@localhost:5432/studiosaas_local_test}"
 

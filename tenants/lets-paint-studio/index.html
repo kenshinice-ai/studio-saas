@@ -91,6 +91,10 @@
   .btn{border-radius:2px;padding:14px 26px;font-size:13.5px;letter-spacing:.04em;transition:.3s;cursor:pointer;border:1px solid transparent;display:inline-flex;align-items:center;gap:8px}
   .btn-fill{background:var(--ink);color:var(--bg)}.btn-fill:hover{background:var(--clay)}
   .btn-line{border-color:var(--line);color:var(--ink)}.btn-line:hover{border-color:var(--ink)}
+  body.button-rounded .btn{border-radius:999px}
+  body.button-sharp .btn{border-radius:0}
+  body.font-modern .serif, body.font-modern .lat{font-family:"Noto Sans SC",system-ui,sans-serif}
+  body.font-classic .serif, body.font-classic .lat{font-family:"Noto Serif SC",serif}
   .hero-login{display:inline-block;margin-top:20px;font-size:13.5px;letter-spacing:.04em;color:var(--muted);border-bottom:1px solid var(--line);padding-bottom:2px;cursor:pointer;transition:.25s}
   .hero-login:hover{color:var(--clay);border-color:var(--clay)}
   .course .cage{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--clay);margin-top:2px}
@@ -665,6 +669,7 @@
 
 <script>
   /* ── i18n ── */
+  var currentRegistrationProfile = null;
   var i18nEls=[].slice.call(document.querySelectorAll('[data-en]'));
   i18nEls.forEach(function(e){ e.setAttribute('data-zh', e.innerHTML); });
   function setLang(l){
@@ -673,11 +678,12 @@
     try{ var r=document.getElementById('m-result'); if(r && r.style.display!=='none' && r.style.display!==''){ resetMyView(); } else if(r && getComputedStyle(r).display!=='none'){ resetMyView(); } }catch(e){}
     i18nEls.forEach(function(e){ e.innerHTML = (l==='en') ? e.getAttribute('data-en') : e.getAttribute('data-zh'); });
     document.documentElement.lang = (l==='en')?'en':'zh-CN';
-    try{ localStorage.setItem('lp_lang',l); }catch(e){}
+    try{ localStorage.setItem('lp_lang',l); localStorage.setItem('pwe_lang_lets-paint-studio',l); }catch(e){}
     document.querySelectorAll('.langtog button').forEach(function(b){
       var isZh=b.textContent.trim()==='中';
       b.classList.toggle('on', (l==='en')? !isZh : isZh);
     });
+    if(currentRegistrationProfile) renderRegistrationFields(currentRegistrationProfile);
   }
   /* ── view routing ── */
   /* v6.6.5 #1: 进入 join/my 视图时复位表单状态(否则提交/查询过一次后表单会一直隐藏) */
@@ -703,8 +709,8 @@
     else { window.scrollTo({top:0,behavior:'auto'}); }
     revealAll();
   }
-  var LANG=(function(){try{return localStorage.getItem('lp_lang')==='en'?'en':'zh'}catch(e){return 'zh'}})();
-  function T(zh,en){return LANG==='en'?en:zh;}
+  var LANG=(function(){try{return (localStorage.getItem('pwe_lang_lets-paint-studio')||localStorage.getItem('lp_lang'))==='en'?'en':'zh'}catch(e){return 'zh'}})();
+  function T(zh,en){return (window.LANG||LANG)==='en'?en:zh;}
   function setPublicText(el, text){
     if(!el || !text) return;
     el.textContent=text;
@@ -723,6 +729,7 @@
     if(el) el.style.display = visible ? '' : 'none';
   }
   function renderRegistrationFields(profile){
+    currentRegistrationProfile = profile || currentRegistrationProfile;
     var msg=document.getElementById('j-msg');
     if(!msg || !profile || !Array.isArray(profile.fields)) return;
     var box=document.getElementById('joinCustomFields');
@@ -734,7 +741,8 @@
     window.StudioSaaSPublicRegister.renderFields(profile, {
       container: box,
       labelClass: 'fld',
-      fallbackTitle: T('报名信息','Registration details')
+      fallbackTitle: T('报名信息','Registration details'),
+      language: window.LANG || LANG
     });
   }
   function collectRegistrationFields(){
@@ -756,6 +764,10 @@
     if(visual.background_color||visual.backgroundColor) document.documentElement.style.setProperty('--bg', visual.background_color||visual.backgroundColor);
     if(visual.panel_color||visual.panelColor) document.documentElement.style.setProperty('--panel', visual.panel_color||visual.panelColor);
     if(visual.text_color||visual.textColor) document.documentElement.style.setProperty('--ink', visual.text_color||visual.textColor);
+    document.body.classList.toggle('button-rounded', (visual.button_style||visual.buttonStyle)==='rounded');
+    document.body.classList.toggle('button-sharp', (visual.button_style||visual.buttonStyle)==='sharp');
+    document.body.classList.toggle('font-modern', (visual.font_mood||visual.fontMood)==='modern');
+    document.body.classList.toggle('font-classic', (visual.font_mood||visual.fontMood)==='classic');
     setPublicText(document.querySelector('.hero .eyebrow'), hero.eyebrow||b.categoryLabel);
     if(localized.hero_title)setLocalizedText(document.querySelector('.hero h1'),localized.hero_title);else setPublicText(document.querySelector('.hero h1'), hero.title);
     if(localized.hero_subtitle)setLocalizedText(document.querySelector('.hero .slogan'),localized.hero_subtitle);else setPublicText(document.querySelector('.hero .slogan'), hero.subtitle||b.slogan);
@@ -1016,7 +1028,7 @@
     document.body.removeChild(ta); cb();
   }
   /* restore language */
-  try{ var sl=localStorage.getItem('lp_lang'); if(sl==='en') setLang('en'); }catch(e){}
+  try{ var sl=localStorage.getItem('pwe_lang_lets-paint-studio')||localStorage.getItem('lp_lang'); if(sl==='en') setLang('en'); }catch(e){}
 </script>
 </body>
 </html>

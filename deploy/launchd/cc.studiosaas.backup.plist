@@ -6,8 +6,8 @@
     <string>cc.studiosaas.backup</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/llmacbookpro/Documents/studiosaas/.venv/bin/python</string>
-        <string>/Users/llmacbookpro/Documents/studiosaas/backend/scripts/backup_postgres.py</string>
+        <string>__PROJECT_ROOT__/.venv/bin/python</string>
+        <string>__PROJECT_ROOT__/backend/scripts/backup_postgres.py</string>
         <string>backup</string>
         <string>--keep</string>
         <string>14</string>
@@ -15,9 +15,9 @@
     <key>EnvironmentVariables</key>
     <dict>
         <key>STUDIOSAAS_DATABASE_URL</key>
-        <string>postgresql://llmacbookpro@localhost:5432/studiosaas_local_test</string>
+        <string>postgresql://__USER__@localhost:5432/studiosaas_local_test</string>
         <key>PATH</key>
-        <string>/opt/homebrew/bin:/usr/bin:/bin</string>
+        <string>/opt/homebrew/opt/postgresql@18/bin:/opt/homebrew/bin:/usr/bin:/bin</string>
     </dict>
     <key>StartCalendarInterval</key>
     <dict>
@@ -27,8 +27,8 @@
         <integer>0</integer>
     </dict>
     <key>StandardOutPath</key>
-    <string>/Users/llmacbookpro/.studiosaas/backup.log</string>
+    <string>__HOME__/.studiosaas/backup.log</string>
     <key>StandardErrorPath</key>
-    <string>/Users/llmacbookpro/.studiosaas/backup.log</string>
+    <string>__HOME__/.studiosaas/backup.log</string>
 </dict>
 </plist>

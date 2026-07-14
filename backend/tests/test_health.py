@@ -12,6 +12,19 @@ def test_health_returns_ok(client):
     assert payload["service"] == "PWE Studio SaaS API"
 
 
+def test_industry_presets_are_complete_and_bilingual(client):
+    response = client.get("/v1/industry-presets")
+    assert response.status_code == 200
+    presets = response.get_json()["presets"]
+    assert set(presets) == {"art", "music", "math", "dance", "language", "sports", "game", "general"}
+    assert len({preset["visualTheme"]["accent_color"] for preset in presets.values()}) == 8
+    for preset in presets.values():
+        assert preset["labelZh"]
+        assert preset["localizedCopy"]["hero_title"]["zh"]
+        assert preset["localizedCopy"]["hero_title"]["en"]
+        assert len(preset["registrationProfile"]["fields"]) >= 3
+
+
 def test_admin_mutation_requires_auth(client):
     response = client.post(
         "/v1/admin/tenants",
@@ -58,6 +71,8 @@ def test_super_admin_is_commercial_control_plane(client):
     assert "Trials Ending in 7 Days" in html
     assert "Open Studio Website" in html
     assert "Open Quick Registration" in html
+    assert "Use More → Status for audited lifecycle actions." in html
+    assert "Additional entitlements (JSON)" in html
 
 
 def test_pilot_refuses_missing_legacy_cms_password(monkeypatch, tmp_path):
@@ -188,3 +203,60 @@ def test_bootstrap_schema_contains_all_post_v1_structures():
         "front_desk",
     ):
         assert required in schema
+
+
+def test_lifecycle_rules_reject_incompatible_commercial_states():
+    """Tenant and subscription state must move as one commercial lifecycle."""
+
+    from studiosaas.lifecycle import (
+        canonical_subscription_status,
+        validate_tenant_subscription_pair,
+        validate_tenant_transition,
+    )
+
+    validate_tenant_transition("onboarding", "active")
+    validate_tenant_subscription_pair("active", "active")
+    assert canonical_subscription_status("past_due") == "past_due"
+    with pytest.raises(ValueError, match="cannot move"):
+        validate_tenant_transition("active", "lead")
+    with pytest.raises(ValueError, match="incompatible"):
+        validate_tenant_subscription_pair("active", "cancelled")
+
+
+def test_registration_state_machine_requires_a_real_conversion_path():
+    """Closed registrations cannot jump back into arbitrary funnel states."""
+
+    from studiosaas.lifecycle import validate_registration_transition
+
+    validate_registration_transition("pending", "contacted")
+    validate_registration_transition("contacted", "converted")
+    with pytest.raises(ValueError, match="cannot move"):
+        validate_registration_transition("converted", "trial_booked")
+
+
+def test_registration_routes_do_not_mutate_database_schema_at_request_time():
+    """All registration DDL belongs in migrations, never public/API requests."""
+
+    from pathlib import Path
+
+    source = (Path(__file__).resolve().parents[1] / "studiosaas/api_v1.py").read_text(encoding="utf-8")
+    assert "_ensure_registration_status_constraint" not in source
+    assert 'ALTER TABLE registrations ADD COLUMN IF NOT EXISTS' not in source
+
+
+def test_tenant_archive_snapshot_covers_every_tenant_owned_table():
+    """A permanent deletion must retain every tenant-scoped data domain."""
+
+    from studiosaas.services.tenant_archive import SNAPSHOT_TABLES
+
+    snapshotted = {table for _filename, table, _predicate in SNAPSHOT_TABLES}
+    required = {
+        "tenants", "users", "memberships", "password_setup_tokens", "students",
+        "courses", "packages", "class_schedules", "class_schedule_students",
+        "credit_accounts", "credit_transactions", "attendance_sessions",
+        "registrations", "media_assets", "portfolio_items", "share_tokens",
+        "email_templates", "notification_logs", "audit_logs", "subscriptions",
+        "tenant_usage", "tenant_brand_drafts", "tenant_brand_versions",
+        "tenant_archives",
+    }
+    assert required <= snapshotted

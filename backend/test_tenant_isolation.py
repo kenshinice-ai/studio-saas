@@ -91,8 +91,13 @@ def client_for(email: str):
     """Return a logged-in Flask test client for the given local fixture user."""
 
     client = server.app.test_client()
-    password = CURRENT_CREDENTIALS.get(email.lower(), PASSWORD)
-    response = client.post("/v1/auth/login", json={"email": email, "password": password})
+    candidates = [CURRENT_CREDENTIALS.get(email.lower()), PASSWORD]
+    response = None
+    for password in dict.fromkeys(candidate for candidate in candidates if candidate):
+        response = client.post("/v1/auth/login", json={"email": email, "password": password})
+        if response.status_code == 200:
+            break
+    assert response is not None
     check(f"login succeeds for {email}", response.status_code == 200, f"got {response.status_code}")
     return client
 

@@ -49,6 +49,9 @@ def test_new_tenant_workspace_generates_public_surface_files(tmp_path):
     assert "/_legacy/register" not in register_html
     assert "customFields" in register_html
     assert "privacyConsent: true" in register_html
+    assert 'data-language="zh"' in register_html
+    assert 'data-language="en"' in register_html
+    assert "pwe_lang_${TENANT_SLUG}" in register_html
     portal_html = (workspace / "index.html").read_text(encoding="utf-8")
     assert "heroProfile" in portal_html
     assert "websiteProfile" in portal_html
@@ -109,6 +112,8 @@ def test_existing_register_surfaces_are_lightweight_lead_capture_pages(client):
         assert "source: 'standalone_register'" in html
         assert "privacyConsent: true" in html
         assert "Quick Registration" in html
+        assert 'data-zh="提交报名"' in html
+        assert "language: currentLanguage" in html
 
 
 def test_portal_is_primary_registration_source(client):
@@ -119,6 +124,19 @@ def test_portal_is_primary_registration_source(client):
         assert "source:'portal'" in html
         assert "privacyConsent:true" in html
         assert "utm_campaign" in html
+
+
+def test_existing_portals_apply_published_visual_theme_and_localized_copy(client):
+    """Every file-backed portal must consume the fields shown in Studio Admin."""
+
+    for slug in EXISTING_TENANTS:
+        html = client.get(f"/{slug}").get_data(as_text=True)
+        assert "button-rounded" in html, slug
+        assert "button-sharp" in html, slug
+        assert "visual.button_style||visual.buttonStyle" in html, slug
+        assert "localized.hero_title" in html, slug
+        assert "localized.primary_cta" in html, slug
+        assert "language: window.LANG || LANG" in html, slug
 
 
 def test_studio_admin_is_brand_publication_only(client):

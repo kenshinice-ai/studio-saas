@@ -5,12 +5,41 @@
 
 set -euo pipefail
 
+for pg_bin in /opt/homebrew/opt/postgresql@18/bin /opt/homebrew/opt/postgresql@17/bin /opt/homebrew/opt/postgresql@16/bin; do
+  if [ -d "$pg_bin" ]; then
+    export PATH="$pg_bin:$PATH"
+    break
+  fi
+done
+
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 PYTHON="$PROJECT_ROOT/.venv/bin/python"
 DATABASE_URL="${STUDIOSAAS_DATABASE_URL:-postgresql://$(whoami)@localhost:5432/studiosaas_local_test}"
 PORT=8899
 LOG_DIR="$HOME/.studiosaas"
 mkdir -p "$LOG_DIR"
+
+command -v cloudflared >/dev/null 2>&1 || {
+  echo "缺少 cloudflared。请先运行: brew install cloudflared" >&2
+  exit 1
+}
+
+CF_CONFIG=""
+for candidate in "$HOME/.cloudflared/config.yml" "$HOME/.cloudflared/config.yaml"; do
+  if [ -f "$candidate" ]; then
+    CF_CONFIG="$candidate"
+    break
+  fi
+done
+CF_CREDENTIALS="$(find "$HOME/.cloudflared" -maxdepth 1 -type f -name '*.json' -print -quit 2>/dev/null || true)"
+if [ -z "$CF_CONFIG" ] && [ -z "$CF_CREDENTIALS" ]; then
+  echo "尚未配置 Cloudflare Tunnel。请先运行以下一次性命令：" >&2
+  echo "  cloudflared tunnel login" >&2
+  echo "  cloudflared tunnel create studiosaas" >&2
+  echo "  cloudflared tunnel route dns studiosaas studiosaas.cc.cd" >&2
+  echo "然后重新运行本启动器。" >&2
+  exit 1
+fi
 
 echo "==> 检查 PostgreSQL"
 pg_isready -h localhost -p 5432 >/dev/null || {
@@ -28,7 +57,12 @@ pkill -f "cloudflared tunnel run studiosaas" 2>/dev/null || true
 sleep 1
 
 echo "==> 启动 Cloudflare 隧道（日志: $LOG_DIR/cloudflared.log）"
-/opt/homebrew/bin/cloudflared tunnel run studiosaas >>"$LOG_DIR/cloudflared.log" 2>&1 &
+if [ -n "$CF_CONFIG" ]; then
+  /opt/homebrew/bin/cloudflared tunnel --config "$CF_CONFIG" run studiosaas >>"$LOG_DIR/cloudflared.log" 2>&1 &
+else
+  /opt/homebrew/bin/cloudflared tunnel --url "http://localhost:$PORT" \
+    run --credentials-file "$CF_CREDENTIALS" studiosaas >>"$LOG_DIR/cloudflared.log" 2>&1 &
+fi
 TUNNEL_PID=$!
 trap 'kill "$TUNNEL_PID" 2>/dev/null || true' EXIT
 

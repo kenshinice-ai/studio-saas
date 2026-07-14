@@ -100,7 +100,13 @@
 - [ ] Super Admin tenant details hide Archive Path for active tenants and show it for archived tenants
 - [ ] Super Admin hides test fixture tenants by default; "Show test tenants" reveals them with a badge
 - [ ] Super Admin quick links disable correctly for paused/archived/deleted tenants and missing admin login
+- [ ] Super Admin ordinary edit cannot directly jump tenant/subscription lifecycle states; More → Status requires explicit confirmation
+- [ ] Super Admin plan editor exposes named entitlements and preserves additional JSON feature flags
 - [ ] Public gallery returns only items with recorded publication consent
+- [ ] All eight industry presets return distinct accent colours and complete Chinese/English hero and registration copy
+- [ ] Studio Admin changing category does not overwrite custom copy until Apply Category Preset is confirmed
+- [ ] Studio Admin warns before leaving with unsaved changes and previews both Chinese and English
+- [ ] Portal and Quick Registration share `pwe_lang_<slug>` and render localized custom registration labels
 
 ### 7. Performance
 
@@ -129,7 +135,7 @@ These items activate once P3-02 lands; they are **not** blockers for local pilot
 3. Open Super Admin: `http://localhost:8899/super-admin`, log in as `admin@studiosaas.local`
 4. Open a tenant: `http://localhost:8899/lets-paint-studio` and `/lets-paint-studio/studio-admin`
 5. Submit a registration on `/lets-paint-studio/register`, confirm it appears in the admin pending queue
-6. Run tests: `cd backend && ../.venv/bin/python test_cms.py`
+6. Run the complete gate: `bash backend/scripts/verify_local.sh`
 
 ---
 

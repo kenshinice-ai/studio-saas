@@ -1256,6 +1256,7 @@
     let editingPlanCode = '';
     let selectedTenantId = '';
     let tenantPage = 0;
+    let attentionTenantFilter = '';
     const tenantPageSize = 10;
     let isLoading = false;
     let currentUser = null;
@@ -1304,16 +1305,19 @@
 	    const dateOnly = (value) => value ? String(value).slice(0, 10) : '';
 	    const money = (value) => `AUD ${Number(value || 0)}`;
 	    const percent = (value, limit) => limit ? Math.min(100, Math.round((Number(value || 0) / Number(limit || 1)) * 100)) : 0;
-	    const INDUSTRY_PRESETS = {
-	      art: { label: 'Art', slogan: 'You deserve to enjoy life more.' },
-	      music: { label: 'Music', slogan: 'Every student deserves a rhythm of their own.' },
-	      math: { label: 'Math', slogan: 'Build confidence through clear thinking.' },
-	      dance: { label: 'Dance', slogan: 'Move with confidence, discipline, and joy.' },
-	      language: { label: 'Language', slogan: 'Grow a voice for the world.' },
-	      sports: { label: 'Sports', slogan: 'Train with purpose and grow with every session.' },
-	      game: { label: 'Game', slogan: 'Play, think, and level up with purpose.' },
-	      general: { label: 'General', slogan: 'Learn, grow, and feel confident.' }
+	    let INDUSTRY_PRESETS = {
+	      general: { label: 'General', labelZh: '通用', slogan: 'A learning path that fits every student.' }
 	    };
+	    async function loadIndustryPresets() {
+	      try {
+	        const response = await fetch('/v1/industry-presets', { credentials: 'same-origin' });
+	        if (!response.ok) throw new Error(`Preset request failed (${response.status})`);
+	        const data = await response.json();
+	        if (data.presets && Object.keys(data.presets).length) INDUSTRY_PRESETS = data.presets;
+	      } catch (error) {
+	        console.warn('Using the generic industry preset.', error);
+	      }
+	    }
 	    const categoryOptions = (selected = 'general') => Object.entries(INDUSTRY_PRESETS)
 	      .map(([key, preset]) => `<option value="${key}" ${key === selected ? 'selected' : ''}>${preset.label}</option>`)
 	      .join('');
@@ -1766,7 +1770,7 @@
             <div class="form-group"><label>Slug</label><input id="m_tenantSlug" value="${esc(t.slug)}" disabled><small>Read-only after creation because it affects URLs, workspace paths, and media paths.</small></div>
             <div class="form-group"><label>Category</label><select id="m_tenantCategory">${categoryOptions(t.category || 'general')}</select></div>
             <div class="form-group"><label>Slogan</label><input id="m_tenantSlogan" value="${esc(t.slogan || presetSlogan(t.category || 'general'))}"></div>
-            <div class="form-group"><label>Tenant Status</label><select id="m_tenantStatus">${['lead','trial','onboarding','active','past_due','paused','cancelled','archived'].map(s => `<option ${s===t.status?'selected':''}>${s}</option>`).join('')}</select></div>
+            <div class="form-group"><label>Tenant Status</label><input id="m_tenantStatus" value="${esc(t.status)}" disabled><small>Use More → Status for audited lifecycle actions.</small></div>
             <div class="form-group"><label>Plan</label><select id="m_tenantPlan">${plans.map(p => `<option value="${p.code}" ${p.code===t.plan_code?'selected':''}>${p.name}</option>`).join('')}</select></div>
           </div>
         </details>
@@ -1813,7 +1817,7 @@
         <details class="form-section">
           <summary>Subscription</summary>
           <div class="form-section-body form-grid">
-            <div class="form-group"><label>Subscription Status</label><select id="m_subscriptionStatus">${['trialing','active','past_due','paused','cancelled','archived'].map(s => `<option ${s===(t.subscription_status||'')?'selected':''}>${s}</option>`).join('')}</select></div>
+            <div class="form-group"><label>Subscription Status</label><input id="m_subscriptionStatus" value="${esc(t.subscription_status || '')}" disabled><small>Changed together with tenant lifecycle state.</small></div>
             <div class="form-group"><label>Subscription Start</label><input id="m_startsAt" type="date" value="${dateOnly(t.starts_at)}"></div>
             <div class="form-group"><label>Current Period Ends</label><input id="m_currentPeriodEndsAt" type="date" value="${dateOnly(t.current_period_ends_at)}"></div>
             <div class="form-group"><label>Cancellation / Expiry Date</label><input id="m_endsAt" type="date" value="${dateOnly(t.ends_at)}"></div>
@@ -1839,7 +1843,7 @@
 	      const footerHtml = `<button onclick="saveTenantModal()" class="btn-primary">Save Changes</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
 	      openModal(`Edit ${t.name}`, formHtml, footerHtml);
 	      $('m_tenantCategory').addEventListener('change', () => {
-	        $('m_tenantSlogan').value = presetSlogan($('m_tenantCategory').value);
+	        if (!$('m_tenantSlogan').value.trim()) $('m_tenantSlogan').value = presetSlogan($('m_tenantCategory').value);
 	      });
       $('copyOwnerToContactBtn').addEventListener('click', () => { $('m_contactEmail').value = $('m_ownerEmail').value.trim(); });
       $('copyOwnerToBillingBtn').addEventListener('click', () => { $('m_billingEmail').value = $('m_ownerEmail').value.trim(); });
@@ -2252,7 +2256,13 @@
       const showTests = $('showTestTenants')?.checked || false;
       return tenants.filter((t) => {
 	        const haystack = `${t.name} ${t.slug} ${t.status} ${t.plan_code} ${t.subscription_status || ''} ${t.category || ''} ${t.owner_email || ''} ${t.studio_admin_email || ''}`.toLowerCase();
-        return (showTests || !isTestTenant(t)) && (!q || haystack.includes(q)) && (!status || t.status === status) && (!plan || t.plan_code === plan) && (!category || (t.category || 'general') === category);
+        const trialEnds = t.trial_ends_at ? new Date(t.trial_ends_at).getTime() : 0;
+        const now = Date.now();
+        const attentionMatch = !attentionTenantFilter
+          || (attentionTenantFilter === 'past_due' && (t.status === 'past_due' || t.subscription_status === 'past_due'))
+          || (attentionTenantFilter === 'onboarding' && t.status === 'onboarding')
+          || (attentionTenantFilter === 'trial_ending' && trialEnds >= now && trialEnds <= now + 7 * 86400000);
+        return attentionMatch && (showTests || !isTestTenant(t)) && (!q || haystack.includes(q)) && (!status || t.status === status) && (!plan || t.plan_code === plan) && (!category || (t.category || 'general') === category);
       });
     }
 
@@ -2315,6 +2325,41 @@
     }
 
     // Plan form handlers
+    const KNOWN_PLAN_FEATURES = [
+      ['public_registration', 'Public registration'],
+      ['portfolio', 'Student portfolio'],
+      ['email_templates', 'Email templates'],
+      ['data_export', 'Data export'],
+      ['priority_support', 'Priority support']
+    ];
+
+    function planFeatureEditor(features = {}) {
+      const known = new Set(KNOWN_PLAN_FEATURES.map(([key]) => key));
+      const additional = Object.fromEntries(Object.entries(features || {}).filter(([key]) => !known.has(key)));
+      return `
+        <fieldset class="form-section" style="padding:14px;">
+          <legend style="padding:0 6px;font-weight:800;">Entitlements</legend>
+          <div class="form-grid">
+            ${KNOWN_PLAN_FEATURES.map(([key, label]) => `<label style="display:flex;align-items:center;gap:9px;"><input type="checkbox" data-plan-feature="${key}" style="width:auto;" ${features[key] ? 'checked' : ''}> ${label}</label>`).join('')}
+          </div>
+        </fieldset>
+        <div class="form-group"><label>Additional entitlements (JSON)</label><textarea id="m_planFeaturesAdvanced" rows="3">${esc(JSON.stringify(additional, null, 2))}</textarea><small>Only use this for feature flags not listed above.</small></div>
+      `;
+    }
+
+    function collectPlanFeatures() {
+      let additional;
+      try { additional = JSON.parse($('m_planFeaturesAdvanced').value || '{}'); }
+      catch { throw new Error('Additional entitlements must be valid JSON.'); }
+      document.querySelectorAll('[data-plan-feature]').forEach((input) => { additional[input.dataset.planFeature] = input.checked; });
+      return additional;
+    }
+
+    function enabledPlanFeatures(plan) {
+      const enabled = KNOWN_PLAN_FEATURES.filter(([key]) => Boolean((plan.features || {})[key])).map(([, label]) => label);
+      return enabled.length ? enabled.join(', ') : 'No enabled entitlements';
+    }
+
     function resetPlanForm() {
       editingPlanCode = '';
       $('modalTitle').textContent = 'Add Plan';
@@ -2327,7 +2372,7 @@
           <div class="form-group"><label>Users</label><input id="m_planUsers" type="number" min="1" value="12"></div>
           <div class="form-group"><label>Storage (MB)</label><input id="m_planStorage" type="number" min="1" value="51200"></div>
         </div>
-        <div class="form-group"><label>Features JSON</label><textarea id="m_planFeatures" rows="3">{"public_registration":true,"portfolio":true}</textarea></div>
+        ${planFeatureEditor({ public_registration: true, portfolio: true })}
       `;
       const footerHtml = `<button onclick="savePlanModal()" class="btn-primary">Save Plan</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
       openModal('Add Plan', bodyHtml, footerHtml);
@@ -2346,7 +2391,7 @@
           <div class="form-group"><label>Users</label><input id="m_planUsers" type="number" min="1" value="${p.user_limit}"></div>
           <div class="form-group"><label>Storage (MB)</label><input id="m_planStorage" type="number" min="1" value="${p.storage_limit_mb}"></div>
         </div>
-        <div class="form-group"><label>Features JSON</label><textarea id="m_planFeatures" rows="3">${JSON.stringify(p.features || {}, null, 2)}</textarea></div>
+        ${planFeatureEditor(p.features || {})}
       `;
       const footerHtml = `<button onclick="savePlanModal()" class="btn-primary">Save Plan</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
       openModal(`Edit ${p.name}`, bodyHtml, footerHtml);
@@ -2354,8 +2399,8 @@
 
     async function savePlanModal() {
       let features;
-      try { features = JSON.parse($('m_planFeatures').value || '{}'); }
-      catch { showToast('Features must be valid JSON.', 'error'); return; }
+      try { features = collectPlanFeatures(); }
+      catch (error) { showToast(error.message, 'error'); return; }
       const payload = {
         code: $('m_planCode').value,
         name: $('m_planName').value,
@@ -2411,8 +2456,28 @@
         if (Number(usage.usage.past_due_tenants || 0)) attentionItems.push(`${usage.usage.past_due_tenants} tenant(s) need payment follow-up`);
         if (Number(usage.usage.trials_ending_7d || 0)) attentionItems.push(`${usage.usage.trials_ending_7d} trial(s) end within 7 days`);
         if (Number(usage.usage.onboarding_tenants || 0)) attentionItems.push(`${usage.usage.onboarding_tenants} tenant(s) are still onboarding`);
+        attention.replaceChildren();
         attention.classList.toggle('empty-state', !attentionItems.length);
-        attention.textContent = attentionItems.length ? attentionItems.join(' · ') : 'No immediate commercial risks.';
+        if (!attentionItems.length) {
+          attention.textContent = 'No immediate commercial risks.';
+        } else {
+          const actions = [
+            [Number(usage.usage.past_due_tenants || 0), 'past_due', 'payment follow-up'],
+            [Number(usage.usage.trials_ending_7d || 0), 'trial_ending', 'trials ending soon'],
+            [Number(usage.usage.onboarding_tenants || 0), 'onboarding', 'onboarding incomplete']
+          ].filter(([count]) => count > 0);
+          const row = document.createElement('div');
+          row.className = 'action-row';
+          actions.forEach(([count, filter, label]) => addActionButton(row, `${count} · ${label}`, 'btn-warning btn-sm', () => {
+            attentionTenantFilter = filter;
+            $('statusFilter').value = '';
+            tenantPage = 0;
+            renderTenants();
+            location.hash = 'tenants';
+            setActiveNav('#tenants');
+          }));
+          attention.appendChild(row);
+        }
         const registrations30d = Number(usage.usage.registrations_30d || 0);
         const converted30d = Number(usage.usage.converted_registrations_30d || 0);
         const conversionRate = registrations30d ? Math.round((converted30d / registrations30d) * 100) : 0;
@@ -2432,7 +2497,7 @@
             code.textContent = text(p.code);
             nameCell.append(strong, document.createElement('br'), code);
             addCell(row, money(p.monthly_price_aud));
-            addCell(row, `${text(p.student_limit)} students\n${text(p.user_limit)} users\n${text(p.storage_limit_mb)} MB`);
+            addCell(row, `${text(p.student_limit)} students\n${text(p.user_limit)} users\n${text(p.storage_limit_mb)} MB\n${enabledPlanFeatures(p)}`);
             const actions = document.createElement('div');
             actions.className = 'action-row';
             addActionButton(actions, 'Edit', 'btn-secondary btn-sm', () => editPlan(p.code));
@@ -2482,6 +2547,7 @@
     $('changePasswordBtn').addEventListener('click', openChangePasswordModal);
     $('refreshBtn').addEventListener('click', refresh);
     ['tenantSearch','statusFilter','planFilter','categoryFilter','showTestTenants'].forEach((id) => $(id).addEventListener('input', () => {
+      attentionTenantFilter = '';
       tenantPage = 0;
       renderTenants();
     }));
@@ -2508,6 +2574,7 @@
       $('planFilter').value = '';
       $('categoryFilter').value = '';
       $('showTestTenants').checked = false;
+      attentionTenantFilter = '';
       tenantPage = 0;
       renderTenants();
     });
@@ -2593,7 +2660,7 @@
 
     // Initial load
     setAuthState(null);
-    checkSession();
+    loadIndustryPresets().then(checkSession);
   </script>
 </body>
 </html>

@@ -32,6 +32,8 @@ class TenantStatus(StrEnum):
     PAST_DUE = "past_due"
     PAUSED = "paused"
     CANCELLED = "cancelled"
+    ARCHIVED = "archived"
+    DELETED = "deleted"
 
 
 @dataclass(frozen=True)

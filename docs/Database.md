@@ -89,10 +89,10 @@ These are the values enforced by the database today. Code, seeds, UI, and docs m
 
 | Concept | Column | Values |
 |---|---|---|
-| Tenant status | `tenants.status` | `trial`, `active`, `past_due`, `paused`, `cancelled` |
-| Subscription status | `subscriptions.status` | `trialing`, `active`, `past_due`, `paused`, `cancelled` |
+| Tenant status | `tenants.status` | `lead`, `trial`, `onboarding`, `active`, `past_due`, `paused`, `cancelled`, `archived`, `deleted` |
+| Subscription status | `subscriptions.status` | `trialing`, `active`, `past_due`, `paused`, `cancelled`, `archived` |
 | User status | `users.status` | `active`, `disabled` |
-| Membership role | `memberships.role` | `super_admin`, `owner`, `staff`, `parent` |
+| Membership role | `memberships.role` | `super_admin`, `owner`, `manager`, `teacher`, `front_desk`, `staff`, `parent` |
 | Membership status | `memberships.status` | `active`, `invited`, `disabled` |
 | Student status | `students.status` | `active`, `inactive`, `trial`, `archived` |
 | Credit transaction | `credit_transactions.transaction_type` | `purchase`, `consume`, `adjustment`, `refund`, `expire`, `migration` |
@@ -105,8 +105,9 @@ These are the values enforced by the database today. Code, seeds, UI, and docs m
 Resolved / accepted decisions (2026-07-03, P0-01 and P0-07):
 
 - Python `Role` enum now matches the CHECK constraint exactly. Platform admins are memberships with `tenant_id IS NULL`, unique per user via the `memberships_platform_user_uniq` partial index (migration 0002). Per-tenant `super_admin` rows remain honoured for backward compatibility.
-- `tenants.status` deliberately has **no** `archived` value — pause/cancel cover current lifecycle needs. Extend via a migration file when the product actually needs archival.
-- Tenant `trial` vs subscription `trialing` naming drift is **accepted**: they are independent enums, both validated in `api_v1.py` (`TENANT_STATUSES`, `SUBSCRIPTION_STATUSES`) and used correctly by the Super Admin UI.
+- Tenant, subscription, and registration changes are validated by the canonical transition maps in `studiosaas/lifecycle.py`; request handlers cannot invent incompatible state pairs.
+- Archive, restore, and permanent deletion remain dedicated audited services rather than ordinary status edits. Archive snapshots cover all tenant-owned tables before destructive work begins.
+- Tenant `trial` vs subscription `trialing` naming drift remains intentional, but valid combinations are enforced as one commercial lifecycle.
 - `media_assets.visibility` stays `private`/`public_token` until the media service (P1-03) introduces richer sharing.
 
 ### 3.1 Credit Transaction Input Mapping
