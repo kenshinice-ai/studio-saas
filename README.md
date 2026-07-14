@@ -264,3 +264,12 @@ curl -i -X POST http://localhost:8899/v1/admin/tenants \
 The product grows from a working local CMS → stable multi-tenant pilot platform → polished creative studio SaaS, without losing data integrity, tenant isolation, or operational clarity.
 
 Do not add payments, complex billing, or enterprise features before pilot data safety and tenant isolation are stable.
+
+---
+
+## 11. License
+
+Copyright 2026 Lee Liu.
+
+Licensed under the [Apache License, Version 2.0](LICENSE). See [NOTICE](NOTICE)
+for attribution information.
