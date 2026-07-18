@@ -49,7 +49,7 @@ A target architecture (modular services: Auth/Tenant/Student/Course/Credit/Atten
 
 | Surface | URL | Purpose |
 |---|---|---|
-| Portal (门户) | `/<slug>` | Public site: courses, gallery, FAQ, contact, in-page enrolment + student area (balance/portfolio by name+phone) |
+| Portal (门户) | `/<slug>` | Public site: courses, gallery, FAQ, contact, in-page enrolment + private student area (name + mobile + studio-issued 6-digit access code) |
 | CMS | `/<slug>/cms` | Staff daily surface: students, roster, check-ins, credits, payments/refunds, logs, analytics, portfolio, and registration review |
 | Studio Admin | `/<slug>/studio-admin` | Website/brand console: logo, colours, bilingual public copy, registration fields, preview, draft, publish, and version restore (alias: `/<slug>/cms/studio-admin` redirects here) |
 | Register | `/<slug>/register` | Standalone public registration form |
@@ -85,7 +85,7 @@ Root `/register` is intentionally closed (404) — registration belongs to tenan
     ├── server.py                 # Flask application (~1560 lines)
     ├── requirements.txt
     ├── pytest.ini
-    ├── db/schema_v1.sql          # Full schema (25 tables; migrations through 0014)
+    ├── db/schema_v1.sql          # Historical bootstrap schema; ordered migrations are canonical (through 0017)
     ├── studiosaas/
     │   ├── api_v1.py             # All API routes (~5700 lines — split planned, v7 P2-1)
     │   ├── auth.py               # Auth helpers and decorators
@@ -165,12 +165,14 @@ Privileged pilot accounts and the separate legacy CMS login use unique generated
 ```bash
 export STUDIOSAAS_DATABASE_URL="postgresql://localhost/studiosaas_local_test"
 export STUDIOSAAS_ENV="local"
-export STUDIOSAAS_PORT="8899"
-export STUDIOSAAS_SECRET_KEY="local-dev-secret-change-me"
-export STUDIOSAAS_MEDIA_ROOT="./media"
+export PORT="8899"
+export STUDIOSAAS_API_KEY="independent-random-secret-at-least-32-characters"
+export STUDIOSAAS_SESSION_SECRET="different-random-secret-at-least-32-characters"
+export STUDIOSAAS_MEDIA_DIR="./media"
+export CMS_DATA_DIR="/private/tmp/studiosaas_cms_data"
 ```
 
-Production must not rely on local secret files (`backend/.api_secret`, `backend/.cms_password` are local-only and git-ignored).
+Production must not rely on local secret files (`backend/.api_secret`, `backend/.session_secret`, `backend/.cms_password` are local-only and git-ignored). Production startup requires independent API and session secrets and rejects equal values. See `docs/Release_Runbook.md` for the complete release configuration and gate.
 
 ---
 
@@ -210,6 +212,9 @@ bash scripts/package_release.sh
 
 # Full local verification
 bash backend/scripts/verify_local.sh
+
+# Release gate: PostgreSQL checks may not be skipped
+STUDIOSAAS_REQUIRE_POSTGRES=1 bash backend/scripts/verify_local.sh
 ```
 
 Manual checks with the server running:
@@ -247,6 +252,7 @@ curl -i -X POST http://localhost:8899/v1/admin/tenants \
 | `docs/Development_Roadmap.md` | Phases 0–5, target-stack adoption mapping |
 | `docs/QA_Checklist.md` | Pre-release checklist |
 | `docs/Admin_Guide.md` | Platform ops: setup, backup, troubleshooting |
+| `docs/Release_Runbook.md` | Provider-neutral migration, media backfill, release, rollback, and recovery gate |
 | `docs/Deployment.md` | Deployment: local → Cloudflare Tunnel (`studiosaas.cc.cd`) → AWS |
 | `docs/Design_System.md` | UI tokens and component standards |
 

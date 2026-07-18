@@ -53,7 +53,7 @@ Purpose: Phased development plan, milestones, current status, and deployment tar
 |---|---|---|
 | Multi-tenant routing | ✅ | Path, header, subdomain resolution |
 | Tenant workspace generation | ✅ | From `tenant-template/` |
-| PostgreSQL schema v1 | ✅ | 25 tables defined; bootstrap synchronized through 0014 |
+| PostgreSQL schema evolution | ✅ | Ordered migrations through 0017; private student sessions, safe media variants, daily roster and portal analytics included |
 | Super Admin dashboard | ✅ | Create/pause/resume tenants |
 | Studio Admin login | ✅ | Per-tenant website/brand console |
 | Studio CMS | ✅ | Legacy bridge with tenant routing |

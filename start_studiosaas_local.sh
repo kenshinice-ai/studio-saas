@@ -147,8 +147,11 @@ if ! psql -h "$DB_HOST" -p "$DB_PORT" -d "$DB_NAME" -c "select 1" >/dev/null 2>&
   createdb -h "$DB_HOST" -p "$DB_PORT" "$DB_NAME"
 fi
 
-say "Applying schema v1"
-psql -h "$DB_HOST" -p "$DB_PORT" -d "$DB_NAME" -v ON_ERROR_STOP=1 -f "$APP_ROOT/db/schema_v1.sql"
+say "Applying ordered database migrations"
+(
+  cd "$APP_ROOT"
+  STUDIOSAAS_DATABASE_URL="$DATABASE_URL" "$PYTHON" scripts/run_migrations.py
+)
 
 say "Seeding randomized demo data"
 (
@@ -158,6 +161,15 @@ say "Seeding randomized demo data"
   printf "\nWarning: demo data seed failed. The web server will still start.\n" >&2
   printf "Run the seed manually after checking PostgreSQL:\n" >&2
   printf "  cd %s && STUDIOSAAS_DATABASE_URL=%s %s scripts/seed_random_demo_data.py --students-per-tenant %s\n" "$APP_ROOT" "$DATABASE_URL" "$PYTHON" "$STUDENTS_PER_TENANT" >&2
+}
+
+say "Generating privacy-safe media variants"
+(
+  cd "$APP_ROOT"
+  STUDIOSAAS_DATABASE_URL="$DATABASE_URL" "$PYTHON" scripts/backfill_media_variants.py
+) || {
+  printf "\nWarning: one or more existing images could not be prepared for safe display.\n" >&2
+  printf "The server will start, but affected public images stay unavailable until the backfill succeeds.\n" >&2
 }
 
 say "Ensuring local Super Admin login"

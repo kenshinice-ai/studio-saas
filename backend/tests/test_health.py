@@ -46,6 +46,15 @@ def test_tenant_student_manifest_uses_tenant_start_url(client):
     assert payload["scope"] == "/lets-paint-studio/"
 
 
+def test_tenant_portal_manifest_stays_inside_tenant_scope(client):
+    response = client.get("/lets-paint-studio/manifest-portal.json")
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["id"] == "/lets-paint-studio/"
+    assert payload["start_url"] == "/lets-paint-studio/"
+    assert payload["scope"] == "/lets-paint-studio/"
+
+
 def test_tenant_cms_manifest_uses_tenant_cms_start_url(client):
     response = client.get("/lets-paint-studio/manifest-cms.json")
     assert response.status_code == 200
@@ -84,6 +93,32 @@ def test_pilot_refuses_missing_legacy_cms_password(monkeypatch, tmp_path):
     monkeypatch.setattr(server, "PW_FILE", str(tmp_path / ".cms_password"))
     with pytest.raises(RuntimeError, match="rotate_pilot_credentials.py"):
         server._get_pw_hash()
+
+
+def test_production_refuses_missing_persistence_configuration(monkeypatch):
+    """Production must fail before serving when critical persistence paths are implicit."""
+
+    import server
+
+    monkeypatch.setattr(server, "RUNTIME_ENV", "production")
+    for name in ("STUDIOSAAS_DATABASE_URL", "DATABASE_URL", "STUDIOSAAS_MEDIA_DIR", "CMS_DATA_DIR"):
+        monkeypatch.delenv(name, raising=False)
+    with pytest.raises(RuntimeError, match="Production configuration is incomplete"):
+        server._validate_production_configuration()
+
+
+def test_production_refuses_missing_legacy_admin_password(monkeypatch, tmp_path):
+    """Explicit production paths are insufficient without the rotated CMS credential."""
+
+    import server
+
+    monkeypatch.setattr(server, "RUNTIME_ENV", "production")
+    monkeypatch.setattr(server, "PW_FILE", str(tmp_path / ".cms_password"))
+    monkeypatch.setenv("STUDIOSAAS_DATABASE_URL", "postgresql://example.invalid/studiosaas")
+    monkeypatch.setenv("STUDIOSAAS_MEDIA_DIR", str(tmp_path / "media"))
+    monkeypatch.setenv("CMS_DATA_DIR", str(tmp_path / "data"))
+    with pytest.raises(RuntimeError, match="rotate_pilot_credentials.py"):
+        server._validate_production_configuration()
 
 
 def test_tenant_creation_requires_explicit_admin_password():

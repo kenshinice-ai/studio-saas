@@ -13,6 +13,7 @@ import sys
 import tempfile
 import importlib.util
 import hashlib
+import base64
 from io import BytesIO
 from pathlib import Path
 from typing import Any
@@ -53,7 +54,9 @@ server.app.test_client_class = _CsrfTestClient
 TENANT_A = seed_fixtures.TENANT_A
 TENANT_B = seed_fixtures.TENANT_B
 PASSWORD = seed_fixtures.PASSWORD
-PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 64
+PNG = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEklEQVR4nGOsCDjBwMDAxAAGABKaAZSwwH1lAAAAAElFTkSuQmCC"
+)
 
 passed: list[str] = []
 failed: list[str] = []
@@ -806,6 +809,22 @@ def main() -> int:
         f"got {missing_consent_upload.status_code}",
     )
 
+    consent_response = owner_a.put(
+        f"/s/{TENANT_A}/v1/students/{fixtures['student_a']}/publication-consent",
+        json={
+            "consentBy": "Isolation Parent",
+            "relationship": "guardian",
+            "consentMethod": "written",
+            "noticeVersion": "isolation-v1",
+            "note": "Integration-test consent",
+        },
+    )
+    check(
+        "Student publication consent is recorded before public media",
+        consent_response.status_code == 200,
+        f"got {consent_response.status_code}",
+    )
+
     public_portfolio_upload = owner_a.post(
         f"/s/{TENANT_A}/v1/legacy-cms/portfolio/upload",
         data={
@@ -814,7 +833,6 @@ def main() -> int:
             "title": "Public Gallery Piece",
             "date": "2026-07-03",
             "public": "1",
-            "publicConsentConfirmed": "1",
             "file": (BytesIO(PNG), "public-portfolio.png", "image/png"),
         },
         content_type="multipart/form-data",
@@ -830,10 +848,35 @@ def main() -> int:
     )
     gallery_media_url = str((gallery_item or {}).get("mediaUrl") or "")
     gallery_media = public_client.get(gallery_media_url) if gallery_media_url else None
+    gallery_portfolio_item_id = gallery_media_url.rstrip("/").split("/")[-2] if gallery_media_url else ""
+    with connect() as conn:
+        gallery_checksums = fetch_one(
+            conn,
+            """
+            SELECT m.checksum_sha256 AS original_checksum,
+                   v.checksum_sha256 AS display_checksum
+            FROM portfolio_items p
+            JOIN media_assets m ON m.tenant_id = p.tenant_id AND m.id = p.media_asset_id
+            JOIN media_variants v ON v.tenant_id = m.tenant_id AND v.media_asset_id = m.id
+                                 AND v.variant = 'display'
+            WHERE p.tenant_id = %s AND p.id = %s
+            """,
+            (fixtures["tenant_a"], gallery_portfolio_item_id),
+        ) or {}
+    served_gallery_checksum = (
+        hashlib.sha256(gallery_media.data).hexdigest() if gallery_media and gallery_media.status_code == 200 else ""
+    )
     check(
         "Public gallery media is readable without token",
         bool(gallery_media) and gallery_media.status_code == 200,
         f"got {getattr(gallery_media, 'status_code', 'missing-url')}",
+    )
+    check(
+        "Public gallery serves only the sanitized display derivative",
+        served_gallery_checksum == gallery_checksums.get("display_checksum")
+        and served_gallery_checksum != gallery_checksums.get("original_checksum")
+        and gallery_media.headers.get("X-Robots-Tag") == "noindex, nofollow, noarchive"
+        and gallery_media.headers.get("Cache-Control") == "no-store",
     )
     other_tenant_url = gallery_media_url.replace(f"/{TENANT_A}/", f"/{TENANT_B}/") if gallery_media_url else ""
     other_tenant_gallery_media = public_client.get(other_tenant_url) if other_tenant_url else None
@@ -841,6 +884,205 @@ def main() -> int:
         "Public gallery media is tenant-scoped",
         bool(other_tenant_gallery_media) and other_tenant_gallery_media.status_code == 404,
         f"got {getattr(other_tenant_gallery_media, 'status_code', 'missing-url')}",
+    )
+
+    access_code_response = owner_a.post(
+        f"/s/{TENANT_A}/v1/students/{fixtures['student_a']}/access-code",
+        json={},
+    )
+    access_code = str((access_code_response.get_json() or {}).get("code") or "")
+    with connect() as conn:
+        access_row = fetch_one(
+            conn,
+            "SELECT access_code_hash FROM students WHERE tenant_id = %s AND id = %s",
+            (fixtures["tenant_a"], fixtures["student_a"]),
+        )
+    check(
+        "Student access code is returned once and stored only as a hash",
+        access_code_response.status_code == 200
+        and len(access_code) == 6
+        and access_code not in str((access_row or {}).get("access_code_hash") or ""),
+    )
+    cross_tenant_rotate = owner_b.post(
+        f"/s/{TENANT_B}/v1/students/{fixtures['student_a']}/access-code",
+        json={},
+    )
+    check(
+        "Another tenant cannot rotate a student access code",
+        cross_tenant_rotate.status_code in (403, 404),
+        f"got {cross_tenant_rotate.status_code}",
+    )
+    student_client = server.app.test_client()
+    wrong_unlock = student_client.post(
+        f"/v1/public/{TENANT_A}/student/unlock",
+        json={"name": "Alpha Student", "phone": "0400000001", "code": "000000"},
+    )
+    correct_unlock = student_client.post(
+        f"/v1/public/{TENANT_A}/student/unlock",
+        json={"name": "Alpha Student", "phone": "0400000001", "code": access_code},
+    )
+    unlock_body = correct_unlock.get_json() or {}
+    private_records = student_client.get(f"/v1/public/{TENANT_A}/student/private")
+    cross_tenant_records = student_client.get(f"/v1/public/{TENANT_B}/student/private")
+    check("Wrong student access code is rejected", wrong_unlock.status_code == 401)
+    check(
+        "Correct student access code unlocks tenant-private records",
+        correct_unlock.status_code == 200 and private_records.status_code == 200,
+        f"unlock {correct_unlock.status_code}, records {private_records.status_code}",
+    )
+    check(
+        "Student unlock response exposes no token or access-code hash",
+        "token" not in unlock_body
+        and "hash" not in unlock_body
+        and access_code not in correct_unlock.get_data(as_text=True),
+    )
+    check(
+        "Student private session cannot cross tenants",
+        cross_tenant_records.status_code == 401,
+        f"got {cross_tenant_records.status_code}",
+    )
+    previous_cookie_secure = os.environ.get("COOKIE_SECURE")
+    os.environ["COOKIE_SECURE"] = "1"
+    try:
+        secure_client = server.app.test_client()
+        secure_unlock = secure_client.post(
+            f"/v1/public/{TENANT_A}/student/unlock",
+            json={"name": "Alpha Student", "phone": "0400000001", "code": access_code},
+            base_url="https://localhost",
+        )
+    finally:
+        if previous_cookie_secure is None:
+            os.environ.pop("COOKIE_SECURE", None)
+        else:
+            os.environ["COOKIE_SECURE"] = previous_cookie_secure
+    secure_cookie = secure_unlock.headers.get("Set-Cookie", "")
+    check(
+        "Student session cookie is host-only HttpOnly Secure SameSite=Lax",
+        secure_unlock.status_code == 200
+        and secure_cookie.startswith("__Host-studiosaas-student=")
+        and "HttpOnly" in secure_cookie
+        and "Secure" in secure_cookie
+        and "SameSite=Lax" in secure_cookie
+        and "Path=/" in secure_cookie,
+        secure_cookie,
+    )
+
+    other_student_upload = owner_a.post(
+        f"/s/{TENANT_A}/v1/media/upload",
+        data={
+            "kind": "portfolio",
+            "studentId": gamma_student_id,
+            "file": (BytesIO(PNG), "other-student.png", "image/png"),
+        },
+        content_type="multipart/form-data",
+    )
+    other_student_media_id = (other_student_upload.get_json() or {}).get("mediaAssetId")
+    cross_student_media = student_client.get(
+        f"/v1/public/{TENANT_A}/student/media/{other_student_media_id}"
+    )
+    check(
+        "Student private session cannot read another student's media",
+        other_student_upload.status_code == 201 and cross_student_media.status_code == 404,
+        f"upload {other_student_upload.status_code}, media {cross_student_media.status_code}",
+    )
+
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE student_access_sessions SET expires_at = now() - interval '1 second' "
+                "WHERE tenant_id = %s AND student_id = %s AND revoked_at IS NULL",
+                (fixtures["tenant_a"], fixtures["student_a"]),
+            )
+        conn.commit()
+    check(
+        "Expired student session cannot read private records",
+        student_client.get(f"/v1/public/{TENANT_A}/student/private").status_code == 401,
+    )
+    student_client.post(
+        f"/v1/public/{TENANT_A}/student/unlock",
+        json={"name": "Alpha Student", "phone": "0400000001", "code": access_code},
+    )
+    logout_response = student_client.post(f"/v1/public/{TENANT_A}/student/logout")
+    check(
+        "Student logout revokes private access",
+        logout_response.status_code == 200
+        and student_client.get(f"/v1/public/{TENANT_A}/student/private").status_code == 401,
+    )
+    student_client.post(
+        f"/v1/public/{TENANT_A}/student/unlock",
+        json={"name": "Alpha Student", "phone": "0400000001", "code": access_code},
+    )
+    revoke_code = owner_a.delete(
+        f"/s/{TENANT_A}/v1/students/{fixtures['student_a']}/access-code"
+    )
+    check(
+        "Revoking an access code immediately revokes existing student sessions",
+        revoke_code.status_code == 200
+        and student_client.get(f"/v1/public/{TENANT_A}/student/private").status_code == 401,
+    )
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "DELETE FROM student_access_attempts WHERE tenant_id = %s",
+                (fixtures["tenant_a"],),
+            )
+        conn.commit()
+    locked_client = server.app.test_client()
+    failed_codes = [
+        locked_client.post(
+            f"/v1/public/{TENANT_A}/student/unlock",
+            json={"name": "Alpha Student", "phone": "0400000001", "code": "999999"},
+        ).status_code
+        for _ in range(5)
+    ]
+    locked_response = locked_client.post(
+        f"/v1/public/{TENANT_A}/student/unlock",
+        json={"name": "Alpha Student", "phone": "0400000001", "code": "999999"},
+    )
+    check(
+        "Repeated student access failures trigger a tenant/identity/IP lock",
+        failed_codes == [401] * 5 and locked_response.status_code == 429,
+        f"attempts {failed_codes}, final {locked_response.status_code}",
+    )
+
+    withdrawal = owner_a.delete(
+        f"/s/{TENANT_A}/v1/students/{fixtures['student_a']}/publication-consent",
+        json={"note": "Consent withdrawn in isolation test"},
+    )
+    gallery_after_withdrawal = public_client.get(f"/v1/public/{TENANT_A}/gallery")
+    withdrawn_titles = {
+        item.get("title") for item in (gallery_after_withdrawal.get_json() or {}).get("items", [])
+    }
+    withdrawn_media = public_client.get(gallery_media_url) if gallery_media_url else None
+    check(
+        "Consent withdrawal atomically removes public portfolio items",
+        withdrawal.status_code == 200
+        and "Public Gallery Piece" not in withdrawn_titles
+        and bool(withdrawn_media)
+        and withdrawn_media.status_code == 404,
+    )
+    reauthorization = owner_a.put(
+        f"/s/{TENANT_A}/v1/students/{fixtures['student_a']}/publication-consent",
+        json={
+            "consentBy": "Isolation Parent",
+            "relationship": "guardian",
+            "consentMethod": "written renewal",
+            "noticeVersion": "2026-07-18",
+            "note": "Fresh consent event after withdrawal",
+        },
+    )
+    with connect() as conn:
+        consent_event_count = fetch_one(
+            conn,
+            "SELECT count(*) AS count FROM student_publication_consent_events "
+            "WHERE tenant_id = %s AND student_id = %s",
+            (fixtures["tenant_a"], fixtures["student_a"]),
+        )["count"]
+    check(
+        "Reauthorization appends history and does not republish withdrawn work",
+        reauthorization.status_code == 200
+        and int(consent_event_count) == 3
+        and public_client.get(gallery_media_url).status_code == 404,
     )
 
     with connect() as conn:
@@ -900,6 +1142,84 @@ def main() -> int:
     check("Logo upload rejects path traversal filename", logo_upload(owner_a, r"..\logo.png", PNG).status_code == 400)
     check("Logo upload rejects oversized file", logo_upload(owner_a, "huge.png", PNG + (b"x" * (5 * 1024 * 1024))).status_code == 400)
 
+    website_upload = owner_a.post(
+        f"/s/{TENANT_A}/v1/tenant/website-media",
+        data={"target": "hero", "file": (BytesIO(PNG), "hero.png", "image/png")},
+        content_type="multipart/form-data",
+    )
+    website_payload = website_upload.get_json() or {}
+    website_url = str(website_payload.get("url") or "")
+    check(
+        "Tenant owner can upload a safe unpublished website image",
+        website_upload.status_code == 201 and website_url.startswith(f"/v1/public/{TENANT_A}/media/"),
+        f"got {website_upload.status_code}: {website_payload}",
+    )
+    check(
+        "Website image public route serves the sanitized display derivative",
+        bool(website_url) and public_client.get(website_url).status_code == 200,
+    )
+    website_media_id = website_url.rsplit("/", 1)[-1]
+    check(
+        "Website image cannot be read through another tenant",
+        public_client.get(f"/v1/public/{TENANT_B}/media/{website_media_id}").status_code == 404,
+    )
+    check(
+        "Website image upload rejects an unknown target",
+        owner_a.post(
+            f"/s/{TENANT_A}/v1/tenant/website-media",
+            data={"target": "gallery", "file": (BytesIO(PNG), "hero.png", "image/png")},
+            content_type="multipart/form-data",
+        ).status_code == 400,
+    )
+
+    analytics_session = "testanonymoussession0001"
+    analytics_event = public_client.post(
+        f"/v1/public/{TENANT_A}/analytics",
+        json={
+            "event": "registration_submitted",
+            "sessionId": analytics_session,
+            "path": f"/{TENANT_A}/",
+            "campaign": {"campaign": "winter-art", "ignored": "not stored"},
+            "metadata": {"label": "hero_primary", "phone": "not stored"},
+        },
+    )
+    analytics_summary = owner_a.get(f"/s/{TENANT_A}/v1/tenant/analytics?days=30")
+    analytics_body = analytics_summary.get_json() or {}
+    with connect() as conn:
+        stored_analytics = fetch_one(
+            conn,
+            """
+            SELECT session_hash, campaign, metadata
+            FROM public_analytics_events
+            WHERE tenant_id = %s AND event_name = 'registration_submitted'
+            ORDER BY occurred_at DESC LIMIT 1
+            """,
+            (fixtures["tenant_a"],),
+        ) or {}
+    check("Public portal accepts an allowlisted anonymous event", analytics_event.status_code == 202)
+    check(
+        "Studio Admin analytics returns aggregate-only registration totals",
+        analytics_summary.status_code == 200
+        and int((analytics_body.get("summary") or {}).get("registration_submitted") or 0) >= 1,
+    )
+    check(
+        "Analytics hashes the browser token and drops unapproved metadata",
+        stored_analytics.get("session_hash") != analytics_session
+        and "ignored" not in (stored_analytics.get("campaign") or {})
+        and "phone" not in (stored_analytics.get("metadata") or {}),
+    )
+    check(
+        "Analytics rejects unsupported event names",
+        public_client.post(
+            f"/v1/public/{TENANT_A}/analytics",
+            json={"event": "student_private_opened", "sessionId": analytics_session},
+        ).status_code == 400,
+    )
+    check(
+        "Tenant owner cannot read another tenant's analytics",
+        owner_a.get(f"/s/{TENANT_B}/v1/tenant/analytics?days=30").status_code == 403,
+    )
+
     credits_before = owner_a.get(f"/s/{TENANT_A}/v1/students/{fixtures['student_a']}/credits").get_json()
     starting_balance = float((credits_before.get("account") or {}).get("balance") or 0)
     purchase = owner_a.post(
@@ -940,15 +1260,69 @@ def main() -> int:
     )
     check("Attendance check-in blocks insufficient balance", insufficient.status_code == 409 and has_error_shape(insufficient), f"got {insufficient.status_code}")
 
+    roster_add = owner_a.post(
+        f"/s/{TENANT_A}/v1/daily-roster",
+        json={
+            "date": "2026-07-18",
+            "studentIds": [fixtures["student_a"]],
+            "source": "manual",
+        },
+    )
+    roster_entry_id = str(((roster_add.get_json() or {}).get("entryIds") or [""])[0])
+    roster_read = owner_a.get(f"/s/{TENANT_A}/v1/daily-roster?date=2026-07-18")
+    effective_ids = {
+        row.get("studentId")
+        for row in ((roster_read.get_json() or {}).get("roster") or {}).get("effectiveStudents", [])
+    }
+    check(
+        "Canonical daily roster stores a tenant-scoped manual entry",
+        roster_add.status_code == 201
+        and bool(roster_entry_id)
+        and fixtures["student_a"] in effective_ids,
+    )
+    cross_tenant_roster = owner_b.post(
+        f"/s/{TENANT_B}/v1/daily-roster",
+        json={"date": "2026-07-18", "studentIds": [fixtures["student_a"]]},
+    )
+    check(
+        "Daily roster rejects another tenant's student",
+        cross_tenant_roster.status_code == 404,
+        f"got {cross_tenant_roster.status_code}",
+    )
+    roster_cancel = owner_a.delete(f"/s/{TENANT_A}/v1/daily-roster/{roster_entry_id}")
+    roster_after_cancel = owner_a.get(f"/s/{TENANT_A}/v1/daily-roster?date=2026-07-18").get_json() or {}
+    cancelled_entries = ((roster_after_cancel.get("roster") or {}).get("entries") or [])
+    check(
+        "Daily roster removal preserves a cancelled audit row",
+        roster_cancel.status_code == 200
+        and any(row.get("id") == roster_entry_id and row.get("status") == "cancelled" for row in cancelled_entries),
+    )
+    roster_undo = owner_a.post(f"/s/{TENANT_A}/v1/daily-roster/{roster_entry_id}/undo", json={})
+    roster_preview = owner_a.get(
+        f"/s/{TENANT_A}/v1/daily-roster/preview?from=2026-07-18&days=7"
+    )
+    check("Daily roster cancellation is reversible by exact entry id", roster_undo.status_code == 200)
+    check(
+        "Weekly roster preview returns seven date-specific projections",
+        roster_preview.status_code == 200
+        and len((roster_preview.get_json() or {}).get("rosters") or []) == 7,
+    )
+
     # Audit events for required sensitive actions.
     owner_a.post(f"/s/{TENANT_A}/v1/students/{fixtures['student_a']}/credit-transactions", json={"transactionType": "adjustment", "amount": 1})
     owner_a.post(f"/s/{TENANT_A}/v1/students/{fixtures['student_a']}/archive")
     server.app.test_client().post("/v1/auth/login", json={"email": fixtures["owner_a_email"], "password": "wrong"})
     check("Audit exists for logo asset upload", audit_exists("brand.logo_asset_uploaded", "media_asset"))
     check("Audit exists for portfolio upload", audit_exists("portfolio.uploaded", "portfolio_item"))
+    check("Audit exists for publication consent", audit_exists("publication_consent.confirmed", "student"))
+    check("Audit exists for publication withdrawal", audit_exists("publication_consent.withdrawn", "student"))
+    check("Audit exists for student access unlock", audit_exists("student_access.unlocked", "student"))
     check("Audit exists for credit adjustment", audit_exists("credit.adjusted", "credit_transaction"))
     check("Audit exists for attendance check-in", audit_exists("attendance.checked_in", "attendance_session"))
     check("Audit exists for attendance void", audit_exists("attendance.voided", "attendance_session"))
+    check("Audit exists for daily roster add", audit_exists("daily_roster.added", "daily_roster"))
+    check("Audit exists for daily roster cancellation", audit_exists("daily_roster.cancelled", "daily_roster"))
+    check("Audit exists for daily roster restoration", audit_exists("daily_roster.restored", "daily_roster"))
     check("Audit exists for student archive", audit_exists("student.archived", "student"))
     check("Audit exists for failed login", audit_exists("auth.login_failed", "user"))
     check("Audit exists for approved registration", audit_exists("registration.approved", "registration"))

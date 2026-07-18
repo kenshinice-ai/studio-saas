@@ -180,12 +180,22 @@ try:
     # ── 6. 余额查询（F3 新匹配规则）─────────────────────────────────────────
     def bal(name, phone): return jreq('POST', '/api/balance', {'name': name, 'phone': phone})
     code, d = bal('amy', '0412345678');        check('first name 小写+无空格手机号 → 命中', d.get('match') is True and d.get('name') == 'Amy Wang')
-    code, d = bal('WANG', '0412 345 678');     check('last name 大写 → 命中', d.get('match') is True)
+    code, d = bal('WANG', '0412 345 678');     check('仅姓氏查询 → 不命中', d.get('match') is not True)
     code, d = bal('Amy Wang', '0412-345-678'); check('全名+带横线手机号 → 命中', d.get('match') is True)
     code, d = bal('li', '0412345678');         check("子串 'li' 不再误配 Amy", d.get('match') is not True)
     code, d = bal('Amy', '0400000000');        check('手机号不符 → 不命中', d.get('match') is not True)
     code, d = bal('amy', '0412345678')
     check('签到次数按 studentId 统计', d.get('total_checkins') == 2)
+    code, current = jreq('GET', '/api/data')
+    duplicate = {'id': 2999, 'firstName': 'Amy', 'lastName': 'Chen', 'name': 'Amy Chen',
+                 'mobile': '0412 345 678', 'balance': 2, 'archived': False,
+                 'portfolio': [], 'photo': ''}
+    ambiguous = dict(current); ambiguous['students'] = [*current['students'], duplicate]
+    code, saved = jreq('POST', '/api/save', ambiguous)
+    code, d = bal('Amy', '0412 345 678')
+    check('同手机号同 first name 歧义 → 不返回第一条', d.get('match') is not True)
+    restored = dict(current); restored['rev'] = saved.get('rev'); restored['force'] = True
+    jreq('POST', '/api/save', restored)
 
     # ── 7. Legacy upload routes are closed; tenant v1 media is canonical ─────────
     code, raw = multipart('/api/upload-public', 'fake.png', b'NOT_AN_IMAGE_AT_ALL!')

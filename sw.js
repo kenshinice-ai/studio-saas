@@ -10,7 +10,10 @@ const ASSETS = [
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();
-  e.waitUntil(caches.open(ICON_CACHE).then(c => c.addAll(ASSETS)).catch(() => {}));
+  e.waitUntil(caches.open(ICON_CACHE).then(c => c.addAll(ASSETS)).catch((error) => {
+    console.error('[StudioSaaS SW] Icon cache installation failed.', error);
+    throw error;
+  }));
 });
 
 self.addEventListener('activate', (e) => {

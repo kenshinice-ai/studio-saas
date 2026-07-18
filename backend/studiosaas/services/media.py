@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import os
 import re
 import uuid
@@ -30,6 +31,7 @@ class MediaQuotaExceededError(MediaUploadError):
 # the original file.
 try:
     from PIL import Image as _PILImage
+    from PIL import ImageOps as _PILImageOps
     _HAS_PIL = True
 except ImportError:  # pragma: no cover - depends on environment
     _HAS_PIL = False
@@ -38,9 +40,11 @@ IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".heic", ".heif"}
 HEIC_EXTENSIONS = {".heic", ".heif"}
 DOCUMENT_EXTENSIONS = {".pdf"}
 
-# S3 (v4.4 U3): lazy thumbnails for list views. 360px longest side.
+# Safe derivatives are generated at upload time. Public and student-facing
+# routes request a derivative explicitly and never fall back to the original.
 THUMB_MAX = 360
-THUMB_SUFFIX = ".thumb.jpg"
+DISPLAY_MAX = 2000
+MAX_IMAGE_PIXELS = 40_000_000
 THUMB_SOURCE_MIMES = {"image/jpeg", "image/png", "image/webp"}
 MEDIA_UPLOAD_LIMITS = {
     "student_photo": (IMAGE_EXTENSIONS, 5 * 1024 * 1024),
@@ -48,7 +52,11 @@ MEDIA_UPLOAD_LIMITS = {
     "portfolio": (IMAGE_EXTENSIONS, 10 * 1024 * 1024),
     "homework": (IMAGE_EXTENSIONS | DOCUMENT_EXTENSIONS, 10 * 1024 * 1024),
     "sheet_music": (IMAGE_EXTENSIONS | DOCUMENT_EXTENSIONS, 15 * 1024 * 1024),
-    "logo": ({".jpg", ".jpeg", ".png", ".webp", ".svg"}, 5 * 1024 * 1024),
+    # Public logos are served through metadata-free raster derivatives. SVG is
+    # deliberately excluded because an uploaded same-origin SVG can carry
+    # active content and cannot use the safe JPEG derivative pipeline.
+    "logo": ({".jpg", ".jpeg", ".png", ".webp"}, 5 * 1024 * 1024),
+    "website_image": ({".jpg", ".jpeg", ".png", ".webp"}, 10 * 1024 * 1024),
 }
 MEDIA_MIME_TYPES = {
     ".jpg": {"image/jpeg"},
@@ -80,7 +88,7 @@ def ensure_media_schema(conn: Any) -> None:
             """
             ALTER TABLE media_assets
             ADD COLUMN IF NOT EXISTS asset_type text NOT NULL DEFAULT 'portfolio'
-            CHECK (asset_type IN ('student_photo', 'registration_photo', 'portfolio', 'homework', 'sheet_music', 'logo'))
+            CHECK (asset_type IN ('student_photo', 'registration_photo', 'portfolio', 'homework', 'sheet_music', 'logo', 'website_image'))
             """
         )
         cur.execute(
@@ -106,9 +114,12 @@ def refresh_tenant_usage(conn: Any, tenant_id: str) -> None:
         SELECT
             (SELECT count(*) FROM students WHERE tenant_id = %s) AS student_count,
             (SELECT count(*) FROM memberships WHERE tenant_id = %s) AS user_count,
-            (SELECT COALESCE(ceil(sum(byte_size) / 1048576.0), 0) FROM media_assets WHERE tenant_id = %s) AS storage_used_mb
+            CEIL((
+                (SELECT COALESCE(sum(byte_size), 0) FROM media_assets WHERE tenant_id = %s)
+                + (SELECT COALESCE(sum(byte_size), 0) FROM media_variants WHERE tenant_id = %s)
+            ) / 1048576.0) AS storage_used_mb
         """,
-        (tenant_id, tenant_id, tenant_id),
+        (tenant_id, tenant_id, tenant_id, tenant_id),
     )
     with conn.cursor() as cur:
         cur.execute(
@@ -145,6 +156,8 @@ def detect_mime(ext: str) -> str:
         return "application/pdf"
     if ext == ".svg":
         return "image/svg+xml"
+    if ext in HEIC_EXTENSIONS:
+        return "image/heic"
     return "application/octet-stream"
 
 
@@ -195,27 +208,57 @@ def validate_media_upload(file_storage: FileStorage, *, kind: str) -> tuple[str,
     return ext, data, detect_mime(ext)
 
 
-def convert_heic_to_jpeg(data: bytes) -> bytes | None:
-    """Convert HEIC/HEIF bytes to JPEG; returns None on any failure.
-
-    Never raises — callers decide how to report. Deliberately avoids any
-    per-pixel expansion (see the v5.2.2 OOM incident in the reference CMS).
-    """
+def _open_raster(data: bytes, ext: str):
+    """Decode a bounded raster upload or raise a clear privacy-safe error."""
 
     if not _HAS_PIL:
-        return None
-    try:
-        import io as _io
+        raise MediaUploadError("Image processing is unavailable on this server.")
+    if ext in HEIC_EXTENSIONS:
+        try:
+            from pillow_heif import register_heif_opener
 
-        from pillow_heif import register_heif_opener
-        register_heif_opener()
-        image = _PILImage.open(_io.BytesIO(data))
-        image = image.convert("RGB")
-        out = _io.BytesIO()
-        image.save(out, format="JPEG", quality=90)
-        return out.getvalue()
-    except Exception:
-        return None
+            register_heif_opener()
+        except ImportError as exc:
+            raise MediaUploadError(
+                "HEIC photos cannot be processed on this server. Please upload JPG or PNG."
+            ) from exc
+    try:
+        image = _PILImage.open(io.BytesIO(data))
+        width, height = image.size
+        if width <= 0 or height <= 0 or width * height > MAX_IMAGE_PIXELS:
+            raise MediaUploadError("Image dimensions are too large to process safely.")
+        image.load()
+        return _PILImageOps.exif_transpose(image)
+    except MediaUploadError:
+        raise
+    except Exception as exc:
+        raise MediaUploadError("Image content could not be decoded safely.") from exc
+
+
+def _jpeg_bytes(image, max_edge: int, quality: int) -> tuple[bytes, int, int]:
+    """Return a metadata-free RGB JPEG derivative and its pixel dimensions."""
+
+    converted = image.copy()
+    converted.thumbnail((max_edge, max_edge), _PILImage.Resampling.LANCZOS)
+    if converted.mode in {"RGBA", "LA"}:
+        background = _PILImage.new("RGB", converted.size, "white")
+        alpha = converted.getchannel("A")
+        background.paste(converted.convert("RGB"), mask=alpha)
+        converted = background
+    elif converted.mode != "RGB":
+        converted = converted.convert("RGB")
+    out = io.BytesIO()
+    converted.save(out, format="JPEG", quality=quality, optimize=True)
+    return out.getvalue(), converted.width, converted.height
+
+
+def _build_safe_variants(data: bytes, ext: str) -> dict[str, tuple[bytes, int, int]]:
+    """Build display and thumbnail derivatives without copying source metadata."""
+
+    image = _open_raster(data, ext)
+    display = _jpeg_bytes(image, DISPLAY_MAX, 88)
+    thumb = _jpeg_bytes(image, THUMB_MAX, 84)
+    return {"display": display, "thumb": thumb}
 
 
 def _enforce_tenant_quota(conn: Any, *, tenant_id: str, incoming_bytes: int) -> None:
@@ -224,13 +267,20 @@ def _enforce_tenant_quota(conn: Any, *, tenant_id: str, incoming_bytes: int) -> 
     row = fetch_one(
         conn,
         """
-        SELECT COALESCE(sum(m.byte_size), 0)::bigint AS used_bytes,
+        SELECT (
+                   COALESCE(sum(m.byte_size), 0)
+                   + COALESCE((
+                       SELECT sum(v.byte_size)
+                       FROM media_variants v
+                       WHERE v.tenant_id = t.id
+                   ), 0)
+               )::bigint AS used_bytes,
                p.storage_limit_mb
         FROM tenants t
         LEFT JOIN media_assets m ON m.tenant_id = t.id
         LEFT JOIN plans p ON p.code = t.plan_code
         WHERE t.id = %s
-        GROUP BY p.storage_limit_mb
+        GROUP BY t.id, p.storage_limit_mb
         """,
         (tenant_id,),
     )
@@ -269,14 +319,11 @@ def store_media_asset(
             raise MediaUploadError("Student was not found for this tenant.")
 
     ext, data, mime_type = validate_media_upload(file_storage, kind=kind)
-    if ext in HEIC_EXTENSIONS:
-        converted = convert_heic_to_jpeg(data)
-        if converted is None:
-            raise MediaUploadError(
-                "HEIC photos could not be converted on this server. Please upload JPG or PNG."
-            )
-        data, ext, mime_type = converted, ".jpg", "image/jpeg"
-    _enforce_tenant_quota(conn, tenant_id=tenant_id, incoming_bytes=len(data))
+    variants: dict[str, tuple[bytes, int, int]] = {}
+    if ext in IMAGE_EXTENSIONS:
+        variants = _build_safe_variants(data, ext)
+    incoming_bytes = len(data) + sum(len(item[0]) for item in variants.values())
+    _enforce_tenant_quota(conn, tenant_id=tenant_id, incoming_bytes=incoming_bytes)
 
     media_id = str(uuid.uuid4())
     tenant_part = str(tenant_id)
@@ -286,6 +333,15 @@ def store_media_asset(
     os.makedirs(os.path.dirname(full_path), exist_ok=True)
     with open(full_path, "wb") as fh:
         fh.write(data)
+
+    variant_paths: dict[str, tuple[str, str, bytes, int, int]] = {}
+    for variant, (variant_data, width, height) in variants.items():
+        variant_filename = f"{media_id}.{variant}.jpg"
+        variant_key = f"{tenant_part}/{safe_kind}/{variant_filename}"
+        variant_path = os.path.join(media_root(), tenant_part, safe_kind, variant_filename)
+        with open(variant_path, "wb") as fh:
+            fh.write(variant_data)
+        variant_paths[variant] = (variant_key, variant_path, variant_data, width, height)
 
     try:
         with conn.cursor() as cur:
@@ -312,53 +368,72 @@ def store_media_asset(
                 ),
             )
             row = cur.fetchone()
+            for variant, (variant_key, _variant_path, variant_data, width, height) in variant_paths.items():
+                cur.execute(
+                    """
+                    INSERT INTO media_variants (
+                        tenant_id, media_asset_id, variant, storage_key, mime_type,
+                        byte_size, checksum_sha256, pixel_width, pixel_height,
+                        metadata_sanitized
+                    ) VALUES (%s, %s, %s, %s, 'image/jpeg', %s, %s, %s, %s, true)
+                    """,
+                    (
+                        tenant_id,
+                        media_id,
+                        variant,
+                        variant_key,
+                        len(variant_data),
+                        hashlib.sha256(variant_data).hexdigest(),
+                        width,
+                        height,
+                    ),
+                )
             refresh_tenant_usage(conn, tenant_id)
     except Exception:
-        try:
-            os.remove(full_path)
-        except OSError:
-            pass
+        for path in [full_path, *(item[1] for item in variant_paths.values())]:
+            try:
+                os.remove(path)
+            except OSError:
+                pass
         raise
     return row
 
 
-def _ensure_thumbnail(full_path: str) -> str | None:
-    """Lazily create ``<file>.thumb.jpg`` (longest side THUMB_MAX).
-
-    Returns the thumbnail filename or None when unavailable — callers
-    fall back to the original file, never error.
-    """
-
-    if not _HAS_PIL or not os.path.isfile(full_path):
-        return None
-    thumb_path = full_path + THUMB_SUFFIX
-    if os.path.isfile(thumb_path):
-        return os.path.basename(thumb_path)
-    try:
-        image = _PILImage.open(full_path)
-        image.thumbnail((THUMB_MAX, THUMB_MAX))
-        image.convert("RGB").save(thumb_path, format="JPEG", quality=85)
-        return os.path.basename(thumb_path)
-    except Exception:
-        return None
-
-
-def send_media_asset(conn: Any, *, tenant_id: str, media_asset_id: str, thumb: bool = False):
+def send_media_asset(
+    conn: Any,
+    *,
+    tenant_id: str,
+    media_asset_id: str,
+    variant: str | None = None,
+):
     """Serve one media asset after tenant ownership has been verified.
 
-    ``thumb=True`` serves a lazily generated 360px thumbnail for raster
-    images (S3); anything else falls back to the original file.
+    ``variant`` may be ``display`` or ``thumb``. A requested derivative must
+    exist; public callers never receive the private original as a fallback.
     """
 
-    row = fetch_one(
-        conn,
-        """
-        SELECT storage_key, mime_type
-        FROM media_assets
-        WHERE tenant_id = %s AND id = %s AND storage_provider = 'local'
-        """,
-        (tenant_id, media_asset_id),
-    )
+    if variant:
+        if variant not in {"display", "thumb"}:
+            raise MediaUploadError("Media variant is invalid.")
+        row = fetch_one(
+            conn,
+            """
+            SELECT storage_key, mime_type
+            FROM media_variants
+            WHERE tenant_id = %s AND media_asset_id = %s AND variant = %s
+            """,
+            (tenant_id, media_asset_id, variant),
+        )
+    else:
+        row = fetch_one(
+            conn,
+            """
+            SELECT storage_key, mime_type
+            FROM media_assets
+            WHERE tenant_id = %s AND id = %s AND storage_provider = 'local'
+            """,
+            (tenant_id, media_asset_id),
+        )
     if not row:
         raise MediaUploadError("Media asset was not found.")
     storage_key = str(row["storage_key"] or "")
@@ -367,8 +442,4 @@ def send_media_asset(conn: Any, *, tenant_id: str, media_asset_id: str, thumb: b
         raise MediaUploadError("Media asset path is invalid.")
     directory = os.path.join(media_root(), *safe_parts[:-1])
     filename = safe_parts[-1]
-    if thumb and str(row["mime_type"] or "") in THUMB_SOURCE_MIMES:
-        thumb_name = _ensure_thumbnail(os.path.join(directory, filename))
-        if thumb_name:
-            filename = thumb_name
     return send_from_directory(directory, filename)

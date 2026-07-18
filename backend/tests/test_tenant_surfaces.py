@@ -58,6 +58,9 @@ def test_new_tenant_workspace_generates_public_surface_files(tmp_path):
     assert "visualTheme" in portal_html
     assert "localizedCopy" in portal_html
     assert "privacyConsent:true" in portal_html
+    assert "manifest-portal.json" in portal_html
+    assert 'id="main-content"' in portal_html
+    assert "/assets/public-analytics.js" in portal_html
 
 
 def test_workspace_escapes_tenant_name_for_html_and_javascript(tmp_path):
@@ -100,6 +103,21 @@ def test_root_studio_admin_requires_explicit_tenant_selection(client):
     assert response.headers["Location"].endswith("/super-admin#tenants")
 
 
+def test_admin_surfaces_share_persistent_language_switch(client):
+    for path in ("/super-admin", "/lets-paint-studio/studio-admin"):
+        response = client.get(path)
+        assert response.status_code == 200
+        assert "/assets/admin-i18n.js" in response.get_data(as_text=True)
+
+    javascript = (PROJECT_ROOT / "backend/frontend/assets/admin-i18n.js").read_text(
+        encoding="utf-8"
+    )
+    assert "studiosaas_admin_language" in javascript
+    assert "data-admin-language" in javascript
+    assert "中文" in javascript
+    assert "English" in javascript
+
+
 def test_existing_register_surfaces_are_lightweight_lead_capture_pages(client):
     """Standalone register pages should no longer iframe the legacy registration app."""
 
@@ -111,6 +129,8 @@ def test_existing_register_surfaces_are_lightweight_lead_capture_pages(client):
         assert f"/v1/public/${{encodeURIComponent(TENANT_SLUG)}}/registrations" in html
         assert "source: 'standalone_register'" in html
         assert "privacyConsent: true" in html
+        assert 'id="publicationConsent"' in html
+        assert "publicationConsent:" in html
         assert "Quick Registration" in html
         assert 'data-zh="提交报名"' in html
         assert "language: currentLanguage" in html
@@ -123,7 +143,12 @@ def test_portal_is_primary_registration_source(client):
         html = client.get(f"/{slug}").get_data(as_text=True)
         assert "source:'portal'" in html
         assert "privacyConsent:true" in html
+        assert 'id="j-publication-consent"' in html
+        assert "publicationConsent:publicationChecked" in html
         assert "utm_campaign" in html
+        assert f'data-tenant-slug="{slug}"' in html
+        assert "manifest-portal.json" in html
+        assert "/assets/public-analytics.js" in html
 
 
 def test_existing_portals_apply_published_visual_theme_and_localized_copy(client):
@@ -148,6 +173,9 @@ def test_studio_admin_is_brand_publication_only(client):
     assert 'id="brandVersionList"' in html
     assert 'id="settingHeroTitleEn"' in html
     assert 'id="settingRegisterIntroEn"' in html
+    assert 'id="settingHeroImageFile"' in html
+    assert 'id="settingPrincipalImageFile"' in html
+    assert 'id="tab-analytics"' in html
     for forbidden in (
         'id="section-students"',
         'id="section-attendance"',

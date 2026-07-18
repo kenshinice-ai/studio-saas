@@ -1,7 +1,7 @@
 # StudioSaaS Database
 
-Version: v3.0
-Date: 2026-07-03
+Version: v3.1
+Date: 2026-07-18
 Purpose: Schema definition, table descriptions, canonical enums, migration strategy, and operational notes.
 
 ---
@@ -10,14 +10,15 @@ Purpose: Schema definition, table descriptions, canonical enums, migration strat
 
 - **Engine:** PostgreSQL 16+ (local), RDS PostgreSQL (AWS production target)
 - **Local database name:** `studiosaas_local_test`
-- **Schema file:** `backend/db/schema_v1.sql` (25 tables; final state through migration 0014)
+- **Bootstrap reference:** `backend/db/schema_v1.sql`
+- **Canonical schema evolution:** ordered migrations through `0017_public_website_media_and_analytics.sql`
 - **Isolation model:** All business data includes `tenant_id`. All queries bind tenant context.
 
 ### 1.1 Design Principles
 
 - Soft delete or deactivate by default — no un-audited hard deletes.
 - Every business table has `tenant_id` as a foreign key to `tenants.id`.
-- Schema is both bootstrap and migration target; a migration runner is planned (P0-03).
+- Fresh and existing databases converge through `backend/scripts/run_migrations.py`; `schema_v1.sql` is a historical bootstrap reference.
 - `tenant_id` is the hard isolation boundary — no cross-tenant queries.
 
 > The ER diagram in the v2 architecture poster is a simplified illustration (it shows `users.role`, which does not exist). **This document and `schema_v1.sql` are canonical.**
@@ -58,20 +59,23 @@ Decision pending (P0-01): either represent platform roles as memberships with `t
 
 | Table | Key Columns | Purpose |
 |---|---|---|
-| `students` | `id`, `tenant_id`, `first_name`, `last_name`, `display_name`, `status`, `parent_name`, `mobile`, `email`, `tags` | Student profiles (soft delete via status) |
+| `students` | `id`, `tenant_id`, identity/contact fields, `status`, `access_code_hash`, access-code timestamps | Student profiles (soft delete via status) and hashed private-portal access |
 | `courses` | `id`, `tenant_id`, `name`, `slug`, `credits`, `price_aud_cents` | Course definitions |
 | `packages` | `id`, `tenant_id`, `name`, `description`, `price_aud_cents` | Course package definitions |
 | `credit_accounts` | `id`, `tenant_id`, `student_id`, `course_id`, `balance` | Student balance accounts. Unique key: `(tenant_id, student_id, course_id)` |
 | `credit_transactions` | `id`, `tenant_id`, `student_id`, `credit_account_id`, `transaction_type`, `amount`, `description` | Ledger-style transaction log |
 | `attendance_sessions` | `id`, `tenant_id`, `student_id`, `course_id`, `credit_transaction_id`, `reversal_credit_transaction_id`, `attended_at`, `reversed_at` | Class/check-in records linked to credit ledger consume/refund rows |
 | `registrations` | `id`, `tenant_id`, identity/contact fields, `status`, `source`, `source_language`, `campaign`, follow-up fields, `student_id`, review fields, timestamps | Portal/Quick Registration leads and the CMS conversion funnel |
+| `daily_roster_entries` | `tenant_id`, `roster_date`, `student_id`, `source`, reversible `status` fields | Canonical date-level roster additions/cancellations; recurring schedules remain templates |
 
 ### 2.4 Content Tables
 
 | Table | Key Columns | Purpose |
 |---|---|---|
 | `media_assets` | `id`, `tenant_id`, `owner_student_id`, `asset_type`, `storage_provider`, `storage_key`, `mime_type`, `byte_size`, `checksum_sha256`, `visibility` | Uploaded file metadata. `UNIQUE (tenant_id, storage_key)` |
+| `media_variants` | `tenant_id`, `media_asset_id`, `variant`, dimensions, checksum, `metadata_sanitized` | Upload-time/backfilled display and thumbnail derivatives; public routes never fall back to originals |
 | `portfolio_items` | `id`, `tenant_id`, `student_id`, `media_asset_id`, `title`, `visibility`, `public_consent_at`, `public_consent_by_user_id`, `created_at` | Student portfolio entries; public gallery requires recorded consent |
+| `student_publication_consent_events` | `tenant_id`, `student_id`, append-only status and evidence | Latest event controls public publication; withdrawal takes effect immediately |
 | `share_tokens` | `id`, `tenant_id`, `portfolio_item_id`, `token`, `expires_at` | Parent portal security tokens |
 
 ### 2.5 System Tables
@@ -80,6 +84,8 @@ Decision pending (P0-01): either represent platform roles as memberships with `t
 |---|---|---|
 | `email_templates` | `id`, `tenant_id`, `key`, `subject`, `body` | Per-tenant email templates |
 | `notification_logs` | `id`, `tenant_id`, `user_id`, `template_id`, `status`, `sent_at` | Email/notification send records |
+| `student_access_sessions` / `student_access_attempts` | tenant-bound token hash, expiry/revocation, lookup hash and lock window | One-hour private student sessions and non-enumerating brute-force protection |
+| `public_analytics_events` | `tenant_id`, allowlisted event, anonymous session hash, campaign, timestamp | Privacy-preserving aggregate portal analytics without student/contact/browser identifiers |
 
 ---
 
@@ -97,7 +103,7 @@ These are the values enforced by the database today. Code, seeds, UI, and docs m
 | Student status | `students.status` | `active`, `inactive`, `trial`, `archived` |
 | Credit transaction | `credit_transactions.transaction_type` | `purchase`, `consume`, `adjustment`, `refund`, `expire`, `migration` |
 | Registration status | `registrations.status` | `pending`, `contacted`, `trial_booked`, `waiting`, `approved`, `converted`, `rejected`, `duplicate`, `lost`, `archived` |
-| Media asset type | `media_assets.asset_type` | `student_photo`, `registration_photo`, `portfolio`, `homework`, `sheet_music`, `logo` |
+| Media asset type | `media_assets.asset_type` | `student_photo`, `registration_photo`, `portfolio`, `homework`, `sheet_music`, `logo`, `website_image` |
 | Media storage | `media_assets.storage_provider` | `local`, `s3` |
 | Media visibility | `media_assets.visibility` | `private`, `public_token` |
 | Notification status | `notification_logs.status` | `queued`, `sent`, `failed` |
@@ -145,16 +151,16 @@ psql -h localhost -p 5432 -d studiosaas_local_test \
 ```bash
 # Import legacy Let's Paint sample
 cd backend
-STUDIOSAAS_DATABASE_URL=postgresql://llmacbookpro@localhost:5432/studiosaas_local_test \
+STUDIOSAAS_DATABASE_URL=postgresql://$(whoami)@localhost:5432/studiosaas_local_test \
 ../.venv/bin/python scripts/import_lets_paint_json.py \
   testdata/legacy_database_sample.json lets-paint-studio "Let's Paint Studio"
 
 # Seed local demo tenants
-STUDIOSAAS_DATABASE_URL=postgresql://llmacbookpro@localhost:5432/studiosaas_local_test \
+STUDIOSAAS_DATABASE_URL=postgresql://$(whoami)@localhost:5432/studiosaas_local_test \
 ../.venv/bin/python scripts/seed_local_test_tenants.py
 
 # Seed randomized relational demo data
-STUDIOSAAS_DATABASE_URL=postgresql://llmacbookpro@localhost:5432/studiosaas_local_test \
+STUDIOSAAS_DATABASE_URL=postgresql://$(whoami)@localhost:5432/studiosaas_local_test \
 ../.venv/bin/python scripts/seed_random_demo_data.py --students-per-tenant 24
 ```
 
@@ -190,7 +196,10 @@ backend/db/
     ├── 0011_portfolio_public_consent.sql
     ├── 0012_product_lifecycle_and_brand_versions.sql
     ├── 0013_tenant_role_bundles.sql
-    └── 0014_registration_privacy_consent.sql
+    ├── 0014_registration_privacy_consent.sql
+    ├── 0015_student_privacy_and_media_variants.sql
+    ├── 0016_daily_roster_entries.sql
+    └── 0017_public_website_media_and_analytics.sql
 ```
 
 Tracking table:
@@ -205,14 +214,15 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 The runner (`backend/scripts/run_migrations.py`) must:
 - Apply pending migrations in order.
 - Skip already-applied versions.
-- Be safe to re-run; support baselining an existing database.
+- Be safe to re-run; support baselining an existing database and `--check` release gating.
 
 ---
 
 ## 6. Data Privacy Notes
 
 - Children's photos and personal information require special handling.
-- Public artwork requires an auditable consent confirmation (`public_consent_at` + actor); withdrawing publication keeps the private portfolio item.
+- Public artwork requires both item-level publication intent and the student's latest append-only consent event to be confirmed; withdrawal keeps the private item and removes it from public results immediately.
+- Public/student-facing images use metadata-free derivatives. Missing derivatives fail closed instead of exposing originals.
 - Data deletion and export mechanisms must support privacy compliance.
 - Support mode (platform staff viewing tenant data) must always log to `audit_logs`.
 - No real children's private data should appear in demo or test databases.

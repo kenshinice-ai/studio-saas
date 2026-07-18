@@ -4,12 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dance Dance</title>
-<meta name="description" content="Dance Dance — 课程报名、学员课时与作品集查询。">
+<meta id="metaDescription" name="description" content="Dance Dance — 课程报名、学员课时与作品集查询。">
 <meta name="robots" content="index,follow">
+<link id="canonicalUrl" rel="canonical" href="/dance-dance/">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Dance Dance">
+<meta id="ogTitle" property="og:title" content="Dance Dance">
+<meta id="ogDescription" property="og:description" content="Dance Dance — 课程报名、学员课时与作品集查询。">
 <meta name="theme-color" content="#F4F0E8">
-<script type="application/ld+json">
+<link data-tenant-portal-manifest rel="manifest" href="/dance-dance/manifest-portal.json">
+<link rel="icon" type="image/png" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<script id="businessStructuredData" type="application/ld+json">
 {
   "@context":"https://schema.org",
   "@type":"LocalBusiness",
@@ -22,6 +27,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Noto+Serif+SC:wght@400;500;600&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="/assets/ui-common.js"></script>
 <script src="/assets/public-register.js"></script>
+<script src="/assets/public-analytics.js"></script>
 <link rel="stylesheet" href="/assets/ui-tokens.css">
 <style>
   :root{
@@ -187,6 +193,8 @@
   .reveal.in{opacity:1;transform:none}
   section[id], div[id]{scroll-margin-top:90px}
   a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--clay);outline-offset:2px}
+  .skip-link{position:fixed;left:14px;top:-80px;z-index:100;background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:4px}
+  .skip-link:focus{top:14px}
   .totop{position:fixed;right:26px;bottom:26px;z-index:60;width:46px;height:46px;border-radius:50%;border:1px solid var(--line);background:rgba(251,249,244,.9);backdrop-filter:blur(8px);color:var(--ink);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transform:translateY(10px);pointer-events:none;transition:opacity .35s,transform .35s;box-shadow:0 4px 16px rgba(35,33,29,.08)}
   .totop.show{opacity:1;transform:none;pointer-events:auto}
   .totop:hover{background:var(--ink);color:var(--bg);border-color:var(--ink)}
@@ -207,6 +215,7 @@
 </style>
 </head>
 <body data-tenant-slug="dance-dance">
+<a class="skip-link" href="#main-content" data-en="Skip to content">跳到主要内容</a>
 
 <nav id="nav">
   <div class="wrap navrow">
@@ -235,6 +244,7 @@
     <span class="langtog" style="align-self:flex-start"><button class="on" onclick="setLang('zh')">中</button><button onclick="setLang('en')">EN</button></span>
   </div>
 </nav>
+<main id="main-content" tabindex="-1">
 <div id="surfaceStatus" role="status" aria-live="polite" style="display:none;padding:10px 20px;background:#fff3cd;color:#6b4f00;text-align:center;font-size:13px"></div>
 
 <!-- ══════════ HOME ══════════ -->
@@ -246,8 +256,8 @@
       <h1 class="serif" id="heroName">Dance Dance</h1>
       <p class="slogan" id="heroSlogan" data-en="Courses, class credits and student portfolios — enrolment and enquiry all in one place.">课程报名、课时管理与学员作品集，都在这里。</p>
       <div class="hero-cta">
-        <a id="heroPrimaryCta" class="btn btn-fill" onclick="go('join')" data-en="Book a Trial →">预约体验 →</a>
-        <a id="heroSecondaryCta" class="btn btn-line" onclick="go('home','#courses')" data-en="Explore courses">浏览课程</a>
+        <a id="heroPrimaryCta" class="btn btn-fill" onclick="go('join')" data-analytics-event="cta_click" data-analytics-label="hero_primary" data-en="Book a Trial →">预约体验 →</a>
+        <a id="heroSecondaryCta" class="btn btn-line" onclick="go('home','#courses')" data-analytics-event="cta_click" data-analytics-label="hero_courses" data-en="Explore courses">浏览课程</a>
       </div>
       <a id="heroStudentLogin" class="hero-login" onclick="go('my')" data-en="Student login →">学员登录 →</a>
     </div>
@@ -318,10 +328,10 @@
     <div class="reveal">
       <p class="eyebrow" style="color:#9d9484" data-en="Student Area">学员专区</p>
       <h2 class="serif" data-en="Classes, works, enrolment — all here">课时、作品、报名，都在这里</h2>
-      <p data-en="No complex accounts — just a name and phone number to check your class balance and view your portfolio.">无需复杂账号——用姓名与手机号即可查询课时余额、查看作品集；想来体验，一分钟提交预约。</p>
+      <p data-en="No email account needed — use the studio-issued access code with the student's name and mobile to view private records.">无需注册邮箱账号——使用画室发放的访问码及学员姓名、手机号，即可查看私人课时与作品记录。</p>
     </div>
     <div class="p-actions reveal">
-      <a class="p-card" onclick="go('my')"><div class="l"><h4 data-en="Check class balance">查询课时余额</h4><p data-en="Name + phone — instant balance">输入姓名 + 手机号，即时查看剩余课时</p></div><span class="arw">→</span></a>
+      <a class="p-card" onclick="go('my')"><div class="l"><h4 data-en="Student private area">学员私人专区</h4><p data-en="Name + mobile + access code">姓名 + 手机号 + 访问码安全验证</p></div><span class="arw">→</span></a>
       <a class="p-card" onclick="go('my')"><div class="l"><h4 data-en="My portfolio">我的作品集</h4><p data-en="Every work, class by class">每一次课的作品记录</p></div><span class="arw">→</span></a>
       <a class="p-card" onclick="go('join')"><div class="l"><h4 data-en="Book a Trial · Enrol">预约体验 · 报名</h4><p data-en="Leave your details and we'll be in touch">填写基本信息，老师会尽快与您联系</p></div><span class="arw">→</span></a>
     </div>
@@ -338,7 +348,7 @@
       <details class="faq"><summary data-en="Is there a trial class?">有体验课吗？</summary><p data-en="Yes — the best way to start is a single trial class. Leave your details through the enrolment form and we'll arrange a time.">有的。最好的开始是先来一节体验课。通过报名表留下联系方式，我们为你安排时间。</p></details>
       <details class="faq"><summary data-en="How do class packs work?">课包与课时怎么算？</summary><p data-en="Classes are booked in packs. Each attended class draws one credit; your balance and history are always visible in the Student area.">课程以课包形式购买，每上一节课扣一课时；余额与记录随时可在「学员专区」查询。</p></details>
       <details class="faq"><summary data-en="What if I miss a class?">临时来不了怎么办？</summary><p data-en="Let us know ahead of time and we'll do our best to arrange a make-up class; every credit is recorded accurately.">提前告诉我们，我们会尽力安排补课；每一课时都被准确记录。</p></details>
-      <details class="faq"><summary data-en="Can I see the work and progress?">能看到作品和进步吗？</summary><p data-en="Yes — works are photographed into each student's portfolio. Sign in to the Student area with name and mobile to view.">可以。作品会拍照存入学员作品集，用姓名和手机号登录「学员专区」即可查看。</p></details>
+      <details class="faq"><summary data-en="Can I see the work and progress?">能看到作品和进步吗？</summary><p data-en="Yes — works are photographed into each student's private portfolio. Use the studio-issued access code in the Student area to view it.">可以。作品会拍照存入学员私人作品集，使用画室发放的访问码进入「学员专区」即可查看。</p></details>
     </div>
   </div>
 </section>
@@ -389,6 +399,16 @@
           <input type="checkbox" id="j-consent" style="margin-top:4px;width:16px;height:16px;flex-shrink:0">
           <span class="form-note" style="margin:0" data-en="🔒 I agree that my details are used only for teaching contact and management. See the Privacy note below.">🔒 我同意信息仅用于教学联系与管理。详见<a onclick="event.preventDefault();go('privacy')" style="color:var(--clay);border-bottom:1px solid var(--clay);cursor:pointer">隐私说明</a>。</span>
         </label>
+        <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;margin:12px 0 6px">
+          <input type="checkbox" id="j-publication-consent" onchange="toggleJoinPublicationConsent(this.checked)" style="margin-top:4px;width:16px;height:16px;flex-shrink:0">
+          <span class="form-note" style="margin:0" data-en="Optional: I consent to the studio displaying the student's artwork on its website or promotional materials. This can be withdrawn at any time.">选填：我同意工作室在官网或招生材料中展示学员作品；此授权可随时联系工作室撤回。</span>
+        </label>
+        <div id="j-publication-details" style="display:none;margin-top:12px">
+          <div class="fld-row">
+            <div class="fld"><label for="j-publication-by" data-en="Consenting person *">授权人姓名 *</label><input id="j-publication-by" maxlength="120" autocomplete="name"></div>
+            <div class="fld"><label for="j-publication-relationship" data-en="Relationship *">与学员关系 *</label><select id="j-publication-relationship"><option value="" data-en="Please choose">请选择…</option><option value="self" data-en="Self">本人</option><option value="parent" data-en="Parent / guardian">家长 / 监护人</option><option value="other_guardian" data-en="Other authorised guardian">其他授权监护人</option></select></div>
+          </div>
+        </div>
         <p id="j-err" role="alert" aria-live="assertive" style="display:none;color:#B4442E;font-size:13px;margin:6px 0"></p>
         <button class="btn btn-fill" id="j-btn" style="width:100%;justify-content:center;margin-top:12px" onclick="submitJoin()" data-en="Submit booking">提交预约</button>
       </div>
@@ -408,11 +428,12 @@
       <div class="sec-head reveal" style="text-align:center;margin:0 auto 40px">
         <p class="eyebrow" data-en="Students">学员专区</p>
         <h2 class="serif" data-en="Your classes &amp; works">查看课时与作品</h2>
-        <p data-en="Enter the student's name and phone to view class balance and portfolio.">输入学员姓名与手机号，查看剩余课时与作品集。</p>
+        <p data-en="Use the student's name, mobile and studio-issued access code to view private records.">使用学员姓名、手机号和画室发放的访问码，查看私人课时与作品记录。</p>
       </div>
       <div class="form-card reveal" id="myForm">
-        <div class="fld"><label for="m-name" data-en="Student name *">学员姓名 *</label><input id="m-name" placeholder="First name" required></div>
+        <div class="fld"><label for="m-name" data-en="Student name *">学员姓名 *</label><input id="m-name" placeholder="Full name / First name" autocomplete="name" required></div>
         <div class="fld"><label for="m-phone" data-en="Mobile *">手机号 *</label><input id="m-phone" type="tel" inputmode="tel" placeholder="04xx xxx xxx" required></div>
+        <div class="fld"><label for="m-code" data-en="6-digit access code *">6 位访问码 *</label><input id="m-code" type="password" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="••••••" required></div>
         <p id="m-err" role="alert" aria-live="assertive" style="display:none;color:#B4442E;font-size:13px;margin:0 0 10px"></p>
         <button class="btn btn-fill" id="m-btn" style="width:100%;justify-content:center;margin-top:2px" onclick="submitMy()" data-en="Check">查询</button>
       </div>
@@ -423,14 +444,22 @@
           <p style="font-size:13px;color:var(--muted);letter-spacing:.1em" data-en="classes remaining">剩余课时</p>
           <p id="m-bal-warn" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--line);font-size:13.5px;font-weight:500"></p>
         </div>
+        <div id="m-next" style="display:none;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:16px 20px;margin-top:12px;align-items:center;gap:14px">
+          <span style="font-size:22px">⏭</span>
+          <div><p style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)" data-en="Next class">下次课</p><p id="m-next-info" style="font-weight:500;font-size:14px"></p></div>
+        </div>
+        <div id="m-hist" style="display:none;background:var(--panel);border:1px solid var(--line);border-radius:4px;margin-top:12px;overflow:hidden">
+          <p style="padding:14px 20px;border-bottom:1px solid var(--line);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)" data-en="Class history">上课记录</p>
+          <div id="m-hist-list" style="max-height:220px;overflow-y:auto"></div>
+        </div>
         <div id="m-port" style="display:none;background:var(--panel);border:1px solid var(--line);border-radius:4px;margin-top:12px;padding:20px">
           <p style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:14px" data-en="My portfolio">我的作品集</p>
           <div id="m-port-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"></div>
         </div>
         <div id="m-nomatch" style="display:none;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:28px;text-align:center;color:var(--muted)">
-          <p data-en="No match found — please check the name and mobile.">没有找到匹配的学员，请核对姓名与手机号。</p>
+          <p data-en="The details could not be verified. Check all three fields or ask the studio to issue a new code.">无法验证这些资料。请核对三项信息，或联系画室更换访问码。</p>
         </div>
-        <div style="text-align:center;margin-top:20px"><a class="btn btn-line" onclick="resetMy()" data-en="Check another">重新查询</a></div>
+        <div style="text-align:center;margin-top:20px"><a class="btn btn-line" onclick="resetMy()" data-en="Sign out / check another">退出专区 / 重新查询</a></div>
       </div>
     </div>
   </div>
@@ -448,7 +477,7 @@
         <div style="display:grid;gap:26px;font-size:14.5px;color:var(--ink2)">
           <div><h4 style="font-weight:500;color:var(--ink);margin-bottom:8px" data-en="1 · What we collect">一 · 我们收集哪些信息</h4><p data-en="When you enrol or enquire, we collect the student's name and contact details, and — during classes — photographs of works.">当您报名或咨询时，我们会收集学员姓名与联系方式；在课程中，会为作品拍照存档。</p></div>
           <div><h4 style="font-weight:500;color:var(--ink);margin-bottom:8px" data-en="2 · How we use it">二 · 信息的用途</h4><p data-en="Only for teaching: contacting you about classes, keeping accurate class-credit records, and each student's private portfolio. We never sell or share your information for marketing.">仅用于教学：联系课程事宜、准确记录课时、维护学员的私人作品集。我们不会将您的信息出售或用于第三方营销。</p></div>
-          <div><h4 style="font-weight:500;color:var(--ink);margin-bottom:8px" data-en="3 · Photos &amp; works">三 · 照片与作品</h4><p data-en="All work photos are private by default — visible only after verifying the student's name and mobile in the Student area. Public display happens only with explicit consent, which can be withdrawn at any time.">所有作品照片默认私有——仅在「学员专区」验证姓名与手机号后可见。公开展示仅在明确同意后进行，且同意可随时撤回。</p></div>
+          <div><h4 style="font-weight:500;color:var(--ink);margin-bottom:8px" data-en="3 · Photos &amp; works">三 · 照片与作品</h4><p data-en="All work photos are private by default — visible only after verifying the student's name, mobile and studio-issued access code. Public display happens only with explicit consent, which can be withdrawn at any time.">所有作品照片默认私有——仅在「学员专区」验证姓名、手机号及画室发放的访问码后可见。公开展示仅在明确同意后进行，且同意可随时撤回。</p></div>
           <div><h4 style="font-weight:500;color:var(--ink);margin-bottom:8px" data-en="4 · Your choices">四 · 您的权利</h4><p data-en="You may ask us at any time to view, correct or delete the information we hold, or to withdraw photo consent.">您可以随时要求查看、更正或删除我们保存的信息，或撤回照片使用同意。</p></div>
         </div>
       </div>
@@ -459,6 +488,7 @@
   </div>
 </div>
 
+</main>
 <footer>
   <div class="wrap foot">
     <div>
@@ -612,6 +642,7 @@
     document.body.classList.toggle('font-classic', (visual.font_mood||visual.fontMood)==='classic');
     if(b.name){
       document.title=b.name;
+      document.getElementById('ogTitle').content=b.name;
       ['brandName','heroName','footName','footName2'].forEach(function(id){ var el=document.getElementById(id); if(el) el.textContent=b.name; });
     }
     if(b.logoUrl){ var lg=document.getElementById('brandLogo'); lg.src=b.logoUrl; lg.style.display='block'; }
@@ -629,7 +660,7 @@
     document.body.classList.toggle('hero-image', heroStyle === 'image' && Boolean(hero.hero_image_url || hero.heroImageUrl));
     document.body.classList.toggle('hero-minimal', heroStyle === 'minimal');
     document.body.classList.toggle('hero-bold', heroStyle === 'bold');
-    if(hero.hero_image_url || hero.heroImageUrl){ document.getElementById('heroImage').src = hero.hero_image_url || hero.heroImageUrl; }
+    if(hero.hero_image_url || hero.heroImageUrl){ var hi=document.getElementById('heroImage'); hi.src = hero.hero_image_url || hero.heroImageUrl; hi.alt=(b.name||'Studio')+' hero'; }
     setCopy('coursesLabel', website.courses_label || website.coursesLabel);
     setCopy('galleryLabel', website.gallery_label || website.galleryLabel);
     setCopy('faqLabel', website.faq_label || website.faqLabel);
@@ -650,7 +681,16 @@
     setCopy('principalImageLabel', principal.name || 'Principal');
     setCopy('principalBio', principal.bio);
     setCopy('principalQuote', principal.quote);
-    if(principal.image_url || principal.imageUrl){ var pi=document.getElementById('principalImage'); pi.src=principal.image_url||principal.imageUrl; pi.style.display='block'; }
+    if(principal.image_url || principal.imageUrl){ var pi=document.getElementById('principalImage'); pi.src=principal.image_url||principal.imageUrl; pi.alt=principal.name||'Principal'; pi.style.display='block'; }
+    var seoDescription=(hero.subtitle||b.slogan||((b.name||'Studio')+' courses and registration')).toString().slice(0,180);
+    document.getElementById('metaDescription').content=seoDescription;
+    document.getElementById('ogDescription').content=seoDescription;
+    document.getElementById('canonicalUrl').href=location.origin+'/'+encodeURIComponent(SLUG)+'/';
+    document.getElementById('businessStructuredData').textContent=JSON.stringify({
+      '@context':'https://schema.org','@type':'LocalBusiness',name:b.name||'Studio',
+      url:location.origin+'/'+encodeURIComponent(SLUG)+'/',telephone:b.contactPhone||'',
+      email:b.contactEmail||'',address:b.address||''
+    });
     renderRegistrationFields(b.registrationProfile || b.registration_profile);
     var faqItems=b.faqItems||b.faq_items||[];
     if(faqItems.length){
@@ -703,6 +743,14 @@
   }).catch(function(){ showSurfaceStatus(T('课程资料暂时无法加载，请稍后重试。','Course details are temporarily unavailable. Please retry later.')); });
 
   /* ── 预约 → v1 registrations（蜜罐 + consent）── */
+  function toggleJoinPublicationConsent(checked){
+    var details=document.getElementById('j-publication-details');
+    var by=document.getElementById('j-publication-by');
+    var relationship=document.getElementById('j-publication-relationship');
+    if(details) details.style.display=checked?'block':'none';
+    if(by) by.required=!!checked;
+    if(relationship) relationship.required=!!checked;
+  }
   function submitJoin(){
     var v=function(id){var e=document.getElementById(id);return e?(e.value||'').trim():'';};
     var name=v('j-name'), last=v('j-last'), phone=v('j-phone'), email=v('j-email');
@@ -712,6 +760,8 @@
     if(!name){return show(T('请填写名字','Please enter a given name.'));}
     if(!phone){return show(T('请填写手机号','Please enter a mobile number.'));}
     if(!document.getElementById('j-consent').checked){return show(T('请勾选同意隐私说明','Please agree to the privacy note.'));}
+    var publicationChecked=document.getElementById('j-publication-consent').checked;
+    if(publicationChecked && (!v('j-publication-by') || !v('j-publication-relationship'))){return show(T('请填写作品公开授权人和与学员的关系','Please provide the consenting person and their relationship to the student.'));}
     err.style.display='none';
     var btn=document.getElementById('j-btn'); btn.disabled=true; btn.textContent=T('提交中…','Submitting…');
     var msgParts=[];
@@ -724,11 +774,13 @@
     var body=Object.assign({firstName:name, lastName:last, mobile:phone, email:email,
               message:msgParts.join(' ｜ '), website:v('j-web'), source:'portal',
               sourcePath:location.pathname, language:(window.LANG||LANG),
-              privacyConsent:true, privacyNoticeVersion:'2026-07-12'},campaign);
+              privacyConsent:true, privacyNoticeVersion:'2026-07-12',
+              publicationConsent:publicationChecked?{confirmed:true,consentBy:v('j-publication-by'),relationship:v('j-publication-relationship'),method:'registration_form',noticeVersion:'2026-07-18'}:undefined},campaign);
     fetch(API + '/registrations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
       .then(function(r){return r.json().then(function(d){return {ok:r.ok,d:d};});})
       .then(function(res){
         if(res.ok && res.d.success){
+          if(window.StudioSaaSAnalytics) window.StudioSaaSAnalytics.track('registration_submitted');
           document.getElementById('joinForm').style.display='none';
           var done=document.getElementById('join-done'); done.style.display='block'; done.scrollIntoView({behavior:'smooth'});
         }else{ show((res.d&&(res.d.message||res.d.error))||T('提交失败，请稍后再试','Submission failed, please try again.')); }
@@ -736,52 +788,72 @@
       .finally(function(){ btn.disabled=false; btn.textContent=T('提交预约','Submit booking'); });
   }
 
-  /* ── 学员专区 → v1 balance-query + portfolio-token ── */
+  /* ── 学员专区 → tenant-bound HttpOnly student session ── */
   function resetMy(){
+    fetch(API + '/student/logout',{method:'POST',credentials:'same-origin',headers:{'X-Requested-With':'StudioSaaS'}}).catch(function(error){ console.warn('Student logout request failed.',error); });
     document.getElementById('m-result').style.display='none';
     document.getElementById('myForm').style.display='block';
-    document.getElementById('m-name').value=''; document.getElementById('m-phone').value='';
+    document.getElementById('m-name').value=''; document.getElementById('m-phone').value=''; document.getElementById('m-code').value='';
+    ['m-bal','m-next','m-hist','m-port','m-nomatch'].forEach(function(id){document.getElementById(id).style.display='none';});
     window.scrollTo({top:0,behavior:'smooth'});
   }
   function submitMy(){
     var name=(document.getElementById('m-name').value||'').trim();
     var phone=(document.getElementById('m-phone').value||'').trim();
+    var code=(document.getElementById('m-code').value||'').trim();
     var err=document.getElementById('m-err');
     var show=function(m){err.textContent=m;err.style.display='block';};
-    if(!name||!phone){ return show(T('请填写姓名和手机号','Please enter name and mobile.')); }
+    if(!name||!phone||!/^[0-9]{6}$/.test(code)){ return show(T('请填写姓名、手机号和 6 位访问码','Please enter name, mobile and a 6-digit access code.')); }
     err.style.display='none';
-    var btn=document.getElementById('m-btn'); btn.disabled=true; btn.textContent=T('查询中…','Checking…');
-    fetch(API + '/balance-query',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name,phone:phone})})
-      .then(function(r){return r.json().then(function(d){return{status:r.status,d:d};});})
+    var btn=document.getElementById('m-btn'); btn.disabled=true; btn.textContent=T('验证中…','Verifying…');
+    fetch(API + '/student/unlock',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-Requested-With':'StudioSaaS'},body:JSON.stringify({name:name,phone:phone,code:code})})
+      .then(function(r){return r.json().then(function(d){return{ok:r.ok,status:r.status,d:d};});})
       .then(function(res){
-        if(res.status===429){ return show((res.d&&res.d.error)||T('查询太频繁，请稍后再试','Too many queries, please wait.')); }
-        renderBalance(res.d, name, phone);
-      }).catch(function(){ show(T('网络错误，请重试','Network error, please try again.')); })
+        if(!res.ok){
+          if(res.status===429) throw new Error((res.d&&res.d.message)||T('尝试次数过多，请稍后再试','Too many attempts. Please wait.'));
+          throw new Error(T('无法验证这些资料，请核对后重试','The details could not be verified. Please retry.'));
+        }
+        return fetch(API + '/student/private',{credentials:'same-origin'});
+      })
+      .then(function(r){return r.json().then(function(d){if(!r.ok)throw new Error(d.message||T('登录已失效，请重新验证','Session expired. Please verify again.'));return d;});})
+      .then(renderStudentPrivate)
+      .catch(function(e){ show(e.message||T('网络错误，请重试','Network error, please try again.')); })
       .finally(function(){ btn.disabled=false; btn.textContent=T('查询','Check'); });
   }
-  function renderBalance(res, name, phone){
+  function renderStudentPrivate(res){
     var wrap=document.getElementById('m-result');
     var nomatch=document.getElementById('m-nomatch');
-    if(!res || !res.match){
-      document.getElementById('m-bal').style.display='none';
-      document.getElementById('m-port').style.display='none';
+    if(!res || !res.ok || !res.student){
+      ['m-bal','m-next','m-hist','m-port'].forEach(function(id){document.getElementById(id).style.display='none';});
       nomatch.style.display='block'; wrap.style.display='block';
       document.getElementById('myForm').style.display='none'; wrap.scrollIntoView({behavior:'smooth'}); return;
     }
     nomatch.style.display='none';
-    var bal=parseInt(res.balance,10)||0;
+    var bal=Number(res.student.balance)||0;
     document.getElementById('m-bal').style.display='block';
-    document.getElementById('m-bal-name').textContent=res.name||name;
+    document.getElementById('m-bal-name').textContent=res.student.name||'';
     document.getElementById('m-bal-num').textContent=bal;
     var warn=document.getElementById('m-bal-warn');
     if(bal===0){warn.style.display='block';warn.style.color='#B4442E';warn.textContent=T('课时已用完，请联系老师续课。','No classes left — please contact your teacher.');}
     else if(bal<=2){warn.style.display='block';warn.style.color='var(--clay)';warn.textContent=T('课时即将用完，欢迎续课。','Running low — welcome to top up.');}
     else{warn.style.display='none';}
+    var nx=document.getElementById('m-next');
+    if(res.nextClass && res.nextClass.date){
+      document.getElementById('m-next-info').textContent=[res.nextClass.date,res.nextClass.time,res.nextClass.course].filter(Boolean).join(' · ');
+      nx.style.display='flex';
+    }else{ nx.style.display='none'; }
+    var attended=(res.attendance||[]).filter(function(item){return item.status==='attended';});
+    var hist=document.getElementById('m-hist'), list=document.getElementById('m-hist-list'); list.innerHTML='';
+    attended.forEach(function(item){
+      var row=document.createElement('div'); row.style.cssText='padding:12px 20px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line)';
+      var mark=document.createElement('span'); mark.style.color='#5a8a5a'; mark.textContent='✓';
+      var date=document.createElement('span'); date.style.cssText='flex:1;font-size:14px'; date.textContent=item.date||'';
+      var course=document.createElement('span'); course.style.cssText='font-size:12px;color:var(--muted)'; course.textContent=item.course||T('常规课程','Class');
+      row.appendChild(mark); row.appendChild(date); row.appendChild(course); list.appendChild(row);
+    });
+    hist.style.display=attended.length?'block':'none';
+    if(res.portfolio&&res.portfolio.length) renderMyPortfolio(res.portfolio); else document.getElementById('m-port').style.display='none';
     wrap.style.display='block'; document.getElementById('myForm').style.display='none'; wrap.scrollIntoView({behavior:'smooth'});
-    fetch(API + '/portfolio-token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name,phone:phone})})
-      .then(function(r){return r.json();}).then(function(d){
-        if(d&&d.ok&&d.portfolio&&d.portfolio.length){ renderMyPortfolio(d.portfolio); }
-      }).catch(function(){ show(T('作品集暂时无法加载，请稍后重试','Portfolio is temporarily unavailable. Please retry later.')); });
   }
   function renderMyPortfolio(items){
     var box=document.getElementById('m-port'), grid=document.getElementById('m-port-grid');
@@ -790,14 +862,14 @@
       var d=document.createElement('div');
       d.style.cssText='aspect-ratio:1/1;border:1px solid var(--line);overflow:hidden;position:relative;background:#ece3d5';
       var img=document.createElement('img');
-      img.src=it.mediaUrl + '&thumb=1'; img.loading='lazy';
+      img.src=it.mediaUrl; img.loading='lazy';
       img.style.cssText='width:100%;height:100%;object-fit:cover';
       img.onerror=function(){ this.style.display='none'; };
       d.appendChild(img);
-      if(it.title||it.note){
+      if(it.title||it.comment){
         var cap=document.createElement('span');
         cap.style.cssText='position:absolute;left:8px;bottom:6px;font-size:11px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.6)';
-        cap.textContent=it.title||it.note;
+        cap.textContent=it.title||it.comment;
         d.appendChild(cap);
       }
       grid.appendChild(d);

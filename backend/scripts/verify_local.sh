@@ -9,7 +9,9 @@
 #    2. requirements.txt is valid in the active venv
 #    3. py_compile backend/server.py backend/studiosaas/*.py
 #    4. Runs the legacy smoke test (test_cms.py)
-#    5. Optionally runs tenant isolation tests if PostgreSQL is available
+#    5. Checks migrations/media derivatives and runs tenant isolation tests
+#       when PostgreSQL is available. Set STUDIOSAAS_REQUIRE_POSTGRES=1 to
+#       make database availability mandatory for a release gate.
 # ═══════════════════════════════════════════════════════════════════
 set -euo pipefail
 
@@ -109,6 +111,20 @@ if [ -x "$PYTHON" ]; then
         else
             fail "inline HTML script syntax check failed"
         fi
+        STATIC_JS_OK=true
+        for asset in \
+            "$SCRIPT_DIR/frontend/assets/admin-i18n.js" \
+            "$SCRIPT_DIR/frontend/assets/public-analytics.js" \
+            "$SCRIPT_DIR/frontend/assets/public-register.js" \
+            "$SCRIPT_DIR/frontend/assets/ui-common.js"; do
+            if [ ! -f "$asset" ] || ! node --check "$asset" >/dev/null 2>&1; then
+                fail "$(basename "$asset") is missing or has syntax errors"
+                STATIC_JS_OK=false
+            fi
+        done
+        if $STATIC_JS_OK; then
+            ok "shared frontend assets compile"
+        fi
         if [ -f "$CMS_OUT" ] && node -e "new Function(require('fs').readFileSync('$CMS_OUT','utf8'))" 2>/dev/null; then
             ok "cms-app.js compiled bundle is valid JS"
         else
@@ -146,25 +162,46 @@ else
     fail "Cannot run smoke test without Python."
 fi
 
-# ── 5. Tenant isolation tests (optional, requires PostgreSQL) ──────
+# ── 5. PostgreSQL release checks and tenant isolation ──────────────
 echo ""
-echo "── 5. Tenant isolation tests (optional) ──"
+echo "── 5. PostgreSQL release checks and tenant isolation ──"
 if [ -x "$PYTHON" ]; then
     # Check if PostgreSQL is reachable
     if command -v psql >/dev/null 2>&1; then
         if psql -h localhost -U "$USER" -d studiosaas_local_test -c "SELECT 1" >/dev/null 2>&1; then
-            info "PostgreSQL available — running tenant isolation tests..."
+            info "PostgreSQL available — checking migrations and safe media derivatives..."
+            if STUDIOSAAS_DATABASE_URL="${STUDIOSAAS_DATABASE_URL:-postgresql://$USER@localhost:5432/studiosaas_local_test}" \
+                "$PYTHON" "$SCRIPT_DIR/scripts/run_migrations.py" --check >/dev/null 2>&1; then
+                ok "database migrations are current"
+            else
+                fail "database has pending migrations"
+            fi
+            if STUDIOSAAS_DATABASE_URL="${STUDIOSAAS_DATABASE_URL:-postgresql://$USER@localhost:5432/studiosaas_local_test}" \
+                "$PYTHON" "$SCRIPT_DIR/scripts/backfill_media_variants.py" --check >/dev/null 2>&1; then
+                ok "all local image media has safe display/thumbnail derivatives"
+            else
+                fail "media derivative backfill is incomplete"
+            fi
+            info "Running tenant isolation tests..."
             if "$PYTHON" "$SCRIPT_DIR/test_tenant_isolation.py" 2>&1; then
                 ok "Tenant isolation tests passed"
             else
                 fail "Tenant isolation tests failed (see output above)"
             fi
         else
-            info "PostgreSQL not reachable — skipping tenant isolation tests."
-            info "To run: seed tenants with seed_local_test_tenants.py first."
+            if [ "${STUDIOSAAS_REQUIRE_POSTGRES:-0}" = "1" ]; then
+                fail "PostgreSQL is required for this release gate but is not reachable."
+            else
+                info "PostgreSQL not reachable — database checks skipped."
+                info "For a release gate, re-run with STUDIOSAAS_REQUIRE_POSTGRES=1."
+            fi
         fi
     else
-        info "psql not found — skipping tenant isolation tests."
+        if [ "${STUDIOSAAS_REQUIRE_POSTGRES:-0}" = "1" ]; then
+            fail "psql is required for this release gate but was not found."
+        else
+            info "psql not found — database checks skipped."
+        fi
     fi
 else
     info "Cannot run tenant isolation tests without Python."

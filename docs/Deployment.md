@@ -120,7 +120,7 @@ bash scripts/package_release.sh
 
 当前候选的逐项证据和未关闭阻塞项记录在
 [`Release_Readiness_2026-07-12.md`](Release_Readiness_2026-07-12.md)。AWS 暂不执行，
-但不得因此跳过 0012–0014 迁移、真实 PostgreSQL 隔离测试或本地浏览器链路。
+但不得因此跳过 0012–0017 迁移、媒体衍生图检查、真实 PostgreSQL 隔离测试或本地浏览器链路。
 
 ---
 
@@ -166,5 +166,7 @@ Route53/Cloudflare DNS
 | `PORT` | 8899 | 8899 | 8899（nginx 上游） |
 | `COOKIE_SECURE` | 不设 | **1** | **1**（P3-01 后 production 强制） |
 | `STUDIOSAAS_ENV` | local | local | production |
-| `STUDIOSAAS_MEDIA_ROOT` | ./media | ./media | S3 (P3-03) |
+| `STUDIOSAAS_API_KEY` | 自动生成的本地文件 | 独立强随机值 | Secrets Manager |
+| `STUDIOSAAS_SESSION_SECRET` | 自动生成的本地文件 | 与 API key 不同的强随机值 | Secrets Manager |
+| `STUDIOSAAS_MEDIA_DIR` | `backend/media` | 持久化本地目录 | S3 adapter 前使用持久卷（P3-03） |
 | SMTP（notifications） | console | console/SMTP | SES SMTP |

@@ -8,6 +8,7 @@
   <link rel="manifest" href="/ruby-studio/manifest-student.json">
   <script src="/assets/ui-common.js"></script>
   <script src="/assets/public-register.js"></script>
+  <script src="/assets/public-analytics.js"></script>
   <link rel="stylesheet" href="/assets/ui-tokens.css">
   <style>
     :root {
@@ -60,7 +61,7 @@
     }
   </style>
 </head>
-<body>
+<body data-tenant-slug="ruby-studio">
   <header>
     <div class="brand">
       <img id="tenantLogo" src="/logo.png" alt="Ruby Studio">
@@ -98,6 +99,11 @@
         <div class="field"><label for="message" data-zh="补充说明" data-en="Message">补充说明</label><textarea id="message" rows="3" placeholder="选填"></textarea></div>
         <div style="position:absolute;left:-9999px;top:-9999px" aria-hidden="true"><input id="website" type="text" tabindex="-1" autocomplete="off"></div>
         <label class="consent"><input id="consent" type="checkbox"><span data-zh="我同意工作室仅将这些资料用于联系与课程管理。" data-en="I agree that my details are used only for studio contact and class management.">我同意工作室仅将这些资料用于联系与课程管理。</span></label>
+        <label class="consent"><input id="publicationConsent" type="checkbox"><span data-zh="选填：我同意工作室在官网或招生材料中展示学员作品（可随时联系工作室撤回）。" data-en="Optional: I consent to the studio displaying the student's artwork on its website or promotional materials. This can be withdrawn at any time.">选填：我同意工作室在官网或招生材料中展示学员作品（可随时联系工作室撤回）。</span></label>
+        <div id="publicationConsentDetails" hidden>
+          <div class="field"><label for="publicationConsentBy" data-zh="授权人姓名 *" data-en="Consenting person *">授权人姓名 *</label><input id="publicationConsentBy" autocomplete="name" maxlength="120"></div>
+          <div class="field"><label for="publicationRelationship" data-zh="与学员关系 *" data-en="Relationship to student *">与学员关系 *</label><select id="publicationRelationship"><option value="" data-zh="请选择" data-en="Select">请选择</option><option value="self" data-zh="本人" data-en="Self">本人</option><option value="parent" data-zh="家长/监护人" data-en="Parent / guardian">家长/监护人</option><option value="other_guardian" data-zh="其他授权监护人" data-en="Other authorised guardian">其他授权监护人</option></select></div>
+        </div>
         <p id="error" class="error" role="alert" aria-live="assertive"></p>
         <button id="submitBtn" type="submit" data-zh="提交报名" data-en="Submit registration">提交报名</button>
       </form>
@@ -195,12 +201,19 @@
       document.getElementById('tenantContact').textContent = [brand.contact_phone || brand.contactPhone, brand.contact_email || brand.contactEmail, brand.address].filter(Boolean).join(' · ');
       applyBrandContent();
     }
+    document.getElementById('publicationConsent').addEventListener('change', (event) => {
+      const details = document.getElementById('publicationConsentDetails');
+      details.hidden = !event.target.checked;
+      document.getElementById('publicationConsentBy').required = event.target.checked;
+      document.getElementById('publicationRelationship').required = event.target.checked;
+    });
     document.getElementById('registerForm').addEventListener('submit', async (event) => {
       event.preventDefault();
       document.getElementById('error').style.display = 'none';
       if (!value('firstName')) return showError(T('请填写名字。', 'Please enter a given name.'));
       if (!value('mobile')) return showError(T('请填写手机号码。', 'Please enter a mobile number.'));
       if (!document.getElementById('consent').checked) return showError(T('请勾选同意隐私说明。', 'Please agree to the privacy note.'));
+      if (document.getElementById('publicationConsent').checked && (!value('publicationConsentBy') || !value('publicationRelationship'))) return showError(T('请填写作品公开授权人和与学员的关系。', 'Please provide the consenting person and their relationship to the student.'));
       const button = document.getElementById('submitBtn');
       button.disabled = true;
       button.textContent = T('提交中…', 'Submitting...');
@@ -227,11 +240,19 @@
             language: currentLanguage,
             privacyConsent: true,
             privacyNoticeVersion: '2026-07-12',
+            publicationConsent: document.getElementById('publicationConsent').checked ? {
+              confirmed: true,
+              consentBy: value('publicationConsentBy'),
+              relationship: value('publicationRelationship'),
+              method: 'registration_form',
+              noticeVersion: '2026-07-18'
+            } : undefined,
             ...campaign
           })
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok || !data.success) throw new Error(data.message || data.error || T('提交失败。', 'Submission failed.'));
+        if (window.StudioSaaSAnalytics) window.StudioSaaSAnalytics.track('registration_submitted');
         document.getElementById('registerForm').style.display = 'none';
         document.getElementById('done').style.display = 'block';
         document.getElementById('done').focus();

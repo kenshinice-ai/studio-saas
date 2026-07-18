@@ -51,7 +51,9 @@ def _applied_versions(conn) -> set[str]:
     return set()
 
 
-def run(dry_run: bool = False, baseline: str | None = None) -> int:
+def run(dry_run: bool = False, baseline: str | None = None, *, check: bool = False) -> int:
+    """Apply migrations, list them, or fail when a database is behind."""
+
     try:
         from studiosaas.db import connect
     except ImportError as exc:
@@ -92,6 +94,12 @@ def run(dry_run: bool = False, baseline: str | None = None) -> int:
             print("Database is up to date. Nothing to apply.")
             return 0
 
+        if check:
+            for path in pending:
+                print(f"pending    {path.name}")
+            print(f"ERROR: {len(pending)} migration(s) pending.", file=sys.stderr)
+            return 2
+
         for path in pending:
             if dry_run:
                 print(f"pending    {path.name}")
@@ -119,13 +127,16 @@ def run(dry_run: bool = False, baseline: str | None = None) -> int:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Apply StudioSaaS SQL migrations in order.")
     parser.add_argument("--dry-run", action="store_true", help="List pending migrations without applying.")
+    parser.add_argument("--check", action="store_true", help="Exit non-zero when migrations are pending.")
     parser.add_argument(
         "--baseline",
         metavar="VERSION",
         help="Mark VERSION and all earlier migrations as applied without executing.",
     )
     args = parser.parse_args()
-    return run(dry_run=args.dry_run, baseline=args.baseline)
+    if args.check and (args.dry_run or args.baseline):
+        parser.error("--check cannot be combined with --dry-run or --baseline")
+    return run(dry_run=args.dry_run, baseline=args.baseline, check=args.check)
 
 
 if __name__ == "__main__":

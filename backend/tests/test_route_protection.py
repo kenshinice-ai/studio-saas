@@ -11,6 +11,7 @@ SENSITIVE_READS = [
     "/s/demo/v1/tenant",
     "/s/demo/v1/tenant/brand",
     "/s/demo/v1/tenant/brand-workspace",
+    "/s/demo/v1/tenant/analytics?days=30",
     "/s/demo/v1/team",
     "/s/demo/v1/students",
     "/s/demo/v1/registrations",
@@ -18,6 +19,8 @@ SENSITIVE_READS = [
     "/s/demo/v1/packages",
     "/s/demo/v1/portfolio",
     "/s/demo/v1/attendance",
+    "/s/demo/v1/daily-roster?date=2026-07-18",
+    "/s/demo/v1/daily-roster/preview?from=2026-07-18&days=7",
     "/s/demo/v1/dashboard",
     "/s/demo/v1/legacy-cms/data",
     "/s/demo/v1/export/students.csv",
@@ -51,6 +54,7 @@ MUTATIONS = [
     ("POST", "/v1/admin/tenants"),
     ("PATCH", "/s/demo/v1/tenant"),
     ("PUT", "/s/demo/v1/tenant/brand-draft"),
+    ("POST", "/s/demo/v1/tenant/website-media"),
     ("POST", "/s/demo/v1/tenant/brand-versions/00000000-0000-0000-0000-000000000000/restore"),
     ("POST", "/s/demo/v1/team"),
     ("PATCH", "/s/demo/v1/team/00000000-0000-0000-0000-000000000000"),
@@ -62,6 +66,13 @@ MUTATIONS = [
     ("POST", "/s/demo/v1/media/upload"),
     ("POST", "/s/demo/v1/attendance/check-in"),
     ("POST", "/s/demo/v1/attendance/00000000-0000-0000-0000-000000000000/void"),
+    ("POST", "/s/demo/v1/daily-roster"),
+    ("DELETE", "/s/demo/v1/daily-roster/00000000-0000-0000-0000-000000000000"),
+    ("POST", "/s/demo/v1/daily-roster/00000000-0000-0000-0000-000000000000/undo"),
+    ("POST", "/s/demo/v1/students/00000000-0000-0000-0000-000000000000/access-code"),
+    ("DELETE", "/s/demo/v1/students/00000000-0000-0000-0000-000000000000/access-code"),
+    ("PUT", "/s/demo/v1/students/00000000-0000-0000-0000-000000000000/publication-consent"),
+    ("DELETE", "/s/demo/v1/students/00000000-0000-0000-0000-000000000000/publication-consent"),
 ]
 
 

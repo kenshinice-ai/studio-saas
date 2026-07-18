@@ -8,18 +8,18 @@ the v1 multi-tenant tables.
 Use the local runbook script from the project root:
 
 ```bash
-STUDIOSAAS_DATABASE_URL=postgresql://llmacbookpro@localhost:5432/studiosaas_local_test \
+STUDIOSAAS_DATABASE_URL=postgresql://$(whoami)@localhost:5432/studiosaas_local_test \
   .venv/bin/python backend/scripts/backup_postgres.py backup
 ```
 
 This creates a custom-format `pg_dump` plus a manifest under
-`backups/postgres/`. The manifest records `schema_migrations` so a restore can
-be checked against the expected schema.
+`backups/postgres/`. The manifest records `schema_migrations` and critical
+table counts so a restore can be checked against both schema and data totals.
 
 Dry-run restore into a temporary sibling database:
 
 ```bash
-STUDIOSAAS_DATABASE_URL=postgresql://llmacbookpro@localhost:5432/studiosaas_local_test \
+STUDIOSAAS_DATABASE_URL=postgresql://$(whoami)@localhost:5432/studiosaas_local_test \
   .venv/bin/python backend/scripts/backup_postgres.py restore-dry-run backups/postgres/<dump>.dump
 ```
 
@@ -42,7 +42,7 @@ Checklist:
   explicit `--confirm <database_name>` guard.
 
 > **StudioSaaS Platform Administration**
-> Last updated: 2026-07-03
+> Last updated: 2026-07-18
 
 ---
 
@@ -87,15 +87,19 @@ Checklist:
    ```bash
    export STUDIOSAAS_DATABASE_URL="postgresql://<user>@localhost:5432/studiosaas_local_test"
    export STUDIOSAAS_ENV="local"
-   export STUDIOSAAS_PORT="8899"
-   export STUDIOSAAS_SECRET_KEY="change-me"
+   export PORT="8899"
+   export STUDIOSAAS_API_KEY="at-least-32-random-characters"
+   export STUDIOSAAS_SESSION_SECRET="different-at-least-32-random-characters"
+   export STUDIOSAAS_MEDIA_DIR="/persistent/studiosaas/media"
+   export CMS_DATA_DIR="/persistent/studiosaas/legacy-data"
    ```
 
 4. **Initialize database:**
    ```bash
    createdb studiosaas_local_test
-   psql "$STUDIOSAAS_DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/db/schema_v1.sql
-   cd backend && python scripts/seed_super_admin.py
+   cd backend
+   ../.venv/bin/python scripts/run_migrations.py
+   ../.venv/bin/python scripts/seed_super_admin.py
    ```
 
 5. **Start the server:**
@@ -158,7 +162,10 @@ curl -X POST http://localhost:8899/v1/admin/tenants \
 
 ### Deleting a Tenant
 
-Hard delete is **not supported** in the current build — use `paused`/`cancelled` status instead. This is deliberate: no un-audited destructive operations on tenant data during the pilot.
+Direct tenant deletion is disabled. Archive first; a platform Super Admin may
+then use the separately guarded permanent-delete workflow with the exact
+confirmation phrase. The workflow creates database/media snapshots and audit
+evidence before deletion. Studio owners cannot perform it.
 
 ---
 
@@ -180,6 +187,13 @@ Hard delete is **not supported** in the current build — use `paused`/`cancelle
 | Audit Logs | Platform activity trail |
 | Search | Filter tenants by name or slug |
 
+### 界面语言 / Interface Language
+
+Super Admin 和每个租户的 Studio Admin 顶部均提供 **中文 / English**
+切换。系统默认显示中文，并在当前浏览器保存上次选择；导航、表单、按钮、
+状态、提示和确认信息会一起切换。该设置只影响界面文案，不会修改套餐代码、
+工作室网址标识或数据库中的状态值。
+
 ### Permissions
 
 - Only users with a `super_admin` membership can access
@@ -199,12 +213,14 @@ curl http://localhost:8899/v1/health
 
 ```json
 {
-  "status": "healthy",
-  "database": "connected",
-  "uptime_seconds": 3600,
-  "version": "1.0.0"
+  "ok": true,
+  "service": "PWE Studio SaaS API",
+  "version": "v1"
 }
 ```
+
+This endpoint confirms the web process, not database readiness. The mandatory
+release check is `STUDIOSAAS_REQUIRE_POSTGRES=1 bash backend/scripts/verify_local.sh`.
 
 ### Log Files
 
@@ -236,7 +252,8 @@ curl http://localhost:8899/v1/health
 ### Database Backup
 
 **Canonical path (P0-3):** use `backend/scripts/backup_postgres.py` — it writes a
-`pg_dump` custom-format dump plus a manifest recording `schema_migrations` to
+`pg_dump` custom-format dump plus a manifest recording `schema_migrations` and
+critical table counts to
 `backups/postgres/` (git-ignored), keeping the newest 14.
 
 ```bash
@@ -247,8 +264,7 @@ curl http://localhost:8899/v1/health
 cd backend && STUDIOSAAS_DATABASE_URL=... ../.venv/bin/python scripts/backup_postgres.py backup --keep 14
 ```
 
-**Restore drill** (run monthly; last verified 2026-07-09 — dump restored into a
-temporary database with all 10 migrations confirmed present):
+**Restore drill** (run before relying on a backup):
 
 ```bash
 cd backend && STUDIOSAAS_DATABASE_URL=... ../.venv/bin/python scripts/backup_postgres.py restore-dry-run ../backups/postgres/<dump>.dump
@@ -259,51 +275,28 @@ daemons. If the stack ever becomes long-running, ready-made LaunchAgent
 templates live in `deploy/launchd/` (`bash deploy/install_launch_agents.sh`
 installs daily-03:00 backup + persistent tunnel).
 
-### CMS Data Backup
+### Media And Legacy Data Backup
 
-```bash
-# Archive CMS uploads directory
-tar -czf cms_backup_$(date +%Y%m%d_%H%M%S).tar.gz /var/lib/studiosaas/cms/
-```
+PostgreSQL stores media metadata, not file bytes. Back up the persistent
+`STUDIOSAAS_MEDIA_DIR` and `CMS_DATA_DIR` alongside the database dump using the
+host platform's snapshot or file-backup mechanism. Preserve directory
+ownership and permissions. Do not expose either directory through a public
+static-file server.
 
 ### Recovery Procedure
 
-1. **Stop the server:**
-   ```bash
-   systemctl stop studiosaas
-   # or kill the process
-   ```
-
-2. **Restore database:**
-   ```bash
-   psql studiosaas < backup_20260702_020000.sql
-   ```
-
-3. **Restore CMS data:**
-   ```bash
-   rm -rf /var/lib/studiosaas/cms/*
-   tar -xzf cms_backup_20260702_020000.tar.gz -C /var/lib/studiosaas/cms/
-   ```
-
-4. **Restart the server:**
-   ```bash
-   systemctl start studiosaas
-   # or
-   ../.venv/bin/python backend/server.py
-   ```
-
-5. **Verify:**
-   ```bash
-   curl http://localhost:8899/v1/health
-   ```
+Use [Release_Runbook.md](Release_Runbook.md). It requires a successful
+temporary restore drill before the confirmation-guarded real restore, avoids
+provider-specific service commands, and requires reconciliation of writes
+created after the backup timestamp.
 
 ### Backup Retention
 
 | Type | Frequency | Retention |
 |---|---|---|
-| Database | Daily | 30 days |
-| CMS Data | Daily | 7 days |
-| Full (DB + CMS) | Weekly | 90 days |
+| Database dump + manifest | Before every migration and at least daily when long-running | Newest 14 by default |
+| Media and legacy data | At least daily when long-running | Match database retention window |
+| Restore drill | Monthly and before emergency use | Record result with release evidence |
 
 ---
 
@@ -315,7 +308,7 @@ tar -czf cms_backup_$(date +%Y%m%d_%H%M%S).tar.gz /var/lib/studiosaas/cms/
 |---|---|---|
 | "Tenant context is required" | Missing tenant slug in URL | Verify URL pattern: `/<slug>/cms` |
 | 404 on CMS page | Tenant not activated | Activate tenant in super-admin |
-| Images not uploading | `CMS_DATA_DIR` not writable | Check directory permissions |
+| Images not uploading | `STUDIOSAAS_MEDIA_DIR` not writable or quota reached | Check explicit upload error, directory permissions, and tenant usage |
 | Slow page loads | Large image files | Optimize images, use CDN |
 | Brand colours wrong | Tenant `primary_color` not set | Update tenant via super-admin |
 

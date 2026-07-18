@@ -18,6 +18,7 @@ venv/
 
 # ── StudioSaaS local secrets (NEVER commit) ──
 backend/.api_secret
+backend/.session_secret
 backend/.cms_password
 backend/.cms_config.json
 backend/database.json

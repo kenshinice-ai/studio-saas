@@ -111,7 +111,7 @@ studiosaas/
 │   │   ├── tenant_context.py     # Tenant resolution
 │   │   └── workspaces.py         # Tenant folder generation
 │   ├── db/
-│   │   └── schema_v1.sql         # Full schema definition (25 tables, through 0014)
+│   │   └── schema_v1.sql         # Historical bootstrap; migrations through 0017 are canonical
 │   ├── scripts/
 │   │   ├── seed_super_admin.py
 │   │   ├── seed_local_test_tenants.py

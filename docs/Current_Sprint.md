@@ -86,7 +86,10 @@ These items from earlier sprint docs are confirmed done — do not re-fix:
 | Display rename → **PWE Studio SaaS** (titles, super-admin h1, health `service`, manifests, README; internal identifiers `STUDIOSAAS_*`/CSRF value/domain unchanged) | ✅ |
 | Default credential hints removed from login UI; public-pilot accounts use unique rotated passwords | ✅ 2026-07-10 |
 | Super-admin quick links: Portal `/slug` + CMS `/slug/cms` + Admin + Register (was: "CMS" mislinked to `/slug`) | ✅ |
-| Tenant portal v2: `tenant-template/index.html` rebuilt on the LetsPaint v6.6.6 portal design — bilingual SPA (home/join/my/privacy), brand/programs from v1 public APIs, in-page enrolment (honeypot+consent) and student area (balance + portfolio thumbs) | ✅ |
+| Tenant portal v2: bilingual SPA (home/join/my/privacy), brand/programs from v1 public APIs, in-page enrolment, and a private student area protected by name + mobile + studio-issued 6-digit access code | ✅ |
+| Student privacy hardening: append-only publication consent, one-hour HttpOnly student sessions, brute-force lockout, metadata-free display/thumb variants and fail-closed public media | ✅ 2026-07-18 |
+| Canonical daily roster entries with reversible cancellation; recurring schedules remain preview templates | ✅ 2026-07-18 |
+| Privacy-preserving portal funnel analytics + tenant-owned website media + tenant-scoped portal PWA manifest | ✅ 2026-07-18 |
 | lets-paint-studio keeps the full-content portal (artist/FAQ/contact), rewired to v1 endpoints | ✅ |
 | `/slug/cms/studio-admin` → 302 alias to `/slug/studio-admin` | ✅ |
 | CSRF guard: `/v1/public/*` exempt (session-holding staff were 403-blocked on public portal forms) | ✅ |
@@ -145,6 +148,7 @@ These items from earlier sprint docs are confirmed done — do not re-fix:
 | P2-06 | Product-surface SSOT, brand draft/publish/version flow, commercial lifecycle metrics, registration source/follow-up funnel, plan limits and explicit operational roles | ✅ code complete 2026-07-12; DB/browser acceptance pending |
 | P2-07 | Shared design tokens from `docs/Design_System.md` | ❌ |
 | P2-08 | Review hardening: canonical lifecycle rules, complete archive snapshots, shared industry presets, bilingual Quick Registration, safer brand publishing, and dead Studio Admin operations removal | ✅ 2026-07-14 |
+| P2-09 | Chinese-first Studio Admin and Super Admin with persistent 中文 / English switch, including dynamic controls and prompts | ✅ 2026-07-18 |
 
 ### P3 — Platform and deployment
 
@@ -249,7 +253,7 @@ Privileged passwords are deliberately absent from the repository and login UI. R
 
 ```bash
 cd backend
-STUDIOSAAS_DATABASE_URL=postgresql://llmacbookpro@localhost:5432/studiosaas_local_test \
+STUDIOSAAS_DATABASE_URL=postgresql://$(whoami)@localhost:5432/studiosaas_local_test \
 ../.venv/bin/python scripts/rotate_pilot_credentials.py
 ```
 

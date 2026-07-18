@@ -52,8 +52,17 @@ def _db_name(url: str) -> str:
 def _maintenance_url(url: str) -> str:
     """Return a sibling URL connected to the postgres maintenance database."""
 
+    return _database_sibling_url(url, "postgres")
+
+
+def _database_sibling_url(url: str, database_name: str) -> str:
+    """Replace only the database path, preserving local triple-slash URLs."""
+
     parsed = urlparse(url)
-    return parsed._replace(path="/postgres").geturl()
+    if parsed.scheme and not parsed.netloc:
+        suffix = f"?{parsed.query}" if parsed.query else ""
+        return f"{parsed.scheme}:///{database_name}{suffix}"
+    return parsed._replace(path=f"/{database_name}").geturl()
 
 
 def _quote_ident(name: str) -> str:
@@ -75,6 +84,42 @@ def _schema_versions(url: str) -> list[str]:
         "SELECT version FROM schema_migrations ORDER BY version",
     ])
     return [line.strip() for line in result.stdout.splitlines() if line.strip()]
+
+
+def _critical_counts(url: str) -> dict[str, int]:
+    """Return small integrity totals used to verify a restored backup."""
+
+    tables = ("tenants", "users", "students", "registrations", "media_assets", "audit_logs")
+    counts: dict[str, int] = {}
+    for table in tables:
+        result = _run(["psql", url, "-At", "-c", f"SELECT count(*) FROM {table}"])
+        counts[table] = int(result.stdout.strip() or 0)
+    return counts
+
+
+def _dump_manifest(dump_path: Path) -> dict[str, object]:
+    """Load and validate the companion manifest for a custom-format dump."""
+
+    manifest_path = dump_path.with_suffix(".manifest.json")
+    if not manifest_path.is_file():
+        raise SystemExit(f"Backup manifest not found: {manifest_path}")
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise SystemExit(f"Backup manifest is invalid: {exc}") from exc
+    if manifest.get("dump") != dump_path.name:
+        raise SystemExit("Backup manifest does not match the selected dump.")
+    if not isinstance(manifest.get("schema_migrations"), list):
+        raise SystemExit("Backup manifest has no schema migration inventory.")
+    if "critical_counts" in manifest and not isinstance(manifest.get("critical_counts"), dict):
+        raise SystemExit("Backup manifest has invalid critical table counts.")
+    if "critical_counts" not in manifest:
+        print(
+            "WARNING: legacy backup manifest has no critical table counts; "
+            "restore verification will compare migrations only.",
+            file=sys.stderr,
+        )
+    return manifest
 
 
 def _prune_backups(directory: Path, keep: int) -> None:
@@ -102,6 +147,7 @@ def backup(args: argparse.Namespace) -> int:
         "database": _db_name(url),
         "dump": dump_path.name,
         "schema_migrations": _schema_versions(url),
+        "critical_counts": _critical_counts(url),
         "size_bytes": dump_path.stat().st_size,
     }
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
@@ -117,17 +163,21 @@ def restore_dry_run(args: argparse.Namespace) -> int:
     dump_path = Path(args.dump).expanduser().resolve()
     if not dump_path.exists():
         raise SystemExit(f"Dump file not found: {dump_path}")
+    manifest = _dump_manifest(dump_path)
 
     temp_db = f"{_db_name(url)}_restore_check_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
-    temp_url = urlparse(url)._replace(path=f"/{temp_db}").geturl()
+    temp_url = _database_sibling_url(url, temp_db)
     maintenance = _maintenance_url(url)
     try:
         _run(["psql", maintenance, "-v", "ON_ERROR_STOP=1", "-c", f"CREATE DATABASE {_quote_ident(temp_db)}"])
         _run(["pg_restore", "--no-owner", "--dbname", temp_url, str(dump_path)])
         versions = _schema_versions(temp_url)
-        if not versions:
-            raise SystemExit("Dry-run restore finished, but schema_migrations is empty.")
-        print(json.dumps({"ok": True, "temporary_database": temp_db, "schema_migrations": versions}, indent=2))
+        counts = _critical_counts(temp_url)
+        if versions != manifest["schema_migrations"]:
+            raise SystemExit("Dry-run restore migration inventory does not match the backup manifest.")
+        if manifest.get("critical_counts") is not None and counts != manifest["critical_counts"]:
+            raise SystemExit("Dry-run restore critical table counts do not match the backup manifest.")
+        print(json.dumps({"ok": True, "temporary_database": temp_db, "schema_migrations": versions, "critical_counts": counts}, indent=2))
     finally:
         _run(["psql", maintenance, "-v", "ON_ERROR_STOP=1", "-c", f"DROP DATABASE IF EXISTS {_quote_ident(temp_db)}"])
     return 0
@@ -143,9 +193,15 @@ def restore(args: argparse.Namespace) -> int:
     dump_path = Path(args.dump).expanduser().resolve()
     if not dump_path.exists():
         raise SystemExit(f"Dump file not found: {dump_path}")
+    manifest = _dump_manifest(dump_path)
     _run(["pg_restore", "--clean", "--if-exists", "--no-owner", "--dbname", url, str(dump_path)])
     versions = _schema_versions(url)
-    print(json.dumps({"ok": True, "restored_database": db_name, "schema_migrations": versions}, indent=2))
+    counts = _critical_counts(url)
+    if versions != manifest["schema_migrations"] or (
+        manifest.get("critical_counts") is not None and counts != manifest["critical_counts"]
+    ):
+        raise SystemExit("Restore completed, but verification does not match the backup manifest.")
+    print(json.dumps({"ok": True, "restored_database": db_name, "schema_migrations": versions, "critical_counts": counts}, indent=2))
     return 0
 
 

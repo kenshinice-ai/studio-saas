@@ -1,7 +1,7 @@
 # StudioSaaS API Reference
 
-Version: v3.2
-Date: 2026-07-14
+Version: v3.3
+Date: 2026-07-18
 Purpose: Complete API endpoint reference, authentication model, tenant resolution, and public endpoints.
 
 ---
@@ -187,6 +187,8 @@ Creates `tenants`, `subscriptions`, `tenant_usage` rows and generates `tenants/<
 | GET | `/v1/students/{student_id}` | Tenant admin | Student detail |
 | PATCH | `/v1/students/{student_id}` | Tenant admin | Update student |
 | POST | `/v1/students/{student_id}/archive` | Tenant admin | Archive student |
+| POST/DELETE | `/v1/students/{student_id}/access-code` | `students:write` | Issue once or revoke a hashed 6-digit private-portal access code |
+| PUT/DELETE | `/v1/students/{student_id}/publication-consent` | `portfolio:write` | Append a publication confirmation or withdrawal event |
 
 ---
 
@@ -210,6 +212,10 @@ Creates `tenants`, `subscriptions`, `tenant_usage` rows and generates `tenants/<
 | GET | `/v1/attendance?date=YYYY-MM-DD` | Tenant admin | List attendance sessions |
 | POST | `/v1/attendance/check-in` | Tenant admin | Check in one student and consume credits |
 | POST | `/v1/attendance/{attendance_id}/void` | Tenant admin | Void a check-in and refund consumed credits |
+| GET/POST | `/v1/daily-roster` | Session / `attendance:write` | Read or add date-level roster entries |
+| GET | `/v1/daily-roster/preview?from=YYYY-MM-DD&days=7` | Session | Combine recurring schedules with explicit date-level entries |
+| DELETE | `/v1/daily-roster/{entry_id}` | `attendance:write` | Reversibly cancel an explicit roster entry |
+| POST | `/v1/daily-roster/{entry_id}/undo` | `attendance:write` | Restore the exact cancelled roster entry |
 
 Transaction types: `purchase`, `consume`, `adjustment`, `refund`, `expire`, `migration`.
 Attendance check-in blocks insufficient balances with `409 conflict`. Successful
@@ -253,8 +259,15 @@ service. `storageProvider=local` is implemented; `s3` remains an extension point
 | POST | `/v1/public/{tenant_slug}/registrations` | None | Submit registration |
 | POST | `/v1/public/{tenant_slug}/balance-query` | None | Parent balance lookup |
 | POST | `/v1/public/{tenant_slug}/registration-media` | None | Upload registration photo |
-| POST | `/v1/public/{tenant_slug}/portfolio-token` | None | Issue short-lived portfolio token |
-| GET | `/v1/public/{tenant_slug}/media/{media_asset_id}?token=...` | None/token | Serve logo or token-protected portfolio media |
+| POST | `/v1/public/{tenant_slug}/student/unlock` | None | Verify name + mobile + access code and issue a one-hour HttpOnly student session |
+| GET | `/v1/public/{tenant_slug}/student/private` | Student session | Return the bound student's balance, attendance and private portfolio |
+| GET | `/v1/public/{tenant_slug}/student/media/{media_asset_id}` | Student session | Serve a sanitized display derivative owned by the bound student |
+| POST | `/v1/public/{tenant_slug}/student/logout` | Student session | Revoke the current student session |
+| POST | `/v1/public/{tenant_slug}/portfolio-token` | None | Retired; returns 410 in favour of student sessions |
+| GET | `/v1/public/{tenant_slug}/media/{media_asset_id}` | None | Serve sanitized public logo/website media derivatives |
+| POST | `/v1/public/{tenant_slug}/analytics` | None | Store an allowlisted, privacy-preserving anonymous portal event |
+| GET | `/v1/tenant/analytics?days=7|30|90` | Tenant admin | Return aggregate-only portal funnel metrics |
+| POST | `/v1/tenant/website-media` | Tenant owner | Upload an unpublished sanitized hero/principal website image |
 
 ### 10.1 Balance Query (Public)
 
@@ -265,7 +278,7 @@ curl -sS \
   http://localhost:8899/v1/public/lets-paint-studio/balance-query
 ```
 
-**Rate limiting (implemented, in-memory per process):** registrations 5/min/IP, balance-query 10/min/IP, registration media uploads 5/min/IP, portfolio-token 10/min/IP, and login 30/min/IP plus 5/min/IP+email — all return 429 when exceeded. Failed login attempts write `auth.login_failed` audit events. Limits reset on server restart (acceptable for pilot; Redis-backed limiter deferred to P3-04).
+**Rate limiting (implemented, in-memory per process):** registrations 5/min/IP, balance-query 10/min/IP, registration media uploads 5/min/IP, student-area unlock attempts by tenant+student+IP, and login 30/min/IP plus 5/min/IP+email — all return 429 when exceeded. The retired `portfolio-token` endpoint returns 410 and never creates a token. Failed login attempts write `auth.login_failed` audit events. Limits reset on server restart (acceptable for pilot; shared-storage limiter remains mandatory before multi-instance release).
 
 ### Brand publication workspace
 
@@ -277,7 +290,7 @@ curl -sS \
 
 ### Registration acquisition and follow-up
 
-`POST /v1/public/<slug>/registrations` accepts `source`, `sourcePath`, `language`, and `utm_*` fields. The Studio Portal sends `source=portal`; the focused `/<slug>/register` page sends `source=standalone_register`. Both paths share the same consent, rate limit, duplicate detection, storage, notification, and CMS review flow.
+`POST /v1/public/<slug>/registrations` accepts `source`, `sourcePath`, `language`, and `utm_*` fields. The Studio Portal sends `source=portal`; the focused `/<slug>/register` page sends `source=standalone_register`. Both paths share the same consent, rate limit, duplicate detection, storage, notification, and CMS review flow. An optional `publicationConsent` object records the consenting person, relationship, method and notice version; when the registration is converted, it becomes an append-only student publication-consent event rather than a mutable checkbox.
 
 `privacyConsent=true` is required by the API, not only by the browser form. The
 accepted notice version and server timestamp are stored on the registration for

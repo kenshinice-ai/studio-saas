@@ -19,6 +19,7 @@
 <meta name="theme-color" content="#F4F0E8">
 <link rel="icon" type="image/png" href="/icon-192.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link data-tenant-portal-manifest rel="manifest" href="/lets-paint-studio/manifest-portal.json">
 <script type="application/ld+json">
 {
   "@context":"https://schema.org",
@@ -41,7 +42,7 @@
     {"@type":"Question","name":"Is there a trial or experience class?","acceptedAnswer":{"@type":"Answer","text":"Yes. The best way to start is a single experience class to feel the studio and meet the principal teacher. Enrol through the form and we'll arrange a time."}},
     {"@type":"Question","name":"Do I need to bring materials?","acceptedAnswer":{"@type":"Answer","text":"No — the studio provides quality materials and set-up for each class, so you can simply arrive and paint."}},
     {"@type":"Question","name":"How do class packs and pricing work?","acceptedAnswer":{"@type":"Answer","text":"Classes are booked in packs (for example a standard 10-class pack). Each attended class draws one credit; balance and history are visible in the Student area. Pricing is shared on enquiry as it varies by class type."}},
-    {"@type":"Question","name":"Can I see the artwork and progress?","acceptedAnswer":{"@type":"Answer","text":"Yes. Every artwork is photographed and kept in the student's portfolio with the teacher's note, viewable in the Student area with name and mobile."}}
+    {"@type":"Question","name":"Can I see the artwork and progress?","acceptedAnswer":{"@type":"Answer","text":"Yes. Every artwork is kept in the student's private portfolio with the teacher's note, viewable in the Student area with a studio-issued access code."}}
   ]
 }
 </script>
@@ -49,6 +50,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Noto+Serif+SC:wght@400;500;600&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="/assets/public-register.js"></script>
+<script src="/assets/public-analytics.js"></script>
 <style>
   :root{
     --bg:#F4F0E8;--bg2:#ECE6DB;--panel:#FBF9F4;--ink:#23211D;--ink2:#4A473F;
@@ -275,7 +277,7 @@
   }
 </style>
 </head>
-<body>
+<body data-tenant-slug="lets-paint-studio">
 
 <nav id="nav">
   <div class="wrap navrow">
@@ -290,7 +292,7 @@
       <a onclick="go('home','#gallery')" data-en="Gallery">学员作品</a>
       <a onclick="go('home','#faq')" data-en="FAQ">常见问题</a>
       <a onclick="go('my')" data-en="Student Login">学员专区</a>
-      <a class="navcta" onclick="go('join')" data-en="Book an Experience">预约体验</a>
+      <a class="navcta" onclick="go('join')" data-analytics-event="cta_click" data-analytics-label="nav_primary" data-en="Book an Experience">预约体验</a>
       <span class="langtog"><button id="lz" class="on" onclick="setLang('zh')">中</button><button id="le" onclick="setLang('en')">EN</button></span>
     </div>
     <button class="menu-btn" onclick="var m=document.getElementById('mnav');m.style.display=(m.style.display==='flex'?'none':'flex')">☰</button>
@@ -317,8 +319,8 @@
       <p class="slogan" data-en="For adults cultivating their taste, for anyone who loves art, and for children discovering it. Painting classes and one-to-one mentoring in drawing, watercolour and oil — here, everyone paints a picture of their own.">为提升审美的成人、热爱艺术的你，也为初识色彩的孩子。绘画课程与一对一辅导，素描、水彩、油画——在这里，每个热爱生活的人都能安静地画一张属于自己的画。</p>
       <p class="lat-slogan">"You deserve to enjoy life more."</p>
       <div class="hero-cta">
-        <a class="btn btn-fill" onclick="go('join')" data-en="Book an Experience →">预约体验 →</a>
-        <a class="btn btn-line" onclick="go('home','#courses')" data-en="Explore classes">浏览课程</a>
+        <a class="btn btn-fill" onclick="go('join')" data-analytics-event="cta_click" data-analytics-label="hero_primary" data-en="Book an Experience →">预约体验 →</a>
+        <a class="btn btn-line" onclick="go('home','#courses')" data-analytics-event="cta_click" data-analytics-label="hero_courses" data-en="Explore classes">浏览课程</a>
       </div>
       <a class="hero-login" onclick="go('my')" data-en="Student login →">学员登录 →</a>
     </div>
@@ -422,10 +424,10 @@
     <div class="reveal">
       <p class="eyebrow" style="color:#9d9484" data-en="Student Area">学员专区</p>
       <h2 class="serif" data-en="Classes, artworks, enrolment — all here">课时、作品、报名，都在这里</h2>
-      <p data-en="No complex accounts — just a name and phone number to check your class balance and view your portfolio. Want to visit? Enquire in a minute.">无需登录复杂账号——用姓名与手机号即可查询课时余额、查看自己的作品集；想来体验，一分钟提交预约。</p>
+      <p data-en="No email account needed — use the studio-issued access code with the student's name and mobile to view private records. Want to visit? Enquire in a minute.">无需注册邮箱账号——使用画室发放的访问码及学员姓名、手机号，即可查看私人课时与作品记录；想来体验，一分钟提交预约。</p>
     </div>
     <div class="p-actions reveal">
-      <a class="p-card" onclick="go('my')"><div class="l"><h4 data-en="Check class balance">查询课时余额</h4><p data-en="Name + phone — instant balance and attendance history">输入姓名 + 手机号，即时查看剩余课时与上课记录</p></div><span class="arw">→</span></a>
+      <a class="p-card" onclick="go('my')"><div class="l"><h4 data-en="Student private area">学员私人专区</h4><p data-en="Name + mobile + access code">姓名 + 手机号 + 访问码安全验证</p></div><span class="arw">→</span></a>
       <a class="p-card" onclick="go('my')"><div class="l"><h4 data-en="My portfolio">我的作品集</h4><p data-en="Every artwork and teacher's note, class by class">每一次课的作品与老师点评</p></div><span class="arw">→</span></a>
       <a class="p-card" onclick="go('join')"><div class="l"><h4 data-en="Book an Experience · Enrol">预约体验 · 报名</h4><p data-en="Leave your details and the teacher will be in touch">填写基本信息，老师会尽快与您联系</p></div><span class="arw">→</span></a>
     </div>
@@ -444,7 +446,7 @@
       <details class="faq"><summary data-en="Do I need to bring materials?">需要自备材料吗？</summary><p data-en="No — everything is ready when you arrive: quality materials, set up and waiting. You bring only yourself. For advanced or take-home projects, we'll let you know if anything special is needed.">不必——你到的时候，一切都已备好：优质的材料、支好的画架，静静等你。你只需带上自己。若是进阶或想带回家的作品需要特别材料，我们会提前告知。</p></details>
       <details class="faq"><summary data-en="How do class packs and pricing work?">课包与收费怎么算？</summary><p data-en="Classes come in packs (for example a standard ten-class pack). Each class you attend draws one credit; your balance and history are always there in the Student area. As it varies by class, pricing is shared warmly on enquiry.">课程以课包形式购买（例如标准 10 课时包），每上一节扣一课时；余额与记录，随时都在「学员专区」等你查看。因班型不同，价格在咨询时细细相告。</p></details>
       <details class="faq"><summary data-en="What if I miss a class?">临时来不了怎么办？</summary><p data-en="Life happens. Let us know ahead of time and we'll do our best to find a make-up within the schedule; every credit is kept accurately, never lost in the count.">生活总有意外。提前和我们说一声，我们会尽力在排课里为你安排补课；每一课时都被妥善记着，不会算错，也不会丢。</p></details>
-      <details class="faq"><summary data-en="Can I see the artwork and progress?">能看到作品和进步吗？</summary><p data-en="Yes. Every artwork is photographed and kept in the student's portfolio with the teacher's note. Sign in to the Student area with name and mobile to view the growing collection.">可以。每幅作品都会拍照存入学员的作品集，并附老师点评。用姓名和手机号登录「学员专区」即可看到不断丰富的收藏。</p></details>
+      <details class="faq"><summary data-en="Can I see the artwork and progress?">能看到作品和进步吗？</summary><p data-en="Yes. Every artwork is kept in the student's private portfolio with the teacher's note. Use the studio-issued access code in the Student area to view it.">可以。每幅作品都会存入学员私人作品集，并附老师点评。使用画室发放的访问码进入「学员专区」即可查看。</p></details>
     </div>
   </div>
 </section>
@@ -532,6 +534,16 @@
           <input type="checkbox" id="j-consent" style="margin-top:4px;width:16px;height:16px;flex-shrink:0">
           <span class="form-note" style="margin:0" data-en="🔒 I agree that my details are used only for teaching contact and management; photos are private by default. See our Privacy Policy below.">🔒 我同意信息仅用于教学联系与管理，照片默认不公开。详见<a onclick="event.preventDefault();go('privacy')" style="color:var(--clay);border-bottom:1px solid var(--clay);cursor:pointer">隐私政策</a>。</span>
         </label>
+        <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;margin:12px 0 6px">
+          <input type="checkbox" id="j-publication-consent" onchange="toggleJoinPublicationConsent(this.checked)" style="margin-top:4px;width:16px;height:16px;flex-shrink:0">
+          <span class="form-note" style="margin:0" data-en="Optional: I consent to the studio displaying the student's artwork on its website or promotional materials. This can be withdrawn at any time.">选填：我同意工作室在官网或招生材料中展示学员作品；此授权可随时联系工作室撤回。</span>
+        </label>
+        <div id="j-publication-details" style="display:none;margin-top:12px">
+          <div class="fld-row">
+            <div class="fld"><label for="j-publication-by" data-en="Consenting person *">授权人姓名 *</label><input id="j-publication-by" maxlength="120" autocomplete="name"></div>
+            <div class="fld"><label for="j-publication-relationship" data-en="Relationship *">与学员关系 *</label><select id="j-publication-relationship"><option value="" data-en="Please choose">请选择…</option><option value="self" data-en="Self">本人</option><option value="parent" data-en="Parent / guardian">家长 / 监护人</option><option value="other_guardian" data-en="Other authorised guardian">其他授权监护人</option></select></div>
+          </div>
+        </div>
         <p id="j-err" style="display:none;color:#B4442E;font-size:13px;margin:6px 0"></p>
         <button class="btn btn-fill" id="j-btn" style="width:100%;justify-content:center;margin-top:12px" onclick="submitJoin()" data-en="Submit booking">提交预约</button>
       </div>
@@ -551,11 +563,12 @@
       <div class="sec-head reveal" style="text-align:center;margin:0 auto 40px">
         <p class="eyebrow" data-en="Students">学员专区</p>
         <h2 class="serif" data-en="Your classes &amp; artworks">查看课时与作品</h2>
-        <p data-en="Enter the student's name and phone to view class balance and portfolio.">输入学员姓名与手机号，查看剩余课时与作品集。</p>
+        <p data-en="Use the student's name, mobile and studio-issued access code to view private records.">使用学员姓名、手机号和画室发放的访问码，查看私人课时与作品记录。</p>
       </div>
       <div class="form-card reveal" id="myForm">
-        <div class="fld"><label data-en="Student name *">学员姓名 *</label><input id="m-name" placeholder="First name"></div>
+        <div class="fld"><label data-en="Student name *">学员姓名 *</label><input id="m-name" placeholder="Full name / First name" autocomplete="name"></div>
         <div class="fld"><label data-en="Mobile *">手机号 *</label><input id="m-phone" type="tel" placeholder="04xx xxx xxx"></div>
+        <div class="fld"><label data-en="6-digit access code *">6 位访问码 *</label><input id="m-code" type="password" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="••••••"></div>
         <p id="m-err" style="display:none;color:#B4442E;font-size:13px;margin:0 0 10px"></p>
         <button class="btn btn-fill" id="m-btn" style="width:100%;justify-content:center;margin-top:2px" onclick="submitMy()" data-en="Check">查询</button>
       </div>
@@ -567,7 +580,7 @@
           <p style="font-size:13px;color:var(--muted);letter-spacing:.1em" data-en="classes remaining">剩余课时</p>
           <p id="m-bal-warn" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--line);font-size:13.5px;font-weight:500"></p>
         </div>
-        <div id="m-next" style="display:none;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:16px 20px;margin-top:12px;display:flex;align-items:center;gap:14px">
+        <div id="m-next" style="display:none;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:16px 20px;margin-top:12px;align-items:center;gap:14px">
           <span style="font-size:22px">⏭</span>
           <div><p style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)" data-en="Next class">下次课</p><p id="m-next-info" style="font-weight:500;font-size:14px"></p></div>
         </div>
@@ -580,9 +593,9 @@
           <div id="m-port-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"></div>
         </div>
         <div id="m-nomatch" style="display:none;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:28px;text-align:center;color:var(--muted)">
-          <p data-en="No match found — please check the name and mobile.">没有找到匹配的学员，请核对姓名与手机号。</p>
+          <p data-en="The details could not be verified. Check all three fields or ask the studio to issue a new code.">无法验证这些资料。请核对三项信息，或联系画室更换访问码。</p>
         </div>
-        <div style="text-align:center;margin-top:20px"><a class="btn btn-line" onclick="resetMy()" data-en="Check another">重新查询</a></div>
+        <div style="text-align:center;margin-top:20px"><a class="btn btn-line" onclick="resetMy()" data-en="Sign out / check another">退出专区 / 重新查询</a></div>
       </div>
     </div>
   </div>
@@ -609,7 +622,7 @@
           </div>
           <div>
             <h4 style="font-weight:500;color:var(--ink);margin-bottom:8px" data-en="3 · Photos &amp; artworks">三 · 照片与作品</h4>
-            <p data-en="All artwork photos are private by default — visible only to you, through the Student area, after verifying the student's name and mobile. A work appears on our public gallery wall only with the student's (or parent's) explicit consent, and never with any personal details attached. Consent can be withdrawn at any time; just tell us and the work comes down.">所有作品照片默认私有——仅您本人通过「学员专区」以姓名与手机号验证后可见。只有在学员本人（或家长）明确同意后，作品才会出现在官网作品墙上，且不附带任何个人信息。同意可以随时撤回——告诉我们一声，作品即刻撤下。</p>
+            <p data-en="All artwork photos are private by default — visible only through the Student area after verifying the student's name, mobile and studio-issued access code. A work appears on our public gallery wall only with explicit consent, and never with personal details attached. Consent can be withdrawn at any time; the work then comes down immediately.">所有作品照片默认私有——仅在「学员专区」验证姓名、手机号及画室发放的访问码后可见。只有在获得明确授权后，作品才会出现在官网作品墙上，且不附带个人信息。授权可随时撤回，撤回后作品立即下架。</p>
           </div>
           <div>
             <h4 style="font-weight:500;color:var(--ink);margin-bottom:8px" data-en="4 · How it's protected">四 · 我们如何保护</h4>
@@ -801,8 +814,16 @@
       });
     }
     renderRegistrationFields(b.registrationProfile||b.registration_profile);
-  }).catch(function(){});
+  }).catch(function(error){ console.warn('Public brand details could not be loaded.',error); });
   /* ── 预约体验 → /api/register ── */
+  function toggleJoinPublicationConsent(checked){
+    var details=document.getElementById('j-publication-details');
+    var by=document.getElementById('j-publication-by');
+    var relationship=document.getElementById('j-publication-relationship');
+    if(details) details.style.display=checked?'block':'none';
+    if(by) by.required=!!checked;
+    if(relationship) relationship.required=!!checked;
+  }
   function submitJoin(){
     var v=function(id){var e=document.getElementById(id);return e?(e.value||'').trim():'';};
     var name=v('j-name'), last=v('j-last'), phone=v('j-phone'), wechat=v('j-wechat'), email=v('j-email');
@@ -812,6 +833,8 @@
     if(!name){return show(T('请填写名字','Please enter a given name.'));}
     if(!phone){return show(T('请填写手机号','Please enter a mobile number.'));}
     if(!document.getElementById('j-consent').checked){return show(T('请勾选同意隐私声明','Please agree to the privacy notice.'));}
+    var publicationChecked=document.getElementById('j-publication-consent').checked;
+    if(publicationChecked && (!v('j-publication-by') || !v('j-publication-relationship'))){return show(T('请填写作品公开授权人和与学员的关系','Please provide the consenting person and their relationship to the student.'));}
     err.style.display='none';
     var btn=document.getElementById('j-btn'); btn.disabled=true; btn.textContent=T('提交中…','Submitting…');
     /* 报名对象 + 意向课程 无对应 CMS 字段,拼进留言,老师在「待审核」可见 */
@@ -831,54 +854,65 @@
               birthday:birthday, experience:exp, goals:goals, message:msgParts.join(' ｜ '),
               website:v('j-web'), source:'portal', sourcePath:location.pathname,
               language:(window.LANG||LANG), privacyConsent:true,
-              privacyNoticeVersion:'2026-07-12'},campaign);   /* 蜜罐:真人恒为空 */
+              privacyNoticeVersion:'2026-07-12',
+              publicationConsent:publicationChecked?{confirmed:true,consentBy:v('j-publication-by'),relationship:v('j-publication-relationship'),method:'registration_form',noticeVersion:'2026-07-18'}:undefined},campaign);   /* 蜜罐:真人恒为空 */
     fetch('/v1/public/lets-paint-studio/registrations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
       .then(function(r){return r.json().then(function(d){return {ok:r.ok,d:d};});})
       .then(function(res){
         if(res.ok && res.d.success){
+          if(window.StudioSaaSAnalytics) window.StudioSaaSAnalytics.track('registration_submitted');
           document.getElementById('joinForm').style.display='none';
           var done=document.getElementById('join-done'); done.style.display='block'; done.scrollIntoView({behavior:'smooth'});
         }else{ show((res.d&&res.d.error)||T('提交失败，请稍后再试','Submission failed, please try again.')); }
       }).catch(function(){ show(T('网络错误，请重试','Network error, please try again.')); })
       .finally(function(){ btn.disabled=false; btn.textContent=T('提交预约','Submit booking'); });
   }
-  /* ── 学员专区 查询 → /api/balance + /api/portfolio/token ── */
+  /* ── 学员专区 → tenant-bound HttpOnly student session ── */
   function fmtD(s){ return String(s||'').split(',')[0]; }
   function resetMy(){
+    fetch('/v1/public/lets-paint-studio/student/logout',{method:'POST',credentials:'same-origin',headers:{'X-Requested-With':'StudioSaaS'}}).catch(function(error){ console.warn('Student logout request failed.',error); });
     document.getElementById('m-result').style.display='none';
     document.getElementById('myForm').style.display='block';
-    document.getElementById('m-name').value=''; document.getElementById('m-phone').value='';
+    document.getElementById('m-name').value=''; document.getElementById('m-phone').value=''; document.getElementById('m-code').value='';
+    ['m-bal','m-next','m-hist','m-port','m-nomatch'].forEach(function(id){document.getElementById(id).style.display='none';});
     window.scrollTo({top:0,behavior:'smooth'});
   }
   function submitMy(){
     var name=(document.getElementById('m-name').value||'').trim();
     var phone=(document.getElementById('m-phone').value||'').trim();
+    var code=(document.getElementById('m-code').value||'').trim();
     var err=document.getElementById('m-err');
     var show=function(m){err.textContent=m;err.style.display='block';};
-    if(!name||!phone){ return show(T('请填写姓名和手机号','Please enter name and mobile.')); }
+    if(!name||!phone||!/^[0-9]{6}$/.test(code)){ return show(T('请填写姓名、手机号和 6 位访问码','Please enter name, mobile and a 6-digit access code.')); }
     err.style.display='none';
-    var btn=document.getElementById('m-btn'); btn.disabled=true; btn.textContent=T('查询中…','Checking…');
-    fetch('/v1/public/lets-paint-studio/balance-query',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name,phone:phone})})
-      .then(function(r){return r.json().then(function(d){return{status:r.status,d:d};});})
+    var btn=document.getElementById('m-btn'); btn.disabled=true; btn.textContent=T('验证中…','Verifying…');
+    fetch('/v1/public/lets-paint-studio/student/unlock',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-Requested-With':'StudioSaaS'},body:JSON.stringify({name:name,phone:phone,code:code})})
+      .then(function(r){return r.json().then(function(d){return{ok:r.ok,status:r.status,d:d};});})
       .then(function(res){
-        if(res.status===429){ return show((res.d&&res.d.error)||T('查询太频繁,请稍后再试','Too many queries, please wait.')); }
-        renderBalance(res.d, name, phone);
-      }).catch(function(){ show(T('网络错误，请重试','Network error, please try again.')); })
+        if(!res.ok){
+          if(res.status===429) throw new Error((res.d&&res.d.message)||T('尝试次数过多，请稍后再试','Too many attempts. Please wait.'));
+          throw new Error(T('无法验证这些资料，请核对后重试','The details could not be verified. Please retry.'));
+        }
+        return fetch('/v1/public/lets-paint-studio/student/private',{credentials:'same-origin'});
+      })
+      .then(function(r){return r.json().then(function(d){if(!r.ok)throw new Error(d.message||T('登录已失效，请重新验证','Session expired. Please verify again.'));return d;});})
+      .then(renderStudentPrivate)
+      .catch(function(e){ show(e.message||T('网络错误，请重试','Network error, please try again.')); })
       .finally(function(){ btn.disabled=false; btn.textContent=T('查询','Check'); });
   }
-  function renderBalance(res, name, phone){
+  function renderStudentPrivate(res){
     var wrap=document.getElementById('m-result');
     var nomatch=document.getElementById('m-nomatch');
     var ids=['m-bal','m-next','m-hist','m-port'];
-    if(!res || !res.match){
+    if(!res || !res.ok || !res.student){
       ids.forEach(function(i){document.getElementById(i).style.display='none';});
       nomatch.style.display='block'; wrap.style.display='block';
       document.getElementById('myForm').style.display='none'; wrap.scrollIntoView({behavior:'smooth'}); return;
     }
     nomatch.style.display='none';
-    var bal=parseInt(res.balance,10)||0;
+    var bal=Number(res.student.balance)||0;
     document.getElementById('m-bal').style.display='block';
-    document.getElementById('m-bal-name').textContent=res.name||name;
+    document.getElementById('m-bal-name').textContent=res.student.name||'';
     document.getElementById('m-bal-num').textContent=bal;
     var warn=document.getElementById('m-bal-warn');
     if(bal===0){warn.style.display='block';warn.style.color='#B4442E';warn.textContent=T('课时已用完，请联系老师续课。','No classes left — please contact your teacher.');}
@@ -886,42 +920,40 @@
     else{warn.style.display='none';}
     // next class
     var nx=document.getElementById('m-next');
-    if(res.next_class && res.next_class.date){
-      document.getElementById('m-next-info').textContent=[res.next_class.date,res.next_class.time,res.next_class.course].filter(Boolean).join(' · ');
+    if(res.nextClass && res.nextClass.date){
+      document.getElementById('m-next-info').textContent=[res.nextClass.date,res.nextClass.time,res.nextClass.course].filter(Boolean).join(' · ');
       nx.style.display='flex';
     }else{ nx.style.display='none'; }
     // history
-    var logs=res.logs||[]; var hist=document.getElementById('m-hist'); var list=document.getElementById('m-hist-list');
+    var logs=(res.attendance||[]).filter(function(item){return item.status==='attended';}); var hist=document.getElementById('m-hist'); var list=document.getElementById('m-hist-list');
     if(logs.length){
-      list.innerHTML=''; var total=res.total_checkins||logs.length;
-      logs.forEach(function(l,i){
+      list.innerHTML='';
+      logs.forEach(function(l){
         var row=document.createElement('div');
         row.style.cssText='padding:12px 20px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line)';
-        row.innerHTML='<span style="color:#5a8a5a">✓</span><span style="flex:1;font-size:14px">'+fmtD(l.date)+'</span><span style="font-size:12px;color:var(--muted)">'+T('第','No.')+' '+(total-i)+' '+T('次','')+'</span>';
+        var mark=document.createElement('span'); mark.style.color='#5a8a5a'; mark.textContent='✓';
+        var date=document.createElement('span'); date.style.cssText='flex:1;font-size:14px'; date.textContent=fmtD(l.date);
+        var course=document.createElement('span'); course.style.cssText='font-size:12px;color:var(--muted)'; course.textContent=l.course||T('常规课程','Class');
+        row.appendChild(mark); row.appendChild(date); row.appendChild(course);
         list.appendChild(row);
       });
       hist.style.display='block';
     }else{ hist.style.display='none'; }
     wrap.style.display='block'; document.getElementById('myForm').style.display='none'; wrap.scrollIntoView({behavior:'smooth'});
-    // portfolio (silent)
-    fetch('/v1/public/lets-paint-studio/portfolio-token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name,phone:phone})})
-      .then(function(r){return r.json();}).then(function(d){
-        if(d&&d.ok&&d.portfolio&&d.portfolio.length){ renderMyPortfolio(d.portfolio,d.sid,d.token); }
-      }).catch(function(){});
+    if(res.portfolio&&res.portfolio.length) renderMyPortfolio(res.portfolio); else document.getElementById('m-port').style.display='none';
   }
-  function renderMyPortfolio(items,sid,token){
+  function renderMyPortfolio(items){
     var box=document.getElementById('m-port'), grid=document.getElementById('m-port-grid');
     grid.innerHTML='';
     items.forEach(function(it){
-      /* v1: mediaUrl 自带 token，加 &thumb=1 取缩略图 */
       var d=document.createElement('div');
       d.style.cssText='aspect-ratio:1/1;border:1px solid var(--line);overflow:hidden;position:relative;background:#ece3d5';
       var img=document.createElement('img');
-      img.src=String(it.mediaUrl||'')+'&thumb=1'; img.loading='lazy';
+      img.src=String(it.mediaUrl||''); img.loading='lazy';
       img.style.cssText='width:100%;height:100%;object-fit:cover';
       img.onerror=function(){ this.style.display='none'; };
       d.appendChild(img);
-      var capText=it.title||it.note;
+      var capText=it.title||it.comment;
       if(capText){
         var cap=document.createElement('span');
         cap.style.cssText='position:absolute;left:8px;bottom:6px;font-size:11px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.6)';
@@ -968,8 +1000,8 @@
           div.onclick=function(){ openGlb(i); };
           grid.appendChild(div);
         });
-      }).catch(function(){});
-    }catch(e){}
+      }).catch(function(error){ console.warn('Public gallery could not be loaded.',error); });
+    }catch(error){ console.warn('Public gallery setup failed.',error); }
   })();
   /* ── v6.6.6: 作品灯箱 ── */
   var GIDX=0;

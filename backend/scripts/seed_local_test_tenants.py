@@ -35,7 +35,7 @@ def _ensure_media_schema(cur: Any) -> None:
         """
         ALTER TABLE media_assets
         ADD COLUMN IF NOT EXISTS asset_type text NOT NULL DEFAULT 'portfolio'
-        CHECK (asset_type IN ('student_photo', 'registration_photo', 'portfolio', 'homework', 'sheet_music', 'logo'))
+        CHECK (asset_type IN ('student_photo', 'registration_photo', 'portfolio', 'homework', 'sheet_music', 'logo', 'website_image'))
         """
     )
     cur.execute(
@@ -291,7 +291,11 @@ def _add_registration(cur: Any, *, tenant_id: str, first_name: str, mobile: str)
 
 
 def _add_media(cur: Any, *, tenant_id: str, student_id: str, label: str) -> str:
-    """Create one media asset for portfolio isolation tests."""
+    """Create one metadata-only asset for foreign-key isolation tests.
+
+    The fixture is not a real image and must not be mistaken for an image that
+    requires a public-safe derivative during release checks.
+    """
 
     cur.execute(
         """
@@ -299,10 +303,10 @@ def _add_media(cur: Any, *, tenant_id: str, student_id: str, label: str) -> str:
             tenant_id, owner_student_id, asset_type, storage_key, original_filename,
             mime_type, byte_size, checksum_sha256, visibility
         )
-        VALUES (%s, %s, 'portfolio', %s, %s, 'image/png', 68, %s, 'private')
+        VALUES (%s, %s, 'portfolio', %s, %s, 'application/octet-stream', 0, %s, 'private')
         RETURNING id
         """,
-        (tenant_id, student_id, f"fixtures/{label}.png", f"{label}.png", f"sha256-{label}"),
+        (tenant_id, student_id, f"fixtures/{label}.fixture", f"{label}.fixture", f"fixture-{label}"),
     )
     return str(cur.fetchone()["id"])
 

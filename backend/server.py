@@ -1,4 +1,4 @@
-import errno, json, os, re, shutil, socket, time, secrets, hashlib
+import errno, json, os, re, shutil, socket, sys, time, secrets, hashlib
 from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, redirect, send_from_directory, session
 from threading import Lock
@@ -70,6 +70,11 @@ PROJECT_ROOT  = os.environ.get('STUDIOSAAS_PROJECT_ROOT', '').strip() or os.path
 if not os.path.isabs(PROJECT_ROOT):
     PROJECT_ROOT = os.path.abspath(os.path.join(APP_DIR, PROJECT_ROOT))
 app.config['PROJECT_ROOT'] = PROJECT_ROOT
+MEDIA_DIR_ENV = os.environ.get('STUDIOSAAS_MEDIA_DIR', '').strip()
+if MEDIA_DIR_ENV:
+    if not os.path.isabs(MEDIA_DIR_ENV):
+        MEDIA_DIR_ENV = os.path.abspath(os.path.join(APP_DIR, MEDIA_DIR_ENV))
+    app.config['MEDIA_DIR'] = MEDIA_DIR_ENV
 # AWS/Linux friendly data separation:
 #   - local/mac default: app directory, same behavior as before
 #   - AWS recommended:  CMS_DATA_DIR=/opt/letspaint-cms/data
@@ -85,6 +90,7 @@ BACKUP_DIR    = _data_path('backups')
 PHOTO_DIR     = _data_path('photos')
 PORTFOLIO_DIR = _data_path('portfolio')
 SECRET_FILE   = _data_path('.api_secret')
+SESSION_SECRET_FILE = _data_path('.session_secret')
 PW_FILE       = _data_path('.cms_password')
 app.config['PHOTO_DIR'] = PHOTO_DIR
 MAX_BACKUPS   = 30   # 1 backup/hr rate limit → ~30 hours of rolling coverage
@@ -122,14 +128,10 @@ def _upload_ext_error(f, allowed_ext=ALLOWED_EXT):
 DEFAULT_PW    = '0801'
 db_lock       = Lock()
 
-# ── Portfolio view tokens — in-memory, 1 hour TTL ─────────────────────────────
-_portfolio_tokens = {}    # token → {'sid': str, 'expires': float}
-_ptok_lock        = Lock()
-
 # ── Request size limit: 20 MB total (individual photos capped at 5 MB below) ──
 app.config['MAX_CONTENT_LENGTH'] = 20 * 1024 * 1024
 
-# ── Session: 30-day cookie, signed with API secret ───────────────────────────
+# ── Session: 30-day cookie, signed with its dedicated session secret ─────────
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
 app.config['SESSION_COOKIE_HTTPONLY']    = True
 app.config['SESSION_COOKIE_SAMESITE']    = 'Lax'
@@ -185,6 +187,32 @@ def _csrf_guard():
         'error': 'forbidden',
         'message': f"Missing CSRF protection header ({CSRF_HEADER_NAME}).",
     }), 403
+
+
+@app.before_request
+def _reject_cross_site_writes():
+    """Reject browser cross-site writes, including unauthenticated public APIs."""
+
+    if request.method in ('GET', 'HEAD', 'OPTIONS'):
+        return None
+    if not (request.path.startswith('/v1/') or (request.path.startswith('/s/') and '/v1/' in request.path)):
+        return None
+    fetch_site = request.headers.get('Sec-Fetch-Site', '').strip().lower()
+    if fetch_site in {'cross-site', 'same-site'}:
+        return jsonify({'error': 'forbidden', 'message': 'Cross-site writes are not allowed.'}), 403
+    expected_hosts = {request.host.lower()}
+    for header in ('Origin', 'Referer'):
+        value = request.headers.get(header, '').strip()
+        if not value:
+            continue
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(value)
+            if parsed.netloc.lower() not in expected_hosts:
+                return jsonify({'error': 'forbidden', 'message': 'Cross-site writes are not allowed.'}), 403
+        except ValueError:
+            return jsonify({'error': 'forbidden', 'message': 'Cross-site writes are not allowed.'}), 403
+    return None
 # S13: opt-in Secure flag (set COOKIE_SECURE=1 when access is HTTPS-only).
 # Default off because LAN access uses plain http://<ip>:8000.
 if os.environ.get('COOKIE_SECURE') == '1' or RUNTIME_ENV in {'pilot', 'production'}:
@@ -217,31 +245,39 @@ app.session_interface = _TunnelAwareSessionInterface()
 CORS_ORIGIN = os.environ.get('CORS_ORIGIN', '')
 
 
-# ── API secret (auto-generated on first run, stored in .api_secret) ───────────
-def _get_or_create_secret():
-    configured = os.environ.get('STUDIOSAAS_SECRET_KEY', '').strip()
+# ── API and session secrets are deliberately independent. ───────────────────
+def _get_or_create_secret(path, env_name, label):
+    """Load one strong secret or fail closed in production."""
+
+    configured = os.environ.get(env_name, '').strip()
     if configured:
         if len(configured) < 32:
-            raise RuntimeError('STUDIOSAAS_SECRET_KEY must be at least 32 characters.')
+            raise RuntimeError(f'{env_name} must be at least 32 characters.')
         return configured
     if RUNTIME_ENV == 'production':
-        raise RuntimeError('STUDIOSAAS_SECRET_KEY is required in production.')
-    if os.path.exists(SECRET_FILE):
-        with open(SECRET_FILE, 'r') as f:
+        raise RuntimeError(f'{env_name} is required in production.')
+    if os.path.exists(path):
+        with open(path, 'r') as f:
             s = f.read().strip()
         if len(s) >= 32:
             return s
     token = secrets.token_urlsafe(32)
-    with open(SECRET_FILE, 'w') as f:
+    with open(path, 'w') as f:
         f.write(token)
-    try: os.chmod(SECRET_FILE, 0o600)
-    except Exception: pass
-    print(f'🔑  新 API 密钥已生成并保存至 {SECRET_FILE}')
+    try:
+        os.chmod(path, 0o600)
+    except OSError as exc:
+        print(f'WARNING: unable to restrict secret-file permissions for {path}: {exc}', file=sys.stderr)
+    print(f'🔑  新{label}已生成并保存至 {path}')
     return token
 
-API_SECRET = _get_or_create_secret()
-# Use API_SECRET to sign Flask sessions — stable across restarts
-app.secret_key = API_SECRET
+API_SECRET = _get_or_create_secret(SECRET_FILE, 'STUDIOSAAS_API_KEY', 'API 密钥')
+SESSION_SECRET = _get_or_create_secret(
+    SESSION_SECRET_FILE, 'STUDIOSAAS_SESSION_SECRET', '会话签名密钥'
+)
+if secrets.compare_digest(API_SECRET, SESSION_SECRET):
+    raise RuntimeError('STUDIOSAAS_API_KEY and STUDIOSAAS_SESSION_SECRET must be different.')
+app.secret_key = SESSION_SECRET
 
 
 # ── Password helpers (S3: PBKDF2 with per-password random salt) ──────────────
@@ -298,6 +334,27 @@ def _set_pw_hash(pw):
     except Exception: pass
     return h
 
+
+def _validate_production_configuration():
+    """Fail before serving when production persistence or credentials are incomplete."""
+
+    if RUNTIME_ENV != 'production':
+        return
+    required = {
+        'STUDIOSAAS_DATABASE_URL': os.environ.get('STUDIOSAAS_DATABASE_URL') or os.environ.get('DATABASE_URL'),
+        'STUDIOSAAS_MEDIA_DIR': os.environ.get('STUDIOSAAS_MEDIA_DIR'),
+        'CMS_DATA_DIR': os.environ.get('CMS_DATA_DIR'),
+    }
+    missing = [name for name, value in required.items() if not str(value or '').strip()]
+    if missing:
+        raise RuntimeError(
+            'Production configuration is incomplete: ' + ', '.join(sorted(missing))
+        )
+    _get_pw_hash()
+
+
+_validate_production_configuration()
+
 # ── F2: Phone normalization — strip spaces/dashes for comparison ──────────────
 def _norm_phone(p):
     """Normalize phone number: remove spaces, dashes, parentheses.
@@ -309,32 +366,31 @@ def _norm_name(n):
     return re.sub(r'\s+', ' ', str(n or '').strip()).lower()
 
 def _name_matches(query, s):
-    """F3: Exact (case/space-insensitive) match against firstName, lastName,
-    full name, or 'first last' — students may type any of these forms.
-    Replaces the old substring match ('li' no longer matches 'Alice')."""
+    """Match only an exact first name or canonical full/display name.
+
+    Surname-only and reversed-name matching are intentionally excluded so the
+    legacy balance endpoint follows the same non-enumerating rule as v1.
+    """
     q     = _norm_name(query)
     if not q:
         return False
     first = _norm_name(s.get('firstName') or '')
-    last  = _norm_name(s.get('lastName')  or '')
     full  = _norm_name(s.get('name')      or '')
-    candidates = {first, last, full,
-                  (first + ' ' + last).strip(),
-                  (last + ' ' + first).strip()}
+    last  = _norm_name(s.get('lastName')  or '')
+    canonical = (first + ' ' + last).strip()
+    candidates = {first, full, canonical}
     candidates.discard('')
     return q in candidates
 
 def _find_student(db, name_q, phone_q):
-    """Shared lookup for /api/balance and /api/portfolio/token:
-    normalized phone must match exactly AND name must match per _name_matches."""
-    for s in db.get('students', []):
-        if s.get('archived'):
-            continue
-        if _norm_phone(s.get('mobile', '')) != phone_q:
-            continue
-        if _name_matches(name_q, s):
-            return s
-    return None
+    """Return one exact match; missing and ambiguous lookups both fail closed."""
+    matches = [
+        s for s in db.get('students', [])
+        if not s.get('archived')
+        and _norm_phone(s.get('mobile', '')) == phone_q
+        and _name_matches(name_q, s)
+    ]
+    return matches[0] if len(matches) == 1 else None
 
 def _auth_ok():
     """Admin auth: logged-in browser session, or X-API-Key header (scripts).
@@ -549,26 +605,6 @@ def _session_ok():
     """Return True if the browser session is authenticated."""
     return session.get('auth') is True
 
-def _portfolio_token_ok(token):
-    """Return student id (str) if a valid portfolio view token, else None."""
-    if not token:
-        return None
-    with _ptok_lock:
-        # B7: proactively purge expired tokens when the dict grows large
-        if len(_portfolio_tokens) > 100:
-            now = time.time()
-            stale = [k for k, v in _portfolio_tokens.items() if now > v['expires']]
-            for k in stale:
-                del _portfolio_tokens[k]
-        entry = _portfolio_tokens.get(token)
-        if not entry:
-            return None
-        if time.time() > entry['expires']:
-            del _portfolio_tokens[token]
-            return None
-        return entry['sid']
-
-
 # ── CORS (only when explicitly configured) + access log under waitress ───────
 _USING_WAITRESS = False   # set True in __main__ when waitress serves the app
 
@@ -587,6 +623,26 @@ def add_cors(r):
                   f'"{request.method} {request.path}" {r.status_code}', flush=True)
         except Exception:
             pass
+    r.headers.setdefault('Content-Security-Policy',
+        "default-src 'self'; script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; "
+        "font-src 'self' data:; connect-src 'self'; object-src 'none'; "
+        "base-uri 'self'; frame-ancestors 'none'; form-action 'self'")
+    r.headers.setdefault('X-Frame-Options', 'DENY')
+    r.headers.setdefault('X-Content-Type-Options', 'nosniff')
+    r.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
+    r.headers.setdefault('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+    if request.is_secure or (
+        request.remote_addr in ('127.0.0.1', '::1')
+        and request.headers.get('X-Forwarded-Proto', '').lower() == 'https'
+    ):
+        r.headers.setdefault('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+    if request.path.startswith(('/v1/', '/s/')) and any(
+        marker in request.path for marker in ('/student/', '/auth/', '/admin/')
+    ):
+        r.headers.setdefault('Cache-Control', 'private, no-store')
+    if request.path.startswith('/v1/') or request.path.endswith(('/cms', '/studio-admin', '/register')):
+        r.headers.setdefault('X-Robots-Tag', 'noindex, nofollow, noarchive')
     return r
 
 @app.route('/api/data',               methods=['OPTIONS'])
@@ -809,6 +865,43 @@ def serve_manifest():
 @app.route('/manifest-student.json')
 def serve_manifest_student():
     return _public_file('manifest-student.json', 'application/manifest+json', 0)
+
+
+@app.route('/<tenant_slug>/manifest-portal.json')
+def serve_tenant_manifest_portal(tenant_slug):
+    """Return a tenant-scoped install manifest for the public website."""
+
+    try:
+        validate_tenant_slug(tenant_slug)
+    except WorkspaceError:
+        return api_error('Not found', 404)
+    tenant_file = os.path.join(PROJECT_ROOT, 'tenants', tenant_slug, 'tenant.json')
+    if not os.path.isfile(tenant_file):
+        return api_error('Not found', 404)
+    with open(tenant_file, 'r', encoding='utf-8') as f:
+        tenant = json.load(f)
+    name = str(tenant.get('name') or tenant_slug)
+    manifest = {
+        'name': name,
+        'short_name': name[:24],
+        'description': f'{name} courses, enquiries, registration, and student portal',
+        'id': f'/{tenant_slug}/',
+        'start_url': f'/{tenant_slug}/',
+        'scope': f'/{tenant_slug}/',
+        'display': 'standalone',
+        'orientation': 'portrait',
+        'background_color': '#fffdf9',
+        'theme_color': '#fffdf9',
+        'lang': 'zh-CN',
+        'icons': [
+            {'src': '/icon-192.png', 'sizes': '192x192', 'type': 'image/png', 'purpose': 'any'},
+            {'src': '/icon-512.png', 'sizes': '512x512', 'type': 'image/png', 'purpose': 'any maskable'},
+        ],
+    }
+    resp = jsonify(manifest)
+    resp.headers['Content-Type'] = 'application/manifest+json'
+    resp.headers['Cache-Control'] = 'public, max-age=0'
+    return resp
 
 @app.route('/<tenant_slug>/manifest-student.json')
 def serve_tenant_manifest_student(tenant_slug):
@@ -1396,16 +1489,12 @@ def portfolio_update(sid, pid):
 
 @app.route('/portfolio/img/<sid>/<filename>')
 def serve_portfolio_img(sid, filename):
-    """Serve portfolio images — admin session/API key or valid student token."""
-    token = request.args.get('token', '')
-    # Admin paths
+    """Serve legacy originals only to authenticated staff.
+
+    Student access moved to tenant-bound HttpOnly sessions and safe display
+    derivatives; URL query tokens are intentionally no longer accepted here.
+    """
     if _session_ok() or _auth_ok():
-        safe_dir  = os.path.join(PORTFOLIO_DIR, os.path.basename(sid))
-        safe_file = os.path.basename(filename)
-        return send_from_directory(safe_dir, safe_file)
-    # Student token path
-    token_sid = _portfolio_token_ok(token)
-    if token_sid and str(token_sid) == str(sid):
         safe_dir  = os.path.join(PORTFOLIO_DIR, os.path.basename(sid))
         safe_file = os.path.basename(filename)
         return send_from_directory(safe_dir, safe_file)
@@ -1415,40 +1504,9 @@ def serve_portfolio_img(sid, filename):
 @app.route('/api/portfolio/token', methods=['POST'])
 def get_portfolio_token():
     return jsonify({
-        'error': 'legacy_upload_disabled',
-        'message': 'Use /v1/public/<tenant_slug>/portfolio-token instead.'
+        'error': 'student_session_required',
+        'message': 'Use the tenant student area with an access-code session.'
     }), 410
-    """Verify student name+phone; return 1-hour token + portfolio metadata."""
-    # S4: rate-limited — same protection as /api/balance
-    if not _query_ok():
-        return api_error('查询太频繁，请稍后再试 / Too many queries, please wait', 429)
-    data    = request.json or {}
-    name_q  = str(data.get('name')  or '').strip()
-    phone_q = _norm_phone(data.get('phone'))
-    if not name_q or not phone_q:
-        return jsonify({'ok': False}), 400
-    # B5: Find matching student under db_lock, then release before acquiring _ptok_lock
-    # — avoids nested lock acquisition which is a latent deadlock risk.
-    matched = None
-    with db_lock:
-        db = _load_db()
-        s  = _find_student(db, name_q, phone_q)   # F3: shared exact-match rules
-        if s:
-            matched = {'id': str(s['id']), 'portfolio': s.get('portfolio', [])}
-    if matched:
-        token = secrets.token_urlsafe(24)
-        with _ptok_lock:  # acquired AFTER db_lock is released — safe ordering
-            _portfolio_tokens[token] = {
-                'sid':     matched['id'],
-                'expires': time.time() + 3600
-            }
-        return jsonify({
-            'ok':        True,
-            'token':     token,
-            'sid':       matched['id'],
-            'portfolio': matched['portfolio']
-        })
-    return jsonify({'ok': False}), 200
 
 
 # ── API: app config (admin session only) ─────────────────────────────────────

@@ -99,8 +99,6 @@
         next = `/v1/public/${encodeURIComponent(tenantSlug)}/balance-query`;
       } else if (url.origin === location.origin && url.pathname === '/api/upload-public') {
         next = `/v1/public/${encodeURIComponent(tenantSlug)}/registration-media`;
-      } else if (url.origin === location.origin && url.pathname === '/api/portfolio/token') {
-        next = `/v1/public/${encodeURIComponent(tenantSlug)}/portfolio-token`;
       }
       return originalFetch(next, init);
     };
@@ -617,7 +615,7 @@ async function queryBalance() {
   document.getElementById('bal-nomatch').classList.add('hidden');
   document.getElementById('bal-history').classList.add('hidden');
   document.getElementById('bal-portfolio').classList.add('hidden');
-  _portItems = []; _portToken = ''; _portSid = '';
+  _portItems = []; _portSid = '';
 
   if (!name || !phone) { showErr(err, '请填写姓名和手机号 / Please enter both name and mobile.'); return; }
 
@@ -680,15 +678,6 @@ async function queryBalance() {
       }
       histContainer.classList.remove('hidden');
 
-      // Fetch portfolio (silently — optional feature)
-      fetch(`/v1/public/${encodeURIComponent(window.STUDIOSAAS_TENANT_SLUG || '')}/portfolio-token`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({name, phone})
-      }).then(r => r.json()).then(data => {
-        if (data.ok) renderPortfolio(data.portfolio || [], data.sid, data.token);
-      }).catch(() => {});  // portfolio is optional — don't break balance display on failure
-
     } else if (r.status === 429) {
       /* S4: rate-limited — show the real reason instead of "no match" */
       showErr(err, res.error || '查询太频繁，请 1 分钟后再试。/ Too many queries, please wait a minute.');
@@ -711,16 +700,10 @@ function fmtPortDate(s) {
   return m ? `${m[3]}/${m[2]}/${m[1]}` : s;
 }
 
-let _portItems = [], _portToken = '', _portSid = '', _lbIdx = 0;
+let _portItems = [], _portSid = '', _lbIdx = 0;
 
 function portfolioMediaSrc(item) {
-  if (item && item.mediaUrl) return item.mediaUrl;
-  const filename = String((item && item.filename) || '');
-  if (filename.startsWith('media:') && window.STUDIOSAAS_TENANT_SLUG) {
-    const id = filename.slice(6);
-    return `/v1/public/${encodeURIComponent(window.STUDIOSAAS_TENANT_SLUG)}/media/${encodeURIComponent(id)}?token=${encodeURIComponent(_portToken)}`;
-  }
-  return `/portfolio/img/${encodeURIComponent(_portSid)}/${encodeURIComponent(filename)}?token=${encodeURIComponent(_portToken)}`;
+  return item && item.mediaUrl ? item.mediaUrl : '';
 }
 
 function togglePortfolio() {
@@ -730,8 +713,8 @@ function togglePortfolio() {
   icon.textContent = hidden ? '▼' : '▲';
 }
 
-function renderPortfolio(items, sid, token) {
-  _portItems = items; _portToken = token; _portSid = sid;
+function renderPortfolio(items, sid) {
+  _portItems = items; _portSid = sid;
   const container = document.getElementById('bal-portfolio');
   const grid      = document.getElementById('port-grid');
   const empty     = document.getElementById('port-empty');

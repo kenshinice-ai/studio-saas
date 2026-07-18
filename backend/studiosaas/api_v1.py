@@ -13,13 +13,14 @@ import secrets
 import time
 import hashlib
 import uuid as _uuid
+from datetime import date as _date, timedelta as _timedelta
 from pathlib import PurePath
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import csv as _csv
 import io as _io
 
-from flask import Blueprint, Response, current_app, g, jsonify, request, send_from_directory
+from flask import Blueprint, Response, current_app, g, jsonify, make_response, request, send_from_directory
 from werkzeug.utils import secure_filename
 
 from .auth import (
@@ -55,6 +56,19 @@ from .services.tenant_archive import (
     restore_tenant,
 )
 from .services import notifications as _notifications
+from .services.student_access import (
+    access_locked as _student_access_locked,
+    clear_failed_access as _clear_student_access_failures,
+    create_access_session as _create_student_access_session,
+    find_student as _find_public_student,
+    generate_access_code as _generate_student_access_code,
+    lookup_fingerprint as _student_lookup_fingerprint,
+    record_failed_access as _record_student_access_failure,
+    resolve_access_session as _resolve_student_access_session,
+    revoke_access_code as _revoke_student_access_code,
+    revoke_access_session as _revoke_student_access_session,
+    verify_access_code as _verify_student_access_code,
+)
 from .tenant_context import TenantResolutionError, resolve_tenant, slug_from_request
 from .workspaces import WorkspaceError, ensure_tenant_workspace, validate_tenant_slug
 
@@ -113,6 +127,35 @@ def _client_ip() -> str:
         )
         return forwarded.split(",")[0].strip() or ra
     return ra
+
+
+def _student_cookie_secure() -> bool:
+    """Return whether public student cookies must use HTTPS-only semantics."""
+
+    if request.is_secure or os.environ.get("COOKIE_SECURE") == "1":
+        return True
+    if os.environ.get("STUDIOSAAS_ENV", "local").strip().lower() in {"pilot", "production"}:
+        return True
+    return bool(
+        request.remote_addr in {"127.0.0.1", "::1"}
+        and request.headers.get("X-Forwarded-Proto", "").lower() == "https"
+    )
+
+
+def _student_cookie_name() -> str:
+    """Use the hardened host cookie in HTTPS environments and a local name in dev."""
+
+    return "__Host-studiosaas-student" if _student_cookie_secure() else "studiosaas_student"
+
+
+def _student_cookie_token() -> str:
+    """Read either supported cookie name to make HTTPS transitions explicit."""
+
+    return str(
+        request.cookies.get("__Host-studiosaas-student")
+        or request.cookies.get("studiosaas_student")
+        or ""
+    )
 
 
 def _login_rate_limited(email: str) -> bool:
@@ -1126,6 +1169,7 @@ MEDIA_UPLOAD_LIMITS = {
     "homework": (IMAGE_EXTENSIONS | DOCUMENT_EXTENSIONS, 10 * 1024 * 1024),
     "sheet_music": (IMAGE_EXTENSIONS | DOCUMENT_EXTENSIONS, 15 * 1024 * 1024),
     "logo": ({".jpg", ".jpeg", ".png", ".webp", ".svg"}, 5 * 1024 * 1024),
+    "website_image": ({".jpg", ".jpeg", ".png", ".webp"}, 10 * 1024 * 1024),
 }
 MEDIA_MIME_TYPES = {
     ".jpg": {"image/jpeg"},
@@ -1338,15 +1382,28 @@ def _store_media_asset(conn, *, tenant_id: str, file_storage, kind: str, owner_s
     )
 
 
-def _send_media_asset(conn, *, tenant_id: str, media_asset_id: str):
+def _send_media_asset(
+    conn,
+    *,
+    tenant_id: str,
+    media_asset_id: str,
+    variant: str | None = None,
+):
     """Serve one media asset after tenant ownership has been verified.
 
     ``?thumb=1`` serves the lazily generated list-view thumbnail (S3).
     """
 
-    thumb = str(request.args.get("thumb", "")).lower() in ("1", "true", "yes")
+    requested_variant = variant
+    if requested_variant is None and str(request.args.get("thumb", "")).lower() in ("1", "true", "yes"):
+        requested_variant = "thumb"
     try:
-        return send_media_asset(conn, tenant_id=tenant_id, media_asset_id=media_asset_id, thumb=thumb)
+        return send_media_asset(
+            conn,
+            tenant_id=tenant_id,
+            media_asset_id=media_asset_id,
+            variant=requested_variant,
+        )
     except MediaUploadError as exc:
         return _error(str(exc), 404)
 
@@ -1372,6 +1429,24 @@ def _validate_portfolio_visibility(value: str) -> str:
     if visibility not in {"private", "shared"}:
         raise ValueError("visibility must be one of: private, shared.")
     return visibility
+
+
+def _active_publication_consent(conn, *, tenant_id: str, student_id: str) -> dict | None:
+    """Return the latest effective student-level publication consent event."""
+
+    row = fetch_one(
+        conn,
+        """
+        SELECT id, status, consent_by, relationship, consent_method,
+               notice_version, note, created_at
+        FROM student_publication_consent_events
+        WHERE tenant_id = %s AND student_id = %s
+        ORDER BY created_at DESC, id DESC
+        LIMIT 1
+        """,
+        (tenant_id, student_id),
+    )
+    return row if row and row["status"] == "confirmed" else None
 
 
 def _parse_pagination() -> tuple[int, int]:
@@ -2629,6 +2704,35 @@ def update_registration_status(registration_id: str):
             elif reg.get("student_id"):
                 linked_student_id = str(reg["student_id"])
 
+            registration_publication = (
+                (reg.get("payload") or {}).get("publicationConsent")
+                if isinstance(reg.get("payload"), dict)
+                else None
+            )
+            if linked_student_id and isinstance(registration_publication, dict) and registration_publication.get("confirmed"):
+                cur.execute(
+                    """
+                    INSERT INTO student_publication_consent_events (
+                        tenant_id, student_id, status, consent_by, relationship,
+                        consent_method, notice_version, note, actor_user_id,
+                        source_registration_id
+                    ) VALUES (%s, %s, 'confirmed', %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (tenant_id, source_registration_id)
+                    WHERE source_registration_id IS NOT NULL DO NOTHING
+                    """,
+                    (
+                        tenant.tenant_id,
+                        linked_student_id,
+                        str(registration_publication.get("consentBy") or "")[:120],
+                        str(registration_publication.get("relationship") or "")[:60],
+                        str(registration_publication.get("method") or "registration_form")[:60],
+                        str(registration_publication.get("noticeVersion") or "")[:40],
+                        str(registration_publication.get("note") or "")[:500],
+                        getattr(getattr(g, "actor", None), "user_id", None),
+                        registration_id,
+                    ),
+                )
+
             actor_user_id = getattr(getattr(g, "actor", None), "user_id", None)
             cur.execute(
                 """
@@ -2897,6 +3001,145 @@ def public_brand(tenant_slug: str):
     return jsonify({"brand": row})
 
 
+_PUBLIC_ANALYTICS_EVENTS = {
+    "page_view",
+    "cta_click",
+    "registration_started",
+    "registration_submitted",
+}
+
+
+def _analytics_text_map(value: object, *, keys: set[str], limit: int) -> dict[str, str]:
+    """Return only allowlisted, bounded strings for an analytics JSON field."""
+
+    if not isinstance(value, dict):
+        return {}
+    cleaned: dict[str, str] = {}
+    for key in keys:
+        item = str(value.get(key) or "").strip()[:limit]
+        if item:
+            cleaned[key] = item
+    return cleaned
+
+
+@api_v1.route("/public/<tenant_slug>/analytics", methods=["POST"])
+def public_record_analytics(tenant_slug: str):
+    """Record one anonymous, allowlisted portal conversion event.
+
+    The supplied browser token is salted and hashed before persistence. The
+    table never receives an IP address, user agent, student identifier, name,
+    phone, email, or raw token.
+    """
+
+    if _rate_limited(f"analytics:{tenant_slug}:{_client_ip()}", 60):
+        return _error("Too many analytics events.", 429)
+    try:
+        payload = _json_payload()
+    except ValueError as exc:
+        return _error(str(exc))
+    event_name = str(payload.get("event") or "").strip()
+    if event_name not in _PUBLIC_ANALYTICS_EVENTS:
+        return _error("Unsupported analytics event.")
+    browser_token = str(payload.get("sessionId") or "").strip()
+    if not re.fullmatch(r"[A-Za-z0-9_-]{16,80}", browser_token):
+        return _error("A valid anonymous session ID is required.")
+    path = str(payload.get("path") or "").strip()[:200]
+    if path and (not path.startswith("/") or "\n" in path or "\r" in path):
+        return _error("Analytics path is invalid.")
+    campaign = _analytics_text_map(
+        payload.get("campaign"),
+        keys={"source", "medium", "campaign"},
+        limit=80,
+    )
+    metadata = _analytics_text_map(payload.get("metadata"), keys={"label"}, limit=80)
+    with connect() as conn:
+        try:
+            tenant = resolve_tenant(conn, tenant_slug, "path")
+        except TenantResolutionError:
+            return _error("Unknown tenant.", 404)
+        secret = str(current_app.config.get("SECRET_KEY") or current_app.secret_key or "")
+        session_hash = hashlib.sha256(
+            f"{secret}:{tenant.tenant_id}:{browser_token}".encode("utf-8")
+        ).hexdigest()
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO public_analytics_events (
+                    tenant_id, event_name, path, session_hash, campaign, metadata
+                )
+                VALUES (%s, %s, %s, %s, %s::jsonb, %s::jsonb)
+                """,
+                (
+                    tenant.tenant_id,
+                    event_name,
+                    path,
+                    session_hash,
+                    json.dumps(campaign),
+                    json.dumps(metadata),
+                ),
+            )
+    return jsonify({"ok": True}), 202
+
+
+@api_v1.route("/tenant/analytics", methods=["GET"])
+@tenant_admin_required
+def tenant_public_analytics():
+    """Return aggregate-only public portal metrics for the active tenant."""
+
+    try:
+        days = int(request.args.get("days", "30"))
+    except ValueError:
+        return _error("Analytics days must be an integer.")
+    if days not in {7, 30, 90}:
+        return _error("Analytics days must be 7, 30, or 90.")
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        totals = fetch_one(
+            conn,
+            """
+            SELECT count(*) AS events,
+                   count(DISTINCT session_hash) AS anonymous_sessions,
+                   count(*) FILTER (WHERE event_name = 'page_view') AS page_views,
+                   count(*) FILTER (WHERE event_name = 'cta_click') AS cta_clicks,
+                   count(*) FILTER (WHERE event_name = 'registration_started') AS registration_started,
+                   count(*) FILTER (WHERE event_name = 'registration_submitted') AS registration_submitted
+            FROM public_analytics_events
+            WHERE tenant_id = %s
+              AND occurred_at >= now() - make_interval(days => %s)
+            """,
+            (tenant.tenant_id, days),
+        ) or {}
+        daily = fetch_all(
+            conn,
+            """
+            SELECT occurred_at::date AS day, event_name, count(*) AS count
+            FROM public_analytics_events
+            WHERE tenant_id = %s
+              AND occurred_at >= now() - make_interval(days => %s)
+            GROUP BY occurred_at::date, event_name
+            ORDER BY occurred_at::date, event_name
+            """,
+            (tenant.tenant_id, days),
+        )
+        campaigns = fetch_all(
+            conn,
+            """
+            SELECT COALESCE(NULLIF(campaign->>'campaign', ''), '(direct)') AS campaign,
+                   count(*) FILTER (WHERE event_name = 'page_view') AS page_views,
+                   count(*) FILTER (WHERE event_name = 'registration_submitted') AS registrations
+            FROM public_analytics_events
+            WHERE tenant_id = %s
+              AND occurred_at >= now() - make_interval(days => %s)
+            GROUP BY COALESCE(NULLIF(campaign->>'campaign', ''), '(direct)')
+            ORDER BY registrations DESC, page_views DESC
+            LIMIT 20
+            """,
+            (tenant.tenant_id, days),
+        )
+    summary = {key: int(value or 0) for key, value in totals.items()}
+    return jsonify({"days": days, "summary": summary, "daily": daily, "campaigns": campaigns})
+
+
 def _public_portfolio_copy(value: object) -> str:
     """Remove obvious contact details and seeded full-name titles from public copy."""
 
@@ -2925,7 +3168,18 @@ def public_gallery(tenant_slug: str):
             SELECT p.id, p.title, p.description, p.artwork_date, p.created_at
             FROM portfolio_items p
             JOIN media_assets m ON m.id = p.media_asset_id AND m.tenant_id = p.tenant_id
+            JOIN media_variants mv
+              ON mv.tenant_id = p.tenant_id
+             AND mv.media_asset_id = p.media_asset_id
+             AND mv.variant = 'display'
             JOIN students s ON s.id = p.student_id AND s.tenant_id = p.tenant_id
+            JOIN LATERAL (
+                SELECT status
+                FROM student_publication_consent_events e
+                WHERE e.tenant_id = p.tenant_id AND e.student_id = p.student_id
+                ORDER BY e.created_at DESC, e.id DESC
+                LIMIT 1
+            ) consent ON consent.status = 'confirmed'
             WHERE p.tenant_id = %s
               AND p.visibility = 'shared'
               AND p.public_consent_at IS NOT NULL
@@ -2965,6 +3219,17 @@ def public_gallery_media(tenant_slug: str, portfolio_item_id: str):
             SELECT p.media_asset_id
             FROM portfolio_items p
             JOIN students s ON s.id = p.student_id AND s.tenant_id = p.tenant_id
+            JOIN media_variants mv
+              ON mv.tenant_id = p.tenant_id
+             AND mv.media_asset_id = p.media_asset_id
+             AND mv.variant = 'display'
+            JOIN LATERAL (
+                SELECT status
+                FROM student_publication_consent_events e
+                WHERE e.tenant_id = p.tenant_id AND e.student_id = p.student_id
+                ORDER BY e.created_at DESC, e.id DESC
+                LIMIT 1
+            ) consent ON consent.status = 'confirmed'
             WHERE p.tenant_id = %s
               AND p.id::text = %s
               AND p.visibility = 'shared'
@@ -2976,25 +3241,311 @@ def public_gallery_media(tenant_slug: str, portfolio_item_id: str):
         )
         if not row:
             return _error("Portfolio item was not found.", 404)
-        return _send_media_asset(conn, tenant_id=tenant.tenant_id, media_asset_id=str(row["media_asset_id"]))
+        response = _send_media_asset(
+            conn,
+            tenant_id=tenant.tenant_id,
+            media_asset_id=str(row["media_asset_id"]),
+            variant="display",
+        )
+        if isinstance(response, tuple):
+            return response
+        response.headers["Cache-Control"] = "no-store"
+        response.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive"
+        return response
 
 
 @api_v1.route("/public/<tenant_slug>/balance-query", methods=["POST"])
 def public_balance_query(tenant_slug: str):
-    """Lookup a student's balance for the public Studio Portal student area."""
+    """Return low-sensitivity balance data after an exact, unambiguous match."""
 
     client_key = f"balance-query:{tenant_slug}:{_client_ip()}"
     if _rate_limited(client_key, 10):
         return _error("Too many balance queries. Please wait a moment.", 429)
 
     payload = request.get_json(silent=True) or {}
-    name = str(payload.get("name") or "").strip().lower()
-    phone = "".join(ch for ch in str(payload.get("phone") or "") if ch.isdigit())
+    name = str(payload.get("name") or "").strip()
+    phone = str(payload.get("phone") or "").strip()
     if not name or not phone:
         return jsonify({"match": False, "error": "name_and_phone_required"}), 400
     with connect() as conn:
         tenant = resolve_tenant(conn, tenant_slug, "path")
-        row = fetch_one(
+        lookup = _find_public_student(
+            conn,
+            tenant_id=tenant.tenant_id,
+            name=name,
+            phone=phone,
+        )
+        row = None
+        if lookup.student:
+            row = fetch_one(
+                conn,
+                """
+                SELECT s.display_name, COALESCE(ca.balance, 0)::float AS balance
+                FROM students s
+                LEFT JOIN credit_accounts ca
+                  ON ca.tenant_id = s.tenant_id
+                 AND ca.student_id = s.id
+                 AND ca.course_id IS NULL
+                WHERE s.tenant_id = %s AND s.id = %s
+                """,
+                (tenant.tenant_id, lookup.student["id"]),
+            )
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="public.balance_lookup",
+            resource_type="student_lookup",
+            metadata={"matched": bool(row), "ambiguous": lookup.status == "ambiguous"},
+        )
+        conn.commit()
+        if not row:
+            return jsonify({"match": False, "ambiguous": lookup.status == "ambiguous"})
+        return jsonify(
+            {
+                "match": True,
+                "name": row["display_name"],
+                "balance": row["balance"],
+            }
+        )
+
+
+@api_v1.route("/students/<student_id>/access-code", methods=["POST", "DELETE"])
+@permission_required("students:write")
+def manage_student_access_code(student_id: str):
+    """Generate, rotate, or revoke one student's private-area access code."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        if request.method == "DELETE":
+            if not _revoke_student_access_code(
+                conn, tenant_id=tenant.tenant_id, student_id=student_id
+            ):
+                return _error("Student was not found.", 404)
+            _audit_request(
+                conn,
+                tenant_id=tenant.tenant_id,
+                action="student_access.revoked",
+                resource_type="student",
+                resource_id=student_id,
+            )
+            conn.commit()
+            return jsonify({"ok": True, "hasAccessCode": False})
+
+        try:
+            code, updated_at = _generate_student_access_code(
+                conn, tenant_id=tenant.tenant_id, student_id=student_id
+            )
+        except ValueError as exc:
+            return _error(str(exc), 404)
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="student_access.generated",
+            resource_type="student",
+            resource_id=student_id,
+            metadata={"plaintext_stored": False},
+        )
+        conn.commit()
+    return jsonify(
+        {
+            "ok": True,
+            "code": code,
+            "hasAccessCode": True,
+            "updatedAt": updated_at,
+        }
+    )
+
+
+@api_v1.route("/students/<student_id>/publication-consent", methods=["PUT", "DELETE"])
+@permission_required("portfolio:write")
+def manage_student_publication_consent(student_id: str):
+    """Append a publication-consent confirmation or withdrawal event."""
+
+    payload = request.get_json(silent=True) or {}
+    status = "withdrawn" if request.method == "DELETE" else "confirmed"
+    consent_by = _clean_text(payload, "consentBy", _clean_text(payload, "consent_by"))[:120]
+    relationship = _clean_text(payload, "relationship")[:60]
+    consent_method = _clean_text(
+        payload, "consentMethod", _clean_text(payload, "consent_method")
+    )[:60]
+    notice_version = _clean_text(
+        payload, "noticeVersion", _clean_text(payload, "notice_version", "2026-07-18")
+    )[:40]
+    note = _clean_text(payload, "note")[:500]
+    if status == "confirmed" and not (consent_by and relationship and consent_method):
+        return _error("Consent person, relationship, and method are required.")
+    if status == "withdrawn" and not note:
+        return _error("A withdrawal note is required.")
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        student = fetch_one(
+            conn,
+            "SELECT id FROM students WHERE tenant_id = %s AND id = %s",
+            (tenant.tenant_id, student_id),
+        )
+        if not student:
+            return _error("Student was not found.", 404)
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO student_publication_consent_events (
+                    tenant_id, student_id, status, consent_by, relationship,
+                    consent_method, notice_version, note, actor_user_id
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id, created_at
+                """,
+                (
+                    tenant.tenant_id,
+                    student_id,
+                    status,
+                    consent_by,
+                    relationship,
+                    consent_method,
+                    notice_version,
+                    note,
+                    getattr(g.actor, "user_id", None),
+                ),
+            )
+            event = cur.fetchone()
+            unpublished = 0
+            if status == "withdrawn":
+                cur.execute(
+                    """
+                    UPDATE portfolio_items
+                    SET visibility = 'private', updated_at = now()
+                    WHERE tenant_id = %s AND student_id = %s AND visibility = 'shared'
+                    """,
+                    (tenant.tenant_id, student_id),
+                )
+                unpublished = cur.rowcount
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action=f"publication_consent.{status}",
+            resource_type="student",
+            resource_id=student_id,
+            metadata={
+                "event_id": str(event["id"]),
+                "notice_version": notice_version,
+                "unpublished_items": unpublished,
+            },
+        )
+        conn.commit()
+    return jsonify(
+        {
+            "ok": True,
+            "consent": {
+                "id": str(event["id"]),
+                "status": status,
+                "consentBy": consent_by,
+                "relationship": relationship,
+                "consentMethod": consent_method,
+                "noticeVersion": notice_version,
+                "createdAt": event["created_at"].isoformat(),
+            },
+            "unpublishedItems": unpublished,
+        }
+    )
+
+
+@api_v1.route("/public/<tenant_slug>/student/unlock", methods=["POST"])
+def public_student_unlock(tenant_slug: str):
+    """Issue a one-hour HttpOnly student session after access-code verification."""
+
+    payload = request.get_json(silent=True) or {}
+    name = str(payload.get("name") or "").strip()
+    phone = str(payload.get("phone") or "").strip()
+    code = str(payload.get("code") or "").strip()
+    if not name or not phone or len(code) != 6 or not code.isdigit():
+        return _error("Name, phone, and a six-digit access code are required.", 400)
+
+    with connect() as conn:
+        tenant = resolve_tenant(conn, tenant_slug, "path")
+        fingerprint = _student_lookup_fingerprint(name, phone)
+        if _student_access_locked(
+            conn,
+            tenant_id=tenant.tenant_id,
+            lookup_hash=fingerprint,
+            ip_address=_client_ip(),
+        ):
+            return _error("Too many attempts. Please try again later.", 429)
+        lookup = _find_public_student(
+            conn, tenant_id=tenant.tenant_id, name=name, phone=phone
+        )
+        if not lookup.student or not _verify_student_access_code(lookup.student, code):
+            _record_student_access_failure(
+                conn,
+                tenant_id=tenant.tenant_id,
+                lookup_hash=fingerprint,
+                ip_address=_client_ip(),
+            )
+            _audit(
+                conn,
+                tenant_id=tenant.tenant_id,
+                action="student_access.failed",
+                resource_type="student_access",
+                metadata={"ambiguous": lookup.status == "ambiguous"},
+            )
+            conn.commit()
+            return _error("The login details could not be verified.", 401)
+
+        _clear_student_access_failures(
+            conn,
+            tenant_id=tenant.tenant_id,
+            lookup_hash=fingerprint,
+            ip_address=_client_ip(),
+        )
+        raw_token, expires_at = _create_student_access_session(
+            conn,
+            tenant_id=tenant.tenant_id,
+            student_id=str(lookup.student["id"]),
+            ip_address=_client_ip(),
+        )
+        _audit(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="student_access.unlocked",
+            resource_type="student",
+            resource_id=str(lookup.student["id"]),
+        )
+        conn.commit()
+
+    response = make_response(
+        jsonify(
+            {
+                "ok": True,
+                "name": lookup.student["display_name"],
+                "expiresAt": expires_at,
+            }
+        )
+    )
+    response.set_cookie(
+        _student_cookie_name(),
+        raw_token,
+        max_age=3600,
+        secure=_student_cookie_secure(),
+        httponly=True,
+        samesite="Lax",
+        path="/",
+    )
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
+
+
+@api_v1.route("/public/<tenant_slug>/student/private", methods=["GET"])
+def public_student_private(tenant_slug: str):
+    """Return private records for the student bound to the HttpOnly session."""
+
+    with connect() as conn:
+        tenant = resolve_tenant(conn, tenant_slug, "path")
+        access = _resolve_student_access_session(
+            conn, tenant_id=tenant.tenant_id, raw_token=_student_cookie_token()
+        )
+        if not access:
+            return _error("Student access is required.", 401)
+        student_id = str(access["student_id"])
+        summary = fetch_one(
             conn,
             """
             SELECT s.display_name, COALESCE(ca.balance, 0)::float AS balance
@@ -3003,36 +3554,139 @@ def public_balance_query(tenant_slug: str):
               ON ca.tenant_id = s.tenant_id
              AND ca.student_id = s.id
              AND ca.course_id IS NULL
-            WHERE s.tenant_id = %s
-              AND s.status <> 'archived'
-              AND regexp_replace(s.mobile, '[^0-9]', '', 'g') = %s
-              AND (
-                lower(s.display_name) = %s
-                OR lower(s.first_name) = %s
-                OR lower(s.last_name) = %s
-              )
-            ORDER BY lower(s.display_name)
+            WHERE s.tenant_id = %s AND s.id = %s
+            """,
+            (tenant.tenant_id, student_id),
+        )
+        attendance = fetch_all(
+            conn,
+            """
+            SELECT a.class_date::text AS date,
+                   CASE WHEN a.reversed_at IS NULL THEN 'attended' ELSE 'voided' END AS status,
+                   COALESCE(c.name, '') AS course,
+                   a.note
+            FROM attendance_sessions a
+            LEFT JOIN courses c ON c.tenant_id = a.tenant_id AND c.id = a.course_id
+            WHERE a.tenant_id = %s AND a.student_id = %s
+            ORDER BY a.class_date DESC, a.attended_at DESC
+            LIMIT 50
+            """,
+            (tenant.tenant_id, student_id),
+        )
+        portfolio = fetch_all(
+            conn,
+            """
+            SELECT p.id, p.media_asset_id, p.title, p.description,
+                   COALESCE(p.artwork_date, p.created_at::date)::text AS date
+            FROM portfolio_items p
+            JOIN media_variants mv
+              ON mv.tenant_id = p.tenant_id
+             AND mv.media_asset_id = p.media_asset_id
+             AND mv.variant = 'display'
+            WHERE p.tenant_id = %s AND p.student_id = %s
+            ORDER BY COALESCE(p.artwork_date, p.created_at::date) DESC, p.created_at DESC
+            LIMIT 100
+            """,
+            (tenant.tenant_id, student_id),
+        )
+        timezone_name = _tenant_timezone(conn, tenant.tenant_id)
+        next_class = fetch_one(
+            conn,
+            """
+            SELECT cs.label AS course, to_char(cs.start_time, 'HH24:MI') AS time,
+                   ((now() AT TIME ZONE %s)::date
+                     + ((cs.weekday - extract(dow FROM (now() AT TIME ZONE %s)::date)::int + 7) %% 7)
+                   )::text AS date
+            FROM class_schedules cs
+            JOIN class_schedule_students css
+              ON css.tenant_id = cs.tenant_id AND css.schedule_id = cs.id
+            WHERE cs.tenant_id = %s AND css.student_id = %s AND cs.is_active
+            ORDER BY ((cs.weekday - extract(dow FROM (now() AT TIME ZONE %s)::date)::int + 7) %% 7),
+                     cs.start_time
             LIMIT 1
             """,
-            (tenant.tenant_id, phone, name, name, name),
+            (timezone_name, timezone_name, tenant.tenant_id, student_id, timezone_name),
         )
-        _audit_request(
+    response = jsonify(
+        {
+            "ok": True,
+            "student": {
+                "name": summary["display_name"],
+                "balance": summary["balance"],
+            },
+            "nextClass": next_class,
+            "attendance": attendance,
+            "portfolio": [
+                {
+                    "id": str(row["id"]),
+                    "title": row["title"] or "",
+                    "comment": row["description"] or "",
+                    "date": row["date"],
+                    "mediaUrl": f"/v1/public/{tenant_slug}/student/media/{row['media_asset_id']}",
+                }
+                for row in portfolio
+            ],
+        }
+    )
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
+
+
+@api_v1.route("/public/<tenant_slug>/student/media/<media_asset_id>", methods=["GET"])
+def public_student_media(tenant_slug: str, media_asset_id: str):
+    """Serve a safe display derivative owned by the unlocked student."""
+
+    with connect() as conn:
+        tenant = resolve_tenant(conn, tenant_slug, "path")
+        access = _resolve_student_access_session(
+            conn, tenant_id=tenant.tenant_id, raw_token=_student_cookie_token()
+        )
+        if not access:
+            return _error("Media asset was not found.", 404)
+        owned = fetch_one(
+            conn,
+            """
+            SELECT 1 FROM media_assets
+            WHERE tenant_id = %s AND id = %s AND owner_student_id = %s
+            """,
+            (tenant.tenant_id, media_asset_id, access["student_id"]),
+        )
+        if not owned:
+            return _error("Media asset was not found.", 404)
+        response = _send_media_asset(
             conn,
             tenant_id=tenant.tenant_id,
-            action="public.balance_lookup",
-            resource_type="student_lookup",
-            metadata={"matched": bool(row)},
+            media_asset_id=media_asset_id,
+            variant="display",
+        )
+        if isinstance(response, tuple):
+            return response
+        response.headers["Cache-Control"] = "private, no-store"
+        response.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive"
+        return response
+
+
+@api_v1.route("/public/<tenant_slug>/student/logout", methods=["POST"])
+def public_student_logout(tenant_slug: str):
+    """Revoke the current private session and clear both cookie variants."""
+
+    with connect() as conn:
+        tenant = resolve_tenant(conn, tenant_slug, "path")
+        _revoke_student_access_session(
+            conn, tenant_id=tenant.tenant_id, raw_token=_student_cookie_token()
         )
         conn.commit()
-        if not row:
-            return jsonify({"match": False})
-        return jsonify(
-            {
-                "match": True,
-                "name": row["display_name"],
-                "balance": row["balance"],
-            }
+    response = make_response(jsonify({"ok": True}))
+    for cookie_name in ("__Host-studiosaas-student", "studiosaas_student"):
+        response.delete_cookie(
+            cookie_name,
+            path="/",
+            secure=cookie_name.startswith("__Host-"),
+            httponly=True,
+            samesite="Lax",
         )
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
 
 
 @api_v1.route("/public/<tenant_slug>/registration-media", methods=["POST"])
@@ -3083,95 +3737,38 @@ def public_registration_media_upload(tenant_slug: str):
 
 @api_v1.route("/public/<tenant_slug>/portfolio-token", methods=["POST"])
 def public_portfolio_token(tenant_slug: str):
-    """Return a short-lived token and tenant-scoped portfolio metadata."""
+    """Reject the retired URL-token flow in favour of HttpOnly student sessions."""
 
-    client_key = f"portfolio-token:{_client_ip()}"
-    now = time.time()
-    _public_rate_limit[client_key] = [t for t in _public_rate_limit.get(client_key, []) if now - t < 60]
-    if len(_public_rate_limit[client_key]) >= 10:
-        return _error("Too many queries. Please wait a moment.", 429)
-    _public_rate_limit[client_key].append(now)
-
-    payload = request.get_json(silent=True) or {}
-    name = str(payload.get("name") or "").strip().lower()
-    phone = "".join(ch for ch in str(payload.get("phone") or "") if ch.isdigit())
-    if not name or not phone:
-        return jsonify({"ok": False}), 400
-    with connect() as conn:
-        tenant = resolve_tenant(conn, tenant_slug, "path")
-        if not _plan_feature_enabled(conn, tenant.tenant_id, "portfolio"):
-            return _error("Portfolio is not enabled for this studio plan.", 403)
-        student = fetch_one(
-            conn,
-            """
-            SELECT id
-            FROM students
-            WHERE tenant_id = %s
-              AND status <> 'archived'
-              AND regexp_replace(mobile, '[^0-9]', '', 'g') = %s
-              AND (
-                lower(display_name) = %s
-                OR lower(first_name) = %s
-                OR lower(last_name) = %s
-              )
-            ORDER BY lower(display_name)
-            LIMIT 1
-            """,
-            (tenant.tenant_id, phone, name, name, name),
-        )
-        if not student:
-            return jsonify({"ok": False})
-        raw_token = hashlib.sha256(f"{_uuid.uuid4()}:{time.time()}".encode("utf-8")).hexdigest()
-        token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                INSERT INTO share_tokens (tenant_id, student_id, token_hash, scope, expires_at)
-                VALUES (%s, %s, %s, 'student_portfolio', now() + interval '1 hour')
-                """,
-                (tenant.tenant_id, student["id"], token_hash),
-            )
-        rows = fetch_all(
-            conn,
-            """
-            SELECT p.id, p.media_asset_id, p.description, p.artwork_date, p.created_at
-            FROM portfolio_items p
-            JOIN media_assets m ON m.id = p.media_asset_id AND m.tenant_id = p.tenant_id
-            WHERE p.tenant_id = %s AND p.student_id = %s
-            ORDER BY p.created_at DESC
-            LIMIT 100
-            """,
-            (tenant.tenant_id, student["id"]),
-        )
-    portfolio = [
-        {
-            "id": str(row["id"]),
-            "filename": _media_token(str(row["media_asset_id"])),
-            "mediaUrl": f"/v1/public/{tenant_slug}/media/{row['media_asset_id']}?token={raw_token}",
-            "date": str(row["artwork_date"] or row["created_at"].date()),
-            "note": row["description"] or "",
-        }
-        for row in rows
-    ]
-    return jsonify({"ok": True, "sid": str(student["id"]), "token": raw_token, "portfolio": portfolio})
+    return api_error(
+        "This private portfolio flow has been retired. Use the student access-code session.",
+        410,
+        error="student_session_required",
+    )
 
 
 @api_v1.route("/public/<tenant_slug>/media/<media_asset_id>", methods=["GET"])
 def public_media_asset(tenant_slug: str, media_asset_id: str):
-    """Serve token-protected tenant media for public student portfolio views."""
+    """Serve safe public brand media or token-protected portfolio media."""
 
     raw_token = request.args.get("token", "")
     with connect() as conn:
         tenant = resolve_tenant(conn, tenant_slug, "path")
         asset = fetch_one(
             conn,
-            "SELECT asset_type FROM media_assets WHERE tenant_id = %s AND id = %s",
+            "SELECT asset_type, mime_type FROM media_assets WHERE tenant_id = %s AND id = %s",
             (tenant.tenant_id, media_asset_id),
         )
         if not asset:
             return _error("Media asset was not found.", 404)
-        if asset["asset_type"] == "logo":
-            return _send_media_asset(conn, tenant_id=tenant.tenant_id, media_asset_id=media_asset_id)
+        if asset["asset_type"] in {"logo", "website_image"}:
+            if str(asset["mime_type"] or "").startswith("image/svg"):
+                return _error("Media asset was not found.", 404)
+            return _send_media_asset(
+                conn,
+                tenant_id=tenant.tenant_id,
+                media_asset_id=media_asset_id,
+                variant="display",
+            )
         if not _plan_feature_enabled(conn, tenant.tenant_id, "portfolio"):
             return _error("Media asset was not found.", 404)
         if not raw_token:
@@ -3197,7 +3794,17 @@ def public_media_asset(tenant_slug: str, media_asset_id: str):
         )
         if not allowed:
             return _error("Media asset was not found.", 404)
-        return _send_media_asset(conn, tenant_id=tenant.tenant_id, media_asset_id=media_asset_id)
+        response = _send_media_asset(
+            conn,
+            tenant_id=tenant.tenant_id,
+            media_asset_id=media_asset_id,
+            variant="display",
+        )
+        if isinstance(response, tuple):
+            return response
+        response.headers["Cache-Control"] = "private, no-store"
+        response.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive"
+        return response
 
 
 @api_v1.route("/public/<tenant_slug>/programs", methods=["GET"])
@@ -3272,6 +3879,20 @@ def public_create_registration(tenant_slug: str):
     privacy_notice_version = str(
         payload.get("privacyNoticeVersion") or payload.get("privacy_notice_version") or "2026-07-12"
     ).strip()[:40]
+    publication_raw = payload.get("publicationConsent", payload.get("publication_consent"))
+    publication_consent = None
+    if isinstance(publication_raw, dict) and bool(publication_raw.get("confirmed")):
+        publication_consent = {
+            "confirmed": True,
+            "consentBy": str(publication_raw.get("consentBy") or publication_raw.get("consent_by") or "").strip()[:120],
+            "relationship": str(publication_raw.get("relationship") or "").strip()[:60],
+            "method": str(publication_raw.get("method") or "registration_form").strip()[:60],
+            "noticeVersion": str(publication_raw.get("noticeVersion") or privacy_notice_version).strip()[:40],
+            "note": str(publication_raw.get("note") or "Optional artwork publication consent recorded at registration.").strip()[:500],
+        }
+        if not publication_consent["consentBy"] or not publication_consent["relationship"]:
+            return _error("Publication consent requires the consenting person and relationship.")
+        payload["publicationConsent"] = publication_consent
 
     first_name = str(
         payload.get("firstName")
@@ -3539,6 +4160,14 @@ def _legacy_data_for_tenant(conn, tenant_id: str) -> dict:
         SELECT s.id, s.first_name, s.last_name, s.display_name, s.status,
                s.birthday, s.parent_name, s.mobile, s.email, s.wechat,
                s.tags, s.notes, s.created_at, s.student_photo_asset_id,
+               (s.access_code_hash <> '' AND s.access_code_revoked_at IS NULL) AS has_access_code,
+               s.access_code_updated_at,
+               consent.status AS publication_consent_status,
+               consent.consent_by AS publication_consent_by,
+               consent.relationship AS publication_consent_relationship,
+               consent.consent_method AS publication_consent_method,
+               consent.notice_version AS publication_notice_version,
+               consent.created_at AS publication_consent_at,
                COALESCE(ca.balance, 0)::float AS balance
         FROM students s
         LEFT JOIN LATERAL (
@@ -3550,6 +4179,14 @@ def _legacy_data_for_tenant(conn, tenant_id: str) -> dict:
             ORDER BY ca.updated_at DESC
             LIMIT 1
         ) ca ON true
+        LEFT JOIN LATERAL (
+            SELECT e.status, e.consent_by, e.relationship, e.consent_method,
+                   e.notice_version, e.created_at
+            FROM student_publication_consent_events e
+            WHERE e.tenant_id = s.tenant_id AND e.student_id = s.id
+            ORDER BY e.created_at DESC, e.id DESC
+            LIMIT 1
+        ) consent ON true
         WHERE s.tenant_id = %s
         ORDER BY lower(s.display_name)
         """,
@@ -3624,6 +4261,29 @@ def _legacy_data_for_tenant(conn, tenant_id: str) -> dict:
     )
     settings_row = fetch_one(conn, "SELECT settings FROM tenants WHERE id = %s", (tenant_id,))
     legacy_state = ((settings_row["settings"] if settings_row else None) or {}).get("legacy_cms") or {}
+    roster_rows = fetch_all(
+        conn,
+        """
+        SELECT id, roster_date, student_id, source, status, note, created_at
+        FROM daily_roster_entries
+        WHERE tenant_id = %s AND status <> 'cancelled'
+        ORDER BY roster_date, created_at, id
+        """,
+        (tenant_id,),
+    )
+    rosters: dict[str, list[str]] = {}
+    roster_entries: dict[str, dict[str, dict]] = {}
+    for row in roster_rows:
+        date_key = row["roster_date"].isoformat()
+        student_key = str(row["student_id"])
+        rosters.setdefault(date_key, []).append(student_key)
+        roster_entries.setdefault(date_key, {})[student_key] = {
+            "id": str(row["id"]),
+            "source": row["source"],
+            "status": row["status"],
+            "note": row["note"],
+            "createdAt": row["created_at"].isoformat(),
+        }
     pending = fetch_all(
         conn,
         """
@@ -3656,6 +4316,22 @@ def _legacy_data_for_tenant(conn, tenant_id: str) -> dict:
                 "tags": row["tags"] or [],
                 "photo": _media_token(str(row["student_photo_asset_id"])) if row["student_photo_asset_id"] else "",
                 "portfolio": portfolio_by_student.get(str(row["id"]), []),
+                "hasAccessCode": bool(row["has_access_code"]),
+                "accessCodeUpdatedAt": (
+                    row["access_code_updated_at"].isoformat()
+                    if row["access_code_updated_at"] else None
+                ),
+                "publicationConsent": (
+                    {
+                        "status": row["publication_consent_status"],
+                        "by": row["publication_consent_by"],
+                        "relationship": row["publication_consent_relationship"],
+                        "method": row["publication_consent_method"],
+                        "noticeVersion": row["publication_notice_version"],
+                        "at": row["publication_consent_at"].isoformat(),
+                    }
+                    if row["publication_consent_status"] else None
+                ),
                 "createdAt": str(row["created_at"]),
             }
             for row in students
@@ -3699,7 +4375,8 @@ def _legacy_data_for_tenant(conn, tenant_id: str) -> dict:
             }
             for row in pending
         ],
-        "rosters": legacy_state.get("rosters") or {},
+        "rosters": rosters,
+        "rosterEntries": roster_entries,
         "groups": legacy_state.get("groups") or {},
         "rev": int(time.time()),
     }
@@ -3945,8 +4622,10 @@ def legacy_cms_save():
                                 initial_balance,
                             ),
                         )
-            # Persist the CMS roster/group boards so scheduling survives
-            # reloads (they previously reset to {} on every load).
+            # Group templates remain low-risk CMS preferences. Daily rosters
+            # are intentionally excluded here: daily_roster_entries is the
+            # canonical PostgreSQL source and cannot be overwritten by a stale
+            # aggregate save from another browser tab.
             cur.execute(
                 """
                 UPDATE tenants
@@ -3956,7 +4635,6 @@ def legacy_cms_save():
                 """,
                 (
                     json.dumps({
-                        "rosters": _sanitize_legacy_board(payload.get("rosters")),
                         "groups": _sanitize_legacy_board(payload.get("groups")),
                     }),
                     tenant.tenant_id,
@@ -4084,9 +4762,6 @@ def legacy_cms_portfolio_upload():
         title = str(request.form.get("title") or "").strip()[:120]   # B4
         date_str = str(request.form.get("date") or "").strip()
         visibility = _public_visibility(request.form.get("public"))
-        public_consent_confirmed = str(request.form.get("publicConsentConfirmed") or "").strip().lower() in {"1", "true", "yes", "on"}
-        if visibility == "shared" and not public_consent_confirmed:
-            return _error("Public gallery consent must be confirmed before publishing.", 400)
         if not student_id:
             return _error("studentId is required.")
         student = fetch_one(
@@ -4098,6 +4773,13 @@ def legacy_cms_portfolio_upload():
             return _error("Student was not found.", 404)
         if student["status"] == "archived":
             return _error("Archived students cannot receive portfolio uploads.", 403)
+        if visibility == "shared" and not _active_publication_consent(
+            conn, tenant_id=tenant.tenant_id, student_id=student_id
+        ):
+            return _error(
+                "An active student publication consent record is required before publishing.",
+                400,
+            )
         f = request.files.get("file")
         if not f or not f.filename:
             return _error("No file provided.")
@@ -4173,8 +4855,6 @@ def legacy_cms_portfolio_delete(student_id: str, portfolio_item_id: str):
 
     with connect() as conn:
         tenant = _tenant_context(conn)
-        if visibility == "shared" and not _plan_feature_enabled(conn, tenant.tenant_id, "portfolio"):
-            return _error("Portfolio is not enabled for this studio plan.", 403)
         with conn.cursor() as cur:
             cur.execute(
                 """
@@ -4207,9 +4887,6 @@ def legacy_cms_portfolio_update(student_id: str, portfolio_item_id: str):
     title_raw = payload.get("title")
     title = None if title_raw is None else str(title_raw).strip()[:120]   # B4
     visibility = _public_visibility(payload.get("public")) if "public" in payload else None
-    public_consent_confirmed = bool(payload.get("publicConsentConfirmed"))
-    if visibility == "shared" and not public_consent_confirmed:
-        return _error("Public gallery consent must be confirmed before publishing.", 400)
     date_str = str(payload.get("date") or "").strip()
     artwork_date_val = None
     if date_str:
@@ -4221,6 +4898,13 @@ def legacy_cms_portfolio_update(student_id: str, portfolio_item_id: str):
             return _error("date must be ISO-8601 date (YYYY-MM-DD).")
     with connect() as conn:
         tenant = _tenant_context(conn)
+        if visibility == "shared" and not _active_publication_consent(
+            conn, tenant_id=tenant.tenant_id, student_id=student_id
+        ):
+            return _error(
+                "An active student publication consent record is required before publishing.",
+                400,
+            )
         with conn.cursor() as cur:
             cur.execute(
                 """
@@ -5491,6 +6175,328 @@ def check_in_attendance():
 
 
 # ──────────────────────────────────────────────
+# P1: canonical daily roster + recurring schedule preview
+# ──────────────────────────────────────────────
+
+def _roster_date(value: object) -> _date:
+    """Parse one ISO roster date or raise a user-facing validation error."""
+
+    try:
+        return _date.fromisoformat(str(value or ""))
+    except ValueError as exc:
+        raise ValueError("date must use YYYY-MM-DD format.") from exc
+
+
+def _daily_roster_for_date(conn, tenant_id: str, roster_date: _date) -> dict:
+    """Return explicit entries plus the recurring schedule preview for a date."""
+
+    entries = fetch_all(
+        conn,
+        """
+        SELECT dre.id, dre.student_id, s.display_name AS student_name,
+               dre.source, dre.status, dre.note, dre.cancelled_at,
+               dre.created_at, dre.updated_at
+        FROM daily_roster_entries dre
+        JOIN students s
+          ON s.tenant_id = dre.tenant_id AND s.id = dre.student_id
+        WHERE dre.tenant_id = %s AND dre.roster_date = %s
+        ORDER BY dre.status = 'cancelled', lower(s.display_name), dre.created_at
+        """,
+        (tenant_id, roster_date),
+    )
+    weekday = roster_date.isoweekday() % 7
+    schedule_rows = fetch_all(
+        conn,
+        """
+        SELECT cs.id AS schedule_id, cs.label,
+               to_char(cs.start_time, 'HH24:MI') AS start_time,
+               cs.duration_minutes, cs.capacity, cs.course_id,
+               c.name AS course_name, s.id AS student_id,
+               s.display_name AS student_name
+        FROM class_schedules cs
+        LEFT JOIN courses c
+          ON c.tenant_id = cs.tenant_id AND c.id = cs.course_id
+        LEFT JOIN class_schedule_students css
+          ON css.tenant_id = cs.tenant_id AND css.schedule_id = cs.id
+        LEFT JOIN students s
+          ON s.tenant_id = css.tenant_id AND s.id = css.student_id
+         AND s.status <> 'archived'
+        WHERE cs.tenant_id = %s AND cs.weekday = %s AND cs.is_active
+        ORDER BY cs.start_time, lower(cs.label), lower(s.display_name)
+        """,
+        (tenant_id, weekday),
+    )
+    schedules_by_id: dict[str, dict] = {}
+    for row in schedule_rows:
+        schedule_id = str(row["schedule_id"])
+        schedule = schedules_by_id.setdefault(
+            schedule_id,
+            {
+                "id": schedule_id,
+                "label": row["label"],
+                "startTime": row["start_time"],
+                "durationMinutes": row["duration_minutes"],
+                "capacity": row["capacity"],
+                "courseId": str(row["course_id"]) if row["course_id"] else None,
+                "courseName": row["course_name"],
+                "students": [],
+            },
+        )
+        if row["student_id"]:
+            schedule["students"].append(
+                {"id": str(row["student_id"]), "name": row["student_name"]}
+            )
+
+    effective: dict[str, dict] = {}
+    for schedule in schedules_by_id.values():
+        for student in schedule["students"]:
+            effective.setdefault(
+                student["id"],
+                {
+                    "studentId": student["id"],
+                    "studentName": student["name"],
+                    "source": "schedule",
+                    "scheduleIds": [],
+                },
+            )["scheduleIds"].append(schedule["id"])
+    normalized_entries = []
+    for row in entries:
+        item = {
+            "id": str(row["id"]),
+            "studentId": str(row["student_id"]),
+            "studentName": row["student_name"],
+            "source": row["source"],
+            "status": row["status"],
+            "note": row["note"],
+            "cancelledAt": row["cancelled_at"].isoformat() if row["cancelled_at"] else None,
+            "createdAt": row["created_at"].isoformat(),
+            "updatedAt": row["updated_at"].isoformat(),
+        }
+        normalized_entries.append(item)
+        if row["status"] != "cancelled":
+            effective[str(row["student_id"])] = {
+                "studentId": str(row["student_id"]),
+                "studentName": row["student_name"],
+                "source": row["source"],
+                "entryId": str(row["id"]),
+                "status": row["status"],
+                "scheduleIds": effective.get(str(row["student_id"]), {}).get("scheduleIds", []),
+            }
+    return {
+        "date": roster_date.isoformat(),
+        "entries": normalized_entries,
+        "schedules": list(schedules_by_id.values()),
+        "effectiveStudents": list(effective.values()),
+    }
+
+
+@api_v1.route("/daily-roster", methods=["GET"])
+@auth_required
+def get_daily_roster():
+    """Return one normalized daily roster with recurring schedule preview."""
+
+    try:
+        roster_date = _roster_date(request.args.get("date"))
+    except ValueError as exc:
+        return _error(str(exc))
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        payload = _daily_roster_for_date(conn, tenant.tenant_id, roster_date)
+    return jsonify({"roster": payload})
+
+
+@api_v1.route("/daily-roster/preview", methods=["GET"])
+@auth_required
+def preview_daily_rosters():
+    """Preview recurring and explicit rosters for a bounded date range."""
+
+    try:
+        start = _roster_date(request.args.get("from"))
+        days = int(request.args.get("days", 7))
+    except (TypeError, ValueError) as exc:
+        return _error("from must use YYYY-MM-DD and days must be an integer.")
+    if not 1 <= days <= 31:
+        return _error("days must be between 1 and 31.")
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        rosters = [
+            _daily_roster_for_date(conn, tenant.tenant_id, start + _timedelta(days=offset))
+            for offset in range(days)
+        ]
+    return jsonify({"rosters": rosters})
+
+
+@api_v1.route("/daily-roster", methods=["POST"])
+@permission_required("attendance:write")
+def add_daily_roster_entries():
+    """Add or restore explicit students on one tenant's daily roster."""
+
+    payload = request.get_json(silent=True) or {}
+    try:
+        roster_date = _roster_date(payload.get("date"))
+    except ValueError as exc:
+        return _error(str(exc))
+    raw_ids = payload.get("studentIds")
+    if raw_ids is None:
+        raw_ids = [payload.get("studentId")]
+    if not isinstance(raw_ids, list) or not raw_ids or len(raw_ids) > 200:
+        return _error("studentIds must contain between 1 and 200 students.")
+    student_ids: list[str] = []
+    try:
+        for value in raw_ids:
+            student_id = str(_uuid.UUID(str(value)))
+            if student_id not in student_ids:
+                student_ids.append(student_id)
+    except (ValueError, TypeError, AttributeError) as exc:
+        return _error("Every studentId must be a valid UUID.")
+    source = str(payload.get("source") or "manual").strip().lower()
+    status = str(payload.get("status") or "scheduled").strip().lower()
+    note = str(payload.get("note") or "").strip()[:500]
+    if source not in {"manual", "group", "profile", "import"}:
+        return _error("source must be manual, group, profile, or import.")
+    if status not in {"scheduled", "makeup"}:
+        return _error("status must be scheduled or makeup.")
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        students = fetch_all(
+            conn,
+            """
+            SELECT id FROM students
+            WHERE tenant_id = %s AND id = ANY(%s::uuid[]) AND status <> 'archived'
+            """,
+            (tenant.tenant_id, student_ids),
+        )
+        found_ids = {str(row["id"]) for row in students}
+        missing = [student_id for student_id in student_ids if student_id not in found_ids]
+        if missing:
+            return _error("One or more students were not found in this tenant.", 404)
+        actor_user_id = getattr(getattr(g, "actor", None), "user_id", None)
+        entry_ids: list[str] = []
+        with conn.cursor() as cur:
+            for student_id in student_ids:
+                cur.execute(
+                    """
+                    INSERT INTO daily_roster_entries (
+                        tenant_id, roster_date, student_id, source, status,
+                        note, created_by_user_id
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (tenant_id, roster_date, student_id) DO UPDATE
+                    SET source = EXCLUDED.source,
+                        status = EXCLUDED.status,
+                        status_before_cancel = NULL,
+                        note = EXCLUDED.note,
+                        cancelled_by_user_id = NULL,
+                        cancelled_at = NULL,
+                        updated_at = now()
+                    RETURNING id
+                    """,
+                    (
+                        tenant.tenant_id,
+                        roster_date,
+                        student_id,
+                        source,
+                        status,
+                        note,
+                        actor_user_id,
+                    ),
+                )
+                entry_ids.append(str(cur.fetchone()["id"]))
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="daily_roster.added",
+            resource_type="daily_roster",
+            resource_id=entry_ids[0] if len(entry_ids) == 1 else "",
+            metadata={"date": roster_date.isoformat(), "students": student_ids, "source": source},
+        )
+        conn.commit()
+        roster = _daily_roster_for_date(conn, tenant.tenant_id, roster_date)
+    return jsonify({"ok": True, "entryIds": entry_ids, "roster": roster}), 201
+
+
+@api_v1.route("/daily-roster/<entry_id>", methods=["DELETE"])
+@permission_required("attendance:write")
+def cancel_daily_roster_entry(entry_id: str):
+    """Cancel an explicit roster entry without deleting its audit history."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        actor_user_id = getattr(getattr(g, "actor", None), "user_id", None)
+        row = fetch_one(
+            conn,
+            """
+            UPDATE daily_roster_entries
+            SET status_before_cancel = status,
+                status = 'cancelled',
+                cancelled_by_user_id = %s,
+                cancelled_at = now(),
+                updated_at = now()
+            WHERE tenant_id = %s AND id = %s AND status <> 'cancelled'
+            RETURNING id, roster_date, student_id
+            """,
+            (actor_user_id, tenant.tenant_id, entry_id),
+        )
+        if not row:
+            existing = fetch_one(
+                conn,
+                "SELECT status FROM daily_roster_entries WHERE tenant_id = %s AND id = %s",
+                (tenant.tenant_id, entry_id),
+            )
+            return _error("Roster entry is already cancelled.", 409) if existing else _error("Roster entry was not found.", 404)
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="daily_roster.cancelled",
+            resource_type="daily_roster",
+            resource_id=entry_id,
+            metadata={"date": str(row["roster_date"]), "student_id": str(row["student_id"])},
+        )
+        conn.commit()
+    return jsonify({"ok": True, "entryId": entry_id, "date": str(row["roster_date"])})
+
+
+@api_v1.route("/daily-roster/<entry_id>/undo", methods=["POST"])
+@permission_required("attendance:write")
+def undo_daily_roster_cancellation(entry_id: str):
+    """Restore one cancelled daily roster entry by exact entry id."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        row = fetch_one(
+            conn,
+            """
+            UPDATE daily_roster_entries
+            SET status = COALESCE(status_before_cancel, 'scheduled'),
+                status_before_cancel = NULL,
+                cancelled_by_user_id = NULL,
+                cancelled_at = NULL,
+                updated_at = now()
+            WHERE tenant_id = %s AND id = %s AND status = 'cancelled'
+            RETURNING id, roster_date, student_id, status
+            """,
+            (tenant.tenant_id, entry_id),
+        )
+        if not row:
+            existing = fetch_one(
+                conn,
+                "SELECT status FROM daily_roster_entries WHERE tenant_id = %s AND id = %s",
+                (tenant.tenant_id, entry_id),
+            )
+            return _error("Roster entry is not cancelled.", 409) if existing else _error("Roster entry was not found.", 404)
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="daily_roster.restored",
+            resource_type="daily_roster",
+            resource_id=entry_id,
+            metadata={"date": str(row["roster_date"]), "student_id": str(row["student_id"])},
+        )
+        conn.commit()
+    return jsonify({"ok": True, "entryId": entry_id, "date": str(row["roster_date"]), "status": row["status"]})
+
+
+# ──────────────────────────────────────────────
 # A1: recurring weekly class schedules (排课)
 # weekday: 0=Sunday .. 6=Saturday (JS Date.getDay() convention)
 # ──────────────────────────────────────────────
@@ -6180,10 +7186,6 @@ def create_portfolio_item():
             visibility = _validate_portfolio_visibility(_clean_text(payload, "visibility", "private"))
         except ValueError as exc:
             return _error(str(exc))
-        public_consent_confirmed = bool(payload.get("publicConsentConfirmed"))
-        if visibility == "shared" and not public_consent_confirmed:
-            return _error("Public gallery consent must be confirmed before publishing.", 400)
-
         if not student_id:
             return _error("studentId is required.")
         if not media_asset_id:
@@ -6196,6 +7198,13 @@ def create_portfolio_item():
         )
         if not student:
             return _error("Student was not found.", 404)
+        if visibility == "shared" and not _active_publication_consent(
+            conn, tenant_id=tenant.tenant_id, student_id=student_id
+        ):
+            return _error(
+                "An active student publication consent record is required before publishing.",
+                400,
+            )
 
         media = fetch_one(
             conn, "SELECT id FROM media_assets WHERE tenant_id = %s AND id = %s",
@@ -6261,8 +7270,6 @@ def update_portfolio_item(portfolio_item_id: str):
             visibility = _validate_portfolio_visibility(_clean_text(payload, "visibility")) if "visibility" in payload else ""
         except ValueError as exc:
             return _error(str(exc))
-        if visibility == "shared" and not bool(payload.get("publicConsentConfirmed")):
-            return _error("Public gallery consent must be confirmed before publishing.", 400)
         if visibility == "shared" and not _plan_feature_enabled(conn, tenant.tenant_id, "portfolio"):
             return _error("Portfolio is not enabled for this studio plan.", 403)
         artwork_date_str = _clean_text(payload, "artworkDate")
@@ -6274,6 +7281,23 @@ def update_portfolio_item(portfolio_item_id: str):
                 artwork_date_val = _date.fromisoformat(artwork_date_str)
         except (ValueError, TypeError):
             return _error("artwork_date must be ISO-8601 date (YYYY-MM-DD).")
+
+        existing_item = fetch_one(
+            conn,
+            "SELECT student_id FROM portfolio_items WHERE tenant_id = %s AND id = %s",
+            (tenant.tenant_id, portfolio_item_id),
+        )
+        if not existing_item:
+            return _error("Portfolio item was not found.", 404)
+        if visibility == "shared" and not _active_publication_consent(
+            conn,
+            tenant_id=tenant.tenant_id,
+            student_id=str(existing_item["student_id"]),
+        ):
+            return _error(
+                "An active student publication consent record is required before publishing.",
+                400,
+            )
 
         cur = conn.cursor()
         cur.execute(
@@ -6744,6 +7768,40 @@ def upload_tenant_logo():
         )
 
     return jsonify({"ok": True, "url": logo_url})
+
+
+@api_v1.route("/tenant/website-media", methods=["POST"])
+@tenant_owner_required
+def upload_tenant_website_media():
+    """Upload a safe public hero or principal image without publishing it."""
+
+    target = str(request.form.get("target") or "").strip()
+    if target not in {"hero", "principal"}:
+        return _error("Website media target must be hero or principal.")
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        f = request.files.get("file")
+        if not f or not f.filename:
+            return _error("No file provided.")
+        try:
+            media = _store_media_asset(
+                conn,
+                tenant_id=tenant.tenant_id,
+                file_storage=f,
+                kind="website_image",
+            )
+        except MediaUploadError as exc:
+            return _media_error(exc)
+        media_url = f"/v1/public/{tenant.slug}/media/{media['id']}"
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="brand.website_media_uploaded",
+            resource_type="media_asset",
+            resource_id=media["id"],
+            metadata={"target": target, "media_url": media_url},
+        )
+    return jsonify({"ok": True, "target": target, "url": media_url}), 201
 
 
 @api_v1.route("/students/<student_id>", methods=["PATCH"])
