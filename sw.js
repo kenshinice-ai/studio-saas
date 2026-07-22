@@ -2,7 +2,7 @@
  * Icon/manifest cache only; everything else goes straight to the network.
  * Bump CACHE_VERSION whenever PWA assets or icons change.
  */
-const CACHE_VERSION = 'v4.4.0-tenant-pwa';
+const CACHE_VERSION = 'v7.2.1-tenant-pwa';
 const ICON_CACHE = `lpcms-assets-${CACHE_VERSION}`;
 const ASSETS = [
   '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png', '/manifest.json'

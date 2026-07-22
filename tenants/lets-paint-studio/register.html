@@ -10,6 +10,7 @@
   <script src="/assets/public-register.js"></script>
   <script src="/assets/public-analytics.js"></script>
   <link rel="stylesheet" href="/assets/ui-tokens.css">
+  <link rel="stylesheet" href="/assets/brand-system.css">
   <style>
     :root {
       --brand:#2563eb;
@@ -51,12 +52,22 @@
     button:hover { background:var(--brand-2); }
     button:disabled { opacity:.62; cursor:wait; }
     .error { display:none; color:#b91c1c; font-size:13px; margin:0 0 12px; }
-    .done { display:none; text-align:center; padding:38px 24px; }
-    .done .mark { color:var(--brand); font-size:56px; line-height:1; }
+    .done { display:none; text-align:left; padding:18px 4px 4px; }
+    .done .mark { width:52px; height:52px; display:grid; place-items:center; border-radius:50%; color:#fff; background:var(--brand); font-size:28px; line-height:1; }
+    .done .eyebrow { margin-top:22px; }
+    .done h2 { margin:8px 0 10px; font-family:var(--brand-font-display); font-size:clamp(28px,5vw,38px); line-height:1.12; }
+    .done > p { margin:0; color:var(--muted); line-height:1.7; }
+    .next-step { margin:22px 0 0; text-align:left; }
+    .next-step strong { display:block; margin-bottom:4px; }
+    .done-actions { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:18px; }
+    .done-actions a, .done-actions button { display:flex; min-height:46px; align-items:center; justify-content:center; border-radius:var(--brand-radius-control); padding:10px 14px; font-size:13px; text-align:center; }
+    .done-actions a { border:1px solid var(--line); color:var(--ink); background:var(--surface); }
+    .done-actions button { background:var(--brand); color:#fff; }
     @media (max-width:760px) {
       header { align-items:flex-start; flex-direction:column; padding:12px 16px; }
       main { grid-template-columns:1fr; padding:34px 16px 56px; gap:24px; }
       .row { grid-template-columns:1fr; }
+      .done-actions { grid-template-columns:1fr; }
       .slogan, .contact { max-width:calc(100vw - 96px); }
     }
   </style>
@@ -87,7 +98,7 @@
       <p id="pageIntro" class="lead">留下基本信息，工作室会联系你并推荐合适的课程与时间。</p>
     </section>
 
-    <section class="card">
+    <section class="card brand-card">
       <form id="registerForm">
         <div class="row">
           <div class="field"><label for="firstName" data-zh="名字 *" data-en="Given name *">名字 *</label><input id="firstName" autocomplete="given-name" required aria-required="true"></div>
@@ -108,9 +119,18 @@
         <button id="submitBtn" type="submit" data-zh="提交报名" data-en="Submit registration">提交报名</button>
       </form>
       <div id="done" class="done" role="status" aria-live="polite" tabindex="-1">
-        <div class="mark">✓</div>
-        <h2 data-zh="提交成功" data-en="Submitted">提交成功</h2>
-        <p data-zh="工作室会尽快与你联系。" data-en="The studio will be in touch soon.">工作室会尽快与你联系。</p>
+        <div class="mark" aria-hidden="true">✓</div>
+        <div class="eyebrow" data-zh="报名已收到" data-en="Registration received">报名已收到</div>
+        <h2 data-zh="谢谢，我们接下来会与你确认" data-en="Thank you — we’ll confirm the next step">谢谢，我们接下来会与你确认</h2>
+        <p data-zh="资料已经安全保存，工作室会根据课程与时间安排尽快联系你。" data-en="Your details have been saved. The studio will contact you about the most suitable class and time.">资料已经安全保存，工作室会根据课程与时间安排尽快联系你。</p>
+        <div class="next-step brand-status" data-tone="success">
+          <strong data-zh="接下来" data-en="What happens next">接下来</strong>
+          <span data-zh="请留意电话、短信或邮件；如需补充信息，也可以直接联系工作室。" data-en="Please watch for a call, message or email. You can also contact the studio if you need to add anything.">请留意电话、短信或邮件；如需补充信息，也可以直接联系工作室。</span>
+        </div>
+        <div class="done-actions">
+          <button id="copyContactBtn" type="button" hidden data-zh="复制工作室联系方式" data-en="Copy studio contact">复制工作室联系方式</button>
+          <a href="/lets-paint-studio" data-zh="返回工作室网站" data-en="Back to studio website">返回工作室网站</a>
+        </div>
       </div>
     </section>
   </main>
@@ -192,6 +212,8 @@
       const secondary = visual.secondary_accent_color || visual.secondaryAccentColor || brand.secondary_color || brand.secondaryColor || '#0f172a';
       document.documentElement.style.setProperty('--brand', primary);
       document.documentElement.style.setProperty('--brand-2', secondary);
+      document.documentElement.style.setProperty('--brand-accent', primary);
+      document.documentElement.style.setProperty('--brand-accent-strong', secondary);
       if (visual.background_color || visual.backgroundColor) document.documentElement.style.setProperty('--bg', visual.background_color || visual.backgroundColor);
       if (visual.panel_color || visual.panelColor) document.documentElement.style.setProperty('--surface', visual.panel_color || visual.panelColor);
       if (visual.text_color || visual.textColor) document.documentElement.style.setProperty('--ink', visual.text_color || visual.textColor);
@@ -199,8 +221,30 @@
       document.getElementById('tenantName').textContent = brand.name || TENANT_NAME;
       document.getElementById('tenantLogo').src = brand.logo_url || brand.logoUrl || '/logo.png';
       document.getElementById('tenantContact').textContent = [brand.contact_phone || brand.contactPhone, brand.contact_email || brand.contactEmail, brand.address].filter(Boolean).join(' · ');
+      const quickContact = [brand.contact_phone || brand.contactPhone, brand.contact_email || brand.contactEmail].filter(Boolean).join(' · ');
+      const copyContactBtn = document.getElementById('copyContactBtn');
+      copyContactBtn.hidden = !quickContact;
+      copyContactBtn.dataset.contact = quickContact;
       applyBrandContent();
     }
+    document.getElementById('copyContactBtn').addEventListener('click', async (event) => {
+      const button = event.currentTarget;
+      const contact = button.dataset.contact || '';
+      if (!contact) return;
+      try {
+        await navigator.clipboard.writeText(contact);
+      } catch (_) {
+        const field = document.createElement('textarea');
+        field.value = contact;
+        field.style.position = 'fixed';
+        field.style.opacity = '0';
+        document.body.appendChild(field);
+        field.select();
+        document.execCommand('copy');
+        field.remove();
+      }
+      button.textContent = T('已复制联系方式', 'Contact copied');
+    });
     document.getElementById('publicationConsent').addEventListener('change', (event) => {
       const details = document.getElementById('publicationConsentDetails');
       details.hidden = !event.target.checked;

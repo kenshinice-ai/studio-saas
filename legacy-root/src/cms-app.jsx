@@ -485,7 +485,7 @@ function MaintSection({ onRestored, renewTh, saveRenewTh }) {
                 <p className="text-xs font-bold text-red-700">⚠️ 服务器还在运行旧版本</p>
                 <p className="text-xs text-red-600">界面已是新版，但数据体检 / 邮件 / 备份恢复需要新版 server.py 支持。请：</p>
                 <p className="text-xs text-red-600 font-mono bg-red-100 rounded-lg px-2 py-1.5">1. 用新版 server.py 覆盖 CMS 目录里的旧文件<br/>2. 终端运行 ./cms.sh restart<br/>3. 刷新本页面</p>
-                <p className="text-xs text-red-500">验证方法：浏览器打开 /api/ping，version 应为 4.3.3-aws</p>
+                <p className="text-xs text-red-500">验证方法：浏览器打开 /api/ping，version 应为 7.2.1</p>
             </div>
         </div>
     );
@@ -1702,7 +1702,12 @@ function App() {
         const parseD = (d) => { const m=String(d).match(/^(\d{2})\/(\d{2})\/(\d{4})/); return m?new Date(`${m[3]}-${m[2]}-${m[1]}`):null; };
         const checkins = logs.filter(l=>l.action==='上课签到');
         const dates    = logs.map(l=>parseD(l.date)).filter(Boolean).sort((a,b)=>a-b);
-        const joinDate = dates.length ? dates[0] : null;
+        const explicitJoinDate = /^\d{4}-\d{2}-\d{2}$/.test(String(s.enrollmentDate||''))
+            ? new Date(`${s.enrollmentDate}T12:00:00`)
+            : null;
+        const joinDate = explicitJoinDate && explicitJoinDate <= new Date()
+            ? explicitJoinDate
+            : (dates.length ? dates[0] : null);
         const days     = joinDate ? Math.max(1, Math.round((Date.now()-joinDate)/86400000)) : 0;
         const bal      = parseInt(s.balance,10)||0;
         const port     = (s.portfolio||[]);
@@ -1973,12 +1978,13 @@ document.getElementById('copybtn').addEventListener('click', function(){
         const preferences = collectPreferences(fd);
         const legacyPrefs = legacyPreferenceValues(preferences, fd);
         const birthday  = (fd.get('birthday')  ||'').trim();
+        const enrollmentDate = (fd.get('enrollmentDate') || todayISO()).trim();
         const doCreate = async () => {
             if (busy) return; setBusy(true);
             try {
                 const ns = {id:Date.now(), firstName, lastName, name:fullName,
                             mobile, email, wechat, photo:formPhoto, preferences, ...legacyPrefs,
-                            birthday, balance, remark, lastActive:todayISO(), archived:false};
+                            birthday, enrollmentDate, balance, remark, lastActive:todayISO(), archived:false};
                 await save({...db, students:[ns,...db.students], logs:[mkLog(fullName,'新生注册',`+${balance}`,'系统建档',0,{studentId:ns.id}),...db.logs]});
                 e.target.reset(); setFormPhoto(''); setTab('students'); setSrch('');
                 showToast(`${fullName} 已建档`);
@@ -2009,10 +2015,11 @@ document.getElementById('copybtn').addEventListener('click', function(){
             const preferences = collectPreferences(fd);
             const legacyPrefs = legacyPreferenceValues(preferences, fd, selS);
             const birthday   = (fd.get('birthday')   ||'').trim();
+            const enrollmentDate = (fd.get('enrollmentDate') || '').trim();
             const diff    = balance - (parseInt(selS.balance,10)||0);
             const oldName = selS.name;
             const ns = db.students.map(s => s.id===selS.id
-                ? {...s, firstName, lastName, name:newName, mobile, email, wechat, balance, remark, preferences, ...legacyPrefs, birthday, photo:editPhoto, ...(diff!==0?{lastActive:todayISO()}:{})}
+                ? {...s, firstName, lastName, name:newName, mobile, email, wechat, balance, remark, preferences, ...legacyPrefs, birthday, enrollmentDate, photo:editPhoto, ...(diff!==0?{lastActive:todayISO()}:{})}
                 : s);
             // B3 fix + D3: rename logs by studentId when available (precise);
             // fall back to name match only when no other student shares the old name
@@ -2025,7 +2032,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
                   })
                 : db.logs;
             const changeStr = diff!==0 ? (diff>0?`+${diff}`:`${diff}`) : '0';
-            const noteStr   = diff!==0 ? '管理端校准' : (oldName!==newName?`改名: ${oldName}→${newName}`:'信息修改');
+            const enrollmentDateChanged = enrollmentDate !== (selS.enrollmentDate||'');
+            const noteStr   = diff!==0 ? '管理端校准' : (oldName!==newName?`改名: ${oldName}→${newName}`:enrollmentDateChanged?`入学日期: ${selS.enrollmentDate||'未设置'}→${enrollmentDate||'未设置'}`:'信息修改');
             if (TENANT_SLUG) {
                 /* A2: 档案字段照旧整包保存（余额由服务端忽略）；
                    课时差额单独走 v1 调整流水 */
@@ -2045,7 +2053,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
             } else {
                 await save({...db, students:ns, logs:[mkLog(newName, diff!==0?'调整课时':'更新档案', changeStr, noteStr, 0, {studentId:selS.id}),...nl]});
             }
-            setSelS({...selS, firstName, lastName, name:newName, mobile, email, wechat, balance, remark, preferences, ...legacyPrefs, birthday, photo:editPhoto, ...(diff!==0?{lastActive:todayISO()}:{})});
+            setSelS({...selS, firstName, lastName, name:newName, mobile, email, wechat, balance, remark, preferences, ...legacyPrefs, birthday, enrollmentDate, photo:editPhoto, ...(diff!==0?{lastActive:todayISO()}:{})});
             setEditP(false);
             showToast('档案已更新');
         } finally { setBusy(false); }
@@ -3636,10 +3644,17 @@ document.getElementById('copybtn').addEventListener('click', function(){
 	                ))}
 	            </div>
 	        </details>
-        <div>
-            <label className="text-sm font-bold text-gray-500 mb-1 block">生日 <span className="font-normal text-gray-400">选填</span></label>
-            <input type="date" name="birthday" min="1920-01-01" max="2099-12-31"
-                className="w-full px-3 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"/>
+        <div className="grid grid-cols-2 gap-3">
+            <div>
+                <label className="text-sm font-bold text-gray-500 mb-1 block">生日 <span className="font-normal text-gray-400">选填</span></label>
+                <input type="date" name="birthday" min="1920-01-01" max="2099-12-31"
+                    className="w-full px-3 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"/>
+            </div>
+            <div>
+                <label className="text-sm font-bold text-gray-500 mb-1 block">入学日期</label>
+                <input type="date" name="enrollmentDate" defaultValue={todayISO()} min="1900-01-01" max={todayISO()}
+                    className="w-full px-3 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"/>
+            </div>
         </div>
         <div>
             <label className="text-sm font-bold text-gray-500 mb-1 block">备注</label>
@@ -4204,7 +4219,10 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                 {selS.email  && <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100"><p className="text-xs text-gray-400 mb-1">✉️ 邮箱</p><p className="font-bold text-gray-800 text-sm break-all">{selS.email}</p></div>}
                             </div>
                         )}
-                        {selS.birthday && <div className="bg-pink-50 p-4 rounded-2xl border border-pink-100"><p className="text-xs text-pink-400 mb-1">🎂 生日</p><p className="font-bold text-gray-800">{fmtDate(selS.birthday)}</p></div>}
+                        {(selS.birthday||selS.enrollmentDate) && <div className="grid grid-cols-2 gap-3">
+                            {selS.birthday && <div className="bg-pink-50 p-4 rounded-2xl border border-pink-100"><p className="text-xs text-pink-400 mb-1">🎂 生日</p><p className="font-bold text-gray-800">{fmtDate(selS.birthday)}</p></div>}
+                            {selS.enrollmentDate && <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100"><p className="text-xs text-gray-400 mb-1">入学日期</p><p className="font-bold text-gray-800">{fmtDate(selS.enrollmentDate)}</p></div>}
+                        </div>}
                         {selS.remark && <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100"><p className="text-xs text-gray-400 mb-1">备注</p><p className="text-sm text-gray-700 whitespace-pre-wrap">{selS.remark}</p></div>}
 	                        {preferenceRows(selS).length > 0 && (
 	                            <div className="grid grid-cols-2 gap-2">
@@ -4492,10 +4510,16 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             <div><label className="text-sm font-bold text-gray-500 mb-1 block">邮箱 <span className="font-normal text-gray-400">选填</span></label>
                                 <input name="email" type="email" defaultValue={selS.email||''} className="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"/></div>
                         </div>
-                        {/* F1: birthday at top level (not buried in art preferences) */}
-                        <div><label className="text-sm font-bold text-gray-500 mb-1 block">🎂 生日 <span className="font-normal text-gray-400">选填</span></label>
-                            <input type="date" name="birthday" defaultValue={selS.birthday||''} min="1920-01-01" max="2099-12-31"
-                                className="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"/></div>
+                        {/* Birthday and historical enrolment date remain first-class profile fields. */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <div><label className="text-sm font-bold text-gray-500 mb-1 block">🎂 生日 <span className="font-normal text-gray-400">选填</span></label>
+                                <input type="date" name="birthday" defaultValue={selS.birthday||''} min="1920-01-01" max="2099-12-31"
+                                    className="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"/></div>
+                            <div><label className="text-sm font-bold text-gray-500 mb-1 block">入学日期 <span className="font-normal text-gray-400">选填</span></label>
+                                <input type="date" name="enrollmentDate" defaultValue={selS.enrollmentDate||''} min="1900-01-01" max={todayISO()}
+                                    className="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"/>
+                                <p className="text-[11px] text-gray-400 mt-1">可补录系统启用前的真实入学日期</p></div>
+                        </div>
                         <div><label className="text-sm font-bold text-gray-500 mb-1 block">备注</label>
                             <textarea name="remark" defaultValue={selS.remark} rows="3" className="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none resize-none"></textarea></div>
 	                        <details className="border border-gray-200 rounded-xl overflow-hidden">

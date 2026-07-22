@@ -1,0 +1,113 @@
+/* StudioSaaS shared brand language.
+ *
+ * Surfaces keep their own layout, while typography, colour roles, controls,
+ * date/time fields and status output share these semantic tokens. Tenant
+ * branding may override --brand / --tenant-primary at runtime.
+ */
+:root {
+  --brand-accent: var(--tenant-primary, var(--brand, var(--ui-primary, #a65a43)));
+  --brand-accent-strong: var(--tenant-secondary, var(--brand-2, var(--ui-secondary, #713f32)));
+  --brand-paper: var(--bg, var(--ui-bg, #f4f0e8));
+  --brand-paper-raised: var(--surface, var(--panel, var(--ui-surface, #fbf9f4)));
+  --brand-ink: var(--ink, var(--ui-text, #23211d));
+  --brand-ink-soft: var(--muted, var(--ink2, var(--ui-muted, #6f685d)));
+  --brand-line: var(--line, var(--ui-border, #dcd4c6));
+  --brand-success: var(--ui-success, #2f6b4f);
+  --brand-warning: var(--ui-warning, #a86b21);
+  --brand-danger: var(--ui-error, #b4473a);
+  --brand-info: #3f6384;
+  --brand-font-body: "Noto Sans SC", "PingFang SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --brand-font-display: "Noto Serif SC", "Cormorant Garamond", "Songti SC", Georgia, serif;
+  --brand-radius-control: 10px;
+  --brand-radius-card: 18px;
+  --brand-control-height: 46px;
+  --brand-focus-ring: 0 0 0 3px color-mix(in srgb, var(--brand-accent) 24%, transparent);
+  --brand-shadow-card: 0 18px 46px rgba(55, 44, 34, .09);
+}
+
+:where(body) {
+  font-family: var(--brand-font-body);
+  color: var(--brand-ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+:where(h1, h2, .brand-display) {
+  text-wrap: balance;
+}
+
+:where(input, select, textarea, button) {
+  font: inherit;
+}
+
+:where(input, select, textarea) {
+  color: var(--brand-ink);
+  accent-color: var(--brand-accent);
+}
+
+:where(input[type="date"], input[type="time"], input[type="datetime-local"]) {
+  min-height: var(--brand-control-height);
+  color-scheme: light;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .01em;
+}
+
+:where(input[type="date"], input[type="time"], input[type="datetime-local"])::-webkit-date-and-time-value {
+  min-height: 1.4em;
+  text-align: left;
+}
+
+:where(output, .numeric, [data-number]) {
+  font-variant-numeric: tabular-nums;
+}
+
+:where(input, select, textarea, button, a):focus-visible {
+  outline: 2px solid var(--brand-accent);
+  outline-offset: 2px;
+  box-shadow: var(--brand-focus-ring);
+}
+
+:where(.brand-card) {
+  border: 1px solid var(--brand-line);
+  border-radius: var(--brand-radius-card);
+  background: var(--brand-paper-raised);
+  box-shadow: var(--brand-shadow-card);
+}
+
+:where(.brand-status) {
+  border-left: 3px solid var(--brand-info);
+  border-radius: var(--brand-radius-control);
+  padding: 12px 14px;
+  background: color-mix(in srgb, var(--brand-info) 8%, var(--brand-paper-raised));
+  color: var(--brand-ink);
+}
+
+:where(.brand-status[data-tone="success"]) { border-left-color: var(--brand-success); }
+:where(.brand-status[data-tone="warning"]) { border-left-color: var(--brand-warning); }
+:where(.brand-status[data-tone="danger"]) { border-left-color: var(--brand-danger); }
+
+@media (max-width: 1279px) {
+  :where(input, select, textarea) { font-size: max(16px, 1em); }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --brand-paper: #1f1d1a;
+    --brand-paper-raised: #292621;
+    --brand-ink: #f3ede3;
+    --brand-ink-soft: #c6bcae;
+    --brand-line: #49433b;
+  }
+  :root:not([data-theme="light"]) :where(input[type="date"], input[type="time"], input[type="datetime-local"]) {
+    color-scheme: dark;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}

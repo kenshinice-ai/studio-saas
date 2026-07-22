@@ -134,6 +134,11 @@ def test_existing_register_surfaces_are_lightweight_lead_capture_pages(client):
         assert "Quick Registration" in html
         assert 'data-zh="提交报名"' in html
         assert "language: currentLanguage" in html
+        assert "/assets/brand-system.css" in html
+        assert 'data-zh="报名已收到"' in html
+        assert 'id="copyContactBtn"' in html
+        assert 'class="next-step brand-status"' in html
+        assert "document.getElementById('done').focus()" in html
 
 
 def test_portal_is_primary_registration_source(client):
@@ -149,6 +154,7 @@ def test_portal_is_primary_registration_source(client):
         assert f'data-tenant-slug="{slug}"' in html
         assert "manifest-portal.json" in html
         assert "/assets/public-analytics.js" in html
+        assert "/assets/brand-system.css" in html
 
 
 def test_existing_portals_apply_published_visual_theme_and_localized_copy(client):

@@ -2183,7 +2183,7 @@ def list_students():
             conn,
             """
             SELECT s.id, s.display_name, s.first_name, s.last_name, s.status,
-                   s.mobile, s.email, s.tags, s.created_at, s.updated_at,
+                   s.mobile, s.email, s.enrolled_on, s.tags, s.created_at, s.updated_at,
                    COALESCE(ca.balance, 0)::float AS balance,
                    count(*) OVER ()::int AS _total
             FROM students
@@ -2230,7 +2230,7 @@ def get_student(student_id: str):
             conn,
             """
             SELECT s.id, s.display_name, s.first_name, s.last_name, s.status,
-                   s.birthday, s.parent_name, s.mobile, s.email, s.wechat,
+                   s.birthday, s.enrolled_on, s.parent_name, s.mobile, s.email, s.wechat,
                    s.tags, s.notes, COALESCE(ca.balance, 0)::float AS balance
             FROM students s
             LEFT JOIN credit_accounts ca
@@ -4074,8 +4074,21 @@ def public_create_registration(tenant_slug: str):
                 "privacy_notice_version": privacy_notice_version,
             },
         )
+        # Make the lead durable before any SMTP work. Notification delivery is
+        # best-effort and must never decide whether the registration exists.
+        conn.commit()
+        tenant_row = fetch_one(
+            conn,
+            """
+            SELECT name, contact_email,
+                   settings->>'studio_admin_email' AS studio_admin_email
+            FROM tenants
+            WHERE id = %s
+            """,
+            (tenant.tenant_id,),
+        )
+        studio_name = tenant_row["name"] if tenant_row else tenant_slug
         if email:
-            tenant_row = fetch_one(conn, "SELECT name FROM tenants WHERE id = %s", (tenant.tenant_id,))
             _notifications.send_safely(
                 conn,
                 tenant_id=tenant.tenant_id,
@@ -4084,7 +4097,26 @@ def public_create_registration(tenant_slug: str):
                 context={
                     "parent_name": parent_name or "there",
                     "student_name": f"{first_name} {last_name}".strip(),
-                    "studio_name": tenant_row["name"] if tenant_row else tenant_slug,
+                    "studio_name": studio_name,
+                },
+            )
+        admin_email = (
+            (tenant_row.get("studio_admin_email") or tenant_row.get("contact_email") or "").strip()
+            if tenant_row else ""
+        )
+        if admin_email:
+            _notifications.send_safely(
+                conn,
+                tenant_id=tenant.tenant_id,
+                template_key="registration_admin_alert",
+                to_email=admin_email,
+                context={
+                    "registration_id": str(registration_id),
+                    "student_name": f"{first_name} {last_name}".strip(),
+                    "contact_name": parent_name or f"{first_name} {last_name}".strip(),
+                    "mobile": mobile or "—",
+                    "email": email or "—",
+                    "studio_name": studio_name,
                 },
             )
         conn.commit()
@@ -4158,7 +4190,7 @@ def _legacy_data_for_tenant(conn, tenant_id: str) -> dict:
         conn,
         """
         SELECT s.id, s.first_name, s.last_name, s.display_name, s.status,
-               s.birthday, s.parent_name, s.mobile, s.email, s.wechat,
+               s.birthday, s.enrolled_on, s.parent_name, s.mobile, s.email, s.wechat,
                s.tags, s.notes, s.created_at, s.student_photo_asset_id,
                (s.access_code_hash <> '' AND s.access_code_revoked_at IS NULL) AS has_access_code,
                s.access_code_updated_at,
@@ -4310,6 +4342,7 @@ def _legacy_data_for_tenant(conn, tenant_id: str) -> dict:
                 "email": row["email"],
                 "wechat": row["wechat"],
                 "birthday": str(row["birthday"] or ""),
+                "enrollmentDate": str(row["enrolled_on"] or ""),
                 "balance": row["balance"],
                 "archived": row["status"] == "archived",
                 "notes": row["notes"],
@@ -4504,6 +4537,7 @@ def legacy_cms_save():
                     display_name,
                     "archived" if student.get("archived") else "active",
                     str(student.get("birthday") or ""),
+                    str(student.get("enrollmentDate") or ""),
                     str(student.get("parentName") or ""),
                     str(student.get("mobile") or ""),
                     str(student.get("email") or ""),
@@ -4520,6 +4554,7 @@ def legacy_cms_save():
                             display_name = %s,
                             status = %s,
                             birthday = NULLIF(%s, '')::date,
+                            enrolled_on = NULLIF(%s, '')::date,
                             parent_name = %s,
                             mobile = %s,
                             email = %s,
@@ -4539,9 +4574,11 @@ def legacy_cms_save():
                         """
                         INSERT INTO students (
                             tenant_id, first_name, last_name, display_name, status,
-                            birthday, parent_name, mobile, email, wechat, notes, source_legacy_id
+                            birthday, enrolled_on, parent_name, mobile, email, wechat, notes, source_legacy_id
                         )
-                        VALUES (%s, %s, %s, %s, %s, NULLIF(%s, '')::date, %s, %s, %s, %s, %s, NULLIF(%s, ''))
+                        VALUES (%s, %s, %s, %s, %s, NULLIF(%s, '')::date,
+                                COALESCE(NULLIF(%s, '')::date, CURRENT_DATE),
+                                %s, %s, %s, %s, %s, NULLIF(%s, ''))
                         ON CONFLICT (tenant_id, source_legacy_id)
                         WHERE source_legacy_id IS NOT NULL AND source_legacy_id <> ''
                         DO UPDATE
@@ -4550,6 +4587,7 @@ def legacy_cms_save():
                             display_name = EXCLUDED.display_name,
                             status = EXCLUDED.status,
                             birthday = EXCLUDED.birthday,
+                            enrolled_on = EXCLUDED.enrolled_on,
                             parent_name = EXCLUDED.parent_name,
                             mobile = EXCLUDED.mobile,
                             email = EXCLUDED.email,
@@ -5753,6 +5791,9 @@ def create_student():
         email = _clean_text(payload, "email")
         wechat = _clean_text(payload, "wechat")
         birthday_str = _clean_text(payload, "birthday")
+        enrolled_on_str = _clean_text(
+            payload, "enrollmentDate", _clean_text(payload, "enrolledOn")
+        )
         tags_raw = payload.get("tags", [])
         if isinstance(tags_raw, str):
             tags_raw = [t.strip() for t in tags_raw.split(",") if t.strip()]
@@ -5763,23 +5804,27 @@ def create_student():
         try:
             birthday_val = None
             if birthday_str:
-                from datetime import date as _date
                 birthday_val = _date.fromisoformat(birthday_str)
+            enrolled_on_val = _date.today()
+            if enrolled_on_str:
+                enrolled_on_val = _date.fromisoformat(enrolled_on_str)
+                if enrolled_on_val > _date.today():
+                    return _error("enrollmentDate cannot be in the future.")
         except (ValueError, TypeError):
-            return _error("birthday must be ISO-8601 date (YYYY-MM-DD).")
+            return _error("birthday and enrollmentDate must be ISO-8601 dates (YYYY-MM-DD).")
 
         cur = conn.cursor()
         cur.execute(
             """
             INSERT INTO students (
                 tenant_id, first_name, last_name, display_name, status,
-                birthday, parent_name, mobile, email, wechat, tags, notes
-            ) VALUES (%s, %s, %s, %s, 'active', %s, %s, %s, %s, %s, %s::text[], %s)
+                birthday, enrolled_on, parent_name, mobile, email, wechat, tags, notes
+            ) VALUES (%s, %s, %s, %s, 'active', %s, %s, %s, %s, %s, %s, %s::text[], %s)
             RETURNING id
             """,
             (
                 tenant.tenant_id, first_name, last_name, display_name,
-                birthday_val, parent_name, mobile, email, wechat, tags_raw, notes,
+                birthday_val, enrolled_on_val, parent_name, mobile, email, wechat, tags_raw, notes,
             ),
         )
         student_id = str(cur.fetchone()["id"])
@@ -7395,7 +7440,9 @@ def _repair_local_super_admin_login(conn, email: str, password: str) -> dict | N
     if (
         repair_enabled not in {"1", "true", "yes", "on"}
         or email != "admin@studiosaas.local"
-        or password != "admin123456"
+        or password != os.environ.get(
+            "STUDIOSAAS_ADMIN_PASSWORD", "StudioSaaS@LetsPaint2026!"
+        )
         or not _is_local_request()
     ):
         return None
@@ -7851,6 +7898,17 @@ def update_student(student_id: str):
                 updates["status"] = _student_status(_clean_text(payload, "status"))
             except ValueError as exc:
                 return _error(str(exc))
+        if "enrollmentDate" in payload or "enrolledOn" in payload:
+            enrolled_on_str = _clean_text(
+                payload, "enrollmentDate", _clean_text(payload, "enrolledOn")
+            )
+            try:
+                enrolled_on_val = _date.fromisoformat(enrolled_on_str) if enrolled_on_str else None
+            except (ValueError, TypeError):
+                return _error("enrollmentDate must be an ISO-8601 date (YYYY-MM-DD).")
+            if enrolled_on_val and enrolled_on_val > _date.today():
+                return _error("enrollmentDate cannot be in the future.")
+            updates["enrolled_on"] = enrolled_on_val
 
         # Handle balance change → create credit transaction
         old_balance = fetch_one(

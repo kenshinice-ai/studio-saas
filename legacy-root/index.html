@@ -6,6 +6,7 @@
     <title>Studio CMS</title>
     <script src="/assets/ui-common.js"></script>
     <link rel="stylesheet" href="/assets/ui-tokens.css">
+    <link rel="stylesheet" href="/assets/brand-system.css">
     <link rel="icon" href="/icon-192.png">
     <!-- G6: PWA — 添加到主屏幕 -->
     <link id="cmsManifest" rel="manifest" href="/manifest.json">
@@ -44,9 +45,11 @@
 	          const logo = brand.logo_url || brand.logoUrl || '';
 	          const slogan = brand.slogan || 'Learn, grow, and feel confident.';
 	          root.style.setProperty('--tenant-primary', primary);
+          root.style.setProperty('--brand-accent', primary);
           root.style.setProperty('--tenant-primary-soft', `${primary}14`);
           root.style.setProperty('--tenant-primary-border', `${primary}40`);
           root.style.setProperty('--tenant-secondary', secondary);
+          root.style.setProperty('--brand-accent-strong', secondary);
           root.style.setProperty('--tenant-secondary-soft', `${secondary}14`);
           root.style.setProperty('--tenant-secondary-border', `${secondary}40`);
 		          if (brand.name) document.title = `${brand.name} CMS`;

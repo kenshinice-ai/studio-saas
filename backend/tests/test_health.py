@@ -235,6 +235,7 @@ def test_bootstrap_schema_contains_all_post_v1_structures():
         "idx_attendance_sessions_tenant_class_date",
         "CREATE TABLE IF NOT EXISTS tenant_brand_versions",
         "privacy_consent_at timestamptz",
+        "enrolled_on date DEFAULT CURRENT_DATE",
         "front_desk",
     ):
         assert required in schema
@@ -277,6 +278,23 @@ def test_registration_routes_do_not_mutate_database_schema_at_request_time():
     source = (Path(__file__).resolve().parents[1] / "studiosaas/api_v1.py").read_text(encoding="utf-8")
     assert "_ensure_registration_status_constraint" not in source
     assert 'ALTER TABLE registrations ADD COLUMN IF NOT EXISTS' not in source
+
+
+def test_latest_cms_registration_and_enrolment_contracts_are_present():
+    """v7.2.1 improvements must remain multi-tenant and migration-backed."""
+
+    from pathlib import Path
+    from studiosaas.services.notifications import DEFAULT_TEMPLATES
+
+    backend_root = Path(__file__).resolve().parents[1]
+    migration = (backend_root / "db/migrations/0018_student_enrolment_date.sql").read_text(
+        encoding="utf-8"
+    )
+    source = (backend_root / "studiosaas/api_v1.py").read_text(encoding="utf-8")
+    assert "ADD COLUMN IF NOT EXISTS enrolled_on date" in migration
+    assert "registration_admin_alert" in DEFAULT_TEMPLATES
+    assert 'template_key="registration_admin_alert"' in source
+    assert '"enrollmentDate": str(row["enrolled_on"] or "")' in source
 
 
 def test_tenant_archive_snapshot_covers_every_tenant_owned_table():

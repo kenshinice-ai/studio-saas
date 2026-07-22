@@ -1,18 +1,17 @@
 #!/usr/bin/env bash
-# 双击停止：Cloudflare 隧道 + 本地服务（8899）。
-set -uo pipefail
+# 双击停止由 START_STUDIOSAAS_ONLINE.command 启动的进程。
+set -euo pipefail
 
-echo "==> 停止 Cloudflare 隧道"
-pkill -f "cloudflared tunnel run studiosaas" 2>/dev/null && echo "  已停止" || echo "  没有在跑"
+PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
+source "$PROJECT_ROOT/scripts/startup_common.sh"
+LOG_DIR="$HOME/.studiosaas"
+touch "$LOG_DIR/online-stop.request"
 
-echo "==> 停止本地服务 (端口 8899)"
-PIDS="$(lsof -tiTCP:8899 -sTCP:LISTEN -nP 2>/dev/null || true)"
-if [ -n "$PIDS" ]; then
-  echo "$PIDS" | xargs kill 2>/dev/null || true
-  echo "  已停止"
-else
-  echo "  没有在跑"
-fi
+say "Stopping managed StudioSaaS application"
+stop_managed_process "$LOG_DIR/online-app.pid" "server.py"
+
+say "Stopping managed Cloudflare Tunnel"
+stop_managed_process "$LOG_DIR/online-tunnel.pid" "cloudflared"
 
 echo ""
 read -n 1 -s -r -p "完成。按任意键关闭窗口..."

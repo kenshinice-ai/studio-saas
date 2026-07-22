@@ -4,12 +4,96 @@ from __future__ import annotations
 
 import json
 import re
+from datetime import date
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
 
 
 class LegacyMigrationError(RuntimeError):
     """Raised when legacy data cannot be imported safely."""
+
+
+def _optional_text(value: Any) -> str:
+    """Return a trimmed optional string without guessing non-string values."""
+
+    return value.strip() if isinstance(value, str) else ""
+
+
+def normalize_core_student(student: dict[str, Any]) -> dict[str, Any]:
+    """Validate one legacy student for the minimal StudioSaaS import.
+
+    Only deterministic, current-state fields are retained. Missing identifiers,
+    names, invalid birthdays, and invalid or negative balances are rejected so
+    the importer cannot silently invent business data.
+    """
+
+    legacy_id = str(student.get("id") or "").strip()
+    if not legacy_id:
+        raise LegacyMigrationError("Core student record has no legacy id.")
+
+    first_name = _optional_text(student.get("firstName"))
+    last_name = _optional_text(student.get("lastName"))
+    display_name = _optional_text(student.get("name"))
+    if not display_name:
+        display_name = f"{first_name} {last_name}".strip()
+    if not display_name:
+        raise LegacyMigrationError(f"Legacy student {legacy_id} has no name.")
+    if not first_name:
+        name_parts = display_name.split(maxsplit=1)
+        first_name = name_parts[0]
+        last_name = name_parts[1] if len(name_parts) > 1 else last_name
+
+    birthday_text = _optional_text(student.get("birthday"))
+    birthday = None
+    if birthday_text:
+        try:
+            birthday = date.fromisoformat(birthday_text).isoformat()
+        except ValueError as exc:
+            raise LegacyMigrationError(
+                f"Legacy student {legacy_id} has invalid birthday: {birthday_text}"
+            ) from exc
+
+    try:
+        balance = Decimal(str(student.get("balance", 0)))
+    except (InvalidOperation, ValueError) as exc:
+        raise LegacyMigrationError(
+            f"Legacy student {legacy_id} has invalid balance."
+        ) from exc
+    if not balance.is_finite() or balance < 0:
+        raise LegacyMigrationError(
+            f"Legacy student {legacy_id} has invalid balance: {balance}"
+        )
+
+    return {
+        "source_legacy_id": legacy_id,
+        "first_name": first_name,
+        "last_name": last_name,
+        "display_name": display_name,
+        "status": "archived" if student.get("archived") is True else "active",
+        "birthday": birthday,
+        "mobile": _optional_text(student.get("mobile")),
+        "email": _optional_text(student.get("email")),
+        "wechat": _optional_text(student.get("wechat")),
+        "notes": _optional_text(student.get("remark")),
+        "balance": balance,
+    }
+
+
+def load_core_students(path: str | Path) -> list[dict[str, Any]]:
+    """Load and validate the complete deterministic student import set."""
+
+    legacy = load_legacy_database(path)
+    students = [normalize_core_student(raw) for raw in legacy["students"]]
+    ids = [student["source_legacy_id"] for student in students]
+    duplicate_ids = sorted({legacy_id for legacy_id in ids if ids.count(legacy_id) > 1})
+    if duplicate_ids:
+        raise LegacyMigrationError(
+            "Duplicate legacy student ids: " + ", ".join(duplicate_ids)
+        )
+    if not students:
+        raise LegacyMigrationError("Core import contains no students.")
+    return students
 
 
 def load_legacy_database(path: str | Path) -> dict[str, Any]:

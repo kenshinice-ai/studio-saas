@@ -29,6 +29,7 @@
 <script src="/assets/public-register.js"></script>
 <script src="/assets/public-analytics.js"></script>
 <link rel="stylesheet" href="/assets/ui-tokens.css">
+<link rel="stylesheet" href="/assets/brand-system.css">
 <style>
   :root{
     --bg:#F4F0E8;--bg2:#ECE6DB;--panel:#FBF9F4;--ink:#23211D;--ink2:#4A473F;
@@ -634,8 +635,15 @@
     if(visual.background_color||visual.backgroundColor){ document.documentElement.style.setProperty('--bg', visual.background_color||visual.backgroundColor); }
     if(visual.panel_color||visual.panelColor){ document.documentElement.style.setProperty('--panel', visual.panel_color||visual.panelColor); }
     if(visual.text_color||visual.textColor){ document.documentElement.style.setProperty('--ink', visual.text_color||visual.textColor); }
-    if(visual.accent_color||visual.accentColor||b.primaryColor){ document.documentElement.style.setProperty('--clay', visual.accent_color||visual.accentColor||b.primaryColor); }
-    if(b.secondaryColor){ document.documentElement.style.setProperty('--clay-d', b.secondaryColor); }
+    if(visual.accent_color||visual.accentColor||b.primaryColor){
+      var accent=visual.accent_color||visual.accentColor||b.primaryColor;
+      document.documentElement.style.setProperty('--clay', accent);
+      document.documentElement.style.setProperty('--brand-accent', accent);
+    }
+    if(b.secondaryColor){
+      document.documentElement.style.setProperty('--clay-d', b.secondaryColor);
+      document.documentElement.style.setProperty('--brand-accent-strong', b.secondaryColor);
+    }
     document.body.classList.toggle('button-rounded', (visual.button_style||visual.buttonStyle)==='rounded');
     document.body.classList.toggle('button-sharp', (visual.button_style||visual.buttonStyle)==='sharp');
     document.body.classList.toggle('font-modern', (visual.font_mood||visual.fontMood)==='modern');

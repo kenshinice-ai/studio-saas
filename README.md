@@ -1,5 +1,7 @@
 # PWE Studio SaaS
 
+Current release: **v7.2.1**
+
 PWE Studio SaaS (repo: studiosaas) is a multi-tenant Creative Studio Operating System for art schools, music studios, tutoring centres, creative academies, kids' activity providers, and small education businesses.
 
 It provides a lightweight SaaS-style platform for managing:
@@ -153,10 +155,28 @@ cd backend && python server.py
 ```
 
 Server runs at `http://localhost:8899`.
+The launcher checks Homebrew/PostgreSQL/Python dependencies, creates the local
+database when needed, applies ordered migrations, and waits for `/v1/health`.
+It does **not** seed demo students unless `STUDIOSAAS_SEED_DEMO=1` is explicitly
+set.
 
 ### 4.6 Pilot credentials
 
-Privileged pilot accounts and the separate legacy CMS login use unique generated passwords. Rotate them together with `backend/scripts/rotate_pilot_credentials.py`; protected output defaults to `~/.studiosaas/pilot-credentials.txt` with mode `0600`. Pilot and production startup refuse to create a known legacy CMS default. Never place passwords in this repository or UI placeholders.
+The local and on-demand public launchers enforce the agreed pilot Super Admin
+login (`admin@studiosaas.local`) on every start and keep the matching local
+credential record in `~/.studiosaas/pilot-credentials.txt` with mode `0600`.
+Set `STUDIOSAAS_ADMIN_PASSWORD` to override the launcher password without
+editing the scripts. This fixed pilot credential is not a production policy:
+before a permanent deployment, rotate every privileged account with
+`backend/scripts/rotate_pilot_credentials.py` and protect the admin routes with
+a second access layer.
+
+### 4.7 v7.2.1 shared product improvements
+
+- Public registrations are committed before best-effort applicant and studio-admin email notifications.
+- Student profiles support an editable real enrolment date; older records remain unset and reports fall back to trustworthy activity history.
+- Registration success pages use an accessible received/next-step/contact flow.
+- Portal, Quick Registration, Studio Admin and CMS surfaces share `brand-system.css` semantic typography, colour, date/time and status-output tokens while retaining tenant-configurable accent colours.
 
 ---
 

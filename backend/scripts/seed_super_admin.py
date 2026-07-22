@@ -6,7 +6,7 @@ Usage:
 
 Defaults:
     email:    admin@studiosaas.local
-    password: admin123456
+    password: StudioSaaS@LetsPaint2026!
     name:     System Administrator
 
 This script:
@@ -21,6 +21,7 @@ Security note: This is a LOCAL seed script only. Do not use in production.
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -31,9 +32,10 @@ if str(APP_ROOT) not in sys.path:
 
 def seed_super_admin(
     email: str = "admin@studiosaas.local",
-    password: str = "admin123456",
+    password: str = "StudioSaaS@LetsPaint2026!",
     full_name: str = "System Administrator",
     reset_password: bool = False,
+    show_password: bool = True,
 ) -> None:
     """Create a super admin user and membership in the local database."""
 
@@ -109,7 +111,49 @@ def seed_super_admin(
 
     print("\nSeed complete. Login with:")
     print(f"  email:    {email}")
-    print(f"  password: {password}")
+    if show_password:
+        print(f"  password: {password}")
+    else:
+        print("  password: [hidden]")
+
+
+def sync_pilot_credential(path: Path, email: str, password: str) -> None:
+    """Atomically persist one login while preserving other protected entries."""
+
+    credential_path = path.expanduser().resolve()
+    credential_path.parent.mkdir(parents=True, exist_ok=True)
+    existing_lines = (
+        credential_path.read_text(encoding="utf-8").splitlines()
+        if credential_path.exists()
+        else [
+            "# StudioSaaS privileged pilot credentials",
+            "# Managed by seed_super_admin.py; do not commit.",
+        ]
+    )
+    replacement = f"{email.lower()}\t{password}"
+    updated_lines: list[str] = []
+    replaced = False
+    for line in existing_lines:
+        account = line.split("\t", 1)[0].strip().lower()
+        if account == email.lower():
+            if not replaced:
+                updated_lines.append(replacement)
+                replaced = True
+            continue
+        updated_lines.append(line)
+    if not replaced:
+        updated_lines.append(replacement)
+
+    temporary_path = credential_path.with_name(f".{credential_path.name}.tmp")
+    fd = os.open(temporary_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write("\n".join(updated_lines) + "\n")
+        os.replace(temporary_path, credential_path)
+        os.chmod(credential_path, 0o600)
+    except Exception:
+        temporary_path.unlink(missing_ok=True)
+        raise
 
 
 def main() -> int:
@@ -123,8 +167,8 @@ def main() -> int:
     )
     parser.add_argument(
         "--password",
-        default="admin123456",
-        help="Admin password (default: admin123456)",
+        default=os.environ.get("STUDIOSAAS_ADMIN_PASSWORD", "StudioSaaS@LetsPaint2026!"),
+        help="Admin password (defaults to the fixed StudioSaaS launcher credential)",
     )
     parser.add_argument(
         "--name",
@@ -136,6 +180,16 @@ def main() -> int:
         action="store_true",
         help="Reset password for an existing admin user.",
     )
+    parser.add_argument(
+        "--credential-file",
+        type=Path,
+        help="Also persist this login in an owner-only launcher credential file.",
+    )
+    parser.add_argument(
+        "--no-print-password",
+        action="store_true",
+        help="Hide the password from command output.",
+    )
     args = parser.parse_args()
 
     seed_super_admin(
@@ -143,7 +197,11 @@ def main() -> int:
         password=args.password,
         full_name=args.name,
         reset_password=args.reset_password,
+        show_password=not args.no_print_password,
     )
+    if args.credential_file:
+        sync_pilot_credential(args.credential_file, args.email, args.password)
+        print(f"Credential file updated with mode 0600: {args.credential_file.expanduser().resolve()}")
     return 0
 
 

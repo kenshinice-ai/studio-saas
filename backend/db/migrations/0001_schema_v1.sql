@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS students (
     display_name text NOT NULL,
     status text NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'trial', 'archived')),
     birthday date,
+    enrolled_on date DEFAULT CURRENT_DATE,
     student_photo_asset_id uuid,
     parent_name text NOT NULL DEFAULT '',
     mobile text NOT NULL DEFAULT '',

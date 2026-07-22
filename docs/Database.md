@@ -47,19 +47,16 @@ Purpose: Schema definition, table descriptions, canonical enums, migration strat
 | `users` | `id`, `email`, `password_hash`, `full_name`, `status` | Platform-wide user accounts. **No `role` and no `tenant_id` column.** |
 | `memberships` | `id`, `tenant_id` (nullable), `user_id`, `role`, `permissions` (JSONB), `status` | User × tenant × role. **All role assignment lives here.** `UNIQUE (tenant_id, user_id)` |
 
-**Current super-admin representation:** `seed_super_admin.py` inserts a `super_admin` membership *per existing tenant*. Consequences (tracked as P0-01):
-
-- A platform admin gains no access to tenants created after seeding unless a membership is added.
-- The seed's `ON CONFLICT ... SET updated_at = now()` references a column that does not exist on `memberships`.
-- The Python `Role` enum values `platform_super_admin` and `admin` are rejected by the CHECK constraint and can never be stored.
-
-Decision pending (P0-01): either represent platform roles as memberships with `tenant_id IS NULL`, or keep the per-tenant model and auto-grant membership on tenant creation.
+**Current super-admin representation:** `seed_super_admin.py` maintains one
+active `super_admin` membership with `tenant_id IS NULL`. That platform row
+grants access to current and future tenants without manufacturing per-tenant
+memberships.
 
 ### 2.3 Business Data Tables
 
 | Table | Key Columns | Purpose |
 |---|---|---|
-| `students` | `id`, `tenant_id`, identity/contact fields, `status`, `access_code_hash`, access-code timestamps | Student profiles (soft delete via status) and hashed private-portal access |
+| `students` | `id`, `tenant_id`, identity/contact fields, `birthday`, `enrolled_on`, `status`, `access_code_hash`, access-code timestamps | Student profiles (soft delete via status), real editable join date, and hashed private-portal access. Legacy `enrolled_on` values may remain null. |
 | `courses` | `id`, `tenant_id`, `name`, `slug`, `credits`, `price_aud_cents` | Course definitions |
 | `packages` | `id`, `tenant_id`, `name`, `description`, `price_aud_cents` | Course package definitions |
 | `credit_accounts` | `id`, `tenant_id`, `student_id`, `course_id`, `balance` | Student balance accounts. Unique key: `(tenant_id, student_id, course_id)` |
@@ -146,25 +143,40 @@ psql -h localhost -p 5432 -d studiosaas_local_test \
   -f backend/db/schema_v1.sql
 ```
 
-### 4.2 Seed Demo Data
+### 4.2 Import Core Let's Paint Student Data
 
 ```bash
-# Import legacy Let's Paint sample
+# Read-only preflight: existing tenant is required; no history is imported.
 cd backend
 STUDIOSAAS_DATABASE_URL=postgresql://$(whoami)@localhost:5432/studiosaas_local_test \
 ../.venv/bin/python scripts/import_lets_paint_json.py \
-  testdata/legacy_database_sample.json lets-paint-studio "Let's Paint Studio"
+  /absolute/path/to/LetsPaint.json \
+  --tenant-slug lets-paint-studio \
+  --expected-sha256 <verified-source-sha256>
 
-# Seed local demo tenants
+# Destructive apply requires a verified backup and all explicit confirmations.
 STUDIOSAAS_DATABASE_URL=postgresql://$(whoami)@localhost:5432/studiosaas_local_test \
-../.venv/bin/python scripts/seed_local_test_tenants.py
-
-# Seed randomized relational demo data
-STUDIOSAAS_DATABASE_URL=postgresql://$(whoami)@localhost:5432/studiosaas_local_test \
-../.venv/bin/python scripts/seed_random_demo_data.py --students-per-tenant 24
+../.venv/bin/python scripts/import_lets_paint_json.py \
+  /absolute/path/to/LetsPaint.json \
+  --tenant-slug lets-paint-studio \
+  --expected-sha256 <verified-source-sha256> \
+  --apply --reset-all-students --confirm-tenant lets-paint-studio
 ```
 
-### 4.3 Verify Plans
+The core importer retains the legacy student ID, current contact/profile fields,
+notes, and current balance. It intentionally excludes logs, attendance, rosters,
+packages, media, access codes, privacy history, and creative-profile fields. The
+global demo-student reset and target import run in one transaction.
+
+### 4.3 Optional Demo Data
+
+```bash
+# Demo generation is opt-in and must never be run against real tenant data.
+STUDIOSAAS_SEED_DEMO=1 ./start_studiosaas_local.sh
+
+```
+
+### 4.4 Verify Plans
 
 ```bash
 psql -h localhost -p 5432 -d studiosaas_local_test \
@@ -173,7 +185,7 @@ psql -h localhost -p 5432 -d studiosaas_local_test \
 
 Expected plans: `starter`, `studio`, `growth`.
 
-### 4.4 Verify Tenant Workspace Mapping
+### 4.5 Verify Tenant Workspace Mapping
 
 ```bash
 psql -h localhost -p 5432 -d studiosaas_local_test \

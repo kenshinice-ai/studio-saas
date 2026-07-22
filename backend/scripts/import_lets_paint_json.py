@@ -1,336 +1,246 @@
 #!/usr/bin/env python3
-"""Import a legacy Let's Paint `database.json` into StudioSaaS PostgreSQL.
+"""Import only deterministic current student data into an existing tenant.
 
-Usage:
-    STUDIOSAAS_DATABASE_URL=postgresql://... \
-      python scripts/import_lets_paint_json.py database.json lets-paint-studio "Let's Paint Studio"
+The default mode is read-only. A destructive import requires all three flags:
+``--apply``, ``--reset-all-students``, and an exact ``--confirm-tenant`` value.
+Historical logs, attendance, packages, rosters, media, access codes, privacy
+history, and uncertain extension fields are intentionally excluded.
 """
 
 from __future__ import annotations
 
+import argparse
+import hashlib
+import json
 import sys
+from decimal import Decimal
 from pathlib import Path
+from typing import Any
 
 APP_ROOT = Path(__file__).resolve().parents[1]
-PROJECT_ROOT = APP_ROOT.parent
 if str(APP_ROOT) not in sys.path:
     sys.path.insert(0, str(APP_ROOT))
 
 from studiosaas.db import connect
-from studiosaas.migration import (
-    legacy_log_change,
-    legacy_log_type,
-    load_legacy_database,
-    normalize_legacy_package,
-    normalize_legacy_registration,
-    normalize_legacy_student,
-)
-from studiosaas.workspaces import ensure_tenant_workspace
+from studiosaas.migration import load_core_students
 
 
-def main(argv: list[str]) -> int:
-    """Run the legacy import."""
+def _sha256(path: Path) -> str:
+    """Return the SHA-256 digest used to bind preview and apply runs."""
 
-    if len(argv) not in (3, 4):
-        print(
-            "Usage: import_lets_paint_json.py <database.json> <tenant_slug> [tenant_name]",
-            file=sys.stderr,
+    digest = hashlib.sha256()
+    with path.open("rb") as source:
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _decimal_total(students: list[dict[str, Any]]) -> Decimal:
+    """Return the exact total opening balance for the import report."""
+
+    return sum((student["balance"] for student in students), start=Decimal("0"))
+
+
+def _tenant_snapshot(cur: Any, tenant_slug: str) -> dict[str, Any]:
+    """Resolve exactly one existing target tenant and its current counts."""
+
+    cur.execute(
+        """
+        SELECT id, name, slug, status
+        FROM tenants
+        WHERE slug = %s
+        """,
+        (tenant_slug,),
+    )
+    tenant = cur.fetchone()
+    if not tenant:
+        raise RuntimeError(
+            f"Target tenant does not exist: {tenant_slug}. Refusing to create it implicitly."
         )
-        return 2
+    cur.execute(
+        """
+        SELECT
+            (SELECT count(*) FROM students WHERE tenant_id = %s)::int AS students,
+            (SELECT count(*) FROM students)::int AS all_tenant_students,
+            (SELECT COALESCE(sum(balance), 0) FROM credit_accounts
+              WHERE tenant_id = %s AND course_id IS NULL) AS target_balance
+        """,
+        (tenant["id"], tenant["id"]),
+    )
+    counts = cur.fetchone()
+    return {**tenant, **counts}
 
-    legacy_path = Path(argv[1])
-    tenant_slug = argv[2]
-    tenant_name = argv[3] if len(argv) == 4 else "Let's Paint Studio"
-    legacy = load_legacy_database(legacy_path)
+
+def _delete_all_students(cur: Any) -> int:
+    """Delete every demo student; foreign-key cascades remove linked demo data."""
+
+    cur.execute("DELETE FROM students")
+    return cur.rowcount
+
+
+def _insert_core_students(
+    cur: Any,
+    tenant_id: str,
+    students: list[dict[str, Any]],
+    source_digest: str,
+) -> int:
+    """Insert core students, default accounts, and one opening-balance audit row."""
+
+    inserted = 0
+    for student in students:
+        cur.execute(
+            """
+            INSERT INTO students (
+                tenant_id, first_name, last_name, display_name, status, birthday,
+                mobile, email, wechat, notes, source_legacy_id
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
+            """,
+            (
+                tenant_id,
+                student["first_name"],
+                student["last_name"],
+                student["display_name"],
+                student["status"],
+                student["birthday"],
+                student["mobile"],
+                student["email"],
+                student["wechat"],
+                student["notes"],
+                student["source_legacy_id"],
+            ),
+        )
+        student_id = cur.fetchone()["id"]
+        cur.execute(
+            """
+            INSERT INTO credit_accounts (tenant_id, student_id, course_id, balance)
+            VALUES (%s, %s, NULL, %s)
+            RETURNING id
+            """,
+            (tenant_id, student_id, student["balance"]),
+        )
+        account_id = cur.fetchone()["id"]
+        cur.execute(
+            """
+            INSERT INTO credit_transactions (
+                tenant_id, student_id, account_id, transaction_type,
+                amount, balance_after, note
+            )
+            VALUES (%s, %s, %s, 'migration', %s, %s, %s)
+            """,
+            (
+                tenant_id,
+                student_id,
+                account_id,
+                student["balance"],
+                student["balance"],
+                "Core opening balance import "
+                f"source:{source_digest[:12]} student:{student['source_legacy_id']}",
+            ),
+        )
+        inserted += 1
+    return inserted
+
+
+def _update_usage(cur: Any) -> None:
+    """Refresh student totals for every tenant after the global demo reset."""
+
+    cur.execute(
+        """
+        INSERT INTO tenant_usage (tenant_id, student_count, user_count, storage_used_mb)
+        SELECT
+            t.id,
+            (SELECT count(*) FROM students s
+              WHERE s.tenant_id = t.id AND s.status <> 'archived'),
+            (SELECT count(*) FROM memberships m
+              WHERE m.tenant_id = t.id AND m.status = 'active' AND m.role <> 'parent'),
+            COALESCE(existing.storage_used_mb, 0)
+        FROM tenants t
+        LEFT JOIN tenant_usage existing ON existing.tenant_id = t.id
+        ON CONFLICT (tenant_id) DO UPDATE
+        SET student_count = EXCLUDED.student_count,
+            user_count = EXCLUDED.user_count,
+            calculated_at = now()
+        """
+    )
+
+
+def build_parser() -> argparse.ArgumentParser:
+    """Build the strict import command-line interface."""
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("source", type=Path)
+    parser.add_argument("--tenant-slug", default="lets-paint-studio")
+    parser.add_argument("--expected-sha256", default="")
+    parser.add_argument("--apply", action="store_true")
+    parser.add_argument("--reset-all-students", action="store_true")
+    parser.add_argument("--confirm-tenant", default="")
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Preview or atomically apply the core student import."""
+
+    args = build_parser().parse_args(argv)
+    source = args.source.expanduser().resolve()
+    source_digest = _sha256(source)
+    if args.expected_sha256 and args.expected_sha256.lower() != source_digest:
+        raise SystemExit(
+            f"Source SHA-256 mismatch: expected {args.expected_sha256}, got {source_digest}"
+        )
+    students = load_core_students(source)
 
     with connect() as conn:
         with conn.cursor() as cur:
-            cur.execute(
-                """
-                INSERT INTO tenants (name, slug, status, plan_code, welcome_message)
-                VALUES (%s, %s, 'trial', 'studio', %s)
-                ON CONFLICT (slug) DO UPDATE
-                SET name = EXCLUDED.name,
-                    updated_at = now()
-                RETURNING id
-                """,
-                (tenant_name, tenant_slug, "Imported from the original Let's Paint CMS."),
-            )
-            tenant_id = cur.fetchone()["id"]
-            workspace_path = ensure_tenant_workspace(PROJECT_ROOT, tenant_slug, tenant_name)
-            art_settings = {
-                "workspace_path": workspace_path,
-                "category": "art",
-                "category_label": "Art",
-                "slogan": "You deserve to enjoy life more.",
-                "registration_profile": {
-                    "title": "Creative Preferences",
-                    "fields": [
-                        {"key": "artStyle", "label": "Preferred style", "placeholder": "Watercolour, sketching, acrylic", "type": "text"},
-                        {"key": "favArtist", "label": "Favourite artist", "placeholder": "Monet, Van Gogh, Yayoi Kusama", "type": "text"},
-                        {"key": "goals", "label": "Creative goals", "placeholder": "Relax, build technique, portfolio prep", "type": "text"},
-                    ],
+            tenant = _tenant_snapshot(cur, args.tenant_slug)
+            report = {
+                "mode": "apply" if args.apply else "dry-run",
+                "source": str(source),
+                "source_sha256": source_digest,
+                "target_tenant": {
+                    "id": str(tenant["id"]),
+                    "name": tenant["name"],
+                    "slug": tenant["slug"],
+                    "status": tenant["status"],
                 },
-                "copy_pack": {
-                    "portal_label": "Student Art Portal",
-                    "register_intro": "Tell us about the student and their creative goals.",
+                "before": {
+                    "target_students": tenant["students"],
+                    "all_tenant_students": tenant["all_tenant_students"],
+                    "target_balance": str(tenant["target_balance"]),
                 },
+                "import": {
+                    "students": len(students),
+                    "opening_balance": str(_decimal_total(students)),
+                },
+                "excluded": [
+                    "logs", "attendance", "rosters", "packages", "pending",
+                    "media", "portfolio", "access_codes", "privacy_history",
+                    "creative_profile",
+                ],
             }
-            cur.execute(
-                """
-                UPDATE tenants
-                SET settings = settings || %s::jsonb
-                WHERE id = %s
-                """,
-                (json.dumps(art_settings), tenant_id),
+            if not args.apply:
+                conn.rollback()
+                print(json.dumps(report, ensure_ascii=False, indent=2))
+                return 0
+
+            if not args.reset_all_students:
+                raise SystemExit("Apply requires --reset-all-students.")
+            if args.confirm_tenant != args.tenant_slug:
+                raise SystemExit(
+                    f"Apply requires --confirm-tenant {args.tenant_slug}."
+                )
+
+            deleted = _delete_all_students(cur)
+            inserted = _insert_core_students(
+                cur, str(tenant["id"]), students, source_digest
             )
-            cur.execute(
-                """
-                INSERT INTO subscriptions (tenant_id, plan_code, status, starts_at, ends_at)
-                VALUES (%s, 'studio', 'trialing', now(), NULL)
-                ON CONFLICT (tenant_id) DO UPDATE
-                SET plan_code = EXCLUDED.plan_code,
-                    status = EXCLUDED.status,
-                    updated_at = now()
-                """,
-                (tenant_id,),
-            )
-
-            cur.execute(
-                """
-                INSERT INTO courses (
-                    tenant_id, name, description, category, age_range,
-                    duration_minutes, credit_unit, default_credit_debit,
-                    price_aud_cents, is_active
-                )
-                VALUES (%s, 'General Studio Class', 'Default imported course.', 'Art', '', 60, 'credits', 1, 0, true)
-                ON CONFLICT (tenant_id, name) DO UPDATE
-                SET is_active = true
-                RETURNING id
-                """,
-                (tenant_id,),
-            )
-            default_course_id = cur.fetchone()["id"]
-
-            package_count = 0
-            for raw_package in legacy.get("packages", []):
-                package = normalize_legacy_package(raw_package)
-                cur.execute(
-                    """
-                    INSERT INTO packages (
-                        tenant_id, course_id, name, credits, price_aud_cents,
-                        expires_after_days, is_active
-                    )
-                    VALUES (%s, %s, %s, %s, %s, %s, true)
-                    ON CONFLICT (tenant_id, name) DO UPDATE
-                    SET credits = EXCLUDED.credits,
-                        price_aud_cents = EXCLUDED.price_aud_cents,
-                        expires_after_days = EXCLUDED.expires_after_days,
-                        is_active = true
-                    """,
-                    (
-                        tenant_id,
-                        default_course_id,
-                        package["name"],
-                        package["credits"],
-                        package["price_aud_cents"],
-                        package["expires_after_days"],
-                    ),
-                )
-                package_count += 1
-
-            inserted_students = 0
-            for raw_student in legacy["students"]:
-                student = normalize_legacy_student(raw_student)
-                cur.execute(
-                    """
-                    INSERT INTO students (
-                        tenant_id, first_name, last_name, display_name, status, birthday,
-                        parent_name, mobile, email, wechat, notes, source_legacy_id
-                    )
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    ON CONFLICT DO NOTHING
-                    RETURNING id
-                    """,
-                    (
-                        tenant_id,
-                        student["first_name"],
-                        student["last_name"],
-                        student["display_name"],
-                        student["status"],
-                        student["birthday"],
-                        student["parent_name"],
-                        student["mobile"],
-                        student["email"],
-                        student["wechat"],
-                        student["notes"],
-                        student["source_legacy_id"],
-                    ),
-                )
-                inserted = cur.fetchone()
-                student_id = inserted["id"] if inserted else None
-                if not student_id and student["source_legacy_id"]:
-                    cur.execute(
-                        """
-                        SELECT id
-                        FROM students
-                        WHERE tenant_id = %s AND source_legacy_id = %s
-                        """,
-                        (tenant_id, student["source_legacy_id"]),
-                    )
-                    existing = cur.fetchone()
-                    student_id = existing["id"] if existing else None
-
-                if student_id:
-                    inserted_students += 1 if inserted else 0
-                    cur.execute(
-                        """
-                        INSERT INTO credit_accounts (tenant_id, student_id, course_id, balance)
-                        VALUES (%s, %s, %s, %s)
-                        ON CONFLICT (tenant_id, student_id, course_id) DO UPDATE
-                        SET balance = EXCLUDED.balance,
-                            updated_at = now()
-                        """,
-                        (tenant_id, student_id, default_course_id, student["balance"]),
-                    )
-                    migration_note = (
-                        "Imported balance from legacy database.json "
-                        f"student:{student['source_legacy_id']}."
-                    )
-                    cur.execute(
-                        """
-                        INSERT INTO credit_transactions (
-                            tenant_id, student_id, transaction_type, amount,
-                            balance_after, note
-                        )
-                        SELECT %s, %s, 'migration', %s, %s, %s
-                        WHERE NOT EXISTS (
-                            SELECT 1 FROM credit_transactions
-                            WHERE tenant_id = %s AND student_id = %s AND note = %s
-                        )
-                        """,
-                        (
-                            tenant_id,
-                            student_id,
-                            student["balance"],
-                            student["balance"],
-                            migration_note,
-                            tenant_id,
-                            student_id,
-                            migration_note,
-                        ),
-                    )
-
-            registration_count = 0
-            for raw_registration in legacy.get("pending", []):
-                registration = normalize_legacy_registration(raw_registration)
-                cur.execute(
-                    """
-                    INSERT INTO registrations (
-                        tenant_id, status, first_name, last_name, parent_name,
-                        mobile, email, message, payload
-                    )
-                    SELECT %s, 'pending', %s, %s, %s, %s, %s, %s, %s::jsonb
-                    WHERE NOT EXISTS (
-                        SELECT 1 FROM registrations
-                        WHERE tenant_id = %s
-                          AND payload->>'legacy_id' = %s
-                    )
-                    """,
-                    (
-                        tenant_id,
-                        registration["first_name"],
-                        registration["last_name"],
-                        registration["parent_name"],
-                        registration["mobile"],
-                        registration["email"],
-                        registration["message"],
-                        registration["payload_json"],
-                        tenant_id,
-                        registration["legacy_id"],
-                    ),
-                )
-                registration_count += cur.rowcount
-
-            attendance_count = 0
-            for raw_log in legacy.get("logs", []):
-                log_type = legacy_log_type(raw_log)
-                change = legacy_log_change(raw_log)
-                if log_type not in {"consume", "purchase", "adjustment"}:
-                    continue
-                legacy_student_id = str(raw_log.get("studentId") or "").strip()
-                if not legacy_student_id:
-                    continue
-                cur.execute(
-                    """
-                    SELECT id
-                    FROM students
-                    WHERE tenant_id = %s AND source_legacy_id = %s
-                    """,
-                    (tenant_id, legacy_student_id),
-                )
-                row = cur.fetchone()
-                if not row:
-                    continue
-                student_id = row["id"]
-                legacy_log_id = str(raw_log.get("id") or "").strip()
-                note = f"Imported legacy log:{legacy_log_id} action:{raw_log.get('action', '')}"
-                cur.execute(
-                    """
-                    INSERT INTO credit_transactions (
-                        tenant_id, student_id, transaction_type, amount, note
-                    )
-                    SELECT %s, %s, %s, %s, %s
-                    WHERE NOT EXISTS (
-                        SELECT 1 FROM credit_transactions
-                        WHERE tenant_id = %s AND note = %s
-                    )
-                    RETURNING id
-                    """,
-                    (tenant_id, student_id, log_type, change, note, tenant_id, note),
-                )
-                tx = cur.fetchone()
-                if tx and log_type == "consume":
-                    cur.execute(
-                        """
-                        INSERT INTO attendance_sessions (
-                            tenant_id, student_id, course_id, credit_transaction_id, note
-                        )
-                        VALUES (%s, %s, %s, %s, %s)
-                        """,
-                        (tenant_id, student_id, default_course_id, tx["id"], note),
-                    )
-                    attendance_count += 1
-
-            cur.execute(
-                """
-                INSERT INTO tenant_usage (tenant_id, student_count, user_count, storage_used_mb)
-                VALUES (
-                    %s,
-                    (SELECT count(*) FROM students WHERE tenant_id = %s AND status <> 'archived'),
-                    (
-                        SELECT count(*) FROM memberships
-                        WHERE tenant_id = %s AND status = 'active' AND role <> 'parent'
-                    ),
-                    0
-                )
-                ON CONFLICT (tenant_id) DO UPDATE
-                SET student_count = EXCLUDED.student_count,
-                    user_count = EXCLUDED.user_count,
-                    calculated_at = now()
-                """,
-                (tenant_id, tenant_id, tenant_id),
-            )
-
-        conn.commit()
-
-    print(
-        f"Imported tenant '{tenant_slug}': "
-        f"{inserted_students} new students, {package_count} packages, "
-        f"{registration_count} registrations, {attendance_count} attendances."
-    )
+            _update_usage(cur)
+            conn.commit()
+            report["result"] = {"deleted_demo_students": deleted, "inserted": inserted}
+            print(json.dumps(report, ensure_ascii=False, indent=2))
     return 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main(sys.argv))
+    raise SystemExit(main())
