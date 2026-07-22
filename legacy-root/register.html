@@ -49,8 +49,9 @@
     const setTenantTheme = (brand) => {
       if (!brand) return;
       const root = document.documentElement;
-      const primary = brand.primary_color || brand.primaryColor || '#312e81';
-      const secondary = brand.secondary_color || brand.secondaryColor || '#6366f1';
+      const visual = brand.visual_theme || brand.visualTheme || {};
+      const primary = visual.accent_color || visual.accentColor || brand.primary_color || brand.primaryColor || '#312e81';
+      const secondary = visual.secondary_accent_color || visual.secondaryAccentColor || brand.secondary_color || brand.secondaryColor || '#6366f1';
       const logo = brand.logo_url || brand.logoUrl || '';
       const slogan = brand.slogan || 'Learn, grow, and feel confident.';
       const copyPack = brand.copy_pack || brand.copyPack || {};
@@ -61,6 +62,9 @@
       root.style.setProperty('--tenant-secondary', secondary);
       root.style.setProperty('--tenant-secondary-soft', `${secondary}14`);
       root.style.setProperty('--tenant-secondary-border', `${secondary}40`);
+      const themeVars = {background_color:'--brand-paper',panel_color:'--brand-paper-raised',text_color:'--brand-ink',muted_text_color:'--brand-ink-soft',border_color:'--brand-line',accent_text_color:'--brand-on-accent',secondary_text_color:'--brand-on-secondary',success_color:'--brand-success',warning_color:'--brand-warning',danger_color:'--brand-danger'};
+      Object.entries(themeVars).forEach(([key, cssVar]) => { const camel = key.replace(/_([a-z])/g, (_, char) => char.toUpperCase()); const value = visual[key] || visual[camel]; if (value) root.style.setProperty(cssVar, value); });
+      root.dataset.brandScheme = visual.color_scheme || visual.colorScheme || 'light';
       if (brand.name) {
         document.title = `${brand.name} Student Portal`;
         const footer = document.getElementById('portalFooter');

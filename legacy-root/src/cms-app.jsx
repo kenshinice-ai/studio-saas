@@ -485,7 +485,7 @@ function MaintSection({ onRestored, renewTh, saveRenewTh }) {
                 <p className="text-xs font-bold text-red-700">⚠️ 服务器还在运行旧版本</p>
                 <p className="text-xs text-red-600">界面已是新版，但数据体检 / 邮件 / 备份恢复需要新版 server.py 支持。请：</p>
                 <p className="text-xs text-red-600 font-mono bg-red-100 rounded-lg px-2 py-1.5">1. 用新版 server.py 覆盖 CMS 目录里的旧文件<br/>2. 终端运行 ./cms.sh restart<br/>3. 刷新本页面</p>
-                <p className="text-xs text-red-500">验证方法：浏览器打开 /api/ping，version 应为 7.2.1</p>
+                <p className="text-xs text-red-500">验证方法：浏览器打开 /api/ping，version 应为 7.3.0</p>
             </div>
         </div>
     );

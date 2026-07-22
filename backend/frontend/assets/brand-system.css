@@ -7,6 +7,8 @@
 :root {
   --brand-accent: var(--tenant-primary, var(--brand, var(--ui-primary, #a65a43)));
   --brand-accent-strong: var(--tenant-secondary, var(--brand-2, var(--ui-secondary, #713f32)));
+  --brand-on-accent: #ffffff;
+  --brand-on-secondary: #ffffff;
   --brand-paper: var(--bg, var(--ui-bg, #f4f0e8));
   --brand-paper-raised: var(--surface, var(--panel, var(--ui-surface, #fbf9f4)));
   --brand-ink: var(--ink, var(--ui-text, #23211d));
@@ -51,6 +53,13 @@
   font-variant-numeric: tabular-nums;
   letter-spacing: .01em;
 }
+
+:root[data-brand-scheme="dark"] :where(input[type="date"], input[type="time"], input[type="datetime-local"]) {
+  color-scheme: dark;
+}
+
+:where(.brand-action-primary) { background: var(--brand-accent); color: var(--brand-on-accent); }
+:where(.brand-action-secondary) { background: var(--brand-accent-strong); color: var(--brand-on-secondary); }
 
 :where(input[type="date"], input[type="time"], input[type="datetime-local"])::-webkit-date-and-time-value {
   min-height: 1.4em;

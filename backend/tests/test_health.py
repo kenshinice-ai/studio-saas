@@ -15,14 +15,45 @@ def test_health_returns_ok(client):
 def test_industry_presets_are_complete_and_bilingual(client):
     response = client.get("/v1/industry-presets")
     assert response.status_code == 200
-    presets = response.get_json()["presets"]
+    payload = response.get_json()
+    presets = payload["presets"]
+    styles = payload["styles"]
     assert set(presets) == {"art", "music", "math", "dance", "language", "sports", "game", "general"}
-    assert len({preset["visualTheme"]["accent_color"] for preset in presets.values()}) == 8
+    assert set(styles) == {
+        "ink-paper", "vintage-editorial", "modern-calm", "artistic-atelier",
+        "soft-friendly", "bold-impact", "neon-night",
+    }
     for preset in presets.values():
         assert preset["labelZh"]
+        assert preset["recommendedStyleId"] in styles
+        assert preset["visualTheme"]["style_id"] == preset["recommendedStyleId"]
         assert preset["localizedCopy"]["hero_title"]["zh"]
         assert preset["localizedCopy"]["hero_title"]["en"]
         assert len(preset["registrationProfile"]["fields"]) >= 3
+
+
+def test_visual_styles_meet_wcag_aa_contrast(client):
+    styles = client.get("/v1/industry-presets").get_json()["styles"]
+
+    def luminance(value):
+        channels = [int(value[index:index + 2], 16) / 255 for index in (1, 3, 5)]
+        linear = [channel / 12.92 if channel <= 0.04045 else ((channel + 0.055) / 1.055) ** 2.4 for channel in channels]
+        return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+    def contrast(foreground, background):
+        first, second = luminance(foreground), luminance(background)
+        return (max(first, second) + 0.05) / (min(first, second) + 0.05)
+
+    pairs = (
+        ("text_color", "background_color"), ("text_color", "panel_color"),
+        ("muted_text_color", "background_color"), ("muted_text_color", "panel_color"),
+        ("accent_text_color", "accent_color"),
+        ("secondary_text_color", "secondary_accent_color"),
+    )
+    for style_id, style in styles.items():
+        theme = style["visualTheme"]
+        for foreground, background in pairs:
+            assert contrast(theme[foreground], theme[background]) >= 4.5, f"{style_id}: {foreground}/{background}"
 
 
 def test_admin_mutation_requires_auth(client):

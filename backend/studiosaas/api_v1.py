@@ -42,7 +42,12 @@ from .lifecycle import (
     validate_tenant_transition,
 )
 from .models import Role
-from .presets import INDUSTRY_PRESETS, public_industry_presets
+from .presets import (
+    INDUSTRY_PRESETS,
+    VISUAL_STYLE_PRESETS,
+    public_industry_presets,
+    public_visual_style_presets,
+)
 from .services.media import (
     MediaQuotaExceededError,
     MediaUploadError,
@@ -730,9 +735,20 @@ def _normalize_visual_theme(
     """Validate public colour and light style settings."""
 
     data = _coerce_json_object(value, field_name="visual_theme")
-    default = _default_visual_theme(primary_color, secondary_color, category)
+    style_id = _first_text(data, "style_id", "styleId", limit=40).lower()
+    if style_id and style_id not in VISUAL_STYLE_PRESETS:
+        raise ValueError("Visual style is not recognised.")
+    if style_id:
+        default = {"style_id": style_id, "theme_mode": "preset", **VISUAL_STYLE_PRESETS[style_id]["theme"]}
+    else:
+        default = _default_visual_theme(primary_color, secondary_color, category)
     theme = {}
-    for key in ("background_color", "panel_color", "text_color", "accent_color", "secondary_accent_color"):
+    for key in (
+        "background_color", "panel_color", "text_color", "muted_text_color",
+        "accent_color", "accent_text_color", "secondary_accent_color",
+        "secondary_text_color", "border_color", "success_color",
+        "warning_color", "danger_color",
+    ):
         aliases = (key, "".join([key.split("_")[0], *(part.capitalize() for part in key.split("_")[1:])]))
         value_text = _first_text(data, *aliases, default=default[key], limit=16)
         _validate_hex_color(key.replace("_", " ").title(), value_text)
@@ -743,6 +759,15 @@ def _normalize_visual_theme(
         raise ValueError("Button style must be one of: soft, sharp, rounded.")
     if font_mood not in {"serif", "modern", "classic"}:
         raise ValueError("Font mood must be one of: serif, modern, classic.")
+    theme_mode = _first_text(data, "theme_mode", "themeMode", default="custom" if not style_id else "preset", limit=16).lower()
+    if theme_mode not in {"preset", "custom"}:
+        raise ValueError("Theme mode must be preset or custom.")
+    color_scheme = _first_text(data, "color_scheme", "colorScheme", default=default.get("color_scheme", "light"), limit=16).lower()
+    if color_scheme not in {"light", "dark"}:
+        raise ValueError("Color scheme must be light or dark.")
+    theme["style_id"] = style_id or default.get("style_id", "")
+    theme["theme_mode"] = theme_mode
+    theme["color_scheme"] = color_scheme
     theme["button_style"] = button_style
     theme["font_mood"] = font_mood
     return theme
@@ -1608,7 +1633,7 @@ def health():
 def industry_presets():
     """Return the shared onboarding, copy, and theme presets."""
 
-    return jsonify({"presets": public_industry_presets()})
+    return jsonify({"presets": public_industry_presets(), "styles": public_visual_style_presets()})
 
 
 def _tenant_response(conn):

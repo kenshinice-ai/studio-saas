@@ -56,6 +56,8 @@ def test_new_tenant_workspace_generates_public_surface_files(tmp_path):
     assert "heroProfile" in portal_html
     assert "websiteProfile" in portal_html
     assert "visualTheme" in portal_html
+    assert "--brand-on-accent" in portal_html
+    assert "dataset.brandScheme" in portal_html
     assert "localizedCopy" in portal_html
     assert "privacyConsent:true" in portal_html
     assert "manifest-portal.json" in portal_html
@@ -116,6 +118,17 @@ def test_admin_surfaces_share_persistent_language_switch(client):
     assert "data-admin-language" in javascript
     assert "中文" in javascript
     assert "English" in javascript
+
+
+def test_studio_admin_supports_curated_styles_custom_mode_and_undo(client):
+    html = client.get("/lets-paint-studio/studio-admin").get_data(as_text=True)
+    assert 'id="stylePresetGrid"' in html
+    assert 'id="undoPresetBtn"' in html
+    assert 'id="settingThemeMuted"' in html
+    assert 'id="settingThemeBorder"' in html
+    assert "recommendedStyleId" in html
+    assert "themeMode = 'custom'" in html
+    assert "Improve colour contrast before publishing" in html
 
 
 def test_existing_register_surfaces_are_lightweight_lead_capture_pages(client):

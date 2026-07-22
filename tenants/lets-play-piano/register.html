@@ -210,6 +210,10 @@
       const visual = brand.visualTheme || brand.visual_theme || {};
       const primary = visual.accent_color || visual.accentColor || brand.primary_color || brand.primaryColor || '#2563eb';
       const secondary = visual.secondary_accent_color || visual.secondaryAccentColor || brand.secondary_color || brand.secondaryColor || '#0f172a';
+      const root = document.documentElement;
+      const themeVars = {background_color:'--brand-paper',panel_color:'--brand-paper-raised',text_color:'--brand-ink',muted_text_color:'--brand-ink-soft',border_color:'--brand-line',accent_text_color:'--brand-on-accent',secondary_text_color:'--brand-on-secondary',success_color:'--brand-success',warning_color:'--brand-warning',danger_color:'--brand-danger'};
+      Object.entries(themeVars).forEach(([key, cssVar]) => { const camel = key.replace(/_([a-z])/g, (_, char) => char.toUpperCase()); const value = visual[key] || visual[camel]; if (value) root.style.setProperty(cssVar, value); });
+      root.dataset.brandScheme = visual.color_scheme || visual.colorScheme || 'light';
       document.documentElement.style.setProperty('--brand', primary);
       document.documentElement.style.setProperty('--brand-2', secondary);
       document.documentElement.style.setProperty('--brand-accent', primary);

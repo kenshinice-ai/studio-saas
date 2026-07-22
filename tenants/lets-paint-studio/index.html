@@ -772,9 +772,14 @@
     var website=b.websiteProfile||b.website_profile||{};
     var principal=b.principalProfile||b.principal_profile||{};
     var visual=b.visualTheme||b.visual_theme||{};
+    var root=document.documentElement;
+    var themeVars={background_color:'--brand-paper',panel_color:'--brand-paper-raised',text_color:'--brand-ink',muted_text_color:'--brand-ink-soft',border_color:'--brand-line',accent_text_color:'--brand-on-accent',secondary_text_color:'--brand-on-secondary',success_color:'--brand-success',warning_color:'--brand-warning',danger_color:'--brand-danger'};
+    Object.keys(themeVars).forEach(function(key){var camel=key.replace(/_([a-z])/g,function(_,c){return c.toUpperCase();});var value=visual[key]||visual[camel];if(value)root.style.setProperty(themeVars[key],value);});
+    root.dataset.brandScheme=visual.color_scheme||visual.colorScheme||'light';
     var accent=visual.accent_color||visual.accentColor||b.primaryColor||b.primary_color;
     if(accent) document.documentElement.style.setProperty('--clay', accent);
-    if(b.secondaryColor||b.secondary_color) document.documentElement.style.setProperty('--clay-d', b.secondaryColor||b.secondary_color);
+    var secondary=visual.secondary_accent_color||visual.secondaryAccentColor||b.secondaryColor||b.secondary_color;
+    if(secondary){document.documentElement.style.setProperty('--clay-d',secondary);document.documentElement.style.setProperty('--brand-accent-strong',secondary);}
     if(visual.background_color||visual.backgroundColor) document.documentElement.style.setProperty('--bg', visual.background_color||visual.backgroundColor);
     if(visual.panel_color||visual.panelColor) document.documentElement.style.setProperty('--panel', visual.panel_color||visual.panelColor);
     if(visual.text_color||visual.textColor) document.documentElement.style.setProperty('--ink', visual.text_color||visual.textColor);

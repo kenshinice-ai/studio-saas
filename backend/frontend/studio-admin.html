@@ -996,6 +996,29 @@
       line-height: 1.35;
     }
 
+    .preset-section-title {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 18px 0 9px;
+      color: #0f172a;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .preset-section-title span { color: #64748b; font-size: 11px; font-weight: 600; }
+    .style-grid { grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); }
+    .style-card { min-height: 118px; }
+    .style-card.custom .preset-name::after { content: ' · Custom'; color: #7c3aed; }
+    .palette-swatches { display: flex; gap: 4px; margin-bottom: 10px; }
+    .palette-swatches i { width: 24px; height: 18px; border: 1px solid rgba(15,23,42,.12); border-radius: 5px; }
+    .recommended-badge { display: inline-flex; margin-top: 8px; padding: 3px 7px; border-radius: 999px; background: #eff6ff; color: #1d4ed8; font-size: 10px; font-weight: 900; }
+    .preset-undo { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:10px 0 16px; padding:10px 12px; border:1px solid #c4b5fd; border-radius:10px; background:#f5f3ff; color:#4c1d95; font-size:12px; font-weight:700; }
+    .advanced-colours { grid-column: 1 / -1; border: 1px solid #e2e8f0; border-radius: 12px; background:#f8fafc; padding: 12px; }
+    .advanced-colours summary { cursor:pointer; color:#334155; font-size:13px; font-weight:900; }
+    .advanced-colours .form-grid { margin-top:14px; }
+
     .question-list {
       grid-template-columns: 1fr;
     }
@@ -1135,7 +1158,7 @@
 
     .preview-subtitle {
       margin-top: 12px;
-      color: #64748b;
+      color: var(--preview-muted, #64748b);
       font-size: 13px;
       line-height: 1.55;
     }
@@ -1160,11 +1183,11 @@
 
     .preview-button.primary {
       background: var(--preview-accent, #2563eb);
-      color: #ffffff;
+      color: var(--preview-accent-text, #ffffff);
     }
 
     .preview-button.secondary {
-      border: 1px solid rgba(100, 116, 139, 0.32);
+      border: 1px solid var(--preview-border, rgba(100, 116, 139, 0.32));
       color: var(--preview-ink, #0f172a);
       background: rgba(255,255,255,0.46);
     }
@@ -1190,7 +1213,7 @@
       justify-content: space-between;
       gap: 10px;
       padding: 11px 0;
-      border-top: 1px solid rgba(148, 163, 184, 0.28);
+      border-top: 1px solid var(--preview-border, rgba(148, 163, 184, 0.28));
       font-size: 12px;
     }
 
@@ -1742,6 +1765,9 @@
                 </div>
               </div>
               <div id="presetGrid" class="preset-grid"></div>
+              <div class="preset-section-title">Visual style <span>Choose a complete accessible palette; industry recommendations are highlighted.</span></div>
+              <div id="stylePresetGrid" class="preset-grid style-grid"></div>
+              <div id="presetUndoBar" class="preset-undo hidden"><span id="presetUndoText">Preset applied to this draft.</span><button type="button" id="undoPresetBtn" class="btn-secondary">Undo</button></div>
               <div class="form-grid">
                 <div class="form-group"><label>Studio Name</label><input id="settingName"></div>
                 <div class="form-group"><label>Studio Category</label><select id="settingCategory"></select></div>
@@ -1749,12 +1775,19 @@
                 <div class="form-group"><label>Logo URL</label><input id="settingLogoUrl" placeholder="/logo.png or https://..."></div>
                 <div class="form-group"><label>Upload Logo</label><input id="settingLogoFile" type="file" accept="image/*"></div>
                 <div class="form-group"><label>Plan</label><select id="settingPlan" disabled></select><small>Managed by StudioSaaS Super Admin.</small></div>
-                <div class="form-group"><label>Primary Color</label><div class="color-field"><input id="settingPrimaryColor" type="color"><div class="color-meta">Main public accent</div></div></div>
-                <div class="form-group"><label>Secondary Color</label><div class="color-field"><input id="settingSecondaryColor" type="color"><div class="color-meta">Contrast and buttons</div></div></div>
-                <div class="form-group"><label>Page Background</label><input id="settingThemeBackground" type="color"></div>
-                <div class="form-group"><label>Panel Background</label><input id="settingThemePanel" type="color"></div>
-                <div class="form-group"><label>Text Color</label><input id="settingThemeText" type="color"></div>
-                <div class="form-group"><label>Accent Color</label><input id="settingThemeAccent" type="color"></div>
+                <div class="form-group"><label>Main brand colour</label><div class="color-field"><input id="settingPrimaryColor" type="color"><div class="color-meta">Primary accent and actions</div></div></div>
+                <div class="form-group"><label>Supporting brand colour</label><div class="color-field"><input id="settingSecondaryColor" type="color"><div class="color-meta">Secondary actions and highlights</div></div></div>
+                <details class="advanced-colours">
+                  <summary>Advanced colours</summary>
+                  <div class="form-grid">
+                    <div class="form-group"><label>Page Background</label><input id="settingThemeBackground" type="color"></div>
+                    <div class="form-group"><label>Panel Background</label><input id="settingThemePanel" type="color"></div>
+                    <div class="form-group"><label>Text Color</label><input id="settingThemeText" type="color"></div>
+                    <div class="form-group"><label>Muted Text</label><input id="settingThemeMuted" type="color"></div>
+                    <div class="form-group"><label>Border Color</label><input id="settingThemeBorder" type="color"></div>
+                  </div>
+                  <small>Button text and status colours are selected automatically for readable contrast.</small>
+                </details>
                 <div class="form-group"><label>Button Style</label><select id="settingButtonStyle"><option value="soft">Soft</option><option value="sharp">Sharp</option><option value="rounded">Rounded</option></select></div>
                 <div class="form-group"><label>Font Mood</label><select id="settingFontMood"><option value="serif">Serif / editorial</option><option value="modern">Modern sans</option><option value="classic">Classic balanced</option></select></div>
                 <div class="form-group"><label>CMS Layout</label><select id="settingCmsLayout"><option value="bar">Header Bar</option><option value="hero">Hero Welcome</option><option value="compact">Compact</option></select></div>
@@ -2035,6 +2068,7 @@
         localizedCopy: {}, visualTheme: {}, registrationProfile: { title: 'Student Preferences', fields: [] }
       }
     };
+    let VISUAL_STYLE_PRESETS = {};
 
     async function loadIndustryPresets() {
       try {
@@ -2042,6 +2076,7 @@
         if (!response.ok) throw new Error(`Preset request failed (${response.status})`);
         const data = await response.json();
         if (data.presets && Object.keys(data.presets).length) INDUSTRY_PRESETS = data.presets;
+        if (data.styles && Object.keys(data.styles).length) VISUAL_STYLE_PRESETS = data.styles;
       } catch (error) {
         console.warn('Using the generic industry preset.', error);
       }
@@ -2055,6 +2090,9 @@
     let previewDevice = 'desktop';
     let previewLanguage = 'zh';
     let brandVersions = [];
+    let activeVisualStyle = '';
+    let themeMode = 'preset';
+    let lastPresetSnapshot = null;
 
     function setSettingsDirty(isDirty = true) {
       settingsDirty = isDirty;
@@ -2434,6 +2472,42 @@
       };
     }
 
+    function themeValue(theme, snake, fallback = '') {
+      const parts = snake.split('_');
+      const camel = parts[0] + parts.slice(1).map((part) => part[0].toUpperCase() + part.slice(1)).join('');
+      return theme?.[snake] || theme?.[camel] || fallback;
+    }
+
+    function readableText(background) {
+      return contrastRatio(background, '#FFFFFF') >= contrastRatio(background, '#10140A') ? '#FFFFFF' : '#10140A';
+    }
+
+    function setVisualThemeFields(theme, styleId = '') {
+      $('settingPrimaryColor').value = themeValue(theme, 'accent_color', '#255C99');
+      $('settingSecondaryColor').value = themeValue(theme, 'secondary_accent_color', '#147168');
+      $('settingThemeBackground').value = themeValue(theme, 'background_color', '#F3F6F8');
+      $('settingThemePanel').value = themeValue(theme, 'panel_color', '#FFFFFF');
+      $('settingThemeText').value = themeValue(theme, 'text_color', '#17212B');
+      $('settingThemeMuted').value = themeValue(theme, 'muted_text_color', '#5C6B78');
+      $('settingThemeBorder').value = themeValue(theme, 'border_color', '#D5DEE5');
+      $('settingButtonStyle').value = themeValue(theme, 'button_style', 'soft');
+      $('settingFontMood').value = themeValue(theme, 'font_mood', 'modern');
+      activeVisualStyle = styleId || themeValue(theme, 'style_id', '');
+      themeMode = themeValue(theme, 'theme_mode', activeVisualStyle ? 'preset' : 'custom');
+      renderStylePresetGrid();
+    }
+
+    function rememberPresetState(message) {
+      lastPresetSnapshot = settingsPayload();
+      $('presetUndoText').textContent = message;
+      $('presetUndoBar').classList.remove('hidden');
+    }
+
+    function markThemeCustom() {
+      themeMode = 'custom';
+      renderStylePresetGrid();
+    }
+
     function hexToRgb(hex) {
       const clean = String(hex || '').replace('#', '');
       if (!/^[0-9a-fA-F]{6}$/.test(clean)) return null;
@@ -2461,14 +2535,20 @@
       const secondary = $('settingSecondaryColor').value || '#0f172a';
       const bg = $('settingThemeBackground')?.value || '#F4F0E8';
       const panel = $('settingThemePanel')?.value || '#FBF9F4';
-      const accent = $('settingThemeAccent')?.value || primary;
+      const accent = primary;
       const ink = $('settingThemeText')?.value || '#23211D';
+      const muted = $('settingThemeMuted')?.value || '#6F685D';
+      const border = $('settingThemeBorder')?.value || '#DCD4C6';
+      const accentText = readableText(accent);
       const preview = $('previewDevice');
       if (preview) {
         preview.style.setProperty('--preview-bg', bg);
         preview.style.setProperty('--preview-panel', panel);
         preview.style.setProperty('--preview-ink', ink);
         preview.style.setProperty('--preview-accent', accent);
+        preview.style.setProperty('--preview-accent-text', accentText);
+        preview.style.setProperty('--preview-muted', muted);
+        preview.style.setProperty('--preview-border', border);
         preview.style.setProperty('--preview-radius', $('settingButtonStyle')?.value === 'rounded' ? '999px' : $('settingButtonStyle')?.value === 'sharp' ? '0' : '8px');
         preview.classList.toggle('mobile', previewDevice === 'mobile');
         preview.classList.toggle('mode-portal', previewMode === 'portal');
@@ -2493,15 +2573,15 @@
       renderPreviewSections();
       renderPreviewRegistrationFields();
       const issues = [];
-      const primaryWhite = contrastRatio(primary, '#ffffff');
-      const secondaryWhite = contrastRatio(secondary, '#ffffff');
-      const pairRatio = contrastRatio(primary, secondary);
-      if (primaryWhite < 3) issues.push(`Primary on white is ${primaryWhite.toFixed(1)}:1.`);
-      if (secondaryWhite < 3) issues.push(`Secondary on white is ${secondaryWhite.toFixed(1)}:1.`);
-      if (pairRatio < 3) issues.push(`Primary and secondary are close at ${pairRatio.toFixed(1)}:1.`);
+      const bodyRatio = Math.min(contrastRatio(ink, bg), contrastRatio(ink, panel));
+      const mutedRatio = Math.min(contrastRatio(muted, bg), contrastRatio(muted, panel));
+      const actionRatio = contrastRatio(primary, accentText);
+      if (bodyRatio < 4.5) issues.push(`Body text contrast is ${bodyRatio.toFixed(1)}:1 (needs 4.5:1).`);
+      if (mutedRatio < 4.5) issues.push(`Muted text contrast is ${mutedRatio.toFixed(1)}:1 (needs 4.5:1).`);
+      if (actionRatio < 4.5) issues.push(`Button text contrast is ${actionRatio.toFixed(1)}:1 (needs 4.5:1).`);
       const warning = $('colorWarning');
       if (issues.length) {
-        warning.textContent = `${issues.join(' ')} Consider darker or more distinct brand colours for public pages.`;
+        warning.textContent = `${issues.join(' ')} Choose a curated style or adjust Advanced colours before publishing.`;
         warning.classList.remove('hidden');
       } else {
         warning.classList.add('hidden');
@@ -2682,12 +2762,33 @@
     function renderPresetGrid(selected) {
       const grid = $('presetGrid');
       if (!grid) return;
-      grid.innerHTML = Object.entries(INDUSTRY_PRESETS).map(([key, preset]) => `
+      grid.innerHTML = Object.entries(INDUSTRY_PRESETS).map(([key, preset]) => {
+        const theme = preset.visualTheme || {};
+        return `
         <button type="button" class="preset-card ${key === selected ? 'active' : ''}" data-preset-key="${key}">
+          <div class="palette-swatches" aria-hidden="true"><i style="background:${themeValue(theme, 'background_color', '#fff')}"></i><i style="background:${themeValue(theme, 'accent_color', '#255c99')}"></i><i style="background:${themeValue(theme, 'secondary_accent_color', '#147168')}"></i></div>
           <div class="preset-name">${esc(preset.label)}</div>
           <div class="preset-copy">${esc(preset.slogan)}</div>
         </button>
-      `).join('');
+      `}).join('');
+    }
+
+    function renderStylePresetGrid() {
+      const grid = $('stylePresetGrid');
+      if (!grid) return;
+      const recommended = INDUSTRY_PRESETS[$('settingCategory')?.value]?.recommendedStyleId;
+      grid.innerHTML = Object.entries(VISUAL_STYLE_PRESETS).map(([key, style]) => {
+        const theme = style.visualTheme || {};
+        const active = key === activeVisualStyle;
+        const custom = active && themeMode === 'custom';
+        const colours = ['background_color', 'panel_color', 'accent_color', 'secondary_accent_color', 'text_color'];
+        return `<button type="button" class="preset-card style-card ${active ? 'active' : ''} ${custom ? 'custom' : ''}" data-style-key="${key}">
+          <div class="palette-swatches" aria-hidden="true">${colours.map((name) => `<i style="background:${themeValue(theme, name, '#fff')}"></i>`).join('')}</div>
+          <div class="preset-name">${esc(style.label)}</div>
+          <div class="preset-copy">${esc(style.description || '')}</div>
+          ${key === recommended ? '<span class="recommended-badge">Recommended</span>' : ''}
+        </button>`;
+      }).join('');
     }
 
     function switchWorkbenchTab(tab) {
@@ -2745,8 +2846,8 @@
         button.disabled = !canExport;
         button.title = canExport ? '' : 'Data export is not included in the current plan.';
       });
-      $('settingPrimaryColor').value = t.primary_color || '#2563eb';
-      $('settingSecondaryColor').value = t.secondary_color || '#0f172a';
+      $('settingPrimaryColor').value = themeValue(visual, 'accent_color', t.primary_color || '#2563eb');
+      $('settingSecondaryColor').value = themeValue(visual, 'secondary_accent_color', t.secondary_color || '#0f172a');
       $('settingCmsLayout').value = t.cms_layout || t.cmsLayout || 'bar';
       $('settingShowWelcome').value = String(t.show_welcome === false || t.show_welcome === 'false' ? false : true);
       $('settingCategory').innerHTML = categoryOptions(category);
@@ -2790,24 +2891,22 @@
       $('settingPrincipalBio').value = principal.bio || '';
       $('settingPrincipalQuote').value = principal.quote || '';
       $('settingPrincipalImageUrl').value = principal.image_url || principal.imageUrl || '';
-      $('settingThemeBackground').value = visual.background_color || visual.backgroundColor || '#F4F0E8';
-      $('settingThemePanel').value = visual.panel_color || visual.panelColor || '#FBF9F4';
-      $('settingThemeText').value = visual.text_color || visual.textColor || '#23211D';
-      $('settingThemeAccent').value = visual.accent_color || visual.accentColor || $('settingPrimaryColor').value || '#2563eb';
-      $('settingButtonStyle').value = visual.button_style || visual.buttonStyle || 'soft';
-      $('settingFontMood').value = visual.font_mood || visual.fontMood || 'serif';
+      setVisualThemeFields(visual, themeValue(visual, 'style_id', preset.recommendedStyleId || ''));
       fillFaqItems(t.faq_items || t.faqItems || defaultFaqItems(category));
       updateThemePreview();
       setSettingsDirty(false);
     }
 
     function settingsPayload() {
+      const styleTheme = VISUAL_STYLE_PRESETS[activeVisualStyle]?.visualTheme || defaultVisualTheme();
+      const primary = $('settingPrimaryColor').value;
+      const secondary = $('settingSecondaryColor').value;
       return {
         name: $('settingName').value.trim(),
         logoUrl: $('settingLogoUrl').value.trim(),
         planCode: $('settingPlan').value,
-        primaryColor: $('settingPrimaryColor').value,
-        secondaryColor: $('settingSecondaryColor').value,
+        primaryColor: primary,
+        secondaryColor: secondary,
         cmsLayout: $('settingCmsLayout').value,
         showWelcome: $('settingShowWelcome').value === 'true',
         category: $('settingCategory').value,
@@ -2862,11 +2961,21 @@
         },
         faqItems: collectFaqItems(),
         visualTheme: {
+          styleId: activeVisualStyle,
+          themeMode,
+          colorScheme: themeValue(styleTheme, 'color_scheme', luminance($('settingThemeBackground').value) < 0.18 ? 'dark' : 'light'),
           backgroundColor: $('settingThemeBackground').value,
           panelColor: $('settingThemePanel').value,
           textColor: $('settingThemeText').value,
-          accentColor: $('settingThemeAccent').value,
-          secondaryAccentColor: $('settingSecondaryColor').value,
+          mutedTextColor: $('settingThemeMuted').value,
+          accentColor: primary,
+          accentTextColor: readableText(primary),
+          secondaryAccentColor: secondary,
+          secondaryTextColor: readableText(secondary),
+          borderColor: $('settingThemeBorder').value,
+          successColor: themeValue(styleTheme, 'success_color', '#247052'),
+          warningColor: themeValue(styleTheme, 'warning_color', '#8A5A14'),
+          dangerColor: themeValue(styleTheme, 'danger_color', '#A63D32'),
           buttonStyle: $('settingButtonStyle').value,
           fontMood: $('settingFontMood').value
         }
@@ -2943,8 +3052,14 @@
         backgroundColor: text(visual.background_color || visual.backgroundColor).toLowerCase(),
         panelColor: text(visual.panel_color || visual.panelColor).toLowerCase(),
         textColor: text(visual.text_color || visual.textColor).toLowerCase(),
+        mutedTextColor: text(visual.muted_text_color || visual.mutedTextColor).toLowerCase(),
         accentColor: text(visual.accent_color || visual.accentColor).toLowerCase(),
+        accentTextColor: text(visual.accent_text_color || visual.accentTextColor).toLowerCase(),
         secondaryAccentColor: text(visual.secondary_accent_color || visual.secondaryAccentColor).toLowerCase(),
+        secondaryTextColor: text(visual.secondary_text_color || visual.secondaryTextColor).toLowerCase(),
+        borderColor: text(visual.border_color || visual.borderColor).toLowerCase(),
+        styleId: text(visual.style_id || visual.styleId),
+        themeMode: text(visual.theme_mode || visual.themeMode),
         buttonStyle: text(visual.button_style || visual.buttonStyle),
         fontMood: text(visual.font_mood || visual.fontMood)
       };
@@ -2999,6 +3114,21 @@
         missing.push('Principal or teaching team name');
       }
       if (missing.length) throw new Error(`Complete public content before publishing: ${missing.join(', ')}.`);
+      const theme = payload.visualTheme || {};
+      const contrastChecks = [
+        ['Body text on page', theme.textColor, theme.backgroundColor],
+        ['Body text on panels', theme.textColor, theme.panelColor],
+        ['Muted text on page', theme.mutedTextColor, theme.backgroundColor],
+        ['Muted text on panels', theme.mutedTextColor, theme.panelColor],
+        ['Primary button text', theme.accentTextColor, theme.accentColor],
+        ['Secondary button text', theme.secondaryTextColor, theme.secondaryAccentColor],
+      ];
+      const failures = contrastChecks
+        .map(([label, foreground, background]) => [label, contrastRatio(foreground, background)])
+        .filter(([, ratio]) => ratio < 4.5);
+      if (failures.length) {
+        throw new Error(`Improve colour contrast before publishing: ${failures.map(([label, ratio]) => `${label} ${ratio.toFixed(1)}:1`).join(', ')}. Minimum is 4.5:1.`);
+      }
     }
 
     async function saveDraft() {
@@ -3145,9 +3275,21 @@
       `).join('');
     }
 
-    function applyCategoryPreset() {
+    function applyVisualStyle(styleId, { remember = true } = {}) {
+      const style = VISUAL_STYLE_PRESETS[styleId];
+      if (!style) return;
+      if (remember) rememberPresetState(`${style.label} applied to this draft.`);
+      setVisualThemeFields(style.visualTheme || {}, styleId);
+      themeMode = 'preset';
+      renderStylePresetGrid();
+      setSettingsDirty(true);
+      updateThemePreview();
+      showToast(`${style.label} style applied. Nothing is public until you publish.`);
+    }
+
+    function applyCategoryPreset({ remember = true } = {}) {
       const preset = INDUSTRY_PRESETS[$('settingCategory').value] || INDUSTRY_PRESETS.general;
-      if (!window.confirm('Apply this preset? It will replace the current theme, hero, registration copy, questions, and FAQs in the editor. Nothing becomes public until you publish.')) return;
+      if (remember) rememberPresetState(`${preset.label} industry preset applied to this draft.`);
       renderPresetGrid($('settingCategory').value);
       $('settingSlogan').value = preset.slogan;
       $('settingPortalLabel').value = preset.portalLabel;
@@ -3167,18 +3309,12 @@
       $('settingRegistrationTitleEn').value = preset.registrationTitle || profile.title;
       fillRegistrationFields(profile);
       const theme = preset.visualTheme || {};
-      $('settingPrimaryColor').value = theme.accent_color || $('settingPrimaryColor').value;
-      $('settingSecondaryColor').value = theme.secondary_accent_color || $('settingSecondaryColor').value;
-      $('settingThemeBackground').value = theme.background_color || $('settingThemeBackground').value;
-      $('settingThemePanel').value = theme.panel_color || $('settingThemePanel').value;
-      $('settingThemeText').value = theme.text_color || $('settingThemeText').value;
-      $('settingThemeAccent').value = theme.accent_color || $('settingThemeAccent').value;
-      $('settingButtonStyle').value = theme.button_style || 'soft';
-      $('settingFontMood').value = theme.font_mood || 'modern';
+      setVisualThemeFields(theme, preset.recommendedStyleId || themeValue(theme, 'style_id', ''));
+      themeMode = 'preset';
       fillFaqItems(defaultFaqItems($('settingCategory').value));
       setSettingsDirty(true);
       updateThemePreview();
-      showToast('Category preset applied.');
+      showToast(`${preset.label} preset and its recommended visual style are ready in this draft.`);
     }
 
     function setLoadingState(loading) {
@@ -3230,6 +3366,15 @@
       $('refreshAnalyticsBtn').addEventListener('click', () => loadAnalytics().catch((err) => showToast(err.message, 'error')));
       $('analyticsDays').addEventListener('change', () => loadAnalytics().catch((err) => showToast(err.message, 'error')));
       $('resetPresetBtn').addEventListener('click', applyCategoryPreset);
+      $('undoPresetBtn').addEventListener('click', () => {
+        if (!lastPresetSnapshot) return;
+        const snapshot = lastPresetSnapshot;
+        lastPresetSnapshot = null;
+        applyDraftToEditor(snapshot);
+        $('presetUndoBar').classList.add('hidden');
+        setSettingsDirty(true);
+        showToast('Previous draft choices restored.');
+      });
       $('addRegistrationQuestionBtn').addEventListener('click', addRegistrationQuestion);
       $('addFaqItemBtn').addEventListener('click', addFaqItem);
       document.querySelectorAll('[data-workbench-tab]').forEach((button) => {
@@ -3248,9 +3393,11 @@
         const card = event.target.closest('[data-preset-key]');
         if (!card) return;
         $('settingCategory').value = card.dataset.presetKey;
-        renderPresetGrid(card.dataset.presetKey);
-        setSettingsDirty(true);
-        showToast('Category selected. Use “Apply Category Preset” only if you want to replace the current editor content.', 'warning');
+        applyCategoryPreset();
+      });
+      $('stylePresetGrid').addEventListener('click', (event) => {
+        const card = event.target.closest('[data-style-key]');
+        if (card) applyVisualStyle(card.dataset.styleKey);
       });
       document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape' && $('modalOverlay').classList.contains('active')) closeModal();
@@ -3274,18 +3421,21 @@
         'settingRegistrationTitleEn','settingRegisterIntroEn',
         'settingCoursesLabel','settingGalleryLabel','settingFaqLabel','settingContactLabel',
         'settingPrincipalName','settingPrincipalTitle','settingPrincipalBio','settingPrincipalQuote','settingPrincipalImageUrl',
-        'settingThemeBackground','settingThemePanel','settingThemeText','settingThemeAccent'
+        'settingThemeBackground','settingThemePanel','settingThemeText','settingThemeMuted','settingThemeBorder'
       ].forEach((id) => $(id).addEventListener('input', () => { setSettingsDirty(true); updateThemePreview(); }));
+      [
+        'settingPrimaryColor','settingSecondaryColor','settingThemeBackground','settingThemePanel',
+        'settingThemeText','settingThemeMuted','settingThemeBorder'
+      ].forEach((id) => $(id).addEventListener('input', markThemeCustom));
       $('settingShowWelcome').addEventListener('change', () => { setSettingsDirty(true); updateThemePreview(); });
       [
         'settingHeroStyle','settingShowStudentLogin','settingButtonStyle','settingFontMood',
         'settingShowPrincipal','settingShowCourses','settingShowGallery','settingShowFaq','settingShowContact','settingShowStudentArea',
         'settingCmsLayout'
       ].forEach((id) => $(id).addEventListener('change', () => { setSettingsDirty(true); updateThemePreview(); }));
+      ['settingButtonStyle','settingFontMood'].forEach((id) => $(id).addEventListener('change', markThemeCustom));
       $('settingCategory').addEventListener('change', () => {
-        renderPresetGrid($('settingCategory').value);
-        setSettingsDirty(true);
-        showToast('Category changed without replacing your custom content.', 'warning');
+        applyCategoryPreset();
       });
       updateSurfaceLinks();
       document.querySelectorAll('.nav-link').forEach((link) => {

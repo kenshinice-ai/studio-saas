@@ -3,6 +3,44 @@
 from __future__ import annotations
 
 
+VISUAL_STYLE_PRESETS: dict[str, dict] = {
+    "ink-paper": {
+        "label": "Ink & Paper", "label_zh": "黑白纸墨", "description": "Timeless, precise, and content-led.",
+        "theme": {"color_scheme": "light", "background_color": "#F7F7F5", "panel_color": "#FFFFFF", "text_color": "#171717", "muted_text_color": "#5F6368", "accent_color": "#171717", "accent_text_color": "#FFFFFF", "secondary_accent_color": "#5F6368", "secondary_text_color": "#FFFFFF", "border_color": "#D7D7D2", "success_color": "#2F6B4F", "warning_color": "#8A5A14", "danger_color": "#A63D32", "button_style": "sharp", "font_mood": "modern"},
+    },
+    "vintage-editorial": {
+        "label": "Vintage Editorial", "label_zh": "复古编辑", "description": "Warm, cultured, and quietly distinctive.",
+        "theme": {"color_scheme": "light", "background_color": "#F2EBDD", "panel_color": "#FCF8EF", "text_color": "#2B2520", "muted_text_color": "#6F655B", "accent_color": "#8A3F2D", "accent_text_color": "#FFFFFF", "secondary_accent_color": "#50624C", "secondary_text_color": "#FFFFFF", "border_color": "#D8CBB8", "success_color": "#35634A", "warning_color": "#8A5A14", "danger_color": "#9C3F35", "button_style": "soft", "font_mood": "serif"},
+    },
+    "modern-calm": {
+        "label": "Modern Calm", "label_zh": "现代沉静", "description": "Clear, trustworthy, and easy to navigate.",
+        "theme": {"color_scheme": "light", "background_color": "#F3F6F8", "panel_color": "#FFFFFF", "text_color": "#17212B", "muted_text_color": "#5C6B78", "accent_color": "#255C99", "accent_text_color": "#FFFFFF", "secondary_accent_color": "#147168", "secondary_text_color": "#FFFFFF", "border_color": "#D5DEE5", "success_color": "#247052", "warning_color": "#8A5A14", "danger_color": "#A63D32", "button_style": "soft", "font_mood": "modern"},
+    },
+    "artistic-atelier": {
+        "label": "Artistic Atelier", "label_zh": "艺术工坊", "description": "Tactile, human, and gallery inspired.",
+        "theme": {"color_scheme": "light", "background_color": "#F4F0E8", "panel_color": "#FBF9F4", "text_color": "#23211D", "muted_text_color": "#6F685D", "accent_color": "#944C38", "accent_text_color": "#FFFFFF", "secondary_accent_color": "#475F55", "secondary_text_color": "#FFFFFF", "border_color": "#DCD4C6", "success_color": "#35634A", "warning_color": "#8A5A14", "danger_color": "#9C3F35", "button_style": "soft", "font_mood": "serif"},
+    },
+    "soft-friendly": {
+        "label": "Soft Friendly", "label_zh": "柔和亲和", "description": "Welcoming, optimistic, and approachable.",
+        "theme": {"color_scheme": "light", "background_color": "#FFF7FB", "panel_color": "#FFFFFF", "text_color": "#2A2030", "muted_text_color": "#735F70", "accent_color": "#913564", "accent_text_color": "#FFFFFF", "secondary_accent_color": "#256B68", "secondary_text_color": "#FFFFFF", "border_color": "#E8D9E3", "success_color": "#247052", "warning_color": "#8A5A14", "danger_color": "#A63D4B", "button_style": "rounded", "font_mood": "classic"},
+    },
+    "bold-impact": {
+        "label": "Bold Impact", "label_zh": "强烈冲击", "description": "Energetic, confident, and action focused.",
+        "theme": {"color_scheme": "light", "background_color": "#FFF7ED", "panel_color": "#FFFFFF", "text_color": "#18181B", "muted_text_color": "#68625D", "accent_color": "#B83B0B", "accent_text_color": "#FFFFFF", "secondary_accent_color": "#1D4ED8", "secondary_text_color": "#FFFFFF", "border_color": "#E7D7C7", "success_color": "#247052", "warning_color": "#8A5A14", "danger_color": "#B42318", "button_style": "sharp", "font_mood": "modern"},
+    },
+    "neon-night": {
+        "label": "Neon Night", "label_zh": "霓虹夜色", "description": "Digital, immersive, and high energy.",
+        "theme": {"color_scheme": "dark", "background_color": "#0B1020", "panel_color": "#141A2E", "text_color": "#F5F7FF", "muted_text_color": "#AAB3CC", "accent_color": "#A3FF12", "accent_text_color": "#10140A", "secondary_accent_color": "#8B5CF6", "secondary_text_color": "#0B0714", "border_color": "#36415F", "success_color": "#32D583", "warning_color": "#FDB022", "danger_color": "#F97066", "button_style": "sharp", "font_mood": "modern"},
+    },
+}
+
+INDUSTRY_STYLE_RECOMMENDATIONS = {
+    "art": "artistic-atelier", "music": "vintage-editorial", "math": "modern-calm",
+    "dance": "soft-friendly", "language": "soft-friendly", "sports": "bold-impact",
+    "game": "neon-night", "general": "modern-calm",
+}
+
+
 def _field(
     key: str,
     label_en: str,
@@ -145,6 +183,16 @@ INDUSTRY_PRESETS: dict[str, dict] = {
     },
 }
 
+# Keep industry copy and visual design independent. The industry provides the
+# recommended starting style; tenants can switch style without changing copy.
+for _industry_key, _style_id in INDUSTRY_STYLE_RECOMMENDATIONS.items():
+    INDUSTRY_PRESETS[_industry_key]["recommended_style_id"] = _style_id
+    INDUSTRY_PRESETS[_industry_key]["theme"] = {
+        "style_id": _style_id,
+        "theme_mode": "preset",
+        **VISUAL_STYLE_PRESETS[_style_id]["theme"],
+    }
+
 
 def public_industry_presets() -> dict[str, dict]:
     """Return the client-safe preset shape used by both admin surfaces."""
@@ -156,6 +204,7 @@ def public_industry_presets() -> dict[str, dict]:
             "labelZh": preset["label_zh"],
             "layout": preset["layout"],
             "slogan": preset["slogan"],
+            "recommendedStyleId": preset["recommended_style_id"],
             "portalLabel": preset["copy_pack"]["portal_label"],
             "registerIntro": preset["copy_pack"]["register_intro"],
             "registerIntroZh": preset["register_intro_zh"],
@@ -171,5 +220,19 @@ def public_industry_presets() -> dict[str, dict]:
             },
             "visualTheme": dict(preset["theme"]),
             "registrationProfile": {"title": preset["registration_title"], "fields": [dict(field) for field in preset["fields"]]},
+        }
+    return result
+
+
+def public_visual_style_presets() -> dict[str, dict]:
+    """Return curated, client-safe visual styles."""
+
+    result: dict[str, dict] = {}
+    for key, preset in VISUAL_STYLE_PRESETS.items():
+        result[key] = {
+            "label": preset["label"],
+            "labelZh": preset["label_zh"],
+            "description": preset["description"],
+            "visualTheme": {"style_id": key, "theme_mode": "preset", **preset["theme"]},
         }
     return result
