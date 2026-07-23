@@ -1,6 +1,6 @@
 # PWE Studio SaaS
 
-Current release: **v7.3.0**
+Current release: **v7.3.1**
 
 PWE Studio SaaS (repo: studiosaas) is a multi-tenant Creative Studio Operating System for art schools, music studios, tutoring centres, creative academies, kids' activity providers, and small education businesses.
 
@@ -184,6 +184,13 @@ a second access layer.
 - Seven curated styles cover monochrome, editorial, modern, artistic, friendly, bold, and neon-dark directions.
 - Each style defines semantic page, panel, text, muted, border, action, and status colours; automatic button text and publish-time contrast checks keep every bundled palette at WCAG AA.
 - Tenants can change visual style independently from industry, then fine-tune advanced colours in an explicit Custom state.
+
+### 4.9 v7.3.1 brand-builder usability
+
+- Brand setup now follows three clear steps: industry foundation, colour theme, and studio identity.
+- Industry choices remain visual cards, while the seven colour themes use a compact selector with a large live palette preview.
+- Manual colour and typography controls stay collapsed until needed, reducing visual noise without removing flexibility.
+- Chinese/English labels and mobile navigation were refined and verified at desktop and 390px widths.
 
 ---
 

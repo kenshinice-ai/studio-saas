@@ -122,7 +122,10 @@ def test_admin_surfaces_share_persistent_language_switch(client):
 
 def test_studio_admin_supports_curated_styles_custom_mode_and_undo(client):
     html = client.get("/lets-paint-studio/studio-admin").get_data(as_text=True)
-    assert 'id="stylePresetGrid"' in html
+    assert 'id="stylePresetSelect"' in html
+    assert 'id="stylePresetPreview"' in html
+    assert 'id="themePalettePreview"' in html
+    assert 'class="brand-step"' in html
     assert 'id="undoPresetBtn"' in html
     assert 'id="settingThemeMuted"' in html
     assert 'id="settingThemeBorder"' in html

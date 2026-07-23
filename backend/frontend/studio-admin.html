@@ -954,70 +954,132 @@
       line-height: 1.5;
     }
 
+    .brand-flow { display: grid; gap: 16px; }
+
+    .brand-step {
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      background: #ffffff;
+      padding: 18px;
+    }
+
+    .brand-step-head {
+      display: grid;
+      grid-template-columns: 34px minmax(0, 1fr);
+      gap: 11px;
+      align-items: start;
+      margin-bottom: 15px;
+    }
+
+    .brand-step-index {
+      display: grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 9px;
+      background: #0f172a;
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .04em;
+    }
+
+    .brand-step-head h4 { margin: 0; color: #0f172a; font-size: 15px; line-height: 1.25; }
+    .brand-step-head p { margin: 4px 0 0; color: #64748b; font-size: 12px; line-height: 1.45; }
+
     .preset-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 10px;
-      margin-bottom: 18px;
     }
 
     .preset-card {
-      min-height: 82px;
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      align-items: stretch;
+      justify-content: stretch;
+      gap: 10px;
+      aspect-ratio: 1.18 / 1;
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+      border: 1px solid #dbe3ee;
+      border-radius: 12px;
       background: #ffffff;
       padding: 12px;
       text-align: left;
       cursor: pointer;
-      transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+      transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease, background .18s ease;
     }
 
     .preset-card:hover {
-      border-color: #93c5fd;
-      box-shadow: 0 12px 28px rgba(37, 99, 235, 0.12);
+      border-color: #94a3b8;
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
       transform: translateY(-1px);
     }
 
     .preset-card.active {
       border-color: #2563eb;
+      background: #f8fbff;
       box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
     }
 
-    .preset-name {
-      color: #0f172a;
-      font-size: 13px;
-      font-weight: 900;
+    .preset-card-top { display: flex; align-items: center; justify-content: space-between; min-width: 0; }
+    .preset-code { color: #94a3b8; font-size: 10px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+    .preset-check { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 999px; background: #2563eb; color: #fff; font-size: 11px; opacity: 0; transform: scale(.8); transition: .18s ease; }
+    .preset-card.active .preset-check { opacity: 1; transform: scale(1); }
+    .preset-name { min-width: 0; color: #0f172a; font-size: 14px; font-weight: 900; line-height: 1.2; overflow-wrap: anywhere; }
+    .preset-name span { display: block; margin-top: 3px; color: #64748b; font-size: 11px; font-weight: 700; }
+    .preset-copy { display: -webkit-box; margin-top: 6px; overflow: hidden; color: #64748b; font-size: 11px; line-height: 1.35; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
+    .palette-swatches { display: flex; width: 100%; height: 7px; overflow: hidden; border-radius: 999px; background: #e2e8f0; }
+    .palette-swatches i { flex: 1 1 0; border: 0; }
+
+    .theme-picker {
+      display: grid;
+      grid-template-columns: minmax(190px, .72fr) minmax(0, 1.28fr);
+      gap: 14px;
+      align-items: stretch;
     }
 
-    .preset-copy {
-      margin-top: 5px;
-      color: #64748b;
-      font-size: 12px;
-      line-height: 1.35;
-    }
-
-    .preset-section-title {
+    .theme-picker-control {
       display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: 12px;
-      margin: 18px 0 9px;
-      color: #0f172a;
-      font-size: 13px;
-      font-weight: 900;
+      flex-direction: column;
+      justify-content: center;
+      gap: 7px;
+      min-width: 0;
     }
 
-    .preset-section-title span { color: #64748b; font-size: 11px; font-weight: 600; }
-    .style-grid { grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); }
-    .style-card { min-height: 118px; }
-    .style-card.custom .preset-name::after { content: ' · Custom'; color: #7c3aed; }
-    .palette-swatches { display: flex; gap: 4px; margin-bottom: 10px; }
-    .palette-swatches i { width: 24px; height: 18px; border: 1px solid rgba(15,23,42,.12); border-radius: 5px; }
-    .recommended-badge { display: inline-flex; margin-top: 8px; padding: 3px 7px; border-radius: 999px; background: #eff6ff; color: #1d4ed8; font-size: 10px; font-weight: 900; }
-    .preset-undo { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:10px 0 16px; padding:10px 12px; border:1px solid #c4b5fd; border-radius:10px; background:#f5f3ff; color:#4c1d95; font-size:12px; font-weight:700; }
-    .advanced-colours { grid-column: 1 / -1; border: 1px solid #e2e8f0; border-radius: 12px; background:#f8fafc; padding: 12px; }
-    .advanced-colours summary { cursor:pointer; color:#334155; font-size:13px; font-weight:900; }
-    .advanced-colours .form-grid { margin-top:14px; }
+    .theme-picker-control label { color: #334155; font-size: 12px; font-weight: 800; }
+    .theme-picker-control select { min-height: 46px; font-weight: 800; }
+    .theme-picker-control small { color: #64748b; font-size: 11px; line-height: 1.4; }
+
+    .theme-selection-preview {
+      display: grid;
+      grid-template-columns: 108px minmax(0, 1fr);
+      gap: 14px;
+      align-items: center;
+      min-width: 0;
+      padding: 14px;
+      border: 1px solid #dbe3ee;
+      border-radius: 12px;
+      background: var(--theme-panel, #ffffff);
+      color: var(--theme-text, #0f172a);
+    }
+
+    .theme-palette-preview { display: grid; grid-template-columns: repeat(5, 1fr); height: 64px; overflow: hidden; border: 1px solid rgba(15,23,42,.12); border-radius: 10px; }
+    .theme-palette-preview i { min-width: 0; }
+    .theme-selection-title { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; font-size: 14px; font-weight: 900; }
+    .theme-selection-copy { margin: 5px 0 0; color: var(--theme-muted, #64748b); font-size: 11px; line-height: 1.45; }
+    .theme-badge { display: inline-flex; align-items: center; min-height: 22px; padding: 3px 7px; border-radius: 999px; background: color-mix(in srgb, var(--theme-accent, #2563eb) 14%, var(--theme-panel, #fff)); color: var(--theme-text, #0f172a); font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: .04em; }
+    .theme-badge.custom { background: #f3e8ff; color: #7e22ce; }
+
+    .preset-undo { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:12px; padding:10px 12px; border:1px solid #c4b5fd; border-radius:10px; background:#f5f3ff; color:#4c1d95; font-size:12px; font-weight:700; }
+    .theme-customization { margin-top: 12px; border-top: 1px solid #e2e8f0; padding-top: 12px; }
+    .theme-customization summary { cursor:pointer; color:#334155; font-size:12px; font-weight:900; list-style-position: outside; }
+    .theme-customization > .form-grid { margin-top:14px; }
+    .advanced-colours { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; border-top: 1px solid #e2e8f0; padding-top: 14px; }
+    .advanced-colours small { grid-column: 1 / -1; }
+    .visually-hidden { position:absolute !important; width:1px !important; height:1px !important; padding:0 !important; margin:-1px !important; overflow:hidden !important; clip:rect(0,0,0,0) !important; white-space:nowrap !important; border:0 !important; }
 
     .question-list {
       grid-template-columns: 1fr;
@@ -1355,6 +1417,10 @@
       .preview-panel { position: static; }
       .workbench-hero { grid-template-columns: 1fr; }
       .question-card, .faq-card { grid-template-columns: 1fr; }
+      .preset-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .theme-picker { grid-template-columns: 1fr; }
+      .theme-selection-preview { grid-template-columns: 92px minmax(0, 1fr); }
+      .brand-step { padding: 14px; }
       .save-bar { position: static; flex-direction: column; align-items: stretch; }
       .filters { grid-template-columns: 1fr; }
       .modal { width: calc(100vw - 24px); }
@@ -1365,6 +1431,11 @@
     }
 
     @media (max-width: 480px) {
+      .preset-grid { gap: 8px; }
+      .preset-card { aspect-ratio: auto; min-height: 132px; }
+      .advanced-colours { grid-template-columns: 1fr; }
+      .theme-selection-preview { grid-template-columns: 1fr; }
+      .theme-palette-preview { height: 42px; }
       .stats-grid { grid-template-columns: 1fr; }
       .stat-card { padding: 14px; }
       .stat-value { font-size: 22px; }
@@ -1634,10 +1705,18 @@
     }
 
     @media (max-width: 768px) {
+      .header { position: static; }
       .header-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         border-radius: 14px;
         padding: 10px;
       }
+
+      .header-actions .admin-language-switch,
+      .header-actions .auth-status { grid-column: 1 / -1; }
+      .header-actions .tenant-chip { display: none; }
+      .header-actions button { width: auto; }
 
       .nav-inner {
         padding-top: 10px;
@@ -1761,42 +1840,78 @@
               <div class="panel-heading">
                 <div>
                   <h3>Brand foundation</h3>
-                  <p>Core identity, industry preset, colours, contact, and CMS shell presentation.</p>
+                  <p>Build the foundation in three clear steps: industry, visual theme, then studio details.</p>
                 </div>
               </div>
-              <div id="presetGrid" class="preset-grid"></div>
-              <div class="preset-section-title">Visual style <span>Choose a complete accessible palette; industry recommendations are highlighted.</span></div>
-              <div id="stylePresetGrid" class="preset-grid style-grid"></div>
-              <div id="presetUndoBar" class="preset-undo hidden"><span id="presetUndoText">Preset applied to this draft.</span><button type="button" id="undoPresetBtn" class="btn-secondary">Undo</button></div>
-              <div class="form-grid">
-                <div class="form-group"><label>Studio Name</label><input id="settingName"></div>
-                <div class="form-group"><label>Studio Category</label><select id="settingCategory"></select></div>
-                <div class="form-group"><label>Slogan</label><input id="settingSlogan" placeholder="Public brand slogan"></div>
-                <div class="form-group"><label>Logo URL</label><input id="settingLogoUrl" placeholder="/logo.png or https://..."></div>
-                <div class="form-group"><label>Upload Logo</label><input id="settingLogoFile" type="file" accept="image/*"></div>
-                <div class="form-group"><label>Plan</label><select id="settingPlan" disabled></select><small>Managed by StudioSaaS Super Admin.</small></div>
-                <div class="form-group"><label>Main brand colour</label><div class="color-field"><input id="settingPrimaryColor" type="color"><div class="color-meta">Primary accent and actions</div></div></div>
-                <div class="form-group"><label>Supporting brand colour</label><div class="color-field"><input id="settingSecondaryColor" type="color"><div class="color-meta">Secondary actions and highlights</div></div></div>
-                <details class="advanced-colours">
-                  <summary>Advanced colours</summary>
-                  <div class="form-grid">
-                    <div class="form-group"><label>Page Background</label><input id="settingThemeBackground" type="color"></div>
-                    <div class="form-group"><label>Panel Background</label><input id="settingThemePanel" type="color"></div>
-                    <div class="form-group"><label>Text Color</label><input id="settingThemeText" type="color"></div>
-                    <div class="form-group"><label>Muted Text</label><input id="settingThemeMuted" type="color"></div>
-                    <div class="form-group"><label>Border Color</label><input id="settingThemeBorder" type="color"></div>
+              <div class="brand-flow">
+                <section class="brand-step" aria-labelledby="industryStepTitle">
+                  <div class="brand-step-head">
+                    <span class="brand-step-index">01</span>
+                    <div><h4 id="industryStepTitle">Choose an industry foundation</h4><p>This sets the recommended copy, registration questions, and starting theme.</p></div>
                   </div>
-                  <small>Button text and status colours are selected automatically for readable contrast.</small>
-                </details>
-                <div class="form-group"><label>Button Style</label><select id="settingButtonStyle"><option value="soft">Soft</option><option value="sharp">Sharp</option><option value="rounded">Rounded</option></select></div>
-                <div class="form-group"><label>Font Mood</label><select id="settingFontMood"><option value="serif">Serif / editorial</option><option value="modern">Modern sans</option><option value="classic">Classic balanced</option></select></div>
-                <div class="form-group"><label>CMS Layout</label><select id="settingCmsLayout"><option value="bar">Header Bar</option><option value="hero">Hero Welcome</option><option value="compact">Compact</option></select></div>
-                <div class="form-group"><label>Show Welcome</label><select id="settingShowWelcome"><option value="true">Show on CMS/Register</option><option value="false">Hide</option></select></div>
-                <div class="form-group"><label>Timezone</label><input id="settingTimezone"></div>
-                <div class="form-group"><label>Phone</label><input id="settingPhone" placeholder="0400 000 000"></div>
-                <div class="form-group"><label>Email</label><input id="settingEmail" type="email" placeholder="studio@example.com"></div>
-                <div class="form-group"><label>Address</label><input id="settingAddress" placeholder="Studio address"></div>
-                <div class="form-group" style="grid-column:1/-1;"><label>Welcome Message</label><input id="settingWelcome" placeholder="Welcome text for CMS and Register"></div>
+                  <select id="settingCategory" class="visually-hidden" tabindex="-1" aria-hidden="true"></select>
+                  <div id="presetGrid" class="preset-grid"></div>
+                </section>
+
+                <section class="brand-step" aria-labelledby="themeStepTitle">
+                  <div class="brand-step-head">
+                    <span class="brand-step-index">02</span>
+                    <div><h4 id="themeStepTitle">Choose a colour theme</h4><p>Start with one professionally balanced palette. You can fine-tune it without changing the industry content.</p></div>
+                  </div>
+                  <div class="theme-picker">
+                    <div class="theme-picker-control">
+                      <label for="stylePresetSelect">Theme</label>
+                      <select id="stylePresetSelect" aria-describedby="themeRecommendationNote"></select>
+                      <small id="themeRecommendationNote">The recommended theme is selected automatically.</small>
+                    </div>
+                    <div id="stylePresetPreview" class="theme-selection-preview" aria-live="polite">
+                      <div id="themePalettePreview" class="theme-palette-preview" aria-hidden="true"></div>
+                      <div>
+                        <div class="theme-selection-title"><span id="themePresetName">Theme</span><span id="themePresetBadge" class="theme-badge">Recommended</span></div>
+                        <p id="themePresetDescription" class="theme-selection-copy"></p>
+                      </div>
+                    </div>
+                  </div>
+                  <div id="presetUndoBar" class="preset-undo hidden"><span id="presetUndoText">Preset applied to this draft.</span><button type="button" id="undoPresetBtn" class="btn-secondary">Undo</button></div>
+                  <details class="theme-customization">
+                    <summary>Fine-tune selected theme</summary>
+                    <div class="form-grid">
+                      <div class="form-group"><label>Main brand colour</label><div class="color-field"><input id="settingPrimaryColor" type="color"><div class="color-meta">Primary accent and actions</div></div></div>
+                      <div class="form-group"><label>Supporting brand colour</label><div class="color-field"><input id="settingSecondaryColor" type="color"><div class="color-meta">Secondary actions and highlights</div></div></div>
+                      <div class="form-group"><label>Button Style</label><select id="settingButtonStyle"><option value="soft">Soft</option><option value="sharp">Sharp</option><option value="rounded">Rounded</option></select></div>
+                      <div class="form-group"><label>Font Mood</label><select id="settingFontMood"><option value="serif">Serif / editorial</option><option value="modern">Modern sans</option><option value="classic">Classic balanced</option></select></div>
+                      <div class="advanced-colours">
+                        <div class="form-group"><label>Page Background</label><input id="settingThemeBackground" type="color"></div>
+                        <div class="form-group"><label>Panel Background</label><input id="settingThemePanel" type="color"></div>
+                        <div class="form-group"><label>Text Color</label><input id="settingThemeText" type="color"></div>
+                        <div class="form-group"><label>Muted Text</label><input id="settingThemeMuted" type="color"></div>
+                        <div class="form-group"><label>Border Color</label><input id="settingThemeBorder" type="color"></div>
+                        <small>Button text and status colours are selected automatically for readable contrast.</small>
+                      </div>
+                    </div>
+                  </details>
+                </section>
+
+                <section class="brand-step" aria-labelledby="identityStepTitle">
+                  <div class="brand-step-head">
+                    <span class="brand-step-index">03</span>
+                    <div><h4 id="identityStepTitle">Add studio identity and contact details</h4><p>These details appear across the public website, registration, and CMS.</p></div>
+                  </div>
+                  <div class="form-grid">
+                    <div class="form-group"><label>Studio Name</label><input id="settingName"></div>
+                    <div class="form-group"><label>Slogan</label><input id="settingSlogan" placeholder="Public brand slogan"></div>
+                    <div class="form-group"><label>Logo URL</label><input id="settingLogoUrl" placeholder="/logo.png or https://..."></div>
+                    <div class="form-group"><label>Upload Logo</label><input id="settingLogoFile" type="file" accept="image/*"></div>
+                    <div class="form-group"><label>Plan</label><select id="settingPlan" disabled></select><small>Managed by StudioSaaS Super Admin.</small></div>
+                    <div class="form-group"><label>CMS Layout</label><select id="settingCmsLayout"><option value="bar">Header Bar</option><option value="hero">Hero Welcome</option><option value="compact">Compact</option></select></div>
+                    <div class="form-group"><label>Show Welcome</label><select id="settingShowWelcome"><option value="true">Show on CMS/Register</option><option value="false">Hide</option></select></div>
+                    <div class="form-group"><label>Timezone</label><input id="settingTimezone"></div>
+                    <div class="form-group"><label>Phone</label><input id="settingPhone" placeholder="0400 000 000"></div>
+                    <div class="form-group"><label>Email</label><input id="settingEmail" type="email" placeholder="studio@example.com"></div>
+                    <div class="form-group"><label>Address</label><input id="settingAddress" placeholder="Studio address"></div>
+                    <div class="form-group" style="grid-column:1/-1;"><label>Welcome Message</label><input id="settingWelcome" placeholder="Welcome text for CMS and Register"></div>
+                  </div>
+                </section>
               </div>
               <div id="colorWarning" class="hidden"></div>
             </div>
@@ -2765,30 +2880,56 @@
       grid.innerHTML = Object.entries(INDUSTRY_PRESETS).map(([key, preset]) => {
         const theme = preset.visualTheme || {};
         return `
-        <button type="button" class="preset-card ${key === selected ? 'active' : ''}" data-preset-key="${key}">
+        <button type="button" class="preset-card ${key === selected ? 'active' : ''}" data-preset-key="${key}" aria-pressed="${key === selected ? 'true' : 'false'}">
+          <div class="preset-card-top"><span class="preset-code">${esc(key.slice(0, 3))}</span><span class="preset-check" aria-hidden="true">✓</span></div>
+          <div><div class="preset-name">${esc(preset.label)}<span>${esc(preset.labelZh || '')}</span></div><div class="preset-copy">${esc(preset.slogan)}</div></div>
           <div class="palette-swatches" aria-hidden="true"><i style="background:${themeValue(theme, 'background_color', '#fff')}"></i><i style="background:${themeValue(theme, 'accent_color', '#255c99')}"></i><i style="background:${themeValue(theme, 'secondary_accent_color', '#147168')}"></i></div>
-          <div class="preset-name">${esc(preset.label)}</div>
-          <div class="preset-copy">${esc(preset.slogan)}</div>
         </button>
       `}).join('');
     }
 
     function renderStylePresetGrid() {
-      const grid = $('stylePresetGrid');
-      if (!grid) return;
-      const recommended = INDUSTRY_PRESETS[$('settingCategory')?.value]?.recommendedStyleId;
-      grid.innerHTML = Object.entries(VISUAL_STYLE_PRESETS).map(([key, style]) => {
-        const theme = style.visualTheme || {};
-        const active = key === activeVisualStyle;
-        const custom = active && themeMode === 'custom';
-        const colours = ['background_color', 'panel_color', 'accent_color', 'secondary_accent_color', 'text_color'];
-        return `<button type="button" class="preset-card style-card ${active ? 'active' : ''} ${custom ? 'custom' : ''}" data-style-key="${key}">
-          <div class="palette-swatches" aria-hidden="true">${colours.map((name) => `<i style="background:${themeValue(theme, name, '#fff')}"></i>`).join('')}</div>
-          <div class="preset-name">${esc(style.label)}</div>
-          <div class="preset-copy">${esc(style.description || '')}</div>
-          ${key === recommended ? '<span class="recommended-badge">Recommended</span>' : ''}
-        </button>`;
-      }).join('');
+      const select = $('stylePresetSelect');
+      if (!select) return;
+      const entries = Object.entries(VISUAL_STYLE_PRESETS);
+      if (!entries.length) return;
+      const category = $('settingCategory')?.value || 'general';
+      const industry = INDUSTRY_PRESETS[category] || INDUSTRY_PRESETS.general;
+      const recommended = industry?.recommendedStyleId;
+      const isZh = window.AdminI18n?.language === 'zh';
+      if (!activeVisualStyle || !VISUAL_STYLE_PRESETS[activeVisualStyle]) activeVisualStyle = recommended || entries[0][0];
+      select.innerHTML = entries.map(([key, style]) => `<option value="${key}" ${key === activeVisualStyle ? 'selected' : ''}>${esc(style.label)}${key === recommended ? (isZh ? ' — 推荐' : ' — Recommended') : ''}</option>`).join('');
+      select.value = activeVisualStyle;
+
+      const selected = VISUAL_STYLE_PRESETS[activeVisualStyle] || entries[0][1];
+      const baseTheme = selected.visualTheme || {};
+      const custom = themeMode === 'custom';
+      const shownTheme = custom ? {
+        background_color: $('settingThemeBackground')?.value,
+        panel_color: $('settingThemePanel')?.value,
+        text_color: $('settingThemeText')?.value,
+        muted_text_color: $('settingThemeMuted')?.value,
+        accent_color: $('settingPrimaryColor')?.value,
+        secondary_accent_color: $('settingSecondaryColor')?.value,
+      } : baseTheme;
+      const colours = ['background_color', 'panel_color', 'accent_color', 'secondary_accent_color', 'text_color'];
+      $('themePalettePreview').innerHTML = colours.map((name) => `<i style="background:${themeValue(shownTheme, name, themeValue(baseTheme, name, '#fff'))}"></i>`).join('');
+      $('themePresetName').textContent = selected.label || 'Theme';
+      $('themePresetDescription').textContent = custom
+        ? (isZh ? `基于 ${selected.label} 微调；行业内容保持不变。` : `Customised from ${selected.label}. Your industry content remains unchanged.`)
+        : (window.AdminI18n?.translate(selected.description || '') || selected.description || '');
+      $('themePresetBadge').textContent = window.AdminI18n?.translate(custom ? 'Custom' : activeVisualStyle === recommended ? 'Recommended' : 'Selected') || (custom ? 'Custom' : activeVisualStyle === recommended ? 'Recommended' : 'Selected');
+      $('themePresetBadge').classList.toggle('custom', custom);
+      $('themeRecommendationNote').textContent = activeVisualStyle === recommended
+        ? (isZh ? `${industry?.labelZh || industry?.label || '当前'}行业推荐主题。` : `Recommended for ${industry?.label || 'this industry'}.`)
+        : (isZh
+          ? `${industry?.labelZh || industry?.label || '当前'}行业推荐 ${VISUAL_STYLE_PRESETS[recommended]?.label || '另一主题'}；当前选择同样完整支持。`
+          : `${VISUAL_STYLE_PRESETS[recommended]?.label || 'Another theme'} is recommended for ${industry?.label || 'this industry'}, but this choice is fully supported.`);
+      const preview = $('stylePresetPreview');
+      preview.style.setProperty('--theme-panel', themeValue(shownTheme, 'panel_color', '#fff'));
+      preview.style.setProperty('--theme-text', themeValue(shownTheme, 'text_color', '#0f172a'));
+      preview.style.setProperty('--theme-muted', themeValue(shownTheme, 'muted_text_color', '#64748b'));
+      preview.style.setProperty('--theme-accent', themeValue(shownTheme, 'accent_color', '#2563eb'));
     }
 
     function switchWorkbenchTab(tab) {
@@ -3278,18 +3419,20 @@
     function applyVisualStyle(styleId, { remember = true } = {}) {
       const style = VISUAL_STYLE_PRESETS[styleId];
       if (!style) return;
-      if (remember) rememberPresetState(`${style.label} applied to this draft.`);
+      const isZh = window.AdminI18n?.language === 'zh';
+      if (remember) rememberPresetState(isZh ? `已将 ${style.label} 应用到当前草稿。` : `${style.label} applied to this draft.`);
       setVisualThemeFields(style.visualTheme || {}, styleId);
       themeMode = 'preset';
       renderStylePresetGrid();
       setSettingsDirty(true);
       updateThemePreview();
-      showToast(`${style.label} style applied. Nothing is public until you publish.`);
+      showToast(isZh ? `已应用 ${style.label}；发布前不会影响公开页面。` : `${style.label} style applied. Nothing is public until you publish.`);
     }
 
     function applyCategoryPreset({ remember = true } = {}) {
       const preset = INDUSTRY_PRESETS[$('settingCategory').value] || INDUSTRY_PRESETS.general;
-      if (remember) rememberPresetState(`${preset.label} industry preset applied to this draft.`);
+      const isZh = window.AdminI18n?.language === 'zh';
+      if (remember) rememberPresetState(isZh ? `已将${preset.labelZh || preset.label}行业预设应用到当前草稿。` : `${preset.label} industry preset applied to this draft.`);
       renderPresetGrid($('settingCategory').value);
       $('settingSlogan').value = preset.slogan;
       $('settingPortalLabel').value = preset.portalLabel;
@@ -3314,7 +3457,7 @@
       fillFaqItems(defaultFaqItems($('settingCategory').value));
       setSettingsDirty(true);
       updateThemePreview();
-      showToast(`${preset.label} preset and its recommended visual style are ready in this draft.`);
+      showToast(isZh ? `已应用${preset.labelZh || preset.label}行业预设及推荐主题。` : `${preset.label} preset and its recommended visual style are ready in this draft.`);
     }
 
     function setLoadingState(loading) {
@@ -3395,10 +3538,7 @@
         $('settingCategory').value = card.dataset.presetKey;
         applyCategoryPreset();
       });
-      $('stylePresetGrid').addEventListener('click', (event) => {
-        const card = event.target.closest('[data-style-key]');
-        if (card) applyVisualStyle(card.dataset.styleKey);
-      });
+      $('stylePresetSelect').addEventListener('change', () => applyVisualStyle($('stylePresetSelect').value));
       document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape' && $('modalOverlay').classList.contains('active')) closeModal();
       });
@@ -3434,6 +3574,7 @@
         'settingCmsLayout'
       ].forEach((id) => $(id).addEventListener('change', () => { setSettingsDirty(true); updateThemePreview(); }));
       ['settingButtonStyle','settingFontMood'].forEach((id) => $(id).addEventListener('change', markThemeCustom));
+      document.addEventListener('studiosaas:admin-language', renderStylePresetGrid);
       $('settingCategory').addEventListener('change', () => {
         applyCategoryPreset();
       });
