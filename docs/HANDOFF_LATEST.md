@@ -74,9 +74,10 @@
 
 - **版本**：v7.5.0（VERSION / server.py APP_VERSION / README 三处一致；
   v7.4.0=RBAC/a11y/AWS 套件，v7.4.1=数据库与复审稳定性修复，
-  v7.5.0=文档全量刷新 + UI/UX 修复批次 + docs/guides 角色手册，**未提交**）
-- **打包产物**：`dist/PWE-StudioSaaS-aws-7.4.1.tar.gz`（sha256 已验证；
-  7.5.0 包待 commit 后打——build_aws_bundle.sh 需干净 git 树）
+  v7.5.0=文档全量刷新 + UI/UX 修复批次 + docs/guides 角色手册，
+  commit ef8b1f8 已 push）
+- **打包产物**：`dist/PWE-StudioSaaS-aws-7.5.0.tar.gz`（3.3M，sha256 校验
+  OK，含 BUILD_INFO）
 - **分支**：`codex/studiosaas-v7.3.1`，上游同名
 - **验证基线**：117 pytest + 73 smoke + 196 tenant-isolation 全绿
 - **AWS 部署包**：`bash deploy/aws/build_aws_bundle.sh <ver>` →
