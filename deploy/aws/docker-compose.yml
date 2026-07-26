@@ -32,6 +32,9 @@ services:
     volumes:
       - studiosaas-data:/data
       - studiosaas-media:/media
+      # Tenant archive/permanent-delete snapshots — legal retention (incl.
+      # publication-consent evidence). Must survive image replacement.
+      - studiosaas-archives:/app/backend/archives
 
   db:
     profiles: ["local-db"]
@@ -52,4 +55,5 @@ services:
 volumes:
   studiosaas-data:
   studiosaas-media:
+  studiosaas-archives:
   studiosaas-pgdata:

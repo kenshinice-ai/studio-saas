@@ -438,3 +438,206 @@ ALTER TABLE subscriptions
 
 ALTER TABLE subscriptions
     ADD COLUMN IF NOT EXISTS ends_at timestamptz;
+
+-- ── 0015–0017 increments (kept in sync with db/migrations/) ─────────────────
+-- When a migration adds tenant-scoped objects, mirror them here AND in
+-- studiosaas/services/tenant_archive.py SNAPSHOT_TABLES. Both inventories
+-- drifted once (0015–0017) and the gap only surfaced in an audit.
+
+-- Student self-service access, append-only publication consent, and safe
+-- derivative media. Every row is tenant-scoped so public sessions and media
+-- can never cross a StudioSaaS tenant boundary.
+
+ALTER TABLE students
+    ADD COLUMN IF NOT EXISTS access_code_hash text NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS access_code_updated_at timestamptz,
+    ADD COLUMN IF NOT EXISTS access_code_revoked_at timestamptz;
+
+CREATE TABLE IF NOT EXISTS student_access_sessions (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    student_id uuid NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    token_hash text NOT NULL,
+    created_ip inet,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    expires_at timestamptz NOT NULL,
+    revoked_at timestamptz,
+    UNIQUE (tenant_id, token_hash)
+);
+CREATE INDEX IF NOT EXISTS idx_student_access_sessions_active
+    ON student_access_sessions (tenant_id, token_hash, expires_at)
+    WHERE revoked_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_student_access_sessions_student
+    ON student_access_sessions (tenant_id, student_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS student_access_attempts (
+    tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    lookup_hash text NOT NULL,
+    ip_address inet NOT NULL,
+    failed_count integer NOT NULL DEFAULT 0 CHECK (failed_count >= 0),
+    window_started_at timestamptz NOT NULL DEFAULT now(),
+    locked_until timestamptz,
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (tenant_id, lookup_hash, ip_address)
+);
+
+CREATE TABLE IF NOT EXISTS student_publication_consent_events (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    student_id uuid NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    status text NOT NULL CHECK (status IN ('confirmed', 'withdrawn')),
+    consent_by text NOT NULL DEFAULT '',
+    relationship text NOT NULL DEFAULT '',
+    consent_method text NOT NULL DEFAULT '',
+    notice_version text NOT NULL DEFAULT '',
+    note text NOT NULL DEFAULT '',
+    actor_user_id uuid REFERENCES users(id) ON DELETE SET NULL,
+    source_registration_id uuid REFERENCES registrations(id) ON DELETE SET NULL,
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_student_publication_consent_latest
+    ON student_publication_consent_events (tenant_id, student_id, created_at DESC, id DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_student_publication_consent_registration
+    ON student_publication_consent_events (tenant_id, source_registration_id)
+    WHERE source_registration_id IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS media_variants (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    media_asset_id uuid NOT NULL REFERENCES media_assets(id) ON DELETE CASCADE,
+    variant text NOT NULL CHECK (variant IN ('display', 'thumb')),
+    storage_key text NOT NULL,
+    mime_type text NOT NULL,
+    byte_size bigint NOT NULL CHECK (byte_size >= 0),
+    checksum_sha256 text NOT NULL,
+    pixel_width integer NOT NULL CHECK (pixel_width > 0),
+    pixel_height integer NOT NULL CHECK (pixel_height > 0),
+    metadata_sanitized boolean NOT NULL DEFAULT true,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (tenant_id, media_asset_id, variant)
+);
+CREATE INDEX IF NOT EXISTS idx_media_variants_asset
+    ON media_variants (tenant_id, media_asset_id, variant);
+
+-- Canonical tenant-scoped daily roster entries.
+--
+-- Recurring class schedules remain templates. This table records explicit
+-- date-level additions and their reversible cancellation state, replacing the
+-- mutable legacy JSON roster board as the source of truth.
+
+DO $$
+BEGIN
+    ALTER TABLE students
+        ADD CONSTRAINT students_tenant_id_id_unique UNIQUE (tenant_id, id);
+EXCEPTION WHEN duplicate_object THEN
+    NULL;
+END $$;
+
+CREATE TABLE IF NOT EXISTS daily_roster_entries (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    roster_date date NOT NULL,
+    student_id uuid NOT NULL,
+    source text NOT NULL DEFAULT 'manual'
+        CHECK (source IN ('manual', 'group', 'profile', 'import')),
+    status text NOT NULL DEFAULT 'scheduled'
+        CHECK (status IN ('scheduled', 'makeup', 'cancelled')),
+    status_before_cancel text
+        CHECK (status_before_cancel IS NULL OR status_before_cancel IN ('scheduled', 'makeup')),
+    note text NOT NULL DEFAULT '',
+    created_by_user_id uuid REFERENCES users(id) ON DELETE SET NULL,
+    cancelled_by_user_id uuid REFERENCES users(id) ON DELETE SET NULL,
+    cancelled_at timestamptz,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT daily_roster_student_tenant_fkey
+        FOREIGN KEY (tenant_id, student_id)
+        REFERENCES students(tenant_id, id) ON DELETE CASCADE,
+    UNIQUE (tenant_id, roster_date, student_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_daily_roster_tenant_date_status
+    ON daily_roster_entries (tenant_id, roster_date, status, created_at);
+CREATE INDEX IF NOT EXISTS idx_daily_roster_tenant_student
+    ON daily_roster_entries (tenant_id, student_id, roster_date DESC);
+
+-- Import existing CMS roster JSON once. IDs are joined through the tenant and
+-- invalid/stale student IDs are skipped, preserving the tenant boundary.
+INSERT INTO daily_roster_entries (
+    tenant_id, roster_date, student_id, source, status, note
+)
+SELECT t.id, valid.roster_day, s.id, 'import', 'scheduled',
+       'Migrated from legacy CMS roster'
+FROM tenants t
+CROSS JOIN LATERAL jsonb_each(
+    CASE
+        WHEN jsonb_typeof(t.settings #> '{legacy_cms,rosters}') = 'object'
+        THEN t.settings #> '{legacy_cms,rosters}'
+        ELSE '{}'::jsonb
+    END
+) AS board(roster_date, student_ids)
+CROSS JOIN LATERAL (
+    SELECT CASE
+        WHEN board.roster_date ~ '^\d{4}-\d{2}-\d{2}$'
+         AND pg_input_is_valid(board.roster_date, 'date')
+        THEN board.roster_date::date
+        ELSE NULL
+    END AS roster_day
+) AS valid
+CROSS JOIN LATERAL jsonb_array_elements_text(
+    CASE WHEN jsonb_typeof(board.student_ids) = 'array'
+         THEN board.student_ids ELSE '[]'::jsonb END
+) AS member(student_id)
+JOIN students s
+  ON s.tenant_id = t.id
+ AND s.id::text = member.student_id
+WHERE valid.roster_day IS NOT NULL
+ON CONFLICT (tenant_id, roster_date, student_id) DO NOTHING;
+
+-- Tenant-owned public website media and privacy-preserving portal analytics.
+--
+-- Website images use the same upload-time, metadata-stripped derivative
+-- pipeline as public logos. Analytics deliberately stores no IP address,
+-- user agent, student identifier, name, phone, email, or raw browser token.
+
+ALTER TABLE media_assets
+    DROP CONSTRAINT IF EXISTS media_assets_asset_type_check;
+
+ALTER TABLE media_assets
+    ADD CONSTRAINT media_assets_asset_type_check
+    CHECK (asset_type IN (
+        'student_photo', 'registration_photo', 'portfolio', 'homework',
+        'sheet_music', 'logo', 'website_image'
+    ));
+
+CREATE TABLE IF NOT EXISTS public_analytics_events (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    event_name text NOT NULL CHECK (event_name IN (
+        'page_view', 'cta_click', 'registration_started', 'registration_submitted'
+    )),
+    path text NOT NULL DEFAULT '',
+    session_hash text NOT NULL,
+    campaign jsonb NOT NULL DEFAULT '{}'::jsonb,
+    metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+    occurred_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_public_analytics_tenant_time
+    ON public_analytics_events (tenant_id, occurred_at DESC);
+CREATE INDEX IF NOT EXISTS idx_public_analytics_tenant_event_time
+    ON public_analytics_events (tenant_id, event_name, occurred_at DESC);
+
+-- 0011's consent index (was missing here) + 0019 stability indexes.
+CREATE INDEX IF NOT EXISTS idx_portfolio_public_consent
+    ON portfolio_items (tenant_id, visibility, public_consent_at)
+    WHERE visibility = 'shared';
+
+
+CREATE INDEX IF NOT EXISTS idx_portfolio_items_tenant_student
+    ON portfolio_items (tenant_id, student_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_notification_logs_tenant_created
+    ON notification_logs (tenant_id, created_at DESC);
+
+DROP INDEX IF EXISTS credit_accounts_general_uniq;

@@ -87,7 +87,7 @@ Root `/register` is intentionally closed (404) — registration belongs to tenan
     ├── server.py                 # Flask application (~1560 lines)
     ├── requirements.txt
     ├── pytest.ini
-    ├── db/schema_v1.sql          # Historical bootstrap schema; ordered migrations are canonical (through 0017)
+    ├── db/schema_v1.sql          # Kept in sync with migrations (through 0019); ordered migrations are canonical
     ├── studiosaas/
     │   ├── api_v1.py             # All API routes (~5700 lines — split planned, v7 P2-1)
     │   ├── auth.py               # Auth helpers and decorators

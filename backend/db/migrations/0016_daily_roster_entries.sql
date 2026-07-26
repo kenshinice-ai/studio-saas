@@ -1,5 +1,8 @@
 -- Canonical tenant-scoped daily roster entries.
 --
+-- REQUIRES PostgreSQL 16+: the data backfill below uses pg_input_is_valid().
+-- Provision RDS at PG16 or newer (docs/Database.md declares the same floor).
+--
 -- Recurring class schedules remain templates. This table records explicit
 -- date-level additions and their reversible cancellation state, replacing the
 -- mutable legacy JSON roster board as the source of truth.

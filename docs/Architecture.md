@@ -111,7 +111,7 @@ studiosaas/
 │   │   ├── tenant_context.py     # Tenant resolution
 │   │   └── workspaces.py         # Tenant folder generation
 │   ├── db/
-│   │   └── schema_v1.sql         # Historical bootstrap; migrations through 0017 are canonical
+│   │   └── schema_v1.sql         # Kept in sync with migrations (through 0019); migrations are canonical
 │   ├── scripts/
 │   │   ├── seed_super_admin.py
 │   │   ├── seed_local_test_tenants.py

@@ -213,11 +213,17 @@ function ConfirmDialog({ dialog, onClose }) {
   useEffect(() => {
     setTyped(dialog?.promptDefault || "");
   }, [dialog]);
+  const dismiss = () => {
+    if (dialog && dialog.acknowledge && dialog.onConfirm) dialog.onConfirm();
+    onCloseRef.current();
+  };
+  const dismissRef = useRef(dismiss);
+  dismissRef.current = dismiss;
   useEffect(() => {
     if (!dialog) return;
     const prevFocus = document.activeElement;
     const onKey = (e) => {
-      if (e.key === "Escape") onCloseRef.current();
+      if (e.key === "Escape") dismissRef.current();
     };
     document.addEventListener("keydown", onKey);
     const t = setTimeout(() => {
@@ -242,7 +248,7 @@ function ConfirmDialog({ dialog, onClose }) {
     "div",
     {
       className: "fixed inset-0 bg-black/50 z-[95] flex items-center justify-center p-4",
-      onClick: onClose,
+      onClick: dismiss,
       role: "dialog",
       "aria-modal": "true"
     },
@@ -914,7 +920,6 @@ function App() {
   const canWritePortfolio = [...ownerRoles, "manager", "teacher", "staff"].includes(actorRole);
   const canWriteAttendance = [...ownerRoles, "manager", "teacher", "staff"].includes(actorRole);
   const canRefund = [...ownerRoles, "manager"].includes(actorRole);
-  const canSharePortfolio = [...ownerRoles, "manager"].includes(actorRole);
   const [formPhoto, setFormPhoto] = useState("");
   const [editPhoto, setEditPhoto] = useState("");
   const cooldowns = useRef(/* @__PURE__ */ new Set());

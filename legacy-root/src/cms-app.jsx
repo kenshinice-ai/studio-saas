@@ -251,10 +251,19 @@ function ConfirmDialog({ dialog, onClose }) {
     /* a11y: Escape closes; focus moves into the dialog on open (the cancel /
        confirm button when no input autoFocuses) and returns to the previously
        focused element on close — matches the admin consoles' dialogs. */
+    /* Dismissing an `acknowledge` notice must still run its onConfirm —
+       post-restore/PWA notices rely on it to reload; Escape and overlay
+       click are dismissals, not cancellations, for a one-button dialog. */
+    const dismiss = () => {
+        if (dialog && dialog.acknowledge && dialog.onConfirm) dialog.onConfirm();
+        onCloseRef.current();
+    };
+    const dismissRef = useRef(dismiss);
+    dismissRef.current = dismiss;
     useEffect(() => {
         if (!dialog) return;
         const prevFocus = document.activeElement;
-        const onKey = (e) => { if (e.key === 'Escape') onCloseRef.current(); };
+        const onKey = (e) => { if (e.key === 'Escape') dismissRef.current(); };
         document.addEventListener('keydown', onKey);
         const t = setTimeout(() => {
             const box = boxRef.current;
@@ -277,7 +286,7 @@ function ConfirmDialog({ dialog, onClose }) {
         : (!isPrompt || !dialog.promptRequired || Boolean(typed.trim()));
     const confirmLabel = dialog.confirmText || (dialog.acknowledge ? '知道了 / OK' : '确认');
     return (
-        <div className="fixed inset-0 bg-black/50 z-[95] flex items-center justify-center p-4" onClick={onClose}
+        <div className="fixed inset-0 bg-black/50 z-[95] flex items-center justify-center p-4" onClick={dismiss}
              role="dialog" aria-modal="true">
             <div ref={boxRef} className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl anim" onClick={e=>e.stopPropagation()}>
                 {dialog.title && <p className="font-bold text-gray-800 mb-2">{dialog.title}</p>}
@@ -938,7 +947,6 @@ function App() {
     /* Mirrors backend credits:refund — refunds are owner/manager only. */
     const canRefund = [...ownerRoles,'manager'].includes(actorRole);
     /* Mirrors backend portfolio:share — share-link creation is owner/manager only. */
-    const canSharePortfolio = [...ownerRoles,'manager'].includes(actorRole);
 
     // Photo state for forms (shared — forms can't be open simultaneously)
     const [formPhoto, setFormPhoto] = useState('');

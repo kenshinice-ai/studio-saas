@@ -44,6 +44,16 @@ SNAPSHOT_TABLES: tuple[tuple[str, str, str], ...] = (
     ("tenant_brand_drafts.json", "tenant_brand_drafts", "tenant_id = %s"),
     ("tenant_brand_versions.json", "tenant_brand_versions", "tenant_id = %s"),
     ("tenant_archives.json", "tenant_archives", "tenant_id = %s"),
+    # 0015–0017 additions. student_publication_consent_events is legal proof
+    # of consent — permanent delete cascades it away, so the snapshot is the
+    # only surviving copy. When a migration adds a tenant-scoped table, add it
+    # here AND to backend/db/schema_v1.sql (both inventories drifted once).
+    ("student_access_sessions.json", "student_access_sessions", "tenant_id = %s"),
+    ("student_access_attempts.json", "student_access_attempts", "tenant_id = %s"),
+    ("student_publication_consent_events.json", "student_publication_consent_events", "tenant_id = %s"),
+    ("media_variants.json", "media_variants", "tenant_id = %s"),
+    ("daily_roster_entries.json", "daily_roster_entries", "tenant_id = %s"),
+    ("public_analytics_events.json", "public_analytics_events", "tenant_id = %s"),
 )
 
 

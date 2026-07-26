@@ -36,7 +36,20 @@ def connect() -> Iterator[Any]:
         raise DatabaseUnavailableError(str(exc)) from exc
 
     try:
-        conn = psycopg.connect(cfg.database_url, row_factory=dict_row)
+        # Bounded waits so one slow/hung query cannot wedge a waitress thread
+        # (8 wedged threads = a dead app). Values are per-session, so
+        # long-running maintenance (migrations, pg_dump) that connects on its
+        # own is unaffected; override via env for unusual workloads.
+        import os as _os
+        connect_timeout = int(_os.environ.get("STUDIOSAAS_DB_CONNECT_TIMEOUT", "5"))
+        statement_timeout_ms = int(_os.environ.get("STUDIOSAAS_DB_STATEMENT_TIMEOUT_MS", "30000"))
+        lock_timeout_ms = int(_os.environ.get("STUDIOSAAS_DB_LOCK_TIMEOUT_MS", "10000"))
+        conn = psycopg.connect(
+            cfg.database_url,
+            row_factory=dict_row,
+            connect_timeout=connect_timeout,
+            options=f"-c statement_timeout={statement_timeout_ms} -c lock_timeout={lock_timeout_ms}",
+        )
     except psycopg.Error as exc:
         raise DatabaseUnavailableError(str(exc)) from exc
 

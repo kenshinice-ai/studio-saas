@@ -2970,12 +2970,16 @@ def update_registration_status(registration_id: str):
         with conn.cursor() as cur:
             created_student_id = None
             linked_student_id = None
+            # FOR UPDATE: two concurrent approvals of the same registration
+            # must serialize here, so the second sees the first's status and
+            # fails the transition check instead of converting twice.
             cur.execute(
                 """
                 SELECT id, first_name, last_name, parent_name, mobile, email, message,
                        payload, student_id, status
                 FROM registrations
                 WHERE tenant_id = %s AND id = %s
+                FOR UPDATE
                 """,
                 (tenant.tenant_id, registration_id),
             )
@@ -3264,11 +3268,16 @@ def tenant_dashboard():
     # Financial aggregates share the same boundary as the legacy projection:
     # roles without analytics:read (teacher / front_desk / staff) get the
     # operational counters only, never revenue or liability figures.
+    # Fail closed: an absent actor strips financials rather than leaking them.
     actor = getattr(g, "actor", None)
-    try:
-        if actor is not None:
+    show_financials = False
+    if actor is not None:
+        try:
             require_permission(actor, "analytics:read")
-    except PermissionDeniedError:
+            show_financials = True
+        except PermissionDeniedError:
+            show_financials = False
+    if not show_financials:
         business = {
             "attended_total": business["attended_total"],
             "attended_month": business["attended_month"],
@@ -4773,7 +4782,10 @@ def _legacy_data_for_tenant(conn, tenant_id: str) -> dict:
         "rosters": rosters,
         "rosterEntries": roster_entries,
         "groups": legacy_state.get("groups") or {},
-        "rev": int(time.time()),
+        # The stored rev is bumped by every aggregate save; falling back to
+        # wall-clock keeps pre-rev tenants working (their first save records
+        # one). The save endpoint compares the client's rev against this.
+        "rev": int(legacy_state.get("rev") or time.time()),
     }
 
 
@@ -4845,6 +4857,31 @@ def legacy_cms_save():
     with connect() as conn:
         tenant = _tenant_context(conn)
         with conn.cursor() as cur:
+            # Optimistic concurrency, enforced server-side. The tenant-row
+            # lock serializes concurrent aggregate saves; a save carrying a
+            # rev older than the stored one is a stale tab and must not
+            # last-writer-win over profile edits committed since it loaded.
+            # (The CMS already handles this 409 by reloading.) force=true is
+            # the operator's explicit override from the conflict dialog.
+            cur.execute(
+                "SELECT settings->'legacy_cms' AS legacy FROM tenants WHERE id = %s FOR UPDATE",
+                (tenant.tenant_id,),
+            )
+            _locked = cur.fetchone()
+            stored_rev = int(((_locked or {}).get("legacy") or {}).get("rev") or 0)
+            client_rev_raw = payload.get("rev")
+            try:
+                client_rev = int(client_rev_raw) if client_rev_raw is not None else None
+            except (TypeError, ValueError):
+                client_rev = None
+            force_save = bool(payload.get("force"))
+            if stored_rev and client_rev is not None and client_rev < stored_rev and not force_save:
+                return jsonify({
+                    "status": "conflict",
+                    "message": "Data changed on another device/tab since this page loaded.",
+                    "rev": stored_rev,
+                }), 409
+            new_rev = max(int(time.time()), stored_rev + 1)
             cur.execute(
                 """
                 INSERT INTO courses (
@@ -5054,6 +5091,7 @@ def legacy_cms_save():
                 (
                     json.dumps({
                         "groups": _sanitize_legacy_board(payload.get("groups")),
+                        "rev": new_rev,
                     }),
                     tenant.tenant_id,
                 ),
@@ -5818,11 +5856,18 @@ def start_support_session(tenant_id: str):
 
 
 @api_v1.route("/admin/support-session/end", methods=["POST"])
-@auth_required
 def end_support_session():
-    """Exit support mode. Allowed for any logged-in session that has one."""
+    """Exit support mode. Allowed for any logged-in session that has one.
+
+    Deliberately NOT @auth_required: clearing the support key must still work
+    for a session whose membership was deactivated mid-support (or whose
+    target tenant was archived) — otherwise the stuck banner can never be
+    dismissed. The only mutation is popping the caller's own session key.
+    """
 
     from flask import session as _fs
+    if "user_id" not in _fs:
+        return _error("Authentication required. Please log in.", 401)
     support = _fs.pop("support", None)
     if not support:
         return jsonify({"ok": True, "ended": False})
@@ -7470,8 +7515,19 @@ def export_credit_ledger_csv():
         )
         _export_audit(conn, tenant, "credit-ledger", len(rows))
     header = ["Occurred At", "Student", "Course", "Type", "Amount", "Balance After", "Note"]
+
+    def _signed_amount(row):
+        # Historical rows mix conventions: check-in wrote `consume` with a
+        # positive amount while the manual endpoint writes it negative. The
+        # export normalizes so summing the Amount column reproduces balance
+        # movement: consume/expire always negative, everything else as stored.
+        amount = float(row["amount"] or 0)
+        if row["transaction_type"] in ("consume", "expire"):
+            return -abs(amount)
+        return amount
+
     data = ([r["occurred_at"], r["student"], r["course"], r["transaction_type"],
-             r["amount"], r["balance_after"], r["note"]] for r in rows)
+             _signed_amount(r), r["balance_after"], r["note"]] for r in rows)
     return _csv_response(f"{tenant.slug}-credit-ledger.csv", header, data)
 
 
@@ -7977,16 +8033,34 @@ def auth_login():
             (user["id"],),
         )
         if not staff_membership:
+            # Distinguish a parent-only account from one with no active
+            # memberships at all (e.g. deactivated staff) — the message and
+            # audit reason must not mislead support triage.
+            parent_membership = fetch_one(
+                conn,
+                """
+                SELECT 1 FROM memberships
+                WHERE user_id = %s AND status = 'active' AND role = 'parent'
+                LIMIT 1
+                """,
+                (user["id"],),
+            )
+            if parent_membership:
+                reason = "parent_only_membership"
+                message = "家庭自助登录暂未开放，请联系工作室。 Family self-service login is not available yet."
+            else:
+                reason = "no_active_membership"
+                message = "该账号没有有效的工作人员身份，请联系管理员。 This account has no active staff membership."
             _audit_request(
                 conn,
                 tenant_id=None,
                 action="auth.login_rejected",
                 resource_type="user",
                 resource_id=user["id"],
-                metadata={"email": email, "reason": "parent_only_membership"},
+                metadata={"email": email, "reason": reason},
             )
             conn.commit()
-            return _error("家庭自助登录暂未开放，请联系工作室。 Family self-service login is not available yet.", 403)
+            return _error(message, 403)
 
         _record_login(conn, user["id"])
         conn.commit()
@@ -8338,17 +8412,38 @@ def update_student(student_id: str):
                 return _error("enrollmentDate cannot be in the future.")
             updates["enrolled_on"] = enrolled_on_val
 
-        # Handle balance change → create credit transaction
-        old_balance = fetch_one(
-            conn,
-            """
-            SELECT COALESCE(balance, 0)::float AS balance
-            FROM credit_accounts
-            WHERE tenant_id = %s AND student_id = %s AND course_id IS NULL
-            """,
-            (tenant.tenant_id, student_id),
-        )
-        old_bal_val = float(old_balance["balance"]) if old_balance else 0.0
+        # Handle balance / creditHours change → signed adjustment through the
+        # ledger. The account row is locked first so a concurrent check-in
+        # cannot slip between the read and the overwrite (lost update), the
+        # stored amount keeps its sign (a downward adjustment used to be
+        # recorded as positive), and the row is created under the lock's
+        # serialization when it does not exist yet.
+        def _apply_absolute_balance(target_value: float) -> None:
+            cur = conn.cursor()
+            _ensure_default_credit_account(cur, tenant.tenant_id, student_id)
+            cur.execute(
+                """
+                SELECT COALESCE(balance, 0)::float AS balance
+                FROM credit_accounts
+                WHERE tenant_id = %s AND student_id = %s AND course_id IS NULL
+                FOR UPDATE
+                """,
+                (tenant.tenant_id, student_id),
+            )
+            row = cur.fetchone()
+            current = float(row["balance"]) if row else 0.0
+            delta = target_value - current
+            if abs(delta) <= 0.001:
+                return
+            cur.execute(
+                """
+                INSERT INTO credit_transactions (tenant_id, student_id, transaction_type, amount, balance_after)
+                VALUES (%s, %s, 'adjustment', %s, %s)
+                RETURNING id
+                """,
+                (tenant.tenant_id, student_id, delta, target_value),
+            )
+            _ensure_default_credit_account(cur, tenant.tenant_id, student_id, target_value)
 
         new_balance_raw = payload.get("balance")
         if new_balance_raw is not None:
@@ -8356,39 +8451,15 @@ def update_student(student_id: str):
                 new_balance = float(new_balance_raw)
             except (TypeError, ValueError):
                 return _error("Invalid balance value.")
+            _apply_absolute_balance(new_balance)
 
-            delta = new_balance - old_bal_val
-            if abs(delta) > 0.001:
-                tx_type = "adjustment"  # schema type; sign of amount determines direction
-                cur = conn.cursor()
-                cur.execute(
-                    """
-                    INSERT INTO credit_transactions (tenant_id, student_id, transaction_type, amount, balance_after)
-                    VALUES (%s, %s, %s, %s, %s)
-                    RETURNING id
-                    """,
-                    (tenant.tenant_id, student_id, tx_type, abs(delta), new_balance),
-                )
-                _ensure_default_credit_account(cur, tenant.tenant_id, student_id, new_balance)
-
-        # Handle credit_hours change → keep the default credit account in sync.
         new_credit_raw = payload.get("creditHours")
         if new_credit_raw is not None:
             try:
                 new_credit_val = float(new_credit_raw)
             except (TypeError, ValueError):
                 return _error("Invalid credit hours value.")
-
-            cur = conn.cursor()
-            cur.execute(
-                """
-                INSERT INTO credit_transactions (tenant_id, student_id, transaction_type, amount, balance_after)
-                VALUES (%s, %s, 'adjustment', %s, %s)
-                RETURNING id
-                """,
-                (tenant.tenant_id, student_id, new_credit_val, new_credit_val),
-            )
-            _ensure_default_credit_account(cur, tenant.tenant_id, student_id, new_credit_val)
+            _apply_absolute_balance(new_credit_val)
 
         # Build SQL UPDATE
         if updates:

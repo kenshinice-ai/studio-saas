@@ -48,7 +48,6 @@ def _applied_versions(conn) -> set[str]:
         cur.execute(ENSURE_TABLE_SQL)
         cur.execute("SELECT version FROM schema_migrations")
         return {row["version"] for row in cur.fetchall()}
-    return set()
 
 
 def run(dry_run: bool = False, baseline: str | None = None, *, check: bool = False) -> int:
