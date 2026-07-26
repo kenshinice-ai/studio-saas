@@ -1,6 +1,6 @@
 # 工作室 Owner 手册（Studio Admin + CMS 全权限）
 
-> 适用版本：StudioSaaS v7.6.0 · 界面：Studio Admin（`/<工作室网址标识>/studio-admin`）
+> 适用版本：StudioSaaS v7.7.0 · 界面：Studio Admin（`/<工作室网址标识>/studio-admin`）
 > 与运营 CMS（`/<工作室网址标识>/cms`）
 > 其他角色手册见 [手册总览](README.md)
 
@@ -58,6 +58,13 @@ not public」状态。
   欢迎语中/英（「填一种语言就对所有人显示；两种都留空则隐藏欢迎横幅」）。
   **Plan（套餐）是灰色不可改的**——由平台 Super Admin 管理。
 
+> **行内报错（v7.7.0）**：保存/发布时表单会逐字段校验并把错误显示在
+> 对应输入框下方（红框 + 红字），不再只弹一条汇总提示。校验规则：
+> Studio Name 必填；邮箱、电话、Logo URL（`/路径` 或 `https://` 地址）、
+> 时区（IANA 名称如 `Australia/Melbourne`）、所有颜色（`#RRGGBB`）格式
+> 必须正确。有错误时界面会自动跳回 Brand 标签页、展开相关折叠区并聚焦
+> 第一个出错字段；开始输入即清除该字段的报错。
+
 ### 2. Hero（首屏）
 
 首屏眉题、标题中/英、副标题中/英、首屏图片（URL 或上传，仅 JPEG/PNG/WebP，
@@ -98,11 +105,26 @@ CMS 里员工一键复制发给家长的五种话术模板：签到、课时用�
 续课提醒、生日祝福。占位符 `{student} {studio} {balance} {credits} {fee}
 {note}` 会按学员自动填充。「Reset to defaults」可恢复默认模板。
 
-### 7. Analytics（官网数据）
+### 7. Analytics（数据分析）
 
-匿名聚合的官网流量与转化：页面浏览、匿名会话、CTA 点击、报名提交，
-可选 7/30/90 天，并有 Campaign（UTM）汇总。不存姓名、联系方式、IP。
-这是官网访客数据；经营/财务统计在 CMS 的「经营统计」。
+**官网数据**：匿名聚合的官网流量与转化——页面浏览、匿名会话、CTA 点击、
+报名提交，可选 7/30/90 天，并有 Campaign（UTM）汇总。不存姓名、联系
+方式、IP。这是官网访客数据；经营/财务统计在 CMS 的「经营统计」。
+
+**操作审计（Audit Trail）——Owner 专属**：同一标签页下方的审计面板，
+展示本工作室最近的操作记录：时间 / 操作人（邮箱）/ 动作 / 资源四列，
+默认最近 50 条，顶部可按动作关键词过滤（如输入 `refund`、`export`、
+`share`、`support`），点「Refresh」刷新。数据来自
+`GET /s/<slug>/v1/audit-logs`，**仅 Owner 可读**（Manager 及其他角色
+调用会被拒绝；平台 Super Admin 需处于支持模式）。典型用法：
+
+- 复核**退款**：谁在什么时候给哪个学员办了退款退课;
+- 复核**数据导出**：学员 CSV / 日志 CSV 何时被谁导出过;
+- 复核**作品分享链接**：员工何时为哪个学员创建了对外链接
+  （`portfolio.share_link_created`）;
+- 查看平台方的**支持会话**：`support.session_started` /
+  `support.session_ended`（含平台方填写的原因）——平台 Super Admin 只有
+  开启支持模式才能进入你的工作室，进出都会记录在这里。
 
 ### 8. Preview / Publish（预览与发布）
 
@@ -174,7 +196,11 @@ Manager 完全相同，请直接看 [Manager 手册](CMS_Manager_Guide.md)。以
   Owner/Manager 可见。流程见 Manager 手册第五节。
 - **经营统计 / 经营真账**（analytics:read）：Owner/Manager 可见全部财务
   字段；Teacher/Front Desk 的账号连数据都不会下发。
-- **作品分享链接**（portfolio:share）：仅 Owner/Manager。
+- **作品分享链接**（portfolio:share）：**创建**仅 Owner/Manager——链接是
+  对外可访问的学员作品页，有效期 1–90 天（默认 30 天），原始链接只显示
+  一次。**撤销**已有链接放得更宽（任何能编辑作品集的角色，含 Teacher/
+  Staff），以便随时切断外泄的链接。每次创建都会写入操作审计
+  （`portfolio.share_link_created`）。
 - CMS 系统设置顶部的「网站、Logo、配色与注册表设置 →」链接（跳转
   Studio Admin）只有 Owner 能看到。
 
@@ -211,6 +237,26 @@ Classes」）才是双语的，在 Website 标签页设置。
 上传成功后还需要 Save Draft / Publish；浏览器也可能有缓存，强制刷新
 （Shift+刷新）再看。
 
+**Q9：保存时输入框下面出现红字报错？**
+v7.7.0 起表单错误直接标在出错字段下方：Studio Name 必填，邮箱/电话/
+Logo URL/时区/颜色要符合格式（提示里写明了期望格式）。按提示改完，
+输入时红字自动消失，再保存即可。
+
+**Q10：怎么知道员工有没有动过退款、导出、分享链接？**
+Studio Admin →「数据分析」→ 操作审计（Audit Trail）面板。按动作关键词
+过滤（`refund` / `export` / `share`），每条记录有时间、操作人邮箱和
+资源。这个面板只有 Owner 能看。
+
+**Q11：平台方（Super Admin）能随便进我的后台吗？**
+不能。平台超管必须先开启「支持模式」并填写原因才能进入你的工作室，
+否则接口直接拒绝（403）。支持会话的开始/结束和期间操作都会记录在你的
+操作审计里（`support.session_started` 含原因），你可以随时复核。
+
+**Q12：作品分享链接和访问码有什么区别？**
+访问码是家长长期自助查询的凭证（6 位数字，姓名+手机号+访问码登录）；
+分享链接是临时的对外展示页（如发给亲友、用于招生），有效期 1–90 天、
+到期自动失效、可随时撤销。创建分享链接仅 Owner/Manager。
+
 ## 权限边界表（Owner）
 
 | 功能 | Owner | 说明 |
@@ -223,9 +269,10 @@ Classes」）才是双语的，在 Website 标签页设置。
 | 作品分享链接 | ✅ | portfolio:share |
 | 团队成员新增 / 停用 / 改角色 | ✅ | **仅 Owner** |
 | 数据导出（学员 CSV、日志 CSV） | ✅ | data:export |
+| 本工作室操作审计（Audit Trail） | ✅ | **仅 Owner**——Studio Admin「数据分析」标签页 |
 | 修改自己的套餐（Plan） | ❌ | 由平台 Super Admin 管理 |
 | 开新租户 / 租户生命周期 | ❌ | 平台 Super Admin 专属 |
-| 平台审计日志 | ❌ | 暂无租户侧入口（已列入路线图） |
+| 平台级审计日志（跨租户） | ❌ | 平台 Super Admin 专属；本店记录看上面的操作审计 |
 
 ---
-相关手册：[Manager 手册](CMS_Manager_Guide.md) · [Teacher 手册](Teacher_Guide.md) · [Super Admin 手册](Super_Admin_Guide.md) · [学员/家长手册](Student_Parent_Guide.md)
+相关手册：[Manager 手册](CMS_Manager_Guide.md) · [Teacher 手册](Teacher_Guide.md) · [前台/员工手册](Front_Desk_Staff_Guide.md) · [Super Admin 手册](Super_Admin_Guide.md) · [学员/家长手册](Student_Parent_Guide.md) · [手册总览](README.md) · 角色权限矩阵见 [Admin_Guide](../Admin_Guide.md)

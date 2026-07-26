@@ -195,6 +195,44 @@ def main() -> int:
         usage_response.status_code == 200,
         f"got {usage_response.status_code}",
     )
+
+    # v7.7.0 support gate: platform-admin tenant access needs an audited
+    # support session; the reason requirement was previously decorative.
+    gate_probe = super_admin.get(f"/s/{TENANT_A}/v1/students")
+    gate_body = gate_probe.get_json() or {}
+    check(
+        "Platform super_admin without a support session is blocked from tenant routes",
+        gate_probe.status_code == 403 and gate_body.get("error") == "support_session_required",
+        f"got {gate_probe.status_code} / {gate_body.get('error')}",
+    )
+    session_start = super_admin.post(
+        f"/v1/admin/tenants/{fixtures['tenant_a']}/support-session",
+        json={"reason": "isolation-test support gate check"},
+    )
+    check(
+        "Support session can be started with a reason",
+        session_start.status_code == 200,
+        f"got {session_start.status_code}",
+    )
+    gated_access = super_admin.get(f"/s/{TENANT_A}/v1/students")
+    check(
+        "Platform super_admin with an active support session reaches the tenant",
+        gated_access.status_code == 200,
+        f"got {gated_access.status_code}",
+    )
+    other_tenant_probe = super_admin.get(f"/s/{TENANT_B}/v1/students")
+    check(
+        "Support session for tenant A does not unlock tenant B",
+        other_tenant_probe.status_code == 403,
+        f"got {other_tenant_probe.status_code}",
+    )
+    super_admin.post("/v1/admin/support-session/end", json={})
+    ended_probe = super_admin.get(f"/s/{TENANT_A}/v1/students")
+    check(
+        "Ending the support session closes tenant access again",
+        ended_probe.status_code == 403,
+        f"got {ended_probe.status_code}",
+    )
     usage_body = (usage_response.get_json() or {}).get("usage") or {}
     with connect() as conn:
         expected_commercial = fetch_one(

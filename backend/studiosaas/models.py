@@ -52,3 +52,7 @@ class ActorContext:
     user_id: str
     role: Role
     tenant_id: str | None = None
+    # True when tenant access was granted by the PLATFORM super_admin
+    # membership rather than a membership in the tenant itself. Such access
+    # additionally requires an active, audited support session (auth.py).
+    via_platform: bool = False

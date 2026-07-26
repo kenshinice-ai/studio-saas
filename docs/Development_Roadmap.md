@@ -123,12 +123,32 @@ Purpose: Phased development plan, milestones, current status, and deployment tar
 
 **Open items (recorded 2026-07-26, reviewed 2026-07-27, not yet scheduled):**
 
-- Super admin entry into tenant routes has no enforced support-session gate — support mode is a UI-level prompt only, not a backend requirement.
-- Tenant owners have no audit-log view of their own — audit logs are only reachable from the Super Admin console.
-- `studio-admin.html` still carries ~61 raw hex colour values outside the token system (2026-07-26 audit; not addressed in the v7.5.0/v7.6.0 rounds).
-- Brand-builder form fields lack inline per-field error reporting (2026-07-27 audit carry-over).
-- Media share tokens are not hex-normalised (2026-07-27 audit confirmed the exposure is already covered by session auth — low urgency).
-- In-memory public rate limiter → Redis-backed store (P3-04, production stage; the v7.6.0 pass made the in-memory limiter thread-safe and bounded, which is sufficient for the pilot).
+- ~~Super admin entry into tenant routes has no enforced support-session gate~~
+  **Done (v7.7.0)**: tenant-scoped access via the platform membership now 403s
+  (`support_session_required`) without an active audited support session for
+  that exact tenant; enforced in every auth decorator (`auth.py
+  _support_gate_error`), pinned by five isolation checks. Emergency override:
+  `STUDIOSAAS_ENFORCE_SUPPORT_GATE=0`.
+- ~~Tenant owners have no audit-log view of their own~~ **Done (v7.7.0)**:
+  `GET /s/<slug>/v1/audit-logs` (tenant owner; limit/action filters) plus an
+  audit panel in Studio Admin → 数据分析.
+- ~~`studio-admin.html` ~61 raw hex colour values~~ **Done (v7.7.0)**:
+  tokenised into the page's semantic token block; appearance unchanged.
+- ~~Brand-builder form fields lack inline per-field error reporting~~
+  **Done (v7.7.0)**: required/format validation renders per-field
+  (aria-invalid + aria-describedby), matching the v7.5.0 login pattern.
+- **Media token hex 化 — closed as no-change (v7.7.0 review)**: the
+  `media:<uuid>` token embeds a `gen_random_uuid()` v4 id — already 122 bits
+  of opaque randomness, not enumerable, and every read path is additionally
+  behind session auth or the public consent gate. Re-tokenising to hex would
+  add zero entropy at the cost of a migration and dual-format lookups. If a
+  revocable-URL requirement ever appears, implement it as *revocation*
+  (share_tokens-style hashes), not re-encoding.
+- In-memory public rate limiter → Redis-backed store (P3-04, production
+  stage; the v7.6.0 pass made the in-memory limiter thread-safe and bounded,
+  which is sufficient for the pilot). **Deliberately NOT done in v7.7.0** —
+  README adoption policy forbids Redis during the pilot; becomes relevant
+  only with the multi-instance step (ALB + 2×EC2) in Deployment §3.3.
 
 > All other findings of the 2026-07-27 project audit (3 HIGH / 13 MED / 20 LOW,
 > `docs/Project_Audit_2026-07-27.md`) were fixed in the v7.6.0 round — see

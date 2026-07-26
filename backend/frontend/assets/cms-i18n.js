@@ -167,6 +167,16 @@
      'Reason for rejection (sent to the family by email; may be left blank)'],
     ['可留空', 'Optional'], ['新生注册', 'New registration'], ['批准注册', 'Registration approved'],
     ['管理员拒绝注册申请', 'Rejected by an administrator'],
+    /* Walkthrough 2026-07-26: the meta line under each pending card. React
+       renders each JSX expression as its own text node, so the prefixes and
+       the status labels are looked up separately. */
+    ['提交时间:', 'Submitted:'], ['· 来源:', '· Source:'], ['· 状态:', '· Status:'],
+    ['门户网站', 'Portal site'], ['快速报名', 'Quick sign-up'],
+    ['跟进中', 'Following up'], ['已批准', 'Approved'], ['已建档', 'Converted'],
+    ['已拒绝', 'Rejected'], ['重复申请', 'Duplicate'], ['已流失', 'Lost'],
+    ['已归档', 'Archived'],
+    ['疑似重复', 'Possible duplicate'],
+    ['另有一条待审核申请使用相同手机号', 'Another pending registration shares this mobile number'],
 
     /* ── Credits and refunds ── */
     ['充值 & 结算', 'Credits & settlement'], ['充值购课', 'Buy credits'],

@@ -1,6 +1,6 @@
 # PWE Studio SaaS
 
-Current release: **v7.6.0**
+Current release: **v7.7.0**
 
 PWE Studio SaaS (repo: studiosaas) is a multi-tenant Creative Studio Operating System for art schools, music studios, tutoring centres, creative academies, kids' activity providers, and small education businesses.
 
@@ -497,6 +497,56 @@ console.
   third-party CDN fallback and `maximum-scale` removed, dynamic
   registration fields get real `label for`/`id` pairs.
 - `cms-i18n.js`: language-switch buttons meet the 40px touch target.
+
+### 4.17 v7.7.0 roadmap clear-out, brand identity, Super Admin round 2
+
+**Roadmap leftovers cleared** (Development_Roadmap.md items, all closed):
+
+- **Support gate enforced.** A platform super admin reaching into tenant
+  routes now requires an active, audited support session for that exact
+  tenant (403 `support_session_required` otherwise; per-tenant; ending the
+  session closes access; override `STUDIOSAAS_ENFORCE_SUPPORT_GATE=0`).
+  The console's CMS/Studio-Admin quick links route through the
+  support-reason dialog; public Portal/Register links stay direct.
+  Pinned by five tenant-isolation checks (201 total).
+- **Owner audit trail.** `GET /s/<slug>/v1/audit-logs` (owner-only,
+  limit/action filters) + an 操作审计 panel in Studio Admin → 数据分析.
+- **studio-admin fully tokenised.** 161 raw hex in styles → 0, via 28 new
+  semantic tokens; the 33 remaining hex are theme *data* (colour-input
+  values, contrast math, API payload defaults) and deliberately stay.
+- **Brand form inline errors** — 12 fields validate per-field
+  (required/email/phone/URL/timezone/`#RRGGBB`), aria-wired, bilingual.
+- **Media token hex 化 closed as no-change**: `media:<uuid>` is already
+  122-bit random behind auth/consent gates (rationale in the roadmap).
+- **P3-04 Redis** stays deferred by adoption policy (pilot forbids Redis).
+
+**PWE brand identity** (`docs/design/Brand_Identity.md`): "spark inside
+the P" — geometric P monogram (platform) with an amber four-point spark
+(creativity) in its negative space; Studio Navy `#0F172A` + Spark Amber
+`#F59E0B`; wordmark authored as pure geometry (no font dependencies).
+All root icons/manifest regenerated deterministically from one geometry
+table (`docs/design/brand/render_assets.py`); theme-aware `favicon.svg`;
+every surface carries the platform favicon set; the Super Admin header
+mark is the inlined SVG.
+
+**Super Admin console round 2**: the 54 untranslated strings found in the
+live walkthrough all translate now (plan quota lines restructured into
+per-limit nodes to be dictionary-matchable); audit timestamps render
+locale-aware with raw values in tooltips; health badges joined the status
+pill system (AA contrast, SVG icons); spacing moved to a token scale.
+
+**CMS/Portal walkthrough fixes**: pending-list timestamps shortened to
+minutes (raw in tooltip), all 10 registration statuses render in Chinese,
+same-mobile pending entries get a 疑似重复 badge, course duration is
+bilingual (60 分钟 / 60 MIN), broken gallery/hero images degrade cleanly
+(tiles removed from tab order, hero falls back to decorative art).
+
+**Role guides** (`docs/guides/`, all stamped 7.7.0): new dedicated
+Front Desk/Staff guide (previously "see Manager"), support-gate and
+owner-audit sections rewritten to match enforced behavior, share-link
+create/revoke permissions corrected everywhere, and each guide gained a
+role-specific FAQ (login failure kinds, missing-button explanations,
+refunds, access codes, share links, language keys, duplicates).
 
 ---
 

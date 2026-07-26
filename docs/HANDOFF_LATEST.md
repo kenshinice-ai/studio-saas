@@ -2,7 +2,36 @@
 
 > 本文件在**每轮改动开始时和完成时**都更新（用户 2026-07-26 明确要求），
 > 始终反映最新状态。历史交接见 `docs/HANDOFF_2026-07-26.md`（v7.3.x 时期）。
-> 最后更新：2026-07-27（v7.6.0 修复与 UI 升级轮 · **已完成**）
+> 最后更新：2026-07-27（v7.7.0 遗留清零 + 品牌识别 + Super Admin 二轮 · **已完成**）
+
+---
+
+## ✅ v7.7.0 遗留清零 + 品牌识别轮（2026-07-27，本轮已完成）
+
+五个并行 agent（studio-admin hex/行内报错/审计面板 · super-admin 二轮 ·
+CMS/门户走查小项 · PWE 品牌识别 · 角色手册+FAQ）+ 后端主线。
+逐项明细见 README §4.17。
+
+- **Roadmap 全清**：支持会话强制门（403 `support_session_required`，
+  5 条隔离检查钉住，override `STUDIOSAAS_ENFORCE_SUPPORT_GATE=0`）；
+  Owner 审计端点 `GET /s/<slug>/v1/audit-logs` + Studio Admin 数据分析
+  面板；studio-admin 样式层 161 hex → 0（28 个新语义 token，残留 33 处
+  为主题数据属正确保留）；品牌表单 12 字段行内报错；media token hex 化
+  以「UUIDv4 已 122 位随机 + 门后访问」结论关闭；Redis 按政策押后。
+- **PWE 品牌识别**：「P 里的火花」— P 字母格 + 琥珀四角星火花；
+  Studio Navy `#0F172A` + Spark Amber `#F59E0B`；纯几何字标（零字体
+  依赖）；`docs/design/brand/render_assets.py` 一表出全部 SVG/PNG；
+  根目录 icons/manifest/favicon.svg 全部重生成；四个界面 head 已接入
+  平台 favicon 组；Super Admin 头部 mark 内联。
+- **Super Admin 二轮**：走查发现的 54 条英文串全部入词典（套餐额度行
+  重构为逐节点）；审计时间本地化；CMS/Admin 快链改走支持模式对话框
+  （公开面保持直链）；健康徽章并入 pill 体系（AA 对比度）。
+- **CMS/门户**：待审核时间截到分钟、10 状态中文、同手机号疑似重复
+  徽章、60 分钟双语、损坏图片优雅降级（tile 移出 tab 序）。
+- **角色手册 7 份全部 7.7.0**：新增前台/店员专属手册；支持门/Owner
+  审计/分享链接权限描述与代码逐条核实；各角色 FAQ 补齐。
+- **验证**：131 pytest + 73 smoke + **201 isolation**（+5 支持门检查）
+  全绿；四件套检查通过；版本三处统一 7.7.0。
 
 ---
 
@@ -57,7 +86,7 @@
 
 ## 0. 当前状态一览
 
-- **版本**：v7.6.0（VERSION / server.py APP_VERSION / README 三处一致；
+- **版本**：v7.7.0（VERSION / server.py APP_VERSION / README 三处一致；
   v7.4.0=RBAC/a11y/AWS 套件，v7.4.1=数据库与复审稳定性修复，
   v7.5.0=文档全量刷新 + UI/UX 修复批次 + docs/guides 角色手册，
   v7.6.0=审计 3H/13M/20L 全量修复 + Super Admin UI 专业化改版）

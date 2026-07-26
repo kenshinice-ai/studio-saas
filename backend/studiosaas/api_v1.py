@@ -7475,6 +7475,59 @@ def _export_audit(conn, tenant, export_type: str, row_count: int) -> None:
     conn.commit()
 
 
+@api_v1.route("/audit-logs", methods=["GET"])
+@tenant_owner_required
+def tenant_audit_logs():
+    """Recent audit events for the resolved tenant, newest first.
+
+    Closes the "owners are blind to staff-initiated refunds/exports/share
+    links" gap from the v7.4.0 RBAC audit: the platform /admin/audit-logs
+    view is super-admin-only, so tenant owners get their own scoped read.
+    """
+
+    try:
+        limit = max(1, min(200, int(request.args.get("limit", 50))))
+    except (TypeError, ValueError):
+        limit = 50
+    action_filter = str(request.args.get("action") or "").strip()
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        params: list = [tenant.tenant_id]
+        action_sql = ""
+        if action_filter:
+            action_sql = "AND a.action ILIKE %s"
+            params.append(f"%{action_filter}%")
+        params.append(limit)
+        rows = fetch_all(
+            conn,
+            f"""
+            SELECT a.id, a.action, a.resource_type, a.resource_id,
+                   a.metadata, a.created_at, u.email AS actor_email
+            FROM audit_logs a
+            LEFT JOIN users u ON u.id = a.actor_user_id
+            WHERE a.tenant_id = %s {action_sql}
+            ORDER BY a.created_at DESC
+            LIMIT %s
+            """,
+            tuple(params),
+        )
+    return jsonify({
+        "auditLogs": [
+            {
+                "id": str(row["id"]),
+                "action": row["action"],
+                "resourceType": row["resource_type"],
+                "resourceId": row["resource_id"],
+                "actorEmail": row["actor_email"] or "",
+                "metadata": row["metadata"] or {},
+                "createdAt": (row["created_at"].isoformat() if row["created_at"] else ""),
+            }
+            for row in rows
+        ],
+    })
+
+
 @api_v1.route("/export/students.csv", methods=["GET"])
 @permission_required("data:export")
 def export_students_csv():

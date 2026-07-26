@@ -153,7 +153,8 @@ matrix, and the aggregate CMS payload is projected by role.
 | PATCH | `/v1/admin/tenants/{tenant_id}` | Super admin | Update tenant |
 | PATCH | `/v1/admin/tenants/{tenant_id}/status` | Super admin | Perform a validated tenant/subscription lifecycle transition |
 | GET | `/v1/admin/usage` | Super admin | View usage stats |
-| GET | `/v1/admin/audit-logs` | Super admin | View audit trail |
+| GET | `/v1/admin/audit-logs` | Super admin | View audit trail (platform-wide) |
+| GET | `/s/<slug>/v1/audit-logs?limit=50&action=<filter>` | Tenant owner | Tenant-scoped audit trail (owners review staff-initiated refunds/exports/share links) |
 | GET | `/v1/plans` | Super admin | List plans |
 | POST/PATCH/DELETE | `/v1/plans` | Super admin | Manage plans |
 
@@ -312,6 +313,13 @@ audit/export purposes.
 | POST | `/v1/auth/setup-password` | None (token) | Complete a password-setup link |
 | POST | `/v1/admin/tenants/{id}/support-session` | Super admin | Enter support mode (reason required, audited) |
 | POST | `/v1/admin/support-session/end` | Session | Exit support mode |
+
+**Support gate (v7.7.0).** A platform super admin's access to tenant-scoped
+routes (`/s/<slug>/v1/...`) requires an active support session for that exact
+tenant; otherwise the request fails `403 support_session_required`. Access
+through a real membership in the tenant is unaffected. Platform routes
+(`/v1/admin/*`, `/v1/auth/*`, `/v1/plans`) carry no tenant context and are
+unaffected. Emergency override: `STUDIOSAAS_ENFORCE_SUPPORT_GATE=0`.
 | GET | `/s/<slug>/v1/export/{students,registrations,credit-ledger,revenue}.csv` | Owner / Manager / Super admin + plan feature | Audited CSV exports |
 | GET/POST | `/s/<slug>/v1/students/{id}/share-links` | `portfolio:share` (owner/manager) | List/create portfolio share links (1–90 days); minting exposes a minor's portfolio publicly, so it is not routine `portfolio:write` |
 | POST | `/s/<slug>/v1/share-links/{id}/revoke` | `portfolio:write` | Revoke a share link (kept broad so any portfolio-writing staff can kill an exposed link fast) |

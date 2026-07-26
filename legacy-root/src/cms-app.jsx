@@ -33,6 +33,20 @@ const daysSince = (iso) => {
     const d = new Date(iso);
     return isNaN(d) ? 9999 : Math.floor((Date.now() - d) / 864e5);
 };
+/* 待审核列表的提交时间：数据库原始值形如 "2026-07-26 21:31:15.046556+10:00"，
+   微秒和时区偏移是噪音。截到分钟展示（原始值保留在 title 里）。
+   值本身已带 studio 本地偏移，直接截取即是 studio 当地时间，无需换算。 */
+const fmtDT = (s) => {
+    const m = String(s||'').match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})/);
+    return m ? `${m[1]} ${m[2]}` : (s ? String(s) : '—');
+};
+/* 注册申请状态 → 中文标签（EN 由 cms-i18n.js 词典层翻译）。
+   与 api_v1.py update_registration_status 的 allowed_statuses 对齐。 */
+const REG_STATUS_ZH = {
+    pending:'待审核', contacted:'已联系', trial_booked:'已约试听', waiting:'跟进中',
+    approved:'已批准', converted:'已建档', rejected:'已拒绝', duplicate:'重复申请',
+    lost:'已流失', archived:'已归档',
+};
 /* A2: tenant 模式下签到/课时改走 v1 账本端点（与 Studio Admin 同一本账）。
    根目录单店模式（无 tenantSlug）保持原有整包保存路径不变。 */
 const TENANT_SLUG = window.STUDIOSAAS_TENANT_SLUG || '';
@@ -4050,6 +4064,11 @@ document.getElementById('copybtn').addEventListener('click', function(){
     )}
     {(db.pending||[]).map(pen => {
         const fullName = pen.lastName ? `${pen.firstName} ${pen.lastName}` : pen.firstName;
+        const normP = p => (p||'').replace(/[\s\-\(\)]+/g,'');
+        /* 走查发现：同一手机号的重复待审申请（如同一家长提交两次）在列表里
+           看不出来。纯前端提示——两张卡都挂琥珀色「疑似重复」角标。 */
+        const penMobile = normP(pen.mobile);
+        const isDupPending = !!penMobile && (db.pending||[]).some(o => o.id!==pen.id && normP(o.mobile)===penMobile);
         return (
             <div key={pen.id} className="bg-white rounded-2xl shadow-sm border border-amber-200 p-5 space-y-4">
                 <div className="flex items-start gap-4">
@@ -4058,15 +4077,16 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         : <div className="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center text-2xl font-bold text-indigo-600 flex-shrink-0">{(pen.firstName||'?')[0].toUpperCase()}</div>
                     }
                     <div className="flex-1 min-w-0">
-                        <p className="text-lg font-bold text-gray-800">{fullName}</p>
+                        <p className="text-lg font-bold text-gray-800">{fullName}
+                            {isDupPending && <span className="ml-2 align-middle inline-block text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-300 rounded-full px-2 py-0.5" title="另有一条待审核申请使用相同手机号">疑似重复</span>}
+                        </p>
                         <p className="inline-flex items-center gap-1.5 text-sm text-gray-500"><Icon name="phone" className="w-4 h-4"/>{pen.mobile||'—'}{pen.wechat ? ` · ${pen.wechat}` : ''}{pen.email ? ` · ${pen.email}` : ''}</p>
                         {pen.birthday && <p className="inline-flex items-center gap-1.5 text-xs text-pink-500 mt-0.5"><Icon name="cake" className="w-4 h-4"/>{fmtDate(pen.birthday)}</p>}
                         {pen.mobile && (() => {
-                            const normP = p => (p||'').replace(/[\s\-\(\)]+/g,'');
                             const match = db.students.filter(s=>!s.archived && normP(s.mobile)===normP(pen.mobile));
                             return match.length > 0 ? <p className="inline-flex items-center gap-1.5 text-xs text-blue-500 mt-0.5"><Icon name="device" className="w-4 h-4"/>此电话已有学员：{match.map(s=>s.firstName&&s.lastName?`${s.firstName} ${s.lastName}`:s.name||'').join('、')}</p> : null;
                         })()}
-                        <p className="text-xs text-gray-400 mt-0.5">提交时间: {pen.submittedAt||'—'} · 来源: {pen.source==='portal'?'门户网站':'快速报名'} · 状态: {pen.status||'pending'}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">提交时间: <span title={pen.submittedAt||''}>{fmtDT(pen.submittedAt)}</span> · 来源: {pen.source==='portal'?'门户网站':'快速报名'} · 状态: {REG_STATUS_ZH[pen.status||'pending']||pen.status}</p>
                     </div>
                 </div>
 	                {preferenceRows(pen).length > 0 && (

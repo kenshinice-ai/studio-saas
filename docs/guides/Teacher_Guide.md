@@ -1,6 +1,6 @@
 # CMS 教师手册 · Teacher（任课老师）
 
-> 适用版本：StudioSaaS v7.6.0 · 界面：运营 CMS（`/<工作室网址标识>/cms`）
+> 适用版本：StudioSaaS v7.7.0 · 界面：运营 CMS（`/<工作室网址标识>/cms`）
 > 其他角色手册见 [手册总览](README.md)
 
 ## 角色定位
@@ -49,7 +49,9 @@ Teacher 账号面向任课老师：你负责**上课当天的事**——看当�
   - 作品标题按录入原样显示，不随界面语言翻译（产品决策）。
   - 「公开到门户作品墙」取决于该学员是否有有效的公开授权；没有授权时作品
     只能保持私人可见。
-  - 生成对外**分享链接**不在你的权限里（portfolio:share 仅 Owner/Manager）。
+  - 生成对外**分享链接**不在你的权限里（portfolio:share 仅 Owner/Manager，
+    有效期 1–90 天）；不过**撤销**已有的分享链接你可以做（撤销属于作品
+    维护权限）——发现链接不该继续存在时可以直接撤掉，再告知店长。
 - 学员专区**访问码**的生成/更换在档案页由有权限的同事操作；家长问起访问码
   时，请转给店长处理，或按门户提示引导家长联系前台。
 
@@ -81,6 +83,20 @@ Manager / Owner 权限。**
 门户作品墙只展示「已公开」的作品，公开的前提是该学员有有效的公开授权
 （家长在报名表勾选或后来补签）。没有授权时作品只在学员自己的专区可见。
 
+**Q6：登录不上系统怎么办？**
+分三种提示：邮箱或密码不正确 → 找 Owner 重置密码；「该账号没有有效的
+工作人员身份，请联系管理员」→ 你的成员身份被停用，找 Owner 启用；
+「家庭自助登录暂未开放」→ 你登录的是家长账号，不是员工账号。
+
+**Q7：家长问能不能自己登录看孩子的课时和作品？**
+家长不能登录 CMS。家庭自助查询走官网「学员专区」：姓名 + 手机号 +
+6 位访问码。访问码由前台/店长在学员档案里生成发放（你没有这个权限），
+请把家长转给前台。
+
+**Q8：界面语言怎么切换？**
+右上角「中文 / English」，整个浏览器记忆一份、默认中文。学员姓名、
+课程名、作品标题等运营数据按录入原样显示，不随语言切换翻译。
+
 ## 权限边界表（Teacher）
 
 | 功能 | Teacher | 说明 |
@@ -91,7 +107,8 @@ Manager / Owner 权限。**
 | 学员档案查看 | ✅ | students:read |
 | 学员档案新建 / 编辑 / 归档 | ❌ | 需要 students:write（Front Desk/Manager/Owner） |
 | 作品集上传 / 编辑 / 删除 | ✅ | portfolio:write |
-| 作品分享链接 | ❌ | portfolio:share，仅 Owner/Manager |
+| 作品分享链接创建 | ❌ | portfolio:share，仅 Owner/Manager |
+| 作品分享链接撤销 | ✅ | 撤销走 portfolio:write |
 | 充值 / 退款 | ❌ | 需要 credits:write / credits:refund |
 | 报名审批（待审核） | ❌ | 需要 registrations:write |
 | 经营统计 / 财务报表 | ❌ | 需要 analytics:read |
@@ -100,4 +117,4 @@ Manager / Owner 权限。**
 | 团队管理 / 套餐管理 | ❌ | 仅 Owner（/Manager 可见部分） |
 
 ---
-相关手册：[Manager 手册](CMS_Manager_Guide.md) · [Owner 手册](Studio_Owner_Guide.md) · [学员/家长手册](Student_Parent_Guide.md)
+相关手册：[Manager 手册](CMS_Manager_Guide.md) · [Owner 手册](Studio_Owner_Guide.md) · [前台/员工手册](Front_Desk_Staff_Guide.md) · [学员/家长手册](Student_Parent_Guide.md) · [手册总览](README.md) · 角色权限矩阵见 [Admin_Guide](../Admin_Guide.md)

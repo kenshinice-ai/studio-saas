@@ -328,7 +328,40 @@
     ['payment follow-up', '付款跟进'], ['trials ending soon', '试用即将到期'],
     ['onboarding incomplete', '启用未完成'],
     ['Studio Websites', '工作室官网'],
-    ['Quick Registration or campaigns', '快速报名或推广']
+    ['Quick Registration or campaigns', '快速报名或推广'],
+    // Round 2 (2026-07-27, live-walkthrough fixes): plans table quota lines,
+    // plan row actions, tenant detail quick links, support-gated navigation,
+    // and audit timestamp formatting.
+    ['Edit', '编辑'], ['trialing', '试用中'],
+    ['Studio CMS', '运营 CMS'], ['Brand Workspace', '品牌工作区'],
+    ['Studio Admin Login', '工作室管理员登录'],
+    ['Public registration', '公开报名'], ['Student portfolio', '学员作品集'],
+    ['Email templates', '邮件模板'], ['Data export', '数据导出'],
+    ['Priority support', '优先支持'],
+    ['No enabled entitlements', '未启用任何功能权限'],
+    ['Open Portal', '打开官网'], ['Open Register', '打开报名'],
+    ['Open-ended', '未设结束日'],
+    ['Opens via Support Mode (audited).', '通过支持模式打开（操作会记入审计）。'],
+    ['This page requires an active support session. It will open in a new tab after support mode starts.',
+     '打开此页面需要有效的支持会话；支持模式开始后会在新标签页中打开。'],
+    ['Support mode started — opening the tenant workspace.', '支持模式已开始，正在打开该工作室的页面。'],
+    // Brand form inline validation (per-field errors shown under the input).
+    ['Studio name is required.', '请填写工作室名称。'],
+    ['Enter a valid email address, like studio@example.com.', '请输入有效的邮箱地址，例如 studio@example.com。'],
+    ['Enter a valid phone number.', '请输入有效的电话号码。'],
+    ['Enter a valid logo URL: a path like /logo.png or a full https:// address.', 'Logo 网址无效：请使用 /logo.png 形式的路径或完整的 https:// 地址。'],
+    ['Unknown timezone. Use an IANA name like Australia/Melbourne.', '时区无效：请使用 IANA 时区名称，例如 Australia/Melbourne。'],
+    ['Enter a colour in #RRGGBB format.', '颜色格式应为 #RRGGBB。'],
+    // Owner audit trail panel (Studio Admin analytics tab).
+    ['Audit Trail', '操作审计'],
+    ['Owner actions recorded for this studio: publishes, edits, exports, and support-mode activity.',
+     '记录本工作室的管理操作：发布、修改、导出与支持模式活动。'],
+    ['Filter by action', '按操作筛选'],
+    ['Filter audit records by action', '按操作筛选审计记录'],
+    ['Actor', '操作人'],
+    ['Loading audit records…', '正在载入审计记录…'],
+    ['No audit records yet.', '暂无审计记录'],
+    ['Open this tab to load the audit trail.', '打开此页签后加载审计记录。']
   ]);
 
   const originalText = new WeakMap();
@@ -354,6 +387,8 @@
       [/^(\d+) converted \((\d+)%\)$/i, '$1 次转化（$2%）'],
       [/^(\d+) \/ (\d+) students · (.+)$/i, '$1 / $2 名学员 · $3'],
       [/^(\d+) students · (.+)$/i, '$1 名学员 · $2'],
+      [/^(\d+) students$/i, '$1 名学员'],
+      [/^(\d+) users$/i, '$1 个用户'],
       [/^(.+) · no admin login$/i, '$1 · 无管理员登录'],
       [/^Inherited from (.+) plan\.$/i, '继承自「$1」套餐。'],
       [/^Tenant archived\. Snapshot: (.+)$/i, '工作室已归档。快照：$1'],

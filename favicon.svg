@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="PWE Studio">
+  <style>
+    .ink { stroke: #0F172A; }
+    .spark { fill: #F59E0B; }
+    @media (prefers-color-scheme: dark) {
+      .ink { stroke: #F8FAFC; }
+      .spark { fill: #FBBF24; }
+    }
+  </style>
+  <path class="ink" d="M 17.75 13 L 17.75 51" stroke-width="10" stroke-linecap="round" fill="none"/>
+  <circle class="ink" cx="27" cy="22.25" r="9.25" stroke-width="10" fill="none"/>
+  <path class="spark" d="M 38.5 37.5 Q 38.5 45 46 45 Q 38.5 45 38.5 52.5 Q 38.5 45 31 45 Q 38.5 45 38.5 37.5 Z"/>
+</svg>

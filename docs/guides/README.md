@@ -1,6 +1,6 @@
 # StudioSaaS 使用手册总览
 
-> 适用版本：StudioSaaS v7.6.0 · 最后更新：2026-07-27
+> 适用版本：StudioSaaS v7.7.0 · 最后更新：2026-07-27
 > 本目录是按角色划分的最终用户手册。开发/运维文档见 `docs/` 上层
 > （[Architecture](../Architecture.md) · [Admin_Guide](../Admin_Guide.md) ·
 > [Glossary](../Glossary.md)）。
@@ -26,8 +26,8 @@ StudioSaaS 是多租户教培工作室 SaaS。每个工作室（租户）有独�
 | **Owner** 工作室主理人 | Studio Admin + CMS | 品牌与官网发布、团队账号、财务终审；CMS 全权限 | [Studio_Owner_Guide.md](Studio_Owner_Guide.md) |
 | **Manager** 店长 | CMS | 日常运营全流程：档案/排课/签到/充值/退款/审批/统计 | [CMS_Manager_Guide.md](CMS_Manager_Guide.md) |
 | **Teacher** 任课老师 | CMS | 当日排课与签到、学员作品集 | [Teacher_Guide.md](Teacher_Guide.md) |
-| **Front Desk** 前台 | CMS | 报名审批、建档、充值（不能签到、无财务报表） | 参照 Manager 手册 + 下方权限矩阵 |
-| **Staff**（legacy 通用员工） | CMS | 接近 Manager 但无退款/统计/统计报表 | 参照 Manager 手册 + 下方权限矩阵 |
+| **Front Desk** 前台 | CMS | 报名审批、建档、充值、访问码发放（不能签到、无财务报表） | [Front_Desk_Staff_Guide.md](Front_Desk_Staff_Guide.md) |
+| **Staff**（legacy 通用员工） | CMS | 接近 Manager 但无退款/分享链接/统计/导出 | [Front_Desk_Staff_Guide.md](Front_Desk_Staff_Guide.md) |
 | **学员 / 家长** | 不登录（访问码） | 浏览官网、在线报名、自助查询课时与作品 | [Student_Parent_Guide.md](Student_Parent_Guide.md) |
 
 > **家长（parent）身份不能登录 CMS**：即使有账号，登录会被拒绝并提示
@@ -52,8 +52,13 @@ StudioSaaS 是多租户教培工作室 SaaS。每个工作室（租户）有独�
 | 品牌/官网 settings:write | ✅ | ❌ | ❌ | ❌ | ❌ |
 | 团队成员管理 | ✅ | 仅查看 | ❌ | ❌ | ❌ |
 
-（Super Admin 拥有全部权限 `*`。credits:refund 与 portfolio:share 是
-v7.4.0 新增的独立权限，仅 Owner/Manager。）
+（Super Admin 拥有全部权限 `*`，但 v7.7.0 起进入任一租户的 CMS/Studio
+Admin **必须先在 Super Admin 控制台开启支持模式**（填写原因、全程审计），
+否则接口返回 403 `support_session_required`。credits:refund 与
+portfolio:share 是 v7.4.0 新增的独立权限，仅 Owner/Manager；分享链接的
+**撤销**走 portfolio:write，Teacher/Staff 也可以撤。学员专区访问码的
+生成/更换/停用属于学员资料维护（students:write）——**前台可以发放**。
+Owner 另有专属的「操作审计」面板：Studio Admin → 数据分析。）
 
 对应 CMS 导航标签页：
 
@@ -96,6 +101,11 @@ v7.4.0 新增的独立权限，仅 Owner/Manager。）
 
 - 想改官网颜色/文案/报名问题 → [Owner 手册](Studio_Owner_Guide.md)
 - 想办充值、退款、审批报名 → [Manager 手册](CMS_Manager_Guide.md)
+- 前台审批报名、发访问码、看到「疑似重复」角标 →
+  [前台/员工手册](Front_Desk_Staff_Guide.md)
 - 想给学员签到、传作品 → [Teacher 手册](Teacher_Guide.md)
 - 家长问「还剩几节课怎么查」 → [学员/家长手册](Student_Parent_Guide.md)
-- 要开新工作室、暂停租户、备份 → [Super Admin 手册](Super_Admin_Guide.md)
+- 要开新工作室、暂停租户、支持模式、备份 → [Super Admin 手册](Super_Admin_Guide.md)
+- 想复核员工的退款/导出/分享链接操作 → [Owner 手册](Studio_Owner_Guide.md)
+  「数据分析 → 操作审计」
+- 开发者视角的权限矩阵与运维文档 → [Admin_Guide](../Admin_Guide.md)

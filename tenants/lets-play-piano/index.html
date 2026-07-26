@@ -30,8 +30,9 @@
 <meta id="twitterImage" name="twitter:image" content="/logo.png">
 <meta name="theme-color" content="#F4F0E8">
 <link data-tenant-portal-manifest rel="manifest" href="/lets-play-piano/manifest-portal.json">
-<link rel="icon" type="image/png" href="/icon-192.png">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <script id="businessStructuredData" type="application/ld+json">
 {
   "@context":"https://schema.org",
@@ -361,7 +362,10 @@
       <a id="heroStudentLogin" class="hero-login" href="#my" data-analytics-label="hero_student_login" data-en="Student login →">学员登录 →</a>
     </div>
     <div class="hero-art reveal in">
-      <img id="heroImage" alt="Let&#x27;s Play Piano">
+      <!-- Walkthrough 2026-07-26: a dangling hero URL rendered a broken-image
+           glyph. Dropping body.hero-image falls back to the decorative
+           hero-art background, same treatment as no image at all. -->
+      <img id="heroImage" alt="Let&#x27;s Play Piano" onerror="document.body.classList.remove('hero-image')">
       <span class="frame-tag">Let&#x27;s Play Piano</span>
     </div>
   </div>
@@ -1087,7 +1091,10 @@
       var desc=document.createElement('p'); desc.textContent=p.description||''; card.appendChild(desc);
       var meta=[];
       if(p.ageRange) meta.push(T('年龄 ','Ages ')+p.ageRange);
-      if(p.durationMinutes) meta.push(Number(p.durationMinutes)+' min');
+      /* Walkthrough 2026-07-26: the unit was hard-coded ' min', so zh mode read
+         "年龄 5-12 · 60 MIN". renderPrograms re-runs on setLang, so T() here
+         keeps the unit in step with the page language. */
+      if(p.durationMinutes) meta.push(Number(p.durationMinutes)+T(' 分钟',' min'));
       if(meta.length){ var m=document.createElement('p'); m.className='cage'; m.style.color='var(--muted)'; m.textContent=meta.join(' · '); card.appendChild(m); }
       var cta=document.createElement('a');
       cta.className='cbtn'; cta.href='#join';
@@ -1113,6 +1120,14 @@
       tile.setAttribute('aria-label', title);
       var img=document.createElement('img'); img.src=it.mediaUrl; img.loading='lazy';
       img.alt='';
+      /* Walkthrough 2026-07-26: a dangling media reference left a broken-image
+         glyph in the wall. Same tolerance as the about/portfolio images, but
+         here the whole <button> tile goes, so keyboard users never tab into an
+         empty lightbox item. If nothing is left, the section folds away. */
+      img.onerror=function(){
+        tile.remove();
+        if(!grid.children.length) resolveSection('gallery', false);
+      };
       tile.appendChild(img);
       if(it.title){ var cap=document.createElement('span'); cap.className='cap'; cap.textContent=it.title; tile.appendChild(cap); }
       tile.onclick=function(){ openGlb(i); };

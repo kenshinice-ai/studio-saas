@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="PWE Studio mark">
+  <!-- light surfaces: Studio Navy + Spark Amber -->
+  <!-- P stem -->
+  <path d="M 17.75 13 L 17.75 51" stroke="#0F172A" stroke-width="10" stroke-linecap="round" fill="none"/>
+  <!-- P bowl (counter left open on purpose) -->
+  <circle cx="27" cy="22.25" r="9.25" stroke="#0F172A" stroke-width="10" fill="none"/>
+  <!-- creative spark -->
+  <path d="M 38.5 37.5 Q 38.5 45 46 45 Q 38.5 45 38.5 52.5 Q 38.5 45 31 45 Q 38.5 45 38.5 37.5 Z" fill="#F59E0B"/>
+</svg>

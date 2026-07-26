@@ -232,6 +232,7 @@ def _resolve_actor(user_id: str, tenant_id: str | None = None) -> ActorContext |
                     user_id=user_id,
                     role=Role(super_admin["role"]),
                     tenant_id=tenant_id,
+                    via_platform=True,
                 )
 
             # 2) Check if user has an active membership in this specific tenant.
@@ -337,6 +338,40 @@ def _tenant_context_required() -> bool:
     return bool((request.path or "").startswith("/s/") or request.headers.get("X-Tenant-Slug"))
 
 
+def _support_gate_error(actor: ActorContext):
+    """Enforce the audited support session for platform-admin tenant access.
+
+    A platform super_admin reaching INTO a tenant's routes must have started
+    a support session for that tenant (POST /admin/tenants/<id>/support-session
+    demands a reason and writes an audit row). Without this gate the reason
+    requirement was decorative — any platform admin could browse tenant data
+    with no audit trail. Platform routes (/v1/admin/*, /v1/auth/*, /v1/plans)
+    carry no tenant context and are unaffected, as is access through a real
+    membership in the tenant (including legacy tenant-scoped super_admin rows).
+
+    Returns an error response, or None when the request may proceed.
+    Emergency override: STUDIOSAAS_ENFORCE_SUPPORT_GATE=0.
+    """
+
+    import os as _os
+
+    if not (actor.via_platform and actor.tenant_id):
+        return None
+    if _os.environ.get("STUDIOSAAS_ENFORCE_SUPPORT_GATE", "1") == "0":
+        return None
+    from flask import session as flask_session
+
+    support = flask_session.get("support") or {}
+    if str(support.get("tenant_id") or "") == str(actor.tenant_id):
+        return None
+    return api_error(
+        "需要先开启支持模式（含原因）才能进入该工作室。 "
+        "Start a support session for this studio from the Super Admin console first.",
+        403,
+        error="support_session_required",
+    )
+
+
 def auth_required(fn: F) -> F:
     """Flask decorator that requires a logged-in session.
 
@@ -364,6 +399,10 @@ def auth_required(fn: F) -> F:
         actor = _resolve_actor(user_id, tenant_id)
         if not actor:
             return api_error("User has no active membership.", 403)
+
+        gate = _support_gate_error(actor)
+        if gate is not None:
+            return gate
 
         g.actor = actor
         return fn(*args, **kwargs)  # type: ignore[return-value]
@@ -412,6 +451,10 @@ def permission_required(permission: str) -> Callable[[F], F]:
             except PermissionDeniedError as exc:
                 return api_error(str(exc), 403)
 
+            gate = _support_gate_error(actor)
+            if gate is not None:
+                return gate
+
             g.actor = actor
             return fn(*args, **kwargs)  # type: ignore[return-value]
 
@@ -448,6 +491,10 @@ def super_admin_required(fn: F) -> F:
         if actor.role is not Role.SUPER_ADMIN or not _has_platform_super_admin_membership(user_id):
             return api_error("Super-admin privileges required.", 403)
 
+        gate = _support_gate_error(actor)
+        if gate is not None:
+            return gate
+
         g.actor = actor
         return fn(*args, **kwargs)  # type: ignore[return-value]
 
@@ -481,6 +528,10 @@ def tenant_admin_required(fn: F) -> F:
         if actor.role not in {Role.SUPER_ADMIN, Role.OWNER, Role.MANAGER}:
             return api_error("Tenant owner/admin privileges required.", 403)
 
+        gate = _support_gate_error(actor)
+        if gate is not None:
+            return gate
+
         g.actor = actor
         return fn(*args, **kwargs)  # type: ignore[return-value]
 
@@ -509,6 +560,10 @@ def tenant_owner_required(fn: F) -> F:
             return api_error("User has no active membership.", 403)
         if actor.role not in {Role.SUPER_ADMIN, Role.OWNER}:
             return api_error("Tenant owner privileges required.", 403)
+        gate = _support_gate_error(actor)
+        if gate is not None:
+            return gate
+
         g.actor = actor
         return fn(*args, **kwargs)  # type: ignore[return-value]
 

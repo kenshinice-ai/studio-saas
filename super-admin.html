@@ -8,7 +8,10 @@
   <script src="/assets/admin-i18n.js" defer></script>
   <link rel="stylesheet" href="/assets/ui-tokens.css">
   <link rel="stylesheet" href="/assets/brand-system.css">
-  <link rel="icon" href="/logo.png" type="image/png">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <meta name="theme-color" content="#0f172a">
   <style>
     :root {
       --bg: #f1f5f9;
@@ -38,8 +41,17 @@
       --ink-soft: #475569;
       /* Dense-dashboard neutrals (kept as tokens — no raw hex in components). */
       --line-strong: #cbd5e1;
+      --line-soft: #f1f5f9;
       --row-hover: #f8fafc;
       --head-bg: #f1f5f9;
+      /* Spacing scale (dense dashboard: 4/8/12/16/24). Components reference
+         these instead of ad-hoc pixel values so KPI cards, tables, and the
+         detail modal share one rhythm. */
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-6: 24px;
       --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
       --shadow-md: 0 4px 12px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.05);
       --shadow-lg: 0 10px 25px rgba(0,0,0,0.08), 0 4px 10px rgba(0,0,0,0.04);
@@ -95,13 +107,15 @@
       overflow-wrap: anywhere;
     }
 
+    /* PWE mark (dark-surface variant), inlined so the header never waits on
+       a request. Source of truth: docs/design/brand/pwe-mark-dark.svg —
+       re-emit via docs/design/brand/render_assets.py, don't hand-edit here. */
     .brand h1::before {
       content: '';
       display: inline-block;
       width: 32px;
       height: 32px;
-      background: var(--brand);
-      border-radius: 8px;
+      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M 17.75 13 L 17.75 51' stroke='%23F8FAFC' stroke-width='10' stroke-linecap='round' fill='none'/%3E%3Ccircle cx='27' cy='22.25' r='9.25' stroke='%23F8FAFC' stroke-width='10' fill='none'/%3E%3Cpath d='M 38.5 37.5 Q 38.5 45 46 45 Q 38.5 45 38.5 52.5 Q 38.5 45 31 45 Q 38.5 45 38.5 37.5 Z' fill='%23FBBF24'/%3E%3C/svg%3E") center / contain no-repeat;
       flex-shrink: 0;
     }
 
@@ -376,14 +390,14 @@
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 12px;
-      margin-bottom: 8px;
+      gap: var(--space-3);
+      margin-bottom: var(--space-2);
     }
 
     .stat-card {
       background: var(--surface);
       border-radius: var(--radius-lg);
-      padding: 16px;
+      padding: var(--space-4);
       box-shadow: var(--shadow-sm);
       border: 1px solid var(--line);
       transition: border-color 0.18s ease, box-shadow 0.18s ease;
@@ -410,8 +424,8 @@
     .stat-head {
       display: flex;
       align-items: center;
-      gap: 8px;
-      margin-bottom: 10px;
+      gap: var(--space-2);
+      margin-bottom: var(--space-2);
     }
 
     .stat-icon {
@@ -512,10 +526,19 @@
     }
 
     td {
-      border-bottom: 1px solid #f1f5f9;
+      border-bottom: 1px solid var(--line-soft);
     }
 
     tbody tr:hover td { background: var(--row-hover); }
+
+    /* Every non-text control communicates interactivity. */
+    select, summary, input[type="checkbox"] { cursor: pointer; }
+    input[type="checkbox"] { accent-color: var(--brand); }
+
+    /* Plans quota cell: one line per limit so each stays a clean text node
+       for the admin-i18n dictionary (a single \n-joined blob never matches). */
+    .plan-quota { display: grid; gap: 2px; font-variant-numeric: tabular-nums; }
+    .plan-features { color: var(--muted); font-size: 13px; }
 
     .toolbar {
       display: grid;
@@ -710,15 +733,34 @@
       min-height: 40px; /* touch target */
       border-radius: 8px;
       border: 1px solid var(--line);
-      background: #fff;
+      background: var(--surface);
       color: var(--ink);
       font-size: 12px;
       font-weight: 800;
       text-decoration: none;
+      cursor: pointer;
+      transition: background-color 0.15s ease, border-color 0.15s ease;
     }
 
-    .surface-mini.disabled { color: var(--muted); background: #f1f5f9; pointer-events: none; }
-    .surface-mini .mark { font-size: 11px; }
+    .surface-mini:hover {
+      background: var(--row-hover);
+      border-color: var(--line-strong);
+    }
+
+    /* Support-gated surfaces render as buttons (CMS / Admin route through the
+       support-mode flow); neutralise the global button chrome so they sit in
+       the same grid as the anchor variants. */
+    button.surface-mini { box-shadow: none; }
+    button.surface-mini:hover { transform: none; box-shadow: none; }
+    .surface-mini .mark svg { width: 12px; height: 12px; display: block; }
+
+    .surface-mini.disabled, .surface-mini:disabled {
+      color: var(--muted);
+      background: var(--head-bg);
+      pointer-events: none;
+    }
+
+    .surface-mini .mark { font-size: 11px; display: inline-flex; }
 
     .action-section {
       display: grid;
@@ -729,11 +771,16 @@
       background: #f8fafc;
     }
 
+    /* Shared micro-label spec: .action-section-title, .summary-label, and
+       .detail-label all use 11px / 700 / 0.06em uppercase muted text so the
+       detail modal and action sheets read as one system (uppercase is a CSS
+       transform — the text node stays "Student Usage" for the i18n lookup,
+       and Chinese labels are unaffected). */
     .action-section-title {
       color: var(--muted);
       font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 0.5px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
     }
 
@@ -833,25 +880,25 @@
     .tenant-summary {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 10px;
-      margin-bottom: 16px;
+      gap: var(--space-3);
+      margin-bottom: var(--space-4);
     }
 
     .summary-item {
       border: 1px solid var(--line);
       border-radius: var(--radius);
-      padding: 12px;
-      background: #f8fafc;
+      padding: var(--space-3);
+      background: var(--row-hover);
       min-width: 0;
     }
 
     .summary-label {
       color: var(--muted);
       font-size: 11px;
-      font-weight: 800;
+      font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 4px;
+      letter-spacing: 0.06em;
+      margin-bottom: var(--space-1);
     }
 
     .summary-value {
@@ -891,9 +938,14 @@
     .link-grid {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 8px;
+      gap: var(--space-2);
+      margin-top: var(--space-2);
     }
+
+    /* Decorative shield on support-gated links; the title attribute and the
+       support-reason modal carry the actual meaning. */
+    .gate-icon { display: inline-flex; flex: 0 0 auto; }
+    .gate-icon svg { width: 13px; height: 13px; }
 
     .form-section {
       border: 1px solid var(--line);
@@ -1024,7 +1076,7 @@
 
     .modal-close:hover { background: #f1f5f9; color: var(--ink); }
 
-    .modal-body { padding: 24px; }
+    .modal-body { padding: var(--space-6); }
     .modal-footer {
       padding: 16px 24px;
       border-top: 1px solid var(--line);
@@ -1084,22 +1136,23 @@
     .detail-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
+      gap: var(--space-3);
     }
 
     .detail-item {
-      padding: 14px;
-      background: #f8fafc;
+      padding: var(--space-3);
+      background: var(--row-hover);
       border-radius: var(--radius);
       border: 1px solid var(--line);
     }
 
     .detail-label {
       font-size: 11px;
+      font-weight: 700;
       color: var(--muted);
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 4px;
+      letter-spacing: 0.06em;
+      margin-bottom: var(--space-1);
     }
 
     .detail-value {
@@ -1507,6 +1560,7 @@
     const $ = (id) => document.getElementById(id);
     let tenants = [];
     let plans = [];
+    let auditLogs = [];
     let editingTenantId = '';
     let editingPlanCode = '';
     let selectedTenantId = '';
@@ -1559,6 +1613,21 @@
     }
 	    const dateOnly = (value) => value ? String(value).slice(0, 10) : '';
 	    const money = (value) => `AUD ${Number(value || 0)}`;
+	    // Locale-aware timestamp in the viewer's local timezone (audit logs
+	    // arrive as raw RFC 1123 GMT strings). zh: 2026-07-26 21:21; en:
+	    // 26 Jul 2026 21:21. Falls back to the raw value if unparseable.
+	    const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+	    const adminLanguage = () => (window.AdminI18n && window.AdminI18n.language)
+	      || (localStorage.getItem('studiosaas_admin_language') === 'en' ? 'en' : 'zh');
+	    function formatTimestamp(value) {
+	      if (!value) return '-';
+	      const date = new Date(value);
+	      if (Number.isNaN(date.getTime())) return String(value);
+	      const pad = (n) => String(n).padStart(2, '0');
+	      const time = `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+	      if (adminLanguage() === 'en') return `${date.getDate()} ${MONTHS_EN[date.getMonth()]} ${date.getFullYear()} ${time}`;
+	      return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${time}`;
+	    }
 	    const percent = (value, limit) => limit ? Math.min(100, Math.round((Number(value || 0) / Number(limit || 1)) * 100)) : 0;
 	    let INDUSTRY_PRESETS = {
 	      general: { label: 'General', labelZh: '通用', slogan: 'A learning path that fits every student.' }
@@ -1749,6 +1818,7 @@
       setAuthState(null);
       tenants = [];
       plans = [];
+      auditLogs = [];
       // Reset every stat card that actually exists on this page (ids match the
       // .stats-grid markup); the null guard keeps logout from throwing if a
       // card is ever renamed again.
@@ -1858,6 +1928,40 @@
       span.appendChild(document.createTextNode(text(value)));
       cell.appendChild(span);
       return span;
+    }
+
+    // Generic icon pill (same component as status pills): static SVG via
+    // innerHTML, label via a text node so admin-i18n can translate it.
+    function appendPillWithIcon(parent, label, className, icon) {
+      const span = document.createElement('span');
+      span.className = className;
+      span.innerHTML = icon || '';
+      span.appendChild(document.createTextNode(label));
+      parent.appendChild(span);
+      return span;
+    }
+
+    // Health badges reuse the pill component with an icon and the audited
+    // WCAG-AA pill colour pairs (green = healthy, amber = needs action,
+    // slate = inert, purple = test fixture). Colour never carries meaning
+    // alone — the label text stays next to every icon.
+    const PILL_CHECK = pillIcon('<path d="M2.6 6.4l2.3 2.3 4.5-5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>');
+    const PILL_ALERT = STATUS_PILL_ICONS.past_due;
+    const PILL_FLASK = pillIcon('<path d="M4.7 1.6h2.6M5.3 1.6v3.1L2.5 9.2a1.3 1.3 0 001.1 2h4.8a1.3 1.3 0 001.1-2L6.7 4.7V1.6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>');
+    const HEALTH_PILLS = {
+      'Healthy': ['pill active', PILL_CHECK],
+      'Needs setup': ['pill warning', PILL_ALERT],
+      'Payment issue': ['pill past_due', PILL_ALERT],
+      'No admin login': ['pill warning', PILL_ALERT],
+      'Paused': ['pill paused', STATUS_PILL_ICONS.paused],
+      'Archived': ['pill archived', STATUS_PILL_ICONS.archived],
+      'Test fixture': ['pill fixture', PILL_FLASK]
+    };
+
+    function appendHealthPill(parent, t) {
+      const label = healthLabel(t);
+      const [className, icon] = HEALTH_PILLS[label] || ['pill warning', PILL_ALERT];
+      return appendPillWithIcon(parent, label, className, icon);
     }
 
     function tenantPlan(t) {
@@ -1974,25 +2078,35 @@
       const disabled = ['archived', 'deleted'].includes(t.status);
       const grid = document.createElement('div');
       grid.className = 'surface-link-grid';
+      // CMS and Admin are tenant-scoped: without an active support session the
+      // backend answers 403 support_session_required, so those two route
+      // through the support-mode modal. Portal and Register stay public links.
       [
-        ['portal', 'Portal'],
-        ['cms', 'CMS'],
-        ['register', 'Register'],
-        ['admin', 'Admin']
-      ].forEach(([surface, label]) => {
-        const link = document.createElement('a');
+        ['portal', 'Portal', false],
+        ['cms', 'CMS', true],
+        ['register', 'Register', false],
+        ['admin', 'Admin', true]
+      ].forEach(([surface, label, gated]) => {
+        const link = document.createElement(gated && !disabled ? 'button' : 'a');
         const mark = document.createElement('span');
         const textNode = document.createElement('span');
         link.id = `surface-${t.id}-${surface}`;
         link.className = `surface-mini ${disabled ? 'disabled' : ''}`;
-        link.href = disabled ? '#' : tenantSurfaceHref(t, surface);
-        link.target = disabled ? '' : '_blank';
-        link.rel = disabled ? '' : 'noopener';
-        link.title = disabled ? 'Archived or deleted tenants cannot be opened.' : `Open ${label}`;
         mark.className = 'mark';
         mark.setAttribute('aria-hidden', 'true');
-        mark.textContent = disabled ? '-' : '↗';
         textNode.textContent = label;
+        if (gated && !disabled) {
+          link.type = 'button';
+          link.title = 'Opens via Support Mode (audited).';
+          mark.innerHTML = ICON_SHIELD;
+          link.addEventListener('click', () => enterSupportMode(t.id, tenantSurfaceHref(t, surface)));
+        } else {
+          link.href = disabled ? '#' : tenantSurfaceHref(t, surface);
+          link.target = disabled ? '' : '_blank';
+          link.rel = disabled ? '' : 'noopener';
+          link.title = disabled ? 'Archived or deleted tenants cannot be opened.' : `Open ${label}`;
+          mark.textContent = disabled ? '-' : '↗';
+        }
         link.append(mark, textNode);
         grid.appendChild(link);
       });
@@ -2144,13 +2258,22 @@
       });
 	    }
 
-    // Save tenant from modal
-    async function enterSupportMode(tenantId) {
+    // Support-mode flow. Tenant-scoped studio-admin/CMS routes 403 with
+    // "support_session_required" for a platform super admin without an active
+    // support session, so gated links route through this modal and open their
+    // target only after the session starts.
+    let supportTargetHref = '';
+
+    async function enterSupportMode(tenantId, targetHref = '') {
       const t = tenants.find((item) => item.id === tenantId);
       if (!t) return;
+      supportTargetHref = targetHref;
+      const targetNote = targetHref
+        ? '<p class="text-muted" style="margin-top:8px;">This page requires an active support session. It will open in a new tab after support mode starts.</p>'
+        : '';
       openModal(
         `Support ${/*safe*/t.name}`, // title renders via textContent
-        `<p>Every support-mode action is audited against this reason.</p><div class="form-group mt-2"><label for="m_supportReason">Reason</label><textarea id="m_supportReason" rows="4" placeholder="Describe the customer request or incident reference"></textarea></div>`,
+        `<p>Every support-mode action is audited against this reason.</p>${/*safe*/targetNote}<div class="form-group mt-2"><label for="m_supportReason">Reason</label><textarea id="m_supportReason" rows="4" placeholder="Describe the customer request or incident reference"></textarea></div>`,
         `<button id="confirmSupportModeBtn" onclick="confirmSupportMode('${esc(tenantId)}')" class="btn-primary">Start Support Mode</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`,
       );
     }
@@ -2164,12 +2287,36 @@
           method: 'POST',
           body: JSON.stringify({ reason }),
         });
-        showToast('Support mode started — opening Studio Admin.', 'success');
+        const target = supportTargetHref;
+        supportTargetHref = '';
+        showToast(target
+          ? 'Support mode started — opening the tenant workspace.'
+          : 'Support mode started — opening Studio Admin.', 'success');
         closeModal();
-        window.open(data.url, '_blank');
+        window.open(target || data.url, '_blank');
       } catch (err) {
         $('confirmSupportModeBtn').disabled = false;
       }
+    }
+
+    // Button that looks like an action link but starts the support-mode flow
+    // before opening a tenant-scoped page (Studio CMS / Brand Workspace).
+    function addSupportGatedLink(container, label, tenantId, href, disabledReason = '') {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = `btn-secondary${disabledReason ? ' is-disabled' : ''}`;
+      const icon = document.createElement('span');
+      icon.className = 'gate-icon';
+      icon.setAttribute('aria-hidden', 'true');
+      icon.innerHTML = ICON_SHIELD;
+      const textEl = document.createElement('span');
+      textEl.textContent = label;
+      button.append(icon, textEl);
+      button.title = disabledReason || 'Opens via Support Mode (audited).';
+      if (disabledReason) button.disabled = true;
+      else button.addEventListener('click', () => enterSupportMode(tenantId, href));
+      container.appendChild(button);
+      return button;
     }
 
     async function generateSetupLink(tenantId) {
@@ -2301,8 +2448,8 @@
       const open = section('Open');
       const unavailable = ['archived', 'deleted'].includes(t.status);
       addActionLink(open, 'Open Studio Website', `/${slug}`, unavailable ? 'Archived or deleted tenants cannot be opened.' : '');
-      addActionLink(open, 'Open CMS', `/${slug}/cms`, unavailable ? 'Archived or deleted tenants cannot be opened.' : '');
-      addActionLink(open, 'Open Studio Admin', `/${slug}/studio-admin`, unavailable ? 'Archived or deleted tenants cannot be opened.' : (!t.studio_admin_email ? 'Studio Admin login is not configured.' : ''));
+      addSupportGatedLink(open, 'Open CMS', id, `/${slug}/cms`, unavailable ? 'Archived or deleted tenants cannot be opened.' : '');
+      addSupportGatedLink(open, 'Open Studio Admin', id, `/${slug}/studio-admin`, unavailable ? 'Archived or deleted tenants cannot be opened.' : '');
       addActionLink(open, 'Open Quick Registration', `/${slug}/register`, ['paused', 'archived', 'deleted'].includes(t.status) ? 'Registration is unavailable for paused, archived, or deleted tenants.' : '');
       const support = section('Support Mode');
       const supportBtn = addActionButton(support, 'Enter Support Mode', 'btn-warning', () => enterSupportMode(id));
@@ -2445,7 +2592,7 @@
         });
         riskCard.appendChild(list);
       } else {
-        appendSmallBadge(riskCard, 'Healthy', 'pill active');
+        appendPillWithIcon(riskCard, 'Healthy', 'pill active', PILL_CHECK);
       }
       container.appendChild(riskCard);
 
@@ -2504,9 +2651,12 @@
         const links = document.createElement('div');
         links.className = 'link-grid';
         const unavailable = ['archived', 'deleted'].includes(t.status);
+        // Public pages stay direct links; tenant-scoped Studio CMS and Brand
+        // Workspace go through the audited support-mode flow (403
+        // support_session_required without an active session).
         addActionLink(links, 'Studio Website', `/${slug}`, unavailable ? 'Archived or deleted tenants cannot be opened.' : '');
-        addActionLink(links, 'Studio CMS', `/${slug}/cms`, unavailable ? 'Archived or deleted tenants cannot be opened.' : '');
-        addActionLink(links, 'Brand Workspace', `/${slug}/studio-admin`, unavailable ? 'Archived or deleted tenants cannot be opened.' : (!t.studio_admin_email ? 'Studio Admin login is not configured.' : ''));
+        addSupportGatedLink(links, 'Studio CMS', t.id, `/${slug}/cms`, unavailable ? 'Archived or deleted tenants cannot be opened.' : '');
+        addSupportGatedLink(links, 'Brand Workspace', t.id, `/${slug}/studio-admin`, unavailable ? 'Archived or deleted tenants cannot be opened.' : '');
         addActionLink(links, 'Quick Registration', `/${slug}/register`, ['paused', 'archived', 'deleted'].includes(t.status) ? 'Registration is unavailable for paused, archived, or deleted tenants.' : '');
         item.appendChild(links);
       });
@@ -2549,7 +2699,16 @@
           item.appendChild(code);
         });
       }
-      addDetail('Subscription', (item) => item.appendChild(document.createTextNode(`${dateOnly(t.starts_at) || '-'} to ${dateOnly(t.ends_at) || 'open'}`)));
+      addDetail('Subscription', (item) => {
+        // The end marker is its own node so "Open-ended" can translate; a
+        // combined "2026-01-01 to open" text node matches nothing.
+        const range = document.createElement('span');
+        range.className = 'tabular';
+        range.textContent = `${dateOnly(t.starts_at) || '-'} → `;
+        const end = document.createElement('span');
+        end.textContent = dateOnly(t.ends_at) || 'Open-ended';
+        item.append(range, end);
+      });
       container.appendChild(grid);
       return container;
     }
@@ -2619,7 +2778,7 @@
         sub.textContent = text(t.subscription_status || '-');
         statusCell.appendChild(sub);
         statusCell.appendChild(document.createElement('br'));
-        appendSmallBadge(statusCell, healthLabel(t), healthLabel(t) === 'Healthy' ? 'pill active' : healthLabel(t) === 'Test fixture' ? 'pill fixture' : 'pill warning');
+        appendHealthPill(statusCell, t);
         const ownerCell = addCell(row);
         ownerCell.textContent = t.owner_email || 'Needs owner';
         if (!t.owner_email) appendSmallBadge(ownerCell, 'Needs owner', 'pill warning');
@@ -2670,8 +2829,39 @@
     }
 
     function enabledPlanFeatures(plan) {
-      const enabled = KNOWN_PLAN_FEATURES.filter(([key]) => Boolean((plan.features || {})[key])).map(([, label]) => label);
-      return enabled.length ? enabled.join(', ') : 'No enabled entitlements';
+      return KNOWN_PLAN_FEATURES.filter(([key]) => Boolean((plan.features || {})[key])).map(([, label]) => label);
+    }
+
+    // Plans-table quota cell. Each limit and each entitlement is its own text
+    // node — a single "500 students\n8 users\n…" blob can never match the
+    // admin-i18n dictionary, so the Chinese UI kept showing English here.
+    function renderPlanQuota(cell, plan) {
+      const quota = document.createElement('div');
+      quota.className = 'plan-quota';
+      [
+        `${Number(plan.student_limit || 0)} students`,
+        `${Number(plan.user_limit || 0)} users`,
+        formatStorageMb(plan.storage_limit_mb)
+      ].forEach((line) => {
+        const row = document.createElement('div');
+        row.textContent = line;
+        quota.appendChild(row);
+      });
+      const features = document.createElement('div');
+      features.className = 'plan-features';
+      const enabled = enabledPlanFeatures(plan);
+      if (enabled.length) {
+        enabled.forEach((label, index) => {
+          if (index) features.appendChild(document.createTextNode(' · '));
+          const item = document.createElement('span');
+          item.textContent = label;
+          features.appendChild(item);
+        });
+      } else {
+        features.textContent = 'No enabled entitlements';
+      }
+      quota.appendChild(features);
+      cell.appendChild(quota);
     }
 
     function resetPlanForm() {
@@ -2757,6 +2947,8 @@
     const ICON_ALERT = uiIcon('<path d="M12 4.4L20.8 19.4H3.2z"/><path d="M12 10.2v3.6"/><circle cx="12" cy="16.6" r="0.55" fill="currentColor" stroke="none"/>');
     const ICON_CHEVRON = uiIcon('<path d="M9.5 6l6 6-6 6"/>');
     const ICON_CHECK = uiIcon('<path d="M5 12.5l4.6 4.6L19 7.6"/>');
+    // Shield: marks navigation that routes through the audited support-mode flow.
+    const ICON_SHIELD = uiIcon('<path d="M12 3.8l6.8 2.5v5.1c0 4.2-2.9 7.4-6.8 8.8-3.9-1.4-6.8-4.6-6.8-8.8V6.3z"/><path d="M9.4 12l1.9 1.9 3.4-3.8"/>');
 
     function renderCommercialAttention(usage) {
       const attention = $('commercialAttention');
@@ -2861,6 +3053,32 @@
       funnel.appendChild(wrap);
     }
 
+    // Audit log table. Rendered from cached rows so a language switch can
+    // re-format the timestamps (the formatted value is locale-specific and is
+    // not a dictionary string); the raw server timestamp stays in the title.
+    function renderAuditLogs() {
+      const auditBody = $('auditBody');
+      auditBody.replaceChildren();
+      if (!auditLogs.length) {
+        appendEmptyRow(auditBody, 4, 'No audit logs yet.');
+        return;
+      }
+      auditLogs.forEach((a) => {
+        const row = document.createElement('tr');
+        const timeCell = addCell(row, formatTimestamp(a.created_at));
+        timeCell.className = 'tabular';
+        if (a.created_at) timeCell.title = String(a.created_at);
+        addCell(row, text(a.tenant_slug));
+        addStrongMuted(addCell(row), a.action);
+        addCell(row, `${text(a.resource_type)} ${text(a.resource_id)}`);
+        auditBody.appendChild(row);
+      });
+    }
+
+    document.addEventListener('studiosaas:admin-language', () => {
+      if (currentUser) renderAuditLogs();
+    });
+
     // Main refresh function
     async function refresh() {
       if (!currentUser) return;
@@ -2896,7 +3114,7 @@
             code.textContent = text(p.code);
             nameCell.append(strong, document.createElement('br'), code);
             addCell(row, money(p.monthly_price_aud));
-            addCell(row, `${text(p.student_limit)} students\n${text(p.user_limit)} users\n${text(p.storage_limit_mb)} MB\n${enabledPlanFeatures(p)}`);
+            renderPlanQuota(addCell(row), p);
             const actions = document.createElement('div');
             actions.className = 'action-row';
             addActionButton(actions, 'Edit', 'btn-secondary btn-sm', () => editPlan(p.code));
@@ -2910,20 +3128,8 @@
 
         renderTenants();
 
-        const auditBody = $('auditBody');
-        auditBody.replaceChildren();
-        if (audit.auditLogs.length) {
-          audit.auditLogs.forEach((a) => {
-            const row = document.createElement('tr');
-            addCell(row, text(a.created_at));
-            addCell(row, text(a.tenant_slug));
-            addStrongMuted(addCell(row), a.action);
-            addCell(row, `${text(a.resource_type)} ${text(a.resource_id)}`);
-            auditBody.appendChild(row);
-          });
-        } else {
-          appendEmptyRow(auditBody, 4, 'No audit logs yet.');
-        }
+        auditLogs = audit.auditLogs || [];
+        renderAuditLogs();
 
       } catch (err) {
         if (err.status === 401) {

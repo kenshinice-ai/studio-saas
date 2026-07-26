@@ -164,6 +164,13 @@ Seven roles are defined by `ROLE_PERMISSIONS` in `backend/studiosaas/auth.py`:
 `super_admin`, `owner`, `manager`, `teacher`, `front_desk`, `staff`, `parent`.
 `super_admin` holds the wildcard (`*`).
 
+> End-user manuals for each of these roles live in
+> [`docs/guides/`](guides/README.md): [Super Admin](guides/Super_Admin_Guide.md) ·
+> [Owner](guides/Studio_Owner_Guide.md) · [Manager](guides/CMS_Manager_Guide.md) ·
+> [Teacher](guides/Teacher_Guide.md) ·
+> [Front Desk / Staff](guides/Front_Desk_Staff_Guide.md) ·
+> [Student / Parent](guides/Student_Parent_Guide.md).
+
 | Permission | owner | manager | teacher | front_desk | staff |
 |---|---|---|---|---|---|
 | `tenant:read` / `tenant:update` | read+update | read | — | — | — |
@@ -434,4 +441,6 @@ created after the backup timestamp.
 
 ---
 
-面向最终用户的分角色操作手册见 `docs/guides/`。
+面向最终用户的分角色操作手册见 [`docs/guides/`](guides/README.md)（总览 +
+Super Admin / Owner / Manager / Teacher / Front Desk & Staff / 学员家长
+六本手册，均已更新到 v7.7.0）。
