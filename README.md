@@ -1,6 +1,6 @@
 # PWE Studio SaaS
 
-Current release: **v7.7.0**
+Current release: **v7.7.7**
 
 PWE Studio SaaS (repo: studiosaas) is a multi-tenant Creative Studio Operating System for art schools, music studios, tutoring centres, creative academies, kids' activity providers, and small education businesses.
 
@@ -541,12 +541,47 @@ same-mobile pending entries get a 疑似重复 badge, course duration is
 bilingual (60 分钟 / 60 MIN), broken gallery/hero images degrade cleanly
 (tiles removed from tab order, hero falls back to decorative art).
 
-**Role guides** (`docs/guides/`, all stamped 7.7.0): new dedicated
+**Role guides** (`docs/guides/`, all stamped 7.7.7): new dedicated
 Front Desk/Staff guide (previously "see Manager"), support-gate and
 owner-audit sections rewritten to match enforced behavior, share-link
 create/revoke permissions corrected everywhere, and each guide gained a
 role-specific FAQ (login failure kinds, missing-button explanations,
 refunds, access codes, share links, language keys, duplicates).
+
+### 4.18 v7.7.7 production-readiness remediation, DB security pass, sales kit
+
+Two formal audits (AWS Well-Architected + a dedicated database-security
+sweep) ran against v7.7.0 with one tenant already holding real data; every
+blocker and pre-launch item was fixed:
+
+**Deployment kit** — production pins in `deploy/aws/requirements.lock`
+(the image no longer resolves floating ranges); `pg_dump` inside the image
+plus a real backup section (README_AWS §9: daily cron, 0600 dumps, EBS DLM
+volume snapshots for media/archives/tenants, quarterly restore drill);
+nginx TLS bootstrap config ends the certbot chicken-and-egg; a tenants
+volume + boot-time workspace regeneration so runtime-created portals
+survive image rebuilds; compose log caps, SMTP/SES + DB-timeout env
+passthrough; systemd ReadWritePaths covers tenants/archives; migration
+steps gain data-volume copy + chown.
+
+**Database security** — least-privilege RDS role + `sslmode=require`
+mandated in the kit; `backup_postgres.py` chmods dumps 0600, keeps the DB
+password off argv (PGPASSWORD), and warns when the target directory syncs
+to iCloud; `/public/<slug>/balance-query` requires the student's access
+code once one is issued (closing a name+phone enrolment oracle for real
+families); `/student/unlock` gains a flat per-IP ceiling and constant-work
+dummy verification (timing oracle closed). The audit otherwise returned
+SECURE: parameterized SQL throughout, PBKDF2-600k credentials, hashed
+tokens, complete tenant isolation, support-gate coverage.
+
+**Observability** — `/v1/health?deep=1` probes the database and the
+container healthcheck uses it; CloudWatch minimum-alarm set and event-table
+pruning are in the §8 checklist.
+
+**Sales kit** — `docs/sales/PWE_StudioSaaS_销售介绍.pptx` (13 slides,
+brand-styled, every product claim verified against the repo) plus
+`talk_track.md` presenter script with objection handling.
+
 
 ---
 

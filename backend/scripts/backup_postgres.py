@@ -19,6 +19,38 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_BACKUP_DIR = PROJECT_ROOT / "backups" / "postgres"
 
 
+def _split_password(url: str) -> tuple[str, str | None]:
+    """Return (url-without-password, password) so argv never carries it.
+
+    A password on the pg_dump/pg_restore command line is visible in `ps` on
+    a shared host; it travels via PGPASSWORD instead.
+    """
+
+    from urllib.parse import urlsplit, urlunsplit
+
+    parts = urlsplit(url)
+    if not parts.password:
+        return url, None
+    netloc = parts.hostname or ""
+    if parts.username:
+        netloc = f"{parts.username}@{netloc}"
+    if parts.port:
+        netloc = f"{netloc}:{parts.port}"
+    return urlunsplit((parts.scheme, netloc, parts.path, parts.query, parts.fragment)), parts.password
+
+
+def _warn_synced_path(path: Path) -> None:
+    """Real student PII must not silently land in a cloud-synced folder."""
+
+    if "com~apple~CloudDocs" in str(path.resolve()):
+        print(
+            "WARNING: backup directory is inside iCloud Drive — dumps containing "
+            "student PII will sync to Apple's cloud. Use --backup-dir outside the "
+            "synced tree for production data.",
+            file=sys.stderr,
+        )
+
+
 def _database_url() -> str:
     """Return the configured PostgreSQL URL or fail clearly."""
 
@@ -150,11 +182,20 @@ def backup(args: argparse.Namespace) -> int:
     url = _database_url()
     backup_dir = Path(args.backup_dir)
     backup_dir.mkdir(parents=True, exist_ok=True)
+    _warn_synced_path(backup_dir)
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     dump_path = backup_dir / f"studiosaas_{_db_name(url)}_{timestamp}.dump"
     manifest_path = dump_path.with_suffix(".manifest.json")
 
-    _run(["pg_dump", "--format=custom", "--no-owner", "--file", str(dump_path), url])
+    argv_url, password = _split_password(url)
+    dump_env = os.environ.copy()
+    if password:
+        dump_env["PGPASSWORD"] = password
+    _run(
+        ["pg_dump", "--format=custom", "--no-owner", "--file", str(dump_path), argv_url],
+        env=dump_env,
+    )
+    dump_path.chmod(0o600)
     manifest = {
         "created_at": timestamp,
         "database": _db_name(url),
@@ -164,6 +205,7 @@ def backup(args: argparse.Namespace) -> int:
         "size_bytes": dump_path.stat().st_size,
     }
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    manifest_path.chmod(0o600)
     _prune_backups(backup_dir, args.keep)
     print(json.dumps({"ok": True, "dump": str(dump_path), "manifest": str(manifest_path)}, indent=2))
     return 0

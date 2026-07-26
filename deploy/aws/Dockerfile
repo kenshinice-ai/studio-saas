@@ -14,15 +14,19 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
 
-# libpq is not needed (psycopg[binary] bundles it); curl only for the healthcheck.
+# curl: healthcheck. postgresql-client: pg_dump so backup_postgres.py can run
+# INSIDE the container (`docker compose exec app python scripts/...`) — the
+# deploy audit found the backup path otherwise impossible on the Docker route.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl \
+    && apt-get install -y --no-install-recommends curl postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-COPY backend/requirements.txt backend/requirements.txt
-RUN pip install -r backend/requirements.txt
+# Exact production pins (deploy/aws/requirements.lock); backend/requirements.txt
+# keeps the wide development ranges.
+COPY deploy/aws/requirements.lock deploy/aws/requirements.lock
+RUN pip install -r deploy/aws/requirements.lock
 
 COPY . .
 
@@ -39,7 +43,9 @@ ENV PORT=8899 \
 
 EXPOSE 8899
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=25s --retries=3 \
-    CMD curl -fsS "http://localhost:${PORT}/v1/health" || exit 1
+# deep=1 probes the database too — the container goes unhealthy during an
+# RDS outage instead of reporting green while every real request 500s.
+HEALTHCHECK --interval=30s --timeout=8s --start-period=25s --retries=3 \
+    CMD curl -fsS "http://localhost:${PORT}/v1/health?deep=1" || exit 1
 
 ENTRYPOINT ["/app/deploy/aws/entrypoint.sh"]

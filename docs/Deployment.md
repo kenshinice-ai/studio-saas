@@ -1,7 +1,7 @@
 # StudioSaaS Deployment Guide
 
-Version: v7.6.0
-Date: 2026-07-26
+Version: v7.7.7
+Date: 2026-07-27
 Scope: 本地部署 → Cloudflare Tunnel 公网试点（`https://studiosaas.cc.cd`）→ AWS 正式部署。
 
 部署路径分三个阶段，每个阶段都是上一阶段的超集，数据与代码不推倒重来：
@@ -148,7 +148,12 @@ Route53/Cloudflare DNS
   → SES (注册/审批邮件, 替换 console backend)
 ```
 
-预估月成本（悉尼 ap-southeast-2）：EC2 ~US$12 + RDS ~US$13 + S3/流量 ~US$3 ≈ **US$30/月**。
+预估月成本（悉尼 ap-southeast-2）：EC2 ~US$15 + RDS ~US$15-19 + EBS/快照/流量 ~US$5 ≈ **US$35-45/月**（2026-07 审计校准）。
+
+**数据驻留与加密**：全部数据静态存储于 ap-southeast-2；RDS 与 EBS 均开启
+storage encryption。备份三层：RDS 自动快照 + 每日 pg_dump cron（写入持久卷，
+0600，14 份滚动）+ EBS DLM 卷快照（覆盖媒体/归档/租户工作区——它们不在
+pg_dump 里）。具体命令见 `deploy/aws/README_AWS.md` §9。
 更省的替代：Lightsail $10 套餐（同机 Postgres）≈ US$10/月，但放弃 RDS 快照/监控，试点期可接受。
 
 ### 3.2 迁移步骤

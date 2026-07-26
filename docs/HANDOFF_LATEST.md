@@ -2,7 +2,33 @@
 
 > 本文件在**每轮改动开始时和完成时**都更新（用户 2026-07-26 明确要求），
 > 始终反映最新状态。历史交接见 `docs/HANDOFF_2026-07-26.md`（v7.3.x 时期）。
-> 最后更新：2026-07-27（LetsPaint 真实数据导入轮 · **已完成**）
+> 最后更新：2026-07-27（v7.7.7 生产就绪整改 + DB 安保 + 销售套件 · **已完成**）
+
+---
+
+## ✅ v7.7.7 生产就绪整改 + DB 安保 + 销售套件轮（2026-07-27，本轮已完成）
+
+三个并行 agent（Well-Architected 部署审计 / 数据库安全专项 / 销售 PPT）
++ 主线修复。**部署审计 4 阻塞 + 7 应修、安保审计 2 阻塞 + 3 应修全部
+落地**；明细见 README §4.18。要点：
+
+- **部署套件**：`requirements.lock` 生产精确锁版；镜像内置 pg_dump +
+  README_AWS **§9 备份章**（每日 cron/0600/EBS DLM 卷快照/季度还原演练）；
+  nginx **bootstrap 配置**解决 certbot 先有鸡还是先有蛋；tenants 卷 +
+  开机重生成（运行时建的租户门户不再随镜像重建丢失）；compose 日志上限
+  + SMTP/超时变量透传；systemd ReadWritePaths 补 tenants/archives；
+  §7 迁移补数据卷 + chown；`/v1/health?deep=1` DB 探针接入容器健康检查。
+- **DB 安保**：最小权限 RDS 角色 + `sslmode=require` 写死在套件；
+  backup 脚本 0600/密码走 PGPASSWORD/iCloud 路径警告（存量 dump 已收紧）；
+  balance-query 在学员签发访问码后强制要求（关闭姓名+手机存在性预言机）；
+  unlock 恒定功耗 + 每 IP 平坦限流（关闭时序预言机）。审计其余判定
+  SECURE（参数化 SQL/PBKDF2-600k/哈希令牌/隔离/支持门全干净）。
+- **销售套件**：`docs/sales/PWE_StudioSaaS_销售介绍.pptx`（13 页，品牌
+  配色，逐项事实核实：201 隔离检查、15 theme-modes、定价按 plans seed）
+  + `talk_track.md` 讲稿与异议应对。商务联系方式为占位，可自行替换。
+- **版本 v7.7.7 全量统一**：VERSION/server.py/README + 7 份 guides +
+  Deployment.md 头 + PPT 封面。验证：131 pytest + 73 smoke +
+  201 isolation 全绿；生产镜像重建实测（pg_dump 17.10 + 锁定版依赖）。
 
 ---
 
@@ -111,11 +137,12 @@ CMS/门户走查小项 · PWE 品牌识别 · 角色手册+FAQ）+ 后端主线�
 
 ## 0. 当前状态一览
 
-- **版本**：v7.7.0（VERSION / server.py APP_VERSION / README 三处一致；
+- **版本**：v7.7.7（VERSION / server.py APP_VERSION / README 三处一致；
   v7.4.0=RBAC/a11y/AWS 套件，v7.4.1=数据库与复审稳定性修复，
   v7.5.0=文档全量刷新 + UI/UX 修复批次 + docs/guides 角色手册，
   v7.6.0=审计 3H/13M/20L 全量修复 + Super Admin UI 专业化改版，
-  v7.7.0=roadmap 全清 + PWE 品牌识别 + Super Admin 二轮）
+  v7.7.0=roadmap 全清 + PWE 品牌识别 + Super Admin 二轮，
+  v7.7.7=生产就绪整改 + DB 安保 + 销售套件）
 - **提交状态**：v7.7.0 已提交并推送（9de05ab，分支
   `codex/studiosaas-v7.3.1`）；v7.6.0=59af5a2（main 已对齐该提交，
   9de05ab 尚未合入 main）

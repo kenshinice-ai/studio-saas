@@ -1,6 +1,6 @@
 # StudioSaaS 使用手册总览
 
-> 适用版本：StudioSaaS v7.7.0 · 最后更新：2026-07-27
+> 适用版本：StudioSaaS v7.7.7 · 最后更新：2026-07-27
 > 本目录是按角色划分的最终用户手册。开发/运维文档见 `docs/` 上层
 > （[Architecture](../Architecture.md) · [Admin_Guide](../Admin_Guide.md) ·
 > [Glossary](../Glossary.md)）。
@@ -52,7 +52,7 @@ StudioSaaS 是多租户教培工作室 SaaS。每个工作室（租户）有独�
 | 品牌/官网 settings:write | ✅ | ❌ | ❌ | ❌ | ❌ |
 | 团队成员管理 | ✅ | 仅查看 | ❌ | ❌ | ❌ |
 
-（Super Admin 拥有全部权限 `*`，但 v7.7.0 起进入任一租户的 CMS/Studio
+（Super Admin 拥有全部权限 `*`，但 v7.7.7 起进入任一租户的 CMS/Studio
 Admin **必须先在 Super Admin 控制台开启支持模式**（填写原因、全程审计），
 否则接口返回 403 `support_session_required`。credits:refund 与
 portfolio:share 是 v7.4.0 新增的独立权限，仅 Owner/Manager；分享链接的

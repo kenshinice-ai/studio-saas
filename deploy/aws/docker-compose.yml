@@ -27,14 +27,35 @@ services:
       STUDIOSAAS_API_KEY: ${STUDIOSAAS_API_KEY}
       STUDIOSAAS_PUBLIC_BASE_DOMAIN: ${STUDIOSAAS_PUBLIC_BASE_DOMAIN:-}
       STUDIOSAAS_SEED_SUPER_ADMIN: ${STUDIOSAAS_SEED_SUPER_ADMIN:-0}
+      # Email delivery (SES SMTP in production; console = log-only default)
+      STUDIOSAAS_EMAIL_BACKEND: ${STUDIOSAAS_EMAIL_BACKEND:-console}
+      STUDIOSAAS_SMTP_HOST: ${STUDIOSAAS_SMTP_HOST:-}
+      STUDIOSAAS_SMTP_PORT: ${STUDIOSAAS_SMTP_PORT:-587}
+      STUDIOSAAS_SMTP_USER: ${STUDIOSAAS_SMTP_USER:-}
+      STUDIOSAAS_SMTP_PASSWORD: ${STUDIOSAAS_SMTP_PASSWORD:-}
+      STUDIOSAAS_SMTP_FROM: ${STUDIOSAAS_SMTP_FROM:-}
+      # DB wait ceilings (ms) and support-gate override — documented tunables
+      STUDIOSAAS_DB_CONNECT_TIMEOUT: ${STUDIOSAAS_DB_CONNECT_TIMEOUT:-5}
+      STUDIOSAAS_DB_STATEMENT_TIMEOUT_MS: ${STUDIOSAAS_DB_STATEMENT_TIMEOUT_MS:-30000}
+      STUDIOSAAS_DB_LOCK_TIMEOUT_MS: ${STUDIOSAAS_DB_LOCK_TIMEOUT_MS:-10000}
+      STUDIOSAAS_ENFORCE_SUPPORT_GATE: ${STUDIOSAAS_ENFORCE_SUPPORT_GATE:-1}
       COOKIE_SECURE: "1"
       PORT: "8899"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
     volumes:
       - studiosaas-data:/data
       - studiosaas-media:/media
       # Tenant archive/permanent-delete snapshots — legal retention (incl.
       # publication-consent evidence). Must survive image replacement.
       - studiosaas-archives:/app/backend/archives
+      # Runtime-created tenant portal workspaces — without this volume a
+      # tenant created on AWS loses its portal on the next image rebuild.
+      # entrypoint.sh repopulates it from the template on every boot.
+      - studiosaas-tenants:/app/tenants
 
   db:
     profiles: ["local-db"]
@@ -56,4 +77,5 @@ volumes:
   studiosaas-data:
   studiosaas-media:
   studiosaas-archives:
+  studiosaas-tenants:
   studiosaas-pgdata:

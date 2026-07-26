@@ -1,6 +1,6 @@
 # 平台超管手册 · Super Admin
 
-> 适用版本：StudioSaaS v7.7.0 · 界面：Super Admin 控制台（`/super-admin`）
+> 适用版本：StudioSaaS v7.7.7 · 界面：Super Admin 控制台（`/super-admin`）
 > 其他角色手册见 [手册总览](README.md)
 
 ## 角色定位
@@ -209,7 +209,7 @@ Reactivate（再输一次 slug）才回到 active。
 
 **Q7：不开支持模式直接进租户后台会怎样？**
 会被后端拒绝：租户内的所有接口返回 403 `support_session_required`
-（「需要先开启支持模式（含原因）才能进入该工作室」）。这是 v7.7.0 起的
+（「需要先开启支持模式（含原因）才能进入该工作室」）。这是 v7.7.7 起的
 强制权限门，不再只是流程约束。从租户行的 Enter Support Mode（或 CMS /
 Admin 快捷链接弹出的对话框）填写 Reason 开启会话后即可进入；会话只对
 该租户有效，Exit 后访问权立即收回。

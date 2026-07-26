@@ -32,7 +32,9 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/opt/studiosaas/data /opt/studiosaas/media
+# tenants: runtime workspace creation; backend/archives: tenant archive /
+# permanent-delete snapshots (legal retention). Both 500 on a read-only FS.
+ReadWritePaths=/opt/studiosaas/data /opt/studiosaas/media /opt/studiosaas/app/tenants /opt/studiosaas/app/backend/archives
 
 [Install]
 WantedBy=multi-user.target

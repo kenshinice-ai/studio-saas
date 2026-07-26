@@ -1956,9 +1956,24 @@ def _workspace_for(slug: str, name: str) -> str:
 
 @api_v1.route("/health", methods=["GET"])
 def health():
-    """Health check for the StudioSaaS v1 surface."""
+    """Health check for the StudioSaaS v1 surface.
 
-    return jsonify({"ok": True, "service": "PWE Studio SaaS API", "version": "v1"})
+    ``?deep=1`` also probes the database, so the container healthcheck stops
+    reporting healthy while every real request would 500 (RDS outage). The
+    shallow form stays constant-time for load balancers and uptime pings.
+    """
+
+    body = {"ok": True, "service": "PWE Studio SaaS API", "version": "v1"}
+    if request.args.get("deep") == "1":
+        try:
+            with connect() as conn:
+                fetch_one(conn, "SELECT 1 AS ok", ())
+            body["db"] = "ok"
+        except Exception:
+            body["ok"] = False
+            body["db"] = "error"
+            return jsonify(body), 503
+    return jsonify(body)
 
 
 @api_v1.route("/industry-presets", methods=["GET"])
@@ -3674,6 +3689,7 @@ def public_balance_query(tenant_slug: str):
     payload = request.get_json(silent=True) or {}
     name = str(payload.get("name") or "").strip()
     phone = str(payload.get("phone") or "").strip()
+    code = str(payload.get("accessCode") or payload.get("code") or "").strip()
     if not name or not phone:
         return jsonify({"match": False, "error": "name_and_phone_required"}), 400
     with connect() as conn:
@@ -3684,6 +3700,31 @@ def public_balance_query(tenant_slug: str):
             name=name,
             phone=phone,
         )
+        # Name+phone alone is an enrolment/balance oracle for anyone holding
+        # (or guessing) a family's details. Once the studio issues a student
+        # an access code, that code becomes required here too — same secret
+        # as the private area. Codeless students keep the legacy behaviour so
+        # studios can adopt codes at their own pace.
+        if lookup.student:
+            stored_hash = str(lookup.student.get("access_code_hash") or "")
+            code_active = bool(stored_hash) and not lookup.student.get("access_code_revoked_at")
+            if code_active and not _verify_student_access_code(lookup.student, code):
+                fingerprint = _student_lookup_fingerprint(name, phone)
+                _record_student_access_failure(
+                    conn,
+                    tenant_id=tenant.tenant_id,
+                    lookup_hash=fingerprint,
+                    ip_address=_client_ip(),
+                )
+                _audit_request(
+                    conn,
+                    tenant_id=tenant.tenant_id,
+                    action="public.balance_lookup",
+                    resource_type="student_lookup",
+                    metadata={"matched": False, "access_code_required": True},
+                )
+                conn.commit()
+                return jsonify({"match": False, "accessCodeRequired": True})
         row = None
         if lookup.student:
             row = fetch_one(
@@ -3858,9 +3899,31 @@ def manage_student_publication_consent(student_id: str):
     )
 
 
+_DUMMY_ACCESS_HASH: list[str] = []
+
+
+def _dummy_access_verify(code: str) -> None:
+    """Burn the same PBKDF2 work as a real verification.
+
+    Without this, a miss on (name, phone) returns immediately while a hit
+    spends ~100ms hashing — a timing oracle for pair validity. The dummy
+    hash is computed once, lazily, so import stays cheap.
+    """
+
+    if not _DUMMY_ACCESS_HASH:
+        _DUMMY_ACCESS_HASH.append(_auth_hash_password("000000"))
+    _auth_verify_password(code or "000000", _DUMMY_ACCESS_HASH[0])
+
+
 @api_v1.route("/public/<tenant_slug>/student/unlock", methods=["POST"])
 def public_student_unlock(tenant_slug: str):
     """Issue a one-hour HttpOnly student session after access-code verification."""
+
+    # Flat per-IP ceiling on top of the per-identity DB lockout: the lockout
+    # stops repeated guesses at ONE family but not one IP spraying many
+    # identities at one guess each.
+    if _rate_limited(f"student-unlock:{tenant_slug}:{_client_ip()}", 10):
+        return _error("Too many attempts. Please wait a minute.", 429)
 
     payload = request.get_json(silent=True) or {}
     name = str(payload.get("name") or "").strip()
@@ -3888,7 +3951,10 @@ def public_student_unlock(tenant_slug: str):
         lookup = _find_public_student(
             conn, tenant_id=tenant.tenant_id, name=name, phone=phone
         )
-        if not lookup.student or not _verify_student_access_code(lookup.student, code):
+        verified = bool(lookup.student) and _verify_student_access_code(lookup.student, code)
+        if not lookup.student or not str((lookup.student or {}).get("access_code_hash") or ""):
+            _dummy_access_verify(code)
+        if not verified:
             _record_student_access_failure(
                 conn,
                 tenant_id=tenant.tenant_id,

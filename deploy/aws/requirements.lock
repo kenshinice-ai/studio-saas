@@ -1,0 +1,17 @@
+# Production-pinned dependency set for the AWS image (deploy audit v7.7.7).
+# Exact versions verified by the local test suite (131 pytest + 201 isolation).
+# Regenerate deliberately: bump versions here, re-run the full verify suite,
+# commit both together. The wide ranges in backend/requirements.txt remain
+# the DEVELOPMENT contract; this file is what production images install.
+blinker==1.9.0
+click==8.4.2
+Flask==3.1.3
+itsdangerous==2.2.0
+Jinja2==3.1.6
+MarkupSafe==3.0.3
+pillow==11.3.0
+pillow_heif==1.4.0
+psycopg==3.3.4
+psycopg-binary==3.3.4
+waitress==3.0.2
+Werkzeug==3.1.8

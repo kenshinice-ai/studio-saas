@@ -39,6 +39,12 @@ done
 echo "applying migrations..."
 python scripts/run_migrations.py
 
+# Tenant portal workspaces live on the tenants volume in Docker; regenerate
+# so tenants created at runtime (or template updates in this image) are
+# present after every deploy. Idempotent; respects .keep-local pins.
+echo "regenerating tenant workspaces..."
+python scripts/regenerate_tenant_workspaces.py || echo "WARN: workspace regeneration failed (portal pages may be stale)"
+
 if [ "${STUDIOSAAS_SEED_SUPER_ADMIN:-0}" = "1" ]; then
   echo "seeding super admin (STUDIOSAAS_SEED_SUPER_ADMIN=1)..."
   python scripts/seed_super_admin.py
