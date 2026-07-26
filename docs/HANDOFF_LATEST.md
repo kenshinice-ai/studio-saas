@@ -8,7 +8,9 @@
 
 ## 0. 当前状态一览
 
-- **版本**：v7.4.0（VERSION / server.py APP_VERSION / README 三处一致）
+- **版本**：v7.4.1（VERSION / server.py APP_VERSION / README 三处一致；
+  v7.4.0=RBAC/a11y/AWS 套件，v7.4.1=数据库与复审稳定性修复）
+- **打包产物**：`dist/PWE-StudioSaaS-aws-7.4.1.tar.gz`（sha256 已验证）
 - **分支**：`codex/studiosaas-v7.3.1`，上游同名
 - **验证基线**：117 pytest + 73 smoke + 196 tenant-isolation 全绿
 - **AWS 部署包**：`bash deploy/aws/build_aws_bundle.sh <ver>` →
