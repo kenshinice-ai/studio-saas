@@ -1,48 +1,7 @@
 # Admin Guide
 
-## PostgreSQL Backup And Restore
-
-The SaaS database is PostgreSQL. Legacy CMS JSON backup/restore does not protect
-the v1 multi-tenant tables.
-
-Use the local runbook script from the project root:
-
-```bash
-STUDIOSAAS_DATABASE_URL=postgresql://$(whoami)@localhost:5432/studiosaas_local_test \
-  .venv/bin/python backend/scripts/backup_postgres.py backup
-```
-
-This creates a custom-format `pg_dump` plus a manifest under
-`backups/postgres/`. The manifest records `schema_migrations` and critical
-table counts so a restore can be checked against both schema and data totals.
-
-Dry-run restore into a temporary sibling database:
-
-```bash
-STUDIOSAAS_DATABASE_URL=postgresql://$(whoami)@localhost:5432/studiosaas_local_test \
-  .venv/bin/python backend/scripts/backup_postgres.py restore-dry-run backups/postgres/<dump>.dump
-```
-
-Production restore is intentionally guarded:
-
-```bash
-STUDIOSAAS_DATABASE_URL=<target-postgres-url> \
-  .venv/bin/python backend/scripts/backup_postgres.py restore <dump>.dump --confirm <database_name>
-```
-
-Retention defaults to the newest 14 dumps. Change with `backup --keep N`.
-
-Checklist:
-
-- Confirm `pg_dump`, `pg_restore`, `createdb`, `dropdb`, and `psql` are on `PATH`.
-- Run `backup` before every migration batch.
-- Run `restore-dry-run` before using a dump for a real restore.
-- Confirm `schema_migrations` is non-empty after restore.
-- Never run `restore` against a development or production database without the
-  explicit `--confirm <database_name>` guard.
-
 > **StudioSaaS Platform Administration**
-> Last updated: 2026-07-18
+> Last updated: 2026-07-26
 
 ---
 
@@ -64,7 +23,7 @@ Checklist:
 ### Prerequisites
 
 - Access to the server hosting StudioSaaS
-- PostgreSQL 18+ installed and running
+- PostgreSQL 16+ installed and running
 - Python 3.11+ virtual environment with dependencies installed
 - SSH access to the server
 
@@ -80,7 +39,7 @@ Checklist:
    ```bash
    python3 -m venv .venv
    source .venv/bin/activate
-   pip install -r requirements.txt
+   pip install -r backend/requirements.txt
    ```
 
 3. **Configure environment:**
@@ -158,7 +117,7 @@ curl -X POST http://localhost:8899/v1/admin/tenants \
 2. Click **"Pause"** (or **"Resume"**)
 3. Confirm the action
 
-> **Note:** Paused tenants are hidden from public surfaces but data is preserved. Tenant lifecycle statuses: `trial`, `active`, `past_due`, `paused`, `cancelled` (see `docs/Database.md` §3).
+> **Note:** Paused tenants are hidden from public surfaces but data is preserved. Tenant lifecycle statuses (migration 0012): `lead`, `trial`, `onboarding`, `active`, `past_due`, `paused`, `cancelled`, `archived`, `deleted` (see `docs/Database.md` §3).
 
 ### Deleting a Tenant
 
@@ -196,8 +155,61 @@ Super Admin 和每个租户的 Studio Admin 顶部均提供 **中文 / English**
 
 ### Permissions
 
-- Only users with a `super_admin` membership can access
+- Only users with a `super_admin` membership can access the Super-Admin Dashboard
 - Studio admins see only their own tenant surfaces
+
+### Roles & Permission Matrix (v7.4.0)
+
+Seven roles are defined by `ROLE_PERMISSIONS` in `backend/studiosaas/auth.py`:
+`super_admin`, `owner`, `manager`, `teacher`, `front_desk`, `staff`, `parent`.
+`super_admin` holds the wildcard (`*`).
+
+| Permission | owner | manager | teacher | front_desk | staff |
+|---|---|---|---|---|---|
+| `tenant:read` / `tenant:update` | read+update | read | — | — | — |
+| `students:read` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `students:write` | ✓ | ✓ | — | ✓ | ✓ |
+| `courses:write` | ✓ | ✓ | — | — | — |
+| `credits:read` / `credits:write` | ✓ | ✓ | — | ✓ | ✓ |
+| `credits:refund` | ✓ | ✓ | — | — | — |
+| `attendance:read` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `attendance:write` | ✓ | ✓ | ✓ | — | ✓ |
+| `portfolio:read` / `portfolio:write` | ✓ | ✓ | ✓ | — | ✓ |
+| `portfolio:share` | ✓ | ✓ | — | — | — |
+| `registrations:read` / `registrations:write` | ✓ | ✓ | — | ✓ | ✓ |
+| `analytics:read` | ✓ | ✓ | — | — | — |
+| `data:export` | ✓ | ✓ | — | — | — |
+| `settings:write` | ✓ | — | — | — | — |
+| `plans:read` | ✓ | ✓ | ✓ | ✓ | ✓ |
+
+Key boundaries:
+
+- **Teacher** handles attendance and portfolio work (`attendance:read/write`,
+  `portfolio:read/write`, `students:read`, `plans:read`) but has **no**
+  financial access (`credits:*`, `analytics:read`) and **no** registrations.
+- **Front desk** handles students, credits, and registrations (read+write)
+  but has **no** `attendance:write` and **no** portfolio access.
+- **Staff** sits between the two: it has `attendance:write` and
+  `portfolio:read/write` in addition to the front-desk bundle, but no
+  `credits:refund` and no `portfolio:share`.
+- `credits:refund` and `portfolio:share` are reserved for
+  `super_admin`/`owner`/`manager` only.
+- `analytics:read` and `data:export` are owner/manager only.
+  `settings:write` is **owner-only** (manager does not have it).
+- **Parent** carries only reserved self-service permissions
+  (`student:self:read`, `portfolio:self:read`); no route implements them yet,
+  and `/v1/auth/login` returns **403** for users whose only active
+  memberships are `parent`.
+
+CMS tab visibility mirrors the backend bundles
+(`legacy-root/src/cms-app.jsx` `roleTabs`):
+
+| Role | CMS tabs |
+|---|---|
+| owner / manager / super_admin | `dashboard`, `roster`, `students`, `new_student`, `pending`, `topup`, `logs`, `stats` (full set) |
+| teacher | `dashboard`, `roster`, `students`, `logs` |
+| front_desk | `dashboard`, `students`, `new_student`, `pending`, `topup`, `logs` |
+| staff | full set minus `stats` (`dashboard`, `roster`, `students`, `new_student`, `pending`, `topup`, `logs`) |
 
 ---
 
@@ -224,8 +236,10 @@ release check is `STUDIOSAAS_REQUIRE_POSTGRES=1 bash backend/scripts/verify_loca
 
 ### Log Files
 
-- **Location:** `backend/server.log` (or configured log path)
-- **Format:** JSON structured logs
+- **Location:** `~/.studiosaas/local-app.log` when started via
+  `start_studiosaas_local.sh` (stdout/stderr redirect); a foreground
+  `python backend/server.py` logs to the terminal. Configure your own path
+  when running under systemd/Docker (see `deploy/aws/`).
 - **Rotation:** Configured via log manager (e.g., logrotate)
 
 ### Key Log Levels
@@ -269,6 +283,25 @@ cd backend && STUDIOSAAS_DATABASE_URL=... ../.venv/bin/python scripts/backup_pos
 ```bash
 cd backend && STUDIOSAAS_DATABASE_URL=... ../.venv/bin/python scripts/backup_postgres.py restore-dry-run ../backups/postgres/<dump>.dump
 ```
+
+**Guarded real restore** (only after a successful drill):
+
+```bash
+STUDIOSAAS_DATABASE_URL=<target-postgres-url> \
+  .venv/bin/python backend/scripts/backup_postgres.py restore <dump>.dump --confirm <database_name>
+```
+
+**Checklist:**
+
+- Legacy CMS JSON backup/restore does not protect the v1 multi-tenant tables —
+  PostgreSQL dumps are the canonical backup.
+- Confirm `pg_dump`, `pg_restore`, `createdb`, `dropdb`, and `psql` are on `PATH`.
+- Run `backup` before every migration batch.
+- Run `restore-dry-run` before using a dump for a real restore.
+- Confirm `schema_migrations` is non-empty after restore.
+- Never run `restore` against a development or production database without the
+  explicit `--confirm <database_name>` guard.
+- Retention defaults to the newest 14 dumps; change with `backup --keep N`.
 
 **Scheduled backup (optional):** the pilot deliberately runs on-demand, no
 daemons. If the stack ever becomes long-running, ready-made LaunchAgent
@@ -335,7 +368,7 @@ created after the backup timestamp.
 
 ### Server Won't Start
 
-1. Check logs: `tail -100 backend/server.log`
+1. Check logs: `tail -100 ~/.studiosaas/local-app.log`
 2. Verify PostgreSQL is running: `psql "postgresql:///studiosaas" -c "SELECT 1"`
 3. Check `.env` file exists and is valid
 4. Ensure port 8899 is not in use: `lsof -iTCP:8899 -sTCP:LISTEN`
@@ -375,6 +408,11 @@ created after the backup timestamp.
 - **Password storage:** use the provided seed/reset scripts so user passwords are
   stored with PBKDF2-HMAC-SHA256. Legacy unsalted SHA-256 user hashes are only
   accepted for a successful login and are upgraded immediately.
+- **Legacy CMS surface:** the unscoped legacy `/api/*` surface (single shared
+  password, no role/tenant model) is disabled with **410 Gone** whenever
+  `STUDIOSAAS_ENV` is `pilot` or `production` (except `/api/ping`). Only a
+  genuine single-studio install may re-enable it, via `STUDIOSAAS_ENV=local`
+  or an explicit `STUDIOSAAS_ENABLE_LEGACY_CMS=1`.
 
 ### Incident Response
 
@@ -393,3 +431,7 @@ created after the backup timestamp.
 - [ ] Regular penetration testing
 - [ ] GDPR compliance for EU tenants
 - [ ] Privacy policy published and accessible
+
+---
+
+面向最终用户的分角色操作手册见 `docs/guides/`。

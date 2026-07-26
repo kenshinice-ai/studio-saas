@@ -46,7 +46,7 @@ All post-conversion work stays in Studio CMS. Studio Admin may show a read-only 
 |---|---|---|---|
 | `super_admin` | Full platform control | Audited support access | Audited support access |
 | `owner` | None | Full tenant brand/publication control | Full tenant operations |
-| `manager` | None | None | Broad CMS operations, exports and team coordination |
+| `manager` | None | None | Broad CMS operations, exports and team coordination, including refund and share-link authority (`credits:refund` / `portfolio:share`) |
 | `teacher` | None | None | Student lookup, attendance and portfolio work |
 | `front_desk` | None | None | Registration follow-up, student records and credits |
 | `staff` | None | None | Legacy general staff bundle retained for compatibility |

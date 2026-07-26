@@ -1,7 +1,7 @@
 # QA Checklist
 
 > **StudioSaaS Quality Assurance Reference**
-> Last updated: 2026-07-10
+> Last updated: 2026-07-26
 
 ---
 
@@ -10,10 +10,10 @@
 ### 1. Backend
 
 - [ ] `cd backend && ../.venv/bin/python test_tenant_isolation.py` passes all tenant-isolation tests
-- [ ] `cd backend && ../.venv/bin/python test_cms.py` passes all CMS functional tests (expected: 72 checks)
-- [ ] `cd backend && ../.venv/bin/python -m pytest -q` passes (after P0-02 lands)
+- [ ] `cd backend && ../.venv/bin/python test_cms.py` passes all CMS functional tests (expected: 73 checks)
+- [ ] `cd backend && ../.venv/bin/python -m pytest -q` passes (expected: 117 tests)
 - [ ] `curl http://localhost:8899/v1/health` returns 200 with expected fields
-- [ ] All API routes return proper HTTP status codes (200, 201, 400, 401, 403, 404, 429, 500)
+- [ ] All API routes return proper HTTP status codes (200, 201, 400, 401, 403, 404, 409, 410, 429, 500)
 - [ ] Error responses include `error` and `message` keys
 - [ ] Public endpoints return 429 when rate limits are exceeded (registrations 5/min, balance-query 10/min per tenant/IP, uploads 5/min)
 - [ ] Login rate limiting active and failed logins audited
@@ -80,8 +80,8 @@
 - [ ] Tenant-scoped queries use `tenant_id` filter
 - [ ] Indexes exist on `tenant_id`, `slug`, `status` columns
 - [ ] Enum values in code/UI match schema CHECK constraints (see Database.md §3)
-- [ ] Migration runner is idempotent — safe to run twice (after P0-03 lands)
-- [ ] Backup/restore procedure documented and tested (after P1-07 lands)
+- [ ] Migration runner is idempotent — safe to run twice
+- [ ] Backup/restore procedure documented and tested
 
 ### 6. Security
 
@@ -108,6 +108,23 @@
 - [ ] Studio Admin warns before leaving with unsaved changes and previews both Chinese and English
 - [ ] Portal and Quick Registration share `pwe_lang_<slug>` and render localized custom registration labels
 
+Role-boundary checks (v7.4.0):
+
+- [ ] Parent-only login returns 403 on `/v1/auth/login`
+- [ ] Teacher sees no revenue/average-price/liability figures, but can open the roster and check in students
+- [ ] Front-desk and staff refund attempts return 403 (`credits:refund` is owner/manager only)
+- [ ] Share-link creation is limited to owner/manager (`portfolio:share`); teacher/front-desk/staff get 403
+- [ ] With `STUDIOSAAS_ENV=pilot`, legacy `/api/data` returns 410
+
+### 6.1 Accessibility
+
+- [ ] Every form control has an associated label (full coverage)
+- [ ] Modals trap focus while open and restore focus on close
+- [ ] ARIA tabs follow the keyboard contract (arrow keys, Home/End, `aria-selected`)
+- [ ] Lightbox/gallery viewers are fully keyboard reachable (open, navigate, close)
+- [ ] Validation errors are reported per field, not only as a global summary
+- [ ] `prefers-reduced-motion` disables animations/transitions (v7.5.0)
+
 ### 7. Performance
 
 - [ ] CMS page load < 2s (local, no CDN)
@@ -116,13 +133,14 @@
 - [ ] Static assets served with Cache-Control headers
 - [ ] No N+1 query patterns in list endpoints
 
-### 8. Deployment Readiness (Phase 3 — not yet applicable)
+### 8. Deployment Readiness
 
-These items activate once P3-02 lands; they are **not** blockers for local pilot:
+The AWS deployment kit ships in `deploy/aws/` and its Docker end-to-end
+rehearsal has passed; follow [`deploy/aws/README_AWS.md`](../deploy/aws/README_AWS.md):
 
-- [ ] `Dockerfile` builds without errors
-- [ ] `docker-compose.yml` starts `backend` + `postgres`
-- [ ] Environment variables documented in `.env.example`
+- [ ] `deploy/aws/Dockerfile` builds without errors
+- [ ] `deploy/aws/docker-compose.yml` starts `backend` + `postgres`
+- [ ] Environment variables documented in `deploy/aws/.env.example`
 - [ ] Structured (JSON) log output for aggregation
 - [ ] Graceful shutdown handled (SIGTERM)
 

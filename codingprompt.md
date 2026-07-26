@@ -1,5 +1,7 @@
 # StudioSaaS Improvement Sprint Prompt (v7 — 部署与试点加固)
 
+> ⚠️ **本文件为 v7.0 sprint 历史存档（2026-07-09）。当前状态与待办见 `docs/HANDOFF_LATEST.md`。下方内容不再维护。**
+
 Version: v7.0
 Date: 2026-07-09
 Supersedes: codingprompt.md v6（v6 的 S1–S5、A1–A5、B1–B6 已全部完成并验证：37 pytest / 72 test_cms / 110 isolation 全绿）

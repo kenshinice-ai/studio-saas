@@ -8,7 +8,7 @@ Purpose: Single source of truth for product vision, positioning, user roles, bus
 
 ## 1. Product Overview
 
-**Product Name:** StudioSaaS
+**Product Name:** StudioSaaS (display name **PWE Studio SaaS** since 2026-07-09; internal identifiers remain StudioSaaS)
 
 **Positioning:** A cloud-based management system for small creative education studios, supporting student management, course/clock-hour tracking, portfolio display, parent registration, brand customization, and multi-device access.
 
@@ -84,7 +84,7 @@ The Studio Portal is the tenant's bilingual public website and primary acquisiti
 - Studio introduction, courses, teaching team, work gallery, FAQ and contact
 - Primary in-page registration CTA
 - Optional Student Area for balance and portfolio lookup
-- Shared portfolio view via token
+- Shared portfolio view via owner/manager-authorised share links
 
 `/<slug>/register` is Quick Registration: an alternate focused form for campaigns, QR codes and direct links. It is not a second portal.
 
@@ -131,7 +131,7 @@ Core actions: Save a private draft, preview the public experience, publish a ver
 - Primary in-page registration
 - Optional Student Area for balance and portfolio lookup
 - Quick Registration alternate route (`/<slug>/register`)
-- Shared portfolio (token-based)
+- Shared portfolio (owner/manager-authorised share links)
 
 ---
 
@@ -159,7 +159,7 @@ All business data must include `tenant_id`. All business queries must bind tenan
 | `registrations` | Public registration applications |
 | `media_assets` | Uploaded file metadata |
 | `portfolio_items` | Student portfolio entries |
-| `share_tokens` | Parent portal security tokens |
+| `share_tokens` | Portfolio share links (owner/manager-authorised; the legacy parent portfolio-token surface is retired, 410) |
 | `email_templates` | Per-tenant email templates |
 | `notification_logs` | Email/notification send records |
 | `audit_logs` | Key operation audit trail |
@@ -177,7 +177,7 @@ Full schema: `backend/db/schema_v1.sql`
 | Studio | AUD 99 | 500 students, 8 users, 30GB storage | MVP flagship studio |
 | Growth | AUD 199 | 1500 students, 20 users, 100GB storage | Multi-location or growing studio |
 
-Optional one-time setup fee: AUD 299–799 (brand setup, data migration, training).
+Optional one-time setup fee: AUD 299–999 (brand setup, data migration, training).
 
 ---
 

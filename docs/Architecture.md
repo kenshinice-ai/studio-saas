@@ -1,7 +1,7 @@
 # StudioSaaS Architecture
 
-Version: v3.1
-Date: 2026-07-12
+Version: v3.2
+Date: 2026-07-26
 Purpose: Current system architecture, routing model, file layout, data flow — plus the target architecture (v2 vision) and its adoption policy.
 
 ---
@@ -94,25 +94,31 @@ Purpose: Current system architecture, routing model, file layout, data flow — 
 
 ```
 studiosaas/
-├── super-admin.html              # Platform dashboard (~1685 lines)
+├── super-admin.html              # Platform dashboard (~2716 lines)
 ├── start_studiosaas_local.sh     # Local startup script
 ├── START_STUDIOSAAS_LOCAL.command # macOS double-click launcher
 │
 ├── backend/                      # Canonical runtime
-│   ├── server.py                 # Flask application (~1560 lines)
+│   ├── server.py                 # Flask application (~1860 lines)
 │   ├── studiosaas/
-│   │   ├── api_v1.py             # All API routes (~4040 lines — split planned, P2-01)
-│   │   ├── auth.py               # Auth helpers, decorators (super_admin_required etc.)
+│   │   ├── api_v1.py             # All API routes (~8482 lines — split still planned, P2-01)
+│   │   ├── auth.py               # Auth helpers, decorators, ROLE_PERMISSIONS matrix
 │   │   ├── models.py             # Role/TenantStatus enums, Tenant/Actor contexts
 │   │   ├── audit.py              # Audit log writer
 │   │   ├── config.py             # Environment configuration
-│   │   ├── db.py                 # Database connection
+│   │   ├── db.py                 # Database connection (bounded timeouts, v7.4.1)
+│   │   ├── errors.py             # Shared API error types
+│   │   ├── lifecycle.py          # Canonical tenant/subscription/registration transition maps
 │   │   ├── migration.py          # Legacy data migration helpers
+│   │   ├── presets.py            # Industry + visual-theme presets (single source of truth)
+│   │   ├── services/             # media / notifications / student_access / tenant_archive
 │   │   ├── tenant_context.py     # Tenant resolution
 │   │   └── workspaces.py         # Tenant folder generation
 │   ├── db/
-│   │   └── schema_v1.sql         # Kept in sync with migrations (through 0019); migrations are canonical
+│   │   ├── schema_v1.sql         # Kept in sync with migrations (through 0019); migrations are canonical
+│   │   └── migrations/           # 0001–0019, applied by scripts/run_migrations.py
 │   ├── scripts/
+│   │   ├── run_migrations.py
 │   │   ├── seed_super_admin.py
 │   │   ├── seed_local_test_tenants.py
 │   │   ├── seed_random_demo_data.py
@@ -120,16 +126,18 @@ studiosaas/
 │   │   ├── migrate_legacy_media.py
 │   │   └── verify_local.sh
 │   ├── frontend/
-│   │   └── studio-admin.html     # Shared Studio Admin page (~2426 lines)
-│   ├── vendor/                   # react/babel/tailwind runtime bundles (P2-03: prebuild)
+│   │   ├── studio-admin.html     # Shared Studio Admin page (~4108 lines)
+│   │   └── assets/               # cms-app.js (prebuilt), portal-theme.css, brand-system.css, ui-*
+│   ├── vendor/                   # react/react-dom/tailwind runtime bundles (Babel removed)
 │   ├── test_cms.py               # Legacy smoke test (73 checks, script-style)
 │   ├── test_tenant_isolation.py  # Isolation test (script-style)
 │   ├── pytest.ini
 │   └── requirements.txt
 │
 ├── legacy-root/                  # Tenant CMS (core product surface)
-│   ├── index.html                # CMS shell with request bridge (~3668 lines)
-│   └── register.html             # Register shell with request bridge (~797 lines)
+│   ├── index.html                # CMS shell with request bridge (~332 lines)
+│   ├── src/cms-app.jsx           # CMS application source (esbuild → backend/frontend/assets/cms-app.js)
+│   └── register.html             # Register shell with request bridge (~811 lines)
 │
 ├── tenant-template/              # Template for new tenants
 │   ├── index.html
@@ -140,6 +148,11 @@ studiosaas/
 │   ├── lets-paint-studio/
 │   ├── lets-play-piano/
 │   └── lets-play-game/
+│
+├── deploy/
+│   ├── aws/                      # Dockerfile, entrypoint.sh, docker-compose.yml, nginx/,
+│   │                             # systemd/, build_aws_bundle.sh, README_AWS.md
+│   └── launchd/                  # macOS LaunchAgent templates (backup + tunnel)
 ```
 
 ### 3.1 Directory Strategy
@@ -186,7 +199,7 @@ Daily operations stay in the CMS: courses/packages, students, credit ledger, att
 
 ### 4.3 Legacy Bridge Integration
 
-The legacy CMS shell (`legacy-root/index.html`) intercepts old calls to `/api/data` and `/api/save` and rewrites them to `/s/<tenant_slug>/v1/legacy-cms/data` and `/s/<tenant_slug>/v1/legacy-cms/save`. This keeps the old UI usable while preventing tenant business data from returning to the single-studio JSON path.
+The legacy CMS shell (`legacy-root/index.html`, ~332 lines) is a thin loader: it hosts the request bridge that intercepts old calls to `/api/data` and `/api/save` and rewrites them to `/s/<tenant_slug>/v1/legacy-cms/data` and `/s/<tenant_slug>/v1/legacy-cms/save`, then loads the prebuilt CMS application. The CMS itself lives in `legacy-root/src/cms-app.jsx` and is precompiled with esbuild (`backend/scripts/build_cms.sh`) into `backend/frontend/assets/cms-app.js` — no in-browser Babel. This keeps the old UI usable while preventing tenant business data from returning to the single-studio JSON path.
 
 The legacy Register shell (`legacy-root/register.html`) intercepts `/api/register` and `/api/balance` and rewrites them to `/v1/public/<tenant_slug>/registrations` and `/v1/public/<tenant_slug>/balance-query`.
 
@@ -202,20 +215,20 @@ The legacy Register shell (`legacy-root/register.html`) intercepts `/api/registe
 | CloudFront | CDN for public assets and portfolio — future |
 | SES | Email delivery — future |
 | Secrets Manager / SSM | Environment variables and secrets — future |
+| Deployment kit | `deploy/aws/` — Dockerfile, docker-compose, nginx, systemd, `build_aws_bundle.sh`, `README_AWS.md` (v7.4.0) |
 
 ---
 
-## 6. Known Risks and Weak Points (verified 2026-07-03)
+## 6. Known Risks and Weak Points (verified 2026-07-26)
 
 | Area | Issue | Priority |
 |---|---|---|
 | Browser QA | Playwright smoke coverage is not yet in the repo | P1-06 |
-| Legacy residue | `sw.js` still branded "Let's Paint CMS" with platform-level icon cache | P2-02 |
-| Code size | `api_v1.py` is ~4100 lines — split along target module boundaries | P2-01 |
-| Vendor JS | Runtime Babel/Tailwind compilation in browser | P2-03 |
+| Code size | `api_v1.py` is ~8482 lines — split along target module boundaries | P2-01 |
+| Vendor JS | Babel eliminated (CMS is esbuild-precompiled); only `/vendor/tailwindcss.js` still compiles Tailwind at runtime | P2-03 |
 | Rate limiting | In-memory, per-process — resets on restart (pilot-acceptable; Redis at P3-04) | P3 |
 
-Resolved 2026-07-03 (P0 sprint): role model unification (platform admin = NULL-tenant membership), pytest infrastructure (20 tests), migration runner (`run_migrations.py`), repo hygiene (backend/ was previously untracked by git), login rate limiting + failure audits, route-protection audit (12 unauthenticated tenant GET reads fixed), enum alignment decisions. Earlier: public endpoint rate limiting, dict_row bugs, portfolio DELETE mapping, credit account ON CONFLICT key, HTML branding residue.
+Resolved 2026-07-03 (P0 sprint): role model unification (platform admin = NULL-tenant membership), pytest infrastructure (20 tests), migration runner (`run_migrations.py`), repo hygiene (backend/ was previously untracked by git), login rate limiting + failure audits, route-protection audit (12 unauthenticated tenant GET reads fixed), enum alignment decisions. Earlier: public endpoint rate limiting, dict_row bugs, portfolio DELETE mapping, credit account ON CONFLICT key, HTML branding residue. Resolved later: `sw.js` "Let's Paint CMS" branding residue (P2-02).
 
 ---
 

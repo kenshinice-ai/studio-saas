@@ -1,7 +1,7 @@
 # StudioSaaS API Reference
 
-Version: v3.3
-Date: 2026-07-18
+Version: v3.4
+Date: 2026-07-26
 Purpose: Complete API endpoint reference, authentication model, tenant resolution, and public endpoints.
 
 ---
@@ -325,6 +325,14 @@ Pages: `/setup-password`, `/shared/portfolio`, and `/<slug>` now serves the gene
 
 The legacy CMS shell intercepts old `/api/data` and `/api/save` calls and rewrites them to these tenant-scoped endpoints. This keeps the old UI usable during the transition.
 
+**Optimistic concurrency (v7.4.1):** `save` carries a `rev`. The handler locks
+the tenant row (`FOR UPDATE`) to serialize concurrent aggregate saves; a save
+whose `rev` is older than the stored one and does not carry `force=true`
+returns `409 {"status":"conflict","rev":<stored>}` so a stale tab cannot
+last-writer-win over edits committed since it loaded. The CMS handles the 409
+by reloading; `force=true` is the operator's explicit override from the
+conflict dialog.
+
 `GET /v1/dashboard` follows the same financial boundary: roles without
 `analytics:read` receive only the operational counters
 (`attended_total`, `attended_month`) in `business` — never revenue,
@@ -374,6 +382,8 @@ it by running `STUDIOSAAS_ENV=local` or explicitly setting
 | 401 | Unauthorized — no valid session |
 | 403 | Forbidden — wrong tenant or insufficient role |
 | 404 | Not found |
+| 409 | Conflict — insufficient balance on check-in / duplicate team email / legacy CMS save `rev` conflict / slug already exists |
+| 410 | Gone — legacy `/api/*` surface (pilot/production), revoked share/setup links, retired portfolio-token |
 | 429 | Rate limited |
 | 500 | Internal server error |
 

@@ -1,7 +1,7 @@
 # StudioSaaS Database
 
-Version: v3.1
-Date: 2026-07-18
+Version: v3.2
+Date: 2026-07-26
 Purpose: Schema definition, table descriptions, canonical enums, migration strategy, and operational notes.
 
 ---
@@ -11,14 +11,14 @@ Purpose: Schema definition, table descriptions, canonical enums, migration strat
 - **Engine:** PostgreSQL 16+ (local), RDS PostgreSQL (AWS production target)
 - **Local database name:** `studiosaas_local_test`
 - **Bootstrap reference:** `backend/db/schema_v1.sql`
-- **Canonical schema evolution:** ordered migrations through `0017_public_website_media_and_analytics.sql`
+- **Canonical schema evolution:** ordered migrations through `0019_stability_indexes.sql`
 - **Isolation model:** All business data includes `tenant_id`. All queries bind tenant context.
 
 ### 1.1 Design Principles
 
 - Soft delete or deactivate by default — no un-audited hard deletes.
 - Every business table has `tenant_id` as a foreign key to `tenants.id`.
-- Fresh and existing databases converge through `backend/scripts/run_migrations.py`; `schema_v1.sql` is a historical bootstrap reference.
+- Fresh and existing databases converge through `backend/scripts/run_migrations.py`; `schema_v1.sql` is kept in sync with the migration chain (verified zero drift in v7.4.1) — migrations remain canonical.
 - `tenant_id` is the hard isolation boundary — no cross-tenant queries.
 
 > The ER diagram in the v2 architecture poster is a simplified illustration (it shows `users.role`, which does not exist). **This document and `schema_v1.sql` are canonical.**
@@ -58,6 +58,7 @@ memberships.
 |---|---|---|
 | `students` | `id`, `tenant_id`, identity/contact fields, `birthday`, `enrolled_on`, `status`, `access_code_hash`, access-code timestamps | Student profiles (soft delete via status), real editable join date, and hashed private-portal access. Legacy `enrolled_on` values may remain null. |
 | `courses` | `id`, `tenant_id`, `name`, `slug`, `credits`, `price_aud_cents` | Course definitions |
+| `class_schedules` | `id`, `tenant_id`, `student_id`, weekday/time fields, `status` | Recurring weekly schedule templates (migration 0008) |
 | `packages` | `id`, `tenant_id`, `name`, `description`, `price_aud_cents` | Course package definitions |
 | `credit_accounts` | `id`, `tenant_id`, `student_id`, `course_id`, `balance` | Student balance accounts. Unique key: `(tenant_id, student_id, course_id)` |
 | `credit_transactions` | `id`, `tenant_id`, `student_id`, `credit_account_id`, `transaction_type`, `amount`, `description` | Ledger-style transaction log |
@@ -83,12 +84,13 @@ memberships.
 | `notification_logs` | `id`, `tenant_id`, `user_id`, `template_id`, `status`, `sent_at` | Email/notification send records |
 | `student_access_sessions` / `student_access_attempts` | tenant-bound token hash, expiry/revocation, lookup hash and lock window | One-hour private student sessions and non-enumerating brute-force protection |
 | `public_analytics_events` | `tenant_id`, allowlisted event, anonymous session hash, campaign, timestamp | Privacy-preserving aggregate portal analytics without student/contact/browser identifiers |
+| `tenant_archives` | `id`, `tenant_id`, archive path, snapshot metadata | Pre-deletion archive snapshots of all tenant-owned tables (migration 0005) |
 
 ---
 
 ## 3. Canonical Enums (actual CHECK constraints)
 
-These are the values enforced by the database today. Code, seeds, UI, and docs must match. Extensions go through migration files only (P0-03, P0-07).
+These are the values enforced by the database today. Code, seeds, UI, and docs must match. Extensions go through migration files only.
 
 | Concept | Column | Values |
 |---|---|---|
@@ -211,8 +213,15 @@ backend/db/
     ├── 0014_registration_privacy_consent.sql
     ├── 0015_student_privacy_and_media_variants.sql
     ├── 0016_daily_roster_entries.sql
-    └── 0017_public_website_media_and_analytics.sql
+    ├── 0017_public_website_media_and_analytics.sql
+    ├── 0018_student_enrolment_date.sql
+    └── 0019_stability_indexes.sql
 ```
+
+Migration 0019 (v7.4.1 stability pass) adds tenant-leading indexes for
+`portfolio_items` and `notification_logs` and drops the duplicate
+`credit_accounts` unique partial index (`credit_accounts_general_uniq`,
+identical to `idx_credit_accounts_default_account`).
 
 Tracking table:
 
@@ -230,7 +239,22 @@ The runner (`backend/scripts/run_migrations.py`) must:
 
 ---
 
-## 6. Data Privacy Notes
+## 6. DB Timeout Configuration (v7.4.1)
+
+Connections opened by the application (`backend/studiosaas/db.py`) apply
+bounded waits so one slow or hung query cannot wedge a waitress thread. The
+values are per-session; maintenance that connects on its own (migrations,
+`pg_dump`) is unaffected. Override via environment variables:
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `STUDIOSAAS_DB_CONNECT_TIMEOUT` | `5` (seconds) | Connection establishment timeout |
+| `STUDIOSAAS_DB_STATEMENT_TIMEOUT_MS` | `30000` | Per-statement execution ceiling |
+| `STUDIOSAAS_DB_LOCK_TIMEOUT_MS` | `10000` | Maximum wait for a row/table lock |
+
+---
+
+## 7. Data Privacy Notes
 
 - Children's photos and personal information require special handling.
 - Public artwork requires both item-level publication intent and the student's latest append-only consent event to be confirmed; withdrawal keeps the private item and removes it from public results immediately.

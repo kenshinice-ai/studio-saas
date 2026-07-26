@@ -1,6 +1,6 @@
 # PWE Studio SaaS
 
-Current release: **v7.4.1**
+Current release: **v7.5.0**
 
 PWE Studio SaaS (repo: studiosaas) is a multi-tenant Creative Studio Operating System for art schools, music studios, tutoring centres, creative academies, kids' activity providers, and small education businesses.
 
@@ -76,23 +76,29 @@ Root `/register` is intentionally closed (404) — registration belongs to tenan
 ```
 .
 ├── README.md                     # This file
-├── codingprompt.md               # Prioritised task list P0→P3 (current sprint source of truth)
+├── codingprompt.md               # ARCHIVED v7.0 sprint prompt — current status lives in docs/HANDOFF_LATEST.md
 ├── START_STUDIOSAAS_LOCAL.command / start_studiosaas_local.sh
 ├── super-admin.html              # Platform dashboard
 ├── tenant-template/              # Template copied into tenants/<slug>/ on creation
 ├── tenants/<slug>/               # GENERATED — never hand-edit (see §4.10)
 ├── legacy-root/                  # Tenant CMS — the core daily surface (src/cms-app.jsx + build)
 ├── docs/                         # Product, architecture, API, DB, QA, ops docs
+├── deploy/
+│   ├── aws/                      # AWS single-instance kit: Dockerfile, compose, nginx, systemd (v7.4.0)
+│   └── launchd/                  # macOS LaunchAgent templates (on-demand pilot)
+├── dist/                         # Built release bundles (build_aws_bundle.sh output)
 └── backend/                      # Canonical runtime
-    ├── server.py                 # Flask application (~1560 lines)
+    ├── server.py                 # Flask application (~1860 lines)
     ├── requirements.txt
     ├── pytest.ini
     ├── db/schema_v1.sql          # Kept in sync with migrations (through 0019); ordered migrations are canonical
     ├── studiosaas/
-    │   ├── api_v1.py             # All API routes (~5700 lines — split planned, v7 P2-1)
+    │   ├── api_v1.py             # All API routes (~8500 lines — split planned, v7 P2-1)
     │   ├── auth.py               # Auth helpers and decorators
     │   ├── models.py             # Role/TenantStatus enums, contexts
+    │   ├── errors.py / lifecycle.py / presets.py
     │   ├── db.py / tenant_context.py / workspaces.py / audit.py / config.py / migration.py
+    │   └── services/             # media / notifications / student_access / tenant_archive
     ├── scripts/                  # Seed, import, verify scripts
     │   ├── check_terminology.py  # Enforces docs/Glossary.md in CI
     │   └── regenerate_tenant_workspaces.py
@@ -406,6 +412,20 @@ packages a clean git tree into `dist/PWE-StudioSaaS-aws-<version>.tar.gz`
 with a `BUILD_INFO` stamp. Runbook: `deploy/aws/README_AWS.md`; verified
 end-to-end in Docker (health, migrations, legacy-API 410).
 
+### 4.15 v7.5.0 documentation refresh, UI/UX fixes, role guides
+
+- **Documentation full refresh and correction** — every doc audited against the
+  code on 2026-07-26: README enum tables brought back in line with the live
+  schema, `docs/Architecture.md` and `docs/Design_System.md` rewritten, and
+  stale sprint files (`codingprompt.md`, `docs/Current_Sprint.md`) archived in
+  favour of `docs/HANDOFF_LATEST.md`.
+- **UI/UX fix batch** across the three admin surfaces:
+  `prefers-reduced-motion` support, `focus-visible` focus rings, touch targets
+  ≥40px, CMS emoji icons reduced to zero, inline login error reporting, and
+  `aria-label` coverage completed.
+- **`docs/guides/`** — six per-role Chinese user manuals (new this round).
+- **ui-ux-pro-max skill** project copy synchronised (84 styles / 192 palettes).
+
 ---
 
 ## 5. Environment Variables
@@ -426,15 +446,15 @@ Production must not rely on local secret files (`backend/.api_secret`, `backend/
 
 ## 6. Canonical Enums (as enforced by the database today)
 
-These are the values the schema actually CHECKs. Code, seeds, UI, and docs must match them. Extensions (e.g. `archived` tenant status, richer media visibility) go through migration files — see `codingprompt.md` P0-01/P0-07.
+These are the values the schema actually CHECKs (through migration 0019; roles per 0013, lifecycle states per 0012). Code, seeds, UI, and docs must match them. **`docs/Database.md` §3 is the authoritative reference** — this table is a convenience copy. Extensions go through migration files only.
 
 | Concept | Where | Values |
 |---|---|---|
-| Membership role | `memberships.role` | `super_admin`, `owner`, `staff`, `parent` |
-| Tenant status | `tenants.status` | `trial`, `active`, `past_due`, `paused`, `cancelled` |
-| Subscription status | `subscriptions.status` | `trialing`, `active`, `past_due`, `paused`, `cancelled` |
+| Membership role | `memberships.role` | `super_admin`, `owner`, `manager`, `teacher`, `front_desk`, `staff`, `parent` |
+| Tenant status | `tenants.status` | `lead`, `trial`, `onboarding`, `active`, `past_due`, `paused`, `cancelled`, `archived`, `deleted` |
+| Subscription status | `subscriptions.status` | `trialing`, `active`, `past_due`, `paused`, `cancelled`, `archived` |
 | Credit transaction | `credit_transactions.transaction_type` | `purchase`, `consume`, `adjustment`, `refund`, `expire`, `migration` |
-| Registration status | `registrations.status` | `pending`, `approved`, `rejected`, `duplicate`, `contacted`, `archived` |
+| Registration status | `registrations.status` | `pending`, `contacted`, `trial_booked`, `waiting`, `approved`, `converted`, `rejected`, `duplicate`, `lost`, `archived` |
 | Media visibility | `media_assets.visibility` | `private`, `public_token` |
 
 **Note:** `users` has **no role column** — roles live on `memberships` (user × tenant). A platform administrator is a `super_admin` membership with `tenant_id IS NULL`, which grants access to every tenant including ones created later (P0-01, done 2026-07-03).
@@ -452,7 +472,7 @@ cd backend && ../.venv/bin/python -m pytest -q
 
 # Script-style smoke tests (run with python, NOT pytest)
 cd backend
-../.venv/bin/python test_cms.py                 # expected: 72 checks passing
+../.venv/bin/python test_cms.py                 # expected: 73 checks passing
 ../.venv/bin/python test_tenant_isolation.py
 
 # Reproducible source package (requires a clean committed tree)
@@ -497,9 +517,11 @@ curl -i -X POST http://localhost:8899/v1/admin/tenants \
 
 | Document | Content |
 |---|---|
-| `codingprompt.md` | **Prioritised task list P0→P3 — start here for what to work on** |
-| `docs/Current_Sprint.md` | Status tracking for the task list, verification commands, credentials |
+| `docs/HANDOFF_LATEST.md` | **Current status and open work — start here** |
+| `codingprompt.md` | Archived v7.0 sprint prompt (historical; no longer maintained) |
+| `docs/Current_Sprint.md` | Archived v7.0 sprint status tracking (historical) |
 | `docs/StudioSaaS_Blueprint_v2.md` | Product vision, market, pricing, MVP acceptance criteria |
+| `docs/Product_Surface_Model.md` | Canonical surface names and responsibilities |
 | `docs/Architecture.md` | Current architecture + target architecture (v2 vision) |
 | `docs/API.md` | Endpoint reference, auth model, route protection |
 | `docs/Database.md` | Schema reference, canonical enums, migration strategy |
@@ -509,6 +531,8 @@ curl -i -X POST http://localhost:8899/v1/admin/tenants \
 | `docs/Release_Runbook.md` | Provider-neutral migration, media backfill, release, rollback, and recovery gate |
 | `docs/Deployment.md` | Deployment: local → Cloudflare Tunnel (`studiosaas.cc.cd`) → AWS |
 | `docs/Design_System.md` | UI tokens and component standards |
+| `docs/Glossary.md` | One agreed word per concept (enforced by `check_terminology.py`) |
+| `docs/guides/` | Per-role user manuals in Chinese (v7.5.0) |
 
 ---
 

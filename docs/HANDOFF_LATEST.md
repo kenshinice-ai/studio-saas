@@ -1,16 +1,82 @@
 # StudioSaaS 交接文档（持续更新）
 
-> 本文件每轮执行结束时更新，始终反映最新状态。历史交接见
-> `docs/HANDOFF_2026-07-26.md`（v7.3.x 时期）。
-> 最后更新：2026-07-26（v7.4.0 深度复核轮）
+> 本文件在**每轮改动开始时和完成时**都更新（用户 2026-07-26 明确要求），
+> 始终反映最新状态。历史交接见 `docs/HANDOFF_2026-07-26.md`（v7.3.x 时期）。
+> 最后更新：2026-07-26（v7.5.0 文档与 UX 审计轮 · **已完成，全量验证通过**）
+
+---
+
+## ✅ v7.5.0 文档与 UX 审计轮（2026-07-26，本轮已完成）
+
+版本号已三处统一升 **v7.5.0**（VERSION / server.py APP_VERSION / README），
+`verify_local.sh` 全量验证通过（含 196 tenant-isolation，All checks passed）。
+**未提交**：改动全部在工作树上；AWS 打包（build_aws_bundle.sh 需干净 git 树）
+待 commit 后进行。本轮明细：
+
+1. ✅ **UI/UX 审计完成**：HANDOFF_2026-07-26 §2 批次 1–6 共 14 条**全部已落地**
+   （逐条核对有 file:line 证据）。skill 数据为新版（84 styles/192 palettes），
+   但项目内 `.claude/skills/ui-ux-pro-max/SKILL.md` 文案是旧数字，且与用户级
+   副本存在 scripts/threejs.csv 漂移。新发现 14 条改进建议（a11y/触控/emoji
+   残留/字号），已转入修复。
+2. ✅ **文档偏差审计完成**：README 枚举表 5 处硬伤（角色/租户状态/注册状态
+   仍是 0001 时代快照）；codingprompt.md / Current_Sprint.md /
+   Architecture.md / Design_System.md 严重过时；API.md 缺 rev-409 与
+   409/410 错误码；Database.md 停在 0017；Admin_Guide 缺 v7.4.0 角色矩阵。
+   Glossary / Release_Runbook / Product_Surface_Model / HANDOFF_LATEST
+   核实为最新。真实权限矩阵已从 auth.py ROLE_PERMISSIONS 摘录存证。
+3. ✅ **`docs/guides/` 六份角色手册完成**（总览 / Super Admin / Studio Owner /
+   Manager / Teacher / 学员家长），全部事实点经代码核实，互链可达。
+   撰写中发现并已如实处理：隐私声明版本无编辑 UI（联系平台方）；
+   Studio Admin 无 SEO 面板（模板能力）；Restore 恢复为 paused 需再
+   Reactivate。**两个由此发现的真 bug 已由主会话修复**：
+   ① Super Admin「+ Add Plan」Code 字段 disabled 且空 → 无法创建任何套餐。
+   已修：创建模式解锁 Code 输入（placeholder + pattern），savePlanModal
+   增加 trim/lowercase 与 `^[a-z0-9][a-z0-9-]{1,62}$` 客户端校验（与后端
+   `_plan_payload` 规则一致）；编辑模式 Code 仍锁定。
+   ② studio-admin `settingsPayload()` `colorScheme` 键重复——第二个键
+   （取预设**首个模式**）覆盖用户选择；且 success/warning/danger 也取自
+   首个模式（暗色草稿会存明亮版状态色）。已修：styleTheme 改为按
+   `schemes[activeColorScheme]` 解析；colorScheme 在 preset 模式用
+   `activeColorScheme`，custom 模式按背景亮度推导。
+   另：studio-admin 登录密码框零信息 placeholder 已删（与 Super Admin 一致）。
+4. **修复执行中**（五个 agent 并行，按文件边界互不重叠）：
+   - ✅ 文档更新 A 完成：README 升 v7.5.0 + 枚举表对齐 Database.md +
+     新增 §4.15；codingprompt / Current_Sprint 存档化；Roadmap 补三条
+     未决项；Blueprint 三处 token 表述修正 + 三份历史快照加存档头；
+     check_terminology 通过。Blueprint 定价已按用户决定统一为
+     **AUD 299–999**（2026-07-26，§6 L180 已改齐 §1）
+   - 文档更新 B：API/Database/Architecture/Deployment/Admin_Guide（补角色
+     矩阵节）/ Design_System（整份按 8 主题 21token 体系重写）/ QA_Checklist
+   - ✅ Admin 界面修复完成（super-admin.html + studio-admin.html）：
+     reduced-motion、:focus-visible（button/a/[role=tab]，用 --brand）、
+     btn-sm min-height 40px、支持横幅 emoji→SVG + `--support-banner` token、
+     9px chip→11px、两页登录行内报错（role=alert + aria-invalid + 聚焦，
+     并消除 studio-admin 登录的 unhandled rejection）、装饰符号 aria-hidden。
+     inline-script + ui-escaping 检查通过，浏览器实测渲染正常
+   - ✅ CMS 修复完成：emoji 图标清零（新增 plus/close/ellipsis path，
+     源文件+bundle grep 均 0）；登录/邮件设置补可见 label；9 处图标钮
+     aria-label（cms-i18n.js 同步补词条）；套餐编辑/删除钮 min-h 40px；
+     reduced-motion 守卫进 legacy-root/index.html；顺手修复待审核页
+     「拒绝」按钮重复 className 导致样式丢失的既有 bug。
+     build_cms + inline-script + terminology 三项全过
+   - ✅ skill 同步完成：scripts（core/search/design_system + 新增
+     validate_data.py、tests/）、threejs.csv、references/ 均以用户级为准；
+     SKILL.md 采新版为底并保留中文使用指引与本项目图标偏好
+     （Phosphor 优先）两节；数据量文案修正为 84/192/74/98/22；
+     validate_data + 16 unittest 全过
+   - 本轮**不做**：studio-admin 61 处 raw hex 全量 token 化（已记入 roadmap）
+5. ✅ 版本已三处统一 **v7.5.0**；Blueprint setup fee 统一 **AUD 299–999**
+   （用户拍板）；`verify_local.sh` 全量通过（2026-07-26）
 
 ---
 
 ## 0. 当前状态一览
 
-- **版本**：v7.4.1（VERSION / server.py APP_VERSION / README 三处一致；
-  v7.4.0=RBAC/a11y/AWS 套件，v7.4.1=数据库与复审稳定性修复）
-- **打包产物**：`dist/PWE-StudioSaaS-aws-7.4.1.tar.gz`（sha256 已验证）
+- **版本**：v7.5.0（VERSION / server.py APP_VERSION / README 三处一致；
+  v7.4.0=RBAC/a11y/AWS 套件，v7.4.1=数据库与复审稳定性修复，
+  v7.5.0=文档全量刷新 + UI/UX 修复批次 + docs/guides 角色手册，**未提交**）
+- **打包产物**：`dist/PWE-StudioSaaS-aws-7.4.1.tar.gz`（sha256 已验证；
+  7.5.0 包待 commit 后打——build_aws_bundle.sh 需干净 git 树）
 - **分支**：`codex/studiosaas-v7.3.1`，上游同名
 - **验证基线**：117 pytest + 73 smoke + 196 tenant-isolation 全绿
 - **AWS 部署包**：`bash deploy/aws/build_aws_bundle.sh <ver>` →

@@ -112,12 +112,20 @@ Purpose: Phased development plan, milestones, current status, and deployment tar
 
 | Component | Local (Current) | AWS (Target) |
 |---|---|---|
-| PostgreSQL | Homebrew PostgreSQL 18 | RDS PostgreSQL |
+| PostgreSQL | Homebrew PostgreSQL 16+ | RDS PostgreSQL |
 | Media/Portfolio | Local file system | S3 |
 | Application | Waitress/Flask local | Lightsail systemd or ECS |
 | Domain/Routing | `localhost:8899` | Route 53 + CloudFront |
 | Secrets | Local env vars | SSM Parameter Store / Secrets Manager |
 | Email | Local SMTP (transitional) | Amazon SES |
+
+> **Note (2026-07-26):** the AWS single-instance deployment kit shipped with v7.4.0 (`deploy/aws/`: Dockerfile, entrypoint, docker-compose, nginx, systemd, `build_aws_bundle.sh`; runbook in `deploy/aws/README_AWS.md`). Remaining Phase 3 infrastructure work: GitHub Actions CI, S3 media, SES email.
+
+**Open items (recorded 2026-07-26, not yet scheduled):**
+
+- Super admin entry into tenant routes has no enforced support-session gate — support mode is a UI-level prompt only, not a backend requirement.
+- Tenant owners have no audit-log view of their own — audit logs are only reachable from the Super Admin console.
+- `studio-admin.html` still carries ~61 raw hex colour values outside the token system (2026-07-26 audit; not addressed in the v7.5.0 round).
 
 ---
 
@@ -154,7 +162,7 @@ Purpose: Phased development plan, milestones, current status, and deployment tar
 
 ## 8. Current Sprint Priorities
 
-See `codingprompt.md` (task definitions) and `docs/Current_Sprint.md` (status tracking) for active tasks, P0 priorities, and verification commands.
+See `docs/HANDOFF_LATEST.md` for current status, open work, and verification commands. (`codingprompt.md` and `docs/Current_Sprint.md` are archived v7.0 sprint documents, kept for history only.)
 
 ## 8.1 Target Architecture Adoption Mapping
 

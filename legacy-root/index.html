@@ -313,6 +313,18 @@
         .img-skel { background:linear-gradient(90deg,#e5e7eb 25%,#f3f4f6 50%,#e5e7eb 75%); background-size:200% 100%; animation:skel-shine 1.4s infinite; }
         @keyframes skel-shine { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 
+        /* ── A11y: respect prefers-reduced-motion (2026-07 UI audit) ──
+           Entry/exit and shimmer animations are decorative; users who ask the
+           OS for less motion get instant state changes instead. The .sp
+           loading spinner is kept (it conveys "busy"), everything else stops. */
+        @media (prefers-reduced-motion: reduce) {
+            .anim, .toast, .img-skel { animation: none !important; }
+            *, *::before, *::after { transition-duration: .01ms !important; }
+            html { scroll-behavior: auto !important; }
+            button:hover, a:hover, [role="button"]:hover { transform: none !important; }
+            .port-thumb:active { transform: none !important; }
+        }
+
         /* ── Print styles (export feature) ── */
         @media print {
             aside, .no-print { display:none !important; }

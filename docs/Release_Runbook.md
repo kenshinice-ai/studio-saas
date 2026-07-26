@@ -42,6 +42,11 @@ export COOKIE_SECURE='1'
 `STUDIOSAAS_API_KEY` and `STUDIOSAAS_SESSION_SECRET` must be independent.
 Production startup fails closed if either is missing, too short, or equal.
 
+Optional tuning: database waits are bounded by default and can be adjusted
+with `STUDIOSAAS_DB_CONNECT_TIMEOUT` (seconds, default 5),
+`STUDIOSAAS_DB_STATEMENT_TIMEOUT_MS` (default 30000), and
+`STUDIOSAAS_DB_LOCK_TIMEOUT_MS` (default 10000).
+
 ## Pre-release gate
 
 From the candidate revision:
@@ -146,4 +151,6 @@ consent events, roster changes, or uploads created after the backup timestamp.
 Record the Git revision, migration list, backup dump and manifest names, test
 counts, release time, operator, and any accepted limitations. Do not record
 passwords, access codes, raw session values, student identifiers, or contact
-details in release notes.
+details in release notes. When releasing the containerized form, the
+reproducible bundle (with checksum and build info) is produced by
+`deploy/aws/build_aws_bundle.sh`.

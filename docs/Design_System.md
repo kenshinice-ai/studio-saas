@@ -1,171 +1,114 @@
 # Design System
 
 > **StudioSaaS Brand & UI Reference**
-> Last updated: 2026-07-02
+> Last updated: 2026-07-26
+
+The visual system is generated, not hand-picked: every colour token is solved
+for a measured WCAG contrast target by `docs/design/palette_gen.py`, and the
+canonical values live in `backend/studiosaas/presets.py`
+(`VISUAL_STYLE_PRESETS`). This document describes what exists in code; the
+code is the source of truth.
 
 ---
 
-## Brand Identity
+## 1. Theme System
 
-### Colours
+Eight visual themes, each shipping a matched **light and dark** variant —
+except `arcade-lime`, which is dark-only (a neon-lime accent cannot reach
+4.5:1 on a light page without turning olive). That makes **15 theme-modes**
+in total.
 
-| Token | Hex | Usage |
+| Key | 中文名 | English | Recommended industry | Hue relationship | Modes |
+|---|---|---|---|---|---|
+| `atelier-clay` | 陶土工坊 | Atelier Clay | art | split-complementary | light + dark |
+| `vintage-press` | 复古印刷 | Vintage Press | general (default) | split-complementary | light + dark |
+| `studio-ink` | 黑白纸墨 | Studio Ink | — | neutral / monochrome | light + dark |
+| `harbour-calm` | 静谧海港 | Harbour Calm | math, language | analogous | light + dark |
+| `cedar-grove` | 雪松林 | Cedar Grove | sports | triadic | light + dark |
+| `recital-plum` | 独奏紫 | Recital Plum | music | analogous | light + dark |
+| `rehearsal-rose` | 排练玫瑰 | Rehearsal Rose | dance | split-complementary | light + dark |
+| `arcade-lime` | 街机青柠 | Arcade Lime | game | split-complementary | **dark only** |
+
+- Industry → theme mapping: `INDUSTRY_STYLE_RECOMMENDATIONS` in `presets.py`.
+- Button shape and font mood are presentation choices carried beside the
+  palette (`STYLE_SHAPE`): e.g. `atelier-clay` = soft/serif,
+  `studio-ink` = sharp/modern, `recital-plum` = rounded/classic.
+- `style_theme(style_id, scheme)` resolves a theme-mode with safe fallbacks:
+  unknown ids fall back to the default style (`vintage-press`), and a missing
+  mode falls back to the theme's first mode (so `arcade-lime` always renders
+  dark).
+
+## 2. Semantic Colour Tokens
+
+Each theme-mode defines the same **21 semantic tokens** (plus a
+`color_scheme` marker):
+
+| Group | Tokens |
+|---|---|
+| Surfaces | `background_color`, `background_alt_color`, `panel_color` |
+| Text | `text_color`, `text_soft_color`, `muted_text_color` |
+| Borders | `border_color` (quiet dividers), `border_strong_color` (interactive boundaries, ≥3:1 — WCAG 1.4.11) |
+| Accent | `accent_color`, `accent_text_color`, `accent_hover_color`, `accent_pressed_color` |
+| Secondary accent | `secondary_accent_color`, `secondary_text_color` |
+| Status | `success_color`, `warning_color`, `danger_color` (fixed hue anchors 152/36/6, nudged 4% toward the theme, lightness re-solved per surface) |
+| Focus | `focus_ring_color` |
+| Overlay | `scrim_color` |
+| Disabled | `disabled_surface_color`, `disabled_text_color` |
+
+**Every hex is reverse-solved from a WCAG contrast target by
+`docs/design/palette_gen.py`, which asserts 26 contrast pairs per theme-mode
+(390 assertions total). Never hand-edit a hex value** — change the generator
+and re-emit, then re-run the assertions.
+
+## 3. Style Layering
+
+| Layer | File | Scope |
 |---|---|---|
-| `--primary` | `#1E40AF` | Primary buttons, links, active states |
-| `--secondary` | `#0F766E` | Secondary actions, success states |
-| `--accent` | `#F59E0B` | Highlights, warnings, active nav |
-| `--bg` | `#F8FAFC` | Page background |
-| `--surface` | `#FFFFFF` | Card, modal, form backgrounds |
-| `--text` | `#1E293B` | Body text |
-| `--text-muted` | `#64748B` | Captions, placeholders |
-| `--border` | `#E2E8F0` | Dividers, input borders |
-| `--error` | `#DC2626` | Validation errors, destructive actions |
-| `--success` | `#16A34A` | Success confirmations |
+| Public surfaces | `backend/frontend/assets/portal-theme.css` | **Single source of truth** for the tenant portal (`/<slug>`) and the standalone register page (`/<slug>/register`). Default values are the `vintage-press` light theme; `/brand` overrides them per tenant at runtime. |
+| Admin surfaces | `backend/frontend/assets/brand-system.css` | Shared brand language for admin pages (`--brand-*` roles built from the portal tokens; tenant branding may override `--brand`/`--tenant-primary` at runtime). |
+| CMS icons | Inline SVG `Icon` component in `legacy-root/src/cms-app.jsx` | **No emoji as icons** — emoji glyphs differ across platforms and are read aloud by screen readers as descriptions (see `docs/Glossary.md`). |
 
-### Typography
+Load order for public pages: `ui-tokens.css` → `portal-theme.css` →
+`brand-system.css`.
 
-| Role | Font | Size | Weight | Line Height |
-|---|---|---|---|---|
-| H1 | Inter, sans-serif | 36px | 700 (Bold) | 1.2 |
-| H2 | Inter, sans-serif | 28px | 600 (SemiBold) | 1.25 |
-| H3 | Inter, sans-serif | 22px | 600 (SemiBold) | 1.3 |
-| Body | Inter, sans-serif | 16px | 400 (Regular) | 1.5 |
-| Small | Inter, sans-serif | 14px | 400 | 1.5 |
-| Caption | Inter, sans-serif | 12px | 400 | 1.4 |
+## 4. Accessibility Rules (v7.4.0 remediation, completed in v7.5.0)
 
-### Spacing Scale
+- **Focus ring:** `:focus-visible` gets a 2px outline with 2px offset on all
+  interactive elements (`portal-theme.css` uses `--focus-ring`;
+  `brand-system.css` uses `--brand-accent` plus the `--brand-focus-ring`
+  box-shadow). Each theme carries its own solved `focus_ring_color`.
+- **Touch targets:** minimum 44px (`--tap-min: 44px`; CMS controls use
+  `min-h-[44px]`).
+- **Reduced motion:** both stylesheets honour
+  `@media (prefers-reduced-motion: reduce)` — portal durations collapse to
+  0ms; brand-system disables animations/transitions/smooth-scroll globally.
+- **Disabled states:** disabled controls use `disabled_surface_color` /
+  `disabled_text_color` rather than opacity alone.
+- Form labels, modal focus trap/restore, ARIA tab keyboard contract,
+  keyboard-reachable lightbox, and per-field error reporting are release
+  checks — see `docs/QA_Checklist.md`.
 
-```
-4px  —  xs (0.25rem)
-8px  —  sm (0.5rem)
-12px —  md (0.75rem)
-16px —  base (1rem)
-24px —  lg (1.5rem)
-32px —  xl (2rem)
-48px —  2xl (3rem)
+## 5. Commands
+
+```bash
+python3 docs/design/palette_gen.py            # verify (390 assertions)
+python3 docs/design/palette_gen.py --table    # inspect every token
+open docs/design/theme-proposal.html          # see all 15 theme-modes as real UI
 ```
 
-### Border Radius
+Migrating existing tenants to regenerated themes (idempotent; never touches a
+hand-tuned theme unless `--include-custom` is passed):
 
-| Context | Radius |
-|---|---|
-| Buttons, badges | `6px` |
-| Cards, modals | `12px` |
-| Input fields | `8px` |
-| Images, avatars | `50%` (circular) |
-
----
-
-## UI Components
-
-### Buttons
-
-| Variant | Background | Text | Border | Use Case |
-|---|---|---|---|---|
-| Primary | `--primary` | White | None | Main CTAs |
-| Secondary | `--surface` | `--primary` | 1px `--primary` | Outlined actions |
-| Tertiary | Transparent | `--text` | None | Low-emphasis links |
-| Destructive | `--error` | White | None | Delete, remove |
-| Ghost | Transparent | `--text` | None | Icon-only, minimal |
-
-**States:** default, hover (lighten 8%), active (darken 4%), disabled (50% opacity).
-
-### Cards
-
-```html
-<div class="card">
-  <div class="card-header">Title</div>
-  <div class="card-body">Content</div>
-  <div class="card-footer">Actions</div>
-</div>
+```bash
+.venv/bin/python backend/scripts/migrate_visual_themes.py --dry-run
+.venv/bin/python backend/scripts/migrate_visual_themes.py
 ```
 
-| Property | Value |
-|---|---|
-| Background | `--surface` |
-| Border | 1px `--border` |
-| Border-radius | `12px` |
-| Shadow | `0 1px 3px rgba(0,0,0,0.08)` |
-| Padding | `24px` |
+## 6. Usage Guidelines
 
-### Forms
-
-| Element | Style |
-|---|---|
-| Input | 1px `--border`, `8px` radius, `16px` padding |
-| Focus ring | 2px `--primary`, `2px` offset |
-| Label | 14px SemiBold `--text`, `8px` bottom margin |
-| Error state | 1px `--error`, error message below in `--error` 14px |
-| Help text | 12px `--text-muted`, `8px` top margin |
-
-### Navigation
-
-| Element | Style |
-|---|---|
-| Top nav bar | 64px height, `--surface`, 1px bottom `--border` |
-| Active link | `--primary` text, 2px bottom accent |
-| Sidebar | 240px width, `--bg`, right border 1px `--border` |
-| Sidebar active | `--primary` left border, `--primary` text |
-
-### Tables
-
-| Property | Value |
-|---|---|
-| Header | 14px SemiBold `--text`, `--bg` background |
-| Row height | 48px |
-| Alternating rows | `--surface` / `--bg` |
-| Hover | `--bg` background |
-| Border | 1px `--border` cell dividers |
-
-### Toast Notifications
-
-| Type | Icon | Colour | Duration |
-|---|---|---|---|
-| Success | Checkmark | Green left border | 4s |
-| Error | X mark | Red left border | 6s |
-| Warning | Exclamation | Amber left border | 5s |
-| Info | i circle | Blue left border | 4s |
-
----
-
-## Iconography
-
-- **Library:** Lucide Icons (outline style)
-- **Size:** 20px default, 16px small, 24px large
-- **Stroke width:** 2px
-- **Colour:** Inherits from parent text colour
-
----
-
-## Responsive Breakpoints
-
-| Breakpoint | Max Width | Target |
-|---|---|---|
-| Mobile | < 640px | Phones |
-| Tablet | 640–1024px | Tablets |
-| Desktop | > 1024px | Desktops |
-
-**Mobile-first:** Base styles target mobile; breakpoints above add layout complexity.
-
----
-
-## Accessibility
-
-| Requirement | Standard |
-|---|---|
-| WCAG | AA minimum |
-| Colour contrast | 4.5:1 body, 3:1 large text |
-| Focus visible | Custom focus ring (2px `--primary`) |
-| Keyboard nav | Full tab order, no keyboard traps |
-| Screen reader | Semantic HTML, ARIA where needed |
-| Font size | Minimum 14px body, 12px captions |
-
----
-
-## Usage Guidelines
-
-1. **Use CSS custom properties** for all tokens — never hard-code hex values.
-2. **Follow the spacing scale** — avoid arbitrary pixel values.
-3. **One heading level per section** — maintain document hierarchy.
-4. **Icons + text** for primary actions; icons alone only in icon bars.
-5. **Error messages** must be actionable — tell the user how to fix.
+1. **Use the semantic tokens** — never hard-code hex values in pages.
+2. **Interactive boundaries use `border_strong_color`**, not `border_color`.
+3. **Hover/pressed move in one direction** (darker in light mode, lighter in
+   dark) so states are never mistaken for each other.
+4. **Icons + text** for primary actions; SVG `Icon` component only, no emoji.
+5. **Error messages** must state a cause and a way out.

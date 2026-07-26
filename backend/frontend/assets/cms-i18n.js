@@ -70,6 +70,10 @@
     ['3. 刷新本页面', '3. Reload this page'],
     ['需要 Gmail「应用专用密码」，获取方法见《邮件设置教程》文档',
      'Requires a Gmail app-specific password — see the email setup guide.'],
+    ['收件邮箱', 'Recipient email'], ['发件 Gmail 地址', 'Sender Gmail address'],
+    ['Gmail 应用专用密码', 'Gmail app-specific password'],
+    ['已保存，留空不变', 'Saved — leave blank to keep it'],
+    ['16 位应用专用密码', '16-character app password'],
 
     /* ── Common actions ── */
     ['确认', 'Confirm'], ['取消', 'Cancel'], ['保存', 'Save'], ['删除', 'Delete'],
@@ -79,8 +83,9 @@
     ['知道了 / OK', 'Got it / OK'], ['上传中...', 'Uploading…'], ['加载中…', 'Loading…'],
     ['暂无数据', 'No data yet'], ['无记录', 'No records'], ['无匹配', 'No match'],
     ['查看 →', 'View →'], ['处理 →', 'Handle →'], ['全部 →', 'All →'],
-    ['+ 添加套餐', '+ Add pack'], ['➕ 新建', '+ New'], ['➕ 新建学员', '+ New student'],
-    ['➕ 新建学员档案', '+ New student record'], ['➕ 新增班次', '+ Add class'],
+    ['+ 添加套餐', '+ Add pack'], ['新建', 'New'], ['新建学员', 'New student'],
+    ['新建学员档案', 'New student record'], ['新增班次', 'Add class'],
+    ['关闭', 'Close'],
     ['添加学员', 'Add student'], ['添加团队成员', 'Add team member'],
 
     /* ── Fields ── */

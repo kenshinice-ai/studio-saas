@@ -1,5 +1,7 @@
 # StudioSaaS Release Readiness — 2026-07-12
 
+> 📦 存档快照（日期见标题），数字为当日基线，不再更新；当前状态见 docs/HANDOFF_LATEST.md。
+
 Scope: local/Stage 1 release candidate only. AWS Stage 2 is intentionally excluded.
 
 ## Priority acceptance checklist

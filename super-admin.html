@@ -192,6 +192,15 @@
     button:active { transform: translateY(0); box-shadow: none; }
     button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
 
+    /* Keyboard focus ring for controls that have no input-style focus state.
+       Mirrors the token-driven pattern in assets/portal-theme.css. */
+    button:focus-visible,
+    a:focus-visible,
+    summary:focus-visible {
+      outline: 2px solid var(--brand);
+      outline-offset: 2px;
+    }
+
     .btn-primary {
       background: var(--brand);
       color: white;
@@ -256,7 +265,7 @@
       filter: grayscale(0.25);
     }
 
-    .btn-sm { padding: 6px 12px; font-size: 13px; }
+    .btn-sm { padding: 6px 12px; font-size: 13px; min-height: 40px; }
 
     /* Main Layout */
     main {
@@ -743,6 +752,19 @@
       margin-bottom: 20px;
     }
 
+    .login-error {
+      margin-bottom: 16px;
+      padding: 10px 12px;
+      border: 1px solid #fecaca;
+      border-radius: var(--radius);
+      background: var(--red-light);
+      color: var(--red);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .login-error[hidden] { display: none; }
+
     .content-grid {
       display: grid;
       grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr);
@@ -995,6 +1017,14 @@
       .toast { min-width: 0; width: 100%; }
     }
 
+    /* Respect the operating-system "reduce motion" preference. */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .01ms !important;
+        transition-duration: .01ms !important;
+      }
+    }
+
     /* Utility */
     .text-muted { color: var(--muted); }
     .mt-2 { margin-top: 8px; }
@@ -1020,7 +1050,7 @@
         <button id="changePasswordBtn" class="btn-secondary hidden">Change Password</button>
         <button id="logoutBtn" class="btn-secondary hidden">Logout</button>
         <button id="refreshBtn" class="btn-primary requires-auth hidden">
-          <span id="refreshIcon">↻</span> Refresh
+          <span id="refreshIcon" aria-hidden="true">↻</span> Refresh
         </button>
       </div>
     </div>
@@ -1047,7 +1077,7 @@
         <div class="form-group">
           <label for="loginPassword">Password</label>
           <div style="position:relative;">
-            <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Enter your password" style="padding-right:56px;">
+            <input id="loginPassword" type="password" autocomplete="current-password" style="padding-right:56px;">
             <button type="button" id="loginPwToggle" class="btn-secondary btn-sm" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);">Show</button>
           </div>
         </div>
@@ -1056,6 +1086,7 @@
             <input id="loginRemember" type="checkbox" style="width:auto;"> Remember me for 30 days
           </label>
         </div>
+        <div id="loginError" class="login-error" role="alert" hidden></div>
         <div class="form-actions">
           <button id="loginBtn" type="submit" class="btn-primary">Login</button>
         </div>
@@ -1344,6 +1375,7 @@
       const icon = type === 'success' ? '✓' : type === 'error' ? '✕' : '!';
       const iconEl = document.createElement('span');
       iconEl.style.fontSize = '18px';
+      iconEl.setAttribute('aria-hidden', 'true');
       iconEl.textContent = icon;
       const messageEl = document.createElement('span');
       messageEl.textContent = message;
@@ -1432,12 +1464,34 @@
       }
     }
 
+    // Inline login errors mirror the toast so the failure stays visible in the
+    // form (role="alert"), with the offending field marked and focused —
+    // same pattern as tenant-template/register.html failFirst().
+    function setLoginError(message, focusTarget) {
+      const box = $('loginError');
+      box.textContent = message;
+      box.hidden = false;
+      if (focusTarget) {
+        focusTarget.setAttribute('aria-invalid', 'true');
+        focusTarget.focus();
+      }
+    }
+
+    function clearLoginError() {
+      const box = $('loginError');
+      box.textContent = '';
+      box.hidden = true;
+      ['loginEmail', 'loginPassword'].forEach((id) => $(id).removeAttribute('aria-invalid'));
+    }
+
     async function loginSuperAdmin(event) {
       event.preventDefault();
+      clearLoginError();
       const email = $('loginEmail').value.trim();
       const password = $('loginPassword').value;
       if (!email || !password) {
         showToast('Email and password are required.', 'error');
+        setLoginError('Email and password are required.', !email ? $('loginEmail') : $('loginPassword'));
         return;
       }
       const btn = $('loginBtn');
@@ -1455,8 +1509,11 @@
       } catch (err) {
         if (err.status === 429) {
           showToast('Too many login attempts — please wait a minute and try again.', 'error');
+          setLoginError('Too many login attempts — please wait a minute and try again.');
         } else {
           showToast(err.status === 401 ? 'Invalid email or password.' : err.message, 'error');
+          setLoginError(err.status === 401 ? 'Invalid email or password.' : err.message,
+            err.status === 401 ? $('loginPassword') : null);
         }
       } finally {
         btn.disabled = false;
@@ -1749,6 +1806,7 @@
         link.rel = disabled ? '' : 'noopener';
         link.title = disabled ? 'Archived or deleted tenants cannot be opened.' : `Open ${label}`;
         mark.className = 'mark';
+        mark.setAttribute('aria-hidden', 'true');
         mark.textContent = disabled ? '-' : '↗';
         textNode.textContent = label;
         link.append(mark, textNode);
@@ -2414,7 +2472,7 @@
       $('modalTitle').textContent = 'Add Plan';
       const bodyHtml = `
         <div class="form-grid">
-          <div class="form-group"><label for="m_planCode">Code</label><input id="m_planCode" disabled></div>
+          <div class="form-group"><label for="m_planCode">Code</label><input id="m_planCode" placeholder="e.g. studio-pro" pattern="[a-z0-9][a-z0-9-]{1,62}"></div>
           <div class="form-group"><label for="m_planName">Name</label><input id="m_planName"></div>
           <div class="form-group"><label for="m_planMonthly">Price (AUD)</label><input id="m_planMonthly" type="number" value="149"></div>
           <div class="form-group"><label for="m_planStudents">Students</label><input id="m_planStudents" type="number" min="1" value="800"></div>
@@ -2450,8 +2508,14 @@
       let features;
       try { features = collectPlanFeatures(); }
       catch (error) { showToast(error.message, 'error'); return; }
+      const code = $('m_planCode').value.trim().toLowerCase();
+      if (!editingPlanCode && !/^[a-z0-9][a-z0-9-]{1,62}$/.test(code)) {
+        showToast('Plan code must be lowercase letters, numbers, or hyphens.', 'error');
+        $('m_planCode').focus();
+        return;
+      }
       const payload = {
-        code: $('m_planCode').value,
+        code,
         name: $('m_planName').value,
         monthlyPriceAud: Number($('m_planMonthly').value),
         studentLimit: Number($('m_planStudents').value),

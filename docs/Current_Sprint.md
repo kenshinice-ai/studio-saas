@@ -1,5 +1,16 @@
 # StudioSaaS Current Sprint
 
+> ⚠️ **已由 `docs/HANDOFF_LATEST.md` 取代（2026-07-26）。本文件停在 v7.0 sprint（2026-07-10），仅作历史参考。**
+>
+> **v7.1–v7.5 后续实际走向**（帮助读者接上）：
+> - v7.2.x — 注册提交先落库再发通知邮件、真实入学日期、注册成功页与 `brand-system.css` 语义 token 共享。
+> - v7.3.0/7.3.1 — 行业预设联动的七套 curated brand styles + 品牌搭建器三步化。
+> - v7.3.2 — UX 审查 30 条全量执行（存储型 XSS 关闭、占位文案下线、CMS 双语层、术语表 CI）。
+> - v7.3.3/7.3.4 — 主题系统重构（8 主题 × 明暗、`palette_gen.py` 390 断言）+ 双语链路补全（`localized_copy`、`?lang=` URL、hreflang）。
+> - v7.4.0 — 全量 RBAC 角色边界审计修复、四界面可访问性、AWS 单实例部署套件（`deploy/aws/`）。
+> - v7.4.1 — 数据库审计 + change-review 稳定性修复。
+> - v7.5.0 — 文档全量刷新纠错、UI/UX 修复批次、`docs/guides/` 六份角色手册、skill 同步。
+
 Version: v4.1
 Date: 2026-07-10
 Purpose: Status tracking for the prioritised task list in `codingprompt.md` (same numbering), verification commands, credentials, and go/no-go criteria.
