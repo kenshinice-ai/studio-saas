@@ -164,19 +164,35 @@ def _safe_ip(value: object) -> str:
         return "127.0.0.1"
 
 
-def access_locked(conn: Any, *, tenant_id: str, lookup_hash: str, ip_address: object) -> bool:
-    """Return whether this private-access identity is temporarily locked."""
+def access_lock_seconds_remaining(
+    conn: Any, *, tenant_id: str, lookup_hash: str, ip_address: object
+) -> int:
+    """Return seconds until this identity may retry, or 0 when it is not locked.
+
+    The portal shows the visitor how long to wait, so the caller needs the
+    remaining time rather than just a boolean.
+    """
 
     row = fetch_one(
         conn,
         """
-        SELECT locked_until > now() AS locked
+        SELECT GREATEST(0, CEIL(EXTRACT(EPOCH FROM (locked_until - now()))))::int
+                   AS seconds_remaining
         FROM student_access_attempts
         WHERE tenant_id = %s AND lookup_hash = %s AND ip_address = %s::inet
+          AND locked_until > now()
         """,
         (tenant_id, lookup_hash, _safe_ip(ip_address)),
     )
-    return bool(row and row["locked"])
+    return int(row["seconds_remaining"]) if row else 0
+
+
+def access_locked(conn: Any, *, tenant_id: str, lookup_hash: str, ip_address: object) -> bool:
+    """Return whether this private-access identity is temporarily locked."""
+
+    return access_lock_seconds_remaining(
+        conn, tenant_id=tenant_id, lookup_hash=lookup_hash, ip_address=ip_address
+    ) > 0
 
 
 def record_failed_access(conn: Any, *, tenant_id: str, lookup_hash: str, ip_address: object) -> None:

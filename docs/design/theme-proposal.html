@@ -1,0 +1,1009 @@
+<meta charset="utf-8">
+<title>StudioSaaS 主题提案 · 8 套 × 明暗</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { margin:0; background:#0f1115; color:#e8eaed;
+         font:15px/1.6 "PingFang SC","Hiragino Sans GB",system-ui,sans-serif; }
+  .page { max-width:1500px; margin:0 auto; padding:36px 24px 80px; }
+  h1 { font-size:26px; font-weight:600; margin:0 0 6px; }
+  .sub { color:#9aa1ab; margin:0 0 32px; font-size:14px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(430px,1fr)); gap:22px; }
+  .tile { background:var(--panel); border:1px solid var(--line); border-radius:14px;
+          overflow:hidden; color:var(--ink); }
+  .tile-head { display:flex; justify-content:space-between; align-items:flex-start;
+               gap:12px; padding:16px 18px; background:var(--bg2); border-bottom:1px solid var(--line); }
+  .tile-head h3 { margin:0; font-size:16px; font-weight:600; }
+  .zh { font-weight:400; color:var(--muted); font-size:13px; margin-left:6px; }
+  .meta { margin:3px 0 0; font-size:11.5px; color:var(--muted); letter-spacing:.02em; }
+  .chips { display:flex; gap:5px; flex-shrink:0; }
+  .chip { font:600 10px/1 ui-monospace,monospace; padding:7px 8px; border-radius:5px; }
+
+  .demo { background:var(--bg); }
+  .demo-nav { display:flex; align-items:center; gap:14px; padding:12px 18px;
+              border-bottom:1px solid var(--line); font-size:12px; color:var(--ink2); }
+  .brand { font-weight:600; color:var(--ink); margin-right:auto; }
+  .navcta { border:1px solid var(--line-strong); border-radius:3px; padding:5px 11px; color:var(--ink); }
+  .hero { padding:22px 18px 24px; }
+  .eyebrow { margin:0; font-size:10px; letter-spacing:.3em; color:var(--muted); }
+  .hero h4 { margin:10px 0 8px; font-size:23px; font-weight:500; letter-spacing:.01em; }
+  .lead { margin:0 0 16px; font-size:13.5px; color:var(--ink2); }
+  .btn { display:inline-block; border-radius:3px; padding:9px 17px; font-size:12.5px; margin-right:8px; }
+  .btn-fill { background:var(--accent); color:var(--on-accent); }
+  .btn-line { border:1px solid var(--line-strong); color:var(--ink); }
+
+  .band { display:grid; grid-template-columns:1fr 1fr; gap:12px;
+          padding:18px; background:var(--bg2); border-top:1px solid var(--line); }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:5px; padding:14px; }
+  .label { margin:0 0 5px; font-size:10.5px; letter-spacing:.02em; color:var(--ink2); font-weight:500; }
+  .field { border:1px solid var(--line-strong); border-radius:3px; padding:8px 10px;
+           font-size:12px; color:var(--muted); background:var(--bg); margin-bottom:10px; }
+  .field-bad { border-color:var(--bad); color:var(--bad); }
+  .err { margin:0; font-size:11.5px; color:var(--bad); }
+  .big { margin:2px 0 4px; font-size:38px; line-height:1; color:var(--accent); font-weight:500; }
+  .state { margin:0 0 3px; font-size:11.5px; font-weight:500; }
+  .state.ok { color:var(--ok); } .state.warn { color:var(--warn); } .state.bad { color:var(--bad); }
+  .divider { height:1px; background:var(--line); margin:10px 0; }
+  .muted { margin:0; font-size:11.5px; color:var(--muted); }
+
+  .states-row { display:flex; gap:5px; margin:0 0 9px; flex-wrap:wrap; }
+  .sbtn { font-size:10.5px; padding:5px 9px; border-radius:3px; }
+  .focusdemo { margin:0 0 11px; }
+  .focusring { display:inline-block; font-size:10.5px; padding:5px 9px; border-radius:3px;
+               color:var(--ink); outline:2px solid var(--focus); outline-offset:2px;
+               background:var(--bg); }
+  .ratios { width:100%; border-collapse:collapse; font-size:10.5px;
+            background:var(--panel); color:var(--muted); }
+  .ratios td { padding:3px 18px; border-top:1px solid var(--line); }
+  .ratios td.num { text-align:right; font-family:ui-monospace,monospace; color:var(--ink2); font-weight:600; }
+  .ratios td.need { text-align:right; width:52px; }
+</style>
+<div class="page">
+  <h1>StudioSaaS 主题提案 — 8 套 × 明暗双模</h1>
+  <p class="sub">已落地：8 套主题 × 明暗（Arcade Lime 仅暗色），390 项断言通过。下方为实测比值。</p>
+  <div class="grid">
+<article class="tile" style="
+  --bg:#F3ECEA; --bg2:#EADFDB; --panel:#FDFDFD;
+  --ink:#211B19; --ink2:#473D3A; --muted:#6E605C;
+  --line:#DFD8D5; --line-strong:#917A72;
+  --accent:#955037; --on-accent:#FFFFFF;
+  --second:#3F6B61; --on-second:#FFFFFF;
+  --ok:#2E774F; --warn:#8D6226; --bad:#B54639;
+  --hover:#7F442F; --pressed:#683826;
+  --dis-bg:#E6D9D5; --dis-fg:#867A76;
+  --focus:#BA6445; --scrim:rgba(0,0,0,0.5);">
+  <header class="tile-head">
+    <div>
+      <h3>Atelier Clay <span class="zh">陶土工坊</span></h3>
+      <p class="meta">Light · split-complementary · warm, tactile, gallery</p>
+    </div>
+    <div class="chips"><span class="chip" style="background:#955037;color:#FFFFFF;" title="accent #955037">#955037</span><span class="chip" style="background:#3F6B61;color:#FFFFFF;" title="secondary #3F6B61">#3F6B61</span></div>
+  </header>
+
+  <div class="demo">
+    <nav class="demo-nav">
+      <span class="brand">Atelier Clay</span>
+      <span class="navlink">课程</span><span class="navlink">学员专区</span>
+      <span class="navcta">预约体验</span>
+    </nav>
+
+    <div class="hero">
+      <p class="eyebrow">ART</p>
+      <h4>让每一次练习都被看见</h4>
+      <p class="lead">课程报名、课时管理与学员记录，都在这里。</p>
+      <span class="btn btn-fill">预约体验 →</span>
+      <span class="btn btn-line">浏览课程</span>
+    </div>
+
+    <div class="band">
+      <div class="card">
+        <p class="label">学员姓名 *</p>
+        <div class="field">与报名时一致</div>
+        <p class="label">6 位访问码 *</p>
+        <div class="field field-bad">访问码为 6 位数字</div>
+        <p class="err">请核对三项信息，或联系工作室更换访问码。</p>
+      </div>
+      <div class="card">
+        <p class="states-row">
+          <span class="sbtn" style="background:var(--accent);color:var(--on-accent)">默认</span>
+          <span class="sbtn" style="background:var(--hover);color:var(--on-accent)">悬停</span>
+          <span class="sbtn" style="background:var(--pressed);color:var(--on-accent)">按下</span>
+          <span class="sbtn" style="background:var(--dis-bg);color:var(--dis-fg)">禁用</span>
+        </p>
+        <p class="focusdemo"><span class="focusring">聚焦环</span></p>
+        <p class="label">剩余课时</p>
+        <p class="big">12</p>
+        <p class="state ok">课时充足</p>
+        <p class="state warn">课时即将用完</p>
+        <p class="state bad">已透支 3 课时</p>
+        <div class="divider"></div>
+        <p class="muted">上次课 · 2026-07-22</p>
+      </div>
+    </div>
+  </div>
+
+  <table class="ratios"><tr><td>body / page</td><td class='num'>14.57</td><td class='need'>≥4.5</td></tr><tr><td>body / panel</td><td class='num'>16.71</td><td class='need'>≥4.5</td></tr><tr><td>soft / page</td><td class='num'>9.01</td><td class='need'>≥4.5</td></tr><tr><td>muted / page</td><td class='num'>5.16</td><td class='need'>≥4.5</td></tr><tr><td>muted / panel</td><td class='num'>5.91</td><td class='need'>≥4.5</td></tr><tr><td>muted / alt</td><td class='num'>4.61</td><td class='need'>≥4.5</td></tr><tr><td>accent / page</td><td class='num'>5.17</td><td class='need'>≥4.5</td></tr><tr><td>on-accent / accent</td><td class='num'>6.03</td><td class='need'>≥4.5</td></tr><tr><td>2nd / page</td><td class='num'>5.16</td><td class='need'>≥4.5</td></tr><tr><td>on-2nd / 2nd</td><td class='num'>6.02</td><td class='need'>≥4.5</td></tr><tr><td>success / page</td><td class='num'>4.65</td><td class='need'>≥4.5</td></tr><tr><td>warning / page</td><td class='num'>4.61</td><td class='need'>≥4.5</td></tr><tr><td>danger / page</td><td class='num'>4.61</td><td class='need'>≥4.5</td></tr><tr><td>line-strong / page</td><td class='num'>3.44</td><td class='need'>≥3.0</td></tr><tr><td>line-strong / panel</td><td class='num'>3.95</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / page</td><td class='num'>3.60</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / panel</td><td class='num'>4.13</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / alt</td><td class='num'>3.22</td><td class='need'>≥3.0</td></tr><tr><td>on-accent / hover</td><td class='num'>7.58</td><td class='need'>≥4.5</td></tr><tr><td>on-accent / pressed</td><td class='num'>9.62</td><td class='need'>≥4.5</td></tr><tr><td>disabled text</td><td class='num'>3.01</td><td class='need'>≥2.8</td></tr><tr><td>hover ≠ rest</td><td class='num'>1.26</td><td class='need'>≥1.06</td></tr><tr><td>pressed ≠ hover</td><td class='num'>1.27</td><td class='need'>≥1.06</td></tr><tr><td>divider visible</td><td class='num'>1.21</td><td class='need'>≥1.18</td></tr><tr><td>divider on panel</td><td class='num'>1.38</td><td class='need'>≥1.18</td></tr><tr><td>disabled ≠ normal</td><td class='num'>4.09</td><td class='need'>≥1.6</td></tr><tr><td>page → card layer</td><td class='num'>1.15</td><td class='need'>≥1.12</td></tr></table>
+</article>
+
+<article class="tile" style="
+  --bg:#150F0D; --bg2:#3A2D28; --panel:#281E1B;
+  --ink:#ECEAE9; --ink2:#CEC8C6; --muted:#A19693;
+  --line:#4A3D38; --line-strong:#8A756D;
+  --accent:#CE9985; --on-accent:#14110F;
+  --second:#75AB9E; --on-second:#14110F;
+  --ok:#378D5D; --warn:#A5732C; --bad:#C85C4F;
+  --hover:#D8AE9E; --pressed:#E2C4B8;
+  --dis-bg:#43342E; --dis-fg:#897E79;
+  --focus:#BB6646; --scrim:rgba(0,0,0,0.66);">
+  <header class="tile-head">
+    <div>
+      <h3>Atelier Clay <span class="zh">陶土工坊</span></h3>
+      <p class="meta">Dark · split-complementary · warm, tactile, gallery</p>
+    </div>
+    <div class="chips"><span class="chip" style="background:#CE9985;color:#14110F;" title="accent #CE9985">#CE9985</span><span class="chip" style="background:#75AB9E;color:#14110F;" title="secondary #75AB9E">#75AB9E</span></div>
+  </header>
+
+  <div class="demo">
+    <nav class="demo-nav">
+      <span class="brand">Atelier Clay</span>
+      <span class="navlink">课程</span><span class="navlink">学员专区</span>
+      <span class="navcta">预约体验</span>
+    </nav>
+
+    <div class="hero">
+      <p class="eyebrow">ART</p>
+      <h4>让每一次练习都被看见</h4>
+      <p class="lead">课程报名、课时管理与学员记录，都在这里。</p>
+      <span class="btn btn-fill">预约体验 →</span>
+      <span class="btn btn-line">浏览课程</span>
+    </div>
+
+    <div class="band">
+      <div class="card">
+        <p class="label">学员姓名 *</p>
+        <div class="field">与报名时一致</div>
+        <p class="label">6 位访问码 *</p>
+        <div class="field field-bad">访问码为 6 位数字</div>
+        <p class="err">请核对三项信息，或联系工作室更换访问码。</p>
+      </div>
+      <div class="card">
+        <p class="states-row">
+          <span class="sbtn" style="background:var(--accent);color:var(--on-accent)">默认</span>
+          <span class="sbtn" style="background:var(--hover);color:var(--on-accent)">悬停</span>
+          <span class="sbtn" style="background:var(--pressed);color:var(--on-accent)">按下</span>
+          <span class="sbtn" style="background:var(--dis-bg);color:var(--dis-fg)">禁用</span>
+        </p>
+        <p class="focusdemo"><span class="focusring">聚焦环</span></p>
+        <p class="label">剩余课时</p>
+        <p class="big">12</p>
+        <p class="state ok">课时充足</p>
+        <p class="state warn">课时即将用完</p>
+        <p class="state bad">已透支 3 课时</p>
+        <div class="divider"></div>
+        <p class="muted">上次课 · 2026-07-22</p>
+      </div>
+    </div>
+  </div>
+
+  <table class="ratios"><tr><td>body / page</td><td class='num'>15.83</td><td class='need'>≥4.5</td></tr><tr><td>body / panel</td><td class='num'>13.56</td><td class='need'>≥4.5</td></tr><tr><td>soft / page</td><td class='num'>11.48</td><td class='need'>≥4.5</td></tr><tr><td>muted / page</td><td class='num'>6.60</td><td class='need'>≥4.5</td></tr><tr><td>muted / panel</td><td class='num'>5.65</td><td class='need'>≥4.5</td></tr><tr><td>muted / alt</td><td class='num'>4.60</td><td class='need'>≥4.5</td></tr><tr><td>accent / page</td><td class='num'>7.70</td><td class='need'>≥4.5</td></tr><tr><td>on-accent / accent</td><td class='num'>7.63</td><td class='need'>≥4.5</td></tr><tr><td>2nd / page</td><td class='num'>7.30</td><td class='need'>≥4.5</td></tr><tr><td>on-2nd / 2nd</td><td class='num'>7.23</td><td class='need'>≥4.5</td></tr><tr><td>success / page</td><td class='num'>4.64</td><td class='need'>≥4.5</td></tr><tr><td>warning / page</td><td class='num'>4.60</td><td class='need'>≥4.5</td></tr><tr><td>danger / page</td><td class='num'>4.61</td><td class='need'>≥4.5</td></tr><tr><td>line-strong / page</td><td class='num'>4.38</td><td class='need'>≥3.0</td></tr><tr><td>line-strong / panel</td><td class='num'>3.75</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / page</td><td class='num'>4.61</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / panel</td><td class='num'>3.95</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / alt</td><td class='num'>3.22</td><td class='need'>≥3.0</td></tr><tr><td>on-accent / hover</td><td class='num'>9.37</td><td class='need'>≥4.5</td></tr><tr><td>on-accent / pressed</td><td class='num'>11.48</td><td class='need'>≥4.5</td></tr><tr><td>disabled text</td><td class='num'>3.01</td><td class='need'>≥2.8</td></tr><tr><td>hover ≠ rest</td><td class='num'>1.23</td><td class='need'>≥1.06</td></tr><tr><td>pressed ≠ hover</td><td class='num'>1.22</td><td class='need'>≥1.06</td></tr><tr><td>divider visible</td><td class='num'>1.82</td><td class='need'>≥1.18</td></tr><tr><td>divider on panel</td><td class='num'>1.56</td><td class='need'>≥1.18</td></tr><tr><td>disabled ≠ normal</td><td class='num'>3.29</td><td class='need'>≥1.6</td></tr><tr><td>page → card layer</td><td class='num'>1.17</td><td class='need'>≥1.12</td></tr></table>
+</article>
+
+<article class="tile" style="
+  --bg:#F3EFEA; --bg2:#EAE3DB; --panel:#FDFDFD;
+  --ink:#221E1A; --ink2:#46403A; --muted:#6C635A;
+  --line:#DFDAD5; --line-strong:#8D7F70;
+  --accent:#835D33; --on-accent:#FFFFFF;
+  --second:#4C6877; --on-second:#FFFFFF;
+  --ok:#2F7951; --warn:#8D6426; --bad:#B6483A;
+  --hover:#6D4D2A; --pressed:#573E22;
+  --dis-bg:#E6DED5; --dis-fg:#857E76;
+  --focus:#A3743F; --scrim:rgba(0,0,0,0.5);">
+  <header class="tile-head">
+    <div>
+      <h3>Vintage Press <span class="zh">复古印刷</span></h3>
+      <p class="meta">Light · split-complementary · editorial, cultured</p>
+    </div>
+    <div class="chips"><span class="chip" style="background:#835D33;color:#FFFFFF;" title="accent #835D33">#835D33</span><span class="chip" style="background:#4C6877;color:#FFFFFF;" title="secondary #4C6877">#4C6877</span></div>
+  </header>
+
+  <div class="demo">
+    <nav class="demo-nav">
+      <span class="brand">Vintage Press</span>
+      <span class="navlink">课程</span><span class="navlink">学员专区</span>
+      <span class="navcta">预约体验</span>
+    </nav>
+
+    <div class="hero">
+      <p class="eyebrow">GENERAL</p>
+      <h4>让每一次练习都被看见</h4>
+      <p class="lead">课程报名、课时管理与学员记录，都在这里。</p>
+      <span class="btn btn-fill">预约体验 →</span>
+      <span class="btn btn-line">浏览课程</span>
+    </div>
+
+    <div class="band">
+      <div class="card">
+        <p class="label">学员姓名 *</p>
+        <div class="field">与报名时一致</div>
+        <p class="label">6 位访问码 *</p>
+        <div class="field field-bad">访问码为 6 位数字</div>
+        <p class="err">请核对三项信息，或联系工作室更换访问码。</p>
+      </div>
+      <div class="card">
+        <p class="states-row">
+          <span class="sbtn" style="background:var(--accent);color:var(--on-accent)">默认</span>
+          <span class="sbtn" style="background:var(--hover);color:var(--on-accent)">悬停</span>
+          <span class="sbtn" style="background:var(--pressed);color:var(--on-accent)">按下</span>
+          <span class="sbtn" style="background:var(--dis-bg);color:var(--dis-fg)">禁用</span>
+        </p>
+        <p class="focusdemo"><span class="focusring">聚焦环</span></p>
+        <p class="label">剩余课时</p>
+        <p class="big">12</p>
+        <p class="state ok">课时充足</p>
+        <p class="state warn">课时即将用完</p>
+        <p class="state bad">已透支 3 课时</p>
+        <div class="divider"></div>
+        <p class="muted">上次课 · 2026-07-22</p>
+      </div>
+    </div>
+  </div>
+
+  <table class="ratios"><tr><td>body / page</td><td class='num'>14.46</td><td class='need'>≥4.5</td></tr><tr><td>body / panel</td><td class='num'>16.27</td><td class='need'>≥4.5</td></tr><tr><td>soft / page</td><td class='num'>8.93</td><td class='need'>≥4.5</td></tr><tr><td>muted / page</td><td class='num'>5.14</td><td class='need'>≥4.5</td></tr><tr><td>muted / panel</td><td class='num'>5.78</td><td class='need'>≥4.5</td></tr><tr><td>muted / alt</td><td class='num'>4.62</td><td class='need'>≥4.5</td></tr><tr><td>accent / page</td><td class='num'>5.13</td><td class='need'>≥4.5</td></tr><tr><td>on-accent / accent</td><td class='num'>5.87</td><td class='need'>≥4.5</td></tr><tr><td>2nd / page</td><td class='num'>5.16</td><td class='need'>≥4.5</td></tr><tr><td>on-2nd / 2nd</td><td class='num'>5.91</td><td class='need'>≥4.5</td></tr><tr><td>success / page</td><td class='num'>4.62</td><td class='need'>≥4.5</td></tr><tr><td>warning / page</td><td class='num'>4.61</td><td class='need'>≥4.5</td></tr><tr><td>danger / page</td><td class='num'>4.61</td><td class='need'>≥4.5</td></tr><tr><td>line-strong / page</td><td class='num'>3.40</td><td class='need'>≥3.0</td></tr><tr><td>line-strong / panel</td><td class='num'>3.82</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / page</td><td class='num'>3.58</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / panel</td><td class='num'>4.03</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / alt</td><td class='num'>3.22</td><td class='need'>≥3.0</td></tr><tr><td>on-accent / hover</td><td class='num'>7.65</td><td class='need'>≥4.5</td></tr><tr><td>on-accent / pressed</td><td class='num'>9.92</td><td class='need'>≥4.5</td></tr><tr><td>disabled text</td><td class='num'>3.01</td><td class='need'>≥2.8</td></tr><tr><td>hover ≠ rest</td><td class='num'>1.30</td><td class='need'>≥1.06</td></tr><tr><td>pressed ≠ hover</td><td class='num'>1.30</td><td class='need'>≥1.06</td></tr><tr><td>divider visible</td><td class='num'>1.21</td><td class='need'>≥1.18</td></tr><tr><td>divider on panel</td><td class='num'>1.36</td><td class='need'>≥1.18</td></tr><tr><td>disabled ≠ normal</td><td class='num'>4.13</td><td class='need'>≥1.6</td></tr><tr><td>page → card layer</td><td class='num'>1.13</td><td class='need'>≥1.12</td></tr></table>
+</article>
+
+<article class="tile" style="
+  --bg:#15120D; --bg2:#3A3228; --panel:#28221B;
+  --ink:#F1F0EE; --ink2:#D1CECA; --muted:#A29C94;
+  --line:#4A4238; --line-strong:#887B6C;
+  --accent:#C49F74; --on-accent:#14120F;
+  --second:#8AA5B2; --on-second:#14120F;
+  --ok:#378E5E; --warn:#A5752C; --bad:#C85E50;
+  --hover:#CFB08D; --pressed:#D9C2A6;
+  --dis-bg:#433A2E; --dis-fg:#8B847B;
+  --focus:#A67740; --scrim:rgba(0,0,0,0.66);">
+  <header class="tile-head">
+    <div>
+      <h3>Vintage Press <span class="zh">复古印刷</span></h3>
+      <p class="meta">Dark · split-complementary · editorial, cultured</p>
+    </div>
+    <div class="chips"><span class="chip" style="background:#C49F74;color:#14120F;" title="accent #C49F74">#C49F74</span><span class="chip" style="background:#8AA5B2;color:#14120F;" title="secondary #8AA5B2">#8AA5B2</span></div>
+  </header>
+
+  <div class="demo">
+    <nav class="demo-nav">
+      <span class="brand">Vintage Press</span>
+      <span class="navlink">课程</span><span class="navlink">学员专区</span>
+      <span class="navcta">预约体验</span>
+    </nav>
+
+    <div class="hero">
+      <p class="eyebrow">GENERAL</p>
+      <h4>让每一次练习都被看见</h4>
+      <p class="lead">课程报名、课时管理与学员记录，都在这里。</p>
+      <span class="btn btn-fill">预约体验 →</span>
+      <span class="btn btn-line">浏览课程</span>
+    </div>
+
+    <div class="band">
+      <div class="card">
+        <p class="label">学员姓名 *</p>
+        <div class="field">与报名时一致</div>
+        <p class="label">6 位访问码 *</p>
+        <div class="field field-bad">访问码为 6 位数字</div>
+        <p class="err">请核对三项信息，或联系工作室更换访问码。</p>
+      </div>
+      <div class="card">
+        <p class="states-row">
+          <span class="sbtn" style="background:var(--accent);color:var(--on-accent)">默认</span>
+          <span class="sbtn" style="background:var(--hover);color:var(--on-accent)">悬停</span>
+          <span class="sbtn" style="background:var(--pressed);color:var(--on-accent)">按下</span>
+          <span class="sbtn" style="background:var(--dis-bg);color:var(--dis-fg)">禁用</span>
+        </p>
+        <p class="focusdemo"><span class="focusring">聚焦环</span></p>
+        <p class="label">剩余课时</p>
+        <p class="big">12</p>
+        <p class="state ok">课时充足</p>
+        <p class="state warn">课时即将用完</p>
+        <p class="state bad">已透支 3 课时</p>
+        <div class="divider"></div>
+        <p class="muted">上次课 · 2026-07-22</p>
+      </div>
+    </div>
+  </div>
+
+  <table class="ratios"><tr><td>body / page</td><td class='num'>16.40</td><td class='need'>≥4.5</td></tr><tr><td>body / panel</td><td class='num'>13.81</td><td class='need'>≥4.5</td></tr><tr><td>soft / page</td><td class='num'>11.91</td><td class='need'>≥4.5</td></tr><tr><td>muted / page</td><td class='num'>6.87</td><td class='need'>≥4.5</td></tr><tr><td>muted / panel</td><td class='num'>5.78</td><td class='need'>≥4.5</td></tr><tr><td>muted / alt</td><td class='num'>4.63</td><td class='need'>≥4.5</td></tr><tr><td>accent / page</td><td class='num'>7.61</td><td class='need'>≥4.5</td></tr><tr><td>on-accent / accent</td><td class='num'>7.62</td><td class='need'>≥4.5</td></tr><tr><td>2nd / page</td><td class='num'>7.21</td><td class='need'>≥4.5</td></tr><tr><td>on-2nd / 2nd</td><td class='num'>7.22</td><td class='need'>≥4.5</td></tr><tr><td>success / page</td><td class='num'>4.62</td><td class='need'>≥4.5</td></tr><tr><td>warning / page</td><td class='num'>4.61</td><td class='need'>≥4.5</td></tr><tr><td>danger / page</td><td class='num'>4.60</td><td class='need'>≥4.5</td></tr><tr><td>line-strong / page</td><td class='num'>4.53</td><td class='need'>≥3.0</td></tr><tr><td>line-strong / panel</td><td class='num'>3.82</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / page</td><td class='num'>4.74</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / panel</td><td class='num'>4.00</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / alt</td><td class='num'>3.20</td><td class='need'>≥3.0</td></tr><tr><td>on-accent / hover</td><td class='num'>9.12</td><td class='need'>≥4.5</td></tr><tr><td>on-accent / pressed</td><td class='num'>10.88</td><td class='need'>≥4.5</td></tr><tr><td>disabled text</td><td class='num'>3.02</td><td class='need'>≥2.8</td></tr><tr><td>hover ≠ rest</td><td class='num'>1.20</td><td class='need'>≥1.06</td></tr><tr><td>pressed ≠ hover</td><td class='num'>1.19</td><td class='need'>≥1.06</td></tr><tr><td>divider visible</td><td class='num'>1.89</td><td class='need'>≥1.18</td></tr><tr><td>divider on panel</td><td class='num'>1.59</td><td class='need'>≥1.18</td></tr><tr><td>disabled ≠ normal</td><td class='num'>3.24</td><td class='need'>≥1.6</td></tr><tr><td>page → card layer</td><td class='num'>1.19</td><td class='need'>≥1.12</td></tr></table>
+</article>
+
+<article class="tile" style="
+  --bg:#EFEEEE; --bg2:#E3E2E2; --panel:#FDFDFD;
+  --ink:#1E1D1D; --ink2:#404040; --muted:#646363;
+  --line:#DADADA; --line-strong:#80807F;
+  --accent:#2C2A29; --on-accent:#FFFFFF;
+  --second:#545F6F; --on-second:#FFFFFF;
+  --ok:#2F7850; --warn:#8C6325; --bad:#B54739;
+  --hover:#1C1B1A; --pressed:#0C0C0B;
+  --dis-bg:#DEDDDD; --dis-fg:#7E7D7D;
+  --focus:#7F7C7A; --scrim:rgba(0,0,0,0.5);">
+  <header class="tile-head">
+    <div>
+      <h3>Studio Ink <span class="zh">黑白纸墨</span></h3>
+      <p class="meta">Light · neutral / monochrome · timeless, content-led</p>
+    </div>
+    <div class="chips"><span class="chip" style="background:#2C2A29;color:#FFFFFF;" title="accent #2C2A29">#2C2A29</span><span class="chip" style="background:#545F6F;color:#FFFFFF;" title="secondary #545F6F">#545F6F</span></div>
+  </header>
+
+  <div class="demo">
+    <nav class="demo-nav">
+      <span class="brand">Studio Ink</span>
+      <span class="navlink">课程</span><span class="navlink">学员专区</span>
+      <span class="navcta">预约体验</span>
+    </nav>
+
+    <div class="hero">
+      <p class="eyebrow">GENERAL</p>
+      <h4>让每一次练习都被看见</h4>
+      <p class="lead">课程报名、课时管理与学员记录，都在这里。</p>
+      <span class="btn btn-fill">预约体验 →</span>
+      <span class="btn btn-line">浏览课程</span>
+    </div>
+
+    <div class="band">
+      <div class="card">
+        <p class="label">学员姓名 *</p>
+        <div class="field">与报名时一致</div>
+        <p class="label">6 位访问码 *</p>
+        <div class="field field-bad">访问码为 6 位数字</div>
+        <p class="err">请核对三项信息，或联系工作室更换访问码。</p>
+      </div>
+      <div class="card">
+        <p class="states-row">
+          <span class="sbtn" style="background:var(--accent);color:var(--on-accent)">默认</span>
+          <span class="sbtn" style="background:var(--hover);color:var(--on-accent)">悬停</span>
+          <span class="sbtn" style="background:var(--pressed);color:var(--on-accent)">按下</span>
+          <span class="sbtn" style="background:var(--dis-bg);color:var(--dis-fg)">禁用</span>
+        </p>
+        <p class="focusdemo"><span class="focusring">聚焦环</span></p>
+        <p class="label">剩余课时</p>
+        <p class="big">12</p>
+        <p class="state ok">课时充足</p>
+        <p class="state warn">课时即将用完</p>
+        <p class="state bad">已透支 3 课时</p>
+        <div class="divider"></div>
+        <p class="muted">上次课 · 2026-07-22</p>
+      </div>
+    </div>
+  </div>
+
+  <table class="ratios"><tr><td>body / page</td><td class='num'>14.52</td><td class='need'>≥4.5</td></tr><tr><td>body / panel</td><td class='num'>16.53</td><td class='need'>≥4.5</td></tr><tr><td>soft / page</td><td class='num'>8.95</td><td class='need'>≥4.5</td></tr><tr><td>muted / page</td><td class='num'>5.17</td><td class='need'>≥4.5</td></tr><tr><td>muted / panel</td><td class='num'>5.89</td><td class='need'>≥4.5</td></tr><tr><td>muted / alt</td><td class='num'>4.63</td><td class='need'>≥4.5</td></tr><tr><td>accent / page</td><td class='num'>12.33</td><td class='need'>≥4.5</td></tr><tr><td>on-accent / accent</td><td class='num'>14.28</td><td class='need'>≥4.5</td></tr><tr><td>2nd / page</td><td class='num'>5.59</td><td class='need'>≥4.5</td></tr><tr><td>on-2nd / 2nd</td><td class='num'>6.47</td><td class='need'>≥4.5</td></tr><tr><td>success / page</td><td class='num'>4.62</td><td class='need'>≥4.5</td></tr><tr><td>warning / page</td><td class='num'>4.62</td><td class='need'>≥4.5</td></tr><tr><td>danger / page</td><td class='num'>4.62</td><td class='need'>≥4.5</td></tr><tr><td>line-strong / page</td><td class='num'>3.41</td><td class='need'>≥3.0</td></tr><tr><td>line-strong / panel</td><td class='num'>3.89</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / page</td><td class='num'>3.58</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / panel</td><td class='num'>4.07</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / alt</td><td class='num'>3.21</td><td class='need'>≥3.0</td></tr><tr><td>on-accent / hover</td><td class='num'>17.20</td><td class='need'>≥4.5</td></tr><tr><td>on-accent / pressed</td><td class='num'>19.57</td><td class='need'>≥4.5</td></tr><tr><td>disabled text</td><td class='num'>3.03</td><td class='need'>≥2.8</td></tr><tr><td>hover ≠ rest</td><td class='num'>1.20</td><td class='need'>≥1.06</td></tr><tr><td>pressed ≠ hover</td><td class='num'>1.14</td><td class='need'>≥1.06</td></tr><tr><td>divider visible</td><td class='num'>1.21</td><td class='need'>≥1.18</td></tr><tr><td>divider on panel</td><td class='num'>1.37</td><td class='need'>≥1.18</td></tr><tr><td>disabled ≠ normal</td><td class='num'>4.10</td><td class='need'>≥1.6</td></tr><tr><td>page → card layer</td><td class='num'>1.14</td><td class='need'>≥1.12</td></tr></table>
+</article>
+
+<article class="tile" style="
+  --bg:#121111; --bg2:#313131; --panel:#222221;
+  --ink:#ECECEB; --ink2:#CBCBCA; --muted:#9A9A99;
+  --line:#414141; --line-strong:#7B7B7A;
+  --accent:#B8B3AE; --on-accent:#121212;
+  --second:#8F9BAB; --on-second:#121212;
+  --ok:#378D5D; --warn:#A5742C; --bad:#C85D4F;
+  --hover:#C9C5C1; --pressed:#D9D7D4;
+  --dis-bg:#393939; --dis-fg:#828281;
+  --focus:#807E7B; --scrim:rgba(0,0,0,0.66);">
+  <header class="tile-head">
+    <div>
+      <h3>Studio Ink <span class="zh">黑白纸墨</span></h3>
+      <p class="meta">Dark · neutral / monochrome · timeless, content-led</p>
+    </div>
+    <div class="chips"><span class="chip" style="background:#B8B3AE;color:#121212;" title="accent #B8B3AE">#B8B3AE</span><span class="chip" style="background:#8F9BAB;color:#121212;" title="secondary #8F9BAB">#8F9BAB</span></div>
+  </header>
+
+  <div class="demo">
+    <nav class="demo-nav">
+      <span class="brand">Studio Ink</span>
+      <span class="navlink">课程</span><span class="navlink">学员专区</span>
+      <span class="navcta">预约体验</span>
+    </nav>
+
+    <div class="hero">
+      <p class="eyebrow">GENERAL</p>
+      <h4>让每一次练习都被看见</h4>
+      <p class="lead">课程报名、课时管理与学员记录，都在这里。</p>
+      <span class="btn btn-fill">预约体验 →</span>
+      <span class="btn btn-line">浏览课程</span>
+    </div>
+
+    <div class="band">
+      <div class="card">
+        <p class="label">学员姓名 *</p>
+        <div class="field">与报名时一致</div>
+        <p class="label">6 位访问码 *</p>
+        <div class="field field-bad">访问码为 6 位数字</div>
+        <p class="err">请核对三项信息，或联系工作室更换访问码。</p>
+      </div>
+      <div class="card">
+        <p class="states-row">
+          <span class="sbtn" style="background:var(--accent);color:var(--on-accent)">默认</span>
+          <span class="sbtn" style="background:var(--hover);color:var(--on-accent)">悬停</span>
+          <span class="sbtn" style="background:var(--pressed);color:var(--on-accent)">按下</span>
+          <span class="sbtn" style="background:var(--dis-bg);color:var(--dis-fg)">禁用</span>
+        </p>
+        <p class="focusdemo"><span class="focusring">聚焦环</span></p>
+        <p class="label">剩余课时</p>
+        <p class="big">12</p>
+        <p class="state ok">课时充足</p>
+        <p class="state warn">课时即将用完</p>
+        <p class="state bad">已透支 3 课时</p>
+        <div class="divider"></div>
+        <p class="muted">上次课 · 2026-07-22</p>
+      </div>
+    </div>
+  </div>
+
+  <table class="ratios"><tr><td>body / page</td><td class='num'>15.95</td><td class='need'>≥4.5</td></tr><tr><td>body / panel</td><td class='num'>13.47</td><td class='need'>≥4.5</td></tr><tr><td>soft / page</td><td class='num'>11.61</td><td class='need'>≥4.5</td></tr><tr><td>muted / page</td><td class='num'>6.69</td><td class='need'>≥4.5</td></tr><tr><td>muted / panel</td><td class='num'>5.65</td><td class='need'>≥4.5</td></tr><tr><td>muted / alt</td><td class='num'>4.62</td><td class='need'>≥4.5</td></tr><tr><td>accent / page</td><td class='num'>9.06</td><td class='need'>≥4.5</td></tr><tr><td>on-accent / accent</td><td class='num'>9.01</td><td class='need'>≥4.5</td></tr><tr><td>2nd / page</td><td class='num'>6.68</td><td class='need'>≥4.5</td></tr><tr><td>on-2nd / 2nd</td><td class='num'>6.64</td><td class='need'>≥4.5</td></tr><tr><td>success / page</td><td class='num'>4.61</td><td class='need'>≥4.5</td></tr><tr><td>warning / page</td><td class='num'>4.61</td><td class='need'>≥4.5</td></tr><tr><td>danger / page</td><td class='num'>4.61</td><td class='need'>≥4.5</td></tr><tr><td>line-strong / page</td><td class='num'>4.45</td><td class='need'>≥3.0</td></tr><tr><td>line-strong / panel</td><td class='num'>3.76</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / page</td><td class='num'>4.66</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / panel</td><td class='num'>3.93</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / alt</td><td class='num'>3.21</td><td class='need'>≥3.0</td></tr><tr><td>on-accent / hover</td><td class='num'>10.92</td><td class='need'>≥4.5</td></tr><tr><td>on-accent / pressed</td><td class='num'>13.04</td><td class='need'>≥4.5</td></tr><tr><td>disabled text</td><td class='num'>3.00</td><td class='need'>≥2.8</td></tr><tr><td>hover ≠ rest</td><td class='num'>1.21</td><td class='need'>≥1.06</td></tr><tr><td>pressed ≠ hover</td><td class='num'>1.19</td><td class='need'>≥1.06</td></tr><tr><td>divider visible</td><td class='num'>1.85</td><td class='need'>≥1.18</td></tr><tr><td>divider on panel</td><td class='num'>1.56</td><td class='need'>≥1.18</td></tr><tr><td>disabled ≠ normal</td><td class='num'>3.25</td><td class='need'>≥1.6</td></tr><tr><td>page → card layer</td><td class='num'>1.18</td><td class='need'>≥1.12</td></tr></table>
+</article>
+
+<article class="tile" style="
+  --bg:#E9EFF3; --bg2:#DAE4EB; --panel:#FDFDFD;
+  --ink:#191E22; --ink2:#394148; --muted:#59656E;
+  --line:#D5DBDF; --line-strong:#6F8391;
+  --accent:#2E6892; --on-accent:#FFFFFF;
+  --second:#2B6E64; --on-second:#FFFFFF;
+  --ok:#2E7758; --warn:#836723; --bad:#BF3C3D;
+  --hover:#27577B; --pressed:#1F4763;
+  --dis-bg:#D3DFE7; --dis-fg:#757F87;
+  --focus:#3A82B7; --scrim:rgba(0,0,0,0.5);">
+  <header class="tile-head">
+    <div>
+      <h3>Harbour Calm <span class="zh">静谧海港</span></h3>
+      <p class="meta">Light · analogous · clear, trustworthy</p>
+    </div>
+    <div class="chips"><span class="chip" style="background:#2E6892;color:#FFFFFF;" title="accent #2E6892">#2E6892</span><span class="chip" style="background:#2B6E64;color:#FFFFFF;" title="secondary #2B6E64">#2B6E64</span></div>
+  </header>
+
+  <div class="demo">
+    <nav class="demo-nav">
+      <span class="brand">Harbour Calm</span>
+      <span class="navlink">课程</span><span class="navlink">学员专区</span>
+      <span class="navcta">预约体验</span>
+    </nav>
+
+    <div class="hero">
+      <p class="eyebrow">MATH</p>
+      <h4>让每一次练习都被看见</h4>
+      <p class="lead">课程报名、课时管理与学员记录，都在这里。</p>
+      <span class="btn btn-fill">预约体验 →</span>
+      <span class="btn btn-line">浏览课程</span>
+    </div>
+
+    <div class="band">
+      <div class="card">
+        <p class="label">学员姓名 *</p>
+        <div class="field">与报名时一致</div>
+        <p class="label">6 位访问码 *</p>
+        <div class="field field-bad">访问码为 6 位数字</div>
+        <p class="err">请核对三项信息，或联系工作室更换访问码。</p>
+      </div>
+      <div class="card">
+        <p class="states-row">
+          <span class="sbtn" style="background:var(--accent);color:var(--on-accent)">默认</span>
+          <span class="sbtn" style="background:var(--hover);color:var(--on-accent)">悬停</span>
+          <span class="sbtn" style="background:var(--pressed);color:var(--on-accent)">按下</span>
+          <span class="sbtn" style="background:var(--dis-bg);color:var(--dis-fg)">禁用</span>
+        </p>
+        <p class="focusdemo"><span class="focusring">聚焦环</span></p>
+        <p class="label">剩余课时</p>
+        <p class="big">12</p>
+        <p class="state ok">课时充足</p>
+        <p class="state warn">课时即将用完</p>
+        <p class="state bad">已透支 3 课时</p>
+        <div class="divider"></div>
+        <p class="muted">上次课 · 2026-07-22</p>
+      </div>
+    </div>
+  </div>
+
+  <table class="ratios"><tr><td>body / page</td><td class='num'>14.48</td><td class='need'>≥4.5</td></tr><tr><td>body / panel</td><td class='num'>16.51</td><td class='need'>≥4.5</td></tr><tr><td>soft / page</td><td class='num'>8.95</td><td class='need'>≥4.5</td></tr><tr><td>muted / page</td><td class='num'>5.16</td><td class='need'>≥4.5</td></tr><tr><td>muted / panel</td><td class='num'>5.88</td><td class='need'>≥4.5</td></tr><tr><td>muted / alt</td><td class='num'>4.64</td><td class='need'>≥4.5</td></tr><tr><td>accent / page</td><td class='num'>5.16</td><td class='need'>≥4.5</td></tr><tr><td>on-accent / accent</td><td class='num'>5.98</td><td class='need'>≥4.5</td></tr><tr><td>2nd / page</td><td class='num'>5.15</td><td class='need'>≥4.5</td></tr><tr><td>on-2nd / 2nd</td><td class='num'>5.97</td><td class='need'>≥4.5</td></tr><tr><td>success / page</td><td class='num'>4.65</td><td class='need'>≥4.5</td></tr><tr><td>warning / page</td><td class='num'>4.61</td><td class='need'>≥4.5</td></tr><tr><td>danger / page</td><td class='num'>4.61</td><td class='need'>≥4.5</td></tr><tr><td>line-strong / page</td><td class='num'>3.40</td><td class='need'>≥3.0</td></tr><tr><td>line-strong / panel</td><td class='num'>3.87</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / page</td><td class='num'>3.58</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / panel</td><td class='num'>4.08</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / alt</td><td class='num'>3.22</td><td class='need'>≥3.0</td></tr><tr><td>on-accent / hover</td><td class='num'>7.68</td><td class='need'>≥4.5</td></tr><tr><td>on-accent / pressed</td><td class='num'>9.81</td><td class='need'>≥4.5</td></tr><tr><td>disabled text</td><td class='num'>3.01</td><td class='need'>≥2.8</td></tr><tr><td>hover ≠ rest</td><td class='num'>1.28</td><td class='need'>≥1.06</td></tr><tr><td>pressed ≠ hover</td><td class='num'>1.28</td><td class='need'>≥1.06</td></tr><tr><td>divider visible</td><td class='num'>1.20</td><td class='need'>≥1.18</td></tr><tr><td>divider on panel</td><td class='num'>1.37</td><td class='need'>≥1.18</td></tr><tr><td>disabled ≠ normal</td><td class='num'>4.11</td><td class='need'>≥1.6</td></tr><tr><td>page → card layer</td><td class='num'>1.14</td><td class='need'>≥1.12</td></tr></table>
+</article>
+
+<article class="tile" style="
+  --bg:#0D1216; --bg2:#27333B; --panel:#1A2329;
+  --ink:#EBEDEE; --ink2:#C8CCD0; --muted:#929CA2;
+  --line:#37434B; --line-strong:#6A7E8B;
+  --accent:#77ABCF; --on-accent:#0F1215;
+  --second:#4BB1A1; --on-second:#0F1215;
+  --ok:#378D67; --warn:#9A7929; --bad:#CB5A5A;
+  --hover:#91BBD8; --pressed:#ACCCE2;
+  --dis-bg:#2D3B44; --dis-fg:#79848B;
+  --focus:#3B85B9; --scrim:rgba(0,0,0,0.66);">
+  <header class="tile-head">
+    <div>
+      <h3>Harbour Calm <span class="zh">静谧海港</span></h3>
+      <p class="meta">Dark · analogous · clear, trustworthy</p>
+    </div>
+    <div class="chips"><span class="chip" style="background:#77ABCF;color:#0F1215;" title="accent #77ABCF">#77ABCF</span><span class="chip" style="background:#4BB1A1;color:#0F1215;" title="secondary #4BB1A1">#4BB1A1</span></div>
+  </header>
+
+  <div class="demo">
+    <nav class="demo-nav">
+      <span class="brand">Harbour Calm</span>
+      <span class="navlink">课程</span><span class="navlink">学员专区</span>
+      <span class="navcta">预约体验</span>
+    </nav>
+
+    <div class="hero">
+      <p class="eyebrow">MATH</p>
+      <h4>让每一次练习都被看见</h4>
+      <p class="lead">课程报名、课时管理与学员记录，都在这里。</p>
+      <span class="btn btn-fill">预约体验 →</span>
+      <span class="btn btn-line">浏览课程</span>
+    </div>
+
+    <div class="band">
+      <div class="card">
+        <p class="label">学员姓名 *</p>
+        <div class="field">与报名时一致</div>
+        <p class="label">6 位访问码 *</p>
+        <div class="field field-bad">访问码为 6 位数字</div>
+        <p class="err">请核对三项信息，或联系工作室更换访问码。</p>
+      </div>
+      <div class="card">
+        <p class="states-row">
+          <span class="sbtn" style="background:var(--accent);color:var(--on-accent)">默认</span>
+          <span class="sbtn" style="background:var(--hover);color:var(--on-accent)">悬停</span>
+          <span class="sbtn" style="background:var(--pressed);color:var(--on-accent)">按下</span>
+          <span class="sbtn" style="background:var(--dis-bg);color:var(--dis-fg)">禁用</span>
+        </p>
+        <p class="focusdemo"><span class="focusring">聚焦环</span></p>
+        <p class="label">剩余课时</p>
+        <p class="big">12</p>
+        <p class="state ok">课时充足</p>
+        <p class="state warn">课时即将用完</p>
+        <p class="state bad">已透支 3 课时</p>
+        <div class="divider"></div>
+        <p class="muted">上次课 · 2026-07-22</p>
+      </div>
+    </div>
+  </div>
+
+  <table class="ratios"><tr><td>body / page</td><td class='num'>16.03</td><td class='need'>≥4.5</td></tr><tr><td>body / panel</td><td class='num'>13.58</td><td class='need'>≥4.5</td></tr><tr><td>soft / page</td><td class='num'>11.66</td><td class='need'>≥4.5</td></tr><tr><td>muted / page</td><td class='num'>6.72</td><td class='need'>≥4.5</td></tr><tr><td>muted / panel</td><td class='num'>5.70</td><td class='need'>≥4.5</td></tr><tr><td>muted / alt</td><td class='num'>4.62</td><td class='need'>≥4.5</td></tr><tr><td>accent / page</td><td class='num'>7.63</td><td class='need'>≥4.5</td></tr><tr><td>on-accent / accent</td><td class='num'>7.61</td><td class='need'>≥4.5</td></tr><tr><td>2nd / page</td><td class='num'>7.27</td><td class='need'>≥4.5</td></tr><tr><td>on-2nd / 2nd</td><td class='num'>7.25</td><td class='need'>≥4.5</td></tr><tr><td>success / page</td><td class='num'>4.63</td><td class='need'>≥4.5</td></tr><tr><td>warning / page</td><td class='num'>4.61</td><td class='need'>≥4.5</td></tr><tr><td>danger / page</td><td class='num'>4.62</td><td class='need'>≥4.5</td></tr><tr><td>line-strong / page</td><td class='num'>4.46</td><td class='need'>≥3.0</td></tr><tr><td>line-strong / panel</td><td class='num'>3.78</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / page</td><td class='num'>4.70</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / panel</td><td class='num'>3.98</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / alt</td><td class='num'>3.23</td><td class='need'>≥3.0</td></tr><tr><td>on-accent / hover</td><td class='num'>9.22</td><td class='need'>≥4.5</td></tr><tr><td>on-accent / pressed</td><td class='num'>11.17</td><td class='need'>≥4.5</td></tr><tr><td>disabled text</td><td class='num'>3.01</td><td class='need'>≥2.8</td></tr><tr><td>hover ≠ rest</td><td class='num'>1.21</td><td class='need'>≥1.06</td></tr><tr><td>pressed ≠ hover</td><td class='num'>1.21</td><td class='need'>≥1.06</td></tr><tr><td>divider visible</td><td class='num'>1.85</td><td class='need'>≥1.18</td></tr><tr><td>divider on panel</td><td class='num'>1.57</td><td class='need'>≥1.18</td></tr><tr><td>disabled ≠ normal</td><td class='num'>3.26</td><td class='need'>≥1.6</td></tr><tr><td>page → card layer</td><td class='num'>1.18</td><td class='need'>≥1.12</td></tr></table>
+</article>
+
+<article class="tile" style="
+  --bg:#EBF2EE; --bg2:#DDE8E2; --panel:#FDFDFD;
+  --ink:#1B211E; --ink2:#3B443F; --muted:#5B6861;
+  --line:#D7DEDA; --line-strong:#71877C;
+  --accent:#377052; --on-accent:#FFFFFF;
+  --second:#885C30; --on-second:#FFFFFF;
+  --ok:#2F7957; --warn:#886724; --bad:#AF4F37;
+  --hover:#2D5B43; --pressed:#234734;
+  --dis-bg:#D7E4DD; --dis-fg:#78837D;
+  --focus:#458C66; --scrim:rgba(0,0,0,0.5);">
+  <header class="tile-head">
+    <div>
+      <h3>Cedar Grove <span class="zh">雪松林</span></h3>
+      <p class="meta">Light · triadic · grounded, healthy, active</p>
+    </div>
+    <div class="chips"><span class="chip" style="background:#377052;color:#FFFFFF;" title="accent #377052">#377052</span><span class="chip" style="background:#885C30;color:#FFFFFF;" title="secondary #885C30">#885C30</span></div>
+  </header>
+
+  <div class="demo">
+    <nav class="demo-nav">
+      <span class="brand">Cedar Grove</span>
+      <span class="navlink">课程</span><span class="navlink">学员专区</span>
+      <span class="navcta">预约体验</span>
+    </nav>
+
+    <div class="hero">
+      <p class="eyebrow">SPORTS</p>
+      <h4>让每一次练习都被看见</h4>
+      <p class="lead">课程报名、课时管理与学员记录，都在这里。</p>
+      <span class="btn btn-fill">预约体验 →</span>
+      <span class="btn btn-line">浏览课程</span>
+    </div>
+
+    <div class="band">
+      <div class="card">
+        <p class="label">学员姓名 *</p>
+        <div class="field">与报名时一致</div>
+        <p class="label">6 位访问码 *</p>
+        <div class="field field-bad">访问码为 6 位数字</div>
+        <p class="err">请核对三项信息，或联系工作室更换访问码。</p>
+      </div>
+      <div class="card">
+        <p class="states-row">
+          <span class="sbtn" style="background:var(--accent);color:var(--on-accent)">默认</span>
+          <span class="sbtn" style="background:var(--hover);color:var(--on-accent)">悬停</span>
+          <span class="sbtn" style="background:var(--pressed);color:var(--on-accent)">按下</span>
+          <span class="sbtn" style="background:var(--dis-bg);color:var(--dis-fg)">禁用</span>
+        </p>
+        <p class="focusdemo"><span class="focusring">聚焦环</span></p>
+        <p class="label">剩余课时</p>
+        <p class="big">12</p>
+        <p class="state ok">课时充足</p>
+        <p class="state warn">课时即将用完</p>
+        <p class="state bad">已透支 3 课时</p>
+        <div class="divider"></div>
+        <p class="muted">上次课 · 2026-07-22</p>
+      </div>
+    </div>
+  </div>
+
+  <table class="ratios"><tr><td>body / page</td><td class='num'>14.40</td><td class='need'>≥4.5</td></tr><tr><td>body / panel</td><td class='num'>16.09</td><td class='need'>≥4.5</td></tr><tr><td>soft / page</td><td class='num'>8.86</td><td class='need'>≥4.5</td></tr><tr><td>muted / page</td><td class='num'>5.13</td><td class='need'>≥4.5</td></tr><tr><td>muted / panel</td><td class='num'>5.74</td><td class='need'>≥4.5</td></tr><tr><td>muted / alt</td><td class='num'>4.65</td><td class='need'>≥4.5</td></tr><tr><td>accent / page</td><td class='num'>5.13</td><td class='need'>≥4.5</td></tr><tr><td>on-accent / accent</td><td class='num'>5.83</td><td class='need'>≥4.5</td></tr><tr><td>2nd / page</td><td class='num'>5.10</td><td class='need'>≥4.5</td></tr><tr><td>on-2nd / 2nd</td><td class='num'>5.80</td><td class='need'>≥4.5</td></tr><tr><td>success / page</td><td class='num'>4.62</td><td class='need'>≥4.5</td></tr><tr><td>warning / page</td><td class='num'>4.60</td><td class='need'>≥4.5</td></tr><tr><td>danger / page</td><td class='num'>4.62</td><td class='need'>≥4.5</td></tr><tr><td>line-strong / page</td><td class='num'>3.38</td><td class='need'>≥3.0</td></tr><tr><td>line-strong / panel</td><td class='num'>3.78</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / page</td><td class='num'>3.55</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / panel</td><td class='num'>3.97</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / alt</td><td class='num'>3.22</td><td class='need'>≥3.0</td></tr><tr><td>on-accent / hover</td><td class='num'>7.81</td><td class='need'>≥4.5</td></tr><tr><td>on-accent / pressed</td><td class='num'>10.38</td><td class='need'>≥4.5</td></tr><tr><td>disabled text</td><td class='num'>3.00</td><td class='need'>≥2.8</td></tr><tr><td>hover ≠ rest</td><td class='num'>1.34</td><td class='need'>≥1.06</td></tr><tr><td>pressed ≠ hover</td><td class='num'>1.33</td><td class='need'>≥1.06</td></tr><tr><td>divider visible</td><td class='num'>1.20</td><td class='need'>≥1.18</td></tr><tr><td>divider on panel</td><td class='num'>1.34</td><td class='need'>≥1.18</td></tr><tr><td>disabled ≠ normal</td><td class='num'>4.16</td><td class='need'>≥1.6</td></tr><tr><td>page → card layer</td><td class='num'>1.12</td><td class='need'>≥1.12</td></tr></table>
+</article>
+
+<article class="tile" style="
+  --bg:#0E1411; --bg2:#2A3831; --panel:#1D2721;
+  --ink:#F1F3F2; --ink2:#CCD2CF; --muted:#96A19B;
+  --line:#3A4841; --line-strong:#6E8478;
+  --accent:#6FB48F; --on-accent:#101412;
+  --second:#C6996B; --on-second:#101412;
+  --ok:#378E65; --warn:#9E792A; --bad:#C66149;
+  --hover:#86C0A1; --pressed:#9ECCB4;
+  --dis-bg:#314139; --dis-fg:#7E8A83;
+  --focus:#479169; --scrim:rgba(0,0,0,0.66);">
+  <header class="tile-head">
+    <div>
+      <h3>Cedar Grove <span class="zh">雪松林</span></h3>
+      <p class="meta">Dark · triadic · grounded, healthy, active</p>
+    </div>
+    <div class="chips"><span class="chip" style="background:#6FB48F;color:#101412;" title="accent #6FB48F">#6FB48F</span><span class="chip" style="background:#C6996B;color:#101412;" title="secondary #C6996B">#C6996B</span></div>
+  </header>
+
+  <div class="demo">
+    <nav class="demo-nav">
+      <span class="brand">Cedar Grove</span>
+      <span class="navlink">课程</span><span class="navlink">学员专区</span>
+      <span class="navcta">预约体验</span>
+    </nav>
+
+    <div class="hero">
+      <p class="eyebrow">SPORTS</p>
+      <h4>让每一次练习都被看见</h4>
+      <p class="lead">课程报名、课时管理与学员记录，都在这里。</p>
+      <span class="btn btn-fill">预约体验 →</span>
+      <span class="btn btn-line">浏览课程</span>
+    </div>
+
+    <div class="band">
+      <div class="card">
+        <p class="label">学员姓名 *</p>
+        <div class="field">与报名时一致</div>
+        <p class="label">6 位访问码 *</p>
+        <div class="field field-bad">访问码为 6 位数字</div>
+        <p class="err">请核对三项信息，或联系工作室更换访问码。</p>
+      </div>
+      <div class="card">
+        <p class="states-row">
+          <span class="sbtn" style="background:var(--accent);color:var(--on-accent)">默认</span>
+          <span class="sbtn" style="background:var(--hover);color:var(--on-accent)">悬停</span>
+          <span class="sbtn" style="background:var(--pressed);color:var(--on-accent)">按下</span>
+          <span class="sbtn" style="background:var(--dis-bg);color:var(--dis-fg)">禁用</span>
+        </p>
+        <p class="focusdemo"><span class="focusring">聚焦环</span></p>
+        <p class="label">剩余课时</p>
+        <p class="big">12</p>
+        <p class="state ok">课时充足</p>
+        <p class="state warn">课时即将用完</p>
+        <p class="state bad">已透支 3 课时</p>
+        <div class="divider"></div>
+        <p class="muted">上次课 · 2026-07-22</p>
+      </div>
+    </div>
+  </div>
+
+  <table class="ratios"><tr><td>body / page</td><td class='num'>16.72</td><td class='need'>≥4.5</td></tr><tr><td>body / panel</td><td class='num'>13.81</td><td class='need'>≥4.5</td></tr><tr><td>soft / page</td><td class='num'>12.15</td><td class='need'>≥4.5</td></tr><tr><td>muted / page</td><td class='num'>6.98</td><td class='need'>≥4.5</td></tr><tr><td>muted / panel</td><td class='num'>5.77</td><td class='need'>≥4.5</td></tr><tr><td>muted / alt</td><td class='num'>4.61</td><td class='need'>≥4.5</td></tr><tr><td>accent / page</td><td class='num'>7.63</td><td class='need'>≥4.5</td></tr><tr><td>on-accent / accent</td><td class='num'>7.61</td><td class='need'>≥4.5</td></tr><tr><td>2nd / page</td><td class='num'>7.25</td><td class='need'>≥4.5</td></tr><tr><td>on-2nd / 2nd</td><td class='num'>7.22</td><td class='need'>≥4.5</td></tr><tr><td>success / page</td><td class='num'>4.63</td><td class='need'>≥4.5</td></tr><tr><td>warning / page</td><td class='num'>4.63</td><td class='need'>≥4.5</td></tr><tr><td>danger / page</td><td class='num'>4.62</td><td class='need'>≥4.5</td></tr><tr><td>line-strong / page</td><td class='num'>4.65</td><td class='need'>≥3.0</td></tr><tr><td>line-strong / panel</td><td class='num'>3.84</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / page</td><td class='num'>4.90</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / panel</td><td class='num'>4.05</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / alt</td><td class='num'>3.23</td><td class='need'>≥3.0</td></tr><tr><td>on-accent / hover</td><td class='num'>8.90</td><td class='need'>≥4.5</td></tr><tr><td>on-accent / pressed</td><td class='num'>10.39</td><td class='need'>≥4.5</td></tr><tr><td>disabled text</td><td class='num'>3.01</td><td class='need'>≥2.8</td></tr><tr><td>hover ≠ rest</td><td class='num'>1.17</td><td class='need'>≥1.06</td></tr><tr><td>pressed ≠ hover</td><td class='num'>1.17</td><td class='need'>≥1.06</td></tr><tr><td>divider visible</td><td class='num'>1.94</td><td class='need'>≥1.18</td></tr><tr><td>divider on panel</td><td class='num'>1.60</td><td class='need'>≥1.18</td></tr><tr><td>disabled ≠ normal</td><td class='num'>3.22</td><td class='need'>≥1.6</td></tr><tr><td>page → card layer</td><td class='num'>1.21</td><td class='need'>≥1.12</td></tr></table>
+</article>
+
+<article class="tile" style="
+  --bg:#F0EBF2; --bg2:#E6DCE9; --panel:#FDFDFD;
+  --ink:#1D191F; --ink2:#443B46; --muted:#695E6D;
+  --line:#DCD6DE; --line-strong:#8A7890;
+  --accent:#89469D; --on-accent:#FFFFFF;
+  --second:#5656B7; --on-second:#FFFFFF;
+  --ok:#2E765B; --warn:#915F27; --bad:#B9413B;
+  --hover:#773D88; --pressed:#643373;
+  --dis-bg:#E2D6E5; --dis-fg:#827886;
+  --focus:#A360B8; --scrim:rgba(0,0,0,0.5);">
+  <header class="tile-head">
+    <div>
+      <h3>Recital Plum <span class="zh">独奏紫</span></h3>
+      <p class="meta">Light · analogous · refined, performative</p>
+    </div>
+    <div class="chips"><span class="chip" style="background:#89469D;color:#FFFFFF;" title="accent #89469D">#89469D</span><span class="chip" style="background:#5656B7;color:#FFFFFF;" title="secondary #5656B7">#5656B7</span></div>
+  </header>
+
+  <div class="demo">
+    <nav class="demo-nav">
+      <span class="brand">Recital Plum</span>
+      <span class="navlink">课程</span><span class="navlink">学员专区</span>
+      <span class="navcta">预约体验</span>
+    </nav>
+
+    <div class="hero">
+      <p class="eyebrow">MUSIC</p>
+      <h4>让每一次练习都被看见</h4>
+      <p class="lead">课程报名、课时管理与学员记录，都在这里。</p>
+      <span class="btn btn-fill">预约体验 →</span>
+      <span class="btn btn-line">浏览课程</span>
+    </div>
+
+    <div class="band">
+      <div class="card">
+        <p class="label">学员姓名 *</p>
+        <div class="field">与报名时一致</div>
+        <p class="label">6 位访问码 *</p>
+        <div class="field field-bad">访问码为 6 位数字</div>
+        <p class="err">请核对三项信息，或联系工作室更换访问码。</p>
+      </div>
+      <div class="card">
+        <p class="states-row">
+          <span class="sbtn" style="background:var(--accent);color:var(--on-accent)">默认</span>
+          <span class="sbtn" style="background:var(--hover);color:var(--on-accent)">悬停</span>
+          <span class="sbtn" style="background:var(--pressed);color:var(--on-accent)">按下</span>
+          <span class="sbtn" style="background:var(--dis-bg);color:var(--dis-fg)">禁用</span>
+        </p>
+        <p class="focusdemo"><span class="focusring">聚焦环</span></p>
+        <p class="label">剩余课时</p>
+        <p class="big">12</p>
+        <p class="state ok">课时充足</p>
+        <p class="state warn">课时即将用完</p>
+        <p class="state bad">已透支 3 课时</p>
+        <div class="divider"></div>
+        <p class="muted">上次课 · 2026-07-22</p>
+      </div>
+    </div>
+  </div>
+
+  <table class="ratios"><tr><td>body / page</td><td class='num'>14.76</td><td class='need'>≥4.5</td></tr><tr><td>body / panel</td><td class='num'>17.05</td><td class='need'>≥4.5</td></tr><tr><td>soft / page</td><td class='num'>9.12</td><td class='need'>≥4.5</td></tr><tr><td>muted / page</td><td class='num'>5.22</td><td class='need'>≥4.5</td></tr><tr><td>muted / panel</td><td class='num'>6.03</td><td class='need'>≥4.5</td></tr><tr><td>muted / alt</td><td class='num'>4.61</td><td class='need'>≥4.5</td></tr><tr><td>accent / page</td><td class='num'>5.22</td><td class='need'>≥4.5</td></tr><tr><td>on-accent / accent</td><td class='num'>6.13</td><td class='need'>≥4.5</td></tr><tr><td>2nd / page</td><td class='num'>5.24</td><td class='need'>≥4.5</td></tr><tr><td>on-2nd / 2nd</td><td class='num'>6.16</td><td class='need'>≥4.5</td></tr><tr><td>success / page</td><td class='num'>4.63</td><td class='need'>≥4.5</td></tr><tr><td>warning / page</td><td class='num'>4.62</td><td class='need'>≥4.5</td></tr><tr><td>danger / page</td><td class='num'>4.60</td><td class='need'>≥4.5</td></tr><tr><td>line-strong / page</td><td class='num'>3.46</td><td class='need'>≥3.0</td></tr><tr><td>line-strong / panel</td><td class='num'>3.99</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / page</td><td class='num'>3.63</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / panel</td><td class='num'>4.19</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / alt</td><td class='num'>3.21</td><td class='need'>≥3.0</td></tr><tr><td>on-accent / hover</td><td class='num'>7.48</td><td class='need'>≥4.5</td></tr><tr><td>on-accent / pressed</td><td class='num'>9.28</td><td class='need'>≥4.5</td></tr><tr><td>disabled text</td><td class='num'>3.01</td><td class='need'>≥2.8</td></tr><tr><td>hover ≠ rest</td><td class='num'>1.22</td><td class='need'>≥1.06</td></tr><tr><td>pressed ≠ hover</td><td class='num'>1.24</td><td class='need'>≥1.06</td></tr><tr><td>divider visible</td><td class='num'>1.21</td><td class='need'>≥1.18</td></tr><tr><td>divider on panel</td><td class='num'>1.40</td><td class='need'>≥1.18</td></tr><tr><td>disabled ≠ normal</td><td class='num'>4.11</td><td class='need'>≥1.6</td></tr><tr><td>page → card layer</td><td class='num'>1.16</td><td class='need'>≥1.12</td></tr></table>
+</article>
+
+<article class="tile" style="
+  --bg:#130E15; --bg2:#352A38; --panel:#251C27;
+  --ink:#E9E6E9; --ink2:#CAC5CB; --muted:#9C939F;
+  --line:#453A48; --line-strong:#847189;
+  --accent:#C096CC; --on-accent:#131014;
+  --second:#9C9CD1; --on-second:#131014;
+  --ok:#368C6B; --warn:#AB702D; --bad:#C95A54;
+  --hover:#CEAED8; --pressed:#DDC6E3;
+  --dis-bg:#3D3141; --dis-fg:#857B88;
+  --focus:#A361B8; --scrim:rgba(0,0,0,0.66);">
+  <header class="tile-head">
+    <div>
+      <h3>Recital Plum <span class="zh">独奏紫</span></h3>
+      <p class="meta">Dark · analogous · refined, performative</p>
+    </div>
+    <div class="chips"><span class="chip" style="background:#C096CC;color:#131014;" title="accent #C096CC">#C096CC</span><span class="chip" style="background:#9C9CD1;color:#131014;" title="secondary #9C9CD1">#9C9CD1</span></div>
+  </header>
+
+  <div class="demo">
+    <nav class="demo-nav">
+      <span class="brand">Recital Plum</span>
+      <span class="navlink">课程</span><span class="navlink">学员专区</span>
+      <span class="navcta">预约体验</span>
+    </nav>
+
+    <div class="hero">
+      <p class="eyebrow">MUSIC</p>
+      <h4>让每一次练习都被看见</h4>
+      <p class="lead">课程报名、课时管理与学员记录，都在这里。</p>
+      <span class="btn btn-fill">预约体验 →</span>
+      <span class="btn btn-line">浏览课程</span>
+    </div>
+
+    <div class="band">
+      <div class="card">
+        <p class="label">学员姓名 *</p>
+        <div class="field">与报名时一致</div>
+        <p class="label">6 位访问码 *</p>
+        <div class="field field-bad">访问码为 6 位数字</div>
+        <p class="err">请核对三项信息，或联系工作室更换访问码。</p>
+      </div>
+      <div class="card">
+        <p class="states-row">
+          <span class="sbtn" style="background:var(--accent);color:var(--on-accent)">默认</span>
+          <span class="sbtn" style="background:var(--hover);color:var(--on-accent)">悬停</span>
+          <span class="sbtn" style="background:var(--pressed);color:var(--on-accent)">按下</span>
+          <span class="sbtn" style="background:var(--dis-bg);color:var(--dis-fg)">禁用</span>
+        </p>
+        <p class="focusdemo"><span class="focusring">聚焦环</span></p>
+        <p class="label">剩余课时</p>
+        <p class="big">12</p>
+        <p class="state ok">课时充足</p>
+        <p class="state warn">课时即将用完</p>
+        <p class="state bad">已透支 3 课时</p>
+        <div class="divider"></div>
+        <p class="muted">上次课 · 2026-07-22</p>
+      </div>
+    </div>
+  </div>
+
+  <table class="ratios"><tr><td>body / page</td><td class='num'>15.40</td><td class='need'>≥4.5</td></tr><tr><td>body / panel</td><td class='num'>13.31</td><td class='need'>≥4.5</td></tr><tr><td>soft / page</td><td class='num'>11.22</td><td class='need'>≥4.5</td></tr><tr><td>muted / page</td><td class='num'>6.44</td><td class='need'>≥4.5</td></tr><tr><td>muted / panel</td><td class='num'>5.56</td><td class='need'>≥4.5</td></tr><tr><td>muted / alt</td><td class='num'>4.60</td><td class='need'>≥4.5</td></tr><tr><td>accent / page</td><td class='num'>7.70</td><td class='need'>≥4.5</td></tr><tr><td>on-accent / accent</td><td class='num'>7.62</td><td class='need'>≥4.5</td></tr><tr><td>2nd / page</td><td class='num'>7.35</td><td class='need'>≥4.5</td></tr><tr><td>on-2nd / 2nd</td><td class='num'>7.28</td><td class='need'>≥4.5</td></tr><tr><td>success / page</td><td class='num'>4.65</td><td class='need'>≥4.5</td></tr><tr><td>warning / page</td><td class='num'>4.62</td><td class='need'>≥4.5</td></tr><tr><td>danger / page</td><td class='num'>4.61</td><td class='need'>≥4.5</td></tr><tr><td>line-strong / page</td><td class='num'>4.27</td><td class='need'>≥3.0</td></tr><tr><td>line-strong / panel</td><td class='num'>3.69</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / page</td><td class='num'>4.50</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / panel</td><td class='num'>3.89</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / alt</td><td class='num'>3.22</td><td class='need'>≥3.0</td></tr><tr><td>on-accent / hover</td><td class='num'>9.60</td><td class='need'>≥4.5</td></tr><tr><td>on-accent / pressed</td><td class='num'>11.93</td><td class='need'>≥4.5</td></tr><tr><td>disabled text</td><td class='num'>3.03</td><td class='need'>≥2.8</td></tr><tr><td>hover ≠ rest</td><td class='num'>1.26</td><td class='need'>≥1.06</td></tr><tr><td>pressed ≠ hover</td><td class='num'>1.24</td><td class='need'>≥1.06</td></tr><tr><td>divider visible</td><td class='num'>1.77</td><td class='need'>≥1.18</td></tr><tr><td>divider on panel</td><td class='num'>1.53</td><td class='need'>≥1.18</td></tr><tr><td>disabled ≠ normal</td><td class='num'>3.27</td><td class='need'>≥1.6</td></tr><tr><td>page → card layer</td><td class='num'>1.16</td><td class='need'>≥1.12</td></tr></table>
+</article>
+
+<article class="tile" style="
+  --bg:#F3EAED; --bg2:#EADBDF; --panel:#FDFDFD;
+  --ink:#20181A; --ink2:#473A3E; --muted:#6E5D62;
+  --line:#DFD5D8; --line-strong:#93767F;
+  --accent:#A23F5D; --on-accent:#FFFFFF;
+  --second:#336D44; --on-second:#FFFFFF;
+  --ok:#2E774D; --warn:#8E6026; --bad:#B54439;
+  --hover:#8C3650; --pressed:#762E44;
+  --dis-bg:#E6D5D9; --dis-fg:#87777C;
+  --focus:#BE5978; --scrim:rgba(0,0,0,0.5);">
+  <header class="tile-head">
+    <div>
+      <h3>Rehearsal Rose <span class="zh">排练玫瑰</span></h3>
+      <p class="meta">Light · split-complementary · expressive, warm, kinetic</p>
+    </div>
+    <div class="chips"><span class="chip" style="background:#A23F5D;color:#FFFFFF;" title="accent #A23F5D">#A23F5D</span><span class="chip" style="background:#336D44;color:#FFFFFF;" title="secondary #336D44">#336D44</span></div>
+  </header>
+
+  <div class="demo">
+    <nav class="demo-nav">
+      <span class="brand">Rehearsal Rose</span>
+      <span class="navlink">课程</span><span class="navlink">学员专区</span>
+      <span class="navcta">预约体验</span>
+    </nav>
+
+    <div class="hero">
+      <p class="eyebrow">DANCE</p>
+      <h4>让每一次练习都被看见</h4>
+      <p class="lead">课程报名、课时管理与学员记录，都在这里。</p>
+      <span class="btn btn-fill">预约体验 →</span>
+      <span class="btn btn-line">浏览课程</span>
+    </div>
+
+    <div class="band">
+      <div class="card">
+        <p class="label">学员姓名 *</p>
+        <div class="field">与报名时一致</div>
+        <p class="label">6 位访问码 *</p>
+        <div class="field field-bad">访问码为 6 位数字</div>
+        <p class="err">请核对三项信息，或联系工作室更换访问码。</p>
+      </div>
+      <div class="card">
+        <p class="states-row">
+          <span class="sbtn" style="background:var(--accent);color:var(--on-accent)">默认</span>
+          <span class="sbtn" style="background:var(--hover);color:var(--on-accent)">悬停</span>
+          <span class="sbtn" style="background:var(--pressed);color:var(--on-accent)">按下</span>
+          <span class="sbtn" style="background:var(--dis-bg);color:var(--dis-fg)">禁用</span>
+        </p>
+        <p class="focusdemo"><span class="focusring">聚焦环</span></p>
+        <p class="label">剩余课时</p>
+        <p class="big">12</p>
+        <p class="state ok">课时充足</p>
+        <p class="state warn">课时即将用完</p>
+        <p class="state bad">已透支 3 课时</p>
+        <div class="divider"></div>
+        <p class="muted">上次课 · 2026-07-22</p>
+      </div>
+    </div>
+  </div>
+
+  <table class="ratios"><tr><td>body / page</td><td class='num'>14.75</td><td class='need'>≥4.5</td></tr><tr><td>body / panel</td><td class='num'>17.10</td><td class='need'>≥4.5</td></tr><tr><td>soft / page</td><td class='num'>9.16</td><td class='need'>≥4.5</td></tr><tr><td>muted / page</td><td class='num'>5.23</td><td class='need'>≥4.5</td></tr><tr><td>muted / panel</td><td class='num'>6.06</td><td class='need'>≥4.5</td></tr><tr><td>muted / alt</td><td class='num'>4.61</td><td class='need'>≥4.5</td></tr><tr><td>accent / page</td><td class='num'>5.23</td><td class='need'>≥4.5</td></tr><tr><td>on-accent / accent</td><td class='num'>6.17</td><td class='need'>≥4.5</td></tr><tr><td>2nd / page</td><td class='num'>5.22</td><td class='need'>≥4.5</td></tr><tr><td>on-2nd / 2nd</td><td class='num'>6.16</td><td class='need'>≥4.5</td></tr><tr><td>success / page</td><td class='num'>4.61</td><td class='need'>≥4.5</td></tr><tr><td>warning / page</td><td class='num'>4.62</td><td class='need'>≥4.5</td></tr><tr><td>danger / page</td><td class='num'>4.62</td><td class='need'>≥4.5</td></tr><tr><td>line-strong / page</td><td class='num'>3.46</td><td class='need'>≥3.0</td></tr><tr><td>line-strong / panel</td><td class='num'>4.02</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / page</td><td class='num'>3.64</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / panel</td><td class='num'>4.22</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / alt</td><td class='num'>3.21</td><td class='need'>≥3.0</td></tr><tr><td>on-accent / hover</td><td class='num'>7.61</td><td class='need'>≥4.5</td></tr><tr><td>on-accent / pressed</td><td class='num'>9.36</td><td class='need'>≥4.5</td></tr><tr><td>disabled text</td><td class='num'>3.00</td><td class='need'>≥2.8</td></tr><tr><td>hover ≠ rest</td><td class='num'>1.23</td><td class='need'>≥1.06</td></tr><tr><td>pressed ≠ hover</td><td class='num'>1.23</td><td class='need'>≥1.06</td></tr><tr><td>divider visible</td><td class='num'>1.22</td><td class='need'>≥1.18</td></tr><tr><td>divider on panel</td><td class='num'>1.41</td><td class='need'>≥1.18</td></tr><tr><td>disabled ≠ normal</td><td class='num'>4.11</td><td class='need'>≥1.6</td></tr><tr><td>page → card layer</td><td class='num'>1.16</td><td class='need'>≥1.12</td></tr></table>
+</article>
+
+<article class="tile" style="
+  --bg:#150D10; --bg2:#3A282E; --panel:#281B1F;
+  --ink:#E8E5E6; --ink2:#CBC4C6; --muted:#A09296;
+  --line:#4A383E; --line-strong:#8C6F77;
+  --accent:#D193A5; --on-accent:#140F11;
+  --second:#61B077; --on-second:#140F11;
+  --ok:#368C5A; --warn:#A7722C; --bad:#C85B50;
+  --hover:#DCACBA; --pressed:#E6C5CF;
+  --dis-bg:#432E35; --dis-fg:#88797D;
+  --focus:#BE5977; --scrim:rgba(0,0,0,0.66);">
+  <header class="tile-head">
+    <div>
+      <h3>Rehearsal Rose <span class="zh">排练玫瑰</span></h3>
+      <p class="meta">Dark · split-complementary · expressive, warm, kinetic</p>
+    </div>
+    <div class="chips"><span class="chip" style="background:#D193A5;color:#140F11;" title="accent #D193A5">#D193A5</span><span class="chip" style="background:#61B077;color:#140F11;" title="secondary #61B077">#61B077</span></div>
+  </header>
+
+  <div class="demo">
+    <nav class="demo-nav">
+      <span class="brand">Rehearsal Rose</span>
+      <span class="navlink">课程</span><span class="navlink">学员专区</span>
+      <span class="navcta">预约体验</span>
+    </nav>
+
+    <div class="hero">
+      <p class="eyebrow">DANCE</p>
+      <h4>让每一次练习都被看见</h4>
+      <p class="lead">课程报名、课时管理与学员记录，都在这里。</p>
+      <span class="btn btn-fill">预约体验 →</span>
+      <span class="btn btn-line">浏览课程</span>
+    </div>
+
+    <div class="band">
+      <div class="card">
+        <p class="label">学员姓名 *</p>
+        <div class="field">与报名时一致</div>
+        <p class="label">6 位访问码 *</p>
+        <div class="field field-bad">访问码为 6 位数字</div>
+        <p class="err">请核对三项信息，或联系工作室更换访问码。</p>
+      </div>
+      <div class="card">
+        <p class="states-row">
+          <span class="sbtn" style="background:var(--accent);color:var(--on-accent)">默认</span>
+          <span class="sbtn" style="background:var(--hover);color:var(--on-accent)">悬停</span>
+          <span class="sbtn" style="background:var(--pressed);color:var(--on-accent)">按下</span>
+          <span class="sbtn" style="background:var(--dis-bg);color:var(--dis-fg)">禁用</span>
+        </p>
+        <p class="focusdemo"><span class="focusring">聚焦环</span></p>
+        <p class="label">剩余课时</p>
+        <p class="big">12</p>
+        <p class="state ok">课时充足</p>
+        <p class="state warn">课时即将用完</p>
+        <p class="state bad">已透支 3 课时</p>
+        <div class="divider"></div>
+        <p class="muted">上次课 · 2026-07-22</p>
+      </div>
+    </div>
+  </div>
+
+  <table class="ratios"><tr><td>body / page</td><td class='num'>15.30</td><td class='need'>≥4.5</td></tr><tr><td>body / panel</td><td class='num'>13.25</td><td class='need'>≥4.5</td></tr><tr><td>soft / page</td><td class='num'>11.17</td><td class='need'>≥4.5</td></tr><tr><td>muted / page</td><td class='num'>6.42</td><td class='need'>≥4.5</td></tr><tr><td>muted / panel</td><td class='num'>5.56</td><td class='need'>≥4.5</td></tr><tr><td>muted / alt</td><td class='num'>4.63</td><td class='need'>≥4.5</td></tr><tr><td>accent / page</td><td class='num'>7.68</td><td class='need'>≥4.5</td></tr><tr><td>on-accent / accent</td><td class='num'>7.62</td><td class='need'>≥4.5</td></tr><tr><td>2nd / page</td><td class='num'>7.28</td><td class='need'>≥4.5</td></tr><tr><td>on-2nd / 2nd</td><td class='num'>7.22</td><td class='need'>≥4.5</td></tr><tr><td>success / page</td><td class='num'>4.61</td><td class='need'>≥4.5</td></tr><tr><td>warning / page</td><td class='num'>4.64</td><td class='need'>≥4.5</td></tr><tr><td>danger / page</td><td class='num'>4.62</td><td class='need'>≥4.5</td></tr><tr><td>line-strong / page</td><td class='num'>4.24</td><td class='need'>≥3.0</td></tr><tr><td>line-strong / panel</td><td class='num'>3.67</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / page</td><td class='num'>4.45</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / panel</td><td class='num'>3.86</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / alt</td><td class='num'>3.21</td><td class='need'>≥3.0</td></tr><tr><td>on-accent / hover</td><td class='num'>9.63</td><td class='need'>≥4.5</td></tr><tr><td>on-accent / pressed</td><td class='num'>11.98</td><td class='need'>≥4.5</td></tr><tr><td>disabled text</td><td class='num'>3.02</td><td class='need'>≥2.8</td></tr><tr><td>hover ≠ rest</td><td class='num'>1.26</td><td class='need'>≥1.06</td></tr><tr><td>pressed ≠ hover</td><td class='num'>1.24</td><td class='need'>≥1.06</td></tr><tr><td>divider visible</td><td class='num'>1.76</td><td class='need'>≥1.18</td></tr><tr><td>divider on panel</td><td class='num'>1.52</td><td class='need'>≥1.18</td></tr><tr><td>disabled ≠ normal</td><td class='num'>3.30</td><td class='need'>≥1.6</td></tr><tr><td>page → card layer</td><td class='num'>1.15</td><td class='need'>≥1.12</td></tr></table>
+</article>
+
+<article class="tile" style="
+  --bg:#12180B; --bg2:#323F23; --panel:#222C17;
+  --ink:#FCFDFC; --ink2:#D7DBD4; --muted:#A0A996;
+  --line:#424F33; --line-strong:#788C60;
+  --accent:#75B926; --on-accent:#12160E;
+  --second:#AD97E2; --on-second:#12160E;
+  --ok:#389164; --warn:#A5792C; --bad:#C86350;
+  --hover:#88D42F; --pressed:#99DA4C;
+  --dis-bg:#3A4928; --dis-fg:#88937B;
+  --focus:#5E991B; --scrim:rgba(0,0,0,0.66);">
+  <header class="tile-head">
+    <div>
+      <h3>Arcade Lime <span class="zh">街机青柠</span></h3>
+      <p class="meta">Dark · split-complementary · digital, high energy</p>
+    </div>
+    <div class="chips"><span class="chip" style="background:#75B926;color:#12160E;" title="accent #75B926">#75B926</span><span class="chip" style="background:#AD97E2;color:#12160E;" title="secondary #AD97E2">#AD97E2</span></div>
+  </header>
+
+  <div class="demo">
+    <nav class="demo-nav">
+      <span class="brand">Arcade Lime</span>
+      <span class="navlink">课程</span><span class="navlink">学员专区</span>
+      <span class="navcta">预约体验</span>
+    </nav>
+
+    <div class="hero">
+      <p class="eyebrow">GAME</p>
+      <h4>让每一次练习都被看见</h4>
+      <p class="lead">课程报名、课时管理与学员记录，都在这里。</p>
+      <span class="btn btn-fill">预约体验 →</span>
+      <span class="btn btn-line">浏览课程</span>
+    </div>
+
+    <div class="band">
+      <div class="card">
+        <p class="label">学员姓名 *</p>
+        <div class="field">与报名时一致</div>
+        <p class="label">6 位访问码 *</p>
+        <div class="field field-bad">访问码为 6 位数字</div>
+        <p class="err">请核对三项信息，或联系工作室更换访问码。</p>
+      </div>
+      <div class="card">
+        <p class="states-row">
+          <span class="sbtn" style="background:var(--accent);color:var(--on-accent)">默认</span>
+          <span class="sbtn" style="background:var(--hover);color:var(--on-accent)">悬停</span>
+          <span class="sbtn" style="background:var(--pressed);color:var(--on-accent)">按下</span>
+          <span class="sbtn" style="background:var(--dis-bg);color:var(--dis-fg)">禁用</span>
+        </p>
+        <p class="focusdemo"><span class="focusring">聚焦环</span></p>
+        <p class="label">剩余课时</p>
+        <p class="big">12</p>
+        <p class="state ok">课时充足</p>
+        <p class="state warn">课时即将用完</p>
+        <p class="state bad">已透支 3 课时</p>
+        <div class="divider"></div>
+        <p class="muted">上次课 · 2026-07-22</p>
+      </div>
+    </div>
+  </div>
+
+  <table class="ratios"><tr><td>body / page</td><td class='num'>17.74</td><td class='need'>≥4.5</td></tr><tr><td>body / panel</td><td class='num'>14.30</td><td class='need'>≥4.5</td></tr><tr><td>soft / page</td><td class='num'>12.89</td><td class='need'>≥4.5</td></tr><tr><td>muted / page</td><td class='num'>7.41</td><td class='need'>≥4.5</td></tr><tr><td>muted / panel</td><td class='num'>5.98</td><td class='need'>≥4.5</td></tr><tr><td>muted / alt</td><td class='num'>4.60</td><td class='need'>≥4.5</td></tr><tr><td>accent / page</td><td class='num'>7.51</td><td class='need'>≥4.5</td></tr><tr><td>on-accent / accent</td><td class='num'>7.61</td><td class='need'>≥4.5</td></tr><tr><td>2nd / page</td><td class='num'>7.15</td><td class='need'>≥4.5</td></tr><tr><td>on-2nd / 2nd</td><td class='num'>7.24</td><td class='need'>≥4.5</td></tr><tr><td>success / page</td><td class='num'>4.65</td><td class='need'>≥4.5</td></tr><tr><td>warning / page</td><td class='num'>4.63</td><td class='need'>≥4.5</td></tr><tr><td>danger / page</td><td class='num'>4.61</td><td class='need'>≥4.5</td></tr><tr><td>line-strong / page</td><td class='num'>4.92</td><td class='need'>≥3.0</td></tr><tr><td>line-strong / panel</td><td class='num'>3.97</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / page</td><td class='num'>5.21</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / panel</td><td class='num'>4.20</td><td class='need'>≥3.0</td></tr><tr><td>focus ring / alt</td><td class='num'>3.23</td><td class='need'>≥3.0</td></tr><tr><td>on-accent / hover</td><td class='num'>10.03</td><td class='need'>≥4.5</td></tr><tr><td>on-accent / pressed</td><td class='num'>10.89</td><td class='need'>≥4.5</td></tr><tr><td>disabled text</td><td class='num'>3.01</td><td class='need'>≥2.8</td></tr><tr><td>hover ≠ rest</td><td class='num'>1.32</td><td class='need'>≥1.06</td></tr><tr><td>pressed ≠ hover</td><td class='num'>1.09</td><td class='need'>≥1.06</td></tr><tr><td>divider visible</td><td class='num'>2.06</td><td class='need'>≥1.18</td></tr><tr><td>divider on panel</td><td class='num'>1.66</td><td class='need'>≥1.18</td></tr><tr><td>disabled ≠ normal</td><td class='num'>3.17</td><td class='need'>≥1.6</td></tr><tr><td>page → card layer</td><td class='num'>1.24</td><td class='need'>≥1.12</td></tr></table>
+</article>
+</div>
+</div>

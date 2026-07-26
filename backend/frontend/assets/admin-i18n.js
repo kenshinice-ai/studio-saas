@@ -87,14 +87,58 @@
     ['Main brand colour', '主品牌色'], ['Supporting brand colour', '辅助品牌色'],
     ['Primary accent and actions', '主要强调色与操作按钮'], ['Secondary actions and highlights', '辅助操作与高亮'],
     ['Muted Text', '弱化文字'], ['Border Color', '边框颜色'],
+    // Batch 5: the new 中文 / English twin inputs and their help text.
+    ['Slogan · 中文', '品牌标语 · 中文'], ['Slogan · English', '品牌标语 · English'],
+    ['Welcome Message · 中文', '欢迎语 · 中文'], ['Welcome Message · English', '欢迎语 · English'],
+    ['Fill in one language and it is shown to everyone. Leave both blank to hide the welcome band.',
+     '只填一种语言时，两种语言都显示这一句；两者都留空则不显示欢迎条。'],
+    ['Courses Label · 中文', '课程版块标题 · 中文'], ['Courses Label · English', '课程版块标题 · English'],
+    ['Gallery Label · 中文', '作品版块标题 · 中文'], ['Gallery Label · English', '作品版块标题 · English'],
+    ['FAQ Label · 中文', '常见问题版块标题 · 中文'], ['FAQ Label · English', '常见问题版块标题 · English'],
+    ['Contact Label · 中文', '联系版块标题 · 中文'], ['Contact Label · English', '联系版块标题 · English'],
+    ["%WORK% and %WORKS% are replaced with your industry's word for what a student produces, so the same label works for a piano, dance, or games studio.",
+     '%WORK% 与 %WORKS% 会替换成你所在行业对学员成果的说法，因此同一个标题在琴行、舞蹈教室与游戏工作室都成立。'],
+    ['Principal Title · 中文', '主理人头衔 · 中文'], ['Principal Title · English', '主理人头衔 · English'],
+    ['Principal Quote · 中文', '主理人短句 · 中文'], ['Principal Quote · English', '主理人短句 · English'],
+    ['Principal Bio · 中文', '主理人介绍 · 中文'], ['Principal Bio · English', '主理人介绍 · English'],
+    ["A person's name is never translated.", '人名不做翻译。'],
+    ['Leave either language blank and the other is shown to everyone. The section stays hidden until a bio exists.',
+     '任一语言留空时，另一种语言对所有访客显示；没有介绍内容时整个版块不显示。'],
+    ["Course names and work titles come from the CMS and are shown exactly as staff typed them — they do not follow the visitor's language. Only the section headings here do.",
+     '课程名称与作品标题来自运营 CMS，按录入的语言原样显示，不随访客语言切换；只有这里的版块标题会切换。'],
     ['Button text and status colours are selected automatically for readable contrast.', '系统会自动选择按钮文字与状态颜色，确保清晰可读。'],
-    ['Tactile, human, and gallery inspired.', '富有质感与人情味，灵感来自艺术画廊。'],
-    ['Energetic, confident, and action focused.', '充满能量与信心，突出行动转化。'],
-    ['Timeless, precise, and content-led.', '经典、精准，让内容成为视觉主角。'],
-    ['Clear, trustworthy, and easy to navigate.', '清晰、可信，易于浏览与操作。'],
-    ['Digital, immersive, and high energy.', '数字化、沉浸感强，富有高能量。'],
-    ['Welcoming, optimistic, and approachable.', '亲切、乐观，降低沟通距离。'],
-    ['Warm, cultured, and quietly distinctive.', '温暖、有文化感，低调而独特。'],
+    // 2-1 / 2-2: the eight curated themes. Their Chinese names and descriptions
+    // also ship on /v1/visual-style-presets as labelZh / descriptionZh, which is
+    // what the brand builder reads; these entries cover the same strings when
+    // they reach the DOM some other way (a toast, a cached response, Super
+    // Admin's tenant table).
+    ['Atelier Clay', '陶土工坊'], ['Vintage Press', '复古印刷'], ['Studio Ink', '黑白纸墨'],
+    ['Harbour Calm', '静谧海港'], ['Cedar Grove', '雪松林'], ['Recital Plum', '独奏紫'],
+    ['Rehearsal Rose', '排练玫瑰'], ['Arcade Lime', '街机青柠'],
+    ['Warm clay on a paper surface, the way a gallery wall behaves — for studios where the work should lead.',
+     '陶土的暖调落在纸质表面，像画廊的墙。适合让作品自己说话的工作室。'],
+    ['The ink-and-paper restraint of an old print shop, for studios whose credibility rests on words and experience.',
+     '老式印刷的墨与纸，克制的暖棕。适合靠文字与经验建立信任的工作室。'],
+    ['Near-monochrome ink on paper, with a single slate-blue note marking what can be clicked.',
+     '近乎黑白的纸与墨，只用一抹石板蓝标出可点击之处，内容始终是主角。'],
+    ['Still-water blues in adjacent hues — clear, trustworthy, and quiet enough to read all day.',
+     '静水一般的蓝，色相彼此相邻。清楚、可信，长时间阅读也不吵。'],
+    ['Cedar green against ochre in a triadic balance — the palette of the outdoors and the training ground.',
+     '雪松绿配赭石黄，三分色的平衡。属于户外与训练场的配色。'],
+    ['Stage-curtain plum with a neighbouring violet, for recitals, graded exams and performance.',
+     '舞台幕布般的紫，衬以邻近的蓝紫。适合演出、考级与表演路线。'],
+    ['Rehearsal-room rose against a moss green: kinetic without shouting.',
+     '排练厅的玫红，配一抹苔绿。有动势，但不刺眼。'],
+    ['Arcade-screen lime, dark only: on a light page it turns olive and loses the reason it exists.',
+     '街机屏幕上的荧光青柠，只做暗色——放到浅色底上会变成橄榄绿，失去存在的理由。'],
+    // 4-3: colour relationships, now shown as the reason to pick one theme.
+    ['Split-complementary', '分裂互补'], ['Analogous', '邻近色'], ['Triadic', '三分色'],
+    ['Neutral / monochrome', '单色中性'],
+    ['Colour relationship', '色相关系'],
+    ['Light + dark', '明暗双模'], ['Dark only', '仅暗色'],
+    ['Page', '页面'], ['Panel', '面板'], ['Accent', '强调色'], ['Support', '辅助色'],
+    ['Control boundary', '控件边界'], ['Focus ring', '聚焦环'],
+    ['Success', '成功'], ['Warning', '警示'], ['Danger', '危险'],
     ['Core identity, industry preset, colours, contact, and CMS shell presentation.', '设置核心品牌、行业预设、颜色、联系方式与 CMS 外观。'],
     ['Apply Category Preset', '应用行业预设'], ['Primary Color', '主品牌色'], ['Secondary Color', '辅助品牌色'],
     ['Accent Color', '强调色'], ['Page Background', '页面背景'], ['Panel Background', '面板背景'],
@@ -133,6 +177,30 @@
     ['Type', '类型'], ['Required', '必填'], ['Optional', '选填'], ['Required / Options', '必填与选项'],
     ['Remove', '移除'], ['Short text, long text, and select fields are supported.', '支持短文本、长文本和下拉选择字段。'],
     ['FAQ', '常见问答'], ['Questions shown near the bottom of the public portal.', '这些问题会显示在公开官网底部附近。'],
+    ['Question (中文)', '问题（中文）'], ['Question (English)', '问题（英文）'],
+    ['Answer (中文)', '答案（中文）'], ['Answer (English)', '答案（英文）'],
+    ['Language', '语言'], ['Device', '设备'],
+    ['Appearance', '明暗模式'], ['Light', '明亮'], ['Dark', '暗色'],
+    ['The first thing a parent reads on your website, and the button they tap to book. Live on the portal as soon as you publish.',
+     '家长打开官网后第一眼读到的内容，以及点击预约的按钮。发布后立即生效。'],
+    ['Turn public sections on or off. A section with nothing written in it stays hidden rather than showing an empty block to visitors.',
+     '控制公开版块的显示。没有填内容的版块会自动隐藏，不会给访客看到一块空白。'],
+    ['What a family fills in to enquire. Every question here appears on both the portal form and the standalone register page, and lands in the CMS under Pending.',
+     '家长咨询时要填的内容。这里的每个问题都会同时出现在官网表单和独立报名页，提交后进入 CMS 的「待审核」。'],
+    ['Answers to what families ask before they book. Shown near the bottom of the portal in whichever language the visitor is reading.',
+     '家长决定预约前最常问的问题。显示在官网底部，并跟随访客当前的语言。'],
+    ['What your staff copy out of the CMS and send to a family. Placeholders are filled in per student: {student} {studio} {balance} {credits} {fee} {note}',
+     '员工从 CMS 复制、发送给家长的文案。占位符会按学员自动替换：{student} {studio} {balance} {credits} {fee} {note}'],
+    ['Light and dark are designed as a pair; both are checked for contrast.',
+     '明暗为成对设计，两种模式都已通过对比度检查。'],
+    ['Messages', '家长话术'], ['Family messages', '家长话术'],
+    ['Copy staff paste to families from the CMS. Placeholders: {student} {studio} {balance} {credits} {fee} {note}',
+     '员工在 CMS 中复制、发送给家长的文案。可用占位符：{student} {studio} {balance} {credits} {fee} {note}'],
+    ['Reset to defaults', '恢复默认'], ['Check-in', '签到'],
+    ['Check-in with no credits left', '签到（课时已用完）'],
+    ['Credits purchased', '充值成功'], ['Renewal reminder', '续课提醒'],
+    ['Birthday greeting', '生日祝福'],
+    ['Preview language', '预览语言'], ['Preview device', '预览设备'],
     ['Add FAQ', '新增常见问答'], ['Answer', '答案'], ['Preview and publish', '预览与发布'],
     ['Theme Preview', '主题预览'], ['Desktop', '桌面'], ['Mobile', '手机'], ['Save Draft', '保存草稿'],
     ['Publish', '发布'], ['Publication history', '发布历史'],
@@ -235,7 +303,14 @@
   }
 
   function isIgnored(node) {
-    return !node.parentElement || /^(SCRIPT|STYLE|CODE|PRE|TEXTAREA)$/.test(node.parentElement.tagName) || node.parentElement.closest('[data-admin-language-switch]');
+    if (!node.parentElement) return true;
+    if (/^(SCRIPT|STYLE|CODE|PRE|TEXTAREA)$/.test(node.parentElement.tagName)) return true;
+    /* data-no-translate marks text that is already in its final language: the
+       language switch itself, and content the page localised on its own. The
+       industry cards print the Chinese name with the English one beneath it, and
+       without this the dictionary turned "Language" into 语言 — so the card read
+       「语言 / 语言」. */
+    return Boolean(node.parentElement.closest('[data-admin-language-switch],[data-no-translate]'));
   }
 
   function applyText(node) {

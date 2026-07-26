@@ -325,5 +325,8 @@
 <body class="bg-gray-100 text-gray-800">
 <div id="root"></div>
 <script src="/assets/cms-app.js"></script>
+<!-- Loaded after the app so the observer starts on a rendered tree. Shares the
+     language choice with Studio Admin / Super Admin via admin-i18n's key. -->
+<script src="/assets/cms-i18n.js"></script>
 </body>
 </html>

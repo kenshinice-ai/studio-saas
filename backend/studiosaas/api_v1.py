@@ -44,9 +44,11 @@ from .lifecycle import (
 from .models import Role
 from .presets import (
     INDUSTRY_PRESETS,
+    INDUSTRY_SECTION_COPY,
     VISUAL_STYLE_PRESETS,
     public_industry_presets,
     public_visual_style_presets,
+    style_theme,
 )
 from .services.media import (
     MediaQuotaExceededError,
@@ -62,6 +64,7 @@ from .services.tenant_archive import (
 )
 from .services import notifications as _notifications
 from .services.student_access import (
+    access_lock_seconds_remaining as _student_access_lock_seconds,
     access_locked as _student_access_locked,
     clear_failed_access as _clear_student_access_failures,
     create_access_session as _create_student_access_session,
@@ -82,6 +85,13 @@ api_v1 = Blueprint("studiosaas_api_v1", __name__)
 # Counters reset on process restart — acceptable for the local pilot; a
 # shared store (Redis) replaces this at the production stage (P3-04).
 _public_rate_limit: dict[str, list[float]] = {}
+
+# The version of the privacy notice the public pages render. It is served to
+# the portal and the register page through /brand and stored with each consent
+# record, so the version a visitor agreed to always matches the text they saw.
+# Bump this whenever the privacy copy in tenant-template/index.html changes.
+PRIVACY_NOTICE_VERSION = "2026-07-12"
+PUBLICATION_NOTICE_VERSION = "2026-07-18"
 
 
 def _rate_limited(key: str, limit: int, *, window_seconds: int = 60) -> bool:
@@ -346,7 +356,10 @@ def _default_registration_profile(category: str) -> dict:
 
     preset = _preset_for(category)
     return {
-        "title": preset["registration_title"],
+        # Batch 5: the form's own heading is bilingual like the copy around it.
+        # It is the fallback the register page uses when a studio has not
+        # overridden localized_copy.registration_title.
+        "title": {"zh": preset["registration_title_zh"], "en": preset["registration_title"]},
         "fields": [
             {
                 **dict(field),
@@ -372,7 +385,9 @@ def _normalize_registration_profile(value, category: str) -> dict:
             raise ValueError("registration_profile must be valid JSON.") from exc
     if not isinstance(value, dict):
         raise ValueError("registration_profile must be a JSON object.")
-    title = str(value.get("title") or default["title"]).strip()[:80] or default["title"]
+    title = _localized_pair(value, "title", limit=80)
+    if not (title["zh"] or title["en"]):
+        title = dict(default["title"])
     fields = value.get("fields")
     if fields is None:
         fields = default["fields"]
@@ -457,11 +472,25 @@ def _normalize_copy_pack(value, category: str) -> dict:
     return default
 
 
-def _normalize_localized_copy(value, category: str = "general") -> dict:
-    """Validate the explicit Chinese/English public-copy bundle."""
+def _normalize_localized_copy(
+    value,
+    category: str = "general",
+    legacy: dict[str, str] | None = None,
+) -> dict:
+    """Validate the explicit Chinese/English public-copy bundle.
+
+    ``legacy`` carries the single-language value a tenant saved before a key
+    joined this bundle (the ``welcome_message`` column, ``settings.slogan``,
+    ``principal_profile.bio``). It seeds both languages, so an existing studio's
+    own words survive instead of being replaced by an industry default.
+    """
 
     data = _coerce_json_object(value, field_name="localized_copy")
+    legacy_values = legacy or {}
     preset = _preset_for(category)
+    # B1: section headings default per industry rather than shipping one set to
+    # every tenant. A studio can still override any of them.
+    sections = INDUSTRY_SECTION_COPY.get(category, INDUSTRY_SECTION_COPY["general"])
     defaults = {
         "hero_title": preset["hero"]["title"],
         "hero_subtitle": preset["hero"]["subtitle"],
@@ -469,6 +498,31 @@ def _normalize_localized_copy(value, category: str = "general") -> dict:
         "secondary_cta": {"zh": "查看课程", "en": "Explore Programs"},
         "registration_title": {"zh": preset["registration_title_zh"], "en": preset["registration_title"]},
         "registration_intro": {"zh": preset["register_intro_zh"], "en": preset["copy_pack"]["register_intro"]},
+        # Batch 5, class B: studio-identity copy. These lived as single-language
+        # strings on the tenant row (`slogan`, `welcome_message`) or inside
+        # website_profile / principal_profile, which is why a Chinese portal
+        # showed 14 English fragments. They join the bundle that was already
+        # bilingual, already normalised on read, and already preferred by the
+        # public template — rather than growing a second mechanism beside it.
+        #
+        # The flat columns and JSON keys stay exactly as they were, so the CMS,
+        # Super Admin and any tenant saved before this keep reading what they
+        # read before; the pair here wins when it has a value.
+        "slogan": {"zh": preset["slogan_zh"], "en": preset["slogan"]},
+        "category_label": {"zh": preset["label_zh"], "en": preset["label"]},
+        # No default text: a generated welcome/bio is the P0-2 mistake. Blank
+        # means the portal hides the band instead of publishing filler.
+        "welcome_message": {"zh": "", "en": ""},
+        "principal_title": {"zh": "创办人 / 主理人", "en": "Founder & Principal"},
+        "principal_bio": {"zh": "", "en": ""},
+        "principal_quote": {"zh": "", "en": ""},
+        # %WORK% / %WORKS% rather than 「作品」 / "Works": the gallery label is
+        # shared by a piano, dance and games studio (Glossary rule 2).
+        "courses_label": {"zh": "课程与班次", "en": "Courses & Classes"},
+        "gallery_label": {"zh": "学员%WORK%", "en": "Student %WORKS%"},
+        "faq_label": {"zh": "常见问题", "en": "Questions & Answers"},
+        "contact_label": {"zh": "联系我们", "en": "Contact"},
+        **sections,
     }
     limits = {
         "hero_title": 120,
@@ -477,19 +531,86 @@ def _normalize_localized_copy(value, category: str = "general") -> dict:
         "secondary_cta": 80,
         "registration_title": 120,
         "registration_intro": 300,
+        "courses_title": 120,
+        "courses_lead": 240,
+        "gallery_title": 120,
+        "gallery_lead": 240,
+        "faq_title": 120,
+        "slogan": 180,
+        "category_label": 80,
+        "welcome_message": 240,
+        "principal_title": 100,
+        "principal_bio": 800,
+        "principal_quote": 180,
+        "courses_label": 80,
+        "gallery_label": 80,
+        "faq_label": 80,
+        "contact_label": 80,
     }
     normalized: dict[str, dict[str, str]] = {}
     for key, limit in limits.items():
-        pair = data.get(key) or data.get("".join([key.split("_")[0], *(part.capitalize() for part in key.split("_")[1:])])) or defaults[key]
+        camel = "".join([key.split("_")[0], *(part.capitalize() for part in key.split("_")[1:])])
+        pair = data.get(key) or data.get(camel)
+        if not pair:
+            inherited = str(legacy_values.get(key) or "").strip()
+            pair = {"zh": inherited, "en": inherited} if inherited else defaults[key]
         if isinstance(pair, str):
             pair = {"zh": pair, "en": pair}
         if not isinstance(pair, dict):
             raise ValueError(f"localized_copy.{key} must contain zh/en text.")
+        zh = str(pair.get("zh") or "").strip()[:limit]
+        en = str(pair.get("en") or "").strip()[:limit]
+        # P1-7 applies to every key here: one filled language is used for both
+        # rather than letting the other fall back to a template default.
         normalized[key] = {
-            "zh": str(pair.get("zh") or defaults[key]["zh"]).strip()[:limit],
-            "en": str(pair.get("en") or defaults[key]["en"]).strip()[:limit],
+            "zh": zh or en or str(defaults[key]["zh"]).strip()[:limit],
+            "en": en or zh or str(defaults[key]["en"]).strip()[:limit],
         }
     return normalized
+
+
+def _legacy_identity_copy(source: dict) -> dict[str, str]:
+    """Collect the pre-bilingual values for the class-B studio-identity keys.
+
+    A studio that wrote its slogan, welcome band, principal bio or section
+    labels before those became ``{zh, en}`` still has one string. Reading it
+    here means the portal shows the studio's own words in both languages rather
+    than reverting to the industry default the day this ships.
+    """
+
+    website = source.get("website_profile") if isinstance(source.get("website_profile"), dict) else {}
+    principal = source.get("principal_profile") if isinstance(source.get("principal_profile"), dict) else {}
+    website_default = _default_website_profile()
+    principal_default = _default_principal_profile()
+    category = source.get("category") or "general"
+    preset = _preset_for(category)
+
+    def single(value, *, ignore: str = "") -> str:
+        """Return a genuinely tenant-authored string, or "" to use the default.
+
+        The old defaults were English-only literals that got written into every
+        tenant's settings on save, so inheriting them verbatim would put
+        "Courses & Classes" in the Chinese slot. A value that still equals its
+        old default is not the studio's writing and is dropped.
+        """
+
+        if not isinstance(value, str):
+            return ""
+        text = value.strip()
+        return "" if text == ignore.strip() else text
+
+    return {
+        "slogan": single(source.get("slogan"), ignore=preset["slogan"]),
+        "category_label": single(source.get("category_label"), ignore=preset["label"]),
+        "welcome_message": single(source.get("welcome_message")),
+        "principal_title": single(principal.get("title"), ignore=principal_default["title"]),
+        "principal_bio": single(principal.get("bio")),
+        "principal_quote": single(principal.get("quote")),
+        "courses_label": single(website.get("courses_label"), ignore=website_default["courses_label"]),
+        "gallery_label": single(website.get("gallery_label"), ignore=website_default["gallery_label"]),
+        "faq_label": single(website.get("faq_label"), ignore=website_default["faq_label"]),
+        "contact_label": single(website.get("contact_label"), ignore=website_default["contact_label"]),
+    }
 
 
 def _coerce_json_object(value, *, field_name: str) -> dict:
@@ -608,7 +729,31 @@ def _default_website_profile() -> dict:
         "gallery_label": "Student Works",
         "faq_label": "Questions & Answers",
         "contact_label": "Contact",
+        # Reclaimed from the hand-forked lets-paint-studio portal so every
+        # tenant can have them without leaving the template behind.
+        "seo_title": "",
+        "seo_description": "",
+        "show_about": False,
+        "about_images": [],
+        "about_eyebrow": {"zh": "", "en": ""},
+        "about_title": {"zh": "", "en": ""},
+        "about_body": {"zh": "", "en": ""},
+        "about_items": [],
     }
+
+
+def _localized_pair(data: dict, key: str, *, limit: int) -> dict:
+    """Read a {"zh", "en"} pair, accepting a bare string for either language."""
+
+    raw = data.get(key)
+    if isinstance(raw, dict):
+        zh = str(raw.get("zh") or "").strip()[:limit]
+        en = str(raw.get("en") or "").strip()[:limit]
+    else:
+        zh = en = str(raw or "").strip()[:limit]
+    if not zh and not en:
+        return {"zh": "", "en": ""}
+    return {"zh": zh or en, "en": en or zh}
 
 
 def _normalize_website_profile(value) -> dict:
@@ -630,22 +775,56 @@ def _normalize_website_profile(value) -> dict:
             "show_faq",
             "show_contact",
             "show_student_area",
+            "show_about",
         )
     }
     for key in ("courses_label", "gallery_label", "faq_label", "contact_label"):
         profile[key] = _first_text(data, key, "".join([key.split("_")[0], "Label"]), default=default[key], limit=80)
+    # Per-tenant SEO overrides. The flagship tenant had a hand-edited <title>
+    # in its forked workspace; this is the same capability as a brand field, so
+    # the fork no longer has to exist to get it.
+    profile["seo_title"] = _first_text(data, "seo_title", "seoTitle", default="", limit=120)
+    profile["seo_description"] = _first_text(data, "seo_description", "seoDescription", default="", limit=200)
+    # Optional "about the space" section with a slow image carousel — also
+    # reclaimed from the fork.
+    images = data.get("about_images", data.get("aboutImages"))
+    profile["about_images"] = [
+        url for url in (str(item or "").strip()[:400] for item in (images if isinstance(images, list) else []))
+        if url
+    ][:6]
+    for key in ("about_eyebrow", "about_title", "about_body"):
+        camel = "".join([key.split("_")[0], *(part.capitalize() for part in key.split("_")[1:])])
+        source = data if key in data else {key: data.get(camel)}
+        profile[key] = _localized_pair(source, key, limit=600)
+    items = data.get("about_items", data.get("aboutItems"))
+    normalized_items = []
+    for item in (items if isinstance(items, list) else [])[:6]:
+        if not isinstance(item, dict):
+            continue
+        title = _localized_pair(item, "title", limit=80)
+        body = _localized_pair(item, "body", limit=300)
+        if title["zh"] or title["en"]:
+            normalized_items.append({"title": title, "body": body})
+    profile["about_items"] = normalized_items
     return profile
 
 
 def _default_principal_profile(studio_name: str = "") -> dict:
-    """Return default principal/about section content."""
+    """Return the empty principal/about section.
+
+    `bio` and `quote` stay blank on purpose. They used to be generated filler
+    ("Meet the principal behind X and the teaching philosophy that shapes every
+    class."), which the portal then rendered to the public as though a real
+    person had written it. The portal hides the whole section until a studio
+    supplies a real bio, so an unfilled field costs nothing.
+    """
 
     return {
         "show": True,
         "name": "",
         "title": "Founder & Principal",
-        "bio": f"Meet the principal behind {studio_name or 'the studio'} and the teaching philosophy that shapes every class.",
-        "quote": "Learn with care, confidence, and a rhythm that fits each student.",
+        "bio": "",
+        "quote": "",
         "image_url": "",
     }
 
@@ -668,28 +847,103 @@ def _normalize_principal_profile(value, studio_name: str = "") -> dict:
     }
 
 
+# The messages staff copy out of the CMS and paste to families in WeChat.
+# They were literals in cms-app.jsx that said the word "Studio" and ended with a
+# 🎨 — so a piano parent received a message naming a studio that was not theirs,
+# decorated with a paint palette. Studios edit them here; the CMS fills the
+# placeholders.
+MESSAGE_TEMPLATE_KEYS = ("checkin", "checkin_empty", "topup", "renewal", "birthday")
+MESSAGE_TEMPLATE_PLACEHOLDERS = ("{student}", "{studio}", "{balance}", "{credits}", "{fee}", "{note}", "{venue}", "{work}")
+
+
+def _default_message_templates() -> dict:
+    """Return the default family-facing message templates (Chinese)."""
+
+    return {
+        "checkin": "{student} 今日已完成签到 ✓ 当前剩余 {balance} 课时。{studio} 感谢您的支持！",
+        "checkin_empty": "{student} 今日已完成签到 ✓ 当前剩余 0 课时，已用完，欢迎联系老师续课～",
+        "topup": "{student} 您好！已为您成功充值 {credits} 课时{fee}，当前账户共 {balance} 课时。感谢您对 {studio} 的信任！",
+        "renewal": "{student} 家长您好！温馨提醒：您在 {studio} 的剩余课时为 {balance} 节{note}，为不影响后续上课安排，欢迎随时联系老师续课。",
+        "birthday": "{student} 您好！{studio} 全体老师祝您生日快乐！愿您在新的一岁里灵感不断、收获满满～",
+    }
+
+
+def _normalize_message_templates(value) -> dict:
+    """Validate the family-facing message templates."""
+
+    data = _coerce_json_object(value, field_name="message_templates")
+    default = _default_message_templates()
+    return {
+        key: (str(data.get(key) or "").strip()[:600] or default[key])
+        for key in MESSAGE_TEMPLATE_KEYS
+    }
+
+
 def _default_faq_items(category: str) -> list[dict]:
-    """Return default FAQ copy for public tenant pages."""
+    """Return default FAQ copy for public tenant pages.
+
+    Questions and answers are {"zh": ..., "en": ...} pairs so the portal's
+    language switch reaches the FAQ too. The %VENUE% / %WORK% tokens are
+    replaced in the browser with the nouns this industry actually uses.
+    """
 
     preset = _preset_for(category)
+    label_en = preset["label"].lower()
+    label_zh = preset["label_zh"]
     return [
         {
-            "question": "Is there a trial class?",
-            "answer": "Yes. Leave your details and the studio will contact you to arrange a suitable first session.",
+            "question": {"zh": "有体验课吗？", "en": "Is there a trial class?"},
+            "answer": {
+                "zh": "有的。通过报名表留下联系方式，%VENUE%会与您联系并安排合适的第一节课。",
+                "en": "Yes. Leave your details on the registration form and the %VENUE% will be in touch to arrange a suitable first session.",
+            },
         },
         {
-            "question": "How do class packs work?",
-            "answer": "Classes can be tracked as credits in the CMS, and families can check balances from the student area.",
+            "question": {"zh": "课包与课时怎么算？", "en": "How do class packs work?"},
+            "answer": {
+                "zh": "课程以课包形式购买，每次上课按实际时长扣课时；余额与记录随时可在「学员专区」查询。",
+                "en": "Classes are bought as packs and each session draws the credits it actually uses. Your balance and history are always visible in the student area.",
+            },
         },
         {
-            "question": f"Which {preset['label'].lower()} level should we choose?",
-            "answer": "Start with your current experience and goals in the registration form. The studio will recommend the right class.",
+            "question": {
+                "zh": f"应该选择哪个{label_zh}水平？",
+                "en": f"Which {label_en} level should we choose?",
+            },
+            "answer": {
+                "zh": "在报名表里填写当前经验与目标即可，老师会推荐合适的班型。",
+                "en": "Start with your current experience and goals in the registration form, and the teacher will recommend the right class.",
+            },
         },
         {
-            "question": "Can parents view progress?",
-            "answer": "Yes. The public portal includes a student area for class balance and portfolio lookup when enabled.",
+            "question": {"zh": "家长能看到进度吗？", "en": "Can parents view progress?"},
+            "answer": {
+                "zh": "可以。开启「学员专区」后，用姓名、手机号与%VENUE%发放的访问码即可查看课时余额与%WORK%记录。",
+                "en": "Yes. When the student area is enabled, the student's name, mobile and the access code issued by the %VENUE% show the credit balance and %WORK% records.",
+            },
         },
     ]
+
+
+def _localized_faq_text(item: dict, key: str, *, limit: int):
+    """Return one FAQ field as a {"zh", "en"} pair.
+
+    Accepts the legacy single-string shape and the localized object shape, so
+    FAQs saved before the portal became bilingual keep working: a single string
+    is used for both languages rather than falling back to template copy.
+    """
+
+    raw = item.get(key)
+    if isinstance(raw, dict):
+        zh = str(raw.get("zh") or "").strip()[:limit]
+        en = str(raw.get("en") or "").strip()[:limit]
+        if not zh and not en:
+            return None
+        return {"zh": zh or en, "en": en or zh}
+    text = _first_text(item, key, limit=limit)
+    if not text:
+        return None
+    return {"zh": text, "en": text}
 
 
 def _normalize_faq_items(value, category: str) -> list[dict]:
@@ -702,8 +956,8 @@ def _normalize_faq_items(value, category: str) -> list[dict]:
     for item in items[:8]:
         if not isinstance(item, dict):
             raise ValueError("Each FAQ item must be an object.")
-        question = _first_text(item, "question", limit=140)
-        answer = _first_text(item, "answer", limit=500)
+        question = _localized_faq_text(item, "question", limit=140)
+        answer = _localized_faq_text(item, "answer", limit=500)
         if question and answer:
             normalized.append({"question": question, "answer": answer})
     if not normalized:
@@ -726,6 +980,21 @@ def _default_visual_theme(
     return theme
 
 
+# Colour tokens a tenant may override. Splitting them by role keeps the
+# validation honest: a scrim is not a hex value, and the derived states have a
+# sensible fallback when an older record predates them.
+_THEME_HEX_KEYS = (
+    "background_color", "background_alt_color", "panel_color",
+    "text_color", "text_soft_color", "muted_text_color",
+    "border_color", "border_strong_color",
+    "accent_color", "accent_text_color", "accent_hover_color", "accent_pressed_color",
+    "secondary_accent_color", "secondary_text_color",
+    "success_color", "warning_color", "danger_color",
+    "focus_ring_color", "disabled_surface_color", "disabled_text_color",
+)
+_SCRIM_RE = re.compile(r"^rgba\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*(?:0|1|0?\.\d+)\s*\)$")
+
+
 def _normalize_visual_theme(
     value,
     primary_color: str = "",
@@ -738,21 +1007,27 @@ def _normalize_visual_theme(
     style_id = _first_text(data, "style_id", "styleId", limit=40).lower()
     if style_id and style_id not in VISUAL_STYLE_PRESETS:
         raise ValueError("Visual style is not recognised.")
+    requested_scheme = _first_text(data, "color_scheme", "colorScheme", limit=16).lower()
     if style_id:
-        default = {"style_id": style_id, "theme_mode": "preset", **VISUAL_STYLE_PRESETS[style_id]["theme"]}
+        default = style_theme(style_id, requested_scheme or "light")
     else:
         default = _default_visual_theme(primary_color, secondary_color, category)
     theme = {}
-    for key in (
-        "background_color", "panel_color", "text_color", "muted_text_color",
-        "accent_color", "accent_text_color", "secondary_accent_color",
-        "secondary_text_color", "border_color", "success_color",
-        "warning_color", "danger_color",
-    ):
+    for key in _THEME_HEX_KEYS:
         aliases = (key, "".join([key.split("_")[0], *(part.capitalize() for part in key.split("_")[1:])]))
-        value_text = _first_text(data, *aliases, default=default[key], limit=16)
+        # Records written before a token existed fall back to the preset value
+        # rather than failing validation.
+        fallback = default.get(key) or _default_visual_theme("", "", category).get(key, "")
+        if not fallback:
+            continue
+        value_text = _first_text(data, *aliases, default=fallback, limit=16)
         _validate_hex_color(key.replace("_", " ").title(), value_text)
         theme[key] = value_text
+    scrim = _first_text(data, "scrim_color", "scrimColor",
+                        default=default.get("scrim_color", "rgba(0,0,0,0.5)"), limit=32)
+    if not _SCRIM_RE.match(scrim):
+        raise ValueError("Scrim colour must be an rgba() value.")
+    theme["scrim_color"] = scrim
     button_style = _first_text(data, "button_style", "buttonStyle", default=default["button_style"], limit=24).lower()
     font_mood = _first_text(data, "font_mood", "fontMood", default=default["font_mood"], limit=24).lower()
     if button_style not in {"soft", "sharp", "rounded"}:
@@ -762,9 +1037,14 @@ def _normalize_visual_theme(
     theme_mode = _first_text(data, "theme_mode", "themeMode", default="custom" if not style_id else "preset", limit=16).lower()
     if theme_mode not in {"preset", "custom"}:
         raise ValueError("Theme mode must be preset or custom.")
-    color_scheme = _first_text(data, "color_scheme", "colorScheme", default=default.get("color_scheme", "light"), limit=16).lower()
+    color_scheme = requested_scheme or default.get("color_scheme", "light")
     if color_scheme not in {"light", "dark"}:
         raise ValueError("Color scheme must be light or dark.")
+    if style_id and color_scheme not in VISUAL_STYLE_PRESETS[style_id]["modes"]:
+        available = ", ".join(VISUAL_STYLE_PRESETS[style_id]["modes"])
+        raise ValueError(
+            f"The {VISUAL_STYLE_PRESETS[style_id]['label']} style is only available in: {available}."
+        )
     theme["style_id"] = style_id or default.get("style_id", "")
     theme["theme_mode"] = theme_mode
     theme["color_scheme"] = color_scheme
@@ -823,6 +1103,9 @@ def _tenant_write_payload(payload: dict, *, require_slug: bool) -> dict:
         category,
     )
     copy_pack = _normalize_copy_pack(payload.get("copyPack", payload.get("copy_pack")), category)
+    message_templates = _normalize_message_templates(
+        payload.get("messageTemplates", payload.get("message_templates"))
+    )
     localized_copy = _normalize_localized_copy(
         payload.get("localizedCopy", payload.get("localized_copy")),
         category,
@@ -855,6 +1138,7 @@ def _tenant_write_payload(payload: dict, *, require_slug: bool) -> dict:
         "website_profile": website_profile,
         "principal_profile": principal_profile,
         "faq_items": faq_items,
+        "message_templates": message_templates,
         "visual_theme": visual_theme,
         "owner_name": _clean_text(payload, "ownerName", _clean_text(payload, "owner_name", "")),
         "owner_role": _clean_text(payload, "ownerRole", _clean_text(payload, "owner_role", "Owner")),
@@ -1659,6 +1943,7 @@ def _tenant_response(conn):
                t.settings->'website_profile' AS website_profile,
                t.settings->'principal_profile' AS principal_profile,
                t.settings->'faq_items' AS faq_items,
+               t.settings->'message_templates' AS message_templates,
                t.settings->'visual_theme' AS visual_theme,
                s.status AS subscription_status, s.starts_at, s.ends_at,
                s.trial_ends_at, s.current_period_ends_at
@@ -2026,6 +2311,13 @@ def update_tenant():
             localized_copy = _normalize_localized_copy(
                 payload.get("localizedCopy", current_settings.get("localized_copy")),
                 category,
+                legacy=_legacy_identity_copy(
+                    {
+                        **current_settings,
+                        "category": category,
+                        "welcome_message": current["welcome_message"],
+                    }
+                ),
             )
             hero_profile = _normalize_hero_profile(
                 payload.get("heroProfile", current_settings.get("hero_profile")),
@@ -2038,6 +2330,9 @@ def update_tenant():
                 _clean_text(payload, "name", current["name"]),
             )
             faq_items = _normalize_faq_items(payload.get("faqItems", current_settings.get("faq_items")), category)
+            message_templates = _normalize_message_templates(
+                payload.get("messageTemplates", current_settings.get("message_templates"))
+            )
             visual_theme = _normalize_visual_theme(
                 payload.get("visualTheme", current_settings.get("visual_theme")),
                 primary_color,
@@ -2080,6 +2375,7 @@ def update_tenant():
                 "website_profile": website_profile,
                 "principal_profile": principal_profile,
                 "faq_items": faq_items,
+                "message_templates": message_templates,
                 "visual_theme": visual_theme,
             }
         )
@@ -2171,11 +2467,16 @@ def get_tenant_brand():
                 "slogan": row["slogan"] or _preset_for(row["category"] or "general")["slogan"],
                 "registrationProfile": row["registration_profile"] or _default_registration_profile(row["category"] or "general"),
                 "copyPack": row["copy_pack"] or _preset_for(row["category"] or "general")["copy_pack"],
-                "localizedCopy": row["localized_copy"] or _normalize_localized_copy({}, row["category"] or "general"),
+                "localizedCopy": _normalize_localized_copy(
+                    row["localized_copy"] or {},
+                    row["category"] or "general",
+                    legacy=_legacy_identity_copy(row),
+                ),
                 "heroProfile": row["hero_profile"] or _default_hero_profile(row["category"] or "general", row["name"]),
                 "websiteProfile": row["website_profile"] or _default_website_profile(),
                 "principalProfile": row["principal_profile"] or _default_principal_profile(row["name"]),
                 "faqItems": row["faq_items"] or _default_faq_items(row["category"] or "general"),
+                "messageTemplates": _normalize_message_templates(row["message_templates"]),
                 "visualTheme": row["visual_theme"] or _default_visual_theme(
                     row["primary_color"], row["secondary_color"], row["category"] or "general"
                 ),
@@ -2986,6 +3287,7 @@ def public_brand(tenant_slug: str):
                    settings->'website_profile' AS website_profile,
                    settings->'principal_profile' AS principal_profile,
                    settings->'faq_items' AS faq_items,
+                   settings->'message_templates' AS message_templates,
                    settings->'visual_theme' AS visual_theme
             FROM tenants
             WHERE id = %s
@@ -2998,11 +3300,16 @@ def public_brand(tenant_slug: str):
     row["slogan"] = row["slogan"] or preset["slogan"]
     row["registration_profile"] = row["registration_profile"] or _default_registration_profile(category)
     row["copy_pack"] = row["copy_pack"] or preset["copy_pack"]
-    row["localized_copy"] = row["localized_copy"] or _normalize_localized_copy({}, category)
     row["hero_profile"] = row["hero_profile"] or _default_hero_profile(category, row["name"])
     row["website_profile"] = row["website_profile"] or _default_website_profile()
     row["principal_profile"] = row["principal_profile"] or _default_principal_profile(row["name"])
+    row["localized_copy"] = _normalize_localized_copy(
+        row["localized_copy"] or {},
+        category,
+        legacy=_legacy_identity_copy(row),
+    )
     row["faq_items"] = row["faq_items"] or _default_faq_items(category)
+    row["message_templates"] = _normalize_message_templates(row["message_templates"])
     row["visual_theme"] = row["visual_theme"] or _default_visual_theme(
         row["primary_color"], row["secondary_color"], category
     )
@@ -3022,7 +3329,15 @@ def public_brand(tenant_slug: str):
     row["websiteProfile"] = row["website_profile"]
     row["principalProfile"] = row["principal_profile"]
     row["faqItems"] = row["faq_items"]
+    row["messageTemplates"] = row["message_templates"]
     row["visualTheme"] = row["visual_theme"]
+    # Industry nouns for the public template's %VENUE% / %WORK% tokens.
+    row["venueNoun"] = dict(preset["venue_noun"])
+    row["workNoun"] = dict(preset["work_noun"])
+    # The portal and register page each hard-coded this string, so a consent
+    # record could cite a version the visitor's page never rendered. One value,
+    # served with the notice it refers to.
+    row["privacyNoticeVersion"] = PRIVACY_NOTICE_VERSION
     return jsonify({"brand": row})
 
 
@@ -3488,13 +3803,19 @@ def public_student_unlock(tenant_slug: str):
     with connect() as conn:
         tenant = resolve_tenant(conn, tenant_slug, "path")
         fingerprint = _student_lookup_fingerprint(name, phone)
-        if _student_access_locked(
+        lock_seconds = _student_access_lock_seconds(
             conn,
             tenant_id=tenant.tenant_id,
             lookup_hash=fingerprint,
             ip_address=_client_ip(),
-        ):
-            return _error("Too many attempts. Please try again later.", 429)
+        )
+        if lock_seconds:
+            # Retry-After lets the portal tell the family how long to wait
+            # instead of an open-ended "please try again later".
+            response = _error("Too many attempts. Please try again later.", 429)
+            body, status = response if isinstance(response, tuple) else (response, 429)
+            body.headers["Retry-After"] = str(lock_seconds)
+            return body, status
         lookup = _find_public_student(
             conn, tenant_id=tenant.tenant_id, name=name, phone=phone
         )
@@ -3902,7 +4223,9 @@ def public_create_registration(tenant_slug: str):
     if not privacy_consent:
         return _error("Privacy consent is required before submitting registration.", 400)
     privacy_notice_version = str(
-        payload.get("privacyNoticeVersion") or payload.get("privacy_notice_version") or "2026-07-12"
+        payload.get("privacyNoticeVersion")
+        or payload.get("privacy_notice_version")
+        or PRIVACY_NOTICE_VERSION
     ).strip()[:40]
     publication_raw = payload.get("publicationConsent", payload.get("publication_consent"))
     publication_consent = None

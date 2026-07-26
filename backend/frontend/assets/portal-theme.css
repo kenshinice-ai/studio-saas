@@ -1,0 +1,125 @@
+/* StudioSaaS public-surface palette — the single source of truth for the
+ * tenant portal (index.html) and the standalone register page.
+ *
+ * Both pages used to declare their own :root (clay/paper/serif/2px vs
+ * blue/cold-grey/system/8px), so a parent clicking "报名" on the portal
+ * landed on what looked like another company's site. Everything visual now
+ * starts here; brand-system.css reads these to build the --brand-* roles,
+ * and /brand overrides them per tenant at runtime.
+ *
+ * Load order: ui-tokens.css → portal-theme.css → brand-system.css
+ *
+ * The default values below are the "vintage-press" light theme from
+ * backend/studiosaas/presets.py. They are what an unbranded page renders
+ * before /brand resolves — keep the two in step.
+ *
+ * Every colour here was solved for a measured WCAG target by
+ * docs/design/palette_gen.py, which asserts 26 pairs per theme-mode. Do not
+ * hand-edit a hex without re-running it.
+ */
+:root {
+  /* ── Surfaces ────────────────────────────────────────────────────────
+   * Three layers, not two. page → card sits at ~1.13:1 so a card reads as
+   * an actual layer instead of relying on its border to exist. */
+  --bg: #F3EFEA;
+  --bg2: #EAE3DB;
+  --panel: #FDFDFD;
+  --surface: #FDFDFD;
+
+  /* ── Ink ─────────────────────────────────────────────────────────────
+   * Each level is solved against --bg2, the hardest surface it can land on,
+   * so no text token fails on the darker band. */
+  --ink: #221E1A;      /* 13:1  — headings, primary copy   */
+  --ink2: #46403A;     /*  8:1  — secondary copy           */
+  --muted: #6C635A;    /*  4.6:1 — captions, helper text   */
+
+  /* ── Borders ─────────────────────────────────────────────────────────
+   * A1. One token could not serve both jobs: a divider wants to be quiet,
+   * an input boundary must clear WCAG 1.4.11 at 3:1. They are now separate.
+   *   --line        decorative dividers, section rules
+   *   --line-strong interactive boundaries: inputs, selects, outline buttons
+   */
+  --line: #DFDAD5;
+  --line-strong: #8D7F70;
+
+  /* ── Accents ─────────────────────────────────────────────────────────
+   * hover/pressed move in the same direction (darker in light mode, lighter
+   * in dark) so the two states are never mistaken for each other. */
+  --clay: #835D33;
+  --clay-hover: #6E4E2B;
+  --clay-pressed: #5A4023;
+  --clay-d: #4C6877;
+  --brand: var(--clay);
+  --brand-2: var(--clay-d);
+  --on-accent: #FFFFFF;
+  --on-secondary: #FFFFFF;
+
+  /* ── Semantic ────────────────────────────────────────────────────────
+   * A2. Fixed hue anchors (152 / 36 / 6) nudged 4% toward the theme, with
+   * lightness re-solved per surface, so contrast is identical in all eight
+   * themes rather than drifting per palette. */
+  --success: #2F7951;
+  --warning: #8D6426;
+  --danger: #B6483A;
+
+  /* ── Interaction states ──────────────────────────────────────────────
+   * Required in both light and dark. A theme that defines these for only one
+   * mode is the single most common dark-mode failure. */
+  --focus-ring: #B1793E;
+  --disabled-surface: #E7DFD6;
+  --disabled-text: #847B71;   /* ~3:1 — legible, but clearly unavailable */
+  --scrim: rgba(0, 0, 0, 0.5);
+  /* The lightbox always sits on the scrim, never on a theme surface,
+   * so its ink is fixed rather than theme-derived. */
+  --on-scrim: #EDE9E2;
+
+  /* ── Shape ───────────────────────────────────────────────────────────*/
+  --radius: 2px;
+  --radius-card: 4px;
+
+  /* ── Type ────────────────────────────────────────────────────────────
+   * CJK runs on the system stack so mainland visitors never wait on
+   * fonts.googleapis.com; only the Latin display face is a web font. */
+  --font-latin: "Cormorant Garamond", "Iowan Old Style", Georgia, serif;
+  --font-body: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    "Source Han Sans SC", "Noto Sans SC", system-ui, -apple-system, sans-serif;
+  --font-display: "Songti SC", "Source Han Serif SC", "Noto Serif SC",
+    "Times New Roman", serif;
+
+  /* ── Motion ──────────────────────────────────────────────────────────
+   * One rhythm for the whole product. Exits run at ~65% of entrances so an
+   * interface feels responsive rather than sluggish. */
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-in: cubic-bezier(0.5, 0, 0.85, 0.4);
+  --dur-enter: 220ms;
+  --dur-exit: 140ms;
+
+  /* ── Touch targets ───────────────────────────────────────────────────*/
+  --tap-min: 44px;
+}
+
+/* Interactive boundaries and focus, applied once so every surface inherits
+ * the same behaviour instead of each page re-declaring it. */
+:where(input, select, textarea) {
+  border-color: var(--line-strong);
+}
+
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+:where(button, [role="button"], a.btn):disabled,
+:where(button, [role="button"], a.btn)[aria-disabled="true"] {
+  background: var(--disabled-surface);
+  color: var(--disabled-text);
+  border-color: var(--line);
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-enter: 0ms;
+    --dur-exit: 0ms;
+  }
+}

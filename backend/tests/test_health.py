@@ -20,9 +20,18 @@ def test_industry_presets_are_complete_and_bilingual(client):
     styles = payload["styles"]
     assert set(presets) == {"art", "music", "math", "dance", "language", "sports", "game", "general"}
     assert set(styles) == {
-        "ink-paper", "vintage-editorial", "modern-calm", "artistic-atelier",
-        "soft-friendly", "bold-impact", "neon-night",
+        "atelier-clay", "vintage-press", "studio-ink", "harbour-calm",
+        "cedar-grove", "recital-plum", "rehearsal-rose", "arcade-lime",
     }
+    # Every style ships a matched light/dark pair except arcade-lime, whose
+    # neon accent cannot reach 4.5:1 on a light page.
+    for style_id, style in styles.items():
+        assert style["modes"], style_id
+        assert set(style["schemes"]) == set(style["modes"]), style_id
+        if style_id == "arcade-lime":
+            assert style["modes"] == ["dark"]
+        else:
+            assert style["modes"] == ["light", "dark"], style_id
     for preset in presets.values():
         assert preset["labelZh"]
         assert preset["recommendedStyleId"] in styles
@@ -44,16 +53,48 @@ def test_visual_styles_meet_wcag_aa_contrast(client):
         first, second = luminance(foreground), luminance(background)
         return (max(first, second) + 0.05) / (min(first, second) + 0.05)
 
-    pairs = (
+    # Text pairs must clear AA on every surface they can land on, including the
+    # darker/lighter alt band — the surface the old presets never checked.
+    text_pairs = (
         ("text_color", "background_color"), ("text_color", "panel_color"),
+        ("text_soft_color", "background_color"),
         ("muted_text_color", "background_color"), ("muted_text_color", "panel_color"),
+        ("muted_text_color", "background_alt_color"),
+        ("accent_color", "background_color"),
         ("accent_text_color", "accent_color"),
+        ("accent_text_color", "accent_hover_color"),
+        ("accent_text_color", "accent_pressed_color"),
+        ("secondary_accent_color", "background_color"),
         ("secondary_text_color", "secondary_accent_color"),
+        ("success_color", "background_color"),
+        ("warning_color", "background_color"),
+        ("danger_color", "background_color"),
+    )
+    # Non-text UI boundaries: WCAG 1.4.11 asks for 3:1, which every one of the
+    # seven previous presets failed (they measured 1.26-1.87).
+    ui_pairs = (
+        ("border_strong_color", "background_color"),
+        ("border_strong_color", "panel_color"),
+        ("border_strong_color", "background_alt_color"),
+        ("focus_ring_color", "background_color"),
+        ("focus_ring_color", "panel_color"),
+        ("focus_ring_color", "background_alt_color"),
     )
     for style_id, style in styles.items():
-        theme = style["visualTheme"]
-        for foreground, background in pairs:
-            assert contrast(theme[foreground], theme[background]) >= 4.5, f"{style_id}: {foreground}/{background}"
+        for scheme, theme in style["schemes"].items():
+            where = f"{style_id}/{scheme}"
+            for foreground, background in text_pairs:
+                assert contrast(theme[foreground], theme[background]) >= 4.5, \
+                    f"{where}: {foreground}/{background}"
+            for foreground, background in ui_pairs:
+                assert contrast(theme[foreground], theme[background]) >= 3.0, \
+                    f"{where}: {foreground}/{background}"
+            # A disabled control must read as unavailable, not as body copy.
+            assert contrast(theme["disabled_text_color"], theme["text_color"]) >= 1.6, where
+            # Dividers must stay visible in both modes.
+            assert contrast(theme["border_color"], theme["background_color"]) >= 1.15, where
+            # The scrim has to isolate a modal (the skill's 40-60% band).
+            assert theme["scrim_color"].startswith("rgba("), where
 
 
 def test_admin_mutation_requires_auth(client):

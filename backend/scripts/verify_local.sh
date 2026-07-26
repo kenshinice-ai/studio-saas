@@ -7,7 +7,8 @@
 #  Checks:
 #    1. Python version (≥ 3.10)
 #    2. requirements.txt is valid in the active venv
-#    3. py_compile backend/server.py backend/studiosaas/*.py
+#    3. py_compile backend/server.py backend/studiosaas/*.py, UI escaping,
+#       terminology (docs/Glossary.md), and frontend bundle checks
 #    4. Runs the legacy smoke test (test_cms.py)
 #    5. Checks migrations/media derivatives and runs tenant isolation tests
 #       when PostgreSQL is available. Set STUDIOSAAS_REQUIRE_POSTGRES=1 to
@@ -102,6 +103,13 @@ if [ -x "$PYTHON" ]; then
         fail "UI escaping check found unescaped innerHTML interpolations"
     fi
 
+    # Terminology check — one agreed word per concept (docs/Glossary.md).
+    if "$PYTHON" "$SCRIPT_DIR/scripts/check_terminology.py" >/dev/null 2>&1; then
+        ok "terminology check passes"
+    else
+        fail "terminology check found banned vocabulary (run: python backend/scripts/check_terminology.py)"
+    fi
+
     # S5 (LetsPaintCMS v6.6.5 run_tests.sh): compiled CMS bundle sanity.
     CMS_SRC="$SCRIPT_DIR/../legacy-root/src/cms-app.jsx"
     CMS_OUT="$SCRIPT_DIR/frontend/assets/cms-app.js"
@@ -114,6 +122,7 @@ if [ -x "$PYTHON" ]; then
         STATIC_JS_OK=true
         for asset in \
             "$SCRIPT_DIR/frontend/assets/admin-i18n.js" \
+            "$SCRIPT_DIR/frontend/assets/cms-i18n.js" \
             "$SCRIPT_DIR/frontend/assets/public-analytics.js" \
             "$SCRIPT_DIR/frontend/assets/public-register.js" \
             "$SCRIPT_DIR/frontend/assets/ui-common.js"; do

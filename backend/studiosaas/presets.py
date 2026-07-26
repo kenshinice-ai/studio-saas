@@ -3,41 +3,398 @@
 from __future__ import annotations
 
 
+# ── Visual style presets ─────────────────────────────────────────────────────
+#
+# Eight themes, each shipping a matched light and dark variant (except
+# arcade-lime, see below). Every value was solved for a measured WCAG contrast
+# target by docs/design/palette_gen.py rather than picked by eye; the generator
+# asserts 26 pairs per theme-mode, 390 in total. Re-run it before editing any
+# hex by hand:
+#
+#     python3 docs/design/palette_gen.py            # verify
+#     python3 docs/design/palette_gen.py --table    # inspect
+#
+# What the previous seven presets got wrong, and what changed:
+#
+#   A1  border_color measured 1.26-1.87:1 against the page on all seven,
+#       failing WCAG 1.4.11 for the input borders that used it. The token is
+#       split: border_color stays soft for dividers, border_strong_color
+#       carries interactive boundaries at >=3:1.
+#   A2  success/warning/danger had 4/2/5 unrelated values across the set with
+#       no system. They now share fixed hue anchors (152/36/6) nudged 4% toward
+#       the theme, lightness re-solved per surface, so contrast is identical
+#       everywhere.
+#   A3  five of seven accent/secondary pairs sat 140-175 degrees apart -
+#       near-complementary, the highest-tension relationship. The set now spans
+#       split-complementary, analogous, triadic and monochrome.
+#   A4  themes are designed as light/dark pairs rather than six light plus one
+#       dark, and each carries hover/pressed/disabled/focus/scrim so
+#       interaction states exist in both modes.
+#
+# arcade-lime is dark-only on purpose: a neon-lime accent cannot reach 4.5:1 on
+# a light page without turning olive, which would betray the theme's reason for
+# existing.
+#
+# studio-ink keeps a near-black accent - its authority comes from ink on paper -
+# but carries one very low-chroma slate note as its secondary, so links and
+# selected states are not left to font-weight alone.
+
 VISUAL_STYLE_PRESETS: dict[str, dict] = {
-    "ink-paper": {
-        "label": "Ink & Paper", "label_zh": "黑白纸墨", "description": "Timeless, precise, and content-led.",
-        "theme": {"color_scheme": "light", "background_color": "#F7F7F5", "panel_color": "#FFFFFF", "text_color": "#171717", "muted_text_color": "#5F6368", "accent_color": "#171717", "accent_text_color": "#FFFFFF", "secondary_accent_color": "#5F6368", "secondary_text_color": "#FFFFFF", "border_color": "#D7D7D2", "success_color": "#2F6B4F", "warning_color": "#8A5A14", "danger_color": "#A63D32", "button_style": "sharp", "font_mood": "modern"},
+    "atelier-clay": {
+        "label": "Atelier Clay", "label_zh": "陶土工坊",
+        "description": "Warm clay on a paper surface, the way a gallery wall behaves — for studios where the work should lead.",
+        "description_zh": "陶土的暖调落在纸质表面，像画廊的墙。适合让作品自己说话的工作室。",
+        "mood": "warm, tactile, gallery",
+        "harmony": "split-complementary",
+        "modes": ['light', 'dark'],
+        "themes": {
+            "light": {
+                "color_scheme": "light", "background_color": "#F3ECEA", "background_alt_color": "#EADFDB",
+                "panel_color": "#FDFDFD", "text_color": "#211B19", "text_soft_color": "#473D3A",
+                "muted_text_color": "#6E605C", "border_color": "#DFD8D5", "border_strong_color": "#917A72",
+                "accent_color": "#955037", "accent_text_color": "#FFFFFF", "accent_hover_color": "#7F442F",
+                "accent_pressed_color": "#683826", "secondary_accent_color": "#3F6B61", "secondary_text_color": "#FFFFFF",
+                "success_color": "#2E774F", "warning_color": "#8D6226", "danger_color": "#B54639",
+                "focus_ring_color": "#BA6445", "disabled_surface_color": "#E6D9D5", "disabled_text_color": "#867A76",
+                "scrim_color": "rgba(0,0,0,0.5)",
+            },
+            "dark": {
+                "color_scheme": "dark", "background_color": "#150F0D", "background_alt_color": "#3A2D28",
+                "panel_color": "#281E1B", "text_color": "#ECEAE9", "text_soft_color": "#CEC8C6",
+                "muted_text_color": "#A19693", "border_color": "#4A3D38", "border_strong_color": "#8A756D",
+                "accent_color": "#CE9985", "accent_text_color": "#14110F", "accent_hover_color": "#D8AE9E",
+                "accent_pressed_color": "#E2C4B8", "secondary_accent_color": "#75AB9E", "secondary_text_color": "#14110F",
+                "success_color": "#378D5D", "warning_color": "#A5732C", "danger_color": "#C85C4F",
+                "focus_ring_color": "#BB6646", "disabled_surface_color": "#43342E", "disabled_text_color": "#897E79",
+                "scrim_color": "rgba(0,0,0,0.66)",
+            },
+        },
     },
-    "vintage-editorial": {
-        "label": "Vintage Editorial", "label_zh": "复古编辑", "description": "Warm, cultured, and quietly distinctive.",
-        "theme": {"color_scheme": "light", "background_color": "#F2EBDD", "panel_color": "#FCF8EF", "text_color": "#2B2520", "muted_text_color": "#6F655B", "accent_color": "#8A3F2D", "accent_text_color": "#FFFFFF", "secondary_accent_color": "#50624C", "secondary_text_color": "#FFFFFF", "border_color": "#D8CBB8", "success_color": "#35634A", "warning_color": "#8A5A14", "danger_color": "#9C3F35", "button_style": "soft", "font_mood": "serif"},
+    "vintage-press": {
+        "label": "Vintage Press", "label_zh": "复古印刷",
+        "description": "The ink-and-paper restraint of an old print shop, for studios whose credibility rests on words and experience.",
+        "description_zh": "老式印刷的墨与纸，克制的暖棕。适合靠文字与经验建立信任的工作室。",
+        "mood": "editorial, cultured",
+        "harmony": "split-complementary",
+        "modes": ['light', 'dark'],
+        "themes": {
+            "light": {
+                "color_scheme": "light", "background_color": "#F3EFEA", "background_alt_color": "#EAE3DB",
+                "panel_color": "#FDFDFD", "text_color": "#221E1A", "text_soft_color": "#46403A",
+                "muted_text_color": "#6C635A", "border_color": "#DFDAD5", "border_strong_color": "#8D7F70",
+                "accent_color": "#835D33", "accent_text_color": "#FFFFFF", "accent_hover_color": "#6D4D2A",
+                "accent_pressed_color": "#573E22", "secondary_accent_color": "#4C6877", "secondary_text_color": "#FFFFFF",
+                "success_color": "#2F7951", "warning_color": "#8D6426", "danger_color": "#B6483A",
+                "focus_ring_color": "#A3743F", "disabled_surface_color": "#E6DED5", "disabled_text_color": "#857E76",
+                "scrim_color": "rgba(0,0,0,0.5)",
+            },
+            "dark": {
+                "color_scheme": "dark", "background_color": "#15120D", "background_alt_color": "#3A3228",
+                "panel_color": "#28221B", "text_color": "#F1F0EE", "text_soft_color": "#D1CECA",
+                "muted_text_color": "#A29C94", "border_color": "#4A4238", "border_strong_color": "#887B6C",
+                "accent_color": "#C49F74", "accent_text_color": "#14120F", "accent_hover_color": "#CFB08D",
+                "accent_pressed_color": "#D9C2A6", "secondary_accent_color": "#8AA5B2", "secondary_text_color": "#14120F",
+                "success_color": "#378E5E", "warning_color": "#A5752C", "danger_color": "#C85E50",
+                "focus_ring_color": "#A67740", "disabled_surface_color": "#433A2E", "disabled_text_color": "#8B847B",
+                "scrim_color": "rgba(0,0,0,0.66)",
+            },
+        },
     },
-    "modern-calm": {
-        "label": "Modern Calm", "label_zh": "现代沉静", "description": "Clear, trustworthy, and easy to navigate.",
-        "theme": {"color_scheme": "light", "background_color": "#F3F6F8", "panel_color": "#FFFFFF", "text_color": "#17212B", "muted_text_color": "#5C6B78", "accent_color": "#255C99", "accent_text_color": "#FFFFFF", "secondary_accent_color": "#147168", "secondary_text_color": "#FFFFFF", "border_color": "#D5DEE5", "success_color": "#247052", "warning_color": "#8A5A14", "danger_color": "#A63D32", "button_style": "soft", "font_mood": "modern"},
+    "studio-ink": {
+        "label": "Studio Ink", "label_zh": "黑白纸墨",
+        "description": "Near-monochrome ink on paper, with a single slate-blue note marking what can be clicked.",
+        "description_zh": "近乎黑白的纸与墨，只用一抹石板蓝标出可点击之处，内容始终是主角。",
+        "mood": "timeless, content-led",
+        "harmony": "neutral / monochrome",
+        "modes": ['light', 'dark'],
+        "themes": {
+            "light": {
+                "color_scheme": "light", "background_color": "#EFEEEE", "background_alt_color": "#E3E2E2",
+                "panel_color": "#FDFDFD", "text_color": "#1E1D1D", "text_soft_color": "#404040",
+                "muted_text_color": "#646363", "border_color": "#DADADA", "border_strong_color": "#80807F",
+                "accent_color": "#2C2A29", "accent_text_color": "#FFFFFF", "accent_hover_color": "#1C1B1A",
+                "accent_pressed_color": "#0C0C0B", "secondary_accent_color": "#545F6F", "secondary_text_color": "#FFFFFF",
+                "success_color": "#2F7850", "warning_color": "#8C6325", "danger_color": "#B54739",
+                "focus_ring_color": "#7F7C7A", "disabled_surface_color": "#DEDDDD", "disabled_text_color": "#7E7D7D",
+                "scrim_color": "rgba(0,0,0,0.5)",
+            },
+            "dark": {
+                "color_scheme": "dark", "background_color": "#121111", "background_alt_color": "#313131",
+                "panel_color": "#222221", "text_color": "#ECECEB", "text_soft_color": "#CBCBCA",
+                "muted_text_color": "#9A9A99", "border_color": "#414141", "border_strong_color": "#7B7B7A",
+                "accent_color": "#B8B3AE", "accent_text_color": "#121212", "accent_hover_color": "#C9C5C1",
+                "accent_pressed_color": "#D9D7D4", "secondary_accent_color": "#8F9BAB", "secondary_text_color": "#121212",
+                "success_color": "#378D5D", "warning_color": "#A5742C", "danger_color": "#C85D4F",
+                "focus_ring_color": "#807E7B", "disabled_surface_color": "#393939", "disabled_text_color": "#828281",
+                "scrim_color": "rgba(0,0,0,0.66)",
+            },
+        },
     },
-    "artistic-atelier": {
-        "label": "Artistic Atelier", "label_zh": "艺术工坊", "description": "Tactile, human, and gallery inspired.",
-        "theme": {"color_scheme": "light", "background_color": "#F4F0E8", "panel_color": "#FBF9F4", "text_color": "#23211D", "muted_text_color": "#6F685D", "accent_color": "#944C38", "accent_text_color": "#FFFFFF", "secondary_accent_color": "#475F55", "secondary_text_color": "#FFFFFF", "border_color": "#DCD4C6", "success_color": "#35634A", "warning_color": "#8A5A14", "danger_color": "#9C3F35", "button_style": "soft", "font_mood": "serif"},
+    "harbour-calm": {
+        "label": "Harbour Calm", "label_zh": "静谧海港",
+        "description": "Still-water blues in adjacent hues — clear, trustworthy, and quiet enough to read all day.",
+        "description_zh": "静水一般的蓝，色相彼此相邻。清楚、可信，长时间阅读也不吵。",
+        "mood": "clear, trustworthy",
+        "harmony": "analogous",
+        "modes": ['light', 'dark'],
+        "themes": {
+            "light": {
+                "color_scheme": "light", "background_color": "#E9EFF3", "background_alt_color": "#DAE4EB",
+                "panel_color": "#FDFDFD", "text_color": "#191E22", "text_soft_color": "#394148",
+                "muted_text_color": "#59656E", "border_color": "#D5DBDF", "border_strong_color": "#6F8391",
+                "accent_color": "#2E6892", "accent_text_color": "#FFFFFF", "accent_hover_color": "#27577B",
+                "accent_pressed_color": "#1F4763", "secondary_accent_color": "#2B6E64", "secondary_text_color": "#FFFFFF",
+                "success_color": "#2E7758", "warning_color": "#836723", "danger_color": "#BF3C3D",
+                "focus_ring_color": "#3A82B7", "disabled_surface_color": "#D3DFE7", "disabled_text_color": "#757F87",
+                "scrim_color": "rgba(0,0,0,0.5)",
+            },
+            "dark": {
+                "color_scheme": "dark", "background_color": "#0D1216", "background_alt_color": "#27333B",
+                "panel_color": "#1A2329", "text_color": "#EBEDEE", "text_soft_color": "#C8CCD0",
+                "muted_text_color": "#929CA2", "border_color": "#37434B", "border_strong_color": "#6A7E8B",
+                "accent_color": "#77ABCF", "accent_text_color": "#0F1215", "accent_hover_color": "#91BBD8",
+                "accent_pressed_color": "#ACCCE2", "secondary_accent_color": "#4BB1A1", "secondary_text_color": "#0F1215",
+                "success_color": "#378D67", "warning_color": "#9A7929", "danger_color": "#CB5A5A",
+                "focus_ring_color": "#3B85B9", "disabled_surface_color": "#2D3B44", "disabled_text_color": "#79848B",
+                "scrim_color": "rgba(0,0,0,0.66)",
+            },
+        },
     },
-    "soft-friendly": {
-        "label": "Soft Friendly", "label_zh": "柔和亲和", "description": "Welcoming, optimistic, and approachable.",
-        "theme": {"color_scheme": "light", "background_color": "#FFF7FB", "panel_color": "#FFFFFF", "text_color": "#2A2030", "muted_text_color": "#735F70", "accent_color": "#913564", "accent_text_color": "#FFFFFF", "secondary_accent_color": "#256B68", "secondary_text_color": "#FFFFFF", "border_color": "#E8D9E3", "success_color": "#247052", "warning_color": "#8A5A14", "danger_color": "#A63D4B", "button_style": "rounded", "font_mood": "classic"},
+    "cedar-grove": {
+        "label": "Cedar Grove", "label_zh": "雪松林",
+        "description": "Cedar green against ochre in a triadic balance — the palette of the outdoors and the training ground.",
+        "description_zh": "雪松绿配赭石黄，三分色的平衡。属于户外与训练场的配色。",
+        "mood": "grounded, healthy, active",
+        "harmony": "triadic",
+        "modes": ['light', 'dark'],
+        "themes": {
+            "light": {
+                "color_scheme": "light", "background_color": "#EBF2EE", "background_alt_color": "#DDE8E2",
+                "panel_color": "#FDFDFD", "text_color": "#1B211E", "text_soft_color": "#3B443F",
+                "muted_text_color": "#5B6861", "border_color": "#D7DEDA", "border_strong_color": "#71877C",
+                "accent_color": "#377052", "accent_text_color": "#FFFFFF", "accent_hover_color": "#2D5B43",
+                "accent_pressed_color": "#234734", "secondary_accent_color": "#885C30", "secondary_text_color": "#FFFFFF",
+                "success_color": "#2F7957", "warning_color": "#886724", "danger_color": "#AF4F37",
+                "focus_ring_color": "#458C66", "disabled_surface_color": "#D7E4DD", "disabled_text_color": "#78837D",
+                "scrim_color": "rgba(0,0,0,0.5)",
+            },
+            "dark": {
+                "color_scheme": "dark", "background_color": "#0E1411", "background_alt_color": "#2A3831",
+                "panel_color": "#1D2721", "text_color": "#F1F3F2", "text_soft_color": "#CCD2CF",
+                "muted_text_color": "#96A19B", "border_color": "#3A4841", "border_strong_color": "#6E8478",
+                "accent_color": "#6FB48F", "accent_text_color": "#101412", "accent_hover_color": "#86C0A1",
+                "accent_pressed_color": "#9ECCB4", "secondary_accent_color": "#C6996B", "secondary_text_color": "#101412",
+                "success_color": "#378E65", "warning_color": "#9E792A", "danger_color": "#C66149",
+                "focus_ring_color": "#479169", "disabled_surface_color": "#314139", "disabled_text_color": "#7E8A83",
+                "scrim_color": "rgba(0,0,0,0.66)",
+            },
+        },
     },
-    "bold-impact": {
-        "label": "Bold Impact", "label_zh": "强烈冲击", "description": "Energetic, confident, and action focused.",
-        "theme": {"color_scheme": "light", "background_color": "#FFF7ED", "panel_color": "#FFFFFF", "text_color": "#18181B", "muted_text_color": "#68625D", "accent_color": "#B83B0B", "accent_text_color": "#FFFFFF", "secondary_accent_color": "#1D4ED8", "secondary_text_color": "#FFFFFF", "border_color": "#E7D7C7", "success_color": "#247052", "warning_color": "#8A5A14", "danger_color": "#B42318", "button_style": "sharp", "font_mood": "modern"},
+    "recital-plum": {
+        "label": "Recital Plum", "label_zh": "独奏紫",
+        "description": "Stage-curtain plum with a neighbouring violet, for recitals, graded exams and performance.",
+        "description_zh": "舞台幕布般的紫，衬以邻近的蓝紫。适合演出、考级与表演路线。",
+        "mood": "refined, performative",
+        "harmony": "analogous",
+        "modes": ['light', 'dark'],
+        "themes": {
+            "light": {
+                "color_scheme": "light", "background_color": "#F0EBF2", "background_alt_color": "#E6DCE9",
+                "panel_color": "#FDFDFD", "text_color": "#1D191F", "text_soft_color": "#443B46",
+                "muted_text_color": "#695E6D", "border_color": "#DCD6DE", "border_strong_color": "#8A7890",
+                "accent_color": "#89469D", "accent_text_color": "#FFFFFF", "accent_hover_color": "#773D88",
+                "accent_pressed_color": "#643373", "secondary_accent_color": "#5656B7", "secondary_text_color": "#FFFFFF",
+                "success_color": "#2E765B", "warning_color": "#915F27", "danger_color": "#B9413B",
+                "focus_ring_color": "#A360B8", "disabled_surface_color": "#E2D6E5", "disabled_text_color": "#827886",
+                "scrim_color": "rgba(0,0,0,0.5)",
+            },
+            "dark": {
+                "color_scheme": "dark", "background_color": "#130E15", "background_alt_color": "#352A38",
+                "panel_color": "#251C27", "text_color": "#E9E6E9", "text_soft_color": "#CAC5CB",
+                "muted_text_color": "#9C939F", "border_color": "#453A48", "border_strong_color": "#847189",
+                "accent_color": "#C096CC", "accent_text_color": "#131014", "accent_hover_color": "#CEAED8",
+                "accent_pressed_color": "#DDC6E3", "secondary_accent_color": "#9C9CD1", "secondary_text_color": "#131014",
+                "success_color": "#368C6B", "warning_color": "#AB702D", "danger_color": "#C95A54",
+                "focus_ring_color": "#A361B8", "disabled_surface_color": "#3D3141", "disabled_text_color": "#857B88",
+                "scrim_color": "rgba(0,0,0,0.66)",
+            },
+        },
     },
-    "neon-night": {
-        "label": "Neon Night", "label_zh": "霓虹夜色", "description": "Digital, immersive, and high energy.",
-        "theme": {"color_scheme": "dark", "background_color": "#0B1020", "panel_color": "#141A2E", "text_color": "#F5F7FF", "muted_text_color": "#AAB3CC", "accent_color": "#A3FF12", "accent_text_color": "#10140A", "secondary_accent_color": "#8B5CF6", "secondary_text_color": "#0B0714", "border_color": "#36415F", "success_color": "#32D583", "warning_color": "#FDB022", "danger_color": "#F97066", "button_style": "sharp", "font_mood": "modern"},
+    "rehearsal-rose": {
+        "label": "Rehearsal Rose", "label_zh": "排练玫瑰",
+        "description": "Rehearsal-room rose against a moss green: kinetic without shouting.",
+        "description_zh": "排练厅的玫红，配一抹苔绿。有动势，但不刺眼。",
+        "mood": "expressive, warm, kinetic",
+        "harmony": "split-complementary",
+        "modes": ['light', 'dark'],
+        "themes": {
+            "light": {
+                "color_scheme": "light", "background_color": "#F3EAED", "background_alt_color": "#EADBDF",
+                "panel_color": "#FDFDFD", "text_color": "#20181A", "text_soft_color": "#473A3E",
+                "muted_text_color": "#6E5D62", "border_color": "#DFD5D8", "border_strong_color": "#93767F",
+                "accent_color": "#A23F5D", "accent_text_color": "#FFFFFF", "accent_hover_color": "#8C3650",
+                "accent_pressed_color": "#762E44", "secondary_accent_color": "#336D44", "secondary_text_color": "#FFFFFF",
+                "success_color": "#2E774D", "warning_color": "#8E6026", "danger_color": "#B54439",
+                "focus_ring_color": "#BE5978", "disabled_surface_color": "#E6D5D9", "disabled_text_color": "#87777C",
+                "scrim_color": "rgba(0,0,0,0.5)",
+            },
+            "dark": {
+                "color_scheme": "dark", "background_color": "#150D10", "background_alt_color": "#3A282E",
+                "panel_color": "#281B1F", "text_color": "#E8E5E6", "text_soft_color": "#CBC4C6",
+                "muted_text_color": "#A09296", "border_color": "#4A383E", "border_strong_color": "#8C6F77",
+                "accent_color": "#D193A5", "accent_text_color": "#140F11", "accent_hover_color": "#DCACBA",
+                "accent_pressed_color": "#E6C5CF", "secondary_accent_color": "#61B077", "secondary_text_color": "#140F11",
+                "success_color": "#368C5A", "warning_color": "#A7722C", "danger_color": "#C85B50",
+                "focus_ring_color": "#BE5977", "disabled_surface_color": "#432E35", "disabled_text_color": "#88797D",
+                "scrim_color": "rgba(0,0,0,0.66)",
+            },
+        },
+    },
+    "arcade-lime": {
+        "label": "Arcade Lime", "label_zh": "街机青柠",
+        "description": "Arcade-screen lime, dark only: on a light page it turns olive and loses the reason it exists.",
+        "description_zh": "街机屏幕上的荧光青柠，只做暗色——放到浅色底上会变成橄榄绿，失去存在的理由。",
+        "mood": "digital, high energy",
+        "harmony": "split-complementary",
+        "modes": ['dark'],
+        "themes": {
+            "dark": {
+                "color_scheme": "dark", "background_color": "#12180B", "background_alt_color": "#323F23",
+                "panel_color": "#222C17", "text_color": "#FCFDFC", "text_soft_color": "#D7DBD4",
+                "muted_text_color": "#A0A996", "border_color": "#424F33", "border_strong_color": "#788C60",
+                "accent_color": "#75B926", "accent_text_color": "#12160E", "accent_hover_color": "#88D42F",
+                "accent_pressed_color": "#99DA4C", "secondary_accent_color": "#AD97E2", "secondary_text_color": "#12160E",
+                "success_color": "#389164", "warning_color": "#A5792C", "danger_color": "#C86350",
+                "focus_ring_color": "#5E991B", "disabled_surface_color": "#3A4928", "disabled_text_color": "#88937B",
+                "scrim_color": "rgba(0,0,0,0.66)",
+            },
+        },
     },
 }
 
+
+# Every industry now points at a theme designed for it rather than borrowing
+# one. Music no longer inherits the warm-brown editorial palette, and language
+# gets its own analogous set instead of sharing dance's.
 INDUSTRY_STYLE_RECOMMENDATIONS = {
-    "art": "artistic-atelier", "music": "vintage-editorial", "math": "modern-calm",
-    "dance": "soft-friendly", "language": "soft-friendly", "sports": "bold-impact",
-    "game": "neon-night", "general": "modern-calm",
+    "art": "atelier-clay", "music": "recital-plum", "math": "harbour-calm",
+    "dance": "rehearsal-rose", "language": "harbour-calm", "sports": "cedar-grove",
+    "game": "arcade-lime", "general": "vintage-press",
+}
+
+# Shape is a presentation choice, not a palette choice, so it lives beside the
+# theme rather than inside it — a studio can pick sharp buttons on any palette.
+STYLE_SHAPE = {
+    "atelier-clay":   {"button_style": "soft",    "font_mood": "serif"},
+    "vintage-press":  {"button_style": "soft",    "font_mood": "serif"},
+    "studio-ink":     {"button_style": "sharp",   "font_mood": "modern"},
+    "harbour-calm":   {"button_style": "soft",    "font_mood": "modern"},
+    "cedar-grove":    {"button_style": "soft",    "font_mood": "modern"},
+    "recital-plum":   {"button_style": "rounded", "font_mood": "classic"},
+    "rehearsal-rose": {"button_style": "rounded", "font_mood": "classic"},
+    "arcade-lime":    {"button_style": "sharp",   "font_mood": "modern"},
+}
+
+DEFAULT_STYLE_ID = "vintage-press"
+
+# 4-3: the API already reported which colour relationship a theme is built on,
+# and nothing showed it. It is the single most useful fact for an owner choosing
+# between eight palettes, so it needs a name a human reads rather than the
+# generator's slug.
+HARMONY_LABELS: dict[str, dict[str, str]] = {
+    "split-complementary": {"zh": "分裂互补", "en": "Split-complementary"},
+    "analogous": {"zh": "邻近色", "en": "Analogous"},
+    "triadic": {"zh": "三分色", "en": "Triadic"},
+    "neutral / monochrome": {"zh": "单色中性", "en": "Neutral / monochrome"},
+}
+
+
+def harmony_label(harmony: str) -> dict[str, str]:
+    """Return the human-readable name of a colour relationship."""
+
+    return dict(HARMONY_LABELS.get(harmony, {"zh": harmony, "en": harmony}))
+
+
+def style_theme(style_id: str, scheme: str = "light") -> dict:
+    """Return one style's flat token map for a given light/dark scheme.
+
+    Falls back to the style's only available mode when the requested one does
+    not exist (arcade-lime ships dark-only), and to the default style when the
+    id is unknown, so a stale tenant setting can never render an empty theme.
+    """
+
+    preset = VISUAL_STYLE_PRESETS.get(style_id) or VISUAL_STYLE_PRESETS[DEFAULT_STYLE_ID]
+    resolved_id = style_id if style_id in VISUAL_STYLE_PRESETS else DEFAULT_STYLE_ID
+    themes = preset["themes"]
+    mode = scheme if scheme in themes else preset["modes"][0]
+    return {
+        "style_id": resolved_id,
+        "theme_mode": "preset",
+        **STYLE_SHAPE.get(resolved_id, STYLE_SHAPE[DEFAULT_STYLE_ID]),
+        **themes[mode],
+    }
+
+
+# B1: per-industry section copy. The template shipped one set of headings
+# to every tenant, so five live studios all said 「总有一种，适合此刻的你」.
+# A parent comparing two of them saw the same sentence twice.
+INDUSTRY_SECTION_COPY: dict[str, dict] = {
+    "art": {
+        "courses_title": {"zh": "总有一种画法，适合此刻的你", "en": "There is a way of making that fits you now"},
+        "courses_lead": {"zh": "从第一笔到完整作品，按你的节奏推进。", "en": "From a first mark to a finished piece, at your own pace."},
+        "gallery_title": {"zh": "他们画出来的东西", "en": "What our students have made"},
+        "gallery_lead": {"zh": "学员在这里完成的作品，经本人同意后展出。", "en": "Made here, shared with each student's consent."},
+        "faq_title": {"zh": "动笔之前，先了解这些", "en": "Worth knowing before you start"},
+    },
+    "music": {
+        "courses_title": {"zh": "总有一种节奏，适合此刻的你", "en": "There is a tempo that fits you now"},
+        "courses_lead": {"zh": "从识谱到完整曲目，按你的节奏推进。", "en": "From reading notes to a finished piece, at your own pace."},
+        "gallery_title": {"zh": "他们弹出来的声音", "en": "What our students have played"},
+        "gallery_lead": {"zh": "学员的演奏与曲目记录，经本人同意后展出。", "en": "Recordings and repertoire, shared with each student's consent."},
+        "faq_title": {"zh": "坐上琴凳之前，先了解这些", "en": "Worth knowing before the first lesson"},
+    },
+    "dance": {
+        "courses_title": {"zh": "总有一支舞，适合此刻的你", "en": "There is a style that fits you now"},
+        "courses_lead": {"zh": "从基本功到成套编排，按你的节奏推进。", "en": "From fundamentals to full choreography, at your own pace."},
+        "gallery_title": {"zh": "他们跳出来的样子", "en": "What our dancers have performed"},
+        "gallery_lead": {"zh": "课堂与演出的录像，经本人同意后展出。", "en": "Class and stage recordings, shared with each dancer's consent."},
+        "faq_title": {"zh": "换上舞鞋之前，先了解这些", "en": "Worth knowing before the first class"},
+    },
+    "math": {
+        "courses_title": {"zh": "总有一条路径，适合此刻的进度", "en": "There is a path that fits where you are now"},
+        "courses_lead": {"zh": "先找准知识缺口，再按步骤补齐。", "en": "Find the gaps first, then close them step by step."},
+        "gallery_title": {"zh": "他们的进步轨迹", "en": "How our learners have progressed"},
+        "gallery_lead": {"zh": "阶段性练习与测评记录，经本人同意后展出。", "en": "Exercises and assessments, shared with each learner's consent."},
+        "faq_title": {"zh": "开始补课之前，先了解这些", "en": "Worth knowing before you start"},
+    },
+    "language": {
+        "courses_title": {"zh": "总有一种开口方式，适合此刻的你", "en": "There is a way in that fits you now"},
+        "courses_lead": {"zh": "从日常表达到考试准备，按你的节奏推进。", "en": "From everyday conversation to exam prep, at your own pace."},
+        "gallery_title": {"zh": "他们说出来的样子", "en": "How our learners are speaking now"},
+        "gallery_lead": {"zh": "口语与作业记录，经本人同意后展出。", "en": "Speaking and coursework records, shared with each learner's consent."},
+        "faq_title": {"zh": "开口之前，先了解这些", "en": "Worth knowing before you start"},
+    },
+    "sports": {
+        "courses_title": {"zh": "总有一种训练，适合此刻的你", "en": "There is a programme that fits you now"},
+        "courses_lead": {"zh": "从体能基础到比赛准备，按你的节奏推进。", "en": "From base fitness to competition, at your own pace."},
+        "gallery_title": {"zh": "他们练出来的成绩", "en": "What our athletes have achieved"},
+        "gallery_lead": {"zh": "训练与比赛记录，经本人同意后展出。", "en": "Training and competition records, shared with each athlete's consent."},
+        "faq_title": {"zh": "开始训练之前，先了解这些", "en": "Worth knowing before your first session"},
+    },
+    "game": {
+        "courses_title": {"zh": "总有一个方向，适合此刻的你", "en": "There is a track that fits you now"},
+        "courses_lead": {"zh": "从上手到独立完成作品，按你的节奏推进。", "en": "From first build to shipping your own, at your own pace."},
+        "gallery_title": {"zh": "他们做出来的东西", "en": "What our students have built"},
+        "gallery_lead": {"zh": "学员完成的项目，经本人同意后展出。", "en": "Projects built here, shared with each student's consent."},
+        "faq_title": {"zh": "开始之前，先了解这些", "en": "Worth knowing before you start"},
+    },
+    "general": {
+        "courses_title": {"zh": "总有一种节奏，适合此刻的你", "en": "There is a pace that fits you now"},
+        "courses_lead": {"zh": "从零基础到进阶，按你的节奏推进。", "en": "From first steps to advanced, at your own pace."},
+        "gallery_title": {"zh": "他们完成的记录", "en": "What our students have made"},
+        "gallery_lead": {"zh": "学员在这里完成的记录，经本人同意后展出。", "en": "Made here, shared with each student's consent."},
+        "faq_title": {"zh": "开始之前，先了解这些", "en": "Worth knowing before you start"},
+    },
 }
 
 
@@ -67,11 +424,13 @@ INDUSTRY_PRESETS: dict[str, dict] = {
         "label": "Art",
         "label_zh": "艺术",
         "layout": "editorial",
-        "slogan": "Create boldly. Grow visibly.",
+        "slogan": "Create boldly. Grow visibly.", "slogan_zh": "大胆创作，让成长看得见。",
         "hero": {
             "title": {"zh": "让创意被看见，让成长有作品。", "en": "Create boldly. Grow visibly."},
             "subtitle": {"zh": "从兴趣启发到系统表达，记录每一次真实成长。", "en": "From first ideas to confident expression, make every stage of growth visible."},
         },
+        "venue_noun": {"zh": "画室", "en": "studio"},
+        "work_noun": {"zh": "作品", "en": "work", "en_plural": "works"},
         "registration_title": "Creative Preferences",
         "registration_title_zh": "告诉我们学员喜欢怎样创作",
         "copy_pack": {"portal_label": "Student Art Portal", "register_intro": "Tell us about the student and their creative goals."},
@@ -85,8 +444,10 @@ INDUSTRY_PRESETS: dict[str, dict] = {
     },
     "music": {
         "label": "Music", "label_zh": "音乐", "layout": "performance",
-        "slogan": "Find your rhythm. Make every practice count.",
+        "slogan": "Find your rhythm. Make every practice count.", "slogan_zh": "找到自己的节奏，让每次练习都算数。",
         "hero": {"title": {"zh": "找到自己的节奏，让每次练习都有回应。", "en": "Find your rhythm. Make every practice count."}, "subtitle": {"zh": "清晰的目标、适合的节奏与看得见的音乐成长。", "en": "Clear goals, the right pace, and musical progress you can hear."}},
+        "venue_noun": {"zh": "琴行", "en": "studio"},
+        "work_noun": {"zh": "曲目", "en": "piece", "en_plural": "pieces"},
         "registration_title": "Music Goals", "registration_title_zh": "告诉我们学员的音乐目标",
         "copy_pack": {"portal_label": "Music Student Portal", "register_intro": "Tell us about the student and their music goals."},
         "register_intro_zh": "告诉我们乐器、当前水平和希望达成的音乐目标。",
@@ -99,8 +460,10 @@ INDUSTRY_PRESETS: dict[str, dict] = {
     },
     "math": {
         "label": "Math", "label_zh": "数学", "layout": "structured",
-        "slogan": "Understand the method. Build lasting confidence.",
+        "slogan": "Understand the method. Build lasting confidence.", "slogan_zh": "理解方法，建立长久的信心。",
         "hero": {"title": {"zh": "理解方法，建立信心，稳步进阶。", "en": "Understand the method. Build lasting confidence."}, "subtitle": {"zh": "找准知识缺口，用清晰方法建立可持续的学习能力。", "en": "Find the gaps, learn a clear method, and build skills that last."}},
+        "venue_noun": {"zh": "教室", "en": "centre"},
+        "work_noun": {"zh": "练习", "en": "exercise", "en_plural": "exercises"},
         "registration_title": "Learning Focus", "registration_title_zh": "告诉我们目前的学习阶段与难点",
         "copy_pack": {"portal_label": "Math Learning Portal", "register_intro": "Tell us about the learner and the topics they need help with."},
         "register_intro_zh": "告诉我们年级、当前难点与希望提升的方向。",
@@ -113,8 +476,10 @@ INDUSTRY_PRESETS: dict[str, dict] = {
     },
     "dance": {
         "label": "Dance", "label_zh": "舞蹈", "layout": "expressive",
-        "slogan": "Move with confidence. Grow through practice.",
+        "slogan": "Move with confidence. Grow through practice.", "slogan_zh": "自信地舞动，在训练中成长。",
         "hero": {"title": {"zh": "在节奏中表达，在训练中成长。", "en": "Move with confidence. Grow through practice."}, "subtitle": {"zh": "兼顾技术、体态与舞台表达，让每一步更自信。", "en": "Build technique, presence, and confidence in every movement."}},
+        "venue_noun": {"zh": "舞蹈教室", "en": "studio"},
+        "work_noun": {"zh": "舞蹈录像", "en": "recording", "en_plural": "recordings"},
         "registration_title": "Dance Preferences", "registration_title_zh": "告诉我们舞者的年龄、经验与目标",
         "copy_pack": {"portal_label": "Dance Student Portal", "register_intro": "Tell us about the dancer and their goals."},
         "register_intro_zh": "告诉我们喜欢的舞种、当前水平与训练目标。",
@@ -127,8 +492,10 @@ INDUSTRY_PRESETS: dict[str, dict] = {
     },
     "language": {
         "label": "Language", "label_zh": "语言", "layout": "friendly",
-        "slogan": "Find your voice. Connect with the world.",
+        "slogan": "Find your voice. Connect with the world.", "slogan_zh": "开口表达，连接更大的世界。",
         "hero": {"title": {"zh": "开口表达，连接更大的世界。", "en": "Find your voice. Connect with the world."}, "subtitle": {"zh": "从真实沟通出发，建立能够长期使用的语言能力。", "en": "Build practical language skills through real communication."}},
+        "venue_noun": {"zh": "教室", "en": "centre"},
+        "work_noun": {"zh": "练习", "en": "exercise", "en_plural": "exercises"},
         "registration_title": "Language Goals", "registration_title_zh": "告诉我们学习语言与当前水平",
         "copy_pack": {"portal_label": "Language Student Portal", "register_intro": "Tell us about the learner and their language goals."},
         "register_intro_zh": "告诉我们目标语言、当前水平与使用场景。",
@@ -141,8 +508,10 @@ INDUSTRY_PRESETS: dict[str, dict] = {
     },
     "sports": {
         "label": "Sports", "label_zh": "运动", "layout": "energetic",
-        "slogan": "Train with purpose. Grow stronger every session.",
+        "slogan": "Train with purpose. Grow stronger every session.", "slogan_zh": "有目标地训练，一次比一次更强。",
         "hero": {"title": {"zh": "有目标地训练，一次比一次更强。", "en": "Train with purpose. Grow stronger every session."}, "subtitle": {"zh": "科学训练、清晰反馈与持续进步。", "en": "Purposeful coaching, clear feedback, and steady progress."}},
+        "venue_noun": {"zh": "训练中心", "en": "club"},
+        "work_noun": {"zh": "训练记录", "en": "session record", "en_plural": "session records"},
         "registration_title": "Training Goals", "registration_title_zh": "告诉我们运动项目、水平与训练目标",
         "copy_pack": {"portal_label": "Sports Student Portal", "register_intro": "Tell us about the athlete and their training goals."},
         "register_intro_zh": "告诉我们运动项目、当前水平与训练目标。",
@@ -155,8 +524,10 @@ INDUSTRY_PRESETS: dict[str, dict] = {
     },
     "game": {
         "label": "Game", "label_zh": "游戏与编程", "layout": "digital",
-        "slogan": "Play, think, create, and level up.",
+        "slogan": "Play, think, create, and level up.", "slogan_zh": "在玩中思考、创造与升级。",
         "hero": {"title": {"zh": "在游戏中思考、创造与协作。", "en": "Play, think, create, and level up."}, "subtitle": {"zh": "把兴趣转化为策略、编程、创造力与团队能力。", "en": "Turn play into strategy, coding, creativity, and teamwork."}},
+        "venue_noun": {"zh": "工作室", "en": "studio"},
+        "work_noun": {"zh": "项目", "en": "project", "en_plural": "projects"},
         "registration_title": "Game Learning Goals", "registration_title_zh": "告诉我们感兴趣的游戏、编程或策略方向",
         "copy_pack": {"portal_label": "Game Student Portal", "register_intro": "Tell us about the player and their learning goals."},
         "register_intro_zh": "告诉我们感兴趣的方向、当前经验与学习目标。",
@@ -169,8 +540,10 @@ INDUSTRY_PRESETS: dict[str, dict] = {
     },
     "general": {
         "label": "General", "label_zh": "通用", "layout": "neutral",
-        "slogan": "A learning path that fits every student.",
+        "slogan": "A learning path that fits every student.", "slogan_zh": "适合每个学员的成长路径。",
         "hero": {"title": {"zh": "适合每个学员的成长路径。", "en": "A learning path that fits every student."}, "subtitle": {"zh": "从兴趣和目标出发，在适合的节奏中稳步成长。", "en": "Start with the learner's interests and goals, then grow at the right pace."}},
+        "venue_noun": {"zh": "工作室", "en": "studio"},
+        "work_noun": {"zh": "作品", "en": "work", "en_plural": "works"},
         "registration_title": "Student Preferences", "registration_title_zh": "告诉我们学员的兴趣与学习目标",
         "copy_pack": {"portal_label": "Student Portal", "register_intro": "Tell us about the student and their goals."},
         "register_intro_zh": "告诉我们学员的兴趣、经验与希望达成的目标。",
@@ -187,11 +560,7 @@ INDUSTRY_PRESETS: dict[str, dict] = {
 # recommended starting style; tenants can switch style without changing copy.
 for _industry_key, _style_id in INDUSTRY_STYLE_RECOMMENDATIONS.items():
     INDUSTRY_PRESETS[_industry_key]["recommended_style_id"] = _style_id
-    INDUSTRY_PRESETS[_industry_key]["theme"] = {
-        "style_id": _style_id,
-        "theme_mode": "preset",
-        **VISUAL_STYLE_PRESETS[_style_id]["theme"],
-    }
+    INDUSTRY_PRESETS[_industry_key]["theme"] = style_theme(_style_id)
 
 
 def public_industry_presets() -> dict[str, dict]:
@@ -204,12 +573,18 @@ def public_industry_presets() -> dict[str, dict]:
             "labelZh": preset["label_zh"],
             "layout": preset["layout"],
             "slogan": preset["slogan"],
+            "sloganZh": preset["slogan_zh"],
             "recommendedStyleId": preset["recommended_style_id"],
             "portalLabel": preset["copy_pack"]["portal_label"],
             "registerIntro": preset["copy_pack"]["register_intro"],
             "registerIntroZh": preset["register_intro_zh"],
             "registrationTitle": preset["registration_title"],
             "registrationTitleZh": preset["registration_title_zh"],
+            # The public pages substitute these into %VENUE% / %WORK% / %WORKS%.
+            # Without them the shared template calls every tenant a 画室 with
+            # 作品, which is wrong for the piano, dance and game studios.
+            "venueNoun": dict(preset["venue_noun"]),
+            "workNoun": dict(preset["work_noun"]),
             "localizedCopy": {
                 "hero_title": preset["hero"]["title"],
                 "hero_subtitle": preset["hero"]["subtitle"],
@@ -217,6 +592,7 @@ def public_industry_presets() -> dict[str, dict]:
                 "secondary_cta": {"zh": "查看课程", "en": "Explore Programs"},
                 "registration_title": {"zh": preset["registration_title_zh"], "en": preset["registration_title"]},
                 "registration_intro": {"zh": preset["register_intro_zh"], "en": preset["copy_pack"]["register_intro"]},
+                **INDUSTRY_SECTION_COPY.get(key, INDUSTRY_SECTION_COPY["general"]),
             },
             "visualTheme": dict(preset["theme"]),
             "registrationProfile": {"title": preset["registration_title"], "fields": [dict(field) for field in preset["fields"]]},
@@ -225,14 +601,24 @@ def public_industry_presets() -> dict[str, dict]:
 
 
 def public_visual_style_presets() -> dict[str, dict]:
-    """Return curated, client-safe visual styles."""
+    """Return curated, client-safe visual styles with both scheme variants."""
 
     result: dict[str, dict] = {}
     for key, preset in VISUAL_STYLE_PRESETS.items():
         result[key] = {
             "label": preset["label"],
             "labelZh": preset["label_zh"],
+            # 2-2: both languages ship, so the panel is not left translating an
+            # English sentence through the admin dictionary at render time.
             "description": preset["description"],
-            "visualTheme": {"style_id": key, "theme_mode": "preset", **preset["theme"]},
+            "descriptionZh": preset["description_zh"],
+            "mood": preset["mood"],
+            "harmony": preset["harmony"],
+            "harmonyLabel": harmony_label(preset["harmony"]),
+            "modes": list(preset["modes"]),
+            # The editor needs both variants so it can preview a scheme switch
+            # without another round trip.
+            "schemes": {mode: style_theme(key, mode) for mode in preset["modes"]},
+            "visualTheme": style_theme(key, preset["modes"][0]),
         }
     return result

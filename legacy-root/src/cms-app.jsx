@@ -185,20 +185,27 @@ function BarChart({ items, color='#6366f1', h=140, prefix='' }) {
 
 /* ═══════════════════ BALANCE BADGE ════════════════════════════ */
 /* B5 (v4.7): 统一空状态组件 — 图标 + 主文 + 次文 */
-function EmptyState({icon='📭', main='暂无数据', sub=''}) {
+function EmptyState({icon=null, main='暂无数据', sub='', action=null, onAction=null}) {
+    const glyph = icon || <Icon name="inbox" className="w-8 h-8"/>;
     return (
         <div className="p-8 text-center">
-            <p className="text-4xl mb-2">{icon}</p>
+            <div className="flex justify-center mb-2 text-gray-300">{glyph}</div>
             <p className="font-bold text-gray-500 text-sm">{main}</p>
-            {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
+            {sub && <p className="text-xs text-gray-400 mt-1 max-w-xs mx-auto leading-relaxed">{sub}</p>}
+            {action && onAction && (
+                <button onClick={onAction}
+                    className="mt-4 px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-bold bg-indigo-50 active:bg-indigo-100 text-indigo-700 border border-indigo-200">
+                    {action}
+                </button>
+            )}
         </div>
     );
 }
 
 function BalBadge({ n }) {
     const v = parseInt(n,10)||0;
-    if (v===0) return <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-red-100 text-red-700 whitespace-nowrap">0 ⚠️</span>;
-    if (v<=2)  return <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-orange-100 text-orange-700 whitespace-nowrap">{v} ⚡</span>;
+    if (v===0) return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-red-100 text-red-700 whitespace-nowrap"><Icon name="warning" className="w-3.5 h-3.5"/>0</span>;
+    if (v<=2)  return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-orange-100 text-orange-700 whitespace-nowrap"><Icon name="bolt" className="w-3.5 h-3.5"/>{v}</span>;
     if (v<=4)  return <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-100 text-amber-700 whitespace-nowrap">{v}</span>;
     return           <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-green-100 text-green-700 whitespace-nowrap">{v}</span>;
 }
@@ -210,7 +217,10 @@ function Toast({ msg, type, action, onDone }) {
     const bg = type==='error'?'bg-red-600':type==='warn'?'bg-amber-500':'bg-gray-900';
     return (
         <div className={`toast toast-bottom fixed left-1/2 -translate-x-1/2 z-[999] ${bg} text-white px-5 py-3 rounded-2xl shadow-2xl text-sm font-bold max-w-xs text-center`}>
-            <div>{type==='error'?'❌':type==='warn'?'⚠️':'✅'} {msg}</div>
+            <div className="inline-flex items-center gap-2 justify-center">
+                <Icon name={type==='error'?'warning':type==='warn'?'bolt':'check'} className="w-4 h-4"/>
+                <span>{msg}</span>
+            </div>
             {action && (
                 <button onClick={()=>{action.onClick(); onDone();}}
                     className="mt-2 w-full bg-white/20 active:bg-white/30 rounded-lg py-1.5 text-xs font-bold">
@@ -222,21 +232,58 @@ function Toast({ msg, type, action, onDone }) {
 }
 
 /* ═══════════════════ Fix #8: CUSTOM CONFIRM DIALOG ═══════════ */
+/* The one dialog in the app.
+ *
+ * There used to be two: this component (20+ call sites) and bare
+ * window.alert / window.confirm — and the single most destructive action,
+ * restoring a backup over live data, was on the native one. `requireText`
+ * makes a genuinely irreversible action ask the operator to type a word, and
+ * `acknowledge` renders a one-button notice so alert() has a home too. */
 function ConfirmDialog({ dialog, onClose }) {
+    const [typed, setTyped] = useState('');
+    useEffect(() => { setTyped(dialog?.promptDefault || ''); }, [dialog]);
     if (!dialog) return null;
+    const needsText = Boolean(dialog.requireText);
+    const isPrompt = Boolean(dialog.prompt);
+    const ready = needsText
+        ? typed.trim() === String(dialog.requireText).trim()
+        : (!isPrompt || !dialog.promptRequired || Boolean(typed.trim()));
+    const confirmLabel = dialog.confirmText || (dialog.acknowledge ? '知道了 / OK' : '确认');
     return (
-        <div className="fixed inset-0 bg-black/50 z-[95] flex items-center justify-center p-4" onClick={onClose}>
+        <div className="fixed inset-0 bg-black/50 z-[95] flex items-center justify-center p-4" onClick={onClose}
+             role="dialog" aria-modal="true">
             <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl anim" onClick={e=>e.stopPropagation()}>
                 {dialog.title && <p className="font-bold text-gray-800 mb-2">{dialog.title}</p>}
-                <p className="text-gray-500 text-sm leading-relaxed mb-6">{dialog.message}</p>
+                <p className="text-gray-500 text-sm leading-relaxed mb-4 whitespace-pre-line">{dialog.message}</p>
+                {needsText && (
+                    <div className="mb-5">
+                        <label className="block text-xs font-bold text-gray-600 mb-1.5">
+                            请输入 <span className="font-mono text-red-600">{dialog.requireText}</span> 以确认
+                        </label>
+                        <input value={typed} onChange={e=>setTyped(e.target.value)} autoFocus
+                            className="w-full p-2.5 border border-gray-300 rounded-xl outline-none text-sm focus:ring-2 focus:ring-red-400"/>
+                    </div>
+                )}
+                {isPrompt && !needsText && (
+                    <div className="mb-5">
+                        {dialog.promptLabel && <label className="block text-xs font-bold text-gray-600 mb-1.5">{dialog.promptLabel}</label>}
+                        <input value={typed} onChange={e=>setTyped(e.target.value)} autoFocus
+                            placeholder={dialog.promptPlaceholder || ''}
+                            onKeyDown={e=>{ if (e.key==='Enter' && ready) { dialog.onConfirm(typed); onClose(); } }}
+                            className="w-full p-2.5 border border-gray-300 rounded-xl outline-none text-sm focus:ring-2 focus:ring-indigo-400"/>
+                    </div>
+                )}
                 <div className="flex gap-3">
-                    <button onClick={onClose}
-                        className="flex-1 py-3 bg-gray-100 active:bg-gray-200 text-gray-700 font-bold rounded-xl text-sm">
-                        取消
-                    </button>
-                    <button onClick={() => { dialog.onConfirm(); onClose(); }}
-                        className={`flex-1 py-3 font-bold rounded-xl text-sm text-white ${dialog.danger?'bg-red-600 active:bg-red-700':'bg-indigo-600 active:bg-indigo-700'}`}>
-                        {dialog.confirmText || '确认'}
+                    {!dialog.acknowledge && (
+                        <button onClick={onClose}
+                            className="flex-1 py-3 bg-gray-100 active:bg-gray-200 text-gray-700 font-bold rounded-xl text-sm">
+                            取消
+                        </button>
+                    )}
+                    <button onClick={() => { if (!ready) return; if (dialog.onConfirm) dialog.onConfirm(isPrompt ? typed : undefined); onClose(); }}
+                        disabled={!ready}
+                        className={`flex-1 py-3 font-bold rounded-xl text-sm text-white ${dialog.danger?'bg-red-600 active:bg-red-700':'bg-indigo-600 active:bg-indigo-700'} ${ready?'':'opacity-40 cursor-not-allowed'}`}>
+                        {confirmLabel}
                     </button>
                 </div>
             </div>
@@ -272,7 +319,7 @@ function StudentPicker({ students, value, onChange, placeholder='-- 选择学员
     return (
         <div ref={ref} className="relative">
             <div className="flex items-center border border-gray-300 rounded-xl bg-white focus-within:ring-2 focus-within:ring-indigo-500 overflow-hidden">
-                <span className="pl-3 text-gray-400 flex-shrink-0">🔍</span>
+                <span className="pl-3 text-gray-400 flex-shrink-0"><Icon name="search"/></span>
                 <input type="text"
                     placeholder={sel ? sel.name : placeholder}
                     value={open ? q : (sel ? sel.name : '')}
@@ -337,12 +384,79 @@ function PhotoAvatar({ photo, name, size='sm' }) {
     return <div className={`${cls} rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold flex-shrink-0 border-2 border-white shadow-sm`}>{initials}</div>;
 }
 
+/* ═══════════════════ ICONS ══════════════════════════════════
+ * Emoji were doing the job of icons across the app: their glyphs differ
+ * sharply between Windows, Android and macOS, they cannot take the brand
+ * colour or a stroke weight, and a screen reader reads "" aloud as
+ * "bar chart" mid-sentence. These are Heroicons outline paths drawn in
+ * currentColor and hidden from assistive tech, so the adjacent label is what
+ * gets announced.
+ */
+const ICON_PATHS = {
+    dashboard: 'M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z',
+    calendar: 'M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5',
+    users: 'M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z',
+    clipboard: 'M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z',
+    money: 'M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+    scroll: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z',
+    trend: 'M2.25 18L9 11.25l4.306 4.306A11.95 11.95 0 0119.8 10.6M21.75 6.75h-4.5m4.5 0v4.5',
+    search: 'M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z',
+    phone: 'M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z',
+    mail: 'M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75',
+    image: 'M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z',
+    upload: 'M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 7.5 7.5 12M12 7.5v12',
+    palette: 'M4.098 19.902a3.75 3.75 0 005.304 0l6.401-6.402M6.75 21A3.75 3.75 0 013 17.25V4.125C3 3.504 3.504 3 4.125 3h5.25c.621 0 1.125.504 1.125 1.125v4.072M6.75 21a3.75 3.75 0 003.75-3.75V8.197M6.75 21h13.125c.621 0 1.125-.504 1.125-1.125v-5.25c0-.621-.504-1.125-1.125-1.125h-4.072M10.5 8.197l2.88-2.88c.438-.439 1.15-.439 1.59 0l3.712 3.713c.44.44.44 1.152 0 1.59l-2.879 2.88M6.75 17.25h.008v.008H6.75v-.008z',
+    refresh: 'M16.023 9.348h4.992V4.356m-4.993 4.992l3.181-3.183a8.25 8.25 0 00-11.667 0L3.75 9.348m0 0V4.356m0 4.992h4.992m-4.993 5.304h4.993v4.992m-4.992-4.992l3.18 3.183a8.25 8.25 0 0011.668 0l3.182-3.183m0 0h-4.99m4.99 0v4.992',
+    download: 'M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5 12 4.5',
+    warning: 'M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-2.98-1.5-3.846 0L2.697 16.126zM12 15.75h.008v.008H12v-.008z',
+    check: 'M4.5 12.75l6 6 9-13.5',
+    bolt: 'M3.75 13.5l10.5-11.25L12 10.5h7.5L9 21.75 12 13.5H3.75z',
+    clock: 'M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z',
+    cake: 'M12 8.25v-1.5m0 1.5c-1.355 0-2.697.056-4.024.166C6.845 8.51 6 9.473 6 10.608v2.513m6-4.871c1.355 0 2.697.056 4.024.166C17.155 8.51 18 9.473 18 10.608v2.513M15 8.25v-1.5m-6 1.5v-1.5m12 9.75l-1.5.75a3.354 3.354 0 01-3 0 3.354 3.354 0 00-3 0 3.354 3.354 0 01-3 0 3.354 3.354 0 00-3 0 3.354 3.354 0 01-3 0L3 16.5m15-3.379a48.474 48.474 0 00-6-.371c-2.032 0-4.034.126-6 .371m12 0c.39.049.777.102 1.163.16 1.07.16 1.837 1.094 1.837 2.175v5.169c0 .621-.504 1.125-1.125 1.125H4.125A1.125 1.125 0 013 20.625v-5.169c0-1.081.768-2.015 1.837-2.175A48.111 48.111 0 016 13.121',
+    chat: 'M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155',
+    pencil: 'M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10',
+    printer: 'M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0021 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 00-1.913-.247M6.34 18H5.25A2.25 2.25 0 013 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 011.913-.247m10.5 0a48.536 48.536 0 00-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5z',
+    heart: 'M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z',
+    lock: 'M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z',
+    logout: 'M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75',
+    cog: 'M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281zM15 12a3 3 0 11-6 0 3 3 0 016 0z',
+    stethoscope: 'M4.5 3.75v5.25a5.25 5.25 0 0010.5 0V3.75M6.75 3.75h-2.25m8.25 0h2.25M9.75 14.25v1.5a4.5 4.5 0 009 0v-2.25m0 0a1.5 1.5 0 100-3 1.5 1.5 0 000 3z',
+    device: 'M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3',
+    recycle: 'M16.023 9.348h4.992V4.356m-4.993 4.992l3.181-3.183a8.25 8.25 0 00-11.667 0L3.75 9.348m0 0V4.356m0 4.992h4.992m-4.993 5.304h4.993v4.992m-4.992-4.992l3.18 3.183a8.25 8.25 0 0011.668 0l3.182-3.183m0 0h-4.99m4.99 0v4.992',
+    shield: 'M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z',
+    trash: 'M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0',
+    save: 'M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z',
+    camera: 'M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316zM16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z',
+    folder: 'M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z',
+    bell: 'M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0',
+    broom: 'M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42',
+    star: 'M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z',
+    card: 'M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z',
+    target: 'M12 21a9 9 0 100-18 9 9 0 000 18zm0-3a6 6 0 100-12 6 6 0 000 12zm0-3a3 3 0 100-6 3 3 0 000 6z',
+    note: 'M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125',
+    archiveBox: 'M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z',
+    restore: 'M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3',
+    inbox: 'M2.25 13.5h3.86a2.25 2.25 0 012.012 1.244l.256.512a2.25 2.25 0 002.013 1.244h3.218a2.25 2.25 0 002.013-1.244l.256-.512a2.25 2.25 0 012.013-1.244h3.859m-19.5.338V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 00-2.15-1.588H6.911a2.25 2.25 0 00-2.15 1.588L2.35 13.177a2.25 2.25 0 00-.1.661z'
+};
+
+function Icon({ name, className = 'w-5 h-5' }) {
+    const path = ICON_PATHS[name];
+    if (!path) return null;
+    return (
+        <svg className={`${className} flex-shrink-0`} viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"
+             aria-hidden="true" focusable="false">
+            <path d={path}/>
+        </svg>
+    );
+}
+
 /* ═══════════════════ PHOTO UPLOADER ══════════════════════════ */
-function PhotoUploader({ value, onChange }) {
+function PhotoUploader({ value, onChange, notify }) {
     const [uploading, setUploading] = useState(false);
     const handleFile = async (e) => {
         const file = e.target.files[0]; if (!file) return;
-        if (file.size > 5*1024*1024) { alert('照片不能超过 5MB'); return; }
+        if (file.size > 5*1024*1024) { notify('照片不能超过 5MB', {danger:true}); return; }
         setUploading(true);
         try {
             const fd = new FormData(); fd.append('file', file);
@@ -353,7 +467,7 @@ function PhotoUploader({ value, onChange }) {
             });
             const d  = await r.json();
             if (d.filename) onChange(d.filename);
-        } catch { alert('上传失败，请重试'); }
+        } catch { notify('上传失败，请重试', {danger:true}); }
         finally { setUploading(false); e.target.value=''; }
     };
     const btnBase = uploading ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' : '';
@@ -361,16 +475,16 @@ function PhotoUploader({ value, onChange }) {
         <div className="flex items-center gap-4">
             {value
                 ? <img src={mediaSrc(value)} className="w-14 h-14 rounded-full object-cover border-2 border-indigo-100 flex-shrink-0"/>
-                : <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center text-2xl border-2 border-dashed border-gray-300 flex-shrink-0">📷</div>
+                : <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center text-2xl border-2 border-dashed border-gray-300 flex-shrink-0 text-gray-400"><Icon name="camera" className="w-6 h-6"/></div>
             }
             <div className="space-y-1.5">
                 <div className="flex gap-2 flex-wrap">
                     <label className={`cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 text-sm font-bold rounded-xl border min-h-[40px] ${btnBase||'bg-indigo-50 text-indigo-700 border-indigo-200 active:bg-indigo-100'}`}>
-                        📁 {uploading ? '上传中...' : value ? '更换' : '选择'}
+                        <span className="inline-flex items-center gap-1.5"><Icon name="folder" className="w-4 h-4"/>{uploading ? '上传中...' : value ? '更换' : '选择'}</span>
                         <input type="file" accept="image/*" onChange={handleFile} disabled={uploading} className="hidden"/>
                     </label>
                     <label className={`cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 text-sm font-bold rounded-xl border min-h-[40px] ${btnBase||'bg-purple-50 text-purple-700 border-purple-200 active:bg-purple-100'}`}>
-                        📷 拍照
+                        <span className="inline-flex items-center gap-1.5"><Icon name="camera" className="w-4 h-4"/>拍照</span>
                         <input type="file" accept="image/*" capture="environment" onChange={handleFile} disabled={uploading} className="hidden"/>
                     </label>
                 </div>
@@ -381,12 +495,15 @@ function PhotoUploader({ value, onChange }) {
 }
 
 /* ═══════════════ MAINTENANCE PANEL（体检/邮件/备份恢复）═══════════ */
-function MaintSection({ onRestored, renewTh, saveRenewTh }) {
+/* confirm/notify come from the app shell so this panel uses the same dialog
+   as the other 20+ call sites instead of the browser's native ones. */
+function MaintSection({ onRestored, renewTh, saveRenewTh, confirm, notify }) {
     const [hc, setHc]         = useState(null);
     const [hcBusy, setHcBusy] = useState(false);
     const [cfg, setCfg]       = useState(null);
     const [pw, setPw]         = useState('');
-    const [cfgMsg, setCfgMsg] = useState('');
+    const [cfgMsg, setCfgMsg] = useState(null);   // {text, tone}
+    const say = (text, tone='info') => setCfgMsg(text ? {text, tone} : null);
     const [bks, setBks]       = useState(null);
     const [bkSel, setBkSel]   = useState(null);
     const [busy, setBusy]     = useState(false);
@@ -414,25 +531,25 @@ function MaintSection({ onRestored, renewTh, saveRenewTh }) {
     };
     const saveCfg = async () => {
         if (!cfg) return;
-        setBusy(true); setCfgMsg('');
+        setBusy(true); say('');
         try {
             const body = {email_to:cfg.email_to, smtp_user:cfg.smtp_user, smtp_host:cfg.smtp_host,
                           smtp_port:cfg.smtp_port, weekly_enabled:cfg.weekly_enabled, renew_threshold:renewTh};
             if (pw) body.smtp_password = pw;
             const r = await post('/api/config', body);
-            if (r.status === 404) { setStale(true); setCfgMsg(''); return; }
-            setCfgMsg(r.ok ? '✅ 已保存' : `❌ 保存失败 (HTTP ${r.status})`);
+            if (r.status === 404) { setStale(true); say(''); return; }
+            say(r.ok ? '已保存' : `保存失败 (HTTP ${r.status})`, r.ok ? 'ok' : 'error');
             if (r.ok && pw) { setPw(''); setCfg(c=>({...c, hasPassword:true})); }
-        } catch { setCfgMsg('❌ 连接失败'); }
+        } catch { say('连接失败', 'error'); }
         finally { setBusy(false); }
     };
     const testEmail = async () => {
-        setBusy(true); setCfgMsg('发送中…（请先点过「保存配置」）');
+        setBusy(true); say('发送中…（请先点过「保存配置」）');
         try {
             const r = await post('/api/email-test', {});
             const d = await r.json();
-            setCfgMsg(d.ok ? '✅ 测试邮件已发出，请查收（含每周汇总预览）' : `❌ ${d.error||'发送失败'}`);
-        } catch { setCfgMsg('❌ 连接失败'); }
+            say(d.ok ? '测试邮件已发出，请查收（含每周汇总预览）' : (d.error || '发送失败'), d.ok ? 'ok' : 'error');
+        } catch { say('连接失败', 'error'); }
         finally { setBusy(false); }
     };
     const loadBks = async () => {
@@ -454,35 +571,43 @@ function MaintSection({ onRestored, renewTh, saveRenewTh }) {
                 const keys = await caches.keys();
                 await Promise.all(keys.filter(k => k.startsWith('lpcms-')).map(k => caches.delete(k)));
             }
-            window.alert('✅ PWA 缓存已清理，页面将刷新。若主屏幕 App 图标仍未更新，请删除后重新添加。');
-            window.location.reload();
+            notify('PWA 缓存已清理，页面将刷新。若主屏幕 App 图标仍未更新，请删除后重新添加。', {onConfirm: () => window.location.reload()});
         } catch(e) {
-            window.alert('❌ 缓存清理失败，请关闭 App 后重新打开。');
+            notify('缓存清理失败，请关闭 App 后重新打开。', {danger:true});
         }
     };
     const pickBk = async (name) => {
         try { const r = await fetch(`/api/backups/${name}/summary`, {credentials:'include'});
               setBkSel({name, ...(await r.json())}); } catch {}
     };
-    const doRestore = async () => {
-        if (!bkSel || !bkSel.valid) return;
-        const d1 = `确认恢复备份 ${bkSel.name}？\n\n该备份: ${bkSel.students} 名学员 / ${bkSel.logs} 条日志\n与当前相比: 学员 ${bkSel.diffStudents>=0?'+':''}${bkSel.diffStudents} / 日志 ${bkSel.diffLogs>=0?'+':''}${bkSel.diffLogs}`;
-        if (!window.confirm(d1)) return;
-        if (!window.confirm('再次确认：当前数据会先自动另存为 pre_restore 备份（可再恢复回来），然后被该备份覆盖。继续？')) return;
+    const runRestore = async () => {
         setBusy(true);
         try {
             const r = await post('/api/restore', {filename: bkSel.name});
             const d = await r.json();
-            if (d.ok) { window.alert(`✅ 恢复完成：${d.students} 名学员 / ${d.logs} 条日志。页面即将刷新数据。`); onRestored(); }
-            else window.alert(`❌ ${d.error||'恢复失败'}`);
-        } catch { window.alert('❌ 连接失败'); }
+            if (d.ok) { notify(`恢复完成：${d.students} 名学员 / ${d.logs} 条日志。页面即将刷新数据。`, {onConfirm: onRestored}); }
+            else notify(d.error || '恢复失败', {danger:true});
+        } catch { notify('连接失败', {danger:true}); }
         finally { setBusy(false); }
+    };
+    /* Restoring overwrites live student and attendance data. This is the most
+       destructive action in the CMS, so it asks the operator to type the backup
+       name rather than accepting two reflexive clicks on a native confirm(). */
+    const doRestore = () => {
+        if (!bkSel || !bkSel.valid) return;
+        confirm(
+            `该备份：${bkSel.students} 名学员 / ${bkSel.logs} 条日志\n` +
+            `与当前相比：学员 ${bkSel.diffStudents>=0?'+':''}${bkSel.diffStudents} / 日志 ${bkSel.diffLogs>=0?'+':''}${bkSel.diffLogs}\n\n` +
+            '当前数据会先自动另存为 pre_restore 备份（可再恢复回来），然后被该备份覆盖。',
+            runRestore,
+            {title:`恢复备份 ${bkSel.name}`, danger:true, requireText:bkSel.name, confirmText:'覆盖当前数据'}
+        );
     };
     const inp = "w-full p-2.5 border border-gray-300 rounded-xl outline-none text-sm focus:ring-2 focus:ring-indigo-400";
     if (stale) return (
         <div className="mt-4 pt-4 border-t border-gray-100">
             <div className="bg-red-50 border border-red-300 rounded-xl p-3 space-y-1.5">
-                <p className="text-xs font-bold text-red-700">⚠️ 服务器还在运行旧版本</p>
+                <p className="inline-flex items-center gap-1.5 text-xs font-bold text-red-700"><Icon name="warning" className="w-4 h-4"/>服务器还在运行旧版本</p>
                 <p className="text-xs text-red-600">界面已是新版，但数据体检 / 邮件 / 备份恢复需要新版 server.py 支持。请：</p>
                 <p className="text-xs text-red-600 font-mono bg-red-100 rounded-lg px-2 py-1.5">1. 用新版 server.py 覆盖 CMS 目录里的旧文件<br/>2. 终端运行 ./cms.sh restart<br/>3. 刷新本页面</p>
                 <p className="text-xs text-red-500">验证方法：浏览器打开 /api/ping，version 应为 7.3.1</p>
@@ -492,7 +617,7 @@ function MaintSection({ onRestored, renewTh, saveRenewTh }) {
     return (<>
         {/* 数据体检 */}
         <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">🩺 数据体检</p>
+            <p className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wide"><Icon name="stethoscope" className="w-4 h-4"/>数据体检</p>
             <button onClick={runHC} disabled={hcBusy}
                 className="w-full bg-teal-50 active:bg-teal-100 disabled:opacity-50 text-teal-700 border border-teal-200 py-2.5 rounded-xl font-bold text-sm">
                 {hcBusy ? '体检中…' : '运行数据体检'}</button>
@@ -505,14 +630,14 @@ function MaintSection({ onRestored, renewTh, saveRenewTh }) {
                         <p key={i} className="pl-2 text-amber-700">· {m.name}: 余额 {m.balance}，日志合计 {m.logsSum}（差 {m.diff>0?'+':''}{m.diff}）</p>))}
                     {hc.duplicateNames.length>0 && <p className="text-amber-600">重名学员: {hc.duplicateNames.join('、')}</p>}
                     {hc.missingPhotos.length>0 && <p className="text-amber-600">照片文件丢失: {hc.missingPhotos.length} 人</p>}
-                    {hc.conflictCopies.length>0 && <p className="text-red-600 font-bold">⚠️ iCloud 冲突副本: {hc.conflictCopies.join('、')}</p>}
+                    {hc.conflictCopies.length>0 && <p className="inline-flex items-center gap-1.5 text-red-600 font-bold"><Icon name="warning" className="w-4 h-4"/>iCloud 冲突副本: {hc.conflictCopies.join('、')}</p>}
                     <p>待审申请 {hc.pendingCount} 条 · 最近备份 {hc.lastBackup||'无'}（{hc.backupCount} 份）</p>
                 </div>)}
             {hc && hc.error && <p className="text-xs text-red-500">体检失败，请重试</p>}
         </div>
         {/* 待续课阈值 */}
         <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">⚡ 待续课提醒阈值（剩余 ≤N 节）</p>
+            <p className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wide"><Icon name="bolt" className="w-4 h-4"/>待续课提醒阈值（剩余 ≤N 节）</p>
             <div className="flex gap-2">
                 {[1,2,3,5].map(d=>(
                     <button key={d} onClick={()=>{saveRenewTh(d); post('/api/config',{renew_threshold:d}).catch(()=>{});}}
@@ -522,7 +647,7 @@ function MaintSection({ onRestored, renewTh, saveRenewTh }) {
         </div>
         {/* PWA 缓存 */}
         <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">📱 主屏幕 App / PWA 缓存</p>
+            <p className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wide"><Icon name="device" className="w-4 h-4"/>主屏幕 App / PWA 缓存</p>
             <button onClick={clearPwaCache}
                 className="w-full bg-gray-50 active:bg-gray-100 text-gray-700 border border-gray-200 py-2.5 rounded-xl font-bold text-sm">
                 清理 PWA 缓存并刷新</button>
@@ -530,7 +655,7 @@ function MaintSection({ onRestored, renewTh, saveRenewTh }) {
         </div>
         {/* 每周汇总邮件 */}
         <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">📧 每周汇总邮件（周一 10:00）</p>
+            <p className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wide"><Icon name="mail" className="w-4 h-4"/>每周汇总邮件（周一 10:00）</p>
             {!cfg ? <p className="text-xs text-gray-400">加载中…</p> : (<>
                 <input className={inp} placeholder="收件邮箱" value={cfg.email_to||''}
                     onChange={e=>setCfg({...cfg, email_to:e.target.value})}/>
@@ -544,7 +669,7 @@ function MaintSection({ onRestored, renewTh, saveRenewTh }) {
                         className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${cfg.weekly_enabled?'bg-indigo-600':'bg-gray-300'}`}>
                         <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${cfg.weekly_enabled?'translate-x-6':'translate-x-1'}`}/></button>
                 </div>
-                {cfgMsg && <p className={`text-xs font-medium ${cfgMsg.startsWith('✅')?'text-green-600':cfgMsg.startsWith('❌')?'text-red-500':'text-gray-500'}`}>{cfgMsg}</p>}
+                {cfgMsg && <p className={`text-xs font-medium ${cfgMsg.tone==='ok'?'text-green-600':cfgMsg.tone==='error'?'text-red-500':'text-gray-500'}`}>{cfgMsg.text}</p>}
                 <div className="flex gap-2">
                     <button onClick={saveCfg} disabled={busy}
                         className="flex-1 bg-indigo-600 active:bg-indigo-700 disabled:opacity-50 text-white py-2.5 rounded-xl font-bold text-sm">保存配置</button>
@@ -556,7 +681,7 @@ function MaintSection({ onRestored, renewTh, saveRenewTh }) {
         </div>
         {/* 备份与恢复 */}
         <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">♻️ 备份与恢复</p>
+            <p className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 uppercase tracking-wide"><Icon name="recycle" className="w-4 h-4"/>备份与恢复</p>
             {!bks ? (
                 <button onClick={loadBks} className="w-full bg-gray-50 active:bg-gray-100 text-gray-700 border border-gray-200 py-2.5 rounded-xl font-bold text-sm">查看备份列表</button>
             ) : (<>
@@ -669,7 +794,7 @@ function App() {
     const [pwNew1,   setPwNew1]     = useState('');
     const [pwNew2,   setPwNew2]     = useState('');
     const [pwBusy,   setPwBusy]     = useState(false);
-    const [pwMsg,    setPwMsg]      = useState('');
+    const [pwMsg,    setPwMsg]      = useState(null);   // {text, tone}
     // Global search
     const [gOpen, setGOpen] = useState(false);
     const [gQ,    setGQ]    = useState('');
@@ -697,6 +822,13 @@ function App() {
     const [srch,     setSrch]     = useState('');
     const [sortBy,   setSortBy]   = useState('date-desc');
     const [filterBy, setFilterBy] = useState('all');
+    /* P2-14: the list rendered every match as a card. A studio with 200+
+       students painted 200 cards on every keystroke, and the only concession
+       was a back-to-top button. Paged rendering plus multi-select for the bulk
+       actions that previously only existed under the low-balance filter. */
+    const STUDENTS_PER_PAGE = 24;
+    const [studentPage, setStudentPage] = useState(1);
+    const [selectedStudentIds, setSelectedStudentIds] = useState([]);
 
     // Roster tab
     const [rDate, setRDate] = useState(todayISO);
@@ -799,6 +931,21 @@ function App() {
 
     const tenantLogoUrl = tenantBrand.logo_url || tenantBrand.logoUrl || '/logo-light.png';
     const tenantDisplayName = tenantBrand.name || tenantBrand.studioName || 'Studio';
+    /* The copy staff paste into WeChat used to say the literal word "Studio"
+       and end with a 🎨 — wrong for the piano, dance and game tenants, and
+       visible to the parent receiving it. Nouns and templates come from the
+       tenant's own brand settings; the studio name is always substituted. */
+    const venueNoun = (tenantBrand.venue_noun || tenantBrand.venueNoun || {}).zh || '工作室';
+    const workNoun = (tenantBrand.work_noun || tenantBrand.workNoun || {}).zh || '作品';
+    const messageTemplates = tenantBrand.message_templates || tenantBrand.messageTemplates || {};
+    /* {studio} {student} {balance} {credits} {fee} {work} are filled in below. */
+    const renderMessage = (key, fallback, values={}) => {
+        const template = String(messageTemplates[key] || fallback);
+        return Object.keys({studio:tenantDisplayName, venue:venueNoun, work:workNoun, ...values})
+            .reduce((text, name) => text.split(`{${name}}`).join(
+                String({studio:tenantDisplayName, venue:venueNoun, work:workNoun, ...values}[name] ?? '')
+            ), template);
+    };
 
     const preferenceProfile = () => {
         const raw = tenantBrand.registration_profile || tenantBrand.registrationProfile || {};
@@ -874,6 +1021,10 @@ function App() {
     /* Fix #8: confirm helper replacing window.confirm */
     const confirm = (message, onConfirm, opts={}) =>
         setConfirmDialog({message, onConfirm, ...opts});
+    /* ...and the one-button variant, so window.alert has a home in the same
+       dialog rather than a second, differently styled system popup. */
+    const notify = (message, opts={}) =>
+        setConfirmDialog({message, acknowledge:true, ...opts});
 
     const loadTeam = async () => {
         if (!TENANT_SLUG) return;
@@ -1006,10 +1157,10 @@ function App() {
     };
 
     const changeWebPw = async () => {
-        if (!pwOld || !pwNew1) { setPwMsg('请填写旧密码和新密码'); return; }
-        if (pwNew1 !== pwNew2)  { setPwMsg('两次新密码不一致'); return; }
-        if (pwNew1.length < 8)  { setPwMsg('新密码至少 8 位'); return; }   /* S3 */
-        setPwBusy(true); setPwMsg('');
+        if (!pwOld || !pwNew1) { setPwMsg({text:'请填写旧密码和新密码', tone:'error'}); return; }
+        if (pwNew1 !== pwNew2)  { setPwMsg({text:'两次新密码不一致', tone:'error'}); return; }
+        if (pwNew1.length < 8)  { setPwMsg({text:'新密码至少 8 位', tone:'error'}); return; }   /* S3 */
+        setPwBusy(true); setPwMsg(null);
         try {
             const r = await fetch('/v1/auth/change-password', {
                 method: 'POST',
@@ -1018,9 +1169,9 @@ function App() {
                 credentials: 'include'
             });
             const d = await r.json();
-            if (d.ok) { setPwOld(''); setPwNew1(''); setPwNew2(''); setPwMsg('✅ 密码已更新'); }
-            else       { setPwMsg(`❌ ${d.message||d.error||'修改失败'}`); }
-        } catch { setPwMsg('❌ 连接失败'); }
+            if (d.ok) { setPwOld(''); setPwNew1(''); setPwNew2(''); setPwMsg({text:'密码已更新', tone:'ok'}); }
+            else       { setPwMsg({text:String(d.message||d.error||'修改失败'), tone:'error'}); }
+        } catch { setPwMsg({text:'连接失败', tone:'error'}); }
         finally { setPwBusy(false); }
     };
 
@@ -1038,7 +1189,7 @@ function App() {
                 email:'', wechat:'', archived:false,
                 firstName: s.name||'',
                 lastName: '',
-                photo:'', artStyle:'', favArtist:'', experience:'', goals:'', preferences:{}, birthday:'',
+                photo:'', experience:'', goals:'', preferences:{}, birthday:'',
                 ...s
             }));
             if (!d.pending)  d.pending  = [];
@@ -1067,7 +1218,7 @@ function App() {
                     setTimeout(load, 800);
                 } else if (d.status === 'shrink_guard') {
                     /* D1/D1b: server blocked a save that drops a large chunk of data */
-                    confirm(`⚠️ 安全拦截：${d.message || `数据量将从 ${d.current} 减少到 ${d.incoming}`} `+
+                    confirm(`安全拦截：${d.message || `数据量将从 ${d.current} 减少到 ${d.incoming}`} `+
                             `如果这不是你刻意删除的结果，请选择取消并刷新页面！`,
                             async () => { await save(nd, true); },
                             {danger:true, confirmText:'我确认，继续保存'});
@@ -1103,10 +1254,10 @@ function App() {
     }, [db.logs]);
     const getTag = (s) => {
         const cnt = activityMap[s.name] || 0;
-        if (cnt >= 4) return {icon:'🔥', label:'活跃', cls:'bg-red-100 text-red-700'};
-        if (cnt >= 1) return {icon:'💤', label:'低频', cls:'bg-gray-100 text-gray-500'};
+        if (cnt >= 4) return {icon:'bolt',    label:'活跃',     cls:'bg-red-100 text-red-700'};
+        if (cnt >= 1) return {icon:'clock',   label:'低频',     cls:'bg-gray-100 text-gray-500'};
         if ((parseInt(s.balance,10)||0) > 0 && daysSince(s.lastActive) > inactiveDays)
-            return {icon:'⚠️', label:'流失风险', cls:'bg-orange-100 text-orange-600'};
+            return {icon:'warning', label:'流失风险', cls:'bg-orange-100 text-orange-600'};
         return null;
     };
 
@@ -1129,6 +1280,8 @@ function App() {
     }, [db.students]);
 
     /* ── Sorted / filtered lists ── */
+    useEffect(() => { setStudentPage(1); setSelectedStudentIds([]); }, [srch, sortBy, filterBy]);
+
     const sortedFiltered = useMemo(() => {
         let list = [...db.students];
         if (filterBy === 'archived') {
@@ -1172,11 +1325,30 @@ function App() {
         return list;
     }, [db.students, srch, sortBy, filterBy, activityMap, inactiveDays, renewTh]);
 
+    /* P2-14: one page of cards instead of every match. */
+    const studentPageCount = Math.max(1, Math.ceil(sortedFiltered.length / STUDENTS_PER_PAGE));
+    const pageStudents = useMemo(() => {
+        const page = Math.min(studentPage, studentPageCount);
+        return sortedFiltered.slice((page - 1) * STUDENTS_PER_PAGE, page * STUDENTS_PER_PAGE);
+    }, [sortedFiltered, studentPage, studentPageCount]);
+    /* Selection survives paging but never outlives the filter it was made under. */
+    const selectedStudents = useMemo(
+        () => sortedFiltered.filter(s => selectedStudentIds.includes(s.id)),
+        [sortedFiltered, selectedStudentIds]);
+
+    const toggleSelectStudent = (sid) =>
+        setSelectedStudentIds(prev => prev.includes(sid) ? prev.filter(id => id !== sid) : [...prev, sid]);
+    const toggleSelectPage = (checked) =>
+        setSelectedStudentIds(prev => {
+            const ids = pageStudents.map(s => s.id);
+            return checked ? Array.from(new Set([...prev, ...ids])) : prev.filter(id => !ids.includes(id));
+        });
+
     const sortedAZ = useMemo(() =>
         [...db.students].filter(s => !s.archived).sort((a,b) => a.name.localeCompare(b.name,'zh-CN')),
     [db.students]);
 
-    /* A1: 当日应到 = 命中当天 weekday 的课表学员 ∪ 手动排班 */
+    /* A1: 当日应到 = 命中当天 weekday 的课表学员 ∪ 手动排课 */
     const scheduledForDate = useMemo(() => {
         if (!TENANT_SLUG || !schedules.length) return [];
         const wd = new Date(`${rDate}T12:00:00`).getDay();
@@ -1439,10 +1611,10 @@ function App() {
             if (selS?.id===sid) setSelS(p=>({...p,balance:nb}));
             /* G2: 一键复制给家长的签到确认话术 */
             const confirmMsg = nb===0
-                ? `${sname} 今日已完成签到 ✓ 当前剩余 0 课时，已用完，欢迎联系老师续课～ 🎨`
-                : `${sname} 今日已完成签到 ✓ 当前剩余 ${nb} 课时。Studio 感谢您的支持！🎨`;
-            const act = {label:'📋 复制签到确认（发家长）', onClick:()=>copyText(confirmMsg,'签到确认已复制')};
-            if (nb===0) showToast(`${sname} 课时已清零！请提醒续课 🔔`, 'warn', act);
+                ? renderMessage('checkin_empty', '{student} 今日已完成签到 ✓ 当前剩余 0 课时，已用完，欢迎联系老师续课～', {student:sname})
+                : renderMessage('checkin', '{student} 今日已完成签到 ✓ 当前剩余 {balance} 课时。{studio} 感谢您的支持！', {student:sname, balance:nb});
+            const act = {label:'复制签到确认（发家长）', onClick:()=>copyText(confirmMsg,'签到确认已复制')};
+            if (nb===0) showToast(`${sname} 课时已清零！请提醒续课`, 'warn', act);
             else        showToast(`${sname} 签到 ✓ 剩余 ${nb} 课时`, 'success', act);
         } catch(e) { showToast(`签到失败：${e.message}`, 'error'); }
         finally { setBusy(false); }
@@ -1458,7 +1630,7 @@ function App() {
             showToast(`未找到 ${fmtDate(rDate)} 的准确签到记录，未执行撤销`, 'warn');
             return;
         }
-        confirm(`撤销 ${sname} 在 ${fmtDate(rDate)} 的签到，并恢复对应课时？`, async () => {
+        confirm(`撤销 ${sname} 在 ${fmtDate(rDate)} 的签到，扣掉的课时会退回 TA 的余额。\n\n这条撤销会写进操作日志，可以随时再签一次。`, async () => {
             if (busy) return; // Fix ④: guard against concurrent busy
             setBusy(true);
             try {
@@ -1561,7 +1733,7 @@ function App() {
     };
 
     const deleteSchedule = (sc) => {
-        confirm(`删除班次「${sc.label}」？（不影响任何学员和签到记录）`, async () => {
+        confirm(`删除固定班次「${sc.label}」后，之后的日期不会再自动排入这批学员。\n\n已经排过的日期、已签到的记录和学员课时都不受影响。`, async () => {
             if (busy) return;
             setBusy(true);
             try {
@@ -1602,8 +1774,8 @@ function App() {
             return s&&!s.archived&&s.balance<=0&&!rosterDone.has(id);
         }).length;
         const elig    = ids.filter(id => { const s=db.students.find(x=>x.id===id); return s&&!s.archived&&s.balance>0&&!rosterDone.has(id); });
-        if (!elig.length) { showToast(already ? '今日排班学员均已签到 ✓' : '今日无可签到/消课学员', 'warn'); return; }
-        confirm(`批量签到确认：排班 ${ids.length} 人；已签到 ${already} 人；余额不足 ${insufficient} 人；已归档 ${archived} 人；本次实际执行 ${elig.length} 人。`, async () => {
+        if (!elig.length) { showToast(already ? '今日排课学员均已签到 ✓' : '今日无可签到/消课学员', 'warn'); return; }
+        confirm(`批量签到确认：排课 ${ids.length} 人；已签到 ${already} 人；余额不足 ${insufficient} 人；已归档 ${archived} 人；本次实际执行 ${elig.length} 人。`, async () => {
             if (busy) return; // Fix ④
             setBusy(true);
             try {
@@ -1644,25 +1816,28 @@ function App() {
     /* F4b: 班组模板 — 保存常用班次组合，任意日期一键套用 */
     const saveGroup = () => {
         const ids = db.rosters[rDate]||[];
-        if (!ids.length) { showToast('当前日期没有排班可保存', 'warn'); return; }
-        const name = (window.prompt('模板名称（如：周六上午班）')||'').trim();
-        if (!name) return;
-        save({...db, groups: {...(db.groups||{}), [name]: ids}});
-        showToast(`模板「${name}」已保存（${ids.length} 人）`);
+        if (!ids.length) { showToast('当前日期没有排课可保存', 'warn'); return; }
+        confirm(`将当前日期的 ${ids.length} 位学员保存为可复用的班组模板。`, (raw) => {
+            const name = String(raw||'').trim();
+            if (!name) return;
+            save({...db, groups: {...(db.groups||{}), [name]: ids}});
+            showToast(`模板「${name}」已保存（${ids.length} 人）`);
+        }, {title:'保存班组模板', prompt:true, promptRequired:true,
+            promptLabel:'模板名称', promptPlaceholder:'如：周六上午班', confirmText:'保存模板'});
     };
     const applyGroup = async () => {
         if (!grpSel) return;
         const ids = (db.groups||{})[grpSel]||[];
         const cur = db.rosters[rDate]||[];
         const add = ids.filter(id => !cur.includes(id) && db.students.some(s=>s.id===id&&!s.archived));
-        if (!add.length) { showToast('模板学员均已在当前排班中', 'warn'); return; }
+        if (!add.length) { showToast('模板学员均已在当前排课中', 'warn'); return; }
         if (TENANT_SLUG) await addDailyRosterStudents(rDate, add, 'group');
         else await save({...db, rosters: {...db.rosters, [rDate]: [...cur, ...add]}});
         showToast(`已套用「${grpSel}」，新增 ${add.length} 人`);
     };
     const deleteGroup = () => {
         if (!grpSel) return;
-        confirm(`删除模板「${grpSel}」？（不影响任何排班和学员数据）`, async () => {
+        confirm(`删除班组模板「${grpSel}」后，将无法再一键套用这组学员。\n\n已经用它排过的课、学员档案和课时都不受影响。`, async () => {
             const g = {...(db.groups||{})}; delete g[grpSel];
             await save({...db, groups: g}); setGrpSel('');
             showToast('模板已删除', 'warn');
@@ -1730,14 +1905,14 @@ function App() {
         /* C5: 零数据兜底 — 新学员尚无记录时用欢迎语 */
         const isNew = checkins.length === 0;
         const shareMsg = isNew
-            ? `欢迎 ${s.name} 加入 ${reportStudioName}！学习旅程刚刚启程，期待记录每一份成长与快乐 🎨`
-            : `${s.name} 在 ${reportStudioName} 已经学习了 ${days} 天，累计上课 ${checkins.length} 次，完成作品 ${port.length} 幅！每一次练习都是成长的印记，期待继续陪伴 TA 自信探索 🎨`;
+            ? `欢迎 ${s.name} 加入 ${reportStudioName}！学习旅程刚刚启程，期待记录每一份成长与快乐。`
+            : `${s.name} 在 ${reportStudioName} 已经学习了 ${days} 天，累计上课 ${checkins.length} 次，完成${workNoun} ${port.length} 份！每一次练习都是成长的印记，期待继续陪伴 TA 自信探索。`;
 
         const portHTML = port.length ? port.map(p=>`
             <figure class="art">
                 <img src="${portfolioImgSrc(s.id, p)}" alt="作品"/>
                 <figcaption>${esc(p.note)||'　'}<span>${esc((p.date||'').split('-').reverse().join('/'))}</span></figcaption>
-            </figure>`).join('') : '<p class="empty">暂无作品记录 · 上传作品后报告会更精彩 🎨</p>';
+            </figure>`).join('') : `<p class="empty">暂无${workNoun}记录 · 上传后报告会更精彩</p>`;
 
         /* C3: 柱高直接算像素（上限 76px），数字标签固定占位不再被顶出 */
         const barsHTML = months.map(m=>`
@@ -1796,8 +1971,8 @@ body{font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;backgr
 @media(max-width:560px){.stats{grid-template-columns:repeat(2,1fr)}.gallery{grid-template-columns:repeat(2,1fr)}.hero{padding:6px 22px 22px}.sec{padding:20px 22px}}
 </style></head><body>
 <div class="toolbar">
-  <button class="b2" id="copybtn">📋 复制成长寄语</button>
-  <button class="b1" onclick="window.print()">🖨 保存为 PDF / 打印</button>
+  <button class="b2" id="copybtn" className="inline-flex items-center gap-1.5"><Icon name="clipboard" className="w-4 h-4"/>复制成长寄语</button>
+  <button class="b1" onclick="window.print()" className="inline-flex items-center gap-1.5"><Icon name="printer" className="w-4 h-4"/>保存为 PDF / 打印</button>
 </div>
 <div class="sheet">
   <div class="brandbar">
@@ -1819,15 +1994,15 @@ body{font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;backgr
     <div class="stat"><div class="v">${isNew ? '—' : days}</div><div class="l">陪伴天数</div></div>
   </div>
   <div class="sec">
-    <h2>📈 近 6 个月上课足迹</h2>
+    <h2 className="inline-flex items-center gap-1.5"><Icon name="trend" className="w-4 h-4"/>近 6 个月上课足迹</h2>
     <div class="chart">${barsHTML}</div>
   </div>
   <div class="sec gal">
-    <h2>🖼 作品集（${port.length} 幅）</h2>
+    <h2 className="inline-flex items-center gap-1.5"><Icon name="image" className="w-4 h-4"/>作品集（${port.length} 幅）</h2>
     <div class="gallery">${portHTML}</div>
   </div>
   <div class="sec">
-    <h2>💛 老师寄语</h2>
+    <h2 className="inline-flex items-center gap-1.5"><Icon name="heart" className="w-4 h-4"/>老师寄语</h2>
     <div class="msg">${esc(shareMsg)}</div>
   </div>
   <div class="foot">
@@ -1864,7 +2039,9 @@ document.getElementById('copybtn').addEventListener('click', function(){
 
     const archiveStudent = (sid, sname, archive) => {
         confirm(
-            archive ? `将 "${sname}" 移入归档库，不影响历史记录，随时可恢复。` : `将 "${sname}" 从归档库恢复为活跃学员。`,
+            archive
+                ? `${sname} 会移出日常名单，不再出现在排课和搜索结果里。\n\n课时、上课记录和作品都完整保留，在「归档库」筛选下随时可以恢复。`
+                : `${sname} 会回到日常名单，可以正常排课和签到。\n\n课时余额和历史记录保持原样。`,
             async () => {
                 if (busy) return; // Fix ④
                 setBusy(true);
@@ -1877,6 +2054,33 @@ document.getElementById('copybtn').addEventListener('click', function(){
             },
             {confirmText: archive?'确认归档':'确认恢复'}
         );
+    };
+
+    /* P2-14: bulk equivalents of the two things operators actually do in
+       batches. Archiving is confirmed once for the whole set rather than
+       student by student, and writes one log line per student as before. */
+    const copySelectedReminders = () => {
+        if (!selectedStudents.length) return;
+        const lines = selectedStudents.map(s => renderMessage('renewal',
+            '{student} 家长您好！温馨提醒：您在 {studio} 的剩余课时为 {balance} 节{note}，为不影响后续上课安排，欢迎随时联系老师续课。',
+            {student:s.name, balance:s.balance, note:(parseInt(s.balance,10)||0)===0?'（已用完）':''}));
+        copyText(lines.join('\n\n'), `已复制 ${lines.length} 条续课提醒，可逐条粘贴到微信`);
+    };
+    const archiveSelected = () => {
+        const targets = selectedStudents.filter(s => !s.archived);
+        if (!targets.length) { showToast('所选学员均已归档', 'warn'); return; }
+        confirm(`${targets.length} 名学员会移出日常名单，不再出现在排课和搜索结果里。\n\n课时、上课记录和作品都完整保留，在「归档库」筛选下随时可以恢复。`, async () => {
+            if (busy) return;
+            setBusy(true);
+            try {
+                const ids = new Set(targets.map(s => s.id));
+                const ns = db.students.map(s => ids.has(s.id) ? {...s, archived:true} : s);
+                const logs = targets.map(s => mkLog(s.name,'归档学员','0','批量移入归档库',0,{studentId:s.id}));
+                await save({...db, students:ns, logs:[...logs, ...db.logs]});
+                setSelectedStudentIds([]);
+                showToast(`已归档 ${targets.length} 名学员`, 'warn');
+            } finally { setBusy(false); }
+        }, {confirmText:`归档 ${targets.length} 人`, danger:true});
     };
 
     const handleTopUp = async (e) => {
@@ -1915,9 +2119,11 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 setTuPay('微信'); setTuStu(null);
                 /* G2: 充值确认话术 */
                 const newBal = (parseInt(s.balance,10)||0)+credits;
-                const cMsg = `${s.name} 您好！已为您成功充值 ${credits} 课时${fee?`（实收 $${fee}）`:''}，当前账户共 ${newBal} 课时。感谢您对 Studio 的信任！🎨`;
+                const cMsg = renderMessage('topup',
+                    '{student} 您好！已为您成功充值 {credits} 课时{fee}，当前账户共 {balance} 课时。感谢您对 {studio} 的信任！',
+                    {student:s.name, credits, fee: fee ? `（实收 $${fee}）` : '', balance:newBal});
                 showToast(`${s.name} 充值 ${credits} 课时 / $${fee}`, 'success',
-                    {label:'📋 复制充值确认（发家长）', onClick:()=>copyText(cMsg,'充值确认已复制')});
+                    {label:'复制充值确认（发家长）', onClick:()=>copyText(cMsg,'充值确认已复制')});
             } catch(err) { showToast(`充值失败：${err.message}`, 'error'); }
             finally { setBusy(false); }
         };
@@ -1957,7 +2163,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 setRfCr(''); setRfAmt(''); setRfReason(''); setTuStu(null);
                 const cMsg = `${s.name} 您好！已为您办理退课 ${credits} 节${amt?`、退款 $${amt}（${tuPay}）`:''}，当前剩余 ${(parseInt(s.balance,10)||0)-credits} 课时。感谢您的理解与支持。`;
                 showToast(`${s.name} 退课 ${credits} 节 / 退款 $${amt}`, 'warn',
-                    {label:'📋 复制退款确认（发家长）', onClick:()=>copyText(cMsg,'退款确认已复制')});
+                    {label:'复制退款确认（发家长）', onClick:()=>copyText(cMsg,'退款确认已复制')});
             } catch(err) { showToast(`退款失败：${err.message}`, 'error'); }
             finally { setBusy(false); }
         }, {danger:true, confirmText:`确认退课 ${credits} 节`});
@@ -2060,7 +2266,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
     };
 
     const handleDelete = (sid, sname) => {
-        confirm(`永久删除 "${sname}" 及其排课记录。历史日志将保留，但此操作不可逆。建议优先使用「归档」。`, async () => {
+        confirm(`此操作不可撤销。\n\n将永久删除 ${sname} 的学员档案与全部排课记录。历史操作日志会保留（用于审计），但档案本身无法恢复。\n\n如果只是想让 TA 不再出现在名单里，请改用「归档」——归档随时可以恢复。`, async () => {
             if (busy) return; // Fix ④
             setBusy(true);
             try {
@@ -2098,7 +2304,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
 
     const revokeStudentAccessCode = () => {
         if (!selS || !TENANT_SLUG) return;
-        confirm(`停用 ${selS.name} 的学员专区？现有登录会话会立即失效。`, async () => {
+        confirm(`${selS.name} 当前的访问码会立即作废，已登录的会话也会马上退出，家长将无法再查询课时与记录。\n\n之后可以随时重新生成一个新访问码交给家长。`, async () => {
             setBusy(true);
             try {
                 await v1Api(`/students/${encodeURIComponent(selS.id)}/access-code`, {method:'DELETE'});
@@ -2146,7 +2352,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
         if (!consentEdit.note.trim()) {
             showToast('请填写撤回原因，便于后续审计', 'warn'); return;
         }
-        confirm(`撤回 ${selS.name} 的官网作品展示授权？当前公开作品会立即全部下架。`, async () => {
+        confirm(`${selS.name} 目前展示在官网的内容会立即全部下架，家长和访客都不会再看到。\n\n私人记录不受影响，仍保留在学员专区里。撤回会作为一条不可覆盖的审计记录留存。`, async () => {
             setBusy(true);
             try {
                 const data = await v1Api(`/students/${encodeURIComponent(selS.id)}/publication-consent`, {
@@ -2183,7 +2389,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
             const newPort = [res.item, ...(selS.portfolio || [])];
             setSelS(p => ({...p, portfolio: newPort}));
             setDb(d => ({...d, students: d.students.map(s => s.id===selS.id ? {...s,portfolio:newPort} : s)}));
-            showToast('🎨 作品已上传', 'success');
+            showToast(`${workNoun}已上传`, 'success');
             // B6: Release object URL to free browser memory
             if (portUpFile?.dataUrl) URL.revokeObjectURL(portUpFile.dataUrl);
             setPortUpload(false);
@@ -2195,7 +2401,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
 
     const portfolioDoDelete = async (pid) => {
         if (!selS) return;
-        confirm(`确认删除这张作品照片？此操作不可恢复。`, async () => {
+        confirm(`此操作不可撤销。\n\n照片会从服务器删除，家长在学员专区也将不再看到它。如果只是不想公开展示，取消勾选「展示到官网作品墙」即可，照片仍会保留在私人记录里。`, async () => {
             const sid = String(selS.id);
             try {
                 const r = await fetch(`/s/${encodeURIComponent(tenantSlug)}/v1/legacy-cms/portfolio/${encodeURIComponent(sid)}/${encodeURIComponent(pid)}`, {
@@ -2237,7 +2443,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
             // B3: Also sync lightbox items so open lightbox reflects the updated note/date
             setPortLB(p => p ? ({...p, items: newPort}) : null);
             setPortEdit(null);
-            showToast('✅ 已更新', 'success');
+            showToast('已更新', 'success');
         } catch(e) { showToast('更新失败', 'error'); }
     };
 
@@ -2340,12 +2546,12 @@ document.getElementById('copybtn').addEventListener('click', function(){
     const rejectStudent = (pid) => {
         const pen = (db.pending||[]).find(p=>p.id===pid); if (!pen) return;
         const name = pen.lastName ? `${pen.firstName} ${pen.lastName}` : pen.firstName;
-        confirm(`拒绝 "${name}" 的注册申请？${TENANT_SLUG ? '（家长将收到通知邮件）' : '并删除该记录？'}`, async () => {
+        confirm(`拒绝 "${name}" 的注册申请？${TENANT_SLUG ? '（家长将收到通知邮件）' : '并删除该记录？'}`, async (raw) => {
             if (busy) return; setBusy(true);
             try {
                 if (TENANT_SLUG) {
                     /* A4: 拒绝走 v1 状态机，原因随邮件发给家长 */
-                    const note = (window.prompt('拒绝原因（将随通知邮件发送给家长，可留空）') || '').trim();
+                    const note = String(raw||'').trim();
                     await v1Api(`/registrations/${pid}`, {
                         method: 'PATCH',
                         body: JSON.stringify({status: 'rejected', reviewNote: note || '管理员拒绝注册申请'}),
@@ -2360,7 +2566,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 showToast(`${name} 的申请已拒绝`, 'warn');
             } catch(e) { showToast(`操作失败：${e.message}`, 'error'); }
             finally { setBusy(false); }
-        }, {danger:true, confirmText:'确认拒绝'});
+        }, {danger:true, confirmText:'确认拒绝', prompt:TENANT_SLUG ? true : false,
+            promptLabel:'拒绝原因（将随通知邮件发送给家长，可留空）', promptPlaceholder:'可留空'});
     };
 
     const advanceRegistration = async (pid, status) => {
@@ -2421,7 +2628,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
         <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white p-4">
             <div className="text-center p-8 max-w-md bg-gray-800 rounded-2xl shadow-2xl border border-gray-700 anim w-full">
                 {connErr ? (<>
-                    <div className="text-5xl mb-3">⚠️</div>
+                    <div className="flex justify-center mb-3 text-amber-400"><Icon name="warning" className="w-12 h-12"/></div>
                     <h2 className="text-xl font-bold mb-3">连接失败</h2>
                     <p className="text-gray-400 text-sm mb-3 leading-relaxed">请确认终端正在运行 <code className="text-indigo-400 bg-gray-900 px-1 rounded">python3 server.py</code></p>
                     <p className="text-red-400 text-xs font-mono bg-gray-900 p-2 rounded mb-4">{connErr}</p>
@@ -2435,14 +2642,16 @@ document.getElementById('copybtn').addEventListener('click', function(){
     );
 
     const pendingCount = (db.pending||[]).length;
+    /* P3-10: "商业洞察" oversells what this tab shows a small studio owner —
+       it is attendance, credit and revenue counts, i.e. 经营统计. */
     const NAV = [
-        {k:'dashboard',i:'📊',l:'工作台',  s:'工作台'},
-        {k:'roster',   i:'📅',l:'每日排课', s:'排课'},
-        {k:'students', i:'👥',l:'学员档案', s:'档案'},
-        {k:'pending',  i:'📋',l:'待审核',   s:'审核', badge: pendingCount},
-        {k:'topup',    i:'💰',l:'充值结算', s:'充值'},
-        {k:'logs',     i:'📜',l:'操作日志', s:'日志'},
-        {k:'stats',    i:'📈',l:'商业洞察', s:'统计'},
+        {k:'dashboard',i:'dashboard',l:'工作台',  s:'工作台'},
+        {k:'roster',   i:'calendar', l:'每日排课', s:'排课'},
+        {k:'students', i:'users',    l:'学员档案', s:'档案'},
+        {k:'pending',  i:'clipboard',l:'待审核',   s:'审核', badge: pendingCount},
+        {k:'topup',    i:'money',    l:'充值结算', s:'充值'},
+        {k:'logs',     i:'scroll',   l:'操作日志', s:'日志'},
+        {k:'stats',    i:'trend',    l:'经营统计', s:'统计'},
     ].filter(item => allowedTabs.includes(item.k));
 
     /* ══════════════════════════ RENDER ══════════════════════════ */
@@ -2472,13 +2681,13 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         <div className="min-w-0">
                             <p className="text-white font-bold text-sm truncate">{portLB.items[portLB.idx]?.title || fmtDate(portLB.items[portLB.idx]?.date)}</p>
                             {portLB.items[portLB.idx]?.title && <p className="text-white/50 text-[11px] truncate">{fmtDate(portLB.items[portLB.idx]?.date)}</p>}
-                            {portLB.items[portLB.idx]?.note && <p className="text-white/60 text-xs truncate">💬 {portLB.items[portLB.idx].note}</p>}
+                            {portLB.items[portLB.idx]?.note && <p className="inline-flex items-center gap-1.5 text-white/60 text-xs truncate"><Icon name="chat" className="w-4 h-4"/>{portLB.items[portLB.idx].note}</p>}
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                             <span className="text-white/40 text-xs">{portLB.idx+1} / {portLB.items.length}</span>
                             {/* M2: Edit button in lightbox — sole access point on touch devices */}
                             <button onClick={()=>{const cur=portLB.items[portLB.idx];if(cur&&selS)setPortEdit({sid:String(selS.id),item:cur,note:cur.note||'',title:cur.title||'',date:cur.date||todayISO(),public:!!cur.public});}}
-                                className="text-white/80 active:text-white w-9 h-9 flex items-center justify-center text-base">✏️</button>
+                                aria-label="编辑" className="text-white/80 active:text-white w-9 h-9 flex items-center justify-center"><Icon name="pencil" className="w-4 h-4"/></button>
                             <button onClick={()=>setPortLB(null)} className="text-white text-2xl font-bold w-10 h-10 flex items-center justify-center">×</button>
                         </div>
                     </div>
@@ -2491,7 +2700,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             onClick={e=>e.stopPropagation()}
                             onError={e=>{e.target.style.display='none';e.target.nextSibling&&(e.target.nextSibling.style.display='flex');}}/>
                         <div style={{display:'none'}} className="flex-col items-center justify-center gap-2 text-white/50">
-                            <span className="text-4xl">🖼</span>
+                            <span className="inline-flex items-center gap-1.5 text-4xl"><Icon name="image" className="w-4 h-4"/></span>
                             <span className="text-sm">图片加载失败</span>
                         </div>
                     </div>
@@ -2503,7 +2712,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         </button>
                         <button
                             onClick={()=>portfolioDoDelete(String(portLB.items[portLB.idx]?.id))}
-                            className="py-2.5 px-4 bg-red-500/80 active:bg-red-600/80 text-white rounded-xl text-sm min-h-[44px]">🗑</button>
+                            aria-label="删除" className="py-2.5 px-4 bg-red-500/80 active:bg-red-600/80 text-white rounded-xl text-sm min-h-[44px] flex items-center justify-center"><Icon name="trash" className="w-4 h-4"/></button>
                         <button onClick={()=>setPortLB(p=>({...p,idx:Math.min(p.items.length-1,p.idx+1)}))}
                             disabled={portLB.idx===portLB.items.length-1}
                             className="py-2.5 px-6 bg-white/20 active:bg-white/30 text-white rounded-xl font-bold text-sm disabled:opacity-30 min-h-[44px]">
@@ -2521,7 +2730,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     <div className="bg-white w-full sm:rounded-3xl sm:max-w-md shadow-2xl overflow-hidden anim"
                         style={{paddingBottom:'env(safe-area-inset-bottom,0px)'}}>
                         <div className="flex justify-between items-center px-5 pt-5 pb-3">
-                            <h3 className="font-bold text-gray-800 text-lg">🎨 上传作品</h3>
+                            <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2"><Icon name="upload"/> 上传{workNoun}</h3>
                             <button onClick={()=>{if(portUpFile?.dataUrl)URL.revokeObjectURL(portUpFile.dataUrl);setPortUpload(false);setPortUpFile(null);}} className="text-gray-400 text-2xl font-bold w-10 h-10 flex items-center justify-center">×</button>
                         </div>
                         <div className="px-5 pb-5">
@@ -2529,7 +2738,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                 <div>
                                     <div className="flex gap-3">
                                         <label className="flex-1 flex flex-col items-center justify-center gap-2 py-6 border-2 border-dashed border-purple-300 rounded-2xl cursor-pointer active:bg-purple-50 hover:bg-purple-50 transition-colors">
-                                            <span className="text-3xl">📷</span>
+                                            <span className="text-gray-400"><Icon name="camera" className="w-8 h-8"/></span>
                                             <span className="text-sm font-bold text-purple-700">拍照</span>
                                             <input type="file" accept="image/*" capture="environment" className="hidden"
                                                 onChange={e=>{
@@ -2539,7 +2748,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                                 }}/>
                                         </label>
                                         <label className="flex-1 flex flex-col items-center justify-center gap-2 py-6 border-2 border-dashed border-indigo-300 rounded-2xl cursor-pointer active:bg-indigo-50 hover:bg-indigo-50 transition-colors">
-                                            <span className="text-3xl">🖼</span>
+                                            <span className="inline-flex items-center gap-1.5 text-3xl"><Icon name="image" className="w-4 h-4"/></span>
                                             <span className="text-sm font-bold text-indigo-700">从相册</span>
                                             <input type="file" accept="image/*" className="hidden"
                                                 onChange={e=>{
@@ -2556,20 +2765,21 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                     <img src={portUpFile.dataUrl} className="w-full h-52 object-cover rounded-2xl mb-4 bg-gray-100"/>
                                     <div className="space-y-3">
                                         <div>
-                                            <label className="text-xs font-bold text-gray-500 mb-1.5 block">📅 作品日期</label>
+                                            <label className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 mb-1.5 block"><Icon name="calendar" className="w-4 h-4"/>作品日期</label>
                                             <input type="date" value={portUpFile.date}
                                                 onChange={e=>setPortUpFile(p=>({...p,date:e.target.value}))}
                                                 className="w-full px-3 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-400 outline-none"/>
                                         </div>
                                         <div>
-                                            <label className="text-xs font-bold text-gray-500 mb-1.5 block">🖼 作品标题 <span className="font-normal text-gray-400">选填</span></label>
+                                            <label className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 mb-1.5 block"><Icon name="image" className="w-4 h-4"/>作品标题 <span className="font-normal text-gray-400">选填</span></label>
                                             <input type="text" value={portUpFile.title||''}
                                                 onChange={e=>setPortUpFile(p=>({...p,title:e.target.value}))}
                                                 placeholder="如：星空下的向日葵" maxLength={40}
                                                 className="w-full px-3 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-400 outline-none"/>
+                                            <p className="mt-1.5 text-[11px] leading-relaxed text-gray-400">按录入的语言原样显示，不随官网语言切换。</p>
                                         </div>
                                         <div>
-                                            <label className="text-xs font-bold text-gray-500 mb-1.5 block">💬 老师评语 <span className="font-normal text-gray-400">选填，家长可见</span></label>
+                                            <label className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 mb-1.5 block"><Icon name="chat" className="w-4 h-4"/>老师评语 <span className="font-normal text-gray-400">选填，家长可见</span></label>
                                             <input type="text" value={portUpFile.note}
                                                 onChange={e=>setPortUpFile(p=>({...p,note:e.target.value}))}
                                                 placeholder="如：水彩练习 第1期" maxLength={50}
@@ -2594,7 +2804,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                         <button onClick={()=>portfolioDoUpload(portUpFile.file,portUpFile.note,portUpFile.date,portUpFile.title,portUpFile.public)}
                                             disabled={portBusy}
                                             className="flex-1 py-3 rounded-xl bg-purple-600 active:bg-purple-700 text-white text-sm font-bold disabled:opacity-50 min-h-[50px]">
-                                            {portBusy ? '上传中...' : '✅ 确认上传'}
+                                            {portBusy ? '上传中...' : '确认上传'}
                                         </button>
                                     </div>
                                 </div>
@@ -2612,25 +2822,26 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     <div className="bg-white w-full sm:rounded-3xl sm:max-w-sm rounded-t-3xl p-5 shadow-2xl anim"
                         style={{paddingBottom:'max(20px,env(safe-area-inset-bottom,20px))'}}>
                         <div className="flex justify-between items-center mb-4">
-                            <h3 className="font-bold text-gray-800 text-lg">✏️ 编辑作品信息</h3>
+                            <h3 className="inline-flex items-center gap-1.5 font-bold text-gray-800 text-lg"><Icon name="pencil" className="w-4 h-4"/>编辑作品信息</h3>
                             <button onClick={()=>setPortEdit(null)} className="text-gray-400 text-2xl font-bold w-10 h-10 flex items-center justify-center">×</button>
                         </div>
                         <div className="space-y-3">
                             <div>
-                                <label className="text-xs font-bold text-gray-500 mb-1.5 block">📅 作品日期</label>
+                                <label className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 mb-1.5 block"><Icon name="calendar" className="w-4 h-4"/>作品日期</label>
                                 <input type="date" value={portEdit.date}
                                     onChange={e=>setPortEdit(p=>({...p,date:e.target.value}))}
                                     className="w-full px-3 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-400 outline-none"/>
                             </div>
                             <div>
-                                <label className="text-xs font-bold text-gray-500 mb-1.5 block">🖼 作品标题</label>
+                                <label className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 mb-1.5 block"><Icon name="image" className="w-4 h-4"/>作品标题</label>
                                 <input type="text" value={portEdit.title||''}
                                     onChange={e=>setPortEdit(p=>({...p,title:e.target.value}))}
                                     maxLength={40}
                                     className="w-full px-3 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-400 outline-none"/>
+                                <p className="mt-1.5 text-[11px] leading-relaxed text-gray-400">按录入的语言原样显示，不随官网语言切换。</p>
                             </div>
                             <div>
-                                <label className="text-xs font-bold text-gray-500 mb-1.5 block">💬 老师评语 <span className="font-normal text-gray-400">家长可见</span></label>
+                                <label className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 mb-1.5 block"><Icon name="chat" className="w-4 h-4"/>老师评语 <span className="font-normal text-gray-400">家长可见</span></label>
                                 <input type="text" value={portEdit.note}
                                     onChange={e=>setPortEdit(p=>({...p,note:e.target.value}))}
                                     maxLength={50}
@@ -2667,7 +2878,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                      onClick={()=>{setGOpen(false);setGQ('');}}>
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden anim" onClick={e=>e.stopPropagation()}>
                         <div className="flex items-center gap-2 px-4 py-3 border-b">
-                            <span className="text-gray-400 text-xl">🔍</span>
+                            <span className="text-gray-400"><Icon name="search" className="w-5 h-5"/></span>
                             <input autoFocus type="text" placeholder="搜索学员姓名、电话、微信号..." value={gQ}
                                 onChange={e=>setGQ(e.target.value)}
                                 onKeyDown={e=>{ if(e.key==='Escape'){setGOpen(false);setGQ('');} }}
@@ -2689,10 +2900,10 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                         <PhotoAvatar photo={s.photo} name={s.name} size="sm"/>
                                         <div className="flex-1 min-w-0">
                                             <p className="font-bold text-gray-800 text-sm truncate">{s.name}</p>
-                                            <p className="text-xs text-gray-400">{s.mobile||'—'}{s.wechat?` · 💬 ${s.wechat}`:''}</p>
+                                            <p className="text-xs text-gray-400">{s.mobile||'—'}{s.wechat?` · ${s.wechat}`:''}</p>
                                         </div>
                                         <div className="flex items-center gap-2 flex-shrink-0">
-                                            {tag && <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${tag.cls}`}>{tag.icon} {tag.label}</span>}
+                                            {tag && <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-bold ${tag.cls}`}><Icon name={tag.icon} className="w-3 h-3"/>{tag.label}</span>}
                                             <BalBadge n={s.balance}/>
                                         </div>
                                     </button>
@@ -2712,14 +2923,14 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     style={{paddingTop:'max(16px, env(safe-area-inset-top, 16px))', paddingBottom:'max(16px, env(safe-area-inset-bottom, 16px))'}}>
                     <div className="bg-white rounded-2xl p-6 w-full max-w-2xl shadow-2xl anim overflow-y-auto modal-scroll" style={{maxHeight:'90dvh'}} onClick={e=>e.stopPropagation()}>
                         <div className="flex justify-between items-center mb-5">
-                            <h3 className="font-bold text-gray-800">⚙️ 系统设置</h3>
+                            <h3 className="inline-flex items-center gap-1.5 font-bold text-gray-800"><Icon name="cog" className="w-4 h-4"/>系统设置</h3>
                             <button onClick={()=>setShowSettings(false)} className="text-gray-400 active:text-gray-700 text-xl p-1">×</button>
                         </div>
                         {/* A5: Public website and lead-capture settings live in Studio Admin. */}
                         {TENANT_SLUG && ownerRoles.includes(actorRole) && (
                             <a href={`/${TENANT_SLUG}/studio-admin`} target="_blank" rel="noopener"
                                 className="block bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3 text-sm font-bold text-indigo-700 active:bg-indigo-100">
-                                🎨 网站、Logo、配色与注册表设置 →
+                                网站、Logo、配色与注册表设置 →
                                 <p className="text-[11px] font-normal text-indigo-400 mt-0.5">打开 Studio Admin 管理公开门户、注册表字段、品牌文案和页面展示</p>
                             </a>
                         )}
@@ -2767,7 +2978,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                 className="w-full p-2.5 border border-gray-300 rounded-xl outline-none text-sm focus:ring-2 focus:ring-indigo-400"/>
                             <input type="password" placeholder="再次确认新密码" value={pwNew2} onChange={e=>setPwNew2(e.target.value)}
                                 className="w-full p-2.5 border border-gray-300 rounded-xl outline-none text-sm focus:ring-2 focus:ring-indigo-400"/>
-                            {pwMsg && <p className={`text-xs font-medium ${pwMsg.startsWith('✅')?'text-green-600':'text-red-500'}`}>{pwMsg}</p>}
+                            {pwMsg && <p className={`text-xs font-medium ${pwMsg.tone==='ok'?'text-green-600':'text-red-500'}`}>{pwMsg.text}</p>}
                             <button onClick={changeWebPw} disabled={pwBusy}
                                 className="w-full bg-indigo-600 active:bg-indigo-700 disabled:opacity-50 text-white py-2.5 rounded-xl font-bold text-sm">
                                 {pwBusy ? '更新中...' : '更新密码'}
@@ -2882,7 +3093,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                     </div>
                                     <button onClick={cleanRosters} disabled={oldKeys.length===0}
                                         className="w-full bg-amber-50 active:bg-amber-100 disabled:opacity-40 text-amber-700 border border-amber-200 py-2.5 rounded-xl font-bold text-sm">
-                                        🧹 清理旧排课
+                                        <span className="inline-flex items-center gap-1.5"><Icon name="broom" className="w-4 h-4"/>清理旧排课</span>
                                     </button>
                                 </div>
                             );
@@ -2890,7 +3101,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         {/* F1/F5/F6: 数据体检 + 阈值 + 每周邮件 + 备份恢复 */}
                         {!TENANT_SLUG && (
                             <MaintSection renewTh={renewTh} saveRenewTh={saveRenewTh}
-                                onRestored={()=>{ setShowSettings(false); load(); }}/>
+                                onRestored={()=>{ setShowSettings(false); load(); }}
+                                confirm={confirm} notify={notify}/>
                         )}
                         <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">学员注册页面</p>
@@ -2901,17 +3113,17 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             </div>
                         </div>
                         <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
-                            <button onClick={lockScreen} className="w-full bg-gray-100 active:bg-gray-200 text-gray-700 py-3 rounded-xl font-bold text-sm">{pinEnabled?'🔒 锁定屏幕':'🔓 退出登录'}</button>
+                            <button onClick={lockScreen} className="w-full bg-gray-100 active:bg-gray-200 text-gray-700 py-3 rounded-xl font-bold text-sm">{pinEnabled?'锁定屏幕':'退出登录'}</button>
                             {/* Mobile-only: sidebar actions inaccessible on phone */}
                             <div className="md:hidden space-y-2 pt-2 border-t border-gray-100">
                                 <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide pb-0.5">快捷操作</p>
                                 <button onClick={()=>{load();setShowSettings(false);}} disabled={busy}
-                                    className="w-full bg-indigo-50 active:bg-indigo-100 text-indigo-700 border border-indigo-200 py-3 rounded-xl font-bold text-sm">🔄 刷新数据</button>
+                                    className="w-full bg-indigo-50 active:bg-indigo-100 text-indigo-700 border border-indigo-200 py-3 rounded-xl font-bold text-sm"><span className="inline-flex items-center gap-1.5"><Icon name="refresh" className="w-4 h-4"/>刷新数据</span></button>
                                 {canManageOperations && !TENANT_SLUG && <button onClick={()=>{exportDB();setShowSettings(false);}}
-                                    className="w-full bg-indigo-50 active:bg-indigo-100 text-indigo-700 border border-indigo-200 py-3 rounded-xl font-bold text-sm">⬇️ 备份导出</button>
+                                    className="w-full bg-indigo-50 active:bg-indigo-100 text-indigo-700 border border-indigo-200 py-3 rounded-xl font-bold text-sm"><span className="inline-flex items-center gap-1.5"><Icon name="download" className="w-4 h-4"/>备份导出</span></button>
                                 }
                                 <button onClick={()=>{setShowSettings(false);confirm('确认退出登录？下次进入需重新输入密码。', doLogout, {confirmText:'退出登录'});}}
-                                    className="w-full bg-red-50 active:bg-red-100 text-red-600 border border-red-200 py-3 rounded-xl font-bold text-sm">🔓 退出登录</button>
+                                    className="w-full bg-red-50 active:bg-red-100 text-red-600 border border-red-200 py-3 rounded-xl font-bold text-sm"><span className="inline-flex items-center gap-1.5"><Icon name="logout" className="w-4 h-4"/>退出登录</span></button>
                             </div>
                         </div>
                     </div>
@@ -2923,9 +3135,9 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 <img src={tenantLogoUrl} alt={tenantDisplayName} className="h-8 w-auto max-w-[96px] object-contain flex-shrink-0"/>
                 <span className="font-bold text-base flex-1 truncate">{tenantDisplayName} CMS</span>
                 <button onClick={()=>{setGOpen(true);setGQ('');}} aria-label="搜索"
-                    className="w-9 h-9 flex items-center justify-center rounded-lg bg-indigo-800 active:bg-indigo-700 text-indigo-200 text-base flex-shrink-0">🔍</button>
+                    className="w-9 h-9 flex items-center justify-center rounded-lg bg-indigo-800 active:bg-indigo-700 text-indigo-200 flex-shrink-0"><Icon name="search"/></button>
                 <button onClick={()=>setShowSettings(true)} aria-label="设置"
-                    className="w-9 h-9 flex items-center justify-center rounded-lg bg-indigo-800 active:bg-indigo-700 text-indigo-200 text-base flex-shrink-0">⚙️</button>
+                    aria-label="设置" className="w-9 h-9 flex items-center justify-center rounded-lg bg-indigo-800 active:bg-indigo-700 text-indigo-200 flex-shrink-0"><Icon name="cog"/></button>
             </div>
 
             {/* Sidebar */}
@@ -2936,13 +3148,13 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     <img src={tenantLogoUrl} alt={tenantDisplayName} className="h-9 w-auto max-w-[96px] object-contain flex-shrink-0"/>
                     <h1 className="hidden md:block text-base font-bold tracking-wide flex-1 truncate">{tenantDisplayName}</h1>
                     <button onClick={()=>{setGOpen(true);setGQ('');}} title="全局搜索 ⌘K"
-                        className="hidden md:flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-800 active:bg-indigo-700 text-indigo-300 hover:text-white text-base flex-shrink-0">🔍</button>
+                        className="hidden md:flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-800 active:bg-indigo-700 text-indigo-300 hover:text-white flex-shrink-0"><Icon name="search"/></button>
                 </div>
                 <nav className="flex-1 px-2 py-4 space-y-0.5 overflow-y-auto">
                     {NAV.map(({k,i,l,badge}) => (
                         <button key={k} onClick={()=>setTab(k)}
                             className={`w-full text-left px-2 py-3 rounded-xl transition flex items-center gap-2 text-sm min-h-[44px] ${tab===k?'bg-indigo-700 font-bold':'active:bg-indigo-800 text-indigo-200'}`}>
-                            <span className="text-base w-5 text-center flex-shrink-0">{i}</span>
+                            <Icon name={i}/>
                             <span>{l}</span>
                             {k==='dashboard' && analytics.lowBalance.length>0 &&
                                 <span className="ml-auto bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">{analytics.lowBalance.length}</span>}
@@ -2952,17 +3164,17 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     ))}
                 </nav>
                 <div className="p-3 border-t border-indigo-800 space-y-1.5" style={{paddingBottom:'calc(env(safe-area-inset-bottom,0px) + 12px)'}}>
-                    <div className="text-xs text-green-400 text-center bg-indigo-950 rounded-lg p-1.5 border border-indigo-800">🟢 已连接</div>
+                    <div className="text-xs text-green-400 text-center bg-indigo-950 rounded-lg p-1.5 border border-indigo-800"><span className="inline-flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-400" aria-hidden="true"></span>已连接</span></div>
                     {db.logs.length > 1000 && (
                         <div className="text-xs text-amber-400 text-center bg-indigo-950 rounded-lg p-1.5 border border-amber-800/40">
-                            ⚠️ 日志 {db.logs.length} 条
+                            <span className="inline-flex items-center gap-1.5"><Icon name="warning" className="w-3.5 h-3.5"/>日志 {db.logs.length} 条</span>
                         </div>
                     )}
-                    {canManageOperations && !TENANT_SLUG && <button onClick={exportDB} className="w-full bg-indigo-700 active:bg-indigo-600 p-2.5 rounded-xl text-xs font-bold min-h-[40px]">⬇️ 备份导出</button>}
-                    <button onClick={load} disabled={busy} className="w-full bg-indigo-800 active:bg-indigo-700 p-2.5 rounded-xl text-xs font-bold min-h-[40px]">🔄 刷新</button>
-                    <button onClick={()=>setShowSettings(true)} className="w-full bg-indigo-800 active:bg-indigo-700 p-2.5 rounded-xl text-xs font-bold min-h-[40px]">⚙️ 设置</button>
+                    {canManageOperations && !TENANT_SLUG && <button onClick={exportDB} className="inline-flex items-center gap-1.5 w-full bg-indigo-700 active:bg-indigo-600 p-2.5 rounded-xl text-xs font-bold min-h-[40px]"><Icon name="download" className="w-4 h-4"/>备份导出</button>}
+                    <button onClick={load} disabled={busy} className="inline-flex items-center gap-1.5 w-full bg-indigo-800 active:bg-indigo-700 p-2.5 rounded-xl text-xs font-bold min-h-[40px]"><Icon name="refresh" className="w-4 h-4"/>刷新</button>
+                    <button onClick={()=>setShowSettings(true)} className="w-full bg-indigo-800 active:bg-indigo-700 p-2.5 rounded-xl text-xs font-bold min-h-[40px]"><span className="inline-flex items-center gap-1.5"><Icon name="cog" className="w-4 h-4"/>设置</span></button>
                     <button onClick={()=>confirm('确认退出登录？下次进入需重新输入密码。', doLogout, {confirmText:'退出登录'})}
-                        className="w-full bg-indigo-950 active:bg-red-900 p-2.5 rounded-xl text-xs font-bold min-h-[40px] text-indigo-300 active:text-white">🔓 退出登录</button>
+                        className="w-full bg-indigo-950 active:bg-red-900 p-2.5 rounded-xl text-xs font-bold min-h-[40px] text-indigo-300 active:text-white"><span className="inline-flex items-center gap-1.5"><Icon name="logout" className="w-4 h-4"/>退出登录</span></button>
                 </div>
             </aside>
 
@@ -2976,7 +3188,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
 {/* ═══ DASHBOARD ══════════════════════════════════════════════ */}
 {tab==='dashboard' && (
 <div className="anim space-y-5">
-    <h2 className="text-xl md:text-2xl font-bold text-gray-800">📊 工作台</h2>
+    <h2 className="inline-flex items-center gap-1.5 text-xl md:text-2xl font-bold text-gray-800"><Icon name="dashboard" className="w-4 h-4"/>工作台</h2>
     {scheduleLoadError && <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
         <span className="flex-1">{scheduleLoadError}</span>
         <button onClick={loadSchedules} className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-bold min-h-[40px]">重试</button>
@@ -2994,17 +3206,17 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 ].map(([label,value,unit])=><div key={label} className="rounded-xl bg-white/10 border border-white/10 p-2.5"><p className="text-[11px] text-indigo-200">{label}</p><p className="text-xl font-bold">{value}<span className="text-xs font-normal ml-1">{unit}</span></p></div>)}
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {canManageOperations && <button onClick={()=>{setRDate(todayISO());setTab('roster');}} className="bg-white text-indigo-800 rounded-xl py-2.5 text-xs font-bold min-h-[44px]">📅 今日排课</button>}
+                {canManageOperations && <button onClick={()=>{setRDate(todayISO());setTab('roster');}} className="bg-white text-indigo-800 rounded-xl py-2.5 text-xs font-bold min-h-[44px]"><span className="inline-flex items-center gap-1.5"><Icon name="calendar" className="w-4 h-4"/>今日排课</span></button>}
                 {canWriteStudents && <button onClick={()=>setTab('new_student')} className="bg-indigo-600 border border-indigo-400 rounded-xl py-2.5 text-xs font-bold min-h-[44px]">➕ 新建学员</button>}
-                {allowedTabs.includes('pending') && <button onClick={()=>setTab('pending')} className="bg-indigo-600 border border-indigo-400 rounded-xl py-2.5 text-xs font-bold min-h-[44px]">📋 审核报名</button>}
-                {canWriteCredits && <button onClick={()=>setTab('topup')} className="bg-indigo-600 border border-indigo-400 rounded-xl py-2.5 text-xs font-bold min-h-[44px]">💰 充值结算</button>}
+                {allowedTabs.includes('pending') && <button onClick={()=>setTab('pending')} className="bg-indigo-600 border border-indigo-400 rounded-xl py-2.5 text-xs font-bold min-h-[44px]"><span className="inline-flex items-center gap-1.5"><Icon name="clipboard" className="w-4 h-4"/>审核报名</span></button>}
+                {canWriteCredits && <button onClick={()=>setTab('topup')} className="bg-indigo-600 border border-indigo-400 rounded-xl py-2.5 text-xs font-bold min-h-[44px]"><span className="inline-flex items-center gap-1.5"><Icon name="money" className="w-4 h-4"/>充值结算</span></button>}
             </div>
         </div>
     )}
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[{l:'客户总数',      v:`${analytics.totalStudents} 人`,             c:'text-gray-800',    action:()=>{setSortBy('date-desc');setFilterBy('all');setTab('students');}},
+        {[{l:'学员总数',      v:`${analytics.totalStudents} 人`,             c:'text-gray-800',    action:()=>{setSortBy('date-desc');setFilterBy('all');setTab('students');}},
           {l:'全部剩余课时',  v:`${analytics.totalBalance} 课时`,             c:'text-indigo-600',  action:()=>{setSortBy('bal-desc');setFilterBy('active');setTab('students');}},
-          {l:'今日排班',      v:`${TENANT_SLUG ? todayEffectiveCount : analytics.todayRoster.length} 人`,         c:'text-gray-700',    action:()=>setTab('roster')},
+          {l:'今日排课',      v:`${TENANT_SLUG ? todayEffectiveCount : analytics.todayRoster.length} 人`,         c:'text-gray-700',    action:()=>setTab('roster')},
           {l:'历史总营收',    v:`$${analytics.totalRevenue.toFixed(0)}`,      c:'text-emerald-600', action:()=>setTab('stats')},
         ].map(({l,v,c,action})=>(
             <button key={l} onClick={action}
@@ -3018,7 +3230,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
     {/* A3: 经营真账（估算）— 现金 vs 已赚 vs 预收负债（v5.3） */}
     {TENANT_SLUG && bizStats && (
         <details className="bg-white rounded-2xl shadow-sm border border-emerald-100">
-            <summary className="cursor-pointer px-4 py-3 font-bold text-sm text-gray-800 select-none">📈 经营真账（估算） <span className="text-xs font-normal text-gray-400">已上课 {bizStats.attended_total} 人次 · 加权均价 ${bizStats.avg_price}/课时</span></summary>
+            <summary className="inline-flex items-center gap-1.5 cursor-pointer px-4 py-3 font-bold text-sm text-gray-800 select-none"><Icon name="trend" className="w-4 h-4"/>经营真账（估算） <span className="text-xs font-normal text-gray-400">已上课 {bizStats.attended_total} 人次 · 加权均价 ${bizStats.avg_price}/课时</span></summary>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-4 pb-4">
                 {[
                     ['已上课人次', `${bizStats.attended_total} 次`, `本月 ${bizStats.attended_month} 次`, 'text-gray-800'],
@@ -3052,14 +3264,14 @@ document.getElementById('copybtn').addEventListener('click', function(){
         return (
             <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
                 <div className="px-4 py-3 bg-gray-50 border-b flex items-center justify-between">
-                    <p className="font-bold text-gray-700 text-sm">⏰ 今日待办</p>
+                    <p className="inline-flex items-center gap-1.5 font-bold text-gray-700 text-sm"><Icon name="clock" className="w-4 h-4"/>今日待办</p>
                     <span className="bg-indigo-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">{total} 项</span>
                 </div>
                 <div className="divide-y divide-gray-50">
                     {todoFollowUp.length > 0 && (
                         <div className="flex items-center justify-between px-4 py-3 gap-3">
                             <div className="min-w-0">
-                                <p className="text-sm font-bold text-indigo-700">📞 报名跟进到期 · {todoFollowUp.length} 项</p>
+                                <p className="inline-flex items-center gap-1.5 text-sm font-bold text-indigo-700"><Icon name="phone" className="w-4 h-4"/>报名跟进到期 · {todoFollowUp.length} 项</p>
                                 <p className="text-xs text-gray-400 truncate mt-0.5">{todoFollowUp.slice(0,4).map(item=>`${item.firstName||''} ${item.lastName||''}`.trim()).join('、')}</p>
                             </div>
                             <button onClick={()=>setTab('pending')}
@@ -3069,7 +3281,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     {todoClear.length > 0 && (
                         <div className="flex items-center justify-between px-4 py-3 gap-3">
                             <div className="min-w-0">
-                                <p className="text-sm font-bold text-red-700">🚨 课时已清零 · {todoClear.length} 人</p>
+                                <p className="inline-flex items-center gap-1.5 text-sm font-bold text-red-700"><Icon name="warning" className="w-4 h-4"/>课时已清零 · {todoClear.length} 人</p>
                                 <p className="text-xs text-gray-400 truncate mt-0.5">{names(todoClear)}</p>
                             </div>
                             <button onClick={()=>{setFilterBy('zero');setTab('students');}}
@@ -3079,7 +3291,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     {todoLast.length > 0 && (
                         <div className="flex items-center justify-between px-4 py-3 gap-3">
                             <div className="min-w-0">
-                                <p className="text-sm font-bold text-orange-700">⚡ 最后 1 课时 · {todoLast.length} 人</p>
+                                <p className="inline-flex items-center gap-1.5 text-sm font-bold text-orange-700"><Icon name="bolt" className="w-4 h-4"/>最后 1 课时 · {todoLast.length} 人</p>
                                 <p className="text-xs text-gray-400 truncate mt-0.5">{names(todoLast)}</p>
                             </div>
                             <button onClick={()=>{setFilterBy('low');setTab('students');}}
@@ -3089,7 +3301,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     {todoRisk.length > 0 && (
                         <div className="flex items-center justify-between px-4 py-3 gap-3">
                             <div className="min-w-0">
-                                <p className="text-sm font-bold text-amber-700">⚠️ 流失风险 · {todoRisk.length} 人</p>
+                                <p className="inline-flex items-center gap-1.5 text-sm font-bold text-amber-700"><Icon name="warning" className="w-4 h-4"/>流失风险 · {todoRisk.length} 人</p>
                                 <p className="text-xs text-gray-400 truncate mt-0.5">{names(todoRisk)}</p>
                             </div>
                             <button onClick={()=>{setFilterBy('tag-risk');setTab('students');}}
@@ -3099,15 +3311,15 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     {todoBdayWeek.length > 0 && (
                         <div className="px-4 py-3 space-y-2">
                             <div className="flex items-center justify-between gap-3">
-                                <p className="text-sm font-bold text-pink-600">🎂 本周生日 · {todoBdayWeek.length} 人</p>
-                                <button onClick={()=>{ const msg=todoBdayWeek.map(s=>`🎂 祝 ${s.name} 生日快乐！愿新的一年里画艺大进，心想事成！`).join('\n'); copyText(msg,'祝福语已复制'); }}
+                                <p className="inline-flex items-center gap-1.5 text-sm font-bold text-pink-600"><Icon name="cake" className="w-4 h-4"/>本周生日 · {todoBdayWeek.length} 人</p>
+                                <button onClick={()=>{ const msg=todoBdayWeek.map(s=>`祝 ${s.name} 生日快乐！愿新的一年里画艺大进，心想事成！`).join('\n'); copyText(msg,'祝福语已复制'); }}
                                     className="flex-shrink-0 text-xs text-pink-600 font-bold bg-pink-50 active:bg-pink-100 border border-pink-200 px-3 py-1.5 rounded-xl min-h-[34px]">复制祝福 →</button>
                             </div>
                             <div className="flex flex-wrap gap-1.5">
                                 {todoBdayWeek.map(s=>(
                                     <span key={s.id} className="inline-flex items-center gap-1 bg-pink-50 border border-pink-100 rounded-full px-2.5 py-1 text-xs text-pink-700">
                                         {s.name}
-                                        {s.mobile && <a href={`sms:${s.mobile.replace(/\s/g,'')}?body=${encodeURIComponent('🎂 祝 '+s.name+' 生日快乐！愿新的一年里画艺大进，心想事成！')}`} className="text-pink-400 ml-0.5 active:text-pink-600">💬</a>}
+                                        {s.mobile && <a href={`sms:${s.mobile.replace(/\s/g,'')}?body=${encodeURIComponent('祝 '+s.name+' 生日快乐！愿新的一年里画艺大进，心想事成！')}`} aria-label="发送祝福短信" className="text-pink-400 ml-0.5 active:text-pink-600 inline-flex"><Icon name="chat" className="w-3.5 h-3.5"/></a>}
                                     </span>
                                 ))}
                             </div>
@@ -3116,15 +3328,15 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     {todoBdayMonth.length > 0 && (
                         <div className="px-4 py-3 space-y-2">
                             <div className="flex items-center justify-between gap-3">
-                                <p className="text-sm font-bold text-pink-400">🎈 本月生日 · {todoBdayMonth.length} 人</p>
-                                <button onClick={()=>{ const msg=todoBdayMonth.map(s=>`🎂 祝 ${s.name} 生日快乐！愿新的一年里画艺大进，心想事成！`).join('\n'); copyText(msg,'祝福语已复制'); }}
+                                <p className="inline-flex items-center gap-1.5 text-sm font-bold text-pink-400"><Icon name="cake" className="w-4 h-4"/>本月生日 · {todoBdayMonth.length} 人</p>
+                                <button onClick={()=>{ const msg=todoBdayMonth.map(s=>`祝 ${s.name} 生日快乐！愿新的一年里画艺大进，心想事成！`).join('\n'); copyText(msg,'祝福语已复制'); }}
                                     className="flex-shrink-0 text-xs text-pink-400 font-bold bg-pink-50 active:bg-pink-100 border border-pink-100 px-3 py-1.5 rounded-xl min-h-[34px]">复制祝福 →</button>
                             </div>
                             <div className="flex flex-wrap gap-1.5">
                                 {todoBdayMonth.map(s=>(
                                     <span key={s.id} className="inline-flex items-center gap-1 bg-pink-50 border border-pink-100 rounded-full px-2.5 py-1 text-xs text-pink-700">
                                         {s.name}
-                                        {s.mobile && <a href={`sms:${s.mobile.replace(/\s/g,'')}?body=${encodeURIComponent('🎂 祝 '+s.name+' 生日快乐！愿新的一年里画艺大进，心想事成！')}`} className="text-pink-400 ml-0.5 active:text-pink-600">💬</a>}
+                                        {s.mobile && <a href={`sms:${s.mobile.replace(/\s/g,'')}?body=${encodeURIComponent('祝 '+s.name+' 生日快乐！愿新的一年里画艺大进，心想事成！')}`} aria-label="发送祝福短信" className="text-pink-400 ml-0.5 active:text-pink-600 inline-flex"><Icon name="chat" className="w-3.5 h-3.5"/></a>}
                                     </span>
                                 ))}
                             </div>
@@ -3141,7 +3353,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
             className="w-full bg-amber-50 border border-amber-300 rounded-2xl p-4 text-left active:bg-amber-100 transition">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <span className="text-2xl">📋</span>
+                    <span className="inline-flex items-center gap-1.5 text-2xl"><Icon name="clipboard" className="w-4 h-4"/></span>
                     <div>
                         <p className="font-bold text-amber-800 text-sm">有待审核的注册申请</p>
                         <p className="text-xs text-amber-600 mt-0.5">{(db.pending||[]).length} 位学员等待审核，点击前往处理</p>
@@ -3155,7 +3367,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
     {/* 长期未到访 */}
     {analytics.inactive.length>0 && (
         <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4">
-            <p className="font-bold text-blue-800 mb-2 text-sm">📅 长期未到访 — {analytics.inactive.length} 名学员有余额但超过 {inactiveDays} 天未上课</p>
+            <p className="inline-flex items-center gap-1.5 font-bold text-blue-800 mb-2 text-sm"><Icon name="calendar" className="w-4 h-4"/>长期未到访 — {analytics.inactive.length} 名学员有余额但超过 {inactiveDays} 天未上课</p>
             <div className="flex flex-wrap gap-2">
                 {analytics.inactive.slice(0,12).map(s => (
                     <button key={s.id} onClick={()=>{setTab('students');setSrch(s.name);}}
@@ -3170,7 +3382,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
     {/* 低余额预警 */}
     {analytics.lowBalance.length>0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
-            <p className="font-bold text-amber-800 mb-2 text-sm">⚡ 课时预警 — {analytics.lowBalance.length} 名学员余额 ≤ 2 课时</p>
+            <p className="inline-flex items-center gap-1.5 font-bold text-amber-800 mb-2 text-sm"><Icon name="bolt" className="w-4 h-4"/>课时预警 — {analytics.lowBalance.length} 名学员余额 ≤ 2 课时</p>
             <div className="flex flex-wrap gap-2">
                 {analytics.lowBalance.map(s => (
                     <button key={s.id} onClick={()=>{setTab('students');setSrch(s.name);}}
@@ -3188,7 +3400,9 @@ document.getElementById('copybtn').addEventListener('click', function(){
             <p className="font-bold text-gray-700 text-sm">最近操作</p>
             <button onClick={()=>setTab('logs')} className="text-indigo-500 text-xs active:text-indigo-700">全部 →</button>
         </div>
-        {analytics.recentGroups.length===0 && <EmptyState icon="🧾" main="暂无记录" sub="签到与充值后这里会出现流水"/>}
+        {analytics.recentGroups.length===0 && <EmptyState icon={<Icon name="scroll" className="w-8 h-8"/>} main="还没有账目记录"
+                sub="签到会记一笔消课，充值会记一笔收入。今天做过其中任何一项，这里就会出现流水。"
+                action="去今日排课" onAction={()=>{setRDate(todayISO());setTab('roster');}}/>}
         {analytics.recentGroups.map(({date, logs}) => (
             <div key={date}>
                 <div className="px-4 py-1.5 bg-gray-50 border-b border-t border-gray-100">
@@ -3213,7 +3427,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
 {/* ═══ ROSTER ═════════════════════════════════════════════════ */}
 {tab==='roster' && (
 <div className="anim space-y-4">
-    <h2 className="text-xl md:text-2xl font-bold text-gray-800">📅 每日排课</h2>
+    <h2 className="inline-flex items-center gap-1.5 text-xl md:text-2xl font-bold text-gray-800"><Icon name="calendar" className="w-4 h-4"/>每日排课</h2>
     {scheduleLoadError && <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
         <span className="flex-1">{scheduleLoadError}</span>
         <button onClick={loadSchedules} className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-bold min-h-[40px]">重试</button>
@@ -3222,31 +3436,33 @@ document.getElementById('copybtn').addEventListener('click', function(){
     {upcomingBirthdays.length>0 && (
         <div className="bg-gradient-to-r from-pink-50 to-rose-50 border border-pink-200 rounded-2xl p-4">
             <div className="flex items-center justify-between gap-2 flex-wrap mb-2">
-                <p className="text-sm font-bold text-rose-700">🎂 近 14 天生日（{upcomingBirthdays.length} 人）</p>
+                <p className="inline-flex items-center gap-1.5 text-sm font-bold text-rose-700"><Icon name="cake" className="w-4 h-4"/>近 14 天生日（{upcomingBirthdays.length} 人）</p>
             </div>
             <div className="flex flex-wrap gap-2">
                 {upcomingBirthdays.map(({s,in:days,md,age})=>(
                     <button key={s.id} onClick={()=>{
-                        const msg = `${s.name} 您好！🎉 Studio 全体老师祝您生日快乐！愿您在新的一岁里灵感不断、画笔生花～ 🎨🎂`;
+                        const msg = renderMessage('birthday',
+                            '{student} 您好！{studio} 全体老师祝您生日快乐！愿您在新的一岁里灵感不断、收获满满～',
+                            {student:s.name});
                         copyText(msg, `已复制给 ${s.name} 的生日祝福`);
                     }} className="bg-white border border-pink-200 active:bg-pink-50 rounded-xl px-3 py-2 text-left">
-                        <p className="text-sm font-bold text-gray-800">{s.name} <span className="text-xs font-normal text-rose-400">{days===0?'🎉今天':`${md} (${days}天后)`}</span></p>
+                        <p className="text-sm font-bold text-gray-800">{s.name} <span className="text-xs font-normal text-rose-400">{days===0?'今天':`${md} (${days}天后)`}</span></p>
                         <p className="text-[11px] text-gray-400">点击复制生日祝福话术</p>
                     </button>
                 ))}
             </div>
         </div>
     )}
-    {/* A1: 每周课表 — 固定班次自动生成每日排班 */}
+    {/* A1: 每周课表 — 固定班次自动生成每日排课 */}
     {TENANT_SLUG && (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
         <div className="flex justify-between items-center gap-2 flex-wrap">
-            <p className="font-bold text-sm text-gray-800">📆 每周课表 <span className="text-xs font-normal text-gray-400">固定班次按周几自动排入当日名单</span></p>
+            <p className="inline-flex items-center gap-1.5 font-bold text-sm text-gray-800"><Icon name="calendar" className="w-4 h-4"/>每周课表 <span className="text-xs font-normal text-gray-400">固定班次按周几自动排入当日名单</span></p>
             <button onClick={()=>setSchedEdit({label:'', weekday:new Date().getDay(), startTime:'16:00', durationMinutes:60, capacity:10, studentIds:[]})}
                 className="bg-indigo-600 active:bg-indigo-700 text-white px-4 py-1.5 rounded-xl text-xs font-bold min-h-[36px]">➕ 新增班次</button>
         </div>
         {schedules.length===0 && !schedEdit && (
-            <p className="text-xs text-gray-400">还没有固定班次。例如「周三 16:00 素描班」——保存后每周三会自动出现在当日排班里。</p>
+            <p className="text-xs text-gray-400">还没有固定班次。例如「周三 16:00 素描班」——保存后每周三会自动出现在当日排课里。</p>
         )}
         {schedules.length>0 && (
             <div className="flex flex-wrap gap-2">
@@ -3340,7 +3556,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 </div>
                 <p className="text-xs text-gray-400 mt-1">{fmtDate(rDate)} {WEEKDAYS[new Date(`${rDate}T12:00:00`).getDay()]}</p>
             </div>
-            <div className="flex-1">
+            <div className="flex-1" id="rosterAddStudent">
                 <label className="text-xs font-bold text-gray-500 mb-1 block">添加学员</label>
                 <div className="flex gap-2">
                     <div className="flex-1">
@@ -3353,7 +3569,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
         </div>
         {/* F4b: 班组模板 */}
         <div className="mt-3 pt-3 border-t border-gray-100 flex gap-2 items-center flex-wrap">
-            <span className="text-xs font-bold text-gray-500">📋 班组模板</span>
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500"><Icon name="clipboard" className="w-4 h-4"/>班组模板</span>
             <select value={grpSel} onChange={e=>setGrpSel(e.target.value)}
                 className="px-2 py-2 border border-gray-300 rounded-xl bg-white text-sm font-medium min-h-[40px] outline-none focus:ring-2 focus:ring-indigo-500">
                 <option value="">-- 选择模板 --</option>
@@ -3366,7 +3582,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
             {grpSel && <button onClick={deleteGroup} disabled={busy}
                 className="bg-white text-red-500 border border-red-200 active:bg-red-50 px-3 py-2 rounded-xl text-xs font-bold min-h-[40px]">删除</button>}
             {TENANT_SLUG && grpSel && <button onClick={groupToSchedule} disabled={busy}
-                className="bg-indigo-600 active:bg-indigo-700 text-white px-3 py-2 rounded-xl text-xs font-bold min-h-[40px]">📆 转为每周班次</button>}
+                className="inline-flex items-center gap-1.5 bg-indigo-600 active:bg-indigo-700 text-white px-3 py-2 rounded-xl text-xs font-bold min-h-[40px]"><Icon name="calendar" className="w-4 h-4"/>转为每周班次</button>}
         </div>
     </div>
 
@@ -3423,7 +3639,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         const lines = ids.map(id=>{const s=db.students.find(x=>x.id===id); return s&&!s.archived?`${s.name}（剩余${s.balance}课时）`:null;}).filter(Boolean);
                         const text = `【今日上课 ${lines.length} 人 - ${fmtDate(rDate)}】\n${lines.join('\n')}`;
                         copyText(text,'日报已复制到剪贴板');
-                    }} className="bg-white border border-gray-300 active:bg-gray-50 text-gray-600 px-3 py-1.5 rounded-xl text-xs font-bold min-h-[36px]">📋 日报</button>
+                    }} className="bg-white border border-gray-300 active:bg-gray-50 text-gray-600 px-3 py-1.5 rounded-xl text-xs font-bold min-h-[36px]"><span className="inline-flex items-center gap-1.5"><Icon name="clipboard" className="w-4 h-4"/>日报</span></button>
                 )}
                 {dayIds.some(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived&&s.mobile;}) && (
                     <button onClick={()=>{
@@ -3431,16 +3647,18 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         const msg=`提醒：您的上课时间是 ${fmtDate(rDate)}，请准时到课。Studio 期待见到您！`;
                         const lines=ids.map(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived&&s.mobile?`${s.name}（${s.mobile}）`:null;}).filter(Boolean);
                         copyText(lines.map(l=>`${l}\n${msg}`).join('\n\n'),`已复制 ${lines.length} 条提醒内容`);
-                    }} className="bg-white border border-green-300 active:bg-green-50 text-green-700 px-3 py-1.5 rounded-xl text-xs font-bold min-h-[36px]">💬 批量提醒</button>
+                    }} className="bg-white border border-green-300 active:bg-green-50 text-green-700 px-3 py-1.5 rounded-xl text-xs font-bold min-h-[36px]"><span className="inline-flex items-center gap-1.5"><Icon name="chat" className="w-4 h-4"/>批量提醒</span></button>
                 )}
                 {dayIds.some(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived&&s.balance>0;}) && (
                     <button onClick={batchCheckIn} disabled={busy}
-                        className="bg-indigo-600 active:bg-indigo-700 text-white px-4 py-1.5 rounded-xl text-xs font-bold min-h-[36px]">⚡ 批量签到/消课</button>
+                        className="inline-flex items-center gap-1.5 bg-indigo-600 active:bg-indigo-700 text-white px-4 py-1.5 rounded-xl text-xs font-bold min-h-[36px]"><Icon name="bolt" className="w-4 h-4"/>批量签到/消课</button>
                 )}
             </div>
         </div>
         <div className="divide-y divide-gray-100">
-            {!dayIds.length && <EmptyState icon="📅" main="今日暂无排班" sub={TENANT_SLUG?'可在上方「每周课表」建固定班次，命中当天自动排入':''}/>}
+            {!dayIds.length && <EmptyState icon={<Icon name="calendar" className="w-8 h-8"/>} main="今天还没有排课"
+                sub={TENANT_SLUG?'可以在上方「每周课表」建一个固定班次，之后每到这一天会自动排入；也可以直接在下方添加学员。':'在下方添加学员即可开始今天的排课。'}
+                action="添加学员" onAction={()=>{const el=document.getElementById('rosterAddStudent'); if(el) el.scrollIntoView({behavior:'smooth',block:'center'});}}/>}
             {/* Fix #3: skip archived students in roster */}
             {dayIds.map(sid => {
                 const s = db.students.find(x=>x.id===sid);
@@ -3451,31 +3669,33 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         <PhotoAvatar photo={s.photo} name={s.name} size="sm"/>
                         <div className="flex-1 min-w-0">
                             <p className="font-bold text-gray-900 truncate">{s.name}</p>
-                            <p className="text-xs text-gray-400">{s.mobile||'—'}{lowBal && <span className="ml-1 text-amber-600 font-bold">⚡ 余额告急</span>}</p>
+                            <p className="text-xs text-gray-400">{s.mobile||'—'}{lowBal && <span className="inline-flex items-center gap-1.5 ml-1 text-amber-600 font-bold"><Icon name="bolt" className="w-4 h-4"/>余额告急</span>}</p>
                         </div>
                         {lowBal && (
                             <button onClick={()=>{
-                                const msg = `${s.name} 家长您好！温馨提醒：当前剩余 ${s.balance} 课时${(parseInt(s.balance,10)||0)===0?'（已用完）':''}，为不影响后续上课，欢迎联系老师续课～ 🎨`;
+                                const msg = renderMessage('renewal',
+                                    '{student} 家长您好！温馨提醒：您在 {studio} 的剩余课时为 {balance} 节{note}，为不影响后续上课安排，欢迎随时联系老师续课。',
+                                    {student:s.name, balance:s.balance, note:(parseInt(s.balance,10)||0)===0?'（已用完）':''});
                                 copyText(msg, `已复制给 ${s.name} 的催费提醒`);
-                            }} className="px-3 py-2.5 bg-amber-100 active:bg-amber-200 text-amber-700 border border-amber-300 rounded-xl text-xs font-bold min-h-[44px] flex-shrink-0">💬 催费</button>
+                            }} className="px-3 py-2.5 bg-amber-100 active:bg-amber-200 text-amber-700 border border-amber-300 rounded-xl text-xs font-bold min-h-[44px] flex-shrink-0"><span className="inline-flex items-center gap-1.5"><Icon name="chat" className="w-4 h-4"/>催费</span></button>
                         )}
                         {rosterDone.has(s.id) && <span className="text-[11px] font-bold text-green-600 bg-green-50 border border-green-200 rounded-full px-2 py-0.5 flex-shrink-0">✓ 已签</span>}
                         <BalBadge n={s.balance}/>
                         <div className="flex gap-1.5 flex-shrink-0">
                             {s.mobile && (
                                 <a href={`sms:${s.mobile.replace(/\s/g,'')}?body=${encodeURIComponent(`提醒：您的上课时间是 ${fmtDate(rDate)}，请准时到课。Studio 期待见到您！`)}`}
-                                    className="px-3 py-2.5 bg-green-50 active:bg-green-100 text-green-700 border border-green-200 rounded-xl text-xs font-bold min-h-[44px] flex items-center">💬</a>
+                                    aria-label="发消息" className="px-3 py-2.5 bg-green-50 active:bg-green-100 text-green-700 border border-green-200 rounded-xl text-xs font-bold min-h-[44px] flex items-center"><Icon name="chat" className="w-4 h-4"/></a>
                             )}
                             {(db.rosters[rDate]||[]).includes(s.id)
                                 ? <button onClick={()=>removeFromRoster(s.id)} disabled={busy}
                                     className="px-3 py-2.5 bg-gray-100 active:bg-gray-200 text-gray-600 rounded-xl text-xs font-bold min-h-[44px] min-w-[44px]">移出</button>
-                                : <span className="px-3 py-2.5 text-indigo-500 bg-indigo-50 border border-indigo-100 rounded-xl text-xs font-bold min-h-[44px] flex items-center flex-shrink-0" title="来自每周课表">📆</span>}
+                                : <span className="px-3 py-2.5 text-indigo-500 bg-indigo-50 border border-indigo-100 rounded-xl text-xs font-bold min-h-[44px] flex items-center flex-shrink-0" title="来自每周课表"><Icon name="calendar" className="w-4 h-4"/></span>}
                             <button onClick={()=>undoCheckIn(s.id,s.name)} disabled={busy}
                                 className="hidden md:block px-3 py-2.5 bg-amber-50 active:bg-amber-100 text-amber-700 border border-amber-200 rounded-xl text-xs font-bold min-h-[44px]">↩</button>
                             {rosterDone.has(s.id)
                                 ? <button disabled className="px-4 py-2.5 rounded-xl text-sm font-bold text-green-700 bg-green-50 border border-green-200 min-h-[44px] cursor-default">✓</button>
                                 : <button onClick={()=>checkIn(s.id,s.name)} disabled={busy||s.balance<=0}
-                                    className={`px-4 py-2.5 rounded-xl text-sm font-bold text-white min-h-[44px] ${s.balance>0?'bg-green-600 active:bg-green-700':'bg-gray-300 cursor-not-allowed'}`}>✅</button>}
+                                    aria-label="签到" className={`px-4 py-2.5 rounded-xl text-sm font-bold text-white min-h-[44px] flex items-center justify-center ${s.balance>0?'bg-green-600 active:bg-green-700':'bg-gray-300 cursor-not-allowed'}`}><Icon name="check" className="w-4 h-4"/></button>}
                         </div>
                     </div>
                 );
@@ -3489,10 +3709,10 @@ document.getElementById('copybtn').addEventListener('click', function(){
 {tab==='students' && (
 <div className="anim space-y-4">
     <div className="flex justify-between items-center gap-3 flex-wrap">
-        <h2 className="text-xl md:text-2xl font-bold text-gray-800">学员档案 ({sortedFiltered.length})</h2>
+        <h2 className="text-xl md:text-2xl font-bold text-gray-800">{`学员档案 (${sortedFiltered.length})`}</h2>
         <div className="flex gap-2">
             {canManageOperations && <button onClick={exportStudentsCSV}
-                className="bg-white border border-gray-300 active:bg-gray-50 text-gray-600 px-4 py-2.5 rounded-xl font-bold text-sm min-h-[44px]">⬇️ CSV</button>
+                className="inline-flex items-center gap-1.5 bg-white border border-gray-300 active:bg-gray-50 text-gray-600 px-4 py-2.5 rounded-xl font-bold text-sm min-h-[44px]"><Icon name="download" className="w-4 h-4"/>CSV</button>
             }
             {canWriteStudents && <button onClick={()=>setTab('new_student')}
                 className="bg-indigo-600 active:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md min-h-[44px]">➕ 新建</button>
@@ -3501,9 +3721,13 @@ document.getElementById('copybtn').addEventListener('click', function(){
     </div>
 
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
-        <input type="text" placeholder="🔍 搜索姓名 / 电话 / 微信 / 邮箱...（回车打开唯一匹配）" value={srch} onChange={e=>setSrch(e.target.value)}
-            onKeyDown={e=>{ if (e.key==='Enter' && sortedFiltered.length===1) { setSelS(sortedFiltered[0]); setEditP(false); } }}
-            className="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"/>
+        <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"><Icon name="search"/></span>
+            <input type="text" placeholder="搜索姓名 / 电话 / 微信 / 邮箱…（回车打开唯一匹配）" value={srch} onChange={e=>setSrch(e.target.value)}
+                onKeyDown={e=>{ if (e.key==='Enter' && sortedFiltered.length===1) { setSelS(sortedFiltered[0]); setEditP(false); } }}
+                aria-label="搜索学员"
+                className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"/>
+        </div>
         <div className="overflow-x-auto -mx-1 px-1 pb-1"><div className="flex gap-2 items-center" style={{minWidth:'max-content'}}>
             <select value={sortBy} onChange={e=>setSortBy(e.target.value)}
                 className="px-2 py-2 border border-gray-300 rounded-xl bg-white focus:ring-2 focus:ring-indigo-500 outline-none font-medium text-sm min-h-[40px] flex-shrink-0">
@@ -3515,7 +3739,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 <option value="bal-asc">课时 低→高</option>
                 <option value="date-desc">最近活跃</option>
             </select>
-            {[['all','全部'],['active','有余额'],['low',`低余额≤${renewTh}`],['zero','已清零'],['archived','归档库'],['tag-hot','🔥 活跃'],['tag-low','💤 低频'],['tag-risk','⚠️ 流失风险']].map(([v,l]) => (
+            {[['all','全部'],['active','有余额'],['low',`低余额≤${renewTh}`],['zero','已清零'],['archived','归档库'],['tag-hot','活跃'],['tag-low','低频'],['tag-risk','流失风险']].map(([v,l]) => (
                 <button key={v} onClick={()=>setFilterBy(v)}
                     className={`px-4 py-2 rounded-xl text-xs font-bold border min-h-[40px] transition flex-shrink-0 ${filterBy===v?'bg-indigo-600 text-white border-indigo-600':'bg-white text-gray-600 border-gray-300 active:border-indigo-300'}`}>{l}{filterBy===v?` · ${sortedFiltered.length}`:''}</button>
             ))}
@@ -3524,23 +3748,55 @@ document.getElementById('copybtn').addEventListener('click', function(){
         </div></div>
     </div>
 
+    {/* P2-14: multi-select toolbar. Bulk archive and bulk reminders used to be
+        reachable only through the low-balance filter's single "copy all" button. */}
+    {selectedStudents.length > 0 && (
+        <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-4 flex items-center justify-between gap-3 flex-wrap">
+            <p className="text-sm font-bold text-indigo-700">{`已选择 ${selectedStudents.length} 人`}</p>
+            <div className="flex gap-2 flex-wrap">
+                <button onClick={()=>setSelectedStudentIds([])}
+                    className="bg-white border border-indigo-200 text-indigo-700 px-4 py-2 rounded-xl text-xs font-bold min-h-[40px]">清除选择</button>
+                <button onClick={copySelectedReminders}
+                    className="bg-indigo-600 active:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-bold min-h-[40px]">复制续课提醒</button>
+                {canManageOperations && (
+                    <button onClick={archiveSelected} disabled={busy}
+                        className="bg-gray-700 active:bg-gray-800 text-white px-4 py-2 rounded-xl text-xs font-bold min-h-[40px] disabled:bg-gray-300">批量归档</button>
+                )}
+            </div>
+        </div>
+    )}
     {/* F5: 待续课看板 — 低余额筛选下提供一键复制提醒话术 */}
     {canWriteCredits && filterBy==='low' && sortedFiltered.length>0 && (
         <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 flex items-center justify-between gap-3 flex-wrap">
-            <p className="text-sm font-bold text-orange-700">⚡ 待续课学员 {sortedFiltered.length} 人（余额 ≤{renewTh} 节）</p>
+            <p className="inline-flex items-center gap-1.5 text-sm font-bold text-orange-700"><Icon name="bolt" className="w-4 h-4"/>待续课学员 {sortedFiltered.length} 人（余额 ≤{renewTh} 节）</p>
             <button onClick={()=>{
-                const lines = sortedFiltered.map(s=>`${s.name} 您好～您在 Studio 的剩余课时为 ${s.balance} 节，为不影响后续上课安排，欢迎随时联系老师续课哦 🎨`);
+                const lines = sortedFiltered.map(s => renderMessage('renewal',
+                    '{student} 家长您好！温馨提醒：您在 {studio} 的剩余课时为 {balance} 节{note}，为不影响后续上课安排，欢迎随时联系老师续课。',
+                    {student:s.name, balance:s.balance, note:''}));
                 copyText(lines.join('\n\n'), `已复制 ${lines.length} 条续课提醒，可逐条粘贴到微信`);
-            }} className="bg-orange-600 active:bg-orange-700 text-white px-4 py-2 rounded-xl text-xs font-bold min-h-[40px]">📋 复制全部提醒话术</button>
+            }} className="bg-orange-600 active:bg-orange-700 text-white px-4 py-2 rounded-xl text-xs font-bold min-h-[40px]"><span className="inline-flex items-center gap-1.5"><Icon name="clipboard" className="w-4 h-4"/>复制全部提醒话术</span></button>
         </div>
     )}
-    {!sortedFiltered.length && <EmptyState icon="🔍" main="无匹配学员" sub="试试调整搜索词或筛选条件"/>}
+    {!sortedFiltered.length && <EmptyState icon={<Icon name="search" className="w-8 h-8"/>} main="没有符合条件的学员"
+            sub={srch ? `没有姓名、电话、微信或邮箱包含「${srch}」的学员。换个关键词，或清空搜索看全部。` : '当前筛选条件下没有学员。点下方按钮回到全部名单。'}
+            action={srch ? '清空搜索' : '查看全部学员'} onAction={()=>{setSrch('');setFilterBy('all');}}/>}
+    {sortedFiltered.length > 0 && (
+        <label className="flex items-center gap-2 text-xs font-bold text-gray-500 px-1">
+            <input type="checkbox" className="w-4 h-4"
+                checked={pageStudents.length>0 && pageStudents.every(item=>selectedStudentIds.includes(item.id))}
+                onChange={e=>toggleSelectPage(e.target.checked)}/>
+            {`选择本页 ${pageStudents.length} 人`}
+        </label>
+    )}
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-        {sortedFiltered.map(s => (
-            <div key={s.id} className={`bg-white rounded-2xl p-4 shadow-sm border hover-row transition flex flex-col justify-between print-card ${s.archived?'border-gray-200 opacity-70':parseInt(s.balance,10)===0?'border-red-100':parseInt(s.balance,10)<=2?'border-orange-100':'border-gray-100'}`}>
+        {pageStudents.map(s => (
+            <div key={s.id} className={`bg-white rounded-2xl p-4 shadow-sm border hover-row transition flex flex-col justify-between print-card ${selectedStudentIds.includes(s.id)?'ring-2 ring-indigo-400 border-indigo-200':s.archived?'border-gray-200 opacity-70':parseInt(s.balance,10)===0?'border-red-100':parseInt(s.balance,10)<=2?'border-orange-100':'border-gray-100'}`}>
                 <div>
                     <div className="flex justify-between items-start mb-2 gap-2">
                         <div className="flex items-center gap-2.5 min-w-0">
+                            <input type="checkbox" className="w-4 h-4 flex-shrink-0" aria-label={`选择 ${s.name}`}
+                                checked={selectedStudentIds.includes(s.id)}
+                                onChange={()=>toggleSelectStudent(s.id)}/>
                             <PhotoAvatar photo={s.photo} name={s.name} size="sm"/>
                             <div className="min-w-0">
                                 <h3 className="font-bold text-gray-800 break-words leading-snug">{s.name}</h3>
@@ -3549,29 +3805,40 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         </div>
                         <div className="flex flex-col items-end gap-1 flex-shrink-0">
                             <BalBadge n={s.balance}/>
-                            {(()=>{const t=getTag(s); return t?<span className={`text-xs px-2 py-0.5 rounded-full font-bold ${t.cls}`}>{t.icon} {t.label}</span>:null;})()}
+                            {(()=>{const t=getTag(s); return t?<span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-bold ${t.cls}`}><Icon name={t.icon} className="w-3 h-3"/>{t.label}</span>:null;})()}
                         </div>
                     </div>
-                    <p className="text-gray-400 text-sm">📞 {s.mobile||'—'}</p>
-                    {s.email && <p className="text-gray-400 text-sm">✉️ {s.email}</p>}
-                    {s.artStyle && <p className="text-gray-400 text-sm">🎨 {s.artStyle}</p>}
-                    <p className="text-gray-400 text-sm mt-0.5">🗓 {fmtDate(s.lastActive)}{daysSince(s.lastActive)<9999?` · ${daysSince(s.lastActive)}天前`:''}</p>
+                    <p className="text-gray-400 text-sm flex items-center gap-1.5"><Icon name="phone" className="w-4 h-4"/> {s.mobile||'—'}</p>
+                    {s.email && <p className="text-gray-400 text-sm flex items-center gap-1.5"><Icon name="mail" className="w-4 h-4"/> {s.email}</p>}
+                    {preferenceRows(s).slice(0, 1).map(row => (
+                        <p key={row.key} className="text-gray-400 text-sm">{row.label}：{row.value}</p>
+                    ))}
+                    <p className="text-gray-400 text-sm mt-0.5 flex items-center gap-1.5"><Icon name="calendar" className="w-4 h-4"/> {fmtDate(s.lastActive)}{daysSince(s.lastActive)<9999?` · ${daysSince(s.lastActive)}天前`:''}</p>
                 </div>
                 <div className="flex gap-2 mt-3">
                     <button onClick={()=>{setSelS(s);setEditP(false);}}
                         className="flex-1 bg-gray-50 active:bg-gray-100 border border-gray-200 text-gray-700 py-3 rounded-xl text-sm font-bold min-h-[44px]">详情</button>
                     {!s.archived && (<>
                         {canWriteCredits && <button onClick={()=>{setTuStu(s.id);setTab('topup');}}
-                            title="快速充值" className="px-3.5 py-3 rounded-xl text-base font-bold bg-emerald-50 active:bg-emerald-100 text-emerald-700 border border-emerald-200 min-h-[44px]">💰</button>
+                            title="快速充值" aria-label="快速充值" className="px-3.5 py-3 rounded-xl font-bold bg-emerald-50 active:bg-emerald-100 text-emerald-700 border border-emerald-200 min-h-[44px] flex items-center justify-center"><Icon name="money"/></button>
                         }
                         {canManageOperations && <button onClick={()=>scheduleStudentToday(s)} disabled={busy}
-                            className="flex-1 py-3 rounded-xl text-sm font-bold text-white min-h-[44px] bg-indigo-600 active:bg-indigo-700 disabled:bg-gray-300">📅 {isStudentScheduledOn(s.id,todayISO())?'去排课':'排课'}</button>
+                            className="flex-1 py-3 rounded-xl text-sm font-bold text-white min-h-[44px] bg-indigo-600 active:bg-indigo-700 disabled:bg-gray-300 inline-flex items-center justify-center gap-1.5"><Icon name="calendar" className="w-4 h-4"/>{isStudentScheduledOn(s.id,todayISO())?'去排课':'排课'}</button>
                         }
                     </>)}
                 </div>
             </div>
         ))}
     </div>
+    {studentPageCount > 1 && (
+        <div className="flex items-center justify-center gap-3 pt-2">
+            <button onClick={()=>setStudentPage(p=>Math.max(1,p-1))} disabled={studentPage<=1}
+                className="px-4 py-2 rounded-xl text-sm font-bold border border-gray-300 bg-white disabled:opacity-40 min-h-[40px]">上一页</button>
+            <span className="text-sm text-gray-500 font-bold">{`第 ${studentPage} / ${studentPageCount} 页`}</span>
+            <button onClick={()=>setStudentPage(p=>Math.min(studentPageCount,p+1))} disabled={studentPage>=studentPageCount}
+                className="px-4 py-2 rounded-xl text-sm font-bold border border-gray-300 bg-white disabled:opacity-40 min-h-[40px]">下一页</button>
+        </div>
+    )}
     {/* U7: Back-to-top button when list > 15 */}
     {sortedFiltered.length > 15 && (
         <button onClick={()=>{ const m=document.querySelector('main'); if(m) m.scrollTo({top:0,behavior:'smooth'}); else window.scrollTo({top:0,behavior:'smooth'}); }}
@@ -3589,7 +3856,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
         {/* Photo */}
         <div>
             <label className="text-sm font-bold text-gray-500 mb-2 block">照片 Photo <span className="font-normal text-gray-400">选填</span></label>
-            <PhotoUploader value={formPhoto} onChange={setFormPhoto}/>
+            <PhotoUploader value={formPhoto} onChange={setFormPhoto} notify={notify}/>
         </div>
         {/* Name */}
         <div className="grid grid-cols-2 gap-3">
@@ -3674,12 +3941,12 @@ document.getElementById('copybtn').addEventListener('click', function(){
 {/* ═══ PENDING ════════════════════════════════════════════════ */}
 {tab==='pending' && (
 <div className="anim space-y-4">
-    <h2 className="text-xl md:text-2xl font-bold text-gray-800">📋 待审核注册 ({(db.pending||[]).length})</h2>
+    <h2 className="inline-flex items-center gap-1.5 text-xl md:text-2xl font-bold text-gray-800"><Icon name="clipboard" className="w-4 h-4"/>待审核注册 ({(db.pending||[]).length})</h2>
     {!(db.pending||[]).length && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-10 text-center">
-            <p className="text-4xl mb-3">✅</p>
-            <p className="font-bold text-gray-600">暂无待审核申请</p>
-            <p className="text-sm text-gray-400 mt-1">学员通过注册页面提交后会显示在这里</p>
+            <p className="inline-flex items-center gap-1.5 text-4xl mb-3"><Icon name="check" className="w-4 h-4"/></p>
+            <p className="font-bold text-gray-600">没有待审核的报名</p>
+            <p className="text-sm text-gray-400 mt-1 max-w-sm mx-auto leading-relaxed">家长在官网或报名页提交后，申请会出现在这里等你批准。把报名页链接发出去就能开始收。</p>
         </div>
     )}
     {(db.pending||[]).map(pen => {
@@ -3693,12 +3960,12 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     }
                     <div className="flex-1 min-w-0">
                         <p className="text-lg font-bold text-gray-800">{fullName}</p>
-                        <p className="text-sm text-gray-500">📞 {pen.mobile||'—'}{pen.wechat ? ` · 💬 ${pen.wechat}` : ''}{pen.email ? ` · ✉️ ${pen.email}` : ''}</p>
-                        {pen.birthday && <p className="text-xs text-pink-500 mt-0.5">🎂 {fmtDate(pen.birthday)}</p>}
+                        <p className="inline-flex items-center gap-1.5 text-sm text-gray-500"><Icon name="phone" className="w-4 h-4"/>{pen.mobile||'—'}{pen.wechat ? ` · ${pen.wechat}` : ''}{pen.email ? ` · ${pen.email}` : ''}</p>
+                        {pen.birthday && <p className="inline-flex items-center gap-1.5 text-xs text-pink-500 mt-0.5"><Icon name="cake" className="w-4 h-4"/>{fmtDate(pen.birthday)}</p>}
                         {pen.mobile && (() => {
                             const normP = p => (p||'').replace(/[\s\-\(\)]+/g,'');
                             const match = db.students.filter(s=>!s.archived && normP(s.mobile)===normP(pen.mobile));
-                            return match.length > 0 ? <p className="text-xs text-blue-500 mt-0.5">📱 此电话已有学员：{match.map(s=>s.firstName&&s.lastName?`${s.firstName} ${s.lastName}`:s.name||'').join('、')}</p> : null;
+                            return match.length > 0 ? <p className="inline-flex items-center gap-1.5 text-xs text-blue-500 mt-0.5"><Icon name="device" className="w-4 h-4"/>此电话已有学员：{match.map(s=>s.firstName&&s.lastName?`${s.firstName} ${s.lastName}`:s.name||'').join('、')}</p> : null;
                         })()}
                         <p className="text-xs text-gray-400 mt-0.5">提交时间: {pen.submittedAt||'—'} · 来源: {pen.source==='portal'?'门户网站':'快速报名'} · 状态: {pen.status||'pending'}</p>
                     </div>
@@ -3715,7 +3982,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
 	                )}
                 {pen.message && (
                     <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-gray-700">
-                        <p className="text-xs text-amber-500 font-bold mb-1">💬 留言</p>
+                        <p className="inline-flex items-center gap-1.5 text-xs text-amber-500 font-bold mb-1"><Icon name="chat" className="w-4 h-4"/>留言</p>
                         <p>{pen.message}</p>
                     </div>
                 )}
@@ -3743,9 +4010,9 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     </div>
                     <div className="flex gap-2 flex-shrink-0">
                         <button onClick={()=>rejectStudent(pen.id)} disabled={busy}
-                            className="px-4 py-2.5 bg-red-50 active:bg-red-100 text-red-700 border border-red-200 font-bold rounded-xl text-sm min-h-[44px]">❌ 拒绝</button>
+                            className="px-4 py-2.5 bg-red-50 active:bg-red-100 text-red-700 border border-red-200 font-bold rounded-xl text-sm min-h-[44px]" className="inline-flex items-center justify-center gap-1.5">拒绝</button>
                         <button onClick={()=>approveStudent(pen.id)} disabled={busy}
-                            className="px-5 py-2.5 bg-indigo-600 active:bg-indigo-700 text-white font-bold rounded-xl text-sm min-h-[44px]">✅ 批准建档</button>
+                            className="px-5 py-2.5 bg-indigo-600 active:bg-indigo-700 text-white font-bold rounded-xl text-sm min-h-[44px]"><span className="inline-flex items-center gap-1.5"><Icon name="check" className="w-4 h-4"/>批准建档</span></button>
                     </div>
                 </div>
             </div>
@@ -3757,10 +4024,10 @@ document.getElementById('copybtn').addEventListener('click', function(){
 {/* ═══ TOPUP ══════════════════════════════════════════════════ */}
 {tab==='topup' && (
 <div className="anim bg-white rounded-2xl shadow-sm border border-gray-100 p-6 max-w-2xl mx-auto">
-    <h2 className="text-xl md:text-2xl font-bold mb-4 text-gray-800">💰 充值 & 结算</h2>
+    <h2 className="inline-flex items-center gap-1.5 text-xl md:text-2xl font-bold mb-4 text-gray-800"><Icon name="money" className="w-4 h-4"/>充值 & 结算</h2>
     {TENANT_SLUG && (
         <div className="flex gap-2 mb-5">
-            {[['topup','💰 充值'],['refund','💸 退款退课']].map(([m,l]) => (
+            {[['topup','充值'],['refund','退款退课']].map(([m,l]) => (
                 <button key={m} type="button" onClick={()=>setSettleMode(m)}
                     className={`flex-1 py-2.5 rounded-xl text-sm font-bold border-2 min-h-[44px] ${settleMode===m?(m==='refund'?'border-red-400 bg-red-50 text-red-700':'border-indigo-500 bg-indigo-100 text-indigo-900'):'border-gray-200 bg-white text-gray-500 active:border-indigo-300'}`}>{l}</button>
             ))}
@@ -3775,7 +4042,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     <PhotoAvatar photo={s.photo} name={s.name} size="sm"/>
                     <div className="flex-1 min-w-0">
                         <p className="font-bold text-gray-800 text-sm truncate">{s.name}</p>
-                        <p className="text-xs text-gray-500">{s.mobile||'—'}{s.wechat ? ` · 💬 ${s.wechat}` : ''}</p>
+                        <p className="text-xs text-gray-500">{s.mobile||'—'}{s.wechat ? ` · ${s.wechat}` : ''}</p>
                     </div>
                     <div className="text-right flex-shrink-0">
                         <p className="text-xs text-gray-400">当前余额</p>
@@ -3886,11 +4153,11 @@ document.getElementById('copybtn').addEventListener('click', function(){
 {/* ═══ LOGS ═══════════════════════════════════════════════════ */}
 {tab==='logs' && (
 <div className="anim space-y-4">
-    <h2 className="text-xl md:text-2xl font-bold text-gray-800">📜 操作日志</h2>
+    <h2 className="inline-flex items-center gap-1.5 text-xl md:text-2xl font-bold text-gray-800"><Icon name="scroll" className="w-4 h-4"/>操作日志</h2>
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
         <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex-1">
-                <StudentPicker students={sortedAZ} value={lStu} onChange={setLStu} placeholder="🔍 精确筛选学员..." showBal={false}/>
+                <StudentPicker students={sortedAZ} value={lStu} onChange={setLStu} placeholder="精确筛选学员…" showBal={false}/>
             </div>
             <select value={lAct} onChange={e=>setLAct(e.target.value)}
                 className="px-3 py-3 border border-gray-300 rounded-xl bg-white focus:ring-2 focus:ring-indigo-500 outline-none min-h-[50px]">
@@ -3899,7 +4166,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
             </select>
         </div>
         {!lStu && (
-            <input type="text" placeholder="🔍 或输入关键字搜索..." value={lSrch} onChange={e=>setLSrch(e.target.value)}
+            <input type="text" placeholder="或输入关键字搜索…" value={lSrch} onChange={e=>setLSrch(e.target.value)}
                 className="w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm"/>
         )}
         {/* Quick date presets */}
@@ -3930,7 +4197,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
             )}
             <span className="text-sm text-gray-400">{filteredLogs.length} 条</span>
             {canManageOperations && <button onClick={exportLogsCSV}
-                className="ml-auto bg-white border border-gray-300 active:bg-gray-50 text-gray-600 px-3 py-2 rounded-xl font-bold text-xs min-h-[40px]">⬇️ CSV</button>
+                className="inline-flex items-center gap-1.5 ml-auto bg-white border border-gray-300 active:bg-gray-50 text-gray-600 px-3 py-2 rounded-xl font-bold text-xs min-h-[40px]"><Icon name="download" className="w-4 h-4"/>CSV</button>
             }
         </div>
     </div>
@@ -3978,7 +4245,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
 {/* ═══ STATS ══════════════════════════════════════════════════ */}
 {tab==='stats' && (
 <div className="anim space-y-5">
-    <h2 className="text-xl md:text-2xl font-bold text-gray-800">📈 商业洞察</h2>
+    <h2 className="text-xl md:text-2xl font-bold text-gray-800 flex items-center gap-2"><Icon name="trend" className="w-6 h-6"/> 经营统计</h2>
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="bg-gradient-to-br from-indigo-500 to-indigo-700 p-4 rounded-2xl text-white shadow-md">
             <p className="text-indigo-100 text-xs mb-1">历史总营收</p><p className="text-2xl md:text-3xl font-bold">${analytics.totalRevenue.toFixed(0)}</p></div>
@@ -4023,9 +4290,9 @@ document.getElementById('copybtn').addEventListener('click', function(){
     {/* F7: 经营月报 */}
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
         <div className="flex items-center justify-between mb-3">
-            <p className="font-bold text-gray-700 text-sm">📊 经营月报（近 6 个月）</p>
+            <p className="inline-flex items-center gap-1.5 font-bold text-gray-700 text-sm"><Icon name="dashboard" className="w-4 h-4"/>经营月报（近 6 个月）</p>
             <button onClick={exportBizCSV}
-                className="bg-white border border-gray-300 active:bg-gray-50 text-gray-600 px-3 py-1.5 rounded-xl text-xs font-bold min-h-[36px]">⬇️ 导出 CSV</button>
+                className="inline-flex items-center gap-1.5 bg-white border border-gray-300 active:bg-gray-50 text-gray-600 px-3 py-1.5 rounded-xl text-xs font-bold min-h-[36px]"><Icon name="download" className="w-4 h-4"/>导出 CSV</button>
         </div>
         <div className="overflow-x-auto"><table className="w-full text-sm" style={{minWidth:'480px'}}>
             <thead><tr className="text-xs text-gray-400 border-b">
@@ -4064,7 +4331,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 <h3 className="font-bold text-gray-800">财务明细报表</h3>
                 <div className="flex items-center gap-2">
                     <button onClick={exportRevenueCSV}
-                        className="bg-white border border-gray-300 active:bg-gray-50 text-gray-600 px-3 py-2 rounded-xl font-bold text-sm min-h-[40px]">⬇️ CSV</button>
+                        className="inline-flex items-center gap-1.5 bg-white border border-gray-300 active:bg-gray-50 text-gray-600 px-3 py-2 rounded-xl font-bold text-sm min-h-[40px]"><Icon name="download" className="w-4 h-4"/>CSV</button>
                     <div className="flex gap-1 bg-gray-100 p-1 rounded-xl">
                         {[['monthly','月度'],['yearly','年度'],['custom','自定义']].map(([v,l]) => (
                             <button key={v} onClick={()=>setSPeriod(v)} className={`px-3 py-2 rounded-lg text-sm font-bold min-h-[40px] ${sPeriod===v?'bg-white shadow text-indigo-700':'text-gray-500'}`}>{l}</button>
@@ -4146,12 +4413,12 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     ))}
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-sm text-gray-500">
-                    <div className="bg-gray-50 p-3 rounded-xl">📞 {studentStats.student.mobile||'—'}</div>
-                    <div className="bg-gray-50 p-3 rounded-xl">✉️ {studentStats.student.email||'—'}</div>
-                    <div className="bg-gray-50 p-3 rounded-xl">🎯 首次: {studentStats.first?String(studentStats.first).split(',')[0]:'—'}</div>
-                    <div className="bg-gray-50 p-3 rounded-xl">🕐 最近: {studentStats.last?String(studentStats.last).split(',')[0]:'—'}</div>
+                    <div className="bg-gray-50 p-3 rounded-xl inline-flex items-center gap-1.5"><Icon name="phone" className="w-4 h-4"/>{studentStats.student.mobile||'—'}</div>
+                    <div className="bg-gray-50 p-3 rounded-xl inline-flex items-center gap-1.5"><Icon name="mail" className="w-4 h-4"/>{studentStats.student.email||'—'}</div>
+                    <div className="bg-gray-50 p-3 rounded-xl inline-flex items-center gap-1.5"><Icon name="target" className="w-4 h-4"/>首次: {studentStats.first?String(studentStats.first).split(',')[0]:'—'}</div>
+                    <div className="bg-gray-50 p-3 rounded-xl inline-flex items-center gap-1.5"><Icon name="clock" className="w-4 h-4"/>最近: {studentStats.last?String(studentStats.last).split(',')[0]:'—'}</div>
                 </div>
-                {studentStats.student.remark && <div className="bg-gray-50 p-3 rounded-xl text-sm text-gray-600 border border-gray-100">📝 {studentStats.student.remark}</div>}
+                {studentStats.student.remark && <div className="bg-gray-50 p-3 rounded-xl text-sm text-gray-600 border border-gray-100 inline-flex items-start gap-1.5"><Icon name="note" className="w-4 h-4"/>{studentStats.student.remark}</div>}
                 <div className="border border-gray-100 rounded-xl overflow-hidden">
                     <div className="bg-gray-50 px-3 py-2 text-xs font-bold text-gray-600 border-b">交易记录 ({studentStats.logs.length})</div>
                     <div className="divide-y divide-gray-50 max-h-56 overflow-y-auto sl">
@@ -4195,7 +4462,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             <button role="tab" aria-selected={studentProfileTab==='profile'} onClick={()=>setStudentProfileTab('profile')}
                                 className={`min-h-[40px] rounded-lg text-sm font-bold ${studentProfileTab==='profile'?'bg-white text-gray-900 shadow-sm':'text-gray-500'}`}>档案</button>
                             {TENANT_SLUG && canWriteStudents && <button role="tab" aria-selected={studentProfileTab==='portal'} onClick={()=>setStudentProfileTab('portal')}
-                                className={`min-h-[40px] rounded-lg text-sm font-bold ${studentProfileTab==='portal'?'bg-white text-indigo-700 shadow-sm':'text-gray-500'}`}>🔐 专区</button>
+                                className={`min-h-[40px] rounded-lg text-sm font-bold ${studentProfileTab==='portal'?'bg-white text-indigo-700 shadow-sm':'text-gray-500'}`}><span className="inline-flex items-center gap-1.5"><Icon name="lock" className="w-4 h-4"/>专区</span></button>
                             }
                         </div>
                         {studentProfileTab==='profile' && <>
@@ -4210,17 +4477,17 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             </div>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
-                            <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100"><p className="text-xs text-gray-400 mb-1">📞 电话</p><p className="font-bold text-gray-800">{selS.mobile||'—'}</p></div>
-                            <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100"><p className="text-xs text-gray-400 mb-1">🗓 最近上课</p><p className="font-bold text-gray-800">{fmtDate(selS.lastActive)}</p></div>
+                            <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100"><p className="inline-flex items-center gap-1.5 text-xs text-gray-400 mb-1"><Icon name="phone" className="w-4 h-4"/>电话</p><p className="font-bold text-gray-800">{selS.mobile||'—'}</p></div>
+                            <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100"><p className="inline-flex items-center gap-1.5 text-xs text-gray-400 mb-1"><Icon name="calendar" className="w-4 h-4"/>最近上课</p><p className="font-bold text-gray-800">{fmtDate(selS.lastActive)}</p></div>
                         </div>
                         {(selS.wechat||selS.email) && (
                             <div className="grid grid-cols-2 gap-3">
-                                {selS.wechat && <div className="bg-green-50 p-4 rounded-2xl border border-green-100"><p className="text-xs text-green-500 mb-1">💬 微信号</p><p className="font-bold text-gray-800">{selS.wechat}</p></div>}
-                                {selS.email  && <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100"><p className="text-xs text-gray-400 mb-1">✉️ 邮箱</p><p className="font-bold text-gray-800 text-sm break-all">{selS.email}</p></div>}
+                                {selS.wechat && <div className="bg-green-50 p-4 rounded-2xl border border-green-100"><p className="inline-flex items-center gap-1.5 text-xs text-green-500 mb-1"><Icon name="chat" className="w-4 h-4"/>微信号</p><p className="font-bold text-gray-800">{selS.wechat}</p></div>}
+                                {selS.email  && <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100"><p className="inline-flex items-center gap-1.5 text-xs text-gray-400 mb-1"><Icon name="mail" className="w-4 h-4"/>邮箱</p><p className="font-bold text-gray-800 text-sm break-all">{selS.email}</p></div>}
                             </div>
                         )}
                         {(selS.birthday||selS.enrollmentDate) && <div className="grid grid-cols-2 gap-3">
-                            {selS.birthday && <div className="bg-pink-50 p-4 rounded-2xl border border-pink-100"><p className="text-xs text-pink-400 mb-1">🎂 生日</p><p className="font-bold text-gray-800">{fmtDate(selS.birthday)}</p></div>}
+                            {selS.birthday && <div className="bg-pink-50 p-4 rounded-2xl border border-pink-100"><p className="inline-flex items-center gap-1.5 text-xs text-pink-400 mb-1"><Icon name="cake" className="w-4 h-4"/>生日</p><p className="font-bold text-gray-800">{fmtDate(selS.birthday)}</p></div>}
                             {selS.enrollmentDate && <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100"><p className="text-xs text-gray-400 mb-1">入学日期</p><p className="font-bold text-gray-800">{fmtDate(selS.enrollmentDate)}</p></div>}
                         </div>}
                         {selS.remark && <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100"><p className="text-xs text-gray-400 mb-1">备注</p><p className="text-sm text-gray-700 whitespace-pre-wrap">{selS.remark}</p></div>}
@@ -4242,7 +4509,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             return (
                                 <details className="border border-gray-200 rounded-2xl overflow-hidden">
                                     <summary className="px-4 py-3 text-sm font-bold text-gray-500 cursor-pointer select-none bg-gray-50 active:bg-gray-100 flex items-center gap-2">
-                                        💳 充值记录 <span className="font-normal text-gray-400 text-xs">({topupsAll.length} 条{topupsAll.length>10?' · 显示最近10条':''})</span>
+                                        <Icon name="card" className="w-4 h-4"/>充值记录 <span className="font-normal text-gray-400 text-xs">({topupsAll.length} 条{topupsAll.length>10?' · 显示最近10条':''})</span>
                                     </summary>
                                     <div className="divide-y divide-gray-50">
                                         {topups.map(l=>(
@@ -4265,7 +4532,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         {/* B3: 上课记录（v4.6）— 按上课日期，撤销的标灰 */}
                         {TENANT_SLUG && attHistory && attHistory.length > 0 && (
                             <details className="border border-blue-100 rounded-2xl overflow-hidden">
-                                <summary className="bg-blue-50 px-4 py-3 cursor-pointer select-none text-sm font-bold text-blue-700">📅 上课记录 <span className="font-normal text-blue-400 text-xs ml-1">(近 {attHistory.length} 次)</span></summary>
+                                <summary className="inline-flex items-center gap-1.5 bg-blue-50 px-4 py-3 cursor-pointer select-none text-sm font-bold text-blue-700"><Icon name="calendar" className="w-4 h-4"/>上课记录 <span className="font-normal text-blue-400 text-xs ml-1">(近 {attHistory.length} 次)</span></summary>
                                 <div className="divide-y divide-gray-50 max-h-64 overflow-y-auto sl">
                                     {attHistory.map(a => (
                                         <div key={a.id} className={`px-4 py-2.5 flex items-center justify-between text-sm ${a.reversed_at?'opacity-50':''}`}>
@@ -4283,7 +4550,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             <div className="border border-indigo-100 rounded-2xl overflow-hidden">
                                 <div className="bg-indigo-50 px-4 py-3 flex items-center justify-between gap-3">
                                     <div>
-                                        <p className="text-sm font-bold text-indigo-800">🔐 学员专区</p>
+                                        <p className="inline-flex items-center gap-1.5 text-sm font-bold text-indigo-800"><Icon name="lock" className="w-4 h-4"/>学员专区</p>
                                         <p className="text-xs text-indigo-500 mt-0.5">姓名、手机与独立 6 位访问码验证；访问码不会保存明文。</p>
                                     </div>
                                     <span className={`text-xs font-bold px-2 py-1 rounded-full shrink-0 ${selS.hasAccessCode?'bg-emerald-100 text-emerald-700':'bg-gray-100 text-gray-500'}`}>
@@ -4331,7 +4598,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             <div className="border border-emerald-100 rounded-2xl overflow-hidden">
                                 <div className="bg-emerald-50 px-4 py-3 flex items-center justify-between gap-3">
                                     <div>
-                                        <p className="text-sm font-bold text-emerald-800">🛡 官网作品公开授权</p>
+                                        <p className="inline-flex items-center gap-1.5 text-sm font-bold text-emerald-800"><Icon name="shield" className="w-4 h-4"/>官网作品公开授权</p>
                                         <p className="text-xs text-emerald-600 mt-0.5">授权与撤回均追加为不可覆盖的审计记录。</p>
                                     </div>
                                     <span className={`text-xs font-bold px-2 py-1 rounded-full shrink-0 ${selS.publicationConsent?.status==='confirmed'?'bg-emerald-600 text-white':selS.publicationConsent?.status==='withdrawn'?'bg-amber-100 text-amber-700':'bg-gray-100 text-gray-500'}`}>
@@ -4401,7 +4668,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             return (
                                 <div className="border border-purple-100 rounded-2xl overflow-hidden">
                                     <div className="bg-purple-50 px-4 py-3 flex items-center justify-between">
-                                        <span className="text-sm font-bold text-purple-700">🎨 作品集
+                                        <span className="text-sm font-bold text-purple-700 flex items-center gap-1.5"><Icon name="image" className="w-4 h-4"/> {workNoun}集
                                             <span className="font-normal text-purple-400 text-xs ml-1">({items.length} 张)</span>
                                         </span>
                                         <button onClick={()=>setPortUpload(true)}
@@ -4411,7 +4678,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                     </div>
                                     {items.length === 0 ? (
                                         <div className="px-4 py-7 text-center">
-                                            <p className="text-2xl mb-1">🖼</p>
+                                            <p className="inline-flex items-center gap-1.5 text-2xl mb-1"><Icon name="image" className="w-4 h-4"/></p>
                                             <p className="text-xs text-gray-400">还没有作品，点击「上传」添加第一张</p>
                                         </div>
                                     ) : (
@@ -4431,7 +4698,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                                         onError={e=>{e.target.style.display='none';}}/>
                                                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-1.5 pt-4 pb-1">
                                                         {item.title && <p className="text-white text-xs font-bold leading-tight truncate">{item.title}</p>}
-                                                        <p className="text-white text-xs leading-tight truncate">{fmtDate(item.date)}{item.note?' 💬':''}</p>
+                                                        <p className="text-white text-xs leading-tight truncate">{fmtDate(item.date)}{item.note?' ·':''}</p>
                                                     </div>
                                                     {item.public && (
                                                         <span className="absolute top-1 left-1 rounded-full bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 shadow">
@@ -4443,10 +4710,10 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                                     <div className="port-actions absolute top-0.5 right-0.5 hidden group-hover:flex gap-1 z-10">
                                                         <button
                                                             onClick={e=>{e.stopPropagation();setPortEdit({sid:String(selS.id),item,note:item.note||'',title:item.title||'',date:item.date||todayISO(),public:!!item.public});}}
-                                                            className="bg-white/90 rounded-lg p-2 text-xs shadow leading-none min-w-[32px] min-h-[32px] flex items-center justify-center">✏️</button>
+                                                            aria-label="编辑" className="bg-white/90 rounded-lg p-2 shadow leading-none min-w-[32px] min-h-[32px] flex items-center justify-center"><Icon name="pencil" className="w-4 h-4"/></button>
                                                         <button
                                                             onClick={e=>{e.stopPropagation();portfolioDoDelete(String(item.id));}}
-                                                            className="bg-red-500 rounded-lg p-2 text-white text-xs shadow leading-none min-w-[32px] min-h-[32px] flex items-center justify-center">🗑</button>
+                                                            aria-label="删除" className="bg-red-500 rounded-lg p-2 text-white shadow leading-none min-w-[32px] min-h-[32px] flex items-center justify-center"><Icon name="trash" className="w-4 h-4"/></button>
                                                     </div>
                                                 </div>
                                             ))}
@@ -4458,27 +4725,26 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         <div className="flex gap-2">
                             {canManageOperations && !selS.archived && <>
                                 <button onClick={()=>scheduleStudentToday(selS)} disabled={busy}
-                                    className="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-indigo-600 active:bg-indigo-700 disabled:bg-gray-300 min-h-[50px]">📅 {isStudentScheduledOn(selS.id,todayISO())?'查看今日排课':'加入今日排课'}</button>
+                                    className="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-indigo-600 active:bg-indigo-700 disabled:bg-gray-300 min-h-[50px] inline-flex items-center justify-center gap-1.5"><Icon name="calendar" className="w-4 h-4"/>{isStudentScheduledOn(selS.id,todayISO())?'查看今日排课':'加入今日排课'}</button>
                             </>}
                             {canWriteStudents && <button onClick={()=>{setEditP(true);setEditPhoto(selS.photo||'');}}
-                                className="flex-1 py-3 rounded-xl text-sm font-bold bg-white border-2 border-indigo-100 active:bg-indigo-50 text-indigo-700 min-h-[50px]">✏️ 编辑</button>
+                                className="flex-1 py-3 rounded-xl text-sm font-bold bg-white border-2 border-indigo-100 active:bg-indigo-50 text-indigo-700 min-h-[50px]"><span className="inline-flex items-center gap-1.5"><Icon name="pencil" className="w-4 h-4"/>编辑</span></button>
                             }
                         </div>
                         {canWriteCredits && !selS.archived && (
                             <button onClick={()=>{setTuStu(selS.id);setSelS(null);setEditP(false);setTab('topup');}}
-                                className="w-full py-3 rounded-xl text-sm font-bold bg-white border border-gray-200 active:bg-gray-50 text-gray-700 min-h-[50px]">
-                                💰 快速充值
-                            </button>
+                                className="w-full py-3 rounded-xl text-sm font-bold bg-white border border-gray-200 active:bg-gray-50 text-gray-700 min-h-[50px]"><span className="inline-flex items-center gap-1.5"><Icon name="money" className="w-4 h-4"/>快速充值
+                            </span></button>
                         )}
                         {/* G3: 学员成长报告 */}
                         {canWritePortfolio && <button onClick={()=>openGrowthReport(selS)}
                             className="w-full py-3 rounded-xl text-sm font-bold bg-gradient-to-r from-purple-500 to-pink-500 active:from-purple-600 active:to-pink-600 text-white min-h-[50px] shadow-sm">
-                            🌟 生成成长报告（发给家长）
+                            <span className="inline-flex items-center gap-1.5"><Icon name="star" className="w-4 h-4"/>生成成长报告（发给家长）</span>
                         </button>
                         }
                         {canWriteStudents && <button onClick={()=>archiveStudent(selS.id,selS.name,!selS.archived)}
                             className={`w-full py-3 rounded-xl text-sm font-bold border min-h-[50px] ${selS.archived?'bg-green-50 active:bg-green-100 text-green-700 border-green-200':'bg-gray-50 active:bg-gray-100 text-gray-500 border-gray-200'}`}>
-                            {selS.archived ? '📤 恢复学员' : '📦 归档学员'}
+                            <span className="inline-flex items-center gap-1.5"><Icon name={selS.archived ? 'restore' : 'archiveBox'} className="w-4 h-4"/>{selS.archived ? '恢复学员' : '归档学员'}</span>
                         </button>
                         }
                         </>}
@@ -4487,7 +4753,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     <form onSubmit={handleUpdateStudent} className="space-y-4">
                         <div>
                             <label className="text-sm font-bold text-gray-500 mb-2 block">照片 Photo <span className="font-normal text-gray-400">选填</span></label>
-                            <PhotoUploader value={editPhoto} onChange={setEditPhoto}/>
+                            <PhotoUploader value={editPhoto} onChange={setEditPhoto} notify={notify}/>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                             <div><label className="text-sm font-bold text-gray-500 mb-1 block">First Name (名) *</label>
@@ -4501,7 +4767,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             <div>
                                 <label className="text-sm font-bold text-indigo-700 mb-1 block">课时余额</label>
                                 <input name="balance" type="number" min="0" defaultValue={selS.balance} required className="w-full px-3 py-3 border border-indigo-300 bg-indigo-50 text-indigo-800 font-bold text-xl rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"/>
-                                <p className="text-xs text-amber-500 mt-1">⚠️ 修改将记入日志</p>
+                                <p className="inline-flex items-center gap-1.5 text-xs text-amber-500 mt-1"><Icon name="warning" className="w-4 h-4"/>修改将记入日志</p>
                             </div>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
@@ -4512,7 +4778,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         </div>
                         {/* Birthday and historical enrolment date remain first-class profile fields. */}
                         <div className="grid grid-cols-2 gap-3">
-                            <div><label className="text-sm font-bold text-gray-500 mb-1 block">🎂 生日 <span className="font-normal text-gray-400">选填</span></label>
+                            <div><label className="inline-flex items-center gap-1.5 text-sm font-bold text-gray-500 mb-1 block"><Icon name="cake" className="w-4 h-4"/>生日 <span className="font-normal text-gray-400">选填</span></label>
                                 <input type="date" name="birthday" defaultValue={selS.birthday||''} min="1920-01-01" max="2099-12-31"
                                     className="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"/></div>
                             <div><label className="text-sm font-bold text-gray-500 mb-1 block">入学日期 <span className="font-normal text-gray-400">选填</span></label>
@@ -4538,10 +4804,10 @@ document.getElementById('copybtn').addEventListener('click', function(){
 	                        </details>
                         <div className="flex justify-between items-center pt-3 border-t border-gray-100">
                             <button type="button" onClick={()=>handleDelete(selS.id,selS.name)} disabled={busy}
-                                className="px-4 py-3 bg-red-50 active:bg-red-100 text-red-700 font-bold rounded-xl text-sm border border-red-200 min-h-[50px]">🗑️ 永久删除</button>
+                                className="px-4 py-3 bg-red-50 active:bg-red-100 text-red-700 font-bold rounded-xl text-sm border border-red-200 min-h-[50px]"><span className="inline-flex items-center gap-1.5"><Icon name="trash" className="w-4 h-4"/>永久删除</span></button>
                             <div className="flex gap-2">
                                 <button type="button" onClick={()=>confirm('放弃未保存的修改？', ()=>{setEditP(false);setEditPhoto('');}, {confirmText:'放弃修改'})} className="px-4 py-3 bg-gray-100 active:bg-gray-200 text-gray-700 font-bold rounded-xl text-sm min-h-[50px]">取消</button>
-                                <button type="submit" disabled={busy} className="px-6 py-3 bg-indigo-600 active:bg-indigo-700 text-white font-bold rounded-xl text-sm shadow-md min-h-[50px]">💾 保存</button>
+                                <button type="submit" disabled={busy} className="inline-flex items-center gap-1.5 px-6 py-3 bg-indigo-600 active:bg-indigo-700 text-white font-bold rounded-xl text-sm shadow-md min-h-[50px]"><Icon name="save" className="w-4 h-4"/>保存</button>
                             </div>
                         </div>
                     </form>
@@ -4559,7 +4825,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
             {moreOpen && (
                 <div className="md:hidden fixed bottom-[calc(56px+env(safe-area-inset-bottom,0px))] left-0 right-0 z-[46] bg-indigo-900 border-t border-indigo-700 px-4 py-3 grid grid-cols-4 gap-2 anim"
                      onClick={e=>e.stopPropagation()}>
-                    {[{k:'logs',i:'📜',s:'日志'},{k:'stats',i:'📈',s:'统计'},{k:'pending',i:'📋',s:'待审核',badge:pendingCount},{k:'new_student',i:'➕',s:'新建'}].filter(item=>allowedTabs.includes(item.k)).map(({k,i,s,badge})=>(
+                    {[{k:'logs',i:'',s:'日志'},{k:'stats',i:'',s:'统计'},{k:'pending',i:'',s:'待审核',badge:pendingCount},{k:'new_student',i:'➕',s:'新建'}].filter(item=>allowedTabs.includes(item.k)).map(({k,i,s,badge})=>(
                         <button key={k} onClick={()=>{setTab(k);setMoreOpen(false);}}
                             className={`flex flex-col items-center justify-center py-2.5 gap-0.5 rounded-xl relative ${['logs','stats','pending','new_student'].includes(tab)&&tab===k?'bg-indigo-700':'active:bg-indigo-800'}`}>
                             <span className="text-[22px] leading-none">{i}</span>
@@ -4571,7 +4837,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
             )}
             <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-indigo-900 border-t border-indigo-800 flex"
                  style={{paddingBottom:'env(safe-area-inset-bottom,0px)', transform:'translateZ(0)', willChange:'transform'}}>
-                {[{k:'dashboard',i:'📊',s:'工作台'},{k:'roster',i:'📅',s:'排课'},{k:'students',i:'👥',s:'档案'},{k:'topup',i:'💰',s:'充值'}].filter(item=>allowedTabs.includes(item.k)).map(({k,i,s}) => (
+                {[{k:'dashboard',i:'',s:'工作台'},{k:'roster',i:'',s:'排课'},{k:'students',i:'',s:'档案'},{k:'topup',i:'',s:'充值'}].filter(item=>allowedTabs.includes(item.k)).map(({k,i,s}) => (
                     <button key={k} onClick={()=>{setTab(k);setMoreOpen(false);}}
                         className={`flex-1 flex flex-col items-center justify-center py-2 gap-0.5 min-h-[52px] relative ${tab===k?'bg-indigo-700':'active:bg-indigo-800'}`}>
                         <span className="text-[22px] leading-none">{i}</span>

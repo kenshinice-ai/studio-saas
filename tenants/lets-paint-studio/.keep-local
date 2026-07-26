@@ -1,4 +1,13 @@
 # Files listed here are preserved when tenant workspaces are regenerated
 # from tenant-template/ (scripts/regenerate_tenant_workspaces.py).
 # One filename per line.
-index.html
+#
+# index.html was pinned here while this tenant ran a hand-edited portal with a
+# studio-space carousel and a custom SEO title. Both are template features now
+# (website_profile.about_* and website_profile.seo_*), and the forked content
+# was moved into this tenant's brand settings by
+# backend/scripts/reclaim_letspaint_portal.py — so the workspace tracks
+# tenant-template/ again and template fixes reach it.
+#
+# Do not re-pin a generated file. If a tenant needs something the template
+# cannot express, add the capability to the template as a brand field.

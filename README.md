@@ -1,6 +1,6 @@
 # PWE Studio SaaS
 
-Current release: **v7.3.1**
+Current release: **v7.3.4**
 
 PWE Studio SaaS (repo: studiosaas) is a multi-tenant Creative Studio Operating System for art schools, music studios, tutoring centres, creative academies, kids' activity providers, and small education businesses.
 
@@ -80,7 +80,7 @@ Root `/register` is intentionally closed (404) — registration belongs to tenan
 ├── START_STUDIOSAAS_LOCAL.command / start_studiosaas_local.sh
 ├── super-admin.html              # Platform dashboard
 ├── tenant-template/              # Template copied into tenants/<slug>/ on creation
-├── tenants/<slug>/               # Generated tenant workspaces
+├── tenants/<slug>/               # GENERATED — never hand-edit (see §4.10)
 ├── legacy-root/                  # Tenant CMS — the core daily surface (src/cms-app.jsx + build)
 ├── docs/                         # Product, architecture, API, DB, QA, ops docs
 └── backend/                      # Canonical runtime
@@ -94,6 +94,8 @@ Root `/register` is intentionally closed (404) — registration belongs to tenan
     │   ├── models.py             # Role/TenantStatus enums, contexts
     │   ├── db.py / tenant_context.py / workspaces.py / audit.py / config.py / migration.py
     ├── scripts/                  # Seed, import, verify scripts
+    │   ├── check_terminology.py  # Enforces docs/Glossary.md in CI
+    │   └── regenerate_tenant_workspaces.py
     ├── frontend/studio-admin.html
     ├── test_cms.py               # Script-style smoke test (run with python, not pytest)
     └── test_tenant_isolation.py  # Script-style isolation test
@@ -192,6 +194,163 @@ a second access layer.
 - Manual colour and typography controls stay collapsed until needed, reducing visual noise without removing flexibility.
 - Chinese/English labels and mobile navigation were refined and verified at desktop and 390px widths.
 
+### 4.10 Tenant workspaces are generated, not edited
+
+`tenants/<slug>/` is rendered from `tenant-template/` by
+`backend/studiosaas/workspaces.py`. **Do not hand-edit a file in there.** A
+hand-edit has to be pinned in `tenants/<slug>/.keep-local` to survive
+regeneration, and a pinned file stops tracking the template: fixes to the
+template never reach that tenant, and improvements made to that tenant never
+come back. `lets-paint-studio` sat in exactly that state — 1072 lines against
+the template's 956 — so five rounds of template fixes skipped the flagship
+tenant.
+
+When a tenant needs something the template cannot express, **add the capability
+to the template as a brand field**, then move the tenant's content into its
+brand settings. The studio-space carousel and the per-tenant SEO title were
+reclaimed this way (`website_profile.about_*` and `website_profile.seo_*`); see
+`backend/scripts/reclaim_letspaint_portal.py` for the pattern.
+
+After changing anything under `tenant-template/`:
+
+```bash
+.venv/bin/python backend/scripts/regenerate_tenant_workspaces.py
+```
+
+### 4.11 v7.3.2 UI/UX, copy and logic pass
+
+Addresses `docs/UX_Review_2026-07-25.md` across all four surfaces.
+
+- **Security** — the portal's language switch renders with `textContent`, not
+  `innerHTML`. Tenant-authored hero/FAQ copy from `/brand` can no longer execute
+  as script in a visitor's browser.
+- **No placeholder copy in public** — the principal, courses, gallery and FAQ
+  sections render only when their data actually arrives. The generated
+  "Meet the principal behind X…" default bio is gone.
+- **One design system** — `assets/portal-theme.css` is the single palette,
+  radius and type source for the portal and the register page, which previously
+  declared conflicting `:root` blocks.
+- **One registration implementation** — validation, submission and the privacy
+  notice version live in `assets/public-register.js`; both public forms call it.
+- **Industry vocabulary** — `%VENUE%` / `%WORK%` / `%WORKS%` resolve per
+  industry from `presets.py`, so a piano or dance tenant no longer calls itself
+  a 画室 with 作品.
+- **Bilingual everywhere** — `assets/cms-i18n.js` gives the CMS the EN layer it
+  never had, sharing the language choice with Studio Admin and Super Admin.
+- **Terminology** — `docs/Glossary.md` fixes one word per concept, enforced by
+  `backend/scripts/check_terminology.py` in `verify_local.sh`.
+- **Family-facing messages** — editable per tenant under Studio Admin →
+  Messages. They used to be literals naming the word "Studio".
+
+### 4.12 v7.3.3 theme system and copy pass
+
+Addresses A1-A4 and B1-B8 of the follow-up design review.
+
+**Themes.** Eight presets, each a matched light/dark pair, in
+`backend/studiosaas/presets.py`. Every value is solved for a measured WCAG
+target by `docs/design/palette_gen.py` — 390 assertions across 15 theme-modes.
+Never hand-edit a hex; change the generator and re-emit.
+
+```bash
+python3 docs/design/palette_gen.py            # verify (390 assertions)
+python3 docs/design/palette_gen.py --table    # inspect every token
+open docs/design/theme-proposal.html          # see all 15 rendered as real UI
+```
+
+| Theme | Industry | Hue relationship | Modes |
+|---|---|---|---|
+| Atelier Clay 陶土工坊 | art | split-complementary | light + dark |
+| Vintage Press 复古印刷 | general | split-complementary | light + dark |
+| Studio Ink 黑白纸墨 | — | monochrome + one slate note | light + dark |
+| Harbour Calm 静谧海港 | math, language | analogous | light + dark |
+| Cedar Grove 雪松林 | sports | triadic | light + dark |
+| Recital Plum 独奏紫 | music | analogous | light + dark |
+| Rehearsal Rose 排练玫瑰 | dance | split-complementary | light + dark |
+| Arcade Lime 街机青柠 | game | split-complementary | **dark only** |
+
+- **A1** `border_color` measured 1.26–1.87:1 on all seven old presets, failing
+  WCAG 1.4.11 for the input borders using it. Split into `border_color`
+  (dividers) and `border_strong_color` (interactive boundaries, ≥3:1).
+- **A2** success/warning/danger had 4/2/5 unrelated values. Now fixed hue
+  anchors (152/36/6) nudged 4% toward the theme, lightness re-solved per
+  surface — identical contrast in every theme.
+- **A3** five of seven accent pairs sat 140–175° apart (near-complementary).
+  The set now spans split-complementary, analogous, triadic and monochrome.
+- **A4** light/dark are designed together, and each carries
+  hover/pressed/disabled/focus/scrim so interaction states exist in both modes.
+
+Migrating existing tenants (idempotent; never touches a hand-tuned theme
+unless you pass `--include-custom`):
+
+```bash
+.venv/bin/python backend/scripts/migrate_visual_themes.py --dry-run
+.venv/bin/python backend/scripts/migrate_visual_themes.py
+```
+
+**Copy.** Section headings are per-industry (`INDUSTRY_SECTION_COPY`) rather
+than one set shipped to every tenant; the hero has a single primary CTA;
+empty states offer the next action; error messages state a cause and a way
+out; destructive confirmations say what happens and whether it can be undone;
+the student area explains where an access code comes from; and the English is
+written rather than translated.
+
+### 4.13 v7.3.4 bilingual chain, theme naming, brand-builder layout
+
+**Two real bugs.** The portal's `setLang()` re-rendered programs, gallery, FAQ,
+hero copy and the about block but not the contact rows, which build their own
+key labels in JS — so 「地址 / 邮箱 / 电话」 stayed Chinese for an English
+visitor. And `renderStylePresetGrid()` fell back to `['light']` whenever a
+theme's `modes` was absent, then told the owner the theme "ships light only —
+its accent cannot reach readable contrast on the other surface", a sentence
+nothing had established. Missing data and a single-mode theme are now different
+states: `schemes` keys count as evidence, an absent list says so and asks for a
+refresh.
+
+**Theme naming and description.** `label_zh` reached the API but no surface
+printed it, so a Chinese console offered a choice between "Atelier Clay" and
+"Rehearsal Rose". The generator was also emitting each theme's `mood` tag as
+its `description`, which is why the panel read `warm, tactile, gallery`. Eight
+full sentences now exist in both languages in `presets.py` **and** in
+`palette_gen.py`, so re-emitting cannot reintroduce the fragments; `mood`
+survives under its own name.
+
+**Choosing a theme.** The dropdown was alphabetical, which opened an art
+studio on Arcade Lime — a dark-only neon games palette. Order is now
+recommended → both modes → dark-only. The colour relationship (`harmony`) was
+already on the wire and is shown as a labelled chip. The palette preview grew
+from three unlabelled bars to nine labelled chips, including the
+`border_strong_color` and `focus_ring_color` the theme rework exists for.
+
+**Brand-builder layout.** The two step-02 selects sat in different wrappers
+(`.theme-picker-control` vs `.form-group`) and measured 214×46 at y=1169
+against 380×42 at y=1149; they are one row of equal columns on one baseline.
+Industry cards dropped `key.slice(0,3)` ("GEN" and "GAM" are one letter apart
+at 10px) for the industry name and an accent dot, and their height follows
+content instead of `aspect-ratio: 1.18/1` with a three-line clamp.
+
+**Bilingual chain.** Studio identity joins the bundle that was already
+bilingual, already normalised on read, and already preferred by the public
+template: `settings.localized_copy` now carries slogan, welcome message,
+category label, principal title/bio/quote, the four section labels and the
+registration form title as `{zh, en}`. The older flat fields keep the English
+value so the CMS, Super Admin and existing tenants are unaffected, and a
+tenant's pre-bilingual string seeds both languages rather than being replaced
+by an industry default. Studio Admin gained 中文/English twins for each.
+`programs[]` and `gallery[].title` stay single-language by decision — see
+`docs/Glossary.md`; both entry surfaces now say so on screen.
+
+**Language surfaces.** `?lang=zh` / `?lang=en` makes each language of a public
+page a distinct URL; first visit follows `navigator.language` instead of always
+landing on Chinese; and `og:locale`, `og:locale:alternate`, the canonical URL
+and `hreflang` alternates follow the rendered language, with Chinese as
+`x-default`. The two storage keys (`pwe_lang_<slug>` for visitors,
+`studiosaas_admin_language` for staff) are documented in `docs/Glossary.md` →
+Language surfaces.
+
+Also removed: a decorative "Founder / Principal / Mentor" chip row in the
+portal template — hard-coded English with no `data-zh`, asserting three roles
+about a real person that no studio had entered.
+
 ---
 
 ## 5. Environment Variables
@@ -243,6 +402,12 @@ cd backend
 
 # Reproducible source package (requires a clean committed tree)
 bash scripts/package_release.sh
+
+# Terminology (one agreed word per concept — docs/Glossary.md)
+python3 backend/scripts/check_terminology.py
+
+# Regenerate tenant workspaces after a tenant-template/ change
+.venv/bin/python backend/scripts/regenerate_tenant_workspaces.py
 
 # Full local verification
 bash backend/scripts/verify_local.sh

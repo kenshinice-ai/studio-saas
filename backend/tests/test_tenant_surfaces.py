@@ -1,6 +1,7 @@
 """Tenant surface generation and routing tests."""
 
 import json
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -48,7 +49,13 @@ def test_new_tenant_workspace_generates_public_surface_files(tmp_path):
     register_html = (workspace / "register.html").read_text(encoding="utf-8")
     assert "/_legacy/register" not in register_html
     assert "customFields" in register_html
-    assert "privacyConsent: true" in register_html
+    # Submission moved into /assets/public-register.js so the portal and the
+    # register page cannot drift apart again; the page supplies the parts that
+    # genuinely differ and the module owns privacyConsent.
+    assert "/assets/public-register.js" in register_html
+    assert "StudioSaaSPublicRegister.submit(" in register_html
+    assert "source: 'standalone_register'" in register_html
+    assert "privacyNoticeVersion: privacyNoticeVersion" in register_html
     assert 'data-language="zh"' in register_html
     assert 'data-language="en"' in register_html
     assert "pwe_lang_${TENANT_SLUG}" in register_html
@@ -59,7 +66,8 @@ def test_new_tenant_workspace_generates_public_surface_files(tmp_path):
     assert "--brand-on-accent" in portal_html
     assert "dataset.brandScheme" in portal_html
     assert "localizedCopy" in portal_html
-    assert "privacyConsent:true" in portal_html
+    assert "StudioSaaSPublicRegister.submit(" in portal_html
+    assert "privacyNoticeVersion: state.privacyNoticeVersion" in portal_html
     assert "manifest-portal.json" in portal_html
     assert 'id="main-content"' in portal_html
     assert "/assets/public-analytics.js" in portal_html
@@ -142,9 +150,13 @@ def test_existing_register_surfaces_are_lightweight_lead_capture_pages(client):
         assert response.status_code == 200
         html = response.get_data(as_text=True)
         assert "/_legacy/register" not in html
-        assert f"/v1/public/${{encodeURIComponent(TENANT_SLUG)}}/registrations" in html
+        assert "/assets/public-register.js" in html
+        assert "StudioSaaSPublicRegister.submit(" in html
         assert "source: 'standalone_register'" in html
-        assert "privacyConsent: true" in html
+        # The notice version is served by /brand rather than hard-coded here,
+        # so a consent record always cites the text the visitor could read.
+        assert "privacyNoticeVersion: privacyNoticeVersion" in html
+        assert 'id="privacyDialog"' in html
         assert 'id="publicationConsent"' in html
         assert "publicationConsent:" in html
         assert "Quick Registration" in html
@@ -162,11 +174,14 @@ def test_portal_is_primary_registration_source(client):
 
     for slug in EXISTING_TENANTS:
         html = client.get(f"/{slug}").get_data(as_text=True)
-        assert "source:'portal'" in html
-        assert "privacyConsent:true" in html
+        assert "StudioSaaSPublicRegister.submit(" in html
+        assert "source: 'portal'" in html
+        assert "privacyNoticeVersion: state.privacyNoticeVersion" in html
         assert 'id="j-publication-consent"' in html
-        assert "publicationConsent:publicationChecked" in html
-        assert "utm_campaign" in html
+        assert "publicationConsent: publicationChecked" in html
+        # UTM capture moved into the shared module alongside the POST it
+        # decorates, so both public forms attribute a campaign identically.
+        assert "/assets/public-register.js" in html
         assert f'data-tenant-slug="{slug}"' in html
         assert "manifest-portal.json" in html
         assert "/assets/public-analytics.js" in html
@@ -183,7 +198,21 @@ def test_existing_portals_apply_published_visual_theme_and_localized_copy(client
         assert "visual.button_style||visual.buttonStyle" in html, slug
         assert "localized.hero_title" in html, slug
         assert "localized.primary_cta" in html, slug
-        assert "language: window.LANG || LANG" in html, slug
+        assert "language: lang()" in html, slug
+        # setCopy() used to guess a string's language by testing it for Han
+        # characters, leaving one audience reading template sample copy.
+        assert "function setCopy(" not in html, slug
+        # Tenant-authored copy reaches this page from /brand, so the language
+        # switch must write it as text. Rendering it as HTML made Studio Admin
+        # a stored-XSS vector against every portal visitor.
+        assert "el.textContent = nouns(copy)" in html, slug
+        # Every innerHTML use in the portal clears a container; none of them
+        # assigns copy. Nodes are built with createElement/textContent.
+        # Comments are stripped first so prose about the old bug is not a hit.
+        code = re.sub(r"/\*.*?\*/", "", html, flags=re.S)
+        assignments = re.findall(r"\.innerHTML\s*=\s*([^;]+);", code)
+        assert assignments, slug
+        assert all(value.strip() in {"''", '""'} for value in assignments), (slug, assignments)
 
 
 def test_studio_admin_is_brand_publication_only(client):

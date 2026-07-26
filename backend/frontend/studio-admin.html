@@ -184,7 +184,9 @@
     }
 
     .nav-icon {
-      font-size: 15px;
+      width: 17px;
+      height: 17px;
+      flex-shrink: 0;
     }
 
     /* Buttons */
@@ -278,7 +280,6 @@
     }
 
     .section-icon {
-      font-size: 20px;
       width: 36px;
       height: 36px;
       display: flex;
@@ -287,6 +288,11 @@
       background: var(--brand-ultra-light);
       border-radius: 8px;
       color: var(--brand);
+    }
+
+    .section-icon svg {
+      width: 20px;
+      height: 20px;
     }
 
     .section-title {
@@ -993,16 +999,18 @@
       gap: 10px;
     }
 
+    /* 3-3: the card was locked to aspect-ratio 1.18/1 with the tagline clamped
+       to three lines, so a Chinese slogan was cut mid-sentence whenever the
+       column got narrow. Height follows content now, with a floor so a grid of
+       eight still reads as a row of equal cards. */
     .preset-card {
       display: grid;
       grid-template-rows: auto 1fr auto;
       align-items: stretch;
       justify-content: stretch;
       gap: 10px;
-      aspect-ratio: 1.18 / 1;
       min-width: 0;
-      min-height: 0;
-      overflow: hidden;
+      min-height: 148px;
       border: 1px solid #dbe3ee;
       border-radius: 12px;
       background: #ffffff;
@@ -1024,40 +1032,54 @@
       box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
     }
 
-    .preset-card-top { display: flex; align-items: center; justify-content: space-between; min-width: 0; }
-    .preset-code { color: #94a3b8; font-size: 10px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+    .preset-card-top { display: flex; align-items: center; justify-content: space-between; min-width: 0; min-height: 20px; }
+    /* 3-2: replaces the three-letter key slug ("GEN" / "GAM"), which was
+       indistinguishable at 10px and said nothing the name below did not. */
+    .preset-dot { width: 12px; height: 12px; border: 1px solid rgba(15,23,42,.18); border-radius: 999px; }
     .preset-check { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 999px; background: #2563eb; color: #fff; font-size: 11px; opacity: 0; transform: scale(.8); transition: .18s ease; }
     .preset-card.active .preset-check { opacity: 1; transform: scale(1); }
     .preset-name { min-width: 0; color: #0f172a; font-size: 14px; font-weight: 900; line-height: 1.2; overflow-wrap: anywhere; }
     .preset-name span { display: block; margin-top: 3px; color: #64748b; font-size: 11px; font-weight: 700; }
-    .preset-copy { display: -webkit-box; margin-top: 6px; overflow: hidden; color: #64748b; font-size: 11px; line-height: 1.35; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
+    .preset-copy { margin-top: 6px; color: #64748b; font-size: 11px; line-height: 1.35; overflow-wrap: anywhere; }
     .palette-swatches { display: flex; width: 100%; height: 7px; overflow: hidden; border-radius: 999px; background: #e2e8f0; }
     .palette-swatches i { flex: 1 1 0; border: 0; }
 
     .theme-picker {
       display: grid;
-      grid-template-columns: minmax(190px, .72fr) minmax(0, 1.28fr);
+      grid-template-columns: minmax(280px, .9fr) minmax(0, 1.1fr);
       gap: 14px;
-      align-items: stretch;
+      align-items: start;
+    }
+
+    /* 3-1: the two selects are one row of equal columns, and each control is a
+       three-row subgrid (label / select / note) so their labels, select tops and
+       help text all share a baseline no matter how long the copy is. */
+    .theme-picker-controls {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      align-items: start;
+      min-width: 0;
     }
 
     .theme-picker-control {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      align-content: start;
       gap: 7px;
       min-width: 0;
     }
 
-    .theme-picker-control label { color: #334155; font-size: 12px; font-weight: 800; }
-    .theme-picker-control select { min-height: 46px; font-weight: 800; }
+    .theme-picker-control label { margin: 0; color: #334155; font-size: 12px; font-weight: 800; line-height: 1.3; }
+    .theme-picker-control select { width: 100%; min-height: 46px; font-weight: 800; }
     .theme-picker-control small { color: #64748b; font-size: 11px; line-height: 1.4; }
+    .theme-picker-control small.note-unresolved { color: #92400e; font-weight: 700; }
 
     .theme-selection-preview {
       display: grid;
-      grid-template-columns: 108px minmax(0, 1fr);
-      gap: 14px;
-      align-items: center;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 12px;
+      align-content: start;
       min-width: 0;
       padding: 14px;
       border: 1px solid #dbe3ee;
@@ -1066,9 +1088,15 @@
       color: var(--theme-text, #0f172a);
     }
 
-    .theme-palette-preview { display: grid; grid-template-columns: repeat(5, 1fr); height: 64px; overflow: hidden; border: 1px solid rgba(15,23,42,.12); border-radius: 10px; }
-    .theme-palette-preview i { min-width: 0; }
+    /* 4-4: nine labelled chips instead of three unlabelled bars, so the tokens
+       the theme rework exists for (control boundary, focus ring) and the three
+       semantic colours are visible where the choice is actually made. */
+    .theme-palette-preview { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+    .theme-palette-preview .swatch { display: grid; gap: 4px; justify-items: center; min-width: 52px; }
+    .theme-palette-preview .swatch i { display: block; width: 100%; height: 22px; border: 1px solid rgba(15,23,42,.16); border-radius: 6px; }
+    .theme-palette-preview .swatch small { color: var(--theme-muted, #64748b); font-size: 9px; font-weight: 700; letter-spacing: .02em; text-align: center; }
     .theme-selection-title { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; font-size: 14px; font-weight: 900; }
+    .theme-harmony { display: inline-flex; align-items: center; min-height: 22px; padding: 3px 7px; border: 1px solid var(--theme-muted, #cbd5e1); border-radius: 999px; color: var(--theme-muted, #64748b); font-size: 9px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
     .theme-selection-copy { margin: 5px 0 0; color: var(--theme-muted, #64748b); font-size: 11px; line-height: 1.45; }
     .theme-badge { display: inline-flex; align-items: center; min-height: 22px; padding: 3px 7px; border-radius: 999px; background: color-mix(in srgb, var(--theme-accent, #2563eb) 14%, var(--theme-panel, #fff)); color: var(--theme-text, #0f172a); font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: .04em; }
     .theme-badge.custom { background: #f3e8ff; color: #7e22ce; }
@@ -1118,6 +1146,29 @@
       border: 1px solid #e2e8f0;
       border-radius: 10px;
       background: #ffffff;
+    }
+
+    /* Language and device are separate one-of-two choices, each with its own
+       label, so a single highlighted option per group reads correctly. */
+    .preview-controls {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .preview-control-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .preview-control-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: #64748b;
     }
 
     .preview-stage {
@@ -1419,7 +1470,6 @@
       .question-card, .faq-card { grid-template-columns: 1fr; }
       .preset-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .theme-picker { grid-template-columns: 1fr; }
-      .theme-selection-preview { grid-template-columns: 92px minmax(0, 1fr); }
       .brand-step { padding: 14px; }
       .save-bar { position: static; flex-direction: column; align-items: stretch; }
       .filters { grid-template-columns: 1fr; }
@@ -1432,10 +1482,10 @@
 
     @media (max-width: 480px) {
       .preset-grid { gap: 8px; }
-      .preset-card { aspect-ratio: auto; min-height: 132px; }
+      .preset-card { min-height: 132px; }
       .advanced-colours { grid-template-columns: 1fr; }
-      .theme-selection-preview { grid-template-columns: 1fr; }
-      .theme-palette-preview { height: 42px; }
+      .theme-picker-controls { grid-template-columns: 1fr; }
+      .theme-palette-preview .swatch { min-width: 44px; }
       .stats-grid { grid-template-columns: 1fr; }
       .stat-card { padding: 14px; }
       .stat-value { font-size: 22px; }
@@ -1759,16 +1809,16 @@
     <nav id="studioNav" class="nav-bar hidden" aria-label="Studio Admin sections">
       <div class="nav-inner">
         <a class="nav-link active" href="#section-settings" data-section="settings">
-          <span class="nav-icon">⚙️</span> Website / Brand
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281zM15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg> Website / Brand
         </a>
         <a class="nav-link" href="#section-public-surfaces" data-section="public-surfaces">
-          <span class="nav-icon">🌐</span> Published Pages
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418"/></svg> Published Pages
         </a>
         <a class="nav-link" href="#registrationFieldsEditor" data-section="registration-form">
-          <span class="nav-icon">📝</span> Quick Registration Form
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/></svg> Quick Registration Form
         </a>
         <a class="nav-link" href="#" id="openCmsLink" target="_blank" rel="noopener" style="border-top:1px solid var(--border,#E2E8F0);margin-top:8px;padding-top:12px;">
-          <span class="nav-icon">🗂</span> Open CMS
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z"/></svg> Open CMS
         </a>
       </div>
     </nav>
@@ -1808,7 +1858,7 @@
     <!-- ===== Studio Settings Section ===== -->
     <section id="section-settings" class="section">
       <div class="section-header">
-        <div class="section-icon">⚙️</div>
+        <div class="section-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281zM15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg></div>
         <div>
           <div class="section-title">Website / Brand</div>
           <div class="section-subtitle">Logo, colours, public copy, registration fields, and parent-facing presentation</div>
@@ -1832,6 +1882,7 @@
               <button type="button" role="tab" aria-selected="false" aria-controls="tab-website" class="studio-tab" data-workbench-tab="website">Website</button>
               <button type="button" role="tab" aria-selected="false" aria-controls="tab-register" class="studio-tab" data-workbench-tab="register">Registration</button>
               <button type="button" role="tab" aria-selected="false" aria-controls="tab-faq" class="studio-tab" data-workbench-tab="faq">FAQ</button>
+              <button type="button" role="tab" aria-selected="false" aria-controls="tab-messages" class="studio-tab" data-workbench-tab="messages">Messages</button>
               <button type="button" role="tab" aria-selected="false" aria-controls="tab-analytics" class="studio-tab" data-workbench-tab="analytics">Analytics</button>
               <button type="button" role="tab" aria-selected="false" aria-controls="tab-advanced" class="studio-tab" data-workbench-tab="advanced">Preview / Publish</button>
             </div>
@@ -1858,17 +1909,35 @@
                     <span class="brand-step-index">02</span>
                     <div><h4 id="themeStepTitle">Choose a colour theme</h4><p>Start with one professionally balanced palette. You can fine-tune it without changing the industry content.</p></div>
                   </div>
+                  <!-- 3-1: these two selects sat in different wrappers
+                       (.theme-picker-control vs .form-group), which gave them
+                       different widths, heights and label baselines inside the
+                       same row — measured 214x46 at y=1169 against 380x42 at
+                       y=1149. One wrapper class, one row, one baseline. -->
                   <div class="theme-picker">
-                    <div class="theme-picker-control">
-                      <label for="stylePresetSelect">Theme</label>
-                      <select id="stylePresetSelect" aria-describedby="themeRecommendationNote"></select>
-                      <small id="themeRecommendationNote">The recommended theme is selected automatically.</small>
+                    <div class="theme-picker-controls">
+                      <div class="theme-picker-control">
+                        <label for="stylePresetSelect">Theme</label>
+                        <select id="stylePresetSelect" aria-describedby="themeRecommendationNote" data-no-translate></select>
+                        <small id="themeRecommendationNote">The recommended theme is selected automatically.</small>
+                      </div>
+                      <!-- Every theme ships a matched light and dark variant, so
+                           the scheme is a choice rather than a property of the
+                           palette. Themes that offer only one mode disable it. -->
+                      <div class="theme-picker-control">
+                        <label for="settingColorScheme">Appearance</label>
+                        <select id="settingColorScheme" aria-describedby="colorSchemeNote" data-no-translate>
+                          <option value="light">Light</option>
+                          <option value="dark">Dark</option>
+                        </select>
+                        <small id="colorSchemeNote">Light and dark are designed as a pair; both are checked for contrast.</small>
+                      </div>
                     </div>
                     <div id="stylePresetPreview" class="theme-selection-preview" aria-live="polite">
-                      <div id="themePalettePreview" class="theme-palette-preview" aria-hidden="true"></div>
+                      <div id="themePalettePreview" class="theme-palette-preview" data-no-translate></div>
                       <div>
-                        <div class="theme-selection-title"><span id="themePresetName">Theme</span><span id="themePresetBadge" class="theme-badge">Recommended</span></div>
-                        <p id="themePresetDescription" class="theme-selection-copy"></p>
+                        <div class="theme-selection-title"><span id="themePresetName" data-no-translate>Theme</span><span id="themePresetBadge" class="theme-badge">Recommended</span><span id="themeHarmonyChip" class="theme-harmony" data-no-translate hidden></span></div>
+                        <p id="themePresetDescription" class="theme-selection-copy" data-no-translate></p>
                       </div>
                     </div>
                   </div>
@@ -1899,7 +1968,8 @@
                   </div>
                   <div class="form-grid">
                     <div class="form-group"><label>Studio Name</label><input id="settingName"></div>
-                    <div class="form-group"><label>Slogan</label><input id="settingSlogan" placeholder="Public brand slogan"></div>
+                    <div class="form-group"><label>Slogan · 中文</label><input id="settingSlogan" placeholder="公开品牌标语"></div>
+                    <div class="form-group"><label>Slogan · English</label><input id="settingSloganEn" placeholder="Public brand slogan"></div>
                     <div class="form-group"><label>Logo URL</label><input id="settingLogoUrl" placeholder="/logo.png or https://..."></div>
                     <div class="form-group"><label>Upload Logo</label><input id="settingLogoFile" type="file" accept="image/*"></div>
                     <div class="form-group"><label>Plan</label><select id="settingPlan" disabled></select><small>Managed by StudioSaaS Super Admin.</small></div>
@@ -1909,7 +1979,8 @@
                     <div class="form-group"><label>Phone</label><input id="settingPhone" placeholder="0400 000 000"></div>
                     <div class="form-group"><label>Email</label><input id="settingEmail" type="email" placeholder="studio@example.com"></div>
                     <div class="form-group"><label>Address</label><input id="settingAddress" placeholder="Studio address"></div>
-                    <div class="form-group" style="grid-column:1/-1;"><label>Welcome Message</label><input id="settingWelcome" placeholder="Welcome text for CMS and Register"></div>
+                    <div class="form-group" style="grid-column:1/-1;"><label>Welcome Message · 中文</label><input id="settingWelcome" placeholder="显示在官网与报名页顶部的欢迎语"></div>
+                    <div class="form-group" style="grid-column:1/-1;"><label>Welcome Message · English</label><input id="settingWelcomeEn" placeholder="Welcome text shown above the website and register page"><small>Fill in one language and it is shown to everyone. Leave both blank to hide the welcome band.</small></div>
                   </div>
                 </section>
               </div>
@@ -1920,7 +1991,7 @@
               <div class="panel-heading">
                 <div>
                   <h3>Hero and calls to action</h3>
-                  <p>The first screen parents see on the portal.</p>
+                  <p>The first thing a parent reads on your website, and the button they tap to book. Live on the portal as soon as you publish.</p>
                 </div>
               </div>
               <div class="form-grid">
@@ -1944,7 +2015,8 @@
               <div class="panel-heading">
                 <div>
                   <h3>Website sections</h3>
-                  <p>Control which public sections appear and the about/principal content.</p>
+                  <p>Turn public sections on or off. A section with nothing written in it stays hidden rather than showing an empty block to visitors.</p>
+                  <p>Course names and work titles come from the CMS and are shown exactly as staff typed them — they do not follow the visitor's language. Only the section headings here do.</p>
                 </div>
               </div>
               <div class="form-grid">
@@ -1954,16 +2026,24 @@
                 <div class="form-group"><label>FAQ Section</label><select id="settingShowFaq"><option value="true">Show</option><option value="false">Hide</option></select></div>
                 <div class="form-group"><label>Contact Section</label><select id="settingShowContact"><option value="true">Show</option><option value="false">Hide</option></select></div>
                 <div class="form-group"><label>Student Area Section</label><select id="settingShowStudentArea"><option value="true">Show</option><option value="false">Hide</option></select></div>
-                <div class="form-group"><label>Courses Label</label><input id="settingCoursesLabel" placeholder="Courses & Classes"></div>
-                <div class="form-group"><label>Gallery Label</label><input id="settingGalleryLabel" placeholder="Student Works"></div>
-                <div class="form-group"><label>FAQ Label</label><input id="settingFaqLabel" placeholder="Questions & Answers"></div>
-                <div class="form-group"><label>Contact Label</label><input id="settingContactLabel" placeholder="Contact"></div>
-                <div class="form-group"><label>Principal Name</label><input id="settingPrincipalName" placeholder="Name shown on public page"></div>
-                <div class="form-group"><label>Principal Title</label><input id="settingPrincipalTitle" placeholder="Founder & Principal"></div>
+                <div class="form-group"><label>Courses Label · 中文</label><input id="settingCoursesLabel" placeholder="课程与班次"></div>
+                <div class="form-group"><label>Courses Label · English</label><input id="settingCoursesLabelEn" placeholder="Courses & Classes"></div>
+                <div class="form-group"><label>Gallery Label · 中文</label><input id="settingGalleryLabel" placeholder="学员%WORK%"></div>
+                <div class="form-group"><label>Gallery Label · English</label><input id="settingGalleryLabelEn" placeholder="Student %WORKS%"></div>
+                <div class="form-group"><label>FAQ Label · 中文</label><input id="settingFaqLabel" placeholder="常见问题"></div>
+                <div class="form-group"><label>FAQ Label · English</label><input id="settingFaqLabelEn" placeholder="Questions & Answers"></div>
+                <div class="form-group"><label>Contact Label · 中文</label><input id="settingContactLabel" placeholder="联系我们"></div>
+                <div class="form-group"><label>Contact Label · English</label><input id="settingContactLabelEn" placeholder="Contact"></div>
+                <div class="form-group" style="grid-column:1/-1;"><small>%WORK% and %WORKS% are replaced with your industry's word for what a student produces, so the same label works for a piano, dance, or games studio.</small></div>
+                <div class="form-group"><label>Principal Name</label><input id="settingPrincipalName" placeholder="Name shown on public page"><small>A person's name is never translated.</small></div>
+                <div class="form-group"><label>Principal Title · 中文</label><input id="settingPrincipalTitle" placeholder="创办人 / 主理人"></div>
+                <div class="form-group"><label>Principal Title · English</label><input id="settingPrincipalTitleEn" placeholder="Founder & Principal"></div>
                 <div class="form-group"><label>Principal Image URL</label><input id="settingPrincipalImageUrl" placeholder="/site/principal.jpg or https://..."></div>
                 <div class="form-group"><label>Upload Principal Image</label><input id="settingPrincipalImageFile" type="file" accept="image/jpeg,image/png,image/webp"><small>Uses the tenant media quota and safe public derivative.</small></div>
-                <div class="form-group"><label>Principal Quote</label><input id="settingPrincipalQuote" placeholder="Short signature line"></div>
-                <div class="form-group" style="grid-column:1/-1;"><label>Principal Bio</label><textarea id="settingPrincipalBio" rows="4" placeholder="Short public introduction"></textarea></div>
+                <div class="form-group"><label>Principal Quote · 中文</label><input id="settingPrincipalQuote" placeholder="一句署名短句"></div>
+                <div class="form-group"><label>Principal Quote · English</label><input id="settingPrincipalQuoteEn" placeholder="Short signature line"></div>
+                <div class="form-group" style="grid-column:1/-1;"><label>Principal Bio · 中文</label><textarea id="settingPrincipalBio" rows="4" placeholder="面向公众的简短介绍"></textarea></div>
+                <div class="form-group" style="grid-column:1/-1;"><label>Principal Bio · English</label><textarea id="settingPrincipalBioEn" rows="4" placeholder="Short public introduction"></textarea><small>Leave either language blank and the other is shown to everyone. The section stays hidden until a bio exists.</small></div>
               </div>
             </div>
 
@@ -1971,7 +2051,7 @@
               <div class="panel-heading">
                 <div>
                   <h3>Registration form</h3>
-                  <p>Lead capture copy and questions shown on the portal and register page.</p>
+                  <p>What a family fills in to enquire. Every question here appears on both the portal form and the standalone register page, and lands in the CMS under Pending.</p>
                 </div>
               </div>
               <div class="form-grid">
@@ -1995,11 +2075,30 @@
               <div class="panel-heading">
                 <div>
                   <h3>FAQ</h3>
-                  <p>Questions shown near the bottom of the public portal.</p>
+                  <p>Answers to what families ask before they book. Shown near the bottom of the portal in whichever language the visitor is reading.</p>
                 </div>
                 <button type="button" id="addFaqItemBtn" class="btn-secondary btn-sm">Add FAQ</button>
               </div>
               <div class="form-grid question-list mt-2" id="faqItemsEditor"></div>
+            </div>
+
+            <!-- The copy staff paste to families out of the CMS. It used to be
+                 hard-coded in cms-app.jsx, naming the literal word "Studio". -->
+            <div id="tab-messages" class="tab-panel" data-workbench-panel="messages">
+              <div class="panel-heading">
+                <div>
+                  <h3>Family messages</h3>
+                  <p>What your staff copy out of the CMS and send to a family. Placeholders are filled in per student: {student} {studio} {balance} {credits} {fee} {note}</p>
+                </div>
+                <button type="button" id="resetMessageTemplatesBtn" class="btn-secondary btn-sm">Reset to defaults</button>
+              </div>
+              <div class="form-grid mt-2">
+                <div class="form-group"><label for="messageCheckin">Check-in</label><textarea id="messageCheckin" rows="2"></textarea></div>
+                <div class="form-group"><label for="messageCheckinEmpty">Check-in with no credits left</label><textarea id="messageCheckinEmpty" rows="2"></textarea></div>
+                <div class="form-group"><label for="messageTopup">Credits purchased</label><textarea id="messageTopup" rows="2"></textarea></div>
+                <div class="form-group"><label for="messageRenewal">Renewal reminder</label><textarea id="messageRenewal" rows="3"></textarea></div>
+                <div class="form-group"><label for="messageBirthday">Birthday greeting</label><textarea id="messageBirthday" rows="2"></textarea></div>
+              </div>
             </div>
 
             <div id="tab-analytics" class="tab-panel" data-workbench-panel="analytics">
@@ -2052,11 +2151,25 @@
                 <button type="button" class="preview-tab active" data-preview-mode="portal">Studio Website</button>
                 <button type="button" class="preview-tab" data-preview-mode="register">Quick Registration</button>
               </div>
-              <div class="device-tabs">
-                <button type="button" class="device-tab active" data-preview-language="zh">中文</button>
-                <button type="button" class="device-tab" data-preview-language="en">EN</button>
-                <button type="button" class="device-tab active" data-preview-device="desktop">Desktop</button>
-                <button type="button" class="device-tab" data-preview-device="mobile">Mobile</button>
+              <!-- Language and device are two independent choices. They used to
+                   share one .device-tabs container, so the control looked like a
+                   single four-way segment with two highlighted options and no
+                   way to tell what clicking one would do. -->
+              <div class="preview-controls">
+                <div class="preview-control-group" role="group" aria-label="Preview language">
+                  <span class="preview-control-label">Language</span>
+                  <div class="device-tabs">
+                    <button type="button" class="device-tab active" data-preview-language="zh" aria-pressed="true">中文</button>
+                    <button type="button" class="device-tab" data-preview-language="en" aria-pressed="false">EN</button>
+                  </div>
+                </div>
+                <div class="preview-control-group" role="group" aria-label="Preview device">
+                  <span class="preview-control-label">Device</span>
+                  <div class="device-tabs">
+                    <button type="button" class="device-tab active" data-preview-device="desktop" aria-pressed="true">Desktop</button>
+                    <button type="button" class="device-tab" data-preview-device="mobile" aria-pressed="false">Mobile</button>
+                  </div>
+                </div>
               </div>
             </div>
             <div class="preview-stage">
@@ -2111,7 +2224,7 @@
 
     <section id="section-public-surfaces" class="section">
       <div class="section-header">
-        <div class="section-icon">🌐</div>
+        <div class="section-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418"/></svg></div>
         <div>
           <div class="section-title">Public Pages</div>
           <div class="section-subtitle">Check the published website, operational CMS, alternate registration entry, and this brand workspace</div>
@@ -2174,9 +2287,41 @@
       return match ? decodeURIComponent(match[1]).toLowerCase() : '';
     };
 
+    /* 2-1: the eight themes and eight industries all carry a Chinese name, and
+       the brand builder printed only `label`, so a Chinese-speaking owner chose
+       between "Atelier Clay" and "Rehearsal Rose". These read the localised
+       field when the console is in Chinese and fall back to English, never the
+       other way round — an untranslated preset shows its English name rather
+       than nothing. */
+    const adminIsZh = () => window.AdminI18n?.language === 'zh';
+    const localisedField = (item, enKey, zhKey) => {
+      if (!item) return '';
+      const en = String(item[enKey] ?? '').trim();
+      const zh = String(item[zhKey] ?? '').trim();
+      return (adminIsZh() ? (zh || en) : (en || zh));
+    };
+    const styleName = (style) => localisedField(style, 'label', 'labelZh') || 'Theme';
+    const styleDescription = (style) => {
+      const copy = localisedField(style, 'description', 'descriptionZh');
+      /* Legacy/cached responses carry only the English sentence; the admin
+         dictionary still has it, so translate rather than show English. */
+      return copy && adminIsZh() && !String(style?.descriptionZh || '').trim()
+        ? (window.AdminI18n?.translate(copy) || copy)
+        : copy;
+    };
+    const harmonyName = (style) => {
+      const pair = style?.harmonyLabel;
+      if (pair && typeof pair === 'object') return localisedField(pair, 'en', 'zh');
+      const raw = String(style?.harmony || '');
+      return raw ? (window.AdminI18n?.translate(raw) || raw) : '';
+    };
+    const industryName = (preset) => localisedField(preset, 'label', 'labelZh');
+    const industrySlogan = (preset) => localisedField(preset, 'slogan', 'sloganZh');
+
     let INDUSTRY_PRESETS = {
       general: {
         label: 'General', labelZh: '通用', slogan: 'A learning path that fits every student.',
+        sloganZh: '适合每个学员的成长路径。',
         portalLabel: 'Student Portal', registerIntro: 'Tell us about the student and their goals.',
         registerIntroZh: '告诉我们学员的兴趣、经验与希望达成的目标。',
         registrationTitle: 'Student Preferences', registrationTitleZh: '告诉我们学员的兴趣与学习目标',
@@ -2206,6 +2351,9 @@
     let previewLanguage = 'zh';
     let brandVersions = [];
     let activeVisualStyle = '';
+    // Light/dark is a separate axis from the palette: a studio picks a
+    // theme, then picks how it renders. Both variants are pre-solved.
+    let activeColorScheme = 'light';
     let themeMode = 'preset';
     let lastPresetSnapshot = null;
 
@@ -2517,6 +2665,21 @@
       return Object.entries(INDUSTRY_PRESETS).map(([key, preset]) => `<option value="${key}" ${key === selected ? 'selected' : ''}>${preset.label}</option>`).join('');
     }
 
+    /* settingsPayload() sends localizedCopy in camelCase and the brand-workspace
+       draft stores it verbatim, while every reader here uses snake_case. Without
+       this, loading a saved draft dropped multi-word keys (hero_title, and now
+       the class-B identity pairs) back to their industry defaults. */
+    const snakeLocalizedCopy = (source) => {
+      const out = {};
+      Object.entries(source && typeof source === 'object' ? source : {}).forEach(([key, pair]) => {
+        out[key.replace(/([A-Z])/g, (match) => `_${match.toLowerCase()}`)] = pair;
+      });
+      return out;
+    };
+
+    const industryPresetFor = (category) =>
+      INDUSTRY_PRESETS[category || $('settingCategory')?.value || 'general'] || INDUSTRY_PRESETS.general;
+
     function defaultRegistrationProfile(category) {
       const preset = INDUSTRY_PRESETS[category] || INDUSTRY_PRESETS.general;
       return JSON.parse(JSON.stringify(preset.registrationProfile || INDUSTRY_PRESETS.general.registrationProfile));
@@ -2570,11 +2733,39 @@
 
     function defaultFaqItems(category) {
       const preset = INDUSTRY_PRESETS[category] || INDUSTRY_PRESETS.general;
+      const label = String(preset.label || 'class').toLowerCase();
+      const labelZh = String(preset.labelZh || preset.label_zh || '课程');
+      // %VENUE% / %WORK% are replaced on the public page with the nouns this
+      // industry uses, so the defaults stay correct for piano, dance and games.
       return [
-        { question: 'Is there a trial class?', answer: 'Yes. Leave your details and the studio will contact you to arrange a suitable first session.' },
-        { question: 'How do class packs work?', answer: 'Classes can be tracked as credits in the CMS, and families can check balances from the student area.' },
-        { question: `Which ${String(preset.label || 'class').toLowerCase()} level should we choose?`, answer: 'Start with your current experience and goals in the registration form. The studio will recommend the right class.' },
-        { question: 'Can parents view progress?', answer: 'Yes. The public portal includes a student area for class balance and portfolio lookup when enabled.' }
+        {
+          question: { zh: '有体验课吗？', en: 'Is there a trial class?' },
+          answer: {
+            zh: '有的。通过报名表留下联系方式，%VENUE%会与您联系并安排合适的第一节课。',
+            en: 'Yes. Leave your details on the registration form and the %VENUE% will be in touch to arrange a suitable first session.'
+          }
+        },
+        {
+          question: { zh: '课包与课时怎么算？', en: 'How do class packs work?' },
+          answer: {
+            zh: '课程以课包形式购买，每次上课按实际时长扣课时；余额与记录随时可在「学员专区」查询。',
+            en: 'Classes are bought as packs and each session draws the credits it actually uses. Your balance and history are always visible in the student area.'
+          }
+        },
+        {
+          question: { zh: `应该选择哪个${labelZh}水平？`, en: `Which ${label} level should we choose?` },
+          answer: {
+            zh: '在报名表里填写当前经验与目标即可，老师会推荐合适的班型。',
+            en: 'Start with your current experience and goals in the registration form, and the teacher will recommend the right class.'
+          }
+        },
+        {
+          question: { zh: '家长能看到进度吗？', en: 'Can parents view progress?' },
+          answer: {
+            zh: '可以。开启「学员专区」后，用姓名、手机号与%VENUE%发放的访问码即可查看课时余额与%WORK%记录。',
+            en: 'Yes. When the student area is enabled, the student\'s name, mobile and the access code issued by the %VENUE% show the credit balance and %WORK% records.'
+          }
+        }
       ];
     }
 
@@ -2608,6 +2799,7 @@
       $('settingButtonStyle').value = themeValue(theme, 'button_style', 'soft');
       $('settingFontMood').value = themeValue(theme, 'font_mood', 'modern');
       activeVisualStyle = styleId || themeValue(theme, 'style_id', '');
+      activeColorScheme = themeValue(theme, 'color_scheme', 'light') === 'dark' ? 'dark' : 'light';
       themeMode = themeValue(theme, 'theme_mode', activeVisualStyle ? 'preset' : 'custom');
       renderStylePresetGrid();
     }
@@ -2791,10 +2983,26 @@
           type, required, options
         });
       });
+      const titleZh = $('settingRegistrationTitle').value.trim();
+      const titleEn = $('settingRegistrationTitleEn').value.trim();
+      const fallbackTitle = fallback.title && typeof fallback.title === 'object'
+        ? fallback.title
+        : { zh: String(fallback.title || ''), en: String(fallback.title || '') };
       return {
-        title: $('settingRegistrationTitle').value.trim() || fallback.title,
+        title: {
+          zh: titleZh || titleEn || fallbackTitle.zh,
+          en: titleEn || titleZh || fallbackTitle.en
+        },
         fields: fields.length ? fields : fallback.fields
       };
+    }
+
+    /* FAQ copy is stored per language. It used to be one string per field, so
+     * the portal's EN switch could never reach the FAQ — the API had nowhere to
+     * put a second language. A legacy single string is shown in both boxes. */
+    function faqText(value, language) {
+      if (value && typeof value === 'object') return value[language] || value.zh || value.en || '';
+      return String(value || '');
     }
 
     function fillFaqItems(items) {
@@ -2803,25 +3011,77 @@
       $('faqItemsEditor').innerHTML = faqs.slice(0, 6).map((item, index) => `
         <div class="faq-card" data-faq-card="${index}">
           <div class="form-group">
-            <label>Question</label>
-            <input data-faq-question="${index}" value="${esc(item.question || '')}">
+            <label>Question (中文)</label>
+            <input data-faq-question="${index}" value="${esc(faqText(item.question, 'zh'))}">
+            <label class="mt-2">Question (English)</label>
+            <input data-faq-question-en="${index}" value="${esc(faqText(item.question, 'en'))}">
             <button type="button" class="btn-secondary btn-sm" style="margin-top:8px" data-remove-faq="${index}">Remove</button>
           </div>
           <div class="form-group">
-            <label>Answer</label>
-            <textarea data-faq-answer="${index}" rows="3">${esc(item.answer || '')}</textarea>
+            <label>Answer (中文)</label>
+            <textarea data-faq-answer="${index}" rows="3">${esc(faqText(item.answer, 'zh'))}</textarea>
+            <label class="mt-2">Answer (English)</label>
+            <textarea data-faq-answer-en="${index}" rows="3">${esc(faqText(item.answer, 'en'))}</textarea>
           </div>
         </div>
       `).join('');
     }
 
+    /* Family-facing message templates (P1-8). Defaults mirror
+       _default_message_templates() in api_v1.py. */
+    const MESSAGE_FIELDS = {
+      checkin: 'messageCheckin',
+      checkin_empty: 'messageCheckinEmpty',
+      topup: 'messageTopup',
+      renewal: 'messageRenewal',
+      birthday: 'messageBirthday'
+    };
+    function defaultMessageTemplates() {
+      return {
+        checkin: '{student} 今日已完成签到 ✓ 当前剩余 {balance} 课时。{studio} 感谢您的支持！',
+        checkin_empty: '{student} 今日已完成签到 ✓ 当前剩余 0 课时，已用完，欢迎联系老师续课～',
+        topup: '{student} 您好！已为您成功充值 {credits} 课时{fee}，当前账户共 {balance} 课时。感谢您对 {studio} 的信任！',
+        renewal: '{student} 家长您好！温馨提醒：您在 {studio} 的剩余课时为 {balance} 节{note}，为不影响后续上课安排，欢迎随时联系老师续课。',
+        birthday: '{student} 您好！{studio} 全体老师祝您生日快乐！愿您在新的一岁里灵感不断、收获满满～'
+      };
+    }
+    function fillMessageTemplates(templates) {
+      const defaults = defaultMessageTemplates();
+      const source = templates && typeof templates === 'object' ? templates : {};
+      Object.entries(MESSAGE_FIELDS).forEach(([key, id]) => {
+        const field = $(id);
+        if (field) field.value = source[key] || defaults[key];
+      });
+    }
+    function collectMessageTemplates() {
+      const defaults = defaultMessageTemplates();
+      const out = {};
+      Object.entries(MESSAGE_FIELDS).forEach(([key, id]) => {
+        out[key] = ($(id)?.value || '').trim() || defaults[key];
+      });
+      return out;
+    }
+
     function collectFaqItems() {
       const items = [];
-      $('faqItemsEditor').querySelectorAll('[data-faq-question]').forEach((input, index) => {
+      const editor = $('faqItemsEditor');
+      editor.querySelectorAll('[data-faq-question]').forEach((input, index) => {
         const key = input.getAttribute('data-faq-question') || String(index);
-        const question = input.value.trim();
-        const answer = $('faqItemsEditor').querySelector(`[data-faq-answer="${key}"]`)?.value.trim() || '';
-        if (question && answer) items.push({ question, answer });
+        const pick = (attr) => editor.querySelector(`[${attr}="${key}"]`)?.value.trim() || '';
+        const questionZh = input.value.trim();
+        const questionEn = pick('data-faq-question-en');
+        const answerZh = pick('data-faq-answer');
+        const answerEn = pick('data-faq-answer-en');
+        // One filled language is enough; it is used for both rather than
+        // letting the other language fall back to template sample copy.
+        const question = questionZh || questionEn;
+        const answer = answerZh || answerEn;
+        if (question && answer) {
+          items.push({
+            question: { zh: questionZh || questionEn, en: questionEn || questionZh },
+            answer: { zh: answerZh || answerEn, en: answerEn || answerZh }
+          });
+        }
       });
       return items.length ? items : defaultFaqItems($('settingCategory').value);
     }
@@ -2879,10 +3139,19 @@
       if (!grid) return;
       grid.innerHTML = Object.entries(INDUSTRY_PRESETS).map(([key, preset]) => {
         const theme = preset.visualTheme || {};
+        /* 3-2: the top-left slug used to be key.slice(0,3) — "GEN" and "GAM"
+           differ by one letter at 10px, and "DAN"/"LAN" told an owner nothing
+           the name below did not already say. The card leads with the industry
+           name, and the accent dot carries the only information the code was
+           actually conveying: which palette comes with it.
+           4-1: the tagline follows the console language, so the card is no
+           longer 「艺术 / Art / Create boldly. Grow visibly.」 all at once. */
+        const primary = adminIsZh() ? (preset.labelZh || preset.label) : preset.label;
+        const secondary = adminIsZh() ? (preset.labelZh ? preset.label : '') : (preset.labelZh || '');
         return `
         <button type="button" class="preset-card ${key === selected ? 'active' : ''}" data-preset-key="${key}" aria-pressed="${key === selected ? 'true' : 'false'}">
-          <div class="preset-card-top"><span class="preset-code">${esc(key.slice(0, 3))}</span><span class="preset-check" aria-hidden="true">✓</span></div>
-          <div><div class="preset-name">${esc(preset.label)}<span>${esc(preset.labelZh || '')}</span></div><div class="preset-copy">${esc(preset.slogan)}</div></div>
+          <div class="preset-card-top"><span class="preset-dot" style="background:${themeValue(theme, 'accent_color', '#255c99')}" aria-hidden="true"></span><span class="preset-check" aria-hidden="true">✓</span></div>
+          <div><div class="preset-name">${esc(primary)}${secondary ? `<span data-no-translate>${esc(secondary)}</span>` : ''}</div><div class="preset-copy">${esc(industrySlogan(preset))}</div></div>
           <div class="palette-swatches" aria-hidden="true"><i style="background:${themeValue(theme, 'background_color', '#fff')}"></i><i style="background:${themeValue(theme, 'accent_color', '#255c99')}"></i><i style="background:${themeValue(theme, 'secondary_accent_color', '#147168')}"></i></div>
         </button>
       `}).join('');
@@ -2896,13 +3165,82 @@
       const category = $('settingCategory')?.value || 'general';
       const industry = INDUSTRY_PRESETS[category] || INDUSTRY_PRESETS.general;
       const recommended = industry?.recommendedStyleId;
-      const isZh = window.AdminI18n?.language === 'zh';
+      const isZh = adminIsZh();
       if (!activeVisualStyle || !VISUAL_STYLE_PRESETS[activeVisualStyle]) activeVisualStyle = recommended || entries[0][0];
-      select.innerHTML = entries.map(([key, style]) => `<option value="${key}" ${key === activeVisualStyle ? 'selected' : ''}>${esc(style.label)}${key === recommended ? (isZh ? ' — 推荐' : ' — Recommended') : ''}</option>`).join('');
+      /* 4-2: the list was in dictionary order, so an art studio opened the
+         dropdown on "Arcade Lime" — a dark-only neon games theme. Order is now
+         the order an owner should consider them in: the industry's recommended
+         theme, then everything that offers both light and dark, then the
+         dark-only outlier. Ties keep their display name's order so the list
+         does not reshuffle between renders. */
+      const modeCount = (style) => {
+        const declared = Array.isArray(style?.modes) ? style.modes.length : 0;
+        if (declared) return declared;
+        return style?.schemes && typeof style.schemes === 'object' ? Object.keys(style.schemes).length : 0;
+      };
+      const rank = ([key, style]) => {
+        if (key === recommended) return 0;
+        const count = modeCount(style);
+        if (count > 1) return 1;
+        if (count === 1) return 2;
+        return 1; // unknown mode data: do not demote a theme on missing data
+      };
+      const ordered = entries.slice().sort((a, b) => {
+        const byRank = rank(a) - rank(b);
+        if (byRank) return byRank;
+        return styleName(a[1]).localeCompare(styleName(b[1]), isZh ? 'zh-Hans-CN' : 'en');
+      });
+      const modeSuffix = (style) => {
+        const count = modeCount(style);
+        if (count !== 1) return '';
+        const only = (Array.isArray(style?.modes) && style.modes[0]) || Object.keys(style?.schemes || {})[0];
+        return only === 'dark' ? (isZh ? '（仅暗色）' : ' (dark only)') : (isZh ? '（仅明亮）' : ' (light only)');
+      };
+      select.innerHTML = ordered.map(([key, style]) => `<option value="${key}" ${key === activeVisualStyle ? 'selected' : ''}>${esc(styleName(style))}${esc(modeSuffix(style))}${key === recommended ? (isZh ? ' — 推荐' : ' — Recommended') : ''}</option>`).join('');
       select.value = activeVisualStyle;
 
       const selected = VISUAL_STYLE_PRESETS[activeVisualStyle] || entries[0][1];
-      const baseTheme = selected.visualTheme || {};
+      const selectedName = styleName(selected);
+      /* 1-2: `modes` used to fall back to ['light'] whenever it was absent, and
+         the note below then told the owner the theme "ships light only — its
+         accent cannot reach readable contrast on the other surface". For a
+         stale or cached API response that sentence was invented. Missing data
+         and a genuinely single-mode theme are now different states:
+         `schemes` keys are real evidence, an absent list is unknown. */
+      const declaredModes = Array.isArray(selected.modes) && selected.modes.length ? selected.modes.slice() : [];
+      const schemeModes = selected.schemes && typeof selected.schemes === 'object' ? Object.keys(selected.schemes) : [];
+      const knownModes = declaredModes.length ? declaredModes : schemeModes;
+      const modesKnown = knownModes.length > 0;
+      const modes = modesKnown ? knownModes : ['light', 'dark'];
+      if (!modes.includes(activeColorScheme)) activeColorScheme = modes[0];
+      const schemeSelect = $('settingColorScheme');
+      if (schemeSelect) {
+        schemeSelect.innerHTML = ['light', 'dark'].map((mode) => {
+          const available = modes.includes(mode);
+          const label = isZh ? (mode === 'light' ? '明亮' : '暗色') : (mode === 'light' ? 'Light' : 'Dark');
+          return `<option value="${mode}"${available ? '' : ' disabled'}${mode === activeColorScheme ? ' selected' : ''}>`
+               + `${label}${available ? '' : (isZh ? '（此主题不提供）' : ' (not offered)')}</option>`;
+        }).join('');
+        schemeSelect.value = activeColorScheme;
+        const note = $('colorSchemeNote');
+        if (note) {
+          note.classList.toggle('note-unresolved', !modesKnown);
+          if (!modesKnown) {
+            note.textContent = isZh
+              ? '这套主题的明暗模式信息还没读到（可能是缓存的旧接口响应）。刷新页面后再确认，先不要据此保存。'
+              : "This theme's light/dark availability has not loaded — likely a cached API response. Refresh before relying on it.";
+          } else if (modes.length > 1) {
+            note.textContent = isZh
+              ? '明暗为成对设计，两种模式都已通过对比度检查。'
+              : 'Light and dark are designed as a pair; both are checked for contrast.';
+          } else {
+            note.textContent = isZh
+              ? `${selectedName}仅提供${modes[0] === 'dark' ? '暗色' : '明亮'}模式——它的强调色在另一种底色上无法达到可读对比度。`
+              : `${selectedName} ships ${modes[0]} only — its accent cannot reach readable contrast on the other surface.`;
+          }
+        }
+      }
+      const baseTheme = (selected.schemes && selected.schemes[activeColorScheme]) || selected.visualTheme || {};
       const custom = themeMode === 'custom';
       const shownTheme = custom ? {
         background_color: $('settingThemeBackground')?.value,
@@ -2912,19 +3250,50 @@
         accent_color: $('settingPrimaryColor')?.value,
         secondary_accent_color: $('settingSecondaryColor')?.value,
       } : baseTheme;
-      const colours = ['background_color', 'panel_color', 'accent_color', 'secondary_accent_color', 'text_color'];
-      $('themePalettePreview').innerHTML = colours.map((name) => `<i style="background:${themeValue(shownTheme, name, themeValue(baseTheme, name, '#fff'))}"></i>`).join('');
-      $('themePresetName').textContent = selected.label || 'Theme';
+      /* 4-4: three chips showed page / accent / support only, so the two tokens
+         the redesign exists for — the >=3:1 control boundary and the focus ring
+         — plus the three semantic colours were invisible in the one place an
+         owner compares themes. Each chip is labelled, because an unlabelled
+         swatch strip is decoration. */
+      const swatches = [
+        ['background_color', 'Page', '页面'],
+        ['panel_color', 'Panel', '面板'],
+        ['accent_color', 'Accent', '强调色'],
+        ['secondary_accent_color', 'Support', '辅助色'],
+        ['border_strong_color', 'Control boundary', '控件边界'],
+        ['focus_ring_color', 'Focus ring', '聚焦环'],
+        ['success_color', 'Success', '成功'],
+        ['warning_color', 'Warning', '警示'],
+        ['danger_color', 'Danger', '危险'],
+      ];
+      $('themePalettePreview').innerHTML = swatches.map(([name, labelEn, labelZh]) => {
+        const value = themeValue(shownTheme, name, themeValue(baseTheme, name, ''));
+        if (!value) return '';
+        const label = isZh ? labelZh : labelEn;
+        return `<span class="swatch" title="${esc(label)} · ${esc(value)}"><i style="background:${value}"></i><small>${esc(label)}</small></span>`;
+      }).filter(Boolean).join('');
+      $('themePresetName').textContent = selectedName;
+      /* 4-3: the colour relationship is the reason to prefer one palette over
+         another, and it was already on the wire. */
+      const harmony = harmonyName(selected);
+      const harmonyChip = $('themeHarmonyChip');
+      if (harmonyChip) {
+        harmonyChip.textContent = harmony;
+        harmonyChip.title = isZh ? '色相关系' : 'Colour relationship';
+        harmonyChip.hidden = !harmony || custom;
+      }
       $('themePresetDescription').textContent = custom
-        ? (isZh ? `基于 ${selected.label} 微调；行业内容保持不变。` : `Customised from ${selected.label}. Your industry content remains unchanged.`)
-        : (window.AdminI18n?.translate(selected.description || '') || selected.description || '');
+        ? (isZh ? `基于${selectedName}微调；行业内容保持不变。` : `Customised from ${selectedName}. Your industry content remains unchanged.`)
+        : styleDescription(selected);
       $('themePresetBadge').textContent = window.AdminI18n?.translate(custom ? 'Custom' : activeVisualStyle === recommended ? 'Recommended' : 'Selected') || (custom ? 'Custom' : activeVisualStyle === recommended ? 'Recommended' : 'Selected');
       $('themePresetBadge').classList.toggle('custom', custom);
+      const industryLabel = industryName(industry) || (isZh ? '当前' : 'this industry');
+      const recommendedName = VISUAL_STYLE_PRESETS[recommended] ? styleName(VISUAL_STYLE_PRESETS[recommended]) : (isZh ? '另一主题' : 'Another theme');
       $('themeRecommendationNote').textContent = activeVisualStyle === recommended
-        ? (isZh ? `${industry?.labelZh || industry?.label || '当前'}行业推荐主题。` : `Recommended for ${industry?.label || 'this industry'}.`)
+        ? (isZh ? `${industryLabel}行业推荐主题。` : `Recommended for ${industryLabel}.`)
         : (isZh
-          ? `${industry?.labelZh || industry?.label || '当前'}行业推荐 ${VISUAL_STYLE_PRESETS[recommended]?.label || '另一主题'}；当前选择同样完整支持。`
-          : `${VISUAL_STYLE_PRESETS[recommended]?.label || 'Another theme'} is recommended for ${industry?.label || 'this industry'}, but this choice is fully supported.`);
+          ? `${industryLabel}行业推荐${recommendedName}；当前选择同样完整支持。`
+          : `${recommendedName} is recommended for ${industryLabel}, but this choice is fully supported.`);
       const preview = $('stylePresetPreview');
       preview.style.setProperty('--theme-panel', themeValue(shownTheme, 'panel_color', '#fff'));
       preview.style.setProperty('--theme-text', themeValue(shownTheme, 'text_color', '#0f172a'));
@@ -2950,13 +3319,21 @@
 
     function switchPreviewDevice(device) {
       previewDevice = device;
-      document.querySelectorAll('[data-preview-device]').forEach((button) => button.classList.toggle('active', button.dataset.previewDevice === device));
+      document.querySelectorAll('[data-preview-device]').forEach((button) => {
+        const active = button.dataset.previewDevice === device;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', String(active));
+      });
       updateThemePreview();
     }
 
     function switchPreviewLanguage(language) {
       previewLanguage = language === 'en' ? 'en' : 'zh';
-      document.querySelectorAll('[data-preview-language]').forEach((button) => button.classList.toggle('active', button.dataset.previewLanguage === previewLanguage));
+      document.querySelectorAll('[data-preview-language]').forEach((button) => {
+        const active = button.dataset.previewLanguage === previewLanguage;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', String(active));
+      });
       updateThemePreview();
     }
 
@@ -2968,7 +3345,7 @@
       const website = t.website_profile || t.websiteProfile || defaultWebsiteProfile();
       const principal = t.principal_profile || t.principalProfile || defaultPrincipalProfile(t.name);
       const visual = t.visual_theme || t.visualTheme || defaultVisualTheme(category);
-      const localized = t.localized_copy || t.localizedCopy || {};
+      const localized = snakeLocalizedCopy(t.localized_copy || t.localizedCopy);
       $('studioName').textContent = t.name || 'Studio Admin';
       $('studioMeta').textContent = t.slug ? `${t.slug} · ${preset.label} website and brand console` : 'Website and brand console';
       $('tenantSlug').value = t.slug || currentTenantSlug();
@@ -2992,18 +3369,23 @@
       $('settingCmsLayout').value = t.cms_layout || t.cmsLayout || 'bar';
       $('settingShowWelcome').value = String(t.show_welcome === false || t.show_welcome === 'false' ? false : true);
       $('settingCategory').innerHTML = categoryOptions(category);
-      $('settingSlogan').value = t.slogan || preset.slogan;
+      /* Batch 5: localizedCopy is the bilingual source for studio identity; the
+         flat field is what a tenant saved before it moved there. */
+      $('settingSlogan').value = localized.slogan?.zh || t.slogan || preset.sloganZh || preset.slogan;
+      $('settingSloganEn').value = localized.slogan?.en || t.slogan || preset.slogan;
       $('settingTimezone').value = t.timezone || 'Australia/Melbourne';
       $('settingPhone').value = t.contact_phone || t.contactPhone || '';
       $('settingEmail').value = t.contact_email || t.contactEmail || '';
       $('settingAddress').value = t.address || '';
-      $('settingWelcome').value = t.welcome_message || t.welcomeMessage || '';
+      $('settingWelcome').value = localized.welcome_message?.zh || t.welcome_message || t.welcomeMessage || '';
+      $('settingWelcomeEn').value = localized.welcome_message?.en || t.welcome_message || t.welcomeMessage || '';
       $('settingPortalLabel').value = t.copy_pack?.portal_label || t.copyPack?.portalLabel || preset.portalLabel;
       $('settingRegisterIntro').value = localized.registration_intro?.zh || preset.registerIntroZh || t.copy_pack?.register_intro || t.copyPack?.registerIntro || preset.registerIntro;
       $('settingRegisterIntroEn').value = localized.registration_intro?.en || t.copy_pack?.register_intro || t.copyPack?.registerIntro || preset.registerIntro;
       const profile = t.registration_profile || t.registrationProfile || defaultRegistrationProfile(category);
-      $('settingRegistrationTitle').value = localized.registration_title?.zh || preset.registrationTitleZh || profile.title || '学员报名';
-      $('settingRegistrationTitleEn').value = localized.registration_title?.en || preset.registrationTitle || profile.title || 'Quick Registration';
+      const profileTitle = profile.title && typeof profile.title === 'object' ? profile.title : { zh: profile.title, en: profile.title };
+      $('settingRegistrationTitle').value = localized.registration_title?.zh || preset.registrationTitleZh || profileTitle.zh || '学员报名';
+      $('settingRegistrationTitleEn').value = localized.registration_title?.en || preset.registrationTitle || profileTitle.en || 'Quick Registration';
       fillRegistrationFields(profile);
       $('settingHeroEyebrow').value = hero.eyebrow || preset.label;
       $('settingHeroTitle').value = localized.hero_title?.zh || hero.title || t.name || '';
@@ -3023,17 +3405,26 @@
       $('settingShowFaq').value = String(boolValue(website.show_faq ?? website.showFaq, true));
       $('settingShowContact').value = String(boolValue(website.show_contact ?? website.showContact, true));
       $('settingShowStudentArea').value = String(boolValue(website.show_student_area ?? website.showStudentArea, true));
-      $('settingCoursesLabel').value = website.courses_label || website.coursesLabel || 'Courses & Classes';
-      $('settingGalleryLabel').value = website.gallery_label || website.galleryLabel || 'Student Works';
-      $('settingFaqLabel').value = website.faq_label || website.faqLabel || 'Questions & Answers';
-      $('settingContactLabel').value = website.contact_label || website.contactLabel || 'Contact';
+      const sectionLabel = (key, legacyValue, fallbackZh, fallbackEn) => {
+        const pair = localized[key] || {};
+        $(`setting${key.split('_').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join('')}`).value = pair.zh || legacyValue || fallbackZh;
+        $(`setting${key.split('_').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join('')}En`).value = pair.en || legacyValue || fallbackEn;
+      };
+      sectionLabel('courses_label', website.courses_label || website.coursesLabel, '课程与班次', 'Courses & Classes');
+      sectionLabel('gallery_label', website.gallery_label || website.galleryLabel, '学员%WORK%', 'Student %WORKS%');
+      sectionLabel('faq_label', website.faq_label || website.faqLabel, '常见问题', 'Questions & Answers');
+      sectionLabel('contact_label', website.contact_label || website.contactLabel, '联系我们', 'Contact');
       $('settingPrincipalName').value = principal.name || '';
-      $('settingPrincipalTitle').value = principal.title || 'Founder & Principal';
-      $('settingPrincipalBio').value = principal.bio || '';
-      $('settingPrincipalQuote').value = principal.quote || '';
+      $('settingPrincipalTitle').value = localized.principal_title?.zh || principal.title || '创办人 / 主理人';
+      $('settingPrincipalTitleEn').value = localized.principal_title?.en || principal.title || 'Founder & Principal';
+      $('settingPrincipalBio').value = localized.principal_bio?.zh || principal.bio || '';
+      $('settingPrincipalBioEn').value = localized.principal_bio?.en || principal.bio || '';
+      $('settingPrincipalQuote').value = localized.principal_quote?.zh || principal.quote || '';
+      $('settingPrincipalQuoteEn').value = localized.principal_quote?.en || principal.quote || '';
       $('settingPrincipalImageUrl').value = principal.image_url || principal.imageUrl || '';
       setVisualThemeFields(visual, themeValue(visual, 'style_id', preset.recommendedStyleId || ''));
       fillFaqItems(t.faq_items || t.faqItems || defaultFaqItems(category));
+      fillMessageTemplates(t.message_templates || t.messageTemplates);
       updateThemePreview();
       setSettingsDirty(false);
     }
@@ -3067,7 +3458,20 @@
           primaryCta: { zh: $('settingPrimaryCta').value.trim(), en: $('settingPrimaryCtaEn').value.trim() },
           secondaryCta: { zh: $('settingSecondaryCta').value.trim(), en: $('settingSecondaryCtaEn').value.trim() },
           registrationTitle: { zh: $('settingRegistrationTitle').value.trim(), en: $('settingRegistrationTitleEn').value.trim() },
-          registrationIntro: { zh: $('settingRegisterIntro').value.trim(), en: $('settingRegisterIntroEn').value.trim() }
+          registrationIntro: { zh: $('settingRegisterIntro').value.trim(), en: $('settingRegisterIntroEn').value.trim() },
+          // Batch 5, class B. The flat `slogan` / `welcomeMessage` /
+          // websiteProfile / principalProfile fields below still carry the
+          // Chinese value, so nothing that reads them breaks.
+          slogan: { zh: $('settingSlogan').value.trim(), en: $('settingSloganEn').value.trim() },
+          welcomeMessage: { zh: $('settingWelcome').value.trim(), en: $('settingWelcomeEn').value.trim() },
+          categoryLabel: { zh: industryPresetFor().labelZh || '', en: industryPresetFor().label || '' },
+          principalTitle: { zh: $('settingPrincipalTitle').value.trim(), en: $('settingPrincipalTitleEn').value.trim() },
+          principalBio: { zh: $('settingPrincipalBio').value.trim(), en: $('settingPrincipalBioEn').value.trim() },
+          principalQuote: { zh: $('settingPrincipalQuote').value.trim(), en: $('settingPrincipalQuoteEn').value.trim() },
+          coursesLabel: { zh: $('settingCoursesLabel').value.trim(), en: $('settingCoursesLabelEn').value.trim() },
+          galleryLabel: { zh: $('settingGalleryLabel').value.trim(), en: $('settingGalleryLabelEn').value.trim() },
+          faqLabel: { zh: $('settingFaqLabel').value.trim(), en: $('settingFaqLabelEn').value.trim() },
+          contactLabel: { zh: $('settingContactLabel').value.trim(), en: $('settingContactLabelEn').value.trim() }
         },
         registrationProfile: collectRegistrationProfile(),
         heroProfile: {
@@ -3087,22 +3491,24 @@
           showFaq: $('settingShowFaq').value === 'true',
           showContact: $('settingShowContact').value === 'true',
           showStudentArea: $('settingShowStudentArea').value === 'true',
-          coursesLabel: $('settingCoursesLabel').value.trim(),
-          galleryLabel: $('settingGalleryLabel').value.trim(),
-          faqLabel: $('settingFaqLabel').value.trim(),
-          contactLabel: $('settingContactLabel').value.trim()
+          coursesLabel: $('settingCoursesLabelEn').value.trim() || $('settingCoursesLabel').value.trim(),
+          galleryLabel: $('settingGalleryLabelEn').value.trim() || $('settingGalleryLabel').value.trim(),
+          faqLabel: $('settingFaqLabelEn').value.trim() || $('settingFaqLabel').value.trim(),
+          contactLabel: $('settingContactLabelEn').value.trim() || $('settingContactLabel').value.trim()
         },
         principalProfile: {
           show: $('settingShowPrincipal').value === 'true',
           name: $('settingPrincipalName').value.trim(),
-          title: $('settingPrincipalTitle').value.trim(),
-          bio: $('settingPrincipalBio').value.trim(),
-          quote: $('settingPrincipalQuote').value.trim(),
+          title: $('settingPrincipalTitleEn').value.trim() || $('settingPrincipalTitle').value.trim(),
+          bio: $('settingPrincipalBioEn').value.trim() || $('settingPrincipalBio').value.trim(),
+          quote: $('settingPrincipalQuoteEn').value.trim() || $('settingPrincipalQuote').value.trim(),
           imageUrl: $('settingPrincipalImageUrl').value.trim()
         },
         faqItems: collectFaqItems(),
+        messageTemplates: collectMessageTemplates(),
         visualTheme: {
           styleId: activeVisualStyle,
+          colorScheme: activeColorScheme,
           themeMode,
           colorScheme: themeValue(styleTheme, 'color_scheme', luminance($('settingThemeBackground').value) < 0.18 ? 'dark' : 'light'),
           backgroundColor: $('settingThemeBackground').value,
@@ -3126,13 +3532,14 @@
     function compactBrandSnapshot(brand = {}) {
       const hero = brand.heroProfile || brand.hero_profile || {};
       const profile = brand.registrationProfile || brand.registration_profile || {};
-      const localized = brand.localizedCopy || brand.localized_copy || {};
+      const localized = snakeLocalizedCopy(brand.localizedCopy || brand.localized_copy);
       const visual = brand.visualTheme || brand.visual_theme || {};
       const website = brand.websiteProfile || brand.website_profile || {};
       const principal = brand.principalProfile || brand.principal_profile || {};
       const copy = brand.copyPack || brand.copy_pack || {};
       const faq = brand.faqItems || brand.faq_items || [];
-      const localizedPair = (snakeKey, camelKey) => localized[snakeKey] || localized[camelKey] || {};
+      const localizedPair = (snakeKey) => localized[snakeKey] || {};
+      const pairText = (value) => (value && typeof value === 'object' ? text(value.zh || value.en) : text(value));
       const normalizedFields = (profile.fields || []).map((field) => ({
         key: text(field.key),
         label_en: text(field.label_en || field.labelEn || field.label),
@@ -3154,22 +3561,22 @@
         category: text(brand.category),
         slogan: text(brand.slogan),
         heroTitle: text(hero.title),
-        registerTitle: text(profile.title),
+        registerTitle: pairText(profile.title),
         portalLabel: text(copy.portal_label || copy.portalLabel),
         registerIntro: text(copy.register_intro || copy.registerIntro),
         registrationFields: JSON.stringify(normalizedFields),
-        heroTitleZh: text(localizedPair('hero_title', 'heroTitle').zh),
-        heroTitleEn: text(localizedPair('hero_title', 'heroTitle').en),
-        heroSubtitleZh: text(localizedPair('hero_subtitle', 'heroSubtitle').zh),
-        heroSubtitleEn: text(localizedPair('hero_subtitle', 'heroSubtitle').en),
-        primaryCtaZh: text(localizedPair('primary_cta', 'primaryCta').zh),
-        primaryCtaEn: text(localizedPair('primary_cta', 'primaryCta').en),
-        secondaryCtaZh: text(localizedPair('secondary_cta', 'secondaryCta').zh),
-        secondaryCtaEn: text(localizedPair('secondary_cta', 'secondaryCta').en),
-        registrationTitleZh: text(localizedPair('registration_title', 'registrationTitle').zh),
-        registrationTitleEn: text(localizedPair('registration_title', 'registrationTitle').en),
-        registrationIntroZh: text(localizedPair('registration_intro', 'registrationIntro').zh),
-        registrationIntroEn: text(localizedPair('registration_intro', 'registrationIntro').en),
+        heroTitleZh: text(localizedPair('hero_title').zh),
+        heroTitleEn: text(localizedPair('hero_title').en),
+        heroSubtitleZh: text(localizedPair('hero_subtitle').zh),
+        heroSubtitleEn: text(localizedPair('hero_subtitle').en),
+        primaryCtaZh: text(localizedPair('primary_cta').zh),
+        primaryCtaEn: text(localizedPair('primary_cta').en),
+        secondaryCtaZh: text(localizedPair('secondary_cta').zh),
+        secondaryCtaEn: text(localizedPair('secondary_cta').en),
+        registrationTitleZh: text(localizedPair('registration_title').zh),
+        registrationTitleEn: text(localizedPair('registration_title').en),
+        registrationIntroZh: text(localizedPair('registration_intro').zh),
+        registrationIntroEn: text(localizedPair('registration_intro').en),
         heroImageUrl: text(hero.hero_image_url || hero.heroImageUrl),
         heroStyle: text(hero.background_style || hero.backgroundStyle),
         showStudentLogin: String(Boolean(hero.show_student_login ?? hero.showStudentLogin)),
@@ -3186,10 +3593,15 @@
           contactLabel: text(website.contact_label || website.contactLabel)
         }),
         principalProfile: JSON.stringify({
-          show: Boolean(principal.show), name: text(principal.name), title: text(principal.title),
-          bio: text(principal.bio), quote: text(principal.quote), imageUrl: text(principal.image_url || principal.imageUrl)
+          show: Boolean(principal.show), name: text(principal.name), title: pairText(principal.title),
+          bio: pairText(principal.bio), quote: pairText(principal.quote), imageUrl: text(principal.image_url || principal.imageUrl)
         }),
-        faqItems: JSON.stringify(faq.map((item) => ({ question: text(item.question), answer: text(item.answer) }))),
+        // Keep the {zh,en} shape intact; flattening it here would drop the
+        // language the studio just typed.
+        faqItems: JSON.stringify(faq.map((item) => ({
+          question: { zh: text(faqText(item.question, 'zh')), en: text(faqText(item.question, 'en')) },
+          answer: { zh: text(faqText(item.answer, 'zh')), en: text(faqText(item.answer, 'en')) }
+        }))),
         backgroundColor: text(visual.background_color || visual.backgroundColor).toLowerCase(),
         panelColor: text(visual.panel_color || visual.panelColor).toLowerCase(),
         textColor: text(visual.text_color || visual.textColor).toLowerCase(),
@@ -3241,13 +3653,28 @@
     function validatePublishPayload(payload) {
       if (!payload.name) throw new Error('Studio name is required.');
       const placeholderPattern = /placeholder|principal name|主理人姓名|占位文案/i;
+      const pairText = (value) => (value && typeof value === 'object' ? String(value.zh || value.en || '') : String(value || ''));
       const requiredPublicCopy = [
         ['Hero title', payload.heroProfile.title],
-        ['Registration title', payload.registrationProfile.title],
+        ['Registration title', pairText(payload.registrationProfile.title)],
         ['Registration introduction', payload.copyPack.registerIntro]
       ];
+      /* The copy a family must see before they can enquire. The class-B identity
+         pairs added in batch 5 (welcome band, principal bio and quote) are
+         deliberately optional — the portal hides those sections when they are
+         blank, so requiring them here would block publishing for a studio that
+         simply has no principal photo yet. A pair that is filled in one language
+         only is not an error either: the API mirrors it into the other. */
+      const requiredBilingualKeys = [
+        'heroTitle', 'hero_title', 'heroSubtitle', 'hero_subtitle',
+        'primaryCta', 'primary_cta', 'secondaryCta', 'secondary_cta',
+        'registrationTitle', 'registration_title', 'registrationIntro', 'registration_intro'
+      ];
       Object.entries(payload.localizedCopy || {}).forEach(([key, pair]) => {
-        if (!pair.zh || !pair.en) requiredPublicCopy.push([`${key} in Chinese and English`, '']);
+        if (!requiredBilingualKeys.includes(key)) return;
+        const zh = String(pair?.zh || '').trim();
+        const en = String(pair?.en || '').trim();
+        if (!zh && !en) requiredPublicCopy.push([`${key} in Chinese or English`, '']);
       });
       const missing = requiredPublicCopy.filter(([, value]) => !value || placeholderPattern.test(value)).map(([label]) => label);
       if (!payload.contactPhone && !payload.contactEmail) missing.push('Phone or email');
@@ -3416,40 +3843,50 @@
       `).join('');
     }
 
-    function applyVisualStyle(styleId, { remember = true } = {}) {
+    function applyVisualStyle(styleId, { remember = true, scheme = null } = {}) {
       const style = VISUAL_STYLE_PRESETS[styleId];
       if (!style) return;
       const isZh = window.AdminI18n?.language === 'zh';
-      if (remember) rememberPresetState(isZh ? `已将 ${style.label} 应用到当前草稿。` : `${style.label} applied to this draft.`);
-      setVisualThemeFields(style.visualTheme || {}, styleId);
+      const declaredModes = Array.isArray(style.modes) && style.modes.length ? style.modes : [];
+      const modes = declaredModes.length
+        ? declaredModes
+        : (style.schemes && Object.keys(style.schemes).length ? Object.keys(style.schemes) : ['light', 'dark']);
+      const name = styleName(style);
+      // Keep the operator's current appearance if the new style offers it.
+      const nextScheme = scheme && modes.includes(scheme) ? scheme
+                       : (modes.includes(activeColorScheme) ? activeColorScheme : modes[0]);
+      activeColorScheme = nextScheme;
+      if (remember) rememberPresetState(isZh ? `已将${name}应用到当前草稿。` : `${name} applied to this draft.`);
+      setVisualThemeFields((style.schemes && style.schemes[nextScheme]) || style.visualTheme || {}, styleId);
       themeMode = 'preset';
       renderStylePresetGrid();
       setSettingsDirty(true);
       updateThemePreview();
-      showToast(isZh ? `已应用 ${style.label}；发布前不会影响公开页面。` : `${style.label} style applied. Nothing is public until you publish.`);
+      showToast(isZh ? `已应用${name}；发布前不会影响公开页面。` : `${name} style applied. Nothing is public until you publish.`);
     }
 
     function applyCategoryPreset({ remember = true } = {}) {
       const preset = INDUSTRY_PRESETS[$('settingCategory').value] || INDUSTRY_PRESETS.general;
       const isZh = window.AdminI18n?.language === 'zh';
-      if (remember) rememberPresetState(isZh ? `已将${preset.labelZh || preset.label}行业预设应用到当前草稿。` : `${preset.label} industry preset applied to this draft.`);
+      if (remember) rememberPresetState(isZh ? `已将${industryName(preset)}行业预设应用到当前草稿。` : `${industryName(preset)} industry preset applied to this draft.`);
       renderPresetGrid($('settingCategory').value);
-      $('settingSlogan').value = preset.slogan;
+      $('settingSlogan').value = preset.sloganZh || preset.slogan;
+      $('settingSloganEn').value = preset.slogan;
       $('settingPortalLabel').value = preset.portalLabel;
       $('settingRegisterIntro').value = preset.registerIntroZh || preset.registerIntro;
       $('settingRegisterIntroEn').value = preset.registerIntro;
       $('settingHeroEyebrow').value = preset.label;
       $('settingHeroTitle').value = preset.localizedCopy?.hero_title?.zh || $('settingName').value || preset.labelZh || preset.label;
       $('settingHeroTitleEn').value = preset.localizedCopy?.hero_title?.en || $('settingName').value || preset.label;
-      $('settingHeroSubtitle').value = preset.localizedCopy?.hero_subtitle?.zh || preset.slogan;
+      $('settingHeroSubtitle').value = preset.localizedCopy?.hero_subtitle?.zh || preset.sloganZh || preset.slogan;
       $('settingHeroSubtitleEn').value = preset.localizedCopy?.hero_subtitle?.en || preset.slogan;
       $('settingPrimaryCta').value = preset.localizedCopy?.primary_cta?.zh || '预约体验';
       $('settingPrimaryCtaEn').value = preset.localizedCopy?.primary_cta?.en || 'Book a Trial';
       $('settingSecondaryCta').value = preset.localizedCopy?.secondary_cta?.zh || '查看课程';
       $('settingSecondaryCtaEn').value = preset.localizedCopy?.secondary_cta?.en || 'Explore Programs';
       const profile = defaultRegistrationProfile($('settingCategory').value);
-      $('settingRegistrationTitle').value = preset.registrationTitleZh || profile.title;
-      $('settingRegistrationTitleEn').value = preset.registrationTitle || profile.title;
+      $('settingRegistrationTitle').value = preset.registrationTitleZh || profile.title?.zh || profile.title || '';
+      $('settingRegistrationTitleEn').value = preset.registrationTitle || profile.title?.en || profile.title || '';
       fillRegistrationFields(profile);
       const theme = preset.visualTheme || {};
       setVisualThemeFields(theme, preset.recommendedStyleId || themeValue(theme, 'style_id', ''));
@@ -3457,7 +3894,7 @@
       fillFaqItems(defaultFaqItems($('settingCategory').value));
       setSettingsDirty(true);
       updateThemePreview();
-      showToast(isZh ? `已应用${preset.labelZh || preset.label}行业预设及推荐主题。` : `${preset.label} preset and its recommended visual style are ready in this draft.`);
+      showToast(isZh ? `已应用${industryName(preset)}行业预设及推荐主题。` : `${industryName(preset)} preset and its recommended visual style are ready in this draft.`);
     }
 
     function setLoadingState(loading) {
@@ -3520,6 +3957,10 @@
       });
       $('addRegistrationQuestionBtn').addEventListener('click', addRegistrationQuestion);
       $('addFaqItemBtn').addEventListener('click', addFaqItem);
+      $('resetMessageTemplatesBtn').addEventListener('click', () => {
+        fillMessageTemplates(defaultMessageTemplates());
+        setSettingsDirty(true);
+      });
       document.querySelectorAll('[data-workbench-tab]').forEach((button) => {
         button.addEventListener('click', () => switchWorkbenchTab(button.dataset.workbenchTab));
       });
@@ -3539,6 +3980,7 @@
         applyCategoryPreset();
       });
       $('stylePresetSelect').addEventListener('change', () => applyVisualStyle($('stylePresetSelect').value));
+      $('settingColorScheme').addEventListener('change', () => applyVisualStyle(activeVisualStyle, {scheme: $('settingColorScheme').value}));
       document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape' && $('modalOverlay').classList.contains('active')) closeModal();
       });
@@ -3559,8 +4001,11 @@
         'settingHeroEyebrow','settingHeroTitle','settingHeroTitleEn','settingHeroSubtitle','settingHeroSubtitleEn','settingHeroImageUrl',
         'settingPrimaryCta','settingPrimaryCtaEn','settingSecondaryCta','settingSecondaryCtaEn',
         'settingRegistrationTitleEn','settingRegisterIntroEn',
+        'settingSloganEn','settingWelcomeEn',
         'settingCoursesLabel','settingGalleryLabel','settingFaqLabel','settingContactLabel',
-        'settingPrincipalName','settingPrincipalTitle','settingPrincipalBio','settingPrincipalQuote','settingPrincipalImageUrl',
+        'settingCoursesLabelEn','settingGalleryLabelEn','settingFaqLabelEn','settingContactLabelEn',
+        'settingPrincipalName','settingPrincipalTitle','settingPrincipalTitleEn','settingPrincipalBio','settingPrincipalBioEn',
+        'settingPrincipalQuote','settingPrincipalQuoteEn','settingPrincipalImageUrl',
         'settingThemeBackground','settingThemePanel','settingThemeText','settingThemeMuted','settingThemeBorder'
       ].forEach((id) => $(id).addEventListener('input', () => { setSettingsDirty(true); updateThemePreview(); }));
       [
@@ -3574,7 +4019,10 @@
         'settingCmsLayout'
       ].forEach((id) => $(id).addEventListener('change', () => { setSettingsDirty(true); updateThemePreview(); }));
       ['settingButtonStyle','settingFontMood'].forEach((id) => $(id).addEventListener('change', markThemeCustom));
-      document.addEventListener('studiosaas:admin-language', renderStylePresetGrid);
+      document.addEventListener('studiosaas:admin-language', () => {
+        renderStylePresetGrid();
+        renderPresetGrid($('settingCategory')?.value || 'general');
+      });
       $('settingCategory').addEventListener('change', () => {
         applyCategoryPreset();
       });
