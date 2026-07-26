@@ -89,15 +89,15 @@ CMS/门户走查小项 · PWE 品牌识别 · 角色手册+FAQ）+ 后端主线�
 - **版本**：v7.7.0（VERSION / server.py APP_VERSION / README 三处一致；
   v7.4.0=RBAC/a11y/AWS 套件，v7.4.1=数据库与复审稳定性修复，
   v7.5.0=文档全量刷新 + UI/UX 修复批次 + docs/guides 角色手册，
-  v7.6.0=审计 3H/13M/20L 全量修复 + Super Admin UI 专业化改版）
-- **提交状态**：v7.6.0 改动**已提交并推送，main 与
-  `codex/studiosaas-v7.3.1` 已对齐本提交**（发布提交为
-  "feat: release StudioSaaS v7.6.0" 单提交，随本轮 push 到远端）；
-  v7.5.0 及之前为 ef8b1f8 + f710bdc
-- **打包产物**：`dist/PWE-StudioSaaS-aws-7.5.0.tar.gz`（3.3M，sha256 校验
-  OK，含 BUILD_INFO）；v7.6.0 提交后需重新打包
-- **验证基线**：**131 pytest** + 73 smoke + 196 tenant-isolation 全绿
-  （smoke/isolation 为 v7.5.0 基线；131 pytest 为本轮实测）
+  v7.6.0=审计 3H/13M/20L 全量修复 + Super Admin UI 专业化改版，
+  v7.7.0=roadmap 全清 + PWE 品牌识别 + Super Admin 二轮）
+- **提交状态**：v7.7.0 已提交并推送（9de05ab，分支
+  `codex/studiosaas-v7.3.1`）；v7.6.0=59af5a2（main 已对齐该提交，
+  9de05ab 尚未合入 main）
+- **打包产物**：`dist/PWE-StudioSaaS-aws-7.7.0.tar.gz`（sha256 校验 OK，
+  含 BUILD_INFO，本轮产出）
+- **验证基线**：**131 pytest** + 73 smoke + **201 tenant-isolation** 全绿
+  （201 含 v7.7.0 新增的 5 条支持门检查）
 - **AWS 部署包**：`bash deploy/aws/build_aws_bundle.sh <ver>` →
   `dist/PWE-StudioSaaS-aws-<ver>.tar.gz`（含 BUILD_INFO；需干净 git 树）
 - **迁移**：0001–0020；`schema_v1.sql` 已与迁移链**零漂移**（实测比对列/约束/索引；
@@ -148,9 +148,8 @@ media/upload kind 分发穷尽、schedule DELETE 双调用方安全、CMS save 2
 
 ## 3. 已知未决 / 设计决策（有据可查，暂不做）
 
-- **支持会话是 UI 提示，不是强制门**：super_admin 无需开支持会话即可进入租户
-  路由（审计 §3.9）。改动涉及超管工具链，记入 roadmap。
-- **租户 Owner 无自有审计日志入口**（审计 §3.10）→ roadmap。
+- ~~支持会话是 UI 提示~~ → **v7.7.0 已强制**（见顶部本轮记录）。
+- ~~租户 Owner 无自有审计日志入口~~ → **v7.7.0 已上线**。
 - **v1 save 无 shrink guard**：v1 save 不删除学生（absence≠delete），rev guard
   已挡 stale 覆盖，故不需要 server.py 式的缩水防护。
 - **账本历史符号不回写**：consume 正负混存是历史事实，导出层归一化；不做
