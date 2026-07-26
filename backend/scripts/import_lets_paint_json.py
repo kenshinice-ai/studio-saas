@@ -71,10 +71,22 @@ def _tenant_snapshot(cur: Any, tenant_slug: str) -> dict[str, Any]:
     return {**tenant, **counts}
 
 
-def _delete_all_students(cur: Any) -> int:
-    """Delete every demo student; foreign-key cascades remove linked demo data."""
+def _delete_all_students(cur: Any, tenant_id: str) -> int:
+    """Delete the TARGET TENANT's demo data only; FK cascades remove linked rows.
 
-    cur.execute("DELETE FROM students")
+    Originally this wiped every tenant (the whole DB was demo data). Now that
+    real data lives alongside test tenants, the reset is tenant-scoped and
+    mirrors seed_random_demo_data.clear_demo_data: registrations, students
+    (cascading accounts/ledger/attendance/portfolio), and non-logo media.
+    Branding, memberships, courses, and packages are kept.
+    """
+
+    cur.execute("DELETE FROM registrations WHERE tenant_id = %s", (tenant_id,))
+    cur.execute(
+        "DELETE FROM media_assets WHERE tenant_id = %s AND asset_type <> 'logo'",
+        (tenant_id,),
+    )
+    cur.execute("DELETE FROM students WHERE tenant_id = %s", (tenant_id,))
     return cur.rowcount
 
 
@@ -231,9 +243,21 @@ def main(argv: list[str] | None = None) -> int:
                     f"Apply requires --confirm-tenant {args.tenant_slug}."
                 )
 
-            deleted = _delete_all_students(cur)
+            deleted = _delete_all_students(cur, str(tenant["id"]))
             inserted = _insert_core_students(
                 cur, str(tenant["id"]), students, source_digest
+            )
+            # Real data now lives in this tenant — mark it so demo seeders
+            # refuse to touch it again (checked by seed_random_demo_data.py).
+            cur.execute(
+                """
+                UPDATE tenants
+                SET settings = jsonb_set(COALESCE(settings, '{}'::jsonb),
+                                         '{demo_seed_locked}', 'true'::jsonb, true),
+                    updated_at = now()
+                WHERE id = %s
+                """,
+                (str(tenant["id"]),),
             )
             _update_usage(cur)
             conn.commit()

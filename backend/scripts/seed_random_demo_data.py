@@ -156,6 +156,16 @@ def seed_existing_tenant(conn, rng: random.Random, slug: str, students: int) -> 
     (tenant_id, source_legacy_id) and stay idempotent).
     """
 
+    locked = fetch_one(
+        conn,
+        "SELECT 1 FROM tenants WHERE slug = %s AND settings->>'demo_seed_locked' = 'true'",
+        (slug,),
+    )
+    if locked:
+        raise SystemExit(
+            f"Refusing to seed '{slug}': demo_seed_locked is set (tenant holds real data). "
+            "Clear settings.demo_seed_locked manually if you truly intend this."
+        )
     with conn.cursor() as cur:
         cur.execute(
             """
@@ -631,6 +641,21 @@ def main() -> int:
                 conn.commit()
                 return 0
             for slug, name, plan, primary, secondary, category in TENANTS:
+                # A tenant that received a real-data import is locked against
+                # demo seeding: clear_demo_data would destroy production
+                # records. The lock is set by import_lets_paint_json.py
+                # (settings.demo_seed_locked) and can only be lifted by hand.
+                locked = fetch_one(
+                    conn,
+                    """
+                    SELECT 1 FROM tenants
+                    WHERE slug = %s AND settings->>'demo_seed_locked' = 'true'
+                    """,
+                    (slug,),
+                )
+                if locked:
+                    print(f"SKIP {slug}: demo_seed_locked (holds real data)")
+                    continue
                 tenant_id = upsert_tenant(conn, slug, name, plan, primary, secondary, category)
                 ensure_studio_admin(conn, tenant_id, slug, name)
                 courses = upsert_courses(conn, tenant_id, category)

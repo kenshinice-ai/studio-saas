@@ -2,7 +2,32 @@
 
 > 本文件在**每轮改动开始时和完成时**都更新（用户 2026-07-26 明确要求），
 > 始终反映最新状态。历史交接见 `docs/HANDOFF_2026-07-26.md`（v7.3.x 时期）。
-> 最后更新：2026-07-27（v7.7.0 遗留清零 + 品牌识别 + Super Admin 二轮 · **已完成**）
+> 最后更新：2026-07-27（LetsPaint 真实数据导入轮 · **已完成**）
+
+---
+
+## ✅ LetsPaint 真实数据导入轮（2026-07-27，本轮已完成）
+
+`lets-paint-studio` 从 demo 租户转为**真实数据租户**：
+
+- **导入源**：`~/Downloads/LetsPaint_2026-07-27.json`（sha256 c318f4e4…，
+  导入前已 `backup_postgres.py backup` 全库备份）。
+- **执行**：`import_lets_paint_json.py --apply --reset-all-students
+  --confirm-tenant lets-paint-studio` — 清空该租户 demo 数据
+  （registrations + students 级联 + 非 logo 媒体；品牌/成员/课程保留），
+  写入 **43 名真实学员 + 期初余额 165 课时**（migration 类型账本行，
+  含来源摘要）；另 upsert 两个真实套餐（标准课包 $1200/10 节、
+  1 对 1 专业辅导 $1500/10 节），demo 套餐停用。
+  历史 logs/排课/媒体/访问码等按「只保留核心」原则不导入。
+- **脚本硬化**：`_delete_all_students` 从全库 DELETE 改为**租户范围**
+  （原脚本假设整库皆 demo，会误删其他租户）。
+- **防覆盖锁**：导入成功后自动写入 `settings.demo_seed_locked=true`；
+  `seed_random_demo_data.py` 全量路径 SKIP 该租户、`--only-slug` 路径
+  直接拒绝（均已实测）。解锁需手动清除该标志。
+- **验证**：owner 登录 → legacy-cms/data 43 人/165 课时/0 待审核/
+  2 真实套餐；131 pytest 全绿。
+- **注意**：这是本地 `studiosaas_local_test` 库的数据；AWS 迁移时随
+  pg_dump 一起走（Deployment §3.2），锁标志在 settings 里随行。
 
 ---
 
