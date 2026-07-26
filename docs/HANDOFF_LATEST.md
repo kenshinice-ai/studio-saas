@@ -2,7 +2,26 @@
 
 > 本文件在**每轮改动开始时和完成时**都更新（用户 2026-07-26 明确要求），
 > 始终反映最新状态。历史交接见 `docs/HANDOFF_2026-07-26.md`（v7.3.x 时期）。
-> 最后更新：2026-07-26（v7.5.0 文档与 UX 审计轮 · **已完成，全量验证通过**）
+> 最后更新：2026-07-27（v7.5.0 全量项目审计轮 · **已完成**）
+
+---
+
+## ✅ v7.5.0 全量项目审计轮（2026-07-27，本轮已完成）
+
+四方向并行审计（UI/UX、后端逻辑、数据库/迁移、文档一致性），基线 f710bdc。
+只读审计,未改产品代码。完整报告：`docs/Project_Audit_2026-07-27.md`。
+
+- **健康面**：七条 v7.4+ 不变量全部 PASS；117 pytest 全绿；schema_v1.sql
+  vs 0001–0019 经真实 PG18 目录级比对**零漂移**；SNAPSHOT_TABLES 28 张
+  租户表**零遗漏**；13 处 FOR UPDATE 全核实；版本三处一致；API/Database/
+  Admin_Guide/定价与代码零漂移。
+- **发现**：3 HIGH（超管退出必崩 TypeError super-admin.html:1541、状态
+  pill 对比度 1.93–2.24:1、Studio Admin 改密码失败零反馈）+ 13 MED
+  （含 `_is_local_request` Host 头判定 api_v1.py:7883、auth.py:529 缺
+  jsonify 导入、0016 DO 块异常类型错导致不可重跑、维护脚本继承 30s
+  超时、0015 重复索引、legacy 面 emoji/CDN/缩放残留、guides 版本标注
+  仍 7.4.1）+ 20 LOW。修复优先级排序见审计报告 §4。
+- 本轮顺手修正：本文件顶部"未提交"过程性残留（与"已 push"矛盾）。
 
 ---
 
@@ -10,8 +29,7 @@
 
 版本号已三处统一升 **v7.5.0**（VERSION / server.py APP_VERSION / README），
 `verify_local.sh` 全量验证通过（含 196 tenant-isolation，All checks passed）。
-**未提交**：改动全部在工作树上；AWS 打包（build_aws_bundle.sh 需干净 git 树）
-待 commit 后进行。本轮明细：
+已提交并 push（ef8b1f8 + f710bdc），AWS 打包产物 sha256 校验 OK。本轮明细：
 
 1. ✅ **UI/UX 审计完成**：HANDOFF_2026-07-26 §2 批次 1–6 共 14 条**全部已落地**
    （逐条核对有 file:line 证据）。skill 数据为新版（84 styles/192 palettes），
