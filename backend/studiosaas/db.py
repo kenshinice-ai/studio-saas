@@ -1,5 +1,6 @@
 """PostgreSQL access helpers for StudioSaaS v1."""
 
+import os
 from contextlib import contextmanager
 from typing import Any, Iterator
 
@@ -10,12 +11,36 @@ class DatabaseUnavailableError(RuntimeError):
     """Raised when PostgreSQL access is not available or not configured."""
 
 
+def _int_env(name: str, default: int) -> int:
+    """Read an integer environment variable, failing with the variable name."""
+
+    raw = os.environ.get(name)
+    if raw is None or not raw.strip():
+        return default
+    try:
+        return int(raw)
+    except ValueError as exc:
+        raise DatabaseUnavailableError(
+            f"Environment variable {name} must be an integer, got {raw!r}."
+        ) from exc
+
+
 @contextmanager
-def connect() -> Iterator[Any]:
+def connect(
+    *,
+    statement_timeout_ms: int | None = None,
+    lock_timeout_ms: int | None = None,
+) -> Iterator[Any]:
     """Yield a PostgreSQL connection with dictionary rows.
 
     The import is intentionally local so the legacy CMS can still run without
     PostgreSQL dependencies until v1 deployment is enabled.
+
+    Args:
+        statement_timeout_ms: Override the per-session statement timeout.
+            ``None`` uses the env/default value; ``0`` disables the cap
+            (maintenance scripts pass 0).
+        lock_timeout_ms: Same, for the per-session lock timeout.
 
     Raises:
         DatabaseUnavailableError: If psycopg is missing or the DB URL is absent.
@@ -35,15 +60,18 @@ def connect() -> Iterator[Any]:
     except RuntimeError as exc:
         raise DatabaseUnavailableError(str(exc)) from exc
 
+    # Bounded waits so one slow/hung query cannot wedge a waitress thread
+    # (8 wedged threads = a dead app). Values are per-session. Maintenance
+    # scripts that reuse this helper (run_migrations.py,
+    # prune_event_tables.py) pass statement_timeout_ms=0 / lock_timeout_ms=0
+    # to lift the caps; the app defaults are tunable via env.
+    connect_timeout = _int_env("STUDIOSAAS_DB_CONNECT_TIMEOUT", 5)
+    if statement_timeout_ms is None:
+        statement_timeout_ms = _int_env("STUDIOSAAS_DB_STATEMENT_TIMEOUT_MS", 30000)
+    if lock_timeout_ms is None:
+        lock_timeout_ms = _int_env("STUDIOSAAS_DB_LOCK_TIMEOUT_MS", 10000)
+
     try:
-        # Bounded waits so one slow/hung query cannot wedge a waitress thread
-        # (8 wedged threads = a dead app). Values are per-session, so
-        # long-running maintenance (migrations, pg_dump) that connects on its
-        # own is unaffected; override via env for unusual workloads.
-        import os as _os
-        connect_timeout = int(_os.environ.get("STUDIOSAAS_DB_CONNECT_TIMEOUT", "5"))
-        statement_timeout_ms = int(_os.environ.get("STUDIOSAAS_DB_STATEMENT_TIMEOUT_MS", "30000"))
-        lock_timeout_ms = int(_os.environ.get("STUDIOSAAS_DB_LOCK_TIMEOUT_MS", "10000"))
         conn = psycopg.connect(
             cfg.database_url,
             row_factory=dict_row,

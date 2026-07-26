@@ -68,7 +68,9 @@ def run(dry_run: bool = False, baseline: str | None = None, *, check: bool = Fal
         print(f"ERROR: baseline version '{baseline}' does not match any migration file.", file=sys.stderr)
         return 1
 
-    with connect() as conn:
+    # Migrations may legitimately run longer than the application's 30s
+    # statement / 10s lock caps (backfills, index builds) — lift both.
+    with connect(statement_timeout_ms=0, lock_timeout_ms=0) as conn:
         applied = _applied_versions(conn)
         conn.commit()
 

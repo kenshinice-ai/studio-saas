@@ -1,6 +1,6 @@
 # PWE Studio SaaS
 
-Current release: **v7.5.0**
+Current release: **v7.6.0**
 
 PWE Studio SaaS (repo: studiosaas) is a multi-tenant Creative Studio Operating System for art schools, music studios, tutoring centres, creative academies, kids' activity providers, and small education businesses.
 
@@ -91,7 +91,7 @@ Root `/register` is intentionally closed (404) — registration belongs to tenan
     ├── server.py                 # Flask application (~1860 lines)
     ├── requirements.txt
     ├── pytest.ini
-    ├── db/schema_v1.sql          # Kept in sync with migrations (through 0019); ordered migrations are canonical
+    ├── db/schema_v1.sql          # Kept in sync with migrations (through 0020); ordered migrations are canonical
     ├── studiosaas/
     │   ├── api_v1.py             # All API routes (~8500 lines — split planned, v7 P2-1)
     │   ├── auth.py               # Auth helpers and decorators
@@ -426,6 +426,78 @@ end-to-end in Docker (health, migrations, legacy-API 410).
 - **`docs/guides/`** — six per-role Chinese user manuals (new this round).
 - **ui-ux-pro-max skill** project copy synchronised (84 styles / 192 palettes).
 
+### 4.16 v7.6.0 audit remediation and Super Admin UI upgrade
+
+Full remediation of the 2026-07-27 project audit
+(`docs/Project_Audit_2026-07-27.md`): all 3 HIGH, 13 MEDIUM and 20 LOW
+findings closed, plus a professional visual upgrade of the Super Admin
+console.
+
+**Backend:**
+
+- `_is_local_request` now decides on `request.remote_addr` (the socket
+  peer) instead of the spoofable Host header; the local-admin repair path
+  only ever triggers for genuine loopback connections.
+- `auth.py` restored the missing `jsonify` import; the CSRF exemption for
+  public endpoints now also covers the slug-mounted spelling
+  (`/s/<slug>/v1/public/*`).
+- The in-memory public rate limiter is thread-safe (single lock) with lazy
+  pruning so the store cannot grow without bound; the three call sites that
+  mutated the dict directly now go through `_rate_limited()`.
+- A bare `transactionType="refund"` is normalised to the `refund_out`
+  semantics: credits leave the account, the fee is recorded negative, and
+  the balance check applies (previously it *added* credits with a positive
+  fee, silently polluting the cash-net roll-up; no shipped client sent it).
+- Database-unavailable errors (503) return a fixed message in
+  pilot/production instead of echoing driver/connection detail; local
+  development keeps the actionable text.
+- `check_ui_escaping.py` extended: it now follows template strings assigned
+  to variables and passed into `openModal()`-style sinks (the blind spot
+  that had produced a false green light).
+- New test module `backend/tests/test_v760_backend_fixes.py`; the pytest
+  suite is now **131 tests**.
+
+**Database:**
+
+- Migration `0020_drop_redundant_indexes.sql` drops two secondary indexes
+  that duplicated the index already backing a UNIQUE constraint
+  (`media_variants`, `tenant_brand_versions`); `ON CONFLICT` inference is
+  unaffected.
+- The DO blocks in 0016 and `schema_v1.sql` catch the correct
+  `duplicate_table` exception, so both are safely re-runnable.
+- `db.py connect()` accepts `statement_timeout_ms` / `lock_timeout_ms`
+  overrides; `run_migrations.py` and `prune_event_tables.py` pass `0` to
+  lift the 30s/10s app caps for maintenance work.
+- `backup_postgres.py` validates `--keep` (rejects values that would delete
+  every backup) and reports a clear hint when `schema_migrations` is
+  missing; `schema_v1.sql` carries an explicit PG16+ header note.
+- Tenant archives no longer snapshot `users.password_hash` — the `users`
+  export is trimmed to an explicit `SNAPSHOT_COLUMNS` list.
+- 0001 opens with a migration-freeze policy note: applied migrations are
+  never edited retroactively; changes go in new migration files.
+
+**Frontend:**
+
+- `super-admin.html`: logout crash fixed (null guard); status pills meet
+  WCAG contrast (4.84–6.92:1); the three destructive confirm buttons
+  re-enable via `try/finally`; 29 escaping blind spots closed;
+  `admin-i18n.js` gained ~75 keys plus 21 dynamic-string rules (no more
+  mixed-language state); dead code removed; and a professional visual
+  upgrade of the KPI cards, funnel visualisation, alert components, table
+  filters and header button groups (new `--line-strong` / `--row-hover` /
+  `--head-bg` tokens).
+- `studio-admin.html`: `changePassword` and `restoreBrandVersion` report
+  failures instead of failing silently; `categoryOptions` escaped;
+  `aria-pressed` on the preview toggles; the hard-coded slug fallback
+  removed; the CSS `✎` glyph replaced with an SVG.
+- `shared-portfolio.html`: the lightbox is fully keyboard-operable (focus
+  trap + Escape) and the page gained a minimal bilingual layer
+  (`?lang=` / localStorage / browser language).
+- `legacy-root/register.html`: all 16 emoji replaced with SVGs, the
+  third-party CDN fallback and `maximum-scale` removed, dynamic
+  registration fields get real `label for`/`id` pairs.
+- `cms-i18n.js`: language-switch buttons meet the 40px touch target.
+
 ---
 
 ## 5. Environment Variables
@@ -532,7 +604,7 @@ curl -i -X POST http://localhost:8899/v1/admin/tenants \
 | `docs/Deployment.md` | Deployment: local → Cloudflare Tunnel (`studiosaas.cc.cd`) → AWS |
 | `docs/Design_System.md` | UI tokens and component standards |
 | `docs/Glossary.md` | One agreed word per concept (enforced by `check_terminology.py`) |
-| `docs/guides/` | Per-role user manuals in Chinese (v7.5.0) |
+| `docs/guides/` | Per-role user manuals in Chinese (updated for v7.6.0) |
 
 ---
 

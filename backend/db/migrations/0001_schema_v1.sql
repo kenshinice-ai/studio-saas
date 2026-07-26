@@ -1,4 +1,8 @@
 -- StudioSaaS PostgreSQL schema v1.
+-- POLICY: applied migrations are frozen — never edit a shipped migration
+-- retroactively; ship a new numbered migration instead. Sole exception:
+-- provably no-op idempotency-guard fixes (e.g. 0016's EXCEPTION list),
+-- noted in the file header when made.
 -- All tenant-owned business tables include tenant_id. Application code must
 -- always bind tenant-scoped queries to a resolved tenant context.
 

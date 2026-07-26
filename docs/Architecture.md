@@ -115,8 +115,8 @@ studiosaas/
 │   │   ├── tenant_context.py     # Tenant resolution
 │   │   └── workspaces.py         # Tenant folder generation
 │   ├── db/
-│   │   ├── schema_v1.sql         # Kept in sync with migrations (through 0019); migrations are canonical
-│   │   └── migrations/           # 0001–0019, applied by scripts/run_migrations.py
+│   │   ├── schema_v1.sql         # Kept in sync with migrations (through 0020); migrations are canonical
+│   │   └── migrations/           # 0001–0020, applied by scripts/run_migrations.py
 │   ├── scripts/
 │   │   ├── run_migrations.py
 │   │   ├── seed_super_admin.py

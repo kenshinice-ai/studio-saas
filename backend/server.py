@@ -94,7 +94,7 @@ SESSION_SECRET_FILE = _data_path('.session_secret')
 PW_FILE       = _data_path('.cms_password')
 app.config['PHOTO_DIR'] = PHOTO_DIR
 MAX_BACKUPS   = 30   # 1 backup/hr rate limit → ~30 hours of rolling coverage
-APP_VERSION   = '7.5.0'
+APP_VERSION   = '7.6.0'
 ALLOWED_EXT   = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
 EXT_MIME_TYPES = {
     'jpg': {'image/jpeg'},
@@ -176,8 +176,10 @@ def _csrf_guard():
         return None
     # Public endpoints never authorise via the session, so CSRF adds nothing —
     # and a logged-in staff member browsing the public portal must not be
-    # blocked from the registration/balance forms.
-    if path.startswith('/v1/public/'):
+    # blocked from the registration/balance forms. The same endpoints are
+    # also mounted under the tenant slug prefix (/s/<slug>/v1/public/...),
+    # so both spellings are exempt.
+    if path.startswith('/v1/public/') or re.match(r'^/s/[^/]+/v1/public/', path):
         return None
     if 'user_id' not in session:
         return None

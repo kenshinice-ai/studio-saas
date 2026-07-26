@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex">
-<title>Student Portfolio</title>
+<title>学员作品集 · Student Portfolio</title>
 <style>
   :root{--primary:#1E40AF;--secondary:#0F766E;--bg:#F8FAFC;--surface:#FFFFFF;--text:#1E293B;--text-muted:#64748B;--border:#E2E8F0;}
   *{box-sizing:border-box;margin:0;padding:0;}
@@ -17,17 +17,31 @@
   main{max-width:960px;margin:0 auto;padding:16px;}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;}
   .item{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
-  .item img{width:100%;aspect-ratio:1;object-fit:cover;display:block;cursor:pointer;}
+  /* A real <button>, so Tab reaches the lightbox — same rule as the tenant
+     portal gallery (tenant-template/index.html renderGallery). */
+  .item .thumb{display:block;width:100%;padding:0;border:0;background:none;cursor:pointer;}
+  .item .thumb:focus-visible{outline:3px solid var(--primary);outline-offset:-3px;}
+  .item img{width:100%;aspect-ratio:1;object-fit:cover;display:block;}
   .item .meta{padding:8px 10px;font-size:12px;color:var(--text-muted);}
   .item .meta .note{color:var(--text);margin-top:2px;}
   .state{text-align:center;padding:64px 16px;color:var(--text-muted);}
   .expiry{text-align:center;font-size:12px;color:var(--text-muted);padding:24px 16px;}
+  .langtog{position:fixed;top:12px;right:12px;z-index:60;display:inline-flex;gap:2px;padding:3px;border:1px solid var(--border);border-radius:999px;background:var(--surface);box-shadow:0 4px 14px rgba(15,23,42,.12);}
+  .langtog button{border:0;background:transparent;color:var(--text-muted);min-width:44px;min-height:40px;padding:6px 12px;border-radius:999px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;}
+  .langtog button.active{background:var(--primary);color:#fff;}
+  .langtog button:focus-visible{outline:2px solid var(--primary);outline-offset:2px;}
   #lightbox{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;padding:16px;cursor:zoom-out;}
   #lightbox img{max-width:100%;max-height:100%;border-radius:8px;}
   #lightbox.open{display:flex;}
+  #lightboxClose{position:absolute;top:12px;right:12px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:0;border-radius:999px;background:rgba(255,255,255,.14);color:#fff;cursor:pointer;}
+  #lightboxClose:focus-visible{outline:2px solid #fff;outline-offset:2px;}
 </style>
 </head>
 <body>
+  <div class="langtog" role="group" aria-label="语言 / Language">
+    <button type="button" data-language="zh" aria-pressed="false">中</button>
+    <button type="button" data-language="en" aria-pressed="false">EN</button>
+  </div>
   <header id="pageHeader" style="display:none;">
     <img id="studioLogo" alt="" style="display:none;">
     <div class="names">
@@ -40,78 +54,199 @@
     <div class="grid" id="grid"></div>
     <div class="expiry" id="expiry"></div>
   </main>
-  <div id="lightbox" onclick="this.classList.remove('open')"><img id="lightboxImg" alt=""></div>
+  <div id="lightbox" role="dialog" aria-modal="true">
+    <button type="button" id="lightboxClose">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+    <img id="lightboxImg" alt="">
+  </div>
 <script>
 (function(){
+  /* ── Minimal bilingual layer: `?lang=` → stored choice → browser preference,
+     the same resolution chain as tenant-template/register.html (rule 6-1).
+     The share URL keeps its token; only the lang param is edited in place. ── */
+  const normaliseLang = (value) => {
+    const text = String(value || '').toLowerCase();
+    if (text.startsWith('en')) return 'en';
+    if (text.startsWith('zh')) return 'zh';
+    return '';
+  };
+  const pageParams = new URLSearchParams(location.search);
+  let currentLanguage = normaliseLang(pageParams.get('lang')) || (() => {
+    try {
+      const stored = normaliseLang(localStorage.getItem('studiosaas_share_lang'));
+      if (stored) return stored;
+    } catch (_) {}
+    return normaliseLang((navigator.languages && navigator.languages[0]) || navigator.language) || 'zh';
+  })();
+  const T = (zh, en) => currentLanguage === 'en' ? en : zh;
+
+  /* Everything user-visible re-renders from this snapshot, so a language
+     switch after load repaints the whole page, not just static labels. */
+  const view = { state: 'loading', student: '', expiresAt: '', items: [] };
+
+  const stateEl = document.getElementById('stateMsg');
+  const lightbox = document.getElementById('lightbox');
+  const lightboxImg = document.getElementById('lightboxImg');
+  const lightboxClose = document.getElementById('lightboxClose');
+
+  const STATE_TEXT = {
+    loading: () => T('正在加载作品集…', 'Loading portfolio…'),
+    'missing-token': () => T('此链接缺少访问令牌。', 'This link is missing its token.'),
+    gone: () => T('此分享链接已失效——可能已过期，或已被机构撤销。',
+      'This share link is no longer available — it may have expired or been revoked by the studio.'),
+    error: () => view.message || T('无法加载此作品集。', 'Could not load this portfolio.'),
+    network: () => T('网络错误，请重试。', 'Network error. Please try again.'),
+    empty: () => T('还没有分享的作品——请稍后再来看看！', 'No artwork has been shared yet — check back soon!'),
+    ready: () => ''
+  };
+
+  function renderTexts() {
+    document.documentElement.lang = currentLanguage === 'en' ? 'en' : 'zh-CN';
+    document.title = view.student
+      ? T(`${view.student} 的作品集`, `${view.student} — Portfolio`)
+      : T('学员作品集', 'Student Portfolio');
+    document.getElementById('studentName').textContent = view.student
+      ? T(`${view.student} 的作品集`, `${view.student}'s Portfolio`)
+      : '';
+    const stateText = (STATE_TEXT[view.state] || STATE_TEXT.loading)();
+    stateEl.textContent = stateText;
+    stateEl.style.display = stateText ? '' : 'none';
+    document.getElementById('expiry').textContent = view.expiresAt
+      ? T(`此链接将于 ${new Date(view.expiresAt).toLocaleDateString()} 失效`,
+          `This link expires on ${new Date(view.expiresAt).toLocaleDateString()}`)
+      : '';
+    lightbox.setAttribute('aria-label', T('作品大图', 'Artwork viewer'));
+    lightboxClose.setAttribute('aria-label', T('关闭大图', 'Close viewer'));
+    document.querySelectorAll('#grid .thumb').forEach((button) => {
+      button.setAttribute('aria-label',
+        T(`查看大图：${button.dataset.title || T('作品', 'Artwork')}`,
+          `View larger: ${button.dataset.title || 'Artwork'}`));
+    });
+    document.querySelectorAll('[data-language]').forEach((button) => {
+      const active = button.dataset.language === currentLanguage;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+  }
+
+  function setLanguage(language) {
+    currentLanguage = normaliseLang(language) || 'zh';
+    try { localStorage.setItem('studiosaas_share_lang', currentLanguage); } catch (_) {}
+    try {
+      const params = new URLSearchParams(location.search);
+      if (currentLanguage === 'en') params.set('lang', 'en'); else params.delete('lang');
+      const query = params.toString();
+      history.replaceState(null, '', location.pathname + (query ? `?${query}` : '') + location.hash);
+    } catch (_) {}
+    renderTexts();
+  }
+  document.querySelectorAll('[data-language]').forEach((button) => {
+    button.addEventListener('click', () => setLanguage(button.dataset.language));
+  });
+
+  /* ── Lightbox: Escape closes, focus moves to the close control and returns
+     to the opening thumbnail, Tab stays inside — same modal contract as the
+     tenant portal lightbox (tenant-template/index.html openGlb/closeGlb). ── */
+  let lightboxOpener = null;
+  function openLightbox(src, alt) {
+    lightboxOpener = document.activeElement;
+    lightboxImg.src = src;
+    lightboxImg.alt = alt || '';
+    lightbox.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    lightboxClose.focus();
+  }
+  function closeLightbox() {
+    lightbox.classList.remove('open');
+    document.body.style.overflow = '';
+    if (lightboxOpener && typeof lightboxOpener.focus === 'function') lightboxOpener.focus();
+    lightboxOpener = null;
+  }
+  lightboxClose.addEventListener('click', closeLightbox);
+  lightbox.addEventListener('click', (event) => {
+    if (event.target !== lightboxImg) closeLightbox();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (!lightbox.classList.contains('open')) return;
+    if (event.key === 'Escape') { closeLightbox(); return; }
+    if (event.key === 'Tab') {
+      /* The dialog's only focusable control is the close button. */
+      event.preventDefault();
+      lightboxClose.focus();
+    }
+  });
+
+  function renderItems() {
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '';
+    view.items.forEach((item) => {
+      const card = document.createElement('div');
+      card.className = 'item';
+      const thumb = document.createElement('button');
+      thumb.type = 'button';
+      thumb.className = 'thumb';
+      if (item.title) thumb.dataset.title = item.title;
+      const img = document.createElement('img');
+      img.loading = 'lazy';
+      img.src = item.mediaUrl + (item.mediaUrl.includes('?') ? '&' : '?') + 'thumb=1';
+      img.alt = '';
+      thumb.appendChild(img);
+      thumb.addEventListener('click', () => openLightbox(item.mediaUrl, item.title || item.note || ''));
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      if (item.title) {
+        const title = document.createElement('div');
+        title.className = 'note';
+        title.style.fontWeight = '700';
+        title.textContent = item.title;
+        meta.appendChild(title);
+      }
+      const date = document.createElement('div');
+      date.textContent = item.date || '';
+      meta.appendChild(date);
+      if (item.note) {
+        const note = document.createElement('div');
+        note.className = 'note';
+        note.textContent = item.note;
+        meta.appendChild(note);
+      }
+      card.appendChild(thumb);
+      card.appendChild(meta);
+      grid.appendChild(card);
+    });
+  }
+
+  renderTexts();
+
   const token = new URLSearchParams(location.search).get('token') || '';
-  const state = document.getElementById('stateMsg');
-  if (!token) { state.textContent = 'This link is missing its token.'; return; }
+  if (!token) { view.state = 'missing-token'; renderTexts(); return; }
 
   fetch('/v1/public/portfolio/' + encodeURIComponent(token))
     .then(async (res) => {
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok) {
-        state.textContent = res.status === 410
-          ? 'This share link is no longer available — it may have expired or been revoked by the studio.'
-          : (data.message || 'Could not load this portfolio.');
+        view.state = res.status === 410 ? 'gone' : 'error';
+        view.message = res.status === 410 ? '' : (data.message || '');
+        renderTexts();
         return;
       }
       const s = data.studio || {};
       if (s.primaryColor) document.documentElement.style.setProperty('--primary', s.primaryColor);
       if (s.secondaryColor) document.documentElement.style.setProperty('--secondary', s.secondaryColor);
-      document.title = (data.student || 'Student') + ' — Portfolio';
+      view.student = data.student || '';
       document.getElementById('studioName').textContent = s.name || '';
-      document.getElementById('studentName').textContent = (data.student || '') + "'s Portfolio";
       const logo = document.getElementById('studioLogo');
       if (s.logoUrl) { logo.src = s.logoUrl; logo.style.display = ''; }
       document.getElementById('pageHeader').style.display = 'flex';
 
-      const grid = document.getElementById('grid');
-      const items = data.items || [];
-      if (!items.length) {
-        state.textContent = 'No artwork has been shared yet — check back soon!';
-        return;
-      }
-      state.style.display = 'none';
-      items.forEach((item) => {
-        const card = document.createElement('div');
-        card.className = 'item';
-        const img = document.createElement('img');
-        img.loading = 'lazy';
-        img.src = item.mediaUrl + (item.mediaUrl.includes('?') ? '&' : '?') + 'thumb=1';
-        img.alt = item.note || 'Artwork';
-        img.addEventListener('click', () => {
-          document.getElementById('lightboxImg').src = item.mediaUrl;
-          document.getElementById('lightbox').classList.add('open');
-        });
-        const meta = document.createElement('div');
-        meta.className = 'meta';
-        if (item.title) {
-          const title = document.createElement('div');
-          title.className = 'note';
-          title.style.fontWeight = '700';
-          title.textContent = item.title;
-          meta.appendChild(title);
-        }
-        const date = document.createElement('div');
-        date.textContent = item.date || '';
-        meta.appendChild(date);
-        if (item.note) {
-          const note = document.createElement('div');
-          note.className = 'note';
-          note.textContent = '💬 ' + item.note;
-          meta.appendChild(note);
-        }
-        card.appendChild(img);
-        card.appendChild(meta);
-        grid.appendChild(card);
-      });
-      if (data.expiresAt) {
-        document.getElementById('expiry').textContent =
-          'This link expires on ' + new Date(data.expiresAt).toLocaleDateString();
-      }
+      view.items = data.items || [];
+      view.expiresAt = data.expiresAt || '';
+      view.state = view.items.length ? 'ready' : 'empty';
+      renderItems();
+      renderTexts();
     })
-    .catch(() => { state.textContent = 'Network error. Please try again.'; });
+    .catch(() => { view.state = 'network'; renderTexts(); });
 })();
 </script>
 </body>

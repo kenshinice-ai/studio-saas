@@ -10,7 +10,7 @@ import secrets
 from functools import wraps
 from typing import Any, Callable, TypeVar
 
-from flask import Flask, current_app, g, request
+from flask import Flask, current_app, g, jsonify, request
 
 from .errors import api_error
 from .models import ActorContext, Role

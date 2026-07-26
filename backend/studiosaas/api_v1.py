@@ -10,6 +10,7 @@ import json
 import os
 import re
 import secrets
+import threading
 import time
 import hashlib
 import uuid as _uuid
@@ -86,7 +87,15 @@ api_v1 = Blueprint("studiosaas_api_v1", __name__)
 # Simple in-memory rate limiter for public endpoints (per-IP, per-minute).
 # Counters reset on process restart — acceptable for the local pilot; a
 # shared store (Redis) replaces this at the production stage (P3-04).
+# Access is serialised by _public_rate_limit_lock (waitress serves requests
+# from a thread pool), and the store is pruned lazily — every
+# _RATE_LIMIT_PRUNE_EVERY recorded checks, keys whose newest timestamp has
+# left the window are dropped — so it cannot grow without bound.
 _public_rate_limit: dict[str, list[float]] = {}
+_public_rate_limit_lock = threading.Lock()
+_RATE_LIMIT_MAX_WINDOW_SECONDS = 60  # the longest window any caller uses
+_RATE_LIMIT_PRUNE_EVERY = 256
+_rate_limit_calls_since_prune = 0
 
 # The version of the privacy notice the public pages render. It is served to
 # the portal and the register page through /brand and stored with each consent
@@ -96,15 +105,39 @@ PRIVACY_NOTICE_VERSION = "2026-07-12"
 PUBLICATION_NOTICE_VERSION = "2026-07-18"
 
 
+def _prune_rate_limit_store(now: float) -> None:
+    """Lazily drop keys whose timestamps all expired. Caller must hold the lock."""
+
+    global _rate_limit_calls_since_prune
+    _rate_limit_calls_since_prune += 1
+    if _rate_limit_calls_since_prune < _RATE_LIMIT_PRUNE_EVERY:
+        return
+    _rate_limit_calls_since_prune = 0
+    stale = [
+        key
+        for key, stamps in _public_rate_limit.items()
+        if not stamps or now - stamps[-1] >= _RATE_LIMIT_MAX_WINDOW_SECONDS
+    ]
+    for key in stale:
+        del _public_rate_limit[key]
+
+
 def _rate_limited(key: str, limit: int, *, window_seconds: int = 60) -> bool:
     """Apply a bounded in-memory sliding-window limit for one public action."""
 
     now = time.time()
-    attempts = [stamp for stamp in _public_rate_limit.get(key, []) if now - stamp < window_seconds]
-    limited = len(attempts) >= limit
-    if not limited:
-        attempts.append(now)
-    _public_rate_limit[key] = attempts
+    with _public_rate_limit_lock:
+        attempts = [
+            stamp for stamp in _public_rate_limit.get(key, []) if now - stamp < window_seconds
+        ]
+        limited = len(attempts) >= limit
+        if not limited:
+            attempts.append(now)
+        if attempts:
+            _public_rate_limit[key] = attempts
+        else:
+            _public_rate_limit.pop(key, None)
+        _prune_rate_limit_store(now)
     return limited
 
 
@@ -187,16 +220,18 @@ def _login_rate_limited(email: str) -> bool:
     now = time.time()
     ip = _client_ip()
     limited = False
-    for key, limit in (
-        (f"login-ip:{ip}", 30),
-        (f"login-email:{ip}:{email}", 5),
-    ):
-        attempts = [t for t in _public_rate_limit.get(key, []) if now - t < 60]
-        if len(attempts) >= limit:
-            limited = True
-        else:
-            attempts.append(now)
-        _public_rate_limit[key] = attempts
+    with _public_rate_limit_lock:
+        for key, limit in (
+            (f"login-ip:{ip}", 30),
+            (f"login-email:{ip}:{email}", 5),
+        ):
+            attempts = [t for t in _public_rate_limit.get(key, []) if now - t < 60]
+            if len(attempts) >= limit:
+                limited = True
+            else:
+                attempts.append(now)
+            _public_rate_limit[key] = attempts
+        _prune_rate_limit_store(now)
     return limited
 
 
@@ -260,9 +295,20 @@ def pull_tenant_slug(endpoint, values):
 
 @api_v1.errorhandler(DatabaseUnavailableError)
 def handle_database_unavailable(exc: DatabaseUnavailableError):
-    """Return a clear setup error when PostgreSQL is not ready."""
+    """Return a clear setup error when PostgreSQL is not ready.
 
-    return api_error(str(exc), 503, error="database_unavailable")
+    In pilot/production the driver detail (host, port, connection error) is
+    internal topology and must not be echoed to clients; a fixed message is
+    returned instead. Local development keeps the actionable detail, so the
+    canonical body is built directly here rather than through api_error()
+    (which blanks every >=500 message outside debug mode).
+    """
+
+    if os.environ.get("STUDIOSAAS_ENV", "local").strip().lower() in {"pilot", "production"}:
+        message = "Database unavailable. Please try again later."
+    else:
+        message = str(exc) or "Database unavailable."
+    return jsonify({"error": "database_unavailable", "message": message}), 503
 
 
 @api_v1.errorhandler(TenantResolutionError)
@@ -4062,12 +4108,8 @@ def public_student_logout(tenant_slug: str):
 def public_registration_media_upload(tenant_slug: str):
     """Upload a tenant-scoped registration photo before the registration is submitted."""
 
-    client_key = f"registration-media:{_client_ip()}"
-    now = time.time()
-    _public_rate_limit[client_key] = [t for t in _public_rate_limit.get(client_key, []) if now - t < 60]
-    if len(_public_rate_limit[client_key]) >= 5:
+    if _rate_limited(f"registration-media:{_client_ip()}", 5):
         return _error("Too many uploads. Please wait a moment.", 429)
-    _public_rate_limit[client_key].append(now)
 
     with connect() as conn:
         tenant = resolve_tenant(conn, tenant_slug, "path")
@@ -4219,17 +4261,8 @@ def public_create_registration(tenant_slug: str):
     """
 
     # Simple rate limiting: 5 requests per minute per IP
-    client_ip = _client_ip()
-    now = time.time()
-    if client_ip not in _public_rate_limit:
-        _public_rate_limit[client_ip] = []
-    # Prune entries older than 60 seconds
-    _public_rate_limit[client_ip] = [
-        t for t in _public_rate_limit[client_ip] if now - t < 60
-    ]
-    if len(_public_rate_limit[client_ip]) >= 5:
+    if _rate_limited(_client_ip(), 5):
         return _error("Too many registration attempts. Please wait a moment.", 429)
-    _public_rate_limit[client_ip].append(now)
 
     payload = request.get_json(silent=True) or {}
     # S4 (LetsPaintCMS v6.6.5): honeypot — the registration form renders a
@@ -6333,6 +6366,50 @@ def list_credit_transactions(student_id: str):
     return jsonify({"transactions": rows})
 
 
+def _resolve_credit_movement(
+    tx_type: str, legacy_type: str, amount: float, fee_cents: int
+) -> tuple[str, float, int, bool]:
+    """Map the client (transactionType, legacy_type) pair to the signed movement.
+
+    Returns ``(schema_type, delta, fee_cents, requires_balance_check)``. The
+    ledger stores the SIGNED movement so exports and the CMS log view are
+    self-describing (adjustment_out / refund_out are negative).
+
+    v7.6.0: a bare ``refund`` (no legacy_type) is normalised to the same
+    semantics as the legacy ``refund_out`` alias — credits leave the account,
+    the refunded money is a NEGATIVE fee so revenue sums net out, and the
+    balance check applies. Before this a bare refund ADDED credits and kept
+    the fee positive, the exact opposite of refund_out, silently polluting
+    the cash_net roll-up. No shipped client ever sent it (the admin UI always
+    sends refund_out), so there is no compatibility surface to preserve.
+    """
+
+    # Determine delta from the schema type first (legacy aliases override below).
+    if tx_type in ("consume", "expire"):
+        delta = -amount
+    else:
+        # purchase / adjustment / migration / refund keep the caller's sign
+        # (for adjustment and migration the sign of amount is the direction).
+        delta = amount
+
+    requires_balance_check = False
+    if legacy_type == "debit":
+        tx_type = "consume"
+    elif legacy_type == "adjustment_in":
+        tx_type = "adjustment"
+    elif legacy_type == "adjustment_out":
+        tx_type = "adjustment"
+        delta = -abs(delta)  # negative adjustment
+    elif legacy_type == "refund_out" or (tx_type == "refund" and not legacy_type):
+        # A2 (v5.3/v5.5 harvest): 退款退课 — credits leave the account and
+        # the refunded money is a NEGATIVE fee so revenue sums net out.
+        tx_type = "refund"
+        delta = -abs(delta)
+        fee_cents = -abs(fee_cents)
+        requires_balance_check = True
+    return tx_type, delta, fee_cents, requires_balance_check
+
+
 @api_v1.route("/students/<student_id>/credit-transactions", methods=["POST"])
 @permission_required("credits:write")
 
@@ -6395,38 +6472,13 @@ def create_credit_transaction(student_id: str):
         row = cur.fetchone()
         current_balance = float(row["balance"]) if row else 0.0
 
-        # Determine delta based on type (schema: purchase, consume, adjustment, refund, expire, migration)
-        if tx_type == "purchase":
-            delta = amount
-        elif tx_type == "consume":
-            delta = -amount
-        elif tx_type == "adjustment":
-            delta = amount  # sign of amount determines direction
-        elif tx_type == "refund":
-            delta = amount  # refund adds credits back
-        elif tx_type == "expire":
-            delta = -amount  # expiring credits reduces balance
-        elif tx_type == "migration":
-            delta = amount  # migration sign depends on source/dest
-        else:
-            delta = amount  # fallback
-
-        # Map legacy client types to schema types
-        if legacy_type == "debit":
-            tx_type = "consume"
-        elif legacy_type == "adjustment_in":
-            tx_type = "adjustment"
-        elif legacy_type == "adjustment_out":
-            tx_type = "adjustment"
-            delta = -abs(delta)  # negative adjustment
-        elif legacy_type == "refund_out":
-            # A2 (v5.3/v5.5 harvest): 退款退课 — credits leave the account and
-            # the refunded money is a NEGATIVE fee so revenue sums net out.
-            tx_type = "refund"
-            delta = -abs(delta)
-            fee_cents = -abs(fee_cents)
-            if abs(delta) > current_balance:
-                return _error("退课节数不能超过剩余课时。", 400)
+        # Determine the signed movement (schema: purchase, consume, adjustment,
+        # refund, expire, migration) and map legacy client aliases.
+        tx_type, delta, fee_cents, requires_balance_check = _resolve_credit_movement(
+            tx_type, legacy_type, amount, fee_cents
+        )
+        if requires_balance_check and abs(delta) > current_balance:
+            return _error("退课节数不能超过剩余课时。", 400)
 
         new_balance = current_balance + delta
 
@@ -7343,12 +7395,8 @@ def revoke_share_link(link_id: str):
 def public_shared_portfolio(raw_token: str):
     """Public JSON for the shared portfolio viewer page. Rate-limited."""
 
-    now = time.time()
-    client_key = f"shared-portfolio:{_client_ip()}"
-    _public_rate_limit[client_key] = [t for t in _public_rate_limit.get(client_key, []) if now - t < 60]
-    if len(_public_rate_limit[client_key]) >= 20:
+    if _rate_limited(f"shared-portfolio:{_client_ip()}", 20):
         return _error("Too many requests. Please wait a moment.", 429)
-    _public_rate_limit[client_key].append(now)
 
     token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
     with connect() as conn:
@@ -7881,10 +7929,17 @@ def _verify_and_upgrade_password(conn, user: dict, password: str) -> bool:
 
 
 def _is_local_request() -> bool:
-    """Return true when the request is made from the local development host."""
+    """Return true only for genuine loopback connections.
 
-    host = (request.host or "").split(":", 1)[0].strip().lower()
-    return host in {"localhost", "127.0.0.1", "::1"}
+    Uses ``request.remote_addr`` (the socket peer) — never the Host header,
+    which any client can set freely. Behind a reverse proxy remote_addr is
+    the proxy address, so this stays False for proxied/tunnelled traffic;
+    that is intentional: the local-admin repair path gated by this function
+    must only ever trigger for direct localhost development connections
+    (cf. _client_ip(), which applies the same trust rule).
+    """
+
+    return (request.remote_addr or "") in {"127.0.0.1", "::1"}
 
 
 def _repair_local_super_admin_login(conn, email: str, password: str) -> dict | None:

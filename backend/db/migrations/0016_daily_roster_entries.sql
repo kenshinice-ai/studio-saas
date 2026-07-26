@@ -3,6 +3,13 @@
 -- REQUIRES PostgreSQL 16+: the data backfill below uses pg_input_is_valid().
 -- Provision RDS at PG16 or newer (docs/Database.md declares the same floor).
 --
+-- Revised 2026-07-27 (audit finding D1): the idempotency guard below caught
+-- only duplicate_object, but ADD CONSTRAINT ... UNIQUE raises duplicate_table
+-- (42P07, from the backing index) when the constraint already exists, so a
+-- re-run failed. Adding WHEN duplicate_table is a pure no-op for databases
+-- that already applied this migration — it only widens the guard, which is
+-- the sole sanctioned reason to touch a shipped migration.
+--
 -- Recurring class schedules remain templates. This table records explicit
 -- date-level additions and their reversible cancellation state, replacing the
 -- mutable legacy JSON roster board as the source of truth.
@@ -11,7 +18,7 @@ DO $$
 BEGIN
     ALTER TABLE students
         ADD CONSTRAINT students_tenant_id_id_unique UNIQUE (tenant_id, id);
-EXCEPTION WHEN duplicate_object THEN
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN
     NULL;
 END $$;
 

@@ -512,9 +512,17 @@
       gap: 8px;
     }
 
+    /* SVG-only icon rule (v7.3.2): the pencil glyph is a mask filled with
+       currentColor, so it follows the banner's text colour like the inline
+       SVG icons elsewhere do. */
     .edit-banner::before {
-      content: '✎';
-      font-size: 14px;
+      content: '';
+      width: 14px;
+      height: 14px;
+      flex: 0 0 auto;
+      background: currentColor;
+      -webkit-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><path d='M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125'/></svg>") no-repeat center / contain;
+      mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><path d='M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125'/></svg>") no-repeat center / contain;
     }
 
     .action-row {
@@ -2200,8 +2208,8 @@
           <aside class="preview-panel" aria-label="Live website preview">
             <div class="preview-toolbar">
               <div class="preview-tabs">
-                <button type="button" class="preview-tab active" data-preview-mode="portal">Studio Website</button>
-                <button type="button" class="preview-tab" data-preview-mode="register">Quick Registration</button>
+                <button type="button" class="preview-tab active" data-preview-mode="portal" aria-pressed="true">Studio Website</button>
+                <button type="button" class="preview-tab" data-preview-mode="register" aria-pressed="false">Quick Registration</button>
               </div>
               <!-- Language and device are two independent choices. They used to
                    share one .device-tabs container, so the control looked like a
@@ -2591,6 +2599,12 @@
     }
 
     async function checkSession() {
+      const knownSlug = currentTenantSlug();
+      if (!knownSlug) {
+        setAuthState(null);
+        setLoginError('No studio selected. Open this console from your studio URL: /<your-studio-slug>/studio-admin.');
+        return;
+      }
       try {
         const data = await authApi('/auth/me');
         const slug = currentTenantSlug();
@@ -2728,9 +2742,16 @@
         showToast('New passwords do not match.', 'error');
         return;
       }
-      await authApi('/auth/change-password', { method: 'POST', body: JSON.stringify({ oldPassword, newPassword }) });
-      closeModal();
-      showToast('Password updated.');
+      /* H3: a failed change used to reject silently — the modal stayed open
+         with no feedback, so a wrong current password looked like success.
+         Same catch+toast contract as super-admin.html changePassword(). */
+      try {
+        await authApi('/auth/change-password', { method: 'POST', body: JSON.stringify({ oldPassword, newPassword }) });
+        closeModal();
+        showToast('Password updated.');
+      } catch (err) {
+        showToast(err.status === 401 ? 'Current password is incorrect.' : err.message, 'error');
+      }
     }
 
     let modalReturnFocus = null;
@@ -2769,7 +2790,7 @@
     }
 
     function categoryOptions(selected) {
-      return Object.entries(INDUSTRY_PRESETS).map(([key, preset]) => `<option value="${key}" ${key === selected ? 'selected' : ''}>${preset.label}</option>`).join('');
+      return Object.entries(INDUSTRY_PRESETS).map(([key, preset]) => `<option value="${esc(key)}" ${key === selected ? 'selected' : ''}>${esc(preset.label)}</option>`).join('');
     }
 
     /* settingsPayload() sends localizedCopy in camelCase and the brand-workspace
@@ -3421,7 +3442,11 @@
 
     function switchPreviewMode(mode) {
       previewMode = mode;
-      document.querySelectorAll('[data-preview-mode]').forEach((button) => button.classList.toggle('active', button.dataset.previewMode === mode));
+      document.querySelectorAll('[data-preview-mode]').forEach((button) => {
+        const active = button.dataset.previewMode === mode;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', String(active));
+      });
       updateThemePreview();
     }
 
@@ -3906,9 +3931,15 @@
     }
 
     async function restoreBrandVersion(versionId) {
-      const data = await api(`/tenant/brand-versions/${encodeURIComponent(versionId)}/restore`, { method: 'POST', body: '{}' });
-      applyDraftToEditor(data.draft || {});
-      showToast('Previous version restored to draft. Review it before publishing.');
+      /* U2: the click handler has no .catch, so a failed restore was silent —
+         the owner kept editing the old draft believing the restore happened. */
+      try {
+        const data = await api(`/tenant/brand-versions/${encodeURIComponent(versionId)}/restore`, { method: 'POST', body: '{}' });
+        applyDraftToEditor(data.draft || {});
+        showToast('Previous version restored to draft. Review it before publishing.');
+      } catch (err) {
+        showToast(`Restore failed: ${err.message}`, 'error');
+      }
     }
 
     async function uploadLogo() {
@@ -4039,7 +4070,13 @@
     }
 
     function bindEvents() {
-      $('tenantSlug').value = pathTenantSlug() || localStorage.getItem('studiosaas_tenant_slug') || $('tenantSlug').value || 'lets-paint-studio';
+      /* No silent fallback to a real tenant: falling back to a hard-coded
+         demo slug pointed lost visitors at a genuine studio's console. When
+         no slug can be resolved we say so and stop instead. */
+      $('tenantSlug').value = pathTenantSlug() || localStorage.getItem('studiosaas_tenant_slug') || $('tenantSlug').value || '';
+      if (!currentTenantSlug()) {
+        showToast('No studio selected. Open this console from your studio URL: /<your-studio-slug>/studio-admin.', 'error');
+      }
       $('loginForm').addEventListener('submit', loginStudioAdmin);
       $('logoutBtn').addEventListener('click', logoutStudioAdmin);
       $('changePasswordBtn').addEventListener('click', openChangePasswordModal);

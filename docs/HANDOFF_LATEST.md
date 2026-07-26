@@ -2,105 +2,77 @@
 
 > 本文件在**每轮改动开始时和完成时**都更新（用户 2026-07-26 明确要求），
 > 始终反映最新状态。历史交接见 `docs/HANDOFF_2026-07-26.md`（v7.3.x 时期）。
-> 最后更新：2026-07-27（v7.5.0 全量项目审计轮 · **已完成**）
+> 最后更新：2026-07-27（v7.6.0 修复与 UI 升级轮 · **已完成**）
 
 ---
 
-## ✅ v7.5.0 全量项目审计轮（2026-07-27，本轮已完成）
+## ✅ v7.6.0 修复与 UI 升级轮（2026-07-27，本轮已完成）
 
-四方向并行审计（UI/UX、后端逻辑、数据库/迁移、文档一致性），基线 f710bdc。
-只读审计,未改产品代码。完整报告：`docs/Project_Audit_2026-07-27.md`。
+针对 v7.5.0 全量审计（`docs/Project_Audit_2026-07-27.md`）的修复轮：
+四个修复 agent 并行（后端 / 数据库 / Super Admin UI / legacy 面），
+文档 agent 收尾。改动**已提交并推送，main 与 codex/studiosaas-v7.3.1
+已对齐本提交**。
 
-- **健康面**：七条 v7.4+ 不变量全部 PASS；117 pytest 全绿；schema_v1.sql
-  vs 0001–0019 经真实 PG18 目录级比对**零漂移**；SNAPSHOT_TABLES 28 张
-  租户表**零遗漏**；13 处 FOR UPDATE 全核实；版本三处一致；API/Database/
-  Admin_Guide/定价与代码零漂移。
-- **发现**：3 HIGH（超管退出必崩 TypeError super-admin.html:1541、状态
-  pill 对比度 1.93–2.24:1、Studio Admin 改密码失败零反馈）+ 13 MED
-  （含 `_is_local_request` Host 头判定 api_v1.py:7883、auth.py:529 缺
-  jsonify 导入、0016 DO 块异常类型错导致不可重跑、维护脚本继承 30s
-  超时、0015 重复索引、legacy 面 emoji/CDN/缩放残留、guides 版本标注
-  仍 7.4.1）+ 20 LOW。修复优先级排序见审计报告 §4。
-- 本轮顺手修正：本文件顶部"未提交"过程性残留（与"已 push"矛盾）。
+- **修复统计**：审计 **3 HIGH / 13 MED / 20 LOW 全部清零**，另加
+  Super Admin 控制台专业化改版（KPI 卡、漏斗可视化、告警组件、表格
+  筛选、顶部按钮组；新增 `--line-strong`/`--row-hover`/`--head-bg` 等
+  token）。要点：`_is_local_request` 改 remote_addr 判定；限流器加锁
+  +惰性清理；裸 `refund` 归一为 refund_out 语义；503 在 pilot/production
+  固定文案；新迁移 **0020**（删两个冗余索引）；0016/schema_v1 DO 块
+  可重跑修复；`connect()` 支持超时覆盖（维护脚本传 0）；归档裁掉
+  `users.password_hash`；super-admin logout 崩溃修复 + pill 对比度达标
+  （4.84–6.92:1）+ 29 处转义盲区清零 + admin-i18n 补 ~75 键；
+  shared-portfolio 灯箱键盘可达 + 最小双语；legacy register emoji 16 处
+  清零、删 CDN 兜底与 maximum-scale。逐项明细见 README §4.16。
+- **验证基线**：**131 pytest** 全绿（新增
+  `tests/test_v760_backend_fixes.py`）；check_terminology /
+  check_inline_script / check_ui_escaping（扩展版）三件套通过；
+  0020 与 0016/schema_v1 重跑在真实 PostgreSQL 实测通过；
+  四个界面浏览器实测。
+- **版本三处统一 v7.6.0**（VERSION / server.py APP_VERSION / README）；
+  guides 六份手册"适用版本"7.4.1 → 7.6.0（审计 DOC1）；API/Database/
+  Roadmap/QA_Checklist/Deployment 同步（503 文案、refund 同义、超时
+  新机制、迁移 0020、测试数 131）。
+- **遗留（roadmap 在案）**：61 处 raw hex token 化、super_admin 支持
+  会话强制门、Owner 审计日志入口、品牌表单行内报错、media token
+  hex 化、P3-04 Redis 限流。
 
 ---
 
-## ✅ v7.5.0 文档与 UX 审计轮（2026-07-26，本轮已完成）
+## 历史轮次（压缩记录）
 
-版本号已三处统一升 **v7.5.0**（VERSION / server.py APP_VERSION / README），
-`verify_local.sh` 全量验证通过（含 196 tenant-isolation，All checks passed）。
-已提交并 push（ef8b1f8 + f710bdc），AWS 打包产物 sha256 校验 OK。本轮明细：
-
-1. ✅ **UI/UX 审计完成**：HANDOFF_2026-07-26 §2 批次 1–6 共 14 条**全部已落地**
-   （逐条核对有 file:line 证据）。skill 数据为新版（84 styles/192 palettes），
-   但项目内 `.claude/skills/ui-ux-pro-max/SKILL.md` 文案是旧数字，且与用户级
-   副本存在 scripts/threejs.csv 漂移。新发现 14 条改进建议（a11y/触控/emoji
-   残留/字号），已转入修复。
-2. ✅ **文档偏差审计完成**：README 枚举表 5 处硬伤（角色/租户状态/注册状态
-   仍是 0001 时代快照）；codingprompt.md / Current_Sprint.md /
-   Architecture.md / Design_System.md 严重过时；API.md 缺 rev-409 与
-   409/410 错误码；Database.md 停在 0017；Admin_Guide 缺 v7.4.0 角色矩阵。
-   Glossary / Release_Runbook / Product_Surface_Model / HANDOFF_LATEST
-   核实为最新。真实权限矩阵已从 auth.py ROLE_PERMISSIONS 摘录存证。
-3. ✅ **`docs/guides/` 六份角色手册完成**（总览 / Super Admin / Studio Owner /
-   Manager / Teacher / 学员家长），全部事实点经代码核实，互链可达。
-   撰写中发现并已如实处理：隐私声明版本无编辑 UI（联系平台方）；
-   Studio Admin 无 SEO 面板（模板能力）；Restore 恢复为 paused 需再
-   Reactivate。**两个由此发现的真 bug 已由主会话修复**：
-   ① Super Admin「+ Add Plan」Code 字段 disabled 且空 → 无法创建任何套餐。
-   已修：创建模式解锁 Code 输入（placeholder + pattern），savePlanModal
-   增加 trim/lowercase 与 `^[a-z0-9][a-z0-9-]{1,62}$` 客户端校验（与后端
-   `_plan_payload` 规则一致）；编辑模式 Code 仍锁定。
-   ② studio-admin `settingsPayload()` `colorScheme` 键重复——第二个键
-   （取预设**首个模式**）覆盖用户选择；且 success/warning/danger 也取自
-   首个模式（暗色草稿会存明亮版状态色）。已修：styleTheme 改为按
-   `schemes[activeColorScheme]` 解析；colorScheme 在 preset 模式用
-   `activeColorScheme`，custom 模式按背景亮度推导。
-   另：studio-admin 登录密码框零信息 placeholder 已删（与 Super Admin 一致）。
-4. **修复执行中**（五个 agent 并行，按文件边界互不重叠）：
-   - ✅ 文档更新 A 完成：README 升 v7.5.0 + 枚举表对齐 Database.md +
-     新增 §4.15；codingprompt / Current_Sprint 存档化；Roadmap 补三条
-     未决项；Blueprint 三处 token 表述修正 + 三份历史快照加存档头；
-     check_terminology 通过。Blueprint 定价已按用户决定统一为
-     **AUD 299–999**（2026-07-26，§6 L180 已改齐 §1）
-   - 文档更新 B：API/Database/Architecture/Deployment/Admin_Guide（补角色
-     矩阵节）/ Design_System（整份按 8 主题 21token 体系重写）/ QA_Checklist
-   - ✅ Admin 界面修复完成（super-admin.html + studio-admin.html）：
-     reduced-motion、:focus-visible（button/a/[role=tab]，用 --brand）、
-     btn-sm min-height 40px、支持横幅 emoji→SVG + `--support-banner` token、
-     9px chip→11px、两页登录行内报错（role=alert + aria-invalid + 聚焦，
-     并消除 studio-admin 登录的 unhandled rejection）、装饰符号 aria-hidden。
-     inline-script + ui-escaping 检查通过，浏览器实测渲染正常
-   - ✅ CMS 修复完成：emoji 图标清零（新增 plus/close/ellipsis path，
-     源文件+bundle grep 均 0）；登录/邮件设置补可见 label；9 处图标钮
-     aria-label（cms-i18n.js 同步补词条）；套餐编辑/删除钮 min-h 40px；
-     reduced-motion 守卫进 legacy-root/index.html；顺手修复待审核页
-     「拒绝」按钮重复 className 导致样式丢失的既有 bug。
-     build_cms + inline-script + terminology 三项全过
-   - ✅ skill 同步完成：scripts（core/search/design_system + 新增
-     validate_data.py、tests/）、threejs.csv、references/ 均以用户级为准；
-     SKILL.md 采新版为底并保留中文使用指引与本项目图标偏好
-     （Phosphor 优先）两节；数据量文案修正为 84/192/74/98/22；
-     validate_data + 16 unittest 全过
-   - 本轮**不做**：studio-admin 61 处 raw hex 全量 token 化（已记入 roadmap）
-5. ✅ 版本已三处统一 **v7.5.0**；Blueprint setup fee 统一 **AUD 299–999**
-   （用户拍板）；`verify_local.sh` 全量通过（2026-07-26）
+- **v7.5.0 全量项目审计轮（2026-07-27，已完成）**：四方向只读审计
+  （UI/UX、后端、数据库、文档），基线 f710bdc；健康面七条不变量全
+  PASS、schema 零漂移；产出 3H/13M/20L 发现清单
+  （`docs/Project_Audit_2026-07-27.md`），全部已在 v7.6.0 轮修复。
+- **v7.5.0 文档与 UX 审计轮（2026-07-26，已完成，ef8b1f8 + f710bdc 已
+  push）**：文档全量刷新（README 枚举表 / API / Database / Architecture /
+  Design_System / Admin_Guide 角色矩阵）、UI/UX 修复批次（reduced-motion /
+  focus-visible / 触控 40px / CMS emoji 清零 / 登录行内报错）、
+  `docs/guides/` 六份角色手册新增、ui-ux-pro-max skill 同步；
+  Blueprint setup fee 定价统一 **AUD 299–999**（用户拍板，勿改回）；
+  `verify_local.sh` 全量通过，AWS 打包产物 sha256 校验 OK。
 
 ---
 
 ## 0. 当前状态一览
 
-- **版本**：v7.5.0（VERSION / server.py APP_VERSION / README 三处一致；
+- **版本**：v7.6.0（VERSION / server.py APP_VERSION / README 三处一致；
   v7.4.0=RBAC/a11y/AWS 套件，v7.4.1=数据库与复审稳定性修复，
   v7.5.0=文档全量刷新 + UI/UX 修复批次 + docs/guides 角色手册，
-  commit ef8b1f8 已 push）
+  v7.6.0=审计 3H/13M/20L 全量修复 + Super Admin UI 专业化改版）
+- **提交状态**：v7.6.0 改动**已提交并推送，main 与
+  `codex/studiosaas-v7.3.1` 已对齐本提交**（发布提交为
+  "feat: release StudioSaaS v7.6.0" 单提交，随本轮 push 到远端）；
+  v7.5.0 及之前为 ef8b1f8 + f710bdc
 - **打包产物**：`dist/PWE-StudioSaaS-aws-7.5.0.tar.gz`（3.3M，sha256 校验
-  OK，含 BUILD_INFO）
-- **分支**：`codex/studiosaas-v7.3.1`，上游同名
-- **验证基线**：117 pytest + 73 smoke + 196 tenant-isolation 全绿
+  OK，含 BUILD_INFO）；v7.6.0 提交后需重新打包
+- **验证基线**：**131 pytest** + 73 smoke + 196 tenant-isolation 全绿
+  （smoke/isolation 为 v7.5.0 基线；131 pytest 为本轮实测）
 - **AWS 部署包**：`bash deploy/aws/build_aws_bundle.sh <ver>` →
   `dist/PWE-StudioSaaS-aws-<ver>.tar.gz`（含 BUILD_INFO；需干净 git 树）
-- **迁移**：0001–0019；`schema_v1.sql` 已与迁移链**零漂移**（实测比对列/约束/索引）
+- **迁移**：0001–0020；`schema_v1.sql` 已与迁移链**零漂移**（实测比对列/约束/索引；
+  0020 只删冗余索引，无新表）
 
 ## 1. v7.4.0 做了什么（详见 README §4.14）
 
@@ -117,7 +89,7 @@
 3. **AWS 部署套件** — `deploy/aws/`（Dockerfile/entrypoint/compose/nginx/
    systemd/打包脚本），Docker 端到端彩排通过（自动迁移→健康→旧接口 410）。
 
-## 2. 深度复核轮（本轮）修复清单
+## 2. 深度复核轮（v7.4.1）修复清单
 
 ### 数据库稳定性审计（9 项，全部已修）
 
@@ -177,7 +149,7 @@ bash deploy/aws/build_aws_bundle.sh <version>
 ## 5. 下一个会话注意
 
 - 改任何迁移时：**同步 `db/schema_v1.sql` 和 `tenant_archive.py SNAPSHOT_TABLES`**
-  （两个清单在 0015–0017 时期都漂移过，本轮才补上）。
+  （两个清单在 0015–0017 时期都漂移过，v7.4.1 轮才补上）。
 - `tenants/<slug>/` 是生成目录，别手改；改模板后跑 regenerate。
 - Edit 工具对 `\uXXXX` 字面量匹配不了（presets.py / index.html），用脚本替换。
 - 浏览器会缓存 `/v1/industry-presets`，排查样式问题先排除缓存。

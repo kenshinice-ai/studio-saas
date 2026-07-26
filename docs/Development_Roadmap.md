@@ -1,7 +1,7 @@
 # StudioSaaS Development Roadmap
 
-Version: v3.0
-Date: 2026-07-03
+Version: v3.1
+Date: 2026-07-27
 Purpose: Phased development plan, milestones, current status, and deployment targets.
 
 ---
@@ -53,7 +53,7 @@ Purpose: Phased development plan, milestones, current status, and deployment tar
 |---|---|---|
 | Multi-tenant routing | ✅ | Path, header, subdomain resolution |
 | Tenant workspace generation | ✅ | From `tenant-template/` |
-| PostgreSQL schema evolution | ✅ | Ordered migrations through 0019; private student sessions, safe media variants, daily roster and portal analytics included |
+| PostgreSQL schema evolution | ✅ | Ordered migrations through 0020; private student sessions, safe media variants, daily roster and portal analytics included |
 | Super Admin dashboard | ✅ | Create/pause/resume tenants |
 | Studio Admin login | ✅ | Per-tenant website/brand console |
 | Studio CMS | ✅ | Legacy bridge with tenant routing |
@@ -121,11 +121,18 @@ Purpose: Phased development plan, milestones, current status, and deployment tar
 
 > **Note (2026-07-26):** the AWS single-instance deployment kit shipped with v7.4.0 (`deploy/aws/`: Dockerfile, entrypoint, docker-compose, nginx, systemd, `build_aws_bundle.sh`; runbook in `deploy/aws/README_AWS.md`). Remaining Phase 3 infrastructure work: GitHub Actions CI, S3 media, SES email.
 
-**Open items (recorded 2026-07-26, not yet scheduled):**
+**Open items (recorded 2026-07-26, reviewed 2026-07-27, not yet scheduled):**
 
 - Super admin entry into tenant routes has no enforced support-session gate — support mode is a UI-level prompt only, not a backend requirement.
 - Tenant owners have no audit-log view of their own — audit logs are only reachable from the Super Admin console.
-- `studio-admin.html` still carries ~61 raw hex colour values outside the token system (2026-07-26 audit; not addressed in the v7.5.0 round).
+- `studio-admin.html` still carries ~61 raw hex colour values outside the token system (2026-07-26 audit; not addressed in the v7.5.0/v7.6.0 rounds).
+- Brand-builder form fields lack inline per-field error reporting (2026-07-27 audit carry-over).
+- Media share tokens are not hex-normalised (2026-07-27 audit confirmed the exposure is already covered by session auth — low urgency).
+- In-memory public rate limiter → Redis-backed store (P3-04, production stage; the v7.6.0 pass made the in-memory limiter thread-safe and bounded, which is sufficient for the pilot).
+
+> All other findings of the 2026-07-27 project audit (3 HIGH / 13 MED / 20 LOW,
+> `docs/Project_Audit_2026-07-27.md`) were fixed in the v7.6.0 round — see
+> README §4.16.
 
 ---
 

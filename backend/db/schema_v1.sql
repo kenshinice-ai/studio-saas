@@ -1,4 +1,6 @@
 -- StudioSaaS PostgreSQL schema v1.
+-- REQUIRES PostgreSQL 16+ (pg_input_is_valid, see the daily roster backfill
+-- around line ~582; same floor as migration 0016 and docs/Database.md).
 -- All tenant-owned business tables include tenant_id. Application code must
 -- always bind tenant-scoped queries to a resolved tenant context.
 
@@ -422,9 +424,9 @@ CREATE TABLE IF NOT EXISTS tenant_brand_versions (
     source_version_id uuid REFERENCES tenant_brand_versions(id) ON DELETE SET NULL,
     UNIQUE (tenant_id, version_number)
 );
-
-CREATE INDEX IF NOT EXISTS idx_tenant_brand_versions_tenant_published
-    ON tenant_brand_versions(tenant_id, version_number DESC);
+-- No extra (tenant_id, version_number DESC) index: the UNIQUE constraint
+-- above serves the same scans (btree reads both directions; the DESC-only
+-- duplicate was dropped in migration 0020).
 
 INSERT INTO plans (code, name, monthly_price_aud, student_limit, user_limit, storage_limit_mb, features)
 VALUES
@@ -516,8 +518,8 @@ CREATE TABLE IF NOT EXISTS media_variants (
     created_at timestamptz NOT NULL DEFAULT now(),
     UNIQUE (tenant_id, media_asset_id, variant)
 );
-CREATE INDEX IF NOT EXISTS idx_media_variants_asset
-    ON media_variants (tenant_id, media_asset_id, variant);
+-- No extra (tenant_id, media_asset_id, variant) index: the UNIQUE constraint
+-- above already provides it (redundant copy dropped in migration 0020).
 
 -- Canonical tenant-scoped daily roster entries.
 --
@@ -529,7 +531,9 @@ DO $$
 BEGIN
     ALTER TABLE students
         ADD CONSTRAINT students_tenant_id_id_unique UNIQUE (tenant_id, id);
-EXCEPTION WHEN duplicate_object THEN
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN
+    -- ADD CONSTRAINT ... UNIQUE raises duplicate_table (42P07, from the
+    -- backing index) on re-run; duplicate_object kept for completeness.
     NULL;
 END $$;
 

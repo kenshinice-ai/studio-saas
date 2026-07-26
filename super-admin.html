@@ -28,6 +28,18 @@
       --amber-light: #fef3c7;
       --purple: #8b5cf6;
       --purple-light: #ede9fe;
+      /* Deep foreground shades: every pill keeps its light background while the
+         text reaches >=4.5:1 (WCAG AA, verified with the relative-luminance
+         formula): #047857 on #d1fae5 = 4.84:1, #92400e on #fef3c7 = 6.37:1,
+         #6d28d9 on #ede9fe = 5.98:1, #475569 on #f1f5f9 = 6.92:1. */
+      --green-deep: #047857;
+      --amber-deep: #92400e;
+      --purple-deep: #6d28d9;
+      --ink-soft: #475569;
+      /* Dense-dashboard neutrals (kept as tokens — no raw hex in components). */
+      --line-strong: #cbd5e1;
+      --row-hover: #f8fafc;
+      --head-bg: #f1f5f9;
       --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
       --shadow-md: 0 4px 12px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.05);
       --shadow-lg: 0 10px 25px rgba(0,0,0,0.08), 0 4px 10px rgba(0,0,0,0.04);
@@ -108,6 +120,22 @@
       align-items: center;
       flex-wrap: wrap;
       justify-content: flex-end;
+    }
+
+    /* Ghost buttons on the dark header: one shared spec (height, padding,
+       radius, hover) so Change Password / Logout read as one group while the
+       primary Refresh stays dominant. Reuses the header input surface values. */
+    .header-actions button { min-height: 40px; border-radius: var(--radius); }
+
+    .header-actions .btn-secondary {
+      background: rgba(255,255,255,0.1);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .header-actions .btn-secondary:hover {
+      background: rgba(255,255,255,0.18);
+      border-color: rgba(255,255,255,0.3);
     }
 
     .auth-status {
@@ -233,12 +261,6 @@
     }
     .btn-warning:hover { background: #fde68a; }
 
-    .btn-success {
-      background: var(--green-light);
-      color: var(--green);
-    }
-    .btn-success:hover { background: #a7f3d0; }
-
     .btn-info {
       background: var(--brand-light);
       color: var(--brand-dark);
@@ -348,21 +370,23 @@
       color: var(--ink);
     }
 
-    /* Stats Grid */
+    /* Stats Grid — dense B2B KPI cards: icon + label header row, tabular
+       numerals, semantic colour as a restrained left rail instead of the old
+       full-width top bar. */
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
       margin-bottom: 8px;
     }
 
     .stat-card {
       background: var(--surface);
       border-radius: var(--radius-lg);
-      padding: 22px 20px;
+      padding: 16px;
       box-shadow: var(--shadow-sm);
       border: 1px solid var(--line);
-      transition: all 0.2s ease;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
       position: relative;
       overflow: hidden;
     }
@@ -370,21 +394,42 @@
     .stat-card::before {
       content: '';
       position: absolute;
-      top: 0;
+      top: 14px;
+      bottom: 14px;
       left: 0;
-      right: 0;
-      height: 3px;
+      width: 3px;
+      border-radius: 0 3px 3px 0;
       background: var(--brand);
     }
 
-    .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+    .stat-card:hover { border-color: var(--line-strong); box-shadow: var(--shadow-md); }
     .stat-card.green::before { background: var(--green); }
     .stat-card.amber::before { background: var(--amber); }
     .stat-card.purple::before { background: var(--purple); }
 
+    .stat-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .stat-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      color: var(--muted);
+      flex: 0 0 auto;
+    }
+
+    .stat-icon svg { width: 18px; height: 18px; }
+
     .stat-value {
-      font-size: 30px;
-      font-weight: 800;
+      font-size: 28px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
       color: var(--ink);
       line-height: 1.2;
       letter-spacing: -0.5px;
@@ -393,10 +438,9 @@
     .stat-label {
       font-size: 12px;
       color: var(--muted);
-      margin-top: 6px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      font-weight: 600;
+      letter-spacing: 0.02em;
+      font-weight: 500;
+      line-height: 1.3;
     }
 
     /* Filters */
@@ -452,18 +496,18 @@
     .tenants-table { min-width: 1040px; }
 
     th, td {
-      padding: 12px 16px;
+      padding: 10px 12px;
       text-align: left;
       vertical-align: middle;
     }
 
     th {
-      background: #f8fafc;
-      color: var(--muted);
-      font-size: 11px;
-      font-weight: 700;
+      background: var(--head-bg);
+      color: var(--ink-soft);
+      font-size: 12px;
+      font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.6px;
+      letter-spacing: 0.5px;
       border-bottom: 2px solid var(--line);
     }
 
@@ -471,7 +515,7 @@
       border-bottom: 1px solid #f1f5f9;
     }
 
-    tr:hover td { background: #fafbfc; }
+    tbody tr:hover td { background: var(--row-hover); }
 
     .toolbar {
       display: grid;
@@ -479,6 +523,151 @@
       gap: 12px;
       align-items: end;
     }
+
+    /* Pagination row: a simple flex strip, deliberately independent from the
+       .toolbar filter grid so the buttons and label sit inline. */
+    .pagination-row {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    /* Filter toolbar controls share one 40px control height so labels and
+       fields align vertically across the grid. */
+    .toolbar input,
+    .toolbar select,
+    .toolbar button {
+      min-height: 40px;
+    }
+
+    /* Tabular numerals for data-dense figures. */
+    .tabular { font-variant-numeric: tabular-nums; }
+
+    /* 30-day acquisition funnel: one stacked bar (registrations -> converted)
+       plus per-source rows. Colour never carries meaning alone — every segment
+       and dot has an adjacent text label. */
+    .funnel { display: grid; gap: 10px; }
+
+    .funnel-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      flex-wrap: wrap;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .funnel-bar {
+      height: 10px;
+      border-radius: 999px;
+      background: var(--line);
+      overflow: hidden;
+    }
+
+    .funnel-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: var(--green);
+      transition: width 0.2s ease;
+    }
+
+    .funnel-sources { display: grid; gap: 6px; }
+
+    .funnel-source {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .funnel-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--brand);
+      flex: 0 0 auto;
+    }
+
+    .funnel-dot.purple { background: var(--purple); }
+    .funnel-source-label { flex: 1; min-width: 0; }
+    .funnel-source-value { font-weight: 700; color: var(--ink); }
+
+    /* Commercial attention: proper alert list rows instead of bare chips.
+       Icon + count badge + description + chevron; whole row stays a button so
+       the existing filter-jump behaviour is preserved. */
+    .attention-list { display: grid; gap: 8px; }
+
+    .attention-row {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 10px;
+      width: 100%;
+      text-align: left;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-left: 3px solid var(--amber);
+      border-radius: var(--radius);
+      padding: 10px 12px;
+      min-height: 44px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+      transition: border-color 0.18s ease, background-color 0.18s ease;
+    }
+
+    .attention-row:hover {
+      transform: none;
+      box-shadow: none;
+      background: var(--amber-light);
+      border-color: var(--amber);
+      border-left-color: var(--amber);
+    }
+
+    .attention-icon {
+      display: inline-flex;
+      color: var(--amber-deep);
+      flex: 0 0 auto;
+    }
+
+    .attention-icon svg, .attention-chevron svg { width: 18px; height: 18px; }
+
+    .attention-count {
+      min-width: 28px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--amber-light);
+      color: var(--amber-deep);
+      font-weight: 800;
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .attention-label { flex: 1; min-width: 0; }
+
+    .attention-chevron {
+      display: inline-flex;
+      color: var(--muted);
+      flex: 0 0 auto;
+    }
+
+    .attention-empty {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .attention-empty .attention-icon { color: var(--green-deep); }
 
     .empty-state {
       padding: 40px 16px;
@@ -518,6 +707,7 @@
       align-items: center;
       gap: 5px;
       padding: 6px 8px;
+      min-height: 40px; /* touch target */
       border-radius: 8px;
       border: 1px solid var(--line);
       background: #fff;
@@ -527,9 +717,6 @@
       text-decoration: none;
     }
 
-    .surface-mini.ok { border-color: #bbf7d0; color: var(--green); background: var(--green-light); }
-    .surface-mini.warn { border-color: #fde68a; color: #92400e; background: var(--amber-light); }
-    .surface-mini.fail { border-color: #fecaca; color: var(--red); background: var(--red-light); }
     .surface-mini.disabled { color: var(--muted); background: #f1f5f9; pointer-events: none; }
     .surface-mini .mark { font-size: 11px; }
 
@@ -570,27 +757,27 @@
 
     .pill.active, .pill.trialing, .pill.trial {
       background: var(--green-light);
-      color: var(--green);
+      color: var(--green-deep); /* 4.84:1 on --green-light */
     }
 
     .pill.past_due {
       background: var(--amber-light);
-      color: var(--amber);
+      color: var(--amber-deep); /* 6.37:1 on --amber-light */
     }
 
     .pill.cancelled, .pill.paused, .pill.archived, .pill.deleted {
       background: #f1f5f9;
-      color: var(--muted);
+      color: var(--ink-soft); /* 6.92:1 on #f1f5f9 */
     }
 
     .pill.warning {
       background: var(--amber-light);
-      color: #92400e;
+      color: var(--amber-deep); /* 6.37:1 on --amber-light */
     }
 
     .pill.fixture {
       background: var(--purple-light);
-      color: var(--purple);
+      color: var(--purple-deep); /* 5.98:1 on --purple-light */
     }
 
     .pill-icon {
@@ -938,7 +1125,7 @@
 
     .link:hover { text-decoration: underline; }
 
-    .card:hover, .stat-card:hover {
+    .card:hover {
       transform: none;
       box-shadow: 0 18px 46px rgba(15, 23, 42, 0.08);
     }
@@ -1104,36 +1291,60 @@
         </div>
         <div class="stats-grid">
           <div class="stat-card">
+            <div class="stat-head">
+              <span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false"><rect x="3.75" y="3.75" width="6.75" height="6.75" rx="1.5"/><rect x="13.5" y="3.75" width="6.75" height="6.75" rx="1.5"/><rect x="3.75" y="13.5" width="6.75" height="6.75" rx="1.5"/><rect x="13.5" y="13.5" width="6.75" height="6.75" rx="1.5"/></svg></span>
+              <span class="stat-label">Total Tenants</span>
+            </div>
             <div id="tenantCount" class="stat-value">-</div>
-            <div class="stat-label">Total Tenants</div>
           </div>
           <div class="stat-card green">
+            <div class="stat-head">
+              <span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false"><rect x="3" y="6.75" width="18" height="10.5" rx="2"/><circle cx="12" cy="12" r="2.6"/></svg></span>
+              <span class="stat-label">MRR (AUD)</span>
+            </div>
             <div id="mrrCount" class="stat-value">-</div>
-            <div class="stat-label">MRR (AUD)</div>
           </div>
           <div class="stat-card amber">
+            <div class="stat-head">
+              <span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false"><circle cx="12" cy="12" r="8.25"/><path d="M8.5 12.4l2.4 2.4 4.6-5.2"/></svg></span>
+              <span class="stat-label">Paid Tenants</span>
+            </div>
             <div id="paidTenantCount" class="stat-value">-</div>
-            <div class="stat-label">Paid Tenants</div>
           </div>
           <div class="stat-card purple">
+            <div class="stat-head">
+              <span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false"><circle cx="12" cy="12" r="8.25"/><path d="M12 7.5V12l3 2"/></svg></span>
+              <span class="stat-label">Trial Tenants</span>
+            </div>
             <div id="trialTenantCount" class="stat-value">-</div>
-            <div class="stat-label">Trial Tenants</div>
           </div>
           <div class="stat-card">
+            <div class="stat-head">
+              <span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M5.25 20.25V4.5"/><path d="M5.25 4.5h12.9l-2.7 3.9 2.7 3.9H5.25"/></svg></span>
+              <span class="stat-label">Onboarding</span>
+            </div>
             <div id="onboardingTenantCount" class="stat-value">-</div>
-            <div class="stat-label">Onboarding</div>
           </div>
           <div class="stat-card amber">
+            <div class="stat-head">
+              <span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M12 4.4L20.8 19.4H3.2z"/><path d="M12 10.2v3.6"/><circle cx="12" cy="16.6" r="0.55" fill="currentColor" stroke="none"/></svg></span>
+              <span class="stat-label">Past Due</span>
+            </div>
             <div id="pastDueTenantCount" class="stat-value">-</div>
-            <div class="stat-label">Past Due</div>
           </div>
           <div class="stat-card purple">
+            <div class="stat-head">
+              <span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M17.6 8.25a6.4 6.4 0 10-11.2 0c1.2 2.1-.9 4.35-.9 4.35h14s-3.1-2.25-1.9-4.35"/><path d="M10.4 17.4a1.7 1.7 0 003.2 0"/></svg></span>
+              <span class="stat-label">Trials Ending in 7 Days</span>
+            </div>
             <div id="trialEndingCount" class="stat-value">-</div>
-            <div class="stat-label">Trials Ending in 7 Days</div>
           </div>
           <div class="stat-card">
+            <div class="stat-head">
+              <span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M3.75 17l5.6-5.6 3.9 3.9 7-7"/><path d="M15.1 8.3h5.15v5.15"/></svg></span>
+              <span class="stat-label">New in 30 Days</span>
+            </div>
             <div id="newTenantCount" class="stat-value">-</div>
-            <div class="stat-label">New in 30 Days</div>
           </div>
         </div>
         <div class="card" style="margin-top:16px;">
@@ -1212,9 +1423,9 @@
               <tbody id="tenantsBody"></tbody>
             </table>
           </div>
-          <div class="toolbar" style="margin-top:12px;justify-content:flex-end;">
+          <div class="pagination-row">
             <button id="tenantPrevBtn" class="btn-secondary btn-sm" type="button">Previous</button>
-            <span id="tenantPageLabel" class="text-muted">Page 1</span>
+            <span id="tenantPageLabel" class="text-muted tabular">Page 1</span>
             <button id="tenantNextBtn" class="btn-secondary btn-sm" type="button">Next</button>
           </div>
         </section>
@@ -1363,7 +1574,7 @@
 	      }
 	    }
 	    const categoryOptions = (selected = 'general') => Object.entries(INDUSTRY_PRESETS)
-	      .map(([key, preset]) => `<option value="${key}" ${key === selected ? 'selected' : ''}>${preset.label}</option>`)
+	      .map(([key, preset]) => `<option value="${esc(key)}" ${key === selected ? 'selected' : ''}>${esc(preset.label)}</option>`)
 	      .join('');
 	    const presetSlogan = (category) => (INDUSTRY_PRESETS[category] || INDUSTRY_PRESETS.general).slogan;
 
@@ -1538,7 +1749,16 @@
       setAuthState(null);
       tenants = [];
       plans = [];
-      ['tenantCount', 'studentCount', 'portfolioCount', 'storageCount'].forEach((id) => $(id).textContent = '-');
+      // Reset every stat card that actually exists on this page (ids match the
+      // .stats-grid markup); the null guard keeps logout from throwing if a
+      // card is ever renamed again.
+      ['tenantCount', 'mrrCount', 'paidTenantCount', 'trialTenantCount',
+       'onboardingTenantCount', 'pastDueTenantCount', 'trialEndingCount', 'newTenantCount']
+        .forEach((id) => { const el = $(id); if (el) el.textContent = '-'; });
+      $('commercialAttention').textContent = 'Loading lifecycle risks…';
+      $('commercialAttention').classList.add('empty-state');
+      $('acquisitionFunnel').textContent = 'Loading registration conversion…';
+      $('acquisitionFunnel').classList.add('empty-state');
       $('tenantsBody').innerHTML = '';
       $('plansBody').innerHTML = '';
       $('auditBody').innerHTML = '';
@@ -1638,14 +1858,6 @@
       span.appendChild(document.createTextNode(text(value)));
       cell.appendChild(span);
       return span;
-    }
-
-    // Progress bar with color coding
-    function progressBar(current, limit) {
-      const pct = percent(current, limit);
-      const color = pct > 90 ? 'red' : pct > 75 ? 'amber' : 'blue';
-      return `<div style="display: flex; justify-content: space-between; font-size: 12px;"><span>${current} / ${text(limit)}</span><span>${pct}%</span></div>
-              <div class="progress-bar"><div class="progress-fill ${color}" style="width:${pct}%"></div></div>`;
     }
 
     function tenantPlan(t) {
@@ -1758,34 +1970,6 @@
       return routes[surface] || routes.portal;
     }
 
-    function setSurfaceMiniStatus(tenantId, surface, state, mark, title) {
-      const el = document.getElementById(`surface-${tenantId}-${surface}`);
-      if (!el) return;
-      el.className = `surface-mini ${state || ''}`.trim();
-      const markEl = el.querySelector('.mark');
-      if (markEl) markEl.textContent = mark;
-      el.title = title || '';
-    }
-
-    async function checkTenantSurfaceLinks(t) {
-      const disabled = ['archived', 'deleted'].includes(t.status);
-      if (disabled) return;
-      await Promise.all(['portal', 'cms', 'register', 'admin'].map(async (surface) => {
-        if (surface === 'register' && t.status === 'paused') {
-          setSurfaceMiniStatus(t.id, surface, 'warn', '!', 'Registration is paused for this tenant.');
-          return;
-        }
-        try {
-          const response = await fetch(tenantSurfaceHref(t, surface), { credentials: 'same-origin', cache: 'no-store' });
-          if (response.ok) setSurfaceMiniStatus(t.id, surface, 'ok', '✓', 'Surface is reachable.');
-          else if ([401, 403].includes(response.status)) setSurfaceMiniStatus(t.id, surface, 'warn', '!', 'Surface requires login.');
-          else setSurfaceMiniStatus(t.id, surface, 'fail', '!', `Surface returned ${response.status}.`);
-        } catch (err) {
-          setSurfaceMiniStatus(t.id, surface, 'fail', '!', 'Surface is unavailable.');
-        }
-      }));
-    }
-
     function renderTenantSurfaces(parent, t) {
       const disabled = ['archived', 'deleted'].includes(t.status);
       const grid = document.createElement('div');
@@ -1875,10 +2059,10 @@
           <div class="form-section-body form-grid">
             <div class="form-group"><label for="m_tenantName">Studio Name</label><input id="m_tenantName" value="${esc(t.name)}"></div>
             <div class="form-group"><label for="m_tenantSlug">Slug</label><input id="m_tenantSlug" value="${esc(t.slug)}" disabled><small>Read-only after creation because it affects URLs, workspace paths, and media paths.</small></div>
-            <div class="form-group"><label for="m_tenantCategory">Category</label><select id="m_tenantCategory">${categoryOptions(t.category || 'general')}</select></div>
+            <div class="form-group"><label for="m_tenantCategory">Category</label><select id="m_tenantCategory">${/*safe*/categoryOptions(t.category || 'general')}</select></div>
             <div class="form-group"><label for="m_tenantSlogan">Slogan</label><input id="m_tenantSlogan" value="${esc(t.slogan || presetSlogan(t.category || 'general'))}"></div>
             <div class="form-group"><label for="m_tenantStatus">Tenant Status</label><input id="m_tenantStatus" value="${esc(t.status)}" disabled><small>Use More → Status for audited lifecycle actions.</small></div>
-            <div class="form-group"><label for="m_tenantPlan">Plan</label><select id="m_tenantPlan">${plans.map(p => `<option value="${p.code}" ${p.code===t.plan_code?'selected':''}>${p.name}</option>`).join('')}</select></div>
+            <div class="form-group"><label for="m_tenantPlan">Plan</label><select id="m_tenantPlan">${/*safe*/plans.map(p => `<option value="${esc(p.code)}" ${p.code===t.plan_code?'selected':''}>${esc(p.name)}</option>`).join('')}</select></div>
           </div>
         </details>
         <details class="form-section" open>
@@ -1908,8 +2092,8 @@
           <div class="form-section-body form-grid">
             <div class="form-group"><label for="m_studioAdminEmail">Studio Admin Email</label><input id="m_studioAdminEmail" type="email" value="${esc(t.studio_admin_email || t.owner_email || '')}"></div>
             <div class="form-group"><label for="m_studioAdminName">Studio Admin Name</label><input id="m_studioAdminName" value="${esc(t.studio_admin_name || t.owner_name || '')}"></div>
-            <div class="form-group"><label for="m_loginStatus">Login Status</label><input id="m_loginStatus" value="${t.studio_admin_email ? 'Configured' : 'Not configured'}" disabled></div>
-            <div class="form-group"><label for="m_lastLogin">Last Login</label><input id="m_lastLogin" value="${t.studio_admin_last_login ? new Date(t.studio_admin_last_login).toLocaleString() : 'Never logged in'}" disabled></div>
+            <div class="form-group"><label for="m_loginStatus">Login Status</label><input id="m_loginStatus" value="${/*safe*/t.studio_admin_email ? 'Configured' : 'Not configured'}" disabled></div>
+            <div class="form-group"><label for="m_lastLogin">Last Login</label><input id="m_lastLogin" value="${esc(t.studio_admin_last_login ? new Date(t.studio_admin_last_login).toLocaleString() : 'Never logged in')}" disabled></div>
             <div class="form-group"><label for="m_studioAdminPassword">Reset Password</label><input id="m_studioAdminPassword" type="password" placeholder="Leave blank to keep existing password"><small>Leave blank to keep existing password.</small></div>
             <div class="form-group"><label for="m_setupLinkOut">Password Setup Link</label>
               <div style="display:flex;gap:8px;align-items:center;">
@@ -1925,9 +2109,9 @@
           <summary>Subscription</summary>
           <div class="form-section-body form-grid">
             <div class="form-group"><label for="m_subscriptionStatus">Subscription Status</label><input id="m_subscriptionStatus" value="${esc(t.subscription_status || '')}" disabled><small>Changed together with tenant lifecycle state.</small></div>
-            <div class="form-group"><label for="m_startsAt">Subscription Start</label><input id="m_startsAt" type="date" value="${dateOnly(t.starts_at)}"></div>
-            <div class="form-group"><label for="m_currentPeriodEndsAt">Current Period Ends</label><input id="m_currentPeriodEndsAt" type="date" value="${dateOnly(t.current_period_ends_at)}"></div>
-            <div class="form-group"><label for="m_endsAt">Cancellation / Expiry Date</label><input id="m_endsAt" type="date" value="${dateOnly(t.ends_at)}"></div>
+            <div class="form-group"><label for="m_startsAt">Subscription Start</label><input id="m_startsAt" type="date" value="${esc(dateOnly(t.starts_at))}"></div>
+            <div class="form-group"><label for="m_currentPeriodEndsAt">Current Period Ends</label><input id="m_currentPeriodEndsAt" type="date" value="${esc(dateOnly(t.current_period_ends_at))}"></div>
+            <div class="form-group"><label for="m_endsAt">Cancellation / Expiry Date</label><input id="m_endsAt" type="date" value="${esc(dateOnly(t.ends_at))}"></div>
             <div class="form-group"><label for="m_billingEmail">Billing Email</label><input id="m_billingEmail" type="email" value="${esc(t.billing_email||'')}"></div>
           </div>
         </details>
@@ -1948,7 +2132,7 @@
         </details>
       `;
 	      const footerHtml = `<button onclick="saveTenantModal()" class="btn-primary">Save Changes</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
-	      openModal(`Edit ${t.name}`, formHtml, footerHtml);
+	      openModal(`Edit ${/*safe*/t.name}`, formHtml, footerHtml); // title renders via textContent
 	      $('m_tenantCategory').addEventListener('change', () => {
 	        if (!$('m_tenantSlogan').value.trim()) $('m_tenantSlogan').value = presetSlogan($('m_tenantCategory').value);
 	      });
@@ -1965,9 +2149,9 @@
       const t = tenants.find((item) => item.id === tenantId);
       if (!t) return;
       openModal(
-        `Support ${t.name}`,
+        `Support ${/*safe*/t.name}`, // title renders via textContent
         `<p>Every support-mode action is audited against this reason.</p><div class="form-group mt-2"><label for="m_supportReason">Reason</label><textarea id="m_supportReason" rows="4" placeholder="Describe the customer request or incident reference"></textarea></div>`,
-        `<button id="confirmSupportModeBtn" onclick="confirmSupportMode('${tenantId}')" class="btn-primary">Start Support Mode</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`,
+        `<button id="confirmSupportModeBtn" onclick="confirmSupportMode('${esc(tenantId)}')" class="btn-primary">Start Support Mode</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`,
       );
     }
 
@@ -2067,7 +2251,7 @@
         ? `<p>Pause <strong>${esc(t.name)}</strong>? Public tenant pages stay present, but the tenant will be marked paused for operations and billing review.</p>`
         : `<p>Reactivate <strong>${esc(t.name)}</strong>? This restores active tenant status and subscription state.</p>`;
       const confirm = `<div class="form-group mt-2"><label for="m_tenantStateConfirmSlug">Type tenant slug to confirm</label><input id="m_tenantStateConfirmSlug" placeholder="${esc(t.slug)}"></div>`;
-      const footerHtml = `<button id="confirmTenantStateBtn" onclick="confirmTenantState('${id}', '${targetStatus}', '${targetSubscription}')" class="${isPause ? 'btn-danger' : 'btn-primary'}">${verb}</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
+      const footerHtml = `<button id="confirmTenantStateBtn" onclick="confirmTenantState('${esc(id)}', '${/*safe*/targetStatus}', '${/*safe*/targetSubscription}')" class="${/*safe*/isPause ? 'btn-danger' : 'btn-primary'}">${/*safe*/verb}</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
       openModal(title, body + confirm, footerHtml);
     }
 
@@ -2078,20 +2262,27 @@
         showToast(`Type ${t.slug} to confirm.`, 'error');
         return;
       }
-      $('confirmTenantStateBtn').disabled = true;
+      // Same pattern as confirmSupportMode: re-enable the button on failure so
+      // the dialog never dead-locks (api() already shows the error toast).
+      const btn = $('confirmTenantStateBtn');
+      btn.disabled = true;
+      try {
         await api(`/admin/tenants/${id}/status`, {
           method: 'PATCH',
           body: JSON.stringify({ status, subscriptionStatus })
         });
-      showToast(status === 'paused' ? 'Tenant paused.' : 'Tenant reactivated.');
-      closeModal();
-      await refresh();
+        showToast(status === 'paused' ? 'Tenant paused.' : 'Tenant reactivated.');
+        closeModal();
+        await refresh();
+      } finally {
+        btn.disabled = false;
+      }
     }
 
     function openTenantActions(id) {
       const t = tenants.find((item) => item.id === id);
       if (!t) return;
-      openModal(`${t.name} Actions`, '<div id="m_tenantActionsMount" style="display:grid;gap:12px;"></div>', '<button onclick="closeModal()" class="btn-secondary">Close</button>');
+      openModal(`${/*safe*/t.name} Actions`, '<div id="m_tenantActionsMount" style="display:grid;gap:12px;"></div>', '<button onclick="closeModal()" class="btn-secondary">Close</button>'); // title renders via textContent
       const mount = $('m_tenantActionsMount');
       const section = (title) => {
         const box = document.createElement('div');
@@ -2113,7 +2304,7 @@
       addActionLink(open, 'Open CMS', `/${slug}/cms`, unavailable ? 'Archived or deleted tenants cannot be opened.' : '');
       addActionLink(open, 'Open Studio Admin', `/${slug}/studio-admin`, unavailable ? 'Archived or deleted tenants cannot be opened.' : (!t.studio_admin_email ? 'Studio Admin login is not configured.' : ''));
       addActionLink(open, 'Open Quick Registration', `/${slug}/register`, ['paused', 'archived', 'deleted'].includes(t.status) ? 'Registration is unavailable for paused, archived, or deleted tenants.' : '');
-      const support = section('Support');
+      const support = section('Support Mode');
       const supportBtn = addActionButton(support, 'Enter Support Mode', 'btn-warning', () => enterSupportMode(id));
       if (unavailable) { supportBtn.disabled = true; supportBtn.title = 'Archived or deleted tenants cannot be supported.'; }
       const status = section('Status');
@@ -2139,7 +2330,7 @@
     function archiveTenant(id) {
       const t = tenants.find((item) => item.id === id);
       if (!t) return;
-      const footerHtml = `<button id="confirmArchiveTenantBtn" onclick="confirmArchiveTenant('${id}')" class="btn-danger">Archive Tenant</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
+      const footerHtml = `<button id="confirmArchiveTenantBtn" onclick="confirmArchiveTenant('${esc(id)}')" class="btn-danger">Archive Tenant</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
       openModal('Archive Tenant', `<p>Archive <strong>${esc(t.name)}</strong>? Tenant APIs become unavailable after snapshots are written.</p><ul style="margin:12px 0 12px 20px;color:var(--muted);"><li>Database snapshot</li><li>Workspace folder copy</li><li>Media folder copy</li><li>Subscription metadata</li></ul><div class="form-group mt-2"><label for="m_archiveTenantConfirmSlug">Type tenant slug to confirm</label><input id="m_archiveTenantConfirmSlug" placeholder="${esc(t.slug)}"></div>`, footerHtml);
     }
 
@@ -2150,11 +2341,16 @@
         showToast(`Type ${t.slug} to confirm.`, 'error');
         return;
       }
-      $('confirmArchiveTenantBtn').disabled = true;
-      const result = await api(`/admin/tenants/${id}/archive`, { method: 'POST' });
-      showToast(`Tenant archived. Snapshot: ${result.archivePath || 'created'}`);
-      closeModal();
-      await refresh();
+      const btn = $('confirmArchiveTenantBtn');
+      btn.disabled = true;
+      try {
+        const result = await api(`/admin/tenants/${id}/archive`, { method: 'POST' });
+        showToast(`Tenant archived. Snapshot: ${result.archivePath || 'created'}`);
+        closeModal();
+        await refresh();
+      } finally {
+        btn.disabled = false;
+      }
     }
 
     async function restoreTenant(id) {
@@ -2169,7 +2365,7 @@
     function permanentDeleteTenant(id) {
       const t = tenants.find((item) => item.id === id);
       if (!t) return;
-      const footerHtml = `<button id="confirmPermanentDeleteTenantBtn" onclick="confirmPermanentDeleteTenant('${id}')" class="btn-danger">Permanent Delete</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
+      const footerHtml = `<button id="confirmPermanentDeleteTenantBtn" onclick="confirmPermanentDeleteTenant('${esc(id)}')" class="btn-danger">Permanent Delete</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
       openModal('Permanent Delete Tenant', `<p>Permanently delete <strong>${esc(t.name)}</strong>? This is irreversible for live tenant records.</p><ul style="margin:12px 0 12px 20px;color:var(--muted);"><li>Final snapshot path: ${esc(t.archive_path || 'archive/final-delete-snapshot')}</li><li>Tenant database records</li><li>Archived files remain as audit evidence</li><li>Media records are removed by tenant deletion</li></ul><div class="form-group mt-2"><label for="m_permanentDeleteTenantPhrase">Type DELETE ${esc(t.slug)} to confirm</label><input id="m_permanentDeleteTenantPhrase" placeholder="DELETE ${esc(t.slug)}"></div>`, footerHtml);
     }
 
@@ -2181,14 +2377,19 @@
         showToast(`Type DELETE ${t.slug} to confirm.`, 'error');
         return;
       }
-      $('confirmPermanentDeleteTenantBtn').disabled = true;
-      await api(`/admin/tenants/${id}/permanent`, {
-        method: 'DELETE',
-        body: JSON.stringify({ confirmationPhrase: phrase })
-      });
-      showToast('Tenant permanently deleted. Archive evidence was retained.');
-      closeModal();
-      await refresh();
+      const btn = $('confirmPermanentDeleteTenantBtn');
+      btn.disabled = true;
+      try {
+        await api(`/admin/tenants/${id}/permanent`, {
+          method: 'DELETE',
+          body: JSON.stringify({ confirmationPhrase: phrase })
+        });
+        showToast('Tenant permanently deleted. Archive evidence was retained.');
+        closeModal();
+        await refresh();
+      } finally {
+        btn.disabled = false;
+      }
     }
 
     // Select tenant to view details
@@ -2312,8 +2513,14 @@
       addDetail('Onboarding Checklist', (item) => {
         onboardingChecklist(t).forEach(([label, complete]) => {
           const row = document.createElement('div');
-          row.textContent = `${complete ? '✓' : '○'} ${label}`;
-          row.style.color = complete ? 'var(--success)' : 'var(--muted)';
+          // Mark lives in its own span so the label stays a clean text node
+          // for the admin-i18n dictionary lookup.
+          const markEl = document.createElement('span');
+          markEl.setAttribute('aria-hidden', 'true');
+          markEl.textContent = complete ? '✓ ' : '○ ';
+          row.append(markEl, document.createTextNode(label));
+          // --green-deep (4.5:1+ on this card) — var(--success) was undefined.
+          row.style.color = complete ? 'var(--green-deep)' : 'var(--muted)';
           row.style.marginBottom = '4px';
           item.appendChild(row);
         });
@@ -2350,7 +2557,7 @@
     function openTenantDetailModal(id) {
       const t = tenants.find((item) => item.id === id);
       if (!t) return;
-      openModal(`${t.name} Details`, '<div id="m_tenantDetailMount"></div>', '<button onclick="closeModal()" class="btn-secondary">Close</button>');
+      openModal(`${/*safe*/t.name} Details`, '<div id="m_tenantDetailMount"></div>', '<button onclick="closeModal()" class="btn-secondary">Close</button>'); // title renders via textContent
       $('m_tenantDetailMount').replaceChildren(buildTenantDetailGrid(t));
     }
 
@@ -2479,7 +2686,7 @@
           <div class="form-group"><label for="m_planUsers">Users</label><input id="m_planUsers" type="number" min="1" value="12"></div>
           <div class="form-group"><label for="m_planStorage">Storage (MB)</label><input id="m_planStorage" type="number" min="1" value="51200"></div>
         </div>
-        ${planFeatureEditor({ public_registration: true, portfolio: true })}
+        ${/*safe*/planFeatureEditor({ public_registration: true, portfolio: true })}
       `;
       const footerHtml = `<button onclick="savePlanModal()" class="btn-primary">Save Plan</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
       openModal('Add Plan', bodyHtml, footerHtml);
@@ -2493,15 +2700,15 @@
         <div class="form-grid">
           <div class="form-group"><label for="m_planCode">Code</label><input id="m_planCode" value="${esc(p.code)}" disabled></div>
           <div class="form-group"><label for="m_planName">Name</label><input id="m_planName" value="${esc(p.name)}"></div>
-          <div class="form-group"><label for="m_planMonthly">Price (AUD)</label><input id="m_planMonthly" type="number" value="${p.monthly_price_aud}"></div>
-          <div class="form-group"><label for="m_planStudents">Students</label><input id="m_planStudents" type="number" min="1" value="${p.student_limit}"></div>
-          <div class="form-group"><label for="m_planUsers">Users</label><input id="m_planUsers" type="number" min="1" value="${p.user_limit}"></div>
-          <div class="form-group"><label for="m_planStorage">Storage (MB)</label><input id="m_planStorage" type="number" min="1" value="${p.storage_limit_mb}"></div>
+          <div class="form-group"><label for="m_planMonthly">Price (AUD)</label><input id="m_planMonthly" type="number" value="${esc(p.monthly_price_aud)}"></div>
+          <div class="form-group"><label for="m_planStudents">Students</label><input id="m_planStudents" type="number" min="1" value="${esc(p.student_limit)}"></div>
+          <div class="form-group"><label for="m_planUsers">Users</label><input id="m_planUsers" type="number" min="1" value="${esc(p.user_limit)}"></div>
+          <div class="form-group"><label for="m_planStorage">Storage (MB)</label><input id="m_planStorage" type="number" min="1" value="${esc(p.storage_limit_mb)}"></div>
         </div>
-        ${planFeatureEditor(p.features || {})}
+        ${/*safe*/planFeatureEditor(p.features || {})}
       `;
       const footerHtml = `<button onclick="savePlanModal()" class="btn-primary">Save Plan</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
-      openModal(`Edit ${p.name}`, bodyHtml, footerHtml);
+      openModal(`Edit ${/*safe*/p.name}`, bodyHtml, footerHtml); // title renders via textContent
     }
 
     async function savePlanModal() {
@@ -2533,7 +2740,7 @@
     }
 
     async function deletePlan(code) {
-      const footerHtml = `<button onclick="confirmDeletePlan('${code}')" class="btn-danger">Delete</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
+      const footerHtml = `<button onclick="confirmDeletePlan('${esc(code)}')" class="btn-danger">Delete</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
       openModal('Delete Plan', `<p>Are you sure you want to delete plan <strong>${esc(code)}</strong>?</p>`, footerHtml);
     }
 
@@ -2542,6 +2749,116 @@
       showToast('Plan deleted.');
       closeModal();
       await refresh();
+    }
+
+    // Overview widgets. Small inline SVG icons follow the pill-icon pattern:
+    // decorative (aria-hidden), currentColor, meaning always carried by text.
+    const uiIcon = (body) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${body}</svg>`;
+    const ICON_ALERT = uiIcon('<path d="M12 4.4L20.8 19.4H3.2z"/><path d="M12 10.2v3.6"/><circle cx="12" cy="16.6" r="0.55" fill="currentColor" stroke="none"/>');
+    const ICON_CHEVRON = uiIcon('<path d="M9.5 6l6 6-6 6"/>');
+    const ICON_CHECK = uiIcon('<path d="M5 12.5l4.6 4.6L19 7.6"/>');
+
+    function renderCommercialAttention(usage) {
+      const attention = $('commercialAttention');
+      attention.replaceChildren();
+      attention.classList.remove('empty-state');
+      const actions = [
+        [Number(usage.past_due_tenants || 0), 'past_due', 'payment follow-up'],
+        [Number(usage.trials_ending_7d || 0), 'trial_ending', 'trials ending soon'],
+        [Number(usage.onboarding_tenants || 0), 'onboarding', 'onboarding incomplete']
+      ].filter(([count]) => count > 0);
+      if (!actions.length) {
+        const empty = document.createElement('div');
+        const icon = document.createElement('span');
+        const message = document.createElement('span');
+        empty.className = 'attention-empty';
+        icon.className = 'attention-icon';
+        icon.innerHTML = ICON_CHECK;
+        message.textContent = 'No immediate commercial risks.';
+        empty.append(icon, message);
+        attention.appendChild(empty);
+        return;
+      }
+      const list = document.createElement('div');
+      list.className = 'attention-list';
+      actions.forEach(([count, filter, label]) => {
+        const row = document.createElement('button');
+        row.type = 'button';
+        row.className = 'attention-row';
+        const icon = document.createElement('span');
+        icon.className = 'attention-icon';
+        icon.innerHTML = ICON_ALERT;
+        const badge = document.createElement('span');
+        badge.className = 'attention-count tabular';
+        badge.textContent = count;
+        const labelEl = document.createElement('span');
+        labelEl.className = 'attention-label';
+        labelEl.textContent = label;
+        const chevron = document.createElement('span');
+        chevron.className = 'attention-chevron';
+        chevron.setAttribute('aria-hidden', 'true');
+        chevron.innerHTML = ICON_CHEVRON;
+        row.append(icon, badge, labelEl, chevron);
+        row.addEventListener('click', () => {
+          attentionTenantFilter = filter;
+          $('statusFilter').value = '';
+          tenantPage = 0;
+          renderTenants();
+          location.hash = 'tenants';
+          setActiveNav('#tenants');
+        });
+        list.appendChild(row);
+      });
+      attention.appendChild(list);
+    }
+
+    function renderAcquisitionFunnel(usage) {
+      const registrations30d = Number(usage.registrations_30d || 0);
+      const converted30d = Number(usage.converted_registrations_30d || 0);
+      const conversionRate = registrations30d ? Math.round((converted30d / registrations30d) * 100) : 0;
+      const funnel = $('acquisitionFunnel');
+      funnel.classList.remove('empty-state');
+      funnel.replaceChildren();
+      const wrap = document.createElement('div');
+      wrap.className = 'funnel';
+      const top = document.createElement('div');
+      top.className = 'funnel-top';
+      const registered = document.createElement('span');
+      registered.className = 'tabular';
+      registered.textContent = `${registrations30d} registrations`;
+      const converted = document.createElement('span');
+      converted.className = 'tabular';
+      converted.textContent = `${converted30d} converted (${conversionRate}%)`;
+      top.append(registered, converted);
+      const bar = document.createElement('div');
+      bar.className = 'funnel-bar';
+      bar.setAttribute('aria-hidden', 'true'); // data lives in the text above
+      const fill = document.createElement('div');
+      fill.className = 'funnel-bar-fill';
+      fill.style.width = `${Math.min(100, Math.max(0, conversionRate))}%`;
+      bar.appendChild(fill);
+      const sources = document.createElement('div');
+      sources.className = 'funnel-sources';
+      [
+        ['', 'Studio Websites', Number(usage.portal_registrations_30d || 0)],
+        ['purple', 'Quick Registration or campaigns', Number(usage.alternate_registrations_30d || 0)]
+      ].forEach(([tone, label, count]) => {
+        const row = document.createElement('div');
+        row.className = 'funnel-source';
+        const dot = document.createElement('span');
+        dot.className = `funnel-dot ${tone}`.trim();
+        dot.setAttribute('aria-hidden', 'true');
+        const labelEl = document.createElement('span');
+        labelEl.className = 'funnel-source-label';
+        labelEl.textContent = label;
+        const value = document.createElement('span');
+        value.className = 'funnel-source-value tabular';
+        value.textContent = count;
+        row.append(dot, labelEl, value);
+        sources.appendChild(row);
+      });
+      wrap.append(top, bar, sources);
+      funnel.appendChild(wrap);
     }
 
     // Main refresh function
@@ -2564,39 +2881,8 @@
         $('pastDueTenantCount').textContent = usage.usage.past_due_tenants;
         $('trialEndingCount').textContent = usage.usage.trials_ending_7d;
         $('newTenantCount').textContent = usage.usage.new_tenants_30d;
-        const attention = $('commercialAttention');
-        const attentionItems = [];
-        if (Number(usage.usage.past_due_tenants || 0)) attentionItems.push(`${usage.usage.past_due_tenants} tenant(s) need payment follow-up`);
-        if (Number(usage.usage.trials_ending_7d || 0)) attentionItems.push(`${usage.usage.trials_ending_7d} trial(s) end within 7 days`);
-        if (Number(usage.usage.onboarding_tenants || 0)) attentionItems.push(`${usage.usage.onboarding_tenants} tenant(s) are still onboarding`);
-        attention.replaceChildren();
-        attention.classList.toggle('empty-state', !attentionItems.length);
-        if (!attentionItems.length) {
-          attention.textContent = 'No immediate commercial risks.';
-        } else {
-          const actions = [
-            [Number(usage.usage.past_due_tenants || 0), 'past_due', 'payment follow-up'],
-            [Number(usage.usage.trials_ending_7d || 0), 'trial_ending', 'trials ending soon'],
-            [Number(usage.usage.onboarding_tenants || 0), 'onboarding', 'onboarding incomplete']
-          ].filter(([count]) => count > 0);
-          const row = document.createElement('div');
-          row.className = 'action-row';
-          actions.forEach(([count, filter, label]) => addActionButton(row, `${count} · ${label}`, 'btn-warning btn-sm', () => {
-            attentionTenantFilter = filter;
-            $('statusFilter').value = '';
-            tenantPage = 0;
-            renderTenants();
-            location.hash = 'tenants';
-            setActiveNav('#tenants');
-          }));
-          attention.appendChild(row);
-        }
-        const registrations30d = Number(usage.usage.registrations_30d || 0);
-        const converted30d = Number(usage.usage.converted_registrations_30d || 0);
-        const conversionRate = registrations30d ? Math.round((converted30d / registrations30d) * 100) : 0;
-        const funnel = $('acquisitionFunnel');
-        funnel.classList.remove('empty-state');
-        funnel.textContent = `${registrations30d} registrations · ${converted30d} converted (${conversionRate}%) · ${Number(usage.usage.portal_registrations_30d || 0)} from Studio Websites · ${Number(usage.usage.alternate_registrations_30d || 0)} from Quick Registration or campaigns`;
+        renderCommercialAttention(usage.usage);
+        renderAcquisitionFunnel(usage.usage);
 
         const plansBody = $('plansBody');
         plansBody.replaceChildren();
@@ -2701,8 +2987,8 @@
 	        <div class="form-grid">
 	          <div class="form-group"><label for="m_tenantName">Studio Name</label><input id="m_tenantName" placeholder="Northside Art Studio"></div>
 	          <div class="form-group"><label for="m_tenantSlug">Slug</label><input id="m_tenantSlug" readonly><small>Auto-generated from studio name.</small></div>
-	          <div class="form-group"><label for="m_tenantPlan">Plan</label><select id="m_tenantPlan">${plans.map(p => `<option value="${p.code}">${p.name}</option>`).join('')}</select></div>
-	          <div class="form-group"><label for="m_tenantCategory">Studio Category</label><select id="m_tenantCategory">${categoryOptions('general')}</select></div>
+	          <div class="form-group"><label for="m_tenantPlan">Plan</label><select id="m_tenantPlan">${/*safe*/plans.map(p => `<option value="${esc(p.code)}">${esc(p.name)}</option>`).join('')}</select></div>
+	          <div class="form-group"><label for="m_tenantCategory">Studio Category</label><select id="m_tenantCategory">${/*safe*/categoryOptions('general')}</select></div>
 	          <div class="form-group"><label for="m_ownerName">Owner Name</label><input id="m_ownerName" placeholder="Studio Owner"></div>
 	          <div class="form-group"><label for="m_ownerEmail">Owner Email</label><input id="m_ownerEmail" type="email" placeholder="owner@studio.test"></div>
 	          <div class="form-group" style="grid-column:span 2;"><label for="m_studioAdminPassword">Temporary Admin Password</label><input id="m_studioAdminPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="At least 8 characters"><small>Required for initial access. Share it through a secure channel, then ask the owner to change it.</small></div>

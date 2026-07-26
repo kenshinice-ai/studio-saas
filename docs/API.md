@@ -1,7 +1,7 @@
 # StudioSaaS API Reference
 
-Version: v3.4
-Date: 2026-07-26
+Version: v3.5
+Date: 2026-07-27
 Purpose: Complete API endpoint reference, authentication model, tenant resolution, and public endpoints.
 
 ---
@@ -218,6 +218,10 @@ Creates `tenants`, `subscriptions`, `tenant_usage` rows and generates `tenants/<
 | POST | `/v1/daily-roster/{entry_id}/undo` | `attendance:write` | Restore the exact cancelled roster entry |
 
 Transaction types: `purchase`, `consume`, `adjustment`, `refund`, `expire`, `migration`.
+`transactionType: "refund"` and the legacy alias `refund_out` are synonymous
+(normalised in v7.6.0): both record credits leaving the account (negative
+delta), store the refunded money as a **negative** fee so revenue sums net
+out, and apply the insufficient-balance check.
 Attendance check-in blocks insufficient balances with `409 conflict`. Successful
 check-ins write `attendance_sessions.credit_transaction_id` and a linked
 `credit_transactions.consume` row. Void writes a `refund` row and stores
@@ -386,6 +390,7 @@ it by running `STUDIOSAAS_ENV=local` or explicitly setting
 | 410 | Gone — legacy `/api/*` surface (pilot/production), revoked share/setup links, retired portfolio-token |
 | 429 | Rate limited |
 | 500 | Internal server error |
+| 503 | Database unavailable (`error: "database_unavailable"`) |
 
 All JSON API errors use:
 
@@ -394,4 +399,7 @@ All JSON API errors use:
 ```
 
 In non-debug mode, `500` responses return a generic message and do not expose
-internal exception text.
+internal exception text. `503 database_unavailable` behaves the same way in
+pilot/production (`STUDIOSAAS_ENV`): the message is the fixed text
+"Database unavailable. Please try again later." — driver and connection
+detail is only included in local development.

@@ -77,13 +77,25 @@ def _quote_ident(name: str) -> str:
 def _schema_versions(url: str) -> list[str]:
     """Read applied schema migration versions from a database."""
 
-    result = _run([
-        "psql",
-        url,
-        "-At",
-        "-c",
-        "SELECT version FROM schema_migrations ORDER BY version",
-    ])
+    try:
+        result = _run([
+            "psql",
+            url,
+            "-At",
+            "-c",
+            "SELECT version FROM schema_migrations ORDER BY version",
+        ])
+    except SystemExit as exc:
+        message = str(exc)
+        if "schema_migrations" in message and "does not exist" in message:
+            raise SystemExit(
+                "The database has no schema_migrations table, so this backup "
+                "cannot record a migration inventory. If the database was "
+                "bootstrapped from schema_v1.sql, run "
+                "`python backend/scripts/run_migrations.py --baseline "
+                "0001_schema_v1.sql` first, then retry."
+            ) from exc
+        raise
     return [line.strip() for line in result.stdout.splitlines() if line.strip()]
 
 
@@ -206,6 +218,21 @@ def restore(args: argparse.Namespace) -> int:
     return 0
 
 
+def _keep_count(value: str) -> int:
+    """Parse --keep, rejecting values that would delete every backup."""
+
+    try:
+        keep = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(f"--keep must be an integer, got {value!r}") from exc
+    if keep < 1:
+        raise argparse.ArgumentTypeError(
+            "--keep must be >= 1 (0 or negative would prune every backup, "
+            "including the one just written)"
+        )
+    return keep
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the command-line parser."""
 
@@ -214,7 +241,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     backup_cmd = sub.add_parser("backup", help="Create a pg_dump backup")
     backup_cmd.add_argument("--backup-dir", default=str(DEFAULT_BACKUP_DIR))
-    backup_cmd.add_argument("--keep", type=int, default=14)
+    backup_cmd.add_argument("--keep", type=_keep_count, default=14)
     backup_cmd.set_defaults(func=backup)
 
     dry_cmd = sub.add_parser("restore-dry-run", help="Restore into a temporary database and verify migrations")

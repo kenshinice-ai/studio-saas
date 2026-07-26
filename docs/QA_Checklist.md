@@ -1,7 +1,7 @@
 # QA Checklist
 
 > **StudioSaaS Quality Assurance Reference**
-> Last updated: 2026-07-26
+> Last updated: 2026-07-27
 
 ---
 
@@ -11,7 +11,7 @@
 
 - [ ] `cd backend && ../.venv/bin/python test_tenant_isolation.py` passes all tenant-isolation tests
 - [ ] `cd backend && ../.venv/bin/python test_cms.py` passes all CMS functional tests (expected: 73 checks)
-- [ ] `cd backend && ../.venv/bin/python -m pytest -q` passes (expected: 117 tests)
+- [ ] `cd backend && ../.venv/bin/python -m pytest -q` passes (expected: 131 tests)
 - [ ] `curl http://localhost:8899/v1/health` returns 200 with expected fields
 - [ ] All API routes return proper HTTP status codes (200, 201, 400, 401, 403, 404, 409, 410, 429, 500)
 - [ ] Error responses include `error` and `message` keys

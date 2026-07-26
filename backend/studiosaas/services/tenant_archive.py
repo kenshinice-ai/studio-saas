@@ -48,6 +48,10 @@ SNAPSHOT_TABLES: tuple[tuple[str, str, str], ...] = (
     # of consent — permanent delete cascades it away, so the snapshot is the
     # only surviving copy. When a migration adds a tenant-scoped table, add it
     # here AND to backend/db/schema_v1.sql (both inventories drifted once).
+    # users.json is column-trimmed via SNAPSHOT_COLUMNS below: users are
+    # shared across tenants, so a tenant archive must not carry their
+    # password_hash (2026-07-27 audit L7; no restore/audit tool reads it —
+    # restore_tenant only flips statuses and never replays snapshot JSON).
     ("student_access_sessions.json", "student_access_sessions", "tenant_id = %s"),
     ("student_access_attempts.json", "student_access_attempts", "tenant_id = %s"),
     ("student_publication_consent_events.json", "student_publication_consent_events", "tenant_id = %s"),
@@ -55,6 +59,13 @@ SNAPSHOT_TABLES: tuple[tuple[str, str, str], ...] = (
     ("daily_roster_entries.json", "daily_roster_entries", "tenant_id = %s"),
     ("public_analytics_events.json", "public_analytics_events", "tenant_id = %s"),
 )
+
+# Explicit projections for tables whose SELECT * would leak secrets into a
+# tenant archive. Any table not listed here is exported in full.
+SNAPSHOT_COLUMNS: dict[str, str] = {
+    # Everything except password_hash (cross-tenant credential material).
+    "users": "id, email, full_name, status, last_login_at, created_at, updated_at",
+}
 
 
 def _json_default(value: Any) -> str:
@@ -114,7 +125,8 @@ def _snapshot_database(conn: Any, tenant_id: str, target_dir: Path) -> None:
 
     target_dir.mkdir(parents=True, exist_ok=True)
     for filename, table, predicate in SNAPSHOT_TABLES:
-        rows = fetch_all(conn, f"SELECT * FROM {table} WHERE {predicate}", (tenant_id,))
+        columns = SNAPSHOT_COLUMNS.get(table, "*")
+        rows = fetch_all(conn, f"SELECT {columns} FROM {table} WHERE {predicate}", (tenant_id,))
         if filename == "tenant.json":
             _write_json(target_dir / filename, rows[0] if rows else {})
         else:

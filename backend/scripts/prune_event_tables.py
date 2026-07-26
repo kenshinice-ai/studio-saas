@@ -32,7 +32,10 @@ TABLES = {
 
 def prune(table: str, column: str, days: int, dry_run: bool) -> int:
     total = 0
-    with connect() as conn:
+    # The retention predicate scans an unindexed timestamp column, so on a
+    # large table even the count can exceed the application's 30s statement
+    # cap — lift the session caps; batching below keeps each lock short.
+    with connect(statement_timeout_ms=0, lock_timeout_ms=0) as conn:
         with conn.cursor() as cur:
             cur.execute(
                 f"SELECT count(*) AS n FROM {table} WHERE {column} < now() - make_interval(days => %s)",

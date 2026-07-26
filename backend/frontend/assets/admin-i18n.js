@@ -272,7 +272,63 @@
     ['Past Due', '已逾期'], ['Student Login Link', '学员登录链接'], ['Tenant database records', '工作室数据库记录'],
     ['The public home page parents see first: courses, gallery, contact, student lookup, and enrolment entry.', '家长首先看到的公开主页，包含课程、作品墙、联系信息、学员查询和报名入口。'],
     ['This control panel for how the studio appears externally. Operational editing stays in the CMS.', '此控制台负责工作室对外展示；日常运营编辑仍在 CMS 中完成。'],
-    ['Workspace folder copy', '工作区文件夹副本'], ['tenant', '工作室']
+    ['Workspace folder copy', '工作区文件夹副本'], ['tenant', '工作室'],
+    // v7.6.0 gap fill (audit U7): Super Admin health labels, tenant detail
+    // labels, onboarding checklist, risks, and modal/section strings that were
+    // still English in the Chinese UI.
+    ['Healthy', '状态良好'], ['Needs setup', '待完善设置'], ['Payment issue', '付款异常'],
+    ['Test fixture', '测试数据'], ['TEST FIXTURE', '测试数据'],
+    ['No admin login', '无管理员登录'], ['Needs owner', '待指定负责人'],
+    ['Paused', '已暂停'], ['Archived', '已归档'],
+    ['Onboarding Checklist', '启用清单'], ['Risk / Setup', '风险与待办'],
+    ['Quick Links', '快捷链接'], ['Health', '健康状态'],
+    ['Student Usage', '学员用量'], ['Storage Usage', '存储用量'],
+    ['Workspace', '工作区'], ['Archive Path', '归档路径'], ['Created', '创建时间'],
+    ['Billing', '账单'], ['Storage', '存储'],
+    ['Owner assigned', '已指定负责人'], ['Studio Admin login configured', '已配置工作室管理员登录'],
+    ['Owner has signed in', '负责人已登录'], ['Logo configured', '已配置 Logo'],
+    ['Hero and contact ready', '首屏与联系信息已就绪'], ['Studio Website published', '工作室官网已发布'],
+    ['No owner assigned', '未指定负责人'], ['Billing email missing', '缺少账单邮箱'],
+    ['Website not published', '官网尚未发布'], ['Brand setup incomplete', '品牌设置未完成'],
+    ['Owner has not signed in', '负责人尚未登录'], ['Subscription expired', '订阅已到期'],
+    ['Storage near limit', '存储接近上限'], ['Student limit near limit', '学员数接近上限'],
+    ['Surfaces disabled', '入口已停用'], ['Register paused', '报名已暂停'],
+    ['Disabled', '已停用'], ['Limited', '受限'], ['Enabled', '已启用'],
+    ['Tenant:', '工作室：'], ['Subscription:', '订阅：'], ['Access:', '访问：'],
+    ['View', '查看'], ['View Details', '查看详情'], ['Edit Tenant', '编辑工作室'],
+    ['Manage', '管理'], ['Open', '打开'], ['Support Mode', '支持模式'],
+    ['Enter Support Mode', '进入支持模式'], ['Restore Tenant', '恢复工作室'],
+    ['Pause Tenant', '暂停工作室'], ['Reactivate Tenant', '重新启用工作室'],
+    ['Permanent Delete Tenant', '永久删除工作室'],
+    ['Permanent Delete is available only after the tenant is archived.', '永久删除仅在工作室归档后可用。'],
+    ['Archived or deleted tenants cannot be opened.', '已归档或已删除的工作室无法打开。'],
+    ['Archived or deleted tenants cannot be supported.', '已归档或已删除的工作室无法进入支持模式。'],
+    ['Registration is unavailable for paused, archived, or deleted tenants.', '已暂停、已归档或已删除的工作室不可报名。'],
+    ['Studio Admin login is not configured.', '尚未配置工作室管理员登录。'],
+    ['Open Studio Website', '打开工作室官网'], ['Portal', '官网'], ['Register', '报名'], ['Admin', '管理'],
+    ['Add Plan', '新增套餐'], ['Delete Plan', '删除套餐'],
+    ['? Public tenant pages stay present, but the tenant will be marked paused for operations and billing review.',
+     '？公开页面会保留，但该工作室将被标记为暂停，用于运营与账单审查。'],
+    ['? This restores active tenant status and subscription state.', '？这会恢复工作室的正常状态与订阅状态。'],
+    ['? Tenant APIs become unavailable after snapshots are written.', '？快照写入后，该工作室的 API 将不可用。'],
+    ['? This is irreversible for live tenant records.', '？此操作对在线工作室记录不可逆。'],
+    ['No tenants match the current filters.', '没有符合当前筛选条件的工作室。'],
+    ['No plans configured.', '尚未配置套餐。'], ['No audit logs yet.', '尚无审计日志。'],
+    ['No immediate commercial risks.', '暂无需要立即关注的经营风险。'],
+    ['Generating…', '正在生成…'], ['Logging in…', '正在登录…'],
+    ['One-time link appears here', '一次性链接会显示在这里'],
+    ['At least 8 characters', '至少 8 个字符'],
+    ['Describe the customer request or incident reference', '请描述客户请求或事件编号'],
+    ['Name, slug, owner, admin...', '名称、网址标识、负责人、管理员…'],
+    ['Leave blank to keep existing password', '留空可保留现有密码'],
+    ['Studio Owner', '工作室负责人'], ['Exit Support Mode', '退出支持模式'],
+    // v7.6.0 dashboard revamp: attention alert rows and funnel widget now
+    // render count badges and labels as separate nodes, so the labels are
+    // plain dictionary keys instead of dynamic strings.
+    ['payment follow-up', '付款跟进'], ['trials ending soon', '试用即将到期'],
+    ['onboarding incomplete', '启用未完成'],
+    ['Studio Websites', '工作室官网'],
+    ['Quick Registration or campaigns', '快速报名或推广']
   ]);
 
   const originalText = new WeakMap();
@@ -286,6 +342,24 @@
     if (!clean || language === 'en') return clean;
     if (zh[clean]) return zh[clean];
     const rules = [
+      // Super Admin dynamic strings (audit U7). Specific patterns come first
+      // so the generic verb rules below cannot swallow them.
+      [/^Page (\d+) of (\d+) · (\d+) tenants$/i, '第 $1 / $2 页 · 共 $3 个工作室'],
+      [/^Type (.+) to confirm\.?$/i, '请输入 $1 以确认。'],
+      [/^Signed in: (.+)$/i, '已登录：$1'],
+      [/^Support (.+)$/i, '支持：$1'],
+      [/^(.+) Details$/, '$1 · 详情'],
+      [/^(.+) Actions$/, '$1 · 操作'],
+      [/^(\d+) registrations$/i, '$1 次报名'],
+      [/^(\d+) converted \((\d+)%\)$/i, '$1 次转化（$2%）'],
+      [/^(\d+) \/ (\d+) students · (.+)$/i, '$1 / $2 名学员 · $3'],
+      [/^(\d+) students · (.+)$/i, '$1 名学员 · $2'],
+      [/^(.+) · no admin login$/i, '$1 · 无管理员登录'],
+      [/^Inherited from (.+) plan\.$/i, '继承自「$1」套餐。'],
+      [/^Tenant archived\. Snapshot: (.+)$/i, '工作室已归档。快照：$1'],
+      [/^Final snapshot path: (.+)$/i, '最终快照路径：$1'],
+      [/^Link created for (.+) \(expires in 24h\)$/i, '已为 $1 生成链接（24 小时后到期）'],
+      [/^Failed to load data: (.+)$/i, '数据载入失败：$1'],
       [/^Loading…?$/i, '载入中…'],
       [/^Loading (.+)…$/i, '正在载入 $1…'],
       [/^No (.+) yet\.$/i, '尚无$1。'],
@@ -393,7 +467,7 @@
 
   function installStyles() {
     const style = document.createElement('style');
-    style.textContent = '.admin-language-switch{display:inline-flex;align-items:center;gap:2px;padding:3px;border:1px solid var(--line,#e2e8f0);border-radius:999px;background:var(--surface,#fff);white-space:nowrap}.admin-language-switch button{border:0;background:transparent;color:var(--muted,#64748b);padding:6px 10px;border-radius:999px;font:inherit;font-size:12px;font-weight:800;cursor:pointer;min-height:38px}.admin-language-switch button.active{background:var(--brand,#3b82f6);color:#fff}.admin-language-switch button:focus-visible{outline:2px solid var(--brand,#3b82f6);outline-offset:2px}';
+    style.textContent = '.admin-language-switch{display:inline-flex;align-items:center;gap:2px;padding:3px;border:1px solid var(--line,#e2e8f0);border-radius:999px;background:var(--surface,#fff);white-space:nowrap}.admin-language-switch button{border:0;background:transparent;color:var(--muted,#64748b);padding:6px 10px;border-radius:999px;font:inherit;font-size:12px;font-weight:800;cursor:pointer;min-height:40px}.admin-language-switch button.active{background:var(--brand,#3b82f6);color:#fff}.admin-language-switch button:focus-visible{outline:2px solid var(--brand,#3b82f6);outline-offset:2px}';
     document.head.appendChild(style);
   }
 

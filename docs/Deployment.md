@@ -1,6 +1,6 @@
 # StudioSaaS Deployment Guide
 
-Version: v7.5.0
+Version: v7.6.0
 Date: 2026-07-26
 Scope: 本地部署 → Cloudflare Tunnel 公网试点（`https://studiosaas.cc.cd`）→ AWS 正式部署。
 
@@ -39,7 +39,7 @@ PORT=8899 STUDIOSAAS_DATABASE_URL=postgresql://$(whoami)@localhost:5432/studiosa
 | 检查 | 命令 | 期望 |
 |---|---|---|
 | 健康 | `curl localhost:8899/v1/health` | `{"ok":true,...}` |
-| pytest | `cd backend && ../.venv/bin/python -m pytest -q` | 117 passed |
+| pytest | `cd backend && ../.venv/bin/python -m pytest -q` | 131 passed |
 | CMS 冒烟 | `../.venv/bin/python test_cms.py` | 73 通过 |
 | 租户隔离 | `../.venv/bin/python test_tenant_isolation.py` | 需包含品牌草稿/发布/恢复、角色权限、来源漏斗与跨租户检查 |
 | 页面 | `/`、`/<slug>`、`/<slug>/cms`、`/<slug>/register`、`/<slug>/studio-admin` | 200；根 `/register` 404 |
