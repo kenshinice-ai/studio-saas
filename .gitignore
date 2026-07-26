@@ -49,3 +49,6 @@ test_*/
 # ── OS generated ──
 Thumbs.db
 ehthumbs.db
+
+# Office/LibreOffice lock files
+~$*
