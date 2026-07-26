@@ -126,6 +126,17 @@ bash scripts/package_release.sh
 
 ## 3. Stage 2 — AWS 正式部署
 
+> **部署套件已随仓库发布：`deploy/aws/`**（Dockerfile、docker-compose、nginx、
+> systemd、`.env.example`、`build_aws_bundle.sh`）。逐步操作手册见
+> [`deploy/aws/README_AWS.md`](../deploy/aws/README_AWS.md)；打包命令：
+>
+> ```bash
+> bash deploy/aws/build_aws_bundle.sh <version>
+> # → dist/PWE-StudioSaaS-aws-<version>.tar.gz (+ .sha256，内含 BUILD_INFO)
+> ```
+>
+> 下文 3.1–3.3 是架构与迁移决策记录；具体命令以 README_AWS.md 为准。
+
 ### 3.1 目标架构（试点后第一版，单可用区，成本优先）
 
 ```

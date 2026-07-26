@@ -61,6 +61,10 @@
   --success: #2F7951;
   --warning: #8D6426;
   --danger: #B6483A;
+  /* Ink on a success fill. Defaults to white the same way --on-accent does;
+   * a theme that lightens --success must re-solve this via palette_gen.py
+   * like every other pair. */
+  --on-success: #FFFFFF;
 
   /* ── Interaction states ──────────────────────────────────────────────
    * Required in both light and dark. A theme that defines these for only one

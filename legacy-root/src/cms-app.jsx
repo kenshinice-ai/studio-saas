@@ -206,7 +206,8 @@ function BalBadge({ n }) {
     const v = parseInt(n,10)||0;
     if (v===0) return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-red-100 text-red-700 whitespace-nowrap"><Icon name="warning" className="w-3.5 h-3.5"/>0</span>;
     if (v<=2)  return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-orange-100 text-orange-700 whitespace-nowrap"><Icon name="bolt" className="w-3.5 h-3.5"/>{v}</span>;
-    if (v<=4)  return <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-100 text-amber-700 whitespace-nowrap">{v}</span>;
+    /* a11y: the low state must not differ from normal by colour alone */
+    if (v<=4)  return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-100 text-amber-700 whitespace-nowrap"><Icon name="bolt" className="w-3.5 h-3.5"/>{v}</span>;
     return           <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-green-100 text-green-700 whitespace-nowrap">{v}</span>;
 }
 
@@ -216,7 +217,8 @@ function Toast({ msg, type, action, onDone }) {
     useEffect(() => { const t=setTimeout(onDone, action?6000:2700); return()=>clearTimeout(t); }, []);
     const bg = type==='error'?'bg-red-600':type==='warn'?'bg-amber-500':'bg-gray-900';
     return (
-        <div className={`toast toast-bottom fixed left-1/2 -translate-x-1/2 z-[999] ${bg} text-white px-5 py-3 rounded-2xl shadow-2xl text-sm font-bold max-w-xs text-center`}>
+        <div role="status" aria-live="polite"
+             className={`toast toast-bottom fixed left-1/2 -translate-x-1/2 z-[999] ${bg} text-white px-5 py-3 rounded-2xl shadow-2xl text-sm font-bold max-w-xs text-center`}>
             <div className="inline-flex items-center gap-2 justify-center">
                 <Icon name={type==='error'?'warning':type==='warn'?'bolt':'check'} className="w-4 h-4"/>
                 <span>{msg}</span>
@@ -241,7 +243,32 @@ function Toast({ msg, type, action, onDone }) {
  * `acknowledge` renders a one-button notice so alert() has a home too. */
 function ConfirmDialog({ dialog, onClose }) {
     const [typed, setTyped] = useState('');
+    const boxRef = useRef(null);
+    /* keep the latest onClose without re-running the a11y effect every render */
+    const onCloseRef = useRef(onClose);
+    onCloseRef.current = onClose;
     useEffect(() => { setTyped(dialog?.promptDefault || ''); }, [dialog]);
+    /* a11y: Escape closes; focus moves into the dialog on open (the cancel /
+       confirm button when no input autoFocuses) and returns to the previously
+       focused element on close — matches the admin consoles' dialogs. */
+    useEffect(() => {
+        if (!dialog) return;
+        const prevFocus = document.activeElement;
+        const onKey = (e) => { if (e.key === 'Escape') onCloseRef.current(); };
+        document.addEventListener('keydown', onKey);
+        const t = setTimeout(() => {
+            const box = boxRef.current;
+            if (box && !box.contains(document.activeElement)) {
+                const target = box.querySelector('input, button');
+                if (target) target.focus();
+            }
+        }, 0);
+        return () => {
+            document.removeEventListener('keydown', onKey);
+            clearTimeout(t);
+            if (prevFocus && typeof prevFocus.focus === 'function') prevFocus.focus();
+        };
+    }, [dialog]);
     if (!dialog) return null;
     const needsText = Boolean(dialog.requireText);
     const isPrompt = Boolean(dialog.prompt);
@@ -252,7 +279,7 @@ function ConfirmDialog({ dialog, onClose }) {
     return (
         <div className="fixed inset-0 bg-black/50 z-[95] flex items-center justify-center p-4" onClick={onClose}
              role="dialog" aria-modal="true">
-            <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl anim" onClick={e=>e.stopPropagation()}>
+            <div ref={boxRef} className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl anim" onClick={e=>e.stopPropagation()}>
                 {dialog.title && <p className="font-bold text-gray-800 mb-2">{dialog.title}</p>}
                 <p className="text-gray-500 text-sm leading-relaxed mb-4 whitespace-pre-line">{dialog.message}</p>
                 {needsText && (
@@ -896,7 +923,7 @@ function App() {
         platform_super_admin: ['dashboard','roster','students','new_student','pending','topup','logs','stats'],
         super_admin: ['dashboard','roster','students','new_student','pending','topup','logs','stats'],
         manager: ['dashboard','roster','students','new_student','pending','topup','logs','stats'],
-        teacher: ['dashboard','students','logs'],
+        teacher: ['dashboard','roster','students','logs'],
         front_desk: ['dashboard','students','new_student','pending','topup','logs'],
         staff: ['dashboard','roster','students','new_student','pending','topup','logs'],
     };
@@ -905,6 +932,13 @@ function App() {
     const canWriteStudents = [...ownerRoles,'manager','front_desk','staff'].includes(actorRole);
     const canWriteCredits = [...ownerRoles,'manager','front_desk','staff'].includes(actorRole);
     const canWritePortfolio = [...ownerRoles,'manager','teacher','staff'].includes(actorRole);
+    /* Mirrors backend attendance:write — teacher/staff can run the roster day
+       (check-in, per-day scheduling); front_desk cannot. */
+    const canWriteAttendance = [...ownerRoles,'manager','teacher','staff'].includes(actorRole);
+    /* Mirrors backend credits:refund — refunds are owner/manager only. */
+    const canRefund = [...ownerRoles,'manager'].includes(actorRole);
+    /* Mirrors backend portfolio:share — share-link creation is owner/manager only. */
+    const canSharePortfolio = [...ownerRoles,'manager'].includes(actorRole);
 
     // Photo state for forms (shared — forms can't be open simultaneously)
     const [formPhoto, setFormPhoto] = useState('');
@@ -1200,6 +1234,11 @@ function App() {
         } catch(e) { setConnErr(e.message); }
         finally { setBusy(false); }
     };
+    /* Returns true when the server accepted the save, false on every handled
+       failure (401/403/409/network) — callers must check it before showing a
+       success toast, resetting a form or navigating away, otherwise a rejected
+       save reads as a success and the optimistic setDb(nd) becomes silent data
+       loss on the next reload. */
     const save = async (nd, force=false) => {
         setDb(nd);
         try {
@@ -1208,8 +1247,13 @@ function App() {
             const body = {...nd, rev: revRef.current, ...(force ? {force:true} : {})};
             const r = await fetch('/api/save', {method:'POST', headers:apiHeaders(),
                                                 credentials:'include', body:JSON.stringify(body)});
-            if (r.status === 401) { showToast('登录已过期，请重新登录 / Session expired', 'error'); setTimeout(doLogout, 1500); return; }
-            if (r.status === 403) { showToast('无权保存此租户数据 / No permission for this tenant.', 'error'); return; }
+            if (r.status === 401) { showToast('登录已过期，请重新登录 / Session expired', 'error'); setTimeout(doLogout, 1500); return false; }
+            if (r.status === 403) {
+                showToast('无权保存此租户数据 / No permission for this tenant.', 'error');
+                /* resync the optimistic setDb(nd) above back to server truth */
+                setTimeout(load, 800);
+                return false;
+            }
             if (r.status === 409) {
                 const d = await r.json().catch(()=>({}));
                 if (d.status === 'conflict') {
@@ -1220,16 +1264,17 @@ function App() {
                     /* D1/D1b: server blocked a save that drops a large chunk of data */
                     confirm(`安全拦截：${d.message || `数据量将从 ${d.current} 减少到 ${d.incoming}`} `+
                             `如果这不是你刻意删除的结果，请选择取消并刷新页面！`,
-                            async () => { await save(nd, true); },
+                            async () => save(nd, true),
                             {danger:true, confirmText:'我确认，继续保存'});
                 }
-                return;
+                return false;
             }
             if (!r.ok) throw new Error('save failed');
             const d = await r.json().catch(()=>null);
             /* D2: adopt the server's new revision so the next save passes the lock */
             if (d && d.rev) { revRef.current = d.rev; setDb(prev => ({...prev, rev: d.rev})); }
-        } catch(err) { if (!String(err).includes('401')) showToast('数据未能同步到服务器！', 'error'); }
+            return true;
+        } catch(err) { if (!String(err).includes('401')) showToast('数据未能同步到服务器！', 'error'); return false; }
     };
     const exportDB = () => {
         const a = document.createElement('a');
@@ -1606,7 +1651,8 @@ function App() {
             } else {
                 nb = Math.max(0, student.balance-1);
                 const ns = db.students.map(s=>s.id===sid?{...s,balance:nb,lastActive:todayISO()}:s);
-                await save({...db, students:ns, logs:[mkLog(sname,'上课签到',-1,'常规课程消耗',0,{studentId:sid}),...db.logs]});
+                const ok = await save({...db, students:ns, logs:[mkLog(sname,'上课签到',-1,'常规课程消耗',0,{studentId:sid}),...db.logs]});
+                if (!ok) return;
             }
             if (selS?.id===sid) setSelS(p=>({...p,balance:nb}));
             /* G2: 一键复制给家长的签到确认话术 */
@@ -1647,7 +1693,8 @@ function App() {
                     if (idx===-1) { showToast('未找到签到记录','warn'); return; }
                     const ns = db.students.map(s=>s.id===sid?{...s,balance:(parseInt(s.balance,10)||0)+1}:s);
                     const nl = db.logs.filter((_,i)=>i!==idx);
-                    await save({...db, students:ns, logs:[mkLog(sname,'撤销签到','+1','管理员撤销',0,{studentId:sid}),...nl]});
+                    const ok = await save({...db, students:ns, logs:[mkLog(sname,'撤销签到','+1','管理员撤销',0,{studentId:sid}),...nl]});
+                    if (!ok) return;
                 }
                 if (selS?.id===sid) setSelS(p=>({...p,balance:(parseInt(p.balance,10)||0)+1}));
                 showToast(`已撤销 ${sname} 签到`, 'warn');
@@ -1806,7 +1853,8 @@ function App() {
                             students:cur.students.map(x=>x.id===id?{...x,balance:nb,lastActive:todayISO()}:x),
                             logs:[{...mkLog(s.name,'上课签到',-1,'批量签到/消课',0,{studentId:id}),id:base+i},...cur.logs]};
                     });
-                    await save(cur);
+                    const ok = await save(cur);
+                    if (!ok) return;
                     showToast(`批量签到/消课完成，共 ${elig.length} 人`);
                 }
             } finally { setBusy(false); }
@@ -1817,10 +1865,11 @@ function App() {
     const saveGroup = () => {
         const ids = db.rosters[rDate]||[];
         if (!ids.length) { showToast('当前日期没有排课可保存', 'warn'); return; }
-        confirm(`将当前日期的 ${ids.length} 位学员保存为可复用的班组模板。`, (raw) => {
+        confirm(`将当前日期的 ${ids.length} 位学员保存为可复用的班组模板。`, async (raw) => {
             const name = String(raw||'').trim();
             if (!name) return;
-            save({...db, groups: {...(db.groups||{}), [name]: ids}});
+            const ok = await save({...db, groups: {...(db.groups||{}), [name]: ids}});
+            if (!ok) return;
             showToast(`模板「${name}」已保存（${ids.length} 人）`);
         }, {title:'保存班组模板', prompt:true, promptRequired:true,
             promptLabel:'模板名称', promptPlaceholder:'如：周六上午班', confirmText:'保存模板'});
@@ -1832,14 +1881,16 @@ function App() {
         const add = ids.filter(id => !cur.includes(id) && db.students.some(s=>s.id===id&&!s.archived));
         if (!add.length) { showToast('模板学员均已在当前排课中', 'warn'); return; }
         if (TENANT_SLUG) await addDailyRosterStudents(rDate, add, 'group');
-        else await save({...db, rosters: {...db.rosters, [rDate]: [...cur, ...add]}});
+        else { const ok = await save({...db, rosters: {...db.rosters, [rDate]: [...cur, ...add]}}); if (!ok) return; }
         showToast(`已套用「${grpSel}」，新增 ${add.length} 人`);
     };
     const deleteGroup = () => {
         if (!grpSel) return;
         confirm(`删除班组模板「${grpSel}」后，将无法再一键套用这组学员。\n\n已经用它排过的课、学员档案和课时都不受影响。`, async () => {
             const g = {...(db.groups||{})}; delete g[grpSel];
-            await save({...db, groups: g}); setGrpSel('');
+            const ok = await save({...db, groups: g});
+            if (!ok) return;
+            setGrpSel('');
             showToast('模板已删除', 'warn');
         }, {danger:true, confirmText:'删除模板'});
     };
@@ -1866,7 +1917,7 @@ function App() {
         try {
             const cur = db.rosters[date] || [];
             if (TENANT_SLUG) await addDailyRosterStudents(date, [student.id], 'profile');
-            else await save({...db, rosters:{...db.rosters, [date]: [...cur, student.id]}});
+            else { const ok = await save({...db, rosters:{...db.rosters, [date]: [...cur, student.id]}}); if (!ok) return; }
             showToast(`${student.name} 已加入今日排课`);
         } finally { setBusy(false); }
     };
@@ -2047,7 +2098,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 setBusy(true);
                 try {
                     const ns = db.students.map(s=>s.id===sid?{...s,archived:archive}:s);
-                    await save({...db, students:ns, logs:[mkLog(sname,archive?'归档学员':'恢复学员','0',archive?'移入归档库':'从归档库恢复',0,{studentId:sid}),...db.logs]});
+                    const ok = await save({...db, students:ns, logs:[mkLog(sname,archive?'归档学员':'恢复学员','0',archive?'移入归档库':'从归档库恢复',0,{studentId:sid}),...db.logs]});
+                    if (!ok) return;
                     setSelS(null); setEditP(false);
                     showToast(`${sname} 已${archive?'归档':'恢复'}`, 'warn');
                 } finally { setBusy(false); }
@@ -2076,7 +2128,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 const ids = new Set(targets.map(s => s.id));
                 const ns = db.students.map(s => ids.has(s.id) ? {...s, archived:true} : s);
                 const logs = targets.map(s => mkLog(s.name,'归档学员','0','批量移入归档库',0,{studentId:s.id}));
-                await save({...db, students:ns, logs:[...logs, ...db.logs]});
+                const ok = await save({...db, students:ns, logs:[...logs, ...db.logs]});
+                if (!ok) return;
                 setSelectedStudentIds([]);
                 showToast(`已归档 ${targets.length} 名学员`, 'warn');
             } finally { setBusy(false); }
@@ -2112,7 +2165,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     await load();
                 } else {
                     const ns = db.students.map(x=>x.id===tuStu?{...x,balance:(parseInt(x.balance,10)||0)+credits,lastActive:todayISO()}:x);
-                    await save({...db, students:ns, logs:[mkLog(s.name,'充值购课',`+${credits}`,noteStr,fee,{payMethod:tuPay,studentId:s.id}),...db.logs]});
+                    const ok = await save({...db, students:ns, logs:[mkLog(s.name,'充值购课',`+${credits}`,noteStr,fee,{payMethod:tuPay,studentId:s.id}),...db.logs]});
+                    if (!ok) return;
                 }
                 e.target.reset();
                 setTuCr(''); setTuFee(''); setTuPkg('');
@@ -2137,6 +2191,9 @@ document.getElementById('copybtn').addEventListener('click', function(){
     /* A2: 退款退课 — 节数 ≤ 余额直接扣减，退款金额以负数计入营收（净额自动） */
     const handleRefund = async (e) => {
         e.preventDefault();
+        /* E: mirrors backend credits:refund — the toggle is hidden for other
+           roles, this guard covers any stale settleMode state */
+        if (!canRefund) { showToast('当前角色无退款权限', 'error'); return; }
         const credits = parseInt(rfCr, 10);
         const amt = parseFloat(rfAmt) || 0;
         const s = db.students.find(x=>x.id===tuStu);
@@ -2191,7 +2248,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 const ns = {id:Date.now(), firstName, lastName, name:fullName,
                             mobile, email, wechat, photo:formPhoto, preferences, ...legacyPrefs,
                             birthday, enrollmentDate, balance, remark, lastActive:todayISO(), archived:false};
-                await save({...db, students:[ns,...db.students], logs:[mkLog(fullName,'新生注册',`+${balance}`,'系统建档',0,{studentId:ns.id}),...db.logs]});
+                const ok = await save({...db, students:[ns,...db.students], logs:[mkLog(fullName,'新生注册',`+${balance}`,'系统建档',0,{studentId:ns.id}),...db.logs]});
+                if (!ok) return;
                 e.target.reset(); setFormPhoto(''); setTab('students'); setSrch('');
                 showToast(`${fullName} 已建档`);
             } finally { setBusy(false); }
@@ -2243,7 +2301,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
             if (TENANT_SLUG) {
                 /* A2: 档案字段照旧整包保存（余额由服务端忽略）；
                    课时差额单独走 v1 调整流水 */
-                await save({...db, students:ns, logs:nl});
+                const ok = await save({...db, students:ns, logs:nl});
+                if (!ok) return;
                 if (diff !== 0) {
                     await v1Api(`/students/${selS.id}/credit-transactions`, {
                         method: 'POST',
@@ -2257,7 +2316,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     await load();
                 }
             } else {
-                await save({...db, students:ns, logs:[mkLog(newName, diff!==0?'调整课时':'更新档案', changeStr, noteStr, 0, {studentId:selS.id}),...nl]});
+                const ok = await save({...db, students:ns, logs:[mkLog(newName, diff!==0?'调整课时':'更新档案', changeStr, noteStr, 0, {studentId:selS.id}),...nl]});
+                if (!ok) return;
             }
             setSelS({...selS, firstName, lastName, name:newName, mobile, email, wechat, balance, remark, preferences, ...legacyPrefs, birthday, enrollmentDate, photo:editPhoto, ...(diff!==0?{lastActive:todayISO()}:{})});
             setEditP(false);
@@ -2273,7 +2333,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 const ns = db.students.filter(s=>s.id!==sid);
                 const nr = {...db.rosters};
                 Object.keys(nr).forEach(d => { nr[d]=nr[d].filter(id=>id!==sid); });
-                await save({...db, students:ns, rosters:nr, logs:[mkLog(sname,'彻底删除档案','0','管理员移除',0,{studentId:sid}),...db.logs]});
+                const ok = await save({...db, students:ns, rosters:nr, logs:[mkLog(sname,'彻底删除档案','0','管理员移除',0,{studentId:sid}),...db.logs]});
+                if (!ok) return;
                 setSelS(null); setEditP(false);
                 showToast(`${sname} 已移除`, 'warn');
             } finally { setBusy(false); }
@@ -2461,7 +2522,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
             const cur = db.rosters[rDate]||[];
             if (!cur.includes(rPick)) {
                 if (TENANT_SLUG) await addDailyRosterStudents(rDate, [rPick], 'manual');
-                else await save({...db, rosters:{...db.rosters,[rDate]:[...cur,rPick]}});
+                else { const ok = await save({...db, rosters:{...db.rosters,[rDate]:[...cur,rPick]}}); if (!ok) return; }
             }
             setRPick(null); /* Fix #1: clears picker q via useEffect */
         } finally { setBusy(false); }
@@ -2484,7 +2545,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     },
                 });
             } else {
-                await save({...db, rosters:{...db.rosters,[rDate]:(db.rosters[rDate]||[]).filter(id=>id!==sid)}});
+                const ok = await save({...db, rosters:{...db.rosters,[rDate]:(db.rosters[rDate]||[]).filter(id=>id!==sid)}});
+                if (!ok) return;
             }
         }
         finally { setBusy(false); }
@@ -2527,8 +2589,9 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         lastActive:todayISO(), archived:false
                     };
                     const newPending = (db.pending||[]).filter(p=>p.id!==pid);
-                    await save({...db, students:[ns,...db.students], pending:newPending,
+                    const ok = await save({...db, students:[ns,...db.students], pending:newPending,
                         logs:[mkLog(fullName,'批准注册',`+${credits}`,`来自注册门户，管理员审批`,0,{studentId:ns.id}),...db.logs]});
+                    if (!ok) return;
                     showToast(`${fullName} 已批准建档`);
                 }
                 setApproveCredits(p => { const n={...p}; delete n[pid]; return n; });
@@ -2559,8 +2622,9 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     await load();
                 } else {
                     const newPending = (db.pending||[]).filter(p=>p.id!==pid);
-                    await save({...db, pending:newPending,
+                    const ok = await save({...db, pending:newPending,
                         logs:[mkLog(name,'拒绝注册','0','管理员拒绝注册申请'),...db.logs]});
+                    if (!ok) return;
                 }
                 setApproveCredits(p => { const n={...p}; delete n[pid]; return n; });
                 showToast(`${name} 的申请已拒绝`, 'warn');
@@ -3030,7 +3094,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                     </div>
                                     <button onClick={()=>{ setPkgEditId(pkg.id); setPkgName(pkg.name); setPkgCredits(String(pkg.credits)); setPkgPrice(String(pkg.price)); }}
                                         className="text-xs text-indigo-600 font-bold px-2 py-1 active:text-indigo-800 flex-shrink-0">编辑</button>
-                                    <button onClick={()=>{ if((db.packages||[]).length<=1){showToast('至少保留一个套餐','warn');return;} confirm(`删除套餐「${pkg.name}」？`,()=>{ const nd={...db,packages:(db.packages||[]).filter(p=>p.id!==pkg.id)}; save(nd); showToast('套餐已删除'); },{danger:true,confirmText:'删除'}); }}
+                                    <button onClick={()=>{ if((db.packages||[]).length<=1){showToast('至少保留一个套餐','warn');return;} confirm(`删除套餐「${pkg.name}」？`,async ()=>{ const nd={...db,packages:(db.packages||[]).filter(p=>p.id!==pkg.id)}; const ok = await save(nd); if (!ok) return; showToast('套餐已删除'); },{danger:true,confirmText:'删除'}); }}
                                         className="text-xs text-red-500 font-bold px-2 py-1 active:text-red-700 flex-shrink-0">×</button>
                                 </div>
                             ))}
@@ -3051,7 +3115,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                     <div className="flex gap-2">
                                         <button onClick={()=>{ setPkgEditId(null); setPkgName(''); setPkgCredits(''); setPkgPrice(''); }}
                                             className="flex-1 py-2 border border-gray-300 rounded-xl text-xs font-bold text-gray-600 active:bg-gray-100">取消</button>
-                                        <button onClick={()=>{
+                                        <button onClick={async ()=>{
                                             if (!pkgName.trim()||!pkgCredits||!pkgPrice){showToast('请填写完整','warn');return;}
                                             const cr=parseInt(pkgCredits,10), pr=parseFloat(pkgPrice);
                                             if(isNaN(cr)||cr<1||isNaN(pr)||pr<0){showToast('课时数/价格无效','warn');return;}
@@ -3062,7 +3126,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                             } else {
                                                 newPkgs = (db.packages||[]).map(p=>p.id===pkgEditId?{...p,name:pkgName.trim(),credits:cr,price:pr}:p);
                                             }
-                                            save({...db, packages:newPkgs});
+                                            const ok = await save({...db, packages:newPkgs});
+                                            if (!ok) return;
                                             setPkgEditId(null); setPkgName(''); setPkgCredits(''); setPkgPrice('');
                                             showToast(pkgEditId===0?'套餐已添加':'套餐已更新');
                                         }} className="flex-1 py-2 bg-indigo-600 active:bg-indigo-700 text-white rounded-xl text-xs font-bold">保存</button>
@@ -3077,10 +3142,11 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             const oldKeys = Object.keys(db.rosters||{}).filter(d=>d<cutoffStr);
                             const cleanRosters = () => {
                                 if (!oldKeys.length) { showToast('没有需要清理的旧排课'); return; }
-                                confirm(`清理 90 天前的排课记录（${oldKeys.length} 条）？\n此操作不影响任何统计数据。`, ()=>{
+                                confirm(`清理 90 天前的排课记录（${oldKeys.length} 条）？\n此操作不影响任何统计数据。`, async ()=>{
                                     const nd = {...db, rosters:{...db.rosters}};
                                     oldKeys.forEach(k=>delete nd.rosters[k]);
-                                    save(nd);
+                                    const ok = await save(nd);
+                                    if (!ok) return;
                                     showToast(`已清理 ${oldKeys.length} 条旧排课`);
                                 }, {confirmText:'清理'});
                             };
@@ -3206,7 +3272,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 ].map(([label,value,unit])=><div key={label} className="rounded-xl bg-white/10 border border-white/10 p-2.5"><p className="text-[11px] text-indigo-200">{label}</p><p className="text-xl font-bold">{value}<span className="text-xs font-normal ml-1">{unit}</span></p></div>)}
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {canManageOperations && <button onClick={()=>{setRDate(todayISO());setTab('roster');}} className="bg-white text-indigo-800 rounded-xl py-2.5 text-xs font-bold min-h-[44px]"><span className="inline-flex items-center gap-1.5"><Icon name="calendar" className="w-4 h-4"/>今日排课</span></button>}
+                {canWriteAttendance && <button onClick={()=>{setRDate(todayISO());setTab('roster');}} className="bg-white text-indigo-800 rounded-xl py-2.5 text-xs font-bold min-h-[44px]"><span className="inline-flex items-center gap-1.5"><Icon name="calendar" className="w-4 h-4"/>今日排课</span></button>}
                 {canWriteStudents && <button onClick={()=>setTab('new_student')} className="bg-indigo-600 border border-indigo-400 rounded-xl py-2.5 text-xs font-bold min-h-[44px]">➕ 新建学员</button>}
                 {allowedTabs.includes('pending') && <button onClick={()=>setTab('pending')} className="bg-indigo-600 border border-indigo-400 rounded-xl py-2.5 text-xs font-bold min-h-[44px]"><span className="inline-flex items-center gap-1.5"><Icon name="clipboard" className="w-4 h-4"/>审核报名</span></button>}
                 {canWriteCredits && <button onClick={()=>setTab('topup')} className="bg-indigo-600 border border-indigo-400 rounded-xl py-2.5 text-xs font-bold min-h-[44px]"><span className="inline-flex items-center gap-1.5"><Icon name="money" className="w-4 h-4"/>充值结算</span></button>}
@@ -3230,13 +3296,15 @@ document.getElementById('copybtn').addEventListener('click', function(){
     {/* A3: 经营真账（估算）— 现金 vs 已赚 vs 预收负债（v5.3） */}
     {TENANT_SLUG && bizStats && (
         <details className="bg-white rounded-2xl shadow-sm border border-emerald-100">
-            <summary className="inline-flex items-center gap-1.5 cursor-pointer px-4 py-3 font-bold text-sm text-gray-800 select-none"><Icon name="trend" className="w-4 h-4"/>经营真账（估算） <span className="text-xs font-normal text-gray-400">已上课 {bizStats.attended_total} 人次 · 加权均价 ${bizStats.avg_price}/课时</span></summary>
+            {/* D: roles without analytics:read only receive attended_total/attended_month —
+               the financial fields are absent, so render those cards only when present. */}
+            <summary className="inline-flex items-center gap-1.5 cursor-pointer px-4 py-3 font-bold text-sm text-gray-800 select-none"><Icon name="trend" className="w-4 h-4"/>经营真账（估算） <span className="text-xs font-normal text-gray-400">已上课 {bizStats.attended_total} 人次{bizStats.avg_price !== undefined ? ` · 加权均价 $${bizStats.avg_price}/课时` : ''}</span></summary>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-4 pb-4">
                 {[
                     ['已上课人次', `${bizStats.attended_total} 次`, `本月 ${bizStats.attended_month} 次`, 'text-gray-800'],
-                    ['已赚收入(估)', `$${bizStats.earned_revenue}`, '人次 × 加权均价', 'text-emerald-600'],
-                    ['预收未耗(负债)', `$${bizStats.prepaid_liability}`, '剩余课时 × 均价', 'text-amber-600'],
-                    ['净现金收入', `$${bizStats.cash_net}`, '充值 − 退款', 'text-indigo-600'],
+                    ...(bizStats.earned_revenue !== undefined ? [['已赚收入(估)', `$${bizStats.earned_revenue}`, '人次 × 加权均价', 'text-emerald-600']] : []),
+                    ...(bizStats.prepaid_liability !== undefined ? [['预收未耗(负债)', `$${bizStats.prepaid_liability}`, '剩余课时 × 均价', 'text-amber-600']] : []),
+                    ...(bizStats.cash_net !== undefined ? [['净现金收入', `$${bizStats.cash_net}`, '充值 − 退款', 'text-indigo-600']] : []),
                 ].map(([l,v,sub,c]) => (
                     <div key={l} className="bg-gray-50 border border-gray-100 rounded-xl p-3">
                         <p className="text-[11px] text-gray-400">{l}</p>
@@ -3275,7 +3343,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                 <p className="text-xs text-gray-400 truncate mt-0.5">{todoFollowUp.slice(0,4).map(item=>`${item.firstName||''} ${item.lastName||''}`.trim()).join('、')}</p>
                             </div>
                             <button onClick={()=>setTab('pending')}
-                                className="flex-shrink-0 text-xs text-indigo-600 font-bold bg-indigo-50 active:bg-indigo-100 border border-indigo-200 px-3 py-1.5 rounded-xl min-h-[34px]">处理 →</button>
+                                className="flex-shrink-0 text-xs text-indigo-600 font-bold bg-indigo-50 active:bg-indigo-100 border border-indigo-200 px-3 py-1.5 rounded-xl min-h-[38px]">处理 →</button>
                         </div>
                     )}
                     {todoClear.length > 0 && (
@@ -3285,7 +3353,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                 <p className="text-xs text-gray-400 truncate mt-0.5">{names(todoClear)}</p>
                             </div>
                             <button onClick={()=>{setFilterBy('zero');setTab('students');}}
-                                className="flex-shrink-0 text-xs text-red-600 font-bold bg-red-50 active:bg-red-100 border border-red-200 px-3 py-1.5 rounded-xl min-h-[34px]">查看 →</button>
+                                className="flex-shrink-0 text-xs text-red-600 font-bold bg-red-50 active:bg-red-100 border border-red-200 px-3 py-1.5 rounded-xl min-h-[38px]">查看 →</button>
                         </div>
                     )}
                     {todoLast.length > 0 && (
@@ -3295,7 +3363,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                 <p className="text-xs text-gray-400 truncate mt-0.5">{names(todoLast)}</p>
                             </div>
                             <button onClick={()=>{setFilterBy('low');setTab('students');}}
-                                className="flex-shrink-0 text-xs text-orange-600 font-bold bg-orange-50 active:bg-orange-100 border border-orange-200 px-3 py-1.5 rounded-xl min-h-[34px]">查看 →</button>
+                                className="flex-shrink-0 text-xs text-orange-600 font-bold bg-orange-50 active:bg-orange-100 border border-orange-200 px-3 py-1.5 rounded-xl min-h-[38px]">查看 →</button>
                         </div>
                     )}
                     {todoRisk.length > 0 && (
@@ -3305,7 +3373,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                 <p className="text-xs text-gray-400 truncate mt-0.5">{names(todoRisk)}</p>
                             </div>
                             <button onClick={()=>{setFilterBy('tag-risk');setTab('students');}}
-                                className="flex-shrink-0 text-xs text-amber-600 font-bold bg-amber-50 active:bg-amber-100 border border-amber-200 px-3 py-1.5 rounded-xl min-h-[34px]">查看 →</button>
+                                className="flex-shrink-0 text-xs text-amber-600 font-bold bg-amber-50 active:bg-amber-100 border border-amber-200 px-3 py-1.5 rounded-xl min-h-[38px]">查看 →</button>
                         </div>
                     )}
                     {todoBdayWeek.length > 0 && (
@@ -3313,7 +3381,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             <div className="flex items-center justify-between gap-3">
                                 <p className="inline-flex items-center gap-1.5 text-sm font-bold text-pink-600"><Icon name="cake" className="w-4 h-4"/>本周生日 · {todoBdayWeek.length} 人</p>
                                 <button onClick={()=>{ const msg=todoBdayWeek.map(s=>`祝 ${s.name} 生日快乐！愿新的一年里画艺大进，心想事成！`).join('\n'); copyText(msg,'祝福语已复制'); }}
-                                    className="flex-shrink-0 text-xs text-pink-600 font-bold bg-pink-50 active:bg-pink-100 border border-pink-200 px-3 py-1.5 rounded-xl min-h-[34px]">复制祝福 →</button>
+                                    className="flex-shrink-0 text-xs text-pink-600 font-bold bg-pink-50 active:bg-pink-100 border border-pink-200 px-3 py-1.5 rounded-xl min-h-[38px]">复制祝福 →</button>
                             </div>
                             <div className="flex flex-wrap gap-1.5">
                                 {todoBdayWeek.map(s=>(
@@ -3330,7 +3398,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             <div className="flex items-center justify-between gap-3">
                                 <p className="inline-flex items-center gap-1.5 text-sm font-bold text-pink-400"><Icon name="cake" className="w-4 h-4"/>本月生日 · {todoBdayMonth.length} 人</p>
                                 <button onClick={()=>{ const msg=todoBdayMonth.map(s=>`祝 ${s.name} 生日快乐！愿新的一年里画艺大进，心想事成！`).join('\n'); copyText(msg,'祝福语已复制'); }}
-                                    className="flex-shrink-0 text-xs text-pink-400 font-bold bg-pink-50 active:bg-pink-100 border border-pink-100 px-3 py-1.5 rounded-xl min-h-[34px]">复制祝福 →</button>
+                                    className="flex-shrink-0 text-xs text-pink-400 font-bold bg-pink-50 active:bg-pink-100 border border-pink-100 px-3 py-1.5 rounded-xl min-h-[38px]">复制祝福 →</button>
                             </div>
                             <div className="flex flex-wrap gap-1.5">
                                 {todoBdayMonth.map(s=>(
@@ -3458,8 +3526,9 @@ document.getElementById('copybtn').addEventListener('click', function(){
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
         <div className="flex justify-between items-center gap-2 flex-wrap">
             <p className="inline-flex items-center gap-1.5 font-bold text-sm text-gray-800"><Icon name="calendar" className="w-4 h-4"/>每周课表 <span className="text-xs font-normal text-gray-400">固定班次按周几自动排入当日名单</span></p>
-            <button onClick={()=>setSchedEdit({label:'', weekday:new Date().getDay(), startTime:'16:00', durationMinutes:60, capacity:10, studentIds:[]})}
-                className="bg-indigo-600 active:bg-indigo-700 text-white px-4 py-1.5 rounded-xl text-xs font-bold min-h-[36px]">➕ 新增班次</button>
+            {/* B: schedule templates hit owner/manager-only endpoints — hide from teacher/staff */}
+            {canManageOperations && <button onClick={()=>setSchedEdit({label:'', weekday:new Date().getDay(), startTime:'16:00', durationMinutes:60, capacity:10, studentIds:[]})}
+                className="bg-indigo-600 active:bg-indigo-700 text-white px-4 py-1.5 rounded-xl text-xs font-bold min-h-[36px]">➕ 新增班次</button>}
         </div>
         {schedules.length===0 && !schedEdit && (
             <p className="text-xs text-gray-400">还没有固定班次。例如「周三 16:00 素描班」——保存后每周三会自动出现在当日排课里。</p>
@@ -3471,9 +3540,11 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         <p className="text-sm font-bold text-gray-800">{WEEKDAYS[sc.weekday]} {sc.startTime} · {sc.label||'未命名班次'}</p>
                         <div className="flex items-center gap-2 mt-1">
                             <span className="text-[11px] text-gray-500">{sc.students.length}/{sc.capacity} 人 · {sc.durationMinutes} 分钟</span>
+                            {canManageOperations && <>
                             <button onClick={()=>setSchedEdit({id:sc.id, label:sc.label, weekday:sc.weekday, startTime:sc.startTime, durationMinutes:sc.durationMinutes, capacity:sc.capacity, studentIds:sc.students.map(st=>st.id)})}
                                 className="text-[11px] font-bold text-indigo-600 active:text-indigo-800">编辑</button>
                             <button onClick={()=>deleteSchedule(sc)} className="text-[11px] font-bold text-red-500 active:text-red-700">删除</button>
+                            </>}
                         </div>
                     </div>
                 ))}
@@ -3577,11 +3648,12 @@ document.getElementById('copybtn').addEventListener('click', function(){
             </select>
             <button onClick={applyGroup} disabled={!grpSel||busy}
                 className="bg-indigo-50 text-indigo-700 border border-indigo-200 active:bg-indigo-100 disabled:opacity-40 px-3 py-2 rounded-xl text-xs font-bold min-h-[40px]">套用到当前日期</button>
-            <button onClick={saveGroup} disabled={busy}
-                className="bg-white text-gray-600 border border-gray-300 active:bg-gray-50 px-3 py-2 rounded-xl text-xs font-bold min-h-[40px]">保存当前为模板</button>
-            {grpSel && <button onClick={deleteGroup} disabled={busy}
+            {/* B: template management stays owner/manager; applying a template to a day is a per-day attendance action */}
+            {canManageOperations && <button onClick={saveGroup} disabled={busy}
+                className="bg-white text-gray-600 border border-gray-300 active:bg-gray-50 px-3 py-2 rounded-xl text-xs font-bold min-h-[40px]">保存当前为模板</button>}
+            {canManageOperations && grpSel && <button onClick={deleteGroup} disabled={busy}
                 className="bg-white text-red-500 border border-red-200 active:bg-red-50 px-3 py-2 rounded-xl text-xs font-bold min-h-[40px]">删除</button>}
-            {TENANT_SLUG && grpSel && <button onClick={groupToSchedule} disabled={busy}
+            {canManageOperations && TENANT_SLUG && grpSel && <button onClick={groupToSchedule} disabled={busy}
                 className="inline-flex items-center gap-1.5 bg-indigo-600 active:bg-indigo-700 text-white px-3 py-2 rounded-xl text-xs font-bold min-h-[40px]"><Icon name="calendar" className="w-4 h-4"/>转为每周班次</button>}
         </div>
     </div>
@@ -3822,7 +3894,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         {canWriteCredits && <button onClick={()=>{setTuStu(s.id);setTab('topup');}}
                             title="快速充值" aria-label="快速充值" className="px-3.5 py-3 rounded-xl font-bold bg-emerald-50 active:bg-emerald-100 text-emerald-700 border border-emerald-200 min-h-[44px] flex items-center justify-center"><Icon name="money"/></button>
                         }
-                        {canManageOperations && <button onClick={()=>scheduleStudentToday(s)} disabled={busy}
+                        {canWriteAttendance && <button onClick={()=>scheduleStudentToday(s)} disabled={busy}
                             className="flex-1 py-3 rounded-xl text-sm font-bold text-white min-h-[44px] bg-indigo-600 active:bg-indigo-700 disabled:bg-gray-300 inline-flex items-center justify-center gap-1.5"><Icon name="calendar" className="w-4 h-4"/>{isStudentScheduledOn(s.id,todayISO())?'去排课':'排课'}</button>
                         }
                     </>)}
@@ -4025,7 +4097,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
 {tab==='topup' && (
 <div className="anim bg-white rounded-2xl shadow-sm border border-gray-100 p-6 max-w-2xl mx-auto">
     <h2 className="inline-flex items-center gap-1.5 text-xl md:text-2xl font-bold mb-4 text-gray-800"><Icon name="money" className="w-4 h-4"/>充值 & 结算</h2>
-    {TENANT_SLUG && (
+    {/* E: refunds require credits:refund (owner/manager) — other roles only see the top-up form */}
+    {TENANT_SLUG && canRefund && (
         <div className="flex gap-2 mb-5">
             {[['topup','充值'],['refund','退款退课']].map(([m,l]) => (
                 <button key={m} type="button" onClick={()=>setSettleMode(m)}
@@ -4723,7 +4796,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             );
                         })()}
                         <div className="flex gap-2">
-                            {canManageOperations && !selS.archived && <>
+                            {canWriteAttendance && !selS.archived && <>
                                 <button onClick={()=>scheduleStudentToday(selS)} disabled={busy}
                                     className="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-indigo-600 active:bg-indigo-700 disabled:bg-gray-300 min-h-[50px] inline-flex items-center justify-center gap-1.5"><Icon name="calendar" className="w-4 h-4"/>{isStudentScheduledOn(selS.id,todayISO())?'查看今日排课':'加入今日排课'}</button>
                             </>}

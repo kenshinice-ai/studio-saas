@@ -102,7 +102,7 @@
   body.hero-bold .hero .btn-fill{background:var(--bg);color:var(--ink)}
   body.hero-bold .hero .btn-fill:hover{background:var(--bg2)}
   body.hero-bold .hero .btn-fill:active{background:var(--disabled-surface)}
-  body.hero-bold .hero .btn-line{border-color:#6b6559;color:var(--bg)}
+  body.hero-bold .hero .btn-line{border-color:color-mix(in srgb,var(--bg) 45%,transparent);color:var(--bg)}
   body.hero-bold .hero .btn-line:hover{border-color:var(--bg)}
   .btn-line{border-color:var(--line-strong);color:var(--ink);background:transparent}
   .btn-line:hover{border-color:var(--ink);background:var(--bg2)}
@@ -121,10 +121,10 @@
   .hero-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
   body.hero-image .hero-art img{display:block}
   body.hero-bold .hero{background:var(--ink);color:var(--bg)}
-  body.hero-bold .hero .slogan, body.hero-bold .hero-login{color:#D8D1C4}
+  body.hero-bold .hero .slogan, body.hero-bold .hero-login{color:color-mix(in srgb,var(--bg) 78%,var(--ink))}
   body.hero-minimal .hero-art{display:none}
   body.hero-minimal .hero-grid{grid-template-columns:1fr}
-  .hero-art .frame-tag{position:absolute;left:20px;bottom:18px;font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:#6f665a}
+  .hero-art .frame-tag{position:absolute;left:20px;bottom:18px;font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--muted)}
   body.button-rounded .btn{border-radius:999px}
   body.button-sharp .btn{border-radius:0}
   body.font-modern .serif, body.font-modern .lat{font-family:var(--font-body)}
@@ -159,7 +159,7 @@
      radial-gradient(90% 70% at 30% 20%,color-mix(in srgb,var(--clay) 20%,transparent) 0%,transparent 55%),
      radial-gradient(90% 80% at 80% 90%,color-mix(in srgb,var(--clay-d) 16%,transparent) 0%,transparent 55%),
      linear-gradient(155deg,var(--bg2),var(--bg))}
-  .artist-portrait .nm{position:absolute;left:22px;bottom:20px;font-family:var(--font-latin);font-size:22px;color:#6a5f50}
+  .artist-portrait .nm{position:absolute;left:22px;bottom:20px;font-family:var(--font-latin);font-size:22px;color:var(--muted)}
   .roles{display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:22px;padding-top:22px;border-top:1px solid var(--line)}
   .roles span{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink2)}
   .roles span::before{content:"·";color:var(--clay);margin-right:22px;margin-left:-14px}
@@ -192,20 +192,23 @@
   .tile img{width:100%;height:100%;object-fit:cover;display:block}
   .tile .cap{position:absolute;left:12px;bottom:10px;font-size:11px;letter-spacing:.06em;color:var(--ink2)}
   .tile.art{border:none;box-shadow:0 2px 14px rgba(35,33,29,.10);cursor:pointer}
+  /* Gallery tiles are real <button>s so the lightbox is keyboard-reachable;
+     strip the UA button chrome but keep the .tile look. */
+  button.tile{appearance:none;-webkit-appearance:none;padding:0;font:inherit;color:inherit;text-align:inherit}
   .tile.art .cap{left:0;right:0;bottom:0;padding:26px 12px 10px;color:#fff;background:linear-gradient(transparent,rgba(20,18,15,.62));opacity:0;transition:opacity .35s}
   .tile.art:hover .cap{opacity:1}
   .glb{position:fixed;inset:0;background:var(--scrim);backdrop-filter:blur(3px);z-index:80;display:none;flex-direction:column}
   .glb.open{display:flex}
   .glb-top{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;flex-shrink:0;color:var(--on-scrim);padding-top:max(14px,env(safe-area-inset-top,14px))}
   .glb-title{font-family:var(--font-display);font-size:16px}
-  .glb-date{font-size:12px;color:#9a917f;margin-top:2px}
+  .glb-date{font-size:12px;color:color-mix(in srgb,var(--on-scrim) 72%,transparent);margin-top:2px}
   .glb-x{background:none;border:0;color:var(--on-scrim);font-size:26px;cursor:pointer;width:44px;height:44px}
   .glb-stage{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;padding:0 14px}
   .glb-stage img{max-width:100%;max-height:100%;object-fit:contain;border-radius:2px;box-shadow:0 10px 40px rgba(0,0,0,.5)}
   .glb-nav{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;flex-shrink:0;padding-bottom:max(14px,env(safe-area-inset-bottom,14px))}
   .glb-btn{background:rgba(255,255,255,.14);border:0;color:var(--on-scrim);border-radius:2px;padding:11px 24px;font-size:13px;letter-spacing:.05em;cursor:pointer;font-family:inherit}
   .glb-btn:disabled{opacity:.3;cursor:default}
-  .glb-count{color:#8d8472;font-size:12px;letter-spacing:.1em}
+  .glb-count{color:color-mix(in srgb,var(--on-scrim) 72%,transparent);font-size:12px;letter-spacing:.1em}
 
   .parent{background:var(--ink);color:var(--bg)}
   .parent .wrap{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
@@ -326,7 +329,7 @@
       <a id="navPrimaryCta" class="navcta" href="#join" data-analytics-label="nav_primary" data-en="Book a Trial">预约体验</a>
       <span class="langtog" role="group" aria-label="语言 / Language"><button type="button" data-set-lang="zh" aria-pressed="true">中</button><button type="button" data-set-lang="en" aria-pressed="false">EN</button></span>
     </div>
-    <button class="menu-btn" type="button" aria-label="打开导航菜单" aria-controls="mnav" aria-expanded="false" onclick="toggleMobileNav(this)">
+    <button class="menu-btn" type="button" aria-label="打开导航菜单" data-en-aria="Open navigation menu" aria-controls="mnav" aria-expanded="false" onclick="toggleMobileNav(this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5"/></svg>
     </button>
   </div>
@@ -628,10 +631,10 @@
   </div>
 </footer>
 
-<div class="glb" id="glb" onclick="if(event.target===this)closeGlb()">
+<div class="glb" id="glb" role="dialog" aria-modal="true" aria-label="%WORK%预览" data-en-aria="%WORK% preview" onclick="if(event.target===this)closeGlb()">
   <div class="glb-top">
     <div><div class="glb-title" id="glb-title"></div><div class="glb-date" id="glb-date"></div></div>
-    <button class="glb-x" aria-label="关闭" onclick="closeGlb()">×</button>
+    <button class="glb-x" aria-label="关闭" data-en-aria="Close" onclick="closeGlb()">×</button>
   </div>
   <div class="glb-stage" onclick="if(event.target===this)closeGlb()"><img id="glb-img" src="" alt=""></div>
   <div class="glb-nav">
@@ -641,7 +644,7 @@
   </div>
 </div>
 
-<button class="totop" id="toTop" aria-label="回到顶部" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+<button class="totop" id="toTop" aria-label="回到顶部" data-en-aria="Back to top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
 
 <script>
   var SLUG = document.body.dataset.tenantSlug;
@@ -737,6 +740,14 @@
     [].forEach.call(fields, function(el){
       var ph = lang()==='en' ? el.getAttribute('data-ph-en') : el.getAttribute('data-ph-zh');
       if(ph!=null) el.placeholder = nouns(ph);
+    });
+    /* aria-labels follow the language too — text and placeholders switching
+       while "打开导航菜单" stayed Chinese left EN screen-reader users behind. */
+    var labelled = scope.querySelectorAll ? scope.querySelectorAll('[data-en-aria]') : [];
+    [].forEach.call(labelled, function(el){
+      if(!el.hasAttribute('data-zh-aria')) el.setAttribute('data-zh-aria', el.getAttribute('aria-label')||'');
+      var label = lang()==='en' ? el.getAttribute('data-en-aria') : el.getAttribute('data-zh-aria');
+      if(label!=null) el.setAttribute('aria-label', nouns(label));
     });
   }
   function setLang(l){
@@ -839,6 +850,7 @@
     window.StudioSaaSPublicRegister.renderFields(currentRegistrationProfile, {
       container: 'joinCustomFields',
       labelClass: 'fld',
+      errorClass: 'fld-err',
       fallbackTitle: T('报名信息','Registration details'),
       language: lang(),
       preserveValues: true
@@ -986,7 +998,7 @@
     resolveSection('about', true);
     startAboutCarousel();
   }
-  var aboutTimer=null;
+  var aboutTimer=null, aboutPaused=false;
   function startAboutCarousel(){
     if(aboutTimer){ clearInterval(aboutTimer); aboutTimer=null; }
     var slides=[].slice.call(document.querySelectorAll('#aboutSlides img'));
@@ -994,9 +1006,23 @@
     if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     var i=0;
     aboutTimer=setInterval(function(){
+      if(aboutPaused) return;
       slides[i].classList.remove('on'); i=(i+1)%slides.length; slides[i].classList.add('on');
     }, 4500);
   }
+  /* WCAG 2.2.2: auto-rotation stops while the visitor is looking at it —
+     hover or focus within the slide box. Attached once; the box outlives
+     the re-renders that replace its slides. */
+  (function(){
+    var box=document.getElementById('aboutSlides');
+    if(!box) return;
+    var pause=function(){ aboutPaused=true; };
+    var resume=function(){ aboutPaused=false; };
+    box.addEventListener('mouseenter', pause);
+    box.addEventListener('mouseleave', resume);
+    box.addEventListener('focusin', pause);
+    box.addEventListener('focusout', resume);
+  })();
   function applySeo(b){
     var hero=b.heroProfile||b.hero_profile||{};
     var website=b.websiteProfile||b.website_profile||{};
@@ -1079,14 +1105,18 @@
     grid.innerHTML='';
     window.GWORKS=(items||[]).slice(0,12);
     window.GWORKS.forEach(function(it,i){
-      var div=document.createElement('div');
-      div.className='tile art';
+      /* A real <button>, so Tab reaches the lightbox — a div.onclick did not. */
+      var tile=document.createElement('button');
+      tile.type='button';
+      tile.className='tile art';
+      var title=it.title ? String(it.title) : T('学员'+state.workNoun.zh,'Student '+state.workNoun.en);
+      tile.setAttribute('aria-label', title);
       var img=document.createElement('img'); img.src=it.mediaUrl; img.loading='lazy';
-      img.alt=it.title ? String(it.title) : T('学员'+state.workNoun.zh,'Student '+state.workNoun.en);
-      div.appendChild(img);
-      if(it.title){ var cap=document.createElement('span'); cap.className='cap'; cap.textContent=it.title; div.appendChild(cap); }
-      div.onclick=function(){ openGlb(i); };
-      grid.appendChild(div);
+      img.alt='';
+      tile.appendChild(img);
+      if(it.title){ var cap=document.createElement('span'); cap.className='cap'; cap.textContent=it.title; tile.appendChild(cap); }
+      tile.onclick=function(){ openGlb(i); };
+      grid.appendChild(tile);
     });
     resolveSection('gallery', grid.children.length>0);
   }
@@ -1234,12 +1264,24 @@
   function clearFieldErrors(form){
     if(!form) return;
     form.querySelectorAll('.has-error').forEach(function(el){ el.classList.remove('has-error'); });
-    form.querySelectorAll('[aria-invalid="true"]').forEach(function(el){ el.removeAttribute('aria-invalid'); });
+    form.querySelectorAll('[aria-invalid="true"]').forEach(function(el){
+      el.removeAttribute('aria-invalid');
+      el.removeAttribute('aria-describedby');
+    });
   }
   function markFieldError(input){
     if(!input) return null;
     var field=input.closest ? input.closest('.fld') : null;
-    if(field) field.classList.add('has-error');
+    if(field){
+      field.classList.add('has-error');
+      /* Point the input at its own error note, so a screen reader says why
+         the field is invalid instead of just that it is. */
+      var note=field.querySelector('.fld-err');
+      if(note){
+        if(!note.id) note.id=(input.id||'fld')+'-err';
+        input.setAttribute('aria-describedby', note.id);
+      }
+    }
     input.setAttribute('aria-invalid','true');
     return field;
   }
@@ -1276,11 +1318,15 @@
     var err=el('j-err');
     var show=function(m){ err.textContent=m; err.style.display='block'; };
     var publicationChecked=el('j-publication-consent').checked;
+    /* P2-8: missing required custom fields go through the same failFirst
+       path as the built-in ones, in DOM order. */
+    var custom=window.StudioSaaSPublicRegister.collectFields({container:'joinCustomFields', labelSelector:'.fld'});
     var checks=[
       {el:el('j-name'),    ok:function(){ return !!v('j-name'); }},
-      {el:el('j-phone'),   ok:function(){ return !!v('j-phone'); }},
-      {el:el('j-consent'), ok:function(){ return el('j-consent').checked; }}
+      {el:el('j-phone'),   ok:function(){ return !!v('j-phone'); }}
     ];
+    custom.missing.forEach(function(item){ checks.push({el:item.el, ok:function(){ return false; }}); });
+    checks.push({el:el('j-consent'), ok:function(){ return el('j-consent').checked; }});
     if(publicationChecked){
       checks.push({el:el('j-publication-by'), ok:function(){ return !!v('j-publication-by'); }});
       checks.push({el:el('j-publication-relationship'), ok:function(){ return !!v('j-publication-relationship'); }});
@@ -1295,8 +1341,7 @@
     var msgParts=[];
     var audience=v('j-audience');
     if(audience) msgParts.push(T('报名对象: ','For: ')+audience);
-    try{ msgParts = msgParts.concat(collectRegistrationFields()); }
-    catch(fieldError){ btn.disabled=false; btn.textContent=T('提交预约','Submit booking'); return show(fieldError.message); }
+    msgParts=msgParts.concat(custom.values);
     if(v('j-msg')) msgParts.push(v('j-msg'));
     window.StudioSaaSPublicRegister.submit({
       slug: SLUG,
@@ -1492,6 +1537,16 @@
       if(e.key==='Escape') closeGlb();
       if(e.key==='ArrowLeft') navGlb(-1);
       if(e.key==='ArrowRight') navGlb(1);
+      /* Focus trap, same shape as the mobile menu below: the lightbox is a
+         modal dialog, so Tab must not reach the page underneath it. */
+      if(e.key==='Tab'){
+        var focusable=g.querySelectorAll('button:not([disabled])');
+        if(!focusable.length) return;
+        var first=focusable[0], last=focusable[focusable.length-1];
+        if(e.shiftKey && document.activeElement===first){ e.preventDefault(); last.focus(); }
+        else if(!e.shiftKey && document.activeElement===last){ e.preventDefault(); first.focus(); }
+        else if(!g.contains(document.activeElement)){ e.preventDefault(); first.focus(); }
+      }
       return;
     }
     var menu=document.getElementById('mnav');

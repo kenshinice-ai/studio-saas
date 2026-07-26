@@ -401,6 +401,32 @@ def main() -> int:
     check("Front Desk can read registration API data", front_desk.get(f"/s/{TENANT_A}/v1/registrations").status_code == 200)
     check("Front Desk cannot read portfolio API data", front_desk.get(f"/s/{TENANT_A}/v1/portfolio").status_code == 403)
 
+    # v7.4.0 role-boundary audit: granular financial/exposure permissions.
+    student_for_boundary = (owner_a.get(f"/s/{TENANT_A}/v1/students").get_json() or {}).get("students") or []
+    if student_for_boundary:
+        boundary_sid = student_for_boundary[0]["id"]
+        refund_payload = {"transactionType": "refund", "amount": 1, "legacy_type": "refund_out"}
+        check(
+            "Front Desk cannot record a refund (credits:refund)",
+            front_desk.post(
+                f"/s/{TENANT_A}/v1/students/{boundary_sid}/credit-transactions", json=refund_payload
+            ).status_code == 403,
+        )
+        check(
+            "Teacher cannot mint a portfolio share link (portfolio:share)",
+            teacher.post(f"/s/{TENANT_A}/v1/students/{boundary_sid}/share-links", json={}).status_code == 403,
+        )
+    check(
+        "Teacher cannot read package prices (credits:read)",
+        teacher.get(f"/s/{TENANT_A}/v1/packages").status_code == 403,
+    )
+    teacher_dashboard = (teacher.get(f"/s/{TENANT_A}/v1/dashboard").get_json() or {}).get("dashboard") or {}
+    check(
+        "Teacher dashboard omits financial aggregates (analytics:read)",
+        "cash_net" not in (teacher_dashboard.get("business") or {})
+        and "attended_total" in (teacher_dashboard.get("business") or {}),
+    )
+
     # 1. Tenant A students never appear in Tenant B.
     response = owner_a.get(f"/s/{TENANT_A}/v1/students")
     students_a = response.get_json()["students"]

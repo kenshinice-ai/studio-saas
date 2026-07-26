@@ -94,7 +94,7 @@ SESSION_SECRET_FILE = _data_path('.session_secret')
 PW_FILE       = _data_path('.cms_password')
 app.config['PHOTO_DIR'] = PHOTO_DIR
 MAX_BACKUPS   = 30   # 1 backup/hr rate limit → ~30 hours of rolling coverage
-APP_VERSION   = '7.3.1'
+APP_VERSION   = '7.4.0'
 ALLOWED_EXT   = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
 EXT_MIME_TYPES = {
     'jpg': {'image/jpeg'},
@@ -306,6 +306,13 @@ def _verify_pw(pw, stored):
     # Legacy 64-char SHA-256 hex → verify, then caller upgrades transparently
     return (secrets.compare_digest(_hash_pw_legacy(pw), stored), True)
 
+def _legacy_cms_enabled():
+    """Whether the legacy single-studio surface (/api/*) is reachable at all."""
+    return (
+        RUNTIME_ENV not in {'pilot', 'production'}
+        or os.environ.get('STUDIOSAAS_ENABLE_LEGACY_CMS') == '1'
+    )
+
 def _get_pw_hash():
     """Return the legacy CMS password hash, with defaults limited to local dev."""
     if os.path.exists(PW_FILE):
@@ -314,6 +321,11 @@ def _get_pw_hash():
         if h:
             return h
     if RUNTIME_ENV in {'pilot', 'production'}:
+        if not _legacy_cms_enabled():
+            # The /api surface is blocked in SaaS deployments, so no login can
+            # ever consume this credential — return an unguessable throwaway
+            # instead of demanding one at boot.
+            return _hash_pw(secrets.token_hex(32))
         raise RuntimeError(
             'Legacy CMS password is not configured. '
             'Run backend/scripts/rotate_pilot_credentials.py before deployment.'
@@ -604,6 +616,31 @@ def _weekly_email_loop():
 def _session_ok():
     """Return True if the browser session is authenticated."""
     return session.get('auth') is True
+
+# ── SaaS boundary for the legacy single-studio surface ───────────────────────
+# The flat-JSON CMS API (/api/*, /photos/*, /portfolio/img/*) authenticates
+# with one shared password and has no role, tenant, or audit model. In a
+# multi-tenant deployment every tenant flow goes through /v1 (the CMS shim in
+# legacy-root/index.html rewrites /api/data|save|upload|portfolio to
+# tenant-scoped v1 routes), so the legacy surface must not stay reachable as
+# an unscoped parallel data plane. Blocked in pilot/production; a legitimate
+# single-studio install keeps it by running RUNTIME_ENV=local or setting
+# STUDIOSAAS_ENABLE_LEGACY_CMS=1 explicitly.
+_LEGACY_API_ALLOWED_PATHS = {'/api/ping'}
+
+@app.before_request
+def _block_legacy_api_in_saas():
+    if _legacy_cms_enabled():
+        return None
+    path = request.path or ''
+    if path in _LEGACY_API_ALLOWED_PATHS:
+        return None
+    if path.startswith(('/api/', '/photos/', '/portfolio/img/')):
+        return jsonify({
+            'error': 'gone',
+            'message': 'The legacy CMS API is disabled in SaaS deployments. Use the tenant-scoped /v1 API.',
+        }), 410
+    return None
 
 # ── CORS (only when explicitly configured) + access log under waitress ───────
 _USING_WAITRESS = False   # set True in __main__ when waitress serves the app

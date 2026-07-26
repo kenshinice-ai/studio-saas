@@ -77,7 +77,7 @@
     button[data-busy="true"] { cursor:wait; }
     .error { display:none; color:var(--danger); font-size:13px; margin:0 0 12px; }
     .done { display:none; text-align:left; padding:18px 4px 4px; }
-    .done .mark { width:52px; height:52px; display:grid; place-items:center; border-radius:50%; color:var(--on-accent); background:var(--success); font-size:28px; line-height:1; }
+    .done .mark { width:52px; height:52px; display:grid; place-items:center; border-radius:50%; color:var(--on-success); background:var(--success); font-size:28px; line-height:1; }
     .done .eyebrow { margin-top:22px; }
     .done h2 { margin:8px 0 10px; font-family:var(--font-display); font-size:clamp(28px,5vw,38px); font-weight:500; line-height:1.12; }
     .done > p { margin:0; color:var(--ink2); line-height:1.7; }
@@ -121,7 +121,7 @@
       </div>
     </div>
     <div class="header-actions">
-      <div class="lang-switch" aria-label="Language">
+      <div class="lang-switch" role="group" aria-label="语言 / Language">
         <button type="button" data-language="zh" aria-pressed="true">中</button>
         <button type="button" data-language="en" aria-pressed="false">EN</button>
       </div>
@@ -280,7 +280,10 @@
        sentence in the middle of the card and leaving the visitor to hunt. */
     function clearFieldErrors() {
       document.querySelectorAll('.has-error').forEach((el) => el.classList.remove('has-error'));
-      document.querySelectorAll('[aria-invalid="true"]').forEach((el) => el.removeAttribute('aria-invalid'));
+      document.querySelectorAll('[aria-invalid="true"]').forEach((el) => {
+        el.removeAttribute('aria-invalid');
+        el.removeAttribute('aria-describedby');
+      });
     }
     function failFirst(checks) {
       clearFieldErrors();
@@ -288,7 +291,16 @@
       checks.forEach((check) => {
         if (check.ok()) return;
         const block = check.el.closest('.field') || check.el.closest('.consent-block');
-        if (block) block.classList.add('has-error');
+        if (block) {
+          block.classList.add('has-error');
+          /* Point the input at its own error note, so a screen reader says
+             why the field is invalid instead of just that it is. */
+          const note = block.querySelector('.field-error');
+          if (note) {
+            if (!note.id) note.id = `${check.el.id || 'field'}-err`;
+            check.el.setAttribute('aria-describedby', note.id);
+          }
+        }
         check.el.setAttribute('aria-invalid', 'true');
         if (!first) first = check.el;
       });
@@ -310,8 +322,7 @@
     function collectFields() {
       return window.StudioSaaSPublicRegister.collectFields({
         container: 'customFields',
-        labelSelector: '.field',
-        requiredPrefix: T('请填写', 'Please complete')
+        labelSelector: '.field'
       });
     }
     function applyBrandContent() {
@@ -426,11 +437,15 @@
       document.getElementById('error').style.display = 'none';
       const el = (id) => document.getElementById(id);
       const publicationChecked = el('publicationConsent').checked;
+      /* P2-8: missing required custom fields go through the same failFirst
+         path as the built-in ones, in DOM order. */
+      const custom = collectFields();
       const checks = [
         { el: el('firstName'), ok: () => Boolean(value('firstName')) },
-        { el: el('mobile'), ok: () => Boolean(value('mobile')) },
-        { el: el('consent'), ok: () => el('consent').checked }
+        { el: el('mobile'), ok: () => Boolean(value('mobile')) }
       ];
+      custom.missing.forEach((item) => checks.push({ el: item.el, ok: () => false }));
+      checks.push({ el: el('consent'), ok: () => el('consent').checked });
       if (publicationChecked) {
         checks.push({ el: el('publicationConsentBy'), ok: () => Boolean(value('publicationConsentBy')) });
         checks.push({ el: el('publicationRelationship'), ok: () => Boolean(value('publicationRelationship')) });
@@ -440,7 +455,7 @@
       button.disabled = true;
       button.textContent = T('提交中…', 'Submitting...');
       try {
-        const extra = collectFields();
+        const extra = custom.values;
         if (value('message')) extra.push(value('message'));
         await window.StudioSaaSPublicRegister.submit({
           slug: TENANT_SLUG,

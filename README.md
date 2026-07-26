@@ -1,6 +1,6 @@
 # PWE Studio SaaS
 
-Current release: **v7.3.4**
+Current release: **v7.4.0**
 
 PWE Studio SaaS (repo: studiosaas) is a multi-tenant Creative Studio Operating System for art schools, music studios, tutoring centres, creative academies, kids' activity providers, and small education businesses.
 
@@ -350,6 +350,61 @@ Language surfaces.
 Also removed: a decorative "Founder / Principal / Mentor" chip row in the
 portal template — hard-coded English with no `data-zh`, asserting three roles
 about a real person that no studio had entered.
+
+### 4.14 v7.4.0 role boundaries, accessibility, AWS deployment kit
+
+**Role boundaries** (full audit of every route in `api_v1.py` + `server.py`
+against `ROLE_PERMISSIONS` and the CMS UI gates):
+
+- The unscoped legacy surface (`/api/*`, `/photos/*`, `/portfolio/img/*`) is
+  **disabled (410) in pilot/production** — it has one shared password and no
+  role/tenant model. `/api/ping` stays; `STUDIOSAAS_ENABLE_LEGACY_CMS=1`
+  re-enables for a genuine single-studio install.
+- `parent`-only users can no longer obtain a staff session: `/v1/auth/login`
+  refuses them (403) until the family self-service surface exists, and the
+  legacy projection fails closed to an empty payload for the role.
+- Financial boundary enforced everywhere it was documented: `/v1/dashboard`
+  returns revenue/average-price/liability only to `analytics:read` roles;
+  `/v1/packages` (prices) now requires `credits:read`, matching the CMS
+  projection that already blanked packages for teachers.
+- New granular permissions: `credits:refund` (owner/manager — refunds move
+  real money and were open to front-desk/staff) and `portfolio:share`
+  (owner/manager — share links expose a named minor's photos publicly).
+  Revoking a share link stays `portfolio:write` so any portfolio-writing
+  staff can kill an exposed link fast.
+- `/v1/legacy-cms/save` moved from owner/manager-only to `students:write` —
+  the CMS's own student flows (create/edit/archive) were silently 403-ing for
+  front-desk and staff while the UI reported success. `save()` in the CMS now
+  propagates failure and resyncs, so no caller reports success on a rejected
+  write. Package edits inside the payload still apply only for owner/manager.
+- Teacher's dead-end fixed: the role held `attendance:write` but the CMS
+  never showed it the roster tab where check-in lives. Teachers now get
+  `roster`, and per-day roster actions follow a `canWriteAttendance` flag
+  that matches the backend permission.
+- Dead permission strings wired to real routes (`tenant:update`,
+  `courses:write`, `analytics:read`, `settings:write`), the platform-level
+  role-ranking ladder fixed (`manager` ranked below `staff`), tenant filter
+  added to the schedule-roster DELETE, and both consoles now recognise only
+  the platform (`tenant_id IS NULL`) `super_admin` membership — mirroring the
+  backend rule a legacy tenant-scoped row could previously bypass in the UI.
+
+**Accessibility pass** (ui-ux-pro-max review, all four surfaces): every form
+control in both admin consoles has an associated label; modals restore focus
+and trap Tab; the workbench tabs implement the ARIA tab keyboard contract;
+the portal gallery/lightbox is fully keyboard-operable with a real dialog
+role; custom registration fields joined the per-field error pattern
+(`aria-invalid`, `aria-describedby`, focus move); `aria-label`s localise with
+the language switch; the about carousel pauses on hover/focus; Super Admin's
+text-glyph icons became inline SVGs; and the portal's last hard-coded warm
+hexes became theme tokens (incl. a new `--on-success`).
+
+**AWS deployment kit** — `deploy/aws/` ships Dockerfile, entrypoint
+(wait-for-DB → migrations → waitress, refuses production boot without
+secrets), docker-compose (RDS by default, `--profile local-db` rehearsal),
+nginx and systemd configs, `.env.example`, and `build_aws_bundle.sh`, which
+packages a clean git tree into `dist/PWE-StudioSaaS-aws-<version>.tar.gz`
+with a `BUILD_INFO` stamp. Runbook: `deploy/aws/README_AWS.md`; verified
+end-to-end in Docker (health, migrations, legacy-API 410).
 
 ---
 

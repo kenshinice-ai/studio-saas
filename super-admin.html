@@ -291,6 +291,11 @@
       flex-shrink: 0;
     }
 
+    .section-icon svg {
+      width: 20px;
+      height: 20px;
+    }
+
     .section-title {
       font-size: 18px;
       font-weight: 700;
@@ -577,6 +582,12 @@
     .pill.fixture {
       background: var(--purple-light);
       color: var(--purple);
+    }
+
+    .pill-icon {
+      width: 10px;
+      height: 10px;
+      flex: 0 0 auto;
     }
 
     /* Progress Bars */
@@ -1054,7 +1065,7 @@
     <div id="adminContent" class="hidden">
       <section id="overview" class="section">
         <div class="section-header">
-          <div class="section-icon">↗</div>
+          <div class="section-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941"/></svg></div>
           <div>
             <div class="section-title">Commercial Overview</div>
             <div class="section-subtitle">Tenant lifecycle, recurring revenue, activation, and platform usage</div>
@@ -1106,7 +1117,7 @@
 
       <section id="tenants" class="section">
         <div class="section-header">
-          <div class="section-icon">▦</div>
+          <div class="section-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/></svg></div>
           <div>
             <div class="section-title">Tenants</div>
             <div class="section-subtitle">Manage studios, subscriptions, and safe operational state</div>
@@ -1116,11 +1127,11 @@
         <section class="card">
           <div class="toolbar">
             <div class="filter-group">
-              <label>Search Tenants</label>
+              <label for="tenantSearch">Search Tenants</label>
               <input id="tenantSearch" placeholder="Name, slug, owner, admin...">
             </div>
             <div class="filter-group">
-              <label>Status</label>
+              <label for="statusFilter">Status</label>
               <select id="statusFilter">
                 <option value="">All Statuses</option>
                 <option>lead</option>
@@ -1134,11 +1145,11 @@
               </select>
             </div>
             <div class="filter-group">
-              <label>Plan</label>
+              <label for="planFilter">Plan</label>
               <select id="planFilter"><option value="">All Plans</option></select>
             </div>
             <div class="filter-group">
-              <label>Category</label>
+              <label for="categoryFilter">Category</label>
               <select id="categoryFilter"><option value="">All Categories</option></select>
             </div>
             <label class="filter-group" style="display:flex;align-items:center;gap:8px;margin-bottom:0;">
@@ -1180,7 +1191,7 @@
 
       <section id="plans" class="section">
         <div class="section-header">
-          <div class="section-icon">◆</div>
+          <div class="section-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z"/><path d="M6 6h.008v.008H6V6z"/></svg></div>
           <div>
             <div class="section-title">Plans</div>
             <div class="section-subtitle">Pricing and platform limits available to tenants</div>
@@ -1209,7 +1220,7 @@
 
       <section id="audit" class="section">
         <div class="section-header">
-          <div class="section-icon">◎</div>
+          <div class="section-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>
           <div>
             <div class="section-title">Audit Logs</div>
             <div class="section-subtitle">Recent platform activity and operator changes</div>
@@ -1397,7 +1408,11 @@
     }
 
     function hasSuperAdminRole(data) {
-      return (data.memberships || []).some((membership) => membership.role === 'super_admin');
+      // Only the platform membership (tenant_slug NULL) counts — a legacy
+      // tenant-scoped super_admin row is not a platform administrator
+      // (mirrors _has_platform_super_admin_membership on the backend).
+      return (data.memberships || []).some(
+        (membership) => membership.role === 'super_admin' && !membership.tenant_slug);
     }
 
     async function checkSession() {
@@ -1475,9 +1490,9 @@
 
     function openChangePasswordModal() {
       const bodyHtml = `
-        <div class="form-group"><label>Current Password</label><input id="m_oldPassword" type="password" autocomplete="current-password"></div>
-        <div class="form-group"><label>New Password</label><input id="m_newPassword" type="password" autocomplete="new-password" placeholder="At least 8 characters"></div>
-        <div class="form-group"><label>Confirm New Password</label><input id="m_confirmPassword" type="password" autocomplete="new-password"></div>
+        <div class="form-group"><label for="m_oldPassword">Current Password</label><input id="m_oldPassword" type="password" autocomplete="current-password"></div>
+        <div class="form-group"><label for="m_newPassword">New Password</label><input id="m_newPassword" type="password" autocomplete="new-password" placeholder="At least 8 characters"></div>
+        <div class="form-group"><label for="m_confirmPassword">Confirm New Password</label><input id="m_confirmPassword" type="password" autocomplete="new-password"></div>
       `;
       const footerHtml = `<button onclick="changePassword()" class="btn-primary">Update Password</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
       openModal('Change Password', bodyHtml, footerHtml);
@@ -1504,7 +1519,10 @@
     }
 
     // Modal functions
+    let modalReturnFocus = null;
+
     function openModal(title, bodyHtml, footerHtml) {
+      modalReturnFocus = document.activeElement;
       $('modalTitle').textContent = title;
       $('modalBody').innerHTML = bodyHtml;
       $('modalFooter').innerHTML = footerHtml;
@@ -1515,23 +1533,52 @@
 
     function closeModal() {
       $('modalOverlay').classList.remove('active');
+      if (modalReturnFocus && typeof modalReturnFocus.focus === 'function') modalReturnFocus.focus();
+      modalReturnFocus = null;
     }
 
-    // Status pill with icon
-    function pill(value) {
-      const icons = { lead: '○', onboarding: '◒', active: '●', trialing: '◐', trial: '◇', past_due: '⚠', cancelled: '✕', paused: '⏸', archived: '□', deleted: '✕' };
-      const cls = value === 'active' || value === 'trialing' || value === 'trial' ? 'pill active' :
-                  value === 'past_due' ? 'pill past_due' : 'pill';
-      return `<span class="${cls}">${icons[value] || ''} ${text(value)}</span>`;
+    // Keep Tab and Shift+Tab cycling inside the open dialog.
+    function trapModalFocus(event) {
+      if (event.key !== 'Tab') return;
+      const focusable = Array.from($('modalOverlay').querySelectorAll('button, [href], input, select, textarea'))
+        .filter((element) => !element.disabled && element.offsetParent !== null);
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     }
+
+    // Status pill with icon. SVG-only (v7.3.2 icon rule): the old text glyphs
+    // ⚠ and ⏸ render as emoji on some platforms. Decorative — the status word
+    // next to each icon carries the meaning.
+    const pillIcon = (body) => `<svg class="pill-icon" viewBox="0 0 12 12" aria-hidden="true" focusable="false">${body}</svg>`;
+    const PILL_CROSS = pillIcon('<path d="M2.5 2.5l7 7M9.5 2.5l-7 7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>');
+    const STATUS_PILL_ICONS = {
+      lead: pillIcon('<circle cx="6" cy="6" r="4.25" fill="none" stroke="currentColor" stroke-width="1.5"/>'),
+      onboarding: pillIcon('<circle cx="6" cy="6" r="4.25" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M1.75 6a4.25 4.25 0 008.5 0z" fill="currentColor"/>'),
+      active: pillIcon('<circle cx="6" cy="6" r="4.75" fill="currentColor"/>'),
+      trialing: pillIcon('<circle cx="6" cy="6" r="4.25" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M6 1.75a4.25 4.25 0 000 8.5z" fill="currentColor"/>'),
+      trial: pillIcon('<path d="M6 1.2L10.8 6 6 10.8 1.2 6z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>'),
+      past_due: pillIcon('<path d="M6 1.4L11 10.4H1z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M6 4.4v2.6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="6" cy="8.9" r="0.7" fill="currentColor"/>'),
+      cancelled: PILL_CROSS,
+      paused: pillIcon('<path d="M4 2.5v7M8 2.5v7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>'),
+      archived: pillIcon('<rect x="2" y="2" width="8" height="8" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/>'),
+      deleted: PILL_CROSS
+    };
 
     function appendPill(cell, value) {
-      const icons = { lead: '○', onboarding: '◒', active: '●', trialing: '◐', trial: '◇', past_due: '⚠', cancelled: '✕', paused: '⏸', archived: '□', deleted: '✕' };
       const cls = value === 'active' || value === 'trialing' || value === 'trial' ? 'pill active' :
                   value === 'past_due' ? 'pill past_due' : 'pill';
       const span = document.createElement('span');
       span.className = cls;
-      span.textContent = `${icons[value] || ''} ${text(value)}`.trim();
+      span.innerHTML = STATUS_PILL_ICONS[value] || '';
+      span.appendChild(document.createTextNode(text(value)));
       cell.appendChild(span);
       return span;
     }
@@ -1768,45 +1815,45 @@
         <details class="form-section" open>
           <summary>Basic</summary>
           <div class="form-section-body form-grid">
-            <div class="form-group"><label>Studio Name</label><input id="m_tenantName" value="${esc(t.name)}"></div>
-            <div class="form-group"><label>Slug</label><input id="m_tenantSlug" value="${esc(t.slug)}" disabled><small>Read-only after creation because it affects URLs, workspace paths, and media paths.</small></div>
-            <div class="form-group"><label>Category</label><select id="m_tenantCategory">${categoryOptions(t.category || 'general')}</select></div>
-            <div class="form-group"><label>Slogan</label><input id="m_tenantSlogan" value="${esc(t.slogan || presetSlogan(t.category || 'general'))}"></div>
-            <div class="form-group"><label>Tenant Status</label><input id="m_tenantStatus" value="${esc(t.status)}" disabled><small>Use More → Status for audited lifecycle actions.</small></div>
-            <div class="form-group"><label>Plan</label><select id="m_tenantPlan">${plans.map(p => `<option value="${p.code}" ${p.code===t.plan_code?'selected':''}>${p.name}</option>`).join('')}</select></div>
+            <div class="form-group"><label for="m_tenantName">Studio Name</label><input id="m_tenantName" value="${esc(t.name)}"></div>
+            <div class="form-group"><label for="m_tenantSlug">Slug</label><input id="m_tenantSlug" value="${esc(t.slug)}" disabled><small>Read-only after creation because it affects URLs, workspace paths, and media paths.</small></div>
+            <div class="form-group"><label for="m_tenantCategory">Category</label><select id="m_tenantCategory">${categoryOptions(t.category || 'general')}</select></div>
+            <div class="form-group"><label for="m_tenantSlogan">Slogan</label><input id="m_tenantSlogan" value="${esc(t.slogan || presetSlogan(t.category || 'general'))}"></div>
+            <div class="form-group"><label for="m_tenantStatus">Tenant Status</label><input id="m_tenantStatus" value="${esc(t.status)}" disabled><small>Use More → Status for audited lifecycle actions.</small></div>
+            <div class="form-group"><label for="m_tenantPlan">Plan</label><select id="m_tenantPlan">${plans.map(p => `<option value="${p.code}" ${p.code===t.plan_code?'selected':''}>${p.name}</option>`).join('')}</select></div>
           </div>
         </details>
         <details class="form-section" open>
           <summary>Owner & Contact</summary>
           <div class="form-section-body">
             <div class="form-grid">
-              <div class="form-group"><label>Owner Name</label><input id="m_ownerName" value="${esc(t.owner_name||'')}"></div>
-              <div class="form-group"><label>Owner Role</label><input id="m_ownerRole" value="${esc(t.owner_role||'')}"></div>
-              <div class="form-group"><label>Owner Email</label><input id="m_ownerEmail" type="email" value="${esc(t.owner_email||'')}"></div>
-              <div class="form-group"><label>Owner Phone</label><input id="m_ownerPhone" value="${esc(t.owner_phone||'')}"></div>
-              <div class="form-group"><label>Contact Email</label><input id="m_contactEmail" type="email" value="${esc(t.contact_email||'')}"></div>
-              <div class="form-group"><label>Contact Phone</label><input id="m_contactPhone" value="${esc(t.contact_phone||'')}"></div>
-              <div class="form-group"><label>Website</label><input id="m_tenantWebsite" type="url" value="${esc(t.website||'')}"></div>
-              <div class="form-group"><label>ABN</label><input id="m_tenantAbn" value="${esc(t.abn||'')}"></div>
-              <div class="form-group" style="grid-column: span 2;"><label>Address</label><input id="m_tenantAddress" value="${esc(t.address||'')}"></div>
+              <div class="form-group"><label for="m_ownerName">Owner Name</label><input id="m_ownerName" value="${esc(t.owner_name||'')}"></div>
+              <div class="form-group"><label for="m_ownerRole">Owner Role</label><input id="m_ownerRole" value="${esc(t.owner_role||'')}"></div>
+              <div class="form-group"><label for="m_ownerEmail">Owner Email</label><input id="m_ownerEmail" type="email" value="${esc(t.owner_email||'')}"></div>
+              <div class="form-group"><label for="m_ownerPhone">Owner Phone</label><input id="m_ownerPhone" value="${esc(t.owner_phone||'')}"></div>
+              <div class="form-group"><label for="m_contactEmail">Contact Email</label><input id="m_contactEmail" type="email" value="${esc(t.contact_email||'')}"></div>
+              <div class="form-group"><label for="m_contactPhone">Contact Phone</label><input id="m_contactPhone" value="${esc(t.contact_phone||'')}"></div>
+              <div class="form-group"><label for="m_tenantWebsite">Website</label><input id="m_tenantWebsite" type="url" value="${esc(t.website||'')}"></div>
+              <div class="form-group"><label for="m_tenantAbn">ABN</label><input id="m_tenantAbn" value="${esc(t.abn||'')}"></div>
+              <div class="form-group" style="grid-column: span 2;"><label for="m_tenantAddress">Address</label><input id="m_tenantAddress" value="${esc(t.address||'')}"></div>
             </div>
             <div class="action-row" style="margin-bottom:12px;">
               <button id="copyOwnerToContactBtn" type="button" class="btn-secondary btn-sm">Use owner email for contact</button>
               <button id="copyOwnerToBillingBtn" type="button" class="btn-secondary btn-sm">Use owner email for billing</button>
               <button id="copyOwnerToAdminBtn" type="button" class="btn-secondary btn-sm">Use owner email for admin login</button>
             </div>
-            <div class="form-group"><label>Notes</label><textarea id="m_tenantNotes" rows="3">${esc(t.notes||'')}</textarea></div>
+            <div class="form-group"><label for="m_tenantNotes">Notes</label><textarea id="m_tenantNotes" rows="3">${esc(t.notes||'')}</textarea></div>
           </div>
         </details>
         <details class="form-section">
           <summary>Admin Login</summary>
           <div class="form-section-body form-grid">
-            <div class="form-group"><label>Studio Admin Email</label><input id="m_studioAdminEmail" type="email" value="${esc(t.studio_admin_email || t.owner_email || '')}"></div>
-            <div class="form-group"><label>Studio Admin Name</label><input id="m_studioAdminName" value="${esc(t.studio_admin_name || t.owner_name || '')}"></div>
-            <div class="form-group"><label>Login Status</label><input value="${t.studio_admin_email ? 'Configured' : 'Not configured'}" disabled></div>
-            <div class="form-group"><label>Last Login</label><input value="${t.studio_admin_last_login ? new Date(t.studio_admin_last_login).toLocaleString() : 'Never logged in'}" disabled></div>
-            <div class="form-group"><label>Reset Password</label><input id="m_studioAdminPassword" type="password" placeholder="Leave blank to keep existing password"><small>Leave blank to keep existing password.</small></div>
-            <div class="form-group"><label>Password Setup Link</label>
+            <div class="form-group"><label for="m_studioAdminEmail">Studio Admin Email</label><input id="m_studioAdminEmail" type="email" value="${esc(t.studio_admin_email || t.owner_email || '')}"></div>
+            <div class="form-group"><label for="m_studioAdminName">Studio Admin Name</label><input id="m_studioAdminName" value="${esc(t.studio_admin_name || t.owner_name || '')}"></div>
+            <div class="form-group"><label for="m_loginStatus">Login Status</label><input id="m_loginStatus" value="${t.studio_admin_email ? 'Configured' : 'Not configured'}" disabled></div>
+            <div class="form-group"><label for="m_lastLogin">Last Login</label><input id="m_lastLogin" value="${t.studio_admin_last_login ? new Date(t.studio_admin_last_login).toLocaleString() : 'Never logged in'}" disabled></div>
+            <div class="form-group"><label for="m_studioAdminPassword">Reset Password</label><input id="m_studioAdminPassword" type="password" placeholder="Leave blank to keep existing password"><small>Leave blank to keep existing password.</small></div>
+            <div class="form-group"><label for="m_setupLinkOut">Password Setup Link</label>
               <div style="display:flex;gap:8px;align-items:center;">
                 <button type="button" class="btn-secondary btn-sm" onclick="generateSetupLink('${esc(t.id)}')">Generate link</button>
                 <input id="m_setupLinkOut" readonly placeholder="One-time link appears here" style="flex:1;">
@@ -1819,20 +1866,20 @@
         <details class="form-section">
           <summary>Subscription</summary>
           <div class="form-section-body form-grid">
-            <div class="form-group"><label>Subscription Status</label><input id="m_subscriptionStatus" value="${esc(t.subscription_status || '')}" disabled><small>Changed together with tenant lifecycle state.</small></div>
-            <div class="form-group"><label>Subscription Start</label><input id="m_startsAt" type="date" value="${dateOnly(t.starts_at)}"></div>
-            <div class="form-group"><label>Current Period Ends</label><input id="m_currentPeriodEndsAt" type="date" value="${dateOnly(t.current_period_ends_at)}"></div>
-            <div class="form-group"><label>Cancellation / Expiry Date</label><input id="m_endsAt" type="date" value="${dateOnly(t.ends_at)}"></div>
-            <div class="form-group"><label>Billing Email</label><input id="m_billingEmail" type="email" value="${esc(t.billing_email||'')}"></div>
+            <div class="form-group"><label for="m_subscriptionStatus">Subscription Status</label><input id="m_subscriptionStatus" value="${esc(t.subscription_status || '')}" disabled><small>Changed together with tenant lifecycle state.</small></div>
+            <div class="form-group"><label for="m_startsAt">Subscription Start</label><input id="m_startsAt" type="date" value="${dateOnly(t.starts_at)}"></div>
+            <div class="form-group"><label for="m_currentPeriodEndsAt">Current Period Ends</label><input id="m_currentPeriodEndsAt" type="date" value="${dateOnly(t.current_period_ends_at)}"></div>
+            <div class="form-group"><label for="m_endsAt">Cancellation / Expiry Date</label><input id="m_endsAt" type="date" value="${dateOnly(t.ends_at)}"></div>
+            <div class="form-group"><label for="m_billingEmail">Billing Email</label><input id="m_billingEmail" type="email" value="${esc(t.billing_email||'')}"></div>
           </div>
         </details>
         <details class="form-section">
           <summary>Limits</summary>
           <div class="form-section-body form-grid">
-            <div class="form-group"><label>Student Limit</label><input value="${esc(text(tenantPlan(t).student_limit))}" disabled><small>Inherited from ${esc(text(tenantPlan(t).name || t.plan_code))} plan.</small></div>
-            <div class="form-group"><label>Storage Limit</label><input value="${esc(formatStorageMb(tenantPlan(t).storage_limit_mb))}" disabled><small>Inherited from ${esc(text(tenantPlan(t).name || t.plan_code))} plan.</small></div>
-            <div class="form-group"><label>Admin User Limit</label><input value="${esc(text(tenantPlan(t).user_limit))}" disabled><small>Inherited from ${esc(text(tenantPlan(t).name || t.plan_code))} plan.</small></div>
-            <div class="form-group"><label>Media Upload Limit</label><input value="Canonical media service limits by asset type" disabled></div>
+            <div class="form-group"><label for="m_limitStudents">Student Limit</label><input id="m_limitStudents" value="${esc(text(tenantPlan(t).student_limit))}" disabled><small>Inherited from ${esc(text(tenantPlan(t).name || t.plan_code))} plan.</small></div>
+            <div class="form-group"><label for="m_limitStorage">Storage Limit</label><input id="m_limitStorage" value="${esc(formatStorageMb(tenantPlan(t).storage_limit_mb))}" disabled><small>Inherited from ${esc(text(tenantPlan(t).name || t.plan_code))} plan.</small></div>
+            <div class="form-group"><label for="m_limitUsers">Admin User Limit</label><input id="m_limitUsers" value="${esc(text(tenantPlan(t).user_limit))}" disabled><small>Inherited from ${esc(text(tenantPlan(t).name || t.plan_code))} plan.</small></div>
+            <div class="form-group"><label for="m_limitMedia">Media Upload Limit</label><input id="m_limitMedia" value="Canonical media service limits by asset type" disabled></div>
           </div>
         </details>
         <details class="form-section">
@@ -1961,7 +2008,7 @@
       const body = isPause
         ? `<p>Pause <strong>${esc(t.name)}</strong>? Public tenant pages stay present, but the tenant will be marked paused for operations and billing review.</p>`
         : `<p>Reactivate <strong>${esc(t.name)}</strong>? This restores active tenant status and subscription state.</p>`;
-      const confirm = `<div class="form-group mt-2"><label>Type tenant slug to confirm</label><input id="m_tenantStateConfirmSlug" placeholder="${esc(t.slug)}"></div>`;
+      const confirm = `<div class="form-group mt-2"><label for="m_tenantStateConfirmSlug">Type tenant slug to confirm</label><input id="m_tenantStateConfirmSlug" placeholder="${esc(t.slug)}"></div>`;
       const footerHtml = `<button id="confirmTenantStateBtn" onclick="confirmTenantState('${id}', '${targetStatus}', '${targetSubscription}')" class="${isPause ? 'btn-danger' : 'btn-primary'}">${verb}</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
       openModal(title, body + confirm, footerHtml);
     }
@@ -2035,7 +2082,7 @@
       const t = tenants.find((item) => item.id === id);
       if (!t) return;
       const footerHtml = `<button id="confirmArchiveTenantBtn" onclick="confirmArchiveTenant('${id}')" class="btn-danger">Archive Tenant</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
-      openModal('Archive Tenant', `<p>Archive <strong>${esc(t.name)}</strong>? Tenant APIs become unavailable after snapshots are written.</p><ul style="margin:12px 0 12px 20px;color:var(--muted);"><li>Database snapshot</li><li>Workspace folder copy</li><li>Media folder copy</li><li>Subscription metadata</li></ul><div class="form-group mt-2"><label>Type tenant slug to confirm</label><input id="m_archiveTenantConfirmSlug" placeholder="${esc(t.slug)}"></div>`, footerHtml);
+      openModal('Archive Tenant', `<p>Archive <strong>${esc(t.name)}</strong>? Tenant APIs become unavailable after snapshots are written.</p><ul style="margin:12px 0 12px 20px;color:var(--muted);"><li>Database snapshot</li><li>Workspace folder copy</li><li>Media folder copy</li><li>Subscription metadata</li></ul><div class="form-group mt-2"><label for="m_archiveTenantConfirmSlug">Type tenant slug to confirm</label><input id="m_archiveTenantConfirmSlug" placeholder="${esc(t.slug)}"></div>`, footerHtml);
     }
 
     async function confirmArchiveTenant(id) {
@@ -2065,7 +2112,7 @@
       const t = tenants.find((item) => item.id === id);
       if (!t) return;
       const footerHtml = `<button id="confirmPermanentDeleteTenantBtn" onclick="confirmPermanentDeleteTenant('${id}')" class="btn-danger">Permanent Delete</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
-      openModal('Permanent Delete Tenant', `<p>Permanently delete <strong>${esc(t.name)}</strong>? This is irreversible for live tenant records.</p><ul style="margin:12px 0 12px 20px;color:var(--muted);"><li>Final snapshot path: ${esc(t.archive_path || 'archive/final-delete-snapshot')}</li><li>Tenant database records</li><li>Archived files remain as audit evidence</li><li>Media records are removed by tenant deletion</li></ul><div class="form-group mt-2"><label>Type DELETE ${esc(t.slug)} to confirm</label><input id="m_permanentDeleteTenantPhrase" placeholder="DELETE ${esc(t.slug)}"></div>`, footerHtml);
+      openModal('Permanent Delete Tenant', `<p>Permanently delete <strong>${esc(t.name)}</strong>? This is irreversible for live tenant records.</p><ul style="margin:12px 0 12px 20px;color:var(--muted);"><li>Final snapshot path: ${esc(t.archive_path || 'archive/final-delete-snapshot')}</li><li>Tenant database records</li><li>Archived files remain as audit evidence</li><li>Media records are removed by tenant deletion</li></ul><div class="form-group mt-2"><label for="m_permanentDeleteTenantPhrase">Type DELETE ${esc(t.slug)} to confirm</label><input id="m_permanentDeleteTenantPhrase" placeholder="DELETE ${esc(t.slug)}"></div>`, footerHtml);
     }
 
     async function confirmPermanentDeleteTenant(id) {
@@ -2345,7 +2392,7 @@
             ${KNOWN_PLAN_FEATURES.map(([key, label]) => `<label style="display:flex;align-items:center;gap:9px;"><input type="checkbox" data-plan-feature="${key}" style="width:auto;" ${features[key] ? 'checked' : ''}> ${label}</label>`).join('')}
           </div>
         </fieldset>
-        <div class="form-group"><label>Additional entitlements (JSON)</label><textarea id="m_planFeaturesAdvanced" rows="3">${esc(JSON.stringify(additional, null, 2))}</textarea><small>Only use this for feature flags not listed above.</small></div>
+        <div class="form-group"><label for="m_planFeaturesAdvanced">Additional entitlements (JSON)</label><textarea id="m_planFeaturesAdvanced" rows="3">${esc(JSON.stringify(additional, null, 2))}</textarea><small>Only use this for feature flags not listed above.</small></div>
       `;
     }
 
@@ -2367,12 +2414,12 @@
       $('modalTitle').textContent = 'Add Plan';
       const bodyHtml = `
         <div class="form-grid">
-          <div class="form-group"><label>Code</label><input id="m_planCode" disabled></div>
-          <div class="form-group"><label>Name</label><input id="m_planName"></div>
-          <div class="form-group"><label>Price (AUD)</label><input id="m_planMonthly" type="number" value="149"></div>
-          <div class="form-group"><label>Students</label><input id="m_planStudents" type="number" min="1" value="800"></div>
-          <div class="form-group"><label>Users</label><input id="m_planUsers" type="number" min="1" value="12"></div>
-          <div class="form-group"><label>Storage (MB)</label><input id="m_planStorage" type="number" min="1" value="51200"></div>
+          <div class="form-group"><label for="m_planCode">Code</label><input id="m_planCode" disabled></div>
+          <div class="form-group"><label for="m_planName">Name</label><input id="m_planName"></div>
+          <div class="form-group"><label for="m_planMonthly">Price (AUD)</label><input id="m_planMonthly" type="number" value="149"></div>
+          <div class="form-group"><label for="m_planStudents">Students</label><input id="m_planStudents" type="number" min="1" value="800"></div>
+          <div class="form-group"><label for="m_planUsers">Users</label><input id="m_planUsers" type="number" min="1" value="12"></div>
+          <div class="form-group"><label for="m_planStorage">Storage (MB)</label><input id="m_planStorage" type="number" min="1" value="51200"></div>
         </div>
         ${planFeatureEditor({ public_registration: true, portfolio: true })}
       `;
@@ -2386,12 +2433,12 @@
       editingPlanCode = code;
       const bodyHtml = `
         <div class="form-grid">
-          <div class="form-group"><label>Code</label><input id="m_planCode" value="${esc(p.code)}" disabled></div>
-          <div class="form-group"><label>Name</label><input id="m_planName" value="${esc(p.name)}"></div>
-          <div class="form-group"><label>Price (AUD)</label><input id="m_planMonthly" type="number" value="${p.monthly_price_aud}"></div>
-          <div class="form-group"><label>Students</label><input id="m_planStudents" type="number" min="1" value="${p.student_limit}"></div>
-          <div class="form-group"><label>Users</label><input id="m_planUsers" type="number" min="1" value="${p.user_limit}"></div>
-          <div class="form-group"><label>Storage (MB)</label><input id="m_planStorage" type="number" min="1" value="${p.storage_limit_mb}"></div>
+          <div class="form-group"><label for="m_planCode">Code</label><input id="m_planCode" value="${esc(p.code)}" disabled></div>
+          <div class="form-group"><label for="m_planName">Name</label><input id="m_planName" value="${esc(p.name)}"></div>
+          <div class="form-group"><label for="m_planMonthly">Price (AUD)</label><input id="m_planMonthly" type="number" value="${p.monthly_price_aud}"></div>
+          <div class="form-group"><label for="m_planStudents">Students</label><input id="m_planStudents" type="number" min="1" value="${p.student_limit}"></div>
+          <div class="form-group"><label for="m_planUsers">Users</label><input id="m_planUsers" type="number" min="1" value="${p.user_limit}"></div>
+          <div class="form-group"><label for="m_planStorage">Storage (MB)</label><input id="m_planStorage" type="number" min="1" value="${p.storage_limit_mb}"></div>
         </div>
         ${planFeatureEditor(p.features || {})}
       `;
@@ -2588,14 +2635,14 @@
       editingTenantId = '';
 	      const bodyHtml = `
 	        <div class="form-grid">
-	          <div class="form-group"><label>Studio Name</label><input id="m_tenantName" placeholder="Northside Art Studio"></div>
-	          <div class="form-group"><label>Slug</label><input id="m_tenantSlug" readonly><small>Auto-generated from studio name.</small></div>
-	          <div class="form-group"><label>Plan</label><select id="m_tenantPlan">${plans.map(p => `<option value="${p.code}">${p.name}</option>`).join('')}</select></div>
-	          <div class="form-group"><label>Studio Category</label><select id="m_tenantCategory">${categoryOptions('general')}</select></div>
-	          <div class="form-group"><label>Owner Name</label><input id="m_ownerName" placeholder="Studio Owner"></div>
-	          <div class="form-group"><label>Owner Email</label><input id="m_ownerEmail" type="email" placeholder="owner@studio.test"></div>
-	          <div class="form-group" style="grid-column:span 2;"><label>Temporary Admin Password</label><input id="m_studioAdminPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="At least 8 characters"><small>Required for initial access. Share it through a secure channel, then ask the owner to change it.</small></div>
-	          <div class="form-group" style="grid-column:span 2;"><label>Slogan</label><input id="m_tenantSlogan" value="${esc(presetSlogan('general'))}"></div>
+	          <div class="form-group"><label for="m_tenantName">Studio Name</label><input id="m_tenantName" placeholder="Northside Art Studio"></div>
+	          <div class="form-group"><label for="m_tenantSlug">Slug</label><input id="m_tenantSlug" readonly><small>Auto-generated from studio name.</small></div>
+	          <div class="form-group"><label for="m_tenantPlan">Plan</label><select id="m_tenantPlan">${plans.map(p => `<option value="${p.code}">${p.name}</option>`).join('')}</select></div>
+	          <div class="form-group"><label for="m_tenantCategory">Studio Category</label><select id="m_tenantCategory">${categoryOptions('general')}</select></div>
+	          <div class="form-group"><label for="m_ownerName">Owner Name</label><input id="m_ownerName" placeholder="Studio Owner"></div>
+	          <div class="form-group"><label for="m_ownerEmail">Owner Email</label><input id="m_ownerEmail" type="email" placeholder="owner@studio.test"></div>
+	          <div class="form-group" style="grid-column:span 2;"><label for="m_studioAdminPassword">Temporary Admin Password</label><input id="m_studioAdminPassword" type="password" minlength="8" autocomplete="new-password" required placeholder="At least 8 characters"><small>Required for initial access. Share it through a secure channel, then ask the owner to change it.</small></div>
+	          <div class="form-group" style="grid-column:span 2;"><label for="m_tenantSlogan">Slogan</label><input id="m_tenantSlogan" value="${esc(presetSlogan('general'))}"></div>
 	        </div>
           <div class="summary-item">
             <div class="summary-label">Auto-filled</div>
@@ -2659,6 +2706,7 @@
     $('modalOverlay').addEventListener('click', (e) => {
       if (e.target === $('modalOverlay')) closeModal();
     });
+    $('modalOverlay').addEventListener('keydown', trapModalFocus);
 
     // Initial load
     setAuthState(null);

@@ -91,25 +91,42 @@
       if (Object.prototype.hasOwnProperty.call(previous, field.key)) input.value = previous[field.key];
       wrap.appendChild(caption);
       wrap.appendChild(input);
+      /* A required custom field carries the same per-field error note the
+       * built-in fields have, so failFirst/markFieldError can show it and
+       * point aria-describedby at it. */
+      if (field.required) {
+        var note = document.createElement('span');
+        note.className = opts.errorClass || 'field-error';
+        note.id = input.id + '-err';
+        note.textContent = opts.language === 'en'
+          ? 'Please complete ' + field.label + '.'
+          : '请填写' + field.label;
+        wrap.appendChild(note);
+      }
       container.appendChild(wrap);
     });
     return normalized;
   }
 
+  /* P2-8 (custom fields): this used to throw on the first missing required
+   * field, which bypassed the callers' failFirst path — one global sentence,
+   * no aria-invalid, no focus move. It now reports every failure so the
+   * callers can mark the fields exactly like the built-in ones. */
   function collectFields(options) {
     var opts = options || {};
     var container = typeof opts.container === 'string' ? document.getElementById(opts.container) : opts.container;
-    if (!container) return [];
-    return Array.from(container.querySelectorAll('[data-profile-key]')).map(function (input) {
+    if (!container) return { values: [], missing: [] };
+    var values = [];
+    var missing = [];
+    Array.from(container.querySelectorAll('[data-profile-key]')).forEach(function (input) {
       var value = text(input.value);
       var fieldWrap = input.closest(opts.labelSelector || '.dyn-field') || input.parentElement;
       var labelNode = fieldWrap ? fieldWrap.querySelector('label') : null;
       var label = labelNode ? text(labelNode.textContent).replace(/\s+\*$/, '') : text(input.dataset.profileKey);
-      if (input.required && !value) {
-        throw new Error((opts.requiredPrefix || 'Please complete') + ' ' + label + '.');
-      }
-      return value ? label + ': ' + value : '';
-    }).filter(Boolean);
+      if (input.required && !value) missing.push({ el: input, label: label });
+      else if (value) values.push(label + ': ' + value);
+    });
+    return { values: values, missing: missing };
   }
 
   /* One submit path for both public registration surfaces.

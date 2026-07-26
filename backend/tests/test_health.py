@@ -157,14 +157,26 @@ def test_super_admin_is_commercial_control_plane(client):
 
 
 def test_pilot_refuses_missing_legacy_cms_password(monkeypatch, tmp_path):
-    """Public runtimes must never initialize the legacy CMS with a known default."""
+    """Public runtimes must never initialize the legacy CMS with a known default.
+
+    With the legacy surface enabled, a missing rotated credential blocks boot.
+    With it disabled (the SaaS default — every /api route 410s), the
+    credential is unusable, so boot proceeds with an unguessable throwaway.
+    """
 
     import server
 
     monkeypatch.setattr(server, "RUNTIME_ENV", "pilot")
     monkeypatch.setattr(server, "PW_FILE", str(tmp_path / ".cms_password"))
+
+    monkeypatch.setenv("STUDIOSAAS_ENABLE_LEGACY_CMS", "1")
     with pytest.raises(RuntimeError, match="rotate_pilot_credentials.py"):
         server._get_pw_hash()
+
+    monkeypatch.delenv("STUDIOSAAS_ENABLE_LEGACY_CMS", raising=False)
+    throwaway = server._get_pw_hash()
+    assert throwaway.startswith("pbkdf2$")
+    assert not (tmp_path / ".cms_password").exists()  # never persisted
 
 
 def test_production_refuses_missing_persistence_configuration(monkeypatch):
@@ -180,7 +192,9 @@ def test_production_refuses_missing_persistence_configuration(monkeypatch):
 
 
 def test_production_refuses_missing_legacy_admin_password(monkeypatch, tmp_path):
-    """Explicit production paths are insufficient without the rotated CMS credential."""
+    """With the legacy surface explicitly enabled, production still demands the
+    rotated CMS credential; with it disabled (default) boot proceeds because
+    no route can consume the credential."""
 
     import server
 
@@ -189,8 +203,13 @@ def test_production_refuses_missing_legacy_admin_password(monkeypatch, tmp_path)
     monkeypatch.setenv("STUDIOSAAS_DATABASE_URL", "postgresql://example.invalid/studiosaas")
     monkeypatch.setenv("STUDIOSAAS_MEDIA_DIR", str(tmp_path / "media"))
     monkeypatch.setenv("CMS_DATA_DIR", str(tmp_path / "data"))
+
+    monkeypatch.setenv("STUDIOSAAS_ENABLE_LEGACY_CMS", "1")
     with pytest.raises(RuntimeError, match="rotate_pilot_credentials.py"):
         server._validate_production_configuration()
+
+    monkeypatch.delenv("STUDIOSAAS_ENABLE_LEGACY_CMS", raising=False)
+    server._validate_production_configuration()
 
 
 def test_tenant_creation_requires_explicit_admin_password():

@@ -24,9 +24,11 @@ from flask import Blueprint, Response, current_app, g, jsonify, make_response, r
 from werkzeug.utils import secure_filename
 
 from .auth import (
+    PermissionDeniedError,
     auth_required,
     hash_password as _auth_hash_password,
     permission_required,
+    require_permission,
     super_admin_required,
     tenant_admin_required,
     tenant_owner_required,
@@ -2266,7 +2268,7 @@ def restore_brand_version(version_id: str):
 
 
 @api_v1.route("/tenant", methods=["PATCH"])
-@tenant_owner_required
+@permission_required("tenant:update")
 
 def update_tenant():
     """Update current tenant branding, contact details, and plan metadata."""
@@ -2632,7 +2634,7 @@ def list_courses():
 
 
 @api_v1.route("/courses", methods=["POST"])
-@tenant_admin_required
+@permission_required("courses:write")
 
 def create_course():
     """Create a course for the resolved tenant."""
@@ -2688,7 +2690,7 @@ def create_course():
 
 
 @api_v1.route("/courses/<course_id>", methods=["PATCH", "DELETE"])
-@tenant_admin_required
+@permission_required("courses:write")
 
 def mutate_course(course_id: str):
     """Update or delete a course for the resolved tenant."""
@@ -2766,7 +2768,7 @@ def mutate_course(course_id: str):
 
 
 @api_v1.route("/packages", methods=["GET"])
-@auth_required
+@permission_required("credits:read")
 def list_packages():
     """List course packages for the resolved tenant."""
 
@@ -3259,6 +3261,18 @@ def tenant_dashboard():
             "cash_net": round(cash_net, 2),
         }
     payload = dict(row or {})
+    # Financial aggregates share the same boundary as the legacy projection:
+    # roles without analytics:read (teacher / front_desk / staff) get the
+    # operational counters only, never revenue or liability figures.
+    actor = getattr(g, "actor", None)
+    try:
+        if actor is not None:
+            require_permission(actor, "analytics:read")
+    except PermissionDeniedError:
+        business = {
+            "attended_total": business["attended_total"],
+            "attended_month": business["attended_month"],
+        }
     payload["business"] = business
     return jsonify({"dashboard": payload})
 
@@ -3422,7 +3436,7 @@ def public_record_analytics(tenant_slug: str):
 
 
 @api_v1.route("/tenant/analytics", methods=["GET"])
-@tenant_admin_required
+@permission_required("analytics:read")
 def tenant_public_analytics():
     """Return aggregate-only public portal metrics for the active tenant."""
 
@@ -4780,6 +4794,15 @@ def _project_legacy_data_for_role(data: dict, role: Role | None) -> dict:
             {**student, "portfolio": []}
             for student in data.get("students", [])
         ]
+    elif role is Role.PARENT or role is None:
+        # Parents cannot obtain a staff session (login refuses them), but the
+        # projection is a security boundary in its own right — fail closed.
+        projected["students"] = []
+        projected["pending"] = []
+        projected["packages"] = []
+        projected["logs"] = []
+        projected["rosterEntries"] = []
+        projected["groups"] = {}
     return projected
 
 
@@ -4802,14 +4825,23 @@ def legacy_cms_data():
 
 
 @api_v1.route("/legacy-cms/save", methods=["POST"])
-@tenant_admin_required
-
+@permission_required("students:write")
 def legacy_cms_save():
-    """Persist a safe subset of old CMS JSON edits back to tenant tables."""
+    """Persist a safe subset of old CMS JSON edits back to tenant tables.
+
+    students:write is the gate because student upserts are what every caller
+    of the aggregate save actually edits. The package catalogue is priced
+    commercial configuration, so that section only applies for operations
+    admins — a front-desk/staff save round-trips it untouched.
+    """
 
     payload = request.get_json(silent=True) or {}
     students = payload.get("students") if isinstance(payload.get("students"), list) else []
     packages = payload.get("packages") if isinstance(payload.get("packages"), list) else []
+    actor_role = getattr(getattr(g, "actor", None), "role", None)
+    can_edit_packages = actor_role in {Role.SUPER_ADMIN, Role.OWNER, Role.MANAGER}
+    if not can_edit_packages:
+        packages = []
     with connect() as conn:
         tenant = _tenant_context(conn)
         with conn.cursor() as cur:
@@ -5043,9 +5075,14 @@ def get_media_asset(media_asset_id: str):
 
 
 @api_v1.route("/media/upload", methods=["POST"])
-@tenant_admin_required
+@auth_required
 def upload_media_asset():
-    """Upload one tenant media asset through the canonical v1 endpoint."""
+    """Upload one tenant media asset through the canonical v1 endpoint.
+
+    Portfolio uploads follow portfolio:write so teachers/staff can use the
+    canonical endpoint (they previously had to detour through the legacy CMS
+    upload); every other kind (brand/site assets) stays owner/manager.
+    """
 
     with connect() as conn:
         tenant = _tenant_context(conn)
@@ -5053,6 +5090,13 @@ def upload_media_asset():
         if not f or not f.filename:
             return _error("No file provided.")
         kind = str(request.form.get("kind") or "portfolio").strip() or "portfolio"
+        try:
+            if kind == "portfolio":
+                require_permission(g.actor, "portfolio:write")
+            elif g.actor.role not in {Role.SUPER_ADMIN, Role.OWNER, Role.MANAGER}:
+                raise PermissionDeniedError("Tenant owner/admin privileges required.")
+        except PermissionDeniedError as exc:
+            return _error(str(exc), 403)
         if kind == "portfolio" and not _plan_feature_enabled(conn, tenant.tenant_id, "portfolio"):
             return _error("Portfolio is not enabled for this studio plan.", 403)
         owner_student_id = str(
@@ -5326,7 +5370,6 @@ def legacy_cms_portfolio_update(student_id: str, portfolio_item_id: str):
 
 
 @api_v1.route("/plans", methods=["GET"])
-@auth_required
 @permission_required("plans:read")
 def list_plans():
     """List StudioSaaS subscription plans."""
@@ -5346,7 +5389,6 @@ def list_plans():
 
 
 @api_v1.route("/plans", methods=["POST"])
-@auth_required
 @super_admin_required
 def create_plan():
     """Create a subscription plan from Super Admin."""
@@ -5383,7 +5425,6 @@ def create_plan():
 
 
 @api_v1.route("/plans/<code>", methods=["PATCH", "DELETE"])
-@auth_required
 @super_admin_required
 def mutate_plan(code: str):
     """Update or delete a subscription plan from Super Admin."""
@@ -5777,12 +5818,11 @@ def start_support_session(tenant_id: str):
 
 
 @api_v1.route("/admin/support-session/end", methods=["POST"])
+@auth_required
 def end_support_session():
     """Exit support mode. Allowed for any logged-in session that has one."""
 
     from flask import session as _fs
-    if "user_id" not in _fs:
-        return _error("Authentication required.", 401)
     support = _fs.pop("support", None)
     if not support:
         return jsonify({"ok": True, "ended": False})
@@ -6281,6 +6321,15 @@ def create_credit_transaction(student_id: str):
             return _error("fee_aud_cents must be a non-negative integer.")
 
         legacy_type = _clean_text(payload, "legacy_type", "")
+
+        # Refunds move real money out (negative fee) and reduce reported
+        # revenue, so they sit behind credits:refund (owner/manager) instead
+        # of the routine credits:write held by front-desk and staff.
+        if tx_type == "refund" or legacy_type == "refund_out":
+            try:
+                require_permission(g.actor, "credits:refund")
+            except PermissionDeniedError:
+                return _error("退款需要店长或负责人权限。 Refunds require an owner or manager.", 403)
 
         # Verify student belongs to tenant
         student = fetch_one(
@@ -6923,7 +6972,10 @@ def _schedule_payload_fields(payload):
 def _replace_schedule_students(cur, tenant_id, schedule_id, student_ids) -> int:
     """Replace a schedule's roster; only same-tenant students are accepted."""
 
-    cur.execute("DELETE FROM class_schedule_students WHERE schedule_id = %s", (schedule_id,))
+    cur.execute(
+        "DELETE FROM class_schedule_students WHERE tenant_id = %s AND schedule_id = %s",
+        (tenant_id, schedule_id),
+    )
     count = 0
     for raw in (student_ids or [])[:200]:
         cur.execute(
@@ -7130,7 +7182,7 @@ SHARE_LINK_MAX_DAYS = 90
 
 
 @api_v1.route("/students/<student_id>/share-links", methods=["GET"])
-@permission_required("portfolio:write")
+@permission_required("portfolio:share")
 def list_share_links(student_id: str):
     """List portfolio share links for one student (newest first)."""
 
@@ -7152,9 +7204,13 @@ def list_share_links(student_id: str):
 
 
 @api_v1.route("/students/<student_id>/share-links", methods=["POST"])
-@permission_required("portfolio:write")
+@permission_required("portfolio:share")
 def create_share_link(student_id: str):
     """Create a durable share link for a student's portfolio.
+
+    portfolio:share (owner/manager) rather than portfolio:write: the link is a
+    publicly resolvable token exposing a named minor's photos, so minting one
+    is an exposure decision, not routine portfolio upkeep.
 
     The raw token is returned once; only its SHA-256 hash is stored. The
     existing public media route honours these tokens (scope, expiry,
@@ -7907,6 +7963,31 @@ def auth_login():
                 conn.commit()
                 return _error("Invalid email or password.", 401)
 
+        # The staff console is the only surface behind this login. A user whose
+        # every active membership is `parent` holds no staff permission, yet a
+        # session would still pass @auth_required on read routes — so refuse
+        # the session outright until the family self-service surface exists.
+        staff_membership = fetch_one(
+            conn,
+            """
+            SELECT 1 FROM memberships
+            WHERE user_id = %s AND status = 'active' AND role <> 'parent'
+            LIMIT 1
+            """,
+            (user["id"],),
+        )
+        if not staff_membership:
+            _audit_request(
+                conn,
+                tenant_id=None,
+                action="auth.login_rejected",
+                resource_type="user",
+                resource_id=user["id"],
+                metadata={"email": email, "reason": "parent_only_membership"},
+            )
+            conn.commit()
+            return _error("家庭自助登录暂未开放，请联系工作室。 Family self-service login is not available yet.", 403)
+
         _record_login(conn, user["id"])
         conn.commit()
 
@@ -8122,8 +8203,7 @@ _os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 @api_v1.route("/tenant/settings", methods=["PATCH"])
-@tenant_owner_required
-
+@permission_required("settings:write")
 def update_tenant_settings():
     """Compatibility alias for old clients; writes through the canonical tenant route."""
 

@@ -168,6 +168,7 @@
     ['退款退课', 'Refund'], ['退课节数 *', 'Credits to remove *'],
     ['退款金额 (AUD) *', 'Refund amount (AUD) *'], ['退款方式', 'Refund method'],
     ['退款原因 *', 'Reason for refund *'], ['套餐快选', 'Quick pack'],
+    ['当前角色无退款权限', 'Your role cannot issue refunds'],
     ['充值套餐管理', 'Credit packs'], ['课时资产池', 'Outstanding credits'],
     ['常规课程消耗', 'Regular class'], ['管理员撤销', 'Reversed by administrator'],
     ['管理端校准', 'Adjusted by administrator'],

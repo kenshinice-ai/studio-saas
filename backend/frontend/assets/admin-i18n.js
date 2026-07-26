@@ -175,6 +175,7 @@
     ['Label · 中文', '标签 · 中文'], ['Label · English', '标签 · English'],
     ['Placeholder · 中文', '提示文字 · 中文'], ['Placeholder · English', '提示文字 · English'],
     ['Type', '类型'], ['Required', '必填'], ['Optional', '选填'], ['Required / Options', '必填与选项'],
+    ['Select options, comma separated', '下拉选项，用逗号分隔'],
     ['Remove', '移除'], ['Short text, long text, and select fields are supported.', '支持短文本、长文本和下拉选择字段。'],
     ['FAQ', '常见问答'], ['Questions shown near the bottom of the public portal.', '这些问题会显示在公开官网底部附近。'],
     ['Question (中文)', '问题（中文）'], ['Question (English)', '问题（英文）'],
@@ -392,7 +393,7 @@
 
   function installStyles() {
     const style = document.createElement('style');
-    style.textContent = '.admin-language-switch{display:inline-flex;align-items:center;gap:2px;padding:3px;border:1px solid var(--line,#e2e8f0);border-radius:999px;background:var(--surface,#fff);white-space:nowrap}.admin-language-switch button{border:0;background:transparent;color:var(--muted,#64748b);padding:6px 10px;border-radius:999px;font:inherit;font-size:12px;font-weight:800;cursor:pointer;min-height:30px}.admin-language-switch button.active{background:var(--brand,#3b82f6);color:#fff}.admin-language-switch button:focus-visible{outline:2px solid var(--brand,#3b82f6);outline-offset:2px}';
+    style.textContent = '.admin-language-switch{display:inline-flex;align-items:center;gap:2px;padding:3px;border:1px solid var(--line,#e2e8f0);border-radius:999px;background:var(--surface,#fff);white-space:nowrap}.admin-language-switch button{border:0;background:transparent;color:var(--muted,#64748b);padding:6px 10px;border-radius:999px;font:inherit;font-size:12px;font-weight:800;cursor:pointer;min-height:38px}.admin-language-switch button.active{background:var(--brand,#3b82f6);color:#fff}.admin-language-switch button:focus-visible{outline:2px solid var(--brand,#3b82f6);outline-offset:2px}';
     document.head.appendChild(style);
   }
 

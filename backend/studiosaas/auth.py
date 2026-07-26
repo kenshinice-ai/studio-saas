@@ -33,10 +33,12 @@ ROLE_PERMISSIONS: dict[Role, set[str]] = {
         "credits:read",
         "courses:write",
         "credits:write",
+        "credits:refund",
         "attendance:read",
         "attendance:write",
         "portfolio:read",
         "portfolio:write",
+        "portfolio:share",
         "registrations:read",
         "registrations:write",
         "analytics:read",
@@ -51,10 +53,12 @@ ROLE_PERMISSIONS: dict[Role, set[str]] = {
         "credits:read",
         "courses:write",
         "credits:write",
+        "credits:refund",
         "attendance:read",
         "attendance:write",
         "portfolio:read",
         "portfolio:write",
+        "portfolio:share",
         "registrations:read",
         "registrations:write",
         "analytics:read",
@@ -92,6 +96,9 @@ ROLE_PERMISSIONS: dict[Role, set[str]] = {
         "registrations:write",
         "plans:read",
     },
+    # Reserved for the future family self-service surface. No route implements
+    # these yet, and /auth/login rejects users whose only memberships are
+    # parent — a parent session must never reach the staff-scoped API.
     Role.PARENT: {
         "student:self:read",
         "portfolio:self:read",
@@ -257,8 +264,11 @@ def _resolve_actor(user_id: str, tenant_id: str | None = None) -> ActorContext |
                 CASE role
                     WHEN 'super_admin' THEN 0
                     WHEN 'owner' THEN 1
-                    WHEN 'staff' THEN 2
-                    ELSE 3
+                    WHEN 'manager' THEN 2
+                    WHEN 'staff' THEN 3
+                    WHEN 'front_desk' THEN 4
+                    WHEN 'teacher' THEN 5
+                    ELSE 6
                 END,
                 CASE WHEN tenant_id IS NULL THEN 0 ELSE 1 END
             LIMIT 1

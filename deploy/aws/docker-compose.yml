@@ -1,0 +1,55 @@
+# StudioSaaS — AWS/staging compose file.
+#
+# On AWS the recommended database is RDS PostgreSQL: leave the `db` profile off
+# and point STUDIOSAAS_DATABASE_URL at RDS. The bundled `db` service exists for
+# a single-box staging rehearsal (`--profile local-db`) only.
+#
+#   cp deploy/aws/.env.example deploy/aws/.env   # then fill in secrets
+#   docker compose -f deploy/aws/docker-compose.yml --env-file deploy/aws/.env up -d
+#
+# With local db rehearsal:
+#   docker compose -f deploy/aws/docker-compose.yml --env-file deploy/aws/.env \
+#     --profile local-db up -d
+
+services:
+  app:
+    build:
+      context: ../..
+      dockerfile: deploy/aws/Dockerfile
+    image: studiosaas:${STUDIOSAAS_VERSION:-latest}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8899:8899"   # nginx on the host terminates TLS and proxies here
+    environment:
+      STUDIOSAAS_ENV: ${STUDIOSAAS_ENV:-production}
+      STUDIOSAAS_DATABASE_URL: ${STUDIOSAAS_DATABASE_URL}
+      STUDIOSAAS_SESSION_SECRET: ${STUDIOSAAS_SESSION_SECRET}
+      STUDIOSAAS_API_KEY: ${STUDIOSAAS_API_KEY}
+      STUDIOSAAS_PUBLIC_BASE_DOMAIN: ${STUDIOSAAS_PUBLIC_BASE_DOMAIN:-}
+      STUDIOSAAS_SEED_SUPER_ADMIN: ${STUDIOSAAS_SEED_SUPER_ADMIN:-0}
+      COOKIE_SECURE: "1"
+      PORT: "8899"
+    volumes:
+      - studiosaas-data:/data
+      - studiosaas-media:/media
+
+  db:
+    profiles: ["local-db"]
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: studiosaas
+      POSTGRES_USER: studiosaas
+      POSTGRES_PASSWORD: ${LOCAL_DB_PASSWORD:?set LOCAL_DB_PASSWORD for the local-db profile}
+    volumes:
+      - studiosaas-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U studiosaas -d studiosaas"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  studiosaas-data:
+  studiosaas-media:
+  studiosaas-pgdata:

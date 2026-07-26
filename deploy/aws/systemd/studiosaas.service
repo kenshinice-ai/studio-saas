@@ -1,0 +1,38 @@
+# systemd unit for the non-Docker EC2 path (bare waitress under a venv).
+# Install:
+#   sudo cp deploy/aws/systemd/studiosaas.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now studiosaas
+# Expects the release bundle unpacked at /opt/studiosaas/app with a venv at
+# /opt/studiosaas/venv and environment in /opt/studiosaas/studiosaas.env
+# (chmod 600, root-owned; populated from Secrets Manager at deploy time).
+
+[Unit]
+Description=StudioSaaS (waitress)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=studiosaas
+Group=studiosaas
+WorkingDirectory=/opt/studiosaas/app/backend
+EnvironmentFile=/opt/studiosaas/studiosaas.env
+Environment=PORT=8899
+Environment=STUDIOSAAS_ENV=production
+Environment=STUDIOSAAS_PROJECT_ROOT=/opt/studiosaas/app
+Environment=CMS_DATA_DIR=/opt/studiosaas/data
+Environment=STUDIOSAAS_MEDIA_DIR=/opt/studiosaas/media
+ExecStartPre=/opt/studiosaas/venv/bin/python scripts/run_migrations.py
+ExecStart=/opt/studiosaas/venv/bin/python server.py
+Restart=on-failure
+RestartSec=5
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/studiosaas/data /opt/studiosaas/media
+
+[Install]
+WantedBy=multi-user.target

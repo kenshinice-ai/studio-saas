@@ -42,7 +42,7 @@ curl -sS http://localhost:8899/v1/health
 
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| POST | `/v1/auth/login` | None | Login (returns session cookie) |
+| POST | `/v1/auth/login` | None | Login (returns session cookie). Rejected (403) for users whose only active memberships are `parent` — the family self-service surface does not exist yet |
 | GET | `/v1/auth/me` | Session | Current user + memberships |
 | POST | `/v1/auth/logout` | Session | End session |
 | POST | `/v1/auth/change-password` | Session | Change current password |
@@ -101,7 +101,7 @@ Rules: Minimum 8 characters, different from old password, requires active sessio
 | PUT | `/v1/tenant/brand-draft` | Owner / Super admin | Save an unpublished brand draft |
 | POST | `/v1/tenant/brand-versions/{version_id}/restore` | Owner / Super admin | Restore a publication into the draft |
 | POST | `/v1/tenant/logo` | Owner / Super admin | Upload a draft logo asset without publishing it |
-| POST | `/s/{tenant_slug}/v1/media/upload` | Tenant admin | Canonical tenant media upload |
+| POST | `/s/{tenant_slug}/v1/media/upload` | `portfolio:write` for `kind=portfolio`; owner/manager for other kinds | Canonical tenant media upload |
 
 ### 4.1 Tenant Settings (via PATCH)
 
@@ -196,9 +196,9 @@ Creates `tenants`, `subscriptions`, `tenant_usage` rows and generates `tenants/<
 
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| GET | `/v1/courses` | Tenant admin | List courses |
-| POST | `/v1/courses` | Tenant admin | Create course |
-| GET | `/v1/packages` | Tenant admin | List packages |
+| GET | `/v1/courses` | Session | List courses |
+| POST | `/v1/courses` | `courses:write` | Create course |
+| GET | `/v1/packages` | `credits:read` | List packages (prices; teachers are excluded, matching the CMS projection) |
 | POST | `/v1/packages` | Tenant admin | Create package |
 
 ---
@@ -208,7 +208,7 @@ Creates `tenants`, `subscriptions`, `tenant_usage` rows and generates `tenants/<
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
 | GET | `/v1/students/{student_id}/credits` | Tenant admin | Student balance |
-| POST | `/v1/students/{student_id}/credit-transactions` | Tenant admin | Record transaction |
+| POST | `/v1/students/{student_id}/credit-transactions` | `credits:write`; refunds additionally require `credits:refund` (owner/manager) | Record transaction |
 | GET | `/v1/attendance?date=YYYY-MM-DD` | Tenant admin | List attendance sessions |
 | POST | `/v1/attendance/check-in` | Tenant admin | Check in one student and consume credits |
 | POST | `/v1/attendance/{attendance_id}/void` | Tenant admin | Void a check-in and refund consumed credits |
@@ -309,8 +309,8 @@ audit/export purposes.
 | POST | `/v1/admin/tenants/{id}/support-session` | Super admin | Enter support mode (reason required, audited) |
 | POST | `/v1/admin/support-session/end` | Session | Exit support mode |
 | GET | `/s/<slug>/v1/export/{students,registrations,credit-ledger,revenue}.csv` | Owner / Manager / Super admin + plan feature | Audited CSV exports |
-| GET/POST | `/s/<slug>/v1/students/{id}/share-links` | Tenant admin | List/create portfolio share links (1–90 days) |
-| POST | `/s/<slug>/v1/share-links/{id}/revoke` | Tenant admin | Revoke a share link |
+| GET/POST | `/s/<slug>/v1/students/{id}/share-links` | `portfolio:share` (owner/manager) | List/create portfolio share links (1–90 days); minting exposes a minor's portfolio publicly, so it is not routine `portfolio:write` |
+| POST | `/s/<slug>/v1/share-links/{id}/revoke` | `portfolio:write` | Revoke a share link (kept broad so any portfolio-writing staff can kill an exposed link fast) |
 | GET | `/v1/public/portfolio/{token}` | None (token) | Shared portfolio JSON (viewer page: `/shared/portfolio`) |
 | GET | `/v1/public/{slug}/programs` | None | Public course catalogue for the landing page |
 
@@ -320,10 +320,22 @@ Pages: `/setup-password`, `/shared/portfolio`, and `/<slug>` now serves the gene
 
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| GET | `/s/<slug>/v1/legacy-cms/data` | Tenant session (legacy) | Legacy data bridge |
-| POST | `/s/<slug>/v1/legacy-cms/save` | Tenant session (legacy) | Legacy save bridge |
+| GET | `/s/<slug>/v1/legacy-cms/data` | Session (role-projected) | Legacy data bridge — teachers get no financials/pending, front-desk gets no portfolios, parents get an empty payload |
+| POST | `/s/<slug>/v1/legacy-cms/save` | `students:write` | Legacy save bridge — package edits inside the payload apply only for owner/manager and are ignored for front-desk/staff |
 
 The legacy CMS shell intercepts old `/api/data` and `/api/save` calls and rewrites them to these tenant-scoped endpoints. This keeps the old UI usable during the transition.
+
+`GET /v1/dashboard` follows the same financial boundary: roles without
+`analytics:read` receive only the operational counters
+(`attended_total`, `attended_month`) in `business` — never revenue,
+average price, or liability figures.
+
+**The unscoped legacy surface (`/api/*`, `/photos/*`, `/portfolio/img/*`) is
+disabled (410) whenever `STUDIOSAAS_ENV` is `pilot` or `production`** (except
+`/api/ping`). It has a single shared password and no role/tenant model, so it
+must not coexist with multi-tenant data. A genuine single-studio install keeps
+it by running `STUDIOSAAS_ENV=local` or explicitly setting
+`STUDIOSAAS_ENABLE_LEGACY_CMS=1`.
 
 ---
 

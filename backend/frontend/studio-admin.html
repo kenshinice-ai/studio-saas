@@ -1566,6 +1566,23 @@
       box-shadow: 0 8px 18px rgba(37, 99, 235, 0.1);
     }
 
+    /* The nav is horizontal, so the link that leaves the console gets a
+       vertical rule, not the border-top a stacked sidebar would use. */
+    .nav-link-external {
+      margin-left: 8px;
+      position: relative;
+    }
+
+    .nav-link-external::before {
+      content: '';
+      position: absolute;
+      left: -8px;
+      top: 50%;
+      transform: translateY(-50%);
+      height: 18px;
+      border-left: 1px solid #e2e8f0;
+    }
+
     main { padding-top: 28px; }
 
     .section {
@@ -1817,7 +1834,7 @@
         <a class="nav-link" href="#registrationFieldsEditor" data-section="registration-form">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/></svg> Quick Registration Form
         </a>
-        <a class="nav-link" href="#" id="openCmsLink" target="_blank" rel="noopener" style="border-top:1px solid var(--border,#E2E8F0);margin-top:8px;padding-top:12px;">
+        <a class="nav-link nav-link-external" href="#" id="openCmsLink" target="_blank" rel="noopener">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z"/></svg> Open CMS
         </a>
       </div>
@@ -1832,11 +1849,11 @@
       <p>Use the Studio Admin email and password configured in Super Admin.</p>
       <form id="loginForm">
         <div class="form-group">
-          <label>Email</label>
+          <label for="loginEmail">Email</label>
           <input id="loginEmail" type="email" autocomplete="username" placeholder="owner@studio.test">
         </div>
         <div class="form-group">
-          <label>Password</label>
+          <label for="loginPassword">Password</label>
           <div style="position:relative;">
             <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Enter your password" style="padding-right:56px;">
             <button type="button" id="loginPwToggle" class="btn-secondary btn-sm" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);">Show</button>
@@ -1876,18 +1893,20 @@
 
         <div class="settings-shell">
           <div class="settings-panel">
+            <!-- Roving tabindex: only the selected tab is in the Tab order;
+                 ArrowLeft/ArrowRight move between tabs (wired in bindEvents). -->
             <div class="studio-tabs" role="tablist" aria-label="Website settings">
-              <button type="button" role="tab" aria-selected="true" aria-controls="tab-brand" class="studio-tab active" data-workbench-tab="brand">Brand</button>
-              <button type="button" role="tab" aria-selected="false" aria-controls="tab-hero" class="studio-tab" data-workbench-tab="hero">Hero</button>
-              <button type="button" role="tab" aria-selected="false" aria-controls="tab-website" class="studio-tab" data-workbench-tab="website">Website</button>
-              <button type="button" role="tab" aria-selected="false" aria-controls="tab-register" class="studio-tab" data-workbench-tab="register">Registration</button>
-              <button type="button" role="tab" aria-selected="false" aria-controls="tab-faq" class="studio-tab" data-workbench-tab="faq">FAQ</button>
-              <button type="button" role="tab" aria-selected="false" aria-controls="tab-messages" class="studio-tab" data-workbench-tab="messages">Messages</button>
-              <button type="button" role="tab" aria-selected="false" aria-controls="tab-analytics" class="studio-tab" data-workbench-tab="analytics">Analytics</button>
-              <button type="button" role="tab" aria-selected="false" aria-controls="tab-advanced" class="studio-tab" data-workbench-tab="advanced">Preview / Publish</button>
+              <button type="button" id="tab-btn-brand" role="tab" aria-selected="true" aria-controls="tab-brand" class="studio-tab active" data-workbench-tab="brand">Brand</button>
+              <button type="button" id="tab-btn-hero" role="tab" aria-selected="false" aria-controls="tab-hero" tabindex="-1" class="studio-tab" data-workbench-tab="hero">Hero</button>
+              <button type="button" id="tab-btn-website" role="tab" aria-selected="false" aria-controls="tab-website" tabindex="-1" class="studio-tab" data-workbench-tab="website">Website</button>
+              <button type="button" id="tab-btn-register" role="tab" aria-selected="false" aria-controls="tab-register" tabindex="-1" class="studio-tab" data-workbench-tab="register">Registration</button>
+              <button type="button" id="tab-btn-faq" role="tab" aria-selected="false" aria-controls="tab-faq" tabindex="-1" class="studio-tab" data-workbench-tab="faq">FAQ</button>
+              <button type="button" id="tab-btn-messages" role="tab" aria-selected="false" aria-controls="tab-messages" tabindex="-1" class="studio-tab" data-workbench-tab="messages">Messages</button>
+              <button type="button" id="tab-btn-analytics" role="tab" aria-selected="false" aria-controls="tab-analytics" tabindex="-1" class="studio-tab" data-workbench-tab="analytics">Analytics</button>
+              <button type="button" id="tab-btn-advanced" role="tab" aria-selected="false" aria-controls="tab-advanced" tabindex="-1" class="studio-tab" data-workbench-tab="advanced">Preview / Publish</button>
             </div>
 
-            <div id="tab-brand" class="tab-panel active" data-workbench-panel="brand">
+            <div id="tab-brand" class="tab-panel active" role="tabpanel" aria-labelledby="tab-btn-brand" data-workbench-panel="brand">
               <div class="panel-heading">
                 <div>
                   <h3>Brand foundation</h3>
@@ -1945,16 +1964,16 @@
                   <details class="theme-customization">
                     <summary>Fine-tune selected theme</summary>
                     <div class="form-grid">
-                      <div class="form-group"><label>Main brand colour</label><div class="color-field"><input id="settingPrimaryColor" type="color"><div class="color-meta">Primary accent and actions</div></div></div>
-                      <div class="form-group"><label>Supporting brand colour</label><div class="color-field"><input id="settingSecondaryColor" type="color"><div class="color-meta">Secondary actions and highlights</div></div></div>
-                      <div class="form-group"><label>Button Style</label><select id="settingButtonStyle"><option value="soft">Soft</option><option value="sharp">Sharp</option><option value="rounded">Rounded</option></select></div>
-                      <div class="form-group"><label>Font Mood</label><select id="settingFontMood"><option value="serif">Serif / editorial</option><option value="modern">Modern sans</option><option value="classic">Classic balanced</option></select></div>
+                      <div class="form-group"><label for="settingPrimaryColor">Main brand colour</label><div class="color-field"><input id="settingPrimaryColor" type="color"><div class="color-meta">Primary accent and actions</div></div></div>
+                      <div class="form-group"><label for="settingSecondaryColor">Supporting brand colour</label><div class="color-field"><input id="settingSecondaryColor" type="color"><div class="color-meta">Secondary actions and highlights</div></div></div>
+                      <div class="form-group"><label for="settingButtonStyle">Button Style</label><select id="settingButtonStyle"><option value="soft">Soft</option><option value="sharp">Sharp</option><option value="rounded">Rounded</option></select></div>
+                      <div class="form-group"><label for="settingFontMood">Font Mood</label><select id="settingFontMood"><option value="serif">Serif / editorial</option><option value="modern">Modern sans</option><option value="classic">Classic balanced</option></select></div>
                       <div class="advanced-colours">
-                        <div class="form-group"><label>Page Background</label><input id="settingThemeBackground" type="color"></div>
-                        <div class="form-group"><label>Panel Background</label><input id="settingThemePanel" type="color"></div>
-                        <div class="form-group"><label>Text Color</label><input id="settingThemeText" type="color"></div>
-                        <div class="form-group"><label>Muted Text</label><input id="settingThemeMuted" type="color"></div>
-                        <div class="form-group"><label>Border Color</label><input id="settingThemeBorder" type="color"></div>
+                        <div class="form-group"><label for="settingThemeBackground">Page Background</label><input id="settingThemeBackground" type="color"></div>
+                        <div class="form-group"><label for="settingThemePanel">Panel Background</label><input id="settingThemePanel" type="color"></div>
+                        <div class="form-group"><label for="settingThemeText">Text Color</label><input id="settingThemeText" type="color"></div>
+                        <div class="form-group"><label for="settingThemeMuted">Muted Text</label><input id="settingThemeMuted" type="color"></div>
+                        <div class="form-group"><label for="settingThemeBorder">Border Color</label><input id="settingThemeBorder" type="color"></div>
                         <small>Button text and status colours are selected automatically for readable contrast.</small>
                       </div>
                     </div>
@@ -1967,27 +1986,27 @@
                     <div><h4 id="identityStepTitle">Add studio identity and contact details</h4><p>These details appear across the public website, registration, and CMS.</p></div>
                   </div>
                   <div class="form-grid">
-                    <div class="form-group"><label>Studio Name</label><input id="settingName"></div>
-                    <div class="form-group"><label>Slogan · 中文</label><input id="settingSlogan" placeholder="公开品牌标语"></div>
-                    <div class="form-group"><label>Slogan · English</label><input id="settingSloganEn" placeholder="Public brand slogan"></div>
-                    <div class="form-group"><label>Logo URL</label><input id="settingLogoUrl" placeholder="/logo.png or https://..."></div>
-                    <div class="form-group"><label>Upload Logo</label><input id="settingLogoFile" type="file" accept="image/*"></div>
-                    <div class="form-group"><label>Plan</label><select id="settingPlan" disabled></select><small>Managed by StudioSaaS Super Admin.</small></div>
-                    <div class="form-group"><label>CMS Layout</label><select id="settingCmsLayout"><option value="bar">Header Bar</option><option value="hero">Hero Welcome</option><option value="compact">Compact</option></select></div>
-                    <div class="form-group"><label>Show Welcome</label><select id="settingShowWelcome"><option value="true">Show on CMS/Register</option><option value="false">Hide</option></select></div>
-                    <div class="form-group"><label>Timezone</label><input id="settingTimezone"></div>
-                    <div class="form-group"><label>Phone</label><input id="settingPhone" placeholder="0400 000 000"></div>
-                    <div class="form-group"><label>Email</label><input id="settingEmail" type="email" placeholder="studio@example.com"></div>
-                    <div class="form-group"><label>Address</label><input id="settingAddress" placeholder="Studio address"></div>
-                    <div class="form-group" style="grid-column:1/-1;"><label>Welcome Message · 中文</label><input id="settingWelcome" placeholder="显示在官网与报名页顶部的欢迎语"></div>
-                    <div class="form-group" style="grid-column:1/-1;"><label>Welcome Message · English</label><input id="settingWelcomeEn" placeholder="Welcome text shown above the website and register page"><small>Fill in one language and it is shown to everyone. Leave both blank to hide the welcome band.</small></div>
+                    <div class="form-group"><label for="settingName">Studio Name</label><input id="settingName"></div>
+                    <div class="form-group"><label for="settingSlogan">Slogan · 中文</label><input id="settingSlogan" placeholder="公开品牌标语"></div>
+                    <div class="form-group"><label for="settingSloganEn">Slogan · English</label><input id="settingSloganEn" placeholder="Public brand slogan"></div>
+                    <div class="form-group"><label for="settingLogoUrl">Logo URL</label><input id="settingLogoUrl" placeholder="/logo.png or https://..."></div>
+                    <div class="form-group"><label for="settingLogoFile">Upload Logo</label><input id="settingLogoFile" type="file" accept="image/*"></div>
+                    <div class="form-group"><label for="settingPlan">Plan</label><select id="settingPlan" disabled></select><small>Managed by StudioSaaS Super Admin.</small></div>
+                    <div class="form-group"><label for="settingCmsLayout">CMS Layout</label><select id="settingCmsLayout"><option value="bar">Header Bar</option><option value="hero">Hero Welcome</option><option value="compact">Compact</option></select></div>
+                    <div class="form-group"><label for="settingShowWelcome">Show Welcome</label><select id="settingShowWelcome"><option value="true">Show on CMS/Register</option><option value="false">Hide</option></select></div>
+                    <div class="form-group"><label for="settingTimezone">Timezone</label><input id="settingTimezone"></div>
+                    <div class="form-group"><label for="settingPhone">Phone</label><input id="settingPhone" placeholder="0400 000 000"></div>
+                    <div class="form-group"><label for="settingEmail">Email</label><input id="settingEmail" type="email" placeholder="studio@example.com"></div>
+                    <div class="form-group"><label for="settingAddress">Address</label><input id="settingAddress" placeholder="Studio address"></div>
+                    <div class="form-group" style="grid-column:1/-1;"><label for="settingWelcome">Welcome Message · 中文</label><input id="settingWelcome" placeholder="显示在官网与报名页顶部的欢迎语"></div>
+                    <div class="form-group" style="grid-column:1/-1;"><label for="settingWelcomeEn">Welcome Message · English</label><input id="settingWelcomeEn" placeholder="Welcome text shown above the website and register page"><small>Fill in one language and it is shown to everyone. Leave both blank to hide the welcome band.</small></div>
                   </div>
                 </section>
               </div>
               <div id="colorWarning" class="hidden"></div>
             </div>
 
-            <div id="tab-hero" class="tab-panel" data-workbench-panel="hero">
+            <div id="tab-hero" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-hero" data-workbench-panel="hero">
               <div class="panel-heading">
                 <div>
                   <h3>Hero and calls to action</h3>
@@ -1995,23 +2014,23 @@
                 </div>
               </div>
               <div class="form-grid">
-                <div class="form-group"><label>Hero Eyebrow</label><input id="settingHeroEyebrow" placeholder="Creative Studio"></div>
-                <div class="form-group"><label>Hero Title · 中文</label><input id="settingHeroTitle" placeholder="公开首页标题"></div>
-                <div class="form-group"><label>Hero Title · English</label><input id="settingHeroTitleEn" placeholder="Public hero headline"></div>
-                <div class="form-group"><label>Hero Subtitle · 中文</label><textarea id="settingHeroSubtitle" rows="3" placeholder="简短价值主张"></textarea></div>
-                <div class="form-group"><label>Hero Subtitle · English</label><textarea id="settingHeroSubtitleEn" rows="3" placeholder="Short public value proposition"></textarea></div>
-                <div class="form-group"><label>Hero Image URL</label><input id="settingHeroImageUrl" placeholder="/site/hero.jpg or https://..."></div>
-                <div class="form-group"><label>Upload Hero Image</label><input id="settingHeroImageFile" type="file" accept="image/jpeg,image/png,image/webp"><small>JPEG, PNG, or WebP; metadata is removed before public delivery.</small></div>
-                <div class="form-group"><label>Hero Style</label><select id="settingHeroStyle"><option value="soft">Soft Art Board</option><option value="image">Image Background</option><option value="minimal">Minimal</option><option value="bold">Bold Contrast</option></select></div>
-                <div class="form-group"><label>Primary CTA · 中文</label><input id="settingPrimaryCta" placeholder="预约体验"></div>
-                <div class="form-group"><label>Primary CTA · English</label><input id="settingPrimaryCtaEn" placeholder="Book a Trial"></div>
-                <div class="form-group"><label>Secondary CTA · 中文</label><input id="settingSecondaryCta" placeholder="查看课程"></div>
-                <div class="form-group"><label>Secondary CTA · English</label><input id="settingSecondaryCtaEn" placeholder="Explore Courses"></div>
-                <div class="form-group"><label>Student Login Link</label><select id="settingShowStudentLogin"><option value="true">Show</option><option value="false">Hide</option></select></div>
+                <div class="form-group"><label for="settingHeroEyebrow">Hero Eyebrow</label><input id="settingHeroEyebrow" placeholder="Creative Studio"></div>
+                <div class="form-group"><label for="settingHeroTitle">Hero Title · 中文</label><input id="settingHeroTitle" placeholder="公开首页标题"></div>
+                <div class="form-group"><label for="settingHeroTitleEn">Hero Title · English</label><input id="settingHeroTitleEn" placeholder="Public hero headline"></div>
+                <div class="form-group"><label for="settingHeroSubtitle">Hero Subtitle · 中文</label><textarea id="settingHeroSubtitle" rows="3" placeholder="简短价值主张"></textarea></div>
+                <div class="form-group"><label for="settingHeroSubtitleEn">Hero Subtitle · English</label><textarea id="settingHeroSubtitleEn" rows="3" placeholder="Short public value proposition"></textarea></div>
+                <div class="form-group"><label for="settingHeroImageUrl">Hero Image URL</label><input id="settingHeroImageUrl" placeholder="/site/hero.jpg or https://..."></div>
+                <div class="form-group"><label for="settingHeroImageFile">Upload Hero Image</label><input id="settingHeroImageFile" type="file" accept="image/jpeg,image/png,image/webp"><small>JPEG, PNG, or WebP; metadata is removed before public delivery.</small></div>
+                <div class="form-group"><label for="settingHeroStyle">Hero Style</label><select id="settingHeroStyle"><option value="soft">Soft Art Board</option><option value="image">Image Background</option><option value="minimal">Minimal</option><option value="bold">Bold Contrast</option></select></div>
+                <div class="form-group"><label for="settingPrimaryCta">Primary CTA · 中文</label><input id="settingPrimaryCta" placeholder="预约体验"></div>
+                <div class="form-group"><label for="settingPrimaryCtaEn">Primary CTA · English</label><input id="settingPrimaryCtaEn" placeholder="Book a Trial"></div>
+                <div class="form-group"><label for="settingSecondaryCta">Secondary CTA · 中文</label><input id="settingSecondaryCta" placeholder="查看课程"></div>
+                <div class="form-group"><label for="settingSecondaryCtaEn">Secondary CTA · English</label><input id="settingSecondaryCtaEn" placeholder="Explore Courses"></div>
+                <div class="form-group"><label for="settingShowStudentLogin">Student Login Link</label><select id="settingShowStudentLogin"><option value="true">Show</option><option value="false">Hide</option></select></div>
               </div>
             </div>
 
-            <div id="tab-website" class="tab-panel" data-workbench-panel="website">
+            <div id="tab-website" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-website" data-workbench-panel="website">
               <div class="panel-heading">
                 <div>
                   <h3>Website sections</h3>
@@ -2020,34 +2039,34 @@
                 </div>
               </div>
               <div class="form-grid">
-                <div class="form-group"><label>Principal Section</label><select id="settingShowPrincipal"><option value="true">Show</option><option value="false">Hide</option></select></div>
-                <div class="form-group"><label>Courses Section</label><select id="settingShowCourses"><option value="true">Show</option><option value="false">Hide</option></select></div>
-                <div class="form-group"><label>Gallery Section</label><select id="settingShowGallery"><option value="true">Show</option><option value="false">Hide</option></select></div>
-                <div class="form-group"><label>FAQ Section</label><select id="settingShowFaq"><option value="true">Show</option><option value="false">Hide</option></select></div>
-                <div class="form-group"><label>Contact Section</label><select id="settingShowContact"><option value="true">Show</option><option value="false">Hide</option></select></div>
-                <div class="form-group"><label>Student Area Section</label><select id="settingShowStudentArea"><option value="true">Show</option><option value="false">Hide</option></select></div>
-                <div class="form-group"><label>Courses Label · 中文</label><input id="settingCoursesLabel" placeholder="课程与班次"></div>
-                <div class="form-group"><label>Courses Label · English</label><input id="settingCoursesLabelEn" placeholder="Courses & Classes"></div>
-                <div class="form-group"><label>Gallery Label · 中文</label><input id="settingGalleryLabel" placeholder="学员%WORK%"></div>
-                <div class="form-group"><label>Gallery Label · English</label><input id="settingGalleryLabelEn" placeholder="Student %WORKS%"></div>
-                <div class="form-group"><label>FAQ Label · 中文</label><input id="settingFaqLabel" placeholder="常见问题"></div>
-                <div class="form-group"><label>FAQ Label · English</label><input id="settingFaqLabelEn" placeholder="Questions & Answers"></div>
-                <div class="form-group"><label>Contact Label · 中文</label><input id="settingContactLabel" placeholder="联系我们"></div>
-                <div class="form-group"><label>Contact Label · English</label><input id="settingContactLabelEn" placeholder="Contact"></div>
+                <div class="form-group"><label for="settingShowPrincipal">Principal Section</label><select id="settingShowPrincipal"><option value="true">Show</option><option value="false">Hide</option></select></div>
+                <div class="form-group"><label for="settingShowCourses">Courses Section</label><select id="settingShowCourses"><option value="true">Show</option><option value="false">Hide</option></select></div>
+                <div class="form-group"><label for="settingShowGallery">Gallery Section</label><select id="settingShowGallery"><option value="true">Show</option><option value="false">Hide</option></select></div>
+                <div class="form-group"><label for="settingShowFaq">FAQ Section</label><select id="settingShowFaq"><option value="true">Show</option><option value="false">Hide</option></select></div>
+                <div class="form-group"><label for="settingShowContact">Contact Section</label><select id="settingShowContact"><option value="true">Show</option><option value="false">Hide</option></select></div>
+                <div class="form-group"><label for="settingShowStudentArea">Student Area Section</label><select id="settingShowStudentArea"><option value="true">Show</option><option value="false">Hide</option></select></div>
+                <div class="form-group"><label for="settingCoursesLabel">Courses Label · 中文</label><input id="settingCoursesLabel" placeholder="课程与班次"></div>
+                <div class="form-group"><label for="settingCoursesLabelEn">Courses Label · English</label><input id="settingCoursesLabelEn" placeholder="Courses & Classes"></div>
+                <div class="form-group"><label for="settingGalleryLabel">Gallery Label · 中文</label><input id="settingGalleryLabel" placeholder="学员%WORK%"></div>
+                <div class="form-group"><label for="settingGalleryLabelEn">Gallery Label · English</label><input id="settingGalleryLabelEn" placeholder="Student %WORKS%"></div>
+                <div class="form-group"><label for="settingFaqLabel">FAQ Label · 中文</label><input id="settingFaqLabel" placeholder="常见问题"></div>
+                <div class="form-group"><label for="settingFaqLabelEn">FAQ Label · English</label><input id="settingFaqLabelEn" placeholder="Questions & Answers"></div>
+                <div class="form-group"><label for="settingContactLabel">Contact Label · 中文</label><input id="settingContactLabel" placeholder="联系我们"></div>
+                <div class="form-group"><label for="settingContactLabelEn">Contact Label · English</label><input id="settingContactLabelEn" placeholder="Contact"></div>
                 <div class="form-group" style="grid-column:1/-1;"><small>%WORK% and %WORKS% are replaced with your industry's word for what a student produces, so the same label works for a piano, dance, or games studio.</small></div>
-                <div class="form-group"><label>Principal Name</label><input id="settingPrincipalName" placeholder="Name shown on public page"><small>A person's name is never translated.</small></div>
-                <div class="form-group"><label>Principal Title · 中文</label><input id="settingPrincipalTitle" placeholder="创办人 / 主理人"></div>
-                <div class="form-group"><label>Principal Title · English</label><input id="settingPrincipalTitleEn" placeholder="Founder & Principal"></div>
-                <div class="form-group"><label>Principal Image URL</label><input id="settingPrincipalImageUrl" placeholder="/site/principal.jpg or https://..."></div>
-                <div class="form-group"><label>Upload Principal Image</label><input id="settingPrincipalImageFile" type="file" accept="image/jpeg,image/png,image/webp"><small>Uses the tenant media quota and safe public derivative.</small></div>
-                <div class="form-group"><label>Principal Quote · 中文</label><input id="settingPrincipalQuote" placeholder="一句署名短句"></div>
-                <div class="form-group"><label>Principal Quote · English</label><input id="settingPrincipalQuoteEn" placeholder="Short signature line"></div>
-                <div class="form-group" style="grid-column:1/-1;"><label>Principal Bio · 中文</label><textarea id="settingPrincipalBio" rows="4" placeholder="面向公众的简短介绍"></textarea></div>
-                <div class="form-group" style="grid-column:1/-1;"><label>Principal Bio · English</label><textarea id="settingPrincipalBioEn" rows="4" placeholder="Short public introduction"></textarea><small>Leave either language blank and the other is shown to everyone. The section stays hidden until a bio exists.</small></div>
+                <div class="form-group"><label for="settingPrincipalName">Principal Name</label><input id="settingPrincipalName" placeholder="Name shown on public page"><small>A person's name is never translated.</small></div>
+                <div class="form-group"><label for="settingPrincipalTitle">Principal Title · 中文</label><input id="settingPrincipalTitle" placeholder="创办人 / 主理人"></div>
+                <div class="form-group"><label for="settingPrincipalTitleEn">Principal Title · English</label><input id="settingPrincipalTitleEn" placeholder="Founder & Principal"></div>
+                <div class="form-group"><label for="settingPrincipalImageUrl">Principal Image URL</label><input id="settingPrincipalImageUrl" placeholder="/site/principal.jpg or https://..."></div>
+                <div class="form-group"><label for="settingPrincipalImageFile">Upload Principal Image</label><input id="settingPrincipalImageFile" type="file" accept="image/jpeg,image/png,image/webp"><small>Uses the tenant media quota and safe public derivative.</small></div>
+                <div class="form-group"><label for="settingPrincipalQuote">Principal Quote · 中文</label><input id="settingPrincipalQuote" placeholder="一句署名短句"></div>
+                <div class="form-group"><label for="settingPrincipalQuoteEn">Principal Quote · English</label><input id="settingPrincipalQuoteEn" placeholder="Short signature line"></div>
+                <div class="form-group" style="grid-column:1/-1;"><label for="settingPrincipalBio">Principal Bio · 中文</label><textarea id="settingPrincipalBio" rows="4" placeholder="面向公众的简短介绍"></textarea></div>
+                <div class="form-group" style="grid-column:1/-1;"><label for="settingPrincipalBioEn">Principal Bio · English</label><textarea id="settingPrincipalBioEn" rows="4" placeholder="Short public introduction"></textarea><small>Leave either language blank and the other is shown to everyone. The section stays hidden until a bio exists.</small></div>
               </div>
             </div>
 
-            <div id="tab-register" class="tab-panel" data-workbench-panel="register">
+            <div id="tab-register" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-register" data-workbench-panel="register">
               <div class="panel-heading">
                 <div>
                   <h3>Registration form</h3>
@@ -2055,11 +2074,11 @@
                 </div>
               </div>
               <div class="form-grid">
-                <div class="form-group"><label>Portal Label</label><input id="settingPortalLabel" placeholder="Student portal label"></div>
-                <div class="form-group"><label>Registration Title · 中文</label><input id="settingRegistrationTitle" placeholder="报名表标题"></div>
-                <div class="form-group"><label>Registration Title · English</label><input id="settingRegistrationTitleEn" placeholder="Registration form title"></div>
-                <div class="form-group"><label>Registration Intro · 中文</label><textarea id="settingRegisterIntro" rows="3" placeholder="报名说明"></textarea></div>
-                <div class="form-group"><label>Registration Intro · English</label><textarea id="settingRegisterIntroEn" rows="3" placeholder="Registration form intro text"></textarea></div>
+                <div class="form-group"><label for="settingPortalLabel">Portal Label</label><input id="settingPortalLabel" placeholder="Student portal label"></div>
+                <div class="form-group"><label for="settingRegistrationTitle">Registration Title · 中文</label><input id="settingRegistrationTitle" placeholder="报名表标题"></div>
+                <div class="form-group"><label for="settingRegistrationTitleEn">Registration Title · English</label><input id="settingRegistrationTitleEn" placeholder="Registration form title"></div>
+                <div class="form-group"><label for="settingRegisterIntro">Registration Intro · 中文</label><textarea id="settingRegisterIntro" rows="3" placeholder="报名说明"></textarea></div>
+                <div class="form-group"><label for="settingRegisterIntroEn">Registration Intro · English</label><textarea id="settingRegisterIntroEn" rows="3" placeholder="Registration form intro text"></textarea></div>
               </div>
               <div class="panel-heading" style="margin-top:18px;">
                 <div>
@@ -2071,7 +2090,7 @@
               <div class="form-grid question-list mt-2" id="registrationFieldsEditor"></div>
             </div>
 
-            <div id="tab-faq" class="tab-panel" data-workbench-panel="faq">
+            <div id="tab-faq" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-faq" data-workbench-panel="faq">
               <div class="panel-heading">
                 <div>
                   <h3>FAQ</h3>
@@ -2084,7 +2103,7 @@
 
             <!-- The copy staff paste to families out of the CMS. It used to be
                  hard-coded in cms-app.jsx, naming the literal word "Studio". -->
-            <div id="tab-messages" class="tab-panel" data-workbench-panel="messages">
+            <div id="tab-messages" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-messages" data-workbench-panel="messages">
               <div class="panel-heading">
                 <div>
                   <h3>Family messages</h3>
@@ -2101,7 +2120,7 @@
               </div>
             </div>
 
-            <div id="tab-analytics" class="tab-panel" data-workbench-panel="analytics">
+            <div id="tab-analytics" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-analytics" data-workbench-panel="analytics">
               <div class="panel-heading">
                 <div>
                   <h3>Public website analytics</h3>
@@ -2124,7 +2143,7 @@
               </div>
             </div>
 
-            <div id="tab-advanced" class="tab-panel" data-workbench-panel="advanced">
+            <div id="tab-advanced" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-advanced" data-workbench-panel="advanced">
               <div class="panel-heading">
                 <div>
                   <h3>Preview and publish</h3>
@@ -2518,7 +2537,12 @@
     }
 
     function currentMembershipForSlug(memberships = [], slug) {
-      return memberships.some((m) => m.role === 'super_admin' || (m.role === 'owner' && (m.tenant_slug === slug || m.slug === slug)));
+      // Platform authority is a super_admin membership with NO tenant; a
+      // legacy tenant-scoped super_admin row must not unlock other tenants
+      // (mirrors _has_platform_super_admin_membership on the backend).
+      return memberships.some((m) =>
+        (m.role === 'super_admin' && !m.tenant_slug && !m.slug)
+        || ((m.role === 'owner' || m.role === 'super_admin') && (m.tenant_slug === slug || m.slug === slug)));
     }
 
     function setAuthState(user) {
@@ -2627,9 +2651,9 @@
 
     function openChangePasswordModal() {
       const bodyHtml = `
-        <div class="form-group"><label>Current Password</label><input id="m_oldPassword" type="password" autocomplete="current-password"></div>
-        <div class="form-group"><label>New Password</label><input id="m_newPassword" type="password" autocomplete="new-password" placeholder="At least 8 characters"></div>
-        <div class="form-group"><label>Confirm New Password</label><input id="m_confirmPassword" type="password" autocomplete="new-password"></div>
+        <div class="form-group"><label for="m_oldPassword">Current Password</label><input id="m_oldPassword" type="password" autocomplete="current-password"></div>
+        <div class="form-group"><label for="m_newPassword">New Password</label><input id="m_newPassword" type="password" autocomplete="new-password" placeholder="At least 8 characters"></div>
+        <div class="form-group"><label for="m_confirmPassword">Confirm New Password</label><input id="m_confirmPassword" type="password" autocomplete="new-password"></div>
       `;
       const footerHtml = `<button onclick="changePassword()" class="btn-primary">Update Password</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
       openModal('Change Password', bodyHtml, footerHtml);
@@ -2648,7 +2672,10 @@
       showToast('Password updated.');
     }
 
+    let modalReturnFocus = null;
+
     function openModal(title, bodyHtml, footerHtml) {
+      modalReturnFocus = document.activeElement;
       $('modalTitle').textContent = title;
       $('modalBody').innerHTML = bodyHtml;
       $('modalFooter').innerHTML = footerHtml;
@@ -2659,6 +2686,25 @@
 
     function closeModal() {
       $('modalOverlay').classList.remove('active');
+      if (modalReturnFocus && typeof modalReturnFocus.focus === 'function') modalReturnFocus.focus();
+      modalReturnFocus = null;
+    }
+
+    // Keep Tab and Shift+Tab cycling inside the open dialog.
+    function trapModalFocus(event) {
+      if (event.key !== 'Tab') return;
+      const focusable = Array.from($('modalOverlay').querySelectorAll('button, [href], input, select, textarea'))
+        .filter((element) => !element.disabled && element.offsetParent !== null);
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     }
 
     function categoryOptions(selected) {
@@ -2926,35 +2972,35 @@
       $('registrationFieldsEditor').innerHTML = fields.map((field, index) => `
         <div class="question-card" data-registration-card="${index}">
           <div class="form-group">
-            <label>Label · English</label>
-            <input data-reg-label="${index}" value="${esc(field.label_en || field.label || field.key || 'Field')}">
+            <label for="regLabelEn${index}">Label · English</label>
+            <input id="regLabelEn${index}" data-reg-label="${index}" value="${esc(field.label_en || field.label || field.key || 'Field')}">
             <input type="hidden" data-reg-key="${index}" value="${esc(field.key || `field${index + 1}`)}">
           </div>
           <div class="form-group">
-            <label>Label · 中文</label>
-            <input data-reg-label-zh="${index}" value="${esc(field.label_zh || field.label || field.key || '问题')}">
+            <label for="regLabelZh${index}">Label · 中文</label>
+            <input id="regLabelZh${index}" data-reg-label-zh="${index}" value="${esc(field.label_zh || field.label || field.key || '问题')}">
           </div>
           <div class="form-group">
-            <label>Placeholder · English</label>
-            <input data-reg-placeholder="${index}" value="${esc(field.placeholder_en || field.placeholder || '')}">
+            <label for="regPlaceholderEn${index}">Placeholder · English</label>
+            <input id="regPlaceholderEn${index}" data-reg-placeholder="${index}" value="${esc(field.placeholder_en || field.placeholder || '')}">
           </div>
           <div class="form-group">
-            <label>Placeholder · 中文</label>
-            <input data-reg-placeholder-zh="${index}" value="${esc(field.placeholder_zh || field.placeholder || '')}">
+            <label for="regPlaceholderZh${index}">Placeholder · 中文</label>
+            <input id="regPlaceholderZh${index}" data-reg-placeholder-zh="${index}" value="${esc(field.placeholder_zh || field.placeholder || '')}">
           </div>
           <div class="form-group">
-            <label>Type</label>
-            <select data-reg-type="${index}">
+            <label for="regType${index}">Type</label>
+            <select id="regType${index}" data-reg-type="${index}">
               ${['text','textarea','select'].map((type) => `<option value="${type}" ${type === (field.type || 'text') ? 'selected' : ''}>${type}</option>`).join('')}
             </select>
           </div>
           <div class="form-group">
-            <label>Required / Options</label>
-            <select data-reg-required="${index}">
+            <label for="regRequired${index}">Required / Options</label>
+            <select id="regRequired${index}" data-reg-required="${index}">
               <option value="false" ${!field.required ? 'selected' : ''}>Optional</option>
               <option value="true" ${field.required ? 'selected' : ''}>Required</option>
             </select>
-            <input data-reg-options="${index}" style="margin-top:8px" value="${esc((field.options || []).join(', '))}" placeholder="Select options, comma separated">
+            <input data-reg-options="${index}" style="margin-top:8px" value="${esc((field.options || []).join(', '))}" placeholder="Select options, comma separated" aria-label="Select options, comma separated">
             <button type="button" class="btn-secondary btn-sm" style="margin-top:8px" data-remove-registration="${index}">Remove</button>
           </div>
         </div>
@@ -3011,17 +3057,17 @@
       $('faqItemsEditor').innerHTML = faqs.slice(0, 6).map((item, index) => `
         <div class="faq-card" data-faq-card="${index}">
           <div class="form-group">
-            <label>Question (中文)</label>
-            <input data-faq-question="${index}" value="${esc(faqText(item.question, 'zh'))}">
-            <label class="mt-2">Question (English)</label>
-            <input data-faq-question-en="${index}" value="${esc(faqText(item.question, 'en'))}">
+            <label for="faqQuestionZh${index}">Question (中文)</label>
+            <input id="faqQuestionZh${index}" data-faq-question="${index}" value="${esc(faqText(item.question, 'zh'))}">
+            <label class="mt-2" for="faqQuestionEn${index}">Question (English)</label>
+            <input id="faqQuestionEn${index}" data-faq-question-en="${index}" value="${esc(faqText(item.question, 'en'))}">
             <button type="button" class="btn-secondary btn-sm" style="margin-top:8px" data-remove-faq="${index}">Remove</button>
           </div>
           <div class="form-group">
-            <label>Answer (中文)</label>
-            <textarea data-faq-answer="${index}" rows="3">${esc(faqText(item.answer, 'zh'))}</textarea>
-            <label class="mt-2">Answer (English)</label>
-            <textarea data-faq-answer-en="${index}" rows="3">${esc(faqText(item.answer, 'en'))}</textarea>
+            <label for="faqAnswerZh${index}">Answer (中文)</label>
+            <textarea id="faqAnswerZh${index}" data-faq-answer="${index}" rows="3">${esc(faqText(item.answer, 'zh'))}</textarea>
+            <label class="mt-2" for="faqAnswerEn${index}">Answer (English)</label>
+            <textarea id="faqAnswerEn${index}" data-faq-answer-en="${index}" rows="3">${esc(faqText(item.answer, 'en'))}</textarea>
           </div>
         </div>
       `).join('');
@@ -3306,6 +3352,7 @@
         const active = button.dataset.workbenchTab === tab;
         button.classList.toggle('active', active);
         button.setAttribute('aria-selected', active ? 'true' : 'false');
+        button.tabIndex = active ? 0 : -1;
       });
       document.querySelectorAll('[data-workbench-panel]').forEach((panel) => panel.classList.toggle('active', panel.dataset.workbenchPanel === tab));
       if (tab === 'analytics') loadAnalytics().catch((err) => showToast(`Analytics failed to load: ${err.message}`, 'error'));
@@ -3964,6 +4011,16 @@
       document.querySelectorAll('[data-workbench-tab]').forEach((button) => {
         button.addEventListener('click', () => switchWorkbenchTab(button.dataset.workbenchTab));
       });
+      document.querySelector('.studio-tabs').addEventListener('keydown', (event) => {
+        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+        const tabs = Array.from(document.querySelectorAll('[data-workbench-tab]'));
+        const index = tabs.indexOf(document.activeElement);
+        if (index === -1) return;
+        event.preventDefault();
+        const next = tabs[(index + (event.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+        next.focus();
+        switchWorkbenchTab(next.dataset.workbenchTab);
+      });
       document.querySelectorAll('[data-preview-mode]').forEach((button) => {
         button.addEventListener('click', () => switchPreviewMode(button.dataset.previewMode));
       });
@@ -4036,6 +4093,7 @@
       $('modalOverlay').addEventListener('click', (event) => {
         if (event.target === $('modalOverlay')) closeModal();
       });
+      $('modalOverlay').addEventListener('keydown', trapModalFocus);
     }
 
     bindEvents();

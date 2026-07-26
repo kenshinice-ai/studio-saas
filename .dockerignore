@@ -1,0 +1,32 @@
+# Docker build context excludes — keep the image to runtime code + generated
+# tenant workspaces. Mirrors package_release.sh exclusions.
+.git
+.gitignore
+.DS_Store
+.venv
+venv
+__pycache__
+**/__pycache__
+*.pyc
+.pytest_cache
+**/.pytest_cache
+
+# Local mutable state — never bake into an image
+backend/database.json
+backend/backups
+backend/photos
+backend/portfolio
+backend/media
+backend/archives
+backend/.api_secret
+backend/.session_secret
+backend/.cms_password
+backups
+checkpoints
+dist
+
+# Dev-only
+backend/testdata
+docs/assets
+.claude
+deploy/aws/.env
