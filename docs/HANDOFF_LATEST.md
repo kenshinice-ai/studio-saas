@@ -60,7 +60,8 @@ online while the on-demand tunnel launcher is running.
 - Updated Edition install/deploy/database/requirements/runbook/operations
   documentation and all role-guide applicability markers.
 - Updated the 13-slide sales deck cover to v7.7.8 without changing sales copy
-  or layout; full render, overflow and template-fidelity QA passed.
+  or layout; full render, overflow and template-fidelity QA passed. Removed the
+  tracked `copy.pptx` duplicate after confirming its cover still said v7.7.7.
 
 ## 3. Verification evidence
 
