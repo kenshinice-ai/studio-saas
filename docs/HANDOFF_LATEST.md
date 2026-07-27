@@ -124,7 +124,7 @@ same tunnel.
 
 The clean committed release gate builds two archives:
 
-- `StudioSaaS-7.8.0.tar.gz` — SaaS source/deployment package.
+- `PWE-StudioSaaS-aws-7.8.0.tar.gz` — SaaS source/deployment package.
 - `PWE-Studio-Edition-7.8.0.tar.gz` — customer-owned Edition package.
 
 Each archive has a sibling `.sha256`. `BUILD_INFO` must match the release
