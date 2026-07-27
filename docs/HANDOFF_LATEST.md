@@ -2,11 +2,37 @@
 
 > 本文件在**每轮改动开始时和完成时**都更新（用户 2026-07-26 明确要求），
 > 始终反映最新状态。历史交接见 `docs/HANDOFF_2026-07-26.md`（v7.3.x 时期）。
-> 最后更新：2026-07-27（Standalone Edition 方案提案 · **⏸ 等待用户确认**）
+> 最后更新：2026-07-27（PWE Studio Edition · 定价拍板 + 实现轮进行中）
 
 ---
 
-## ⏸ Standalone Edition（单店独立版）方案提案（2026-07-27，等待确认）
+## 🚧 PWE Studio Edition：定价已拍板，实现轮进行中（2026-07-27）
+
+**全部 6 项决策已由用户拍板**（standalone-edition/README.md §5）：
+方案 A；交付 启程 $1,499（客户云账号）/ 主场 $2,999 / 开幕 $4,999
+（含我们代管；主场可 +$800 加购代管配置）；维护 守护 $499（每年 2 次
+升级+年度安全审计）/ 护航 $1,499 / 托管 $2,999 每年；无维护客户免费
+1 次更新（12 个月内）后续单收；回迁 SaaS 通道保留价格详谈；去署名
+一次性 $499；产品名 **PWE Studio Edition**。COMMERCIAL.md 已按最终
+定价与文案标准重写（档位命名 启程/主场/开幕 · 守护/护航/托管）。
+
+**实现轮两个并行 agent 进行中**。**文件夹边界（用户强调）**：
+Edition 专属交付物**全部**收在 `standalone-edition/`（tools/ 下的
+export/import_tenant_bundle.py、install.sh、docker-compose.edition.yml、
+RUNBOOK.md、templates/）；唯一的例外是方案 A 的本体——
+`STUDIOSAAS_MODE` 开关必须活在共享后端（一套代码两形态），其测试
+随 backend/tests（pytest 基建所在）。
+
+① 后端 `STUDIOSAAS_MODE=standalone` 门（启动不变量：恰一 active 租户
++ 零平台成员；平台路由 404；根路径→门户；plan 限制中性化；seed 拒绝；
+新测试组 test_standalone_mode.py）；
+② 交付工具链（standalone-edition/tools/ 导出导入、install.sh 向导、
+docker-compose.edition.yml db 转正、RUNBOOK 实施手册、学员导入模板；
+含 scratch 库端到端冒烟）。
+
+---
+
+## ✅ Standalone Edition（单店独立版）方案提案（2026-07-27，已确认）
 
 用户思路：把整套租户四界面作为**独立软件包**卖给客户，脱离 Super
 Admin 管理；setup+迁移一次性收费，维护另计。本轮**只出方案文档，
