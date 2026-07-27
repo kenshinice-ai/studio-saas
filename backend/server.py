@@ -4,6 +4,7 @@ from flask import Flask, request, jsonify, redirect, send_from_directory, sessio
 from threading import Lock
 from studiosaas import api_v1
 from studiosaas.auth import init_auth_blueprints
+from studiosaas.config import is_standalone
 from studiosaas.errors import api_error
 from studiosaas.workspaces import RESERVED_SLUGS, WorkspaceError, validate_tenant_slug
 
@@ -368,6 +369,98 @@ def _validate_production_configuration():
 
 
 _validate_production_configuration()
+
+
+# ── PWE Studio Edition (STUDIOSAAS_MODE=standalone) startup invariants ────────
+def _standalone_db_counts():
+    """Return ``(active_tenants, platform_super_admins)`` from PostgreSQL."""
+
+    from studiosaas.db import connect, fetch_one
+
+    with connect() as conn:
+        tenants = fetch_one(
+            conn,
+            "SELECT count(*) AS n FROM tenants WHERE status = 'active'",
+            (),
+        )
+        admins = fetch_one(
+            conn,
+            """
+            SELECT count(*) AS n
+            FROM memberships
+            WHERE tenant_id IS NULL
+              AND role = 'super_admin'
+              AND status = 'active'
+            """,
+            (),
+        )
+    return int(tenants["n"] or 0), int(admins["n"] or 0)
+
+
+def _validate_standalone_configuration():
+    """Fail fast when standalone mode boots against a non-standalone database.
+
+    PWE Studio Edition ships exactly one active tenant and no platform plane.
+    A database holding several tenants (or a platform super_admin) is either a
+    SaaS database or an incomplete installation — refuse to serve it rather
+    than expose one customer's server to multi-tenant state. SaaS mode never
+    runs these checks. STUDIOSAAS_SKIP_STANDALONE_CHECKS=1 lets the installer
+    bootstrap an empty database before the tenant row exists.
+    """
+
+    if not is_standalone():
+        return
+    if os.environ.get('STUDIOSAAS_SKIP_STANDALONE_CHECKS') == '1':
+        return
+    active_tenants, platform_admins = _standalone_db_counts()
+    if active_tenants != 1:
+        raise RuntimeError(
+            f'独立版（PWE Studio Edition）要求数据库中恰好有 1 个 active 租户，当前为 {active_tenants} 个。'
+            '请先运行 standalone-edition 安装脚本完成初始化。 '
+            f'Standalone mode requires exactly one active tenant in the database (found {active_tenants}). '
+            'Run the standalone-edition installer to initialise this database.'
+        )
+    if platform_admins:
+        raise RuntimeError(
+            f'独立版数据库中不允许存在平台管理员成员（tenant_id IS NULL 的 super_admin），当前有 {platform_admins} 个。'
+            '请先运行 standalone-edition 安装脚本（或删除这些平台成员行）。 '
+            f'Standalone mode forbids platform super_admin memberships (tenant_id IS NULL); found {platform_admins}. '
+            'Run the standalone-edition installer (or remove those platform membership rows).'
+        )
+
+
+_validate_standalone_configuration()
+
+
+# The single tenant's slug, resolved from the database and cached briefly so
+# every hit on `/` does not cost a query. Standalone only.
+_STANDALONE_SLUG_TTL = 60
+_standalone_slug_cache = {'slug': '', 'at': 0.0}
+
+
+def _standalone_tenant_slug():
+    """Return the standalone edition's single active tenant slug ('' if unknown)."""
+
+    now = time.time()
+    if _standalone_slug_cache['slug'] and now - _standalone_slug_cache['at'] < _STANDALONE_SLUG_TTL:
+        return _standalone_slug_cache['slug']
+    from studiosaas.db import DatabaseUnavailableError, connect, fetch_one
+
+    try:
+        with connect() as conn:
+            row = fetch_one(
+                conn,
+                "SELECT slug FROM tenants WHERE status = 'active' ORDER BY created_at LIMIT 1",
+                (),
+            )
+    except DatabaseUnavailableError:
+        return ''
+    slug = str(row['slug']) if row and row.get('slug') else ''
+    if slug:
+        _standalone_slug_cache['slug'] = slug
+        _standalone_slug_cache['at'] = now
+    return slug
+
 
 # ── F2: Phone normalization — strip spaces/dashes for comparison ──────────────
 def _norm_phone(p):
@@ -792,6 +885,13 @@ def _legacy_file(filename, mimetype=None, cache_seconds=0):
 
 @app.route('/')
 def serve_index():
+    if is_standalone():
+        # Standalone edition: the platform console does not exist, so the root
+        # is the single tenant's public portal.
+        slug = _standalone_tenant_slug()
+        if not slug:
+            return api_error('Service temporarily unavailable.', 503)
+        return redirect(f'/{slug}', code=302)
     return _public_file('super-admin.html', 'text/html; charset=utf-8', 0)
 
 @app.route('/register')
@@ -800,6 +900,8 @@ def serve_register():
 
 @app.route('/super-admin')
 def serve_super_admin():
+    if is_standalone():
+        return api_error('Not found', 404)
     return _public_file('super-admin.html', 'text/html; charset=utf-8', 0)
 
 @app.route('/_legacy/register')

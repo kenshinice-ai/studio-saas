@@ -24,7 +24,19 @@ if str(APP_ROOT) not in sys.path:
 
 from studiosaas.db import DatabaseUnavailableError, connect, fetch_all, fetch_one
 from studiosaas.auth import hash_password
+from studiosaas.config import is_standalone
 from studiosaas.workspaces import ensure_tenant_workspace
+
+
+def _refuse_in_standalone_mode() -> None:
+    """PWE Studio Edition guard: never write demo data into a customer DB."""
+
+    if is_standalone():
+        raise SystemExit(
+            "拒绝执行：STUDIOSAAS_MODE=standalone。独立版客户数据库不允许写入随机演示数据。 "
+            "Refusing to run: STUDIOSAAS_MODE=standalone — random demo data "
+            "must not be seeded into a standalone customer database."
+        )
 
 
 TENANTS = [
@@ -631,6 +643,7 @@ def refresh_usage(conn, tenant_id: str) -> None:
 def main() -> int:
     """Seed all configured demo tenants."""
 
+    _refuse_in_standalone_mode()
     args = parse_args()
     rng = random.Random(args.seed)
     try:

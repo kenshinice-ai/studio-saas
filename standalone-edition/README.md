@@ -66,7 +66,12 @@ JSON 文件形态：无角色权限、无审计、无门户/品牌系统，已�
 | [REQUIREMENTS.md](REQUIREMENTS.md) | 必须环境：硬件/系统/依赖/网络/域名 |
 | [DATABASE.md](DATABASE.md) | 独立数据库、平台→独立的数据迁移路径 |
 | [DEPLOYMENT.md](DEPLOYMENT.md) | 部署方式（Docker 主路径 + 裸机备选）、更新与回滚 |
-| [COMMERCIAL.md](COMMERCIAL.md) | 收费结构骨架、交付边界、维护协议选项 |
+| [COMMERCIAL.md](COMMERCIAL.md) | 收费结构、交付边界、维护协议档位 |
+| [RUNBOOK.md](RUNBOOK.md) | **实施工程师**交付日手册（安装/TLS/备份/验收/交接/回滚） |
+| [OPERATIONS.md](OPERATIONS.md) | **客户版**操作手册（备份自查、恢复、故障自查、更新、联系方式） |
+| [templates/](templates/) | 学员导入模板（CSV + 转换器），仅「现有系统迁入」路径需要 |
+| `install.sh` / `docker-compose.edition.yml` | 安装向导与单机 compose（`db` 转正、备份绑定挂载到主机） |
+| `tools/` | 平台侧导出 + 独立版导入（manifest 校验、空库前置、账本对账） |
 
 ## 5. 已拍板决策（2026-07-27）
 
@@ -82,13 +87,36 @@ JSON 文件形态：无角色权限、无审计、无门户/品牌系统，已�
 6. **页脚署名**：默认保留；去署名一次性 **$499**。
 7. **产品名**：**PWE Studio Edition**（暂定名）。
 
-## 6. 实现轮清单（执行中）
+## 6. 实现轮清单（已完成，2026-07-27）
 
-1. 后端 `STUDIOSAAS_MODE=standalone` 开关 + 启动校验 + 路由关闭
-2. `standalone-edition/install.sh` 安装向导（建库→迁移→建租户→建 owner）
-3. 平台租户导出工具（复用 tenant_archive 快照 + 媒体打包）→ 独立版导入
-4. 独立版专属 isolation 检查组 + 打包脚本参数
-5. 交付 runbook（面向实施工程师）+ 客户版操作手册
+1. ✅ 后端 `STUDIOSAAS_MODE=standalone` 开关 + 启动校验 + 路由关闭
+   —— `config.is_standalone()`（每次读环境，不缓存）、`server` 启动不变量
+   （恰一 active 租户 + 零平台成员，安装器可用 `STUDIOSAAS_SKIP_STANDALONE_CHECKS=1`
+   越过首次引导）、`api_v1` 前置钩子关掉 `/v1/admin/*` 与套餐写路径、
+   `/` 跳单租户门户、plan 限额中性化、两个 seed 脚本拒绝执行。
+   测试：`backend/tests/test_standalone_mode.py`（27 项）。
+2. ✅ `standalone-edition/install.sh` 安装向导（Docker 一条命令，含首次引导、
+   备份目录 chown、TLS 命令打印、验收清单回显、`--force-reinstall` 二次确认）
+3. ✅ 导出/导入工具 `tools/export_tenant_bundle.py`（只读，复用
+   `tenant_archive.SNAPSHOT_TABLES` 单一清单）→ `tools/import_tenant_bundle.py`
+   （manifest 校验和、空库前置、剔平台成员、重置密码、账本双向对账）
+4. ✅ 独立版专属 isolation 检查组（`backend/test_tenant_isolation.py`，
+   **15 项**，总数 201 → **216**）+ 打包脚本 `--edition` 参数
+   （`deploy/aws/build_aws_bundle.sh`，产物 `PWE-Studio-Edition-<ver>.tar.gz`，
+   `BUILD_INFO` 记 `mode=standalone`）
+5. ✅ 交付 runbook [RUNBOOK.md](RUNBOOK.md)（实施工程师）+ 客户版操作手册
+   [OPERATIONS.md](OPERATIONS.md)（工作室负责人）+ 学员导入模板
+   [templates/](templates/)（CSV 模板 + 转换器，转换即用服务端同一函数校验）
+
+**端到端实测**（scratch PostgreSQL 库，两条数据路径 + 三个负例）：
+
+| 场景 | 结果 |
+|---|---|
+| 平台导出 → 空库导入 → standalone 启动 | 30 表 163 行；账本 165.00 包内=库内；平台成员 0；`/`→`/lets-paint-studio`、`/super-admin`→404 |
+| CSV → JSON → 导入 → standalone 启动 | 3 名学员（含 1 归档）；期初 16.50 记为单条 `migration` 账本行 |
+| 导出对平台库的副作用 | 无：租户仍 `active`，`tenant_archives` 0 行 |
+| 二次导入非空库 | 拒绝，exit 1 |
+| 篡改包（改一个 JSON 字节） | sha256 拦下，中英文说明，exit 1 |
 
 ---
 

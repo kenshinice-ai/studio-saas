@@ -1,0 +1,4 @@
+id,name,firstName,lastName,birthday,mobile,email,wechat,remark,balance,archived
+S001,张小雨,,,2015-03-08,0400123456,rain@example.com,zhangxiaoyu,周三班,12,false
+S002,Liam Chen,Liam,Chen,2013-11-22,0400987654,liam@example.com,,一对一,4.5,false
+S003,李思远,,,,0400555111,,lisiyuan,已停课，保留档案,0,true

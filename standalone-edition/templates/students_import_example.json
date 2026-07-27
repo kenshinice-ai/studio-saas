@@ -1,0 +1,44 @@
+{
+  "students": [
+    {
+      "id": "S001",
+      "name": "张小雨",
+      "firstName": "",
+      "lastName": "",
+      "birthday": "2015-03-08",
+      "mobile": "0400123456",
+      "email": "rain@example.com",
+      "wechat": "zhangxiaoyu",
+      "remark": "周三班",
+      "balance": "12",
+      "archived": false
+    },
+    {
+      "id": "S002",
+      "name": "Liam Chen",
+      "firstName": "Liam",
+      "lastName": "Chen",
+      "birthday": "2013-11-22",
+      "mobile": "0400987654",
+      "email": "liam@example.com",
+      "wechat": "",
+      "remark": "一对一",
+      "balance": "4.5",
+      "archived": false
+    },
+    {
+      "id": "S003",
+      "name": "李思远",
+      "firstName": "",
+      "lastName": "",
+      "birthday": "",
+      "mobile": "0400555111",
+      "email": "",
+      "wechat": "lisiyuan",
+      "remark": "已停课，保留档案",
+      "balance": "0",
+      "archived": true
+    }
+  ],
+  "logs": []
+}

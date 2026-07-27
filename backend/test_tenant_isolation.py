@@ -11,6 +11,7 @@ from __future__ import annotations
 import os
 import sys
 import tempfile
+import importlib
 import importlib.util
 import hashlib
 import base64
@@ -159,6 +160,149 @@ def has_error_shape(response) -> bool:
     return response.status_code >= 400 and isinstance(body.get("error"), str) and isinstance(body.get("message"), str)
 
 
+def check_standalone_edition(owner_a, owner_b, super_admin) -> None:
+    """PWE Studio Edition (STUDIOSAAS_MODE=standalone) boundary checks.
+
+    The Edition is the same binary with the platform plane closed, so the
+    boundary it adds belongs in this file rather than only in pytest: an Edition
+    server must (a) refuse a database that is not exactly one tenant, (b) hide
+    the platform plane entirely rather than merely 403 it, and (c) not widen a
+    single existing tenant boundary while doing so.
+
+    The mode flag is read from the environment on every call (studiosaas.config
+    reads it fresh, never caches) which is what lets this run inside the same
+    process as the SaaS checks. The flag is restored in a finally block, and the
+    last two checks prove the restore actually took effect — a leaked mode would
+    silently disarm every platform check that follows.
+    """
+
+    print("\n  -- PWE Studio Edition (standalone mode) --")
+    previous_mode = os.environ.get("STUDIOSAAS_MODE")
+    try:
+        os.environ["STUDIOSAAS_MODE"] = "standalone"
+
+        # (a) This fixture database is a SaaS database: two tenants plus a
+        # platform super_admin. An Edition boot must refuse to serve it.
+        try:
+            server._validate_standalone_configuration()
+            refused = False
+            detail = "no RuntimeError raised"
+        except RuntimeError as exc:
+            refused = True
+            detail = str(exc)[:60]
+        check(
+            "Standalone boot refuses a multi-tenant (SaaS) database",
+            refused,
+            detail,
+        )
+
+        # The installer's escape hatch must be explicit and must not be the
+        # default: only the exact value "1" may skip the invariant.
+        os.environ["STUDIOSAAS_SKIP_STANDALONE_CHECKS"] = "1"
+        try:
+            server._validate_standalone_configuration()
+            skipped = True
+        except RuntimeError:
+            skipped = False
+        finally:
+            os.environ.pop("STUDIOSAAS_SKIP_STANDALONE_CHECKS", None)
+        check("Standalone boot check can be skipped only by the installer flag", skipped)
+
+        # (b) Platform plane is absent, not merely forbidden. 404 tells a
+        # scanner the route does not exist; 403 confirms that it does.
+        super_admin_page = server.app.test_client().get("/super-admin")
+        check(
+            "Standalone: /super-admin returns 404",
+            super_admin_page.status_code == 404,
+            f"got {super_admin_page.status_code}",
+        )
+        admin_usage = super_admin.get("/v1/admin/usage")
+        check(
+            "Standalone: /v1/admin/* returns 404 even for a platform super_admin",
+            admin_usage.status_code == 404,
+            f"got {admin_usage.status_code}",
+        )
+        admin_tenants = super_admin.post("/v1/admin/tenants", json={"name": "x", "slug": "x"})
+        check(
+            "Standalone: tenant creation route returns 404",
+            admin_tenants.status_code == 404,
+            f"got {admin_tenants.status_code}",
+        )
+        plan_write = super_admin.post("/v1/plans", json={"code": "edition-test", "name": "x"})
+        check(
+            "Standalone: plan writes return 404",
+            plan_write.status_code == 404,
+            f"got {plan_write.status_code}",
+        )
+        plan_read = owner_a.get(f"/s/{TENANT_A}/v1/plans")
+        check(
+            "Standalone: plan read stays available to the studio",
+            plan_read.status_code == 200,
+            f"got {plan_read.status_code}",
+        )
+
+        # Root is the studio's own portal, never the platform console.
+        root = server.app.test_client().get("/")
+        location = root.headers.get("Location", "")
+        check(
+            "Standalone: / redirects to a tenant portal instead of the console",
+            root.status_code == 302 and location.startswith("/") and "super-admin" not in location,
+            f"got {root.status_code} -> {location!r}",
+        )
+
+        # (c) The studio keeps working, and nothing got wider.
+        own_students = owner_a.get(f"/s/{TENANT_A}/v1/students")
+        check(
+            "Standalone: the studio still reaches its own data",
+            own_students.status_code == 200,
+            f"got {own_students.status_code}",
+        )
+        cross = owner_a.get(f"/s/{TENANT_B}/v1/students")
+        check(
+            "Standalone: cross-tenant access is still refused",
+            cross.status_code == 403,
+            f"got {cross.status_code}",
+        )
+        gate_probe = super_admin.get(f"/s/{TENANT_A}/v1/students")
+        check(
+            "Standalone: support gate still applies to a platform membership",
+            gate_probe.status_code == 403,
+            f"got {gate_probe.status_code}",
+        )
+
+        # Fixture and demo seeds must never touch a customer's database.
+        for module_name, module in (
+            ("seed_local_test_tenants", seed_fixtures),
+            ("seed_random_demo_data", importlib.import_module("scripts.seed_random_demo_data")),
+        ):
+            try:
+                module._refuse_in_standalone_mode()
+                refused_seed = False
+            except SystemExit:
+                refused_seed = True
+            check(f"Standalone: {module_name} refuses to run", refused_seed)
+    finally:
+        if previous_mode is None:
+            os.environ.pop("STUDIOSAAS_MODE", None)
+        else:
+            os.environ["STUDIOSAAS_MODE"] = previous_mode
+
+    # Restoring the mode must fully re-arm the platform plane, or every check
+    # after this point would be passing for the wrong reason.
+    restored_page = server.app.test_client().get("/super-admin")
+    check(
+        "SaaS mode restored: /super-admin serves again",
+        restored_page.status_code == 200,
+        f"got {restored_page.status_code}",
+    )
+    restored_admin = super_admin.get("/v1/admin/usage")
+    check(
+        "SaaS mode restored: platform plane answers again",
+        restored_admin.status_code == 200,
+        f"got {restored_admin.status_code}",
+    )
+
+
 def main() -> int:
     """Run all isolation and privacy checks."""
 
@@ -256,6 +400,8 @@ def main() -> int:
         int(usage_body.get("paid_tenants") or 0) == int(expected_commercial["paid"] or 0)
         and int(usage_body.get("mrr_aud") or 0) == int(expected_commercial["mrr"] or 0),
     )
+    check_standalone_edition(owner_a, owner_b, super_admin)
+
     me_response = owner_a.get("/v1/auth/me")
     me_body = me_response.get_json() or {}
     check("Authenticated /v1/auth/me succeeds", me_response.status_code == 200, f"got {me_response.status_code}")

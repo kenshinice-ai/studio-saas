@@ -52,3 +52,9 @@ ehthumbs.db
 
 # Office/LibreOffice lock files
 ~$*
+
+# PWE Studio Edition install-time artefacts (never committed).
+# The .env IS every secret on a customer box; `backups/` is already ignored
+# above and is where the Edition's host bind mount lands.
+standalone-edition/.env
+standalone-edition/.env.bak

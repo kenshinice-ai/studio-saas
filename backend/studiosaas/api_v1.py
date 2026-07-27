@@ -35,7 +35,7 @@ from .auth import (
     tenant_owner_required,
     verify_password as _auth_verify_password,
 )
-from .config import load_config
+from .config import is_standalone, load_config
 from .db import DatabaseUnavailableError, connect, fetch_all, fetch_one
 from .errors import api_error
 from .lifecycle import (
@@ -84,6 +84,31 @@ from .tenant_context import TenantResolutionError, resolve_tenant, slug_from_req
 from .workspaces import WorkspaceError, ensure_tenant_workspace, validate_tenant_slug
 
 api_v1 = Blueprint("studiosaas_api_v1", __name__)
+
+# ── PWE Studio Edition (STUDIOSAAS_MODE=standalone): platform plane closed ────
+# The platform control plane (/v1/admin/*) and plan mutations (/v1/plans
+# writes) do not exist in the standalone edition. Paths are matched on
+# request.path because the blueprint is mounted both at /v1 and at
+# /s/<slug>/v1. GET /v1/plans stays reachable (a harmless read the Studio
+# Admin UI uses to display the current plan).
+_STANDALONE_CLOSED_PATH_RE = re.compile(r"^(?:/s/[^/]+)?/v1/admin(?:/|$)")
+_STANDALONE_PLANS_PATH_RE = re.compile(r"^(?:/s/[^/]+)?/v1/plans(?:/|$)")
+
+
+@api_v1.before_request
+def _standalone_platform_plane_gate():
+    """Return 404 for platform-plane routes when running standalone."""
+
+    if not is_standalone():
+        return None
+    path = request.path
+    if _STANDALONE_CLOSED_PATH_RE.match(path):
+        return jsonify({"error": "not_found"}), 404
+    if _STANDALONE_PLANS_PATH_RE.match(path) and request.method not in ("GET", "HEAD", "OPTIONS"):
+        return jsonify({"error": "not_found"}), 404
+    return None
+
+
 # Simple in-memory rate limiter for public endpoints (per-IP, per-minute).
 # Counters reset on process restart — acceptable for the local pilot; a
 # shared store (Redis) replaces this at the production stage (P3-04).
@@ -1612,6 +1637,11 @@ def _refresh_tenant_usage(conn, tenant_id: str) -> None:
 def _student_capacity(conn, tenant_id: str) -> tuple[int, int]:
     """Return current non-archived students and the tenant plan limit."""
 
+    if is_standalone():
+        # Standalone edition has no plan capacity. Report unlimited headroom
+        # without the per-tenant creation lock, which only exists to
+        # serialise the capacity check.
+        return 0, 2**31 - 1
     with conn.cursor() as cur:
         # Serialize student creation per tenant so concurrent requests cannot
         # both pass the same plan-capacity check.
@@ -1636,6 +1666,9 @@ def _student_capacity(conn, tenant_id: str) -> tuple[int, int]:
 def _plan_feature_enabled(conn, tenant_id: str, feature: str) -> bool:
     """Return whether the tenant's current plan enables a named feature."""
 
+    if is_standalone():
+        # Standalone edition: every product feature is included in the buyout.
+        return True
     row = fetch_one(
         conn,
         """
@@ -2113,7 +2146,7 @@ def create_tenant_team_member():
                     "This email already belongs to another StudioSaaS account. Cross-tenant access cannot be added from tenant team management.",
                     409,
                 )
-            if int(active_users["n"] or 0) >= int(plan_row["user_limit"]):
+            if not is_standalone() and int(active_users["n"] or 0) >= int(plan_row["user_limit"]):
                 return _error(
                     f"User limit reached ({plan_row['user_limit']}). Upgrade the plan before adding another team member.",
                     403,
@@ -2194,7 +2227,7 @@ def update_tenant_team_member(membership_id: str):
                     "SELECT count(*) AS n FROM memberships WHERE tenant_id = %s AND status = 'active' AND role <> 'parent'",
                     (tenant.tenant_id,),
                 )
-                if int(active_users["n"] or 0) >= int(plan_row["user_limit"]):
+                if not is_standalone() and int(active_users["n"] or 0) >= int(plan_row["user_limit"]):
                     return _error(
                         f"User limit reached ({plan_row['user_limit']}). Upgrade the plan before reactivating this member.",
                         403,

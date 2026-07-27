@@ -18,6 +18,18 @@ if str(APP_ROOT) not in sys.path:
     sys.path.insert(0, str(APP_ROOT))
 
 from studiosaas.auth import hash_password
+from studiosaas.config import is_standalone
+
+
+def _refuse_in_standalone_mode() -> None:
+    """PWE Studio Edition guard: never write test fixtures into a customer DB."""
+
+    if is_standalone():
+        raise SystemExit(
+            "拒绝执行：STUDIOSAAS_MODE=standalone。独立版客户数据库不允许写入本地隔离测试租户。 "
+            "Refusing to run: STUDIOSAAS_MODE=standalone — local isolation-test "
+            "tenants must not be seeded into a standalone customer database."
+        )
 
 TENANT_A = "isolation-alpha"
 TENANT_B = "isolation-beta"
@@ -314,6 +326,7 @@ def _add_media(cur: Any, *, tenant_id: str, student_id: str, label: str) -> str:
 def seed() -> dict[str, Any]:
     """Seed deterministic tenants and return the created fixture IDs."""
 
+    _refuse_in_standalone_mode()
     from studiosaas.db import connect
 
     with connect() as conn:

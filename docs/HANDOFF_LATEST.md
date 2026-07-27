@@ -2,33 +2,65 @@
 
 > 本文件在**每轮改动开始时和完成时**都更新（用户 2026-07-26 明确要求），
 > 始终反映最新状态。历史交接见 `docs/HANDOFF_2026-07-26.md`（v7.3.x 时期）。
-> 最后更新：2026-07-27（PWE Studio Edition · 定价拍板 + 实现轮进行中）
+> 最后更新：2026-07-27（PWE Studio Edition · 实现轮已完成，端到端实测通过）
 
 ---
 
-## 🚧 PWE Studio Edition：定价已拍板，实现轮进行中（2026-07-27）
+## ✅ PWE Studio Edition 实现轮（2026-07-27，本轮已完成）
 
-**全部 6 项决策已由用户拍板**（standalone-edition/README.md §5）：
-方案 A；交付 启程 $1,499（客户云账号）/ 主场 $2,999 / 开幕 $4,999
-（含我们代管；主场可 +$800 加购代管配置）；维护 守护 $499（每年 2 次
-升级+年度安全审计）/ 护航 $1,499 / 托管 $2,999 每年；无维护客户免费
-1 次更新（12 个月内）后续单收；回迁 SaaS 通道保留价格详谈；去署名
-一次性 $499；产品名 **PWE Studio Edition**。COMMERCIAL.md 已按最终
-定价与文案标准重写（档位命名 启程/主场/开幕 · 守护/护航/托管）。
+**6 项决策已拍板**（standalone-edition/README.md §5）：方案 A；交付
+启程 $1,499 / 主场 $2,999 / 开幕 $4,999；维护 守护 $499 / 护航 $1,499 /
+托管 $2,999 每年；无维护客户免费 1 次更新（12 个月内）；回迁通道保留
+价格详谈；去署名一次性 $499；产品名 **PWE Studio Edition**。
 
-**实现轮两个并行 agent 进行中**。**文件夹边界（用户强调）**：
-Edition 专属交付物**全部**收在 `standalone-edition/`（tools/ 下的
-export/import_tenant_bundle.py、install.sh、docker-compose.edition.yml、
-RUNBOOK.md、templates/）；唯一的例外是方案 A 的本体——
-`STUDIOSAAS_MODE` 开关必须活在共享后端（一套代码两形态），其测试
-随 backend/tests（pytest 基建所在）。
+**README §6 五步清单全部完成**，实测证据见该节表格。
 
-① 后端 `STUDIOSAAS_MODE=standalone` 门（启动不变量：恰一 active 租户
-+ 零平台成员；平台路由 404；根路径→门户；plan 限制中性化；seed 拒绝；
-新测试组 test_standalone_mode.py）；
-② 交付工具链（standalone-edition/tools/ 导出导入、install.sh 向导、
-docker-compose.edition.yml db 转正、RUNBOOK 实施手册、学员导入模板；
-含 scratch 库端到端冒烟）。
+- **① 后端模式门**：`config.is_standalone()`（每次读环境不缓存，所以
+  测试能用 monkeypatch 翻转，isolation 也能在同进程内切换）；`server`
+  启动不变量（恰一 active 租户 + 零平台成员，安装器用
+  `STUDIOSAAS_SKIP_STANDALONE_CHECKS=1` 越过首次引导）；`api_v1`
+  before_request 关 `/v1/admin/*` 与套餐写路径（**404 而非 403** —— 平面
+  不存在，不是被拒绝）；`/` 跳单租户门户；plan 限额与 feature 中性化；
+  两个 seed 脚本拒绝执行。测试 `backend/tests/test_standalone_mode.py` 27 项。
+- **② 交付工具链**：`install.sh`（Docker 一条命令）、
+  `docker-compose.edition.yml`、`tools/export_tenant_bundle.py`（只读，
+  复用 `tenant_archive.SNAPSHOT_TABLES` 单一清单）、`import_tenant_bundle.py`
+  （manifest 校验和 + 空库前置 + 剔平台成员 + 重置密码 + 账本双向对账）。
+- **③ 新增本轮**：
+  - `templates/`：学员导入 CSV 模板 + `csv_to_import_json.py`（**用服务端
+    同一个 `normalize_core_student` 校验**，错误指出第几行 —— 失败发生在
+    工程师笔记本上，不在客户面前的安装现场）+ 模板 README。
+  - **独立版 isolation 检查组 15 项**（`backend/test_tenant_isolation.py`，
+    201 → **216**）：Edition 二进制指向 SaaS 库必须拒绝启动、平台面 404、
+    根路径跳门户、租户自己的数据仍可达、跨租户仍被拒、支持门仍生效、
+    seed 拒绝，**外加两条「恢复 SaaS 模式后平台面重新可用」** —— 模式泄漏
+    会让后面所有平台检查以错误的理由通过。
+  - 打包脚本 `--edition` 参数：产物 `PWE-Studio-Edition-<ver>.tar.gz`，
+    `BUILD_INFO` 记 `mode=standalone`（RUNBOOK §0 出发前核对，防止把 SaaS
+    包交给客户），入口指向 RUNBOOK 而非 README_AWS，另附 CUSTOMER_README。
+    **不删平台面源码** —— 删了就等于 fork 成测试套件没跑过的东西，正是
+    方案 B 被否的理由。
+  - 客户版操作手册 `OPERATIONS.md`（每月两分钟备份自查、恢复三步、
+    故障自查按「先看什么」排序、更新次数按档位、联系我们要带哪三样）。
+- **🔴 本轮发现并修掉的交付缺陷**：`backup_postgres.py` 写
+  `<repo>/backups/postgres`，在镜像里是容器层路径，而更新步骤
+  `dc up -d --build` 会**静默清空客户全部备份历史**，且只会在需要恢复
+  那天才发现。改成**主机绑定挂载** `../backups:/app/backups`（不是命名卷
+  —— 客户要能直接 rsync 到自己 NAS），install.sh 首次启动前建目录并
+  `chown 10001`，RUNBOOK §5/§6 与 OPERATIONS §2 同步。
+  另修：篡改包原来抛裸 traceback，现在同 REFUSED 中英文说明（exit 1）。
+- **端到端实测**（scratch 库，两条数据路径 + 三个负例，见 README §6 表格）：
+  平台导出→空库导入→standalone 启动全过（30 表 163 行，账本 165.00 对账
+  一致，平台成员 0）；CSV→JSON→导入过（3 人含 1 归档，期初 16.50 记为单条
+  `migration` 账本行）；导出对平台库零副作用；二次导入拒绝；篡改包拒绝。
+  scratch 库已 drop。
+- **验证**：157 pytest（+27 standalone）+ 73 smoke + **216 isolation** 全绿；
+  `verify_local.sh` 全量通过。
+
+**文件夹边界（用户强调，已遵守）**：Edition 专属交付物全部在
+`standalone-edition/`；唯一例外是方案 A 的本体 —— `STUDIOSAAS_MODE` 开关活在
+共享后端（一套代码两形态），其 pytest 随 `backend/tests`，isolation 检查随
+`backend/test_tenant_isolation.py`（pytest 与 isolation 基建所在）。
 
 ---
 
@@ -227,10 +259,15 @@ CMS/门户走查小项 · PWE 品牌识别 · 角色手册+FAQ）+ 后端主线�
   main 停在 v7.6.0=59af5a2，尚未合入其后提交
 - **打包产物**：`dist/PWE-StudioSaaS-aws-7.7.7.tar.gz`（sha256 校验 OK，
   BUILD_INFO commit=67fecd1，与 HEAD 一致）
-- **验证基线**：**131 pytest** + 73 smoke + **201 tenant-isolation** 全绿
-  （201 含 v7.7.0 新增的 5 条支持门检查）
+- **验证基线**：**157 pytest** + 73 smoke + **216 tenant-isolation** 全绿
+  （157 含 Edition 模式门 27 项；216 含 v7.7.0 的 5 条支持门 + 本轮
+  Edition 的 15 条边界检查）
 - **AWS 部署包**：`bash deploy/aws/build_aws_bundle.sh <ver>` →
   `dist/PWE-StudioSaaS-aws-<ver>.tar.gz`（含 BUILD_INFO；需干净 git 树）
+- **交付形态**：SaaS 与 Edition 同一份代码。
+  `bash deploy/aws/build_aws_bundle.sh <ver>` → SaaS 包；
+  `bash deploy/aws/build_aws_bundle.sh <ver> --edition` → Edition 包
+  （`BUILD_INFO` 的 `mode` 是唯一可靠的区分依据，交付前必核）
 - **迁移**：0001–0020；`schema_v1.sql` 已与迁移链**零漂移**（实测比对列/约束/索引；
   0020 只删冗余索引，无新表）
 

@@ -1,0 +1,112 @@
+# PWE Studio Edition — single-box compose file (DEPLOYMENT.md §1).
+#
+# UPSTREAM: deploy/aws/docker-compose.yml is the reference this file was
+# deliberately duplicated from (the delivery bundle ships both, and compose
+# `extends` across files would couple the Edition to platform-only comments
+# and profile wiring). When the AWS file changes its env passthrough, logging
+# caps, or volume set, mirror the change here.
+#
+# Edition differences from the AWS file — exactly four (DEPLOYMENT.md §1):
+#   1. `db` is a DEFAULT service (no `local-db` profile): a single studio box
+#      runs its own PostgreSQL 16; there is no RDS.
+#   2. `STUDIOSAAS_MODE=standalone` (+ the first-boot skip flag) in app env.
+#   3. Backups bind-mount to the host (`../backups`) so the update procedure
+#      cannot wipe them; the AWS file leaves backups to EBS snapshots.
+#   4. Project name is per-customer: install.sh writes
+#      COMPOSE_PROJECT_NAME=studio-<slug> into standalone-edition/.env so
+#      containers and volumes never collide with a platform install on the
+#      same host. If you run compose by hand, keep `--env-file` pointed at
+#      that .env (or pass `-p studio-<slug>`).
+#
+#   docker compose -f standalone-edition/docker-compose.edition.yml \
+#     --env-file standalone-edition/.env up -d
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: deploy/aws/Dockerfile
+    image: studiosaas-edition:${STUDIOSAAS_VERSION:-latest}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8899:8899"   # nginx on the host terminates TLS and proxies here
+    environment:
+      STUDIOSAAS_ENV: ${STUDIOSAAS_ENV:-production}
+      # Edition mode gate: exactly one active tenant, platform faces closed.
+      STUDIOSAAS_MODE: ${STUDIOSAAS_MODE:-standalone}
+      # First boot only (before the tenant exists): install.sh sets this to 1,
+      # creates/imports the tenant, then flips it back to 0 and restarts.
+      STUDIOSAAS_SKIP_STANDALONE_CHECKS: ${STUDIOSAAS_SKIP_STANDALONE_CHECKS:-0}
+      STUDIOSAAS_DATABASE_URL: ${STUDIOSAAS_DATABASE_URL:-postgresql://studiosaas:${EDITION_DB_PASSWORD:-}@db:5432/studiosaas}
+      STUDIOSAAS_SESSION_SECRET: ${STUDIOSAAS_SESSION_SECRET}
+      STUDIOSAAS_API_KEY: ${STUDIOSAAS_API_KEY}
+      STUDIOSAAS_PUBLIC_BASE_DOMAIN: ${STUDIOSAAS_PUBLIC_BASE_DOMAIN:-}
+      # Edition never seeds a platform super admin (README.md §2).
+      STUDIOSAAS_SEED_SUPER_ADMIN: "0"
+      # Email delivery (SMTP in production; console = log-only default)
+      STUDIOSAAS_EMAIL_BACKEND: ${STUDIOSAAS_EMAIL_BACKEND:-console}
+      STUDIOSAAS_SMTP_HOST: ${STUDIOSAAS_SMTP_HOST:-}
+      STUDIOSAAS_SMTP_PORT: ${STUDIOSAAS_SMTP_PORT:-587}
+      STUDIOSAAS_SMTP_USER: ${STUDIOSAAS_SMTP_USER:-}
+      STUDIOSAAS_SMTP_PASSWORD: ${STUDIOSAAS_SMTP_PASSWORD:-}
+      STUDIOSAAS_SMTP_FROM: ${STUDIOSAAS_SMTP_FROM:-}
+      # DB wait ceilings (ms) and support-gate override — documented tunables
+      STUDIOSAAS_DB_CONNECT_TIMEOUT: ${STUDIOSAAS_DB_CONNECT_TIMEOUT:-5}
+      STUDIOSAAS_DB_STATEMENT_TIMEOUT_MS: ${STUDIOSAAS_DB_STATEMENT_TIMEOUT_MS:-30000}
+      STUDIOSAAS_DB_LOCK_TIMEOUT_MS: ${STUDIOSAAS_DB_LOCK_TIMEOUT_MS:-10000}
+      STUDIOSAAS_ENFORCE_SUPPORT_GATE: ${STUDIOSAAS_ENFORCE_SUPPORT_GATE:-1}
+      COOKIE_SECURE: "1"
+      PORT: "8899"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    volumes:
+      - studiosaas-data:/data
+      - studiosaas-media:/media
+      # Tenant archive/permanent-delete snapshots — legal retention (incl.
+      # publication-consent evidence). Must survive image replacement.
+      - studiosaas-archives:/app/backend/archives
+      # Runtime-created tenant portal workspaces — without this volume the
+      # portal generated at install time is lost on the next image rebuild.
+      # entrypoint.sh repopulates it from the template on every boot.
+      - studiosaas-tenants:/app/tenants
+      # Daily pg_dump output. A HOST BIND MOUNT on purpose, not a named volume:
+      # backup_postgres.py writes to <repo>/backups/postgres, which inside the
+      # image is a container-layer path — every `up -d --build` (the documented
+      # update step) would silently destroy the customer's entire backup
+      # history, and they would only find out on the day they needed it.
+      # A host path also lets the studio rsync backups to their own NAS without
+      # going through docker. install.sh creates it chown 10001 (the image user).
+      - ../backups:/app/backups
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: studiosaas
+      POSTGRES_USER: studiosaas
+      POSTGRES_PASSWORD: ${EDITION_DB_PASSWORD:?set EDITION_DB_PASSWORD in standalone-edition/.env}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    volumes:
+      - studiosaas-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U studiosaas -d studiosaas"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  studiosaas-data:
+  studiosaas-media:
+  studiosaas-archives:
+  studiosaas-tenants:
+  studiosaas-pgdata:
