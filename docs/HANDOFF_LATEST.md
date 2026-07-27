@@ -171,11 +171,11 @@ CMS/门户走查小项 · PWE 品牌识别 · 角色手册+FAQ）+ 后端主线�
   v7.6.0=审计 3H/13M/20L 全量修复 + Super Admin UI 专业化改版，
   v7.7.0=roadmap 全清 + PWE 品牌识别 + Super Admin 二轮，
   v7.7.7=生产就绪整改 + DB 安保 + 销售套件）
-- **提交状态**：v7.7.0 已提交并推送（9de05ab，分支
-  `codex/studiosaas-v7.3.1`）；v7.6.0=59af5a2（main 已对齐该提交，
-  9de05ab 尚未合入 main）
-- **打包产物**：`dist/PWE-StudioSaaS-aws-7.7.0.tar.gz`（sha256 校验 OK，
-  含 BUILD_INFO，本轮产出）
+- **提交状态**：最新 67fecd1（Crafted P 品牌二轮，分支
+  `codex/studiosaas-v7.3.1` 已推送）；v7.7.7 发布提交=9e5e268；
+  main 停在 v7.6.0=59af5a2，尚未合入其后提交
+- **打包产物**：`dist/PWE-StudioSaaS-aws-7.7.7.tar.gz`（sha256 校验 OK，
+  BUILD_INFO commit=67fecd1，与 HEAD 一致）
 - **验证基线**：**131 pytest** + 73 smoke + **201 tenant-isolation** 全绿
   （201 含 v7.7.0 新增的 5 条支持门检查）
 - **AWS 部署包**：`bash deploy/aws/build_aws_bundle.sh <ver>` →
