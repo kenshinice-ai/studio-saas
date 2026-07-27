@@ -86,12 +86,17 @@ Latest completed local evidence:
   - Cloudflare DNS, UDP/QUIC, TCP/HTTP2 and API connectivity pre-checks:
     passed; four tunnel connections registered.
 
-Still required before the release is declared closed:
+Release packaging evidence:
 
-1. Commit the clean v7.7.8 source state.
-2. Build and inspect both committed SaaS and Edition archives.
-3. Fast-forward `main`, create/push tag `v7.7.8`, and remove confirmed stale
-   branches/worktree.
+- The v7.7.8 implementation is committed.
+- Clean committed-tree SaaS and Edition archives both passed SHA-256,
+  `BUILD_INFO` version/mode/commit, delivery-entrypoint and internal-file
+  exclusion checks.
+- Final artifact hashes are regenerated from the final tag commit; the
+  `.sha256` sidecars in `dist/` are authoritative.
+
+Still required before the release is declared closed: fast-forward `main`,
+create/push tag `v7.7.8`, and remove confirmed stale branches/worktree.
 
 ## 4. Branch reconciliation
 
