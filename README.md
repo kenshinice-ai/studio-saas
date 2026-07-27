@@ -1,6 +1,6 @@
 # PWE Studio SaaS
 
-Current release: **v7.7.8**
+Current release: **v7.8.0**
 
 PWE Studio SaaS (repo: studiosaas) is a multi-tenant Creative Studio Operating System for art schools, music studios, tutoring centres, creative academies, kids' activity providers, and small education businesses.
 
@@ -17,7 +17,7 @@ It provides a lightweight SaaS-style platform for managing:
 single-tenant **PWE Studio Edition** (`STUDIOSAAS_MODE=standalone`) have a
 release-ready delivery path. SaaS runs locally (Waitress + PostgreSQL) and is
 exposed on demand via Cloudflare Tunnel at `https://studiosaas.cc.cd`. AWS
-deployment code is retained, but v7.7.8 is intentionally limited to local +
+deployment code is retained, but v7.8.0 is intentionally limited to local +
 Cloudflare invitation testing; no AWS deployment is claimed.
 
 Canonical product responsibilities and names are defined in `docs/Product_Surface_Model.md`: Super Admin is the commercial control plane, Studio Admin is the tenant brand/publication workspace, Studio CMS owns daily operations, the Studio Portal is the primary public acquisition experience, and Quick Registration is an alternate tenant-scoped entry.
@@ -529,8 +529,8 @@ console.
 
 **PWE brand identity** (`docs/design/Brand_Identity.md`): "spark inside
 the P" — geometric P monogram (platform) with an amber four-point spark
-(creativity) in its negative space; Studio Navy `#0F172A` + Spark Amber
-`#F59E0B`; wordmark authored as pure geometry (no font dependencies).
+(creativity) in its negative space; Family Navy `#0E1729` + Family Amber
+`#F5B335`; wordmark authored as pure geometry (no font dependencies).
 All root icons/manifest regenerated deterministically from one geometry
 table (`docs/design/brand/render_assets.py`); theme-aware `favicon.svg`;
 every surface carries the platform favicon set; the Super Admin header
@@ -548,7 +548,7 @@ same-mobile pending entries get a 疑似重复 badge, course duration is
 bilingual (60 分钟 / 60 MIN), broken gallery/hero images degrade cleanly
 (tiles removed from tab order, hero falls back to decorative art).
 
-**Role guides** (`docs/guides/`, all stamped 7.7.8): new dedicated
+**Role guides** (`docs/guides/`, current guides stamped 7.8.0): new dedicated
 Front Desk/Staff guide (previously "see Manager"), support-gate and
 owner-audit sections rewritten to match enforced behavior, share-link
 create/revoke permissions corrected everywhere, and each guide gained a
@@ -615,6 +615,25 @@ materials stay out of customer packages.
 Cloudflare invitation path. AWS deployment and automated media-volume backup
 remain deferred by product decision.
 
+### 4.20 v7.8.0 brand family integration
+
+**Brand architecture** — PWE Studio retains its Crafted-P product mark;
+Paradise Production · 天域文创 retains the wing producer mark. Both now use
+Family Navy `#0E1729`, Family Amber `#F5B335` and Warm Paper `#F7F5F2`
+without merging the two identities. `01 BRAND ASSETS/` is the complete
+delivery kit, including placement rules, machine-readable tokens, normalized
+raster exports, deterministic generators and a SHA-256 asset manifest.
+
+**Two-mode attribution** — SaaS tenant Portal/Register/CMS surfaces remain
+tenant-first and carry no Paradise endorsement. PWE Studio Edition shows the
+compact contractual producer credit by default; paid removal is an explicit,
+strict `STUDIOSAAS_SHOW_PRODUCER_CREDIT=0` deployment setting.
+
+**Product and sales sync** — platform shell, PWA icons/manifests,
+password setup, admin chrome, 13-slide sales deck and talk track share the
+same family palette. Functional blue/status colours and tenant themes stay
+semantically separate from family amber.
+
 
 ---
 
@@ -628,6 +647,9 @@ export STUDIOSAAS_API_KEY="independent-random-secret-at-least-32-characters"
 export STUDIOSAAS_SESSION_SECRET="different-random-secret-at-least-32-characters"
 export STUDIOSAAS_MEDIA_DIR="./media"
 export CMS_DATA_DIR="/private/tmp/studiosaas_cms_data"
+# Edition only; defaults to 1 in standalone mode. Set 0 only under the paid
+# attribution-removal commercial option.
+export STUDIOSAAS_SHOW_PRODUCER_CREDIT="1"
 ```
 
 Production must not rely on local secret files (`backend/.api_secret`, `backend/.session_secret`, `backend/.cms_password` are local-only and git-ignored). Production startup requires independent API and session secrets and rejects equal values. See `docs/Release_Runbook.md` for the complete release configuration and gate.
@@ -722,7 +744,8 @@ curl -i -X POST http://localhost:8899/v1/admin/tenants \
 | `docs/Deployment.md` | Current release boundary: local → Cloudflare Tunnel; AWS deferred |
 | `docs/Design_System.md` | UI tokens and component standards |
 | `docs/Glossary.md` | One agreed word per concept (enforced by `check_terminology.py`) |
-| `docs/guides/` | Per-role user manuals in Chinese (applicable to v7.7.8) |
+| `docs/guides/` | Per-role user manuals in Chinese (applicable to v7.8.0) |
+| `01 BRAND ASSETS/` | PWE/Paradise family delivery kit and validated asset manifest |
 
 ---
 

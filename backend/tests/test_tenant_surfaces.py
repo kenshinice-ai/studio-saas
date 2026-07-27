@@ -71,6 +71,8 @@ def test_new_tenant_workspace_generates_public_surface_files(tmp_path):
     assert "manifest-portal.json" in portal_html
     assert 'id="main-content"' in portal_html
     assert "/assets/public-analytics.js" in portal_html
+    assert 'id="producerCredit" hidden' in portal_html
+    assert "health.showProducerCredit" in portal_html
 
 
 def test_workspace_escapes_tenant_name_for_html_and_javascript(tmp_path):

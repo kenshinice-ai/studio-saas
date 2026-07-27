@@ -37,7 +37,9 @@ curl -sS http://localhost:8899/v1/health
 ```
 
 Response keeps `version: "v1"` as the API contract and reports the product
-release separately as `appVersion` (v7.7.8). Add `?deep=1` to require a
+release separately as `appVersion` (v7.8.0). The response also exposes the
+safe runtime fields `mode` and `showProducerCredit`; the latter drives the
+Edition-only contractual footer. Add `?deep=1` to require a
 successful PostgreSQL probe.
 
 ---

@@ -1,6 +1,14 @@
 #!/usr/bin/env python3
-"""Emit the full Paradise Production logo asset set."""
-import os
+"""Emit the canonical Paradise Production SVG asset set.
+
+The output directory is resolved from this file, so the generator behaves
+identically whether it is launched from the repository root or another
+working directory. The lockup SVGs deliberately retain editable text; use
+the normalized PNG exports for destinations that cannot guarantee the
+documented fonts.
+"""
+from pathlib import Path
+
 import wing_gen as W
 
 paths, tips, angs, top, bb = W.build()
@@ -11,8 +19,9 @@ AR = VH / VW
 NAVY, AMBER, WHITE, BLACK = "#0E1729", "#F5B335", "#FFFFFF", "#000000"
 SERIF = "Playfair Display, Georgia, 'Songti SC', serif"
 SANS = "Inter, -apple-system, 'PingFang SC', sans-serif"
-OUT = "assets"
-os.makedirs(OUT, exist_ok=True)
+ROOT = Path(__file__).resolve().parents[1]
+OUT = ROOT / "logo"
+OUT.mkdir(parents=True, exist_ok=True)
 
 HDR = '<svg xmlns="http://www.w3.org/2000/svg" '
 
@@ -30,8 +39,7 @@ def w(fw, fill, x=0, y=0, flip=False):
 
 
 def write(name, body):
-    with open(os.path.join(OUT, name), "w") as f:
-        f.write(body)
+    (OUT / name).write_text(body, encoding="utf-8")
     return name
 
 

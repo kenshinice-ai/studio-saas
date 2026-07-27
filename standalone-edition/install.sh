@@ -202,6 +202,7 @@ COMPOSE_PROJECT_NAME=$PROJECT_NAME
 STUDIOSAAS_VERSION=$APP_VERSION
 STUDIOSAAS_ENV=production
 STUDIOSAAS_MODE=standalone
+STUDIOSAAS_SHOW_PRODUCER_CREDIT=1
 # First boot only — flipped to 0 after the tenant exists.
 STUDIOSAAS_SKIP_STANDALONE_CHECKS=1
 # Database owner: migrations/role grants only. The server process uses the
@@ -453,7 +454,7 @@ echo   "  Project:      $PROJECT_NAME  (compose file: $COMPOSE_FILE)"
 echo   "  Env file:     $ENV_FILE (root:docker 0640 where available; back it up securely)"
 echo   "  Operations:   $WRAPPER <ps|logs|restart|exec ...>"
 echo   "  Current code: $CURRENT_LINK -> $REPO_ROOT"
-echo   "  DB backups:   $BACKUP_DIR/postgres (media backup deferred in v7.7.8)"
+echo   "  DB backups:   $BACKUP_DIR/postgres (media backup remains deferred in v7.8.0)"
 if [ -z "$IMPORT_BUNDLE" ]; then
   echo "  Owner login:  $OWNER_EMAIL"
   echo "  Temp password: $OWNER_PASSWORD"

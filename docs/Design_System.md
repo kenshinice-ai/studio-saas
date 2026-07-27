@@ -1,7 +1,7 @@
 # Design System
 
 > **StudioSaaS Brand & UI Reference**
-> Last updated: 2026-07-26
+> Last updated: 2026-07-27 · Brand family integration: v7.8.0
 
 The visual system is generated, not hand-picked: every colour token is solved
 for a measured WCAG contrast target by `docs/design/palette_gen.py`, and the
@@ -12,6 +12,24 @@ code is the source of truth.
 ---
 
 ## 1. Theme System
+
+### Product family layer
+
+The product shell uses the PWE / Paradise family tokens from
+`01 BRAND ASSETS/brand-tokens.json`, mirrored in
+`backend/frontend/assets/ui-tokens.css`:
+
+| Token | Value | Scope |
+|---|---|---|
+| `--pwe-family-navy` | `#0E1729` | Product mark, platform shell, PWA theme |
+| `--pwe-family-navy-raised` | `#16233D` | Raised dark brand panels |
+| `--pwe-family-amber` | `#F5B335` | Mark/wing spark only |
+| `--pwe-family-amber-text` | `#A16207` | Accessible amber text on light surfaces |
+| `--pwe-warm-paper` | `#F7F5F2` | Product/marketing canvas |
+
+These tokens never overwrite tenant themes or semantic success/warning/danger
+colours. Tenant Portal, Register and CMS surfaces keep their published tenant
+identity. The PWE family layer governs platform chrome and fallbacks.
 
 Eight visual themes, each shipping a matched **light and dark** variant —
 except `arcade-lime`, which is dark-only (a neon-lime accent cannot reach

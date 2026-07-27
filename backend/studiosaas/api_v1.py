@@ -35,7 +35,7 @@ from .auth import (
     tenant_owner_required,
     verify_password as _auth_verify_password,
 )
-from .config import is_standalone, load_config
+from .config import is_standalone, load_config, show_producer_credit, studiosaas_mode
 from .db import DatabaseUnavailableError, connect, fetch_all, fetch_one
 from .errors import api_error
 from .lifecycle import (
@@ -1998,9 +1998,11 @@ def health():
 
     body = {
         "ok": True,
-        "service": "PWE Studio SaaS API",
+        "service": "PWE Studio Edition API" if is_standalone() else "PWE Studio SaaS API",
         "version": "v1",
         "appVersion": str(current_app.config["APP_VERSION"]),
+        "mode": studiosaas_mode(),
+        "showProducerCredit": show_producer_credit(),
     }
     if request.args.get("deep") == "1":
         try:

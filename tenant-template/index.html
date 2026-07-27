@@ -621,7 +621,7 @@
   <div class="wrap foot">
     <div>
       <div class="brand" style="margin-bottom:14px;cursor:default"><span class="bn serif" style="font-size:18px" id="footName">{{TENANT_NAME}}</span></div>
-      <p class="cp">© 2026 <span id="footName2">{{TENANT_NAME}}</span> · Powered by PWE Studio SaaS</p>
+      <p class="cp">© 2026 <span id="footName2">{{TENANT_NAME}}</span> · Powered by PWE Studio<span id="producerCredit" hidden> · A Paradise Production</span></p>
     </div>
     <div class="fl">
       <a href="#home:courses" data-analytics-label="foot_courses" data-en="Courses">课程</a>
@@ -1617,6 +1617,18 @@
   });
 
   /* ── boot ── */
+  /* Product/producer attribution is a runtime delivery-mode policy, not a
+     tenant theme choice. SaaS stays tenant-first; Edition reveals the compact
+     contractual producer line unless the deployment explicitly removes it. */
+  fetch('/v1/health').then(function(response){
+    if(!response.ok) throw new Error('health request failed');
+    return response.json();
+  }).then(function(health){
+    var producerCredit=document.getElementById('producerCredit');
+    if(producerCredit) producerCredit.hidden=!health.showProducerCredit;
+  }).catch(function(error){
+    console.warn('Producer attribution status could not be loaded.', error);
+  });
   setLang(LANG);
   applyRoute(parseRoute(location.hash), {initial:true});
 </script>

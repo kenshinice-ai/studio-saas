@@ -1,0 +1,474 @@
+{
+  "schema_version": 1,
+  "family": "PWE Studio / Paradise Production",
+  "files": [
+    {
+      "path": "BRAND_ARCHITECTURE.md",
+      "bytes": 2390,
+      "sha256": "e54358fc27e1fe4e2cbed2c49905bf381564511601c93893d58b4aee7afa77c5"
+    },
+    {
+      "path": "README.md",
+      "bytes": 2700,
+      "sha256": "3c2eeb1805c118004b4d5872f87f4fb8f9a2e748000a1c19af88decd4800b358"
+    },
+    {
+      "path": "brand-identity.html",
+      "bytes": 289258,
+      "sha256": "9438eb2bb8112a6223910c0f26aff2aeefcfd6541259372dc100dbb5c2bc6047"
+    },
+    {
+      "path": "brand-tokens.json",
+      "bytes": 881,
+      "sha256": "e3e1c036d74aa84e1d3690cbe95c81d248fbd0fbfbd56be56a2c14aab7a4b5c6"
+    },
+    {
+      "path": "logo/app-icon-512.svg",
+      "bytes": 14869,
+      "sha256": "ea861e92b59d30515a500c3a0909b53de018bf052e5405cf89a7473c147c07d5"
+    },
+    {
+      "path": "logo/app-icon-maskable-512.svg",
+      "bytes": 14867,
+      "sha256": "3592fdf119f819b32b3f7e4c0b135f58879f2e6e266757fd06d675893af8cc1a"
+    },
+    {
+      "path": "logo/avatar-512.svg",
+      "bytes": 14865,
+      "sha256": "0418daec9d7542fd3377dedf295af72d30b832281d91181778940794ff33e7a9"
+    },
+    {
+      "path": "logo/avatar-light-512.svg",
+      "bytes": 14865,
+      "sha256": "ecf963e099b96fe3086ddc35b77c97d9ee182473681096d0303371bca5b6fbfc"
+    },
+    {
+      "path": "logo/favicon.svg",
+      "bytes": 14804,
+      "sha256": "50db58c10bf9a38b73629dff98f3bb38ce11fb9142e310d06dda3f513ef76bf2"
+    },
+    {
+      "path": "logo/lockup-A-mono-black.svg",
+      "bytes": 15272,
+      "sha256": "87624ecc649aacc77ac753f2919c30540d721bbc9406bc6884658073427bb32b"
+    },
+    {
+      "path": "logo/lockup-A-mono-white.svg",
+      "bytes": 15319,
+      "sha256": "6ed14f0b1a552391fcb5450adb485273829bacf4ccc9ff4bbb2c3cf4daac1d6b"
+    },
+    {
+      "path": "logo/lockup-A-navy.svg",
+      "bytes": 15272,
+      "sha256": "92a8de0e18f0b9d819de299daa56ac8089669e491d007fc4dd454d507c48cd13"
+    },
+    {
+      "path": "logo/lockup-A-on-navy.svg",
+      "bytes": 15333,
+      "sha256": "e43a40c31d863e15601afb1fd5ce7ffc08c4d21f2ce623c2854113bd0cc98b30"
+    },
+    {
+      "path": "logo/lockup-B-mono-black.svg",
+      "bytes": 15501,
+      "sha256": "98ac9dbac74f98cefc9fd3529932fa07c09b645aa1682d1c6d1fd64b1a689792"
+    },
+    {
+      "path": "logo/lockup-B-mono-white.svg",
+      "bytes": 15548,
+      "sha256": "7cd1ffdba74ade48adf00d6b9eaa9f27f297d984be86627d56e3b9ca14f42e74"
+    },
+    {
+      "path": "logo/lockup-B-navy.svg",
+      "bytes": 15501,
+      "sha256": "65786241e9d4c9a5bf0ad57c59e3d58e7a7fecba162ccc5cdfc0a7e860b51b5b"
+    },
+    {
+      "path": "logo/lockup-B-on-navy.svg",
+      "bytes": 15574,
+      "sha256": "d64d024e9176e35d2a11cb6281a466be743adfd088aa8ccbb5a1b8cf368b7ce0"
+    },
+    {
+      "path": "logo/lockup-C-navy.svg",
+      "bytes": 15438,
+      "sha256": "85c7c992347e1ca1dd057c85201e42c181b7112db4f513b4f93aa1bc0262f8ae"
+    },
+    {
+      "path": "logo/lockup-C-on-navy.svg",
+      "bytes": 15499,
+      "sha256": "4c4dd8f83a0d8aff5e6b884b9e437e0f5503aef1a33f87e5be6dc099f39c8bff"
+    },
+    {
+      "path": "logo/png/app-icon-512.png",
+      "bytes": 50814,
+      "sha256": "3203b747583892b255a9359c29ce26d9955f4fe2c761b8741fd0c5ab4602e7a1",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "path": "logo/png/app-icon-maskable-512.png",
+      "bytes": 39740,
+      "sha256": "c7743bdb8bf08394eccde474ab188c86b241315919900a3befb66391e8a90ad4",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "path": "logo/png/avatar-512.png",
+      "bytes": 63658,
+      "sha256": "3bba3e85880750d6891ff160f875e79d488943c80d6cc2c042e57319864209d3",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "path": "logo/png/avatar-light-512.png",
+      "bytes": 56410,
+      "sha256": "d4ef8cc3e92077ac35cff3c0c23f24972251afecdbf3cd2ff502c0c151d70bbc",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "path": "logo/png/favicon.png",
+      "bytes": 29235,
+      "sha256": "052a7dcbdd34bed48cd44d6cdc222726a0b7ff1999a8fc14f61c74ef15f2bc53",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "path": "logo/png/symbol-amber.png",
+      "bytes": 49167,
+      "sha256": "41bcd6ae1115cbd60106d9d9980ed491e24092a3865166626595b9662ba86fbd",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "path": "logo/png/symbol-black.png",
+      "bytes": 48834,
+      "sha256": "580f25450156c67f299a583ab816a2a22a8c8caf614b338d2378e6b349e273de",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "path": "logo/png/symbol-navy.png",
+      "bytes": 51159,
+      "sha256": "52062320522fcf91f0b488a964048aa85643980fdb72c781c56c533e8443a4f4",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "path": "logo/png/symbol-white.png",
+      "bytes": 20607,
+      "sha256": "c806319847dcb9624a9ab29d036b8ee90f7e745db7795c7e4d130fb92e32af0f",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "path": "logo/png/web/app-icon-192.png",
+      "bytes": 8406,
+      "sha256": "a6dbf739797a92558a9a6f5a20ee5d0e1bd25c333328be52b674d39d413ab929",
+      "dimensions": [
+        192,
+        192
+      ]
+    },
+    {
+      "path": "logo/png/web/app-icon-512.png",
+      "bytes": 26378,
+      "sha256": "45170627e359535b74036818c76fa2dccdfbb791e4f6103dae962de497d98e71",
+      "dimensions": [
+        512,
+        512
+      ]
+    },
+    {
+      "path": "logo/png/web/app-icon-maskable-192.png",
+      "bytes": 5229,
+      "sha256": "9127c774fe90374ed9db2f899dfcfbfc5049730c166246b6ccf71374582d8b90",
+      "dimensions": [
+        192,
+        192
+      ]
+    },
+    {
+      "path": "logo/png/web/app-icon-maskable-512.png",
+      "bytes": 17077,
+      "sha256": "4ec6cce91e79ff4e5c93d6352c56af2c5dc3fb2700963a2020e95a76d26a03a2",
+      "dimensions": [
+        512,
+        512
+      ]
+    },
+    {
+      "path": "logo/png/web/apple-touch-icon-180.png",
+      "bytes": 7780,
+      "sha256": "d0c23922cf4239c966d5c383f6eb9929528b804ace3d54a2a947f6f2c05607fe",
+      "dimensions": [
+        180,
+        180
+      ]
+    },
+    {
+      "path": "logo/png/web/avatar-256.png",
+      "bytes": 17398,
+      "sha256": "bea2777079b0328644bae51db8b64d5d1285058e7955c796ac25bd5caa5a858a",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "path": "logo/png/web/avatar-512.png",
+      "bytes": 38141,
+      "sha256": "da2bd37934feba3aa7c979d8886e25f40091104ae122a0b23aa34004cea4758b",
+      "dimensions": [
+        512,
+        512
+      ]
+    },
+    {
+      "path": "logo/png/web/avatar-light-256.png",
+      "bytes": 12101,
+      "sha256": "11de8bf62391c7b29268560c65b0c8aaca7acb842e9e9df79bd863279e03947d",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "path": "logo/png/web/avatar-light-512.png",
+      "bytes": 27014,
+      "sha256": "0c8d7d32e588632fa8ff2ca1d32b1d0a72608173b8ac229aa35d67ff7afaaf57",
+      "dimensions": [
+        512,
+        512
+      ]
+    },
+    {
+      "path": "logo/png/web/favicon-64.png",
+      "bytes": 2054,
+      "sha256": "c4ebb2559022aee9bfd3e2e140242a96d6ec1de5f30949ba5f150ee6299aa224",
+      "dimensions": [
+        64,
+        64
+      ]
+    },
+    {
+      "path": "logo/symbol-amber-on-navy.svg",
+      "bytes": 14843,
+      "sha256": "a1a6739e050fe10e21981be3d3742b3567a8306456258a1b7599fc770d90c62b"
+    },
+    {
+      "path": "logo/symbol-amber.svg",
+      "bytes": 14771,
+      "sha256": "d5730cb6fb4e57a02bdeb8fa669a51b5678498767fac685029dca3f3616b3b69"
+    },
+    {
+      "path": "logo/symbol-black.svg",
+      "bytes": 14771,
+      "sha256": "afa208f3145b3ad2add720cab032916851537e876da1fc247911bc4c0808e394"
+    },
+    {
+      "path": "logo/symbol-navy.svg",
+      "bytes": 14771,
+      "sha256": "f48694e7f4a93d7db2b52c645ec98874e6a42f880e9d1ef63c518c58b111fa12"
+    },
+    {
+      "path": "logo/symbol-white-on-navy.svg",
+      "bytes": 14843,
+      "sha256": "adc47dfda910edd510303f54992e9f7390000084fe4371200b1c3ec8c4c3d87e"
+    },
+    {
+      "path": "logo/symbol-white.svg",
+      "bytes": 14771,
+      "sha256": "817e72adfe3e6508e3cd9ac710813690c529b7bc34c5e6a0bcdfe60dc43f0174"
+    },
+    {
+      "path": "pwe-studio/png/pwe-logo-800.png",
+      "bytes": 29704,
+      "sha256": "64909daddb22875d3452144e4a650ee3e525b7a33e831c3e2be5de40e02d1422",
+      "dimensions": [
+        800,
+        203
+      ]
+    },
+    {
+      "path": "pwe-studio/png/pwe-logo-on-navy-800.png",
+      "bytes": 21675,
+      "sha256": "1da9feb18e5efea0f64f9f18ca482a6d5bb36785a402e09a4d02443765e2aa59",
+      "dimensions": [
+        800,
+        203
+      ]
+    },
+    {
+      "path": "pwe-studio/png/pwe-mark-1024.png",
+      "bytes": 28919,
+      "sha256": "d7078f0ca927e6be09efc9699a4bebf7e8ef86ec7e2722df35454cd7039747c7",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "path": "pwe-studio/png/pwe-mark-256.png",
+      "bytes": 6655,
+      "sha256": "7eaf8f11b5d8d3b270b3fe048bd4964447735d2cfe0992a5a42f183984b720a7",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "path": "pwe-studio/png/pwe-mark-512.png",
+      "bytes": 13638,
+      "sha256": "c174d55af3fc8ec61e4875238e7f15cc1ca64afc270b77703f5c9853ff169cdb",
+      "dimensions": [
+        512,
+        512
+      ]
+    },
+    {
+      "path": "pwe-studio/png/pwe-mark-64.png",
+      "bytes": 1664,
+      "sha256": "1957e26faa1f6eb0017328269a4f4ce70152a53d2d1ce6d7923de8cb13e2d7b9",
+      "dimensions": [
+        64,
+        64
+      ]
+    },
+    {
+      "path": "pwe-studio/png/pwe-mark-on-navy-1024.png",
+      "bytes": 24218,
+      "sha256": "e595ef51ae868e84706b415296c087ae214301eb2a652ccdbae735edb5b601fb",
+      "dimensions": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "path": "pwe-studio/png/pwe-mark-on-navy-256.png",
+      "bytes": 5454,
+      "sha256": "4b72199a39ce93a415fddfad9981b5e87cb96b3ab345577c1fedbf45730febaf",
+      "dimensions": [
+        256,
+        256
+      ]
+    },
+    {
+      "path": "pwe-studio/png/pwe-mark-on-navy-512.png",
+      "bytes": 11203,
+      "sha256": "13628c54e35a3575c3d2cd852d13171e96d8418695bdc6b782396f0f4de463b7",
+      "dimensions": [
+        512,
+        512
+      ]
+    },
+    {
+      "path": "pwe-studio/png/pwe-mark-on-navy-64.png",
+      "bytes": 1341,
+      "sha256": "e37da60968bc49df2fd0344e72911723fcc7ec0331f0e4ad0b2b5779cdd0ff67",
+      "dimensions": [
+        64,
+        64
+      ]
+    },
+    {
+      "path": "pwe-studio/pwa/apple-touch-icon.png",
+      "bytes": 3532,
+      "sha256": "d727bbcb4766739468311a3aa2e076742a2c796412515f4690f82f26a7e9f0b9",
+      "dimensions": [
+        180,
+        180
+      ]
+    },
+    {
+      "path": "pwe-studio/pwa/favicon.svg",
+      "bytes": 707,
+      "sha256": "2191ff4ee6c8d757327b218c8460d6db60be9dfc604d1681f30613f838b30bca"
+    },
+    {
+      "path": "pwe-studio/pwa/icon-192.png",
+      "bytes": 3741,
+      "sha256": "4cb5396b86323ea6112d1b03c5bead89ccdb058a7099246340fbe03c1297e9fc",
+      "dimensions": [
+        192,
+        192
+      ]
+    },
+    {
+      "path": "pwe-studio/pwa/icon-512.png",
+      "bytes": 10235,
+      "sha256": "978b44f1a639568ed9ffb5fca1f38e6712486bb812cd7ac0be0f825a27fa8382",
+      "dimensions": [
+        512,
+        512
+      ]
+    },
+    {
+      "path": "pwe-studio/source/render_assets.py",
+      "bytes": 24659,
+      "sha256": "d7b3f7e49452feb27e9164727e1c745c2cd0227e9b20d5bdf44330ad2ac82f1d"
+    },
+    {
+      "path": "pwe-studio/svg/pwe-logo-dark.svg",
+      "bytes": 1734,
+      "sha256": "8e91c6217f839a37bdbd7463fe9dff6c5e3a7c5dd1fba71bd5b57bcb6de0a0b8"
+    },
+    {
+      "path": "pwe-studio/svg/pwe-logo.svg",
+      "bytes": 1735,
+      "sha256": "8ad607e70e9091d88c1fc391763c96c356f6ab87b9545fe19b42db4d1d897c87"
+    },
+    {
+      "path": "pwe-studio/svg/pwe-mark-dark.svg",
+      "bytes": 728,
+      "sha256": "cf6f6088e79cdc67290affe3da247889012367658d6b04273430cd2aa550d33e"
+    },
+    {
+      "path": "pwe-studio/svg/pwe-mark.svg",
+      "bytes": 726,
+      "sha256": "55c2ed1e6bc2184cfacad1d368a21bcf44e43aa80844901437fd39c3f2f28d7a"
+    },
+    {
+      "path": "source/build_assets.py",
+      "bytes": 8955,
+      "sha256": "24419e0be4496724a94a9692cf03a6382f6618740460eaf76f5d5c480c86a511"
+    },
+    {
+      "path": "source/build_raster_exports.py",
+      "bytes": 2343,
+      "sha256": "49090f1df11d0a762e2cb3f27933427b19db60a4b54b966fc9f9c29fb773f8a0"
+    },
+    {
+      "path": "source/validate_assets.py",
+      "bytes": 7293,
+      "sha256": "27fc475e99fea0d43bc59333733564674c338f6454d59e91b7b99f8ae11cae52"
+    },
+    {
+      "path": "source/wing-construction.svg",
+      "bytes": 18725,
+      "sha256": "f9c0eb8154a59c7b0fbd7dd0f0c75d8612cf4f457fb83626b5da2787af333ae2"
+    },
+    {
+      "path": "source/wing_gen.py",
+      "bytes": 4142,
+      "sha256": "b89873a8d666833aee3d241a3f0e998133d78866a6fe0e5abb9df86656a70e83"
+    }
+  ]
+}

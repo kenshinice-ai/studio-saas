@@ -1,9 +1,15 @@
 # PWE Studio — Platform Brand Identity
 
-Version 2.0 — 2026-07-27. Single source of truth for the **platform** brand
-(Super Admin console, default logo fallbacks, favicons/manifests, docs).
-Tenant surfaces always carry the tenant's own logo/theme; the platform mark is
-deliberately quiet so it never competes with tenant brands.
+Version 3.0 — 2026-07-27. Single source of truth for the **PWE product
+identity** and its relationship to the parent/producer identity,
+**Paradise Production · 天域文创**. The human-facing delivery kit is
+`01 BRAND ASSETS/`; this document governs product integration.
+
+Tenant surfaces always carry the tenant's own logo/theme. PWE stays quiet
+inside tenant workspaces, and Paradise is absent from SaaS tenant pages.
+PWE Studio Edition may show the compact contractual producer attribution in
+the footer; it is enabled by default and can be removed by deployment config
+where the commercial agreement permits.
 
 All assets are generated from one geometry table:
 `docs/design/brand/render_assets.py`. Edit geometry/colors there and re-run
@@ -75,18 +81,20 @@ than the round-1 half-circle. Lockup viewBox 252×64; mark at **0.75 scale**
 from 0.78 and the mark→text gap opens to ~12 units), optically aligned so
 mark ink centre = wordmark optical middle (y 32).
 
-## 3. Color palette
+## 3. Colour palette
 
-Anchored to the Super Admin console tokens (`super-admin.html :root`), plus
-one accent. Exact values:
+PWE and Paradise now use one family palette. The PWE Crafted-P remains an
+independent mark; colour alignment creates family recognition without
+collapsing product and producer into a single logo.
 
 | Role | Name | Hex | Usage |
 |---|---|---|---|
-| Brand ink | Studio Navy | `#0F172A` | The mark/wordmark on light surfaces; app-icon tile background; console `--ink`; manifest `theme_color` |
-| Brand ink (dark surfaces) | Cloud | `#F8FAFC` | The mark/wordmark on navy/dark surfaces |
-| Creative accent | Spark Amber | `#F59E0B` | The spark on light surfaces. Brand accent ONLY — never for body UI (amber is a warning color inside the console) |
-| Creative accent (dark surfaces) | Spark Amber 400 | `#FBBF24` | The spark on navy/dark surfaces (better pop on `#0F172A`) |
-| Canvas | Slate 100 | `#F1F5F9` | Light app canvas; console `--bg`; manifest `background_color` |
+| Brand ink | Family Navy | `#0E1729` | Mark/wordmark on light surfaces; app-icon tile; console shell; manifest `theme_color` |
+| Raised brand surface | Family Navy Raised | `#16233D` | Dark gradients and elevated brand panels |
+| Brand ink (dark surfaces) | White | `#FFFFFF` | Mark/wordmark on Family Navy |
+| Creative accent | Family Amber | `#F5B335` | PWE spark and Paradise wing. Identity accent only, not a warning or default button colour |
+| Accessible amber text | Amber Text | `#A16207` | Small amber text on white or Warm Paper |
+| Canvas | Warm Paper | `#F7F5F2` | Family marketing canvas; product shell background; manifest `background_color` |
 | Support neutrals | Slate family | `#475569` / `#64748B` / `#E2E8F0` | Secondary text, muted text, hairlines (console tokens `--ink-soft` / `--muted` / `--line`) |
 | Product interactive | Console Blue | `#3B82F6` / `#2563EB` | Buttons/links in the console. **Not part of the logo** — identity is navy+amber; blue stays a UI-interaction color |
 
@@ -110,7 +118,7 @@ Brand moments (login screens, empty states, marketing headers):
 
 | Role | Size / weight | Notes |
 |---|---|---|
-| Display / hero | 28–36px, weight 700, letter-spacing −0.5px | Navy `#0F172A` |
+| Display / hero | 28–36px, weight 700, letter-spacing −0.5px | Family Navy `#0E1729` |
 | Section heading | 20px, weight 600 | |
 | Body | 15–16px, weight 400, line-height 1.5 | ≥4.5:1 contrast |
 | Label / eyebrow | 11–12px, weight 600, uppercase, letter-spacing .08em | Slate `#64748B` |
@@ -132,8 +140,8 @@ descriptive and never appears in the lockup.
 
 | Surface | Asset |
 |---|---|
-| Light (white / `#F1F5F9`) | `pwe-mark.svg`, `pwe-logo.svg`, root `logo.png` (navy ink + `#F59E0B` spark) |
-| Dark (`#0F172A` or darker) | `pwe-mark-dark.svg`, `pwe-logo-dark.svg`, root `logo-light.png` (`#F8FAFC` ink + `#FBBF24` spark) |
+| Light (white / `#F7F5F2`) | `pwe-mark.svg`, `pwe-logo.svg`, root `logo.png` (Family Navy + Family Amber) |
+| Dark (`#0E1729` or darker) | `pwe-mark-dark.svg`, `pwe-logo-dark.svg`, root `logo-light.png` (white + Family Amber) |
 | Either (browser tab) | root `favicon.svg` — theme-aware via `prefers-color-scheme` |
 | App icon / home screen | `icon-192.png`, `icon-512.png`, `apple-touch-icon.png` — always the navy tile with white P + amber spark (opaque; iOS dislikes transparency) |
 
@@ -172,21 +180,21 @@ is platform):
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<meta name="theme-color" content="#0f172a">
+<meta name="theme-color" content="#0e1729">
 ```
 
 Plus, where a manifest applies (already updated):
 
-- `manifest.json` — Super Admin / platform PWA: `theme_color #0f172a`,
-  `background_color #f1f5f9`, icons 192/512 (any + maskable).
-- `manifest-student.json` — student portal PWA: `theme_color #0f172a`,
-  `background_color #f8fafc`.
+- `manifest.json` — Super Admin / platform PWA: `theme_color #0e1729`,
+  `background_color #f7f5f2`, icons 192/512 (any + maskable).
+- `manifest-student.json` — student portal PWA: `theme_color #0e1729`,
+  `background_color #f7f5f2`.
 
 Default logo fallbacks (tenant without a logo): use root `logo.png` on light
-headers, `logo-light.png` on dark headers. Super Admin header mark: inline
-`pwe-mark.svg` (or `-dark` per header background) replacing the generic blue
-rounded square. Super Admin **login footer**: the producer credit line per
-§10 (`.producer-credit` CSS) — platform surface only, never tenant pages.
+headers, `logo-light.png` on dark headers. Platform admin headers load the
+generated `favicon.svg` mark instead of a generic square. Super Admin login
+uses the producer credit line per §10; Edition may also show the compact text
+credit in its tenant Portal footer under the documented mode rule.
 
 ## 9. File inventory
 
@@ -198,6 +206,7 @@ rounded square. Super Admin **login footer**: the producer credit line per
 | `docs/design/brand/render_assets.py` | Geometry source of truth + PNG/SVG emitter |
 | `docs/design/brand/preview.html` | Visual proof sheet (16/32/64/192px, light/dark, app-icon frame, credit pairing) |
 | `docs/design/brand/round2/` | Round-2 exploration: candidates, review sheet, rationale (candidate D shipped) |
+| `01 BRAND ASSETS/` | Complete PWE/Paradise delivery kit, tokens, architecture rules, normalized exports and SHA-256 manifest |
 | `/favicon.svg` | Theme-aware vector favicon |
 | `/logo.png` (800×203) | Lockup, navy-on-transparent (light surfaces) |
 | `/logo-light.png` (800×203) | Lockup, white-on-transparent (dark surfaces) |
@@ -206,19 +215,20 @@ rounded square. Super Admin **login footer**: the producer credit line per
 
 ## 10. 品牌架构 / Brand Architecture
 
-Two levels, one logo. The **product brand** is and remains **PWE Studio
-SaaS** — the Crafted-P mark and the spark carry it alone. The **producer**
-appears only as a quiet endorser credit, never as a second logo.
+Two identities, one family system. The **product brand** is **PWE Studio**
+(SaaS or Edition) and keeps the Crafted-P mark. The **producer/parent brand**
+is **Paradise Production · 天域文创** and keeps its wing. Their shared navy,
+amber and four-point spark establish lineage; neither mark replaces the other.
 
 - **Product brand**: PWE Studio SaaS. Brand story one-liner:
   「PWE = Paradise WE，与创作者共有的一方天域」— "Paradise WE", the shared
   paradise the platform builds with its creators. The spark in the P is that
   idea drawn: the creative energy the structure exists to hold.
-- **Producer credit (endorser)**: Paradise Production · 天域文创. It lends
-  调性 (provenance and taste) through a single canonical text line — it has
-  no mark, no lockup, and never merges with the P.
+- **Producer/parent identity**: Paradise Production · 天域文创. It has a
+  wing symbol plus approved A/B/C lockups. Lockup C is the approved joint
+  sales/marketing endorsement; it never merges with the Crafted-P.
 
-**The canonical credit line (the ONLY approved form):**
+**Canonical compact credit line:**
 
 > A PARADISE PRODUCTION · 天域文创出品
 
@@ -234,7 +244,7 @@ appears only as a quiet endorser credit, never as a second logo.
   text-transform: uppercase;    /* Latin renders as caps; CJK unaffected */
   color: #64748B;               /* light surfaces (Slate 500) */
 }
-/* dark surfaces (#0F172A or darker) */
+/* dark surfaces (#0E1729 or darker) */
 .dark .producer-credit, [data-theme="dark"] .producer-credit {
   color: #94A3B8;               /* Slate 400 */
 }
@@ -242,12 +252,16 @@ appears only as a quiet endorser credit, never as a second logo.
 
 Placement rules:
 
-- **Allowed**: sales-deck cover chip and closing credit; Super Admin login
-  footer; README footer; brand documentation.
-- **Forbidden**: tenant portal, registration, CMS or any tenant-branded
-  surface (that is tenant brand territory); anywhere inside or adjacent to
-  the mark/lockup closer than **one mark-height**; never lockup-merged with
-  the P mark; never as a heading, button, or link.
+- **Allowed**: Paradise Lockup C on sales-deck cover/closing and joint launch
+  material; compact text credit on Super Admin login/footer, README and
+  PWE Studio Edition tenant footer.
+- **SaaS tenant boundary**: Paradise is forbidden on tenant Portal,
+  Register, CMS and tenant-branded Studio Admin content.
+- **Edition exception**: the compact text credit is shown by default on the
+  tenant Portal. Set `STUDIOSAAS_SHOW_PRODUCER_CREDIT=0` only where the
+  customer agreement permits paid attribution removal.
+- Never place the producer mark inside the Crafted-P clearspace, merge the
+  two marks, or turn the attribution into a heading, button or link.
 - Reference artwork: `docs/design/brand/credit-line.svg` (+`-dark`). These
   are documentation aids; HTML surfaces implement the CSS above (the credit
   line MAY use the system font — unlike mark and wordmark, it is text, not
@@ -255,6 +269,11 @@ Placement rules:
 
 ## 11. Changelog
 
+- **v3.0 (v7.8.0, 2026-07-27)** — aligned PWE and Paradise to Family Navy
+  `#0E1729`, Family Amber `#F5B335` and Warm Paper `#F7F5F2`; retained the
+  Crafted-P as the product mark and the Paradise wing as the producer mark;
+  documented Lockups A/B/C; added the mode-aware Edition attribution rule and
+  the complete validated delivery kit under `01 BRAND ASSETS/`.
 - **Round 2 (v7.7.7, 2026-07-27)** — monoline mark replaced by the solid
   "Crafted P" (round-2 candidate D) after client review: 64 → **82/100** on
   the client acceptance rubric (only candidate above the 75 replacement

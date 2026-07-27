@@ -11,7 +11,9 @@ def test_health_returns_ok(client):
     assert payload["ok"] is True
     assert payload["service"] == "PWE Studio SaaS API"
     assert payload["version"] == "v1"
-    assert payload["appVersion"] == "7.7.8"
+    assert payload["appVersion"] == "7.8.0"
+    assert payload["mode"] == "saas"
+    assert payload["showProducerCredit"] is False
 
 
 def test_industry_presets_are_complete_and_bilingual(client):

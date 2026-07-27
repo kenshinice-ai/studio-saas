@@ -1,4 +1,11 @@
 :root {
+  /* PWE / Paradise family identity. Functional colours below remain semantic
+     UI tokens and must not be replaced by brand amber. */
+  --pwe-family-navy: #0e1729;
+  --pwe-family-navy-raised: #16233d;
+  --pwe-family-amber: #f5b335;
+  --pwe-family-amber-text: #a16207;
+  --pwe-warm-paper: #f7f5f2;
   --ui-primary: #2563eb;
   --ui-secondary: #0f766e;
   --ui-accent: #f59e0b;

@@ -135,7 +135,7 @@ Role-boundary checks (v7.4.0):
 
 ### 8. Deployment Readiness
 
-v7.7.8 executes local + Cloudflare invitation testing. The AWS deployment kit
+v7.8.0 executes local + Cloudflare invitation testing. The AWS deployment kit
 ships in `deploy/aws/`, but remote AWS deployment is deferred:
 
 - [ ] `bash deploy/aws/verify_release_bundles.sh` builds and verifies both `saas` and `standalone`
@@ -155,6 +155,18 @@ ships in `deploy/aws/`, but remote AWS deployment is deferred:
 - [ ] Trusted outer bundle SHA-256 and format-v2 DB/media inventory are both verified
 - [ ] Upgrade takes a pre-upgrade backup and health-failure rollback is exercised
 - [ ] Media-volume backup is recorded as deferred, not reported as complete
+
+### 8.2 v7.8.0 Brand System Acceptance
+
+- [x] `01 BRAND ASSETS/source/validate_assets.py` passes: 68 files and 15 exact raster dimensions
+- [x] PWE Studio and Paradise Production have separate, documented roles; Paradise wing artwork is not reused as the PWE product mark
+- [x] Product palette is fixed to Navy `#0E1729`, Amber `#F5B335`, accessible amber text `#A16207`, and Warm Paper `#F7F5F2`
+- [x] SaaS health reports `showProducerCredit=false`; Edition defaults to `true` and accepts only strict boolean overrides
+- [x] Tenant pages remain tenant-first; SaaS visually hides the Paradise producer credit
+- [x] Super Admin, Studio Admin, setup-password, PWA manifests/icons and generated tenant workspaces use the v7.8.0 family layer
+- [x] Sales deck has 13 visually reviewed slides, no overflow/placeholders, and passes the template-fidelity checker with 0 issues
+- [x] Local and Cloudflare deep health both return `appVersion=7.8.0`, `mode=saas`, `db=ok`
+- [x] Responsive browser checks cover 375px Portal, 768px Studio Admin and 1440px Super Admin with no horizontal overflow or console errors
 
 ---
 

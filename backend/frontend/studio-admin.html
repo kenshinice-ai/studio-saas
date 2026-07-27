@@ -11,7 +11,7 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-  <meta name="theme-color" content="#0f172a">
+  <meta name="theme-color" content="#0e1729">
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -23,9 +23,9 @@
   </script>
   <style>
     :root {
-      --bg: #f1f5f9;
+      --bg: #f7f5f2;
       --surface: #ffffff;
-      --ink: #0f172a;
+      --ink: #0e1729;
       --muted: #64748b;
       --line: #e2e8f0;
       --brand: #3b82f6;
@@ -44,8 +44,8 @@
       /* v7.6.x hex-token sweep: every raw hex in the stylesheet below maps to
          one of these semantic tokens. All values come from the existing
          slate/blue palette — this is a refactor, not a redesign. */
-      --ink-deep: #1e293b;          /* header gradient start (slate-800) */
-      --ink-mid: #334155;           /* header gradient end, strong labels (slate-700) */
+      --ink-deep: #0e1729;          /* PWE family navy */
+      --ink-mid: #16233d;           /* PWE family navy, raised surface */
       --ink-soft: #475569;          /* secondary body text (slate-600) */
       --muted-soft: #94a3b8;        /* placeholders, muted text on dark header (slate-400) */
       --line-strong: #cbd5e1;       /* emphasised borders (slate-300) */
@@ -127,8 +127,7 @@
       display: inline-block;
       width: 32px;
       height: 32px;
-      background: var(--brand);
-      border-radius: 8px;
+      background: url("/favicon.svg") center / contain no-repeat;
       flex-shrink: 0;
     }
 
@@ -1594,7 +1593,7 @@
     /* ===== PILOT POLISH OVERRIDES ===== */
     body {
       background:
-        radial-gradient(circle at top left, rgba(59, 130, 246, 0.08), transparent 30rem),
+        radial-gradient(circle at top left, rgba(245, 179, 53, 0.10), transparent 30rem),
         linear-gradient(180deg, var(--head-bg) 0%, var(--line-soft) 100%);
     }
 
@@ -1615,8 +1614,8 @@
     }
 
     .brand h1::before {
-      background: linear-gradient(135deg, var(--sky), var(--brand-dark));
-      box-shadow: 0 8px 18px rgba(37, 99, 235, 0.24);
+      background: url("/favicon.svg") center / contain no-repeat;
+      box-shadow: none;
     }
 
     .brand p, .auth-status { color: var(--muted); }

@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "family": "PWE Studio / Paradise Production",
+  "colors": {
+    "family_navy": "#0E1729",
+    "family_navy_raised": "#16233D",
+    "family_navy_soft": "#22355A",
+    "family_amber": "#F5B335",
+    "accessible_amber_text": "#A16207",
+    "warm_paper": "#F7F5F2",
+    "white": "#FFFFFF",
+    "black": "#000000"
+  },
+  "typography": {
+    "producer_display": "Playfair Display",
+    "producer_sans": "Inter",
+    "product_ui": "-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif",
+    "product_wordmark": "authored vector geometry"
+  },
+  "names": {
+    "saas": "PWE Studio SaaS",
+    "standalone": "PWE Studio Edition",
+    "producer_en": "Paradise Production",
+    "producer_zh": "天域文创",
+    "producer_credit": "A Paradise Production · 天域文创出品"
+  }
+}

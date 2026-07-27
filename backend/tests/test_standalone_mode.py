@@ -18,7 +18,7 @@ import importlib
 import pytest
 
 import server
-from studiosaas.config import is_standalone, studiosaas_mode
+from studiosaas.config import is_standalone, show_producer_credit, studiosaas_mode
 from studiosaas.db import DatabaseUnavailableError
 
 api_module = importlib.import_module("studiosaas.api_v1")
@@ -55,6 +55,35 @@ def test_mode_flag_reads_env_each_call(monkeypatch):
     assert is_standalone() is True  # trimmed + case-insensitive
     monkeypatch.setenv("STUDIOSAAS_MODE", "saas")
     assert is_standalone() is False
+
+
+def test_producer_credit_defaults_to_edition_only(monkeypatch):
+    monkeypatch.delenv("STUDIOSAAS_SHOW_PRODUCER_CREDIT", raising=False)
+    monkeypatch.setenv("STUDIOSAAS_MODE", "saas")
+    assert show_producer_credit() is False
+    monkeypatch.setenv("STUDIOSAAS_MODE", "standalone")
+    assert show_producer_credit() is True
+
+
+def test_producer_credit_has_strict_explicit_override(monkeypatch):
+    monkeypatch.setenv("STUDIOSAAS_MODE", "standalone")
+    monkeypatch.setenv("STUDIOSAAS_SHOW_PRODUCER_CREDIT", "off")
+    assert show_producer_credit() is False
+    monkeypatch.setenv("STUDIOSAAS_MODE", "saas")
+    monkeypatch.setenv("STUDIOSAAS_SHOW_PRODUCER_CREDIT", "yes")
+    assert show_producer_credit() is True
+    monkeypatch.setenv("STUDIOSAAS_SHOW_PRODUCER_CREDIT", "sometimes")
+    with pytest.raises(RuntimeError, match="STUDIOSAAS_SHOW_PRODUCER_CREDIT"):
+        show_producer_credit()
+
+
+def test_standalone_health_identifies_edition_and_credit(client, standalone):
+    response = client.get("/v1/health")
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["service"] == "PWE Studio Edition API"
+    assert payload["mode"] == "standalone"
+    assert payload["showProducerCredit"] is True
 
 
 # ── SaaS mode: platform plane unchanged ─────────────────────────────

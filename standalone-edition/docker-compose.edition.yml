@@ -39,6 +39,9 @@ services:
       STUDIOSAAS_ENV: ${STUDIOSAAS_ENV:-production}
       # Edition mode gate: exactly one tenant in active state, platform faces closed.
       STUDIOSAAS_MODE: ${STUDIOSAAS_MODE:-standalone}
+      # Contractual Paradise footer is on by default. Set 0 only when the
+      # customer has purchased attribution removal (COMMERCIAL.md §3).
+      STUDIOSAAS_SHOW_PRODUCER_CREDIT: ${STUDIOSAAS_SHOW_PRODUCER_CREDIT:-1}
       # First boot only (before the tenant exists): install.sh sets this to 1,
       # creates/imports the tenant, then flips it back to 0 and restarts.
       STUDIOSAAS_SKIP_STANDALONE_CHECKS: ${STUDIOSAAS_SKIP_STANDALONE_CHECKS:-0}

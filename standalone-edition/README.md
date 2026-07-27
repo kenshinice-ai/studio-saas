@@ -1,7 +1,7 @@
 # PWE Studio Edition（单店独立版）· 方案
 
-> **状态：✅ v7.7.8 可交付基线（2026-07-27），方案 A，定价已拍板。**
-> 基于 StudioSaaS v7.7.8。产品名：**PWE Studio Edition**。
+> **状态：✅ v7.8.0 可交付基线（2026-07-27），方案 A，定价已拍板。**
+> 基于 StudioSaaS v7.8.0。产品名：**PWE Studio Edition**。
 
 ---
 
@@ -88,7 +88,17 @@ JSON 文件形态：无角色权限、无审计、无门户/品牌系统，已�
 6. **页脚署名**：默认保留；去署名一次性 **$499**。
 7. **产品名**：**PWE Studio Edition**（正式名）。
 
-## 6. 实现与 v7.7.8 交付收口（已完成，2026-07-27）
+运行时默认通过 `/v1/health` 的 `showProducerCredit=true` 展示署名；已购买
+去署名选项的交付在稳定配置中设置：
+
+```bash
+STUDIOSAAS_SHOW_PRODUCER_CREDIT=0
+```
+
+除明确的 `0/false/no/off` 与 `1/true/yes/on` 外，其他值会让配置校验失败，
+不会静默猜测。
+
+## 6. 实现与 v7.8.0 交付收口（已完成，2026-07-27）
 
 1. ✅ 后端 `STUDIOSAAS_MODE=standalone` 开关 + 启动校验 + 路由关闭
    —— `config.is_standalone()`（每次读环境，不缓存）、`server` 启动不变量

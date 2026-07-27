@@ -1,151 +1,166 @@
-# StudioSaaS v7.7.8 — Current Handoff
+# StudioSaaS v7.8.0 — Current Handoff
 
 Date: 2026-07-27
 
-Authoritative release marker: `VERSION` + Git tag `v7.7.8`
+Authoritative release marker: `VERSION` + Git tag `v7.8.0`
 
-Current delivery boundary: local service + on-demand Cloudflare invitation test
+Current delivery boundary: local SaaS service + on-demand Cloudflare invitation
+testing + buildable PWE Studio Edition customer package.
 
-Explicitly deferred: AWS deployment; automated media-volume backup
+Explicitly deferred: AWS deployment; automated media-volume backup.
 
 ## 1. Current product truth
 
-The repository now supports two deliberate operating modes from one codebase:
+One codebase supports two deliberate operating modes:
 
 | Mode | Contract |
 |---|---|
-| SaaS | Multi-tenant platform control plane, Super Admin, tenant support sessions, local pilot + Cloudflare invitation path |
-| PWE Studio Edition | One customer-owned installation, exactly one tenant total and active, no platform membership, platform routes closed |
+| PWE Studio SaaS | Multi-tenant platform control plane, Super Admin, support sessions, local pilot and invitation-only Cloudflare path |
+| PWE Studio Edition | Customer-owned, exactly one active tenant total, no platform membership, no platform control-plane routes |
 
-The local service is currently verified from this checkout at
-`http://localhost:8899`; deep health reports `appVersion=7.7.8` and `db=ok`.
-The public URL remains `https://studiosaas.cc.cd` and is only expected to be
-online while the on-demand tunnel launcher is running.
+The current local and public SaaS runtimes report:
 
-## 2. v7.7.8 changes completed
+```json
+{
+  "appVersion": "7.8.0",
+  "db": "ok",
+  "mode": "saas",
+  "ok": true,
+  "service": "PWE Studio SaaS API",
+  "showProducerCredit": false,
+  "version": "v1"
+}
+```
 
-### P0
+Local: `http://localhost:8899`
 
-- Fixed Edition bundle construction and made an explicit build version differ
-  from `VERSION` fail loudly.
-- Moved Edition secrets, backup state and current-release pointer out of
-  versioned release directories:
-  - `/etc/pwe-studio/<slug>.env`
-  - `/var/lib/pwe-studio/<slug>/backups`
-  - `/opt/pwe-studio/<slug>/current`
-- Added root-owned daily PostgreSQL backup scheduling and mandatory first dump.
-- Added `upgrade.sh`: pre-upgrade dump, stable symlink switch, named-volume
-  preservation and automatic code/config rollback on failed deep health.
-- Added `maintenance.sh`: explicit backup, owner-role restore rehearsal and
-  write-stopped real restore.
-- Removed the fixed Super Admin password from launchers and seed defaults.
-  Launchers preserve the existing password; only an explicitly supplied
-  `STUDIOSAAS_ADMIN_PASSWORD` may create/reset it.
-- Health now separates API contract (`version=v1`) from product release
-  (`appVersion=7.7.8`).
+Invitation URL: `https://studiosaas.cc.cd`
 
-### P1
+The public URL is online only while `START_STUDIOSAAS_ONLINE.command` is
+running. It is not an AWS deployment.
 
-- Edition startup now requires one tenant total, one active tenant and zero
-  platform-scoped memberships of any role or status.
-- Added a dedicated least-privilege PostgreSQL runtime role. Migrations and
-  grants use the owner URL; the server process does not retain that URL or
-  runtime-role password.
-- Edition bundle format v2 hashes database and media payloads, rejects missing
-  or undeclared files and unsafe tar members, and requires the separately
-  trusted outer bundle SHA-256 during installation.
-- Added clean-tree dual-mode bundle verification and a GitHub Actions release
-  gate. Internal handoffs, audits, prompts, CI metadata and sales-source
-  materials are excluded from customer archives.
-- Updated Edition install/deploy/database/requirements/runbook/operations
-  documentation and all role-guide applicability markers.
-- Updated the 13-slide sales deck cover to v7.7.8 without changing sales copy
-  or layout; full render, overflow and template-fidelity QA passed. Removed the
-  tracked `copy.pptx` duplicate after confirming its cover still said v7.7.7.
+## 2. v7.8.0 completed scope
+
+### Brand assets and governance
+
+- Preserved every supplied Paradise Production source asset and added a
+  deterministic, validated project asset library under `01 BRAND ASSETS/`.
+- Added the brand architecture, asset manifest, design tokens, usage README,
+  raster-export builder and asset validator.
+- Added deployable PWE Studio SVG/PNG/PWA marks in dark/light, mark-only and
+  horizontal lockup variants.
+- Kept the PWE Crafted-P/geometric wordmark as the product identity. The
+  Paradise wing remains the parent/producer mark and is not substituted for
+  the PWE logo.
+- Standardized the product family palette:
+  - Navy `#0E1729`
+  - Amber `#F5B335`
+  - accessible amber text `#A16207`
+  - Warm Paper `#F7F5F2`
+- Documented the shared four-point spark motif, Lockup A/B/C rules, safe areas,
+  tenant-brand priority and licensing/provenance boundary.
+
+### SaaS and Edition system surfaces
+
+- Updated Super Admin, Studio Admin, setup-password, shared UI tokens, PWA
+  manifests/icons, service-worker cache and generated tenant workspaces.
+- Added strict producer-credit configuration:
+  - SaaS default: hidden, so tenant pages remain tenant-first.
+  - Edition default: `A Paradise Production` shown.
+  - paid removal: `STUDIOSAAS_SHOW_PRODUCER_CREDIT=0`.
+  - invalid values raise an explicit runtime error; there is no silent fallback.
+- Health now exposes `mode` and `showProducerCredit` in addition to the
+  independent API-contract version and app release.
+- Edition install/compose defaults and customer/runbook documentation are
+  synchronized to v7.8.0.
+
+### Sales and documentation
+
+- Updated the 13-slide sales deck to the canonical family palette.
+- PWE remains primary; authentic Paradise Lockup C appears only on the joint
+  sales cover and closing slide.
+- Removed the unresolved email placeholder without inventing contact details.
+- Updated the talk track, README, API/Admin/Deployment/Design System/Brand
+  Identity documents and every role guide to the v7.8.0 release boundary.
 
 ## 3. Verification evidence
 
-Latest completed local evidence:
+- Brand assets: **68 files validated**, including **15 exact raster dimensions**.
+- Python compile, shell parse, inline-script compile, CMS source/build
+  consistency, UI escaping and terminology checks: passed.
+- Pytest suite in the PostgreSQL-required release gate: passed.
+- Legacy CMS smoke: **73 passed, 0 failed**.
+- PostgreSQL tenant isolation/privacy and Edition gates:
+  **216 passed, 0 failed**.
+- `STUDIOSAAS_REQUIRE_POSTGRES=1 bash backend/scripts/verify_local.sh`:
+  **all checks passed** outside the filesystem/port sandbox.
+- Local and public deep health: `appVersion=7.8.0`, `mode=saas`, `db=ok`,
+  `showProducerCredit=false`.
+- Local and public Portal, CMS, Studio Admin, Register and Super Admin entry
+  points were exercised.
+- Browser acceptance:
+  - 375px Portal: no horizontal overflow; producer credit hidden.
+  - 768px Studio Admin: no horizontal overflow or console warnings/errors.
+  - 1440px Super Admin: no horizontal overflow or console warnings/errors.
+- Sales deck:
+  - all 13 slides reviewed at full size;
+  - template fidelity: **0 issues**;
+  - overflow test: passed;
+  - unresolved placeholder audit: empty.
 
-- `pytest backend/tests`: **167 passed** with PostgreSQL integration enabled.
-- Legacy CMS smoke suite: **73 passed, 0 failed**.
-- PostgreSQL tenant-isolation/privacy suite: **216 passed, 0 failed**.
-- `STUDIOSAAS_REQUIRE_POSTGRES=1 backend/scripts/verify_local.sh`: **all checks
-  passed**.
-- CMS source/build consistency: passed.
-- Shell parsing, Python compilation, inline JS, UI escaping and terminology:
-  passed.
-- Local runtime:
-  - `/`, `/super-admin`, portal, CMS, Studio Admin and tenant register: 200.
-  - root `/register`: 404 by design.
-  - `/v1/health?deep=1`: `appVersion=7.7.8`, `db=ok`.
-- Cloudflare invitation runtime:
-  - `https://studiosaas.cc.cd/v1/health?deep=1`:
-    `appVersion=7.7.8`, `db=ok`.
-  - Portal, CMS, Studio Admin and tenant register: 200.
-  - root `/register`: 404; unauthenticated `/super-admin`: 302 to login.
-  - Cloudflare DNS, UDP/QUIC, TCP/HTTP2 and API connectivity pre-checks:
-    passed; four tunnel connections registered.
+## 4. Cloudflare connector correction
 
-Release packaging evidence:
+During public acceptance, Cloudflare initially returned the old health shape
+even though the local process was v7.8.0. Tunnel inspection found two active
+connectors for the same tunnel. The obsolete connector
+`9a148978-0fcb-441b-98db-55ba785867ec` was explicitly cleaned up; the current
+connector `a32ec1ed-d5ed-4ecb-9038-0a244e8292c8` remained.
 
-- The v7.7.8 implementation is committed.
-- Clean committed-tree SaaS and Edition archives both passed SHA-256,
-  `BUILD_INFO` version/mode/commit, delivery-entrypoint and internal-file
-  exclusion checks.
-- Final artifact hashes are regenerated from the final tag commit; the
-  `.sha256` sidecars in `dist/` are authoritative.
+After cleanup, repeated cache-busting public requests consistently returned the
+complete v7.8.0 health payload. Do not run a second unmanaged connector for the
+same tunnel.
 
-Still required before the release is declared closed: fast-forward `main`,
-create/push tag `v7.7.8`, and remove confirmed stale branches/worktree.
+## 5. Packaging and delivery
 
-## 4. Branch reconciliation
+The clean committed release gate builds two archives:
 
-`codex/studiosaas-v7.3.1` is the complete v7.7.7 lineage and already contains
-the merged remote review branch plus all later work. Remote
-`codex/studiosaas-v7.2.1`, `v7.3.0`, `v7.3.1` and
-`codex/keep-studio-admin-registration-review` are ancestors of the release
-lineage.
+- `StudioSaaS-7.8.0.tar.gz` — SaaS source/deployment package.
+- `PWE-Studio-Edition-7.8.0.tar.gz` — customer-owned Edition package.
 
-The divergent local `codex/keep-studio-admin-registration-review` commit
-`9e60134` is an obsolete alternative snapshot, not an unmerged feature branch:
-its lifecycle module and Ruby tenant are already present, while its presets
-were subsequently expanded by 457 lines and its tree predates migrations
-0015–0020, privacy modules, Edition and release tooling. Merging it would
-reintroduce old files and delete current features; it should be deleted after
-`main` is updated.
+Each archive has a sibling `.sha256`. `BUILD_INFO` must match the release
+version, mode and clean Git commit. Internal handoffs, audits, prompts, CI
+metadata and sales-source files must remain excluded from customer archives.
+The `.sha256` sidecars generated from the final tag commit are authoritative.
 
-The `.claude/worktrees/project-audit-review-37738f` worktree points at old
-v7.6.0 `main`. A server from that worktree was found occupying port 8899 and
-was explicitly stopped before the current v7.7.8 runtime was started. Remove
-that worktree during branch cleanup after confirming it is clean.
+## 6. Honest limitations and deferred work
 
-## 5. Deferred items and honest limitations
+- PostgreSQL backup/restore is automated and verified. Media files are
+  persistent and transfer bundles verify their integrity, but v7.8.0 does not
+  automate media-volume backup or an offsite media copy.
+- No AWS/RDS/S3/SES resource was changed or deployed in this release.
+- The pilot rate limiter is process-local, suitable only for the accepted
+  single-process local/Cloudflare invitation runtime.
+- Edition scripts pass syntax, integration and clean-package gates. A real
+  customer Ubuntu host still requires the delivery-day install/upgrade/restore
+  rehearsal in `standalone-edition/RUNBOOK.md`.
+- `cloudflared` 2026.6.1 passed its DNS/QUIC/HTTP2/API prechecks but reports an
+  available 2026.7.3 update. Updating it is maintenance, not a v7.8.0 blocker.
 
-- Media files remain on persistent volumes and Edition transfer bundles verify
-  media integrity, but v7.7.8 does **not** automate media-volume backup or an
-  offsite copy. Do not describe database backup as full disaster recovery.
-- AWS/RDS/S3/SES code and historical runbooks remain in Git, but no AWS resource
-  change or deployment is part of this release.
-- The pilot rate limiter is process-local and remains accepted for one-process
-  local/Cloudflare operation; a shared store is required before multi-instance
-  deployment.
-- PWE Studio Edition Docker install/upgrade scripts are covered by syntax,
-  unit/integration and bundle gates; a customer-host Ubuntu rehearsal remains a
-  delivery-day acceptance step because this Mac is not an Ubuntu Docker host.
-
-## 6. Operating commands
+## 7. Operating commands
 
 ```bash
-# Full local release gate
+# Full PostgreSQL-required local release gate
 STUDIOSAAS_REQUIRE_POSTGRES=1 bash backend/scripts/verify_local.sh
 
-# Start local only (preserves real data and existing Super Admin password)
-bash start_studiosaas_local.sh
+# Validate brand artifacts
+.venv/bin/python "01 BRAND ASSETS/source/validate_assets.py"
+
+# Start local only
+bash START_STUDIOSAAS_LOCAL.command
 
 # Start invitation tunnel on demand
 bash START_STUDIOSAAS_ONLINE.command
 
-# Clean committed dual bundle gate
+# Build and verify clean SaaS + Edition bundles
 bash deploy/aws/verify_release_bundles.sh
 ```
