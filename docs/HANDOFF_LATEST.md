@@ -108,17 +108,26 @@ running. It is not an AWS deployment.
   - overflow test: passed;
   - unresolved placeholder audit: empty.
 
-## 4. Cloudflare connector correction
+## 4. Cloudflare connector reconciliation
 
 During public acceptance, Cloudflare initially returned the old health shape
 even though the local process was v7.8.0. Tunnel inspection found two active
 connectors for the same tunnel. The obsolete connector
-`9a148978-0fcb-441b-98db-55ba785867ec` was explicitly cleaned up; the current
-connector `a32ec1ed-d5ed-4ecb-9038-0a244e8292c8` remained.
+`9a148978-0fcb-441b-98db-55ba785867ec` was explicitly cleaned up and the public
+response immediately converged to v7.8.0.
 
-After cleanup, repeated cache-busting public requests consistently returned the
-complete v7.8.0 health payload. Do not run a second unmanaged connector for the
-same tunnel.
+The old connector later re-advertised itself, which proves that an external or
+otherwise unmanaged Cloudflare process still holds the same tunnel credentials.
+Only the current launcher-owned process was visible in the local process and
+launchd audit, so the unknown source was not killed by guesswork. With both
+connectors advertised, 12 consecutive cache-busting public requests returned
+the complete v7.8.0 health payload, because they currently reach the same 8899
+runtime.
+
+This is an operational residue, not a v7.8.0 code failure. Before moving from
+invitation testing to a persistent public environment, locate the other host or
+rotate the tunnel credential so exactly one managed connector remains. Do not
+run a second unmanaged connector for the same tunnel.
 
 ## 5. Packaging and delivery
 
@@ -145,6 +154,9 @@ The `.sha256` sidecars generated from the final tag commit are authoritative.
   rehearsal in `standalone-edition/RUNBOOK.md`.
 - `cloudflared` 2026.6.1 passed its DNS/QUIC/HTTP2/API prechecks but reports an
   available 2026.7.3 update. Updating it is maintenance, not a v7.8.0 blocker.
+- The named tunnel still advertises one unmanaged historical connector in
+  addition to the launcher-owned connector. Both currently serve v7.8.0, but
+  persistent public operation requires credential/process reconciliation.
 
 ## 7. Operating commands
 
