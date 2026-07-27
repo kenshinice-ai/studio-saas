@@ -714,3 +714,7 @@ Copyright 2026 Lee Liu.
 
 Licensed under the [Apache License, Version 2.0](LICENSE). See [NOTICE](NOTICE)
 for attribution information.
+
+---
+
+*A Paradise Production · 天域文创出品*

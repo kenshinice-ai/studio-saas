@@ -2,7 +2,30 @@
 
 > 本文件在**每轮改动开始时和完成时**都更新（用户 2026-07-26 明确要求），
 > 始终反映最新状态。历史交接见 `docs/HANDOFF_2026-07-26.md`（v7.3.x 时期）。
-> 最后更新：2026-07-27（v7.7.7 生产就绪整改 + DB 安保 + 销售套件 · **已完成**）
+> 最后更新：2026-07-27（Logo 二轮 Crafted P 定稿 + 出品署名 · **已完成**）
+
+---
+
+## ✅ Logo 二轮：Crafted P 定稿 + Paradise Production 署名（2026-07-27，已完成）
+
+双视角研究（设计本体 4 候选 + 甲方 12 项加权评分表）→ 用户拍板
+**D · Crafted P**（82/100，唯一过 75 替换线；现行 monoline 64/100）：
+
+- **新 mark**：实心 P + 星火即字腔（负空间共同主角），碗 60.5% 帽高、
+  超椭圆肩上倾应力、字干微收、墨陷阱；命中甲方三条要求（星火共同
+  主角/放弃线框/恰一处手作温度）。字标 P 同族化改造，锁定组合光学
+  重排（mark 0.75 缩放）。全部根资产由 `render_assets.py` 单源重生成；
+  Super Admin 头部内联 mark 已同步；manifest 无需改动。
+- **品牌架构（用户决策）**：产品牌 PWE Studio SaaS 不变；
+  「PWE = Paradise WE，与创作者共有的一方天域」入品牌故事；
+  **出品署名（唯一形式）「A PARADISE PRODUCTION · 天域文创出品」**
+  ——10px/600/0.08em/slate，只出现在：PPT 封面+尾页、Super Admin
+  登录页脚、README 页脚、品牌文档；**禁入租户面，永不与 mark 锁定**。
+  规范见 Brand_Identity.md §10（v2.0，含 §11 changelog 64→82）。
+- **PPT**：两张深色页换新 logo-light.png，署名恰好两处零修饰，
+  v7.7.7 与全部事实价格未动，验证+渲染 QA 通过。
+- 研究存档：`docs/design/brand/round2/`（4 候选 SVG + compare 页 +
+  RATIONALE + CLIENT_PERSPECTIVE 评分表；C 方案经 16px 测试自我淘汰）。
 
 ---
 

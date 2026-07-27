@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PWE mark — Round 2 review sheet</title>
+<style>
+  :root { --navy:#0F172A; --amber:#F59E0B; --nearwhite:#F8FAFC; --amber400:#FBBF24; }
+  * { box-sizing:border-box; margin:0; }
+  body { font-family:-apple-system,"SF Pro Text",Inter,system-ui,sans-serif; background:#E9EEF5; color:#0F172A; padding:40px 48px 64px; }
+  h1 { font-size:22px; letter-spacing:-0.02em; margin-bottom:4px; }
+  .sub { color:#64748B; font-size:13px; margin-bottom:32px; }
+  .row { background:#fff; border-radius:14px; padding:20px 24px; margin-bottom:20px; box-shadow:0 1px 3px rgba(15,23,42,.08); }
+  .row h2 { font-size:15px; letter-spacing:-0.01em; }
+  .row h2 .tag { display:inline-block; font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; background:#0F172A; color:#fff; border-radius:4px; padding:2px 7px; margin-right:8px; vertical-align:2px; }
+  .row.current h2 .tag { background:#94A3B8; }
+  .why { color:#475569; font-size:12.5px; margin:3px 0 14px; }
+  .strips { display:flex; gap:14px; flex-wrap:wrap; align-items:stretch; }
+  .strip { display:flex; align-items:flex-end; gap:18px; padding:14px 18px; border-radius:10px; }
+  .strip.light { background:#F8FAFC; border:1px solid #E2E8F0; --ink:#0F172A; --spark:#F59E0B; }
+  .strip.dark  { background:#0B1220; --ink:#F8FAFC; --spark:#FBBF24; }
+  .cell { display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .cell span { font-size:9px; color:#94A3B8; font-variant-numeric:tabular-nums; }
+  .tiles { display:flex; align-items:flex-end; gap:14px; padding:14px 18px; border-radius:10px; background:#F1F5F9; border:1px dashed #CBD5E1; }
+  .tile { width:76px; height:76px; border-radius:18px; display:flex; align-items:center; justify-content:center; }
+  .tile.navy { background:#0F172A; --ink:#F8FAFC; --spark:#FBBF24; box-shadow:0 4px 10px rgba(15,23,42,.25); }
+  .tile.paper { background:#FFFFFF; --ink:#0F172A; --spark:#F59E0B; border:1px solid #E2E8F0; }
+  .fav { width:24px; height:24px; border-radius:6px; background:#0F172A; --ink:#F8FAFC; --spark:#FBBF24; display:flex; align-items:center; justify-content:center; }
+  svg.mark { display:block; }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <mask id="halo-b">
+      <rect width="64" height="64" fill="#fff"/>
+      <circle cx="46.2" cy="13.8" r="8.25" fill="#000"/>
+    </mask>
+
+    <!-- CURRENT mark (round 1) -->
+    <g id="m-current">
+      <path d="M 17.75 13 L 17.75 51" stroke="var(--ink)" stroke-width="10" stroke-linecap="round" fill="none"/>
+      <circle cx="27" cy="22.25" r="9.25" stroke="var(--ink)" stroke-width="10" fill="none"/>
+      <path d="M 38.5 37.5 Q 38.5 45 46 45 Q 38.5 45 38.5 52.5 Q 38.5 45 31 45 Q 38.5 45 38.5 37.5 Z" fill="var(--spark)"/>
+    </g>
+
+    <!-- A: spark counter -->
+    <g id="m-a">
+      <path fill-rule="evenodd" fill="var(--ink)"
+            d="M 14 10 H 36 A 14 14 0 0 1 36 38 H 25 V 54 H 14 Z
+               M 36 16.25 Q 36 24 43.75 24 Q 36 24 36 31.75 Q 36 24 28.25 24 Q 36 24 36 16.25 Z"/>
+      <path fill="var(--spark)"
+            d="M 36 16.25 Q 36 24 43.75 24 Q 36 24 36 31.75 Q 36 24 28.25 24 Q 36 24 36 16.25 Z"/>
+    </g>
+
+    <!-- B: shoulder spark -->
+    <g id="m-b">
+      <path fill-rule="evenodd" fill="var(--ink)" mask="url(#halo-b)"
+            d="M 11.8 12.2 H 33.8 A 14 14 0 0 1 33.8 40.2 H 22.8 V 56.2 H 11.8 Z
+               M 33.8 20.45 A 5.75 5.75 0 1 0 33.8 31.95 A 5.75 5.75 0 1 0 33.8 20.45 Z"/>
+      <path fill="var(--spark)"
+            d="M 46.2 7.3 Q 46.2 13.8 52.7 13.8 Q 46.2 13.8 46.2 20.3 Q 46.2 13.8 39.7 13.8 Q 46.2 13.8 46.2 7.3 Z"/>
+    </g>
+
+    <!-- C: hidden E monogram -->
+    <g id="m-c">
+      <path fill-rule="evenodd" fill="var(--ink)"
+            d="M 14 10 H 36 A 14 14 0 0 1 36 38 H 25 V 54 H 14 Z
+               M 28 16 H 38.5 A 3 3 0 0 1 41.5 19 V 29 A 3 3 0 0 1 38.5 32 H 28 A 3 3 0 0 1 25 29 V 19 A 3 3 0 0 1 28 16 Z"/>
+      <g fill="var(--ink)">
+        <rect x="25" y="16" width="10.5" height="3.5" rx="1.75"/>
+        <rect x="25" y="22.25" width="8" height="3.5" rx="1.75"/>
+        <rect x="25" y="28.5" width="10.5" height="3.5" rx="1.75"/>
+      </g>
+      <path fill="var(--spark)"
+            d="M 33.5 39 Q 33.5 45.5 40 45.5 Q 33.5 45.5 33.5 52 Q 33.5 45.5 27 45.5 Q 33.5 45.5 33.5 39 Z"/>
+    </g>
+
+    <!-- D: crafted letterform -->
+    <g id="m-d">
+      <path fill="var(--ink)" fill-rule="evenodd"
+            d="M 14 10 L 32.5 10
+               C 42.6 10 50.2 14.7 50.2 23.1
+               C 50.2 31.6 42.6 36.6 32.5 36.6
+               L 26.4 36.6
+               C 25.2 36.7 24.6 37.4 24.55 38.6
+               L 24.3 54 L 14 54 Z
+               M 34.5 15.7 Q 34.5 23.2 42 23.2 Q 34.5 23.2 34.5 30.7 Q 34.5 23.2 27 23.2 Q 34.5 23.2 34.5 15.7 Z"/>
+      <path fill="var(--spark)"
+            d="M 34.5 15.7 Q 34.5 23.2 42 23.2 Q 34.5 23.2 34.5 30.7 Q 34.5 23.2 27 23.2 Q 34.5 23.2 34.5 15.7 Z"/>
+    </g>
+  </defs>
+</svg>
+
+<h1>PWE mark — Round 2 candidates</h1>
+<p class="sub">Spark stays. P letterform rebuilt. Each mark: 16 / 32 / 64 / 128 px on light and dark, plus app-icon tiles and a 16px favicon chip.</p>
+
+<script>
+  const marks = [
+    { id:"m-current", tag:"Current", name:"Round 1 mark", why:"Stroked skeleton + floating spark. Reads wireframe-y at size, b/p-ambiguous, spark is a neighbor rather than part of the letter." , cls:"current"},
+    { id:"m-a", tag:"A", name:"Spark Counter", why:"Solid geometric P; the bowl's counter IS the spark. One shape, one idea — the letter literally holds the spark. Strongest at 16px; monochrome for free (drop the amber and the punched counter still reads)." , cls:""},
+    { id:"m-b", tag:"B", name:"Shoulder Spark", why:"Solid P with a true round counter; spark seated on the bowl's 45° shoulder, half-embedded through a knocked-out halo — anchored to the letter's edge, works on any background." , cls:""},
+    { id:"m-c", tag:"C", name:"Hidden E (PWE monogram)", why:"The P's stem doubles as the spine of an E whose three arms live in the counter; spark nested in the crotch. The monogram test: does cleverness survive 16px?" , cls:""},
+    { id:"m-d", tag:"D", name:"Crafted P", why:"Type-design answer: bowl at 60.5% cap height with superelliptical shoulders and upward stress, tapered stem, ink-trap ease at the crotch. Spark as counter, drawn to the letter's own logic." , cls:""},
+  ];
+  const sizes = [16,32,64,128];
+  const use = (id,s) => `<svg class="mark" width="${s}" height="${s}" viewBox="0 0 64 64"><use href="#${id}"/></svg>`;
+  document.body.insertAdjacentHTML("beforeend", marks.map(m => `
+    <section class="row ${m.cls}">
+      <h2><span class="tag">${m.tag}</span>${m.name}</h2>
+      <p class="why">${m.why}</p>
+      <div class="strips">
+        <div class="strip light">${sizes.map(s=>`<div class="cell">${use(m.id,s)}<span>${s}</span></div>`).join("")}</div>
+        <div class="strip dark">${sizes.map(s=>`<div class="cell">${use(m.id,s)}<span>${s}</span></div>`).join("")}</div>
+        <div class="tiles">
+          <div class="tile navy">${use(m.id,52)}</div>
+          <div class="tile paper">${use(m.id,52)}</div>
+          <div class="cell"><div class="fav">${use(m.id,14)}</div><span>favicon</span></div>
+        </div>
+      </div>
+    </section>`).join(""));
+</script>
+</body>
+</html>

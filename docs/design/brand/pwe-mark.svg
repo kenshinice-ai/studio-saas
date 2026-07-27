@@ -1,9 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="PWE Studio mark">
   <!-- light surfaces: Studio Navy + Spark Amber -->
-  <!-- P stem -->
-  <path d="M 17.75 13 L 17.75 51" stroke="#0F172A" stroke-width="10" stroke-linecap="round" fill="none"/>
-  <!-- P bowl (counter left open on purpose) -->
-  <circle cx="27" cy="22.25" r="9.25" stroke="#0F172A" stroke-width="10" fill="none"/>
-  <!-- creative spark -->
-  <path d="M 38.5 37.5 Q 38.5 45 46 45 Q 38.5 45 38.5 52.5 Q 38.5 45 31 45 Q 38.5 45 38.5 37.5 Z" fill="#F59E0B"/>
+  <!-- Crafted P: solid letterform, spark punched as the counter -->
+  <path fill-rule="evenodd" fill="#0F172A" d="M 14 10 L 32.5 10 C 42.6 10 50.2 14.7 50.2 23.1 C 50.2 31.6 42.6 36.6 32.5 36.6 L 26.4 36.6 C 25.2 36.7 24.6 37.4 24.55 38.6 L 24.3 54 L 14 54 Z M 34.5 15.7 Q 34.5 23.2 42 23.2 Q 34.5 23.2 34.5 30.7 Q 34.5 23.2 27 23.2 Q 34.5 23.2 34.5 15.7 Z"/>
+  <!-- creative spark (refills the punched counter; drop for monochrome) -->
+  <path fill="#F59E0B" d="M 34.5 15.7 Q 34.5 23.2 42 23.2 Q 34.5 23.2 34.5 30.7 Q 34.5 23.2 27 23.2 Q 34.5 23.2 34.5 15.7 Z"/>
 </svg>

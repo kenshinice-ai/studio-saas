@@ -1,6 +1,6 @@
 # PWE Studio — Platform Brand Identity
 
-Version 1.0 — 2026-07-27. Single source of truth for the **platform** brand
+Version 2.0 — 2026-07-27. Single source of truth for the **platform** brand
 (Super Admin console, default logo fallbacks, favicons/manifests, docs).
 Tenant surfaces always carry the tenant's own logo/theme; the platform mark is
 deliberately quiet so it never competes with tenant brands.
@@ -27,43 +27,53 @@ Why this concept won over the alternatives explored:
   not "platform for many kinds of studios") and degrades badly at 16px.
 - **Spark/star alone** — generic (reads "AI sparkle" in 2026) and not ownable.
 - **Stage/easel geometry** — ambiguous at small sizes, needs a caption.
-- **P + spark** — initial letter of the brand, legible at 16px, monochrome-safe
-  (the spark is a separate solid shape, not a knockout), and the story
-  ("platform structure hosting a creative spark") matches the product exactly.
+- **P + spark** — initial letter of the brand, legible at 16px,
+  monochrome-safe, and the story ("platform structure hosting a creative
+  spark") matches the product exactly. Round 2 made the metaphor literal:
+  the spark IS the P's counter — the letter is built around the spark.
 
 Style grounding (ui-ux-pro-max): *Minimalism & Swiss* style for SaaS
 platform/enterprise surfaces (geometric, grid-based, high contrast);
 *professional navy* primary family for B2B trust; *education amber* as the
 course/creative accent in education palettes.
 
-## 2. Construction
+## 2. Construction — "Crafted P" (Round 2)
 
-The mark lives on a **64×64 grid**, drawn as a stroked skeleton
-(monoline, round caps) — identical in SVG and in the PIL renderer.
+The mark lives on a **64×64 grid**, drawn as a **solid custom letterform**
+(cap height 44, y 10→54) with the spark punched out as the bowl's counter —
+identical geometry in SVG (evenodd path + amber refill) and in the PIL
+renderer (sampled bezier polygon + amber spark on top).
 
 | Element | Geometry (64-grid) |
 |---|---|
-| Stem | vertical line x=17.75, y 13→51, stroke 10, round caps (ink y 8→56) |
-| Bowl | full ring, centre (27, 22.25), skeleton r 9.25, stroke 10 (outer r 14.25, counter r 4.25) |
-| Counter | opens exactly at the stem's right ink edge (x 22.75) — no overlap, no gap |
-| Spark | four-point star, centre (38.5, 45), r 7.5, quadratic-bezier sides pinched through the centre |
-| Ink bbox | (12.75, 8) → (46, 56) |
-| Optical centre | (28.5, 32) — slightly left of the bbox centre because the spark is visually light; use this, not the bbox, when centring the mark in a frame |
+| Cap height | 44 (y 10→54); stem left edge x 14 |
+| Stem | right edge tapers 24.9 → 24.3 top-to-bottom (0.6 unit — felt, not seen) |
+| Bowl | cubic-drawn, depth 26.6 = **60.5% of cap height**; superelliptical shoulders; right extreme x 50.2 at y 23.1 — slightly *above* the bowl's vertical middle (upward stress) |
+| Ink trap | small concave ease (`C 25.2 36.7 24.6 37.4 24.55 38.6`) where the bowl underside re-enters the stem, so the crotch doesn't clog at small sizes |
+| Spark / counter | four-point star, centre (34.5, 23.2), r 7.5, quadratic-bezier sides pinched through the centre; punched via `fill-rule="evenodd"`, refilled amber |
+| Ink bbox | (14, 10) → (50.2, 54) |
+| Optical centre | (31.0, 30.2) — between bbox centre (32.1, 32) and ink centroid (~28, 27.4); the bowl carries the mass, the lower stem is light. Use this, not the bbox, when centring the mark in a frame |
 
 Proportions that matter (do not change casually):
 
-- Bowl occupies the **top 59%** of the stem — this is what makes it read as an
-  uppercase **P** rather than lowercase "p" at 16px.
-- Mark stroke : height = 10 : 48 (≈0.21) — bold enough to survive 16px.
-- The spark sits in the P's "armpit" with ≥4.8 units clearance from the bowl
-  and ≥8 from the stem: at 16px it collapses gracefully to a bright dot.
+- Bowl closes at **60.5% of cap height** with the stem descending well below —
+  this is what makes it read as an uppercase **P** (never "b/p") at 16px.
+- The spark-as-counter keeps ≥2.4 units of wall to the stem (west tip — reads
+  as the counter meeting the stem, like a real P) and ≥6 units everywhere
+  else. At 16px the spark collapses gracefully to a bright dot inside the bowl.
+- Solid body, no strokes: the mark survives 16px and monochrome without any
+  weight compensation.
 
 **Wordmark** ("PWE Studio"): custom monoline geometric letterforms —
 skeleton lines/arcs/circles with round caps, stroke 5.5 on a 28-unit
 cap-height grid (x-height 19). No font is referenced anywhere; every glyph is
-authored geometry, so rendering is identical on every device. Lockup viewBox
-252×64; mark at 0.78 scale, optically aligned so mark centre = wordmark
-centre (y 32); the mark is ~10% taller than the caps so it reads as the anchor.
+authored geometry, so rendering is identical on every device. The wordmark's
+**"P" echoes the mark**: bowl closes at skeleton y 14.5 (ink ≈61.6% of cap,
+matching the mark's 60.5%) with a fuller shoulder (arc r 7.25, entry to x 7)
+than the round-1 half-circle. Lockup viewBox 252×64; mark at **0.75 scale**
+(solid mark carries more ink than the old monoline skeleton, so it steps down
+from 0.78 and the mark→text gap opens to ~12 units), optically aligned so
+mark ink centre = wordmark optical middle (y 32).
 
 ## 3. Color palette
 
@@ -80,9 +90,10 @@ one accent. Exact values:
 | Support neutrals | Slate family | `#475569` / `#64748B` / `#E2E8F0` | Secondary text, muted text, hairlines (console tokens `--ink-soft` / `--muted` / `--line`) |
 | Product interactive | Console Blue | `#3B82F6` / `#2563EB` | Buttons/links in the console. **Not part of the logo** — identity is navy+amber; blue stays a UI-interaction color |
 
-Monochrome rule: when only one color is available, the entire mark (including
-the spark) is drawn in a single ink — navy on light, white on dark. The spark
-is a solid separate shape, so nothing breaks.
+Monochrome rule: when only one color is available, drop the amber refill —
+the punched counter still reads as the spark in pure negative space (this is
+the Round-2 design's built-in monochrome answer). Single ink: navy on light,
+white on dark.
 
 ## 4. Typography (UI)
 
@@ -110,9 +121,9 @@ descriptive and never appears in the lockup.
 
 ## 5. Clearspace & minimum sizes
 
-- **Clearspace**: keep a margin of the counter's diameter × 2 (= the mark's
-  stroke width, 10/64 of mark height) on all sides of mark or lockup.
-  Practical rule: at 32px mark height, keep 5px clear on every side.
+- **Clearspace**: keep a margin of ≥ the spark's diameter (15/64 ≈ 23% of
+  mark height) on all sides of mark or lockup.
+  Practical rule: at 32px mark height, keep 7px clear on every side.
 - **Minimum sizes**: mark 16px; lockup 120px wide (below that, use the mark
   alone). App-icon tile: mark fills 58% of the tile (within the PWA maskable
   80% safe zone).
@@ -174,7 +185,8 @@ Plus, where a manifest applies (already updated):
 Default logo fallbacks (tenant without a logo): use root `logo.png` on light
 headers, `logo-light.png` on dark headers. Super Admin header mark: inline
 `pwe-mark.svg` (or `-dark` per header background) replacing the generic blue
-rounded square.
+rounded square. Super Admin **login footer**: the producer credit line per
+§10 (`.producer-credit` CSS) — platform surface only, never tenant pages.
 
 ## 9. File inventory
 
@@ -182,10 +194,75 @@ rounded square.
 |---|---|
 | `docs/design/brand/pwe-mark.svg` / `pwe-mark-dark.svg` | Icon-only mark, light/dark |
 | `docs/design/brand/pwe-logo.svg` / `pwe-logo-dark.svg` | Horizontal lockup, light/dark |
+| `docs/design/brand/credit-line.svg` / `credit-line-dark.svg` | Producer credit line reference (see §10 — CSS spec is the source of truth for HTML) |
 | `docs/design/brand/render_assets.py` | Geometry source of truth + PNG/SVG emitter |
-| `docs/design/brand/preview.html` | Visual proof sheet (16/32/64/192px, light/dark, app-icon frame) |
+| `docs/design/brand/preview.html` | Visual proof sheet (16/32/64/192px, light/dark, app-icon frame, credit pairing) |
+| `docs/design/brand/round2/` | Round-2 exploration: candidates, review sheet, rationale (candidate D shipped) |
 | `/favicon.svg` | Theme-aware vector favicon |
 | `/logo.png` (800×203) | Lockup, navy-on-transparent (light surfaces) |
 | `/logo-light.png` (800×203) | Lockup, white-on-transparent (dark surfaces) |
 | `/icon-192.png`, `/icon-512.png` | PWA icons, navy tile (any + maskable safe) |
 | `/apple-touch-icon.png` (180) | iOS icon, opaque navy tile |
+
+## 10. 品牌架构 / Brand Architecture
+
+Two levels, one logo. The **product brand** is and remains **PWE Studio
+SaaS** — the Crafted-P mark and the spark carry it alone. The **producer**
+appears only as a quiet endorser credit, never as a second logo.
+
+- **Product brand**: PWE Studio SaaS. Brand story one-liner:
+  「PWE = Paradise WE，与创作者共有的一方天域」— "Paradise WE", the shared
+  paradise the platform builds with its creators. The spark in the P is that
+  idea drawn: the creative energy the structure exists to hold.
+- **Producer credit (endorser)**: Paradise Production · 天域文创. It lends
+  调性 (provenance and taste) through a single canonical text line — it has
+  no mark, no lockup, and never merges with the P.
+
+**The canonical credit line (the ONLY approved form):**
+
+> A PARADISE PRODUCTION · 天域文创出品
+
+**Typography treatment (source of truth for all HTML surfaces):**
+
+```css
+.producer-credit {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+               "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  font-size: 10px;              /* NEVER larger than 11px-equivalent in context */
+  font-weight: 600;
+  letter-spacing: 0.08em;       /* small-caps feel for the Latin part */
+  text-transform: uppercase;    /* Latin renders as caps; CJK unaffected */
+  color: #64748B;               /* light surfaces (Slate 500) */
+}
+/* dark surfaces (#0F172A or darker) */
+.dark .producer-credit, [data-theme="dark"] .producer-credit {
+  color: #94A3B8;               /* Slate 400 */
+}
+```
+
+Placement rules:
+
+- **Allowed**: sales-deck cover chip and closing credit; Super Admin login
+  footer; README footer; brand documentation.
+- **Forbidden**: tenant portal, registration, CMS or any tenant-branded
+  surface (that is tenant brand territory); anywhere inside or adjacent to
+  the mark/lockup closer than **one mark-height**; never lockup-merged with
+  the P mark; never as a heading, button, or link.
+- Reference artwork: `docs/design/brand/credit-line.svg` (+`-dark`). These
+  are documentation aids; HTML surfaces implement the CSS above (the credit
+  line MAY use the system font — unlike mark and wordmark, it is text, not
+  authored geometry).
+
+## 11. Changelog
+
+- **Round 2 (v7.7.7, 2026-07-27)** — monoline mark replaced by the solid
+  "Crafted P" (round-2 candidate D) after client review: 64 → **82/100** on
+  the client acceptance rubric (only candidate above the 75 replacement
+  threshold). Spark moved from beside the baseline into the bowl as the
+  counter; wordmark "P" re-drawn to echo the new bowl proportion; lockup
+  mark scale 0.78 → 0.75 with wider mark→text gap; favicon switched from
+  stroked to filled paths (theme-aware behavior unchanged). Exploration
+  record: `docs/design/brand/round2/`. Added §10 brand architecture with the
+  Paradise Production producer credit.
+- **Round 1 (v7.7.x, 2026-07-27)** — initial identity: monoline geometric P
+  + baseline spark, wordmark, asset pipeline.

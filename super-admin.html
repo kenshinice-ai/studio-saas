@@ -115,7 +115,7 @@
       display: inline-block;
       width: 32px;
       height: 32px;
-      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M 17.75 13 L 17.75 51' stroke='%23F8FAFC' stroke-width='10' stroke-linecap='round' fill='none'/%3E%3Ccircle cx='27' cy='22.25' r='9.25' stroke='%23F8FAFC' stroke-width='10' fill='none'/%3E%3Cpath d='M 38.5 37.5 Q 38.5 45 46 45 Q 38.5 45 38.5 52.5 Q 38.5 45 31 45 Q 38.5 45 38.5 37.5 Z' fill='%23FBBF24'/%3E%3C/svg%3E") center / contain no-repeat;
+      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill-rule='evenodd' fill='%23F8FAFC' d='M 14 10 L 32.5 10 C 42.6 10 50.2 14.7 50.2 23.1 C 50.2 31.6 42.6 36.6 32.5 36.6 L 26.4 36.6 C 25.2 36.7 24.6 37.4 24.55 38.6 L 24.3 54 L 14 54 Z M 34.5 15.7 Q 34.5 23.2 42 23.2 Q 34.5 23.2 34.5 30.7 Q 34.5 23.2 27 23.2 Q 34.5 23.2 34.5 15.7 Z'/%3E%3Cpath fill='%23FBBF24' d='M 34.5 15.7 Q 34.5 23.2 42 23.2 Q 34.5 23.2 34.5 30.7 Q 34.5 23.2 27 23.2 Q 34.5 23.2 34.5 15.7 Z'/%3E%3C/svg%3E") center / contain no-repeat;
       flex-shrink: 0;
     }
 
@@ -991,6 +991,18 @@
       margin-bottom: 20px;
     }
 
+    /* Producer credit — the quietest element on any page it appears on.
+       Canonical spec: docs/design/Brand_Identity.md §10. Max 11px, ever. */
+    .producer-credit {
+      margin: 20px 0 0;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted, #64748B);
+      text-align: center;
+    }
+
     .login-error {
       margin-bottom: 16px;
       padding: 10px 12px;
@@ -1331,6 +1343,9 @@
           <button id="loginBtn" type="submit" class="btn-primary">Login</button>
         </div>
       </form>
+      <!-- Producer credit — canonical line, spec in docs/design/Brand_Identity.md §10.
+           Deliberately outside the i18n dictionary: the credit has exactly one form. -->
+      <p class="producer-credit">A Paradise Production · 天域文创出品</p>
     </section>
 
     <div id="adminContent" class="hidden">

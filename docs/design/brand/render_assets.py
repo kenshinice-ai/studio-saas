@@ -14,8 +14,12 @@ coordinate here re-emits every asset consistently.  Run:
     .venv/bin/python docs/design/brand/render_assets.py
 
 Requires Pillow (already in .venv).  No SVG rasterizer is used: the PNGs are
-redrawn with PIL primitives (lines with round caps, arc rings, polygons) at 4x
+redrawn with PIL primitives (sampled bezier polygons for the solid mark;
+lines with round caps, arc rings, circles for the monoline wordmark) at 4x
 supersampling and downscaled with Lanczos.
+
+Mark geometry: Round 2 "Crafted P" (candidate D, client-approved 2026-07-27,
+82/100 on the acceptance rubric — see docs/design/brand/round2/RATIONALE.md).
 """
 
 import math
@@ -50,20 +54,38 @@ def rgb(hexstr):
 # screen.  point(a) = (cx + r*cos(a), cy + r*sin(a)).
 # ---------------------------------------------------------------------------
 
-# --- The mark: geometric "P" + spark ---------------------------------------
-# Uppercase proportions: bowl occupies the top ~59% of the 48-unit stem so the
-# silhouette reads "P" (not "p") even at 16px.  The bowl is a full ring whose
-# counter starts exactly at the stem's right edge (22.75).
-MARK_STROKE = 10.0
-MARK_STEM = ((17.75, 13.0), (17.75, 51.0))     # skeleton line, round caps
-MARK_RING_C = (27.0, 22.25)                    # bowl ring centre
-MARK_RING_R = 9.25                             # skeleton radius (stroke 10 ->
-                                               #   outer 14.25 / counter 4.25)
-MARK_SPARK_C = (38.5, 45.0)                    # spark seated in the P's armpit
+# --- The mark: "Crafted P" (Round 2, candidate D — client-approved) ---------
+# Solid custom letterform, spark-as-counter.  Cap height 44 (y 10..54).
+# Type-design details (do not "simplify" these away):
+#   * bowl depth 26.6 = 60.5% of cap height (capital-P proportion),
+#   * superelliptical shoulders drawn with cubics; the bowl's right extreme
+#     sits at y 23.1 — slightly ABOVE the bowl's vertical middle (upward
+#     stress) so the curve feels drawn, not compass-struck,
+#   * stem right edge tapers 24.9 -> 24.3 top-to-bottom (0.6 unit — felt,
+#     not seen),
+#   * small ink-trap ease where the bowl underside re-enters the stem so the
+#     crotch doesn't clog at small sizes,
+#   * the bowl counter IS the four-point spark (punched via evenodd, then
+#     refilled amber).  Monochrome = drop the amber refill.
+# Path segments: ("M"/"L", point) or ("C", ctrl1, ctrl2, endpoint).
+MARK_BODY = [
+    ("M", (14.0, 10.0)),
+    ("L", (32.5, 10.0)),
+    ("C", (42.6, 10.0), (50.2, 14.7), (50.2, 23.1)),
+    ("C", (50.2, 31.6), (42.6, 36.6), (32.5, 36.6)),
+    ("L", (26.4, 36.6)),
+    ("C", (25.2, 36.7), (24.6, 37.4), (24.55, 38.6)),   # ink-trap ease
+    ("L", (24.3, 54.0)),
+    ("L", (14.0, 54.0)),
+]
+MARK_SPARK_C = (34.5, 23.2)                    # spark = the bowl's counter
 MARK_SPARK_R = 7.5
-MARK_BBOX = (12.75, 8.0, 46.0, 56.0)           # ink bounding box (x0,y0,x1,y1)
-MARK_OPTICAL_C = (28.5, 32.0)                  # optical centre (spark is light,
-                                               #   so slightly left of bbox c.)
+MARK_BBOX = (14.0, 10.0, 50.2, 54.0)           # ink bounding box (x0,y0,x1,y1)
+MARK_OPTICAL_C = (31.0, 30.2)                  # optical centre: ink mass lives
+                                               #   in the bowl (up/right), the
+                                               #   lower stem is light — sit
+                                               #   between bbox centre (32.1,32)
+                                               #   and ink centroid (~28, 27.4)
 
 # --- Wordmark: monoline geometric letterforms ------------------------------
 # Primitive types:  ("L", x1,y1,x2,y2) skeleton line, round caps
@@ -74,8 +96,11 @@ MARK_OPTICAL_C = (28.5, 32.0)                  # optical centre (spark is light,
 # Baseline at y=28, cap top y=0, x-height ink top y=9 (skeleton 11.75).
 TEXT_STROKE = 5.5
 LETTERS = {
-    "P": (13.25, [("L", 0, 0, 0, 28), ("L", 0, 0, 6.5, 0),
-                  ("A", 6.5, 6.75, 6.75, -90, 90), ("L", 6.5, 13.5, 0, 13.5)]),
+    # "P" echoes the Crafted-P mark: bowl closes at y 14.5 (ink ~17.25 =
+    # 61.6% of cap, matching the mark's 60.5% bowl) with a fuller shoulder
+    # (entry line to 7, arc r 7.25) instead of the old 6.5/6.75 half-circle.
+    "P": (13.25, [("L", 0, 0, 0, 28), ("L", 0, 0, 7, 0),
+                  ("A", 7, 7.25, 7.25, -90, 90), ("L", 7, 14.5, 0, 14.5)]),
     "W": (21.0, [("L", 0, 0, 5.25, 28), ("L", 5.25, 28, 10.5, 8),
                  ("L", 10.5, 8, 15.75, 28), ("L", 15.75, 28, 21, 0)]),
     "E": (12.0, [("L", 0, 0, 0, 28), ("L", 0, 0, 12, 0),
@@ -95,8 +120,12 @@ WORDMARK = "PWE Studio"
 
 # --- Lockup layout (viewBox 0 0 252 64) ------------------------------------
 LOCKUP_W, LOCKUP_H = 252, 64
-LOCKUP_MARK_SCALE = 0.78
-LOCKUP_MARK_DX, LOCKUP_MARK_DY = -3.0, 7.04
+# Solid mark carries far more ink than the old monoline skeleton: scale down
+# 0.78 -> 0.75 and open the mark->text gap (mark ink ends x 34.15, text stem
+# at 46).  DY chosen so mark ink centre (y 32 after transform) sits on the
+# wordmark's optical middle: 0.75 * (10+54)/2 + 8 = 32.
+LOCKUP_MARK_SCALE = 0.75
+LOCKUP_MARK_DX, LOCKUP_MARK_DY = -3.5, 8.0
 LOCKUP_TEXT_X, LOCKUP_BASELINE = 46.0, 46.0
 
 
@@ -140,18 +169,26 @@ def spark_path(cx, cy, r):
             f"Q {f(cx)} {f(cy)} {f(cx)} {f(cy - r)} Z")
 
 
+def mark_body_d():
+    """The Crafted-P body as an SVG path string (no spark subpath)."""
+    parts = []
+    for seg in MARK_BODY:
+        if seg[0] in ("M", "L"):
+            parts.append(f"{seg[0]} {f(seg[1][0])} {f(seg[1][1])}")
+        else:
+            (c1x, c1y), (c2x, c2y), (px, py) = seg[1], seg[2], seg[3]
+            parts.append(f"C {f(c1x)} {f(c1y)} {f(c2x)} {f(c2y)} {f(px)} {f(py)}")
+    parts.append("Z")
+    return " ".join(parts)
+
+
 def svg_mark_body(ink, spark, indent="  "):
-    (x1, y1), (x2, y2) = MARK_STEM
-    cx, cy = MARK_RING_C
+    d_spark = spark_path(*MARK_SPARK_C, MARK_SPARK_R)
     lines = [
-        f'{indent}<!-- P stem -->',
-        f'{indent}<path d="M {f(x1)} {f(y1)} L {f(x2)} {f(y2)}" stroke="{ink}" '
-        f'stroke-width="{f(MARK_STROKE)}" stroke-linecap="round" fill="none"/>',
-        f'{indent}<!-- P bowl (counter left open on purpose) -->',
-        f'{indent}<circle cx="{f(cx)}" cy="{f(cy)}" r="{f(MARK_RING_R)}" '
-        f'stroke="{ink}" stroke-width="{f(MARK_STROKE)}" fill="none"/>',
-        f'{indent}<!-- creative spark -->',
-        f'{indent}<path d="{spark_path(*MARK_SPARK_C, MARK_SPARK_R)}" fill="{spark}"/>',
+        f'{indent}<!-- Crafted P: solid letterform, spark punched as the counter -->',
+        f'{indent}<path fill-rule="evenodd" fill="{ink}" d="{mark_body_d()} {d_spark}"/>',
+        f'{indent}<!-- creative spark (refills the punched counter; drop for monochrome) -->',
+        f'{indent}<path fill="{spark}" d="{d_spark}"/>',
     ]
     return "\n".join(lines)
 
@@ -209,25 +246,47 @@ def svg_lockup(ink, spark, comment):
             f'aria-label="PWE Studio">\n' + "\n".join(body) + "\n</svg>\n")
 
 
+# --- Producer credit line ("A Paradise Production") -------------------------
+# Documentation reference ONLY.  HTML surfaces must use the CSS spec in
+# docs/design/Brand_Identity.md §10 (system font stack) — this SVG exists so
+# the brand folder shows the canonical string + colors, and it MAY use the
+# system font (unlike mark/wordmark, which are authored paths).
+CREDIT_TEXT = "A PARADISE PRODUCTION · 天域文创出品"
+CREDIT_SLATE_LIGHT = "#64748B"   # on light surfaces
+CREDIT_SLATE_DARK = "#94A3B8"    # on dark surfaces
+CREDIT_FONT = ("-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, "
+               "'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif")
+
+
+def svg_credit(color, comment):
+    return (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 20" '
+        'role="img" aria-label="A Paradise Production credit line">\n'
+        f'  <!-- {comment} -->\n'
+        '  <!-- Reference artwork only. Source of truth for HTML surfaces: '
+        'CSS spec in docs/design/Brand_Identity.md (brand architecture section). -->\n'
+        f'  <text x="180" y="14" text-anchor="middle" fill="{color}" '
+        f'font-family="{CREDIT_FONT}" font-size="11" font-weight="600" '
+        f'letter-spacing="0.88">{CREDIT_TEXT}</text>\n'
+        '</svg>\n')
+
+
 def svg_favicon():
     """Theme-aware favicon: navy ink on light, near-white ink on dark."""
+    d_spark = spark_path(*MARK_SPARK_C, MARK_SPARK_R)
     return (
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" '
         'role="img" aria-label="PWE Studio">\n'
         '  <style>\n'
-        f'    .ink {{ stroke: {NAVY}; }}\n'
+        f'    .ink {{ fill: {NAVY}; }}\n'
         f'    .spark {{ fill: {AMBER}; }}\n'
         '    @media (prefers-color-scheme: dark) {\n'
-        f'      .ink {{ stroke: {INK_ON_DARK}; }}\n'
+        f'      .ink {{ fill: {INK_ON_DARK}; }}\n'
         f'      .spark {{ fill: {AMBER_ON_DARK}; }}\n'
         '    }\n'
         '  </style>\n'
-        f'  <path class="ink" d="M {f(MARK_STEM[0][0])} {f(MARK_STEM[0][1])} '
-        f'L {f(MARK_STEM[1][0])} {f(MARK_STEM[1][1])}" '
-        f'stroke-width="{f(MARK_STROKE)}" stroke-linecap="round" fill="none"/>\n'
-        f'  <circle class="ink" cx="{f(MARK_RING_C[0])}" cy="{f(MARK_RING_C[1])}" '
-        f'r="{f(MARK_RING_R)}" stroke-width="{f(MARK_STROKE)}" fill="none"/>\n'
-        f'  <path class="spark" d="{spark_path(*MARK_SPARK_C, MARK_SPARK_R)}"/>\n'
+        f'  <path class="ink" fill-rule="evenodd" d="{mark_body_d()} {d_spark}"/>\n'
+        f'  <path class="spark" d="{d_spark}"/>\n'
         '</svg>\n')
 
 
@@ -287,11 +346,33 @@ def draw_spark(d, xf, k, cx, cy, r, color):
     d.polygon(pts, fill=color)
 
 
+def mark_body_points(n=24):
+    """Sample the Crafted-P body outline into a polygon point list."""
+    pts, cur = [], None
+    for seg in MARK_BODY:
+        if seg[0] in ("M", "L"):
+            cur = seg[1]
+            pts.append(cur)
+        else:
+            c1, c2, p1 = seg[1], seg[2], seg[3]
+            for i in range(1, n + 1):
+                t = i / n
+                mt = 1 - t
+                pts.append((mt ** 3 * cur[0] + 3 * mt * mt * t * c1[0]
+                            + 3 * mt * t * t * c2[0] + t ** 3 * p1[0],
+                            mt ** 3 * cur[1] + 3 * mt * mt * t * c1[1]
+                            + 3 * mt * t * t * c2[1] + t ** 3 * p1[1]))
+            cur = p1
+    return pts
+
+
 def draw_mark(d, k, dx, dy, ink, spark):
-    """Draw the mark with uniform scale k and pixel offset (dx, dy)."""
+    """Draw the mark with uniform scale k and pixel offset (dx, dy).
+
+    PNG contexts always show the spark amber, so the counter is painted
+    over the solid body rather than punched (identical visual result)."""
     xf = lambda p: (p[0] * k + dx, p[1] * k + dy)
-    draw_stroke_line(d, xf, k, *MARK_STEM, MARK_STROKE, ink)
-    draw_stroke_circle(d, xf, k, *MARK_RING_C, MARK_RING_R, MARK_STROKE, ink)
+    d.polygon([xf(p) for p in mark_body_points()], fill=ink)
     draw_spark(d, xf, k, *MARK_SPARK_C, MARK_SPARK_R, spark)
 
 
@@ -363,6 +444,10 @@ def preview_html(mark_light, mark_dark, lockup_light, lockup_dark):
               display: flex; align-items: center; justify-content: center;
               box-shadow: 0 4px 12px rgba(0,0,0,.15); }}
   .appicon svg {{ width: 62px; }}
+  .credit {{ font: 600 10px/1 -apple-system, BlinkMacSystemFont, "Segoe UI",
+             Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+             sans-serif; letter-spacing: .08em; color: {CREDIT_SLATE_DARK}; }}
+  .pair {{ flex-direction: column; align-items: flex-start; gap: 22px; }}
 </style>
 <h1>PWE Studio — platform brand preview</h1>
 <h2>Mark on light</h2>
@@ -375,6 +460,10 @@ def preview_html(mark_light, mark_dark, lockup_light, lockup_dark):
 <div class="panel dark">{sized(lockup_dark, 420)}</div>
 <h2>App-icon frame</h2>
 <div class="panel light"><div class="appicon">{mark_dark}</div></div>
+<h2>Producer credit pairing (dark)</h2>
+<div class="panel dark pair">{sized(lockup_dark, 420)}
+  <div class="credit">{CREDIT_TEXT}</div>
+</div>
 """
 
 
@@ -393,6 +482,10 @@ def main():
     (HERE / "pwe-logo.svg").write_text(lockup_light)
     (HERE / "pwe-logo-dark.svg").write_text(lockup_dark)
     (ROOT / "favicon.svg").write_text(svg_favicon())
+    (HERE / "credit-line.svg").write_text(
+        svg_credit(CREDIT_SLATE_LIGHT, "producer credit, light surfaces"))
+    (HERE / "credit-line-dark.svg").write_text(
+        svg_credit(CREDIT_SLATE_DARK, "producer credit, dark surfaces"))
     (HERE / "preview.html").write_text(
         preview_html(mark_light, mark_dark, lockup_light, lockup_dark))
 

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="PWE mark candidate A: solid P, spark counter">
+  <!-- A. "Spark Counter" — solid geometric P; the bowl's counter IS the 4-point spark (negative space). -->
+  <!-- Monochrome usage: drop the amber path; the punched counter still reads as a spark. -->
+  <path fill-rule="evenodd" fill="#0F172A"
+        d="M 14 10 H 36 A 14 14 0 0 1 36 38 H 25 V 54 H 14 Z
+           M 36 16.25 Q 36 24 43.75 24 Q 36 24 36 31.75 Q 36 24 28.25 24 Q 36 24 36 16.25 Z"/>
+  <path fill="#F59E0B"
+        d="M 36 16.25 Q 36 24 43.75 24 Q 36 24 36 31.75 Q 36 24 28.25 24 Q 36 24 36 16.25 Z"/>
+</svg>
