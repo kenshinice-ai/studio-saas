@@ -49,6 +49,18 @@
   —— 客户要能直接 rsync 到自己 NAS），install.sh 首次启动前建目录并
   `chown 10001`，RUNBOOK §5/§6 与 OPERATIONS §2 同步。
   另修：篡改包原来抛裸 traceback，现在同 REFUSED 中英文说明（exit 1）。
+- **🔴 第二个交付缺陷（打包实测才发现）**：`git archive HEAD` 把内部材料
+  一并打进客户包 —— 付费客户解开 tarball 会看到 `docs/sales/`（**含价目表**
+  与 `talk_track.md`，即「客户提出价格异议时怎么答」）、内部 HANDOFF、
+  审计发现清单（3H/13M/20L）、logo round2 的「甲方视角」评分表、
+  185 个 `.claude/` 内部工具文件。新增 `.gitattributes` 用 `export-ignore`
+  排除（SaaS 包同样受益）；运营文档、角色手册、`standalone-edition/` 全部
+  保留（含 COMMERCIAL.md —— 那是客户自己的合同条款）。
+  Edition 包 4.0M → **2.7M**。
+- **两个包实测**：`--edition` → `PWE-Studio-Edition-7.7.7.tar.gz`，
+  `mode=standalone`、入口 `INSTALL_EDITION_FIRST.md` + `CUSTOMER_README.md`、
+  内部材料 0 命中、sha256 自校验 OK；不带参数 → `mode=saas`、
+  入口仅 `DEPLOY_AWS_FIRST.md`。
 - **端到端实测**（scratch 库，两条数据路径 + 三个负例，见 README §6 表格）：
   平台导出→空库导入→standalone 启动全过（30 表 163 行，账本 165.00 对账
   一致，平台成员 0）；CSV→JSON→导入过（3 人含 1 归档，期初 16.50 记为单条
@@ -257,8 +269,9 @@ CMS/门户走查小项 · PWE 品牌识别 · 角色手册+FAQ）+ 后端主线�
 - **提交状态**：最新 67fecd1（Crafted P 品牌二轮，分支
   `codex/studiosaas-v7.3.1` 已推送）；v7.7.7 发布提交=9e5e268；
   main 停在 v7.6.0=59af5a2，尚未合入其后提交
-- **打包产物**：`dist/PWE-StudioSaaS-aws-7.7.7.tar.gz`（sha256 校验 OK，
-  BUILD_INFO commit=67fecd1，与 HEAD 一致）
+- **打包产物**（两形态，均 sha256 校验 OK，BUILD_INFO commit 与 HEAD 一致）：
+  `dist/PWE-StudioSaaS-aws-7.7.7.tar.gz`（`mode=saas`）与
+  `dist/PWE-Studio-Edition-7.7.7.tar.gz`（`mode=standalone`，2.7M）
 - **验证基线**：**157 pytest** + 73 smoke + **216 tenant-isolation** 全绿
   （157 含 Edition 模式门 27 项；216 含 v7.7.0 的 5 条支持门 + 本轮
   Edition 的 15 条边界检查）
