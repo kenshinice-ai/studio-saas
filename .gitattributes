@@ -1,0 +1,43 @@
+# Paths excluded from `git archive`, i.e. from every deployment bundle built by
+# deploy/aws/build_aws_bundle.sh (both the SaaS tarball and the --edition one).
+#
+# Why this file exists: the Edition bundle is unpacked on a paying customer's own
+# server, and the customer reads it. Before this, a studio that paid for
+# PWE Studio Edition received, inside their own delivery:
+#
+#   * docs/sales/ — the sales deck WITH the price list, and talk_track.md, which
+#     is our guidance on how to answer that customer's own price objections
+#   * docs/HANDOFF_*.md and docs/Project_Audit_*.md — internal engineering
+#     handoffs and an open findings list (3 HIGH / 13 MED / 20 LOW)
+#   * docs/design/brand/round2/ — logo research including a weighted scoring
+#     table written from an imagined client's perspective
+#   * .claude/ — 185 files of internal agent tooling, ~2.8 MB of dead weight
+#
+# None of it is referenced by any runtime, script, or deployment step (verified
+# by grep over backend/, deploy/, standalone-edition/). It is internal material
+# that simply travelled with `git archive HEAD`.
+#
+# Operator-facing docs stay in the bundle on purpose: docs/Deployment.md,
+# docs/Admin_Guide.md, docs/guides/ role manuals, docs/API.md, docs/Database.md,
+# deploy/aws/README_AWS.md and all of standalone-edition/ (COMMERCIAL.md
+# included — those are the customer's own contract terms, which CUSTOMER_README
+# links to).
+
+# Internal agent/skill tooling.
+.claude/            export-ignore
+
+# Commercial material: pricing deck and objection handling.
+docs/sales/         export-ignore
+
+# Internal engineering notes and audit findings.
+docs/HANDOFF_LATEST.md          export-ignore
+docs/HANDOFF_2026-07-26.md      export-ignore
+docs/Project_Audit_2026-07-27.md export-ignore
+
+# Logo exploration and client-perspective scoring. The shipped brand assets and
+# render_assets.py stay — they generate the product's own icons.
+docs/design/brand/round2/ export-ignore
+
+# The Edition installer writes these on the customer's box; never ship one.
+standalone-edition/.env     export-ignore
+standalone-edition/.env.bak export-ignore
