@@ -1,0 +1,58 @@
+# 独立版 · 数据库与数据迁移
+
+> 提案文档，随 README.md 一起等待确认。
+
+## 1. 数据库形态
+
+- 客户**独立的 PostgreSQL 16 库**，schema 与平台版完全一致
+  （迁移链 0001–0020 原样应用；`schema_migrations` 簿记保留，
+  未来升级走同一迁移机制）
+- 库中**恰好一个 active 租户**，安装时创建并固化；standalone 模式
+  启动校验强制此不变量
+- **不存在** `tenant_id IS NULL` 的平台成员行；plans 表写入单行
+  unlimited plan（或 plan 校验在 standalone 模式短路——实现时二选一）
+
+多租户 schema 保留租户列的代价（每表一个 uuid 列）换来的是：
+平台↔独立版**双向迁移零 schema 转换**，且所有隔离测试语义不变。
+
+## 2. 三条数据来源路径
+
+### 路径 1：从 SaaS 平台迁出（老客户转独立版）
+1. 平台侧：支持会话下执行租户导出 —— 复用 `tenant_archive.py`
+   快照机制（30 张表全量 JSON，v7.4.1 起含同意链证据）+ 媒体目录
+   打包（`media/<tenant>/` + photos + portfolio）
+2. 独立侧：`install.sh --import-archive <包>` 建库→跑迁移→导入快照
+   →校验计数与账本一致性（对照 manifest critical_counts）
+3. 平台侧收尾：按合同约定归档或删除原租户（永久删除有确认短语 +
+   最终快照，流程已有）
+
+> 实现说明：tenant_archive 快照当前是「归档」用途，导入器是本方案
+> 新增件（快照 JSON → INSERT 序列，schema 相同所以是直录）。
+
+### 路径 2：从客户现有系统迁入（新客户）
+沿用 lets-paint-studio 实战验证过的核心导入流程
+（`import_lets_paint_json.py` 模式）：学员档案 + 期初课时余额走
+migration 账本行；套餐 upsert；历史流水按「只保留核心」原则不迁。
+Excel 来源由实施工程师转 JSON（模板随交付包提供）。
+
+### 路径 3：全新开店（无历史数据）
+安装向导直接建租户 + owner + 行业预设，当天可用。
+
+## 3. 备份与恢复（交付默认配置）
+
+- `backup_postgres.py backup` 每日 cron，写本机备份目录（0600、
+  保留 14 份、含 manifest 计数校验）
+- 恢复演练命令与季度节奏写入客户版手册；执行属维护协议
+- 媒体/照片目录随一条 tar cron 同步备份
+- 异地副本（S3/OSS/客户 NAS）：维护协议可选项
+
+## 4. 与平台版的差异清单（数据层）
+
+| 项 | 平台版 | 独立版 |
+|---|---|---|
+| tenants 行数 | N | 恰好 1（启动校验） |
+| 平台 super_admin 成员 | 有 | 禁止存在 |
+| plans / subscriptions | 商业计费 | 单行 unlimited / 短路 |
+| tenant_usage 用量结算 | 平台巡检 | 保留但仅作自检展示 |
+| audit_logs | 平台+租户两级 | 仅租户级（owner 可见，已有端点） |
+| demo_seed_locked | 真实租户加锁 | 安装即全库加锁（防误 seed） |
