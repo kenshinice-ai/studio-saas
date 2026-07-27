@@ -1,6 +1,6 @@
 # 工作室 Owner 手册（Studio Admin + CMS 全权限）
 
-> 适用版本：StudioSaaS v7.7.7 · 界面：Studio Admin（`/<工作室网址标识>/studio-admin`）
+> 适用版本：StudioSaaS v7.7.8 · 界面：Studio Admin（`/<工作室网址标识>/studio-admin`）
 > 与运营 CMS（`/<工作室网址标识>/cms`）
 > 其他角色手册见 [手册总览](README.md)
 

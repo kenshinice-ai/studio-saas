@@ -95,7 +95,8 @@ SESSION_SECRET_FILE = _data_path('.session_secret')
 PW_FILE       = _data_path('.cms_password')
 app.config['PHOTO_DIR'] = PHOTO_DIR
 MAX_BACKUPS   = 30   # 1 backup/hr rate limit → ~30 hours of rolling coverage
-APP_VERSION   = '7.7.7'
+APP_VERSION   = '7.7.8'
+app.config['APP_VERSION'] = APP_VERSION
 ALLOWED_EXT   = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
 EXT_MIME_TYPES = {
     'jpg': {'image/jpeg'},
@@ -372,60 +373,78 @@ _validate_production_configuration()
 
 
 # ── PWE Studio Edition (STUDIOSAAS_MODE=standalone) startup invariants ────────
-def _standalone_db_counts():
-    """Return ``(active_tenants, platform_super_admins)`` from PostgreSQL."""
+def _standalone_db_counts() -> tuple[int, int, int]:
+    """Return ``(all_tenants, active_tenants, platform_memberships)``.
+
+    Edition is a one-studio database, not merely a database with one currently
+    active studio. Counting every tenant row and every platform-scoped
+    membership prevents archived SaaS tenants or disabled platform accounts
+    from travelling unnoticed into a customer-owned Edition instance.
+    """
 
     from studiosaas.db import connect, fetch_one
 
     with connect() as conn:
         tenants = fetch_one(
             conn,
-            "SELECT count(*) AS n FROM tenants WHERE status = 'active'",
+            """
+            SELECT
+                count(*) AS total,
+                count(*) FILTER (WHERE status = 'active') AS active
+            FROM tenants
+            """,
             (),
         )
-        admins = fetch_one(
+        platform_memberships = fetch_one(
             conn,
             """
             SELECT count(*) AS n
             FROM memberships
             WHERE tenant_id IS NULL
-              AND role = 'super_admin'
-              AND status = 'active'
             """,
             (),
         )
-    return int(tenants["n"] or 0), int(admins["n"] or 0)
+    return (
+        int(tenants["total"] or 0),
+        int(tenants["active"] or 0),
+        int(platform_memberships["n"] or 0),
+    )
 
 
 def _validate_standalone_configuration():
     """Fail fast when standalone mode boots against a non-standalone database.
 
-    PWE Studio Edition ships exactly one active tenant and no platform plane.
-    A database holding several tenants (or a platform super_admin) is either a
-    SaaS database or an incomplete installation — refuse to serve it rather
-    than expose one customer's server to multi-tenant state. SaaS mode never
-    runs these checks. STUDIOSAAS_SKIP_STANDALONE_CHECKS=1 lets the installer
-    bootstrap an empty database before the tenant row exists.
+    PWE Studio Edition ships exactly one tenant, that tenant must be active,
+    and no platform-scoped membership may remain. A database holding archived
+    tenants or disabled platform accounts is still a SaaS database footprint;
+    refuse to serve it rather than rely on status flags as the isolation
+    boundary. SaaS mode never runs these checks.
+    STUDIOSAAS_SKIP_STANDALONE_CHECKS=1 lets the installer bootstrap an empty
+    database before the tenant row exists.
     """
 
     if not is_standalone():
         return
     if os.environ.get('STUDIOSAAS_SKIP_STANDALONE_CHECKS') == '1':
         return
-    active_tenants, platform_admins = _standalone_db_counts()
-    if active_tenants != 1:
+    all_tenants, active_tenants, platform_memberships = _standalone_db_counts()
+    if all_tenants != 1 or active_tenants != 1:
         raise RuntimeError(
-            f'独立版（PWE Studio Edition）要求数据库中恰好有 1 个 active 租户，当前为 {active_tenants} 个。'
+            '独立版（PWE Studio Edition）要求数据库中恰好有 1 个租户且状态为 active，'
+            f'当前共有 {all_tenants} 个租户，其中 {active_tenants} 个 active。'
             '请先运行 standalone-edition 安装脚本完成初始化。 '
-            f'Standalone mode requires exactly one active tenant in the database (found {active_tenants}). '
+            'Standalone mode requires exactly one tenant and it must be active '
+            f'(found {all_tenants} total, {active_tenants} active). '
             'Run the standalone-edition installer to initialise this database.'
         )
-    if platform_admins:
+    if platform_memberships:
         raise RuntimeError(
-            f'独立版数据库中不允许存在平台管理员成员（tenant_id IS NULL 的 super_admin），当前有 {platform_admins} 个。'
-            '请先运行 standalone-edition 安装脚本（或删除这些平台成员行）。 '
-            f'Standalone mode forbids platform super_admin memberships (tenant_id IS NULL); found {platform_admins}. '
-            'Run the standalone-edition installer (or remove those platform membership rows).'
+            '独立版数据库中不允许存在任何平台成员（tenant_id IS NULL），'
+            f'当前有 {platform_memberships} 个。请先运行 standalone-edition 安装脚本'
+            '（或删除这些平台成员行）。 '
+            'Standalone mode forbids every platform-scoped membership '
+            f'(tenant_id IS NULL); found {platform_memberships}. '
+            'Run the standalone-edition installer or remove those membership rows.'
         )
 
 

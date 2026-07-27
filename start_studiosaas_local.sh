@@ -13,7 +13,7 @@ DB_HOST="${STUDIOSAAS_DB_HOST:-localhost}"
 DB_PORT="${STUDIOSAAS_DB_PORT:-5432}"
 PORT="${PORT:-8899}"
 ADMIN_EMAIL="admin@studiosaas.local"
-ADMIN_PASSWORD="${STUDIOSAAS_ADMIN_PASSWORD:-StudioSaaS@LetsPaint2026!}"
+ADMIN_PASSWORD="${STUDIOSAAS_ADMIN_PASSWORD:-}"
 CUSTOM_DATABASE_URL="${STUDIOSAAS_DATABASE_URL:-}"
 DATABASE_URL="${STUDIOSAAS_DATABASE_URL:-postgresql://${DB_USER}@${DB_HOST}:${DB_PORT}/${DB_NAME}}"
 DATA_DIR="${CMS_DATA_DIR:-/private/tmp/studiosaas_cms_data}"
@@ -57,15 +57,21 @@ else
 fi
 
 say "Ensuring local Super Admin login"
+ADMIN_ARGS=(
+  --email "$ADMIN_EMAIL"
+  --no-print-password
+)
+if [ -n "$ADMIN_PASSWORD" ]; then
+  ADMIN_ARGS+=(
+    --password "$ADMIN_PASSWORD"
+    --reset-password
+    --credential-file "$HOME/.studiosaas/pilot-credentials.txt"
+  )
+fi
 (
   cd "$APP_ROOT"
   STUDIOSAAS_DATABASE_URL="$DATABASE_URL" \
-    "$PYTHON" scripts/seed_super_admin.py \
-      --email "$ADMIN_EMAIL" \
-      --password "$ADMIN_PASSWORD" \
-      --reset-password \
-      --credential-file "$HOME/.studiosaas/pilot-credentials.txt" \
-      --no-print-password
+    "$PYTHON" scripts/seed_super_admin.py "${ADMIN_ARGS[@]}"
 )
 
 say "Checking managed process and port $PORT"

@@ -1,6 +1,6 @@
 # PWE Studio SaaS
 
-Current release: **v7.7.7**
+Current release: **v7.7.8**
 
 PWE Studio SaaS (repo: studiosaas) is a multi-tenant Creative Studio Operating System for art schools, music studios, tutoring centres, creative academies, kids' activity providers, and small education businesses.
 
@@ -13,7 +13,12 @@ It provides a lightweight SaaS-style platform for managing:
 - portfolio media and branding settings
 - platform-level tenant management
 
-**Status:** public pilot stage. Runs locally (waitress + PostgreSQL) and is exposed on demand via Cloudflare Tunnel at `https://studiosaas.cc.cd`. The public URL is only expected to be online while the Stage 1 launcher is running. Deployment towards AWS is documented in `docs/Deployment.md`.
+**Status:** public pilot stage. Both the multi-tenant SaaS runtime and the
+single-tenant **PWE Studio Edition** (`STUDIOSAAS_MODE=standalone`) have a
+release-ready delivery path. SaaS runs locally (Waitress + PostgreSQL) and is
+exposed on demand via Cloudflare Tunnel at `https://studiosaas.cc.cd`. AWS
+deployment code is retained, but v7.7.8 is intentionally limited to local +
+Cloudflare invitation testing; no AWS deployment is claimed.
 
 Canonical product responsibilities and names are defined in `docs/Product_Surface_Model.md`: Super Admin is the commercial control plane, Studio Admin is the tenant brand/publication workspace, Studio CMS owns daily operations, the Studio Portal is the primary public acquisition experience, and Quick Registration is an alternate tenant-scoped entry.
 
@@ -149,7 +154,8 @@ cd backend && python scripts/run_migrations.py
 
 ```bash
 cd backend
-python scripts/seed_super_admin.py
+STUDIOSAAS_ADMIN_PASSWORD='<strong unique local secret>' \
+  python scripts/seed_super_admin.py
 python scripts/seed_local_test_tenants.py
 python scripts/seed_random_demo_data.py --students-per-tenant 24   # optional
 ```
@@ -170,14 +176,15 @@ set.
 
 ### 4.6 Pilot credentials
 
-The local and on-demand public launchers enforce the agreed pilot Super Admin
-login (`admin@studiosaas.local`) on every start and keep the matching local
-credential record in `~/.studiosaas/pilot-credentials.txt` with mode `0600`.
-Set `STUDIOSAAS_ADMIN_PASSWORD` to override the launcher password without
-editing the scripts. This fixed pilot credential is not a production policy:
-before a permanent deployment, rotate every privileged account with
-`backend/scripts/rotate_pilot_credentials.py` and protect the admin routes with
-a second access layer.
+The local and on-demand public launchers ensure the
+`admin@studiosaas.local` platform membership exists but preserve its current
+password. There is no fixed privileged password in source. To create the
+account on a new database, or deliberately rotate it before startup, export
+`STUDIOSAAS_ADMIN_PASSWORD` for that invocation; only then will the launcher
+reset the hash and update `~/.studiosaas/pilot-credentials.txt` (mode `0600`).
+Before a permanent deployment, rotate every privileged account with
+`backend/scripts/rotate_pilot_credentials.py` and protect admin routes with a
+second access layer.
 
 ### 4.7 v7.2.1 shared product improvements
 
@@ -541,7 +548,7 @@ same-mobile pending entries get a 疑似重复 badge, course duration is
 bilingual (60 分钟 / 60 MIN), broken gallery/hero images degrade cleanly
 (tiles removed from tab order, hero falls back to decorative art).
 
-**Role guides** (`docs/guides/`, all stamped 7.7.7): new dedicated
+**Role guides** (`docs/guides/`, all stamped 7.7.8): new dedicated
 Front Desk/Staff guide (previously "see Manager"), support-gate and
 owner-audit sections rewritten to match enforced behavior, share-link
 create/revoke permissions corrected everywhere, and each guide gained a
@@ -581,6 +588,32 @@ pruning are in the §8 checklist.
 **Sales kit** — `docs/sales/PWE_StudioSaaS_销售介绍.pptx` (13 slides,
 brand-styled, every product claim verified against the repo) plus
 `talk_track.md` presenter script with objection handling.
+
+### 4.19 v7.7.8 dual-mode release closure
+
+**Edition install and upgrade** — standalone startup now requires exactly one
+tenant in total, exactly one active tenant, and zero platform memberships.
+The installer places secrets, backup history and the current-release pointer
+in stable host paths, installs a root-owned backup schedule, creates the first
+dump, and runs the web process with a dedicated least-privilege PostgreSQL
+role. `upgrade.sh` backs up before switching releases and automatically rolls
+back code/config when deep health fails; `maintenance.sh` provides explicit
+backup, restore rehearsal and write-stopped real restore operations.
+
+**Migration integrity** — Edition export format v2 inventories database and
+media payload files. Import requires the separately trusted outer bundle
+SHA-256 and rejects missing, changed or undeclared payloads before applying
+data.
+
+**Release gate** — CI and the local release verifier run PostgreSQL migrations,
+pytest, the 73-check CMS smoke suite, tenant-isolation checks, CMS source/build
+consistency and clean-tree builds of both SaaS and Edition bundles. Bundle
+metadata must match version, mode and commit, while internal handoff/audit
+materials stay out of customer packages.
+
+**Deliberate boundaries** — v7.7.8 validates the local service and on-demand
+Cloudflare invitation path. AWS deployment and automated media-volume backup
+remain deferred by product decision.
 
 
 ---
@@ -686,10 +719,10 @@ curl -i -X POST http://localhost:8899/v1/admin/tenants \
 | `docs/QA_Checklist.md` | Pre-release checklist |
 | `docs/Admin_Guide.md` | Platform ops: setup, backup, troubleshooting |
 | `docs/Release_Runbook.md` | Provider-neutral migration, media backfill, release, rollback, and recovery gate |
-| `docs/Deployment.md` | Deployment: local → Cloudflare Tunnel (`studiosaas.cc.cd`) → AWS |
+| `docs/Deployment.md` | Current release boundary: local → Cloudflare Tunnel; AWS deferred |
 | `docs/Design_System.md` | UI tokens and component standards |
 | `docs/Glossary.md` | One agreed word per concept (enforced by `check_terminology.py`) |
-| `docs/guides/` | Per-role user manuals in Chinese (updated for v7.6.0) |
+| `docs/guides/` | Per-role user manuals in Chinese (applicable to v7.7.8) |
 
 ---
 

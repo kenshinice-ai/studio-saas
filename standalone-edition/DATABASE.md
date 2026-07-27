@@ -1,16 +1,20 @@
 # PWE Studio Edition · 数据库与数据迁移
 
-> 已确认方案（2026-07-27），实现轮进行中。
+> v7.7.8 已实现并纳入发布验证（2026-07-27）。
 
 ## 1. 数据库形态
 
 - 客户**独立的 PostgreSQL 16 库**，schema 与平台版完全一致
   （迁移链 0001–0020 原样应用；`schema_migrations` 簿记保留，
   未来升级走同一迁移机制）
-- 库中**恰好一个 active 租户**，安装时创建并固化；standalone 模式
-  启动校验强制此不变量
-- **不存在** `tenant_id IS NULL` 的平台成员行；plans 表写入单行
-  unlimited plan（或 plan 校验在 standalone 模式短路——实现时二选一）
+- 库中**总共恰好一个租户且状态必须为 active**，安装时创建并固化；
+  standalone 模式启动校验强制此不变量，归档/停用的额外租户同样拒绝
+- **不存在任何** `tenant_id IS NULL` 的平台成员行（不论角色和状态）；
+  plans 表写入 `edition` unlimited 行，运行时 plan 容量与 feature 检查同时
+  在 standalone 模式中性化
+- 数据库 owner `studiosaas` 只用于启动迁移、角色授权和受控恢复；
+  server.py 使用 `studiosaas_app` 最小权限角色运行（CRUD，无
+  SUPERUSER/CREATEDB/CREATEROLE/schema ownership）
 
 多租户 schema 保留租户列的代价（每表一个 uuid 列）换来的是：
 平台↔独立版**双向迁移零 schema 转换**，且所有隔离测试语义不变。
@@ -21,8 +25,8 @@
 1. 平台侧：支持会话下执行租户导出 —— 复用 `tenant_archive.py`
    快照机制（30 张表全量 JSON，v7.4.1 起含同意链证据）+ 媒体目录
    打包（`media/<tenant>/` + photos + portfolio）
-2. 独立侧：`install.sh --import-archive <包>` 建库→跑迁移→导入快照
-   →校验计数与账本一致性（对照 manifest critical_counts）
+2. 独立侧：`install.sh --import-bundle <包> --expected-bundle-sha256 <平台记录值>`
+   建库→跑迁移→验证可信整包 SHA→导入快照→校验计数、媒体清单与账本一致性
 3. 平台侧收尾：按合同约定归档或删除原租户（永久删除有确认短语 +
    最终快照，流程已有）
 
@@ -40,18 +44,21 @@ Excel 来源由实施工程师转 JSON（模板随交付包提供）。
 
 ## 3. 备份与恢复（交付默认配置）
 
-- `backup_postgres.py backup` 每日 cron，写本机备份目录（0600、
-  保留 14 份、含 manifest 计数校验）
+- root-owned `/etc/cron.d/pwe-studio-<slug>-backup` 每日调用
+  `backup_postgres.py backup`，写稳定目录
+  `/var/lib/pwe-studio/<slug>/backups/postgres`（0600、保留 14 份、
+  含 manifest 计数校验）
 - 恢复演练命令与季度节奏写入客户版手册；执行属维护协议
-- 媒体/照片目录随一条 tar cron 同步备份
-- 异地副本（S3/OSS/客户 NAS）：维护协议可选项
+- **媒体/照片自动备份由用户在 v7.7.8 明确延后**；named volume 只保证
+  应用升级不丢媒体，不能覆盖整台服务器损坏
+- 异地数据库副本（客户 NAS 等）：维护协议可选项；AWS/S3 暂不执行
 
 ## 4. 与平台版的差异清单（数据层）
 
 | 项 | 平台版 | 独立版 |
 |---|---|---|
-| tenants 行数 | N | 恰好 1（启动校验） |
-| 平台 super_admin 成员 | 有 | 禁止存在 |
+| tenants 行数 | N | 总数恰好 1 且 active（启动校验） |
+| 平台成员 | 有 | `tenant_id IS NULL` 的任何成员均禁止 |
 | plans / subscriptions | 商业计费 | 单行 unlimited / 短路 |
 | tenant_usage 用量结算 | 平台巡检 | 保留但仅作自检展示 |
 | audit_logs | 平台+租户两级 | 仅租户级（owner 可见，已有端点） |

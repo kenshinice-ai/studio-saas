@@ -4,7 +4,7 @@
 #
 #   bash deploy/aws/build_aws_bundle.sh                    # SaaS, version = VERSION + git sha
 #   bash deploy/aws/build_aws_bundle.sh 7.4.0              # SaaS, explicit version
-#   bash deploy/aws/build_aws_bundle.sh 7.7.7 --edition     # PWE Studio Edition
+#   bash deploy/aws/build_aws_bundle.sh 7.7.8 --edition     # PWE Studio Edition
 #
 # Output:
 #   dist/PWE-StudioSaaS-aws-<version>.tar.gz{,.sha256}      # SaaS
@@ -53,6 +53,11 @@ fi
 
 SHA="$(git rev-parse --short=12 HEAD)"
 FILE_VERSION="$(tr -d '[:space:]' < VERSION 2>/dev/null || true)"
+if [ -n "$VERSION_ARG" ] && [ -n "$FILE_VERSION" ] && [ "$VERSION_ARG" != "$FILE_VERSION" ]; then
+  echo "Requested version $VERSION_ARG does not match VERSION ($FILE_VERSION)." >&2
+  echo "Update VERSION and every documented version first; release labels are immutable." >&2
+  exit 1
+fi
 VERSION="${VERSION_ARG:-${FILE_VERSION:-0.0.0}-$SHA}"
 
 if [ "$EDITION" = "1" ]; then
@@ -78,8 +83,8 @@ git archive --format=tar HEAD | tar -xf - -C "$STAGE_DIR"
 # Stamp the build so a running instance can report exactly what it is, and so
 # the implementation engineer can prove which form they are holding.
 cat > "$STAGE_DIR/BUILD_INFO" <<EOF
-version=$VERSION
-mode=$MODE
+version=${VERSION}
+mode=${MODE}
 commit=$(git rev-parse HEAD)
 built_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 EOF
@@ -88,7 +93,7 @@ if [ "$EDITION" = "1" ]; then
   # Entry point is the implementation runbook, not the SaaS AWS guide.
   cp "$STAGE_DIR/standalone-edition/RUNBOOK.md" "$STAGE_DIR/INSTALL_EDITION_FIRST.md"
   cat > "$STAGE_DIR/CUSTOMER_README.md" <<EOF
-# PWE Studio Edition $VERSION
+# PWE Studio Edition ${VERSION}
 
 这台服务器上运行的是属于你一家工作室的独立版本。
 
@@ -99,7 +104,7 @@ if [ "$EDITION" = "1" ]; then
 - 商务条款（维护档位、更新次数、回迁通道）见
   [standalone-edition/COMMERCIAL.md](standalone-edition/COMMERCIAL.md)
 
-本版本 = $VERSION，构建于 $(date -u +%Y-%m-%d)。
+本版本 = ${VERSION}，构建于 $(date -u +%Y-%m-%d)。
 升级时请核对 \`BUILD_INFO\` 里的 version 与 mode（应为 \`standalone\`）。
 
 ---

@@ -1,8 +1,9 @@
 # StudioSaaS Deployment Guide
 
-Version: v7.7.7
+Version: v7.7.8
 Date: 2026-07-27
-Scope: 本地部署 → Cloudflare Tunnel 公网试点（`https://studiosaas.cc.cd`）→ AWS 正式部署。
+Scope: v7.7.8 当前执行本地部署 → Cloudflare Tunnel 邀请测试
+（`https://studiosaas.cc.cd`）。AWS 套件保留，但本轮不部署。
 
 部署路径分三个阶段，每个阶段都是上一阶段的超集，数据与代码不推倒重来：
 
@@ -10,7 +11,7 @@ Scope: 本地部署 → Cloudflare Tunnel 公网试点（`https://studiosaas.cc.
 |---|---|---|
 | Stage 0 | 本地 Mac：waitress + 本机 PostgreSQL | 开发与全量验证 |
 | Stage 1 | Stage 0 + cloudflared tunnel → `studiosaas.cc.cd` | 公网试点测试（真实手机/家长注册链路） |
-| Stage 2 | AWS：EC2/Lightsail + RDS PostgreSQL + S3 媒体 | 正式多租户运营 |
+| Stage 2 | AWS：EC2/Lightsail + RDS PostgreSQL + S3 媒体 | 延期；不是 v7.7.8 验收范围 |
 
 ---
 
@@ -26,7 +27,9 @@ pip install -r backend/requirements.txt
 # 数据库（一次性）
 createdb -h localhost -p 5432 studiosaas_local_test
 cd backend && python scripts/run_migrations.py
-python scripts/seed_super_admin.py && python scripts/seed_local_test_tenants.py
+STUDIOSAAS_ADMIN_PASSWORD='<strong unique local secret>' \
+  python scripts/seed_super_admin.py
+python scripts/seed_local_test_tenants.py
 
 # 启动
 PORT=8899 STUDIOSAAS_DATABASE_URL=postgresql://$(whoami)@localhost:5432/studiosaas_local_test \
@@ -34,12 +37,12 @@ PORT=8899 STUDIOSAAS_DATABASE_URL=postgresql://$(whoami)@localhost:5432/studiosa
 # 或直接: ./start_studiosaas_local.sh
 ```
 
-### 1.2 验证基线（2026-07-26 全绿）
+### 1.2 验证基线（v7.7.8）
 
 | 检查 | 命令 | 期望 |
 |---|---|---|
 | 健康 | `curl localhost:8899/v1/health` | `{"ok":true,...}` |
-| pytest | `cd backend && ../.venv/bin/python -m pytest -q` | 131 passed |
+| pytest | `cd backend && ../.venv/bin/python -m pytest -q` | 全绿、不得以 skip 绕过 PostgreSQL gate |
 | CMS 冒烟 | `../.venv/bin/python test_cms.py` | 73 通过 |
 | 租户隔离 | `../.venv/bin/python test_tenant_isolation.py` | 需包含品牌草稿/发布/恢复、角色权限、来源漏斗与跨租户检查 |
 | 页面 | `/`、`/<slug>`、`/<slug>/cms`、`/<slug>/register`、`/<slug>/studio-admin` | 200；根 `/register` 404 |
@@ -85,7 +88,7 @@ ingress:
 
 | 操作 | 方式 |
 |---|---|
-| 开始公网测试 | 双击 `START_STUDIOSAAS_ONLINE.command`（环境/数据库/迁移 → 校准固定试点 Super Admin → 本地健康 → 隧道 → 公网健康；不重灌业务数据） |
+| 开始公网测试 | 双击 `START_STUDIOSAAS_ONLINE.command`（环境/数据库/迁移 → 保留现有 Super Admin 密码 → 本地健康 → 隧道 → 公网健康；不重灌业务数据） |
 | 结束测试 | 关闭该终端窗口，或双击 `STOP_STUDIOSAAS_ONLINE.command` |
 | 测试前备份 | 双击 `BACKUP_STUDIOSAAS_NOW.command` |
 | 本地开发（默认保留真实数据） | `START_STUDIOSAAS_LOCAL.command`（仅在显式设置 `STUDIOSAAS_SEED_DEMO=1` 时生成 demo 学员） |
@@ -98,7 +101,7 @@ ingress:
 |---|---|---|
 | 1 | v1 限流/审计使用真实访客 IP（信任来自 localhost 的 `CF-Connecting-IP`） | ✅ 2026-07-09（api_v1.py `_client_ip()`） |
 | 2 | Secure cookie | ✅ 2026-07-09：隧道来源的请求自动给 session cookie 加 Secure（自定义 SessionInterface）；本地 http 开发不受影响；`COOKIE_SECURE=1` 全局强制仍可用 |
-| 3 | 特权密码 | 按需试点启动器将 `admin@studiosaas.local` 校准为约定密码，并把本机凭据文件保持为 0600；可用 `STUDIOSAAS_ADMIN_PASSWORD` 覆盖。永久生产部署前必须运行 `backend/scripts/rotate_pilot_credentials.py` 改为独立随机密码，并加 Cloudflare Access 等第二层保护。 |
+| 3 | 特权密码 | 源码无固定特权密码。启动器默认保留现有 hash；只有显式提供 `STUDIOSAAS_ADMIN_PASSWORD` 时才创建/重置账号并更新 0600 本机凭据文件。永久生产部署前仍须独立轮换并加 Cloudflare Access 等第二层保护。 |
 | 4 | 备份 | ✅ 2026-07-09：`BACKUP_STUDIOSAAS_NOW.command` 一键备份（keep 14）；恢复演练通过（restore-dry-run，10 迁移核验）；按需模式不装定时，模板在 `deploy/launchd/` |
 | 5 | super-admin 面收紧 | 应用内强密码和角色检查为必需；Cloudflare Access 邮箱 OTP 仍建议作为第二层保护，覆盖 `/` 与 `/super-admin*` |
 | 6 | Cloudflare 区设置 | 建议开 Bot Fight Mode（仪表盘）；SSL/TLS 模式无所谓（tunnel 不走 origin 证书） |
@@ -124,7 +127,10 @@ bash scripts/package_release.sh
 
 ---
 
-## 3. Stage 2 — AWS 正式部署
+## 3. Stage 2 — AWS 正式部署（v7.7.8 延期）
+
+> 本节仅保留未来迁移设计与已存在的部署套件说明。本轮不得把“包可构建”
+> 表述为“AWS 已上线”，也不执行远端资源变更。
 
 > **部署套件已随仓库发布：`deploy/aws/`**（Dockerfile、docker-compose、nginx、
 > systemd、`.env.example`、`build_aws_bundle.sh`）。逐步操作手册见

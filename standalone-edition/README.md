@@ -1,7 +1,7 @@
 # PWE Studio Edition（单店独立版）· 方案
 
-> **状态：✅ 已确认（2026-07-27），方案 A，定价已拍板，实现轮进行中。**
-> 基于 StudioSaaS v7.7.7。产品名：**PWE Studio Edition**。
+> **状态：✅ v7.7.8 可交付基线（2026-07-27），方案 A，定价已拍板。**
+> 基于 StudioSaaS v7.7.8。产品名：**PWE Studio Edition**。
 
 ---
 
@@ -28,7 +28,7 @@ Admin）作为**独立软件包**整体交付给客户，部署在客户自己�
 |---|---|---|
 | 门户 / 报名 / CMS / Studio Admin | ✅ | ✅ 完整保留 |
 | 多租户 | ✅ | ❌ 恰好一个租户，安装时固化 |
-| Super Admin 控制台 | ✅ 平台方 | ❌ **整面关闭**（路由 404/410） |
+| Super Admin 控制台 | ✅ 平台方 | ❌ **整面关闭**（路由 404） |
 | 平台支持模式（super admin 进店） | ✅ 审计后可进 | ❌ 概念不存在 |
 | 套餐/订阅/用量计费 | ✅ | ❌ 关闭（无 plan 限制或设为无限） |
 | 租户生命周期（试用/逾期/归档） | ✅ | ❌ 固定 active |
@@ -70,7 +70,8 @@ JSON 文件形态：无角色权限、无审计、无门户/品牌系统，已�
 | [RUNBOOK.md](RUNBOOK.md) | **实施工程师**交付日手册（安装/TLS/备份/验收/交接/回滚） |
 | [OPERATIONS.md](OPERATIONS.md) | **客户版**操作手册（备份自查、恢复、故障自查、更新、联系方式） |
 | [templates/](templates/) | 学员导入模板（CSV + 转换器），仅「现有系统迁入」路径需要 |
-| `install.sh` / `docker-compose.edition.yml` | 安装向导与单机 compose（`db` 转正、备份绑定挂载到主机） |
+| `install.sh` / `docker-compose.edition.yml` | 安装向导与单机 compose（最小权限应用 DB 角色、稳定配置/备份目录） |
+| `upgrade.sh` | 升级前自动数据库备份、稳定 `current` 切换、健康失败自动回滚 |
 | `tools/` | 平台侧导出 + 独立版导入（manifest 校验、空库前置、账本对账） |
 
 ## 5. 已拍板决策（2026-07-27）
@@ -85,28 +86,38 @@ JSON 文件形态：无角色权限、无审计、无门户/品牌系统，已�
    （12 个月内），此后单次收费。
 5. **回迁 SaaS**：通道长期保留，价格按当时规模详谈。
 6. **页脚署名**：默认保留；去署名一次性 **$499**。
-7. **产品名**：**PWE Studio Edition**（暂定名）。
+7. **产品名**：**PWE Studio Edition**（正式名）。
 
-## 6. 实现轮清单（已完成，2026-07-27）
+## 6. 实现与 v7.7.8 交付收口（已完成，2026-07-27）
 
 1. ✅ 后端 `STUDIOSAAS_MODE=standalone` 开关 + 启动校验 + 路由关闭
    —— `config.is_standalone()`（每次读环境，不缓存）、`server` 启动不变量
    （恰一 active 租户 + 零平台成员，安装器可用 `STUDIOSAAS_SKIP_STANDALONE_CHECKS=1`
    越过首次引导）、`api_v1` 前置钩子关掉 `/v1/admin/*` 与套餐写路径、
    `/` 跳单租户门户、plan 限额中性化、两个 seed 脚本拒绝执行。
-   测试：`backend/tests/test_standalone_mode.py`（27 项）。
+   v7.7.8 进一步要求数据库**总共恰好一个租户且必须 active**，并禁止
+   任何 `tenant_id IS NULL` 平台成员，不再只检查 active 记录。
 2. ✅ `standalone-edition/install.sh` 安装向导（Docker 一条命令，含首次引导、
-   备份目录 chown、TLS 命令打印、验收清单回显、`--force-reinstall` 二次确认）
+   `/etc/pwe-studio` secrets、`/var/lib/pwe-studio` 数据库备份、root cron、
+   运维 wrapper、TLS 命令打印、验收清单回显、`--force-reinstall` 二次确认）
 3. ✅ 导出/导入工具 `tools/export_tenant_bundle.py`（只读，复用
    `tenant_archive.SNAPSHOT_TABLES` 单一清单）→ `tools/import_tenant_bundle.py`
-   （manifest 校验和、空库前置、剔平台成员、重置密码、账本双向对账）
+   （可信整包 SHA-256、数据库与媒体逐文件哈希、空库前置、剔平台成员、
+   重置密码、账本双向对账）
 4. ✅ 独立版专属 isolation 检查组（`backend/test_tenant_isolation.py`，
    **15 项**，总数 201 → **216**）+ 打包脚本 `--edition` 参数
    （`deploy/aws/build_aws_bundle.sh`，产物 `PWE-Studio-Edition-<ver>.tar.gz`，
    `BUILD_INFO` 记 `mode=standalone`）
-5. ✅ 交付 runbook [RUNBOOK.md](RUNBOOK.md)（实施工程师）+ 客户版操作手册
+5. ✅ `upgrade.sh` 使用稳定 `releases/shared/current` 边界，升级前备份，
+   健康失败自动恢复上一代码与配置；应用运行使用 `studiosaas_app`
+   最小权限角色，迁移权限在 server 启动前用完即移除。
+6. ✅ 交付 runbook [RUNBOOK.md](RUNBOOK.md)（实施工程师）+ 客户版操作手册
    [OPERATIONS.md](OPERATIONS.md)（工作室负责人）+ 学员导入模板
    [templates/](templates/)（CSV 模板 + 转换器，转换即用服务端同一函数校验）
+
+> **用户明确延后（v7.7.8）**：媒体文件的独立备份自动化暂不实施。
+> PostgreSQL 每日备份已经闭环；媒体 Docker volume 会在应用升级中保留，
+> 但不能视为服务器故障后的可恢复副本。
 
 **端到端实测**（scratch PostgreSQL 库，两条数据路径 + 三个负例）：
 

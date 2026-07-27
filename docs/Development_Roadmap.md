@@ -119,7 +119,12 @@ Purpose: Phased development plan, milestones, current status, and deployment tar
 | Secrets | Local env vars | SSM Parameter Store / Secrets Manager |
 | Email | Local SMTP (transitional) | Amazon SES |
 
-> **Note (2026-07-26):** the AWS single-instance deployment kit shipped with v7.4.0 (`deploy/aws/`: Dockerfile, entrypoint, docker-compose, nginx, systemd, `build_aws_bundle.sh`; runbook in `deploy/aws/README_AWS.md`). Remaining Phase 3 infrastructure work: GitHub Actions CI, S3 media, SES email.
+> **Note (2026-07-27):** the AWS single-instance deployment kit remains
+> available, and v7.7.8 adds a GitHub Actions release gate plus clean-tree
+> dual-mode bundle verification. AWS deployment itself is deliberately
+> deferred. Remaining Phase 3 infrastructure work includes S3 media, SES email,
+> multi-instance rate limiting and an executed AWS rehearsal for the chosen
+> production account.
 
 **Open items (recorded 2026-07-26, reviewed 2026-07-27, not yet scheduled):**
 

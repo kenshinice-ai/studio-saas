@@ -1,239 +1,126 @@
-# PWE Studio Edition · 客户版操作手册
+# PWE Studio Edition v7.7.8 — 客户运维手册
 
-> 给工作室负责人和管理员看的。**不需要会写代码。**
-> 交付时工程师会当面演示第 2 和第 3 节。
->
-> 实施工程师的手册是 [RUNBOOK.md](RUNBOOK.md)（安装当天用，之后不用再看）。
+本文给已经完成交付的单店客户使用。把下文 `<slug>` 换成交付工程师提供的
+工作室标识，例如 `example-studio`。
 
----
+## 1. 你需要保管的三样东西
 
-## 0. 先记住这四件事
+1. 服务器 SSH/控制台凭据；
+2. 离线保存的 `/etc/pwe-studio/<slug>.env`；
+3. 当前官方安装包及发布方单独提供的 SHA-256。
 
-| | |
-|---|---|
-| **你的网址** | `https://<你的域名>/` — 家长看到的门户 |
-| **员工入口** | `https://<你的域名>/<你的标识>/cms` — 日常操作（排课、签到、课时） |
-| **品牌后台** | `https://<你的域名>/<你的标识>/studio-admin` — 官网文案、配色、报名表 |
-| **秘密文件** | 服务器上的 `standalone-edition/.env` — **丢了就没人能帮你恢复** |
+环境文件包含数据库密码与会话密钥。只应由 root 和已获授权的 Docker
+运维人员读取，不要发到聊天群、工单截图或普通邮件。
 
-`.env` 里是数据库密码和会话密钥。交付时工程师已经让你离线保存了一份
-（U 盘 / 密码管理器 / 打印件保险柜，任选但至少一处）。
-**这份东西平台方不留副本** —— 这是「数据主权」条款的另一面：
-我们碰不到你的数据，也就救不回你丢掉的钥匙。
-
-> 没有 Super Admin，没有平台后台，没有遥测回连。这台服务器只属于你一家。
-> 完整声明见 [DEPLOYMENT.md §5](DEPLOYMENT.md)。
-
----
-
-## 1. 日常：什么都不用做
-
-正常运行时不需要任何操作。系统会自己：
-
-- 每天凌晨 2:30 备份数据库（保留最近 14 份）
-- 自动续期 HTTPS 证书
-- 崩溃后自动重启
-
-**你唯一需要养成的习惯：每月看一眼备份还在跑**（下一节，两分钟）。
-
----
-
-## 2. 每月两分钟：确认备份还在
-
-用工程师给你的 SSH 方式登上服务器。先粘一次本文末尾「速记函数」那三行
-（每次新开终端都要粘一次，`dc` 才可用），然后：
+## 2. 每日状态检查
 
 ```bash
-cd ~/PWE-Studio-Edition-* && ls -lt backups/postgres/ | head -6
+pwe-studio-<slug> ps
+curl -fsS https://你的域名/v1/health?deep=1
+pwe-studio-<slug> logs --tail 100 app
 ```
 
-**你要看到什么**：最近几天的文件，每个几 MB 到几十 MB，权限是 `-rw-------`。
+健康接口失败、容器持续 restarting，或日志出现 `FATAL` 时，不要反复重装；
+保留日志并联系维护人员。
 
-| 看到的情况 | 含义 | 怎么办 |
-|---|---|---|
-| 最新文件是昨天或今天 | ✅ 正常 | 什么都不用做 |
-| 最新文件超过 3 天前 | ⚠️ 备份停了 | 联系我们（见第 6 节） |
-| 文件大小突然只有几 KB | ⚠️ 备份可能是空的 | 联系我们 |
-| 目录空的 / 报错 `No such file` | 🔴 备份从未成功 | 立刻联系我们 |
-
-> `backups/` 是主机上的真实目录（不在容器里），所以你可以直接 `rsync`
-> 或 `scp` 把它整个复制到自己的 NAS / 移动硬盘。**建议每季度做一次**——
-> 服务器本身坏掉时，同一台机器上的备份也一起没了。异地副本代管属于
-> 护航 Care+ 及以上档位。
-
-> **为什么要你亲自看**：备份失败是静默的 —— 磁盘满了、密码改了、容器没起来，
-> 系统照常服务，只是不再备份。等到需要恢复那天才发现，已经晚了。
-> 一个月两分钟，换的是「出事那天有东西可恢复」。
-
-**磁盘还够不够**（同时看一眼）：
+常用操作：
 
 ```bash
-df -h / | tail -1
+pwe-studio-<slug> restart app
+pwe-studio-<slug> logs -f app
+pwe-studio-<slug> ps
 ```
 
-`Use%` 超过 **80%** 就联系我们；超过 95% 系统会开始出问题。
+首次安装后，交付操作员可能需要退出 SSH 再重新登录，Docker group 权限才会
+生效。
 
----
+## 3. 数据库备份
 
-## 3. 出事了：数据恢复
-
-**先别慌，也别自己动手改数据库。** 恢复会覆盖当前数据，方向搞反了会二次损失。
-
-如果你有维护协议 → 直接联系我们，这属于服务范围。
-
-如果没有，需要自己执行，只做这两步：
+系统每天 02:30 由 root 自动备份，默认保留最近 14 份：
 
 ```bash
-cd ~/PWE-Studio-Edition-*
-
-# 第一步：看有哪些备份可选（备份就在主机上，不用进容器）
-ls -lt backups/postgres/
-
-# 第二步：演练 —— 恢复到一个临时数据库并跑一遍迁移校验，
-#         不碰你的真实数据。安全，可以随便跑。
-dc exec -T app python scripts/backup_postgres.py restore-dry-run \
-    /app/backups/postgres/<文件名>
+sudo ls -lt /var/lib/pwe-studio/<slug>/backups/postgres | head
+sudo tail -100 /var/lib/pwe-studio/<slug>/logs/postgres-backup.log
 ```
 
-演练通过后才谈真正的恢复。真恢复的命令是：
+手动备份：
 
 ```bash
-dc exec -T app python scripts/backup_postgres.py restore \
-    /app/backups/postgres/<文件名> --confirm studiosaas
+sudo bash /opt/pwe-studio/<slug>/current/standalone-edition/maintenance.sh \
+  --slug <slug> backup
 ```
 
-**这一步请联系我们，或至少在电话里一起做** —— 它会用备份覆盖当前数据库，
-是本手册里唯一不可逆的操作。必须显式写出 `--confirm studiosaas` 才会执行，
-就是为了防止手滑。
-
-> 交付时工程师已经带你走过一次 `ls` 和 `restore-dry-run`。
-> 如果印象模糊了，这两条随时可以重跑，它们不改任何东西。
-
----
-
-## 4. 常见情况自查
-
-按「先看什么」的顺序排的。
-
-### 网站打不开
+每月至少执行一次恢复演练：
 
 ```bash
-cd ~/PWE-Studio-Edition-* && dc ps
+sudo bash /opt/pwe-studio/<slug>/current/standalone-edition/maintenance.sh \
+  --slug <slug> restore-dry-run \
+  --dump <列表中的dump文件名>
 ```
 
-- 有容器状态不是 `Up` / 是 `Restarting` → `dc restart` 试一次；还不行联系我们
-- 全是 `Up` 但网页仍打不开 → 大概是域名或证书，联系我们
-- 完全没反应 / SSH 也连不上 → 服务器本身的问题，找你的服务器提供商
+看到 `ok: true` 且关键表计数一致才算通过。不要只检查文件存在。
 
-### 提示证书过期 / 不安全
+当前 v7.7.8 的明确边界：自动化覆盖 PostgreSQL；媒体文件备份暂缓。上传图片
+仍在独立 Docker volume 中，升级不会删除它，但这不等于已有异地备份。
 
-自动续期失败了。检查：
+## 4. 升级
+
+只接受带 `BUILD_INFO` 的官方 Edition 包。解压到新目录后：
 
 ```bash
+sudo bash standalone-edition/upgrade.sh --slug <slug>
+```
+
+升级器会自动：
+
+- 创建升级前数据库备份；
+- 保留数据库、媒体、档案和租户工作区卷；
+- 切换稳定 `current` 链接；
+- 构建并启动新版本；
+- deep health 失败时恢复上一个版本与配置。
+
+不要执行 `docker compose down -v`，其中 `-v` 会删除客户数据卷。
+
+## 5. 真实恢复
+
+真实恢复会覆盖当前数据库，只用于已确认的数据损坏或失败升级。先停止业务、
+取得客户批准、记录恢复点，再由维护人员执行：
+
+```bash
+sudo bash /opt/pwe-studio/<slug>/current/standalone-edition/maintenance.sh \
+  --slug <slug> restore \
+  --dump <已经通过演练的dump文件名> \
+  --confirm studiosaas
+```
+
+脚本会停止应用写入、恢复、重启并验证健康。备份之后的新报名、课次、账本和
+配置会丢失，不能用它处理普通误操作。
+
+## 6. 磁盘、证书与日志
+
+```bash
+df -h
+docker system df
 systemctl list-timers | grep certbot
+sudo nginx -t
 ```
 
-列表里没有 certbot → 续期任务掉了，联系我们。
+不要手工删除 `/var/lib/docker/volumes`、`/var/lib/pwe-studio` 或
+`/etc/pwe-studio`。日志由 Docker 限制为每文件 10MB、最多 5 个文件；数据库
+备份日志在稳定 state 目录。
 
-### 员工说登录不上
+## 7. 安全事件
 
-1. 先确认不是密码输错（让他自己再试一次）
-2. 你用 owner 账号能登进 `studio-admin` 吗？
-   - 能 → 是那个员工的账号问题：在 CMS → 设置 → 团队里重置他的密码
-   - 不能 → 是系统问题，看上面「网站打不开」
+如果怀疑服务器或 `.env` 泄露：
 
-### owner 密码忘了
+1. 立即限制主机网络访问并保留日志；
+2. 不要把 secrets 粘贴到聊天或工单；
+3. 联系维护人员轮换数据库、Session、API、owner 与 SSH 凭据；
+4. 检查审计日志、最近登录和异常导出；
+5. 完成确认后再恢复公网。
 
-**没有「忘记密码」邮件通道**（Edition 不回连我们的服务器，也默认不配发信服务）。
-需要在服务器上重置：
+## 8. 当前不包含的服务
 
-```bash
-dc exec -T app python scripts/rotate_pilot_credentials.py --help
-```
-
-不确定就联系我们 —— 这条命令会改登录凭据，看清参数再执行。
-
-### 反应很慢
-
-```bash
-df -h / | tail -1      # 磁盘满不满
-dc stats --no-stream   # 内存吃满没
-```
-
-两个都正常但还是慢 → 联系我们。
-
----
-
-## 5. 版本更新
-
-**更新不是自动的**，也不应该是 —— 你的服务器不会在你不知道的时候变样。
-
-| 你的情况 | 每年更新次数 |
-|---|---|
-| 守护 Care $499/年 | 2 次（我们主动约） |
-| 护航 Care+ $1,499/年 | 随发布，至多 4 次 |
-| 托管 Managed $2,999/年 | 随发布 + 窗口预约 |
-| 无维护协议 | 交付后 12 个月内**免费 1 次**，之后单次报价 |
-
-档位明细见 [COMMERCIAL.md §2](COMMERCIAL.md)。
-
-**更新前我们一定会做的两件事**：先备份，再更新；出问题回退到上一个版本。
-你当前的版本号在服务器上的 `BUILD_INFO` 里：
-
-```bash
-cat ~/PWE-Studio-Edition-*/BUILD_INFO
-```
-
-`mode` 应当是 `standalone`。如果显示 `saas`，说明装错了包，请联系我们。
-
----
-
-## 6. 联系我们：说清这三件事
-
-邮件里带上这三样，能省掉一整轮来回：
-
-1. **看到了什么** —— 报错原文或截图（别转述，原文更有用）
-2. **什么时候开始的** —— 以及那之前做过什么改动
-3. **这两条命令的输出**：
-   ```bash
-   cd ~/PWE-Studio-Edition-* && cat BUILD_INFO && dc ps && df -h / | tail -1
-   ```
-
-响应时间按你的维护档位（守护 邮件 48h / 护航 4h / 托管 当天电话）。
-**无维护协议**：单次计费，起步 $300/次。
-
-> 我们**没有**你服务器的访问权限。任何远程协助都需要你当场授权、
-> 你开通道，操作记录留在你自己实例的审计日志里。这是设计如此，
-> 不是流程繁琐 —— 见 [COMMERCIAL.md §3](COMMERCIAL.md) 边界条款第 1 条。
-
----
-
-## 7. 什么时候该考虑回迁 SaaS
-
-Edition 适合「一家店、要数据完全自己拿着」。以下信号出现时值得聊一聊：
-
-- 开了第二家分店，想要跨店统一看数据
-- 不想再管服务器、备份、证书这些事
-- 需要我们随发布持续更新，而不是每年两次
-
-技术通道长期保留（同一套数据结构，双向不用转换），价格按当时规模详谈。
-换回去不需要重新录数据。
-
----
-
-## 附：一次性配置好的速记函数
-
-每次 SSH 上来先粘这一段，后面的 `dc` 就能直接用：
-
-```bash
-cd ~/PWE-Studio-Edition-*
-dc() { docker compose -p studio-<你的标识> --env-file standalone-edition/.env \
-       -f standalone-edition/docker-compose.edition.yml "$@"; }
-```
-
-把 `<你的标识>` 换成交付时工程师告诉你的那个短名（就是网址里 `/cms` 前面那一段）。
-建议把这三行存进备忘录，和 `.env` 的备份位置记在一起。
-
----
-
-*A PARADISE PRODUCTION · 天域文创出品*
+- PWE 平台方不会自动获得客户服务器访问权；
+- v7.7.8 不包含媒体文件自动备份；
+- 本轮没有 AWS/RDS/S3/SES 上线承诺。

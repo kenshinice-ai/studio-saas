@@ -11,7 +11,7 @@
 
 - [ ] `cd backend && ../.venv/bin/python test_tenant_isolation.py` passes all tenant-isolation tests
 - [ ] `cd backend && ../.venv/bin/python test_cms.py` passes all CMS functional tests (expected: 73 checks)
-- [ ] `cd backend && ../.venv/bin/python -m pytest -q` passes (expected: 131 tests)
+- [ ] `cd backend && ../.venv/bin/python -m pytest -q` passes with the current collected test set
 - [ ] `curl http://localhost:8899/v1/health` returns 200 with expected fields
 - [ ] All API routes return proper HTTP status codes (200, 201, 400, 401, 403, 404, 409, 410, 429, 500)
 - [ ] Error responses include `error` and `message` keys
@@ -135,14 +135,26 @@ Role-boundary checks (v7.4.0):
 
 ### 8. Deployment Readiness
 
-The AWS deployment kit ships in `deploy/aws/` and its Docker end-to-end
-rehearsal has passed; follow [`deploy/aws/README_AWS.md`](../deploy/aws/README_AWS.md):
+v7.7.8 executes local + Cloudflare invitation testing. The AWS deployment kit
+ships in `deploy/aws/`, but remote AWS deployment is deferred:
 
-- [ ] `deploy/aws/Dockerfile` builds without errors
-- [ ] `deploy/aws/docker-compose.yml` starts `backend` + `postgres`
-- [ ] Environment variables documented in `deploy/aws/.env.example`
+- [ ] `bash deploy/aws/verify_release_bundles.sh` builds and verifies both `saas` and `standalone`
+- [ ] Bundle `BUILD_INFO` version/mode/commit matches the clean source revision
+- [ ] Customer bundles contain no internal handoff, audit, sales-source, prompt, or CI files
+- [ ] Local deep health and public Cloudflare deep health both pass
 - [ ] Structured (JSON) log output for aggregation
 - [ ] Graceful shutdown handled (SIGTERM)
+
+### 8.1 PWE Studio Edition
+
+- [ ] Startup rejects zero tenants, extra archived tenants, or any platform membership
+- [ ] Application process uses the least-privilege runtime DB role; migrations use the owner role
+- [ ] Installer writes stable config/state/current paths and a root-owned backup cron
+- [ ] First database backup and manifest exist with 0600 permissions
+- [ ] `maintenance.sh restore-dry-run` matches migrations and critical table counts
+- [ ] Trusted outer bundle SHA-256 and format-v2 DB/media inventory are both verified
+- [ ] Upgrade takes a pre-upgrade backup and health-failure rollback is exercised
+- [ ] Media-volume backup is recorded as deferred, not reported as complete
 
 ---
 

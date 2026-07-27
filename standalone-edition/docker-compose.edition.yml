@@ -6,14 +6,16 @@
 # and profile wiring). When the AWS file changes its env passthrough, logging
 # caps, or volume set, mirror the change here.
 #
-# Edition differences from the AWS file — exactly four (DEPLOYMENT.md §1):
+# Edition differences from the AWS file — exactly five (DEPLOYMENT.md §1):
 #   1. `db` is a DEFAULT service (no `local-db` profile): a single studio box
 #      runs its own PostgreSQL 16; there is no RDS.
 #   2. `STUDIOSAAS_MODE=standalone` (+ the first-boot skip flag) in app env.
-#   3. Backups bind-mount to the host (`../backups`) so the update procedure
-#      cannot wipe them; the AWS file leaves backups to EBS snapshots.
-#   4. Project name is per-customer: install.sh writes
-#      COMPOSE_PROJECT_NAME=studio-<slug> into standalone-edition/.env so
+#   3. The application uses a dedicated least-privilege PostgreSQL role while
+#      migrations use the database owner during entrypoint startup.
+#   4. Backups bind-mount to a stable host path so release-directory changes
+#      cannot split or hide the dump history.
+#   5. Project name is per-customer: install.sh writes
+#      COMPOSE_PROJECT_NAME=studio-<slug> into /etc/pwe-studio/<slug>.env so
 #      containers and volumes never collide with a platform install on the
 #      same host. If you run compose by hand, keep `--env-file` pointed at
 #      that .env (or pass `-p studio-<slug>`).
@@ -35,12 +37,17 @@ services:
       - "127.0.0.1:8899:8899"   # nginx on the host terminates TLS and proxies here
     environment:
       STUDIOSAAS_ENV: ${STUDIOSAAS_ENV:-production}
-      # Edition mode gate: exactly one active tenant, platform faces closed.
+      # Edition mode gate: exactly one tenant in active state, platform faces closed.
       STUDIOSAAS_MODE: ${STUDIOSAAS_MODE:-standalone}
       # First boot only (before the tenant exists): install.sh sets this to 1,
       # creates/imports the tenant, then flips it back to 0 and restarts.
       STUDIOSAAS_SKIP_STANDALONE_CHECKS: ${STUDIOSAAS_SKIP_STANDALONE_CHECKS:-0}
-      STUDIOSAAS_DATABASE_URL: ${STUDIOSAAS_DATABASE_URL:-postgresql://studiosaas:${EDITION_DB_PASSWORD:-}@db:5432/studiosaas}
+      STUDIOSAAS_DATABASE_URL: ${STUDIOSAAS_DATABASE_URL:?set STUDIOSAAS_DATABASE_URL in the Edition env file}
+      # Used only by entrypoint for migrations/role grants, then explicitly
+      # removed before server.py starts.
+      STUDIOSAAS_MIGRATION_DATABASE_URL: ${STUDIOSAAS_MIGRATION_DATABASE_URL:?set STUDIOSAAS_MIGRATION_DATABASE_URL in the Edition env file}
+      STUDIOSAAS_DB_RUNTIME_ROLE: ${STUDIOSAAS_DB_RUNTIME_ROLE:-studiosaas_app}
+      STUDIOSAAS_DB_RUNTIME_PASSWORD: ${EDITION_APP_DB_PASSWORD:?set EDITION_APP_DB_PASSWORD in the Edition env file}
       STUDIOSAAS_SESSION_SECRET: ${STUDIOSAAS_SESSION_SECRET}
       STUDIOSAAS_API_KEY: ${STUDIOSAAS_API_KEY}
       STUDIOSAAS_PUBLIC_BASE_DOMAIN: ${STUDIOSAAS_PUBLIC_BASE_DOMAIN:-}
@@ -75,14 +82,10 @@ services:
       # portal generated at install time is lost on the next image rebuild.
       # entrypoint.sh repopulates it from the template on every boot.
       - studiosaas-tenants:/app/tenants
-      # Daily pg_dump output. A HOST BIND MOUNT on purpose, not a named volume:
-      # backup_postgres.py writes to <repo>/backups/postgres, which inside the
-      # image is a container-layer path — every `up -d --build` (the documented
-      # update step) would silently destroy the customer's entire backup
-      # history, and they would only find out on the day they needed it.
-      # A host path also lets the studio rsync backups to their own NAS without
-      # going through docker. install.sh creates it chown 10001 (the image user).
-      - ../backups:/app/backups
+      # Daily pg_dump output. This path is outside versioned release folders,
+      # so switching /opt/pwe-studio/<slug>/current cannot hide old backups.
+      # Media backup is deliberately deferred by the product owner in v7.7.8.
+      - ${EDITION_BACKUP_DIR:?set EDITION_BACKUP_DIR in the Edition env file}:/app/backups
 
   db:
     image: postgres:16-alpine

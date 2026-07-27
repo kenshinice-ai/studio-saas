@@ -25,6 +25,7 @@
 
 # Internal agent/skill tooling.
 .claude/            export-ignore
+.github/             export-ignore
 
 # Commercial material: pricing deck and objection handling.
 docs/sales/         export-ignore
@@ -37,6 +38,14 @@ docs/Project_Audit_2026-07-27.md export-ignore
 # Logo exploration and client-perspective scoring. The shipped brand assets and
 # render_assets.py stay — they generate the product's own icons.
 docs/design/brand/round2/ export-ignore
+
+# Historical prompts/reviews are useful in Git archaeology but are not
+# operator or customer documentation.
+codingprompt.md                              export-ignore
+docs/Current_Sprint.md                       export-ignore
+docs/UX_Review_2026-07-25.md                 export-ignore
+docs/Release_Readiness_2026-07-12.md         export-ignore
+docs/Project_Review_Implementation_2026-07-14.md export-ignore
 
 # The Edition installer writes these on the customer's box; never ship one.
 standalone-edition/.env     export-ignore

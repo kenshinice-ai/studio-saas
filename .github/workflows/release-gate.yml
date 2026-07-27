@@ -1,0 +1,80 @@
+name: StudioSaaS release gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: studiosaas_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d studiosaas_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      STUDIOSAAS_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/studiosaas_ci
+      STUDIOSAAS_ENV: local
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements-dev.txt
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: python -m pip install -r backend/requirements-dev.txt
+
+      - name: Apply migrations
+        working-directory: backend
+        run: python scripts/run_migrations.py
+
+      - name: Unit and boundary tests
+        working-directory: backend
+        run: python -m pytest -q
+
+      - name: Legacy smoke tests
+        working-directory: backend
+        run: python test_cms.py
+
+      - name: Tenant isolation and privacy tests
+        working-directory: backend
+        run: python test_tenant_isolation.py
+
+      - name: Generated frontend consistency
+        run: |
+          bash backend/scripts/build_cms.sh
+          git diff --exit-code -- backend/frontend/assets/cms-app.js
+
+      - name: Static verification
+        run: |
+          python -m py_compile backend/server.py backend/studiosaas/*.py backend/scripts/*.py standalone-edition/tools/*.py standalone-edition/templates/*.py
+          node backend/scripts/check_inline_scripts.mjs
+          python backend/scripts/check_ui_escaping.py
+          python backend/scripts/check_terminology.py
+
+      - name: Build and inspect both delivery forms
+        run: bash deploy/aws/verify_release_bundles.sh

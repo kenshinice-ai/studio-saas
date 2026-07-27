@@ -2,11 +2,13 @@
 """Seed a local Super Admin user into the StudioSaaS PostgreSQL database.
 
 Usage:
-    python3 backend/scripts/seed_super_admin.py [--email ADMIN_EMAIL] [--password ADMIN_PASSWORD] [--name "Admin Name"] [--reset-password]
+    STUDIOSAAS_ADMIN_PASSWORD='<strong secret>' \
+      python3 backend/scripts/seed_super_admin.py [--email ADMIN_EMAIL] \
+      [--name "Admin Name"] [--reset-password]
 
 Defaults:
     email:    admin@studiosaas.local
-    password: StudioSaaS@LetsPaint2026!
+    password: required only when creating the account or using --reset-password
     name:     System Administrator
 
 This script:
@@ -32,7 +34,7 @@ if str(APP_ROOT) not in sys.path:
 
 def seed_super_admin(
     email: str = "admin@studiosaas.local",
-    password: str = "StudioSaaS@LetsPaint2026!",
+    password: str | None = None,
     full_name: str = "System Administrator",
     reset_password: bool = False,
     show_password: bool = True,
@@ -47,8 +49,6 @@ def seed_super_admin(
         print("Make sure PostgreSQL and psycopg are installed.", file=sys.stderr)
         sys.exit(1)
 
-    pw_hash = hash_password(password)
-
     with connect() as conn:
         cur = conn.cursor()
 
@@ -60,6 +60,12 @@ def seed_super_admin(
         if existing:
             user_id = str(existing["id"])
             if reset_password:
+                if not password:
+                    raise SystemExit(
+                        "STUDIOSAAS_ADMIN_PASSWORD or --password is required "
+                        "with --reset-password."
+                    )
+                pw_hash = hash_password(password)
                 cur.execute(
                     """
                     UPDATE users
@@ -73,6 +79,12 @@ def seed_super_admin(
                 cur.execute("UPDATE users SET status = 'active', updated_at = now() WHERE id = %s", (user_id,))
                 print(f"User already exists: {email} (id={user_id}); password unchanged")
         else:
+            if not password:
+                raise SystemExit(
+                    "Super Admin does not exist. Set STUDIOSAAS_ADMIN_PASSWORD "
+                    "or pass --password to create it."
+                )
+            pw_hash = hash_password(password)
             cur.execute(
                 """
                 INSERT INTO users (email, password_hash, full_name, status)
@@ -111,10 +123,10 @@ def seed_super_admin(
 
     print("\nSeed complete. Login with:")
     print(f"  email:    {email}")
-    if show_password:
+    if show_password and password:
         print(f"  password: {password}")
     else:
-        print("  password: [hidden]")
+        print("  password: [unchanged or hidden]")
 
 
 def sync_pilot_credential(path: Path, email: str, password: str) -> None:
@@ -167,8 +179,11 @@ def main() -> int:
     )
     parser.add_argument(
         "--password",
-        default=os.environ.get("STUDIOSAAS_ADMIN_PASSWORD", "StudioSaaS@LetsPaint2026!"),
-        help="Admin password (defaults to the fixed StudioSaaS launcher credential)",
+        default=os.environ.get("STUDIOSAAS_ADMIN_PASSWORD") or None,
+        help=(
+            "Admin password. Required for account creation or --reset-password; "
+            "otherwise the existing password is preserved."
+        ),
     )
     parser.add_argument(
         "--name",
@@ -199,6 +214,8 @@ def main() -> int:
         reset_password=args.reset_password,
         show_password=not args.no_print_password,
     )
+    if args.credential_file and not args.password:
+        raise SystemExit("--credential-file requires an explicit password.")
     if args.credential_file:
         sync_pilot_credential(args.credential_file, args.email, args.password)
         print(f"Credential file updated with mode 0600: {args.credential_file.expanduser().resolve()}")

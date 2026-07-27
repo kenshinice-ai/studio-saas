@@ -3,9 +3,9 @@
 Contract: standalone-edition/README.md §3 route A + §2 matrix. In standalone
 mode the platform plane is closed (/ redirects to the single tenant portal,
 /super-admin and /v1/admin/* return 404, plan writes return 404), plan limits
-are neutralised, boot refuses a database that is not exactly one active tenant
-with zero platform super_admin memberships, and the demo/test seed scripts
-refuse to run. SaaS mode (the default) must behave exactly as before.
+are neutralised, boot refuses a database that is not exactly one tenant in
+active state with zero platform-scoped memberships, and the demo/test seed
+scripts refuse to run. SaaS mode (the default) must behave exactly as before.
 
 Everything here monkeypatches the environment per test — STUDIOSAAS_MODE is
 read on every call, never cached — and fakes DB state via the small seams
@@ -169,34 +169,46 @@ def test_startup_check_skipped_in_saas_mode(saas, monkeypatch):
 
 
 def test_startup_rejects_two_active_tenants(standalone, monkeypatch):
-    monkeypatch.setattr(server, "_standalone_db_counts", lambda: (2, 0))
-    with pytest.raises(RuntimeError, match="exactly one active tenant"):
+    monkeypatch.setattr(server, "_standalone_db_counts", lambda: (2, 2, 0))
+    with pytest.raises(RuntimeError, match="exactly one tenant"):
         server._validate_standalone_configuration()
 
 
 def test_startup_rejects_empty_database(standalone, monkeypatch):
-    monkeypatch.setattr(server, "_standalone_db_counts", lambda: (0, 0))
-    with pytest.raises(RuntimeError, match="found 0"):
+    monkeypatch.setattr(server, "_standalone_db_counts", lambda: (0, 0, 0))
+    with pytest.raises(RuntimeError, match="found 0 total"):
         server._validate_standalone_configuration()
 
 
-def test_startup_rejects_platform_membership(standalone, monkeypatch):
-    monkeypatch.setattr(server, "_standalone_db_counts", lambda: (1, 1))
-    with pytest.raises(RuntimeError, match="platform super_admin"):
+def test_startup_rejects_inactive_only_tenant(standalone, monkeypatch):
+    monkeypatch.setattr(server, "_standalone_db_counts", lambda: (1, 0, 0))
+    with pytest.raises(RuntimeError, match="must be active"):
+        server._validate_standalone_configuration()
+
+
+def test_startup_rejects_archived_tenant_beside_active_tenant(standalone, monkeypatch):
+    monkeypatch.setattr(server, "_standalone_db_counts", lambda: (2, 1, 0))
+    with pytest.raises(RuntimeError, match="found 2 total, 1 active"):
+        server._validate_standalone_configuration()
+
+
+def test_startup_rejects_any_platform_membership(standalone, monkeypatch):
+    monkeypatch.setattr(server, "_standalone_db_counts", lambda: (1, 1, 1))
+    with pytest.raises(RuntimeError, match="every platform-scoped membership"):
         server._validate_standalone_configuration()
 
 
 def test_startup_error_messages_are_bilingual(standalone, monkeypatch):
-    monkeypatch.setattr(server, "_standalone_db_counts", lambda: (3, 0))
+    monkeypatch.setattr(server, "_standalone_db_counts", lambda: (3, 3, 0))
     with pytest.raises(RuntimeError, match="独立版"):
         server._validate_standalone_configuration()
-    monkeypatch.setattr(server, "_standalone_db_counts", lambda: (1, 2))
-    with pytest.raises(RuntimeError, match="平台管理员"):
+    monkeypatch.setattr(server, "_standalone_db_counts", lambda: (1, 1, 2))
+    with pytest.raises(RuntimeError, match="平台成员"):
         server._validate_standalone_configuration()
 
 
 def test_startup_passes_with_exactly_one_tenant(standalone, monkeypatch):
-    monkeypatch.setattr(server, "_standalone_db_counts", lambda: (1, 0))
+    monkeypatch.setattr(server, "_standalone_db_counts", lambda: (1, 1, 0))
     assert server._validate_standalone_configuration() is None
 
 
@@ -213,11 +225,12 @@ def test_standalone_db_counts_queries_real_database(saas):
     """The counting seam itself must run against the configured database."""
 
     try:
-        tenants, admins = server._standalone_db_counts()
+        tenants, active_tenants, memberships = server._standalone_db_counts()
     except DatabaseUnavailableError:
         pytest.skip("PostgreSQL is not reachable in this environment")
     assert isinstance(tenants, int) and tenants >= 0
-    assert isinstance(admins, int) and admins >= 0
+    assert isinstance(active_tenants, int) and 0 <= active_tenants <= tenants
+    assert isinstance(memberships, int) and memberships >= 0
 
 
 # ── Seed scripts refuse to run in standalone mode ───────────────────

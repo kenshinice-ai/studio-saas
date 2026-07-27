@@ -34,18 +34,21 @@ def test_sync_pilot_credential_preserves_other_entries(tmp_path) -> None:
     assert stat.S_IMODE(credential_file.stat().st_mode) == 0o600
 
 
-def test_fixed_launcher_credential_is_the_seed_default() -> None:
+def test_seed_has_no_fixed_privileged_password_default() -> None:
     defaults = seed_super_admin.__defaults__
     assert defaults is not None
     assert defaults[0] == "admin@studiosaas.local"
-    assert defaults[1] == "StudioSaaS@LetsPaint2026!"
+    assert defaults[1] is None
 
 
-def test_online_launcher_resets_and_protects_the_fixed_login() -> None:
+def test_online_launcher_preserves_password_unless_explicitly_overridden() -> None:
     project_root = Path(__file__).resolve().parents[2]
     launcher = (project_root / "START_STUDIOSAAS_ONLINE.command").read_text(encoding="utf-8")
     assert 'ADMIN_EMAIL="admin@studiosaas.local"' in launcher
-    assert 'STUDIOSAAS_ADMIN_PASSWORD:-StudioSaaS@LetsPaint2026!' in launcher
+    assert 'STUDIOSAAS_ADMIN_PASSWORD:-}' in launcher
+    assert "ADMIN_ARGS=(" in launcher
+    assert 'if [ -n "$ADMIN_PASSWORD" ]' in launcher
     assert "--reset-password" in launcher
     assert "--credential-file" in launcher
     assert "--no-print-password" in launcher
+    assert "StudioSaaS@LetsPaint2026!" not in launcher

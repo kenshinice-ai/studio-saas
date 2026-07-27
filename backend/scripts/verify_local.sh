@@ -110,6 +110,23 @@ if [ -x "$PYTHON" ]; then
         fail "terminology check found banned vocabulary (run: python backend/scripts/check_terminology.py)"
     fi
 
+    SHELL_OK=true
+    for script in \
+        "$PROJECT_DIR/deploy/aws/build_aws_bundle.sh" \
+        "$PROJECT_DIR/deploy/aws/verify_release_bundles.sh" \
+        "$PROJECT_DIR/deploy/aws/entrypoint.sh" \
+        "$PROJECT_DIR/standalone-edition/install.sh" \
+        "$PROJECT_DIR/standalone-edition/maintenance.sh" \
+        "$PROJECT_DIR/standalone-edition/upgrade.sh"; do
+        if ! bash -n "$script"; then
+            fail "$(basename "$script") has shell syntax errors"
+            SHELL_OK=false
+        fi
+    done
+    if $SHELL_OK; then
+        ok "release and Edition shell scripts parse"
+    fi
+
     # S5 (LetsPaintCMS v6.6.5 run_tests.sh): compiled CMS bundle sanity.
     CMS_SRC="$SCRIPT_DIR/../legacy-root/src/cms-app.jsx"
     CMS_OUT="$SCRIPT_DIR/frontend/assets/cms-app.js"

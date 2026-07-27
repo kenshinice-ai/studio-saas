@@ -10,6 +10,8 @@ def test_health_returns_ok(client):
     payload = response.get_json()
     assert payload["ok"] is True
     assert payload["service"] == "PWE Studio SaaS API"
+    assert payload["version"] == "v1"
+    assert payload["appVersion"] == "7.7.8"
 
 
 def test_industry_presets_are_complete_and_bilingual(client):

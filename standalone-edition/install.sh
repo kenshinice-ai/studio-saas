@@ -8,6 +8,7 @@
 #       --studio-name "Let's Paint Studio" \
 #       --owner-email owner@example.com \
 #       [--import-bundle <slug>-edition-bundle-<date>.tar.gz | --import-json students.json] \
+#       [--expected-bundle-sha256 <trusted-sha256>] \
 #       [--industry art|dance|game|general|language|math|music|sports] \
 #       [--slug custom-slug] [--owner-name "Full Name"] [--force-reinstall] [--yes]
 #
@@ -22,7 +23,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 COMPOSE_FILE="$SCRIPT_DIR/docker-compose.edition.yml"
-ENV_FILE="$SCRIPT_DIR/.env"
+ENV_FILE=""
 BOOTSTRAP_NGINX_SRC="$REPO_ROOT/deploy/aws/nginx/studiosaas-bootstrap.conf"
 HEALTH_URL="http://127.0.0.1:8899/v1/health?deep=1"
 VALID_INDUSTRIES="art dance game general language math music sports"
@@ -34,6 +35,7 @@ OWNER_NAME=""
 SLUG=""
 INDUSTRY="general"
 IMPORT_BUNDLE=""
+EXPECTED_BUNDLE_SHA256=""
 IMPORT_JSON=""
 FORCE_REINSTALL=0
 ASSUME_YES=0
@@ -43,6 +45,17 @@ warn() { printf '\033[1;33mWARN: %s\033[0m\n' "$*" >&2; }
 die()  { printf '\033[1;31mERROR: %s\033[0m\n' "$*" >&2; exit 1; }
 
 usage() { sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
+
+sha256_file() {
+  # Print the SHA-256 digest of one file with an explicit tool failure.
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$1" | awk '{print $1}'
+  elif command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$1" | awk '{print $1}'
+  else
+    die "sha256sum or shasum is required to verify an import bundle"
+  fi
+}
 
 confirm() {
   # confirm "question" — honours --yes for unattended runs.
@@ -61,6 +74,7 @@ while [ $# -gt 0 ]; do
     --slug)            SLUG="${2:-}"; shift 2 ;;
     --industry)        INDUSTRY="${2:-}"; shift 2 ;;
     --import-bundle)   IMPORT_BUNDLE="${2:-}"; shift 2 ;;
+    --expected-bundle-sha256) EXPECTED_BUNDLE_SHA256="${2:-}"; shift 2 ;;
     --import-json)     IMPORT_JSON="${2:-}"; shift 2 ;;
     --force-reinstall) FORCE_REINSTALL=1; shift ;;
     --yes)             ASSUME_YES=1; shift ;;
@@ -79,6 +93,15 @@ printf '%s' "$DOMAIN" | grep -Eq '^[a-zA-Z0-9.-]+$' || die "--domain looks inval
 if [ -n "$IMPORT_BUNDLE" ] && [ -n "$IMPORT_JSON" ]; then
   die "--import-bundle and --import-json are mutually exclusive"
 fi
+[ -z "$EXPECTED_BUNDLE_SHA256" ] || [ -n "$IMPORT_BUNDLE" ] \
+  || die "--expected-bundle-sha256 requires --import-bundle"
+[ -z "$IMPORT_BUNDLE" ] || [ -n "$EXPECTED_BUNDLE_SHA256" ] \
+  || die "--import-bundle requires --expected-bundle-sha256 from the platform export record"
+if [ -n "$EXPECTED_BUNDLE_SHA256" ]; then
+  printf '%s' "$EXPECTED_BUNDLE_SHA256" | grep -Eq '^[0-9a-fA-F]{64}$' \
+    || die "--expected-bundle-sha256 must be exactly 64 hexadecimal characters"
+  EXPECTED_BUNDLE_SHA256="$(printf '%s' "$EXPECTED_BUNDLE_SHA256" | tr '[:upper:]' '[:lower:]')"
+fi
 [ -z "$IMPORT_BUNDLE" ] || [ -f "$IMPORT_BUNDLE" ] || die "bundle not found: $IMPORT_BUNDLE"
 [ -z "$IMPORT_JSON" ]   || [ -f "$IMPORT_JSON" ]   || die "JSON file not found: $IMPORT_JSON"
 case " $VALID_INDUSTRIES " in
@@ -95,6 +118,15 @@ fi
 printf '%s' "$SLUG" | grep -Eq '^[a-z0-9][a-z0-9-]{1,62}$' \
   || die "derived slug '$SLUG' is invalid — pass an explicit --slug (lowercase letters/digits/hyphens)"
 PROJECT_NAME="studio-$SLUG"
+CONFIG_DIR="${PWE_STUDIO_CONFIG_DIR:-/etc/pwe-studio}"
+STATE_ROOT="${PWE_STUDIO_STATE_ROOT:-/var/lib/pwe-studio}"
+INSTALL_ROOT="${PWE_STUDIO_INSTALL_ROOT:-/opt/pwe-studio}"
+ENV_FILE="$CONFIG_DIR/$SLUG.env"
+STATE_DIR="$STATE_ROOT/$SLUG"
+BACKUP_DIR="$STATE_DIR/backups"
+CURRENT_LINK="$INSTALL_ROOT/$SLUG/current"
+WRAPPER="/usr/local/bin/pwe-studio-$SLUG"
+OPERATOR_USER="${SUDO_USER:-$(id -un)}"
 
 SUDO=""
 if [ "$(id -u)" -ne 0 ]; then
@@ -122,13 +154,24 @@ docker compose version >/dev/null 2>&1 || die "docker compose still unavailable 
 
 dc() { docker compose -p "$PROJECT_NAME" --env-file "$ENV_FILE" -f "$COMPOSE_FILE" "$@"; }
 
+# The installation itself runs as root, but the named delivery operator needs
+# repeatable access to Docker and the root-owned Edition environment file for
+# the documented `pwe-studio-<slug>` wrapper. Docker-group membership is already
+# root-equivalent; granting the env file to that same group does not widen the
+# host trust boundary.
+if [ "$OPERATOR_USER" != "root" ]; then
+  id "$OPERATOR_USER" >/dev/null 2>&1 || die "operator user does not exist: $OPERATOR_USER"
+  getent group docker >/dev/null 2>&1 || groupadd docker
+  usermod -aG docker "$OPERATOR_USER"
+fi
+
 # ── 2. Refuse accidental reinstall ───────────────────────────────────────────
 EXISTING_VOLUME="$(docker volume ls -q --filter "name=${PROJECT_NAME}_studiosaas-pgdata" || true)"
 if [ -f "$ENV_FILE" ] || [ -n "$EXISTING_VOLUME" ]; then
   if [ "$FORCE_REINSTALL" != "1" ]; then
     die "Existing install detected (.env or volume ${PROJECT_NAME}_studiosaas-pgdata).
        Re-running would destroy customer data. Pass --force-reinstall ONLY for a
-       deliberate wipe, or run upgrades with: dc up -d --build"
+       deliberate wipe, or run upgrades with standalone-edition/upgrade.sh."
   fi
   say "FORCE REINSTALL requested — this DESTROYS all data for $PROJECT_NAME"
   if [ "$ASSUME_YES" != "1" ]; then
@@ -140,42 +183,71 @@ if [ -f "$ENV_FILE" ] || [ -n "$EXISTING_VOLUME" ]; then
   rm -f "$ENV_FILE"
 fi
 
-# ── 3. Secrets + .env (0600) ────────────────────────────────────────────────
+# ── 3. Stable release/config/state layout + secrets ─────────────────────────
+mkdir -p "$CONFIG_DIR" "$STATE_DIR/logs" "$BACKUP_DIR/postgres" "$(dirname "$CURRENT_LINK")"
+ln -sfn "$REPO_ROOT" "$CURRENT_LINK"
+
 say "Generating secrets and writing $ENV_FILE"
 SESSION_SECRET="$(openssl rand -hex 32)"
 API_KEY="$(openssl rand -hex 32)"
 DB_PASSWORD="$(openssl rand -hex 24)"
+APP_DB_PASSWORD="$(openssl rand -hex 24)"
 OWNER_PASSWORD="$(openssl rand -base64 15 | tr '+/' 'Aa')"
 APP_VERSION="$(cat "$REPO_ROOT/VERSION" 2>/dev/null || echo latest)"
 
 umask 077
 cat > "$ENV_FILE" <<EOF
-# PWE Studio Edition — generated by install.sh $(date -u +%Y-%m-%dT%H:%M:%SZ). Keep 0600.
+# PWE Studio Edition — generated by install.sh $(date -u +%Y-%m-%dT%H:%M:%SZ).
 COMPOSE_PROJECT_NAME=$PROJECT_NAME
 STUDIOSAAS_VERSION=$APP_VERSION
 STUDIOSAAS_ENV=production
 STUDIOSAAS_MODE=standalone
 # First boot only — flipped to 0 after the tenant exists.
 STUDIOSAAS_SKIP_STANDALONE_CHECKS=1
+# Database owner: migrations/role grants only. The server process uses the
+# separate runtime role below.
 EDITION_DB_PASSWORD=$DB_PASSWORD
-STUDIOSAAS_DATABASE_URL=postgresql://studiosaas:$DB_PASSWORD@db:5432/studiosaas
+EDITION_APP_DB_PASSWORD=$APP_DB_PASSWORD
+STUDIOSAAS_MIGRATION_DATABASE_URL=postgresql://studiosaas:$DB_PASSWORD@db:5432/studiosaas
+STUDIOSAAS_DATABASE_URL=postgresql://studiosaas_app:$APP_DB_PASSWORD@db:5432/studiosaas
+STUDIOSAAS_DB_RUNTIME_ROLE=studiosaas_app
+EDITION_BACKUP_DIR=$BACKUP_DIR
 STUDIOSAAS_SESSION_SECRET=$SESSION_SECRET
 STUDIOSAAS_API_KEY=$API_KEY
 STUDIOSAAS_PUBLIC_BASE_DOMAIN=$DOMAIN
 STUDIOSAAS_SEED_SUPER_ADMIN=0
 STUDIOSAAS_EMAIL_BACKEND=console
 EOF
-chmod 600 "$ENV_FILE"
+if getent group docker >/dev/null 2>&1; then
+  chown root:docker "$ENV_FILE"
+  chmod 640 "$ENV_FILE"
+else
+  chown root:root "$ENV_FILE"
+  chmod 600 "$ENV_FILE"
+fi
+
+cat > "$WRAPPER" <<EOF
+#!/usr/bin/env bash
+set -euo pipefail
+exec docker compose -p "$PROJECT_NAME" --env-file "$ENV_FILE" \\
+  -f "$CURRENT_LINK/standalone-edition/docker-compose.edition.yml" "\$@"
+EOF
+chown root:root "$WRAPPER"
+chmod 755 "$WRAPPER"
 
 # ── 4. First boot (entrypoint waits for db + applies migrations) ─────────────
 # The backup directory is a host bind mount so `dc up -d --build` (the update
 # step) cannot destroy the dump history. It must exist and be writable by the
 # image user (uid 10001) before the container starts, or PostgreSQL dumps fail
 # silently at 02:30 and nobody finds out until a restore is needed.
-say "Preparing host backup directory ($REPO_ROOT/backups)"
-mkdir -p "$REPO_ROOT/backups/postgres"
-chown -R 10001:10001 "$REPO_ROOT/backups"
-chmod 700 "$REPO_ROOT/backups"
+say "Preparing stable host backup directory ($BACKUP_DIR)"
+if getent group docker >/dev/null 2>&1; then
+  chown -R 10001:docker "$BACKUP_DIR"
+  chmod 750 "$BACKUP_DIR"
+else
+  chown -R 10001:10001 "$BACKUP_DIR"
+  chmod 700 "$BACKUP_DIR"
+fi
 
 say "Building and starting containers (first boot, standalone checks skipped)"
 dc up -d --build
@@ -193,10 +265,17 @@ fi
 
 # ── 5. Data path: fresh create / --import-json / --import-bundle ─────────────
 if [ -n "$IMPORT_BUNDLE" ]; then
+  ACTUAL_BUNDLE_SHA256="$(sha256_file "$IMPORT_BUNDLE")"
+  [ "$ACTUAL_BUNDLE_SHA256" = "$EXPECTED_BUNDLE_SHA256" ] || die \
+    "bundle SHA-256 mismatch: expected $EXPECTED_BUNDLE_SHA256, got $ACTUAL_BUNDLE_SHA256"
+  printf '%s  %s\n' "$EXPECTED_BUNDLE_SHA256" "$(basename "$IMPORT_BUNDLE")" \
+    > "$STATE_DIR/import-bundle.sha256"
+  chmod 600 "$STATE_DIR/import-bundle.sha256"
   say "Importing platform export bundle: $IMPORT_BUNDLE"
   dc cp "$IMPORT_BUNDLE" app:/tmp/edition-bundle.tar.gz
   dc exec -T app python standalone-edition/tools/import_tenant_bundle.py \
-      /tmp/edition-bundle.tar.gz --confirm-fresh-db --media-dir /media
+      /tmp/edition-bundle.tar.gz --confirm-fresh-db --media-dir /media \
+      --expected-sha256 "$EXPECTED_BUNDLE_SHA256"
   dc exec -T app rm -f /tmp/edition-bundle.tar.gz
   say "Bundle import complete — owner passwords were reset; issue new ones at handover:"
   echo "  dc exec app python scripts/rotate_pilot_credentials.py --help"
@@ -319,7 +398,26 @@ done
 [ "$HEALTH_OK" = "1" ] || { dc logs --tail 50 app || true; \
   die "app failed standalone startup checks — fix data, then: dc up -d app"; }
 
-# ── 7. TLS: print the exact two-step certbot bootstrap (do NOT run blind) ────
+# ── 7. Root-owned database backup schedule ──────────────────────────────────
+# Use /etc/cron.d rather than the invoking user's crontab. This avoids the
+# previous silent failure where the documented non-root cron could read neither
+# Docker's socket nor the root-owned Edition environment file.
+CRON_FILE="/etc/cron.d/pwe-studio-$SLUG-backup"
+say "Installing root-owned daily PostgreSQL backup schedule ($CRON_FILE)"
+cat > "$CRON_FILE" <<EOF
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+30 2 * * * root $WRAPPER exec -T app python scripts/backup_postgres.py backup --keep 14 >> $STATE_DIR/logs/postgres-backup.log 2>&1
+EOF
+chown root:root "$CRON_FILE"
+chmod 644 "$CRON_FILE"
+
+say "Creating and verifying the first PostgreSQL backup"
+dc exec -T app python scripts/backup_postgres.py backup --keep 14
+find "$BACKUP_DIR/postgres" -maxdepth 1 -type f -name '*.dump' -print -quit | grep -q . \
+  || die "first PostgreSQL backup did not appear in $BACKUP_DIR/postgres"
+
+# ── 8. TLS: print the exact two-step certbot bootstrap (do NOT run blind) ────
 say "TLS setup — run these two steps yourself (DEPLOYMENT.md §1, reuses deploy/aws/nginx)"
 cat <<EOF
   # Step 1 — HTTP-only bootstrap vhost (avoids the certbot chicken-and-egg):
@@ -336,7 +434,7 @@ cat <<EOF
   systemctl list-timers | grep certbot   # renewal timer must be active
 EOF
 
-# ── 8. Acceptance checklist (DEPLOYMENT.md §4) with the real domain ──────────
+# ── 9. Acceptance checklist (DEPLOYMENT.md §4) with the real domain ──────────
 say "Delivery-day acceptance checklist — walk every line (DEPLOYMENT.md §4)"
 cat <<EOF
   [ ] https://$DOMAIN/ 直达门户（根路径不再是 super-admin）
@@ -352,7 +450,10 @@ EOF
 
 say "Install complete"
 echo   "  Project:      $PROJECT_NAME  (compose file: $COMPOSE_FILE)"
-echo   "  Env file:     $ENV_FILE (0600 — back it up securely, it holds all secrets)"
+echo   "  Env file:     $ENV_FILE (root:docker 0640 where available; back it up securely)"
+echo   "  Operations:   $WRAPPER <ps|logs|restart|exec ...>"
+echo   "  Current code: $CURRENT_LINK -> $REPO_ROOT"
+echo   "  DB backups:   $BACKUP_DIR/postgres (media backup deferred in v7.7.8)"
 if [ -z "$IMPORT_BUNDLE" ]; then
   echo "  Owner login:  $OWNER_EMAIL"
   echo "  Temp password: $OWNER_PASSWORD"
@@ -361,4 +462,8 @@ else
   echo "  Owner logins came from the bundle with unusable passwords —"
   echo "  reset them now and hand over new credentials."
 fi
-echo   "  Manage stack: docker compose -p $PROJECT_NAME --env-file $ENV_FILE -f $COMPOSE_FILE ..."
+echo   "  Manage stack: $WRAPPER ..."
+if [ "$OPERATOR_USER" != "root" ]; then
+  echo "  IMPORTANT: $OPERATOR_USER was added to the docker group."
+  echo "  Log out and back in once before using $WRAPPER without sudo."
+fi

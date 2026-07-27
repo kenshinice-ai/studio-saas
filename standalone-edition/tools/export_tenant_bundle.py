@@ -44,7 +44,7 @@ from studiosaas.services.tenant_archive import (  # noqa: E402
 )
 
 BUNDLE_FORMAT = "pwe-studio-edition-bundle"
-BUNDLE_FORMAT_VERSION = 1
+BUNDLE_FORMAT_VERSION = 2
 
 
 def _sha256_file(path: Path) -> str:
@@ -233,9 +233,12 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"WARN: media root not found ({media_root}); bundle will have no media.")
             media_info = _copy_media(conn, tenant_id, media_root, staging / "media")
 
+    # Hash every payload file, including media. The manifest itself cannot hash
+    # itself; authenticity of the whole tarball is established separately by
+    # the trusted bundle SHA-256 recorded at export and required by install.sh.
     files = {
-        f"db/{path.name}": _sha256_file(path)
-        for path in sorted(db_dir.iterdir())
+        path.relative_to(staging).as_posix(): _sha256_file(path)
+        for path in sorted(staging.rglob("*"))
         if path.is_file()
     }
 

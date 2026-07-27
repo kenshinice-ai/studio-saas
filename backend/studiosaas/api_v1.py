@@ -1996,7 +1996,12 @@ def health():
     shallow form stays constant-time for load balancers and uptime pings.
     """
 
-    body = {"ok": True, "service": "PWE Studio SaaS API", "version": "v1"}
+    body = {
+        "ok": True,
+        "service": "PWE Studio SaaS API",
+        "version": "v1",
+        "appVersion": str(current_app.config["APP_VERSION"]),
+    }
     if request.args.get("deep") == "1":
         try:
             with connect() as conn:
@@ -8107,9 +8112,8 @@ def _repair_local_super_admin_login(conn, email: str, password: str) -> dict | N
     if (
         repair_enabled not in {"1", "true", "yes", "on"}
         or email != "admin@studiosaas.local"
-        or password != os.environ.get(
-            "STUDIOSAAS_ADMIN_PASSWORD", "StudioSaaS@LetsPaint2026!"
-        )
+        or not os.environ.get("STUDIOSAAS_ADMIN_PASSWORD", "")
+        or password != os.environ["STUDIOSAAS_ADMIN_PASSWORD"]
         or not _is_local_request()
     ):
         return None

@@ -234,12 +234,14 @@ curl http://localhost:8899/v1/health
 {
   "ok": true,
   "service": "PWE Studio SaaS API",
-  "version": "v1"
+  "version": "v1",
+  "appVersion": "7.7.8"
 }
 ```
 
-This endpoint confirms the web process, not database readiness. The mandatory
-release check is `STUDIOSAAS_REQUIRE_POSTGRES=1 bash backend/scripts/verify_local.sh`.
+`version` 是 API contract 版本；`appVersion` 是当前产品发布版本。使用
+`?deep=1` 会同时检查 PostgreSQL。强制发布门槛仍是
+`STUDIOSAAS_REQUIRE_POSTGRES=1 bash backend/scripts/verify_local.sh`。
 
 ### Log Files
 

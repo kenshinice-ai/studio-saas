@@ -16,7 +16,7 @@ DATABASE_URL="${STUDIOSAAS_DATABASE_URL:-postgresql://${DB_USER}@${DB_HOST}:${DB
 PORT="${PORT:-8899}"
 PUBLIC_URL="${STUDIOSAAS_PUBLIC_URL:-https://studiosaas.cc.cd}"
 ADMIN_EMAIL="admin@studiosaas.local"
-ADMIN_PASSWORD="${STUDIOSAAS_ADMIN_PASSWORD:-StudioSaaS@LetsPaint2026!}"
+ADMIN_PASSWORD="${STUDIOSAAS_ADMIN_PASSWORD:-}"
 LOG_DIR="$HOME/.studiosaas"
 APP_PID_FILE="$LOG_DIR/online-app.pid"
 TUNNEL_PID_FILE="$LOG_DIR/online-tunnel.pid"
@@ -55,15 +55,21 @@ say "Applying ordered database migrations"
 (cd "$PROJECT_ROOT/backend" && STUDIOSAAS_DATABASE_URL="$DATABASE_URL" "$PYTHON" scripts/run_migrations.py)
 
 say "Ensuring the fixed StudioSaaS Super Admin login"
+ADMIN_ARGS=(
+  --email "$ADMIN_EMAIL"
+  --no-print-password
+)
+if [ -n "$ADMIN_PASSWORD" ]; then
+  ADMIN_ARGS+=(
+    --password "$ADMIN_PASSWORD"
+    --reset-password
+    --credential-file "$HOME/.studiosaas/pilot-credentials.txt"
+  )
+fi
 (
   cd "$PROJECT_ROOT/backend"
   STUDIOSAAS_DATABASE_URL="$DATABASE_URL" \
-    "$PYTHON" scripts/seed_super_admin.py \
-      --email "$ADMIN_EMAIL" \
-      --password "$ADMIN_PASSWORD" \
-      --reset-password \
-      --credential-file "$HOME/.studiosaas/pilot-credentials.txt" \
-      --no-print-password
+    "$PYTHON" scripts/seed_super_admin.py "${ADMIN_ARGS[@]}"
 )
 
 say "Checking managed processes and port $PORT"

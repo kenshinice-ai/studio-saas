@@ -1,10 +1,10 @@
 # PWE Studio Edition · 部署方式
 
-> 已确认方案（2026-07-27），实现轮进行中。
+> v7.7.8 已实现并纳入双包发布验证（2026-07-27）。
 
 ## 1. 主路径：Docker Compose（单机同箱）
 
-复用平台版已实战验证的 `deploy/aws/` 套件，独立版差异只有三点：
+复用平台版容器基础，独立版固定为单机 Docker Compose：
 
 ```
 ┌─ 客户服务器 ──────────────────────────────┐
@@ -18,25 +18,37 @@
 └───────────────────────────────────────────┘
 ```
 
-1. **db 容器成为默认**（平台版它是彩排 profile；单店无 RDS 必要）
-2. **`STUDIOSAAS_MODE=standalone`** 环境变量（实现轮新增）
-3. compose 项目名/包名独立（`studio-<客户slug>`），避免与平台混装
+1. **db 容器成为默认**（单店无 RDS 必要）
+2. `STUDIOSAAS_MODE=standalone`，数据库总共恰好一个 active 租户
+3. 应用使用 `studiosaas_app` 最小权限角色；迁移 owner 只在 entrypoint
+   启动阶段可见，启动 server 前即从环境移除
+4. compose 项目名独立（`studio-<客户slug>`）
+5. secrets、数据库备份、当前版本指针都在发布目录之外：
+   `/etc/pwe-studio`、`/var/lib/pwe-studio`、`/opt/pwe-studio/<slug>/current`
 
 安装流程（`install.sh` 一条命令，实现轮交付）：
 
 ```
 install.sh --domain studio.example.com --studio-name "..." \
-           [--import-archive 平台导出包 | --import-json 学员JSON]
-  = 装 docker → 生成 secrets/.env → up -d（自动迁移）
+           [--import-bundle 平台导出包 --expected-bundle-sha256 <可信值> \
+            | --import-json 学员JSON]
+  = 装 docker → 生成稳定 secrets + 运维 wrapper → up -d（自动迁移）
   → 建租户+owner（或导入）→ certbot 流程 → 验收清单自检
 ```
 
-升级 = 新发布包解压 → 同一条 `up -d --build`（entrypoint 先迁移后启动，
-与平台版一致）；回滚 = 上一发布包重跑（迁移向后兼容政策沿用）。
+升级使用新包内的：
+
+```bash
+sudo bash standalone-edition/upgrade.sh --slug <客户slug>
+```
+
+脚本先创建 PostgreSQL 备份，再切换稳定 `current` 链接并构建；深度健康
+检查失败时自动恢复上一代码与配置。PostgreSQL/media named volumes 不删除。
+媒体自动备份按用户决定暂缓，因此“升级保留媒体”不能等同“服务器损坏可恢复媒体”。
 
 ## 2. 备选：裸机 systemd
 
-客户内网无 Docker 时走 `deploy/aws/systemd/` 路径（v7.7.7 已修好
+客户内网无 Docker 时走 `deploy/aws/systemd/` 路径（v7.7.8 已修好
 ReadWritePaths），PostgreSQL 用系统包。文档已有，独立版补 standalone
 环境变量即可。
 
@@ -54,8 +66,9 @@ ReadWritePaths），PostgreSQL 用系统包。文档已有，独立版补 standa
 - [ ] `/super-admin` 与 `/v1/admin/*` 全部 404/关闭
 - [ ] owner 登录 CMS/Studio Admin；角色账号按名单建好
 - [ ] 数据迁移计数与账本总额与源对账单一致（manifest 校验）
+- [ ] 平台迁出包的整包 SHA-256 与平台侧交接记录一致
 - [ ] 手机 4G 提交测试报名 → CMS 待审出现 → 拒绝闭环
-- [ ] 备份 cron 已跑出第一份 dump（0600）+ 恢复 dry-run 通过
+- [ ] root cron 已跑出第一份 PostgreSQL dump（0600）+ 恢复 dry-run 通过
 - [ ] TLS 证书自动续期 timer 生效；`/v1/health?deep=1` 返回 db ok
 - [ ] 交接：owner 密码由客户当场改掉；服务器凭据移交记录签字
 
@@ -65,3 +78,10 @@ ReadWritePaths），PostgreSQL 用系统包。文档已有，独立版补 standa
 无支持模式、无遥测回连。平台方对独立实例**没有任何技术访问能力**；
 后续协助（升级/排障）需客户按维护协议主动提供访问，操作全程留在
 客户实例自己的审计日志里（owner 可见）。
+
+## 6. 当前运营边界
+
+- SaaS：本机 PostgreSQL + Waitress，通过 Cloudflare Tunnel 做邀请式测试
+- Edition：可构建、可安装、可升级的软件交付形态；交付前仍须走 RUNBOOK 验收
+- AWS/RDS/S3/SES：代码与历史方案保留，但 v7.7.8 **不部署、不宣称已上线**
+- 媒体独立备份：用户明确延后

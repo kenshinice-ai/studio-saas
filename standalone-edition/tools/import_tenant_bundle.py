@@ -125,14 +125,20 @@ def _safe_extract(bundle: Path, target: Path) -> Path:
                 raise ImportError_(f"Unsafe path in bundle: {member.name}")
             if member.issym() or member.islnk():
                 raise ImportError_(f"Links are not allowed in bundles: {member.name}")
+            if not (member.isfile() or member.isdir()):
+                raise ImportError_(
+                    f"Only regular files and directories are allowed: {member.name}"
+                )
         try:
             tar.extractall(target, filter="data")
         except TypeError:  # Python < 3.11.4 without extraction filters
             tar.extractall(target)
 
     manifests = sorted(target.glob("*/manifest.json")) or sorted(target.glob("manifest.json"))
-    if not manifests:
-        raise ImportError_("Bundle has no manifest.json.")
+    if len(manifests) != 1:
+        raise ImportError_(
+            f"Bundle must contain exactly one root manifest.json; found {len(manifests)}."
+        )
     return manifests[0].parent
 
 
@@ -142,17 +148,48 @@ def _load_manifest(root: Path) -> dict[str, Any]:
     manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
     if manifest.get("format") != "pwe-studio-edition-bundle":
         raise ImportError_(f"Unsupported bundle format: {manifest.get('format')!r}")
-    for key in ("tenant", "tables", "ledger", "schema_migrations", "files"):
+    if manifest.get("format_version") != 2:
+        raise ImportError_(
+            "Unsupported bundle format_version. Re-export with StudioSaaS "
+            "v7.7.8+ so database and media payloads are both hashed."
+        )
+    for key in (
+        "format_version",
+        "tenant",
+        "tables",
+        "ledger",
+        "schema_migrations",
+        "files",
+    ):
         if key not in manifest:
             raise ImportError_(f"Manifest is missing required key: {key}")
+    if not isinstance(manifest["files"], dict) or not manifest["files"]:
+        raise ImportError_("Manifest files inventory must be a non-empty object.")
     return manifest
 
 
 def _verify_file_hashes(root: Path, manifest: dict[str, Any]) -> None:
-    """Verify the sha256 of every snapshot file against the manifest."""
+    """Verify every declared payload file and reject undeclared additions."""
+
+    declared = set(manifest["files"])
+    actual_files = {
+        path.relative_to(root).as_posix()
+        for path in root.rglob("*")
+        if path.is_file() and path.name != "manifest.json"
+    }
+    if actual_files != declared:
+        missing = sorted(declared - actual_files)
+        unexpected = sorted(actual_files - declared)
+        raise ImportError_(
+            "Bundle payload inventory mismatch. "
+            f"Missing: {missing or 'none'}; unexpected: {unexpected or 'none'}."
+        )
 
     for rel_path, expected in sorted(manifest["files"].items()):
-        actual = _sha256_file(root / rel_path)
+        rel = Path(rel_path)
+        if rel.is_absolute() or ".." in rel.parts:
+            raise ImportError_(f"Unsafe path in manifest: {rel_path}")
+        actual = _sha256_file(root / rel)
         if actual != expected:
             raise ImportError_(f"Checksum mismatch for {rel_path}: {actual} != {expected}")
 
@@ -411,7 +448,14 @@ def _print_reconciliation(
     print(f"剔除平台成员行 (tenant_id IS NULL) : {stats['stripped_platform_memberships']}")
     print(f"置空的平台用户引用                 : {stats['nulled_user_refs']}")
     print(f"因未知用户被跳过的行               : {stats['dropped_rows_unknown_user']}")
-    print(f"媒体文件已落盘                     : {media_files}")
+    expected_media = int((manifest.get("media") or {}).get("file_count", 0))
+    media_mark = "✓" if media_files == expected_media else "✗"
+    if media_mark == "✗":
+        ok = False
+    print(
+        "媒体文件已落盘                     : "
+        f"包内 {expected_media} / 已复制 {media_files}  {media_mark}"
+    )
     print(f"租户状态                           : {status_note}")
     print("demo_seed_locked                   : true (防误 seed)")
     print("用户密码                           : 已重置为随机不可用值 — 交付时为 owner 重设并当场改掉")
@@ -438,12 +482,29 @@ def main(argv: list[str] | None = None) -> int:
         default="",
         help="Edition media root (default: $STUDIOSAAS_MEDIA_DIR or backend/media).",
     )
+    parser.add_argument(
+        "--expected-sha256",
+        default="",
+        help=(
+            "Trusted SHA-256 recorded by the platform export. Required by the "
+            "Edition installer and strongly recommended for direct use."
+        ),
+    )
     args = parser.parse_args(argv)
 
     bundle = args.bundle.expanduser().resolve()
     if not bundle.is_file():
         raise SystemExit(f"ERROR: bundle not found: {bundle}")
     bundle_sha = _sha256_file(bundle)
+    expected_sha = args.expected_sha256.strip().lower()
+    if expected_sha:
+        if len(expected_sha) != 64 or any(ch not in "0123456789abcdef" for ch in expected_sha):
+            raise SystemExit("REFUSED: --expected-sha256 must be 64 hexadecimal characters.")
+        if bundle_sha != expected_sha:
+            raise SystemExit(
+                "REFUSED: bundle SHA-256 does not match the trusted export record. "
+                f"Expected {expected_sha}; got {bundle_sha}."
+            )
 
     import os
 
