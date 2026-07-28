@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1040" width="1600" height="1040" role="img" aria-labelledby="title desc">
+  <title id="title">PWE SaaS Studio Feather Star concept preview</title>
+  <desc id="desc">One recommended logo concept shown as a primary lockup, standalone mark, small sizes, and monochrome applications.</desc>
+  <defs>
+    <g id="mark-color">
+      <path fill="#0E1729" d="M33 142C61 111 99 67 148 18C130 58 101 99 57 133C48 140 40 144 33 142Z"/>
+      <path fill="#0E1729" d="M37 149C65 136 92 112 121 78C106 112 80 139 49 152C44 154 39 153 37 149Z"/>
+      <path fill="#F5B335" d="M40 154C60 149 79 138 98 119C84 142 66 156 44 159C40 160 37 157 40 154Z"/>
+      <path fill="#F5B335" d="M34 128C34 138 42 146 52 146C42 146 34 154 34 164C34 154 26 146 16 146C26 146 34 138 34 128Z"/>
+    </g>
+    <g id="mark-white">
+      <path fill="#FFFFFF" d="M33 142C61 111 99 67 148 18C130 58 101 99 57 133C48 140 40 144 33 142Z"/>
+      <path fill="#FFFFFF" d="M37 149C65 136 92 112 121 78C106 112 80 139 49 152C44 154 39 153 37 149Z"/>
+      <path fill="#FFFFFF" d="M40 154C60 149 79 138 98 119C84 142 66 156 44 159C40 160 37 157 40 154Z"/>
+      <path fill="#FFFFFF" d="M34 128C34 138 42 146 52 146C42 146 34 154 34 164C34 154 26 146 16 146C26 146 34 138 34 128Z"/>
+    </g>
+  </defs>
+
+  <rect width="1600" height="1040" fill="#F7F5F2"/>
+  <text x="96" y="84" fill="#A16207" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="4">ONE RECOMMENDED DIRECTION</text>
+  <text x="96" y="139" fill="#0E1729" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="46" font-weight="650">Feather Star</text>
+  <text x="96" y="178" fill="#64748B" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="20">A distinct SaaS product mark in the Paradise family language</text>
+  <path d="M96 216H1504" stroke="#D7D4CF" stroke-width="2"/>
+
+  <rect x="96" y="264" width="1408" height="320" rx="30" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+  <g transform="translate(178 320) scale(1.18)">
+    <use href="#mark-color"/>
+  </g>
+  <g fill="#0E1729" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif">
+    <text x="430" y="430" font-size="84" font-weight="650" letter-spacing="10">PWE</text>
+    <text x="438" y="483" font-size="25" font-weight="600" letter-spacing="9">SAAS · STUDIO</text>
+  </g>
+  <text x="1040" y="376" fill="#475569" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="17">Golden-ratio plume lengths</text>
+  <text x="1040" y="416" fill="#0E1729" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="28" font-weight="650">136 : 84 : 52</text>
+  <text x="1040" y="453" fill="#A16207" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="2">≈ φ · φ · ORIGIN</text>
+  <text x="1040" y="504" fill="#64748B" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="16">Star = creative source</text>
+  <text x="1040" y="532" fill="#64748B" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="16">Feathers = ascent and possibility</text>
+
+  <g transform="translate(96 632)">
+    <rect width="438" height="290" rx="26" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+    <text x="32" y="51" fill="#475569" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="15" font-weight="700" letter-spacing="3">STANDALONE MARK</text>
+    <g transform="translate(131 74) scale(.98)">
+      <use href="#mark-color"/>
+    </g>
+  </g>
+
+  <g transform="translate(566 632)">
+    <rect width="438" height="290" rx="26" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+    <text x="32" y="51" fill="#475569" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="15" font-weight="700" letter-spacing="3">SMALL-SIZE TEST</text>
+    <g transform="translate(56 112) scale(.3)">
+      <use href="#mark-color"/>
+    </g>
+    <text x="50" y="229" fill="#64748B" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="15">48 px</text>
+    <g transform="translate(196 136) scale(.15)">
+      <use href="#mark-color"/>
+    </g>
+    <text x="190" y="229" fill="#64748B" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="15">24 px</text>
+    <g transform="translate(322 144) scale(.1)">
+      <use href="#mark-color"/>
+    </g>
+    <text x="316" y="229" fill="#64748B" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="15">16 px</text>
+  </g>
+
+  <g transform="translate(1036 632)">
+    <rect width="468" height="290" rx="26" fill="#0E1729"/>
+    <text x="32" y="51" fill="#AAB4C5" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="15" font-weight="700" letter-spacing="3">MONOCHROME / DARK</text>
+    <g transform="translate(42 80) scale(.75)">
+      <use href="#mark-white"/>
+    </g>
+    <text x="190" y="146" fill="#FFFFFF" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="42" font-weight="650" letter-spacing="5">PWE</text>
+    <text x="194" y="181" fill="#FFFFFF" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="14" font-weight="600" letter-spacing="5">SAAS · STUDIO</text>
+    <text x="32" y="251" fill="#AAB4C5" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="15">Silhouette remains clear without colour</text>
+  </g>
+
+  <text x="96" y="985" fill="#0E1729" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="20" font-weight="650">Design decision:</text>
+  <text x="272" y="985" fill="#475569" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="20">no letterform in the symbol; family resemblance comes from shared upward motion, not duplication.</text>
+</svg>

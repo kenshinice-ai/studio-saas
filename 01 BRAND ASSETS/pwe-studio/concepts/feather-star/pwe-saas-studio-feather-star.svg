@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 580 240" width="580" height="240" role="img" aria-labelledby="title desc">
+  <title id="title">PWE SaaS Studio — Feather Star</title>
+  <desc id="desc">A golden-ratio plume rising from a four-point star, paired with the PWE SaaS Studio wordmark.</desc>
+  <g transform="translate(40 28)">
+    <!-- Three rising feathers use the golden-ratio length sequence 136 : 84 : 52. -->
+    <path fill="#0E1729" d="M33 142C61 111 99 67 148 18C130 58 101 99 57 133C48 140 40 144 33 142Z"/>
+    <path fill="#0E1729" d="M37 149C65 136 92 112 121 78C106 112 80 139 49 152C44 154 39 153 37 149Z"/>
+    <path fill="#F5B335" d="M40 154C60 149 79 138 98 119C84 142 66 156 44 159C40 160 37 157 40 154Z"/>
+    <!-- The spark is the shared origin: creative energy before the ascent. -->
+    <path fill="#F5B335" d="M34 128C34 138 42 146 52 146C42 146 34 154 34 164C34 154 26 146 16 146C26 146 34 138 34 128Z"/>
+  </g>
+  <g fill="#0E1729" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif">
+    <text x="244" y="116" font-size="72" font-weight="650" letter-spacing="8">PWE</text>
+    <text x="249" y="157" font-size="21" font-weight="600" letter-spacing="7">SAAS · STUDIO</text>
+  </g>
+</svg>
