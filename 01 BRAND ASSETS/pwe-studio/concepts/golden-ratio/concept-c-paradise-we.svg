@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 240" width="720" height="240" role="img" aria-labelledby="title desc">
+  <title id="title">PWE Studio concept C — Paradise WE</title>
+  <desc id="desc">A compact P pillar releases three Paradise-inspired feather ribbons whose golden-ratio lengths suggest a shared W and E.</desc>
+  <g transform="translate(40 40)">
+    <path fill="#0E1729" d="M22 12H48V160H22Z"/>
+    <path fill="#0E1729" d="M43 103C70 82 101 52 138 15C118 50 91 86 44 119L43 103Z"/>
+    <path fill="#0E1729" d="M43 112C72 102 101 84 128 60C108 89 82 111 43 125V112Z"/>
+    <path fill="#0E1729" d="M43 122C67 122 91 116 111 104C94 122 72 132 43 132V122Z"/>
+    <path fill="#F5B335" d="M43 103C43 110.2 48.8 116 56 116C48.8 116 43 121.8 43 129C43 121.8 37.2 116 30 116C37.2 116 43 110.2 43 103Z"/>
+    <path fill="none" stroke="#F5B335" stroke-width="4" d="M57 116L91 93L112 69" opacity=".95"/>
+  </g>
+  <g fill="#0E1729">
+    <text x="248" y="112" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="58" font-weight="600" letter-spacing="7">PWE</text>
+    <text x="252" y="151" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="21" font-weight="500" letter-spacing="8">STUDIO</text>
+  </g>
+</svg>

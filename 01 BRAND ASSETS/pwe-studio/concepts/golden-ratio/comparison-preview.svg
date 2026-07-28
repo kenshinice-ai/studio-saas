@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1800 1120" width="1800" height="1120" role="img" aria-labelledby="title desc">
+  <title id="title">PWE Studio golden-ratio logo concept comparison</title>
+  <desc id="desc">Three PWE Studio logo concepts shown as full lockups, small icons, and monochrome marks.</desc>
+  <rect width="1800" height="1120" fill="#F7F5F2"/>
+  <text x="110" y="100" fill="#0E1729" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="48" font-weight="600">PWE Studio · Golden-ratio concepts</text>
+  <text x="110" y="146" fill="#475569" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="21">Paradise-inspired ascent · φ = 1.618 · family palette preserved</text>
+  <path d="M110 184H1690" stroke="#D7D4CF" stroke-width="2"/>
+
+  <g transform="translate(80 225)">
+    <rect width="520" height="690" rx="28" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+    <rect x="0" y="0" width="520" height="12" rx="6" fill="#F5B335"/>
+    <text x="42" y="70" fill="#A16207" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="3">CONCEPT A · RECOMMENDED</text>
+    <text x="42" y="111" fill="#0E1729" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="31" font-weight="600">Golden Wing P</text>
+    <text x="42" y="147" fill="#64748B" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="17">Structure holds creative ascent</text>
+    <g transform="translate(48 190) scale(.62)">
+      <path fill="#0E1729" fill-rule="evenodd" d="M20 10H75C123 10 148 34 148 68C148 104 122 126 76 126H50V160H20V10ZM50 38V98H76C103 98 118 88 118 68C118 49 103 38 75 38H50Z"/>
+      <path fill="#F5B335" d="M57 89C78 79 99 62 121 38C109 66 91 87 58 101L57 89Z"/>
+      <path fill="#F5B335" d="M58 94C78 91 99 81 115 66C102 86 84 99 58 104V94Z"/>
+      <path fill="#F5B335" d="M58 100C75 102 91 99 104 91C93 103 77 108 58 107V100Z"/>
+      <path fill="#F5B335" d="M121 29C121 36.2 126.8 42 134 42C126.8 42 121 47.8 121 55C121 47.8 115.2 42 108 42C115.2 42 121 36.2 121 29Z"/>
+    </g>
+    <text x="174" y="271" fill="#0E1729" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="44" font-weight="600" letter-spacing="5">PWE</text>
+    <text x="178" y="304" fill="#0E1729" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="16" font-weight="500" letter-spacing="7">STUDIO</text>
+    <path d="M42 350H478" stroke="#E2E8F0"/>
+    <text x="42" y="390" fill="#475569" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="17">φ feathers</text>
+    <text x="214" y="390" fill="#0E1729" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="17" font-weight="600">1 · .618 · .382</text>
+    <text x="42" y="430" fill="#475569" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="17">Read at 24px</text>
+    <g transform="translate(220 408) scale(.15)">
+      <path fill="#0E1729" fill-rule="evenodd" d="M20 10H75C123 10 148 34 148 68C148 104 122 126 76 126H50V160H20V10ZM50 38V98H76C103 98 118 88 118 68C118 49 103 38 75 38H50Z"/>
+      <path fill="#F5B335" d="M57 89C78 79 99 62 121 38C109 66 91 87 58 101L57 89Z"/>
+      <path fill="#F5B335" d="M121 29C121 36.2 126.8 42 134 42C126.8 42 121 47.8 121 55C121 47.8 115.2 42 108 42C115.2 42 121 36.2 121 29Z"/>
+    </g>
+    <rect x="42" y="476" width="436" height="152" rx="18" fill="#0E1729"/>
+    <g transform="translate(84 500) scale(.62)">
+      <path fill="#FFFFFF" fill-rule="evenodd" d="M20 10H75C123 10 148 34 148 68C148 104 122 126 76 126H50V160H20V10ZM50 38V98H76C103 98 118 88 118 68C118 49 103 38 75 38H50Z"/>
+      <path fill="#FFFFFF" d="M57 89C78 79 99 62 121 38C109 66 91 87 58 101L57 89Z"/>
+      <path fill="#FFFFFF" d="M58 94C78 91 99 81 115 66C102 86 84 99 58 104V94Z"/>
+    </g>
+    <text x="218" y="552" fill="#FFFFFF" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="24" font-weight="600">Monochrome-safe</text>
+    <text x="218" y="584" fill="#AAB4C5" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="16">Strongest P recognition</text>
+  </g>
+
+  <g transform="translate(640 225)">
+    <rect width="520" height="690" rx="28" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+    <rect x="0" y="0" width="520" height="12" rx="6" fill="#22355A"/>
+    <text x="42" y="70" fill="#475569" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="3">CONCEPT B</text>
+    <text x="42" y="111" fill="#0E1729" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="31" font-weight="600">Golden Spiral P</text>
+    <text x="42" y="147" fill="#64748B" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="17">A continuous path from order to art</text>
+    <g transform="translate(48 190) scale(.62)">
+      <path fill="#0E1729" d="M22 10H48V160H22Z"/>
+      <path fill="none" stroke="#0E1729" stroke-width="22" stroke-linecap="square" stroke-linejoin="round" d="M43 26H78C118 26 140 43 140 70C140 100 116 119 77 119H46"/>
+      <path fill="none" stroke="#F5B335" stroke-width="7" stroke-linecap="round" d="M59 96C89 99 119 82 121 57C123 38 107 27 89 30C72 33 64 48 69 61C73 73 86 79 97 74C106 70 109 61 106 54C103 48 97 46 92 49C88 51 87 56 89 60"/>
+      <path fill="#F5B335" d="M89 51C89 56 93 60 98 60C93 60 89 64 89 69C89 64 85 60 80 60C85 60 89 56 89 51Z"/>
+    </g>
+    <text x="174" y="271" fill="#0E1729" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="44" font-weight="600" letter-spacing="5">PWE</text>
+    <text x="178" y="304" fill="#0E1729" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="16" font-weight="500" letter-spacing="7">STUDIO</text>
+    <path d="M42 350H478" stroke="#E2E8F0"/>
+    <text x="42" y="390" fill="#475569" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="17">φ spiral</text>
+    <text x="214" y="390" fill="#0E1729" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="17" font-weight="600">growth · continuity</text>
+    <text x="42" y="430" fill="#475569" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="17">Read at 24px</text>
+    <g transform="translate(220 408) scale(.15)">
+      <path fill="#0E1729" d="M22 10H48V160H22Z"/>
+      <path fill="none" stroke="#0E1729" stroke-width="22" d="M43 26H78C118 26 140 43 140 70C140 100 116 119 77 119H46"/>
+      <path fill="none" stroke="#F5B335" stroke-width="9" d="M59 96C89 99 119 82 121 57C123 38 107 27 89 30C72 33 64 48 69 61C73 73 86 79 97 74"/>
+    </g>
+    <rect x="42" y="476" width="436" height="152" rx="18" fill="#0E1729"/>
+    <g transform="translate(84 500) scale(.62)">
+      <path fill="#FFFFFF" d="M22 10H48V160H22Z"/>
+      <path fill="none" stroke="#FFFFFF" stroke-width="22" d="M43 26H78C118 26 140 43 140 70C140 100 116 119 77 119H46"/>
+      <path fill="none" stroke="#FFFFFF" stroke-width="7" d="M59 96C89 99 119 82 121 57C123 38 107 27 89 30C72 33 64 48 69 61C73 73 86 79 97 74"/>
+    </g>
+    <text x="218" y="552" fill="#FFFFFF" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="24" font-weight="600">Most artistic</text>
+    <text x="218" y="584" fill="#AAB4C5" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="16">More abstract when small</text>
+  </g>
+
+  <g transform="translate(1200 225)">
+    <rect width="520" height="690" rx="28" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+    <rect x="0" y="0" width="520" height="12" rx="6" fill="#22355A"/>
+    <text x="42" y="70" fill="#475569" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="16" font-weight="700" letter-spacing="3">CONCEPT C</text>
+    <text x="42" y="111" fill="#0E1729" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="31" font-weight="600">Paradise WE</text>
+    <text x="42" y="147" fill="#64748B" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="17">Three shared paths, one ascent</text>
+    <g transform="translate(48 190) scale(.62)">
+      <path fill="#0E1729" d="M22 12H48V160H22Z"/>
+      <path fill="#0E1729" d="M43 103C70 82 101 52 138 15C118 50 91 86 44 119L43 103Z"/>
+      <path fill="#0E1729" d="M43 112C72 102 101 84 128 60C108 89 82 111 43 125V112Z"/>
+      <path fill="#0E1729" d="M43 122C67 122 91 116 111 104C94 122 72 132 43 132V122Z"/>
+      <path fill="#F5B335" d="M43 103C43 110.2 48.8 116 56 116C48.8 116 43 121.8 43 129C43 121.8 37.2 116 30 116C37.2 116 43 110.2 43 103Z"/>
+      <path fill="none" stroke="#F5B335" stroke-width="4" d="M57 116L91 93L112 69"/>
+    </g>
+    <text x="174" y="271" fill="#0E1729" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="44" font-weight="600" letter-spacing="5">PWE</text>
+    <text x="178" y="304" fill="#0E1729" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="16" font-weight="500" letter-spacing="7">STUDIO</text>
+    <path d="M42 350H478" stroke="#E2E8F0"/>
+    <text x="42" y="390" fill="#475569" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="17">φ ribbons</text>
+    <text x="214" y="390" fill="#0E1729" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="17" font-weight="600">P · W · E narrative</text>
+    <text x="42" y="430" fill="#475569" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="17">Read at 24px</text>
+    <g transform="translate(220 408) scale(.15)">
+      <path fill="#0E1729" d="M22 12H48V160H22Z"/>
+      <path fill="#0E1729" d="M43 103C70 82 101 52 138 15C118 50 91 86 44 119L43 103Z"/>
+      <path fill="#0E1729" d="M43 112C72 102 101 84 128 60C108 89 82 111 43 125V112Z"/>
+      <path fill="#F5B335" d="M43 103C43 110.2 48.8 116 56 116C48.8 116 43 121.8 43 129C43 121.8 37.2 116 30 116C37.2 116 43 110.2 43 103Z"/>
+    </g>
+    <rect x="42" y="476" width="436" height="152" rx="18" fill="#0E1729"/>
+    <g transform="translate(84 500) scale(.62)">
+      <path fill="#FFFFFF" d="M22 12H48V160H22Z"/>
+      <path fill="#FFFFFF" d="M43 103C70 82 101 52 138 15C118 50 91 86 44 119L43 103Z"/>
+      <path fill="#FFFFFF" d="M43 112C72 102 101 84 128 60C108 89 82 111 43 125V112Z"/>
+      <path fill="#FFFFFF" d="M43 122C67 122 91 116 111 104C94 122 72 132 43 132V122Z"/>
+    </g>
+    <text x="218" y="552" fill="#FFFFFF" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="24" font-weight="600">Strongest lineage</text>
+    <text x="218" y="584" fill="#AAB4C5" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="16">Least literal P reading</text>
+  </g>
+
+  <text x="110" y="1000" fill="#0E1729" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="22" font-weight="600">Decision lens</text>
+  <text x="110" y="1037" fill="#475569" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="18">A: best balance of product recognition and family resemblance</text>
+  <text x="735" y="1037" fill="#475569" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="18">B: premium and artistic</text>
+  <text x="1265" y="1037" fill="#475569" font-family="Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="18">C: most Paradise-led</text>
+</svg>
