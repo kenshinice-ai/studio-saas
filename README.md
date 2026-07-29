@@ -228,15 +228,27 @@ set.
 
 ### 4.6 Pilot credentials
 
-The local and on-demand public launchers ensure the
-`admin@studiosaas.local` platform membership exists but preserve its current
-password. There is no fixed privileged password in source. To create the
-account on a new database, or deliberately rotate it before startup, export
-`STUDIOSAAS_ADMIN_PASSWORD` for that invocation; only then will the launcher
-reset the hash and update `~/.studiosaas/pilot-credentials.txt` (mode `0600`).
-Before a permanent deployment, rotate every privileged account with
-`backend/scripts/rotate_pilot_credentials.py` and protect admin routes with a
-second access layer.
+The portable on-demand public launcher checks that the
+`admin@studiosaas.local` platform membership exists but never changes any
+password. Local/Pilot demonstration credentials live only in the ignored
+`.runtime/` directory and move with the project folder. A deliberate shared
+demo-password migration is performed only by
+`backend/scripts/set_local_demo_passwords.py`; it is not a startup hook.
+
+The current shared-password policy is for the controlled local demonstration
+only. Before AWS production, replace it with unique credentials, add MFA and
+protect platform administration with a second access layer.
+
+### 4.6.1 Portable online runtime
+
+`START_STUDIOSAAS_ONLINE.command` resolves code, environment, CMS data, logs,
+PID files and Cloudflare Tunnel credentials from its own project directory.
+Move or copy the complete folder—including the hidden `.runtime/` directory—
+and the launcher continues to work from the new path. It never reads
+`~/.studiosaas`, `~/.cloudflared` or `/private/tmp` for runtime files.
+
+See [`docs/Portable_Online_Runtime.md`](docs/Portable_Online_Runtime.md) for the
+runtime layout, verification contract and production boundary.
 
 ### 4.7 v7.2.1 shared product improvements
 

@@ -88,7 +88,7 @@ ingress:
 
 | 操作 | 方式 |
 |---|---|
-| 开始公网测试 | 双击 `START_STUDIOSAAS_ONLINE.command`（环境/数据库/迁移 → 保留现有 Super Admin 密码 → 本地健康 → 隧道 → 公网健康；不重灌业务数据） |
+| 开始公网测试 | 双击 `START_STUDIOSAAS_ONLINE.command`（从项目内 `.runtime` 读取环境/CMS/Tunnel 文件 → 数据库迁移 → 保留全部现有密码 → 本地健康 → 隧道 → 公网健康；不重灌业务数据） |
 | 结束测试 | 关闭该终端窗口，或双击 `STOP_STUDIOSAAS_ONLINE.command` |
 | 测试前备份 | 双击 `BACKUP_STUDIOSAAS_NOW.command` |
 | 本地开发（默认保留真实数据） | `START_STUDIOSAAS_LOCAL.command`（仅在显式设置 `STUDIOSAAS_SEED_DEMO=1` 时生成 demo 学员） |

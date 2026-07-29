@@ -11,6 +11,7 @@ from __future__ import annotations
 import os
 import sys
 import tempfile
+import atexit
 import importlib
 import importlib.util
 import hashlib
@@ -62,24 +63,39 @@ PNG = base64.b64decode(
 passed: list[str] = []
 failed: list[str] = []
 
-
-def load_current_credentials() -> dict[str, str]:
-    """Load rotated local credentials when available, without requiring them in CI."""
-
-    configured = os.environ.get("STUDIOSAAS_CREDENTIAL_FILE", "").strip()
-    path = Path(configured).expanduser() if configured else Path.home() / ".studiosaas" / "pilot-credentials.txt"
-    if not path.is_file():
-        return {}
-    credentials: dict[str, str] = {}
-    for line in path.read_text(encoding="utf-8").splitlines():
-        if not line or line.startswith("#") or "\t" not in line:
-            continue
-        email, password = line.split("\t", 1)
-        credentials[email.strip().lower()] = password.strip()
-    return credentials
+FIXTURE_EMAILS = (
+    seed_fixtures.OWNER_A_EMAIL,
+    seed_fixtures.OWNER_B_EMAIL,
+    seed_fixtures.SUPER_EMAIL,
+    seed_fixtures.TENANT_ADMIN_EMAIL,
+)
 
 
-CURRENT_CREDENTIALS = load_current_credentials()
+def snapshot_fixture_passwords() -> dict[str, str]:
+    """Capture hashes that the deterministic fixture must restore on exit."""
+
+    with connect() as conn:
+        rows = fetch_all(
+            conn,
+            "SELECT lower(email) AS email, password_hash FROM users WHERE lower(email) = ANY(%s)",
+            (list(FIXTURE_EMAILS),),
+        )
+    return {str(row["email"]): str(row["password_hash"]) for row in rows}
+
+
+def restore_fixture_passwords(original: dict[str, str]) -> None:
+    """Restore pre-test hashes so release checks never change Pilot passwords."""
+
+    if not original:
+        return
+    with connect() as conn:
+        with conn.cursor() as cur:
+            for email, password_hash in original.items():
+                cur.execute(
+                    "UPDATE users SET password_hash = %s, updated_at = now() WHERE lower(email) = %s",
+                    (password_hash, email),
+                )
+        conn.commit()
 
 
 def check(name: str, condition: bool, detail: str = "") -> None:
@@ -95,13 +111,7 @@ def client_for(email: str):
     """Return a logged-in Flask test client for the given local fixture user."""
 
     client = server.app.test_client()
-    candidates = [CURRENT_CREDENTIALS.get(email.lower()), PASSWORD]
-    response = None
-    for password in dict.fromkeys(candidate for candidate in candidates if candidate):
-        response = client.post("/v1/auth/login", json={"email": email, "password": password})
-        if response.status_code == 200:
-            break
-    assert response is not None
+    response = client.post("/v1/auth/login", json={"email": email, "password": PASSWORD})
     check(f"login succeeds for {email}", response.status_code == 200, f"got {response.status_code}")
     return client
 
@@ -310,6 +320,8 @@ def main() -> int:
     print("  StudioSaaS Tenant Isolation and Upload Privacy Tests")
     print("=" * 72)
 
+    original_passwords = snapshot_fixture_passwords()
+    atexit.register(restore_fixture_passwords, original_passwords)
     fixtures = seed_fixtures.seed()
     owner_a = client_for(fixtures["owner_a_email"])
     owner_b = client_for(fixtures["owner_b_email"])

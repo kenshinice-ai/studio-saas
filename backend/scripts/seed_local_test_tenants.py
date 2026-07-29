@@ -125,14 +125,21 @@ def _ensure_tenant_archival_schema(cur: Any) -> None:
 
 
 def _upsert_user(cur: Any, *, email: str, full_name: str) -> str:
-    """Create or activate a local test user and return its UUID."""
+    """Create or reset one explicit test user and return its UUID.
+
+    This function is called only by the tenant-isolation fixture. Reapplying
+    the deterministic test password makes the fixture self-contained instead
+    of depending on a developer's current Pilot credentials. The isolation
+    runner snapshots and restores any pre-existing hashes around the test.
+    """
 
     cur.execute(
         """
         INSERT INTO users (email, password_hash, full_name, status)
         VALUES (%s, %s, %s, 'active')
         ON CONFLICT (email) DO UPDATE
-        SET full_name = EXCLUDED.full_name,
+        SET password_hash = EXCLUDED.password_hash,
+            full_name = EXCLUDED.full_name,
             status = 'active',
             updated_at = now()
         RETURNING id

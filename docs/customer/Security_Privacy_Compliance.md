@@ -24,7 +24,7 @@ Production AWS hosting, database backup, media backup, monitoring, recovery obje
 | Audit | Material administrative and operational actions create audit records |
 | Export | ICS schedule export excludes roster members and other student data |
 | Demo data | The professional showcase is isolated, uses fictional contacts and synthetic artwork, and is reset only by a guarded script |
-| Secrets | Reset credentials rotate and are written to a local owner-only `0600` file |
+| Secrets | Local/Pilot credentials are kept in the Git-ignored project `.runtime/` directory with owner-only permissions |
 | Customer deletion | Tenant archive/delete workflow requires explicit lifecycle state and confirmation |
 
 ## Known gaps and pre-production gates
@@ -32,6 +32,8 @@ Production AWS hosting, database backup, media backup, monitoring, recovery obje
 The following are open gates, not hidden assurances:
 
 - privileged-account MFA is not yet implemented;
+- the controlled local demonstration currently uses one shared application
+  password; unique privileged credentials are mandatory before AWS production;
 - the current local + tunnel stage has no production availability commitment;
 - AWS database/media backup and tested restore are pending purchase and deployment;
 - Cloudflare connector ownership and count must be verified before every public presentation;

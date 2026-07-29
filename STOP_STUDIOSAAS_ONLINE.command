@@ -4,7 +4,8 @@ set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 source "$PROJECT_ROOT/scripts/startup_common.sh"
-LOG_DIR="$HOME/.studiosaas"
+LOG_DIR="$PROJECT_ROOT/.runtime/logs"
+[ -d "$LOG_DIR" ] || die "Portable runtime log directory does not exist: $LOG_DIR"
 touch "$LOG_DIR/online-stop.request"
 
 say "Stopping managed StudioSaaS application"

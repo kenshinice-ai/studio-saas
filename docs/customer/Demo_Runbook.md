@@ -19,11 +19,13 @@ The script:
 - refuses standalone/customer-edition mode;
 - touches only the permanently marked showcase tenant;
 - refuses an existing tenant without `settings.professional_demo=true`;
-- rotates owner, manager, teacher and front-desk passwords;
-- writes presenter credentials to `~/.studiosaas/showcase-credentials.txt` with mode `0600`;
+- reapplies the configured stable local/Pilot password to owner, manager,
+  teacher and front-desk accounts;
+- writes presenter credentials to
+  `.runtime/credentials/showcase-credentials.txt` with mode `0600`;
 - seeds realistic courses, packages, schedules, enquiries, attendance and balances;
 - seeds three original synthetic artworks;
-- rotates the family/student access code.
+- rotates the separate family/student access code.
 
 Never screen-share the credential file.
 

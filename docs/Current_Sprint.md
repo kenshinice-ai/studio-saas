@@ -83,8 +83,8 @@ These items from earlier sprint docs are confirmed done — do not re-fix:
 | ID | Task | Status |
 |---|---|---|
 | D1 | v1 API rate limiting/audit use real client IP behind cloudflared (`_client_ip()` trusts CF-Connecting-IP only from localhost; audit inet validated) | ✅ 2026-07-09 |
-| D2 | Cloudflare Tunnel `studiosaas` → `https://studiosaas.cc.cd` → localhost:8901 (locally-managed, config in `~/.cloudflared/config.yml`) | ✅ 2026-07-09 |
-| P0-1 | Unique privileged-account rotation → `~/.studiosaas/pilot-credentials.txt` (0600); seed scripts preserve existing hashes | ✅ 2026-07-10 |
+| D2 | Cloudflare Tunnel → `https://studiosaas.cc.cd` → localhost:8901; current connector files are project-local under `.runtime/` | ✅ updated 2026-07-29 |
+| P0-1 | Historical unique-password rotation was superseded by the user-directed shared local/Pilot demo password; startup still preserves hashes | ✅ updated 2026-07-29 |
 | P0-2 | Tunnel-origin session cookies carry Secure (custom SessionInterface); local http unaffected | ✅ 2026-07-09 |
 | P0-3 | One-click backup (`BACKUP_STUDIOSAAS_NOW.command`, keep 14) + restore drill passed (restore-dry-run, 10 migrations verified) | ✅ 2026-07-09 |
 | P0-4 | On-demand ONLINE/STOP `.command` scripts (user chose no persistent daemons); LaunchAgent templates in `deploy/launchd/` if ever needed | ✅ 2026-07-09 |
@@ -95,7 +95,7 @@ These items from earlier sprint docs are confirmed done — do not re-fix:
 | Item | Status |
 |---|---|
 | Display rename → **PWE Studio** (titles, Super Admin, manifests and README; SaaS/Edition remain delivery descriptors, while internal identifiers and API service contracts stay unchanged) | ✅ |
-| Default credential hints removed from login UI; public-pilot accounts use unique rotated passwords | ✅ 2026-07-10 |
+| Default credential hints removed from login UI; the current shared local/Pilot password remains only in protected `.runtime/` files | ✅ updated 2026-07-29 |
 | Super-admin quick links: Portal `/slug` + CMS `/slug/cms` + Admin + Register (was: "CMS" mislinked to `/slug`) | ✅ |
 | Tenant portal v2: bilingual SPA (home/join/my/privacy), brand/programs from v1 public APIs, in-page enrolment, and a private student area protected by name + mobile + studio-issued 6-digit access code | ✅ |
 | Student privacy hardening: append-only publication consent, one-hour HttpOnly student sessions, brute-force lockout, metadata-free display/thumb variants and fail-closed public media | ✅ 2026-07-18 |
@@ -260,15 +260,29 @@ curl -sS -o /dev/null -w "%{http_code}" http://localhost:8901/register
 
 ## 5. Protected Pilot Credentials
 
-Privileged passwords are deliberately absent from the repository and login UI. Rotate every active `super_admin`, `owner`, and `staff` account before deployment:
+Passwords are absent from the repository and login UI. The current controlled
+local/Pilot demonstration uses one user-directed shared application password,
+stored only in `.runtime/online.env` and owner-only credential files. Normal
+startup never changes password hashes.
+
+The explicit local migration command is:
 
 ```bash
-cd backend
-STUDIOSAAS_DATABASE_URL=postgresql://$(whoami)@localhost:5432/studiosaas_local_test \
-../.venv/bin/python scripts/rotate_pilot_credentials.py
+set -a
+source .runtime/online.env
+set +a
+STUDIOSAAS_ENV=pilot STUDIOSAAS_MODE=saas \
+  .venv/bin/python backend/scripts/set_local_demo_passwords.py \
+  --confirm SET-ALL-LOCAL-APPLICATION-PASSWORDS \
+  --cms-password-file .runtime/cms-data/.cms_password \
+  --credentials-file .runtime/credentials/pilot-credentials.txt
 ```
 
-The generated file is `~/.studiosaas/pilot-credentials.txt` with mode `0600`. The same command also rotates the separate legacy CMS password file. Pilot and production startup fail closed when that file is missing; they never initialize the known local-development default. Seed scripts preserve existing password hashes. Password storage remains PBKDF2-HMAC-SHA256; legacy hashes upgrade only after a successful login.
+This command also sets the separate legacy CMS password and writes the
+credential handoff with mode `0600`. It refuses production and customer
+Edition environments. AWS production must return to unique privileged
+credentials, MFA and managed secrets. Password storage remains
+PBKDF2-HMAC-SHA256.
 
 ---
 
@@ -291,7 +305,7 @@ The generated file is `~/.studiosaas/pilot-credentials.txt` with mode `0600`. Th
 |---|---|---|
 | Local demo | **GO** | Dependency install + smoke tests pass |
 | Internal testing | **GO** (2026-07-03) | P0-01…P0-07 all done and verified |
-| External pilot (tunnel) | **GO when launcher is running** | Full verification green + unique password rotation + Secure cookies + current backup. The tunnel is intentionally on demand. |
+| External pilot (tunnel) | **GO when launcher is running** | Full verification green + shared-password risk disclosed + Secure cookies + current backup. The tunnel is intentionally on demand. |
 | AWS staging | **NO-GO** | Needs P3-01 config layering + P3-03 S3 media (plan: `docs/Deployment.md` §3) |
 
 ---

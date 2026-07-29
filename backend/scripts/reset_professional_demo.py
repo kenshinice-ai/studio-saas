@@ -7,7 +7,8 @@ This script is intentionally narrower than ``seed_random_demo_data.py``:
 * an existing tenant must carry ``settings.professional_demo = true``;
 * it refuses to run in standalone/customer-edition mode;
 * it uses fictional contact details and synthetic artwork bundled with the app;
-* every staff password and the student access code are rotated on each reset;
+* staff passwords use the configured stable local/Pilot demonstration password;
+* the student access code remains separately rotated on each reset;
 * credentials are written to a local ``0600`` file, never printed.
 
 The command is destructive only inside the dedicated showcase tenant. It does
@@ -21,7 +22,6 @@ import argparse
 import hashlib
 import json
 import os
-import secrets
 import shutil
 import sys
 from datetime import date, timedelta
@@ -45,6 +45,7 @@ from studiosaas.workspaces import ensure_tenant_workspace
 SHOWCASE_SLUG = "lets-paint-showcase"
 SHOWCASE_NAME = "Let's Paint Studio"
 CONFIRMATION = "RESET-LETS-PAINT-SHOWCASE"
+DEMO_PASSWORD_ENV = "STUDIOSAAS_SHARED_DEMO_PASSWORD"
 ROLE_ACCOUNTS = (
     ("owner", "owner.showcase@pwe-studio.invalid", "Alex Morgan", "Owner"),
     ("manager", "manager.showcase@pwe-studio.invalid", "Jordan Lee", "Studio Manager"),
@@ -232,12 +233,11 @@ def _clear_showcase(cur: Any, tenant_id: str) -> None:
     cur.execute("DELETE FROM memberships WHERE tenant_id = %s", (tenant_id,))
 
 
-def _seed_roles(cur: Any, tenant_id: str) -> list[dict[str, str]]:
-    """Create the four demonstration roles with freshly rotated passwords."""
+def _seed_roles(cur: Any, tenant_id: str, password: str) -> list[dict[str, str]]:
+    """Create the four demonstration roles with one stable Pilot password."""
 
     credentials: list[dict[str, str]] = []
     for role, email, full_name, label in ROLE_ACCOUNTS:
-        password = secrets.token_urlsafe(18)
         cur.execute(
             """
             INSERT INTO users (email, password_hash, full_name, status)
@@ -592,7 +592,7 @@ def _write_credentials(path: Path, credentials: list[dict[str, str]], student_co
         f"CMS: /{SHOWCASE_SLUG}/cms",
         f"Studio Admin: /{SHOWCASE_SLUG}/studio-admin",
         "",
-        "Staff accounts (passwords rotate on every reset):",
+        "Staff accounts (stable local/Pilot demonstration password):",
     ]
     for item in credentials:
         lines.extend((f"- {item['role']}", f"  Email: {item['email']}", f"  Password: {item['password']}"))
@@ -616,11 +616,17 @@ def _write_credentials(path: Path, credentials: list[dict[str, str]], student_co
 def reset_showcase(credentials_file: Path) -> dict[str, Any]:
     """Reset the showcase in one transaction and return non-secret evidence."""
 
+    password = os.environ.get(DEMO_PASSWORD_ENV, "")
+    if len(password) < 12:
+        raise RuntimeError(
+            f"{DEMO_PASSWORD_ENV} must provide the stable demonstration password "
+            "with at least 12 characters."
+        )
     with connect(statement_timeout_ms=0, lock_timeout_ms=0) as conn:
         with conn.cursor() as cur:
             tenant_id = _load_or_create_tenant(cur)
             _clear_showcase(cur, tenant_id)
-            credentials = _seed_roles(cur, tenant_id)
+            credentials = _seed_roles(cur, tenant_id, password)
             course_ids = _seed_catalog(cur, tenant_id)
             teacher_id = next(item["user_id"] for item in credentials if item["role"] == "Lead Teacher")
             manager_id = next(item["user_id"] for item in credentials if item["role"] == "Studio Manager")
