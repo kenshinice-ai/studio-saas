@@ -55,9 +55,10 @@ ensure_python_environment() {
   local requirements="$project_root/backend/requirements.txt"
 
   command -v python3 >/dev/null 2>&1 || die "Python 3 is required."
-  if [ ! -x "$python_bin" ]; then
-    say "Creating Python virtual environment"
-    python3 -m venv "$project_root/.venv"
+  if [ ! -x "$python_bin" ] || \
+     ! "$python_bin" -c "import sys; print(sys.executable)" >/dev/null 2>&1; then
+    say "Creating Python virtual environment for this Mac"
+    python3 -m venv --clear "$project_root/.venv"
   fi
 
   if ! "$python_bin" -c "import flask, waitress, psycopg" >/dev/null 2>&1; then

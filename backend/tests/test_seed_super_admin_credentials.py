@@ -46,6 +46,7 @@ def test_seed_has_no_fixed_privileged_password_default() -> None:
 def test_online_launcher_is_portable_and_never_resets_passwords() -> None:
     project_root = Path(__file__).resolve().parents[2]
     launcher = (project_root / "START_STUDIOSAAS_ONLINE.command").read_text(encoding="utf-8")
+    startup_common = (project_root / "scripts/startup_common.sh").read_text(encoding="utf-8")
     assert 'ADMIN_EMAIL="admin@studiosaas.local"' in launcher
     assert 'RUNTIME_DIR="$PROJECT_ROOT/.runtime"' in launcher
     assert 'RUNTIME_ENV="$RUNTIME_DIR/online.env"' in launcher
@@ -59,6 +60,11 @@ def test_online_launcher_is_portable_and_never_resets_passwords() -> None:
     assert "STUDIOSAAS_ADMIN_PASSWORD" not in launcher
     assert "--no-print-password" in launcher
     assert "STUDIOSAAS_SHARED_DEMO_PASSWORD" not in launcher
+    assert 'DATABASE_MODE="${STUDIOSAAS_DATABASE_MODE:-standard}"' in launcher
+    assert 'PORTABLE_DB_SNAPSHOT="$PORTABLE_DB_DIR/studiosaas-portable.snapshot"' in launcher
+    assert "portable_database_handoff.py" in launcher
+    assert "Publishing verified portable database snapshot" in launcher
+    assert 'python3 -m venv --clear "$project_root/.venv"' in startup_common
 
 
 def test_demo_reset_uses_configured_stable_password() -> None:

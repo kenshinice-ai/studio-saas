@@ -20,6 +20,7 @@ DB_NAME="${STUDIOSAAS_DB_NAME:-studiosaas_local_test}"
 DB_USER="${STUDIOSAAS_DB_USER:-$(whoami)}"
 DB_HOST="${STUDIOSAAS_DB_HOST:-localhost}"
 DB_PORT="${STUDIOSAAS_DB_PORT:-5432}"
+DATABASE_MODE="${STUDIOSAAS_DATABASE_MODE:-standard}"
 CUSTOM_DATABASE_URL="${STUDIOSAAS_DATABASE_URL:-}"
 DATABASE_URL="${STUDIOSAAS_DATABASE_URL:-postgresql://${DB_USER}@${DB_HOST}:${DB_PORT}/${DB_NAME}}"
 PORT="${PORT:-8901}"
@@ -37,8 +38,24 @@ TUNNEL_NAME="${STUDIOSAAS_TUNNEL_NAME:-}"
 APP_PID_FILE="$LOG_DIR/online-app.pid"
 TUNNEL_PID_FILE="$LOG_DIR/online-tunnel.pid"
 STOP_REQUEST_FILE="$LOG_DIR/online-stop.request"
+PORTABLE_DB_DIR="$RUNTIME_DIR/database"
+PORTABLE_DB_SNAPSHOT="$PORTABLE_DB_DIR/studiosaas-portable.snapshot"
+PORTABLE_DB_LEASE="$PORTABLE_DB_DIR/active-session.json"
 mkdir -p "$LOG_DIR" "$DATA_DIR" "$CREDENTIALS_DIR" "$CLOUDFLARE_DIR"
 rm -f "$STOP_REQUEST_FILE"
+
+case "$DATABASE_MODE" in
+  standard)
+    ;;
+  portable)
+    [ -z "$CUSTOM_DATABASE_URL" ] || die \
+      "Portable database mode derives a local URL for each Mac. Remove STUDIOSAAS_DATABASE_URL from $RUNTIME_ENV."
+    DATABASE_URL="postgresql://${DB_USER}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
+    ;;
+  *)
+    die "STUDIOSAAS_DATABASE_MODE must be standard or portable."
+    ;;
+esac
 
 say "Checking and installing required environment"
 ensure_brew_command cloudflared cloudflared
@@ -52,12 +69,63 @@ PYTHON="$(ensure_python_environment "$PROJECT_ROOT")"
 [ -n "$TUNNEL_NAME" ] || die \
   "STUDIOSAAS_TUNNEL_NAME is required in $RUNTIME_ENV."
 
+APP_PID=""
+TUNNEL_PID=""
+PORTABLE_SESSION_ID=""
+PORTABLE_EXPORT_ON_EXIT=0
+cleanup() {
+  local exit_code=$?
+  trap - EXIT INT TERM HUP
+  [ -z "$TUNNEL_PID" ] || kill "$TUNNEL_PID" 2>/dev/null || true
+  [ -z "$APP_PID" ] || kill "$APP_PID" 2>/dev/null || true
+  rm -f "$APP_PID_FILE" "$TUNNEL_PID_FILE"
+
+  if [ -n "$PORTABLE_SESSION_ID" ]; then
+    if [ "$PORTABLE_EXPORT_ON_EXIT" = "1" ]; then
+      say "Publishing verified portable database snapshot"
+      if ! STUDIOSAAS_DATABASE_URL="$DATABASE_URL" \
+        "$PYTHON" "$PROJECT_ROOT/backend/scripts/portable_database_handoff.py" \
+          export --snapshot "$PORTABLE_DB_SNAPSHOT"; then
+        printf "\nERROR: Portable database export failed. The lease was kept to prevent another Mac from restoring stale data.\n" >&2
+        exit_code=1
+      else
+        "$PYTHON" "$PROJECT_ROOT/backend/scripts/portable_database_handoff.py" \
+          release --lease "$PORTABLE_DB_LEASE" --session-id "$PORTABLE_SESSION_ID" \
+          || exit_code=1
+      fi
+    else
+      "$PYTHON" "$PROJECT_ROOT/backend/scripts/portable_database_handoff.py" \
+        release --lease "$PORTABLE_DB_LEASE" --session-id "$PORTABLE_SESSION_ID" \
+        || exit_code=1
+    fi
+  fi
+  exit "$exit_code"
+}
+trap cleanup EXIT INT TERM HUP
+
 say "Checking PostgreSQL"
-if [ -n "$CUSTOM_DATABASE_URL" ]; then
+if [ "$DATABASE_MODE" = "portable" ]; then
+  ensure_postgres_running "$DB_HOST" "$DB_PORT"
+  ensure_database_exists "$DB_HOST" "$DB_PORT" "$DB_NAME"
+elif [ -n "$CUSTOM_DATABASE_URL" ]; then
   ensure_database_connection "$DATABASE_URL"
 else
   ensure_postgres_running "$DB_HOST" "$DB_PORT"
   ensure_database_exists "$DB_HOST" "$DB_PORT" "$DB_NAME"
+fi
+
+if [ "$DATABASE_MODE" = "portable" ]; then
+  [ -r "$PORTABLE_DB_SNAPSHOT" ] || die \
+    "Portable database snapshot is missing: $PORTABLE_DB_SNAPSHOT"
+  say "Acquiring portable database handoff"
+  PORTABLE_SESSION_ID="$(
+    "$PYTHON" "$PROJECT_ROOT/backend/scripts/portable_database_handoff.py" \
+      acquire --lease "$PORTABLE_DB_LEASE" --owner-pid "$$"
+  )"
+  say "Restoring the last verified portable database snapshot"
+  STUDIOSAAS_DATABASE_URL="$DATABASE_URL" \
+    "$PYTHON" "$PROJECT_ROOT/backend/scripts/portable_database_handoff.py" \
+      restore --snapshot "$PORTABLE_DB_SNAPSHOT"
 fi
 
 say "Applying ordered database migrations"
@@ -77,15 +145,6 @@ stop_managed_process "$APP_PID_FILE" "server.py"
 stop_managed_process "$TUNNEL_PID_FILE" "cloudflared"
 require_free_port "$PORT"
 
-APP_PID=""
-TUNNEL_PID=""
-cleanup() {
-  [ -z "$TUNNEL_PID" ] || kill "$TUNNEL_PID" 2>/dev/null || true
-  [ -z "$APP_PID" ] || kill "$APP_PID" 2>/dev/null || true
-  rm -f "$APP_PID_FILE" "$TUNNEL_PID_FILE"
-}
-trap cleanup EXIT INT TERM
-
 say "Starting StudioSaaS application"
 (
   cd "$PROJECT_ROOT/backend"
@@ -102,6 +161,7 @@ say "Starting StudioSaaS application"
 APP_PID=$!
 printf "%s\n" "$APP_PID" >"$APP_PID_FILE"
 wait_for_url "http://localhost:$PORT/v1/health" "Local StudioSaaS health" 45
+[ "$DATABASE_MODE" != "portable" ] || PORTABLE_EXPORT_ON_EXIT=1
 
 say "Starting Cloudflare Tunnel"
 # The project-local credential JSON and explicit URL make the connector
@@ -126,6 +186,10 @@ echo "  停止:  关闭本窗口，或双击 STOP_STUDIOSAAS_ONLINE.command"
 echo "  日志:  $LOG_DIR/online-app.log 和 $LOG_DIR/cloudflared.log"
 echo "  配置:  $RUNTIME_ENV"
 echo "  凭据:  $CREDENTIAL_FILE"
+if [ "$DATABASE_MODE" = "portable" ]; then
+  echo "  数据库: 单设备交接模式；停止完成并等待 iCloud 同步后，才能在另一台 Mac 启动"
+  echo "  快照:  $PORTABLE_DB_SNAPSHOT"
+fi
 echo "  提示:  本窗口只管理本次启动的 PID；演示前仍需确认 Cloudflare 没有旧连接器残留。"
 echo ""
 
