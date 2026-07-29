@@ -13,7 +13,7 @@ DB_HOST="${STUDIOSAAS_DB_HOST:-localhost}"
 DB_PORT="${STUDIOSAAS_DB_PORT:-5432}"
 CUSTOM_DATABASE_URL="${STUDIOSAAS_DATABASE_URL:-}"
 DATABASE_URL="${STUDIOSAAS_DATABASE_URL:-postgresql://${DB_USER}@${DB_HOST}:${DB_PORT}/${DB_NAME}}"
-PORT="${PORT:-8899}"
+PORT="${PORT:-8901}"
 PUBLIC_URL="${STUDIOSAAS_PUBLIC_URL:-https://studiosaas.cc.cd}"
 PUBLIC_BASE_DOMAIN="${STUDIOSAAS_PUBLIC_BASE_DOMAIN:-studiosaas.cc.cd}"
 EXPECTED_APP_VERSION="$(tr -d '[:space:]' < "$PROJECT_ROOT/VERSION")"
@@ -40,9 +40,13 @@ for candidate in "$HOME/.cloudflared/config.yml" "$HOME/.cloudflared/config.yaml
     break
   fi
 done
-CF_CREDENTIALS="$(find "$HOME/.cloudflared" -maxdepth 1 -type f -name '*.json' -print -quit 2>/dev/null || true)"
+CF_CREDENTIALS="${STUDIOSAAS_TUNNEL_CREDENTIALS:-}"
+TUNNEL_NAME="${STUDIOSAAS_TUNNEL_NAME:-}"
 if [ -z "$CF_CONFIG" ] && [ -z "$CF_CREDENTIALS" ]; then
-  die "Cloudflare Tunnel is not configured. Run cloudflared tunnel login/create/route dns first."
+  die "Cloudflare Tunnel is not configured. Provide ~/.cloudflared/config.yml, or explicitly set STUDIOSAAS_TUNNEL_CREDENTIALS and STUDIOSAAS_TUNNEL_NAME."
+fi
+if [ -z "$CF_CONFIG" ] && [ -z "$TUNNEL_NAME" ]; then
+  die "STUDIOSAAS_TUNNEL_NAME is required when no Cloudflare config file is present."
 fi
 
 say "Checking PostgreSQL"
@@ -106,10 +110,13 @@ wait_for_url "http://localhost:$PORT/v1/health" "Local StudioSaaS health" 45
 
 say "Starting Cloudflare Tunnel"
 if [ -n "$CF_CONFIG" ]; then
-  cloudflared tunnel --config "$CF_CONFIG" run studiosaas >>"$LOG_DIR/cloudflared.log" 2>&1 &
+  # The config file is authoritative for both tunnel identity and ingress.
+  # Supplying a hard-coded name here can override a rotated tunnel and attach
+  # the public hostname to an obsolete connector.
+  cloudflared tunnel --config "$CF_CONFIG" run >>"$LOG_DIR/cloudflared.log" 2>&1 &
 else
   cloudflared tunnel --url "http://localhost:$PORT" \
-    run --credentials-file "$CF_CREDENTIALS" studiosaas >>"$LOG_DIR/cloudflared.log" 2>&1 &
+    run --credentials-file "$CF_CREDENTIALS" "$TUNNEL_NAME" >>"$LOG_DIR/cloudflared.log" 2>&1 &
 fi
 TUNNEL_PID=$!
 printf "%s\n" "$TUNNEL_PID" >"$TUNNEL_PID_FILE"

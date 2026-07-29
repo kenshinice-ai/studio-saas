@@ -4,6 +4,7 @@ Date: 2026-07-29
 Baseline: tag `v8.0.0`, commit `abc01ce6e4f281056c3c22fa665e42d7811e0688`
 Release branch: `codex/v8.0.1-product-home-brand-release`
 Release source of truth: `VERSION`, final `main` commit and annotated tag `v8.0.1`
+Post-release corrective branch: `codex/super-admin-tunnel-chain-fix`
 
 ## 1. Delivery boundary
 
@@ -12,9 +13,9 @@ not an AWS production deployment.
 
 | Area | Current truth |
 |---|---|
-| SaaS runtime | Local Waitress + PostgreSQL; Cloudflare invitation workflow supported |
-| Public product URL | `https://studiosaas.cc.cd` currently reports v7.8.1 from an unmanaged/historical connector |
-| v8 acceptance runtime | `http://127.0.0.1:8901`, deep health passed as v8.0.1 |
+| SaaS runtime | Local Waitress + PostgreSQL behind the controlled `studiosaas-v8-controlled` Cloudflare Tunnel |
+| Public product URL | `https://studiosaas.cc.cd` reports v8.0.1 from the same runtime as `http://127.0.0.1:8901` |
+| Role entry contract | `/platform-admin` = platform control plane; `/studio-admin` = neutral tenant-admin login; `/cms` = neutral tenant-operations login |
 | AWS/RDS/S3/SES | Not purchased or deployed |
 | Production backups/restore/monitoring/SLA | Deferred until AWS resources exist and a production rehearsal passes |
 | Online payment, provider SMS/email, custom domains | Deferred |
@@ -131,6 +132,14 @@ Real Chrome, no page errors and no HTTP 5xx:
 | Teacher CMS | 375×812 | three-step flow; no financial label; no schedule mutation |
 | Family private area | 375×812 | balance 8, four attendance rows, one private work, native contact actions |
 
+The post-release tunnel correction was also accepted in the in-app browser
+against the public hostname. `/platform-admin` remained on the direct
+application login, `/studio-admin` required an explicit slug without browser
+storage fallback, `/cms` exposed an explicit tenant selector, and
+`/lets-paint-showcase/studio-admin` locked the correct slug. The showcase CMS
+rendered the Let's Paint Studio login and no tested page had horizontal
+overflow.
+
 Product-home display images are 760×760 WebP with intrinsic dimensions and
 total **229,582 bytes** in the browser. Five role entrances render at every
 tested viewport; local page load during the acceptance run was approximately
@@ -158,8 +167,11 @@ and spreadsheet error-token scans passed.
 `START_STUDIOSAAS_ONLINE.command` now:
 
 - pins `STUDIOSAAS_MODE=saas`;
+- defaults the application runtime to port `8901`;
 - reads the expected application version from `VERSION`;
 - supports an explicit public base domain;
+- treats `~/.cloudflared/config.yml` as the authoritative tunnel identity and
+  ingress instead of selecting the first credential JSON file;
 - waits for local and public health;
 - runs `backend/scripts/verify_tunnel_parity.py` against deep health;
 - refuses to call the tunnel accepted when version, mode, database or release
@@ -167,16 +179,22 @@ and spreadsheet error-token scans passed.
 
 Current observation on 2026-07-29:
 
-- v8 acceptance deep health:
+- local and public deep health agree on
   `appVersion=8.0.1`, `mode=saas`, `db=ok`;
-- the public URL still returns `appVersion=7.8.1`;
-- port 8899 is occupied by a separate `python -m http.server`, not the v8 app;
-- no launcher-owned local `cloudflared` process was identified.
+- DNS for `studiosaas.cc.cd` points to the controlled
+  `studiosaas-v8-controlled` tunnel, whose ingress targets
+  `http://localhost:8901`;
+- the public platform-admin API returned all six local tenants;
+- `lets-paint-showcase` owner authentication, tenant API and brand workspace
+  all returned the exact showcase tenant;
+- `/super-admin` remains a Cloudflare Access-protected compatibility alias;
+  `/platform-admin` is the direct application-login route;
+- the old tunnel was left intact but is no longer the hostname route, preserving
+  rollback without allowing two runtimes to answer the same hostname.
 
-Therefore no v8.0.1 public Cloudflare claim is made. Resolve or rotate the
-unmanaged connector before starting another connector for the same tunnel.
-The launcher now fails parity instead of silently accepting this split-brain
-state.
+The previous split-brain state is therefore resolved. Do not change the DNS
+route back to the historical tunnel or start a second connector with a
+different ingress for this hostname.
 
 ## 6. Packages and release closure
 
@@ -215,7 +233,7 @@ bash backend/scripts/verify_local.sh
 
 # Tunnel split-brain/version parity
 .venv/bin/python backend/scripts/verify_tunnel_parity.py \
-  --local-base-url http://localhost:8899 \
+  --local-base-url http://localhost:8901 \
   --public-base-url https://studiosaas.cc.cd \
   --expected-app-version 8.0.1 \
   --expected-mode saas

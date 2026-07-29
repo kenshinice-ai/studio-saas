@@ -6,7 +6,9 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from studiosaas.workspaces import ensure_tenant_workspace
+import pytest
+
+from studiosaas.workspaces import WorkspaceError, ensure_tenant_workspace, validate_tenant_slug
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -16,6 +18,14 @@ EXISTING_TENANTS = (
     "lets-play-game",
     "dance-dance",
 )
+
+
+@pytest.mark.parametrize("slug", ["cms", "platform-admin"])
+def test_control_plane_and_neutral_entry_slugs_are_reserved(slug):
+    """A tenant workspace must never shadow a platform or neutral entry route."""
+
+    with pytest.raises(WorkspaceError, match="reserved"):
+        validate_tenant_slug(slug)
 
 
 def test_new_tenant_workspace_generates_public_surface_files(tmp_path):
@@ -111,12 +121,29 @@ def test_existing_tenants_render_all_four_surfaces(client):
 
 def test_root_studio_admin_requires_explicit_tenant_selection(client):
     response = client.get("/studio-admin", follow_redirects=False)
-    assert response.status_code == 302
-    assert response.headers["Location"].endswith("/super-admin#tenants")
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert 'id="tenantSlug" type="text" required' in html
+    assert "localStorage.getItem('studiosaas_tenant_slug')" not in html
+    assert "Enter the studio URL slug to continue." in html
+
+
+def test_root_cms_requires_explicit_tenant_selection(client):
+    response = client.get("/cms", follow_redirects=False)
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert 'id="tenantSlug" name="tenantSlug" required' in html
+    assert "系统不会自动选择或恢复旧租户" in html
+    assert 'href="/lets-paint-showcase/cms"' in html
+    assert "localStorage" not in html
 
 
 def test_admin_surfaces_share_persistent_language_switch(client):
-    for path in ("/super-admin", "/lets-paint-studio/studio-admin"):
+    for path in (
+        "/platform-admin",
+        "/super-admin",
+        "/lets-paint-studio/studio-admin",
+    ):
         response = client.get(path)
         assert response.status_code == 200
         assert "/assets/admin-i18n.js" in response.get_data(as_text=True)

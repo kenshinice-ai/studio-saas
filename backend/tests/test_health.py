@@ -180,7 +180,7 @@ def test_root_student_manifest_does_not_point_at_closed_register(client):
 def test_super_admin_is_commercial_control_plane(client):
     """The platform entrypoint should foreground lifecycle and revenue."""
 
-    html = client.get("/super-admin").get_data(as_text=True)
+    html = client.get("/platform-admin").get_data(as_text=True)
     assert "Commercial Overview" in html
     assert "MRR (AUD)" in html
     assert "Trials Ending in 7 Days" in html
@@ -188,6 +188,16 @@ def test_super_admin_is_commercial_control_plane(client):
     assert "Open Quick Registration" in html
     assert "Use More → Status for audited lifecycle actions." in html
     assert "Additional entitlements (JSON)" in html
+    assert "Promise.allSettled" in html
+    assert "Partial load" in html
+
+
+def test_product_home_uses_direct_platform_admin_login(client):
+    """The public role gateway must not send operators into Access redirects."""
+
+    html = client.get("/").get_data(as_text=True)
+    assert 'class="role" href="/platform-admin"' in html
+    assert 'class="role" href="/super-admin"' not in html
 
 
 def test_pilot_refuses_missing_legacy_cms_password(monkeypatch, tmp_path):

@@ -41,7 +41,7 @@ Admin）作为**独立软件包**整体交付给客户，部署在客户自己�
 ### 方案 A（推荐）：同一代码库 + `STUDIOSAAS_MODE=standalone` 运行模式
 同一仓库、同一发布流程，新增一个运行模式开关：
 - 启动时要求库中**恰好一个 active 租户**（安装脚本创建），否则拒绝启动；
-- `/super-admin`、`/v1/admin/*`、`/v1/plans*` 写路径全部 404/关闭；
+- `/platform-admin`、`/super-admin`、`/v1/admin/*`、`/v1/plans*` 写路径全部 404/关闭；
 - 平台成员（tenant_id IS NULL 的 super_admin）不允许存在；
 - plan 限制读取为无限（或安装时写入一个 unlimited plan 行）；
 - 根路径 `/` 直接跳转到该租户门户（而非 super-admin）。

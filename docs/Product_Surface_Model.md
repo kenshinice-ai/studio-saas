@@ -8,13 +8,19 @@ StudioSaaS is one commercial platform with two tenant workspaces and one public 
 
 | Surface | Canonical route | Primary user | Owns | Must not own |
 |---|---|---|---|---|
-| Super Admin | `/super-admin` | StudioSaaS operator | Tenant lifecycle, plans, subscriptions, recurring revenue, usage, risk, support and audit | Routine student operations |
+| Super Admin | `/platform-admin` (direct app login); `/super-admin` (Access-protected alias) | StudioSaaS operator | Tenant lifecycle, plans, subscriptions, recurring revenue, usage, risk, support and audit | Routine student operations |
 | Studio Admin | `/<slug>/studio-admin` | Tenant owner | Brand, bilingual public copy, portal sections, registration fields, preview, draft, publication and rollback | Students, schedules, attendance, payments or portfolio operations |
 | Studio CMS | `/<slug>/cms` | Owner, manager, teacher, front desk | Students, schedules, rosters, attendance, credits, payments/refunds, registration follow-up, portfolio, logs and reporting | Platform billing or public-site design |
 | Studio Portal | `/<slug>` | Prospects, families and students | Bilingual studio introduction, courses, work gallery, primary registration CTA and optional student area | Administrative operations |
 | Quick Registration | `/<slug>/register` | QR, campaign and direct-link visitors | Focused alternate registration form using the same schema and API as the portal | A second portal or a separate registration database |
 
 Root `/register` remains closed. All public registration is tenant scoped.
+Root `/studio-admin` is a neutral tenant-admin login requiring an explicit
+tenant slug. It does not redirect to `/platform-admin` and does not reuse a
+previous tenant from browser storage.
+Root `/cms` is the neutral tenant-operations entry. It requires an explicit
+tenant slug in SaaS mode and redirects only in Edition mode, where exactly one
+active tenant is a startup invariant.
 
 ## Canonical end-to-end flows
 

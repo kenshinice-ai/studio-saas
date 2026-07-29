@@ -1,6 +1,6 @@
 # 平台超管手册 · Super Admin
 
-> 适用版本：StudioSaaS v8.0.1 · 界面：Super Admin 控制台（`/super-admin`）
+> 适用版本：StudioSaaS v8.0.1 · 界面：Super Admin 控制台（`/platform-admin`）
 > 其他角色手册见 [手册总览](README.md)
 
 ## 角色定位
@@ -13,7 +13,9 @@ Super Admin 是**平台方**（SaaS 运营者），不属于任何一家工作�
 
 ## 快速上手
 
-1. 打开 `https://<平台域名>/super-admin`。
+1. 直接使用系统登录时打开 `https://<平台域名>/platform-admin`。`/super-admin`
+   保留为可由 Cloudflare Access 保护的双重验证别名；出现 Cloudflare 登录跳转
+   表示请求尚未到达 StudioSaaS，不是系统自动换链接。
 2. 在「Super Admin Login」输入邮箱、密码（可勾选「Remember me for 30 days」），
    点「Login」。**只有平台级 super_admin 账号**（不挂在任何租户下）能进入；
    其他账号会被登出并提示「Please log in with a Super Admin account.」。

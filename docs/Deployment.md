@@ -32,7 +32,7 @@ STUDIOSAAS_ADMIN_PASSWORD='<strong unique local secret>' \
 python scripts/seed_local_test_tenants.py
 
 # 启动
-PORT=8899 STUDIOSAAS_DATABASE_URL=postgresql://$(whoami)@localhost:5432/studiosaas_local_test \
+PORT=8901 STUDIOSAAS_DATABASE_URL=postgresql://$(whoami)@localhost:5432/studiosaas_local_test \
   .venv/bin/python backend/server.py
 # 或直接: ./start_studiosaas_local.sh
 ```
@@ -41,7 +41,7 @@ PORT=8899 STUDIOSAAS_DATABASE_URL=postgresql://$(whoami)@localhost:5432/studiosa
 
 | 检查 | 命令 | 期望 |
 |---|---|---|
-| 健康 | `curl localhost:8899/v1/health` | `{"ok":true,...}` |
+| 健康 | `curl localhost:8901/v1/health` | `{"ok":true,...}` |
 | pytest | `cd backend && ../.venv/bin/python -m pytest -q` | 全绿、不得以 skip 绕过 PostgreSQL gate |
 | CMS 冒烟 | `../.venv/bin/python test_cms.py` | 73 通过 |
 | 租户隔离 | `../.venv/bin/python test_tenant_isolation.py` | 需包含品牌草稿/发布/恢复、角色权限、来源漏斗与跨租户检查 |
@@ -58,7 +58,7 @@ PORT=8899 STUDIOSAAS_DATABASE_URL=postgresql://$(whoami)@localhost:5432/studiosa
 ```
 访客 → https://studiosaas.cc.cd (Cloudflare 边缘, TLS)
      → tunnel (出站长连接)
-     → 本机 cloudflared → http://localhost:8899 (waitress)
+     → 本机 cloudflared → http://localhost:8901 (waitress)
 ```
 
 ### 2.2 一次性配置
@@ -78,7 +78,7 @@ tunnel: <TUNNEL_ID>
 credentials-file: /Users/llmacbookpro/.cloudflared/<TUNNEL_ID>.json
 ingress:
   - hostname: studiosaas.cc.cd
-    service: http://localhost:8899
+    service: http://localhost:8901
   - service: http_status:404
 ```
 
@@ -103,7 +103,7 @@ ingress:
 | 2 | Secure cookie | ✅ 2026-07-09：隧道来源的请求自动给 session cookie 加 Secure（自定义 SessionInterface）；本地 http 开发不受影响；`COOKIE_SECURE=1` 全局强制仍可用 |
 | 3 | 特权密码 | 源码无固定特权密码。启动器默认保留现有 hash；只有显式提供 `STUDIOSAAS_ADMIN_PASSWORD` 时才创建/重置账号并更新 0600 本机凭据文件。永久生产部署前仍须独立轮换并加 Cloudflare Access 等第二层保护。 |
 | 4 | 备份 | ✅ 2026-07-09：`BACKUP_STUDIOSAAS_NOW.command` 一键备份（keep 14）；恢复演练通过（restore-dry-run，10 迁移核验）；按需模式不装定时，模板在 `deploy/launchd/` |
-| 5 | super-admin 面收紧 | 应用内强密码和角色检查为必需；Cloudflare Access 邮箱 OTP 仍建议作为第二层保护，覆盖 `/` 与 `/super-admin*` |
+| 5 | super-admin 面收紧 | `/platform-admin` 直接显示应用登录并继续执行平台级 RBAC；`/super-admin*` 可保留 Cloudflare Access 邮箱 OTP 作为双重保护入口。两条入口共享同一受保护 API，不能用隐藏 slug 代替鉴权。 |
 | 6 | Cloudflare 区设置 | 建议开 Bot Fight Mode（仪表盘）；SSL/TLS 模式无所谓（tunnel 不走 origin 证书） |
 
 ### 2.5 试点验证
@@ -148,7 +148,7 @@ bash scripts/package_release.sh
 ```
 Route53/Cloudflare DNS
   → EC2 t4g.small (ARM, Ubuntu 24.04)
-      nginx (TLS 终止, 静态缓存) → waitress :8899
+      nginx (TLS 终止, 静态缓存) → waitress :8901
   → RDS PostgreSQL 16 (db.t4g.micro, 20GB gp3, 自动快照 7 天)
   → S3 (媒体文件, P3-03 storage_provider 切换)
   → SES (注册/审批邮件, 替换 console backend)
@@ -185,7 +185,7 @@ pg_dump 里）。具体命令见 `deploy/aws/README_AWS.md` §9。
 | 变量 | Stage 0 | Stage 1 (tunnel) | Stage 2 (AWS) |
 |---|---|---|---|
 | `STUDIOSAAS_DATABASE_URL` | 本机 postgres | 同左 | RDS URL（Secrets Manager） |
-| `PORT` | 8899 | 8899 | 8899（nginx 上游） |
+| `PORT` | 8901 | 8901 | 8901（nginx 上游） |
 | `COOKIE_SECURE` | 不设 | **1** | **1**（P3-01 后 production 强制） |
 | `STUDIOSAAS_ENV` | local | local | production |
 | `STUDIOSAAS_API_KEY` | 自动生成的本地文件 | 独立强随机值 | Secrets Manager |

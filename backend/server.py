@@ -918,8 +918,16 @@ def serve_index():
 def serve_register():
     return api_error('Use /<tenant_slug>/register for tenant registration.', 404)
 
+@app.route('/platform-admin')
 @app.route('/super-admin')
 def serve_super_admin():
+    """Serve the SaaS control plane on both public and Access-protected paths.
+
+    ``/platform-admin`` is the direct application-login route used when
+    Cloudflare Access protects ``/super-admin*``. Both paths still enforce the
+    same backend platform-super-admin role on every privileged API request.
+    """
+
     if is_standalone():
         return api_error('Not found', 404)
     return _public_file('super-admin.html', 'text/html; charset=utf-8', 0)
@@ -930,9 +938,38 @@ def serve_legacy_register():
 
 @app.route('/studio-admin')
 def serve_studio_admin():
-    # A tenant slug is mandatory for the Studio Admin context. Never recover
-    # it from browser localStorage or silently choose a demo tenant.
-    return redirect('/super-admin#tenants', code=302)
+    """Serve the neutral tenant-admin login without guessing a tenant.
+
+    The page requires the operator to enter a tenant slug explicitly. A
+    tenant-specific link remains ``/<slug>/studio-admin`` and locks the slug
+    from the route. This keeps tenant administration separate from the
+    platform control plane at ``/platform-admin``.
+    """
+
+    return send_from_directory(
+        os.path.join(APP_DIR, 'frontend'),
+        'studio-admin.html',
+    )
+
+
+@app.route('/cms')
+def serve_cms_entry():
+    """Serve a neutral tenant-CMS selector or the sole Edition CMS.
+
+    SaaS mode cannot infer a tenant safely, so the entry page requires a slug
+    and never reads browser storage. Edition mode has exactly one active
+    tenant by contract and may redirect directly to its scoped CMS.
+    """
+
+    if is_standalone():
+        slug = _standalone_tenant_slug()
+        if not slug:
+            return api_error('Service temporarily unavailable.', 503)
+        return redirect(f'/{slug}/cms', code=302)
+    return send_from_directory(
+        os.path.join(APP_DIR, 'frontend'),
+        'cms-entry.html',
+    )
 
 @app.route('/assets/<path:filename>')
 def serve_shared_assets(filename):

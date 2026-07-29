@@ -119,6 +119,7 @@ def test_customer_resources_are_explicitly_allowlisted(client, saas):
 
 def test_saas_super_admin_page_reachable(client, saas):
     assert client.get("/super-admin").status_code == 200
+    assert client.get("/platform-admin").status_code == 200
 
 
 def test_saas_admin_api_reaches_auth_layer_not_404(client, saas):
@@ -143,8 +144,16 @@ def test_standalone_root_503_when_slug_unresolvable(client, standalone, monkeypa
     assert client.get("/").status_code == 503
 
 
+def test_standalone_root_cms_redirects_to_only_tenant(client, standalone, monkeypatch):
+    monkeypatch.setattr(server, "_standalone_tenant_slug", lambda: "solo-studio")
+    response = client.get("/cms", follow_redirects=False)
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/solo-studio/cms")
+
+
 def test_standalone_super_admin_page_404(client, standalone):
     assert client.get("/super-admin").status_code == 404
+    assert client.get("/platform-admin").status_code == 404
 
 
 # ── Standalone: /v1/admin/* closed on both mounts, even with a session ──

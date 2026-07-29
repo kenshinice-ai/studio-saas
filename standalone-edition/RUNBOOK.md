@@ -94,7 +94,7 @@ sudo bash /opt/pwe-studio/example-studio/current/standalone-edition/maintenance.
 ## 5. 交付日逐项签收
 
 - [ ] `/` 直达客户门户；品牌、域名、行业预设正确。
-- [ ] `/super-admin`、`/v1/admin/tenants` 均返回 404。
+- [ ] `/platform-admin`、`/super-admin`、`/v1/admin/tenants` 均返回 404。
 - [ ] 数据库中恰好一个租户，且它是 active；不存在任何平台级 membership。
 - [ ] owner 登录 CMS/Studio Admin 成功并当场修改临时密码。
 - [ ] 4G 网络提交测试报名，CMS 能看到并完成处理闭环。
