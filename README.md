@@ -1,6 +1,6 @@
 # PWE Studio
 
-Current release: **v8.0.0**
+Current release: **v8.0.1**
 
 PWE Studio (repo: studiosaas) is a Creative Studio Operating System for art schools, music studios, tutoring centres, creative academies, kids' activity providers, and small education businesses. One codebase supports a multi-tenant SaaS delivery model and a customer-owned standalone Edition.
 
@@ -17,21 +17,25 @@ It provides a lightweight SaaS-style platform for managing:
 single-tenant **PWE Studio Edition** (`STUDIOSAAS_MODE=standalone`) have a
 release-ready delivery path. SaaS runs locally (Waitress + PostgreSQL) and is
 exposed on demand via Cloudflare Tunnel at `https://studiosaas.cc.cd`. AWS
-deployment code is retained, but v8.0.0 is intentionally limited to local +
+deployment code is retained, but v8.0.1 is intentionally limited to local +
 Cloudflare invitation testing; no AWS deployment is claimed.
 
 Canonical product responsibilities and names are defined in `docs/Product_Surface_Model.md`: Super Admin is the commercial control plane, Studio Admin is the tenant brand/publication workspace, Studio CMS owns daily operations, the Studio Portal is the primary public acquisition experience, and Quick Registration is an alternate tenant-scoped entry.
 
 ---
 
-## v8.0.0 Professional Demonstration and Customer-Readiness Release
+## v8.0.1 Brand-Aligned Product Gateway and Customer-Readiness Release
 
-v8.0.0 turns the local + Cloudflare invitation pilot into a coherent,
-customer-readable demonstration and onboarding environment:
+v8.0.1 retains the v8.0.0 customer-demonstration scope and aligns its product
+gateway with the canonical PWE brand and sales language:
 
-- `/` is a bilingual product gateway with a product story, clear role
-  entrances, draft plan boundaries, migration downloads and device-native
-  Mail/Messages support actions;
+- `/` uses Family Navy, Family Amber, accessible amber text and Warm Paper,
+  with retired forest, sage and coral values guarded by regression tests;
+- the bilingual sales story places administration behind the scenes and
+  creativity in front, uses Let’s Paint Studio as the operating proof, and
+  clarifies the recommended Studio plan and one-time setup range;
+- the product gateway retains five role entrances, migration downloads and
+  device-native Mail/Messages support actions;
 - `lets-paint-showcase` is an isolated professional demonstration tenant with
   fictional records, synthetic artwork and a guarded one-click reset;
 - recurring class schedules can be downloaded as a privacy-safe ICS calendar
@@ -43,7 +47,7 @@ customer-readable demonstration and onboarding environment:
   report focus and a demonstration story—not only colours and nouns;
 - `docs/customer/` contains onboarding, FAQ, migration, support, pricing,
   integration, multi-campus, security/compliance and draft contract material;
-- multi-campus remains one campus = one tenant in v8.0.0; organisation-level
+- multi-campus remains one campus = one tenant in v8.0.1; organisation-level
   aggregation is deliberately deferred;
 - shared `61.8 / 38.2` layout tracks for decision-oriented two-column surfaces;
 - a Fibonacci-derived `5 / 8 / 13 / 21 / 34 / 55 / 89px` spacing scale;
@@ -591,7 +595,7 @@ same-mobile pending entries get a 疑似重复 badge, course duration is
 bilingual (60 分钟 / 60 MIN), broken gallery/hero images degrade cleanly
 (tiles removed from tab order, hero falls back to decorative art).
 
-**Role guides** (`docs/guides/`, current guides stamped 8.0.0): new dedicated
+**Role guides** (`docs/guides/`, current guides stamped 8.0.1): new dedicated
 Front Desk/Staff guide (previously "see Manager"), support-gate and
 owner-audit sections rewritten to match enforced behavior, share-link
 create/revoke permissions corrected everywhere, and each guide gained a
@@ -790,7 +794,7 @@ curl -i -X POST http://localhost:8899/v1/admin/tenants \
 | `docs/Deployment.md` | Current release boundary: local → Cloudflare Tunnel; AWS deferred |
 | `docs/Design_System.md` | UI tokens and component standards |
 | `docs/Glossary.md` | One agreed word per concept (enforced by `check_terminology.py`) |
-| `docs/guides/` | Per-role user manuals in Chinese (applicable to v8.0.0) |
+| `docs/guides/` | Per-role user manuals in Chinese (applicable to v8.0.1) |
 | `01 BRAND ASSETS/` | PWE/Paradise family delivery kit and validated asset manifest |
 
 ---

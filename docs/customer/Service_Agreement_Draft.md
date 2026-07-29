@@ -77,7 +77,7 @@ PWE Studio will not use Customer student media in public demonstrations or marke
 
 Cloudflare, AWS, email, messaging, accounting, calendar and payment services may be provided by third parties under their own terms and availability. PWE Studio is responsible for configuring included integrations with reasonable care but does not control a third party’s network or service.
 
-The v8.0.0 device-native Mail/Messages feature opens the user’s application; the user decides whether to send. It is not automated provider delivery.
+The v8.0.1 device-native Mail/Messages feature opens the user’s application; the user decides whether to send. It is not automated provider delivery.
 
 ## 9. Availability, maintenance and support
 

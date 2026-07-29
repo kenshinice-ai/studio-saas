@@ -108,6 +108,11 @@ def test_customer_resources_are_explicitly_allowlisted(client, saas):
     assert workbook.status_code == 200
     assert workbook.headers["Content-Disposition"].startswith("attachment;")
 
+    release_evidence = client.get("/customer-resources/Release_Notes_v8.0.1.html")
+    assert release_evidence.status_code == 200
+    assert b"v8.0.1 release evidence" in release_evidence.data
+    assert client.get("/customer-resources/Release_Notes_v8.0.0.html").status_code == 404
+
     assert client.get("/customer-resources/../VERSION").status_code == 404
     assert client.get("/customer-resources/private.txt").status_code == 404
 

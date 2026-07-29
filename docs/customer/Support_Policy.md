@@ -4,7 +4,7 @@ Status: pre-production draft
 
 ## Contact path
 
-The PWE Studio product homepage contains Support & Feedback actions. In v8.0.0 they open the user’s Mail or Messages application. The user reviews and sends; the system does not claim automated delivery or ticket-provider tracking.
+The PWE Studio product homepage contains Support & Feedback actions. In v8.0.1 they open the user’s Mail or Messages application. The user reviews and sends; the system does not claim automated delivery or ticket-provider tracking.
 
 Never send passwords, access codes, payment details or sensitive student information in the first message. Use tenant slug, affected role, time, page and a non-sensitive description.
 

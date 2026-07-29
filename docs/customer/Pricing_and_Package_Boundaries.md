@@ -12,7 +12,7 @@ GST: treatment must be stated in the signed order form
 | Studio | $99 | 500 | 8 | 30 GB | Starter plus communication templates and data export |
 | Growth | $199 | 1,500 | 20 | 100 GB | Studio plus priority support |
 
-These figures match the v8.0.0 product plan catalogue. The signed order form controls the final price, GST treatment, start date, minimum term and any negotiated inclusions.
+These figures match the v8.0.1 product plan catalogue. The signed order form controls the final price, GST treatment, start date, minimum term and any negotiated inclusions.
 
 ## Included in the recurring subscription
 
@@ -33,7 +33,7 @@ These figures match the v8.0.0 product plan catalogue. The signed order form con
 - third-party hosting, messaging, payment or accounting provider fees;
 - restoration work caused by unsupported customer changes or incomplete source data.
 
-## Explicitly deferred from v8.0.0
+## Explicitly deferred from v8.0.1
 
 - online payment processing and automatic financial reconciliation;
 - automated SMS/email delivery providers;
@@ -57,7 +57,7 @@ Migration work begins only after:
 
 ## Multi-campus commercial rule
 
-For v8.0.0, each campus is a separate tenant and subscription. This gives each campus independent data, staff access, branding, operating settings, backup scope and support boundary. A future organisation layer may aggregate reporting and shared identity without weakening tenant isolation.
+For v8.0.1, each campus is a separate tenant and subscription. This gives each campus independent data, staff access, branding, operating settings, backup scope and support boundary. A future organisation layer may aggregate reporting and shared identity without weakening tenant isolation.
 
 ## Price changes and cancellation
 

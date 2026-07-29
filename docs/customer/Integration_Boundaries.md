@@ -1,6 +1,6 @@
 # Integration Boundaries
 
-## Included in v8.0.0
+## Included in v8.0.1
 
 - CSV student template;
 - multi-sheet Excel migration template;

@@ -172,7 +172,7 @@ def _load_or_create_tenant(cur: Any) -> str:
     workspace_path = ensure_tenant_workspace(PROJECT_ROOT, SHOWCASE_SLUG, SHOWCASE_NAME)
     settings = {
         "professional_demo": True,
-        "showcase_version": "8.0.0",
+        "showcase_version": "8.0.1",
         "demo_data_policy": "fictional-records-and-synthetic-media-only",
         "workspace_path": workspace_path,
         "category": "art",
@@ -586,7 +586,7 @@ def _write_credentials(path: Path, credentials: list[dict[str, str]], student_co
 
     path.parent.mkdir(parents=True, exist_ok=True)
     lines = [
-        "PWE Studio v8.0.0 · Professional Showcase",
+        "PWE Studio v8.0.1 · Professional Showcase",
         f"Tenant: {SHOWCASE_NAME}",
         f"Portal: /{SHOWCASE_SLUG}",
         f"CMS: /{SHOWCASE_SLUG}/cms",
@@ -666,7 +666,7 @@ def reset_showcase(credentials_file: Path) -> dict[str, Any]:
                     tenant_id,
                     json.dumps(
                         {
-                            "version": "8.0.0",
+                            "version": "8.0.1",
                             "students": len(student_ids),
                             "schedules": 3,
                             "synthetic_artworks": len(ARTWORKS),

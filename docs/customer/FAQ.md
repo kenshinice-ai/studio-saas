@@ -2,7 +2,7 @@
 
 ## Is the current demonstration a production AWS deployment?
 
-No. v8.0.0 is currently operated locally with PostgreSQL and exposed for controlled demonstrations through a Cloudflare Tunnel. AWS production hosting, production media/database backup and a production SLA are pending purchase, configuration and restore testing.
+No. v8.0.1 is currently operated locally with PostgreSQL and exposed for controlled demonstrations through a Cloudflare Tunnel. AWS production hosting, production media/database backup and a production SLA are pending purchase, configuration and restore testing.
 
 ## What is the difference between Studio Admin and CMS?
 
@@ -10,11 +10,11 @@ Studio Admin is the owner’s website and brand workspace: public content, prese
 
 ## Can families sign in?
 
-A family can unlock one student’s private area using the student name, the registered mobile number and a six-digit access code issued by the studio. The view contains that student’s balance, next class, attendance and portfolio. A single account aggregating multiple children is not included in v8.0.0.
+A family can unlock one student’s private area using the student name, the registered mobile number and a six-digit access code issued by the studio. The view contains that student’s balance, next class, attendance and portfolio. A single account aggregating multiple children is not included in v8.0.1.
 
 ## Does PWE Studio send SMS or email automatically?
 
-Not in v8.0.0. Communication actions open the device’s Mail or Messages application with a prepared message. The user reviews and sends it. This avoids claiming provider delivery before a messaging service, delivery logs, retry handling and commercial terms are ready.
+Not in v8.0.1. Communication actions open the device’s Mail or Messages application with a prepared message. The user reviews and sends it. This avoids claiming provider delivery before a messaging service, delivery logs, retry handling and commercial terms are ready.
 
 ## Are online payments included?
 
@@ -34,7 +34,7 @@ Media is private by default. Student/family access is bound to one student. Publ
 
 ## Can one tenant contain several campuses?
 
-Not in v8.0.0. One campus is one tenant. This is currently the safer and clearer boundary for data, roles, branding, pricing, backup and support. A future organisation layer may aggregate multiple tenant campuses without merging their operational records.
+Not in v8.0.1. One campus is one tenant. This is currently the safer and clearer boundary for data, roles, branding, pricing, backup and support. A future organisation layer may aggregate multiple tenant campuses without merging their operational records.
 
 ## Can we use our own domain?
 
@@ -42,7 +42,7 @@ Custom customer domains are deferred. The current controlled public path uses Cl
 
 ## Which integrations are included?
 
-v8.0.0 includes CSV/Excel templates and exports, ICS calendar export, and device-native Mail/Messages links. Stripe, Xero, Google/Outlook Calendar APIs and webhooks are documented extension points, not active integrations unless a signed order specifically includes them.
+v8.0.1 includes CSV/Excel templates and exports, ICS calendar export, and device-native Mail/Messages links. Stripe, Xero, Google/Outlook Calendar APIs and webhooks are documented extension points, not active integrations unless a signed order specifically includes them.
 
 ## What happens if we cancel?
 

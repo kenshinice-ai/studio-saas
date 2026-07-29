@@ -137,12 +137,12 @@ Role-boundary checks (v7.4.0):
 
 ### 8. Deployment Readiness
 
-v8.0.0 executes local + Cloudflare invitation testing. The AWS deployment kit
+v8.0.1 executes local + Cloudflare invitation testing. The AWS deployment kit
 ships in `deploy/aws/`, but remote AWS deployment is deferred:
 
-- [x] `bash deploy/aws/verify_release_bundles.sh` builds and verifies both `saas` and `standalone`
-- [x] Bundle `BUILD_INFO` version/mode/commit matches the clean source revision
-- [x] Customer bundles contain no internal handoff, audit, sales-source, prompt, or CI files
+- [ ] `bash deploy/aws/verify_release_bundles.sh` builds and verifies both `saas` and `standalone`
+- [ ] Bundle `BUILD_INFO` version/mode/commit matches the clean source revision
+- [ ] Customer bundles contain no internal handoff, audit, sales-source, prompt, or CI files
 - [ ] Local deep health and public Cloudflare deep health both pass
 - [ ] Structured (JSON) log output for aggregation
 - [ ] Graceful shutdown handled (SIGTERM)
@@ -158,20 +158,22 @@ ships in `deploy/aws/`, but remote AWS deployment is deferred:
 - [ ] Upgrade takes a pre-upgrade backup and health-failure rollback is exercised
 - [ ] Media-volume backup is recorded as deferred, not reported as complete
 
-### 8.2 v8.0.0 Brand System Acceptance
+### 8.2 v8.0.1 Brand System Acceptance
 
 - [x] `01 BRAND ASSETS/source/validate_assets.py` passes: 76 files and 15 exact raster dimensions
 - [x] PWE Studio and Paradise Production have separate, documented roles; Paradise wing artwork is not reused as the PWE product mark
 - [x] Product palette is fixed to Navy `#0E1729`, Amber `#F5B335`, accessible amber text `#A16207`, and Warm Paper `#F7F5F2`
+- [x] Product-home regression rejects the retired forest, sage and coral palette
+- [x] Product-home sales copy follows the approved “administration behind the scenes, creativity in front” narrative
 - [x] SaaS and Edition health default to `showProducerCredit=true`; both accept only strict boolean overrides
 - [x] Tenant pages remain tenant-first; SaaS visually hides the Paradise producer credit
-- [x] Super Admin, Studio Admin, setup-password, PWA manifests/icons and generated tenant workspaces use the v8.0.0 family layer
+- [x] Super Admin, Studio Admin, setup-password, PWA manifests/icons and generated tenant workspaces use the v8.0.1 family layer
 - [x] Sales deck has 13 visually reviewed slides, no overflow/placeholders, and passes the template-fidelity checker with 0 issues
-- [x] Local deep health returns `appVersion=8.0.0`, `mode=saas`, `db=ok`
-- [ ] Cloudflare deep health returns `appVersion=8.0.0` — deferred until the invitation runtime is deliberately redeployed
+- [x] Local deep health returns `appVersion=8.0.1`, `mode=saas`, `db=ok`
+- [ ] Cloudflare deep health returns `appVersion=8.0.1` — deferred until the invitation runtime is deliberately redeployed
 - [x] Responsive browser checks cover 375px Register, 812×375 landscape, 768px Studio Admin redirect/CMS, 1024px Portal and 1440px Super Admin with no horizontal overflow or browser-request 5xx
 
-### 8.3 v8.0.0 Golden-Ratio UX Acceptance
+### 8.3 v8.0.1 Golden-Ratio UX Acceptance
 
 - [x] Shared tokens expose 61.8/38.2 tracks, Fibonacci spacing, 55ch measure and 144/233ms motion
 - [x] Portal and Quick Registration collapse their golden split to one column on mobile
@@ -180,7 +182,7 @@ ships in `deploy/aws/`, but remote AWS deployment is deferred:
 - [x] Dense tables and equal-importance controls remain equal-width
 - [x] Reduced motion, focus rings and text contrast remain enforced; browser-measured Register, CMS and Super Admin controls meet the 44px touch contract
 
-### 8.4 v8.0.0 Professional Demonstration Acceptance
+### 8.4 v8.0.1 Professional Demonstration Acceptance
 
 - [x] Root `/` serves the bilingual product gateway in SaaS mode; Edition root still redirects to its single tenant
 - [x] Guarded reset creates exactly 12 fictional students, four roles, three schedules, five enquiries and three synthetic portfolio works
@@ -192,7 +194,7 @@ ships in `deploy/aws/`, but remote AWS deployment is deferred:
 - [x] CMS and Studio Admin provide stable reciprocal navigation without merging their responsibilities
 - [x] Teacher mobile dashboard exposes today's roster, student lookup and artwork upload as three primary actions
 - [x] Customer package covers pricing, contract draft, onboarding, FAQ, migration, support, integrations, multi-campus and security/compliance
-- [x] SaaS package includes showcase/reset assets; Edition package excludes the SaaS reset command and showcase workspace
+- [ ] SaaS package includes showcase/reset assets; Edition package excludes the SaaS reset command and showcase workspace
 - [x] Product home passes 375/768/1024/1440 responsive, keyboard, reduced-motion and horizontal-overflow checks
 
 ---

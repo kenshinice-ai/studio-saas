@@ -54,3 +54,5 @@ def test_product_home_uses_the_approved_sales_story() -> None:
     assert "Studio at AUD 99/month is the recommended plan." in source
     assert "One-time setup is quoted at AUD 299–999" in source
     assert "PWE Studio does not silently transmit or store the form." in source
+    assert "PWE Studio · v8.0.1" in source
+    assert "/customer-resources/Release_Notes_v8.0.1.html" in source

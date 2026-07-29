@@ -1,6 +1,6 @@
 # StudioSaaS 使用手册总览
 
-> 适用版本：StudioSaaS v8.0.0 · 最后更新：2026-07-27
+> 适用版本：StudioSaaS v8.0.1 · 最后更新：2026-07-29
 > 本目录是按角色划分的最终用户手册。开发/运维文档见 `docs/` 上层
 > （[Architecture](../Architecture.md) · [Admin_Guide](../Admin_Guide.md) ·
 > [Glossary](../Glossary.md)）。

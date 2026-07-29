@@ -1,6 +1,6 @@
 # Security, Privacy and Compliance Delivery Pack
 
-Status: v8.0.0 pre-production disclosure
+Status: v8.0.1 pre-production disclosure
 Scope: PWE Studio SaaS mode and the professional showcase
 
 ## Honest deployment status
@@ -11,7 +11,7 @@ Production AWS hosting, database backup, media backup, monitoring, recovery obje
 
 ## Current controls
 
-| Area | v8.0.0 control |
+| Area | v8.0.1 control |
 |---|---|
 | Tenant separation | Tenant context is explicit in authenticated routes and tenant data is scoped by tenant ID |
 | Roles | Platform administrator, owner, manager, teacher, front desk and staff permissions are separated |

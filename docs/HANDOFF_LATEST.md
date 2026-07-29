@@ -1,20 +1,20 @@
-# PWE Studio v8.0.0 — Current Handoff
+# PWE Studio v8.0.1 — Current Handoff
 
 Date: 2026-07-29
-Baseline: tag `v7.8.1`, commit `0b62f3924fd300dc8c9bd077dbd5de5ce6d48446`
-Release branch: `codex/v8.0.0-demo-commercial-release`
-Release source of truth: `VERSION`, final `main` commit and annotated tag `v8.0.0`
+Baseline: tag `v8.0.0`, commit `abc01ce6e4f281056c3c22fa665e42d7811e0688`
+Release branch: `codex/v8.0.1-product-home-brand-release`
+Release source of truth: `VERSION`, final `main` commit and annotated tag `v8.0.1`
 
 ## 1. Delivery boundary
 
-v8.0.0 is a verified local release and customer-demonstration package. It is
+v8.0.1 is a verified local release and customer-demonstration package. It is
 not an AWS production deployment.
 
 | Area | Current truth |
 |---|---|
 | SaaS runtime | Local Waitress + PostgreSQL; Cloudflare invitation workflow supported |
 | Public product URL | `https://studiosaas.cc.cd` currently reports v7.8.1 from an unmanaged/historical connector |
-| v8 acceptance runtime | `http://127.0.0.1:8901`, deep health passed as v8.0.0 |
+| v8 acceptance runtime | `http://127.0.0.1:8901`, deep health passed as v8.0.1 |
 | AWS/RDS/S3/SES | Not purchased or deployed |
 | Production backups/restore/monitoring/SLA | Deferred until AWS resources exist and a production rehearsal passes |
 | Online payment, provider SMS/email, custom domains | Deferred |
@@ -23,12 +23,20 @@ not an AWS production deployment.
 Do not describe local testing, a source bundle or Cloudflare invitation access
 as production acceptance.
 
-## 2. What v8.0.0 delivers
+## 2. What v8.0.1 delivers
 
 ### P0 — customer-safe demonstration and commercial readiness
 
 - SaaS `/` is a bilingual product gateway with a clear product story, five
   role entrances, sales journey, plans, migration downloads and support CTA.
+- v8.0.1 brings that gateway onto the canonical PWE family palette: Family
+  Navy `#0E1729`, Family Amber `#F5B335`, accessible amber text `#A16207` and
+  Warm Paper `#F7F5F2`. Retired forest, sage and coral values are rejected by
+  a dedicated regression test.
+- The gateway now follows the approved sales story—administration behind the
+  scenes, creativity in front—uses Let’s Paint Studio as the demonstration
+  proof, identifies Studio at AUD 99/month as the recommended plan and
+  discloses the AUD 299–999 setup range.
 - `lets-paint-showcase` is the only professional demonstration tenant. It uses
   fictional people/contact records and synthetic artwork.
 - `RESET_DEMO_TENANT.command` and
@@ -75,7 +83,7 @@ as production acceptance.
 - Eight industry presets now include three bilingual starter courses,
   registration focus, report focus and a demonstration story in addition to
   industry terminology and visual themes.
-- v8.0.0 supports CSV/XLSX export/import templates, ICS and device-native
+- v8.0.1 supports CSV/XLSX export/import templates, ICS and device-native
   messaging. Stripe, Xero, Google/Outlook APIs, provider SMS/email and webhooks
   remain explicit extension points.
 - Organisation-level multi-campus aggregation is not modelled prematurely;
@@ -98,7 +106,7 @@ metadata-sanitised display/thumbnail variants.
 
 ### Repository and database gates
 
-- `backend/tests`: **180 passed, 2 skipped**.
+- `backend/tests`: **182 passed, 2 skipped**.
 - Legacy CMS smoke: **73 passed, 0 failed**.
 - PostgreSQL tenant isolation/privacy/Edition suite: **216 passed, 0 failed**.
 - Migration check: current.
@@ -128,6 +136,11 @@ total **229,582 bytes** in the browser. Five role entrances render at every
 tested viewport; local page load during the acceptance run was approximately
 0.56 seconds.
 
+The v8.0.1 product-home pass also verified the computed Navy hero, Warm Paper
+canvas, accessible amber text, bilingual sales copy, every visible 44px target,
+125% text and reduced-motion behavior. Measured contrast includes 17.90:1 for
+white on Navy and 4.52:1 for amber text on Warm Paper.
+
 The ICS response contains three recurring events, `TZID=Australia/Melbourne`,
 stable weekly recurrence and no tested student name, mobile or family email.
 
@@ -155,36 +168,36 @@ and spreadsheet error-token scans passed.
 Current observation on 2026-07-29:
 
 - v8 acceptance deep health:
-  `appVersion=8.0.0`, `mode=saas`, `db=ok`;
+  `appVersion=8.0.1`, `mode=saas`, `db=ok`;
 - the public URL still returns `appVersion=7.8.1`;
 - port 8899 is occupied by a separate `python -m http.server`, not the v8 app;
 - no launcher-owned local `cloudflared` process was identified.
 
-Therefore no v8.0.0 public Cloudflare claim is made. Resolve or rotate the
+Therefore no v8.0.1 public Cloudflare claim is made. Resolve or rotate the
 unmanaged connector before starting another connector for the same tunnel.
 The launcher now fails parity instead of silently accepting this split-brain
 state.
 
 ## 6. Packages and release closure
 
-The clean-commit package gate passed for both delivery modes:
+Required final clean-commit package gate:
 
 ```bash
 bash deploy/aws/verify_release_bundles.sh
 ```
 
-Verified outputs:
+Expected outputs:
 
-- `dist/PWE-StudioSaaS-aws-8.0.0.tar.gz`
-- `dist/PWE-Studio-Edition-8.0.0.tar.gz`
+- `dist/PWE-StudioSaaS-aws-8.0.1.tar.gz`
+- `dist/PWE-Studio-Edition-8.0.1.tar.gz`
 - matching `.sha256` sidecars.
 
-The SaaS package includes the product gateway, customer resources,
+The SaaS package must include the product gateway, customer resources,
 professional showcase workspace/assets and guarded reset. The Edition package
-excludes the showcase workspace and reset command while retaining the shared
-runtime and customer/operator documentation. Both archives passed SHA-256,
-entrypoint, forbidden-content and `BUILD_INFO` checks. The `.sha256` sidecars
-generated from the final tagged commit are the authoritative package hashes.
+must exclude the showcase workspace and reset command while retaining the
+shared runtime and customer/operator documentation. Both archives must pass
+SHA-256, entrypoint, forbidden-content and `BUILD_INFO` checks. The `.sha256`
+sidecars generated from the final tagged commit are the authoritative hashes.
 
 ## 7. Operator commands
 
@@ -204,7 +217,7 @@ bash backend/scripts/verify_local.sh
 .venv/bin/python backend/scripts/verify_tunnel_parity.py \
   --local-base-url http://localhost:8899 \
   --public-base-url https://studiosaas.cc.cd \
-  --expected-app-version 8.0.0 \
+  --expected-app-version 8.0.1 \
   --expected-mode saas
 
 # Clean-commit SaaS + Edition bundles
