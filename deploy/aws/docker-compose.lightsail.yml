@@ -1,0 +1,38 @@
+# PWE Studio SaaS — single-instance Lightsail production override.
+#
+# This override keeps the public application in SaaS mode while placing
+# PostgreSQL 16 on the same 2 GB Lightsail instance. It is the deliberate
+# low-cost launch topology for pwestudio.online; RDS remains the scale-up path.
+#
+# Always combine it with the base file and a stable project name so upgrades
+# reuse the same containers and named volumes:
+#
+#   docker compose -p pwestudio \
+#     --env-file /opt/pwestudio/shared/production.env \
+#     -f deploy/aws/docker-compose.yml \
+#     -f deploy/aws/docker-compose.lightsail.yml \
+#     --profile local-db up -d --build
+
+services:
+  app:
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Migrations use the database owner only inside entrypoint.sh. server.py
+      # receives the bounded runtime role after that privileged URL is unset.
+      STUDIOSAAS_MIGRATION_DATABASE_URL: postgresql://studiosaas:${LOCAL_DB_PASSWORD:?set LOCAL_DB_PASSWORD in production.env}@db:5432/studiosaas
+      STUDIOSAAS_DATABASE_URL: postgresql://studiosaas_app:${LOCAL_APP_DB_PASSWORD:?set LOCAL_APP_DB_PASSWORD in production.env}@db:5432/studiosaas
+      STUDIOSAAS_DB_RUNTIME_ROLE: studiosaas_app
+      STUDIOSAAS_DB_RUNTIME_PASSWORD: ${LOCAL_APP_DB_PASSWORD:?set LOCAL_APP_DB_PASSWORD in production.env}
+    volumes:
+      # Stable host path: release-directory and named-volume changes cannot
+      # hide the daily logical backup history from the operator.
+      - ${STUDIOSAAS_BACKUP_DIR:?set STUDIOSAAS_BACKUP_DIR in production.env}:/data/backups/postgres
+
+  db:
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"

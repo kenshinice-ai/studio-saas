@@ -35,6 +35,7 @@ verify_bundle() {
   local inventory
   inventory="$(tar -tzf "$archive")"
   for forbidden in \
+    ".pem" \
     "/.claude/" \
     "/.github/" \
     "/docs/sales/" \
@@ -50,6 +51,16 @@ verify_bundle() {
       echo "Internal-only path leaked into $(basename "$archive"): $forbidden" >&2
       return 1
     fi
+  done
+
+  for required in \
+    "$prefix/deploy/aws/docker-compose.lightsail.yml" \
+    "$prefix/deploy/aws/lightsail.env.example" \
+    "$prefix/deploy/aws/lightsail_ctl.sh"; do
+    grep -Fqx "$required" <<<"$inventory" || {
+      echo "Lightsail production file missing from $(basename "$archive"): $required" >&2
+      return 1
+    }
   done
 
   if [ "$mode" = "standalone" ]; then

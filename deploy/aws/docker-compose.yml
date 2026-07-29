@@ -22,7 +22,9 @@ services:
       - "127.0.0.1:8899:8899"   # nginx on the host terminates TLS and proxies here
     environment:
       STUDIOSAAS_ENV: ${STUDIOSAAS_ENV:-production}
-      STUDIOSAAS_DATABASE_URL: ${STUDIOSAAS_DATABASE_URL}
+      # RDS deployments set this directly. The Lightsail override replaces it
+      # with the bounded in-stack role; entrypoint.sh rejects an empty value.
+      STUDIOSAAS_DATABASE_URL: ${STUDIOSAAS_DATABASE_URL:-}
       STUDIOSAAS_SESSION_SECRET: ${STUDIOSAAS_SESSION_SECRET}
       STUDIOSAAS_API_KEY: ${STUDIOSAAS_API_KEY}
       STUDIOSAAS_PUBLIC_BASE_DOMAIN: ${STUDIOSAAS_PUBLIC_BASE_DOMAIN:-}

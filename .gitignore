@@ -19,6 +19,7 @@ venv/
 
 # ── StudioSaaS local secrets (NEVER commit) ──
 .runtime/
+*.pem
 deploy/aws/.env
 backend/.api_secret
 backend/.session_secret

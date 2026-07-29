@@ -1,7 +1,8 @@
 # StudioSaaS — AWS 部署包说明 (Stage 2)
 
 本目录是随代码一起发布的 AWS 部署套件。目标架构与成本估算见
-`docs/Deployment.md` §3（EC2 t4g.small + RDS PostgreSQL 16 + S3 ≈ US$30/月）。
+`docs/Deployment.md` §3。生产有两条明确路径：RDS PostgreSQL，或
+`pwestudio.online` 首发采用的 Lightsail 单机 PostgreSQL 拓扑。
 
 ```
 deploy/aws/
@@ -9,6 +10,9 @@ deploy/aws/
 ├── Dockerfile             # 生产镜像（python:3.11-slim + waitress）
 ├── entrypoint.sh          # 等库 → 迁移 → 启动；生产模式强制校验 secrets
 ├── docker-compose.yml     # Docker 路径；`--profile local-db` 可单机彩排
+├── docker-compose.lightsail.yml # Lightsail 单机生产覆盖层
+├── lightsail.env.example  # pwestudio.online 单机生产变量模板
+├── lightsail_ctl.sh       # 稳定项目名、备份、状态与安全停机命令
 ├── .env.example           # 环境变量模板（真实值放 Secrets Manager）
 ├── nginx/studiosaas.conf  # 主机 nginx：TLS 终止 + 反代 127.0.0.1:8899
 ├── systemd/studiosaas.service  # 非 Docker 路径（venv + waitress + systemd）
@@ -42,7 +46,7 @@ scp dist/PWE-StudioSaaS-aws-<version>.tar.gz ubuntu@<EC2_IP>:~
 | RDS | PostgreSQL 16, db.t4g.micro, 20GB gp3 | 私有子网；安全组仅允许 EC2 SG；自动快照 7 天 |
 | S3 | 媒体桶（P3-03 之前可暂缓） | 阻止公开访问；由应用代理读写 |
 | Secrets Manager | `studiosaas/prod` | 存 DATABASE_URL、SESSION_SECRET、API_KEY |
-| DNS | `studiosaas.cc.cd` → EC2 | 保留 Cloudflare tunnel 作 48h 回滚通道 |
+| DNS | `pwestudio.online` → Lightsail 固定 IP | 主链路不依赖 Cloudflare Tunnel |
 
 生成两个互不相同的强随机密钥：
 
@@ -89,6 +93,29 @@ curl -fsS http://127.0.0.1:8899/v1/health
 **升级**：解包新 bundle → 同一条 `up -d --build`。entrypoint 先跑迁移再起服务。
 **回滚**：`docker compose ... down` → 用上一个 bundle 重新 `up -d --build`
 （迁移必须向后兼容，同 docs/Release_Runbook.md）。
+
+### 3.1 pwestudio.online 的 Lightsail 单机生产路径
+
+首发实例为 2 GB RAM / 2 vCPU / 60 GB SSD，应用与 PostgreSQL 16 同机。
+这是有意的低成本首发拓扑，不是 RDS 等价物：必须同时启用每日逻辑备份、
+Lightsail 自动快照和季度还原演练，增长后再迁移 RDS。
+
+```bash
+sudo mkdir -p /opt/pwestudio/{releases,shared,backups/postgres}
+sudo chown -R ubuntu:ubuntu /opt/pwestudio
+
+cp deploy/aws/lightsail.env.example /opt/pwestudio/shared/production.env
+chmod 600 /opt/pwestudio/shared/production.env
+# 替换四个 CHANGE_ME；每个值分别运行一次 openssl rand -hex 32
+
+bash deploy/aws/lightsail_ctl.sh up
+bash deploy/aws/lightsail_ctl.sh status
+bash deploy/aws/lightsail_ctl.sh backup
+```
+
+升级时始终使用 Compose 项目名 `pwestudio`，并让
+`/opt/pwestudio/current` 指向当前解包目录。禁止运行
+`docker compose down -v`；它会删除 PostgreSQL 和媒体数据卷。
 
 ## 4. 路径 B — 裸机 systemd
 
@@ -144,7 +171,7 @@ sudo nginx -t && sudo systemctl reload nginx
 
 # 2) certbot 签发并自动改写为 HTTPS（含 80→443 跳转）
 sudo apt-get install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d studiosaas.cc.cd
+sudo certbot --nginx -d pwestudio.online
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
@@ -179,8 +206,8 @@ docker compose -f deploy/aws/docker-compose.yml exec -u root app \
 ## 8. 部署后验证清单
 
 ```bash
-curl -fsS https://studiosaas.cc.cd/v1/health          # {"ok":true,...}
-curl -fsS -o /dev/null -w '%{http_code}\n' https://studiosaas.cc.cd/register   # 404（有意关闭）
+curl -fsS https://pwestudio.online/v1/health          # {"ok":true,...}
+curl -fsS -o /dev/null -w '%{http_code}\n' https://pwestudio.online/register   # 404（有意关闭）
 ```
 
 - [ ] `/platform-admin` 应用登录成功且已轮换密码；`/super-admin` Access 双重验证别名可用
