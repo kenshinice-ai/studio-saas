@@ -245,7 +245,7 @@ curl http://localhost:8901/v1/health
 
 ### Log Files
 
-- **Location:** `~/.studiosaas/local-app.log` when started via
+- **Location:** `.runtime/logs/local-app.log` when started via
   `start_studiosaas_local.sh` (stdout/stderr redirect); a foreground
   `python backend/server.py` logs to the terminal. Configure your own path
   when running under systemd/Docker (see `deploy/aws/`).
@@ -377,7 +377,7 @@ created after the backup timestamp.
 
 ### Server Won't Start
 
-1. Check logs: `tail -100 ~/.studiosaas/local-app.log`
+1. Check logs: `tail -100 .runtime/logs/local-app.log`
 2. Verify PostgreSQL is running: `psql "postgresql:///studiosaas" -c "SELECT 1"`
 3. Check `.env` file exists and is valid
 4. Ensure port 8901 is not in use: `lsof -iTCP:8901 -sTCP:LISTEN`

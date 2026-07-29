@@ -7,6 +7,15 @@ set -euo pipefail
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
 source "$PROJECT_ROOT/scripts/startup_common.sh"
 
+RUNTIME_DIR="$PROJECT_ROOT/.runtime"
+RUNTIME_ENV="$RUNTIME_DIR/online.env"
+[ -f "$RUNTIME_ENV" ] || die \
+  "Portable runtime configuration is missing: $RUNTIME_ENV"
+set -a
+# shellcheck disable=SC1090
+source "$RUNTIME_ENV"
+set +a
+
 DB_NAME="${STUDIOSAAS_DB_NAME:-studiosaas_local_test}"
 DB_USER="${STUDIOSAAS_DB_USER:-$(whoami)}"
 DB_HOST="${STUDIOSAAS_DB_HOST:-localhost}"
@@ -18,12 +27,17 @@ PUBLIC_URL="${STUDIOSAAS_PUBLIC_URL:-https://studiosaas.cc.cd}"
 PUBLIC_BASE_DOMAIN="${STUDIOSAAS_PUBLIC_BASE_DOMAIN:-studiosaas.cc.cd}"
 EXPECTED_APP_VERSION="$(tr -d '[:space:]' < "$PROJECT_ROOT/VERSION")"
 ADMIN_EMAIL="admin@studiosaas.local"
-ADMIN_PASSWORD="${STUDIOSAAS_ADMIN_PASSWORD:-}"
-LOG_DIR="$HOME/.studiosaas"
+DATA_DIR="$RUNTIME_DIR/cms-data"
+LOG_DIR="$RUNTIME_DIR/logs"
+CREDENTIALS_DIR="$RUNTIME_DIR/credentials"
+CREDENTIAL_FILE="$CREDENTIALS_DIR/pilot-credentials.txt"
+CLOUDFLARE_DIR="$RUNTIME_DIR/cloudflare"
+CF_CREDENTIALS="$CLOUDFLARE_DIR/tunnel-credentials.json"
+TUNNEL_NAME="${STUDIOSAAS_TUNNEL_NAME:-}"
 APP_PID_FILE="$LOG_DIR/online-app.pid"
 TUNNEL_PID_FILE="$LOG_DIR/online-tunnel.pid"
 STOP_REQUEST_FILE="$LOG_DIR/online-stop.request"
-mkdir -p "$LOG_DIR"
+mkdir -p "$LOG_DIR" "$DATA_DIR" "$CREDENTIALS_DIR" "$CLOUDFLARE_DIR"
 rm -f "$STOP_REQUEST_FILE"
 
 say "Checking and installing required environment"
@@ -33,21 +47,10 @@ ensure_brew_command lsof lsof
 ensure_postgres_tools
 PYTHON="$(ensure_python_environment "$PROJECT_ROOT")"
 
-CF_CONFIG=""
-for candidate in "$HOME/.cloudflared/config.yml" "$HOME/.cloudflared/config.yaml"; do
-  if [ -f "$candidate" ]; then
-    CF_CONFIG="$candidate"
-    break
-  fi
-done
-CF_CREDENTIALS="${STUDIOSAAS_TUNNEL_CREDENTIALS:-}"
-TUNNEL_NAME="${STUDIOSAAS_TUNNEL_NAME:-}"
-if [ -z "$CF_CONFIG" ] && [ -z "$CF_CREDENTIALS" ]; then
-  die "Cloudflare Tunnel is not configured. Provide ~/.cloudflared/config.yml, or explicitly set STUDIOSAAS_TUNNEL_CREDENTIALS and STUDIOSAAS_TUNNEL_NAME."
-fi
-if [ -z "$CF_CONFIG" ] && [ -z "$TUNNEL_NAME" ]; then
-  die "STUDIOSAAS_TUNNEL_NAME is required when no Cloudflare config file is present."
-fi
+[ -r "$CF_CREDENTIALS" ] || die \
+  "Portable Tunnel credentials are missing: $CF_CREDENTIALS"
+[ -n "$TUNNEL_NAME" ] || die \
+  "STUDIOSAAS_TUNNEL_NAME is required in $RUNTIME_ENV."
 
 say "Checking PostgreSQL"
 if [ -n "$CUSTOM_DATABASE_URL" ]; then
@@ -60,22 +63,13 @@ fi
 say "Applying ordered database migrations"
 (cd "$PROJECT_ROOT/backend" && STUDIOSAAS_DATABASE_URL="$DATABASE_URL" "$PYTHON" scripts/run_migrations.py)
 
-say "Ensuring the fixed StudioSaaS Super Admin login"
-ADMIN_ARGS=(
-  --email "$ADMIN_EMAIL"
-  --no-print-password
-)
-if [ -n "$ADMIN_PASSWORD" ]; then
-  ADMIN_ARGS+=(
-    --password "$ADMIN_PASSWORD"
-    --reset-password
-    --credential-file "$HOME/.studiosaas/pilot-credentials.txt"
-  )
-fi
+say "Checking the existing StudioSaaS Super Admin login without changing its password"
 (
   cd "$PROJECT_ROOT/backend"
   STUDIOSAAS_DATABASE_URL="$DATABASE_URL" \
-    "$PYTHON" scripts/seed_super_admin.py "${ADMIN_ARGS[@]}"
+    "$PYTHON" scripts/seed_super_admin.py \
+      --email "$ADMIN_EMAIL" \
+      --no-print-password
 )
 
 say "Checking managed processes and port $PORT"
@@ -97,6 +91,7 @@ say "Starting StudioSaaS application"
   cd "$PROJECT_ROOT/backend"
   exec env \
   PORT="$PORT" \
+  CMS_DATA_DIR="$DATA_DIR" \
   COOKIE_SECURE=1 \
   STUDIOSAAS_ENV=pilot \
   STUDIOSAAS_MODE=saas \
@@ -109,15 +104,10 @@ printf "%s\n" "$APP_PID" >"$APP_PID_FILE"
 wait_for_url "http://localhost:$PORT/v1/health" "Local StudioSaaS health" 45
 
 say "Starting Cloudflare Tunnel"
-if [ -n "$CF_CONFIG" ]; then
-  # The config file is authoritative for both tunnel identity and ingress.
-  # Supplying a hard-coded name here can override a rotated tunnel and attach
-  # the public hostname to an obsolete connector.
-  cloudflared tunnel --config "$CF_CONFIG" run >>"$LOG_DIR/cloudflared.log" 2>&1 &
-else
-  cloudflared tunnel --url "http://localhost:$PORT" \
-    run --credentials-file "$CF_CREDENTIALS" "$TUNNEL_NAME" >>"$LOG_DIR/cloudflared.log" 2>&1 &
-fi
+# The project-local credential JSON and explicit URL make the connector
+# independent of ~/.cloudflared and of the folder's absolute location.
+cloudflared tunnel --url "http://localhost:$PORT" \
+  run --credentials-file "$CF_CREDENTIALS" "$TUNNEL_NAME" >>"$LOG_DIR/cloudflared.log" 2>&1 &
 TUNNEL_PID=$!
 printf "%s\n" "$TUNNEL_PID" >"$TUNNEL_PID_FILE"
 wait_for_url "$PUBLIC_URL/v1/health" "Public StudioSaaS health" 45
@@ -134,6 +124,8 @@ echo "  公网:  $PUBLIC_URL"
 echo "  本地:  http://localhost:$PORT"
 echo "  停止:  关闭本窗口，或双击 STOP_STUDIOSAAS_ONLINE.command"
 echo "  日志:  $LOG_DIR/online-app.log 和 $LOG_DIR/cloudflared.log"
+echo "  配置:  $RUNTIME_ENV"
+echo "  凭据:  $CREDENTIAL_FILE"
 echo "  提示:  本窗口只管理本次启动的 PID；演示前仍需确认 Cloudflare 没有旧连接器残留。"
 echo ""
 

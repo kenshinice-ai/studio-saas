@@ -86,7 +86,8 @@
 ### 6. Security
 
 - [ ] No hardcoded API keys or credentials in source
-- [ ] Privileged pilot passwords are unique, rotated, and stored only in the protected local credential file
+- [ ] Local shared demo-password use is disclosed and confined to Pilot; AWS
+      production uses unique privileged credentials, MFA and managed secrets
 - [ ] `.env`, `backend/.api_secret`, `backend/.cms_password` excluded from version control
 - [ ] File uploads validated (type, size, extension, magic bytes)
 - [ ] SQL injection prevention: parameterized queries only

@@ -45,9 +45,10 @@ as production acceptance.
   - refuse standalone mode;
   - require the exact phrase `RESET-LETS-PAINT-SHOWCASE`;
   - can only touch the permanently marked `lets-paint-showcase` tenant;
-  - rotate four role passwords and one student code on every run;
-  - write credentials to `~/.studiosaas/showcase-credentials.txt` as mode
-    `0600`, never to stdout.
+  - keep four staff roles on the configured stable local/Pilot password and
+    rotate the separate student code on every reset;
+  - write credentials to `.runtime/credentials/showcase-credentials.txt` as
+    mode `0600`, never to stdout.
 - `docs/customer/` contains a customer-readable delivery index, pricing and
   package boundaries, service agreement draft, onboarding checklist, FAQ,
   migration guide, support policy, integration boundary, multi-campus policy,
@@ -170,8 +171,12 @@ and spreadsheet error-token scans passed.
 - defaults the application runtime to port `8901`;
 - reads the expected application version from `VERSION`;
 - supports an explicit public base domain;
-- treats `~/.cloudflared/config.yml` as the authoritative tunnel identity and
-  ingress instead of selecting the first credential JSON file;
+- resolves environment, logs, CMS data, PID files and Tunnel credentials from
+  the project-local, Git-ignored `.runtime/` directory;
+- never reads `~/.studiosaas`, `~/.cloudflared` or `/private/tmp` for runtime
+  files and never resets application passwords during startup;
+- uses the explicit project-local Tunnel credential JSON and configured Tunnel
+  name instead of selecting an arbitrary credential;
 - waits for local and public health;
 - runs `backend/scripts/verify_tunnel_parity.py` against deep health;
 - refuses to call the tunnel accepted when version, mode, database or release
@@ -191,6 +196,9 @@ Current observation on 2026-07-29:
   `/platform-admin` is the direct application-login route;
 - the old tunnel was left intact but is no longer the hostname route, preserving
   rollback without allowing two runtimes to answer the same hostname.
+- moving a runtime-complete copy to a path containing spaces and starting from
+  that new location passed local health, public health and release parity; the
+  15-user password-hash fingerprint was unchanged across restart.
 
 The previous split-brain state is therefore resolved. Do not change the DNS
 route back to the historical tunnel or start a second connector with a
