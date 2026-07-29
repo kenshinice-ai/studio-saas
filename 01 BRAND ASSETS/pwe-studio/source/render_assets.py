@@ -5,7 +5,7 @@ Single source of geometry for the PWE mark + wordmark. Emits:
   - docs/design/brand/pwe-mark.svg / pwe-mark-dark.svg
   - docs/design/brand/pwe-logo.svg / pwe-logo-dark.svg
   - docs/design/brand/preview.html
-  - <root>/favicon.svg
+  - <root>/favicon.svg, pwe-mark.svg, pwe-mark-dark.svg
   - <root>/logo.png, logo-light.png, icon-192.png, icon-512.png, apple-touch-icon.png
   - <root>/01 BRAND ASSETS/pwe-studio/ (distribution SVG/PNG/PWA copies)
 
@@ -19,8 +19,10 @@ redrawn with PIL primitives (sampled bezier polygons for the solid mark;
 lines with round caps, arc rings, circles for the monoline wordmark) at 4x
 supersampling and downscaled with Lanczos.
 
-Mark geometry: Round 2 "Crafted P" (candidate D, client-approved 2026-07-27,
-82/100 on the acceptance rubric — see docs/design/brand/round2/RATIONALE.md).
+Mark geometry: "Feather Star" (approved 2026-07-28). A four-point star is the
+creative origin; three rising feathers represent growth, ascent and
+possibility. Their source lengths follow the golden-ratio sequence
+136 : 84 : 52.
 """
 
 import math
@@ -56,38 +58,36 @@ def rgb(hexstr):
 # screen.  point(a) = (cx + r*cos(a), cy + r*sin(a)).
 # ---------------------------------------------------------------------------
 
-# --- The mark: "Crafted P" (Round 2, candidate D — client-approved) ---------
-# Solid custom letterform, spark-as-counter.  Cap height 44 (y 10..54).
-# Type-design details (do not "simplify" these away):
-#   * bowl depth 26.6 = 60.5% of cap height (capital-P proportion),
-#   * superelliptical shoulders drawn with cubics; the bowl's right extreme
-#     sits at y 23.1 — slightly ABOVE the bowl's vertical middle (upward
-#     stress) so the curve feels drawn, not compass-struck,
-#   * stem right edge tapers 24.9 -> 24.3 top-to-bottom (0.6 unit — felt,
-#     not seen),
-#   * small ink-trap ease where the bowl underside re-enters the stem so the
-#     crotch doesn't clog at small sizes,
-#   * the bowl counter IS the four-point spark (punched via evenodd, then
-#     refilled amber).  Monochrome = drop the amber refill.
+# --- The mark: "Feather Star" ------------------------------------------------
+# Three closed cubic paths rise from one four-point star. The long, medium and
+# short source feathers were designed at 136, 84 and 52 units respectively,
+# then normalised onto this 64x64 production grid. Do not independently scale
+# or rotate a feather: their relative reach is the golden-ratio contract.
 # Path segments: ("M"/"L", point) or ("C", ctrl1, ctrl2, endpoint).
-MARK_BODY = [
-    ("M", (14.0, 10.0)),
-    ("L", (32.5, 10.0)),
-    ("C", (42.6, 10.0), (50.2, 14.7), (50.2, 23.1)),
-    ("C", (50.2, 31.6), (42.6, 36.6), (32.5, 36.6)),
-    ("L", (26.4, 36.6)),
-    ("C", (25.2, 36.7), (24.6, 37.4), (24.55, 38.6)),   # ink-trap ease
-    ("L", (24.3, 54.0)),
-    ("L", (14.0, 54.0)),
+MARK_FEATHERS = [
+    [
+        ("M", (13.95, 49.70)),
+        ("C", (23.75, 38.85), (37.05, 23.45), (54.20, 6.30)),
+        ("C", (47.90, 20.30), (37.75, 34.65), (22.35, 46.55)),
+        ("C", (19.20, 49.00), (16.40, 50.40), (13.95, 49.70)),
+    ],
+    [
+        ("M", (15.35, 52.15)),
+        ("C", (25.15, 47.60), (34.60, 39.20), (44.75, 27.30)),
+        ("C", (39.50, 39.20), (30.40, 48.65), (19.55, 53.20)),
+        ("C", (17.80, 53.90), (16.05, 53.55), (15.35, 52.15)),
+    ],
+    [
+        ("M", (16.40, 53.90)),
+        ("C", (23.40, 52.15), (30.05, 48.30), (36.70, 41.65)),
+        ("C", (31.80, 49.70), (25.50, 54.60), (17.80, 55.65)),
+        ("C", (16.40, 56.00), (15.35, 54.95), (16.40, 53.90)),
+    ],
 ]
-MARK_SPARK_C = (34.5, 23.2)                    # spark = the bowl's counter
-MARK_SPARK_R = 7.5
-MARK_BBOX = (14.0, 10.0, 50.2, 54.0)           # ink bounding box (x0,y0,x1,y1)
-MARK_OPTICAL_C = (31.0, 30.2)                  # optical centre: ink mass lives
-                                               #   in the bowl (up/right), the
-                                               #   lower stem is light — sit
-                                               #   between bbox centre (32.1,32)
-                                               #   and ink centroid (~28, 27.4)
+MARK_SPARK_C = (14.30, 51.10)  # creative origin shared by all three feathers
+MARK_SPARK_R = 6.30
+MARK_BBOX = (8.00, 6.30, 54.20, 57.40)
+MARK_OPTICAL_C = (29.20, 31.85)
 
 # --- Wordmark: monoline geometric letterforms ------------------------------
 # Primitive types:  ("L", x1,y1,x2,y2) skeleton line, round caps
@@ -98,9 +98,8 @@ MARK_OPTICAL_C = (31.0, 30.2)                  # optical centre: ink mass lives
 # Baseline at y=28, cap top y=0, x-height ink top y=9 (skeleton 11.75).
 TEXT_STROKE = 5.5
 LETTERS = {
-    # "P" echoes the Crafted-P mark: bowl closes at y 14.5 (ink ~17.25 =
-    # 61.6% of cap, matching the mark's 60.5% bowl) with a fuller shoulder
-    # (entry line to 7, arc r 7.25) instead of the old 6.5/6.75 half-circle.
+    # "P" retains the established PWE Studio wordmark proportions. It is no
+    # longer repeated in the standalone symbol.
     "P": (13.25, [("L", 0, 0, 0, 28), ("L", 0, 0, 7, 0),
                   ("A", 7, 7.25, 7.25, -90, 90), ("L", 7, 14.5, 0, 14.5)]),
     "W": (21.0, [("L", 0, 0, 5.25, 28), ("L", 5.25, 28, 10.5, 8),
@@ -108,6 +107,12 @@ LETTERS = {
     "E": (12.0, [("L", 0, 0, 0, 28), ("L", 0, 0, 12, 0),
                  ("L", 0, 14, 10, 14), ("L", 0, 28, 12, 28)]),
     "S": (14.0, [("A", 7, 7, 7, -40, -270), ("A", 7, 21, 7, -90, 140)]),
+    "T": (14.0, [("L", 0, 0, 14, 0), ("L", 7, 0, 7, 28)]),
+    "U": (14.0, [("L", 0, 0, 0, 21), ("A", 7, 21, 7, 180, 0),
+                  ("L", 14, 21, 14, 0)]),
+    "D": (14.0, [("L", 0, 0, 0, 28), ("A", 0, 14, 14, -90, 90)]),
+    "I": (0.0, [("L", 0, 0, 0, 28)]),
+    "O": (24.0, [("C", 12, 14, 12)]),
     "t": (8.0, [("L", 3.5, 3, 3.5, 23.5), ("A", 8, 23.5, 4.5, 180, 90),
                 ("L", 0, 9, 8, 9)]),
     "u": (13.0, [("L", 0, 11.75, 0, 21.5), ("A", 6.5, 21.5, 6.5, 180, 0),
@@ -116,19 +121,21 @@ LETTERS = {
     "i": (0.0, [("L", 0, 11.75, 0, 28), ("D", 0, 3, 2.9)]),
     "o": (13.5, [("C", 6.75, 18.5, 6.75)]),
 }
-LETTER_GAP = 10.0
-WORD_GAP = 8.0     # added on top of the previous letter's LETTER_GAP (=> 18)
-WORDMARK = "PWE Studio"
+PRIMARY_WORDMARK = "PWE"
+SECONDARY_WORDMARK = "STUDIO"
 
-# --- Lockup layout (viewBox 0 0 252 64) ------------------------------------
-LOCKUP_W, LOCKUP_H = 252, 64
-# Solid mark carries far more ink than the old monoline skeleton: scale down
-# 0.78 -> 0.75 and open the mark->text gap (mark ink ends x 34.15, text stem
-# at 46).  DY chosen so mark ink centre (y 32 after transform) sits on the
-# wordmark's optical middle: 0.75 * (10+54)/2 + 8 = 32.
-LOCKUP_MARK_SCALE = 0.75
-LOCKUP_MARK_DX, LOCKUP_MARK_DY = -3.5, 8.0
-LOCKUP_TEXT_X, LOCKUP_BASELINE = 46.0, 46.0
+# --- Lockup layout (viewBox 0 0 160 64) ------------------------------------
+LOCKUP_W, LOCKUP_H = 160, 64
+# The rising mark is optically centred against the established wordmark.
+LOCKUP_MARK_SCALE = 0.84
+LOCKUP_MARK_DX, LOCKUP_MARK_DY = -3.5, 6.5
+LOCKUP_TEXT_X = 52.0
+LOCKUP_PRIMARY_BASELINE = 40.0
+LOCKUP_SECONDARY_BASELINE = 58.0
+LOCKUP_PRIMARY_SCALE = 1.10
+LOCKUP_SECONDARY_SCALE = 0.46
+PRIMARY_LETTER_GAP = 10.0
+SECONDARY_LETTER_GAP = 7.0
 
 
 def pt(cx, cy, r, a):
@@ -136,13 +143,10 @@ def pt(cx, cy, r, a):
     return (cx + r * math.cos(a), cy + r * math.sin(a))
 
 
-def wordmark_prims():
-    """Flatten the wordmark into absolute-position primitives (baseline y=0)."""
+def word_prims(word, letter_gap):
+    """Flatten one outlined word into absolute-position primitives."""
     prims, x = [], 0.0
-    for ch in WORDMARK:
-        if ch == " ":
-            x += WORD_GAP
-            continue
+    for ch in word:
         adv, parts = LETTERS[ch]
         for p in parts:
             k = p[0]
@@ -152,8 +156,8 @@ def wordmark_prims():
                 prims.append(("A", p[1] + x, p[2] - 28, p[3], p[4], p[5]))
             else:  # C / D
                 prims.append((k, p[1] + x, p[2] - 28, p[3]))
-        x += adv + LETTER_GAP
-    return prims, x - LETTER_GAP  # total skeleton width
+        x += adv + letter_gap
+    return prims, x - letter_gap  # total skeleton width
 
 
 # ---------------------------------------------------------------------------
@@ -171,10 +175,10 @@ def spark_path(cx, cy, r):
             f"Q {f(cx)} {f(cy)} {f(cx)} {f(cy - r)} Z")
 
 
-def mark_body_d():
-    """The Crafted-P body as an SVG path string (no spark subpath)."""
+def closed_path_d(segments):
+    """Return one closed cubic geometry table as an SVG path string."""
     parts = []
-    for seg in MARK_BODY:
+    for seg in segments:
         if seg[0] in ("M", "L"):
             parts.append(f"{seg[0]} {f(seg[1][0])} {f(seg[1][1])}")
         else:
@@ -187,9 +191,10 @@ def mark_body_d():
 def svg_mark_body(ink, spark, indent="  "):
     d_spark = spark_path(*MARK_SPARK_C, MARK_SPARK_R)
     lines = [
-        f'{indent}<!-- Crafted P: solid letterform, spark punched as the counter -->',
-        f'{indent}<path fill-rule="evenodd" fill="{ink}" d="{mark_body_d()} {d_spark}"/>',
-        f'{indent}<!-- creative spark (refills the punched counter; drop for monochrome) -->',
+        f'{indent}<!-- Feather Star: growth, ascent and possibility from one creative origin -->',
+        f'{indent}<path fill="{ink}" d="{closed_path_d(MARK_FEATHERS[0])}"/>',
+        f'{indent}<path fill="{ink}" d="{closed_path_d(MARK_FEATHERS[1])}"/>',
+        f'{indent}<path fill="{spark}" d="{closed_path_d(MARK_FEATHERS[2])}"/>',
         f'{indent}<path fill="{spark}" d="{d_spark}"/>',
     ]
     return "\n".join(lines)
@@ -203,8 +208,8 @@ def svg_arc_d(cx, cy, r, a0, a1):
             f"A {f(r)} {f(r)} 0 {large} {sweep} {f(p1[0])} {f(p1[1])}")
 
 
-def svg_wordmark_body(ink, x0, baseline, scale, indent="  "):
-    prims, _ = wordmark_prims()
+def svg_word_body(ink, word, letter_gap, x0, baseline, scale, indent="  "):
+    prims, _ = word_prims(word, letter_gap)
     ds, circles, dots = [], [], []
     for p in prims:
         if p[0] == "L":
@@ -218,7 +223,7 @@ def svg_wordmark_body(ink, x0, baseline, scale, indent="  "):
         else:
             dots.append((x0 + p[1] * scale, baseline + p[2] * scale, p[3] * scale))
     sw = f(TEXT_STROKE * scale)
-    out = [f'{indent}<!-- "PWE Studio" wordmark, monoline geometric letterforms -->',
+    out = [f'{indent}<!-- "{word}" wordmark, monoline geometric letterforms -->',
            f'{indent}<path d="{" ".join(ds)}" stroke="{ink}" stroke-width="{sw}" '
            f'stroke-linecap="round" fill="none"/>']
     for cx, cy, r in circles:
@@ -242,18 +247,33 @@ def svg_lockup(ink, spark, comment):
             f'  <g transform="translate({f(LOCKUP_MARK_DX)} {f(LOCKUP_MARK_DY)}) scale({f(s)})">',
             svg_mark_body(ink, spark, indent="    "),
             '  </g>',
-            svg_wordmark_body(ink, LOCKUP_TEXT_X, LOCKUP_BASELINE, 1.0)]
+            svg_word_body(
+                ink,
+                PRIMARY_WORDMARK,
+                PRIMARY_LETTER_GAP,
+                LOCKUP_TEXT_X,
+                LOCKUP_PRIMARY_BASELINE,
+                LOCKUP_PRIMARY_SCALE,
+            ),
+            svg_word_body(
+                ink,
+                SECONDARY_WORDMARK,
+                SECONDARY_LETTER_GAP,
+                LOCKUP_TEXT_X + 1.0,
+                LOCKUP_SECONDARY_BASELINE,
+                LOCKUP_SECONDARY_SCALE,
+            )]
     return (f'<svg xmlns="http://www.w3.org/2000/svg" '
             f'viewBox="0 0 {LOCKUP_W} {LOCKUP_H}" role="img" '
             f'aria-label="PWE Studio">\n' + "\n".join(body) + "\n</svg>\n")
 
 
-# --- Producer credit line ("A Paradise Production") -------------------------
+# --- Producer credit line ("Powered by Paradise Production") ----------------
 # Documentation reference ONLY.  HTML surfaces must use the CSS spec in
 # docs/design/Brand_Identity.md §10 (system font stack) — this SVG exists so
 # the brand folder shows the canonical string + colors, and it MAY use the
 # system font (unlike mark/wordmark, which are authored paths).
-CREDIT_TEXT = "A PARADISE PRODUCTION · 天域文创出品"
+CREDIT_TEXT = "POWERED BY PARADISE PRODUCTION · 天域文创"
 CREDIT_SLATE_LIGHT = "#64748B"   # on light surfaces
 CREDIT_SLATE_DARK = "#94A3B8"    # on dark surfaces
 CREDIT_FONT = ("-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, "
@@ -263,7 +283,7 @@ CREDIT_FONT = ("-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, "
 def svg_credit(color, comment):
     return (
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 20" '
-        'role="img" aria-label="A Paradise Production credit line">\n'
+        'role="img" aria-label="Powered by Paradise Production credit line">\n'
         f'  <!-- {comment} -->\n'
         '  <!-- Reference artwork only. Source of truth for HTML surfaces: '
         'CSS spec in docs/design/Brand_Identity.md (brand architecture section). -->\n'
@@ -287,7 +307,9 @@ def svg_favicon():
         f'      .spark {{ fill: {AMBER_ON_DARK}; }}\n'
         '    }\n'
         '  </style>\n'
-        f'  <path class="ink" fill-rule="evenodd" d="{mark_body_d()} {d_spark}"/>\n'
+        f'  <path class="ink" d="{closed_path_d(MARK_FEATHERS[0])}"/>\n'
+        f'  <path class="ink" d="{closed_path_d(MARK_FEATHERS[1])}"/>\n'
+        f'  <path class="spark" d="{closed_path_d(MARK_FEATHERS[2])}"/>\n'
         f'  <path class="spark" d="{d_spark}"/>\n'
         '</svg>\n')
 
@@ -348,10 +370,10 @@ def draw_spark(d, xf, k, cx, cy, r, color):
     d.polygon(pts, fill=color)
 
 
-def mark_body_points(n=24):
-    """Sample the Crafted-P body outline into a polygon point list."""
+def closed_path_points(segments, n=24):
+    """Sample one closed cubic path into a PIL-compatible polygon."""
     pts, cur = [], None
-    for seg in MARK_BODY:
+    for seg in segments:
         if seg[0] in ("M", "L"):
             cur = seg[1]
             pts.append(cur)
@@ -369,18 +391,17 @@ def mark_body_points(n=24):
 
 
 def draw_mark(d, k, dx, dy, ink, spark):
-    """Draw the mark with uniform scale k and pixel offset (dx, dy).
-
-    PNG contexts always show the spark amber, so the counter is painted
-    over the solid body rather than punched (identical visual result)."""
+    """Draw the Feather Star with one uniform transform."""
     xf = lambda p: (p[0] * k + dx, p[1] * k + dy)
-    d.polygon([xf(p) for p in mark_body_points()], fill=ink)
+    d.polygon([xf(p) for p in closed_path_points(MARK_FEATHERS[0])], fill=ink)
+    d.polygon([xf(p) for p in closed_path_points(MARK_FEATHERS[1])], fill=ink)
+    d.polygon([xf(p) for p in closed_path_points(MARK_FEATHERS[2])], fill=spark)
     draw_spark(d, xf, k, *MARK_SPARK_C, MARK_SPARK_R, spark)
 
 
-def draw_wordmark(d, k, x0, baseline, ink):
+def draw_word(d, word, letter_gap, k, x0, baseline, ink):
     xf = lambda p: (p[0] * k + x0, p[1] * k + baseline)
-    prims, _ = wordmark_prims()
+    prims, _ = word_prims(word, letter_gap)
     for p in prims:
         if p[0] == "L":
             draw_stroke_line(d, xf, k, (p[1], p[2]), (p[3], p[4]), TEXT_STROKE, ink)
@@ -411,7 +432,24 @@ def render_lockup_png(width, ink, spark):
     d = ImageDraw.Draw(img)
     km = k * SS * LOCKUP_MARK_SCALE
     draw_mark(d, km, LOCKUP_MARK_DX * k * SS, LOCKUP_MARK_DY * k * SS, ink, spark)
-    draw_wordmark(d, k * SS, LOCKUP_TEXT_X * k * SS, LOCKUP_BASELINE * k * SS, ink)
+    draw_word(
+        d,
+        PRIMARY_WORDMARK,
+        PRIMARY_LETTER_GAP,
+        k * SS * LOCKUP_PRIMARY_SCALE,
+        LOCKUP_TEXT_X * k * SS,
+        LOCKUP_PRIMARY_BASELINE * k * SS,
+        ink,
+    )
+    draw_word(
+        d,
+        SECONDARY_WORDMARK,
+        SECONDARY_LETTER_GAP,
+        k * SS * LOCKUP_SECONDARY_SCALE,
+        (LOCKUP_TEXT_X + 1.0) * k * SS,
+        LOCKUP_SECONDARY_BASELINE * k * SS,
+        ink,
+    )
     return img.resize((width, h), Image.LANCZOS)
 
 
@@ -491,6 +529,8 @@ def main():
     for filename, content in svg_outputs.items():
         (HERE / filename).write_text(content, encoding="utf-8")
         (DIST / "svg" / filename).write_text(content, encoding="utf-8")
+    (ROOT / "pwe-mark.svg").write_text(mark_light, encoding="utf-8")
+    (ROOT / "pwe-mark-dark.svg").write_text(mark_dark, encoding="utf-8")
 
     favicon = svg_favicon()
     (ROOT / "favicon.svg").write_text(favicon, encoding="utf-8")

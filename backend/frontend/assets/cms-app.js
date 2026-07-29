@@ -92,6 +92,32 @@ const savePin = (p) => localStorage.setItem(PIN_KEY, btoa("lp:" + p));
 const sessOK = () => sessionStorage.getItem(SESSION_KEY) === "1";
 const markSess = () => sessionStorage.setItem(SESSION_KEY, "1");
 const clearSess = () => sessionStorage.removeItem(SESSION_KEY);
+const tenantOwnedLogoUrl = (brand) => {
+  const source = brand?.logo_url || brand?.logoUrl || "";
+  return ["/logo.png", "/logo-light.png", "/favicon.svg"].includes(source) ? "" : source;
+};
+function TenantBrandLogo({ className = "" }) {
+  const [brand, setBrand] = useState(() => window.STUDIOSAAS_BRAND || {});
+  useEffect(() => {
+    const syncBrand = (event) => setBrand(event?.detail || window.STUDIOSAAS_BRAND || {});
+    window.addEventListener("studiosaas:brand", syncBrand);
+    syncBrand();
+    return () => window.removeEventListener("studiosaas:brand", syncBrand);
+  }, []);
+  const source = tenantOwnedLogoUrl(brand);
+  if (!source) return null;
+  return /* @__PURE__ */ React.createElement(
+    "img",
+    {
+      src: source,
+      alt: `${brand.name || brand.studioName || "Studio"} logo`,
+      className,
+      onError: (event) => {
+        event.currentTarget.hidden = true;
+      }
+    }
+  );
+}
 function PINScreen({ onUnlock }) {
   const stored = getPin();
   const isSetup = !stored;
@@ -165,7 +191,7 @@ function PINScreen({ onUnlock }) {
       }
     }
   )));
-  return /* @__PURE__ */ React.createElement("div", { className: "min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 to-indigo-950 p-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-3xl p-8 w-full max-w-xs shadow-2xl text-center anim" }, /* @__PURE__ */ React.createElement("img", { src: "/logo.png", alt: "Studio", className: "w-36 mx-auto mb-3" }), /* @__PURE__ */ React.createElement("p", { className: "tenant-slogan text-sm text-gray-500 italic mb-4" }, "Learn, grow, and feel confident."), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-400 mb-4" }, step === "set" ? "首次使用，请设置 4 位 PIN 码" : step === "confirm" ? "再次输入确认 PIN" : "输入 PIN 码解锁"), step !== "confirm" ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Dots, { arr: dig }), /* @__PURE__ */ React.createElement(Inputs, { arr: dig, setArr: setDig, base: 0 })) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Dots, { arr: conf }), /* @__PURE__ */ React.createElement(Inputs, { arr: conf, setArr: setConf, base: 4 })), err && /* @__PURE__ */ React.createElement("p", { className: "text-red-500 text-xs mt-4 font-medium" }, err), step === "enter" && /* @__PURE__ */ React.createElement("details", { className: "mt-5 text-left" }, /* @__PURE__ */ React.createElement("summary", { className: "text-xs text-gray-400 cursor-pointer select-none text-center" }, "忘记 PIN？"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-2 bg-gray-50 rounded-xl p-3 leading-relaxed" }, "在浏览器开发者工具的 Console 中运行：", /* @__PURE__ */ React.createElement("br", null), /* @__PURE__ */ React.createElement("code", { className: "text-indigo-600 font-mono break-all" }, "localStorage.removeItem('lp_pin_v1')"), /* @__PURE__ */ React.createElement("br", null), "刷新页面后即可重新设置 PIN。"))));
+  return /* @__PURE__ */ React.createElement("div", { className: "min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 to-indigo-950 p-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-3xl p-8 w-full max-w-xs shadow-2xl text-center anim" }, /* @__PURE__ */ React.createElement(TenantBrandLogo, { className: "w-36 max-h-20 object-contain mx-auto mb-3" }), /* @__PURE__ */ React.createElement("p", { className: "tenant-slogan text-sm text-gray-500 italic mb-4" }, "Learn, grow, and feel confident."), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-400 mb-4" }, step === "set" ? "首次使用，请设置 4 位 PIN 码" : step === "confirm" ? "再次输入确认 PIN" : "输入 PIN 码解锁"), step !== "confirm" ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Dots, { arr: dig }), /* @__PURE__ */ React.createElement(Inputs, { arr: dig, setArr: setDig, base: 0 })) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(Dots, { arr: conf }), /* @__PURE__ */ React.createElement(Inputs, { arr: conf, setArr: setConf, base: 4 })), err && /* @__PURE__ */ React.createElement("p", { className: "text-red-500 text-xs mt-4 font-medium" }, err), step === "enter" && /* @__PURE__ */ React.createElement("details", { className: "mt-5 text-left" }, /* @__PURE__ */ React.createElement("summary", { className: "text-xs text-gray-400 cursor-pointer select-none text-center" }, "忘记 PIN？"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-2 bg-gray-50 rounded-xl p-3 leading-relaxed" }, "在浏览器开发者工具的 Console 中运行：", /* @__PURE__ */ React.createElement("br", null), /* @__PURE__ */ React.createElement("code", { className: "text-indigo-600 font-mono break-all" }, "localStorage.removeItem('lp_pin_v1')"), /* @__PURE__ */ React.createElement("br", null), "刷新页面后即可重新设置 PIN。")), /* @__PURE__ */ React.createElement("p", { className: "mt-6 pt-4 border-t border-gray-100 text-[10px] tracking-wide text-gray-400" }, "Powered by Paradise Production")));
 }
 function BarChart({ items, color = "#6366f1", h = 140, prefix = "" }) {
   if (!items?.length) return /* @__PURE__ */ React.createElement("p", { className: "text-center text-gray-400 text-sm py-6" }, "暂无数据");
@@ -791,7 +817,7 @@ function LoginScreen({ onLogin }) {
       setBusy(false);
     }
   };
-  return /* @__PURE__ */ React.createElement("div", { className: "min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 to-indigo-950 p-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-3xl p-8 w-full max-w-xs shadow-2xl text-center anim" }, /* @__PURE__ */ React.createElement("img", { src: "/logo.png", alt: "Studio", className: "w-36 mx-auto mb-3" }), /* @__PURE__ */ React.createElement("p", { className: "tenant-slogan text-sm text-gray-500 italic mb-4" }, "Learn, grow, and feel confident."), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-400 mb-6" }, "请输入 Studio CMS 账号"), /* @__PURE__ */ React.createElement("form", { onSubmit: submit, className: "space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "text-left" }, /* @__PURE__ */ React.createElement("label", { htmlFor: "cms-login-email", className: "block text-xs font-bold text-gray-500 mb-1" }, "管理员邮箱"), /* @__PURE__ */ React.createElement(
+  return /* @__PURE__ */ React.createElement("div", { className: "min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 to-indigo-950 p-4" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-3xl p-8 w-full max-w-xs shadow-2xl text-center anim" }, /* @__PURE__ */ React.createElement(TenantBrandLogo, { className: "w-36 max-h-20 object-contain mx-auto mb-3" }), /* @__PURE__ */ React.createElement("p", { className: "tenant-slogan text-sm text-gray-500 italic mb-4" }, "Learn, grow, and feel confident."), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-400 mb-6" }, "请输入 Studio CMS 账号"), /* @__PURE__ */ React.createElement("form", { onSubmit: submit, className: "space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "text-left" }, /* @__PURE__ */ React.createElement("label", { htmlFor: "cms-login-email", className: "block text-xs font-bold text-gray-500 mb-1" }, "管理员邮箱"), /* @__PURE__ */ React.createElement(
     "input",
     {
       id: "cms-login-email",
@@ -819,7 +845,7 @@ function LoginScreen({ onLogin }) {
       className: "w-full bg-indigo-600 active:bg-indigo-700 disabled:opacity-50 text-white py-3 rounded-xl font-bold text-sm"
     },
     busy ? "验证中..." : "进入系统 →"
-  ))));
+  )), /* @__PURE__ */ React.createElement("p", { className: "mt-6 pt-4 border-t border-gray-100 text-[10px] tracking-wide text-gray-400" }, "Powered by Paradise Production")));
 }
 function App() {
   const [pinOK, setPinOK] = useState(sessOK);
@@ -961,7 +987,7 @@ function App() {
   useEffect(() => {
     if (actorRole && !allowedTabs.includes(tab)) setTab("dashboard");
   }, [actorRole, tab]);
-  const tenantLogoUrl = tenantBrand.logo_url || tenantBrand.logoUrl || "/logo-light.png";
+  const tenantLogoUrl = tenantOwnedLogoUrl(tenantBrand);
   const tenantDisplayName = tenantBrand.name || tenantBrand.studioName || "Studio";
   const venueNoun = (tenantBrand.venue_noun || tenantBrand.venueNoun || {}).zh || "工作室";
   const workNoun = (tenantBrand.work_noun || tenantBrand.workNoun || {}).zh || "作品";
@@ -3566,7 +3592,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
       },
       /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "logout", className: "w-4 h-4" }), "退出登录")
     ))))
-  ), /* @__PURE__ */ React.createElement("div", { className: "md:hidden mobile-top-bar fixed top-0 left-0 right-0 z-40 bg-indigo-900 text-white flex items-center px-3 gap-2.5 shadow-lg" }, /* @__PURE__ */ React.createElement("img", { src: tenantLogoUrl, alt: tenantDisplayName, className: "h-8 w-auto max-w-[96px] object-contain flex-shrink-0" }), /* @__PURE__ */ React.createElement("span", { className: "font-bold text-base flex-1 truncate" }, tenantDisplayName, " CMS"), /* @__PURE__ */ React.createElement(
+  ), /* @__PURE__ */ React.createElement("div", { className: "md:hidden mobile-top-bar fixed top-0 left-0 right-0 z-40 bg-indigo-900 text-white flex items-center px-3 gap-2.5 shadow-lg" }, tenantLogoUrl && /* @__PURE__ */ React.createElement("img", { src: tenantLogoUrl, alt: `${tenantDisplayName} logo`, className: "h-8 w-auto max-w-[96px] object-contain flex-shrink-0" }), /* @__PURE__ */ React.createElement("span", { className: "font-bold text-base flex-1 truncate" }, tenantDisplayName, " CMS"), /* @__PURE__ */ React.createElement(
     "button",
     {
       onClick: () => {
@@ -3591,7 +3617,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
       className: "hidden md:flex w-56 bg-indigo-900 text-white flex-col shadow-xl flex-shrink-0",
       style: { paddingTop: "env(safe-area-inset-top, 0px)" }
     },
-    /* @__PURE__ */ React.createElement("div", { className: "p-4 border-b border-indigo-800 flex items-center gap-2.5" }, /* @__PURE__ */ React.createElement("img", { src: tenantLogoUrl, alt: tenantDisplayName, className: "h-9 w-auto max-w-[96px] object-contain flex-shrink-0" }), /* @__PURE__ */ React.createElement("h1", { className: "hidden md:block text-base font-bold tracking-wide flex-1 truncate" }, tenantDisplayName), /* @__PURE__ */ React.createElement(
+    /* @__PURE__ */ React.createElement("div", { className: "p-4 border-b border-indigo-800 flex items-center gap-2.5" }, tenantLogoUrl && /* @__PURE__ */ React.createElement("img", { src: tenantLogoUrl, alt: `${tenantDisplayName} logo`, className: "h-9 w-auto max-w-[96px] object-contain flex-shrink-0" }), /* @__PURE__ */ React.createElement("h1", { className: "hidden md:block text-base font-bold tracking-wide flex-1 truncate" }, tenantDisplayName), /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: () => {
@@ -4957,7 +4983,8 @@ ${msg}`).join("\n\n"), `已复制 ${lines.length} 条提醒内容`);
     ), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => confirm("放弃未保存的修改？", () => {
       setEditP(false);
       setEditPhoto("");
-    }, { confirmText: "放弃修改" }), className: "px-4 py-3 bg-gray-100 active:bg-gray-200 text-gray-700 font-bold rounded-xl text-sm min-h-[50px]" }, "取消"), /* @__PURE__ */ React.createElement("button", { type: "submit", disabled: busy, className: "inline-flex items-center gap-1.5 px-6 py-3 bg-indigo-600 active:bg-indigo-700 text-white font-bold rounded-xl text-sm shadow-md min-h-[50px]" }, /* @__PURE__ */ React.createElement(Icon, { name: "save", className: "w-4 h-4" }), "保存")))))))
+    }, { confirmText: "放弃修改" }), className: "px-4 py-3 bg-gray-100 active:bg-gray-200 text-gray-700 font-bold rounded-xl text-sm min-h-[50px]" }, "取消"), /* @__PURE__ */ React.createElement("button", { type: "submit", disabled: busy, className: "inline-flex items-center gap-1.5 px-6 py-3 bg-indigo-600 active:bg-indigo-700 text-white font-bold rounded-xl text-sm shadow-md min-h-[50px]" }, /* @__PURE__ */ React.createElement(Icon, { name: "save", className: "w-4 h-4" }), "保存"))))))),
+    /* @__PURE__ */ React.createElement("footer", { className: "mt-8 pb-6 text-center text-[10px] tracking-wide text-gray-400" }, "© 2026 ", tenantDisplayName, " · Powered by Paradise Production")
   ), moreOpen && /* @__PURE__ */ React.createElement("div", { className: "md:hidden fixed inset-0 z-[45]", onClick: () => setMoreOpen(false) }), moreOpen && /* @__PURE__ */ React.createElement(
     "div",
     {

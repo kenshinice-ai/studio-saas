@@ -89,6 +89,37 @@ const sessOK      = () => sessionStorage.getItem(SESSION_KEY)==='1';
 const markSess    = () => sessionStorage.setItem(SESSION_KEY,'1');
 const clearSess   = () => sessionStorage.removeItem(SESSION_KEY);
 
+const tenantOwnedLogoUrl = (brand) => {
+    const source = brand?.logo_url || brand?.logoUrl || '';
+    return ['/logo.png', '/logo-light.png', '/favicon.svg'].includes(source) ? '' : source;
+};
+
+/**
+ * Render only the configured tenant logo and react to the shared brand event.
+ *
+ * There is intentionally no PWE or Paradise fallback: tenant-owned CMS
+ * surfaces keep the tenant name as the complete identity when no logo exists.
+ */
+function TenantBrandLogo({ className = '' }) {
+    const [brand, setBrand] = useState(() => window.STUDIOSAAS_BRAND || {});
+    useEffect(() => {
+        const syncBrand = (event) => setBrand(event?.detail || window.STUDIOSAAS_BRAND || {});
+        window.addEventListener('studiosaas:brand', syncBrand);
+        syncBrand();
+        return () => window.removeEventListener('studiosaas:brand', syncBrand);
+    }, []);
+    const source = tenantOwnedLogoUrl(brand);
+    if (!source) return null;
+    return (
+        <img
+            src={source}
+            alt={`${brand.name || brand.studioName || 'Studio'} logo`}
+            className={className}
+            onError={(event) => { event.currentTarget.hidden = true; }}
+        />
+    );
+}
+
 /* ── PIN Screen ── */
 function PINScreen({ onUnlock }) {
     const stored = getPin();
@@ -151,7 +182,7 @@ function PINScreen({ onUnlock }) {
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 to-indigo-950 p-4">
             <div className="bg-white rounded-3xl p-8 w-full max-w-xs shadow-2xl text-center anim">
-	                <img src="/logo.png" alt="Studio" className="w-36 mx-auto mb-3"/>
+	                <TenantBrandLogo className="w-36 max-h-20 object-contain mx-auto mb-3"/>
 	                <p className="tenant-slogan text-sm text-gray-500 italic mb-4">Learn, grow, and feel confident.</p>
 	                <p className="text-sm text-gray-400 mb-4">
                     {step==='set' ? '首次使用，请设置 4 位 PIN 码' : step==='confirm' ? '再次输入确认 PIN' : '输入 PIN 码解锁'}
@@ -171,6 +202,9 @@ function PINScreen({ onUnlock }) {
                         </p>
                     </details>
                 )}
+                <p className="mt-6 pt-4 border-t border-gray-100 text-[10px] tracking-wide text-gray-400">
+                    Powered by Paradise Production
+                </p>
             </div>
         </div>
     );
@@ -798,7 +832,7 @@ function LoginScreen({ onLogin }) {
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 to-indigo-950 p-4">
             <div className="bg-white rounded-3xl p-8 w-full max-w-xs shadow-2xl text-center anim">
-	                <img src="/logo.png" alt="Studio" className="w-36 mx-auto mb-3"/>
+	                <TenantBrandLogo className="w-36 max-h-20 object-contain mx-auto mb-3"/>
 	                <p className="tenant-slogan text-sm text-gray-500 italic mb-4">Learn, grow, and feel confident.</p>
 	                <p className="text-sm text-gray-400 mb-6">请输入 Studio CMS 账号</p>
                 <form onSubmit={submit} className="space-y-3">
@@ -830,6 +864,9 @@ function LoginScreen({ onLogin }) {
                         {busy ? '验证中...' : '进入系统 →'}
                     </button>
                 </form>
+                <p className="mt-6 pt-4 border-t border-gray-100 text-[10px] tracking-wide text-gray-400">
+                    Powered by Paradise Production
+                </p>
             </div>
         </div>
     );
@@ -1004,7 +1041,7 @@ function App() {
         if (actorRole && !allowedTabs.includes(tab)) setTab('dashboard');
     }, [actorRole, tab]);
 
-    const tenantLogoUrl = tenantBrand.logo_url || tenantBrand.logoUrl || '/logo-light.png';
+    const tenantLogoUrl = tenantOwnedLogoUrl(tenantBrand);
     const tenantDisplayName = tenantBrand.name || tenantBrand.studioName || 'Studio';
     /* The copy staff paste into WeChat used to say the literal word "Studio"
        and end with a palette emoji — wrong for the piano, dance and game tenants, and
@@ -3239,7 +3276,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
 
             {/* ── Mobile top bar (md:hidden) ── */}
             <div className="md:hidden mobile-top-bar fixed top-0 left-0 right-0 z-40 bg-indigo-900 text-white flex items-center px-3 gap-2.5 shadow-lg">
-                <img src={tenantLogoUrl} alt={tenantDisplayName} className="h-8 w-auto max-w-[96px] object-contain flex-shrink-0"/>
+                {tenantLogoUrl && <img src={tenantLogoUrl} alt={`${tenantDisplayName} logo`} className="h-8 w-auto max-w-[96px] object-contain flex-shrink-0"/>}
                 <span className="font-bold text-base flex-1 truncate">{tenantDisplayName} CMS</span>
                 <button onClick={()=>{setGOpen(true);setGQ('');}} aria-label="搜索"
                     className="w-9 h-9 flex items-center justify-center rounded-lg bg-indigo-800 active:bg-indigo-700 text-indigo-200 flex-shrink-0"><Icon name="search"/></button>
@@ -3252,7 +3289,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
             <aside className="hidden md:flex w-56 bg-indigo-900 text-white flex-col shadow-xl flex-shrink-0"
                 style={{paddingTop:'env(safe-area-inset-top, 0px)'}}>
                 <div className="p-4 border-b border-indigo-800 flex items-center gap-2.5">
-                    <img src={tenantLogoUrl} alt={tenantDisplayName} className="h-9 w-auto max-w-[96px] object-contain flex-shrink-0"/>
+                    {tenantLogoUrl && <img src={tenantLogoUrl} alt={`${tenantDisplayName} logo`} className="h-9 w-auto max-w-[96px] object-contain flex-shrink-0"/>}
                     <h1 className="hidden md:block text-base font-bold tracking-wide flex-1 truncate">{tenantDisplayName}</h1>
                     <button onClick={()=>{setGOpen(true);setGQ('');}} title="全局搜索 ⌘K" aria-label="全局搜索"
                         className="hidden md:flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-800 active:bg-indigo-700 text-indigo-300 hover:text-white flex-shrink-0"><Icon name="search"/></button>
@@ -4937,6 +4974,9 @@ document.getElementById('copybtn').addEventListener('click', function(){
     </div>
 )}
 
+                <footer className="mt-8 pb-6 text-center text-[10px] tracking-wide text-gray-400">
+                    © 2026 {tenantDisplayName} · Powered by Paradise Production
+                </footer>
             </main>
 
             {/* ── Mobile bottom nav (md:hidden) ── */}

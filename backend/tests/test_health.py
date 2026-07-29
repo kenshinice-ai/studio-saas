@@ -13,7 +13,7 @@ def test_health_returns_ok(client):
     assert payload["version"] == "v1"
     assert payload["appVersion"] == "7.8.0"
     assert payload["mode"] == "saas"
-    assert payload["showProducerCredit"] is False
+    assert payload["showProducerCredit"] is True
 
 
 def test_industry_presets_are_complete_and_bilingual(client):
@@ -112,6 +112,27 @@ def test_admin_mutation_requires_auth(client):
 def test_root_register_is_closed(client):
     response = client.get("/register")
     assert response.status_code == 404
+
+
+def test_feather_star_favicon_is_public(client):
+    response = client.get("/favicon.svg")
+    assert response.status_code == 200
+    assert response.headers["Content-Type"].startswith("image/svg+xml")
+    assert b'aria-label="PWE Studio"' in response.data
+
+
+def test_feather_star_dark_mark_is_public(client):
+    response = client.get("/pwe-mark-dark.svg")
+    assert response.status_code == 200
+    assert response.headers["Content-Type"].startswith("image/svg+xml")
+    assert b'near-white' in response.data
+
+
+def test_feather_star_light_mark_is_public(client):
+    response = client.get("/pwe-mark.svg")
+    assert response.status_code == 200
+    assert response.headers["Content-Type"].startswith("image/svg+xml")
+    assert b'light surfaces' in response.data
 
 
 def test_tenant_student_manifest_uses_tenant_start_url(client):

@@ -1,20 +1,29 @@
 # PWE Studio / Paradise Production Brand Assets
 
-This folder is the human-facing delivery kit for the StudioSaaS brand family.
-Runtime assets remain generated into the repository root; source-of-truth
-geometry lives in the `source/` folders named below.
+This folder is the human-facing delivery kit for the PWE Studio brand family.
+Runtime assets are generated into the repository root. The canonical PWE
+geometry lives in `docs/design/brand/render_assets.py`; a distribution copy is
+kept in `pwe-studio/source/`.
 
 ## Brand hierarchy
 
-1. **PWE Studio SaaS** — the multi-tenant product.
-2. **PWE Studio Edition** — the single-customer standalone product.
+1. **PWE Studio** — the single product brand in every operating mode.
+2. **SaaS / Edition** — delivery-model descriptors in prose, never part of
+   the logo or primary product name.
 3. **Paradise Production · 天域文创** — the producer and parent brand.
-4. **Tenant studio brands** — customer-owned logos, colours and copy. These
-   always take precedence on Portal, Register and CMS surfaces.
+4. **Tenant studio brands** — customer-owned logos, colours and copy. They
+   take visual precedence in Studio Admin, Portal, Register and CMS.
 
-PWE retains its Crafted-P mark and geometric wordmark. The PWE mark is not
-replaced by the Paradise wing. The two identities share the family navy,
-family amber and four-point spark motif.
+## The Feather Star
+
+The approved PWE Studio mark has one fixed story:
+
+- The **four-point star is the starting point of creativity**.
+- The **three feather blades represent growth, ascent and possibility**.
+- Their proportions begin from the golden-ratio sequence **136 : 84 : 52**.
+
+The mark and the `PWE STUDIO` wordmark form the only approved product lockup.
+Do not add “SaaS” or “Edition” to the artwork.
 
 See [BRAND_ARCHITECTURE.md](BRAND_ARCHITECTURE.md) for placement rules and
 [brand-tokens.json](brand-tokens.json) for exact colour values.
@@ -23,27 +32,23 @@ See [BRAND_ARCHITECTURE.md](BRAND_ARCHITECTURE.md) for placement rules and
 
 | Path | Purpose |
 |---|---|
-| `logo/` | Supplied Paradise Production SVG and PNG assets |
-| `source/` | Paradise wing construction and deterministic SVG generator |
-| `pwe-studio/svg/` | PWE mark and horizontal lockups |
-| `pwe-studio/png/` | Transparent PWE marks and lockups |
+| `logo/` | Paradise Production SVG and PNG assets |
+| `source/` | Paradise construction, raster generation and validation |
+| `pwe-studio/svg/` | Feather Star mark and PWE STUDIO lockups |
+| `pwe-studio/png/` | Transparent marks and lockups |
 | `pwe-studio/pwa/` | PWE favicon, app icons and Apple touch icon |
-| `pwe-studio/source/` | Copy of the deterministic PWE geometry generator |
-| `brand-identity.html` | Supplied Paradise Production visual guideline |
+| `pwe-studio/source/` | Distribution copy of the PWE asset generator |
+| `brand-identity.html` | Paradise Production visual guideline |
 
 ## Production rules
 
-- Use SVG for web and digital layouts when the environment preserves the
-  referenced fonts.
-- Supplied Paradise lockup SVGs contain editable `<text>` elements. Use their
-  PNG exports for uncontrolled third-party environments until outlined print
-  masters are supplied.
-- Use `#A16207` rather than family amber for small text on white or warm-paper
-  backgrounds.
-- Do not stretch, rotate, shadow, outline or recolour either mark.
-- Do not merge the PWE mark and Paradise wing into a new combined logo.
-- Never replace a configured tenant logo with either platform or producer
-  branding.
+- Use supplied SVG assets whenever the environment supports them.
+- Use `#A16207` instead of family amber for small text on white or Warm Paper.
+- Never stretch, rotate, shadow, outline or recolour either identity.
+- Never merge the Feather Star and Paradise wing into a combined logo.
+- Never replace a tenant logo with a PWE or Paradise logo.
+- On tenant surfaces, use only the restrained footer text
+  `Powered by Paradise Production`; do not add a producer logo to the header.
 
 ## Regeneration
 
@@ -55,7 +60,5 @@ python "01 BRAND ASSETS/source/build_assets.py"
 .venv/bin/python "01 BRAND ASSETS/source/validate_assets.py"
 ```
 
-The final command validates required files, exact raster dimensions, SVG
-viewBoxes, the documented live-text boundary and the deterministic SHA-256
-manifest. Supplied legacy Paradise PNGs remain unchanged; normalized web/PWA
-exports live in `logo/png/web/` and use truthful size suffixes.
+The final command validates required files, raster dimensions, SVG safety,
+the live-text boundary and the deterministic SHA-256 manifest.

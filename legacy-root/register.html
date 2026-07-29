@@ -58,7 +58,8 @@
       const visual = brand.visual_theme || brand.visualTheme || {};
       const primary = visual.accent_color || visual.accentColor || brand.primary_color || brand.primaryColor || '#312e81';
       const secondary = visual.secondary_accent_color || visual.secondaryAccentColor || brand.secondary_color || brand.secondaryColor || '#6366f1';
-      const logo = brand.logo_url || brand.logoUrl || '';
+      const rawLogo = brand.logo_url || brand.logoUrl || '';
+      const logo = ['/logo.png', '/logo-light.png', '/favicon.svg'].includes(rawLogo) ? '' : rawLogo;
       const slogan = brand.slogan || 'Learn, grow, and feel confident.';
       const copyPack = brand.copy_pack || brand.copyPack || {};
       const profile = brand.registration_profile || brand.registrationProfile || {};
@@ -73,8 +74,8 @@
       root.dataset.brandScheme = visual.color_scheme || visual.colorScheme || 'light';
       if (brand.name) {
         document.title = `${brand.name} Student Portal`;
-        const footer = document.getElementById('portalFooter');
-        if (footer) footer.textContent = `${brand.name} · Student Portal`;
+        const footerName = document.getElementById('portalFooterName');
+        if (footerName) footerName.textContent = brand.name;
         const label = document.getElementById('portalName');
         if (label) label.textContent = `${brand.name} · ${copyPack.portal_label || copyPack.portalLabel || 'Student Portal'}`;
       }
@@ -83,11 +84,11 @@
       const introEl = document.getElementById('registerIntro');
       if (introEl) introEl.textContent = copyPack.register_intro || copyPack.registerIntro || 'Tell us about the student and their goals.';
       renderRegistrationProfile(profile);
-      if (logo) {
-        document.querySelectorAll('img[src="/logo.png"], img[src$="/logo.png"]').forEach((img) => {
-          img.src = logo;
-          img.alt = brand.name || img.alt || 'Studio logo';
-        });
+      const logoElement = document.getElementById('tenantPortalLogo');
+      if (logoElement) {
+        logoElement.hidden = !logo;
+        logoElement.alt = logo ? `${brand.name || 'Studio'} logo` : '';
+        if (logo) logoElement.src = logo;
       }
     };
     const scheduleTenantTheme = () => {
@@ -202,7 +203,8 @@
 <!-- Header (A: 品牌 logo + 标语; P1: standalone 模式避开状态栏) -->
 <header class="bg-white shadow-sm border-b border-gray-200" style="padding-top:env(safe-area-inset-top, 0px)">
   <div class="max-w-lg mx-auto px-4 py-4 flex items-center gap-4">
-    <img src="/logo.png" alt="Studio" class="h-14 w-auto flex-shrink-0"/>
+    <img id="tenantPortalLogo" alt="" hidden class="h-14 w-auto flex-shrink-0"
+      onerror="this.hidden=true;this.removeAttribute('src')"/>
     <div class="min-w-0">
       <p id="portalSlogan" class="text-[15px] text-gray-500 italic leading-snug" style="font-family:'Snell Roundhand','Savoye LET',cursive">Learn, grow, and feel confident.</p>
       <p id="portalName" class="text-xs text-gray-400 mt-0.5">Student Portal · 学员服务中心</p>
@@ -454,7 +456,7 @@
 
 <!-- Footer (P1: standalone 模式避开底部 Home 条) -->
 <footer id="portalFooter" class="text-center py-6 text-xs text-gray-400" style="padding-bottom:calc(24px + env(safe-area-inset-bottom, 0px))">
-  Studio · Student Portal
+  © 2026 <span id="portalFooterName">Studio</span> · Powered by Paradise Production
 </footer>
 
 <!-- Portfolio Lightbox (full-screen, hidden by default) -->

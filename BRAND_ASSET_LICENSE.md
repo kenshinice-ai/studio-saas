@@ -3,9 +3,10 @@
 The source code in this repository is licensed under Apache-2.0 as described in
 `LICENSE`.
 
-The PWE Studio, PWE Studio SaaS, PWE Studio Edition and Paradise Production
-names, marks, logos, wordmarks, wing artwork, icon artwork and brand guideline
-files are brand assets. They are not granted for independent reuse,
+The PWE Studio and Paradise Production names, marks, logos, wordmarks, wing
+artwork, icon artwork and brand guideline files are brand assets. SaaS and
+Edition are delivery-model descriptors, not separate product marks. The brand
+assets are not granted for independent reuse,
 redistribution, sublicensing or use as another product's identity by the
 Apache-2.0 software licence.
 

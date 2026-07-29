@@ -47,6 +47,7 @@
     .lang-switch button:hover { background:var(--bg2); }
     .lang-switch button.active { background:var(--ink); color:var(--bg); }
     main { width:min(1040px,100%); margin:0 auto; padding:54px 24px 72px; display:grid; grid-template-columns:minmax(0,.9fr) minmax(320px,1.1fr); gap:40px; align-items:start; }
+    .tenant-credit { padding:0 24px 28px; color:var(--muted); font-size:10px; letter-spacing:.04em; text-align:center; }
     .intro { padding-top:18px; }
     /* P2-7: the wide tracking and uppercase are Latin devices; under zh they
        only pull the glyphs apart, and 800/900 on a CJK face that ships 300–500
@@ -116,7 +117,7 @@
     <div class="brand">
       <!-- A configured-but-missing logo must disappear, not leave a broken
            image glyph next to the studio name. -->
-      <img id="tenantLogo" src="/logo.png" alt="" onerror="this.style.display='none'">
+      <img id="tenantLogo" alt="" hidden onerror="this.hidden=true;this.removeAttribute('src')">
       <div>
         <div id="tenantName" class="name">Let&#x27;s Play Game</div>
         <div id="tenantSlogan" class="slogan"></div>
@@ -180,6 +181,11 @@
       </div>
     </section>
   </main>
+
+  <footer class="tenant-credit">
+    © 2026 <span id="footerTenantName">Let&#x27;s Play Game</span>
+    <span id="producerCredit" hidden> · Powered by Paradise Production</span>
+  </footer>
 
   <!-- P1-3: the same four sections the portal's privacy view shows, so the
        consent this page records against a version number refers to text the
@@ -396,10 +402,13 @@
       const version = document.getElementById('privacyVersion');
       if (version) version.textContent = T('本说明版本：', 'Privacy note version: ') + privacyNoticeVersion;
       document.getElementById('tenantName').textContent = brand.name || TENANT_NAME;
+      document.getElementById('footerTenantName').textContent = brand.name || TENANT_NAME;
       const logo = document.getElementById('tenantLogo');
-      logo.alt = brand.name || TENANT_NAME;
-      logo.style.display = '';
-      logo.src = brand.logo_url || brand.logoUrl || '/logo.png';
+      const rawLogoUrl = brand.logo_url || brand.logoUrl || '';
+      const logoUrl = ['/logo.png', '/logo-light.png', '/favicon.svg'].includes(rawLogoUrl) ? '' : rawLogoUrl;
+      logo.alt = logoUrl ? `${brand.name || TENANT_NAME} logo` : '';
+      logo.hidden = !logoUrl;
+      if (logoUrl) logo.src = logoUrl;
       document.getElementById('tenantContact').textContent = [brand.contact_phone || brand.contactPhone, brand.contact_email || brand.contactEmail, brand.address].filter(Boolean).join(' · ');
       const quickContact = [brand.contact_phone || brand.contactPhone, brand.contact_email || brand.contactEmail].filter(Boolean).join(' · ');
       const copyContactBtn = document.getElementById('copyContactBtn');
@@ -511,6 +520,14 @@
     });
     applyLanguage();
     applyBrand();
+    fetch('/v1/health', { cache: 'no-store' }).then((response) => {
+      if (!response.ok) throw new Error(`Health ${response.status}`);
+      return response.json();
+    }).then((health) => {
+      document.getElementById('producerCredit').hidden = !health.showProducerCredit;
+    }).catch((error) => {
+      console.warn('Producer credit policy unavailable.', error);
+    });
   </script>
 </body>
 </html>

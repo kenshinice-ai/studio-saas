@@ -1,43 +1,60 @@
 # Brand Architecture
 
-## Product and producer
+## Product, producer and tenant
 
-**PWE Studio** is the customer-facing product brand. Its Crafted-P represents
-the operating structure; the four-point spark represents the creative work the
-structure exists to support.
+**PWE Studio** is the product brand. Its Feather Star preserves one immutable
+meaning: the four-point star is the starting point of creativity; the three
+feather blades represent growth, ascent and possibility.
 
 **Paradise Production · 天域文创** is the producer and parent brand. Its wing
-represents creative lift and provenance. It endorses PWE without replacing the
-product identity.
+represents creative lift and provenance. It endorses PWE Studio without
+replacing the product identity.
+
+**Tenant studios own their customer-facing identity.** Their logo, studio
+name, colours and content are primary throughout their operational workspace
+and public experience.
 
 Approved relationship:
 
-> PWE Studio SaaS
+> PWE STUDIO
 >
-> A Paradise Production · 天域文创出品
+> Powered by Paradise Production · 天域文创
 
-The lines are visually separate and must never be combined into one mark.
+The two lines remain visually separate. “SaaS” and “Edition” may describe
+delivery models in running text, but never appear in the PWE Studio lockup.
 
 ## Paradise lockup selection
 
 | Asset | Approved use |
 |---|---|
-| Lockup A · horizontal | Paradise website, company stationery and email signature |
+| Lockup A · horizontal | Paradise website, stationery and email signature |
 | Lockup B · badge | Company profile cover, social profile and formal end page |
-| Lockup C · star-wing | PWE sales cover/closing, joint case studies and PWE launch material |
-| Wing symbol | Paradise favicon, social avatar and restrained decorative use |
+| Lockup C · star-wing | Joint launch material and restrained sales endorsement |
+| Wing symbol | Paradise favicon, social avatar and decorative use |
 
 ## Surface rules
 
-| Surface | Primary identity | Paradise endorsement |
+| Surface | Primary identity | Producer treatment |
 |---|---|---|
-| Super Admin | PWE Studio SaaS | Login/footer only |
-| Studio Admin | Tenant name + PWE product chrome | No wing inside tenant workspace |
-| CMS | Tenant logo | None |
-| Portal / Register | Tenant logo | None in SaaS |
-| PWE Studio Edition Portal | Tenant logo | Small contractual footer, enabled by default |
-| Sales deck | PWE Studio SaaS | Lockup C on cover and closing |
-| README / Handoff / release package | PWE product name | Text credit or Lockup C where visual |
+| Super Admin | PWE Studio | Small text credit on login/footer |
+| Studio Admin | Tenant logo + tenant name | Footer text only |
+| CMS | Tenant logo + tenant name | Footer text only |
+| Portal / Register | Tenant logo + tenant name | Footer text only |
+| SaaS and Edition packages | PWE Studio | Delivery model described in prose |
+| Sales deck | PWE Studio | Small Paradise endorsement; no merged logo |
+| README / Handoff | PWE Studio | Text credit where useful |
+
+Tenant Studio Admin, Portal, Register and CMS must not show the PWE or Paradise
+logo in the top-left identity area. If a tenant has no uploaded logo, use the
+tenant name without substituting a platform mark.
+
+Canonical tenant footer pattern:
+
+> © 2026 [Tenant Name] · Powered by Paradise Production
+
+The producer credit is quiet supporting text, never a heading, button or
+graphic lockup. A commercial agreement may hide it through the documented
+configuration flag, but must never replace the tenant identity.
 
 ## Colour relationship
 
@@ -55,11 +72,10 @@ separate. Family amber is not a general-purpose warning or button colour.
 
 - Paradise brand moments: Playfair Display.
 - Paradise supporting text: Inter.
-- PWE authored wordmark: vector geometry, never typeset from a font.
+- PWE Studio authored wordmark: vector geometry, never typeset from a font.
 - Product UI: system bilingual sans-serif stack.
-- Chinese marketing title fallback: Source Han Serif / Songti SC.
+- Chinese marketing titles: Source Han Serif / Songti SC.
 - Chinese UI: PingFang SC / Source Han Sans / system sans-serif.
 
-The editable Paradise SVG lockups use live text. Use raster exports where font
-availability is uncontrolled; outlined print masters remain a separate
-production deliverable.
+Paradise SVG lockups may contain editable live text. Use raster exports where
+font availability is uncontrolled.

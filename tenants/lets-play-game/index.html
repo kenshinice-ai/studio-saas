@@ -20,14 +20,14 @@
 <meta id="ogTitle" property="og:title" content="Let&#x27;s Play Game">
 <meta id="ogDescription" property="og:description" content="Let&#x27;s Play Game — 课程报名、学员课时与记录查询。">
 <meta id="ogUrl" property="og:url" content="/lets-play-game/">
-<meta id="ogImage" property="og:image" content="/logo.png">
+<meta id="ogImage" property="og:image" content="">
 <meta id="ogImageWidth" property="og:image:width" content="1200">
 <meta id="ogImageHeight" property="og:image:height" content="630">
 <meta id="ogImageAlt" property="og:image:alt" content="Let&#x27;s Play Game">
 <meta id="twitterCard" name="twitter:card" content="summary_large_image">
 <meta id="twitterTitle" name="twitter:title" content="Let&#x27;s Play Game">
 <meta id="twitterDescription" name="twitter:description" content="Let&#x27;s Play Game — 课程报名、学员课时与记录查询。">
-<meta id="twitterImage" name="twitter:image" content="/logo.png">
+<meta id="twitterImage" name="twitter:image" content="">
 <meta name="theme-color" content="#F4F0E8">
 <link data-tenant-portal-manifest rel="manifest" href="/lets-play-game/manifest-portal.json">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -621,7 +621,7 @@
   <div class="wrap foot">
     <div>
       <div class="brand" style="margin-bottom:14px;cursor:default"><span class="bn serif" style="font-size:18px" id="footName">Let&#x27;s Play Game</span></div>
-      <p class="cp">© 2026 <span id="footName2">Let&#x27;s Play Game</span> · Powered by PWE Studio<span id="producerCredit" hidden> · A Paradise Production</span></p>
+      <p class="cp">© 2026 <span id="footName2">Let&#x27;s Play Game</span><span id="producerCredit" hidden> · Powered by Paradise Production</span></p>
     </div>
     <div class="fl">
       <a href="#home:courses" data-analytics-label="foot_courses" data-en="Courses">课程</a>
@@ -1027,6 +1027,10 @@
     box.addEventListener('focusin', pause);
     box.addEventListener('focusout', resume);
   })();
+  function tenantLogoValue(brand){
+    var value=brand.logoUrl||brand.logo_url||'';
+    return ['/logo.png','/logo-light.png','/favicon.svg'].indexOf(value)===-1 ? value : '';
+  }
   function applySeo(b){
     var hero=b.heroProfile||b.hero_profile||{};
     var website=b.websiteProfile||b.website_profile||{};
@@ -1037,7 +1041,7 @@
     var description=String(pickLocalized(website.seo_description||website.seoDescription)
                            ||pickLocalized(hero.subtitle)||pickLocalized(b.slogan)
                            ||((b.name||'Studio')+' courses and registration')).slice(0,200);
-    var image=hero.hero_image_url||hero.heroImageUrl||b.logoUrl||b.logo_url||'';
+    var image=hero.hero_image_url||hero.heroImageUrl||tenantLogoValue(b);
     if(image && image.indexOf('//')===-1 && image.charAt(0)==='/') image=location.origin+image;
     var set=function(id, attr, value){ var el=document.getElementById(id); if(el && value) el[attr]=value; };
     document.title=seoTitle || b.name || document.title;
@@ -1222,7 +1226,10 @@
 
     applyVisualTheme(b);
     if(b.name){ ['brandName','footName','footName2'].forEach(function(id){ var el=document.getElementById(id); if(el) el.textContent=b.name; }); }
-    if(b.logoUrl){ var lg=document.getElementById('brandLogo'); lg.alt=b.name||''; lg.src=b.logoUrl; lg.style.display='block'; }
+    var tenantLogo=tenantLogoValue(b);
+    var lg=document.getElementById('brandLogo');
+    if(tenantLogo){ lg.alt=(b.name||'Studio')+' logo'; lg.src=tenantLogo; lg.style.display='block'; }
+    else { lg.alt=''; lg.removeAttribute('src'); lg.style.display='none'; }
 
     var showStudent = String(hero.show_student_login ?? hero.showStudentLogin ?? website.show_student_area ?? website.showStudentArea ?? true) !== 'false';
     setNavVisible(['navStudent','mnavStudent','heroStudentLogin'], showStudent);
@@ -1617,9 +1624,8 @@
   });
 
   /* ── boot ── */
-  /* Product/producer attribution is a runtime delivery-mode policy, not a
-     tenant theme choice. SaaS stays tenant-first; Edition reveals the compact
-     contractual producer line unless the deployment explicitly removes it. */
+  /* Producer attribution is a runtime policy, not a tenant theme choice.
+     The tenant remains the primary identity in every operating mode. */
   fetch('/v1/health').then(function(response){
     if(!response.ok) throw new Error('health request failed');
     return response.json();

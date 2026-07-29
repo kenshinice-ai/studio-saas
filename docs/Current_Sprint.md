@@ -94,7 +94,7 @@ These items from earlier sprint docs are confirmed done — do not re-fix:
 
 | Item | Status |
 |---|---|
-| Display rename → **PWE Studio SaaS** (titles, super-admin h1, health `service`, manifests, README; internal identifiers `STUDIOSAAS_*`/CSRF value/domain unchanged) | ✅ |
+| Display rename → **PWE Studio** (titles, Super Admin, manifests and README; SaaS/Edition remain delivery descriptors, while internal identifiers and API service contracts stay unchanged) | ✅ |
 | Default credential hints removed from login UI; public-pilot accounts use unique rotated passwords | ✅ 2026-07-10 |
 | Super-admin quick links: Portal `/slug` + CMS `/slug/cms` + Admin + Register (was: "CMS" mislinked to `/slug`) | ✅ |
 | Tenant portal v2: bilingual SPA (home/join/my/privacy), brand/programs from v1 public APIs, in-page enrolment, and a private student area protected by name + mobile + studio-issued 6-digit access code | ✅ |

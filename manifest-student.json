@@ -1,6 +1,6 @@
 {
-  "name": "PWE Studio SaaS Student Portal",
-  "short_name": "PWE Studio",
+  "name": "Studio Student Portal",
+  "short_name": "Studio Portal",
   "description": "Tenant student registration, balance, and portfolio portal",
   "start_url": "/",
   "scope": "/",

@@ -1,14 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 252 64" role="img" aria-label="PWE Studio">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 64" role="img" aria-label="PWE Studio">
   <!-- horizontal lockup, light surfaces -->
-  <g transform="translate(-3.5 8) scale(0.75)">
-    <!-- Crafted P: solid letterform, spark punched as the counter -->
-    <path fill-rule="evenodd" fill="#0E1729" d="M 14 10 L 32.5 10 C 42.6 10 50.2 14.7 50.2 23.1 C 50.2 31.6 42.6 36.6 32.5 36.6 L 26.4 36.6 C 25.2 36.7 24.6 37.4 24.55 38.6 L 24.3 54 L 14 54 Z M 34.5 15.7 Q 34.5 23.2 42 23.2 Q 34.5 23.2 34.5 30.7 Q 34.5 23.2 27 23.2 Q 34.5 23.2 34.5 15.7 Z"/>
-    <!-- creative spark (refills the punched counter; drop for monochrome) -->
-    <path fill="#F5B335" d="M 34.5 15.7 Q 34.5 23.2 42 23.2 Q 34.5 23.2 34.5 30.7 Q 34.5 23.2 27 23.2 Q 34.5 23.2 34.5 15.7 Z"/>
+  <g transform="translate(-3.5 6.5) scale(0.84)">
+    <!-- Feather Star: growth, ascent and possibility from one creative origin -->
+    <path fill="#0E1729" d="M 13.95 49.7 C 23.75 38.85 37.05 23.45 54.2 6.3 C 47.9 20.3 37.75 34.65 22.35 46.55 C 19.2 49 16.4 50.4 13.95 49.7 Z"/>
+    <path fill="#0E1729" d="M 15.35 52.15 C 25.15 47.6 34.6 39.2 44.75 27.3 C 39.5 39.2 30.4 48.65 19.55 53.2 C 17.8 53.9 16.05 53.55 15.35 52.15 Z"/>
+    <path fill="#F5B335" d="M 16.4 53.9 C 23.4 52.15 30.05 48.3 36.7 41.65 C 31.8 49.7 25.5 54.6 17.8 55.65 C 16.4 56 15.35 54.95 16.4 53.9 Z"/>
+    <path fill="#F5B335" d="M 14.3 44.8 Q 14.3 51.1 20.6 51.1 Q 14.3 51.1 14.3 57.4 Q 14.3 51.1 8 51.1 Q 14.3 51.1 14.3 44.8 Z"/>
   </g>
-  <!-- "PWE Studio" wordmark, monoline geometric letterforms -->
-  <path d="M 46 18 L 46 46 M 46 18 L 53 18 M 53 18 A 7.25 7.25 0 0 1 53 32.5 M 53 32.5 L 46 32.5 M 69.25 18 L 74.5 46 M 74.5 46 L 79.75 26 M 79.75 26 L 85 46 M 85 46 L 90.25 18 M 100.25 18 L 100.25 46 M 100.25 18 L 112.25 18 M 100.25 32 L 110.25 32 M 100.25 46 L 112.25 46 M 142.61 20.5 A 7 7 0 1 0 137.25 32 M 137.25 32 A 7 7 0 1 1 131.89 43.5 M 157.75 21 L 157.75 41.5 M 157.75 41.5 A 4.5 4.5 0 0 0 162.25 46 M 154.25 27 L 162.25 27 M 172.25 29.75 L 172.25 39.5 M 172.25 39.5 A 6.5 6.5 0 0 0 185.25 39.5 M 185.25 39.5 L 185.25 29.75 M 208.75 18 L 208.75 46 M 218.75 29.75 L 218.75 46" stroke="#0E1729" stroke-width="5.5" stroke-linecap="round" fill="none"/>
-  <circle cx="202" cy="36.5" r="6.75" stroke="#0E1729" stroke-width="5.5" fill="none"/>
-  <circle cx="235.5" cy="36.5" r="6.75" stroke="#0E1729" stroke-width="5.5" fill="none"/>
-  <circle cx="218.75" cy="21" r="2.9" fill="#0E1729"/>
+  <!-- "PWE" wordmark, monoline geometric letterforms -->
+  <path d="M 52 9.2 L 52 40 M 52 9.2 L 59.7 9.2 M 59.7 9.2 A 7.98 7.98 0 0 1 59.7 25.15 M 59.7 25.15 L 52 25.15 M 77.58 9.2 L 83.35 40 M 83.35 40 L 89.12 18 M 89.12 18 L 94.9 40 M 94.9 40 L 100.68 9.2 M 111.68 9.2 L 111.68 40 M 111.68 9.2 L 124.88 9.2 M 111.68 24.6 L 122.68 24.6 M 111.68 40 L 124.88 40" stroke="#0E1729" stroke-width="6.05" stroke-linecap="round" fill="none"/>
+  <!-- "STUDIO" wordmark, monoline geometric letterforms -->
+  <path d="M 58.69 46.27 A 3.22 3.22 0 1 0 56.22 51.56 M 56.22 51.56 A 3.22 3.22 0 1 1 53.75 56.85 M 62.66 45.12 L 69.1 45.12 M 65.88 45.12 L 65.88 58 M 72.32 45.12 L 72.32 54.78 M 72.32 54.78 A 3.22 3.22 0 0 0 78.76 54.78 M 78.76 54.78 L 78.76 45.12 M 81.98 45.12 L 81.98 58 M 81.98 45.12 A 6.44 6.44 0 0 1 81.98 58 M 91.64 45.12 L 91.64 58" stroke="#0E1729" stroke-width="2.53" stroke-linecap="round" fill="none"/>
+  <circle cx="100.38" cy="51.56" r="5.52" stroke="#0E1729" stroke-width="2.53" fill="none"/>
 </svg>

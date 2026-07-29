@@ -877,7 +877,8 @@ def _rotate_backup():
 def _public_file(filename, mimetype=None, cache_seconds=3600):
     allowed = {
         'super-admin.html', 'manifest.json', 'sw.js',
-        'logo.png', 'logo-light.png', 'icon-192.png', 'icon-512.png',
+        'logo.png', 'logo-light.png', 'favicon.svg', 'pwe-mark.svg',
+        'pwe-mark-dark.svg', 'icon-192.png', 'icon-512.png',
         'apple-touch-icon.png', 'manifest-student.json'
     }
     base_dir = PROJECT_ROOT
@@ -1156,6 +1157,12 @@ def serve_icon512():   return _public_file('icon-512.png', 'image/png')
 def serve_appleicon(): return _public_file('apple-touch-icon.png', 'image/png')
 @app.route('/apple-touch-icon-precomposed.png')
 def serve_appleicon2(): return _public_file('apple-touch-icon.png', 'image/png')
+@app.route('/favicon.svg')
+def serve_favicon_svg(): return _public_file('favicon.svg', 'image/svg+xml; charset=utf-8')
+@app.route('/pwe-mark.svg')
+def serve_pwe_mark(): return _public_file('pwe-mark.svg', 'image/svg+xml; charset=utf-8')
+@app.route('/pwe-mark-dark.svg')
+def serve_pwe_mark_dark(): return _public_file('pwe-mark-dark.svg', 'image/svg+xml; charset=utf-8')
 @app.route('/favicon.ico')
 def serve_favicon(): return _public_file('icon-192.png', 'image/png')
 

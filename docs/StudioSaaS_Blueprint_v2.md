@@ -8,7 +8,7 @@ Purpose: Single source of truth for product vision, positioning, user roles, bus
 
 ## 1. Product Overview
 
-**Product Name:** StudioSaaS (display name **PWE Studio SaaS** since 2026-07-09; internal identifiers remain StudioSaaS)
+**Product Name:** StudioSaaS (display name **PWE Studio** since 2026-07-28; internal identifiers remain StudioSaaS)
 
 **Positioning:** A cloud-based management system for small creative education studios, supporting student management, course/clock-hour tracking, portfolio display, parent registration, brand customization, and multi-device access.
 

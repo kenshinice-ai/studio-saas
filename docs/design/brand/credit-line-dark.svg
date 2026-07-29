@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 20" role="img" aria-label="A Paradise Production credit line">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 20" role="img" aria-label="Powered by Paradise Production credit line">
   <!-- producer credit, dark surfaces -->
   <!-- Reference artwork only. Source of truth for HTML surfaces: CSS spec in docs/design/Brand_Identity.md (brand architecture section). -->
-  <text x="180" y="14" text-anchor="middle" fill="#94A3B8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="11" font-weight="600" letter-spacing="0.88">A PARADISE PRODUCTION · 天域文创出品</text>
+  <text x="180" y="14" text-anchor="middle" fill="#94A3B8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif" font-size="11" font-weight="600" letter-spacing="0.88">POWERED BY PARADISE PRODUCTION · 天域文创</text>
 </svg>

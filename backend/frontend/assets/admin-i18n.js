@@ -5,8 +5,8 @@
   'use strict';
 
   const zh = Object.fromEntries([
-    ['PWE Studio SaaS · Super Admin', 'PWE Studio SaaS · 平台管理'],
-    ['PWE Studio SaaS · Studio Admin', 'PWE Studio SaaS · 工作室管理'],
+    ['PWE Studio · Super Admin', 'PWE Studio · 平台管理'],
+    ['Studio Admin', '工作室管理'],
     ['Super Admin Login', '平台管理员登录'], ['Studio Admin Login', '工作室管理员登录'],
     ['Super Admin', '平台管理'], ['Studio Admin', '工作室管理'],
     ['Super Admin sections', '平台管理页面'], ['Studio Admin sections', '工作室管理页面'],
@@ -349,7 +349,7 @@
     ['Studio name is required.', '请填写工作室名称。'],
     ['Enter a valid email address, like studio@example.com.', '请输入有效的邮箱地址，例如 studio@example.com。'],
     ['Enter a valid phone number.', '请输入有效的电话号码。'],
-    ['Enter a valid logo URL: a path like /logo.png or a full https:// address.', 'Logo 网址无效：请使用 /logo.png 形式的路径或完整的 https:// 地址。'],
+    ['Enter a valid logo URL: a tenant asset path or a full https:// address.', 'Logo 网址无效：请使用租户资产路径或完整的 https:// 地址。'],
     ['Unknown timezone. Use an IANA name like Australia/Melbourne.', '时区无效：请使用 IANA 时区名称，例如 Australia/Melbourne。'],
     ['Enter a colour in #RRGGBB format.', '颜色格式应为 #RRGGBB。'],
     // Owner audit trail panel (Studio Admin analytics tab).

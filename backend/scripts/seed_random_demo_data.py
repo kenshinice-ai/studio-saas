@@ -260,7 +260,7 @@ def upsert_tenant(conn, slug: str, name: str, plan: str, primary: str, secondary
                 json.dumps(
                     {
                         "workspace_path": workspace_path,
-                        "logo_url": "/logo.png",
+                        "logo_url": "",
                         "category": preset["category"],
                         "category_label": category,
                         "slogan": preset["slogan"],

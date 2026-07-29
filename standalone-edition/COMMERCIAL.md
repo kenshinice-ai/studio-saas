@@ -57,10 +57,11 @@
    功能时间表。
 5. **单实例授权**：源码包按交付协议仅限该客户单实例使用（内核
    Apache-2.0；品牌资产与交付脚本另行约束），禁止二次分发。
-6. **页脚署名**：默认保留「Powered by PWE Studio · A Paradise
-   Production」页脚小字；**去署名为一次性付费选项 $499**。交付工程师
-   仅在合同包含该选项时设置 `STUDIOSAAS_SHOW_PRODUCER_CREDIT=0`；SaaS
-   模式默认不显示 Paradise 署名。
+6. **页脚署名**：四界面均以客户自己的 Logo、名称和配色为主，默认
+   仅保留「Powered by Paradise Production」页脚小字；**去署名为一次性
+   付费选项 $499**。交付工程师仅在合同包含该选项时设置
+   `STUDIOSAAS_SHOW_PRODUCER_CREDIT=0`。SaaS 与 Edition 使用相同的
+   租户品牌优先规则。
 
 ## 4. 报价速查（销售侧）
 

@@ -1,8 +1,10 @@
-# StudioSaaS v7.8.0 — Current Handoff
+# PWE Studio — Current Handoff
 
-Date: 2026-07-27
+Date: 2026-07-28
 
-Authoritative release marker: `VERSION` + Git tag `v7.8.0`
+Authoritative release baseline: `VERSION` + Git tag `v7.8.0`
+
+Current working branch: `codex/pwe-feather-star-brand-rollout`
 
 Current delivery boundary: local SaaS service + on-demand Cloudflare invitation
 testing + buildable PWE Studio Edition customer package.
@@ -15,10 +17,10 @@ One codebase supports two deliberate operating modes:
 
 | Mode | Contract |
 |---|---|
-| PWE Studio SaaS | Multi-tenant platform control plane, Super Admin, support sessions, local pilot and invitation-only Cloudflare path |
-| PWE Studio Edition | Customer-owned, exactly one active tenant total, no platform membership, no platform control-plane routes |
+| SaaS delivery | Multi-tenant platform control plane, Super Admin, support sessions, local pilot and invitation-only Cloudflare path |
+| Standalone Edition | Customer-owned, exactly one active tenant total, no platform membership, no platform control-plane routes |
 
-The current local and public SaaS runtimes report:
+The v7.8.0 SaaS release baseline reports:
 
 ```json
 {
@@ -27,7 +29,7 @@ The current local and public SaaS runtimes report:
   "mode": "saas",
   "ok": true,
   "service": "PWE Studio SaaS API",
-  "showProducerCredit": false,
+  "showProducerCredit": true,
   "version": "v1"
 }
 ```
@@ -49,9 +51,13 @@ running. It is not an AWS deployment.
   raster-export builder and asset validator.
 - Added deployable PWE Studio SVG/PNG/PWA marks in dark/light, mark-only and
   horizontal lockup variants.
-- Kept the PWE Crafted-P/geometric wordmark as the product identity. The
-  Paradise wing remains the parent/producer mark and is not substituted for
-  the PWE logo.
+- Replaced the historical Crafted-P with the approved Feather Star and a
+  two-line `PWE STUDIO` authored wordmark.
+- Locked the mark story: the four-point star is the starting point of
+  creativity; the three feather blades represent growth, ascent and
+  possibility. Their source lengths follow `136 : 84 : 52`.
+- The Paradise wing remains the parent/producer mark and is not merged into
+  or substituted for the PWE Studio logo.
 - Standardized the product family palette:
   - Navy `#0E1729`
   - Amber `#F5B335`
@@ -65,10 +71,11 @@ running. It is not an AWS deployment.
 - Updated Super Admin, Studio Admin, setup-password, shared UI tokens, PWA
   manifests/icons, service-worker cache and generated tenant workspaces.
 - Added strict producer-credit configuration:
-  - SaaS default: hidden, so tenant pages remain tenant-first.
-  - Edition default: `A Paradise Production` shown.
+  - SaaS and Edition default: text-only `Powered by Paradise Production`.
   - paid removal: `STUDIOSAAS_SHOW_PRODUCER_CREDIT=0`.
   - invalid values raise an explicit runtime error; there is no silent fallback.
+- Studio Admin, Portal, Register and CMS now keep tenant Logo/name as their
+  primary identity. No PWE or Paradise logo is used as a tenant fallback.
 - Health now exposes `mode` and `showProducerCredit` in addition to the
   independent API-contract version and app release.
 - Edition install/compose defaults and customer/runbook documentation are
@@ -76,16 +83,17 @@ running. It is not an AWS deployment.
 
 ### Sales and documentation
 
-- Updated the 13-slide sales deck to the canonical family palette.
-- PWE remains primary; authentic Paradise Lockup C appears only on the joint
-  sales cover and closing slide.
+- Reworked the 13-slide sales deck around the Feather Star story and canonical
+  family palette.
+- PWE Studio remains primary. Paradise Production appears as text-only producer
+  attribution, never as a competing product logo.
 - Removed the unresolved email placeholder without inventing contact details.
 - Updated the talk track, README, API/Admin/Deployment/Design System/Brand
   Identity documents and every role guide to the v7.8.0 release boundary.
 
 ## 3. Verification evidence
 
-- Brand assets: **68 files validated**, including **15 exact raster dimensions**.
+- Brand assets: **76 files validated**, including **15 exact raster dimensions**.
 - Python compile, shell parse, inline-script compile, CMS source/build
   consistency, UI escaping and terminology checks: passed.
 - Pytest suite in the PostgreSQL-required release gate: passed.
@@ -94,14 +102,17 @@ running. It is not an AWS deployment.
   **216 passed, 0 failed**.
 - `STUDIOSAAS_REQUIRE_POSTGRES=1 bash backend/scripts/verify_local.sh`:
   **all checks passed** outside the filesystem/port sandbox.
-- Local and public deep health: `appVersion=7.8.0`, `mode=saas`, `db=ok`,
-  `showProducerCredit=false`.
-- Local and public Portal, CMS, Studio Admin, Register and Super Admin entry
-  points were exercised.
+- Local deep health: `appVersion=7.8.0`, `mode=saas`, `db=ok`,
+  `showProducerCredit=true`.
+- The Feather Star rollout was accepted against local Portal, CMS, Studio
+  Admin, Register and Super Admin entry points. It has not been committed,
+  packaged or redeployed to the invitation URL in this working branch.
 - Browser acceptance:
-  - 375px Portal: no horizontal overflow; producer credit hidden.
+  - 375px Register: no horizontal overflow; tenant identity is primary; the
+    text-only producer credit is visible.
   - 768px Studio Admin: no horizontal overflow or console warnings/errors.
-  - 1440px Super Admin: no horizontal overflow or console warnings/errors.
+  - 768px CMS: no horizontal overflow; no platform-logo fallback.
+  - 1440px Super Admin: no horizontal overflow; Feather Star is visible.
 - Sales deck:
   - all 13 slides reviewed at full size;
   - template fidelity: **0 issues**;

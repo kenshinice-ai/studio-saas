@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "family": "PWE Studio / Paradise Production",
   "colors": {
     "family_navy": "#0E1729",
@@ -18,10 +18,20 @@
     "product_wordmark": "authored vector geometry"
   },
   "names": {
-    "saas": "PWE Studio SaaS",
-    "standalone": "PWE Studio Edition",
+    "product": "PWE Studio",
+    "saas_delivery": "SaaS",
+    "standalone_delivery": "Edition",
     "producer_en": "Paradise Production",
     "producer_zh": "天域文创",
-    "producer_credit": "A Paradise Production · 天域文创出品"
+    "producer_credit": "Powered by Paradise Production · 天域文创"
+  },
+  "mark_story": {
+    "four_point_star": "the starting point of creativity",
+    "three_feathers": [
+      "growth",
+      "ascent",
+      "possibility"
+    ],
+    "source_ratio": "136:84:52"
   }
 }

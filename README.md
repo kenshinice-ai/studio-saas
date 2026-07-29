@@ -1,8 +1,8 @@
-# PWE Studio SaaS
+# PWE Studio
 
 Current release: **v7.8.0**
 
-PWE Studio SaaS (repo: studiosaas) is a multi-tenant Creative Studio Operating System for art schools, music studios, tutoring centres, creative academies, kids' activity providers, and small education businesses.
+PWE Studio (repo: studiosaas) is a Creative Studio Operating System for art schools, music studios, tutoring centres, creative academies, kids' activity providers, and small education businesses. One codebase supports a multi-tenant SaaS delivery model and a customer-owned standalone Edition.
 
 It provides a lightweight SaaS-style platform for managing:
 
@@ -585,8 +585,8 @@ tokens, complete tenant isolation, support-gate coverage.
 container healthcheck uses it; CloudWatch minimum-alarm set and event-table
 pruning are in the §8 checklist.
 
-**Sales kit** — `docs/sales/PWE_StudioSaaS_销售介绍.pptx` (13 slides,
-brand-styled, every product claim verified against the repo) plus
+**Sales kit** — `docs/sales/PWE_Studio_销售介绍.pptx` (13 slides,
+Feather Star brand story, every product claim verified against the repo) plus
 `talk_track.md` presenter script with objection handling.
 
 ### 4.19 v7.7.8 dual-mode release closure
@@ -615,19 +615,22 @@ materials stay out of customer packages.
 Cloudflare invitation path. AWS deployment and automated media-volume backup
 remain deferred by product decision.
 
-### 4.20 v7.8.0 brand family integration
+### 4.20 Current brand family integration
 
-**Brand architecture** — PWE Studio retains its Crafted-P product mark;
-Paradise Production · 天域文创 retains the wing producer mark. Both now use
+**Brand architecture** — PWE Studio uses the Feather Star: the four-point star
+is the starting point of creativity, while the three feather blades represent
+growth, ascent and possibility. Paradise Production · 天域文创 retains the wing
+producer mark. Both use
 Family Navy `#0E1729`, Family Amber `#F5B335` and Warm Paper `#F7F5F2`
 without merging the two identities. `01 BRAND ASSETS/` is the complete
 delivery kit, including placement rules, machine-readable tokens, normalized
 raster exports, deterministic generators and a SHA-256 asset manifest.
 
-**Two-mode attribution** — SaaS tenant Portal/Register/CMS surfaces remain
-tenant-first and carry no Paradise endorsement. PWE Studio Edition shows the
-compact contractual producer credit by default; paid removal is an explicit,
-strict `STUDIOSAAS_SHOW_PRODUCER_CREDIT=0` deployment setting.
+**Tenant identity** — Studio Admin, Portal, Register and CMS keep the tenant
+Logo/name in the primary position in both operating modes. They use only the
+compact `Powered by Paradise Production` footer credit by default; paid
+removal remains an explicit, strict
+`STUDIOSAAS_SHOW_PRODUCER_CREDIT=0` deployment setting.
 
 **Product and sales sync** — platform shell, PWA icons/manifests,
 password setup, admin chrome, 13-slide sales deck and talk track share the
@@ -773,4 +776,4 @@ for attribution information.
 
 ---
 
-*A Paradise Production · 天域文创出品*
+*Powered by Paradise Production · 天域文创*

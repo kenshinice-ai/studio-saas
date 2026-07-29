@@ -57,10 +57,10 @@ def test_mode_flag_reads_env_each_call(monkeypatch):
     assert is_standalone() is False
 
 
-def test_producer_credit_defaults_to_edition_only(monkeypatch):
+def test_producer_credit_defaults_to_both_operating_modes(monkeypatch):
     monkeypatch.delenv("STUDIOSAAS_SHOW_PRODUCER_CREDIT", raising=False)
     monkeypatch.setenv("STUDIOSAAS_MODE", "saas")
-    assert show_producer_credit() is False
+    assert show_producer_credit() is True
     monkeypatch.setenv("STUDIOSAAS_MODE", "standalone")
     assert show_producer_credit() is True
 

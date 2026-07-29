@@ -43,7 +43,8 @@
           const visual = brand.visual_theme || brand.visualTheme || {};
           const primary = visual.accent_color || visual.accentColor || brand.primary_color || brand.primaryColor || '#312e81';
 	          const secondary = visual.secondary_accent_color || visual.secondaryAccentColor || brand.secondary_color || brand.secondaryColor || '#6366f1';
-	          const logo = brand.logo_url || brand.logoUrl || '';
+	          const rawLogo = brand.logo_url || brand.logoUrl || '';
+	          const logo = ['/logo.png', '/logo-light.png', '/favicon.svg'].includes(rawLogo) ? '' : rawLogo;
 	          const slogan = brand.slogan || 'Learn, grow, and feel confident.';
 	          root.style.setProperty('--tenant-primary', primary);
           root.style.setProperty('--brand-accent', primary);
@@ -61,12 +62,6 @@
 		            el.textContent = slogan;
 		          });
                   window.dispatchEvent(new CustomEvent('studiosaas:brand', {detail: brand}));
-		          if (logo) {
-            document.querySelectorAll('img[src="/logo.png"], img[src$="/logo.png"]').forEach((img) => {
-              img.src = logo;
-              img.alt = brand.name || img.alt || 'Studio logo';
-            });
-          }
         };
         const scheduleTenantTheme = () => {
           setTenantTheme(window.STUDIOSAAS_BRAND);

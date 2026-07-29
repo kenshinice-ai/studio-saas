@@ -161,7 +161,7 @@ ships in `deploy/aws/`, but remote AWS deployment is deferred:
 - [x] `01 BRAND ASSETS/source/validate_assets.py` passes: 68 files and 15 exact raster dimensions
 - [x] PWE Studio and Paradise Production have separate, documented roles; Paradise wing artwork is not reused as the PWE product mark
 - [x] Product palette is fixed to Navy `#0E1729`, Amber `#F5B335`, accessible amber text `#A16207`, and Warm Paper `#F7F5F2`
-- [x] SaaS health reports `showProducerCredit=false`; Edition defaults to `true` and accepts only strict boolean overrides
+- [x] SaaS and Edition health default to `showProducerCredit=true`; both accept only strict boolean overrides
 - [x] Tenant pages remain tenant-first; SaaS visually hides the Paradise producer credit
 - [x] Super Admin, Studio Admin, setup-password, PWA manifests/icons and generated tenant workspaces use the v7.8.0 family layer
 - [x] Sales deck has 13 visually reviewed slides, no overflow/placeholders, and passes the template-fidelity checker with 0 issues

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PWE Studio SaaS · Studio Admin</title>
+  <title>Studio Admin</title>
   <script src="/assets/ui-common.js"></script>
   <script src="/assets/admin-i18n.js" defer></script>
   <link rel="stylesheet" href="/assets/ui-tokens.css">
@@ -110,7 +110,19 @@
       flex-wrap: wrap;
     }
 
-    .brand { min-width: 0; }
+    .brand {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .tenant-brand-logo {
+      width: 40px;
+      height: 40px;
+      object-fit: contain;
+      flex: 0 0 auto;
+    }
 
     .brand h1 {
       font-size: 22px;
@@ -122,15 +134,6 @@
       gap: 10px;
     }
 
-    .brand h1::before {
-      content: '';
-      display: inline-block;
-      width: 32px;
-      height: 32px;
-      background: url("/favicon.svg") center / contain no-repeat;
-      flex-shrink: 0;
-    }
-
     .brand p {
       color: var(--muted-soft);
       font-size: 13px;
@@ -138,6 +141,16 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+    }
+
+    .tenant-footer {
+      margin: 0 auto;
+      max-width: 1400px;
+      padding: 6px 24px 28px;
+      color: var(--muted);
+      font-size: 10px;
+      letter-spacing: 0.04em;
+      text-align: center;
     }
 
     .header-actions {
@@ -1537,7 +1550,7 @@
         gap: 12px;
       }
       .brand h1 { font-size: 18px; }
-      .brand h1::before { width: 28px; height: 28px; }
+      .tenant-brand-logo { width: 34px; height: 34px; }
       .header-actions {
         width: 100%;
         flex-direction: column;
@@ -1611,11 +1624,6 @@
       color: var(--ink);
       font-size: 24px;
       letter-spacing: 0;
-    }
-
-    .brand h1::before {
-      background: url("/favicon.svg") center / contain no-repeat;
-      box-shadow: none;
     }
 
     .brand p, .auth-status { color: var(--muted); }
@@ -1911,8 +1919,11 @@
   <header class="header">
     <div class="header-top">
       <div class="brand">
-        <h1 id="studioName">Studio Admin</h1>
-        <p id="studioMeta">Loading tenant...</p>
+        <img id="studioLogo" class="tenant-brand-logo" alt="" hidden>
+        <div>
+          <h1 id="studioName">Studio Admin</h1>
+          <p id="studioMeta">Loading tenant...</p>
+        </div>
       </div>
       <div class="header-actions">
         <span id="authStatus" class="auth-status">Not signed in</span>
@@ -2095,7 +2106,7 @@
                     <div class="form-group"><label for="settingName">Studio Name</label><input id="settingName" aria-describedby="settingNameError"><span id="settingNameError" class="field-error" hidden></span></div>
                     <div class="form-group"><label for="settingSlogan">Slogan · 中文</label><input id="settingSlogan" placeholder="公开品牌标语"></div>
                     <div class="form-group"><label for="settingSloganEn">Slogan · English</label><input id="settingSloganEn" placeholder="Public brand slogan"></div>
-                    <div class="form-group"><label for="settingLogoUrl">Logo URL</label><input id="settingLogoUrl" placeholder="/logo.png or https://..." aria-describedby="settingLogoUrlError"><span id="settingLogoUrlError" class="field-error" hidden></span></div>
+                    <div class="form-group"><label for="settingLogoUrl">Logo URL</label><input id="settingLogoUrl" placeholder="https://..." aria-describedby="settingLogoUrlError"><span id="settingLogoUrlError" class="field-error" hidden></span></div>
                     <div class="form-group"><label for="settingLogoFile">Upload Logo</label><input id="settingLogoFile" type="file" accept="image/*"></div>
                     <div class="form-group"><label for="settingPlan">Plan</label><select id="settingPlan" disabled></select><small>Managed by StudioSaaS Super Admin.</small></div>
                     <div class="form-group"><label for="settingCmsLayout">CMS Layout</label><select id="settingCmsLayout"><option value="bar">Header Bar</option><option value="hero">Hero Welcome</option><option value="compact">Compact</option></select></div>
@@ -2321,7 +2332,7 @@
             <div class="preview-stage">
               <div id="previewDevice" class="preview-device mode-portal">
                 <div class="preview-chrome">
-                  <div class="preview-brand"><img id="logoPreview" class="preview-logo" alt="Studio logo" src="/logo.png"><span id="previewName">Studio</span></div>
+                  <div class="preview-brand"><img id="logoPreview" class="preview-logo" alt="" hidden><span id="previewName">Studio</span></div>
                   <span id="previewContact" class="preview-link">Contact</span>
                 </div>
                 <div class="portal-preview">
@@ -2410,6 +2421,11 @@
 
     </div>
   </main>
+
+  <footer class="tenant-footer">
+    © 2026 <span id="studioFooterName">Studio</span>
+    <span id="studioProducerCredit" hidden> · Powered by Paradise Production</span>
+  </footer>
 
   <!-- Modal for Add/Edit -->
   <div class="modal-overlay" id="modalOverlay">
@@ -2583,7 +2599,20 @@
       el.textContent = label;
     }
 
+    async function updateProducerCredit() {
+      try {
+        const healthResponse = await fetch('/v1/health', { cache: 'no-store' });
+        if (!healthResponse.ok) throw new Error(`Health ${healthResponse.status}`);
+        const health = await healthResponse.json();
+        $('studioProducerCredit').hidden = !health.showProducerCredit;
+      } catch (error) {
+        $('studioProducerCredit').hidden = true;
+        console.warn('Producer credit policy unavailable.', error);
+      }
+    }
+
     async function updateSurfaceHealth() {
+      await updateProducerCredit();
       const slug = currentTenantSlug();
       const checks = [
         ['surfacePortalHealth', 'portal', 'Portal'],
@@ -2825,7 +2854,7 @@
       const phone = $('settingPhone').value.trim();
       if (phone && !isValidPhone(phone)) errors.push(['settingPhone', 'Enter a valid phone number.']);
       const logoUrl = $('settingLogoUrl').value.trim();
-      if (logoUrl && !isValidLogoUrl(logoUrl)) errors.push(['settingLogoUrl', 'Enter a valid logo URL: a path like /logo.png or a full https:// address.']);
+      if (logoUrl && !isValidLogoUrl(logoUrl)) errors.push(['settingLogoUrl', 'Enter a valid logo URL: a tenant asset path or a full https:// address.']);
       const timezone = $('settingTimezone').value.trim();
       if (timezone && !isValidTimezone(timezone)) errors.push(['settingTimezone', 'Unknown timezone. Use an IANA name like Australia/Melbourne.']);
       [
@@ -3179,7 +3208,10 @@
         : (previewLanguage === 'zh' ? '欢迎文案已隐藏。' : 'Welcome message is hidden.');
       $('previewName').textContent = $('settingName').value || 'Studio';
       $('previewContact').textContent = [$('settingPhone').value, $('settingEmail').value, $('settingAddress').value].filter(Boolean).join(' · ') || 'Contact details';
-      $('logoPreview').src = $('settingLogoUrl').value || '/logo.png';
+      const previewLogoUrl = $('settingLogoUrl').value.trim();
+      $('logoPreview').hidden = !previewLogoUrl;
+      $('logoPreview').alt = previewLogoUrl ? `${$('settingName').value || 'Studio'} logo` : '';
+      if (previewLogoUrl) $('logoPreview').src = previewLogoUrl;
       $('previewHeroEyebrow').textContent = $('settingHeroEyebrow')?.value || $('settingCategory')?.selectedOptions?.[0]?.textContent || 'Studio';
       $('previewPrimaryCta').textContent = localizedValue('settingPrimaryCta', 'settingPrimaryCtaEn', previewLanguage === 'zh' ? '预约体验' : 'Book a Trial');
       $('previewSecondaryCta').textContent = localizedValue('settingSecondaryCta', 'settingSecondaryCtaEn', previewLanguage === 'zh' ? '查看课程' : 'Explore Courses');
@@ -3664,6 +3696,19 @@
       const visual = t.visual_theme || t.visualTheme || defaultVisualTheme(category);
       const localized = snakeLocalizedCopy(t.localized_copy || t.localizedCopy);
       $('studioName').textContent = t.name || 'Studio Admin';
+      $('studioFooterName').textContent = t.name || 'Studio';
+      const rawStudioLogoUrl = t.logo_url || t.logoUrl || '';
+      const studioLogoUrl = ['/logo.png', '/logo-light.png', '/favicon.svg'].includes(rawStudioLogoUrl)
+        ? ''
+        : rawStudioLogoUrl;
+      const studioLogo = $('studioLogo');
+      studioLogo.hidden = !studioLogoUrl;
+      studioLogo.alt = studioLogoUrl ? `${t.name || 'Studio'} logo` : '';
+      if (studioLogoUrl) studioLogo.src = studioLogoUrl;
+      studioLogo.onerror = () => {
+        studioLogo.hidden = true;
+        studioLogo.removeAttribute('src');
+      };
       $('studioMeta').textContent = t.slug ? `${t.slug} · ${preset.label} website and brand console` : 'Website and brand console';
       $('tenantSlug').value = t.slug || currentTenantSlug();
       updateSurfaceLinks();
@@ -4445,6 +4490,7 @@
     }
 
     bindEvents();
+    updateProducerCredit().catch((error) => console.warn('Producer credit refresh failed.', error));
     window.addEventListener('beforeunload', (event) => {
       if (!settingsDirty) return;
       event.preventDefault();

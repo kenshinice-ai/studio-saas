@@ -32,10 +32,11 @@ def is_standalone() -> bool:
 def show_producer_credit() -> bool:
     """Whether tenant-facing footers show the Paradise Production attribution.
 
-    The contractual attribution is enabled by default only for PWE Studio
-    Edition. SaaS tenant pages remain tenant-first and do not inherit producer
-    branding. An Edition agreement that includes paid attribution removal can
-    explicitly set ``STUDIOSAAS_SHOW_PRODUCER_CREDIT=0``.
+    Both operating modes default to a restrained, text-only footer credit.
+    Tenant logos and names remain the primary identity on Studio Admin, CMS,
+    Portal and Register surfaces. A commercial agreement that includes paid
+    attribution removal can explicitly set
+    ``STUDIOSAAS_SHOW_PRODUCER_CREDIT=0``.
 
     Raises:
         RuntimeError: If the override is present but not a supported boolean.
@@ -43,7 +44,7 @@ def show_producer_credit() -> bool:
 
     raw_value = os.environ.get("STUDIOSAAS_SHOW_PRODUCER_CREDIT")
     if raw_value is None or not raw_value.strip():
-        return is_standalone()
+        return True
 
     normalized = raw_value.strip().lower()
     if normalized in {"1", "true", "yes", "on"}:
