@@ -317,8 +317,16 @@ def _has_platform_super_admin_membership(user_id: str) -> bool:
 
 
 def _request_tenant_id() -> str | None:
-    """Resolve the request tenant id from path, header, or subdomain when present."""
+    """Resolve the request tenant id and retain an actionable resolution error.
 
+    Decorators used to collapse an invalid slug, a missing tenant, and a
+    paused/archived tenant into the same ``Tenant is not active or available``
+    response. Keeping the trusted server-side exception on ``g`` lets the
+    caller return the correct status and message without guessing or silently
+    falling back to another tenant.
+    """
+
+    g.tenant_resolution_error = None
     try:
         from .config import load_config
         from .db import connect as db_connect
@@ -328,7 +336,8 @@ def _request_tenant_id() -> str | None:
         with db_connect() as conn:
             tenant = resolve_tenant(conn, slug, source)
         return str(tenant.tenant_id)
-    except TenantResolutionError:
+    except TenantResolutionError as exc:
+        g.tenant_resolution_error = exc
         return None
 
 
@@ -336,6 +345,19 @@ def _tenant_context_required() -> bool:
     """Return whether this request explicitly targets a tenant route."""
 
     return bool((request.path or "").startswith("/s/") or request.headers.get("X-Tenant-Slug"))
+
+
+def _tenant_resolution_error_response():
+    """Return a precise, safe API error for a failed tenant resolution."""
+
+    exc = getattr(g, "tenant_resolution_error", None)
+    message = str(exc or "Tenant context could not be resolved.")
+    lowered = message.casefold()
+    if "was not found" in lowered:
+        return api_error(message, 404, error="tenant_not_found")
+    if "is not active" in lowered:
+        return api_error(message, 403, error="tenant_inactive")
+    return api_error(message, 400, error="tenant_resolution_failed")
 
 
 def _support_gate_error(actor: ActorContext):
@@ -394,7 +416,7 @@ def auth_required(fn: F) -> F:
 
         tenant_id = _request_tenant_id()
         if tenant_id is None and _tenant_context_required():
-            return api_error("Tenant is not active or available.", 403)
+            return _tenant_resolution_error_response()
 
         actor = _resolve_actor(user_id, tenant_id)
         if not actor:
@@ -439,7 +461,7 @@ def permission_required(permission: str) -> Callable[[F], F]:
 
             tenant_id = _request_tenant_id()
             if tenant_id is None and _tenant_context_required():
-                return api_error("Tenant is not active or available.", 403)
+                return _tenant_resolution_error_response()
 
             actor = _resolve_actor(user_id, tenant_id)
             if not actor:
@@ -482,7 +504,7 @@ def super_admin_required(fn: F) -> F:
 
         tenant_id = _request_tenant_id()
         if tenant_id is None and _tenant_context_required():
-            return api_error("Tenant is not active or available.", 403)
+            return _tenant_resolution_error_response()
 
         actor = _resolve_actor(user_id, tenant_id)
         if not actor:
@@ -519,7 +541,7 @@ def tenant_admin_required(fn: F) -> F:
 
         tenant_id = _request_tenant_id()
         if tenant_id is None and _tenant_context_required():
-            return api_error("Tenant is not active or available.", 403)
+            return _tenant_resolution_error_response()
 
         actor = _resolve_actor(user_id, tenant_id)
         if not actor:
@@ -554,7 +576,7 @@ def tenant_owner_required(fn: F) -> F:
             return api_error("Authentication required. Please log in.", 401)
         tenant_id = _request_tenant_id()
         if tenant_id is None and _tenant_context_required():
-            return api_error("Tenant is not active or available.", 403)
+            return _tenant_resolution_error_response()
         actor = _resolve_actor(user_id, tenant_id)
         if not actor:
             return api_error("User has no active membership.", 403)

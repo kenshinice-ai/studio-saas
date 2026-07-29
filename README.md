@@ -88,7 +88,7 @@ A target architecture (modular services: Auth/Tenant/Student/Course/Credit/Atten
 | Level | Who | Main surface |
 |---|---|---|
 | Product visitor | Prospective customer | `/` product gateway and role entrances |
-| Platform Operator | SaaS owner | `/super-admin` |
+| Platform Operator | SaaS owner | `/platform-admin` (direct app login); `/super-admin` may be Cloudflare Access protected |
 | Studio Owner / Admin | One tenant studio | `/<tenant-slug>/cms` (daily operations) + `/<tenant-slug>/studio-admin` (website/brand/lead-capture settings) |
 | Public Parent / Student | Visitors | `/<tenant-slug>` (portal), `/<tenant-slug>/register` |
 
@@ -101,22 +101,27 @@ A target architecture (modular services: Auth/Tenant/Student/Course/Credit/Atten
 | Studio Admin | `/<slug>/studio-admin` | Website/brand console: logo, colours, bilingual public copy, registration fields, preview, draft, publish, and version restore (alias: `/<slug>/cms/studio-admin` redirects here) |
 | Register | `/<slug>/register` | Standalone public registration form |
 
-Local URLs (default port 8899):
+Local URLs (default port 8901):
 
 ```
-http://localhost:8899/
-http://localhost:8899/super-admin
-http://localhost:8899/lets-paint-showcase
-http://localhost:8899/lets-paint-showcase/cms
-http://localhost:8899/lets-paint-showcase/studio-admin
-http://localhost:8899/lets-paint-studio
-http://localhost:8899/lets-paint-studio/register
-http://localhost:8899/lets-paint-studio/studio-admin
-http://localhost:8899/s/lets-paint-studio/v1/tenant     # tenant-scoped API
-http://localhost:8899/v1/health
+http://localhost:8901/
+http://localhost:8901/platform-admin
+http://localhost:8901/lets-paint-showcase
+http://localhost:8901/lets-paint-showcase/cms
+http://localhost:8901/lets-paint-showcase/studio-admin
+http://localhost:8901/lets-paint-studio
+http://localhost:8901/lets-paint-studio/register
+http://localhost:8901/lets-paint-studio/studio-admin
+http://localhost:8901/s/lets-paint-studio/v1/tenant     # tenant-scoped API
+http://localhost:8901/v1/health
 ```
 
 Root `/register` is intentionally closed (404) — registration belongs to tenants.
+Root `/studio-admin` is the neutral tenant-admin login and requires an explicit
+tenant slug; it never redirects to the platform control plane or guesses a
+tenant from browser storage.
+Root `/cms` is the neutral tenant-operations entry and requires an explicit
+tenant slug in SaaS mode; the canonical operational URL remains `/<slug>/cms`.
 
 ---
 
@@ -215,7 +220,7 @@ python scripts/seed_random_demo_data.py --students-per-tenant 24   # optional
 cd backend && python server.py
 ```
 
-Server runs at `http://localhost:8899`.
+Server runs at `http://localhost:8901`.
 The launcher checks Homebrew/PostgreSQL/Python dependencies, creates the local
 database when needed, applies ordered migrations, and waits for `/v1/health`.
 It does **not** seed demo students unless `STUDIOSAAS_SEED_DEMO=1` is explicitly
@@ -692,7 +697,7 @@ semantically separate from family amber.
 ```bash
 export STUDIOSAAS_DATABASE_URL="postgresql://localhost/studiosaas_local_test"
 export STUDIOSAAS_ENV="local"
-export PORT="8899"
+export PORT="8901"
 export STUDIOSAAS_API_KEY="independent-random-secret-at-least-32-characters"
 export STUDIOSAAS_SESSION_SECRET="different-random-secret-at-least-32-characters"
 export STUDIOSAAS_MEDIA_DIR="./media"
@@ -756,8 +761,8 @@ STUDIOSAAS_REQUIRE_POSTGRES=1 bash backend/scripts/verify_local.sh
 Manual checks with the server running:
 
 ```bash
-curl -sS http://localhost:8899/v1/health
-curl -i -X POST http://localhost:8899/v1/admin/tenants \
+curl -sS http://localhost:8901/v1/health
+curl -i -X POST http://localhost:8901/v1/admin/tenants \
   -H 'Content-Type: application/json' \
   -d '{"name":"Bad","slug":"bad","planCode":"starter"}'   # must be 401/403
 ```

@@ -8,7 +8,7 @@ Purpose: Complete API endpoint reference, authentication model, tenant resolutio
 
 ## 1. API Overview
 
-- **Base URL (local):** `http://localhost:8899`
+- **Base URL (local):** `http://localhost:8901`
 - **API prefix:** `/v1`
 - **Tenant-scoped prefix:** `/s/<tenant_slug>/v1`
 - **Auth:** Session cookies (Flask) with `credentials: 'include'`
@@ -19,7 +19,7 @@ Purpose: Complete API endpoint reference, authentication model, tenant resolutio
 
 1. Path: `/s/{tenant_slug}/...`
 2. Header: `X-Tenant-Slug`
-3. Subdomain: `{tenant_slug}.localhost:8899` (future)
+3. Subdomain: `{tenant_slug}.localhost:8901` (future)
 
 **Rule:** If no tenant context is resolved, tenant-scoped endpoints return a clear error. Silent fallback to a default tenant is prohibited.
 
@@ -33,7 +33,7 @@ Purpose: Complete API endpoint reference, authentication model, tenant resolutio
 | GET | `/v1/industry-presets` | None | Shared eight-industry copy, bilingual registration, and visual-theme presets |
 
 ```bash
-curl -sS http://localhost:8899/v1/health
+curl -sS http://localhost:8901/v1/health
 ```
 
 Response keeps `version: "v1"` as the API contract and reports the product
@@ -58,7 +58,7 @@ successful PostgreSQL probe.
 ```bash
 curl -i -c /tmp/studiosaas.cookies \
   -H 'Content-Type: application/json' \
-  -X POST http://localhost:8899/v1/auth/login \
+  -X POST http://localhost:8901/v1/auth/login \
   -d "{\"email\":\"admin@studiosaas.local\",\"password\":\"$SUPER_ADMIN_PASSWORD\"}"
 ```
 
@@ -76,7 +76,7 @@ user hashes are accepted only on successful login and are upgraded immediately.
 ```bash
 curl -i -c /tmp/studio.cookies \
   -H 'Content-Type: application/json' \
-  -X POST http://localhost:8899/s/lets-paint-studio/v1/auth/legacy-login \
+  -X POST http://localhost:8901/s/lets-paint-studio/v1/auth/legacy-login \
   -d "{\"email\":\"owner@lets-paint-studio.test\",\"password\":\"$STUDIO_ADMIN_PASSWORD\"}"
 ```
 
@@ -88,7 +88,7 @@ Verifies the user has an active operational membership (`owner`, `manager`,
 ```bash
 curl -i -b /tmp/studiosaas.cookies \
   -H 'Content-Type: application/json' \
-  -X POST http://localhost:8899/v1/auth/change-password \
+  -X POST http://localhost:8901/v1/auth/change-password \
   -d '{"oldPassword":"current-generated-password","newPassword":"new-generated-password"}'
 ```
 
@@ -254,7 +254,7 @@ curl -b /tmp/studio.cookies \
   -F kind=portfolio \
   -F studentId=<student_id> \
   -F file=@artwork.png \
-  http://localhost:8899/s/lets-paint-studio/v1/media/upload
+  http://localhost:8901/s/lets-paint-studio/v1/media/upload
 ```
 
 The canonical media service validates extension, MIME, magic bytes, size, path
@@ -288,7 +288,7 @@ service. `storageProvider=local` is implemented; `s3` remains an extension point
 curl -sS \
   -H 'Content-Type: application/json' \
   -d '{"name":"Amy Wang","phone":"0412 345 678"}' \
-  http://localhost:8899/v1/public/lets-paint-studio/balance-query
+  http://localhost:8901/v1/public/lets-paint-studio/balance-query
 ```
 
 **Rate limiting (implemented, in-memory per process):** registrations 5/min/IP, balance-query 10/min/IP, registration media uploads 5/min/IP, student-area unlock attempts by tenant+student+IP, and login 30/min/IP plus 5/min/IP+email — all return 429 when exceeded. The retired `portfolio-token` endpoint returns 410 and never creates a token. Failed login attempts write `auth.login_failed` audit events. Limits reset on server restart (acceptable for pilot; shared-storage limiter remains mandatory before multi-instance release).

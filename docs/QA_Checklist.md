@@ -12,7 +12,7 @@
 - [ ] `cd backend && ../.venv/bin/python test_tenant_isolation.py` passes all tenant-isolation tests
 - [ ] `cd backend && ../.venv/bin/python test_cms.py` passes all CMS functional tests (expected: 73 checks)
 - [ ] `cd backend && ../.venv/bin/python -m pytest -q` passes with the current collected test set
-- [ ] `curl http://localhost:8899/v1/health` returns 200 with expected fields
+- [ ] `curl http://localhost:8901/v1/health` returns 200 with expected fields
 - [ ] All API routes return proper HTTP status codes (200, 201, 400, 401, 403, 404, 409, 410, 429, 500)
 - [ ] Error responses include `error` and `message` keys
 - [ ] Public endpoints return 429 when rate limits are exceeded (registrations 5/min, balance-query 10/min per tenant/IP, uploads 5/min)
@@ -28,7 +28,7 @@
 - [ ] `/<tenant_slug>/manifest-student.json` uses tenant-scoped `start_url` and `scope`; root `/manifest-student.json` does not point to `/register`
 - [ ] `/<tenant_slug>/manifest-cms.json` starts at `/<tenant_slug>/cms` and uses tenant scope
 - [ ] Unknown tenant slug returns 404 (not a blank page)
-- [ ] Reserved slugs (`api`, `v1`, `register`, `super-admin`, `studio-admin`, `vendor`) rejected on tenant creation
+- [ ] Reserved slugs (`api`, `v1`, `cms`, `register`, `platform-admin`, `super-admin`, `studio-admin`, `vendor`) rejected on tenant creation
 - [ ] Unauthenticated mutation requests return 401/403 (see Current_Sprint §4 curl checks)
 - [ ] Tenant A session cannot read or write tenant B data (isolation tests)
 - [ ] `X-Tenant-Slug` header spoofing cannot cross tenant boundaries
@@ -202,9 +202,9 @@ ships in `deploy/aws/`, but remote AWS deployment is deferred:
 ## Quick Smoke Test (5 min)
 
 1. Start server: `./start_studiosaas_local.sh`
-2. Hit health: `curl http://localhost:8899/v1/health`
-3. Open Super Admin: `http://localhost:8899/super-admin`, log in as `admin@studiosaas.local`
-4. Open a tenant: `http://localhost:8899/lets-paint-studio` and `/lets-paint-studio/studio-admin`
+2. Hit health: `curl http://localhost:8901/v1/health`
+3. Open Super Admin: `http://localhost:8901/platform-admin`, log in as `admin@studiosaas.local`
+4. Open a tenant: `http://localhost:8901/lets-paint-studio` and `/lets-paint-studio/studio-admin`
 5. Submit a registration on `/lets-paint-studio/register`, confirm it appears in the admin pending queue
 6. Run the complete gate: `bash backend/scripts/verify_local.sh`
 
@@ -244,7 +244,7 @@ STUDIOSAAS_DATABASE_URL=postgresql://$(whoami)@localhost:5432/studiosaas_local_t
 
 ```bash
 # Via API (requires super admin session cookie)
-curl -X POST http://localhost:8899/v1/admin/tenants \
+curl -X POST http://localhost:8901/v1/admin/tenants \
   -b /tmp/studiosaas.cookies \
   -H "Content-Type: application/json" \
   -d '{"name":"Test Tenant","slug":"test-tenant","plan_code":"starter"}'

@@ -46,7 +46,7 @@
    ```bash
    export STUDIOSAAS_DATABASE_URL="postgresql://<user>@localhost:5432/studiosaas_local_test"
    export STUDIOSAAS_ENV="local"
-   export PORT="8899"
+   export PORT="8901"
    export STUDIOSAAS_API_KEY="at-least-32-random-characters"
    export STUDIOSAAS_SESSION_SECRET="different-at-least-32-random-characters"
    export STUDIOSAAS_MEDIA_DIR="/persistent/studiosaas/media"
@@ -69,7 +69,7 @@
 
 6. **Verify health:**
    ```bash
-   curl http://localhost:8899/v1/health
+   curl http://localhost:8901/v1/health
    ```
 
 ---
@@ -78,7 +78,7 @@
 
 ### Creating a New Tenant
 
-Via **Super-Admin Dashboard** (`/super-admin`):
+Via **Super-Admin Dashboard** (`/platform-admin`; `/super-admin` is the optional Access-protected alias):
 
 1. Click **"Add Tenant"**
 2. Fill in:
@@ -91,7 +91,7 @@ Via **Super-Admin Dashboard** (`/super-admin`):
 Via **API** (requires a super admin session cookie):
 
 ```bash
-curl -X POST http://localhost:8899/v1/admin/tenants \
+curl -X POST http://localhost:8901/v1/admin/tenants \
   -b /tmp/studiosaas.cookies \
   -H "Content-Type: application/json" \
   -d '{
@@ -132,7 +132,7 @@ evidence before deletion. Studio owners cannot perform it.
 
 ### URL Pattern
 
-`/super-admin` (also served at `/`)
+`/platform-admin` (`/super-admin` remains an optional Access-protected alias)
 
 ### Features
 
@@ -225,7 +225,7 @@ CMS tab visibility mirrors the backend bundles
 ### Health Endpoint
 
 ```bash
-curl http://localhost:8899/v1/health
+curl http://localhost:8901/v1/health
 ```
 
 **Expected Response:**
@@ -380,7 +380,7 @@ created after the backup timestamp.
 1. Check logs: `tail -100 ~/.studiosaas/local-app.log`
 2. Verify PostgreSQL is running: `psql "postgresql:///studiosaas" -c "SELECT 1"`
 3. Check `.env` file exists and is valid
-4. Ensure port 8899 is not in use: `lsof -iTCP:8899 -sTCP:LISTEN`
+4. Ensure port 8901 is not in use: `lsof -iTCP:8901 -sTCP:LISTEN`
 
 ### Database Connection Errors
 

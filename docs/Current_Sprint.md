@@ -83,7 +83,7 @@ These items from earlier sprint docs are confirmed done — do not re-fix:
 | ID | Task | Status |
 |---|---|---|
 | D1 | v1 API rate limiting/audit use real client IP behind cloudflared (`_client_ip()` trusts CF-Connecting-IP only from localhost; audit inet validated) | ✅ 2026-07-09 |
-| D2 | Cloudflare Tunnel `studiosaas` → `https://studiosaas.cc.cd` → localhost:8899 (locally-managed, config in `~/.cloudflared/config.yml`) | ✅ 2026-07-09 |
+| D2 | Cloudflare Tunnel `studiosaas` → `https://studiosaas.cc.cd` → localhost:8901 (locally-managed, config in `~/.cloudflared/config.yml`) | ✅ 2026-07-09 |
 | P0-1 | Unique privileged-account rotation → `~/.studiosaas/pilot-credentials.txt` (0600); seed scripts preserve existing hashes | ✅ 2026-07-10 |
 | P0-2 | Tunnel-origin session cookies carry Secure (custom SessionInterface); local http unaffected | ✅ 2026-07-09 |
 | P0-3 | One-click backup (`BACKUP_STUDIOSAAS_NOW.command`, keep 14) + restore drill passed (restore-dry-run, 10 migrations verified) | ✅ 2026-07-09 |
@@ -204,7 +204,7 @@ cd backend && ../.venv/bin/python -m pytest -q
 ### API health check
 
 ```bash
-curl -sS http://localhost:8899/v1/health
+curl -sS http://localhost:8901/v1/health
 ```
 
 ### Auth test (local)
@@ -213,15 +213,15 @@ curl -sS http://localhost:8899/v1/health
 # Login
 curl -i -c /tmp/studiosaas.cookies \
   -H 'Content-Type: application/json' \
-  -X POST http://localhost:8899/v1/auth/login \
+  -X POST http://localhost:8901/v1/auth/login \
   -d "{\"email\":\"admin@studiosaas.local\",\"password\":\"$SUPER_ADMIN_PASSWORD\"}"
 
 # Check session
-curl -i -b /tmp/studiosaas.cookies http://localhost:8899/v1/auth/me
+curl -i -b /tmp/studiosaas.cookies http://localhost:8901/v1/auth/me
 
 # Logout (cookie-authenticated mutations need the CSRF header)
 curl -i -b /tmp/studiosaas.cookies -H 'X-Requested-With: StudioSaaS' \
-  -X POST http://localhost:8899/v1/auth/logout
+  -X POST http://localhost:8901/v1/auth/logout
 ```
 
 > **CSRF note (A4):** any mutation sent **with a session cookie** must include
@@ -231,12 +231,12 @@ curl -i -b /tmp/studiosaas.cookies -H 'X-Requested-With: StudioSaaS' \
 ### Tenant mutation without auth (must fail)
 
 ```bash
-curl -i -X POST http://localhost:8899/v1/admin/tenants \
+curl -i -X POST http://localhost:8901/v1/admin/tenants \
   -H 'Content-Type: application/json' \
   -d '{"name":"Bad Tenant","slug":"bad-tenant","planCode":"starter"}'
 # Expected: 401
 
-curl -i -X PATCH http://localhost:8899/s/lets-paint-studio/v1/tenant \
+curl -i -X PATCH http://localhost:8901/s/lets-paint-studio/v1/tenant \
   -H 'Content-Type: application/json' \
   -d '{"name":"Hacked"}'
 # Expected: 401 or 403
@@ -246,14 +246,14 @@ curl -i -X PATCH http://localhost:8899/s/lets-paint-studio/v1/tenant \
 
 ```bash
 # All should return 200
-curl -sS -o /dev/null -w "%{http_code}" http://localhost:8899/
-curl -sS -o /dev/null -w "%{http_code}" http://localhost:8899/studio-admin
-curl -sS -o /dev/null -w "%{http_code}" http://localhost:8899/lets-paint-studio
-curl -sS -o /dev/null -w "%{http_code}" http://localhost:8899/lets-paint-studio/cms
-curl -sS -o /dev/null -w "%{http_code}" http://localhost:8899/lets-paint-studio/studio-admin
-curl -sS -o /dev/null -w "%{http_code}" http://localhost:8899/lets-paint-studio/register
+curl -sS -o /dev/null -w "%{http_code}" http://localhost:8901/
+curl -sS -o /dev/null -w "%{http_code}" http://localhost:8901/studio-admin
+curl -sS -o /dev/null -w "%{http_code}" http://localhost:8901/lets-paint-studio
+curl -sS -o /dev/null -w "%{http_code}" http://localhost:8901/lets-paint-studio/cms
+curl -sS -o /dev/null -w "%{http_code}" http://localhost:8901/lets-paint-studio/studio-admin
+curl -sS -o /dev/null -w "%{http_code}" http://localhost:8901/lets-paint-studio/register
 # /register should return 404
-curl -sS -o /dev/null -w "%{http_code}" http://localhost:8899/register
+curl -sS -o /dev/null -w "%{http_code}" http://localhost:8901/register
 ```
 
 ---

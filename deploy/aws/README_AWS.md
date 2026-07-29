@@ -183,7 +183,7 @@ curl -fsS https://studiosaas.cc.cd/v1/health          # {"ok":true,...}
 curl -fsS -o /dev/null -w '%{http_code}\n' https://studiosaas.cc.cd/register   # 404（有意关闭）
 ```
 
-- [ ] `/super-admin` 登录成功且已轮换密码
+- [ ] `/platform-admin` 应用登录成功且已轮换密码；`/super-admin` Access 双重验证别名可用
 - [ ] `/<slug>` 门户、`/<slug>/register`、`/<slug>/cms`、`/<slug>/studio-admin` 均 200
 - [ ] 手机 4G 提交一条真实注册 → CMS 待审列表可见
 - [ ] CMS 上传照片 → 媒体 volume 中出现文件

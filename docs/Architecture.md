@@ -64,7 +64,8 @@ Purpose: Current system architecture, routing model, file layout, data flow — 
 | Route | Surface |
 |---|---|
 | `/` | Super Admin dashboard |
-| `/super-admin` | Super Admin dashboard (alias) |
+| `/platform-admin` | Direct StudioSaaS Super Admin login |
+| `/super-admin` | Optional Cloudflare Access-protected alias of the same dashboard |
 | `/register` | Closed (404) — registration belongs to tenants |
 | `/v1/*` | Platform and tenant API v1 |
 

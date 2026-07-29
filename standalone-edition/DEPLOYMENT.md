@@ -63,7 +63,7 @@ ReadWritePaths），PostgreSQL 用系统包。文档已有，独立版补 standa
 ## 4. 验收清单（交付日逐项走）
 
 - [ ] `https://<域名>/` 直达门户（根路径不再是 super-admin）
-- [ ] `/super-admin` 与 `/v1/admin/*` 全部 404/关闭
+- [ ] `/platform-admin`、`/super-admin` 与 `/v1/admin/*` 全部 404/关闭
 - [ ] owner 登录 CMS/Studio Admin；角色账号按名单建好
 - [ ] 数据迁移计数与账本总额与源对账单一致（manifest 校验）
 - [ ] 平台迁出包的整包 SHA-256 与平台侧交接记录一致

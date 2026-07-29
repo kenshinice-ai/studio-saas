@@ -6,6 +6,10 @@ coverage lives in test_tenant_isolation.py (script-style, needs a DB).
 """
 
 import pytest
+from flask import g
+
+from studiosaas.auth import _tenant_resolution_error_response
+from studiosaas.tenant_context import TenantResolutionError
 
 SENSITIVE_READS = [
     "/s/demo/v1/tenant",
@@ -135,3 +139,25 @@ PUBLIC_SURFACES = [
 @pytest.mark.parametrize("path", PUBLIC_SURFACES)
 def test_public_surfaces_stay_open(client, path):
     assert client.get(path).status_code == 200
+
+
+@pytest.mark.parametrize(
+    ("message", "expected_status", "expected_error"),
+    [
+        ("Tenant 'missing-studio' was not found.", 404, "tenant_not_found"),
+        ("Tenant 'paused-studio' is not active.", 403, "tenant_inactive"),
+        ("Invalid tenant slug in path.", 400, "tenant_resolution_failed"),
+    ],
+)
+def test_tenant_resolution_errors_keep_the_actual_cause(
+    app, message, expected_status, expected_error
+):
+    """Tenant auth failures must not collapse into a misleading active-state error."""
+
+    with app.test_request_context("/s/example/v1/tenant"):
+        g.tenant_resolution_error = TenantResolutionError(message)
+        response, status = _tenant_resolution_error_response()
+        assert status == expected_status
+        payload = response.get_json()
+        assert payload["error"] == expected_error
+        assert payload["message"] == message

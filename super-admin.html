@@ -3108,27 +3108,55 @@
       if (!currentUser) return;
       setLoading(true);
       try {
-        const [usage, planData, tenantData, audit] = await Promise.all([
+        const [usageResult, planResult, tenantResult, auditResult] = await Promise.allSettled([
           api('/admin/usage'), api('/plans'), api('/admin/tenants'), api('/admin/audit-logs')
         ]);
-        plans = planData.plans;
-        tenants = tenantData.tenants;
+        const failureMessage = (label, result) => {
+          const detail = result.reason?.message || 'Request failed.';
+          return `${label}: ${detail}`;
+        };
+        if (tenantResult.status !== 'fulfilled') {
+          throw new Error(failureMessage('Tenants', tenantResult));
+        }
+
+        const partialFailures = [];
+        tenants = tenantResult.value.tenants || [];
+        if (planResult.status === 'fulfilled') {
+          plans = planResult.value.plans || [];
+        } else {
+          plans = [];
+          partialFailures.push(failureMessage('Plans', planResult));
+        }
         fillPlanSelect();
 
-        $('tenantCount').textContent = usage.usage.tenants;
-        $('mrrCount').textContent = money(usage.usage.mrr_aud);
-        $('paidTenantCount').textContent = usage.usage.paid_tenants;
-        $('trialTenantCount').textContent = usage.usage.trial_tenants;
-        $('onboardingTenantCount').textContent = usage.usage.onboarding_tenants;
-        $('pastDueTenantCount').textContent = usage.usage.past_due_tenants;
-        $('trialEndingCount').textContent = usage.usage.trials_ending_7d;
-        $('newTenantCount').textContent = usage.usage.new_tenants_30d;
-        renderCommercialAttention(usage.usage);
-        renderAcquisitionFunnel(usage.usage);
+        if (usageResult.status === 'fulfilled') {
+          const usage = usageResult.value.usage;
+          $('tenantCount').textContent = usage.tenants;
+          $('mrrCount').textContent = money(usage.mrr_aud);
+          $('paidTenantCount').textContent = usage.paid_tenants;
+          $('trialTenantCount').textContent = usage.trial_tenants;
+          $('onboardingTenantCount').textContent = usage.onboarding_tenants;
+          $('pastDueTenantCount').textContent = usage.past_due_tenants;
+          $('trialEndingCount').textContent = usage.trials_ending_7d;
+          $('newTenantCount').textContent = usage.new_tenants_30d;
+          renderCommercialAttention(usage);
+          renderAcquisitionFunnel(usage);
+        } else {
+          ['tenantCount', 'mrrCount', 'paidTenantCount', 'trialTenantCount',
+           'onboardingTenantCount', 'pastDueTenantCount', 'trialEndingCount', 'newTenantCount']
+            .forEach((id) => { $(id).textContent = 'Unavailable'; });
+          $('commercialAttention').textContent = failureMessage('Commercial overview', usageResult);
+          $('commercialAttention').classList.add('empty-state');
+          $('acquisitionFunnel').textContent = failureMessage('Acquisition funnel', usageResult);
+          $('acquisitionFunnel').classList.add('empty-state');
+          partialFailures.push(failureMessage('Usage', usageResult));
+        }
 
         const plansBody = $('plansBody');
         plansBody.replaceChildren();
-        if (plans.length) {
+        if (planResult.status !== 'fulfilled') {
+          appendEmptyRow(plansBody, 4, failureMessage('Plans unavailable', planResult));
+        } else if (plans.length) {
           plans.forEach((p) => {
             const row = document.createElement('tr');
             const nameCell = addCell(row);
@@ -3152,8 +3180,19 @@
 
         renderTenants();
 
-        auditLogs = audit.auditLogs || [];
-        renderAuditLogs();
+        if (auditResult.status === 'fulfilled') {
+          auditLogs = auditResult.value.auditLogs || [];
+          renderAuditLogs();
+        } else {
+          auditLogs = [];
+          const auditBody = $('auditBody');
+          auditBody.replaceChildren();
+          appendEmptyRow(auditBody, 4, failureMessage('Audit logs unavailable', auditResult));
+          partialFailures.push(failureMessage('Audit logs', auditResult));
+        }
+        if (partialFailures.length) {
+          showToast(`Partial load — ${partialFailures.join(' · ')}`, 'error');
+        }
 
       } catch (err) {
         if (err.status === 401) {

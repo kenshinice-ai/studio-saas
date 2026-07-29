@@ -115,7 +115,7 @@ Purpose: Phased development plan, milestones, current status, and deployment tar
 | PostgreSQL | Homebrew PostgreSQL 16+ | RDS PostgreSQL |
 | Media/Portfolio | Local file system | S3 |
 | Application | Waitress/Flask local | Lightsail systemd or ECS |
-| Domain/Routing | `localhost:8899` | Route 53 + CloudFront |
+| Domain/Routing | `localhost:8901` | Route 53 + CloudFront |
 | Secrets | Local env vars | SSM Parameter Store / Secrets Manager |
 | Email | Local SMTP (transitional) | Amazon SES |
 

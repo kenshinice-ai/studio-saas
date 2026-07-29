@@ -13,7 +13,9 @@ SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]{1,62}$")
 RESERVED_SLUGS = {
     "api",
     "v1",
+    "cms",
     "register",
+    "platform-admin",
     "super-admin",
     "studio-admin",
     "parent-portal",

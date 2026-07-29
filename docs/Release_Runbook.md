@@ -111,7 +111,8 @@ every reported asset before opening public traffic.
 5. Run the media backfill and its `--check` mode.
 6. Start or restart the application with the required configuration.
 7. Run the full release gate against the deployed database.
-8. Verify `/v1/health`, `/super-admin`, one tenant portal, CMS, Studio Admin,
+8. Verify `/v1/health`, `/platform-admin`, the optional Access-protected
+   `/super-admin` alias, one tenant portal, CMS, Studio Admin,
    and `/<slug>/register`; confirm `/register` is still 404.
 9. Reopen traffic and watch errors, storage usage, registration conversion,
    and audit logs.

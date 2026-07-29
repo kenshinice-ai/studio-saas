@@ -1929,7 +1929,6 @@
       <div class="header-actions">
         <span id="authStatus" class="auth-status">Not signed in</span>
         <span id="tenantSlugLabel" class="tenant-chip">tenant</span>
-        <input id="tenantSlug" type="hidden" aria-label="Tenant slug" value="">
         <button id="changePasswordBtn" class="btn-secondary hidden">Change Password</button>
         <button id="logoutBtn" class="btn-secondary hidden">Logout</button>
         <button id="refreshBtn" class="btn-primary requires-auth hidden">
@@ -1965,6 +1964,14 @@
       <h2>Studio Admin Login</h2>
       <p>Use the Studio Admin email and password configured in Super Admin.</p>
       <form id="loginForm">
+        <div class="form-group">
+          <label for="tenantSlug">Studio URL slug</label>
+          <input id="tenantSlug" type="text" required autocomplete="organization"
+                 inputmode="url" pattern="[a-z0-9][a-z0-9-]{1,62}"
+                 placeholder="your-studio-slug"
+                 aria-describedby="tenantSlugHelp">
+          <small id="tenantSlugHelp">Use the slug from /&lt;studio-slug&gt;/studio-admin. Tenant-specific links lock this field.</small>
+        </div>
         <div class="form-group">
           <label for="loginEmail">Email</label>
           <input id="loginEmail" type="email" autocomplete="username" placeholder="owner@studio.test">
@@ -2768,7 +2775,7 @@
         } catch (err) { /* best effort */ }
         banner.remove();
         showToast('Support mode ended.');
-        location.href = '/super-admin';
+        location.href = '/platform-admin';
       });
       banner.appendChild(label);
       banner.appendChild(detail);
@@ -4357,12 +4364,15 @@
     }
 
     function bindEvents() {
-      /* No silent fallback to a real tenant: falling back to a hard-coded
-         demo slug pointed lost visitors at a genuine studio's console. When
-         no slug can be resolved we say so and stop instead. */
-      $('tenantSlug').value = pathTenantSlug() || localStorage.getItem('studiosaas_tenant_slug') || $('tenantSlug').value || '';
+      /* Root /studio-admin is a neutral tenant login. It never recovers a
+         previous tenant from localStorage or silently picks a demo. A
+         tenant-specific route locks its own slug; the root requires an
+         explicit operator choice. */
+      const routeSlug = pathTenantSlug();
+      $('tenantSlug').value = routeSlug;
+      $('tenantSlug').readOnly = Boolean(routeSlug);
       if (!currentTenantSlug()) {
-        showToast('No studio selected. Open this console from your studio URL: /<your-studio-slug>/studio-admin.', 'error');
+        showToast('Enter the studio URL slug to continue.', 'error');
       }
       $('loginForm').addEventListener('submit', loginStudioAdmin);
       $('logoutBtn').addEventListener('click', logoutStudioAdmin);

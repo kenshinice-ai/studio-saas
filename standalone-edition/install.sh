@@ -439,7 +439,7 @@ EOF
 say "Delivery-day acceptance checklist — walk every line (DEPLOYMENT.md §4)"
 cat <<EOF
   [ ] https://$DOMAIN/ 直达门户（根路径不再是 super-admin）
-  [ ] https://$DOMAIN/super-admin 与 /v1/admin/* 全部 404/关闭
+  [ ] https://$DOMAIN/platform-admin、/super-admin 与 /v1/admin/* 全部 404/关闭
   [ ] owner 登录 CMS/Studio Admin；角色账号按名单建好
   [ ] 数据迁移计数与账本总额与源对账单一致（manifest 校验）
   [ ] 手机 4G 提交测试报名 → CMS 待审出现 → 拒绝闭环

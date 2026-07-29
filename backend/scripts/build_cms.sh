@@ -17,7 +17,7 @@ if [ -z "$ESBUILD" ] && [ -d "$HOME/.npm/_npx" ]; then
   ESBUILD="$(find "$HOME/.npm/_npx" -path '*/node_modules/esbuild/bin/esbuild' -type f 2>/dev/null | head -n 1)"
 fi
 if [ -z "$ESBUILD" ]; then
-  echo "esbuild is not installed. Install it once with: npm install --global esbuild" >&2
+  echo "esbuild is not installed. Install the release-pinned compiler with: npm install --global esbuild@0.25.12" >&2
   exit 1
 fi
 
