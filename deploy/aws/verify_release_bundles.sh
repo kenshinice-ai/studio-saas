@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Build and verify both delivery forms from the current clean commit.
 #
-# This is a packaging gate only; it does not deploy to AWS. StudioSaaS v7.7.8
-# remains a local + Cloudflare invitation pilot.
+# This is a packaging gate only; it does not deploy to AWS. The current
+# StudioSaaS release remains a local + Cloudflare invitation pilot.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"

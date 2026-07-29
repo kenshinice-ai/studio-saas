@@ -1,6 +1,6 @@
 # 平台超管手册 · Super Admin
 
-> 适用版本：StudioSaaS v7.8.0 · 界面：Super Admin 控制台（`/super-admin`）
+> 适用版本：StudioSaaS v7.8.1 · 界面：Super Admin 控制台（`/super-admin`）
 > 其他角色手册见 [手册总览](README.md)
 
 ## 角色定位

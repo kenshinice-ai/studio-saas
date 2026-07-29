@@ -115,6 +115,34 @@
         /* ── Fix #4: prevent iOS auto-zoom on inputs (requires font-size ≥ 16px) ── */
         input, textarea, select { font-size: 16px !important; }
 
+        /* v7.8.1 golden-ratio dashboard hierarchy. Data tables stay dense;
+           only the decision-oriented dashboard lead uses a 61.8/38.2 split. */
+        .cms-dashboard-root {
+            width: 100%;
+            max-width: var(--ui-content-max, 89rem);
+            margin-inline: auto;
+        }
+        .cms-dashboard-lead {
+            display: grid;
+            gap: var(--ui-space-4, 21px);
+        }
+        .cms-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: var(--ui-space-3, 13px);
+            align-content: start;
+        }
+        .cms-command-card { min-width: 0; }
+        @media (min-width: 1024px) {
+            .cms-dashboard-lead {
+                grid-template-columns: var(--ui-golden-columns, minmax(0, 1.618fr) minmax(0, 1fr));
+                align-items: start;
+            }
+        }
+        @media (max-width: 639px) {
+            .cms-kpi-grid { gap: var(--ui-space-2, 8px); }
+        }
+
 
         /* ── B6: 深色模式（跟随系统）— 收割自 LetsPaintCMS v5.0.x 两轮收口成品。
            中性色表面/文字 + 彩色浅底(-50/-100)一并映射为深色同色调，
@@ -287,6 +315,7 @@
             border-radius:var(--radius) !important;
             transition:transform .15s ease, box-shadow .15s ease, background-color .15s ease;
         }
+        button, [role="button"] { min-height:44px; }
         button:hover, a:hover, [role="button"]:hover { transform:translateY(-1px); box-shadow:var(--shadow-sm); }
         button:disabled { opacity:.55; cursor:not-allowed; transform:none; box-shadow:none; }
         .toast { box-shadow:var(--shadow-lg) !important; border-radius:var(--radius-xl) !important; }

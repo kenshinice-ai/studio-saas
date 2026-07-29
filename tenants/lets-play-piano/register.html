@@ -42,21 +42,22 @@
     a { color:var(--clay); text-decoration:none; font-weight:500; font-size:13px; }
     .header-actions, .lang-switch { display:flex; align-items:center; gap:10px; }
     .lang-switch { padding:3px; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); }
+    #backLink { display:inline-flex; align-items:center; min-height:var(--tap-min); }
     /* P3-3: 44px minimum touch target, matching the portal's toggle. */
     .lang-switch button { width:auto; min-width:var(--tap-min); min-height:var(--tap-min); padding:4px 12px; border-radius:0; background:transparent; color:var(--muted); font-weight:400; transition:background var(--dur-enter) var(--ease-out); }
     .lang-switch button:hover { background:var(--bg2); }
     .lang-switch button.active { background:var(--ink); color:var(--bg); }
-    main { width:min(1040px,100%); margin:0 auto; padding:54px 24px 72px; display:grid; grid-template-columns:minmax(0,.9fr) minmax(320px,1.1fr); gap:40px; align-items:start; }
+    main { width:min(1180px,100%); margin:0 auto; padding:var(--space-phi-xl) var(--space-phi-md) var(--space-phi-2xl); display:grid; grid-template-columns:var(--golden-columns-reverse); gap:var(--space-phi-xl); align-items:start; }
     .tenant-credit { padding:0 24px 28px; color:var(--muted); font-size:10px; letter-spacing:.04em; text-align:center; }
-    .intro { padding-top:18px; }
+    .intro { padding-top:var(--space-phi-md); position:sticky; top:104px; }
     /* P2-7: the wide tracking and uppercase are Latin devices; under zh they
        only pull the glyphs apart, and 800/900 on a CJK face that ships 300–500
        renders as synthetic bold. Both are scoped to html[lang="en"]. */
     .eyebrow { color:var(--muted); font-size:11px; font-weight:500; letter-spacing:.04em; }
     html[lang="en"] .eyebrow { letter-spacing:.32em; text-transform:uppercase; font-weight:400; }
-    h1 { margin:14px 0 14px; font-family:var(--font-display); font-size:clamp(34px,5vw,58px); font-weight:500; line-height:1.07; letter-spacing:.01em; }
-    .lead { color:var(--ink2); font-size:16px; line-height:1.7; max-width:44ch; }
-    .card { background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-card); padding:28px; box-shadow:0 18px 42px rgba(55,44,34,.07); }
+    h1 { margin:var(--space-phi-sm) 0; font-family:var(--font-display); font-size:clamp(34px,5vw,55px); font-weight:500; line-height:1.07; letter-spacing:.01em; max-width:13ch; text-wrap:balance; }
+    .lead { color:var(--ink2); font-size:16px; line-height:1.7; max-width:var(--brand-reading-measure); text-wrap:pretty; }
+    .card { background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-card); padding:var(--space-phi-lg); box-shadow:0 21px 55px rgba(55,44,34,.07); }
     .field { margin-bottom:16px; }
     label { display:block; margin-bottom:7px; color:var(--ink2); font-size:12px; font-weight:500; letter-spacing:.02em; }
     html[lang="en"] label { letter-spacing:.14em; text-transform:uppercase; color:var(--muted); font-weight:400; }
@@ -68,11 +69,11 @@
     input[aria-invalid="true"], textarea[aria-invalid="true"], select[aria-invalid="true"] { border-color:var(--danger); }
     .field-error { display:none; margin-top:6px; font-size:12px; color:var(--danger); }
     .field.has-error .field-error, .consent-block.has-error .field-error { display:block; }
-    .row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .row { display:grid; grid-template-columns:var(--golden-columns-reverse); gap:var(--space-phi-sm); }
     .consent { display:flex; gap:10px; align-items:flex-start; color:var(--ink2); font-size:13px; line-height:1.6; margin:8px 0 6px; }
     .consent input { width:16px; min-height:16px; margin-top:3px; }
     .consent-block { margin-bottom:16px; }
-    .privacy-link { display:inline-block; margin:0 0 0 26px; font-size:12px; color:var(--clay); border-bottom:1px solid var(--clay); cursor:pointer; background:none; border-left:0; border-right:0; border-top:0; padding:0; width:auto; min-height:0; font-weight:400; }
+    .privacy-link { display:inline-flex; align-items:center; margin:0 0 0 26px; font-size:12px; color:var(--clay); border-bottom:1px solid var(--clay); cursor:pointer; background:none; border-left:0; border-right:0; border-top:0; padding:0; width:auto; min-height:var(--tap-min); font-weight:400; }
     .privacy-link:hover { background:none; color:var(--clay-d); }
     button { width:100%; min-height:var(--tap-min); border:0; border-radius:var(--radius); background:var(--clay); color:var(--on-accent); font-weight:500; letter-spacing:.04em; cursor:pointer; transition:background var(--dur-enter) var(--ease-out); }
     button:hover { background:var(--clay-hover); }
@@ -105,7 +106,8 @@
     .privacy-foot button { width:auto; padding:10px 22px; font-size:13px; }
     @media (max-width:760px) {
       header { align-items:flex-start; flex-direction:column; padding:12px 16px; }
-      main { grid-template-columns:1fr; padding:34px 16px 56px; gap:24px; }
+      main { grid-template-columns:1fr; padding:var(--space-phi-lg) 16px var(--space-phi-xl); gap:var(--space-phi-md); }
+      .intro { position:static; padding-top:0; }
       .row { grid-template-columns:1fr; }
       .done-actions { grid-template-columns:1fr; }
       .slogan, .contact { max-width:calc(100vw - 96px); }

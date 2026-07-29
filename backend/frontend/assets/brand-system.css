@@ -20,6 +20,14 @@
   --brand-info: #3f6384;
   --brand-font-body: "Noto Sans SC", "PingFang SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --brand-font-display: "Noto Serif SC", "Cormorant Garamond", "Songti SC", Georgia, serif;
+  --brand-reading-measure: var(--ui-reading-measure, 55ch);
+  --brand-golden-columns: var(--ui-golden-columns, minmax(0, 1.618fr) minmax(0, 1fr));
+  --brand-golden-columns-reverse: var(--ui-golden-columns-reverse, minmax(0, 1fr) minmax(0, 1.618fr));
+  --brand-space-xs: var(--ui-space-2, 8px);
+  --brand-space-sm: var(--ui-space-3, 13px);
+  --brand-space-md: var(--ui-space-4, 21px);
+  --brand-space-lg: var(--ui-space-5, 34px);
+  --brand-space-xl: var(--ui-space-6, 55px);
   --brand-radius-control: 10px;
   --brand-radius-card: 18px;
   --brand-control-height: 46px;
@@ -36,6 +44,10 @@
 
 :where(h1, h2, .brand-display) {
   text-wrap: balance;
+}
+
+:where(p, li) {
+  text-wrap: pretty;
 }
 
 :where(input, select, textarea, button) {

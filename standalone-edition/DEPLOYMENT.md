@@ -1,6 +1,6 @@
 # PWE Studio Edition · 部署方式
 
-> v7.8.0 已实现并纳入双包发布验证（2026-07-27）。
+> v7.8.1 已实现并纳入双包发布验证（2026-07-27）。
 
 ## 1. 主路径：Docker Compose（单机同箱）
 
@@ -83,5 +83,5 @@ ReadWritePaths），PostgreSQL 用系统包。文档已有，独立版补 standa
 
 - SaaS：本机 PostgreSQL + Waitress，通过 Cloudflare Tunnel 做邀请式测试
 - Edition：可构建、可安装、可升级的软件交付形态；交付前仍须走 RUNBOOK 验收
-- AWS/RDS/S3/SES：代码与历史方案保留，但 v7.8.0 **不部署、不宣称已上线**
+- AWS/RDS/S3/SES：代码与历史方案保留，但 v7.8.1 **不部署、不宣称已上线**
 - 媒体独立备份：用户明确延后

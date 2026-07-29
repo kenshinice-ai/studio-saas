@@ -1,8 +1,8 @@
 # PWE Studio — Current Handoff
 
-Date: 2026-07-28
+Date: 2026-07-29
 
-Authoritative release baseline: `VERSION` + Git tag `v7.8.0`
+Authoritative release baseline: `VERSION` + Git tag `v7.8.1`
 
 Current working branch: `codex/pwe-feather-star-brand-rollout`
 
@@ -20,11 +20,11 @@ One codebase supports two deliberate operating modes:
 | SaaS delivery | Multi-tenant platform control plane, Super Admin, support sessions, local pilot and invitation-only Cloudflare path |
 | Standalone Edition | Customer-owned, exactly one active tenant total, no platform membership, no platform control-plane routes |
 
-The v7.8.0 SaaS release baseline reports:
+The v7.8.1 SaaS release baseline reports:
 
 ```json
 {
-  "appVersion": "7.8.0",
+  "appVersion": "7.8.1",
   "db": "ok",
   "mode": "saas",
   "ok": true,
@@ -41,7 +41,23 @@ Invitation URL: `https://studiosaas.cc.cd`
 The public URL is online only while `START_STUDIOSAAS_ONLINE.command` is
 running. It is not an AWS deployment.
 
-## 2. v7.8.0 completed scope
+## 2. v7.8.1 completed scope
+
+### Golden-ratio UI/UX system
+
+- Added shared phi, 61.8/38.2 track, Fibonacci spacing, modular type, readable
+  measure and 144/233ms motion tokens without changing tenant colour themes.
+- Rebalanced Portal hero, about/principal and family-action sections around a
+  clear primary/secondary hierarchy.
+- Rebalanced Quick Registration as a 38.2% explanation and 61.8% form on
+  desktop, with a single-column mobile flow and no sticky copy on mobile.
+- Rebalanced Studio Admin editing/preview and preview hero hierarchy.
+- Applied the same spacing rhythm to Super Admin cards and operational
+  primary/secondary content.
+- Reworked the CMS dashboard lead into a 61.8% Today Command Centre and 38.2%
+  KPI rail on wide screens; dense tables and peer controls stay equal-width.
+- Rebuilt `cms-app.js` and regenerated all five tenant workspaces from their
+  canonical sources.
 
 ### Brand assets and governance
 
@@ -79,7 +95,7 @@ running. It is not an AWS deployment.
 - Health now exposes `mode` and `showProducerCredit` in addition to the
   independent API-contract version and app release.
 - Edition install/compose defaults and customer/runbook documentation are
-  synchronized to v7.8.0.
+  synchronized to v7.8.1.
 
 ### Sales and documentation
 
@@ -89,7 +105,7 @@ running. It is not an AWS deployment.
   attribution, never as a competing product logo.
 - Removed the unresolved email placeholder without inventing contact details.
 - Updated the talk track, README, API/Admin/Deployment/Design System/Brand
-  Identity documents and every role guide to the v7.8.0 release boundary.
+  Identity documents and every role guide to the v7.8.1 release boundary.
 
 ## 3. Verification evidence
 
@@ -102,17 +118,23 @@ running. It is not an AWS deployment.
   **216 passed, 0 failed**.
 - `STUDIOSAAS_REQUIRE_POSTGRES=1 bash backend/scripts/verify_local.sh`:
   **all checks passed** outside the filesystem/port sandbox.
-- Local deep health: `appVersion=7.8.0`, `mode=saas`, `db=ok`,
+- Local deep health: `appVersion=7.8.1`, `mode=saas`, `db=ok`,
   `showProducerCredit=true`.
-- The Feather Star rollout was accepted against local Portal, CMS, Studio
-  Admin, Register and Super Admin entry points. It has not been committed,
-  packaged or redeployed to the invitation URL in this working branch.
+- The Feather Star and golden-ratio UX rollout is accepted locally against
+  Portal, CMS, Studio Admin, Register and Super Admin entry points.
 - Browser acceptance:
-  - 375px Register: no horizontal overflow; tenant identity is primary; the
-    text-only producer credit is visible.
-  - 768px Studio Admin: no horizontal overflow or console warnings/errors.
-  - 768px CMS: no horizontal overflow; no platform-logo fallback.
-  - 1440px Super Admin: no horizontal overflow; Feather Star is visible.
+  - 375px Register and 812×375 landscape: no horizontal overflow; the language
+    toggle, return link, privacy link and submit action all expose at least a
+    44px touch target.
+  - 768px `/studio-admin`: the intentional legacy redirect reaches Super Admin
+    without horizontal overflow.
+  - 768px CMS: no horizontal overflow; controls and language actions meet the
+    44px touch-target floor.
+  - 1024px Portal: the 61.8/38.2 hero split renders without horizontal
+    overflow.
+  - 1440px Super Admin: no horizontal overflow; login fields, language actions
+    and the primary action meet the 44px touch-target floor.
+  - Local application log: no browser-request 5xx or traceback detected.
 - Sales deck:
   - all 13 slides reviewed at full size;
   - template fidelity: **0 issues**;
@@ -121,8 +143,8 @@ running. It is not an AWS deployment.
 
 ## 4. Cloudflare connector reconciliation
 
-During public acceptance, Cloudflare initially returned the old health shape
-even though the local process was v7.8.0. Tunnel inspection found two active
+During v7.8.0 public acceptance, Cloudflare initially returned the old health
+shape even though the local process was v7.8.0. Tunnel inspection found two active
 connectors for the same tunnel. The obsolete connector
 `9a148978-0fcb-441b-98db-55ba785867ec` was explicitly cleaned up and the public
 response immediately converged to v7.8.0.
@@ -130,12 +152,11 @@ response immediately converged to v7.8.0.
 The old connector later re-advertised itself, which proves that an external or
 otherwise unmanaged Cloudflare process still holds the same tunnel credentials.
 Only the current launcher-owned process was visible in the local process and
-launchd audit, so the unknown source was not killed by guesswork. With both
-connectors advertised, 12 consecutive cache-busting public requests returned
-the complete v7.8.0 health payload, because they currently reach the same 8899
-runtime.
+launchd audit, so the unknown source was not killed by guesswork. v7.8.1 is
+committed and packaged in this scope but is not deployed to the invitation
+URL; no v7.8.1 public-health claim is made.
 
-This is an operational residue, not a v7.8.0 code failure. Before moving from
+This is an operational residue, not a v7.8.1 code failure. Before moving from
 invitation testing to a persistent public environment, locate the other host or
 rotate the tunnel credential so exactly one managed connector remains. Do not
 run a second unmanaged connector for the same tunnel.
@@ -144,8 +165,8 @@ run a second unmanaged connector for the same tunnel.
 
 The clean committed release gate builds two archives:
 
-- `PWE-StudioSaaS-aws-7.8.0.tar.gz` — SaaS source/deployment package.
-- `PWE-Studio-Edition-7.8.0.tar.gz` — customer-owned Edition package.
+- `PWE-StudioSaaS-aws-7.8.1.tar.gz` — SaaS source/deployment package.
+- `PWE-Studio-Edition-7.8.1.tar.gz` — customer-owned Edition package.
 
 Each archive has a sibling `.sha256`. `BUILD_INFO` must match the release
 version, mode and clean Git commit. Internal handoffs, audits, prompts, CI
@@ -155,7 +176,7 @@ The `.sha256` sidecars generated from the final tag commit are authoritative.
 ## 6. Honest limitations and deferred work
 
 - PostgreSQL backup/restore is automated and verified. Media files are
-  persistent and transfer bundles verify their integrity, but v7.8.0 does not
+  persistent and transfer bundles verify their integrity, but v7.8.1 does not
   automate media-volume backup or an offsite media copy.
 - No AWS/RDS/S3/SES resource was changed or deployed in this release.
 - The pilot rate limiter is process-local, suitable only for the accepted
@@ -164,10 +185,10 @@ The `.sha256` sidecars generated from the final tag commit are authoritative.
   customer Ubuntu host still requires the delivery-day install/upgrade/restore
   rehearsal in `standalone-edition/RUNBOOK.md`.
 - `cloudflared` 2026.6.1 passed its DNS/QUIC/HTTP2/API prechecks but reports an
-  available 2026.7.3 update. Updating it is maintenance, not a v7.8.0 blocker.
+  available 2026.7.3 update. Updating it is maintenance, not a v7.8.1 blocker.
 - The named tunnel still advertises one unmanaged historical connector in
-  addition to the launcher-owned connector. Both currently serve v7.8.0, but
-  persistent public operation requires credential/process reconciliation.
+  addition to the launcher-owned connector. Persistent public operation
+  requires credential/process reconciliation and a separate v7.8.1 deployment.
 
 ## 7. Operating commands
 

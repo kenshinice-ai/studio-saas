@@ -3331,14 +3331,15 @@ document.getElementById('copybtn').addEventListener('click', function(){
 
 {/* ═══ DASHBOARD ══════════════════════════════════════════════ */}
 {tab==='dashboard' && (
-<div className="anim space-y-5">
+<div className="cms-dashboard-root anim space-y-5">
     <h2 className="inline-flex items-center gap-1.5 text-xl md:text-2xl font-bold text-gray-800"><Icon name="dashboard" className="w-4 h-4"/>工作台</h2>
     {scheduleLoadError && <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
         <span className="flex-1">{scheduleLoadError}</span>
         <button onClick={loadSchedules} className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-bold min-h-[40px]">重试</button>
     </div>}
+    <div className={TENANT_SLUG ? 'cms-dashboard-lead' : ''}>
     {TENANT_SLUG && (
-        <div className="bg-gradient-to-br from-indigo-900 to-indigo-700 text-white rounded-2xl p-4 shadow-lg">
+        <div className="cms-command-card bg-gradient-to-br from-indigo-900 to-indigo-700 text-white rounded-2xl p-4 shadow-lg">
             <div className="flex items-center justify-between gap-3 mb-3">
                 <div><p className="text-xs text-indigo-200 tracking-wider">TODAY · 今日指挥台</p><p className="font-bold mt-0.5">先处理最需要行动的事项</p></div>
                 <span className="text-xs bg-white/10 border border-white/20 px-2.5 py-1 rounded-full">{fmtDate(todayISO())}</span>
@@ -3357,7 +3358,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
             </div>
         </div>
     )}
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div className="cms-kpi-grid">
         {[{l:'学员总数',      v:`${analytics.totalStudents} 人`,             c:'text-gray-800',    action:()=>{setSortBy('date-desc');setFilterBy('all');setTab('students');}},
           {l:'全部剩余课时',  v:`${analytics.totalBalance} 课时`,             c:'text-indigo-600',  action:()=>{setSortBy('bal-desc');setFilterBy('active');setTab('students');}},
           {l:'今日排课',      v:`${TENANT_SLUG ? todayEffectiveCount : analytics.todayRoster.length} 人`,         c:'text-gray-700',    action:()=>setTab('roster')},
@@ -3369,6 +3370,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 <p className={`text-2xl font-bold ${c}`}>{v}</p>
             </button>
         ))}
+    </div>
     </div>
 
     {/* A3: 经营真账（估算）— 现金 vs 已赚 vs 预收负债（v5.3） */}

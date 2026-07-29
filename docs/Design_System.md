@@ -1,7 +1,7 @@
 # Design System
 
 > **StudioSaaS Brand & UI Reference**
-> Last updated: 2026-07-27 · Brand family integration: v7.8.0
+> Last updated: 2026-07-29 · Brand family integration: v7.8.1
 
 The visual system is generated, not hand-picked: every colour token is solved
 for a measured WCAG contrast target by `docs/design/palette_gen.py`, and the
@@ -30,6 +30,25 @@ The product shell uses the PWE / Paradise family tokens from
 These tokens never overwrite tenant themes or semantic success/warning/danger
 colours. Tenant Portal, Register and CMS surfaces keep their published tenant
 identity. The PWE family layer governs platform chrome and fallbacks.
+
+### Golden-ratio hierarchy
+
+The Feather Star uses the golden-ratio sequence `136 : 84 : 52`; v7.8.1
+extends that geometry into layout hierarchy through semantic tokens in
+`ui-tokens.css`:
+
+| Token group | Values | Purpose |
+|---|---|---|
+| Layout | `1.618fr / 1fr` | Decision-oriented primary/secondary content |
+| Spacing | `5, 8, 13, 21, 34, 55, 89px` | Predictable component and section rhythm |
+| Type | `13, 16, 21, 34, 55px` | Restrained modular hierarchy |
+| Motion | `144ms / 233ms` | Faster exits, calm entrances |
+| Measure | `55ch` | Readable body-copy width |
+
+Use the ratio only when one region is genuinely primary. Tables, repeated KPI
+cards, mobile forms and peer controls stay equal-width when equal importance
+is the clearer interaction model. Below 900–1024px, golden splits collapse to
+one column; accessibility and content fit take priority over geometry.
 
 Eight visual themes, each shipping a matched **light and dark** variant —
 except `arcade-lime`, which is dark-only (a neon-lime accent cannot reach

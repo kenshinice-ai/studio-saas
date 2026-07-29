@@ -502,7 +502,7 @@
 
   function installStyles() {
     const style = document.createElement('style');
-    style.textContent = '.admin-language-switch{display:inline-flex;align-items:center;gap:2px;padding:3px;border:1px solid var(--line,#e2e8f0);border-radius:999px;background:var(--surface,#fff);white-space:nowrap}.admin-language-switch button{border:0;background:transparent;color:var(--muted,#64748b);padding:6px 10px;border-radius:999px;font:inherit;font-size:12px;font-weight:800;cursor:pointer;min-height:40px}.admin-language-switch button.active{background:var(--brand,#3b82f6);color:#fff}.admin-language-switch button:focus-visible{outline:2px solid var(--brand,#3b82f6);outline-offset:2px}';
+    style.textContent = '.admin-language-switch{display:inline-flex;align-items:center;gap:2px;padding:3px;border:1px solid var(--line,#e2e8f0);border-radius:999px;background:var(--surface,#fff);white-space:nowrap}.admin-language-switch button{border:0;background:transparent;color:var(--muted,#64748b);padding:6px 10px;border-radius:999px;font:inherit;font-size:12px;font-weight:800;cursor:pointer;min-height:44px}.admin-language-switch button.active{background:var(--brand,#3b82f6);color:#fff}.admin-language-switch button:focus-visible{outline:2px solid var(--brand,#3b82f6);outline-offset:2px}';
     document.head.appendChild(style);
   }
 

@@ -137,7 +137,7 @@
     /* Ghost buttons on the dark header: one shared spec (height, padding,
        radius, hover) so Change Password / Logout read as one group while the
        primary Refresh stays dominant. Reuses the header input surface values. */
-    .header-actions button { min-height: 40px; border-radius: var(--radius); }
+    .header-actions button { min-height: 44px; border-radius: var(--radius); }
 
     .header-actions .btn-secondary {
       background: rgba(255,255,255,0.1);
@@ -299,17 +299,24 @@
       filter: grayscale(0.25);
     }
 
-    .btn-sm { padding: 6px 12px; font-size: 13px; min-height: 40px; }
+    .btn-sm { padding: 6px 12px; font-size: 13px; min-height: 44px; }
+
+    /* The administration surface is routinely used on tablets. Keep every
+       visible form action and text field inside the 44px touch-target floor. */
+    button { min-height: 44px; }
+    input:not([type="checkbox"]):not([type="radio"]),
+    select,
+    textarea { min-height: 44px; }
 
     /* Main Layout */
     main {
-      max-width: 1400px;
+      max-width: var(--ui-content-max, 89rem);
       margin: 0 auto;
-      padding: 24px 32px 48px;
+      padding: var(--ui-space-4, 21px) var(--ui-space-5, 34px) var(--ui-space-6, 55px);
     }
 
     .section {
-      margin-bottom: 32px;
+      margin-bottom: var(--ui-space-5, 34px);
     }
 
     .section-header {
@@ -358,9 +365,9 @@
       border-radius: var(--radius-xl);
       box-shadow: var(--shadow-sm);
       border: 1px solid var(--line);
-      padding: 24px;
-      margin-bottom: 24px;
-      transition: box-shadow 0.2s ease;
+      padding: var(--ui-space-4, 21px);
+      margin-bottom: var(--ui-space-4, 21px);
+      transition: box-shadow var(--ui-duration-enter, 233ms) ease;
       max-width: 100%;
       min-width: 0;
     }
@@ -388,17 +395,17 @@
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: var(--space-3);
+      gap: var(--ui-space-3, 13px);
       margin-bottom: var(--space-2);
     }
 
     .stat-card {
       background: var(--surface);
       border-radius: var(--radius-lg);
-      padding: var(--space-4);
+      padding: var(--ui-space-4, 21px);
       box-shadow: var(--shadow-sm);
       border: 1px solid var(--line);
-      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+      transition: border-color var(--ui-duration-enter, 233ms) ease, box-shadow var(--ui-duration-enter, 233ms) ease;
       position: relative;
       overflow: hidden;
     }
@@ -556,12 +563,12 @@
       margin-top: 12px;
     }
 
-    /* Filter toolbar controls share one 40px control height so labels and
+    /* Filter toolbar controls share one accessible control height so labels and
        fields align vertically across the grid. */
     .toolbar input,
     .toolbar select,
     .toolbar button {
-      min-height: 40px;
+      min-height: 44px;
     }
 
     /* Tabular numerals for data-dense figures. */
@@ -728,7 +735,7 @@
       align-items: center;
       gap: 5px;
       padding: 6px 8px;
-      min-height: 40px; /* touch target */
+      min-height: 44px; /* touch target */
       border-radius: 8px;
       border: 1px solid var(--line);
       background: var(--surface);
@@ -1016,8 +1023,8 @@
 
     .content-grid {
       display: grid;
-      grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr);
-      gap: 24px;
+      grid-template-columns: minmax(0, 1.618fr) minmax(280px, 1fr);
+      gap: var(--ui-space-4, 21px);
       align-items: start;
     }
 
@@ -1081,6 +1088,8 @@
       cursor: pointer;
       color: var(--muted);
       padding: 4px 10px;
+      min-width: 44px;
+      min-height: 44px;
       border-radius: 6px;
     }
 
@@ -1198,8 +1207,8 @@
       border-bottom-color: #eef2f7;
     }
 
-    input, select, textarea {
-      min-height: 42px;
+    input:not([type="checkbox"]):not([type="radio"]), select, textarea {
+      min-height: 44px;
       border-color: #dbe3ee;
       color: #0f172a;
     }
@@ -1212,7 +1221,9 @@
       letter-spacing: 0.02em;
     }
 
-    button { min-height: 38px; }
+    button { min-height: 44px; }
+    label:has(input[type="checkbox"]),
+    label:has(input[type="radio"]) { min-height: 44px; cursor: pointer; }
 
     .btn-primary {
       background: #2563eb;

@@ -1,6 +1,6 @@
 # PWE Studio
 
-Current release: **v7.8.0**
+Current release: **v7.8.1**
 
 PWE Studio (repo: studiosaas) is a Creative Studio Operating System for art schools, music studios, tutoring centres, creative academies, kids' activity providers, and small education businesses. One codebase supports a multi-tenant SaaS delivery model and a customer-owned standalone Edition.
 
@@ -17,10 +17,29 @@ It provides a lightweight SaaS-style platform for managing:
 single-tenant **PWE Studio Edition** (`STUDIOSAAS_MODE=standalone`) have a
 release-ready delivery path. SaaS runs locally (Waitress + PostgreSQL) and is
 exposed on demand via Cloudflare Tunnel at `https://studiosaas.cc.cd`. AWS
-deployment code is retained, but v7.8.0 is intentionally limited to local +
+deployment code is retained, but v7.8.1 is intentionally limited to local +
 Cloudflare invitation testing; no AWS deployment is claimed.
 
 Canonical product responsibilities and names are defined in `docs/Product_Surface_Model.md`: Super Admin is the commercial control plane, Studio Admin is the tenant brand/publication workspace, Studio CMS owns daily operations, the Studio Portal is the primary public acquisition experience, and Quick Registration is an alternate tenant-scoped entry.
+
+---
+
+## v7.8.1 Golden-Ratio UX Release
+
+v7.8.1 extends the Feather Star brand geometry into the product experience
+without changing tenant data, permissions, routes, or business workflows:
+
+- shared `61.8 / 38.2` layout tracks for decision-oriented two-column surfaces;
+- a Fibonacci-derived `5 / 8 / 13 / 21 / 34 / 55 / 89px` spacing scale;
+- restrained `144 / 233ms` interaction timing with reduced-motion support;
+- Portal hero, principal/about, family actions and Quick Registration hierarchy;
+- Studio Admin editor/preview hierarchy and Super Admin operational spacing;
+- CMS Today Command Centre plus KPI rail on wide screens, stacked on tablets;
+- regenerated tenant workspaces and rebuilt browser-loaded CMS output.
+
+Dense tables and operational lists intentionally retain their efficient layout.
+Golden ratios establish emphasis; they never override 44px touch targets,
+responsive collapse, contrast requirements, or tenant theme choices.
 
 ---
 
@@ -548,7 +567,7 @@ same-mobile pending entries get a 疑似重复 badge, course duration is
 bilingual (60 分钟 / 60 MIN), broken gallery/hero images degrade cleanly
 (tiles removed from tab order, hero falls back to decorative art).
 
-**Role guides** (`docs/guides/`, current guides stamped 7.8.0): new dedicated
+**Role guides** (`docs/guides/`, current guides stamped 7.8.1): new dedicated
 Front Desk/Staff guide (previously "see Manager"), support-gate and
 owner-audit sections rewritten to match enforced behavior, share-link
 create/revoke permissions corrected everywhere, and each guide gained a
@@ -747,7 +766,7 @@ curl -i -X POST http://localhost:8899/v1/admin/tenants \
 | `docs/Deployment.md` | Current release boundary: local → Cloudflare Tunnel; AWS deferred |
 | `docs/Design_System.md` | UI tokens and component standards |
 | `docs/Glossary.md` | One agreed word per concept (enforced by `check_terminology.py`) |
-| `docs/guides/` | Per-role user manuals in Chinese (applicable to v7.8.0) |
+| `docs/guides/` | Per-role user manuals in Chinese (applicable to v7.8.1) |
 | `01 BRAND ASSETS/` | PWE/Paradise family delivery kit and validated asset manifest |
 
 ---

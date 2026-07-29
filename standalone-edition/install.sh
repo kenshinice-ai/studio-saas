@@ -454,7 +454,7 @@ echo   "  Project:      $PROJECT_NAME  (compose file: $COMPOSE_FILE)"
 echo   "  Env file:     $ENV_FILE (root:docker 0640 where available; back it up securely)"
 echo   "  Operations:   $WRAPPER <ps|logs|restart|exec ...>"
 echo   "  Current code: $CURRENT_LINK -> $REPO_ROOT"
-echo   "  DB backups:   $BACKUP_DIR/postgres (media backup remains deferred in v7.8.0)"
+echo   "  DB backups:   $BACKUP_DIR/postgres (media backup remains deferred in v7.8.1)"
 if [ -z "$IMPORT_BUNDLE" ]; then
   echo "  Owner login:  $OWNER_EMAIL"
   echo "  Temp password: $OWNER_PASSWORD"

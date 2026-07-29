@@ -95,8 +95,18 @@
    * interface feels responsive rather than sluggish. */
   --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
   --ease-in: cubic-bezier(0.5, 0, 0.85, 0.4);
-  --dur-enter: 220ms;
-  --dur-exit: 140ms;
+  --dur-enter: var(--ui-duration-enter, 233ms);
+  --dur-exit: var(--ui-duration-exit, 144ms);
+
+  /* Golden-ratio rhythm shared by Portal and Quick Registration. */
+  --space-phi-xs: var(--ui-space-2, 8px);
+  --space-phi-sm: var(--ui-space-3, 13px);
+  --space-phi-md: var(--ui-space-4, 21px);
+  --space-phi-lg: var(--ui-space-5, 34px);
+  --space-phi-xl: var(--ui-space-6, 55px);
+  --space-phi-2xl: var(--ui-space-7, 89px);
+  --golden-columns: var(--ui-golden-columns, minmax(0, 1.618fr) minmax(0, 1fr));
+  --golden-columns-reverse: var(--ui-golden-columns-reverse, minmax(0, 1fr) minmax(0, 1.618fr));
 
   /* ── Touch targets ───────────────────────────────────────────────────*/
   --tap-min: 44px;

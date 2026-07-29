@@ -1,6 +1,29 @@
 :root {
   /* PWE / Paradise family identity. Functional colours below remain semantic
      UI tokens and must not be replaced by brand amber. */
+  /* Golden-ratio layout contract. Phi is used for hierarchy rather than
+     decoration: 61.8/38.2 splits, Fibonacci spacing, and restrained motion. */
+  --ui-phi: 1.618;
+  --ui-golden-major: 61.8%;
+  --ui-golden-minor: 38.2%;
+  --ui-golden-columns: minmax(0, 1.618fr) minmax(0, 1fr);
+  --ui-golden-columns-reverse: minmax(0, 1fr) minmax(0, 1.618fr);
+  --ui-content-max: 89rem;
+  --ui-reading-measure: 55ch;
+  --ui-space-1: 5px;
+  --ui-space-2: 8px;
+  --ui-space-3: 13px;
+  --ui-space-4: 21px;
+  --ui-space-5: 34px;
+  --ui-space-6: 55px;
+  --ui-space-7: 89px;
+  --ui-type-xs: 13px;
+  --ui-type-sm: 16px;
+  --ui-type-md: 21px;
+  --ui-type-lg: 34px;
+  --ui-type-xl: 55px;
+  --ui-duration-exit: 144ms;
+  --ui-duration-enter: 233ms;
   --pwe-family-navy: #0e1729;
   --pwe-family-navy-raised: #16233d;
   --pwe-family-amber: #f5b335;
@@ -17,7 +40,7 @@
   --ui-error: #dc2626;
   --ui-success: #16a34a;
   --ui-radius-control: 8px;
-  --ui-radius-card: 12px;
+  --ui-radius-card: 13px;
   --ui-focus: 0 0 0 3px rgba(37, 99, 235, 0.28);
 }
 

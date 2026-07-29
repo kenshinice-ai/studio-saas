@@ -443,7 +443,7 @@
       + 'background:#fff;box-shadow:0 4px 14px rgba(15,23,42,.12);'
       + 'margin-bottom:env(safe-area-inset-bottom,0px)}'
       + '.cms-language-switch button{border:0;background:transparent;color:#64748b;'
-      + 'min-width:44px;min-height:40px;padding:6px 12px;border-radius:999px;font:inherit;'
+      + 'min-width:44px;min-height:44px;padding:6px 12px;border-radius:999px;font:inherit;'
       + 'font-size:12px;font-weight:700;cursor:pointer}'
       + '.cms-language-switch button.active{background:#4f46e5;color:#fff}'
       + '.cms-language-switch button:focus-visible{outline:2px solid #4f46e5;outline-offset:2px}'

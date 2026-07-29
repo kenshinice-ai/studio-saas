@@ -172,7 +172,7 @@ compact bilingual credit:
   three feathers as growth, ascent and possibility; removed “SaaS” from the
   product lockup; formalised tenant identity precedence and text-only Paradise
   footer credit.
-- **v3.0 (v7.8.0, 2026-07-27)** — aligned PWE and Paradise to Family Navy,
+- **v3.0 (v7.8.1, 2026-07-27)** — aligned PWE and Paradise to Family Navy,
   Family Amber and Warm Paper; added the validated delivery kit.
 - **Round 2 (v7.7.7, 2026-07-27)** — shipped the Crafted-P identity, retained
   in history only.

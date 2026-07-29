@@ -316,14 +316,14 @@
 
     /* Main Layout */
     main {
-      max-width: 1400px;
+      max-width: var(--ui-content-max, 89rem);
       margin: 0 auto;
-      padding: 24px 32px 48px;
+      padding: var(--ui-space-4, 21px) var(--ui-space-5, 34px) var(--ui-space-6, 55px);
     }
 
     /* Section Grouping */
     .section {
-      margin-bottom: 32px;
+      margin-bottom: var(--ui-space-5, 34px);
     }
 
     .section-header {
@@ -370,9 +370,9 @@
       border-radius: var(--radius-xl);
       box-shadow: var(--shadow-sm);
       border: 1px solid var(--line);
-      padding: 24px;
-      margin-bottom: 24px;
-      transition: box-shadow 0.2s ease;
+      padding: var(--ui-space-4, 21px);
+      margin-bottom: var(--ui-space-4, 21px);
+      transition: box-shadow var(--ui-duration-enter, 233ms) ease;
       max-width: 100%;
       min-width: 0;
     }
@@ -398,17 +398,17 @@
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 16px;
+      gap: var(--ui-space-3, 13px);
       margin-bottom: 8px;
     }
 
     .stat-card {
       background: var(--surface);
       border-radius: var(--radius-lg);
-      padding: 22px 20px;
+      padding: var(--ui-space-4, 21px);
       box-shadow: var(--shadow-sm);
       border: 1px solid var(--line);
-      transition: all 0.2s ease;
+      transition: transform var(--ui-duration-enter, 233ms) ease, box-shadow var(--ui-duration-enter, 233ms) ease;
       position: relative;
       overflow: hidden;
     }
@@ -880,15 +880,15 @@
 
     .brand-workbench {
       display: grid;
-      gap: 18px;
+      gap: var(--ui-space-4, 21px);
     }
 
     .workbench-hero {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
       align-items: end;
-      gap: 18px;
-      padding: 22px;
+      gap: var(--ui-space-4, 21px);
+      padding: var(--ui-space-4, 21px);
       border: 1px solid var(--brand-light);
       border-radius: 14px;
       background: linear-gradient(135deg, var(--surface) 0%, var(--brand-ultra-light) 100%);
@@ -912,7 +912,7 @@
     }
 
     .workbench-copy {
-      max-width: 62ch;
+      max-width: var(--ui-reading-measure, 55ch);
       margin-top: 10px;
       color: var(--ink-soft);
       font-size: 14px;
@@ -936,8 +936,8 @@
 
     .settings-shell {
       display: grid;
-      grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
-      gap: 18px;
+      grid-template-columns: minmax(0, 1.618fr) minmax(360px, 1fr);
+      gap: var(--ui-space-4, 21px);
       align-items: start;
     }
 
@@ -1320,7 +1320,7 @@
     }
 
     .preview-device:not(.mobile) .portal-hero {
-      grid-template-columns: minmax(0, 1fr) 160px;
+      grid-template-columns: minmax(0, 1.618fr) minmax(144px, 1fr);
       align-items: center;
     }
 
