@@ -36,6 +36,7 @@ verify_bundle() {
   inventory="$(tar -tzf "$archive")"
   for forbidden in \
     ".pem" \
+    "/._" \
     "/.claude/" \
     "/.github/" \
     "/docs/sales/" \

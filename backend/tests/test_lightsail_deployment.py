@@ -51,3 +51,13 @@ def test_private_keys_are_excluded_from_git() -> None:
     """Lightsail PEM credentials must never enter a release commit."""
 
     assert "*.pem" in _read(".gitignore").splitlines()
+
+
+def test_bundle_builder_disables_macos_appledouble_metadata() -> None:
+    """Linux release archives must not contain macOS `._*` pseudo-files."""
+
+    builder = _read("deploy/aws/build_aws_bundle.sh")
+    verifier = _read("deploy/aws/verify_release_bundles.sh")
+
+    assert "export COPYFILE_DISABLE=1" in builder
+    assert '"/._"' in verifier

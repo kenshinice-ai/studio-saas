@@ -34,6 +34,11 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT"
 
+# macOS bsdtar otherwise serializes Finder/provenance extended attributes as
+# AppleDouble `._*` entries. Linux then sees those entries as real files; a
+# `._0001_schema_v1.sql` file is enough to break the migration runner.
+export COPYFILE_DISABLE=1
+
 EDITION=0
 VERSION_ARG=""
 for arg in "$@"; do
