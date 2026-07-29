@@ -1,8 +1,7 @@
 # PWE Studio v8.0.1 — Release Notes and Acceptance Evidence
 
-Release status: candidate until the repository, package and Git release gates
-recorded in `docs/HANDOFF_LATEST.md` are complete. AWS production acceptance
-remains explicitly deferred.
+Release status: source release verified for local demonstration and packaging.
+AWS production acceptance remains explicitly deferred.
 
 ## Customer outcomes
 
@@ -44,8 +43,8 @@ remains explicitly deferred.
 | Responsive UI | 375, 768, 1024 and 1440 px browser checks | Complete: no overflow/page errors/5xx |
 | Accessibility | keyboard focus, labels, contrast, reduced motion | Complete for release surfaces |
 | Templates | CSV + 5-sheet XLSX, all sheets rendered and inspected | Complete |
-| Packages | SaaS + Edition bundle build and content inspection | Pending final clean-commit run |
-| Git | v8.0.1 commit, main update, tag and push | Pending final release closure |
+| Packages | SaaS + Edition bundle build and content inspection | Complete |
+| Git | v8.0.1 commit, main update, tag and push | See `docs/HANDOFF_LATEST.md` and repository tag |
 | Production | AWS deploy, backup/restore, monitor and public acceptance | Deferred |
 
 ## Customer acceptance

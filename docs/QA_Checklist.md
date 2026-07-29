@@ -140,9 +140,9 @@ Role-boundary checks (v7.4.0):
 v8.0.1 executes local + Cloudflare invitation testing. The AWS deployment kit
 ships in `deploy/aws/`, but remote AWS deployment is deferred:
 
-- [ ] `bash deploy/aws/verify_release_bundles.sh` builds and verifies both `saas` and `standalone`
-- [ ] Bundle `BUILD_INFO` version/mode/commit matches the clean source revision
-- [ ] Customer bundles contain no internal handoff, audit, sales-source, prompt, or CI files
+- [x] `bash deploy/aws/verify_release_bundles.sh` builds and verifies both `saas` and `standalone`
+- [x] Bundle `BUILD_INFO` version/mode/commit matches the clean source revision
+- [x] Customer bundles contain no internal handoff, audit, sales-source, prompt, or CI files
 - [ ] Local deep health and public Cloudflare deep health both pass
 - [ ] Structured (JSON) log output for aggregation
 - [ ] Graceful shutdown handled (SIGTERM)
@@ -194,7 +194,7 @@ ships in `deploy/aws/`, but remote AWS deployment is deferred:
 - [x] CMS and Studio Admin provide stable reciprocal navigation without merging their responsibilities
 - [x] Teacher mobile dashboard exposes today's roster, student lookup and artwork upload as three primary actions
 - [x] Customer package covers pricing, contract draft, onboarding, FAQ, migration, support, integrations, multi-campus and security/compliance
-- [ ] SaaS package includes showcase/reset assets; Edition package excludes the SaaS reset command and showcase workspace
+- [x] SaaS package includes showcase/reset assets; Edition package excludes the SaaS reset command and showcase workspace
 - [x] Product home passes 375/768/1024/1440 responsive, keyboard, reduced-motion and horizontal-overflow checks
 
 ---
