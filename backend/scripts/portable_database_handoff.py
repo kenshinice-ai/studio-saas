@@ -42,6 +42,9 @@ except ImportError:
 
 
 RECOVERY_CONFIRMATION = "OTHER-DEVICE-IS-STOPPED"
+UNSUPPORTED_RESTORE_SETTINGS = {
+    "SET transaction_timeout = 0;\n",
+}
 
 
 def _utc_timestamp() -> str:
@@ -248,6 +251,57 @@ def _extract_verified_dump(snapshot_path: Path, directory: Path) -> Path:
     return destination
 
 
+def _restore_custom_dump(
+    dump_path: Path,
+    *,
+    database_url: str,
+    password: str | None,
+    directory: Path,
+) -> None:
+    """Restore a custom dump across supported PostgreSQL server versions.
+
+    Newer ``pg_dump`` clients can add session settings that do not exist on an
+    older target server.  Generate SQL first and remove only explicitly known,
+    semantics-free session settings.  The SQL restore itself remains strict:
+    ``ON_ERROR_STOP`` rejects every other incompatibility or data error.
+    """
+
+    restore_sql = directory / "restore.sql"
+    compatible_sql = directory / "restore-compatible.sql"
+    _run(
+        [
+            "pg_restore",
+            "--clean",
+            "--if-exists",
+            "--no-owner",
+            "--file",
+            str(restore_sql),
+            str(dump_path),
+        ]
+    )
+    with restore_sql.open("r", encoding="utf-8") as source:
+        with compatible_sql.open("w", encoding="utf-8") as destination:
+            for line in source:
+                if line not in UNSUPPORTED_RESTORE_SETTINGS:
+                    destination.write(line)
+    compatible_sql.chmod(0o600)
+
+    restore_env = os.environ.copy()
+    if password:
+        restore_env["PGPASSWORD"] = password
+    _run(
+        [
+            "psql",
+            database_url,
+            "-v",
+            "ON_ERROR_STOP=1",
+            "--file",
+            str(compatible_sql),
+        ],
+        env=restore_env,
+    )
+
+
 def export_snapshot(args: argparse.Namespace) -> int:
     """Publish one verified snapshot archive using a single atomic replacement."""
 
@@ -329,9 +383,6 @@ def restore_snapshot(args: argparse.Namespace) -> int:
     snapshot_path = _snapshot_path(args.snapshot)
     manifest = _read_snapshot_manifest(snapshot_path)
     argv_url, password = _split_password(url)
-    restore_env = os.environ.copy()
-    if password:
-        restore_env["PGPASSWORD"] = password
     with tempfile.TemporaryDirectory(
         prefix="studiosaas-portable-restore-",
         dir=snapshot_path.parent,
@@ -340,17 +391,11 @@ def restore_snapshot(args: argparse.Namespace) -> int:
             snapshot_path,
             Path(temporary_directory),
         )
-        _run(
-            [
-                "pg_restore",
-                "--clean",
-                "--if-exists",
-                "--no-owner",
-                "--dbname",
-                argv_url,
-                str(dump_path),
-            ],
-            env=restore_env,
+        _restore_custom_dump(
+            dump_path,
+            database_url=argv_url,
+            password=password,
+            directory=Path(temporary_directory),
         )
     versions = _schema_versions(url)
     counts = _critical_counts(url)

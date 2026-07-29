@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import subprocess
 import zipfile
 
 import pytest
@@ -94,3 +95,51 @@ def test_snapshot_validation_rejects_tampered_dump(tmp_path: Path) -> None:
         archive.writestr("manifest.json", json.dumps(manifest))
     with pytest.raises(SystemExit, match="SHA-256"):
         handoff._read_snapshot_manifest(snapshot)
+
+
+def test_restore_filters_only_known_cross_version_setting(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    dump_path = tmp_path / "database.dump"
+    dump_path.write_bytes(b"custom dump")
+    commands: list[list[str]] = []
+
+    def fake_run(
+        command: list[str],
+        *,
+        env: dict[str, str] | None = None,
+    ) -> subprocess.CompletedProcess[str]:
+        commands.append(command)
+        if command[0] == "pg_restore":
+            sql_path = Path(command[command.index("--file") + 1])
+            sql_path.write_text(
+                "SET transaction_timeout = 0;\n"
+                "SET statement_timeout = 0;\n"
+                "SELECT 1;\n",
+                encoding="utf-8",
+            )
+        return subprocess.CompletedProcess(command, 0, "", "")
+
+    monkeypatch.setattr(handoff, "_run", fake_run)
+
+    handoff._restore_custom_dump(
+        dump_path,
+        database_url="postgresql://owner@db/studiosaas",
+        password="secret",
+        directory=tmp_path,
+    )
+
+    compatible_sql = (tmp_path / "restore-compatible.sql").read_text(
+        encoding="utf-8"
+    )
+    assert "transaction_timeout" not in compatible_sql
+    assert "SET statement_timeout = 0;" in compatible_sql
+    assert "SELECT 1;" in compatible_sql
+    assert commands[0][0] == "pg_restore"
+    assert commands[1][:4] == [
+        "psql",
+        "postgresql://owner@db/studiosaas",
+        "-v",
+        "ON_ERROR_STOP=1",
+    ]
