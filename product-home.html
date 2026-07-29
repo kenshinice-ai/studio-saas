@@ -3,24 +3,30 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#173f3a">
-  <meta name="description" content="PWE Studio brings enrolment, scheduling, attendance, student records and creative portfolios into one calm studio workspace.">
-  <title>PWE Studio · Creative studio operations, clearly connected</title>
+  <meta name="theme-color" content="#0E1729">
+  <meta name="description" content="PWE Studio puts administration behind the scenes—connecting enquiries, enrolment, classes, attendance, credits and student growth so creative studios can spend more time teaching.">
+  <title>PWE Studio · Put administration behind the scenes</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <script src="/assets/product-home.js" defer></script>
   <style>
     :root {
-      --ink: #15312e;
-      --ink-soft: #49635f;
-      --forest: #173f3a;
-      --forest-deep: #0e2b28;
-      --sage: #dce9df;
-      --paper: #f7f3eb;
-      --paper-bright: #fffdf8;
-      --gold: #d7a93d;
-      --coral: #c9684b;
-      --line: rgba(21, 49, 46, .16);
-      --shadow: 0 24px 72px rgba(14, 43, 40, .12);
+      --family-navy: #0e1729;
+      --family-navy-raised: #16233d;
+      --family-navy-soft: #22355a;
+      --family-amber: #f5b335;
+      --family-amber-text: #a16207;
+      --warm-paper: #f7f5f2;
+      --white: #ffffff;
+      --slate-600: #475569;
+      --slate-500: #64748b;
+      --slate-200: #e2e8f0;
+      --ink: var(--family-navy);
+      --ink-soft: var(--slate-600);
+      --paper: var(--warm-paper);
+      --paper-bright: var(--white);
+      --line: rgba(14, 23, 41, .14);
+      --line-strong: rgba(14, 23, 41, .34);
+      --shadow: 0 24px 72px rgba(14, 23, 41, .14);
       --r-sm: 12px;
       --r-md: 20px;
       --r-lg: 32px;
@@ -41,16 +47,16 @@
     a { color: inherit; }
     button, input, textarea, select { font: inherit; }
     button, a { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
-    :focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
-    .skip { position: fixed; top: -80px; left: 1rem; z-index: 100; padding: .8rem 1rem; border-radius: 8px; background: #fff; }
+    :focus-visible { outline: 3px solid var(--family-amber); outline-offset: 3px; }
+    .skip { position: fixed; top: -80px; left: 1rem; z-index: 100; padding: .8rem 1rem; border-radius: 8px; color: var(--family-navy); background: var(--white); }
     .skip:focus { top: 1rem; }
     .shell { width: min(1180px, calc(100% - 40px)); margin-inline: auto; }
     .topbar {
       position: sticky; top: 0; z-index: 20; border-bottom: 1px solid rgba(255,255,255,.1);
-      background: rgba(14, 43, 40, .93); color: white; backdrop-filter: blur(18px);
+      background: rgba(14, 23, 41, .96); color: var(--white); backdrop-filter: blur(18px);
     }
     .nav { min-height: 72px; display: flex; align-items: center; gap: var(--space-3); padding-top: env(safe-area-inset-top); }
-    .brand { display: inline-flex; align-items: center; gap: .7rem; text-decoration: none; font-weight: 760; letter-spacing: -.02em; }
+    .brand { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: .7rem; text-decoration: none; font-weight: 760; letter-spacing: -.02em; }
     .brand img { width: 38px; height: 38px; }
     .navlinks { display: flex; align-items: center; gap: .25rem; margin-left: auto; }
     .navlinks a, .lang {
@@ -58,20 +64,20 @@
       padding: 0 .85rem; border-radius: 999px; color: rgba(255,255,255,.82); text-decoration: none;
       border: 0; background: transparent; cursor: pointer; transition: background .2s, color .2s;
     }
-    .navlinks a:hover, .lang:hover { color: #fff; background: rgba(255,255,255,.1); }
-    .navlinks .login { color: var(--forest-deep); background: #fff; font-weight: 700; }
-    .hero { position: relative; overflow: hidden; color: white; background: var(--forest-deep); }
+    .navlinks a:hover, .lang:hover { color: var(--white); background: rgba(255,255,255,.1); }
+    .navlinks .login { color: var(--family-navy); background: var(--white); font-weight: 700; }
+    .hero { position: relative; overflow: hidden; color: var(--white); background: var(--family-navy); }
     .hero::before {
       content: ""; position: absolute; inset: 0; opacity: .28; pointer-events: none;
       background:
-        radial-gradient(circle at 76% 12%, rgba(215,169,61,.55), transparent 26%),
+        radial-gradient(circle at 76% 12%, rgba(245,179,53,.34), transparent 26%),
         linear-gradient(115deg, transparent 50%, rgba(255,255,255,.08) 50.1%, transparent 50.6%);
     }
     .hero-grid {
       position: relative; min-height: 680px; display: grid; grid-template-columns: minmax(0, 1.618fr) minmax(320px, 1fr);
       align-items: center; gap: clamp(2.5rem, 6vw, 6rem); padding-block: clamp(4rem, 9vw, 7.5rem);
     }
-    .eyebrow { display: flex; align-items: center; gap: .75rem; margin: 0 0 var(--space-3); color: #eed99e; font-size: .78rem; font-weight: 750; letter-spacing: .14em; text-transform: uppercase; }
+    .eyebrow { display: flex; align-items: center; gap: .75rem; margin: 0 0 var(--space-3); color: var(--family-amber); font-size: .78rem; font-weight: 750; letter-spacing: .14em; text-transform: uppercase; }
     .eyebrow::before { content: ""; width: 44px; height: 1px; background: currentColor; }
     h1 { max-width: 780px; margin: 0; font-size: clamp(3rem, 7vw, 6.6rem); line-height: .96; letter-spacing: -.065em; }
     .lede { max-width: 650px; margin: var(--space-4) 0 0; color: rgba(255,255,255,.78); font-size: clamp(1.05rem, 2vw, 1.28rem); line-height: 1.7; }
@@ -83,80 +89,81 @@
     }
     .button:hover { transform: translateY(-2px); }
     .button:active, .role:active { transform: scale(.985); }
-    .button-primary { background: var(--gold); color: #1f2a24; box-shadow: 0 12px 32px rgba(215,169,61,.25); }
-    .button-secondary { border-color: rgba(255,255,255,.3); background: rgba(255,255,255,.06); color: white; }
-    .button-dark { color: #fff; background: var(--forest); }
+    .button-primary { color: var(--family-navy); background: var(--white); box-shadow: 0 12px 32px rgba(14,23,41,.28); }
+    .button-secondary { border-color: rgba(255,255,255,.36); background: rgba(255,255,255,.06); color: var(--white); }
+    .button-dark { color: var(--white); background: var(--family-navy); }
     .hero-card { align-self: stretch; display: grid; align-content: center; }
     .art-stack { position: relative; min-height: 460px; }
     .art {
       position: absolute; overflow: hidden; border: 10px solid rgba(255,253,248,.96); border-radius: 4px;
-      background: #fff; box-shadow: 0 28px 70px rgba(0,0,0,.38);
+      background: var(--white); box-shadow: 0 28px 70px rgba(0,0,0,.38);
     }
     .art img { width: 100%; height: 100%; display: block; object-fit: cover; }
     .art-a { width: 76%; aspect-ratio: 1; top: 0; right: 0; transform: rotate(3deg); }
     .art-b { width: 54%; aspect-ratio: 1; left: 0; bottom: 1%; transform: rotate(-5deg); }
     .proof {
       position: absolute; right: -4%; bottom: 4%; z-index: 4; width: 210px; padding: 1rem;
-      border: 1px solid rgba(255,255,255,.15); border-radius: var(--r-sm); background: rgba(14,43,40,.92);
+      border: 1px solid rgba(245,179,53,.34); border-radius: var(--r-sm); background: rgba(22,35,61,.94);
       box-shadow: var(--shadow); backdrop-filter: blur(12px);
     }
     .proof strong { display: block; margin-bottom: .25rem; font-size: 1rem; }
     .proof span { color: rgba(255,255,255,.68); font-size: .82rem; line-height: 1.45; }
     section { padding-block: var(--space-6); }
     .section-head { display: grid; grid-template-columns: 1.618fr 1fr; gap: var(--space-4); align-items: end; margin-bottom: var(--space-5); }
-    .kicker { margin: 0 0 .75rem; color: var(--coral); font-size: .78rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    .kicker { margin: 0 0 .75rem; color: var(--family-amber-text); font-size: .78rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
     h2 { margin: 0; max-width: 760px; font-size: clamp(2.1rem, 5vw, 4.25rem); line-height: 1.02; letter-spacing: -.05em; }
     .section-head > p { margin: 0; color: var(--ink-soft); line-height: 1.7; }
     .role-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1rem; }
     .role {
       grid-column: span 4; min-height: 250px; display: flex; flex-direction: column; padding: var(--space-3);
       border: 1px solid var(--line); border-radius: var(--r-md); background: var(--paper-bright);
-      text-decoration: none; box-shadow: 0 10px 34px rgba(21,49,46,.05); transition: transform .2s, border-color .2s, box-shadow .2s;
+      text-decoration: none; box-shadow: 0 10px 34px rgba(14,23,41,.05); transition: transform .2s, border-color .2s, box-shadow .2s;
     }
-    .role:hover { transform: translateY(-4px); border-color: rgba(23,63,58,.45); box-shadow: var(--shadow); }
-    .role svg { width: 28px; height: 28px; color: var(--coral); }
+    .role:hover { transform: translateY(-4px); border-color: var(--line-strong); box-shadow: var(--shadow); }
+    .role svg { width: 28px; height: 28px; color: var(--family-amber-text); }
     .role h3 { margin: auto 0 .55rem; font-size: 1.4rem; letter-spacing: -.025em; }
     .role p { margin: 0; color: var(--ink-soft); line-height: 1.55; }
-    .role .arrow { display: inline-flex; align-items: center; gap: .35rem; margin-top: 1rem; color: var(--forest); font-weight: 720; }
-    .role-owner { grid-column: span 8; color: #fff; background: var(--forest); }
+    .role .arrow { display: inline-flex; align-items: center; gap: .35rem; margin-top: 1rem; color: var(--family-navy); font-weight: 720; }
+    .role-owner { grid-column: span 8; color: var(--white); background: var(--family-navy); }
     .role-owner p, .role-owner .arrow { color: rgba(255,255,255,.74); }
-    .role-owner svg { color: var(--gold); }
-    .system { background: #e9efe9; }
+    .role-owner svg { color: var(--family-amber); }
+    .system { background: var(--white); }
     .flow { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1px; overflow: hidden; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--line); }
     .flow article { min-height: 190px; padding: var(--space-3); background: var(--paper-bright); }
-    .flow .number { color: var(--coral); font-size: .78rem; font-weight: 800; }
+    .flow .number { color: var(--family-amber-text); font-size: .78rem; font-weight: 800; }
     .flow h3 { margin: 2.8rem 0 .45rem; font-size: 1.05rem; }
     .flow p { margin: 0; color: var(--ink-soft); font-size: .9rem; line-height: 1.55; }
     .industries { display: grid; grid-template-columns: 1.618fr 1fr 1fr; gap: 1rem; }
-    .industry { min-height: 210px; padding: var(--space-3); border-radius: var(--r-md); background: #fff; border: 1px solid var(--line); }
-    .industry:first-child { color: #fff; background: var(--forest); }
+    .industry { min-height: 210px; padding: var(--space-3); border-radius: var(--r-md); background: var(--white); border: 1px solid var(--line); }
+    .industry:first-child { color: var(--white); background: var(--family-navy); }
     .industry h3 { margin: 3.5rem 0 .5rem; font-size: 1.3rem; }
     .industry p { margin: 0; color: var(--ink-soft); line-height: 1.55; }
     .industry:first-child p { color: rgba(255,255,255,.72); }
     .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
     .plan { padding: var(--space-3); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--paper-bright); }
-    .plan.featured { border-color: var(--forest); box-shadow: inset 0 5px 0 var(--gold); }
+    .plan.featured { border-color: var(--family-navy); box-shadow: inset 0 5px 0 var(--family-amber); }
+    .plan-badge { display: inline-flex; min-height: 28px; align-items: center; margin-bottom: 1rem; padding: .2rem .65rem; border-radius: 999px; color: var(--family-navy); background: rgba(245,179,53,.28); font-size: .75rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
     .plan h3 { margin: 0; font-size: 1.35rem; }
     .price { margin: 1.4rem 0 .5rem; font-size: 2.5rem; font-weight: 780; letter-spacing: -.05em; }
     .price small { font-size: .85rem; font-weight: 600; letter-spacing: 0; color: var(--ink-soft); }
     .plan ul { min-height: 160px; margin: 1.5rem 0; padding-left: 1.1rem; color: var(--ink-soft); line-height: 1.8; }
     .deferred { margin-top: 1rem; color: var(--ink-soft); font-size: .85rem; line-height: 1.55; }
-    .support { color: #fff; background: var(--forest-deep); }
+    .support { color: var(--white); background: var(--family-navy); }
     .support-grid { display: grid; grid-template-columns: 1.618fr 1fr; gap: clamp(2rem, 7vw, 6rem); }
     .support h2 { max-width: 620px; }
     .support .copy { color: rgba(255,255,255,.7); line-height: 1.7; }
     .support form { display: grid; gap: .75rem; padding: var(--space-3); border: 1px solid rgba(255,255,255,.14); border-radius: var(--r-md); background: rgba(255,255,255,.06); }
     label { display: grid; gap: .4rem; color: rgba(255,255,255,.75); font-size: .85rem; font-weight: 650; }
-    input, textarea, select { width: 100%; min-height: 46px; padding: .75rem; border: 1px solid rgba(255,255,255,.2); border-radius: 10px; color: #fff; background: rgba(0,0,0,.18); }
+    input, textarea, select { width: 100%; min-height: 46px; padding: .75rem; border: 1px solid rgba(255,255,255,.28); border-radius: 10px; color: var(--white); background: var(--family-navy-raised); }
     textarea { min-height: 110px; resize: vertical; }
-    option { color: #111; }
+    option { color: var(--family-navy); }
     .privacy-note { margin: 0; color: rgba(255,255,255,.55); font-size: .78rem; line-height: 1.5; }
     .support-actions { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; }
     .support-actions .button { width: 100%; }
     footer { padding: 2.2rem 0 max(2.2rem, env(safe-area-inset-bottom)); color: var(--ink-soft); background: var(--paper-bright); }
     .footer-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
     .footer-row nav { display: flex; flex-wrap: wrap; gap: 1rem; }
-    .footer-row a { min-height: 44px; display: inline-flex; align-items: center; }
+    .footer-row a { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
     [data-lang="zh"] { display: none; }
     html[lang="zh"] [data-lang="en"] { display: none; }
     html[lang="zh"] [data-lang="zh"] { display: revert; }
@@ -195,7 +202,7 @@
   </style>
 </head>
 <body>
-  <a class="skip" href="#main">Skip to main content</a>
+  <a class="skip" href="#main"><span data-lang="en">Skip to main content</span><span data-lang="zh">跳到主要内容</span></a>
   <header class="topbar">
     <div class="shell nav">
       <a class="brand" href="/" aria-label="PWE Studio home">
@@ -208,7 +215,7 @@
         <a href="#plans"><span data-lang="en">Plans</span><span data-lang="zh">套餐</span></a>
         <a href="#support"><span data-lang="en">Support</span><span data-lang="zh">支持</span></a>
         <button class="lang" id="languageButton" type="button" aria-label="Switch language">中文</button>
-        <a class="login" href="/lets-paint-showcase/cms"><span data-lang="en">Team sign in</span><span data-lang="zh">团队登录</span></a>
+        <a class="login" href="#support"><span data-lang="en">Book a walkthrough</span><span data-lang="zh">预约演示</span></a>
       </nav>
     </div>
   </header>
@@ -217,14 +224,14 @@
     <section class="hero">
       <div class="shell hero-grid">
         <div>
-          <p class="eyebrow"><span data-lang="en">Creative studios, clearly connected</span><span data-lang="zh">让创意工作室清晰连接</span></p>
-          <h1 data-lang="en">More time for teaching. One calm system behind it.</h1>
-          <h1 data-lang="zh">把时间还给教学，让一个系统稳稳托住运营。</h1>
-          <p class="lede" data-lang="en">PWE Studio connects enquiries, enrolment, scheduling, attendance, credits and student portfolios—without turning your studio into a software project.</p>
-          <p class="lede" data-lang="zh">PWE Studio 将咨询、报名、排课、签到、课时与学生作品连接起来，不让你的工作室变成一个软件项目。</p>
+          <p class="eyebrow"><span data-lang="en">Your brand in front · one system behind it</span><span data-lang="zh">你的品牌在台前 · 一个系统在幕后</span></p>
+          <h1 data-lang="en">Put administration behind the scenes. Keep creativity in front.</h1>
+          <h1 data-lang="zh">让管理退到幕后，让创作站上台前。</h1>
+          <p class="lede" data-lang="en">From first enquiry to every class, credit and portfolio milestone, PWE Studio keeps the work connected—so studio owners can teach more, reconcile less and show families real progress.</p>
+          <p class="lede" data-lang="zh">从第一次咨询，到每一次排课、签到、课时和作品成长，PWE Studio 把运营连成一条清楚的线，让主理人多教课、少对账，也让家长真正看见成长。</p>
           <div class="actions">
-            <a class="button button-primary" href="/lets-paint-showcase"><span data-lang="en">Explore the live showcase</span><span data-lang="zh">查看专业演示</span></a>
-            <a class="button button-secondary" href="#roles"><span data-lang="en">Choose a role</span><span data-lang="zh">选择角色入口</span></a>
+            <a class="button button-primary" href="/lets-paint-showcase"><span data-lang="en">See the Let’s Paint Studio story</span><span data-lang="zh">体验 Let’s Paint Studio 全流程</span></a>
+            <a class="button button-secondary" href="#roles"><span data-lang="en">Enter by role</span><span data-lang="zh">按角色进入</span></a>
           </div>
         </div>
         <div class="hero-card" aria-label="Original demo portfolio artworks">
@@ -232,9 +239,9 @@
             <figure class="art art-a"><img src="/assets/showcase-botanical-home.webp" width="760" height="760" alt="Watercolour botanical still life"></figure>
             <figure class="art art-b"><img src="/assets/showcase-coast-home.webp" width="760" height="760" alt="Textured coastal landscape painting"></figure>
             <div class="proof">
-              <strong data-lang="en">Built with a working studio</strong><strong data-lang="zh">由真实工作室实践支持</strong>
-              <span data-lang="en">The showcase follows the real Let’s Paint Studio journey—from first enquiry to a growing portfolio.</span>
-              <span data-lang="zh">演示以 Let’s Paint Studio 的真实流程为主线，从初次咨询到作品成长记录。</span>
+              <strong data-lang="en">Backed by Let’s Paint Studio</strong><strong data-lang="zh">由 Let’s Paint Studio 实践验证</strong>
+              <span data-lang="en">Follow one complete operating story: enquiry, trial, enrolment, class, attendance, artwork and family view.</span>
+              <span data-lang="zh">沿着一条完整运营主线体验：咨询、体验课、报名、上课、签到、作品与家庭端。</span>
             </div>
           </div>
         </div>
@@ -244,9 +251,9 @@
     <section id="roles">
       <div class="shell">
         <div class="section-head">
-          <div><p class="kicker">01 · <span data-lang="en">Enter by role</span><span data-lang="zh">按角色进入</span></p><h2 data-lang="en">One studio, the right workspace for each person.</h2><h2 data-lang="zh">同一个工作室，每个人进入合适的工作台。</h2></div>
-          <p data-lang="en">Each entrance has a clear responsibility. Switching stays consistent, while permissions and private information remain separated.</p>
-          <p data-lang="zh">每个入口职责清楚，切换体验保持一致，同时权限和隐私数据继续严格分离。</p>
+          <div><p class="kicker">01 · <span data-lang="en">Enter by role</span><span data-lang="zh">按角色进入</span></p><h2 data-lang="en">Your brand stays in front. Every role gets the right control.</h2><h2 data-lang="zh">你的品牌始终在台前，每个角色只获得恰当的控制。</h2></div>
+          <p data-lang="en">Owners shape the public experience, teams run the day, teachers move quickly on mobile and families see the student journey—without sharing one overpowered login.</p>
+          <p data-lang="zh">主理人管理品牌，团队处理日常，教师在手机上快速完成工作，家长查看成长轨迹；不再共用一个权限过大的账号。</p>
         </div>
         <div class="role-grid">
           <a class="role role-owner" href="/lets-paint-showcase/studio-admin">
@@ -286,9 +293,9 @@
     <section class="system" id="workflow">
       <div class="shell">
         <div class="section-head">
-          <div><p class="kicker">02 · <span data-lang="en">The studio journey</span><span data-lang="zh">工作室全流程</span></p><h2 data-lang="en">From first enquiry to a portfolio worth keeping.</h2><h2 data-lang="zh">从第一次咨询，到值得珍藏的成长作品集。</h2></div>
-          <p data-lang="en">The professional showcase contains realistic schedules, balances, registrations, attendance and original synthetic artwork—never customer data.</p>
-          <p data-lang="zh">专业演示包含真实结构的排课、余额、报名、签到与原创合成作品，绝不使用客户数据。</p>
+          <div><p class="kicker">02 · <span data-lang="en">The studio journey</span><span data-lang="zh">工作室全流程</span></p><h2 data-lang="en">From first enquiry to a family-visible growth story.</h2><h2 data-lang="zh">从第一次咨询，到家长看得见的成长轨迹。</h2></div>
+          <p data-lang="en">The professional showcase demonstrates realistic schedules, balances, registrations, attendance and original synthetic artwork—using fictional records, never customer data.</p>
+          <p data-lang="zh">专业演示通过虚构记录呈现真实结构的排课、余额、报名、签到与原创合成作品，绝不使用客户数据。</p>
         </div>
         <div class="flow">
           <article><span class="number">01</span><h3 data-lang="en">Enquiry</h3><h3 data-lang="zh">咨询</h3><p data-lang="en">Capture goals and consent clearly.</p><p data-lang="zh">清楚记录目标与授权。</p></article>
@@ -304,7 +311,7 @@
     <section>
       <div class="shell">
         <div class="section-head">
-          <div><p class="kicker">03 · <span data-lang="en">Industry-ready foundations</span><span data-lang="zh">行业化基础</span></p><h2 data-lang="en">A shared operating core, shaped for the way you teach.</h2><h2 data-lang="zh">共享稳定内核，也尊重不同教学行业的工作方式。</h2></div>
+          <div><p class="kicker">03 · <span data-lang="en">Industry-ready foundations</span><span data-lang="zh">行业化基础</span></p><h2 data-lang="en">Your way of teaching stays distinct. The operating core stays dependable.</h2><h2 data-lang="zh">保留你独特的教学方式，共享一套可靠的运营内核。</h2></div>
           <p data-lang="en">Templates change terminology, registration questions, starter courses and reporting focus—not just colours.</p>
           <p data-lang="zh">行业模版会调整术语、报名问题、起步课程与报表重点，而不只是换颜色。</p>
         </div>
@@ -321,14 +328,14 @@
     <section class="system" id="plans">
       <div class="shell">
         <div class="section-head">
-          <div><p class="kicker">04 · <span data-lang="en">Clear commercial boundaries</span><span data-lang="zh">清楚的商业边界</span></p><h2 data-lang="en">Simple plans, with the same trusted core.</h2><h2 data-lang="zh">简单套餐，共享同一套可信核心。</h2></div>
-          <p data-lang="en">Draft public pricing follows the product plan catalogue and remains subject to the signed order form. All prices are AUD, GST treatment confirmed at sale.</p>
-          <p data-lang="zh">公开价格草案与系统套餐一致，最终以签署订单为准。价格为澳元，GST 处理在成交时确认。</p>
+          <div><p class="kicker">04 · <span data-lang="en">Transparent pricing</span><span data-lang="zh">透明定价</span></p><h2 data-lang="en">Clear plans that grow with your studio.</h2><h2 data-lang="zh">清楚的套餐，陪工作室一起成长。</h2></div>
+          <p data-lang="en">Studio at AUD 99/month is the recommended plan. One-time setup is quoted at AUD 299–999 for brand configuration, reviewed migration, team training and launch support. Final terms follow the signed order form.</p>
+          <p data-lang="zh">主推 Studio 套餐，每月 AUD 99。一次性 Setup 服务费为 AUD 299–999，包含品牌配置、经审核的数据迁移、团队培训与上线支持；最终以签署订单为准。</p>
         </div>
         <div class="plans">
-          <article class="plan"><h3>Starter</h3><div class="price">$49 <small>/ month</small></div><ul><li>Up to 100 students</li><li>2 team users</li><li>5 GB storage allowance</li><li>Registration and portfolios</li></ul><a class="button button-dark" href="#support">Discuss Starter</a></article>
-          <article class="plan featured"><h3>Studio</h3><div class="price">$99 <small>/ month</small></div><ul><li>Up to 500 students</li><li>8 team users</li><li>30 GB storage allowance</li><li>Templates and data export</li></ul><a class="button button-dark" href="#support">Discuss Studio</a></article>
-          <article class="plan"><h3>Growth</h3><div class="price">$199 <small>/ month</small></div><ul><li>Up to 1,500 students</li><li>20 team users</li><li>100 GB storage allowance</li><li>Priority support</li></ul><a class="button button-dark" href="#support">Discuss Growth</a></article>
+          <article class="plan"><h3>Starter</h3><div class="price">$49 <small><span data-lang="en">AUD / month</span><span data-lang="zh">AUD / 月</span></small></div><ul><li><span data-lang="en">Up to 100 students</span><span data-lang="zh">最多 100 名学员</span></li><li><span data-lang="en">2 team users</span><span data-lang="zh">2 个团队账号</span></li><li><span data-lang="en">5 GB storage allowance</span><span data-lang="zh">5 GB 存储额度</span></li><li><span data-lang="en">Registration and portfolios</span><span data-lang="zh">报名与作品集</span></li></ul><a class="button button-dark" href="#support"><span data-lang="en">Discuss Starter</span><span data-lang="zh">咨询 Starter</span></a></article>
+          <article class="plan featured"><span class="plan-badge"><span data-lang="en">Recommended</span><span data-lang="zh">主推套餐</span></span><h3>Studio</h3><div class="price">$99 <small><span data-lang="en">AUD / month</span><span data-lang="zh">AUD / 月</span></small></div><ul><li><span data-lang="en">Up to 500 students</span><span data-lang="zh">最多 500 名学员</span></li><li><span data-lang="en">8 team users</span><span data-lang="zh">8 个团队账号</span></li><li><span data-lang="en">30 GB storage allowance</span><span data-lang="zh">30 GB 存储额度</span></li><li><span data-lang="en">Templates and data export</span><span data-lang="zh">行业模版与数据导出</span></li></ul><a class="button button-dark" href="#support"><span data-lang="en">Discuss Studio</span><span data-lang="zh">咨询 Studio</span></a></article>
+          <article class="plan"><h3>Growth</h3><div class="price">$199 <small><span data-lang="en">AUD / month</span><span data-lang="zh">AUD / 月</span></small></div><ul><li><span data-lang="en">Up to 1,500 students</span><span data-lang="zh">最多 1,500 名学员</span></li><li><span data-lang="en">20 team users</span><span data-lang="zh">20 个团队账号</span></li><li><span data-lang="en">100 GB storage allowance</span><span data-lang="zh">100 GB 存储额度</span></li><li><span data-lang="en">Priority support</span><span data-lang="zh">优先支持</span></li></ul><a class="button button-dark" href="#support"><span data-lang="en">Discuss Growth</span><span data-lang="zh">咨询 Growth</span></a></article>
         </div>
         <p class="deferred" data-lang="en">Implementation, migration clean-up, messaging provider fees, payment processing, custom domains and multi-campus aggregation are separately scoped. For v8.0.0, each campus is intentionally operated as an isolated tenant.</p>
         <p class="deferred" data-lang="zh">实施、数据清洗、消息供应商费用、在线支付、自定义域名与多校区汇总需单独约定。v8.0.0 阶段每个校区明确作为独立租户运营。</p>
@@ -338,10 +345,10 @@
     <section class="support" id="support">
       <div class="shell support-grid">
         <div>
-          <p class="eyebrow"><span data-lang="en">Support & feedback</span><span data-lang="zh">支持与反馈</span></p>
-          <h2 data-lang="en">Tell us what your studio needs next.</h2><h2 data-lang="zh">告诉我们，你的工作室下一步需要什么。</h2>
-          <p class="copy" data-lang="en">During the local + Cloudflare Tunnel stage, the buttons open your device’s Mail or Messages app. PWE Studio does not silently transmit this form or store its contents.</p>
-          <p class="copy" data-lang="zh">在本地 + Cloudflare Tunnel 阶段，按钮会打开设备自带的邮件或信息应用。PWE Studio 不会静默提交或保存此表内容。</p>
+          <p class="eyebrow"><span data-lang="en">30-minute studio walkthrough</span><span data-lang="zh">30 分钟工作室演示</span></p>
+          <h2 data-lang="en">See your own studio story take shape.</h2><h2 data-lang="zh">用你的名字、课程和作品，预览属于你的工作室。</h2>
+          <p class="copy" data-lang="en">Tell us your studio type, size and current workflow. During the local + Cloudflare Tunnel stage, these actions open your device’s Mail or Messages app; PWE Studio does not silently transmit or store the form.</p>
+          <p class="copy" data-lang="zh">告诉我们你的工作室类型、规模与现有流程。当前本地 + Cloudflare Tunnel 阶段，按钮只会打开设备自带的邮件或信息应用；PWE Studio 不会静默提交或保存表单。</p>
           <div class="actions">
             <a class="button button-secondary" href="/customer-resources/PWE_Studio_Data_Import_Template.csv" download><span data-lang="en">Download CSV template</span><span data-lang="zh">下载 CSV 模版</span></a>
             <a class="button button-secondary" href="/customer-resources/PWE_Studio_Data_Import_Template.xlsx" download><span data-lang="en">Download Excel template</span><span data-lang="zh">下载 Excel 模版</span></a>
