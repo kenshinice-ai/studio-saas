@@ -11,7 +11,7 @@ def test_health_returns_ok(client):
     assert payload["ok"] is True
     assert payload["service"] == "PWE Studio SaaS API"
     assert payload["version"] == "v1"
-    assert payload["appVersion"] == "7.8.1"
+    assert payload["appVersion"] == "8.0.0"
     assert payload["mode"] == "saas"
     assert payload["showProducerCredit"] is True
 
@@ -43,6 +43,15 @@ def test_industry_presets_are_complete_and_bilingual(client):
         assert preset["localizedCopy"]["hero_title"]["zh"]
         assert preset["localizedCopy"]["hero_title"]["en"]
         assert len(preset["registrationProfile"]["fields"]) >= 3
+        operations = preset["operationalTemplate"]
+        assert len(operations["starterCourses"]) >= 3
+        assert all(course["en"] and course["zh"] for course in operations["starterCourses"])
+        assert operations["registrationFocus"]["en"]
+        assert operations["registrationFocus"]["zh"]
+        assert operations["reportFocus"]["en"]
+        assert operations["reportFocus"]["zh"]
+        assert operations["demoStory"]["en"]
+        assert operations["demoStory"]["zh"]
 
 
 def test_visual_styles_meet_wcag_aa_contrast(client):

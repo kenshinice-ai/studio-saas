@@ -1,7 +1,7 @@
 # QA Checklist
 
 > **StudioSaaS Quality Assurance Reference**
-> Last updated: 2026-07-27
+> Last updated: 2026-07-29
 
 ---
 
@@ -107,6 +107,7 @@
 - [ ] Studio Admin changing category does not overwrite custom copy until Apply Category Preset is confirmed
 - [ ] Studio Admin warns before leaving with unsaved changes and previews both Chinese and English
 - [ ] Portal and Quick Registration share `pwe_lang_<slug>` and render localized custom registration labels
+- [ ] Every industry preset includes bilingual starter courses, registration focus, report focus and a demo story
 
 Role-boundary checks (v7.4.0):
 
@@ -131,11 +132,12 @@ Role-boundary checks (v7.4.0):
 - [ ] Image uploads < 5s for images under 5MB
 - [ ] Database queries under 100ms for single-tenant lookups
 - [ ] Static assets served with Cache-Control headers
+- [ ] Product-home display images are dimensioned and total less than 300 KB
 - [ ] No N+1 query patterns in list endpoints
 
 ### 8. Deployment Readiness
 
-v7.8.1 executes local + Cloudflare invitation testing. The AWS deployment kit
+v8.0.0 executes local + Cloudflare invitation testing. The AWS deployment kit
 ships in `deploy/aws/`, but remote AWS deployment is deferred:
 
 - [ ] `bash deploy/aws/verify_release_bundles.sh` builds and verifies both `saas` and `standalone`
@@ -156,20 +158,20 @@ ships in `deploy/aws/`, but remote AWS deployment is deferred:
 - [ ] Upgrade takes a pre-upgrade backup and health-failure rollback is exercised
 - [ ] Media-volume backup is recorded as deferred, not reported as complete
 
-### 8.2 v7.8.1 Brand System Acceptance
+### 8.2 v8.0.0 Brand System Acceptance
 
 - [x] `01 BRAND ASSETS/source/validate_assets.py` passes: 76 files and 15 exact raster dimensions
 - [x] PWE Studio and Paradise Production have separate, documented roles; Paradise wing artwork is not reused as the PWE product mark
 - [x] Product palette is fixed to Navy `#0E1729`, Amber `#F5B335`, accessible amber text `#A16207`, and Warm Paper `#F7F5F2`
 - [x] SaaS and Edition health default to `showProducerCredit=true`; both accept only strict boolean overrides
 - [x] Tenant pages remain tenant-first; SaaS visually hides the Paradise producer credit
-- [x] Super Admin, Studio Admin, setup-password, PWA manifests/icons and generated tenant workspaces use the v7.8.1 family layer
+- [x] Super Admin, Studio Admin, setup-password, PWA manifests/icons and generated tenant workspaces use the v8.0.0 family layer
 - [x] Sales deck has 13 visually reviewed slides, no overflow/placeholders, and passes the template-fidelity checker with 0 issues
-- [x] Local deep health returns `appVersion=7.8.1`, `mode=saas`, `db=ok`
-- [ ] Cloudflare deep health returns `appVersion=7.8.1` — deferred until the invitation runtime is deliberately redeployed
+- [x] Local deep health returns `appVersion=8.0.0`, `mode=saas`, `db=ok`
+- [ ] Cloudflare deep health returns `appVersion=8.0.0` — deferred until the invitation runtime is deliberately redeployed
 - [x] Responsive browser checks cover 375px Register, 812×375 landscape, 768px Studio Admin redirect/CMS, 1024px Portal and 1440px Super Admin with no horizontal overflow or browser-request 5xx
 
-### 8.3 v7.8.1 Golden-Ratio UX Acceptance
+### 8.3 v8.0.0 Golden-Ratio UX Acceptance
 
 - [x] Shared tokens expose 61.8/38.2 tracks, Fibonacci spacing, 55ch measure and 144/233ms motion
 - [x] Portal and Quick Registration collapse their golden split to one column on mobile
@@ -177,6 +179,21 @@ ships in `deploy/aws/`, but remote AWS deployment is deferred:
 - [x] CMS Today Command Centre and KPI rail use the golden split only at 1024px and above
 - [x] Dense tables and equal-importance controls remain equal-width
 - [x] Reduced motion, focus rings and text contrast remain enforced; browser-measured Register, CMS and Super Admin controls meet the 44px touch contract
+
+### 8.4 v8.0.0 Professional Demonstration Acceptance
+
+- [x] Root `/` serves the bilingual product gateway in SaaS mode; Edition root still redirects to its single tenant
+- [x] Guarded reset creates exactly 12 fictional students, four roles, three schedules, five enquiries and three synthetic portfolio works
+- [x] The reset is idempotent and leaves `lets-paint-studio` counts and balances unchanged
+- [x] Presenter credential file is mode `0600`; no credential is printed or committed
+- [x] Product gateway exposes Studio Admin, CMS, family, registration and restricted platform entrances
+- [x] CSV and XLSX migration templates download and the XLSX archive/formula scan passes
+- [x] CMS downloads a valid ICS calendar whose payload contains no student or roster data
+- [x] CMS and Studio Admin provide stable reciprocal navigation without merging their responsibilities
+- [x] Teacher mobile dashboard exposes today's roster, student lookup and artwork upload as three primary actions
+- [x] Customer package covers pricing, contract draft, onboarding, FAQ, migration, support, integrations, multi-campus and security/compliance
+- [ ] SaaS package includes showcase/reset assets; Edition package excludes the SaaS reset command and showcase workspace
+- [x] Product home passes 375/768/1024/1440 responsive, keyboard, reduced-motion and horizontal-overflow checks
 
 ---
 

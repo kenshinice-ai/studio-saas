@@ -1112,6 +1112,7 @@
     .preset-name { min-width: 0; color: var(--ink); font-size: 14px; font-weight: 900; line-height: 1.2; overflow-wrap: anywhere; }
     .preset-name span { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; font-weight: 700; }
     .preset-copy { margin-top: 6px; color: var(--muted); font-size: 11px; line-height: 1.35; overflow-wrap: anywhere; }
+    .preset-operation { margin-top: 7px; color: var(--ink); font-size: 11px; font-weight: 750; line-height: 1.35; overflow-wrap: anywhere; }
     .palette-swatches { display: flex; width: 100%; height: 7px; overflow: hidden; border-radius: 999px; background: var(--line); }
     .palette-swatches i { flex: 1 1 0; border: 0; }
 
@@ -2479,6 +2480,11 @@
     };
     const industryName = (preset) => localisedField(preset, 'label', 'labelZh');
     const industrySlogan = (preset) => localisedField(preset, 'slogan', 'sloganZh');
+    const industryStarterCourse = (preset) => {
+      const first = preset?.operationalTemplate?.starterCourses?.[0];
+      if (!first) return '';
+      return localisedField(first, 'en', 'zh');
+    };
 
     let INDUSTRY_PRESETS = {
       general: {
@@ -3492,7 +3498,7 @@
         return `
         <button type="button" class="preset-card ${key === selected ? 'active' : ''}" data-preset-key="${key}" aria-pressed="${key === selected ? 'true' : 'false'}">
           <div class="preset-card-top"><span class="preset-dot" style="background:${themeValue(theme, 'accent_color', '#255c99')}" aria-hidden="true"></span><span class="preset-check" aria-hidden="true">✓</span></div>
-          <div><div class="preset-name">${esc(primary)}${secondary ? `<span data-no-translate>${esc(secondary)}</span>` : ''}</div><div class="preset-copy">${esc(industrySlogan(preset))}</div></div>
+          <div><div class="preset-name">${esc(primary)}${secondary ? `<span data-no-translate>${esc(secondary)}</span>` : ''}</div><div class="preset-copy">${esc(industrySlogan(preset))}</div>${industryStarterCourse(preset) ? `<div class="preset-operation">${adminIsZh() ? '建议起步课程' : 'Starter course'} · ${esc(industryStarterCourse(preset))}</div>` : ''}</div>
           <div class="palette-swatches" aria-hidden="true"><i style="background:${themeValue(theme, 'background_color', '#fff')}"></i><i style="background:${themeValue(theme, 'accent_color', '#255c99')}"></i><i style="background:${themeValue(theme, 'secondary_accent_color', '#147168')}"></i></div>
         </button>
       `}).join('');

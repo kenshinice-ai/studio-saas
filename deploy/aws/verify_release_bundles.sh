@@ -56,10 +56,20 @@ verify_bundle() {
     grep -Fqx "$prefix/INSTALL_EDITION_FIRST.md" <<<"$inventory"
     grep -Fqx "$prefix/CUSTOMER_README.md" <<<"$inventory"
     ! grep -Fqx "$prefix/DEPLOY_AWS_FIRST.md" <<<"$inventory"
+    ! grep -Fqx "$prefix/RESET_DEMO_TENANT.command" <<<"$inventory"
+    ! grep -Fqx "$prefix/backend/scripts/reset_professional_demo.py" <<<"$inventory"
+    ! grep -Fq "$prefix/tenants/lets-paint-showcase/" <<<"$inventory"
   else
     grep -Fqx "$prefix/DEPLOY_AWS_FIRST.md" <<<"$inventory"
     ! grep -Fqx "$prefix/INSTALL_EDITION_FIRST.md" <<<"$inventory"
     ! grep -Fqx "$prefix/CUSTOMER_README.md" <<<"$inventory"
+    grep -Fqx "$prefix/RESET_DEMO_TENANT.command" <<<"$inventory"
+    grep -Fqx "$prefix/backend/scripts/reset_professional_demo.py" <<<"$inventory"
+    grep -Fqx "$prefix/product-home.html" <<<"$inventory"
+    grep -Fqx "$prefix/customer-resources/PWE_Studio_Data_Import_Template.xlsx" <<<"$inventory"
+    grep -Fqx "$prefix/backend/frontend/assets/showcase-botanical.png" <<<"$inventory"
+    grep -Fqx "$prefix/backend/frontend/assets/showcase-botanical-home.webp" <<<"$inventory"
+    grep -Fqx "$prefix/tenants/lets-paint-showcase/index.html" <<<"$inventory"
   fi
 }
 

@@ -1,7 +1,7 @@
 # Design System
 
 > **StudioSaaS Brand & UI Reference**
-> Last updated: 2026-07-29 · Brand family integration: v7.8.1
+> Last updated: 2026-07-29 · Brand family integration: v8.0.0
 
 The visual system is generated, not hand-picked: every colour token is solved
 for a measured WCAG contrast target by `docs/design/palette_gen.py`, and the
@@ -33,7 +33,7 @@ identity. The PWE family layer governs platform chrome and fallbacks.
 
 ### Golden-ratio hierarchy
 
-The Feather Star uses the golden-ratio sequence `136 : 84 : 52`; v7.8.1
+The Feather Star uses the golden-ratio sequence `136 : 84 : 52`; v8.0.0
 extends that geometry into layout hierarchy through semantic tokens in
 `ui-tokens.css`:
 

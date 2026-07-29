@@ -15,6 +15,8 @@ CUSTOM_DATABASE_URL="${STUDIOSAAS_DATABASE_URL:-}"
 DATABASE_URL="${STUDIOSAAS_DATABASE_URL:-postgresql://${DB_USER}@${DB_HOST}:${DB_PORT}/${DB_NAME}}"
 PORT="${PORT:-8899}"
 PUBLIC_URL="${STUDIOSAAS_PUBLIC_URL:-https://studiosaas.cc.cd}"
+PUBLIC_BASE_DOMAIN="${STUDIOSAAS_PUBLIC_BASE_DOMAIN:-studiosaas.cc.cd}"
+EXPECTED_APP_VERSION="$(tr -d '[:space:]' < "$PROJECT_ROOT/VERSION")"
 ADMIN_EMAIL="admin@studiosaas.local"
 ADMIN_PASSWORD="${STUDIOSAAS_ADMIN_PASSWORD:-}"
 LOG_DIR="$HOME/.studiosaas"
@@ -93,8 +95,9 @@ say "Starting StudioSaaS application"
   PORT="$PORT" \
   COOKIE_SECURE=1 \
   STUDIOSAAS_ENV=pilot \
+  STUDIOSAAS_MODE=saas \
   STUDIOSAAS_DATABASE_URL="$DATABASE_URL" \
-  STUDIOSAAS_PUBLIC_BASE_DOMAIN=studiosaas.cc.cd \
+  STUDIOSAAS_PUBLIC_BASE_DOMAIN="$PUBLIC_BASE_DOMAIN" \
   "$PYTHON" server.py
 ) >>"$LOG_DIR/online-app.log" 2>&1 &
 APP_PID=$!
@@ -112,11 +115,19 @@ TUNNEL_PID=$!
 printf "%s\n" "$TUNNEL_PID" >"$TUNNEL_PID_FILE"
 wait_for_url "$PUBLIC_URL/v1/health" "Public StudioSaaS health" 45
 
+say "Verifying local/public release and database parity"
+"$PYTHON" "$PROJECT_ROOT/backend/scripts/verify_tunnel_parity.py" \
+  --local-base-url "http://localhost:$PORT" \
+  --public-base-url "$PUBLIC_URL" \
+  --expected-app-version "$EXPECTED_APP_VERSION" \
+  --expected-mode saas
+
 echo ""
 echo "  公网:  $PUBLIC_URL"
 echo "  本地:  http://localhost:$PORT"
 echo "  停止:  关闭本窗口，或双击 STOP_STUDIOSAAS_ONLINE.command"
 echo "  日志:  $LOG_DIR/online-app.log 和 $LOG_DIR/cloudflared.log"
+echo "  提示:  本窗口只管理本次启动的 PID；演示前仍需确认 Cloudflare 没有旧连接器残留。"
 echo ""
 
 while kill -0 "$APP_PID" 2>/dev/null && kill -0 "$TUNNEL_PID" 2>/dev/null; do

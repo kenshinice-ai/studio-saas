@@ -1,7 +1,7 @@
 # PWE Studio Edition（单店独立版）· 方案
 
-> **状态：✅ v7.8.1 可交付基线（2026-07-27），方案 A，定价已拍板。**
-> 基于 StudioSaaS v7.8.1。产品名：**PWE Studio Edition**。
+> **状态：✅ v8.0.0 可交付基线（2026-07-27），方案 A，定价已拍板。**
+> 基于 StudioSaaS v8.0.0。产品名：**PWE Studio Edition**。
 
 ---
 
@@ -98,7 +98,7 @@ STUDIOSAAS_SHOW_PRODUCER_CREDIT=0
 除明确的 `0/false/no/off` 与 `1/true/yes/on` 外，其他值会让配置校验失败，
 不会静默猜测。
 
-## 6. 实现与 v7.8.1 交付收口（已完成，2026-07-27）
+## 6. 实现与 v8.0.0 交付收口（已完成，2026-07-27）
 
 1. ✅ 后端 `STUDIOSAAS_MODE=standalone` 开关 + 启动校验 + 路由关闭
    —— `config.is_standalone()`（每次读环境，不缓存）、`server` 启动不变量

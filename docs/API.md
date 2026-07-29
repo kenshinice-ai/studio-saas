@@ -37,7 +37,7 @@ curl -sS http://localhost:8899/v1/health
 ```
 
 Response keeps `version: "v1"` as the API contract and reports the product
-release separately as `appVersion` (v7.8.1). The response also exposes the
+release separately as `appVersion` (v8.0.0). The response also exposes the
 safe runtime fields `mode` and `showProducerCredit`; the latter drives the
 Edition-only contractual footer. Add `?deep=1` to require a
 successful PostgreSQL probe.
@@ -207,6 +207,8 @@ Creates `tenants`, `subscriptions`, `tenant_usage` rows and generates `tenants/<
 | POST | `/v1/courses` | `courses:write` | Create course |
 | GET | `/v1/packages` | `credits:read` | List packages (prices; teachers are excluded, matching the CMS projection) |
 | POST | `/v1/packages` | Tenant admin | Create package |
+| GET | `/v1/class-schedules` | Session | List active recurring class schedules |
+| GET | `/v1/class-schedules/calendar.ics` | Session | Download tenant-timezone recurring schedules as an ICS file; excludes roster/student data |
 
 ---
 

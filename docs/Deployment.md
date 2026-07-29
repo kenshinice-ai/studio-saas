@@ -1,8 +1,8 @@
 # StudioSaaS Deployment Guide
 
-Version: v7.8.1
+Version: v8.0.0
 Date: 2026-07-27
-Scope: v7.8.1 当前执行本地部署 → Cloudflare Tunnel 邀请测试
+Scope: v8.0.0 当前执行本地部署 → Cloudflare Tunnel 邀请测试
 （`https://studiosaas.cc.cd`）。AWS 套件保留，但本轮不部署。
 
 部署路径分三个阶段，每个阶段都是上一阶段的超集，数据与代码不推倒重来：
@@ -11,7 +11,7 @@ Scope: v7.8.1 当前执行本地部署 → Cloudflare Tunnel 邀请测试
 |---|---|---|
 | Stage 0 | 本地 Mac：waitress + 本机 PostgreSQL | 开发与全量验证 |
 | Stage 1 | Stage 0 + cloudflared tunnel → `studiosaas.cc.cd` | 公网试点测试（真实手机/家长注册链路） |
-| Stage 2 | AWS：EC2/Lightsail + RDS PostgreSQL + S3 媒体 | 延期；不是 v7.8.1 验收范围 |
+| Stage 2 | AWS：EC2/Lightsail + RDS PostgreSQL + S3 媒体 | 延期；不是 v8.0.0 验收范围 |
 
 ---
 
@@ -37,7 +37,7 @@ PORT=8899 STUDIOSAAS_DATABASE_URL=postgresql://$(whoami)@localhost:5432/studiosa
 # 或直接: ./start_studiosaas_local.sh
 ```
 
-### 1.2 验证基线（v7.8.1）
+### 1.2 验证基线（v8.0.0）
 
 | 检查 | 命令 | 期望 |
 |---|---|---|
@@ -127,7 +127,7 @@ bash scripts/package_release.sh
 
 ---
 
-## 3. Stage 2 — AWS 正式部署（v7.8.1 延期）
+## 3. Stage 2 — AWS 正式部署（v8.0.0 延期）
 
 > 本节仅保留未来迁移设计与已存在的部署套件说明。本轮不得把“包可构建”
 > 表述为“AWS 已上线”，也不执行远端资源变更。

@@ -89,11 +89,27 @@ def test_standalone_health_identifies_edition_and_credit(client, standalone):
 # ── SaaS mode: platform plane unchanged ─────────────────────────────
 
 
-def test_saas_root_serves_super_admin_console(client, saas):
+def test_saas_root_serves_product_gateway(client, saas):
     response = client.get("/")
     assert response.status_code == 200
     assert "text/html" in response.headers["Content-Type"]
-    assert b"super-admin" in response.data.lower() or b"Super Admin" in response.data
+    assert b"PWE Studio" in response.data
+    assert b"Studio Admin" in response.data
+    assert b"Open CMS" in response.data
+    assert b"Explore the live showcase" in response.data
+
+
+def test_customer_resources_are_explicitly_allowlisted(client, saas):
+    faq = client.get("/customer-resources/FAQ.html")
+    assert faq.status_code == 200
+    assert b"Frequently asked questions" in faq.data
+
+    workbook = client.get("/customer-resources/PWE_Studio_Data_Import_Template.xlsx")
+    assert workbook.status_code == 200
+    assert workbook.headers["Content-Disposition"].startswith("attachment;")
+
+    assert client.get("/customer-resources/../VERSION").status_code == 404
+    assert client.get("/customer-resources/private.txt").status_code == 404
 
 
 def test_saas_super_admin_page_reachable(client, saas):

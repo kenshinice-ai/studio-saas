@@ -1,4 +1,4 @@
-# PWE Studio Edition v7.8.1 — 交付工程师 Runbook
+# PWE Studio Edition v8.0.0 — 交付工程师 Runbook
 
 适用范围：一台 Ubuntu 主机、一个客户、一个活跃租户。平台 Super Admin 与
 `/v1/admin/*` 在 standalone 模式下必须返回 404。本文只覆盖正式 Edition
@@ -6,13 +6,13 @@
 
 ## 1. 交付前硬门槛
 
-1. 只使用官方 `PWE-Studio-Edition-7.8.1.tar.gz`，同时向客户提供发布方
+1. 只使用官方 `PWE-Studio-Edition-8.0.0.tar.gz`，同时向客户提供发布方
    单独保存的 SHA-256。
 2. 验证 `BUILD_INFO`：
 
    ```bash
    grep -E '^(version|mode|commit)=' BUILD_INFO
-   # 必须包含 version=7.8.1、mode=standalone
+   # 必须包含 version=8.0.0、mode=standalone
    ```
 
 3. 如从 SaaS 迁入，导出租户包后在安全渠道单独记录整个 tar.gz 的 SHA-256；
@@ -104,7 +104,7 @@ sudo bash /opt/pwe-studio/example-studio/current/standalone-edition/maintenance.
   `/var/lib/pwe-studio/<slug>/logs/postgres-backup.log`。
 - [ ] TLS 自动续期 timer 有效；deep health 返回数据库正常。
 - [ ] 客户离线保存服务器凭据、`/etc/pwe-studio/<slug>.env` 和发布 SHA-256。
-- [ ] 明确签字：v7.8.1 只承诺 PostgreSQL 备份；媒体文件备份暂缓。
+- [ ] 明确签字：v8.0.0 只承诺 PostgreSQL 备份；媒体文件备份暂缓。
 
 ## 6. 升级与回滚
 
@@ -134,5 +134,5 @@ sudo bash /opt/pwe-studio/example-studio/current/standalone-edition/maintenance.
 
 ## 8. 当前明确延期
 
-- 媒体文件卷的自动备份与异地副本：暂不纳入 v7.8.1 验收。
+- 媒体文件卷的自动备份与异地副本：暂不纳入 v8.0.0 验收。
 - AWS/RDS/S3/SES 正式部署：代码与历史方案保留，本轮不执行。

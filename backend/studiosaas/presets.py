@@ -556,11 +556,85 @@ INDUSTRY_PRESETS: dict[str, dict] = {
     },
 }
 
+
+def _operational_template(
+    courses: list[tuple[str, str]],
+    registration_focus: tuple[str, str],
+    report_focus: tuple[str, str],
+    demo_story: tuple[str, str],
+) -> dict:
+    """Build the client-safe operating layer for an industry preset.
+
+    Industry presets must change the owner's starting workflow, not only colours
+    and nouns. Keeping the bilingual values together also prevents one admin
+    surface from drifting away from the public registration experience.
+    """
+
+    return {
+        "starterCourses": [{"en": en, "zh": zh} for en, zh in courses],
+        "registrationFocus": {"en": registration_focus[0], "zh": registration_focus[1]},
+        "reportFocus": {"en": report_focus[0], "zh": report_focus[1]},
+        "demoStory": {"en": demo_story[0], "zh": demo_story[1]},
+    }
+
+
+INDUSTRY_OPERATIONAL_TEMPLATES: dict[str, dict] = {
+    "art": _operational_template(
+        [("Foundation Art Lab", "基础艺术实验室"), ("Portfolio Studio", "作品集工作室"), ("Holiday Art Workshop", "假期艺术工作坊")],
+        ("Medium, experience and creative goals", "媒介偏好、创作经验与目标"),
+        ("Portfolio progress, attendance and credit runway", "作品进度、出勤与剩余课时"),
+        ("Enquiry to trial, enrolment, class check-in and a parent-visible artwork", "从咨询、体验、报名、签到到家长可见作品"),
+    ),
+    "music": _operational_template(
+        [("Piano Foundations", "钢琴基础"), ("AMEB Preparation", "AMEB 考级准备"), ("Student Recital Lab", "学员音乐会排练")],
+        ("Instrument, grade and practice goals", "乐器、等级与练习目标"),
+        ("Lesson continuity, repertoire and exam milestones", "连续上课、曲目与考级里程碑"),
+        ("Trial lesson to recurring tuition, practice note and recital milestone", "从体验课到固定课、练习反馈与演出里程碑"),
+    ),
+    "math": _operational_template(
+        [("Primary Foundations", "小学基础"), ("Secondary Problem Solving", "中学解题"), ("VCE Exam Clinic", "VCE 考试强化")],
+        ("Year level, topic gaps and assessment dates", "年级、知识缺口与考试日期"),
+        ("Attendance, topic coverage and renewal risk", "出勤、知识覆盖与续费风险"),
+        ("Diagnostic enquiry to matched class, attendance and progress review", "从诊断咨询到匹配班级、出勤与阶段回顾"),
+    ),
+    "dance": _operational_template(
+        [("Junior Ballet", "少儿芭蕾"), ("Jazz Technique", "爵士技巧"), ("Performance Company", "舞台表演团")],
+        ("Age, style, level and performance goal", "年龄、舞种、水平与演出目标"),
+        ("Roster capacity, attendance and performance readiness", "班级容量、出勤与演出准备度"),
+        ("Trial class to troupe placement, rehearsal attendance and showcase media", "从体验课到分班、排练出勤与汇演影像"),
+    ),
+    "language": _operational_template(
+        [("Everyday Conversation", "日常会话"), ("School Language Support", "校内语言辅导"), ("Exam Speaking Lab", "口语考试训练")],
+        ("Target language, level and real-life use", "目标语言、水平与真实使用场景"),
+        ("Attendance, level progression and speaking evidence", "出勤、等级进展与口语成果"),
+        ("Placement enquiry to small group, speaking task and family update", "从水平咨询到小班、口语任务与家庭反馈"),
+    ),
+    "sports": _operational_template(
+        [("Junior Skills", "少儿技能课"), ("Squad Training", "队伍训练"), ("Competition Clinic", "赛前强化")],
+        ("Sport, level, health notes and competition goal", "项目、水平、健康备注与比赛目标"),
+        ("Capacity, attendance and coaching milestones", "容量、出勤与训练里程碑"),
+        ("Assessment to squad placement, session record and coaching feedback", "从评估到分队、训练记录与教练反馈"),
+    ),
+    "game": _operational_template(
+        [("Minecraft Makers", "Minecraft 创造营"), ("Roblox Coding Lab", "Roblox 编程实验室"), ("Strategy Club", "策略俱乐部")],
+        ("Platform, experience and learning objective", "平台、经验与学习目标"),
+        ("Project completion, attendance and collaboration", "项目完成度、出勤与协作表现"),
+        ("Interest enquiry to project cohort, attendance and shareable project", "从兴趣咨询到项目小组、出勤与可分享项目"),
+    ),
+    "general": _operational_template(
+        [("Foundation Program", "基础课程"), ("Skills Development", "技能进阶"), ("Holiday Workshop", "假期工作坊")],
+        ("Interests, experience and learning goals", "兴趣、经验与学习目标"),
+        ("Enquiry conversion, attendance and credit runway", "咨询转化、出勤与剩余课时"),
+        ("Enquiry to trial, enrolment, attendance and family progress update", "从咨询、体验、报名、出勤到家庭进度反馈"),
+    ),
+}
+
 # Keep industry copy and visual design independent. The industry provides the
 # recommended starting style; tenants can switch style without changing copy.
 for _industry_key, _style_id in INDUSTRY_STYLE_RECOMMENDATIONS.items():
     INDUSTRY_PRESETS[_industry_key]["recommended_style_id"] = _style_id
     INDUSTRY_PRESETS[_industry_key]["theme"] = style_theme(_style_id)
+    INDUSTRY_PRESETS[_industry_key]["operational_template"] = INDUSTRY_OPERATIONAL_TEMPLATES[_industry_key]
 
 
 def public_industry_presets() -> dict[str, dict]:
@@ -596,6 +670,7 @@ def public_industry_presets() -> dict[str, dict]:
             },
             "visualTheme": dict(preset["theme"]),
             "registrationProfile": {"title": preset["registration_title"], "fields": [dict(field) for field in preset["fields"]]},
+            "operationalTemplate": dict(preset["operational_template"]),
         }
     return result
 

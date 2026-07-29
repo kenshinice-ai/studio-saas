@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#173f3a">
+  <meta name="description" content="PWE Studio brings enrolment, scheduling, attendance, student records and creative portfolios into one calm studio workspace.">
+  <title>PWE Studio · Creative studio operations, clearly connected</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <script src="/assets/product-home.js" defer></script>
+  <style>
+    :root {
+      --ink: #15312e;
+      --ink-soft: #49635f;
+      --forest: #173f3a;
+      --forest-deep: #0e2b28;
+      --sage: #dce9df;
+      --paper: #f7f3eb;
+      --paper-bright: #fffdf8;
+      --gold: #d7a93d;
+      --coral: #c9684b;
+      --line: rgba(21, 49, 46, .16);
+      --shadow: 0 24px 72px rgba(14, 43, 40, .12);
+      --r-sm: 12px;
+      --r-md: 20px;
+      --r-lg: 32px;
+      --space-1: .5rem;
+      --space-2: .875rem;
+      --space-3: 1.375rem;
+      --space-4: 2.25rem;
+      --space-5: 3.625rem;
+      --space-6: 5.875rem;
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+      font-synthesis: none;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; min-width: 320px; background: var(--paper); }
+    a { color: inherit; }
+    button, input, textarea, select { font: inherit; }
+    button, a { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+    :focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+    .skip { position: fixed; top: -80px; left: 1rem; z-index: 100; padding: .8rem 1rem; border-radius: 8px; background: #fff; }
+    .skip:focus { top: 1rem; }
+    .shell { width: min(1180px, calc(100% - 40px)); margin-inline: auto; }
+    .topbar {
+      position: sticky; top: 0; z-index: 20; border-bottom: 1px solid rgba(255,255,255,.1);
+      background: rgba(14, 43, 40, .93); color: white; backdrop-filter: blur(18px);
+    }
+    .nav { min-height: 72px; display: flex; align-items: center; gap: var(--space-3); padding-top: env(safe-area-inset-top); }
+    .brand { display: inline-flex; align-items: center; gap: .7rem; text-decoration: none; font-weight: 760; letter-spacing: -.02em; }
+    .brand img { width: 38px; height: 38px; }
+    .navlinks { display: flex; align-items: center; gap: .25rem; margin-left: auto; }
+    .navlinks a, .lang {
+      min-height: 44px; display: inline-flex; align-items: center; justify-content: center;
+      padding: 0 .85rem; border-radius: 999px; color: rgba(255,255,255,.82); text-decoration: none;
+      border: 0; background: transparent; cursor: pointer; transition: background .2s, color .2s;
+    }
+    .navlinks a:hover, .lang:hover { color: #fff; background: rgba(255,255,255,.1); }
+    .navlinks .login { color: var(--forest-deep); background: #fff; font-weight: 700; }
+    .hero { position: relative; overflow: hidden; color: white; background: var(--forest-deep); }
+    .hero::before {
+      content: ""; position: absolute; inset: 0; opacity: .28; pointer-events: none;
+      background:
+        radial-gradient(circle at 76% 12%, rgba(215,169,61,.55), transparent 26%),
+        linear-gradient(115deg, transparent 50%, rgba(255,255,255,.08) 50.1%, transparent 50.6%);
+    }
+    .hero-grid {
+      position: relative; min-height: 680px; display: grid; grid-template-columns: minmax(0, 1.618fr) minmax(320px, 1fr);
+      align-items: center; gap: clamp(2.5rem, 6vw, 6rem); padding-block: clamp(4rem, 9vw, 7.5rem);
+    }
+    .eyebrow { display: flex; align-items: center; gap: .75rem; margin: 0 0 var(--space-3); color: #eed99e; font-size: .78rem; font-weight: 750; letter-spacing: .14em; text-transform: uppercase; }
+    .eyebrow::before { content: ""; width: 44px; height: 1px; background: currentColor; }
+    h1 { max-width: 780px; margin: 0; font-size: clamp(3rem, 7vw, 6.6rem); line-height: .96; letter-spacing: -.065em; }
+    .lede { max-width: 650px; margin: var(--space-4) 0 0; color: rgba(255,255,255,.78); font-size: clamp(1.05rem, 2vw, 1.28rem); line-height: 1.7; }
+    .actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: var(--space-4); }
+    .button {
+      min-height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: .6rem;
+      padding: .75rem 1.15rem; border: 1px solid transparent; border-radius: 999px; text-decoration: none;
+      font-weight: 720; cursor: pointer; transition: transform .2s, box-shadow .2s, background .2s;
+    }
+    .button:hover { transform: translateY(-2px); }
+    .button:active, .role:active { transform: scale(.985); }
+    .button-primary { background: var(--gold); color: #1f2a24; box-shadow: 0 12px 32px rgba(215,169,61,.25); }
+    .button-secondary { border-color: rgba(255,255,255,.3); background: rgba(255,255,255,.06); color: white; }
+    .button-dark { color: #fff; background: var(--forest); }
+    .hero-card { align-self: stretch; display: grid; align-content: center; }
+    .art-stack { position: relative; min-height: 460px; }
+    .art {
+      position: absolute; overflow: hidden; border: 10px solid rgba(255,253,248,.96); border-radius: 4px;
+      background: #fff; box-shadow: 0 28px 70px rgba(0,0,0,.38);
+    }
+    .art img { width: 100%; height: 100%; display: block; object-fit: cover; }
+    .art-a { width: 76%; aspect-ratio: 1; top: 0; right: 0; transform: rotate(3deg); }
+    .art-b { width: 54%; aspect-ratio: 1; left: 0; bottom: 1%; transform: rotate(-5deg); }
+    .proof {
+      position: absolute; right: -4%; bottom: 4%; z-index: 4; width: 210px; padding: 1rem;
+      border: 1px solid rgba(255,255,255,.15); border-radius: var(--r-sm); background: rgba(14,43,40,.92);
+      box-shadow: var(--shadow); backdrop-filter: blur(12px);
+    }
+    .proof strong { display: block; margin-bottom: .25rem; font-size: 1rem; }
+    .proof span { color: rgba(255,255,255,.68); font-size: .82rem; line-height: 1.45; }
+    section { padding-block: var(--space-6); }
+    .section-head { display: grid; grid-template-columns: 1.618fr 1fr; gap: var(--space-4); align-items: end; margin-bottom: var(--space-5); }
+    .kicker { margin: 0 0 .75rem; color: var(--coral); font-size: .78rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    h2 { margin: 0; max-width: 760px; font-size: clamp(2.1rem, 5vw, 4.25rem); line-height: 1.02; letter-spacing: -.05em; }
+    .section-head > p { margin: 0; color: var(--ink-soft); line-height: 1.7; }
+    .role-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1rem; }
+    .role {
+      grid-column: span 4; min-height: 250px; display: flex; flex-direction: column; padding: var(--space-3);
+      border: 1px solid var(--line); border-radius: var(--r-md); background: var(--paper-bright);
+      text-decoration: none; box-shadow: 0 10px 34px rgba(21,49,46,.05); transition: transform .2s, border-color .2s, box-shadow .2s;
+    }
+    .role:hover { transform: translateY(-4px); border-color: rgba(23,63,58,.45); box-shadow: var(--shadow); }
+    .role svg { width: 28px; height: 28px; color: var(--coral); }
+    .role h3 { margin: auto 0 .55rem; font-size: 1.4rem; letter-spacing: -.025em; }
+    .role p { margin: 0; color: var(--ink-soft); line-height: 1.55; }
+    .role .arrow { display: inline-flex; align-items: center; gap: .35rem; margin-top: 1rem; color: var(--forest); font-weight: 720; }
+    .role-owner { grid-column: span 8; color: #fff; background: var(--forest); }
+    .role-owner p, .role-owner .arrow { color: rgba(255,255,255,.74); }
+    .role-owner svg { color: var(--gold); }
+    .system { background: #e9efe9; }
+    .flow { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1px; overflow: hidden; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--line); }
+    .flow article { min-height: 190px; padding: var(--space-3); background: var(--paper-bright); }
+    .flow .number { color: var(--coral); font-size: .78rem; font-weight: 800; }
+    .flow h3 { margin: 2.8rem 0 .45rem; font-size: 1.05rem; }
+    .flow p { margin: 0; color: var(--ink-soft); font-size: .9rem; line-height: 1.55; }
+    .industries { display: grid; grid-template-columns: 1.618fr 1fr 1fr; gap: 1rem; }
+    .industry { min-height: 210px; padding: var(--space-3); border-radius: var(--r-md); background: #fff; border: 1px solid var(--line); }
+    .industry:first-child { color: #fff; background: var(--forest); }
+    .industry h3 { margin: 3.5rem 0 .5rem; font-size: 1.3rem; }
+    .industry p { margin: 0; color: var(--ink-soft); line-height: 1.55; }
+    .industry:first-child p { color: rgba(255,255,255,.72); }
+    .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    .plan { padding: var(--space-3); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--paper-bright); }
+    .plan.featured { border-color: var(--forest); box-shadow: inset 0 5px 0 var(--gold); }
+    .plan h3 { margin: 0; font-size: 1.35rem; }
+    .price { margin: 1.4rem 0 .5rem; font-size: 2.5rem; font-weight: 780; letter-spacing: -.05em; }
+    .price small { font-size: .85rem; font-weight: 600; letter-spacing: 0; color: var(--ink-soft); }
+    .plan ul { min-height: 160px; margin: 1.5rem 0; padding-left: 1.1rem; color: var(--ink-soft); line-height: 1.8; }
+    .deferred { margin-top: 1rem; color: var(--ink-soft); font-size: .85rem; line-height: 1.55; }
+    .support { color: #fff; background: var(--forest-deep); }
+    .support-grid { display: grid; grid-template-columns: 1.618fr 1fr; gap: clamp(2rem, 7vw, 6rem); }
+    .support h2 { max-width: 620px; }
+    .support .copy { color: rgba(255,255,255,.7); line-height: 1.7; }
+    .support form { display: grid; gap: .75rem; padding: var(--space-3); border: 1px solid rgba(255,255,255,.14); border-radius: var(--r-md); background: rgba(255,255,255,.06); }
+    label { display: grid; gap: .4rem; color: rgba(255,255,255,.75); font-size: .85rem; font-weight: 650; }
+    input, textarea, select { width: 100%; min-height: 46px; padding: .75rem; border: 1px solid rgba(255,255,255,.2); border-radius: 10px; color: #fff; background: rgba(0,0,0,.18); }
+    textarea { min-height: 110px; resize: vertical; }
+    option { color: #111; }
+    .privacy-note { margin: 0; color: rgba(255,255,255,.55); font-size: .78rem; line-height: 1.5; }
+    .support-actions { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; }
+    .support-actions .button { width: 100%; }
+    footer { padding: 2.2rem 0 max(2.2rem, env(safe-area-inset-bottom)); color: var(--ink-soft); background: var(--paper-bright); }
+    .footer-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+    .footer-row nav { display: flex; flex-wrap: wrap; gap: 1rem; }
+    .footer-row a { min-height: 44px; display: inline-flex; align-items: center; }
+    [data-lang="zh"] { display: none; }
+    html[lang="zh"] [data-lang="en"] { display: none; }
+    html[lang="zh"] [data-lang="zh"] { display: revert; }
+    @media (max-width: 900px) {
+      .navlinks a:not(.login) { display: none; }
+      .hero-grid, .section-head, .support-grid { grid-template-columns: 1fr; }
+      .hero-grid { min-height: auto; }
+      .hero-card { min-height: 440px; }
+      .role, .role-owner { grid-column: span 6; }
+      .flow { grid-template-columns: repeat(3, 1fr); }
+      .industries { grid-template-columns: 1fr 1fr; }
+      .industries .industry:first-child { grid-column: 1 / -1; }
+    }
+    @media (max-width: 620px) {
+      .shell { width: min(100% - 28px, 1180px); }
+      .nav { min-height: 64px; }
+      .brand span { display: none; }
+      .hero-grid { padding-block: 4.2rem; }
+      h1 { font-size: clamp(3rem, 16vw, 4.3rem); }
+      .hero-card { min-height: 340px; }
+      .art-stack { min-height: 330px; }
+      .proof { right: 0; width: 180px; }
+      section { padding-block: var(--space-5); }
+      .role, .role-owner { grid-column: 1 / -1; min-height: 210px; }
+      .flow { grid-template-columns: 1fr; }
+      .flow article { min-height: 150px; }
+      .flow h3 { margin-top: 1.7rem; }
+      .industries, .plans { grid-template-columns: 1fr; }
+      .support-actions, .footer-row { grid-template-columns: 1fr; }
+      .footer-row { align-items: flex-start; flex-direction: column; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to main content</a>
+  <header class="topbar">
+    <div class="shell nav">
+      <a class="brand" href="/" aria-label="PWE Studio home">
+        <img src="/pwe-mark-dark.svg" alt="">
+        <span>PWE Studio</span>
+      </a>
+      <nav class="navlinks" aria-label="Primary navigation">
+        <a href="#roles"><span data-lang="en">Role entrances</span><span data-lang="zh">角色入口</span></a>
+        <a href="#workflow"><span data-lang="en">Workflow</span><span data-lang="zh">工作流程</span></a>
+        <a href="#plans"><span data-lang="en">Plans</span><span data-lang="zh">套餐</span></a>
+        <a href="#support"><span data-lang="en">Support</span><span data-lang="zh">支持</span></a>
+        <button class="lang" id="languageButton" type="button" aria-label="Switch language">中文</button>
+        <a class="login" href="/lets-paint-showcase/cms"><span data-lang="en">Team sign in</span><span data-lang="zh">团队登录</span></a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero">
+      <div class="shell hero-grid">
+        <div>
+          <p class="eyebrow"><span data-lang="en">Creative studios, clearly connected</span><span data-lang="zh">让创意工作室清晰连接</span></p>
+          <h1 data-lang="en">More time for teaching. One calm system behind it.</h1>
+          <h1 data-lang="zh">把时间还给教学，让一个系统稳稳托住运营。</h1>
+          <p class="lede" data-lang="en">PWE Studio connects enquiries, enrolment, scheduling, attendance, credits and student portfolios—without turning your studio into a software project.</p>
+          <p class="lede" data-lang="zh">PWE Studio 将咨询、报名、排课、签到、课时与学生作品连接起来，不让你的工作室变成一个软件项目。</p>
+          <div class="actions">
+            <a class="button button-primary" href="/lets-paint-showcase"><span data-lang="en">Explore the live showcase</span><span data-lang="zh">查看专业演示</span></a>
+            <a class="button button-secondary" href="#roles"><span data-lang="en">Choose a role</span><span data-lang="zh">选择角色入口</span></a>
+          </div>
+        </div>
+        <div class="hero-card" aria-label="Original demo portfolio artworks">
+          <div class="art-stack">
+            <figure class="art art-a"><img src="/assets/showcase-botanical-home.webp" width="760" height="760" alt="Watercolour botanical still life"></figure>
+            <figure class="art art-b"><img src="/assets/showcase-coast-home.webp" width="760" height="760" alt="Textured coastal landscape painting"></figure>
+            <div class="proof">
+              <strong data-lang="en">Built with a working studio</strong><strong data-lang="zh">由真实工作室实践支持</strong>
+              <span data-lang="en">The showcase follows the real Let’s Paint Studio journey—from first enquiry to a growing portfolio.</span>
+              <span data-lang="zh">演示以 Let’s Paint Studio 的真实流程为主线，从初次咨询到作品成长记录。</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="roles">
+      <div class="shell">
+        <div class="section-head">
+          <div><p class="kicker">01 · <span data-lang="en">Enter by role</span><span data-lang="zh">按角色进入</span></p><h2 data-lang="en">One studio, the right workspace for each person.</h2><h2 data-lang="zh">同一个工作室，每个人进入合适的工作台。</h2></div>
+          <p data-lang="en">Each entrance has a clear responsibility. Switching stays consistent, while permissions and private information remain separated.</p>
+          <p data-lang="zh">每个入口职责清楚，切换体验保持一致，同时权限和隐私数据继续严格分离。</p>
+        </div>
+        <div class="role-grid">
+          <a class="role role-owner" href="/lets-paint-showcase/studio-admin">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 20V9l8-5 8 5v11"/><path d="M9 20v-6h6v6M3 20h18"/></svg>
+            <h3 data-lang="en">Owner · Website & brand</h3><h3 data-lang="zh">老板 · 网站与品牌</h3>
+            <p data-lang="en">Shape the public website, studio identity, course presentation and launch readiness.</p><p data-lang="zh">管理公开网站、工作室品牌、课程呈现与上线准备。</p>
+            <span class="arrow"><span data-lang="en">Open Studio Admin</span><span data-lang="zh">进入 Studio Admin</span> →</span>
+          </a>
+          <a class="role" href="/lets-paint-showcase/cms">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 5h16v14H4zM4 10h16M9 10v9"/></svg>
+            <h3 data-lang="en">Team · Daily operations</h3><h3 data-lang="zh">团队 · 日常运营</h3>
+            <p data-lang="en">Enquiries, students, roster, attendance, credits, artwork and reporting.</p><p data-lang="zh">咨询、学员、排课、签到、课时、作品与报表。</p>
+            <span class="arrow"><span data-lang="en">Open CMS</span><span data-lang="zh">进入 CMS</span> →</span>
+          </a>
+          <a class="role" href="/lets-paint-showcase">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="3"/><path d="M5 20c.8-4 3.1-6 7-6s6.2 2 7 6"/></svg>
+            <h3 data-lang="en">Families · Public studio</h3><h3 data-lang="zh">家长与学员 · 公开门户</h3>
+            <p data-lang="en">Discover classes, register interest and securely view the student journey.</p><p data-lang="zh">了解课程、提交报名，并安全查看学员成长记录。</p>
+            <span class="arrow"><span data-lang="en">Visit studio portal</span><span data-lang="zh">访问工作室门户</span> →</span>
+          </a>
+          <a class="role" href="/lets-paint-showcase/register">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 5v14M5 12h14"/></svg>
+            <h3 data-lang="en">Prospects · Quick registration</h3><h3 data-lang="zh">意向客户 · 快速报名</h3>
+            <p data-lang="en">A focused, mobile-friendly path from interest to a structured studio enquiry.</p><p data-lang="zh">从兴趣到结构化咨询，专注且适合手机操作。</p>
+            <span class="arrow"><span data-lang="en">Start registration</span><span data-lang="zh">开始报名</span> →</span>
+          </a>
+          <a class="role" href="/super-admin">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3l8 4v5c0 5-3.4 8-8 9-4.6-1-8-4-8-9V7z"/><path d="M9 12l2 2 4-4"/></svg>
+            <h3 data-lang="en">Platform · Customer operations</h3><h3 data-lang="zh">平台方 · 客户运营</h3>
+            <p data-lang="en">Tenant onboarding, plans, platform health and release operations. Restricted access.</p><p data-lang="zh">客户入驻、套餐、平台健康与发布运营，仅限授权人员。</p>
+            <span class="arrow"><span data-lang="en">Platform sign in</span><span data-lang="zh">平台登录</span> →</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="system" id="workflow">
+      <div class="shell">
+        <div class="section-head">
+          <div><p class="kicker">02 · <span data-lang="en">The studio journey</span><span data-lang="zh">工作室全流程</span></p><h2 data-lang="en">From first enquiry to a portfolio worth keeping.</h2><h2 data-lang="zh">从第一次咨询，到值得珍藏的成长作品集。</h2></div>
+          <p data-lang="en">The professional showcase contains realistic schedules, balances, registrations, attendance and original synthetic artwork—never customer data.</p>
+          <p data-lang="zh">专业演示包含真实结构的排课、余额、报名、签到与原创合成作品，绝不使用客户数据。</p>
+        </div>
+        <div class="flow">
+          <article><span class="number">01</span><h3 data-lang="en">Enquiry</h3><h3 data-lang="zh">咨询</h3><p data-lang="en">Capture goals and consent clearly.</p><p data-lang="zh">清楚记录目标与授权。</p></article>
+          <article><span class="number">02</span><h3 data-lang="en">Follow-up</h3><h3 data-lang="zh">跟进</h3><p data-lang="en">Turn interest into the right trial.</p><p data-lang="zh">将兴趣转为合适的体验课。</p></article>
+          <article><span class="number">03</span><h3 data-lang="en">Scheduling</h3><h3 data-lang="zh">排课</h3><p data-lang="en">Weekly rosters, changes and calendar export.</p><p data-lang="zh">周排课、调整与日历导出。</p></article>
+          <article><span class="number">04</span><h3 data-lang="en">Attendance</h3><h3 data-lang="zh">签到</h3><p data-lang="en">Fast check-in and visible credit use.</p><p data-lang="zh">快速签到与透明课时扣减。</p></article>
+          <article><span class="number">05</span><h3 data-lang="en">Artwork</h3><h3 data-lang="zh">作品</h3><p data-lang="en">Upload safely with publication consent.</p><p data-lang="zh">在发布授权下安全上传。</p></article>
+          <article><span class="number">06</span><h3 data-lang="en">Insight</h3><h3 data-lang="zh">洞察</h3><p data-lang="en">Understand attendance, retention and workload.</p><p data-lang="zh">理解出勤、续费与团队负载。</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="shell">
+        <div class="section-head">
+          <div><p class="kicker">03 · <span data-lang="en">Industry-ready foundations</span><span data-lang="zh">行业化基础</span></p><h2 data-lang="en">A shared operating core, shaped for the way you teach.</h2><h2 data-lang="zh">共享稳定内核，也尊重不同教学行业的工作方式。</h2></div>
+          <p data-lang="en">Templates change terminology, registration questions, starter courses and reporting focus—not just colours.</p>
+          <p data-lang="zh">行业模版会调整术语、报名问题、起步课程与报表重点，而不只是换颜色。</p>
+        </div>
+        <div class="industries">
+          <article class="industry"><h3 data-lang="en">Visual arts studios</h3><h3 data-lang="zh">美术工作室</h3><p data-lang="en">Portfolio progress, publication consent, term classes and material-aware course stories.</p><p data-lang="zh">作品成长、发布授权、学期课程与材料导向的课程叙事。</p></article>
+          <article class="industry"><h3 data-lang="en">Music schools</h3><h3 data-lang="zh">音乐学校</h3><p data-lang="en">Instrument, level, practice goals, lesson cadence and performance milestones.</p><p data-lang="zh">乐器、级别、练习目标、课程节奏与演出里程碑。</p></article>
+          <article class="industry"><h3 data-lang="en">Dance studios</h3><h3 data-lang="zh">舞蹈工作室</h3><p data-lang="en">Style, level, timetable, attendance and rehearsal-ready communication.</p><p data-lang="zh">舞种、级别、课表、出勤与排练沟通。</p></article>
+          <article class="industry"><h3 data-lang="en">Tutoring</h3><h3 data-lang="zh">补习机构</h3><p data-lang="en">Subjects, year levels, learning goals, credits and progress evidence.</p><p data-lang="zh">科目、年级、学习目标、课时与进度证据。</p></article>
+          <article class="industry"><h3 data-lang="en">Creative technology</h3><h3 data-lang="zh">创意科技</h3><p data-lang="en">Projects, workshops, coding pathways and shareable outcomes.</p><p data-lang="zh">项目、工作坊、编程路径与可分享成果。</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="system" id="plans">
+      <div class="shell">
+        <div class="section-head">
+          <div><p class="kicker">04 · <span data-lang="en">Clear commercial boundaries</span><span data-lang="zh">清楚的商业边界</span></p><h2 data-lang="en">Simple plans, with the same trusted core.</h2><h2 data-lang="zh">简单套餐，共享同一套可信核心。</h2></div>
+          <p data-lang="en">Draft public pricing follows the product plan catalogue and remains subject to the signed order form. All prices are AUD, GST treatment confirmed at sale.</p>
+          <p data-lang="zh">公开价格草案与系统套餐一致，最终以签署订单为准。价格为澳元，GST 处理在成交时确认。</p>
+        </div>
+        <div class="plans">
+          <article class="plan"><h3>Starter</h3><div class="price">$49 <small>/ month</small></div><ul><li>Up to 100 students</li><li>2 team users</li><li>5 GB storage allowance</li><li>Registration and portfolios</li></ul><a class="button button-dark" href="#support">Discuss Starter</a></article>
+          <article class="plan featured"><h3>Studio</h3><div class="price">$99 <small>/ month</small></div><ul><li>Up to 500 students</li><li>8 team users</li><li>30 GB storage allowance</li><li>Templates and data export</li></ul><a class="button button-dark" href="#support">Discuss Studio</a></article>
+          <article class="plan"><h3>Growth</h3><div class="price">$199 <small>/ month</small></div><ul><li>Up to 1,500 students</li><li>20 team users</li><li>100 GB storage allowance</li><li>Priority support</li></ul><a class="button button-dark" href="#support">Discuss Growth</a></article>
+        </div>
+        <p class="deferred" data-lang="en">Implementation, migration clean-up, messaging provider fees, payment processing, custom domains and multi-campus aggregation are separately scoped. For v8.0.0, each campus is intentionally operated as an isolated tenant.</p>
+        <p class="deferred" data-lang="zh">实施、数据清洗、消息供应商费用、在线支付、自定义域名与多校区汇总需单独约定。v8.0.0 阶段每个校区明确作为独立租户运营。</p>
+      </div>
+    </section>
+
+    <section class="support" id="support">
+      <div class="shell support-grid">
+        <div>
+          <p class="eyebrow"><span data-lang="en">Support & feedback</span><span data-lang="zh">支持与反馈</span></p>
+          <h2 data-lang="en">Tell us what your studio needs next.</h2><h2 data-lang="zh">告诉我们，你的工作室下一步需要什么。</h2>
+          <p class="copy" data-lang="en">During the local + Cloudflare Tunnel stage, the buttons open your device’s Mail or Messages app. PWE Studio does not silently transmit this form or store its contents.</p>
+          <p class="copy" data-lang="zh">在本地 + Cloudflare Tunnel 阶段，按钮会打开设备自带的邮件或信息应用。PWE Studio 不会静默提交或保存此表内容。</p>
+          <div class="actions">
+            <a class="button button-secondary" href="/customer-resources/PWE_Studio_Data_Import_Template.csv" download><span data-lang="en">Download CSV template</span><span data-lang="zh">下载 CSV 模版</span></a>
+            <a class="button button-secondary" href="/customer-resources/PWE_Studio_Data_Import_Template.xlsx" download><span data-lang="en">Download Excel template</span><span data-lang="zh">下载 Excel 模版</span></a>
+          </div>
+        </div>
+        <form id="supportForm">
+          <label><span data-lang="en">Topic</span><span data-lang="zh">主题</span>
+            <select id="supportTopic"><option>Product demonstration</option><option>Onboarding and migration</option><option>Technical support</option><option>Pricing and contract</option><option>Product feedback</option></select>
+          </label>
+          <label><span data-lang="en">Studio name</span><span data-lang="zh">工作室名称</span><input id="supportStudio" maxlength="120" autocomplete="organization"></label>
+          <label><span data-lang="en">Message</span><span data-lang="zh">内容</span><textarea id="supportMessage" maxlength="1500" required></textarea></label>
+          <p class="privacy-note" data-lang="en">Review the message in your Mail or Messages app before sending. Do not include passwords, payment details or sensitive student information.</p>
+          <p class="privacy-note" data-lang="zh">发送前请在邮件或信息应用中再次检查。请勿包含密码、付款信息或敏感学员资料。</p>
+          <div class="support-actions">
+            <button class="button button-primary" type="submit" data-channel="mail"><span data-lang="en">Open Mail</span><span data-lang="zh">打开邮件</span></button>
+            <button class="button button-secondary" type="button" id="openMessages"><span data-lang="en">Open Messages</span><span data-lang="zh">打开信息</span></button>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="shell footer-row">
+      <span>© <span id="year"></span> PWE Studio · v8.0.0</span>
+      <nav aria-label="Resources">
+        <a href="/customer-resources/FAQ.html"><span data-lang="en">FAQ</span><span data-lang="zh">常见问题</span></a>
+        <a href="/customer-resources/Release_Notes_v8.0.0.html"><span data-lang="en">Release evidence</span><span data-lang="zh">发布依据</span></a>
+        <a href="#support"><span data-lang="en">Contact</span><span data-lang="zh">联系</span></a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>

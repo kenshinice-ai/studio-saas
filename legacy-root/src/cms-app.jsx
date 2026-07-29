@@ -1008,6 +1008,7 @@ function App() {
     };
     const allowedTabs = roleTabs[actorRole] || ['dashboard'];
     const canManageOperations = [...ownerRoles,'manager'].includes(actorRole);
+    const canViewFinancialAnalytics = [...ownerRoles,'manager'].includes(actorRole);
     const canWriteStudents = [...ownerRoles,'manager','front_desk','staff'].includes(actorRole);
     const canWriteCredits = [...ownerRoles,'manager','front_desk','staff'].includes(actorRole);
     const canWritePortfolio = [...ownerRoles,'manager','teacher','staff'].includes(actorRole);
@@ -3261,6 +3262,12 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             {/* Mobile-only: sidebar actions inaccessible on phone */}
                             <div className="md:hidden space-y-2 pt-2 border-t border-gray-100">
                                 <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide pb-0.5">快捷操作</p>
+                                {TENANT_SLUG && <>
+                                <a href={`/${encodeURIComponent(TENANT_SLUG)}/studio-admin`}
+                                    className="flex items-center justify-center w-full bg-emerald-50 active:bg-emerald-100 text-emerald-800 border border-emerald-200 py-3 rounded-xl font-bold text-sm min-h-[44px]">网站与品牌 · Studio Admin</a>
+                                <a href={`/${encodeURIComponent(TENANT_SLUG)}`} target="_blank" rel="noopener"
+                                    className="flex items-center justify-center w-full bg-gray-50 active:bg-gray-100 text-gray-700 border border-gray-200 py-3 rounded-xl font-bold text-sm min-h-[44px]">查看公开网站</a>
+                                </>}
                                 <button onClick={()=>{load();setShowSettings(false);}} disabled={busy}
                                     className="w-full bg-indigo-50 active:bg-indigo-100 text-indigo-700 border border-indigo-200 py-3 rounded-xl font-bold text-sm"><span className="inline-flex items-center gap-1.5"><Icon name="refresh" className="w-4 h-4"/>刷新数据</span></button>
                                 {canManageOperations && !TENANT_SLUG && <button onClick={()=>{exportDB();setShowSettings(false);}}
@@ -3308,6 +3315,12 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     ))}
                 </nav>
                 <div className="p-3 border-t border-indigo-800 space-y-1.5" style={{paddingBottom:'calc(env(safe-area-inset-bottom,0px) + 12px)'}}>
+                    {TENANT_SLUG && <div className="grid grid-cols-2 gap-1.5 pb-1">
+                        <a href={`/${encodeURIComponent(TENANT_SLUG)}/studio-admin`}
+                            className="flex items-center justify-center rounded-lg bg-emerald-700 active:bg-emerald-600 px-2 py-2.5 text-[11px] font-bold min-h-[44px]">网站与品牌</a>
+                        <a href={`/${encodeURIComponent(TENANT_SLUG)}`} target="_blank" rel="noopener"
+                            className="flex items-center justify-center rounded-lg bg-indigo-800 active:bg-indigo-700 px-2 py-2.5 text-[11px] font-bold min-h-[44px]">公开网站</a>
+                    </div>}
                     <div className="text-xs text-green-400 text-center bg-indigo-950 rounded-lg p-1.5 border border-indigo-800"><span className="inline-flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-400" aria-hidden="true"></span>已连接</span></div>
                     {db.logs.length > 1000 && (
                         <div className="text-xs text-amber-400 text-center bg-indigo-950 rounded-lg p-1.5 border border-amber-800/40">
@@ -3333,6 +3346,17 @@ document.getElementById('copybtn').addEventListener('click', function(){
 {tab==='dashboard' && (
 <div className="cms-dashboard-root anim space-y-5">
     <h2 className="inline-flex items-center gap-1.5 text-xl md:text-2xl font-bold text-gray-800"><Icon name="dashboard" className="w-4 h-4"/>工作台</h2>
+    {actorRole==='teacher' && <div className="md:hidden rounded-2xl border border-emerald-200 bg-emerald-50 p-3">
+        <p className="text-xs font-bold text-emerald-900 mb-2">教师手机快捷流程 · 3 步完成今日工作</p>
+        <div className="grid grid-cols-3 gap-2">
+            <button onClick={()=>{setRDate(todayISO());setTab('roster');}}
+                className="min-h-[56px] rounded-xl bg-white border border-emerald-200 px-2 py-2 text-[11px] font-bold text-emerald-900">1 · 今日名单</button>
+            <button onClick={()=>{setGOpen(true);setGQ('');}}
+                className="min-h-[56px] rounded-xl bg-white border border-emerald-200 px-2 py-2 text-[11px] font-bold text-emerald-900">2 · 找到学员</button>
+            <button onClick={()=>{setTab('students');showToast('选择学员后，在作品区上传今日作品。');}}
+                className="min-h-[56px] rounded-xl bg-emerald-700 px-2 py-2 text-[11px] font-bold text-white">3 · 上传作品</button>
+        </div>
+    </div>}
     {scheduleLoadError && <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
         <span className="flex-1">{scheduleLoadError}</span>
         <button onClick={loadSchedules} className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-bold min-h-[40px]">重试</button>
@@ -3362,7 +3386,9 @@ document.getElementById('copybtn').addEventListener('click', function(){
         {[{l:'学员总数',      v:`${analytics.totalStudents} 人`,             c:'text-gray-800',    action:()=>{setSortBy('date-desc');setFilterBy('all');setTab('students');}},
           {l:'全部剩余课时',  v:`${analytics.totalBalance} 课时`,             c:'text-indigo-600',  action:()=>{setSortBy('bal-desc');setFilterBy('active');setTab('students');}},
           {l:'今日排课',      v:`${TENANT_SLUG ? todayEffectiveCount : analytics.todayRoster.length} 人`,         c:'text-gray-700',    action:()=>setTab('roster')},
-          {l:'历史总营收',    v:`$${analytics.totalRevenue.toFixed(0)}`,      c:'text-emerald-600', action:()=>setTab('stats')},
+          canViewFinancialAnalytics
+            ? {l:'历史总营收', v:`$${analytics.totalRevenue.toFixed(0)}`, c:'text-emerald-600', action:()=>setTab('stats')}
+            : {l:'本月出勤', v:`${bizStats?.attended_month || 0} 人次`, c:'text-emerald-600', action:()=>setTab('roster')},
         ].map(({l,v,c,action})=>(
             <button key={l} onClick={action}
                 className="bg-white p-4 rounded-2xl shadow-sm border border-indigo-100 text-left w-full active:bg-indigo-50 transition">
@@ -3378,7 +3404,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
         <details className="bg-white rounded-2xl shadow-sm border border-emerald-100">
             {/* D: roles without analytics:read only receive attended_total/attended_month —
                the financial fields are absent, so render those cards only when present. */}
-            <summary className="inline-flex items-center gap-1.5 cursor-pointer px-4 py-3 font-bold text-sm text-gray-800 select-none"><Icon name="trend" className="w-4 h-4"/>经营真账（估算） <span className="text-xs font-normal text-gray-400">已上课 {bizStats.attended_total} 人次{bizStats.avg_price !== undefined ? ` · 加权均价 $${bizStats.avg_price}/课时` : ''}</span></summary>
+            <summary className="inline-flex items-center gap-1.5 cursor-pointer px-4 py-3 font-bold text-sm text-gray-800 select-none"><Icon name="trend" className="w-4 h-4"/>{canViewFinancialAnalytics ? '经营真账（估算）' : '教学出勤'} <span className="text-xs font-normal text-gray-400">已上课 {bizStats.attended_total} 人次{bizStats.avg_price !== undefined ? ` · 加权均价 $${bizStats.avg_price}/课时` : ''}</span></summary>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-4 pb-4">
                 {[
                     ['已上课人次', `${bizStats.attended_total} 次`, `本月 ${bizStats.attended_month} 次`, 'text-gray-800'],
@@ -3606,9 +3632,15 @@ document.getElementById('copybtn').addEventListener('click', function(){
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
         <div className="flex justify-between items-center gap-2 flex-wrap">
             <p className="inline-flex items-center gap-1.5 font-bold text-sm text-gray-800"><Icon name="calendar" className="w-4 h-4"/>每周课表 <span className="text-xs font-normal text-gray-400">固定班次按周几自动排入当日名单</span></p>
-            {/* B: schedule templates hit owner/manager-only endpoints — hide from teacher/staff */}
-            {canManageOperations && <button onClick={()=>setSchedEdit({label:'', weekday:new Date().getDay(), startTime:'16:00', durationMinutes:60, capacity:10, studentIds:[]})}
-                className="inline-flex items-center gap-1.5 bg-indigo-600 active:bg-indigo-700 text-white px-4 py-1.5 rounded-xl text-xs font-bold min-h-[36px]"><Icon name="plus" className="w-3.5 h-3.5"/>新增班次</button>}
+            <div className="flex items-center gap-2 flex-wrap">
+                <a href={`/s/${encodeURIComponent(TENANT_SLUG)}/v1/class-schedules/calendar.ics`} download
+                    className="inline-flex items-center gap-1.5 border border-indigo-200 bg-indigo-50 text-indigo-700 px-4 py-1.5 rounded-xl text-xs font-bold min-h-[44px] active:bg-indigo-100">
+                    <Icon name="download" className="w-3.5 h-3.5"/>下载 ICS 日历
+                </a>
+                {/* B: schedule templates hit owner/manager-only endpoints — hide from teacher/staff */}
+                {canManageOperations && <button onClick={()=>setSchedEdit({label:'', weekday:new Date().getDay(), startTime:'16:00', durationMinutes:60, capacity:10, studentIds:[]})}
+                    className="inline-flex items-center gap-1.5 bg-indigo-600 active:bg-indigo-700 text-white px-4 py-1.5 rounded-xl text-xs font-bold min-h-[44px]"><Icon name="plus" className="w-3.5 h-3.5"/>新增班次</button>}
+            </div>
         </div>
         {schedules.length===0 && !schedEdit && (
             <p className="text-xs text-gray-400">还没有固定班次。例如「周三 16:00 素描班」——保存后每周三会自动出现在当日排课里。</p>

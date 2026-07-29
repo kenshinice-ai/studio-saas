@@ -235,7 +235,7 @@ curl http://localhost:8899/v1/health
   "ok": true,
   "service": "PWE Studio SaaS API",
   "version": "v1",
-  "appVersion": "7.8.1"
+  "appVersion": "8.0.0"
 }
 ```
 

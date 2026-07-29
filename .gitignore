@@ -10,6 +10,7 @@ __pycache__/
 *.pyo
 *.egg-info/
 dist/
+outputs/
 build/
 
 # ── Virtual environment ──

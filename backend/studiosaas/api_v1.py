@@ -36,6 +36,7 @@ from .auth import (
     verify_password as _auth_verify_password,
 )
 from .config import is_standalone, load_config, show_producer_credit, studiosaas_mode
+from .calendar_export import build_schedule_calendar
 from .db import DatabaseUnavailableError, connect, fetch_all, fetch_one
 from .errors import api_error
 from .lifecycle import (
@@ -7248,6 +7249,52 @@ def list_class_schedules():
         tenant = _tenant_context(conn)
         schedules = _schedules_with_students(conn, tenant.tenant_id)
     return jsonify({"schedules": schedules})
+
+
+@api_v1.route("/class-schedules/calendar.ics", methods=["GET"])
+@auth_required
+def download_class_schedule_calendar():
+    """Download a tenant schedule calendar without roster or student data."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        tenant_row = fetch_one(
+            conn,
+            """
+            SELECT name, slug, timezone, address
+            FROM tenants
+            WHERE id = %s
+            """,
+            (tenant.tenant_id,),
+        )
+        if not tenant_row:
+            return _error("Tenant not found.", 404)
+        schedules = fetch_all(
+            conn,
+            """
+            SELECT cs.id, cs.label, cs.weekday,
+                   to_char(cs.start_time, 'HH24:MI') AS start_time,
+                   cs.duration_minutes, COALESCE(c.name, '') AS course_name
+            FROM class_schedules cs
+            LEFT JOIN courses c
+              ON c.tenant_id = cs.tenant_id AND c.id = cs.course_id
+            WHERE cs.tenant_id = %s AND cs.is_active
+            ORDER BY cs.weekday, cs.start_time, lower(cs.label)
+            """,
+            (tenant.tenant_id,),
+        )
+    calendar = build_schedule_calendar(
+        tenant_name=tenant_row["name"],
+        tenant_slug=tenant_row["slug"],
+        timezone_name=tenant_row["timezone"] or "Australia/Melbourne",
+        location=tenant_row["address"] or "",
+        schedules=schedules,
+    )
+    filename = f"{tenant_row['slug']}-weekly-classes.ics"
+    response = Response(calendar, mimetype="text/calendar; charset=utf-8")
+    response.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
 
 
 @api_v1.route("/class-schedules", methods=["POST"])

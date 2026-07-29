@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Let&#x27;s Paint Studio Registration</title>
+  <meta name="robots" content="index,follow">
+  <!-- 6-2: same two-language contract as the portal — ?lang= addresses each
+       version, and applyLanguage() keeps these in step with what is rendered. -->
+  <link id="canonicalUrl" rel="canonical" href="/lets-paint-showcase/register.html">
+  <link id="altLangZh" rel="alternate" hreflang="zh-CN" href="/lets-paint-showcase/register.html?lang=zh">
+  <link id="altLangEn" rel="alternate" hreflang="en" href="/lets-paint-showcase/register.html?lang=en">
+  <link id="altLangDefault" rel="alternate" hreflang="x-default" href="/lets-paint-showcase/register.html">
+  <meta id="ogLocale" property="og:locale" content="zh_CN">
+  <meta id="ogLocaleAlternate" property="og:locale:alternate" content="en_US">
+  <link rel="manifest" href="/lets-paint-showcase/manifest-student.json">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <script src="/assets/ui-common.js"></script>
+  <script src="/assets/public-register.js"></script>
+  <script src="/assets/public-analytics.js"></script>
+  <link rel="stylesheet" href="/assets/ui-tokens.css">
+  <link rel="stylesheet" href="/assets/portal-theme.css">
+  <link rel="stylesheet" href="/assets/brand-system.css">
+  <style>
+    /* P0-5: this page used to declare its own :root — blue #2563eb on cold grey
+       #f8fafc, system fonts, 8px radii, 800/900 weights — against the portal's
+       clay-on-paper serif at 2px. A parent who tapped 「报名」 on the portal
+       landed on what looked like a different company at the exact moment the
+       funnel can least afford doubt. Both pages now read the same palette,
+       radii and type stack from /assets/portal-theme.css, and /brand overrides
+       them per tenant in one place. */
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; color:var(--ink); background:var(--bg); font-family:var(--font-body); font-weight:400; line-height:1.7; -webkit-font-smoothing:antialiased; }
+    .serif { font-family:var(--font-display); }
+    header { position:sticky; top:0; z-index:10; display:flex; justify-content:space-between; align-items:center; gap:16px; padding:14px 24px; background:color-mix(in srgb, var(--bg) 88%, transparent); border-bottom:1px solid var(--line); backdrop-filter:blur(12px); }
+    .brand { display:flex; align-items:center; gap:12px; min-width:0; }
+    .brand img { width:42px; height:42px; object-fit:contain; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); padding:4px; }
+    .name { font-weight:500; font-size:15px; letter-spacing:.04em; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .slogan, .contact { color:var(--muted); font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:min(56vw,640px); }
+    a { color:var(--clay); text-decoration:none; font-weight:500; font-size:13px; }
+    .header-actions, .lang-switch { display:flex; align-items:center; gap:10px; }
+    .lang-switch { padding:3px; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); }
+    #backLink { display:inline-flex; align-items:center; min-height:var(--tap-min); }
+    /* P3-3: 44px minimum touch target, matching the portal's toggle. */
+    .lang-switch button { width:auto; min-width:var(--tap-min); min-height:var(--tap-min); padding:4px 12px; border-radius:0; background:transparent; color:var(--muted); font-weight:400; transition:background var(--dur-enter) var(--ease-out); }
+    .lang-switch button:hover { background:var(--bg2); }
+    .lang-switch button.active { background:var(--ink); color:var(--bg); }
+    main { width:min(1180px,100%); margin:0 auto; padding:var(--space-phi-xl) var(--space-phi-md) var(--space-phi-2xl); display:grid; grid-template-columns:var(--golden-columns-reverse); gap:var(--space-phi-xl); align-items:start; }
+    .tenant-credit { padding:0 24px 28px; color:var(--muted); font-size:10px; letter-spacing:.04em; text-align:center; }
+    .intro { padding-top:var(--space-phi-md); position:sticky; top:104px; }
+    /* P2-7: the wide tracking and uppercase are Latin devices; under zh they
+       only pull the glyphs apart, and 800/900 on a CJK face that ships 300–500
+       renders as synthetic bold. Both are scoped to html[lang="en"]. */
+    .eyebrow { color:var(--muted); font-size:11px; font-weight:500; letter-spacing:.04em; }
+    html[lang="en"] .eyebrow { letter-spacing:.32em; text-transform:uppercase; font-weight:400; }
+    h1 { margin:var(--space-phi-sm) 0; font-family:var(--font-display); font-size:clamp(34px,5vw,55px); font-weight:500; line-height:1.07; letter-spacing:.01em; max-width:13ch; text-wrap:balance; }
+    .lead { color:var(--ink2); font-size:16px; line-height:1.7; max-width:var(--brand-reading-measure); text-wrap:pretty; }
+    .card { background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-card); padding:var(--space-phi-lg); box-shadow:0 21px 55px rgba(55,44,34,.07); }
+    .field { margin-bottom:16px; }
+    label { display:block; margin-bottom:7px; color:var(--ink2); font-size:12px; font-weight:500; letter-spacing:.02em; }
+    html[lang="en"] label { letter-spacing:.14em; text-transform:uppercase; color:var(--muted); font-weight:400; }
+    input, textarea, select { width:100%; min-height:var(--tap-min); border:1px solid var(--line-strong); border-radius:var(--radius); padding:12px 14px; background:var(--panel); color:var(--ink); font:inherit; transition:border-color var(--dur-enter) var(--ease-out); }
+    input:disabled, textarea:disabled, select:disabled { background:var(--disabled-surface); color:var(--disabled-text); cursor:not-allowed; }
+    textarea { resize:vertical; }
+    input:focus, textarea:focus, select:focus { outline:2px solid var(--focus-ring); outline-offset:2px; border-color:var(--clay); }
+    /* P2-8: field-level errors, matching the portal. */
+    input[aria-invalid="true"], textarea[aria-invalid="true"], select[aria-invalid="true"] { border-color:var(--danger); }
+    .field-error { display:none; margin-top:6px; font-size:12px; color:var(--danger); }
+    .field.has-error .field-error, .consent-block.has-error .field-error { display:block; }
+    .row { display:grid; grid-template-columns:var(--golden-columns-reverse); gap:var(--space-phi-sm); }
+    .consent { display:flex; gap:10px; align-items:flex-start; color:var(--ink2); font-size:13px; line-height:1.6; margin:8px 0 6px; }
+    .consent input { width:16px; min-height:16px; margin-top:3px; }
+    .consent-block { margin-bottom:16px; }
+    .privacy-link { display:inline-flex; align-items:center; margin:0 0 0 26px; font-size:12px; color:var(--clay); border-bottom:1px solid var(--clay); cursor:pointer; background:none; border-left:0; border-right:0; border-top:0; padding:0; width:auto; min-height:var(--tap-min); font-weight:400; }
+    .privacy-link:hover { background:none; color:var(--clay-d); }
+    button { width:100%; min-height:var(--tap-min); border:0; border-radius:var(--radius); background:var(--clay); color:var(--on-accent); font-weight:500; letter-spacing:.04em; cursor:pointer; transition:background var(--dur-enter) var(--ease-out); }
+    button:hover { background:var(--clay-hover); }
+    button:active { background:var(--clay-pressed); }
+    button:disabled { background:var(--disabled-surface); color:var(--disabled-text); cursor:not-allowed; }
+    button[data-busy="true"] { cursor:wait; }
+    .error { display:none; color:var(--danger); font-size:13px; margin:0 0 12px; }
+    .done { display:none; text-align:left; padding:18px 4px 4px; }
+    .done .mark { width:52px; height:52px; display:grid; place-items:center; border-radius:50%; color:var(--on-success); background:var(--success); font-size:28px; line-height:1; }
+    .done .eyebrow { margin-top:22px; }
+    .done h2 { margin:8px 0 10px; font-family:var(--font-display); font-size:clamp(28px,5vw,38px); font-weight:500; line-height:1.12; }
+    .done > p { margin:0; color:var(--ink2); line-height:1.7; }
+    .next-step { margin:22px 0 0; text-align:left; }
+    .next-step strong { display:block; margin-bottom:4px; }
+    .done-actions { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:18px; }
+    .done-actions a, .done-actions button { display:flex; min-height:var(--tap-min); align-items:center; justify-content:center; border-radius:var(--radius); padding:10px 14px; font-size:13px; text-align:center; }
+    .done-actions a { border:1px solid var(--line); color:var(--ink); background:var(--surface); }
+    .done-actions button { background:var(--clay); color:var(--on-accent); }
+    /* P1-3: the consent checkbox recorded agreement to a versioned privacy
+       notice the visitor had no way to read on this page. The notice now opens
+       in a dialog here, with the version it was recorded against. */
+    dialog.privacy { border:1px solid var(--line); border-radius:var(--radius-card); background:var(--surface); color:var(--ink); padding:0; max-width:640px; width:calc(100% - 32px); }
+    dialog.privacy::backdrop { background:var(--scrim); }
+    .privacy-body { padding:32px; display:grid; gap:22px; font-size:14.5px; color:var(--ink2); line-height:1.75; }
+    .privacy-body h2 { margin:0; font-family:var(--font-display); font-size:24px; font-weight:500; color:var(--ink); }
+    .privacy-body h3 { margin:0 0 6px; font-size:15px; font-weight:500; color:var(--ink); }
+    .privacy-body p { margin:0; }
+    .privacy-foot { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:16px 32px; border-top:1px solid var(--line); }
+    .privacy-foot .version { font-size:12px; color:var(--muted); }
+    .privacy-foot button { width:auto; padding:10px 22px; font-size:13px; }
+    @media (max-width:760px) {
+      header { align-items:flex-start; flex-direction:column; padding:12px 16px; }
+      main { grid-template-columns:1fr; padding:var(--space-phi-lg) 16px var(--space-phi-xl); gap:var(--space-phi-md); }
+      .intro { position:static; padding-top:0; }
+      .row { grid-template-columns:1fr; }
+      .done-actions { grid-template-columns:1fr; }
+      .slogan, .contact { max-width:calc(100vw - 96px); }
+    }
+  </style>
+</head>
+<body data-tenant-slug="lets-paint-showcase">
+  <header>
+    <div class="brand">
+      <!-- A configured-but-missing logo must disappear, not leave a broken
+           image glyph next to the studio name. -->
+      <img id="tenantLogo" alt="" hidden onerror="this.hidden=true;this.removeAttribute('src')">
+      <div>
+        <div id="tenantName" class="name">Let&#x27;s Paint Studio</div>
+        <div id="tenantSlogan" class="slogan"></div>
+        <div id="tenantContact" class="contact"></div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <div class="lang-switch" role="group" aria-label="语言 / Language">
+        <button type="button" data-language="zh" aria-pressed="true">中</button>
+        <button type="button" data-language="en" aria-pressed="false">EN</button>
+      </div>
+      <a id="backLink" href="/lets-paint-showcase" data-zh="← 返回工作室网站" data-en="← Back to studio website">← 返回工作室网站</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="intro">
+      <div id="heroEyebrow" class="eyebrow">快速报名</div>
+      <h1 id="pageTitle">告诉我们学员的情况</h1>
+      <p id="pageIntro" class="lead">留下基本信息，工作室会联系你并推荐合适的课程与时间。</p>
+    </section>
+
+    <section class="card brand-card">
+      <form id="registerForm" novalidate>
+        <!-- P3-8: family name first under zh, matching the portal. -->
+        <div class="row">
+          <div class="field"><label for="lastName" data-zh="姓氏" data-en="Family name">姓氏</label><input id="lastName" autocomplete="family-name"></div>
+          <div class="field"><label for="firstName" data-zh="名字 *" data-en="Given name *">名字 *</label><input id="firstName" autocomplete="given-name" required aria-required="true"><span class="field-error" data-zh="请填写名字" data-en="Please enter a given name.">请填写名字</span></div>
+        </div>
+        <div class="field"><label for="mobile" data-zh="手机号码 *" data-en="Mobile *">手机号码 *</label><input id="mobile" type="tel" inputmode="tel" autocomplete="tel" required aria-required="true"><span class="field-error" data-zh="请填写手机号码" data-en="Please enter a mobile number.">请填写手机号码</span></div>
+        <div class="field"><label for="email" data-zh="电子邮箱" data-en="Email">电子邮箱</label><input id="email" type="email" inputmode="email" autocomplete="email"></div>
+        <div id="customFields"></div>
+        <div class="field"><label for="message" data-zh="补充说明" data-en="Message">补充说明</label><textarea id="message" rows="3" placeholder="选填"></textarea></div>
+        <div style="position:absolute;left:-9999px;top:-9999px" aria-hidden="true"><input id="website" type="text" tabindex="-1" autocomplete="off"></div>
+        <div class="consent-block" id="consentBlock">
+          <label class="consent"><input id="consent" type="checkbox"><span data-zh="我同意工作室仅将这些资料用于联系与课程管理。" data-en="I agree that my details are used only for studio contact and class management.">我同意工作室仅将这些资料用于联系与课程管理。</span></label>
+          <button type="button" class="privacy-link" id="openPrivacyBtn" data-zh="阅读隐私说明 →" data-en="Read the privacy note →">阅读隐私说明 →</button>
+          <span class="field-error" style="margin-left:26px" data-zh="请勾选同意隐私说明" data-en="Please agree to the privacy note.">请勾选同意隐私说明</span>
+        </div>
+        <label class="consent"><input id="publicationConsent" type="checkbox"><span data-zh="选填：我同意工作室在官网或招生材料中展示学员作品（可随时联系工作室撤回）。" data-en="Optional: I consent to the studio displaying the student's work on its website or promotional materials. This can be withdrawn at any time.">选填：我同意工作室在官网或招生材料中展示学员作品（可随时联系工作室撤回）。</span></label>
+        <div id="publicationConsentDetails" hidden>
+          <div class="field"><label for="publicationConsentBy" data-zh="授权人姓名 *" data-en="Consenting person *">授权人姓名 *</label><input id="publicationConsentBy" autocomplete="name" maxlength="120"><span class="field-error" data-zh="请填写授权人姓名" data-en="Please provide the consenting person.">请填写授权人姓名</span></div>
+          <div class="field"><label for="publicationRelationship" data-zh="与学员关系 *" data-en="Relationship to student *">与学员关系 *</label><select id="publicationRelationship"><option value="" data-zh="请选择" data-en="Select">请选择</option><option value="self" data-zh="本人" data-en="Self">本人</option><option value="parent" data-zh="家长/监护人" data-en="Parent / guardian">家长/监护人</option><option value="other_guardian" data-zh="其他授权监护人" data-en="Other authorised guardian">其他授权监护人</option></select><span class="field-error" data-zh="请选择与学员的关系" data-en="Please choose a relationship.">请选择与学员的关系</span></div>
+        </div>
+        <p id="error" class="error" role="alert" aria-live="assertive"></p>
+        <button id="submitBtn" type="submit" data-zh="提交报名" data-en="Submit registration">提交报名</button>
+      </form>
+      <div id="done" class="done" role="status" aria-live="polite" tabindex="-1">
+        <div class="mark" aria-hidden="true">✓</div>
+        <div class="eyebrow" data-zh="报名已收到" data-en="Registration received">报名已收到</div>
+        <h2 data-zh="谢谢，我们接下来会与你确认" data-en="Thank you — we’ll confirm the next step">谢谢，我们接下来会与你确认</h2>
+        <p data-zh="资料已经安全保存，工作室会根据课程与时间安排尽快联系你。" data-en="Your details have been saved. The studio will contact you about the most suitable class and time.">资料已经安全保存，工作室会根据课程与时间安排尽快联系你。</p>
+        <div class="next-step brand-status" data-tone="success">
+          <strong data-zh="接下来" data-en="What happens next">接下来</strong>
+          <span data-zh="请留意电话、短信或邮件；如需补充信息，也可以直接联系工作室。" data-en="Please watch for a call, message or email. You can also contact the studio if you need to add anything.">请留意电话、短信或邮件；如需补充信息，也可以直接联系工作室。</span>
+        </div>
+        <div class="done-actions">
+          <button id="copyContactBtn" type="button" hidden data-zh="复制工作室联系方式" data-en="Copy studio contact">复制工作室联系方式</button>
+          <a href="/lets-paint-showcase" data-zh="返回工作室网站" data-en="Back to studio website">返回工作室网站</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="tenant-credit">
+    © 2026 <span id="footerTenantName">Let&#x27;s Paint Studio</span>
+    <span id="producerCredit" hidden> · Powered by Paradise Production</span>
+  </footer>
+
+  <!-- P1-3: the same four sections the portal's privacy view shows, so the
+       consent this page records against a version number refers to text the
+       visitor can actually read here. -->
+  <dialog class="privacy" id="privacyDialog" aria-labelledby="privacyDialogTitle">
+    <div class="privacy-body">
+      <h2 id="privacyDialogTitle" data-zh="隐私说明" data-en="Privacy note">隐私说明</h2>
+      <div><h3 data-zh="一 · 我们收集哪些信息" data-en="1 · What we collect">一 · 我们收集哪些信息</h3><p data-zh="当您报名或咨询时，我们会收集学员姓名与联系方式；在课程中，会为学员作品拍照存档。" data-en="When you register or enquire, we collect the student's name and contact details, and photograph their work during classes.">当您报名或咨询时，我们会收集学员姓名与联系方式；在课程中，会为学员作品拍照存档。</p></div>
+      <div><h3 data-zh="二 · 信息的用途" data-en="2 · How we use it">二 · 信息的用途</h3><p data-zh="仅用于教学：联系课程事宜、准确记录课时、维护学员的私人记录。我们不会将您的信息出售或用于第三方营销。" data-en="Only for teaching: contacting you about classes, keeping accurate credit records, and maintaining each student's private records. We never sell or share your information for marketing.">仅用于教学：联系课程事宜、准确记录课时、维护学员的私人记录。我们不会将您的信息出售或用于第三方营销。</p></div>
+      <div><h3 data-zh="三 · 照片与作品" data-en="3 · Photos & work">三 · 照片与作品</h3><p data-zh="所有照片默认私有——仅在「学员专区」验证姓名、手机号及工作室发放的访问码后可见。公开展示仅在明确同意后进行，且同意可随时撤回。" data-en="All photos are private by default — visible only after verifying the student's name, mobile and the access code the studio issued. Public display happens only with explicit consent, which can be withdrawn at any time.">所有照片默认私有——仅在「学员专区」验证姓名、手机号及工作室发放的访问码后可见。公开展示仅在明确同意后进行，且同意可随时撤回。</p></div>
+      <div><h3 data-zh="四 · 您的权利" data-en="4 · Your choices">四 · 您的权利</h3><p data-zh="您可以随时要求查看、更正或删除我们保存的信息，或撤回照片使用同意。" data-en="You may ask us at any time to view, correct or delete the information we hold, or to withdraw photo consent.">您可以随时要求查看、更正或删除我们保存的信息，或撤回照片使用同意。</p></div>
+    </div>
+    <div class="privacy-foot">
+      <span class="version" id="privacyVersion"></span>
+      <button type="button" id="closePrivacyBtn" data-zh="关闭" data-en="Close">关闭</button>
+    </div>
+  </dialog>
+
+  <script>
+    const TENANT_SLUG = 'lets-paint-showcase';
+    const TENANT_NAME = "Let's Paint Studio";
+    const esc = window.StudioSaaS.esc;
+    let registrationProfile = { title: 'Quick Registration', fields: [] };
+    let currentBrand = {};
+    /* Served by /brand so the consent record and the notice above it can never
+       cite different versions (P1-3). */
+    let privacyNoticeVersion = '2026-07-12';
+    const pageParams = new URLSearchParams(location.search);
+    /* 6-1: `?lang=` → stored choice → browser preference. The previous chain
+       stopped at the stored choice and defaulted to Chinese, so an English
+       browser's first visit was always Chinese. */
+    const normaliseLang = (value) => {
+      const text = String(value || '').toLowerCase();
+      if (text.startsWith('en')) return 'en';
+      if (text.startsWith('zh')) return 'zh';
+      return '';
+    };
+    let currentLanguage = normaliseLang(pageParams.get('lang')) || (() => {
+      try {
+        const stored = normaliseLang(localStorage.getItem(`pwe_lang_${TENANT_SLUG}`));
+        if (stored) return stored;
+      } catch (_) {}
+      return normaliseLang((navigator.languages && navigator.languages[0]) || navigator.language) || 'zh';
+    })();
+
+    function T(zh, en) { return currentLanguage === 'en' ? en : zh; }
+    /* Accepts a {zh, en} pair or a bare string; a single-language value from a
+       legacy tenant is used for both rather than dropped for the fallback. */
+    function localized(pair, fallback) {
+      if (pair && typeof pair === 'object') {
+        return pair[currentLanguage] || pair.en || pair.zh || fallback || '';
+      }
+      const text = String(pair == null ? '' : pair).trim();
+      return text || fallback || '';
+    }
+    function syncLocaleMeta() {
+      const base = location.origin + location.pathname;
+      const set = (id, attr, value) => { const el = document.getElementById(id); if (el) el[attr] = value; };
+      set('ogLocale', 'content', currentLanguage === 'en' ? 'en_US' : 'zh_CN');
+      set('ogLocaleAlternate', 'content', currentLanguage === 'en' ? 'zh_CN' : 'en_US');
+      set('altLangZh', 'href', base);
+      set('altLangEn', 'href', `${base}?lang=en`);
+      set('altLangDefault', 'href', base);
+      set('canonicalUrl', 'href', currentLanguage === 'en' ? `${base}?lang=en` : base);
+      try {
+        const params = new URLSearchParams(location.search);
+        if (currentLanguage === 'en') params.set('lang', 'en'); else params.delete('lang');
+        const query = params.toString();
+        history.replaceState(null, '', location.pathname + (query ? `?${query}` : '') + location.hash);
+      } catch (_) {}
+    }
+    function applyLanguage() {
+      document.documentElement.lang = currentLanguage === 'en' ? 'en' : 'zh-CN';
+      syncLocaleMeta();
+      document.querySelectorAll('[data-zh][data-en]').forEach((element) => {
+        element.textContent = element.dataset[currentLanguage];
+      });
+      document.querySelectorAll('[data-language]').forEach((button) => {
+        const active = button.dataset.language === currentLanguage;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+      document.getElementById('message').placeholder = T('选填', 'Optional note');
+      const version = document.getElementById('privacyVersion');
+      if (version) version.textContent = T('本说明版本：', 'Privacy note version: ') + privacyNoticeVersion;
+      try { localStorage.setItem(`pwe_lang_${TENANT_SLUG}`, currentLanguage); } catch (_) {}
+      applyBrandContent();
+    }
+
+    function value(id) {
+      const el = document.getElementById(id);
+      return el ? String(el.value || '').trim() : '';
+    }
+    function showError(message) {
+      const error = document.getElementById('error');
+      error.textContent = message;
+      error.style.display = 'block';
+      error.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    /* P2-8: mark the offending field and focus it, rather than putting one
+       sentence in the middle of the card and leaving the visitor to hunt. */
+    function clearFieldErrors() {
+      document.querySelectorAll('.has-error').forEach((el) => el.classList.remove('has-error'));
+      document.querySelectorAll('[aria-invalid="true"]').forEach((el) => {
+        el.removeAttribute('aria-invalid');
+        el.removeAttribute('aria-describedby');
+      });
+    }
+    function failFirst(checks) {
+      clearFieldErrors();
+      let first = null;
+      checks.forEach((check) => {
+        if (check.ok()) return;
+        const block = check.el.closest('.field') || check.el.closest('.consent-block');
+        if (block) {
+          block.classList.add('has-error');
+          /* Point the input at its own error note, so a screen reader says
+             why the field is invalid instead of just that it is. */
+          const note = block.querySelector('.field-error');
+          if (note) {
+            if (!note.id) note.id = `${check.el.id || 'field'}-err`;
+            check.el.setAttribute('aria-describedby', note.id);
+          }
+        }
+        check.el.setAttribute('aria-invalid', 'true');
+        if (!first) first = check.el;
+      });
+      if (first) first.focus();
+      return first;
+    }
+    function renderFields(profile) {
+      registrationProfile = window.StudioSaaSPublicRegister.renderFields(profile || registrationProfile, {
+        container: 'customFields',
+        labelClass: 'field',
+        fallbackTitle: T('快速报名', 'Quick Registration'),
+        language: currentLanguage,
+        /* P2-13: applyLanguage() re-renders these inputs, so a visitor who
+           switched to EN halfway through used to lose everything they had
+           typed into the custom fields. */
+        preserveValues: true
+      });
+    }
+    function collectFields() {
+      return window.StudioSaaSPublicRegister.collectFields({
+        container: 'customFields',
+        labelSelector: '.field'
+      });
+    }
+    function applyBrandContent() {
+      const brand = currentBrand;
+      const hero = brand.heroProfile || brand.hero_profile || {};
+      const copy = brand.copyPack || brand.copy_pack || {};
+      const localizedCopy = brand.localizedCopy || brand.localized_copy || {};
+      document.title = `${brand.name || TENANT_NAME} · ${T('报名', 'Registration')}`;
+      document.getElementById('tenantSlogan').textContent = localized(localizedCopy.hero_subtitle, localized(localizedCopy.slogan, localized(brand.slogan, localized(hero.subtitle, ''))));
+      /* Batch 5: the industry label is bilingual in localizedCopy now, so the
+         eyebrow no longer reads 「快速报名 · Art」 in Chinese. */
+      const eyebrow = localized(hero.eyebrow, '') || localized(localizedCopy.category_label, '') || localized(brand.categoryLabel, '') || T('工作室', 'Studio');
+      document.getElementById('heroEyebrow').textContent = `${T('快速报名', 'Quick Registration')} · ${eyebrow}`;
+      const profileTitle = localized((brand.registrationProfile || brand.registration_profile || {}).title, '');
+      document.getElementById('pageTitle').textContent = localized(localizedCopy.registration_title, profileTitle || T('告诉我们学员的情况', 'Tell us about the student'));
+      document.getElementById('pageIntro').textContent = localized(localizedCopy.registration_intro, copy.register_intro || copy.registerIntro || T('留下基本信息，工作室会联系你并推荐合适的课程与时间。', 'Leave a few details and the studio will contact you with the right class and time.'));
+      renderFields(brand.registrationProfile || brand.registration_profile || registrationProfile);
+    }
+    async function applyBrand() {
+      const response = await fetch(`/v1/public/${encodeURIComponent(TENANT_SLUG)}/brand`).catch(() => null);
+      if (!response || !response.ok) return;
+      const data = await response.json();
+      const brand = data.brand || {};
+      const visual = brand.visualTheme || brand.visual_theme || {};
+      const root = document.documentElement;
+      // Same declarative map as the portal, so the two surfaces can never
+      // apply a different subset of the theme again.
+      const THEME_TOKENS = {
+        background_color:       ['--bg', '--brand-paper'],
+        background_alt_color:   ['--bg2'],
+        panel_color:            ['--panel', '--surface', '--brand-paper-raised'],
+        text_color:             ['--ink', '--brand-ink'],
+        text_soft_color:        ['--ink2'],
+        muted_text_color:       ['--muted', '--brand-ink-soft'],
+        border_color:           ['--line', '--brand-line'],
+        border_strong_color:    ['--line-strong'],
+        accent_color:           ['--clay', '--brand', '--brand-accent'],
+        accent_hover_color:     ['--clay-hover'],
+        accent_pressed_color:   ['--clay-pressed'],
+        accent_text_color:      ['--on-accent', '--brand-on-accent'],
+        secondary_accent_color: ['--clay-d', '--brand-2', '--brand-accent-strong'],
+        secondary_text_color:   ['--on-secondary', '--brand-on-secondary'],
+        success_color:          ['--success', '--brand-success'],
+        warning_color:          ['--warning', '--brand-warning'],
+        danger_color:           ['--danger', '--brand-danger'],
+        focus_ring_color:       ['--focus-ring'],
+        disabled_surface_color: ['--disabled-surface'],
+        disabled_text_color:    ['--disabled-text'],
+        scrim_color:            ['--scrim']
+      };
+      Object.entries(THEME_TOKENS).forEach(([key, cssVars]) => {
+        const camel = key.replace(/_([a-z])/g, (_, char) => char.toUpperCase());
+        const value = visual[key] || visual[camel];
+        if (value) cssVars.forEach((cssVar) => root.style.setProperty(cssVar, value));
+      });
+      // Legacy tenants stored only a primary/secondary colour.
+      const primary = visual.accent_color || visual.accentColor || brand.primary_color || brand.primaryColor;
+      const secondary = visual.secondary_accent_color || visual.secondaryAccentColor || brand.secondary_color || brand.secondaryColor;
+      if (primary && !(visual.accent_color || visual.accentColor)) {
+        ['--clay', '--brand', '--brand-accent'].forEach((v) => root.style.setProperty(v, primary));
+      }
+      if (secondary && !(visual.secondary_accent_color || visual.secondaryAccentColor)) {
+        ['--clay-d', '--brand-2', '--brand-accent-strong'].forEach((v) => root.style.setProperty(v, secondary));
+      }
+      root.dataset.brandScheme = visual.color_scheme || visual.colorScheme || 'light';
+      currentBrand = brand;
+      privacyNoticeVersion = String(brand.privacyNoticeVersion || brand.privacy_notice_version || privacyNoticeVersion);
+      const version = document.getElementById('privacyVersion');
+      if (version) version.textContent = T('本说明版本：', 'Privacy note version: ') + privacyNoticeVersion;
+      document.getElementById('tenantName').textContent = brand.name || TENANT_NAME;
+      document.getElementById('footerTenantName').textContent = brand.name || TENANT_NAME;
+      const logo = document.getElementById('tenantLogo');
+      const rawLogoUrl = brand.logo_url || brand.logoUrl || '';
+      const logoUrl = ['/logo.png', '/logo-light.png', '/favicon.svg'].includes(rawLogoUrl) ? '' : rawLogoUrl;
+      logo.alt = logoUrl ? `${brand.name || TENANT_NAME} logo` : '';
+      logo.hidden = !logoUrl;
+      if (logoUrl) logo.src = logoUrl;
+      document.getElementById('tenantContact').textContent = [brand.contact_phone || brand.contactPhone, brand.contact_email || brand.contactEmail, brand.address].filter(Boolean).join(' · ');
+      const quickContact = [brand.contact_phone || brand.contactPhone, brand.contact_email || brand.contactEmail].filter(Boolean).join(' · ');
+      const copyContactBtn = document.getElementById('copyContactBtn');
+      copyContactBtn.hidden = !quickContact;
+      copyContactBtn.dataset.contact = quickContact;
+      applyBrandContent();
+    }
+    document.getElementById('copyContactBtn').addEventListener('click', async (event) => {
+      const button = event.currentTarget;
+      const contact = button.dataset.contact || '';
+      if (!contact) return;
+      try {
+        await navigator.clipboard.writeText(contact);
+      } catch (_) {
+        const field = document.createElement('textarea');
+        field.value = contact;
+        field.style.position = 'fixed';
+        field.style.opacity = '0';
+        document.body.appendChild(field);
+        field.select();
+        document.execCommand('copy');
+        field.remove();
+      }
+      button.textContent = T('已复制联系方式', 'Contact copied');
+    });
+    document.getElementById('publicationConsent').addEventListener('change', (event) => {
+      const details = document.getElementById('publicationConsentDetails');
+      details.hidden = !event.target.checked;
+      document.getElementById('publicationConsentBy').required = event.target.checked;
+      document.getElementById('publicationRelationship').required = event.target.checked;
+    });
+    /* P1-2: validation shape and the POST itself now match the portal exactly,
+       because both call the one implementation in public-register.js. The two
+       used to differ in success copy, `source` value and a separately
+       hard-coded privacyNoticeVersion. */
+    document.getElementById('registerForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      document.getElementById('error').style.display = 'none';
+      const el = (id) => document.getElementById(id);
+      const publicationChecked = el('publicationConsent').checked;
+      /* P2-8: missing required custom fields go through the same failFirst
+         path as the built-in ones, in DOM order. */
+      const custom = collectFields();
+      const checks = [
+        { el: el('firstName'), ok: () => Boolean(value('firstName')) },
+        { el: el('mobile'), ok: () => Boolean(value('mobile')) }
+      ];
+      custom.missing.forEach((item) => checks.push({ el: item.el, ok: () => false }));
+      checks.push({ el: el('consent'), ok: () => el('consent').checked });
+      if (publicationChecked) {
+        checks.push({ el: el('publicationConsentBy'), ok: () => Boolean(value('publicationConsentBy')) });
+        checks.push({ el: el('publicationRelationship'), ok: () => Boolean(value('publicationRelationship')) });
+      }
+      if (failFirst(checks)) return;
+      const button = el('submitBtn');
+      button.disabled = true;
+      button.textContent = T('提交中…', 'Submitting...');
+      try {
+        const extra = custom.values;
+        if (value('message')) extra.push(value('message'));
+        await window.StudioSaaSPublicRegister.submit({
+          slug: TENANT_SLUG,
+          source: 'standalone_register',
+          language: currentLanguage,
+          privacyNoticeVersion: privacyNoticeVersion,
+          values: {
+            firstName: value('firstName'), lastName: value('lastName'),
+            mobile: value('mobile'), email: value('email'),
+            message: extra.join(' | '), website: value('website')
+          },
+          publicationConsent: publicationChecked ? {
+            confirmed: true,
+            consentBy: value('publicationConsentBy'),
+            relationship: value('publicationRelationship'),
+            method: 'registration_form'
+          } : null
+        });
+        if (window.StudioSaaSAnalytics) window.StudioSaaSAnalytics.track('registration_submitted');
+        document.getElementById('registerForm').style.display = 'none';
+        document.getElementById('done').style.display = 'block';
+        document.getElementById('done').focus();
+      } catch (err) {
+        showError(err.message || T('提交没有成功。请检查手机号后重试；若仍然失败，可直接致电工作室。', 'The registration did not go through. Check the phone number and retry — or call the studio directly.'));
+      } finally {
+        button.disabled = false;
+        button.textContent = T('提交报名', 'Submit registration');
+      }
+    });
+
+    /* Privacy note dialog (P1-3). */
+    const privacyDialog = document.getElementById('privacyDialog');
+    document.getElementById('openPrivacyBtn').addEventListener('click', () => {
+      if (typeof privacyDialog.showModal === 'function') privacyDialog.showModal();
+      else privacyDialog.setAttribute('open', '');
+    });
+    document.getElementById('closePrivacyBtn').addEventListener('click', () => {
+      if (typeof privacyDialog.close === 'function') privacyDialog.close();
+      else privacyDialog.removeAttribute('open');
+    });
+    document.querySelector('#registerForm').addEventListener('input', function once() {
+      if (window.StudioSaaSAnalytics) window.StudioSaaSAnalytics.track('registration_started', { label: 'register' });
+      this.removeEventListener('input', once);
+    });
+    document.querySelectorAll('[data-language]').forEach((button) => {
+      button.addEventListener('click', () => {
+        currentLanguage = button.dataset.language === 'en' ? 'en' : 'zh';
+        applyLanguage();
+      });
+    });
+    applyLanguage();
+    applyBrand();
+    fetch('/v1/health', { cache: 'no-store' }).then((response) => {
+      if (!response.ok) throw new Error(`Health ${response.status}`);
+      return response.json();
+    }).then((health) => {
+      document.getElementById('producerCredit').hidden = !health.showProducerCredit;
+    }).catch((error) => {
+      console.warn('Producer credit policy unavailable.', error);
+    });
+  </script>
+</body>
+</html>

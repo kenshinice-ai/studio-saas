@@ -1,6 +1,6 @@
 # PWE Studio
 
-Current release: **v7.8.1**
+Current release: **v8.0.0**
 
 PWE Studio (repo: studiosaas) is a Creative Studio Operating System for art schools, music studios, tutoring centres, creative academies, kids' activity providers, and small education businesses. One codebase supports a multi-tenant SaaS delivery model and a customer-owned standalone Edition.
 
@@ -17,18 +17,34 @@ It provides a lightweight SaaS-style platform for managing:
 single-tenant **PWE Studio Edition** (`STUDIOSAAS_MODE=standalone`) have a
 release-ready delivery path. SaaS runs locally (Waitress + PostgreSQL) and is
 exposed on demand via Cloudflare Tunnel at `https://studiosaas.cc.cd`. AWS
-deployment code is retained, but v7.8.1 is intentionally limited to local +
+deployment code is retained, but v8.0.0 is intentionally limited to local +
 Cloudflare invitation testing; no AWS deployment is claimed.
 
 Canonical product responsibilities and names are defined in `docs/Product_Surface_Model.md`: Super Admin is the commercial control plane, Studio Admin is the tenant brand/publication workspace, Studio CMS owns daily operations, the Studio Portal is the primary public acquisition experience, and Quick Registration is an alternate tenant-scoped entry.
 
 ---
 
-## v7.8.1 Golden-Ratio UX Release
+## v8.0.0 Professional Demonstration and Customer-Readiness Release
 
-v7.8.1 extends the Feather Star brand geometry into the product experience
-without changing tenant data, permissions, routes, or business workflows:
+v8.0.0 turns the local + Cloudflare invitation pilot into a coherent,
+customer-readable demonstration and onboarding environment:
 
+- `/` is a bilingual product gateway with a product story, clear role
+  entrances, draft plan boundaries, migration downloads and device-native
+  Mail/Messages support actions;
+- `lets-paint-showcase` is an isolated professional demonstration tenant with
+  fictional records, synthetic artwork and a guarded one-click reset;
+- recurring class schedules can be downloaded as a privacy-safe ICS calendar
+  without student or roster data;
+- Studio Admin and CMS retain separate responsibilities but expose stable,
+  reciprocal navigation; the teacher mobile dashboard prioritises today's
+  roster, student lookup and artwork upload;
+- eight industry presets now include starter courses, registration focus,
+  report focus and a demonstration story—not only colours and nouns;
+- `docs/customer/` contains onboarding, FAQ, migration, support, pricing,
+  integration, multi-campus, security/compliance and draft contract material;
+- multi-campus remains one campus = one tenant in v8.0.0; organisation-level
+  aggregation is deliberately deferred;
 - shared `61.8 / 38.2` layout tracks for decision-oriented two-column surfaces;
 - a Fibonacci-derived `5 / 8 / 13 / 21 / 34 / 55 / 89px` spacing scale;
 - restrained `144 / 233ms` interaction timing with reduced-motion support;
@@ -67,7 +83,8 @@ A target architecture (modular services: Auth/Tenant/Student/Course/Credit/Atten
 
 | Level | Who | Main surface |
 |---|---|---|
-| Platform Operator | SaaS owner | `/super-admin` (also `/`) |
+| Product visitor | Prospective customer | `/` product gateway and role entrances |
+| Platform Operator | SaaS owner | `/super-admin` |
 | Studio Owner / Admin | One tenant studio | `/<tenant-slug>/cms` (daily operations) + `/<tenant-slug>/studio-admin` (website/brand/lead-capture settings) |
 | Public Parent / Student | Visitors | `/<tenant-slug>` (portal), `/<tenant-slug>/register` |
 
@@ -83,7 +100,11 @@ A target architecture (modular services: Auth/Tenant/Student/Course/Credit/Atten
 Local URLs (default port 8899):
 
 ```
+http://localhost:8899/
 http://localhost:8899/super-admin
+http://localhost:8899/lets-paint-showcase
+http://localhost:8899/lets-paint-showcase/cms
+http://localhost:8899/lets-paint-showcase/studio-admin
 http://localhost:8899/lets-paint-studio
 http://localhost:8899/lets-paint-studio/register
 http://localhost:8899/lets-paint-studio/studio-admin
@@ -102,6 +123,9 @@ Root `/register` is intentionally closed (404) — registration belongs to tenan
 ├── README.md                     # This file
 ├── codingprompt.md               # ARCHIVED v7.0 sprint prompt — current status lives in docs/HANDOFF_LATEST.md
 ├── START_STUDIOSAAS_LOCAL.command / start_studiosaas_local.sh
+├── RESET_DEMO_TENANT.command      # Guarded reset for lets-paint-showcase only
+├── product-home.html              # SaaS product gateway and role entrances
+├── customer-resources/            # Reviewed FAQ/release pages and CSV/XLSX templates
 ├── super-admin.html              # Platform dashboard
 ├── tenant-template/              # Template copied into tenants/<slug>/ on creation
 ├── tenants/<slug>/               # GENERATED — never hand-edit (see §4.10)
@@ -567,7 +591,7 @@ same-mobile pending entries get a 疑似重复 badge, course duration is
 bilingual (60 分钟 / 60 MIN), broken gallery/hero images degrade cleanly
 (tiles removed from tab order, hero falls back to decorative art).
 
-**Role guides** (`docs/guides/`, current guides stamped 7.8.1): new dedicated
+**Role guides** (`docs/guides/`, current guides stamped 8.0.0): new dedicated
 Front Desk/Staff guide (previously "see Manager"), support-gate and
 owner-audit sections rewritten to match enforced behavior, share-link
 create/revoke permissions corrected everywhere, and each guide gained a
@@ -766,7 +790,7 @@ curl -i -X POST http://localhost:8899/v1/admin/tenants \
 | `docs/Deployment.md` | Current release boundary: local → Cloudflare Tunnel; AWS deferred |
 | `docs/Design_System.md` | UI tokens and component standards |
 | `docs/Glossary.md` | One agreed word per concept (enforced by `check_terminology.py`) |
-| `docs/guides/` | Per-role user manuals in Chinese (applicable to v7.8.1) |
+| `docs/guides/` | Per-role user manuals in Chinese (applicable to v8.0.0) |
 | `01 BRAND ASSETS/` | PWE/Paradise family delivery kit and validated asset manifest |
 
 ---

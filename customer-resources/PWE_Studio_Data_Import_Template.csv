@@ -1,0 +1,3 @@
+external_student_id,first_name,last_name,display_name,status,birth_date,enrolled_on,parent_guardian_name,mobile,email,course_external_id,opening_credits,low_balance_threshold,notes,publication_consent,source_system
+STU-001,Amelia,Hart,Amelia Hart,active,2015-04-16,2026-02-03,Sophie Hart,0400000101,family+amelia@example.com,COURSE-PAINT-01,8,2,Replace this fictional row with customer data,no,Current CMS
+STU-002,Noah,Lin,Noah Lin,trial,2017-09-02,2026-07-20,Grace Lin,0400000102,family+noah@example.com,COURSE-DRAW-01,1,2,Use ISO dates YYYY-MM-DD,no,Spreadsheet

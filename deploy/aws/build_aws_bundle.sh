@@ -90,6 +90,14 @@ built_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 EOF
 
 if [ "$EDITION" = "1" ]; then
+  # The professional showcase reset belongs to the multi-tenant SaaS sales
+  # environment. A customer-owned Edition must never carry a command that can
+  # create or rotate a demonstration tenant.
+  rm -f \
+    "$STAGE_DIR/RESET_DEMO_TENANT.command" \
+    "$STAGE_DIR/backend/scripts/reset_professional_demo.py"
+  rm -rf "$STAGE_DIR/tenants/lets-paint-showcase"
+
   # Entry point is the implementation runbook, not the SaaS AWS guide.
   cp "$STAGE_DIR/standalone-edition/RUNBOOK.md" "$STAGE_DIR/INSTALL_EDITION_FIRST.md"
   cat > "$STAGE_DIR/CUSTOMER_README.md" <<EOF

@@ -95,7 +95,7 @@ SESSION_SECRET_FILE = _data_path('.session_secret')
 PW_FILE       = _data_path('.cms_password')
 app.config['PHOTO_DIR'] = PHOTO_DIR
 MAX_BACKUPS   = 30   # 1 backup/hr rate limit → ~30 hours of rolling coverage
-APP_VERSION   = '7.8.1'
+APP_VERSION   = '8.0.0'
 app.config['APP_VERSION'] = APP_VERSION
 ALLOWED_EXT   = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
 EXT_MIME_TYPES = {
@@ -876,7 +876,7 @@ def _rotate_backup():
 # Public static allowlist. Everything else in the project root is private by default.
 def _public_file(filename, mimetype=None, cache_seconds=3600):
     allowed = {
-        'super-admin.html', 'manifest.json', 'sw.js',
+        'product-home.html', 'super-admin.html', 'manifest.json', 'sw.js',
         'logo.png', 'logo-light.png', 'favicon.svg', 'pwe-mark.svg',
         'pwe-mark-dark.svg', 'icon-192.png', 'icon-512.png',
         'apple-touch-icon.png', 'manifest-student.json'
@@ -912,7 +912,7 @@ def serve_index():
         if not slug:
             return api_error('Service temporarily unavailable.', 503)
         return redirect(f'/{slug}', code=302)
-    return _public_file('super-admin.html', 'text/html; charset=utf-8', 0)
+    return _public_file('product-home.html', 'text/html; charset=utf-8', 0)
 
 @app.route('/register')
 def serve_register():
@@ -941,6 +941,26 @@ def serve_shared_assets(filename):
     safe = os.path.basename(filename)
     resp = send_from_directory(os.path.join(app.root_path, 'frontend', 'assets'), safe)
     resp.headers['Cache-Control'] = 'no-cache'
+    return resp
+
+@app.route('/customer-resources/<path:filename>')
+def serve_customer_resource(filename):
+    """Serve the small, reviewed set of customer-facing delivery resources."""
+
+    allowed = {
+        'PWE_Studio_Data_Import_Template.csv',
+        'PWE_Studio_Data_Import_Template.xlsx',
+        'FAQ.html',
+        'Release_Notes_v8.0.0.html',
+    }
+    safe = os.path.basename(filename)
+    if safe != filename or safe not in allowed:
+        return api_error('Not found', 404)
+    resource_dir = os.path.join(PROJECT_ROOT, 'customer-resources')
+    if not os.path.isfile(os.path.join(resource_dir, safe)):
+        return api_error('Not found', 404)
+    resp = send_from_directory(resource_dir, safe, as_attachment=safe.endswith(('.csv', '.xlsx')))
+    resp.headers['Cache-Control'] = 'public, max-age=300'
     return resp
 
 @app.route('/setup-password')
