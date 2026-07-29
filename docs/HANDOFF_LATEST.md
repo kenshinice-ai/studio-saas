@@ -167,23 +167,24 @@ state.
 
 ## 6. Packages and release closure
 
-Required final gate:
+The clean-commit package gate passed for both delivery modes:
 
 ```bash
 bash deploy/aws/verify_release_bundles.sh
 ```
 
-Expected outputs:
+Verified outputs:
 
 - `dist/PWE-StudioSaaS-aws-8.0.0.tar.gz`
 - `dist/PWE-Studio-Edition-8.0.0.tar.gz`
 - matching `.sha256` sidecars.
 
-The SaaS package must include the product gateway, customer resources,
+The SaaS package includes the product gateway, customer resources,
 professional showcase workspace/assets and guarded reset. The Edition package
-must exclude the showcase workspace and reset command while retaining the
-shared runtime and customer/operator documentation. `BUILD_INFO` must match
-the final clean commit, version and operating mode.
+excludes the showcase workspace and reset command while retaining the shared
+runtime and customer/operator documentation. Both archives passed SHA-256,
+entrypoint, forbidden-content and `BUILD_INFO` checks. The `.sha256` sidecars
+generated from the final tagged commit are the authoritative package hashes.
 
 ## 7. Operator commands
 
