@@ -234,7 +234,7 @@ from `UNIQUE (tenant_id, version_number)` on `tenant_brand_versions` — a
 btree scans both directions). `ON CONFLICT` inference is unaffected; both
 UNIQUE constraints remain. No new tables, so `SNAPSHOT_TABLES` is unchanged.
 
-Migration 0021 (v8.0.1 commercial plan quota revision, 2026-07-30 owner
+Migration 0021 (v8.1.0 commercial plan quota revision, 2026-07-30 owner
 decision) tightens the three SaaS plan quotas to the published catalogue:
 `starter` to 1 team user / 2048 MB, `studio` to 5 team users / 10240 MB, and
 `growth` to 1000 students / 51200 MB. Prices, plan codes, plan names, feature

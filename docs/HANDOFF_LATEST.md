@@ -552,6 +552,90 @@ bash deploy/aws/verify_release_bundles.sh
 Presenter credentials are intentionally excluded from Git, bundles, docs and
 this handoff. Read the protected local file only when presenting.
 
+## 7.5 v8.1.0 deployed — and the two defects the deploy itself exposed
+
+`https://pwestudio.online` runs **v8.1.0**, image `studiosaas:8.1.0`,
+commit `30da029`+, 21 migrations applied, plan quotas live at
+`starter 100/1/2048 · studio 500/5/10240 · growth 1000/20/51200`.
+
+Neither defect below was caught by a test. Both were caught by reading the
+deploy output and probing the live edge afterwards, which is the argument for
+doing that every time rather than trusting a green suite.
+
+### The image tag named the wrong version
+
+`docker-compose.yml` tags `studiosaas:${STUDIOSAAS_VERSION}`, and that variable
+lives in `/opt/pwestudio/shared/production.env` — the file that deliberately
+survives a release because it holds the secrets. Nothing updated it. Deploying
+8.1.0 therefore built:
+
+```
+studiosaas:8.0.1     <- the tag
+appVersion 8.1.0     <- what is actually inside it
+```
+
+Two consequences, both only felt during an incident: `docker images` lies to
+whoever is diagnosing, and the tag stops being a rollback point because every
+release overwrites the same one.
+
+`pwestudio_remote.sh deploy` now reads the version out of the **bundle's own
+BUILD_INFO** — not the laptop's `VERSION` file, which can already be ahead of
+what is being deployed — and pins it before the rebuild.
+
+### Renaming the release notes killed its public URL
+
+`/customer-resources/Release_Notes_v8.0.1.html` returned 404 the moment the
+file became `v8.1.0`. That URL is in sent mail, in the sales deck footer, and
+in whatever a prospect bookmarked.
+
+Any superseded versioned name now 301s to the current one. The pattern is
+version-shaped (`Release_Notes_v\d+\.\d+\.\d+\.html`), so the next release
+does not need this touched, and the traversal guard still runs first — the
+redirect can only ever land on the allow-listed current file.
+
+Verified live:
+
+```
+/customer-resources/Release_Notes_v8.0.1.html
+  -> 301 https://pwestudio.online/customer-resources/Release_Notes_v8.1.0.html
+```
+
+### What v8.1.0 fixed in the product
+
+The release's own reason for existing: **a studio's brand choice did not reach
+every surface it was supposed to reach.**
+
+- The CMS mapped 10 of 21 theme fields and forced its own background with
+  `!important`. Every studio's CMS looked identical regardless of which of the
+  eight palettes they chose. Portal, register and CMS now map the same 21
+  fields, and a test asserts the three are equal **field for field** rather
+  than each merely complete — so adding a token later fails on the first
+  surface to adopt it, which is when drift begins.
+- The registration success card paired a fixed `#EFE9DD` against
+  `background:var(--ink)`. `--ink` is the tenant's `text_color`, so under the
+  seven dark theme-modes it is LIGHT and that text measured **1.06:1** — the
+  card a family sees after submitting an enrolment was invisible. It now pairs
+  `--ink` with `--bg`, which `palette_gen.py:221` already asserts at 4.5:1 for
+  all 15 theme-modes, and a second test guards that assertion itself.
+- Focus ring was Family Amber at **1.70:1** on Warm Paper, under the 3:1 that
+  WCAG 1.4.11 requires. Swapped to the accessible amber (4.52:1); the five
+  navy-backed surfaces keep the bright amber at 9.70:1.
+
+### Still open, deliberately
+
+The CMS carries a second dark system in its `prefers-color-scheme` block that
+still uses `!important`. Merging the two is item #29 of
+`docs/design/UI_UX_Upgrade_Plan_2026-07-30.md`. A partial merge would leave
+Tailwind surfaces dark while the page background followed a light tenant theme
+— worse than either system alone. `test_portal_theme_contract.py` records the
+gap so it cannot fade into the file, and fails when someone finishes it.
+
+Also open from the same plan: items #7 and #8, the ~128 `text-gray-400` uses in
+the CMS that measure 2.31–2.54:1. Monitoring, an SLA, privileged-account MFA
+and off-box media backup remain absent and remain disclosed as absent.
+
+---
+
 ## 8. Customer-facing compliance pages and brand repair (2026-07-30)
 
 ### 8.1 What was wrong

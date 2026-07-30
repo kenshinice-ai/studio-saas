@@ -204,6 +204,24 @@ must not be reintroduced for that hostname:
 - [x] SaaS package includes showcase/reset assets; Edition package excludes the SaaS reset command and showcase workspace
 - [x] Product home passes 375/768/1024/1440 responsive, keyboard, reduced-motion and horizontal-overflow checks
 
+### 8.5 v8.1.0 Theme Publication and Contrast Acceptance
+
+Current baseline. `backend/tests/test_portal_theme_contract.py` (12 tests) is the
+automated half; the measured values are recorded in
+`docs/HANDOFF_LATEST.md` §10.
+
+- [x] Local deep health returns `appVersion=8.1.0`, `mode=saas`, `db=ok`
+- [x] Registration success card takes both colours from the theme; the `--ink` / `--bg` pair is asserted at ≥4.5:1 by `docs/design/palette_gen.py` for all 15 theme-modes (was a fixed cream at **1.06:1** on the seven dark modes)
+- [x] Portal degraded-content band uses the theme's warning semantic, not a fixed warm yellow
+- [x] No colour declaration on a themed portal surface names a literal hex; `portal-theme.css` is the single fallback palette
+- [x] Portal, registration and CMS map the identical complete 21-token theme set, asserted field for field
+- [x] CMS base background follows the tenant theme rather than a fixed `!important` grey
+- [x] Product-home focus ring measures ≥3:1 on every surface it appears on (light **4.52:1**, navy **9.70:1**; was **1.70:1**)
+- [x] Dark-section form-control borders measure **3.90:1** (was 2.51:1)
+- [x] Plan quota revision 0021 present in both the migration and the baseline schema seed; `product-home.html` pricing cards match
+- [ ] CMS's second dark-appearance system merged into the theme-mode one — open, plan item 29
+- [ ] CMS `text-gray-400`-class secondary labels reach AA — open, plan items 7 and 8
+
 ---
 
 ## Quick Smoke Test (5 min)

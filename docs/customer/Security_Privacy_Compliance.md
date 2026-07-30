@@ -1,17 +1,19 @@
 # Security, Privacy and Compliance Delivery Pack
 
-Status: v8.0.1 pre-production disclosure
+Status: v8.1.0 disclosure for a live service
 Scope: PWE Studio SaaS mode and the professional showcase
 
 ## Honest deployment status
 
-PWE Studio is currently served locally with PostgreSQL and exposed for controlled demonstration through a Cloudflare Tunnel. This is not represented as an AWS production deployment and has no production SLA.
+PWE Studio is served from an AWS Lightsail instance in `ap-southeast-2` at `https://pwestudio.online`, live since 30 July 2026. TLS is terminated by the host with an automatically renewed Let’s Encrypt certificate covering the apex and `www`; the application binds to loopback only and is reached only through that edge. Daily PostgreSQL logical dumps and a media-volume archive run under cron, and a restore rehearsal has been executed and passes. The Cloudflare Tunnel used for earlier invitation demonstrations is no longer the production path and will not be reintroduced for this hostname.
 
-Production AWS hosting, database backup, media backup, monitoring, recovery objectives and operational ownership will be completed and tested after the required AWS account/services are purchased. A release is not production-ready merely because local tests pass.
+The database and media both live on that single instance. Managed AWS services — RDS, S3, SES — are not in use.
+
+**Still open on a live service, and disclosed as open:** an off-instance copy of the backups; uptime monitoring, backup-failure alerting and on-call ownership; a contractual SLA with stated recovery objectives; and multi-factor authentication for privileged accounts. A running production service is not the same as an operated one, and this pack does not claim it is.
 
 ## Current controls
 
-| Area | v8.0.1 control |
+| Area | v8.1.0 control |
 |---|---|
 | Tenant separation | Tenant context is explicit in authenticated routes and tenant data is scoped by tenant ID |
 | Roles | Platform administrator, owner, manager, teacher, front desk and staff permissions are separated |

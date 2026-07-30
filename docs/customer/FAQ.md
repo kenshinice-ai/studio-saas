@@ -1,8 +1,10 @@
 # PWE Studio FAQ
 
-## Is the current demonstration a production AWS deployment?
+## Is this a production AWS deployment?
 
-No. v8.0.1 is currently operated locally with PostgreSQL and exposed for controlled demonstrations through a Cloudflare Tunnel. AWS production hosting, production media/database backup and a production SLA are pending purchase, configuration and restore testing.
+Yes, since 30 July 2026. `https://pwestudio.online` is served from an AWS Lightsail instance in `ap-southeast-2`. The host terminates TLS with an automatically renewed Let’s Encrypt certificate covering the apex and `www`, HTTP redirects to HTTPS, and the application listens only on the instance’s loopback interface. Daily PostgreSQL logical dumps and a media-volume archive run under cron, and the restore rehearsal passes. The Cloudflare Tunnel used for earlier invitation demonstrations is no longer the production path and will not be reintroduced for this hostname.
+
+Still open on this live service, and disclosed as open: an off-instance copy of the backups, uptime and backup-failure alerting, on-call ownership, a contractual SLA, and multi-factor authentication for privileged accounts. Managed AWS services (RDS, S3, SES) are not in use.
 
 ## What is the difference between Studio Admin and CMS?
 
@@ -10,11 +12,11 @@ Studio Admin is the owner’s website and brand workspace: public content, prese
 
 ## Can families sign in?
 
-A family can unlock one student’s private area using the student name, the registered mobile number and a six-digit access code issued by the studio. The view contains that student’s balance, next class, attendance and portfolio. A single account aggregating multiple children is not included in v8.0.1.
+A family can unlock one student’s private area using the student name, the registered mobile number and a six-digit access code issued by the studio. The view contains that student’s balance, next class, attendance and portfolio. A single account aggregating multiple children is not included in v8.1.0.
 
 ## Does PWE Studio send SMS or email automatically?
 
-Not in v8.0.1. Communication actions open the device’s Mail or Messages application with a prepared message. The user reviews and sends it. This avoids claiming provider delivery before a messaging service, delivery logs, retry handling and commercial terms are ready.
+Not in v8.1.0. Communication actions open the device’s Mail or Messages application with a prepared message. The user reviews and sends it. This avoids claiming provider delivery before a messaging service, delivery logs, retry handling and commercial terms are ready.
 
 ## Are online payments included?
 
@@ -34,15 +36,15 @@ Media is private by default. Student/family access is bound to one student. Publ
 
 ## Can one tenant contain several campuses?
 
-Not in v8.0.1. One campus is one tenant. This is currently the safer and clearer boundary for data, roles, branding, pricing, backup and support. A future organisation layer may aggregate multiple tenant campuses without merging their operational records.
+Not in v8.1.0. One campus is one tenant. This is currently the safer and clearer boundary for data, roles, branding, pricing, backup and support. A future organisation layer may aggregate multiple tenant campuses without merging their operational records.
 
 ## Can we use our own domain?
 
-Custom customer domains are deferred. The current controlled public path uses Cloudflare Tunnel. Domain ownership, DNS, TLS, support and removal procedures will be specified when production hosting is ready.
+Per-studio custom domains are deferred. Every studio is reached today as a path under `https://pwestudio.online`, which the platform operates end to end (Route 53 DNS, a Let’s Encrypt certificate on the host, automatic renewal). Adding a customer-owned domain means a second certificate lifecycle and a second failure mode per studio, so domain ownership, DNS delegation, TLS issuance and renewal, support boundary and removal procedure must be specified in a signed order before it is offered.
 
 ## Which integrations are included?
 
-v8.0.1 includes CSV/Excel templates and exports, ICS calendar export, and device-native Mail/Messages links. Stripe, Xero, Google/Outlook Calendar APIs and webhooks are documented extension points, not active integrations unless a signed order specifically includes them.
+v8.1.0 includes CSV/Excel templates and exports, ICS calendar export, and device-native Mail/Messages links. Stripe, Xero, Google/Outlook Calendar APIs and webhooks are documented extension points, not active integrations unless a signed order specifically includes them.
 
 ## What happens if we cancel?
 

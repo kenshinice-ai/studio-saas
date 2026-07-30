@@ -1,4 +1,4 @@
--- v8.0.1 commercial plan quota revision (2026-07-30, owner decision).
+-- v8.1.0 commercial plan quota revision (2026-07-30, owner decision).
 --
 -- The three SaaS plan quotas are tightened to match the published pricing
 -- page, the customer pricing document and the sales deck. Prices, plan codes,

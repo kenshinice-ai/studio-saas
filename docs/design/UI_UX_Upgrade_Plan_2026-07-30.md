@@ -1,6 +1,24 @@
 # UI/UX 升级方案 — 门户 / CMS / 报名
 
-> 日期：2026-07-30 · 适用版本：v8.0.1 · 状态：**方案，未落地任何代码**
+> 日期：2026-07-30 · 适用版本：v8.1.0 · 状态：**P0 的 1/2/3/4/6 已落地（v8.1.0），其余仍是方案**
+>
+> 落地情况（2026-07-31 更新，逐项对照第 8 节清单）：
+>
+> | # | 状态 | 依据 |
+> |---|---|---|
+> | 1 `.result-card` 硬编码色换 token | ✅ 已落地 | `tenant-template/index.html:270,543` + 6 个已生成租户工作区；`backend/tests/test_portal_theme_contract.py` |
+> | 2 `.surface-status` 改语义色 | ✅ 已落地 | `tenant-template/index.html:263` |
+> | 3 焦点环换 amber-text | 🟡 **只做了一半** | `product-home.html:56,62` 已改；`backend/frontend/cms-entry.html:66` 未动 |
+> | 4 深色表单边框 .28 → .42 | ✅ 已落地 | `product-home.html:171` |
+> | 5 product-home 接入 `ui-tokens.css` | ⬜ 未落地 | — |
+> | 6 CMS 接入 21 个主题 token + 删冷灰底 | ✅ 已落地 | `legacy-root/index.html:62,334` |
+> | 7 CMS 语义色替换 8 个 Tailwind 档位 | ⬜ 未落地 | — |
+> | 8 `text-gray-400` 128 处 | ⬜ 未落地 | — |
+> | 9 disabled 换表面+文字色 | ⬜ 未落地 | — |
+> | 29 CMS 两套深色合一 | ⬜ 未落地 | 由 `test_portal_theme_contract.py::test_the_second_cms_dark_system_is_still_recorded_as_open` 盯住，做完时该测试会失败并强制同步本文件与 handoff |
+>
+> P1/P2 各项除上表列出者外，均未落地。本文件其余部分保持方案原文，
+> 不因已落地而改写——诊断与实测数值是这些改动的依据，需要留痕。
 >
 > 参考系统：LetsPaintCMS v7.3.7（单店，已在真实画室运营）
 > 本轮只出方案。所有结论都标注了证据来源（`文件:行号`）或实测数值。

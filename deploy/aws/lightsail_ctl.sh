@@ -66,7 +66,7 @@ usage() {
   cat <<'EOF'
 Usage: deploy/aws/lightsail_ctl.sh <up|status|logs|backup|restore-dry-run|stop-app>
 
-  up        Build/start PostgreSQL and the v8.0.1 application.
+  up        Build/start PostgreSQL and the application.
   status    Show containers and require deep application health.
   logs      Print the latest bounded app/database logs.
   backup    Back up PostgreSQL plus persistent media/data/archive volumes.

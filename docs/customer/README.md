@@ -1,10 +1,10 @@
-# PWE Studio v8.0.1 — Customer Delivery Index
+# PWE Studio v8.1.0 — Customer Delivery Index
 
 Status: customer-readable draft for commercial and legal review
 Deployment stage: local PostgreSQL service exposed through a managed Cloudflare Tunnel
 Production AWS status: not yet purchased or deployed
 
-This folder is the customer-facing source of truth for the v8.0.1 demonstration and pre-production conversation.
+This folder is the customer-facing source of truth for the v8.1.0 demonstration and pre-production conversation.
 
 ## Read first
 
@@ -33,7 +33,7 @@ PWE Studio currently provides:
 - privacy-safe weekly schedule export as an ICS calendar file;
 - device-native Mail and Messages handoff for support and family communication.
 
-The following are explicitly not represented as delivered in v8.0.1:
+The following are explicitly not represented as delivered in v8.1.0:
 
 - AWS production hosting, production media backup or a contractual production SLA;
 - online payment processing or accounting automation;
