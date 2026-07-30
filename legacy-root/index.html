@@ -52,8 +52,41 @@
           root.style.setProperty('--tenant-primary-border', `${primary}40`);
           root.style.setProperty('--tenant-secondary', secondary);
           root.style.setProperty('--brand-accent-strong', secondary);
-          const themeVars = {background_color:'--brand-paper',panel_color:'--brand-paper-raised',text_color:'--brand-ink',muted_text_color:'--brand-ink-soft',border_color:'--brand-line',accent_text_color:'--brand-on-accent',secondary_text_color:'--brand-on-secondary',success_color:'--brand-success',warning_color:'--brand-warning',danger_color:'--brand-danger'};
-          Object.entries(themeVars).forEach(([key, cssVar]) => { const camel = key.replace(/_([a-z])/g, (_, char) => char.toUpperCase()); const value = visual[key] || visual[camel]; if (value) root.style.setProperty(cssVar, value); });
+          /* The same declarative map the portal and register page use
+             (tenant-template/register.html:364), so the three tenant surfaces
+             can never apply a different subset of a theme again. This used to
+             carry 10 of the 21 tokens: border_strong_color, the accent
+             hover/pressed states, focus_ring_color, the disabled pair and the
+             scrim were all missing, so a studio that picked one of the eight
+             palettes got a CMS that was only partly theirs. */
+          const themeVars = {
+            background_color:       ['--bg', '--brand-paper'],
+            background_alt_color:   ['--bg2'],
+            panel_color:            ['--panel', '--surface', '--brand-paper-raised'],
+            text_color:             ['--ink', '--brand-ink'],
+            text_soft_color:        ['--ink2'],
+            muted_text_color:       ['--muted', '--brand-ink-soft'],
+            border_color:           ['--line', '--brand-line'],
+            border_strong_color:    ['--line-strong'],
+            accent_color:           ['--accent', '--brand-accent'],
+            accent_hover_color:     ['--accent-hover'],
+            accent_pressed_color:   ['--accent-pressed'],
+            accent_text_color:      ['--on-accent', '--brand-on-accent'],
+            secondary_accent_color: ['--accent-dark', '--brand-accent-strong'],
+            secondary_text_color:   ['--on-secondary', '--brand-on-secondary'],
+            success_color:          ['--success', '--brand-success'],
+            warning_color:          ['--warning', '--brand-warning'],
+            danger_color:           ['--danger', '--brand-danger'],
+            focus_ring_color:       ['--focus-ring'],
+            disabled_surface_color: ['--disabled-surface'],
+            disabled_text_color:    ['--disabled-text'],
+            scrim_color:            ['--scrim']
+          };
+          Object.entries(themeVars).forEach(([key, cssVars]) => {
+            const camel = key.replace(/_([a-z])/g, (_, char) => char.toUpperCase());
+            const value = visual[key] || visual[camel];
+            if (value) cssVars.forEach((cssVar) => root.style.setProperty(cssVar, value));
+          });
           root.dataset.brandScheme = visual.color_scheme || visual.colorScheme || 'light';
           root.style.setProperty('--tenant-secondary-soft', `${secondary}14`);
           root.style.setProperty('--tenant-secondary-border', `${secondary}40`);
@@ -294,7 +327,11 @@
             --radius:8px;
             --radius-xl:16px;
         }
-        body { background:#f1f5f9 !important; color:var(--ink); -webkit-font-smoothing:antialiased; }
+        /* Was `background:#f1f5f9 !important` — Tailwind slate-100, a cold blue
+           grey that outranked every tenant theme. The CMS looked identical for
+           all eight palettes. --bg is set by the theme map above and falls back
+           to the old value only until /brand answers. */
+        body { background:var(--bg, #f1f5f9); color:var(--ink); -webkit-font-smoothing:antialiased; }
         .shadow-sm { box-shadow:var(--shadow-sm) !important; }
         .shadow-md { box-shadow:var(--shadow-md) !important; }
         .shadow-2xl { box-shadow:var(--shadow-lg) !important; }

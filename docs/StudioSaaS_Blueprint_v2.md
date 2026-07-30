@@ -173,9 +173,9 @@ Full schema: `backend/db/schema_v1.sql`
 
 | Plan | Monthly Fee | Limits | Suitable For |
 |---|---:|---|---|
-| Starter | AUD 49 | 100 students, 2 users, 5GB storage | Solo teacher or startup studio |
-| Studio | AUD 99 | 500 students, 8 users, 30GB storage | MVP flagship studio |
-| Growth | AUD 199 | 1500 students, 20 users, 100GB storage | Multi-location or growing studio |
+| Starter | AUD 49 | 100 students, 1 user, 2GB storage | Solo teacher or startup studio |
+| Studio | AUD 99 | 500 students, 5 users, 10GB storage | MVP flagship studio |
+| Growth | AUD 199 | 1000 students, 20 users, 50GB storage | Multi-location or growing studio |
 
 Optional one-time setup fee: AUD 299–999 (brand setup, data migration, training).
 

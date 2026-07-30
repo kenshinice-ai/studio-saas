@@ -47,7 +47,19 @@
     a { color: inherit; }
     button, input, textarea, select { font: inherit; }
     button, a { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
-    :focus-visible { outline: 3px solid var(--family-amber); outline-offset: 3px; }
+    /* Family Amber is a surface colour, not an outline colour: measured against
+       Warm Paper it is 1.70:1 and against white 1.85:1, both under the 3:1 that
+       WCAG 1.4.11 requires of a focus indicator. The accessible amber that the
+       palette already carries for exactly this reason measures 4.52:1 on Warm
+       Paper and 4.92:1 on white. On the navy sections the bright amber is the
+       correct choice at 9.70:1, so it is restored there. */
+    :focus-visible { outline: 3px solid var(--family-amber-text); outline-offset: 3px; }
+    /* Every navy-backed surface, where the bright amber is the readable one. */
+    .hero :focus-visible,
+    .support :focus-visible,
+    .role-owner :focus-visible,
+    .industry:first-child :focus-visible,
+    .button-dark:focus-visible { outline-color: var(--family-amber); }
     .skip { position: fixed; top: -80px; left: 1rem; z-index: 100; padding: .8rem 1rem; border-radius: 8px; color: var(--family-navy); background: var(--white); }
     .skip:focus { top: 1rem; }
     .shell { width: min(1180px, calc(100% - 40px)); margin-inline: auto; }
@@ -154,7 +166,9 @@
     .support .copy { color: rgba(255,255,255,.7); line-height: 1.7; }
     .support form { display: grid; gap: .75rem; padding: var(--space-3); border: 1px solid rgba(255,255,255,.14); border-radius: var(--r-md); background: rgba(255,255,255,.06); }
     label { display: grid; gap: .4rem; color: rgba(255,255,255,.75); font-size: .85rem; font-weight: 650; }
-    input, textarea, select { width: 100%; min-height: 46px; padding: .75rem; border: 1px solid rgba(255,255,255,.28); border-radius: 10px; color: var(--white); background: var(--family-navy-raised); }
+    /* .28 composites to #576173 over the raised navy — 2.51:1, below the 3:1
+       WCAG 1.4.11 asks of a control boundary. .42 measures 3.90:1. */
+    input, textarea, select { width: 100%; min-height: 46px; padding: .75rem; border: 1px solid rgba(255,255,255,.42); border-radius: 10px; color: var(--white); background: var(--family-navy-raised); }
     textarea { min-height: 110px; resize: vertical; }
     option { color: var(--family-navy); }
     .privacy-note { margin: 0; color: rgba(255,255,255,.55); font-size: .78rem; line-height: 1.5; }
@@ -333,12 +347,12 @@
           <p data-lang="zh">主推 Studio 套餐，每月 AUD 99。一次性 Setup 服务费为 AUD 299–999，包含品牌配置、经审核的数据迁移、团队培训与上线支持；最终以签署订单为准。</p>
         </div>
         <div class="plans">
-          <article class="plan"><h3>Starter</h3><div class="price">$49 <small><span data-lang="en">AUD / month</span><span data-lang="zh">AUD / 月</span></small></div><ul><li><span data-lang="en">Up to 100 students</span><span data-lang="zh">最多 100 名学员</span></li><li><span data-lang="en">2 team users</span><span data-lang="zh">2 个团队账号</span></li><li><span data-lang="en">5 GB storage allowance</span><span data-lang="zh">5 GB 存储额度</span></li><li><span data-lang="en">Registration and portfolios</span><span data-lang="zh">报名与作品集</span></li></ul><a class="button button-dark" href="#support"><span data-lang="en">Discuss Starter</span><span data-lang="zh">咨询 Starter</span></a></article>
-          <article class="plan featured"><span class="plan-badge"><span data-lang="en">Recommended</span><span data-lang="zh">主推套餐</span></span><h3>Studio</h3><div class="price">$99 <small><span data-lang="en">AUD / month</span><span data-lang="zh">AUD / 月</span></small></div><ul><li><span data-lang="en">Up to 500 students</span><span data-lang="zh">最多 500 名学员</span></li><li><span data-lang="en">8 team users</span><span data-lang="zh">8 个团队账号</span></li><li><span data-lang="en">30 GB storage allowance</span><span data-lang="zh">30 GB 存储额度</span></li><li><span data-lang="en">Templates and data export</span><span data-lang="zh">行业模版与数据导出</span></li></ul><a class="button button-dark" href="#support"><span data-lang="en">Discuss Studio</span><span data-lang="zh">咨询 Studio</span></a></article>
-          <article class="plan"><h3>Growth</h3><div class="price">$199 <small><span data-lang="en">AUD / month</span><span data-lang="zh">AUD / 月</span></small></div><ul><li><span data-lang="en">Up to 1,500 students</span><span data-lang="zh">最多 1,500 名学员</span></li><li><span data-lang="en">20 team users</span><span data-lang="zh">20 个团队账号</span></li><li><span data-lang="en">100 GB storage allowance</span><span data-lang="zh">100 GB 存储额度</span></li><li><span data-lang="en">Priority support</span><span data-lang="zh">优先支持</span></li></ul><a class="button button-dark" href="#support"><span data-lang="en">Discuss Growth</span><span data-lang="zh">咨询 Growth</span></a></article>
+          <article class="plan"><h3>Starter</h3><div class="price">$49 <small><span data-lang="en">AUD / month</span><span data-lang="zh">AUD / 月</span></small></div><ul><li><span data-lang="en">Up to 100 students</span><span data-lang="zh">最多 100 名学员</span></li><li><span data-lang="en">1 team user</span><span data-lang="zh">1 个团队账号</span></li><li><span data-lang="en">2 GB storage allowance</span><span data-lang="zh">2 GB 存储额度</span></li><li><span data-lang="en">Registration and portfolios</span><span data-lang="zh">报名与作品集</span></li></ul><a class="button button-dark" href="#support"><span data-lang="en">Discuss Starter</span><span data-lang="zh">咨询 Starter</span></a></article>
+          <article class="plan featured"><span class="plan-badge"><span data-lang="en">Recommended</span><span data-lang="zh">主推套餐</span></span><h3>Studio</h3><div class="price">$99 <small><span data-lang="en">AUD / month</span><span data-lang="zh">AUD / 月</span></small></div><ul><li><span data-lang="en">Up to 500 students</span><span data-lang="zh">最多 500 名学员</span></li><li><span data-lang="en">5 team users</span><span data-lang="zh">5 个团队账号</span></li><li><span data-lang="en">10 GB storage allowance</span><span data-lang="zh">10 GB 存储额度</span></li><li><span data-lang="en">Templates and data export</span><span data-lang="zh">行业模版与数据导出</span></li></ul><a class="button button-dark" href="#support"><span data-lang="en">Discuss Studio</span><span data-lang="zh">咨询 Studio</span></a></article>
+          <article class="plan"><h3>Growth</h3><div class="price">$199 <small><span data-lang="en">AUD / month</span><span data-lang="zh">AUD / 月</span></small></div><ul><li><span data-lang="en">Up to 1,000 students</span><span data-lang="zh">最多 1,000 名学员</span></li><li><span data-lang="en">20 team users</span><span data-lang="zh">20 个团队账号</span></li><li><span data-lang="en">50 GB storage allowance</span><span data-lang="zh">50 GB 存储额度</span></li><li><span data-lang="en">Priority support</span><span data-lang="zh">优先支持</span></li></ul><a class="button button-dark" href="#support"><span data-lang="en">Discuss Growth</span><span data-lang="zh">咨询 Growth</span></a></article>
         </div>
-        <p class="deferred" data-lang="en">Implementation, migration clean-up, messaging provider fees, payment processing, custom domains and multi-campus aggregation are separately scoped. For v8.0.1, each campus is intentionally operated as an isolated tenant.</p>
-        <p class="deferred" data-lang="zh">实施、数据清洗、消息供应商费用、在线支付、自定义域名与多校区汇总需单独约定。v8.0.1 阶段每个校区明确作为独立租户运营。</p>
+        <p class="deferred" data-lang="en">Implementation, migration clean-up, messaging provider fees, payment processing, custom domains and multi-campus aggregation are separately scoped. For v8.1.0, each campus is intentionally operated as an isolated tenant.</p>
+        <p class="deferred" data-lang="zh">实施、数据清洗、消息供应商费用、在线支付、自定义域名与多校区汇总需单独约定。v8.1.0 阶段每个校区明确作为独立租户运营。</p>
       </div>
     </section>
 
@@ -373,10 +387,12 @@
 
   <footer>
     <div class="shell footer-row">
-      <span>© <span id="year"></span> PWE Studio · v8.0.1</span>
+      <span>© <span id="year"></span> PWE Studio · v8.1.0</span>
       <nav aria-label="Resources">
         <a href="/customer-resources/FAQ.html"><span data-lang="en">FAQ</span><span data-lang="zh">常见问题</span></a>
-        <a href="/customer-resources/Release_Notes_v8.0.1.html"><span data-lang="en">Release evidence</span><span data-lang="zh">发布依据</span></a>
+        <a href="/customer-resources/Release_Notes_v8.1.0.html"><span data-lang="en">Release evidence</span><span data-lang="zh">发布依据</span></a>
+        <a href="/customer-resources/Privacy_Policy.html"><span data-lang="en">Privacy policy</span><span data-lang="zh">隐私政策</span></a>
+        <a href="/customer-resources/Terms_of_Service.html"><span data-lang="en">Terms of service</span><span data-lang="zh">服务条款</span></a>
         <a href="#support"><span data-lang="en">Contact</span><span data-lang="zh">联系</span></a>
       </nav>
     </div>

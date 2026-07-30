@@ -8,9 +8,9 @@ GST: treatment must be stated in the signed order form
 
 | Plan | Monthly subscription | Students | Team users | Storage allowance | Included product capabilities |
 |---|---:|---:|---:|---:|---|
-| Starter | $49 | 100 | 2 | 5 GB | Public registration, student records and portfolios |
-| Studio | $99 | 500 | 8 | 30 GB | Starter plus communication templates and data export |
-| Growth | $199 | 1,500 | 20 | 100 GB | Studio plus priority support |
+| Starter | $49 | 100 | 1 | 2 GB | Public registration, student records and portfolios |
+| Studio | $99 | 500 | 5 | 10 GB | Starter plus communication templates and data export |
+| Growth | $199 | 1,000 | 20 | 50 GB | Studio plus priority support |
 
 These figures match the v8.0.1 product plan catalogue. The signed order form controls the final price, GST treatment, start date, minimum term and any negotiated inclusions.
 

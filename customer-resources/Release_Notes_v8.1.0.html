@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0e1729">
+  <meta name="robots" content="index,follow">
+  <meta name="description" content="PWE Studio v8.1.0 release evidence: what the release changes, what the AWS deployment on 30 July 2026 established, what four defects it uncovered, and what remains deferred.">
+  <title>PWE Studio v8.1.0 Release Evidence</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <!-- Brand values come from ui-tokens.css; presentation from
+       customer-resources.css. See the header comment in that stylesheet for why
+       this page no longer declares its own palette. -->
+  <link rel="stylesheet" href="/assets/ui-tokens.css">
+  <link rel="stylesheet" href="/assets/customer-resources.css">
+  <script src="/assets/customer-resources.js" defer></script>
+</head>
+<body>
+<main class="wrap wrap--wide">
+  <div class="topline">
+    <a class="back" href="/">&larr; <span data-lang="en">PWE Studio home</span><span data-lang="zh">返回 PWE Studio 首页</span></a>
+    <button class="lang" id="languageButton" type="button" aria-label="Switch language">中文</button>
+  </div>
+
+  <p class="eyebrow"><span data-lang="en">Customer resources</span><span data-lang="zh">客户资料</span></p>
+  <h1 data-lang="en">v8.1.0 release evidence</h1>
+  <h1 data-lang="zh">v8.1.0 发布依据</h1>
+  <p class="lede" data-lang="en">A customer-readable record of what this release changes, what the production deployment established, and which commitments remain deferred.</p>
+  <p class="lede" data-lang="zh">面向客户的记录：本次发布改了什么、生产部署确立了什么，以及哪些承诺仍未完成。</p>
+  <p class="status"><span data-lang="en">v8.1.0 · production deployed 30 July 2026 · monitoring and SLA deferred</span><span data-lang="zh">v8.1.0 · 生产部署于 2026 年 7 月 30 日 · 监控与 SLA 延后</span></p>
+
+  <h2 data-lang="en">What v8.1.0 changes</h2>
+  <h2 data-lang="zh">v8.1.0 的改动</h2>
+  <p data-lang="en">The previous release was accepted for local demonstration only. This one takes the service into production, then fixes what going live and a full readability review exposed. Nothing below is a plan; each item is already in the release.</p>
+  <p data-lang="zh">上一版仅按本地演示验收。本版将服务带入生产，并修复上线与一次完整可读性检查所暴露的问题。以下均非计划，全部已包含在本次发布中。</p>
+  <div class="grid">
+    <article class="card">
+      <strong data-lang="en">Production hosting</strong><strong data-lang="zh">生产托管</strong>
+      <p data-lang="en">The service moved to a dedicated AWS instance on 30 July 2026 with its own certificate, daily database backups and a rehearsed restore. The tunnel used for earlier invitation demonstrations is no longer part of the production path.</p>
+      <p data-lang="zh">服务于 2026 年 7 月 30 日迁至专属 AWS 实例，具备独立证书、每日数据库备份与已演练的恢复流程。此前用于邀请演示的隧道不再属于生产链路。</p>
+    </article>
+    <article class="card">
+      <strong data-lang="en">Registration confirmation is readable again</strong><strong data-lang="zh">报名成功提示恢复可读</strong>
+      <p data-lang="en">On the seven dark studio themes, the card a parent sees after submitting a registration painted fixed light text on what the theme had turned into a light surface — measured at 1.06:1, effectively invisible. It now takes both colours from the theme, a pair the palette generator already checks at 4.5:1 or better across all fifteen theme variants.</p>
+      <p data-lang="zh">在七个深色工作室主题下，家长提交报名后看到的成功卡使用了固定浅色文字，而主题已把底色变浅——实测 1.06:1，几乎不可见。现在两种颜色都取自主题，而这一组颜色由调色生成器在全部十五个主题变体上校验，均不低于 4.5:1。</p>
+    </article>
+    <article class="card">
+      <strong data-lang="en">Your branding now reaches the CMS</strong><strong data-lang="zh">品牌配色贯通到 CMS</strong>
+      <p data-lang="en">The daily operations workspace applied only part of a studio's chosen theme and then painted a fixed grey background over it, so every studio's CMS looked the same. The public portal, the registration page and the CMS now apply one identical, complete theme set, with a test asserting the three agree field for field.</p>
+      <p data-lang="zh">日常运营工作台此前只应用了工作室所选主题的一部分，又以固定灰色背景覆盖其上，导致所有工作室的 CMS 外观雷同。现在公开门户、报名页与 CMS 应用同一套完整主题，并有测试逐字段断言三者一致。</p>
+    </article>
+    <article class="card">
+      <strong data-lang="en">Focus and form outlines meet the standard</strong><strong data-lang="zh">焦点与表单描边达标</strong>
+      <p data-lang="en">The keyboard focus ring on the product homepage measured 1.70:1 against the page, below the 3:1 a non-text indicator requires; it is now 4.52:1, and the brighter identity amber is kept where it is correct at 9.70:1. Form field outlines on dark sections moved from 2.51:1 to 3.90:1.</p>
+      <p data-lang="zh">产品主页的键盘焦点环对页面底色实测 1.70:1，低于非文本指示所需的 3:1；现为 4.52:1，而在合适的深色区块仍保留 9.70:1 的亮琥珀。深色区块的表单描边由 2.51:1 提升至 3.90:1。</p>
+    </article>
+    <article class="card">
+      <strong data-lang="en">Plan allowances revised</strong><strong data-lang="zh">套餐额度调整</strong>
+      <p data-lang="en">Monthly prices are unchanged. Starter now includes 1 team account and 2 GB; Studio 5 accounts and 10 GB; Growth 1,000 students and 50 GB, keeping its 20 team accounts. Exceeding an allowance refuses the next addition — it never deletes existing students, accounts or media.</p>
+      <p data-lang="zh">月费不变。Starter 现含 1 个团队账号与 2 GB；Studio 含 5 个账号与 10 GB；Growth 含 1,000 名学员与 50 GB，团队账号仍为 20 个。超出额度只会拒绝新增，绝不会删除既有学员、账号或媒体。</p>
+    </article>
+    <article class="card">
+      <strong data-lang="en">Published policies</strong><strong data-lang="zh">已发布的政策文件</strong>
+      <p data-lang="en">A privacy policy and terms of service are now published rather than promised, naming the operating entity and its ABN. Both are drafts pending Australian legal review and say so on the page.</p>
+      <p data-lang="zh">隐私政策与服务条款已实际发布而非仅作承诺，并载明运营主体与 ABN。两者均为待澳大利亚律师复核的草案，页面上已明确标注。</p>
+    </article>
+  </div>
+
+  <h2 data-lang="en">Customer outcomes carried forward</h2>
+  <h2 data-lang="zh">延续的客户可见成果</h2>
+  <div class="grid">
+    <article class="card">
+      <strong data-lang="en">Brand-led entry</strong><strong data-lang="zh">品牌化入口</strong>
+      <p data-lang="en">Canonical PWE Navy, Amber and Warm Paper with approved sales copy, clear role entrances and demonstration actions.</p>
+      <p data-lang="zh">统一使用 PWE 品牌的深蓝、琥珀与暖纸白，配合已批准的销售文案、清晰的角色入口与演示动作。</p>
+    </article>
+    <article class="card">
+      <strong data-lang="en">Safe showcase</strong><strong data-lang="zh">安全的演示环境</strong>
+      <p data-lang="en">An isolated Let’s Paint Studio tenant with fictional records, synthetic artwork and a guarded one-click reset.</p>
+      <p data-lang="zh">隔离的 Let’s Paint Studio 演示租户，使用虚构记录与合成作品，重置操作带有防误触保护。</p>
+    </article>
+    <article class="card">
+      <strong data-lang="en">Connected workspaces</strong><strong data-lang="zh">相互连通的工作台</strong>
+      <p data-lang="en">Studio Admin for website and brand, CMS for daily operations, with stable switching between them.</p>
+      <p data-lang="zh">Studio Admin 负责网站与品牌，CMS 负责日常运营，两者之间可稳定切换。</p>
+    </article>
+    <article class="card">
+      <strong data-lang="en">Family loop</strong><strong data-lang="zh">家庭端闭环</strong>
+      <p data-lang="en">Credit balance, next class, attendance, portfolio and device-native studio contact.</p>
+      <p data-lang="zh">课时余额、下次课、出勤、作品集，以及通过设备原生应用联系工作室。</p>
+    </article>
+    <article class="card">
+      <strong data-lang="en">Scheduling</strong><strong data-lang="zh">排课</strong>
+      <p data-lang="en">Real recurring group rosters and a privacy-safe ICS calendar download that carries no student identities.</p>
+      <p data-lang="zh">真实的循环班课排课，以及不含学员身份的隐私安全 ICS 日历下载。</p>
+    </article>
+    <article class="card">
+      <strong data-lang="en">Commercial delivery</strong><strong data-lang="zh">商务交付</strong>
+      <p data-lang="en">Onboarding, FAQ, migration templates, support policy, pricing, agreement draft and security disclosure.</p>
+      <p data-lang="zh">上线清单、常见问题、迁移模版、支持政策、定价、协议草案与安全披露。</p>
+    </article>
+  </div>
+
+  <h2 data-lang="en">Production deployment, 30 July 2026</h2>
+  <h2 data-lang="zh">生产部署（2026 年 7 月 30 日）</h2>
+  <p data-lang="en">The earlier editions of this page said AWS production acceptance was deferred. That is no longer accurate. The table records what was established, measured from outside the instance.</p>
+  <p data-lang="zh">本页早前版本称「AWS 生产验收延后」，该表述已不再准确。下表记录已确立的事实，均从实例外部测量所得。</p>
+  <p data-lang="en">The instance keeps serving the build installed on that date until the next deployment. The v8.1.0 build and the revised plan allowances reach it when that deployment runs; the deployment step applies the change and rolls itself back if the service does not come up healthy.</p>
+  <p data-lang="zh">在下一次部署前，实例继续运行该日安装的构建。v8.1.0 构建与调整后的套餐额度将随该次部署生效；部署步骤会自动应用变更，并在服务未能健康启动时自行回滚。</p>
+  <div class="scroll-x">
+    <table>
+      <thead>
+        <tr>
+          <th><span data-lang="en">Item</span><span data-lang="zh">项目</span></th>
+          <th><span data-lang="en">Established</span><span data-lang="zh">已确立</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span data-lang="en">Public service</span><span data-lang="zh">公开服务</span></td>
+          <td><span data-lang="en">Served from an AWS Lightsail instance in the Sydney region</span><span data-lang="zh">由悉尼区域的 AWS Lightsail 实例提供服务</span></td>
+        </tr>
+        <tr>
+          <td><span data-lang="en">Transport</span><span data-lang="zh">传输</span></td>
+          <td><span data-lang="en">TLS terminated at the host; HTTP 301 to HTTPS in one hop; HSTS one year; certificate chain verifies; auto-renewal timer active</span><span data-lang="zh">TLS 在主机终止；HTTP 一跳 301 至 HTTPS；HSTS 一年；证书链验证通过；自动续期定时器已启用</span></td>
+        </tr>
+        <tr>
+          <td><span data-lang="en">Exposure</span><span data-lang="zh">暴露面</span></td>
+          <td><span data-lang="en">Application bound to loopback only; no absolute <code>http://</code> references on the homepage, and a self-only content policy makes mixed content structurally impossible</span><span data-lang="zh">应用仅绑定本地回环；首页无绝对 <code>http://</code> 引用，且内容策略限定同源，混合内容在结构上不可能出现</span></td>
+        </tr>
+        <tr>
+          <td><span data-lang="en">Canonical host</span><span data-lang="zh">规范主机名</span></td>
+          <td><span data-lang="en">One origin: <code>www</code> redirects permanently to the apex over TLS</span><span data-lang="zh">单一源站：<code>www</code> 经 TLS 永久跳转至主域</span></td>
+        </tr>
+        <tr>
+          <td><span data-lang="en">Database</span><span data-lang="zh">数据库</span></td>
+          <td><span data-lang="en">PostgreSQL 16, 20 migrations applied; runtime uses a restricted role, the owner role only for migrations</span><span data-lang="zh">PostgreSQL 16，已应用 20 项迁移；运行时使用受限角色，owner 角色仅用于迁移</span></td>
+        </tr>
+        <tr>
+          <td><span data-lang="en">Backups</span><span data-lang="zh">备份</span></td>
+          <td><span data-lang="en">Daily logical dump plus media-volume archive; restore rehearsal runs and passes</span><span data-lang="zh">每日逻辑备份加媒体卷归档；恢复演练已执行并通过</span></td>
+        </tr>
+        <tr>
+          <td><span data-lang="en">Rollout safety</span><span data-lang="zh">发布安全</span></td>
+          <td><span data-lang="en">Deployment refuses a standalone-mode artefact, backs up first, and rolls back automatically when deep health fails</span><span data-lang="zh">部署会拒绝独立版制品、先行备份，并在深度健康检查失败时自动回滚</span></td>
+        </tr>
+        <tr>
+          <td><span data-lang="en">Availability during upgrades</span><span data-lang="zh">升级期间可用性</span></td>
+          <td><span data-lang="en">Branded maintenance page with a retry hint replaces the stock gateway error while the container restarts</span><span data-lang="zh">容器重启期间以带重试提示的品牌化维护页替代默认网关错误页</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 data-lang="en">Four defects this deployment uncovered</h2>
+  <h2 data-lang="zh">本次部署发现的四个缺陷</h2>
+  <p data-lang="en">All four looked fine from the outside and would otherwise have surfaced during an incident. They are listed because a release record that only lists successes is not evidence.</p>
+  <p data-lang="zh">这四个缺陷从外部看都正常，若不排查将只会在事故中暴露。之所以列出，是因为只记录成功的发布记录不构成依据。</p>
+  <div class="grid">
+    <article class="card">
+      <strong data-lang="en">Daily backups had never succeeded</strong><strong data-lang="zh">每日备份从未成功过</strong>
+      <p data-lang="en">The scheduled job called the backup script at the wrong path inside the image, and nothing read its output. Fixed, and the job now fails loudly.</p>
+      <p data-lang="zh">定时任务调用了镜像内错误路径下的备份脚本，且无人读取其输出。已修复，任务失败现在会显式报错。</p>
+    </article>
+    <article class="card">
+      <strong data-lang="en">The dump could not be written</strong><strong data-lang="zh">备份文件无法写入</strong>
+      <p data-lang="en">The backup directory’s ownership did not match the container’s user, so writes were denied. Ownership and mode are now asserted on every run, and an operator can still list backups without elevated rights.</p>
+      <p data-lang="zh">备份目录归属与容器运行用户不匹配，写入被拒绝。现在每次运行都会校验归属与权限，运维人员也无需提权即可列出备份。</p>
+    </article>
+    <article class="card">
+      <strong data-lang="en">The restore rehearsal could never pass</strong><strong data-lang="zh">恢复演练不可能通过</strong>
+      <p data-lang="en">An unpinned client package resolved to PostgreSQL 17 against a version 16 server, emitting a setting the server rejects. The client is now pinned to 16, and dumps produced by the newer client were deleted rather than left to fail mid-incident.</p>
+      <p data-lang="zh">未固定版本的客户端包解析为 PostgreSQL 17，对 16 版服务端产生了其不接受的参数。客户端已固定为 16 版，由新版客户端产生的备份已删除，以免在事故中才发现不可用。</p>
+    </article>
+    <article class="card">
+      <strong data-lang="en">The media volume was empty</strong><strong data-lang="zh">媒体卷为空</strong>
+      <p data-lang="en">The database referenced media assets and derivatives that the volume did not hold, so every brand logo returned a not-found. The media tree was restored, and the variant tool now verifies that a derivative file exists rather than only its database row.</p>
+      <p data-lang="zh">数据库引用的媒体资源与派生文件在卷中并不存在，导致所有品牌 logo 返回未找到。媒体目录已恢复，派生工具现在校验派生文件本身是否存在，而不只是校验数据库记录。</p>
+    </article>
+  </div>
+
+  <div class="band">
+    <p class="eyebrow"><span data-lang="en">Still deferred</span><span data-lang="zh">仍未完成</span></p>
+    <h2 data-lang="en">What we do not claim</h2>
+    <h2 data-lang="zh">我们不作承诺的部分</h2>
+    <ul>
+      <li data-lang="en"><strong>Multi-factor authentication for privileged accounts.</strong> Now an open gap on a live service, and our highest-priority security item.</li>
+      <li data-lang="zh"><strong>特权账号的多因素认证。</strong>这已是已上线服务上的公开缺口，也是我们优先级最高的安全事项。</li>
+      <li data-lang="en"><strong>Off-instance backup copies.</strong> Backups exist and restore correctly, but currently live on the same instance.</li>
+      <li data-lang="zh"><strong>异地备份副本。</strong>备份已存在且可正确恢复，但目前保存在同一实例上。</li>
+      <li data-lang="en"><strong>Uptime monitoring, backup-failure alerting, on-call ownership and a contractual SLA.</strong></li>
+      <li data-lang="zh"><strong>运行监控、备份失败告警、值班归属与合同化 SLA。</strong></li>
+      <li data-lang="en"><strong>Managed AWS services.</strong> Amazon RDS, S3 and SES are not in use.</li>
+      <li data-lang="zh"><strong>AWS 托管服务。</strong>尚未使用 Amazon RDS、S3 与 SES。</li>
+      <li data-lang="en"><strong>Automated messaging.</strong> Mail and Messages open on the user’s device; no provider delivery, logs or retries.</li>
+      <li data-lang="zh"><strong>自动化消息发送。</strong>仅在用户设备上打开邮件或信息应用；无服务商送达、日志与重试。</li>
+      <li data-lang="en"><strong>Online payments and accounting sync.</strong></li>
+      <li data-lang="zh"><strong>在线支付与自动对账。</strong></li>
+      <li data-lang="en"><strong>Per-studio custom domains.</strong></li>
+      <li data-lang="zh"><strong>按工作室的自定义域名。</strong></li>
+      <li data-lang="en"><strong>Organisation-level multi-campus aggregation.</strong> One campus remains one tenant.</li>
+      <li data-lang="zh"><strong>组织级多校区汇总。</strong>目前仍是一个校区一个租户。</li>
+      <li data-lang="en"><strong>Two remaining readability items inside the operations workspace.</strong> The CMS still carries a second, older dark-appearance mechanism alongside the theme one, and a large number of its secondary labels are still lighter than the contrast standard asks. Both are recorded with an owner and a fix, and neither affects what a parent or student sees.</li>
+      <li data-lang="zh"><strong>运营工作台内仍有两项可读性问题。</strong>CMS 中除主题机制外仍保留一套较早的深色实现；其大量次要标签的对比度仍低于标准要求。两项均已登记责任人与修复方案，且都不影响家长与学员所见界面。</li>
+    </ul>
+    <div class="inset">
+      <p data-lang="en">A final privacy policy, service agreement and data-processing schedule still require Australian legal review. The published <a href="/customer-resources/Privacy_Policy.html">privacy policy</a> and <a href="/customer-resources/Terms_of_Service.html">terms of service</a> are drafts that describe actual product behaviour; they are not legal advice.</p>
+      <p data-lang="zh">最终版隐私政策、服务协议与数据处理附表仍需澳大利亚律师复核。已发布的<a href="/customer-resources/Privacy_Policy.html">隐私政策</a>与<a href="/customer-resources/Terms_of_Service.html">服务条款</a>为草案，如实描述产品实际行为，但不构成法律意见。</p>
+    </div>
+  </div>
+
+  <h2 data-lang="en">Acceptance gates</h2>
+  <h2 data-lang="zh">验收关卡</h2>
+  <div class="scroll-x">
+    <table>
+      <thead>
+        <tr>
+          <th><span data-lang="en">Gate</span><span data-lang="zh">关卡</span></th>
+          <th><span data-lang="en">Required evidence</span><span data-lang="zh">所需依据</span></th>
+          <th><span data-lang="en">Status</span><span data-lang="zh">状态</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span data-lang="en">Backend</span><span data-lang="zh">后端</span></td>
+          <td><span data-lang="en">Full PostgreSQL verification passes</span><span data-lang="zh">完整 PostgreSQL 验证通过</span></td>
+          <td><span data-lang="en">Passed</span><span data-lang="zh">已通过</span></td>
+        </tr>
+        <tr>
+          <td><span data-lang="en">Calendar privacy</span><span data-lang="zh">日历隐私</span></td>
+          <td><span data-lang="en">Timezone and recurrence valid; no student data present</span><span data-lang="zh">时区与循环规则有效；不含学员数据</span></td>
+          <td><span data-lang="en">Passed</span><span data-lang="zh">已通过</span></td>
+        </tr>
+        <tr>
+          <td><span data-lang="en">Demo reset</span><span data-lang="zh">演示重置</span></td>
+          <td><span data-lang="en">Guard refusal proven, then an isolated successful reset</span><span data-lang="zh">已验证防护拒绝，随后完成隔离环境重置</span></td>
+          <td><span data-lang="en">Passed</span><span data-lang="zh">已通过</span></td>
+        </tr>
+        <tr>
+          <td><span data-lang="en">UI</span><span data-lang="zh">界面</span></td>
+          <td><span data-lang="en">Browser checks at 375, 768, 1024 and 1440 px</span><span data-lang="zh">375、768、1024、1440 px 浏览器检查</span></td>
+          <td><span data-lang="en">Passed</span><span data-lang="zh">已通过</span></td>
+        </tr>
+        <tr>
+          <td><span data-lang="en">Theme publication</span><span data-lang="zh">主题发布</span></td>
+          <td><span data-lang="en">Portal, registration and operations workspace apply the same complete theme; no public surface pins a colour the theme should own</span><span data-lang="zh">门户、报名与运营工作台应用同一套完整主题；公开界面不得固定本应由主题决定的颜色</span></td>
+          <td><span data-lang="en">Passed</span><span data-lang="zh">已通过</span></td>
+        </tr>
+        <tr>
+          <td><span data-lang="en">Public-surface contrast</span><span data-lang="zh">公开界面对比度</span></td>
+          <td><span data-lang="en">Text and focus indicators on customer-visible surfaces meet the standard across every theme variant</span><span data-lang="zh">客户可见界面的文字与焦点指示在全部主题变体下均达标</span></td>
+          <td><span data-lang="en">Passed; the operations workspace has two open items listed above</span><span data-lang="zh">已通过；运营工作台仍有上文列出的两项未完成</span></td>
+        </tr>
+        <tr>
+          <td><span data-lang="en">Templates</span><span data-lang="zh">模版</span></td>
+          <td><span data-lang="en">CSV and the multi-sheet workbook rendered and inspected</span><span data-lang="zh">CSV 与多工作表 Excel 已渲染并检查</span></td>
+          <td><span data-lang="en">Passed</span><span data-lang="zh">已通过</span></td>
+        </tr>
+        <tr>
+          <td><span data-lang="en">Packages</span><span data-lang="zh">发布包</span></td>
+          <td><span data-lang="en">SaaS and Edition builds inspected; mode-specific contents asserted</span><span data-lang="zh">SaaS 与独立版构建已检查；按形态断言内容差异</span></td>
+          <td><span data-lang="en">Passed</span><span data-lang="zh">已通过</span></td>
+        </tr>
+        <tr>
+          <td><span data-lang="en">Deployment</span><span data-lang="zh">部署</span></td>
+          <td><span data-lang="en">Public HTTPS, DNS, certificate, redirect, deep health and data counts</span><span data-lang="zh">公开 HTTPS、DNS、证书、跳转、深度健康与数据计数</span></td>
+          <td><span data-lang="en">Passed 30 July 2026</span><span data-lang="zh">2026 年 7 月 30 日通过</span></td>
+        </tr>
+        <tr>
+          <td><span data-lang="en">Recovery</span><span data-lang="zh">恢复</span></td>
+          <td><span data-lang="en">Database and media restore rehearsal from a real backup artefact</span><span data-lang="zh">基于真实备份产物的数据库与媒体恢复演练</span></td>
+          <td><span data-lang="en">Passed on-instance; off-instance copy open</span><span data-lang="zh">同机演练通过；异地副本未完成</span></td>
+        </tr>
+        <tr>
+          <td><span data-lang="en">Privileged MFA</span><span data-lang="zh">特权账号 MFA</span></td>
+          <td><span data-lang="en">Second factor enforced for every privileged account</span><span data-lang="zh">所有特权账号强制第二因素</span></td>
+          <td><span data-lang="en">Open</span><span data-lang="zh">未完成</span></td>
+        </tr>
+        <tr>
+          <td><span data-lang="en">Monitoring and SLA</span><span data-lang="zh">监控与 SLA</span></td>
+          <td><span data-lang="en">Uptime and backup-failure alerting, on-call roster, signed availability target</span><span data-lang="zh">运行与备份失败告警、值班名单、已签署可用性目标</span></td>
+          <td><span data-lang="en">Open</span><span data-lang="zh">未完成</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="legal-foot">
+    <p data-lang="en">PWE GROUP PTY LTD · ABN 55 606 664 546 · ACN 606 664 546</p>
+    <p data-lang="zh">PWE GROUP PTY LTD · ABN 55 606 664 546 · ACN 606 664 546</p>
+    <p>© <span id="year">2026</span> PWE Studio · v8.1.0</p>
+    <nav aria-label="Customer resources">
+      <a href="/customer-resources/FAQ.html"><span data-lang="en">FAQ</span><span data-lang="zh">常见问题</span></a>
+      <a href="/customer-resources/Privacy_Policy.html"><span data-lang="en">Privacy policy</span><span data-lang="zh">隐私政策</span></a>
+      <a href="/customer-resources/Terms_of_Service.html"><span data-lang="en">Terms of service</span><span data-lang="zh">服务条款</span></a>
+    </nav>
+  </div>
+</main>
+</body>
+</html>

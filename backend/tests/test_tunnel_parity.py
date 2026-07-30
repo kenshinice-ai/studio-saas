@@ -11,7 +11,7 @@ def _health(**overrides):
         "db": "ok",
         "service": "PWE Studio SaaS API",
         "version": "v1",
-        "appVersion": "8.0.1",
+        "appVersion": "8.1.0",
         "mode": "saas",
         "showProducerCredit": True,
     }
@@ -22,7 +22,7 @@ def _health(**overrides):
 def test_tunnel_parity_accepts_one_deep_healthy_release() -> None:
     """Matching deep-health documents are a valid tunnel handoff."""
 
-    verify_parity(_health(), _health(), expected_app_version="8.0.1", expected_mode="saas")
+    verify_parity(_health(), _health(), expected_app_version="8.1.0", expected_mode="saas")
 
 
 @pytest.mark.parametrize(
@@ -41,6 +41,6 @@ def test_tunnel_parity_rejects_stale_or_inconsistent_public_state(public_overrid
         verify_parity(
             _health(),
             _health(**public_override),
-            expected_app_version="8.0.1",
+            expected_app_version="8.1.0",
             expected_mode="saas",
         )

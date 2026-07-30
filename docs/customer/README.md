@@ -8,7 +8,7 @@ This folder is the customer-facing source of truth for the v8.0.1 demonstration 
 
 ## Read first
 
-1. [Release Notes and Acceptance Evidence](Release_Notes_v8.0.1.md)
+1. [Release Notes and Acceptance Evidence](Release_Notes_v8.1.0.md)
 2. [Onboarding Checklist](Onboarding_Checklist.md)
 3. [FAQ](FAQ.md)
 4. [Pricing and Package Boundaries](Pricing_and_Package_Boundaries.md)

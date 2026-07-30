@@ -1,0 +1,348 @@
+/* Shared presentation for the served pages under /customer-resources/.
+ *
+ * Why this file exists
+ * --------------------
+ * FAQ.html and Release_Notes_v8.1.0.html each carried their own hand-written
+ * :root — forest #15312e on #f7f3eb with a sage #dce9df note band and a
+ * #d7a93d focus ring. Those are the retired palette. When the product moved to
+ * the PWE family identity, product-home.html was migrated and these two pages
+ * were missed, because backend/tests/test_product_home_brand.py only watched
+ * product-home.html. Duplicated hex is what let them drift, so there is now one
+ * stylesheet for all of /customer-resources/ and it derives every value from
+ * the canonical tokens instead of restating them.
+ *
+ * Source of truth for the brand values below:
+ *   backend/frontend/assets/ui-tokens.css   (--pwe-family-*, --ui-space-*)
+ *   docs/design/Brand_Identity.md §4        (colour roles and their limits)
+ *   01 BRAND ASSETS/brand-tokens.json       (delivery kit)
+ * Load order on every page: ui-tokens.css -> customer-resources.css
+ *
+ * Measured contrast (sRGB, WCAG 2.1 relative luminance):
+ *   ink navy #0E1729   on paper #F7F5F2 ... 16.45:1   on white ... 17.90:1
+ *   copy slate-600     on paper .......... 6.96:1     on white ...  7.58:1
+ *   meta slate-500     on white ..........              4.76:1
+ *     (slate-500 is 4.37:1 on Warm Paper and is therefore never used there)
+ *   eyebrow amber-text on paper ..........  4.52:1     on white ...  4.92:1
+ *   link Console Blue  on paper ..........  4.75:1     on white ...  5.17:1
+ *   focus ring amber-text on paper .......  4.52:1     on white ...  4.92:1
+ *   amber #F5B335      on navy ...........  9.70:1  (dark bands only)
+ *
+ * Family Amber is an identity colour, not a light-surface text colour: it is
+ * 1.70:1 on Warm Paper. Anything amber that has to be read or seen on a light
+ * surface uses --pwe-family-amber-text (#A16207).
+ */
+
+:root {
+  --cr-page: var(--pwe-warm-paper, #f7f5f2);
+  --cr-card: #ffffff;
+  --cr-ink: var(--pwe-family-navy, #0e1729);
+  --cr-ink-raised: var(--pwe-family-navy-raised, #16233d);
+  --cr-copy: #475569;          /* Brand_Identity §4 support neutral, slate-600 */
+  --cr-meta: #64748b;          /* slate-500 — white surfaces only              */
+  --cr-eyebrow: var(--pwe-family-amber-text, #a16207);
+  --cr-spark: var(--pwe-family-amber, #f5b335);   /* on navy only              */
+  --cr-link: #2563eb;          /* Brand_Identity §4 Console Blue, never the logo */
+  --cr-link-hover: #1d4ed8;
+  --cr-line: #cbd5e1;          /* quiet boundary, decorative                   */
+  --cr-fill: #e2e8f0;          /* quiet fill                                   */
+  --cr-flag: #fdf6e3;          /* disclosure band, a tint of Warm Paper        */
+  --cr-danger: #b42318;        /* open-gap callouts                            */
+  --cr-r-sm: 10px;
+  --cr-r-md: 16px;
+  --cr-r-lg: 21px;
+
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", sans-serif;
+  color: var(--cr-ink);
+  background: var(--cr-page);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--cr-page);
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.wrap {
+  width: min(var(--cr-measure, 820px), calc(100% - 32px));
+  margin-inline: auto;
+  padding: var(--ui-space-5, 34px) 0 var(--ui-space-7, 89px);
+}
+
+.wrap--wide { --cr-measure: 980px; }
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+.topline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-3, 13px);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.back,
+.lang {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  padding: 0 .85rem;
+  border: 1px solid var(--cr-line);
+  border-radius: 999px;
+  background: var(--cr-card);
+  color: var(--cr-ink);
+  font-size: .9rem;
+  font-weight: 650;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background .2s, border-color .2s;
+}
+
+.back { padding-left: .7rem; }
+.back:hover,
+.lang:hover { border-color: var(--cr-ink); background: var(--cr-fill); }
+
+.eyebrow {
+  margin: var(--ui-space-5, 34px) 0 .5rem;
+  color: var(--cr-eyebrow);
+  font-size: .78rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+html[lang="zh"] .eyebrow { letter-spacing: .04em; text-transform: none; }
+
+/* CJK headlines wrap; sub-1.0 leading and negative tracking collide glyphs, so
+ * the tight Latin display settings are scoped to the English rendering. */
+h1 {
+  margin: 0 0 var(--ui-space-3, 13px);
+  font-size: clamp(2.1rem, 6vw, 3.4rem);
+  line-height: 1.1;
+}
+
+html[lang="en"] h1 { letter-spacing: -.035em; }
+
+h2 {
+  margin: var(--ui-space-6, 55px) 0 var(--ui-space-3, 13px);
+  font-size: 1.45rem;
+  line-height: 1.3;
+}
+
+h3 { margin: var(--ui-space-4, 21px) 0 .35rem; font-size: 1.02rem; }
+
+.lede {
+  max-width: var(--ui-reading-measure, 55ch);
+  margin: 0 0 var(--ui-space-4, 21px);
+  color: var(--cr-copy);
+  font-size: 1.06rem;
+}
+
+p, li { max-width: 68ch; }
+p { margin: 0 0 .85rem; }
+
+a { color: var(--cr-link); }
+a:hover { color: var(--cr-link-hover); }
+.topline a, .back { color: var(--cr-ink); }
+
+/* Amber-text clears 3:1 on every surface these pages use (worst case 3.99:1 on
+ * the slate fill), which the retired #d7a93d ring did not do on white. */
+:focus-visible {
+  outline: 3px solid var(--cr-eyebrow);
+  outline-offset: 3px;
+  box-shadow: none;
+}
+
+.band :focus-visible { outline-color: var(--cr-spark); }
+
+/* ── Status pill ────────────────────────────────────────────────────────── */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  min-height: 32px;
+  margin-bottom: var(--ui-space-4, 21px);
+  padding: .3rem .8rem;
+  border: 1px solid var(--cr-eyebrow);
+  border-radius: 999px;
+  background: var(--cr-flag);
+  color: var(--cr-ink);
+  font-size: .85rem;
+  font-weight: 700;
+}
+
+.status::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cr-eyebrow);
+}
+
+/* ── Draft / disclosure notice ──────────────────────────────────────────── */
+.notice {
+  margin: var(--ui-space-4, 21px) 0;
+  padding: var(--ui-space-3, 13px) var(--ui-space-4, 21px);
+  border: 1px solid var(--cr-eyebrow);
+  border-left-width: 4px;
+  border-radius: var(--cr-r-sm);
+  background: var(--cr-flag);
+}
+
+.notice p { max-width: none; }
+.notice p:last-child { margin-bottom: 0; }
+.notice strong { color: var(--cr-ink); }
+
+.todo {
+  padding-left: 1.15rem;
+  color: var(--cr-copy);
+}
+
+.todo code {
+  padding: .1rem .35rem;
+  border-radius: 5px;
+  background: var(--cr-fill);
+  color: var(--cr-danger);
+  font-size: .88em;
+}
+
+/* ── Cards, accordions, tables ──────────────────────────────────────────── */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ui-space-3, 13px);
+}
+
+.card {
+  padding: var(--ui-space-4, 21px);
+  border: 1px solid var(--cr-line);
+  border-radius: var(--cr-r-md);
+  background: var(--cr-card);
+}
+
+.card p { max-width: none; color: var(--cr-copy); }
+.card p:last-child { margin-bottom: 0; }
+.card strong { display: block; margin-bottom: .3rem; color: var(--cr-ink); }
+
+details {
+  margin: .6rem 0;
+  padding: 0 var(--ui-space-4, 21px);
+  border: 1px solid var(--cr-line);
+  border-radius: var(--cr-r-md);
+  background: var(--cr-card);
+}
+
+/* The border is decorative (1.48:1). What identifies the control at >=3:1 is
+ * the amber-text marker (4.92:1 on white) plus the high-contrast label. */
+summary {
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-3, 13px);
+  cursor: pointer;
+  font-weight: 700;
+  list-style: none;
+}
+
+summary::-webkit-details-marker { display: none; }
+
+summary::after {
+  content: "+";
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--cr-flag);
+  color: var(--cr-eyebrow);
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+details[open] > summary::after { content: "\2212"; }
+details > *:not(summary) { color: var(--cr-copy); }
+details > p:last-child { margin-bottom: var(--ui-space-4, 21px); }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--cr-line);
+  border-radius: var(--cr-r-sm);
+  background: var(--cr-card);
+  overflow: hidden;
+}
+
+th, td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--cr-line);
+  text-align: left;
+  vertical-align: top;
+}
+
+th { background: var(--cr-ink); color: var(--cr-card); font-size: .9rem; }
+td { color: var(--cr-copy); }
+tr:last-child td { border-bottom: 0; }
+
+.scroll-x { overflow-x: auto; }
+
+/* ── Dark band ──────────────────────────────────────────────────────────── */
+.band {
+  margin: var(--ui-space-4, 21px) 0;
+  padding: var(--ui-space-4, 21px) var(--ui-space-5, 34px);
+  border-radius: var(--cr-r-lg);
+  background: var(--cr-ink);
+  color: var(--cr-card);
+}
+
+.band h2 { margin-top: 0; color: var(--cr-card); }
+.band .eyebrow { margin-top: 0; color: var(--cr-spark); }
+.band li, .band p { color: #cbd5e1; }
+.band a { color: var(--cr-spark); }
+
+.band .inset {
+  margin-top: var(--ui-space-3, 13px);
+  padding: var(--ui-space-3, 13px) var(--ui-space-4, 21px);
+  border: 1px solid #2c3d61;
+  border-radius: var(--cr-r-sm);
+  background: var(--cr-ink-raised);
+}
+
+/* ── Footer ─────────────────────────────────────────────────────────────── */
+.legal-foot {
+  margin-top: var(--ui-space-6, 55px);
+  padding-top: var(--ui-space-4, 21px);
+  border-top: 1px solid var(--cr-line);
+  color: var(--cr-copy);
+  font-size: .85rem;
+}
+
+.legal-foot p { max-width: none; }
+
+.legal-foot nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem 1rem;
+  margin-top: .6rem;
+}
+
+.legal-foot nav a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+[data-lang="zh"] { display: none; }
+html[lang="zh"] [data-lang="en"] { display: none; }
+html[lang="zh"] [data-lang="zh"] { display: revert; }
+
+@media (max-width: 680px) {
+  .grid { grid-template-columns: 1fr; }
+  table { font-size: .86rem; }
+  .band { padding: var(--ui-space-4, 21px); }
+}

@@ -95,7 +95,7 @@ SESSION_SECRET_FILE = _data_path('.session_secret')
 PW_FILE       = _data_path('.cms_password')
 app.config['PHOTO_DIR'] = PHOTO_DIR
 MAX_BACKUPS   = 30   # 1 backup/hr rate limit → ~30 hours of rolling coverage
-APP_VERSION   = '8.0.1'
+APP_VERSION   = '8.1.0'
 app.config['APP_VERSION'] = APP_VERSION
 ALLOWED_EXT   = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
 EXT_MIME_TYPES = {
@@ -988,7 +988,9 @@ def serve_customer_resource(filename):
         'PWE_Studio_Data_Import_Template.csv',
         'PWE_Studio_Data_Import_Template.xlsx',
         'FAQ.html',
-        'Release_Notes_v8.0.1.html',
+        'Release_Notes_v8.1.0.html',
+        'Privacy_Policy.html',
+        'Terms_of_Service.html',
     }
     safe = os.path.basename(filename)
     if safe != filename or safe not in allowed:

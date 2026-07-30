@@ -346,7 +346,7 @@ def seed() -> dict[str, Any]:
                     code, name, monthly_price_aud, student_limit, user_limit,
                     storage_limit_mb, features
                 )
-                VALUES ('studio', 'Studio', 99, 500, 8, 30720, '{}'::jsonb)
+                VALUES ('studio', 'Studio', 99, 500, 5, 10240, '{}'::jsonb)
                 ON CONFLICT (code) DO NOTHING
                 """
             )

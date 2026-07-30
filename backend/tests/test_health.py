@@ -11,7 +11,7 @@ def test_health_returns_ok(client):
     assert payload["ok"] is True
     assert payload["service"] == "PWE Studio SaaS API"
     assert payload["version"] == "v1"
-    assert payload["appVersion"] == "8.0.1"
+    assert payload["appVersion"] == "8.1.0"
     assert payload["mode"] == "saas"
     assert payload["showProducerCredit"] is True
 

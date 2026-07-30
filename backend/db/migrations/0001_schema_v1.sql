@@ -287,9 +287,9 @@ CREATE TABLE IF NOT EXISTS tenant_usage (
 
 INSERT INTO plans (code, name, monthly_price_aud, student_limit, user_limit, storage_limit_mb, features)
 VALUES
-    ('starter', 'Starter', 49, 100, 2, 5120, '{"public_registration": true, "portfolio": true}'::jsonb),
-    ('studio', 'Studio', 99, 500, 8, 30720, '{"public_registration": true, "portfolio": true, "email_templates": true, "data_export": true}'::jsonb),
-    ('growth', 'Growth', 199, 1500, 20, 102400, '{"public_registration": true, "portfolio": true, "email_templates": true, "data_export": true, "priority_support": true}'::jsonb)
+    ('starter', 'Starter', 49, 100, 1, 2048, '{"public_registration": true, "portfolio": true}'::jsonb),
+    ('studio', 'Studio', 99, 500, 5, 10240, '{"public_registration": true, "portfolio": true, "email_templates": true, "data_export": true}'::jsonb),
+    ('growth', 'Growth', 199, 1000, 20, 51200, '{"public_registration": true, "portfolio": true, "email_templates": true, "data_export": true, "priority_support": true}'::jsonb)
 ON CONFLICT (code) DO NOTHING;
 
 ALTER TABLE subscriptions

@@ -1,6 +1,6 @@
 # PWE Studio
 
-Current release: **v8.0.1**
+Current release: **v8.1.0**
 
 PWE Studio (repo: studiosaas) is a Creative Studio Operating System for art schools, music studios, tutoring centres, creative academies, kids' activity providers, and small education businesses. One codebase supports a multi-tenant SaaS delivery model and a customer-owned standalone Edition.
 
@@ -148,7 +148,7 @@ tenant slug in SaaS mode; the canonical operational URL remains `/<slug>/cms`.
     ├── server.py                 # Flask application (~1860 lines)
     ├── requirements.txt
     ├── pytest.ini
-    ├── db/schema_v1.sql          # Kept in sync with migrations (through 0020); ordered migrations are canonical
+    ├── db/schema_v1.sql          # Kept in sync with migrations (through 0021); ordered migrations are canonical
     ├── studiosaas/
     │   ├── api_v1.py             # All API routes (~8500 lines — split planned, v7 P2-1)
     │   ├── auth.py               # Auth helpers and decorators

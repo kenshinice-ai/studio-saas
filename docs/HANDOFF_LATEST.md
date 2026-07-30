@@ -407,3 +407,228 @@ bash deploy/aws/verify_release_bundles.sh
 
 Presenter credentials are intentionally excluded from Git, bundles, docs and
 this handoff. Read the protected local file only when presenting.
+
+## 8. Customer-facing compliance pages and brand repair (2026-07-30)
+
+### 8.1 What was wrong
+
+The product gateway footer links two pages that the brand migration missed
+entirely. `customer-resources/FAQ.html` and `Release_Notes_v8.0.1.html` still
+declared the **retired** palette inline — forest `#15312e` on `#f7f3eb`, a sage
+`#dce9df` note band, a `#d7a93d` focus ring.
+
+Root cause of the miss: `backend/tests/test_product_home_brand.py:7` only ever
+loaded `product-home.html`. Nothing in `customer-resources/` was inside the
+regression net, so the two pages kept an obsolete palette without a single test
+failing.
+
+The FAQ was also **factually wrong after today's launch**. It answered "Is this
+already a production AWS deployment?" with "No. The current service runs locally
+… exposed through Cloudflare Tunnel. AWS hosting, production backups, restore
+testing … are pending." All of that is stale as of §0.
+
+### 8.2 What changed
+
+- Both pages re-based on the canonical tokens through a shared
+  `backend/frontend/assets/customer-resources.{css,js}`, so the next brand
+  change touches one file rather than four.
+- FAQ and release notes rewritten against the facts in §0. Deliberately **not**
+  over-corrected: monitoring, an SLA, privileged-account MFA and off-box media
+  backup are still absent and are still disclosed as absent.
+- Two new compliance pages, bilingual on the same `data-lang` mechanism as the
+  gateway:
+  - `customer-resources/Privacy_Policy.html`
+  - `customer-resources/Terms_of_Service.html`
+- `product-home.html` footer links both; `backend/server.py` allow-lists both.
+
+### 8.3 Legal identity (owner-supplied, 2026-07-30)
+
+```
+PWE GROUP PTY LTD
+ABN 55 606 664 546        ACN 606 664 546
+Caulfield North, Melbourne, Victoria, Australia
+lee.liu.melbourne@gmail.com      Privacy contact: Lee L
+Governing law: Victoria, Australia
+```
+
+The ABN checksum verifies (weighted sum 534, `534 mod 89 = 0`) and the ACN it
+implies verifies independently (check digit 6). **Format and checksum only —
+registration status was not looked up**, so neither page asserts more than the
+identity itself.
+
+### 8.4 Still open before these pages are relied on
+
+| | Item | Note |
+|---|---|---|
+| 🟠 | Deliverable postal address | Suburb-level only. A privacy policy normally needs an address that can receive a written access/correction request. Nothing was invented. |
+| 🟠 | Domain mailbox | `pwestudio.online` has **no MX record** — `info@` cannot receive mail, which is why the owner's Gmail is published instead. Move to `privacy@pwestudio.online` once MX exists. |
+| 🔴 | Australian legal review | Two sections carry `Needs legal review` on the page itself: retention of children's teaching records, and how a deletion request interacts with record-keeping duties. The studios teach children; this is not a wording preference. |
+| 🟠 | Liability and insurance | `Terms_of_Service.html:126` marks the cap, indirect-loss exclusion and insurance requirements as intentionally unresolved. |
+
+Both pages carry a draft qualifier at the top, matching how
+`docs/customer/Service_Agreement_Draft.md` positions itself.
+
+### 8.5 The regression net that was missing
+
+`backend/tests/test_customer_resources_brand.py` (new, 17 tests) now covers
+**every** page in `customer-resources/`, not one hand-picked file:
+
+- retired palette values fail the build; canonical tokens must be present
+- no page may declare its own palette instead of reading the shared asset
+- bilingual `data-lang` coverage, no leftover `{{PLACEHOLDER}}`
+- legal entity present on the compliance pages, draft qualifier present
+- the privacy policy must cover children and publication consent, must disclose
+  the open gaps, and **must not promise a response deadline** while the
+  contact channel is a personal mailbox
+- the FAQ must state the live deployment, not the retired boundary
+- Family Amber `#F5B335` may never be used as text on a light surface — that is
+  what the accessible `#A16207` exists for
+- the gateway footer must link every page, and `server.py` must allow-list every
+  page shipped
+
+Verification: **242 pytest** (was 206) + terminology, escaping and inline-script
+checks all green.
+
+### 8.6 UI/UX upgrade plan
+
+`docs/design/UI_UX_Upgrade_Plan_2026-07-30.md` (1,593 lines) — analysis only,
+no code changed by it. Highest-priority finding, which is a live defect rather
+than a polish item: `tenant-template/index.html:265` `.result-card` hard-codes
+`color:#EFE9DD` against `background:var(--ink)`. Under a light theme that is
+13.69:1; under a dark theme `--ink` becomes the light text colour and the
+registration success card renders at **1.06:1 — invisible**. The 56px check mark
+sits at 1.21:1 and the "back to home" control at :538 has the same problem.
+
+---
+
+## 9. Commercial plan quota revision (2026-07-30, owner decision)
+
+Quotas only. **Prices, plan codes, plan names and feature flags are unchanged**
+(Starter 49 / Studio 99 / Growth 199 AUD per month; one-off Setup fee AUD
+299–999 also unchanged).
+
+| Plan | AUD/month | Students | Team users | Storage | `storage_limit_mb` |
+|---|---:|---:|---:|---:|---:|
+| Starter | 49 (unchanged) | 100 (unchanged) | 2 → **1** | 5 GB → **2 GB** | 5120 → **2048** |
+| Studio | 99 (unchanged) | 500 (unchanged) | 8 → **5** | 30 GB → **10 GB** | 30720 → **10240** |
+| Growth | 199 (unchanged) | 1500 → **1000** | **20 (unchanged)** | 100 GB → **50 GB** | 102400 → **51200** |
+
+`growth.user_limit` stays at **20**: the owner revised only Growth's storage
+allowance and student ceiling and did not specify a team-account figure, so the
+existing value was preserved rather than invented.
+
+### 9.1 Files changed
+
+Database / seeds:
+
+- `backend/db/migrations/0021_plan_quota_revision.sql` — **new**, idempotent
+  quota UPDATEs scoped by plan code (the pending production change, see §8.2).
+- `backend/db/schema_v1.sql` and `backend/db/migrations/0001_schema_v1.sql` —
+  baseline `INSERT INTO plans` seed rows carry the new quotas, so a fresh
+  bootstrap is already correct and 0021 is a no-op there. Both stay in sync per
+  the migration discipline.
+- `backend/scripts/seed_local_test_tenants.py` — the isolation-fixture `studio`
+  plan row now seeds `5, 10240`.
+- `backend/test_tenant_isolation.py` — the storage-quota check restores
+  `studio.storage_limit_mb` to `10240` instead of `30720` after temporarily
+  forcing it to 1 MB.
+
+No new tables, so `backend/studiosaas/services/tenant_archive.py`
+`SNAPSHOT_TABLES` is **verified unchanged** — `plans` is a platform-global
+table and was never a tenant-scoped snapshot member.
+
+Customer-facing surfaces:
+
+- `product-home.html` — the three public pricing cards, both `en` and `zh`
+  spans (Starter "1 team user / 1 个团队账号" is singular).
+- `docs/customer/Pricing_and_Package_Boundaries.md` — subscription catalogue.
+- `docs/StudioSaaS_Blueprint_v2.md` — plan table.
+- `docs/sales/PWE_Studio_销售介绍.pptx` (**current deck**, referenced by
+  `README.md` and `docs/sales/talk_track.md`) and
+  `docs/sales/PWE_StudioSaaS_销售介绍.pptx` (superseded earlier copy still in
+  the repo) — slide 11 pricing table only. Both decks were rewritten
+  part-by-part so that `ppt/slides/slide11.xml` is the **only** changed entry
+  of 97; `scripts/office/validate.py --original` passes and a LibreOffice
+  render of slide 11 before/after shows identical layout with no overflow.
+
+Migration-inventory references bumped 0020 → 0021: `docs/Database.md` (with a
+new 0021 paragraph), `docs/Architecture.md`, `docs/Development_Roadmap.md`,
+`README.md`.
+
+### 9.2 Pending production change — SQL only, NOT applied
+
+`pwestudio.online` still holds the old catalogue. Editing the repository seed
+does not touch a running database. Two ways in, neither performed here:
+
+1. **Preferred — normal deploy.** `deploy/aws/entrypoint.sh` runs
+   `scripts/run_migrations.py` with the owner role on every container start, so
+   0021 applies by itself with the next
+   `bash deploy/aws/pwestudio_remote.sh deploy <tarball>` once the bundle
+   contains it. `schema_migrations` gains
+   `0021_plan_quota_revision.sql` and the instance moves from 20 to 21 applied
+   migrations (the §0 table still records the measured 20).
+2. **Quota-only, without a redeploy.** Run the migration body by hand as the
+   owner role, then insert the ledger row so the next deploy does not re-run it:
+
+```sql
+BEGIN;
+
+UPDATE plans SET user_limit = 1, storage_limit_mb = 2048
+ WHERE code = 'starter' AND (user_limit <> 1 OR storage_limit_mb <> 2048);
+
+UPDATE plans SET user_limit = 5, storage_limit_mb = 10240
+ WHERE code = 'studio' AND (user_limit <> 5 OR storage_limit_mb <> 10240);
+
+UPDATE plans SET student_limit = 1000, storage_limit_mb = 51200
+ WHERE code = 'growth' AND (student_limit <> 1000 OR storage_limit_mb <> 51200);
+
+INSERT INTO schema_migrations (version)
+VALUES ('0021_plan_quota_revision.sql')
+ON CONFLICT DO NOTHING;
+
+COMMIT;
+```
+
+Verify afterwards:
+
+```sql
+SELECT code, monthly_price_aud, student_limit, user_limit, storage_limit_mb
+  FROM plans WHERE code IN ('starter','studio','growth')
+ ORDER BY monthly_price_aud;
+-- expect: starter 49/100/1/2048, studio 99/500/5/10240, growth 199/1000/20/51200
+```
+
+### 9.3 Safety review of the reduction
+
+1. **Over-quota behaviour is refuse-to-add, never delete.** Three enforcement
+   points, all admission control on a *new* record:
+   `api_v1._student_capacity` + its two call sites (student create, registration
+   conversion) return 403 when `current >= student_limit`; the team
+   create/reactivate paths return 403 when active non-`parent` memberships
+   `>= user_limit`; `services/media._assert_storage_quota` raises
+   `MediaQuotaExceededError` before an upload is written. Nothing archives,
+   truncates or deletes existing students, members or media, so a tenant found
+   above a lowered ceiling keeps all of its data and simply cannot grow until
+   the plan is upgraded.
+2. **`lets-play-piano` sits exactly at the new Starter ceiling** (1 of 1 team
+   accounts). It keeps working; it cannot add a second account. The refusal
+   text is explicit rather than a bare 403 body:
+   `User limit reached (1). Upgrade the plan before adding another team member.`
+   — plan name, the actual number and the required remedy. The student-side
+   equivalents read `Student limit reached (N). Ask the StudioSaaS
+   administrator to upgrade the plan.` and `… Upgrade the plan before
+   converting this registration.`
+3. **`isolation-no-portfolio` (price 1) exists in the production `plans`
+   table.** It is the `backend/test_tenant_isolation.py` fixture plan
+   (`500 / 8 / 1024 MB`, portfolio flag off) that leaked into the production
+   database — reported, deliberately **not** deleted and deliberately **not**
+   re-quoted by 0021, which is scoped to the three real plan codes. Cleaning it
+   up is a separate decision because a tenant row may still reference it.
+
+Known cosmetic non-issue, **not changed**: `super-admin.html
+formatStorageMb()` prints one decimal below 10240 MB, so the Starter quota
+renders as "2.0 GB" where the pricing page says "2 GB" (previously "5.0 GB"
+vs "5 GB" — same pre-existing behaviour, not a regression). The decimal is
+load-bearing for *used*-storage display, so the formatter was left alone. The
+"Add Plan" form defaults (`149 / 800 / 12 / 51200`) describe a hypothetical new
+custom plan, not Starter/Studio/Growth, and were also left alone.

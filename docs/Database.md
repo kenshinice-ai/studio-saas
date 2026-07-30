@@ -11,7 +11,7 @@ Purpose: Schema definition, table descriptions, canonical enums, migration strat
 - **Engine:** PostgreSQL 16+ (local), RDS PostgreSQL (AWS production target)
 - **Local database name:** `studiosaas_local_test`
 - **Bootstrap reference:** `backend/db/schema_v1.sql`
-- **Canonical schema evolution:** ordered migrations through `0020_drop_redundant_indexes.sql`
+- **Canonical schema evolution:** ordered migrations through `0021_plan_quota_revision.sql`
 - **Isolation model:** All business data includes `tenant_id`. All queries bind tenant context.
 
 ### 1.1 Design Principles
@@ -216,7 +216,8 @@ backend/db/
     ├── 0017_public_website_media_and_analytics.sql
     ├── 0018_student_enrolment_date.sql
     ├── 0019_stability_indexes.sql
-    └── 0020_drop_redundant_indexes.sql
+    ├── 0020_drop_redundant_indexes.sql
+    └── 0021_plan_quota_revision.sql
 ```
 
 Migration 0019 (v7.4.1 stability pass) adds tenant-leading indexes for
@@ -232,6 +233,18 @@ constraint: `idx_media_variants_asset` (0015; column-identical to
 from `UNIQUE (tenant_id, version_number)` on `tenant_brand_versions` — a
 btree scans both directions). `ON CONFLICT` inference is unaffected; both
 UNIQUE constraints remain. No new tables, so `SNAPSHOT_TABLES` is unchanged.
+
+Migration 0021 (v8.0.1 commercial plan quota revision, 2026-07-30 owner
+decision) tightens the three SaaS plan quotas to the published catalogue:
+`starter` to 1 team user / 2048 MB, `studio` to 5 team users / 10240 MB, and
+`growth` to 1000 students / 51200 MB. Prices, plan codes, plan names, feature
+flags and `growth.user_limit` (20) are unchanged. The baseline seed in
+`schema_v1.sql` and `0001_schema_v1.sql` carries the same numbers, so a fresh
+bootstrap makes 0021 a no-op; it exists for databases seeded with the old
+catalogue. Reductions are admission-control only — `_student_capacity`, the
+team create/reactivate paths and `media._assert_storage_quota` all reject new
+records with 403 and never remove existing rows. No new tables, so
+`SNAPSHOT_TABLES` is unchanged.
 
 Tracking table:
 

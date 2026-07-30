@@ -986,7 +986,7 @@ def main() -> int:
     )
     with connect() as conn:
         with conn.cursor() as cur:
-            cur.execute("UPDATE plans SET storage_limit_mb = 30720 WHERE code = 'studio'")
+            cur.execute("UPDATE plans SET storage_limit_mb = 10240 WHERE code = 'studio'")
             cur.execute(
                 "UPDATE media_assets SET byte_size = %s WHERE tenant_id = %s AND id = %s",
                 (len(PNG), fixtures["tenant_a"], canonical_media_id),
