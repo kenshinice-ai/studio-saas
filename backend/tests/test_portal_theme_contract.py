@@ -276,21 +276,78 @@ CMS_APP = REPOSITORY_ROOT / "legacy-root" / "src" / "cms-app.jsx"
 BRAND_UTILITY = re.compile(r"(?:bg|text|border|from|to|via)-(?:indigo|purple)-(\d{2,3})")
 
 
-def test_every_brand_shade_the_cms_uses_is_re_pointed_at_the_theme() -> None:
-    """Whatever shades the app uses, the shell must override all of them."""
+# Every Tailwind colour family the CMS could use. Listing them explicitly (as
+# opposed to matching "any word") is deliberate: a typo like `bg-grey-50` should
+# read as an unknown class, not silently pass as a covered family.
+TAILWIND_FAMILIES = (
+    "slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald"
+    "|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose"
+)
+COLOUR_UTILITY = re.compile(
+    rf"(bg|text|border|from|to|via|divide)-({TAILWIND_FAMILIES})-(\d{{2,3}})"
+)
+SHELL_OVERRIDE = re.compile(r'\[class\*="([a-zA-Z0-9\\/.-]+)"\]')
 
-    used = set(BRAND_UTILITY.findall(_read(CMS_APP)))
-    shell = _read(CMS_SHELL)
-    uncovered = sorted(
-        shade for shade in used
-        if not re.search(rf'\[class\*="(?:bg|text|border|from|to|via)-(?:indigo|purple)-{shade[0]}', shell)
-    )
+
+def test_every_colour_utility_the_cms_uses_is_re_pointed_at_the_theme() -> None:
+    """The CMS may not paint a single surface Tailwind's colour instead of the studio's.
+
+    Audited 2026-07-30: cms-app.jsx carries ~1,300 colour utilities across 12
+    families, and only indigo and purple had ever been re-pointed. A studio on
+    the clay palette saw a green "网站与品牌" button, a blue absence panel, green
+    row actions and pink birthday chips — the CMS read as four products stacked
+    together.
+
+    The check derives the required list from the source rather than restating
+    it, so using a new shade fails the build at the moment it is introduced.
+    That matters more than the audit itself: the previous rules were correct
+    for the shades that existed when they were written, and rotted silently as
+    the app grew.
+    """
+
+    overrides = SHELL_OVERRIDE.findall(_read(CMS_SHELL))
+    uncovered: dict[str, int] = {}
+    for prop, family, shade in COLOUR_UTILITY.findall(_read(CMS_APP)):
+        token = f"{prop}-{family}-{shade}"
+        if not any(token.startswith(rule) for rule in overrides):
+            uncovered[token] = uncovered.get(token, 0) + 1
+
     assert not uncovered, (
-        f"cms-app.jsx uses indigo/purple shades {uncovered} that "
-        "legacy-root/index.html never re-points at the tenant theme. Those "
-        "surfaces stay Tailwind-coloured while the rest of the CMS follows the "
-        "studio's palette."
+        "cms-app.jsx uses colour utilities that legacy-root/index.html never "
+        f"re-points at the tenant theme: {sorted(uncovered)}. Add a rule mapping "
+        "each to its ROLE (structure / success / warning / danger / accent), not "
+        "to a matching hue — the role is what survives a palette change."
     )
+
+
+def test_the_colour_takeover_maps_by_role_not_by_hue() -> None:
+    """Semantic families must land on the theme's own semantic tokens.
+
+    palette_gen.py solves --success/--warning/--danger against both page and
+    panel for every theme-mode. Routing green/amber/red through them inherits
+    that; picking a replacement hue by eye would not.
+    """
+
+    shell = _read(CMS_SHELL)
+    for family, token in (
+        ("green", "--success"), ("emerald", "--success"),
+        ("amber", "--warning"), ("orange", "--warning"),
+        ("red", "--danger"), ("rose", "--danger"),
+    ):
+        rule = re.search(rf'\[class\*="text-{family}-"\][^;]*;', shell)
+        assert rule and token in rule.group(0), (
+            f"text-{family}-* should resolve to var({token})"
+        )
+
+    # Soft fills must be mixed against the panel, so they stay light on a light
+    # theme and dark on a dark one instead of becoming a pale slab.
+    assert "color-mix(in srgb, var(--success)" in shell
+    assert "color-mix(in srgb, var(--warning)" in shell
+    assert "color-mix(in srgb, var(--danger)" in shell
+
+    # The shared language switch reads --brand, which the CMS never defined —
+    # it fell back to stock blue in the corner of an otherwise themed page.
+    assert "--brand:var(--accent)" in shell
 
 
 def test_dark_cms_chrome_inverts_the_asserted_pair() -> None:

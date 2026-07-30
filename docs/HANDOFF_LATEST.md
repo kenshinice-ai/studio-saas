@@ -649,6 +649,112 @@ and off-box media backup remain absent and remain disclosed as absent.
 
 ---
 
+## 7.6 Roster slots, and the CMS colour audit (2026-07-30, after the v8.1.0 deploy)
+
+### Roster slots — migration 0022
+
+The roster answered "who is coming today" but not "when". A studio running a
+13:30 group and a 17:00 one-to-one saw one flat list, so the front desk could
+not tell whether a student was due now or in four hours, and a one-to-one booked
+into an occupied hour surfaced when both families arrived.
+
+`daily_roster_entries` gains `class_time time` (NULLABLE) and
+`one_to_one boolean`.
+
+**`class_time` is nullable on purpose.** Every existing row predates the column
+and there is no honest value to backfill; inventing 09:00 for 43 imported
+students would look like data rather than the absence of it. The UI groups those
+rows under 「时间未设置」 and sorts them last, keeping the gap visible.
+
+**`time`, not `timestamptz`.** This is a wall-clock slot in the studio's own
+timezone ("the 17:00 class"), not an instant. An instant moves when the offset
+changes, which is exactly wrong for a recurring lesson.
+
+Two semantics worth knowing:
+
+- `POST /daily-roster` COALESCEs the slot, so re-adding a student without naming
+  a time cannot erase one already set.
+- `PATCH /daily-roster/<id>` is the correction path. Moving a student from 10:00
+  to 17:00 must not reset their source and status the way re-adding would.
+
+Nine isolation checks cover the round trip, the COALESCE, cross-tenant refusal,
+and that `25:00` / `10:75` / `noon` / `10` are rejected while `""` remains a
+legitimate way to say the slot is not decided.
+
+The CMS shows a slot panel grouping the day by time, and flags what the flat
+list hid: **a one-to-one sharing its slot with anyone else.** Rows carry an
+inline time control, so a correction sits next to where the problem is visible.
+
+### The CMS colour audit
+
+`legacy-root/index.html` re-points Tailwind utility colours at the tenant theme.
+It covered indigo and purple, shades 50/100/600/700 — correct for the shades
+that existed when it was written, and silently rotten as the app grew.
+
+Measured: **cms-app.jsx carries 1,322 colour utilities across 149
+family+shade combinations in 12 families.** Two families were covered.
+
+So a studio on the clay palette saw a green 「网站与品牌」 button, a blue
+「长期未到访」 panel, green row actions, pink birthday chips, a purple-to-pink
+report gradient and a stock-blue language switch. The CMS read as four products
+stacked together — and the previous release, which themed the content area, made
+it *more* conspicuous rather than less.
+
+All 149 combinations now resolve to the theme, **mapped by role rather than by
+hue**:
+
+| Tailwind | Role | Resolves to |
+|---|---|---|
+| gray / slate / zinc / neutral / stone | structure | `--bg2`, `--line`, `--muted`, `--ink2`, `--ink` by shade band |
+| green / emerald / teal / lime | success | `--success` |
+| amber / yellow / orange | warning | `--warning` |
+| red / rose | danger | `--danger` |
+| blue / sky / cyan / pink / fuchsia | informational | `--accent-dark` |
+| indigo / violet / purple | primary | `--accent` |
+
+Role, not hue, because the role is what survives a palette change; and because
+`palette_gen.py` already solves `--success` / `--warning` / `--danger` against
+both page and panel for every theme-mode, routing through them inherits that
+contrast instead of re-deriving it by eye. Soft fills use `color-mix` against
+`--panel`, so they stay light under a light theme and dark under a dark one
+rather than becoming a pale slab on a dark page.
+
+Dark chrome (sidebar, mobile bar, login backdrop) maps to `--ink` with `--bg` as
+the foreground — the inversion `palette_gen.py:221` guarantees at 4.5:1 — because
+a fixed `text-white` is only readable while the surface stays dark.
+
+`--brand` is now defined as `--accent`: the shared admin language switch reads
+it, and with it undefined the switch fell back to stock blue `#3b82f6`.
+
+**The test derives the required list from cms-app.jsx** rather than restating
+it, so a newly-used shade fails the build at the moment it is introduced. That
+matters more than this audit: the old rules were right when written and rotted
+without a single failure.
+
+### Also fixed
+
+`backend/frontend/cms-entry.html` focus ring was `rgba(245,179,53,.55)`, which
+composites to **1.40:1** on white — the translucency made it worse than the
+solid amber, itself already too light for an indicator that WCAG 1.4.11 requires
+at 3:1. Now the accessible amber at 4.92:1.
+
+### Open
+
+- The ICS export is **spec-invalid**: `DTSTART;TZID=Australia/Melbourne` with no
+  `VTIMEZONE` component (`grep -c VTIMEZONE` = 0). RFC 5545 §3.6.5 requires the
+  referenced timezone to be defined in the same calendar object; `X-WR-TIMEZONE`
+  is an Apple extension and does not substitute. Apple leans on local time,
+  Google is inconsistent, Outlook may refuse the import — so a class lands at
+  the wrong moment in a family's calendar, silently, and `RRULE:FREQ=WEEKLY`
+  repeats it weekly. Being fixed in a separate stream together with the download
+  dialog and the preview API shape.
+- Still not done from `docs/design/UI_UX_Upgrade_Plan_2026-07-30.md`: per-day
+  counts on the week strip, the inline status menu, the day's roster change log,
+  item #29 (merging the two CMS dark systems), items #7/#8 (CMS-internal
+  readability).
+
+---
+
 ## 8. Customer-facing compliance pages and brand repair (2026-07-30)
 
 ### 8.1 What was wrong

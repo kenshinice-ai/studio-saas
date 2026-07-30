@@ -399,6 +399,90 @@
         /* The unauthenticated login backdrop. */
         [class*="from-indigo-9"] { --tw-gradient-from:var(--ink) var(--tw-gradient-from-position) !important; }
         [class*="to-indigo-95"] { --tw-gradient-to:color-mix(in srgb, var(--ink) 86%, var(--bg)) var(--tw-gradient-to-position) !important; }
+
+        /* ══ Tenant theme takes over every Tailwind colour the CMS uses ══
+           Audited 2026-07-30: cms-app.jsx carries 1,389 colour utilities across
+           12 families. Only indigo and purple were ever re-pointed, so a studio
+           that picked the clay palette still saw a green "网站与品牌" button, a
+           blue "长期未到访" panel, green row actions and pink birthday chips —
+           the CMS looked like four products stacked together.
+
+           The mapping is by ROLE, not by hue, because that is what survives a
+           theme switch: red/rose mean danger whatever the palette, gray means
+           "structure", and the tenant's own success/warning/danger already
+           carry generator-checked contrast (palette_gen.py asserts each against
+           both page and panel). Mapping hue-to-hue would just move the problem.
+
+           Soft fills go through color-mix against --panel rather than a fixed
+           tint, so they stay light under a light theme and dark under a dark one
+           instead of becoming a pale slab on a dark page. */
+
+        /* — structure: gray/slate/zinc/neutral/stone — */
+        [class*="bg-gray-50"], [class*="bg-slate-50"], [class*="bg-zinc-50"], [class*="bg-neutral-50"], [class*="bg-stone-50"],
+        [class*="bg-gray-100"], [class*="bg-slate-100"], [class*="bg-zinc-100"] { background-color:var(--bg2) !important; }
+        [class*="bg-gray-200"], [class*="bg-slate-200"], [class*="bg-gray-300"] { background-color:color-mix(in srgb, var(--line) 70%, var(--panel)) !important; }
+        [class*="text-gray-400"], [class*="text-slate-400"], [class*="text-gray-500"], [class*="text-slate-500"],
+        [class*="text-zinc-400"], [class*="text-neutral-400"] { color:var(--muted) !important; }
+        [class*="text-gray-600"], [class*="text-slate-600"], [class*="text-gray-700"], [class*="text-slate-700"] { color:var(--ink2) !important; }
+        [class*="text-gray-800"], [class*="text-slate-800"], [class*="text-gray-900"], [class*="text-slate-900"] { color:var(--ink) !important; }
+        [class*="border-gray-"], [class*="border-slate-"], [class*="border-zinc-"], [class*="border-neutral-"], [class*="border-stone-"] { border-color:var(--line) !important; }
+        [class*="divide-gray-"], [class*="divide-slate-"] { border-color:var(--line) !important; }
+
+        /* — success: green / emerald / teal / lime — */
+        [class*="bg-green-50"], [class*="bg-green-100"], [class*="bg-emerald-50"], [class*="bg-emerald-100"],
+        [class*="bg-teal-50"], [class*="bg-teal-100"], [class*="bg-lime-50"], [class*="bg-lime-100"] { background-color:color-mix(in srgb, var(--success) 12%, var(--panel)) !important; }
+        [class*="bg-green-6"], [class*="bg-green-7"], [class*="bg-emerald-6"], [class*="bg-emerald-7"],
+        [class*="bg-teal-6"], [class*="bg-teal-7"] { background-color:var(--success) !important; color:var(--on-accent) !important; }
+        [class*="text-green-"], [class*="text-emerald-"], [class*="text-teal-"], [class*="text-lime-"] { color:var(--success) !important; }
+        [class*="border-green-"], [class*="border-emerald-"], [class*="border-teal-"], [class*="border-lime-"] { border-color:color-mix(in srgb, var(--success) 45%, var(--panel)) !important; }
+
+        /* — warning: amber / yellow / orange — */
+        [class*="bg-amber-50"], [class*="bg-amber-100"], [class*="bg-yellow-50"], [class*="bg-yellow-100"],
+        [class*="bg-orange-50"], [class*="bg-orange-100"] { background-color:color-mix(in srgb, var(--warning) 14%, var(--panel)) !important; }
+        [class*="bg-amber-6"], [class*="bg-amber-7"], [class*="bg-orange-6"], [class*="bg-orange-7"] { background-color:var(--warning) !important; color:var(--on-accent) !important; }
+        [class*="text-amber-"], [class*="text-yellow-"], [class*="text-orange-"] { color:var(--warning) !important; }
+        [class*="border-amber-"], [class*="border-yellow-"], [class*="border-orange-"] { border-color:color-mix(in srgb, var(--warning) 45%, var(--panel)) !important; }
+
+        /* — danger: red / rose — */
+        [class*="bg-red-50"], [class*="bg-red-100"], [class*="bg-rose-50"], [class*="bg-rose-100"] { background-color:color-mix(in srgb, var(--danger) 12%, var(--panel)) !important; }
+        [class*="bg-red-6"], [class*="bg-red-7"], [class*="bg-rose-6"], [class*="bg-rose-7"] { background-color:var(--danger) !important; color:var(--on-accent) !important; }
+        [class*="text-red-"], [class*="text-rose-"] { color:var(--danger) !important; }
+        [class*="border-red-"], [class*="border-rose-"] { border-color:color-mix(in srgb, var(--danger) 45%, var(--panel)) !important; }
+
+        /* — informational: blue / sky / cyan / pink / fuchsia —
+           These carry no semantic weight of their own in this app (the blue
+           "long absence" panel, the pink birthday chips), so they follow the
+           tenant's secondary accent and stay distinct from the primary. */
+        [class*="bg-blue-50"], [class*="bg-blue-100"], [class*="bg-sky-50"], [class*="bg-sky-100"],
+        [class*="bg-cyan-50"], [class*="bg-pink-50"], [class*="bg-pink-100"], [class*="bg-fuchsia-50"] { background-color:color-mix(in srgb, var(--accent-dark) 12%, var(--panel)) !important; }
+        [class*="bg-blue-6"], [class*="bg-blue-7"], [class*="bg-sky-6"], [class*="bg-pink-6"], [class*="bg-pink-7"] { background-color:var(--accent-dark) !important; color:var(--on-secondary) !important; }
+        [class*="text-blue-"], [class*="text-sky-"], [class*="text-cyan-"], [class*="text-pink-"], [class*="text-fuchsia-"] { color:var(--accent-dark) !important; }
+        [class*="border-blue-"], [class*="border-sky-"], [class*="border-cyan-"], [class*="border-pink-"], [class*="border-fuchsia-"] { border-color:color-mix(in srgb, var(--accent-dark) 45%, var(--panel)) !important; }
+
+        /* The tail of the audit: shades used only once or twice, which is exactly
+           how a palette leaks back in — nobody notices a single bg-amber-400. */
+        [class*="bg-gray-700"], [class*="bg-gray-800"], [class*="bg-gray-900"] { background-color:var(--ink) !important; color:var(--bg) !important; }
+        [class*="text-gray-300"] { color:color-mix(in srgb, var(--muted) 70%, var(--panel)) !important; }
+        [class*="text-indigo-900"] { color:var(--accent) !important; }
+        [class*="text-purple-900"] { color:var(--accent-dark) !important; }
+        [class*="bg-amber-200"], [class*="bg-amber-400"] { background-color:color-mix(in srgb, var(--warning) 55%, var(--panel)) !important; }
+        [class*="bg-green-400"] { background-color:color-mix(in srgb, var(--success) 60%, var(--panel)) !important; }
+        [class*="bg-red-900"] { background-color:var(--danger) !important; color:var(--on-accent) !important; }
+        [class*="bg-blue-200"] { background-color:color-mix(in srgb, var(--accent-dark) 30%, var(--panel)) !important; }
+
+        /* Decorative gradients (avatar placeholders, celebration banners).
+           Both stops follow the theme so a gradient cannot smuggle an
+           off-palette hue past the rules above. */
+        [class*="from-purple-"], [class*="from-pink-"], [class*="from-rose-"],
+        [class*="from-blue-"], [class*="from-emerald-"], [class*="from-amber-"] { --tw-gradient-from:var(--accent) var(--tw-gradient-from-position) !important; }
+        [class*="to-pink-"], [class*="to-rose-"], [class*="to-purple-"],
+        [class*="to-blue-"], [class*="to-emerald-"], [class*="to-amber-"] { --tw-gradient-to:var(--accent-dark) var(--tw-gradient-to-position) !important; }
+
+        /* The shared admin language switch reads --brand, which the CMS never
+           defined, so it fell back to the stock blue #3b82f6 in the corner of
+           an otherwise themed page. */
+        :root { --brand:var(--accent); }
+
         /* ── M6: Thumbnail active feedback on touch ── */
         .port-thumb { touch-action:manipulation; }
         .port-thumb:active { opacity:.82; transform:scale(.96); transition:opacity .08s,transform .08s; }

@@ -36,7 +36,11 @@ from .auth import (
     verify_password as _auth_verify_password,
 )
 from .config import is_standalone, load_config, show_producer_credit, studiosaas_mode
-from .calendar_export import build_schedule_calendar
+from .calendar_export import (
+    CalendarDocument,
+    build_roster_document,
+    build_schedule_document,
+)
 from .db import DatabaseUnavailableError, connect, fetch_all, fetch_one
 from .errors import api_error
 from .lifecycle import (
