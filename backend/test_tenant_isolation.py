@@ -1491,6 +1491,92 @@ def main() -> int:
         },
     )
     roster_entry_id = str(((roster_add.get_json() or {}).get("entryIds") or [""])[0])
+    # ── 0022: the slot, and what the slot is for ────────────────────────────
+    # The roster answered "who is coming today" but not "when", so a studio
+    # running a 10:00 group and a 17:00 one-to-one saw one flat list.
+    timed_add = owner_a.post(
+        f"/s/{TENANT_A}/v1/daily-roster",
+        json={
+            "date": "2026-07-19",
+            "studentIds": [fixtures["student_a"]],
+            "source": "manual",
+            "classTime": "17:00",
+            "oneToOne": True,
+        },
+    )
+    timed_entry_id = str(((timed_add.get_json() or {}).get("entryIds") or [""])[0])
+    timed_rows = ((timed_add.get_json() or {}).get("roster") or {}).get("entries", [])
+    timed_row = next((r for r in timed_rows if r.get("id") == timed_entry_id), {})
+    check(
+        "Roster entry stores an HH:MM slot and the one-to-one flag",
+        timed_row.get("classTime") == "17:00" and timed_row.get("oneToOne") is True,
+        f"got classTime={timed_row.get('classTime')!r} oneToOne={timed_row.get('oneToOne')!r}",
+    )
+
+    # Re-adding without naming a time must not erase a slot someone already set.
+    readd = owner_a.post(
+        f"/s/{TENANT_A}/v1/daily-roster",
+        json={"date": "2026-07-19", "studentIds": [fixtures["student_a"]], "source": "manual"},
+    )
+    readd_row = next(
+        (r for r in ((readd.get_json() or {}).get("roster") or {}).get("entries", [])
+         if r.get("id") == timed_entry_id), {},
+    )
+    check(
+        "Re-adding a student without a time keeps the slot already set",
+        readd_row.get("classTime") == "17:00",
+        f"got {readd_row.get('classTime')!r}",
+    )
+
+    # The correction path: move the slot without resetting source or status.
+    moved = owner_a.patch(
+        f"/s/{TENANT_A}/v1/daily-roster/{timed_entry_id}",
+        json={"classTime": "09:30"},
+    )
+    moved_row = next(
+        (r for r in ((moved.get_json() or {}).get("roster") or {}).get("entries", [])
+         if r.get("id") == timed_entry_id), {},
+    )
+    check(
+        "Roster slot can be corrected without re-adding the student",
+        moved.status_code == 200 and moved_row.get("classTime") == "09:30"
+        and moved_row.get("source") == "manual" and moved_row.get("status") == "scheduled",
+        f"got {moved.status_code} {moved_row.get('classTime')!r} {moved_row.get('source')!r}",
+    )
+
+    # "Not set" has to stay expressible — a guessed default is worse than a gap.
+    cleared = owner_a.patch(
+        f"/s/{TENANT_A}/v1/daily-roster/{timed_entry_id}", json={"classTime": ""},
+    )
+    cleared_row = next(
+        (r for r in ((cleared.get_json() or {}).get("roster") or {}).get("entries", [])
+         if r.get("id") == timed_entry_id), {},
+    )
+    check(
+        "Clearing a slot is allowed and reads back as unset",
+        cleared.status_code == 200 and cleared_row.get("classTime") in (None, ""),
+        f"got {cleared_row.get('classTime')!r}",
+    )
+
+    for bad in ("25:00", "10:75", "noon", "10"):
+        rejected = owner_a.patch(
+            f"/s/{TENANT_A}/v1/daily-roster/{timed_entry_id}", json={"classTime": bad},
+        )
+        check(
+            f"Roster slot rejects {bad!r}",
+            rejected.status_code == 400 and has_error_shape(rejected),
+            f"got {rejected.status_code}",
+        )
+
+    cross_patch = owner_b.patch(
+        f"/s/{TENANT_B}/v1/daily-roster/{timed_entry_id}", json={"classTime": "12:00"},
+    )
+    check(
+        "Roster slot cannot be edited across tenants",
+        cross_patch.status_code == 404,
+        f"got {cross_patch.status_code}",
+    )
+
     roster_read = owner_a.get(f"/s/{TENANT_A}/v1/daily-roster?date=2026-07-18")
     effective_ids = {
         row.get("studentId")

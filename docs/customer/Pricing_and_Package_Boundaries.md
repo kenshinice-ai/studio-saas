@@ -38,7 +38,7 @@ These figures match the v8.1.0 product plan catalogue. The signed order form con
 - online payment processing and automatic financial reconciliation;
 - automated SMS/email delivery providers;
 - custom domains and DNS management;
-- AWS production hosting and media backup until the required account and services are purchased;
+- an off-instance backup copy, uptime monitoring, backup-failure alerting and a contractual SLA (AWS production hosting, daily database and media backups and a rehearsed restore are in place since 30 July 2026);
 - organisation-level multi-campus aggregation.
 
 Current messaging actions open the user’s own Mail or Messages application. The user reviews and sends the message; PWE Studio does not claim provider delivery or delivery tracking.

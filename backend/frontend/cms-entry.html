@@ -11,6 +11,7 @@
       --navy: #0e1729;
       --navy-raised: #16233d;
       --amber: #f5b335;
+      --amber-text: #a16207;   /* readable on light surfaces; #f5b335 is not */
       --paper: #f7f5f2;
       --surface: #ffffff;
       --slate: #475569;
@@ -63,10 +64,16 @@
       border: 1px solid var(--line);
       color: var(--navy);
     }
+    /* Was rgba(245,179,53,.55): composited it measures 1.40:1 on white and
+       1.34:1 on paper, well under the 3:1 WCAG 1.4.11 requires of a focus
+       indicator — the translucency made it worse than the solid amber, which
+       is itself already too light. The accessible amber is 4.92:1 / 4.52:1. */
     input:focus-visible, button:focus-visible, a:focus-visible {
-      outline: 3px solid rgba(245, 179, 53, .55);
+      outline: 3px solid var(--amber-text);
       outline-offset: 2px;
     }
+    /* The navy panel is the one place the bright amber is the readable ring. */
+    .panel-dark :focus-visible { outline-color: var(--amber); }
     button {
       width: 100%;
       margin-top: 13px;

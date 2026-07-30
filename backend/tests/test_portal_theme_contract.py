@@ -261,3 +261,49 @@ def test_the_second_cms_dark_system_is_still_recorded_as_open() -> None:
         "systems) may now be done or partly done — update the plan, the handoff "
         "and this test together."
     )
+
+
+# ── CMS Tailwind shade coverage ──────────────────────────────────────────────
+# The CMS is a Tailwind app whose brand colours are indigo/purple utility
+# classes. legacy-root/index.html re-points those at the tenant theme. The
+# failure mode is not a crash and not an obviously wrong colour: the override
+# list covers SOME shades. It covered 50/100/600/700, so a studio on the clay
+# palette got a clay content area beside a `bg-indigo-900` sidebar — the
+# unthemed slab is more conspicuous than no theming at all would have been.
+
+CMS_SHELL = REPOSITORY_ROOT / "legacy-root" / "index.html"
+CMS_APP = REPOSITORY_ROOT / "legacy-root" / "src" / "cms-app.jsx"
+BRAND_UTILITY = re.compile(r"(?:bg|text|border|from|to|via)-(?:indigo|purple)-(\d{2,3})")
+
+
+def test_every_brand_shade_the_cms_uses_is_re_pointed_at_the_theme() -> None:
+    """Whatever shades the app uses, the shell must override all of them."""
+
+    used = set(BRAND_UTILITY.findall(_read(CMS_APP)))
+    shell = _read(CMS_SHELL)
+    uncovered = sorted(
+        shade for shade in used
+        if not re.search(rf'\[class\*="(?:bg|text|border|from|to|via)-(?:indigo|purple)-{shade[0]}', shell)
+    )
+    assert not uncovered, (
+        f"cms-app.jsx uses indigo/purple shades {uncovered} that "
+        "legacy-root/index.html never re-points at the tenant theme. Those "
+        "surfaces stay Tailwind-coloured while the rest of the CMS follows the "
+        "studio's palette."
+    )
+
+
+def test_dark_cms_chrome_inverts_the_asserted_pair() -> None:
+    """The sidebar cannot rely on a fixed `text-white`.
+
+    `bg-indigo-900 text-white` is only readable while the surface stays dark.
+    Once the surface follows the tenant theme it has to bring its foreground
+    with it, and --ink/--bg is the pair the generator already guarantees.
+    """
+
+    shell = _read(CMS_SHELL)
+    assert 'background-color:var(--ink) !important' in shell
+    assert "color:var(--bg) !important" in shell
+    # The pill inset must be expressed relative to the page colour, not by
+    # assuming darker means deeper — that assumption inverts under a dark theme.
+    assert "color-mix(in srgb, var(--ink) 86%, var(--bg))" in shell

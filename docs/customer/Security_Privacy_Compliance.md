@@ -33,12 +33,13 @@ The database and media both live on that single instance. Managed AWS services â
 
 The following are open gates, not hidden assurances:
 
-- privileged-account MFA is not yet implemented;
-- the controlled local demonstration currently uses one shared application
-  password; unique privileged credentials are mandatory before AWS production;
-- the current local + tunnel stage has no production availability commitment;
-- AWS database/media backup and tested restore are pending purchase and deployment;
-- Cloudflare connector ownership and count must be verified before every public presentation;
+- privileged-account MFA is not yet implemented â€” now an open gap on a live
+  service, and the highest-priority security item;
+- backups exist, run daily and restore correctly, but the copies live on the
+  same instance as the data; an off-instance copy is not yet in place;
+- there is no availability commitment: uptime monitoring, backup-failure
+  alerting, an on-call roster and a contractual SLA with stated recovery
+  objectives are all outstanding;
 - automated email/SMS delivery, provider logs and bounce/retry handling are not included;
 - a final privacy policy, service agreement and data-processing schedule require legal review;
 - an incident contact roster and production monitoring/on-call path must be assigned.

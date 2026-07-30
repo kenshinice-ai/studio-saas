@@ -1,10 +1,10 @@
 # PWE Studio v8.1.0 — Customer Delivery Index
 
 Status: customer-readable draft for commercial and legal review
-Deployment stage: local PostgreSQL service exposed through a managed Cloudflare Tunnel
-Production AWS status: not yet purchased or deployed
+Deployment stage: production on AWS Lightsail (`ap-southeast-2`) at `https://pwestudio.online`, live since 30 July 2026; PostgreSQL and media on the same instance
+Production operations status: daily backups and a rehearsed restore are in place; an off-instance backup copy, uptime monitoring, backup-failure alerting, on-call ownership, a contractual SLA and privileged-account MFA are not
 
-This folder is the customer-facing source of truth for the v8.1.0 demonstration and pre-production conversation.
+This folder is the customer-facing source of truth for the v8.1.0 commercial conversation.
 
 ## Read first
 
@@ -35,7 +35,7 @@ PWE Studio currently provides:
 
 The following are explicitly not represented as delivered in v8.1.0:
 
-- AWS production hosting, production media backup or a contractual production SLA;
+- a contractual production SLA, uptime monitoring, backup-failure alerting or on-call ownership (AWS production hosting itself went live on 30 July 2026, with daily database and media backups and a passing restore rehearsal, but the backup copies are still on the same instance);
 - online payment processing or accounting automation;
 - automated SMS/email provider delivery;
 - customer-owned custom domains;

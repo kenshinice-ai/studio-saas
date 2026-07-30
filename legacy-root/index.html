@@ -367,6 +367,38 @@
         [class*="bg-purple-50"], [class*="bg-purple-100"] { background-color:var(--tenant-secondary-soft) !important; }
         [class*="text-purple-400"], [class*="text-purple-500"], [class*="text-purple-600"], [class*="text-purple-700"], [class*="text-purple-800"] { color:var(--tenant-secondary) !important; }
         [class*="border-purple-"] { border-color:var(--tenant-secondary-border) !important; }
+
+        /* ── Dark chrome: the sidebar, the mobile top bar and the login panel ──
+           The rules above only ever covered the 50/100/600/700 shades. The
+           sidebar is `bg-indigo-900 text-white`, the login panel is a
+           `from-indigo-900 to-indigo-950` gradient, and the status pills inside
+           the sidebar are `bg-indigo-950` — none of which were mapped. So a
+           studio that picked the clay palette got a clay content area beside a
+           slab of Tailwind indigo, which reads worse than the fully unthemed
+           CMS did.
+
+           These map to --ink (the theme's text colour used as a surface) with
+           --bg as the foreground. That is the same inversion the portal's
+           success card uses, and palette_gen.py:221 asserts the pair at 4.5:1
+           for all 15 theme-modes — so it stays readable whether the tenant
+           theme is light or dark, which a fixed `text-white` cannot. */
+        [class*="bg-indigo-800"], [class*="bg-indigo-900"] { background-color:var(--ink) !important; }
+        /* One step toward the page colour, so nested pills read as inset in
+           either direction rather than assuming "darker" means "deeper". */
+        [class*="bg-indigo-950"] { background-color:color-mix(in srgb, var(--ink) 86%, var(--bg)) !important; }
+
+        [class*="bg-indigo-800"], [class*="bg-indigo-900"], [class*="bg-indigo-950"],
+        [class*="bg-indigo-800"] .text-white, [class*="bg-indigo-900"] .text-white, [class*="bg-indigo-950"] .text-white,
+        [class*="from-indigo-9"] .text-white, [class*="from-indigo-9"] h1, [class*="from-indigo-9"] h2 { color:var(--bg) !important; }
+
+        /* Muted sidebar copy: legible against --ink without competing with the
+           primary labels. */
+        [class*="text-indigo-100"], [class*="text-indigo-200"], [class*="text-indigo-300"] { color:color-mix(in srgb, var(--bg) 74%, var(--ink)) !important; }
+        [class*="border-indigo-800"], [class*="border-indigo-900"] { border-color:color-mix(in srgb, var(--bg) 24%, var(--ink)) !important; }
+
+        /* The unauthenticated login backdrop. */
+        [class*="from-indigo-9"] { --tw-gradient-from:var(--ink) var(--tw-gradient-from-position) !important; }
+        [class*="to-indigo-95"] { --tw-gradient-to:color-mix(in srgb, var(--ink) 86%, var(--bg)) var(--tw-gradient-to-position) !important; }
         /* ── M6: Thumbnail active feedback on touch ── */
         .port-thumb { touch-action:manipulation; }
         .port-thumb:active { opacity:.82; transform:scale(.96); transition:opacity .08s,transform .08s; }

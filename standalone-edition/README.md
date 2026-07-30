@@ -1,7 +1,7 @@
 # PWE Studio Edition（单店独立版）· 方案
 
-> **状态：✅ v8.0.1 可交付基线（2026-07-29），方案 A，定价已拍板。**
-> 基于 StudioSaaS v8.0.1。产品名：**PWE Studio Edition**。
+> **状态：✅ v8.1.0 可交付基线（2026-07-31），方案 A，定价已拍板。**
+> 基于 StudioSaaS v8.1.0。产品名：**PWE Studio Edition**。
 
 ---
 

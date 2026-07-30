@@ -905,6 +905,8 @@ function App() {
   const [selectedStudentIds, setSelectedStudentIds] = useState([]);
   const [rDate, setRDate] = useState(todayISO);
   const [rPick, setRPick] = useState(null);
+  const [rTime, setRTime] = useState("");
+  const [rOneToOne, setROneToOne] = useState(false);
   const [grpSel, setGrpSel] = useState("");
   const [schedules, setSchedules] = useState([]);
   const [scheduleLoadError, setScheduleLoadError] = useState("");
@@ -1862,15 +1864,25 @@ function App() {
     });
     showToast("已带入模板学员，请确认周几与时间后保存");
   };
-  const addDailyRosterStudents = async (date, studentIds, source = "manual", status = "scheduled") => {
+  const addDailyRosterStudents = async (date, studentIds, source = "manual", status = "scheduled", extra = {}) => {
     if (!TENANT_SLUG) return null;
     const data = await v1Api("/daily-roster", {
       method: "POST",
-      body: JSON.stringify({ date, studentIds, source, status })
+      body: JSON.stringify({ date, studentIds, source, status, ...extra })
     });
     await load();
     return data;
   };
+  const updateRosterEntry = async (entryId, patch) => {
+    if (!TENANT_SLUG || !entryId) return null;
+    const data = await v1Api(`/daily-roster/${entryId}`, {
+      method: "PATCH",
+      body: JSON.stringify(patch)
+    });
+    await load();
+    return data;
+  };
+  const rosterMetaFor = (date, sid) => (db.rosterEntries?.[date] || {})[sid] || {};
   const batchCheckIn = () => {
     const ids = dayIds;
     const already = ids.filter((id) => rosterDone.has(id)).length;
@@ -2716,13 +2728,29 @@ document.getElementById('copybtn').addEventListener('click', function(){
     try {
       const cur = db.rosters[rDate] || [];
       if (!cur.includes(rPick)) {
-        if (TENANT_SLUG) await addDailyRosterStudents(rDate, [rPick], "manual");
-        else {
+        if (TENANT_SLUG) {
+          await addDailyRosterStudents(
+            rDate,
+            [rPick],
+            "manual",
+            "scheduled",
+            { classTime: rTime || null, oneToOne: rOneToOne }
+          );
+          if (rTime) {
+            const same = (db.rosters[rDate] || []).filter((id) => (rosterMetaFor(rDate, id).classTime || "") === rTime).length + 1;
+            const name = db.students.find((x) => x.id === rPick)?.name || "学员";
+            showToast(
+              `${name} 已加入 ${rTime}；该时段共 ${same} 人`,
+              rOneToOne && same > 1 ? "warn" : "success"
+            );
+          }
+        } else {
           const ok = await save({ ...db, rosters: { ...db.rosters, [rDate]: [...cur, rPick] } });
           if (!ok) return;
         }
       }
       setRPick(null);
+      setROneToOne(false);
     } finally {
       setBusy(false);
     }
@@ -4012,7 +4040,16 @@ document.getElementById('copybtn').addEventListener('click', function(){
         className: "px-2.5 py-3 bg-indigo-50 border border-indigo-200 rounded-xl text-xs font-bold text-indigo-700 active:bg-indigo-100 flex-shrink-0"
       },
       "今天"
-    )), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-1" }, fmtDate(rDate), " ", WEEKDAYS[(/* @__PURE__ */ new Date(`${rDate}T12:00:00`)).getDay()])), /* @__PURE__ */ React.createElement("div", { className: "flex-1", id: "rosterAddStudent" }, /* @__PURE__ */ React.createElement("label", { className: "text-xs font-bold text-gray-500 mb-1 block" }, "添加学员"), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "flex-1" }, /* @__PURE__ */ React.createElement(StudentPicker, { students: availRoster, value: rPick, onChange: setRPick, placeholder: "搜索并选择学员..." })), /* @__PURE__ */ React.createElement(
+    )), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-1" }, fmtDate(rDate), " ", WEEKDAYS[(/* @__PURE__ */ new Date(`${rDate}T12:00:00`)).getDay()])), /* @__PURE__ */ React.createElement("div", { className: "flex-1", id: "rosterAddStudent" }, /* @__PURE__ */ React.createElement("label", { className: "text-xs font-bold text-gray-500 mb-1 block" }, "添加学员"), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 flex-wrap" }, /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-[180px]" }, /* @__PURE__ */ React.createElement(StudentPicker, { students: availRoster, value: rPick, onChange: setRPick, placeholder: "搜索并选择学员..." })), /* @__PURE__ */ React.createElement("div", { className: "min-w-[124px]" }, /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        type: "time",
+        value: rTime,
+        onChange: (e) => setRTime(e.target.value),
+        "aria-label": "上课时间",
+        className: "w-full px-3 py-3 border border-gray-300 rounded-xl bg-white text-sm font-bold min-h-[50px] outline-none focus:ring-2 focus:ring-indigo-500"
+      }
+    )), /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: addToRoster,
@@ -4020,7 +4057,15 @@ document.getElementById('copybtn').addEventListener('click', function(){
         className: "bg-indigo-600 active:bg-indigo-700 disabled:bg-gray-300 text-white px-5 py-3 rounded-xl font-bold text-sm min-h-[50px]"
       },
       "加入"
-    )))), /* @__PURE__ */ React.createElement("div", { className: "mt-3 pt-3 border-t border-gray-100 flex gap-2 items-center flex-wrap" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5 text-xs font-bold text-gray-500" }, /* @__PURE__ */ React.createElement(Icon, { name: "clipboard", className: "w-4 h-4" }), "班组模板"), /* @__PURE__ */ React.createElement(
+    )), /* @__PURE__ */ React.createElement("label", { className: "inline-flex items-center gap-2 mt-2 text-xs font-bold text-gray-500 min-h-[44px]" }, /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        type: "checkbox",
+        checked: rOneToOne,
+        onChange: (e) => setROneToOne(e.target.checked),
+        className: "w-4 h-4"
+      }
+    ), "1 对 1（同时段还有其他人时会提示冲突）"))), /* @__PURE__ */ React.createElement("div", { className: "mt-3 pt-3 border-t border-gray-100 flex gap-2 items-center flex-wrap" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5 text-xs font-bold text-gray-500" }, /* @__PURE__ */ React.createElement(Icon, { name: "clipboard", className: "w-4 h-4" }), "班组模板"), /* @__PURE__ */ React.createElement(
       "select",
       {
         value: grpSel,
@@ -4104,6 +4149,24 @@ document.getElementById('copybtn').addEventListener('click', function(){
         ["未签", valid.length - done, "bg-indigo-50 border-indigo-200 text-indigo-700"],
         ["低余额", low, low > 0 ? "bg-amber-50 border-amber-300 text-amber-700" : "bg-white border-gray-200 text-gray-400"]
       ].map(([l, v, cls]) => /* @__PURE__ */ React.createElement("span", { key: l, className: `px-3 py-1.5 rounded-xl border text-xs font-bold ${cls}` }, l, " ", v)));
+    })(), (() => {
+      const ids = dayIds.filter((id) => {
+        const st = db.students.find((x) => x.id === id);
+        return st && !st.archived;
+      });
+      if (!ids.length) return null;
+      const slots = {};
+      ids.forEach((id) => {
+        const t = (rosterMetaFor(rDate, id).classTime || "").trim() || "__unset";
+        (slots[t] = slots[t] || []).push(id);
+      });
+      const groups = Object.entries(slots).sort(([a], [b]) => a === "__unset" ? 1 : b === "__unset" ? -1 : a.localeCompare(b));
+      const nameOf = (id) => db.students.find((x) => x.id === id)?.name || "";
+      return /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-2xl shadow-sm border border-gray-100 p-3 mb-3" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-sm text-gray-800 mb-2 flex items-center gap-2" }, /* @__PURE__ */ React.createElement(Icon, { name: "clock", className: "w-4 h-4" }), "时段安排"), /* @__PURE__ */ React.createElement("div", { className: "space-y-1.5" }, groups.map(([t, arr]) => {
+        const soloIds = arr.filter((id) => !!rosterMetaFor(rDate, id).oneToOne);
+        const clash = soloIds.length > 0 && arr.length > 1;
+        return /* @__PURE__ */ React.createElement("div", { key: t, className: `rounded-xl px-3 py-2 border ${clash ? "bg-red-50 border-red-200" : "bg-gray-50 border-gray-100"}` }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap items-center gap-x-2 gap-y-1 text-xs" }, /* @__PURE__ */ React.createElement("span", { className: "font-bold text-gray-800 min-w-[56px]" }, t === "__unset" ? "时间未设置" : t), /* @__PURE__ */ React.createElement("span", { className: "px-2 py-0.5 rounded-full bg-white border border-gray-200 font-bold" }, arr.length, " 人"), /* @__PURE__ */ React.createElement("span", { className: "text-gray-500" }, arr.map(nameOf).filter(Boolean).join("、"))), soloIds.length > 0 && /* @__PURE__ */ React.createElement("p", { className: `mt-1 text-xs font-bold ${clash ? "text-red-700" : "text-indigo-600"}` }, clash ? `1 对 1 时间冲突：${soloIds.map(nameOf).join("、")} 与同时段其他排课重叠` : `1 对 1：${soloIds.map(nameOf).join("、")}`));
+      })));
     })(), /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "bg-gray-50 border-b px-4 py-3 flex justify-between items-center gap-2 flex-wrap" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-sm text-gray-800" }, fmtDate(rDate), " · ", dayIds.filter((id) => {
       const s = db.students.find((x) => x.id === id);
       return s && !s.archived;
@@ -4156,7 +4219,19 @@ ${msg}`).join("\n\n"), `已复制 ${lines.length} 条提醒内容`);
       const s = db.students.find((x) => x.id === sid);
       if (!s || s.archived) return null;
       const lowBal = (parseInt(s.balance, 10) || 0) <= renewTh;
-      return /* @__PURE__ */ React.createElement("div", { key: sid, className: `px-4 py-3 flex items-center hover-row gap-3 min-h-[64px] ${lowBal ? "bg-amber-50/60" : ""}` }, /* @__PURE__ */ React.createElement(PhotoAvatar, { photo: s.photo, name: s.name, size: "sm" }), /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-900 truncate" }, s.name), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400" }, s.mobile || "—", lowBal && /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5 ml-1 text-amber-600 font-bold" }, /* @__PURE__ */ React.createElement(Icon, { name: "bolt", className: "w-4 h-4" }), "余额告急"))), lowBal && /* @__PURE__ */ React.createElement("button", { onClick: () => {
+      return /* @__PURE__ */ React.createElement("div", { key: sid, className: `px-4 py-3 flex items-center hover-row gap-3 min-h-[64px] ${lowBal ? "bg-amber-50/60" : ""}` }, /* @__PURE__ */ React.createElement(PhotoAvatar, { photo: s.photo, name: s.name, size: "sm" }), /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-900 truncate" }, s.name, rosterMetaFor(rDate, sid).oneToOne && /* @__PURE__ */ React.createElement("span", { className: "ml-1.5 text-[11px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-full px-2 py-0.5" }, "1 对 1")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400" }, s.mobile || "—", rosterMetaFor(rDate, sid).classTime && /* @__PURE__ */ React.createElement("span", { className: "ml-1 font-bold text-gray-500" }, "· ", rosterMetaFor(rDate, sid).classTime), lowBal && /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5 ml-1 text-amber-600 font-bold" }, /* @__PURE__ */ React.createElement(Icon, { name: "bolt", className: "w-4 h-4" }), "余额告急"))), TENANT_SLUG && rosterMetaFor(rDate, sid).id && /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          type: "time",
+          defaultValue: rosterMetaFor(rDate, sid).classTime || "",
+          "aria-label": `${s.name} 的上课时间`,
+          onChange: (e) => {
+            const entryId = rosterMetaFor(rDate, sid).id;
+            updateRosterEntry(entryId, { classTime: e.target.value || "" }).then(() => showToast(e.target.value ? `${s.name} 上课时间改为 ${e.target.value}` : `${s.name} 已清除上课时间`)).catch((err) => showToast(err.message || "时间未能保存", "error"));
+          },
+          className: "px-2 py-2 border border-gray-300 rounded-xl bg-white text-xs font-bold min-h-[44px] w-[104px] flex-shrink-0 outline-none focus:ring-2 focus:ring-indigo-500"
+        }
+      ), lowBal && /* @__PURE__ */ React.createElement("button", { onClick: () => {
         const msg = renderMessage(
           "renewal",
           "{student} 家长您好！温馨提醒：您在 {studio} 的剩余课时为 {balance} 节{note}，为不影响后续上课安排，欢迎随时联系老师续课。",

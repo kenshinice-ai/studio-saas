@@ -105,8 +105,8 @@
   <h2 data-lang="zh">生产部署（2026 年 7 月 30 日）</h2>
   <p data-lang="en">The earlier editions of this page said AWS production acceptance was deferred. That is no longer accurate. The table records what was established, measured from outside the instance.</p>
   <p data-lang="zh">本页早前版本称「AWS 生产验收延后」，该表述已不再准确。下表记录已确立的事实，均从实例外部测量所得。</p>
-  <p data-lang="en">The instance keeps serving the build installed on that date until the next deployment. The v8.1.0 build and the revised plan allowances reach it when that deployment runs; the deployment step applies the change and rolls itself back if the service does not come up healthy.</p>
-  <p data-lang="zh">在下一次部署前，实例继续运行该日安装的构建。v8.1.0 构建与调整后的套餐额度将随该次部署生效；部署步骤会自动应用变更，并在服务未能健康启动时自行回滚。</p>
+  <p data-lang="en">v8.1.0 itself, including the revised plan allowances, has since been deployed to the same instance and is what the service runs today. Every deployment backs up first and rolls itself back if the service does not come up healthy.</p>
+  <p data-lang="zh">v8.1.0 本身（含调整后的套餐额度）此后已部署至同一实例，即当前对外提供服务的版本。每次部署都会先行备份，并在服务未能健康启动时自行回滚。</p>
   <div class="scroll-x">
     <table>
       <thead>
@@ -118,7 +118,7 @@
       <tbody>
         <tr>
           <td><span data-lang="en">Public service</span><span data-lang="zh">公开服务</span></td>
-          <td><span data-lang="en">Served from an AWS Lightsail instance in the Sydney region</span><span data-lang="zh">由悉尼区域的 AWS Lightsail 实例提供服务</span></td>
+          <td><span data-lang="en">v8.1.0 served from an AWS Lightsail instance in the Sydney region</span><span data-lang="zh">v8.1.0 由悉尼区域的 AWS Lightsail 实例提供服务</span></td>
         </tr>
         <tr>
           <td><span data-lang="en">Transport</span><span data-lang="zh">传输</span></td>

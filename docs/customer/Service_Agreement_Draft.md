@@ -81,9 +81,9 @@ The v8.1.0 device-native Mail/Messages feature opens the user’s application; t
 
 ## 9. Availability, maintenance and support
 
-No production availability commitment applies while the service is operating in the local + Cloudflare Tunnel stage.
+The service runs on AWS production hosting, but no availability commitment applies until one is stated in a signed order form. Uptime monitoring, backup-failure alerting and on-call ownership are not yet in place, so no target could be measured or enforced today.
 
-When production AWS hosting is accepted, the order form should state:
+The order form should state:
 
 - service hours and target availability;
 - planned maintenance notice;

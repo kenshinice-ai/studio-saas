@@ -2,7 +2,8 @@
 
 Version: v8.1.0
 Date: 2026-07-31（Stage 2 上线记录：2026-07-30）
-Scope: 生产运行于 AWS Lightsail 单实例，域名 `https://pwestudio.online`。
+Scope: 生产运行于 AWS Lightsail 单实例，域名 `https://pwestudio.online`，
+当前版本 v8.1.0（21 项迁移已应用）。
 本地部署仍是开发与验证路径；**Cloudflare Tunnel 已退出生产链路，仅供本地开发**，
 不得再为该域名重新引入。生产事实与实测证据见
 [`HANDOFF_LATEST.md`](HANDOFF_LATEST.md) §0，操作命令见 §0.2。

@@ -211,7 +211,9 @@ The legacy Register shell (`legacy-root/register.html`) intercepts `/api/registe
 | Component | Integration |
 |---|---|
 | PostgreSQL (local) | Homebrew PostgreSQL 16+/18, database `studiosaas_local_test` |
-| PostgreSQL (AWS) | RDS PostgreSQL — future production |
+| PostgreSQL (production) | `postgres:16-alpine` container on the Lightsail instance; **not** RDS |
+| Host edge (production) | nginx on the Lightsail instance terminates TLS (Let's Encrypt, apex + `www`); the application binds to `127.0.0.1` only |
+| PostgreSQL (RDS) | Reserved — future production; not in use |
 | S3 | Media and portfolio storage — future (`media_assets.storage_provider` reserved) |
 | CloudFront | CDN for public assets and portfolio — future |
 | SES | Email delivery — future |

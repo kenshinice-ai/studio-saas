@@ -310,9 +310,10 @@ password. Local/Pilot demonstration credentials live only in the ignored
 demo-password migration is performed only by
 `backend/scripts/set_local_demo_passwords.py`; it is not a startup hook.
 
-The current shared-password policy is for the controlled local demonstration
-only. Before AWS production, replace it with unique credentials, add MFA and
-protect platform administration with a second access layer.
+The shared-password policy applies to the local demonstration environment only
+and must never reach the production instance. Privileged production accounts
+still lack MFA and a second access layer — that is the highest-priority open
+security item on a service that is already live (`docs/HANDOFF_LATEST.md` §0).
 
 ### 4.6.1 Portable online runtime
 
@@ -883,7 +884,7 @@ curl -i -X POST http://localhost:8901/v1/admin/tenants \
 | `docs/QA_Checklist.md` | Pre-release checklist |
 | `docs/Admin_Guide.md` | Platform ops: setup, backup, troubleshooting |
 | `docs/Release_Runbook.md` | Provider-neutral migration, media backfill, release, rollback, and recovery gate |
-| `docs/Deployment.md` | Current release boundary: local → Cloudflare Tunnel; AWS deferred |
+| `docs/Deployment.md` | Deployment stages; Stage 2 (AWS Lightsail) live since 2026-07-30 |
 | `docs/Design_System.md` | UI tokens and component standards |
 | `docs/Glossary.md` | One agreed word per concept (enforced by `check_terminology.py`) |
 | `docs/guides/` | Per-role user manuals in Chinese (applicable to v8.1.0) |

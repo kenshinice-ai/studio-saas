@@ -211,6 +211,7 @@ automated half; the measured values are recorded in
 `docs/HANDOFF_LATEST.md` §10.
 
 - [x] Local deep health returns `appVersion=8.1.0`, `mode=saas`, `db=ok`
+- [x] Production deep health at `https://pwestudio.online` returns `appVersion=8.1.0`, 21 migrations applied, revised plan quotas live
 - [x] Registration success card takes both colours from the theme; the `--ink` / `--bg` pair is asserted at ≥4.5:1 by `docs/design/palette_gen.py` for all 15 theme-modes (was a fixed cream at **1.06:1** on the seven dark modes)
 - [x] Portal degraded-content band uses the theme's warning semantic, not a fixed warm yellow
 - [x] No colour declaration on a themed portal surface names a literal hex; `portal-theme.css` is the single fallback palette

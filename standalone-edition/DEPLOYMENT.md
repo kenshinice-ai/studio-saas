@@ -1,6 +1,6 @@
 # PWE Studio Edition · 部署方式
 
-> v8.0.1 已实现并纳入双包发布验证（2026-07-29）。
+> v8.1.0 已实现并纳入双包发布验证（2026-07-29）。
 
 ## 1. 主路径：Docker Compose（单机同箱）
 
@@ -81,7 +81,11 @@ ReadWritePaths），PostgreSQL 用系统包。文档已有，独立版补 standa
 
 ## 6. 当前运营边界
 
-- SaaS：本机 PostgreSQL + Waitress，通过 Cloudflare Tunnel 做邀请式测试
-- Edition：可构建、可安装、可升级的软件交付形态；交付前仍须走 RUNBOOK 验收
-- AWS/RDS/S3/SES：代码与历史方案保留，但 v8.0.1 **不部署、不宣称已上线**
-- 媒体独立备份：用户明确延后
+- SaaS：**已上线生产**，`https://pwestudio.online`，AWS Lightsail 单实例，
+  host nginx 终止 TLS，容器内 PostgreSQL 16 + 本机媒体卷（2026-07-30）。
+  Cloudflare Tunnel 已退出生产链路，只保留本地开发用途
+- Edition：可构建、可安装、可升级的软件交付形态；交付前仍须走 RUNBOOK 验收。
+  Edition 装在客户自己的主机上，不受上述 SaaS 托管形态影响
+- RDS/S3/SES：代码与历史方案保留，**未采用**；SaaS 生产的数据库与媒体都在
+  同一实例上
+- 媒体独立备份、异地备份副本、监控与 SLA：均未完成，且在客户文档中如实披露

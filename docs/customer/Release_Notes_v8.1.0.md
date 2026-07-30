@@ -61,7 +61,7 @@ Prices, plan codes, plan names and feature flags are unchanged.
 | Studio | 99 (unchanged) | 500 (unchanged) | 8 → **5** | 30 GB → **10 GB** |
 | Growth | 199 (unchanged) | 1500 → **1000** | 20 (unchanged) | 100 GB → **50 GB** |
 
-Applied by migration `0021_plan_quota_revision.sql`. Over-quota behaviour is
+Applied by migration `0021_plan_quota_revision.sql`, live in production. Over-quota behaviour is
 admission control on new records only: a tenant found above a lowered ceiling
 keeps all of its data and simply cannot add more until the plan is upgraded.
 
@@ -111,9 +111,11 @@ keeps all of its data and simply cannot add more until the plan is upgraded.
 | Privileged MFA | second factor enforced for every privileged account | Open |
 | Monitoring and SLA | uptime and backup-failure alerting, on-call roster, signed target | Open |
 
-The instance keeps serving the build installed on 2026-07-30 until the next
-deployment; the v8.1.0 build and migration 0021 reach production with that
-deployment. See `docs/HANDOFF_LATEST.md` §9.2.
+v8.1.0 is deployed: the instance runs `studiosaas:8.1.0` with 21 migrations
+applied and the revised plan quotas live
+(`starter 100/1/2048 · studio 500/5/10240 · growth 1000/20/51200`). See
+`docs/HANDOFF_LATEST.md` §7.5. (§9.2 of that document describes migration 0021
+as pending; it was written before the deploy and is superseded by §7.5.)
 
 ## Customer acceptance
 

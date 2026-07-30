@@ -40,4 +40,4 @@ Never send passwords, access codes, payment details or sensitive student informa
 
 ## Production monitoring boundary
 
-The current local + Cloudflare Tunnel mode has no contractual 24/7 monitoring. Production alerting, on-call ownership, backup-failure alerts and maintenance notices are AWS acceptance requirements.
+The service runs in production on AWS, but it is not yet *operated* to a contract: there is no 24/7 monitoring, no backup-failure alerting, no on-call ownership and no maintenance-notice commitment. Those remain acceptance requirements and must be agreed in the order form before any availability target is relied on.

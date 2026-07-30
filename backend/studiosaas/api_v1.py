@@ -4807,10 +4807,12 @@ def _legacy_data_for_tenant(conn, tenant_id: str) -> dict:
     roster_rows = fetch_all(
         conn,
         """
-        SELECT id, roster_date, student_id, source, status, note, created_at
+        SELECT id, roster_date, student_id, source, status, note, created_at,
+               to_char(class_time, 'HH24:MI') AS class_time, one_to_one
         FROM daily_roster_entries
         WHERE tenant_id = %s AND status <> 'cancelled'
-        ORDER BY roster_date, created_at, id
+        -- Slot order, unset last: the CMS renders the day straight from this.
+        ORDER BY roster_date, class_time ASC NULLS LAST, created_at, id
         """,
         (tenant_id,),
     )
@@ -4825,6 +4827,8 @@ def _legacy_data_for_tenant(conn, tenant_id: str) -> dict:
             "source": row["source"],
             "status": row["status"],
             "note": row["note"],
+            "classTime": row["class_time"],
+            "oneToOne": bool(row["one_to_one"]),
             "createdAt": row["created_at"].isoformat(),
         }
     pending = fetch_all(
@@ -6833,6 +6837,31 @@ def _roster_date(value: object) -> _date:
         raise ValueError("date must use YYYY-MM-DD format.") from exc
 
 
+def _class_time(value) -> str | None:
+    """Validate an HH:MM wall-clock slot, or None when it is not set.
+
+    Empty string and None both mean "not set" — the roster is allowed to carry
+    a student whose time nobody has decided yet, and that has to stay
+    distinguishable from a guessed default.
+    """
+
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    parts = text.split(":")
+    if len(parts) < 2 or len(parts) > 3:
+        raise ValueError("classTime must be HH:MM.")
+    try:
+        hour, minute = int(parts[0]), int(parts[1])
+    except ValueError as exc:
+        raise ValueError("classTime must be HH:MM.") from exc
+    if not (0 <= hour <= 23 and 0 <= minute <= 59):
+        raise ValueError("classTime must be a real time between 00:00 and 23:59.")
+    return f"{hour:02d}:{minute:02d}"
+
+
 def _daily_roster_for_date(conn, tenant_id: str, roster_date: _date) -> dict:
     """Return explicit entries plus the recurring schedule preview for a date."""
 
@@ -6841,12 +6870,17 @@ def _daily_roster_for_date(conn, tenant_id: str, roster_date: _date) -> dict:
         """
         SELECT dre.id, dre.student_id, s.display_name AS student_name,
                dre.source, dre.status, dre.note, dre.cancelled_at,
+               to_char(dre.class_time, 'HH24:MI') AS class_time,
+               dre.one_to_one,
                dre.created_at, dre.updated_at
         FROM daily_roster_entries dre
         JOIN students s
           ON s.tenant_id = dre.tenant_id AND s.id = dre.student_id
         WHERE dre.tenant_id = %s AND dre.roster_date = %s
-        ORDER BY dre.status = 'cancelled', lower(s.display_name), dre.created_at
+        -- NULLS LAST keeps "time not set" at the bottom of the day rather than
+        -- at the top, where it would read as the earliest slot.
+        ORDER BY dre.status = 'cancelled', dre.class_time ASC NULLS LAST,
+                 lower(s.display_name), dre.created_at
         """,
         (tenant_id, roster_date),
     )
@@ -6914,6 +6948,8 @@ def _daily_roster_for_date(conn, tenant_id: str, roster_date: _date) -> dict:
             "source": row["source"],
             "status": row["status"],
             "note": row["note"],
+            "classTime": row["class_time"],
+            "oneToOne": bool(row["one_to_one"]),
             "cancelledAt": row["cancelled_at"].isoformat() if row["cancelled_at"] else None,
             "createdAt": row["created_at"].isoformat(),
             "updatedAt": row["updated_at"].isoformat(),
@@ -6926,6 +6962,11 @@ def _daily_roster_for_date(conn, tenant_id: str, roster_date: _date) -> dict:
                 "source": row["source"],
                 "entryId": str(row["id"]),
                 "status": row["status"],
+                # The roster UI renders from effectiveStudents, so the slot has
+                # to travel here too — carrying it only on `entries` is what
+                # made the first version of this read back as null.
+                "classTime": row["class_time"],
+                "oneToOne": bool(row["one_to_one"]),
                 "scheduleIds": effective.get(str(row["student_id"]), {}).get("scheduleIds", []),
             }
     return {
@@ -7002,6 +7043,11 @@ def add_daily_roster_entries():
         return _error("source must be manual, group, profile, or import.")
     if status not in {"scheduled", "makeup"}:
         return _error("status must be scheduled or makeup.")
+    try:
+        class_time = _class_time(payload.get("classTime", payload.get("class_time")))
+    except ValueError as exc:
+        return _error(str(exc))
+    one_to_one = bool(payload.get("oneToOne", payload.get("one_to_one", False)))
 
     with connect() as conn:
         tenant = _tenant_context(conn)
@@ -7025,13 +7071,17 @@ def add_daily_roster_entries():
                     """
                     INSERT INTO daily_roster_entries (
                         tenant_id, roster_date, student_id, source, status,
-                        note, created_by_user_id
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        note, class_time, one_to_one, created_by_user_id
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s::time, %s, %s)
                     ON CONFLICT (tenant_id, roster_date, student_id) DO UPDATE
                     SET source = EXCLUDED.source,
                         status = EXCLUDED.status,
                         status_before_cancel = NULL,
                         note = EXCLUDED.note,
+                        -- Re-adding a student without naming a time must not
+                        -- erase the slot someone already set for them.
+                        class_time = COALESCE(EXCLUDED.class_time, daily_roster_entries.class_time),
+                        one_to_one = EXCLUDED.one_to_one,
                         cancelled_by_user_id = NULL,
                         cancelled_at = NULL,
                         updated_at = now()
@@ -7044,6 +7094,8 @@ def add_daily_roster_entries():
                         source,
                         status,
                         note,
+                        class_time,
+                        one_to_one,
                         actor_user_id,
                     ),
                 )
@@ -7054,11 +7106,80 @@ def add_daily_roster_entries():
             action="daily_roster.added",
             resource_type="daily_roster",
             resource_id=entry_ids[0] if len(entry_ids) == 1 else "",
-            metadata={"date": roster_date.isoformat(), "students": student_ids, "source": source},
+            metadata={
+                "date": roster_date.isoformat(),
+                "students": student_ids,
+                "source": source,
+                "classTime": class_time or "",
+                "oneToOne": one_to_one,
+            },
         )
         conn.commit()
         roster = _daily_roster_for_date(conn, tenant.tenant_id, roster_date)
     return jsonify({"ok": True, "entryIds": entry_ids, "roster": roster}), 201
+
+
+@api_v1.route("/daily-roster/<entry_id>", methods=["PATCH"])
+@permission_required("attendance:write")
+def update_daily_roster_entry(entry_id: str):
+    """Change one roster entry's slot or its one-to-one flag.
+
+    Separate from the add route because this is the correction path: the front
+    desk moves a student from 10:00 to 17:00 without re-adding them, which
+    would otherwise reset source and status.
+    """
+
+    payload = request.get_json(silent=True) or {}
+    updates: list[str] = []
+    params: list = []
+    if "classTime" in payload or "class_time" in payload:
+        try:
+            class_time = _class_time(payload.get("classTime", payload.get("class_time")))
+        except ValueError as exc:
+            return _error(str(exc))
+        updates.append("class_time = %s::time")
+        params.append(class_time)
+    if "oneToOne" in payload or "one_to_one" in payload:
+        updates.append("one_to_one = %s")
+        params.append(bool(payload.get("oneToOne", payload.get("one_to_one"))))
+    if not updates:
+        return _error("Provide classTime or oneToOne.")
+
+    try:
+        entry_uuid = str(_uuid.UUID(str(entry_id)))
+    except (ValueError, TypeError, AttributeError):
+        return _error("entry_id must be a valid UUID.")
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        row = fetch_one(
+            conn,
+            f"""
+            UPDATE daily_roster_entries
+               SET {', '.join(updates)}, updated_at = now()
+             WHERE tenant_id = %s AND id = %s
+            RETURNING roster_date, student_id,
+                      to_char(class_time, 'HH24:MI') AS class_time, one_to_one
+            """,
+            (*params, tenant.tenant_id, entry_uuid),
+        )
+        if not row:
+            return _error("Roster entry was not found in this tenant.", 404)
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="daily_roster.updated",
+            resource_type="daily_roster",
+            resource_id=entry_uuid,
+            metadata={
+                "date": row["roster_date"].isoformat(),
+                "classTime": row["class_time"] or "",
+                "oneToOne": bool(row["one_to_one"]),
+            },
+        )
+        conn.commit()
+        roster = _daily_roster_for_date(conn, tenant.tenant_id, row["roster_date"])
+    return jsonify({"ok": True, "roster": roster})
 
 
 @api_v1.route("/daily-roster/<entry_id>", methods=["DELETE"])

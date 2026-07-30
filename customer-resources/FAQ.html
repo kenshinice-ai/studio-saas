@@ -35,8 +35,8 @@
 
   <details open>
     <summary><span data-lang="en">Is this a production AWS deployment?</span><span data-lang="zh">这是正式的 AWS 生产部署吗？</span></summary>
-    <p data-lang="en">Yes, since 30 July 2026. <a href="https://pwestudio.online">pwestudio.online</a> is served from an AWS Lightsail instance in the Sydney region. The host terminates TLS with a Let’s Encrypt certificate covering the apex and <code>www</code>, renewed automatically; HTTP redirects to HTTPS and HSTS is set for one year. The application listens only on the instance’s loopback interface and is reached through that edge. The Cloudflare Tunnel used for earlier demonstrations is no longer the production path and will not be reintroduced for this hostname.</p>
-    <p data-lang="zh">是，自 2026 年 7 月 30 日起。<a href="https://pwestudio.online">pwestudio.online</a> 由位于悉尼区域的 AWS Lightsail 实例提供服务。主机使用 Let’s Encrypt 证书终止 TLS，覆盖主域与 <code>www</code> 并自动续期；HTTP 跳转至 HTTPS，HSTS 有效期一年。应用只监听实例本地回环地址，对外一律经该边缘转发。此前用于演示的 Cloudflare Tunnel 已不再是生产路径，本域名也不会再启用。</p>
+    <p data-lang="en">Yes, since 30 July 2026. <a href="https://pwestudio.online">pwestudio.online</a> serves v8.1.0 from an AWS Lightsail instance in the Sydney region. The host terminates TLS with a Let’s Encrypt certificate covering the apex and <code>www</code>, renewed automatically; HTTP redirects to HTTPS and HSTS is set for one year. The application listens only on the instance’s loopback interface and is reached through that edge. The Cloudflare Tunnel used for earlier demonstrations is no longer the production path and will not be reintroduced for this hostname.</p>
+    <p data-lang="zh">是，自 2026 年 7 月 30 日起。<a href="https://pwestudio.online">pwestudio.online</a> 由位于悉尼区域的 AWS Lightsail 实例提供 v8.1.0 服务。主机使用 Let’s Encrypt 证书终止 TLS，覆盖主域与 <code>www</code> 并自动续期；HTTP 跳转至 HTTPS，HSTS 有效期一年。应用只监听实例本地回环地址，对外一律经该边缘转发。此前用于演示的 Cloudflare Tunnel 已不再是生产路径，本域名也不会再启用。</p>
   </details>
 
   <details>

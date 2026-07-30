@@ -18,6 +18,13 @@ moved 8.0.1 → **8.1.0** because the release now contains a production
 deployment, a customer-visible defect fix and a commercial quota change — not a
 patch-level correction.
 
+**Read §7.5 with this section.** §7.5 records the v8.1.0 deploy itself and the
+two defects that deploy exposed (an image tag naming the wrong version; the
+renamed release-notes URL 404ing). This section records the version bump, the
+product fixes it carries and the documentation sweep that made the repository's
+prose match the deployed reality. §7.5 is the current runtime truth; §0 is the
+2026-07-30 measurement it superseded in part.
+
 ### 10.1 Version bump — the four files that define it
 
 | File | Change |
@@ -138,10 +145,13 @@ wide margin on exactly the surface a keyboard user needs it.
 | CMS's two dark systems not merged | `docs/design/UI_UX_Upgrade_Plan_2026-07-30.md` **item 29**, `legacy-root/index.html:151-238` |
 | 128 `text-gray-400` occurrences below AA (2.31:1 at worst) | same document **item 8**, `legacy-root/src/cms-app.jsx` |
 | 8 Tailwind semantic-colour steps not on the semantic scale | same document **item 7** |
-| Migration 0021 not yet applied to production | §9.2 — the instance still holds the old plan catalogue until the next deploy |
 
 Items 7, 8 and 29 are CMS-internal: they affect staff-facing screens, not the
 parent- or student-facing surfaces fixed in §10.2.
+
+Migration 0021 **is** applied to production — §9.2 describes it as pending, but
+the v8.1.0 deploy in §7.5 carried it in. The instance reports 21 migrations and
+`starter 100/1/2048 · studio 500/5/10240 · growth 1000/20/51200`.
 
 ## 0. AWS production is LIVE (2026-07-30)
 
@@ -168,12 +178,15 @@ same hostname.
 | Operator entry | `ssh pwestudio` (see §0.2) and `bash deploy/aws/pwestudio_remote.sh <cmd>` |
 | Not yet done | RDS, S3, SES, MFA for privileged accounts, off-box backup copy, uptime monitoring |
 
-The version numbers in this section are what was **measured on the instance**
-on 2026-07-30 and are still what it serves. The repository moved to 8.1.0 on
-2026-07-31 (§10.1); the instance reaches 8.1.0, and migration 0021, with the
-next `pwestudio_remote.sh deploy` (§9.2). A repository version ahead of the
-deployed one is the normal state between a release and its deploy — do not
-"fix" this table to match `VERSION`.
+**Superseded in part by §7.5.** The version, commit, migration count and release
+path in this table are what was measured on 2026-07-30. The v8.1.0 deploy has
+since landed: the instance runs `studiosaas:8.1.0`, commit `30da029`+, with 21
+migrations applied and the revised plan quotas live. Everything else in this
+table — instance, IP, DNS, edge, certificate, least privilege, backups,
+canonical host, operator entry and the "not yet done" row — is unchanged and
+still current. This section is left as the 2026-07-30 measurement rather than
+rewritten, so the two deploys stay separately auditable; §7.5 is the current
+runtime truth.
 
 ### 0.1 "Not Secure" in Chrome was a client-side cache, not a server fault
 
@@ -783,7 +796,14 @@ Migration-inventory references bumped 0020 → 0021: `docs/Database.md` (with a
 new 0021 paragraph), `docs/Architecture.md`, `docs/Development_Roadmap.md`,
 `README.md`.
 
-### 9.2 Pending production change — SQL only, NOT applied
+### 9.2 Production change — APPLIED 2026-07-30 (was: SQL only, not applied)
+
+> **Superseded.** This section was written before the v8.1.0 deploy. Migration
+> `0021` is now applied in production: 21 migrations recorded, quotas read
+> `starter 100/1/2048 · studio 500/5/10240 · growth 1000/20/51200`. The
+> procedure below is kept because it documents the two application paths and
+> the reasoning; the "not applied" framing no longer describes reality. See
+> §7.5 for the deploy that applied it.
 
 `pwestudio.online` still holds the old catalogue. Editing the repository seed
 does not touch a running database. Two ways in, neither performed here:

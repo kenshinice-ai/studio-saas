@@ -549,6 +549,9 @@ CREATE TABLE IF NOT EXISTS daily_roster_entries (
     status_before_cancel text
         CHECK (status_before_cancel IS NULL OR status_before_cancel IN ('scheduled', 'makeup')),
     note text NOT NULL DEFAULT '',
+    -- 0022: wall-clock slot in the studio timezone; NULL when never set.
+    class_time time,
+    one_to_one boolean NOT NULL DEFAULT false,
     created_by_user_id uuid REFERENCES users(id) ON DELETE SET NULL,
     cancelled_by_user_id uuid REFERENCES users(id) ON DELETE SET NULL,
     cancelled_at timestamptz,
@@ -564,6 +567,8 @@ CREATE INDEX IF NOT EXISTS idx_daily_roster_tenant_date_status
     ON daily_roster_entries (tenant_id, roster_date, status, created_at);
 CREATE INDEX IF NOT EXISTS idx_daily_roster_tenant_student
     ON daily_roster_entries (tenant_id, student_id, roster_date DESC);
+CREATE INDEX IF NOT EXISTS idx_daily_roster_tenant_date_time
+    ON daily_roster_entries (tenant_id, roster_date, class_time);
 
 -- Import existing CMS roster JSON once. IDs are joined through the tenant and
 -- invalid/stale student IDs are skipped, preserving the tenant boundary.

@@ -939,6 +939,9 @@ function App() {
     // Roster tab
     const [rDate, setRDate] = useState(todayISO);
     const [rPick, setRPick] = useState(null);
+    /* 0022: the roster answered "who is coming today" but not "when". */
+    const [rTime, setRTime] = useState('');
+    const [rOneToOne, setROneToOne] = useState(false);
     const [grpSel, setGrpSel] = useState('');   /* F4: 班组模板选择 */
     /* A1: 每周课表（tenant 模式，存于 PostgreSQL class_schedules） */
     const [schedules, setSchedules] = useState([]);
@@ -1881,15 +1884,29 @@ function App() {
         showToast('已带入模板学员，请确认周几与时间后保存');
     };
 
-    const addDailyRosterStudents = async (date, studentIds, source='manual', status='scheduled') => {
+    const addDailyRosterStudents = async (date, studentIds, source='manual', status='scheduled', extra={}) => {
         if (!TENANT_SLUG) return null;
         const data = await v1Api('/daily-roster', {
             method:'POST',
-            body:JSON.stringify({date, studentIds, source, status}),
+            body:JSON.stringify({date, studentIds, source, status, ...extra}),
         });
         await load();
         return data;
     };
+
+    /* The correction path: move a student's slot without re-adding them, which
+       would reset source and status. */
+    const updateRosterEntry = async (entryId, patch) => {
+        if (!TENANT_SLUG || !entryId) return null;
+        const data = await v1Api(`/daily-roster/${entryId}`, {
+            method:'PATCH', body:JSON.stringify(patch),
+        });
+        await load();
+        return data;
+    };
+
+    /* Slot metadata for one student on the currently viewed date. */
+    const rosterMetaFor = (date, sid) => (db.rosterEntries?.[date] || {})[sid] || {};
 
     const batchCheckIn = () => {
         const ids     = dayIds;
@@ -2600,10 +2617,24 @@ document.getElementById('copybtn').addEventListener('click', function(){
         try {
             const cur = db.rosters[rDate]||[];
             if (!cur.includes(rPick)) {
-                if (TENANT_SLUG) await addDailyRosterStudents(rDate, [rPick], 'manual');
+                if (TENANT_SLUG) {
+                    await addDailyRosterStudents(rDate, [rPick], 'manual', 'scheduled',
+                        {classTime: rTime || null, oneToOne: rOneToOne});
+                    /* Say how crowded the slot now is: the front desk books a
+                       one-to-one into an occupied hour otherwise, and only
+                       finds out when both families arrive. */
+                    if (rTime) {
+                        const same = (db.rosters[rDate]||[]).filter(id =>
+                            (rosterMetaFor(rDate, id).classTime || '') === rTime).length + 1;
+                        const name = db.students.find(x=>x.id===rPick)?.name || '学员';
+                        showToast(`${name} 已加入 ${rTime}；该时段共 ${same} 人`,
+                            rOneToOne && same > 1 ? 'warn' : 'success');
+                    }
+                }
                 else { const ok = await save({...db, rosters:{...db.rosters,[rDate]:[...cur,rPick]}}); if (!ok) return; }
             }
             setRPick(null); /* Fix #1: clears picker q via useEffect */
+            setROneToOne(false);   /* one-to-one is per booking, not sticky */
         } finally { setBusy(false); }
     };
     const removeFromRoster = async (sid) => {
@@ -3741,13 +3772,23 @@ document.getElementById('copybtn').addEventListener('click', function(){
             </div>
             <div className="flex-1" id="rosterAddStudent">
                 <label className="text-xs font-bold text-gray-500 mb-1 block">添加学员</label>
-                <div className="flex gap-2">
-                    <div className="flex-1">
+                <div className="flex gap-2 flex-wrap">
+                    <div className="flex-1 min-w-[180px]">
                         <StudentPicker students={availRoster} value={rPick} onChange={setRPick} placeholder="搜索并选择学员..."/>
+                    </div>
+                    <div className="min-w-[124px]">
+                        <input type="time" value={rTime} onChange={e=>setRTime(e.target.value)}
+                            aria-label="上课时间"
+                            className="w-full px-3 py-3 border border-gray-300 rounded-xl bg-white text-sm font-bold min-h-[50px] outline-none focus:ring-2 focus:ring-indigo-500"/>
                     </div>
                     <button onClick={addToRoster} disabled={!rPick||busy}
                         className="bg-indigo-600 active:bg-indigo-700 disabled:bg-gray-300 text-white px-5 py-3 rounded-xl font-bold text-sm min-h-[50px]">加入</button>
                 </div>
+                <label className="inline-flex items-center gap-2 mt-2 text-xs font-bold text-gray-500 min-h-[44px]">
+                    <input type="checkbox" checked={rOneToOne} onChange={e=>setROneToOne(e.target.checked)}
+                        className="w-4 h-4"/>
+                    1 对 1（同时段还有其他人时会提示冲突）
+                </label>
             </div>
         </div>
         {/* F4b: 班组模板 */}
@@ -3813,6 +3854,51 @@ document.getElementById('copybtn').addEventListener('click', function(){
         );
     })()}
 
+    {/* 0022: slots. Several people at the same time may be one class, or may be
+        a one-to-one that was booked into an occupied hour — which the flat
+        list could not show, so it surfaced when both families arrived. */}
+    {(()=>{
+        const ids = dayIds.filter(id=>{const st=db.students.find(x=>x.id===id);return st&&!st.archived;});
+        if (!ids.length) return null;
+        const slots = {};
+        ids.forEach(id=>{
+            const t = (rosterMetaFor(rDate,id).classTime || '').trim() || '__unset';
+            (slots[t] = slots[t] || []).push(id);
+        });
+        const groups = Object.entries(slots).sort(([a],[b]) =>
+            a==='__unset' ? 1 : b==='__unset' ? -1 : a.localeCompare(b));
+        const nameOf = id => db.students.find(x=>x.id===id)?.name || '';
+        return (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 mb-3">
+                <p className="font-bold text-sm text-gray-800 mb-2 flex items-center gap-2">
+                    <Icon name="clock" className="w-4 h-4"/>时段安排
+                </p>
+                <div className="space-y-1.5">
+                {groups.map(([t,arr])=>{
+                    const soloIds = arr.filter(id=>!!rosterMetaFor(rDate,id).oneToOne);
+                    const clash = soloIds.length>0 && arr.length>1;
+                    return (
+                        <div key={t} className={`rounded-xl px-3 py-2 border ${clash?'bg-red-50 border-red-200':'bg-gray-50 border-gray-100'}`}>
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+                                <span className="font-bold text-gray-800 min-w-[56px]">{t==='__unset'?'时间未设置':t}</span>
+                                <span className="px-2 py-0.5 rounded-full bg-white border border-gray-200 font-bold">{arr.length} 人</span>
+                                <span className="text-gray-500">{arr.map(nameOf).filter(Boolean).join('、')}</span>
+                            </div>
+                            {soloIds.length>0 && (
+                                <p className={`mt-1 text-xs font-bold ${clash?'text-red-700':'text-indigo-600'}`}>
+                                    {clash
+                                        ? `1 对 1 时间冲突：${soloIds.map(nameOf).join('、')} 与同时段其他排课重叠`
+                                        : `1 对 1：${soloIds.map(nameOf).join('、')}`}
+                                </p>
+                            )}
+                        </div>
+                    );
+                })}
+                </div>
+            </div>
+        );
+    })()}
+
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="bg-gray-50 border-b px-4 py-3 flex justify-between items-center gap-2 flex-wrap">
             <p className="font-bold text-sm text-gray-800">{fmtDate(rDate)} · {dayIds.filter(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived;}).length} 人{scheduledForDate.length>0 && <span className="text-xs font-normal text-indigo-500 ml-1">（课表 {scheduledForDate.length} 班）</span>}</p>
@@ -3852,9 +3938,27 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     <div key={sid} className={`px-4 py-3 flex items-center hover-row gap-3 min-h-[64px] ${lowBal?'bg-amber-50/60':''}`}>
                         <PhotoAvatar photo={s.photo} name={s.name} size="sm"/>
                         <div className="flex-1 min-w-0">
-                            <p className="font-bold text-gray-900 truncate">{s.name}</p>
-                            <p className="text-xs text-gray-400">{s.mobile||'—'}{lowBal && <span className="inline-flex items-center gap-1.5 ml-1 text-amber-600 font-bold"><Icon name="bolt" className="w-4 h-4"/>余额告急</span>}</p>
+                            <p className="font-bold text-gray-900 truncate">{s.name}
+                                {rosterMetaFor(rDate,sid).oneToOne && <span className="ml-1.5 text-[11px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-full px-2 py-0.5">1 对 1</span>}
+                            </p>
+                            <p className="text-xs text-gray-400">{s.mobile||'—'}
+                                {rosterMetaFor(rDate,sid).classTime && <span className="ml-1 font-bold text-gray-500">· {rosterMetaFor(rDate,sid).classTime}</span>}
+                                {lowBal && <span className="inline-flex items-center gap-1.5 ml-1 text-amber-600 font-bold"><Icon name="bolt" className="w-4 h-4"/>余额告急</span>}</p>
                         </div>
+                        {/* Correcting the slot in place: re-adding the student would
+                            reset their source and status. Only in tenant mode —
+                            the legacy JSON store has no entry id to patch. */}
+                        {TENANT_SLUG && rosterMetaFor(rDate,sid).id && (
+                            <input type="time" defaultValue={rosterMetaFor(rDate,sid).classTime||''}
+                                aria-label={`${s.name} 的上课时间`}
+                                onChange={e=>{
+                                    const entryId = rosterMetaFor(rDate,sid).id;
+                                    updateRosterEntry(entryId, {classTime: e.target.value || ''})
+                                        .then(()=>showToast(e.target.value?`${s.name} 上课时间改为 ${e.target.value}`:`${s.name} 已清除上课时间`))
+                                        .catch(err=>showToast(err.message||'时间未能保存', 'error'));
+                                }}
+                                className="px-2 py-2 border border-gray-300 rounded-xl bg-white text-xs font-bold min-h-[44px] w-[104px] flex-shrink-0 outline-none focus:ring-2 focus:ring-indigo-500"/>
+                        )}
                         {lowBal && (
                             <button onClick={()=>{
                                 const msg = renderMessage('renewal',

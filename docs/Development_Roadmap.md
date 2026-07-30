@@ -119,12 +119,15 @@ Purpose: Phased development plan, milestones, current status, and deployment tar
 | Secrets | Local env vars | SSM Parameter Store / Secrets Manager |
 | Email | Local SMTP (transitional) | Amazon SES |
 
-> **Note (2026-07-27):** the AWS single-instance deployment kit remains
-> available, and v7.7.8 adds a GitHub Actions release gate plus clean-tree
-> dual-mode bundle verification. AWS deployment itself is deliberately
-> deferred. Remaining Phase 3 infrastructure work includes S3 media, SES email,
-> multi-instance rate limiting and an executed AWS rehearsal for the chosen
-> production account.
+> **Note (updated 2026-07-31, v8.1.0):** AWS deployment is no longer deferred.
+> `https://pwestudio.online` has run on a Lightsail single instance since
+> 2026-07-30 — host nginx terminating TLS, PostgreSQL 16 in a container and
+> media on a local volume. The "AWS (Target)" column above is still the
+> *target*: **RDS, S3, SES, CloudFront and Secrets Manager are not in use.**
+> Remaining Phase 3 infrastructure work is therefore S3 media, SES email,
+> multi-instance rate limiting, an off-instance backup copy, and uptime and
+> backup-failure monitoring with an on-call owner. See
+> `docs/HANDOFF_LATEST.md` §0.
 
 **Open items (recorded 2026-07-26, reviewed 2026-07-27, not yet scheduled):**
 

@@ -57,7 +57,7 @@ Never screen-share the credential file.
 
 ## Claims to avoid
 
-- Do not say the service is deployed on AWS.
+- Do say the service is deployed on AWS — it is, since 30 July 2026. Do **not** extend that into an availability claim: there is no uptime monitoring, no backup-failure alerting, no on-call ownership and no SLA, and the backup copies still live on the same instance.
 - Do not promise automated SMS/email delivery.
 - Do not imply online payments or Xero/Stripe integration are live.
 - Do not say arbitrary spreadsheets import automatically.
