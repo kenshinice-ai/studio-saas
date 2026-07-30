@@ -138,13 +138,19 @@ Role-boundary checks (v7.4.0):
 
 ### 8. Deployment Readiness
 
-v8.0.1 executes local + Cloudflare invitation testing. The AWS deployment kit
-ships in `deploy/aws/`, but remote AWS deployment is deferred:
+v8.1.0 runs in production on AWS Lightsail at `https://pwestudio.online`
+(live 2026-07-30). Cloudflare Tunnel is retained for local development only and
+must not be reintroduced for that hostname:
 
 - [x] `bash deploy/aws/verify_release_bundles.sh` builds and verifies both `saas` and `standalone`
 - [x] Bundle `BUILD_INFO` version/mode/commit matches the clean source revision
 - [x] Customer bundles contain no internal handoff, audit, sales-source, prompt, or CI files
-- [ ] Local deep health and public Cloudflare deep health both pass
+- [x] Public HTTPS deep health, DNS, certificate chain and the single-hop 80→443 redirect all verified from outside the instance
+- [x] Daily database dump plus media-volume archive run under cron, and the restore rehearsal passes
+- [x] Deployment refuses a `mode=standalone` artefact, backs up first, and rolls the `current` symlink back when deep health fails
+- [ ] Off-instance copy of database and media backups
+- [ ] Uptime monitoring, backup-failure alerting, on-call ownership and a contractual SLA
+- [ ] Multi-factor authentication for privileged accounts
 - [ ] Structured (JSON) log output for aggregation
 - [ ] Graceful shutdown handled (SIGTERM)
 
@@ -171,7 +177,7 @@ ships in `deploy/aws/`, but remote AWS deployment is deferred:
 - [x] Super Admin, Studio Admin, setup-password, PWA manifests/icons and generated tenant workspaces use the v8.0.1 family layer
 - [x] Sales deck has 13 visually reviewed slides, no overflow/placeholders, and passes the template-fidelity checker with 0 issues
 - [x] Local deep health returns `appVersion=8.0.1`, `mode=saas`, `db=ok`
-- [ ] Cloudflare deep health returns `appVersion=8.0.1` — deferred until the invitation runtime is deliberately redeployed
+- [x] Cloudflare deep health returns `appVersion=8.0.1` — **retired as an acceptance item.** Cloudflare Tunnel left the production path on 2026-07-30; public acceptance is now the AWS deep health above (see §8.5)
 - [x] Responsive browser checks cover 375px Register, 812×375 landscape, 768px Studio Admin redirect/CMS, 1024px Portal and 1440px Super Admin with no horizontal overflow or browser-request 5xx
 
 ### 8.3 v8.0.1 Golden-Ratio UX Acceptance

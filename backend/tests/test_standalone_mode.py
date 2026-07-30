@@ -111,10 +111,24 @@ def test_customer_resources_are_explicitly_allowlisted(client, saas):
     release_evidence = client.get("/customer-resources/Release_Notes_v8.1.0.html")
     assert release_evidence.status_code == 200
     assert b"v8.1.0 release evidence" in release_evidence.data
-    assert client.get("/customer-resources/Release_Notes_v8.0.0.html").status_code == 404
 
+    # A superseded release-notes URL redirects rather than 404s: that filename
+    # carries the version, so every release would otherwise break the link that
+    # is already in sent mail and in the sales deck footer. It is still not
+    # served from outside the allow-list — it is a redirect TO the allow-listed
+    # current file.
+    superseded = client.get("/customer-resources/Release_Notes_v8.0.0.html")
+    assert superseded.status_code == 301
+    assert superseded.headers["Location"].endswith("/customer-resources/Release_Notes_v8.1.0.html")
+
+    # Everything else stays strictly allow-listed. The probes below are the ones
+    # that matter: traversal, an unlisted file, and a name shaped ALMOST like
+    # release notes, which must not slip through the redirect branch.
     assert client.get("/customer-resources/../VERSION").status_code == 404
     assert client.get("/customer-resources/private.txt").status_code == 404
+    assert client.get("/customer-resources/Release_Notes_v8.html").status_code == 404
+    assert client.get("/customer-resources/Release_Notes_vX.Y.Z.html").status_code == 404
+    assert client.get("/customer-resources/Release_Notes_v8.0.0.html.bak").status_code == 404
 
 
 def test_saas_super_admin_page_reachable(client, saas):

@@ -1,17 +1,23 @@
 # StudioSaaS Deployment Guide
 
-Version: v8.0.1
-Date: 2026-07-27
-Scope: v8.0.1 当前执行本地部署 → Cloudflare Tunnel 邀请测试
-（`https://studiosaas.cc.cd`）。AWS 套件保留，但本轮不部署。
+Version: v8.1.0
+Date: 2026-07-31（Stage 2 上线记录：2026-07-30）
+Scope: 生产运行于 AWS Lightsail 单实例，域名 `https://pwestudio.online`。
+本地部署仍是开发与验证路径；**Cloudflare Tunnel 已退出生产链路，仅供本地开发**，
+不得再为该域名重新引入。生产事实与实测证据见
+[`HANDOFF_LATEST.md`](HANDOFF_LATEST.md) §0，操作命令见 §0.2。
 
 部署路径分三个阶段，每个阶段都是上一阶段的超集，数据与代码不推倒重来：
 
-| 阶段 | 形态 | 目的 |
-|---|---|---|
-| Stage 0 | 本地 Mac：waitress + 本机 PostgreSQL | 开发与全量验证 |
-| Stage 1 | Stage 0 + cloudflared tunnel → `studiosaas.cc.cd` | 公网试点测试（真实手机/家长注册链路） |
-| Stage 2 | AWS：EC2/Lightsail + RDS PostgreSQL + S3 媒体 | 延期；不是 v8.0.1 验收范围 |
+| 阶段 | 形态 | 目的 | 状态 |
+|---|---|---|---|
+| Stage 0 | 本地 Mac：waitress + 本机 PostgreSQL | 开发与全量验证 | 使用中 |
+| Stage 1 | Stage 0 + cloudflared tunnel → `studiosaas.cc.cd` | 早期邀请测试 | 已退役为本地开发用途 |
+| Stage 2 | AWS Lightsail 单实例：host nginx 终止 TLS + 容器内 PostgreSQL 16 + 本机媒体卷 | 生产 | **已上线 2026-07-30** |
+
+Stage 2 实际落地形态与下文 3.1 的早期设计不同：**未采用 RDS / S3 / SES**。
+数据库与媒体都在同一实例上，每日逻辑备份加媒体卷归档由 cron 执行，恢复演练已通过；
+异地备份副本、监控与 SLA 仍未完成，且在客户文档中如实披露为未完成。
 
 ---
 
@@ -37,7 +43,7 @@ PORT=8901 STUDIOSAAS_DATABASE_URL=postgresql://$(whoami)@localhost:5432/studiosa
 # 或直接: ./start_studiosaas_local.sh
 ```
 
-### 1.2 验证基线（v8.0.1）
+### 1.2 验证基线（v8.1.0）
 
 | 检查 | 命令 | 期望 |
 |---|---|---|
@@ -49,7 +55,13 @@ PORT=8901 STUDIOSAAS_DATABASE_URL=postgresql://$(whoami)@localhost:5432/studiosa
 
 ---
 
-## 2. Stage 1 — Cloudflare Tunnel 公网试点
+## 2. Stage 1 — Cloudflare Tunnel 公网试点（已退役为本地开发用途）
+
+> **本节自 2026-07-30 起不再描述生产。** 生产在 AWS Lightsail 上有静态 IP 与
+> Route 53 委派，隧道会额外引入一个第三方跳转、第二份需要轮换的凭据，并与
+> certbot HTTP-01 争夺同一主机名。隧道保留下来只为在没有公网 IP 的机器上做
+> 本地演示；`pwestudio.online` 不得再启用它。生产链路见
+> [`HANDOFF_LATEST.md`](HANDOFF_LATEST.md) §0。
 
 ### 2.1 原理
 
@@ -122,15 +134,22 @@ bash scripts/package_release.sh
 ```
 
 当前候选的逐项证据和未关闭阻塞项记录在
-[`Release_Readiness_2026-07-12.md`](Release_Readiness_2026-07-12.md)。AWS 暂不执行，
-但不得因此跳过 0012–0019 迁移、媒体衍生图检查、真实 PostgreSQL 隔离测试或本地浏览器链路。
+[`Release_Readiness_2026-07-12.md`](Release_Readiness_2026-07-12.md)。AWS 已于
+2026-07-30 上线，但这不豁免任何一项：迁移、媒体衍生图检查、真实 PostgreSQL
+隔离测试与本地浏览器链路仍是每次发布的必过项。
 
 ---
 
-## 3. Stage 2 — AWS 正式部署（v8.0.1 延期）
+## 3. Stage 2 — AWS 正式部署（已上线 2026-07-30）
 
-> 本节仅保留未来迁移设计与已存在的部署套件说明。本轮不得把“包可构建”
-> 表述为“AWS 已上线”，也不执行远端资源变更。
+> **生产已上线。** 实际形态是 Lightsail 单实例 + host nginx 终止 TLS +
+> 容器内 PostgreSQL 16 + 本机媒体卷，**未使用 RDS / S3 / SES**。实测事实、
+> 边缘加固决策（含刻意不开 OCSP stapling 的原因）与运维命令见
+> [`HANDOFF_LATEST.md`](HANDOFF_LATEST.md) §0–§0.3；下文 3.1 是上线前的目标
+> 架构记录，与实际落地不同，保留作为决策留痕。
+>
+> 仍未完成、且在客户文档中如实披露为未完成：异地备份副本、可用性监控与备份
+> 失败告警、值班归属与合同化 SLA、特权账号 MFA。
 
 > **部署套件已随仓库发布：`deploy/aws/`**（Dockerfile、docker-compose、nginx、
 > systemd、`.env.example`、`build_aws_bundle.sh`）。逐步操作手册见
