@@ -169,15 +169,35 @@ sudo ln -s /etc/nginx/sites-available/studiosaas /etc/nginx/sites-enabled/
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t && sudo systemctl reload nginx
 
-# 2) certbot 签发并自动改写为 HTTPS（含 80→443 跳转）
-sudo apt-get install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d pwestudio.online
+# 2) 先用 --staging 验一次 HTTP-01 链路，不消耗正式配额
+sudo apt-get install -y certbot
+sudo certbot certonly --webroot -w /var/www/html \
+    -d pwestudio.online -d www.pwestudio.online \
+    --staging --non-interactive --agree-tos --email <ops@…> --cert-name pwestudio-staging
+
+# 3) 通过后删掉 staging，签正式证书（apex + www 同一 lineage）
+sudo certbot delete --cert-name pwestudio-staging --non-interactive
+sudo certbot certonly --webroot -w /var/www/html \
+    -d pwestudio.online -d www.pwestudio.online \
+    --non-interactive --agree-tos --email <ops@…> --cert-name pwestudio.online
+
+# 4) 切到含 TLS 的正式配置
+sudo cp deploy/aws/nginx/studiosaas.conf /etc/nginx/sites-available/studiosaas
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
-`studiosaas.conf` 保留为手工维护的完整参考（server_tokens off、gzip、
-20m 上传上限）；certbot 改写后可对照它补齐这几项。走 Cloudflare 橙云的
-部署可跳过 certbot，用 Origin Cert 直接填入 studiosaas.conf。
+**为什么用 `certonly --webroot` 而不是 `--nginx`**：两份配置都把
+`/.well-known/acme-challenge/` 交给 nginx 自己从 webroot 应答，而不是反代给
+应用。否则续期会依赖应用健康——证书恰好在你最需要它的那次故障中过期。
+`--staging` 一步是因为 Let's Encrypt 每周限 5 张同名证书，链路配错时不该
+拿正式配额去试。
+
+**www 必须先有 A 记录**：HTTP-01 会逐个域名验证，`www` 无解析则整张证书失败。
+
+`studiosaas.conf` 是完整参考（server_tokens off、gzip、20m 上传上限、HSTS）。
+走 Cloudflare 橙云的部署可跳过 certbot，用 Origin Cert 直接填入。**首发的
+pwestudio.online 不走 Cloudflare**：有固定 IP + Route 53 时，tunnel 只是多一
+跳、多一份凭据，并与 certbot HTTP-01 争同一主机名。
 
 应用只信任来自 localhost 的代理头（`_client_ip()`），与「nginx 与应用同机」
 的拓扑天然匹配——不要把 8899 暴露到公网安全组。
@@ -225,16 +245,26 @@ curl -fsS -o /dev/null -w '%{http_code}\n' https://pwestudio.online/register   #
 
 ## 9. 备份（正式部署必装，非可选）
 
-**9.1 数据库逻辑备份**（RDS 快照之外的可下载、可演练副本）。镜像已内置
-`pg_dump`（postgresql-client），备份写到 `/data`（持久卷）并自动 0600 +
-保留 14 份：
+**9.1 数据库逻辑备份**（RDS 快照之外的可下载、可演练副本）。镜像内置的
+`pg_dump` **主版本必须与服务端一致**（Dockerfile 的 `ARG PG_MAJOR`，当前 16）；
+不钉版本会拿到 17 客户端，而 17 的 `pg_restore` 会发 PG17 才有的
+`SET transaction_timeout = 0`，PG16 服务端拒收——**日常 dump 看起来正常，
+还原演练永远失败**。换服务端大版本时同一个改动里 bump `PG_MAJOR`。
+
+脚本在镜像里的路径是 **`backend/scripts/backup_postgres.py`**（WORKDIR 是
+`/app`）。写成 `scripts/backup_postgres.py` 的 cron 会每天静默失败。
+
+备份目录是主机绑定挂载，属主必须是镜像用户 **uid 10001**、组给运维用户、
+模式 2750，否则 `pg_dump` 在一个「看起来存在且可写」的目录上拿到
+Permission denied。`lightsail_ctl.sh` 每次运行都断言这件事，不依赖安装时的
+一次性 chown。
+
+Lightsail 单机路径直接用控制脚本（已包含上面三点）：
 
 ```bash
-# /etc/cron.d/studiosaas-backup —— 每日 03:15
-15 3 * * * ubuntu cd /home/ubuntu/PWE-StudioSaaS-aws-* && \
-  docker compose -f deploy/aws/docker-compose.yml exec -T app \
-  python scripts/backup_postgres.py backup --backup-dir /data/backups/postgres \
-  >> /var/log/studiosaas-backup.log 2>&1
+# /etc/cron.d/pwestudio-backup —— 每日 03:15 UTC，root
+15 3 * * * root cd /opt/pwestudio/current && \
+  bash deploy/aws/lightsail_ctl.sh backup >> /var/log/pwestudio-backup.log 2>&1
 ```
 
 可选异地副本（强烈建议）：紧接一行 `aws s3 sync /var/lib/docker/volumes/…`
@@ -257,6 +287,19 @@ curl -fsS -o /dev/null -w '%{http_code}\n' https://pwestudio.online/register   #
 **9.3 还原演练**（每季度一次，或换机前）：
 
 ```bash
-docker compose -f deploy/aws/docker-compose.yml exec app \
-  python scripts/backup_postgres.py restore-dry-run /data/backups/postgres/<dump>
+# Lightsail 单机：一条命令，自动取最新 dump
+bash deploy/aws/lightsail_ctl.sh restore-dry-run
+# 或指定
+bash deploy/aws/lightsail_ctl.sh restore-dry-run --dump <file>
 ```
+
+演练会建一个临时库再删掉，因此需要 **owner 角色**（运行时角色
+`studiosaas_app` 故意没有 createdb）。控制脚本只为这一条命令注入 owner URL，
+应用进程始终看不到它。
+
+**通过的标准是 `"ok": true` 且 `critical_counts` 与 manifest 一致** —— 不是
+「dump 文件存在」。恢复演练是唯一能证明备份可用的动作。
+
+**迁移媒体后必跑**：还原数据库而媒体树不完整（或来自另一套安装）会留下
+「variant 行在、文件不在」的状态，公开面每个 logo 都 404。
+`backend/scripts/backfill_media_variants.py --check` 会校验**文件**而非只看行。

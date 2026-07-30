@@ -14,12 +14,32 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
 
-# curl: healthcheck. postgresql-client: pg_dump so backup_postgres.py can run
-# INSIDE the container (`docker compose exec app python scripts/...`) — the
-# deploy audit found the backup path otherwise impossible on the Docker route.
+# curl: healthcheck. postgresql-client: pg_dump/pg_restore so
+# backup_postgres.py can run INSIDE the container
+# (`docker compose exec app python backend/scripts/...`) — the deploy audit
+# found the backup path otherwise impossible on the Docker route.
+#
+# The client major version is PINNED to the server's (PostgreSQL 16). The
+# unpinned `postgresql-client` on this base image resolves to 17, and a 17
+# pg_restore emits `SET transaction_timeout = 0` — a PG17-only GUC — which a
+# PG16 server rejects, so every restore rehearsal failed while the daily dump
+# looked fine. A backup that cannot be restored is not a backup, so the pairing
+# is asserted at build time rather than discovered during an incident.
+# When the server moves to 17, bump PG_MAJOR here in the same change.
+ARG PG_MAJOR=16
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl postgresql-client \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get install -y --no-install-recommends curl ca-certificates gnupg \
+    && install -d -m 0755 /usr/share/postgresql-common/pgdg \
+    && curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+         https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+    && echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] \
+https://apt.postgresql.org/pub/repos/apt $(. /etc/os-release && echo $VERSION_CODENAME)-pgdg main" \
+         > /etc/apt/sources.list.d/pgdg.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends "postgresql-client-${PG_MAJOR}" \
+    && apt-get purge -y --auto-remove gnupg \
+    && rm -rf /var/lib/apt/lists/* \
+    && pg_dump --version && pg_restore --version
 
 WORKDIR /app
 

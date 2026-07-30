@@ -46,8 +46,8 @@ def run(*, dry_run: bool = False, tenant_id: str = "", check: bool = False) -> i
             conn,
             f"""
             SELECT m.id, m.tenant_id, m.storage_key, m.mime_type,
-                   bool_or(v.variant = 'display') AS has_display,
-                   bool_or(v.variant = 'thumb') AS has_thumb
+                   max(CASE WHEN v.variant = 'display' THEN v.storage_key END) AS display_key,
+                   max(CASE WHEN v.variant = 'thumb' THEN v.storage_key END) AS thumb_key
             FROM media_assets m
             LEFT JOIN media_variants v
               ON v.tenant_id = m.tenant_id AND v.media_asset_id = m.id
@@ -61,14 +61,25 @@ def run(*, dry_run: bool = False, tenant_id: str = "", check: bool = False) -> i
             ext = Path(str(row["storage_key"])).suffix.lower()
             if ext not in IMAGE_EXTENSIONS:
                 continue
-            missing = [
-                variant
-                for variant, present in (
-                    ("display", bool(row["has_display"])),
-                    ("thumb", bool(row["has_thumb"])),
-                )
-                if not present
-            ]
+            # A variant counts as present only when its ROW and its FILE both
+            # exist. Checking the row alone made this script blind to the most
+            # likely production inconsistency: a database restored from a dump
+            # alongside a media tree that is incomplete or was copied from a
+            # different install. The rows were there, the derivatives were not,
+            # and every brand logo served 404 while this script reported
+            # "Generated variants: 0".
+            missing: list[str] = []
+            stale_rows: list[str] = []
+            for variant, key in (("display", row["display_key"]), ("thumb", row["thumb_key"])):
+                if not key:
+                    missing.append(variant)
+                    continue
+                if not Path(os.path.join(media_root(), *str(key).split("/"))).is_file():
+                    missing.append(variant)
+                    # The row describes a file that is gone; its byte_size and
+                    # checksum no longer describe anything. Replace it rather
+                    # than leaving a record that cannot be verified.
+                    stale_rows.append(variant)
             if not missing:
                 continue
             storage_parts = str(row["storage_key"]).split("/")
@@ -100,6 +111,15 @@ def run(*, dry_run: bool = False, tenant_id: str = "", check: bool = False) -> i
             asset_generated = 0
             try:
                 with conn.cursor() as cur:
+                    if stale_rows:
+                        cur.execute(
+                            """
+                            DELETE FROM media_variants
+                            WHERE tenant_id = %s AND media_asset_id = %s
+                              AND variant = ANY(%s)
+                            """,
+                            (row["tenant_id"], row["id"], stale_rows),
+                        )
                     for variant in missing:
                         payload, width, height = variants[variant]
                         filename = f"{row['id']}.{variant}.jpg"

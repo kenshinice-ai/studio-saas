@@ -20,6 +20,38 @@ die() {
 
 [ -f "$ENV_FILE" ] || die "production environment file not found: $ENV_FILE"
 
+# The application container runs as uid 10001 (see deploy/aws/Dockerfile). The
+# logical-backup directory is a host bind mount, so a host-side owner of
+# ubuntu:ubuntu leaves pg_dump with "Permission denied" on a path the operator
+# sees as present and writable. Assert the ownership every run rather than
+# trusting a one-off chown during install.
+APP_UID="${PWESTUDIO_APP_UID:-10001}"
+# The operator's own group, so a human can list and copy backups without sudo.
+# Owner = the container user (it does the writing); group = the operator.
+OPERATOR_GID="${PWESTUDIO_OPERATOR_GID:-$(id -g)}"
+
+backup_dir_from_env() {
+  sed -n 's/^STUDIOSAAS_BACKUP_DIR=//p' "$ENV_FILE" | tail -1
+}
+
+ensure_backup_dir_writable() {
+  local dir
+  dir="$(backup_dir_from_env)"
+  [ -n "$dir" ] || die "STUDIOSAAS_BACKUP_DIR is not set in $ENV_FILE"
+  # 2750: setgid keeps every new dump in the operator group, so listing the
+  # directory never needs sudo after the first run.
+  if [ ! -d "$dir" ]; then
+    sudo install -d -m 2750 -o "$APP_UID" -g "$OPERATOR_GID" "$dir"
+    return
+  fi
+  if [ "$(stat -c '%u:%g' "$dir")" != "$APP_UID:$OPERATOR_GID" ]; then
+    echo "Fixing backup directory ownership: $dir -> $APP_UID:$OPERATOR_GID"
+    sudo chown -R "$APP_UID:$OPERATOR_GID" "$dir"
+    sudo chmod 2750 "$dir"
+    sudo find "$dir" -type f -exec chmod 0640 {} +
+  fi
+}
+
 dc() {
   docker compose \
     -p "$PROJECT_NAME" \
@@ -32,12 +64,14 @@ dc() {
 
 usage() {
   cat <<'EOF'
-Usage: deploy/aws/lightsail_ctl.sh <up|status|logs|backup|stop-app>
+Usage: deploy/aws/lightsail_ctl.sh <up|status|logs|backup|restore-dry-run|stop-app>
 
   up        Build/start PostgreSQL and the v8.0.1 application.
   status    Show containers and require deep application health.
   logs      Print the latest bounded app/database logs.
   backup    Back up PostgreSQL plus persistent media/data/archive volumes.
+  restore-dry-run [--dump <file>]
+            Rehearse a restore into a temporary database. Live data untouched.
   stop-app  Stop only the application container; PostgreSQL remains available.
 EOF
 }
@@ -55,7 +89,11 @@ case "${1:-}" in
     dc logs --tail=200 app db
     ;;
   backup)
-    dc exec -T app python scripts/backup_postgres.py backup \
+    ensure_backup_dir_writable
+    # WORKDIR is /app and the script lives at /app/backend/scripts/. The old
+    # `scripts/backup_postgres.py` never existed in the image, so every daily
+    # backup failed with "can't open file" — and nothing read the output.
+    dc exec -T app python backend/scripts/backup_postgres.py backup \
       --backup-dir /data/backups/postgres
     install -d -m 0700 "$VOLUME_BACKUP_DIR"
     docker run --rm \
@@ -74,6 +112,29 @@ case "${1:-}" in
           -mtime +7 -delete
       '
     ;;
+  restore-dry-run)
+    # Restores the newest dump (or --dump <file>) into a throwaway database and
+    # verifies the migration chain. Never touches the live database.
+    shift || true
+    dump="${2:-}"
+    if [ "${1:-}" = "--dump" ] && [ -n "$dump" ]; then
+      target="$dump"
+    else
+      target="$(sudo sh -c "ls -1t '$(backup_dir_from_env)'/*.dump 2>/dev/null | head -1")"
+      [ -n "$target" ] || die "no dump found in $(backup_dir_from_env) — run: $0 backup"
+      target="$(basename "$target")"
+    fi
+    echo "Rehearsing restore of: $target"
+    # The rehearsal creates and drops a throwaway database, which the bounded
+    # runtime role (studiosaas_app) deliberately cannot do. Hand it the owner
+    # URL for this one command only — the application process never sees it.
+    dc exec -T \
+      -e STUDIOSAAS_DATABASE_URL="$(sudo sh -c "sed -n 's/^LOCAL_DB_PASSWORD=//p' '$ENV_FILE' | tail -1" | \
+          sed 's#^#postgresql://studiosaas:#; s#$#@db:5432/studiosaas#')" \
+      app python backend/scripts/backup_postgres.py restore-dry-run \
+      "/data/backups/postgres/$target"
+    ;;
+
   stop-app)
     dc stop app
     ;;

@@ -6,23 +6,72 @@ Release branch: `codex/v8.0.1-product-home-brand-release`
 Release source of truth: `VERSION`, final `main` commit and annotated tag `v8.0.1`
 Post-release corrective branch: `codex/super-admin-tunnel-chain-fix`
 
-## 1. Delivery boundary
+## 0. AWS production is LIVE (2026-07-30)
 
-v8.0.1 is a verified local release and customer-demonstration package. It is
-not an AWS production deployment.
+`https://pwestudio.online` serves v8.0.1 from AWS Lightsail. **The Cloudflare
+Tunnel is no longer the production path** and must not be reintroduced for this
+hostname: the tunnel existed because the runtime had no public IP. With a static
+Lightsail IP and Route 53 delegation, a tunnel would add a third-party hop, a
+second credential to rotate, and would compete with certbot HTTP-01 for the
+same hostname.
 
-| Area | Current truth |
+| Item | Truth |
+|---|---|
+| Instance | Lightsail `PWESTUDIO`, Ubuntu 24.04 x86_64, 2 vCPU / 1.9 GB / 58 GB, Sydney Zone A |
+| Static IP | `13.237.190.58` |
+| DNS | Route 53; `pwestudio.online` and `www.pwestudio.online` both A → the static IP |
+| Edge | host nginx terminates TLS; app listens on `127.0.0.1:8899` only; 80 → 443; HSTS `max-age=31536000; includeSubDomains` |
+| Certificate | Let's Encrypt, SAN = apex + www, lineage `pwestudio.online`, expires 2026-10-28, `certbot.timer` active |
+| Runtime | Compose project `pwestudio`: `studiosaas:8.0.1` (commit `cdd204e`) + `postgres:16-alpine`, both healthy |
+| Database | 6 tenants / 15 users / 65 students / 37 registrations / 81 media assets / 4276 audit rows; 20 migrations |
+| Least privilege | migrations use the owner role inside entrypoint only; runtime uses `studiosaas_app` |
+| Backups | `/etc/cron.d/pwestudio-backup` 03:15 UTC → logical dump + volume tarball; restore rehearsal passes |
+| Release layout | `/opt/pwestudio/releases/PWE-StudioSaaS-aws-8.0.1-cdd204e`, `current` symlink, env at `/opt/pwestudio/shared/production.env` (600) |
+| Not yet done | RDS, S3, SES, MFA for privileged accounts, off-box backup copy, uptime monitoring |
+
+### Four defects this deployment round found and fixed
+
+All four looked fine from the outside and would have surfaced only during an
+incident:
+
+1. **Daily backups had never once succeeded.** `lightsail_ctl.sh` invoked
+   `scripts/backup_postgres.py`, but the script is at `backend/scripts/` inside
+   the image (WORKDIR `/app`). Nothing read the cron output.
+2. **Even with the right path, the dump could not be written.** The bind-mounted
+   backup directory was `ubuntu:ubuntu 0755` while the container runs as uid
+   10001 → `Permission denied`. Now owner uid 10001, group the operator, mode
+   2750, asserted on every run so a human can also list backups without sudo.
+3. **The restore rehearsal could never pass.** The image installed an unpinned
+   `postgresql-client`, resolving to 17, against a PostgreSQL 16 server; a 17
+   `pg_restore` emits `SET transaction_timeout = 0`, a PG17-only GUC, which
+   PG16 rejects. The client is now pinned to `postgresql-client-16` from PGDG.
+   Dumps produced by the 17 client were deleted — a 16 client cannot read them,
+   so keeping them would hand an operator an unusable backup mid-incident.
+4. **The media volume was empty.** The database referenced 81 media assets and
+   160 derivatives; the volume held only Linux's stock `/media/{cdrom,floppy,usb}`
+   from the image layer. Every brand logo returned 404. The 2032-file media tree
+   was extracted with uid 10001 ownership, and `backfill_media_variants.py` was
+   fixed to verify that a derivative's **file** exists rather than only its row
+   — it previously reported "Generated variants: 0" while 126 files were missing.
+
+## 1. Historical delivery boundary (pre-2026-07-30)
+
+v8.0.1 was first shipped as a verified local release and customer-demonstration
+package, before the AWS deployment above.
+
+| Area | Truth at the time |
 |---|---|
 | SaaS runtime | Local Waitress + PostgreSQL behind the controlled `studiosaas-v8-controlled` Cloudflare Tunnel |
-| Public product URL | `https://studiosaas.cc.cd` reports v8.0.1 from the same runtime as `http://127.0.0.1:8901` |
+| Public product URL | `https://studiosaas.cc.cd` reported v8.0.1 from the same runtime as `http://127.0.0.1:8901` |
 | Role entry contract | `/platform-admin` = platform control plane; `/studio-admin` = neutral tenant-admin login; `/cms` = neutral tenant-operations login |
-| AWS/RDS/S3/SES | Not purchased or deployed |
-| Production backups/restore/monitoring/SLA | Deferred until AWS resources exist and a production rehearsal passes |
+| AWS/RDS/S3/SES | Not purchased or deployed *(Lightsail now deployed; RDS/S3/SES still not)* |
+| Production backups/restore/monitoring/SLA | Deferred *(backups + restore rehearsal now live; monitoring/SLA still deferred)* |
 | Online payment, provider SMS/email, custom domains | Deferred |
 | Multi-campus | One campus = one tenant/subscription; future organisation aggregation is deferred |
 
 Do not describe local testing, a source bundle or Cloudflare invitation access
-as production acceptance.
+as production acceptance. Production acceptance is `https://pwestudio.online`
+answering deep health with `appVersion=8.0.1`, `mode=saas`, `db=ok` — see §0.
 
 ## 2. What v8.0.1 delivers
 
