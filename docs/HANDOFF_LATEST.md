@@ -27,7 +27,97 @@ same hostname.
 | Least privilege | migrations use the owner role inside entrypoint only; runtime uses `studiosaas_app` |
 | Backups | `/etc/cron.d/pwestudio-backup` 03:15 UTC → logical dump + volume tarball; restore rehearsal passes |
 | Release layout | `/opt/pwestudio/releases/PWE-StudioSaaS-aws-8.0.1-cdd204e`, `current` symlink, env at `/opt/pwestudio/shared/production.env` (600) |
+| Canonical host | `www` 301s to the apex over TLS; one origin, no duplicate content |
+| Operator entry | `ssh pwestudio` (see §0.2) and `bash deploy/aws/pwestudio_remote.sh <cmd>` |
 | Not yet done | RDS, S3, SES, MFA for privileged accounts, off-box backup copy, uptime monitoring |
+
+### 0.1 "Not Secure" in Chrome was a client-side cache, not a server fault
+
+Measured from outside on 2026-07-30 after the edge went up:
+
+```
+http://pwestudio.online/   -> 301 -> https://pwestudio.online/   (1 redirect)
+ssl_verify_result = 0      certificate chain = 4 certs, Verification: OK
+homepage absolute http:// references = 0   (CSP is default-src 'self', so
+                                            mixed content is structurally
+                                            impossible, not merely absent)
+```
+
+Chrome had cached the HTTP 200 from before TLS existed and kept loading over
+HTTP without re-following the new 301. Visiting `https://` once takes the HSTS
+header, after which the browser refuses HTTP for a year. Nothing to fix
+server-side. If it recurs on a device: hard-reload, or clear the site's data.
+
+Optional permanent hardening not done: submitting the domain to the HSTS
+preload list would make browsers refuse HTTP even before a first visit. It is a
+one-way door — the domain must then always serve HTTPS — so it is a decision to
+take deliberately, not a side effect of a deployment round.
+
+### 0.2 Operating the instance
+
+Access is an `ssh_config` alias; the key is **not** in the repository or in
+iCloud. The private key was moved out of the synced project folder — iCloud
+cannot hold mode 600, and a synced private key is a copy you do not control:
+
+```
+~/.ssh/pwestudio-lightsail.pem        mode 600   (byte-identical to the
+                                                  Lightsail default key)
+~/.ssh/config      Host pwestudio -> 13.237.190.58, user ubuntu
+```
+
+`deploy/aws/pwestudio_remote.sh` is the laptop-side half. It holds no
+credentials and delegates everything that touches production data to
+`lightsail_ctl.sh` on the instance, so a laptop is never the source of truth
+for a production procedure:
+
+```bash
+bash deploy/aws/pwestudio_remote.sh status     # containers + deep health
+bash deploy/aws/pwestudio_remote.sh health     # public HTTPS, DNS, cert, redirect
+bash deploy/aws/pwestudio_remote.sh backups    # what is on disk, and the cron log
+bash deploy/aws/pwestudio_remote.sh backup     # dump + volume tarball, now
+bash deploy/aws/pwestudio_remote.sh drill      # rehearse a restore (safe)
+bash deploy/aws/pwestudio_remote.sh certs      # expiry + renew timer
+bash deploy/aws/pwestudio_remote.sh deploy dist/PWE-StudioSaaS-aws-<ver>.tar.gz
+bash deploy/aws/pwestudio_remote.sh ssh
+```
+
+`deploy` refuses a `mode=standalone` tarball before uploading it, backs up
+first, and **rolls the `current` symlink back automatically if deep health
+fails**. Commands that remove a volume, drop a database, or perform a real
+restore are deliberately absent — those live on the instance where the operator
+reads the confirmation prompt in context.
+
+### 0.3 Edge hardening (2026-07-30, second pass)
+
+- **One shared TLS snippet** (`deploy/aws/nginx/pwestudio-tls.conf`, installed to
+  `/etc/nginx/snippets/`) included by both 443 blocks. A hardened apex beside a
+  default-configured `www` block is a downgrade path hiding in plain sight.
+  TLS 1.2 is limited to forward-secret AEAD suites; no CBC, no RSA key exchange,
+  no 3DES. Session cache on, tickets off.
+- **OCSP stapling is deliberately OFF.** Every hardening guide says to enable it;
+  it is now dead configuration for Let's Encrypt. The certificate's AIA carries
+  only `CA Issuers - URI:http://ye1.i.lencr.org/` and no OCSP responder URL, so
+  nginx accepts `ssl_stapling on` and then logs `"ssl_stapling" ignored` on
+  every reload — a permanent warning that trains an operator to stop reading
+  reload output, which is where real errors appear. Re-check after any renewal:
+  `openssl s_client ... | openssl x509 -noout -ocsp_uri` should print nothing.
+- **No duplicate security headers.** `backend/server.py:777-796` already sends a
+  complete CSP, X-Frame-Options, Permissions-Policy, Referrer-Policy and
+  X-Content-Type-Options. nginx was repeating two of them. HSTS stays at the
+  edge on purpose: it must also cover responses the application never produced,
+  and nginx's 502 while the container restarts is exactly when a downgrade must
+  not be on offer.
+- **Branded maintenance page** for 502/503/504 (`/var/www/pwestudio/__maintenance.html`,
+  `internal`, no-store, `Retry-After: 30`). An upgrade restarts the container for
+  a few seconds; nginx's stock "502 Bad Gateway" reads like the studio's website
+  is broken rather than briefly updating.
+- **nginx 1.24 constraint**: HTTP/2 is a `listen` parameter on Ubuntu 24.04. The
+  1.25+ `http2 on;` directive fails `nginx -t` — caught by the config test
+  before reload, so the live site was never affected.
+
+Nine contract tests in `backend/tests/test_lightsail_deployment.py` hold all of
+the above, including that the operator script carries no credentials and cannot
+destroy anything.
 
 ### Four defects this deployment round found and fixed
 
@@ -212,7 +302,19 @@ The XLSX contains Instructions, Students, Courses, Packages and Field Guide
 sheets. All five sheets were rendered and visually inspected; ZIP integrity
 and spreadsheet error-token scans passed.
 
-## 5. Cloudflare operating truth
+## 5. Cloudflare operating truth (LOCAL DEVELOPMENT ONLY as of 2026-07-30)
+
+> **The tunnel is no longer the production path.** `https://pwestudio.online`
+> serves production from Lightsail with nginx terminating TLS (§0). Everything
+> below now describes the *local* runtime and the `studiosaas.cc.cd` demo
+> hostname only. Do not point production DNS at a tunnel, and do not treat
+> tunnel parity as production acceptance.
+>
+> Why no tunnel in production: the tunnel existed because the runtime lived on a
+> home Mac with no public IP. A Lightsail static IP plus Route 53 removes that
+> constraint, so a tunnel would add a third-party hop and a second credential to
+> rotate in front of production, for nothing.
+
 
 `START_STUDIOSAAS_ONLINE.command` now:
 
@@ -275,6 +377,10 @@ entrypoint, forbidden-content and `BUILD_INFO` checks. The `.sha256` sidecars
 generated from the final tagged commit are the authoritative hashes.
 
 ## 7. Operator commands
+
+Production commands are in §0.2. The list below is the **local development**
+set; running the tunnel parity check against production is meaningless because
+production does not use a tunnel.
 
 ```bash
 # Local service

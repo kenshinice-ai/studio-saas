@@ -66,6 +66,112 @@ def test_lightsail_single_node_preserves_roles_backups_and_volumes() -> None:
     assert "restore-dry-run" in control
 
 
+def test_tls_snippet_is_shared_and_has_no_dead_ocsp_config() -> None:
+    """One TLS parameter set, included by both server blocks.
+
+    A hardened apex next to a default-configured www block is a downgrade path
+    hiding in plain sight, so the parameters live in one snippet.
+
+    Stapling stays OFF: Let's Encrypt certificates carry no OCSP responder URL
+    (their AIA holds only CA Issuers), so `ssl_stapling on` is accepted by nginx
+    and then logged as ignored on every single reload — which trains an operator
+    to stop reading reload output, where real errors appear.
+    """
+
+    snippet = _read("deploy/aws/nginx/pwestudio-tls.conf")
+    tls = _read("deploy/aws/nginx/studiosaas.conf")
+
+    assert "ssl_protocols TLSv1.2 TLSv1.3;" in snippet
+    assert "ssl_session_tickets off;" in snippet
+    assert "ssl_prefer_server_ciphers off;" in snippet
+    # No CBC, no RSA key exchange, no 3DES in the TLS 1.2 list.
+    for weak in ("AES128-SHA", "AES256-SHA", "DES-CBC3", "TLS_RSA_WITH"):
+        assert weak not in snippet
+    snippet_directives = [
+        line.strip() for line in snippet.splitlines()
+        if line.strip() and not line.strip().startswith("#")
+    ]
+    assert not any(line.startswith("ssl_stapling") for line in snippet_directives)
+    # A snippet must not pull in another file; only comments may mention the word.
+    assert not any(
+        line.strip().startswith("include") for line in snippet.splitlines()
+    )
+
+    # Both 443 blocks share it, and neither pins its own protocol list.
+    assert tls.count("include             /etc/nginx/snippets/pwestudio-tls.conf;") == 2
+    assert "ssl_protocols" not in tls
+    # Ubuntu 24.04 ships nginx 1.24: HTTP/2 is a listen parameter there, and the
+    # 1.25+ standalone directive fails nginx -t. Comments may name it; only the
+    # directives matter, so read past them.
+    directives = [
+        line.strip() for line in tls.splitlines()
+        if line.strip() and not line.strip().startswith("#")
+    ]
+    assert not any(line.startswith("http2 ") for line in directives)
+    assert sum(1 for line in directives if line == "listen 443 ssl http2;") == 2
+
+
+def test_www_redirects_to_the_single_canonical_host() -> None:
+    """www is a redirect, not a second origin serving the same pages."""
+
+    tls = _read("deploy/aws/nginx/studiosaas.conf")
+
+    assert "server_name www.pwestudio.online;" in tls
+    assert "return 301 https://pwestudio.online$request_uri;" in tls
+    # The redirect itself must happen over TLS, never by downgrading to http.
+    assert "return 301 http://pwestudio.online" not in tls
+
+
+def test_edge_owns_hsts_and_leaves_the_rest_to_the_application() -> None:
+    """No duplicate security headers on the wire.
+
+    backend/server.py already sends CSP, X-Frame-Options, Permissions-Policy,
+    Referrer-Policy and X-Content-Type-Options on every response it generates.
+    HSTS stays at the edge because it must also cover responses the application
+    never produced — nginx's 502 while the container restarts is exactly when a
+    downgrade must not be on offer.
+    """
+
+    tls = _read("deploy/aws/nginx/studiosaas.conf")
+
+    assert "Strict-Transport-Security" in tls
+    assert "add_header X-Content-Type-Options" not in tls
+    assert "add_header Referrer-Policy" not in tls
+    assert "add_header Content-Security-Policy" not in tls
+    # A restart shows a branded page rather than nginx's stock 502.
+    assert "error_page 502 503 504 /__maintenance.html;" in tls
+    assert "internal;" in tls
+
+
+def test_remote_operator_script_carries_no_credentials_and_cannot_destroy() -> None:
+    """The laptop-side helper reaches the host and nothing more.
+
+    Every command that touches production data is delegated to
+    lightsail_ctl.sh on the instance, so a laptop is never the source of truth
+    for a production procedure, and the two halves cannot drift.
+    """
+
+    remote = _read("deploy/aws/pwestudio_remote.sh")
+
+    # Reaches the host only through an ssh_config alias — no key path, no
+    # password, no database URL in the repository.
+    assert "PWESTUDIO_SSH_HOST:-pwestudio" in remote
+    for secret in ("BEGIN RSA", "BEGIN OPENSSH", ".pem\"", "LOCAL_DB_PASSWORD",
+                   "STUDIOSAAS_SESSION_SECRET", "STUDIOSAAS_API_KEY"):
+        assert secret not in remote
+    # Destructive verbs stay on the instance, where the prompt has context.
+    assert "down -v" not in remote
+    assert "restore --confirm" not in remote
+    assert "certbot delete" not in remote
+    # A deploy backs up first, verifies deep health, and rolls back on failure.
+    assert "lightsail_ctl.sh" in remote  # delegates to the on-instance script
+    assert "ctl backup" in remote        # deploy takes a backup before switching
+    assert "rolling back" in remote.lower()
+    # A standalone tarball on the SaaS host would refuse to boot after the
+    # symlink already moved, so the mode is checked before upload.
+    assert "mode=saas" in remote
+
+
 def test_image_pins_postgres_client_to_the_server_major_version() -> None:
     """pg_restore must match the server, or every rehearsal fails.
 

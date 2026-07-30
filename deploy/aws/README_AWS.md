@@ -202,6 +202,72 @@ pwestudio.online 不走 Cloudflare**：有固定 IP + Route 53 时，tunnel 只�
 应用只信任来自 localhost 的代理头（`_client_ip()`），与「nginx 与应用同机」
 的拓扑天然匹配——不要把 8899 暴露到公网安全组。
 
+### 6.1 共享 TLS 参数
+
+`deploy/aws/nginx/pwestudio-tls.conf` 装到 `/etc/nginx/snippets/`，被 apex 与
+www 两个 443 块同时 `include`。加固过的 apex 旁边放一个默认配置的 www 块，
+等于留了一条明面上的降级路径。TLS 1.2 只留前向保密的 AEAD 套件（无 CBC、
+无 RSA 密钥交换、无 3DES）；session 缓存开，ticket 关。
+
+### 6.2 不要开 OCSP stapling
+
+Let's Encrypt 的证书 AIA 里只有 `CA Issuers - URI:http://ye1.i.lencr.org/`、
+**没有 OCSP responder URL**（OCSP 已被短有效期 + CRL 取代）。此时
+`ssl_stapling on` 会被 nginx 接受、然后每次 reload 打印
+`"ssl_stapling" ignored, no OCSP responder URL in the certificate` ——
+一个长期存在的警告会训练运维忽略 reload 输出，而真正的错误恰好出现在那里。
+续期后可复验：
+
+```bash
+openssl s_client -connect pwestudio.online:443 -servername pwestudio.online \
+  </dev/null 2>/dev/null | openssl x509 -noout -ocsp_uri     # 应为空
+```
+
+### 6.3 安全头归属：应用发内容策略，nginx 只发 HSTS
+
+`backend/server.py:777-796` 已在每个响应上发完整 CSP、X-Frame-Options、
+Permissions-Policy、Referrer-Policy、X-Content-Type-Options。nginx 曾重复发其中
+两个，线上出现重复头。现在 nginx **只**发 HSTS —— 因为它还要覆盖应用没有产生
+的响应：容器重启时 nginx 自己的 502，恰恰是最不该提供降级选项的时刻。
+
+### 6.4 nginx 版本约束
+
+Ubuntu 24.04 是 nginx 1.24，HTTP/2 是 `listen` 参数；1.25+ 的 `http2 on;`
+指令在这里 `nginx -t` 会失败（已被配置测试挡在 reload 之前，线上未受影响）。
+
+### 6.5 维护页
+
+502/503/504 走 `/var/www/pwestudio/__maintenance.html`（品牌化、`internal`、
+`no-store`、`Retry-After: 30`）。升级会让容器重启几秒，nginx 原生的
+「502 Bad Gateway」看起来像网站坏了，而不是在更新。
+
+### 6.6 从开发机操作线上实例
+
+`deploy/aws/pwestudio_remote.sh` 是笔记本这一侧，**不含任何凭据**；接入靠
+`~/.ssh/config` 的 `Host pwestudio` 别名，私钥放 `~/.ssh/`。
+
+> **不要把私钥放在 iCloud 同步目录里**：那里保不住 mode 600（ssh 会直接拒绝
+> 使用），而且同步过的私钥是一份你控制不了的副本。
+
+所有触碰生产数据的动作都委派给实例上的 `lightsail_ctl.sh`，笔记本永远不是
+生产流程的事实来源，两边也就不会各自漂移。
+
+```bash
+bash deploy/aws/pwestudio_remote.sh status    # 容器 + deep health
+bash deploy/aws/pwestudio_remote.sh health    # 公网 HTTPS / DNS / 证书 / 跳转
+bash deploy/aws/pwestudio_remote.sh backups   # 磁盘上有什么 + cron 日志
+bash deploy/aws/pwestudio_remote.sh backup    # 立刻备份
+bash deploy/aws/pwestudio_remote.sh drill     # 恢复演练（安全）
+bash deploy/aws/pwestudio_remote.sh certs     # 到期时间 + 续期 timer
+bash deploy/aws/pwestudio_remote.sh deploy dist/PWE-StudioSaaS-aws-<ver>.tar.gz
+bash deploy/aws/pwestudio_remote.sh ssh
+```
+
+`deploy` 会在上传前拒掉 `mode=standalone` 的包（装到 SaaS 主机上会在软链已经
+切过去之后才拒绝启动）、先备份、失败时**自动把 `current` 软链回滚**并复验健康。
+删卷 / 删库 / 真实恢复这类命令故意不在这里，它们留在实例上，运维能在上下文里
+读到确认提示。
+
 ## 7. 数据迁移（本地试点 → AWS）
 
 ```bash
