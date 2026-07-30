@@ -205,3 +205,46 @@ def test_bundle_builder_disables_macos_appledouble_metadata() -> None:
 
     assert "export COPYFILE_DISABLE=1" in builder
     assert '"/._"' in verifier
+
+
+def test_deploy_pins_the_image_tag_to_the_bundle_version() -> None:
+    """The image tag has to name what is inside the image.
+
+    docker-compose.yml tags `studiosaas:${STUDIOSAAS_VERSION}`, and that
+    variable lives in the shared env file that deliberately survives a release.
+    Deploying 8.1.0 therefore built an image tagged `studiosaas:8.0.1` running
+    an app that reports 8.1.0: `docker images` misleads whoever is diagnosing
+    an incident, and the tag stops being a rollback point because every release
+    overwrites the same one.
+    """
+
+    remote = _read("deploy/aws/pwestudio_remote.sh")
+
+    assert "STUDIOSAAS_VERSION=$version" in remote
+    # The version must come from the bundle itself, never from the laptop's
+    # VERSION file, which may already be ahead of what is being deployed.
+    assert 'version="$(tar xzOf "$tarball" "$name/BUILD_INFO"' in remote
+    assert 'die "BUILD_INFO carries no version"' in remote
+    # And it must happen before the rebuild, or the tag is applied a release late.
+    assert remote.index("STUDIOSAAS_VERSION=$version") < remote.index("lightsail_ctl.sh up")
+
+
+def test_old_release_note_urls_redirect_instead_of_dying() -> None:
+    """A versioned public filename breaks its own URL on every release.
+
+    `/customer-resources/Release_Notes_v8.0.1.html` is in sent mail, in the
+    sales deck footer and in whatever a prospect bookmarked. Renaming the file
+    to v8.1.0 turned all of those into 404s. Any older versioned name now
+    redirects permanently to the current one, and the pattern is version-shaped
+    so the next release does not need this touched.
+    """
+
+    server = _read("backend/server.py")
+
+    assert "_RELEASE_NOTES_NAME" in server
+    assert r"Release_Notes_v\d+\.\d+\.\d+\.html" in server
+    assert "code=301" in server
+    # The redirect must not become a way to reach a file outside the allow-list.
+    guard = server[server.index("def serve_customer_resource"):]
+    assert "if safe != filename:" in guard
+    assert guard.index("if safe != filename:") < guard.index("_RELEASE_NOTES_NAME.fullmatch")

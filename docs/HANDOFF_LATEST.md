@@ -1,10 +1,147 @@
-# PWE Studio v8.0.1 — Current Handoff
+# PWE Studio v8.1.0 — Current Handoff
 
-Date: 2026-07-29
+Current version: **8.1.0** (`VERSION`, `backend/server.py` `APP_VERSION`,
+`deploy/aws/lightsail.env.example`)
+Working branch: `codex/v8.0.1-aws-production`
 Baseline: tag `v8.0.0`, commit `abc01ce6e4f281056c3c22fa665e42d7811e0688`
-Release branch: `codex/v8.0.1-product-home-brand-release`
-Release source of truth: `VERSION`, final `main` commit and annotated tag `v8.0.1`
+Prior release branch: `codex/v8.0.1-product-home-brand-release`
 Post-release corrective branch: `codex/super-admin-tunnel-chain-fix`
+
+**Section order is newest first for §10, then the 2026-07-29/30 record in
+§0–§9.** §0 is the production truth and stays the first thing an operator reads
+after §10.
+
+## 10. Post-launch P0 fixes and the 8.1.0 version bump (2026-07-31)
+
+Everything below shipped after `pwestudio.online` went live (§0). The version
+moved 8.0.1 → **8.1.0** because the release now contains a production
+deployment, a customer-visible defect fix and a commercial quota change — not a
+patch-level correction.
+
+### 10.1 Version bump — the four files that define it
+
+| File | Change |
+|---|---|
+| `VERSION` | `8.0.1` → `8.1.0` |
+| `backend/server.py` `APP_VERSION` | `8.0.1` → `8.1.0` (this is what deep health reports) |
+| `deploy/aws/lightsail.env.example` | `STUDIOSAAS_VERSION=8.1.0` |
+| `README.md` | `Current release: **v8.1.0**` |
+
+Version assertions that had to move with it, all now green:
+`backend/tests/test_health.py:14`, `backend/tests/test_tunnel_parity.py:14,25,44`,
+`backend/tests/test_product_home_brand.py:57`,
+`backend/tests/test_standalone_mode.py:113`.
+
+The customer release-evidence pages were renamed with `git mv`, so history
+follows:
+
+```
+customer-resources/Release_Notes_v8.0.1.html -> Release_Notes_v8.1.0.html
+docs/customer/Release_Notes_v8.0.1.md        -> Release_Notes_v8.1.0.md
+```
+
+Seven referencing sites were updated: `product-home.html:393`,
+`backend/server.py:991` (the served allow-list), `customer-resources/FAQ.html:127`,
+`customer-resources/Privacy_Policy.html:190,191,200`,
+`customer-resources/Terms_of_Service.html:44,45,153`,
+`backend/frontend/assets/customer-resources.css:5`, `docs/customer/README.md:11`,
+plus the three test files above and
+`backend/tests/test_customer_resources_brand.py:7,60,225`.
+
+§8.1 below still names the old filename. That is deliberate: it is a historical
+statement about what the file was called at the time, not a live pointer.
+
+### 10.2 The registration success card was invisible on seven themes
+
+`tenant-template/index.html:270` (and the six generated tenant workspaces) read:
+
+```css
+.result-card{ background:var(--ink); color:#EFE9DD; }
+```
+
+`--ink` is the tenant theme's `text_color`. Under a light theme-mode that pairs
+a fixed cream on a dark surface — 13.69:1, fine. Under the **seven dark
+theme-modes `--ink` is itself the light text colour**, so the same fixed cream
+sat on a near-identical surface at **1.06:1**. The 56px `✓` measured 1.21:1 and
+the "back to home" control at `:543` had the same fault.
+
+This is the confirmation a parent sees immediately after submitting a
+registration — the single highest-consequence surface in the funnel, and it was
+blank on nearly half the palettes a studio can choose.
+
+Fix: `color:var(--bg)` against `background:var(--ink)`. That exact pair is the
+`('body / page', 'text_color', 'background_color', 4.5)` row of `CHECKS` in
+`docs/design/palette_gen.py:221`, so the generator already refuses to emit a
+theme where it falls below 4.5:1 — the card can no longer fail silently for any
+of the 15 theme-modes, including ones added later.
+
+`tenant-template/index.html:263` — the degraded-content band was a fixed
+`#FDF3D5` / `#6b4f00` pair, i.e. a light warm strip pinned across the top of
+every dark theme. It now carries `brand-status` with `data-tone="warning"` and
+takes the theme's own warning semantic (`brand-system.css:98`).
+`:447` dropped a hard-coded `#9d9484` eyebrow for `var(--muted)`.
+
+### 10.3 Every studio's CMS looked the same
+
+Two independent causes, both in `legacy-root/index.html`:
+
+1. `:62` mapped **10 of the 21 theme tokens**. `border_strong_color`, the accent
+   hover/pressed states, `focus_ring_color`, the disabled pair and `scrim_color`
+   were simply not applied, so a studio that picked one of the eight palettes
+   got a CMS that was only partly theirs.
+2. `:334` was `body { background:#f1f5f9 !important }` — Tailwind slate-100, a
+   cold blue-grey that outranked any tenant theme by `!important`.
+
+Both fixed. The map at `:62` is now the same declarative table the registration
+page uses at `tenant-template/register.html:365`, covering all 21 fields, and
+the body background is `var(--bg, #f1f5f9)` — the old value survives only as a
+fallback until `/brand` answers.
+
+### 10.4 Focus and control boundaries on the product gateway
+
+| Surface | Before | After |
+|---|---|---|
+| `product-home.html:56` focus ring on light surfaces | Family Amber `#F5B335` on Warm Paper — **1.70:1** | accessible amber `--family-amber-text` — **4.52:1** |
+| `product-home.html:62` focus ring on navy sections | — | Family Amber retained — **9.70:1** |
+| `product-home.html:171` dark-section form border | `rgba(255,255,255,.28)` → composites to `#576173` — **2.51:1** | `.42` — **3.90:1** |
+
+WCAG 1.4.11 asks 3:1 of a non-text indicator, so the old focus ring failed by a
+wide margin on exactly the surface a keyboard user needs it.
+
+### 10.5 What the new test file guards
+
+`backend/tests/test_portal_theme_contract.py` — 12 tests, new:
+
+- no colour declaration on a themed surface may name a literal hex, checked
+  across `tenant-template/` and every generated workspace (scrim rules are the
+  one documented exception);
+- the success card must pair `--ink` with `--bg`, not with a chosen colour;
+- **the generator still asserts that pair** — if someone deletes the
+  `body / page` row from `palette_gen.py` `CHECKS`, the card's guarantee
+  evaporates silently, so the test guards the assumption and not only the code;
+- the degraded band must use the theme's warning semantic;
+- `portal-theme.css` remains the single place fallback literals may live;
+- each of portal, registration and CMS must map **every** theme field, and the
+  three must agree field for field;
+- the CMS base background must follow the tenant theme;
+- the second CMS dark system is asserted to still be *recorded as open*, so the
+  known gap cannot quietly fade out of the plan document.
+
+### 10.6 Deliberately NOT done in this round
+
+| Item | Where it is tracked |
+|---|---|
+| Uptime monitoring, backup-failure alerting, on-call ownership, contractual SLA | §0 "Not yet done"; disclosed on the FAQ and release-evidence pages |
+| MFA for privileged accounts | §0; disclosed as an open gap **on a live service** |
+| Off-instance copy of database and media backups | §0; backups exist and restore, but live on the same instance |
+| Managed AWS services (RDS, S3, SES) | §0 |
+| CMS's two dark systems not merged | `docs/design/UI_UX_Upgrade_Plan_2026-07-30.md` **item 29**, `legacy-root/index.html:151-238` |
+| 128 `text-gray-400` occurrences below AA (2.31:1 at worst) | same document **item 8**, `legacy-root/src/cms-app.jsx` |
+| 8 Tailwind semantic-colour steps not on the semantic scale | same document **item 7** |
+| Migration 0021 not yet applied to production | §9.2 — the instance still holds the old plan catalogue until the next deploy |
+
+Items 7, 8 and 29 are CMS-internal: they affect staff-facing screens, not the
+parent- or student-facing surfaces fixed in §10.2.
 
 ## 0. AWS production is LIVE (2026-07-30)
 
@@ -30,6 +167,13 @@ same hostname.
 | Canonical host | `www` 301s to the apex over TLS; one origin, no duplicate content |
 | Operator entry | `ssh pwestudio` (see §0.2) and `bash deploy/aws/pwestudio_remote.sh <cmd>` |
 | Not yet done | RDS, S3, SES, MFA for privileged accounts, off-box backup copy, uptime monitoring |
+
+The version numbers in this section are what was **measured on the instance**
+on 2026-07-30 and are still what it serves. The repository moved to 8.1.0 on
+2026-07-31 (§10.1); the instance reaches 8.1.0, and migration 0021, with the
+next `pwestudio_remote.sh deploy` (§9.2). A repository version ahead of the
+deployed one is the normal state between a release and its deploy — do not
+"fix" this table to match `VERSION`.
 
 ### 0.1 "Not Secure" in Chrome was a client-side cache, not a server fault
 
@@ -398,7 +542,7 @@ bash backend/scripts/verify_local.sh
 .venv/bin/python backend/scripts/verify_tunnel_parity.py \
   --local-base-url http://localhost:8901 \
   --public-base-url https://studiosaas.cc.cd \
-  --expected-app-version 8.0.1 \
+  --expected-app-version 8.1.0 \
   --expected-mode saas
 
 # Clean-commit SaaS + Edition bundles

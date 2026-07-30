@@ -1,5 +1,6 @@
 import errno, json, os, re, shutil, socket, sys, time, secrets, hashlib
 from datetime import datetime, timedelta
+import re
 from flask import Flask, request, jsonify, redirect, send_from_directory, session
 from threading import Lock
 from studiosaas import api_v1
@@ -980,6 +981,11 @@ def serve_shared_assets(filename):
     resp.headers['Cache-Control'] = 'no-cache'
     return resp
 
+# Matches Release_Notes_v<major>.<minor>.<patch>.html for any version, so the
+# redirect below keeps working without being edited on every release.
+_RELEASE_NOTES_NAME = re.compile(r'Release_Notes_v\d+\.\d+\.\d+\.html')
+
+
 @app.route('/customer-resources/<path:filename>')
 def serve_customer_resource(filename):
     """Serve the small, reviewed set of customer-facing delivery resources."""
@@ -993,7 +999,17 @@ def serve_customer_resource(filename):
         'Terms_of_Service.html',
     }
     safe = os.path.basename(filename)
-    if safe != filename or safe not in allowed:
+    if safe != filename:
+        return api_error('Not found', 404)
+    # The release-notes filename carries the version, so every release breaks
+    # the previous public URL. That URL is in sent emails, in the sales deck's
+    # footer and in whatever a prospect bookmarked, and it 404'd the moment
+    # v8.0.1 became v8.1.0. Any older versioned name now redirects permanently
+    # to the current one instead of dead-ending.
+    if safe not in allowed and _RELEASE_NOTES_NAME.fullmatch(safe):
+        current = next(name for name in allowed if _RELEASE_NOTES_NAME.fullmatch(name))
+        return redirect(f'/customer-resources/{current}', code=301)
+    if safe not in allowed:
         return api_error('Not found', 404)
     resource_dir = os.path.join(PROJECT_ROOT, 'customer-resources')
     if not os.path.isfile(os.path.join(resource_dir, safe)):

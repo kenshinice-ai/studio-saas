@@ -13,14 +13,89 @@ It provides a lightweight SaaS-style platform for managing:
 - portfolio media and branding settings
 - platform-level tenant management
 
-**Status:** public pilot stage. Both the multi-tenant SaaS runtime and the
-single-tenant **PWE Studio Edition** (`STUDIOSAAS_MODE=standalone`) have a
-release-ready delivery path. SaaS runs locally (Waitress + PostgreSQL) and is
-exposed on demand via Cloudflare Tunnel at `https://studiosaas.cc.cd`. AWS
-deployment code is retained, but v8.0.1 is intentionally limited to local +
-Cloudflare invitation testing; no AWS deployment is claimed.
+**Status:** public pilot stage, deployed. The multi-tenant SaaS runtime serves
+`https://pwestudio.online` from a single AWS Lightsail instance in
+`ap-southeast-2` (Ubuntu 24.04, 2 vCPU / 1.9 GB), live since 2026-07-30. Host
+nginx terminates TLS with a Let's Encrypt certificate covering the apex and
+`www`; the application binds to loopback only. Daily PostgreSQL logical dumps
+and a media-volume archive run under cron, and the restore rehearsal passes.
+**Cloudflare Tunnel is no longer the production path** — it is retained for
+local development only and must not be reintroduced for this hostname. The
+single-tenant **PWE Studio Edition** (`STUDIOSAAS_MODE=standalone`) ships as a
+customer-installed package from the same codebase.
+
+Still not claimed, and deliberately disclosed as absent: uptime monitoring,
+backup-failure alerting, on-call ownership and a contractual SLA; multi-factor
+authentication for privileged accounts; off-instance backup copies; managed AWS
+services (RDS, S3, SES). See `docs/HANDOFF_LATEST.md` §0 for the measured
+position.
 
 Canonical product responsibilities and names are defined in `docs/Product_Surface_Model.md`: Super Admin is the commercial control plane, Studio Admin is the tenant brand/publication workspace, Studio CMS owns daily operations, the Studio Portal is the primary public acquisition experience, and Quick Registration is an alternate tenant-scoped entry.
+
+---
+
+## v8.1.0 Production Deployment and Tenant Theme Publication Release
+
+v8.1.0 takes the service into production and then fixes what going live, and a
+full readability review, exposed.
+
+**Production (2026-07-30).** `https://pwestudio.online` on AWS Lightsail
+(Ubuntu 24.04, 2 vCPU / 1.9 GB, `ap-southeast-2`); host nginx terminates TLS,
+Let's Encrypt covers apex + `www`, `www` 301s to the apex, the application binds
+to loopback only; daily PostgreSQL logical dump plus media-volume archive under
+cron with a passing restore rehearsal. Cloudflare Tunnel is retired from the
+production path and kept for local development only. Detail in
+`docs/HANDOFF_LATEST.md` §0.
+
+**Edge hardening.** One shared TLS snippet included by both 443 blocks,
+duplicate security headers removed, a branded maintenance page for 502/503/504,
+and **OCSP stapling deliberately off** — Let's Encrypt certificates no longer
+carry an OCSP responder URL, so `ssl_stapling on` only produces a permanent
+ignored-directive warning on every reload (§0.3).
+
+**Tenant theme publication — the release's main product fix.**
+
+- The portal registration success card was `background:var(--ink); color:#EFE9DD`.
+  `--ink` is the tenant theme's `text_color`, so under the seven dark
+  theme-modes that fixed light text sat on a light surface at **1.06:1 — the
+  confirmation a parent saw after submitting a registration was invisible.** It
+  now uses `var(--bg)`, a pair `backend/scripts/palette_gen.py:221` asserts at
+  ≥4.5:1 across all 15 theme-modes.
+- The portal's degraded-content band moved from a fixed warm yellow to the
+  theme's own warning semantic, so it is no longer a light foreign strip on
+  every dark theme.
+- The CMS mapped **10 of the 21 theme tokens** and then applied
+  `body { background:#f1f5f9 !important }` over the result, so every studio's
+  CMS looked identical. Portal, registration and CMS now map the same complete
+  21-token set, with a test asserting the three agree field for field.
+- `product-home.html` focus ring: Family Amber measures **1.70:1** on Warm
+  Paper, below the 3:1 WCAG 1.4.11 requires of a non-text indicator. The
+  accessible amber measures 4.52:1 and is now used on light surfaces; the bright
+  amber is retained on navy sections at 9.70:1.
+- Dark-section form borders: `rgba(255,255,255,.28)` (2.51:1) →
+  `.42` (3.90:1).
+- `backend/tests/test_portal_theme_contract.py` (12 tests, new) holds all of it.
+
+**Commercial plan quotas** (owner decision; prices, plan codes, names and
+feature flags unchanged): Starter 1 team account / 2 GB, Studio 5 / 10 GB,
+Growth 1,000 students / 50 GB with its 20 team accounts kept. Migration
+`0021_plan_quota_revision.sql`. Over-quota behaviour is admission control on new
+records only — nothing existing is archived or deleted.
+
+**Compliance and brand.** `customer-resources/Privacy_Policy.html` and
+`Terms_of_Service.html` are new and published (PWE GROUP PTY LTD, ABN
+55 606 664 546), both carrying a draft qualifier pending Australian legal
+review. The FAQ and release notes dropped the superseded "AWS not yet deployed"
+answer and moved off the retired forest/sage palette onto the brand tokens.
+
+**Deliberately not done in v8.1.0**, and disclosed as absent: uptime
+monitoring, backup-failure alerting, on-call ownership and a contractual SLA;
+privileged-account MFA; off-instance media/database backup copies. Inside the
+CMS only, the second dark-appearance system is not yet merged into the
+theme-mode one and 128 `text-gray-400`-class secondary labels still fall short
+of AA — items 29, 7 and 8 of
+`docs/design/UI_UX_Upgrade_Plan_2026-07-30.md`. Neither touches a
+parent-facing or student-facing surface.
 
 ---
 
@@ -612,7 +687,7 @@ same-mobile pending entries get a 疑似重复 badge, course duration is
 bilingual (60 分钟 / 60 MIN), broken gallery/hero images degrade cleanly
 (tiles removed from tab order, hero falls back to decorative art).
 
-**Role guides** (`docs/guides/`, current guides stamped 8.0.1): new dedicated
+**Role guides** (`docs/guides/`, current guides stamped 8.1.0): new dedicated
 Front Desk/Staff guide (previously "see Manager"), support-gate and
 owner-audit sections rewritten to match enforced behavior, share-link
 create/revoke permissions corrected everywhere, and each guide gained a
@@ -811,7 +886,7 @@ curl -i -X POST http://localhost:8901/v1/admin/tenants \
 | `docs/Deployment.md` | Current release boundary: local → Cloudflare Tunnel; AWS deferred |
 | `docs/Design_System.md` | UI tokens and component standards |
 | `docs/Glossary.md` | One agreed word per concept (enforced by `check_terminology.py`) |
-| `docs/guides/` | Per-role user manuals in Chinese (applicable to v8.0.1) |
+| `docs/guides/` | Per-role user manuals in Chinese (applicable to v8.1.0) |
 | `01 BRAND ASSETS/` | PWE/Paradise family delivery kit and validated asset manifest |
 
 ---

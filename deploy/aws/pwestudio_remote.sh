@@ -119,6 +119,21 @@ case "$cmd" in
     say "Uploading $base"
     scp -q "$tarball" "$SSH_HOST:/opt/pwestudio/shared/incoming/$base"
 
+    # docker-compose.yml tags the image `studiosaas:${STUDIOSAAS_VERSION}`, and
+    # that variable lives in the shared env file, which deliberately survives a
+    # release. Nothing used to update it, so deploying 8.1.0 produced an image
+    # tagged `studiosaas:8.0.1` running an app that reports 8.1.0 — `docker
+    # images` lies to whoever is diagnosing an incident, and the tag stops being
+    # a usable rollback point because every release overwrites the same one.
+    version="$(tar xzOf "$tarball" "$name/BUILD_INFO" | sed -n 's/^version=//p')"
+    [ -n "$version" ] || die "BUILD_INFO carries no version"
+    say "Pinning STUDIOSAAS_VERSION=$version in the shared environment"
+    remote "set -e
+      sudo sed -i 's/^STUDIOSAAS_VERSION=.*/STUDIOSAAS_VERSION=$version/' /opt/pwestudio/shared/production.env
+      grep -q '^STUDIOSAAS_VERSION=$version\$' /opt/pwestudio/shared/production.env \
+        || echo 'STUDIOSAAS_VERSION=$version' | sudo tee -a /opt/pwestudio/shared/production.env >/dev/null
+      sudo sed -n 's/^STUDIOSAAS_VERSION=/  now: /p' /opt/pwestudio/shared/production.env"
+
     say "Unpacking and switching the current symlink"
     remote "set -e
       cd $RELEASES
