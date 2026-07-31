@@ -810,6 +810,35 @@ file is a snapshot when `subscribable` is actually false.
 Four endpoints: preview + `.ics` for the recurring schedule (no student data,
 subscribable) and for a dated roster (student names, snapshot).
 
+### The empty calendar and the wrong filename (2026-07-31)
+
+The studio downloaded `~/Downloads/weekly-classes.ics`: 639 bytes, a valid
+`VCALENDAR` with a correct `VTIMEZONE` — and **zero `VEVENT`s**. The dialog was
+equally blank. Two independent causes, neither of them the ICS format:
+
+1. **Every roster row predates migration 0022's `class_time` column.** The
+   roster builder refused to invent a slot (correct — see the migration's own
+   reasoning) and *skipped* those rows, so a studio that had not yet set any
+   slot exported nothing. They are now exported as **all-day events**
+   (`DTSTART;VALUE=DATE` / `DTEND;VALUE=DATE` on the next day, per RFC 5545),
+   which asserts "expected today" and nothing about when. `skipped` is now only
+   cancellations, reported by name. `test_roster_with_no_slots_set_still_
+   exports_every_student` pins the whole path.
+2. **The recurring-schedule export was genuinely empty** — Let's Paint Studio
+   keeps no `class_schedules` rows, it works from the daily roster. That file
+   was truthful; the *dialog* was the defect, saying nothing and still offering
+   a download. The download button is now disabled at zero events and the empty
+   state names the next action ("在「每周课表」新增班次后，这里就会有内容").
+
+The filename was wrong because the client invented one. The server has always
+put the correct name on the `CalendarDocument` (`<slug>-roster-<date>.ics`,
+`<slug>-weekly-classes.ics`) and exposes it as `preview.filename`; `downloadIcs`
+now uses that, falling back to `Content-Disposition` and only then to a literal.
+A roster export saved as `weekly-classes.ics` was the visible symptom.
+
+Skip reasons were also being rendered as raw machine codes (`no-class-time`);
+they are now mapped to studio-facing Chinese with the student's name.
+
 ---
 
 ## 8. Customer-facing compliance pages and brand repair (2026-07-30)

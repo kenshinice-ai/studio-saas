@@ -176,6 +176,45 @@
             .cms-kpi-grid { gap: var(--ui-space-2, 8px); }
         }
 
+        /* ── Student profile sheet: identity / tabs / panel / actions ──
+           Every number here comes from the φ ladder already declared in
+           assets/ui-tokens.css (5 · 8 · 13 · 21 · 34 · 55 · 89, each step
+           ≈1.618x the last), so the sheet is measured against the same scale
+           as the dashboard rather than against a second set of round numbers.
+
+             width      34rem  (544px) — the ladder's 34 step
+             height cap 89dvh          — the 89 step, and the last stop before
+                                         a sheet stops reading as a sheet
+             panel pad  21px           — --ui-space-4
+             row gap    13px           — --ui-space-3, one step down, so the
+                                         gap between rows is visibly subordinate
+                                         to the padding around them
+             actions    1.618fr : 1fr  — the primary action takes the golden
+                                         major share, the secondary the minor */
+        .cms-profile-sheet {
+            max-height: 89dvh;
+        }
+        @media (min-width: 640px) {
+            .cms-profile-sheet { max-width: 34rem; }
+        }
+        .cms-profile-body {
+            padding: var(--ui-space-4, 21px);
+        }
+        .cms-profile-actions {
+            display: grid;
+            gap: var(--ui-space-2, 8px);
+            padding: var(--ui-space-3, 13px) var(--ui-space-4, 21px);
+            padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--ui-space-3, 13px));
+        }
+        .cms-profile-actions-row {
+            display: grid;
+            gap: var(--ui-space-2, 8px);
+            grid-template-columns: var(--ui-golden-columns, minmax(0, 1.618fr) minmax(0, 1fr));
+        }
+        /* One action present: it takes the whole row rather than leaving a
+           38.2% hole where the other button would have been. */
+        .cms-profile-actions-row > :only-child { grid-column: 1 / -1; }
+
 
         /* ── B6: 深色模式（跟随系统）— 收割自 LetsPaintCMS v5.0.x 两轮收口成品。
            中性色表面/文字 + 彩色浅底(-50/-100)一并映射为深色同色调，
@@ -357,14 +396,23 @@
         button:disabled { opacity:.55; cursor:not-allowed; transform:none; box-shadow:none; }
         .toast { box-shadow:var(--shadow-lg) !important; border-radius:var(--radius-xl) !important; }
         .pin-input { border-radius:var(--radius) !important; }
-        [class*="bg-indigo-600"], [class*="bg-indigo-700"], .tab-active { background-color:var(--tenant-primary) !important; }
-        [class*="bg-indigo-50"], [class*="bg-indigo-100"] { background-color:var(--tenant-primary-soft) !important; }
+        /* A themed surface has to carry its own foreground. `text-white` is not
+           a token: once --tenant-primary followed a dark theme's bright accent,
+           a white label on it measured 2.08:1 (studio-ink dark). --on-accent is
+           the pair palette_gen asserts at 4.6:1; measured worst 5.83:1. */
+        [class*="bg-indigo-600"], [class*="bg-indigo-700"], .tab-active { background-color:var(--tenant-primary) !important; color:var(--on-accent) !important; }
+        /* Soft accent fill mixed against the panel rather than an 8%-alpha hex,
+           so the value is deterministic and can be measured. At 10% the three
+           foregrounds it hosts measure accent 5.00 / --ink 11.14 / --muted 4.68
+           at their worst across the 15 theme-modes; at the previous 12% --muted
+           dropped to 4.48 and missed AA. */
+        [class*="bg-indigo-50"], [class*="bg-indigo-100"] { background-color:color-mix(in srgb, var(--accent) 10%, var(--panel)) !important; }
         [class*="text-indigo-400"], [class*="text-indigo-500"], [class*="text-indigo-600"], [class*="text-indigo-700"], [class*="text-indigo-800"] { color:var(--tenant-primary) !important; }
         [class*="border-indigo-"] { border-color:var(--tenant-primary-border) !important; }
         [class*="from-indigo-"] { --tw-gradient-from:var(--tenant-primary) var(--tw-gradient-from-position) !important; --tw-gradient-to:rgb(255 255 255 / 0) var(--tw-gradient-to-position) !important; --tw-gradient-stops:var(--tw-gradient-from), var(--tw-gradient-to) !important; }
         [class*="to-indigo-"], [class*="to-purple-"] { --tw-gradient-to:var(--tenant-secondary) var(--tw-gradient-to-position) !important; }
-        [class*="bg-purple-600"], [class*="bg-purple-700"] { background-color:var(--tenant-secondary) !important; }
-        [class*="bg-purple-50"], [class*="bg-purple-100"] { background-color:var(--tenant-secondary-soft) !important; }
+        [class*="bg-purple-600"], [class*="bg-purple-700"] { background-color:var(--tenant-secondary) !important; color:var(--on-secondary) !important; }
+        [class*="bg-purple-50"], [class*="bg-purple-100"] { background-color:color-mix(in srgb, var(--accent-dark) 10%, var(--panel)) !important; }
         [class*="text-purple-400"], [class*="text-purple-500"], [class*="text-purple-600"], [class*="text-purple-700"], [class*="text-purple-800"] { color:var(--tenant-secondary) !important; }
         [class*="border-purple-"] { border-color:var(--tenant-secondary-border) !important; }
 
@@ -383,6 +431,12 @@
            for all 15 theme-modes — so it stays readable whether the tenant
            theme is light or dark, which a fixed `text-white` cannot. */
         [class*="bg-indigo-800"], [class*="bg-indigo-900"] { background-color:var(--ink) !important; }
+        /* Inside the inverted chrome the surface IS --ink, so every derived
+           text colour below has to be pulled toward --bg instead. Declaring it
+           as an inherited custom property means a semantic colour dropped into
+           the sidebar later cannot silently darken itself into the surface. */
+        [class*="bg-indigo-8"], [class*="bg-indigo-9"], [class*="bg-gray-7"],
+        [class*="bg-gray-8"], [class*="bg-gray-9"], aside { --text-anchor:var(--bg); }
         /* One step toward the page colour, so nested pills read as inset in
            either direction rather than assuming "darker" means "deeper". */
         [class*="bg-indigo-950"] { background-color:color-mix(in srgb, var(--ink) 86%, var(--bg)) !important; }
@@ -420,7 +474,11 @@
         /* — structure: gray/slate/zinc/neutral/stone — */
         [class*="bg-gray-50"], [class*="bg-slate-50"], [class*="bg-zinc-50"], [class*="bg-neutral-50"], [class*="bg-stone-50"],
         [class*="bg-gray-100"], [class*="bg-slate-100"], [class*="bg-zinc-100"] { background-color:var(--bg2) !important; }
-        [class*="bg-gray-200"], [class*="bg-slate-200"], [class*="bg-gray-300"] { background-color:color-mix(in srgb, var(--line) 70%, var(--panel)) !important; }
+        /* Was 70% of --line. --muted on the resulting chip measured 4.17:1 at
+           worst (studio-ink dark) — the chip is a surface that hosts text, not
+           a divider. At 50% it measures 4.56:1 and the chip still reads as a
+           distinct layer (1.15 against --panel). */
+        [class*="bg-gray-200"], [class*="bg-slate-200"], [class*="bg-gray-300"] { background-color:color-mix(in srgb, var(--line) 50%, var(--panel)) !important; }
         [class*="text-gray-400"], [class*="text-slate-400"], [class*="text-gray-500"], [class*="text-slate-500"],
         [class*="text-zinc-400"], [class*="text-neutral-400"] { color:var(--muted) !important; }
         [class*="text-gray-600"], [class*="text-slate-600"], [class*="text-gray-700"], [class*="text-slate-700"] { color:var(--ink2) !important; }
@@ -433,20 +491,32 @@
         [class*="bg-teal-50"], [class*="bg-teal-100"], [class*="bg-lime-50"], [class*="bg-lime-100"] { background-color:color-mix(in srgb, var(--success) 12%, var(--panel)) !important; }
         [class*="bg-green-6"], [class*="bg-green-7"], [class*="bg-emerald-6"], [class*="bg-emerald-7"],
         [class*="bg-teal-6"], [class*="bg-teal-7"] { background-color:var(--success) !important; color:var(--on-accent) !important; }
-        [class*="text-green-"], [class*="text-emerald-"], [class*="text-teal-"], [class*="text-lime-"] { color:var(--success) !important; }
+        /* palette_gen solves --success/--warning/--danger against the PAGE only
+           (palette_gen.py:174; CHECKS 231-233). The CMS also puts that text on
+           --panel, on --bg2 and on the role's own soft fill — three surfaces
+           nothing ever asserted. Measured across the 15 theme-modes those
+           failed 8/15, 15/15 and 11-15/15 respectively, worst 2.86:1 (danger
+           on --bg2, arcade-lime dark).
+           Pulling the colour toward --text-anchor fixes both modes with one
+           ratio: the anchor is dark under a light theme and light under a dark
+           one, so the mix always moves away from the surface. 68% is the exact
+           AA boundary; 61.8% is the golden section and buys real margin for
+           six points of chroma. Measured at 61.8%: worst 5.00:1 (danger /
+           --bg2 / arcade-lime dark), best 8.72:1, 0 failures in 180 pairs. */
+        [class*="text-green-"], [class*="text-emerald-"], [class*="text-teal-"], [class*="text-lime-"] { color:color-mix(in srgb, var(--success) 61.8%, var(--text-anchor)) !important; }
         [class*="border-green-"], [class*="border-emerald-"], [class*="border-teal-"], [class*="border-lime-"] { border-color:color-mix(in srgb, var(--success) 45%, var(--panel)) !important; }
 
         /* — warning: amber / yellow / orange — */
         [class*="bg-amber-50"], [class*="bg-amber-100"], [class*="bg-yellow-50"], [class*="bg-yellow-100"],
         [class*="bg-orange-50"], [class*="bg-orange-100"] { background-color:color-mix(in srgb, var(--warning) 14%, var(--panel)) !important; }
         [class*="bg-amber-6"], [class*="bg-amber-7"], [class*="bg-orange-6"], [class*="bg-orange-7"] { background-color:var(--warning) !important; color:var(--on-accent) !important; }
-        [class*="text-amber-"], [class*="text-yellow-"], [class*="text-orange-"] { color:var(--warning) !important; }
+        [class*="text-amber-"], [class*="text-yellow-"], [class*="text-orange-"] { color:color-mix(in srgb, var(--warning) 61.8%, var(--text-anchor)) !important; }
         [class*="border-amber-"], [class*="border-yellow-"], [class*="border-orange-"] { border-color:color-mix(in srgb, var(--warning) 45%, var(--panel)) !important; }
 
         /* — danger: red / rose — */
         [class*="bg-red-50"], [class*="bg-red-100"], [class*="bg-rose-50"], [class*="bg-rose-100"] { background-color:color-mix(in srgb, var(--danger) 12%, var(--panel)) !important; }
         [class*="bg-red-6"], [class*="bg-red-7"], [class*="bg-rose-6"], [class*="bg-rose-7"] { background-color:var(--danger) !important; color:var(--on-accent) !important; }
-        [class*="text-red-"], [class*="text-rose-"] { color:var(--danger) !important; }
+        [class*="text-red-"], [class*="text-rose-"] { color:color-mix(in srgb, var(--danger) 61.8%, var(--text-anchor)) !important; }
         [class*="border-red-"], [class*="border-rose-"] { border-color:color-mix(in srgb, var(--danger) 45%, var(--panel)) !important; }
 
         /* — informational: blue / sky / cyan / pink / fuchsia —
@@ -454,18 +524,34 @@
            "long absence" panel, the pink birthday chips), so they follow the
            tenant's secondary accent and stay distinct from the primary. */
         [class*="bg-blue-50"], [class*="bg-blue-100"], [class*="bg-sky-50"], [class*="bg-sky-100"],
-        [class*="bg-cyan-50"], [class*="bg-pink-50"], [class*="bg-pink-100"], [class*="bg-fuchsia-50"] { background-color:color-mix(in srgb, var(--accent-dark) 12%, var(--panel)) !important; }
+        [class*="bg-cyan-50"], [class*="bg-pink-50"], [class*="bg-pink-100"], [class*="bg-fuchsia-50"] { background-color:color-mix(in srgb, var(--accent-dark) 10%, var(--panel)) !important; }
         [class*="bg-blue-6"], [class*="bg-blue-7"], [class*="bg-sky-6"], [class*="bg-pink-6"], [class*="bg-pink-7"] { background-color:var(--accent-dark) !important; color:var(--on-secondary) !important; }
-        [class*="text-blue-"], [class*="text-sky-"], [class*="text-cyan-"], [class*="text-pink-"], [class*="text-fuchsia-"] { color:var(--accent-dark) !important; }
+        /* The brand accents get the same treatment as the semantic colours but
+           at a far lighter dose: --accent-dark on --bg2 was the single
+           remaining miss (4.44:1, arcade-lime dark). Six points toward the
+           anchor lifts the worst pair to 4.72:1 and is not perceptible as a
+           change of hue, so the studio's secondary still reads as its own. */
+        [class*="text-blue-"], [class*="text-sky-"], [class*="text-cyan-"], [class*="text-pink-"], [class*="text-fuchsia-"] { color:color-mix(in srgb, var(--accent-dark) 94%, var(--text-anchor)) !important; }
         [class*="border-blue-"], [class*="border-sky-"], [class*="border-cyan-"], [class*="border-pink-"], [class*="border-fuchsia-"] { border-color:color-mix(in srgb, var(--accent-dark) 45%, var(--panel)) !important; }
 
         /* The tail of the audit: shades used only once or twice, which is exactly
            how a palette leaks back in — nobody notices a single bg-amber-400. */
-        [class*="bg-gray-700"], [class*="bg-gray-800"], [class*="bg-gray-900"] { background-color:var(--ink) !important; color:var(--bg) !important; }
-        [class*="text-gray-300"] { color:color-mix(in srgb, var(--muted) 70%, var(--panel)) !important; }
+        /* bg-gray-700/800/900 are restated in the readability pass below, after
+           the neutral chip rule, so a `disabled:bg-gray-300` on the same
+           element can no longer outrank them. */
+        /* There is no legible tier below --muted. The 70% mix that used to sit
+           here measured 3.03:1 on --panel in every one of the 15 theme-modes,
+           because --muted is already solved to sit exactly on the AA floor —
+           anything fainter is by construction below it. The faintest tier
+           therefore collapses into --muted (worst 5.56:1) and hierarchy at
+           that level comes from size and weight instead of from fading. */
+        [class*="text-gray-300"] { color:var(--muted) !important; }
         [class*="text-indigo-900"] { color:var(--accent) !important; }
         [class*="text-purple-900"] { color:var(--accent-dark) !important; }
-        [class*="bg-amber-200"], [class*="bg-amber-400"] { background-color:color-mix(in srgb, var(--warning) 55%, var(--panel)) !important; }
+        /* bg-amber-400 is a count badge carrying a label, so it is promoted to
+           the solid warning + --on-accent pair in the readability pass below;
+           bg-amber-200 stays a highlight fill with no text of its own. */
+        [class*="bg-amber-200"] { background-color:color-mix(in srgb, var(--warning) 55%, var(--panel)) !important; }
         [class*="bg-green-400"] { background-color:color-mix(in srgb, var(--success) 60%, var(--panel)) !important; }
         [class*="bg-red-900"] { background-color:var(--danger) !important; color:var(--on-accent) !important; }
         [class*="bg-blue-200"] { background-color:color-mix(in srgb, var(--accent-dark) 30%, var(--panel)) !important; }
@@ -477,6 +563,100 @@
         [class*="from-blue-"], [class*="from-emerald-"], [class*="from-amber-"] { --tw-gradient-from:var(--accent) var(--tw-gradient-from-position) !important; }
         [class*="to-pink-"], [class*="to-rose-"], [class*="to-purple-"],
         [class*="to-blue-"], [class*="to-emerald-"], [class*="to-amber-"] { --tw-gradient-to:var(--accent-dark) var(--tw-gradient-to-position) !important; }
+
+        /* ══ Readability pass: what the role map above left unreadable ══
+           The block above answers "which token does this colour come from".
+           It does not answer "can you still read the text once BOTH ends
+           follow the theme", and that is a different question with a
+           different failure mode — a value can be perfectly on-brand and
+           invisible. Replaying every (text token x background token) pair the
+           CMS can produce against the 15 shipped theme-modes in
+           backend/studiosaas/presets.py gave 197 failures in 645 pairs. The
+           rules below close them; each carries the measured worst case, and
+           "worst" always means the worst of all 15 theme-modes.
+
+           Three of the four causes are the same bug in different clothes:
+           `[class*="bg-red-50"]` is a substring test, so it also matches
+           `bg-red-500` and `active:bg-red-50`. The fourth is a coverage gap —
+           bg-white/text-white are not `<family>-<shade>` utilities, so the
+           audit regex that produced the map above never saw them. */
+
+        /* The pole that derived text colours are pulled toward. Every content
+           surface in the CMS sits near --bg, so mixing toward --ink always
+           increases contrast, in either mode. The inverted chrome overrides
+           it to --bg where the surface itself is --ink (see above). */
+        :root { --text-anchor:var(--ink); }
+
+        /* ── 1. bg-white / text-white were never re-pointed ──
+           99 uses of bg-white are the card, modal and sheet surface of this
+           app. Under the eight dark theme-modes the card stayed #ffffff while
+           its text became --ink, i.e. near-white on white. Measured worst
+           (arcade-lime dark): body 1.02:1, soft 1.40:1, muted 2.44:1. On
+           var(--panel) the same three pairs measure 13.25 / 9.67 / 5.56.
+           `bg-white/NN` is excluded: those sit on a bg-black scrim over a
+           photograph, where white genuinely is the right foreground. */
+        [class*="bg-white"]:not([class*="bg-white/"]) { background-color:var(--panel) !important; }
+        [class*="bg-black"]:not([class*="bg-black/"]) { background-color:var(--ink) !important; color:var(--bg) !important; }
+
+        /* ── 2. the -500 shades were being caught by the -50 soft fills ──
+           `bg-red-50` is a prefix of `bg-red-500`, so the solid refund button,
+           the low-balance badge and the portfolio delete button all rendered
+           as a 12% tint under a white label. Restating the 500s after the soft
+           fills makes the longer, more specific token win on source order, and
+           pairs each with the on-colour the generator asserts (worst 4.56:1
+           for the semantic fills, 5.83:1 for the accent). */
+        [class*="bg-red-500"], [class*="bg-rose-500"] { background-color:var(--danger) !important; color:var(--on-accent) !important; }
+        [class*="bg-amber-500"], [class*="bg-amber-400"], [class*="bg-orange-500"], [class*="bg-yellow-500"] { background-color:var(--warning) !important; color:var(--on-accent) !important; }
+        [class*="bg-emerald-500"], [class*="bg-green-500"], [class*="bg-teal-500"] { background-color:var(--success) !important; color:var(--on-accent) !important; }
+        [class*="bg-indigo-500"], [class*="bg-blue-500"], [class*="bg-sky-500"] { background-color:var(--accent) !important; color:var(--on-accent) !important; }
+        [class*="bg-purple-500"], [class*="bg-pink-500"], [class*="bg-fuchsia-500"] { background-color:var(--accent-dark) !important; color:var(--on-secondary) !important; }
+
+        /* ── 3. a `disabled:` / `active:` prefix is invisible to [class*=] ──
+           `disabled:bg-gray-300` sits on seven of the CMS's primary buttons
+           (create class, join today's roster, save, top up). The map read it
+           as `bg-gray-300` and painted them the disabled chip AT REST, under
+           a text-white label: measured 1.25:1. Restating the solid fills here,
+           after the neutral rule, gives the button its colour back. */
+        [class*="bg-indigo-600"], [class*="bg-indigo-700"], .tab-active { background-color:var(--tenant-primary) !important; }
+        [class*="bg-gray-700"], [class*="bg-gray-800"], [class*="bg-gray-900"] { background-color:var(--ink) !important; color:var(--bg) !important; }
+        /* …and the disabled state moves onto the real pseudo-class, with the
+           token pair palette_gen solves for it (3.00:1 at worst — legible,
+           and deliberately under AA so it still READS as unavailable, which
+           is also why it no longer needs the blanket opacity). */
+        [class*="disabled:bg-gray-2"]:disabled, [class*="disabled:bg-gray-3"]:disabled,
+        [class*="disabled:bg-slate-2"]:disabled, [class*="disabled:bg-slate-3"]:disabled {
+            background-color:var(--disabled-surface) !important;
+            color:var(--disabled-text) !important;
+            opacity:1 !important;
+        }
+        /* An element whose ONLY colour class is a pressed variant has no
+           resting fill at all — the mobile bottom nav and the sidebar rows.
+           They were painting var(--ink) permanently. */
+        [class*="active:bg-"]:not([class^="bg-"]):not([class*=" bg-"]):not(:active) { background-color:transparent !important; }
+        /* Pressed feedback for the two families that carry it, restored on the
+           state that was supposed to trigger it. */
+        [class*="active:bg-gray-"]:active, [class*="active:bg-slate-"]:active { background-color:var(--bg2) !important; }
+        [class*="active:bg-indigo-1"]:active, [class*="active:bg-indigo-5"]:active { background-color:color-mix(in srgb, var(--accent) 18%, var(--panel)) !important; }
+        [class*="active:bg-indigo-8"]:active, [class*="active:bg-indigo-7"]:active { background-color:color-mix(in srgb, var(--ink) 78%, var(--bg)) !important; }
+
+        /* ── 4. the OS dark block and the tenant theme were both in charge ──
+           The `@media (prefers-color-scheme: dark)` system further up is
+           older than the role map, and the role map outranks almost all of it
+           by source order. Almost: html/body, the row hover and the input
+           placeholder had no later counterpart, so under OS dark + a LIGHT
+           tenant theme those three stayed dark while every other surface and
+           all text followed the light theme — --ink body copy on the pinned
+           #0e1016 page measures 1.16:1.
+           Rather than merge the two systems (plan item #29, which needs the
+           whole Tailwind dark table re-derived), scope the outcome: once
+           /brand has answered, data-brand-scheme is on <html> and the tenant
+           theme owns these three. Before it answers the OS block still
+           prevents a white flash, which is the case it was written for. */
+        html[data-brand-scheme], html[data-brand-scheme] body { background:var(--bg) !important; }
+        html[data-brand-scheme] .hover-row:hover { background:color-mix(in srgb, var(--line) 38.2%, var(--panel)) !important; }
+        html[data-brand-scheme] input::placeholder,
+        html[data-brand-scheme] textarea::placeholder { color:var(--muted) !important; }
+        html[data-brand-scheme] [class*="bg-white/70"] { background-color:color-mix(in srgb, var(--panel) 70%, transparent) !important; }
 
         /* The shared admin language switch reads --brand, which the CMS never
            defined, so it fell back to the stock blue #3b82f6 in the corner of

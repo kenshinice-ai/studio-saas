@@ -339,6 +339,11 @@ class CalendarEvent:
     one_to_one: bool = False
     recurrence: str | None = None
     participants: tuple[str, ...] = ()
+    # A roster entry whose slot nobody has decided yet. Calendars already have a
+    # shape for "today, time unknown" — an all-day event — so the student is
+    # exported rather than dropped. Dropping produced a zero-event file for a
+    # day that plainly had someone on the roster, which reads as a broken export.
+    all_day: bool = False
 
     def preview(self, zone: ZoneInfo) -> dict[str, Any]:
         """Render this event for the download dialog."""
@@ -352,9 +357,13 @@ class CalendarEvent:
             "date": self.starts_local.date().isoformat(),
             "startTime": self.starts_local.strftime("%H:%M"),
             "endTime": self.ends_local.strftime("%H:%M"),
-            "timeRange": f"{self.starts_local:%H:%M}–{self.ends_local:%H:%M}",
+            "timeRange": (
+                "全天（未设时间）" if self.all_day
+                else f"{self.starts_local:%H:%M}–{self.ends_local:%H:%M}"
+            ),
             "durationMinutes": self.duration_minutes,
             "durationSource": self.duration_source,
+            "allDay": self.all_day,
             "oneToOne": self.one_to_one,
             "recurrence": self.recurrence,
             "participants": list(self.participants),
@@ -374,8 +383,20 @@ class CalendarEvent:
             f"UID:{_escape(self.uid)}",
             f"DTSTAMP:{stamp_text}",
             "SEQUENCE:0",
-            f"DTSTART;TZID={timezone_name}:{self.starts_local:%Y%m%dT%H%M%S}",
-            f"DTEND;TZID={timezone_name}:{self.ends_local:%Y%m%dT%H%M%S}",
+            # An all-day event is a DATE, not an instant, so it carries no TZID —
+            # a timezone on it is meaningless. DTEND is exclusive (RFC 5545
+            # §3.8.2.2), hence the following day.
+            *(
+                (
+                    f"DTSTART;VALUE=DATE:{self.starts_local:%Y%m%d}",
+                    f"DTEND;VALUE=DATE:{self.starts_local + timedelta(days=1):%Y%m%d}",
+                )
+                if self.all_day
+                else (
+                    f"DTSTART;TZID={timezone_name}:{self.starts_local:%Y%m%dT%H%M%S}",
+                    f"DTEND;TZID={timezone_name}:{self.ends_local:%Y%m%dT%H%M%S}",
+                )
+            ),
         ]
         if self.recurrence:
             lines.append(f"RRULE:FREQ={self.recurrence}")
@@ -581,16 +602,23 @@ def build_roster_document(
     ``oneToOne`` stays its own event so an overlapping private lesson remains
     visible rather than being folded into the group.
 
-    Entries with no ``classTime`` are **not** given a guessed slot. They are
-    excluded from the file and reported in ``skipped`` so the dialog can say how
-    many students were left out and why, which keeps migration 0022's "do not
-    backfill a guess" decision intact all the way to the download.
+    Entries with no ``classTime`` are **not** given a guessed slot; they are
+    exported as all-day events instead. That keeps migration 0022's "do not
+    backfill a guess" decision intact all the way to the download — an all-day
+    event asserts the student is expected today and nothing about when — while
+    still putting them in the studio's calendar. Dropping them was worse: the
+    43 imported students predate the column, so a studio that had not yet set
+    any slot downloaded an .ics with zero events and no explanation.
+
+    ``skipped`` is now only cancellations, which the dialog reports by name so
+    a shorter list reads as a cancellation rather than a bug.
     """
 
     _zone(timezone_name)
     durations = slot_durations or {}
     grouped: dict[str, list[dict[str, Any]]] = {}
     private: list[dict[str, Any]] = []
+    untimed: list[dict[str, Any]] = []
     skipped: list[dict[str, Any]] = []
 
     for entry in entries:
@@ -605,7 +633,13 @@ def build_roster_document(
         raw_time = entry.get("classTime", entry.get("class_time"))
         name = str(entry.get("studentName") or entry.get("student_name") or "").strip()
         if not raw_time:
-            skipped.append({"studentName": name, "reason": "no-class-time"})
+            untimed.append(
+                {
+                    "name": name or "Unnamed student",
+                    "studentId": str(entry.get("studentId") or entry.get("student_id") or ""),
+                    "oneToOne": bool(entry.get("oneToOne", entry.get("one_to_one"))),
+                }
+            )
             continue
         slot = _parse_time(raw_time).strftime("%H:%M")
         record = {
@@ -685,6 +719,36 @@ def build_roster_document(
                 duration_source=source,
                 one_to_one=True,
                 participants=(member["name"],),
+            )
+        )
+
+    # Roster entries with no slot decided yet, as all-day events. Without these
+    # a day holding only untimed students exported as an empty calendar, which
+    # looks like the export is broken rather than like the times are missing.
+    midnight = datetime.combine(roster_date, time(0, 0))
+    for index, member in enumerate(sorted(untimed, key=lambda item: item["name"])):
+        suffix = member["studentId"] or f"untimed{index}"
+        events.append(
+            CalendarEvent(
+                uid=f"roster-{day_key}-untimed-{suffix}@{tenant_slug}.pwe-studio",
+                summary=f"{tenant_name} · {member['name']}（未设时间）",
+                description="\n".join(
+                    [
+                        f"日期：{roster_date.isoformat()}",
+                        f"类型：{'1 对 1' if member['oneToOne'] else '普通班课'}",
+                        "上课时间尚未设置，可在 CMS 每日排课中补充后重新下载。",
+                        "",
+                        f"• {member['name']}",
+                    ]
+                ),
+                location=location,
+                starts_local=midnight,
+                ends_local=midnight + timedelta(days=1),
+                duration_minutes=0,
+                duration_source="unset",
+                one_to_one=member["oneToOne"],
+                participants=(member["name"],),
+                all_day=True,
             )
         )
 

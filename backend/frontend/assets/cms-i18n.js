@@ -436,17 +436,44 @@
     updateSwitch();
   }
 
+  /* The switch is the one control that is on screen on every page of the CMS,
+   * so it was also the one control that stayed Tailwind-indigo on a themed
+   * page. Every colour below is a theme token with the pre-theme palette as
+   * the fallback, and each is chosen for a measured pair rather than by eye
+   * (worst case across the 15 theme-modes in backend/studiosaas/presets.py):
+   *
+   *   resting label   --muted on --panel            5.56:1   (was 3.06:1 once
+   *                                                  the panel followed a theme)
+   *   selected label  --on-accent on --accent       5.83:1   (a fixed #fff on
+   *                                                  a bright dark-theme accent
+   *                                                  measured 2.08:1)
+   *   focus ring      --focus-ring on --panel       3.86:1, on --bg 3.55:1
+   *                   (--accent is not usable here: the ring has to clear 3:1
+   *                    against the surface, and the accent is solved against
+   *                    the page for TEXT contrast, not as a ring)
+   *   hairline        --line on --panel             1.34:1   (visible-divider
+   *                                                  floor is 1.18)
+   *
+   * Position: 21px is the --ui-space-4 step of the golden ladder the rest of
+   * the CMS uses. On phones the CMS has a fixed bottom nav ~80px tall, and the
+   * switch was sitting on top of it — it now docks above the nav at the same
+   * 88px offset .toast-bottom already uses, so the two agree about where the
+   * bottom of the page is. Toasts still cover it briefly (z-index 999 vs 90),
+   * which is the correct order: a transient message outranks a persistent
+   * control. */
   function installStyles() {
     const style = document.createElement('style');
-    style.textContent = '.cms-language-switch{position:fixed;right:16px;bottom:16px;z-index:90;'
-      + 'display:inline-flex;gap:2px;padding:3px;border:1px solid #e2e8f0;border-radius:999px;'
-      + 'background:#fff;box-shadow:0 4px 14px rgba(15,23,42,.12);'
+    style.textContent = '.cms-language-switch{position:fixed;right:21px;bottom:21px;z-index:90;'
+      + 'display:inline-flex;gap:3px;padding:5px;border:1px solid var(--line,#e2e8f0);border-radius:999px;'
+      + 'background:var(--panel,#fff);box-shadow:var(--shadow-lg,0 4px 14px rgba(15,23,42,.12));'
       + 'margin-bottom:env(safe-area-inset-bottom,0px)}'
-      + '.cms-language-switch button{border:0;background:transparent;color:#64748b;'
+      + '.cms-language-switch button{border:0;background:transparent;color:var(--muted,#64748b);'
       + 'min-width:44px;min-height:44px;padding:6px 12px;border-radius:999px;font:inherit;'
-      + 'font-size:12px;font-weight:700;cursor:pointer}'
-      + '.cms-language-switch button.active{background:#4f46e5;color:#fff}'
-      + '.cms-language-switch button:focus-visible{outline:2px solid #4f46e5;outline-offset:2px}'
+      + 'font-size:13px;font-weight:700;cursor:pointer;transition:background-color .15s ease,color .15s ease}'
+      + '.cms-language-switch button.active{background:var(--accent,#4f46e5);color:var(--on-accent,#fff)}'
+      + '.cms-language-switch button:focus-visible{outline:2px solid var(--focus-ring,#4f46e5);outline-offset:2px}'
+      + '@media (max-width:767px){.cms-language-switch{bottom:calc(env(safe-area-inset-bottom,0px) + 88px);margin-bottom:0}}'
+      + '@media (prefers-reduced-motion:reduce){.cms-language-switch button{transition:none}}'
       + '@media print{.cms-language-switch{display:none}}';
     document.head.appendChild(style);
   }

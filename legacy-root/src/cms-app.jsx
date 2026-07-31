@@ -231,6 +231,62 @@ function BarChart({ items, color='#6366f1', h=140, prefix='' }) {
     );
 }
 
+/* ═══════════════════ TABS (WAI-ARIA tab pattern) ══════════════ */
+/* The full contract, not just role="tab": a tablist owns exactly one tab stop
+ * (roving tabindex), Left/Right move between tabs, Home/End jump to the ends,
+ * and every tab points at the panel it controls so a screen reader can say
+ * "tab 2 of 5" and then read the right region. `backend/frontend/studio-admin.html`
+ * implements the same contract imperatively (see its bindEvents / ArrowLeft
+ * handler at :4422); this is the React equivalent so the two admin surfaces
+ * behave identically under the keyboard.
+ *
+ * Tabs are 44px tall and the strip scrolls horizontally rather than wrapping,
+ * because a wrapped tablist on a phone puts two rows of targets under a thumb
+ * that is aiming for one. */
+function Tabs({idBase, label, items, value, onChange, className=''}) {
+    const refs = useRef({});
+    const order = items.map(i => i.value);
+    const onKeyDown = (event) => {
+        const keys = {ArrowRight: 1, ArrowLeft: -1};
+        let next = null;
+        if (event.key in keys) next = order[(order.indexOf(value) + keys[event.key] + order.length) % order.length];
+        else if (event.key === 'Home') next = order[0];
+        else if (event.key === 'End') next = order[order.length - 1];
+        if (!next) return;
+        event.preventDefault();
+        onChange(next);
+        const node = refs.current[next];
+        if (node) node.focus();
+    };
+    return (
+        <div role="tablist" aria-label={label} onKeyDown={onKeyDown}
+            className={`flex gap-1 overflow-x-auto border-b border-gray-200 ${className}`}>
+            {items.map(item => (
+                <button key={item.value} type="button" role="tab" id={`${idBase}-tab-${item.value}`}
+                    aria-selected={value === item.value} aria-controls={`${idBase}-panel-${item.value}`}
+                    tabIndex={value === item.value ? 0 : -1}
+                    ref={node => { refs.current[item.value] = node; }}
+                    onClick={() => onChange(item.value)}
+                    className={`relative min-h-[44px] px-4 text-sm font-bold whitespace-nowrap flex items-center gap-1.5 ${value === item.value
+                        ? 'text-indigo-700 after:absolute after:left-2 after:right-2 after:bottom-0 after:h-0.5 after:bg-indigo-600'
+                        : 'text-gray-500'}`}>
+                    {item.icon && <Icon name={item.icon} className="w-4 h-4"/>}{item.label}
+                </button>
+            ))}
+        </div>
+    );
+}
+
+function TabPanel({idBase, name, active, children}) {
+    if (!active) return null;
+    return (
+        <div role="tabpanel" id={`${idBase}-panel-${name}`} aria-labelledby={`${idBase}-tab-${name}`}
+            tabIndex={0} className="space-y-3 focus:outline-none">
+            {children}
+        </div>
+    );
+}
+
 /* ═══════════════════ BALANCE BADGE ════════════════════════════ */
 /* B5 (v4.7): 统一空状态组件 — 图标 + 主文 + 次文 */
 function EmptyState({icon=null, main='暂无数据', sub='', action=null, onAction=null}) {
@@ -1930,7 +1986,7 @@ function App() {
         } finally { setIcsBusy(false); }
     };
 
-    const downloadIcs = async (kind) => {
+    const downloadIcs = async (kind, suggestedName) => {
         setIcsBusy(true);
         try {
             const path = kind === 'roster'
@@ -1948,7 +2004,11 @@ function App() {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = kind === 'roster' ? `roster-${rDate}.ics` : 'weekly-classes.ics';
+            /* The server names the file on the CalendarDocument; a name invented
+               here is how a roster export ended up called weekly-classes.ics. */
+            a.download = suggestedName
+                || r.headers.get('Content-Disposition')?.match(/filename="?([^";]+)"?/)?.[1]
+                || (kind === 'roster' ? `roster-${rDate}.ics` : 'calendar.ics');
             document.body.appendChild(a); a.click(); a.remove();
             setTimeout(()=>URL.revokeObjectURL(url), 1000);
             setIcsPreview(null);
@@ -2913,7 +2973,14 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             </div>
 
                             {(icsPreview.events||[]).length === 0
-                                ? <p className="text-sm text-gray-500 text-center py-6">这一天没有可导出的课程。</p>
+                                ? <div className="text-center py-6 px-2">
+                                    <p className="text-sm text-gray-600 font-bold">没有可导出的课程</p>
+                                    <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">
+                                        {icsPreview.kind === 'roster'
+                                            ? '这一天的排课是空的。先在下方名单里加入学员，再回来导出。'
+                                            : '还没有固定班次。在「每周课表」新增班次后，这里就会有内容。'}
+                                    </p>
+                                  </div>
                                 : (icsPreview.events||[]).map(ev=>(
                                     <div key={ev.uid} className="border border-gray-100 rounded-xl px-4 py-3">
                                         <div className="flex items-start justify-between gap-2">
@@ -2935,7 +3002,10 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                         {icsPreview.skipped.length} 项未导出
                                     </p>
                                     <p className="text-xs text-amber-700 mt-1">
-                                        {icsPreview.skipped.map(x=>x.reason||x.summary||'').filter(Boolean).join('；')}
+                                        {icsPreview.skipped.map(x=>{
+                                            const why = {cancelled:'已取消', 'no-class-time':'未设置上课时间'}[x.reason] || x.reason || '';
+                                            return [x.studentName, why].filter(Boolean).join(' · ');
+                                        }).filter(Boolean).join('；')}
                                     </p>
                                 </div>
                             )}
@@ -2963,7 +3033,9 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         <div className="px-5 py-4 border-t border-gray-100 flex gap-2">
                             <button onClick={()=>setIcsPreview(null)}
                                 className="flex-1 border border-gray-200 rounded-xl py-3 text-sm font-bold text-gray-700 min-h-[44px]">取消</button>
-                            <button onClick={()=>downloadIcs(icsPreview.kind)} disabled={icsBusy}
+                            <button onClick={()=>downloadIcs(icsPreview.kind, icsPreview.filename)}
+                                disabled={icsBusy || !(icsPreview.stats?.events > 0)}
+                                title={icsPreview.stats?.events > 0 ? '' : '没有可导出的课程'}
                                 className="flex-1 bg-indigo-600 active:bg-indigo-700 disabled:opacity-50 text-white rounded-xl py-3 text-sm font-bold min-h-[44px] inline-flex items-center justify-center gap-1.5">
                                 <Icon name="download" className="w-4 h-4"/>下载 .ics
                             </button>
@@ -3433,8 +3505,14 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             <div className="md:hidden space-y-2 pt-2 border-t border-gray-100">
                                 <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide pb-0.5">快捷操作</p>
                                 {TENANT_SLUG && <>
+                                {/* Same judgement as the sidebar pair. This list
+                                    already reads as filled = do it, soft accent
+                                    = secondary, neutral = read-only, danger =
+                                    destructive; 网站与品牌 is the one item worth
+                                    leading with, so it takes the single filled
+                                    slot instead of an unrelated green. */}
                                 <a href={`/${encodeURIComponent(TENANT_SLUG)}/studio-admin`}
-                                    className="flex items-center justify-center w-full bg-emerald-50 active:bg-emerald-100 text-emerald-800 border border-emerald-200 py-3 rounded-xl font-bold text-sm min-h-[44px]">网站与品牌 · Studio Admin</a>
+                                    className="flex items-center justify-center w-full bg-indigo-600 active:bg-indigo-700 py-3 rounded-xl font-bold text-sm min-h-[44px]">网站与品牌 · Studio Admin</a>
                                 <a href={`/${encodeURIComponent(TENANT_SLUG)}`} target="_blank" rel="noopener"
                                     className="flex items-center justify-center w-full bg-gray-50 active:bg-gray-100 text-gray-700 border border-gray-200 py-3 rounded-xl font-bold text-sm min-h-[44px]">查看公开网站</a>
                                 </>}
@@ -3486,8 +3564,18 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 </nav>
                 <div className="p-3 border-t border-indigo-800 space-y-1.5" style={{paddingBottom:'calc(env(safe-area-inset-bottom,0px) + 12px)'}}>
                     {TENANT_SLUG && <div className="grid grid-cols-2 gap-1.5 pb-1">
+                        {/* These two are a pair of links OUT of the CMS, not a
+                            success state. The green was picked when the CMS had
+                            no palette; once every colour maps by role it made an
+                            outbound link read as "something succeeded". They are
+                            peers, so the difference between them has to be
+                            hierarchy, not hue: editing the brand is the
+                            accented action, viewing the live site is the quiet
+                            read-only one, and it takes the same chrome inset as
+                            the 刷新 / 设置 buttons directly below. That contrast
+                            survives a palette change; green vs blue did not. */}
                         <a href={`/${encodeURIComponent(TENANT_SLUG)}/studio-admin`}
-                            className="flex items-center justify-center rounded-lg bg-emerald-700 active:bg-emerald-600 px-2 py-2.5 text-[11px] font-bold min-h-[44px]">网站与品牌</a>
+                            className="flex items-center justify-center rounded-lg bg-indigo-600 active:bg-indigo-700 px-2 py-2.5 text-[11px] font-bold min-h-[44px]">网站与品牌</a>
                         <a href={`/${encodeURIComponent(TENANT_SLUG)}`} target="_blank" rel="noopener"
                             className="flex items-center justify-center rounded-lg bg-indigo-800 active:bg-indigo-700 px-2 py-2.5 text-[11px] font-bold min-h-[44px]">公开网站</a>
                     </div>}
@@ -4883,9 +4971,13 @@ document.getElementById('copybtn').addEventListener('click', function(){
 {/* ═══ PROFILE MODAL ══════════════════════════════════════════ */}
 {selS && (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center sm:p-4 backdrop-blur-sm">
-        {/* Fix #7: slide-up sheet on mobile, centered modal on iPad */}
-        <div className="bg-white w-full sm:rounded-3xl sm:max-w-lg shadow-2xl overflow-hidden anim border-t sm:border border-gray-200">
-            <div className="flex justify-between items-center p-4 bg-gray-50 border-b">
+        {/* Fix #7: slide-up sheet on mobile, centered modal on iPad.
+            Three fixed bands + one scrolling band: identity / tabs / panel /
+            actions. The actions used to be the last thing in the scroll, so
+            "加入今日排课" — the most frequent action in the app — sat below a
+            portfolio grid and a consent panel. */}
+        <div className="bg-white w-full sm:rounded-3xl shadow-2xl overflow-hidden anim border-t sm:border border-gray-200 flex flex-col cms-profile-sheet">
+            <div className="flex justify-between items-center p-4 bg-gray-50 border-b flex-shrink-0">
                 <div className="flex items-center gap-2.5 min-w-0">
                     <PhotoAvatar photo={selS.photo} name={selS.name} size="sm"/>
                     <h3 className="text-lg font-bold text-gray-900 truncate">{selS.name}</h3>
@@ -4894,18 +4986,45 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 </div>
                 <button onClick={()=>{setSelS(null);setEditP(false);}} aria-label="关闭" className="text-gray-400 active:text-gray-700 text-2xl font-bold p-2 -mr-1 min-h-[44px] min-w-[44px] flex items-center justify-center">×</button>
             </div>
+            {/* Grouped by the question being answered, not by field type:
+                概览 = who do I call and when were they last here (what the
+                front desk needs in the first five seconds); 资料 = is their
+                record correct; 记录 = what happened; 作品 = what have they
+                made and may we publish it — the consent panel lives HERE
+                because consent only ever means "may this piece go public",
+                and splitting the two is what made the old stack a wall;
+                专区 = can the parent log in, a different audience entirely. */}
+            {!editP && <Tabs idBase="student-profile" label="学员档案分类"
+                value={studentProfileTab} onChange={setStudentProfileTab}
+                className="px-2 bg-white flex-shrink-0"
+                items={[
+                    {value:'profile', label:'概览', icon:'users'},
+                    {value:'details', label:'资料', icon:'clipboard'},
+                    {value:'records', label:'记录', icon:'calendar'},
+                    ...(canWritePortfolio ? [{value:'portfolio', label:`${workNoun}集`, icon:'image'}] : []),
+                    ...(TENANT_SLUG && canWriteStudents ? [{value:'portal', label:'专区', icon:'lock'}] : []),
+                ]}/>}
             {/* Fix ⑧: modal-scroll + safe-area bottom padding for iPad Home bar */}
-            <div className="p-5 modal-scroll" style={{maxHeight:'calc(100dvh - 80px)', paddingBottom:'calc(env(safe-area-inset-bottom, 0px) + 20px)'}}>
+            <div className="modal-scroll cms-profile-body flex-1 min-h-0">
                 {!editP ? (
                     <div className="space-y-3">
-                        <div className={`grid gap-1 rounded-xl bg-gray-100 p-1 ${TENANT_SLUG&&canWriteStudents?'grid-cols-2':'grid-cols-1'}`} role="tablist" aria-label="学员档案页面">
-                            <button role="tab" aria-selected={studentProfileTab==='profile'} onClick={()=>setStudentProfileTab('profile')}
-                                className={`min-h-[40px] rounded-lg text-sm font-bold ${studentProfileTab==='profile'?'bg-white text-gray-900 shadow-sm':'text-gray-500'}`}>档案</button>
-                            {TENANT_SLUG && canWriteStudents && <button role="tab" aria-selected={studentProfileTab==='portal'} onClick={()=>setStudentProfileTab('portal')}
-                                className={`min-h-[40px] rounded-lg text-sm font-bold ${studentProfileTab==='portal'?'bg-white text-indigo-700 shadow-sm':'text-gray-500'}`}><span className="inline-flex items-center gap-1.5"><Icon name="lock" className="w-4 h-4"/>专区</span></button>
-                            }
+                        <TabPanel idBase="student-profile" name="profile" active={studentProfileTab==='profile'}>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100"><p className="inline-flex items-center gap-1.5 text-xs text-gray-400 mb-1"><Icon name="phone" className="w-4 h-4"/>电话</p><p className="font-bold text-gray-800">{selS.mobile||'—'}</p></div>
+                            <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100"><p className="inline-flex items-center gap-1.5 text-xs text-gray-400 mb-1"><Icon name="calendar" className="w-4 h-4"/>最近上课</p><p className="font-bold text-gray-800">{fmtDate(selS.lastActive)}</p></div>
                         </div>
-                        {studentProfileTab==='profile' && <>
+                        {(selS.wechat||selS.email) && (
+                            <div className="grid grid-cols-2 gap-3">
+                                {selS.wechat && <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100"><p className="inline-flex items-center gap-1.5 text-xs text-gray-400 mb-1"><Icon name="chat" className="w-4 h-4"/>微信号</p><p className="font-bold text-gray-800">{selS.wechat}</p></div>}
+                                {selS.email  && <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100"><p className="inline-flex items-center gap-1.5 text-xs text-gray-400 mb-1"><Icon name="mail" className="w-4 h-4"/>邮箱</p><p className="font-bold text-gray-800 text-sm break-all">{selS.email}</p></div>}
+                            </div>
+                        )}
+                        {selS.remark && <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100"><p className="text-xs text-gray-400 mb-1">备注</p><p className="text-sm text-gray-700 whitespace-pre-wrap">{selS.remark}</p></div>}
+                        {!selS.mobile && !selS.wechat && !selS.email && !selS.remark &&
+                            <EmptyState icon={<Icon name="phone" className="w-8 h-8"/>} main="还没有联系方式" sub="点击下方「编辑」补充电话、微信或邮箱"/>}
+                        </TabPanel>
+
+                        <TabPanel idBase="student-profile" name="details" active={studentProfileTab==='details'}>
                         <div className="grid grid-cols-2 gap-3">
                             <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
                                 <p className="text-xs text-gray-400 mb-1">First Name (名)</p>
@@ -4916,21 +5035,10 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                 <p className="font-bold text-gray-800">{selS.lastName||'—'}</p>
                             </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100"><p className="inline-flex items-center gap-1.5 text-xs text-gray-400 mb-1"><Icon name="phone" className="w-4 h-4"/>电话</p><p className="font-bold text-gray-800">{selS.mobile||'—'}</p></div>
-                            <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100"><p className="inline-flex items-center gap-1.5 text-xs text-gray-400 mb-1"><Icon name="calendar" className="w-4 h-4"/>最近上课</p><p className="font-bold text-gray-800">{fmtDate(selS.lastActive)}</p></div>
-                        </div>
-                        {(selS.wechat||selS.email) && (
-                            <div className="grid grid-cols-2 gap-3">
-                                {selS.wechat && <div className="bg-green-50 p-4 rounded-2xl border border-green-100"><p className="inline-flex items-center gap-1.5 text-xs text-green-500 mb-1"><Icon name="chat" className="w-4 h-4"/>微信号</p><p className="font-bold text-gray-800">{selS.wechat}</p></div>}
-                                {selS.email  && <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100"><p className="inline-flex items-center gap-1.5 text-xs text-gray-400 mb-1"><Icon name="mail" className="w-4 h-4"/>邮箱</p><p className="font-bold text-gray-800 text-sm break-all">{selS.email}</p></div>}
-                            </div>
-                        )}
                         {(selS.birthday||selS.enrollmentDate) && <div className="grid grid-cols-2 gap-3">
                             {selS.birthday && <div className="bg-pink-50 p-4 rounded-2xl border border-pink-100"><p className="inline-flex items-center gap-1.5 text-xs text-pink-400 mb-1"><Icon name="cake" className="w-4 h-4"/>生日</p><p className="font-bold text-gray-800">{fmtDate(selS.birthday)}</p></div>}
                             {selS.enrollmentDate && <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100"><p className="text-xs text-gray-400 mb-1">入学日期</p><p className="font-bold text-gray-800">{fmtDate(selS.enrollmentDate)}</p></div>}
                         </div>}
-                        {selS.remark && <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100"><p className="text-xs text-gray-400 mb-1">备注</p><p className="text-sm text-gray-700 whitespace-pre-wrap">{selS.remark}</p></div>}
 	                        {preferenceRows(selS).length > 0 && (
 	                            <div className="grid grid-cols-2 gap-2">
 	                                {preferenceRows(selS).map(row => (
@@ -4941,6 +5049,19 @@ document.getElementById('copybtn').addEventListener('click', function(){
 	                                ))}
 	                            </div>
 	                        )}
+                        {/* Archiving is a lifecycle decision taken a handful of
+                            times a year. It used to be the last button in the
+                            scroll, one thumb-width below 生成成长报告 — the
+                            classic mis-tap. It belongs at the end of the record
+                            it changes, not next to the daily actions. */}
+                        {canWriteStudents && <button onClick={()=>archiveStudent(selS.id,selS.name,!selS.archived)}
+                            className={`w-full py-3 rounded-xl text-sm font-bold border min-h-[50px] ${selS.archived?'bg-green-50 active:bg-green-100 text-green-700 border-green-200':'bg-gray-50 active:bg-gray-100 text-gray-500 border-gray-200'}`}>
+                            <span className="inline-flex items-center gap-1.5"><Icon name={selS.archived ? 'restore' : 'archiveBox'} className="w-4 h-4"/>{selS.archived ? '恢复学员' : '归档学员'}</span>
+                        </button>
+                        }
+                        </TabPanel>
+
+                        <TabPanel idBase="student-profile" name="records" active={studentProfileTab==='records'}>
                         {/* F2: Topup history collapsible */}
                         {canWriteCredits && (()=>{
                             const topupsAll = db.logs.filter(l=>(l.studentId===selS.id || (!l.studentId && l.studentName===selS.name))&&l.action==='充值购课');   /* D3 */
@@ -4984,9 +5105,13 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                 </div>
                             </details>
                         )}
-                        </>}
+                        {!(canWriteCredits && db.logs.some(l=>(l.studentId===selS.id || (!l.studentId && l.studentName===selS.name))&&l.action==='充值购课'))
+                            && !(TENANT_SLUG && attHistory && attHistory.length > 0) &&
+                            <EmptyState icon={<Icon name="calendar" className="w-8 h-8"/>} main="还没有记录" sub="充值与上课签到会自动出现在这里"/>}
+                        </TabPanel>
 
-                        {studentProfileTab==='portal' && TENANT_SLUG && canWriteStudents && (
+                        {TENANT_SLUG && canWriteStudents && (
+                          <TabPanel idBase="student-profile" name="portal" active={studentProfileTab==='portal'}>
                             <div className="border border-indigo-100 rounded-2xl overflow-hidden">
                                 <div className="bg-indigo-50 px-4 py-3 flex items-center justify-between gap-3">
                                     <div>
@@ -5031,10 +5156,12 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                     </div>
                                 </div>
                             </div>
+                          </TabPanel>
                         )}
 
-                        {studentProfileTab==='profile' && <>
-                        {TENANT_SLUG && canWritePortfolio && (
+                        {canWritePortfolio && (
+                          <TabPanel idBase="student-profile" name="portfolio" active={studentProfileTab==='portfolio'}>
+                        {TENANT_SLUG && (
                             <div className="border border-emerald-100 rounded-2xl overflow-hidden">
                                 <div className="bg-emerald-50 px-4 py-3 flex items-center justify-between gap-3">
                                     <div>
@@ -5103,7 +5230,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         )}
 
                         {/* ── Portfolio section ── */}
-                        {canWritePortfolio && (()=>{
+                        {(()=>{
                             const items = selS.portfolio || [];
                             return (
                                 <div className="border border-purple-100 rounded-2xl overflow-hidden">
@@ -5162,32 +5289,16 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                 </div>
                             );
                         })()}
-                        <div className="flex gap-2">
-                            {canWriteAttendance && !selS.archived && <>
-                                <button onClick={()=>scheduleStudentToday(selS)} disabled={busy}
-                                    className="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-indigo-600 active:bg-indigo-700 disabled:bg-gray-300 min-h-[50px] inline-flex items-center justify-center gap-1.5"><Icon name="calendar" className="w-4 h-4"/>{isStudentScheduledOn(selS.id,todayISO())?'查看今日排课':'加入今日排课'}</button>
-                            </>}
-                            {canWriteStudents && <button onClick={()=>{setEditP(true);setEditPhoto(selS.photo||'');}}
-                                className="flex-1 py-3 rounded-xl text-sm font-bold bg-white border-2 border-indigo-100 active:bg-indigo-50 text-indigo-700 min-h-[50px]"><span className="inline-flex items-center gap-1.5"><Icon name="pencil" className="w-4 h-4"/>编辑</span></button>
-                            }
-                        </div>
-                        {canWriteCredits && !selS.archived && (
-                            <button onClick={()=>{setTuStu(selS.id);setSelS(null);setEditP(false);setTab('topup');}}
-                                className="w-full py-3 rounded-xl text-sm font-bold bg-white border border-gray-200 active:bg-gray-50 text-gray-700 min-h-[50px]"><span className="inline-flex items-center gap-1.5"><Icon name="money" className="w-4 h-4"/>快速充值
-                            </span></button>
-                        )}
-                        {/* G3: 学员成长报告 */}
+                        {/* The growth report is assembled FROM the portfolio, so
+                            it is the one action that belongs to a tab rather
+                            than to the student. */}
                         {canWritePortfolio && <button onClick={()=>openGrowthReport(selS)}
                             className="w-full py-3 rounded-xl text-sm font-bold bg-gradient-to-r from-purple-500 to-pink-500 active:from-purple-600 active:to-pink-600 text-white min-h-[50px] shadow-sm">
                             <span className="inline-flex items-center gap-1.5"><Icon name="star" className="w-4 h-4"/>生成成长报告（发给家长）</span>
                         </button>
                         }
-                        {canWriteStudents && <button onClick={()=>archiveStudent(selS.id,selS.name,!selS.archived)}
-                            className={`w-full py-3 rounded-xl text-sm font-bold border min-h-[50px] ${selS.archived?'bg-green-50 active:bg-green-100 text-green-700 border-green-200':'bg-gray-50 active:bg-gray-100 text-gray-500 border-gray-200'}`}>
-                            <span className="inline-flex items-center gap-1.5"><Icon name={selS.archived ? 'restore' : 'archiveBox'} className="w-4 h-4"/>{selS.archived ? '恢复学员' : '归档学员'}</span>
-                        </button>
-                        }
-                        </>}
+                          </TabPanel>
+                        )}
                     </div>
                 ) : (
                     <form onSubmit={handleUpdateStudent} className="space-y-4">
@@ -5253,6 +5364,29 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     </form>
                 )}
             </div>
+            {/* Outside the scroll, and outside the tabs. Three actions earn
+                that: 加入今日排课 is performed many times a day, 快速充值 is
+                what you reach for the moment the balance badge in the header
+                reads low, and 编辑 is a mode switch that has to work from
+                whichever tab you happen to be on. Everything else is either
+                rare (归档) or belongs to one tab's subject (成长报告).
+                Columns are 1.618 : 1 — the primary action wins the golden
+                major share, the secondary takes the minor. */}
+            {!editP && (
+                <div className="cms-profile-actions flex-shrink-0 border-t border-gray-200 bg-gray-50">
+                    <div className="cms-profile-actions-row">
+                        {canWriteAttendance && !selS.archived &&
+                            <button onClick={()=>scheduleStudentToday(selS)} disabled={busy}
+                                className="py-3 rounded-xl text-sm font-bold bg-indigo-600 active:bg-indigo-700 disabled:bg-gray-300 min-h-[50px] inline-flex items-center justify-center gap-1.5"><Icon name="calendar" className="w-4 h-4"/>{isStudentScheduledOn(selS.id,todayISO())?'查看今日排课':'加入今日排课'}</button>}
+                        {canWriteStudents && <button onClick={()=>{setEditP(true);setEditPhoto(selS.photo||'');}}
+                            className="py-3 rounded-xl text-sm font-bold bg-white border-2 border-indigo-100 active:bg-indigo-50 text-indigo-700 min-h-[50px]"><span className="inline-flex items-center gap-1.5"><Icon name="pencil" className="w-4 h-4"/>编辑</span></button>}
+                    </div>
+                    {canWriteCredits && !selS.archived && (
+                        <button onClick={()=>{setTuStu(selS.id);setSelS(null);setEditP(false);setTab('topup');}}
+                            className="w-full py-3 rounded-xl text-sm font-bold bg-white border border-gray-200 active:bg-gray-50 text-gray-700 min-h-[50px]"><span className="inline-flex items-center gap-1.5"><Icon name="money" className="w-4 h-4"/>快速充值</span></button>
+                    )}
+                </div>
+            )}
         </div>
     </div>
 )}

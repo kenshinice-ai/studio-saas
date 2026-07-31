@@ -500,9 +500,17 @@
     updateSwitch();
   }
 
+  /* Two fixed values survived the move to tokens and both are contrast pairs:
+   * the selected label was `#fff` on var(--brand), which holds only while the
+   * brand stays dark — on the eight dark theme-modes the accent is bright and
+   * a white label measures 2.08:1. --on-accent is the token solved against the
+   * accent for exactly this (5.83:1 at worst). The focus ring read --brand,
+   * which is solved as a TEXT colour against the page; --focus-ring is the one
+   * solved to clear 3:1 against every surface it can land on (3.86:1 on
+   * --panel, 3.55:1 on --bg at worst). */
   function installStyles() {
     const style = document.createElement('style');
-    style.textContent = '.admin-language-switch{display:inline-flex;align-items:center;gap:2px;padding:3px;border:1px solid var(--line,#e2e8f0);border-radius:999px;background:var(--surface,#fff);white-space:nowrap}.admin-language-switch button{border:0;background:transparent;color:var(--muted,#64748b);padding:6px 10px;border-radius:999px;font:inherit;font-size:12px;font-weight:800;cursor:pointer;min-height:44px}.admin-language-switch button.active{background:var(--brand,#3b82f6);color:#fff}.admin-language-switch button:focus-visible{outline:2px solid var(--brand,#3b82f6);outline-offset:2px}';
+    style.textContent = '.admin-language-switch{display:inline-flex;align-items:center;gap:3px;padding:5px;border:1px solid var(--line,#e2e8f0);border-radius:999px;background:var(--surface,#fff);white-space:nowrap}.admin-language-switch button{border:0;background:transparent;color:var(--muted,#64748b);padding:6px 10px;border-radius:999px;font:inherit;font-size:13px;font-weight:800;cursor:pointer;min-height:44px}.admin-language-switch button.active{background:var(--brand,#3b82f6);color:var(--on-accent,#fff)}.admin-language-switch button:focus-visible{outline:2px solid var(--focus-ring,var(--brand,#3b82f6));outline-offset:2px}';
     document.head.appendChild(style);
   }
 

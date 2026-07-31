@@ -244,20 +244,44 @@ def test_preview_and_ics_are_rendered_from_one_document() -> None:
     )
     preview = document.to_preview()
     text = document.to_ics().decode("utf-8")
-    assert preview["stats"]["events"] == text.count("BEGIN:VEVENT") == 2
-    assert preview["stats"]["classes"] == 1
+    # Three events: the 13:30 group, the 17:00 one-to-one, and the student whose
+    # slot is not decided yet.
+    assert preview["stats"]["events"] == text.count("BEGIN:VEVENT") == 3
+    assert preview["stats"]["classes"] == 2
     assert preview["stats"]["oneToOne"] == 1
-    # A student with no slot is excluded and reported, never given a guess.
-    assert preview["stats"]["skipped"] == 2
-    reasons = {item["reason"] for item in preview["skipped"]}
-    assert reasons == {"no-class-time", "cancelled"}
-    group = preview["events"][0]
+
+    # A student with no slot is exported as an all-day event rather than
+    # dropped. Dropping made a day that plainly had someone on the roster
+    # export as an empty calendar, which reads as a broken export — and it is
+    # still never given a guessed time.
+    untimed = next(item for item in preview["events"] if item["allDay"])
+    assert untimed["participants"] == ["No Slot"]
+    assert untimed["durationSource"] == "unset"
+    assert "未设时间" in untimed["summary"]
+    # VALUE=DATE and no TZID: an all-day event is a date, not an instant.
+    assert "DTSTART;VALUE=DATE:20261007" in text
+    assert "DTEND;VALUE=DATE:20261008" in text
+    assert "DTSTART;TZID=Australia/Melbourne:20261007T000000" not in text
+
+    # Only the cancelled entry is now genuinely skipped.
+    assert preview["stats"]["skipped"] == 1
+    assert {item["reason"] for item in preview["skipped"]} == {"cancelled"}
+
+    # Pick by identity, not by position: the all-day event sorts to midnight and
+    # therefore comes first.
+    group = next(
+        item for item in preview["events"]
+        if not item["allDay"] and not item["oneToOne"]
+    )
     assert group["timeRange"] == "13:30–16:30"
     assert group["durationMinutes"] == 180
     assert group["durationSource"] == "schedule"
     assert group["participants"] == ["Ruby Wu", "小Lucas"]
     assert group["startsAtUtc"] == "2026-10-07T02:30:00Z"
-    assert preview["events"][1]["durationSource"] == "default"
+    # The one-to-one has no scheduled duration, so it falls back to the default.
+    # Selected by identity because the all-day event sorts to midnight, first.
+    one_to_one = next(item for item in preview["events"] if item["oneToOne"])
+    assert one_to_one["durationSource"] == "default"
     # A dated snapshot must not advertise itself as a subscribable feed.
     assert preview["subscribable"] is False
     assert preview["includesStudentNames"] is True
@@ -300,3 +324,40 @@ def test_weekly_schedule_document_cannot_carry_student_names() -> None:
     for leaked in ("Ruby Wu", "小Lucas"):
         assert leaked not in text
         assert leaked not in str(preview)
+
+
+def test_roster_with_no_slots_set_still_exports_every_student():
+    """The production failure: an .ics with a VTIMEZONE and zero events.
+
+    Every roster row predates migration 0022's class_time column, so the old
+    builder skipped all of them and the studio downloaded a well-formed file
+    containing nothing. All-day events carry the same fact the roster carries —
+    "expected today, time not recorded" — without inventing a slot.
+    """
+
+    document = build_roster_document(
+        tenant_name="Let's Paint Studio",
+        tenant_slug="lets-paint-studio",
+        timezone_name="Australia/Melbourne",
+        location="Creative Quarter",
+        roster_date=date(2026, 7, 31),
+        entries=[
+            {"studentId": "a", "studentName": "Lucas Liu"},
+            {"studentId": "b", "studentName": "Mia Chen", "classTime": None},
+        ],
+        generated_at=datetime(2026, 7, 31, 2, 0, tzinfo=timezone.utc),
+    )
+    preview = document.to_preview()
+    assert preview["stats"]["events"] == 2
+    assert preview["stats"]["skipped"] == 0
+    assert all(item["allDay"] for item in preview["events"])
+    # The dialog offers this name; a hard-coded one is how a roster export was
+    # saved as weekly-classes.ics.
+    assert preview["filename"] == "lets-paint-studio-roster-2026-07-31.ics"
+
+    text = document.to_ics().decode("utf-8")
+    assert text.count("BEGIN:VEVENT") == 2
+    assert "DTSTART;VALUE=DATE:20260731" in text
+    assert "DTEND;VALUE=DATE:20260801" in text
+    for name in ("Lucas Liu", "Mia Chen"):
+        assert name in text
