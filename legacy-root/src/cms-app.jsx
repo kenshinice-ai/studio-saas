@@ -941,6 +941,9 @@ function App() {
     const [rPick, setRPick] = useState(null);
     /* 0022: the roster answered "who is coming today" but not "when". */
     const [rTime, setRTime] = useState('');
+    /* Calendar download: preview first, then fetch the file with credentials. */
+    const [icsPreview, setIcsPreview] = useState(null);
+    const [icsBusy, setIcsBusy] = useState(false);
     const [rOneToOne, setROneToOne] = useState(false);
     const [grpSel, setGrpSel] = useState('');   /* F4: 班组模板选择 */
     /* A1: 每周课表（tenant 模式，存于 PostgreSQL class_schedules） */
@@ -1908,6 +1911,53 @@ function App() {
     /* Slot metadata for one student on the currently viewed date. */
     const rosterMetaFor = (date, sid) => (db.rosterEntries?.[date] || {})[sid] || {};
 
+    /* The old control was `<a href="…calendar.ics" download>`. A plain
+       navigation carries no X-Requested-With header and is not a fetch, so the
+       authenticated endpoint answered 401 with a JSON body — and the browser
+       saved that JSON as the "calendar" file. Hence the garbled download.
+       Fetching with credentials and turning the response into a blob is the
+       only way to download from an authenticated endpoint. */
+    const openIcsPreview = async (kind) => {
+        setIcsBusy(true);
+        try {
+            const path = kind === 'roster'
+                ? `/daily-roster/calendar?date=${encodeURIComponent(rDate)}`
+                : '/class-schedules/calendar';
+            const data = await v1Api(path);
+            setIcsPreview({kind, ...(data.calendar || {})});
+        } catch (err) {
+            showToast(err.message || '日历预览加载失败', 'error');
+        } finally { setIcsBusy(false); }
+    };
+
+    const downloadIcs = async (kind) => {
+        setIcsBusy(true);
+        try {
+            const path = kind === 'roster'
+                ? `/daily-roster/calendar.ics?date=${encodeURIComponent(rDate)}`
+                : '/class-schedules/calendar.ics';
+            const r = await fetch(`/s/${encodeURIComponent(TENANT_SLUG)}/v1${path}`, {
+                credentials:'include', headers:{'X-Requested-With':'StudioSaaS'},
+            });
+            if (!r.ok) throw new Error(`下载失败（HTTP ${r.status}）`);
+            const type = r.headers.get('Content-Type') || '';
+            /* Guard the exact failure this replaced: if the endpoint answers
+               with JSON we must not hand the visitor a .ics full of it. */
+            if (!type.includes('calendar')) throw new Error('服务器未返回日历文件，请重新登录后再试');
+            const blob = await r.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = kind === 'roster' ? `roster-${rDate}.ics` : 'weekly-classes.ics';
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(()=>URL.revokeObjectURL(url), 1000);
+            setIcsPreview(null);
+            showToast('日历文件已下载');
+        } catch (err) {
+            showToast(err.message || '下载失败', 'error');
+        } finally { setIcsBusy(false); }
+    };
+
     const batchCheckIn = () => {
         const ids     = dayIds;
         const already = ids.filter(id => rosterDone.has(id)).length;
@@ -2832,6 +2882,95 @@ document.getElementById('copybtn').addEventListener('click', function(){
     return (
         <div className="flex h-screen bg-gray-50">
             {toast && <Toast key={toast.key} msg={toast.msg} type={toast.type} action={toast.action} onDone={()=>setToast(null)}/>}
+
+            {/* Calendar download. Everything shown here comes from the same
+                CalendarDocument the .ics is serialized from, so the counts on
+                screen cannot disagree with the file that arrives. */}
+            {icsPreview && (
+                <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center bg-black/40 p-0 md:p-4"
+                    role="dialog" aria-modal="true" aria-label="下载日历"
+                    onClick={e=>{ if (e.target === e.currentTarget) setIcsPreview(null); }}>
+                    <div className="bg-white w-full md:max-w-lg md:rounded-2xl rounded-t-2xl max-h-[88vh] overflow-y-auto">
+                        <div className="px-5 py-4 border-b border-gray-100 flex items-start justify-between gap-3">
+                            <div>
+                                <p className="font-bold text-gray-900">下载日历</p>
+                                <p className="text-xs text-gray-500 mt-0.5">
+                                    {icsPreview.date ? `${fmtDate(icsPreview.date)} · ` : ''}Apple / Google 通用 .ics
+                                </p>
+                            </div>
+                            <button onClick={()=>setIcsPreview(null)} aria-label="关闭"
+                                className="text-gray-400 text-2xl leading-none px-2 min-h-[44px]">×</button>
+                        </div>
+
+                        <div className="p-5 space-y-3">
+                            <div className="grid grid-cols-3 gap-2">
+                                {[['events','日历事件'],['classes','普通班课'],['oneToOne','1 对 1']].map(([k,label])=>(
+                                    <div key={k} className="bg-gray-50 rounded-xl py-3 text-center">
+                                        <p className="text-xl font-bold text-gray-900">{icsPreview.stats?.[k] ?? 0}</p>
+                                        <p className="text-xs text-gray-500 mt-0.5">{label}</p>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {(icsPreview.events||[]).length === 0
+                                ? <p className="text-sm text-gray-500 text-center py-6">这一天没有可导出的课程。</p>
+                                : (icsPreview.events||[]).map(ev=>(
+                                    <div key={ev.uid} className="border border-gray-100 rounded-xl px-4 py-3">
+                                        <div className="flex items-start justify-between gap-2">
+                                            <p className="font-bold text-gray-900 text-sm">{ev.summary}</p>
+                                            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 flex-shrink-0">
+                                                {ev.durationMinutes} 分钟{ev.durationSource==='default' ? ' · 默认' : ''}
+                                            </span>
+                                        </div>
+                                        <p className="text-xs text-gray-500 mt-1">{ev.timeRange}</p>
+                                        {(ev.participants||[]).length>0 && (
+                                            <p className="text-xs text-gray-500 mt-0.5">{ev.participants.join('、')}</p>
+                                        )}
+                                    </div>
+                                ))}
+
+                            {(icsPreview.skipped||[]).length>0 && (
+                                <div className="rounded-xl px-4 py-3 bg-amber-50 border border-amber-200">
+                                    <p className="text-xs font-bold text-amber-800">
+                                        {icsPreview.skipped.length} 项未导出
+                                    </p>
+                                    <p className="text-xs text-amber-700 mt-1">
+                                        {icsPreview.skipped.map(x=>x.reason||x.summary||'').filter(Boolean).join('；')}
+                                    </p>
+                                </div>
+                            )}
+
+                            <div className="rounded-xl px-4 py-3 bg-gray-50 text-xs text-gray-600 space-y-1">
+                                <p><span className="font-bold">时区：</span>{icsPreview.timezone?.name}
+                                    {icsPreview.timezone?.abbreviations?.length
+                                        ? `（含 ${icsPreview.timezone.abbreviations.join('/')} 规则）` : ''}</p>
+                                {icsPreview.location && <p><span className="font-bold">地点：</span>{icsPreview.location}</p>}
+                            </div>
+
+                            {icsPreview.includesStudentNames && (
+                                <div className="rounded-xl px-4 py-3 bg-amber-50 border border-amber-200 text-xs text-amber-800">
+                                    此文件包含学员姓名。导入后它会留在对方的日历里，请只发给应当看到的人。
+                                </div>
+                            )}
+
+                            <p className="text-xs text-gray-500 leading-relaxed">
+                                Apple 日历可直接打开此文件；Google 日历请在电脑端「设置 → 导入和导出」导入。
+                                同一个文件两者通用。
+                                {icsPreview.subscribable === false && '文件是当前排课的快照，之后修改排课需要重新下载。'}
+                            </p>
+                        </div>
+
+                        <div className="px-5 py-4 border-t border-gray-100 flex gap-2">
+                            <button onClick={()=>setIcsPreview(null)}
+                                className="flex-1 border border-gray-200 rounded-xl py-3 text-sm font-bold text-gray-700 min-h-[44px]">取消</button>
+                            <button onClick={()=>downloadIcs(icsPreview.kind)} disabled={icsBusy}
+                                className="flex-1 bg-indigo-600 active:bg-indigo-700 disabled:opacity-50 text-white rounded-xl py-3 text-sm font-bold min-h-[44px] inline-flex items-center justify-center gap-1.5">
+                                <Icon name="download" className="w-4 h-4"/>下载 .ics
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
             <ConfirmDialog dialog={confirmDialog} onClose={()=>setConfirmDialog(null)}/>
 
             {/* ── Portfolio Lightbox ── */}
@@ -3664,10 +3803,10 @@ document.getElementById('copybtn').addEventListener('click', function(){
         <div className="flex justify-between items-center gap-2 flex-wrap">
             <p className="inline-flex items-center gap-1.5 font-bold text-sm text-gray-800"><Icon name="calendar" className="w-4 h-4"/>每周课表 <span className="text-xs font-normal text-gray-400">固定班次按周几自动排入当日名单</span></p>
             <div className="flex items-center gap-2 flex-wrap">
-                <a href={`/s/${encodeURIComponent(TENANT_SLUG)}/v1/class-schedules/calendar.ics`} download
-                    className="inline-flex items-center gap-1.5 border border-indigo-200 bg-indigo-50 text-indigo-700 px-4 py-1.5 rounded-xl text-xs font-bold min-h-[44px] active:bg-indigo-100">
+                <button onClick={()=>openIcsPreview('schedule')} disabled={icsBusy}
+                    className="inline-flex items-center gap-1.5 border border-indigo-200 bg-indigo-50 text-indigo-700 px-4 py-1.5 rounded-xl text-xs font-bold min-h-[44px] active:bg-indigo-100 disabled:opacity-50">
                     <Icon name="download" className="w-3.5 h-3.5"/>下载 ICS 日历
-                </a>
+                </button>
                 {/* B: schedule templates hit owner/manager-only endpoints — hide from teacher/staff */}
                 {canManageOperations && <button onClick={()=>setSchedEdit({label:'', weekday:new Date().getDay(), startTime:'16:00', durationMinutes:60, capacity:10, studentIds:[]})}
                     className="inline-flex items-center gap-1.5 bg-indigo-600 active:bg-indigo-700 text-white px-4 py-1.5 rounded-xl text-xs font-bold min-h-[44px]"><Icon name="plus" className="w-3.5 h-3.5"/>新增班次</button>}
@@ -3903,6 +4042,12 @@ document.getElementById('copybtn').addEventListener('click', function(){
         <div className="bg-gray-50 border-b px-4 py-3 flex justify-between items-center gap-2 flex-wrap">
             <p className="font-bold text-sm text-gray-800">{fmtDate(rDate)} · {dayIds.filter(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived;}).length} 人{scheduledForDate.length>0 && <span className="text-xs font-normal text-indigo-500 ml-1">（课表 {scheduledForDate.length} 班）</span>}</p>
             <div className="flex gap-2">
+                {dayIds.length>0 && (
+                    <button onClick={()=>openIcsPreview('roster')} disabled={icsBusy}
+                        className="border border-gray-200 bg-white text-gray-700 px-3 py-2 rounded-xl text-xs font-bold min-h-[44px] inline-flex items-center gap-1.5 disabled:opacity-50">
+                        <Icon name="calendar" className="w-4 h-4"/>日历
+                    </button>
+                )}
                 {dayIds.length>0 && (
                     <button onClick={()=>{
                         const ids = dayIds;

@@ -906,6 +906,8 @@ function App() {
   const [rDate, setRDate] = useState(todayISO);
   const [rPick, setRPick] = useState(null);
   const [rTime, setRTime] = useState("");
+  const [icsPreview, setIcsPreview] = useState(null);
+  const [icsBusy, setIcsBusy] = useState(false);
   const [rOneToOne, setROneToOne] = useState(false);
   const [grpSel, setGrpSel] = useState("");
   const [schedules, setSchedules] = useState([]);
@@ -1883,6 +1885,46 @@ function App() {
     return data;
   };
   const rosterMetaFor = (date, sid) => (db.rosterEntries?.[date] || {})[sid] || {};
+  const openIcsPreview = async (kind) => {
+    setIcsBusy(true);
+    try {
+      const path = kind === "roster" ? `/daily-roster/calendar?date=${encodeURIComponent(rDate)}` : "/class-schedules/calendar";
+      const data = await v1Api(path);
+      setIcsPreview({ kind, ...data.calendar || {} });
+    } catch (err) {
+      showToast(err.message || "日历预览加载失败", "error");
+    } finally {
+      setIcsBusy(false);
+    }
+  };
+  const downloadIcs = async (kind) => {
+    setIcsBusy(true);
+    try {
+      const path = kind === "roster" ? `/daily-roster/calendar.ics?date=${encodeURIComponent(rDate)}` : "/class-schedules/calendar.ics";
+      const r = await fetch(`/s/${encodeURIComponent(TENANT_SLUG)}/v1${path}`, {
+        credentials: "include",
+        headers: { "X-Requested-With": "StudioSaaS" }
+      });
+      if (!r.ok) throw new Error(`下载失败（HTTP ${r.status}）`);
+      const type = r.headers.get("Content-Type") || "";
+      if (!type.includes("calendar")) throw new Error("服务器未返回日历文件，请重新登录后再试");
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = kind === "roster" ? `roster-${rDate}.ics` : "weekly-classes.ics";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1e3);
+      setIcsPreview(null);
+      showToast("日历文件已下载");
+    } catch (err) {
+      showToast(err.message || "下载失败", "error");
+    } finally {
+      setIcsBusy(false);
+    }
+  };
   const batchCheckIn = () => {
     const ids = dayIds;
     const already = ids.filter((id) => rosterDone.has(id)).length;
@@ -2985,7 +3027,43 @@ document.getElementById('copybtn').addEventListener('click', function(){
     { k: "logs", i: "scroll", l: "操作日志", s: "日志" },
     { k: "stats", i: "trend", l: "经营统计", s: "统计" }
   ].filter((item) => allowedTabs.includes(item.k));
-  return /* @__PURE__ */ React.createElement("div", { className: "flex h-screen bg-gray-50" }, toast && /* @__PURE__ */ React.createElement(Toast, { key: toast.key, msg: toast.msg, type: toast.type, action: toast.action, onDone: () => setToast(null) }), /* @__PURE__ */ React.createElement(ConfirmDialog, { dialog: confirmDialog, onClose: () => setConfirmDialog(null) }), portLB && portLB.items.length > 0 && /* @__PURE__ */ React.createElement(
+  return /* @__PURE__ */ React.createElement("div", { className: "flex h-screen bg-gray-50" }, toast && /* @__PURE__ */ React.createElement(Toast, { key: toast.key, msg: toast.msg, type: toast.type, action: toast.action, onDone: () => setToast(null) }), icsPreview && /* @__PURE__ */ React.createElement(
+    "div",
+    {
+      className: "fixed inset-0 z-[60] flex items-end md:items-center justify-center bg-black/40 p-0 md:p-4",
+      role: "dialog",
+      "aria-modal": "true",
+      "aria-label": "下载日历",
+      onClick: (e) => {
+        if (e.target === e.currentTarget) setIcsPreview(null);
+      }
+    },
+    /* @__PURE__ */ React.createElement("div", { className: "bg-white w-full md:max-w-lg md:rounded-2xl rounded-t-2xl max-h-[88vh] overflow-y-auto" }, /* @__PURE__ */ React.createElement("div", { className: "px-5 py-4 border-b border-gray-100 flex items-start justify-between gap-3" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-900" }, "下载日历"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-0.5" }, icsPreview.date ? `${fmtDate(icsPreview.date)} · ` : "", "Apple / Google 通用 .ics")), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: () => setIcsPreview(null),
+        "aria-label": "关闭",
+        className: "text-gray-400 text-2xl leading-none px-2 min-h-[44px]"
+      },
+      "×"
+    )), /* @__PURE__ */ React.createElement("div", { className: "p-5 space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-3 gap-2" }, [["events", "日历事件"], ["classes", "普通班课"], ["oneToOne", "1 对 1"]].map(([k, label]) => /* @__PURE__ */ React.createElement("div", { key: k, className: "bg-gray-50 rounded-xl py-3 text-center" }, /* @__PURE__ */ React.createElement("p", { className: "text-xl font-bold text-gray-900" }, icsPreview.stats?.[k] ?? 0), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-0.5" }, label)))), (icsPreview.events || []).length === 0 ? /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500 text-center py-6" }, "这一天没有可导出的课程。") : (icsPreview.events || []).map((ev) => /* @__PURE__ */ React.createElement("div", { key: ev.uid, className: "border border-gray-100 rounded-xl px-4 py-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-start justify-between gap-2" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-900 text-sm" }, ev.summary), /* @__PURE__ */ React.createElement("span", { className: "text-[11px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 flex-shrink-0" }, ev.durationMinutes, " 分钟", ev.durationSource === "default" ? " · 默认" : "")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, ev.timeRange), (ev.participants || []).length > 0 && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-0.5" }, ev.participants.join("、")))), (icsPreview.skipped || []).length > 0 && /* @__PURE__ */ React.createElement("div", { className: "rounded-xl px-4 py-3 bg-amber-50 border border-amber-200" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-amber-800" }, icsPreview.skipped.length, " 项未导出"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-amber-700 mt-1" }, icsPreview.skipped.map((x) => x.reason || x.summary || "").filter(Boolean).join("；"))), /* @__PURE__ */ React.createElement("div", { className: "rounded-xl px-4 py-3 bg-gray-50 text-xs text-gray-600 space-y-1" }, /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("span", { className: "font-bold" }, "时区："), icsPreview.timezone?.name, icsPreview.timezone?.abbreviations?.length ? `（含 ${icsPreview.timezone.abbreviations.join("/")} 规则）` : ""), icsPreview.location && /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("span", { className: "font-bold" }, "地点："), icsPreview.location)), icsPreview.includesStudentNames && /* @__PURE__ */ React.createElement("div", { className: "rounded-xl px-4 py-3 bg-amber-50 border border-amber-200 text-xs text-amber-800" }, "此文件包含学员姓名。导入后它会留在对方的日历里，请只发给应当看到的人。"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 leading-relaxed" }, "Apple 日历可直接打开此文件；Google 日历请在电脑端「设置 → 导入和导出」导入。 同一个文件两者通用。", icsPreview.subscribable === false && "文件是当前排课的快照，之后修改排课需要重新下载。")), /* @__PURE__ */ React.createElement("div", { className: "px-5 py-4 border-t border-gray-100 flex gap-2" }, /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: () => setIcsPreview(null),
+        className: "flex-1 border border-gray-200 rounded-xl py-3 text-sm font-bold text-gray-700 min-h-[44px]"
+      },
+      "取消"
+    ), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: () => downloadIcs(icsPreview.kind),
+        disabled: icsBusy,
+        className: "flex-1 bg-indigo-600 active:bg-indigo-700 disabled:opacity-50 text-white rounded-xl py-3 text-sm font-bold min-h-[44px] inline-flex items-center justify-center gap-1.5"
+      },
+      /* @__PURE__ */ React.createElement(Icon, { name: "download", className: "w-4 h-4" }),
+      "下载 .ics"
+    )))
+  ), /* @__PURE__ */ React.createElement(ConfirmDialog, { dialog: confirmDialog, onClose: () => setConfirmDialog(null) }), portLB && portLB.items.length > 0 && /* @__PURE__ */ React.createElement(
     "div",
     {
       className: "fixed inset-0 bg-black/95 z-[90] flex flex-col",
@@ -3922,11 +4000,11 @@ document.getElementById('copybtn').addEventListener('click', function(){
       );
       copyText(msg, `已复制给 ${s.name} 的生日祝福`);
     }, className: "bg-white border border-pink-200 active:bg-pink-50 rounded-xl px-3 py-2 text-left" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm font-bold text-gray-800" }, s.name, " ", /* @__PURE__ */ React.createElement("span", { className: "text-xs font-normal text-rose-400" }, days === 0 ? "今天" : `${md} (${days}天后)`)), /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-400" }, "点击复制生日祝福话术"))))), TENANT_SLUG && /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between items-center gap-2 flex-wrap" }, /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 font-bold text-sm text-gray-800" }, /* @__PURE__ */ React.createElement(Icon, { name: "calendar", className: "w-4 h-4" }), "每周课表 ", /* @__PURE__ */ React.createElement("span", { className: "text-xs font-normal text-gray-400" }, "固定班次按周几自动排入当日名单")), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 flex-wrap" }, /* @__PURE__ */ React.createElement(
-      "a",
+      "button",
       {
-        href: `/s/${encodeURIComponent(TENANT_SLUG)}/v1/class-schedules/calendar.ics`,
-        download: true,
-        className: "inline-flex items-center gap-1.5 border border-indigo-200 bg-indigo-50 text-indigo-700 px-4 py-1.5 rounded-xl text-xs font-bold min-h-[44px] active:bg-indigo-100"
+        onClick: () => openIcsPreview("schedule"),
+        disabled: icsBusy,
+        className: "inline-flex items-center gap-1.5 border border-indigo-200 bg-indigo-50 text-indigo-700 px-4 py-1.5 rounded-xl text-xs font-bold min-h-[44px] active:bg-indigo-100 disabled:opacity-50"
       },
       /* @__PURE__ */ React.createElement(Icon, { name: "download", className: "w-3.5 h-3.5" }),
       "下载 ICS 日历"
@@ -4170,7 +4248,16 @@ document.getElementById('copybtn').addEventListener('click', function(){
     })(), /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "bg-gray-50 border-b px-4 py-3 flex justify-between items-center gap-2 flex-wrap" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-sm text-gray-800" }, fmtDate(rDate), " · ", dayIds.filter((id) => {
       const s = db.students.find((x) => x.id === id);
       return s && !s.archived;
-    }).length, " 人", scheduledForDate.length > 0 && /* @__PURE__ */ React.createElement("span", { className: "text-xs font-normal text-indigo-500 ml-1" }, "（课表 ", scheduledForDate.length, " 班）")), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, dayIds.length > 0 && /* @__PURE__ */ React.createElement("button", { onClick: () => {
+    }).length, " 人", scheduledForDate.length > 0 && /* @__PURE__ */ React.createElement("span", { className: "text-xs font-normal text-indigo-500 ml-1" }, "（课表 ", scheduledForDate.length, " 班）")), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, dayIds.length > 0 && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: () => openIcsPreview("roster"),
+        disabled: icsBusy,
+        className: "border border-gray-200 bg-white text-gray-700 px-3 py-2 rounded-xl text-xs font-bold min-h-[44px] inline-flex items-center gap-1.5 disabled:opacity-50"
+      },
+      /* @__PURE__ */ React.createElement(Icon, { name: "calendar", className: "w-4 h-4" }),
+      "日历"
+    ), dayIds.length > 0 && /* @__PURE__ */ React.createElement("button", { onClick: () => {
       const ids = dayIds;
       const lines = ids.map((id) => {
         const s = db.students.find((x) => x.id === id);

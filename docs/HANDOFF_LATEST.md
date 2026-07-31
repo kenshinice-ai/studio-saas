@@ -755,6 +755,63 @@ at 3:1. Now the accessible amber at 4.92:1.
 
 ---
 
+## 7.7 Calendar export: spec-invalid, and downloading as JSON
+
+Two separate defects. Both are fixed; the second is the one the studio actually
+hit.
+
+### The file was spec-invalid
+
+`DTSTART;TZID=Australia/Melbourne:...` with **no `VTIMEZONE` component** —
+`grep -c VTIMEZONE` returned 0. RFC 5545 §3.6.5 requires the referenced timezone
+to be defined in the same calendar object; `X-WR-TIMEZONE` is an Apple extension
+and does not substitute. Apple leans on local time, Google is inconsistent,
+Outlook may refuse the import — so a class lands at the wrong moment in a
+family's calendar, silently, and `RRULE:FREQ=WEEKLY` repeats that weekly.
+
+`VTIMEZONE` is now derived from `zoneinfo`, not hard-coded, so a tenant in
+Shanghai or London gets its own rules and abbreviations. Verified by parsing the
+output back:
+
+```
+8月  DTSTART;TZID=Australia/Melbourne:20260805T160000  AEST +10:00 -> 06:00Z
+11月 DTSTART;TZID=Australia/Melbourne:20261104T160000  AEDT +11:00 -> 05:00Z
+```
+
+The same "Wednesday 16:00" resolving to different UTC instants either side of
+the transition is the proof the TZID is now honoured. Line folding was checked
+at 75 **octets** against Chinese course names (3 bytes per character): 0 lines
+over.
+
+### The download was JSON
+
+The control was `<a href="…calendar.ics" download>`. A plain navigation carries
+no `X-Requested-With` header and is not a fetch, so the authenticated endpoint
+answered **401 with a JSON body — and the browser saved that JSON as the
+calendar file.** That is the garbled download the studio reported; it had
+nothing to do with the ICS format.
+
+Downloading from an authenticated endpoint requires a credentialed fetch and a
+blob. The client now also refuses to hand the visitor a `.ics` whose
+`Content-Type` is not a calendar, so this exact failure cannot recur silently.
+
+### The dialog
+
+Preview then download, both rendered from the **same `CalendarDocument`** the
+`.ics` is serialized from, so the counts on screen cannot disagree with the file
+that arrives. Shows event/class/one-to-one counts, each event with duration and
+time range, the timezone with its abbreviations read from `zoneinfo`, anything
+skipped and why, and Apple/Google import guidance.
+
+Two honesty details: the dialog warns when a file **contains student names**
+(it leaves the system and lives in someone's calendar), and it only claims the
+file is a snapshot when `subscribable` is actually false.
+
+Four endpoints: preview + `.ics` for the recurring schedule (no student data,
+subscribable) and for a dated roster (student names, snapshot).
+
+---
+
 ## 8. Customer-facing compliance pages and brand repair (2026-07-30)
 
 ### 8.1 What was wrong

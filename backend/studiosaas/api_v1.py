@@ -7376,6 +7376,136 @@ def list_class_schedules():
     return jsonify({"schedules": schedules})
 
 
+def _calendar_tenant_row(conn, tenant_id: str):
+    """Read the tenant identity fields every calendar export needs."""
+
+    return fetch_one(
+        conn,
+        """
+        SELECT name, slug, timezone, address
+        FROM tenants
+        WHERE id = %s
+        """,
+        (tenant_id,),
+    )
+
+
+def _calendar_download_response(document: CalendarDocument):
+    """Return one CalendarDocument as an attachment."""
+
+    response = Response(document.to_ics(), mimetype="text/calendar; charset=utf-8")
+    response.headers["Content-Disposition"] = f'attachment; filename="{document.filename}"'
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
+
+
+def _schedule_calendar_document(conn, tenant_id: str) -> CalendarDocument | None:
+    """Build the recurring class calendar. No roster or student data enters it."""
+
+    tenant_row = _calendar_tenant_row(conn, tenant_id)
+    if not tenant_row:
+        return None
+    schedules = fetch_all(
+        conn,
+        """
+        SELECT cs.id, cs.label, cs.weekday,
+               to_char(cs.start_time, 'HH24:MI') AS start_time,
+               cs.duration_minutes, COALESCE(c.name, '') AS course_name
+        FROM class_schedules cs
+        LEFT JOIN courses c
+          ON c.tenant_id = cs.tenant_id AND c.id = cs.course_id
+        WHERE cs.tenant_id = %s AND cs.is_active
+        ORDER BY cs.weekday, cs.start_time, lower(cs.label)
+        """,
+        (tenant_id,),
+    )
+    return build_schedule_document(
+        tenant_name=tenant_row["name"],
+        tenant_slug=tenant_row["slug"],
+        timezone_name=_validated_timezone(tenant_row["timezone"]),
+        location=tenant_row["address"] or "",
+        schedules=schedules,
+    )
+
+
+def _roster_calendar_document(conn, tenant_id: str, roster_date: _date) -> CalendarDocument | None:
+    """Build a one-day roster snapshot, student names included.
+
+    The slot comes from the explicit roster entry when the front desk set one,
+    and otherwise from the recurring schedule the student belongs to — both are
+    recorded facts. A student with neither is reported as skipped rather than
+    given an invented time, matching migration 0022.
+    """
+
+    tenant_row = _calendar_tenant_row(conn, tenant_id)
+    if not tenant_row:
+        return None
+    roster = _daily_roster_for_date(conn, tenant_id, roster_date)
+    slot_durations: dict[str, int] = {}
+    schedule_by_id: dict[str, dict] = {}
+    for schedule in roster["schedules"]:
+        schedule_by_id[schedule["id"]] = schedule
+        start = schedule.get("startTime")
+        duration = schedule.get("durationMinutes")
+        if start and duration:
+            slot_durations.setdefault(start, int(duration))
+
+    entries: list[dict] = []
+    for student in roster["effectiveStudents"]:
+        slot = student.get("classTime")
+        if not slot:
+            for schedule_id in student.get("scheduleIds") or []:
+                candidate = schedule_by_id.get(schedule_id, {}).get("startTime")
+                if candidate:
+                    slot = candidate
+                    break
+        entries.append(
+            {
+                "studentId": student.get("studentId"),
+                "studentName": student.get("studentName"),
+                "classTime": slot,
+                "oneToOne": bool(student.get("oneToOne")),
+            }
+        )
+    # Cancelled students never reach effectiveStudents, but the dialog should be
+    # able to say "2 cancelled" instead of quietly showing a shorter list.
+    entries.extend(
+        {
+            "studentId": entry.get("studentId"),
+            "studentName": entry.get("studentName"),
+            "status": "cancelled",
+        }
+        for entry in roster["entries"]
+        if entry.get("status") == "cancelled"
+    )
+    return build_roster_document(
+        tenant_name=tenant_row["name"],
+        tenant_slug=tenant_row["slug"],
+        timezone_name=_validated_timezone(tenant_row["timezone"]),
+        location=tenant_row["address"] or "",
+        roster_date=roster_date,
+        entries=entries,
+        slot_durations=slot_durations,
+    )
+
+
+@api_v1.route("/class-schedules/calendar", methods=["GET"])
+@auth_required
+def preview_class_schedule_calendar():
+    """Preview the recurring class calendar before downloading it.
+
+    The preview is rendered from the same CalendarDocument the .ics route
+    serializes, so the event count shown can never disagree with the file.
+    """
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        document = _schedule_calendar_document(conn, tenant.tenant_id)
+    if document is None:
+        return _error("Tenant not found.", 404)
+    return jsonify({"calendar": document.to_preview()})
+
+
 @api_v1.route("/class-schedules/calendar.ics", methods=["GET"])
 @auth_required
 def download_class_schedule_calendar():
@@ -7383,43 +7513,49 @@ def download_class_schedule_calendar():
 
     with connect() as conn:
         tenant = _tenant_context(conn)
-        tenant_row = fetch_one(
-            conn,
-            """
-            SELECT name, slug, timezone, address
-            FROM tenants
-            WHERE id = %s
-            """,
-            (tenant.tenant_id,),
-        )
-        if not tenant_row:
-            return _error("Tenant not found.", 404)
-        schedules = fetch_all(
-            conn,
-            """
-            SELECT cs.id, cs.label, cs.weekday,
-                   to_char(cs.start_time, 'HH24:MI') AS start_time,
-                   cs.duration_minutes, COALESCE(c.name, '') AS course_name
-            FROM class_schedules cs
-            LEFT JOIN courses c
-              ON c.tenant_id = cs.tenant_id AND c.id = cs.course_id
-            WHERE cs.tenant_id = %s AND cs.is_active
-            ORDER BY cs.weekday, cs.start_time, lower(cs.label)
-            """,
-            (tenant.tenant_id,),
-        )
-    calendar = build_schedule_calendar(
-        tenant_name=tenant_row["name"],
-        tenant_slug=tenant_row["slug"],
-        timezone_name=tenant_row["timezone"] or "Australia/Melbourne",
-        location=tenant_row["address"] or "",
-        schedules=schedules,
-    )
-    filename = f"{tenant_row['slug']}-weekly-classes.ics"
-    response = Response(calendar, mimetype="text/calendar; charset=utf-8")
-    response.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
-    response.headers["Cache-Control"] = "private, no-store"
-    return response
+        document = _schedule_calendar_document(conn, tenant.tenant_id)
+    if document is None:
+        return _error("Tenant not found.", 404)
+    return _calendar_download_response(document)
+
+
+@api_v1.route("/daily-roster/calendar", methods=["GET"])
+@permission_required("data:export")
+def preview_daily_roster_calendar():
+    """Preview one day's roster calendar, including the attending students.
+
+    Gated on data:export rather than attendance:read: this file carries student
+    names out of the system and into somebody's personal calendar, which is a
+    narrower decision than being allowed to read the roster on screen.
+    """
+
+    try:
+        roster_date = _roster_date(request.args.get("date"))
+    except ValueError as exc:
+        return _error(str(exc))
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        document = _roster_calendar_document(conn, tenant.tenant_id, roster_date)
+    if document is None:
+        return _error("Tenant not found.", 404)
+    return jsonify({"calendar": document.to_preview()})
+
+
+@api_v1.route("/daily-roster/calendar.ics", methods=["GET"])
+@permission_required("data:export")
+def download_daily_roster_calendar():
+    """Download one day's roster snapshot as an .ics file."""
+
+    try:
+        roster_date = _roster_date(request.args.get("date"))
+    except ValueError as exc:
+        return _error(str(exc))
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        document = _roster_calendar_document(conn, tenant.tenant_id, roster_date)
+    if document is None:
+        return _error("Tenant not found.", 404)
+    return _calendar_download_response(document)
 
 
 @api_v1.route("/class-schedules", methods=["POST"])
