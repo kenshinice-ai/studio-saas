@@ -1,4 +1,102 @@
-# PWE Studio v8.2.8 — Current Handoff
+# PWE Studio — should semantic colours follow the theme? (2026-08-02)
+
+**Status: analysis only.** Running release is v8.2.8. This is option 4 from the
+previous round, examined properly rather than left on the shelf.
+
+## Contrast is not the problem — that part is already solved
+
+Measured across all 15 preset/modes, on the three surfaces the CMS actually
+places semantic colour on:
+
+```text
+raw semantic vs page bg      ~4.6      (just over AA)
+raw semantic vs panel        3.7-4.0   under AA
+raw semantic vs bg2          2.86-3.34 well under AA
+```
+
+That looks alarming, but the CMS already compensates: semantic **text** goes
+through `color-mix(semantic 61.8%, text-anchor)`, which lands the worst case at
+**5.07**. Solid semantic **fills** carry `--on-accent` text, worst case
+**4.56**. Both clear AA in every preset and mode. Semantic marks also carry
+text, not colour alone, so WCAG 1.4.1 is satisfied.
+
+So the strangeness reported is **not** legibility. It is harmony, and it has
+two measurable causes.
+
+## Cause 1 — saturation is fixed while the themes are not
+
+Every preset ships the same semantic saturation:
+
+```text
+success  S=44    warning  S=58    danger  S=52     (identical in all 15)
+accent   S ranges from 4 to 66
+```
+
+`studio-ink` is a deliberately neutral style — its accent saturation is **4
+(light) / 7 (dark)**. Dropping a 58-saturation orange warning onto that screen
+is why it reads as pasted in from another product. At the other end,
+`arcade-lime/dark` has an accent at **66**, which makes a 44-saturation green
+look washed out and weak. Dark modes show it most because their surfaces are
+low-chroma, so a fixed-saturation mark has nothing to hide behind.
+
+## Cause 2 — in 10 of 15 preset/modes a semantic hue merges with the accent
+
+```text
+vintage-press  light/dark   warning  4 deg from accent   (brown on brown)
+cedar-grove    light/dark   success  4 deg               (green on green)
+studio-ink     dark         warning  6 deg
+atelier-clay   light/dark   danger  10 deg               (red on clay)
+rehearsal-rose light/dark   success 23 deg
+```
+
+At 4 degrees a warning badge is the same colour as an ordinary button. The
+semantic signal is gone — the opposite failure from the one the screenshots
+show, and it is the more serious of the two.
+
+## Option A+ — align saturation, then re-solve lightness (verified)
+
+Pull each semantic colour's saturation toward the theme's accent, keep its
+hue, then search lightness until both constraints hold again.
+
+A naive version of this **fails**: adjusting saturation while holding HSL
+lightness drops the worst solid fill to **3.88**, under AA, because HSL
+lightness is not perceived luminance. With the lightness re-solve:
+
+```text
+unsolvable cases                0 of 15
+worst text-on-fill              4.54   (AA needs 4.5)
+worst fill-on-darkest-surface   3.02   (non-text needs 3.0)
+
+studio-ink/light   success  #2F7850 -> #3D6C52   S 44 -> 28
+arcade-lime/dark   success  #389164 -> #26A163   S 44 -> 62
+```
+
+Hue never moves, so green keeps meaning success. This addresses cause 1 and
+leaves cause 2 untouched.
+
+## Option B — separate merged hues by lightness, not by hue
+
+For the 10 merged cases, pushing the hue is the wrong instrument: rotating
+`cedar-grove`'s success away from green to clear its green accent would make
+success stop looking like success. The workable axis is a minimum **lightness**
+gap between the semantic fill and the accent, so a warning badge on a brown
+theme is a distinctly lighter or darker brown-orange than the buttons around
+it. Needs design work and a contrast re-check; not yet modelled.
+
+## Option C — leave it
+
+Defensible: nothing is illegible, nothing is inaccessible. The cost is that
+low-chroma themes keep looking like they have a foreign badge set, which is
+exactly the report.
+
+**Recommendation: A+ now, B as a follow-up.** A+ is modelled, reversible, moves
+no hue, and fixes the cause that the dark-mode screenshots actually show. B is
+the more valuable fix for correctness — a warning that looks like a button is
+worse than one that clashes — but it needs a design decision about how far
+lightness may separate before the palette stops looking deliberate, so it
+should not be rushed in behind A+.
+
+# PWE Studio v8.2.8 — Historical Handoff
 
 ## Colour roles bound to surface area — options 1, 2 and 3 applied (2026-08-02)
 
