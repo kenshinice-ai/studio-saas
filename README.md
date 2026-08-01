@@ -1,6 +1,6 @@
 # PWE Studio
 
-Current production release: **v8.2.6** media uploads repaired (DDL removed from the upload path), preview language switch completed, Studio Admin disclosures (deployed 2026-08-01)
+Current production release: **v8.2.7** CMS colour coherence — tenant themes render as designed instead of having their accent overwritten (deployed 2026-08-01)
 
 PWE Studio (repo: studiosaas) is a Creative Studio Operating System for art schools, music studios, tutoring centres, creative academies, kids' activity providers, and small education businesses. One codebase supports a multi-tenant SaaS delivery model and a customer-owned standalone Edition.
 

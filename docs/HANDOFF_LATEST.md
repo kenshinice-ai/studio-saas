@@ -1,6 +1,61 @@
-# PWE Studio — CMS colour coherence analysis (2026-08-01)
+# PWE Studio v8.2.7 — Current Handoff
 
-**Status: analysis only, nothing changed.** Running release is v8.2.6.
+## CMS colour coherence — Option B applied (2026-08-01)
+
+**Option B is implemented and released. Option C is retained below as the
+upgrade path.** The diagnosis is kept in full because it explains why B is
+sufficient and what C would add.
+
+### What changed
+
+`_default_visual_theme()` returns the preset whole. The two lines that
+substituted `accent_color` / `secondary_accent_color` with the tenant's
+`primary_color` / `secondary_color` are gone.
+
+This also removes an inconsistency between two adjacent paths: a tenant that
+had chosen a style already got `style_theme(style_id)` untouched, so only
+tenants *without* a stored theme were being overwritten — which is exactly the
+set that looked wrong. Measured before and after, background-to-accent hue
+separation:
+
+```text
+tenant                 before   after
+lets-paint-showcase     160deg    3deg     (stored no theme -> was overwritten)
+lets-paint-studio         3deg    3deg     (stored #955037, already coherent)
+dance-dance               2deg    2deg
+lets-play-piano           1deg    1deg
+lets-play-game            0deg    0deg
+```
+
+Every tenant now sits inside the range the presets were designed for. No data
+migration was needed: tenants with a stored theme already held preset values.
+
+### Known cost of Option B
+
+`primary_color` no longer reaches any rendered surface. It stays on the tenant
+record, identifies the studio in the platform console, and is the intended
+input for Option C. A studio whose brand colour is teal now picks a
+teal-family preset rather than injecting teal into a clay palette — the theme
+picker is the supported route, and it ships 8 styles × light/dark.
+
+If a studio's exact brand hex must appear in the product, that is Option C, not
+a reinstatement of the override.
+
+### Option C — upgrade path, not scheduled
+
+Derive all 21 tokens from `primary_color` instead of substituting one, so a
+tenant gets a literal brand colour *and* a coherent palette. Requirements:
+
+- solve every foreground/background pair for contrast in both light and dark —
+  the presets encode this by hand today, and `backend/scripts/palette_gen.py`
+  asserts each generated pair against page and panel;
+- keep semantic success/warning/danger distinguishable from the brand hue when
+  the brand is itself green, amber or red;
+- `docs/design/palette_gen.py` exists as a design-time tool and would need to
+  become runtime-safe (deterministic, no I/O, bounded).
+
+Until then, B holds: presets stay whole, and the brand colour lives where it
+faces customers by preset choice rather than by injection.
 
 ## It is not "too many changes", and the role mapping is not miscategorised
 
@@ -60,7 +115,7 @@ solved as a whole.
 Studio Admin is calm because it never varies. That is the comparison worth
 making, but it is not automatically the answer for the CMS.
 
-## Options
+## Options considered
 
 **A — Give the CMS a fixed palette like Studio Admin.** Removes the conflict by
 removing the variable. Predictable, one palette to maintain, and the ~1,400
@@ -87,7 +142,7 @@ today. Right long-term answer if brand fidelity in the CMS matters.
 guarantees harmony, but it turns the brand colour into a pick-list and will
 frustrate a studio with an existing brand.
 
-**Recommendation: B now, C later if wanted.** B is small, reversible, and fixes
+**Chosen: B, applied in v8.2.7. C retained above as the upgrade path.** B is small, reversible, and fixes
 the reported symptom at its cause today; A discards working machinery to solve
 a problem B solves with two lines; C is the only option that keeps literal
 brand colour *and* harmony, so it is the upgrade path — not the first move.
@@ -100,7 +155,7 @@ query; the guidance used here is `color-semantic` and `destructive-emphasis`
 from the shared UX rules (Material / Apple HIG), plus the hue measurements
 above.
 
-# PWE Studio v8.2.6 — Current Handoff
+# PWE Studio v8.2.6 — Historical Handoff
 
 **All findings below are fixed and released.** The diagnosis is kept in full
 because the P0 was a two-component failure that neither component owned, and

@@ -1049,14 +1049,32 @@ def _default_visual_theme(
     secondary_color: str = "",
     category: str = "general",
 ) -> dict:
-    """Return default public visual-theme options."""
+    """Return default public visual-theme options.
 
-    theme = dict(_preset_for(category)["theme"])
-    if primary_color:
-        theme["accent_color"] = primary_color
-    if secondary_color:
-        theme["secondary_accent_color"] = secondary_color
-    return theme
+    The preset is returned whole. It used to have ``accent_color`` and
+    ``secondary_accent_color`` replaced with the tenant's ``primary_color`` /
+    ``secondary_color``, which is what made the CMS look like two products at
+    once: each preset is solved as a set — across all 15 preset/modes the
+    accent sits within 30 degrees of its own background, and 13 of them within
+    6 — but the injected brand colour carried no such relationship. On
+    ``lets-paint-showcase`` that turned a 3-degree pairing (clay accent on warm
+    paper) into 160 degrees, near-complementary, while the other 19 tokens
+    stayed warm.
+
+    The substitution was also inconsistent with the path beside it:
+    ``_normalize_visual_theme`` already returns ``style_theme(style_id)``
+    untouched when a tenant has chosen a style, so only tenants *without* a
+    stored theme were affected — exactly the ones that looked wrong.
+
+    ``primary_color``/``secondary_color`` remain on the tenant record. They
+    identify the studio in the platform console and are the intended input for
+    deriving a full palette from the brand hue (the upgrade path recorded in
+    the handoff); they are no longer spliced into a palette solved around a
+    different hue. A studio whose brand is teal picks a teal-family preset,
+    which is what the theme picker is for.
+    """
+
+    return dict(_preset_for(category)["theme"])
 
 
 # Colour tokens a tenant may override. Splitting them by role keeps the
