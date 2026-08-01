@@ -88,6 +88,10 @@
     button:active { background:var(--clay-pressed); }
     button:disabled { background:var(--disabled-surface); color:var(--disabled-text); cursor:not-allowed; }
     button[data-busy="true"] { cursor:wait; }
+    /* The form button fills its card; header language buttons are intrinsic.
+       This rule must follow the generic button rule or the two 44px language
+       targets each become 100% wide and push the header off a 375px screen. */
+    header .lang-switch button { width:auto; }
     .submit-bar { margin-top:var(--space-phi-md); }
     .error { display:none; color:var(--danger); font-size:13px; margin:0 0 12px; }
     .done { display:none; text-align:left; padding:18px 4px 4px; }

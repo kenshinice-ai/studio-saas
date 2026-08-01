@@ -34,8 +34,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT"
 
-# macOS bsdtar otherwise serializes Finder/provenance extended attributes as
-# AppleDouble `._*` entries. Linux then sees those entries as real files; a
+# macOS bsdtar otherwise serializes Finder/provenance metadata as AppleDouble
+# `._*` entries or pax extended-attribute headers. Linux then sees AppleDouble
+# as real files and prints a warning for every pax header; a
 # `._0001_schema_v1.sql` file is enough to break the migration runner.
 export COPYFILE_DISABLE=1
 
@@ -128,7 +129,10 @@ else
   cp "$STAGE_DIR/deploy/aws/README_AWS.md" "$STAGE_DIR/DEPLOY_AWS_FIRST.md"
 fi
 
-tar -C "$STAGE_ROOT" -czf "$ARCHIVE" "$PREFIX"
+# COPYFILE_DISABLE blocks AppleDouble. `--no-xattrs` is also required on macOS
+# bsdtar because com.apple.provenance can otherwise survive as pax headers even
+# when no `._*` entry exists.
+tar --no-xattrs -C "$STAGE_ROOT" -czf "$ARCHIVE" "$PREFIX"
 (cd "$OUT_DIR" && shasum -a 256 "$(basename "$ARCHIVE")" > "$(basename "$ARCHIVE").sha256")
 
 echo "$ARCHIVE"
