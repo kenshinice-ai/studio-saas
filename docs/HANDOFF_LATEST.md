@@ -1,9 +1,37 @@
-# PWE Studio — Studio Admin brand workspace audit (2026-08-01)
+# PWE Studio v8.2.6 — Current Handoff
 
-**Status: findings only, nothing changed.** Running release is v8.2.5. This
-section records the diagnosis; the repair is a separate round.
+**All findings below are fixed and released.** The diagnosis is kept in full
+because the P0 was a two-component failure that neither component owned, and
+that shape will recur.
 
-## P0 — every media upload in production returns 500
+## Verification for v8.2.6
+
+```text
+pytest: 316 passed (309 + 7 new in test_media_upload_privileges.py)
+Legacy CMS smoke: 73/73 · Tenant isolation: 228/228
+Least-privilege role rehearsal (role owning nothing, as in production):
+  old code path -> InsufficientPrivilege: must be owner of table media_assets
+  new code path -> ensure_media_schema() completes, no DDL issued
+Upload round-trip: owner 200, super-admin without session 403 (actionable),
+  super-admin with session 200
+Image resources, 24 MP source (6000x4000):
+  before  decoded 6000x4000, peak RSS +139 MB, 0.22s
+  after   decoded 3000x2000, peak RSS  +17 MB, 0.14s
+  81 MP bomb rejected as a 400, not an OOM
+Browser: preview language now drives previewSections (中文 主理人/课程与班次
+  <-> Principal/Courses & Classes); CTA pair switches; 3 disclosures hiding 21
+  fields, all collapsed, all summaries translated; theme-picker and
+  settings-shell both measure exactly 1.618; 0 overflow; no console errors
+```
+
+The regression test was checked by reverting the guard: it fails, then passes
+again once restored. `media derivative backfill is incomplete` remains the
+known worktree artifact (`media/` is git-ignored, so originals live only in the
+primary checkout).
+
+## What was wrong, and why it took a production log to find
+
+## P0 (fixed) — every media upload in production returned 500
 
 Production log, reproduced three times today (06:00, 06:37, 11:51 UTC):
 
@@ -36,7 +64,7 @@ compatibility for *older local* databases, which that preserves. Do not grant
 table ownership to the application role; that would undo v7.7.7 for a code
 path that should not need it.
 
-## P1 — super-admin support gate is correct but undiscoverable
+## P1 (fixed) — super-admin support gate was correct but undiscoverable
 
 A super-admin with no active support session gets
 `403 support_session_required` with an actionable bilingual message, and
@@ -52,7 +80,7 @@ Super Admin entry. Every super-admin action on a tenant is already written to
 the logging the user asked about already exists — it needs surfacing, not
 building.
 
-## P1 — preview language switch covers 6 of 11 nodes
+## P1 (fixed) — preview language switch covered 6 of 11 nodes
 
 Measured by snapshotting every `[id^="preview"]` node in both languages:
 only `previewRegisterTitle` and `previewRegisterIntro` actually changed for
@@ -75,13 +103,13 @@ move the hardcoded section nouns into the i18n dictionary, and mark fields
 whose English is empty or identical to the Chinese so the operator can see
 what still needs translating rather than guessing the switch is broken.
 
-## P2 — dead duplicate of the schema helper
+## P2 (fixed) — dead duplicate of the schema helper
 
 `api_v1.py:1582 _ensure_media_schema` has no callers and its CHECK constraint
 is missing `website_image`, so it is both dead and stale. Delete with the P0
 fix.
 
-## P2 — tab density, and where disclosure belongs
+## P2 (fixed) — tab density, and where disclosure belongs
 
 Field counts per tab, measured in the running page:
 
@@ -123,7 +151,7 @@ English summary on a Chinese page is the defect this page hit twice already.
 Sequencing note: this and the preview-language fix touch the same panels, so
 they should land in one round to avoid two passes over the same markup.
 
-## P2 — golden ratio applied unevenly
+## P2 (fixed) — golden ratio applied unevenly
 
 `.settings-shell` already uses `minmax(0, 1.618fr) minmax(360px, 1fr)`, the
 proportion used across the CMS profile sheet and the product-home hero.
@@ -132,7 +160,7 @@ uses `.9fr : 1.1fr` — the second inverts the emphasis, giving the swatch grid
 more room than the picker controls. Aligning both to 1.618 : 1 would make the
 brand workspace internally consistent with the rest of the product.
 
-# PWE Studio v8.2.5 — Current Handoff
+# PWE Studio v8.2.5 — Historical Handoff
 
 ## Platform console on mobile, product-home contrast — packaged (2026-08-01)
 

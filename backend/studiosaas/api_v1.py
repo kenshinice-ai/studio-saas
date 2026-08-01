@@ -1579,29 +1579,9 @@ def _media_root() -> str:
     return os.path.join(current_app.root_path, "media")
 
 
-def _ensure_media_schema(conn) -> None:
-    """Keep existing local databases compatible with the canonical media model."""
-
-    with conn.cursor() as cur:
-        cur.execute(
-            """
-            ALTER TABLE media_assets
-            ADD COLUMN IF NOT EXISTS asset_type text NOT NULL DEFAULT 'portfolio'
-            CHECK (asset_type IN ('student_photo', 'registration_photo', 'portfolio', 'homework', 'sheet_music', 'logo'))
-            """
-        )
-        cur.execute(
-            """
-            DO $$
-            BEGIN
-                ALTER TABLE students
-                    ADD CONSTRAINT students_student_photo_asset_id_fkey
-                    FOREIGN KEY (student_photo_asset_id) REFERENCES media_assets(id) ON DELETE SET NULL;
-            EXCEPTION WHEN duplicate_object THEN
-                NULL;
-            END $$;
-            """
-        )
+# A duplicate of services.media.ensure_media_schema lived here with no callers
+# and a stale CHECK constraint (it predated 'website_image'). Removed with the
+# upload-path DDL fix so there is one definition to keep correct.
 
 
 def _refresh_tenant_usage(conn, tenant_id: str) -> None:

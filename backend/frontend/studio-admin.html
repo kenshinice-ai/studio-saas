@@ -651,12 +651,9 @@
       flex-wrap: wrap;
     }
 
-    .content-grid {
-      display: grid;
-      grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr);
-      gap: 24px;
-      align-items: start;
-    }
+    /* .content-grid was defined here and in super-admin.html but applied to no
+       element in either; removed rather than restated at a ratio nothing
+       renders. .settings-shell and .theme-picker carry the 1.618 proportion. */
 
     .surface-grid {
       display: grid;
@@ -817,6 +814,21 @@
       animation: slideIn 0.3s ease;
       font-size: 14px;
       font-weight: 500;
+    }
+    /* The support-gate follow-up is a link, not a notice: it is the action
+       that clears the error, so it gets a 44px target and stays on screen
+       twice as long as an ordinary toast. */
+    .support-gate-toast {
+      min-height: 44px;
+      color: var(--brand-accent);
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .support-gate-toast:hover { text-decoration: underline; }
+    .support-gate-toast:focus-visible {
+      outline: 3px solid var(--brand-accent);
+      outline-offset: 2px;
     }
 
     .toast.success { border-left: 4px solid var(--green); }
@@ -1116,11 +1128,24 @@
     .palette-swatches { display: flex; width: 100%; height: 7px; overflow: hidden; border-radius: 999px; background: var(--line); }
     .palette-swatches i { flex: 1 1 0; border: 0; }
 
+    /* Was .9fr : 1.1fr, which inverted the emphasis and gave the swatch strip
+       more width than the controls that drive it. The controls are the subject. */
+    /* 1.618 : 1, with both minimums at 0 so the ratio actually governs. A
+       280px floor on the first column meant that inside the ~460px settings
+       sidebar the track resolved to 280px + 128px — 2.19 : 1, not the ratio
+       asked for. Below the point where two columns would each be too narrow
+       to use, the picker stacks instead of pretending to hold a proportion. */
     .theme-picker {
       display: grid;
-      grid-template-columns: minmax(280px, .9fr) minmax(0, 1.1fr);
+      grid-template-columns: minmax(0, 1.618fr) minmax(0, 1fr);
       gap: 14px;
       align-items: start;
+    }
+    /* The picker sits in the settings sidebar, which is the 1fr side of
+       .settings-shell — so its width tracks the viewport. Below ~1100px that
+       side is too narrow to carry two usable columns. */
+    @media (max-width: 1100px) {
+      .theme-picker { grid-template-columns: 1fr; }
     }
 
     /* 3-1: the two selects are one row of equal columns, and each control is a
@@ -1625,7 +1650,6 @@
     @media (max-width: 1024px) {
       main, .header-top, .nav-inner { padding-left: 16px; padding-right: 16px; }
       .stats-grid { grid-template-columns: repeat(2, 1fr); }
-      .content-grid { grid-template-columns: 1fr; }
       .toolbar { grid-template-columns: 1fr 1fr; }
     }
 
@@ -2208,19 +2232,31 @@
                     <div class="form-group"><label for="settingLogoUrl">Logo URL</label><input id="settingLogoUrl" placeholder="https://..." aria-describedby="settingLogoUrlError"><span id="settingLogoUrlError" class="field-error" hidden></span></div>
                     <div class="form-group"><label for="settingLogoFile">Upload Logo</label><input id="settingLogoFile" type="file" accept="image/*"></div>
                     <div class="form-group"><label for="settingPlan">Plan</label><select id="settingPlan" disabled></select><small>Managed by StudioSaaS Super Admin.</small></div>
-                    <div class="form-group"><label for="settingCmsLayout">CMS Layout</label><select id="settingCmsLayout"><option value="bar">Header Bar</option><option value="hero">Hero Welcome</option><option value="compact">Compact</option></select></div>
-                    <div class="switch-list">
-                      <div class="switch-row">
-                        <label class="switch-label" for="settingShowWelcome">Show Welcome<small>On CMS and register pages</small></label>
-                        <input class="switch" id="settingShowWelcome" type="checkbox">
+                    <!-- Contact details, welcome copy and CMS layout are set
+                         once at onboarding and rarely revisited, so they fold.
+                         Name, slogan and logo stay open: those are what a studio
+                         opens this tab to change. The bilingual pairs stay
+                         together inside — never fold one language away. -->
+                    <details class="disclosure">
+                      <summary>Studio details<span class="summary-hint">Contact, welcome message, CMS layout</span></summary>
+                      <div class="disclosure-body">
+                        <div class="form-grid">
+                          <div class="form-group"><label for="settingCmsLayout">CMS Layout</label><select id="settingCmsLayout"><option value="bar">Header Bar</option><option value="hero">Hero Welcome</option><option value="compact">Compact</option></select></div>
+                          <div class="form-group"><label for="settingTimezone">Timezone</label><input id="settingTimezone" aria-describedby="settingTimezoneError"><span id="settingTimezoneError" class="field-error" hidden></span></div>
+                          <div class="form-group"><label for="settingPhone">Phone</label><input id="settingPhone" placeholder="0400 000 000" aria-describedby="settingPhoneError"><span id="settingPhoneError" class="field-error" hidden></span></div>
+                          <div class="form-group"><label for="settingEmail">Email</label><input id="settingEmail" type="email" placeholder="studio@example.com" aria-describedby="settingEmailError"><span id="settingEmailError" class="field-error" hidden></span></div>
+                          <div class="form-group"><label for="settingAddress">Address</label><input id="settingAddress" placeholder="Studio address"></div>
+                          <div class="switch-list" style="grid-column:1/-1;">
+                            <div class="switch-row">
+                              <label class="switch-label" for="settingShowWelcome">Show Welcome<small>On CMS and register pages</small></label>
+                              <input class="switch" id="settingShowWelcome" type="checkbox">
+                            </div>
+                          </div>
+                          <div class="form-group" style="grid-column:1/-1;"><label for="settingWelcome">Welcome Message · 中文</label><input id="settingWelcome" placeholder="显示在官网与报名页顶部的欢迎语"></div>
+                          <div class="form-group" style="grid-column:1/-1;"><label for="settingWelcomeEn">Welcome Message · English</label><input id="settingWelcomeEn" placeholder="Welcome text shown above the website and register page"><small>Fill in one language and it is shown to everyone. Leave both blank to hide the welcome band.</small></div>
+                        </div>
                       </div>
-                    </div>
-                    <div class="form-group"><label for="settingTimezone">Timezone</label><input id="settingTimezone" aria-describedby="settingTimezoneError"><span id="settingTimezoneError" class="field-error" hidden></span></div>
-                    <div class="form-group"><label for="settingPhone">Phone</label><input id="settingPhone" placeholder="0400 000 000" aria-describedby="settingPhoneError"><span id="settingPhoneError" class="field-error" hidden></span></div>
-                    <div class="form-group"><label for="settingEmail">Email</label><input id="settingEmail" type="email" placeholder="studio@example.com" aria-describedby="settingEmailError"><span id="settingEmailError" class="field-error" hidden></span></div>
-                    <div class="form-group"><label for="settingAddress">Address</label><input id="settingAddress" placeholder="Studio address"></div>
-                    <div class="form-group" style="grid-column:1/-1;"><label for="settingWelcome">Welcome Message · 中文</label><input id="settingWelcome" placeholder="显示在官网与报名页顶部的欢迎语"></div>
-                    <div class="form-group" style="grid-column:1/-1;"><label for="settingWelcomeEn">Welcome Message · English</label><input id="settingWelcomeEn" placeholder="Welcome text shown above the website and register page"><small>Fill in one language and it is shown to everyone. Leave both blank to hide the welcome band.</small></div>
+                    </details>
                   </div>
                 </section>
               </div>
@@ -2294,15 +2330,25 @@
                     <input class="switch" id="settingShowStudentArea" type="checkbox">
                   </div>
                 </div>
-                <div class="form-group"><label for="settingCoursesLabel">Courses Label · 中文</label><input id="settingCoursesLabel" placeholder="课程与班次"></div>
-                <div class="form-group"><label for="settingCoursesLabelEn">Courses Label · English</label><input id="settingCoursesLabelEn" placeholder="Courses & Classes"></div>
-                <div class="form-group"><label for="settingGalleryLabel">Gallery Label · 中文</label><input id="settingGalleryLabel" placeholder="学员%WORK%"></div>
-                <div class="form-group"><label for="settingGalleryLabelEn">Gallery Label · English</label><input id="settingGalleryLabelEn" placeholder="Student %WORKS%"></div>
-                <div class="form-group"><label for="settingFaqLabel">FAQ Label · 中文</label><input id="settingFaqLabel" placeholder="常见问题"></div>
-                <div class="form-group"><label for="settingFaqLabelEn">FAQ Label · English</label><input id="settingFaqLabelEn" placeholder="Questions & Answers"></div>
-                <div class="form-group"><label for="settingContactLabel">Contact Label · 中文</label><input id="settingContactLabel" placeholder="联系我们"></div>
-                <div class="form-group"><label for="settingContactLabelEn">Contact Label · English</label><input id="settingContactLabelEn" placeholder="Contact"></div>
-                <div class="form-group" style="grid-column:1/-1;"><small>%WORK% and %WORKS% are replaced with your industry's word for what a student produces, so the same label works for a piano, dance, or games studio.</small></div>
+                <!-- Eight inputs that only rename headings. The switches above
+                     are what this tab is for; renaming is a later refinement,
+                     so it folds. Both languages of a pair stay together. -->
+                <details class="disclosure">
+                  <summary>Section names<span class="summary-hint">Rename the public headings</span></summary>
+                  <div class="disclosure-body">
+                    <div class="form-grid">
+                      <div class="form-group"><label for="settingCoursesLabel">Courses Label · 中文</label><input id="settingCoursesLabel" placeholder="课程与班次"></div>
+                      <div class="form-group"><label for="settingCoursesLabelEn">Courses Label · English</label><input id="settingCoursesLabelEn" placeholder="Courses & Classes"></div>
+                      <div class="form-group"><label for="settingGalleryLabel">Gallery Label · 中文</label><input id="settingGalleryLabel" placeholder="学员%WORK%"></div>
+                      <div class="form-group"><label for="settingGalleryLabelEn">Gallery Label · English</label><input id="settingGalleryLabelEn" placeholder="Student %WORKS%"></div>
+                      <div class="form-group"><label for="settingFaqLabel">FAQ Label · 中文</label><input id="settingFaqLabel" placeholder="常见问题"></div>
+                      <div class="form-group"><label for="settingFaqLabelEn">FAQ Label · English</label><input id="settingFaqLabelEn" placeholder="Questions & Answers"></div>
+                      <div class="form-group"><label for="settingContactLabel">Contact Label · 中文</label><input id="settingContactLabel" placeholder="联系我们"></div>
+                      <div class="form-group"><label for="settingContactLabelEn">Contact Label · English</label><input id="settingContactLabelEn" placeholder="Contact"></div>
+                      <div class="form-group" style="grid-column:1/-1;"><small>%WORK% and %WORKS% are replaced with your industry's word for what a student produces, so the same label works for a piano, dance, or games studio.</small></div>
+                    </div>
+                  </div>
+                </details>
                 <div class="form-group"><label for="settingPrincipalName">Principal Name</label><input id="settingPrincipalName" placeholder="Name shown on public page"><small>A person's name is never translated.</small></div>
                 <div class="form-group"><label for="settingPrincipalTitle">Principal Title · 中文</label><input id="settingPrincipalTitle" placeholder="创办人 / 主理人"></div>
                 <div class="form-group"><label for="settingPrincipalTitleEn">Principal Title · English</label><input id="settingPrincipalTitleEn" placeholder="Founder & Principal"></div>
@@ -2648,6 +2694,15 @@
     let previewMode = 'portal';
     let previewDevice = 'desktop';
     let previewLanguage = 'zh';
+    /* Shared by updateThemePreview and renderPreviewSections. It used to be
+       declared inside updateThemePreview, which is why the section list — a
+       separate function — read only the Chinese label inputs and ignored the
+       *LabelEn fields sitting beside them in the form. */
+    const localizedValue = (zhId, enId, fallback) =>
+      $(previewLanguage === 'zh' ? zhId : enId)?.value || fallback;
+    /* Fixed nouns in the preview that have no tenant-editable field. They were
+       hardcoded English and stayed English in Chinese mode. */
+    const previewNoun = (zh, en) => (previewLanguage === 'zh' ? zh : en);
     let brandVersions = [];
     let activeVisualStyle = '';
     // Light/dark is a separate axis from the palette: a studio picks a
@@ -2789,7 +2844,8 @@
       try {
         await action();
       } catch (err) {
-        showToast(err.message || 'Action failed.', 'error');
+        // Save Draft and Publish hit the same support gate as the uploads.
+        reportApiError(err);
         throw err;
       } finally {
         if (button) {
@@ -2824,9 +2880,43 @@
       if (!res.ok) {
         const err = new Error(data.message || data.error || `${res.status} ${path}`);
         err.status = res.status;
+        /* A platform operator acting on a tenant must open a support session
+           first. The server says so clearly, but Studio Admin gave no route to
+           it, so the message read as a dead end. Flagged here so the caller can
+           offer the console link. */
+        err.needsSupportSession = data.error === 'support_session_required';
         throw err;
       }
       return data;
+    }
+
+    /* Surfaces an API failure, and for the support-session gate adds the one
+       action that resolves it. Super-admin work on a tenant is already written
+       to audit_logs with the session marker merged in, so this only exposes a
+       route that existed. */
+    function reportApiError(err) {
+      if (err && err.needsSupportSession) {
+        showToast(err.message, 'error');
+        const link = document.createElement('a');
+        link.href = '/platform-admin#tenants';
+        link.target = '_blank';
+        link.rel = 'noopener';
+        link.className = 'toast error support-gate-toast';
+        link.textContent = adminText(
+          '前往平台控制台开启支持会话 →',
+          'Open a support session in the platform console →',
+        );
+        $('toastContainer').appendChild(link);
+        setTimeout(() => link.remove(), 9000);
+        return;
+      }
+      showToast((err && err.message) || 'Action failed.', 'error');
+    }
+
+    /* The i18n dictionary translates text nodes after render; strings built in
+       JS need the current language at build time. */
+    function adminText(zh, en) {
+      return (document.documentElement.lang || '').toLowerCase().startsWith('en') ? en : zh;
     }
 
     function currentMembershipForSlug(memberships = [], slug) {
@@ -3348,7 +3438,6 @@
         preview.classList.toggle('mode-portal', previewMode === 'portal');
         preview.classList.toggle('mode-register', previewMode === 'register');
       }
-      const localizedValue = (zhId, enId, fallback) => $(previewLanguage === 'zh' ? zhId : enId)?.value || fallback;
       $('themePreviewTitle').textContent = localizedValue('settingHeroTitle', 'settingHeroTitleEn', `${$('settingName').value || 'Studio'} Theme`);
       $('themePreviewSlug').textContent = currentTenantSlug() || 'tenant';
       const welcomeVisible = toggleOn('settingShowWelcome');
@@ -3388,13 +3477,25 @@
     function renderPreviewSections() {
       const box = $('previewSections');
       if (!box) return;
+      /* Every editable label reads the pair, so the English inputs the form
+         already collects are no longer ignored; every fixed noun switches too,
+         so the list is not half-English in Chinese mode. */
+      const faqCount = collectFaqItems().length;
       const rows = [
-        ['Principal', toggleOn('settingShowPrincipal'), $('settingPrincipalName')?.value || 'About the studio'],
-        [$('settingCoursesLabel')?.value || 'Courses', toggleOn('settingShowCourses'), 'Program cards'],
-        [$('settingGalleryLabel')?.value || 'Gallery', toggleOn('settingShowGallery'), 'Student works'],
-        ['Student Area', toggleOn('settingShowStudentArea'), 'Balance and portfolio'],
-        [$('settingFaqLabel')?.value || 'FAQ', toggleOn('settingShowFaq'), `${collectFaqItems().length} questions`],
-        [$('settingContactLabel')?.value || 'Contact', toggleOn('settingShowContact'), $('settingEmail')?.value || $('settingPhone')?.value || 'Contact details'],
+        [previewNoun('主理人', 'Principal'), toggleOn('settingShowPrincipal'),
+          $('settingPrincipalName')?.value || previewNoun('工作室介绍', 'About the studio')],
+        [localizedValue('settingCoursesLabel', 'settingCoursesLabelEn', previewNoun('课程', 'Courses')),
+          toggleOn('settingShowCourses'), previewNoun('课程卡片', 'Program cards')],
+        [localizedValue('settingGalleryLabel', 'settingGalleryLabelEn', previewNoun('作品墙', 'Gallery')),
+          toggleOn('settingShowGallery'), previewNoun('学员作品', 'Student works')],
+        [previewNoun('学员专区', 'Student Area'), toggleOn('settingShowStudentArea'),
+          previewNoun('课时与作品', 'Balance and portfolio')],
+        [localizedValue('settingFaqLabel', 'settingFaqLabelEn', previewNoun('常见问答', 'FAQ')),
+          toggleOn('settingShowFaq'),
+          previewNoun(`${faqCount} 条问答`, `${faqCount} questions`)],
+        [localizedValue('settingContactLabel', 'settingContactLabelEn', previewNoun('联系我们', 'Contact')),
+          toggleOn('settingShowContact'),
+          $('settingEmail')?.value || $('settingPhone')?.value || previewNoun('联系方式', 'Contact details')],
       ].filter((row) => row[1]);
       box.innerHTML = rows.map(([label, _show, detail]) => `
         <div class="preview-section-row"><strong>${esc(label)}</strong><span>${esc(detail)}</span></div>
@@ -4524,9 +4625,9 @@
       $('openRegisterBtn').addEventListener('click', () => openTenantSurface('register'));
       $('saveDraftBtn').addEventListener('click', () => runUiAction('saveDraftBtn', 'Saving Draft...', saveDraft));
       $('publishSettingsBtn').addEventListener('click', () => runUiAction('publishSettingsBtn', 'Publishing...', publishSettings));
-      $('settingLogoFile').addEventListener('change', () => uploadLogo().catch((err) => showToast(err.message, 'error')));
-      $('settingHeroImageFile').addEventListener('change', () => uploadWebsiteImage('hero', 'settingHeroImageFile', 'settingHeroImageUrl').catch((err) => showToast(err.message, 'error')));
-      $('settingPrincipalImageFile').addEventListener('change', () => uploadWebsiteImage('principal', 'settingPrincipalImageFile', 'settingPrincipalImageUrl').catch((err) => showToast(err.message, 'error')));
+      $('settingLogoFile').addEventListener('change', () => uploadLogo().catch(reportApiError));
+      $('settingHeroImageFile').addEventListener('change', () => uploadWebsiteImage('hero', 'settingHeroImageFile', 'settingHeroImageUrl').catch(reportApiError));
+      $('settingPrincipalImageFile').addEventListener('change', () => uploadWebsiteImage('principal', 'settingPrincipalImageFile', 'settingPrincipalImageUrl').catch(reportApiError));
       $('refreshAnalyticsBtn').addEventListener('click', () => loadAnalytics().catch((err) => showToast(err.message, 'error')));
       $('analyticsDays').addEventListener('change', () => loadAnalytics().catch((err) => showToast(err.message, 'error')));
       $('refreshAuditBtn').addEventListener('click', loadAuditLogs);

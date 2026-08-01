@@ -44,7 +44,18 @@ DOCUMENT_EXTENSIONS = {".pdf"}
 # routes request a derivative explicitly and never fall back to the original.
 THUMB_MAX = 360
 DISPLAY_MAX = 2000
-MAX_IMAGE_PIXELS = 40_000_000
+# Decoded pixels, not file bytes: a 5 MB JPEG can expand to hundreds of MB in
+# memory, and the production host is a 1.9 GB Lightsail instance serving eight
+# Waitress threads. 30 MP covers a full-frame camera (6720x4480) and every
+# phone; above that an upload is either a stitched panorama or a decompression
+# bomb, and neither belongs on a studio's brand page.
+MAX_IMAGE_PIXELS = 30_000_000
+if _HAS_PIL:
+    # Pillow's own bomb guard defaults to ~89 MP and only *warns*, so a hostile
+    # file would still be decoded. Pinning it to our ceiling makes Pillow raise
+    # DecompressionBombError instead, which _open_raster turns into a clean 400
+    # rather than an OOM on a host shared by eight request threads.
+    _PILImage.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS
 THUMB_SOURCE_MIMES = {"image/jpeg", "image/png", "image/webp"}
 MEDIA_UPLOAD_LIMITS = {
     "student_photo": (IMAGE_EXTENSIONS, 5 * 1024 * 1024),
@@ -81,28 +92,63 @@ def media_root() -> str:
 
 
 def ensure_media_schema(conn: Any) -> None:
-    """Keep older local databases compatible with canonical media columns."""
+    """Keep older local databases compatible with canonical media columns.
+
+    Both objects below have been part of the schema since
+    ``0001_schema_v1.sql`` (``0017`` widened the CHECK), so on every migrated
+    database this function has nothing to do. It nevertheless issued the DDL
+    unconditionally, and that broke media uploads in production: ``ALTER
+    TABLE`` requires table ownership, PostgreSQL checks that privilege *before*
+    it evaluates ``IF NOT EXISTS``, and the deployed role is the
+    least-privilege role from v7.7.7, which owns nothing. Every upload —
+    logo, hero, student photo, portfolio — returned
+
+        psycopg.errors.InsufficientPrivilege: must be owner of table media_assets
+
+    So: probe the catalogue first and only reach for DDL when the object is
+    genuinely absent. A correctly migrated database now executes no DDL and
+    needs no ownership; an old local database is still repaired in place.
+    Granting the app role ownership would have "fixed" this by undoing v7.7.7.
+    """
 
     with conn.cursor() as cur:
         cur.execute(
             """
-            ALTER TABLE media_assets
-            ADD COLUMN IF NOT EXISTS asset_type text NOT NULL DEFAULT 'portfolio'
-            CHECK (asset_type IN ('student_photo', 'registration_photo', 'portfolio', 'homework', 'sheet_music', 'logo', 'website_image'))
+            SELECT 1 FROM information_schema.columns
+            WHERE table_schema = current_schema()
+              AND table_name = 'media_assets'
+              AND column_name = 'asset_type'
             """
         )
+        if cur.fetchone() is None:
+            cur.execute(
+                """
+                ALTER TABLE media_assets
+                ADD COLUMN IF NOT EXISTS asset_type text NOT NULL DEFAULT 'portfolio'
+                CHECK (asset_type IN ('student_photo', 'registration_photo', 'portfolio', 'homework', 'sheet_music', 'logo', 'website_image'))
+                """
+            )
         cur.execute(
             """
-            DO $$
-            BEGIN
-                ALTER TABLE students
-                    ADD CONSTRAINT students_student_photo_asset_id_fkey
-                    FOREIGN KEY (student_photo_asset_id) REFERENCES media_assets(id) ON DELETE SET NULL;
-            EXCEPTION WHEN duplicate_object THEN
-                NULL;
-            END $$;
+            SELECT 1 FROM information_schema.table_constraints
+            WHERE table_schema = current_schema()
+              AND table_name = 'students'
+              AND constraint_name = 'students_student_photo_asset_id_fkey'
             """
         )
+        if cur.fetchone() is None:
+            cur.execute(
+                """
+                DO $$
+                BEGIN
+                    ALTER TABLE students
+                        ADD CONSTRAINT students_student_photo_asset_id_fkey
+                        FOREIGN KEY (student_photo_asset_id) REFERENCES media_assets(id) ON DELETE SET NULL;
+                EXCEPTION WHEN duplicate_object THEN
+                    NULL;
+                END $$;
+                """
+            )
 
 
 def refresh_tenant_usage(conn: Any, tenant_id: str) -> None:
@@ -227,6 +273,13 @@ def _open_raster(data: bytes, ext: str):
         width, height = image.size
         if width <= 0 or height <= 0 or width * height > MAX_IMAGE_PIXELS:
             raise MediaUploadError("Image dimensions are too large to process safely.")
+        # open() has only read the header so far. For JPEG, draft() lets the
+        # decoder scale by 1/2, 1/4 or 1/8 during decompression, so a 24 MP
+        # phone photo materialises at roughly DISPLAY_MAX instead of full size
+        # — the single biggest saving on this path, and lossless for our
+        # purposes because every derivative is capped at DISPLAY_MAX anyway.
+        # It is a no-op for formats that do not support it.
+        image.draft("RGB", (DISPLAY_MAX, DISPLAY_MAX))
         image.load()
         return _PILImageOps.exif_transpose(image)
     except MediaUploadError:
@@ -257,7 +310,15 @@ def _build_safe_variants(data: bytes, ext: str) -> dict[str, tuple[bytes, int, i
 
     image = _open_raster(data, ext)
     display = _jpeg_bytes(image, DISPLAY_MAX, 88)
-    thumb = _jpeg_bytes(image, THUMB_MAX, 84)
+    # The thumbnail is derived from the display raster rather than the source.
+    # _jpeg_bytes copies whatever it is handed before resampling, so building
+    # both from the original meant holding two full-size copies at once; the
+    # display raster is already capped at DISPLAY_MAX and is a strictly better
+    # starting point for a 360px thumbnail. Peak memory for one upload is now
+    # bounded by the decoded source plus ~12 MB, not by three copies of it.
+    thumb_source = _PILImage.open(io.BytesIO(display[0]))
+    thumb_source.load()
+    thumb = _jpeg_bytes(thumb_source, THUMB_MAX, 84)
     return {"display": display, "thumb": thumb}
 
 

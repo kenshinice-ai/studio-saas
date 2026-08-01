@@ -28,7 +28,12 @@
     /* Overview group headings — the console orders its blocks by what the
        operator does with them, so these labels carry that meaning and have to
        translate with the rest of the page. */
-    /* Studio Admin: advanced colour disclosure and the switch sub-label. */
+    /* Studio Admin: disclosure summaries. Each fold hides settings a studio
+       sets once, never a language half of a bilingual pair. */
+    ['Studio details', '工作室资料'],
+    ['Contact, welcome message, CMS layout', '联系方式、欢迎语、CMS 布局'],
+    ['Section names', '版块名称'],
+    ['Rename the public headings', '自定义公开页面的标题'],
     ['Fine colour control', '精细颜色调整'],
     ['Optional — the theme already sets these', '选填 — 主题已自动配好'],
     ['On CMS and register pages', '显示在 CMS 与报名页'],
