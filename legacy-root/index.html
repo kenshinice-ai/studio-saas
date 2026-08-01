@@ -10,7 +10,7 @@
     <link rel="icon" href="/icon-192.png">
     <!-- G6: PWA — 添加到主屏幕 -->
     <link id="cmsManifest" rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#312e81">
+    <meta name="theme-color" content="#0e1729">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Studio CMS">
@@ -41,8 +41,8 @@
           if (!brand) return;
           const root = document.documentElement;
           const visual = brand.visual_theme || brand.visualTheme || {};
-          const primary = visual.accent_color || visual.accentColor || brand.primary_color || brand.primaryColor || '#312e81';
-	          const secondary = visual.secondary_accent_color || visual.secondaryAccentColor || brand.secondary_color || brand.secondaryColor || '#6366f1';
+          const primary = visual.accent_color || visual.accentColor || brand.primary_color || brand.primaryColor || '#0e1729';
+	          const secondary = visual.secondary_accent_color || visual.secondaryAccentColor || brand.secondary_color || brand.secondaryColor || '#16233d';
 	          const rawLogo = brand.logo_url || brand.logoUrl || '';
 	          const logo = ['/logo.png', '/logo-light.png', '/favicon.svg'].includes(rawLogo) ? '' : rawLogo;
 	          const slogan = brand.slogan || 'Learn, grow, and feel confident.';
@@ -216,101 +216,30 @@
         .cms-profile-actions-row > :only-child { grid-column: 1 / -1; }
 
 
-        /* ── B6: 深色模式（跟随系统）— 收割自 LetsPaintCMS v5.0.x 两轮收口成品。
-           中性色表面/文字 + 彩色浅底(-50/-100)一并映射为深色同色调，
-           保证任何"彩底 + 文字"组合都有足够对比度。
-           如需临时关闭，把整段删掉即可，不影响其他逻辑。 */
+        /* One dark-mode owner: before /brand answers, OS preference provides a
+           neutral token fallback; afterwards data-brand-scheme and the tenant
+           palette own every surface. Utility-specific dark overrides used to
+           fight the tenant role map and could produce dark pages with light
+           tenant text. */
         @media (prefers-color-scheme: dark) {
-            html, body { background:#0e1016 !important; }
-            body { color:#e5e7eb; }
-            /* 中性表面 */
-            .bg-white { background:#1a1d27 !important; }
-            .bg-gray-50 { background:#20242f !important; }
-            .bg-gray-100 { background:#0e1016 !important; }
-            /* 中性文字 */
-            .text-gray-900, .text-gray-800 { color:#e8eaf0 !important; }
-            .text-gray-700, .text-gray-600 { color:#c3c8d4 !important; }
-            .text-gray-500, .text-gray-400 { color:#8b93a5 !important; }
-            .text-gray-300 { color:#5b6473 !important; }
-            /* 边框 */
-            .border-gray-100, .border-gray-200, .border-gray-300 { border-color:#2c313d !important; }
-            .divide-gray-50 > *, .divide-gray-100 > * { border-color:#252a35 !important; }
-            .hover-row:hover { background:#20242f !important; }
-
-            /* 表单控件：原生白底不是 .bg-white 类，需单独覆盖 */
-            input, textarea, select { background:#1a1d27 !important; color:#e8eaf0 !important; border-color:#2c313d !important; color-scheme: dark; }
-            input::placeholder, textarea::placeholder { color:#6b7280 !important; }
-
-            /* 透明度变体彩色浅底 */
-            .bg-indigo-50\/60 { background:#1e2140 !important; }
-            .bg-amber-50\/60  { background:#382e18 !important; }
-            /* 中性灰按钮/色块底 */
-            .bg-gray-200 { background:#2c313d !important; }
-            .bg-gray-300 { background:#363c4a !important; }
-            .disabled\:bg-gray-300:disabled { background:#2a2f3a !important; }
-            .disabled\:bg-gray-200:disabled { background:#262b35 !important; }
-            /* 浅色渐变横幅（生日提醒）→ 纯深色 */
-            .from-pink-50 { background-image:none !important; background-color:#3a1d28 !important; }
-            .bg-white\/70 { background:rgba(40,45,58,.7) !important; }
-
-            /* hover/active 浅色底统一深色 */
-            .hover\:bg-indigo-50:hover, .active\:bg-indigo-50:active, .active\:bg-indigo-100:active { background:#242a52 !important; }
-            .hover\:bg-gray-50:hover, .active\:bg-gray-50:active, .active\:bg-gray-100:active { background:#262b36 !important; }
-            .hover\:bg-purple-50:hover, .active\:bg-purple-50:active, .active\:bg-purple-100:active { background:#33244f !important; }
-            .active\:bg-green-50:active, .active\:bg-green-100:active { background:#1d3f29 !important; }
-            .active\:bg-emerald-100:active { background:#1c3f30 !important; }
-            .active\:bg-amber-50:active, .active\:bg-amber-100:active, .active\:bg-amber-200:active { background:#463a1f !important; }
-            .active\:bg-orange-100:active { background:#4a3418 !important; }
-            .active\:bg-red-50:active, .active\:bg-red-100:active { background:#4a262c !important; }
-            .active\:bg-pink-50:active, .active\:bg-pink-100:active { background:#4a2438 !important; }
-
-            /* 彩色浅底 → 深色同色调，文字提亮 */
-            .bg-indigo-50  { background:#1e2140 !important; }
-            .bg-indigo-100 { background:#2a2e58 !important; }
-            .bg-pink-50    { background:#3a1d2e !important; }
-            .bg-pink-100   { background:#4a2438 !important; }
-            .bg-rose-50    { background:#3a1d28 !important; }
-            .bg-red-50     { background:#3a1f24 !important; }
-            .bg-red-100    { background:#4a262c !important; }
-            .bg-orange-50  { background:#3a2a1c !important; }
-            .bg-amber-50   { background:#382e18 !important; }
-            .bg-amber-100  { background:#463a1f !important; }
-            .bg-yellow-50  { background:#38341a !important; }
-            .bg-green-50   { background:#16301f !important; }
-            .bg-green-100  { background:#1d3f29 !important; }
-            .bg-emerald-50 { background:#1a2320 !important; }
-            .bg-emerald-100{ background:#1c3f30 !important; }
-            .bg-blue-50    { background:#182a44 !important; }
-            .bg-blue-100   { background:#20375a !important; }
-            .bg-purple-50  { background:#2a1d40 !important; }
-            .bg-purple-100 { background:#382a55 !important; }
-            .bg-teal-50    { background:#153030 !important; }
-            /* 彩色文字提亮 */
-            .text-indigo-900, .text-indigo-800, .text-indigo-700 { color:#a9b4ff !important; }
-            .text-indigo-600, .text-indigo-500, .text-indigo-400 { color:#8b97f0 !important; }
-            .text-pink-700, .text-pink-600, .text-pink-500, .text-pink-400 { color:#f7a8c8 !important; }
-            .text-rose-700, .text-rose-600, .text-rose-500, .text-rose-400 { color:#f7a3ba !important; }
-            .text-red-700, .text-red-600, .text-red-500 { color:#f6a5ad !important; }
-            .text-orange-700, .text-orange-600, .text-orange-500 { color:#f4b483 !important; }
-            .text-amber-800, .text-amber-700, .text-amber-600, .text-amber-500 { color:#efc471 !important; }
-            .text-green-700, .text-green-600, .text-green-500 { color:#8fdca0 !important; }
-            .text-emerald-800, .text-emerald-700, .text-emerald-600 { color:#8ad9b4 !important; }
-            .text-blue-800, .text-blue-700, .text-blue-600, .text-blue-500 { color:#8fb8f0 !important; }
-            .text-purple-800, .text-purple-700, .text-purple-600 { color:#c3a5f2 !important; }
-            /* 彩色边框调暗（含本 fork 特有的 -100 变体） */
-            .border-indigo-100,.border-indigo-200,.border-indigo-300 { border-color:#33386a !important; }
-            .border-pink-100,.border-pink-200 { border-color:#5a2f42 !important; }
-            .border-amber-200,.border-amber-300 { border-color:#544418 !important; }
-            .border-green-200 { border-color:#274d34 !important; }
-            .border-red-100,.border-red-200 { border-color:#5a2f36 !important; }
-            .border-orange-100 { border-color:#54401f !important; }
-            .border-emerald-100,.border-emerald-200 { border-color:#245040 !important; }
-            .border-blue-100 { border-color:#28406a !important; }
-            .border-purple-100 { border-color:#43356a !important; }
+            html:not([data-brand-scheme]) {
+                color-scheme:dark;
+                --bg:#0e1016;
+                --bg2:#20242f;
+                --panel:#1a1d27;
+                --surface:#1a1d27;
+                --ink:#e8eaf0;
+                --ink2:#c3c8d4;
+                --muted:#9ca3b3;
+                --line:#2c313d;
+                --line-strong:#454c5c;
+            }
         }
+        html[data-brand-scheme="dark"] { color-scheme:dark; }
+        html[data-brand-scheme="light"] { color-scheme:light; }
 
         /* ── Fix #6: touch-action on all interactive elements ── */
-        button, a, [role="button"] { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+        button, a, summary, label, [role="button"] { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 
         /* ── Animations ── */
         .sp { border:3px solid rgba(255,255,255,.3); border-radius:50%; border-top:3px solid #fff; width:16px; height:16px; animation:spin 1s linear infinite; display:inline-block; vertical-align:middle; }
@@ -324,13 +253,6 @@
         /* ── Scrollbar ── */
         .sl::-webkit-scrollbar { width:4px; }
         .sl::-webkit-scrollbar-thumb { background:#c7d2fe; border-radius:2px; }
-
-        /* ── PIN ── */
-        .pin-dot { width:14px; height:14px; border-radius:50%; background:#e5e7eb; transition:background .12s; }
-        .pin-dot.on { background:#6366f1; }
-        /* Fix ⑦: override global 16px rule with !important so PIN digits stay large */
-        .pin-input { width:56px; height:68px; font-size:28px !important; text-align:center; border:2px solid #e5e7eb; border-radius:14px; outline:none; transition:border-color .15s; background:transparent; }
-        .pin-input:focus { border-color:#6366f1; box-shadow:0 0 0 3px rgba(99,102,241,.15); }
 
         /* ── Fix #7: safe modal scrolling on iPad ── */
         .modal-scroll { overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
@@ -350,10 +272,10 @@
         /* ── B1: Portfolio thumbnail actions — always visible on touch screens ── */
         @media (hover:none) { .port-actions { display:flex !important; } }
         :root {
-            --tenant-primary:#312e81;
+            --tenant-primary:#0e1729;
             --tenant-primary-soft:#eef2ff;
             --tenant-primary-border:#c7d2fe;
-            --tenant-secondary:#6366f1;
+            --tenant-secondary:#16233d;
             --tenant-secondary-soft:#f5f3ff;
             --tenant-secondary-border:#ddd6fe;
             --surface:#ffffff;
@@ -363,8 +285,8 @@
             --shadow-sm:0 1px 2px rgba(0,0,0,.04);
             --shadow-md:0 4px 12px rgba(0,0,0,.07), 0 1px 3px rgba(0,0,0,.05);
             --shadow-lg:0 10px 25px rgba(0,0,0,.08), 0 4px 10px rgba(0,0,0,.04);
-            --radius:8px;
-            --radius-xl:16px;
+            --radius:var(--ui-radius-control, 8px);
+            --radius-xl:var(--ui-radius-sheet, 21px);
         }
         /* Was `background:#f1f5f9 !important` — Tailwind slate-100, a cold blue
            grey that outranked every tenant theme. The CMS looked identical for
@@ -383,19 +305,27 @@
             color:var(--ink);
             transition:border-color .15s ease, box-shadow .15s ease;
         }
+        input:not([type="checkbox"]):not([type="radio"]), select { min-height:var(--ui-touch-target, 44px); }
         input:focus, textarea:focus, select:focus {
             border-color:var(--tenant-primary) !important;
             box-shadow:0 0 0 3px var(--tenant-primary-soft) !important;
         }
         button, a, [role="button"] {
             border-radius:var(--radius) !important;
-            transition:transform .15s ease, box-shadow .15s ease, background-color .15s ease;
+            transition:transform var(--ui-duration-exit, 144ms) ease, box-shadow var(--ui-duration-exit, 144ms) ease, background-color var(--ui-duration-exit, 144ms) ease;
         }
-        button, [role="button"] { min-height:44px; }
-        button:hover, a:hover, [role="button"]:hover { transform:translateY(-1px); box-shadow:var(--shadow-sm); }
+        button, [role="button"], a[class*="rounded"] { min-height:var(--ui-touch-target, 44px); }
+        button[aria-label], [role="button"][aria-label], a[aria-label] { min-width:var(--ui-touch-target, 44px); }
+        @media (hover:hover) {
+            button:hover, a:hover, [role="button"]:hover { transform:translateY(-1px); box-shadow:var(--shadow-sm); }
+            nav a:hover, table a:hover, .hover-row:hover, .hover-row a:hover { transform:none; }
+        }
+        button:active, a[class*="rounded"]:active, [role="button"]:active { transform:scale(.985); }
         button:disabled { opacity:.55; cursor:not-allowed; transform:none; box-shadow:none; }
+        [class*="bg-black/40"], [class*="bg-black/50"], [class*="bg-black/60"], [class*="bg-black/70"] {
+            background-color:var(--scrim, var(--ui-scrim, rgba(15,23,42,.60))) !important;
+        }
         .toast { box-shadow:var(--shadow-lg) !important; border-radius:var(--radius-xl) !important; }
-        .pin-input { border-radius:var(--radius) !important; }
         /* A themed surface has to carry its own foreground. `text-white` is not
            a token: once --tenant-primary followed a dark theme's bright accent,
            a white label on it measured 2.08:1 (studio-ink dark). --on-accent is
@@ -645,19 +575,12 @@
         [class*="active:bg-indigo-1"]:active, [class*="active:bg-indigo-5"]:active { background-color:color-mix(in srgb, var(--accent) 18%, var(--panel)) !important; }
         [class*="active:bg-indigo-8"]:active, [class*="active:bg-indigo-7"]:active { background-color:color-mix(in srgb, var(--ink) 78%, var(--bg)) !important; }
 
-        /* ── 4. the OS dark block and the tenant theme were both in charge ──
-           The `@media (prefers-color-scheme: dark)` system further up is
-           older than the role map, and the role map outranks almost all of it
-           by source order. Almost: html/body, the row hover and the input
-           placeholder had no later counterpart, so under OS dark + a LIGHT
-           tenant theme those three stayed dark while every other surface and
-           all text followed the light theme — --ink body copy on the pinned
-           #0e1016 page measures 1.16:1.
-           Rather than merge the two systems (plan item #29, which needs the
-           whole Tailwind dark table re-derived), scope the outcome: once
-           /brand has answered, data-brand-scheme is on <html> and the tenant
-           theme owns these three. Before it answers the OS block still
-           prevents a white flash, which is the case it was written for. */
+        /* ── 4. the two dark systems are now one token pipeline ──
+           OS preference only supplies the pre-brand fallback. Once /brand has
+           answered, data-brand-scheme and the tenant role map own the page,
+           row hover and placeholder together. This keeps a light tenant theme
+           light even when the device prefers dark, and removes the former
+           utility-by-utility dark table. */
         html[data-brand-scheme], html[data-brand-scheme] body { background:var(--bg) !important; }
         html[data-brand-scheme] .hover-row:hover { background:color-mix(in srgb, var(--line) 38.2%, var(--panel)) !important; }
         html[data-brand-scheme] input::placeholder,

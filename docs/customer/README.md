@@ -1,10 +1,10 @@
-# PWE Studio v8.1.0 — Customer Delivery Index
+# PWE Studio v8.1.1 — Customer Delivery Index
 
 Status: customer-readable draft for commercial and legal review
 Deployment stage: production on AWS Lightsail (`ap-southeast-2`) at `https://pwestudio.online`, live since 30 July 2026; PostgreSQL and media on the same instance
 Production operations status: daily backups and a rehearsed restore are in place; an off-instance backup copy, uptime monitoring, backup-failure alerting, on-call ownership, a contractual SLA and privileged-account MFA are not
 
-This folder is the customer-facing source of truth for the v8.1.0 commercial conversation.
+This folder is the customer-facing source of truth for the v8.1.1 commercial conversation. The dated v8.1.0 release evidence remains the last historical release record until the v8.1.1 acceptance record is signed off.
 
 ## Read first
 
@@ -33,7 +33,7 @@ PWE Studio currently provides:
 - privacy-safe weekly schedule export as an ICS calendar file;
 - device-native Mail and Messages handoff for support and family communication.
 
-The following are explicitly not represented as delivered in v8.1.0:
+The following are explicitly not represented as delivered in v8.1.1:
 
 - a contractual production SLA, uptime monitoring, backup-failure alerting or on-call ownership (AWS production hosting itself went live on 30 July 2026, with daily database and media backups and a passing restore rehearsal, but the backup copies are still on the same instance);
 - online payment processing or accounting automation;
@@ -45,4 +45,4 @@ The following are explicitly not represented as delivered in v8.1.0:
 
 ## Document status
 
-The service agreement is a commercial working draft, not legal advice. It must be reviewed by an Australian lawyer and completed with the parties’ legal names, ABNs, pricing schedule, GST treatment and insurance details before signature.
+The internal legal/product consistency review was completed on 1 August 2026 and is recorded in [Legal Review](Legal_Review_2026-08-01.md). It is not external legal advice. The service agreement remains a commercial working draft and must be completed and reviewed by an Australian lawyer before signature.

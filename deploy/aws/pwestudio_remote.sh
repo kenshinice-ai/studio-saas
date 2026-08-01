@@ -114,7 +114,12 @@ case "$cmd" in
     say "Backing up before touching anything"
     ctl backup >/dev/null
     previous="$(remote "readlink -f $CURRENT")"
+    previous_version="$(remote "sudo sed -n 's/^STUDIOSAAS_VERSION=//p' /opt/pwestudio/shared/production.env | tail -1")"
+    [ -n "$previous_version" ] || die "production.env carries no current STUDIOSAAS_VERSION — refusing an unrollbackable deploy"
+    [[ "$previous_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z]+)*$ ]] \
+      || die "production.env carries an unsafe STUDIOSAAS_VERSION: $previous_version"
     echo "  current release: $previous"
+    echo "  current version: $previous_version"
 
     say "Uploading $base"
     scp -q "$tarball" "$SSH_HOST:/opt/pwestudio/shared/incoming/$base"
@@ -127,6 +132,8 @@ case "$cmd" in
     # a usable rollback point because every release overwrites the same one.
     version="$(tar xzOf "$tarball" "$name/BUILD_INFO" | sed -n 's/^version=//p')"
     [ -n "$version" ] || die "BUILD_INFO carries no version"
+    [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z]+)*$ ]] \
+      || die "BUILD_INFO version is not a safe release identifier: $version"
     say "Pinning STUDIOSAAS_VERSION=$version in the shared environment"
     remote "set -e
       sudo sed -i 's/^STUDIOSAAS_VERSION=.*/STUDIOSAAS_VERSION=$version/' /opt/pwestudio/shared/production.env
@@ -145,25 +152,46 @@ case "$cmd" in
       readlink -f $CURRENT"
 
     say "Rebuilding and starting"
+    deployed=false
     if remote "cd $CURRENT && bash deploy/aws/lightsail_ctl.sh up"; then
       sleep 12
       if remote "curl -fsS 'http://127.0.0.1:8899/v1/health?deep=1'"; then
         echo
         say "Deep health passed — verifying from the public edge"
-        curl -fsS --max-time 25 "$PUBLIC_URL/v1/health?deep=1" && echo
-        say "Deployed: $name"
-        exit 0
+        if curl -fsS --max-time 25 "$PUBLIC_URL/v1/health?deep=1"; then
+          echo
+          deployed=true
+        fi
       fi
     fi
+    if $deployed; then
+      say "Deployed: $name"
+      exit 0
+    fi
 
-    say "Deep health FAILED — rolling back to $previous"
-    remote "set -e
+    say "Deployment verification FAILED — rolling back to $previous (version $previous_version)"
+    if ! remote "set -e
       ln -sfn '$previous' $CURRENT
-      cd $CURRENT && bash deploy/aws/lightsail_ctl.sh up" || true
+      if grep -q '^STUDIOSAAS_VERSION=' /opt/pwestudio/shared/production.env; then
+        sudo sed -i 's/^STUDIOSAAS_VERSION=.*/STUDIOSAAS_VERSION=$previous_version/' /opt/pwestudio/shared/production.env
+      else
+        echo 'STUDIOSAAS_VERSION=$previous_version' | sudo tee -a /opt/pwestudio/shared/production.env >/dev/null
+      fi
+      grep -q '^STUDIOSAAS_VERSION=$previous_version\$' /opt/pwestudio/shared/production.env
+      cd $CURRENT && bash deploy/aws/lightsail_ctl.sh up"
+    then
+      die "ROLLBACK START FAILED. Check: ssh $SSH_HOST 'cd $CURRENT && bash deploy/aws/lightsail_ctl.sh logs'"
+    fi
     sleep 12
-    remote "curl -fsS 'http://127.0.0.1:8899/v1/health?deep=1'" \
-      && { echo; die "rolled back to $previous, which is healthy. Investigate $name before retrying."; } \
-      || die "ROLLBACK ALSO UNHEALTHY. Check: ssh $SSH_HOST 'cd $CURRENT && bash deploy/aws/lightsail_ctl.sh logs'"
+    if ! remote "curl -fsS 'http://127.0.0.1:8899/v1/health?deep=1'"; then
+      die "ROLLBACK INTERNAL HEALTH FAILED. Check: ssh $SSH_HOST 'cd $CURRENT && bash deploy/aws/lightsail_ctl.sh logs'"
+    fi
+    echo
+    if ! curl -fsS --max-time 25 "$PUBLIC_URL/v1/health?deep=1"; then
+      die "ROLLBACK PUBLIC EDGE HEALTH FAILED. Internal health passed; check nginx, DNS and TLS immediately."
+    fi
+    echo
+    die "rolled back to $previous (version $previous_version), healthy internally and publicly. Investigate $name before retrying."
     ;;
 
   ssh)

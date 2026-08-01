@@ -1,6 +1,6 @@
 # PWE Studio
 
-Current release: **v8.1.0**
+Current release candidate: **v8.1.1** (production remains v8.1.0 until the release gate and deploy complete)
 
 PWE Studio (repo: studiosaas) is a Creative Studio Operating System for art schools, music studios, tutoring centres, creative academies, kids' activity providers, and small education businesses. One codebase supports a multi-tenant SaaS delivery model and a customer-owned standalone Edition.
 
@@ -96,6 +96,11 @@ theme-mode one and 128 `text-gray-400`-class secondary labels still fall short
 of AA — items 29, 7 and 8 of
 `docs/design/UI_UX_Upgrade_Plan_2026-07-30.md`. Neither touches a
 parent-facing or student-facing surface.
+
+Those CMS-internal items are historical v8.1.0 limitations. The v8.1.1
+candidate resolves the second dark owner and maps weak/semantic utility classes
+through the tenant's generated tokens; the source class names remain only as
+implementation selectors.
 
 ---
 
@@ -372,7 +377,8 @@ After changing anything under `tenant-template/`:
 
 ### 4.11 v7.3.2 UI/UX, copy and logic pass
 
-Addresses `docs/UX_Review_2026-07-25.md` across all four surfaces.
+Addresses the historical July UI/UX review, now consolidated into
+`docs/design/UI_UX_Upgrade_Plan_2026-07-30.md`, across all four surfaces.
 
 - **Security** — the portal's language switch renders with `textContent`, not
   `innerHTML`. Tenant-authored hero/FAQ copy from `/brand` can no longer execute

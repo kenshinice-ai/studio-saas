@@ -30,7 +30,7 @@
   --brand-space-xl: var(--ui-space-6, 55px);
   --brand-radius-control: 10px;
   --brand-radius-card: 18px;
-  --brand-control-height: 46px;
+  --brand-control-height: var(--ui-control-height, 46px);
   --brand-focus-ring: 0 0 0 3px color-mix(in srgb, var(--brand-accent) 24%, transparent);
   --brand-shadow-card: 0 18px 46px rgba(55, 44, 34, .09);
 }

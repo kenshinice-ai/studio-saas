@@ -217,15 +217,8 @@ def test_the_three_surfaces_agree_field_for_field() -> None:
 def test_cms_base_background_follows_the_tenant_theme() -> None:
     """The always-on CMS background must be the tenant's, not a fixed grey.
 
-    Scope note: this covers the base rule only. A second, separate dark system
-    still lives in the `@media (prefers-color-scheme: dark)` block further down
-    the same file, and it does use `!important`. Merging the two dark systems is
-    plan item #29 in docs/design/UI_UX_Upgrade_Plan_2026-07-30.md and is not
-    attempted here — a partial merge would leave Tailwind surfaces dark while
-    the page background followed a light tenant theme, which is worse than
-    either system alone. The test is written to fail if the BASE rule regresses,
-    and deliberately not to assert anything about the media block, so it does
-    not quietly start passing when #29 lands.
+    The OS preference is now only a pre-brand token fallback. Once /brand has
+    answered, the tenant role map owns the page in either colour scheme.
     """
 
     cms = _read(REPOSITORY_ROOT / "legacy-root" / "index.html")
@@ -247,20 +240,16 @@ def test_cms_base_background_follows_the_tenant_theme() -> None:
     assert "var(--bg" in base
 
 
-def test_the_second_cms_dark_system_is_still_recorded_as_open() -> None:
-    """Keep the known gap visible instead of letting it fade into the file.
-
-    If someone removes the OS dark block, or finishes #29, this fails and forces
-    the plan and the handoff to be updated rather than drifting out of date.
-    """
+def test_cms_dark_mode_has_one_token_owner() -> None:
+    """OS dark mode may seed tokens but must not repaint Tailwind utilities."""
 
     cms = _read(REPOSITORY_ROOT / "legacy-root" / "index.html")
     assert "@media (prefers-color-scheme: dark)" in cms
-    assert "background:#0e1016 !important" in cms, (
-        "the OS dark-mode block changed. Plan item #29 (merge the two CMS dark "
-        "systems) may now be done or partly done — update the plan, the handoff "
-        "and this test together."
-    )
+    assert 'html:not([data-brand-scheme]) {' in cms
+    assert 'html[data-brand-scheme="dark"] { color-scheme:dark; }' in cms
+    assert 'html[data-brand-scheme="light"] { color-scheme:light; }' in cms
+    assert ".bg-white { background:#1a1d27 !important; }" not in cms
+    assert "background:#0e1016 !important" not in cms
 
 
 # ── CMS Tailwind shade coverage ──────────────────────────────────────────────

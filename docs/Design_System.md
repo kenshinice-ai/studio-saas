@@ -1,7 +1,7 @@
 # Design System
 
 > **StudioSaaS Brand & UI Reference**
-> Last updated: 2026-07-29 · Brand family integration: v8.0.1
+> Last updated: 2026-08-01 · Unified UI contract: v8.1.1
 
 The visual system is generated, not hand-picked: every colour token is solved
 for a measured WCAG contrast target by `docs/design/palette_gen.py`, and the
@@ -33,7 +33,7 @@ identity. The PWE family layer governs platform chrome and fallbacks.
 
 ### Golden-ratio hierarchy
 
-The Feather Star uses the golden-ratio sequence `136 : 84 : 52`; v8.0.1
+The Feather Star uses the golden-ratio sequence `136 : 84 : 52`; v8.1.1
 extends that geometry into layout hierarchy through semantic tokens in
 `ui-tokens.css`:
 
@@ -44,11 +44,18 @@ extends that geometry into layout hierarchy through semantic tokens in
 | Type | `13, 16, 21, 34, 55px` | Restrained modular hierarchy |
 | Motion | `144ms / 233ms` | Faster exits, calm entrances |
 | Measure | `55ch` | Readable body-copy width |
+| Controls | `44px` target, `46px` field, `8px` gap | One touch contract across CMS, Portal and Register |
+| Shape | `8, 13, 21px` | Control, card and sheet radii from the same ladder |
 
 Use the ratio only when one region is genuinely primary. Tables, repeated KPI
 cards, mobile forms and peer controls stay equal-width when equal importance
 is the clearer interaction model. Below 900–1024px, golden splits collapse to
 one column; accessibility and content fit take priority over geometry.
+
+Golden ratio is the core hierarchy rule, not decoration. A primary/secondary
+decision surface may use `61.8 / 38.2`; peer fields, equal actions and data
+columns must not. Spacing, type, motion and sheet geometry should take the
+nearest value from the shared Fibonacci ladder before introducing a new value.
 
 Eight visual themes, each shipping a matched **light and dark** variant —
 except `arcade-lime`, which is dark-only (a neon-lime accent cannot reach
@@ -115,7 +122,8 @@ Load order for public pages: `ui-tokens.css` → `portal-theme.css` →
   `brand-system.css` uses `--brand-accent` plus the `--brand-focus-ring`
   box-shadow). Each theme carries its own solved `focus_ring_color`.
 - **Touch targets:** minimum 44px (`--tap-min: 44px`; CMS controls use
-  `min-h-[44px]`).
+  `--ui-touch-target: 44px`). Adjacent touch controls keep at least the shared
+  `--ui-touch-gap: 8px` where layout permits.
 - **Reduced motion:** both stylesheets honour
   `@media (prefers-reduced-motion: reduce)` — portal durations collapse to
   0ms; brand-system disables animations/transitions/smooth-scroll globally.
@@ -124,6 +132,15 @@ Load order for public pages: `ui-tokens.css` → `portal-theme.css` →
 - Form labels, modal focus trap/restore, ARIA tab keyboard contract,
   keyboard-reachable lightbox, and per-field error reporting are release
   checks — see `docs/QA_Checklist.md`.
+
+### CMS theme ownership
+
+The CMS has one theme owner. Before `/brand` resolves, the operating-system
+preference supplies a neutral token fallback. After it resolves,
+`data-brand-scheme` plus the tenant's 21 semantic tokens own every surface;
+there is no second Tailwind-specific dark palette. Structural, status and
+informational Tailwind classes remain implementation selectors only and are
+resolved by role to theme tokens in `legacy-root/index.html`.
 
 ## 5. Commands
 

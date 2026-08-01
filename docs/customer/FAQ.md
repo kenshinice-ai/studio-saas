@@ -56,4 +56,8 @@ Not yet. Password hashing, role separation and session controls are implemented,
 
 ## How do we get support?
 
-Use the Support & Feedback area on the PWE Studio product homepage. During the current stage, it opens your device’s Mail or Messages application. Do not include passwords, payment details or sensitive student data in the message.
+Read the public [Support Policy](/customer-resources/Support_Policy.html), then use the Support & Feedback area on the PWE Studio product homepage. It opens your device’s Mail or Messages application; you review and send. Do not include passwords, payment details or sensitive student data in the first message.
+
+## What is in an ICS calendar export?
+
+The weekly schedule contains recurring class details and location but no student or guardian identities. The separate daily roster is an operational attendance file and may contain student names; only staff with data-export permission can download it, a privacy warning is shown first, and guardian names are never included.

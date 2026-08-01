@@ -24,6 +24,10 @@
   --ui-type-xl: 55px;
   --ui-duration-exit: 144ms;
   --ui-duration-enter: 233ms;
+  --ui-touch-target: 44px;
+  --ui-control-height: 46px;
+  --ui-touch-gap: 8px;
+  --ui-scrim: rgba(15, 23, 42, .60);
   --pwe-family-navy: #0e1729;
   --pwe-family-navy-raised: #16233d;
   --pwe-family-amber: #f5b335;
@@ -41,6 +45,7 @@
   --ui-success: #16a34a;
   --ui-radius-control: 8px;
   --ui-radius-card: 13px;
+  --ui-radius-sheet: 21px;
   --ui-focus: 0 0 0 3px rgba(37, 99, 235, 0.28);
 }
 

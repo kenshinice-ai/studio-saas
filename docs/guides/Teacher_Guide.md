@@ -113,7 +113,7 @@ Manager / Owner 权限。**
 | 报名审批（待审核） | ❌ | 需要 registrations:write |
 | 经营统计 / 财务报表 | ❌ | 需要 analytics:read |
 | 操作日志查看 | ✅ | 导出 CSV 仅 Owner/Manager |
-| 系统设置：改自己的密码、PIN | ✅ | — |
+| 系统设置：改自己的密码、退出登录 | ✅ | — |
 | 团队管理 / 套餐管理 | ❌ | 仅 Owner（/Manager 可见部分） |
 
 ---

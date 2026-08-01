@@ -252,6 +252,17 @@
   .fld select{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' fill='none' stroke='%238B8477' stroke-width='1.5'/></svg>");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;cursor:pointer}
   .fld-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
   @media(max-width:520px){.fld-row{grid-template-columns:1fr}}
+  .form-step{margin:0 0 var(--space-phi-md);color:var(--muted);font-size:13px;line-height:1.6}
+  .form-step strong{display:block;color:var(--ink);font-size:16px;font-weight:500}
+  .progressive{margin:var(--space-phi-md) 0;border:1px solid var(--line);border-radius:var(--radius);background:var(--bg2);overflow:hidden}
+  .progressive summary{display:flex;align-items:center;min-height:var(--tap-min);padding:var(--space-phi-sm) var(--space-phi-md);color:var(--ink);cursor:pointer;font-weight:500;list-style:none}
+  .progressive summary::-webkit-details-marker{display:none}
+  .progressive summary::after{content:'＋';margin-left:auto;color:var(--clay)}
+  .progressive[open] summary::after{content:'−'}
+  .progressive-body{padding:var(--space-phi-md);border-top:1px solid var(--line);background:var(--panel)}
+  .consent-touch{display:flex;gap:var(--space-phi-sm);align-items:flex-start;min-height:var(--tap-min);padding:4px 0;cursor:pointer}
+  .consent-touch input{margin-top:2px!important;width:20px!important;height:20px!important;flex-shrink:0}
+  .join-submit{margin-top:var(--space-phi-md)}
   .fld input:focus,.fld textarea:focus,.fld select:focus{border-color:var(--clay)}
   .fld input:disabled,.fld textarea:disabled,.fld select:disabled{background:var(--disabled-surface);color:var(--disabled-text);cursor:not-allowed}
   .form-note{font-size:12px;color:var(--ink2);margin-top:8px}
@@ -309,6 +320,10 @@
     .g-grid{grid-template-columns:1fr 1fr}
     section{padding:var(--space-phi-xl) 0}.form-card{padding:28px}
     .totop{right:16px;bottom:16px;width:42px;height:42px}
+  }
+  @media(max-width:520px){
+    .form-card{padding:var(--space-phi-md)}
+    .join-submit{position:sticky;bottom:0;z-index:5;margin-inline:calc(var(--space-phi-md) * -1);padding:var(--space-phi-sm) var(--space-phi-md) calc(var(--space-phi-sm) + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);background:color-mix(in srgb,var(--panel) 94%,transparent);backdrop-filter:blur(12px)}
   }
 </style>
 </head>
@@ -496,45 +511,52 @@
            P3-8: family name comes first under zh, and every placeholder follows
            the interface language instead of being hard-coded English/AU. -->
       <form class="form-card reveal" id="joinForm" novalidate>
+        <p class="form-step"><strong data-en="Start with the essentials">先填写必要信息</strong><span data-en="A name and mobile number are enough for the studio to get started.">姓名和手机号足够让工作室开始为你安排。</span></p>
         <div class="fld-row" id="j-name-row">
           <div class="fld"><label for="j-last" data-en="Family name">姓 <span class="opt" data-en="optional">选填</span></label><input id="j-last" name="lastName" autocomplete="family-name" data-ph-zh="如：张" data-ph-en="Last name"></div>
           <div class="fld"><label for="j-name" data-en="Given name *">名字 *</label><input id="j-name" name="firstName" autocomplete="given-name" required aria-required="true" data-ph-zh="如：小雨" data-ph-en="First name"><span class="fld-err" data-en="Please enter a given name.">请填写名字</span></div>
         </div>
         <div class="fld"><label for="j-phone" data-en="Mobile *">手机号 *</label><input id="j-phone" name="mobile" type="tel" inputmode="tel" autocomplete="tel" required aria-required="true" data-ph-zh="用于课程联系" data-ph-en="04xx xxx xxx"><span class="fld-err" data-en="Please enter a mobile number.">请填写手机号</span></div>
-        <div class="fld"><label for="j-email" data-en="Email">邮箱 <span class="opt" data-en="optional">选填</span></label><input id="j-email" name="email" type="email" inputmode="email" autocomplete="email" data-ph-zh="用于发送课程确认" data-ph-en="you@example.com"></div>
-        <div class="fld"><label for="j-audience" data-en="Who is this for?">报名对象</label>
-          <select id="j-audience">
-            <option value="" data-en="Please choose">请选择…</option>
-            <option value="我自己（成人）" data-en="Myself (adult)">我自己（成人）</option>
-            <option value="孩子" data-en="My child">孩子</option>
-            <option value="青少年" data-en="Teenager">青少年</option>
-            <option value="家庭/多人" data-en="Family / group">家庭 · 多人</option>
-          </select>
-        </div>
-        <div id="joinCustomFields"></div>
-        <div class="fld"><label for="j-msg" data-en="Message">留言 <span class="opt" data-en="optional">选填</span></label><textarea id="j-msg" rows="2" data-ph-zh="想了解的内容" data-ph-en="A few words"></textarea></div>
+        <div id="joinRequiredCustomFields"></div>
+        <details class="progressive" id="joinOptionalDetails">
+          <summary data-en="Add more details (optional)">补充信息（选填）</summary>
+          <div class="progressive-body">
+            <div class="fld"><label for="j-email" data-en="Email">邮箱 <span class="opt" data-en="optional">选填</span></label><input id="j-email" name="email" type="email" inputmode="email" autocomplete="email" data-ph-zh="用于发送课程确认" data-ph-en="you@example.com"></div>
+            <div class="fld"><label for="j-audience" data-en="Who is this for?">报名对象</label>
+              <select id="j-audience">
+                <option value="" data-en="Please choose">请选择…</option>
+                <option value="我自己（成人）" data-en="Myself (adult)">我自己（成人）</option>
+                <option value="孩子" data-en="My child">孩子</option>
+                <option value="青少年" data-en="Teenager">青少年</option>
+                <option value="家庭/多人" data-en="Family / group">家庭 · 多人</option>
+              </select>
+            </div>
+            <div id="joinOptionalCustomFields"></div>
+            <div class="fld"><label for="j-msg" data-en="Message">留言 <span class="opt" data-en="optional">选填</span></label><textarea id="j-msg" rows="2" data-ph-zh="想了解的内容" data-ph-en="A few words"></textarea></div>
+            <label class="consent-touch" style="margin:12px 0 6px">
+              <input type="checkbox" id="j-publication-consent" onchange="toggleJoinPublicationConsent(this.checked)">
+              <span class="form-note" style="margin:0" data-en="The %VENUE% may show this student's %WORK% on its website or in promotional material. You can withdraw this at any time.">我同意%VENUE%在官网或招生材料中展示学员%WORK%；此授权可随时联系%VENUE%撤回。</span>
+            </label>
+            <div id="j-publication-details" style="display:none;margin-top:12px">
+              <div class="fld-row">
+                <div class="fld"><label for="j-publication-by" data-en="Consenting person *">授权人姓名 *</label><input id="j-publication-by" maxlength="120" autocomplete="name"><span class="fld-err" data-en="Please provide the consenting person.">请填写授权人姓名</span></div>
+                <div class="fld"><label for="j-publication-relationship" data-en="Relationship *">与学员关系 *</label><select id="j-publication-relationship"><option value="" data-en="Please choose">请选择…</option><option value="self" data-en="Self">本人</option><option value="parent" data-en="Parent / guardian">家长 / 监护人</option><option value="other_guardian" data-en="Other authorised guardian">其他授权监护人</option></select><span class="fld-err" data-en="Please choose a relationship.">请选择与学员的关系</span></div>
+              </div>
+            </div>
+          </div>
+        </details>
         <!-- 蜜罐字段 — 真人看不到，机器人会填；服务端据此静默丢弃 -->
         <div style="position:absolute;left:-9999px;top:-9999px" aria-hidden="true"><input id="j-web" type="text" name="website" tabindex="-1" autocomplete="off"></div>
         <div class="fld" id="j-consent-field" style="margin-bottom:6px">
-          <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;text-transform:none;letter-spacing:normal">
-            <input type="checkbox" id="j-consent" style="margin-top:4px;width:16px;height:16px;flex-shrink:0">
+          <label class="consent-touch" style="text-transform:none;letter-spacing:normal">
+            <input type="checkbox" id="j-consent">
             <span class="form-note" style="margin:0" data-en="I agree these details are used only to contact us about classes and keep the student's records.">我同意信息仅用于教学联系与管理。</span>
           </label>
           <p class="form-note" style="margin-left:26px"><a href="#privacy" data-analytics-label="join_privacy_link" data-en="Read the privacy note →">阅读隐私说明 →</a></p>
           <span class="fld-err" style="margin-left:26px" data-en="Please agree to the privacy note.">请勾选同意隐私说明</span>
         </div>
-        <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;margin:12px 0 6px">
-          <input type="checkbox" id="j-publication-consent" onchange="toggleJoinPublicationConsent(this.checked)" style="margin-top:4px;width:16px;height:16px;flex-shrink:0">
-          <span class="form-note" style="margin:0" data-en="Optional: the %VENUE% may show this student's %WORK% on its website or in promotional material. You can withdraw this at any time.">选填：我同意%VENUE%在官网或招生材料中展示学员%WORK%；此授权可随时联系%VENUE%撤回。</span>
-        </label>
-        <div id="j-publication-details" style="display:none;margin-top:12px">
-          <div class="fld-row">
-            <div class="fld"><label for="j-publication-by" data-en="Consenting person *">授权人姓名 *</label><input id="j-publication-by" maxlength="120" autocomplete="name"><span class="fld-err" data-en="Please provide the consenting person.">请填写授权人姓名</span></div>
-            <div class="fld"><label for="j-publication-relationship" data-en="Relationship *">与学员关系 *</label><select id="j-publication-relationship"><option value="" data-en="Please choose">请选择…</option><option value="self" data-en="Self">本人</option><option value="parent" data-en="Parent / guardian">家长 / 监护人</option><option value="other_guardian" data-en="Other authorised guardian">其他授权监护人</option></select><span class="fld-err" data-en="Please choose a relationship.">请选择与学员的关系</span></div>
-          </div>
-        </div>
         <p id="j-err" role="alert" aria-live="assertive" style="display:none;color:var(--danger);font-size:13px;margin:6px 0"></p>
-        <button class="btn btn-fill" id="j-btn" type="submit" style="width:100%;justify-content:center;margin-top:12px" data-en="Submit booking">提交预约</button>
+        <div class="join-submit"><button class="btn btn-fill" id="j-btn" type="submit" style="width:100%;justify-content:center" data-en="Submit booking">提交预约</button></div>
       </form>
       <div class="result-card" id="join-done" role="status" aria-live="polite" tabindex="-1">
         <p class="big" aria-hidden="true">✓</p>
@@ -864,7 +886,8 @@
   function renderRegistrationFields(profile){
     currentRegistrationProfile = profile || currentRegistrationProfile;
     window.StudioSaaSPublicRegister.renderFields(currentRegistrationProfile, {
-      container: 'joinCustomFields',
+      requiredContainer: 'joinRequiredCustomFields',
+      optionalContainer: 'joinOptionalCustomFields',
       labelClass: 'fld',
       errorClass: 'fld-err',
       fallbackTitle: T('报名信息','Registration details'),
@@ -1354,7 +1377,7 @@
     var publicationChecked=el('j-publication-consent').checked;
     /* P2-8: missing required custom fields go through the same failFirst
        path as the built-in ones, in DOM order. */
-    var custom=window.StudioSaaSPublicRegister.collectFields({container:'joinCustomFields', labelSelector:'.fld'});
+    var custom=window.StudioSaaSPublicRegister.collectFields({containers:['joinRequiredCustomFields','joinOptionalCustomFields'], labelSelector:'.fld'});
     var checks=[
       {el:el('j-name'),    ok:function(){ return !!v('j-name'); }},
       {el:el('j-phone'),   ok:function(){ return !!v('j-phone'); }}

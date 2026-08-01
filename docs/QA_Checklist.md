@@ -1,7 +1,7 @@
 # QA Checklist
 
 > **StudioSaaS Quality Assurance Reference**
-> Last updated: 2026-07-29
+> Last updated: 2026-08-01
 
 ---
 
@@ -62,6 +62,10 @@
 - [ ] Portal and Quick Registration submissions show their source and language in the CMS queue
 - [ ] CMS can mark a lead contacted, trial booked, or waiting and store a next follow-up date
 - [ ] Conversion is blocked clearly when the plan student limit has been reached
+- [ ] Weekly schedule ICS preview/download use the same revision and contain no student/guardian identity
+- [ ] Daily roster ICS preview/download use the same revision, require `data:export`, warn that the file is private and never contain guardian names
+- [ ] A stale ICS revision returns 409, refreshes the preview and requires confirmation again
+- [ ] Local browser PIN storage is absent; logout invalidates the server session
 
 ### 4. Public Surfaces
 
@@ -87,7 +91,8 @@
 
 - [ ] No hardcoded API keys or credentials in source
 - [ ] Local shared demo-password use is disclosed and confined to Pilot; AWS
-      production uses unique privileged credentials, MFA and managed secrets
+      production uses unique privileged credentials. Privileged MFA remains an
+      explicitly disclosed open gate and must not be represented as complete.
 - [ ] `.env`, `backend/.api_secret`, `backend/.cms_password` excluded from version control
 - [ ] File uploads validated (type, size, extension, magic bytes)
 - [ ] SQL injection prevention: parameterized queries only
@@ -126,6 +131,9 @@ Role-boundary checks (v7.4.0):
 - [ ] Lightbox/gallery viewers are fully keyboard reachable (open, navigate, close)
 - [ ] Validation errors are reported per field, not only as a global summary
 - [ ] `prefers-reduced-motion` disables animations/transitions (v7.5.0)
+- [ ] Every CMS/Register interactive target is at least 44×44px; adjacent controls keep an 8px gap where layout permits
+- [ ] Registration keeps required fields visible and optional/message/publication fields progressively disclosed
+- [ ] CMS confirmation, calendar, search, settings, profile and portfolio dialogs trap and restore focus
 
 ### 7. Performance
 
@@ -180,7 +188,7 @@ must not be reintroduced for that hostname:
 - [x] Cloudflare deep health returns `appVersion=8.0.1` — **retired as an acceptance item.** Cloudflare Tunnel left the production path on 2026-07-30; public acceptance is now the AWS deep health above (see §8.5)
 - [x] Responsive browser checks cover 375px Register, 812×375 landscape, 768px Studio Admin redirect/CMS, 1024px Portal and 1440px Super Admin with no horizontal overflow or browser-request 5xx
 
-### 8.3 v8.0.1 Golden-Ratio UX Acceptance
+### 8.3 v8.1.1 Golden-Ratio UX Acceptance
 
 - [x] Shared tokens expose 61.8/38.2 tracks, Fibonacci spacing, 55ch measure and 144/233ms motion
 - [x] Portal and Quick Registration collapse their golden split to one column on mobile
@@ -188,6 +196,8 @@ must not be reintroduced for that hostname:
 - [x] CMS Today Command Centre and KPI rail use the golden split only at 1024px and above
 - [x] Dense tables and equal-importance controls remain equal-width
 - [x] Reduced motion, focus rings and text contrast remain enforced; browser-measured Register, CMS and Super Admin controls meet the 44px touch contract
+- [x] Shared UI contract includes 44px targets, 46px controls, 8px touch gaps and 8/13/21px radii without introducing a competing spacing system
+- [x] CMS uses one token-driven theme owner after `/brand`; OS dark preference is pre-brand fallback only
 
 ### 8.4 v8.0.1 Professional Demonstration Acceptance
 

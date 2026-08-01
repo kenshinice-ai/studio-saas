@@ -123,6 +123,20 @@ Prefer a forward fix when the migrated database is healthy. Reverting code
 while retaining compatible additive migrations is safer than restoring an old
 database and losing new transactions.
 
+For the current Lightsail release controller, code rollback is automatic when
+either internal deep health or public HTTPS deep health fails. Before changing
+the `current` symlink or production environment, the controller must capture a
+safe previous version. Rollback is successful only when all four checks pass:
+
+1. `current` points back to the prior release directory;
+2. `STUDIOSAAS_VERSION` is restored to the prior value;
+3. the prior application passes internal deep health; and
+4. the public HTTPS endpoint passes deep health with that prior version.
+
+An application restart failure or either failed health check is an explicit
+failed rollback, never a warning to ignore. The controller must leave the
+maintenance response in place and return non-zero for operator intervention.
+
 Use database restore only for confirmed corruption or an incompatible failed
 migration:
 
@@ -155,3 +169,9 @@ passwords, access codes, raw session values, student identifiers, or contact
 details in release notes. When releasing the containerized form, the
 reproducible bundle (with checksum and build info) is produced by
 `deploy/aws/build_aws_bundle.sh`.
+
+For Lightsail, also record the release directory, previous version, image tag,
+internal and public health payloads, rollback-controller result and the host's
+daily backup-cron entry. Off-instance copying remains a separately tracked
+operation until implemented; same-instance cron output must not be described
+as disaster recovery.

@@ -45,19 +45,29 @@
   function renderFields(profile, options) {
     var opts = options || {};
     var container = typeof opts.container === 'string' ? document.getElementById(opts.container) : opts.container;
-    if (!container) return normalizeProfile(profile, opts.fallbackTitle, opts.language);
+    var requiredContainer = typeof opts.requiredContainer === 'string'
+      ? document.getElementById(opts.requiredContainer) : opts.requiredContainer;
+    var optionalContainer = typeof opts.optionalContainer === 'string'
+      ? document.getElementById(opts.optionalContainer) : opts.optionalContainer;
+    if (!container && !requiredContainer && !optionalContainer) {
+      return normalizeProfile(profile, opts.fallbackTitle, opts.language);
+    }
     var normalized = normalizeProfile(profile, opts.fallbackTitle, opts.language);
     /* Switching language re-renders these inputs. Without this, a visitor who
      * hit EN halfway through lost everything they had typed into the custom
      * fields, because renderFields() wipes the container. */
     var previous = {};
     if (opts.preserveValues) {
-      Array.prototype.forEach.call(container.querySelectorAll('[data-profile-key]'), function (input) {
-        if (input.value) previous[input.dataset.profileKey] = input.value;
+      [container, requiredContainer, optionalContainer].filter(Boolean).forEach(function (mount) {
+        Array.prototype.forEach.call(mount.querySelectorAll('[data-profile-key]'), function (input) {
+          if (input.value) previous[input.dataset.profileKey] = input.value;
+        });
       });
     }
-    container.innerHTML = '';
-      normalized.fields.forEach(function (field) {
+    [container, requiredContainer, optionalContainer].filter(Boolean).forEach(function (mount, index, mounts) {
+      if (mounts.indexOf(mount) === index) mount.innerHTML = '';
+    });
+    normalized.fields.forEach(function (field) {
       var wrap = document.createElement('div');
       wrap.className = opts.labelClass || 'dyn-field';
         var caption = document.createElement('label');
@@ -103,7 +113,10 @@
           : '请填写' + field.label;
         wrap.appendChild(note);
       }
-      container.appendChild(wrap);
+      var mount = field.required
+        ? (requiredContainer || container || optionalContainer)
+        : (optionalContainer || container || requiredContainer);
+      mount.appendChild(wrap);
     });
     return normalized;
   }
@@ -115,10 +128,19 @@
   function collectFields(options) {
     var opts = options || {};
     var container = typeof opts.container === 'string' ? document.getElementById(opts.container) : opts.container;
-    if (!container) return { values: [], missing: [] };
+    var containers = Array.isArray(opts.containers)
+      ? opts.containers.map(function (item) {
+          return typeof item === 'string' ? document.getElementById(item) : item;
+        }).filter(Boolean)
+      : [container].filter(Boolean);
+    if (!containers.length) return { values: [], missing: [] };
     var values = [];
     var missing = [];
-    Array.from(container.querySelectorAll('[data-profile-key]')).forEach(function (input) {
+    var inputs = [];
+    containers.forEach(function (mount) {
+      inputs = inputs.concat(Array.from(mount.querySelectorAll('[data-profile-key]')));
+    });
+    inputs.forEach(function (input) {
       var value = text(input.value);
       var fieldWrap = input.closest(opts.labelSelector || '.dyn-field') || input.parentElement;
       var labelNode = fieldWrap ? fieldWrap.querySelector('label') : null;

@@ -1,23 +1,27 @@
 # UI/UX 升级方案 — 门户 / CMS / 报名
 
-> 日期：2026-07-30 · 适用版本：v8.1.0 · 状态：**P0 的 1/2/3/4/6 已落地（v8.1.0），其余仍是方案**
+> 日期：2026-07-30 · 适用版本：v8.1.1 · 状态：**2026-08-01 开业前执行批次已完成核心 UI/UX 合并；原始诊断保留作历史依据**
 >
-> 落地情况（2026-07-31 更新，逐项对照第 8 节清单）：
+> 落地情况（2026-08-01 更新，逐项对照第 8 节清单）：
 >
 > | # | 状态 | 依据 |
 > |---|---|---|
 > | 1 `.result-card` 硬编码色换 token | ✅ 已落地 | `tenant-template/index.html:270,543` + 6 个已生成租户工作区；`backend/tests/test_portal_theme_contract.py` |
 > | 2 `.surface-status` 改语义色 | ✅ 已落地 | `tenant-template/index.html:263` |
-> | 3 焦点环换 amber-text | 🟡 **只做了一半** | `product-home.html:56,62` 已改；`backend/frontend/cms-entry.html:66` 未动 |
+> | 3 焦点环换 amber-text | ✅ 已落地 | 公共入口与 CMS 均由共享 `:focus-visible` / 品牌 token 管理 |
 > | 4 深色表单边框 .28 → .42 | ✅ 已落地 | `product-home.html:171` |
 > | 5 product-home 接入 `ui-tokens.css` | ⬜ 未落地 | — |
 > | 6 CMS 接入 21 个主题 token + 删冷灰底 | ✅ 已落地 | `legacy-root/index.html:62,334` |
-> | 7 CMS 语义色替换 8 个 Tailwind 档位 | ⬜ 未落地 | — |
-> | 8 `text-gray-400` 128 处 | ⬜ 未落地 | — |
-> | 9 disabled 换表面+文字色 | ⬜ 未落地 | — |
-> | 29 CMS 两套深色合一 | ⬜ 未落地 | 由 `test_portal_theme_contract.py::test_the_second_cms_dark_system_is_still_recorded_as_open` 盯住，做完时该测试会失败并强制同步本文件与 handoff |
+> | 7 CMS 语义色统一 | ✅ 已落地 | Tailwind 色名只作选择器；结构/成功/警告/危险/信息全部按角色解析到租户 token，并有覆盖契约 |
+> | 8 弱文字对比 | ✅ 已落地 | `text-gray-400` 等选择器统一解析到生成器保障的 `--muted`，不再采用 Tailwind 原色 |
+> | 9 disabled 换表面+文字色 | ✅ 已落地 | disabled 伪类使用 `--disabled-surface` / `--disabled-text`，不依赖 opacity |
+> | 20 报名渐进披露 | ✅ 已落地 | 必填核心字段常显；选填、留言与作品公开同意折叠；Portal/Register 共用逻辑 |
+> | 22 统一 44px 触控 | ✅ 已落地 | CMS 36/40px 最小高度清零，共享 token 管理触控目标 |
+> | 24 PIN | ✅ 以移除完成 | 本地 Base64 PIN 不是认证且移动端恢复不可靠；保留服务端会话与明确退出登录 |
+> | 29 CMS 两套深色合一 | ✅ 已落地 | OS 仅在品牌加载前提供 fallback；品牌加载后只由 `data-brand-scheme` 与租户 token 管理 |
+> | 32 报名移动端提交 | ✅ 已落地 | 移动端 sticky 提交、安全区、紧凑头部与触控标签完成 |
 >
-> P1/P2 各项除上表列出者外，均未落地。本文件其余部分保持方案原文，
+> 未在上表标记的 P1/P2 保持为未来增强。本文件其余部分保持方案原文，
 > 不因已落地而改写——诊断与实测数值是这些改动的依据，需要留痕。
 >
 > 参考系统：LetsPaintCMS v7.3.7（单店，已在真实画室运营）

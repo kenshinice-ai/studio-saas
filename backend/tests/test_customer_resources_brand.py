@@ -59,6 +59,7 @@ REQUIRED_PAGES = {
     "FAQ.html",
     "Release_Notes_v8.1.0.html",
     "Privacy_Policy.html",
+    "Support_Policy.html",
     "Terms_of_Service.html",
 }
 

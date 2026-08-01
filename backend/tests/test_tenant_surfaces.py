@@ -58,7 +58,9 @@ def test_new_tenant_workspace_generates_public_surface_files(tmp_path):
         assert "new-music-studio" in content
     register_html = (workspace / "register.html").read_text(encoding="utf-8")
     assert "/_legacy/register" not in register_html
-    assert "customFields" in register_html
+    assert 'id="requiredCustomFields"' in register_html
+    assert 'id="optionalCustomFields"' in register_html
+    assert 'class="optional-details"' in register_html
     # Submission moved into /assets/public-register.js so the portal and the
     # register page cannot drift apart again; the page supplies the parts that
     # genuinely differ and the module owns privacyConsent.
@@ -196,6 +198,10 @@ def test_existing_register_surfaces_are_lightweight_lead_capture_pages(client):
         assert 'id="copyContactBtn"' in html
         assert 'class="next-step brand-status"' in html
         assert "document.getElementById('done').focus()" in html
+        assert 'id="requiredCustomFields"' in html
+        assert 'id="optionalCustomFields"' in html
+        assert 'class="optional-details"' in html
+        assert 'class="submit-bar"' in html
 
 
 def test_portal_is_primary_registration_source(client):
@@ -215,6 +221,21 @@ def test_portal_is_primary_registration_source(client):
         assert "manifest-portal.json" in html
         assert "/assets/public-analytics.js" in html
         assert "/assets/brand-system.css" in html
+        assert 'id="joinRequiredCustomFields"' in html
+        assert 'id="joinOptionalCustomFields"' in html
+        assert 'class="progressive"' in html
+        assert 'class="join-submit"' in html
+
+
+def test_shared_registration_renderer_splits_required_and_optional_fields():
+    """Both public forms must use the same progressive-disclosure contract."""
+
+    source = (PROJECT_ROOT / "backend/frontend/assets/public-register.js").read_text(
+        encoding="utf-8"
+    )
+    assert "requiredContainer" in source
+    assert "optionalContainer" in source
+    assert "Array.isArray(opts.containers)" in source
 
 
 def test_existing_portals_apply_published_visual_theme_and_localized_copy(client):

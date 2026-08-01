@@ -1,74 +1,68 @@
 # PWE Studio v8.1.1 candidate — Current Handoff
 
-## Active work — v8.1.1 release candidate, NOT DEPLOYED (2026-07-31)
+## Active work — release gate passed, package/deploy pending (2026-08-01)
 
-**Production truth:** `https://pwestudio.online` still runs **v8.1.0**. The
-`8.1.1` values already present in `VERSION`, `backend/server.py` and the
-Lightsail example describe this dirty working-tree candidate only. No 8.1.1
-bundle has been built, no production command has been run, and no deployment,
-commit, push or tag is part of this work without a separate explicit request.
+**Current truth:** branch `codex/v8.0.1-aws-production`; checkpoint
+`75a2a95`. `https://pwestudio.online` still reports **v8.1.0** until the v8.1.1
+bundle is committed, built and deployed. Do not describe the candidate as live
+before public deep health confirms `appVersion=8.1.1`.
 
-**Work started from:** branch `codex/v8.0.1-aws-production`, HEAD `ea6f0c7`,
-with these pre-existing dirty paths preserved as the baseline:
+### Completed in the v8.1.1 candidate
 
-```
-M VERSION
-M backend/frontend/assets/cms-app.js
-M backend/server.py
-M backend/tests/test_health.py
-M backend/tests/test_product_home_brand.py
-M customer-resources/FAQ.html
-M customer-resources/Privacy_Policy.html
-M customer-resources/Terms_of_Service.html
-M deploy/aws/lightsail.env.example
-M docs/HANDOFF_LATEST.md
-D docs/UX_Review_2026-07-25.md
-M legacy-root/index.html
-M legacy-root/src/cms-app.jsx
-M product-home.html
-```
+- **ICS end to end:** canonical revision-bound preview/download, deterministic
+  filenames, all-day semantics, 409 refresh/reconfirmation, explicit private
+  daily-roster warning, `data:export` enforcement and modal keyboard handling.
+  Weekly schedule ICS contains no identities; daily roster ICS may contain
+  student names and never guardian names.
+- **PIN decision:** removed the reversible Base64/localStorage PIN. It was not
+  authentication and had an unsafe mobile recovery path. CMS now relies on the
+  server session and provides an explicit server logout.
+- **One CMS visual system:** all Tailwind colour families resolve by role to
+  the tenant's 21 semantic tokens; OS dark preference is only a pre-brand
+  fallback. Once `/brand` resolves, `data-brand-scheme` is the sole theme owner.
+- **Golden-ratio core:** shared 61.8/38.2 hierarchy and
+  `5/8/13/21/34/55/89` spacing remain canonical. Shared interaction tokens now
+  include 44px touch targets, 46px controls, 8px gaps and 8/13/21px radii.
+- **CMS/mobile accessibility:** 36/40px target classes removed, primary modals
+  trap and restore focus, portfolio thumbnails are keyboard actions, image alt
+  text is present, and nested portfolio dialogs no longer compete.
+- **Registration:** required identity/contact/privacy fields stay visible;
+  optional details, message and publication consent use progressive disclosure.
+  Mobile gets a compact header, safe-area sticky submit and touch-sized labels.
+- **Deployment rollback:** controller captures and validates the previous
+  version before mutation, treats internal/public health separately, restores
+  both symlink and version, and fails explicitly if rollback restart or health
+  verification fails.
+- **Legal/support:** public Support Policy added and linked from Terms/FAQ;
+  privacy text now distinguishes weekly schedule and daily roster ICS. Internal
+  product/legal consistency review is complete in
+  `docs/customer/Legal_Review_2026-08-01.md`; Australian lawyer sign-off and the
+  listed commercial particulars remain mandatory before first signature.
 
-**Current batch: ICS correctness — backend batches 1+2 COMPLETE; CMS UI still
-IN PROGRESS.** The backend contract is now revision-bound and privacy-safe:
+### Deliberately deferred
 
-1. a cancelled explicit daily entry removes the same student inherited from the
-   weekly schedule while remaining in the skipped/cancelled explanation;
-2. every `CalendarDocument` carries a schema-versioned SHA-256 revision over
-   canonical business semantics (stable skipped ordering; no `generated_at`,
-   `DTSTAMP` or formatting-only fields), and preview returns that revision;
-3. all-day preview events expose `startDate`/`endDate` and null duration, never
-   fake instants or timezone abbreviations; timed event fields are unchanged;
-4. neither generated document advertises refresh/subscription semantics;
-5. both download endpoints require a valid preview revision (400 when absent or
-   malformed, stable `calendar_revision_conflict` JSON at 409 when stale), and
-   only a match returns the ICS bytes;
-6. the document's validated filename is authoritative and is sent as both an
-   ASCII `filename` fallback and RFC 5987 `filename*=UTF-8''...`, with
-   `text/calendar; charset=utf-8` and `private, no-store` preserved;
-7. roster download remains gated by `data:export`; auth and role-boundary tests
-   pin the protected routes and the student-name export permission.
+- Main-site acquisition automation: unchanged. Actions continue to open the
+  user's own Mail or Messages client; no delivery claim is made.
+- Off-instance/local backup copy: deferred by owner decision. Lightsail's daily
+  same-instance backup and restore evidence remain; do not call that disaster
+  recovery.
+- MFA, monitoring, backup-failure alerting, on-call ownership and contractual
+  SLA remain disclosed live-service gaps.
 
-Focused verification from `backend/`:
+### Verification completed so far
 
 ```text
-../.venv/bin/pytest tests/test_calendar_export.py tests/test_calendar_export_api.py tests/test_route_protection.py -q
-73 passed in 0.18s
-
-../.venv/bin/pytest tests/test_calendar_export.py tests/test_calendar_export_api.py tests/test_route_protection.py tests/test_role_boundaries.py -q
-81 passed in 0.20s
+Focused legal/UI/deployment suite: 124 passed, 1 skipped
+Post-document UI contract suite:   91 passed
+Legacy smoke:                      73 passed
+Tenant isolation/privacy:          225 passed
+STUDIOSAAS_REQUIRE_POSTGRES=1 bash backend/scripts/verify_local.sh: PASS
 ```
 
-`python -m pytest ...` was also attempted first but the Homebrew Python lacks
-pytest (`No module named pytest`); the repository `.venv` commands above are the
-authoritative green runs. `git diff --check` passed for the scoped files.
-
-**Still incomplete:** the CMS dialog/download flow must preserve the preview
-`kind`/authoritative filename and send the returned revision on download; no CMS
-file was touched in this backend batch. The remaining order is: complete ICS
-CMS UI; critical modal/PIN/portfolio accessibility; deployment rollback
-hardening; v8.1.1 candidate evidence and version links; then full and browser
-verification. Status remains **candidate / NOT DEPLOYED**. No commit, push, tag,
-bundle, production command or deployment was performed.
+The remaining release sequence is: commit/push the coherent candidate; verify
+both SaaS and Edition bundles; inspect and deploy the AWS bundle; verify public
+health, routes, assets and the host backup cron; then replace this candidate
+header with the deployed commit/hash evidence.
 
 # PWE Studio v8.1.0 — Deployed production record
 

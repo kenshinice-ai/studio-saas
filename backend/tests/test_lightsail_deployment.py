@@ -229,6 +229,25 @@ def test_deploy_pins_the_image_tag_to_the_bundle_version() -> None:
     assert remote.index("STUDIOSAAS_VERSION=$version") < remote.index("lightsail_ctl.sh up")
 
 
+def test_deploy_rollback_restores_version_and_verifies_both_health_boundaries() -> None:
+    """A failed edge check must reach a complete, observable old-release restore."""
+
+    remote = _read("deploy/aws/pwestudio_remote.sh")
+
+    assert 'previous_version="$(remote ' in remote
+    assert "refusing an unrollbackable deploy" in remote
+    assert "STUDIOSAAS_VERSION=$previous_version" in remote
+    assert remote.index('previous_version="$(remote ') < remote.index(
+        'say "Pinning STUDIOSAAS_VERSION=$version'
+    )
+    assert 'if curl -fsS --max-time 25 "$PUBLIC_URL/v1/health?deep=1"; then' in remote
+    assert "ROLLBACK INTERNAL HEALTH FAILED" in remote
+    assert "ROLLBACK PUBLIC EDGE HEALTH FAILED" in remote
+    assert "healthy internally and publicly" in remote
+    rollback = remote[remote.index('say "Deployment verification FAILED'):]
+    assert 'lightsail_ctl.sh up" || true' not in rollback
+
+
 def test_old_release_note_urls_redirect_instead_of_dying() -> None:
     """A versioned public filename breaks its own URL on every release.
 

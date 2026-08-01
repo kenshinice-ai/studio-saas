@@ -1,6 +1,6 @@
 # Security, Privacy and Compliance Delivery Pack
 
-Status: v8.1.0 disclosure for a live service
+Status: v8.1.1 disclosure for a live service; internally reviewed 1 August 2026
 Scope: PWE Studio SaaS mode and the professional showcase
 
 ## Honest deployment status
@@ -13,7 +13,7 @@ The database and media both live on that single instance. Managed AWS services â
 
 ## Current controls
 
-| Area | v8.1.0 control |
+| Area | v8.1.1 control |
 |---|---|
 | Tenant separation | Tenant context is explicit in authenticated routes and tenant data is scoped by tenant ID |
 | Roles | Platform administrator, owner, manager, teacher, front desk and staff permissions are separated |
@@ -24,7 +24,7 @@ The database and media both live on that single instance. Managed AWS services â
 | Media | Original assets are private; public/student views use validated derivatives and tenant ownership checks |
 | Publication | Portfolio sharing requires recorded consent state and supports revocation |
 | Audit | Material administrative and operational actions create audit records |
-| Export | ICS schedule export excludes roster members and other student data |
+| Export | Weekly schedule ICS excludes identities; daily roster ICS may contain student names and requires `data:export` permission plus an explicit privacy warning |
 | Demo data | The professional showcase is isolated, uses fictional contacts and synthetic artwork, and is reset only by a guarded script |
 | Secrets | Local/Pilot credentials are kept in the Git-ignored project `.runtime/` directory with owner-only permissions |
 | Customer deletion | Tenant archive/delete workflow requires explicit lifecycle state and confirmation |
@@ -68,7 +68,8 @@ APP 11 requires covered entities to take reasonable steps to protect personal in
 - The customer is responsible for appropriate parent/guardian authority.
 - Portfolio media remains private unless a specific publication decision is recorded.
 - A family access code reveals only the bound studentâ€™s records.
-- Calendar exports never include student or guardian names.
+- Weekly schedule exports include no student or guardian identities.
+- Daily roster exports may include student names, are restricted to staff with `data:export` permission and are marked private before download; they never include guardian names.
 - Demonstrations must never use customer media without specific recorded authority.
 
 ## Incident response

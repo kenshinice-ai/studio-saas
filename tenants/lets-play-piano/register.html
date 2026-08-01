@@ -70,16 +70,25 @@
     .field-error { display:none; margin-top:6px; font-size:12px; color:var(--danger); }
     .field.has-error .field-error, .consent-block.has-error .field-error { display:block; }
     .row { display:grid; grid-template-columns:var(--golden-columns-reverse); gap:var(--space-phi-sm); }
-    .consent { display:flex; gap:10px; align-items:flex-start; color:var(--ink2); font-size:13px; line-height:1.6; margin:8px 0 6px; }
-    .consent input { width:16px; min-height:16px; margin-top:3px; }
+    .form-step { margin:0 0 var(--space-phi-md); color:var(--muted); font-size:13px; }
+    .form-step strong { display:block; color:var(--ink); font-size:16px; font-weight:500; }
+    .optional-details { margin:var(--space-phi-md) 0; border:1px solid var(--line); border-radius:var(--radius); background:var(--bg2); overflow:hidden; }
+    .optional-details summary { display:flex; align-items:center; min-height:var(--tap-min); padding:var(--space-phi-sm) var(--space-phi-md); color:var(--ink); cursor:pointer; font-weight:500; list-style:none; }
+    .optional-details summary::-webkit-details-marker { display:none; }
+    .optional-details summary::after { content:'＋'; margin-left:auto; color:var(--clay); }
+    .optional-details[open] summary::after { content:'−'; }
+    .optional-content { padding:var(--space-phi-md); border-top:1px solid var(--line); background:var(--surface); }
+    .consent { display:flex; gap:var(--space-phi-sm); align-items:flex-start; min-height:var(--tap-min); padding:4px 0; color:var(--ink2); font-size:13px; line-height:1.6; margin:8px 0 6px; cursor:pointer; }
+    .consent input { width:20px; height:20px; min-height:20px; margin-top:2px; flex:0 0 auto; }
     .consent-block { margin-bottom:16px; }
-    .privacy-link { display:inline-flex; align-items:center; margin:0 0 0 26px; font-size:12px; color:var(--clay); border-bottom:1px solid var(--clay); cursor:pointer; background:none; border-left:0; border-right:0; border-top:0; padding:0; width:auto; min-height:var(--tap-min); font-weight:400; }
+    .privacy-link { display:inline-flex; align-items:center; margin:0 0 0 33px; font-size:12px; color:var(--clay); border-bottom:1px solid var(--clay); cursor:pointer; background:none; border-left:0; border-right:0; border-top:0; padding:0; width:auto; min-height:var(--tap-min); font-weight:400; }
     .privacy-link:hover { background:none; color:var(--clay-d); }
     button { width:100%; min-height:var(--tap-min); border:0; border-radius:var(--radius); background:var(--clay); color:var(--on-accent); font-weight:500; letter-spacing:.04em; cursor:pointer; transition:background var(--dur-enter) var(--ease-out); }
     button:hover { background:var(--clay-hover); }
     button:active { background:var(--clay-pressed); }
     button:disabled { background:var(--disabled-surface); color:var(--disabled-text); cursor:not-allowed; }
     button[data-busy="true"] { cursor:wait; }
+    .submit-bar { margin-top:var(--space-phi-md); }
     .error { display:none; color:var(--danger); font-size:13px; margin:0 0 12px; }
     .done { display:none; text-align:left; padding:18px 4px 4px; }
     .done .mark { width:52px; height:52px; display:grid; place-items:center; border-radius:50%; color:var(--on-success); background:var(--success); font-size:28px; line-height:1; }
@@ -105,12 +114,20 @@
     .privacy-foot .version { font-size:12px; color:var(--muted); }
     .privacy-foot button { width:auto; padding:10px 22px; font-size:13px; }
     @media (max-width:760px) {
-      header { align-items:flex-start; flex-direction:column; padding:12px 16px; }
-      main { grid-template-columns:1fr; padding:var(--space-phi-lg) 16px var(--space-phi-xl); gap:var(--space-phi-md); }
+      header { align-items:center; flex-direction:row; padding:10px 13px; gap:8px; }
+      .brand { gap:8px; }
+      .brand img { width:40px; height:40px; }
+      .slogan, .contact { display:none; }
+      .header-actions { margin-left:auto; gap:8px; }
+      #backLink { width:var(--tap-min); justify-content:center; font-size:0; }
+      #backLink::before { content:'←'; font-size:20px; }
+      main { grid-template-columns:1fr; padding:var(--space-phi-md) 13px var(--space-phi-xl); gap:var(--space-phi-md); }
       .intro { position:static; padding-top:0; }
+      h1 { font-size:34px; }
+      .card { padding:var(--space-phi-md); }
       .row { grid-template-columns:1fr; }
       .done-actions { grid-template-columns:1fr; }
-      .slogan, .contact { max-width:calc(100vw - 96px); }
+      .submit-bar { position:sticky; bottom:0; z-index:2; margin-inline:calc(var(--space-phi-md) * -1); padding:var(--space-phi-sm) var(--space-phi-md) calc(var(--space-phi-sm) + env(safe-area-inset-bottom, 0px)); border-top:1px solid var(--line); background:color-mix(in srgb, var(--surface) 94%, transparent); backdrop-filter:blur(12px); }
     }
   </style>
 </head>
@@ -144,28 +161,35 @@
 
     <section class="card brand-card">
       <form id="registerForm" novalidate>
+        <p class="form-step"><strong data-zh="先填写必要信息" data-en="Start with the essentials">先填写必要信息</strong><span data-zh="姓名和手机号足够让工作室开始为你安排。" data-en="A name and mobile number are enough for the studio to get started.">姓名和手机号足够让工作室开始为你安排。</span></p>
         <!-- P3-8: family name first under zh, matching the portal. -->
         <div class="row">
           <div class="field"><label for="lastName" data-zh="姓氏" data-en="Family name">姓氏</label><input id="lastName" autocomplete="family-name"></div>
           <div class="field"><label for="firstName" data-zh="名字 *" data-en="Given name *">名字 *</label><input id="firstName" autocomplete="given-name" required aria-required="true"><span class="field-error" data-zh="请填写名字" data-en="Please enter a given name.">请填写名字</span></div>
         </div>
         <div class="field"><label for="mobile" data-zh="手机号码 *" data-en="Mobile *">手机号码 *</label><input id="mobile" type="tel" inputmode="tel" autocomplete="tel" required aria-required="true"><span class="field-error" data-zh="请填写手机号码" data-en="Please enter a mobile number.">请填写手机号码</span></div>
-        <div class="field"><label for="email" data-zh="电子邮箱" data-en="Email">电子邮箱</label><input id="email" type="email" inputmode="email" autocomplete="email"></div>
-        <div id="customFields"></div>
-        <div class="field"><label for="message" data-zh="补充说明" data-en="Message">补充说明</label><textarea id="message" rows="3" placeholder="选填"></textarea></div>
+        <div id="requiredCustomFields"></div>
+        <details class="optional-details" id="optionalDetails">
+          <summary data-zh="补充信息（选填）" data-en="Add more details (optional)">补充信息（选填）</summary>
+          <div class="optional-content">
+            <div class="field"><label for="email" data-zh="电子邮箱" data-en="Email">电子邮箱</label><input id="email" type="email" inputmode="email" autocomplete="email"></div>
+            <div id="optionalCustomFields"></div>
+            <div class="field"><label for="message" data-zh="补充说明" data-en="Message">补充说明</label><textarea id="message" rows="3" placeholder="选填"></textarea></div>
+            <label class="consent"><input id="publicationConsent" type="checkbox"><span data-zh="我同意工作室在官网或招生材料中展示学员作品（可随时联系工作室撤回）。" data-en="I consent to the studio displaying the student's work on its website or promotional materials. This can be withdrawn at any time.">我同意工作室在官网或招生材料中展示学员作品（可随时联系工作室撤回）。</span></label>
+            <div id="publicationConsentDetails" hidden>
+              <div class="field"><label for="publicationConsentBy" data-zh="授权人姓名 *" data-en="Consenting person *">授权人姓名 *</label><input id="publicationConsentBy" autocomplete="name" maxlength="120"><span class="field-error" data-zh="请填写授权人姓名" data-en="Please provide the consenting person.">请填写授权人姓名</span></div>
+              <div class="field"><label for="publicationRelationship" data-zh="与学员关系 *" data-en="Relationship to student *">与学员关系 *</label><select id="publicationRelationship"><option value="" data-zh="请选择" data-en="Select">请选择</option><option value="self" data-zh="本人" data-en="Self">本人</option><option value="parent" data-zh="家长/监护人" data-en="Parent / guardian">家长/监护人</option><option value="other_guardian" data-zh="其他授权监护人" data-en="Other authorised guardian">其他授权监护人</option></select><span class="field-error" data-zh="请选择与学员的关系" data-en="Please choose a relationship.">请选择与学员的关系</span></div>
+            </div>
+          </div>
+        </details>
         <div style="position:absolute;left:-9999px;top:-9999px" aria-hidden="true"><input id="website" type="text" tabindex="-1" autocomplete="off"></div>
         <div class="consent-block" id="consentBlock">
           <label class="consent"><input id="consent" type="checkbox"><span data-zh="我同意工作室仅将这些资料用于联系与课程管理。" data-en="I agree that my details are used only for studio contact and class management.">我同意工作室仅将这些资料用于联系与课程管理。</span></label>
           <button type="button" class="privacy-link" id="openPrivacyBtn" data-zh="阅读隐私说明 →" data-en="Read the privacy note →">阅读隐私说明 →</button>
-          <span class="field-error" style="margin-left:26px" data-zh="请勾选同意隐私说明" data-en="Please agree to the privacy note.">请勾选同意隐私说明</span>
-        </div>
-        <label class="consent"><input id="publicationConsent" type="checkbox"><span data-zh="选填：我同意工作室在官网或招生材料中展示学员作品（可随时联系工作室撤回）。" data-en="Optional: I consent to the studio displaying the student's work on its website or promotional materials. This can be withdrawn at any time.">选填：我同意工作室在官网或招生材料中展示学员作品（可随时联系工作室撤回）。</span></label>
-        <div id="publicationConsentDetails" hidden>
-          <div class="field"><label for="publicationConsentBy" data-zh="授权人姓名 *" data-en="Consenting person *">授权人姓名 *</label><input id="publicationConsentBy" autocomplete="name" maxlength="120"><span class="field-error" data-zh="请填写授权人姓名" data-en="Please provide the consenting person.">请填写授权人姓名</span></div>
-          <div class="field"><label for="publicationRelationship" data-zh="与学员关系 *" data-en="Relationship to student *">与学员关系 *</label><select id="publicationRelationship"><option value="" data-zh="请选择" data-en="Select">请选择</option><option value="self" data-zh="本人" data-en="Self">本人</option><option value="parent" data-zh="家长/监护人" data-en="Parent / guardian">家长/监护人</option><option value="other_guardian" data-zh="其他授权监护人" data-en="Other authorised guardian">其他授权监护人</option></select><span class="field-error" data-zh="请选择与学员的关系" data-en="Please choose a relationship.">请选择与学员的关系</span></div>
+          <span class="field-error" style="margin-left:33px" data-zh="请勾选同意隐私说明" data-en="Please agree to the privacy note.">请勾选同意隐私说明</span>
         </div>
         <p id="error" class="error" role="alert" aria-live="assertive"></p>
-        <button id="submitBtn" type="submit" data-zh="提交报名" data-en="Submit registration">提交报名</button>
+        <div class="submit-bar"><button id="submitBtn" type="submit" data-zh="提交报名" data-en="Submit registration">提交报名</button></div>
       </form>
       <div id="done" class="done" role="status" aria-live="polite" tabindex="-1">
         <div class="mark" aria-hidden="true">✓</div>
@@ -320,7 +344,8 @@
     }
     function renderFields(profile) {
       registrationProfile = window.StudioSaaSPublicRegister.renderFields(profile || registrationProfile, {
-        container: 'customFields',
+        requiredContainer: 'requiredCustomFields',
+        optionalContainer: 'optionalCustomFields',
         labelClass: 'field',
         fallbackTitle: T('快速报名', 'Quick Registration'),
         language: currentLanguage,
@@ -332,7 +357,7 @@
     }
     function collectFields() {
       return window.StudioSaaSPublicRegister.collectFields({
-        container: 'customFields',
+        containers: ['requiredCustomFields', 'optionalCustomFields'],
         labelSelector: '.field'
       });
     }

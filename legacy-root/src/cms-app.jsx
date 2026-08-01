@@ -80,15 +80,6 @@ const parseMonthKey = (ds) => {
 };
 const fmtMK = (k) => { if (!k) return ''; const [y,m]=k.split('-'); return `${m}/${y}`; };
 
-/* ═══════════════════ PIN  (Fix #9: sessionStorage) ═════════════ */
-const PIN_KEY     = 'lp_pin_v1';
-const SESSION_KEY = 'lp_sess_v1';
-const getPin      = () => { try { const v=localStorage.getItem(PIN_KEY); return v?atob(v).replace('lp:',''):null; } catch{return null;} };
-const savePin     = (p) => localStorage.setItem(PIN_KEY, btoa('lp:'+p));
-const sessOK      = () => sessionStorage.getItem(SESSION_KEY)==='1';
-const markSess    = () => sessionStorage.setItem(SESSION_KEY,'1');
-const clearSess   = () => sessionStorage.removeItem(SESSION_KEY);
-
 const tenantOwnedLogoUrl = (brand) => {
     const source = brand?.logo_url || brand?.logoUrl || '';
     return ['/logo.png', '/logo-light.png', '/favicon.svg'].includes(source) ? '' : source;
@@ -117,96 +108,6 @@ function TenantBrandLogo({ className = '' }) {
             className={className}
             onError={(event) => { event.currentTarget.hidden = true; }}
         />
-    );
-}
-
-/* ── PIN Screen ── */
-function PINScreen({ onUnlock }) {
-    const stored = getPin();
-    const isSetup = !stored;
-    const [dig,  setDig]  = useState(['','','','']);
-    const [conf, setConf] = useState(['','','','']);
-    const [step, setStep] = useState(isSetup ? 'set' : 'enter');
-    const [err,  setErr]  = useState('');
-    const refs = useRef([]);
-
-    const focus = (i) => refs.current[i]?.focus();
-
-    const push = (val, arr, setArr, base) => {
-        const i = arr.findIndex(d => d==='');
-        if (i === -1) return;
-        const na = [...arr]; na[i] = val; setArr(na);
-        if (i < 3) focus(base + i + 1);
-        if (i === 3) setTimeout(() => submit([...na]), 60);
-    };
-    const pop = (arr, setArr, base) => {
-        const rev = [...arr].reverse();
-        const i = rev.findIndex(d => d !== '');
-        if (i === -1) return;
-        const na = [...arr]; na[3-i] = ''; setArr(na);
-        focus(base + 3 - i);
-    };
-    const submit = (filled) => {
-        const pin = filled.join('');
-        if (pin.length < 4) return;
-        setErr('');
-        if (step === 'enter') {
-            if (pin === stored) onUnlock();
-            else { setErr('PIN 不正确，请重试'); setDig(['','','','']); setTimeout(() => focus(0), 60); }
-        } else if (step === 'set') {
-            setStep('confirm'); setConf(['','','','']); setTimeout(() => focus(4), 60);
-        } else {
-            if (pin === dig.join('')) { savePin(dig.join('')); onUnlock(); }
-            else { setErr('两次输入不一致，请重新设置'); setConf(['','','','']); setTimeout(() => focus(4), 60); }
-        }
-    };
-
-    const Dots = ({arr}) => (
-        <div className="flex gap-3 justify-center my-5">
-            {arr.map((d,i) => <div key={i} className={`pin-dot ${d?'on':''}`}/>)}
-        </div>
-    );
-    const Inputs = ({arr, setArr, base}) => (
-        <div className="flex gap-3 justify-center">
-            {arr.map((_,i) => (
-                <input key={i} ref={el=>refs.current[base+i]=el}
-                    type="password" inputMode="numeric" maxLength={1}
-                    value={arr[i]} className="pin-input"
-                    onChange={e => { const v=e.target.value.replace(/\D/,''); if(v) push(v,arr,setArr,base); }}
-                    onKeyDown={e => { if(e.key==='Backspace') pop(arr,setArr,base); }}
-                />
-            ))}
-        </div>
-    );
-
-    return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 to-indigo-950 p-4">
-            <div className="bg-white rounded-3xl p-8 w-full max-w-xs shadow-2xl text-center anim">
-	                <TenantBrandLogo className="w-36 max-h-20 object-contain mx-auto mb-3"/>
-	                <p className="tenant-slogan text-sm text-gray-500 italic mb-4">Learn, grow, and feel confident.</p>
-	                <p className="text-sm text-gray-400 mb-4">
-                    {step==='set' ? '首次使用，请设置 4 位 PIN 码' : step==='confirm' ? '再次输入确认 PIN' : '输入 PIN 码解锁'}
-                </p>
-                {step !== 'confirm'
-                    ? <><Dots arr={dig}/><Inputs arr={dig} setArr={setDig} base={0}/></>
-                    : <><Dots arr={conf}/><Inputs arr={conf} setArr={setConf} base={4}/></>
-                }
-                {err && <p className="text-red-500 text-xs mt-4 font-medium">{err}</p>}
-                {step==='enter' && (
-                    <details className="mt-5 text-left">
-                        <summary className="text-xs text-gray-400 cursor-pointer select-none text-center">忘记 PIN？</summary>
-                        <p className="text-xs text-gray-400 mt-2 bg-gray-50 rounded-xl p-3 leading-relaxed">
-                            在浏览器开发者工具的 Console 中运行：<br/>
-                            <code className="text-indigo-600 font-mono break-all">localStorage.removeItem('lp_pin_v1')</code><br/>
-                            刷新页面后即可重新设置 PIN。
-                        </p>
-                    </details>
-                )}
-                <p className="mt-6 pt-4 border-t border-gray-100 text-[10px] tracking-wide text-gray-400">
-                    Powered by Paradise Production
-                </p>
-            </div>
-        </div>
     );
 }
 
@@ -343,6 +244,48 @@ function Toast({ msg, type, action, onDone }) {
     );
 }
 
+/** Keep keyboard focus inside an open modal and restore it on close. */
+function useModalFocus(isOpen, onClose, dialogRef, initialFocusRef=null) {
+    const closeRef = useRef(onClose);
+    closeRef.current = onClose;
+    useEffect(() => {
+        if (!isOpen) return;
+        const previousFocus = document.activeElement;
+        const selector = [
+            'button:not([disabled])', '[href]', 'input:not([disabled])',
+            'select:not([disabled])', 'textarea:not([disabled])',
+            '[tabindex]:not([tabindex="-1"])',
+        ].join(',');
+        const onKey = event => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                closeRef.current();
+                return;
+            }
+            if (event.key !== 'Tab') return;
+            const focusable = [...(dialogRef.current?.querySelectorAll(selector) || [])];
+            if (!focusable.length) { event.preventDefault(); return; }
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault(); last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault(); first.focus();
+            }
+        };
+        document.addEventListener('keydown', onKey);
+        const timer = setTimeout(() => {
+            const target = initialFocusRef?.current || dialogRef.current?.querySelector(selector);
+            target?.focus();
+        }, 0);
+        return () => {
+            document.removeEventListener('keydown', onKey);
+            clearTimeout(timer);
+            if (previousFocus && typeof previousFocus.focus === 'function') previousFocus.focus();
+        };
+    }, [isOpen, dialogRef, initialFocusRef]);
+}
+
 /* ═══════════════════ Fix #8: CUSTOM CONFIRM DIALOG ═══════════ */
 /* The one dialog in the app.
  *
@@ -373,7 +316,18 @@ function ConfirmDialog({ dialog, onClose }) {
     useEffect(() => {
         if (!dialog) return;
         const prevFocus = document.activeElement;
-        const onKey = (e) => { if (e.key === 'Escape') dismissRef.current(); };
+        const onKey = (e) => {
+            if (e.key === 'Escape') { e.preventDefault(); dismissRef.current(); return; }
+            if (e.key !== 'Tab') return;
+            const focusable = [...(boxRef.current?.querySelectorAll(
+                'button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
+            ) || [])];
+            if (!focusable.length) { e.preventDefault(); return; }
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+            else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+        };
         document.addEventListener('keydown', onKey);
         const t = setTimeout(() => {
             const box = boxRef.current;
@@ -397,10 +351,12 @@ function ConfirmDialog({ dialog, onClose }) {
     const confirmLabel = dialog.confirmText || (dialog.acknowledge ? '知道了 / OK' : '确认');
     return (
         <div className="fixed inset-0 bg-black/50 z-[95] flex items-center justify-center p-4" onClick={dismiss}
-             role="dialog" aria-modal="true">
+             role="dialog" aria-modal="true" aria-describedby="confirm-dialog-message"
+             aria-labelledby={dialog.title ? 'confirm-dialog-title' : undefined}
+             aria-label={dialog.title ? undefined : '确认操作'}>
             <div ref={boxRef} className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl anim" onClick={e=>e.stopPropagation()}>
-                {dialog.title && <p className="font-bold text-gray-800 mb-2">{dialog.title}</p>}
-                <p className="text-gray-500 text-sm leading-relaxed mb-4 whitespace-pre-line">{dialog.message}</p>
+                {dialog.title && <p id="confirm-dialog-title" className="font-bold text-gray-800 mb-2">{dialog.title}</p>}
+                <p id="confirm-dialog-message" className="text-gray-500 text-sm leading-relaxed mb-4 whitespace-pre-line">{dialog.message}</p>
                 {needsText && (
                     <div className="mb-5">
                         <label className="block text-xs font-bold text-gray-600 mb-1.5">
@@ -623,16 +579,16 @@ function PhotoUploader({ value, onChange, notify }) {
     return (
         <div className="flex items-center gap-4">
             {value
-                ? <img src={mediaSrc(value)} className="w-14 h-14 rounded-full object-cover border-2 border-indigo-100 flex-shrink-0"/>
+                ? <img src={mediaSrc(value)} alt="学员照片预览" className="w-14 h-14 rounded-full object-cover border-2 border-indigo-100 flex-shrink-0"/>
                 : <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center text-2xl border-2 border-dashed border-gray-300 flex-shrink-0 text-gray-400"><Icon name="camera" className="w-6 h-6"/></div>
             }
             <div className="space-y-1.5">
                 <div className="flex gap-2 flex-wrap">
-                    <label className={`cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 text-sm font-bold rounded-xl border min-h-[40px] ${btnBase||'bg-indigo-50 text-indigo-700 border-indigo-200 active:bg-indigo-100'}`}>
+                    <label className={`cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 text-sm font-bold rounded-xl border min-h-[44px] ${btnBase||'bg-indigo-50 text-indigo-700 border-indigo-200 active:bg-indigo-100'}`}>
                         <span className="inline-flex items-center gap-1.5"><Icon name="folder" className="w-4 h-4"/>{uploading ? '上传中...' : value ? '更换' : '选择'}</span>
                         <input type="file" accept="image/*" onChange={handleFile} disabled={uploading} className="hidden"/>
                     </label>
-                    <label className={`cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 text-sm font-bold rounded-xl border min-h-[40px] ${btnBase||'bg-purple-50 text-purple-700 border-purple-200 active:bg-purple-100'}`}>
+                    <label className={`cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 text-sm font-bold rounded-xl border min-h-[44px] ${btnBase||'bg-purple-50 text-purple-700 border-purple-200 active:bg-purple-100'}`}>
                         <span className="inline-flex items-center gap-1.5"><Icon name="camera" className="w-4 h-4"/>拍照</span>
                         <input type="file" accept="image/*" capture="environment" onChange={handleFile} disabled={uploading} className="hidden"/>
                     </label>
@@ -936,12 +892,6 @@ function LoginScreen({ onLogin }) {
 
 /* ═══════════════════ MAIN APP ════════════════════════════════ */
 function App() {
-    /* Fix #9: PIN uses sessionStorage so same tab stays unlocked */
-    const [pinOK, setPinOK] = useState(sessOK);
-    /* P2: PIN is optional — default OFF */
-    const [pinEnabled, setPinEnabled] = useState(() => localStorage.getItem('lp_pin_enabled') === 'true');
-    const togglePin = (val) => { setPinEnabled(val); localStorage.setItem('lp_pin_enabled', val?'true':'false'); };
-
     const [db,  setDb]  = useState({students:[],logs:[],rosters:{},pending:[]});
     const [tab, setTab] = useState('dashboard');
     const [moreOpen, setMoreOpen] = useState(false);
@@ -954,8 +904,6 @@ function App() {
     const [toast, setToast] = useState(null);
     const [confirmDialog, setConfirmDialog] = useState(null); // Fix #8
     const [showSettings, setShowSettings] = useState(false);
-    const [newPin1, setNewPin1] = useState('');
-    const [newPin2, setNewPin2] = useState('');
     // Auth state
     const [loggedIn, setLoggedIn]   = useState(false);
     const [pwOld,    setPwOld]      = useState('');
@@ -972,6 +920,12 @@ function App() {
     const [portUpFile,  setPortUpFile]  = useState(null);  // {file,dataUrl,note,date,public}
     const [portEdit,    setPortEdit]    = useState(null);  // {sid,item,note,date,public}
     const [portBusy,    setPortBusy]    = useState(false);
+    const portLightboxDialogRef = useRef(null);
+    const portUploadDialogRef = useRef(null);
+    const portEditDialogRef = useRef(null);
+    const searchDialogRef = useRef(null);
+    const settingsDialogRef = useRef(null);
+    const profileDialogRef = useRef(null);
     const [accessCodeResult, setAccessCodeResult] = useState(null);
     const [consentEdit, setConsentEdit] = useState(null);
     useEffect(() => {
@@ -982,6 +936,17 @@ function App() {
         setStudentProfileTab('profile');
     }, [selS?.id]);
     const lbTouchX    = useRef(0);  // M1: swipe start X
+
+    useModalFocus(Boolean(portLB) && !confirmDialog, () => setPortLB(null), portLightboxDialogRef);
+    useModalFocus(Boolean(portUpload) && !confirmDialog, () => {
+        if (portUpFile?.dataUrl) URL.revokeObjectURL(portUpFile.dataUrl);
+        setPortUpload(false); setPortUpFile(null);
+    }, portUploadDialogRef);
+    useModalFocus(Boolean(portEdit) && !confirmDialog, () => setPortEdit(null), portEditDialogRef);
+    useModalFocus(Boolean(gOpen) && !confirmDialog, () => { setGOpen(false); setGQ(''); }, searchDialogRef);
+    useModalFocus(Boolean(showSettings) && !confirmDialog, () => setShowSettings(false), settingsDialogRef);
+    useModalFocus(Boolean(selS) && !portLB && !portUpload && !portEdit && !confirmDialog,
+        () => { setSelS(null); setEditP(false); }, profileDialogRef);
     // Fix ⑪: configurable inactive-days threshold (stored in localStorage)
     const [inactiveDays, setInactiveDays] = useState(() => parseInt(localStorage.getItem('lp_inactive_days')||'90',10));
     const saveInactiveDays = (v) => { const n=parseInt(v,10); if(n>0){setInactiveDays(n);localStorage.setItem('lp_inactive_days',String(n));} };
@@ -1006,6 +971,8 @@ function App() {
     /* Calendar download: preview first, then fetch the file with credentials. */
     const [icsPreview, setIcsPreview] = useState(null);
     const [icsBusy, setIcsBusy] = useState(false);
+    const icsDialogRef = useRef(null);
+    const icsCloseButtonRef = useRef(null);
     const [rOneToOne, setROneToOne] = useState(false);
     const [grpSel, setGrpSel] = useState('');   /* F4: 班组模板选择 */
     /* A1: 每周课表（tenant 模式，存于 PostgreSQL class_schedules） */
@@ -1251,22 +1218,56 @@ function App() {
         return () => window.removeEventListener('keydown', h);
     }, []);
 
-    /* M8+M9: Lightbox keyboard nav (← →) and Escape for all portfolio modals */
+    /* Calendar preview is a real modal: move focus in, keep Tab inside, close
+       with Escape, then return focus to the control that opened it. */
+    useEffect(() => {
+        if (!icsPreview) return;
+        const previousFocus = document.activeElement;
+        const focusableSelector = [
+            'button:not([disabled])',
+            '[href]',
+            'input:not([disabled])',
+            'select:not([disabled])',
+            'textarea:not([disabled])',
+            '[tabindex]:not([tabindex="-1"])',
+        ].join(',');
+        const onKey = e => {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                setIcsPreview(null);
+                return;
+            }
+            if (e.key !== 'Tab') return;
+            const focusable = [...(icsDialogRef.current?.querySelectorAll(focusableSelector) || [])];
+            if (!focusable.length) { e.preventDefault(); return; }
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault(); last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault(); first.focus();
+            }
+        };
+        document.addEventListener('keydown', onKey);
+        const timer = setTimeout(() => icsCloseButtonRef.current?.focus(), 0);
+        return () => {
+            document.removeEventListener('keydown', onKey);
+            clearTimeout(timer);
+            if (previousFocus && typeof previousFocus.focus === 'function') previousFocus.focus();
+        };
+    }, [icsPreview]);
+
+    /* Lightbox arrow navigation; modal dismissal/focus lives in useModalFocus. */
     useEffect(() => {
         const onKey = e => {
             if (portLB) {
                 if (e.key === 'ArrowRight') setPortLB(p => p && p.idx < p.items.length-1 ? {...p, idx:p.idx+1} : p);
                 if (e.key === 'ArrowLeft')  setPortLB(p => p && p.idx > 0               ? {...p, idx:p.idx-1} : p);
-                if (e.key === 'Escape')     setPortLB(null);
-            } else if (portEdit && e.key === 'Escape')   setPortEdit(null);
-            else if (portUpload && e.key === 'Escape') {
-                if (portUpFile?.dataUrl) URL.revokeObjectURL(portUpFile.dataUrl);
-                setPortUpload(false); setPortUpFile(null);
             }
         };
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
-    }, [portLB, portEdit, portUpload, portUpFile]);
+    }, [portLB]);
 
     /* B3: 选中学员时拉取上课记录（tenant 模式） */
     useEffect(() => {
@@ -1301,12 +1302,11 @@ function App() {
        consecutive saves never send a stale rev (React state updates lag). */
     const revRef = useRef(0);
 
-    /* P2 fix: when PIN is disabled, pinOK stays false — check pinEnabled too */
-    useEffect(() => { if (loggedIn && (!pinEnabled || pinOK)) load(); }, [loggedIn, pinOK, pinEnabled]);
+    useEffect(() => { if (loggedIn) load(); }, [loggedIn]);
 
     /* ── B3 fix: heartbeat — detect server restart, auto-reload on reconnect ── */
     useEffect(() => {
-        if (!loggedIn || (pinEnabled && !pinOK)) return;
+        if (!loggedIn) return;
         const id = setInterval(async () => {
             try {
                 const r = await fetch('/api/ping');
@@ -1326,11 +1326,9 @@ function App() {
             }
         }, 30000); // every 30 seconds
         return () => clearInterval(id);
-    }, [loggedIn, pinOK, pinEnabled]);
+    }, [loggedIn]);
     const doLogout = async () => {
         await fetch('/v1/auth/logout', {method:'POST', credentials:'include'}).catch(()=>{});
-        clearSess();   // reset PIN session so next login re-prompts PIN
-        setPinOK(false);
         setLoggedIn(false);
         setConn(false);
         setDb({students:[],logs:[],rosters:{},pending:[]});
@@ -1979,29 +1977,52 @@ function App() {
        saved that JSON as the "calendar" file. Hence the garbled download.
        Fetching with credentials and turning the response into a blob is the
        only way to download from an authenticated endpoint. */
+    const calendarPreviewPath = (kind, rosterDate=rDate) => kind === 'roster'
+        ? `/daily-roster/calendar?date=${encodeURIComponent(rosterDate)}`
+        : '/class-schedules/calendar';
+
+    const fetchIcsPreview = async (kind, rosterDate=rDate) => {
+        const data = await v1Api(calendarPreviewPath(kind, rosterDate));
+        const calendar = data.calendar || {};
+        if (!/^[0-9a-f]{64}$/.test(calendar.revision || '')) {
+            throw new Error('日历预览缺少有效版本，请刷新页面后重试');
+        }
+        return {kind, ...calendar};
+    };
+
     const openIcsPreview = async (kind) => {
         setIcsBusy(true);
         try {
-            const path = kind === 'roster'
-                ? `/daily-roster/calendar?date=${encodeURIComponent(rDate)}`
-                : '/class-schedules/calendar';
-            const data = await v1Api(path);
-            setIcsPreview({kind, ...(data.calendar || {})});
+            setIcsPreview(await fetchIcsPreview(kind));
         } catch (err) {
             showToast(err.message || '日历预览加载失败', 'error');
         } finally { setIcsBusy(false); }
     };
 
-    const downloadIcs = async (kind, suggestedName) => {
+    const downloadIcs = async (preview) => {
         setIcsBusy(true);
         try {
+            const kind = preview?.kind;
+            const revision = preview?.revision || '';
+            if (!/^[0-9a-f]{64}$/.test(revision)) {
+                throw new Error('日历预览版本无效，请关闭后重新预览');
+            }
+            const query = new URLSearchParams({revision});
+            if (kind === 'roster') query.set('date', preview.date || rDate);
             const path = kind === 'roster'
-                ? `/daily-roster/calendar.ics?date=${encodeURIComponent(rDate)}`
-                : '/class-schedules/calendar.ics';
+                ? `/daily-roster/calendar.ics?${query}`
+                : `/class-schedules/calendar.ics?${query}`;
             const r = await fetch(`/s/${encodeURIComponent(TENANT_SLUG)}/v1${path}`, {
                 credentials:'include', headers:{'X-Requested-With':'StudioSaaS'},
             });
-            if (!r.ok) throw new Error(`下载失败（HTTP ${r.status}）`);
+            if (!r.ok) {
+                const detail = await r.json().catch(() => ({}));
+                if (r.status === 409 && detail.error === 'calendar_revision_conflict') {
+                    setIcsPreview(await fetchIcsPreview(kind, preview.date || rDate));
+                    throw new Error('排课已在预览后发生变化，内容已刷新；请确认后重新下载');
+                }
+                throw new Error(detail.message || detail.error || `下载失败（HTTP ${r.status}）`);
+            }
             const type = r.headers.get('Content-Type') || '';
             /* Guard the exact failure this replaced: if the endpoint answers
                with JSON we must not hand the visitor a .ics full of it. */
@@ -2012,7 +2033,7 @@ function App() {
             a.href = url;
             /* The server names the file on the CalendarDocument; a name invented
                here is how a roster export ended up called weekly-classes.ics. */
-            a.download = suggestedName
+            a.download = preview.filename
                 || r.headers.get('Content-Disposition')?.match(/filename="?([^";]+)"?/)?.[1]
                 || (kind === 'roster' ? `roster-${rDate}.ics` : 'calendar.ics');
             document.body.appendChild(a); a.click(); a.remove();
@@ -2903,17 +2924,13 @@ document.getElementById('copybtn').addEventListener('click', function(){
     const exportRevenueCSV = () => downloadTenantExport('revenue.csv', `Studio_Revenue_${todayISO()}.csv`);
     const exportLogsCSV = () => downloadTenantExport('credit-ledger.csv', `Studio_Ledger_${todayISO()}.csv`);
 
-    const changePin = () => {
-        if (!/^\d{4}$/.test(newPin1)) { showToast('PIN 必须是 4 位数字','error'); return; }
-        if (newPin1!==newPin2)         { showToast('两次输入不一致','error'); return; }
-        savePin(newPin1); setNewPin1(''); setNewPin2(''); setShowSettings(false);
-        showToast('PIN 码已更新');
+    const requestLogout = () => {
+        setShowSettings(false);
+        confirm('确认退出登录？', doLogout, {confirmText:'退出登录'});
     };
-    const lockScreen = () => { if (!pinEnabled) { setShowSettings(false); confirm('确认退出登录？', doLogout, {confirmText:'退出登录'}); return; } clearSess(); setPinOK(false); setShowSettings(false); };
 
     /* ── Guards ── */
     if (!loggedIn) return <LoginScreen onLogin={refreshSession}/>;
-    if (pinEnabled && !pinOK) return <PINScreen onUnlock={() => { markSess(); setPinOK(true); }}/>;
     if (!conn) return (
         <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white p-4">
             <div className="text-center p-8 max-w-md bg-gray-800 rounded-2xl shadow-2xl border border-gray-700 anim w-full">
@@ -2954,17 +2971,17 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 screen cannot disagree with the file that arrives. */}
             {icsPreview && (
                 <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center bg-black/40 p-0 md:p-4"
-                    role="dialog" aria-modal="true" aria-label="下载日历"
+                    role="dialog" aria-modal="true" aria-labelledby="ics-dialog-title" aria-describedby="ics-dialog-help"
                     onClick={e=>{ if (e.target === e.currentTarget) setIcsPreview(null); }}>
-                    <div className="bg-white w-full md:max-w-lg md:rounded-2xl rounded-t-2xl max-h-[88vh] overflow-y-auto">
+                    <div ref={icsDialogRef} className="bg-white w-full md:max-w-lg md:rounded-2xl rounded-t-2xl max-h-[88vh] overflow-y-auto">
                         <div className="px-5 py-4 border-b border-gray-100 flex items-start justify-between gap-3">
                             <div>
-                                <p className="font-bold text-gray-900">下载日历</p>
+                                <p id="ics-dialog-title" className="font-bold text-gray-900">下载日历</p>
                                 <p className="text-xs text-gray-500 mt-0.5">
                                     {icsPreview.date ? `${fmtDate(icsPreview.date)} · ` : ''}Apple / Google 通用 .ics
                                 </p>
                             </div>
-                            <button onClick={()=>setIcsPreview(null)} aria-label="关闭"
+                            <button ref={icsCloseButtonRef} onClick={()=>setIcsPreview(null)} aria-label="关闭日历预览"
                                 className="text-gray-400 text-2xl leading-none px-2 min-h-[44px]">×</button>
                         </div>
 
@@ -2992,7 +3009,9 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                         <div className="flex items-start justify-between gap-2">
                                             <p className="font-bold text-gray-900 text-sm">{ev.summary}</p>
                                             <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 flex-shrink-0">
-                                                {ev.durationMinutes} 分钟{ev.durationSource==='default' ? ' · 默认' : ''}
+                                                {ev.allDay
+                                                    ? '全天 · 未设时间'
+                                                    : `${ev.durationMinutes} 分钟${ev.durationSource==='default' ? ' · 默认' : ''}`}
                                             </span>
                                         </div>
                                         <p className="text-xs text-gray-500 mt-1">{ev.timeRange}</p>
@@ -3029,7 +3048,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                 </div>
                             )}
 
-                            <p className="text-xs text-gray-500 leading-relaxed">
+                            <p id="ics-dialog-help" className="text-xs text-gray-500 leading-relaxed">
                                 Apple 日历可直接打开此文件；Google 日历请在电脑端「设置 → 导入和导出」导入。
                                 同一个文件两者通用。
                                 {icsPreview.subscribable === false && '文件是当前排课的快照，之后修改排课需要重新下载。'}
@@ -3039,7 +3058,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         <div className="px-5 py-4 border-t border-gray-100 flex gap-2">
                             <button onClick={()=>setIcsPreview(null)}
                                 className="flex-1 border border-gray-200 rounded-xl py-3 text-sm font-bold text-gray-700 min-h-[44px]">取消</button>
-                            <button onClick={()=>downloadIcs(icsPreview.kind, icsPreview.filename)}
+                            <button onClick={()=>downloadIcs(icsPreview)}
                                 disabled={icsBusy || !(icsPreview.stats?.events > 0)}
                                 title={icsPreview.stats?.events > 0 ? '' : '没有可导出的课程'}
                                 className="flex-1 bg-indigo-600 active:bg-indigo-700 disabled:opacity-50 text-white rounded-xl py-3 text-sm font-bold min-h-[44px] inline-flex items-center justify-center gap-1.5">
@@ -3053,7 +3072,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
 
             {/* ── Portfolio Lightbox ── */}
             {portLB && portLB.items.length > 0 && (
-                <div className="fixed inset-0 bg-black/95 z-[90] flex flex-col"
+                <div ref={portLightboxDialogRef} className="fixed inset-0 bg-black/95 z-[90] flex flex-col"
+                    role="dialog" aria-modal="true" aria-labelledby="portfolio-lightbox-title"
                     style={{paddingBottom:'env(safe-area-inset-bottom,0px)', paddingTop:'env(safe-area-inset-top,0px)'}}
                     onTouchStart={e=>{ lbTouchX.current = e.touches[0].clientX; lbTouchX._y = e.touches[0].clientY; }}
                     onTouchEnd={e=>{
@@ -3070,14 +3090,14 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     <div className="flex justify-between items-center px-4 py-3 flex-shrink-0"
                         style={{paddingTop:'max(12px,env(safe-area-inset-top,12px))'}}>
                         <div className="min-w-0">
-                            <p className="text-white font-bold text-sm truncate">{portLB.items[portLB.idx]?.title || fmtDate(portLB.items[portLB.idx]?.date)}</p>
+                            <p id="portfolio-lightbox-title" className="text-white font-bold text-sm truncate">{portLB.items[portLB.idx]?.title || fmtDate(portLB.items[portLB.idx]?.date)}</p>
                             {portLB.items[portLB.idx]?.title && <p className="text-white/50 text-[11px] truncate">{fmtDate(portLB.items[portLB.idx]?.date)}</p>}
                             {portLB.items[portLB.idx]?.note && <p className="inline-flex items-center gap-1.5 text-white/60 text-xs truncate"><Icon name="chat" className="w-4 h-4"/>{portLB.items[portLB.idx].note}</p>}
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                             <span className="text-white/40 text-xs">{portLB.idx+1} / {portLB.items.length}</span>
                             {/* M2: Edit button in lightbox — sole access point on touch devices */}
-                            <button onClick={()=>{const cur=portLB.items[portLB.idx];if(cur&&selS)setPortEdit({sid:String(selS.id),item:cur,note:cur.note||'',title:cur.title||'',date:cur.date||todayISO(),public:!!cur.public});}}
+                            <button onClick={()=>{const cur=portLB.items[portLB.idx];if(cur&&selS){setPortEdit({sid:String(selS.id),item:cur,note:cur.note||'',title:cur.title||'',date:cur.date||todayISO(),public:!!cur.public});setPortLB(null);}}}
                                 aria-label="编辑" className="text-white/80 active:text-white w-9 h-9 flex items-center justify-center"><Icon name="pencil" className="w-4 h-4"/></button>
                             <button onClick={()=>setPortLB(null)} aria-label="关闭" className="text-white text-2xl font-bold w-10 h-10 flex items-center justify-center">×</button>
                         </div>
@@ -3087,6 +3107,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         {/* #8 fix: onError shows fallback text instead of broken-image icon */}
                         <img
                             src={portfolioImgSrc(selS?.id, portLB.items[portLB.idx])}
+                            alt={portLB.items[portLB.idx]?.title || `${selS?.name || '学员'}的作品 ${portLB.idx + 1}`}
                             className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
                             onClick={e=>e.stopPropagation()}
                             onError={e=>{e.target.style.display='none';e.target.nextSibling&&(e.target.nextSibling.style.display='flex');}}/>
@@ -3115,13 +3136,14 @@ document.getElementById('copybtn').addEventListener('click', function(){
 
             {/* ── Portfolio Upload Modal ── */}
             {portUpload && (
-                <div className="fixed inset-0 bg-black/70 z-[85] flex items-end sm:items-center justify-center sm:p-4"
+                <div ref={portUploadDialogRef} className="fixed inset-0 bg-black/70 z-[85] flex items-end sm:items-center justify-center sm:p-4"
+                    role="dialog" aria-modal="true" aria-labelledby="portfolio-upload-title"
                     onClick={e=>{if(e.target===e.currentTarget){if(portUpFile?.dataUrl)URL.revokeObjectURL(portUpFile.dataUrl);setPortUpload(false);setPortUpFile(null);}}}>
                     {/* M5: click backdrop to close */}
                     <div className="bg-white w-full sm:rounded-3xl sm:max-w-md shadow-2xl overflow-hidden anim"
                         style={{paddingBottom:'env(safe-area-inset-bottom,0px)'}}>
                         <div className="flex justify-between items-center px-5 pt-5 pb-3">
-                            <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2"><Icon name="upload"/> 上传{workNoun}</h3>
+                            <h3 id="portfolio-upload-title" className="font-bold text-gray-800 text-lg flex items-center gap-2"><Icon name="upload"/> 上传{workNoun}</h3>
                             <button onClick={()=>{if(portUpFile?.dataUrl)URL.revokeObjectURL(portUpFile.dataUrl);setPortUpload(false);setPortUpFile(null);}} aria-label="关闭" className="text-gray-400 text-2xl font-bold w-10 h-10 flex items-center justify-center">×</button>
                         </div>
                         <div className="px-5 pb-5">
@@ -3153,7 +3175,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                 </div>
                             ) : (
                                 <div>
-                                    <img src={portUpFile.dataUrl} className="w-full h-52 object-cover rounded-2xl mb-4 bg-gray-100"/>
+                                    <img src={portUpFile.dataUrl} alt="待上传作品预览" className="w-full h-52 object-cover rounded-2xl mb-4 bg-gray-100"/>
                                     <div className="space-y-3">
                                         <div>
                                             <label className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500 mb-1.5 block"><Icon name="calendar" className="w-4 h-4"/>作品日期</label>
@@ -3208,12 +3230,13 @@ document.getElementById('copybtn').addEventListener('click', function(){
             {/* ── Portfolio Edit Note Modal ── */}
             {/* #4 fix: backdrop click closes; #5 fix: items-end bottom-sheet avoids iOS keyboard overlap */}
             {portEdit && (
-                <div className="fixed inset-0 bg-black/60 z-[85] flex items-end sm:items-center justify-center sm:p-4"
+                <div ref={portEditDialogRef} className="fixed inset-0 bg-black/60 z-[85] flex items-end sm:items-center justify-center sm:p-4"
+                    role="dialog" aria-modal="true" aria-labelledby="portfolio-edit-title"
                     onClick={e=>{if(e.target===e.currentTarget)setPortEdit(null);}}>
                     <div className="bg-white w-full sm:rounded-3xl sm:max-w-sm rounded-t-3xl p-5 shadow-2xl anim"
                         style={{paddingBottom:'max(20px,env(safe-area-inset-bottom,20px))'}}>
                         <div className="flex justify-between items-center mb-4">
-                            <h3 className="inline-flex items-center gap-1.5 font-bold text-gray-800 text-lg"><Icon name="pencil" className="w-4 h-4"/>编辑作品信息</h3>
+                            <h3 id="portfolio-edit-title" className="inline-flex items-center gap-1.5 font-bold text-gray-800 text-lg"><Icon name="pencil" className="w-4 h-4"/>编辑作品信息</h3>
                             <button onClick={()=>setPortEdit(null)} aria-label="关闭" className="text-gray-400 text-2xl font-bold w-10 h-10 flex items-center justify-center">×</button>
                         </div>
                         <div className="space-y-3">
@@ -3265,7 +3288,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
 
             {/* G1: Global Search Overlay */}
             {gOpen && (
-                <div className="fixed inset-0 bg-black/60 z-[80] flex items-start justify-center pt-[10vh] px-4 backdrop-blur-sm"
+                <div ref={searchDialogRef} className="fixed inset-0 bg-black/60 z-[80] flex items-start justify-center pt-[10vh] px-4 backdrop-blur-sm"
+                     role="dialog" aria-modal="true" aria-label="搜索学员"
                      onClick={()=>{setGOpen(false);setGQ('');}}>
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden anim" onClick={e=>e.stopPropagation()}>
                         <div className="flex items-center gap-2 px-4 py-3 border-b">
@@ -3275,6 +3299,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                 onKeyDown={e=>{ if(e.key==='Escape'){setGOpen(false);setGQ('');} }}
                                 className="flex-1 outline-none text-gray-800 text-sm bg-transparent placeholder-gray-400"/>
                             <kbd className="hidden sm:inline text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded font-mono">ESC</kbd>
+                            <button type="button" onClick={()=>{setGOpen(false);setGQ('');}} aria-label="关闭搜索"
+                                className="text-gray-400 active:text-gray-700 text-xl inline-flex items-center justify-center">×</button>
                         </div>
                         <div className="max-h-80 overflow-y-auto sl">
                             {!gQ.trim() && (
@@ -3310,12 +3336,13 @@ document.getElementById('copybtn').addEventListener('click', function(){
 
             {/* Settings modal */}
             {showSettings && (
-                <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4" onClick={()=>setShowSettings(false)}
+                <div ref={settingsDialogRef} className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4" onClick={()=>setShowSettings(false)}
+                    role="dialog" aria-modal="true" aria-labelledby="settings-dialog-title"
                     style={{paddingTop:'max(16px, env(safe-area-inset-top, 16px))', paddingBottom:'max(16px, env(safe-area-inset-bottom, 16px))'}}>
                     <div className="bg-white rounded-2xl p-6 w-full max-w-2xl shadow-2xl anim overflow-y-auto modal-scroll" style={{maxHeight:'90dvh'}} onClick={e=>e.stopPropagation()}>
                         <div className="flex justify-between items-center mb-5">
-                            <h3 className="inline-flex items-center gap-1.5 font-bold text-gray-800"><Icon name="cog" className="w-4 h-4"/>系统设置</h3>
-                            <button onClick={()=>setShowSettings(false)} aria-label="关闭" className="text-gray-400 active:text-gray-700 text-xl p-1 min-h-[40px] min-w-[40px] inline-flex items-center justify-center">×</button>
+                            <h3 id="settings-dialog-title" className="inline-flex items-center gap-1.5 font-bold text-gray-800"><Icon name="cog" className="w-4 h-4"/>系统设置</h3>
+                            <button onClick={()=>setShowSettings(false)} aria-label="关闭" className="text-gray-400 active:text-gray-700 text-xl p-1 min-h-[44px] min-w-[44px] inline-flex items-center justify-center">×</button>
                         </div>
                         {/* A5: Public website and lead-capture settings live in Studio Admin. */}
                         {TENANT_SLUG && ownerRoles.includes(actorRole) && (
@@ -3375,30 +3402,6 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                 {pwBusy ? '更新中...' : '更新密码'}
                             </button>
                         </div>
-                        {/* P2: PIN toggle */}
-                        <div className="mt-4 pt-4 border-t border-gray-100">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-xs font-bold text-gray-600">启用屏幕锁（PIN）</p>
-                                    <p className="text-xs text-gray-400 mt-0.5">关闭时「锁定」= 退出登录</p>
-                                </div>
-                                <button onClick={()=>togglePin(!pinEnabled)} className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${pinEnabled?'bg-indigo-600':'bg-gray-300'}`}>
-                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${pinEnabled?'translate-x-6':'translate-x-1'}`}/>
-                                </button>
-                            </div>
-                        </div>
-                        {pinEnabled && (
-                        <div className="space-y-3 mt-4 pt-4 border-t border-gray-100">
-                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">修改 PIN 码</p>
-                            <input type="password" inputMode="numeric" maxLength={4} placeholder="新 PIN（4位数字）"
-                                value={newPin1} onChange={e=>setNewPin1(e.target.value.replace(/\D/,'').slice(0,4))}
-                                className="w-full p-3 border border-gray-300 rounded-xl outline-none tracking-widest text-center text-2xl focus:ring-2 focus:ring-indigo-500"/>
-                            <input type="password" inputMode="numeric" maxLength={4} placeholder="再次确认"
-                                value={newPin2} onChange={e=>setNewPin2(e.target.value.replace(/\D/,'').slice(0,4))}
-                                className="w-full p-3 border border-gray-300 rounded-xl outline-none tracking-widest text-center text-2xl focus:ring-2 focus:ring-indigo-500"/>
-                            <button onClick={changePin} className="w-full bg-indigo-600 active:bg-indigo-700 text-white py-3 rounded-xl font-bold text-sm">更新 PIN</button>
-                        </div>
-                        )}
                         {/* Fix ⑪: configurable inactive-days threshold */}
                         {canManageOperations && <>
                         <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
@@ -3420,9 +3423,9 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                         <p className="text-xs text-gray-400">{pkg.credits}课时 · ${pkg.price}</p>
                                     </div>
                                     <button onClick={()=>{ setPkgEditId(pkg.id); setPkgName(pkg.name); setPkgCredits(String(pkg.credits)); setPkgPrice(String(pkg.price)); }}
-                                        className="text-xs text-indigo-600 font-bold px-3 py-1 min-h-[40px] inline-flex items-center active:text-indigo-800 flex-shrink-0">编辑</button>
+                                        className="text-xs text-indigo-600 font-bold px-3 py-1 min-h-[44px] inline-flex items-center active:text-indigo-800 flex-shrink-0">编辑</button>
                                     <button onClick={()=>{ if((db.packages||[]).length<=1){showToast('至少保留一个套餐','warn');return;} confirm(`删除套餐「${pkg.name}」？`,async ()=>{ const nd={...db,packages:(db.packages||[]).filter(p=>p.id!==pkg.id)}; const ok = await save(nd); if (!ok) return; showToast('套餐已删除'); },{danger:true,confirmText:'删除'}); }}
-                                        aria-label="删除" className="text-red-500 font-bold px-2 py-1 min-h-[40px] min-w-[40px] inline-flex items-center justify-center active:text-red-700 flex-shrink-0"><Icon name="close" className="w-3.5 h-3.5"/></button>
+                                        aria-label="删除" className="text-red-500 font-bold px-2 py-1 min-h-[44px] min-w-[44px] inline-flex items-center justify-center active:text-red-700 flex-shrink-0"><Icon name="close" className="w-3.5 h-3.5"/></button>
                                 </div>
                             ))}
                             {pkgEditId===null ? (
@@ -3506,7 +3509,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             </div>
                         </div>
                         <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
-                            <button onClick={lockScreen} className="w-full bg-gray-100 active:bg-gray-200 text-gray-700 py-3 rounded-xl font-bold text-sm">{pinEnabled?'锁定屏幕':'退出登录'}</button>
+                            <button onClick={requestLogout} className="w-full bg-gray-100 active:bg-gray-200 text-gray-700 py-3 rounded-xl font-bold text-sm">退出登录</button>
                             {/* Mobile-only: sidebar actions inaccessible on phone */}
                             <div className="md:hidden space-y-2 pt-2 border-t border-gray-100">
                                 <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide pb-0.5">快捷操作</p>
@@ -3591,11 +3594,11 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             <span className="inline-flex items-center gap-1.5"><Icon name="warning" className="w-3.5 h-3.5"/>日志 {db.logs.length} 条</span>
                         </div>
                     )}
-                    {canManageOperations && !TENANT_SLUG && <button onClick={exportDB} className="inline-flex items-center gap-1.5 w-full bg-indigo-700 active:bg-indigo-600 p-2.5 rounded-xl text-xs font-bold min-h-[40px]"><Icon name="download" className="w-4 h-4"/>备份导出</button>}
-                    <button onClick={load} disabled={busy} className="inline-flex items-center gap-1.5 w-full bg-indigo-800 active:bg-indigo-700 p-2.5 rounded-xl text-xs font-bold min-h-[40px]"><Icon name="refresh" className="w-4 h-4"/>刷新</button>
-                    <button onClick={()=>setShowSettings(true)} className="w-full bg-indigo-800 active:bg-indigo-700 p-2.5 rounded-xl text-xs font-bold min-h-[40px]"><span className="inline-flex items-center gap-1.5"><Icon name="cog" className="w-4 h-4"/>设置</span></button>
+                    {canManageOperations && !TENANT_SLUG && <button onClick={exportDB} className="inline-flex items-center gap-1.5 w-full bg-indigo-700 active:bg-indigo-600 p-2.5 rounded-xl text-xs font-bold min-h-[44px]"><Icon name="download" className="w-4 h-4"/>备份导出</button>}
+                    <button onClick={load} disabled={busy} className="inline-flex items-center gap-1.5 w-full bg-indigo-800 active:bg-indigo-700 p-2.5 rounded-xl text-xs font-bold min-h-[44px]"><Icon name="refresh" className="w-4 h-4"/>刷新</button>
+                    <button onClick={()=>setShowSettings(true)} className="w-full bg-indigo-800 active:bg-indigo-700 p-2.5 rounded-xl text-xs font-bold min-h-[44px]"><span className="inline-flex items-center gap-1.5"><Icon name="cog" className="w-4 h-4"/>设置</span></button>
                     <button onClick={()=>confirm('确认退出登录？下次进入需重新输入密码。', doLogout, {confirmText:'退出登录'})}
-                        className="w-full bg-indigo-950 active:bg-red-900 p-2.5 rounded-xl text-xs font-bold min-h-[40px] text-indigo-300 active:text-white"><span className="inline-flex items-center gap-1.5"><Icon name="logout" className="w-4 h-4"/>退出登录</span></button>
+                        className="w-full bg-indigo-950 active:bg-red-900 p-2.5 rounded-xl text-xs font-bold min-h-[44px] text-indigo-300 active:text-white"><span className="inline-flex items-center gap-1.5"><Icon name="logout" className="w-4 h-4"/>退出登录</span></button>
                 </div>
             </aside>
 
@@ -3623,7 +3626,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
     </div>}
     {scheduleLoadError && <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
         <span className="flex-1">{scheduleLoadError}</span>
-        <button onClick={loadSchedules} className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-bold min-h-[40px]">重试</button>
+        <button onClick={loadSchedules} className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-bold min-h-[44px]">重试</button>
     </div>}
     <div className={TENANT_SLUG ? 'cms-dashboard-lead' : ''}>
     {TENANT_SLUG && (
@@ -3809,7 +3812,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
             <div className="flex flex-wrap gap-2">
                 {analytics.inactive.slice(0,12).map(s => (
                     <button key={s.id} onClick={()=>{setTab('students');setSrch(s.name);}}
-                        className="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200 active:bg-blue-200 min-h-[36px]">
+                        className="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200 active:bg-blue-200 min-h-[44px]">
                         {s.name} ({s.balance}课 · {daysSince(s.lastActive)}天前)
                     </button>
                 ))}
@@ -3824,7 +3827,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
             <div className="flex flex-wrap gap-2">
                 {analytics.lowBalance.map(s => (
                     <button key={s.id} onClick={()=>{setTab('students');setSrch(s.name);}}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold border min-h-[36px] ${parseInt(s.balance,10)===0?'bg-red-100 text-red-700 border-red-200':'bg-amber-100 text-amber-800 border-amber-200'}`}>
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold border min-h-[44px] ${parseInt(s.balance,10)===0?'bg-red-100 text-red-700 border-red-200':'bg-amber-100 text-amber-800 border-amber-200'}`}>
                         {s.name} ({s.balance})
                     </button>
                 ))}
@@ -3868,7 +3871,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
     <h2 className="inline-flex items-center gap-1.5 text-xl md:text-2xl font-bold text-gray-800"><Icon name="calendar" className="w-4 h-4"/>每日排课</h2>
     {scheduleLoadError && <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
         <span className="flex-1">{scheduleLoadError}</span>
-        <button onClick={loadSchedules} className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-bold min-h-[40px]">重试</button>
+        <button onClick={loadSchedules} className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-bold min-h-[44px]">重试</button>
     </div>}
     {/* G1: 生日提醒横幅 */}
     {upcomingBirthdays.length>0 && (
@@ -4028,19 +4031,19 @@ document.getElementById('copybtn').addEventListener('click', function(){
         <div className="mt-3 pt-3 border-t border-gray-100 flex gap-2 items-center flex-wrap">
             <span className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500"><Icon name="clipboard" className="w-4 h-4"/>班组模板</span>
             <select value={grpSel} onChange={e=>setGrpSel(e.target.value)}
-                className="px-2 py-2 border border-gray-300 rounded-xl bg-white text-sm font-medium min-h-[40px] outline-none focus:ring-2 focus:ring-indigo-500">
+                className="px-2 py-2 border border-gray-300 rounded-xl bg-white text-sm font-medium min-h-[44px] outline-none focus:ring-2 focus:ring-indigo-500">
                 <option value="">-- 选择模板 --</option>
                 {Object.keys(db.groups||{}).sort().map(g => <option key={g} value={g}>{g}（{(db.groups[g]||[]).length}人）</option>)}
             </select>
             <button onClick={applyGroup} disabled={!grpSel||busy}
-                className="bg-indigo-50 text-indigo-700 border border-indigo-200 active:bg-indigo-100 disabled:opacity-40 px-3 py-2 rounded-xl text-xs font-bold min-h-[40px]">套用到当前日期</button>
+                className="bg-indigo-50 text-indigo-700 border border-indigo-200 active:bg-indigo-100 disabled:opacity-40 px-3 py-2 rounded-xl text-xs font-bold min-h-[44px]">套用到当前日期</button>
             {/* B: template management stays owner/manager; applying a template to a day is a per-day attendance action */}
             {canManageOperations && <button onClick={saveGroup} disabled={busy}
-                className="bg-white text-gray-600 border border-gray-300 active:bg-gray-50 px-3 py-2 rounded-xl text-xs font-bold min-h-[40px]">保存当前为模板</button>}
+                className="bg-white text-gray-600 border border-gray-300 active:bg-gray-50 px-3 py-2 rounded-xl text-xs font-bold min-h-[44px]">保存当前为模板</button>}
             {canManageOperations && grpSel && <button onClick={deleteGroup} disabled={busy}
-                className="bg-white text-red-500 border border-red-200 active:bg-red-50 px-3 py-2 rounded-xl text-xs font-bold min-h-[40px]">删除</button>}
+                className="bg-white text-red-500 border border-red-200 active:bg-red-50 px-3 py-2 rounded-xl text-xs font-bold min-h-[44px]">删除</button>}
             {canManageOperations && TENANT_SLUG && grpSel && <button onClick={groupToSchedule} disabled={busy}
-                className="inline-flex items-center gap-1.5 bg-indigo-600 active:bg-indigo-700 text-white px-3 py-2 rounded-xl text-xs font-bold min-h-[40px]"><Icon name="calendar" className="w-4 h-4"/>转为每周班次</button>}
+                className="inline-flex items-center gap-1.5 bg-indigo-600 active:bg-indigo-700 text-white px-3 py-2 rounded-xl text-xs font-bold min-h-[44px]"><Icon name="calendar" className="w-4 h-4"/>转为每周班次</button>}
         </div>
     </div>
 
@@ -4148,7 +4151,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         const lines = ids.map(id=>{const s=db.students.find(x=>x.id===id); return s&&!s.archived?`${s.name}（剩余${s.balance}课时）`:null;}).filter(Boolean);
                         const text = `【今日上课 ${lines.length} 人 - ${fmtDate(rDate)}】\n${lines.join('\n')}`;
                         copyText(text,'日报已复制到剪贴板');
-                    }} className="bg-white border border-gray-300 active:bg-gray-50 text-gray-600 px-3 py-1.5 rounded-xl text-xs font-bold min-h-[36px]"><span className="inline-flex items-center gap-1.5"><Icon name="clipboard" className="w-4 h-4"/>日报</span></button>
+                    }} className="bg-white border border-gray-300 active:bg-gray-50 text-gray-600 px-3 py-1.5 rounded-xl text-xs font-bold min-h-[44px]"><span className="inline-flex items-center gap-1.5"><Icon name="clipboard" className="w-4 h-4"/>日报</span></button>
                 )}
                 {dayIds.some(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived&&s.mobile;}) && (
                     <button onClick={()=>{
@@ -4156,11 +4159,11 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         const msg=`提醒：您的上课时间是 ${fmtDate(rDate)}，请准时到课。Studio 期待见到您！`;
                         const lines=ids.map(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived&&s.mobile?`${s.name}（${s.mobile}）`:null;}).filter(Boolean);
                         copyText(lines.map(l=>`${l}\n${msg}`).join('\n\n'),`已复制 ${lines.length} 条提醒内容`);
-                    }} className="bg-white border border-green-300 active:bg-green-50 text-green-700 px-3 py-1.5 rounded-xl text-xs font-bold min-h-[36px]"><span className="inline-flex items-center gap-1.5"><Icon name="chat" className="w-4 h-4"/>批量提醒</span></button>
+                    }} className="bg-white border border-green-300 active:bg-green-50 text-green-700 px-3 py-1.5 rounded-xl text-xs font-bold min-h-[44px]"><span className="inline-flex items-center gap-1.5"><Icon name="chat" className="w-4 h-4"/>批量提醒</span></button>
                 )}
                 {dayIds.some(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived&&s.balance>0;}) && (
                     <button onClick={batchCheckIn} disabled={busy}
-                        className="inline-flex items-center gap-1.5 bg-indigo-600 active:bg-indigo-700 text-white px-4 py-1.5 rounded-xl text-xs font-bold min-h-[36px]"><Icon name="bolt" className="w-4 h-4"/>批量签到/消课</button>
+                        className="inline-flex items-center gap-1.5 bg-indigo-600 active:bg-indigo-700 text-white px-4 py-1.5 rounded-xl text-xs font-bold min-h-[44px]"><Icon name="bolt" className="w-4 h-4"/>批量签到/消课</button>
                 )}
             </div>
         </div>
@@ -4257,7 +4260,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
         </div>
         <div className="overflow-x-auto -mx-1 px-1 pb-1"><div className="flex gap-2 items-center" style={{minWidth:'max-content'}}>
             <select value={sortBy} onChange={e=>setSortBy(e.target.value)}
-                className="px-2 py-2 border border-gray-300 rounded-xl bg-white focus:ring-2 focus:ring-indigo-500 outline-none font-medium text-sm min-h-[40px] flex-shrink-0">
+                className="px-2 py-2 border border-gray-300 rounded-xl bg-white focus:ring-2 focus:ring-indigo-500 outline-none font-medium text-sm min-h-[44px] flex-shrink-0">
                 <option value="name-az">名 A→Z</option>
                 <option value="name-za">名 Z→A</option>
                 <option value="last-az">姓 A→Z</option>
@@ -4268,10 +4271,10 @@ document.getElementById('copybtn').addEventListener('click', function(){
             </select>
             {[['all','全部'],['active','有余额'],['low',`低余额≤${renewTh}`],['zero','已清零'],['archived','归档库'],['tag-hot','活跃'],['tag-low','低频'],['tag-risk','流失风险']].map(([v,l]) => (
                 <button key={v} onClick={()=>setFilterBy(v)}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold border min-h-[40px] transition flex-shrink-0 ${filterBy===v?'bg-indigo-600 text-white border-indigo-600':'bg-white text-gray-600 border-gray-300 active:border-indigo-300'}`}>{l}{filterBy===v?` · ${sortedFiltered.length}`:''}</button>
+                    className={`px-4 py-2 rounded-xl text-xs font-bold border min-h-[44px] transition flex-shrink-0 ${filterBy===v?'bg-indigo-600 text-white border-indigo-600':'bg-white text-gray-600 border-gray-300 active:border-indigo-300'}`}>{l}{filterBy===v?` · ${sortedFiltered.length}`:''}</button>
             ))}
             {(filterBy!=='all'||srch) && <button onClick={()=>{setFilterBy('all');setSrch('');}}
-                className="inline-flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold border border-red-200 text-red-500 bg-white active:bg-red-50 min-h-[40px] flex-shrink-0"><Icon name="close" className="w-3.5 h-3.5"/>清除</button>}
+                className="inline-flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold border border-red-200 text-red-500 bg-white active:bg-red-50 min-h-[44px] flex-shrink-0"><Icon name="close" className="w-3.5 h-3.5"/>清除</button>}
         </div></div>
     </div>
 
@@ -4282,12 +4285,12 @@ document.getElementById('copybtn').addEventListener('click', function(){
             <p className="text-sm font-bold text-indigo-700">{`已选择 ${selectedStudents.length} 人`}</p>
             <div className="flex gap-2 flex-wrap">
                 <button onClick={()=>setSelectedStudentIds([])}
-                    className="bg-white border border-indigo-200 text-indigo-700 px-4 py-2 rounded-xl text-xs font-bold min-h-[40px]">清除选择</button>
+                    className="bg-white border border-indigo-200 text-indigo-700 px-4 py-2 rounded-xl text-xs font-bold min-h-[44px]">清除选择</button>
                 <button onClick={copySelectedReminders}
-                    className="bg-indigo-600 active:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-bold min-h-[40px]">复制续课提醒</button>
+                    className="bg-indigo-600 active:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-bold min-h-[44px]">复制续课提醒</button>
                 {canManageOperations && (
                     <button onClick={archiveSelected} disabled={busy}
-                        className="bg-gray-700 active:bg-gray-800 text-white px-4 py-2 rounded-xl text-xs font-bold min-h-[40px] disabled:bg-gray-300">批量归档</button>
+                        className="bg-gray-700 active:bg-gray-800 text-white px-4 py-2 rounded-xl text-xs font-bold min-h-[44px] disabled:bg-gray-300">批量归档</button>
                 )}
             </div>
         </div>
@@ -4301,7 +4304,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     '{student} 家长您好！温馨提醒：您在 {studio} 的剩余课时为 {balance} 节{note}，为不影响后续上课安排，欢迎随时联系老师续课。',
                     {student:s.name, balance:s.balance, note:''}));
                 copyText(lines.join('\n\n'), `已复制 ${lines.length} 条续课提醒，可逐条粘贴到微信`);
-            }} className="bg-orange-600 active:bg-orange-700 text-white px-4 py-2 rounded-xl text-xs font-bold min-h-[40px]"><span className="inline-flex items-center gap-1.5"><Icon name="clipboard" className="w-4 h-4"/>复制全部提醒话术</span></button>
+            }} className="bg-orange-600 active:bg-orange-700 text-white px-4 py-2 rounded-xl text-xs font-bold min-h-[44px]"><span className="inline-flex items-center gap-1.5"><Icon name="clipboard" className="w-4 h-4"/>复制全部提醒话术</span></button>
         </div>
     )}
     {!sortedFiltered.length && <EmptyState icon={<Icon name="search" className="w-8 h-8"/>} main="没有符合条件的学员"
@@ -4360,10 +4363,10 @@ document.getElementById('copybtn').addEventListener('click', function(){
     {studentPageCount > 1 && (
         <div className="flex items-center justify-center gap-3 pt-2">
             <button onClick={()=>setStudentPage(p=>Math.max(1,p-1))} disabled={studentPage<=1}
-                className="px-4 py-2 rounded-xl text-sm font-bold border border-gray-300 bg-white disabled:opacity-40 min-h-[40px]">上一页</button>
+                className="px-4 py-2 rounded-xl text-sm font-bold border border-gray-300 bg-white disabled:opacity-40 min-h-[44px]">上一页</button>
             <span className="text-sm text-gray-500 font-bold">{`第 ${studentPage} / ${studentPageCount} 页`}</span>
             <button onClick={()=>setStudentPage(p=>Math.min(studentPageCount,p+1))} disabled={studentPage>=studentPageCount}
-                className="px-4 py-2 rounded-xl text-sm font-bold border border-gray-300 bg-white disabled:opacity-40 min-h-[40px]">下一页</button>
+                className="px-4 py-2 rounded-xl text-sm font-bold border border-gray-300 bg-white disabled:opacity-40 min-h-[44px]">下一页</button>
         </div>
     )}
     {/* U7: Back-to-top button when list > 15 */}
@@ -4711,7 +4714,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 {l:'本年',    fn:()=>{ const y=new Date().getFullYear(); setLDateFrom(`${y}-01-01`); setLDateTo(`${y}-12-31`); }},
             ].map(({l,fn})=>(
                 <button key={l} type="button" onClick={fn}
-                    className="px-3 py-1.5 bg-indigo-50 active:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold min-h-[36px]">{l}</button>
+                    className="px-3 py-1.5 bg-indigo-50 active:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold min-h-[44px]">{l}</button>
             ))}
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -4727,11 +4730,11 @@ document.getElementById('copybtn').addEventListener('click', function(){
             </div>
             {(lStu||lSrch||lAct||lDateFrom||lDateTo) && (
                 <button onClick={()=>{setLStu(null);setLSrch('');setLAct('');setLDateFrom('');setLDateTo('');}}
-                    className="inline-flex items-center gap-1 px-3 py-2 bg-gray-100 active:bg-gray-200 text-gray-500 rounded-xl text-xs font-bold min-h-[40px]"><Icon name="close" className="w-3.5 h-3.5"/>清除</button>
+                    className="inline-flex items-center gap-1 px-3 py-2 bg-gray-100 active:bg-gray-200 text-gray-500 rounded-xl text-xs font-bold min-h-[44px]"><Icon name="close" className="w-3.5 h-3.5"/>清除</button>
             )}
             <span className="text-sm text-gray-400">{filteredLogs.length} 条</span>
             {canManageOperations && <button onClick={exportLogsCSV}
-                className="inline-flex items-center gap-1.5 ml-auto bg-white border border-gray-300 active:bg-gray-50 text-gray-600 px-3 py-2 rounded-xl font-bold text-xs min-h-[40px]"><Icon name="download" className="w-4 h-4"/>CSV</button>
+                className="inline-flex items-center gap-1.5 ml-auto bg-white border border-gray-300 active:bg-gray-50 text-gray-600 px-3 py-2 rounded-xl font-bold text-xs min-h-[44px]"><Icon name="download" className="w-4 h-4"/>CSV</button>
             }
         </div>
     </div>
@@ -4765,11 +4768,11 @@ document.getElementById('copybtn').addEventListener('click', function(){
         {/* Fix #10: first/last page buttons */}
         {logPageCount>1 && (
             <div className="p-3 border-t flex items-center justify-center gap-1.5">
-                <button disabled={lPage===1} onClick={()=>setLPage(1)} className="px-3 py-2 rounded-lg bg-gray-100 active:bg-gray-200 disabled:opacity-40 text-sm font-bold min-h-[40px]">«</button>
-                <button disabled={lPage===1} onClick={()=>setLPage(p=>p-1)} className="px-3 py-2 rounded-lg bg-gray-100 active:bg-gray-200 disabled:opacity-40 text-sm font-bold min-h-[40px]">‹</button>
+                <button disabled={lPage===1} onClick={()=>setLPage(1)} className="px-3 py-2 rounded-lg bg-gray-100 active:bg-gray-200 disabled:opacity-40 text-sm font-bold min-h-[44px]">«</button>
+                <button disabled={lPage===1} onClick={()=>setLPage(p=>p-1)} className="px-3 py-2 rounded-lg bg-gray-100 active:bg-gray-200 disabled:opacity-40 text-sm font-bold min-h-[44px]">‹</button>
                 <span className="text-sm text-gray-600 px-2">{lPage} / {logPageCount}</span>
-                <button disabled={lPage===logPageCount} onClick={()=>setLPage(p=>p+1)} className="px-3 py-2 rounded-lg bg-gray-100 active:bg-gray-200 disabled:opacity-40 text-sm font-bold min-h-[40px]">›</button>
-                <button disabled={lPage===logPageCount} onClick={()=>setLPage(logPageCount)} className="px-3 py-2 rounded-lg bg-gray-100 active:bg-gray-200 disabled:opacity-40 text-sm font-bold min-h-[40px]">»</button>
+                <button disabled={lPage===logPageCount} onClick={()=>setLPage(p=>p+1)} className="px-3 py-2 rounded-lg bg-gray-100 active:bg-gray-200 disabled:opacity-40 text-sm font-bold min-h-[44px]">›</button>
+                <button disabled={lPage===logPageCount} onClick={()=>setLPage(logPageCount)} className="px-3 py-2 rounded-lg bg-gray-100 active:bg-gray-200 disabled:opacity-40 text-sm font-bold min-h-[44px]">»</button>
             </div>
         )}
     </div>
@@ -4826,7 +4829,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
         <div className="flex items-center justify-between mb-3">
             <p className="inline-flex items-center gap-1.5 font-bold text-gray-700 text-sm"><Icon name="dashboard" className="w-4 h-4"/>经营月报（近 6 个月）</p>
             <button onClick={exportBizCSV}
-                className="inline-flex items-center gap-1.5 bg-white border border-gray-300 active:bg-gray-50 text-gray-600 px-3 py-1.5 rounded-xl text-xs font-bold min-h-[36px]"><Icon name="download" className="w-4 h-4"/>导出 CSV</button>
+                className="inline-flex items-center gap-1.5 bg-white border border-gray-300 active:bg-gray-50 text-gray-600 px-3 py-1.5 rounded-xl text-xs font-bold min-h-[44px]"><Icon name="download" className="w-4 h-4"/>导出 CSV</button>
         </div>
         <div className="overflow-x-auto"><table className="w-full text-sm" style={{minWidth:'480px'}}>
             <thead><tr className="text-xs text-gray-400 border-b">
@@ -4865,10 +4868,10 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 <h3 className="font-bold text-gray-800">财务明细报表</h3>
                 <div className="flex items-center gap-2">
                     <button onClick={exportRevenueCSV}
-                        className="inline-flex items-center gap-1.5 bg-white border border-gray-300 active:bg-gray-50 text-gray-600 px-3 py-2 rounded-xl font-bold text-sm min-h-[40px]"><Icon name="download" className="w-4 h-4"/>CSV</button>
+                        className="inline-flex items-center gap-1.5 bg-white border border-gray-300 active:bg-gray-50 text-gray-600 px-3 py-2 rounded-xl font-bold text-sm min-h-[44px]"><Icon name="download" className="w-4 h-4"/>CSV</button>
                     <div className="flex gap-1 bg-gray-100 p-1 rounded-xl">
                         {[['monthly','月度'],['yearly','年度'],['custom','自定义']].map(([v,l]) => (
-                            <button key={v} onClick={()=>setSPeriod(v)} className={`px-3 py-2 rounded-lg text-sm font-bold min-h-[40px] ${sPeriod===v?'bg-white shadow text-indigo-700':'text-gray-500'}`}>{l}</button>
+                            <button key={v} onClick={()=>setSPeriod(v)} className={`px-3 py-2 rounded-lg text-sm font-bold min-h-[44px] ${sPeriod===v?'bg-white shadow text-indigo-700':'text-gray-500'}`}>{l}</button>
                         ))}
                     </div>
                 </div>
@@ -4876,7 +4879,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
             <div className="flex flex-wrap gap-3 items-center">
                 {sPeriod==='monthly' && (
                     <select value={sYear} onChange={e=>setSYear(e.target.value)}
-                        className="px-2 py-2 border border-gray-300 rounded-xl bg-white focus:ring-2 focus:ring-indigo-400 outline-none text-sm min-h-[40px]">
+                        className="px-2 py-2 border border-gray-300 rounded-xl bg-white focus:ring-2 focus:ring-indigo-400 outline-none text-sm min-h-[44px]">
                         <option value="all">所有年份</option>
                         {analytics.availYears.map(y=><option key={y} value={y}>{y}年</option>)}
                     </select>
@@ -4976,7 +4979,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
 
 {/* ═══ PROFILE MODAL ══════════════════════════════════════════ */}
 {selS && (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center sm:p-4 backdrop-blur-sm">
+    <div ref={profileDialogRef} className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center sm:p-4 backdrop-blur-sm"
+        role="dialog" aria-modal="true" aria-labelledby="student-profile-title">
         {/* Fix #7: slide-up sheet on mobile, centered modal on iPad.
             Three fixed bands + one scrolling band: identity / tabs / panel /
             actions. The actions used to be the last thing in the scroll, so
@@ -4986,7 +4990,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
             <div className="flex justify-between items-center p-4 bg-gray-50 border-b flex-shrink-0">
                 <div className="flex items-center gap-2.5 min-w-0">
                     <PhotoAvatar photo={selS.photo} name={selS.name} size="sm"/>
-                    <h3 className="text-lg font-bold text-gray-900 truncate">{selS.name}</h3>
+                    <h3 id="student-profile-title" className="text-lg font-bold text-gray-900 truncate">{selS.name}</h3>
                     <BalBadge n={selS.balance}/>
                     {selS.archived && <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full shrink-0">归档</span>}
                 </div>
@@ -5136,7 +5140,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                             <div className="flex items-center gap-3 mt-2">
                                                 <code className="text-2xl tracking-[0.3em] font-bold text-gray-900">{accessCodeResult.code}</code>
                                                 <button onClick={()=>copyText(accessCodeResult.code,'访问码已复制')}
-                                                    className="ml-auto px-3 py-2 rounded-lg bg-white border border-amber-200 text-xs font-bold text-amber-800 min-h-[40px]">复制</button>
+                                                    className="ml-auto px-3 py-2 rounded-lg bg-white border border-amber-200 text-xs font-bold text-amber-800 min-h-[44px]">复制</button>
                                             </div>
                                         </div>
                                     )}
@@ -5155,7 +5159,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                                 <div className="pt-3 flex items-center gap-3">
                                                     <p className="text-xs text-gray-500 flex-1">停用后，当前访问码和所有已登录会话会立即失效。</p>
                                                     <button disabled={busy} onClick={revokeStudentAccessCode}
-                                                        className="px-3 py-2 rounded-lg bg-white border border-red-200 text-red-700 text-xs font-bold min-h-[40px]">停用学员专区</button>
+                                                        className="px-3 py-2 rounded-lg bg-white border border-red-200 text-red-700 text-xs font-bold min-h-[44px]">停用学员专区</button>
                                                 </div>
                                             </details>
                                         )}
@@ -5260,11 +5264,15 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                                 <div key={item.id}
                                                     className="port-thumb relative group cursor-pointer rounded-xl overflow-hidden bg-gray-100"
                                                     style={{aspectRatio:'1'}}
+                                                    role="button" tabIndex={0}
+                                                    aria-label={`查看${item.title || fmtDate(item.date)}作品`}
+                                                    onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();setPortLB({items,idx});}}}
                                                     onClick={()=>setPortLB({items,idx})}>
                                                     {/* M7: skeleton shown until image loads */}
                                                     <div className="img-skel absolute inset-0" id={`sk-${item.id}`}/>
                                                     <img
                                                         src={portfolioThumbSrc(selS.id, item)}
+                                                        alt={item.title || `${selS.name}的作品 ${idx + 1}`}
                                                         loading="lazy"
                                                         className="w-full h-full object-cover relative"
                                                         onLoad={e=>{const sk=document.getElementById(`sk-${item.id}`);if(sk)sk.style.display='none';}}
@@ -5279,7 +5287,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                                         </span>
                                                     )}
                                                     {/* B1: port-actions = hidden on mouse devices (hover:flex), always visible on touch (CSS override) */}
-                                                    {/* #7 fix: p-2 + min 32px ensures ≥44px total tap target incl. gap */}
+                                                    {/* Icon stays compact; the shared aria-label rule expands its hit box to 44px. */}
                                                     <div className="port-actions absolute top-0.5 right-0.5 hidden group-hover:flex gap-1 z-10">
                                                         <button
                                                             onClick={e=>{e.stopPropagation();setPortEdit({sid:String(selS.id),item,note:item.note||'',title:item.title||'',date:item.date||todayISO(),public:!!item.public});}}

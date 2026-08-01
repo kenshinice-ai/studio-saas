@@ -166,7 +166,7 @@ Front Desk 两者都不行。家长需要分享链接时转给店长。
 | 经营统计 / 财务报表 | ❌ | ❌ | analytics:read，仅 Owner/Manager |
 | 数据导出（CSV） | ❌ | ❌ | data:export，仅 Owner/Manager |
 | 团队管理 / 品牌与官网 | ❌ | ❌ | Owner 专属 |
-| 修改自己的密码、屏幕锁 PIN | ✅ | ✅ | 系统设置 |
+| 修改自己的密码、退出登录 | ✅ | ✅ | 系统设置 |
 
 角色权限的完整对照见 [手册总览](README.md) 的权限矩阵与
 [Admin_Guide](../Admin_Guide.md) 的 Roles & Permission Matrix。
