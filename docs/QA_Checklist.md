@@ -65,6 +65,11 @@
 - [ ] Weekly schedule ICS preview/download use the same revision and contain no student/guardian identity
 - [ ] Daily roster ICS preview/download use the same revision, require `data:export`, warn that the file is private and never contain guardian names
 - [ ] A stale ICS revision returns 409, refreshes the preview and requires confirmation again
+- [ ] Empty weekly schedules disable `固定课表 ICS`; a populated selected day exposes `导出当日 ICS` beside that day's roster
+- [ ] Same-time ordinary students produce one group event; explicit 1-to-1 entries remain separate
+- [ ] Settings default class time starts at 14:30, round-trips across devices, seeds new controls and never rewrites existing roster rows
+- [ ] Inherited fixed-class times appear in slot grouping and roster rows; explicit daily overrides win
+- [ ] At 375px the roster has no horizontal overflow, advanced template tools start folded and no language control covers an action
 - [ ] Local browser PIN storage is absent; logout invalidates the server session
 
 ### 4. Public Surfaces
@@ -75,6 +80,7 @@
 - [ ] All tenant pages load within 2s on local network
 - [ ] CSS custom properties (brand colours) render correctly per tenant
 - [ ] Responsive breakpoints: mobile (<640px), tablet (640–1024px), desktop
+- [ ] Product home uses a 61.8% light / 38.2% navy hero balance on desktop, a light mobile story with a contained navy artwork panel, and no bilingual proof text leaks
 - [ ] No console errors in browser DevTools
 - [ ] Generated tenant pages pass `node backend/scripts/check_inline_scripts.mjs`, including names with apostrophes and HTML punctuation
 

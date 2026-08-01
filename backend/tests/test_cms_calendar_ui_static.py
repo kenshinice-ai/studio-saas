@@ -41,3 +41,31 @@ def test_calendar_dialog_has_keyboard_modal_contract() -> None:
     assert "icsCloseButtonRef.current?.focus()" in source
     assert "if (e.key === 'Escape')" in source
     assert "if (e.key !== 'Tab') return;" in source
+
+
+def test_roster_and_weekly_calendar_exports_are_visually_distinct() -> None:
+    """Operators must not mistake an empty weekly export for today's roster."""
+
+    source = _source()
+    assert "固定课表 ICS" in source
+    assert "导出当日 ICS" in source
+    assert "disabled={icsBusy || schedules.length===0}" in source
+    assert "icsPreview.kind === 'roster' ? '导出当日排课' : '导出固定课表'" in source
+
+
+def test_roster_default_time_is_tenant_owned_and_batch_tools_are_progressive() -> None:
+    """New bookings share one server setting while advanced tools stay folded."""
+
+    source = _source()
+    assert "d.operationalSettings?.defaultClassTime || '14:30'" in source
+    assert "v1Api('/operational-settings'" in source
+    assert "每日排课默认时间" in source
+    assert '<details className="mt-3 pt-3 border-t border-gray-100 group">' in source
+
+
+def test_calendar_revision_conflict_refreshes_inside_dialog() -> None:
+    """A stale preview should refresh in context instead of raising a red toast."""
+
+    source = _source()
+    assert "setIcsNotice('排课刚刚发生变化，预览已自动刷新。请核对后再次下载。')" in source
+    assert "<div role=\"status\"" in source

@@ -455,12 +455,10 @@
    *                                                  floor is 1.18)
    *
    * Position: 21px is the --ui-space-4 step of the golden ladder the rest of
-   * the CMS uses. On phones the CMS has a fixed bottom nav ~80px tall, and the
-   * switch was sitting on top of it — it now docks above the nav at the same
-   * 88px offset .toast-bottom already uses, so the two agree about where the
-   * bottom of the page is. Toasts still cover it briefly (z-index 999 vs 90),
-   * which is the correct order: a transient message outranks a persistent
-   * control. */
+   * the CMS uses. On phones a floating switch covered whichever roster control
+   * happened to scroll beneath it, so the same two 44px controls live inside
+   * Settings instead. Toasts still outrank the desktop switch (z-index 999 vs
+   * 90), which is the correct order for transient feedback. */
   function installStyles() {
     const style = document.createElement('style');
     style.textContent = '.cms-language-switch{position:fixed;right:21px;bottom:21px;z-index:90;'
@@ -472,7 +470,9 @@
       + 'font-size:13px;font-weight:700;cursor:pointer;transition:background-color .15s ease,color .15s ease}'
       + '.cms-language-switch button.active{background:var(--accent,#4f46e5);color:var(--on-accent,#fff)}'
       + '.cms-language-switch button:focus-visible{outline:2px solid var(--focus-ring,#4f46e5);outline-offset:2px}'
-      + '@media (max-width:767px){.cms-language-switch{bottom:calc(env(safe-area-inset-bottom,0px) + 88px);margin-bottom:0}}'
+      /* On phones the same controls live inside Settings. A floating 96px
+         pill inevitably covered roster controls while the page scrolled. */
+      + '@media (max-width:767px){.cms-language-switch{display:none}}'
       + '@media (prefers-reduced-motion:reduce){.cms-language-switch button{transition:none}}'
       + '@media print{.cms-language-switch{display:none}}';
     document.head.appendChild(style);

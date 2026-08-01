@@ -967,9 +967,13 @@ function App() {
     const [rDate, setRDate] = useState(todayISO);
     const [rPick, setRPick] = useState(null);
     /* 0022: the roster answered "who is coming today" but not "when". */
-    const [rTime, setRTime] = useState('');
+    const [defaultClassTime, setDefaultClassTime] = useState('14:30');
+    const [defaultClassTimeDraft, setDefaultClassTimeDraft] = useState('14:30');
+    const [operationalSettingsBusy, setOperationalSettingsBusy] = useState(false);
+    const [rTime, setRTime] = useState('14:30');
     /* Calendar download: preview first, then fetch the file with credentials. */
     const [icsPreview, setIcsPreview] = useState(null);
+    const [icsNotice, setIcsNotice] = useState('');
     const [icsBusy, setIcsBusy] = useState(false);
     const icsDialogRef = useRef(null);
     const icsCloseButtonRef = useRef(null);
@@ -1043,6 +1047,7 @@ function App() {
     };
     const allowedTabs = roleTabs[actorRole] || ['dashboard'];
     const canManageOperations = [...ownerRoles,'manager'].includes(actorRole);
+    const canExportData = [...ownerRoles,'manager'].includes(actorRole);
     const canViewFinancialAnalytics = [...ownerRoles,'manager'].includes(actorRole);
     const canWriteStudents = [...ownerRoles,'manager','front_desk','staff'].includes(actorRole);
     const canWriteCredits = [...ownerRoles,'manager','front_desk','staff'].includes(actorRole);
@@ -1373,6 +1378,10 @@ function App() {
             }));
             if (!d.pending)  d.pending  = [];
             if (!d.packages) d.packages = [{id:1, name:'标准课包', credits:10, price:1200}];
+            const nextDefaultClassTime = d.operationalSettings?.defaultClassTime || '14:30';
+            setDefaultClassTime(nextDefaultClassTime);
+            setDefaultClassTimeDraft(nextDefaultClassTime);
+            setRTime(current => current === '14:30' ? nextDefaultClassTime : (current || nextDefaultClassTime));
             revRef.current = d.rev || 1;   /* D2 */
             setDb(d); setConn(true);
             loadSchedules();   /* A1: 课表与数据并行加载，失败不阻塞 */
@@ -1942,7 +1951,7 @@ function App() {
     const groupToSchedule = () => {
         const ids = (db.groups || {})[grpSel] || [];
         if (!grpSel || !ids.length) { showToast('请先选择一个班组模板', 'warn'); return; }
-        setSchedEdit({label: grpSel, weekday: new Date().getDay(), startTime: '16:00',
+        setSchedEdit({label: grpSel, weekday: new Date().getDay(), startTime: defaultClassTime,
                       durationMinutes: 60, capacity: Math.max(10, ids.length), studentIds: ids});
         showToast('已带入模板学员，请确认周几与时间后保存');
     };
@@ -1970,6 +1979,14 @@ function App() {
 
     /* Slot metadata for one student on the currently viewed date. */
     const rosterMetaFor = (date, sid) => (db.rosterEntries?.[date] || {})[sid] || {};
+    const rosterSlotFor = (date, sid) => {
+        const explicit = rosterMetaFor(date, sid).classTime;
+        if (explicit) return explicit;
+        const weekday = new Date(`${date}T12:00:00`).getDay();
+        return schedules.find(schedule =>
+            schedule.weekday === weekday && schedule.students.some(student => student.id === sid)
+        )?.startTime || '';
+    };
 
     /* The old control was `<a href="…calendar.ics" download>`. A plain
        navigation carries no X-Requested-With header and is not a fetch, so the
@@ -1992,6 +2009,7 @@ function App() {
 
     const openIcsPreview = async (kind) => {
         setIcsBusy(true);
+        setIcsNotice('');
         try {
             setIcsPreview(await fetchIcsPreview(kind));
         } catch (err) {
@@ -2019,7 +2037,8 @@ function App() {
                 const detail = await r.json().catch(() => ({}));
                 if (r.status === 409 && detail.error === 'calendar_revision_conflict') {
                     setIcsPreview(await fetchIcsPreview(kind, preview.date || rDate));
-                    throw new Error('排课已在预览后发生变化，内容已刷新；请确认后重新下载');
+                    setIcsNotice('排课刚刚发生变化，预览已自动刷新。请核对后再次下载。');
+                    return;
                 }
                 throw new Error(detail.message || detail.error || `下载失败（HTTP ${r.status}）`);
             }
@@ -2039,10 +2058,33 @@ function App() {
             document.body.appendChild(a); a.click(); a.remove();
             setTimeout(()=>URL.revokeObjectURL(url), 1000);
             setIcsPreview(null);
+            setIcsNotice('');
             showToast('日历文件已下载');
         } catch (err) {
             showToast(err.message || '下载失败', 'error');
         } finally { setIcsBusy(false); }
+    };
+
+    const saveDefaultClassTime = async () => {
+        if (operationalSettingsBusy) return;
+        if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(defaultClassTimeDraft)) {
+            showToast('默认上课时间必须是有效的 HH:MM', 'error');
+            return;
+        }
+        setOperationalSettingsBusy(true);
+        try {
+            const data = await v1Api('/operational-settings', {
+                method:'PATCH',
+                body:JSON.stringify({defaultClassTime:defaultClassTimeDraft}),
+            });
+            const saved = data.defaultClassTime;
+            setDefaultClassTime(saved);
+            setDefaultClassTimeDraft(saved);
+            setRTime(saved);
+            showToast(`默认上课时间已设为 ${saved}`);
+        } catch (error) {
+            showToast(`默认时间保存失败：${error.message}`, 'error');
+        } finally { setOperationalSettingsBusy(false); }
     };
 
     const batchCheckIn = () => {
@@ -2972,20 +3014,27 @@ document.getElementById('copybtn').addEventListener('click', function(){
             {icsPreview && (
                 <div className="fixed inset-0 z-[60] flex items-end md:items-center justify-center bg-black/40 p-0 md:p-4"
                     role="dialog" aria-modal="true" aria-labelledby="ics-dialog-title" aria-describedby="ics-dialog-help"
-                    onClick={e=>{ if (e.target === e.currentTarget) setIcsPreview(null); }}>
+                    onClick={e=>{ if (e.target === e.currentTarget) {setIcsPreview(null);setIcsNotice('');} }}>
                     <div ref={icsDialogRef} className="bg-white w-full md:max-w-lg md:rounded-2xl rounded-t-2xl max-h-[88vh] overflow-y-auto">
                         <div className="px-5 py-4 border-b border-gray-100 flex items-start justify-between gap-3">
                             <div>
-                                <p id="ics-dialog-title" className="font-bold text-gray-900">下载日历</p>
+                                <p id="ics-dialog-title" className="font-bold text-gray-900">
+                                    {icsPreview.kind === 'roster' ? '导出当日排课' : '导出固定课表'}
+                                </p>
                                 <p className="text-xs text-gray-500 mt-0.5">
                                     {icsPreview.date ? `${fmtDate(icsPreview.date)} · ` : ''}Apple / Google 通用 .ics
                                 </p>
                             </div>
-                            <button ref={icsCloseButtonRef} onClick={()=>setIcsPreview(null)} aria-label="关闭日历预览"
+                            <button ref={icsCloseButtonRef} onClick={()=>{setIcsPreview(null);setIcsNotice('');}} aria-label="关闭日历预览"
                                 className="text-gray-400 text-2xl leading-none px-2 min-h-[44px]">×</button>
                         </div>
 
                         <div className="p-5 space-y-3">
+                            {icsNotice && (
+                                <div role="status" className="rounded-xl px-4 py-3 bg-amber-50 border border-amber-200 text-xs font-bold text-amber-800">
+                                    {icsNotice}
+                                </div>
+                            )}
                             <div className="grid grid-cols-3 gap-2">
                                 {[['events','日历事件'],['classes','普通班课'],['oneToOne','1 对 1']].map(([k,label])=>(
                                     <div key={k} className="bg-gray-50 rounded-xl py-3 text-center">
@@ -3056,7 +3105,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         </div>
 
                         <div className="px-5 py-4 border-t border-gray-100 flex gap-2">
-                            <button onClick={()=>setIcsPreview(null)}
+                            <button onClick={()=>{setIcsPreview(null);setIcsNotice('');}}
                                 className="flex-1 border border-gray-200 rounded-xl py-3 text-sm font-bold text-gray-700 min-h-[44px]">取消</button>
                             <button onClick={()=>downloadIcs(icsPreview)}
                                 disabled={icsBusy || !(icsPreview.stats?.events > 0)}
@@ -3344,6 +3393,15 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             <h3 id="settings-dialog-title" className="inline-flex items-center gap-1.5 font-bold text-gray-800"><Icon name="cog" className="w-4 h-4"/>系统设置</h3>
                             <button onClick={()=>setShowSettings(false)} aria-label="关闭" className="text-gray-400 active:text-gray-700 text-xl p-1 min-h-[44px] min-w-[44px] inline-flex items-center justify-center">×</button>
                         </div>
+                        <div className="md:hidden mb-4 pb-4 border-b border-gray-100">
+                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">界面语言</p>
+                            <div className="grid grid-cols-2 gap-2">
+                                <button type="button" onClick={()=>document.querySelector('[data-cms-language="zh"]')?.click()}
+                                    className="min-h-[44px] rounded-xl border border-gray-200 bg-gray-50 text-sm font-bold text-gray-700">中文</button>
+                                <button type="button" onClick={()=>document.querySelector('[data-cms-language="en"]')?.click()}
+                                    className="min-h-[44px] rounded-xl border border-gray-200 bg-gray-50 text-sm font-bold text-gray-700">English</button>
+                            </div>
+                        </div>
                         {/* A5: Public website and lead-capture settings live in Studio Admin. */}
                         {TENANT_SLUG && ownerRoles.includes(actorRole) && (
                             <a href={`/${TENANT_SLUG}/studio-admin`} target="_blank" rel="noopener"
@@ -3402,6 +3460,27 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                 {pwBusy ? '更新中...' : '更新密码'}
                             </button>
                         </div>
+                        {/* Tenant-wide roster default: server-owned so every
+                            staff device starts new bookings at the same time. */}
+                        {canManageOperations && TENANT_SLUG && (
+                        <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
+                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">每日排课默认时间</p>
+                            <p className="text-xs text-gray-400">用于新排课、班组模板和新建固定班次；不会改动已保存的课程。</p>
+                            <div className="flex gap-2 items-end">
+                                <label className="flex-1 text-xs font-bold text-gray-500">
+                                    默认上课时间
+                                    <input type="time" value={defaultClassTimeDraft}
+                                        onChange={e=>setDefaultClassTimeDraft(e.target.value)}
+                                        className="mt-1 w-full px-3 py-2.5 border border-gray-300 rounded-xl bg-white text-sm font-bold min-h-[46px] outline-none focus:ring-2 focus:ring-indigo-500"/>
+                                </label>
+                                <button type="button" onClick={saveDefaultClassTime}
+                                    disabled={operationalSettingsBusy || defaultClassTimeDraft===defaultClassTime}
+                                    className="px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-bold min-h-[46px] disabled:opacity-40">
+                                    {operationalSettingsBusy?'保存中…':'保存'}
+                                </button>
+                            </div>
+                        </div>
+                        )}
                         {/* Fix ⑪: configurable inactive-days threshold */}
                         {canManageOperations && <>
                         <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
@@ -3900,12 +3979,13 @@ document.getElementById('copybtn').addEventListener('click', function(){
         <div className="flex justify-between items-center gap-2 flex-wrap">
             <p className="inline-flex items-center gap-1.5 font-bold text-sm text-gray-800"><Icon name="calendar" className="w-4 h-4"/>每周课表 <span className="text-xs font-normal text-gray-400">固定班次按周几自动排入当日名单</span></p>
             <div className="flex items-center gap-2 flex-wrap">
-                <button onClick={()=>openIcsPreview('schedule')} disabled={icsBusy}
+                <button onClick={()=>openIcsPreview('schedule')} disabled={icsBusy || schedules.length===0}
+                    title={schedules.length ? '导出所有固定班次，不包含学员姓名' : '请先新增固定班次'}
                     className="inline-flex items-center gap-1.5 border border-indigo-200 bg-indigo-50 text-indigo-700 px-4 py-1.5 rounded-xl text-xs font-bold min-h-[44px] active:bg-indigo-100 disabled:opacity-50">
-                    <Icon name="download" className="w-3.5 h-3.5"/>下载 ICS 日历
+                    <Icon name="download" className="w-3.5 h-3.5"/>固定课表 ICS
                 </button>
                 {/* B: schedule templates hit owner/manager-only endpoints — hide from teacher/staff */}
-                {canManageOperations && <button onClick={()=>setSchedEdit({label:'', weekday:new Date().getDay(), startTime:'16:00', durationMinutes:60, capacity:10, studentIds:[]})}
+                {canManageOperations && <button onClick={()=>setSchedEdit({label:'', weekday:new Date().getDay(), startTime:defaultClassTime, durationMinutes:60, capacity:10, studentIds:[]})}
                     className="inline-flex items-center gap-1.5 bg-indigo-600 active:bg-indigo-700 text-white px-4 py-1.5 rounded-xl text-xs font-bold min-h-[44px]"><Icon name="plus" className="w-3.5 h-3.5"/>新增班次</button>}
             </div>
         </div>
@@ -3991,8 +4071,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
     )}
 
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-        <div className="flex flex-col lg:flex-row gap-3 items-end">
-            <div className="w-full lg:w-64">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(250px,38.2fr)_minmax(0,61.8fr)] gap-3 items-end">
+            <div className="w-full">
                 <label className="text-xs font-bold text-gray-500 mb-1 block">课程日期</label>
                 <div className="flex gap-1.5 items-center">
                     <button type="button" onClick={()=>setRDate(shiftDate(rDate,-1))}
@@ -4027,9 +4107,14 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 </label>
             </div>
         </div>
-        {/* F4b: 班组模板 */}
-        <div className="mt-3 pt-3 border-t border-gray-100 flex gap-2 items-center flex-wrap">
-            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-500"><Icon name="clipboard" className="w-4 h-4"/>班组模板</span>
+        {/* F4b: Advanced batch tools stay available without permanently
+            pushing the actual day roster below the fold. */}
+        <details className="mt-3 pt-3 border-t border-gray-100 group">
+            <summary className="list-none cursor-pointer min-h-[44px] flex items-center justify-between gap-3 text-xs font-bold text-gray-600">
+                <span className="inline-flex items-center gap-1.5"><Icon name="clipboard" className="w-4 h-4"/>班组模板与批量工具</span>
+                <span className="text-indigo-600 group-open:rotate-180 transition-transform" aria-hidden="true">⌄</span>
+            </summary>
+            <div className="pt-2 flex gap-2 items-center flex-wrap">
             <select value={grpSel} onChange={e=>setGrpSel(e.target.value)}
                 className="px-2 py-2 border border-gray-300 rounded-xl bg-white text-sm font-medium min-h-[44px] outline-none focus:ring-2 focus:ring-indigo-500">
                 <option value="">-- 选择模板 --</option>
@@ -4044,7 +4129,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 className="bg-white text-red-500 border border-red-200 active:bg-red-50 px-3 py-2 rounded-xl text-xs font-bold min-h-[44px]">删除</button>}
             {canManageOperations && TENANT_SLUG && grpSel && <button onClick={groupToSchedule} disabled={busy}
                 className="inline-flex items-center gap-1.5 bg-indigo-600 active:bg-indigo-700 text-white px-3 py-2 rounded-xl text-xs font-bold min-h-[44px]"><Icon name="calendar" className="w-4 h-4"/>转为每周班次</button>}
-        </div>
+            </div>
+        </details>
     </div>
 
     {/* B1: 迷你周视图 — 本周七天一键切换，含每日应到人数 */}
@@ -4098,7 +4184,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
         if (!ids.length) return null;
         const slots = {};
         ids.forEach(id=>{
-            const t = (rosterMetaFor(rDate,id).classTime || '').trim() || '__unset';
+            const t = (rosterSlotFor(rDate,id) || '').trim() || '__unset';
             (slots[t] = slots[t] || []).push(id);
         });
         const groups = Object.entries(slots).sort(([a],[b]) =>
@@ -4139,10 +4225,10 @@ document.getElementById('copybtn').addEventListener('click', function(){
         <div className="bg-gray-50 border-b px-4 py-3 flex justify-between items-center gap-2 flex-wrap">
             <p className="font-bold text-sm text-gray-800">{fmtDate(rDate)} · {dayIds.filter(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived;}).length} 人{scheduledForDate.length>0 && <span className="text-xs font-normal text-indigo-500 ml-1">（课表 {scheduledForDate.length} 班）</span>}</p>
             <div className="flex gap-2">
-                {dayIds.length>0 && (
+                {dayIds.length>0 && canExportData && (
                     <button onClick={()=>openIcsPreview('roster')} disabled={icsBusy}
                         className="border border-gray-200 bg-white text-gray-700 px-3 py-2 rounded-xl text-xs font-bold min-h-[44px] inline-flex items-center gap-1.5 disabled:opacity-50">
-                        <Icon name="calendar" className="w-4 h-4"/>日历
+                        <Icon name="calendar" className="w-4 h-4"/>导出当日 ICS
                     </button>
                 )}
                 {dayIds.length>0 && (
@@ -4156,9 +4242,11 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 {dayIds.some(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived&&s.mobile;}) && (
                     <button onClick={()=>{
                         const ids=dayIds;
-                        const msg=`提醒：您的上课时间是 ${fmtDate(rDate)}，请准时到课。Studio 期待见到您！`;
-                        const lines=ids.map(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived&&s.mobile?`${s.name}（${s.mobile}）`:null;}).filter(Boolean);
-                        copyText(lines.map(l=>`${l}\n${msg}`).join('\n\n'),`已复制 ${lines.length} 条提醒内容`);
+                        const lines=ids.map(id=>{const s=db.students.find(x=>x.id===id);if(!s||s.archived||!s.mobile)return null;
+                            const slot=rosterSlotFor(rDate,id);
+                            return `${s.name}（${s.mobile}）\n提醒：您的上课时间是 ${fmtDate(rDate)}${slot?` ${slot}`:''}，请准时到课。${tenantDisplayName} 期待见到您！`;
+                        }).filter(Boolean);
+                        copyText(lines.join('\n\n'),`已复制 ${lines.length} 条提醒内容`);
                     }} className="bg-white border border-green-300 active:bg-green-50 text-green-700 px-3 py-1.5 rounded-xl text-xs font-bold min-h-[44px]"><span className="inline-flex items-center gap-1.5"><Icon name="chat" className="w-4 h-4"/>批量提醒</span></button>
                 )}
                 {dayIds.some(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived&&s.balance>0;}) && (
@@ -4177,14 +4265,13 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 if (!s || s.archived) return null;
                 const lowBal = (parseInt(s.balance,10)||0) <= renewTh;   /* A5: 课前低余额预警（v4.5） */
                 return (
-                    <div key={sid} className={`px-4 py-3 flex items-center hover-row gap-3 min-h-[64px] ${lowBal?'bg-amber-50/60':''}`}>
+                    <div key={sid} className={`px-4 py-3 flex flex-wrap md:flex-nowrap items-center hover-row gap-3 min-h-[64px] ${lowBal?'bg-amber-50/60':''}`}>
                         <PhotoAvatar photo={s.photo} name={s.name} size="sm"/>
                         <div className="flex-1 min-w-0">
                             <p className="font-bold text-gray-900 truncate">{s.name}
                                 {rosterMetaFor(rDate,sid).oneToOne && <span className="ml-1.5 text-[11px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-full px-2 py-0.5">1 对 1</span>}
                             </p>
-                            <p className="text-xs text-gray-400">{s.mobile||'—'}
-                                {rosterMetaFor(rDate,sid).classTime && <span className="ml-1 font-bold text-gray-500">· {rosterMetaFor(rDate,sid).classTime}</span>}
+                            <p className="text-xs text-gray-400">{s.mobile||'未填写手机'}
                                 {lowBal && <span className="inline-flex items-center gap-1.5 ml-1 text-amber-600 font-bold"><Icon name="bolt" className="w-4 h-4"/>余额告急</span>}</p>
                         </div>
                         {/* Correcting the slot in place: re-adding the student would
@@ -4201,6 +4288,11 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                 }}
                                 className="px-2 py-2 border border-gray-300 rounded-xl bg-white text-xs font-bold min-h-[44px] w-[104px] flex-shrink-0 outline-none focus:ring-2 focus:ring-indigo-500"/>
                         )}
+                        {TENANT_SLUG && !rosterMetaFor(rDate,sid).id && (
+                            <span className="px-3 py-2 border border-indigo-100 rounded-xl bg-indigo-50 text-xs font-bold text-indigo-700 min-h-[44px] inline-flex items-center flex-shrink-0">
+                                {rosterSlotFor(rDate,sid) || '未设时间'}
+                            </span>
+                        )}
                         {lowBal && (
                             <button onClick={()=>{
                                 const msg = renderMessage('renewal',
@@ -4211,9 +4303,9 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         )}
                         {rosterDone.has(s.id) && <span className="text-[11px] font-bold text-green-600 bg-green-50 border border-green-200 rounded-full px-2 py-0.5 flex-shrink-0">✓ 已签</span>}
                         <BalBadge n={s.balance}/>
-                        <div className="flex gap-1.5 flex-shrink-0">
+                        <div className="flex gap-1.5 flex-shrink-0 max-md:w-full max-md:justify-end max-md:overflow-x-auto">
                             {s.mobile && (
-                                <a href={`sms:${s.mobile.replace(/\s/g,'')}?body=${encodeURIComponent(`提醒：您的上课时间是 ${fmtDate(rDate)}，请准时到课。Studio 期待见到您！`)}`}
+                                <a href={`sms:${s.mobile.replace(/\s/g,'')}?body=${encodeURIComponent(`提醒：您的上课时间是 ${fmtDate(rDate)}${rosterSlotFor(rDate,s.id)?` ${rosterSlotFor(rDate,s.id)}`:''}，请准时到课。${tenantDisplayName} 期待见到您！`)}`}
                                     aria-label="发消息" className="px-3 py-2.5 bg-green-50 active:bg-green-100 text-green-700 border border-green-200 rounded-xl text-xs font-bold min-h-[44px] flex items-center"><Icon name="chat" className="w-4 h-4"/></a>
                             )}
                             {(db.rosters[rDate]||[]).includes(s.id)

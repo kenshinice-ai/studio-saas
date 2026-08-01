@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#0E1729">
+  <meta name="theme-color" content="#F7F5F2">
   <meta name="description" content="PWE Studio puts administration behind the scenes—connecting enquiries, enrolment, classes, attendance, credits and student growth so creative studios can spend more time teaching.">
   <title>PWE Studio · Put administration behind the scenes</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -55,17 +55,14 @@
        correct choice at 9.70:1, so it is restored there. */
     :focus-visible { outline: 3px solid var(--family-amber-text); outline-offset: 3px; }
     /* Every navy-backed surface, where the bright amber is the readable one. */
-    .hero :focus-visible,
-    .support :focus-visible,
-    .role-owner :focus-visible,
-    .industry:first-child :focus-visible,
+    .support-copy-panel :focus-visible,
     .button-dark:focus-visible { outline-color: var(--family-amber); }
     .skip { position: fixed; top: -80px; left: 1rem; z-index: 100; padding: .8rem 1rem; border-radius: 8px; color: var(--family-navy); background: var(--white); }
     .skip:focus { top: 1rem; }
     .shell { width: min(1180px, calc(100% - 40px)); margin-inline: auto; }
     .topbar {
-      position: sticky; top: 0; z-index: 20; border-bottom: 1px solid rgba(255,255,255,.1);
-      background: rgba(14, 23, 41, .96); color: var(--white); backdrop-filter: blur(18px);
+      position: sticky; top: 0; z-index: 20; border-bottom: 1px solid var(--line);
+      background: rgba(247, 245, 242, .96); color: var(--family-navy); backdrop-filter: blur(18px);
     }
     .nav { min-height: 72px; display: flex; align-items: center; gap: var(--space-3); padding-top: env(safe-area-inset-top); }
     .brand { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: .7rem; text-decoration: none; font-weight: 760; letter-spacing: -.02em; }
@@ -73,26 +70,28 @@
     .navlinks { display: flex; align-items: center; gap: .25rem; margin-left: auto; }
     .navlinks a, .lang {
       min-height: 44px; display: inline-flex; align-items: center; justify-content: center;
-      padding: 0 .85rem; border-radius: 999px; color: rgba(255,255,255,.82); text-decoration: none;
+      padding: 0 .85rem; border-radius: 999px; color: var(--slate-600); text-decoration: none;
       border: 0; background: transparent; cursor: pointer; transition: background .2s, color .2s;
     }
-    .navlinks a:hover, .lang:hover { color: var(--white); background: rgba(255,255,255,.1); }
-    .navlinks .login { color: var(--family-navy); background: var(--white); font-weight: 700; }
-    .hero { position: relative; overflow: hidden; color: var(--white); background: var(--family-navy); }
+    .navlinks a:hover, .lang:hover { color: var(--family-navy); background: rgba(14,23,41,.07); }
+    .navlinks .login { color: var(--white); background: var(--family-navy); font-weight: 700; }
+    /* Golden balance: the main story owns 61.8% of the visual field on Warm
+       Paper; navy is retained as a 38.2% brand anchor behind the artwork. */
+    .hero { position: relative; overflow: hidden; color: var(--family-navy); background: linear-gradient(90deg, var(--paper) 0 61.8%, var(--family-navy) 61.8%); }
     .hero::before {
-      content: ""; position: absolute; inset: 0; opacity: .28; pointer-events: none;
+      content: ""; position: absolute; inset: 0 0 0 61.8%; opacity: .28; pointer-events: none;
       background:
         radial-gradient(circle at 76% 12%, rgba(245,179,53,.34), transparent 26%),
         linear-gradient(115deg, transparent 50%, rgba(255,255,255,.08) 50.1%, transparent 50.6%);
     }
     .hero-grid {
-      position: relative; min-height: 680px; display: grid; grid-template-columns: minmax(0, 1.618fr) minmax(320px, 1fr);
-      align-items: center; gap: clamp(2.5rem, 6vw, 6rem); padding-block: clamp(4rem, 9vw, 7.5rem);
+      position: relative; min-height: 620px; display: grid; grid-template-columns: minmax(0, 1.618fr) minmax(320px, 1fr);
+      align-items: center; gap: clamp(2.5rem, 5vw, 5rem); padding-block: clamp(3.6rem, 7vw, 6.2rem);
     }
-    .eyebrow { display: flex; align-items: center; gap: .75rem; margin: 0 0 var(--space-3); color: var(--family-amber); font-size: .78rem; font-weight: 750; letter-spacing: .14em; text-transform: uppercase; }
+    .eyebrow { display: flex; align-items: center; gap: .75rem; margin: 0 0 var(--space-3); color: var(--family-amber-text); font-size: .78rem; font-weight: 750; letter-spacing: .14em; text-transform: uppercase; }
     .eyebrow::before { content: ""; width: 44px; height: 1px; background: currentColor; }
     h1 { max-width: 780px; margin: 0; font-size: clamp(3rem, 7vw, 6.6rem); line-height: .96; letter-spacing: -.065em; }
-    .lede { max-width: 650px; margin: var(--space-4) 0 0; color: rgba(255,255,255,.78); font-size: clamp(1.05rem, 2vw, 1.28rem); line-height: 1.7; }
+    .lede { max-width: 650px; margin: var(--space-4) 0 0; color: var(--slate-600); font-size: clamp(1.05rem, 2vw, 1.28rem); line-height: 1.7; }
     .actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: var(--space-4); }
     .button {
       min-height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: .6rem;
@@ -101,8 +100,8 @@
     }
     .button:hover { transform: translateY(-2px); }
     .button:active, .role:active { transform: scale(.985); }
-    .button-primary { color: var(--family-navy); background: var(--white); box-shadow: 0 12px 32px rgba(14,23,41,.28); }
-    .button-secondary { border-color: rgba(255,255,255,.36); background: rgba(255,255,255,.06); color: var(--white); }
+    .button-primary { color: var(--white); background: var(--family-navy); box-shadow: 0 12px 32px rgba(14,23,41,.18); }
+    .button-secondary { border-color: var(--line-strong); background: rgba(255,255,255,.55); color: var(--family-navy); }
     .button-dark { color: var(--white); background: var(--family-navy); }
     .hero-card { align-self: stretch; display: grid; align-content: center; }
     .art-stack { position: relative; min-height: 460px; }
@@ -136,9 +135,9 @@
     .role h3 { margin: auto 0 .55rem; font-size: 1.4rem; letter-spacing: -.025em; }
     .role p { margin: 0; color: var(--ink-soft); line-height: 1.55; }
     .role .arrow { display: inline-flex; align-items: center; gap: .35rem; margin-top: 1rem; color: var(--family-navy); font-weight: 720; }
-    .role-owner { grid-column: span 8; color: var(--white); background: var(--family-navy); }
-    .role-owner p, .role-owner .arrow { color: rgba(255,255,255,.74); }
-    .role-owner svg { color: var(--family-amber); }
+    .role-owner { grid-column: span 8; color: var(--family-navy); background: linear-gradient(120deg, #fff8e8, var(--paper-bright)); border-color: rgba(161,98,7,.28); }
+    .role-owner p, .role-owner .arrow { color: var(--slate-600); }
+    .role-owner svg { color: var(--family-amber-text); }
     .system { background: var(--white); }
     .flow { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1px; overflow: hidden; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--line); }
     .flow article { min-height: 190px; padding: var(--space-3); background: var(--paper-bright); }
@@ -147,10 +146,10 @@
     .flow p { margin: 0; color: var(--ink-soft); font-size: .9rem; line-height: 1.55; }
     .industries { display: grid; grid-template-columns: 1.618fr 1fr 1fr; gap: 1rem; }
     .industry { min-height: 210px; padding: var(--space-3); border-radius: var(--r-md); background: var(--white); border: 1px solid var(--line); }
-    .industry:first-child { color: var(--white); background: var(--family-navy); }
+    .industry:first-child { color: var(--family-navy); background: #fff8e8; border-color: rgba(161,98,7,.24); }
     .industry h3 { margin: 3.5rem 0 .5rem; font-size: 1.3rem; }
     .industry p { margin: 0; color: var(--ink-soft); line-height: 1.55; }
-    .industry:first-child p { color: rgba(255,255,255,.72); }
+    .industry:first-child p { color: var(--slate-600); }
     .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
     .plan { padding: var(--space-3); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--paper-bright); }
     .plan.featured { border-color: var(--family-navy); box-shadow: inset 0 5px 0 var(--family-amber); }
@@ -160,27 +159,30 @@
     .price small { font-size: .85rem; font-weight: 600; letter-spacing: 0; color: var(--ink-soft); }
     .plan ul { min-height: 160px; margin: 1.5rem 0; padding-left: 1.1rem; color: var(--ink-soft); line-height: 1.8; }
     .deferred { margin-top: 1rem; color: var(--ink-soft); font-size: .85rem; line-height: 1.55; }
-    .support { color: var(--white); background: var(--family-navy); }
-    .support-grid { display: grid; grid-template-columns: 1.618fr 1fr; gap: clamp(2rem, 7vw, 6rem); }
+    .support { color: var(--family-navy); background: var(--paper-bright); }
+    .support-grid { display: grid; grid-template-columns: 1fr 1.618fr; gap: clamp(1.4rem, 4vw, 3.6rem); align-items: stretch; }
+    .support-copy-panel { padding: var(--space-4); border-radius: var(--r-lg); color: var(--white); background: var(--family-navy); }
+    .support-copy-panel .eyebrow { color: var(--family-amber); }
+    .support-copy-panel .button-secondary { color: var(--family-navy); border-color: rgba(255,255,255,.72); background: var(--white); }
     .support h2 { max-width: 620px; }
     .support .copy { color: rgba(255,255,255,.7); line-height: 1.7; }
-    .support form { display: grid; gap: .75rem; padding: var(--space-3); border: 1px solid rgba(255,255,255,.14); border-radius: var(--r-md); background: rgba(255,255,255,.06); }
-    label { display: grid; gap: .4rem; color: rgba(255,255,255,.75); font-size: .85rem; font-weight: 650; }
+    .support form { display: grid; gap: .75rem; padding: var(--space-4); border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--paper); }
+    label { display: grid; gap: .4rem; color: var(--slate-600); font-size: .85rem; font-weight: 650; }
     /* .28 composites to #576173 over the raised navy — 2.51:1, below the 3:1
        WCAG 1.4.11 asks of a control boundary. .42 measures 3.90:1. */
-    input, textarea, select { width: 100%; min-height: 46px; padding: .75rem; border: 1px solid rgba(255,255,255,.42); border-radius: 10px; color: var(--white); background: var(--family-navy-raised); }
+    input, textarea, select { width: 100%; min-height: 46px; padding: .75rem; border: 1px solid var(--line-strong); border-radius: 10px; color: var(--family-navy); background: var(--white); }
     textarea { min-height: 110px; resize: vertical; }
     option { color: var(--family-navy); }
-    .privacy-note { margin: 0; color: rgba(255,255,255,.55); font-size: .78rem; line-height: 1.5; }
+    .privacy-note { margin: 0; color: var(--slate-500); font-size: .78rem; line-height: 1.5; }
     .support-actions { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; }
     .support-actions .button { width: 100%; }
     footer { padding: 2.2rem 0 max(2.2rem, env(safe-area-inset-bottom)); color: var(--ink-soft); background: var(--paper-bright); }
     .footer-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
     .footer-row nav { display: flex; flex-wrap: wrap; gap: 1rem; }
     .footer-row a { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
-    [data-lang="zh"] { display: none; }
-    html[lang="zh"] [data-lang="en"] { display: none; }
-    html[lang="zh"] [data-lang="zh"] { display: revert; }
+    [data-lang="zh"] { display: none !important; }
+    html[lang="zh"] [data-lang="en"] { display: none !important; }
+    html[lang="zh"] [data-lang="zh"] { display: revert !important; }
     @media (max-width: 900px) {
       .navlinks a:not(.login) { display: none; }
       .hero-grid, .section-head, .support-grid { grid-template-columns: 1fr; }
@@ -196,8 +198,10 @@
       .nav { min-height: 64px; }
       .brand span { display: none; }
       .hero-grid { padding-block: 4.2rem; }
+      .hero { background: var(--paper); }
+      .hero::before { display: none; }
       h1 { font-size: clamp(3rem, 16vw, 4.3rem); }
-      .hero-card { min-height: 340px; }
+      .hero-card { min-height: 340px; margin-inline: -14px; padding: var(--space-3); border-radius: var(--r-lg) var(--r-lg) 0 0; background: var(--family-navy); }
       .art-stack { min-height: 330px; }
       .proof { right: 0; width: 180px; }
       section { padding-block: var(--space-5); }
@@ -220,7 +224,7 @@
   <header class="topbar">
     <div class="shell nav">
       <a class="brand" href="/" aria-label="PWE Studio home">
-        <img src="/pwe-mark-dark.svg" alt="">
+        <img src="/pwe-mark.svg" alt="">
         <span>PWE Studio</span>
       </a>
       <nav class="navlinks" aria-label="Primary navigation">
@@ -351,14 +355,14 @@
           <article class="plan featured"><span class="plan-badge"><span data-lang="en">Recommended</span><span data-lang="zh">主推套餐</span></span><h3>Studio</h3><div class="price">$99 <small><span data-lang="en">AUD / month</span><span data-lang="zh">AUD / 月</span></small></div><ul><li><span data-lang="en">Up to 500 students</span><span data-lang="zh">最多 500 名学员</span></li><li><span data-lang="en">5 team users</span><span data-lang="zh">5 个团队账号</span></li><li><span data-lang="en">10 GB storage allowance</span><span data-lang="zh">10 GB 存储额度</span></li><li><span data-lang="en">Templates and data export</span><span data-lang="zh">行业模版与数据导出</span></li></ul><a class="button button-dark" href="#support"><span data-lang="en">Discuss Studio</span><span data-lang="zh">咨询 Studio</span></a></article>
           <article class="plan"><h3>Growth</h3><div class="price">$199 <small><span data-lang="en">AUD / month</span><span data-lang="zh">AUD / 月</span></small></div><ul><li><span data-lang="en">Up to 1,000 students</span><span data-lang="zh">最多 1,000 名学员</span></li><li><span data-lang="en">20 team users</span><span data-lang="zh">20 个团队账号</span></li><li><span data-lang="en">50 GB storage allowance</span><span data-lang="zh">50 GB 存储额度</span></li><li><span data-lang="en">Priority support</span><span data-lang="zh">优先支持</span></li></ul><a class="button button-dark" href="#support"><span data-lang="en">Discuss Growth</span><span data-lang="zh">咨询 Growth</span></a></article>
         </div>
-        <p class="deferred" data-lang="en">Implementation, migration clean-up, messaging provider fees, payment processing, custom domains and multi-campus aggregation are separately scoped. For v8.1.1, each campus is intentionally operated as an isolated tenant.</p>
-        <p class="deferred" data-lang="zh">实施、数据清洗、消息供应商费用、在线支付、自定义域名与多校区汇总需单独约定。v8.1.1 阶段每个校区明确作为独立租户运营。</p>
+        <p class="deferred" data-lang="en">Implementation, migration clean-up, messaging provider fees, payment processing, custom domains and multi-campus aggregation are separately scoped. For v8.2.0, each campus is intentionally operated as an isolated tenant.</p>
+        <p class="deferred" data-lang="zh">实施、数据清洗、消息供应商费用、在线支付、自定义域名与多校区汇总需单独约定。v8.2.0 阶段每个校区明确作为独立租户运营。</p>
       </div>
     </section>
 
     <section class="support" id="support">
       <div class="shell support-grid">
-        <div>
+        <div class="support-copy-panel">
           <p class="eyebrow"><span data-lang="en">30-minute studio walkthrough</span><span data-lang="zh">30 分钟工作室演示</span></p>
           <h2 data-lang="en">See your own studio story take shape.</h2><h2 data-lang="zh">用你的名字、课程和作品，预览属于你的工作室。</h2>
           <p class="copy" data-lang="en">Tell us your studio type, size and current workflow. These actions open your device’s Mail or Messages app; PWE Studio does not silently transmit or store the form.</p>
@@ -387,7 +391,7 @@
 
   <footer>
     <div class="shell footer-row">
-      <span>© <span id="year"></span> PWE Studio · v8.1.1</span>
+      <span>© <span id="year"></span> PWE Studio · v8.2.0</span>
       <nav aria-label="Resources">
         <a href="/customer-resources/FAQ.html"><span data-lang="en">FAQ</span><span data-lang="zh">常见问题</span></a>
         <a href="/customer-resources/Release_Notes_v8.1.0.html"><span data-lang="en">Release evidence</span><span data-lang="zh">发布依据</span></a>

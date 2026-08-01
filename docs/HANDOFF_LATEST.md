@@ -1,11 +1,63 @@
-# PWE Studio v8.1.1 candidate — Current Handoff
+# PWE Studio v8.2.0 — Current Handoff
 
-## Active work — release gate passed, package/deploy pending (2026-08-01)
+## Active release — daily roster convergence and lighter product home (2026-08-01)
 
-**Current truth:** branch `codex/v8.0.1-aws-production`; checkpoint
-`75a2a95`. `https://pwestudio.online` still reports **v8.1.0** until the v8.1.1
-bundle is committed, built and deployed. Do not describe the candidate as live
-before public deep health confirms `appVersion=8.1.1`.
+**Current repository truth:** branch `codex/v8.0.1-aws-production`, version
+sources set to **8.2.0**. Production remains on the last verified v8.1.1
+deployment until the 8.2.0 bundle passes the full gate and public deep health.
+
+The post-v8.1.1 user acceptance screenshots exposed a context bug rather than
+an ICS serializer bug: the top button previewed an empty recurring schedule
+while the visible Lucas 12:30 row belonged to the selected day's private
+roster. v8.2.0 makes those two products explicit:
+
+- **Fixed schedule ICS** stays in the weekly-schedule card, contains no student
+  identities and is disabled when there are no fixed classes.
+- **Export selected day ICS** stays with the selected roster, appears only when
+  the day has effective students, requires `data:export`, warns that it contains
+  student names and never includes guardian names.
+- Same-time ordinary entries remain one group event; only explicit 1-to-1
+  entries split and conflict. A 409 revision mismatch now refreshes inside the
+  modal and requires confirmation again without a page-level red toast.
+- Tenant-wide `defaultClassTime` is stored in PostgreSQL settings, initially
+  **14:30**, editable by Owner/Manager in CMS Settings, and seeds new manual,
+  template and fixed-class controls without rewriting existing bookings.
+- The selected-day planner uses the 38.2/61.8 date/action hierarchy; batch
+  templates start folded, inherited schedule times render correctly, reminders
+  include the effective time and mobile has no floating language control over
+  roster actions.
+
+The product homepage now follows the same golden hierarchy: Warm Paper owns
+61.8% of the desktop hero and Navy is a 38.2% artwork anchor. Owner/industry
+cards are light, and the support section limits Navy to the 38.2% copy panel.
+Mobile uses a light story followed by a contained Navy artwork panel. Mail and
+Messages remain device-native; no acquisition automation was introduced.
+
+Behavioural comparison and retained PWE security advantages are recorded in
+`docs/Daily_Roster_ICS_Drift_2026-08-01.md`.
+
+### Current verification evidence
+
+```text
+Focused roster/calendar/security tests: 82 passed
+Desktop roster: 1440px client = 1440px scroll; default 14:30; empty fixed ICS disabled
+Mobile roster: 375px client = 375px scroll; templates folded; language overlay absent
+Desktop home: CSS hero split resolves to Warm Paper 0–61.8%, Navy from 61.8%
+Mobile home: 375px client = 375px scroll; Warm Paper hero; contained Navy artwork panel
+```
+
+Remaining before shipped: full PostgreSQL gate, versioned dual packages,
+commit, Lightsail deploy, public routes/assets/ICS acceptance, final handoff
+hashes, memory update, and Git push after remote ownership confirmation.
+
+# PWE Studio v8.1.1 — Deployed production record
+
+## v8.1.1 release acceptance (2026-08-01)
+
+**Historical truth:** repair commit `282e384` was packaged and deployed to
+Lightsail. Internal and public deep health reported `appVersion=8.1.1`,
+`db=ok`, `mode=saas`; the public CMS asset matched the local SHA-256. The later
+v8.2.0 section above supersedes this release for current work.
 
 ### Completed in the v8.1.1 candidate
 
@@ -58,11 +110,6 @@ Legacy smoke:                      73 passed
 Tenant isolation/privacy:          225 passed
 STUDIOSAAS_REQUIRE_POSTGRES=1 bash backend/scripts/verify_local.sh: PASS
 ```
-
-The remaining release sequence is: commit/push the coherent candidate; verify
-both SaaS and Edition bundles; inspect and deploy the AWS bundle; verify public
-health, routes, assets and the host backup cron; then replace this candidate
-header with the deployed commit/hash evidence.
 
 # PWE Studio v8.1.0 — Deployed production record
 

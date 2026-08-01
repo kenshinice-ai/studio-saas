@@ -223,6 +223,11 @@ Creates `tenants`, `subscriptions`, `tenant_usage` rows and generates `tenants/<
 | POST | `/v1/attendance/{attendance_id}/void` | Tenant admin | Void a check-in and refund consumed credits |
 | GET/POST | `/v1/daily-roster` | Session / `attendance:write` | Read or add date-level roster entries |
 | GET | `/v1/daily-roster/preview?from=YYYY-MM-DD&days=7` | Session | Combine recurring schedules with explicit date-level entries |
+| PATCH | `/v1/operational-settings` | Tenant Owner/Manager | Set the tenant-wide `defaultClassTime` (`HH:MM`) used to seed new roster and fixed-class controls; existing bookings are unchanged |
+| GET | `/v1/class-schedules/calendar` | Session | Preview recurring fixed classes without student identities |
+| GET | `/v1/class-schedules/calendar.ics?revision=…` | Session | Download the exact revision previewed for the recurring schedule |
+| GET | `/v1/daily-roster/calendar?date=YYYY-MM-DD` | `data:export` | Preview the selected day's private roster calendar, including student names |
+| GET | `/v1/daily-roster/calendar.ics?date=YYYY-MM-DD&revision=…` | `data:export` | Download the exact selected-day revision; returns 409 if the roster changed |
 | DELETE | `/v1/daily-roster/{entry_id}` | `attendance:write` | Reversibly cancel an explicit roster entry |
 | POST | `/v1/daily-roster/{entry_id}/undo` | `attendance:write` | Restore the exact cancelled roster entry |
 

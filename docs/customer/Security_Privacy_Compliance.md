@@ -1,6 +1,6 @@
 # Security, Privacy and Compliance Delivery Pack
 
-Status: v8.1.1 disclosure for a live service; internally reviewed 1 August 2026
+Status: v8.2.0 disclosure for a live service; internally reviewed 1 August 2026
 Scope: PWE Studio SaaS mode and the professional showcase
 
 ## Honest deployment status
@@ -13,7 +13,7 @@ The database and media both live on that single instance. Managed AWS services â
 
 ## Current controls
 
-| Area | v8.1.1 control |
+| Area | v8.2.0 control |
 |---|---|
 | Tenant separation | Tenant context is explicit in authenticated routes and tenant data is scoped by tenant ID |
 | Roles | Platform administrator, owner, manager, teacher, front desk and staff permissions are separated |

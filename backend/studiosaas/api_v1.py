@@ -4808,7 +4808,8 @@ def _legacy_data_for_tenant(conn, tenant_id: str) -> dict:
         (timezone_name, timezone_name, tenant_id),
     )
     settings_row = fetch_one(conn, "SELECT settings FROM tenants WHERE id = %s", (tenant_id,))
-    legacy_state = ((settings_row["settings"] if settings_row else None) or {}).get("legacy_cms") or {}
+    tenant_settings = (settings_row["settings"] if settings_row else None) or {}
+    legacy_state = tenant_settings.get("legacy_cms") or {}
     roster_rows = fetch_all(
         conn,
         """
@@ -4931,6 +4932,11 @@ def _legacy_data_for_tenant(conn, tenant_id: str) -> dict:
         "rosters": rosters,
         "rosterEntries": roster_entries,
         "groups": legacy_state.get("groups") or {},
+        "operationalSettings": {
+            # One tenant-owned default keeps every staff device consistent.
+            # Existing roster rows retain their explicitly saved class_time.
+            "defaultClassTime": tenant_settings.get("default_class_time") or "14:30",
+        },
         # The stored rev is bumped by every aggregate save; falling back to
         # wall-clock keeps pre-rev tenants working (their first save records
         # one). The save endpoint compares the client's rev against this.
@@ -4983,6 +4989,54 @@ def legacy_cms_data():
         data = _legacy_data_for_tenant(conn, tenant.tenant_id)
     role = getattr(getattr(g, "actor", None), "role", None)
     return jsonify(_project_legacy_data_for_role(data, role))
+
+
+@api_v1.route("/operational-settings", methods=["PATCH"])
+@tenant_admin_required
+def update_operational_settings():
+    """Update tenant-wide day-to-day defaults used by the operational CMS.
+
+    This is deliberately separate from the brand publishing route: changing a
+    roster default must not create a brand version or republish the website.
+    The value only seeds new controls; it never rewrites existing bookings.
+    """
+
+    try:
+        payload = _json_payload()
+        default_class_time = _class_time(
+            payload.get("defaultClassTime", payload.get("default_class_time"))
+        )
+        if default_class_time is None:
+            raise ValueError("defaultClassTime is required and must use HH:MM.")
+    except ValueError as exc:
+        return _error(str(exc))
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE tenants
+                SET settings = jsonb_set(
+                        COALESCE(settings, '{}'::jsonb),
+                        '{default_class_time}',
+                        to_jsonb(%s::text),
+                        true
+                    ),
+                    updated_at = now()
+                WHERE id = %s
+                """,
+                (default_class_time, tenant.tenant_id),
+            )
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="operations.default_class_time_updated",
+            resource_type="tenant_settings",
+            metadata={"defaultClassTime": default_class_time},
+        )
+        conn.commit()
+    return jsonify({"ok": True, "defaultClassTime": default_class_time})
 
 
 @api_v1.route("/legacy-cms/save", methods=["POST"])

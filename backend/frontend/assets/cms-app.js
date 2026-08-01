@@ -965,8 +965,12 @@ function App() {
   const [selectedStudentIds, setSelectedStudentIds] = useState([]);
   const [rDate, setRDate] = useState(todayISO);
   const [rPick, setRPick] = useState(null);
-  const [rTime, setRTime] = useState("");
+  const [defaultClassTime, setDefaultClassTime] = useState("14:30");
+  const [defaultClassTimeDraft, setDefaultClassTimeDraft] = useState("14:30");
+  const [operationalSettingsBusy, setOperationalSettingsBusy] = useState(false);
+  const [rTime, setRTime] = useState("14:30");
   const [icsPreview, setIcsPreview] = useState(null);
+  const [icsNotice, setIcsNotice] = useState("");
   const [icsBusy, setIcsBusy] = useState(false);
   const icsDialogRef = useRef(null);
   const icsCloseButtonRef = useRef(null);
@@ -1031,6 +1035,7 @@ function App() {
   };
   const allowedTabs = roleTabs[actorRole] || ["dashboard"];
   const canManageOperations = [...ownerRoles, "manager"].includes(actorRole);
+  const canExportData = [...ownerRoles, "manager"].includes(actorRole);
   const canViewFinancialAnalytics = [...ownerRoles, "manager"].includes(actorRole);
   const canWriteStudents = [...ownerRoles, "manager", "front_desk", "staff"].includes(actorRole);
   const canWriteCredits = [...ownerRoles, "manager", "front_desk", "staff"].includes(actorRole);
@@ -1360,6 +1365,10 @@ function App() {
       }));
       if (!d.pending) d.pending = [];
       if (!d.packages) d.packages = [{ id: 1, name: "标准课包", credits: 10, price: 1200 }];
+      const nextDefaultClassTime = d.operationalSettings?.defaultClassTime || "14:30";
+      setDefaultClassTime(nextDefaultClassTime);
+      setDefaultClassTimeDraft(nextDefaultClassTime);
+      setRTime((current) => current === "14:30" ? nextDefaultClassTime : current || nextDefaultClassTime);
       revRef.current = d.rev || 1;
       setDb(d);
       setConn(true);
@@ -1954,7 +1963,7 @@ function App() {
     setSchedEdit({
       label: grpSel,
       weekday: (/* @__PURE__ */ new Date()).getDay(),
-      startTime: "16:00",
+      startTime: defaultClassTime,
       durationMinutes: 60,
       capacity: Math.max(10, ids.length),
       studentIds: ids
@@ -1980,6 +1989,14 @@ function App() {
     return data;
   };
   const rosterMetaFor = (date, sid) => (db.rosterEntries?.[date] || {})[sid] || {};
+  const rosterSlotFor = (date, sid) => {
+    const explicit = rosterMetaFor(date, sid).classTime;
+    if (explicit) return explicit;
+    const weekday = (/* @__PURE__ */ new Date(`${date}T12:00:00`)).getDay();
+    return schedules.find(
+      (schedule) => schedule.weekday === weekday && schedule.students.some((student) => student.id === sid)
+    )?.startTime || "";
+  };
   const calendarPreviewPath = (kind, rosterDate = rDate) => kind === "roster" ? `/daily-roster/calendar?date=${encodeURIComponent(rosterDate)}` : "/class-schedules/calendar";
   const fetchIcsPreview = async (kind, rosterDate = rDate) => {
     const data = await v1Api(calendarPreviewPath(kind, rosterDate));
@@ -1991,6 +2008,7 @@ function App() {
   };
   const openIcsPreview = async (kind) => {
     setIcsBusy(true);
+    setIcsNotice("");
     try {
       setIcsPreview(await fetchIcsPreview(kind));
     } catch (err) {
@@ -2018,7 +2036,8 @@ function App() {
         const detail = await r.json().catch(() => ({}));
         if (r.status === 409 && detail.error === "calendar_revision_conflict") {
           setIcsPreview(await fetchIcsPreview(kind, preview.date || rDate));
-          throw new Error("排课已在预览后发生变化，内容已刷新；请确认后重新下载");
+          setIcsNotice("排课刚刚发生变化，预览已自动刷新。请核对后再次下载。");
+          return;
         }
         throw new Error(detail.message || detail.error || `下载失败（HTTP ${r.status}）`);
       }
@@ -2034,11 +2053,35 @@ function App() {
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1e3);
       setIcsPreview(null);
+      setIcsNotice("");
       showToast("日历文件已下载");
     } catch (err) {
       showToast(err.message || "下载失败", "error");
     } finally {
       setIcsBusy(false);
+    }
+  };
+  const saveDefaultClassTime = async () => {
+    if (operationalSettingsBusy) return;
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(defaultClassTimeDraft)) {
+      showToast("默认上课时间必须是有效的 HH:MM", "error");
+      return;
+    }
+    setOperationalSettingsBusy(true);
+    try {
+      const data = await v1Api("/operational-settings", {
+        method: "PATCH",
+        body: JSON.stringify({ defaultClassTime: defaultClassTimeDraft })
+      });
+      const saved = data.defaultClassTime;
+      setDefaultClassTime(saved);
+      setDefaultClassTimeDraft(saved);
+      setRTime(saved);
+      showToast(`默认上课时间已设为 ${saved}`);
+    } catch (error) {
+      showToast(`默认时间保存失败：${error.message}`, "error");
+    } finally {
+      setOperationalSettingsBusy(false);
     }
   };
   const batchCheckIn = () => {
@@ -3127,25 +3170,34 @@ document.getElementById('copybtn').addEventListener('click', function(){
       "aria-labelledby": "ics-dialog-title",
       "aria-describedby": "ics-dialog-help",
       onClick: (e) => {
-        if (e.target === e.currentTarget) setIcsPreview(null);
+        if (e.target === e.currentTarget) {
+          setIcsPreview(null);
+          setIcsNotice("");
+        }
       }
     },
-    /* @__PURE__ */ React.createElement("div", { ref: icsDialogRef, className: "bg-white w-full md:max-w-lg md:rounded-2xl rounded-t-2xl max-h-[88vh] overflow-y-auto" }, /* @__PURE__ */ React.createElement("div", { className: "px-5 py-4 border-b border-gray-100 flex items-start justify-between gap-3" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { id: "ics-dialog-title", className: "font-bold text-gray-900" }, "下载日历"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-0.5" }, icsPreview.date ? `${fmtDate(icsPreview.date)} · ` : "", "Apple / Google 通用 .ics")), /* @__PURE__ */ React.createElement(
+    /* @__PURE__ */ React.createElement("div", { ref: icsDialogRef, className: "bg-white w-full md:max-w-lg md:rounded-2xl rounded-t-2xl max-h-[88vh] overflow-y-auto" }, /* @__PURE__ */ React.createElement("div", { className: "px-5 py-4 border-b border-gray-100 flex items-start justify-between gap-3" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { id: "ics-dialog-title", className: "font-bold text-gray-900" }, icsPreview.kind === "roster" ? "导出当日排课" : "导出固定课表"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-0.5" }, icsPreview.date ? `${fmtDate(icsPreview.date)} · ` : "", "Apple / Google 通用 .ics")), /* @__PURE__ */ React.createElement(
       "button",
       {
         ref: icsCloseButtonRef,
-        onClick: () => setIcsPreview(null),
+        onClick: () => {
+          setIcsPreview(null);
+          setIcsNotice("");
+        },
         "aria-label": "关闭日历预览",
         className: "text-gray-400 text-2xl leading-none px-2 min-h-[44px]"
       },
       "×"
-    )), /* @__PURE__ */ React.createElement("div", { className: "p-5 space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-3 gap-2" }, [["events", "日历事件"], ["classes", "普通班课"], ["oneToOne", "1 对 1"]].map(([k, label]) => /* @__PURE__ */ React.createElement("div", { key: k, className: "bg-gray-50 rounded-xl py-3 text-center" }, /* @__PURE__ */ React.createElement("p", { className: "text-xl font-bold text-gray-900" }, icsPreview.stats?.[k] ?? 0), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-0.5" }, label)))), (icsPreview.events || []).length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "text-center py-6 px-2" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-600 font-bold" }, "没有可导出的课程"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1.5 leading-relaxed" }, icsPreview.kind === "roster" ? "这一天的排课是空的。先在下方名单里加入学员，再回来导出。" : "还没有固定班次。在「每周课表」新增班次后，这里就会有内容。")) : (icsPreview.events || []).map((ev) => /* @__PURE__ */ React.createElement("div", { key: ev.uid, className: "border border-gray-100 rounded-xl px-4 py-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-start justify-between gap-2" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-900 text-sm" }, ev.summary), /* @__PURE__ */ React.createElement("span", { className: "text-[11px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 flex-shrink-0" }, ev.allDay ? "全天 · 未设时间" : `${ev.durationMinutes} 分钟${ev.durationSource === "default" ? " · 默认" : ""}`)), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, ev.timeRange), (ev.participants || []).length > 0 && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-0.5" }, ev.participants.join("、")))), (icsPreview.skipped || []).length > 0 && /* @__PURE__ */ React.createElement("div", { className: "rounded-xl px-4 py-3 bg-amber-50 border border-amber-200" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-amber-800" }, icsPreview.skipped.length, " 项未导出"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-amber-700 mt-1" }, icsPreview.skipped.map((x) => {
+    )), /* @__PURE__ */ React.createElement("div", { className: "p-5 space-y-3" }, icsNotice && /* @__PURE__ */ React.createElement("div", { role: "status", className: "rounded-xl px-4 py-3 bg-amber-50 border border-amber-200 text-xs font-bold text-amber-800" }, icsNotice), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-3 gap-2" }, [["events", "日历事件"], ["classes", "普通班课"], ["oneToOne", "1 对 1"]].map(([k, label]) => /* @__PURE__ */ React.createElement("div", { key: k, className: "bg-gray-50 rounded-xl py-3 text-center" }, /* @__PURE__ */ React.createElement("p", { className: "text-xl font-bold text-gray-900" }, icsPreview.stats?.[k] ?? 0), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-0.5" }, label)))), (icsPreview.events || []).length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "text-center py-6 px-2" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-600 font-bold" }, "没有可导出的课程"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1.5 leading-relaxed" }, icsPreview.kind === "roster" ? "这一天的排课是空的。先在下方名单里加入学员，再回来导出。" : "还没有固定班次。在「每周课表」新增班次后，这里就会有内容。")) : (icsPreview.events || []).map((ev) => /* @__PURE__ */ React.createElement("div", { key: ev.uid, className: "border border-gray-100 rounded-xl px-4 py-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-start justify-between gap-2" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-900 text-sm" }, ev.summary), /* @__PURE__ */ React.createElement("span", { className: "text-[11px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 flex-shrink-0" }, ev.allDay ? "全天 · 未设时间" : `${ev.durationMinutes} 分钟${ev.durationSource === "default" ? " · 默认" : ""}`)), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, ev.timeRange), (ev.participants || []).length > 0 && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-0.5" }, ev.participants.join("、")))), (icsPreview.skipped || []).length > 0 && /* @__PURE__ */ React.createElement("div", { className: "rounded-xl px-4 py-3 bg-amber-50 border border-amber-200" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-amber-800" }, icsPreview.skipped.length, " 项未导出"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-amber-700 mt-1" }, icsPreview.skipped.map((x) => {
       const why = { cancelled: "已取消", "no-class-time": "未设置上课时间" }[x.reason] || x.reason || "";
       return [x.studentName, why].filter(Boolean).join(" · ");
     }).filter(Boolean).join("；"))), /* @__PURE__ */ React.createElement("div", { className: "rounded-xl px-4 py-3 bg-gray-50 text-xs text-gray-600 space-y-1" }, /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("span", { className: "font-bold" }, "时区："), icsPreview.timezone?.name, icsPreview.timezone?.abbreviations?.length ? `（含 ${icsPreview.timezone.abbreviations.join("/")} 规则）` : ""), icsPreview.location && /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("span", { className: "font-bold" }, "地点："), icsPreview.location)), icsPreview.includesStudentNames && /* @__PURE__ */ React.createElement("div", { className: "rounded-xl px-4 py-3 bg-amber-50 border border-amber-200 text-xs text-amber-800" }, "此文件包含学员姓名。导入后它会留在对方的日历里，请只发给应当看到的人。"), /* @__PURE__ */ React.createElement("p", { id: "ics-dialog-help", className: "text-xs text-gray-500 leading-relaxed" }, "Apple 日历可直接打开此文件；Google 日历请在电脑端「设置 → 导入和导出」导入。 同一个文件两者通用。", icsPreview.subscribable === false && "文件是当前排课的快照，之后修改排课需要重新下载。")), /* @__PURE__ */ React.createElement("div", { className: "px-5 py-4 border-t border-gray-100 flex gap-2" }, /* @__PURE__ */ React.createElement(
       "button",
       {
-        onClick: () => setIcsPreview(null),
+        onClick: () => {
+          setIcsPreview(null);
+          setIcsNotice("");
+        },
         className: "flex-1 border border-gray-200 rounded-xl py-3 text-sm font-bold text-gray-700 min-h-[44px]"
       },
       "取消"
@@ -3512,7 +3564,23 @@ document.getElementById('copybtn').addEventListener('click', function(){
       "aria-labelledby": "settings-dialog-title",
       style: { paddingTop: "max(16px, env(safe-area-inset-top, 16px))", paddingBottom: "max(16px, env(safe-area-inset-bottom, 16px))" }
     },
-    /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-2xl p-6 w-full max-w-2xl shadow-2xl anim overflow-y-auto modal-scroll", style: { maxHeight: "90dvh" }, onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between items-center mb-5" }, /* @__PURE__ */ React.createElement("h3", { id: "settings-dialog-title", className: "inline-flex items-center gap-1.5 font-bold text-gray-800" }, /* @__PURE__ */ React.createElement(Icon, { name: "cog", className: "w-4 h-4" }), "系统设置"), /* @__PURE__ */ React.createElement("button", { onClick: () => setShowSettings(false), "aria-label": "关闭", className: "text-gray-400 active:text-gray-700 text-xl p-1 min-h-[44px] min-w-[44px] inline-flex items-center justify-center" }, "×")), TENANT_SLUG && ownerRoles.includes(actorRole) && /* @__PURE__ */ React.createElement(
+    /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-2xl p-6 w-full max-w-2xl shadow-2xl anim overflow-y-auto modal-scroll", style: { maxHeight: "90dvh" }, onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between items-center mb-5" }, /* @__PURE__ */ React.createElement("h3", { id: "settings-dialog-title", className: "inline-flex items-center gap-1.5 font-bold text-gray-800" }, /* @__PURE__ */ React.createElement(Icon, { name: "cog", className: "w-4 h-4" }), "系统设置"), /* @__PURE__ */ React.createElement("button", { onClick: () => setShowSettings(false), "aria-label": "关闭", className: "text-gray-400 active:text-gray-700 text-xl p-1 min-h-[44px] min-w-[44px] inline-flex items-center justify-center" }, "×")), /* @__PURE__ */ React.createElement("div", { className: "md:hidden mb-4 pb-4 border-b border-gray-100" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-gray-500 uppercase tracking-wide mb-2" }, "界面语言"), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-2" }, /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: () => document.querySelector('[data-cms-language="zh"]')?.click(),
+        className: "min-h-[44px] rounded-xl border border-gray-200 bg-gray-50 text-sm font-bold text-gray-700"
+      },
+      "中文"
+    ), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: () => document.querySelector('[data-cms-language="en"]')?.click(),
+        className: "min-h-[44px] rounded-xl border border-gray-200 bg-gray-50 text-sm font-bold text-gray-700"
+      },
+      "English"
+    ))), TENANT_SLUG && ownerRoles.includes(actorRole) && /* @__PURE__ */ React.createElement(
       "a",
       {
         href: `/${TENANT_SLUG}/studio-admin`,
@@ -3612,7 +3680,24 @@ document.getElementById('copybtn').addEventListener('click', function(){
         className: "w-full bg-indigo-600 active:bg-indigo-700 disabled:opacity-50 text-white py-2.5 rounded-xl font-bold text-sm"
       },
       pwBusy ? "更新中..." : "更新密码"
-    )), canManageOperations && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "mt-4 pt-4 border-t border-gray-100 space-y-2" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-gray-500 uppercase tracking-wide" }, "未到访预警天数"), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, [60, 90, 120, 180].map((d) => /* @__PURE__ */ React.createElement(
+    )), canManageOperations && TENANT_SLUG && /* @__PURE__ */ React.createElement("div", { className: "mt-4 pt-4 border-t border-gray-100 space-y-2" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-gray-500 uppercase tracking-wide" }, "每日排课默认时间"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400" }, "用于新排课、班组模板和新建固定班次；不会改动已保存的课程。"), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 items-end" }, /* @__PURE__ */ React.createElement("label", { className: "flex-1 text-xs font-bold text-gray-500" }, "默认上课时间", /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        type: "time",
+        value: defaultClassTimeDraft,
+        onChange: (e) => setDefaultClassTimeDraft(e.target.value),
+        className: "mt-1 w-full px-3 py-2.5 border border-gray-300 rounded-xl bg-white text-sm font-bold min-h-[46px] outline-none focus:ring-2 focus:ring-indigo-500"
+      }
+    )), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: saveDefaultClassTime,
+        disabled: operationalSettingsBusy || defaultClassTimeDraft === defaultClassTime,
+        className: "px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-bold min-h-[46px] disabled:opacity-40"
+      },
+      operationalSettingsBusy ? "保存中…" : "保存"
+    ))), canManageOperations && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "mt-4 pt-4 border-t border-gray-100 space-y-2" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-gray-500 uppercase tracking-wide" }, "未到访预警天数"), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, [60, 90, 120, 180].map((d) => /* @__PURE__ */ React.createElement(
       "button",
       {
         key: d,
@@ -4114,15 +4199,16 @@ document.getElementById('copybtn').addEventListener('click', function(){
       "button",
       {
         onClick: () => openIcsPreview("schedule"),
-        disabled: icsBusy,
+        disabled: icsBusy || schedules.length === 0,
+        title: schedules.length ? "导出所有固定班次，不包含学员姓名" : "请先新增固定班次",
         className: "inline-flex items-center gap-1.5 border border-indigo-200 bg-indigo-50 text-indigo-700 px-4 py-1.5 rounded-xl text-xs font-bold min-h-[44px] active:bg-indigo-100 disabled:opacity-50"
       },
       /* @__PURE__ */ React.createElement(Icon, { name: "download", className: "w-3.5 h-3.5" }),
-      "下载 ICS 日历"
+      "固定课表 ICS"
     ), canManageOperations && /* @__PURE__ */ React.createElement(
       "button",
       {
-        onClick: () => setSchedEdit({ label: "", weekday: (/* @__PURE__ */ new Date()).getDay(), startTime: "16:00", durationMinutes: 60, capacity: 10, studentIds: [] }),
+        onClick: () => setSchedEdit({ label: "", weekday: (/* @__PURE__ */ new Date()).getDay(), startTime: defaultClassTime, durationMinutes: 60, capacity: 10, studentIds: [] }),
         className: "inline-flex items-center gap-1.5 bg-indigo-600 active:bg-indigo-700 text-white px-4 py-1.5 rounded-xl text-xs font-bold min-h-[44px]"
       },
       /* @__PURE__ */ React.createElement(Icon, { name: "plus", className: "w-3.5 h-3.5" }),
@@ -4197,7 +4283,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
         className: "bg-indigo-600 active:bg-indigo-700 disabled:bg-gray-300 text-white px-5 py-2 rounded-xl text-sm font-bold"
       },
       schedEdit.id ? "保存修改" : "创建班次"
-    )))), /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-2xl shadow-sm border border-gray-100 p-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex flex-col lg:flex-row gap-3 items-end" }, /* @__PURE__ */ React.createElement("div", { className: "w-full lg:w-64" }, /* @__PURE__ */ React.createElement("label", { className: "text-xs font-bold text-gray-500 mb-1 block" }, "课程日期"), /* @__PURE__ */ React.createElement("div", { className: "flex gap-1.5 items-center" }, /* @__PURE__ */ React.createElement(
+    )))), /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-2xl shadow-sm border border-gray-100 p-4" }, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-[minmax(250px,38.2fr)_minmax(0,61.8fr)] gap-3 items-end" }, /* @__PURE__ */ React.createElement("div", { className: "w-full" }, /* @__PURE__ */ React.createElement("label", { className: "text-xs font-bold text-gray-500 mb-1 block" }, "课程日期"), /* @__PURE__ */ React.createElement("div", { className: "flex gap-1.5 items-center" }, /* @__PURE__ */ React.createElement(
       "button",
       {
         type: "button",
@@ -4254,7 +4340,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
         onChange: (e) => setROneToOne(e.target.checked),
         className: "w-4 h-4"
       }
-    ), "1 对 1（同时段还有其他人时会提示冲突）"))), /* @__PURE__ */ React.createElement("div", { className: "mt-3 pt-3 border-t border-gray-100 flex gap-2 items-center flex-wrap" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5 text-xs font-bold text-gray-500" }, /* @__PURE__ */ React.createElement(Icon, { name: "clipboard", className: "w-4 h-4" }), "班组模板"), /* @__PURE__ */ React.createElement(
+    ), "1 对 1（同时段还有其他人时会提示冲突）"))), /* @__PURE__ */ React.createElement("details", { className: "mt-3 pt-3 border-t border-gray-100 group" }, /* @__PURE__ */ React.createElement("summary", { className: "list-none cursor-pointer min-h-[44px] flex items-center justify-between gap-3 text-xs font-bold text-gray-600" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "clipboard", className: "w-4 h-4" }), "班组模板与批量工具"), /* @__PURE__ */ React.createElement("span", { className: "text-indigo-600 group-open:rotate-180 transition-transform", "aria-hidden": "true" }, "⌄")), /* @__PURE__ */ React.createElement("div", { className: "pt-2 flex gap-2 items-center flex-wrap" }, /* @__PURE__ */ React.createElement(
       "select",
       {
         value: grpSel,
@@ -4296,7 +4382,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
       },
       /* @__PURE__ */ React.createElement(Icon, { name: "calendar", className: "w-4 h-4" }),
       "转为每周班次"
-    ))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-7 gap-1.5" }, (() => {
+    )))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-7 gap-1.5" }, (() => {
       const anchor = /* @__PURE__ */ new Date(`${rDate}T12:00:00`);
       const monday = new Date(anchor);
       monday.setDate(anchor.getDate() - (anchor.getDay() + 6) % 7);
@@ -4346,7 +4432,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
       if (!ids.length) return null;
       const slots = {};
       ids.forEach((id) => {
-        const t = (rosterMetaFor(rDate, id).classTime || "").trim() || "__unset";
+        const t = (rosterSlotFor(rDate, id) || "").trim() || "__unset";
         (slots[t] = slots[t] || []).push(id);
       });
       const groups = Object.entries(slots).sort(([a], [b]) => a === "__unset" ? 1 : b === "__unset" ? -1 : a.localeCompare(b));
@@ -4359,7 +4445,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
     })(), /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "bg-gray-50 border-b px-4 py-3 flex justify-between items-center gap-2 flex-wrap" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-sm text-gray-800" }, fmtDate(rDate), " · ", dayIds.filter((id) => {
       const s = db.students.find((x) => x.id === id);
       return s && !s.archived;
-    }).length, " 人", scheduledForDate.length > 0 && /* @__PURE__ */ React.createElement("span", { className: "text-xs font-normal text-indigo-500 ml-1" }, "（课表 ", scheduledForDate.length, " 班）")), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, dayIds.length > 0 && /* @__PURE__ */ React.createElement(
+    }).length, " 人", scheduledForDate.length > 0 && /* @__PURE__ */ React.createElement("span", { className: "text-xs font-normal text-indigo-500 ml-1" }, "（课表 ", scheduledForDate.length, " 班）")), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, dayIds.length > 0 && canExportData && /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: () => openIcsPreview("roster"),
@@ -4367,7 +4453,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
         className: "border border-gray-200 bg-white text-gray-700 px-3 py-2 rounded-xl text-xs font-bold min-h-[44px] inline-flex items-center gap-1.5 disabled:opacity-50"
       },
       /* @__PURE__ */ React.createElement(Icon, { name: "calendar", className: "w-4 h-4" }),
-      "日历"
+      "导出当日 ICS"
     ), dayIds.length > 0 && /* @__PURE__ */ React.createElement("button", { onClick: () => {
       const ids = dayIds;
       const lines = ids.map((id) => {
@@ -4382,13 +4468,14 @@ ${lines.join("\n")}`;
       return s && !s.archived && s.mobile;
     }) && /* @__PURE__ */ React.createElement("button", { onClick: () => {
       const ids = dayIds;
-      const msg = `提醒：您的上课时间是 ${fmtDate(rDate)}，请准时到课。Studio 期待见到您！`;
       const lines = ids.map((id) => {
         const s = db.students.find((x) => x.id === id);
-        return s && !s.archived && s.mobile ? `${s.name}（${s.mobile}）` : null;
+        if (!s || s.archived || !s.mobile) return null;
+        const slot = rosterSlotFor(rDate, id);
+        return `${s.name}（${s.mobile}）
+提醒：您的上课时间是 ${fmtDate(rDate)}${slot ? ` ${slot}` : ""}，请准时到课。${tenantDisplayName} 期待见到您！`;
       }).filter(Boolean);
-      copyText(lines.map((l) => `${l}
-${msg}`).join("\n\n"), `已复制 ${lines.length} 条提醒内容`);
+      copyText(lines.join("\n\n"), `已复制 ${lines.length} 条提醒内容`);
     }, className: "bg-white border border-green-300 active:bg-green-50 text-green-700 px-3 py-1.5 rounded-xl text-xs font-bold min-h-[44px]" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "chat", className: "w-4 h-4" }), "批量提醒")), dayIds.some((id) => {
       const s = db.students.find((x) => x.id === id);
       return s && !s.archived && s.balance > 0;
@@ -4417,7 +4504,7 @@ ${msg}`).join("\n\n"), `已复制 ${lines.length} 条提醒内容`);
       const s = db.students.find((x) => x.id === sid);
       if (!s || s.archived) return null;
       const lowBal = (parseInt(s.balance, 10) || 0) <= renewTh;
-      return /* @__PURE__ */ React.createElement("div", { key: sid, className: `px-4 py-3 flex items-center hover-row gap-3 min-h-[64px] ${lowBal ? "bg-amber-50/60" : ""}` }, /* @__PURE__ */ React.createElement(PhotoAvatar, { photo: s.photo, name: s.name, size: "sm" }), /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-900 truncate" }, s.name, rosterMetaFor(rDate, sid).oneToOne && /* @__PURE__ */ React.createElement("span", { className: "ml-1.5 text-[11px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-full px-2 py-0.5" }, "1 对 1")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400" }, s.mobile || "—", rosterMetaFor(rDate, sid).classTime && /* @__PURE__ */ React.createElement("span", { className: "ml-1 font-bold text-gray-500" }, "· ", rosterMetaFor(rDate, sid).classTime), lowBal && /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5 ml-1 text-amber-600 font-bold" }, /* @__PURE__ */ React.createElement(Icon, { name: "bolt", className: "w-4 h-4" }), "余额告急"))), TENANT_SLUG && rosterMetaFor(rDate, sid).id && /* @__PURE__ */ React.createElement(
+      return /* @__PURE__ */ React.createElement("div", { key: sid, className: `px-4 py-3 flex flex-wrap md:flex-nowrap items-center hover-row gap-3 min-h-[64px] ${lowBal ? "bg-amber-50/60" : ""}` }, /* @__PURE__ */ React.createElement(PhotoAvatar, { photo: s.photo, name: s.name, size: "sm" }), /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-900 truncate" }, s.name, rosterMetaFor(rDate, sid).oneToOne && /* @__PURE__ */ React.createElement("span", { className: "ml-1.5 text-[11px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-full px-2 py-0.5" }, "1 对 1")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400" }, s.mobile || "未填写手机", lowBal && /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5 ml-1 text-amber-600 font-bold" }, /* @__PURE__ */ React.createElement(Icon, { name: "bolt", className: "w-4 h-4" }), "余额告急"))), TENANT_SLUG && rosterMetaFor(rDate, sid).id && /* @__PURE__ */ React.createElement(
         "input",
         {
           type: "time",
@@ -4429,17 +4516,17 @@ ${msg}`).join("\n\n"), `已复制 ${lines.length} 条提醒内容`);
           },
           className: "px-2 py-2 border border-gray-300 rounded-xl bg-white text-xs font-bold min-h-[44px] w-[104px] flex-shrink-0 outline-none focus:ring-2 focus:ring-indigo-500"
         }
-      ), lowBal && /* @__PURE__ */ React.createElement("button", { onClick: () => {
+      ), TENANT_SLUG && !rosterMetaFor(rDate, sid).id && /* @__PURE__ */ React.createElement("span", { className: "px-3 py-2 border border-indigo-100 rounded-xl bg-indigo-50 text-xs font-bold text-indigo-700 min-h-[44px] inline-flex items-center flex-shrink-0" }, rosterSlotFor(rDate, sid) || "未设时间"), lowBal && /* @__PURE__ */ React.createElement("button", { onClick: () => {
         const msg = renderMessage(
           "renewal",
           "{student} 家长您好！温馨提醒：您在 {studio} 的剩余课时为 {balance} 节{note}，为不影响后续上课安排，欢迎随时联系老师续课。",
           { student: s.name, balance: s.balance, note: (parseInt(s.balance, 10) || 0) === 0 ? "（已用完）" : "" }
         );
         copyText(msg, `已复制给 ${s.name} 的催费提醒`);
-      }, className: "px-3 py-2.5 bg-amber-100 active:bg-amber-200 text-amber-700 border border-amber-300 rounded-xl text-xs font-bold min-h-[44px] flex-shrink-0" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "chat", className: "w-4 h-4" }), "催费")), rosterDone.has(s.id) && /* @__PURE__ */ React.createElement("span", { className: "text-[11px] font-bold text-green-600 bg-green-50 border border-green-200 rounded-full px-2 py-0.5 flex-shrink-0" }, "✓ 已签"), /* @__PURE__ */ React.createElement(BalBadge, { n: s.balance }), /* @__PURE__ */ React.createElement("div", { className: "flex gap-1.5 flex-shrink-0" }, s.mobile && /* @__PURE__ */ React.createElement(
+      }, className: "px-3 py-2.5 bg-amber-100 active:bg-amber-200 text-amber-700 border border-amber-300 rounded-xl text-xs font-bold min-h-[44px] flex-shrink-0" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "chat", className: "w-4 h-4" }), "催费")), rosterDone.has(s.id) && /* @__PURE__ */ React.createElement("span", { className: "text-[11px] font-bold text-green-600 bg-green-50 border border-green-200 rounded-full px-2 py-0.5 flex-shrink-0" }, "✓ 已签"), /* @__PURE__ */ React.createElement(BalBadge, { n: s.balance }), /* @__PURE__ */ React.createElement("div", { className: "flex gap-1.5 flex-shrink-0 max-md:w-full max-md:justify-end max-md:overflow-x-auto" }, s.mobile && /* @__PURE__ */ React.createElement(
         "a",
         {
-          href: `sms:${s.mobile.replace(/\s/g, "")}?body=${encodeURIComponent(`提醒：您的上课时间是 ${fmtDate(rDate)}，请准时到课。Studio 期待见到您！`)}`,
+          href: `sms:${s.mobile.replace(/\s/g, "")}?body=${encodeURIComponent(`提醒：您的上课时间是 ${fmtDate(rDate)}${rosterSlotFor(rDate, s.id) ? ` ${rosterSlotFor(rDate, s.id)}` : ""}，请准时到课。${tenantDisplayName} 期待见到您！`)}`,
           "aria-label": "发消息",
           className: "px-3 py-2.5 bg-green-50 active:bg-green-100 text-green-700 border border-green-200 rounded-xl text-xs font-bold min-h-[44px] flex items-center"
         },

@@ -44,7 +44,18 @@ def test_product_home_uses_the_canonical_pwe_palette() -> None:
         assert colour in source
     for colour in retired_colours:
         assert colour not in source
-    assert '<meta name="theme-color" content="#0e1729">' in source
+    assert '<meta name="theme-color" content="#f7f5f2">' in source
+
+
+def test_product_home_limits_navy_to_golden_ratio_brand_anchors() -> None:
+    """The gateway should read as warm and open, not as one long dark page."""
+
+    source = _product_home_source()
+    assert "var(--paper) 0 61.8%, var(--family-navy) 61.8%" in source
+    assert ".support-grid { display: grid; grid-template-columns: 1fr 1.618fr" in source
+    assert ".role-owner { grid-column: span 8; color: var(--family-navy)" in source
+    assert ".industry:first-child { color: var(--family-navy)" in source
+    assert "[data-lang=\"zh\"] { display: none !important; }" in source
 
 
 def test_product_home_uses_the_approved_sales_story() -> None:

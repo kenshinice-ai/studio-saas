@@ -4,7 +4,7 @@ Status: public working draft, internally reviewed 1 August 2026
 
 ## Contact path
 
-The PWE Studio product homepage contains Support & Feedback actions. In v8.1.1 they open the user’s Mail or Messages application. The user reviews and sends; the system does not claim automated delivery or ticket-provider tracking. The customer-readable version is published at `/customer-resources/Support_Policy.html`.
+The PWE Studio product homepage contains Support & Feedback actions. In v8.2.0 they open the user’s Mail or Messages application. The user reviews and sends; the system does not claim automated delivery or ticket-provider tracking. The customer-readable version is published at `/customer-resources/Support_Policy.html`.
 
 Never send passwords, access codes, payment details or sensitive student information in the first message. Use tenant slug, affected role, time, page and a non-sensitive description.
 

@@ -2,7 +2,7 @@
 
 Status: internal review complete; external Australian legal sign-off required before first customer signature
 
-This review checks the published customer material against the v8.1.1 product and current official Australian guidance. It is not legal advice and does not replace advice about PWE GROUP PTY LTD's circumstances or a customer's obligations.
+This review checks the published customer material against the v8.1.1 legal/control baseline, which remains applicable to the v8.2.0 roster UI and calendar-context release, and current official Australian guidance. It is not legal advice and does not replace advice about PWE GROUP PTY LTD's circumstances or a customer's obligations.
 
 ## Outcome
 

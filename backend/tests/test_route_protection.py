@@ -61,6 +61,7 @@ def test_studio_admin_slug_routes_reach_auth_layer(client, path):
 MUTATIONS = [
     ("POST", "/v1/admin/tenants"),
     ("PATCH", "/s/demo/v1/tenant"),
+    ("PATCH", "/s/demo/v1/operational-settings"),
     ("PUT", "/s/demo/v1/tenant/brand-draft"),
     ("POST", "/s/demo/v1/tenant/website-media"),
     ("POST", "/s/demo/v1/tenant/brand-versions/00000000-0000-0000-0000-000000000000/restore"),

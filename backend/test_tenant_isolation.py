@@ -570,10 +570,27 @@ def main() -> int:
     teacher_cms = teacher.get(f"/s/{TENANT_A}/v1/legacy-cms/data")
     teacher_data = teacher_cms.get_json() or {}
     check("Teacher can read the projected CMS payload", teacher_cms.status_code == 200)
+    default_time_update = owner_a.patch(
+        f"/s/{TENANT_A}/v1/operational-settings",
+        json={"defaultClassTime": "14:30"},
+    )
+    check("Owner can set the tenant-wide default class time", default_time_update.status_code == 200)
+    refreshed_teacher_data = teacher.get(f"/s/{TENANT_A}/v1/legacy-cms/data").get_json() or {}
+    check(
+        "Operational default is shared with every staff device",
+        (refreshed_teacher_data.get("operationalSettings") or {}).get("defaultClassTime") == "14:30",
+    )
     check("Teacher CMS payload excludes registrations and packages", teacher_data.get("pending") == [] and teacher_data.get("packages") == [])
     check("Teacher cannot read registration API data", teacher.get(f"/s/{TENANT_A}/v1/registrations").status_code == 403)
     check("Teacher cannot publish the tenant brand", teacher.patch(f"/s/{TENANT_A}/v1/tenant", json=brand_payload).status_code == 403)
     check("Teacher cannot create student records", teacher.post(f"/s/{TENANT_A}/v1/students", json={}).status_code == 403)
+    check(
+        "Teacher cannot change tenant-wide operational defaults",
+        teacher.patch(
+            f"/s/{TENANT_A}/v1/operational-settings",
+            json={"defaultClassTime": "09:00"},
+        ).status_code == 403,
+    )
     check("Teacher cannot cross into another tenant", teacher.get(f"/s/{TENANT_B}/v1/students").status_code == 403)
 
     front_desk_create = owner_a.post(
