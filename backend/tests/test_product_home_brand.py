@@ -5,6 +5,9 @@ from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 PRODUCT_HOME = REPOSITORY_ROOT / "product-home.html"
+# The footer must name the shipping release; which release that is comes from
+# VERSION, so a bump does not drag test edits along with it.
+VERSION = (REPOSITORY_ROOT / "VERSION").read_text(encoding="utf-8").strip()
 
 
 def _product_home_source() -> str:
@@ -54,5 +57,5 @@ def test_product_home_uses_the_approved_sales_story() -> None:
     assert "Studio at AUD 99/month is the recommended plan." in source
     assert "One-time setup is quoted at AUD 299–999" in source
     assert "PWE Studio does not silently transmit or store the form." in source
-    assert "PWE Studio · v8.1.0" in source
+    assert f"PWE Studio · v{VERSION}" in source
     assert "/customer-resources/Release_Notes_v8.1.0.html" in source

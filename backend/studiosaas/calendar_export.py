@@ -3,8 +3,9 @@
 Two different calendars are produced here, and the difference matters:
 
 ``weekly-schedules``
-    The recurring class timetable. It carries labels, wall-clock times and the
-    studio address, never a student identity, and it is safe to subscribe to.
+    A generated recurring class timetable document. It carries labels,
+    wall-clock times and the studio address, never a student identity, but it is
+    a download snapshot rather than a subscription endpoint.
 
 ``daily-roster``
     A one-day snapshot of who is actually attending. It **does** carry student
@@ -23,6 +24,8 @@ from calendar import monthrange
 from dataclasses import dataclass, replace
 from datetime import date, datetime, time, timedelta, timezone
 from functools import lru_cache
+import hashlib
+import json
 from typing import Any, Iterable, Sequence
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -43,6 +46,7 @@ DEFAULT_CLASS_DURATION_MINUTES = 180
 DEFAULT_ONE_TO_ONE_DURATION_MINUTES = 60
 
 _UTC = timezone.utc
+_REVISION_SCHEMA_VERSION = 1
 
 
 def _escape(value: object) -> str:
@@ -348,26 +352,35 @@ class CalendarEvent:
     def preview(self, zone: ZoneInfo) -> dict[str, Any]:
         """Render this event for the download dialog."""
 
-        starts = self.starts_local.replace(tzinfo=zone)
-        ends = self.ends_local.replace(tzinfo=zone)
-        return {
+        common = {
             "uid": self.uid,
             "summary": self.summary,
             "location": self.location,
             "date": self.starts_local.date().isoformat(),
-            "startTime": self.starts_local.strftime("%H:%M"),
-            "endTime": self.ends_local.strftime("%H:%M"),
             "timeRange": (
                 "全天（未设时间）" if self.all_day
                 else f"{self.starts_local:%H:%M}–{self.ends_local:%H:%M}"
             ),
-            "durationMinutes": self.duration_minutes,
+            "durationMinutes": None if self.all_day else self.duration_minutes,
             "durationSource": self.duration_source,
             "allDay": self.all_day,
             "oneToOne": self.one_to_one,
             "recurrence": self.recurrence,
             "participants": list(self.participants),
             "participantCount": len(self.participants),
+        }
+        if self.all_day:
+            return {
+                **common,
+                "startDate": self.starts_local.date().isoformat(),
+                "endDate": self.ends_local.date().isoformat(),
+            }
+        starts = self.starts_local.replace(tzinfo=zone)
+        ends = self.ends_local.replace(tzinfo=zone)
+        return {
+            **common,
+            "startTime": self.starts_local.strftime("%H:%M"),
+            "endTime": self.ends_local.strftime("%H:%M"),
             "startsAt": starts.isoformat(),
             "endsAt": ends.isoformat(),
             "startsAtUtc": starts.astimezone(_UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -439,6 +452,48 @@ class CalendarDocument:
 
         return self.generated_at.astimezone(_UTC).strftime("%Y%m%dT%H%M%SZ")
 
+    @property
+    def revision(self) -> str:
+        """Hash only stable business semantics, never render-time metadata."""
+
+        payload = {
+            "schemaVersion": _REVISION_SCHEMA_VERSION,
+            "kind": self.kind,
+            "calendarName": self.calendar_name,
+            "timezone": self.timezone_name,
+            "location": self.location,
+            "filename": self.filename,
+            "subjectDate": self.subject_date.isoformat() if self.subject_date else None,
+            "includesStudentNames": self.includes_student_names,
+            "events": [
+                {
+                    "uid": event.uid,
+                    "summary": event.summary,
+                    "description": event.description,
+                    "location": event.location,
+                    "startsLocal": event.starts_local.isoformat(),
+                    "endsLocal": event.ends_local.isoformat(),
+                    "durationMinutes": event.duration_minutes,
+                    "durationSource": event.duration_source,
+                    "oneToOne": event.one_to_one,
+                    "recurrence": event.recurrence,
+                    "participants": list(event.participants),
+                    "allDay": event.all_day,
+                }
+                for event in self.events
+            ],
+            "skipped": sorted(
+                (dict(item) for item in self.skipped),
+                key=lambda item: json.dumps(
+                    item, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+                ),
+            ),
+        }
+        canonical = json.dumps(
+            payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+        ).encode("utf-8")
+        return hashlib.sha256(canonical).hexdigest()
+
     def to_ics(self) -> bytes:
         """Serialize to a standards-conformant iCalendar object."""
 
@@ -452,8 +507,6 @@ class CalendarDocument:
             f"X-WR-CALNAME:{_escape(self.calendar_name)}",
             f"X-WR-TIMEZONE:{_escape(self.timezone_name)}",
         ]
-        if self.subscribable:
-            lines.append("REFRESH-INTERVAL;VALUE=DURATION:PT6H")
         lines.extend(_vtimezone_lines(self.timezone_name, base_year))
         stamp = self.stamp_text
         for event in self.events:
@@ -477,6 +530,8 @@ class CalendarDocument:
             "includesStudentNames": self.includes_student_names,
             "subscribable": self.subscribable,
             "generatedAt": self.generated_at.astimezone(_UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "revision": self.revision,
+            "revisionSchemaVersion": _REVISION_SCHEMA_VERSION,
             "timezone": timezone_summary(self.timezone_name, reference),
             "stats": {
                 "events": len(events),
@@ -558,7 +613,7 @@ def build_schedule_document(
         events=tuple(events),
         generated_at=_normalized_stamp(generated_at),
         includes_student_names=False,
-        subscribable=True,
+        subscribable=False,
     )
 
 
@@ -764,5 +819,10 @@ def build_roster_document(
         subject_date=roster_date,
         includes_student_names=True,
         subscribable=False,
-        skipped=tuple(skipped),
+        skipped=tuple(
+            sorted(
+                skipped,
+                key=lambda item: (item.get("reason", ""), item.get("studentName", "")),
+            )
+        ),
     )

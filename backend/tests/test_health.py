@@ -2,6 +2,14 @@
 
 import pytest
 from importlib import import_module
+from pathlib import Path
+
+# Read the release label rather than repeating it. A hard-coded literal here
+# only ever fails the build on the version bump itself, which teaches whoever
+# is bumping to edit tests — the opposite of what this assertion is for. What
+# is worth pinning is that /v1/health reports the version the repository
+# declares, not that the version is any particular string.
+VERSION = (Path(__file__).resolve().parents[2] / "VERSION").read_text(encoding="utf-8").strip()
 
 
 def test_health_returns_ok(client):
@@ -11,7 +19,7 @@ def test_health_returns_ok(client):
     assert payload["ok"] is True
     assert payload["service"] == "PWE Studio SaaS API"
     assert payload["version"] == "v1"
-    assert payload["appVersion"] == "8.1.0"
+    assert payload["appVersion"] == VERSION
     assert payload["mode"] == "saas"
     assert payload["showProducerCredit"] is True
 

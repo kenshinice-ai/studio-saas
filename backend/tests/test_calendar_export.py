@@ -257,6 +257,11 @@ def test_preview_and_ics_are_rendered_from_one_document() -> None:
     untimed = next(item for item in preview["events"] if item["allDay"])
     assert untimed["participants"] == ["No Slot"]
     assert untimed["durationSource"] == "unset"
+    assert untimed["durationMinutes"] is None
+    assert untimed["startDate"] == "2026-10-07"
+    assert untimed["endDate"] == "2026-10-08"
+    for instant_field in ("startsAt", "endsAt", "startsAtUtc", "endsAtUtc", "abbreviation"):
+        assert instant_field not in untimed
     assert "未设时间" in untimed["summary"]
     # VALUE=DATE and no TZID: an all-day event is a date, not an instant.
     assert "DTSTART;VALUE=DATE:20261007" in text
@@ -318,9 +323,10 @@ def test_weekly_schedule_document_cannot_carry_student_names() -> None:
     )
     preview = document.to_preview()
     assert preview["includesStudentNames"] is False
-    assert preview["subscribable"] is True
+    assert preview["subscribable"] is False
     assert preview["events"][0]["participants"] == []
     text = document.to_ics().decode("utf-8")
+    assert "REFRESH-INTERVAL" not in text
     for leaked in ("Ruby Wu", "小Lucas"):
         assert leaked not in text
         assert leaked not in str(preview)
@@ -361,3 +367,61 @@ def test_roster_with_no_slots_set_still_exports_every_student():
     assert "DTEND;VALUE=DATE:20260801" in text
     for name in ("Lucas Liu", "Mia Chen"):
         assert name in text
+
+
+def test_revision_is_stable_across_generation_time_and_skipped_order() -> None:
+    entries = [
+        {"studentId": "a", "studentName": "Ruby", "classTime": "13:30"},
+        {"studentId": "b", "studentName": "Mia", "status": "cancelled"},
+        {"studentId": "c", "studentName": "Lucas", "status": "cancelled"},
+    ]
+    common = dict(
+        tenant_name="PWE Studio",
+        tenant_slug="pwe",
+        timezone_name="Australia/Melbourne",
+        location="Creative Quarter",
+        roster_date=date(2026, 10, 7),
+    )
+    first = build_roster_document(
+        **common,
+        entries=entries,
+        generated_at=datetime(2026, 10, 1, tzinfo=timezone.utc),
+    )
+    second = build_roster_document(
+        **common,
+        entries=[entries[0], entries[2], entries[1]],
+        generated_at=datetime(2026, 10, 2, tzinfo=timezone.utc),
+    )
+    assert first.revision == second.revision
+    assert first.to_preview()["revision"] == first.revision
+    assert first.to_preview()["revisionSchemaVersion"] == 1
+    assert re.fullmatch(r"[0-9a-f]{64}", first.revision)
+
+
+def test_revision_changes_with_business_semantics_but_not_private_schedule_fields() -> None:
+    common = dict(
+        tenant_name="PWE Studio",
+        tenant_slug="pwe",
+        timezone_name="Australia/Melbourne",
+        location="Creative Quarter",
+        today=date(2026, 7, 27),
+        generated_at=datetime(2026, 7, 29, tzinfo=timezone.utc),
+    )
+    schedule = {
+        "id": "one",
+        "label": "Creative Drawing",
+        "weekday": 3,
+        "start_time": "16:00",
+        "duration_minutes": 60,
+        "students": [{"name": "Private Student"}],
+    }
+    baseline = build_schedule_document(**common, schedules=[schedule])
+    private_only = build_schedule_document(
+        **common, schedules=[{**schedule, "students": [{"name": "Another Student"}]}]
+    )
+    changed = build_schedule_document(
+        **common, schedules=[{**schedule, "duration_minutes": 90}]
+    )
+    assert baseline.revision == private_only.revision
+    assert baseline.revision != changed.revision
+    assert "Private Student" not in str(baseline.to_preview())

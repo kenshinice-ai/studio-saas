@@ -14,6 +14,7 @@ import threading
 import time
 import hashlib
 import uuid as _uuid
+from urllib.parse import quote
 from datetime import date as _date, timedelta as _timedelta
 from pathlib import PurePath
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -6959,8 +6960,13 @@ def _daily_roster_for_date(conn, tenant_id: str, roster_date: _date) -> dict:
             "updatedAt": row["updated_at"].isoformat(),
         }
         normalized_entries.append(item)
-        if row["status"] != "cancelled":
-            effective[str(row["student_id"])] = {
+        student_id = str(row["student_id"])
+        if row["status"] == "cancelled":
+            # An explicit cancellation overrides inherited weekly membership for
+            # this date, while normalized_entries keeps the skipped explanation.
+            effective.pop(student_id, None)
+        else:
+            effective[student_id] = {
                 "studentId": str(row["student_id"]),
                 "studentName": row["student_name"],
                 "source": row["source"],
@@ -7390,11 +7396,54 @@ def _calendar_tenant_row(conn, tenant_id: str):
     )
 
 
-def _calendar_download_response(document: CalendarDocument):
-    """Return one CalendarDocument as an attachment."""
+_CALENDAR_REVISION_RE = re.compile(r"^[0-9a-f]{64}$")
 
-    response = Response(document.to_ics(), mimetype="text/calendar; charset=utf-8")
-    response.headers["Content-Disposition"] = f'attachment; filename="{document.filename}"'
+
+def _calendar_revision_error(document: CalendarDocument):
+    """Validate that download is bound to the exact document previewed."""
+
+    revision = str(request.args.get("revision") or "").strip()
+    if not _CALENDAR_REVISION_RE.fullmatch(revision):
+        return api_error(
+            "revision must be a 64-character lowercase SHA-256 value.",
+            400,
+            error="invalid_calendar_revision",
+        )
+    if not secrets.compare_digest(revision, document.revision):
+        return api_error(
+            "Calendar data changed after preview. Preview it again before downloading.",
+            409,
+            error="calendar_revision_conflict",
+        )
+    return None
+
+
+def _calendar_download_response(document: CalendarDocument):
+    """Return one revision-checked CalendarDocument as a safe attachment."""
+
+    revision_error = _calendar_revision_error(document)
+    if revision_error is not None:
+        return revision_error
+    filename = document.filename
+    if (
+        not filename.endswith(".ics")
+        or filename != PurePath(filename).name
+        or any(ord(character) < 32 or ord(character) == 127 for character in filename)
+        or any(character in filename for character in ('"', "'", "\\", "/", ";"))
+    ):
+        return api_error(
+            "Calendar filename is not safe for download.",
+            500,
+            error="invalid_calendar_filename",
+        )
+    ascii_filename = filename.encode("ascii", "ignore").decode("ascii")
+    if not ascii_filename or ascii_filename == ".ics":
+        ascii_filename = "calendar.ics"
+    response = Response(document.to_ics(), content_type="text/calendar; charset=utf-8")
+    response.headers["Content-Disposition"] = (
+        f'attachment; filename="{ascii_filename}"; '
+        f"filename*=UTF-8''{quote(filename, safe='')}"
+    )
     response.headers["Cache-Control"] = "private, no-store"
     return response
 

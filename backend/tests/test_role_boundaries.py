@@ -54,6 +54,14 @@ def test_front_desk_has_no_attendance_write():
     assert "attendance:write" not in ROLE_PERMISSIONS[Role.FRONT_DESK]
 
 
+def test_student_named_calendar_export_uses_data_export_boundary():
+    for role in (Role.OWNER, Role.MANAGER):
+        require_permission(_actor(role), "data:export")
+    for role in (Role.TEACHER, Role.STAFF, Role.FRONT_DESK, Role.PARENT):
+        with pytest.raises(PermissionDeniedError):
+            require_permission(_actor(role), "data:export")
+
+
 def test_parent_holds_only_reserved_self_permissions():
     assert ROLE_PERMISSIONS[Role.PARENT] == {"student:self:read", "portfolio:self:read"}
 

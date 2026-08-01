@@ -1,4 +1,76 @@
-# PWE Studio v8.1.0 — Current Handoff
+# PWE Studio v8.1.1 candidate — Current Handoff
+
+## Active work — v8.1.1 release candidate, NOT DEPLOYED (2026-07-31)
+
+**Production truth:** `https://pwestudio.online` still runs **v8.1.0**. The
+`8.1.1` values already present in `VERSION`, `backend/server.py` and the
+Lightsail example describe this dirty working-tree candidate only. No 8.1.1
+bundle has been built, no production command has been run, and no deployment,
+commit, push or tag is part of this work without a separate explicit request.
+
+**Work started from:** branch `codex/v8.0.1-aws-production`, HEAD `ea6f0c7`,
+with these pre-existing dirty paths preserved as the baseline:
+
+```
+M VERSION
+M backend/frontend/assets/cms-app.js
+M backend/server.py
+M backend/tests/test_health.py
+M backend/tests/test_product_home_brand.py
+M customer-resources/FAQ.html
+M customer-resources/Privacy_Policy.html
+M customer-resources/Terms_of_Service.html
+M deploy/aws/lightsail.env.example
+M docs/HANDOFF_LATEST.md
+D docs/UX_Review_2026-07-25.md
+M legacy-root/index.html
+M legacy-root/src/cms-app.jsx
+M product-home.html
+```
+
+**Current batch: ICS correctness — backend batches 1+2 COMPLETE; CMS UI still
+IN PROGRESS.** The backend contract is now revision-bound and privacy-safe:
+
+1. a cancelled explicit daily entry removes the same student inherited from the
+   weekly schedule while remaining in the skipped/cancelled explanation;
+2. every `CalendarDocument` carries a schema-versioned SHA-256 revision over
+   canonical business semantics (stable skipped ordering; no `generated_at`,
+   `DTSTAMP` or formatting-only fields), and preview returns that revision;
+3. all-day preview events expose `startDate`/`endDate` and null duration, never
+   fake instants or timezone abbreviations; timed event fields are unchanged;
+4. neither generated document advertises refresh/subscription semantics;
+5. both download endpoints require a valid preview revision (400 when absent or
+   malformed, stable `calendar_revision_conflict` JSON at 409 when stale), and
+   only a match returns the ICS bytes;
+6. the document's validated filename is authoritative and is sent as both an
+   ASCII `filename` fallback and RFC 5987 `filename*=UTF-8''...`, with
+   `text/calendar; charset=utf-8` and `private, no-store` preserved;
+7. roster download remains gated by `data:export`; auth and role-boundary tests
+   pin the protected routes and the student-name export permission.
+
+Focused verification from `backend/`:
+
+```text
+../.venv/bin/pytest tests/test_calendar_export.py tests/test_calendar_export_api.py tests/test_route_protection.py -q
+73 passed in 0.18s
+
+../.venv/bin/pytest tests/test_calendar_export.py tests/test_calendar_export_api.py tests/test_route_protection.py tests/test_role_boundaries.py -q
+81 passed in 0.20s
+```
+
+`python -m pytest ...` was also attempted first but the Homebrew Python lacks
+pytest (`No module named pytest`); the repository `.venv` commands above are the
+authoritative green runs. `git diff --check` passed for the scoped files.
+
+**Still incomplete:** the CMS dialog/download flow must preserve the preview
+`kind`/authoritative filename and send the returned revision on download; no CMS
+file was touched in this backend batch. The remaining order is: complete ICS
+CMS UI; critical modal/PIN/portfolio accessibility; deployment rollback
+hardening; v8.1.1 candidate evidence and version links; then full and browser
+verification. Status remains **candidate / NOT DEPLOYED**. No commit, push, tag,
+bundle, production command or deployment was performed.
+
+# PWE Studio v8.1.0 — Deployed production record
 
 Current version: **8.1.0** (`VERSION`, `backend/server.py` `APP_VERSION`,
 `deploy/aws/lightsail.env.example`)
@@ -838,6 +910,210 @@ A roster export saved as `weekly-classes.ics` was the visible symptom.
 
 Skip reasons were also being rendered as raw machine codes (`no-class-time`);
 they are now mapped to studio-facing Chinese with the student's name.
+
+### CMS readability pass — the colour map was right, the contrast was not (2026-07-31, v8.1.1)
+
+§7.6 mapped all 1,322 Tailwind colour utilities onto theme tokens by role. That
+answered *which token does this colour come from*. It did not answer *can you
+still read the text once both ends follow the theme* — a value can be perfectly
+on-brand and invisible. Replaying every (text token x background token) pair the
+CMS can produce against the 15 theme-modes in `backend/studiosaas/presets.py`
+gave **197 failures in 645 pairs**. After this pass: **0 in 660**.
+
+Every number below is the worst case across all 15 theme-modes, computed with
+the same WCAG relative-luminance formula as `docs/design/palette_gen.py::ratio`,
+and spot-checked against `getComputedStyle` in a real browser on both
+`atelier-clay/light` and `arcade-lime/dark` (the model and the browser agree to
+within 0.05).
+
+| what | before | after | worst theme-mode |
+|---|---:|---:|---|
+| body text on a card (`bg-white` + `text-gray-900`) | **1.02** | **13.25** | arcade-lime/dark |
+| soft text on a card | 1.40 | 9.67 | arcade-lime/dark |
+| muted text on a card | 2.44 | 5.56 | arcade-lime/dark |
+| white label on an accent fill | 2.08 | 5.83 | studio-ink/dark |
+| label on a disabled primary button | 1.25 | 3.00 | rehearsal-rose/light |
+| semantic text on its own soft fill | 3.15 | 5.57 | arcade-lime/dark |
+| semantic text on `--bg2` | 2.86 | 5.00 | arcade-lime/dark |
+| semantic text on `--panel` | 3.72 | 6.39 | arcade-lime/dark |
+| `--muted` on the `bg-gray-200` chip | 4.17 | 4.56 | studio-ink/dark |
+| the faintest text tier (`text-gray-300`) | 3.03 | 5.56 | all 15 |
+| secondary accent text on `--bg2` | 4.44 | 4.72 | arcade-lime/dark |
+| selected profile tab | 1.00 | 5.17 | atelier-clay/light |
+| `--ink` on the page under OS dark + a light tenant theme | 1.16 | 14.57 | atelier-clay/light |
+
+Four root causes, three of which are the same bug wearing different clothes —
+`[class*="bg-red-50"]` is a substring test, so it also matches `bg-red-500` and
+`active:bg-red-50`:
+
+1. **`bg-white` (99 uses) and `text-white` (73) were never re-pointed.** They are
+   not `<family>-<shade>` utilities, so the audit regex that produced the §7.6
+   map never saw them. Under the eight dark theme-modes a card stayed `#ffffff`
+   while its text became `--ink` — near-white on white, **1.02:1**. `bg-white`
+   now resolves to `var(--panel)`; `bg-white/NN` is deliberately excluded because
+   those sit on a `bg-black` scrim over a photograph.
+2. **The `-500` solids were being caught by the `-50` soft fills.** The refund
+   button, the low-balance badge and the portfolio delete button rendered as a
+   12% tint under a white label. The 500s are now restated after the soft fills
+   and each is paired with the on-colour the generator asserts.
+3. **A `disabled:` / `active:` / `after:` prefix is invisible to `[class*=]`.**
+   `disabled:bg-gray-300` sits on seven primary buttons (create class, join
+   today's roster, save, top up) — they wore the disabled chip *at rest* under a
+   white label, **1.25:1**. The disabled fill now binds to the real `:disabled`
+   pseudo-class with the `--disabled-surface` / `--disabled-text` pair (3.00:1 —
+   legible, deliberately under AA so it still *reads* as unavailable, which is
+   also why it no longer needs the blanket opacity). A single guard keyed on the
+   `:` that only a variant prefix can contain now stands down for `:hover` /
+   `:active` / `:disabled` and nowhere else. Only those three prefixes are used
+   with `bg-` in the whole file (126 `active:`, 7 `disabled:`, 4 `hover:`), so
+   the guard cannot catch a responsive variant.
+4. **Two dark systems were both in charge.** The `@media (prefers-color-scheme:
+   dark)` block predates the role map and the role map outranks almost all of it
+   by source order. *Almost*: `html`/`body`, the row hover and the input
+   placeholder had no later counterpart, so under OS dark + a **light** tenant
+   theme those three stayed dark while everything else followed the light theme.
+   Rather than merge the two systems (plan item #29, still open), the outcome is
+   scoped: once `/brand` answers, `data-brand-scheme` is on `<html>` and the
+   tenant theme owns those three. Before it answers the OS block still prevents a
+   white flash, which is the case it was written for.
+
+**Semantic text now mixes toward an anchor rather than being used raw.**
+`palette_gen.py:174` solves `--success`/`--warning`/`--danger` against the
+**page** only, and `CHECKS` (`:231-233`) only asserts that. The CMS also puts
+that text on `--panel`, on `--bg2` and on the role's own soft fill. The fix is
+one ratio that works in both modes: `color-mix(in srgb, var(--ROLE) 61.8%,
+var(--text-anchor))`, where `--text-anchor` is `--ink` on content surfaces and
+flips to `--bg` inside the inverted chrome (sidebar, mobile top bar, bottom nav)
+— declared as an inherited custom property, so a semantic colour dropped into the
+sidebar later cannot darken itself into the surface. Measured in-browser on the
+`#211B19` chrome: warning 6.16, success 6.06, muted 8.49. **68% is the exact AA
+boundary; 61.8% is the golden section and buys 0.5 of margin for six points of
+chroma.** The brand accents get the same treatment at a far lighter dose (94%),
+enough to clear the single remaining miss without a perceptible hue change.
+
+**The faintest text tier was deleted, not adjusted.** `text-gray-300` was
+`color-mix(--muted 70%, --panel)` and measured 3.03:1 on `--panel` in *all 15*
+theme-modes — necessarily, because `--muted` is already solved to sit on the AA
+floor, so anything fainter is by construction below it. It now collapses into
+`--muted`; hierarchy at that level has to come from size and weight.
+
+#### Student profile: five tabs, three actions outside them
+
+Grouped by *the question being answered*, not by field type: **概览** (who do I
+call, when were they last here — what the front desk needs in five seconds),
+**资料** (is the record correct), **记录** (what happened), **作品集** (what have
+they made, and may we publish it), **专区** (can the parent log in — a different
+audience). The publication-consent panel lives with the portfolio because consent
+only ever means "may this piece go public"; splitting the two is what made the
+old single column a wall of unrelated panels.
+
+Three actions stay **outside** the tabs, in a sticky bar below the scroll:
+加入今日排课 (performed many times a day), 快速充值 (what you reach for the moment
+the balance badge reads low) and 编辑 (a mode switch that has to work from
+whichever tab you are on). They used to be the *last* thing in the scroll, below
+a portfolio grid and a consent panel. 归档学员 moved to the end of 资料 — a
+lifecycle decision taken a few times a year that was sitting one thumb-width
+below 生成成长报告. 生成成长报告 moved into 作品集, because it is assembled from
+the portfolio.
+
+The tabs implement the full WAI-ARIA tab pattern, not just `role="tab"`: roving
+tabindex (exactly one tab stop), Left/Right with wrap, Home/End,
+`aria-controls`/`aria-labelledby` both ways, `role="tabpanel"`. Verified by
+driving the keyboard in a real browser. Same contract as
+`backend/frontend/studio-admin.html`, so the two admin surfaces behave
+identically. Targets are 44px and the strip scrolls rather than wrapping — a
+wrapped tablist puts two rows of targets under a thumb aiming for one.
+
+The selected-tab indicator is a real child element. Written as
+`after:bg-indigo-600` it read to the override layer as `bg-indigo-600` and filled
+the **button** with the accent under accent-coloured text: **1.00:1**. This was
+caught in the browser, not in the model — the model does not know about variant
+prefixes. It is the reason cause 3 above got a general guard rather than a
+one-line patch.
+
+#### Golden ratio, concretely
+
+Every number comes from the φ ladder already in `assets/ui-tokens.css`
+(5 · 8 · 13 · 21 · 34 · 55 · 89, each step ≈1.618x the last), so the sheet is
+measured against the same scale as the dashboard:
+
+- profile sheet width **34rem** (544px), height cap **89dvh**
+- panel padding **21px** (`--ui-space-4`), row gap **13px**, action gap **8px**
+- action bar columns **1.618fr : 1fr** — the primary action takes the golden
+  major share, the secondary the minor; a lone action spans both rather than
+  leaving a 38.2% hole
+- semantic text mix **61.8% / 38.2%** role-to-anchor (AA boundary is 68%)
+- row-hover fill **38.2%** of `--line` into `--panel`
+- language switch inset **21px**, label **13px**
+
+#### The two named controls
+
+**中英切换 (bottom-right).** The control named in the brief was
+`admin-i18n.js`, which reads `--brand`; the switch the CMS actually shows is
+`cms-i18n.js`, and it was **fully hardcoded** — `#fff`, `#e2e8f0`, `#64748b`,
+`#4f46e5`. Both are fixed. Every colour is now a token with the pre-theme palette
+as fallback: surface `--panel`, hairline `--line` (1.34:1, floor 1.18), resting
+label `--muted` on `--panel` **5.56:1** (the hardcoded `#64748b` measured
+**3.06:1** once the panel followed a theme), selected label `--on-accent` on
+`--accent` **5.83:1** (a fixed `#fff` on a bright dark-theme accent measured
+2.08:1). The focus ring moved from `--brand`/`--accent` to **`--focus-ring`** —
+`--accent` is solved as a *text* colour against the page, `--focus-ring` is the
+one solved to clear 3:1 against every surface it can land on: measured 4.13 on
+`--panel`, 3.60 on `--bg`, 3.22 on `--bg2`. Positionally it was sitting **on top
+of the mobile bottom nav**; it now docks above it at the same 88px offset
+`.toast-bottom` already uses, so the two agree about where the bottom of the page
+is. Toasts still cover it briefly (z-index 999 vs 90), which is the correct order.
+
+**左侧「网站与品牌」.** It was `bg-emerald-50/700`. Green was picked when the CMS
+had no palette; once every colour maps by role it made an **outbound navigation
+link read as a success state**. It and 公开网站 are a *pair of links out of the
+CMS*, so the difference between them has to be hierarchy, not hue: editing the
+brand is the accented action (`--tenant-primary` + `--on-accent`), viewing the
+live site is the quiet read-only peer and keeps the chrome inset that 刷新 / 设置
+already use. That contrast survives a palette change; green-vs-blue did not. The
+same judgement is applied to the mobile settings sheet, where the list already
+reads *filled = do it, soft accent = secondary, neutral = read-only, danger =
+destructive* — 网站与品牌 takes the single filled slot.
+
+#### Still open after this pass
+
+- **Plan item #29 — merge the two CMS dark systems.** Scoped, not solved. The
+  `@media (prefers-color-scheme: dark)` block still carries ~60 hardcoded hexes
+  for Tailwind surfaces. They are now unreachable on a themed page, i.e. dead
+  weight that will mislead the next reader. `test_the_second_cms_dark_system_is_
+  still_recorded_as_open` still guards it. **Risk: low** (dead code), **cleanup
+  cost: a day**, because the whole Tailwind dark table has to be re-derived.
+- **Pressed-state feedback is still flattened for ~53 of the 133 `active:bg-*`
+  utilities.** The rest state is now correct everywhere, and `active:bg-gray-*`
+  and `active:bg-indigo-*` were given explicit pressed fills, but families like
+  `active:bg-amber-100` map to the same token as their resting fill, so the press
+  is invisible on those. **Risk: low** — a missing affordance, not a contrast
+  failure. The global `button:active` transform still fires.
+- **The contrast audit is not a test.** The 660-pair sweep was run from a
+  scratch script; nothing in `backend/tests/` will fail if someone re-introduces
+  a `bg-white` or relaxes a mix ratio. `test_portal_theme_contract.py` still only
+  checks that a *mapping exists*, not that it is *readable*. **Risk: medium —
+  this is the most likely way the pass regresses.** Porting the sweep into
+  `test_portal_theme_contract.py` is the highest-value follow-up.
+- **`disabled:opacity-40/50` is still used on ~10 buttons.** Only the
+  `disabled:bg-gray-*` path was moved onto the token pair; the opacity-only
+  buttons still signal unavailability with transparency, which is the pattern
+  `docs/Design_System.md:111-127` rules out. **Risk: low.**
+- **Hardcoded hexes remain outside the override layer**: `.sl::-webkit-scrollbar-
+  thumb` (`#c7d2fe`), `.pin-dot` / `.pin-input` (`#e5e7eb`, `#6366f1`), and
+  `.img-skel`'s shimmer gradient. All are small, none carry text, none were
+  measured. **Risk: low, cosmetic.**
+- **The edit form inside the profile sheet was not restructured.** It is still
+  one long column; only the read view was tabbed. **Risk: none** — it is a form,
+  and a form is legitimately linear — but it is now visibly inconsistent with the
+  read view beside it.
+- **Not verified against a logged-in CMS.** Authenticating was out of scope, so
+  the tab structure was verified by mounting the component in the real page and
+  driving it, and the colour work by measuring `getComputedStyle` on synthesised
+  class combinations. The *assembled* profile sheet with real student data has
+  not been seen on screen. **Risk: medium for the tab layout specifically** — the
+  contrast numbers do not depend on it, but a layout mistake inside a panel would
+  not have been caught.
 
 ---
 

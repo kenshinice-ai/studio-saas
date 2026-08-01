@@ -629,10 +629,16 @@
             color:var(--disabled-text) !important;
             opacity:1 !important;
         }
-        /* An element whose ONLY colour class is a pressed variant has no
-           resting fill at all — the mobile bottom nav and the sidebar rows.
-           They were painting var(--ink) permanently. */
-        [class*="active:bg-"]:not([class^="bg-"]):not([class*=" bg-"]):not(:active) { background-color:transparent !important; }
+        /* An element whose ONLY colour class is a VARIANT has no resting fill
+           at all — the mobile bottom nav, the sidebar rows, the selected-tab
+           underline. They were painting the variant's colour permanently:
+           `active:bg-indigo-800` resolved to var(--ink) under every theme, and
+           an `after:bg-indigo-600` underline filled its own button with the
+           accent under accent-coloured text (1.00:1).
+           Keyed on the ":" that only a variant prefix can contain, and it
+           stands down for the states that are supposed to paint, so the fill
+           returns on :hover / :active / :disabled and nowhere else. */
+        [class*=":bg-"]:not([class^="bg-"]):not([class*=" bg-"]):not(:hover):not(:active):not(:disabled) { background-color:transparent !important; }
         /* Pressed feedback for the two families that carry it, restored on the
            state that was supposed to trigger it. */
         [class*="active:bg-gray-"]:active, [class*="active:bg-slate-"]:active { background-color:var(--bg2) !important; }

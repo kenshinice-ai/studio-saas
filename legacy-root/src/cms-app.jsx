@@ -267,10 +267,16 @@ function Tabs({idBase, label, items, value, onChange, className=''}) {
                     tabIndex={value === item.value ? 0 : -1}
                     ref={node => { refs.current[item.value] = node; }}
                     onClick={() => onChange(item.value)}
-                    className={`relative min-h-[44px] px-4 text-sm font-bold whitespace-nowrap flex items-center gap-1.5 ${value === item.value
-                        ? 'text-indigo-700 after:absolute after:left-2 after:right-2 after:bottom-0 after:h-0.5 after:bg-indigo-600'
-                        : 'text-gray-500'}`}>
+                    className={`relative min-h-[44px] px-4 text-sm font-bold whitespace-nowrap flex items-center gap-1.5 ${value === item.value ? 'text-indigo-700' : 'text-gray-500'}`}>
                     {item.icon && <Icon name={item.icon} className="w-4 h-4"/>}{item.label}
+                    {/* A real element, not `after:bg-indigo-600`. The theme
+                        override layer matches class SUBSTRINGS, so a variant
+                        prefix is invisible to it: `after:bg-indigo-600` reads
+                        as `bg-indigo-600` and fills the BUTTON — measured
+                        1.00:1, accent text on an accent block. A child span
+                        carries the same class with nothing to misread. */}
+                    {value === item.value &&
+                        <span aria-hidden="true" className="absolute left-2 right-2 bottom-0 h-0.5 rounded-full bg-indigo-600"/>}
                 </button>
             ))}
         </div>
