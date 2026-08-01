@@ -89,12 +89,50 @@ Defensible: nothing is illegible, nothing is inaccessible. The cost is that
 low-chroma themes keep looking like they have a foreign badge set, which is
 exactly the report.
 
-**Recommendation: A+ now, B as a follow-up.** A+ is modelled, reversible, moves
-no hue, and fixes the cause that the dark-mode screenshots actually show. B is
-the more valuable fix for correctness — a warning that looks like a button is
-worse than one that clashes — but it needs a design decision about how far
-lightness may separate before the palette stops looking deliberate, so it
-should not be rushed in behind A+.
+## Option D — one shot: solve A+ and B together for all 45 values
+
+B is now modelled, so the combined solve can be measured. One constrained
+search per (preset, mode, role), hue fixed, saturation pulled 60% toward that
+theme's accent with a floor, lightness solved for the nearest value that
+satisfies all four constraints at once:
+
+```text
+C1 fill vs --bg2 and vs --panel        >= 3.0
+C2 --on-accent text on the solid fill  >= 4.5
+C3 mixed semantic text on bg2/panel    >= 4.5
+C4 distance from accent: hue >= 30 deg OR contrast(semantic, accent) >= 1.55
+
+45 of 45 solved, 0 unsolvable
+worst fill-on-surface 3.00 | worst text-on-fill 4.50 | worst semantic text 5.07
+42 of 45 values move
+```
+
+Two findings the earlier pass did not have:
+
+1. **Three shipped values already fail C1.** `arcade-lime/dark` success,
+   warning and danger are all under 3:1 against `--bg2`/`--panel`. The earlier
+   pass measured 2.86 and set it aside because semantic marks carry text —
+   true for text, but a *solid* badge fill on that theme is a real 1.4.11
+   failure. This is a defect, not a preference.
+2. **Six shipped values fail C4**, and the solver clears them by darkening
+   11-16 lightness points (`vintage-press/light` warning `#8D6426 -> #5C441F`,
+   `cedar-grove/light` success `#2F7957 -> #24513C`). That is a large visual
+   move; it is the price of keeping the hue where it belongs.
+
+**The saturation floor is the one design dial.** With no floor, `studio-ink`
+(accent saturation 4) pulls danger to `#92625C` at S=23, which stops reading
+as danger. `S_FLOOR = 0.32` keeps it at `#9D5A51` — muted but still red — and
+the solve stays complete at the same contrast floors. Use 0.32.
+
+**Recommendation: Option D, not A+ then B.** Both fixes rewrite the same 45
+values in the same table; splitting them means generating and re-verifying that
+table twice for one shipped result. **Coupling to watch:** D makes semantic
+colours per-theme, so the v8.2.8 theme-picker grouping labelled
+"status colours, identical across themes" becomes false and must move back in
+with the themed swatches.
+
+Model script: `scratchpad/semantic_model.py` (regenerate rather than hand-edit
+the 45 values).
 
 # PWE Studio v8.2.8 — Historical Handoff
 
