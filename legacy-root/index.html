@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Studio CMS</title>
-    <script src="/assets/ui-common.js"></script>
-    <link rel="stylesheet" href="/assets/ui-tokens.css">
-    <link rel="stylesheet" href="/assets/brand-system.css">
+    <script src="/assets/ui-common.js?v=__APP_VERSION__"></script>
+    <link rel="stylesheet" href="/assets/ui-tokens.css?v=__APP_VERSION__">
+    <link rel="stylesheet" href="/assets/brand-system.css?v=__APP_VERSION__">
     <link rel="icon" href="/icon-192.png">
     <!-- G6: PWA — 添加到主屏幕 -->
     <link id="cmsManifest" rel="manifest" href="/manifest.json">
@@ -622,9 +622,9 @@
 </head>
 <body class="bg-gray-100 text-gray-800">
 <div id="root"></div>
-<script src="/assets/cms-app.js"></script>
+<script src="/assets/cms-app.js?v=__APP_VERSION__"></script>
 <!-- Loaded after the app so the observer starts on a rendered tree. Shares the
      language choice with Studio Admin / Super Admin via admin-i18n's key. -->
-<script src="/assets/cms-i18n.js"></script>
+<script src="/assets/cms-i18n.js?v=__APP_VERSION__"></script>
 </body>
 </html>

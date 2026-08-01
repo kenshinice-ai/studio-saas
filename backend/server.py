@@ -1,7 +1,8 @@
 import errno, json, os, re, shutil, socket, sys, time, secrets, hashlib
 from datetime import datetime, timedelta
 import re
-from flask import Flask, request, jsonify, redirect, send_from_directory, session
+from flask import (Flask, request, jsonify, redirect, send_from_directory,
+                   session, make_response)
 from threading import Lock
 from studiosaas import api_v1
 from studiosaas.auth import init_auth_blueprints
@@ -96,7 +97,7 @@ SESSION_SECRET_FILE = _data_path('.session_secret')
 PW_FILE       = _data_path('.cms_password')
 app.config['PHOTO_DIR'] = PHOTO_DIR
 MAX_BACKUPS   = 30   # 1 backup/hr rate limit → ~30 hours of rolling coverage
-APP_VERSION   = '8.2.2'
+APP_VERSION   = '8.2.3'
 app.config['APP_VERSION'] = APP_VERSION
 ALLOWED_EXT   = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
 EXT_MIME_TYPES = {
@@ -885,10 +886,46 @@ def _public_file(filename, mimetype=None, cache_seconds=3600):
     base_dir = PROJECT_ROOT
     if filename not in allowed or not os.path.isfile(os.path.join(base_dir, filename)):
         return api_error('Not found', 404)
+    # These two carry versioned asset URLs and are served with a long
+    # max-age, which is exactly the combination that pins a visitor to a
+    # previous release's JavaScript.
+    if filename.endswith('.html'):
+        return _serve_versioned_shell(
+            base_dir, filename, mimetype or 'text/html; charset=utf-8')
     resp = send_from_directory(base_dir, filename)
     if mimetype:
         resp.headers['Content-Type'] = mimetype
     resp.headers['Cache-Control'] = f'public, max-age={cache_seconds}'
+    return resp
+
+def _frontend_shell(filename):
+    """Version-stamped HTML from backend/frontend."""
+    return _serve_versioned_shell(
+        os.path.join(APP_DIR, 'frontend'), filename, 'text/html; charset=utf-8')
+
+def _serve_versioned_shell(directory, filename, mimetype):
+    """Serve an HTML shell with its asset URLs pinned to the running release.
+
+    The CMS bundle lives at the stable path /assets/cms-app.js, so a browser,
+    PWA cache or CDN edge that kept the previous release's copy runs old
+    JavaScript against the current API — the failure looks like a blank panel
+    or a dead button, not like a stale cache, and it survives a reload. The
+    shells carry an __APP_VERSION__ placeholder on every asset URL; stamping
+    it here means a release is a new URL and cannot be served from a cache
+    keyed to the old one. Done at serve time rather than written into the
+    files so the version can never drift from APP_VERSION.
+    """
+    target = os.path.join(directory, filename)
+    try:
+        with open(target, encoding='utf-8') as handle:
+            html = handle.read()
+    except OSError:
+        return api_error('Not found', 404)
+    resp = make_response(html.replace('__APP_VERSION__', APP_VERSION))
+    resp.headers['Content-Type'] = mimetype
+    # The shell itself must always be revalidated; the assets it points at are
+    # the ones that may be cached hard, and they are now version-keyed.
+    resp.headers['Cache-Control'] = 'no-cache'
     return resp
 
 def _legacy_file(filename, mimetype=None, cache_seconds=0):
@@ -898,11 +935,8 @@ def _legacy_file(filename, mimetype=None, cache_seconds=0):
     target = os.path.join(legacy_dir, filename)
     if filename not in allowed or not os.path.isfile(target):
         return api_error('Not found', 404)
-    resp = send_from_directory(legacy_dir, filename)
-    if mimetype:
-        resp.headers['Content-Type'] = mimetype
-    resp.headers['Cache-Control'] = f'public, max-age={cache_seconds}'
-    return resp
+    return _serve_versioned_shell(
+        legacy_dir, filename, mimetype or 'text/html; charset=utf-8')
 
 @app.route('/')
 def serve_index():
@@ -947,10 +981,7 @@ def serve_studio_admin():
     platform control plane at ``/platform-admin``.
     """
 
-    return send_from_directory(
-        os.path.join(APP_DIR, 'frontend'),
-        'studio-admin.html',
-    )
+    return _frontend_shell('studio-admin.html')
 
 
 @app.route('/cms')
@@ -967,10 +998,7 @@ def serve_cms_entry():
         if not slug:
             return api_error('Service temporarily unavailable.', 503)
         return redirect(f'/{slug}/cms', code=302)
-    return send_from_directory(
-        os.path.join(APP_DIR, 'frontend'),
-        'cms-entry.html',
-    )
+    return _frontend_shell('cms-entry.html')
 
 @app.route('/assets/<path:filename>')
 def serve_shared_assets(filename):
@@ -1023,15 +1051,13 @@ def serve_customer_resource(filename):
 def serve_setup_password():
     # One-time password-setup page; the token arrives as a query parameter
     # and is validated by POST /v1/auth/setup-password.
-    return send_from_directory(os.path.join(app.root_path, 'frontend'),
-                               'setup-password.html')
+    return _frontend_shell('setup-password.html')
 
 @app.route('/shared/portfolio')
 def serve_shared_portfolio():
     # Public read-only portfolio viewer; the share token arrives as a query
     # parameter and is validated by GET /v1/public/portfolio/<token>.
-    return send_from_directory(os.path.join(app.root_path, 'frontend'),
-                               'shared-portfolio.html')
+    return _frontend_shell('shared-portfolio.html')
 
 def _tenant_page(tenant_slug, filename):
     try:
@@ -1042,6 +1068,9 @@ def _tenant_page(tenant_slug, filename):
     target = os.path.join(tenant_dir, filename)
     if tenant_slug in RESERVED_SLUGS or not os.path.isfile(target):
         return api_error('Not found', 404)
+    if filename.endswith('.html'):
+        return _serve_versioned_shell(
+            tenant_dir, filename, 'text/html; charset=utf-8')
     return send_from_directory(tenant_dir, filename)
 
 @app.route('/<tenant_slug>')
@@ -1077,8 +1106,7 @@ def serve_tenant_studio_admin(tenant_slug):
         return api_error('Not found', 404)
     if not os.path.isfile(os.path.join(PROJECT_ROOT, 'tenants', tenant_slug, 'tenant.json')):
         return api_error('Not found', 404)
-    return send_from_directory(os.path.join(APP_DIR, 'frontend'),
-                               'studio-admin.html')
+    return _frontend_shell('studio-admin.html')
 
 @app.route('/<tenant_slug>/cms/studio-admin')
 def serve_tenant_cms_studio_admin_alias(tenant_slug):

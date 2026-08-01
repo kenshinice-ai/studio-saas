@@ -70,6 +70,65 @@ const v1Api = async (path, options = {}) => {
     return d;
 };
 
+/* Server audit actions the operations log shows, mapped to the same Chinese
+   labels the ledger-derived rows already use.
+
+   This is a WHITE list on purpose. audit_logs also carries platform noise
+   (auth.*, support.*, tenant.*, public.*) that does not belong in a studio's
+   operations log, and it carries attendance.checked_in / attendance.voided /
+   credit.adjusted, which db.logs ALREADY contains as ledger rows — listing
+   those here would show every check-in twice. */
+const AUDIT_ACTION_ZH = {
+    'student.created':                     '新生建档',
+    'student.updated':                     '更新档案',
+    'student.archived':                    '归档学员',
+    'daily_roster.added':                  '加入排课',
+    'daily_roster.cancelled':              '取消排课',
+    'daily_roster.restored':               '恢复排课',
+    'daily_roster.updated':                '调整排课',
+    'schedule.created':                    '新增班次',
+    'schedule.updated':                    '修改班次',
+    'schedule.deleted':                    '删除班次',
+    'portfolio.uploaded':                  '上传作品',
+    'portfolio.updated':                   '修改作品',
+    'portfolio.deleted':                   '删除作品',
+    'portfolio.share_link_created':        '生成分享链接',
+    'portfolio.share_link_revoked':        '撤销分享链接',
+    'registration.created':                '收到注册申请',
+    'student_access.generated':            '生成家长访问码',
+    'student_access.revoked':              '撤销家长访问码',
+    'student_access.unlocked':             '解锁家长访问',
+    'package.created':                     '新增课包',
+    'package.updated':                     '修改课包',
+    'package.archived':                    '下架课包',
+    'course.created':                      '新增课程',
+    'course.updated':                      '修改课程',
+    'course.archived':                     '归档课程',
+    'data.exported':                       '导出数据',
+    'brand.published':                     '发布网站',
+    'team.member_upserted':                '新增/更新成员',
+    'team.member_updated':                 '调整成员权限',
+    'operations.default_class_time_updated':'修改默认上课时间',
+};
+/* Human-readable detail per audit action. The raw metadata is machine shape
+   (uuid lists, asset ids); showing it verbatim is what produced rows like
+   "Core opening balance import source:c318f4e42f05 student:1783863014768". */
+const auditNote = (action, meta) => {
+    const m = meta || {};
+    if (action === 'daily_roster.added') {
+        const n = Array.isArray(m.students) ? m.students.length : 1;
+        const when = m.classTime ? ` ${m.classTime}` : '';
+        return `${m.date || ''}${when}${n > 1 ? ` · ${n} 人` : ''}${m.oneToOne ? ' · 1 对 1' : ''}`.trim();
+    }
+    if (action.startsWith('daily_roster.')) return String(m.date || '');
+    if (action === 'data.exported')  return `${m.type || ''}${m.rows ? ` · ${m.rows} 行` : ''}`.trim();
+    if (action === 'operations.default_class_time_updated') return String(m.defaultClassTime || m.value || '');
+    if (action.startsWith('schedule.')) return String(m.label || m.name || '');
+    if (action.startsWith('team.'))     return String(m.email || m.role || '');
+    if (action === 'registration.created') return String(m.name || m.mobile || '');
+    return String(m.title || m.name || m.note || '');
+};
+
 const parseMonthKey = (ds) => {
     if (!ds) return null;
     const s = String(ds);
@@ -893,6 +952,12 @@ function LoginScreen({ onLogin }) {
 /* ═══════════════════ MAIN APP ════════════════════════════════ */
 function App() {
     const [db,  setDb]  = useState({students:[],logs:[],rosters:{},pending:[]});
+    /* Server-side audit events, merged into the operations log below. db.logs
+       is synthesised from the credit ledger, so it only ever contains the four
+       money/attendance actions. Archiving, renaming, roster edits, portfolio
+       and consent changes were invisible here — the CMS sent them inside
+       save(), which persists students and packages and drops everything else. */
+    const [auditEvents, setAuditEvents] = useState([]);
     const [tab, setTab] = useState('dashboard');
     const [moreOpen, setMoreOpen] = useState(false);
     const [selS, setSelS] = useState(null);
@@ -1385,6 +1450,7 @@ function App() {
             revRef.current = d.rev || 1;   /* D2 */
             setDb(d); setConn(true);
             loadSchedules();   /* A1: 课表与数据并行加载，失败不阻塞 */
+            loadAuditEvents();
         } catch(e) { setConnErr(e.message); }
         finally { setBusy(false); }
     };
@@ -1684,10 +1750,67 @@ function App() {
         const m = String(ds).match(/^(\d{2})\/(\d{2})\/(\d{4})/);
         return m ? `${m[3]}-${m[2]}-${m[1]}` : '';
     };
+    /* The operations log is the union of two sources, and neither alone is the
+       studio's history: db.logs is synthesised from the credit ledger (money
+       and attendance only), while audit_logs is what the server recorded for
+       everything else. Kept local to this page — analytics counts check-ins
+       and revenue from db.logs and must not see audit rows. */
+    const auditAsLogs = useMemo(() => {
+        if (!TENANT_SLUG || !auditEvents.length) return [];
+        const nameById = new Map(db.students.map(s => [String(s.id), s.name]));
+        return auditEvents.reduce((rows, ev) => {
+            const label = AUDIT_ACTION_ZH[ev.action];
+            if (!label) return rows;
+            const meta = ev.metadata || {};
+            const sid = ev.resourceType === 'student'
+                ? String(ev.resourceId || '')
+                : String((Array.isArray(meta.students) && meta.students[0]) || '');
+            const when = new Date(ev.createdAt);
+            if (isNaN(when.getTime())) return rows;
+            const dd = String(when.getDate()).padStart(2,'0');
+            const mm = String(when.getMonth()+1).padStart(2,'0');
+            rows.push({
+                id: `audit-${ev.id}`,
+                studentId: sid || null,
+                studentName: nameById.get(sid) || '—',
+                action: label,
+                change: '0',
+                feePaid: 0,
+                note: auditNote(ev.action, meta),
+                date: `${dd}/${mm}/${when.getFullYear()}, ${when.toTimeString().slice(0,8)}`,
+                actorEmail: ev.actorEmail || '',
+                _ts: when.getTime(),
+            });
+            return rows;
+        }, []);
+    }, [auditEvents, db.students]);
+
+    /* Opening-balance rows were written by the migration importer with an
+       engineering provenance note ("Core opening balance import source:…
+       student:…"). It identifies an import batch, not anything a studio owner
+       can read or act on. */
+    const displayNote = (note) => {
+        const s = String(note || '');
+        if (/^Core opening balance import/i.test(s)) return '数据迁移期初余额';
+        return s;
+    };
+    const logTimestamp = (l) => {
+        if (typeof l._ts === 'number') return l._ts;
+        const m = String(l.date).match(/^(\d{2})\/(\d{2})\/(\d{4})(?:,\s*(\d{2}):(\d{2}):(\d{2}))?/);
+        if (!m) return 0;
+        const t = new Date(`${m[3]}-${m[2]}-${m[1]}T${m[4]||'00'}:${m[5]||'00'}:${m[6]||'00'}`);
+        return isNaN(t.getTime()) ? 0 : t.getTime();
+    };
+    const allLogs = useMemo(() => (
+        auditAsLogs.length
+            ? [...db.logs, ...auditAsLogs].sort((a,b) => logTimestamp(b) - logTimestamp(a))
+            : db.logs
+    ), [db.logs, auditAsLogs]);
+
     /* Fix #10: log page auto-clamp when data changes */
     const filteredLogs  = useMemo(() => {
         const stuName = lStu ? (db.students.find(x=>x.id===lStu)||{}).name : null;
-        return db.logs.filter(l => {
+        return allLogs.filter(l => {
             if (stuName && l.studentName !== stuName) return false;
             if (lSrch && !l.studentName.toLowerCase().includes(lSrch.toLowerCase())) return false;
             if (lAct  && l.action !== lAct) return false;
@@ -1698,10 +1821,10 @@ function App() {
             }
             return true;
         });
-    }, [db.logs, db.students, lStu, lSrch, lAct, lDateFrom, lDateTo]);
+    }, [allLogs, db.students, lStu, lSrch, lAct, lDateFrom, lDateTo]);
     const logPageCount  = Math.max(1, Math.ceil(filteredLogs.length/LPP));
     const pagedLogs     = filteredLogs.slice((lPage-1)*LPP, lPage*LPP);
-    const logActions    = useMemo(() => [...new Set(db.logs.map(l=>l.action))].sort(), [db.logs]);
+    const logActions    = useMemo(() => [...new Set(allLogs.map(l=>l.action))].sort(), [allLogs]);
     useEffect(() => { setLPage(1); }, [lStu, lSrch, lAct, lDateFrom, lDateTo]);
     useEffect(() => { if (lPage > logPageCount) setLPage(logPageCount); }, [logPageCount]);
 
@@ -1889,6 +2012,18 @@ function App() {
         } catch (e) {
             setScheduleLoadError(current=>current || `经营数据加载失败：${e.message}`);
         }
+    };
+
+    /* Server-recorded operations, for the log page. /v1/audit-logs is
+       owner-scoped (it can expose staff-initiated refunds and exports), so a
+       403 for other roles is expected and leaves the ledger-only view intact
+       rather than surfacing an error they cannot act on. */
+    const loadAuditEvents = async () => {
+        if (!TENANT_SLUG) return;
+        try {
+            const d = await v1Api('/audit-logs?limit=200');
+            setAuditEvents(d.auditLogs || []);
+        } catch { setAuditEvents([]); }
     };
 
     /* B2: 判断两个班次在同一 weekday 是否时间重叠 */
@@ -2173,7 +2308,10 @@ function App() {
         const cur = db.rosters[rDate]||[];
         const add = ids.filter(id => !cur.includes(id) && db.students.some(s=>s.id===id&&!s.archived));
         if (!add.length) { showToast('模板学员均已在当前排课中', 'warn'); return; }
-        if (TENANT_SLUG) await addDailyRosterStudents(rDate, add, 'group');
+        /* A group template is a set of students who sit the same slot, so the
+           studio default applies to the whole batch. */
+        if (TENANT_SLUG) await addDailyRosterStudents(rDate, add, 'group', 'scheduled',
+            {classTime: rTime || defaultClassTime || null});
         else { const ok = await save({...db, rosters: {...db.rosters, [rDate]: [...cur, ...add]}}); if (!ok) return; }
         showToast(`已套用「${grpSel}」，新增 ${add.length} 人`);
     };
@@ -2209,7 +2347,12 @@ function App() {
         setBusy(true);
         try {
             const cur = db.rosters[date] || [];
-            if (TENANT_SLUG) await addDailyRosterStudents(date, [student.id], 'profile');
+            /* Without a time the entry lands with class_time NULL and the day
+               shows the student under no slot at all. The weekly schedule wins
+               when it already places them; otherwise the studio's configured
+               default is the same time the roster page's own add box uses. */
+            if (TENANT_SLUG) await addDailyRosterStudents(date, [student.id], 'profile', 'scheduled',
+                {classTime: rosterSlotFor(date, student.id) || defaultClassTime || null});
             else { const ok = await save({...db, rosters:{...db.rosters, [date]: [...cur, student.id]}}); if (!ok) return; }
             showToast(`${student.name} 已加入今日排课`);
         } finally { setBusy(false); }
@@ -3910,7 +4053,9 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 {analytics.inactive.slice(0,12).map(s => (
                     <button key={s.id} onClick={()=>{setTab('students');setSrch(s.name);}}
                         className="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200 active:bg-blue-200 min-h-[44px]">
-                        {s.name} ({s.balance}课 · {daysSince(s.lastActive)}天前)
+                        {/* daysSince returns the 9999 sentinel for "no class on
+                            record"; printing it raw read as "9999天前". */}
+                        {s.name} ({s.balance}课 · {daysSince(s.lastActive)<9999?`${daysSince(s.lastActive)}天前`:'从未上课'})
                     </button>
                 ))}
             </div>
@@ -4463,7 +4608,11 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             title="快速充值" aria-label="快速充值" className="px-3.5 py-3 rounded-xl font-bold bg-emerald-50 active:bg-emerald-100 text-emerald-700 border border-emerald-200 min-h-[44px] flex items-center justify-center"><Icon name="money"/></button>
                         }
                         {canWriteAttendance && <button onClick={()=>scheduleStudentToday(s)} disabled={busy}
-                            className="flex-1 py-3 rounded-xl text-sm font-bold text-white min-h-[44px] bg-indigo-600 active:bg-indigo-700 disabled:bg-gray-300 inline-flex items-center justify-center gap-1.5"><Icon name="calendar" className="w-4 h-4"/>{isStudentScheduledOn(s.id,todayISO())?'去排课':'排课'}</button>
+                            className="flex-1 py-3 rounded-xl text-sm font-bold text-white min-h-[44px] bg-indigo-600 active:bg-indigo-700 disabled:bg-gray-300 inline-flex items-center justify-center gap-1.5">{/* Same wording as the profile sheet's primary action: the label says
+    what the tap does, not where it goes. It used to read 去排课 when the
+    student was ALREADY on today's roster and 排课 when they were not,
+    which is the opposite of how both read. */}
+<Icon name="calendar" className="w-4 h-4"/>{isStudentScheduledOn(s.id,todayISO())?'查看排课':'加入排课'}</button>
                         }
                     </>)}
                 </div>
@@ -4865,7 +5014,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             <td className="p-3">
                                 <span className={`px-1.5 py-0.5 rounded text-xs font-bold border ${l.action==='充值购课'?'bg-green-100 text-green-700 border-green-200':l.action==='上课签到'?'bg-indigo-100 text-indigo-700 border-indigo-200':l.action&&l.action.includes('手动')?'bg-orange-100 text-orange-700 border-orange-200':l.action&&(l.action.includes('拒绝')||l.action.includes('删除'))?'bg-red-100 text-red-700 border-red-200':'bg-gray-100 text-gray-700 border-gray-200'}`}>{l.action}</span>
                                 {l.payMethod && <span className="ml-1 bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded text-xs">{l.payMethod}</span>}
-                                <span className="text-xs text-gray-400 block mt-0.5">{l.note}</span>
+                                <span className="text-xs text-gray-400 block mt-0.5">{displayNote(l.note)}</span>
+                                {l.actorEmail && <span className="text-xs text-gray-400 block">操作人：{l.actorEmail}</span>}
                                 {l.feePaid>0 && <span className="text-xs text-green-600 font-bold">${l.feePaid}</span>}
                             </td>
                             <td className={`p-3 font-bold ${String(l.change).startsWith('-')?'text-orange-500':(l.change==='0'||l.change===0)?'text-gray-400':'text-green-500'}`}>{l.change}</td>
@@ -5441,7 +5591,11 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                 <input name="mobile" defaultValue={selS.mobile} placeholder="04xx xxx xxx" className="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"/></div>
                             <div>
                                 <label className="text-sm font-bold text-indigo-700 mb-1 block">课时余额</label>
-                                <input name="balance" type="number" min="0" defaultValue={selS.balance} required className="w-full px-3 py-3 border border-indigo-300 bg-indigo-50 text-indigo-800 font-bold text-xl rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"/>
+                                {/* White, not the indigo-50 fill: a tinted box next
+                                    to white siblings reads as disabled, and this is
+                                    the one field in the form that writes a ledger
+                                    entry. The indigo border carries the emphasis. */}
+                                <input name="balance" type="number" min="0" defaultValue={selS.balance} required className="w-full px-3 py-3 border-2 border-indigo-300 bg-white text-indigo-800 font-bold text-xl rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"/>
                                 <p className="inline-flex items-center gap-1.5 text-xs text-amber-500 mt-1"><Icon name="warning" className="w-4 h-4"/>修改将记入日志</p>
                             </div>
                         </div>
