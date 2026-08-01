@@ -138,13 +138,19 @@
     .art img { width: 100%; height: 100%; display: block; object-fit: cover; }
     .art-a { width: 76%; aspect-ratio: 1; top: 0; right: 0; transform: rotate(3deg); }
     .art-b { width: 54%; aspect-ratio: 1; left: 0; bottom: 1%; transform: rotate(-5deg); }
+    /* The card is a dark navy panel, but it never set a text colour, so its
+       heading inherited --ink (Family Navy) from the page and measured
+       1.14:1 against its own background — the title was only legible where
+       the translucent panel happened to sit over a pale part of the artwork
+       behind it. White measures 14.6:1 here; the supporting line is lifted to
+       .78 alpha for 7.3:1. */
     .proof {
       position: absolute; right: -4%; bottom: 4%; z-index: 4; width: 210px; padding: 1rem;
       border: 1px solid rgba(245,179,53,.34); border-radius: var(--r-sm); background: rgba(22,35,61,.94);
-      box-shadow: var(--shadow); backdrop-filter: blur(12px);
+      box-shadow: var(--shadow); backdrop-filter: blur(12px); color: var(--white);
     }
-    .proof strong { display: block; margin-bottom: .25rem; font-size: 1rem; }
-    .proof span { color: rgba(255,255,255,.68); font-size: .82rem; line-height: 1.45; }
+    .proof strong { display: block; margin-bottom: .25rem; font-size: 1rem; color: var(--white); }
+    .proof span { color: rgba(255,255,255,.78); font-size: .82rem; line-height: 1.45; }
     section { padding-block: var(--space-6); }
     .section-head { display: grid; grid-template-columns: 1.618fr 1fr; gap: var(--space-4); align-items: end; margin-bottom: var(--space-5); }
     .kicker { margin: 0 0 .75rem; color: var(--family-amber-text); font-size: .78rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
@@ -199,7 +205,11 @@
     input, textarea, select { width: 100%; min-height: 46px; padding: .75rem; border: 1px solid var(--line-strong); border-radius: 10px; color: var(--family-navy); background: var(--white); }
     textarea { min-height: 110px; resize: vertical; }
     option { color: var(--family-navy); }
-    .privacy-note { margin: 0; color: var(--slate-500); font-size: .78rem; line-height: 1.5; }
+    /* --slate-500 measures 4.37:1 on the panel behind this note, just under
+       AA for 12.5px body text; --slate-600 clears it at 6.4:1. This one
+       carries a privacy instruction, so it is the last line that should be
+       hard to read. */
+    .privacy-note { margin: 0; color: var(--slate-600); font-size: .78rem; line-height: 1.5; }
     .support-actions { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; }
     .support-actions .button { width: 100%; }
     footer { padding: 2.2rem 0 max(2.2rem, env(safe-area-inset-bottom)); color: var(--ink-soft); background: var(--paper-bright); }
@@ -223,10 +233,18 @@
       .shell { width: min(100% - 28px, 1180px); }
       .nav { min-height: 64px; }
       .brand span { display: none; }
-      .hero-grid { padding-block: 4.2rem; }
+      .hero-grid { padding-block: 2.6rem; }
       .hero { background: var(--paper); }
       .hero::before { display: none; }
-      h1 { font-size: clamp(3rem, 16vw, 4.3rem); }
+      /* 16vw resolved to 60px at 375px — barely smaller than the desktop
+         setting, so "administration" filled a line on its own and the
+         headline ran to six lines and ~700px before the reader reached the
+         supporting copy. At 9.5vw it sets around 36px and holds four lines,
+         which keeps the lede and the first call to action on the first
+         screen. */
+      h1 { font-size: clamp(2.1rem, 9.5vw, 3.2rem); letter-spacing: -.045em; }
+      .lede { margin-top: var(--space-3); font-size: 1rem; }
+      .eyebrow { margin-bottom: var(--space-2); font-size: .72rem; }
       .hero-card { min-height: 340px; margin-inline: -14px; padding: var(--space-3); border-radius: var(--r-lg) var(--r-lg) 0 0; background: var(--family-navy); }
       .art-stack { min-height: 330px; }
       .proof { right: 0; width: 180px; }
@@ -381,8 +399,8 @@
           <article class="plan featured"><span class="plan-badge"><span data-lang="en">Recommended</span><span data-lang="zh">主推套餐</span></span><h3>Studio</h3><div class="price">$99 <small><span data-lang="en">AUD / month</span><span data-lang="zh">AUD / 月</span></small></div><ul><li><span data-lang="en">Up to 500 students</span><span data-lang="zh">最多 500 名学员</span></li><li><span data-lang="en">5 team users</span><span data-lang="zh">5 个团队账号</span></li><li><span data-lang="en">10 GB storage allowance</span><span data-lang="zh">10 GB 存储额度</span></li><li><span data-lang="en">Templates and data export</span><span data-lang="zh">行业模版与数据导出</span></li></ul><a class="button button-dark" href="#support"><span data-lang="en">Discuss Studio</span><span data-lang="zh">咨询 Studio</span></a></article>
           <article class="plan"><h3>Growth</h3><div class="price">$199 <small><span data-lang="en">AUD / month</span><span data-lang="zh">AUD / 月</span></small></div><ul><li><span data-lang="en">Up to 1,000 students</span><span data-lang="zh">最多 1,000 名学员</span></li><li><span data-lang="en">20 team users</span><span data-lang="zh">20 个团队账号</span></li><li><span data-lang="en">50 GB storage allowance</span><span data-lang="zh">50 GB 存储额度</span></li><li><span data-lang="en">Priority support</span><span data-lang="zh">优先支持</span></li></ul><a class="button button-dark" href="#support"><span data-lang="en">Discuss Growth</span><span data-lang="zh">咨询 Growth</span></a></article>
         </div>
-        <p class="deferred" data-lang="en">Implementation, migration clean-up, messaging provider fees, payment processing, custom domains and multi-campus aggregation are separately scoped. For v8.2.4, each campus is intentionally operated as an isolated tenant.</p>
-        <p class="deferred" data-lang="zh">实施、数据清洗、消息供应商费用、在线支付、自定义域名与多校区汇总需单独约定。v8.2.4 阶段每个校区明确作为独立租户运营。</p>
+        <p class="deferred" data-lang="en">Implementation, migration clean-up, messaging provider fees, payment processing, custom domains and multi-campus aggregation are separately scoped. For v8.2.5, each campus is intentionally operated as an isolated tenant.</p>
+        <p class="deferred" data-lang="zh">实施、数据清洗、消息供应商费用、在线支付、自定义域名与多校区汇总需单独约定。v8.2.5 阶段每个校区明确作为独立租户运营。</p>
       </div>
     </section>
 
@@ -417,7 +435,7 @@
 
   <footer>
     <div class="shell footer-row">
-      <span>© <span id="year"></span> PWE Studio · v8.2.4</span>
+      <span>© <span id="year"></span> PWE Studio · v8.2.5</span>
       <nav aria-label="Resources">
         <a href="/customer-resources/FAQ.html"><span data-lang="en">FAQ</span><span data-lang="zh">常见问题</span></a>
         <!-- Release evidence moved to /platform-admin: it is an internal

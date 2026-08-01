@@ -599,6 +599,11 @@
 
     .tenants-table { min-width: 1040px; }
 
+    /* Column names for the phone card layout; the real <thead> carries them
+       on wider screens. Declared before the media query so the block rule
+       inside it wins rather than losing to an equally specific later rule. */
+    .cell-label { display: none; }
+
     th, td {
       padding: 10px 12px;
       text-align: left;
@@ -1351,7 +1356,15 @@
       .header-top { flex-direction: column; align-items: stretch; }
       .header-actions { justify-content: flex-start; }
       .header-actions input { width: 100%; }
-      .stats-grid { grid-template-columns: 1fr; }
+      /* Counters stay two-up. One per row was costing roughly 350px of
+         scrolling across the eight of them — on a 375px screen the phone
+         showed three numbers and nothing else, which is the opposite of what
+         a console opened to triage lifecycle risks should do. Two columns fit
+         comfortably: 375px leaves 343px of content width. */
+      .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+      .stat-card { padding: 14px; }
+      .stat-value { font-size: 24px; }
+      .stat-label { font-size: 12px; }
       .form-grid { grid-template-columns: 1fr; }
       .filters, .toolbar { grid-template-columns: 1fr; }
       .card { padding: 16px; }
@@ -1361,6 +1374,73 @@
       .nav-inner { padding: 0 16px; }
       .toast-container { left: 12px; right: 12px; top: 12px; }
       .toast { min-width: 0; width: 100%; }
+      /* The signed-in address is reference information, not an action, and it
+         was taking a full line above the buttons that do the work. */
+      .auth-status { display: none; }
+      .brand h1 { font-size: 19px; }
+      .brand p { font-size: 12px; }
+      .header-top { padding: 12px 16px 10px; gap: 12px; }
+      /* Narrower tables (audit log, plans) still scroll sideways, so the edge
+         is faded to show the row continues — a column cut flush at the screen
+         edge reads as missing data. */
+      .table-wrapper {
+        position: relative;
+        background:
+          linear-gradient(to right, var(--surface) 30%, rgba(255,255,255,0)) left / 24px 100% no-repeat,
+          linear-gradient(to left,  var(--surface) 30%, rgba(255,255,255,0)) right / 24px 100% no-repeat,
+          radial-gradient(farthest-side at 0 50%, rgba(15,23,42,.16), rgba(0,0,0,0)) left / 12px 100% no-repeat,
+          radial-gradient(farthest-side at 100% 50%, rgba(15,23,42,.16), rgba(0,0,0,0)) right / 12px 100% no-repeat;
+        background-attachment: local, local, scroll, scroll;
+      }
+
+      /* The tenant table is seven columns and 1040px wide. Scrolled sideways
+         at 375px it squeezed status pills into vertical stacks of single
+         characters, so it became unreadable rather than merely cramped. On a
+         phone each row becomes a card and each cell carries its column name —
+         the layout the UX rules call for when a table cannot fit. */
+      .tenants-table,
+      .tenants-table tbody,
+      .tenants-table tr,
+      .tenants-table td { display: block; width: auto; }
+      .tenants-table { min-width: 0; }
+      .tenants-table thead { display: none; }
+      .tenants-table tr {
+        margin-bottom: 12px;
+        padding: 12px 14px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--surface);
+      }
+      .tenants-table tr:last-child { margin-bottom: 0; }
+      .tenants-table td {
+        padding: 7px 0;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+      }
+      .tenants-table td:last-child { border-bottom: 0; padding-bottom: 0; }
+      .tenants-table td:first-child { padding-top: 0; }
+      .cell-label {
+        display: block;
+        margin-bottom: 3px;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+      }
+      /* The wrapper no longer scrolls for this table, so it must not paint the
+         edge-fade gradients over the cards. */
+      #tenants .table-wrapper { background: none; overflow-x: visible; }
+      .tenants-table .action-row { flex-wrap: wrap; gap: 8px; }
+      .tenants-table .action-row .btn-sm { flex: 1; min-height: 44px; }
+
+      /* Full 44px targets on touch (WCAG 2.5.5); they measured 42px. */
+      .nav-link { padding: 12px 16px; }
+    }
+
+    /* Only the narrowest phones drop to a single column. */
+    @media (max-width: 360px) {
+      .stats-grid { grid-template-columns: 1fr; }
     }
 
     /* Respect the operating-system "reduce motion" preference. */
@@ -1713,9 +1793,20 @@
     // Utility functions
     const text = (value) => value === null || value === undefined || value === '' ? '-' : value;
     const esc = window.StudioSaaS.esc;
-    function addCell(row, textValue = '') {
+    /* `label` names the column the cell belongs to. On a phone the tenant
+       table becomes one card per row (a 7-column, 1040px table is unreadable
+       at 375px), and each cell needs to say which column it is. The label is a
+       real text node rather than a ::before/attr() pair so the i18n
+       dictionary — which walks text nodes — can translate it. */
+    function addCell(row, textValue = '', label = '') {
       const cell = document.createElement('td');
-      if (textValue !== '') cell.textContent = String(textValue);
+      if (label) {
+        const tag = document.createElement('span');
+        tag.className = 'cell-label';
+        tag.textContent = label;
+        cell.appendChild(tag);
+      }
+      if (textValue !== '') cell.appendChild(document.createTextNode(String(textValue)));
       row.appendChild(cell);
       return cell;
     }
@@ -2896,7 +2987,7 @@
       }
       visible.forEach((t) => {
         const row = document.createElement('tr');
-        const studioCell = addCell(row);
+        const studioCell = addCell(row, '', 'Studio');
         const strong = document.createElement('strong');
         const code = document.createElement('code');
         const muted = document.createElement('span');
@@ -2909,8 +3000,8 @@
           studioCell.appendChild(document.createElement('br'));
           appendSmallBadge(studioCell, 'TEST FIXTURE', 'pill fixture');
         }
-        addStrongMuted(addCell(row), t.plan_code, t.category || 'general');
-        const statusCell = addCell(row);
+        addStrongMuted(addCell(row, '', 'Plan'), t.plan_code, t.category || 'general');
+        const statusCell = addCell(row, '', 'Status');
         appendPill(statusCell, t.status);
         statusCell.appendChild(document.createElement('br'));
         const sub = document.createElement('span');
@@ -2919,20 +3010,20 @@
         statusCell.appendChild(sub);
         statusCell.appendChild(document.createElement('br'));
         appendHealthPill(statusCell, t);
-        const ownerCell = addCell(row);
+        const ownerCell = addCell(row, '', 'Owner');
         ownerCell.textContent = t.owner_email || 'Needs owner';
         if (!t.owner_email) appendSmallBadge(ownerCell, 'Needs owner', 'pill warning');
         if (!t.studio_admin_email) {
           ownerCell.appendChild(document.createElement('br'));
           appendSmallBadge(ownerCell, 'No admin login', 'pill warning');
         }
-        addCell(row, usageText(t));
-        renderTenantSurfaces(addCell(row), t);
+        addCell(row, usageText(t), 'Usage');
+        renderTenantSurfaces(addCell(row, '', 'Surfaces'), t);
         const actions = document.createElement('div');
         actions.className = 'action-row';
         addActionButton(actions, 'View', 'btn-secondary btn-sm', () => selectTenant(t.id));
         addActionButton(actions, 'More', 'btn-secondary btn-sm', () => openTenantActions(t.id));
-        addCell(row).appendChild(actions);
+        addCell(row, '', 'Actions').appendChild(actions);
         tbody.appendChild(row);
       });
     }
