@@ -1994,9 +1994,21 @@ function App() {
        saved that JSON as the "calendar" file. Hence the garbled download.
        Fetching with credentials and turning the response into a blob is the
        only way to download from an authenticated endpoint. */
-    const calendarPreviewPath = (kind, rosterDate=rDate) => kind === 'roster'
-        ? `/daily-roster/calendar?date=${encodeURIComponent(rosterDate)}`
-        : '/class-schedules/calendar';
+    const CALENDAR_KINDS = Object.freeze({
+        roster: {serverKind:'daily-roster', previewPath:'/daily-roster/calendar', downloadPath:'/daily-roster/calendar.ics'},
+        schedule: {serverKind:'weekly-schedules', previewPath:'/class-schedules/calendar', downloadPath:'/class-schedules/calendar.ics'},
+    });
+    const calendarContract = kind => {
+        const contract = CALENDAR_KINDS[kind];
+        if (!contract) throw new Error('未知的日历导出类型，请刷新页面后重试');
+        return contract;
+    };
+    const calendarPreviewPath = (kind, rosterDate=rDate) => {
+        const contract = calendarContract(kind);
+        return kind === 'roster'
+            ? `${contract.previewPath}?date=${encodeURIComponent(rosterDate)}`
+            : contract.previewPath;
+    };
 
     const fetchIcsPreview = async (kind, rosterDate=rDate) => {
         const data = await v1Api(calendarPreviewPath(kind, rosterDate));
@@ -2004,7 +2016,14 @@ function App() {
         if (!/^[0-9a-f]{64}$/.test(calendar.revision || '')) {
             throw new Error('日历预览缺少有效版本，请刷新页面后重试');
         }
-        return {kind, ...calendar};
+        const contract = calendarContract(kind);
+        if (calendar.kind !== contract.serverKind) {
+            throw new Error('日历预览类型与下载类型不一致，请刷新页面后重试');
+        }
+        /* Keep the UI endpoint selector separate from the server-owned document
+           kind. The old `{kind, ...calendar}` merge silently replaced `roster`
+           with `daily-roster`, so both buttons downloaded the weekly endpoint. */
+        return {...calendar, downloadKind:kind};
     };
 
     const openIcsPreview = async (kind) => {
@@ -2020,16 +2039,15 @@ function App() {
     const downloadIcs = async (preview) => {
         setIcsBusy(true);
         try {
-            const kind = preview?.kind;
+            const kind = preview?.downloadKind;
+            const contract = calendarContract(kind);
             const revision = preview?.revision || '';
             if (!/^[0-9a-f]{64}$/.test(revision)) {
                 throw new Error('日历预览版本无效，请关闭后重新预览');
             }
             const query = new URLSearchParams({revision});
             if (kind === 'roster') query.set('date', preview.date || rDate);
-            const path = kind === 'roster'
-                ? `/daily-roster/calendar.ics?${query}`
-                : `/class-schedules/calendar.ics?${query}`;
+            const path = `${contract.downloadPath}?${query}`;
             const r = await fetch(`/s/${encodeURIComponent(TENANT_SLUG)}/v1${path}`, {
                 credentials:'include', headers:{'X-Requested-With':'StudioSaaS'},
             });
@@ -3019,7 +3037,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         <div className="px-5 py-4 border-b border-gray-100 flex items-start justify-between gap-3">
                             <div>
                                 <p id="ics-dialog-title" className="font-bold text-gray-900">
-                                    {icsPreview.kind === 'roster' ? '导出当日排课' : '导出固定课表'}
+                                    {icsPreview.downloadKind === 'roster' ? '导出当日排课' : '导出固定课表'}
                                 </p>
                                 <p className="text-xs text-gray-500 mt-0.5">
                                     {icsPreview.date ? `${fmtDate(icsPreview.date)} · ` : ''}Apple / Google 通用 .ics
@@ -3048,7 +3066,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                 ? <div className="text-center py-6 px-2">
                                     <p className="text-sm text-gray-600 font-bold">没有可导出的课程</p>
                                     <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">
-                                        {icsPreview.kind === 'roster'
+                                        {icsPreview.downloadKind === 'roster'
                                             ? '这一天的排课是空的。先在下方名单里加入学员，再回来导出。'
                                             : '还没有固定班次。在「每周课表」新增班次后，这里就会有内容。'}
                                     </p>

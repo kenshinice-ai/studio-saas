@@ -23,6 +23,25 @@ def test_calendar_download_sends_preview_revision_and_recovers_from_conflict() -
     assert "downloadIcs(icsPreview)" in source
 
 
+def test_calendar_preview_kind_cannot_redirect_to_the_other_download_endpoint() -> None:
+    """The server document kind must never overwrite the UI endpoint selector.
+
+    ``CalendarDocument.kind`` deliberately uses values such as
+    ``daily-roster``. The browser selector uses ``roster``. Merging both into
+    one property caused a real roster preview to download from the fixed
+    schedule endpoint and fail every time with a revision conflict.
+    """
+
+    source = _source()
+    assert "serverKind:'daily-roster'" in source
+    assert "serverKind:'weekly-schedules'" in source
+    assert "calendar.kind !== contract.serverKind" in source
+    assert "return {...calendar, downloadKind:kind};" in source
+    assert "const kind = preview?.downloadKind;" in source
+    assert "const path = `${contract.downloadPath}?${query}`;" in source
+    assert "return {kind, ...calendar};" not in source
+
+
 def test_calendar_dialog_handles_all_day_events_without_fake_duration() -> None:
     """Unknown-time roster entries must not render as ``null 分钟``."""
 
@@ -50,7 +69,7 @@ def test_roster_and_weekly_calendar_exports_are_visually_distinct() -> None:
     assert "固定课表 ICS" in source
     assert "导出当日 ICS" in source
     assert "disabled={icsBusy || schedules.length===0}" in source
-    assert "icsPreview.kind === 'roster' ? '导出当日排课' : '导出固定课表'" in source
+    assert "icsPreview.downloadKind === 'roster' ? '导出当日排课' : '导出固定课表'" in source
 
 
 def test_roster_default_time_is_tenant_owned_and_batch_tools_are_progressive() -> None:
