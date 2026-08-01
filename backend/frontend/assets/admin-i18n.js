@@ -28,6 +28,13 @@
     /* Overview group headings — the console orders its blocks by what the
        operator does with them, so these labels carry that meaning and have to
        translate with the rest of the page. */
+    /* Theme fine-tuning. These two write the theme's own accent tokens, so
+       they are named after those tokens rather than after "brand colour",
+       and they match the swatch labels in the preview beside them. */
+    ['Accent', '强调色'],
+    ['Buttons, links and selected states', '按钮、链接与选中状态'],
+    ['Support', '辅助色'],
+    ['Badges and small highlights only', '仅用于徽章与小面积点缀'],
     /* Studio Admin: disclosure summaries. Each fold hides settings a studio
        sets once, never a language half of a bilingual pair. */
     ['Studio details', '工作室资料'],

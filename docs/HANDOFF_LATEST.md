@@ -1,8 +1,47 @@
-# PWE Studio — colour roles vs. surface area (2026-08-02)
+# PWE Studio v8.2.8 — Current Handoff
 
-**Status: analysis only.** Running release is v8.2.7. v8.2.7 fixed the accent
-override; it did **not** fix what is reported here, and the remaining cause is
-different in kind.
+## Colour roles bound to surface area — options 1, 2 and 3 applied (2026-08-02)
+
+**All three are implemented and released.** The diagnosis is kept because the
+defect was a naming error twice over, and that pattern will recur.
+
+### What changed
+
+**1 — Large surfaces stay in the accent family.** A derived `--accent-deep`
+(`color-mix(accent 70%, ink)`) now terminates the two large gradients. The
+preset's second hue was renamed `--accent-dark` -> `--accent-secondary` across
+its 8 remaining uses, all of which are small marks (text, borders, badges),
+which is what a split-complementary hue is for.
+
+**2 — The picker shows what actually changes.** Six themed swatches, then a
+labelled row "状态色 · 所有主题一致 / Status colours · same in every theme"
+carrying success, warning and danger. They are still visible, but no longer
+imply the theme failed to apply.
+
+**3 — The brand-colour concept is retired from the UI.** The two inputs
+labelled "Main brand colour" / "Supporting brand colour" always wrote the
+theme's `accent_color` and `secondary_accent_color`; they are now labelled
+Accent / Support, matching the swatches beside them, with Support marked
+"Badges and small highlights only". They already sat inside "Fine-tune selected
+theme", so the structure the question asked for — one preset system plus an
+advanced override — was in place; only the naming misrepresented it.
+
+### Verified
+
+```text
+dance-dance, rose theme (accent #A23F5D):
+  before  command bar  ink -> #336D44  (green, 156 deg from accent)
+  after   command bar  ink -> color-mix(#A23F5D 70%, #20181A)  (deep rose)
+picker: 2 rows, 6 themed + 3 shared chips, note translated in both languages
+inputs: 强调色 / 辅助色 and Accent / Support, both languages
+pytest 333, legacy smoke 73/73, tenant isolation 228/228, escaping/inline/terminology OK
+```
+
+`--accent-secondary` and the tenant record's `primary_color` / `secondary_color`
+columns still exist; the columns identify a studio in the platform console and
+feed nothing that renders. Option 4 (tinting semantics toward the theme) stays
+on the shelf — with 1 and 2 done, the remaining semantic colours read as
+deliberate small marks rather than as strays.
 
 ## The reported symptom has two separate causes
 
@@ -81,7 +120,7 @@ command bar came from the preset's own `secondary_accent_color`, not from a
 brand colour. The missing rule is not "how many sources" — it is **which roles
 may occupy large surfaces**.
 
-## Options
+## Options considered
 
 **1 — Give large surfaces an accent-family colour (root fix).** Introduce a
 real `--accent-dark` (derived: `color-mix(in srgb, var(--accent) 70%,
@@ -105,7 +144,7 @@ green still reads as success but belongs to the palette. Only worth doing if 1
 and 2 leave the screens still feeling mixed; it costs a contrast re-check of
 every semantic pair in both modes, and over-mixing damages the signal.
 
-**Recommendation: 1 + 2 together, then 3.** 1 is the actual defect and is
+**Chosen: 1 + 2 + 3, all applied in v8.2.8.** 1 is the actual defect and is
 already proven; 2 fixes the perception the screenshots are really about; 3 is
 the tidy-up the question asks for and is safe once 1 lands. 4 stays on the
 shelf.

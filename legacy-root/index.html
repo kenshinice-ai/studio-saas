@@ -72,7 +72,14 @@
             accent_hover_color:     ['--accent-hover'],
             accent_pressed_color:   ['--accent-pressed'],
             accent_text_color:      ['--on-accent', '--brand-on-accent'],
-            secondary_accent_color: ['--accent-dark', '--brand-accent-strong'],
+            /* Named --accent-secondary, not --accent-dark. Every preset defines
+               this as a deliberately distant second hue — 150 to 170 degrees
+               from the accent in five of the seven — which is right for a badge
+               or a chart series and wrong for a large surface. The old name read
+               as "the dark variant of accent", so it got used to darken big
+               areas and produced a green command bar on a rose theme. Large
+               surfaces use --accent-deep below; this one stays for small marks. */
+            secondary_accent_color: ['--accent-secondary', '--brand-accent-strong'],
             secondary_text_color:   ['--on-secondary', '--brand-on-secondary'],
             success_color:          ['--success', '--brand-success'],
             warning_color:          ['--warning', '--brand-warning'],
@@ -90,6 +97,13 @@
           root.dataset.brandScheme = visual.color_scheme || visual.colorScheme || 'light';
           root.style.setProperty('--tenant-secondary-soft', `${secondary}14`);
           root.style.setProperty('--tenant-secondary-border', `${secondary}40`);
+          /* The colour large surfaces darken toward: same hue as the accent,
+             pulled toward the page ink. Derived rather than authored so it can
+             never drift into a different hue the way --accent-dark did. */
+          root.style.setProperty(
+            '--accent-deep',
+            `color-mix(in srgb, ${primary} 70%, ${visual.text_color || visual.textColor || '#0f172a'})`,
+          );
 		          if (brand.name) document.title = `${brand.name} CMS`;
 		          document.querySelectorAll('.tenant-slogan').forEach((el) => {
 		            el.textContent = slogan;
@@ -276,6 +290,7 @@
             --tenant-primary-soft:#eef2ff;
             --tenant-primary-border:#c7d2fe;
             --tenant-secondary:#16233d;
+            --accent-deep:#0a1020;
             --tenant-secondary-soft:#f5f3ff;
             --tenant-secondary-border:#ddd6fe;
             --surface:#ffffff;
@@ -340,9 +355,12 @@
         [class*="text-indigo-400"], [class*="text-indigo-500"], [class*="text-indigo-600"], [class*="text-indigo-700"], [class*="text-indigo-800"] { color:var(--tenant-primary) !important; }
         [class*="border-indigo-"] { border-color:var(--tenant-primary-border) !important; }
         [class*="from-indigo-"] { --tw-gradient-from:var(--tenant-primary) var(--tw-gradient-from-position) !important; --tw-gradient-to:rgb(255 255 255 / 0) var(--tw-gradient-to-position) !important; --tw-gradient-stops:var(--tw-gradient-from), var(--tw-gradient-to) !important; }
-        [class*="to-indigo-"], [class*="to-purple-"] { --tw-gradient-to:var(--tenant-secondary) var(--tw-gradient-to-position) !important; }
+        /* Large gradients end in the accent family. This rule is what painted
+           a green command bar on a rose studio: it ended the gradient in the
+           split-complementary second hue. */
+        [class*="to-indigo-"], [class*="to-purple-"] { --tw-gradient-to:var(--accent-deep) var(--tw-gradient-to-position) !important; }
         [class*="bg-purple-600"], [class*="bg-purple-700"] { background-color:var(--tenant-secondary) !important; color:var(--on-secondary) !important; }
-        [class*="bg-purple-50"], [class*="bg-purple-100"] { background-color:color-mix(in srgb, var(--accent-dark) 10%, var(--panel)) !important; }
+        [class*="bg-purple-50"], [class*="bg-purple-100"] { background-color:color-mix(in srgb, var(--accent-secondary) 10%, var(--panel)) !important; }
         [class*="text-purple-400"], [class*="text-purple-500"], [class*="text-purple-600"], [class*="text-purple-700"], [class*="text-purple-800"] { color:var(--tenant-secondary) !important; }
         [class*="border-purple-"] { border-color:var(--tenant-secondary-border) !important; }
 
@@ -454,15 +472,15 @@
            "long absence" panel, the pink birthday chips), so they follow the
            tenant's secondary accent and stay distinct from the primary. */
         [class*="bg-blue-50"], [class*="bg-blue-100"], [class*="bg-sky-50"], [class*="bg-sky-100"],
-        [class*="bg-cyan-50"], [class*="bg-pink-50"], [class*="bg-pink-100"], [class*="bg-fuchsia-50"] { background-color:color-mix(in srgb, var(--accent-dark) 10%, var(--panel)) !important; }
-        [class*="bg-blue-6"], [class*="bg-blue-7"], [class*="bg-sky-6"], [class*="bg-pink-6"], [class*="bg-pink-7"] { background-color:var(--accent-dark) !important; color:var(--on-secondary) !important; }
+        [class*="bg-cyan-50"], [class*="bg-pink-50"], [class*="bg-pink-100"], [class*="bg-fuchsia-50"] { background-color:color-mix(in srgb, var(--accent-secondary) 10%, var(--panel)) !important; }
+        [class*="bg-blue-6"], [class*="bg-blue-7"], [class*="bg-sky-6"], [class*="bg-pink-6"], [class*="bg-pink-7"] { background-color:var(--accent-secondary) !important; color:var(--on-secondary) !important; }
         /* The brand accents get the same treatment as the semantic colours but
-           at a far lighter dose: --accent-dark on --bg2 was the single
+           at a far lighter dose: --accent-secondary on --bg2 was the single
            remaining miss (4.44:1, arcade-lime dark). Six points toward the
            anchor lifts the worst pair to 4.72:1 and is not perceptible as a
            change of hue, so the studio's secondary still reads as its own. */
-        [class*="text-blue-"], [class*="text-sky-"], [class*="text-cyan-"], [class*="text-pink-"], [class*="text-fuchsia-"] { color:color-mix(in srgb, var(--accent-dark) 94%, var(--text-anchor)) !important; }
-        [class*="border-blue-"], [class*="border-sky-"], [class*="border-cyan-"], [class*="border-pink-"], [class*="border-fuchsia-"] { border-color:color-mix(in srgb, var(--accent-dark) 45%, var(--panel)) !important; }
+        [class*="text-blue-"], [class*="text-sky-"], [class*="text-cyan-"], [class*="text-pink-"], [class*="text-fuchsia-"] { color:color-mix(in srgb, var(--accent-secondary) 94%, var(--text-anchor)) !important; }
+        [class*="border-blue-"], [class*="border-sky-"], [class*="border-cyan-"], [class*="border-pink-"], [class*="border-fuchsia-"] { border-color:color-mix(in srgb, var(--accent-secondary) 45%, var(--panel)) !important; }
 
         /* The tail of the audit: shades used only once or twice, which is exactly
            how a palette leaks back in — nobody notices a single bg-amber-400. */
@@ -477,14 +495,14 @@
            that level comes from size and weight instead of from fading. */
         [class*="text-gray-300"] { color:var(--muted) !important; }
         [class*="text-indigo-900"] { color:var(--accent) !important; }
-        [class*="text-purple-900"] { color:var(--accent-dark) !important; }
+        [class*="text-purple-900"] { color:var(--accent-secondary) !important; }
         /* bg-amber-400 is a count badge carrying a label, so it is promoted to
            the solid warning + --on-accent pair in the readability pass below;
            bg-amber-200 stays a highlight fill with no text of its own. */
         [class*="bg-amber-200"] { background-color:color-mix(in srgb, var(--warning) 55%, var(--panel)) !important; }
         [class*="bg-green-400"] { background-color:color-mix(in srgb, var(--success) 60%, var(--panel)) !important; }
         [class*="bg-red-900"] { background-color:var(--danger) !important; color:var(--on-accent) !important; }
-        [class*="bg-blue-200"] { background-color:color-mix(in srgb, var(--accent-dark) 30%, var(--panel)) !important; }
+        [class*="bg-blue-200"] { background-color:color-mix(in srgb, var(--accent-secondary) 30%, var(--panel)) !important; }
 
         /* Decorative gradients (avatar placeholders, celebration banners).
            Both stops follow the theme so a gradient cannot smuggle an
@@ -492,7 +510,7 @@
         [class*="from-purple-"], [class*="from-pink-"], [class*="from-rose-"],
         [class*="from-blue-"], [class*="from-emerald-"], [class*="from-amber-"] { --tw-gradient-from:var(--accent) var(--tw-gradient-from-position) !important; }
         [class*="to-pink-"], [class*="to-rose-"], [class*="to-purple-"],
-        [class*="to-blue-"], [class*="to-emerald-"], [class*="to-amber-"] { --tw-gradient-to:var(--accent-dark) var(--tw-gradient-to-position) !important; }
+        [class*="to-blue-"], [class*="to-emerald-"], [class*="to-amber-"] { --tw-gradient-to:var(--accent-deep) var(--tw-gradient-to-position) !important; }
 
         /* ══ Readability pass: what the role map above left unreadable ══
            The block above answers "which token does this colour come from".
@@ -539,7 +557,7 @@
         [class*="bg-amber-500"], [class*="bg-amber-400"], [class*="bg-orange-500"], [class*="bg-yellow-500"] { background-color:var(--warning) !important; color:var(--on-accent) !important; }
         [class*="bg-emerald-500"], [class*="bg-green-500"], [class*="bg-teal-500"] { background-color:var(--success) !important; color:var(--on-accent) !important; }
         [class*="bg-indigo-500"], [class*="bg-blue-500"], [class*="bg-sky-500"] { background-color:var(--accent) !important; color:var(--on-accent) !important; }
-        [class*="bg-purple-500"], [class*="bg-pink-500"], [class*="bg-fuchsia-500"] { background-color:var(--accent-dark) !important; color:var(--on-secondary) !important; }
+        [class*="bg-purple-500"], [class*="bg-pink-500"], [class*="bg-fuchsia-500"] { background-color:var(--accent-secondary) !important; color:var(--on-secondary) !important; }
 
         /* ── 3. a `disabled:` / `active:` prefix is invisible to [class*=] ──
            `disabled:bg-gray-300` sits on seven of the CMS's primary buttons

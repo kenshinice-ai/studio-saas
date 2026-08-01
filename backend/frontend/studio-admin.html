@@ -1188,7 +1188,17 @@
     /* 4-4: nine labelled chips instead of three unlabelled bars, so the tokens
        the theme rework exists for (control boundary, focus ring) and the three
        semantic colours are visible where the choice is actually made. */
-    .theme-palette-preview { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+    /* Two groups stacked: the tokens the theme changes, then the status
+       colours it deliberately does not. */
+    .theme-palette-preview { display: grid; gap: 8px; min-width: 0; }
+    .theme-palette-preview .swatch-row { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+    .theme-palette-preview .swatch-group-note {
+      margin: 2px 0 0;
+      color: var(--theme-muted, var(--muted));
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .02em;
+    }
     .theme-palette-preview .swatch { display: grid; gap: 4px; justify-items: center; min-width: 52px; }
     .theme-palette-preview .swatch i { display: block; width: 100%; height: 22px; border: 1px solid rgba(15,23,42,.16); border-radius: 6px; }
     .theme-palette-preview .swatch small { color: var(--theme-muted, var(--muted)); font-size: 10px; font-weight: 700; letter-spacing: .02em; text-align: center; }
@@ -2199,8 +2209,15 @@
                   <details class="theme-customization">
                     <summary>Fine-tune selected theme</summary>
                     <div class="form-grid">
-                      <div class="form-group"><label for="settingPrimaryColor">Main brand colour</label><div class="color-field"><input id="settingPrimaryColor" type="color" aria-describedby="settingPrimaryColorError"><div class="color-meta">Primary accent and actions</div></div><span id="settingPrimaryColorError" class="field-error" hidden></span></div>
-                      <div class="form-group"><label for="settingSecondaryColor">Supporting brand colour</label><div class="color-field"><input id="settingSecondaryColor" type="color" aria-describedby="settingSecondaryColorError"><div class="color-meta">Secondary actions and highlights</div></div><span id="settingSecondaryColorError" class="field-error" hidden></span></div>
+                      <!-- These two write the theme's accent_color and
+                           secondary_accent_color. They were labelled "brand
+                           colour", so a studio would enter its logo hue and
+                           unknowingly replace one colour inside a palette that
+                           was solved as a set. Named for what they are, and
+                           matching the swatch labels in the preview beside
+                           them, so the relationship is visible. -->
+                      <div class="form-group"><label for="settingPrimaryColor">Accent</label><div class="color-field"><input id="settingPrimaryColor" type="color" aria-describedby="settingPrimaryColorError"><div class="color-meta">Buttons, links and selected states</div></div><span id="settingPrimaryColorError" class="field-error" hidden></span></div>
+                      <div class="form-group"><label for="settingSecondaryColor">Support</label><div class="color-field"><input id="settingSecondaryColor" type="color" aria-describedby="settingSecondaryColorError"><div class="color-meta">Badges and small highlights only</div></div><span id="settingSecondaryColorError" class="field-error" hidden></span></div>
                       <div class="form-group"><label for="settingButtonStyle">Button Style</label><select id="settingButtonStyle"><option value="soft">Soft</option><option value="sharp">Sharp</option><option value="rounded">Rounded</option></select></div>
                       <div class="form-group"><label for="settingFontMood">Font Mood</label><select id="settingFontMood"><option value="serif">Serif / editorial</option><option value="modern">Modern sans</option><option value="classic">Classic balanced</option></select></div>
                       <details class="disclosure">
@@ -3846,23 +3863,40 @@
          — plus the three semantic colours were invisible in the one place an
          owner compares themes. Each chip is labelled, because an unlabelled
          swatch strip is decoration. */
-      const swatches = [
+      /* Split by what actually differs between themes. Success, warning and
+         danger are held near-constant on purpose — green must keep meaning
+         success whatever the studio picked — and across the seven presets their
+         hues span only 13, 11 and 12 degrees. Shown as equal chips beside the
+         six that do change, three of nine looked identical between two very
+         different themes and the picker read as not having applied. They are
+         still shown, under a heading that says why they look the same. */
+      const themedSwatches = [
         ['background_color', 'Page', '页面'],
         ['panel_color', 'Panel', '面板'],
         ['accent_color', 'Accent', '强调色'],
         ['secondary_accent_color', 'Support', '辅助色'],
         ['border_strong_color', 'Control boundary', '控件边界'],
         ['focus_ring_color', 'Focus ring', '聚焦环'],
+      ];
+      const sharedSwatches = [
         ['success_color', 'Success', '成功'],
         ['warning_color', 'Warning', '警示'],
         ['danger_color', 'Danger', '危险'],
       ];
-      $('themePalettePreview').innerHTML = swatches.map(([name, labelEn, labelZh]) => {
+      const renderSwatches = (list) => list.map(([name, labelEn, labelZh]) => {
         const value = themeValue(shownTheme, name, themeValue(baseTheme, name, ''));
         if (!value) return '';
         const label = isZh ? labelZh : labelEn;
         return `<span class="swatch" title="${esc(label)} · ${esc(value)}"><i style="background:${value}"></i><small>${esc(label)}</small></span>`;
       }).filter(Boolean).join('');
+      const sharedLabel = isZh ? '状态色 · 所有主题一致' : 'Status colours · same in every theme';
+      /* renderSwatches returns markup whose every interpolated value already
+         went through esc() above; the checker cannot see through the call, so
+         the composition is marked rather than double-escaped. */
+      $('themePalettePreview').innerHTML =
+        `<div class="swatch-row">${/*safe*/ renderSwatches(themedSwatches)}</div>`
+        + `<p class="swatch-group-note">${esc(sharedLabel)}</p>`
+        + `<div class="swatch-row">${/*safe*/ renderSwatches(sharedSwatches)}</div>`;
       $('themePresetName').textContent = selectedName;
       /* 4-3: the colour relationship is the reason to prefer one palette over
          another, and it was already on the wire. */
