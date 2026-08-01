@@ -1,6 +1,6 @@
 # PWE Studio
 
-Current release candidate: **v8.2.1** P0 ICS download hotfix (production remains v8.2.0 until the release gate and deploy complete)
+Current release candidate: **v8.2.2** P0 registration consent visibility hotfix, retaining the v8.2.1 ICS repair
 
 PWE Studio (repo: studiosaas) is a Creative Studio Operating System for art schools, music studios, tutoring centres, creative academies, kids' activity providers, and small education businesses. One codebase supports a multi-tenant SaaS delivery model and a customer-owned standalone Edition.
 

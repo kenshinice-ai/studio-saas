@@ -136,6 +136,25 @@ def test_portal_theme_css_remains_the_single_fallback_palette() -> None:
     assert "--ink" in tokens and "--bg" in tokens
 
 
+@pytest.mark.parametrize("template", TEMPLATES, ids=lambda p: p.name)
+def test_consent_checkbox_restores_a_visible_native_checked_state(template: Path) -> None:
+    """A checked consent control must visibly draw its tick.
+
+    The portal's general text-input rule uses ``appearance:none``.  A consent
+    checkbox inherits that rule unless its narrow selector restores the native
+    control, leaving a clickable but permanently empty-looking box.
+    """
+
+    source = _read(template)
+    checkbox_rule = re.search(r"\.consent(?:-touch)? input\[type=\"checkbox\"\]\s*\{[^}]*\}", source)
+    assert checkbox_rule, f"{template.name} has no dedicated consent checkbox rule"
+    declaration = checkbox_rule.group(0)
+    assert "appearance:auto" in declaration
+    assert "-webkit-appearance:checkbox" in declaration
+    assert "accent-color:var(--clay)" in declaration
+    assert "padding:0" in declaration
+
+
 # ── The publish chain ────────────────────────────────────────────────────────
 # A studio edits its brand once, in Studio Admin, and publishes. Everything a
 # family or a staff member then sees — the portal, the registration page and the

@@ -1,10 +1,10 @@
-# PWE Studio v8.2.0 — Customer Delivery Index
+# PWE Studio v8.2.2 — Customer Delivery Index
 
 Status: customer-readable draft for commercial and legal review
 Deployment stage: production on AWS Lightsail (`ap-southeast-2`) at `https://pwestudio.online`, live since 30 July 2026; PostgreSQL and media on the same instance
 Production operations status: daily backups and a rehearsed restore are in place; an off-instance backup copy, uptime monitoring, backup-failure alerting, on-call ownership, a contractual SLA and privileged-account MFA are not
 
-This folder is the customer-facing source of truth for the v8.2.0 commercial conversation. The dated v8.1.0 release note remains historical evidence; current runtime acceptance is recorded in `docs/HANDOFF_LATEST.md`.
+This folder is the customer-facing source of truth for the v8.2.2 commercial conversation. The dated v8.1.0 release note remains historical evidence; current runtime acceptance is recorded in `docs/HANDOFF_LATEST.md`.
 
 ## Read first
 
@@ -33,7 +33,7 @@ PWE Studio currently provides:
 - privacy-safe weekly schedule export as an ICS calendar file;
 - device-native Mail and Messages handoff for support and family communication.
 
-The following are explicitly not represented as delivered in v8.2.0:
+The following are explicitly not represented as delivered in v8.2.2:
 
 - a contractual production SLA, uptime monitoring, backup-failure alerting or on-call ownership (AWS production hosting itself went live on 30 July 2026, with daily database and media backups and a passing restore rehearsal, but the backup copies are still on the same instance);
 - online payment processing or accounting automation;

@@ -261,7 +261,11 @@
   .progressive[open] summary::after{content:'−'}
   .progressive-body{padding:var(--space-phi-md);border-top:1px solid var(--line);background:var(--panel)}
   .consent-touch{display:flex;gap:var(--space-phi-sm);align-items:flex-start;min-height:var(--tap-min);padding:4px 0;cursor:pointer}
-  .consent-touch input{margin-top:2px!important;width:20px!important;height:20px!important;flex-shrink:0}
+  /* Checkboxes sit inside .fld, whose text-input rule deliberately removes
+     native appearance. Restore the checkbox control here: without this reset
+     the value toggles but the box never draws a tick, so visitors cannot tell
+     they agreed and believe the registration is blocked. */
+  .consent-touch input[type="checkbox"]{appearance:auto;-webkit-appearance:checkbox;margin-top:2px!important;width:20px!important;height:20px!important;min-height:20px!important;padding:0!important;flex-shrink:0;accent-color:var(--clay);cursor:pointer}
   .join-submit{margin-top:var(--space-phi-md)}
   .fld input:focus,.fld textarea:focus,.fld select:focus{border-color:var(--clay)}
   .fld input:disabled,.fld textarea:disabled,.fld select:disabled{background:var(--disabled-surface);color:var(--disabled-text);cursor:not-allowed}
@@ -1367,6 +1371,13 @@
   document.getElementById('joinForm').addEventListener('submit', function(event){
     event.preventDefault();
     submitJoin();
+  });
+  document.getElementById('j-consent').addEventListener('change', function(){
+    if(!this.checked) return;
+    var field=document.getElementById('j-consent-field');
+    if(field) field.classList.remove('has-error');
+    this.removeAttribute('aria-invalid');
+    this.removeAttribute('aria-describedby');
   });
   function submitJoin(){
     var form=document.getElementById('joinForm');

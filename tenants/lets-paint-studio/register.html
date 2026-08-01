@@ -79,7 +79,7 @@
     .optional-details[open] summary::after { content:'−'; }
     .optional-content { padding:var(--space-phi-md); border-top:1px solid var(--line); background:var(--surface); }
     .consent { display:flex; gap:var(--space-phi-sm); align-items:flex-start; min-height:var(--tap-min); padding:4px 0; color:var(--ink2); font-size:13px; line-height:1.6; margin:8px 0 6px; cursor:pointer; }
-    .consent input { width:20px; height:20px; min-height:20px; margin-top:2px; flex:0 0 auto; }
+    .consent input[type="checkbox"] { appearance:auto; -webkit-appearance:checkbox; width:20px; height:20px; min-height:20px; padding:0; margin-top:2px; flex:0 0 auto; accent-color:var(--clay); cursor:pointer; }
     .consent-block { margin-bottom:16px; }
     .privacy-link { display:inline-flex; align-items:center; margin:0 0 0 33px; font-size:12px; color:var(--clay); border-bottom:1px solid var(--clay); cursor:pointer; background:none; border-left:0; border-right:0; border-top:0; padding:0; width:auto; min-height:var(--tap-min); font-weight:400; }
     .privacy-link:hover { background:none; color:var(--clay-d); }
@@ -470,6 +470,12 @@
       details.hidden = !event.target.checked;
       document.getElementById('publicationConsentBy').required = event.target.checked;
       document.getElementById('publicationRelationship').required = event.target.checked;
+    });
+    document.getElementById('consent').addEventListener('change', (event) => {
+      if (!event.target.checked) return;
+      document.getElementById('consentBlock').classList.remove('has-error');
+      event.target.removeAttribute('aria-invalid');
+      event.target.removeAttribute('aria-describedby');
     });
     /* P1-2: validation shape and the POST itself now match the portal exactly,
        because both call the one implementation in public-register.js. The two

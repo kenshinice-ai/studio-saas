@@ -64,6 +64,8 @@
 - [ ] Conversion is blocked clearly when the plan student limit has been reached
 - [ ] Weekly schedule ICS preview/download use the same revision and contain no student/guardian identity
 - [ ] Daily roster ICS preview/download use the same revision, require `data:export`, warn that the file is private and never contain guardian names
+- [ ] The weekly preview kind `weekly-schedules` downloads only from `class-schedules/calendar.ics`; the daily preview kind `daily-roster` downloads only from `daily-roster/calendar.ics`
+- [ ] Click both browser download buttons with populated test data; confirm each request is 200 and parse the saved file for `VCALENDAR`, CRLF, matching `VEVENT` count, Melbourne timezone and the expected filename
 - [ ] A stale ICS revision returns 409, refreshes the preview and requires confirmation again
 - [ ] Empty weekly schedules disable `固定课表 ICS`; a populated selected day exposes `导出当日 ICS` beside that day's roster
 - [ ] Same-time ordinary students produce one group event; explicit 1-to-1 entries remain separate
@@ -75,6 +77,7 @@
 ### 4. Public Surfaces
 
 - [ ] Registration form submits, deduplicates, and shows a clear success state
+- [ ] Portal and Quick Registration privacy checkboxes visibly draw their checked state, keep the whole label as a touch target, and clear consent validation immediately when checked
 - [ ] Balance query returns only the matching family's data
 - [ ] Tenant brand payload (`/v1/public/<slug>/brand`) contains no private data
 - [ ] All tenant pages load within 2s on local network
