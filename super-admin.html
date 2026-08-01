@@ -327,6 +327,22 @@
       padding-bottom: 10px;
       border-bottom: 1px solid var(--line);
     }
+    /* Secondary link in a section header: pushed to the trailing edge, and
+       kept at a weight that does not compete with the section title. */
+    .section-aside-link {
+      margin-left: auto;
+      flex-shrink: 0;
+      align-self: center;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted, #64748b);
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .section-aside-link:hover { color: var(--ink, #0f172a); text-decoration: underline; }
 
     .section-icon {
       font-size: 20px;
@@ -397,6 +413,75 @@
       grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
       gap: var(--ui-space-3, 13px);
       margin-bottom: var(--space-2);
+    }
+
+    /* Overview is a work surface, so its blocks are labelled by what the
+       operator is meant to do with them — act on it, read it, or study it.
+       The eight counters used to sit in one undifferentiated grid, which
+       gave "Past Due" (someone must chase an invoice) exactly the same
+       weight as "Total Tenants" (a standing fact). */
+    .group-heading {
+      display: flex;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 4px 10px;
+      margin: 22px 0 10px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--ink);
+    }
+    .group-heading:first-of-type { margin-top: 4px; }
+    .group-hint {
+      font-size: 12px;
+      font-weight: 400;
+      letter-spacing: 0;
+      text-transform: none;
+      color: var(--muted);
+    }
+    /* The funnel is the one block here that reports rather than asks, so it
+       is collapsed by default (progressive disclosure, Apple HIG) and sits
+       last. Collapsed, not removed: it still loads and stays one click away. */
+    .analysis-details {
+      margin-top: 22px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel, #fff);
+      overflow: hidden;
+    }
+    .analysis-details > summary {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 44px;
+      padding: 0 14px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--ink);
+      list-style: none;
+    }
+    .analysis-details > summary::-webkit-details-marker { display: none; }
+    .analysis-details > summary::before {
+      content: "▸";
+      color: var(--muted);
+      transition: transform .15s ease;
+    }
+    .analysis-details[open] > summary::before { transform: rotate(90deg); }
+    .analysis-details > summary:focus-visible {
+      outline: 3px solid var(--focus-ring, var(--accent, #2563eb));
+      outline-offset: -3px;
+    }
+    .analysis-details .summary-hint {
+      margin-left: auto;
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--muted);
+    }
+    .analysis-body { padding: 0 14px 14px; }
+    @media (prefers-reduced-motion: reduce) {
+      .analysis-details > summary::before { transition: none; }
     }
 
     .stat-card {
@@ -1365,7 +1450,54 @@
             <div class="section-title">Commercial Overview</div>
             <div class="section-subtitle">Tenant lifecycle, recurring revenue, activation, and platform usage</div>
           </div>
+          <!-- Release evidence lives here rather than in the public footer:
+               it is an internal delivery record addressed to operators, and
+               this section is behind the platform login. -->
+          <a class="section-aside-link" href="/customer-resources/Release_Notes_v8.1.0.html">Release evidence →</a>
         </div>
+        <!-- Ordered by what the operator does with it, not by data source.
+             These three counters are the ones that imply an action today —
+             an invoice to chase, a trial about to lapse, a workspace that
+             never got activated — so they lead, and the list naming the
+             actual tenants sits directly under them instead of below eight
+             counters it has no visible relationship to. -->
+        <h2 class="group-heading">
+          <span>Needs attention</span>
+          <span class="group-hint">Lifecycle risks that imply an action today</span>
+        </h2>
+        <div class="stats-grid">
+          <div class="stat-card amber">
+            <div class="stat-head">
+              <span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M12 4.4L20.8 19.4H3.2z"/><path d="M12 10.2v3.6"/><circle cx="12" cy="16.6" r="0.55" fill="currentColor" stroke="none"/></svg></span>
+              <span class="stat-label">Past Due</span>
+            </div>
+            <div id="pastDueTenantCount" class="stat-value">-</div>
+          </div>
+          <div class="stat-card purple">
+            <div class="stat-head">
+              <span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M17.6 8.25a6.4 6.4 0 10-11.2 0c1.2 2.1-.9 4.35-.9 4.35h14s-3.1-2.25-1.9-4.35"/><path d="M10.4 17.4a1.7 1.7 0 003.2 0"/></svg></span>
+              <span class="stat-label">Trials Ending in 7 Days</span>
+            </div>
+            <div id="trialEndingCount" class="stat-value">-</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-head">
+              <span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M5.25 20.25V4.5"/><path d="M5.25 4.5h12.9l-2.7 3.9 2.7 3.9H5.25"/></svg></span>
+              <span class="stat-label">Onboarding</span>
+            </div>
+            <div id="onboardingTenantCount" class="stat-value">-</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3 class="card-title">Commercial Attention</h3></div>
+          <div id="commercialAttention" class="empty-state">Loading lifecycle risks…</div>
+        </div>
+
+        <!-- Standing totals: worth knowing, nothing to do about them today. -->
+        <h2 class="group-heading">
+          <span>Business health</span>
+          <span class="group-hint">Standing totals — no action implied</span>
+        </h2>
         <div class="stats-grid">
           <div class="stat-card">
             <div class="stat-head">
@@ -1397,41 +1529,25 @@
           </div>
           <div class="stat-card">
             <div class="stat-head">
-              <span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M5.25 20.25V4.5"/><path d="M5.25 4.5h12.9l-2.7 3.9 2.7 3.9H5.25"/></svg></span>
-              <span class="stat-label">Onboarding</span>
-            </div>
-            <div id="onboardingTenantCount" class="stat-value">-</div>
-          </div>
-          <div class="stat-card amber">
-            <div class="stat-head">
-              <span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M12 4.4L20.8 19.4H3.2z"/><path d="M12 10.2v3.6"/><circle cx="12" cy="16.6" r="0.55" fill="currentColor" stroke="none"/></svg></span>
-              <span class="stat-label">Past Due</span>
-            </div>
-            <div id="pastDueTenantCount" class="stat-value">-</div>
-          </div>
-          <div class="stat-card purple">
-            <div class="stat-head">
-              <span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M17.6 8.25a6.4 6.4 0 10-11.2 0c1.2 2.1-.9 4.35-.9 4.35h14s-3.1-2.25-1.9-4.35"/><path d="M10.4 17.4a1.7 1.7 0 003.2 0"/></svg></span>
-              <span class="stat-label">Trials Ending in 7 Days</span>
-            </div>
-            <div id="trialEndingCount" class="stat-value">-</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-head">
               <span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M3.75 17l5.6-5.6 3.9 3.9 7-7"/><path d="M15.1 8.3h5.15v5.15"/></svg></span>
               <span class="stat-label">New in 30 Days</span>
             </div>
             <div id="newTenantCount" class="stat-value">-</div>
           </div>
         </div>
-        <div class="card" style="margin-top:16px;">
-          <div class="card-header"><h2 class="card-title">Commercial Attention</h2></div>
-          <div id="commercialAttention" class="empty-state">Loading lifecycle risks…</div>
-        </div>
-        <div class="card" style="margin-top:16px;">
-          <div class="card-header"><h2 class="card-title">30-Day Acquisition Funnel</h2></div>
-          <div id="acquisitionFunnel" class="empty-state">Loading registration conversion…</div>
-        </div>
+
+        <!-- Analysis last and collapsed: it reports on the past 30 days
+             rather than asking for anything, so it should not occupy the
+             screen an operator opens to find out what needs doing. -->
+        <details class="analysis-details">
+          <summary>
+            30-Day Acquisition Funnel
+            <span class="summary-hint">Registration conversion</span>
+          </summary>
+          <div class="analysis-body">
+            <div id="acquisitionFunnel" class="empty-state">Loading registration conversion…</div>
+          </div>
+        </details>
       </section>
 
       <section id="tenants" class="section">

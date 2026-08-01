@@ -1177,8 +1177,94 @@
     .theme-customization { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 12px; }
     .theme-customization summary { cursor:pointer; color:var(--ink-mid); font-size:12px; font-weight:900; list-style-position: outside; }
     .theme-customization > .form-grid { margin-top:14px; }
-    .advanced-colours { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; border-top: 1px solid var(--line); padding-top: 14px; }
+    .advanced-colours { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding-top: 4px; }
     .advanced-colours small { grid-column: 1 / -1; }
+
+    /* Fine colour control is real customisation but it is not what a studio
+       opens this page to do — the theme picker above already produces a
+       complete, contrast-checked palette. Collapsed by default (progressive
+       disclosure, Apple HIG); every field stays present and editable. */
+    .disclosure {
+      grid-column: 1 / -1;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .disclosure > summary {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 44px;
+      padding: 0 12px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--ink);
+      list-style: none;
+    }
+    .disclosure > summary::-webkit-details-marker { display: none; }
+    .disclosure > summary::before { content: "▸"; color: var(--muted); transition: transform .15s ease; }
+    .disclosure[open] > summary::before { transform: rotate(90deg); }
+    .disclosure > summary:focus-visible { outline: 3px solid var(--brand-accent); outline-offset: -3px; }
+    .disclosure .summary-hint { margin-left: auto; font-size: 12px; font-weight: 400; color: var(--muted); }
+    .disclosure-body { padding: 0 12px 12px; }
+
+    /* Six "Show / Hide" dropdowns were six two-option selects: two taps and a
+       popup each, to set a boolean. As switches they are one tap, and the six
+       read as one list of what the public site contains rather than six
+       unrelated fields. State is carried by knob POSITION as well as colour,
+       so it survives a colour-blind reading (WCAG 1.4.1). */
+    .switch-list { grid-column: 1 / -1; display: grid; gap: 2px; }
+    .switch-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 44px;
+      padding: 4px 2px;
+      border-bottom: 1px solid var(--line);
+    }
+    .switch-row:last-child { border-bottom: 0; }
+    .switch-row > .switch-label { flex: 1; min-width: 0; font-size: 14px; color: var(--ink); }
+    .switch-row > .switch-label > small { display: block; color: var(--muted); font-size: 12px; }
+    /* min-height is reset explicitly: the global `input, select, textarea`
+       rule sets 42px, which stretched the track into a rounded rectangle.
+       Colours resolve through --brand-accent — this console does not define
+       the --accent/--panel/--focus-ring names the CMS shell uses. */
+    .switch {
+      position: relative;
+      flex-shrink: 0;
+      width: 46px;
+      height: 26px;
+      min-height: 0;
+      margin: 0;
+      padding: 0;
+      appearance: none;
+      -webkit-appearance: none;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--line) 70%, #fff);
+      border: 1px solid var(--line);
+      cursor: pointer;
+      transition: background-color .15s ease;
+    }
+    .switch::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 3px;
+      width: 18px;
+      height: 18px;
+      transform: translateY(-50%);
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,.28);
+      transition: left .15s ease;
+    }
+    .switch:checked { background: var(--brand-accent); border-color: var(--brand-accent); }
+    .switch:checked::after { left: 23px; }
+    .switch:focus-visible { outline: 3px solid var(--brand-accent); outline-offset: 2px; }
+    @media (prefers-reduced-motion: reduce) {
+      .switch, .switch::after, .disclosure > summary::before { transition: none; }
+    }
     .visually-hidden { position:absolute !important; width:1px !important; height:1px !important; padding:0 !important; margin:-1px !important; overflow:hidden !important; clip:rect(0,0,0,0) !important; white-space:nowrap !important; border:0 !important; }
 
     .question-list {
@@ -2093,6 +2179,9 @@
                       <div class="form-group"><label for="settingSecondaryColor">Supporting brand colour</label><div class="color-field"><input id="settingSecondaryColor" type="color" aria-describedby="settingSecondaryColorError"><div class="color-meta">Secondary actions and highlights</div></div><span id="settingSecondaryColorError" class="field-error" hidden></span></div>
                       <div class="form-group"><label for="settingButtonStyle">Button Style</label><select id="settingButtonStyle"><option value="soft">Soft</option><option value="sharp">Sharp</option><option value="rounded">Rounded</option></select></div>
                       <div class="form-group"><label for="settingFontMood">Font Mood</label><select id="settingFontMood"><option value="serif">Serif / editorial</option><option value="modern">Modern sans</option><option value="classic">Classic balanced</option></select></div>
+                      <details class="disclosure">
+                        <summary>Fine colour control<span class="summary-hint">Optional — the theme already sets these</span></summary>
+                        <div class="disclosure-body">
                       <div class="advanced-colours">
                         <div class="form-group"><label for="settingThemeBackground">Page Background</label><input id="settingThemeBackground" type="color" aria-describedby="settingThemeBackgroundError"><span id="settingThemeBackgroundError" class="field-error" hidden></span></div>
                         <div class="form-group"><label for="settingThemePanel">Panel Background</label><input id="settingThemePanel" type="color" aria-describedby="settingThemePanelError"><span id="settingThemePanelError" class="field-error" hidden></span></div>
@@ -2101,6 +2190,8 @@
                         <div class="form-group"><label for="settingThemeBorder">Border Color</label><input id="settingThemeBorder" type="color" aria-describedby="settingThemeBorderError"><span id="settingThemeBorderError" class="field-error" hidden></span></div>
                         <small>Button text and status colours are selected automatically for readable contrast.</small>
                       </div>
+                        </div>
+                      </details>
                     </div>
                   </details>
                 </section>
@@ -2118,7 +2209,12 @@
                     <div class="form-group"><label for="settingLogoFile">Upload Logo</label><input id="settingLogoFile" type="file" accept="image/*"></div>
                     <div class="form-group"><label for="settingPlan">Plan</label><select id="settingPlan" disabled></select><small>Managed by StudioSaaS Super Admin.</small></div>
                     <div class="form-group"><label for="settingCmsLayout">CMS Layout</label><select id="settingCmsLayout"><option value="bar">Header Bar</option><option value="hero">Hero Welcome</option><option value="compact">Compact</option></select></div>
-                    <div class="form-group"><label for="settingShowWelcome">Show Welcome</label><select id="settingShowWelcome"><option value="true">Show on CMS/Register</option><option value="false">Hide</option></select></div>
+                    <div class="switch-list">
+                      <div class="switch-row">
+                        <label class="switch-label" for="settingShowWelcome">Show Welcome<small>On CMS and register pages</small></label>
+                        <input class="switch" id="settingShowWelcome" type="checkbox">
+                      </div>
+                    </div>
                     <div class="form-group"><label for="settingTimezone">Timezone</label><input id="settingTimezone" aria-describedby="settingTimezoneError"><span id="settingTimezoneError" class="field-error" hidden></span></div>
                     <div class="form-group"><label for="settingPhone">Phone</label><input id="settingPhone" placeholder="0400 000 000" aria-describedby="settingPhoneError"><span id="settingPhoneError" class="field-error" hidden></span></div>
                     <div class="form-group"><label for="settingEmail">Email</label><input id="settingEmail" type="email" placeholder="studio@example.com" aria-describedby="settingEmailError"><span id="settingEmailError" class="field-error" hidden></span></div>
@@ -2151,7 +2247,12 @@
                 <div class="form-group"><label for="settingPrimaryCtaEn">Primary CTA · English</label><input id="settingPrimaryCtaEn" placeholder="Book a Trial"></div>
                 <div class="form-group"><label for="settingSecondaryCta">Secondary CTA · 中文</label><input id="settingSecondaryCta" placeholder="查看课程"></div>
                 <div class="form-group"><label for="settingSecondaryCtaEn">Secondary CTA · English</label><input id="settingSecondaryCtaEn" placeholder="Explore Courses"></div>
-                <div class="form-group"><label for="settingShowStudentLogin">Student Login Link</label><select id="settingShowStudentLogin"><option value="true">Show</option><option value="false">Hide</option></select></div>
+                <div class="switch-list">
+                  <div class="switch-row">
+                    <label class="switch-label" for="settingShowStudentLogin">Student Login Link</label>
+                    <input class="switch" id="settingShowStudentLogin" type="checkbox">
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -2164,12 +2265,35 @@
                 </div>
               </div>
               <div class="form-grid">
-                <div class="form-group"><label for="settingShowPrincipal">Principal Section</label><select id="settingShowPrincipal"><option value="true">Show</option><option value="false">Hide</option></select></div>
-                <div class="form-group"><label for="settingShowCourses">Courses Section</label><select id="settingShowCourses"><option value="true">Show</option><option value="false">Hide</option></select></div>
-                <div class="form-group"><label for="settingShowGallery">Gallery Section</label><select id="settingShowGallery"><option value="true">Show</option><option value="false">Hide</option></select></div>
-                <div class="form-group"><label for="settingShowFaq">FAQ Section</label><select id="settingShowFaq"><option value="true">Show</option><option value="false">Hide</option></select></div>
-                <div class="form-group"><label for="settingShowContact">Contact Section</label><select id="settingShowContact"><option value="true">Show</option><option value="false">Hide</option></select></div>
-                <div class="form-group"><label for="settingShowStudentArea">Student Area Section</label><select id="settingShowStudentArea"><option value="true">Show</option><option value="false">Hide</option></select></div>
+                <!-- One list of what the public site contains, rather than six
+                     separate two-option dropdowns. Same six settings, same ids;
+                     only the control changed. -->
+                <div class="switch-list">
+                  <div class="switch-row">
+                    <label class="switch-label" for="settingShowPrincipal">Principal Section</label>
+                    <input class="switch" id="settingShowPrincipal" type="checkbox">
+                  </div>
+                  <div class="switch-row">
+                    <label class="switch-label" for="settingShowCourses">Courses Section</label>
+                    <input class="switch" id="settingShowCourses" type="checkbox">
+                  </div>
+                  <div class="switch-row">
+                    <label class="switch-label" for="settingShowGallery">Gallery Section</label>
+                    <input class="switch" id="settingShowGallery" type="checkbox">
+                  </div>
+                  <div class="switch-row">
+                    <label class="switch-label" for="settingShowFaq">FAQ Section</label>
+                    <input class="switch" id="settingShowFaq" type="checkbox">
+                  </div>
+                  <div class="switch-row">
+                    <label class="switch-label" for="settingShowContact">Contact Section</label>
+                    <input class="switch" id="settingShowContact" type="checkbox">
+                  </div>
+                  <div class="switch-row">
+                    <label class="switch-label" for="settingShowStudentArea">Student Area Section</label>
+                    <input class="switch" id="settingShowStudentArea" type="checkbox">
+                  </div>
+                </div>
                 <div class="form-group"><label for="settingCoursesLabel">Courses Label · 中文</label><input id="settingCoursesLabel" placeholder="课程与班次"></div>
                 <div class="form-group"><label for="settingCoursesLabelEn">Courses Label · English</label><input id="settingCoursesLabelEn" placeholder="Courses & Classes"></div>
                 <div class="form-group"><label for="settingGalleryLabel">Gallery Label · 中文</label><input id="settingGalleryLabel" placeholder="学员%WORK%"></div>
@@ -3042,6 +3166,18 @@
       return Boolean(value);
     }
 
+    /* The visibility settings are switches, so their state is .checked rather
+       than the string 'true'/'false' a two-option <select> carried. These keep
+       the call sites one line each and keep the missing-element tolerance the
+       optional-chained reads had. */
+    function toggleOn(id) {
+      return Boolean($(id)?.checked);
+    }
+    function setToggle(id, value, fallback = true) {
+      const el = $(id);
+      if (el) el.checked = boolValue(value, fallback);
+    }
+
     function defaultHeroProfile(category, name) {
       const preset = INDUSTRY_PRESETS[category] || INDUSTRY_PRESETS.general;
       return {
@@ -3215,7 +3351,7 @@
       const localizedValue = (zhId, enId, fallback) => $(previewLanguage === 'zh' ? zhId : enId)?.value || fallback;
       $('themePreviewTitle').textContent = localizedValue('settingHeroTitle', 'settingHeroTitleEn', `${$('settingName').value || 'Studio'} Theme`);
       $('themePreviewSlug').textContent = currentTenantSlug() || 'tenant';
-      const welcomeVisible = $('settingShowWelcome').value !== 'false';
+      const welcomeVisible = toggleOn('settingShowWelcome');
       $('themePreviewWelcome').textContent = welcomeVisible
         ? localizedValue('settingHeroSubtitle', 'settingHeroSubtitleEn', $('settingWelcome').value || $('settingSlogan').value || 'Welcome')
         : (previewLanguage === 'zh' ? '欢迎文案已隐藏。' : 'Welcome message is hidden.');
@@ -3253,12 +3389,12 @@
       const box = $('previewSections');
       if (!box) return;
       const rows = [
-        ['Principal', $('settingShowPrincipal')?.value !== 'false', $('settingPrincipalName')?.value || 'About the studio'],
-        [$('settingCoursesLabel')?.value || 'Courses', $('settingShowCourses')?.value !== 'false', 'Program cards'],
-        [$('settingGalleryLabel')?.value || 'Gallery', $('settingShowGallery')?.value !== 'false', 'Student works'],
-        ['Student Area', $('settingShowStudentArea')?.value !== 'false', 'Balance and portfolio'],
-        [$('settingFaqLabel')?.value || 'FAQ', $('settingShowFaq')?.value !== 'false', `${collectFaqItems().length} questions`],
-        [$('settingContactLabel')?.value || 'Contact', $('settingShowContact')?.value !== 'false', $('settingEmail')?.value || $('settingPhone')?.value || 'Contact details'],
+        ['Principal', toggleOn('settingShowPrincipal'), $('settingPrincipalName')?.value || 'About the studio'],
+        [$('settingCoursesLabel')?.value || 'Courses', toggleOn('settingShowCourses'), 'Program cards'],
+        [$('settingGalleryLabel')?.value || 'Gallery', toggleOn('settingShowGallery'), 'Student works'],
+        ['Student Area', toggleOn('settingShowStudentArea'), 'Balance and portfolio'],
+        [$('settingFaqLabel')?.value || 'FAQ', toggleOn('settingShowFaq'), `${collectFaqItems().length} questions`],
+        [$('settingContactLabel')?.value || 'Contact', toggleOn('settingShowContact'), $('settingEmail')?.value || $('settingPhone')?.value || 'Contact details'],
       ].filter((row) => row[1]);
       box.innerHTML = rows.map(([label, _show, detail]) => `
         <div class="preview-section-row"><strong>${esc(label)}</strong><span>${esc(detail)}</span></div>
@@ -3742,7 +3878,7 @@
       $('settingPrimaryColor').value = themeValue(visual, 'accent_color', t.primary_color || '#2563eb');
       $('settingSecondaryColor').value = themeValue(visual, 'secondary_accent_color', t.secondary_color || '#0f172a');
       $('settingCmsLayout').value = t.cms_layout || t.cmsLayout || 'bar';
-      $('settingShowWelcome').value = String(t.show_welcome === false || t.show_welcome === 'false' ? false : true);
+      setToggle('settingShowWelcome', t.show_welcome, true);
       $('settingCategory').innerHTML = categoryOptions(category);
       /* Batch 5: localizedCopy is the bilingual source for studio identity; the
          flat field is what a tenant saved before it moved there. */
@@ -3773,13 +3909,13 @@
       $('settingSecondaryCta').value = localized.secondary_cta?.zh || hero.secondary_cta_label || hero.secondaryCtaLabel || '查看课程';
       $('settingSecondaryCtaEn').value = localized.secondary_cta?.en || hero.secondary_cta_label || hero.secondaryCtaLabel || 'Explore Courses';
       $('settingHeroStyle').value = hero.background_style || hero.backgroundStyle || 'soft';
-      $('settingShowStudentLogin').value = String(boolValue(hero.show_student_login ?? hero.showStudentLogin, true));
-      $('settingShowPrincipal').value = String(boolValue(website.show_principal ?? website.showPrincipal, true));
-      $('settingShowCourses').value = String(boolValue(website.show_courses ?? website.showCourses, true));
-      $('settingShowGallery').value = String(boolValue(website.show_gallery ?? website.showGallery, true));
-      $('settingShowFaq').value = String(boolValue(website.show_faq ?? website.showFaq, true));
-      $('settingShowContact').value = String(boolValue(website.show_contact ?? website.showContact, true));
-      $('settingShowStudentArea').value = String(boolValue(website.show_student_area ?? website.showStudentArea, true));
+      setToggle('settingShowStudentLogin', hero.show_student_login ?? hero.showStudentLogin, true);
+      setToggle('settingShowPrincipal', website.show_principal ?? website.showPrincipal, true);
+      setToggle('settingShowCourses', website.show_courses ?? website.showCourses, true);
+      setToggle('settingShowGallery', website.show_gallery ?? website.showGallery, true);
+      setToggle('settingShowFaq', website.show_faq ?? website.showFaq, true);
+      setToggle('settingShowContact', website.show_contact ?? website.showContact, true);
+      setToggle('settingShowStudentArea', website.show_student_area ?? website.showStudentArea, true);
       const sectionLabel = (key, legacyValue, fallbackZh, fallbackEn) => {
         const pair = localized[key] || {};
         $(`setting${key.split('_').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join('')}`).value = pair.zh || legacyValue || fallbackZh;
@@ -3820,7 +3956,7 @@
         primaryColor: primary,
         secondaryColor: secondary,
         cmsLayout: $('settingCmsLayout').value,
-        showWelcome: $('settingShowWelcome').value === 'true',
+        showWelcome: toggleOn('settingShowWelcome'),
         category: $('settingCategory').value,
         slogan: $('settingSlogan').value.trim(),
         timezone: $('settingTimezone').value.trim(),
@@ -3862,22 +3998,22 @@
           primaryCtaLabel: $('settingPrimaryCta').value.trim(),
           secondaryCtaLabel: $('settingSecondaryCta').value.trim(),
           backgroundStyle: $('settingHeroStyle').value,
-          showStudentLogin: $('settingShowStudentLogin').value === 'true'
+          showStudentLogin: toggleOn('settingShowStudentLogin')
         },
         websiteProfile: {
-          showPrincipal: $('settingShowPrincipal').value === 'true',
-          showCourses: $('settingShowCourses').value === 'true',
-          showGallery: $('settingShowGallery').value === 'true',
-          showFaq: $('settingShowFaq').value === 'true',
-          showContact: $('settingShowContact').value === 'true',
-          showStudentArea: $('settingShowStudentArea').value === 'true',
+          showPrincipal: toggleOn('settingShowPrincipal'),
+          showCourses: toggleOn('settingShowCourses'),
+          showGallery: toggleOn('settingShowGallery'),
+          showFaq: toggleOn('settingShowFaq'),
+          showContact: toggleOn('settingShowContact'),
+          showStudentArea: toggleOn('settingShowStudentArea'),
           coursesLabel: $('settingCoursesLabelEn').value.trim() || $('settingCoursesLabel').value.trim(),
           galleryLabel: $('settingGalleryLabelEn').value.trim() || $('settingGalleryLabel').value.trim(),
           faqLabel: $('settingFaqLabelEn').value.trim() || $('settingFaqLabel').value.trim(),
           contactLabel: $('settingContactLabelEn').value.trim() || $('settingContactLabel').value.trim()
         },
         principalProfile: {
-          show: $('settingShowPrincipal').value === 'true',
+          show: toggleOn('settingShowPrincipal'),
           name: $('settingPrincipalName').value.trim(),
           title: $('settingPrincipalTitleEn').value.trim() || $('settingPrincipalTitle').value.trim(),
           bio: $('settingPrincipalBioEn').value.trim() || $('settingPrincipalBio').value.trim(),

@@ -63,6 +63,14 @@ REQUIRED_PAGES = {
     "Terms_of_Service.html",
 }
 
+# Release notes are an internal delivery record addressed to operators, not a
+# sales asset for visitors, so they are reached from /platform-admin instead of
+# the public footer. The reachability rule itself is unchanged — every required
+# page still needs a door, this only says which door.
+OPERATOR_ONLY_PAGES = {"Release_Notes_v8.1.0.html"}
+PUBLIC_FOOTER_PAGES = REQUIRED_PAGES - OPERATOR_ONLY_PAGES
+SUPER_ADMIN = REPOSITORY_ROOT / "super-admin.html"
+
 LEGAL_ENTITY = "PWE GROUP PTY LTD"
 ABN = "ABN 55 606 664 546"
 ACN = "ACN 606 664 546"
@@ -261,8 +269,24 @@ def test_product_home_footer_links_every_customer_page() -> None:
     """A compliance page nobody can reach is not published."""
 
     source = PRODUCT_HOME.read_text(encoding="utf-8")
-    for page_name in sorted(REQUIRED_PAGES):
+    for page_name in sorted(PUBLIC_FOOTER_PAGES):
         assert f"/customer-resources/{page_name}" in source
+
+
+def test_operator_pages_are_reachable_from_the_platform_console() -> None:
+    """The same rule for the other audience: an operator page needs a door too."""
+
+    source = SUPER_ADMIN.read_text(encoding="utf-8")
+    for page_name in sorted(OPERATOR_ONLY_PAGES):
+        assert f"/customer-resources/{page_name}" in source
+
+
+def test_release_evidence_is_not_advertised_to_visitors() -> None:
+    """It is a delivery record, and the public link had also gone stale."""
+
+    source = PRODUCT_HOME.read_text(encoding="utf-8")
+    for page_name in sorted(OPERATOR_ONLY_PAGES):
+        assert f'href="/customer-resources/{page_name}"' not in source
 
 
 def test_server_allows_every_customer_page_it_ships() -> None:

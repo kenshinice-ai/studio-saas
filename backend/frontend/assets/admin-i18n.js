@@ -25,6 +25,19 @@
     ['Pricing and platform limits available to tenants', '面向工作室的价格与平台额度'],
     ['Commercial Overview', '经营总览'], ['Commercial Attention', '经营关注事项'],
     ['30-Day Acquisition Funnel', '近 30 天获客漏斗'], ['Recent platform activity', '近期平台活动'],
+    /* Overview group headings — the console orders its blocks by what the
+       operator does with them, so these labels carry that meaning and have to
+       translate with the rest of the page. */
+    /* Studio Admin: advanced colour disclosure and the switch sub-label. */
+    ['Fine colour control', '精细颜色调整'],
+    ['Optional — the theme already sets these', '选填 — 主题已自动配好'],
+    ['On CMS and register pages', '显示在 CMS 与报名页'],
+    ['Needs attention', '需要处理'],
+    ['Lifecycle risks that imply an action today', '今天需要跟进的生命周期风险'],
+    ['Business health', '经营概况'],
+    ['Standing totals — no action implied', '当前存量数据，无需立即处理'],
+    ['Registration conversion', '报名转化'],
+    ['Release evidence →', '发布依据 →'],
     ['Recent platform activity and operator changes', '近期平台活动与管理员变更'],
     ['Total Tenants', '工作室总数'], ['Paid Tenants', '付费工作室'], ['Trial Tenants', '试用工作室'],
     ['Trials Ending in 7 Days', '7 天内到期试用'], ['MRR (AUD)', '月度经常性收入（澳元）'],

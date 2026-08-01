@@ -587,6 +587,37 @@
         html[data-brand-scheme] textarea::placeholder { color:var(--muted) !important; }
         html[data-brand-scheme] [class*="bg-white/70"] { background-color:color-mix(in srgb, var(--panel) 70%, transparent) !important; }
 
+        /* ── 5. focus rings ──
+           The role map above claims bg/text/border/from/to but never ring-*,
+           which Tailwind implements through its own --tw-ring-color. That was
+           the last hue the tenant palette did not own: all 65 focus rings in
+           the CMS drew Tailwind indigo, so a clay or forest studio got an
+           indigo halo on every input it focused, and on a dark theme an indigo
+           ring against a dark panel can fall under the 3:1 that WCAG 1.4.11
+           asks of a focus indicator. The palette has shipped focus_ring_color
+           (mapped to --focus-ring) all along; this connects it.
+
+           Listed by family rather than by the six utilities in use today, so a
+           ring added later is themed on arrival instead of reopening the gap.
+           --accent is the fallback because a tenant that predates
+           focus_ring_color still has an accent. */
+        [class*="ring-indigo-"], [class*="ring-purple-"], [class*="ring-violet-"], [class*="ring-fuchsia-"],
+        [class*="ring-blue-"],   [class*="ring-sky-"],    [class*="ring-cyan-"],
+        [class*="ring-emerald-"],[class*="ring-green-"],  [class*="ring-teal-"],  [class*="ring-lime-"],
+        [class*="ring-gray-"],   [class*="ring-slate-"],  [class*="ring-zinc-"],
+        [class*="ring-pink-"] {
+            --tw-ring-color: var(--focus-ring, var(--accent)) !important;
+        }
+        /* Danger and warning keep their own ring: these sit on the delete,
+           refund and credit-adjustment inputs, where the ring is part of the
+           warning rather than a neutral focus cue. */
+        [class*="ring-red-"], [class*="ring-rose-"] {
+            --tw-ring-color: var(--danger) !important;
+        }
+        [class*="ring-amber-"], [class*="ring-yellow-"], [class*="ring-orange-"] {
+            --tw-ring-color: var(--warning) !important;
+        }
+
         /* The shared admin language switch reads --brand, which the CMS never
            defined, so it fell back to the stock blue #3b82f6 in the corner of
            an otherwise themed page. */
