@@ -64,11 +64,67 @@ way to prove the column names resolve — every table returned rows
 (6096/44/6/3/0). Production dry run: 0 rows to delete, as expected for a
 one-month-old database.
 
-## Still to install on the instance
+## Installed on the instance
 
-`/etc/cron.d/pwestudio-prune` and `/etc/logrotate.d/pwestudio` — both written
-out in README_AWS.md §9.1b and §9.1c. Until the cron exists, the code change
-above changes nothing on its own.
+Both files are in place; the code change alone would have changed nothing.
+
+```text
+/etc/cron.d/pwestudio-prune      15 4 1 * *  (after the 03:15 backup, so a dump exists first)
+/etc/logrotate.d/pwestudio       monthly, rotate 6, compress
+```
+
+`logrotate -d` validates the config; `cron.d` now holds `pwestudio-backup` and
+`pwestudio-prune`. A backup run after the change completed clean with the new
+dump-retention step, and both containers report `max-size 10m / max-file 5`.
+
+## isolation-alpha archived
+
+A local isolation-test tenant seeded into **production** on 2026-07-29 —
+`settings.test_fixture = true`, four users on `@isolation-alpha.test` and
+`@studiosaas.local`, all data synthetic. Archived, not permanently deleted:
+archiving is reversible (`/v1/admin/tenants/<id>/restore`) and writes the
+snapshot, while permanent delete is irreversible and the product asks for a
+typed `DELETE isolation-alpha` for that reason. Finish it in the console when
+you want the records gone.
+
+```text
+/app/backend/archives/tenants/isolation-alpha-20260802-082317
+  db/    31 JSON snapshots
+  media/
+  352K total
+```
+
+That is also the **first end-to-end proof of the v8.2.10 archive fix** — before
+it, this call died with `PermissionError` on the retention volume.
+
+`archived_by` is NULL on purpose: no console operator did this.
+
+---
+
+# SECURITY — 16 production accounts accept the seed password (2026-08-02)
+
+**Not fixed here; it needs a decision and the rotation locks people out.**
+
+Found while checking whether `isolation-alpha` could be deleted safely.
+`backend/scripts/seed_local_test_tenants.py` hardcodes `PASSWORD =
+"admin123456"`, and that seed has been run against production. Sixteen accounts
+still accept it, including **`admin@studiosaas.local`, which is the only
+platform super-admin on the instance** — full control plane, on a public
+domain, behind a guessable string.
+
+Two of the sixteen are not fixture addresses and look like real people:
+`mengqi.wu9364@gmail.com` and `dance@dancedance.com`.
+
+The remedy already exists: `backend/scripts/rotate_pilot_credentials.py`
+rotates every active privileged account to a unique password and writes the
+list to a 0600 file outside the repository. Existing sessions survive; restart
+the app for an immediate global sign-out.
+
+The seed script refuses to run when `STUDIOSAAS_MODE=standalone`, but nothing
+stops it against a SaaS production database — worth a guard.
+
+---
+
 
 ---
 
