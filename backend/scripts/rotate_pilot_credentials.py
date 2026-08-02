@@ -17,7 +17,7 @@ that, reversibly (status='disabled'), rather than deleting the row.
 
     python backend/scripts/rotate_pilot_credentials.py --dry-run
     python backend/scripts/rotate_pilot_credentials.py --exclude ops@example.com
-    python backend/scripts/rotate_pilot_credentials.py --disable-orphans
+    python backend/scripts/rotate_pilot_credentials.py --disable-orphans --skip-rotation
 """
 
 from __future__ import annotations
@@ -59,6 +59,7 @@ def rotate(
     cms_password_path: Path,
     exclude: set[str] | None = None,
     disable_orphans: bool = False,
+    skip_rotation: bool = False,
     dry_run: bool = False,
 ) -> int:
     """Rotate database accounts and the separate legacy CMS password."""
@@ -91,6 +92,14 @@ def rotate(
                 print(f"{verb} {len(orphans)} membership-less account(s):")
                 for email in orphans:
                     print(f"  {email}")
+                if not dry_run:
+                    conn.commit()
+            # Disabling orphans is maintenance and rotating is an incident
+            # response; they were coupled here, so asking for the tidy-up would
+            # silently have changed every password in the database.
+            if skip_rotation:
+                print("rotation skipped (--skip-rotation)")
+                return 0
             cur.execute(
                 """
                 SELECT DISTINCT u.id, lower(u.email) AS email
@@ -157,6 +166,8 @@ def main() -> int:
                         help="Email to leave untouched. Repeatable.")
     parser.add_argument("--disable-orphans", action="store_true",
                         help="Set status='disabled' on accounts with no membership.")
+    parser.add_argument("--skip-rotation", action="store_true",
+                        help="Do the orphan tidy-up without touching any password.")
     parser.add_argument("--dry-run", action="store_true",
                         help="Report what would change and write nothing.")
     args = parser.parse_args()
@@ -165,6 +176,7 @@ def main() -> int:
         args.cms_password_file.expanduser().resolve(),
         exclude=set(args.exclude),
         disable_orphans=args.disable_orphans,
+        skip_rotation=args.skip_rotation,
         dry_run=args.dry_run,
     )
     return 0
