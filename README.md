@@ -1,6 +1,6 @@
 # PWE Studio
 
-Current production release: **v8.2.9** status colours solved per theme — success/warning/danger now follow each palette instead of sitting outside it (deployed 2026-08-02)
+Current production release: **v8.2.10** tenant archive and permanent delete repaired — the retention volume was root-owned, so every attempt failed with an opaque 500 (deployed 2026-08-02)
 
 PWE Studio (repo: studiosaas) is a Creative Studio Operating System for art schools, music studios, tutoring centres, creative academies, kids' activity providers, and small education businesses. One codebase supports a multi-tenant SaaS delivery model and a customer-owned standalone Edition.
 

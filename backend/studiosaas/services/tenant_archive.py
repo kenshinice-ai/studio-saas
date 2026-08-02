@@ -85,12 +85,52 @@ def _project_root() -> Path:
     return Path(current_app.root_path).resolve().parent
 
 
+def _archive_base() -> Path:
+    """Return the directory that holds every tenant archive.
+
+    Honours ARCHIVE_DIR so an operator can place legal-retention snapshots on a
+    volume of their choosing; otherwise it is the path the container already
+    mounts a named volume at.
+    """
+
+    configured = current_app.config.get("ARCHIVE_DIR")
+    if configured:
+        return Path(str(configured)).resolve()
+    return Path(current_app.root_path).resolve() / "archives" / "tenants"
+
+
+def _ensure_archive_base() -> Path:
+    """Fail loudly and early if archives cannot be written.
+
+    This is a mounted volume, and a volume whose mountpoint was created before
+    the directory existed in the image belongs to root while the application
+    runs unprivileged. Without this check the first symptom is a bare 500 from
+    halfway through `archive_tenant`, after the caller has already confirmed a
+    destructive action — so the state of their studio is anyone's guess.
+    """
+
+    base = _archive_base()
+    try:
+        base.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        raise TenantArchiveError(
+            f"Archive directory {base} could not be created ({exc.strerror}). "
+            "It is a mounted volume; check that it is owned by the application user."
+        ) from exc
+    if not os.access(base, os.W_OK | os.X_OK):
+        raise TenantArchiveError(
+            f"Archive directory {base} is not writable by the application user. "
+            "It is a mounted volume; check its ownership."
+        )
+    return base
+
+
 def _archive_root(slug: str, suffix: str | None = None) -> Path:
     """Return a unique archive root for a tenant slug."""
 
     ts = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
     name = f"{slug}-{ts}{('-' + suffix) if suffix else ''}"
-    return Path(current_app.root_path).resolve() / "archives" / "tenants" / name
+    return _archive_base() / name
 
 
 def _load_tenant(conn: Any, tenant_id: str) -> dict[str, Any]:
@@ -206,6 +246,7 @@ def archive_tenant(conn: Any, tenant_id: str, actor_user_id: str | None) -> dict
             "archivePath": tenant.get("archive_path") or "",
         }
 
+    _ensure_archive_base()
     archive_dir = _archive_root(str(tenant["slug"]))
     db_dir = archive_dir / "db"
     _snapshot_database(conn, tenant_id, db_dir)
@@ -319,6 +360,10 @@ def permanently_delete_tenant(
     if confirmation_phrase != expected:
         raise TenantArchiveError(f"Confirmation phrase must be exactly: {expected}")
 
+    # The final snapshot is the only surviving copy of this tenant's
+    # publication-consent evidence. Refuse the delete rather than perform it
+    # with nowhere to write that proof.
+    _ensure_archive_base()
     archive_path = Path(str(tenant.get("archive_path") or "")) if tenant.get("archive_path") else _archive_root(str(tenant["slug"]))
     final_dir = archive_path / "final-delete-snapshot"
     _snapshot_database(conn, tenant_id, final_dir)

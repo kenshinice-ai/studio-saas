@@ -78,6 +78,14 @@ if MEDIA_DIR_ENV:
     if not os.path.isabs(MEDIA_DIR_ENV):
         MEDIA_DIR_ENV = os.path.abspath(os.path.join(APP_DIR, MEDIA_DIR_ENV))
     app.config['MEDIA_DIR'] = MEDIA_DIR_ENV
+# Tenant archives are legal-retention data (incl. publication-consent evidence)
+# and live on their own volume. Overridable so an operator can move that volume
+# without the code assuming a path inside the source tree.
+ARCHIVE_DIR_ENV = os.environ.get('STUDIOSAAS_ARCHIVE_DIR', '').strip()
+if ARCHIVE_DIR_ENV:
+    if not os.path.isabs(ARCHIVE_DIR_ENV):
+        ARCHIVE_DIR_ENV = os.path.abspath(os.path.join(APP_DIR, ARCHIVE_DIR_ENV))
+    app.config['ARCHIVE_DIR'] = ARCHIVE_DIR_ENV
 # AWS/Linux friendly data separation:
 #   - local/mac default: app directory, same behavior as before
 #   - AWS recommended:  CMS_DATA_DIR=/opt/letspaint-cms/data
@@ -97,7 +105,7 @@ SESSION_SECRET_FILE = _data_path('.session_secret')
 PW_FILE       = _data_path('.cms_password')
 app.config['PHOTO_DIR'] = PHOTO_DIR
 MAX_BACKUPS   = 30   # 1 backup/hr rate limit → ~30 hours of rolling coverage
-APP_VERSION   = '8.2.9'
+APP_VERSION   = '8.2.10'
 app.config['APP_VERSION'] = APP_VERSION
 ALLOWED_EXT   = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
 EXT_MIME_TYPES = {

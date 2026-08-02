@@ -50,8 +50,22 @@ RUN pip install -r deploy/aws/requirements.lock
 
 COPY . .
 
+# backend/archives is deliberately absent from the build context (.dockerignore
+# and .gitignore both exclude it — archives are mutable legal-retention data and
+# must never ride inside an image). It is a named volume in docker-compose.yml.
+#
+# Those two correct decisions combine into a failure unless the directory is
+# created HERE: Docker seeds a new named volume from the image path it covers,
+# inheriting that path's ownership, but when the path does not exist it creates
+# the mountpoint root-owned. The app runs as uid 10001, so every archive and
+# permanent-delete attempt died on `PermissionError: /app/backend/archives`.
+# Creating it before the chown makes a fresh volume land as 10001.
+#
+# An ALREADY-CREATED root-owned volume is not repaired by rebuilding — Docker
+# only seeds on first creation. Fix that one by hand, once:
+#   docker compose ... exec -u 0 app chown -R 10001:10001 /app/backend/archives
 RUN useradd --create-home --uid 10001 studiosaas \
-    && mkdir -p /data /media \
+    && mkdir -p /data /media /app/backend/archives/tenants \
     && chown -R studiosaas:studiosaas /data /media /app
 USER studiosaas
 
