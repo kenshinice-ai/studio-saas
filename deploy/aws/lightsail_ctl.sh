@@ -183,15 +183,23 @@ case "${1:-}" in
     fi
 
     echo "uploaded bundles in $INCOMING_DIR (unpacked already; keeping the newest):"
-    stale_bundles="$(ls -1t "$INCOMING_DIR"/*.tar.gz 2>/dev/null | tail -n +2 || true)"
-    if [ -z "$stale_bundles" ]; then
-      echo "  nothing to remove"
-    else
-      for bundle in $stale_bundles; do
-        echo "  remove $(basename "$bundle")"
-        run "rm -f '$bundle'"
-      done
-    fi
+    # Scoped to the bundle naming, so a portable snapshot or a one-off export an
+    # operator parked here is never touched. The checksum sibling goes with its
+    # bundle — matching only *.tar.gz left every .sha256 behind.
+    newest_bundle="$(ls -1t "$INCOMING_DIR"/PWE-Studio*.tar.gz 2>/dev/null | head -1)"
+    newest_stem="$(basename "${newest_bundle:-none}")"
+    removed_any=""
+    for path in "$INCOMING_DIR"/PWE-Studio*.tar.gz "$INCOMING_DIR"/PWE-Studio*.tar.gz.sha256; do
+      [ -e "$path" ] || continue
+      base="$(basename "$path")"
+      case "$base" in
+        "$newest_stem"|"$newest_stem".sha256) continue ;;
+      esac
+      echo "  remove $base"
+      run "rm -f '$path'"
+      removed_any=1
+    done
+    [ -n "$removed_any" ] || echo "  nothing to remove"
 
     echo "image tags (keeping $KEEP_IMAGES newest, never the running one):"
     running_image="$(docker inspect --format '{{.Config.Image}}' "${PROJECT_NAME}-app-1" 2>/dev/null || true)"
