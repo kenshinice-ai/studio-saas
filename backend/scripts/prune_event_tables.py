@@ -1,15 +1,22 @@
 #!/usr/bin/env python3
 """Prune unbounded event tables (DB-audit finding: no retention anywhere).
 
-audit_logs and public_analytics_events grow without limit. This script deletes
-rows older than a retention window, in batches so it never holds long locks.
-Audit rows are compliance-relevant — the default keeps 2 years, and tenant
-archive snapshots taken before pruning retain their own copy.
+Five tables here grow with usage and nothing ever deletes from them. This
+script removes rows past a retention window, in batches so it never holds a
+long lock. Audit rows are compliance-relevant — the default keeps 2 years, and
+a tenant archive snapshot taken before pruning keeps its own copy regardless.
 
-    python scripts/prune_event_tables.py --dry-run
-    python scripts/prune_event_tables.py --audit-days 730 --analytics-days 365
+    python backend/scripts/prune_event_tables.py --dry-run
+    python backend/scripts/prune_event_tables.py --audit-days 730
 
-Schedule monthly (cron on EC2 / launchd locally). Uses STUDIOSAAS_DATABASE_URL.
+Schedule monthly. On the Lightsail host go through the control script rather
+than calling this path directly — see deploy/aws/README_AWS.md §9.1b:
+
+    bash deploy/aws/lightsail_ctl.sh prune --dry-run
+
+NOT pruned, deliberately: student_publication_consent_events is legal proof of
+consent and a tenant archive snapshot is the only other copy. It has no
+retention window and must not get one here.
 """
 
 from __future__ import annotations
@@ -24,9 +31,20 @@ from studiosaas.db import connect  # noqa: E402
 
 BATCH = 10_000
 
+# table -> (timestamp column, retention key)
+#
+# The last three were missing and are the ones that grow with *traffic* rather
+# than with operator actions: a notification row per message sent, a session
+# row per student login, an attempt row per rate-limit window. They were left
+# out of the original pass and so had no ceiling at all.
 TABLES = {
     "audit_logs": ("created_at", "audit_days"),
     "public_analytics_events": ("occurred_at", "analytics_days"),
+    "notification_logs": ("created_at", "notification_days"),
+    # Sessions are dead once expired; keep a short tail for incident review.
+    "student_access_sessions": ("expires_at", "session_days"),
+    # Rate-limit windows are meaningless once the lockout is long past.
+    "student_access_attempts": ("updated_at", "session_days"),
 }
 
 
@@ -69,10 +87,18 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--audit-days", type=int, default=730)
     parser.add_argument("--analytics-days", type=int, default=365)
+    parser.add_argument("--notification-days", type=int, default=365)
+    parser.add_argument("--session-days", type=int, default=30,
+                        help="Expired student sessions and rate-limit windows. 0 disables.")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
-    days_by_key = {"audit_days": args.audit_days, "analytics_days": args.analytics_days}
+    days_by_key = {
+        "audit_days": args.audit_days,
+        "analytics_days": args.analytics_days,
+        "notification_days": args.notification_days,
+        "session_days": args.session_days,
+    }
     for table, (column, key) in TABLES.items():
         days = days_by_key[key]
         if days <= 0:

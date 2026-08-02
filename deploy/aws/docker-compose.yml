@@ -63,6 +63,15 @@ services:
     profiles: ["local-db"]
     image: postgres:16-alpine
     restart: unless-stopped
+    # The app's log was capped and the database's was not, which is the wrong
+    # way round: PostgreSQL is the one that can turn chatty without warning
+    # (connection storms, slow-query logging, a failing healthcheck every 10s)
+    # and it writes to the same root volume the data lives on.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
     environment:
       POSTGRES_DB: studiosaas
       POSTGRES_USER: studiosaas

@@ -1,3 +1,77 @@
+# PWE Studio v8.2.12 — retention for everything that only grew (2026-08-02)
+
+**Shipped.** Audited every store on the box that accumulates. Four had no
+ceiling; the notable part is that the retention *policy* already existed and had
+simply never been connected to anything.
+
+## What was measured
+
+```text
+store                          cap                    state
+docker app container log       10 MB x 5              capped
+docker db container log        none                   UNCAPPED  -> fixed
+volume tarballs                find -mtime +7         capped (743 MB on disk)
+postgres dumps                 none                   UNCAPPED  -> fixed (30d)
+audit_logs                     script exists, 730d    NEVER SCHEDULED -> fixed
+public_analytics_events        script exists, 365d    NEVER SCHEDULED -> fixed
+notification_logs              none                   not in the script -> added
+student_access_sessions        none                   not in the script -> added
+student_access_attempts        none                   not in the script -> added
+/var/log/pwestudio-*.log       no logrotate entry     -> documented
+```
+
+`audit_logs` is already the **largest table in the database** — 4,413 rows in
+31 days (~142/day, 1.3 MB of a 13 MB database) across six pre-launch tenants,
+and the rate scales with tenant count.
+
+## The interesting failure: a policy nobody called
+
+`prune_event_tables.py` shipped with the retention window in its docstring and
+the instruction "Schedule monthly", and was then never scheduled. The only cron
+entry on the instance is the backup. Two years of default retention means
+nothing would have gone wrong for two years, by which point nobody would
+remember to look.
+
+It is now a first-class command so a schedule has something stable to call:
+
+```bash
+bash deploy/aws/lightsail_ctl.sh prune --dry-run   # on the box
+bash deploy/aws/pwestudio_remote.sh prune          # from a laptop
+```
+
+That indirection is not decoration — README_AWS.md §9 already records that a
+cron line pointing straight at a path inside the image is exactly how the daily
+backup silently failed for weeks (`scripts/` vs `backend/scripts/`).
+
+## Three tables added to the policy
+
+The original pass covered the two that grow with *operator* actions and missed
+the three that grow with *traffic*: a row per message sent, a row per student
+login, a row per rate-limit window.
+
+```text
+notification_logs         created_at        365 days
+student_access_sessions   expires_at         30 days   (dead once expired)
+student_access_attempts   updated_at         30 days   (lockout long past)
+```
+
+**`student_publication_consent_events` is deliberately excluded and must stay
+that way.** It is legal proof of consent, and a tenant archive snapshot is the
+only other copy.
+
+Verified against the local database with a one-day window, which is the only
+way to prove the column names resolve — every table returned rows
+(6096/44/6/3/0). Production dry run: 0 rows to delete, as expected for a
+one-month-old database.
+
+## Still to install on the instance
+
+`/etc/cron.d/pwestudio-prune` and `/etc/logrotate.d/pwestudio` — both written
+out in README_AWS.md §9.1b and §9.1c. Until the cron exists, the code change
+above changes nothing on its own.
+
+---
+
 # PWE Studio v8.2.11 — overview counters became filters (2026-08-02)
 
 **Shipped.** The platform console printed eight numbers an operator could read

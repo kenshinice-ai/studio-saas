@@ -333,6 +333,36 @@ Lightsail 单机路径直接用控制脚本（已包含上面三点）：
   bash deploy/aws/lightsail_ctl.sh backup >> /var/log/pwestudio-backup.log 2>&1
 ```
 
+**9.1b 事件表保留（必须装，否则只写不删）** —— `prune_event_tables.py` 从一开始
+就带着保留窗口，但**从来没有被排程**，所以 `audit_logs` 自上线起只增不减，现在
+已经是库里最大的表。装一条月度 cron：
+
+```bash
+# /etc/cron.d/pwestudio-prune —— 每月 1 号 04:15 UTC，root
+15 4 1 * * root cd /opt/pwestudio/current && \
+  bash deploy/aws/lightsail_ctl.sh prune >> /var/log/pwestudio-prune.log 2>&1
+```
+
+先跑一次 `bash deploy/aws/lightsail_ctl.sh prune --dry-run` 看会删多少。保留窗口
+是 audit 730 天、analytics 365 天；`--audit-days` / `--analytics-days` 可改。
+**归档快照自带一份副本**，所以裁剪不会让已归档租户的审计记录消失。
+
+**9.1c 日志轮转** —— 两条 cron 的输出文件没有任何轮转规则。装
+`/etc/logrotate.d/pwestudio`：
+
+```
+/var/log/pwestudio-backup.log /var/log/pwestudio-prune.log {
+    monthly
+    rotate 6
+    compress
+    missingok
+    notifempty
+    create 0640 root adm
+}
+```
+
+容器日志本身由 compose 的 `logging:` 限死（app 与 db 各 10 MB × 5）。
+
 可选异地副本（强烈建议）：紧接一行 `aws s3 sync /var/lib/docker/volumes/…`
 不可直取 volume 路径时，用
 `docker compose ... exec -T app tar -C /data/backups -cz postgres | aws s3 cp - s3://<bucket>/db/$(date +%F).tar.gz`。

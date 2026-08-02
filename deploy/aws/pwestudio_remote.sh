@@ -24,6 +24,7 @@
 #   health            Public HTTPS deep health, from your machine, not the box.
 #   logs [n]          Last n lines (default 200) of app and database logs.
 #   backup            Logical dump + volume tarball, now.
+#   prune [--dry-run] Apply event-table retention (audit 730d, analytics 365d).
 #   drill             Rehearse a restore into a throwaway database. Safe.
 #   backups           List what is on disk with sizes and ages.
 #   certs             Certificate names, domains, expiry, and the renew timer.
@@ -76,6 +77,10 @@ case "$cmd" in
 
   backup)
     ctl backup
+    ;;
+
+  prune)
+    ctl "prune ${*:-}"
     ;;
 
   drill)

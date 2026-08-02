@@ -64,12 +64,14 @@ dc() {
 
 usage() {
   cat <<'EOF'
-Usage: deploy/aws/lightsail_ctl.sh <up|status|logs|backup|restore-dry-run|stop-app>
+Usage: deploy/aws/lightsail_ctl.sh <up|status|logs|backup|prune|restore-dry-run|stop-app>
 
   up        Build/start PostgreSQL and the application.
   status    Show containers and require deep application health.
   logs      Print the latest bounded app/database logs.
   backup    Back up PostgreSQL plus persistent media/data/archive volumes.
+  prune [--dry-run]
+            Apply event-table retention: audit_logs 730 days, analytics 365.
   restore-dry-run [--dump <file>]
             Rehearse a restore into a temporary database. Live data untouched.
   stop-app  Stop only the application container; PostgreSQL remains available.
@@ -95,6 +97,14 @@ case "${1:-}" in
     # backup failed with "can't open file" — and nothing read the output.
     dc exec -T app python backend/scripts/backup_postgres.py backup \
       --backup-dir /data/backups/postgres
+    # Dumps had no retention while the volume tarballs below delete at +7 days,
+    # so this directory was the one store on the box that only ever grew — one
+    # dump a day, forever. 30 days rather than 7: a dump is small (~1 MB here
+    # against ~100 MB a tarball) and it is what a restore actually reads.
+    dc exec -T app sh -euc '
+      find /data/backups/postgres -type f \( -name "*.dump" -o -name "*.manifest.json" \) \
+        -mtime +30 -delete
+    '
     install -d -m 0700 "$VOLUME_BACKUP_DIR"
     docker run --rm \
       --user 0:0 \
@@ -111,6 +121,16 @@ case "${1:-}" in
         find /backup -type f -name "pwestudio-volumes-*.tar.gz" \
           -mtime +7 -delete
       '
+    ;;
+  prune)
+    # prune_event_tables.py shipped with the retention window written into its
+    # docstring ("Schedule monthly") and was then never scheduled, so audit_logs
+    # grew from day one and is already the largest table in the database. This
+    # exists so the schedule has something stable to call, the same way `backup`
+    # does — a cron line pointing straight at a path inside the image is how the
+    # daily backup silently failed for weeks.
+    shift || true
+    dc exec -T app python backend/scripts/prune_event_tables.py "$@"
     ;;
   restore-dry-run)
     # Restores the newest dump (or --dump <file>) into a throwaway database and
