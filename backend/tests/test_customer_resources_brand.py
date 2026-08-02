@@ -4,7 +4,7 @@ Why this file exists
 --------------------
 `test_product_home_brand.py` rejected the retired forest/sage/coral palette, but
 its only subject was `product-home.html`. `customer-resources/FAQ.html` and
-`Release_Notes_v8.1.0.html` were hand-written pages outside that net, so when the
+`Release_Notes.html` were hand-written pages outside that net, so when the
 product moved to the PWE family identity they silently kept forest `#15312e` on
 `#f7f3eb` with a sage note band and a `#d7a93d` focus ring — a retired palette
 still reachable from the homepage footer.
@@ -27,6 +27,8 @@ PRODUCT_HOME = REPOSITORY_ROOT / "product-home.html"
 SHARED_STYLESHEET = REPOSITORY_ROOT / "backend/frontend/assets/customer-resources.css"
 SHARED_SCRIPT = REPOSITORY_ROOT / "backend/frontend/assets/customer-resources.js"
 SERVER = REPOSITORY_ROOT / "backend/server.py"
+# Read rather than hardcoded, so a version bump does not drag test edits along.
+VERSION = (REPOSITORY_ROOT / "VERSION").read_text(encoding="utf-8").strip()
 
 # Retired with the v8.0.1 brand migration. Any reappearance is a regression,
 # whichever page it lands on. Values mirror test_product_home_brand.py so the
@@ -57,7 +59,7 @@ PAGE_IDS = [path.name for path in PAGES]
 
 REQUIRED_PAGES = {
     "FAQ.html",
-    "Release_Notes_v8.1.0.html",
+    "Release_Notes.html",
     "Privacy_Policy.html",
     "Support_Policy.html",
     "Terms_of_Service.html",
@@ -67,7 +69,7 @@ REQUIRED_PAGES = {
 # sales asset for visitors, so they are reached from /platform-admin instead of
 # the public footer. The reachability rule itself is unchanged — every required
 # page still needs a door, this only says which door.
-OPERATOR_ONLY_PAGES = {"Release_Notes_v8.1.0.html"}
+OPERATOR_ONLY_PAGES = {"Release_Notes.html"}
 PUBLIC_FOOTER_PAGES = REQUIRED_PAGES - OPERATOR_ONLY_PAGES
 SUPER_ADMIN = REPOSITORY_ROOT / "super-admin.html"
 
@@ -228,11 +230,37 @@ def test_faq_states_the_live_deployment_rather_than_the_old_boundary() -> None:
     assert "pending purchase and acceptance" not in source
 
 
+def test_release_notes_track_the_shipped_version() -> None:
+    """The customer-facing release record must not fall behind production.
+
+    It sat at v8.1.0 while production ran v8.2.11. The cause was the filename:
+    it carried the version, so keeping the page current meant renaming a file,
+    updating an allowlist, a link and three tests every release — and the step
+    that gets skipped is the one nothing checks. The file is version-free now
+    and this asserts the content mentions whatever VERSION says.
+    """
+
+    source = (CUSTOMER_RESOURCES / "Release_Notes.html").read_text(encoding="utf-8")
+    assert VERSION in source, (
+        f"Release_Notes.html does not mention v{VERSION}. Add the release to "
+        "the 'Since v8.1.0' section and update the status line."
+    )
+
+
+def test_release_notes_url_carries_no_version() -> None:
+    """A versioned filename is what made the page a per-release chore."""
+
+    names = [p.name for p in CUSTOMER_RESOURCES.glob("Release_Notes*")]
+    assert names == ["Release_Notes.html"], names
+
+
 def test_release_notes_no_longer_defer_production() -> None:
     """The release record must match what was actually deployed."""
 
-    source = (CUSTOMER_RESOURCES / "Release_Notes_v8.1.0.html").read_text(encoding="utf-8")
-    assert "production deployed 30 July 2026" in source
+    source = (CUSTOMER_RESOURCES / "Release_Notes.html").read_text(encoding="utf-8")
+    assert "production deployed 30 July 2026" not in source, (
+        "the status line now names the current release, not the v8.1.0 one"
+    )
     assert "Four defects this deployment uncovered" in source
     assert "Privileged MFA" in source
     assert "Monitoring and SLA" in source

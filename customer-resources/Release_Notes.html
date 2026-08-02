@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0e1729">
   <meta name="robots" content="index,follow">
-  <meta name="description" content="PWE Studio v8.1.0 release evidence: what the release changes, what the AWS deployment on 30 July 2026 established, what four defects it uncovered, and what remains deferred.">
-  <title>PWE Studio v8.1.0 Release Evidence</title>
+  <meta name="description" content="PWE Studio release evidence: what each release changes, what the production deployment established, and what remains deferred. Current release v8.2.13.">
+  <title>PWE Studio Release Evidence</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <!-- Brand values come from ui-tokens.css; presentation from
        customer-resources.css. See the header comment in that stylesheet for why
@@ -23,11 +23,48 @@
   </div>
 
   <p class="eyebrow"><span data-lang="en">Customer resources</span><span data-lang="zh">客户资料</span></p>
-  <h1 data-lang="en">v8.1.0 release evidence</h1>
-  <h1 data-lang="zh">v8.1.0 发布依据</h1>
+  <h1 data-lang="en">Release evidence</h1>
+  <h1 data-lang="zh">发布依据</h1>
   <p class="lede" data-lang="en">A customer-readable record of what this release changes, what the production deployment established, and which commitments remain deferred.</p>
   <p class="lede" data-lang="zh">面向客户的记录：本次发布改了什么、生产部署确立了什么，以及哪些承诺仍未完成。</p>
-  <p class="status"><span data-lang="en">v8.1.0 · production deployed 30 July 2026 · monitoring and SLA deferred</span><span data-lang="zh">v8.1.0 · 生产部署于 2026 年 7 月 30 日 · 监控与 SLA 延后</span></p>
+  <p class="status"><span data-lang="en">Current release v8.2.13 · deployed 2 August 2026 · monitoring and SLA deferred</span><span data-lang="zh">当前版本 v8.2.13 · 部署于 2026 年 8 月 2 日 · 监控与 SLA 延后</span></p>
+
+  <h2 data-lang="en">Since v8.1.0</h2>
+  <h2 data-lang="zh">v8.1.0 之后</h2>
+  <p data-lang="en">Everything below shipped to production between 1 and 2 August 2026. Each line is deployed, not planned.</p>
+  <p data-lang="zh">以下内容均已于 2026 年 8 月 1 日至 2 日发布至生产环境。每一条都已上线，而非计划。</p>
+  <div class="grid">
+    <article class="card">
+      <strong data-lang="en">Media uploads repaired (v8.2.6)</strong><strong data-lang="zh">媒体上传修复（v8.2.6）</strong>
+      <p data-lang="en">Every image upload — studio logo, home image, student photo, portfolio — was failing in production. Uploads work again, and a photo now costs the server about an eighth of the memory it did: a 24-megapixel file went from 139 MB of peak memory to 17 MB. Files beyond 30 megapixels are refused rather than allowed to exhaust the instance.</p>
+      <p data-lang="zh">此前生产环境中所有图片上传（工作室 logo、首屏图、学员照片、作品集）均告失败。现已恢复，且服务器开销降至约八分之一：一张 2400 万像素的图片峰值内存由 139 MB 降至 17 MB。超过 3000 万像素的文件会被拒绝，而不是拖垮实例。</p>
+    </article>
+    <article class="card">
+      <strong data-lang="en">Operation log records everything (v8.2.3)</strong><strong data-lang="zh">操作日志完整记录（v8.2.3）</strong>
+      <p data-lang="en">The studio operation log only ever showed check-ins and credit changes; archiving, renaming, scheduling and portfolio edits were performed but never listed. Every operator action is now recorded with the person who took it.</p>
+      <p data-lang="zh">工作室操作日志此前只显示签到与课时变动，归档、改名、排课、作品集编辑虽已执行却从未列出。现在每一项操作都会连同操作人一并记录。</p>
+    </article>
+    <article class="card">
+      <strong data-lang="en">Theme colours resolved as a set (v8.2.7–v8.2.9)</strong><strong data-lang="zh">主题配色作为整体求解（v8.2.7–v8.2.9）</strong>
+      <p data-lang="en">Three rounds of work on the eight studio themes. Large areas now stay in the brand's own colour family instead of being split by a second, near-opposite hue; and success, warning and danger are solved per theme so a warning badge can never end up looking like an ordinary button. All 45 status colours were re-derived against measured contrast targets.</p>
+      <p data-lang="zh">对八套工作室主题进行了三轮处理。大面积区域不再被第二种近乎互补的色相劈开，而是保持在品牌自身的色系内；成功、警示、危险三色改为按主题求解，警示徽章不会再长得像普通按钮。全部 45 个状态色均按实测对比度目标重新推导。</p>
+    </article>
+    <article class="card">
+      <strong data-lang="en">Archiving and deleting a studio (v8.2.10)</strong><strong data-lang="zh">工作室归档与删除（v8.2.10）</strong>
+      <p data-lang="en">Archiving a studio returned a server error and had never once succeeded in production, which also left permanent deletion unreachable. Both work, and each writes a full snapshot — database records, workspace and media — before anything is removed.</p>
+      <p data-lang="zh">归档工作室此前返回服务器错误，在生产环境从未成功过，永久删除因此也无法进行。两者现均可用，且在移除任何内容之前都会写入完整快照：数据库记录、工作区与媒体文件。</p>
+    </article>
+    <article class="card">
+      <strong data-lang="en">Data retention (v8.2.13)</strong><strong data-lang="zh">数据保留（v8.2.13）</strong>
+      <p data-lang="en">Audit records, analytics events, notification records and access sessions previously had no expiry. Retention now applies on a schedule — audit records are kept two years, analytics one year — so the service does not accumulate indefinitely. Consent records are deliberately exempt and are never deleted.</p>
+      <p data-lang="zh">审计记录、分析事件、通知记录与访问会话此前没有任何有效期。现已按计划应用保留策略——审计记录保留两年、分析数据保留一年——服务不会无限累积。发布同意记录属于法律证据，明确豁免，永不删除。</p>
+    </article>
+    <article class="card">
+      <strong data-lang="en">Platform console (v8.2.4–v8.2.11)</strong><strong data-lang="zh">平台控制台（v8.2.4–v8.2.11）</strong>
+      <p data-lang="en">The console was reorganised around what an operator does with it: what needs attention today first, standing totals next, analysis last and collapsed. Its counters are now filters — clicking one lists exactly the studios it counts. Phone layout was rebuilt so the tenant table reads as cards rather than a sideways-scrolling grid.</p>
+      <p data-lang="zh">控制台按运营人员的实际用途重新编排：需要今天处理的排在最前，存量数据居中，分析内容置底并折叠。计数器现在就是筛选器——点击即列出它所统计的工作室。手机端版式重做，租户表以卡片呈现，不再横向滚动。</p>
+    </article>
+  </div>
 
   <h2 data-lang="en">What v8.1.0 changes</h2>
   <h2 data-lang="zh">v8.1.0 的改动</h2>

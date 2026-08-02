@@ -1,9 +1,23 @@
 #!/usr/bin/env python3
-"""Rotate every active privileged StudioSaaS account to a unique password.
+"""Rotate every active StudioSaaS login to a unique password.
 
 The credential file is written with mode 0600 and is intentionally outside the
 repository by default. Existing sessions remain valid; restart the application
 after rotation when an immediate global sign-in reset is required.
+
+This used to select `role IN ('super_admin', 'owner', 'staff')`, which reads
+like "everyone who matters" and is not: the role vocabulary in production is
+super_admin / owner / manager / front_desk / teacher, so a rotation run against
+a real database left every manager, front-desk and teacher login untouched.
+It now takes every active account with an active membership, whatever the role.
+
+Accounts with no membership at all are not rotated — a login that belongs to no
+tenant should be disabled, not given a fresh password. --disable-orphans does
+that, reversibly (status='disabled'), rather than deleting the row.
+
+    python backend/scripts/rotate_pilot_credentials.py --dry-run
+    python backend/scripts/rotate_pilot_credentials.py --exclude ops@example.com
+    python backend/scripts/rotate_pilot_credentials.py --disable-orphans
 """
 
 from __future__ import annotations
@@ -40,14 +54,43 @@ def _write_private_file(path: Path, content: str) -> None:
     os.chmod(path, 0o600)
 
 
-def rotate(output_path: Path, cms_password_path: Path) -> int:
+def rotate(
+    output_path: Path,
+    cms_password_path: Path,
+    exclude: set[str] | None = None,
+    disable_orphans: bool = False,
+    dry_run: bool = False,
+) -> int:
     """Rotate database accounts and the separate legacy CMS password."""
 
     from studiosaas.auth import hash_password
     from studiosaas.db import connect
 
+    exclude = {e.strip().lower() for e in (exclude or set()) if e.strip()}
+
     with connect() as conn:
         with conn.cursor() as cur:
+            if disable_orphans:
+                cur.execute(
+                    """
+                    UPDATE users SET status = 'disabled', updated_at = now()
+                    WHERE status = 'active'
+                      AND NOT EXISTS (SELECT 1 FROM memberships m WHERE m.user_id = users.id)
+                    RETURNING lower(email) AS email
+                    """
+                    if not dry_run else
+                    """
+                    SELECT lower(email) AS email FROM users
+                    WHERE status = 'active'
+                      AND NOT EXISTS (SELECT 1 FROM memberships m WHERE m.user_id = users.id)
+                    ORDER BY lower(email)
+                    """
+                )
+                orphans = [row["email"] for row in cur.fetchall()]
+                verb = "would disable" if dry_run else "disabled"
+                print(f"{verb} {len(orphans)} membership-less account(s):")
+                for email in orphans:
+                    print(f"  {email}")
             cur.execute(
                 """
                 SELECT DISTINCT u.id, lower(u.email) AS email
@@ -55,13 +98,19 @@ def rotate(output_path: Path, cms_password_path: Path) -> int:
                 JOIN memberships m ON m.user_id = u.id
                 WHERE u.status = 'active'
                   AND m.status = 'active'
-                  AND m.role IN ('super_admin', 'owner', 'staff')
                 ORDER BY lower(u.email)
                 """
             )
-            accounts = cur.fetchall()
+            accounts = [a for a in cur.fetchall() if a["email"] not in exclude]
+            for skipped in sorted(exclude):
+                print(f"excluded by request: {skipped}")
             if not accounts:
-                raise RuntimeError("No active privileged accounts were found.")
+                raise RuntimeError("No active accounts were found.")
+            if dry_run:
+                print(f"would rotate {len(accounts)} account(s):")
+                for a in accounts:
+                    print(f"  {a['email']}")
+                return len(accounts)
             credentials: list[tuple[str, str]] = []
             for account in accounts:
                 password = secrets.token_urlsafe(18)
@@ -104,8 +153,20 @@ def main() -> int:
         default=cms_data_dir / ".cms_password",
         help="Legacy CMS password hash file used by the deployed server.",
     )
+    parser.add_argument("--exclude", action="append", default=[],
+                        help="Email to leave untouched. Repeatable.")
+    parser.add_argument("--disable-orphans", action="store_true",
+                        help="Set status='disabled' on accounts with no membership.")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="Report what would change and write nothing.")
     args = parser.parse_args()
-    rotate(args.output.expanduser().resolve(), args.cms_password_file.expanduser().resolve())
+    rotate(
+        args.output.expanduser().resolve(),
+        args.cms_password_file.expanduser().resolve(),
+        exclude=set(args.exclude),
+        disable_orphans=args.disable_orphans,
+        dry_run=args.dry_run,
+    )
     return 0
 
 

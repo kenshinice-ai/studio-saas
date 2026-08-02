@@ -6,6 +6,10 @@ Usage:
       python3 backend/scripts/seed_super_admin.py [--email ADMIN_EMAIL] \
       [--name "Admin Name"] [--reset-password]
 
+    # or let it generate one and write it where only root can read it:
+    python3 backend/scripts/seed_super_admin.py --email ops@example.com \
+      --name "Ops" --random-password --credential-file /data/credentials/rotation.txt
+
 Defaults:
     email:    admin@studiosaas.local
     password: required only when creating the account or using --reset-password
@@ -17,13 +21,17 @@ This script:
    which grants access to every tenant — including ones created later.
 3. Prints the created user ID for reference.
 
-Security note: This is a LOCAL seed script only. Do not use in production.
+Security note: passing a password through the environment is fine on a laptop
+and poor on a shared host, where it lands in the process list. --random-password
+generates one instead, never prints it, and appends it to a 0600 file — the same
+handling rotate_pilot_credentials.py uses.
 """
 
 from __future__ import annotations
 
 import argparse
 import os
+import secrets
 import sys
 from pathlib import Path
 
@@ -205,7 +213,24 @@ def main() -> int:
         action="store_true",
         help="Hide the password from command output.",
     )
+    parser.add_argument(
+        "--random-password",
+        action="store_true",
+        help=(
+            "Generate the password here instead of reading it from the "
+            "environment, and never print it. Use with --credential-file."
+        ),
+    )
     args = parser.parse_args()
+
+    # A password in STUDIOSAAS_ADMIN_PASSWORD is fine on a laptop and poor on a
+    # shared host, where it is visible in the process list for the duration.
+    if args.random_password:
+        if not args.credential_file:
+            raise SystemExit("--random-password requires --credential-file.")
+        args.password = secrets.token_urlsafe(18)
+        args.reset_password = True
+        args.no_print_password = True
 
     seed_super_admin(
         email=args.email,

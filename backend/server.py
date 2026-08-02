@@ -105,7 +105,7 @@ SESSION_SECRET_FILE = _data_path('.session_secret')
 PW_FILE       = _data_path('.cms_password')
 app.config['PHOTO_DIR'] = PHOTO_DIR
 MAX_BACKUPS   = 30   # 1 backup/hr rate limit → ~30 hours of rolling coverage
-APP_VERSION   = '8.2.12'
+APP_VERSION   = '8.2.13'
 app.config['APP_VERSION'] = APP_VERSION
 ALLOWED_EXT   = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
 EXT_MIME_TYPES = {
@@ -1030,7 +1030,7 @@ def serve_customer_resource(filename):
         'PWE_Studio_Data_Import_Template.csv',
         'PWE_Studio_Data_Import_Template.xlsx',
         'FAQ.html',
-        'Release_Notes_v8.1.0.html',
+        'Release_Notes.html',
         'Privacy_Policy.html',
         'Support_Policy.html',
         'Terms_of_Service.html',
@@ -1038,14 +1038,15 @@ def serve_customer_resource(filename):
     safe = os.path.basename(filename)
     if safe != filename:
         return api_error('Not found', 404)
-    # The release-notes filename carries the version, so every release breaks
-    # the previous public URL. That URL is in sent emails, in the sales deck's
-    # footer and in whatever a prospect bookmarked, and it 404'd the moment
-    # v8.0.1 became v8.1.0. Any older versioned name now redirects permanently
-    # to the current one instead of dead-ending.
+    # The release-notes filename used to carry the version, so every release
+    # broke the previous public URL — the one in sent emails, in the sales
+    # deck's footer and in whatever a prospect bookmarked. Redirecting the old
+    # name to the new one fixed the 404 but not the cause: the page still had
+    # to be renamed every release, and predictably stopped being renamed, so it
+    # sat at v8.1.0 while production ran v8.2.11. The file is now version-free
+    # and every versioned name ever published redirects to it permanently.
     if safe not in allowed and _RELEASE_NOTES_NAME.fullmatch(safe):
-        current = next(name for name in allowed if _RELEASE_NOTES_NAME.fullmatch(name))
-        return redirect(f'/customer-resources/{current}', code=301)
+        return redirect('/customer-resources/Release_Notes.html', code=301)
     if safe not in allowed:
         return api_error('Not found', 404)
     resource_dir = os.path.join(PROJECT_ROOT, 'customer-resources')

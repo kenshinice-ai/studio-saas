@@ -108,18 +108,18 @@ def test_customer_resources_are_explicitly_allowlisted(client, saas):
     assert workbook.status_code == 200
     assert workbook.headers["Content-Disposition"].startswith("attachment;")
 
-    release_evidence = client.get("/customer-resources/Release_Notes_v8.1.0.html")
+    release_evidence = client.get("/customer-resources/Release_Notes.html")
     assert release_evidence.status_code == 200
-    assert b"v8.1.0 release evidence" in release_evidence.data
+    assert b"Release evidence" in release_evidence.data
 
-    # A superseded release-notes URL redirects rather than 404s: that filename
-    # carries the version, so every release would otherwise break the link that
-    # is already in sent mail and in the sales deck footer. It is still not
-    # served from outside the allow-list — it is a redirect TO the allow-listed
-    # current file.
-    superseded = client.get("/customer-resources/Release_Notes_v8.0.0.html")
-    assert superseded.status_code == 301
-    assert superseded.headers["Location"].endswith("/customer-resources/Release_Notes_v8.1.0.html")
+    # Every versioned release-notes URL ever published redirects rather than
+    # 404s: those links are in sent mail and in the sales deck footer. The
+    # served file no longer carries a version, which is what stopped the page
+    # needing a rename — and being forgotten — on every release.
+    for superseded_name in ("Release_Notes_v8.0.0.html", "Release_Notes_v8.1.0.html"):
+        superseded = client.get(f"/customer-resources/{superseded_name}")
+        assert superseded.status_code == 301
+        assert superseded.headers["Location"].endswith("/customer-resources/Release_Notes.html")
 
     # Everything else stays strictly allow-listed. The probes below are the ones
     # that matter: traversal, an unlisted file, and a name shaped ALMOST like

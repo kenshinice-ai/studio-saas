@@ -71,4 +71,4 @@ def test_product_home_uses_the_approved_sales_story() -> None:
     assert f"PWE Studio · v{VERSION}" in source
     # Release evidence moved to /platform-admin; reachability for both
     # audiences is asserted in test_customer_resources_brand.py.
-    assert '<a href="/customer-resources/Release_Notes_v8.1.0.html"' not in source
+    assert '<a href="/customer-resources/Release_Notes.html"' not in source
