@@ -223,16 +223,37 @@ then without `--dry-run`. It is idempotent, and it skips `theme_mode=custom`
 tenants by design — a studio that hand-tuned its colours chose those values.
 Any colour input in studio-admin flips the tenant to `custom`, so this is safe.
 
-**Production state as of this release.** v8.2.9 is deployed and healthy
-(`appVersion 8.2.9`, deep health ok, public edge verified) and the *presets*
-served by `/v1/industry-presets` are the new ones — so the theme picker and any
-new tenant already show them. The **tenant refresh has not been run in
-production**: a dry run reported 6 preset tenants to migrate
-(`dance-dance`, `lets-paint-showcase`, `lets-paint-studio`, `lets-play-game`,
-`lets-play-piano`, `ruby-s-studio`) and 1 custom skipped (`isolation-alpha`),
-but the write was blocked by the local permission classifier. Until it runs,
-existing tenants keep their v8.2.8 status colours. A logical dump was taken
-first: `studiosaas_studiosaas_20260802T041551Z.dump`. The command is:
+**Production state: the refresh has now been run (2026-08-02).** 5 preset
+tenants migrated, verified 0 mismatches against the v8.2.9 presets:
+
+```text
+dance-dance          rehearsal-rose light   #2E774D #8A622F #722F29   matches
+lets-paint-showcase  harbour-calm   dark    #348D67 #997B30 #C85C5D   matches
+lets-paint-studio    atelier-clay   light   #2D784E #5A411D #753129   matches
+lets-play-piano      recital-plum   light   #32765C #8B6133 #AE4944   matches
+ruby-s-studio        rehearsal-rose light   #2E774D #8A622F #722F29   matches
+isolation-alpha      vintage-press  light   theme_mode=custom, skipped
+```
+
+Confirmed on the live site, `harbour-calm/dark` being the interesting case
+because it sits closest to the constraints the solver targeted:
+
+```text
+fills on --bg2      3.17 / 3.22 / 3.17   (needs 3.0)
+--on-accent labels  4.61 / 4.68 / 4.60   (needs 4.5)
+```
+
+**`isolation-alpha` was left alone on purpose, and it is worth knowing why.**
+Its `theme_mode` is `custom` and the values are genuinely hand-picked, not a
+stale preset snapshot — `accent_color #224466` is a blue that appears in no
+preset, alongside `secondary_accent_color #663322`. `--include-custom` would
+discard both. Check what a custom theme actually holds before reaching for that
+flag; a tenant whose custom values happen to equal an old preset is a stale
+snapshot and safe to refresh, one that differs is somebody's decision.
+
+Backup taken first: `studiosaas_studiosaas_20260802T080141Z.dump`.
+
+The command, for the next regeneration:
 
 ```bash
 ssh pwestudio "cd /opt/pwestudio/current && docker compose -p pwestudio --env-file /opt/pwestudio/shared/production.env -f deploy/aws/docker-compose.yml -f deploy/aws/docker-compose.lightsail.yml --profile local-db exec -T app python backend/scripts/migrate_visual_themes.py"
