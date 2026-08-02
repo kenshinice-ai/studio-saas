@@ -148,7 +148,17 @@ agreement permits attribution removal.
 Super Admin may use the PWE mark as its primary platform identity and the
 compact bilingual credit:
 
-> Powered by Paradise Production · 天域文创
+> [A PARADISE PRODUCTION · 天域文创出品](/paradise-production/)
+
+**This is PWE's own credit, and it is a link.** The producer runs a site at
+`/paradise-production/`; a credit that names a studio and then dead-ends is a
+weaker signal than one a reader can follow. "出品" rather than "Powered by"
+because on PWE's own surfaces the relationship is authorship, not vendoring.
+
+The tenant footer above keeps `Powered by Paradise Production` unchanged and
+unlinked. It is white-label attribution on somebody else's site, often in
+English, and it is the line a commercial agreement may remove — "出品" would
+overclaim there, and an outbound link on a customer's page is not ours to add.
 
 ## 10. Integration inventory
 

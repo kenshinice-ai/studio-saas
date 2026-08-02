@@ -5632,6 +5632,41 @@ def legacy_cms_portfolio_update(student_id: str, portfolio_item_id: str):
     return jsonify({"ok": True})
 
 
+@api_v1.route("/public/plans", methods=["GET"])
+def public_plans():
+    """Pricing for the marketing site — public fields only, no auth.
+
+    The home page printed AUD 99 as literal HTML, which is how it came to
+    disagree with the database once already. It now reads this.
+
+    `features` is deliberately NOT selected. That column carries entitlement
+    flags — what a plan may switch on inside the product — and it is edited from
+    the platform console without anyone thinking about a public page. Selecting
+    the columns by name means a flag added tomorrow cannot leak by default;
+    `SELECT *` would have made that an accident waiting to happen.
+
+    Prices are public by definition — they are printed on the marketing page
+    this feeds — so there is nothing here an anonymous caller should not see.
+    """
+
+    with connect() as conn:
+        rows = fetch_all(
+            conn,
+            """
+            SELECT code, name, monthly_price_aud, student_limit, user_limit,
+                   storage_limit_mb
+            FROM plans
+            ORDER BY monthly_price_aud
+            """,
+            (),
+        )
+    response = jsonify({"plans": rows})
+    # Pricing changes rarely and this is on the critical path of the public
+    # home page; a short shared cache keeps a traffic spike off PostgreSQL.
+    response.headers["Cache-Control"] = "public, max-age=300"
+    return response
+
+
 @api_v1.route("/plans", methods=["GET"])
 @permission_required("plans:read")
 def list_plans():

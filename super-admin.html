@@ -1138,6 +1138,19 @@
       color: var(--muted, #64748B);
       text-align: center;
     }
+    /* Subordinate by weight, not by being undiscoverable: no underline until
+       hover, but a real focus ring, since it is now a keyboard stop. */
+    .producer-credit a {
+      color: inherit;
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+    }
+    .producer-credit a:hover { color: var(--ink, #0F172A); border-bottom-color: currentColor; }
+    .producer-credit a:focus-visible {
+      outline: 2px solid var(--brand, #3b82f6);
+      outline-offset: 3px;
+      border-radius: 2px;
+    }
 
     .login-error {
       margin-bottom: 16px;
@@ -1566,8 +1579,10 @@
         </div>
       </form>
       <!-- Producer credit — canonical line, spec in docs/design/Brand_Identity.md §10.
-           Deliberately outside the i18n dictionary: the credit has exactly one form. -->
-      <p class="producer-credit">Powered by Paradise Production · 天域文创</p>
+           Deliberately outside the i18n dictionary: the credit has exactly one
+           form. Linked: the producer has a site, and a credit that names a
+           studio and dead-ends is a weaker signal than one you can follow. -->
+      <p class="producer-credit"><a href="/paradise-production/">A Paradise Production · 天域文创出品</a></p>
     </section>
 
     <div id="adminContent" class="hidden">

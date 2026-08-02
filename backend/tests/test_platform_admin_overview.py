@@ -185,3 +185,41 @@ def test_disk_is_measured_before_the_database_probe() -> None:
 
     health = _health_source()
     assert health.index('body["disk"]') < health.index('SELECT 1 AS ok')
+
+
+# ── public pricing ───────────────────────────────────────────────────────────
+
+def test_public_plans_needs_no_auth(client) -> None:
+    """The marketing page cannot log in, and prices are public by definition."""
+
+    assert client.get("/v1/public/plans").status_code in {200, 503}
+
+
+def _public_plans_source() -> str:
+    source = (Path(__file__).resolve().parents[1] / "studiosaas/api_v1.py").read_text(encoding="utf-8")
+    start = source.index("def public_plans():")
+    return source[start:source.index("@api_v1.route", start)]
+
+
+def test_public_plans_never_selects_the_entitlements_column() -> None:
+    """`features` decides what a plan switches on inside the product.
+
+    It is edited from the platform console by someone thinking about billing,
+    not about a public page. Selecting columns by name means a flag added
+    tomorrow cannot leak by default; SELECT * would make that inevitable.
+    """
+
+    body = _public_plans_source()
+    # The executed query only. The docstring beside it names both `features` and
+    # `SELECT *` to explain why neither is used, and an explanation must not
+    # fail the check it is explaining — so slice from the fetch_all call, not
+    # from the first occurrence of the word in the function.
+    sql = body[body.index("fetch_all("):body.index("ORDER BY")]
+    assert "features" not in sql, "the public plans query exposes entitlement flags"
+    assert "SELECT *" not in sql
+
+
+def test_public_plans_is_cached() -> None:
+    """Pricing changes rarely and sits on the public home page's critical path."""
+
+    assert "Cache-Control" in _public_plans_source()
