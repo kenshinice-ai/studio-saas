@@ -96,6 +96,8 @@ if not os.path.isabs(DATA_DIR):
 def _data_path(*parts):
     return os.path.join(DATA_DIR, *parts)
 os.makedirs(DATA_DIR, exist_ok=True)
+# Exposed so /v1/health?deep=1 can measure the volume that actually fills up.
+app.config['DATA_DIR'] = DATA_DIR
 DB_FILE       = _data_path('database.json')
 BACKUP_DIR    = _data_path('backups')
 PHOTO_DIR     = _data_path('photos')
@@ -105,7 +107,7 @@ SESSION_SECRET_FILE = _data_path('.session_secret')
 PW_FILE       = _data_path('.cms_password')
 app.config['PHOTO_DIR'] = PHOTO_DIR
 MAX_BACKUPS   = 30   # 1 backup/hr rate limit → ~30 hours of rolling coverage
-APP_VERSION   = '8.2.17'
+APP_VERSION   = '8.2.18'
 app.config['APP_VERSION'] = APP_VERSION
 ALLOWED_EXT   = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
 EXT_MIME_TYPES = {

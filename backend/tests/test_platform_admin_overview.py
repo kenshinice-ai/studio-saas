@@ -137,3 +137,51 @@ def test_the_duplicated_attention_card_is_gone() -> None:
     html = SUPER_ADMIN.read_text(encoding="utf-8")
     assert "commercialAttention" not in html
     assert "renderCommercialAttention" not in html
+
+
+# ── operational health ───────────────────────────────────────────────────────
+
+def test_deep_health_reports_disk_headroom(client) -> None:
+    """Retention rules exist for every store; nothing watched whether they work."""
+
+    body = client.get("/v1/health?deep=1").get_json()
+    assert "disk" in body, "deep health carries no disk reading"
+    assert body["disk"]["status"] in {"ok", "warn", "critical", "unknown"}
+
+
+def _health_source() -> str:
+    """The body of api_v1.health(), up to the next route."""
+
+    source = (Path(__file__).resolve().parents[1] / "studiosaas/api_v1.py").read_text(encoding="utf-8")
+    start = source.index("def health():")
+    return source[start:source.index("@api_v1.route", start)]
+
+
+def test_only_the_database_probe_can_fail_deep_health() -> None:
+    """This payload drives the container healthcheck.
+
+    Returning 503 for a disk warning would restart a service that is answering
+    every request correctly, turning a capacity notice into an outage. Assert
+    it by counting: `health()` has exactly one 503, and it belongs to the
+    database branch.
+    """
+
+    health = _health_source()
+    # Comments are stripped first: the reason a disk warning must NOT return 503
+    # is written in a comment beside the code, and the explanation should not
+    # fail the check that enforces it. Same rule as check_terminology.py.
+    code = "\n".join(line.split("#", 1)[0] for line in health.splitlines())
+    assert code.count("503") == 1, "deep health grew a second failure path"
+    failure = code[code.index("503") - 400:code.index("503")]
+    assert 'body["db"] = "error"' in failure, "the 503 no longer belongs to the database probe"
+
+
+def test_disk_is_measured_before_the_database_probe() -> None:
+    """A full volume is a likely reason the database stopped answering.
+
+    Measured after the probe, the reading would be missing from exactly the
+    response an operator reads while diagnosing that failure.
+    """
+
+    health = _health_source()
+    assert health.index('body["disk"]') < health.index('SELECT 1 AS ok')

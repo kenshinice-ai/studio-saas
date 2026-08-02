@@ -347,6 +347,21 @@ Lightsail 单机路径直接用控制脚本（已包含上面三点）：
 是 audit 730 天、analytics 365 天；`--audit-days` / `--analytics-days` 可改。
 **归档快照自带一份副本**，所以裁剪不会让已归档租户的审计记录消失。
 
+**9.1d 磁盘监控（必须装）** —— 保留规则现在都有了，但**没有任何东西检查它们是否还在生效**。
+一条规则坏掉的第一个症状会是磁盘满，而磁盘满会先弄死 PostgreSQL，不只是部署失败。
+
+```bash
+# /etc/cron.d/pwestudio-disk —— 每天 06:00 UTC，root
+# lightsail_ctl.sh disk 在超过阈值时退出码非 0，cron 只在那时才发邮件。
+0 6 * * * root cd /opt/pwestudio/current && bash deploy/aws/lightsail_ctl.sh disk > /dev/null || bash deploy/aws/lightsail_ctl.sh disk
+```
+
+阈值用 `PWESTUDIO_DISK_WARN_PERCENT` 调整，默认 80。随时手查：
+`bash deploy/aws/pwestudio_remote.sh disk`。
+另外 `/v1/health?deep=1` 现在也带 `disk.percentUsed` / `disk.status`
+（ok / warn / critical），**但故意不会因此判定不健康**——那个响应驱动容器
+健康检查，因为磁盘告警去重启一个正常应答的服务是自伤。
+
 **9.1c 日志轮转** —— 两条 cron 的输出文件没有任何轮转规则。装
 `/etc/logrotate.d/pwestudio`：
 

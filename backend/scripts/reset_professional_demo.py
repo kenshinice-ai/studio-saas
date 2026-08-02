@@ -510,7 +510,10 @@ def _seed_registrations(cur: Any, tenant_id: str, manager_id: str) -> None:
 def _seed_artwork(cur: Any, tenant_id: str, student_ids: list[str], owner_id: str) -> None:
     """Copy synthetic artwork into the media store and create safe derivatives."""
 
-    source_dir = APP_ROOT / "frontend" / "assets"
+    # Not frontend/assets: that directory is served at /assets/<name>, and these
+    # three files are seed material no page ever references — 9.2 MB of demo
+    # artwork that anyone could download from the public origin.
+    source_dir = APP_ROOT / "seed-assets"
     media_root = Path(os.environ.get("STUDIOSAAS_MEDIA_DIR") or APP_ROOT / "media")
     showcase_root = media_root / "showcase" / SHOWCASE_SLUG
     if showcase_root.exists():

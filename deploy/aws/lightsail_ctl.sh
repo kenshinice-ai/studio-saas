@@ -94,6 +94,7 @@ Usage: deploy/aws/lightsail_ctl.sh <up|status|logs|backup|prune|restore-dry-run|
   prune-artifacts [--dry-run]
             Retention for what a deploy leaves behind: uploaded bundles,
             superseded release directories, old image tags, stale build cache.
+  disk      Report disk headroom; exit 1 past the warning threshold.
   restore-dry-run [--dump <file>]
             Rehearse a restore into a temporary database. Live data untouched.
   stop-app  Stop only the application container; PostgreSQL remains available.
@@ -154,6 +155,24 @@ case "${1:-}" in
     shift || true
     dc exec -T app python backend/scripts/prune_event_tables.py "$@"
     ;;
+  disk)
+    # Every store has a retention rule now and nothing checks that they still
+    # work. A broken rule is silent until the volume is full, and a full volume
+    # takes PostgreSQL down, not just the deploy. Exit code carries the verdict
+    # so cron mails only when it matters.
+    threshold="${PWESTUDIO_DISK_WARN_PERCENT:-80}"
+    used="$(df --output=pcent / | tail -1 | tr -dc '0-9')"
+    avail="$(df -h --output=avail / | tail -1 | tr -d ' ')"
+    printf 'root volume: %s%% used, %s available (warn at %s%%)\n' "$used" "$avail" "$threshold"
+    docker system df
+    du -sh /opt/pwestudio/* 2>/dev/null | sort -rh
+    if [ "$used" -ge "$threshold" ]; then
+      echo "DISK WARNING: ${used}% of the root volume is used."
+      echo "Try: bash deploy/aws/lightsail_ctl.sh prune-artifacts"
+      exit 1
+    fi
+    ;;
+
   prune-artifacts)
     # Backups have had retention since the beginning; the deploy's own output
     # never did. Every release leaves a bundle in shared/incoming, an unpacked

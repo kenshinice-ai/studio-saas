@@ -10,6 +10,7 @@ import json
 import os
 import re
 import secrets
+import shutil
 import threading
 import time
 import hashlib
@@ -2009,6 +2010,29 @@ def health():
         "showProducerCredit": show_producer_credit(),
     }
     if request.args.get("deep") == "1":
+        # Measured BEFORE the database probe, so the 503 payload carries it: a
+        # full volume is one of the likelier reasons PostgreSQL just stopped
+        # answering, and an operator reading that response should not have to
+        # ssh in to find out.
+        #
+        # Reported, never fatal. This payload drives the container healthcheck,
+        # so failing it on a disk warning would restart a service that is
+        # answering every request perfectly.
+        #
+        # Measured against the data directory, which is a volume on the host
+        # root disk; the container's own "/" is an overlay and would report the
+        # image size instead.
+        try:
+            probe = str(current_app.config.get("DATA_DIR") or current_app.root_path)
+            usage = shutil.disk_usage(probe)
+            percent = round(usage.used / usage.total * 100, 1) if usage.total else 0.0
+            body["disk"] = {
+                "percentUsed": percent,
+                "freeGb": round(usage.free / 1024 ** 3, 2),
+                "status": "critical" if percent >= 90 else "warn" if percent >= 80 else "ok",
+            }
+        except OSError:
+            body["disk"] = {"status": "unknown"}
         try:
             with connect() as conn:
                 fetch_one(conn, "SELECT 1 AS ok", ())

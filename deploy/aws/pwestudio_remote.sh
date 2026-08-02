@@ -26,6 +26,7 @@
 #   backup            Logical dump + volume tarball, now.
 #   prune [--dry-run] Apply event-table retention (audit 730d, analytics 365d).
 #   prune-artifacts   Release directories, uploaded bundles, image tags, build cache.
+#   disk              Disk headroom; non-zero exit past the warning threshold.
 #   drill             Rehearse a restore into a throwaway database. Safe.
 #   backups           List what is on disk with sizes and ages.
 #   certs             Certificate names, domains, expiry, and the renew timer.
@@ -86,6 +87,10 @@ case "$cmd" in
 
   prune-artifacts)
     ctl "prune-artifacts ${*:-}"
+    ;;
+
+  disk)
+    ctl disk
     ;;
 
   drill)

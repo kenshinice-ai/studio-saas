@@ -79,7 +79,7 @@ verify_bundle() {
     grep -Fqx "$prefix/backend/scripts/reset_professional_demo.py" <<<"$inventory"
     grep -Fqx "$prefix/product-home.html" <<<"$inventory"
     grep -Fqx "$prefix/customer-resources/PWE_Studio_Data_Import_Template.xlsx" <<<"$inventory"
-    grep -Fqx "$prefix/backend/frontend/assets/showcase-botanical.png" <<<"$inventory"
+    grep -Fqx "$prefix/backend/seed-assets/showcase-botanical.png" <<<"$inventory"
     grep -Fqx "$prefix/backend/frontend/assets/showcase-botanical-home.webp" <<<"$inventory"
     grep -Fqx "$prefix/tenants/lets-paint-showcase/index.html" <<<"$inventory"
   fi

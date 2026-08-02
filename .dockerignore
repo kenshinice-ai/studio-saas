@@ -27,6 +27,16 @@ dist
 
 # Dev-only
 backend/testdata
-docs/assets
 .claude
 deploy/aws/.env
+
+# Nothing below is read at runtime. The image carried the whole design-source
+# tree and the test suite because the exclusions were written per-file as they
+# became a problem rather than from "what does the server actually open".
+# customer-resources/ and legacy-root/ ARE served — do not add them here.
+docs
+01 BRAND ASSETS
+backend/tests
+backend/test_tenant_isolation.py
+standalone-edition
+.agents
