@@ -10,6 +10,18 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 ENV_FILE="${PWESTUDIO_ENV_FILE:-/opt/pwestudio/shared/production.env}"
 PROJECT_NAME="${PWESTUDIO_COMPOSE_PROJECT:-pwestudio}"
 VOLUME_BACKUP_DIR="${PWESTUDIO_VOLUME_BACKUP_DIR:-/opt/pwestudio/backups/volumes}"
+RELEASES_DIR="${PWESTUDIO_RELEASES_DIR:-/opt/pwestudio/releases}"
+CURRENT_LINK="${PWESTUDIO_CURRENT_LINK:-/opt/pwestudio/current}"
+INCOMING_DIR="${PWESTUDIO_INCOMING_DIR:-/opt/pwestudio/shared/incoming}"
+# The rollback branch in pwestudio_remote.sh re-points `current` at the previous
+# release directory, so that directory must outlive the deploy that replaced it.
+# 3 = the running release, the one it would roll back to, and one spare.
+KEEP_RELEASES="${PWESTUDIO_KEEP_RELEASES:-3}"
+KEEP_IMAGES="${PWESTUDIO_KEEP_IMAGES:-3}"
+# Age, not size. The largest cache entry is the pip-install mount: 96 MB, used
+# by every build, last touched minutes ago. `builder prune -a` would delete it
+# and make the next deploy — including a rollback rebuild — start from nothing.
+BUILD_CACHE_MAX_AGE="${PWESTUDIO_BUILD_CACHE_MAX_AGE:-336h}"
 BASE_COMPOSE="$ROOT/deploy/aws/docker-compose.yml"
 LIGHTSAIL_COMPOSE="$ROOT/deploy/aws/docker-compose.lightsail.yml"
 
@@ -72,6 +84,9 @@ Usage: deploy/aws/lightsail_ctl.sh <up|status|logs|backup|prune|restore-dry-run|
   backup    Back up PostgreSQL plus persistent media/data/archive volumes.
   prune [--dry-run]
             Apply event-table retention: audit_logs 730 days, analytics 365.
+  prune-artifacts [--dry-run]
+            Retention for what a deploy leaves behind: uploaded bundles,
+            superseded release directories, old image tags, stale build cache.
   restore-dry-run [--dump <file>]
             Rehearse a restore into a temporary database. Live data untouched.
   stop-app  Stop only the application container; PostgreSQL remains available.
@@ -132,6 +147,65 @@ case "${1:-}" in
     shift || true
     dc exec -T app python backend/scripts/prune_event_tables.py "$@"
     ;;
+  prune-artifacts)
+    # Backups have had retention since the beginning; the deploy's own output
+    # never did. Every release leaves a bundle in shared/incoming, an unpacked
+    # directory in releases/, an image tag and a slice of build cache, and
+    # nothing deleted any of it — roughly 33 MB a release before images, on an
+    # instance that saw 13 deploys in a day.
+    dry=""
+    [ "${2:-}" = "--dry-run" ] && dry=1
+    run() { if [ -n "$dry" ]; then echo "  would: $*"; else eval "$@"; fi; }
+
+    current_release="$(basename "$(readlink -f "$CURRENT_LINK")")"
+    echo "current release: $current_release"
+
+    echo "release directories (keeping $KEEP_RELEASES, newest first):"
+    # The current release is protected by name, not by position: it is usually
+    # the newest but a rollback makes it older than the release it replaced.
+    superseded="$(ls -1t "$RELEASES_DIR" 2>/dev/null \
+      | grep -vxF "$current_release" \
+      | tail -n +"$KEEP_RELEASES" || true)"
+    if [ -z "$superseded" ]; then
+      echo "  nothing to remove"
+    else
+      for name in $superseded; do
+        echo "  remove $name"
+        run "rm -rf '$RELEASES_DIR/$name'"
+      done
+    fi
+
+    echo "uploaded bundles in $INCOMING_DIR (unpacked already; keeping the newest):"
+    stale_bundles="$(ls -1t "$INCOMING_DIR"/*.tar.gz 2>/dev/null | tail -n +2 || true)"
+    if [ -z "$stale_bundles" ]; then
+      echo "  nothing to remove"
+    else
+      for bundle in $stale_bundles; do
+        echo "  remove $(basename "$bundle")"
+        run "rm -f '$bundle'"
+      done
+    fi
+
+    echo "image tags (keeping $KEEP_IMAGES newest, never the running one):"
+    running_image="$(docker inspect --format '{{.Config.Image}}' "${PROJECT_NAME}-app-1" 2>/dev/null || true)"
+    stale_images="$(docker images studiosaas --format '{{.Tag}}\t{{.CreatedAt}}' \
+      | sort -k2 -r | cut -f1 | tail -n +"$((KEEP_IMAGES + 1))" || true)"
+    for tag in $stale_images; do
+      if [ "studiosaas:$tag" = "$running_image" ]; then
+        echo "  keep studiosaas:$tag (running)"
+        continue
+      fi
+      echo "  remove studiosaas:$tag"
+      run "docker image rm 'studiosaas:$tag' >/dev/null 2>&1 || true"
+    done
+
+    echo "build cache older than $BUILD_CACHE_MAX_AGE:"
+    run "docker builder prune -f --filter 'until=$BUILD_CACHE_MAX_AGE'"
+    echo "dangling images:"
+    run "docker image prune -f"
+    docker system df
+    ;;
+
   restore-dry-run)
     # Restores the newest dump (or --dump <file>) into a throwaway database and
     # verifies the migration chain. Never touches the live database.

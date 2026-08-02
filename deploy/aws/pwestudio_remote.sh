@@ -25,6 +25,7 @@
 #   logs [n]          Last n lines (default 200) of app and database logs.
 #   backup            Logical dump + volume tarball, now.
 #   prune [--dry-run] Apply event-table retention (audit 730d, analytics 365d).
+#   prune-artifacts   Release directories, uploaded bundles, image tags, build cache.
 #   drill             Rehearse a restore into a throwaway database. Safe.
 #   backups           List what is on disk with sizes and ages.
 #   certs             Certificate names, domains, expiry, and the renew timer.
@@ -81,6 +82,10 @@ case "$cmd" in
 
   prune)
     ctl "prune ${*:-}"
+    ;;
+
+  prune-artifacts)
+    ctl "prune-artifacts ${*:-}"
     ;;
 
   drill)
@@ -170,6 +175,11 @@ case "$cmd" in
       fi
     fi
     if $deployed; then
+      # Only after the new release is confirmed healthy, so a rollback never
+      # races the cleanup for the directory it needs.
+      say "Pruning superseded release artefacts"
+      remote "cd $CURRENT && bash deploy/aws/lightsail_ctl.sh prune-artifacts" || \
+        echo "  (prune failed; deployment itself is fine — run prune-artifacts by hand)"
       say "Deployed: $name"
       exit 0
     fi
