@@ -56,6 +56,11 @@
     ['New in 30 Days', '近 30 天新增'], ['Search Tenants', '搜索工作室'],
     ['All Categories', '全部类别'], ['All Plans', '全部套餐'], ['All Statuses', '全部状态'],
     ['Show test tenants', '显示测试工作室'], ['Clear Filters', '清除筛选'],
+    // Overview counters double as tenant filters (v8.2.11).
+    ['Filtering', '筛选中'], ['From overview', '来自总览'],
+    ['Remove this filter', '移除此筛选'],
+    ['Filter by action, tenant, or resource...', '按操作、工作室或对象筛选…'],
+    ['No events match this filter.', '没有符合此筛选的事件。'],
     ['+ Add Tenant', '+ 新增工作室'], ['Add Tenant', '新增工作室'], ['Create Tenant', '创建工作室'],
     ['+ Add Plan', '+ 新增套餐'], ['Save Plan', '保存套餐'], ['Save Changes', '保存更改'],
     ['Tenant', '工作室'], ['Tenant Status', '工作室状态'], ['Subscription Status', '订阅状态'],
@@ -403,6 +408,8 @@
       // Super Admin dynamic strings (audit U7). Specific patterns come first
       // so the generic verb rules below cannot swallow them.
       [/^Page (\d+) of (\d+) · (\d+) tenants$/i, '第 $1 / $2 页 · 共 $3 个工作室'],
+      [/^Page (\d+) of (\d+)$/i, '第 $1 / $2 页'],
+      [/^(\d+) of (\d+) events$/i, '$1 / $2 条事件'],
       [/^Type (.+) to confirm\.?$/i, '请输入 $1 以确认。'],
       [/^Signed in: (.+)$/i, '已登录：$1'],
       [/^Support (.+)$/i, '支持：$1'],

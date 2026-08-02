@@ -506,10 +506,107 @@
       background: var(--brand);
     }
 
-    .stat-card:hover { border-color: var(--line-strong); box-shadow: var(--shadow-md); }
     .stat-card.green::before { background: var(--green); }
     .stat-card.amber::before { background: var(--amber); }
     .stat-card.purple::before { background: var(--purple); }
+
+    /* A counter whose number describes a set of tenants IS a filter control,
+       so it is a real <button>: pointer cursor, keyboard reach, focus ring and
+       accessible name all follow from the element instead of being re-invented
+       in CSS. MRR stays a plain div — a currency total names no set of rows,
+       so there is nothing correct for a click to show. Hover feedback moved
+       here too: it used to sit on every card, promising an interaction that
+       five of them did not have. */
+    button.stat-card {
+      appearance: none;
+      width: 100%;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+    button.stat-card:hover { border-color: var(--line-strong); box-shadow: var(--shadow-md); }
+    button.stat-card:focus-visible {
+      outline: 3px solid var(--focus-ring, var(--brand));
+      outline-offset: 2px;
+    }
+    button.stat-card[aria-pressed="true"] {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 1px var(--brand) inset, var(--shadow-md);
+    }
+    /* 1.4.1: the pressed state must not be carried by the border colour alone.
+       --brand measured 3.68:1 on the card, which the 3:1 border can live with
+       but 11px text cannot — hence --brand-dark at 5.17:1. */
+    .stat-filter-flag {
+      display: none;
+      margin-left: auto;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      color: var(--brand-dark);
+    }
+    button.stat-card[aria-pressed="true"] .stat-filter-flag { display: inline; }
+
+    /* The applied metric filter, shown where the other filters are. Clicking a
+       counter used to apply an invisible predicate and jump the operator to a
+       table that silently disagreed with the toolbar above it. */
+    .active-filter-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+    }
+    .active-filter-row.hidden { display: none; }
+    .active-filter-label { font-size: 12px; color: var(--muted); font-weight: 600; }
+    .active-filter-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 32px;
+      padding: 0 6px 0 12px;
+      border: 1px solid var(--brand);
+      border-radius: 999px;
+      background: var(--surface);
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .active-filter-chip button {
+      appearance: none;
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      border: 0;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1;
+      cursor: pointer;
+    }
+    /* 2.5.5: the glyph stays 24px so the chip reads as a chip, but the target
+       it answers to is 44px. Measured at 24x44 before this. */
+    .active-filter-chip button::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 44px;
+      height: 44px;
+      transform: translate(-50%, -50%);
+    }
+    .active-filter-chip button:hover { background: var(--bg2, rgba(0,0,0,.05)); color: var(--ink); }
+    .active-filter-chip button:focus-visible {
+      outline: 3px solid var(--focus-ring, var(--brand));
+      outline-offset: 1px;
+    }
 
     .stat-head {
       display: flex;
@@ -716,76 +813,20 @@
     .funnel-source-label { flex: 1; min-width: 0; }
     .funnel-source-value { font-weight: 700; color: var(--ink); }
 
-    /* Commercial attention: proper alert list rows instead of bare chips.
-       Icon + count badge + description + chevron; whole row stays a button so
-       the existing filter-jump behaviour is preserved. */
-    .attention-list { display: grid; gap: 8px; }
-
-    .attention-row {
-      display: flex;
-      align-items: center;
-      justify-content: flex-start;
-      gap: 10px;
+    /* Audit log density. 100 events with a UUID each is not a table an
+       operator reads top to bottom — it is one they search. */
+    .audit-filters { flex: 1 1 260px; min-width: 0; }
+    .audit-filters input {
       width: 100%;
-      text-align: left;
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-left: 3px solid var(--amber);
-      border-radius: var(--radius);
-      padding: 10px 12px;
-      min-height: 44px;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--ink);
-      transition: border-color 0.18s ease, background-color 0.18s ease;
+      max-width: 420px;
+      min-height: 38px;
     }
-
-    .attention-row:hover {
-      transform: none;
-      box-shadow: none;
-      background: var(--amber-light);
-      border-color: var(--amber);
-      border-left-color: var(--amber);
+    .audit-resource {
+      max-width: 340px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
-
-    .attention-icon {
-      display: inline-flex;
-      color: var(--amber-deep);
-      flex: 0 0 auto;
-    }
-
-    .attention-icon svg, .attention-chevron svg { width: 18px; height: 18px; }
-
-    .attention-count {
-      min-width: 28px;
-      padding: 2px 8px;
-      border-radius: 999px;
-      background: var(--amber-light);
-      color: var(--amber-deep);
-      font-weight: 800;
-      font-size: 12px;
-      text-align: center;
-    }
-
-    .attention-label { flex: 1; min-width: 0; }
-
-    .attention-chevron {
-      display: inline-flex;
-      color: var(--muted);
-      flex: 0 0 auto;
-    }
-
-    .attention-empty {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 8px 0;
-      color: var(--muted);
-      font-size: 14px;
-      font-weight: 600;
-    }
-
-    .attention-empty .attention-icon { color: var(--green-deep); }
 
     .empty-state {
       padding: 40px 16px;
@@ -1365,6 +1406,13 @@
       .stat-card { padding: 14px; }
       .stat-value { font-size: 24px; }
       .stat-label { font-size: 12px; }
+      /* Two-up leaves ~167px per card, and squeezing the "Filtering" marker
+         onto the label's row broke both across mid-word lines. Let it drop to
+         its own line instead — the marker is what tells a colour-blind or
+         high-contrast user which counter is applied, so shrinking it away is
+         not an option. */
+      .stat-head { flex-wrap: wrap; }
+      .stat-filter-flag { margin-left: 0; flex-basis: 100%; }
       .form-grid { grid-template-columns: 1fr; }
       .filters, .toolbar { grid-template-columns: 1fr; }
       .card { padding: 16px; }
@@ -1546,31 +1594,30 @@
           <span class="group-hint">Lifecycle risks that imply an action today</span>
         </h2>
         <div class="stats-grid">
-          <div class="stat-card amber">
+          <button type="button" class="stat-card amber" data-metric="past_due" aria-pressed="false">
             <div class="stat-head">
               <span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M12 4.4L20.8 19.4H3.2z"/><path d="M12 10.2v3.6"/><circle cx="12" cy="16.6" r="0.55" fill="currentColor" stroke="none"/></svg></span>
               <span class="stat-label">Past Due</span>
+              <span class="stat-filter-flag">Filtering</span>
             </div>
             <div id="pastDueTenantCount" class="stat-value">-</div>
-          </div>
-          <div class="stat-card purple">
+          </button>
+          <button type="button" class="stat-card purple" data-metric="trial_ending" aria-pressed="false">
             <div class="stat-head">
               <span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M17.6 8.25a6.4 6.4 0 10-11.2 0c1.2 2.1-.9 4.35-.9 4.35h14s-3.1-2.25-1.9-4.35"/><path d="M10.4 17.4a1.7 1.7 0 003.2 0"/></svg></span>
               <span class="stat-label">Trials Ending in 7 Days</span>
+              <span class="stat-filter-flag">Filtering</span>
             </div>
             <div id="trialEndingCount" class="stat-value">-</div>
-          </div>
-          <div class="stat-card">
+          </button>
+          <button type="button" class="stat-card" data-metric="onboarding" aria-pressed="false">
             <div class="stat-head">
               <span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M5.25 20.25V4.5"/><path d="M5.25 4.5h12.9l-2.7 3.9 2.7 3.9H5.25"/></svg></span>
               <span class="stat-label">Onboarding</span>
+              <span class="stat-filter-flag">Filtering</span>
             </div>
             <div id="onboardingTenantCount" class="stat-value">-</div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header"><h3 class="card-title">Commercial Attention</h3></div>
-          <div id="commercialAttention" class="empty-state">Loading lifecycle risks…</div>
+          </button>
         </div>
 
         <!-- Standing totals: worth knowing, nothing to do about them today. -->
@@ -1579,13 +1626,16 @@
           <span class="group-hint">Standing totals — no action implied</span>
         </h2>
         <div class="stats-grid">
-          <div class="stat-card">
+          <button type="button" class="stat-card" data-metric="all" aria-pressed="false">
             <div class="stat-head">
               <span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false"><rect x="3.75" y="3.75" width="6.75" height="6.75" rx="1.5"/><rect x="13.5" y="3.75" width="6.75" height="6.75" rx="1.5"/><rect x="3.75" y="13.5" width="6.75" height="6.75" rx="1.5"/><rect x="13.5" y="13.5" width="6.75" height="6.75" rx="1.5"/></svg></span>
               <span class="stat-label">Total Tenants</span>
+              <span class="stat-filter-flag">Filtering</span>
             </div>
             <div id="tenantCount" class="stat-value">-</div>
-          </div>
+          </button>
+          <!-- MRR is not a button: it totals money, not tenants, so no row set
+               follows from clicking it. -->
           <div class="stat-card green">
             <div class="stat-head">
               <span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false"><rect x="3" y="6.75" width="18" height="10.5" rx="2"/><circle cx="12" cy="12" r="2.6"/></svg></span>
@@ -1593,27 +1643,30 @@
             </div>
             <div id="mrrCount" class="stat-value">-</div>
           </div>
-          <div class="stat-card amber">
+          <button type="button" class="stat-card amber" data-metric="paid" aria-pressed="false">
             <div class="stat-head">
               <span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false"><circle cx="12" cy="12" r="8.25"/><path d="M8.5 12.4l2.4 2.4 4.6-5.2"/></svg></span>
               <span class="stat-label">Paid Tenants</span>
+              <span class="stat-filter-flag">Filtering</span>
             </div>
             <div id="paidTenantCount" class="stat-value">-</div>
-          </div>
-          <div class="stat-card purple">
+          </button>
+          <button type="button" class="stat-card purple" data-metric="trial" aria-pressed="false">
             <div class="stat-head">
               <span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false"><circle cx="12" cy="12" r="8.25"/><path d="M12 7.5V12l3 2"/></svg></span>
               <span class="stat-label">Trial Tenants</span>
+              <span class="stat-filter-flag">Filtering</span>
             </div>
             <div id="trialTenantCount" class="stat-value">-</div>
-          </div>
-          <div class="stat-card">
+          </button>
+          <button type="button" class="stat-card" data-metric="new_30d" aria-pressed="false">
             <div class="stat-head">
               <span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M3.75 17l5.6-5.6 3.9 3.9 7-7"/><path d="M15.1 8.3h5.15v5.15"/></svg></span>
               <span class="stat-label">New in 30 Days</span>
+              <span class="stat-filter-flag">Filtering</span>
             </div>
             <div id="newTenantCount" class="stat-value">-</div>
-          </div>
+          </button>
         </div>
 
         <!-- Analysis last and collapsed: it reports on the past 30 days
@@ -1672,6 +1725,16 @@
               <span>Show test tenants</span>
             </label>
             <button id="clearFiltersBtn" class="btn-secondary">Clear Filters</button>
+          </div>
+          <!-- Filters arriving from an overview counter show up here. Without
+               this row the table simply disagreed with every control above it
+               and nothing on screen explained why. -->
+          <div id="metricFilterRow" class="active-filter-row hidden">
+            <span class="active-filter-label">From overview</span>
+            <span class="active-filter-chip">
+              <span id="metricFilterLabel"></span>
+              <button id="metricFilterClear" type="button" aria-label="Remove this filter">&times;</button>
+            </span>
           </div>
         </section>
 
@@ -1742,9 +1805,13 @@
           </div>
         </div>
     <section class="card">
+      <!-- The card-header repeated the section title verbatim. One heading per
+           block; the row count is what the operator actually cannot see. -->
       <div class="card-header">
-        <h2 class="card-title">Audit Logs</h2>
-        <span class="text-muted" style="font-size: 13px;">Recent platform activity</span>
+        <div class="audit-filters">
+          <input id="auditSearch" type="search" placeholder="Filter by action, tenant, or resource...">
+        </div>
+        <span id="auditCountLabel" class="text-muted tabular" style="font-size: 13px;"></span>
       </div>
       <div class="table-wrapper">
         <table>
@@ -1758,6 +1825,11 @@
           </thead>
           <tbody id="auditBody"></tbody>
         </table>
+      </div>
+      <div class="pagination-row">
+        <button id="auditPrevBtn" class="btn-secondary btn-sm" type="button">Previous</button>
+        <span id="auditPageLabel" class="text-muted tabular">Page 1</span>
+        <button id="auditNextBtn" class="btn-secondary btn-sm" type="button">Next</button>
       </div>
     </section>
       </section>
@@ -1785,10 +1857,43 @@
     let editingPlanCode = '';
     let selectedTenantId = '';
     let tenantPage = 0;
-    let attentionTenantFilter = '';
+    let metricFilter = '';
     const tenantPageSize = 10;
+    let auditPage = 0;
+    const auditPageSize = 15;
     let isLoading = false;
     let currentUser = null;
+
+    /* Overview counters that name a set of tenants, and the predicate that
+       reproduces that set on the client.
+
+       These MUST mirror /v1/admin/usage, and the trap is that most of them are
+       defined by the SUBSCRIPTION status while the Status select in the toolbar
+       filters the TENANT status — two different fields that happen to share
+       several of the same words. Reusing that select would have shown a number
+       of rows that quietly disagreed with the number on the card, which is
+       worse than a counter that does nothing. */
+    const METRIC_FILTERS = {
+      all:          { label: 'Total Tenants',
+                      match: (t) => !['archived', 'deleted'].includes(t.status) },
+      paid:         { label: 'Paid Tenants',
+                      match: (t) => t.subscription_status === 'active' && !['archived', 'deleted'].includes(t.status) },
+      trial:        { label: 'Trial Tenants',
+                      match: (t) => t.subscription_status === 'trialing' && !['archived', 'deleted'].includes(t.status) },
+      past_due:     { label: 'Past Due',
+                      match: (t) => t.subscription_status === 'past_due' && !['archived', 'deleted'].includes(t.status) },
+      onboarding:   { label: 'Onboarding',
+                      match: (t) => t.status === 'onboarding' },
+      new_30d:      { label: 'New in 30 Days',
+                      match: (t) => t.created_at && new Date(t.created_at).getTime() >= Date.now() - 30 * 86400000 },
+      trial_ending: { label: 'Trials Ending in 7 Days',
+                      match: (t) => {
+                        if (t.subscription_status !== 'trialing') return false;
+                        if (['archived', 'deleted'].includes(t.status)) return false;
+                        const ends = t.trial_ends_at ? new Date(t.trial_ends_at).getTime() : 0;
+                        return ends >= Date.now() && ends <= Date.now() + 7 * 86400000;
+                      } },
+    };
 
     // Utility functions
     const text = (value) => value === null || value === undefined || value === '' ? '-' : value;
@@ -1839,6 +1944,9 @@
       cell.colSpan = colspan;
       empty.className = 'empty-state';
       empty.textContent = message;
+      // Empty states are written from script on every re-render, so the
+      // dictionary pass that ran at load has long since gone by.
+      window.AdminI18n?.localise?.(empty);
       cell.appendChild(empty);
       tbody.appendChild(row);
     }
@@ -2056,13 +2164,15 @@
       ['tenantCount', 'mrrCount', 'paidTenantCount', 'trialTenantCount',
        'onboardingTenantCount', 'pastDueTenantCount', 'trialEndingCount', 'newTenantCount']
         .forEach((id) => { const el = $(id); if (el) el.textContent = '-'; });
-      $('commercialAttention').textContent = 'Loading lifecycle risks…';
-      $('commercialAttention').classList.add('empty-state');
       $('acquisitionFunnel').textContent = 'Loading registration conversion…';
       $('acquisitionFunnel').classList.add('empty-state');
       $('tenantsBody').innerHTML = '';
       $('plansBody').innerHTML = '';
       $('auditBody').innerHTML = '';
+      $('auditCountLabel').textContent = '';
+      $('auditSearch').value = '';
+      auditPage = 0;
+      setMetricFilter('');
       showToast('Logged out.');
     }
 
@@ -2958,16 +3068,41 @@
       const plan = $('planFilter').value;
       const category = $('categoryFilter').value;
       const showTests = $('showTestTenants')?.checked || false;
+      const metric = METRIC_FILTERS[metricFilter];
       return tenants.filter((t) => {
 	        const haystack = `${t.name} ${t.slug} ${t.status} ${t.plan_code} ${t.subscription_status || ''} ${t.category || ''} ${t.owner_email || ''} ${t.studio_admin_email || ''}`.toLowerCase();
-        const trialEnds = t.trial_ends_at ? new Date(t.trial_ends_at).getTime() : 0;
-        const now = Date.now();
-        const attentionMatch = !attentionTenantFilter
-          || (attentionTenantFilter === 'past_due' && (t.status === 'past_due' || t.subscription_status === 'past_due'))
-          || (attentionTenantFilter === 'onboarding' && t.status === 'onboarding')
-          || (attentionTenantFilter === 'trial_ending' && trialEnds >= now && trialEnds <= now + 7 * 86400000);
-        return attentionMatch && (showTests || !isTestTenant(t)) && (!q || haystack.includes(q)) && (!status || t.status === status) && (!plan || t.plan_code === plan) && (!category || (t.category || 'general') === category);
+        return (!metric || metric.match(t)) && (showTests || !isTestTenant(t)) && (!q || haystack.includes(q)) && (!status || t.status === status) && (!plan || t.plan_code === plan) && (!category || (t.category || 'general') === category);
       });
+    }
+
+    /* Re-translate one label the page just rewrote. Deliberately per-node
+       rather than over the whole card: the dictionary matches any text it
+       recognises, and a studio actually named "Overview" would be turned into
+       总览 by a subtree walk over the tenants table. */
+    const relabel = (el, value) => {
+      el.textContent = value;
+      window.AdminI18n?.localise?.(el);
+    };
+
+    /* One place decides what the metric filter is, so the chip, the pressed
+       counters and the table can never describe different things. */
+    function setMetricFilter(key) {
+      metricFilter = METRIC_FILTERS[key] ? key : '';
+      const active = METRIC_FILTERS[metricFilter];
+      document.querySelectorAll('.stats-grid button.stat-card[data-metric]').forEach((card) => {
+        card.setAttribute('aria-pressed', String(card.dataset.metric === metricFilter));
+      });
+      $('metricFilterRow').classList.toggle('hidden', !active);
+      if (active) {
+        /* Write the English label and let the dictionary translate it in
+           place, exactly as it does for the counter it came from. Writing the
+           translation directly would strand the chip in Chinese when the
+           operator switches back — localise() remembers the original, a
+           hand-translated string has no original to restore. */
+        relabel($('metricFilterLabel'), active.label);
+      }
+      tenantPage = 0;
+      renderTenants();
     }
 
     // Render tenants table
@@ -2976,7 +3111,7 @@
       const totalPages = Math.max(1, Math.ceil(allVisible.length / tenantPageSize));
       if (tenantPage >= totalPages) tenantPage = totalPages - 1;
       const visible = allVisible.slice(tenantPage * tenantPageSize, (tenantPage + 1) * tenantPageSize);
-      $('tenantPageLabel').textContent = `Page ${tenantPage + 1} of ${totalPages} · ${allVisible.length} tenants`;
+      relabel($('tenantPageLabel'), `Page ${tenantPage + 1} of ${totalPages} · ${allVisible.length} tenants`);
       $('tenantPrevBtn').disabled = tenantPage <= 0;
       $('tenantNextBtn').disabled = tenantPage >= totalPages - 1;
       const tbody = $('tenantsBody');
@@ -3175,65 +3310,8 @@
     // Overview widgets. Small inline SVG icons follow the pill-icon pattern:
     // decorative (aria-hidden), currentColor, meaning always carried by text.
     const uiIcon = (body) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${body}</svg>`;
-    const ICON_ALERT = uiIcon('<path d="M12 4.4L20.8 19.4H3.2z"/><path d="M12 10.2v3.6"/><circle cx="12" cy="16.6" r="0.55" fill="currentColor" stroke="none"/>');
-    const ICON_CHEVRON = uiIcon('<path d="M9.5 6l6 6-6 6"/>');
-    const ICON_CHECK = uiIcon('<path d="M5 12.5l4.6 4.6L19 7.6"/>');
     // Shield: marks navigation that routes through the audited support-mode flow.
     const ICON_SHIELD = uiIcon('<path d="M12 3.8l6.8 2.5v5.1c0 4.2-2.9 7.4-6.8 8.8-3.9-1.4-6.8-4.6-6.8-8.8V6.3z"/><path d="M9.4 12l1.9 1.9 3.4-3.8"/>');
-
-    function renderCommercialAttention(usage) {
-      const attention = $('commercialAttention');
-      attention.replaceChildren();
-      attention.classList.remove('empty-state');
-      const actions = [
-        [Number(usage.past_due_tenants || 0), 'past_due', 'payment follow-up'],
-        [Number(usage.trials_ending_7d || 0), 'trial_ending', 'trials ending soon'],
-        [Number(usage.onboarding_tenants || 0), 'onboarding', 'onboarding incomplete']
-      ].filter(([count]) => count > 0);
-      if (!actions.length) {
-        const empty = document.createElement('div');
-        const icon = document.createElement('span');
-        const message = document.createElement('span');
-        empty.className = 'attention-empty';
-        icon.className = 'attention-icon';
-        icon.innerHTML = ICON_CHECK;
-        message.textContent = 'No immediate commercial risks.';
-        empty.append(icon, message);
-        attention.appendChild(empty);
-        return;
-      }
-      const list = document.createElement('div');
-      list.className = 'attention-list';
-      actions.forEach(([count, filter, label]) => {
-        const row = document.createElement('button');
-        row.type = 'button';
-        row.className = 'attention-row';
-        const icon = document.createElement('span');
-        icon.className = 'attention-icon';
-        icon.innerHTML = ICON_ALERT;
-        const badge = document.createElement('span');
-        badge.className = 'attention-count tabular';
-        badge.textContent = count;
-        const labelEl = document.createElement('span');
-        labelEl.className = 'attention-label';
-        labelEl.textContent = label;
-        const chevron = document.createElement('span');
-        chevron.className = 'attention-chevron';
-        chevron.setAttribute('aria-hidden', 'true');
-        chevron.innerHTML = ICON_CHEVRON;
-        row.append(icon, badge, labelEl, chevron);
-        row.addEventListener('click', () => {
-          attentionTenantFilter = filter;
-          $('statusFilter').value = '';
-          tenantPage = 0;
-          renderTenants();
-          location.hash = 'tenants';
-          setActiveNav('#tenants');
-        });
-        list.appendChild(row);
-      });
-      attention.appendChild(list);
-    }
 
     function renderAcquisitionFunnel(usage) {
       const registrations30d = Number(usage.registrations_30d || 0);
@@ -3287,21 +3365,46 @@
     // Audit log table. Rendered from cached rows so a language switch can
     // re-format the timestamps (the formatted value is locale-specific and is
     // not a dictionary string); the raw server timestamp stays in the title.
+    function filteredAuditLogs() {
+      const q = ($('auditSearch')?.value || '').trim().toLowerCase();
+      if (!q) return auditLogs;
+      return auditLogs.filter((a) =>
+        `${a.action || ''} ${a.tenant_slug || ''} ${a.resource_type || ''} ${a.resource_id || ''}`
+          .toLowerCase().includes(q));
+    }
+
+    /* The endpoint returns 100 rows and this table used to render all of them:
+       a hundred-row wall with a UUID in every fourth cell, no filter, and the
+       one line an operator came to find somewhere inside it. Same page size and
+       controls as the tenants table so the two behave alike. */
     function renderAuditLogs() {
       const auditBody = $('auditBody');
       auditBody.replaceChildren();
-      if (!auditLogs.length) {
-        appendEmptyRow(auditBody, 4, 'No audit logs yet.');
+      const matches = filteredAuditLogs();
+      const totalPages = Math.max(1, Math.ceil(matches.length / auditPageSize));
+      if (auditPage >= totalPages) auditPage = totalPages - 1;
+      if (auditPage < 0) auditPage = 0;
+      relabel($('auditPageLabel'), `Page ${auditPage + 1} of ${totalPages}`);
+      $('auditPrevBtn').disabled = auditPage <= 0;
+      $('auditNextBtn').disabled = auditPage >= totalPages - 1;
+      relabel($('auditCountLabel'), auditLogs.length ? `${matches.length} of ${auditLogs.length} events` : '');
+      if (!matches.length) {
+        appendEmptyRow(auditBody, 4, auditLogs.length ? 'No events match this filter.' : 'No audit logs yet.');
         return;
       }
-      auditLogs.forEach((a) => {
+      matches.slice(auditPage * auditPageSize, (auditPage + 1) * auditPageSize).forEach((a) => {
         const row = document.createElement('tr');
         const timeCell = addCell(row, formatTimestamp(a.created_at));
         timeCell.className = 'tabular';
         if (a.created_at) timeCell.title = String(a.created_at);
         addCell(row, text(a.tenant_slug));
         addStrongMuted(addCell(row), a.action);
-        addCell(row, `${text(a.resource_type)} ${text(a.resource_id)}`);
+        /* The resource id is a UUID that made the column the widest on the page
+           for a string nobody reads in full. Truncated in the cell, complete in
+           the title and selectable by widening the column. */
+        const resource = addCell(row, `${text(a.resource_type)} ${text(a.resource_id)}`);
+        resource.className = 'audit-resource';
+        resource.title = `${text(a.resource_type)} ${text(a.resource_id)}`;
         auditBody.appendChild(row);
       });
     }
@@ -3346,14 +3449,11 @@
           $('pastDueTenantCount').textContent = usage.past_due_tenants;
           $('trialEndingCount').textContent = usage.trials_ending_7d;
           $('newTenantCount').textContent = usage.new_tenants_30d;
-          renderCommercialAttention(usage);
           renderAcquisitionFunnel(usage);
         } else {
           ['tenantCount', 'mrrCount', 'paidTenantCount', 'trialTenantCount',
            'onboardingTenantCount', 'pastDueTenantCount', 'trialEndingCount', 'newTenantCount']
             .forEach((id) => { $(id).textContent = 'Unavailable'; });
-          $('commercialAttention').textContent = failureMessage('Commercial overview', usageResult);
-          $('commercialAttention').classList.add('empty-state');
           $('acquisitionFunnel').textContent = failureMessage('Acquisition funnel', usageResult);
           $('acquisitionFunnel').classList.add('empty-state');
           partialFailures.push(failureMessage('Usage', usageResult));
@@ -3389,11 +3489,13 @@
 
         if (auditResult.status === 'fulfilled') {
           auditLogs = auditResult.value.auditLogs || [];
+          auditPage = 0;
           renderAuditLogs();
         } else {
           auditLogs = [];
           const auditBody = $('auditBody');
           auditBody.replaceChildren();
+          $('auditCountLabel').textContent = '';
           appendEmptyRow(auditBody, 4, failureMessage('Audit logs unavailable', auditResult));
           partialFailures.push(failureMessage('Audit logs', auditResult));
         }
@@ -3421,11 +3523,23 @@
     $('logoutBtn').addEventListener('click', logoutSuperAdmin);
     $('changePasswordBtn').addEventListener('click', openChangePasswordModal);
     $('refreshBtn').addEventListener('click', refresh);
+    /* The metric filter is NOT cleared here any more. It used to be, so typing
+       one character into search silently dropped the filter the operator had
+       just arrived with. Now it composes with the toolbar and is removed only
+       by its own chip or by Clear Filters — which is the point of the chip. */
     ['tenantSearch','statusFilter','planFilter','categoryFilter','showTestTenants'].forEach((id) => $(id).addEventListener('input', () => {
-      attentionTenantFilter = '';
       tenantPage = 0;
       renderTenants();
     }));
+    document.querySelectorAll('.stats-grid button.stat-card[data-metric]').forEach((card) => {
+      card.addEventListener('click', () => {
+        // Clicking the pressed counter releases it, so the card is its own undo.
+        setMetricFilter(card.dataset.metric === metricFilter ? '' : card.dataset.metric);
+        location.hash = 'tenants';
+        setActiveNav('#tenants');
+      });
+    });
+    $('metricFilterClear').addEventListener('click', () => setMetricFilter(''));
     const navLinks = Array.from(document.querySelectorAll('.nav-link'));
     const setActiveNav = (hash) => {
       navLinks.forEach((link) => link.classList.toggle('active', link.getAttribute('href') === hash));
@@ -3449,12 +3563,13 @@
       $('planFilter').value = '';
       $('categoryFilter').value = '';
       $('showTestTenants').checked = false;
-      attentionTenantFilter = '';
-      tenantPage = 0;
-      renderTenants();
+      setMetricFilter('');
     });
     $('tenantPrevBtn').addEventListener('click', () => { tenantPage = Math.max(0, tenantPage - 1); renderTenants(); });
     $('tenantNextBtn').addEventListener('click', () => { tenantPage += 1; renderTenants(); });
+    $('auditSearch').addEventListener('input', () => { auditPage = 0; renderAuditLogs(); });
+    $('auditPrevBtn').addEventListener('click', () => { auditPage = Math.max(0, auditPage - 1); renderAuditLogs(); });
+    $('auditNextBtn').addEventListener('click', () => { auditPage += 1; renderAuditLogs(); });
 
     // Add tenant button - open modal
     $('addTenantBtn').addEventListener('click', () => {
