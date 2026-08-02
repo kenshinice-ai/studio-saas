@@ -19,7 +19,10 @@ What it deliberately does NOT do:
   * It never invents a light variant for arcade-lime, which ships dark-only.
 
 Idempotent: re-running maps an already-migrated tenant onto itself and writes
-the same tokens.
+the same tokens — which makes this the refresh path whenever palette_gen.py
+regenerates a preset. Editing presets.py alone changes nothing a tenant sees,
+because each tenant carries its own copy of the resolved tokens; run this after
+any regeneration (v8.2.9 re-solved all 45 semantic values this way).
 
 Usage:
     .venv/bin/python backend/scripts/migrate_visual_themes.py --dry-run

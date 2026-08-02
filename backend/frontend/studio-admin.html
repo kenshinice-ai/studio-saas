@@ -3863,13 +3863,13 @@
          — plus the three semantic colours were invisible in the one place an
          owner compares themes. Each chip is labelled, because an unlabelled
          swatch strip is decoration. */
-      /* Split by what actually differs between themes. Success, warning and
-         danger are held near-constant on purpose — green must keep meaning
-         success whatever the studio picked — and across the seven presets their
-         hues span only 13, 11 and 12 degrees. Shown as equal chips beside the
-         six that do change, three of nine looked identical between two very
-         different themes and the picker read as not having applied. They are
-         still shown, under a heading that says why they look the same. */
+      /* Split by role, not by whether the colour moves. Status colours used to
+         be near-identical across presets, so this second row carried a note
+         explaining why three of nine chips looked the same. Since the palette
+         generator started pulling their saturation toward each theme's accent
+         they do differ per theme, and that note became false — the row stays
+         because success/warning/danger answer a different question than the
+         surface and brand colours, but the heading now says so. */
       const themedSwatches = [
         ['background_color', 'Page', '页面'],
         ['panel_color', 'Panel', '面板'],
@@ -3878,7 +3878,7 @@
         ['border_strong_color', 'Control boundary', '控件边界'],
         ['focus_ring_color', 'Focus ring', '聚焦环'],
       ];
-      const sharedSwatches = [
+      const statusSwatches = [
         ['success_color', 'Success', '成功'],
         ['warning_color', 'Warning', '警示'],
         ['danger_color', 'Danger', '危险'],
@@ -3889,14 +3889,14 @@
         const label = isZh ? labelZh : labelEn;
         return `<span class="swatch" title="${esc(label)} · ${esc(value)}"><i style="background:${value}"></i><small>${esc(label)}</small></span>`;
       }).filter(Boolean).join('');
-      const sharedLabel = isZh ? '状态色 · 所有主题一致' : 'Status colours · same in every theme';
+      const statusLabel = isZh ? '状态色 · 已按本主题调校' : 'Status colours · tuned to this theme';
       /* renderSwatches returns markup whose every interpolated value already
          went through esc() above; the checker cannot see through the call, so
          the composition is marked rather than double-escaped. */
       $('themePalettePreview').innerHTML =
         `<div class="swatch-row">${/*safe*/ renderSwatches(themedSwatches)}</div>`
-        + `<p class="swatch-group-note">${esc(sharedLabel)}</p>`
-        + `<div class="swatch-row">${/*safe*/ renderSwatches(sharedSwatches)}</div>`;
+        + `<p class="swatch-group-note">${esc(statusLabel)}</p>`
+        + `<div class="swatch-row">${/*safe*/ renderSwatches(statusSwatches)}</div>`;
       $('themePresetName').textContent = selectedName;
       /* 4-3: the colour relationship is the reason to prefer one palette over
          another, and it was already on the wire. */

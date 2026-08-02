@@ -1,7 +1,77 @@
-# PWE Studio — should semantic colours follow the theme? (2026-08-02)
+# PWE Studio v8.2.9 — status colours solved per theme (2026-08-02)
 
-**Status: analysis only.** Running release is v8.2.8. This is option 4 from the
-previous round, examined properly rather than left on the shelf.
+**Shipped.** Option D below was executed: all 45 semantic values regenerated,
+the theme picker's grouping corrected, 88 new assertions added. The analysis
+that led here is kept intact underneath, because the measurements are the
+reason the constants are what they are.
+
+## What changed
+
+`docs/design/palette_gen.py` is the source of truth; `presets.py` is emitted
+from it. The semantic block used to solve lightness against the page and
+nothing else. It now solves saturation *and* lightness against every surface
+the role lands on:
+
+```text
+constraint                                        floor
+role as text on the page                          4.6
+solid fill on --bg2 and on --panel                3.0
+--on-accent label on that solid fill              4.5
+color-mix(role 61.8%, text) on --bg2 / --panel    4.5
+distance from the accent          hue >= 30 deg OR contrast >= 1.55
+
+result: 45/45 solved, 0 unsolvable, 525 generator assertions pass
+```
+
+Saturation is pulled 60% from the role's anchor toward that theme's accent,
+floored at 32%. **The floor is the one judgement call in the file:** without it
+`studio-ink` (accent saturation 4%) drags danger to `#92625C` at S=23, which
+stops reading as danger. At 32% it lands on `#9B5950` — muted, still red.
+
+Two defects the fixed-saturation design had been hiding:
+
+* `arcade-lime/dark` shipped **all three** fills under the 3:1 non-text floor
+  (worst 2.89 on `--bg2`). Earlier passes measured this and set it aside
+  because semantic *text* is compensated; a solid *badge* is not.
+* Six values sat inside 30 degrees of their own accent with no lightness
+  separation — `vintage-press` warning at 5 deg, `cedar-grove` success at 4
+  deg. A warning badge indistinguishable from a button is a worse failure than
+  a clashing one. These are the six that move a lot (11-16 lightness points);
+  hue never moves, so green still means success.
+
+## Deploy step that is easy to miss
+
+Editing `presets.py` changes **nothing a tenant sees** — every tenant carries
+its own resolved copy of the tokens in `settings.visual_theme`. The refresh
+path is:
+
+```bash
+.venv/bin/python backend/scripts/migrate_visual_themes.py --dry-run
+```
+
+then without `--dry-run`. It is idempotent, and it skips `theme_mode=custom`
+tenants by design — a studio that hand-tuned its colours chose those values.
+Any colour input in studio-admin flips the tenant to `custom`, so this is safe.
+
+## Guards added
+
+`backend/tests/test_visual_theme_coherence.py` now asserts the five surface
+constraints and the accent-distance rule per (preset, mode, role) — 88 cases.
+Verified by reverting `cedar-grove` success and `arcade-lime` success to their
+v8.2.8 values: both guards fired (2.89 < 3.0, and 4 deg at 1.11 contrast).
+
+## Theme picker
+
+The second swatch row was labelled "status colours, same in every theme" —
+true in v8.2.8, false now. It reads "status colours, tuned to this theme" and
+the row survives because status answers a different question than surface and
+brand colour, not because the chips look alike.
+
+---
+
+# Analysis that produced option D (2026-08-02)
+
+Running release at the time of writing was v8.2.8.
 
 ## Contrast is not the problem — that part is already solved
 

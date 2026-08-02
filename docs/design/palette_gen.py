@@ -27,6 +27,22 @@ def hexof(h, s, l):
     r, g, b = colorsys.hls_to_rgb(h / 360.0, l, s)
     return '#%02X%02X%02X' % (round(r * 255), round(g * 255), round(b * 255))
 
+def hsl_of(hexstr):
+    hx = hexstr.lstrip('#')
+    r, g, b = (int(hx[i:i + 2], 16) / 255 for i in (0, 2, 4))
+    hh, ll, ss = colorsys.rgb_to_hls(r, g, b)
+    return hh * 360, ss, ll
+
+def mix(a, b, p):
+    """`p` of a and the rest of b in sRGB — matches CSS color-mix(in srgb, …)."""
+    ha, hb = a.lstrip('#'), b.lstrip('#')
+    return '#%02X%02X%02X' % tuple(
+        round(int(ha[i:i + 2], 16) * p + int(hb[i:i + 2], 16) * (1 - p)) for i in (0, 2, 4))
+
+def hue_gap(a, b):
+    d = abs(a - b) % 360
+    return min(d, 360 - d)
+
 def solve(h, s, against, target, darker=True, lo=0.0, hi=1.0):
     """Binary-search lightness until contrast against `against` hits target."""
     best = None
@@ -98,13 +114,71 @@ THEMES = [
          modes=('dark',)),
 ]
 
-# One semantic system. Hue is fixed per role so success/warning/danger read
-# the same across all eight themes; only lightness is re-solved per surface
-# so the contrast is identical everywhere.
+# One semantic system, tuned per theme. Hue stays anchored per role so green
+# never stops meaning success, but saturation follows the theme's own accent
+# and lightness is re-solved against every surface the role can land on.
+#
+# Fixed saturation was the earlier design and it was wrong in two directions:
+# a 58%-saturated warning is a foreign object on studio-ink (accent saturation
+# 4%), and a 44%-saturated success looks washed out next to arcade-lime's 66%.
+# Worse, a fixed hue anchor can collide with the theme's own accent —
+# vintage-press put warning 5 degrees from its buttons, cedar-grove put success
+# 4 degrees from its, which destroys the semantic signal entirely.
 SEMANTIC = {'success': (152, .44), 'warning': (36, .58), 'danger': (6, .52)}
+
+SEM_S_PULL  = 0.60   # how far saturation travels from the anchor to the accent
+SEM_S_FLOOR = 0.32   # below this the role stops reading as itself (studio-ink)
+SEM_S_CEIL  = 0.72
+SEM_HUE_GAP = 30.0   # degrees from the accent that read as "a different thing"
+SEM_LUM_GAP = 1.55   # contrast that reads as "a different weight" when hue is close
+SEM_TEXT_MIX = 0.618 # the CMS renders semantic text as this much role, rest anchor
 
 TARGETS = dict(body=8.0, muted=4.6, accent=4.6, semantic=4.6,
                line_strong=3.05, on_accent=4.6)
+
+
+def solve_semantic(hue, target_s, accent, bg, bg2, panel, ink, on_accent, dark):
+    """Nearest (saturation, lightness) to target that survives every surface.
+
+    A semantic role is not one colour used one way. It is a solid badge fill,
+    a label sitting on that fill, and a mixed text form on two more surfaces —
+    and it has to stay distinguishable from the theme's accent, or a warning
+    ends up looking like a button. Solving only against the page (what this
+    generator used to do) leaves the other four cases to chance.
+    """
+    accent_h = hsl_of(accent)[0]
+    seed_l = hsl_of(solve(hue, target_s, bg, TARGETS['semantic'], darker=not dark))[2]
+    near_accent = hue_gap(hue, accent_h) < SEM_HUE_GAP
+    best = None
+    for ds in (0, -.03, .03, -.06, .06, -.10, .10, -.15, .15):
+        s_try = max(.10, min(.90, target_s + ds))
+        for step in range(0, 121):
+            for sign in ((0,) if step == 0 else (-1, 1)):
+                l_try = seed_l + sign * step * 0.005
+                if not 0.05 <= l_try <= 0.95:
+                    continue
+                cand = hexof(hue, s_try, l_try)
+                if ratio(cand, bg) < TARGETS['semantic']:
+                    continue                                  # role as text on the page
+                if ratio(cand, bg2) < 3.0 or ratio(cand, panel) < 3.0:
+                    continue                                  # solid fill on either band
+                if ratio(on_accent, cand) < 4.5:
+                    continue                                  # label on the solid fill
+                mixed = mix(cand, ink, SEM_TEXT_MIX)
+                if ratio(mixed, bg2) < 4.5 or ratio(mixed, panel) < 4.5:
+                    continue                                  # the CMS text form
+                if near_accent and ratio(cand, accent) < SEM_LUM_GAP:
+                    continue                                  # would read as the accent
+                cost = abs(s_try - target_s) * 2 + step * 0.005
+                if best is None or cost < best[0]:
+                    best = (cost, cand)
+            if best is not None and best[0] < 0.02:
+                break
+        if best is not None and best[0] < 0.02:
+            break
+    if best is None:
+        raise AssertionError(f'no semantic solution for hue {hue:.0f} on this theme')
+    return best[1]
 
 
 def build(theme, dark):
@@ -167,11 +241,17 @@ def build(theme, dark):
     on_secondary = best_on(secondary)
 
     sem = {}
+    accent_s = hsl_of(accent)[1]
     for role, (sh, ss) in SEMANTIC.items():
         # Nudge each semantic hue a few degrees toward the theme so it belongs
         # to the palette, without losing its learned meaning.
         blended = (sh + (((h - sh + 180) % 360 - 180) * 0.04)) % 360
-        sem[role] = solve(blended, ss, bg, TARGETS['semantic'], darker=not dark)
+        # Saturation, unlike hue, can travel: it carries no meaning of its own,
+        # only how much the badge insists. Pull it toward the theme's accent so
+        # a restrained palette gets restrained badges and a loud one gets loud.
+        target_s = max(SEM_S_FLOOR, min(SEM_S_CEIL, ss + SEM_S_PULL * (accent_s - ss)))
+        sem[role] = solve_semantic(blended, target_s, accent, bg, bg2, panel,
+                                   ink, on_accent, dark)
 
     # ── interaction states ────────────────────────────────────────────────
     # A palette without these is only half a theme: the skill's light/dark
@@ -231,6 +311,18 @@ CHECKS = [
     ('success / page',     'success_color',        'background_color', 4.5),
     ('warning / page',     'warning_color',        'background_color', 4.5),
     ('danger / page',      'danger_color',         'background_color', 4.5),
+    # A semantic role is also a solid badge fill with a label on it. Checking
+    # it only against the page is how arcade-lime shipped three fills under
+    # the 3:1 non-text floor on its own alt surface.
+    ('success fill / alt', 'success_color',        'background_alt_color', 3.0),
+    ('warning fill / alt', 'warning_color',        'background_alt_color', 3.0),
+    ('danger fill / alt',  'danger_color',         'background_alt_color', 3.0),
+    ('success fill / panel','success_color',       'panel_color',      3.0),
+    ('warning fill / panel','warning_color',       'panel_color',      3.0),
+    ('danger fill / panel','danger_color',         'panel_color',      3.0),
+    ('label / success',    'accent_text_color',    'success_color',    4.5),
+    ('label / warning',    'accent_text_color',    'warning_color',    4.5),
+    ('label / danger',     'accent_text_color',    'danger_color',     4.5),
     ('line-strong / page', 'border_strong_color',  'background_color', 3.0),
     ('line-strong / panel','border_strong_color',  'panel_color',      3.0),
     # Interaction states, required in both modes by the skill's checklist.
@@ -269,6 +361,23 @@ if __name__ == '__main__':
                 r = ratio(th[a], th[b])
                 if r < need:
                     fails.append((t['key'], 'dark' if dark else 'light', name, round(r, 2), need))
+            # Two semantic properties that no fixed fg/bg pair can express: the
+            # mixed text form the CMS actually renders, and the requirement
+            # that a role never collapses into the theme's own accent.
+            for role in SEMANTIC:
+                col = th[f'{role}_color']
+                mixed = mix(col, th['text_color'], SEM_TEXT_MIX)
+                for surface in ('background_alt_color', 'panel_color'):
+                    r = ratio(mixed, th[surface])
+                    if r < 4.5:
+                        fails.append((t['key'], 'dark' if dark else 'light',
+                                      f'{role} text / {surface[:-6]}', round(r, 2), 4.5))
+                gap = hue_gap(hsl_of(col)[0], hsl_of(th['accent_color'])[0])
+                lgap = ratio(col, th['accent_color'])
+                if gap < SEM_HUE_GAP and lgap < SEM_LUM_GAP:
+                    fails.append((t['key'], 'dark' if dark else 'light',
+                                  f'{role} vs accent', f'{gap:.0f}deg/{lgap:.2f}',
+                                  f'{SEM_HUE_GAP:.0f}deg or {SEM_LUM_GAP}'))
             layer = ratio(th['background_color'], th['panel_color'])
             rows.append((t, dark, th, layer))
 

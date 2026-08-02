@@ -8,7 +8,7 @@ from __future__ import annotations
 # Eight themes, each shipping a matched light and dark variant (except
 # arcade-lime, see below). Every value was solved for a measured WCAG contrast
 # target by docs/design/palette_gen.py rather than picked by eye; the generator
-# asserts 26 pairs per theme-mode, 390 in total. Re-run it before editing any
+# asserts 35 pairs per theme-mode, 525 in total. Re-run it before editing any
 # hex by hand:
 #
 #     python3 docs/design/palette_gen.py            # verify
@@ -21,9 +21,13 @@ from __future__ import annotations
 #       split: border_color stays soft for dividers, border_strong_color
 #       carries interactive boundaries at >=3:1.
 #   A2  success/warning/danger had 4/2/5 unrelated values across the set with
-#       no system. They now share fixed hue anchors (152/36/6) nudged 4% toward
-#       the theme, lightness re-solved per surface, so contrast is identical
-#       everywhere.
+#       no system. They now share hue anchors (152/36/6) nudged 4% toward the
+#       theme, with saturation pulled 60% toward that theme's own accent and
+#       lightness re-solved against every surface the role lands on — page,
+#       alt band, panel, its own solid fill, and the accent it must not be
+#       confused with. Semantic values therefore DIFFER per theme; a theme
+#       picker must show them alongside the themed swatches, not as a shared
+#       row.
 #   A3  five of seven accent/secondary pairs sat 140-175 degrees apart -
 #       near-complementary, the highest-tension relationship. The set now spans
 #       split-complementary, analogous, triadic and monochrome.
@@ -54,7 +58,7 @@ VISUAL_STYLE_PRESETS: dict[str, dict] = {
                 "muted_text_color": "#6E605C", "border_color": "#DFD8D5", "border_strong_color": "#917A72",
                 "accent_color": "#955037", "accent_text_color": "#FFFFFF", "accent_hover_color": "#7F442F",
                 "accent_pressed_color": "#683826", "secondary_accent_color": "#3F6B61", "secondary_text_color": "#FFFFFF",
-                "success_color": "#2E774F", "warning_color": "#8D6226", "danger_color": "#B54639",
+                "success_color": "#2D784E", "warning_color": "#5A411D", "danger_color": "#753129",
                 "focus_ring_color": "#BA6445", "disabled_surface_color": "#E6D9D5", "disabled_text_color": "#867A76",
                 "scrim_color": "rgba(0,0,0,0.5)",
             },
@@ -64,7 +68,7 @@ VISUAL_STYLE_PRESETS: dict[str, dict] = {
                 "muted_text_color": "#A19693", "border_color": "#4A3D38", "border_strong_color": "#8A756D",
                 "accent_color": "#CE9985", "accent_text_color": "#14110F", "accent_hover_color": "#D8AE9E",
                 "accent_pressed_color": "#E2C4B8", "secondary_accent_color": "#75AB9E", "secondary_text_color": "#14110F",
-                "success_color": "#378D5D", "warning_color": "#A5732C", "danger_color": "#C85C4F",
+                "success_color": "#388D5E", "warning_color": "#A07537", "danger_color": "#C16155",
                 "focus_ring_color": "#BB6646", "disabled_surface_color": "#43342E", "disabled_text_color": "#897E79",
                 "scrim_color": "rgba(0,0,0,0.66)",
             },
@@ -84,7 +88,7 @@ VISUAL_STYLE_PRESETS: dict[str, dict] = {
                 "muted_text_color": "#6C635A", "border_color": "#DFDAD5", "border_strong_color": "#8D7F70",
                 "accent_color": "#835D33", "accent_text_color": "#FFFFFF", "accent_hover_color": "#6D4D2A",
                 "accent_pressed_color": "#573E22", "secondary_accent_color": "#4C6877", "secondary_text_color": "#FFFFFF",
-                "success_color": "#2F7951", "warning_color": "#8D6426", "danger_color": "#B6483A",
+                "success_color": "#2F7951", "warning_color": "#5B421F", "danger_color": "#76332A",
                 "focus_ring_color": "#A3743F", "disabled_surface_color": "#E6DED5", "disabled_text_color": "#857E76",
                 "scrim_color": "rgba(0,0,0,0.5)",
             },
@@ -94,7 +98,7 @@ VISUAL_STYLE_PRESETS: dict[str, dict] = {
                 "muted_text_color": "#A29C94", "border_color": "#4A4238", "border_strong_color": "#887B6C",
                 "accent_color": "#C49F74", "accent_text_color": "#14120F", "accent_hover_color": "#CFB08D",
                 "accent_pressed_color": "#D9C2A6", "secondary_accent_color": "#8AA5B2", "secondary_text_color": "#14120F",
-                "success_color": "#378E5E", "warning_color": "#A5752C", "danger_color": "#C85E50",
+                "success_color": "#3A8E60", "warning_color": "#A07739", "danger_color": "#C06559",
                 "focus_ring_color": "#A67740", "disabled_surface_color": "#433A2E", "disabled_text_color": "#8B847B",
                 "scrim_color": "rgba(0,0,0,0.66)",
             },
@@ -114,7 +118,7 @@ VISUAL_STYLE_PRESETS: dict[str, dict] = {
                 "muted_text_color": "#646363", "border_color": "#DADADA", "border_strong_color": "#80807F",
                 "accent_color": "#2C2A29", "accent_text_color": "#FFFFFF", "accent_hover_color": "#1C1B1A",
                 "accent_pressed_color": "#0C0C0B", "secondary_accent_color": "#545F6F", "secondary_text_color": "#FFFFFF",
-                "success_color": "#2F7850", "warning_color": "#8C6325", "danger_color": "#B54739",
+                "success_color": "#3D7657", "warning_color": "#806742", "danger_color": "#9B5950",
                 "focus_ring_color": "#7F7C7A", "disabled_surface_color": "#DEDDDD", "disabled_text_color": "#7E7D7D",
                 "scrim_color": "rgba(0,0,0,0.5)",
             },
@@ -124,7 +128,7 @@ VISUAL_STYLE_PRESETS: dict[str, dict] = {
                 "muted_text_color": "#9A9A99", "border_color": "#414141", "border_strong_color": "#7B7B7A",
                 "accent_color": "#B8B3AE", "accent_text_color": "#121212", "accent_hover_color": "#C9C5C1",
                 "accent_pressed_color": "#D9D7D4", "secondary_accent_color": "#8F9BAB", "secondary_text_color": "#121212",
-                "success_color": "#378D5D", "warning_color": "#A5742C", "danger_color": "#C85D4F",
+                "success_color": "#478B66", "warning_color": "#987A4E", "danger_color": "#AF6C63",
                 "focus_ring_color": "#807E7B", "disabled_surface_color": "#393939", "disabled_text_color": "#828281",
                 "scrim_color": "rgba(0,0,0,0.66)",
             },
@@ -144,7 +148,7 @@ VISUAL_STYLE_PRESETS: dict[str, dict] = {
                 "muted_text_color": "#59656E", "border_color": "#D5DBDF", "border_strong_color": "#6F8391",
                 "accent_color": "#2E6892", "accent_text_color": "#FFFFFF", "accent_hover_color": "#27577B",
                 "accent_pressed_color": "#1F4763", "secondary_accent_color": "#2B6E64", "secondary_text_color": "#FFFFFF",
-                "success_color": "#2E7758", "warning_color": "#836723", "danger_color": "#BF3C3D",
+                "success_color": "#297856", "warning_color": "#826726", "danger_color": "#BF3C3D",
                 "focus_ring_color": "#3A82B7", "disabled_surface_color": "#D3DFE7", "disabled_text_color": "#757F87",
                 "scrim_color": "rgba(0,0,0,0.5)",
             },
@@ -154,7 +158,7 @@ VISUAL_STYLE_PRESETS: dict[str, dict] = {
                 "muted_text_color": "#929CA2", "border_color": "#37434B", "border_strong_color": "#6A7E8B",
                 "accent_color": "#77ABCF", "accent_text_color": "#0F1215", "accent_hover_color": "#91BBD8",
                 "accent_pressed_color": "#ACCCE2", "secondary_accent_color": "#4BB1A1", "secondary_text_color": "#0F1215",
-                "success_color": "#378D67", "warning_color": "#9A7929", "danger_color": "#CB5A5A",
+                "success_color": "#348D67", "warning_color": "#997B30", "danger_color": "#C85C5D",
                 "focus_ring_color": "#3B85B9", "disabled_surface_color": "#2D3B44", "disabled_text_color": "#79848B",
                 "scrim_color": "rgba(0,0,0,0.66)",
             },
@@ -174,7 +178,7 @@ VISUAL_STYLE_PRESETS: dict[str, dict] = {
                 "muted_text_color": "#5B6861", "border_color": "#D7DEDA", "border_strong_color": "#71877C",
                 "accent_color": "#377052", "accent_text_color": "#FFFFFF", "accent_hover_color": "#2D5B43",
                 "accent_pressed_color": "#234734", "secondary_accent_color": "#885C30", "secondary_text_color": "#FFFFFF",
-                "success_color": "#2F7957", "warning_color": "#886724", "danger_color": "#AF4F37",
+                "success_color": "#25513C", "warning_color": "#826833", "danger_color": "#A35644",
                 "focus_ring_color": "#458C66", "disabled_surface_color": "#D7E4DD", "disabled_text_color": "#78837D",
                 "scrim_color": "rgba(0,0,0,0.5)",
             },
@@ -184,7 +188,7 @@ VISUAL_STYLE_PRESETS: dict[str, dict] = {
                 "muted_text_color": "#96A19B", "border_color": "#3A4841", "border_strong_color": "#6E8478",
                 "accent_color": "#6FB48F", "accent_text_color": "#101412", "accent_hover_color": "#86C0A1",
                 "accent_pressed_color": "#9ECCB4", "secondary_accent_color": "#C6996B", "secondary_text_color": "#101412",
-                "success_color": "#378E65", "warning_color": "#9E792A", "danger_color": "#C66149",
+                "success_color": "#418D69", "warning_color": "#987B3E", "danger_color": "#B76B58",
                 "focus_ring_color": "#479169", "disabled_surface_color": "#314139", "disabled_text_color": "#7E8A83",
                 "scrim_color": "rgba(0,0,0,0.66)",
             },
@@ -204,7 +208,7 @@ VISUAL_STYLE_PRESETS: dict[str, dict] = {
                 "muted_text_color": "#695E6D", "border_color": "#DCD6DE", "border_strong_color": "#8A7890",
                 "accent_color": "#89469D", "accent_text_color": "#FFFFFF", "accent_hover_color": "#773D88",
                 "accent_pressed_color": "#643373", "secondary_accent_color": "#5656B7", "secondary_text_color": "#FFFFFF",
-                "success_color": "#2E765B", "warning_color": "#915F27", "danger_color": "#B9413B",
+                "success_color": "#32765C", "warning_color": "#8B6133", "danger_color": "#AE4944",
                 "focus_ring_color": "#A360B8", "disabled_surface_color": "#E2D6E5", "disabled_text_color": "#827886",
                 "scrim_color": "rgba(0,0,0,0.5)",
             },
@@ -214,7 +218,7 @@ VISUAL_STYLE_PRESETS: dict[str, dict] = {
                 "muted_text_color": "#9C939F", "border_color": "#453A48", "border_strong_color": "#847189",
                 "accent_color": "#C096CC", "accent_text_color": "#131014", "accent_hover_color": "#CEAED8",
                 "accent_pressed_color": "#DDC6E3", "secondary_accent_color": "#9C9CD1", "secondary_text_color": "#131014",
-                "success_color": "#368C6B", "warning_color": "#AB702D", "danger_color": "#C95A54",
+                "success_color": "#3E8B6E", "warning_color": "#A47440", "danger_color": "#BD635E",
                 "focus_ring_color": "#A361B8", "disabled_surface_color": "#3D3141", "disabled_text_color": "#857B88",
                 "scrim_color": "rgba(0,0,0,0.66)",
             },
@@ -234,7 +238,7 @@ VISUAL_STYLE_PRESETS: dict[str, dict] = {
                 "muted_text_color": "#6E5D62", "border_color": "#DFD5D8", "border_strong_color": "#93767F",
                 "accent_color": "#A23F5D", "accent_text_color": "#FFFFFF", "accent_hover_color": "#8C3650",
                 "accent_pressed_color": "#762E44", "secondary_accent_color": "#336D44", "secondary_text_color": "#FFFFFF",
-                "success_color": "#2E774D", "warning_color": "#8E6026", "danger_color": "#B54439",
+                "success_color": "#2E774D", "warning_color": "#8A622F", "danger_color": "#722F29",
                 "focus_ring_color": "#BE5978", "disabled_surface_color": "#E6D5D9", "disabled_text_color": "#87777C",
                 "scrim_color": "rgba(0,0,0,0.5)",
             },
@@ -244,7 +248,7 @@ VISUAL_STYLE_PRESETS: dict[str, dict] = {
                 "muted_text_color": "#A09296", "border_color": "#4A383E", "border_strong_color": "#8C6F77",
                 "accent_color": "#D193A5", "accent_text_color": "#140F11", "accent_hover_color": "#DCACBA",
                 "accent_pressed_color": "#E6C5CF", "secondary_accent_color": "#61B077", "secondary_text_color": "#140F11",
-                "success_color": "#368C5A", "warning_color": "#A7722C", "danger_color": "#C85B50",
+                "success_color": "#398C5C", "warning_color": "#A2743A", "danger_color": "#C06158",
                 "focus_ring_color": "#BE5977", "disabled_surface_color": "#432E35", "disabled_text_color": "#88797D",
                 "scrim_color": "rgba(0,0,0,0.66)",
             },
@@ -264,7 +268,7 @@ VISUAL_STYLE_PRESETS: dict[str, dict] = {
                 "muted_text_color": "#A0A996", "border_color": "#424F33", "border_strong_color": "#788C60",
                 "accent_color": "#75B926", "accent_text_color": "#12160E", "accent_hover_color": "#88D42F",
                 "accent_pressed_color": "#99DA4C", "secondary_accent_color": "#AD97E2", "secondary_text_color": "#12160E",
-                "success_color": "#389164", "warning_color": "#A5792C", "danger_color": "#C86350",
+                "success_color": "#29965F", "warning_color": "#AD7C28", "danger_color": "#D3624E",
                 "focus_ring_color": "#5E991B", "disabled_surface_color": "#3A4928", "disabled_text_color": "#88937B",
                 "scrim_color": "rgba(0,0,0,0.66)",
             },
