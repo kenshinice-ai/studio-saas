@@ -18,10 +18,17 @@ INCOMING_DIR="${PWESTUDIO_INCOMING_DIR:-/opt/pwestudio/shared/incoming}"
 # 3 = the running release, the one it would roll back to, and one spare.
 KEEP_RELEASES="${PWESTUDIO_KEEP_RELEASES:-3}"
 KEEP_IMAGES="${PWESTUDIO_KEEP_IMAGES:-3}"
-# Age, not size. The largest cache entry is the pip-install mount: 96 MB, used
-# by every build, last touched minutes ago. `builder prune -a` would delete it
-# and make the next deploy — including a rollback rebuild — start from nothing.
-BUILD_CACHE_MAX_AGE="${PWESTUDIO_BUILD_CACHE_MAX_AGE:-336h}"
+# Size, evicted least-recently-used first — NOT `-a`, and not an age filter.
+#
+# `builder prune -a` would delete the pip-install mount: 96 MB, used by every
+# build, last touched minutes before this was written. Losing it makes the next
+# deploy, and any rollback rebuild (`compose up --build`), start from nothing.
+#
+# An age filter was tried first and reclaimed 0 B: `until=336h` finds nothing on
+# an instance whose whole history is four days old, while 19 builds of stale
+# per-build layers sat there. Cache pressure here is a function of deploy count,
+# not of time, so the cap has to be a size.
+BUILD_CACHE_MAX_BYTES="${PWESTUDIO_BUILD_CACHE_MAX_BYTES:-1073741824}"   # 1 GiB
 BASE_COMPOSE="$ROOT/deploy/aws/docker-compose.yml"
 LIGHTSAIL_COMPOSE="$ROOT/deploy/aws/docker-compose.lightsail.yml"
 
@@ -199,8 +206,18 @@ case "${1:-}" in
       run "docker image rm 'studiosaas:$tag' >/dev/null 2>&1 || true"
     done
 
-    echo "build cache older than $BUILD_CACHE_MAX_AGE:"
-    run "docker builder prune -f --filter 'until=$BUILD_CACHE_MAX_AGE'"
+    # The flag was renamed: --keep-storage on Docker <= 28, --max-used-space on
+    # 29+. Probe rather than pin, so this keeps working across an engine upgrade
+    # instead of silently pruning nothing.
+    if docker builder prune --help 2>&1 | grep -q -- '--max-used-space'; then
+      cache_flag="--max-used-space $BUILD_CACHE_MAX_BYTES"
+    elif docker builder prune --help 2>&1 | grep -q -- '--keep-storage'; then
+      cache_flag="--keep-storage $BUILD_CACHE_MAX_BYTES"
+    else
+      cache_flag="--filter until=336h"
+    fi
+    echo "build cache (cap: $cache_flag):"
+    run "docker builder prune -f $cache_flag"
     echo "dangling images:"
     run "docker image prune -f"
     docker system df
