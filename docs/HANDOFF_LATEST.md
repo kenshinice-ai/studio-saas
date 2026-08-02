@@ -31,16 +31,27 @@ absent it creates the mountpoint root-owned.** The app runs as uid 10001. The
 Dockerfile's `chown -R ... /app` runs at build time and cannot reach a volume
 that is mounted at run time.
 
-## The fix has two halves, and rebuilding is only one of them
+## The fix
 
 `deploy/aws/Dockerfile` now creates `/app/backend/archives/tenants` before the
-chown, so any **fresh** volume seeds as 10001. **Docker only seeds on first
-creation, so an already-root-owned volume is not repaired by deploying.** That
-one is fixed by hand, once:
+chown, so the volume seeds as 10001.
 
-```bash
-ssh pwestudio "cd /opt/pwestudio/current && docker compose -p pwestudio --env-file /opt/pwestudio/shared/production.env -f deploy/aws/docker-compose.yml -f deploy/aws/docker-compose.lightsail.yml --profile local-db exec -u 0 -T app chown -R 10001:10001 /app/backend/archives"
+**Deploying was enough here, and the reason is worth knowing.** Docker seeds a
+named volume from the image path whenever the volume is *empty*, not only at
+first creation — and this volume had always been empty, because the feature it
+existed for had never once succeeded. So recreating the container on v8.2.10
+copied in the new directory with its ownership. Verified in the container after
+deploy:
+
+```text
+drwxr-xr-x 3 10001 10001  /app/backend/archives
+archive root OK: /app/backend/archives/tenants     # _ensure_archive_base(), as the app user
 ```
+
+Had a single archive ever been written, the volume would not have been empty,
+nothing would have been re-seeded, and the repair would have needed a one-time
+`exec -u 0 app chown -R 10001:10001 /app/backend/archives`. Keep that in mind
+for any other volume mounted over a path absent from the image.
 
 ## Why the symptom was a bare 500
 
