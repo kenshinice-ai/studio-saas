@@ -53,6 +53,26 @@ then without `--dry-run`. It is idempotent, and it skips `theme_mode=custom`
 tenants by design — a studio that hand-tuned its colours chose those values.
 Any colour input in studio-admin flips the tenant to `custom`, so this is safe.
 
+**Production state as of this release.** v8.2.9 is deployed and healthy
+(`appVersion 8.2.9`, deep health ok, public edge verified) and the *presets*
+served by `/v1/industry-presets` are the new ones — so the theme picker and any
+new tenant already show them. The **tenant refresh has not been run in
+production**: a dry run reported 6 preset tenants to migrate
+(`dance-dance`, `lets-paint-showcase`, `lets-paint-studio`, `lets-play-game`,
+`lets-play-piano`, `ruby-s-studio`) and 1 custom skipped (`isolation-alpha`),
+but the write was blocked by the local permission classifier. Until it runs,
+existing tenants keep their v8.2.8 status colours. A logical dump was taken
+first: `studiosaas_studiosaas_20260802T041551Z.dump`. The command is:
+
+```bash
+ssh pwestudio "cd /opt/pwestudio/current && docker compose -p pwestudio --env-file /opt/pwestudio/shared/production.env -f deploy/aws/docker-compose.yml -f deploy/aws/docker-compose.lightsail.yml --profile local-db exec -T app python backend/scripts/migrate_visual_themes.py"
+```
+
+Note the compose invocation: `lightsail_ctl.sh` composes *both* files with
+`-p pwestudio --profile local-db`, and running a bare
+`docker compose -f docker-compose.lightsail.yml` instead fails with
+"service db has neither an image nor a build context".
+
 ## Guards added
 
 `backend/tests/test_visual_theme_coherence.py` now asserts the five surface
