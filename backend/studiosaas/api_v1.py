@@ -73,6 +73,7 @@ from .services.tenant_archive import (
     restore_tenant,
 )
 from .services import notifications as _notifications
+from .services.public_site import public_plan_rows
 from .services.student_access import (
     access_lock_seconds_remaining as _student_access_lock_seconds,
     access_locked as _student_access_locked,
@@ -1172,6 +1173,13 @@ def _plan_payload(payload: dict) -> dict:
     features = payload.get("features", {})
     if not isinstance(features, dict):
         raise ValueError("Plan features must be a JSON object.")
+    # Publication defaults to off. A plan reaching the public pricing page
+    # because somebody created it is the failure migration 0023 closed; the
+    # decision to sell one is separate from the decision to define it.
+    is_public = bool(payload.get("isPublic", payload.get("is_public", False)))
+    is_recommended = bool(payload.get("isRecommended", payload.get("is_recommended", False)))
+    if is_recommended and not is_public:
+        raise ValueError("A recommended plan must also be published.")
     return {
         "code": code,
         "name": name,
@@ -1180,7 +1188,26 @@ def _plan_payload(payload: dict) -> dict:
         "user_limit": user_limit,
         "storage_limit_mb": storage_limit_mb,
         "features_json": json.dumps(features),
+        "is_public": is_public,
+        "is_recommended": is_recommended,
     }
+
+
+def _clear_other_recommended(cur, plan: dict, code: str) -> None:
+    """Recommendation is a radio, not a checkbox.
+
+    A unique partial index guarantees at most one recommended plan. Without
+    this the second plan an operator marks would fail on a constraint the UI
+    never mentioned; here it simply moves the badge, which is what the click
+    meant.
+    """
+
+    if not plan["is_recommended"]:
+        return
+    cur.execute(
+        "UPDATE plans SET is_recommended = false WHERE is_recommended AND code <> %s",
+        (code,),
+    )
 
 
 def _tenant_write_payload(payload: dict, *, require_slug: bool) -> dict:
@@ -5636,31 +5663,16 @@ def legacy_cms_portfolio_update(student_id: str, portfolio_item_id: str):
 def public_plans():
     """Pricing for the marketing site — public fields only, no auth.
 
-    The home page printed AUD 99 as literal HTML, which is how it came to
-    disagree with the database once already. It now reads this.
-
-    `features` is deliberately NOT selected. That column carries entitlement
-    flags — what a plan may switch on inside the product — and it is edited from
-    the platform console without anyone thinking about a public page. Selecting
-    the columns by name means a flag added tomorrow cannot leak by default;
-    `SELECT *` would have made that an accident waiting to happen.
+    The rows come from `services.public_site.public_plan_rows`, which is also
+    what renders the home page's pricing cards. One query for both means the
+    JSON an integrator reads and the numbers a visitor sees cannot disagree;
+    the reason its columns are named rather than starred is documented there.
 
     Prices are public by definition — they are printed on the marketing page
     this feeds — so there is nothing here an anonymous caller should not see.
     """
 
-    with connect() as conn:
-        rows = fetch_all(
-            conn,
-            """
-            SELECT code, name, monthly_price_aud, student_limit, user_limit,
-                   storage_limit_mb
-            FROM plans
-            ORDER BY monthly_price_aud
-            """,
-            (),
-        )
-    response = jsonify({"plans": rows})
+    response = jsonify({"plans": public_plan_rows()})
     # Pricing changes rarely and this is on the critical path of the public
     # home page; a short shared cache keeps a traffic spike off PostgreSQL.
     response.headers["Cache-Control"] = "public, max-age=300"
@@ -5677,7 +5689,7 @@ def list_plans():
             conn,
             """
             SELECT code, name, monthly_price_aud, student_limit, user_limit,
-                   storage_limit_mb, features
+                   storage_limit_mb, features, is_public, is_recommended
             FROM plans
             ORDER BY monthly_price_aud
             """,
@@ -5699,13 +5711,15 @@ def create_plan():
         return _error(str(exc))
     with connect() as conn:
         with conn.cursor() as cur:
+            _clear_other_recommended(cur, plan, plan["code"])
             cur.execute(
                 """
                 INSERT INTO plans (
                     code, name, monthly_price_aud, student_limit,
-                    user_limit, storage_limit_mb, features
+                    user_limit, storage_limit_mb, features,
+                    is_public, is_recommended
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s::jsonb)
+                VALUES (%s, %s, %s, %s, %s, %s, %s::jsonb, %s, %s)
                 """,
                 (
                     plan["code"],
@@ -5715,6 +5729,8 @@ def create_plan():
                     plan["user_limit"],
                     plan["storage_limit_mb"],
                     plan["features_json"],
+                    plan["is_public"],
+                    plan["is_recommended"],
                 ),
             )
         _audit(conn, tenant_id=None, action="plan.created", resource_type="plan", resource_id=plan["code"])
@@ -5747,6 +5763,7 @@ def mutate_plan(code: str):
         except ValueError as exc:
             return _error(str(exc))
         with conn.cursor() as cur:
+            _clear_other_recommended(cur, plan, code)
             cur.execute(
                 """
                 UPDATE plans
@@ -5755,7 +5772,9 @@ def mutate_plan(code: str):
                     student_limit = %s,
                     user_limit = %s,
                     storage_limit_mb = %s,
-                    features = %s::jsonb
+                    features = %s::jsonb,
+                    is_public = %s,
+                    is_recommended = %s
                 WHERE code = %s
                 """,
                 (
@@ -5765,6 +5784,8 @@ def mutate_plan(code: str):
                     plan["user_limit"],
                     plan["storage_limit_mb"],
                     plan["features_json"],
+                    plan["is_public"],
+                    plan["is_recommended"],
                     code,
                 ),
             )

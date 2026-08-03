@@ -1802,6 +1802,7 @@
               <th>Plan</th>
               <th>Price/Month</th>
               <th>Limits</th>
+              <th>Public</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -3201,6 +3202,23 @@
       `;
     }
 
+    // Publication is not the same decision as definition: a plan exists as
+    // soon as it is created, but it only appears on the public pricing page
+    // when somebody says it is for sale. Before migration 0023 the two were
+    // the same act, and a fixture plan reached the public grid at A$1.
+    function planPublicationEditor(plan = {}) {
+      return `
+        <fieldset class="form-section" style="padding:14px;">
+          <legend style="padding:0 6px;font-weight:800;">Public pricing page</legend>
+          <div class="form-grid">
+            <label style="display:flex;align-items:center;gap:9px;"><input type="checkbox" id="m_planPublic" style="width:auto;" ${plan.is_public ? 'checked' : ''}> Publish on pwestudio.online</label>
+            <label style="display:flex;align-items:center;gap:9px;"><input type="checkbox" id="m_planRecommended" style="width:auto;" ${plan.is_recommended ? 'checked' : ''}> Mark as the recommended plan</label>
+          </div>
+          <small>Only one plan carries the badge; ticking it here clears it elsewhere.</small>
+        </fieldset>
+      `;
+    }
+
     function collectPlanFeatures() {
       let additional;
       try { additional = JSON.parse($('m_planFeaturesAdvanced').value || '{}'); }
@@ -3258,6 +3276,7 @@
           <div class="form-group"><label for="m_planStorage">Storage (MB)</label><input id="m_planStorage" type="number" min="1" value="51200"></div>
         </div>
         ${/*safe*/planFeatureEditor({ public_registration: true, portfolio: true })}
+        ${/*safe*/planPublicationEditor()}
       `;
       const footerHtml = `<button onclick="savePlanModal()" class="btn-primary">Save Plan</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
       openModal('Add Plan', bodyHtml, footerHtml);
@@ -3277,6 +3296,7 @@
           <div class="form-group"><label for="m_planStorage">Storage (MB)</label><input id="m_planStorage" type="number" min="1" value="${esc(p.storage_limit_mb)}"></div>
         </div>
         ${/*safe*/planFeatureEditor(p.features || {})}
+        ${/*safe*/planPublicationEditor(p)}
       `;
       const footerHtml = `<button onclick="savePlanModal()" class="btn-primary">Save Plan</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
       openModal(`Edit ${/*safe*/p.name}`, bodyHtml, footerHtml); // title renders via textContent
@@ -3299,7 +3319,9 @@
         studentLimit: Number($('m_planStudents').value),
         userLimit: Number($('m_planUsers').value),
         storageLimitMb: Number($('m_planStorage').value),
-        features
+        features,
+        isPublic: $('m_planPublic').checked,
+        isRecommended: $('m_planRecommended').checked
       };
       await api(editingPlanCode ? `/plans/${editingPlanCode}` : '/plans', {
         method: editingPlanCode ? 'PATCH' : 'POST',
@@ -3477,7 +3499,7 @@
         const plansBody = $('plansBody');
         plansBody.replaceChildren();
         if (planResult.status !== 'fulfilled') {
-          appendEmptyRow(plansBody, 4, failureMessage('Plans unavailable', planResult));
+          appendEmptyRow(plansBody, 5, failureMessage('Plans unavailable', planResult));
         } else if (plans.length) {
           plans.forEach((p) => {
             const row = document.createElement('tr');
@@ -3489,6 +3511,21 @@
             nameCell.append(strong, document.createElement('br'), code);
             addCell(row, money(p.monthly_price_aud));
             renderPlanQuota(addCell(row), p);
+            // Whether a plan is on the public pricing page is a commercial
+            // fact about it, so it belongs in the list rather than two clicks
+            // inside an edit dialog.
+            const publication = addCell(row);
+            const state = document.createElement('span');
+            state.className = p.is_public ? 'pill active' : 'pill archived';
+            state.textContent = p.is_public ? 'Published' : 'Not published';
+            publication.appendChild(state);
+            if (p.is_recommended) {
+              const badge = document.createElement('span');
+              badge.className = 'pill warning';
+              badge.style.marginLeft = '6px';
+              badge.textContent = 'Recommended';
+              publication.appendChild(badge);
+            }
             const actions = document.createElement('div');
             actions.className = 'action-row';
             addActionButton(actions, 'Edit', 'btn-secondary btn-sm', () => editPlan(p.code));
@@ -3497,7 +3534,7 @@
             plansBody.appendChild(row);
           });
         } else {
-          appendEmptyRow(plansBody, 4, 'No plans configured.');
+          appendEmptyRow(plansBody, 5, 'No plans configured.');
         }
 
         renderTenants();

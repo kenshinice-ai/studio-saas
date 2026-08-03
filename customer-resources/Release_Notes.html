@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0e1729">
   <meta name="robots" content="index,follow">
-  <meta name="description" content="PWE Studio release evidence: what each release changes, what the production deployment established, and what remains deferred. Current release v8.2.19.">
+  <meta name="description" content="PWE Studio release evidence: what each release changes, what the production deployment established, and what remains deferred. Current release v8.2.20.">
   <title>PWE Studio Release Evidence</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <!-- Brand values come from ui-tokens.css; presentation from
@@ -27,7 +27,7 @@
   <h1 data-lang="zh">发布依据</h1>
   <p class="lede" data-lang="en">A customer-readable record of what this release changes, what the production deployment established, and which commitments remain deferred.</p>
   <p class="lede" data-lang="zh">面向客户的记录：本次发布改了什么、生产部署确立了什么，以及哪些承诺仍未完成。</p>
-  <p class="status"><span data-lang="en">Current release v8.2.19 · deployed 2 August 2026 · monitoring and SLA deferred</span><span data-lang="zh">当前版本 v8.2.19 · 部署于 2026 年 8 月 2 日 · 监控与 SLA 延后</span></p>
+  <p class="status"><span data-lang="en">Current release v8.2.20 · deployed 3 August 2026 · monitoring and SLA deferred</span><span data-lang="zh">当前版本 v8.2.20 · 部署于 2026 年 8 月 3 日 · 监控与 SLA 延后</span></p>
 
   <h2 data-lang="en">Since v8.1.0</h2>
   <h2 data-lang="zh">v8.1.0 之后</h2>
@@ -58,6 +58,16 @@
       <strong data-lang="en">Data retention (v8.2.19)</strong><strong data-lang="zh">数据保留（v8.2.19）</strong>
       <p data-lang="en">Audit records, analytics events, notification records and access sessions previously had no expiry. Retention now applies on a schedule — audit records are kept two years, analytics one year — so the service does not accumulate indefinitely. Consent records are deliberately exempt and are never deleted.</p>
       <p data-lang="zh">审计记录、分析事件、通知记录与访问会话此前没有任何有效期。现已按计划应用保留策略——审计记录保留两年、分析数据保留一年——服务不会无限累积。发布同意记录属于法律证据，明确豁免，永不删除。</p>
+    </article>
+    <article class="card">
+      <strong data-lang="en">Pricing comes from the plan table (v8.2.19–v8.2.20)</strong><strong data-lang="zh">定价直接取自套餐表（v8.2.19–v8.2.20）</strong>
+      <p data-lang="en">The public pricing page used to state its plan limits as fixed text, and they had already drifted from what the product enforces. The page now reads the plan table directly, so a figure it prints is a figure the system honours. A plan is also no longer published simply because it exists: publication is a setting an operator turns on, which keeps internal and test plans off the public page.</p>
+      <p data-lang="zh">公开定价页此前把套餐额度写成固定文本，而这些数字已经与产品实际执行的额度出现偏差。现在页面直接读取套餐表，页面上印出的数字就是系统承认的数字。套餐也不再因为存在就被公开：是否发布由运营人员开关控制，内部与测试套餐不会出现在公开页面上。</p>
+    </article>
+    <article class="card">
+      <strong data-lang="en">Product website rebuilt (v8.2.20)</strong><strong data-lang="zh">产品官网重做（v8.2.20）</strong>
+      <p data-lang="en">The home page was rebuilt on the studio's own design system and now follows the reader's light or dark system setting. English and Chinese have separate addresses — pwestudio.online and pwestudio.online/zh/ — instead of both rendering into one page, so each is a page in one language for readers and for search engines alike.</p>
+      <p data-lang="zh">首页按本工作室自有的设计系统重做，并跟随访问者系统的浅色 / 深色设置。中英文各有独立网址——pwestudio.online 与 pwestudio.online/zh/——不再同时渲染在同一页面上，无论对读者还是搜索引擎，每个地址都是单一语言的页面。</p>
     </article>
     <article class="card">
       <strong data-lang="en">Platform console (v8.2.4–v8.2.11)</strong><strong data-lang="zh">平台控制台（v8.2.4–v8.2.11）</strong>

@@ -3,450 +3,762 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#F7F5F2">
-  <!-- SEO: the title leads with what a studio owner actually searches for
-       ("studio management software" plus the disciplines we serve) and keeps
-       the brand as the trailing qualifier. The previous title led with the
-       brand and the tagline — nobody searches a tagline, and the page ranked
-       for nothing but its own name. Kept under 60 characters so Google does
-       not truncate it. -->
-  <title>Studio Management Software for Art, Music &amp; Dance | PWE Studio</title>
-  <meta name="description" content="Run enrolments, class schedules, attendance, credit packages and student portfolios in one place. PWE Studio is studio management software for art, music, dance and tutoring schools in Australia.">
-  <meta name="keywords" content="studio management software, class scheduling software, student attendance tracking, art studio software, music school management, dance studio software, 工作室管理系统, 排课系统">
-  <link rel="canonical" href="https://pwestudio.online/">
+  <!-- The browser chrome follows whichever surface the visitor is on. -->
+  <meta name="theme-color" content="#0e1729" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f7f5f2" media="(prefers-color-scheme: light)">
+
+  <!-- ONE LANGUAGE PER URL.
+       Every `data-lang` element below is removed server-side before the page
+       is sent: `/` serves the English subtree, `/zh/` serves the Chinese one.
+       Both languages used to render into one DOM with a self-referential
+       canonical and no hreflang, which is a mixed-language page to a crawler —
+       each language diluting the other on the only URL either of them had.
+       English keeps the root because that is the URL already indexed, the
+       market the copy addresses (en-AU), and the locale the Open Graph tags
+       have always declared. -->
+  <title data-lang="en">Studio Management Software for Art, Music &amp; Dance | PWE Studio</title>
+  <title data-lang="zh">工作室管理系统 · 报名、排课、课时账本 | PWE Studio</title>
+  <meta data-lang="en" name="description" content="Run enrolments, class schedules, attendance, credit packages and student portfolios in one place. PWE Studio is studio management software for art, music, dance and tutoring schools in Australia.">
+  <meta data-lang="zh" name="description" content="报名、排课、签到、课时账本与学员作品集，都在一个系统里。PWE Studio 是面向美术、音乐、舞蹈工作室与培训机构的一体化管理系统。">
+  <meta name="keywords" content="studio management software, class scheduling software, student attendance tracking, art studio software, music school management, dance studio software, 工作室管理系统, 排课系统, 课时账本, 在线报名">
+  <link data-lang="en" rel="canonical" href="https://pwestudio.online/">
+  <link data-lang="zh" rel="canonical" href="https://pwestudio.online/zh/">
+  <!-- Reciprocal, and identical on both pages: an hreflang set that does not
+       point back at itself is ignored. x-default goes to the root. -->
+  <link rel="alternate" hreflang="en-AU" href="https://pwestudio.online/">
+  <link rel="alternate" hreflang="zh-Hans" href="https://pwestudio.online/zh/">
+  <link rel="alternate" hreflang="x-default" href="https://pwestudio.online/">
   <meta name="robots" content="index, follow">
-  <!-- Open Graph / Twitter: a shared link currently renders as a bare URL.
-       These are what make it render as a titled card in Slack, WhatsApp,
-       WeChat and LinkedIn, which is how this product actually gets passed
-       between studio owners. -->
+
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="PWE Studio">
-  <meta property="og:locale" content="en_AU">
-  <meta property="og:locale:alternate" content="zh_CN">
-  <meta property="og:url" content="https://pwestudio.online/">
-  <meta property="og:title" content="Studio Management Software for Art, Music &amp; Dance | PWE Studio">
-  <meta property="og:description" content="Enrolments, scheduling, attendance, credits and student portfolios in one connected system — so studio owners can teach more and reconcile less.">
+  <meta data-lang="en" property="og:locale" content="en_AU">
+  <meta data-lang="en" property="og:locale:alternate" content="zh_CN">
+  <meta data-lang="zh" property="og:locale" content="zh_CN">
+  <meta data-lang="zh" property="og:locale:alternate" content="en_AU">
+  <meta data-lang="en" property="og:url" content="https://pwestudio.online/">
+  <meta data-lang="zh" property="og:url" content="https://pwestudio.online/zh/">
+  <meta data-lang="en" property="og:title" content="Give the time back to the work | PWE Studio">
+  <meta data-lang="zh" property="og:title" content="把时间还给创作 | PWE Studio">
+  <meta data-lang="en" property="og:description" content="Public site, online registration, class-credit ledger and brand front door in one system — so studio owners teach more and reconcile less.">
+  <meta data-lang="zh" property="og:description" content="官网获客、在线报名、课时账本与品牌门面，都在一个系统里 —— 琐事交给系统，你回到教室与作品。">
   <meta property="og:image" content="https://pwestudio.online/assets/showcase-botanical-home.webp">
   <meta property="og:image:alt" content="PWE Studio — studio management for creative schools">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Studio Management Software for Art, Music &amp; Dance | PWE Studio">
-  <meta name="twitter:description" content="Enrolments, scheduling, attendance, credits and student portfolios in one connected system.">
+  <meta data-lang="en" name="twitter:title" content="Give the time back to the work | PWE Studio">
+  <meta data-lang="zh" name="twitter:title" content="把时间还给创作 | PWE Studio">
+  <meta data-lang="en" name="twitter:description" content="Enrolments, scheduling, attendance, credits and student portfolios in one connected system.">
+  <meta data-lang="zh" name="twitter:description" content="报名、排课、签到、课时与作品集，连成一个系统。">
   <meta name="twitter:image" content="https://pwestudio.online/assets/showcase-botanical-home.webp">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <script src="/assets/product-home.js?v=__APP_VERSION__" defer></script>
+  <!-- Structured data is written by the server so its offers carry the same
+       plan rows as the cards below. A price maintained in two places is the
+       drift this release exists to remove. -->
+  <!--PRODUCT-JSONLD-->
   <style>
+    /* ═══════════════════════════════════════════════════════════════════
+       PWE Studio — product home.
+
+       The design language is Paradise Production's, because both products
+       come from one studio and already share one token set: Family Navy
+       #0E1729, Family Amber #F5B335, and the golden section as the generator
+       rather than as decoration. Type advances in φ^(k/2); spacing is the
+       Fibonacci integers that φ converges from; primary splits land on
+       61.8/38.2.
+
+       This replaces a warm-paper page whose navy was held to a 38.2% anchor.
+       That page read as open, but it read as a different company than the one
+       that made it. The reference the owner chose is dark end to end, and on
+       dark the amber finally does the job it was drawn for: at 9.8:1 on navy
+       it is the only warm thing on the page, so it can mark exactly one idea
+       per screen.
+       ═══════════════════════════════════════════════════════════════════ */
     :root {
+      --phi: 1.6180339887;
+
+      /* type — φ^(k/2), the same progression as the wing's feather radii */
+      --f-xs: .618rem;
+      --f-sm: .786rem;
+      --f-0: 1rem;
+      --f-1: 1.272rem;
+      --f-2: 1.618rem;
+      --f-3: 2.058rem;
+      --f-4: 2.618rem;
+      --f-5: 3.33rem;
+      --f-6: 4.236rem;
+
+      /* space — Fibonacci */
+      --s-1: 8px;
+      --s-2: 13px;
+      --s-3: 21px;
+      --s-4: 34px;
+      --s-5: 55px;
+      --s-6: 89px;
+      --s-7: 144px;
+
+      --golden: 61.8%;
+      --golden-inv: 38.2%;
+      --maxw: 1152px;          /* 712 × φ */
+      --measure: 61.8ch;
+      --r: 13px;
+
       --family-navy: #0e1729;
       --family-navy-raised: #16233d;
       --family-navy-soft: #22355a;
-      --family-amber: #f5b335;
-      --family-amber-text: #a16207;
+      --family-amber: #f5b335;      /* dark surfaces — 9.83:1 on Family Navy */
+      --family-amber-text: #a16207; /* light surfaces — 4.52:1 on Warm Paper */
       --warm-paper: #f7f5f2;
       --white: #ffffff;
+
       --slate-600: #475569;
-      --slate-500: #64748b;
-      --slate-200: #e2e8f0;
-      --ink: var(--family-navy);
-      --ink-soft: var(--slate-600);
-      --paper: var(--warm-paper);
-      --paper-bright: var(--white);
-      --line: rgba(14, 23, 41, .14);
-      --line-strong: rgba(14, 23, 41, .34);
-      --shadow: 0 24px 72px rgba(14, 23, 41, .14);
-      --r-sm: 12px;
-      --r-md: 20px;
-      --r-lg: 32px;
-      --space-1: .5rem;
-      --space-2: .875rem;
-      --space-3: 1.375rem;
-      --space-4: 2.25rem;
-      --space-5: 3.625rem;
-      --space-6: 5.875rem;
-      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      color: var(--ink);
-      background: var(--paper);
-      font-synthesis: none;
+      --slate-muted: #5c6470;
+
+      /* SURFACE TOKENS — the page is authored dark and re-skinned light.
+         Everything below the divider is written against these five, so the
+         light theme is a token swap rather than a second stylesheet: there is
+         one layout, one set of proportions, and no chance of the two drifting.
+
+         `--accent` is the important one. Family Amber is 9.83:1 on navy and
+         1.70:1 on Warm Paper, so it cannot be the same value on both. Small
+         amber things — eyebrows, rules, borders, focus rings — read
+         `--accent`; filled amber surfaces with navy text on them (the primary
+         button, the recommended badge) keep the bright tone in both themes,
+         because there it is a background and measures 9.83:1 either way. */
+      --surface: var(--family-navy);
+      --surface-2: var(--family-navy-raised);
+      --card: var(--family-navy-raised);
+      --card-2: var(--family-navy-soft);
+      --card-line: var(--family-navy-soft);
+      --card-line-2: rgba(255, 255, 255, .16);
+      --accent: var(--family-amber);
+      /* Warm white rather than #fff for running text: on navy it measures
+         15.9:1 and keeps the paper temperature the brand is built on. */
+      --ink: var(--warm-paper);
+      --ink-soft: rgba(255, 255, 255, .72);   /* 9.68:1 on navy */
+      --ink-faint: rgba(255, 255, 255, .55);  /* labels and notes, 6.2:1 */
+      --hairline: rgba(255, 255, 255, .14);
+      --control-line: rgba(255, 255, 255, .42);  /* 3.90:1 — WCAG 1.4.11 */
+      --control-fill: rgba(255, 255, 255, .06);
+      --shadow-strong: 0 21px 55px rgba(0, 0, 0, .34);
+      --shadow-art: 0 28px 70px rgba(0, 0, 0, .45);
+      --spark-opacity: .08;
+      --nav-solid: rgba(14, 23, 41, .86);
+      --nav-panel: rgba(14, 23, 41, .97);
+      color-scheme: dark light;
+
+      --serif: Georgia, "Times New Roman", "Songti SC", "Source Han Serif SC", serif;
+      --sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Source Han Sans SC", sans-serif;
+      --ease: cubic-bezier(.2, .7, .2, 1);
     }
     * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
-    body { margin: 0; min-width: 320px; background: var(--paper); }
-    a { color: inherit; }
+    /* 17px root, the same as the sister site. The φ scale is relative, so
+       every step moves with it: --f-sm lands at 13.4px rather than 12.6px,
+       which is the difference between card copy that is legible and card
+       copy that is merely compliant. Back to 16px on small screens, where
+       the measure is narrower. */
+    html { font-size: 17px; scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+    @media (max-width: 640px) { html { font-size: 16px; } }
+    body {
+      margin: 0; min-width: 320px; font-family: var(--sans);
+      line-height: var(--phi);              /* leading = φ */
+      color: var(--ink); background: var(--surface);
+      -webkit-font-smoothing: antialiased; overflow-x: hidden;
+    }
+    img { max-width: 100%; display: block; }
+    a { color: inherit; text-decoration: none; }
     button, input, textarea, select { font: inherit; }
     button, a { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
-    /* Family Amber is a surface colour, not an outline colour: measured against
-       Warm Paper it is 1.70:1 and against white 1.85:1, both under the 3:1 that
-       WCAG 1.4.11 requires of a focus indicator. The accessible amber that the
-       palette already carries for exactly this reason measures 4.52:1 on Warm
-       Paper and 4.92:1 on white. On the navy sections the bright amber is the
-       correct choice at 9.70:1, so it is restored there. */
-    :focus-visible { outline: 3px solid var(--family-amber-text); outline-offset: 3px; }
-    /* Every navy-backed surface, where the bright amber is the readable one. */
-    .support-copy-panel :focus-visible,
-    .button-dark:focus-visible { outline-color: var(--family-amber); }
-    .skip { position: fixed; top: -80px; left: 1rem; z-index: 100; padding: .8rem 1rem; border-radius: 8px; color: var(--family-navy); background: var(--white); }
-    .skip:focus { top: 1rem; }
-    .shell { width: min(1180px, calc(100% - 40px)); margin-inline: auto; }
-    .topbar {
-      position: sticky; top: 0; z-index: 20; border-bottom: 1px solid var(--line);
-      background: rgba(247, 245, 242, .96); color: var(--family-navy); backdrop-filter: blur(18px);
+    /* Amber is the focus indicator everywhere the page is navy. The dark amber
+       is kept for the one light surface left — the skip link — where the
+       bright tone measures 1.85:1 and would fail WCAG 1.4.11. */
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+    .skip {
+      position: fixed; top: -80px; left: var(--s-3); z-index: 100;
+      padding: var(--s-2) var(--s-3); border-radius: var(--r);
+      color: var(--family-navy); background: var(--warm-paper); font-weight: 600;
     }
-    .nav { min-height: 72px; display: flex; align-items: center; gap: var(--space-3); padding-top: env(safe-area-inset-top); }
-    .brand { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: .7rem; text-decoration: none; font-weight: 760; letter-spacing: -.02em; }
-    .brand img { width: 38px; height: 38px; }
-    .navlinks { display: flex; align-items: center; gap: .25rem; margin-left: auto; }
-    .navlinks a, .lang {
-      min-height: 44px; display: inline-flex; align-items: center; justify-content: center;
-      padding: 0 .85rem; border-radius: 999px; color: var(--slate-600); text-decoration: none;
-      border: 0; background: transparent; cursor: pointer; transition: background .2s, color .2s;
+    .skip:focus { top: var(--s-2); outline-color: var(--family-amber-text); }
+
+    .wrap { max-width: var(--maxw); margin-inline: auto; padding-inline: clamp(21px, 4vw, 34px); }
+    section { padding-block: clamp(55px, 8vw, var(--s-7)); }
+    section[id] { scroll-margin-top: 72px; }
+    /* Two navy values give the page a rhythm without leaving the brand: the
+       band alternates, and a card always sits one step lighter than the band
+       it is on, so elevation reads the same way in both. */
+    .band-2 { background: var(--surface-2); }
+
+    /* ── type ──────────────────────────────────────────────────────────── */
+    h1, h2, h3 { font-family: var(--serif); font-weight: 500; letter-spacing: -.012em; margin: 0; }
+    h1 { font-size: clamp(2.058rem, 6.2vw, var(--f-6)); line-height: 1.06; }
+    h2 { font-size: clamp(1.618rem, 4vw, var(--f-4)); line-height: 1.12; }
+    h3 { font-size: var(--f-1); line-height: 1.25; margin-bottom: var(--s-1); }
+    h4 { font-family: var(--sans); font-size: var(--f-0); font-weight: 600; margin: 0 0 6px; }
+    p { margin: 0; color: var(--ink-soft); }
+    .lead { max-width: var(--measure); margin-top: var(--s-3); font-size: clamp(1rem, 1.7vw, var(--f-1)); line-height: 1.55; }
+    .tag {
+      display: inline-flex; align-items: center; gap: var(--s-1); margin-bottom: var(--s-2);
+      color: var(--accent); font-size: var(--f-sm); font-weight: 600;
+      letter-spacing: .18em; text-transform: uppercase;
     }
-    .navlinks a:hover, .lang:hover { color: var(--family-navy); background: rgba(14,23,41,.07); }
-    .navlinks .login { color: var(--white); background: var(--family-navy); font-weight: 700; }
-    /* Golden balance: the main story owns 61.8% of the visual field on Warm
-       Paper; navy is retained as a 38.2% brand anchor behind the artwork. */
-    .hero { position: relative; overflow: hidden; color: var(--family-navy); background: linear-gradient(90deg, var(--paper) 0 61.8%, var(--family-navy) 61.8%); }
-    .hero::before {
-      content: ""; position: absolute; inset: 0 0 0 61.8%; opacity: .28; pointer-events: none;
-      background:
-        radial-gradient(circle at 76% 12%, rgba(245,179,53,.34), transparent 26%),
-        linear-gradient(115deg, transparent 50%, rgba(255,255,255,.08) 50.1%, transparent 50.6%);
+    .tag svg { flex: none; width: 12px; height: 12px; }
+    .note { max-width: var(--measure); margin-top: var(--s-3); color: var(--ink-faint); font-size: var(--f-sm); line-height: 1.6; }
+    .note a { color: var(--accent); }
+    .center { text-align: center; }
+    .center .lead, .center .note { margin-inline: auto; }
+    .center .tag { justify-content: center; }
+    .head { max-width: calc(var(--maxw) * .786); }
+
+    /* ── buttons ───────────────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: var(--s-1);
+      min-height: 48px; padding: var(--s-2) var(--s-4); border: 1px solid transparent;
+      border-radius: 999px; background: var(--family-amber); color: var(--family-navy);
+      font-size: var(--f-0); font-weight: 600; cursor: pointer;
+      transition: transform .2s var(--ease), box-shadow .2s var(--ease), background .2s;
     }
-    .hero-grid {
-      position: relative; min-height: 620px; display: grid; grid-template-columns: minmax(0, 1.618fr) minmax(320px, 1fr);
-      align-items: center; gap: clamp(2.5rem, 5vw, 5rem); padding-block: clamp(3.6rem, 7vw, 6.2rem);
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 13px 34px rgba(245, 179, 53, .28); }
+    .btn:active { transform: scale(.985); }
+    .btn-ghost { background: transparent; color: var(--ink); border-color: var(--control-line); }
+    .btn-ghost:hover { border-color: var(--ink); background: var(--control-fill); box-shadow: none; }
+    .btns { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: var(--s-4); }
+    .center .btns { justify-content: center; }
+
+    /* ── nav ───────────────────────────────────────────────────────────── */
+    .nav {
+      position: sticky; top: 0; z-index: 50; border-bottom: 1px solid transparent;
+      background: var(--surface); transition: background .4s var(--ease), border-color .4s var(--ease);
     }
-    .eyebrow { display: flex; align-items: center; gap: .75rem; margin: 0 0 var(--space-3); color: var(--family-amber-text); font-size: .78rem; font-weight: 750; letter-spacing: .14em; text-transform: uppercase; }
-    .eyebrow::before { content: ""; width: 44px; height: 1px; background: currentColor; }
-    h1 { max-width: 780px; margin: 0; font-size: clamp(3rem, 7vw, 6.6rem); line-height: .96; letter-spacing: -.065em; }
-    .lede { max-width: 650px; margin: var(--space-4) 0 0; color: var(--slate-600); font-size: clamp(1.05rem, 2vw, 1.28rem); line-height: 1.7; }
-    .actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: var(--space-4); }
-    .button {
-      min-height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: .6rem;
-      padding: .75rem 1.15rem; border: 1px solid transparent; border-radius: 999px; text-decoration: none;
-      font-weight: 720; cursor: pointer; transition: transform .2s, box-shadow .2s, background .2s;
+    .nav.solid {
+      background: var(--nav-solid); border-color: var(--hairline);
+      -webkit-backdrop-filter: saturate(160%) blur(14px); backdrop-filter: saturate(160%) blur(14px);
     }
-    .button:hover { transform: translateY(-2px); }
-    .button:active, .role:active { transform: scale(.985); }
-    .button-primary { color: var(--white); background: var(--family-navy); box-shadow: 0 12px 32px rgba(14,23,41,.18); }
-    .button-secondary { border-color: var(--line-strong); background: rgba(255,255,255,.55); color: var(--family-navy); }
-    .button-dark { color: var(--white); background: var(--family-navy); }
-    .hero-card { align-self: stretch; display: grid; align-content: center; }
-    .art-stack { position: relative; min-height: 460px; }
-    .art {
-      position: absolute; overflow: hidden; border: 10px solid rgba(255,253,248,.96); border-radius: 4px;
-      background: var(--white); box-shadow: 0 28px 70px rgba(0,0,0,.38);
+    .nav-in {
+      display: flex; align-items: center; justify-content: space-between; gap: var(--s-3);
+      max-width: var(--maxw); margin-inline: auto; min-height: 56px;
+      padding: env(safe-area-inset-top) clamp(21px, 4vw, 34px) 0;
     }
-    .art img { width: 100%; height: 100%; display: block; object-fit: cover; }
-    .art-a { width: 76%; aspect-ratio: 1; top: 0; right: 0; transform: rotate(3deg); }
-    .art-b { width: 54%; aspect-ratio: 1; left: 0; bottom: 1%; transform: rotate(-5deg); }
-    /* The card is a dark navy panel, but it never set a text colour, so its
-       heading inherited --ink (Family Navy) from the page and measured
-       1.14:1 against its own background — the title was only legible where
-       the translucent panel happened to sit over a pale part of the artwork
-       behind it. White measures 14.6:1 here; the supporting line is lifted to
-       .78 alpha for 7.3:1. */
-    .proof {
-      position: absolute; right: -4%; bottom: 4%; z-index: 4; width: 210px; padding: 1rem;
-      border: 1px solid rgba(245,179,53,.34); border-radius: var(--r-sm); background: rgba(22,35,61,.94);
-      box-shadow: var(--shadow); backdrop-filter: blur(12px); color: var(--white);
+    .brand { display: inline-flex; align-items: center; gap: .55rem; min-height: 44px; font-weight: 600; letter-spacing: -.01em; }
+    .brand img { width: 30px; height: 30px; }
+    .nav-links { display: flex; align-items: center; gap: clamp(13px, 2.1vw, var(--s-3)); color: var(--ink-soft); font-size: var(--f-sm); }
+    .nav-links a { position: relative; display: inline-flex; align-items: center; min-height: 44px; }
+    .nav-links a::after {
+      content: ""; position: absolute; left: 0; bottom: 8px; width: 0; height: 1px;
+      background: var(--accent); transition: width .3s var(--ease);
     }
-    .proof strong { display: block; margin-bottom: .25rem; font-size: 1rem; color: var(--white); }
-    .proof span { color: rgba(255,255,255,.78); font-size: .82rem; line-height: 1.45; }
-    section { padding-block: var(--space-6); }
-    .section-head { display: grid; grid-template-columns: 1.618fr 1fr; gap: var(--space-4); align-items: end; margin-bottom: var(--space-5); }
-    .kicker { margin: 0 0 .75rem; color: var(--family-amber-text); font-size: .78rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
-    h2 { margin: 0; max-width: 760px; font-size: clamp(2.1rem, 5vw, 4.25rem); line-height: 1.02; letter-spacing: -.05em; }
-    .section-head > p { margin: 0; color: var(--ink-soft); line-height: 1.7; }
-    .role-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1rem; }
-    .role {
-      grid-column: span 4; min-height: 250px; display: flex; flex-direction: column; padding: var(--space-3);
-      border: 1px solid var(--line); border-radius: var(--r-md); background: var(--paper-bright);
-      text-decoration: none; box-shadow: 0 10px 34px rgba(14,23,41,.05); transition: transform .2s, border-color .2s, box-shadow .2s;
+    .nav-links a:hover { color: var(--ink); }
+    .nav-links a:hover::after { width: 100%; }
+    .nav-links .lang, .nav-links .nav-cta { min-height: 40px; padding: 0 var(--s-3); border-radius: 999px; }
+    .nav-links .lang { border: 1px solid var(--control-line); font-size: var(--f-xs); }
+    .nav-links .lang:hover { border-color: var(--accent); color: var(--accent); }
+    .nav-links .nav-cta { background: var(--family-amber); color: var(--family-navy); font-weight: 600; }
+    .nav-links .nav-cta:hover { color: var(--family-navy); }
+    .nav-links .lang::after, .nav-links .nav-cta::after { display: none; }
+    .vh { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .menu-btn { display: none; position: relative; width: 44px; height: 44px; padding: 0; border: 0; background: transparent; color: var(--ink); cursor: pointer; place-items: center; }
+    .menu-btn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+    .menu-btn .x { display: none; }
+    body.menu-open .menu-btn .x { display: block; }
+    body.menu-open .menu-btn .bars { display: none; }
+
+    /* ── hero ──────────────────────────────────────────────────────────── */
+    .hero { position: relative; overflow: hidden; padding-block: clamp(64px, 12vw, var(--s-7)); }
+    /* The spark is the brand's one ornament. It sits on the golden section of
+       the hero's height, at 8% so it reads as texture, never as content. */
+    .hero-spark { position: absolute; right: -4%; top: var(--golden-inv); transform: translateY(-50%); opacity: var(--spark-opacity); pointer-events: none; }
+    .hero-spark svg { fill: var(--accent); }
+    .hero-spark svg { width: clamp(220px, 34vw, 420px); height: auto; }
+    .hero-in { position: relative; z-index: 1; }
+    .hero h1 { max-width: 15ch; }
+    .hero .lead { margin-top: var(--s-4); }
+    .split { display: grid; grid-template-columns: 61.8fr 38.2fr; gap: clamp(34px, 5vw, var(--s-6)); align-items: center; }
+    .art-stack { position: relative; min-height: 340px; }
+    .art { position: absolute; overflow: hidden; border: 10px solid rgba(255, 253, 248, .96); border-radius: 4px; background: var(--white); box-shadow: var(--shadow-art); }
+    .art img { width: 100%; height: 100%; object-fit: cover; }
+    .art-a { width: 78%; aspect-ratio: 1; top: 0; right: 0; transform: rotate(3deg); }
+    .art-b { width: 54%; aspect-ratio: 1; left: 0; bottom: 2%; transform: rotate(-5deg); }
+    .proof { max-width: var(--measure); margin-top: var(--s-4); padding-left: var(--s-3); border-left: 2px solid var(--accent); color: var(--ink-soft); font-size: var(--f-sm); line-height: 1.6; }
+    .proof a { color: var(--accent); }
+
+    /* ── grids and cards ───────────────────────────────────────────────── */
+    .grid { display: grid; gap: var(--s-3); margin-top: var(--s-5); }
+    .g2 { grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); }
+    .g3 { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+    .g4 { grid-template-columns: repeat(auto-fit, minmax(212px, 1fr)); }
+    /* Five cards: minmax(250px) resolves to four columns here and leaves
+       one card alone on a second row. 300px resolves to three, so the
+       set reads as 3 + 2. */
+    .industries { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+    .card {
+      display: flex; flex-direction: column; height: 100%; padding: var(--s-4);
+      border: 1px solid var(--card-line); border-radius: var(--r);
+      background: var(--card);
     }
-    .role:hover { transform: translateY(-4px); border-color: var(--line-strong); box-shadow: var(--shadow); }
-    .role svg { width: 28px; height: 28px; color: var(--family-amber-text); }
-    .role h3 { margin: auto 0 .55rem; font-size: 1.4rem; letter-spacing: -.025em; }
-    .role p { margin: 0; color: var(--ink-soft); line-height: 1.55; }
-    .role .arrow { display: inline-flex; align-items: center; gap: .35rem; margin-top: 1rem; color: var(--family-navy); font-weight: 720; }
-    .role-owner { grid-column: span 8; color: var(--family-navy); background: linear-gradient(120deg, #fff8e8, var(--paper-bright)); border-color: rgba(161,98,7,.28); }
-    .role-owner p, .role-owner .arrow { color: var(--slate-600); }
-    .role-owner svg { color: var(--family-amber-text); }
-    .system { background: var(--white); }
-    .flow { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1px; overflow: hidden; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--line); }
-    .flow article { min-height: 190px; padding: var(--space-3); background: var(--paper-bright); }
-    .flow .number { color: var(--family-amber-text); font-size: .78rem; font-weight: 800; }
-    .flow h3 { margin: 2.8rem 0 .45rem; font-size: 1.05rem; }
-    .flow p { margin: 0; color: var(--ink-soft); font-size: .9rem; line-height: 1.55; }
-    .industries { display: grid; grid-template-columns: 1.618fr 1fr 1fr; gap: 1rem; }
-    .industry { min-height: 210px; padding: var(--space-3); border-radius: var(--r-md); background: var(--white); border: 1px solid var(--line); }
-    .industry:first-child { color: var(--family-navy); background: #fff8e8; border-color: rgba(161,98,7,.24); }
-    .industry h3 { margin: 3.5rem 0 .5rem; font-size: 1.3rem; }
-    .industry p { margin: 0; color: var(--ink-soft); line-height: 1.55; }
-    .industry:first-child p { color: var(--slate-600); }
-    .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
-    .plan { padding: var(--space-3); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--paper-bright); }
-    .plan.featured { border-color: var(--family-navy); box-shadow: inset 0 5px 0 var(--family-amber); }
-    .plan-badge { display: inline-flex; min-height: 28px; align-items: center; margin-bottom: 1rem; padding: .2rem .65rem; border-radius: 999px; color: var(--family-navy); background: rgba(245,179,53,.28); font-size: .75rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
-    .plan h3 { margin: 0; font-size: 1.35rem; }
-    .price { margin: 1.4rem 0 .5rem; font-size: 2.5rem; font-weight: 780; letter-spacing: -.05em; }
-    .price small { font-size: .85rem; font-weight: 600; letter-spacing: 0; color: var(--ink-soft); }
-    .plan ul { min-height: 160px; margin: 1.5rem 0; padding-left: 1.1rem; color: var(--ink-soft); line-height: 1.8; }
-    .deferred { margin-top: 1rem; color: var(--ink-soft); font-size: .85rem; line-height: 1.55; }
-    .support { color: var(--family-navy); background: var(--paper-bright); }
-    .support-grid { display: grid; grid-template-columns: 1fr 1.618fr; gap: clamp(1.4rem, 4vw, 3.6rem); align-items: stretch; }
-    .support-copy-panel { padding: var(--space-4); border-radius: var(--r-lg); color: var(--white); background: var(--family-navy); }
-    .support-copy-panel .eyebrow { color: var(--family-amber); }
-    .support-copy-panel .button-secondary { color: var(--family-navy); border-color: rgba(255,255,255,.72); background: var(--white); }
-    .support h2 { max-width: 620px; }
-    .support .copy { color: rgba(255,255,255,.7); line-height: 1.7; }
-    .support form { display: grid; gap: .75rem; padding: var(--space-4); border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--paper); }
-    label { display: grid; gap: .4rem; color: var(--slate-600); font-size: .85rem; font-weight: 650; }
-    /* .28 composites to #576173 over the raised navy — 2.51:1, below the 3:1
-       WCAG 1.4.11 asks of a control boundary. .42 measures 3.90:1. */
-    input, textarea, select { width: 100%; min-height: 46px; padding: .75rem; border: 1px solid var(--line-strong); border-radius: 10px; color: var(--family-navy); background: var(--white); }
-    textarea { min-height: 110px; resize: vertical; }
-    option { color: var(--family-navy); }
-    /* --slate-500 measures 4.37:1 on the panel behind this note, just under
-       AA for 12.5px body text; --slate-600 clears it at 6.4:1. This one
-       carries a privacy instruction, so it is the last line that should be
-       hard to read. */
-    .privacy-note { margin: 0; color: var(--slate-600); font-size: .78rem; line-height: 1.5; }
-    .support-actions { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; }
-    .support-actions .button { width: 100%; }
-    footer { padding: 2.2rem 0 max(2.2rem, env(safe-area-inset-bottom)); color: var(--ink-soft); background: var(--paper-bright); }
-    .footer-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-    .footer-row nav { display: flex; flex-wrap: wrap; gap: 1rem; }
-    .footer-row a { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
-    [data-lang="zh"] { display: none !important; }
-    html[lang="zh"] [data-lang="en"] { display: none !important; }
-    html[lang="zh"] [data-lang="zh"] { display: revert !important; }
-    @media (max-width: 900px) {
-      .navlinks a:not(.login) { display: none; }
-      .hero-grid, .section-head, .support-grid { grid-template-columns: 1fr; }
-      .hero-grid { min-height: auto; }
-      .hero-card { min-height: 440px; }
-      .role, .role-owner { grid-column: span 6; }
-      .flow { grid-template-columns: repeat(3, 1fr); }
-      .industries { grid-template-columns: 1fr 1fr; }
-      .industries .industry:first-child { grid-column: 1 / -1; }
+    .band-2 .card { border-color: var(--card-line-2); background: var(--card-2); }
+    .card p { font-size: var(--f-sm); line-height: 1.6; }
+    .card .num { display: block; margin-bottom: var(--s-2); color: var(--accent); font-size: var(--f-sm); font-weight: 700; letter-spacing: .08em; }
+    a.card { transition: transform .25s var(--ease), border-color .25s var(--ease), box-shadow .25s var(--ease); }
+    a.card:hover { transform: translateY(-3px); border-color: var(--accent); box-shadow: var(--shadow-strong); }
+    a.card .arrow { margin-top: auto; padding-top: var(--s-3); color: var(--accent); font-size: var(--f-sm); font-weight: 600; }
+    .phi-rule { height: 1px; margin-block: var(--s-5); background: linear-gradient(90deg, var(--accent) 0 61.8%, var(--hairline) 61.8% 100%); opacity: .6; }
+
+    /* ── pricing ───────────────────────────────────────────────────────── */
+    .plan { display: flex; flex-direction: column; height: 100%; padding: var(--s-4); border: 1px solid var(--card-line); border-radius: var(--r); background: var(--card); }
+    .plan.feat { border-color: var(--accent); background: rgba(245, 179, 53, .09); }
+    .plan-badge {
+      display: inline-flex; align-items: center; align-self: flex-start; min-height: 26px;
+      margin-bottom: var(--s-2); padding: 2px 10px; border-radius: 999px;
+      background: var(--family-amber); color: var(--family-navy);
+      font-size: var(--f-xs); font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
     }
-    @media (max-width: 620px) {
-      .shell { width: min(100% - 28px, 1180px); }
-      .nav { min-height: 64px; }
-      .brand span { display: none; }
-      .hero-grid { padding-block: 2.6rem; }
-      .hero { background: var(--paper); }
-      .hero::before { display: none; }
-      /* 16vw resolved to 60px at 375px — barely smaller than the desktop
-         setting, so "administration" filled a line on its own and the
-         headline ran to six lines and ~700px before the reader reached the
-         supporting copy. At 9.5vw it sets around 36px and holds four lines,
-         which keeps the lede and the first call to action on the first
-         screen. */
-      h1 { font-size: clamp(2.1rem, 9.5vw, 3.2rem); letter-spacing: -.045em; }
-      .lede { margin-top: var(--space-3); font-size: 1rem; }
-      .eyebrow { margin-bottom: var(--space-2); font-size: .72rem; }
-      .hero-card { min-height: 340px; margin-inline: -14px; padding: var(--space-3); border-radius: var(--r-lg) var(--r-lg) 0 0; background: var(--family-navy); }
-      .art-stack { min-height: 330px; }
-      .proof { right: 0; width: 180px; }
-      section { padding-block: var(--space-5); }
-      .role, .role-owner { grid-column: 1 / -1; min-height: 210px; }
-      .flow { grid-template-columns: 1fr; }
-      .flow article { min-height: 150px; }
-      .flow h3 { margin-top: 1.7rem; }
-      .industries, .plans { grid-template-columns: 1fr; }
-      .support-actions, .footer-row { grid-template-columns: 1fr; }
-      .footer-row { align-items: flex-start; flex-direction: column; }
+    .plan .amt { margin: 6px 0 0; font-family: var(--serif); font-size: var(--f-3); line-height: 1.1; color: var(--ink); }
+    .plan .per { color: var(--ink-faint); font-size: var(--f-sm); }
+    .plan ul { margin: var(--s-3) 0 var(--s-4); padding: 0; }
+    .plan li { position: relative; padding: 7px 0 7px 21px; list-style: none; color: var(--ink-soft); font-size: var(--f-sm); }
+    .plan li::before { content: ""; position: absolute; left: 0; top: 14px; width: 8px; height: 8px; border: 1.5px solid var(--accent); border-radius: 50%; opacity: .85; }
+    .plan .btn { margin-top: auto; }
+
+    /* ── contact form ──────────────────────────────────────────────────── */
+    .form { max-width: calc(var(--maxw) * .618); margin: var(--s-5) auto 0; text-align: left; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field.full { grid-column: 1 / -1; }
+    .field label { color: var(--ink); font-size: var(--f-sm); font-weight: 600; }
+    .field input, .field select, .field textarea {
+      width: 100%; min-height: 48px; padding: 13px 14px; border-radius: 10px;
+      /* .22 composites to #4A5468 on the raised navy — 2.4:1, under the 3:1
+         WCAG 1.4.11 asks of a control boundary. .42 measures 3.9:1. */
+      border: 1px solid var(--control-line);
+      background: var(--control-fill); color: var(--ink);
+      transition: border-color .2s var(--ease), background .2s var(--ease);
+    }
+    .field textarea { min-height: 118px; line-height: 1.55; resize: vertical; }
+    .field select option { background: var(--card); color: var(--ink); }
+    .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); background: var(--control-fill); }
+    .form-actions { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: var(--s-3); }
+
+    /* ── footer ────────────────────────────────────────────────────────── */
+    .foot { padding: var(--s-6) 0 max(var(--s-5), env(safe-area-inset-bottom)); background: var(--surface); border-top: 1px solid var(--hairline); }
+    .foot-grid { display: grid; grid-template-columns: 61.8fr 38.2fr; gap: var(--s-5); }
+    .foot h4 { color: var(--ink); font-size: var(--f-xs); letter-spacing: .1em; text-transform: uppercase; }
+    .foot nav { display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-3); font-size: var(--f-sm); }
+    .foot nav a { display: inline-flex; align-items: center; min-height: 44px; color: var(--ink-soft); }
+    .foot nav a:hover { color: var(--accent); }
+    .foot-btm {
+      display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--s-2);
+      margin-top: var(--s-5); padding-top: var(--s-3); border-top: 1px solid var(--hairline);
+      color: var(--ink-faint); font-size: var(--f-sm);
+    }
+    .sig { letter-spacing: .06em; }
+    .sig b { color: var(--accent); font-weight: 600; }
+
+    /* ── motion ────────────────────────────────────────────────────────── */
+    /* The reveal is opt-in from script: `js` is set on <html> by the page
+       script before first paint. Declaring opacity:0 in CSS unconditionally —
+       the way the reference site does — hides the entire page from anyone
+       whose JavaScript failed, and from any crawler that does not run it. */
+    .js .reveal { opacity: 0; transform: translateY(21px); transition: opacity .9s var(--ease), transform .9s var(--ease); }
+    .js .reveal.in { opacity: 1; transform: none; }
+    .js .reveal[data-delay="1"] { transition-delay: .09s; }
+    .js .reveal[data-delay="2"] { transition-delay: .18s; }
+    .js .reveal[data-delay="3"] { transition-delay: .27s; }
+
+    /* ── light theme ───────────────────────────────────────────────────
+       The same page on paper. Only the five surface tokens and the accent
+       move; every rule above is written against them, so the proportions,
+       the type scale and the layout are literally the same declarations.
+
+       Measured on Warm Paper #F7F5F2:
+         --ink        Family Navy      15.5:1
+         --ink-soft   #475569           6.97:1
+         --ink-faint  #5C6470           5.48:1   (notes set at .786rem)
+         --accent     #A16207           4.52:1
+       The bright amber stays on filled surfaces only — a navy label on an
+       amber pill measures 9.83:1 whichever theme is showing.
+
+       Dark is the authored default rather than the fallback: a browser with
+       no `prefers-color-scheme` support gets the design this page was drawn
+       as, not a degraded copy of it. */
+    @media (prefers-color-scheme: light) {
+      :root {
+        --surface: var(--warm-paper);
+        --surface-2: var(--white);
+        --card: var(--white);
+        --card-2: var(--warm-paper);
+        --card-line: rgba(14, 23, 41, .14);
+        --card-line-2: rgba(14, 23, 41, .14);
+        --accent: var(--family-amber-text);
+        --ink: var(--family-navy);
+        --ink-soft: var(--slate-600);
+        --ink-faint: var(--slate-muted);
+        --hairline: rgba(14, 23, 41, .14);
+        --control-line: rgba(14, 23, 41, .34);   /* 3.90:1 on paper */
+        --control-fill: var(--white);
+        --shadow-strong: 0 21px 55px rgba(14, 23, 41, .12);
+        --shadow-art: 0 24px 64px rgba(14, 23, 41, .22);
+        --spark-opacity: .12;
+        --nav-solid: rgba(247, 245, 242, .88);
+        --nav-panel: rgba(247, 245, 242, .97);
+      }
+      /* The card sits on white in the raised band, so it needs the paper tone
+         to stay distinguishable — the inverse of the dark theme, where the
+         card is the lighter of the two. Elevation reads correctly in both. */
+      .band-2 .card, .band-2 .plan { background: var(--card-2); }
+      .plan.feat { background: rgba(245, 179, 53, .14); }
+      /* The artwork frames were white on navy; on paper they need an edge. */
+      .art { border-color: var(--white); }
+      .btn:hover { box-shadow: 0 13px 34px rgba(161, 98, 7, .26); }
+    }
+
+    @media (max-width: 880px) {
+      .split { grid-template-columns: 1fr; }
+      .foot-grid { grid-template-columns: 1fr; gap: var(--s-4); }
+    }
+    @media (max-width: 760px) {
+      .menu-btn { display: grid; }
+      .nav-links {
+        position: fixed; inset: 56px 0 auto; flex-direction: column; align-items: stretch; gap: 0;
+        padding: var(--s-2) clamp(21px, 4vw, 34px) var(--s-3);
+        background: var(--nav-panel); border-bottom: 1px solid var(--hairline);
+        -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+        font-size: var(--f-0); max-height: calc(100dvh - 56px); overflow-y: auto;
+        opacity: 0; visibility: hidden; transform: translateY(-8px);
+        transition: opacity .26s var(--ease), transform .26s var(--ease), visibility .26s;
+      }
+      body.menu-open .nav-links { opacity: 1; visibility: visible; transform: none; }
+      .nav-links a { min-height: 52px; border-bottom: 1px solid var(--hairline); }
+      .nav-links a::after { display: none; }
+      .nav-links .lang, .nav-links .nav-cta { justify-content: center; min-height: 48px; margin-top: var(--s-2); border-bottom: 0; }
+    }
+    @media (max-width: 640px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .art-stack { min-height: 300px; }
     }
     @media (prefers-reduced-motion: reduce) {
       html { scroll-behavior: auto; }
+      .js .reveal { opacity: 1 !important; transform: none !important; transition: none; }
       *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
     }
   </style>
 </head>
 <body>
   <a class="skip" href="#main"><span data-lang="en">Skip to main content</span><span data-lang="zh">跳到主要内容</span></a>
-  <header class="topbar">
-    <div class="shell nav">
+
+  <svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+    <symbol id="spark" viewBox="-16 -16 32 32"><path d="M0,-15 Q2.2,-2.2 15,0 Q2.2,2.2 0,15 Q-2.2,2.2 -15,0 Q-2.2,-2.2 0,-15 Z"/></symbol>
+  </svg>
+
+  <header class="nav" id="siteNav">
+    <div class="nav-in">
       <a class="brand" href="/" aria-label="PWE Studio home">
-        <img src="/pwe-mark.svg" alt="">
+        <!-- Brand_Identity.md §7: the mark is drawn twice, navy for light
+             surfaces and near-white for dark ones. The page now follows the
+             system theme, so the asset has to follow it too — a navy mark on
+             a navy nav is invisible. `picture` does it without script. -->
+        <picture>
+          <source srcset="/pwe-mark-dark.svg" media="(prefers-color-scheme: dark)">
+          <picture>
+          <source srcset="/pwe-mark-dark.svg" media="(prefers-color-scheme: dark)">
+          <img src="/pwe-mark.svg" alt="" width="30" height="30">
+        </picture>
+        </picture>
         <span>PWE Studio</span>
       </a>
-      <nav class="navlinks" aria-label="Primary navigation">
-        <a href="#roles"><span data-lang="en">Role entrances</span><span data-lang="zh">角色入口</span></a>
-        <a href="#workflow"><span data-lang="en">Workflow</span><span data-lang="zh">工作流程</span></a>
-        <a href="#plans"><span data-lang="en">Plans</span><span data-lang="zh">套餐</span></a>
-        <a href="#support"><span data-lang="en">Support</span><span data-lang="zh">支持</span></a>
-        <button class="lang" id="languageButton" type="button" aria-label="Switch language">中文</button>
-        <a class="login" href="#support"><span data-lang="en">Book a walkthrough</span><span data-lang="zh">预约演示</span></a>
+      <!-- An icon-only control needs a name. Carrying it as visually hidden
+           text rather than aria-label means the language filter handles it
+           like every other string, and it is correct before any script runs;
+           aria-expanded carries the state. -->
+      <button class="menu-btn" id="menuButton" type="button" aria-expanded="false" aria-controls="navLinks">
+        <span class="vh" data-lang="en">Menu</span><span class="vh" data-lang="zh">菜单</span>
+        <svg aria-hidden="true"><g class="bars"><path d="M3 6h18M3 12h18M3 18h18"/></g><g class="x"><path d="M5 5l14 14M19 5L5 19"/></g></svg>
+      </button>
+      <nav class="nav-links" id="navLinks" aria-label="Primary navigation">
+        <a href="#why"><span data-lang="en">Why</span><span data-lang="zh">痛点</span></a>
+        <a href="#product"><span data-lang="en">Product</span><span data-lang="zh">产品</span></a>
+        <a href="#trust"><span data-lang="en">Trust</span><span data-lang="zh">关键设计</span></a>
+        <a href="#plans"><span data-lang="en">Pricing</span><span data-lang="zh">定价</span></a>
+        <a href="#launch"><span data-lang="en">Launch</span><span data-lang="zh">上线</span></a>
+        <!-- The switch is navigation now, not a DOM toggle: one language per
+             URL is the whole point of the split. -->
+        <a class="lang" data-lang="en" href="/zh/" hreflang="zh-Hans" lang="zh-Hans">中文</a>
+        <a class="lang" data-lang="zh" href="/" hreflang="en-AU" lang="en">EN</a>
+        <a class="nav-cta" href="#contact"><span data-lang="en">Book a walkthrough</span><span data-lang="zh">预约演示</span></a>
       </nav>
     </div>
   </header>
 
   <main id="main">
     <section class="hero">
-      <div class="shell hero-grid">
+      <div class="hero-spark" aria-hidden="true"><svg viewBox="-16 -16 32 32"><use href="#spark"/></svg></div>
+      <div class="wrap hero-in split">
         <div>
-          <p class="eyebrow"><span data-lang="en">Your brand in front · one system behind it</span><span data-lang="zh">你的品牌在台前 · 一个系统在幕后</span></p>
-          <h1 data-lang="en">Put administration behind the scenes. Keep creativity in front.</h1>
-          <h1 data-lang="zh">让管理退到幕后，让创作站上台前。</h1>
-          <p class="lede" data-lang="en">From first enquiry to every class, credit and portfolio milestone, PWE Studio keeps the work connected—so studio owners can teach more, reconcile less and show families real progress.</p>
-          <p class="lede" data-lang="zh">从第一次咨询，到每一次排课、签到、课时和作品成长，PWE Studio 把运营连成一条清楚的线，让主理人多教课、少对账，也让家长真正看见成长。</p>
-          <div class="actions">
-            <a class="button button-primary" href="/lets-paint-showcase"><span data-lang="en">See the Let’s Paint Studio story</span><span data-lang="zh">体验 Let’s Paint Studio 全流程</span></a>
-            <a class="button button-secondary" href="#roles"><span data-lang="en">Enter by role</span><span data-lang="zh">按角色进入</span></a>
+          <p class="tag"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>PWE Studio · v__APP_VERSION__</p>
+          <h1 data-lang="en">Give the time back to the work.</h1>
+          <h1 data-lang="zh">把时间还给创作</h1>
+          <p class="lead" data-lang="en">Public site, online registration, class-credit ledger, brand front door — the busywork moves into the system, and you move back to the room and the work.</p>
+          <p class="lead" data-lang="zh">官网获客 · 在线报名 · 课时账本 · 品牌门面 —— 琐事交给系统，你回到教室与作品。</p>
+          <p class="lead" data-lang="en">One operating system for creative studios: art, music and dance schools, and tutoring centres.</p>
+          <p class="lead" data-lang="zh">创意工作室的一体化操作系统，面向美术 / 音乐 / 舞蹈工作室与培训机构。</p>
+          <div class="btns">
+            <a class="btn" href="#plans"><span data-lang="en">See pricing</span><span data-lang="zh">看定价</span></a>
+            <a class="btn btn-ghost" href="#contact"><span data-lang="en">Book a 30-minute walkthrough</span><span data-lang="zh">预约 30 分钟演示</span></a>
           </div>
+          <p class="proof" data-lang="en">Running in production for Let’s Paint Studio — the studio our own team teaches at, so the first customer of this system was us. <a href="/lets-paint-showcase">Walk the whole story →</a></p>
+          <p class="proof" data-lang="zh">已在 Let’s Paint Studio 的生产环境运行——那是我们自己团队任教的工作室，所以这套系统的第一个用户是我们自己。<a href="/lets-paint-showcase">完整走一遍 →</a></p>
         </div>
-        <div class="hero-card" aria-label="Original demo portfolio artworks">
-          <div class="art-stack">
-            <figure class="art art-a"><img src="/assets/showcase-botanical-home.webp" width="760" height="760" alt="Watercolour botanical still life"></figure>
-            <figure class="art art-b"><img src="/assets/showcase-coast-home.webp" width="760" height="760" alt="Textured coastal landscape painting"></figure>
-            <div class="proof">
-              <strong data-lang="en">Backed by Let’s Paint Studio</strong><strong data-lang="zh">由 Let’s Paint Studio 实践验证</strong>
-              <span data-lang="en">Follow one complete operating story: enquiry, trial, enrolment, class, attendance, artwork and family view.</span>
-              <span data-lang="zh">沿着一条完整运营主线体验：咨询、体验课、报名、上课、签到、作品与家庭端。</span>
+        <div class="art-stack" aria-label="Original demo portfolio artworks">
+          <figure class="art art-a"><img src="/assets/showcase-botanical-home.webp" width="760" height="760" alt="Watercolour botanical still life"></figure>
+          <figure class="art art-b"><img src="/assets/showcase-coast-home.webp" width="760" height="760" alt="Textured coastal landscape painting"></figure>
+        </div>
+      </div>
+    </section>
+
+    <section class="band-2" id="why">
+      <div class="wrap">
+        <div class="head">
+          <p class="tag"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg><span data-lang="en">The problem</span><span data-lang="zh">现状与痛点</span></p>
+          <h2 data-lang="en">Your craft should not be spent on ledgers and chat logs.</h2>
+          <h2 data-lang="zh">你的才华，不该耗在台账和聊天记录里</h2>
+          <p class="lead" data-lang="en">You opened a studio because you love making things and teaching them. Nobody starts one in order to chase payments and scroll back through group chats.</p>
+          <p class="lead" data-lang="zh">开工作室是因为热爱创作与教学。没有人是为了对账、催费、翻聊天记录才创业的。</p>
+        </div>
+        <div class="grid g4">
+          <article class="card reveal">
+            <h3 data-lang="en">The interrupted rehearsal</h3><h3 data-lang="zh">被打断的排练</h3>
+            <p data-lang="en">“How many classes are left?” One question — and answering it means scrolling three months of group chat.</p>
+            <p data-lang="zh">「还剩几节课？」一句询问，要翻三个月的群记录才答得上。</p>
+          </article>
+          <article class="card reveal" data-delay="1">
+            <h3 data-lang="en">The late-night spreadsheet</h3><h3 data-lang="zh">深夜的对账表</h3>
+            <p data-lang="en">Teaching all day, reconciling Excel all evening. What it eats is lesson preparation and new work.</p>
+            <p data-lang="zh">白天上课，晚上核 Excel，吃掉的是备课和新作品的时间。</p>
+          </article>
+          <article class="card reveal" data-delay="2">
+            <h3 data-lang="en">The slip of paper you can’t lose</h3><h3 data-lang="zh">经不起丢的纸条</h3>
+            <p data-lang="en">Receipts in a drawer, promises made out loud. A family’s trust should not hang on one piece of paper.</p>
+            <p data-lang="zh">收据在抽屉、承诺在口头，家长的信任不该系在一张纸上。</p>
+          </article>
+          <article class="card reveal" data-delay="3">
+            <h3 data-lang="en">The gallery nobody can see</h3><h3 data-lang="zh">看不见的作品墙</h3>
+            <p data-lang="en">A room full of student work with nowhere online to show it, so every new enrolment still arrives by word of mouth.</p>
+            <p data-lang="zh">作品攒了一屋子，线上无处可看，新学员只能靠转介绍。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="product">
+      <div class="wrap">
+        <div class="head">
+          <p class="tag"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg><span data-lang="en">What you get</span><span data-lang="zh">产品全览</span></p>
+          <h2 data-lang="en">Your brand in front. One system behind it.</h2>
+          <h2 data-lang="zh">台前是你的品牌，幕后是一个系统</h2>
+          <p class="lead" data-lang="en">Four surfaces, one back office. Each role gets its own screen instead of everyone sharing one overpowered login.</p>
+          <p class="lead" data-lang="zh">四个界面，一个后台。每个角色只拿到属于自己的那一屏，不再共用一个权限过大的账号。</p>
+        </div>
+        <div class="grid g4">
+          <a class="card reveal" href="/lets-paint-showcase">
+            <h3 data-lang="en">Portal</h3><h3 data-lang="zh">门户 Portal</h3>
+            <p data-lang="en">Your public site: courses, portfolio, FAQ. Families register on the page without leaving it, and students have their own sign-in.</p>
+            <p data-lang="zh">公开官网：课程、作品集、FAQ。页内直接报名，不跳转；学员自助区入口。</p>
+            <span class="arrow"><span data-lang="en">Visit the studio portal →</span><span data-lang="zh">访问工作室门户 →</span></span>
+          </a>
+          <a class="card reveal" data-delay="1" href="/lets-paint-showcase/register">
+            <h3 data-lang="en">Register</h3><h3 data-lang="zh">快速报名 Register</h3>
+            <p data-lang="en">A standalone registration page you can put behind a QR code, with your own questions, feeding the same review queue as the portal.</p>
+            <p data-lang="zh">独立报名页可扫码直达，机构自定义报名问题，与门户共用同一审核流。</p>
+            <span class="arrow"><span data-lang="en">Start a registration →</span><span data-lang="zh">开始报名 →</span></span>
+          </a>
+          <a class="card reveal" data-delay="2" href="/lets-paint-showcase/cms">
+            <h3 data-lang="en">Operations CMS</h3><h3 data-lang="zh">运营 CMS</h3>
+            <p data-lang="en">Students, timetable, check-in, class credits, payments and refunds, registration review, portfolio and reporting.</p>
+            <p data-lang="zh">学员、排课、签到、课时、收退费、报名审核、作品集与数据统计。</p>
+            <span class="arrow"><span data-lang="en">Open the CMS →</span><span data-lang="zh">进入 CMS →</span></span>
+          </a>
+          <a class="card reveal" data-delay="3" href="/lets-paint-showcase/studio-admin">
+            <h3 data-lang="en">Studio Admin</h3><h3 data-lang="zh">品牌工作台 Studio Admin</h3>
+            <p data-lang="en">Logo, palette, bilingual copy, registration fields and preview. Draft → publish → roll back.</p>
+            <p data-lang="zh">Logo、配色、双语文案、报名字段配置与预览。草稿 → 发布 → 版本回滚。</p>
+            <span class="arrow"><span data-lang="en">Open Studio Admin →</span><span data-lang="zh">进入品牌工作台 →</span></span>
+          </a>
+        </div>
+        <p class="note" data-lang="en">Behind all four sits the platform-side <a href="/platform-admin">Super Admin</a>: tenant provisioning, plans and billing, usage monitoring and audit logs. Platform staff do not hold studio sign-ins and do not read student records; entering a studio requires a support session that is logged.</p>
+        <p class="note" data-lang="zh">四个界面之外，另有平台侧 <a href="/platform-admin">Super Admin</a>：租户开通、套餐与账单、用量监控、审计日志。平台方不持有工作室账号，也不读取学员资料；进店必须走留痕的支持模式。</p>
+
+        <div class="phi-rule"></div>
+
+        <div class="head">
+          <p class="tag"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg><span data-lang="en">Industry templates</span><span data-lang="zh">行业模版</span></p>
+          <h2 data-lang="en">Templates change the vocabulary and the forms, not just the colours.</h2>
+          <h2 data-lang="zh">行业模版换的是术语和表单，不只是颜色。</h2>
+        </div>
+        <div class="grid industries">
+          <article class="card reveal"><h4 data-lang="en">Visual arts studios</h4><h4 data-lang="zh">美术工作室</h4><p data-lang="en">Portfolio progress, publication consent, term classes and material-aware course stories.</p><p data-lang="zh">作品成长、发布授权、学期课程与材料导向的课程叙事。</p></article>
+          <article class="card reveal" data-delay="1"><h4 data-lang="en">Music schools</h4><h4 data-lang="zh">音乐学校</h4><p data-lang="en">Instrument, level, practice goals, lesson cadence and performance milestones.</p><p data-lang="zh">乐器、级别、练习目标、课程节奏与演出里程碑。</p></article>
+          <article class="card reveal" data-delay="2"><h4 data-lang="en">Dance studios</h4><h4 data-lang="zh">舞蹈工作室</h4><p data-lang="en">Style, level, timetable, attendance and rehearsal-ready communication.</p><p data-lang="zh">舞种、级别、课表、出勤与排练沟通。</p></article>
+          <article class="card reveal"><h4 data-lang="en">Tutoring centres</h4><h4 data-lang="zh">补习机构</h4><p data-lang="en">Subjects, year levels, learning goals, credits and progress evidence.</p><p data-lang="zh">科目、年级、学习目标、课时与进度证据。</p></article>
+          <article class="card reveal" data-delay="1"><h4 data-lang="en">Creative technology</h4><h4 data-lang="zh">创意科技</h4><p data-lang="en">Projects, workshops, coding pathways and shareable outcomes.</p><p data-lang="zh">项目、工作坊、编程路径与可分享成果。</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="band-2" id="trust">
+      <div class="wrap">
+        <div class="head">
+          <p class="tag"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg><span data-lang="en">Three decisions</span><span data-lang="zh">三个关键设计</span></p>
+          <h2 data-lang="en">Money and trust belong in the system, not in goodwill.</h2>
+          <h2 data-lang="zh">钱和信任，写进系统，不写在人情里</h2>
+          <p class="lead" data-lang="en">None of the three below is a bullet on a feature list. They are what decides whether a studio can hand this system its money and its families.</p>
+          <p class="lead" data-lang="zh">下面三件事没有一件是功能清单上的卖点，它们是决定这套系统能不能被托付的地方。</p>
+        </div>
+        <div class="grid g3">
+          <article class="card reveal">
+            <h3 data-lang="en">The ledger cannot be edited</h3><h3 data-lang="zh">账本不可篡改</h3>
+            <p data-lang="en">A balance is the sum of its entries, not a number somebody can type over. Every movement records who, when and why. Check-in deducts the credit automatically, and an insufficient balance is stopped at the door rather than discovered at month end.</p>
+            <p data-lang="zh">余额 = 每一笔流水之和。不是一个可以随手改掉的数字，每次变动都记录操作人、时间与原因。签到自动扣课时，余额不足当场拦截并提醒。</p>
+          </article>
+          <article class="card reveal" data-delay="1">
+            <h3 data-lang="en">Permissions live in the backend</h3><h3 data-lang="zh">权限写死在后端</h3>
+            <p data-lang="en">Owner, manager, teacher, front desk, staff. The front desk can take a payment and cannot issue a refund; refunds and outbound sharing are the owner’s and manager’s alone. It is not a hidden button — the server refuses. That moves the pressure of saying no off your staff and onto the system.</p>
+            <p data-lang="zh">店主 / 店长 / 老师 / 前台 / 员工，五级权限。前台能收费不能退费，退费与对外分享仅限店主店长，不是在界面上藏起来，是系统层面直接拒绝——把人情压力从员工身上移到系统上。</p>
+          </article>
+          <article class="card reveal" data-delay="2">
+            <h3 data-lang="en">Minors’ privacy</h3><h3 data-lang="zh">未成年人隐私</h3>
+            <p data-lang="en">Over 200 tenant-isolation checks must pass before any release ships. Publishing a child’s work requires a recorded guardian consent, and consent and withdrawal are an append-only chain of events. Share links expire in 1–90 days and can be revoked at any time.</p>
+            <p data-lang="zh">两百多项租户隔离测试每次发版全绿才允许上线；作品公开须记录监护人同意，同意与撤回是只增不改的事件链；分享链接 1–90 天强制到期，可随时撤销。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="plans">
+      <div class="wrap">
+        <div class="head">
+          <p class="tag"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg><span data-lang="en">Pricing</span><span data-lang="zh">定价</span></p>
+          <h2 data-lang="en">Transparent pricing that grows with the studio.</h2>
+          <h2 data-lang="zh">透明定价，随工作室一起成长</h2>
+          <p class="lead" data-lang="en">Every figure below is read from the same plan table the product enforces, so the page cannot quote a limit the system does not honour.</p>
+          <p class="lead" data-lang="zh">下面每个数字都取自产品实际执行的套餐表，页面不会写出系统并不承认的额度。</p>
+        </div>
+        <div class="grid g3" id="planGrid">
+          <!--PLAN-CARDS-->
+        </div>
+        <p class="note" data-lang="en">One-time setup is quoted at AUD 299–999 and covers brand configuration, reviewed migration, team training and launch support. Implementation beyond that, migration clean-up, messaging provider fees, payment processing, custom domains and multi-campus aggregation are scoped separately; each campus is intentionally operated as an isolated tenant. Final terms follow the signed order form.</p>
+        <p class="note" data-lang="zh">一次性 Setup 服务费为 AUD 299–999，包含品牌配置、经审核的数据迁移、团队培训与上线支持。超出部分的实施、数据清洗、消息供应商费用、在线支付、自定义域名与多校区汇总需单独约定；每个校区明确作为独立租户运营。最终以签署订单为准。</p>
+      </div>
+    </section>
+
+    <section class="band-2" id="launch">
+      <div class="wrap">
+        <div class="head">
+          <p class="tag"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg><span data-lang="en">Going live</span><span data-lang="zh">上线流程</span></p>
+          <h2 data-lang="en">From signature to opening night in four steps.</h2>
+          <h2 data-lang="zh">从签约到开幕，只需四步</h2>
+        </div>
+        <div class="grid g4">
+          <article class="card reveal">
+            <span class="num">01</span>
+            <h4 data-lang="en">Brand setup</h4><h4 data-lang="zh">品牌配置</h4>
+            <p data-lang="en">Apply the industry template, then set the logo, palette, bilingual copy and registration questions.</p>
+            <p data-lang="zh">套用行业模版，配好 Logo、配色、双语文案与报名问题。</p>
+          </article>
+          <article class="card reveal" data-delay="1">
+            <span class="num">02</span>
+            <h4 data-lang="en">Data import</h4><h4 data-lang="zh">数据导入</h4>
+            <p data-lang="en">Student list and class-credit balances, migrated from Excel in one reviewed pass.</p>
+            <p data-lang="zh">学员名单与课时余额，从 Excel 一次性迁入，迁移结果经复核。</p>
+          </article>
+          <article class="card reveal" data-delay="2">
+            <span class="num">03</span>
+            <h4 data-lang="en">Team training</h4><h4 data-lang="zh">团队培训</h4>
+            <p data-lang="en">Each role learns only its own screen: front desk takes payment, teachers check students in, the manager reads the books.</p>
+            <p data-lang="zh">按角色各教各的：前台收费、老师签到、店长看账。</p>
+          </article>
+          <article class="card reveal" data-delay="3">
+            <span class="num">04</span>
+            <h4 data-lang="en">Go live</h4><h4 data-lang="zh">正式上线</h4>
+            <p data-lang="en">Site, registration and daily operations switch over on the same day, with support alongside through the first week.</p>
+            <p data-lang="zh">官网、报名、运营同日切换，上线首周伴随支持。</p>
+          </article>
+        </div>
+        <p class="note" data-lang="en">All four are covered by the one-time setup fee. Nobody on your side needs to be technical.</p>
+        <p class="note" data-lang="zh">四步全部包含在一次性 Setup 服务费内。机构不需要懂技术。</p>
+      </div>
+    </section>
+
+    <section id="contact">
+      <div class="wrap center">
+        <p class="tag"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg><span data-lang="en">Start</span><span data-lang="zh">开始</span></p>
+        <h2 data-lang="en">Administration to the back. The work to the front.</h2>
+        <h2 data-lang="zh">管理退到幕后，作品站上台前。</h2>
+        <p class="lead" data-lang="en">Book a 30-minute walkthrough and we build a previewable portal live, using your studio’s name, courses and work.</p>
+        <p class="lead" data-lang="zh">预约一次 30 分钟演示：用你工作室的名字、作品和课程，现场生成一个可预览的门户。</p>
+
+        <form class="form" id="supportForm">
+          <div class="form-grid">
+            <div class="field">
+              <label for="supportTopic"><span data-lang="en">Topic</span><span data-lang="zh">主题</span></label>
+              <select id="supportTopic">
+                <option>Product demonstration</option>
+                <option>Onboarding and migration</option>
+                <option>Technical support</option>
+                <option>Pricing and contract</option>
+                <option>Product feedback</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="supportStudio"><span data-lang="en">Studio name</span><span data-lang="zh">工作室名称</span></label>
+              <input id="supportStudio" maxlength="120" autocomplete="organization">
+            </div>
+            <div class="field full">
+              <label for="supportMessage"><span data-lang="en">Message</span><span data-lang="zh">内容</span></label>
+              <textarea id="supportMessage" maxlength="1500" required></textarea>
             </div>
           </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="roles">
-      <div class="shell">
-        <div class="section-head">
-          <div><p class="kicker">01 · <span data-lang="en">Enter by role</span><span data-lang="zh">按角色进入</span></p><h2 data-lang="en">Your brand stays in front. Every role gets the right control.</h2><h2 data-lang="zh">你的品牌始终在台前，每个角色只获得恰当的控制。</h2></div>
-          <p data-lang="en">Owners shape the public experience, teams run the day, teachers move quickly on mobile and families see the student journey—without sharing one overpowered login.</p>
-          <p data-lang="zh">主理人管理品牌，团队处理日常，教师在手机上快速完成工作，家长查看成长轨迹；不再共用一个权限过大的账号。</p>
-        </div>
-        <div class="role-grid">
-          <a class="role role-owner" href="/lets-paint-showcase/studio-admin">
-            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 20V9l8-5 8 5v11"/><path d="M9 20v-6h6v6M3 20h18"/></svg>
-            <h3 data-lang="en">Owner · Website & brand</h3><h3 data-lang="zh">老板 · 网站与品牌</h3>
-            <p data-lang="en">Shape the public website, studio identity, course presentation and launch readiness.</p><p data-lang="zh">管理公开网站、工作室品牌、课程呈现与上线准备。</p>
-            <span class="arrow"><span data-lang="en">Open Studio Admin</span><span data-lang="zh">进入 Studio Admin</span> →</span>
-          </a>
-          <a class="role" href="/lets-paint-showcase/cms">
-            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 5h16v14H4zM4 10h16M9 10v9"/></svg>
-            <h3 data-lang="en">Team · Daily operations</h3><h3 data-lang="zh">团队 · 日常运营</h3>
-            <p data-lang="en">Enquiries, students, roster, attendance, credits, artwork and reporting.</p><p data-lang="zh">咨询、学员、排课、签到、课时、作品与报表。</p>
-            <span class="arrow"><span data-lang="en">Open CMS</span><span data-lang="zh">进入 CMS</span> →</span>
-          </a>
-          <a class="role" href="/lets-paint-showcase">
-            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="3"/><path d="M5 20c.8-4 3.1-6 7-6s6.2 2 7 6"/></svg>
-            <h3 data-lang="en">Families · Public studio</h3><h3 data-lang="zh">家长与学员 · 公开门户</h3>
-            <p data-lang="en">Discover classes, register interest and securely view the student journey.</p><p data-lang="zh">了解课程、提交报名，并安全查看学员成长记录。</p>
-            <span class="arrow"><span data-lang="en">Visit studio portal</span><span data-lang="zh">访问工作室门户</span> →</span>
-          </a>
-          <a class="role" href="/lets-paint-showcase/register">
-            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 5v14M5 12h14"/></svg>
-            <h3 data-lang="en">Prospects · Quick registration</h3><h3 data-lang="zh">意向客户 · 快速报名</h3>
-            <p data-lang="en">A focused, mobile-friendly path from interest to a structured studio enquiry.</p><p data-lang="zh">从兴趣到结构化咨询，专注且适合手机操作。</p>
-            <span class="arrow"><span data-lang="en">Start registration</span><span data-lang="zh">开始报名</span> →</span>
-          </a>
-          <a class="role" href="/platform-admin">
-            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3l8 4v5c0 5-3.4 8-8 9-4.6-1-8-4-8-9V7z"/><path d="M9 12l2 2 4-4"/></svg>
-            <h3 data-lang="en">Platform · Customer operations</h3><h3 data-lang="zh">平台方 · 客户运营</h3>
-            <p data-lang="en">Tenant onboarding, plans, platform health and release operations. Restricted access.</p><p data-lang="zh">客户入驻、套餐、平台健康与发布运营，仅限授权人员。</p>
-            <span class="arrow"><span data-lang="en">Platform sign in</span><span data-lang="zh">平台登录</span> →</span>
-          </a>
-        </div>
-      </div>
-    </section>
-
-    <section class="system" id="workflow">
-      <div class="shell">
-        <div class="section-head">
-          <div><p class="kicker">02 · <span data-lang="en">The studio journey</span><span data-lang="zh">工作室全流程</span></p><h2 data-lang="en">From first enquiry to a family-visible growth story.</h2><h2 data-lang="zh">从第一次咨询，到家长看得见的成长轨迹。</h2></div>
-          <p data-lang="en">The professional showcase demonstrates realistic schedules, balances, registrations, attendance and original synthetic artwork—using fictional records, never customer data.</p>
-          <p data-lang="zh">专业演示通过虚构记录呈现真实结构的排课、余额、报名、签到与原创合成作品，绝不使用客户数据。</p>
-        </div>
-        <div class="flow">
-          <article><span class="number">01</span><h3 data-lang="en">Enquiry</h3><h3 data-lang="zh">咨询</h3><p data-lang="en">Capture goals and consent clearly.</p><p data-lang="zh">清楚记录目标与授权。</p></article>
-          <article><span class="number">02</span><h3 data-lang="en">Follow-up</h3><h3 data-lang="zh">跟进</h3><p data-lang="en">Turn interest into the right trial.</p><p data-lang="zh">将兴趣转为合适的体验课。</p></article>
-          <article><span class="number">03</span><h3 data-lang="en">Scheduling</h3><h3 data-lang="zh">排课</h3><p data-lang="en">Weekly rosters, changes and calendar export.</p><p data-lang="zh">周排课、调整与日历导出。</p></article>
-          <article><span class="number">04</span><h3 data-lang="en">Attendance</h3><h3 data-lang="zh">签到</h3><p data-lang="en">Fast check-in and visible credit use.</p><p data-lang="zh">快速签到与透明课时扣减。</p></article>
-          <article><span class="number">05</span><h3 data-lang="en">Artwork</h3><h3 data-lang="zh">作品</h3><p data-lang="en">Upload safely with publication consent.</p><p data-lang="zh">在发布授权下安全上传。</p></article>
-          <article><span class="number">06</span><h3 data-lang="en">Insight</h3><h3 data-lang="zh">洞察</h3><p data-lang="en">Understand attendance, retention and workload.</p><p data-lang="zh">理解出勤、续费与团队负载。</p></article>
-        </div>
-      </div>
-    </section>
-
-    <section>
-      <div class="shell">
-        <div class="section-head">
-          <div><p class="kicker">03 · <span data-lang="en">Industry-ready foundations</span><span data-lang="zh">行业化基础</span></p><h2 data-lang="en">Your way of teaching stays distinct. The operating core stays dependable.</h2><h2 data-lang="zh">保留你独特的教学方式，共享一套可靠的运营内核。</h2></div>
-          <p data-lang="en">Templates change terminology, registration questions, starter courses and reporting focus—not just colours.</p>
-          <p data-lang="zh">行业模版会调整术语、报名问题、起步课程与报表重点，而不只是换颜色。</p>
-        </div>
-        <div class="industries">
-          <article class="industry"><h3 data-lang="en">Visual arts studios</h3><h3 data-lang="zh">美术工作室</h3><p data-lang="en">Portfolio progress, publication consent, term classes and material-aware course stories.</p><p data-lang="zh">作品成长、发布授权、学期课程与材料导向的课程叙事。</p></article>
-          <article class="industry"><h3 data-lang="en">Music schools</h3><h3 data-lang="zh">音乐学校</h3><p data-lang="en">Instrument, level, practice goals, lesson cadence and performance milestones.</p><p data-lang="zh">乐器、级别、练习目标、课程节奏与演出里程碑。</p></article>
-          <article class="industry"><h3 data-lang="en">Dance studios</h3><h3 data-lang="zh">舞蹈工作室</h3><p data-lang="en">Style, level, timetable, attendance and rehearsal-ready communication.</p><p data-lang="zh">舞种、级别、课表、出勤与排练沟通。</p></article>
-          <article class="industry"><h3 data-lang="en">Tutoring</h3><h3 data-lang="zh">补习机构</h3><p data-lang="en">Subjects, year levels, learning goals, credits and progress evidence.</p><p data-lang="zh">科目、年级、学习目标、课时与进度证据。</p></article>
-          <article class="industry"><h3 data-lang="en">Creative technology</h3><h3 data-lang="zh">创意科技</h3><p data-lang="en">Projects, workshops, coding pathways and shareable outcomes.</p><p data-lang="zh">项目、工作坊、编程路径与可分享成果。</p></article>
-        </div>
-      </div>
-    </section>
-
-    <section class="system" id="plans">
-      <div class="shell">
-        <div class="section-head">
-          <div><p class="kicker">04 · <span data-lang="en">Transparent pricing</span><span data-lang="zh">透明定价</span></p><h2 data-lang="en">Clear plans that grow with your studio.</h2><h2 data-lang="zh">清楚的套餐，陪工作室一起成长。</h2></div>
-          <p data-lang="en">Studio at AUD 99/month is the recommended plan. One-time setup is quoted at AUD 299–999 for brand configuration, reviewed migration, team training and launch support. Final terms follow the signed order form.</p>
-          <p data-lang="zh">主推 Studio 套餐，每月 AUD 99。一次性 Setup 服务费为 AUD 299–999，包含品牌配置、经审核的数据迁移、团队培训与上线支持；最终以签署订单为准。</p>
-        </div>
-        <div class="plans">
-          <article class="plan"><h3>Starter</h3><div class="price">$49 <small><span data-lang="en">AUD / month</span><span data-lang="zh">AUD / 月</span></small></div><ul><li><span data-lang="en">Up to 100 students</span><span data-lang="zh">最多 100 名学员</span></li><li><span data-lang="en">1 team user</span><span data-lang="zh">1 个团队账号</span></li><li><span data-lang="en">2 GB storage allowance</span><span data-lang="zh">2 GB 存储额度</span></li><li><span data-lang="en">Registration and portfolios</span><span data-lang="zh">报名与作品集</span></li></ul><a class="button button-dark" href="#support"><span data-lang="en">Discuss Starter</span><span data-lang="zh">咨询 Starter</span></a></article>
-          <article class="plan featured"><span class="plan-badge"><span data-lang="en">Recommended</span><span data-lang="zh">主推套餐</span></span><h3>Studio</h3><div class="price">$99 <small><span data-lang="en">AUD / month</span><span data-lang="zh">AUD / 月</span></small></div><ul><li><span data-lang="en">Up to 500 students</span><span data-lang="zh">最多 500 名学员</span></li><li><span data-lang="en">5 team users</span><span data-lang="zh">5 个团队账号</span></li><li><span data-lang="en">10 GB storage allowance</span><span data-lang="zh">10 GB 存储额度</span></li><li><span data-lang="en">Templates and data export</span><span data-lang="zh">行业模版与数据导出</span></li></ul><a class="button button-dark" href="#support"><span data-lang="en">Discuss Studio</span><span data-lang="zh">咨询 Studio</span></a></article>
-          <article class="plan"><h3>Growth</h3><div class="price">$199 <small><span data-lang="en">AUD / month</span><span data-lang="zh">AUD / 月</span></small></div><ul><li><span data-lang="en">Up to 1,000 students</span><span data-lang="zh">最多 1,000 名学员</span></li><li><span data-lang="en">20 team users</span><span data-lang="zh">20 个团队账号</span></li><li><span data-lang="en">50 GB storage allowance</span><span data-lang="zh">50 GB 存储额度</span></li><li><span data-lang="en">Priority support</span><span data-lang="zh">优先支持</span></li></ul><a class="button button-dark" href="#support"><span data-lang="en">Discuss Growth</span><span data-lang="zh">咨询 Growth</span></a></article>
-        </div>
-        <p class="deferred" data-lang="en">Implementation, migration clean-up, messaging provider fees, payment processing, custom domains and multi-campus aggregation are separately scoped. For v8.2.19, each campus is intentionally operated as an isolated tenant.</p>
-        <p class="deferred" data-lang="zh">实施、数据清洗、消息供应商费用、在线支付、自定义域名与多校区汇总需单独约定。v8.2.19 阶段每个校区明确作为独立租户运营。</p>
-      </div>
-    </section>
-
-    <section class="support" id="support">
-      <div class="shell support-grid">
-        <div class="support-copy-panel">
-          <p class="eyebrow"><span data-lang="en">30-minute studio walkthrough</span><span data-lang="zh">30 分钟工作室演示</span></p>
-          <h2 data-lang="en">See your own studio story take shape.</h2><h2 data-lang="zh">用你的名字、课程和作品，预览属于你的工作室。</h2>
-          <p class="copy" data-lang="en">Tell us your studio type, size and current workflow. These actions open your device’s Mail or Messages app; PWE Studio does not silently transmit or store the form.</p>
-          <p class="copy" data-lang="zh">告诉我们你的工作室类型、规模与现有流程。按钮只会打开设备自带的邮件或信息应用；PWE Studio 不会静默提交或保存表单。</p>
-          <div class="actions">
-            <a class="button button-secondary" href="/customer-resources/PWE_Studio_Data_Import_Template.csv" download><span data-lang="en">Download CSV template</span><span data-lang="zh">下载 CSV 模版</span></a>
-            <a class="button button-secondary" href="/customer-resources/PWE_Studio_Data_Import_Template.xlsx" download><span data-lang="en">Download Excel template</span><span data-lang="zh">下载 Excel 模版</span></a>
-          </div>
-        </div>
-        <form id="supportForm">
-          <label><span data-lang="en">Topic</span><span data-lang="zh">主题</span>
-            <select id="supportTopic"><option>Product demonstration</option><option>Onboarding and migration</option><option>Technical support</option><option>Pricing and contract</option><option>Product feedback</option></select>
-          </label>
-          <label><span data-lang="en">Studio name</span><span data-lang="zh">工作室名称</span><input id="supportStudio" maxlength="120" autocomplete="organization"></label>
-          <label><span data-lang="en">Message</span><span data-lang="zh">内容</span><textarea id="supportMessage" maxlength="1500" required></textarea></label>
-          <p class="privacy-note" data-lang="en">Review the message in your Mail or Messages app before sending. Do not include passwords, payment details or sensitive student information.</p>
-          <p class="privacy-note" data-lang="zh">发送前请在邮件或信息应用中再次检查。请勿包含密码、付款信息或敏感学员资料。</p>
-          <div class="support-actions">
-            <button class="button button-primary" type="submit" data-channel="mail"><span data-lang="en">Open Mail</span><span data-lang="zh">打开邮件</span></button>
-            <button class="button button-secondary" type="button" id="openMessages"><span data-lang="en">Open Messages</span><span data-lang="zh">打开信息</span></button>
+          <p class="note" data-lang="en">These buttons open your device’s Mail or Messages app; PWE Studio does not silently transmit or store the form. Review the message before sending, and do not include passwords, payment details or sensitive student information.</p>
+          <p class="note" data-lang="zh">按钮只会打开设备自带的邮件或信息应用；PWE Studio 不会静默提交或保存表单。发送前请再次检查，请勿包含密码、付款信息或敏感学员资料。</p>
+          <div class="form-actions">
+            <button class="btn" type="submit"><span data-lang="en">Open Mail</span><span data-lang="zh">打开邮件</span></button>
+            <button class="btn btn-ghost" type="button" id="openMessages"><span data-lang="en">Open Messages</span><span data-lang="zh">打开信息</span></button>
+            <a class="btn btn-ghost" href="tel:+61488885850">0488 885 850</a>
           </div>
         </form>
+
+        <p class="note" data-lang="en">Migrating from spreadsheets? Start from the import template: <a href="/customer-resources/PWE_Studio_Data_Import_Template.csv" download>CSV</a> · <a href="/customer-resources/PWE_Studio_Data_Import_Template.xlsx" download>Excel</a>.</p>
+        <p class="note" data-lang="zh">从表格迁移？先下载导入模版：<a href="/customer-resources/PWE_Studio_Data_Import_Template.csv" download>CSV</a> · <a href="/customer-resources/PWE_Studio_Data_Import_Template.xlsx" download>Excel</a>。</p>
       </div>
     </section>
   </main>
 
-  <footer>
-    <div class="shell footer-row">
-      <span>© <span id="year"></span> PWE Studio · v8.2.19</span>
-      <nav aria-label="Resources">
-        <a href="/customer-resources/FAQ.html"><span data-lang="en">FAQ</span><span data-lang="zh">常见问题</span></a>
-        <!-- Release evidence moved to /platform-admin: it is an internal
-             delivery record, it addresses operators rather than prospective
-             customers, and the public link had also gone stale (it still
-             pointed at the v8.1.0 notes two releases later). -->
-        <a href="/customer-resources/Privacy_Policy.html"><span data-lang="en">Privacy policy</span><span data-lang="zh">隐私政策</span></a>
-        <a href="/customer-resources/Support_Policy.html"><span data-lang="en">Support policy</span><span data-lang="zh">支持政策</span></a>
-        <a href="/customer-resources/Terms_of_Service.html"><span data-lang="en">Terms of service</span><span data-lang="zh">服务条款</span></a>
-        <a href="#support"><span data-lang="en">Contact</span><span data-lang="zh">联系</span></a>
-      </nav>
+  <footer class="foot">
+    <div class="wrap">
+      <div class="foot-grid">
+        <div>
+          <a class="brand" href="/" aria-label="PWE Studio home">
+            <img src="/pwe-mark.svg" alt="" width="30" height="30">
+            <span>PWE Studio</span>
+          </a>
+          <p class="note" data-lang="en">Studio management for art, music, dance and tutoring schools. Melbourne, Australia.</p>
+          <p class="note" data-lang="zh">面向美术、音乐、舞蹈工作室与培训机构的管理系统。澳大利亚 · 墨尔本。</p>
+        </div>
+        <div>
+          <h4 data-lang="en">Resources</h4><h4 data-lang="zh">资料</h4>
+          <!-- Release evidence lives at /platform-admin: it is an internal
+               delivery record addressed to operators, and the public link had
+               also gone stale two releases running. -->
+          <nav aria-label="Resources">
+            <a href="/customer-resources/FAQ.html"><span data-lang="en">FAQ</span><span data-lang="zh">常见问题</span></a>
+            <a href="/customer-resources/Privacy_Policy.html"><span data-lang="en">Privacy policy</span><span data-lang="zh">隐私政策</span></a>
+            <a href="/customer-resources/Support_Policy.html"><span data-lang="en">Support policy</span><span data-lang="zh">支持政策</span></a>
+            <a href="/customer-resources/Terms_of_Service.html"><span data-lang="en">Terms of service</span><span data-lang="zh">服务条款</span></a>
+            <a href="#contact"><span data-lang="en">Contact</span><span data-lang="zh">联系</span></a>
+          </nav>
+        </div>
+      </div>
+      <div class="foot-btm">
+        <span>© <span id="year"></span> PWE Group Pty Ltd · PWE Studio · v__APP_VERSION__</span>
+        <a class="sig" href="/paradise-production/">A Paradise Production · <b>天域文创</b>出品</a>
+      </div>
     </div>
   </footer>
 </body>

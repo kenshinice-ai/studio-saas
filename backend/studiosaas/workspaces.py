@@ -19,6 +19,10 @@ RESERVED_SLUGS = {
     "super-admin",
     "studio-admin",
     "parent-portal",
+    # Language roots of the marketing site. `/zh/` is a real page; `en` is
+    # reserved with it so the pair cannot be split by a tenant taking one.
+    "zh",
+    "en",
     "manifest.json",
     "manifest-student.json",
     "sw.js",

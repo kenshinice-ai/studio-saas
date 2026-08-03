@@ -201,22 +201,9 @@ def _public_plans_source() -> str:
     return source[start:source.index("@api_v1.route", start)]
 
 
-def test_public_plans_never_selects_the_entitlements_column() -> None:
-    """`features` decides what a plan switches on inside the product.
-
-    It is edited from the platform console by someone thinking about billing,
-    not about a public page. Selecting columns by name means a flag added
-    tomorrow cannot leak by default; SELECT * would make that inevitable.
-    """
-
-    body = _public_plans_source()
-    # The executed query only. The docstring beside it names both `features` and
-    # `SELECT *` to explain why neither is used, and an explanation must not
-    # fail the check it is explaining — so slice from the fetch_all call, not
-    # from the first occurrence of the word in the function.
-    sql = body[body.index("fetch_all("):body.index("ORDER BY")]
-    assert "features" not in sql, "the public plans query exposes entitlement flags"
-    assert "SELECT *" not in sql
+# The query itself moved to services/public_site.py when the home page began
+# rendering its pricing cards from the same rows; what it may and may not
+# select is asserted there, in test_public_site.py.
 
 
 def test_public_plans_is_cached() -> None:

@@ -95,8 +95,8 @@ def test_saas_root_serves_product_gateway(client, saas):
     assert "text/html" in response.headers["Content-Type"]
     assert b"PWE Studio" in response.data
     assert b"Studio Admin" in response.data
-    assert b"Open CMS" in response.data
-    assert b"See the Let\xe2\x80\x99s Paint Studio story" in response.data
+    assert b"Open the CMS" in response.data
+    assert b"Let\xe2\x80\x99s Paint Studio" in response.data
 
 
 def test_customer_resources_are_explicitly_allowlisted(client, saas):

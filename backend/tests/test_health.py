@@ -204,8 +204,8 @@ def test_product_home_uses_direct_platform_admin_login(client):
     """The public role gateway must not send operators into Access redirects."""
 
     html = client.get("/").get_data(as_text=True)
-    assert 'class="role" href="/platform-admin"' in html
-    assert 'class="role" href="/super-admin"' not in html
+    assert 'href="/platform-admin"' in html
+    assert '/super-admin' not in html
 
 
 def test_pilot_refuses_missing_legacy_cms_password(monkeypatch, tmp_path):

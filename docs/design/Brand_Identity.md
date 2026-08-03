@@ -105,6 +105,26 @@ letter spacing.
 For one-colour reproduction, use all forms in navy, white or black. Do not
 delete the star; its role as the creative origin must remain visible.
 
+### 7.1 The product website runs on the shared design language
+
+`product-home.html` is authored dark — Family Navy end to end, Family Amber as
+the single accent — and re-skinned onto Warm Paper when the visitor's system
+asks for a light theme. Both themes are one set of rules driven by five surface
+tokens (`--surface`, `--surface-2`, `--card`, `--ink`, `--accent`), so the
+layout cannot fork between them.
+
+The rule that makes this work is §4's, stated as a token: **Family Amber
+`#F5B335` is a dark-surface colour** (9.83:1 on Family Navy, 1.70:1 on Warm
+Paper). Small amber things — eyebrows, rules, borders, focus rings — resolve
+through `--accent`, which is `#F5B335` on navy and the accessible
+`#A16207` on paper. Amber as a *fill* keeps the bright tone in both themes,
+because a navy label on an amber pill measures 9.83:1 either way.
+
+Proportion is shared with the Paradise Production site rather than re-invented:
+type advances in φ^(k/2), spacing follows the Fibonacci integers, and primary
+splits land on 61.8 / 38.2. Two products from one studio should be recognisable
+as such without either of them borrowing the other's logo.
+
 ## 8. Correct use
 
 Do:
@@ -177,6 +197,10 @@ overclaim there, and an outbound link on a customer's page is not ours to add.
 
 ## 11. Changelog
 
+- **v4.1 (v8.2.20, 2026-08-03)** — the product website adopts the shared
+  dark-first design language and follows the visitor's system theme; the mark
+  switches with it (§7.1). The producer credit became a link to
+  `/paradise-production/` in v8.2.19 (§9).
 - **v4.0 (2026-07-28)** — replaced the Crafted-P with the Feather Star;
   established the four-point star as creativity’s starting point and the
   three feathers as growth, ascent and possibility; removed “SaaS” from the

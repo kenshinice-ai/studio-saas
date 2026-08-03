@@ -8,6 +8,13 @@ from studiosaas import api_v1
 from studiosaas.auth import init_auth_blueprints
 from studiosaas.config import is_standalone
 from studiosaas.errors import api_error
+from studiosaas.services.public_site import (
+    HTML_LANG,
+    apply_language,
+    public_plan_rows,
+    render_plan_cards,
+    render_product_jsonld,
+)
 from studiosaas.workspaces import RESERVED_SLUGS, WorkspaceError, validate_tenant_slug
 
 # ── S4: Unified per-IP rate limiter (login / public upload / balance / token) ─
@@ -107,7 +114,7 @@ SESSION_SECRET_FILE = _data_path('.session_secret')
 PW_FILE       = _data_path('.cms_password')
 app.config['PHOTO_DIR'] = PHOTO_DIR
 MAX_BACKUPS   = 30   # 1 backup/hr rate limit → ~30 hours of rolling coverage
-APP_VERSION   = '8.2.19'
+APP_VERSION   = '8.2.20'
 app.config['APP_VERSION'] = APP_VERSION
 ALLOWED_EXT   = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
 EXT_MIME_TYPES = {
@@ -887,8 +894,11 @@ def _rotate_backup():
 # ── Core routes ───────────────────────────────────────────────────────────────
 # Public static allowlist. Everything else in the project root is private by default.
 def _public_file(filename, mimetype=None, cache_seconds=3600):
+    # `product-home.html` is deliberately absent: it is the bilingual source,
+    # not a servable document. It reaches a visitor only through
+    # `_serve_product_home`, which removes one of the two languages first.
     allowed = {
-        'product-home.html', 'super-admin.html', 'manifest.json', 'sw.js',
+        'super-admin.html', 'manifest.json', 'sw.js',
         'logo.png', 'logo-light.png', 'favicon.svg', 'pwe-mark.svg',
         'pwe-mark-dark.svg', 'icon-192.png', 'icon-512.png',
         'apple-touch-icon.png', 'manifest-student.json'
@@ -948,6 +958,44 @@ def _legacy_file(filename, mimetype=None, cache_seconds=0):
     return _serve_versioned_shell(
         legacy_dir, filename, mimetype or 'text/html; charset=utf-8')
 
+def _serve_product_home(language):
+    """The marketing home page in exactly one language.
+
+    Both languages are authored in one file so the translations cannot drift
+    apart, and the one that is not being served is removed here. The pricing
+    cards and the structured data are written from the plan table at the same
+    time, so the page can never print a limit the product does not enforce.
+
+    A database outage costs the pricing grid, not the page: the section falls
+    back to a line pointing at the contact form. Everything a visitor reads
+    above it — what the product is, who it is for, how launch works — is
+    static, and taking the whole front door down to hide three numbers would
+    be the wrong trade.
+    """
+
+    target = os.path.join(PROJECT_ROOT, 'product-home.html')
+    try:
+        with open(target, encoding='utf-8') as handle:
+            html = handle.read()
+    except OSError:
+        return api_error('Not found', 404)
+
+    try:
+        plans = public_plan_rows()
+    except Exception:
+        app.logger.exception('public plans unavailable for the home page')
+        plans = []
+
+    html = html.replace('<!--PLAN-CARDS-->', render_plan_cards(plans))
+    html = html.replace('<!--PRODUCT-JSONLD-->', render_product_jsonld(plans, language))
+    html = apply_language(html, language)
+
+    resp = make_response(html.replace('__APP_VERSION__', APP_VERSION))
+    resp.headers['Content-Type'] = 'text/html; charset=utf-8'
+    resp.headers['Content-Language'] = HTML_LANG[language]
+    resp.headers['Cache-Control'] = 'no-cache'
+    return resp
+
 @app.route('/')
 def serve_index():
     if is_standalone():
@@ -957,7 +1005,26 @@ def serve_index():
         if not slug:
             return api_error('Service temporarily unavailable.', 503)
         return redirect(f'/{slug}', code=302)
-    return _public_file('product-home.html', 'text/html; charset=utf-8', 0)
+    return _serve_product_home('en')
+
+@app.route('/zh/')
+def serve_index_zh():
+    """The Chinese home page.
+
+    A separate URL rather than a toggle: `hreflang` can only point somewhere,
+    and a language that has no address of its own cannot be pointed at. The
+    root keeps English because that is the URL already indexed and the market
+    the copy addresses.
+    """
+
+    if is_standalone():
+        return serve_index()
+    return _serve_product_home('zh')
+
+@app.route('/zh')
+def serve_index_zh_redirect():
+    # One address per language; the trailing-slash form is the canonical one.
+    return redirect('/zh/', code=301)
 
 @app.route('/register')
 def serve_register():

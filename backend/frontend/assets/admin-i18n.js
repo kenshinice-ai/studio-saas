@@ -61,6 +61,13 @@
     ['Remove this filter', '移除此筛选'],
     ['Filter by action, tenant, or resource...', '按操作、工作室或对象筛选…'],
     ['No events match this filter.', '没有符合此筛选的事件。'],
+    // Plan publication (v8.2.20): a plan row is not automatically an offer.
+    ['Public', '公开'], ['Published', '已发布'], ['Not published', '未发布'],
+    ['Recommended', '主推'], ['Public pricing page', '公开定价页'],
+    ['Publish on pwestudio.online', '发布到 pwestudio.online'],
+    ['Mark as the recommended plan', '设为主推套餐'],
+    ['Only one plan carries the badge; ticking it here clears it elsewhere.',
+     '主推徽章只能有一个；在此勾选会清除其他套餐的主推标记。'],
     ['+ Add Tenant', '+ 新增工作室'], ['Add Tenant', '新增工作室'], ['Create Tenant', '创建工作室'],
     ['+ Add Plan', '+ 新增套餐'], ['Save Plan', '保存套餐'], ['Save Changes', '保存更改'],
     ['Tenant', '工作室'], ['Tenant Status', '工作室状态'], ['Subscription Status', '订阅状态'],
