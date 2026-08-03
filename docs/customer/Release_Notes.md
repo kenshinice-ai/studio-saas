@@ -6,7 +6,7 @@ privileged-account MFA and off-instance backup copies remain deferred and are
 disclosed as deferred.
 
 The customer-facing version of this record is
-`customer-resources/Release_Notes_v8.1.0.html`. Engineering detail and measured
+`customer-resources/Release_Notes.html`. Engineering detail and measured
 evidence live in `docs/HANDOFF_LATEST.md`.
 
 ## What v8.1.0 changes

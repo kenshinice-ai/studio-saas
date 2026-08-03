@@ -1,6 +1,6 @@
-# PWE Studio v8.2.20 — the home page rebuilt, split by language, priced from the database (2026-08-03)
+# PWE Studio v8.2.20 — the home page rebuilt, split by language, priced from the database (deployed 2026-08-03)
 
-## Shipped
+## Shipped and live
 
 **1. The page.** `product-home.html` rebuilt on the Paradise design language:
 Family Navy end to end, Family Amber as the single accent, φ^(k/2) type,
@@ -61,19 +61,47 @@ Migration `0023_public_plan_publication.sql`:
 * Console: a **Public** column in the plans table and two checkboxes in the
   add/edit dialog, with the Chinese strings added to `admin-i18n.js`.
 
-## Deploy notes
+## Deployed and verified
 
-* **Migration 0023 applies itself.** `deploy/aws/entrypoint.sh` runs
-  `run_migrations.py` on every container start, before the app serves, so the
-  deploy carries it. Checked rather than assumed — without it the pricing
-  section would 500 on `is_public`.
-* Verify after deploy: `/` returns `lang="en"` + canonical `/`; `/zh/` returns
-  `lang="zh-Hans"` + canonical `/zh/`; `/zh` 301s; both carry all three
-  `hreflang`; the pricing grid shows exactly three plans with the badge on
-  Studio.
-* **Submit both URLs to Search Console** — `/zh/` is a new address and has no
-  history.
-* `zh` and `en` are now reserved tenant slugs.
+`PWE-StudioSaaS-aws-8.2.20-26f609fa9e33`, 2026-08-03. Logical dump taken first
+(`studiosaas_studiosaas_20260803T020035Z.dump`). Deep health passed from the
+instance and from the public edge; the deploy pruned the v8.2.17 release
+directory, the v8.2.19 bundle and the v8.2.17 image behind itself. Disk 16.2%,
+47.8 GB free.
+
+**Migration 0023 applied itself.** `deploy/aws/entrypoint.sh` runs
+`run_migrations.py` on every container start, before the app serves — checked
+in the script rather than assumed, because without it the pricing section
+would have 500'd on `is_public`.
+
+Measured live, both languages:
+
+```text
+                    /                          /zh/
+<html lang>         en                         zh-Hans
+Content-Language    en                         zh-Hans
+<title>             Studio Management Soft…    工作室管理系统 · 报名、排课…
+canonical           https://pwestudio.online/  https://pwestudio.online/zh/
+hreflang            en-AU · zh-Hans · x-default (identical on both)
+<h1>                1                          1
+data-lang left      none                       none
+plans               49 / 99 / 199, badge on Studio (both)
+JSON-LD offers      AggregateOffer AUD 49–199, offerCount 3 (both)
+bytes               44,520                     40,070
+```
+
+`/zh` 301s to `/zh/`. `/v1/public/plans`, `/platform-admin`,
+`/customer-resources/FAQ.html` and `/lets-paint-showcase` all still 200.
+
+The only CJK remaining on the English page is `中文` (the switch link, carrying
+`lang="zh-Hans"`) and `天域文创出品` in the producer credit — the studio's
+Chinese name is part of the signature, not translatable copy (Brand_Identity
+§10).
+
+**Still to do by hand: submit both URLs to Search Console.** `/zh/` is a new
+address with no history, and the hreflang pair only helps once both are known.
+
+`zh` and `en` are now reserved tenant slugs.
 
 ## Still open
 
