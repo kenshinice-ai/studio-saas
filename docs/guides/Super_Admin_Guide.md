@@ -1,6 +1,6 @@
 # 平台超管手册 · Super Admin
 
-> 适用版本：StudioSaaS v8.1.0 · 界面：Super Admin 控制台（`/platform-admin`）
+> 适用版本：PWE Studio v8.2.20 · 界面：Super Admin 控制台（`/platform-admin`）
 > 其他角色手册见 [手册总览](README.md)
 
 ## 角色定位
@@ -30,12 +30,23 @@ Super Admin 是**平台方**（SaaS 运营者），不属于任何一家工作�
 八张 KPI 卡：Total Tenants、MRR (AUD)、Paid Tenants、Trial Tenants、
 Onboarding、Past Due、Trials Ending in 7 Days、New in 30 Days。
 
-- **Commercial Attention**：自动列出商业风险按钮，如
-  「N · payment follow-up」「N · trials ending soon」
-  「N · onboarding incomplete」。点任一按钮直接跳到 Tenants 列表并套用
-  对应过滤。
+**其中七张是筛选按钮（v8.2.11）。** 点任何一张（MRR 除外）会直接把下方
+Tenants 列表筛成它统计的那批工作室，卡片上出现「Filtering 筛选中」标记，
+列表顶部出现一枚可关闭的筛选条（「From overview 来自总览」）。**MRR 不是
+按钮**——它是一个金额合计，点它没有任何一组行可以展示。
+
+> **这里有个容易看错的地方。** 大多数计数器统计的是**订阅状态**
+> （`subscriptions.status`），而工具条上的 Status 下拉筛的是**租户状态**
+> （`tenants.status`）。两者共用 active / past_due / trial 这几个词。所以
+> 「Paid Tenants 3」和 Status 下拉选 active 得到的**不是同一批**——本地实测
+> 后者会列出 5 家。要看某张卡对应的确切名单，请点卡片本身，不要手动去下拉
+> 里选一个看起来同名的值。
+
 - **30-Day Acquisition Funnel**：近 30 天报名转化一行汇总
   （报名数 · 转化数与转化率 · 来自官网 · 来自快速报名/投放）。
+
+> 旧版手册里的 **Commercial Attention** 卡片已在 v8.2.11 移除——它列的三个
+> 数字与正上方的计数器完全重复，而计数器现在自己就是筛选入口。
 
 ## 二、Tenants（租户管理）
 
@@ -97,20 +108,43 @@ No owner assigned、Website not published、Storage near limit 等）、
 
 > 确认输入不容错：必须与 slug 完全一致（英文原文），界面切换成中文也一样。
 
+> **归档与永久删除到 v8.2.10 才真正可用。** 在此之前两者在生产环境
+> **从未成功过一次**：归档目录所在的挂载卷不可写，接口直接返回服务器错误，
+> 而永久删除又要求「必须先归档」，于是整条路径都走不通。现在归档会先写四份
+> 快照再关闭租户，成功提示里会显示快照路径——**看到路径才算归档成功**，
+> 请记下它。
+
 ## 三、Plans（套餐管理）
 
 表格列：Plan（名称 + code）、Price/Month（AUD）、Limits（学员/用户/存储 +
 已启用权限）、Actions（Edit / Delete）。
 
-- **Edit**：名称、月价、学员/用户/存储上限，及 5 个权限开关
+表格现在多一列 **Public**，显示「Published 已发布 / Not published 未发布」，
+主推套餐另带一枚「Recommended 主推」徽章。
+
+- **Edit**：名称、月价、学员/用户/存储上限，5 个权限开关
   （Public registration、Student portfolio、Email templates、Data export、
-  Priority support）+「Additional entitlements (JSON)」高级字段。
+  Priority support）+「Additional entitlements (JSON)」高级字段，以及
+  **Public pricing page 公开定价页**分组下的两个勾选：
+  - **Publish on pwestudio.online 发布到 pwestudio.online**;
+  - **Mark as the recommended plan 设为主推套餐**（勾上会自动清除其他套餐的
+    主推标记——数据库上有唯一约束，主推只能有一个）。
   **Code 创建后不可修改。**
+- **「+ Add Plan」现在可以填 Code 了**（旧手册写的「Code 字段禁用、无法通过
+  UI 新建套餐」已过时）。
 - 套餐指派：在新建/编辑租户的 Plan 下拉里选；租户额度完全继承套餐。
-- **已知限制**：「+ Add Plan」弹窗中 Code 字段是禁用且为空的，当前版本
-  **无法通过 UI 新建带 code 的套餐**——新套餐请由后端/脚本预置，UI 只用于
-  编辑现有套餐。另外「Delete Plan」只需一次点击确认（没有短语确认），
-  删除前请自行核对没有租户还挂在该套餐上。
+
+> **新建的套餐默认「不公开」（v8.2.20）。** 这是刻意的：在此之前
+> `plans` 表里**每一行**都会自动出现在 `pwestudio.online` 的定价栏上，
+> 一个为测试建的 A$1 套餐就这样进了公开定价页，还因为「主推」当时是按
+> 中位价推断的，把主推徽章从 Studio 挤到了 Starter。现在「定义一个套餐」
+> 和「决定卖它」是两个动作，后者要你主动勾。
+>
+> 改完记得去 `https://pwestudio.online/` 和 `/zh/` 各看一眼——那两页的价格
+> 和额度就是从这张表直接渲染的，页面里没有任何写死的数字。
+
+- 「Delete Plan」只需一次点击确认（没有短语确认），删除前请自行核对没有
+  租户还挂在该套餐上。
 
 ## 四、支持模式（Support Session）——租户访问的强制门槛
 
@@ -149,7 +183,18 @@ session for this studio from the Super Admin console first.」
 
 「Audit Logs」区块显示平台最近活动：Time / Tenant / Action / Resource
 四列（如 `auth.login_failed`、`support.session_started`、租户状态变更等）。
-当前版本无筛选、分页和导出；需要深入排查时直接查数据库 `audit_logs` 表。
+
+**v8.2.11 起有了搜索和分页**（旧手册写的「无筛选、无分页」已过时）：
+
+- 顶部搜索框「Filter by action, tenant, or resource...」按动作、工作室或
+  对象过滤;
+- 每页 15 条，底部 Previous / Next，页码与总数都会显示;
+- 接口一次返回 100 条，页面不再把它们一次性铺开——这一页曾经是控制台里
+  最长的一段。
+
+仍然**没有导出**；需要更深的排查请直接查数据库 `audit_logs` 表。
+
+> **保留期限：审计记录两年**（见下一节）。要留更久请定期导出。
 
 ## 六、备份与运维
 
@@ -175,9 +220,22 @@ cd backend && STUDIOSAAS_DATABASE_URL=... \
 
 - 媒体文件与 legacy 数据（`STUDIOSAAS_MEDIA_DIR`、`CMS_DATA_DIR`）不在
   pg_dump 里，需要随数据库一起做文件级备份;
-- 事件表清理建议每月跑
-  `python backend/scripts/prune_event_tables.py --dry-run`（确认后去掉
-  `--dry-run`）;
+- **事件表保留策略已经在跑（v8.2.12）**，不再是"建议每月手动执行"。
+  `/etc/cron.d/pwestudio-prune` 每月 1 号 04:15 UTC 执行
+  `bash deploy/aws/lightsail_ctl.sh prune`。默认保留窗口：
+
+  | 表 | 保留 | 说明 |
+  |---|---|---|
+  | `audit_logs` | 730 天 | 上线 31 天时就已是最大的表（4,413 行） |
+  | `public_analytics_events` | 365 天 | 官网匿名流量 |
+  | `notification_logs` | 365 天 | 通知发送记录 |
+  | `student_access_sessions` / `student_access_attempts` | 30 天 | 家长自助查询会话 |
+
+  `student_publication_consent_events`（作品公开同意与撤回）**刻意不在清理
+  范围内**——那是法律证据，永不删除。
+  手动执行前先跑 `bash deploy/aws/lightsail_ctl.sh prune --dry-run` 看会删多少;
+- 磁盘水位：`bash deploy/aws/pwestudio_remote.sh disk`（超过警戒线时非零退出）；
+  部署会自己清理旧发布目录、旧镜像和构建缓存;
 - 发布门槛验证：`STUDIOSAAS_REQUIRE_POSTGRES=1 bash backend/scripts/verify_local.sh`;
 - 租户「Archive」操作本身就是一次完整快照（数据库 + 工作区 + 媒体 +
   订阅元数据），可作为下线前的最后留档;
@@ -209,6 +267,20 @@ Reactivate（再输一次 slug）才回到 active。
 **Q6：中文界面下确认框输入中文名可以吗？**
 不行。确认输入必须是英文原文 slug（或 `DELETE <slug>`），大小写敏感。
 
+**Q6b：新建了套餐，为什么官网定价页上没有它？**
+因为新套餐默认**不公开**（v8.2.20）。Plans → Edit → Public pricing page →
+勾「Publish on pwestudio.online」。这是刻意的默认值：在此之前每一行套餐都
+会自动上公开页，一个 A$1 的测试套餐就是这样进去的。
+
+**Q6c：点了总览的计数卡，列出来的数量和卡上的数字对不上？**
+如果你点的是卡片本身，两者一定一致。对不上通常是手动去 Status 下拉里选了
+一个同名的值——那个下拉筛的是**租户状态**，而多数计数卡统计的是**订阅
+状态**，两套状态共用同样的词。要看某张卡的确切名单，点卡片。
+
+**Q6d：归档提示成功，但我不确定快照写了没有？**
+成功提示里会带快照路径，**没有路径就不算成功**。归档在 v8.2.10 之前于
+生产环境从未成功过一次（挂载卷不可写），所以这条提示值得每次都看一眼。
+
 **Q7：不开支持模式直接进租户后台会怎样？**
 会被后端拒绝：租户内的所有接口返回 403 `support_session_required`
 （「需要先开启支持模式（含原因）才能进入该工作室」）。这是 v7.7.7 起的
@@ -226,8 +298,8 @@ Reason）。这是产品的透明性承诺，请把 Reason 写得可以给客户
 | 功能 | Super Admin | 说明 |
 |---|---|---|
 | 开租户 / 编辑 / 生命周期 / 永久删除 | ✅ | 永久删除需先归档 + 短语确认 |
-| 套餐编辑与指派 | ✅ | UI 暂不能新建带 code 的套餐 |
-| 平台审计日志 | ✅ | 无筛选/导出 |
+| 套餐新建 / 编辑 / 指派 / 发布 | ✅ | v8.2.20 起可从 UI 新建；发布到公开定价页是单独的勾选，默认关 |
+| 平台审计日志 | ✅ | 有搜索与分页，仍无导出；保留 730 天 |
 | 直接打开租户 Studio Admin / CMS | ❌ | 403 `support_session_required`——必须先开支持会话 |
 | 支持模式进入租户 Studio Admin / CMS | ✅ | 必填 Reason、按租户逐个开启、全程审计 |
 | 租户内所有 API（权限 `*`，支持会话内） | ✅ | 仅限支持场景使用；操作对租户 Owner 可见 |
