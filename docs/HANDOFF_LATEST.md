@@ -63,8 +63,10 @@ Migration `0023_public_plan_publication.sql`:
 
 ## Deploy notes
 
-* **Run migration 0023 on production before or with the release.** Without it
-  the page 500s on `is_public`. `python backend/scripts/run_migrations.py`.
+* **Migration 0023 applies itself.** `deploy/aws/entrypoint.sh` runs
+  `run_migrations.py` on every container start, before the app serves, so the
+  deploy carries it. Checked rather than assumed — without it the pricing
+  section would 500 on `is_public`.
 * Verify after deploy: `/` returns `lang="en"` + canonical `/`; `/zh/` returns
   `lang="zh-Hans"` + canonical `/zh/`; `/zh` 301s; both carry all three
   `hreflang`; the pricing grid shows exactly three plans with the badge on
