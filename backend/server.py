@@ -958,6 +958,49 @@ def _legacy_file(filename, mimetype=None, cache_seconds=0):
     return _serve_versioned_shell(
         legacy_dir, filename, mimetype or 'text/html; charset=utf-8')
 
+def _serve_manual(language):
+    """The user manual, in exactly one language.
+
+    Same mechanism as the home page and for the same reason: `hreflang` can
+    only point at an address, so a language without one cannot be pointed at.
+    The manual is the page most likely to be linked to from outside — a
+    support reply is a deep link into a section — which is why it was split
+    first, ahead of the compliance pages that still toggle in the DOM.
+
+    No pricing and no database read: the manual describes how the product
+    behaves, and that is in the file.
+    """
+
+    target = os.path.join(PROJECT_ROOT, 'manual.html')
+    try:
+        with open(target, encoding='utf-8') as handle:
+            html = handle.read()
+    except OSError:
+        return api_error('Not found', 404)
+
+    resp = make_response(
+        apply_language(html, language).replace('__APP_VERSION__', APP_VERSION))
+    resp.headers['Content-Type'] = 'text/html; charset=utf-8'
+    resp.headers['Content-Language'] = HTML_LANG[language]
+    resp.headers['Cache-Control'] = 'no-cache'
+    return resp
+
+@app.route('/manual/')
+def serve_manual():
+    return _serve_manual('en')
+
+@app.route('/zh/manual/')
+def serve_manual_zh():
+    return _serve_manual('zh')
+
+@app.route('/manual')
+def serve_manual_redirect():
+    return redirect('/manual/', code=301)
+
+@app.route('/zh/manual')
+def serve_manual_zh_redirect():
+    return redirect('/zh/manual/', code=301)
+
 def _serve_product_home(language):
     """The marketing home page in exactly one language.
 

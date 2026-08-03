@@ -1,0 +1,273 @@
+"""The user manual: one language per URL, one palette, and printable.
+
+The manual is the page a support reply links into, so its section anchors are
+a contract — renaming one breaks every link already sent. It is also the
+fourth page to carry the family colours, and the previous three drifted onto a
+retired palette because each held its own copy of the hex.
+
+The print stylesheet is the PDF. There is no second document, which means the
+things that make a printed page usable — the contents removed, link targets
+written out, sections starting on a fresh page, and nothing left hidden by the
+on-screen filter — are only true if they are asserted.
+"""
+
+from __future__ import annotations
+
+import re
+from pathlib import Path
+
+import pytest
+
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+MANUAL = REPOSITORY_ROOT / "manual.html"
+STYLE = REPOSITORY_ROOT / "backend/frontend/assets/manual.css"
+SCRIPT = REPOSITORY_ROOT / "backend/frontend/assets/manual.js"
+TOKENS = REPOSITORY_ROOT / "backend/frontend/assets/ui-tokens.css"
+SERVER = REPOSITORY_ROOT / "backend/server.py"
+GUIDES = REPOSITORY_ROOT / "docs/guides"
+
+# Every section the manual promises, in the order it promises them. A support
+# link is written as /manual/#refunds; renaming an anchor breaks it silently.
+SECTIONS = [
+    "start", "launch", "enrolment", "roster", "money", "work",
+    "families", "team", "insight", "platform", "help", "faq",
+]
+
+
+def _source() -> str:
+    return MANUAL.read_text(encoding="utf-8")
+
+
+def _style() -> str:
+    return STYLE.read_text(encoding="utf-8")
+
+
+def _strip_comments(text: str) -> str:
+    text = re.sub(r"<!--.*?-->", "", text, flags=re.S)
+    return re.sub(r"/\*.*?\*/", "", text, flags=re.S)
+
+
+# ── structure ────────────────────────────────────────────────────────────────
+
+def test_every_section_exists_and_is_in_the_contents() -> None:
+    """A contents entry pointing at nothing is worse than no contents."""
+
+    source = _source()
+    for anchor in SECTIONS:
+        assert f'<section id="{anchor}">' in source, f"section #{anchor} is missing"
+        assert f'href="#{anchor}"' in source, f"#{anchor} is not in the table of contents"
+
+    listed = re.findall(r'<li><a href="#([a-z]+)">', source)
+    assert listed == SECTIONS, f"contents order drifted: {listed}"
+
+
+def test_the_manual_stops_short_of_the_platform_console() -> None:
+    """Decided with the owner: this is a customer manual.
+
+    Section 09 tells a studio what the platform can and cannot do inside their
+    data, which is a trust statement. Instructions for operating the console
+    stay in docs/guides/Super_Admin_Guide.md, which is internal.
+    """
+
+    source = _source()
+    assert "/platform-admin" not in source
+    assert 'Enter Support Mode' not in source
+    assert (GUIDES / "Super_Admin_Guide.md").exists()
+
+
+# ── language ─────────────────────────────────────────────────────────────────
+
+@pytest.mark.parametrize("language", ["en", "zh"])
+def test_each_language_is_a_complete_document(language: str) -> None:
+    from studiosaas.services.public_site import apply_language
+
+    document = apply_language(_source(), language)
+    body = re.sub(r"<!--.*?-->", "", document, flags=re.S)
+    assert "data-lang" not in body, "authoring markers survived the filter"
+    assert document.count("<h1") == 1
+    assert document.count("<title") == 1
+    # Controls the script requires must survive in exactly one copy, or the
+    # page throws on load.
+    for element in ('id="manualSearch"', 'id="noHits"', 'id="printButton"',
+                    'id="tocButton"', 'id="toc"'):
+        assert document.count(element) == 1, f"{element} appears {document.count(element)} times"
+    assert document.count("<section id=") == len(SECTIONS)
+
+
+def test_no_language_element_nests_the_same_tag() -> None:
+    """The filter finds the end of a skipped subtree by counting one tag name.
+
+    A `<span data-lang="zh">` wrapping another `<span>` would end the skip at
+    the inner close tag and leak the rest of the Chinese subtree into the
+    English page.
+    """
+
+    from html.parser import HTMLParser
+
+    void = {"area", "base", "br", "col", "embed", "hr", "img", "input",
+            "link", "meta", "param", "source", "track", "wbr"}
+
+    class _Nesting(HTMLParser):
+        def __init__(self) -> None:
+            super().__init__(convert_charrefs=False)
+            self.stack: list[tuple[str, bool]] = []
+            self.violations: list[str] = []
+
+        def handle_starttag(self, tag, attrs):
+            if tag in void:
+                return
+            for open_tag, marked in self.stack:
+                if open_tag == tag and marked:
+                    self.violations.append(tag)
+            self.stack.append((tag, any(name == "data-lang" for name, _ in attrs)))
+
+        def handle_endtag(self, tag):
+            for index in range(len(self.stack) - 1, -1, -1):
+                if self.stack[index][0] == tag:
+                    del self.stack[index:]
+                    return
+
+    checker = _Nesting()
+    checker.feed(_source())
+    checker.close()
+    assert not checker.violations, set(checker.violations)
+
+
+def test_the_hreflang_pair_is_reciprocal_and_the_switch_is_a_link() -> None:
+    source = _source()
+    for link in (
+        '<link rel="alternate" hreflang="en-AU" href="https://pwestudio.online/manual/">',
+        '<link rel="alternate" hreflang="zh-Hans" href="https://pwestudio.online/zh/manual/">',
+        '<link rel="alternate" hreflang="x-default" href="https://pwestudio.online/manual/">',
+    ):
+        assert link in source
+    assert 'href="/zh/manual/" hreflang="zh-Hans"' in source
+    assert 'href="/manual/" hreflang="en-AU"' in source
+    assert 'id="languageButton"' not in source
+
+
+def test_the_server_routes_both_languages() -> None:
+    source = SERVER.read_text(encoding="utf-8")
+    for route in ("@app.route('/manual/')", "@app.route('/zh/manual/')",
+                  "@app.route('/manual')", "@app.route('/zh/manual')"):
+        assert route in source
+
+
+# ── palette ──────────────────────────────────────────────────────────────────
+
+def test_the_manual_declares_no_family_colour_of_its_own() -> None:
+    """Three customer pages drifted onto a retired palette holding their own
+    copies of the hex. This one reads ui-tokens.css and restates nothing."""
+
+    style = _strip_comments(_style())
+    family = re.findall(r"#(?:0e1729|16233d|22355a|f5b335|a16207|f7f5f2)", style, re.I)
+    assert not family, f"manual.css restates family colours: {set(family)}"
+    assert "--pwe-family-navy" in style and "--pwe-family-amber" in style
+    assert '<link rel="stylesheet" href="/assets/ui-tokens.css' in _source()
+
+    tokens = TOKENS.read_text(encoding="utf-8")
+    for token in ("--pwe-family-navy", "--pwe-family-navy-raised",
+                  "--pwe-family-amber", "--pwe-family-amber-text", "--pwe-warm-paper"):
+        assert token in tokens, f"{token} is not defined in ui-tokens.css"
+
+
+def test_the_bright_amber_is_not_the_accent_on_paper() -> None:
+    """#F5B335 is 1.70:1 on Warm Paper. The light theme has to swap it."""
+
+    style = _strip_comments(_style())
+    light = style[style.index("@media (prefers-color-scheme: light)"):]
+    light = light[: light.index("\n}\n", light.index("{")) + 3]
+    assert "--accent: var(--pwe-family-amber-text)" in light
+    assert "grid-template-columns" not in light, "the light theme forked the layout"
+
+
+def test_every_control_in_the_bar_is_a_touch_target() -> None:
+    """WCAG 2.5.5. The contents button is the control a phone reader uses most,
+    and it was 41x43 before this."""
+
+    style = _strip_comments(_style())
+    pill = style[style.index(".pill {"):]
+    pill = pill[: pill.index("}")]
+    assert "min-height: 44px" in pill and "min-width: 44px" in pill
+    search = style[style.index(".search {"):]
+    search = search[: search.index("}")]
+    assert "height: 44px" in search
+
+
+def test_phi_generates_the_reading_column_not_the_sidebar() -> None:
+    """φ used where it does not help is decoration, which §7.1 rules out.
+
+    A 38.2% navigation column beside a 61.8% article is 440px of table of
+    contents. The measure is the golden number here; the sidebar is sized by
+    its content.
+    """
+
+    style = _strip_comments(_style())
+    assert "--measure: 61.8ch" in style
+    assert "--toc: 232px" in style
+    assert "grid-template-columns: var(--toc) minmax(0, 1fr)" in style
+    assert "38.2" not in style
+
+
+# ── print is the PDF ─────────────────────────────────────────────────────────
+
+def test_the_print_stylesheet_produces_a_usable_document() -> None:
+    """There is no second artefact, so the printed page has to stand alone."""
+
+    style = _style()
+    assert "@media print" in style
+    printed = style[style.index("@media print"):]
+
+    # Navigation a reader cannot use, removed.
+    for control in (".bar", ".toc", ".skip", ".toc-btn"):
+        assert control in printed.split("display: none !important")[0], (
+            f"{control} is still printed"
+        )
+    # Sections start on their own page, and nothing splits mid-idea.
+    assert "page-break-before: always" in printed
+    assert "page-break-inside: avoid" in printed
+    # A link on paper is a dead end unless it says where it goes.
+    assert 'content: " (" attr(href) ")"' in printed
+    # The filter must not be able to silently drop a section from the print.
+    assert "[hidden] { display: revert !important; }" in printed
+    assert "@page" in printed
+
+
+def test_the_print_button_clears_the_filter_first() -> None:
+    """Otherwise the on-screen state and the paper disagree about what exists."""
+
+    script = SCRIPT.read_text(encoding="utf-8")
+    handler = script[script.index("printButton.addEventListener"):]
+    handler = handler[: handler.index("});")]
+    assert "filter('')" in handler
+    assert handler.index("filter('')") < handler.index("window.print()")
+
+
+# ── the page as served ───────────────────────────────────────────────────────
+
+@pytest.mark.parametrize(
+    ("path", "expected_lang"),
+    [("/manual/", "en"), ("/zh/manual/", "zh-Hans")],
+)
+def test_the_served_manual_is_monolingual(client, path: str, expected_lang: str) -> None:
+    response = client.get(path)
+    assert response.status_code == 200
+    body = response.get_data(as_text=True)
+    assert f'<html lang="{expected_lang}">' in body
+    assert response.headers["Content-Language"] == expected_lang
+    assert "__APP_VERSION__" not in body
+    assert body.count("<h1") == 1
+
+
+@pytest.mark.parametrize("path", ["/manual", "/zh/manual"])
+def test_the_bare_paths_redirect_to_the_canonical_form(client, path: str) -> None:
+    response = client.get(path)
+    assert response.status_code == 301
+    assert response.headers["Location"].endswith("/")
+
+
+def test_the_manual_is_reachable_from_the_product_home(client) -> None:
+    """A manual nobody can find has not been published."""
+
+    body = client.get("/").get_data(as_text=True)
+    assert 'href="/manual/"' in body

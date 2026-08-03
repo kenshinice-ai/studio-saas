@@ -1,0 +1,290 @@
+/* ===========================================================================
+   PWE Studio — user manual.
+
+   The family palette comes from ui-tokens.css and is never restated here:
+   duplicated hex is what let the customer-resources pages drift onto a retired
+   palette, and this is the fourth page that would have carried its own copy.
+
+   Everything else is the marketing site's system rather than the console's,
+   because this page is read by customers: φ^(k/2) type, Fibonacci spacing,
+   navy with a single amber accent, authored dark and re-skinned light from the
+   system setting. Five surface tokens plus --accent carry the whole theme, so
+   the light version is a token swap and not a second stylesheet.
+
+   φ is used where it does work. The reading column is --measure (61.8ch),
+   which lands inside the 65–75 character range long-form reading actually
+   needs. The table of contents is sized by its longest label. Making the
+   sidebar 38.2% of the page to look golden would produce a 440px navigation
+   column beside a 700px article — φ used as decoration is exactly what
+   Brand_Identity §7.1 rules out.
+   =========================================================================== */
+
+:root {
+  --phi: 1.6180339887;
+
+  /* type — φ^(k/2) */
+  --f-xs: .618rem;
+  --f-sm: .786rem;
+  --f-0: 1rem;
+  --f-1: 1.272rem;
+  --f-2: 1.618rem;
+  --f-3: 2.058rem;
+  --f-4: 2.618rem;
+
+  /* space — Fibonacci */
+  --s-1: 8px;
+  --s-2: 13px;
+  --s-3: 21px;
+  --s-4: 34px;
+  --s-5: 55px;
+  --s-6: 89px;
+
+  --maxw: 1152px;
+  --measure: 61.8ch;
+  --toc: 232px;
+  --r: 13px;
+  --bar: 60px;
+
+  --surface: var(--pwe-family-navy);
+  --surface-2: var(--pwe-family-navy-raised);
+  --card: var(--pwe-family-navy-raised);
+  --accent: var(--pwe-family-amber);
+  --ink: var(--pwe-warm-paper);
+  --ink-soft: rgba(255, 255, 255, .74);   /* 10.1:1 on navy */
+  --ink-faint: rgba(255, 255, 255, .56);  /* 6.4:1 on navy */
+  --hairline: rgba(255, 255, 255, .14);
+  --line-strong: rgba(255, 255, 255, .42);
+  --shadow: 0 21px 55px rgba(0, 0, 0, .34);
+  --bar-bg: rgba(14, 23, 41, .88);
+
+  --serif: Georgia, "Times New Roman", "Songti SC", "Source Han Serif SC", serif;
+  --sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          "PingFang SC", "Source Han Sans SC", sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  --ease: cubic-bezier(.2, .7, .2, 1);
+
+  color-scheme: dark light;
+  font-size: 17px;
+}
+
+@media (max-width: 640px) { :root { font-size: 16px; } }
+
+/* The light theme: the same page on paper. Measured on Warm Paper —
+   --ink 15.5:1, --ink-soft 6.97:1, --ink-faint 5.48:1, --accent 4.52:1. */
+@media (prefers-color-scheme: light) {
+  :root {
+    --surface: var(--pwe-warm-paper);
+    --surface-2: #ffffff;
+    --card: #ffffff;
+    --accent: var(--pwe-family-amber-text);
+    --ink: var(--pwe-family-navy);
+    --ink-soft: #475569;
+    --ink-faint: #5c6470;
+    --hairline: rgba(14, 23, 41, .14);
+    --line-strong: rgba(14, 23, 41, .34);
+    --shadow: 0 21px 55px rgba(14, 23, 41, .12);
+    --bar-bg: rgba(247, 245, 242, .9);
+  }
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; min-width: 320px; font-family: var(--sans); line-height: var(--phi);
+  color: var(--ink); background: var(--surface); -webkit-font-smoothing: antialiased;
+}
+img { max-width: 100%; display: block; }
+a { color: inherit; }
+button, input, select { font: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+.vh { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.skip { position: fixed; top: -80px; left: var(--s-3); z-index: 100; padding: var(--s-2) var(--s-3); border-radius: var(--r); color: var(--pwe-family-navy); background: var(--pwe-warm-paper); font-weight: 600; }
+.skip:focus { top: var(--s-2); outline-color: var(--pwe-family-amber-text); }
+
+/* ── top bar ──────────────────────────────────────────────────────────── */
+.bar {
+  position: sticky; top: 0; z-index: 40; border-bottom: 1px solid var(--hairline);
+  background: var(--bar-bg); -webkit-backdrop-filter: saturate(160%) blur(14px);
+  backdrop-filter: saturate(160%) blur(14px);
+}
+.bar-in {
+  display: flex; align-items: center; gap: var(--s-2);
+  max-width: var(--maxw); margin-inline: auto; min-height: var(--bar);
+  padding: env(safe-area-inset-top) clamp(21px, 4vw, 34px) 0;
+}
+.brand { display: inline-flex; align-items: center; gap: .5rem; min-height: 44px; font-weight: 600; text-decoration: none; letter-spacing: -.01em; }
+.brand img { width: 26px; height: 26px; }
+.brand small { color: var(--ink-faint); font-size: var(--f-sm); font-weight: 500; }
+.bar-tools { display: flex; align-items: center; gap: var(--s-1); margin-left: auto; }
+.search {
+  min-width: 0; width: clamp(150px, 26vw, 280px); height: 44px; padding: 0 var(--s-2);
+  border: 1px solid var(--line-strong); border-radius: 999px;
+  background: transparent; color: var(--ink);
+}
+.search::placeholder { color: var(--ink-faint); }
+.pill {
+  display: inline-flex; align-items: center; justify-content: center; gap: .4rem;
+  min-height: 44px; min-width: 44px; padding: 0 var(--s-2); border: 1px solid var(--line-strong);
+  border-radius: 999px; background: transparent; color: var(--ink);
+  font-size: var(--f-sm); text-decoration: none; cursor: pointer;
+  transition: border-color .2s var(--ease), color .2s var(--ease);
+}
+.pill:hover { border-color: var(--accent); color: var(--accent); }
+.toc-btn { display: none; }
+
+/* ── layout ───────────────────────────────────────────────────────────── */
+.shell {
+  display: grid; grid-template-columns: var(--toc) minmax(0, 1fr);
+  gap: clamp(21px, 4vw, var(--s-5));
+  max-width: var(--maxw); margin-inline: auto; padding: var(--s-5) clamp(21px, 4vw, 34px) var(--s-6);
+}
+.toc { position: sticky; top: calc(var(--bar) + var(--s-3)); align-self: start; max-height: calc(100dvh - var(--bar) - var(--s-4)); overflow-y: auto; }
+.toc h2 { margin: 0 0 var(--s-2); color: var(--ink-faint); font-family: var(--sans); font-size: var(--f-sm); font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.toc ol { margin: 0; padding: 0; list-style: none; }
+.toc a {
+  display: flex; gap: .55rem; align-items: baseline; padding: 7px var(--s-1);
+  border-left: 2px solid transparent; color: var(--ink-soft);
+  font-size: var(--f-sm); line-height: 1.4; text-decoration: none;
+  transition: color .2s var(--ease), border-color .2s var(--ease);
+}
+.toc a:hover { color: var(--ink); }
+.toc a.on { color: var(--accent); border-left-color: var(--accent); }
+.toc a b { flex: none; font-variant-numeric: tabular-nums; font-weight: 600; opacity: .7; }
+
+/* ── article ──────────────────────────────────────────────────────────── */
+article { min-width: 0; }
+.lede { max-width: var(--measure); margin: 0 0 var(--s-5); color: var(--ink-soft); font-size: var(--f-1); line-height: 1.55; }
+h1 { margin: 0 0 var(--s-2); font-family: var(--serif); font-size: clamp(1.9rem, 5vw, var(--f-4)); font-weight: 500; line-height: 1.1; letter-spacing: -.012em; }
+section { padding-block: var(--s-5); border-top: 1px solid var(--hairline); }
+section:first-of-type { border-top: 0; padding-top: 0; }
+section[id] { scroll-margin-top: calc(var(--bar) + var(--s-3)); }
+.eyebrow { display: flex; align-items: center; gap: var(--s-1); margin: 0 0 var(--s-1); color: var(--accent); font-size: var(--f-sm); font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+.eyebrow svg { flex: none; width: 11px; height: 11px; }
+h2 { margin: 0 0 var(--s-2); font-family: var(--serif); font-size: clamp(1.4rem, 3.2vw, var(--f-3)); font-weight: 500; line-height: 1.15; letter-spacing: -.012em; }
+h3 { margin: var(--s-4) 0 var(--s-1); font-family: var(--sans); font-size: var(--f-1); font-weight: 700; line-height: 1.3; }
+h4 { margin: var(--s-3) 0 var(--s-1); font-family: var(--sans); font-size: var(--f-0); font-weight: 700; }
+p, li { color: var(--ink-soft); }
+p { max-width: var(--measure); margin: 0 0 var(--s-2); line-height: 1.65; }
+article ul, article ol { max-width: var(--measure); margin: 0 0 var(--s-3); padding-left: var(--s-3); }
+article li { margin-bottom: 6px; line-height: 1.6; }
+strong { color: var(--ink); font-weight: 700; }
+code { padding: 1px 5px; border-radius: 5px; background: var(--card); color: var(--ink); font-family: var(--mono); font-size: .88em; }
+kbd { padding: 2px 6px; border: 1px solid var(--line-strong); border-radius: 5px; font-family: var(--mono); font-size: .82em; }
+
+/* Numbered procedure: the numbers are the manual's spine, so they are
+   generated rather than typed and cannot fall out of sequence in an edit. */
+.steps { counter-reset: step; max-width: var(--measure); margin: 0 0 var(--s-3); padding: 0; list-style: none; }
+.steps > li { position: relative; margin-bottom: var(--s-2); padding-left: var(--s-4); counter-increment: step; }
+.steps > li::before {
+  content: counter(step); position: absolute; left: 0; top: 2px;
+  display: grid; place-items: center; width: 23px; height: 23px; border-radius: 50%;
+  background: var(--accent); color: var(--pwe-family-navy);
+  font-size: var(--f-xs); font-weight: 700;
+}
+
+/* "会踩的坑" — the part of a manual people actually come back for. */
+.pitfall {
+  max-width: var(--measure); margin: var(--s-3) 0; padding: var(--s-3);
+  border: 1px solid var(--hairline); border-left: 3px solid var(--accent);
+  border-radius: 0 var(--r) var(--r) 0; background: var(--card);
+}
+.pitfall > :last-child { margin-bottom: 0; }
+.pitfall b { color: var(--accent); }
+
+.note { max-width: var(--measure); margin: var(--s-2) 0; color: var(--ink-faint); font-size: var(--f-sm); line-height: 1.6; }
+.note a, p a, li a, td a { color: var(--accent); }
+
+/* Wide tables scroll inside their own box; the page never scrolls sideways. */
+.tw { max-width: 100%; margin: var(--s-3) 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table { width: 100%; border-collapse: collapse; font-size: var(--f-sm); }
+th, td { padding: var(--s-1) var(--s-2); border-bottom: 1px solid var(--hairline); text-align: left; vertical-align: top; }
+th { color: var(--ink); font-size: var(--f-sm); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
+td { color: var(--ink-soft); }
+.yes { color: var(--accent); font-weight: 700; }
+.no { color: var(--ink-faint); }
+
+/* ── screenshots ──────────────────────────────────────────────────────── */
+/* The window frame is the family's existing .ui-shot language. Callout
+   numbers are real text in the DOM rather than pixels burnt into the image:
+   they translate, they are read out by a screen reader, and they follow the
+   theme. */
+figure { max-width: 100%; margin: var(--s-4) 0; }
+.shot { position: relative; overflow: hidden; border: 1px solid var(--hairline); border-radius: var(--r); background: var(--card); box-shadow: var(--shadow); }
+.shot-bar { display: flex; gap: 6px; padding: var(--s-1) var(--s-2); background: rgba(127, 127, 127, .12); }
+.shot-bar i { width: 9px; height: 9px; border-radius: 50%; background: var(--ink-faint); opacity: .5; }
+.shot img { width: 100%; height: auto; display: block; }
+.shot-todo { display: grid; place-items: center; aspect-ratio: var(--phi); padding: var(--s-3); color: var(--ink-faint); font-size: var(--f-sm); text-align: center; }
+.marks { counter-reset: mark; max-width: var(--measure); margin: var(--s-2) 0 0; padding: 0; list-style: none; }
+.marks > li { position: relative; margin-bottom: 5px; padding-left: 28px; counter-increment: mark; font-size: var(--f-sm); }
+.marks > li::before {
+  content: counter(mark); position: absolute; left: 0; top: 1px;
+  display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%;
+  border: 1.5px solid var(--accent); color: var(--accent); font-size: var(--f-xs); font-weight: 700;
+}
+figcaption { max-width: var(--measure); margin-top: var(--s-2); color: var(--ink-faint); font-size: var(--f-sm); }
+
+/* ── search ───────────────────────────────────────────────────────────── */
+[hidden] { display: none !important; }
+.no-hits { display: none; max-width: var(--measure); padding: var(--s-3); border: 1px dashed var(--hairline); border-radius: var(--r); color: var(--ink-faint); }
+body.searching .no-hits.on { display: block; }
+mark { padding: 0 2px; border-radius: 3px; background: var(--accent); color: var(--pwe-family-navy); }
+
+/* ── footer ───────────────────────────────────────────────────────────── */
+.foot { max-width: var(--measure); margin-top: var(--s-5); padding-top: var(--s-3); border-top: 1px solid var(--hairline); color: var(--ink-faint); font-size: var(--f-sm); }
+.foot a { color: var(--accent); }
+
+@media (max-width: 900px) {
+  .shell { grid-template-columns: minmax(0, 1fr); }
+  .toc-btn { display: inline-flex; }
+  .toc {
+    position: fixed; inset: var(--bar) 0 auto; z-index: 30; max-height: calc(100dvh - var(--bar));
+    padding: var(--s-3) clamp(21px, 4vw, 34px) var(--s-4);
+    background: var(--surface); border-bottom: 1px solid var(--hairline);
+  }
+  body:not(.toc-open) .toc { display: none; }
+  .toc a { min-height: 44px; align-items: center; }
+  .search { width: 100%; }
+  .bar-in { flex-wrap: wrap; padding-bottom: var(--s-1); }
+  .bar-tools { width: 100%; margin-left: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { transition-duration: .01ms !important; }
+}
+
+/* ===========================================================================
+   PRINT — this is the PDF.
+
+   Same document, different delivery. Everything the reader navigates with on
+   screen (top bar, table of contents, search) is what a printed page cannot
+   use, so it comes off; link targets go in instead, because a URL a reader
+   cannot follow is the one real thing paper takes away.
+   =========================================================================== */
+@media print {
+  :root {
+    --surface: #fff; --surface-2: #fff; --card: #fff;
+    --ink: #000; --ink-soft: #1c1c1c; --ink-faint: #444;
+    --accent: #6b4200;              /* amber is unprintable on white */
+    --hairline: #bbb; --line-strong: #888; --shadow: none;
+    font-size: 10.5pt;
+  }
+  @page { margin: 16mm 14mm; }
+  body { background: #fff; color: #000; }
+  .bar, .toc, .skip, .toc-btn, .no-hits { display: none !important; }
+  .shell { display: block; max-width: none; padding: 0; }
+  [hidden] { display: revert !important; }   /* search must not hide printed text */
+  h1, h2, h3, h4 { break-after: avoid; page-break-after: avoid; }
+  section { break-inside: auto; border-top: 1px solid var(--hairline); padding-block: 8mm; }
+  section[id] { break-before: page; page-break-before: always; }
+  section:first-of-type { break-before: auto; page-break-before: auto; }
+  figure, .pitfall, .steps > li, tr { break-inside: avoid; page-break-inside: avoid; }
+  p, li { max-width: none; }
+  .shot { box-shadow: none; border: 1px solid var(--hairline); }
+  .shot-bar { display: none; }
+  /* A printed link is a dead end unless it says where it goes. Internal
+     anchors are omitted — the section number beside them already does. */
+  article a[href^="http"]::after,
+  article a[href^="/"]::after { content: " (" attr(href) ")"; font-size: .85em; color: var(--ink-faint); }
+  mark { background: none; color: inherit; font-weight: 700; }
+}
