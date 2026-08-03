@@ -584,12 +584,23 @@ def _seed_artwork(cur: Any, tenant_id: str, student_ids: list[str], owner_id: st
         )
 
 
+def _app_version() -> str:
+    """The shipping version, read rather than typed.
+
+    This header said v8.1.0 for nine releases. It is a one-line example of the
+    same failure the release-notes filename had: a version written by hand in a
+    place nobody re-reads.
+    """
+
+    return (PROJECT_ROOT / "VERSION").read_text(encoding="utf-8").strip()
+
+
 def _write_credentials(path: Path, credentials: list[dict[str, str]], student_code: str) -> None:
     """Write the presenter handoff with owner-only filesystem permissions."""
 
     path.parent.mkdir(parents=True, exist_ok=True)
     lines = [
-        "PWE Studio v8.1.0 · Professional Showcase",
+        f"PWE Studio v{_app_version()} · Professional Showcase",
         f"Tenant: {SHOWCASE_NAME}",
         f"Portal: /{SHOWCASE_SLUG}",
         f"CMS: /{SHOWCASE_SLUG}/cms",

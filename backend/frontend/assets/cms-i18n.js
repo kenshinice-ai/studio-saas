@@ -291,6 +291,34 @@
     ['修改将记入日志', 'Changes are written to the activity log'],
     ['可补录系统启用前的真实入学日期', 'You can backfill a join date from before this system was in use'],
 
+    /* ── Found by the manual's screenshot run (v8.2.20) ──
+     * Capturing every CMS screen in English put the gaps on a contact sheet:
+     * the roster alone showed 22 Chinese strings in English mode. These are
+     * the ones with a self-contained meaning. Number-adjacent fragments
+     * (`人`, `次`, `笔`, `条`, `分钟`) are left alone deliberately — React
+     * splits them into their own text nodes, so translating them in isolation
+     * would reorder the phrase they belong to rather than translate it. */
+    ['网站与品牌', 'Website & brand'], ['公开网站', 'Public website'],
+    ['固定课表 ICS', 'Weekly timetable ICS'],
+    ['班组模板与批量工具', 'Group templates and bulk tools'],
+    ['今天还没有排课', 'Nothing scheduled for this day yet'],
+    ['可以在上方「每周课表」建一个固定班次，之后每到这一天会自动排入；也可以直接在下方添加学员。',
+     'Add a recurring class under Weekly schedule above and it will appear on this day automatically — or add students directly below.'],
+    ['1 对 1（同时段还有其他人时会提示冲突）',
+     'One-to-one (you will be warned if anyone else is booked at the same time)'],
+    ['选择学员', 'Choose a student'], ['确认收款并入账', 'Confirm payment and post it'],
+    ['加入排课', 'Add to roster'],
+    ['规律上课学员', 'Students attending regularly'],
+    ['人的平均上课间隔。间隔变长 = 出勤率下降的早期信号',
+     'Average gap between classes. A widening gap is an early sign of falling attendance.'],
+    ['本月', 'This month'], ['近30天', 'Last 30 days'], ['本年', 'This year'],
+    ['月度', 'Monthly'], ['年度', 'Yearly'],
+    ['周一', 'Mon'], ['周二', 'Tue'], ['周三', 'Wed'], ['周四', 'Thu'],
+    ['周五', 'Fri'], ['周六', 'Sat'], ['周日', 'Sun'],
+    ['时段安排', 'By class time'], ['已签', 'Checked in'], ['未签', 'Not checked in'],
+    ['低余额', 'Low balance'], ['搜索并选择学员…', 'Search and choose a student…'],
+    ['搜索并选择学员...', 'Search and choose a student…'],
+
     /* ── Errors ── */
     ['删除失败', 'Delete failed'], ['更新失败', 'Update failed'], ['恢复失败', 'Restore failed'],
     ['发送失败', 'Send failed'], ['保存失败', 'Save failed'],

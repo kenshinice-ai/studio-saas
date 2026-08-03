@@ -243,6 +243,128 @@ def test_the_print_button_clears_the_filter_first() -> None:
     assert handler.index("filter('')") < handler.index("window.print()")
 
 
+# ── screenshots ──────────────────────────────────────────────────────────────
+
+SHOTS_DIR = REPOSITORY_ROOT / "backend/frontend/assets/manual"
+
+
+def _image_refs() -> list[tuple[str, str, str]]:
+    """(language, src, alt) for every manual screenshot referenced."""
+
+    # The `?v=` the server stamps is not part of the filename.
+    return [
+        (language, src.split("?", 1)[0], alt)
+        for language, src, alt in re.findall(
+            r'<img data-lang="(en|zh)" src="(/assets/manual/[^"]+)"[^>]*alt="([^"]*)"',
+            _source(),
+        )
+    ]
+
+
+def test_every_referenced_screenshot_exists() -> None:
+    """A missing image is a broken box in a page nobody reloads after a merge."""
+
+    refs = _image_refs()
+    assert refs, "the manual references no screenshots"
+    for _language, src, _alt in refs:
+        path = SHOTS_DIR / Path(src).name
+        assert path.is_file(), f"{src} is referenced but not committed"
+
+
+def test_each_screenshot_exists_in_both_languages() -> None:
+    """A Chinese screenshot in the English manual reads as a different install."""
+
+    by_language: dict[str, set[str]] = {"en": set(), "zh": set()}
+    for language, src, _alt in _image_refs():
+        by_language[language].add(Path(src).name.removesuffix(f".{language}.webp"))
+    assert by_language["en"] == by_language["zh"], (
+        f"unpaired screenshots: {by_language['en'] ^ by_language['zh']}"
+    )
+
+
+def test_screenshots_carry_alt_text_and_reserved_space() -> None:
+    """Explicit width and height are what stop the page jumping as they load."""
+
+    for language, src, alt in _image_refs():
+        # Counting characters would hold the two languages to different
+        # standards: ten Chinese characters carry what four English words do.
+        size = len(alt.split()) if language == "en" else len(alt)
+        floor = 4 if language == "en" else 8
+        assert size >= floor, f"{src} has no useful alt text: {alt!r}"
+        block = _source()[_source().index(f'src="{src}?'):][:400]
+        assert "width=" in block and "height=" in block, f"{src} reserves no space"
+        assert 'loading="lazy"' in block, f"{src} is not lazy-loaded"
+
+
+def test_the_screenshot_set_stays_within_its_budget() -> None:
+    """This directory is public and served; 9.2 MB of unreferenced demo art
+    once sat in the sibling one (v8.2.18)."""
+
+    images = sorted(SHOTS_DIR.glob("*.webp"))
+    total = sum(image.stat().st_size for image in images)
+    assert total < 3 * 1024 * 1024, f"the screenshot set is {total / 1024 / 1024:.1f} MB"
+    referenced = {Path(src).name for _l, src, _a in _image_refs()}
+    orphans = {image.name for image in images} - referenced
+    assert not orphans, f"unreferenced images are shipping publicly: {sorted(orphans)}"
+
+
+def test_the_manual_says_which_theme_its_screenshots_show() -> None:
+    """Eight themes ship. A reader whose studio uses another one, and who is
+    not told, concludes their install is wrong rather than differently
+    coloured."""
+
+    source = _source()
+    assert "the colours will not match" in source
+    assert "颜色不会一样，位置会一样" in source
+
+
+def test_the_assets_route_serves_the_manual_directory_and_nothing_else(client) -> None:
+    """It reduced every path to a basename, so the images 404'd in a way that
+    looked like a blank page rather than a broken route.
+
+    The fix is an allowlist of subdirectory names, not a traversal check: `..`
+    is not the only way out of a directory, and a fixed set of names cannot be
+    talked into anything.
+    """
+
+    assert client.get("/assets/manual/03-roster.en.webp").status_code == 200
+    assert client.get("/assets/ui-tokens.css").status_code == 200
+    for hostile in ("/assets/seed-assets/x.png",
+                    "/assets/manual/deeper/x.webp",
+                    "/assets/../server.py"):
+        assert client.get(hostile).status_code in {301, 308, 404}, hostile
+
+
+def test_the_shot_list_is_executable_and_documented() -> None:
+    """The images go stale the way the prose does; re-shooting is the step that
+    gets skipped, so the shot list runs rather than being described only."""
+
+    script = REPOSITORY_ROOT / "backend/scripts/capture_manual_shots.py"
+    spec = REPOSITORY_ROOT / "docs/design/manual_shots.md"
+    assert script.is_file() and spec.is_file()
+    source = script.read_text(encoding="utf-8")
+    named = set(re.findall(r'\("(\d\d-[a-z-]+)",', source))
+    referenced = {Path(src).name.rsplit(".", 2)[0] for _l, src, _a in _image_refs()}
+    assert referenced <= named, f"images with no entry in SHOTS: {referenced - named}"
+    documented = spec.read_text(encoding="utf-8")
+    assert "lets-paint-showcase" in documented
+    for shot in named:
+        assert f"`{shot}`" in documented, (
+            f"{shot} is captured but not in docs/design/manual_shots.md"
+        )
+
+
+def test_callouts_are_text_rather_than_pixels() -> None:
+    """Numbers burnt into an image cannot be translated or read aloud, and do
+    not follow the theme."""
+
+    source = _source()
+    assert source.count("<figure>") == source.count('<ol class="marks">')
+    style = _strip_comments(_style())
+    assert "counter-increment: mark" in style
+    assert "content: counter(mark)" in style
+
+
 # ── the page as served ───────────────────────────────────────────────────────
 
 @pytest.mark.parametrize(

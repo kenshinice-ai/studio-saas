@@ -88,6 +88,9 @@
       <p class="lede" data-lang="en">Written against v__APP_VERSION__, with Let’s Paint Studio as the worked example. It follows a studio’s week rather than the menu: what you do first, what you do every day, and what to check when something looks wrong.</p>
       <p class="lede" data-lang="zh">基于 v__APP_VERSION__ 编写，示例工作室为 Let’s Paint Studio。它按一间工作室的一周来编排，而不是按菜单顺序：先做什么、每天做什么、出问题时先看哪里。</p>
 
+      <p class="note" data-lang="en">Every screenshot here is Let’s Paint Studio, on its own theme in light mode. Your studio picked a different palette, so <strong>the colours will not match — the positions will</strong>. Eight themes ship, each designed in light and dark.</p>
+      <p class="note" data-lang="zh">本手册的截图统一取自 Let’s Paint Studio，用的是它自己的主题、浅色模式。你的工作室选的是另一套配色，所以<strong>颜色不会一样，位置会一样</strong>。系统共八套主题，每套都有明暗两版。</p>
+
       <p class="no-hits" id="noHits" data-lang="en">Nothing matches that. Clear the filter box to see the whole manual again.</p>
       <p class="no-hits" id="noHits" data-lang="zh">没有匹配的内容。清空筛选框即可重新显示全部章节。</p>
 
@@ -188,11 +191,16 @@
         <figure>
           <div class="shot">
             <div class="shot-bar" aria-hidden="true"><i></i><i></i><i></i></div>
-            <p class="shot-todo" data-lang="en">Screenshot to come — Studio Admin, brand workbench with the live preview.</p>
-            <p class="shot-todo" data-lang="zh">截图待补——品牌工作台与实时预览。</p>
+            <img data-lang="en" src="/assets/manual/01-brand-workbench.en.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="Studio Admin brand workbench, settings on the left and a live preview on the right">
+            <img data-lang="zh" src="/assets/manual/01-brand-workbench.zh.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="品牌工作台：左侧设置，右侧实时预览">
           </div>
-          <figcaption data-lang="en">Let’s Paint Studio, brand workbench. Settings on the left, live preview on the right, the save bar always at the bottom.</figcaption>
-          <figcaption data-lang="zh">Let’s Paint Studio 的品牌工作台。左侧设置、右侧实时预览、底部常驻保存条。</figcaption>
+          <ol class="marks">
+            <li data-lang="en">The eight setting tabs — brand, hero, website, registration, FAQ, messages, analytics, publish.</li><li data-lang="zh">八个设置标签页——品牌、首屏、官网、报名、常见问答、家长话术、数据分析、预览与发布。</li>
+            <li data-lang="en">Live preview. Switch between the portal and the register page, either language, desktop or phone.</li><li data-lang="zh">实时预览。可切换门户 / 报名页、中英文、桌面 / 手机。</li>
+            <li data-lang="en">The save bar, always visible: apply a preset, open the site, save a draft, publish. It also tells you whether what you are looking at is public yet.</li><li data-lang="zh">常驻保存条：套用预设、打开官网、保存草稿、发布。它同时告诉你眼前这一版有没有公开。</li>
+          </ol>
+          <figcaption data-lang="en">Let’s Paint Studio, brand workbench.</figcaption>
+          <figcaption data-lang="zh">Let’s Paint Studio 的品牌工作台。</figcaption>
         </figure>
 
         <h3 data-lang="en">Publishing is gated on purpose</h3>
@@ -221,13 +229,56 @@
         <p data-lang="en">Families submit from the portal or the standalone register page — same form, same queue. Both feed the CMS <strong>Pending</strong> tab, which carries a red count badge in the navigation.</p>
         <p data-lang="zh">家长可以从门户或独立报名页提交——同一张表、同一个队列，都进入 CMS 的<strong>待审核</strong>标签页，导航上带红色数字角标。</p>
 
+        <figure>
+          <div class="shot">
+            <div class="shot-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+            <img data-lang="en" src="/assets/manual/02-portal.en.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="The published studio portal with courses, work and an enquiry button">
+            <img data-lang="zh" src="/assets/manual/02-portal.zh.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="已发布的工作室门户，含课程、作品与预约按钮">
+          </div>
+          <ol class="marks">
+            <li data-lang="en">Sections you left empty stay hidden, so an unfinished site never shows an empty shell.</li><li data-lang="zh">没写内容的板块会自动隐藏，没做完的官网不会露出空壳。</li>
+            <li data-lang="en">The visitor’s own language switch. Course names and work titles stay as your team typed them.</li><li data-lang="zh">访客自己的语言切换。课程名与作品标题保持团队录入的原样。</li>
+          </ol>
+          <figcaption data-lang="en">The portal — what a family finds first. Everything on it comes from Studio Admin and the CMS.</figcaption>
+          <figcaption data-lang="zh">门户——家长最先看到的东西。上面的一切都来自品牌工作台与 CMS。</figcaption>
+        </figure>
+
         <p data-lang="en">Each card shows name, contact, birthday, message, submission time, source (portal or quick register) and a status: pending, contacted, trial booked, following up, approved, enrolled, rejected, duplicate, lost, archived.</p>
         <p data-lang="zh">每张卡片显示姓名、联系方式、生日、留言、提交时间、来源（门户网站 / 快速报名）与状态：待审核、已联系、已约试听、跟进中、已批准、已建档、已拒绝、重复申请、已流失、已归档。</p>
+
+        <figure>
+          <div class="shot">
+            <div class="shot-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+            <img data-lang="en" src="/assets/manual/02-register.en.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="The standalone registration page with the enquiry form">
+            <img data-lang="zh" src="/assets/manual/02-register.zh.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="独立报名页与报名表单">
+          </div>
+          <ol class="marks">
+            <li data-lang="en">Your own questions, added in Studio Admin. Up to eight appear on the portal form.</li><li data-lang="zh">你自己的报名问题，在品牌工作台里添加。门户表单最多渲染八个。</li>
+            <li data-lang="en">The privacy tick is required, and the version of the notice in force is stored with the consent.</li><li data-lang="zh">隐私同意必须勾选，当时生效的声明版本号会与同意记录一起存档。</li>
+          </ol>
+          <figcaption data-lang="en">The standalone register page — the one to put behind a QR code.</figcaption>
+          <figcaption data-lang="zh">独立报名页——放在二维码后面的就是它。</figcaption>
+        </figure>
 
         <h3 data-lang="en">Approving creates the record</h3>
         <h3 data-lang="zh">批准即建档</h3>
         <p data-lang="en">Enter a starting credit balance (zero is fine) and press <strong>Approve</strong>. The student record is created and the credits are posted in one step. Rejecting simply removes the card from the list.</p>
         <p data-lang="zh">填入初始课时数（可以是 0），点<strong>批准建档</strong>，系统一步创建学员档案并把课时入账。点「拒绝」则该申请不再显示。</p>
+
+        <figure>
+          <div class="shot">
+            <div class="shot-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+            <img data-lang="en" src="/assets/manual/02-pending.en.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="The Pending tab listing enquiries awaiting review">
+            <img data-lang="zh" src="/assets/manual/02-pending.zh.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="待审核标签页，列出等待处理的报名申请">
+          </div>
+          <ol class="marks">
+            <li data-lang="en">Source and status on every card — at a glance, which came from the portal and which from the register page.</li><li data-lang="zh">每张卡片都带来源与状态——一眼看出哪条来自门户、哪条来自报名页。</li>
+            <li data-lang="en">Set a follow-up date, or move the lead along: contacted, trial booked, still following up.</li><li data-lang="zh">设置下次跟进日期，或推进线索状态：已联系、已约试听、继续跟进。</li>
+            <li data-lang="en">Approve with a starting credit balance and the student record is created in the same step.</li><li data-lang="zh">填入初始课时数后批准，学员档案在同一步创建完成。</li>
+          </ol>
+          <figcaption data-lang="en">The review queue. The count badge in the navigation is the number waiting.</figcaption>
+          <figcaption data-lang="zh">待审核队列。导航上的角标就是等待处理的条数。</figcaption>
+        </figure>
 
         <div class="pitfall">
           <p><b data-lang="en">The amber “possible duplicate” badge</b><b data-lang="zh">琥珀色的「疑似重复」角标</b></p>
@@ -259,6 +310,7 @@
           <li data-lang="zh">签错人了就撤销。课时退回，考勤标记为已作废，账本留下对应的冲正流水——历史不会被抹掉。</li>
         </ol>
 
+
         <div class="pitfall">
           <p><b data-lang="en">Two calendar exports, and they are not the same file</b><b data-lang="zh">两个日历导出，不是同一个文件</b></p>
           <p data-lang="en"><strong>Weekly timetable ICS</strong> contains recurring classes and <em>no student names</em> — that is the one you can share. <strong>Today’s roster ICS</strong> contains the names of the students attending; it is an internal operating file. Check which button you pressed before you forward it.</p>
@@ -267,6 +319,35 @@
 
         <p data-lang="en">A student with no credits left is stopped at check-in, with a prompt — not discovered at the end of the month. Birthdays within the next 14 days show as a banner, and one tap copies a birthday message with the student’s and studio’s name already filled in.</p>
         <p data-lang="zh">余额不足的学员会在签到当场被拦下并提示，而不是到月底才发现。未来 14 天内过生日的学员会显示横幅，点一下即可复制已经填好学员名和工作室名的生日祝福。</p>
+
+        <figure>
+          <div class="shot">
+            <div class="shot-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+            <img data-lang="en" src="/assets/manual/03-roster.en.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="The daily roster showing a weekly class and the students attending">
+            <img data-lang="zh" src="/assets/manual/03-roster.zh.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="每日排课页，显示固定班次与当天到课学员">
+          </div>
+          <ol class="marks">
+            <li data-lang="en">Recurring classes. These drop into the day list on their own; editing and deleting them is an owner or manager job.</li><li data-lang="zh">固定班次。它们会自动排入当日名单；增删改属于 Owner / 店长。</li>
+            <li data-lang="en">The week strip — student counts per day, so the shape of the week is visible before you open it.</li><li data-lang="zh">一周概览——每天的人数，不用点进去就能看出这周的形状。</li>
+            <li data-lang="en">Two calendar exports, and they are not the same file: the weekly timetable carries no student names, today’s roster does.</li><li data-lang="zh">两个日历导出不是同一个文件：固定课表不含学员姓名，当日名单含。</li>
+          </ol>
+          <figcaption data-lang="en">The roster on a teaching day. A day with no class shows a dash, not an error.</figcaption>
+          <figcaption data-lang="zh">有课那天的排课页。没有课的日子显示一条横线，不是错误。</figcaption>
+        </figure>
+
+        <figure>
+          <div class="shot phone">
+            <div class="shot-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+            <img data-lang="en" src="/assets/manual/03-roster-mobile.en.webp?v=__APP_VERSION__" width="780" height="1688" loading="lazy" decoding="async" alt="The daily roster on a phone, as a teacher sees it">
+            <img data-lang="zh" src="/assets/manual/03-roster-mobile.zh.webp?v=__APP_VERSION__" width="780" height="1688" loading="lazy" decoding="async" alt="手机上的每日排课，老师看到的样子">
+          </div>
+          <ol class="marks">
+            <li data-lang="en">A teacher sees the class list and can check students in; adding or editing a class is not their job and the buttons are not there.</li><li data-lang="zh">老师看得到名单、可以签到；增删改班次不是他们的活，按钮也不会出现。</li>
+            <li data-lang="en">Check-in deducts the credits and writes the ledger entry in one action.</li><li data-lang="zh">签到在一个动作里完成扣课时与写账本。</li>
+          </ol>
+          <figcaption data-lang="en">The same roster on a phone. This is where check-in actually happens.</figcaption>
+          <figcaption data-lang="zh">同一个排课页在手机上。签到实际上就发生在这里。</figcaption>
+        </figure>
       </section>
 
       <!-- ─────────────────────────────────────────────────────── 04 ── -->
@@ -289,6 +370,21 @@
           <li data-lang="zh">选付款方式、按需填备注、确认收款入账。成功后可一键复制发给家长的确认话术。</li>
         </ol>
 
+        <figure>
+          <div class="shot">
+            <div class="shot-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+            <img data-lang="en" src="/assets/manual/04-topup.en.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="The top-up screen with a student selected">
+            <img data-lang="zh" src="/assets/manual/04-topup.zh.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="充值结算页，已选中一位学员">
+          </div>
+          <ol class="marks">
+            <li data-lang="en">The student’s photo, current balance and last three movements — check them before you touch anything.</li><li data-lang="zh">学员头像、当前余额和最近三笔流水——动手前先核对。</li>
+            <li data-lang="en">Packages fill in the credits and the amount; both can still be typed by hand.</li><li data-lang="zh">套餐快选自动填入课时数和金额，两者也都可以手填。</li>
+            <li data-lang="en">Payment method and an optional note. The note is what makes the ledger readable a year later.</li><li data-lang="zh">付款方式与选填备注。一年后账本还读得懂，靠的就是这条备注。</li>
+          </ol>
+          <figcaption data-lang="en">Taking a payment. Refund mode sits beside it, and only an owner or manager can see it.</figcaption>
+          <figcaption data-lang="zh">收费。退款退课模式就在旁边，只有 Owner / 店长看得到。</figcaption>
+        </figure>
+
         <h3 data-lang="en">Refunds are a different permission</h3>
         <h3 data-lang="zh">退费是另一个权限</h3>
         <p data-lang="en">The refund mode is visible only to the owner and manager. It needs the number of classes to return, the amount, the method, and a <strong>mandatory reason</strong>. The confirmation dialogue shows the resulting balance before anything is written. The refund posts as a negative amount against revenue and the credits come straight off the balance.</p>
@@ -304,6 +400,20 @@
         <h3 data-lang="zh">全部进操作日志</h3>
         <p data-lang="en">Thirty kinds of action are recorded with a plain-language name and a one-line summary: new student, archive, roster changes, class changes, uploads, share links, access codes, courses and packages, exports, publishing, team changes. Filter by student, type or date range. Owners and managers can export CSV. Records are kept for <strong>two years</strong>, then cleared automatically — export if you need longer.</p>
         <p data-lang="zh">30 类操作都以中文名称和一句可读摘要记录：建档、归档、排课变动、班次变动、上传、分享链接、访问码、课程与课包、导出、发布网站、团队变更。可按学员、类型、日期范围筛选；Owner/Manager 可导出 CSV。记录保留<strong>两年</strong>后自动清理，需要更久请自行导出。</p>
+
+        <figure>
+          <div class="shot">
+            <div class="shot-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+            <img data-lang="en" src="/assets/manual/04-log.en.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="The activity log listing recorded actions with the person and time">
+            <img data-lang="zh" src="/assets/manual/04-log.zh.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="操作日志，逐条记录动作、操作人与时间">
+          </div>
+          <ol class="marks">
+            <li data-lang="en">Filter by student, by action type, or by date range.</li><li data-lang="zh">可按学员、操作类型、日期范围筛选。</li>
+            <li data-lang="en">Every row names the person. That is the point of it — for you, and for them.</li><li data-lang="zh">每一行都写明操作人。这正是它的意义——对你，也对他们。</li>
+          </ol>
+          <figcaption data-lang="en">The operation log. This is the screen that answers “who did that, and when”.</figcaption>
+          <figcaption data-lang="zh">操作日志。「这是谁、什么时候做的」这个问题在这一屏得到回答。</figcaption>
+        </figure>
       </section>
 
       <!-- ─────────────────────────────────────────────────────── 05 ── -->
@@ -322,6 +432,20 @@
         <h3 data-lang="zh">分享链接被设计成临时的</h3>
         <p data-lang="en">A share link is a login-free page for one student’s work, for sending to relatives or using in recruitment. Owners and managers create them; the expiry is <strong>1 to 90 days</strong>, 30 by default, and the link is shown once. <strong>Revoking is deliberately easier than creating</strong> — anyone who can edit the portfolio, including teachers, can kill a link. Cutting off something that escaped should never wait for a manager.</p>
         <p data-lang="zh">分享链接是某个学员作品的免登录页面，用于发给亲友或招生。创建仅限 Owner/Manager，有效期 <strong>1–90 天</strong>（默认 30 天），链接只显示一次。<strong>撤销的权限刻意比创建更宽</strong>——任何能编辑作品集的角色（含老师）都能撤。要切断一个已经外流的链接，不该等店长有空。</p>
+
+        <figure>
+          <div class="shot">
+            <div class="shot-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+            <img data-lang="en" src="/assets/manual/05-portfolio.en.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="A student record open on the portfolio block">
+            <img data-lang="zh" src="/assets/manual/05-portfolio.zh.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="学员档案打开，停在作品集区块">
+          </div>
+          <ol class="marks">
+            <li data-lang="en">Balance and recent movements sit with the record, so nobody is guessing about credits while a parent is waiting.</li><li data-lang="zh">余额与最近流水就在档案里，家长在等着的时候不用凭印象猜课时。</li>
+            <li data-lang="en">The portfolio. Uploading is a teacher’s job; publishing to the public gallery needs the family’s recorded consent.</li><li data-lang="zh">作品集。上传是老师的活；要放上公开作品墙，需要家庭已记录的公开授权。</li>
+          </ol>
+          <figcaption data-lang="en">A student record. The portfolio block is where work is uploaded and where consent is visible.</figcaption>
+          <figcaption data-lang="zh">一份学员档案。作品集区块既是上传的地方，也是能看到授权状态的地方。</figcaption>
+        </figure>
 
         <div class="pitfall">
           <p><b data-lang="en">Share link or access code?</b><b data-lang="zh">分享链接还是访问码？</b></p>
@@ -350,6 +474,20 @@
 
         <p data-lang="en">A lookup session lasts <strong>one hour</strong>, then asks for the three details again. Too many wrong attempts locks the code temporarily and says how long to wait. <strong>Regenerate</strong> invalidates the old code instantly and signs out anyone using it; <strong>disable</strong> closes self-service for that student entirely.</p>
         <p data-lang="zh">查询会话保持 <strong>1 小时</strong>，之后需要重新验证三项信息。连续输错会临时锁定并提示等待时间。<strong>更换访问码</strong>会立即作废旧码并踢掉已登录会话；<strong>停用</strong>则完全关闭该学员的自助查询。</p>
+
+        <figure>
+          <div class="shot phone">
+            <div class="shot-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+            <img data-lang="en" src="/assets/manual/06-student-area.en.webp?v=__APP_VERSION__" width="780" height="1688" loading="lazy" decoding="async" alt="The student area lookup form on a phone">
+            <img data-lang="zh" src="/assets/manual/06-student-area.zh.webp?v=__APP_VERSION__" width="780" height="1688" loading="lazy" decoding="async" alt="手机上的学员专区查询表单">
+          </div>
+          <ol class="marks">
+            <li data-lang="en">Name and phone must match the record exactly. Nearly every “it doesn’t work” starts here.</li><li data-lang="zh">姓名和手机号必须与档案完全一致。几乎所有「登录不上」都出在这里。</li>
+            <li data-lang="en">Six digits, shown as dots. Too many wrong tries locks it and says how long to wait.</li><li data-lang="zh">6 位数字，输入时显示为圆点。连续输错会锁定并提示等待时间。</li>
+          </ol>
+          <figcaption data-lang="en">What the family sees. No account, no password — three details they already have.</figcaption>
+          <figcaption data-lang="zh">家长看到的样子。没有账号、没有密码，只有三项他们已经有的信息。</figcaption>
+        </figure>
 
         <div class="pitfall">
           <p><b data-lang="en">“The parent says it doesn’t work”</b><b data-lang="zh">「家长说登录不上」</b></p>
@@ -456,6 +594,20 @@
 
         <p data-lang="en">Owners and managers get a reporting tab: lifetime revenue, students enrolled, credits consumed, and the pool of credits still owed. Below it, twelve months of revenue and consumption, a six-month summary, a filterable financial detail report, and per-student spend.</p>
         <p data-lang="zh">Owner 和 Manager 有「经营统计」标签页：历史总营收、建档学员、累计消课、课时资产池；下方是近 12 个月的营收与消课、近 6 个月经营月报、可筛选的财务明细报表和单个学员的消费分析。</p>
+
+        <figure>
+          <div class="shot">
+            <div class="shot-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+            <img data-lang="en" src="/assets/manual/08-stats.en.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="The reporting tab with revenue and consumption figures">
+            <img data-lang="zh" src="/assets/manual/08-stats.zh.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="经营统计标签页，显示营收与消课数据">
+          </div>
+          <ol class="marks">
+            <li data-lang="en">Lifetime revenue, students enrolled, credits consumed, and the credits you still owe.</li><li data-lang="zh">历史总营收、建档学员、累计消课，以及你还欠着的课时。</li>
+            <li data-lang="en">Twelve months of revenue against consumption. The gap between the two is the liability.</li><li data-lang="zh">近 12 个月营收对消课。两者之间的差额就是负债。</li>
+          </ol>
+          <figcaption data-lang="en">Reporting. Owners and managers only — the figures are not sent to other accounts at all.</figcaption>
+          <figcaption data-lang="zh">经营统计。仅 Owner / 店长——这些数字根本不会下发给其他账号。</figcaption>
+        </figure>
 
         <div class="pitfall">
           <p><b data-lang="en">Money taken is not money earned</b><b data-lang="zh">收到的钱不等于赚到的钱</b></p>

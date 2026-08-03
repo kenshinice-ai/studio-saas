@@ -1120,13 +1120,30 @@ def serve_cms_entry():
         return redirect(f'/{slug}/cms', code=302)
     return _frontend_shell('cms-entry.html')
 
+# Subdirectories of frontend/assets that may be served. An allowlist rather
+# than a traversal check: `..` is not the only way to walk out of a directory,
+# and a fixed set of names cannot be talked into anything.
+ASSET_SUBDIRECTORIES = {'manual'}
+
 @app.route('/assets/<path:filename>')
 def serve_shared_assets(filename):
-    # Shared frontend runtime (ui-common.js, shared CSS). Same safety rules
-    # as /vendor: basename only, no traversal.
-    safe = os.path.basename(filename)
-    resp = send_from_directory(os.path.join(app.root_path, 'frontend', 'assets'), safe)
-    resp.headers['Cache-Control'] = 'no-cache'
+    # Shared frontend runtime (ui-common.js, shared CSS) plus the manual's
+    # screenshots. Same safety rule as /vendor — the leaf is reduced to a
+    # basename, and the directory can only be the assets root or one listed
+    # above, so nothing here can address a path the route did not intend.
+    parts = [part for part in filename.split('/') if part]
+    base = os.path.join(app.root_path, 'frontend', 'assets')
+    if len(parts) == 2 and parts[0] in ASSET_SUBDIRECTORIES:
+        directory, leaf = os.path.join(base, parts[0]), os.path.basename(parts[1])
+    elif len(parts) == 1:
+        directory, leaf = base, os.path.basename(parts[0])
+    else:
+        return api_error('Not found', 404)
+    resp = send_from_directory(directory, leaf)
+    # The shells are revalidated every load and their JS/CSS URLs carry the
+    # release; the manual's screenshots carry it too, so they can be held.
+    resp.headers['Cache-Control'] = (
+        'public, max-age=86400' if len(parts) == 2 else 'no-cache')
     return resp
 
 # Matches Release_Notes_v<major>.<minor>.<patch>.html for any version, so the
