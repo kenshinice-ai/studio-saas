@@ -1,3 +1,68 @@
+    /* The four dates have to describe a subscription that could exist.
+
+       Mirrors `lifecycle.validate_subscription_dates`, which is the authority
+       — this copy exists so the operator learns before they press Save rather
+       than from a red toast afterwards. Checking only against the start (as
+       the first version did) let "cancellation before the period it cancels"
+       through, which is exactly what the owner's screenshot showed.
+
+       Every pair, in order, because the rule is transitive and stating it
+       pairwise is what makes each message name the two dates involved. */
+    const SUBSCRIPTION_DATE_FIELDS = [
+      ['m_startsAt', 'Subscription start'],
+      ['m_trialEndsAt', 'Trial end'],
+      ['m_currentPeriodEndsAt', 'Current period end'],
+      ['m_endsAt', 'Cancellation / expiry'],
+    ];
+
+    function validateSubscriptionDates() {
+      const box = $('m_dateError');
+      if (!box) return true;
+      const value = (id) => ($(id) ? $(id).value : '');
+      /* Each problem is a list of nodes rather than one sentence. An
+         interpolated "Trial end is before subscription start." matches
+         nothing in the dictionary; label + "is before" + label composes
+         correctly in English and in Chinese («试用结束早于订阅开始»), and
+         every piece is a whole entry the dictionary can find. */
+      const problems = [];
+      const offenders = [];
+      SUBSCRIPTION_DATE_FIELDS.forEach(([earlierId, earlierLabel], index) => {
+        const earlier = value(earlierId);
+        if (!earlier) return;
+        SUBSCRIPTION_DATE_FIELDS.slice(index + 1).forEach(([laterId, laterLabel]) => {
+          const later = value(laterId);
+          if (later && later < earlier) {
+            problems.push([laterLabel, 'is before', earlierLabel]);
+            offenders.push(laterId);
+          }
+        });
+      });
+      // A status that names a date it does not have.
+      const status = $('m_subscriptionStatus')?.value || '';
+      if (status === 'trialing' && !value('m_trialEndsAt')) {
+        problems.push(['A trialing subscription needs a trial end date.']);
+        offenders.push('m_trialEndsAt');
+      }
+      if (status === 'cancelled' && !value('m_endsAt')) {
+        problems.push(['A cancelled subscription needs a cancellation date.']);
+        offenders.push('m_endsAt');
+      }
+      box.replaceChildren();
+      box.hidden = !problems.length;
+      SUBSCRIPTION_DATE_FIELDS.forEach(([id]) => $(id)?.removeAttribute('aria-invalid'));
+      offenders.forEach((id) => $(id)?.setAttribute('aria-invalid', 'true'));
+      if (problems.length) {
+        problems[0].forEach((part, index) => {
+          if (index) box.appendChild(document.createTextNode(' '));
+          const piece = document.createElement('span');
+          piece.textContent = part;
+          box.appendChild(piece);
+        });
+        window.AdminI18n?.localise?.(box);
+      }
+      return !problems.length;
+    }
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -1388,10 +1453,12 @@
     .detail-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      align-items: start;   /* cards size to their contents, not to the tallest sibling */
       gap: var(--space-3);
     }
 
     .detail-item {
+      container-type: inline-size;
       padding: var(--space-3);
       background: var(--sunk);
       border-radius: var(--radius);
@@ -1412,12 +1479,73 @@
       color: var(--ink);
     }
 
+
+    /* ── the subscription settlement ─────────────────────────────────── */
+    .settlement-note {
+      margin-bottom: var(--space-3);
+      padding: var(--space-2) var(--space-3);
+      border-left: 2px solid var(--accent);
+      background: var(--sunk);
+      color: var(--ink-soft);
+      font-size: var(--f-min);
+      line-height: 1.6;
+    }
+    .settlement-empty { color: var(--muted); }
+    .settlement-row {
+      padding: var(--space-3) 0;
+      border-bottom: 1px solid var(--line-soft);
+    }
+    .settlement-row:last-child { border-bottom: 0; }
+    .settlement-head {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      margin-bottom: 4px;
+    }
+    .settlement-summary { color: var(--ink-soft); font-size: var(--f-0); line-height: 1.6; }
+    .settlement-move {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: var(--f-min);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ── the subscription settlement ends ─────────────────────────────── */
     /* ── tenant detail: the bar, the tabs, and what sits in them ─────────
        The bar is outside the tab strip on purpose. Health and quota are the
        two readings an operator wants regardless of which tab answers their
        question, and putting them inside a tab means one of them is always
        the wrong tab to be on. */
     /* ── derived values, dates and grouped switches in forms ───────────── */
+
+    .form-aside {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: var(--space-3);
+      padding: var(--space-3);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--sunk);
+      color: var(--muted);
+      font-size: var(--f-min);
+      line-height: 1.6;
+    }
+    .form-aside span { flex: 1 1 234px; }
+    /* An amber dot on a fold that holds an unsaved change. Amber is the one
+       accent this console has, and this is the one thing in a form worth
+       spending it on. */
+    .form-section.edited > summary::after {
+      content: "";
+      width: 8px;
+      height: 8px;
+      margin-left: var(--space-2);
+      border-radius: 50%;
+      background: var(--accent);
+      flex: 0 0 auto;
+    }
+    .form-section > summary { display: flex; align-items: center; }
     .form-label {
       display: block;
       margin-bottom: var(--space-1);
@@ -1603,16 +1731,29 @@
       margin-bottom: 4px;
     }
 
+    /* Label, value, badge. As a single flex row the label carried `flex: 1`,
+       so inside a 200px card it was squeezed to almost no width and the
+       Chinese wrapped one character per line while the date overlapped it
+       ("Sta2026-08-03"). A grid gives the label its own row when there is no
+       space for two, and the value can never sit on top of it. */
     .date-row {
-      display: flex;
+      display: grid;
+      grid-template-columns: minmax(0, auto) 1fr;
       align-items: baseline;
-      gap: var(--space-2);
-      padding: 4px 0;
+      gap: 2px var(--space-2);
+      padding: 5px 0;
       font-size: var(--f-0);
       border-bottom: 1px solid var(--line-soft);
     }
     .date-row:last-child { border-bottom: 0; }
-    .date-row-label { flex: 1; min-width: 0; color: var(--muted); }
+    .date-row-label { grid-column: 1; color: var(--muted); }
+    .date-row-value { grid-column: 2; justify-self: end; white-space: nowrap; }
+    .date-row .date-rel { grid-column: 1 / -1; justify-self: end; }
+    /* Wide enough for both on one line: badge moves up beside the value. */
+    @container (min-width: 260px) {
+      .date-row { grid-template-columns: minmax(0, 1fr) auto auto; }
+      .date-row .date-rel { grid-column: auto; }
+    }
     .date-rel {
       flex: 0 0 auto;
       font-size: var(--f-min);
@@ -1936,6 +2077,16 @@
             </div>
             <div id="onboardingTenantCount" class="stat-value">-</div>
           </button>
+          <!-- Not a filter like its neighbours: it opens the settlement, which
+               is the only place in the product that reads a subscription date
+               and compares it to today. -->
+          <button type="button" class="stat-card amber" onclick="openSettlement()">
+            <div class="stat-head">
+              <span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false"><circle cx="12" cy="12.6" r="7.9"/><path d="M12 8.4v4.2l2.7 1.6"/></svg></span>
+              <span class="stat-label">Dates Passed</span>
+            </div>
+            <div id="settlementCount" class="stat-value">-</div>
+          </button>
         </div>
 
         <!-- Standing totals: worth knowing, nothing to do about them today. -->
@@ -2171,6 +2322,7 @@
     const $ = (id) => document.getElementById(id);
     let tenants = [];
     let plans = [];
+    let settlement = null;   // the subscription-date report, loaded with the rest
     let auditLogs = [];
     let editingTenantId = '';
     let editingPlanCode = '';
@@ -2722,13 +2874,13 @@
       const days = input.value ? relativeDays(input.value) : null;
       hint.replaceChildren();
       hint.className = 'date-hint';
-      if (days === null) return;
-      // `classList.add('')` throws, so the ordinary case adds nothing.
-      const tone = days < 0 ? 'overdue' : days <= 14 ? 'soon' : '';
-      if (tone) hint.classList.add(tone);
-      const word = document.createElement('span');
-      word.textContent = days < 0 ? 'days ago' : 'days left';
-      hint.append(document.createTextNode(`${Math.abs(days)} `), word);
+      if (days !== null) {
+        // Same rule as the detail view: the start date is not a deadline, so
+        // a start in the past is history rather than a problem.
+        const badge = dateRelativeBadge(days, id !== 'm_startsAt');
+        hint.className = `date-hint ${badge.className.replace('date-rel', '').trim()}`.trim();
+        hint.append(...badge.childNodes);
+      }
       window.AdminI18n?.localise?.(hint);
       validateSubscriptionDates();
     }
@@ -3039,15 +3191,16 @@
             <div class="form-group"><label for="m_limitMedia">Media Upload Limit</label><input id="m_limitMedia" value="Canonical media service limits by asset type" disabled></div>
           </div>
         </details>
-        <details class="form-section">
-          <summary>Danger Zone<span class="summary-hint">Archive, delete, reset</span></summary>
-          <div class="form-section-body">
-            <p class="text-muted">Use the More actions menu for pause, archive, restore, and permanent delete so confirmation phrases stay explicit.</p>
-          </div>
-        </details>
+        <p class="form-aside">
+          <span>Pause, archive, restore and permanent delete live in the More actions menu, where each one asks for its own confirmation phrase.</span>
+          <button type="button" class="btn-secondary btn-sm" onclick="closeModal(); openTenantActions('${esc(t.id)}')">More actions</button>
+        </p>
       `;
 	      const footerHtml = `<button id="m_saveTenant" onclick="saveTenantModal()" class="btn-primary">Save Changes</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
 	      openModal(`Edit ${/*safe*/t.name}`, formHtml, footerHtml); // title renders via textContent
+	      // A change made inside a fold that is then collapsed leaves no trace
+	      // at all, so the fold itself carries the mark.
+	      markEditedSections();
 	      // "14 days left" is the reading the operator opened this form for, so
 	      // it has to be there before they touch anything.
 	      ['m_startsAt', 'm_trialEndsAt', 'm_currentPeriodEndsAt', 'm_endsAt']
@@ -3147,6 +3300,23 @@
         document.execCommand('copy');
         showToast('Link copied', 'success');
       }
+    }
+
+    /* Flag any fold whose fields have been touched since the form opened. */
+    function markEditedSections() {
+      document.querySelectorAll('.modal .form-section').forEach((section) => {
+        section.querySelectorAll('input, select, textarea').forEach((field) => {
+          const initial = field.type === 'checkbox' ? field.checked : field.value;
+          const check = () => {
+            const now = field.type === 'checkbox' ? field.checked : field.value;
+            field.dataset.edited = String(now !== initial);
+            const touched = Boolean(section.querySelector('[data-edited="true"]'));
+            section.classList.toggle('edited', touched);
+          };
+          field.addEventListener('input', check);
+          field.addEventListener('change', check);
+        });
+      });
     }
 
     async function saveTenantModal() {
@@ -3602,10 +3772,10 @@
       card(subscription, 'Plan', (item) => addStrongMuted(
         item, plan.name || t.plan_code, plan.monthly_price_aud != null ? money(plan.monthly_price_aud) : ''));
       card(subscription, 'Subscription Period', (item) => {
-        appendDateRow(item, 'Start', t.starts_at);
+        appendDateRow(item, 'Start', t.starts_at, { deadline: false });
         appendDateRow(item, 'Trial ends', t.trial_ends_at);
         appendDateRow(item, 'Current period ends', t.current_period_ends_at);
-        appendDateRow(item, 'Cancellation / expiry', t.ends_at, 'Open-ended');
+        appendDateRow(item, 'Cancellation / expiry', t.ends_at, { emptyLabel: 'Open-ended' });
       });
       card(subscription, 'Billing', (item) => {
         item.append(document.createTextNode(text(t.billing_email)),
@@ -3714,7 +3884,14 @@
       item.appendChild(span);
     }
 
-    function appendDateRow(item, label, value, emptyLabel = '—') {
+    /* A date row, and how far away the date is.
+
+       Only a DEADLINE can be overdue. A subscription start in the past is the
+       ordinary case — it is what "this has begun" looks like — and marking it
+       red told the operator that every healthy studio needed attention. The
+       distinction lives in `SUBSCRIPTION_DEADLINES` on the server and is
+       mirrored by the `deadline` flag here. */
+    function appendDateRow(item, label, value, { emptyLabel = '—', deadline = true } = {}) {
       const iso = dateOnly(value);
       const row = document.createElement('div');
       const name = document.createElement('span');
@@ -3722,22 +3899,37 @@
       row.className = 'date-row';
       name.className = 'date-row-label';
       name.textContent = label;
-      val.className = 'tabular';
+      val.className = 'date-row-value tabular';
       val.textContent = iso || emptyLabel;
       row.append(name, val);
       const days = iso === '' ? null : relativeDays(value);
       if (days !== null) {
-        const rel = document.createElement('span');
-        rel.className = days < 0 ? 'date-rel overdue' : days <= 14 ? 'date-rel soon' : 'date-rel';
-        // Written as a number plus a translatable word rather than one
-        // interpolated sentence, so the dictionary has something to match.
-        rel.append(document.createTextNode(String(Math.abs(days))), document.createTextNode(' '));
-        const word = document.createElement('span');
-        word.textContent = days < 0 ? 'days ago' : 'days left';
-        rel.appendChild(word);
-        row.appendChild(rel);
+        row.appendChild(dateRelativeBadge(days, deadline));
       }
       item.appendChild(row);
+    }
+
+    /* The badge, and the one place that decides what a number of days means.
+       A past deadline is a problem; a past start is history; a near deadline
+       is a warning. Written as a number plus a translatable word, because an
+       interpolated "3 days left" matches nothing in the dictionary. */
+    function dateRelativeBadge(days, deadline) {
+      const badge = document.createElement('span');
+      let tone = '';
+      let word;
+      if (days < 0) {
+        word = deadline ? 'days overdue' : 'days ago';
+        tone = deadline ? 'overdue' : '';
+      } else {
+        word = 'days left';
+        tone = deadline && days <= 14 ? 'soon' : '';
+      }
+      badge.className = tone ? `date-rel ${tone}` : 'date-rel';
+      badge.append(document.createTextNode(`${Math.abs(days)} `));
+      const unit = document.createElement('span');
+      unit.textContent = word;
+      badge.appendChild(unit);
+      return badge;
     }
 
     function openTenantDetailModal(id) {
@@ -3889,6 +4081,98 @@
         wrap.append(line, bar);
       });
       cell.appendChild(wrap);
+    }
+
+    /* Subscriptions whose dates have already passed.
+
+       Everything here was invisible before this release — the product had no
+       code that compared a subscription date to today, so a trial could lapse
+       and a cancellation date could go by with the console showing green. */
+    function openSettlement() {
+      if (!settlement) {
+        showToast('Subscription dates are unavailable. Refresh and try again.', 'error');
+        return;
+      }
+      const findings = settlement.findings || [];
+      const actionable = findings.filter((f) => f.category === 'actionable' && f.target);
+      const footer = actionable.length
+        ? `<button id="m_applySettlement" onclick="applySettlement()" class="btn-primary">Apply ${actionable.length} change${actionable.length === 1 ? '' : 's'}</button><button onclick="closeModal()" class="btn-secondary">Close</button>`
+        : '<button onclick="closeModal()" class="btn-secondary">Close</button>';
+      openModal('Subscription dates that have passed', '<div id="m_settlementMount"></div>', footer);
+      $('m_settlementMount').replaceChildren(buildSettlementList(findings));
+    }
+
+    const SETTLEMENT_TONE = { actionable: 'pill warning', review: 'pill', data: 'pill' };
+
+    function buildSettlementList(findings) {
+      const wrap = document.createElement('div');
+      if (!findings.length) {
+        const done = document.createElement('p');
+        done.className = 'settlement-empty';
+        done.textContent = 'No subscription has passed a date it should not have.';
+        wrap.appendChild(done);
+        return wrap;
+      }
+      const note = document.createElement('p');
+      note.className = 'settlement-note';
+      note.textContent = 'Nothing here has been changed. Applying moves only the rows marked Automatic; a lapsed trial is always a decision for a person.';
+      wrap.appendChild(note);
+
+      findings.forEach((f) => {
+        const row = document.createElement('div');
+        row.className = 'settlement-row';
+        const head = document.createElement('div');
+        head.className = 'settlement-head';
+        const name = document.createElement('strong');
+        name.textContent = f.tenant_name || f.slug;
+        head.appendChild(name);
+        const tone = document.createElement('span');
+        tone.className = SETTLEMENT_TONE[f.category] || 'pill';
+        tone.textContent = f.target ? 'Automatic' : f.category === 'data' ? 'Data' : 'Decide';
+        head.appendChild(tone);
+        if (f.days !== null && f.days !== undefined) {
+          const days = document.createElement('span');
+          days.className = 'date-rel overdue';
+          days.append(document.createTextNode(`${f.days} `));
+          const word = document.createElement('span');
+          word.textContent = 'days overdue';
+          days.appendChild(word);
+          head.appendChild(days);
+        }
+        const summary = document.createElement('p');
+        summary.className = 'settlement-summary';
+        summary.textContent = f.summary;
+        row.append(head, summary);
+        if (f.target) {
+          const move = document.createElement('p');
+          move.className = 'settlement-move';
+          move.append(document.createTextNode(`${f.tenant_status} → `));
+          const to = document.createElement('strong');
+          to.textContent = f.target[0];
+          move.appendChild(to);
+          row.appendChild(move);
+        }
+        wrap.appendChild(row);
+      });
+      return wrap;
+    }
+
+    async function applySettlement() {
+      const button = $('m_applySettlement');
+      const finish = beginSaving(button, 'Applying…');
+      try {
+        const result = await api('/admin/subscriptions/settlement/apply', {
+          method: 'POST',
+          headers: { 'X-Requested-With': 'StudioSaaS' },
+          body: JSON.stringify({ apply: true })
+        });
+        finish();
+        showToast(`${(result.changed || []).length} subscriptions settled.`, 'success');
+        closeModal();
+        await refresh();
+      } catch (error) {
+        finish();
+      }
     }
 
     // Plan form handlers
@@ -4320,9 +4604,11 @@
       if (!currentUser) return;
       setLoading(true);
       try {
-        const [usageResult, planResult, tenantResult, auditResult] = await Promise.allSettled([
-          api('/admin/usage'), api('/plans'), api('/admin/tenants'), api('/admin/audit-logs')
-        ]);
+        const [usageResult, planResult, tenantResult, auditResult, settlementResult] =
+          await Promise.allSettled([
+            api('/admin/usage'), api('/plans'), api('/admin/tenants'), api('/admin/audit-logs'),
+            api('/admin/subscriptions/settlement')
+          ]);
         const failureMessage = (label, result) => {
           const detail = result.reason?.message || 'Request failed.';
           return `${label}: ${detail}`;
@@ -4403,6 +4689,16 @@
         }
 
         renderTenants();
+
+        if (settlementResult.status === 'fulfilled') {
+          settlement = settlementResult.value;
+          const total = Object.values(settlement.counts || {}).reduce((a, b) => a + b, 0);
+          $('settlementCount').textContent = String(total);
+        } else {
+          settlement = null;
+          $('settlementCount').textContent = 'Unavailable';
+          partialFailures.push(failureMessage('Subscription dates', settlementResult));
+        }
 
         if (auditResult.status === 'fulfilled') {
           auditLogs = auditResult.value.auditLogs || [];

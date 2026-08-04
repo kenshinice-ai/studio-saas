@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import secrets
 from http import HTTPStatus
 from typing import Any
 
@@ -30,7 +31,7 @@ def api_error(message: str, status: int = 400, *, error: str | None = None) -> t
 
     code = error or ERROR_BY_STATUS.get(status, "invalid_request")
     safe_message = str(message or "")
-    if status >= 500 and not current_app.debug:
+    if status >= 500 and not current_app.debug and "reference" not in safe_message:
         safe_message = HTTPStatus(status).phrase if status in HTTPStatus._value2member_map_ else "Server error"
     if not safe_message:
         safe_message = HTTPStatus(status).phrase if status in HTTPStatus._value2member_map_ else "Request failed"
@@ -66,4 +67,16 @@ def register_error_handlers(app: Any) -> None:
 
     @app.errorhandler(500)
     def _internal_error(exc: Exception) -> tuple[Any, int]:
-        return api_error(str(exc), 500)
+        """A fault the operator cannot act on, plus a way to find it.
+
+        Hiding the detail from the response is right — it can carry a query,
+        a path or a value. But "Internal Server Error" on its own leaves the
+        person in front of the screen with nothing to report and nobody able
+        to find their incident in a log holding thousands of lines. A short
+        reference, logged beside the traceback, costs nothing and turns a
+        support message into a `grep`.
+        """
+
+        reference = secrets.token_hex(3)
+        current_app.logger.exception("unhandled error [ref %s]", reference)
+        return api_error(f"Server error. Quote reference {reference} when reporting this.", 500)

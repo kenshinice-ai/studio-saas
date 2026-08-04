@@ -332,7 +332,32 @@
        words to match — an interpolated "3 days left" matches nothing. */
     ['Trial ends', '试用结束'], ['Current period ends', '当前周期结束'],
     ['Cancellation / expiry', '取消或到期'],
-    ['days left', '天后到期'], ['days ago', '天前已过'],
+    /* `Start` was the one date label that never got an entry, so the detail
+       view showed it in English underneath four Chinese siblings. */
+    ['Start', '开始'],
+    /* Three readings, not two. A deadline that has passed is overdue; a start
+       date that has passed is simply history, and colouring it red told the
+       operator that every healthy studio needed attention. */
+    ['days left', '天后到期'], ['days overdue', '天前已逾期'], ['days ago', '天前'],
+    ['is before', '早于'],
+    /* The settlement. Nothing in this product compared a subscription date to
+       today until v8.2.30; these are the words for what it found. */
+    ['Dates Passed', '已过期日期'],
+    ['Subscription dates that have passed', '已经过期的订阅日期'],
+    ['No subscription has passed a date it should not have.', '没有订阅超过它不该超过的日期。'],
+    ['Nothing here has been changed. Applying moves only the rows marked Automatic; a lapsed trial is always a decision for a person.',
+     '这里的内容都还没有被改动。执行只会移动标记为「可自动处理」的行；试用到期永远由人来决定。'],
+    ['Automatic', '可自动处理'], ['Decide', '待决定'], ['Data', '数据问题'],
+    ['The cancellation date has passed and the subscription is still open.', '取消日期已过，订阅仍处于开启状态。'],
+    ['The billing period ended and the subscription is still marked active.', '计费周期已结束，订阅仍标记为正常。'],
+    ['The trial ended. Convert the studio, extend the trial, or close it.', '试用已结束。请转为正式、延长试用，或关闭。'],
+    ['Marked as trialing with no trial end date, so nothing can tell when it lapses.', '标记为试用中却没有试用结束日，因此无法判断何时到期。'],
+    ['Applying…', '执行中…'],
+    ['Subscription dates are unavailable. Refresh and try again.', '订阅日期数据不可用，请刷新后重试。'],
+    ['Subscription start', '订阅开始'], ['Trial end', '试用结束'],
+    ['Current period end', '当前周期结束'], ['Cancellation / expiry', '取消或到期'],
+    ['A trialing subscription needs a trial end date.', '试用中的订阅必须填写试用结束日。'],
+    ['A cancelled subscription needs a cancellation date.', '已取消的订阅必须填写取消日期。'],
     /* Derived status: shown as a badge with the audited route beside it,
        rather than as a disabled text box the operator cannot type into. */
     ['Follows the tenant lifecycle state above.', '跟随上方的工作室生命周期状态。'],
@@ -366,7 +391,9 @@
     ['Team users', '团队账号'],
     ['Storage (GB)', '存储（GB）'],
     ['Not configured', '未配置'],
-    ['Archive, delete, reset', '归档、删除、重置'],
+    ['Pause, archive, restore and permanent delete live in the More actions menu, where each one asks for its own confirmation phrase.',
+     '暂停、归档、恢复与永久删除都在「更多操作」菜单里，每一项都会单独要求输入确认短语。'],
+    ['More actions', '更多操作'],
     ['Student Usage', '学员用量'], ['Storage Usage', '存储用量'],
     ['Workspace', '工作区'], ['Archive Path', '归档路径'], ['Created', '创建时间'],
     ['Billing', '账单'], ['Storage', '存储'],

@@ -322,7 +322,7 @@ NEW_STRINGS = [
     "What the studio can publish", "What the studio can send and take away",
     "What we commit to", "Flags not listed above",
     "Not shown on the public pricing page.", "Team users", "Storage (GB)",
-    "Not configured", "Archive, delete, reset",
+    "Not configured",
 ]
 
 

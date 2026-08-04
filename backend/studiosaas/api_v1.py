@@ -47,6 +47,7 @@ from .db import DatabaseUnavailableError, connect, fetch_all, fetch_one
 from .errors import api_error
 from .lifecycle import (
     canonical_subscription_status,
+    validate_subscription_dates,
     validate_registration_transition,
     validate_tenant_subscription_pair,
     validate_tenant_transition,
@@ -73,6 +74,11 @@ from .services.tenant_archive import (
     restore_tenant,
 )
 from .services import notifications as _notifications
+from .services.subscription_settlement import (
+    ACTIONABLE as SETTLEMENT_ACTIONABLE,
+    SETTLEMENT_QUERY,
+    settlement_report,
+)
 from .services.public_site import public_plan_rows
 from .services.student_access import (
     access_lock_seconds_remaining as _student_access_lock_seconds,
@@ -1489,8 +1495,20 @@ def _ensure_studio_admin_account(conn, tenant_id: str, admin: dict) -> str:
                     (email, full_name, _hash_password(password), user_id),
                 )
             else:
-                if not password:
-                    raise ValueError("A password is required when creating a Studio Admin account.")
+                # No new password: change the name and the address, leave the
+                # credential alone. This branch is only reachable when
+                # `password` is empty — `elif password` above consumed the
+                # other case — so the `if not password: raise` that used to
+                # stand here fired every single time and the UPDATE below it
+                # was unreachable. The effect was that editing any tenant with
+                # a Studio Admin login 500'd unless the operator retyped a
+                # password, which is every ordinary edit. Live from 2026-07-10
+                # to 2026-08-04.
+                #
+                # It failed safe, at least: the raise happens before the
+                # subscription upsert and before the commit, so the whole
+                # transaction rolled back and nothing was written. Twenty-five
+                # days of saves that reported an error and changed nothing.
                 cur.execute(
                     """
                     UPDATE users
@@ -1519,6 +1537,18 @@ def _ensure_studio_admin_account(conn, tenant_id: str, admin: dict) -> str:
                         (full_name, user_id),
                     )
             else:
+                # A brand-new login needs a credential. Without one this used
+                # to insert `hash("")`, producing an account nobody can ever
+                # sign in to — `/auth/login` refuses an empty password before
+                # it verifies anything, so it was not a way in, it was a way
+                # to have a row that looks like an account and is not one.
+                # The onboarding checklist then ticked "Studio Admin login
+                # configured" for it, which is the checklist lying.
+                if not password:
+                    raise ValueError(
+                        "Set a password for the Studio Admin login, or send the owner a "
+                        "password setup link instead of creating the account here."
+                    )
                 cur.execute(
                     """
                     INSERT INTO users (email, password_hash, full_name, status)
@@ -5892,6 +5922,14 @@ def create_tenant():
         return _error(str(exc))
     except WorkspaceError as exc:
         return _error(str(exc))
+    try:
+        validate_subscription_dates(
+            {name: (None if data[name] is KEEP else data[name])
+             for name in ("starts_at", "ends_at", "trial_ends_at", "current_period_ends_at")},
+            data["subscription_status"],
+        )
+    except ValueError as exc:
+        return _error(str(exc))
     workspace_path = f"tenants/{data['slug']}"
     tenant_settings = json.loads(data["settings_json"])
     tenant_settings["workspace_path"] = workspace_path
@@ -6033,7 +6071,14 @@ def mutate_tenant(tenant_id: str):
             )
             if cur.rowcount == 0:
                 return _error("Tenant was not found.", 404)
-            _ensure_studio_admin_account(conn, tenant_id, data["studio_admin"])
+            try:
+                _ensure_studio_admin_account(conn, tenant_id, data["studio_admin"])
+            except ValueError as exc:
+                # A rule the operator can act on, not a fault. It has to reach
+                # them as its own sentence: this path spent twenty-five days
+                # answering "Internal Server Error" to a fixable mistake.
+                conn.rollback()
+                return _error(str(exc))
             # A date the caller did not mention keeps whatever is stored; one
             # sent as null is cleared. Expressed as a per-column flag rather
             # than by building SQL, so the statement stays one readable
@@ -6041,6 +6086,24 @@ def mutate_tenant(tenant_id: str):
             dates = ("starts_at", "ends_at", "trial_ends_at", "current_period_ends_at")
             keep = {name: data[name] is KEEP for name in dates}
             values = {name: (None if keep[name] else data[name]) for name in dates}
+            # What the row will actually hold once this write lands — a kept
+            # date is the stored one, so validating only the payload would
+            # miss "new trial end, before the start date already on file".
+            stored = fetch_one(
+                conn,
+                "SELECT starts_at, ends_at, trial_ends_at, current_period_ends_at "
+                "FROM subscriptions WHERE tenant_id = %s",
+                (tenant_id,),
+            ) or {}
+            effective = {
+                name: (stored.get(name) if keep[name] else values[name])
+                for name in dates
+            }
+            try:
+                validate_subscription_dates(effective, data["subscription_status"])
+            except ValueError as exc:
+                conn.rollback()
+                return _error(str(exc))
             cur.execute(
                 """
                 INSERT INTO subscriptions (
@@ -6334,6 +6397,100 @@ def auth_setup_password():
         conn.commit()
 
     return jsonify({"ok": True, "email": row["email"]})
+
+
+@api_v1.route("/admin/subscriptions/settlement", methods=["GET"])
+@super_admin_required
+def subscription_settlement():
+    """What the subscription dates say has already happened.
+
+    Read-only, and that is the point. Nothing in this product read a
+    subscription date and compared it to today until this existed: a trial
+    could end, a billing period could lapse and a cancellation date could pass
+    with the studio keeping every feature and the console showing green.
+
+    Reporting first, deliberately. A studio losing access because a job ran
+    overnight is a support incident and a broken promise; an operator seeing
+    "three subscriptions passed a date" is a morning's work.
+    """
+
+    with connect() as conn:
+        rows = fetch_all(conn, SETTLEMENT_QUERY, ())
+    return jsonify(settlement_report([dict(row) for row in rows]))
+
+
+@api_v1.route("/admin/subscriptions/settlement/apply", methods=["POST"])
+@super_admin_required
+def apply_subscription_settlement():
+    """Perform the transitions that have exactly one defensible answer.
+
+    Only findings the report marked `actionable` — a cancellation date that
+    has passed, or a billing period that lapsed on an active subscription.
+    A lapsed trial is never in that set: `trial -> past_due` is not a legal
+    tenant transition, and "did they buy?" is a commercial question, not a
+    scheduling one.
+
+    Each move goes through the same `validate_tenant_transition` the manual
+    route uses and writes its own audit row, so an automatic change is as
+    traceable as an operator's. Re-running is safe: the findings are derived
+    from current state, so a row that has been settled produces none.
+    """
+
+    payload = {}
+    try:
+        payload = _json_payload()
+    except ValueError:
+        pass
+    # Default to a rehearsal. Applying is the argument you have to make.
+    apply_changes = bool(payload.get("apply") is True)
+
+    with connect() as conn:
+        rows = fetch_all(conn, SETTLEMENT_QUERY, ())
+        report = settlement_report([dict(row) for row in rows])
+        planned = [f for f in report["findings"] if f["category"] == SETTLEMENT_ACTIONABLE and f["target"]]
+        applied, skipped = [], []
+        if apply_changes:
+            with conn.cursor() as cur:
+                for finding in planned:
+                    tenant_status, subscription_status = finding["target"]
+                    try:
+                        validate_tenant_transition(finding["tenant_status"], tenant_status)
+                        validate_tenant_subscription_pair(tenant_status, subscription_status)
+                    except ValueError as exc:
+                        skipped.append({**finding, "reason": str(exc)})
+                        continue
+                    cur.execute(
+                        "UPDATE tenants SET status = %s, updated_at = now() WHERE id = %s",
+                        (tenant_status, finding["tenant_id"]),
+                    )
+                    cur.execute(
+                        "UPDATE subscriptions SET status = %s, updated_at = now() WHERE tenant_id = %s",
+                        (subscription_status, finding["tenant_id"]),
+                    )
+                    _audit(
+                        conn,
+                        tenant_id=finding["tenant_id"],
+                        action="subscription.settled",
+                        resource_type="subscription",
+                        resource_id=finding["tenant_id"],
+                        metadata={
+                            "finding": finding["kind"],
+                            "days_past": finding["days"],
+                            "from": [finding["tenant_status"], finding["subscription_status"]],
+                            "to": [tenant_status, subscription_status],
+                        },
+                    )
+                    applied.append(finding)
+            conn.commit()
+    return jsonify({
+        "ok": True,
+        "applied": apply_changes,
+        "as_of": report["as_of"],
+        "planned": planned,
+        "changed": applied,
+        "skipped": skipped,
+        "counts": report["counts"],
+    })
 
 
 @api_v1.route("/admin/tenants/<tenant_id>/status", methods=["PATCH"])
