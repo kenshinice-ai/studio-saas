@@ -1,68 +1,3 @@
-    /* The four dates have to describe a subscription that could exist.
-
-       Mirrors `lifecycle.validate_subscription_dates`, which is the authority
-       — this copy exists so the operator learns before they press Save rather
-       than from a red toast afterwards. Checking only against the start (as
-       the first version did) let "cancellation before the period it cancels"
-       through, which is exactly what the owner's screenshot showed.
-
-       Every pair, in order, because the rule is transitive and stating it
-       pairwise is what makes each message name the two dates involved. */
-    const SUBSCRIPTION_DATE_FIELDS = [
-      ['m_startsAt', 'Subscription start'],
-      ['m_trialEndsAt', 'Trial end'],
-      ['m_currentPeriodEndsAt', 'Current period end'],
-      ['m_endsAt', 'Cancellation / expiry'],
-    ];
-
-    function validateSubscriptionDates() {
-      const box = $('m_dateError');
-      if (!box) return true;
-      const value = (id) => ($(id) ? $(id).value : '');
-      /* Each problem is a list of nodes rather than one sentence. An
-         interpolated "Trial end is before subscription start." matches
-         nothing in the dictionary; label + "is before" + label composes
-         correctly in English and in Chinese («试用结束早于订阅开始»), and
-         every piece is a whole entry the dictionary can find. */
-      const problems = [];
-      const offenders = [];
-      SUBSCRIPTION_DATE_FIELDS.forEach(([earlierId, earlierLabel], index) => {
-        const earlier = value(earlierId);
-        if (!earlier) return;
-        SUBSCRIPTION_DATE_FIELDS.slice(index + 1).forEach(([laterId, laterLabel]) => {
-          const later = value(laterId);
-          if (later && later < earlier) {
-            problems.push([laterLabel, 'is before', earlierLabel]);
-            offenders.push(laterId);
-          }
-        });
-      });
-      // A status that names a date it does not have.
-      const status = $('m_subscriptionStatus')?.value || '';
-      if (status === 'trialing' && !value('m_trialEndsAt')) {
-        problems.push(['A trialing subscription needs a trial end date.']);
-        offenders.push('m_trialEndsAt');
-      }
-      if (status === 'cancelled' && !value('m_endsAt')) {
-        problems.push(['A cancelled subscription needs a cancellation date.']);
-        offenders.push('m_endsAt');
-      }
-      box.replaceChildren();
-      box.hidden = !problems.length;
-      SUBSCRIPTION_DATE_FIELDS.forEach(([id]) => $(id)?.removeAttribute('aria-invalid'));
-      offenders.forEach((id) => $(id)?.setAttribute('aria-invalid', 'true'));
-      if (problems.length) {
-        problems[0].forEach((part, index) => {
-          if (index) box.appendChild(document.createTextNode(' '));
-          const piece = document.createElement('span');
-          piece.textContent = part;
-          box.appendChild(piece);
-        });
-        window.AdminI18n?.localise?.(box);
-      }
-      return !problems.length;
-    }
-
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -2885,25 +2820,66 @@
       validateSubscriptionDates();
     }
 
-    /* The four dates have to describe a period that could exist. Nothing
-       checked this before, so "cancelled with no cancellation date" and a
-       trial ending before it started were both saveable. */
+    /* The four dates have to describe a subscription that could exist.
+
+       Mirrors `lifecycle.validate_subscription_dates`, which is the authority
+       — this copy exists so the operator learns before they press Save rather
+       than from a red toast afterwards. Checking only against the start (as
+       the first version did) let "cancellation before the period it cancels"
+       through, which is exactly what the owner's screenshot showed.
+
+       Every pair, in order, because the rule is transitive and stating it
+       pairwise is what makes each message name the two dates involved. */
+    const SUBSCRIPTION_DATE_FIELDS = [
+      ['m_startsAt', 'Subscription start'],
+      ['m_trialEndsAt', 'Trial end'],
+      ['m_currentPeriodEndsAt', 'Current period end'],
+      ['m_endsAt', 'Cancellation / expiry'],
+    ];
+
     function validateSubscriptionDates() {
       const box = $('m_dateError');
       if (!box) return true;
-      const get = (id) => ($(id) ? $(id).value : '');
-      const start = get('m_startsAt');
+      const value = (id) => ($(id) ? $(id).value : '');
+      /* Each problem is a list of nodes rather than one sentence. An
+         interpolated "Trial end is before subscription start." matches
+         nothing in the dictionary; label + "is before" + label composes
+         correctly in English and in Chinese («试用结束早于订阅开始»), and
+         every piece is a whole entry the dictionary can find. */
       const problems = [];
-      [['m_trialEndsAt', 'Trial end'],
-       ['m_currentPeriodEndsAt', 'Current period end'],
-       ['m_endsAt', 'Cancellation / expiry']].forEach(([id, name]) => {
-        const value = get(id);
-        if (start && value && value < start) problems.push(`${name} is before the subscription start.`);
+      const offenders = [];
+      SUBSCRIPTION_DATE_FIELDS.forEach(([earlierId, earlierLabel], index) => {
+        const earlier = value(earlierId);
+        if (!earlier) return;
+        SUBSCRIPTION_DATE_FIELDS.slice(index + 1).forEach(([laterId, laterLabel]) => {
+          const later = value(laterId);
+          if (later && later < earlier) {
+            problems.push([laterLabel, 'is before', earlierLabel]);
+            offenders.push(laterId);
+          }
+        });
       });
+      // A status that names a date it does not have.
+      const status = $('m_subscriptionStatus')?.value || '';
+      if (status === 'trialing' && !value('m_trialEndsAt')) {
+        problems.push(['A trialing subscription needs a trial end date.']);
+        offenders.push('m_trialEndsAt');
+      }
+      if (status === 'cancelled' && !value('m_endsAt')) {
+        problems.push(['A cancelled subscription needs a cancellation date.']);
+        offenders.push('m_endsAt');
+      }
       box.replaceChildren();
       box.hidden = !problems.length;
+      SUBSCRIPTION_DATE_FIELDS.forEach(([id]) => $(id)?.removeAttribute('aria-invalid'));
+      offenders.forEach((id) => $(id)?.setAttribute('aria-invalid', 'true'));
       if (problems.length) {
-        box.textContent = problems[0];
+        problems[0].forEach((part, index) => {
+          if (index) box.appendChild(document.createTextNode(' '));
+          const piece = document.createElement('span');
+          piece.textContent = part;
+          box.appendChild(piece);
+        });
         window.AdminI18n?.localise?.(box);
       }
       return !problems.length;

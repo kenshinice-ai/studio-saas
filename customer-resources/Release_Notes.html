@@ -54,6 +54,11 @@
   <p data-lang="zh">以下内容均已于 2026 年 8 月 1 日至 2 日发布至生产环境。每一条都已上线，而非计划。</p>
   <div class="grid">
     <article class="card">
+      <strong data-lang="en">Correction to the previous release (v8.2.31)</strong><strong data-lang="zh">上一版本的修正（v8.2.31）</strong>
+      <p data-lang="en">The v8.2.30 release briefly showed a block of program code across the top of the platform console, and the date check it was meant to add was not actually active. Both are corrected. No customer-facing page was affected and no data was involved.</p>
+      <p data-lang="zh">v8.2.30 版本曾在平台控制台顶部短暂显示出一段程序代码，且该版本本应新增的日期校验实际并未生效。两者均已修正。未影响任何面向客户的页面，也不涉及任何数据。</p>
+    </article>
+    <article class="card">
       <strong data-lang="en">Saving a studio works again, and the subscription dates now mean something (v8.2.30)</strong><strong data-lang="zh">工作室保存恢复正常，订阅日期开始有实际意义（v8.2.30）</strong>
       <p data-lang="en">Editing a studio that already had a Studio Admin login had been failing since 10 July: the save returned an error and changed nothing at all, unless a new password was typed each time. That is fixed. The four subscription dates are also checked against each other now — a trial that ends before the subscription starts, or a cancellation dated before the period it cancels, is refused with a sentence saying which two dates disagree, instead of being stored. And a new view lists every subscription that has passed one of its dates: a trial that ran out, a billing period that lapsed, a cancellation date that went by. Nothing in the product read those dates before; a studio could pass all three and the console still showed green. The list reports only — moving a studio is a separate, deliberate action, and a lapsed trial is always left for a person to decide.</p>
       <p data-lang="zh">编辑一间已配置管理员登录的工作室，自 7 月 10 日起一直失败：保存会报错，并且什么都没有改到，除非每次都重新输入一遍密码。此问题已修复。四个订阅日期现在会互相校验——试用结束早于订阅开始、取消日期早于它所取消的周期，都会被拒绝并明确指出是哪两个日期冲突，而不再被存进去。另外新增一个视图，列出所有已经越过某个日期的订阅：试用已结束、计费周期已过、取消日期已到。此前产品里没有任何代码读取过这些日期，一间工作室三项全都越过，控制台依然显示正常。该列表只做呈现——调整工作室状态是另一个需要明确执行的动作，而试用到期永远留给人来决定。</p>

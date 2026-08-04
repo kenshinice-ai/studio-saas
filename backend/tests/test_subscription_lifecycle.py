@@ -49,6 +49,24 @@ from studiosaas.services.subscription_settlement import (
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 API = REPOSITORY_ROOT / "backend/studiosaas/api_v1.py"
 CONSOLE = REPOSITORY_ROOT / "super-admin.html"
+
+
+def console() -> str:
+    return CONSOLE.read_text(encoding="utf-8")
+
+
+def console_script() -> str:
+    """Only the JavaScript that actually runs.
+
+    A scripted edit once left a replacement above `<!DOCTYPE html>` while the
+    function it replaced kept running, and the test passed because the string
+    was somewhere in the file. Reading the script rather than the file is what
+    makes these assertions about behaviour.
+    """
+
+    import re
+
+    return "\n".join(re.findall(r"<script>(.*?)</script>", CONSOLE.read_text(encoding="utf-8"), re.S))
 TODAY = datetime.date(2026, 8, 4)
 
 
@@ -262,8 +280,8 @@ def test_applying_is_the_argument_you_have_to_make(client) -> None:
 def test_the_console_shows_what_the_dates_say() -> None:
     """A count nobody sees until they open a menu is a count nobody sees."""
 
-    source = CONSOLE.read_text(encoding="utf-8")
-    assert "settlementCount" in source
+    source = console_script()
+    assert "settlementCount" in console()  # the card is markup
     assert "function openSettlement(" in source
     assert "/admin/subscriptions/settlement" in source
 
@@ -277,14 +295,14 @@ def test_only_a_deadline_can_be_overdue() -> None:
     different screens.
     """
 
-    source = CONSOLE.read_text(encoding="utf-8")
+    source = console_script()
     assert "appendDateRow(item, 'Start', t.starts_at, { deadline: false })" in source
     assert "function dateRelativeBadge(days, deadline)" in source
     assert "'days overdue'" in source and "'days ago'" in source
 
 
 def test_the_client_checks_every_pair_not_just_the_start() -> None:
-    source = CONSOLE.read_text(encoding="utf-8")
+    source = console_script()
     assert "SUBSCRIPTION_DATE_FIELDS" in source
     assert "SUBSCRIPTION_DATE_FIELDS.slice(index + 1)" in source
 
@@ -294,7 +312,7 @@ def test_the_validation_message_is_built_from_translatable_parts() -> None:
     nothing in the dictionary; label + "is before" + label composes in both
     languages."""
 
-    source = CONSOLE.read_text(encoding="utf-8")
+    source = console_script()
     assert "problems.push([laterLabel, 'is before', earlierLabel])" in source
     dictionary = (REPOSITORY_ROOT / "backend/frontend/assets/admin-i18n.js").read_text(encoding="utf-8")
     for entry in ("['is before',", "['Subscription start',", "['Trial end',",

@@ -38,6 +38,26 @@ def console() -> str:
     return CONSOLE.read_text(encoding="utf-8")
 
 
+def script_source() -> str:
+    """Only what is inside `<script>` — i.e. only what actually runs.
+
+    This exists because of a specific failure. A scripted edit computed
+    `text[start:end]` where `end` came before `start`, so the slice was `""`
+    and `str.replace("", new, 1)` inserted the whole replacement at position
+    0 — sixty-five lines of JavaScript above `<!DOCTYPE html>`, rendered to
+    the operator as text at the top of the console, with the function it was
+    meant to replace still in place and still running.
+
+    The test written for that change asserted the new code was "in the
+    source", and it was: in the file, outside the script, doing nothing. A
+    test that cannot tell running code from a decorative string is not
+    testing the thing it names.
+    """
+
+    blocks = re.findall(r"<script>(.*?)</script>", console(), re.S)
+    return "\n".join(blocks)
+
+
 def strip_comments(text: str) -> str:
     text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
     text = re.sub(r"<!--.*?-->", "", text, flags=re.S)
@@ -298,9 +318,22 @@ def test_saving_shows_that_something_is_happening() -> None:
 
 
 def test_the_dates_are_validated_against_each_other() -> None:
-    source = console()
+    """Every pair, not each date against the start.
+
+    The first version compared the three end dates to the start only, which
+    accepts a cancellation dated before the period it cancels — the case the
+    owner's screenshot showed. The message is composed from parts now
+    (`label + "is before" + label`) so the dictionary can translate it, so the
+    old single-sentence string is deliberately gone.
+    """
+
+    source = script_source()
     assert "function validateSubscriptionDates(" in source
-    assert "is before the subscription start." in source
+    assert "SUBSCRIPTION_DATE_FIELDS.slice(index + 1)" in source
+    assert "'is before'" in source
+    assert "is before the subscription start." not in source, (
+        "the start-only check is back"
+    )
 
 
 def test_every_collapsed_section_says_what_is_inside_it() -> None:
@@ -342,3 +375,32 @@ def test_the_console_still_carries_every_string_the_dictionary_translates() -> N
     source = console()
     missing = [s for s in NEW_STRINGS if s not in source and s not in ("Team Users",)]
     assert not missing, f"the console no longer renders: {missing}"
+
+
+# ── the document is a document ──────────────────────────────────────────────
+
+def test_nothing_precedes_the_doctype() -> None:
+    """The console shipped with 65 lines of JavaScript above `<!DOCTYPE html>`.
+
+    The browser rendered them as text across the top of the page. Nothing in
+    the test suite noticed, because every JavaScript assertion looked at the
+    file rather than at the script.
+    """
+
+    assert console().startswith("<!DOCTYPE html>"), (
+        f"the document begins with: {console()[:120]!r}"
+    )
+
+
+@pytest.mark.parametrize("name", [
+    "validateSubscriptionDates", "appendDateRow", "dateRelativeBadge",
+    "refreshDateHint", "buildTenantDetailGrid", "openSettlement", "dateField",
+])
+def test_each_function_is_defined_once_and_inside_the_script(name: str) -> None:
+    """Two definitions means one of them is dead, and the dead one is the one
+    you were reading when you decided the behaviour was correct."""
+
+    whole = console().count(f"function {name}(")
+    running = script_source().count(f"function {name}(")
+    assert running == 1, f"{name} is defined {running} times inside <script>"
+    assert whole == running, f"{name} is also defined outside <script>"
