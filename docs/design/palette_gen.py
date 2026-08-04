@@ -207,10 +207,26 @@ def build(theme, dark):
         scheme = 'light'
     else:
         # color-dark-mode: tonal + desaturated, never an inversion.
+        #
+        # v8.3.0. The dark surfaces used to be built by mirroring the light
+        # ones around mid-grey: light put the alternating band 0.047 BELOW the
+        # page, so dark put it 0.124 ABOVE. That preserved the idea of "a band
+        # set apart from the page" and inverted what it meant. In a dark UI
+        # lighter reads as nearer, so the band came out as the brightest
+        # surface on the page — brighter than the cards sitting on it, which
+        # then read as holes — and its step from the page measured 1.39-1.61
+        # against light mode's 1.10-1.13. Every one of the eight themes had it.
+        #
+        # What has to survive the mode change is the ORDER OF PROMINENCE, not
+        # the arithmetic distance: the card is the nearest surface and the
+        # alternating band never outranks it. So dark keeps its page properly
+        # dark and lifts the band only slightly, with the panel above both.
         bg    = hexof(h, min(s * .52, .38), .068)
-        panel = hexof(h, min(s * .44, .32), .132)
-        bg2   = hexof(h, min(s * .40, .28), .192)
-        worst = bg2                          # the lightest dark surface
+        bg2   = hexof(h, min(s * .46, .34), .102)
+        panel = hexof(h, min(s * .44, .32), .150)
+        # The lightest surface a text token can land on. It used to be bg2 for
+        # the same reason the ordering was wrong; now it is the panel.
+        worst = panel
         ink   = solve(h, min(s * .18, .10), worst, 11.0, darker=False)
         ink2  = solve(h, min(s * .16, .09), worst, TARGETS['body'], darker=False)
         muted = solve(h, min(s * .16, .10), worst, TARGETS['muted'], darker=False)
@@ -345,6 +361,47 @@ DISTINCT = [
     ('disabled ≠ normal', 'disabled_text_color',  'text_color',          1.60),
 ]
 
+# ── layering ──────────────────────────────────────────────────────────────
+# Every CHECKS pair passed in dark mode while the dark palettes still looked
+# wrong, because contrast says nothing about which surface reads as nearer.
+# These two assertions are about arrangement rather than legibility:
+#
+#   1. the panel is the most prominent surface in BOTH modes — a card is never
+#      out-shouted by the band it sits on;
+#   2. the band's step away from the page is the same order of magnitude in
+#      both modes, so an alternating section is a change of surface and not a
+#      slab of light.
+#
+# The second is what actually failed: 1.39-1.61 in dark against 1.10-1.13 in
+# light. LAYER_STEP_TOLERANCE is the ratio between the two modes' steps.
+LAYER_STEP_TOLERANCE = 1.6
+
+
+def layer_faults(spec, theme):
+    """Return the layering rules a built theme breaks, as (name, got, want).
+
+    `spec` is the THEMES entry, needed because the dark check is relative to
+    the same theme's light mode rather than to an absolute number.
+    """
+    faults = []
+    bg, alt, panel = (theme['background_color'], theme['background_alt_color'],
+                      theme['panel_color'])
+    # "Most prominent" is the lightest surface in a light UI and in a dark one
+    # alike: elevation adds light in both.
+    if not (lum(panel) > lum(alt) and lum(panel) > lum(bg)):
+        faults.append(('panel is not the nearest surface',
+                       f"bg {lum(bg):.4f} alt {lum(alt):.4f} panel {lum(panel):.4f}",
+                       'panel lightest'))
+    if theme['color_scheme'] == 'dark' and 'light' in spec.get('modes', MODES_DEFAULT):
+        light = build(spec, False)
+        step = ratio(alt, bg)
+        light_step = ratio(light['background_alt_color'], light['background_color'])
+        if step > light_step * LAYER_STEP_TOLERANCE:
+            faults.append(('alt band shouts louder than in light mode',
+                           f'{step:.2f} vs {light_step:.2f}',
+                           f'<= {light_step * LAYER_STEP_TOLERANCE:.2f}'))
+    return faults
+
 if __name__ == '__main__':
     import sys
     fails = []
@@ -378,6 +435,8 @@ if __name__ == '__main__':
                     fails.append((t['key'], 'dark' if dark else 'light',
                                   f'{role} vs accent', f'{gap:.0f}deg/{lgap:.2f}',
                                   f'{SEM_HUE_GAP:.0f}deg or {SEM_LUM_GAP}'))
+            for name, got, want in layer_faults(t, th):
+                fails.append((t['key'], 'dark' if dark else 'light', name, got, want))
             layer = ratio(th['background_color'], th['panel_color'])
             rows.append((t, dark, th, layer))
 
@@ -392,7 +451,9 @@ if __name__ == '__main__':
                   f"   2nd {th['secondary_accent_color']} ({ratio(th['secondary_accent_color'], th['background_color']):.2f})")
             print(f"    success {th['success_color']}  warning {th['warning_color']}  danger {th['danger_color']}")
 
-    print(f"\n{'='*70}\nchecked {len(rows)} theme-modes x {len(CHECKS)+len(DISTINCT)} pairs = {len(rows)*(len(CHECKS)+len(DISTINCT))} assertions")
+    per_mode = len(CHECKS) + len(DISTINCT)
+    print(f"\n{'='*70}\nchecked {len(rows)} theme-modes x {per_mode} contrast pairs"
+          f" = {len(rows) * per_mode} assertions, plus semantic-role and layering checks")
     print(f"FAILURES: {len(fails)}")
     for f in fails:
         print('  ', f)

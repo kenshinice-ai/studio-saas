@@ -1,6 +1,6 @@
 # 工作室 Owner 手册（Studio Admin + CMS 全权限）
 
-> 适用版本：PWE Studio v8.2.31 · 界面：Studio Admin（`/<工作室网址标识>/studio-admin`）
+> 适用版本：PWE Studio v8.3.0 · 界面：Studio Admin（`/<工作室网址标识>/studio-admin`）
 > 与运营 CMS（`/<工作室网址标识>/cms`）
 > 其他角色手册见 [手册总览](README.md)
 
@@ -24,9 +24,13 @@ Owner 是租户（工作室）的最高负责人，拥有两个界面的全部�
 1. 平台方（Super Admin）开通租户时会给你 Owner 邮箱和初始密码。
 2. 打开 `https://<你的域名>/<工作室网址标识>/studio-admin`，在
    「Studio Admin Login」输入邮箱密码登录（可勾选「Remember me for 30 days」）。
-   登录后立即点「Change Password」改掉初始密码（新密码至少 8 位）。
+   登录后立即改掉初始密码（新密码至少 8 位）：点右上角的**账户**菜单
+   →「Change Password」。v8.3.0 起，登录身份、工作室标识、修改密码与退出
+   登录都收在这个菜单里，顶栏因此压缩成一行。
 3. 顶部导航：**Website / Brand**（品牌工作台）、**Published Pages**
    （已发布页面）、**Quick Registration Form**（报名表）、**Open CMS**。
+   打开官网、CMS、报名页这三个入口在「已发布页面」里也有卡片，带网址与
+   健康状态。
 4. 界面右上角有「中文 / English」切换（记忆在本浏览器，存储键
    `studiosaas_admin_language`，与 CMS、Super Admin 共用）。它只改管理界面
    语言；预览区里另有一组「中文 / EN」按钮，那个切换的是**访客视角**的

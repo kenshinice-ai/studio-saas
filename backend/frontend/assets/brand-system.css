@@ -111,18 +111,26 @@
   :where(input, select, textarea) { font-size: max(16px, 1em); }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --brand-paper: #1f1d1a;
-    --brand-paper-raised: #292621;
-    --brand-ink: #f3ede3;
-    --brand-ink-soft: #c6bcae;
-    --brand-line: #49433b;
-  }
-  :root:not([data-theme="light"]) :where(input[type="date"], input[type="time"], input[type="datetime-local"]) {
-    color-scheme: dark;
-  }
-}
+/* v8.3.0 removed a `@media (prefers-color-scheme: dark)` block here that
+ * reassigned --brand-paper / --brand-paper-raised / --brand-ink /
+ * --brand-ink-soft / --brand-line to a fixed dark set.
+ *
+ * It never took effect anywhere. The tenant surfaces get 34 tokens written
+ * inline on :root by /brand, and an inline style beats a stylesheet rule, so
+ * the block was overridden on exactly the pages it was written for. On the two
+ * admin surfaces it was inert for the opposite reason: neither uses a --brand-*
+ * token for its own paper or ink (measured: all 62 fields in Studio Admin stay
+ * #0E1729 on #FFFFFF with the OS in dark mode).
+ *
+ * Dead, but not harmless: any page that later styled itself from --brand-paper
+ * without writing tokens inline would have had its paper and ink flipped out
+ * from under it by the visitor's OS setting, while its accents — which this
+ * block did not touch — stayed solved for light. A studio's chosen theme
+ * decides light or dark; the visitor's OS does not get a vote.
+ *
+ * Per-theme dark variants live in backend/studiosaas/presets.py and are
+ * generated and checked by docs/design/palette_gen.py.
+ */
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

@@ -77,6 +77,10 @@
       --radius: 8px;
       --radius-lg: 12px;
       --radius-xl: 16px;
+      /* Measured from the live header by syncHeaderOffset() so the sticky
+         preview and the scroll-margin of each section track it when the row
+         wraps. The literal here is only what applies before first paint. */
+      --header-h: 64px;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -99,14 +103,17 @@
       z-index: 100;
     }
 
+    /* Brand, nav and account share one row. The row's height is set by its
+       tallest control, and every control in it is a 44px touch target, so the
+       whole header lands at ~64px against the 159px the two stacked bands
+       used to cost. */
     .header-top {
-      max-width: 1400px;
+      max-width: var(--ui-content-max, 89rem);
       margin: 0 auto;
-      padding: 18px 32px 14px;
+      padding: var(--ui-space-2, 8px) var(--ui-space-5, 34px);
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      gap: 20px;
+      gap: var(--ui-space-3, 13px);
       flex-wrap: wrap;
     }
 
@@ -114,30 +121,22 @@
       min-width: 0;
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: var(--ui-space-2, 8px);
     }
 
     .tenant-brand-logo {
-      width: 40px;
-      height: 40px;
+      width: 28px;
+      height: 28px;
       object-fit: contain;
       flex: 0 0 auto;
     }
 
     .brand h1 {
-      font-size: 22px;
-      font-weight: 700;
+      font-size: var(--ui-type-sm, 16px);
+      font-weight: 800;
       margin: 0;
-      letter-spacing: -0.3px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .brand p {
-      color: var(--muted-soft);
-      font-size: 13px;
-      margin-top: 2px;
+      letter-spacing: -0.2px;
+      max-width: 22ch;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -155,42 +154,80 @@
 
     .header-actions {
       display: flex;
-      gap: 8px;
+      gap: var(--ui-touch-gap, 8px);
       align-items: center;
-      flex-wrap: wrap;
-    }
-
-    .header-actions input {
-      min-width: 160px;
-      width: 180px;
-      background: rgba(255,255,255,0.1);
-      color: white;
-      border-color: rgba(255,255,255,0.2);
-    }
-
-    .header-actions input::placeholder {
-      color: rgba(255,255,255,0.5);
+      margin-left: auto;
     }
 
     .auth-status {
-      color: var(--line-strong);
-      font-size: 12px;
-      max-width: 220px;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 700;
+      overflow-wrap: anywhere;
+    }
+
+    /* Account menu. Sign-in identity, the tenant slug, the password change and
+       the sign-out all sit here: four things an owner touches at most once a
+       session, which used to hold a permanent share of the header. */
+    .header-menu {
+      position: relative;
+    }
+
+    .header-menu-trigger {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: var(--ui-touch-target, 44px);
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--surface);
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      list-style: none;
       white-space: nowrap;
     }
 
-    /* Navigation Bar */
+    .header-menu-trigger::-webkit-details-marker { display: none; }
+    .header-menu-trigger svg { width: 18px; height: 18px; flex: 0 0 auto; }
+    .header-menu[open] .header-menu-trigger { background: var(--head-bg); border-color: var(--line-strong); }
+
+    .header-menu-panel {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 8px);
+      z-index: 120;
+      display: grid;
+      gap: var(--ui-space-2, 8px);
+      width: max-content;
+      min-width: 240px;
+      max-width: min(320px, calc(100vw - 32px));
+      padding: var(--ui-space-3, 13px);
+      border: 1px solid var(--line-card);
+      border-radius: var(--radius-lg);
+      background: var(--surface);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .header-menu-meta {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+
+    .header-menu-panel .tenant-chip { max-width: 100%; }
+    .header-menu-panel button { width: 100%; min-height: var(--ui-touch-target, 44px); }
+
+    /* Navigation. It shares the header row, so it carries no band of its own. */
     .nav-bar {
-      background: rgba(0,0,0,0.15);
-      border-top: 1px solid rgba(255,255,255,0.08);
+      flex: 1 1 auto;
+      min-width: 0;
     }
 
     .nav-inner {
-      max-width: 1400px;
-      margin: 0 auto;
-      padding: 0 32px;
       display: flex;
       gap: 4px;
       overflow-x: auto;
@@ -204,6 +241,7 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
+      min-height: var(--ui-touch-target, 44px);
       padding: 10px 16px;
       font-size: 13px;
       font-weight: 600;
@@ -235,10 +273,12 @@
       flex-shrink: 0;
     }
 
-    /* Buttons */
+    /* Buttons. min-height is the floor for every control on the page, so a
+       button never lands under the 44px target without opting out explicitly. */
     button {
       border: none;
       border-radius: var(--radius);
+      min-height: var(--ui-touch-target, 44px);
       padding: 10px 16px;
       font-weight: 600;
       cursor: pointer;
@@ -295,7 +335,7 @@
     }
     .btn-info:hover { background: var(--brand-soft); }
 
-    .btn-sm { padding: 6px 12px; font-size: 13px; min-height: 40px; }
+    .btn-sm { padding: 6px 12px; font-size: 13px; min-height: var(--ui-touch-target, 44px); }
 
     .tenant-chip {
       display: inline-flex;
@@ -324,6 +364,7 @@
     /* Section Grouping */
     .section {
       margin-bottom: var(--ui-space-5, 34px);
+      scroll-margin-top: calc(var(--header-h, 64px) + var(--ui-space-3, 13px));
     }
 
     .section-header {
@@ -787,7 +828,7 @@
     }
 
     .modal-title { font-size: 17px; font-weight: 700; }
-    .modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: var(--muted); padding: 4px 10px; border-radius: 6px; }
+    .modal-close { background: none; border: none; min-width: var(--ui-touch-target, 44px); font-size: 22px; cursor: pointer; color: var(--muted); padding: 4px 10px; border-radius: 6px; }
     .modal-close:hover { background: var(--bg); color: var(--ink); }
     .modal-body { padding: 24px; }
 
@@ -895,56 +936,10 @@
       gap: var(--ui-space-4, 21px);
     }
 
-    .workbench-hero {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      align-items: end;
-      gap: var(--ui-space-4, 21px);
-      padding: var(--ui-space-4, 21px);
-      border: 1px solid var(--brand-light);
-      border-radius: 14px;
-      background: linear-gradient(135deg, var(--surface) 0%, var(--brand-ultra-light) 100%);
-    }
-
-    .workbench-kicker {
-      color: var(--brand-dark);
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-    }
-
-    .workbench-title {
-      margin-top: 8px;
-      color: var(--ink);
-      font-size: clamp(24px, 3vw, 34px);
-      font-weight: 800;
-      line-height: 1.08;
-      letter-spacing: 0;
-    }
-
-    .workbench-copy {
-      max-width: var(--ui-reading-measure, 55ch);
-      margin-top: 10px;
-      color: var(--ink-soft);
-      font-size: 14px;
-      line-height: 1.55;
-    }
-
-    .workbench-status {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      min-height: 34px;
-      padding: 8px 12px;
-      border: 1px solid var(--brand-soft);
-      border-radius: 999px;
-      background: var(--surface);
-      color: var(--brand-deep);
-      font-size: 12px;
-      font-weight: 800;
-      white-space: nowrap;
-    }
+    /* v8.3.0 removed .workbench-hero and its kicker/title/copy/status. It was
+       a 137px marketing panel inside a tool, restating the tab strip directly
+       below it. The φ proportions it sat in are unchanged — a layer was
+       deleted, no ratio was retuned. */
 
     .settings-shell {
       display: grid;
@@ -968,7 +963,7 @@
 
     .preview-panel {
       position: sticky;
-      top: 136px;
+      top: calc(var(--header-h, 64px) + var(--ui-space-3, 13px));
     }
 
     .studio-tabs {
@@ -980,6 +975,8 @@
       overflow-x: auto;
     }
 
+    /* WCAG 2.5.5. A CJK tab label is two characters wide, so min-width carries
+       as much of the target as min-height does. */
     .studio-tab,
     .preview-tab,
     .device-tab {
@@ -987,8 +984,9 @@
       border-radius: 8px;
       background: transparent;
       color: var(--muted);
-      min-height: 34px;
-      padding: 8px 11px;
+      min-height: var(--ui-touch-target, 44px);
+      min-width: var(--ui-touch-target, 44px);
+      padding: 8px 12px;
       font-size: 12px;
       font-weight: 800;
       cursor: pointer;
@@ -1024,23 +1022,37 @@
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      gap: 16px;
-      margin-bottom: 18px;
-      padding-bottom: 14px;
+      gap: var(--ui-space-3, 13px);
+      margin-bottom: var(--ui-space-3, 13px);
+      padding-bottom: var(--ui-space-2, 8px);
       border-bottom: 1px solid var(--line-soft);
     }
 
     .panel-heading h3 {
       margin: 0;
-      font-size: 18px;
-      line-height: 1.2;
+      font-size: var(--ui-type-sm, 16px);
+      line-height: 1.25;
     }
 
+    /* Controls that sit opposite a panel heading. They used to be an inline
+       flex row that could not wrap, so on a phone the period select was
+       crushed to 26px wide. */
+    .panel-heading-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--ui-touch-gap, 8px);
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .panel-heading-controls select { min-width: 7.5rem; }
+
     .panel-heading p {
-      margin: 5px 0 0;
+      margin: 3px 0 0;
+      max-width: var(--ui-reading-measure, 55ch);
       color: var(--muted);
-      font-size: 13px;
-      line-height: 1.5;
+      font-size: var(--ui-type-xs, 13px);
+      line-height: 1.45;
     }
 
     .brand-flow { display: grid; gap: 16px; }
@@ -1214,6 +1226,9 @@
     .theme-customization > .form-grid { margin-top:14px; }
     .advanced-colours { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding-top: 4px; }
     .advanced-colours small { grid-column: 1 / -1; }
+    /* A swatch is a swatch at every width. Left to stretch, the single-column
+       phone layout turned each one into a full-bleed block of colour. */
+    .advanced-colours input[type="color"] { width: 64px; }
 
     /* Fine colour control is real customisation but it is not what a studio
        opens this page to do — the theme picker above already produces a
@@ -1265,6 +1280,9 @@
        rule sets 42px, which stretched the track into a rounded rectangle.
        Colours resolve through --brand-accent — this console does not define
        the --accent/--panel/--focus-ring names the CMS shell uses. */
+    /* The track is 46x26 by design; the target around it is not. A transparent
+       ::before extends the hit area to 44px vertically without moving the
+       track or disturbing the row it sits in. */
     .switch {
       position: relative;
       flex-shrink: 0;
@@ -1293,6 +1311,15 @@
       background: #fff;
       box-shadow: 0 1px 3px rgba(0,0,0,.28);
       transition: left .15s ease;
+    }
+    .switch::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: var(--ui-touch-target, 44px);
+      transform: translateY(-50%);
     }
     .switch:checked { background: var(--brand-accent); border-color: var(--brand-accent); }
     .switch:checked::after { left: 23px; }
@@ -1417,11 +1444,19 @@
       flex: 0 0 auto;
     }
 
+    /* Phone, email and address joined into one string, so it is long. It sits
+       in a flex row opposite the studio name with nothing stopping it: with
+       white-space: nowrap and no min-width: 0 it could not shrink and its text
+       overflowed across the name beside it. It truncates now. */
     .preview-link {
+      min-width: 0;
+      flex: 0 1 auto;
+      overflow: hidden;
       color: var(--preview-accent, var(--brand-dark));
       font-size: 11px;
       font-weight: 900;
       white-space: nowrap;
+      text-overflow: ellipsis;
     }
 
     .portal-preview,
@@ -1563,11 +1598,16 @@
       backdrop-filter: blur(16px);
     }
 
+    /* The only place the console reports draft state, so it carries the tone
+       the hero badge used to duplicate. */
     .save-bar-status {
       color: var(--muted);
       font-size: 13px;
       font-weight: 800;
     }
+
+    .save-bar-status[data-tone="dirty"] { color: var(--amber-deep); }
+    .save-bar-status[data-tone="clean"] { color: var(--muted); }
 
     /* Color Warning */
     #colorWarning {
@@ -1664,29 +1704,15 @@
     }
 
     @media (max-width: 768px) {
-      .header-top {
-        flex-direction: column;
-        align-items: flex-start;
-        padding: 14px 16px;
-        gap: 12px;
-      }
-      .brand h1 { font-size: 18px; }
-      .tenant-brand-logo { width: 34px; height: 34px; }
-      .header-actions {
-        width: 100%;
-        flex-direction: column;
-        align-items: stretch;
-      }
-      .header-actions input {
-        width: 100% !important;
-        min-width: 0;
-      }
-      .header-actions button {
-        width: 100%;
-        justify-content: center;
-      }
-      .nav-inner { padding: 0 16px; }
+      .header-top { padding: var(--ui-space-2, 8px) 16px; gap: var(--ui-space-2, 8px); }
+      .brand h1 { font-size: 15px; max-width: 14ch; }
+      /* The section nav takes the full second line rather than competing with
+         the brand and the account menu for one. */
+      .nav-bar { flex: 1 1 100%; order: 3; }
       .nav-link { padding: 8px 12px; font-size: 12px; }
+      /* Icon only, but still a full target. */
+      .header-menu-label { display: none; }
+      .header-menu-trigger { padding: 8px; min-width: var(--ui-touch-target, 44px); justify-content: center; }
       main { padding: 16px; }
       .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
       .stat-card { padding: 16px; }
@@ -1697,12 +1723,32 @@
       .form-grid { grid-template-columns: 1fr; }
       .settings-shell { grid-template-columns: 1fr; }
       .preview-panel { position: static; }
-      .workbench-hero { grid-template-columns: 1fr; }
       .question-card, .faq-card { grid-template-columns: 1fr; }
       .preset-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .theme-picker { grid-template-columns: 1fr; }
       .brand-step { padding: 14px; }
-      .save-bar { position: static; flex-direction: column; align-items: stretch; }
+      /* Before v8.3.0 the phone pinned nothing: the header went static and so
+         did the save bar, so both the tab you are editing under and the
+         Publish button scrolled off. On a phone those are the only two things
+         worth the space. The header still scrolls away — it is 112px and the
+         tab strip already names the section. */
+      .settings-panel { overflow: visible; }
+      .studio-tabs {
+        position: sticky;
+        top: 0;
+        z-index: 9;
+        border-radius: 14px 14px 0 0;
+      }
+      .save-bar {
+        position: sticky;
+        bottom: 0;
+        flex-direction: column;
+        align-items: stretch;
+        border-radius: 14px 14px 0 0;
+        padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+      }
+      .save-bar .action-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--ui-touch-gap, 8px); }
+      .save-bar .action-row button { width: 100%; }
       .filters { grid-template-columns: 1fr; }
       .modal { width: calc(100vw - 24px); }
       .toast-container { left: 12px; right: 12px; top: 12px; }
@@ -1739,37 +1785,13 @@
       box-shadow: 0 12px 36px rgba(15, 23, 42, 0.08);
     }
 
-    .header-top { padding-top: 16px; padding-bottom: 12px; }
+    .brand h1 { color: var(--ink); }
 
-    .brand h1 {
-      color: var(--ink);
-      font-size: 24px;
-      letter-spacing: 0;
-    }
+    /* The language switch injects its own 44px buttons and a 5px pad; trimmed
+       here so it does not set the height of the whole row on its own. */
+    .header-actions .admin-language-switch { padding: 3px; }
 
-    .brand p, .auth-status { color: var(--muted); }
-
-    .header-actions {
-      background: var(--head-bg);
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 8px;
-    }
-
-    .header-actions input {
-      background: var(--surface);
-      color: var(--ink);
-      border-color: var(--line-card);
-    }
-
-    .header-actions input::placeholder { color: var(--muted-soft); }
-
-    .nav-bar {
-      background: rgba(248, 250, 252, 0.82);
-      border-top: 1px solid rgba(226, 232, 240, 0.8);
-    }
-
-    .nav-inner { gap: 8px; padding-top: 8px; padding-bottom: 8px; }
+    .nav-inner { gap: 6px; }
 
     .nav-link {
       border: 1px solid transparent;
@@ -1862,13 +1884,30 @@
 
     .stat-label { color: var(--muted); }
 
+    /* 42px and the 38px below were the two rules keeping most of this page
+       under the 44px target: they sit in this override block and so beat the
+       base rules further up. Both read the token now. */
     input, select, textarea {
-      min-height: 42px;
+      min-height: var(--ui-touch-target, 44px);
       border-color: var(--line-card);
       color: var(--ink);
     }
 
     textarea { min-height: 96px; resize: vertical; }
+
+    /* A colour swatch is a square, so its width is as much of the target as
+       its height, and a disclosure triangle is a control like any other. */
+    input[type="color"] {
+      min-width: var(--ui-touch-target, 44px);
+      min-height: var(--ui-touch-target, 44px);
+    }
+
+    summary {
+      display: flex;
+      align-items: center;
+      min-height: var(--ui-touch-target, 44px);
+      cursor: pointer;
+    }
 
     .form-group label, .filter-group label, .toolbar label {
       color: var(--ink-soft);
@@ -1876,7 +1915,7 @@
       letter-spacing: 0.02em;
     }
 
-    button { min-height: 38px; }
+    button { min-height: var(--ui-touch-target, 44px); }
 
     .btn-primary {
       background: var(--brand-dark);
@@ -1998,25 +2037,11 @@
     }
 
     @media (max-width: 768px) {
+      /* The header scrolls away on a phone; the tab strip and the save bar are
+         what stay pinned (see the sticky rules above), so a section only needs
+         to clear the tab strip when it is scrolled to. */
       .header { position: static; }
-      .header-actions {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        border-radius: 14px;
-        padding: 10px;
-      }
-
-      .header-actions .admin-language-switch,
-      .header-actions .auth-status { grid-column: 1 / -1; }
-      .header-actions .tenant-chip { display: none; }
-      .header-actions button { width: auto; }
-
-      .nav-inner {
-        padding-top: 10px;
-        padding-bottom: 10px;
-      }
-
-      .section { scroll-margin-top: 220px; }
+      .section { scroll-margin-top: var(--ui-space-4, 21px); }
       .section-title { font-size: 19px; }
       .brand-preview { grid-template-columns: 1fr; }
       .modal-footer { justify-content: stretch; }
@@ -2037,30 +2062,22 @@
   <div class="toast-container" id="toastContainer" role="status" aria-live="polite"></div>
 
   <!-- Header -->
+  <!-- One row. Brand, section nav and account all share it: before v8.3.0 the
+       brand block, the action bar and the nav each took a band of their own,
+       and together with the section header and workbench hero below they put
+       the first editable control 574px down a 900px screen. Everything an
+       owner reaches for less than once a session now lives behind the account
+       menu, and the surfaces the two "Open ..." buttons used to duplicate are
+       already reachable from the nav and from the Public Pages cards. -->
   <header class="header">
     <div class="header-top">
       <div class="brand">
         <img id="studioLogo" class="tenant-brand-logo" alt="" hidden>
-        <div>
-          <h1 id="studioName">Studio Admin</h1>
-          <p id="studioMeta">Loading tenant...</p>
-        </div>
+        <h1 id="studioName">Studio Admin</h1>
       </div>
-      <div class="header-actions">
-        <span id="authStatus" class="auth-status">Not signed in</span>
-        <span id="tenantSlugLabel" class="tenant-chip">tenant</span>
-        <button id="changePasswordBtn" class="btn-secondary hidden">Change Password</button>
-        <button id="logoutBtn" class="btn-secondary hidden">Logout</button>
-        <button id="refreshBtn" class="btn-primary requires-auth hidden">
-          <span id="refreshIcon" aria-hidden="true">↻</span> Refresh
-        </button>
-        <button id="openCmsBtn" class="btn-secondary requires-auth hidden">Open CMS</button>
-        <button id="openRegisterBtn" class="btn-secondary requires-auth hidden">Open Quick Registration</button>
-      </div>
-    </div>
-    <!-- Navigation Bar -->
-    <nav id="studioNav" class="nav-bar hidden" aria-label="Studio Admin sections">
-      <div class="nav-inner">
+      <!-- Navigation -->
+      <nav id="studioNav" class="nav-bar hidden" aria-label="Studio Admin sections">
+        <div class="nav-inner">
         <a class="nav-link active" href="#section-settings" data-section="settings">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281zM15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg> Website / Brand
         </a>
@@ -2074,7 +2091,28 @@
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z"/></svg> Open CMS
         </a>
       </div>
-    </nav>
+      </nav>
+      <!-- The language switch is injected here as first child by admin-i18n.js,
+           so this element has to keep the .header-actions class. -->
+      <div class="header-actions">
+        <button id="refreshBtn" class="btn-primary requires-auth hidden">
+          <span id="refreshIcon" aria-hidden="true">↻</span> Refresh
+        </button>
+        <details class="header-menu" id="headerMenu">
+          <summary class="header-menu-trigger" aria-haspopup="menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.25a7.5 7.5 0 0115 0"/></svg>
+            <span class="header-menu-label">Account</span>
+          </summary>
+          <div class="header-menu-panel">
+            <p id="authStatus" class="auth-status">Not signed in</p>
+            <p id="studioMeta" class="header-menu-meta">Loading tenant...</p>
+            <span id="tenantSlugLabel" class="tenant-chip">tenant</span>
+            <button id="changePasswordBtn" class="btn-secondary hidden">Change Password</button>
+            <button id="logoutBtn" class="btn-secondary hidden">Logout</button>
+          </div>
+        </details>
+      </div>
+    </div>
   </header>
 
   <!-- Main Content -->
@@ -2119,23 +2157,7 @@
 
     <!-- ===== Studio Settings Section ===== -->
     <section id="section-settings" class="section">
-      <div class="section-header">
-        <div class="section-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281zM15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg></div>
-        <div>
-          <div class="section-title">Website / Brand</div>
-          <div class="section-subtitle">Logo, colours, public copy, registration fields, and parent-facing presentation</div>
-        </div>
-      </div>
       <div class="brand-workbench">
-        <div class="workbench-hero">
-          <div>
-            <div class="workbench-kicker">Brand Builder</div>
-            <div class="workbench-title">Shape the public studio experience</div>
-            <div class="workbench-copy">Edit brand, hero, website sections, registration questions, and FAQs with a live preview before publishing to the tenant portal and register page.</div>
-          </div>
-          <div id="workbenchStatus" class="workbench-status">Saved</div>
-        </div>
-
         <div class="settings-shell">
           <div class="settings-panel">
             <!-- Roving tabindex: only the selected tab is in the Tab order;
@@ -2438,7 +2460,7 @@
                   <h3>Public website analytics</h3>
                   <p>Anonymous aggregate traffic and registration conversion. No names, contact details, IP addresses, or student activity are stored.</p>
                 </div>
-                <div style="display:flex;gap:8px;align-items:center;">
+                <div class="panel-heading-controls">
                   <select id="analyticsDays" aria-label="Analytics period"><option value="7">7 days</option><option value="30" selected>30 days</option><option value="90">90 days</option></select>
                   <button type="button" id="refreshAnalyticsBtn" class="btn-secondary btn-sm">Refresh</button>
                 </div>
@@ -2680,14 +2702,19 @@
       return localisedField(first, 'en', 'zh');
     };
 
+    /* Shown only until /v1/.../industry-presets answers. Every string here is a
+       copy of the `general` preset in backend/studiosaas/presets.py and is
+       asserted against it by tests/test_preset_copy.py, so the placeholder
+       cannot quietly become a second version of the copy. */
     let INDUSTRY_PRESETS = {
       general: {
         label: 'General', labelZh: '通用', slogan: 'A learning path that fits every student.',
         sloganZh: '适合每个学员的成长路径。',
-        portalLabel: 'Student Portal', registerIntro: 'Tell us about the student and their goals.',
-        registerIntroZh: '告诉我们学员的兴趣、经验与希望达成的目标。',
-        registrationTitle: 'Student Preferences', registrationTitleZh: '告诉我们学员的兴趣与学习目标',
-        localizedCopy: {}, visualTheme: {}, registrationProfile: { title: 'Student Preferences', fields: [] }
+        portalLabel: 'Student Portal',
+        registerIntro: 'Interests, experience and goals, then the studio will suggest a class and a time.',
+        registerIntroZh: '兴趣方向、当前经验与学习目标，之后工作室会推荐合适的课程与时间。',
+        registrationTitle: 'Tell us about the student', registrationTitleZh: '告诉我们学员的兴趣与学习目标',
+        localizedCopy: {}, visualTheme: {}, registrationProfile: { title: 'Tell us about the student', fields: [] }
       }
     };
     let VISUAL_STYLE_PRESETS = {};
@@ -2728,18 +2755,16 @@
     let themeMode = 'preset';
     let lastPresetSnapshot = null;
 
+    /* One readout, not two. Until v8.3.0 the same fact was published to the
+       save bar ("No unsaved changes") and to a hero badge ("Saved") in two
+       different wordings, which meant two places to keep in step and two
+       chances for them to disagree. The hero is gone; the bar is the state. */
     function setSettingsDirty(isDirty = true) {
       settingsDirty = isDirty;
-      const statusText = isDirty ? 'Unsaved changes' : 'No unsaved changes';
       const status = $('saveBarStatus');
-      const heroStatus = $('workbenchStatus');
-      if (status) status.textContent = statusText;
-      if (heroStatus) {
-        heroStatus.textContent = isDirty ? 'Draft changes' : 'Saved';
-        heroStatus.style.color = isDirty ? 'var(--amber-deep)' : 'var(--brand-deep)';
-        heroStatus.style.borderColor = isDirty ? 'var(--amber-line)' : 'var(--brand-soft)';
-        heroStatus.style.background = isDirty ? 'var(--amber-wash)' : 'var(--surface)';
-      }
+      if (!status) return;
+      status.textContent = isDirty ? 'Unsaved changes' : 'No unsaved changes';
+      status.dataset.tone = isDirty ? 'dirty' : 'clean';
     }
 
     function showToast(message, type = 'success') {
@@ -2955,6 +2980,12 @@
       $('studioNav').classList.toggle('hidden', !signedIn);
       document.querySelectorAll('.requires-auth').forEach((element) => element.classList.toggle('hidden', !signedIn));
       $('authStatus').textContent = signedIn ? `Signed in as ${user.email || user.name || 'admin'}` : 'Not signed in';
+      /* Signing in reveals the nav and the refresh button, which is the one
+         moment the header changes height by a lot. The ResizeObserver would
+         also catch it, but only on the next rendered frame — and a background
+         tab does not render. Measured here so the offset is right the first
+         time the console is painted. */
+      syncHeaderOffset();
     }
 
     async function checkSession() {
@@ -4357,7 +4388,6 @@
       await api('/tenant/brand-draft', { method: 'PUT', body: JSON.stringify(payload) });
       setSettingsDirty(false);
       $('saveBarStatus').textContent = 'Draft saved — not public';
-      $('workbenchStatus').textContent = 'Draft saved';
       showToast('Draft saved. Public pages have not changed.');
     }
 
@@ -4405,7 +4435,6 @@
       };
       fillSettings();
       $('saveBarStatus').textContent = 'Saved draft loaded — not public';
-      $('workbenchStatus').textContent = 'Draft loaded';
     }
 
     function renderBrandVersions() {
@@ -4655,8 +4684,19 @@
         updateSurfaceHealth().catch((error) => console.warn('Surface health refresh failed.', error));
         checkSession();
       });
-      $('openCmsBtn').addEventListener('click', () => openTenantSurface('cms'));
-      $('openRegisterBtn').addEventListener('click', () => openTenantSurface('register'));
+      /* The account menu is a <details>, so opening and closing is the
+         browser's job. These two only add what a disclosure does not give
+         for free: Escape closes it, and so does a click outside it. */
+      const headerMenu = $('headerMenu');
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && headerMenu.open) {
+          headerMenu.open = false;
+          headerMenu.querySelector('summary').focus();
+        }
+      });
+      document.addEventListener('click', (event) => {
+        if (headerMenu.open && !headerMenu.contains(event.target)) headerMenu.open = false;
+      });
       $('saveDraftBtn').addEventListener('click', () => runUiAction('saveDraftBtn', 'Saving Draft...', saveDraft));
       $('publishSettingsBtn').addEventListener('click', () => runUiAction('publishSettingsBtn', 'Publishing...', publishSettings));
       $('settingLogoFile').addEventListener('change', () => uploadLogo().catch(reportApiError));
@@ -4776,7 +4816,25 @@
       $('modalOverlay').addEventListener('keydown', trapModalFocus);
     }
 
+    /* The header is one wrapping row, so its height is a fact about the
+       rendered page rather than a constant: it grows when the nav wraps, when
+       the studio name is long, and when the language switch is wider in one
+       language than the other. The sticky preview column and every section's
+       scroll-margin read --header-h, so it is measured instead of guessed. */
+    function syncHeaderOffset() {
+      const header = document.querySelector('.header');
+      if (!header) return;
+      const height = Math.round(header.getBoundingClientRect().height);
+      document.documentElement.style.setProperty('--header-h', `${height}px`);
+    }
+
     bindEvents();
+    syncHeaderOffset();
+    if ('ResizeObserver' in window) {
+      new ResizeObserver(syncHeaderOffset).observe(document.querySelector('.header'));
+    } else {
+      window.addEventListener('resize', syncHeaderOffset);
+    }
     updateProducerCredit().catch((error) => console.warn('Producer credit refresh failed.', error));
     window.addEventListener('beforeunload', (event) => {
       if (!settingsDirty) return;

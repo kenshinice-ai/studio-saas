@@ -107,10 +107,13 @@
     ['active', '正常'], ['paused', '已暂停'], ['archived', '已归档'], ['deleted', '已删除'],
     ['trial', '试用'], ['past_due', '逾期'], ['cancelled', '已取消'], ['lead', '潜在客户'],
     ['onboarding', '启用中'],
-    ['Shape the public studio experience', '打造工作室的公开品牌体验'],
-    ['Logo, colours, public copy, registration fields, and parent-facing presentation', '管理 Logo、颜色、公开文案、报名字段与家长端展示'],
-    ['Edit brand, hero, website sections, registration questions, and FAQs with a live preview before publishing to the tenant portal and register page.', '编辑品牌、首屏、官网版块、报名问题与常见问答；发布前可实时预览。'],
-    ['Brand Builder', '品牌设计'], ['Brand foundation', '品牌基础'],
+    /* v8.3.0 deleted the workbench hero and the duplicated section header from
+       Studio Admin, and with them 'Brand Builder', 'Shape the public studio
+       experience', the hero body copy and the 'Logo, colours, public copy…'
+       subtitle. Their entries are gone too: a dictionary that keeps entries
+       for strings the product no longer renders is a list of claims nobody
+       checks. */
+    ['Brand foundation', '品牌基础'],
     ['Build the foundation in three clear steps: industry, visual theme, then studio details.', '按三个清晰步骤完成品牌基础：行业、视觉主题、工作室资料。'],
     ['Choose an industry foundation', '选择行业基础'],
     ['This sets the recommended copy, registration questions, and starting theme.', '用于设置推荐文案、报名问题与初始主题。'],
@@ -248,7 +251,7 @@
     ['Improve colour contrast before publishing:', '发布前请提高对比度：'],
     ['No published versions yet.', '尚无已发布版本。'],
     ['Restore a previous publication into the draft, review it in the preview, then publish when ready.', '可将历史版本恢复为草稿，预览确认后再发布。'],
-    ['No unsaved changes', '没有未保存的更改'], ['Saved', '已保存'], ['Refresh', '刷新'],
+    ['No unsaved changes', '没有未保存的更改'], ['Refresh', '刷新'],
     ['Open this tab to load analytics.', '打开此页签后加载分析数据。'],
     ['Public website analytics', '公开官网数据分析'],
     ['Anonymous aggregate traffic and registration conversion. No names, contact details, IP addresses, or student activity are stored.', '仅统计匿名汇总流量和报名转化；不保存姓名、联系方式、IP 地址或学员活动。'],
@@ -271,6 +274,36 @@
     ['Book a Trial', '预约体验'], ['Explore Courses', '查看课程'], ['Submit registration', '提交报名'],
     ['Tell us about the student and their goals.', '请告诉我们学员情况与学习目标。'],
     ['Published Pages', '已发布页面'], ['Quick Registration Form', '快速报名表'], ['Tenant slug', '工作室网址标识'],
+    /* v8.3.0. applyAttributes() has always localised placeholder / title /
+       aria-label; these 26 simply had no entry, so a console switched to
+       Chinese still hinted in English inside every field on the page. Found by
+       walking the rendered document rather than by reading the dictionary. */
+    ['Account', '账户'],
+    ['your-studio-slug', '你的工作室标识'],
+    ['owner@studio.test', 'owner@studio.test'],
+    ['studio@example.com', 'studio@example.com'],
+    ['Website settings', '官网设置'],
+    ['Analytics period', '统计周期'],
+    ['Live website preview', '官网实时预览'],
+    ['Close dialog', '关闭对话框'],
+    ['Public brand slogan', '对外品牌标语'],
+    ['Studio address', '工作室地址'],
+    ['Welcome text shown above the website and register page', '显示在官网与报名页顶部的欢迎语'],
+    ['Creative Studio', '创意工作室'],
+    ['Public hero headline', '官网首屏主标题'],
+    ['Short public value proposition', '一句话说明你的价值'],
+    ['Courses & Classes', '课程与班级'],
+    ['Student %WORKS%', '学员%WORKS%'],
+    ['Questions & Answers', '常见问答'],
+    ['Name shown on public page', '显示在公开页面的姓名'],
+    ['Founder & Principal', '创始人 / 主理人'],
+    ['Short signature line', '一句话签名'],
+    ['Short public introduction', '简短的公开介绍'],
+    ['Student portal label', '学员端名称'],
+    ['Registration form title', '报名表标题'],
+    ['Registration form intro text', '报名表引导语'],
+    ['/site/hero.jpg or https://...', '/site/hero.jpg 或 https://…'],
+    ['/site/principal.jpg or https://...', '/site/principal.jpg 或 https://…'],
     ['Loading lifecycle risks…', '正在载入生命周期风险…'], ['Loading registration conversion…', '正在载入报名转化…'],
     ['Please log in with a Super Admin account.', '请使用平台管理员账号登录。'],
     ['Please log in to continue.', '请登录后继续。'], ['Email and password are required.', '请输入邮箱和密码。'],

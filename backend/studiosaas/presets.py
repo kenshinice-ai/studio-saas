@@ -63,13 +63,13 @@ VISUAL_STYLE_PRESETS: dict[str, dict] = {
                 "scrim_color": "rgba(0,0,0,0.5)",
             },
             "dark": {
-                "color_scheme": "dark", "background_color": "#150F0D", "background_alt_color": "#3A2D28",
-                "panel_color": "#281E1B", "text_color": "#ECEAE9", "text_soft_color": "#CEC8C6",
-                "muted_text_color": "#A19693", "border_color": "#4A3D38", "border_strong_color": "#8A756D",
+                "color_scheme": "dark", "background_color": "#150F0D", "background_alt_color": "#201715",
+                "panel_color": "#2E231F", "text_color": "#DFDAD9", "text_soft_color": "#C2BBB8",
+                "muted_text_color": "#978B86", "border_color": "#4A3D38", "border_strong_color": "#7F6C64",
                 "accent_color": "#CE9985", "accent_text_color": "#14110F", "accent_hover_color": "#D8AE9E",
                 "accent_pressed_color": "#E2C4B8", "secondary_accent_color": "#75AB9E", "secondary_text_color": "#14110F",
                 "success_color": "#388D5E", "warning_color": "#A07537", "danger_color": "#C16155",
-                "focus_ring_color": "#BB6646", "disabled_surface_color": "#43342E", "disabled_text_color": "#897E79",
+                "focus_ring_color": "#AD5D40", "disabled_surface_color": "#291E1B", "disabled_text_color": "#736865",
                 "scrim_color": "rgba(0,0,0,0.66)",
             },
         },
@@ -93,13 +93,13 @@ VISUAL_STYLE_PRESETS: dict[str, dict] = {
                 "scrim_color": "rgba(0,0,0,0.5)",
             },
             "dark": {
-                "color_scheme": "dark", "background_color": "#15120D", "background_alt_color": "#3A3228",
-                "panel_color": "#28221B", "text_color": "#F1F0EE", "text_soft_color": "#D1CECA",
-                "muted_text_color": "#A29C94", "border_color": "#4A4238", "border_strong_color": "#887B6C",
+                "color_scheme": "dark", "background_color": "#15120D", "background_alt_color": "#1F1A15",
+                "panel_color": "#2E271F", "text_color": "#E1DFDC", "text_soft_color": "#C3BFBA",
+                "muted_text_color": "#968F86", "border_color": "#4A4238", "border_strong_color": "#7C7062",
                 "accent_color": "#C49F74", "accent_text_color": "#14120F", "accent_hover_color": "#CFB08D",
                 "accent_pressed_color": "#D9C2A6", "secondary_accent_color": "#8AA5B2", "secondary_text_color": "#14120F",
                 "success_color": "#3A8E60", "warning_color": "#A07739", "danger_color": "#C06559",
-                "focus_ring_color": "#A67740", "disabled_surface_color": "#433A2E", "disabled_text_color": "#8B847B",
+                "focus_ring_color": "#986D3B", "disabled_surface_color": "#28221B", "disabled_text_color": "#726C64",
                 "scrim_color": "rgba(0,0,0,0.66)",
             },
         },
@@ -123,13 +123,13 @@ VISUAL_STYLE_PRESETS: dict[str, dict] = {
                 "scrim_color": "rgba(0,0,0,0.5)",
             },
             "dark": {
-                "color_scheme": "dark", "background_color": "#121111", "background_alt_color": "#313131",
-                "panel_color": "#222221", "text_color": "#ECECEB", "text_soft_color": "#CBCBCA",
-                "muted_text_color": "#9A9A99", "border_color": "#414141", "border_strong_color": "#7B7B7A",
+                "color_scheme": "dark", "background_color": "#121111", "background_alt_color": "#1A1A1A",
+                "panel_color": "#272626", "text_color": "#DCDCDC", "text_soft_color": "#BDBDBC",
+                "muted_text_color": "#8E8E8D", "border_color": "#414141", "border_strong_color": "#71706F",
                 "accent_color": "#B8B3AE", "accent_text_color": "#121212", "accent_hover_color": "#C9C5C1",
                 "accent_pressed_color": "#D9D7D4", "secondary_accent_color": "#8F9BAB", "secondary_text_color": "#121212",
                 "success_color": "#478B66", "warning_color": "#987A4E", "danger_color": "#AF6C63",
-                "focus_ring_color": "#807E7B", "disabled_surface_color": "#393939", "disabled_text_color": "#828281",
+                "focus_ring_color": "#767371", "disabled_surface_color": "#222222", "disabled_text_color": "#6C6C6B",
                 "scrim_color": "rgba(0,0,0,0.66)",
             },
         },
@@ -153,13 +153,13 @@ VISUAL_STYLE_PRESETS: dict[str, dict] = {
                 "scrim_color": "rgba(0,0,0,0.5)",
             },
             "dark": {
-                "color_scheme": "dark", "background_color": "#0D1216", "background_alt_color": "#27333B",
-                "panel_color": "#1A2329", "text_color": "#EBEDEE", "text_soft_color": "#C8CCD0",
-                "muted_text_color": "#929CA2", "border_color": "#37434B", "border_strong_color": "#6A7E8B",
+                "color_scheme": "dark", "background_color": "#0D1216", "background_alt_color": "#141B20",
+                "panel_color": "#1D282F", "text_color": "#D9DDE0", "text_soft_color": "#B8BEC2",
+                "muted_text_color": "#859097", "border_color": "#37434B", "border_strong_color": "#61737F",
                 "accent_color": "#77ABCF", "accent_text_color": "#0F1215", "accent_hover_color": "#91BBD8",
                 "accent_pressed_color": "#ACCCE2", "secondary_accent_color": "#4BB1A1", "secondary_text_color": "#0F1215",
                 "success_color": "#348D67", "warning_color": "#997B30", "danger_color": "#C85C5D",
-                "focus_ring_color": "#3B85B9", "disabled_surface_color": "#2D3B44", "disabled_text_color": "#79848B",
+                "focus_ring_color": "#3679AA", "disabled_surface_color": "#1A2329", "disabled_text_color": "#636D73",
                 "scrim_color": "rgba(0,0,0,0.66)",
             },
         },
@@ -183,13 +183,13 @@ VISUAL_STYLE_PRESETS: dict[str, dict] = {
                 "scrim_color": "rgba(0,0,0,0.5)",
             },
             "dark": {
-                "color_scheme": "dark", "background_color": "#0E1411", "background_alt_color": "#2A3831",
-                "panel_color": "#1D2721", "text_color": "#F1F3F2", "text_soft_color": "#CCD2CF",
-                "muted_text_color": "#96A19B", "border_color": "#3A4841", "border_strong_color": "#6E8478",
+                "color_scheme": "dark", "background_color": "#0E1411", "background_alt_color": "#161E1A",
+                "panel_color": "#212C26", "text_color": "#DEE2DF", "text_soft_color": "#BCC3BF",
+                "muted_text_color": "#88958E", "border_color": "#3A4841", "border_strong_color": "#64786D",
                 "accent_color": "#6FB48F", "accent_text_color": "#101412", "accent_hover_color": "#86C0A1",
                 "accent_pressed_color": "#9ECCB4", "secondary_accent_color": "#C6996B", "secondary_text_color": "#101412",
                 "success_color": "#418D69", "warning_color": "#987B3E", "danger_color": "#B76B58",
-                "focus_ring_color": "#479169", "disabled_surface_color": "#314139", "disabled_text_color": "#7E8A83",
+                "focus_ring_color": "#418460", "disabled_surface_color": "#1C2722", "disabled_text_color": "#66706A",
                 "scrim_color": "rgba(0,0,0,0.66)",
             },
         },
@@ -213,13 +213,13 @@ VISUAL_STYLE_PRESETS: dict[str, dict] = {
                 "scrim_color": "rgba(0,0,0,0.5)",
             },
             "dark": {
-                "color_scheme": "dark", "background_color": "#130E15", "background_alt_color": "#352A38",
-                "panel_color": "#251C27", "text_color": "#E9E6E9", "text_soft_color": "#CAC5CB",
-                "muted_text_color": "#9C939F", "border_color": "#453A48", "border_strong_color": "#847189",
+                "color_scheme": "dark", "background_color": "#130E15", "background_alt_color": "#1C151F",
+                "panel_color": "#2A202D", "text_color": "#DBD7DD", "text_soft_color": "#BEB8C0",
+                "muted_text_color": "#928895", "border_color": "#453A48", "border_strong_color": "#79687F",
                 "accent_color": "#C096CC", "accent_text_color": "#131014", "accent_hover_color": "#CEAED8",
                 "accent_pressed_color": "#DDC6E3", "secondary_accent_color": "#9C9CD1", "secondary_text_color": "#131014",
                 "success_color": "#3E8B6E", "warning_color": "#A47440", "danger_color": "#BD635E",
-                "focus_ring_color": "#A361B8", "disabled_surface_color": "#3D3141", "disabled_text_color": "#857B88",
+                "focus_ring_color": "#9C54B2", "disabled_surface_color": "#241B28", "disabled_text_color": "#6E6671",
                 "scrim_color": "rgba(0,0,0,0.66)",
             },
         },
@@ -243,13 +243,13 @@ VISUAL_STYLE_PRESETS: dict[str, dict] = {
                 "scrim_color": "rgba(0,0,0,0.5)",
             },
             "dark": {
-                "color_scheme": "dark", "background_color": "#150D10", "background_alt_color": "#3A282E",
-                "panel_color": "#281B1F", "text_color": "#E8E5E6", "text_soft_color": "#CBC4C6",
-                "muted_text_color": "#A09296", "border_color": "#4A383E", "border_strong_color": "#8C6F77",
+                "color_scheme": "dark", "background_color": "#150D10", "background_alt_color": "#1F1518",
+                "panel_color": "#2E1F23", "text_color": "#DCD7D8", "text_soft_color": "#C0B7B9",
+                "muted_text_color": "#97878B", "border_color": "#4A383E", "border_strong_color": "#81676E",
                 "accent_color": "#D193A5", "accent_text_color": "#140F11", "accent_hover_color": "#DCACBA",
                 "accent_pressed_color": "#E6C5CF", "secondary_accent_color": "#61B077", "secondary_text_color": "#140F11",
                 "success_color": "#398C5C", "warning_color": "#A2743A", "danger_color": "#C06158",
-                "focus_ring_color": "#BE5977", "disabled_surface_color": "#432E35", "disabled_text_color": "#88797D",
+                "focus_ring_color": "#B94B6C", "disabled_surface_color": "#281B1F", "disabled_text_color": "#736669",
                 "scrim_color": "rgba(0,0,0,0.66)",
             },
         },
@@ -263,13 +263,13 @@ VISUAL_STYLE_PRESETS: dict[str, dict] = {
         "modes": ['dark'],
         "themes": {
             "dark": {
-                "color_scheme": "dark", "background_color": "#12180B", "background_alt_color": "#323F23",
-                "panel_color": "#222C17", "text_color": "#FCFDFC", "text_soft_color": "#D7DBD4",
-                "muted_text_color": "#A0A996", "border_color": "#424F33", "border_strong_color": "#788C60",
+                "color_scheme": "dark", "background_color": "#12180B", "background_alt_color": "#1B2311",
+                "panel_color": "#27321A", "text_color": "#E6E9E4", "text_soft_color": "#C5C9BF",
+                "muted_text_color": "#909B84", "border_color": "#424F33", "border_strong_color": "#6C7E56",
                 "accent_color": "#75B926", "accent_text_color": "#12160E", "accent_hover_color": "#88D42F",
                 "accent_pressed_color": "#99DA4C", "secondary_accent_color": "#AD97E2", "secondary_text_color": "#12160E",
-                "success_color": "#29965F", "warning_color": "#AD7C28", "danger_color": "#D3624E",
-                "focus_ring_color": "#5E991B", "disabled_surface_color": "#3A4928", "disabled_text_color": "#88937B",
+                "success_color": "#28925C", "warning_color": "#A77826", "danger_color": "#D25D47",
+                "focus_ring_color": "#558A18", "disabled_surface_color": "#232D16", "disabled_text_color": "#6C7660",
                 "scrim_color": "rgba(0,0,0,0.66)",
             },
         },
@@ -429,16 +429,16 @@ INDUSTRY_PRESETS: dict[str, dict] = {
         "label_zh": "艺术",
         "layout": "editorial",
         "slogan": "Create boldly. Grow visibly.", "slogan_zh": "大胆创作，让成长看得见。",
+        # `title` is filled in below from the slogan — do not write it here.
         "hero": {
-            "title": {"zh": "让创意被看见，让成长有作品。", "en": "Create boldly. Grow visibly."},
             "subtitle": {"zh": "从兴趣启发到系统表达，记录每一次真实成长。", "en": "From first ideas to confident expression, make every stage of growth visible."},
         },
         "venue_noun": {"zh": "画室", "en": "studio"},
         "work_noun": {"zh": "作品", "en": "work", "en_plural": "works"},
-        "registration_title": "Creative Preferences",
+        "registration_title": "Tell us how they like to create",
         "registration_title_zh": "告诉我们学员喜欢怎样创作",
-        "copy_pack": {"portal_label": "Student Art Portal", "register_intro": "Tell us about the student and their creative goals."},
-        "register_intro_zh": "告诉我们学员喜欢的创作方式、经验与学习目标。",
+        "copy_pack": {"portal_label": "Art Student Portal", "register_intro": "Three questions about style, experience and goals, then the studio will suggest a class and a time."},
+        "register_intro_zh": "三个关于创作形式、经验与目标的问题，之后画室会推荐合适的课程与时间。",
         "theme": {"background_color": "#FFF7F3", "panel_color": "#FFFFFF", "text_color": "#2B2118", "accent_color": "#A23E5C", "secondary_accent_color": "#6B4F3A", "button_style": "soft", "font_mood": "serif"},
         "fields": [
             _field("artStyle", "Preferred style", "喜欢的艺术形式", "Watercolour, sketching, acrylic", "水彩、素描、丙烯等"),
@@ -449,12 +449,12 @@ INDUSTRY_PRESETS: dict[str, dict] = {
     "music": {
         "label": "Music", "label_zh": "音乐", "layout": "performance",
         "slogan": "Find your rhythm. Make every practice count.", "slogan_zh": "找到自己的节奏，让每次练习都算数。",
-        "hero": {"title": {"zh": "找到自己的节奏，让每次练习都有回应。", "en": "Find your rhythm. Make every practice count."}, "subtitle": {"zh": "清晰的目标、适合的节奏与看得见的音乐成长。", "en": "Clear goals, the right pace, and musical progress you can hear."}},
+        "hero": {"subtitle": {"zh": "清晰的目标、适合的节奏与看得见的音乐成长。", "en": "Clear goals, the right pace, and musical progress you can hear."}},
         "venue_noun": {"zh": "琴行", "en": "studio"},
         "work_noun": {"zh": "曲目", "en": "piece", "en_plural": "pieces"},
-        "registration_title": "Music Goals", "registration_title_zh": "告诉我们学员的音乐目标",
-        "copy_pack": {"portal_label": "Music Student Portal", "register_intro": "Tell us about the student and their music goals."},
-        "register_intro_zh": "告诉我们乐器、当前水平和希望达成的音乐目标。",
+        "registration_title": "Tell us what they want to play", "registration_title_zh": "告诉我们学员想学什么乐器",
+        "copy_pack": {"portal_label": "Music Student Portal", "register_intro": "The instrument, the current level and the goal, then the studio will match a teacher and a lesson time."},
+        "register_intro_zh": "乐器、当前水平与音乐目标，之后琴行会匹配合适的老师与上课时间。",
         "theme": {"background_color": "#F7F5FF", "panel_color": "#FFFFFF", "text_color": "#201A35", "accent_color": "#5B3FA8", "secondary_accent_color": "#1F2A44", "button_style": "soft", "font_mood": "classic"},
         "fields": [
             _field("instrument", "Instrument", "乐器或声乐", "Piano, guitar, violin, voice", "钢琴、吉他、小提琴、声乐等"),
@@ -463,14 +463,16 @@ INDUSTRY_PRESETS: dict[str, dict] = {
         ],
     },
     "math": {
-        "label": "Math", "label_zh": "数学", "layout": "structured",
+        # `label` is display only — the category key stays "math". Australian
+        # spelling, like the rest of the product's copy.
+        "label": "Maths", "label_zh": "数学", "layout": "structured",
         "slogan": "Understand the method. Build lasting confidence.", "slogan_zh": "理解方法，建立长久的信心。",
-        "hero": {"title": {"zh": "理解方法，建立信心，稳步进阶。", "en": "Understand the method. Build lasting confidence."}, "subtitle": {"zh": "找准知识缺口，用清晰方法建立可持续的学习能力。", "en": "Find the gaps, learn a clear method, and build skills that last."}},
+        "hero": {"subtitle": {"zh": "找准知识缺口，用清晰方法建立可持续的学习能力。", "en": "Find the gaps, learn a clear method, and build skills that last."}},
         "venue_noun": {"zh": "教室", "en": "centre"},
         "work_noun": {"zh": "练习", "en": "exercise", "en_plural": "exercises"},
-        "registration_title": "Learning Focus", "registration_title_zh": "告诉我们目前的学习阶段与难点",
-        "copy_pack": {"portal_label": "Math Learning Portal", "register_intro": "Tell us about the learner and the topics they need help with."},
-        "register_intro_zh": "告诉我们年级、当前难点与希望提升的方向。",
+        "registration_title": "Tell us where they are and what is hard", "registration_title_zh": "告诉我们目前的学习阶段与难点",
+        "copy_pack": {"portal_label": "Maths Student Portal", "register_intro": "Year level, the topics that are hard, and what you want to reach — the centre replies with a plan."},
+        "register_intro_zh": "年级、当前难点与希望达到的目标，教室会给出对应的学习方案。",
         "theme": {"background_color": "#F3F7FF", "panel_color": "#FFFFFF", "text_color": "#172033", "accent_color": "#1D4ED8", "secondary_accent_color": "#0F766E", "button_style": "sharp", "font_mood": "modern"},
         "fields": [
             _field("yearLevel", "Year level", "年级", "Year 5, Year 9, VCE", "五年级、九年级、VCE 等"),
@@ -481,12 +483,12 @@ INDUSTRY_PRESETS: dict[str, dict] = {
     "dance": {
         "label": "Dance", "label_zh": "舞蹈", "layout": "expressive",
         "slogan": "Move with confidence. Grow through practice.", "slogan_zh": "自信地舞动，在训练中成长。",
-        "hero": {"title": {"zh": "在节奏中表达，在训练中成长。", "en": "Move with confidence. Grow through practice."}, "subtitle": {"zh": "兼顾技术、体态与舞台表达，让每一步更自信。", "en": "Build technique, presence, and confidence in every movement."}},
+        "hero": {"subtitle": {"zh": "兼顾技术、体态与舞台表达，让每一步更自信。", "en": "Build technique, presence, and confidence in every movement."}},
         "venue_noun": {"zh": "舞蹈教室", "en": "studio"},
         "work_noun": {"zh": "舞蹈录像", "en": "recording", "en_plural": "recordings"},
-        "registration_title": "Dance Preferences", "registration_title_zh": "告诉我们舞者的年龄、经验与目标",
-        "copy_pack": {"portal_label": "Dance Student Portal", "register_intro": "Tell us about the dancer and their goals."},
-        "register_intro_zh": "告诉我们喜欢的舞种、当前水平与训练目标。",
+        "registration_title": "Tell us about the dancer", "registration_title_zh": "告诉我们舞者的经验与目标",
+        "copy_pack": {"portal_label": "Dance Student Portal", "register_intro": "The style, the level and the goal, then the studio will suggest a class and a trial time."},
+        "register_intro_zh": "舞种、当前水平与训练目标，之后舞蹈教室会安排合适的班级与试课时间。",
         "theme": {"background_color": "#FFF4F8", "panel_color": "#FFFFFF", "text_color": "#2D1723", "accent_color": "#B4236E", "secondary_accent_color": "#6D315E", "button_style": "rounded", "font_mood": "classic"},
         "fields": [
             _field("danceStyle", "Dance style", "喜欢的舞种", "Ballet, jazz, hip hop, contemporary", "芭蕾、爵士、街舞、现代舞等"),
@@ -497,12 +499,12 @@ INDUSTRY_PRESETS: dict[str, dict] = {
     "language": {
         "label": "Language", "label_zh": "语言", "layout": "friendly",
         "slogan": "Find your voice. Connect with the world.", "slogan_zh": "开口表达，连接更大的世界。",
-        "hero": {"title": {"zh": "开口表达，连接更大的世界。", "en": "Find your voice. Connect with the world."}, "subtitle": {"zh": "从真实沟通出发，建立能够长期使用的语言能力。", "en": "Build practical language skills through real communication."}},
+        "hero": {"subtitle": {"zh": "从真实沟通出发，建立能够长期使用的语言能力。", "en": "Build practical language skills through real communication."}},
         "venue_noun": {"zh": "教室", "en": "centre"},
         "work_noun": {"zh": "练习", "en": "exercise", "en_plural": "exercises"},
-        "registration_title": "Language Goals", "registration_title_zh": "告诉我们学习语言与当前水平",
-        "copy_pack": {"portal_label": "Language Student Portal", "register_intro": "Tell us about the learner and their language goals."},
-        "register_intro_zh": "告诉我们目标语言、当前水平与使用场景。",
+        "registration_title": "Tell us which language and what level", "registration_title_zh": "告诉我们学习语言与当前水平",
+        "copy_pack": {"portal_label": "Language Student Portal", "register_intro": "Which language, what level, and where you will use it — the centre replies with a class and a time."},
+        "register_intro_zh": "目标语言、当前水平与使用场景，教室会推荐合适的课程与上课时间。",
         "theme": {"background_color": "#F2FBFC", "panel_color": "#FFFFFF", "text_color": "#163036", "accent_color": "#0E7490", "secondary_accent_color": "#7C3AED", "button_style": "rounded", "font_mood": "modern"},
         "fields": [
             _field("language", "Language", "目标语言", "English, Mandarin, Japanese, French", "英语、中文、日语、法语等"),
@@ -513,12 +515,12 @@ INDUSTRY_PRESETS: dict[str, dict] = {
     "sports": {
         "label": "Sports", "label_zh": "运动", "layout": "energetic",
         "slogan": "Train with purpose. Grow stronger every session.", "slogan_zh": "有目标地训练，一次比一次更强。",
-        "hero": {"title": {"zh": "有目标地训练，一次比一次更强。", "en": "Train with purpose. Grow stronger every session."}, "subtitle": {"zh": "科学训练、清晰反馈与持续进步。", "en": "Purposeful coaching, clear feedback, and steady progress."}},
+        "hero": {"subtitle": {"zh": "科学训练、清晰反馈与持续进步。", "en": "Purposeful coaching, clear feedback, and steady progress."}},
         "venue_noun": {"zh": "训练中心", "en": "club"},
         "work_noun": {"zh": "训练记录", "en": "session record", "en_plural": "session records"},
-        "registration_title": "Training Goals", "registration_title_zh": "告诉我们运动项目、水平与训练目标",
-        "copy_pack": {"portal_label": "Sports Student Portal", "register_intro": "Tell us about the athlete and their training goals."},
-        "register_intro_zh": "告诉我们运动项目、当前水平与训练目标。",
+        "registration_title": "Tell us the sport and the goal", "registration_title_zh": "告诉我们运动项目与训练目标",
+        "copy_pack": {"portal_label": "Sports Student Portal", "register_intro": "The sport, the current level and the goal, then the club will suggest a squad and a session time."},
+        "register_intro_zh": "运动项目、当前水平与训练目标，之后训练中心会推荐合适的组别与训练时间。",
         "theme": {"background_color": "#F4FAF5", "panel_color": "#FFFFFF", "text_color": "#17251A", "accent_color": "#166534", "secondary_accent_color": "#B45309", "button_style": "sharp", "font_mood": "modern"},
         "fields": [
             _field("sport", "Sport", "运动项目", "Tennis, swimming, basketball, soccer", "网球、游泳、篮球、足球等"),
@@ -527,14 +529,15 @@ INDUSTRY_PRESETS: dict[str, dict] = {
         ],
     },
     "game": {
-        "label": "Game", "label_zh": "游戏与编程", "layout": "digital",
+        # "Game" dropped the half of the offer the Chinese label keeps: 编程.
+        "label": "Games & Coding", "label_zh": "游戏与编程", "layout": "digital",
         "slogan": "Play, think, create, and level up.", "slogan_zh": "在玩中思考、创造与升级。",
-        "hero": {"title": {"zh": "在游戏中思考、创造与协作。", "en": "Play, think, create, and level up."}, "subtitle": {"zh": "把兴趣转化为策略、编程、创造力与团队能力。", "en": "Turn play into strategy, coding, creativity, and teamwork."}},
+        "hero": {"subtitle": {"zh": "把兴趣转化为策略、编程、创造力与团队能力。", "en": "Turn play into strategy, coding, creativity, and teamwork."}},
         "venue_noun": {"zh": "工作室", "en": "studio"},
         "work_noun": {"zh": "项目", "en": "project", "en_plural": "projects"},
-        "registration_title": "Game Learning Goals", "registration_title_zh": "告诉我们感兴趣的游戏、编程或策略方向",
-        "copy_pack": {"portal_label": "Game Student Portal", "register_intro": "Tell us about the player and their learning goals."},
-        "register_intro_zh": "告诉我们感兴趣的方向、当前经验与学习目标。",
+        "registration_title": "Tell us what they want to build or play", "registration_title_zh": "告诉我们感兴趣的游戏或编程方向",
+        "copy_pack": {"portal_label": "Games & Coding Portal", "register_intro": "What they want to build or play, how much they have done, and what they want to learn — the studio replies with a project and a start date."},
+        "register_intro_zh": "想做什么或想玩什么、目前的经验与学习目标，之后工作室会推荐合适的项目与开课时间。",
         "theme": {"background_color": "#F6F4FF", "panel_color": "#FFFFFF", "text_color": "#1F1735", "accent_color": "#5B21B6", "secondary_accent_color": "#0F766E", "button_style": "rounded", "font_mood": "modern"},
         "fields": [
             _field("gameType", "Game or activity", "游戏或活动方向", "Roblox, Minecraft, chess, coding games", "Roblox、Minecraft、国际象棋、编程游戏"),
@@ -545,12 +548,12 @@ INDUSTRY_PRESETS: dict[str, dict] = {
     "general": {
         "label": "General", "label_zh": "通用", "layout": "neutral",
         "slogan": "A learning path that fits every student.", "slogan_zh": "适合每个学员的成长路径。",
-        "hero": {"title": {"zh": "适合每个学员的成长路径。", "en": "A learning path that fits every student."}, "subtitle": {"zh": "从兴趣和目标出发，在适合的节奏中稳步成长。", "en": "Start with the learner's interests and goals, then grow at the right pace."}},
+        "hero": {"subtitle": {"zh": "从兴趣和目标出发，在适合的节奏中稳步成长。", "en": "Start with the learner's interests and goals, then grow at the right pace."}},
         "venue_noun": {"zh": "工作室", "en": "studio"},
         "work_noun": {"zh": "作品", "en": "work", "en_plural": "works"},
-        "registration_title": "Student Preferences", "registration_title_zh": "告诉我们学员的兴趣与学习目标",
-        "copy_pack": {"portal_label": "Student Portal", "register_intro": "Tell us about the student and their goals."},
-        "register_intro_zh": "告诉我们学员的兴趣、经验与希望达成的目标。",
+        "registration_title": "Tell us about the student", "registration_title_zh": "告诉我们学员的兴趣与学习目标",
+        "copy_pack": {"portal_label": "Student Portal", "register_intro": "Interests, experience and goals, then the studio will suggest a class and a time."},
+        "register_intro_zh": "兴趣方向、当前经验与学习目标，之后工作室会推荐合适的课程与时间。",
         "theme": {"background_color": "#F8FAFC", "panel_color": "#FFFFFF", "text_color": "#1E293B", "accent_color": "#1E40AF", "secondary_accent_color": "#0F766E", "button_style": "soft", "font_mood": "modern"},
         "fields": [
             _field("interests", "Interests", "兴趣方向", "What does the student enjoy?", "学员平时喜欢什么？"),
@@ -639,6 +642,19 @@ for _industry_key, _style_id in INDUSTRY_STYLE_RECOMMENDATIONS.items():
     INDUSTRY_PRESETS[_industry_key]["recommended_style_id"] = _style_id
     INDUSTRY_PRESETS[_industry_key]["theme"] = style_theme(_style_id)
     INDUSTRY_PRESETS[_industry_key]["operational_template"] = INDUSTRY_OPERATIONAL_TEMPLATES[_industry_key]
+
+# The industry card in Studio Admin shows `slogan`; the site it publishes shows
+# `hero.title`. Those were two hand-written strings, and in Chinese five of the
+# eight had drifted apart — an owner picked 艺术 because the card promised
+# 「大胆创作，让成长看得见。」 and the site went live saying
+# 「让创意被看见，让成长有作品。」. In English they happened to be identical, so
+# the fork was invisible to anyone reading the source in English.
+#
+# The hero title is now derived rather than written, so a card and the page it
+# describes cannot disagree again. The subtitle stays hand-written: it is a
+# different sentence doing a different job.
+for _preset in INDUSTRY_PRESETS.values():
+    _preset["hero"]["title"] = {"zh": _preset["slogan_zh"], "en": _preset["slogan"]}
 
 
 def public_industry_presets() -> dict[str, dict]:
