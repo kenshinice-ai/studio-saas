@@ -63,11 +63,11 @@
     </div>
   </header>
 
-  <!-- Printed pages only. A manual found in a drawer two years from now is
-       the real risk of putting one on paper, so every printed page says which
-       version it is, when it was printed, and where the current one lives.
-       That is the job a watermark is usually reached for, done in the one
-       place that does not sit on top of the text. -->
+  <!-- Printed copies only, and printed once at the top rather than on every
+       page — see manual.css for why a running footer is not achievable here
+       without wrapping the document in a table. A manual found in a drawer
+       two years from now needs to say which version it is; the browser's own
+       print footer already carries the URL, the date and the page number. -->
   <div class="print-foot" aria-hidden="true">
     <p data-lang="en">PWE Studio User Manual · v__APP_VERSION__ · printed <span class="printed-on">—</span> · current version at pwestudio.online/manual/ · © 2026 PWE GROUP PTY LTD, all rights reserved — for the use of subscribing studios</p>
     <p data-lang="zh">PWE Studio 用户手册 · v__APP_VERSION__ · 打印于 <span class="printed-on">—</span> · 最新版本见 pwestudio.online/zh/manual/ · © 2026 PWE GROUP PTY LTD 保留所有权利，供订阅工作室使用</p>

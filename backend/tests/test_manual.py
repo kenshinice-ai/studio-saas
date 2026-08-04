@@ -223,9 +223,10 @@ def test_the_print_stylesheet_produces_a_usable_document() -> None:
         assert control in printed.split("display: none !important")[0], (
             f"{control} is still printed"
         )
-    # Sections start on their own page, and nothing splits mid-idea.
-    assert "page-break-before: always" in printed
+    # Nothing splits mid-idea. Sections deliberately do NOT start on a fresh
+    # page any more — see test_printing_does_not_force_a_page_per_section.
     assert "page-break-inside: avoid" in printed
+    assert "break-after: avoid" in printed
     # A link on paper is a dead end unless it says where it goes.
     assert 'content: " (" attr(href) ")"' in printed
     # The filter must not be able to silently drop a section from the print.
@@ -331,31 +332,52 @@ def test_the_rights_notice_is_stated_and_readable() -> None:
     assert "var(--f-sm)" in rights, "the licence is set too small to read"
 
 
-def test_the_printed_page_carries_its_version_and_date() -> None:
-    """A printed manual's real risk is being read two years later.
+def test_the_printed_copy_states_its_version_once_at_the_top() -> None:
+    """Not a running footer, after two attempts at one against a real PDF.
 
-    A full-page watermark is the usual reflex, and it sits on top of the body
-    text and the screenshots — on a document whose whole design brief was
-    measured contrast, and whose screenshots exist to be looked at closely. A
-    running footer answers the same question without costing a single line of
-    legibility: which version, printed when, and where the current one lives.
+    Chrome anchors a `position: fixed` element to the text column, so at
+    `bottom: 0` it printed over the last line of every full page; pushing it
+    below with a negative offset put it at the top of the next one. A true
+    running footer in Chrome needs the document wrapped in a table with a
+    `<tfoot>` — a large change to buy a line of small print, when the print
+    dialogue already stamps the URL, the date and a page number on every page.
+
+    What the browser cannot know is the version, so that is stated once, on
+    the page a reader keeps.
     """
 
     style = _style()
-    printed = style[style.index("@media print"):]
-    assert ".print-foot" in printed
-    assert "position: fixed" in printed, "the footer would print on page one only"
-    # @page has to reserve the band, or the footer lands on a line of text.
-    assert "@page { margin: 16mm 14mm 20mm; }" in printed
+    printed = _strip_comments(style)[_strip_comments(style).index("@media print"):]
+    assert ".print-foot" in style
+    assert "position: fixed" not in printed, (
+        "a fixed footer prints on top of the body text; see the comment in "
+        "manual.css before trying again"
+    )
 
     source = _source()
     assert 'class="print-foot"' in source
-    assert "v__APP_VERSION__" in source[source.index('class="print-foot"'):][:600]
+    colophon = source.index('class="print-foot"')
+    assert colophon < source.index("<h1"), "the colophon belongs above the title"
+    assert "v__APP_VERSION__" in source[colophon:][:600]
     assert source.count('class="printed-on"') == 2, "one date slot per language"
-
-    script = SCRIPT.read_text(encoding="utf-8")
-    assert "printed-on" in script, "nothing fills the date in"
     assert ".print-foot { display: none; }" in style, "it must not show on screen"
+
+
+def test_printing_does_not_force_a_page_per_section() -> None:
+    """It produced 28 pages for 3,800 words, one of them carrying two lines.
+
+    Twelve forced breaks plus figures that cannot be split is most of a ream
+    of white paper. Measured with scripts/check_manual_print.py: 28 → 18
+    pages in English, 25 → 15 in Chinese.
+    """
+
+    printed = _strip_comments(_style())
+    printed = printed[printed.index("@media print"):]
+    assert "break-before: page" not in printed
+    assert "page-break-before: always" not in printed
+    # Figures still may not split, so they have to be small enough to fit.
+    assert "figure { max-width:" in printed
+    assert "break-inside: avoid" in printed
 
 
 def test_the_manual_says_which_theme_its_screenshots_show() -> None:

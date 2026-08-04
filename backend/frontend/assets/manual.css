@@ -275,25 +275,47 @@ mark { padding: 0 2px; border-radius: 3px; background: var(--accent); color: var
     --hairline: #bbb; --line-strong: #888; --shadow: none;
     font-size: 10.5pt;
   }
-  @page { margin: 16mm 14mm 20mm; }
+  @page { margin: 16mm 14mm; }
   body { background: #fff; color: #000; }
   .bar, .toc, .skip, .toc-btn, .no-hits { display: none !important; }
   /* A fixed element repeats on every printed page, which is how a running
      footer is done without a second document. @page reserves the space so it
      cannot land on top of a line. */
+  /* NOT a running footer, after two attempts at one.
+     Chrome anchors a `position: fixed` element to the *text column*, so at
+     `bottom: 0` it printed on top of the last line of every full page, and
+     pushing it below with a negative offset landed it at the top of the next
+     one. Getting a true running footer in Chrome needs the whole document
+     wrapped in a table with a `<tfoot>`, which is a large change to buy a
+     line of small print.
+     The browser already stamps the URL, the date and a page number on every
+     page from its own print dialogue — two of the three things this was for.
+     What it cannot know is the version, so that is stated once, at the top,
+     on the page a reader keeps. */
   .print-foot {
-    display: block !important; position: fixed; bottom: 0; left: 0; right: 0;
-    padding-top: 2mm; border-top: 1px solid var(--hairline);
-    color: var(--ink-faint); font-size: 7.5pt; text-align: center;
+    display: block !important; margin: 0 0 6mm; padding-bottom: 3mm;
+    border-bottom: 1px solid var(--hairline);
+    color: var(--ink-faint); font-size: 8pt; line-height: 1.5;
   }
   .shell { display: block; max-width: none; padding: 0; }
   [hidden] { display: revert !important; }   /* search must not hide printed text */
   h1, h2, h3, h4 { break-after: avoid; page-break-after: avoid; }
-  section { break-inside: auto; border-top: 1px solid var(--hairline); padding-block: 8mm; }
-  section[id] { break-before: page; page-break-before: always; }
-  section:first-of-type { break-before: auto; page-break-before: auto; }
+  /* Sections no longer start on a fresh page. Twelve forced breaks plus
+     figures that cannot be split produced 28 pages for 3,800 words, with one
+     page carrying two lines and nothing else. Letting them flow keeps the
+     rule above each section as the divider, which is enough to find one, and
+     stops the reader carrying half a ream of white paper. */
+  section { break-inside: auto; border-top: 1px solid var(--hairline); padding-block: 6mm; }
+  /* A heading stranded at the foot of a page is the one break worth forcing
+     against. */
+  section > .eyebrow { break-after: avoid; page-break-after: avoid; }
   figure, .pitfall, .steps > li, tr { break-inside: avoid; page-break-inside: avoid; }
   p, li { max-width: none; }
+  /* On screen a screenshot fills the reading column and that is right. On
+     A4 the same image claims most of a page, and with break-inside: avoid it
+     takes the whole one. Capped to the width it is actually read at. */
+  figure { max-width: 118mm; }
+  .shot.phone { max-width: 58mm; }
   .shot { box-shadow: none; border: 1px solid var(--hairline); }
   .shot-bar { display: none; }
   /* A printed link is a dead end unless it says where it goes. Internal
