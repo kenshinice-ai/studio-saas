@@ -309,6 +309,28 @@ def test_the_screenshot_set_stays_within_its_budget() -> None:
     assert not orphans, f"unreferenced images are shipping publicly: {sorted(orphans)}"
 
 
+def test_the_rights_notice_is_stated_and_readable() -> None:
+    """Reserving rights is a copyright statement, not a hiding place.
+
+    It works whether or not the page is easy to find, which is why it is here
+    and not solved by unlinking the manual. It is set at --f-sm rather than
+    --f-xs (10.5px) because a licence nobody can read is not one anyone
+    agreed to.
+    """
+
+    source = _source()
+    assert "All rights reserved" in source and "保留所有权利" in source
+    assert source.count("ABN 55 606 664 546") >= 2, "screen and print both state it"
+    # What a studio may actually do with it, rather than a bare assertion.
+    assert "printed and shared inside your studio" in source
+    assert "工作室内部打印与传阅" in source
+
+    style = _strip_comments(_style())
+    rights = style[style.index(".rights {"):]
+    rights = rights[: rights.index("}")]
+    assert "var(--f-sm)" in rights, "the licence is set too small to read"
+
+
 def test_the_printed_page_carries_its_version_and_date() -> None:
     """A printed manual's real risk is being read two years later.
 

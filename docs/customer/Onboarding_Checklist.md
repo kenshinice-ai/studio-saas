@@ -34,8 +34,12 @@ Exit evidence: approved mapping report and exceptions list.
 - [ ] Assign owner, manager, teacher and front-desk roles by least privilege.
 - [ ] Confirm staff departure/role-change process.
 - [ ] Configure and verify privileged MFA before production.
+- [ ] **Send the user manual** with the owner's credentials — `pwestudio.online/manual/`
+      (English) or `pwestudio.online/zh/manual/` (Chinese). Deep-link the
+      sections that match their roles, for example `#team` for the permission
+      boundaries and `#families` for the access-code workflow.
 
-Exit evidence: tenant identity sheet, role roster and MFA check.
+Exit evidence: tenant identity sheet, role roster, MFA check and the manual sent.
 
 ## Phase 3 — Website and brand in Studio Admin
 
@@ -86,3 +90,34 @@ Exit evidence: reconciliation report, exception resolution and acceptance.
 - [ ] Customer support contacts and escalation process tested.
 
 Exit evidence: production acceptance record. Until this phase passes, the service remains pre-production.
+
+---
+
+## The manual, and why it is not gated
+
+`pwestudio.online/manual/` and `/zh/manual/` are **public and indexed**, and
+carry a rights notice rather than a lock:
+
+> © 2026 PWE GROUP PTY LTD · ABN 55 606 664 546. All rights reserved. Provided
+> for the use of PWE Studio subscribing studios and their staff. It may be
+> printed and shared inside your studio; it may not be republished, resold, or
+> used to operate a competing service without written permission.
+
+Reserving rights is a copyright statement and does not depend on the page
+being hard to find, so hiding the link would have reserved nothing while
+costing three things that are worth more:
+
+* **Support can deep-link it.** `/manual/#money` works in a reply to someone
+  who is not signed in, which is most people asking a question.
+* **It qualifies a prospect.** Someone who reads how refunds are gated and how
+  minors' consent is recorded *before* buying is a better-informed customer,
+  and those two sections are among the strongest reasons to buy.
+* **It answers the search.** "How do I refund a class credit in PWE Studio" is
+  a question we would rather answer than leave to a forum.
+
+Sending the link at handover (Phase 2) is the delivery mechanism. It is a
+courtesy and an onboarding step, not an access control — and it should not be
+described to a customer as though it were one.
+
+Each printed page carries the version, the print date and the current URL, so
+a copy found in a drawer two years from now says what it is.
