@@ -153,7 +153,21 @@ button, input, select { font: inherit; }
 
 /* ── article ──────────────────────────────────────────────────────────── */
 article { min-width: 0; }
-.lede { max-width: var(--measure); margin: 0 0 var(--s-5); color: var(--ink-soft); font-size: var(--f-1); line-height: 1.55; }
+.lede { max-width: var(--measure); margin: 0 0 var(--s-3); color: var(--ink-soft); font-size: var(--f-1); line-height: 1.55; }
+/* The freshness line. It sits between the lede and the first note, so it
+   takes the smaller Fibonacci step above and the larger one below — the
+   masthead reads as one block, and the body begins after it. Amber marks it,
+   which on this page means: one warm thing, and it is the date. */
+.updated {
+  max-width: var(--measure);
+  margin: 0 0 var(--s-5);
+  padding-left: var(--s-2);
+  border-left: 2px solid var(--accent);
+  color: var(--ink-faint);
+  font-size: var(--f-sm);
+  line-height: 1.6;
+}
+.updated time { color: var(--ink-soft); font-variant-numeric: tabular-nums; }
 h1 { margin: 0 0 var(--s-2); font-family: var(--serif); font-size: clamp(1.9rem, 5vw, var(--f-4)); font-weight: 500; line-height: 1.1; letter-spacing: -.012em; }
 section { padding-block: var(--s-5); border-top: 1px solid var(--hairline); }
 section:first-of-type { border-top: 0; padding-top: 0; }

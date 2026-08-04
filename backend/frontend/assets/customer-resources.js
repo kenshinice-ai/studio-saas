@@ -1,44 +1,20 @@
-/* Language toggle for the served pages under /customer-resources/.
+/* The served pages under /customer-resources/ and /zh/customer-resources/.
  *
- * product-home.js cannot be reused here: it throws when the support form is
- * absent, because on the gateway a missing form is a real defect. These pages
- * only need the language switch, so they get their own script that shares the
- * `pwe-public-language` key — a visitor who chose 中文 on the gateway keeps it
- * when they open the FAQ, the privacy policy or the terms.
+ * There is no language toggle here any more. Each language is a document at
+ * its own address, filtered server-side before it is sent, so the switch in
+ * the top line is an ordinary link and the DOM that arrives holds exactly one
+ * language. The toggle this file used to carry set `root.lang` from
+ * localStorage, which after the split would overwrite the `lang` the server
+ * declares — and the declared one is the true one, because it describes the
+ * bytes that actually arrived.
+ *
+ * What is left is the copyright year, which is the one thing on these pages
+ * that belongs to the reader's clock rather than to the release.
  */
 (() => {
   'use strict';
 
-  const root = document.documentElement;
-  const button = document.getElementById('languageButton');
   const year = document.getElementById('year');
-
-  const readStoredLanguage = () => {
-    try {
-      return window.localStorage.getItem('pwe-public-language');
-    } catch (_) {
-      return null;
-    }
-  };
-
-  const setLanguage = (language) => {
-    root.lang = language;
-    if (button) {
-      button.textContent = language === 'en' ? '中文' : 'English';
-      button.setAttribute('aria-label', language === 'en' ? 'Switch to Chinese' : '切换到英文');
-    }
-    try {
-      window.localStorage.setItem('pwe-public-language', language);
-    } catch (_) {
-      /* Private browsing: the toggle still works for this page view. */
-    }
-  };
-
-  setLanguage(readStoredLanguage() === 'zh' ? 'zh' : 'en');
-
-  if (button) {
-    button.addEventListener('click', () => setLanguage(root.lang === 'en' ? 'zh' : 'en'));
-  }
   if (year) {
     year.textContent = String(new Date().getFullYear());
   }

@@ -1,3 +1,117 @@
+# PWE Studio v8.2.28 — what the site was telling machines about itself (deployed 2026-08-04)
+
+The marketing skills from `coreyhaines31/marketingskills` were installed and
+their `seo-audit`, `ai-seo` and `copywriting` frameworks run against
+production. The audit found three real defects, all of which had been live for
+weeks and none of which was visible from a browser.
+
+## The three defects, and why nobody saw them
+
+**Every `.webp` was served as `application/octet-stream`** — including the one
+named by `og:image`. Browsers sniff the bytes and render the image anyway,
+which is exactly why the pages looked correct; social crawlers do not sniff,
+so a link shared to LinkedIn, X, WhatsApp or WeChat showed a card with no
+picture, and Google Images could not index a single manual screenshot.
+
+The cause: `send_from_directory` takes its Content-Type from `mimetypes`,
+whose table is the interpreter's built-ins plus `/etc/mime.types` — a file
+`python:3.11-slim` does not ship. The types are registered by the application
+now, so the answer is a property of this codebase rather than of whichever
+base image it runs on. Asserted per extension.
+
+**Every static asset was sent `no-cache`.** The manual re-downloaded 502 KB of
+screenshots on every single view, paid directly on the largest contentful
+paint. Every asset URL already carried `?v=<APP_VERSION>`, so the URLs were
+already safe to cache forever — the header just never said so. A URL naming
+the running release now gets a year and `immutable`; a stale one revalidates.
+
+**There was no `robots.txt` and no `sitemap.xml`.** Both 404ed. Nine addresses
+were discoverable only by following links, the hreflang set existed in the
+markup alone with nothing corroborating it, and the Search Console submission
+that has been on the to-do list had nothing to submit.
+
+## What else the audit turned up
+
+* **The manual had no structured data at all** — the most citable thing the
+  site publishes (3,800 words, first-hand, specific) and nothing marked its
+  seven questions as questions or gave it a date.
+* **Four customer documents served both languages from one URL** behind a DOM
+  toggle, with no canonical and no hreflang — the arrangement the home page
+  and the manual were moved off two releases ago. The Chinese half of the
+  terms, the privacy policy and the service FAQ had no address that could be
+  indexed, linked or pointed at.
+* **`"User Manual | PWE Studio"`** was a 24-character title in front of those
+  3,800 words, targeting nothing.
+* **The FAQ, terms and privacy pages asserted product facts against `v8.2.2`**
+  — six releases stale, on a live page, with nothing checking it.
+* **A nested duplicate `<picture>`** in the nav brand mark, from an earlier
+  edit.
+
+## The rule that keeps the FAQ markup honest
+
+`FAQPage` has exactly one failure mode: markup that does not match the visible
+answer. A hand-maintained copy in Python agrees with the page only until the
+next edit to the page, so there is no copy — `faq_pairs()` parses the
+questions back out of the document that is about to be sent. That reorders
+`_serve_product_home`: cards, then filter, then structured data, because the
+structured data now reads the filtered document. The placeholder survives
+filtering because it is a comment.
+
+The same extractor serves the manual (`<h4>` + `<p>`, scoped to `#faq`), the
+home page and the service FAQ (`<summary>` + `<p>`), which is why all three
+got markup for the price of one.
+
+## Machine-readable files
+
+`/pricing.md` and `/llms.txt`, generated from the same plan rows as the
+pricing cards. An agent shortlisting tools for a studio owner reads what it
+can parse and silently skips what it cannot — the buyer never learns there was
+a third option. This product's numbers are public, enforced and already
+generated; the only thing missing was an address a parser could reach them at.
+`SETUP_FEE_AUD` now holds the 299–999 range so the page prose and the markdown
+file are asserted against one number instead of three.
+
+## Copy
+
+The page reads well — specific, customer's own words, no buzzwords — so the
+changes are few and structural:
+
+* **The scope exclusions moved off the conversion path.** Six clauses of
+  what-is-not-included sat between the price and the button, the last thing a
+  buyer read before deciding. They are an FAQ answer now, verbatim: the
+  content was right, the position was wrong. The test that guards them was
+  rewritten to tell a move from a deletion.
+* **A new FAQ section** before the final call to action, splitting 61.8/38.2
+  like the hero — answers in one column, the standing invitation in the other.
+  There is no trial and no money-back guarantee to offer, so the risk reversal
+  is the only honest one available: everything a buyer would want is already
+  public, including what has not been built. Inventing a guarantee would have
+  been easier and worse.
+* **`Discuss Starter` → `Start with Starter`.** The old verb asked the reader
+  to do the thing they were trying to avoid.
+* Descriptions brought inside the space a result actually gives them — the
+  English ones were losing their last clause at 195 characters, the Chinese
+  ones were using half of theirs at 64.
+
+## Verified
+
+652 tests pass; all three static checkers pass. `check_manual_print.py` still
+reports 18 and 15 pages, so the print work from v8.2.23 is intact. The FAQ
+section measures 61.8/38.2 exactly, `align-items: start`, summary rows 71px
+against a 44px minimum, and contrast in both themes: 16.45:1 summary, 6.96:1
+answer, 4.52:1 links and marker in light — the amber that was drawn for it.
+
+## Still to do by hand
+
+* Submit `/sitemap.xml` to Search Console. There is finally something to
+  submit; the nine addresses no longer need to be inspected one at a time.
+* Rotate the showcase password that was pasted into chat.
+* The sister site still advertises 1500 students / 100 GB against the
+  database's 1000 / 50. It is built from `02 WEBSITE/src/build.py`, which is
+  not reachable from this repository.
+
+---
+
 # PWE Studio v8.2.22–v8.2.23 — the print output, fixed against real PDFs (deployed 2026-08-04)
 
 The owner printed both languages. Two defects the stylesheet and the screen

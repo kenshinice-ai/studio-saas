@@ -115,8 +115,10 @@ def test_customer_page_reads_the_canonical_tokens(page: Path) -> None:
     """Brand values come from ui-tokens.css, not from a fourth copy of the hex."""
 
     source = page.read_text(encoding="utf-8")
-    assert '<link rel="stylesheet" href="/assets/ui-tokens.css">' in source
-    assert '<link rel="stylesheet" href="/assets/customer-resources.css">' in source
+    # The `?v=` is the release stamp: these URLs are cached for a year now, so
+    # they have to change when the release does.
+    assert '<link rel="stylesheet" href="/assets/ui-tokens.css?v=__APP_VERSION__">' in source
+    assert '<link rel="stylesheet" href="/assets/customer-resources.css?v=__APP_VERSION__">' in source
     assert '<meta name="theme-color" content="#0e1729">' in source
 
 
@@ -139,8 +141,55 @@ def test_customer_page_is_bilingual(page: Path) -> None:
     source = page.read_text(encoding="utf-8")
     assert 'data-lang="en"' in source
     assert 'data-lang="zh"' in source
-    assert 'id="languageButton"' in source
-    assert '<script src="/assets/customer-resources.js" defer></script>' in source
+    assert '<script src="/assets/customer-resources.js?v=__APP_VERSION__" defer></script>' in source
+
+
+@pytest.mark.parametrize("page", PAGES, ids=PAGE_IDS)
+def test_customer_page_switches_language_by_navigating(page: Path) -> None:
+    """The switch is a link to the other URL, not a toggle inside one DOM.
+
+    These pages served both languages from a single address with no canonical
+    and no hreflang. To a crawler that is one mixed-language document, so the
+    Chinese half of the terms, the privacy policy and the service FAQ had no
+    address that could be indexed or pointed at. The button is what has to be
+    gone for that to stay fixed — a toggle is the shape of the old bug.
+    """
+
+    source = page.read_text(encoding="utf-8")
+    assert "languageButton" not in source, f"{page.name} still toggles in the DOM"
+    en_url = f"https://pwestudio.online/customer-resources/{page.name}"
+    zh_url = f"https://pwestudio.online/zh/customer-resources/{page.name}"
+    assert f'<link data-lang="en" rel="canonical" href="{en_url}">' in source
+    assert f'<link data-lang="zh" rel="canonical" href="{zh_url}">' in source
+    # Reciprocal and self-referencing, identical on both pages: a set that
+    # omits its own page is discarded whole.
+    for url, code in ((en_url, "en-AU"), (zh_url, "zh-Hans"), (en_url, "x-default")):
+        assert f'<link rel="alternate" hreflang="{code}" href="{url}">' in source
+    # The switch itself declares where it goes, which is also what exempts it
+    # from the link localisation that follows the reader's language.
+    assert f'href="/zh/customer-resources/{page.name}" hreflang="zh-Hans"' in source
+    assert f'href="/customer-resources/{page.name}" hreflang="en-AU"' in source
+
+
+@pytest.mark.parametrize("page", PAGES, ids=PAGE_IDS)
+def test_customer_page_states_no_stale_version(page: Path) -> None:
+    """These pages assert product facts against a version number.
+
+    "Multi-child account aggregation is not part of v8.2.2" was still on the
+    live FAQ six releases later. A literal version in the prose is a claim
+    with an expiry date on it and no alarm attached, so the pages carry the
+    placeholder and the server stamps the running release into it.
+
+    Release_Notes.html is exempt, and has to be: it is a changelog, where the
+    version in an entry is the subject of the entry. Only its status line
+    follows the running release.
+    """
+
+    if page.name == "Release_Notes.html":
+        pytest.skip("a changelog entry names the release it describes")
+    source = strip_comments(page.read_text(encoding="utf-8"))
+    stale = re.findall(r"v\d+\.\d+\.\d+", source)
+    assert not stale, f"{page.name} hard-codes {sorted(set(stale))}; use v__APP_VERSION__"
 
 
 @pytest.mark.parametrize("page", PAGES, ids=PAGE_IDS)
@@ -289,8 +338,14 @@ def test_shared_assets_exist_and_carry_their_reasoning() -> None:
     assert "Brand_Identity.md" in stylesheet
     # Measured values belong beside the tokens they justify.
     assert "16.45:1" in stylesheet
-    script = SHARED_SCRIPT.read_text(encoding="utf-8")
-    assert "pwe-public-language" in script
+    # The toggle is gone with the split, and the script must not put a stored
+    # language back on the root element: the server declares `lang` to
+    # describe the bytes it actually sent, and that is the true one. Comments
+    # are stripped first — the comment explaining why the assignment was
+    # removed names the assignment, and must not fail the check it explains.
+    script = strip_comments(SHARED_SCRIPT.read_text(encoding="utf-8"))
+    assert "pwe-public-language" not in script
+    assert "root.lang" not in script
 
 
 def test_product_home_footer_links_every_customer_page() -> None:
@@ -318,8 +373,62 @@ def test_release_evidence_is_not_advertised_to_visitors() -> None:
 
 
 def test_server_allows_every_customer_page_it_ships() -> None:
-    """The route is an allowlist: a new page 404s until it is listed."""
+    """The route is an allowlist: a new page 404s until it is listed.
 
-    source = SERVER.read_text(encoding="utf-8")
+    The list moved into `public_site.RESOURCE_PAGES` when the pages were split
+    by language, because the sitemap and the breadcrumbs need the same names
+    the route does and a second copy would be a second thing to update.
+    """
+
+    source = (
+        Path(__file__).resolve().parents[1]
+        / "studiosaas/services/public_site.py"
+    ).read_text(encoding="utf-8")
     for page_name in PAGE_IDS:
-        assert f"'{page_name}'" in source, f"{page_name} is not in the served allowlist"
+        assert f'"{page_name}"' in source, f"{page_name} is not in the served allowlist"
+
+
+@pytest.mark.parametrize("page_name", PAGE_IDS)
+@pytest.mark.parametrize("language", ["en", "zh"])
+def test_both_languages_are_served_at_their_own_address(
+    client, page_name: str, language: str
+) -> None:
+    """The point of the split, asserted against the running application."""
+
+    prefix = "" if language == "en" else "/zh"
+    response = client.get(f"{prefix}/customer-resources/{page_name}")
+    assert response.status_code == 200
+    body = response.get_data(as_text=True)
+    expected = "en" if language == "en" else "zh-Hans"
+    assert f'<html lang="{expected}">' in body
+    assert response.headers["Content-Language"] == expected
+    # One language arrives, and the authoring marker does not.
+    assert "data-lang=" not in body
+    other = "zh-Hans" if language == "en" else "en"
+    assert f'<html lang="{other}">' not in body
+
+
+@pytest.mark.parametrize("page_name", PAGE_IDS)
+def test_the_chinese_document_never_links_into_the_english_one(
+    client, page_name: str
+) -> None:
+    """A shared `href` used to send a Chinese reader into an English page.
+
+    Every page is authored once, so a link written as
+    `/customer-resources/FAQ.html` belonged to both languages and resolved to
+    the English document from either. The exception is the language switch,
+    which carries `hreflang` and is supposed to change the language.
+    """
+
+    body = client.get(f"/zh/customer-resources/{page_name}").get_data(as_text=True)
+    for tag in re.findall(r"<a\b[^>]*>", body):
+        if "hreflang=" in tag:
+            continue
+        href = re.search(r'href="(/[^"]*)"', tag)
+        if not href:
+            continue
+        path = href.group(1).split("#")[0].split("?")[0]
+        assert not path.startswith("/customer-resources/") or path.endswith(
+            (".csv", ".xlsx")
+        ), f"{page_name} (zh) links to the English {path}"
+        assert path != "/", f"{page_name} (zh) links to the English home page"

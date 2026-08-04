@@ -18,8 +18,11 @@
        have always declared. -->
   <title data-lang="en">Studio Management Software for Art, Music &amp; Dance | PWE Studio</title>
   <title data-lang="zh">工作室管理系统 · 报名、排课、课时账本 | PWE Studio</title>
-  <meta data-lang="en" name="description" content="Run enrolments, class schedules, attendance, credit packages and student portfolios in one place. PWE Studio is studio management software for art, music, dance and tutoring schools in Australia.">
-  <meta data-lang="zh" name="description" content="报名、排课、签到、课时账本与学员作品集，都在一个系统里。PWE Studio 是面向美术、音乐、舞蹈工作室与培训机构的一体化管理系统。">
+  <!-- Both under 160 characters. The English one was 195 and lost its last
+       clause to the truncation; the Chinese one was 67 against a limit near
+       78, so a third of the line was simply left empty. -->
+  <meta data-lang="en" name="description" content="Enrolments, class schedules, attendance, class credits and student portfolios in one system. Studio software for art, music and dance schools in Australia.">
+  <meta data-lang="zh" name="description" content="报名、排课、签到、课时账本与学员作品集，都在一个系统里。PWE Studio 是面向美术、音乐、舞蹈工作室与培训机构的一体化管理系统，墨尔本团队开发与支持。">
   <meta name="keywords" content="studio management software, class scheduling software, student attendance tracking, art studio software, music school management, dance studio software, 工作室管理系统, 排课系统, 课时账本, 在线报名">
   <link data-lang="en" rel="canonical" href="https://pwestudio.online/">
   <link data-lang="zh" rel="canonical" href="https://pwestudio.online/zh/">
@@ -318,6 +321,64 @@
     .plan li::before { content: ""; position: absolute; left: 0; top: 14px; width: 8px; height: 8px; border: 1.5px solid var(--accent); border-radius: 50%; opacity: .85; }
     .plan .btn { margin-top: auto; }
 
+    /* ── FAQ ───────────────────────────────────────────────────────────── */
+    /* The hero's 61.8/38.2 again, and for the same reason: one column is the
+       argument and the other is the standing offer. `align-items` has to be
+       overridden — the hero centres its two halves against each other, and a
+       six-question column centred against a short aside would float the
+       aside into the middle of nowhere. */
+    .faq-split { margin-top: var(--s-5); align-items: start; }
+    .faq { border-top: 1px solid var(--hairline); }
+    .faq details { border-bottom: 1px solid var(--hairline); }
+    .faq summary {
+      display: flex; align-items: center; gap: var(--s-2);
+      /* 21px + 21px + a line of --f-1 clears 44px without being told to. */
+      padding: var(--s-3) 0; padding-right: var(--s-4);
+      font-size: var(--f-1); line-height: 1.35; font-family: var(--serif);
+      cursor: pointer; list-style: none; position: relative;
+    }
+    .faq summary::-webkit-details-marker { display: none; }
+    /* The marker is drawn rather than typed: a glyph would be a second
+       typeface decision, and this one rotates. */
+    .faq summary::after {
+      content: ""; position: absolute; right: 2px; top: 50%;
+      width: 11px; height: 11px; margin-top: -6px;
+      border-right: 2px solid var(--accent); border-bottom: 2px solid var(--accent);
+      transform: rotate(45deg); transform-origin: 60% 60%;
+      transition: transform .25s var(--ease);
+    }
+    .faq details[open] summary::after { transform: rotate(-135deg); }
+    .faq summary:hover { color: var(--accent); }
+    .faq details > p {
+      max-width: var(--measure); margin: 0 0 var(--s-3);
+      font-size: var(--f-sm); line-height: 1.65;
+    }
+    .faq details > p a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+    .faq code {
+      padding: 1px 5px; border-radius: 4px;
+      background: var(--control-fill); font-size: .92em;
+    }
+    .faq-aside {
+      position: sticky; top: calc(72px + var(--s-3));
+      padding: var(--s-4); border: 1px solid var(--card-line);
+      border-left: 2px solid var(--accent); border-radius: var(--r);
+      background: var(--card);
+    }
+    .faq-aside h3 { margin-bottom: var(--s-2); }
+    .faq-aside p { margin-bottom: var(--s-2); font-size: var(--f-sm); line-height: 1.65; }
+    .faq-aside a:not(.btn) { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+    .faq-aside .btn { margin-top: var(--s-2); }
+    /* Stacked, the aside is a footnote to the answers rather than a rail, so
+       it stops being sticky — a sticky block on a phone is a block that
+       covers the thing it is about. */
+    @media (max-width: 860px) {
+      .faq-split { grid-template-columns: 1fr; }
+      .faq-aside { position: static; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .faq summary::after { transition: none; }
+    }
+
     /* ── contact form ──────────────────────────────────────────────────── */
     .form { max-width: calc(var(--maxw) * .618); margin: var(--s-5) auto 0; text-align: left; }
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); }
@@ -457,10 +518,7 @@
              a navy nav is invisible. `picture` does it without script. -->
         <picture>
           <source srcset="/pwe-mark-dark.svg" media="(prefers-color-scheme: dark)">
-          <picture>
-          <source srcset="/pwe-mark-dark.svg" media="(prefers-color-scheme: dark)">
           <img src="/pwe-mark.svg" alt="" width="30" height="30">
-        </picture>
         </picture>
         <span>PWE Studio</span>
       </a>
@@ -478,6 +536,7 @@
         <a href="#trust"><span data-lang="en">Trust</span><span data-lang="zh">关键设计</span></a>
         <a href="#plans"><span data-lang="en">Pricing</span><span data-lang="zh">定价</span></a>
         <a href="#launch"><span data-lang="en">Launch</span><span data-lang="zh">上线</span></a>
+        <a href="#faq"><span data-lang="en">FAQ</span><span data-lang="zh">答疑</span></a>
         <!-- The switch is navigation now, not a DOM toggle: one language per
              URL is the whole point of the split. -->
         <a class="lang" data-lang="en" href="/zh/" hreflang="zh-Hans" lang="zh-Hans">中文</a>
@@ -643,8 +702,13 @@
         <div class="grid g3" id="planGrid">
           <!--PLAN-CARDS-->
         </div>
-        <p class="note" data-lang="en">One-time setup is quoted at AUD 299–999 and covers brand configuration, reviewed migration, team training and launch support. Implementation beyond that, migration clean-up, messaging provider fees, payment processing, custom domains and multi-campus aggregation are scoped separately; each campus is intentionally operated as an isolated tenant. Final terms follow the signed order form.</p>
-        <p class="note" data-lang="zh">一次性 Setup 服务费为 AUD 299–999，包含品牌配置、经审核的数据迁移、团队培训与上线支持。超出部分的实施、数据清洗、消息供应商费用、在线支付、自定义域名与多校区汇总需单独约定；每个校区明确作为独立租户运营。最终以签署订单为准。</p>
+        <!-- The scope exclusions used to sit here, which put six clauses of
+             what-is-not-included between the price and the button — the last
+             thing a buyer read before deciding. The content is right and has
+             to be published; the position was wrong. It is now an answer in
+             the FAQ below, where someone looking for it will look. -->
+        <p class="note" data-lang="en">One-time setup is quoted at AUD 299–999 and covers brand configuration, reviewed migration, team training and launch support. <a href="#faq">What the setup fee does and does not cover →</a></p>
+        <p class="note" data-lang="zh">一次性 Setup 服务费为 AUD 299–999，包含品牌配置、经审核的数据迁移、团队培训与上线支持。<a href="#faq">Setup 费用包含与不包含什么 →</a></p>
       </div>
     </section>
 
@@ -686,7 +750,84 @@
       </div>
     </section>
 
-    <section id="contact">
+    <!-- Objection handling, immediately before the final call to action,
+         because that is where the objections are. The section splits on the
+         golden section like the hero: the answers take 61.8, the standing
+         invitation takes 38.2 and follows the reader down the column.
+
+         There is no trial and no money-back guarantee to offer, so the risk
+         reversal is the only honest one available — everything a buyer would
+         want before committing is already public, including what has not
+         been built. Inventing a guarantee would have been easier and worse. -->
+    <section id="faq">
+      <div class="wrap">
+        <div class="head">
+          <p class="tag"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg><span data-lang="en">Before you decide</span><span data-lang="zh">决定之前</span></p>
+          <h2 data-lang="en">The questions that come before a signature.</h2>
+          <h2 data-lang="zh">签字之前，通常会问的几件事</h2>
+          <p class="lead" data-lang="en">Answered here rather than in a call, including the ones with an inconvenient answer.</p>
+          <p class="lead" data-lang="zh">写在这里，不留到通话里说——包括那些答案并不好听的问题。</p>
+        </div>
+
+        <div class="split faq-split">
+          <div class="faq">
+            <details open>
+              <summary data-lang="en">Is there a free trial?</summary>
+              <summary data-lang="zh">有免费试用吗？</summary>
+              <p data-lang="en">No. Instead of a fourteen-day empty account, the evaluation is a 30-minute walkthrough in which we build a previewable portal live, using your studio’s own name, courses and work. You are looking at your studio before you decide, not at a demo studio.</p>
+              <p data-lang="zh">没有。我们不给一个空着的十四天账号，而是用一次 30 分钟的演示：现场用你工作室的名字、课程和作品，生成一个可预览的门户。你在决定之前看到的是自己的工作室，不是样板间。</p>
+            </details>
+
+            <details>
+              <summary data-lang="en">What does the setup fee not cover?</summary>
+              <summary data-lang="zh">Setup 费用不包含什么？</summary>
+              <p data-lang="en">It covers brand configuration, one reviewed migration of your student list and class-credit balances, team training and launch support. Outside it: implementation beyond that scope, migration clean-up, messaging provider fees, payment processing, custom domains and multi-campus aggregation. Each is scoped and quoted separately, and the final terms follow the signed order form.</p>
+              <p data-lang="zh">包含的是：品牌配置、学员名单与课时余额的一次性经审核迁移、团队培训、上线支持。不包含：超出该范围的实施、数据清洗、消息供应商费用、在线支付、自定义域名与多校区汇总。以上各项单独约定并单独报价，最终以签署的订单为准。</p>
+            </details>
+
+            <details>
+              <summary data-lang="en">Nobody on our team is technical. Is that a problem?</summary>
+              <summary data-lang="zh">我们团队没有懂技术的人，行不行？</summary>
+              <p data-lang="en">No. The four launch steps above are done with you, not handed to you, and they are covered by the setup fee. After that each role only ever learns its own screen — the front desk takes a payment, a teacher checks students in, the manager reads the books. Nobody has to understand the whole system to use their part of it.</p>
+              <p data-lang="zh">可以。上面的四步是我们陪着做，不是丢给你做，且已包含在 Setup 费用内。上线之后，每个角色只需要学自己那一屏——前台收费、老师签到、店长看账。没有人需要先弄懂整个系统才能用上自己的那部分。</p>
+            </details>
+
+            <details>
+              <summary data-lang="en">If we leave, do we keep our data?</summary>
+              <summary data-lang="zh">如果我们不用了，数据还是我们的吗？</summary>
+              <p data-lang="en">You keep your rights in your data and in the brand material you supply; we hold a limited right to host and process it in order to run the service. On termination a standard export is made available — the window for it, and the notice period for ending a monthly subscription, are set in the order form rather than asserted on this page. The full clause is in the <a href="/customer-resources/Terms_of_Service.html">terms of service</a>.</p>
+              <p data-lang="zh">是。你的数据与你提供的品牌素材，权利始终归你；我们只有为提供服务而进行托管与处理的有限权利。终止后我们提供标准导出——导出窗口期，以及月度订阅的终止通知期，写在订单里，而不是由这个页面来承诺。完整条款见<a href="/customer-resources/Terms_of_Service.html">服务条款</a>。</p>
+            </details>
+
+            <details>
+              <summary data-lang="en">Where do our students’ records live?</summary>
+              <summary data-lang="zh">学员资料存放在哪里？</summary>
+              <p data-lang="en">In Sydney, on Australian infrastructure (<code>ap-southeast-2</code>). Publishing a child’s work requires a recorded guardian consent, share links expire and can be revoked, and over 200 tenant-isolation checks must pass before any release ships. The <a href="/customer-resources/FAQ.html">service FAQ</a> answers this in full, including the gaps — there is no multi-factor authentication yet, and backups do not have an off-box copy.</p>
+              <p data-lang="zh">在悉尼，澳大利亚境内（<code>ap-southeast-2</code>）。公开一名儿童的作品需要留痕的监护人授权；分享链接会过期、也可随时撤销；每次发布前必须通过 200 多项租户隔离检查。<a href="/customer-resources/FAQ.html">服务 FAQ</a> 里有完整回答，也包括还没做到的部分——目前还没有多因素认证，备份也还没有异地副本。</p>
+            </details>
+
+            <details>
+              <summary data-lang="en">We have more than one campus.</summary>
+              <summary data-lang="zh">我们有多个校区。</summary>
+              <p data-lang="en">Each campus runs as its own tenant, and that is a decision rather than a limitation: student records, staff membership, schedules, brand, plan — and backup, export, deletion and incident scope — stay independent per campus. Reporting across campuses is scoped separately, and does not merge their operational data.</p>
+              <p data-lang="zh">每个校区作为独立租户运行。这是刻意的设计，不是能力上限：学员记录、员工成员、排课、品牌、套餐——以及备份、导出、删除与事故范围——按校区彼此独立。跨校区的汇总报表单独约定，且不会合并各校区的运营数据。</p>
+            </details>
+          </div>
+
+          <aside class="faq-aside">
+            <h3 data-lang="en">Nothing here is behind a sales call.</h3>
+            <h3 data-lang="zh">这里没有什么需要先通话才能看到</h3>
+            <p data-lang="en">The prices above are read from the table the product enforces. The <a href="/manual/">whole user manual</a> is public. The service FAQ lists what we have not built yet, by name.</p>
+            <p data-lang="zh">上面的价格取自产品实际执行的套餐表。<a href="/manual/">完整的用户手册</a>是公开的。服务 FAQ 里逐条写明了我们还没做到的部分。</p>
+            <p data-lang="en">Read those first. Book the walkthrough when you want to see your own studio in it.</p>
+            <p data-lang="zh">先看这些。想看到自己的工作室长什么样时，再来约演示。</p>
+            <a class="btn" href="#contact"><span data-lang="en">Book a 30-minute walkthrough</span><span data-lang="zh">预约 30 分钟演示</span></a>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section class="band-2" id="contact">
       <div class="wrap center">
         <p class="tag"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg><span data-lang="en">Start</span><span data-lang="zh">开始</span></p>
         <h2 data-lang="en">Administration to the back. The work to the front.</h2>

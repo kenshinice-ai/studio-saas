@@ -93,6 +93,23 @@ def test_every_link_in_the_pack_resolves(client, path: str) -> None:
     )
 
 
+def test_the_chinese_half_links_the_chinese_documents() -> None:
+    """The policy pages gained Chinese addresses in v8.2.28.
+
+    Before that there was only one address per document, so the Chinese email
+    had to link an English page and the reader had to find the toggle. Now
+    that a Chinese URL exists, sending a Chinese customer to the English one
+    is a choice rather than a limitation.
+    """
+
+    text = _text()
+    chinese = text[text.index("## 中文"):text.index("## The separate message")]
+    for name in ("Support_Policy", "Privacy_Policy", "Terms_of_Service", "FAQ"):
+        assert f"/zh/customer-resources/{name}.html" in chinese, (
+            f"the Chinese pack still links the English {name}.html"
+        )
+
+
 def test_the_pack_links_the_manual_sections_it_promises() -> None:
     """Deep links, not a summary — a summary becomes a second copy that goes
     stale on the next release."""

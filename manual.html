@@ -10,10 +10,18 @@
        `data-lang` element is removed server-side, so `/manual/` is an English
        document and `/zh/manual/` a Chinese one. Both are authored here so the
        two versions cannot drift apart. -->
-  <title data-lang="en">User Manual | PWE Studio</title>
-  <title data-lang="zh">用户手册 | PWE Studio</title>
-  <meta data-lang="en" name="description" content="How to run a studio on PWE Studio: brand and website setup, enrolment, roster and check-in, class credits and refunds, student work and consent, team permissions, reporting and support.">
-  <meta data-lang="zh" name="description" content="用 PWE Studio 运营一间工作室：品牌与官网、招生报名、排课签到、课时与退费、作品与公开授权、团队权限、经营报表与支持。">
+  <!-- "User Manual | PWE Studio" was 24 characters describing a 3,800-word
+       document, and it targeted nothing: a studio owner searching for how to
+       take enrolments or track class credits had no reason to be shown it.
+       The title names what the manual teaches; the brand goes at the end,
+       where a brand belongs when nobody is searching for it yet. -->
+  <title data-lang="en">How to Run an Art, Music or Dance Studio — User Manual | PWE Studio</title>
+  <title data-lang="zh">工作室怎么运营：报名、排课、课时与作品 · 用户手册 | PWE Studio</title>
+  <!-- Both under 160 characters, which is where a description is cut off.
+       The Chinese ones were 64 — barely half of the ~78 characters a Chinese
+       result will show, so half the space was simply unused. -->
+  <meta data-lang="en" name="description" content="Twelve sections on running a studio: brand and website setup, enrolment, roster and check-in, class credits and refunds, student work and permissions.">
+  <meta data-lang="zh" name="description" content="十二章讲清一间工作室怎么运营：品牌与官网、招生报名、排课签到、课时与退费、学员作品与公开授权、团队权限、经营报表与如何获得支持。">
   <link data-lang="en" rel="canonical" href="https://pwestudio.online/manual/">
   <link data-lang="zh" rel="canonical" href="https://pwestudio.online/zh/manual/">
   <link rel="alternate" hreflang="en-AU" href="https://pwestudio.online/manual/">
@@ -26,6 +34,11 @@
   <link rel="stylesheet" href="/assets/ui-tokens.css?v=__APP_VERSION__">
   <link rel="stylesheet" href="/assets/manual.css?v=__APP_VERSION__">
   <script src="/assets/manual.js?v=__APP_VERSION__" defer></script>
+  <!-- Written by the server from the document it is about to send: the
+       questions in section 11 become the FAQ markup, so the two cannot
+       describe different answers. `dateModified` comes from the release,
+       which is the only date on this page that means anything. -->
+  <!--MANUAL-JSONLD-->
 </head>
 <body>
   <a class="skip" href="#main"><span data-lang="en">Skip to the manual</span><span data-lang="zh">跳到手册正文</span></a>
@@ -97,6 +110,16 @@
       <h1 data-lang="zh">用 PWE Studio 运营你的工作室</h1>
       <p class="lede" data-lang="en">Written against v__APP_VERSION__, with Let’s Paint Studio as the worked example. It follows a studio’s week rather than the menu: what you do first, what you do every day, and what to check when something looks wrong.</p>
       <p class="lede" data-lang="zh">基于 v__APP_VERSION__ 编写，示例工作室为 Let’s Paint Studio。它按一间工作室的一周来编排，而不是按菜单顺序：先做什么、每天做什么、出问题时先看哪里。</p>
+
+      <!-- A visible, machine-readable date. Undated documentation loses to
+           dated documentation in every ranked list it appears in, and a
+           version string is not a date to anything that reads this page. The
+           `datetime` attribute carries the same value the structured data
+           does, both stamped from the release. -->
+      <p class="updated">
+        <span data-lang="en">Last updated <time datetime="__RELEASE_DATE__">__RELEASE_DATE__</time> · covers v__APP_VERSION__</span>
+        <span data-lang="zh">最后更新 <time datetime="__RELEASE_DATE__">__RELEASE_DATE__</time> · 对应 v__APP_VERSION__</span>
+      </p>
 
       <p class="note" data-lang="en">Every screenshot here is Let’s Paint Studio, on its own theme in light mode. Your studio picked a different palette, so <strong>the colours will not match — the positions will</strong>. Eight themes ship, each designed in light and dark.</p>
       <p class="note" data-lang="zh">本手册的截图统一取自 Let’s Paint Studio，用的是它自己的主题、浅色模式。你的工作室选的是另一套配色，所以<strong>颜色不会一样，位置会一样</strong>。系统共八套主题，每套都有明暗两版。</p>

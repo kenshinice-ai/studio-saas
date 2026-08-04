@@ -1,4 +1,4 @@
-import errno, json, os, re, shutil, socket, sys, time, secrets, hashlib
+import errno, json, mimetypes, os, re, shutil, socket, sys, time, secrets, hashlib
 from datetime import datetime, timedelta
 import re
 from flask import (Flask, request, jsonify, redirect, send_from_directory,
@@ -10,10 +10,18 @@ from studiosaas.config import is_standalone
 from studiosaas.errors import api_error
 from studiosaas.services.public_site import (
     HTML_LANG,
+    RESOURCE_PAGES,
     apply_language,
+    localise_links,
     public_plan_rows,
+    render_llms_txt,
+    render_manual_jsonld,
     render_plan_cards,
+    render_pricing_markdown,
     render_product_jsonld,
+    render_resource_jsonld,
+    render_robots,
+    render_sitemap,
 )
 from studiosaas.workspaces import RESERVED_SLUGS, WorkspaceError, validate_tenant_slug
 
@@ -114,8 +122,42 @@ SESSION_SECRET_FILE = _data_path('.session_secret')
 PW_FILE       = _data_path('.cms_password')
 app.config['PHOTO_DIR'] = PHOTO_DIR
 MAX_BACKUPS   = 30   # 1 backup/hr rate limit → ~30 hours of rolling coverage
-APP_VERSION   = '8.2.23'
+APP_VERSION   = '8.2.28'
 app.config['APP_VERSION'] = APP_VERSION
+# The date this release was cut, in the manual's `dateModified` and in the
+# sitemap's `lastmod`. A version string alone is not a freshness signal to
+# anything that reads the page — search engines and AI systems weight recency
+# and cannot infer a date from `8.2.28`. Kept beside APP_VERSION so the two
+# are bumped in one edit, and asserted to be a real ISO date by the tests.
+RELEASE_DATE  = '2026-08-04'
+app.config['RELEASE_DATE'] = RELEASE_DATE
+
+# Content types the standard library does not reliably know.
+#
+# `send_from_directory` derives Content-Type from `mimetypes`, whose table is
+# assembled from the interpreter's built-ins plus `/etc/mime.types` — a file
+# the `python:*-slim` base image does not ship. On production every `.webp`
+# was therefore served as `application/octet-stream`, including the one named
+# by `og:image`: browsers sniff and render it, which is why the pages looked
+# correct, but social crawlers reject a non-image type and drop the preview
+# card, and Google Images cannot index it. Registering the types here makes
+# the answer a property of this application rather than of whichever base
+# image it happens to run on.
+for _extension, _content_type in {
+    '.webp': 'image/webp',
+    '.avif': 'image/avif',
+    '.svg': 'image/svg+xml',
+    '.ico': 'image/x-icon',
+    '.woff2': 'font/woff2',
+    '.woff': 'font/woff',
+    '.js': 'text/javascript',
+    '.mjs': 'text/javascript',
+    '.css': 'text/css',
+    '.json': 'application/json',
+    '.webmanifest': 'application/manifest+json',
+    '.md': 'text/markdown',
+}.items():
+    mimetypes.add_type(_content_type, _extension)
 ALLOWED_EXT   = {'jpg', 'jpeg', 'png', 'gif', 'webp'}
 EXT_MIME_TYPES = {
     'jpg': {'image/jpeg'},
@@ -978,8 +1020,15 @@ def _serve_manual(language):
     except OSError:
         return api_error('Not found', 404)
 
-    resp = make_response(
-        apply_language(html, language).replace('__APP_VERSION__', APP_VERSION))
+    # Filter first, then read the questions back out of what will be sent: the
+    # FAQ schema is built from the served document, so it cannot describe an
+    # answer the reader is not looking at.
+    html = localise_links(apply_language(html, language), language)
+    html = html.replace(
+        '<!--MANUAL-JSONLD-->', render_manual_jsonld(html, language, RELEASE_DATE))
+    html = html.replace('__RELEASE_DATE__', RELEASE_DATE)
+
+    resp = make_response(html.replace('__APP_VERSION__', APP_VERSION))
     resp.headers['Content-Type'] = 'text/html; charset=utf-8'
     resp.headers['Content-Language'] = HTML_LANG[language]
     resp.headers['Cache-Control'] = 'no-cache'
@@ -1029,9 +1078,15 @@ def _serve_product_home(language):
         app.logger.exception('public plans unavailable for the home page')
         plans = []
 
+    # Cards first (they are authored in both languages), then the filter, and
+    # only then the structured data — it reads the FAQ back out of the
+    # document that is about to be sent, so it cannot describe a question the
+    # visitor is not being shown. The placeholder survives filtering because
+    # it is a comment, and comments pass through untouched.
     html = html.replace('<!--PLAN-CARDS-->', render_plan_cards(plans))
-    html = html.replace('<!--PRODUCT-JSONLD-->', render_product_jsonld(plans, language))
-    html = apply_language(html, language)
+    html = localise_links(apply_language(html, language), language)
+    html = html.replace(
+        '<!--PRODUCT-JSONLD-->', render_product_jsonld(plans, language, html))
 
     resp = make_response(html.replace('__APP_VERSION__', APP_VERSION))
     resp.headers['Content-Type'] = 'text/html; charset=utf-8'
@@ -1140,10 +1195,32 @@ def serve_shared_assets(filename):
     else:
         return api_error('Not found', 404)
     resp = send_from_directory(directory, leaf)
-    # The shells are revalidated every load and their JS/CSS URLs carry the
-    # release; the manual's screenshots carry it too, so they can be held.
+    return _cache_versioned_asset(resp)
+
+
+# One year, the maximum the spec gives any meaning to.
+_IMMUTABLE = 'public, max-age=31536000, immutable'
+
+
+def _cache_versioned_asset(resp):
+    """Hold an asset hard when, and only when, its URL names a release.
+
+    Every asset URL the shells emit carries `?v=<APP_VERSION>`, so a release
+    is a new URL and a cached copy can never be served against a newer API.
+    That makes the URL safe to cache forever — but the whole tree was being
+    sent with `no-cache`, so a visitor re-downloaded all of it on every view:
+    for the manual alone that is 502 KB of screenshots per page load, paid on
+    the largest contentful paint.
+
+    The version must match the running release. A stale `?v=` from a page an
+    old tab is still holding names content this release may have changed, so
+    it revalidates instead of being pinned for a year.
+    """
+
+    # Assigned rather than defaulted: `send_from_directory` has already set
+    # `no-cache` by the time this runs, so a `setdefault` would be a no-op.
     resp.headers['Cache-Control'] = (
-        'public, max-age=86400' if len(parts) == 2 else 'no-cache')
+        _IMMUTABLE if request.args.get('v') == APP_VERSION else 'no-cache')
     return resp
 
 # Matches Release_Notes_v<major>.<minor>.<patch>.html for any version, so the
@@ -1151,19 +1228,61 @@ def serve_shared_assets(filename):
 _RELEASE_NOTES_NAME = re.compile(r'Release_Notes_v\d+\.\d+\.\d+\.html')
 
 
+CUSTOMER_DOWNLOADS = {
+    'PWE_Studio_Data_Import_Template.csv',
+    'PWE_Studio_Data_Import_Template.xlsx',
+}
+
+
+def _serve_customer_resource_page(filename, language):
+    """One customer document, in one language, at its own address.
+
+    These five pages carried both languages in one DOM behind a toggle, under
+    a single URL with no canonical and no hreflang — the arrangement the home
+    page and the manual were already moved off. To a crawler that is one
+    mixed-language document, so the Chinese half of the terms, the privacy
+    policy and the service FAQ had no address that could be indexed, linked or
+    pointed at by hreflang. Same mechanism as the other two: authored once in
+    both languages, filtered to one before it is sent.
+    """
+
+    target = os.path.join(PROJECT_ROOT, 'customer-resources', filename)
+    try:
+        with open(target, encoding='utf-8') as handle:
+            html = handle.read()
+    except OSError:
+        return api_error('Not found', 404)
+
+    html = localise_links(apply_language(html, language), language)
+    html = html.replace(
+        '<!--RESOURCE-JSONLD-->', render_resource_jsonld(html, language, filename))
+
+    resp = make_response(html.replace('__APP_VERSION__', APP_VERSION))
+    resp.headers['Content-Type'] = 'text/html; charset=utf-8'
+    resp.headers['Content-Language'] = HTML_LANG[language]
+    resp.headers['Cache-Control'] = 'no-cache'
+    return resp
+
+
+@app.route('/zh/customer-resources/<path:filename>')
+def serve_customer_resource_zh(filename):
+    safe = os.path.basename(filename)
+    if safe != filename:
+        return api_error('Not found', 404)
+    # The import templates are language-neutral files, not documents, so the
+    # prefixed address redirects rather than serving a second copy of them.
+    if safe in CUSTOMER_DOWNLOADS:
+        return redirect(f'/customer-resources/{safe}', code=301)
+    if safe not in RESOURCE_PAGES:
+        return api_error('Not found', 404)
+    return _serve_customer_resource_page(safe, 'zh')
+
+
 @app.route('/customer-resources/<path:filename>')
 def serve_customer_resource(filename):
     """Serve the small, reviewed set of customer-facing delivery resources."""
 
-    allowed = {
-        'PWE_Studio_Data_Import_Template.csv',
-        'PWE_Studio_Data_Import_Template.xlsx',
-        'FAQ.html',
-        'Release_Notes.html',
-        'Privacy_Policy.html',
-        'Support_Policy.html',
-        'Terms_of_Service.html',
-    }
+    allowed = set(CUSTOMER_DOWNLOADS) | set(RESOURCE_PAGES)
     safe = os.path.basename(filename)
     if safe != filename:
         return api_error('Not found', 404)
@@ -1181,8 +1300,62 @@ def serve_customer_resource(filename):
     resource_dir = os.path.join(PROJECT_ROOT, 'customer-resources')
     if not os.path.isfile(os.path.join(resource_dir, safe)):
         return api_error('Not found', 404)
-    resp = send_from_directory(resource_dir, safe, as_attachment=safe.endswith(('.csv', '.xlsx')))
+    if safe in RESOURCE_PAGES:
+        # English holds the unprefixed address: it is the one already indexed
+        # and the one printed in the welcome pack and the order form.
+        return _serve_customer_resource_page(safe, 'en')
+    resp = send_from_directory(resource_dir, safe, as_attachment=True)
     resp.headers['Cache-Control'] = 'public, max-age=300'
+    return resp
+
+
+@app.route('/robots.txt')
+def serve_robots():
+    resp = make_response(render_robots())
+    resp.headers['Content-Type'] = 'text/plain; charset=utf-8'
+    resp.headers['Cache-Control'] = 'public, max-age=3600'
+    return resp
+
+
+@app.route('/sitemap.xml')
+def serve_sitemap():
+    """Every indexable address, with its hreflang group, from one table.
+
+    There was no sitemap and no robots file at all: the site's nine addresses
+    were discoverable only by following links, the hreflang set existed in the
+    markup alone with nothing to corroborate it, and Search Console had
+    nothing to submit.
+    """
+
+    resp = make_response(render_sitemap(RELEASE_DATE))
+    resp.headers['Content-Type'] = 'application/xml; charset=utf-8'
+    resp.headers['Cache-Control'] = 'public, max-age=3600'
+    return resp
+
+
+def _plan_rows_or_empty():
+    """Plan rows for the machine-readable files; never raises."""
+
+    try:
+        return public_plan_rows()
+    except Exception:
+        app.logger.exception('public plans unavailable')
+        return []
+
+
+@app.route('/pricing.md')
+def serve_pricing_markdown():
+    resp = make_response(render_pricing_markdown(_plan_rows_or_empty()))
+    resp.headers['Content-Type'] = 'text/markdown; charset=utf-8'
+    resp.headers['Cache-Control'] = 'public, max-age=3600'
+    return resp
+
+
+@app.route('/llms.txt')
+def serve_llms_txt():
+    resp = make_response(render_llms_txt(_plan_rows_or_empty()))
+    resp.headers['Content-Type'] = 'text/plain; charset=utf-8'
+    resp.headers['Cache-Control'] = 'public, max-age=3600'
     return resp
 
 @app.route('/setup-password')

@@ -5,21 +5,40 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0e1729">
   <meta name="robots" content="index,follow">
-  <meta name="description" content="PWE Studio release evidence: what each release changes, what the production deployment established, and what remains deferred. Current release v8.2.23.">
-  <title>PWE Studio Release Evidence</title>
+  <!-- ONE LANGUAGE PER URL, the same mechanism as the home page and the
+       manual: every `data-lang` element is removed server-side, so this path
+       is the English document and /zh/customer-resources/Release_Notes.html the
+       Chinese one. English keeps the unprefixed path because that is the URL
+       already indexed and the one printed in the welcome pack.
+
+       Unlike the other four documents this page's prose is a changelog, so a
+       version number in an entry is the subject of the entry and stays
+       literal. Only the status line follows the running release. -->
+  <meta data-lang="en" name="description" content="What each PWE Studio release changed, what the production deployment established, and what remains deferred. Written as delivery evidence, not as a changelog.">
+  <meta data-lang="zh" name="description" content="PWE Studio 每个版本改了什么、生产部署确立了什么、还有什么被推迟。这是交付依据，不是变更日志。">
+  <title data-lang="en">Release Evidence — what each version changed | PWE Studio</title>
+  <title data-lang="zh">版本记录 · 每个版本改了什么 | PWE Studio</title>
+  <link data-lang="en" rel="canonical" href="https://pwestudio.online/customer-resources/Release_Notes.html">
+  <link data-lang="zh" rel="canonical" href="https://pwestudio.online/zh/customer-resources/Release_Notes.html">
+  <link rel="alternate" hreflang="en-AU" href="https://pwestudio.online/customer-resources/Release_Notes.html">
+  <link rel="alternate" hreflang="zh-Hans" href="https://pwestudio.online/zh/customer-resources/Release_Notes.html">
+  <link rel="alternate" hreflang="x-default" href="https://pwestudio.online/customer-resources/Release_Notes.html">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <!-- Brand values come from ui-tokens.css; presentation from
        customer-resources.css. See the header comment in that stylesheet for why
        this page no longer declares its own palette. -->
-  <link rel="stylesheet" href="/assets/ui-tokens.css">
-  <link rel="stylesheet" href="/assets/customer-resources.css">
-  <script src="/assets/customer-resources.js" defer></script>
+  <link rel="stylesheet" href="/assets/ui-tokens.css?v=__APP_VERSION__">
+  <link rel="stylesheet" href="/assets/customer-resources.css?v=__APP_VERSION__">
+  <script src="/assets/customer-resources.js?v=__APP_VERSION__" defer></script>
+  <!--RESOURCE-JSONLD-->
 </head>
 <body>
 <main class="wrap wrap--wide">
   <div class="topline">
-    <a class="back" href="/">&larr; <span data-lang="en">PWE Studio home</span><span data-lang="zh">返回 PWE Studio 首页</span></a>
-    <button class="lang" id="languageButton" type="button" aria-label="Switch language">中文</button>
+    <a class="back" data-lang="en" href="/">&larr; PWE Studio home</a>
+    <a class="back" data-lang="zh" href="/zh/">&larr; 返回 PWE Studio 首页</a>
+    <a class="lang" data-lang="en" href="/zh/customer-resources/Release_Notes.html" hreflang="zh-Hans" lang="zh-Hans">中文</a>
+    <a class="lang" data-lang="zh" href="/customer-resources/Release_Notes.html" hreflang="en-AU" lang="en">English</a>
   </div>
 
   <p class="eyebrow"><span data-lang="en">Customer resources</span><span data-lang="zh">客户资料</span></p>
@@ -27,13 +46,18 @@
   <h1 data-lang="zh">发布依据</h1>
   <p class="lede" data-lang="en">A customer-readable record of what this release changes, what the production deployment established, and which commitments remain deferred.</p>
   <p class="lede" data-lang="zh">面向客户的记录：本次发布改了什么、生产部署确立了什么，以及哪些承诺仍未完成。</p>
-  <p class="status"><span data-lang="en">Current release v8.2.23 · deployed 4 August 2026 · monitoring and SLA deferred</span><span data-lang="zh">当前版本 v8.2.23 · 部署于 2026 年 8 月 4 日 · 监控与 SLA 延后</span></p>
+  <p class="status"><span data-lang="en">Current release v__APP_VERSION__ · deployed 4 August 2026 · monitoring and SLA deferred</span><span data-lang="zh">当前版本 v__APP_VERSION__ · 部署于 2026 年 8 月 4 日 · 监控与 SLA 延后</span></p>
 
   <h2 data-lang="en">Since v8.1.0</h2>
   <h2 data-lang="zh">v8.1.0 之后</h2>
   <p data-lang="en">Everything below shipped to production between 1 and 2 August 2026. Each line is deployed, not planned.</p>
   <p data-lang="zh">以下内容均已于 2026 年 8 月 1 日至 2 日发布至生产环境。每一条都已上线，而非计划。</p>
   <div class="grid">
+    <article class="card">
+      <strong data-lang="en">Findable, and readable by machines (v8.2.28)</strong><strong data-lang="zh">可被检索，也可被机器读取（v8.2.28）</strong>
+      <p data-lang="en">Every WebP image on the site — including the one used as the link preview — was being served with a file type that says “unknown binary”. Browsers guessed correctly, which is why nothing looked broken; social platforms do not guess, so a shared link showed no picture. Fixed, along with caching: the manual’s screenshots were re-downloaded on every visit and are now held by the browser. The site also gained a sitemap, a robots file, and machine-readable pricing at <code>/pricing.md</code> and <code>/llms.txt</code> — the pages an AI assistant reads when a studio owner asks it what to use. The service FAQ, terms, privacy and support pages now each have a Chinese address of their own instead of a language switch inside one page.</p>
+      <p data-lang="zh">站点上所有 WebP 图片——包括用作链接预览的那张——此前都以「未知二进制」的文件类型发送。浏览器会自行猜测，所以看起来一切正常；社交平台不猜，于是分享出去的链接没有配图。已修复，同时修正了缓存：手册的截图此前每次访问都要重新下载，现在由浏览器保留。站点还新增了 sitemap、robots 文件，以及可被机器读取的 <code>/pricing.md</code> 与 <code>/llms.txt</code>——当工作室主理人向 AI 助手询问该用什么系统时，它读的就是这些。服务 FAQ、服务条款、隐私政策与支持政策，现在各自拥有独立的中文网址，而不再是同一页面内的语言切换。</p>
+    </article>
     <article class="card">
       <strong data-lang="en">Media uploads repaired (v8.2.6)</strong><strong data-lang="zh">媒体上传修复（v8.2.6）</strong>
       <p data-lang="en">Every image upload — studio logo, home image, student photo, portfolio — was failing in production. Uploads work again, and a photo now costs the server about an eighth of the memory it did: a 24-megapixel file went from 139 MB of peak memory to 17 MB. Files beyond 30 megapixels are refused rather than allowed to exhaust the instance.</p>

@@ -142,10 +142,10 @@ https://pwestudio.online/zh/manual/
 里看到。说明见 https://pwestudio.online/zh/manual/#platform
 
 我们的承诺和它的边界都是写下来的，不靠默契：
-[支持政策](https://pwestudio.online/customer-resources/Support_Policy.html) ·
-[隐私政策](https://pwestudio.online/customer-resources/Privacy_Policy.html) ·
-[服务条款](https://pwestudio.online/customer-resources/Terms_of_Service.html) ·
-[服务 FAQ](https://pwestudio.online/customer-resources/FAQ.html)
+[支持政策](https://pwestudio.online/zh/customer-resources/Support_Policy.html) ·
+[隐私政策](https://pwestudio.online/zh/customer-resources/Privacy_Policy.html) ·
+[服务条款](https://pwestudio.online/zh/customer-resources/Terms_of_Service.html) ·
+[服务 FAQ](https://pwestudio.online/zh/customer-resources/FAQ.html)
 
 有任何问题直接回这封邮件。
 

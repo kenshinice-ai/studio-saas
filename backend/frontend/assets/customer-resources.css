@@ -115,7 +115,10 @@ body {
   text-transform: uppercase;
 }
 
-html[lang="zh"] .eyebrow { letter-spacing: .04em; text-transform: none; }
+/* `lang` is `zh-Hans` on the served page, not `zh`: the server declares the
+   script as well as the language. An exact-match selector silently stopped
+   applying when the pages were split, taking the CJK tracking with it. */
+html[lang^="zh"] .eyebrow { letter-spacing: .04em; text-transform: none; }
 
 /* CJK headlines wrap; sub-1.0 leading and negative tracking collide glyphs, so
  * the tight Latin display settings are scoped to the English rendering. */
@@ -337,9 +340,11 @@ tr:last-child td { border-bottom: 0; }
   align-items: center;
 }
 
-[data-lang="zh"] { display: none; }
-html[lang="zh"] [data-lang="en"] { display: none; }
-html[lang="zh"] [data-lang="zh"] { display: revert; }
+/* The rules that hid one language in the DOM are gone with the toggle: the
+   server sends one language, and `data-lang` does not survive the filter, so
+   there is nothing left on the page for them to match. Leaving them would
+   have been worse than useless — a `[data-lang="zh"] { display: none }` is a
+   loaded gun aimed at the Chinese page the day someone adds a marker back. */
 
 @media (max-width: 680px) {
   .grid { grid-template-columns: 1fr; }

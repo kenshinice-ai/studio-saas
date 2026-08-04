@@ -5,29 +5,50 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0e1729">
   <meta name="robots" content="index,follow">
-  <meta name="description" content="PWE Studio frequently asked questions: hosting and data location, backups and restore, roles, family access, integrations, and the gaps we still disclose.">
-  <title>PWE Studio FAQ</title>
+  <!-- ONE LANGUAGE PER URL, the same mechanism as the home page and the
+       manual: every `data-lang` element is removed server-side, so
+       /customer-resources/FAQ.html is an English document and
+       /zh/customer-resources/FAQ.html a Chinese one. English keeps the
+       unprefixed path because that is the URL already indexed and the one
+       printed in the welcome pack. -->
+  <meta data-lang="en" name="description" content="Hosting and data location, backups and restore testing, roles, family access and the gaps we disclose. Answers state the current position, not the plan.">
+  <meta data-lang="zh" name="description" content="部署与数据存放地、备份与恢复演练、角色权限、家庭访问，以及我们主动披露的缺口。以下回答陈述 PWE Studio 的现状，不描述计划。">
+  <title data-lang="en">Service FAQ — hosting, backups and data | PWE Studio</title>
+  <title data-lang="zh">服务常见问题 · 部署、备份与数据 | PWE Studio</title>
+  <link data-lang="en" rel="canonical" href="https://pwestudio.online/customer-resources/FAQ.html">
+  <link data-lang="zh" rel="canonical" href="https://pwestudio.online/zh/customer-resources/FAQ.html">
+  <link rel="alternate" hreflang="en-AU" href="https://pwestudio.online/customer-resources/FAQ.html">
+  <link rel="alternate" hreflang="zh-Hans" href="https://pwestudio.online/zh/customer-resources/FAQ.html">
+  <link rel="alternate" hreflang="x-default" href="https://pwestudio.online/customer-resources/FAQ.html">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <!-- Brand values come from ui-tokens.css; presentation from
        customer-resources.css. Neither file restates a hex, which is what let
        this page keep the retired forest/sage palette after the rest of the
        product moved to the PWE family identity. -->
-  <link rel="stylesheet" href="/assets/ui-tokens.css">
-  <link rel="stylesheet" href="/assets/customer-resources.css">
-  <script src="/assets/customer-resources.js" defer></script>
+  <link rel="stylesheet" href="/assets/ui-tokens.css?v=__APP_VERSION__">
+  <link rel="stylesheet" href="/assets/customer-resources.css?v=__APP_VERSION__">
+  <script src="/assets/customer-resources.js?v=__APP_VERSION__" defer></script>
+  <!-- Written by the server from the questions below, so the markup cannot
+       describe an answer the reader is not looking at. -->
+  <!--RESOURCE-JSONLD-->
 </head>
 <body>
 <main class="wrap">
   <div class="topline">
-    <a class="back" href="/">&larr; <span data-lang="en">PWE Studio home</span><span data-lang="zh">返回 PWE Studio 首页</span></a>
-    <button class="lang" id="languageButton" type="button" aria-label="Switch language">中文</button>
+    <a class="back" data-lang="en" href="/">&larr; PWE Studio home</a>
+    <a class="back" data-lang="zh" href="/zh/">&larr; 返回 PWE Studio 首页</a>
+    <!-- A link, not a toggle. Each language is a document at its own address
+         now, so switching is navigation — which also means the other language
+         is something a crawler can follow and a reader can bookmark. -->
+    <a class="lang" data-lang="en" href="/zh/customer-resources/FAQ.html" hreflang="zh-Hans" lang="zh-Hans">中文</a>
+    <a class="lang" data-lang="zh" href="/customer-resources/FAQ.html" hreflang="en-AU" lang="en">English</a>
   </div>
 
   <p class="eyebrow"><span data-lang="en">Customer resources</span><span data-lang="zh">客户资料</span></p>
   <h1 data-lang="en">Frequently asked questions</h1>
   <h1 data-lang="zh">常见问题</h1>
-  <p class="lede" data-lang="en">What v8.2.2 does today, where it runs, and which commitments are still open. Answers state the current position rather than the plan.</p>
-  <p class="lede" data-lang="zh">v8.2.2 目前的能力、运行位置，以及仍未完成的承诺。以下回答陈述现状，不描述计划。</p>
+  <p class="lede" data-lang="en">What v__APP_VERSION__ does today, where it runs, and which commitments are still open. Answers state the current position rather than the plan.</p>
+  <p class="lede" data-lang="zh">v__APP_VERSION__ 目前的能力、运行位置，以及仍未完成的承诺。以下回答陈述现状，不描述计划。</p>
   <p class="status"><span data-lang="en">Live on AWS Lightsail since 30 July 2026 · monitoring and SLA still open</span><span data-lang="zh">2026 年 7 月 30 日起运行于 AWS Lightsail · 监控与 SLA 仍未完成</span></p>
 
   <h2 data-lang="en">Hosting, data and recovery</h2>
@@ -74,8 +95,8 @@
 
   <details>
     <summary><span data-lang="en">Can families sign in?</span><span data-lang="zh">家长可以登录吗？</span></summary>
-    <p data-lang="en">A family unlocks one student’s private area with the student name, the registered mobile number and a six-digit code issued by the studio. It shows that student’s credit balance, next class, attendance and portfolio, and nothing belonging to another student. Attempts are rate-limited and temporarily locked after repeated failures. Multi-child account aggregation is not part of v8.2.2.</p>
-    <p data-lang="zh">家长使用学员姓名、登记手机号，以及工作室发放的六位访问码，解锁该名学员的私人区域。可见内容为该学员的课时余额、下次课、出勤与作品集，不含其他学员的任何信息。尝试次数受限，多次失败后会临时锁定。v8.2.2 不包含多子女账户汇总。</p>
+    <p data-lang="en">A family unlocks one student’s private area with the student name, the registered mobile number and a six-digit code issued by the studio. It shows that student’s credit balance, next class, attendance and portfolio, and nothing belonging to another student. Attempts are rate-limited and temporarily locked after repeated failures. Multi-child account aggregation is not part of v__APP_VERSION__.</p>
+    <p data-lang="zh">家长使用学员姓名、登记手机号，以及工作室发放的六位访问码，解锁该名学员的私人区域。可见内容为该学员的课时余额、下次课、出勤与作品集，不含其他学员的任何信息。尝试次数受限，多次失败后会临时锁定。v__APP_VERSION__ 不包含多子女账户汇总。</p>
   </details>
 
   <details>
@@ -104,8 +125,8 @@
 
   <details>
     <summary><span data-lang="en">How are multiple campuses handled?</span><span data-lang="zh">多校区如何处理？</span></summary>
-    <p data-lang="en">In v8.2.2 one campus is one tenant and one subscription. This keeps student records, staff membership, schedules, brand, plan and — importantly — backup, export, deletion and incident scope independent per campus. A future organisation layer may aggregate isolated campus tenants for reporting without merging their operational data.</p>
-    <p data-lang="zh">v8.2.2 中，一个校区即一个租户、一份订阅。这样可以让学员记录、员工成员、排课、品牌、套餐，以及——同样重要的——备份、导出、删除与事故范围，按校区彼此独立。未来的组织层可能为报表聚合多个独立校区租户，但不会合并其运营数据。</p>
+    <p data-lang="en">In v__APP_VERSION__ one campus is one tenant and one subscription. This keeps student records, staff membership, schedules, brand, plan and — importantly — backup, export, deletion and incident scope independent per campus. A future organisation layer may aggregate isolated campus tenants for reporting without merging their operational data.</p>
+    <p data-lang="zh">v__APP_VERSION__ 中，一个校区即一个租户、一份订阅。这样可以让学员记录、员工成员、排课、品牌、套餐，以及——同样重要的——备份、导出、删除与事故范围，按校区彼此独立。未来的组织层可能为报表聚合多个独立校区租户，但不会合并其运营数据。</p>
   </details>
 
   <details>
@@ -122,9 +143,9 @@
   <div class="legal-foot">
     <p data-lang="en">PWE GROUP PTY LTD · ABN 55 606 664 546 · ACN 606 664 546</p>
     <p data-lang="zh">PWE GROUP PTY LTD · ABN 55 606 664 546 · ACN 606 664 546</p>
-    <p>© <span id="year">2026</span> PWE Studio · v8.2.2</p>
+    <p>© <span id="year">2026</span> PWE Studio · v__APP_VERSION__</p>
     <nav aria-label="Customer resources">
-      <a href="/customer-resources/Release_Notes_v8.1.0.html"><span data-lang="en">Release evidence</span><span data-lang="zh">发布依据</span></a>
+      <a href="/customer-resources/Release_Notes.html"><span data-lang="en">Release evidence</span><span data-lang="zh">发布依据</span></a>
       <a href="/customer-resources/Privacy_Policy.html"><span data-lang="en">Privacy policy</span><span data-lang="zh">隐私政策</span></a>
       <a href="/customer-resources/Support_Policy.html"><span data-lang="en">Support policy</span><span data-lang="zh">支持政策</span></a>
       <a href="/customer-resources/Terms_of_Service.html"><span data-lang="en">Terms of service</span><span data-lang="zh">服务条款</span></a>

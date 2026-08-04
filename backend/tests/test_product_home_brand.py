@@ -145,12 +145,23 @@ def test_the_page_opens_on_the_readers_problem_not_on_a_claim() -> None:
 
 
 def test_the_page_keeps_its_commercial_boundaries() -> None:
-    """Scope limits are the part of sales copy that must not quietly go missing."""
+    """Scope limits are the part of sales copy that must not quietly go missing.
+
+    They moved out of the pricing section in v8.2.28 — six clauses of what is
+    not included sat between the price and the button, which is the last thing
+    a buyer reads before deciding. They are answers in the FAQ now. That is a
+    move, and the check has to be able to tell a move from a deletion, so it
+    asserts the substance rather than one sentence's exact wording.
+    """
 
     source = _product_home_source()
     assert "AUD 299–999" in source
-    assert "Final terms follow the signed order form." in source
-    assert "each campus is intentionally operated as an isolated tenant" in source
+    assert "final terms follow the signed order form" in source.lower()
+    for excluded in ("migration clean-up", "messaging provider fees",
+                     "custom domains", "multi-campus aggregation",
+                     "数据清洗", "消息供应商费用", "自定义域名", "多校区汇总"):
+        assert excluded in source, f"the scope limit '{excluded}' is no longer published"
+    assert "campus runs as its own tenant" in source
     assert "PWE Studio does not silently transmit or store the form." in source
     assert f"PWE Studio · v{VERSION}" not in source, (
         "the version is stamped at serve time from APP_VERSION"
