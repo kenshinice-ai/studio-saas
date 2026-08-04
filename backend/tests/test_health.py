@@ -194,7 +194,13 @@ def test_super_admin_is_commercial_control_plane(client):
     assert "Trials Ending in 7 Days" in html
     assert "Open Studio Website" in html
     assert "Open Quick Registration" in html
-    assert "Use More → Status for audited lifecycle actions." in html
+    # Tenant and subscription status are derived, and the console has to say
+    # so and offer the audited route rather than telling the operator to go
+    # and find a menu. This was a sentence under a disabled text box; it is a
+    # read-only badge with the route beside it as a button.
+    assert "Lifecycle changes are audited and happen in their own flow." in html
+    assert "Follows the tenant lifecycle state above." in html
+    assert "Change tenant status" in html
     assert "Additional entitlements (JSON)" in html
     assert "Promise.allSettled" in html
     assert "Partial load" in html

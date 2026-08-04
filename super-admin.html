@@ -13,51 +13,111 @@
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
   <meta name="theme-color" content="#0e1729">
   <style>
+    /* ═══════════════════════════════════════════════════════════════════
+       PWE Studio — platform console.
+
+       This surface is the one that never received the family identity. It sat
+       on Family Warm Paper #F7F5F2 with every neutral above it drawn from
+       cold, blue-tinted slate (#64748b, #e2e8f0, #f1f5f9, #f8fafc) and a
+       generic Tailwind blue as the brand — five hues on one screen, none of
+       them the studio's. Warm ground under cold furniture is the disharmony
+       an operator feels before they can name it.
+
+       LIGHT, ON PURPOSE. This is a tool somebody reads for hours. The paper
+       stays; navy becomes ink rather than a surface, and appears as a fill
+       only on the header and the primary button. Amber is the single accent,
+       and on a light ground that means the DARK amber: Family Amber #F5B335
+       measures 1.70:1 on paper and can never carry meaning here — it is a
+       background with navy on it (9.70:1) or it is nothing.
+
+       Every pair below was measured with the relative-luminance formula, and
+       `test_platform_console_contrast` re-measures them on every run.
+       ═══════════════════════════════════════════════════════════════════ */
     :root {
-      --bg: #f7f5f2;
-      --surface: #ffffff;
-      --ink: #0e1729;
-      --muted: #64748b;
-      --line: #e2e8f0;
-      --brand: #3b82f6;
-      --brand-dark: #2563eb;
-      --brand-light: #dbeafe;
-      --brand-ultra-light: #eff6ff;
-      --green: #10b981;
-      --green-light: #d1fae5;
-      --red: #ef4444;
-      --red-light: #fee2e2;
-      --amber: #f59e0b;
-      --amber-light: #fef3c7;
-      --purple: #8b5cf6;
-      --purple-light: #ede9fe;
-      /* Deep foreground shades: every pill keeps its light background while the
-         text reaches >=4.5:1 (WCAG AA, verified with the relative-luminance
-         formula): #047857 on #d1fae5 = 4.84:1, #92400e on #fef3c7 = 6.37:1,
-         #6d28d9 on #ede9fe = 5.98:1, #475569 on #f1f5f9 = 6.92:1. */
-      --green-deep: #047857;
-      --amber-deep: #92400e;
-      --purple-deep: #6d28d9;
-      --ink-soft: #475569;
-      /* Dense-dashboard neutrals (kept as tokens — no raw hex in components). */
-      --line-strong: #cbd5e1;
-      --line-soft: #f1f5f9;
-      --row-hover: #f8fafc;
-      --head-bg: #f1f5f9;
-      /* Spacing scale (dense dashboard: 4/8/12/16/24). Components reference
-         these instead of ad-hoc pixel values so KPI cards, tables, and the
-         detail modal share one rhythm. */
-      --space-1: 4px;
+      /* — surfaces: one warm family, three levels ———————————————— */
+      --bg: #f7f5f2;              /* Family Warm Paper */
+      --surface: #ffffff;         /* cards */
+      --sunk: #f1ede6;            /* table heads, wells, row hover */
+
+      /* — ink: navy, then two warm greys off the same paper ————————— */
+      --ink: #0e1729;             /* Family Navy — 16.45:1 on paper */
+      --ink-soft: #45403a;        /*  9.43:1 on paper,  8.79:1 on sunk */
+      --muted: #6b6358;           /*  5.43:1 on paper,  5.07:1 on sunk */
+
+      /* — lines: hairlines are decorative, control edges are not ————
+         1.4.11 asks 3:1 of a control boundary, not of a table rule. The
+         two are separate tokens so the rule cannot be reached for where the
+         boundary is meant. */
+      --line-soft: #efebe4;
+      --line: #e0dacf;
+      --line-strong: #cec5b6;
+      --control-line: #8a8072;    /* 3.88:1 on white — WCAG 1.4.11 */
+
+      /* — the one accent ——————————————————————————————————————— */
+      --accent: #a16207;          /* Family Amber, dark: 4.52:1 on paper */
+      --accent-fill: #f5b335;     /* bright — background only, navy on it */
+      --accent-wash: #fbefd5;
+
+      /* — structure: navy replaces the generic blue ————————————— */
+      --brand: #0e1729;
+      --brand-dark: #22355a;
+      --brand-light: #e6e9ef;
+      --brand-ultra-light: #f2f3f6;
+      --focus: #1f4e9c;           /* 7.34:1 on paper — visible on all three */
+
+      /* — semantic: three, not five. Purple is gone; it carried one KPI
+           stripe and a hue nobody could name the meaning of. ———————— */
+      --green: #04724e;
+      --green-light: #dcf3e8;     /* 5.12:1 */
+      --amber: #8a4b0b;
+      --amber-light: #fbefd5;     /* 5.95:1 */
+      --red: #a8231d;
+      --red-light: #fae3e0;       /* 5.86:1 */
+      --neutral-light: #f1ede6;   /* 6.84:1 with --ink-soft */
+      /* Retained names so components keep reading a token; both now point at
+         the single measured value rather than a second, lighter one. */
+      --green-deep: #04724e;
+      --amber-deep: #8a4b0b;
+
+      /* — meaningful fills: these carry a reading, so 3:1 on their track — */
+      --fill-ok: #2c4a7c;         /* 7.24:1 */
+      --fill-warn: #b4740a;       /* 3.16:1 */
+      --fill-over: #b3241d;       /* 5.40:1 */
+      --track: #ede8e0;
+
+      /* — spacing: Fibonacci, the series φ converges from —————————
+         The same generator as the marketing site and the manual, taken at
+         its low end because this is a dense surface. Was 4/8/12/16/24,
+         which was a four-point grid and a different system on the third
+         screen of one product. */
+      --space-1: 5px;
       --space-2: 8px;
-      --space-3: 12px;
-      --space-4: 16px;
-      --space-6: 24px;
-      --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
-      --shadow-md: 0 4px 12px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.05);
-      --shadow-lg: 0 10px 25px rgba(0,0,0,0.08), 0 4px 10px rgba(0,0,0,0.04);
+      --space-3: 13px;
+      --space-4: 21px;
+      --space-6: 34px;
+      --space-7: 55px;
+
+      /* — type: φ^(k/2) from 13px, the size this page already used most ——
+         13 → 17 → 21 → 27 → 34. Two of those land on Fibonacci integers,
+         which is what happens when both come from the same ratio.
+
+         --f-min is NOT on the ladder, deliberately: the rung below 13 is
+         10.2px, and this console is read in Chinese, where anything under
+         12px stops being legible. The floor wins over the series. It also
+         retires the 11px that was in use — below the floor already. */
+      --f-min: 12px;
+      --f-0: 13px;
+      --f-1: 17px;
+      --f-2: 21px;
+      --f-3: 27px;
+      --f-4: 34px;
+
+      --shadow-sm: 0 1px 2px rgba(20,16,10,0.05);
+      --shadow-md: 0 4px 12px rgba(20,16,10,0.08), 0 1px 3px rgba(20,16,10,0.05);
+      --shadow-lg: 0 10px 25px rgba(20,16,10,0.09), 0 4px 10px rgba(20,16,10,0.05);
       --radius: 8px;
-      --radius-lg: 12px;
-      --radius-xl: 16px;
+      --radius-lg: 13px;
+      --radius-xl: 21px;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -87,7 +147,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 20px;
+      gap: 21px;
       flex-wrap: wrap;
       min-width: 0;
     }
@@ -97,13 +157,13 @@
     }
 
     .brand h1 {
-      font-size: 22px;
+      font-size: var(--f-2);
       font-weight: 700;
       margin: 0;
       letter-spacing: -0.3px;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 13px;
       overflow-wrap: anywhere;
     }
 
@@ -119,7 +179,7 @@
 
     .brand p {
       color: #94a3b8;
-      font-size: 13px;
+      font-size: var(--f-0);
       margin-top: 2px;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -151,8 +211,8 @@
     }
 
     .auth-status {
-      color: #cbd5e1;
-      font-size: 13px;
+      color: var(--brand-light);
+      font-size: var(--f-0);
       max-width: 260px;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -181,7 +241,7 @@
       margin: 0 auto;
       padding: 0 32px;
       display: flex;
-      gap: 4px;
+      gap: 5px;
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
@@ -192,9 +252,9 @@
     .nav-link {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
       padding: 10px 16px;
-      font-size: 13px;
+      font-size: var(--f-0);
       font-weight: 600;
       color: #94a3b8;
       text-decoration: none;
@@ -221,11 +281,11 @@
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s ease;
-      font-size: 14px;
+      font-size: var(--f-0);
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
+      gap: 5px;
     }
 
     button:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
@@ -248,11 +308,11 @@
     .btn-primary:hover { background: var(--brand-dark); }
 
     .btn-secondary {
-      background: #f1f5f9;
+      background: var(--sunk);
       color: var(--ink);
       border: 1px solid var(--line);
     }
-    .btn-secondary:hover { background: #e2e8f0; }
+    .btn-secondary:hover { background: var(--line); }
 
     .btn-danger {
       background: var(--red-light);
@@ -285,13 +345,13 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
+      gap: 5px;
       font-weight: 600;
       text-decoration: none;
       transition: all 0.15s ease;
     }
 
-    a.btn-sm { padding: 6px 12px; font-size: 13px; }
+    a.btn-sm { padding: 6px 12px; font-size: var(--f-0); }
     a.is-disabled, button.is-disabled {
       opacity: 0.45;
       cursor: not-allowed;
@@ -299,7 +359,7 @@
       filter: grayscale(0.25);
     }
 
-    .btn-sm { padding: 6px 12px; font-size: 13px; min-height: 44px; }
+    .btn-sm { padding: 6px 12px; font-size: var(--f-0); min-height: 44px; }
 
     /* The administration surface is routinely used on tablets. Keep every
        visible form action and text field inside the 44px touch-target floor. */
@@ -322,9 +382,9 @@
     .section-header {
       display: flex;
       align-items: center;
-      gap: 10px;
-      margin-bottom: 16px;
-      padding-bottom: 10px;
+      gap: 13px;
+      margin-bottom: 21px;
+      padding-bottom: 13px;
       border-bottom: 1px solid var(--line);
     }
     /* Secondary link in a section header: pushed to the trailing edge, and
@@ -336,16 +396,16 @@
       min-height: 44px;
       display: inline-flex;
       align-items: center;
-      font-size: 13px;
+      font-size: var(--f-0);
       font-weight: 600;
-      color: var(--muted, #64748b);
+      color: var(--muted);
       text-decoration: none;
       white-space: nowrap;
     }
     .section-aside-link:hover { color: var(--ink, #0f172a); text-decoration: underline; }
 
     .section-icon {
-      font-size: 20px;
+      font-size: var(--f-2);
       width: 36px;
       height: 36px;
       display: flex;
@@ -363,14 +423,14 @@
     }
 
     .section-title {
-      font-size: 18px;
+      font-size: var(--f-1);
       font-weight: 700;
       color: var(--ink);
       letter-spacing: -0.2px;
     }
 
     .section-subtitle {
-      font-size: 13px;
+      font-size: var(--f-0);
       color: var(--muted);
       margin-top: 1px;
     }
@@ -394,13 +454,13 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
-      padding-bottom: 14px;
+      margin-bottom: 21px;
+      padding-bottom: 13px;
       border-bottom: 1px solid var(--line);
     }
 
     .card-title {
-      font-size: 16px;
+      font-size: var(--f-1);
       font-weight: 700;
       color: var(--ink);
     }
@@ -426,15 +486,15 @@
       flex-wrap: wrap;
       gap: 4px 10px;
       margin: 22px 0 10px;
-      font-size: 13px;
+      font-size: var(--f-0);
       font-weight: 700;
       letter-spacing: .06em;
       text-transform: uppercase;
       color: var(--ink);
     }
-    .group-heading:first-of-type { margin-top: 4px; }
+    .group-heading:first-of-type { margin-top: 5px; }
     .group-hint {
-      font-size: 12px;
+      font-size: var(--f-min);
       font-weight: 400;
       letter-spacing: 0;
       text-transform: none;
@@ -444,7 +504,7 @@
        is collapsed by default (progressive disclosure, Apple HIG) and sits
        last. Collapsed, not removed: it still loads and stays one click away. */
     .analysis-details {
-      margin-top: 22px;
+      margin-top: 21px;
       border: 1px solid var(--line);
       border-radius: 12px;
       background: var(--panel, #fff);
@@ -457,7 +517,7 @@
       min-height: 44px;
       padding: 0 14px;
       cursor: pointer;
-      font-size: 14px;
+      font-size: var(--f-0);
       font-weight: 700;
       color: var(--ink);
       list-style: none;
@@ -470,12 +530,12 @@
     }
     .analysis-details[open] > summary::before { transform: rotate(90deg); }
     .analysis-details > summary:focus-visible {
-      outline: 3px solid var(--focus-ring, var(--accent, #2563eb));
+      outline: 3px solid var(--focus-ring, var(--focus));
       outline-offset: -3px;
     }
     .analysis-details .summary-hint {
       margin-left: auto;
-      font-size: 12px;
+      font-size: var(--f-min);
       font-weight: 400;
       color: var(--muted);
     }
@@ -508,7 +568,7 @@
 
     .stat-card.green::before { background: var(--green); }
     .stat-card.amber::before { background: var(--amber); }
-    .stat-card.purple::before { background: var(--purple); }
+    .stat-card.accent::before { background: var(--accent); }
 
     /* A counter whose number describes a set of tenants IS a filter control,
        so it is a real <button>: pointer cursor, keyboard reach, focus ring and
@@ -539,7 +599,7 @@
     .stat-filter-flag {
       display: none;
       margin-left: auto;
-      font-size: 11px;
+      font-size: var(--f-min);
       font-weight: 700;
       letter-spacing: .04em;
       text-transform: uppercase;
@@ -555,12 +615,12 @@
       align-items: center;
       flex-wrap: wrap;
       gap: 8px;
-      margin-top: 12px;
-      padding-top: 12px;
+      margin-top: 13px;
+      padding-top: 13px;
       border-top: 1px solid var(--line);
     }
     .active-filter-row.hidden { display: none; }
-    .active-filter-label { font-size: 12px; color: var(--muted); font-weight: 600; }
+    .active-filter-label { font-size: var(--f-min); color: var(--muted); font-weight: 600; }
     .active-filter-chip {
       display: inline-flex;
       align-items: center;
@@ -571,7 +631,7 @@
       border-radius: 999px;
       background: var(--surface);
       color: var(--ink);
-      font-size: 13px;
+      font-size: var(--f-0);
       font-weight: 600;
     }
     .active-filter-chip button {
@@ -587,7 +647,7 @@
       border-radius: 999px;
       background: transparent;
       color: var(--muted);
-      font-size: 16px;
+      font-size: var(--f-1);
       line-height: 1;
       cursor: pointer;
     }
@@ -628,7 +688,7 @@
     .stat-icon svg { width: 18px; height: 18px; }
 
     .stat-value {
-      font-size: 28px;
+      font-size: var(--f-4);
       font-weight: 700;
       font-variant-numeric: tabular-nums;
       color: var(--ink);
@@ -637,7 +697,7 @@
     }
 
     .stat-label {
-      font-size: 12px;
+      font-size: var(--f-min);
       color: var(--muted);
       letter-spacing: 0.02em;
       font-weight: 500;
@@ -648,15 +708,15 @@
     .filters {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 12px;
+      gap: 13px;
       margin-bottom: 0;
     }
 
     .filter-group label {
       display: block;
-      font-size: 12px;
+      font-size: var(--f-min);
       color: var(--muted);
-      margin-bottom: 6px;
+      margin-bottom: 5px;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.5px;
@@ -667,7 +727,7 @@
       border: 1px solid var(--line);
       border-radius: var(--radius);
       padding: 10px 12px;
-      font-size: 14px;
+      font-size: var(--f-0);
       transition: all 0.2s ease;
       background: var(--surface);
     }
@@ -691,7 +751,7 @@
       width: 100%;
       min-width: 760px;
       border-collapse: collapse;
-      font-size: 14px;
+      font-size: var(--f-0);
     }
 
     .tenants-table { min-width: 1040px; }
@@ -708,9 +768,9 @@
     }
 
     th {
-      background: var(--head-bg);
+      background: var(--sunk);
       color: var(--ink-soft);
-      font-size: 12px;
+      font-size: var(--f-min);
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.5px;
@@ -721,7 +781,7 @@
       border-bottom: 1px solid var(--line-soft);
     }
 
-    tbody tr:hover td { background: var(--row-hover); }
+    tbody tr:hover td { background: var(--sunk); }
 
     /* Every non-text control communicates interactivity. */
     select, summary, input[type="checkbox"] { cursor: pointer; }
@@ -729,13 +789,39 @@
 
     /* Plans quota cell: one line per limit so each stays a clean text node
        for the admin-i18n dictionary (a single \n-joined blob never matches). */
+    /* Status column. The pills wrapped inside a narrow cell — a pill's own
+       radius plus three wrapped lines made "Needs setup" render as an amber
+       disc with letters in it. Nothing here may wrap. */
+    .status-cell { white-space: nowrap; }
+    .status-cell .pill { margin-bottom: 4px; }
+    .status-sub { color: var(--muted); font-size: var(--f-min); margin-bottom: 4px; }
+
+    .usage-cell { display: grid; gap: 4px; min-width: 152px; }
+    .usage-line {
+      display: flex;
+      justify-content: space-between;
+      gap: var(--space-2);
+      font-size: var(--f-min);
+      color: var(--muted);
+    }
+    .usage-cell .progress-bar { margin: 0 0 4px; height: 4px; }
+
+    /* One line, ellipsised, full value on hover. Long addresses were pushing
+       the column open and taking the rest of the row with them. */
+    .ellipsis {
+      max-width: 21ch;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
     .plan-quota { display: grid; gap: 2px; font-variant-numeric: tabular-nums; }
-    .plan-features { color: var(--muted); font-size: 13px; }
+    .plan-features { color: var(--muted); font-size: var(--f-0); }
 
     .toolbar {
       display: grid;
       grid-template-columns: minmax(220px, 1fr) repeat(3, minmax(140px, 180px)) minmax(140px, auto) auto;
-      gap: 12px;
+      gap: 13px;
       align-items: end;
     }
 
@@ -745,9 +831,9 @@
       display: flex;
       align-items: center;
       justify-content: flex-end;
-      gap: 12px;
+      gap: 13px;
       flex-wrap: wrap;
-      margin-top: 12px;
+      margin-top: 13px;
     }
 
     /* Filter toolbar controls share one accessible control height so labels and
@@ -764,15 +850,15 @@
     /* 30-day acquisition funnel: one stacked bar (registrations -> converted)
        plus per-source rows. Colour never carries meaning alone — every segment
        and dot has an adjacent text label. */
-    .funnel { display: grid; gap: 10px; }
+    .funnel { display: grid; gap: 13px; }
 
     .funnel-top {
       display: flex;
       justify-content: space-between;
       align-items: baseline;
-      gap: 12px;
+      gap: 13px;
       flex-wrap: wrap;
-      font-size: 13px;
+      font-size: var(--f-0);
       font-weight: 600;
       color: var(--ink);
     }
@@ -791,13 +877,13 @@
       transition: width 0.2s ease;
     }
 
-    .funnel-sources { display: grid; gap: 6px; }
+    .funnel-sources { display: grid; gap: 5px; }
 
     .funnel-source {
       display: flex;
       align-items: center;
       gap: 8px;
-      font-size: 13px;
+      font-size: var(--f-0);
       color: var(--muted);
     }
 
@@ -809,7 +895,7 @@
       flex: 0 0 auto;
     }
 
-    .funnel-dot.purple { background: var(--purple); }
+    .funnel-dot.accent { background: var(--accent); }
     .funnel-source-label { flex: 1; min-width: 0; }
     .funnel-source-value { font-weight: 700; color: var(--ink); }
 
@@ -833,7 +919,7 @@
       color: var(--muted);
       text-align: center;
       font-weight: 600;
-      font-size: 14px;
+      font-size: var(--f-0);
     }
 
     .empty-state::before {
@@ -850,15 +936,21 @@
     .action-row {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
+      gap: 5px;
       min-width: 260px;
     }
 
+    /* A fixed 2×2 rather than a wrapping row. Four entry buttons on one line
+       claimed a third of the table width and then broke to 3 + 1 anyway, so
+       the column was both the widest and the untidiest thing in the row for
+       links that are used occasionally. Two columns of equal width, capped,
+       and the row gets that space back. */
     .surface-link-grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      min-width: 210px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 5px;
+      width: 168px;
+      max-width: 100%;
     }
 
     .surface-mini {
@@ -871,7 +963,7 @@
       border: 1px solid var(--line);
       background: var(--surface);
       color: var(--ink);
-      font-size: 12px;
+      font-size: var(--f-min);
       font-weight: 800;
       text-decoration: none;
       cursor: pointer;
@@ -879,7 +971,7 @@
     }
 
     .surface-mini:hover {
-      background: var(--row-hover);
+      background: var(--sunk);
       border-color: var(--line-strong);
     }
 
@@ -892,19 +984,19 @@
 
     .surface-mini.disabled, .surface-mini:disabled {
       color: var(--muted);
-      background: var(--head-bg);
+      background: var(--sunk);
       pointer-events: none;
     }
 
-    .surface-mini .mark { font-size: 11px; display: inline-flex; }
+    .surface-mini .mark { font-size: var(--f-min); display: inline-flex; }
 
     .action-section {
       display: grid;
       gap: 8px;
-      padding: 12px;
+      padding: 13px;
       border: 1px solid var(--line);
       border-radius: var(--radius);
-      background: #f8fafc;
+      background: var(--sunk);
     }
 
     /* Shared micro-label spec: .action-section-title, .summary-label, and
@@ -914,7 +1006,7 @@
        and Chinese labels are unaffected). */
     .action-section-title {
       color: var(--muted);
-      font-size: 11px;
+      font-size: var(--f-min);
       font-weight: 700;
       letter-spacing: 0.06em;
       text-transform: uppercase;
@@ -932,7 +1024,7 @@
       gap: 5px;
       padding: 4px 10px;
       border-radius: 999px;
-      font-size: 11px;
+      font-size: var(--f-min);
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.3px;
@@ -949,8 +1041,8 @@
     }
 
     .pill.cancelled, .pill.paused, .pill.archived, .pill.deleted {
-      background: #f1f5f9;
-      color: var(--ink-soft); /* 6.92:1 on #f1f5f9 */
+      background: var(--sunk);
+      color: var(--ink-soft); /* 6.84:1 on --neutral-light */
     }
 
     .pill.warning {
@@ -959,8 +1051,8 @@
     }
 
     .pill.fixture {
-      background: var(--purple-light);
-      color: var(--purple-deep); /* 5.98:1 on --purple-light */
+      background: var(--neutral-light);
+      color: var(--ink-soft); /* 6.84:1 on --neutral-light */
     }
 
     .pill-icon {
@@ -972,10 +1064,10 @@
     /* Progress Bars */
     .progress-bar {
       height: 6px;
-      background: #e2e8f0;
+      background: var(--track);
       border-radius: 999px;
       overflow: hidden;
-      margin-top: 4px;
+      margin-top: 5px;
     }
 
     .progress-fill {
@@ -984,53 +1076,50 @@
       transition: width 0.3s ease;
     }
 
-    .progress-fill.blue { background: var(--brand); }
-    .progress-fill.green { background: var(--green); }
-    .progress-fill.amber { background: var(--amber); }
-    .progress-fill.red { background: var(--red); }
+    .progress-fill.blue { background: var(--fill-ok); }
+    .progress-fill.green { background: var(--fill-ok); }
+    .progress-fill.amber { background: var(--fill-warn); }
+    .progress-fill.red { background: var(--fill-over); }
 
     /* Forms */
     .form-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 16px;
+      gap: 21px;
     }
 
-    .form-group { margin-bottom: 16px; }
+    .form-group { margin-bottom: 21px; }
 
     .form-group label {
       display: block;
-      font-size: 13px;
+      font-size: var(--f-0);
       font-weight: 600;
       color: var(--ink);
-      margin-bottom: 6px;
+      margin-bottom: 5px;
     }
 
     .form-group small, .disabled-note {
       display: block;
       color: var(--muted);
-      margin-top: 4px;
-      font-size: 12px;
+      margin-top: 5px;
+      font-size: var(--f-min);
     }
 
-    .tenant-summary {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: var(--space-3);
-      margin-bottom: var(--space-4);
-    }
-
+    /* `.tenant-summary` lived here. It was the block that rendered the same
+       seven fields the detail grid below it already showed; the detail view
+       is tabbed now and `.detail-bar` carries the four readings worth
+       repeating. `.summary-*` below is still the create-tenant modal's. */
     .summary-item {
       border: 1px solid var(--line);
       border-radius: var(--radius);
       padding: var(--space-3);
-      background: var(--row-hover);
+      background: var(--sunk);
       min-width: 0;
     }
 
     .summary-label {
       color: var(--muted);
-      font-size: 11px;
+      font-size: var(--f-min);
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.06em;
@@ -1044,7 +1133,7 @@
 
     .risk-list {
       display: grid;
-      gap: 6px;
+      gap: 5px;
       margin-top: 8px;
     }
 
@@ -1053,7 +1142,7 @@
       align-items: center;
       gap: 8px;
       color: #92400e;
-      font-size: 13px;
+      font-size: var(--f-0);
       font-weight: 700;
     }
 
@@ -1067,7 +1156,7 @@
       border-radius: 50%;
       background: var(--amber-light);
       color: #92400e;
-      font-size: 11px;
+      font-size: var(--f-min);
       flex-shrink: 0;
     }
 
@@ -1087,7 +1176,7 @@
       border: 1px solid var(--line);
       border-radius: var(--radius);
       padding: 0;
-      margin-bottom: 12px;
+      margin-bottom: 13px;
       background: #fff;
       overflow: hidden;
     }
@@ -1095,19 +1184,19 @@
     .form-section summary {
       cursor: pointer;
       padding: 12px 14px;
-      background: #f8fafc;
+      background: var(--sunk);
       font-weight: 800;
     }
 
     .form-section-body {
-      padding: 16px;
+      padding: 21px;
     }
 
     .form-actions {
       display: flex;
-      gap: 12px;
-      margin-top: 24px;
-      padding-top: 16px;
+      gap: 13px;
+      margin-top: 21px;
+      padding-top: 21px;
       border-top: 1px solid var(--line);
       flex-wrap: wrap;
     }
@@ -1118,13 +1207,13 @@
     }
 
     .login-card h2 {
-      font-size: 22px;
+      font-size: var(--f-2);
       margin-bottom: 8px;
     }
 
     .login-card p {
       color: var(--muted);
-      margin-bottom: 20px;
+      margin-bottom: 21px;
     }
 
     /* Producer credit — the quietest element on any page it appears on.
@@ -1135,7 +1224,7 @@
       font-weight: 600;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: var(--muted, #64748B);
+      color: var(--muted);
       text-align: center;
     }
     /* Subordinate by weight, not by being undiscoverable: no underline until
@@ -1147,19 +1236,19 @@
     }
     .producer-credit a:hover { color: var(--ink, #0F172A); border-bottom-color: currentColor; }
     .producer-credit a:focus-visible {
-      outline: 2px solid var(--brand, #3b82f6);
+      outline: 2px solid var(--focus);
       outline-offset: 3px;
       border-radius: 2px;
     }
 
     .login-error {
-      margin-bottom: 16px;
+      margin-bottom: 21px;
       padding: 10px 12px;
       border: 1px solid #fecaca;
       border-radius: var(--radius);
       background: var(--red-light);
       color: var(--red);
-      font-size: 13px;
+      font-size: var(--f-0);
       font-weight: 600;
     }
 
@@ -1223,12 +1312,12 @@
       z-index: 1;
     }
 
-    .modal-title { font-size: 17px; font-weight: 700; }
+    .modal-title { font-size: var(--f-1); font-weight: 700; }
 
     .modal-close {
       background: none;
       border: none;
-      font-size: 22px;
+      font-size: var(--f-2);
       cursor: pointer;
       color: var(--muted);
       padding: 4px 10px;
@@ -1237,7 +1326,7 @@
       border-radius: 6px;
     }
 
-    .modal-close:hover { background: #f1f5f9; color: var(--ink); }
+    .modal-close:hover { background: var(--sunk); color: var(--ink); }
 
     .modal-body { padding: var(--space-6); }
     .modal-footer {
@@ -1245,7 +1334,7 @@
       border-top: 1px solid var(--line);
       display: flex;
       justify-content: flex-end;
-      gap: 12px;
+      gap: 13px;
     }
 
     /* Toast Notifications */
@@ -1266,10 +1355,10 @@
       box-shadow: var(--shadow-lg);
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 13px;
       min-width: 280px;
       animation: slideIn 0.3s ease;
-      font-size: 14px;
+      font-size: var(--f-0);
       font-weight: 500;
     }
 
@@ -1304,13 +1393,13 @@
 
     .detail-item {
       padding: var(--space-3);
-      background: var(--row-hover);
+      background: var(--sunk);
       border-radius: var(--radius);
       border: 1px solid var(--line);
     }
 
     .detail-label {
-      font-size: 11px;
+      font-size: var(--f-min);
       font-weight: 700;
       color: var(--muted);
       text-transform: uppercase;
@@ -1323,12 +1412,226 @@
       color: var(--ink);
     }
 
+    /* ── tenant detail: the bar, the tabs, and what sits in them ─────────
+       The bar is outside the tab strip on purpose. Health and quota are the
+       two readings an operator wants regardless of which tab answers their
+       question, and putting them inside a tab means one of them is always
+       the wrong tab to be on. */
+    /* ── derived values, dates and grouped switches in forms ───────────── */
+    .form-label {
+      display: block;
+      margin-bottom: var(--space-1);
+      font-size: var(--f-min);
+      font-weight: 700;
+      color: var(--ink-soft);
+    }
+    /* A value the operator cannot change reads as a fact, not as an input
+       they are being refused. The disabled text box it replaces said
+       "type here" and then would not let them. */
+    .derived-value {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-3);
+      background: var(--sunk);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+    }
+    .derived-note { flex: 1 1 168px; color: var(--muted); font-size: var(--f-min); }
+    .form-group.full { grid-column: 1 / -1; }
+
+    .date-quick { display: flex; flex-wrap: wrap; gap: var(--space-1); margin-top: var(--space-1); }
+    .chip {
+      min-height: 32px;
+      padding: 4px var(--space-2);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--surface);
+      color: var(--ink-soft);
+      font-size: var(--f-min);
+      cursor: pointer;
+    }
+    .chip:hover { border-color: var(--control-line); background: var(--sunk); }
+    .chip:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+    .date-hint { display: block; margin-top: 4px; color: var(--muted); font-size: var(--f-min); }
+    .date-hint.soon { color: var(--amber-deep); font-weight: 600; }
+    .date-hint.overdue { color: var(--red); font-weight: 600; }
+    .form-note {
+      grid-column: 1 / -1;
+      margin: 0;
+      padding: var(--space-2) var(--space-3);
+      border-radius: var(--radius);
+      background: var(--red-light);
+      color: var(--red);
+      font-size: var(--f-min);
+      font-weight: 600;
+    }
+    .form-note[hidden] { display: none; }
+
+    /* The reading a collapsed fold owes the reader. */
+    .form-section > summary .summary-hint {
+      margin-left: var(--space-2);
+      color: var(--muted);
+      font-size: var(--f-min);
+      font-weight: 400;
+    }
+
+    .plan-fieldset {
+      padding: var(--space-3);
+      margin-bottom: var(--space-3);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+    }
+    .plan-fieldset legend { padding: 0 var(--space-1); font-weight: 800; font-size: var(--f-0); }
+    .feature-group + .feature-group { margin-top: var(--space-3); }
+    .feature-group-title {
+      margin: 0 0 var(--space-1);
+      font-size: var(--f-min);
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .feature-row {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-2);
+      padding: var(--space-1) 0;
+      min-height: 44px;
+      cursor: pointer;
+    }
+    .feature-row input { width: auto; margin-top: 3px; flex: 0 0 auto; }
+    .feature-label { display: block; font-weight: 600; color: var(--ink); font-size: var(--f-0); }
+    .feature-note { display: block; color: var(--muted); font-size: var(--f-min); line-height: 1.5; }
+    .advanced-json { margin-top: var(--space-3); border-top: 1px solid var(--line-soft); padding-top: var(--space-2); }
+    .advanced-json > summary { cursor: pointer; font-size: var(--f-0); font-weight: 600; min-height: 44px; display: flex; align-items: center; }
+    .advanced-json > summary .summary-hint { margin-left: var(--space-2); color: var(--muted); font-weight: 400; font-size: var(--f-min); }
+
+    /* The publish block is first in the form and marked, because it is the
+       only control here that changes the public website on save. */
+    .publish-fieldset { border-left: 2px solid var(--accent); }
+    .plan-preview {
+      margin-top: var(--space-3);
+      padding: var(--space-3);
+      border: 1px dashed var(--line-strong);
+      border-radius: var(--radius);
+      background: var(--sunk);
+      font-size: var(--f-0);
+    }
+    .plan-preview-off { color: var(--muted); font-size: var(--f-min); }
+    .plan-preview-head {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-weight: 700;
+      margin-bottom: var(--space-1);
+    }
+    .plan-preview-list { display: grid; gap: 2px; color: var(--muted); font-size: var(--f-min); }
+    .plan-preview-list > div { display: flex; justify-content: space-between; gap: var(--space-2); }
+
+    .detail-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(144px, 1fr));
+      gap: var(--space-3);
+      padding: var(--space-3) var(--space-4);
+      margin-bottom: var(--space-3);
+      background: var(--sunk);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+    }
+    .detail-bar-label {
+      font-size: var(--f-min);
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: var(--space-1);
+    }
+    .detail-bar-value { font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+    .detail-bar .progress-bar { margin: 0; }
+
+    .tab-strip {
+      display: flex;
+      gap: var(--space-1);
+      border-bottom: 1px solid var(--line);
+      margin-bottom: var(--space-4);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .tab-strip::-webkit-scrollbar { display: none; }
+    .tab {
+      flex: 0 0 auto;
+      /* 13 + 13 + a 13px line clears the 44px target without being told. */
+      padding: var(--space-3) var(--space-3);
+      min-height: 44px;
+      border: 0;
+      border-bottom: 2px solid transparent;
+      background: none;
+      color: var(--muted);
+      font-size: var(--f-0);
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: color .2s ease, border-color .2s ease;
+    }
+    .tab:hover { color: var(--ink); }
+    /* The selected tab is marked by weight, colour AND a rule — three
+       signals, so the state does not rest on hue alone. */
+    .tab[aria-selected="true"] {
+      color: var(--ink);
+      border-bottom-color: var(--accent);
+      font-weight: 700;
+    }
+    .tab:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; border-radius: var(--radius); }
+    .tab-panel[hidden] { display: none; }
+
+    /* 61.8 / 38.2: the reading on the left, the standing offer on the right. */
+    .detail-split { grid-template-columns: 61.8fr 38.2fr; }
+    @media (max-width: 720px) { .detail-split { grid-template-columns: 1fr; } }
+    .detail-split > div { display: grid; gap: var(--space-3); align-content: start; }
+
+    .detail-sub { margin-top: var(--space-1); color: var(--muted); font-size: var(--f-min); }
+    .check-row { color: var(--muted); margin-bottom: 4px; font-size: var(--f-0); }
+    .check-row.done { color: var(--green-deep); }
+
+    .progress-head {
+      display: flex;
+      justify-content: space-between;
+      gap: var(--space-2);
+      font-size: var(--f-min);
+      margin-bottom: 4px;
+    }
+
+    .date-row {
+      display: flex;
+      align-items: baseline;
+      gap: var(--space-2);
+      padding: 4px 0;
+      font-size: var(--f-0);
+      border-bottom: 1px solid var(--line-soft);
+    }
+    .date-row:last-child { border-bottom: 0; }
+    .date-row-label { flex: 1; min-width: 0; color: var(--muted); }
+    .date-rel {
+      flex: 0 0 auto;
+      font-size: var(--f-min);
+      color: var(--muted);
+      padding: 1px 6px;
+      border-radius: 999px;
+      background: var(--neutral-light);
+    }
+    /* Amber and red here are text on their own wash, both measured. An
+       expiry that has passed must not read as ordinary grey. */
+    .date-rel.soon { color: var(--amber-deep); background: var(--amber-light); }
+    .date-rel.overdue { color: var(--red); background: var(--red-light); font-weight: 600; }
+
     /* Code/Slug */
     code {
-      background: #f1f5f9;
+      background: var(--sunk);
       padding: 2px 6px;
       border-radius: 4px;
-      font-size: 12px;
+      font-size: var(--f-min);
       font-family: "SF Mono", Monaco, monospace;
     }
 
@@ -1347,7 +1650,7 @@
     }
 
     .card-header {
-      gap: 12px;
+      gap: 13px;
       border-bottom-color: #eef2f7;
     }
 
@@ -1361,7 +1664,7 @@
 
     .form-group label, .filter-group label, .toolbar label {
       color: #475569;
-      font-size: 12px;
+      font-size: var(--f-min);
       letter-spacing: 0.02em;
     }
 
@@ -1370,23 +1673,23 @@
     label:has(input[type="radio"]) { min-height: 44px; cursor: pointer; }
 
     .btn-primary {
-      background: #2563eb;
+      background: var(--brand);
       box-shadow: 0 8px 18px rgba(37, 99, 235, 0.18);
     }
 
     .btn-secondary { background: #ffffff; }
 
     .toolbar {
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
+      background: var(--sunk);
+      border: 1px solid var(--line);
       border-radius: 12px;
-      padding: 12px;
+      padding: 13px;
     }
 
     .table-wrapper {
-      border: 1px solid #e2e8f0;
+      border: 1px solid var(--line);
       background: #ffffff;
-      box-shadow: inset 0 -1px 0 #e2e8f0;
+      box-shadow: inset 0 -1px 0 var(--line);
     }
 
     th {
@@ -1399,8 +1702,8 @@
 
     /* Responsive */
     @media (max-width: 1024px) {
-      main { padding-left: 16px; padding-right: 16px; }
-      .header-top, .nav-inner { padding-left: 16px; padding-right: 16px; }
+      main { padding-left: 21px; padding-right: 21px; }
+      .header-top, .nav-inner { padding-left: 21px; padding-right: 21px; }
       .stats-grid { grid-template-columns: repeat(2, 1fr); }
       .content-grid { grid-template-columns: 1fr; }
       .toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -1415,10 +1718,10 @@
          showed three numbers and nothing else, which is the opposite of what
          a console opened to triage lifecycle risks should do. Two columns fit
          comfortably: 375px leaves 343px of content width. */
-      .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-      .stat-card { padding: 14px; }
-      .stat-value { font-size: 24px; }
-      .stat-label { font-size: 12px; }
+      .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; }
+      .stat-card { padding: 13px; }
+      .stat-value { font-size: var(--f-3); }
+      .stat-label { font-size: var(--f-min); }
       /* Two-up leaves ~167px per card, and squeezing the "Filtering" marker
          onto the label's row broke both across mid-word lines. Let it drop to
          its own line instead — the marker is what tells a colour-blind or
@@ -1428,8 +1731,8 @@
       .stat-filter-flag { margin-left: 0; flex-basis: 100%; }
       .form-grid { grid-template-columns: 1fr; }
       .filters, .toolbar { grid-template-columns: 1fr; }
-      .card { padding: 16px; }
-      .card-header { align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+      .card { padding: 21px; }
+      .card-header { align-items: flex-start; gap: 13px; flex-wrap: wrap; }
       .modal { width: calc(100vw - 24px); }
       .modal-footer { flex-wrap: wrap; }
       .nav-inner { padding: 0 16px; }
@@ -1438,9 +1741,9 @@
       /* The signed-in address is reference information, not an action, and it
          was taking a full line above the buttons that do the work. */
       .auth-status { display: none; }
-      .brand h1 { font-size: 19px; }
-      .brand p { font-size: 12px; }
-      .header-top { padding: 12px 16px 10px; gap: 12px; }
+      .brand h1 { font-size: var(--f-2); }
+      .brand p { font-size: var(--f-min); }
+      .header-top { padding: 12px 16px 10px; gap: 13px; }
       /* Narrower tables (audit log, plans) still scroll sideways, so the edge
          is faded to show the row continues — a column cut flush at the screen
          edge reads as missing data. */
@@ -1466,7 +1769,7 @@
       .tenants-table { min-width: 0; }
       .tenants-table thead { display: none; }
       .tenants-table tr {
-        margin-bottom: 12px;
+        margin-bottom: 13px;
         padding: 12px 14px;
         border: 1px solid var(--line);
         border-radius: var(--radius);
@@ -1484,7 +1787,7 @@
         display: block;
         margin-bottom: 3px;
         color: var(--muted);
-        font-size: 11px;
+        font-size: var(--f-min);
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: .05em;
@@ -1617,7 +1920,7 @@
             </div>
             <div id="pastDueTenantCount" class="stat-value">-</div>
           </button>
-          <button type="button" class="stat-card purple" data-metric="trial_ending" aria-pressed="false">
+          <button type="button" class="stat-card accent" data-metric="trial_ending" aria-pressed="false">
             <div class="stat-head">
               <span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M17.6 8.25a6.4 6.4 0 10-11.2 0c1.2 2.1-.9 4.35-.9 4.35h14s-3.1-2.25-1.9-4.35"/><path d="M10.4 17.4a1.7 1.7 0 003.2 0"/></svg></span>
               <span class="stat-label">Trials Ending in 7 Days</span>
@@ -1666,7 +1969,7 @@
             </div>
             <div id="paidTenantCount" class="stat-value">-</div>
           </button>
-          <button type="button" class="stat-card purple" data-metric="trial" aria-pressed="false">
+          <button type="button" class="stat-card accent" data-metric="trial" aria-pressed="false">
             <div class="stat-head">
               <span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false"><circle cx="12" cy="12" r="8.25"/><path d="M12 7.5V12l3 2"/></svg></span>
               <span class="stat-label">Trial Tenants</span>
@@ -1827,7 +2130,7 @@
         <div class="audit-filters">
           <input id="auditSearch" type="search" placeholder="Filter by action, tenant, or resource...">
         </div>
-        <span id="auditCountLabel" class="text-muted tabular" style="font-size: 13px;"></span>
+        <span id="auditCountLabel" class="text-muted tabular" style="font-size: var(--f-0);"></span>
       </div>
       <div class="table-wrapper">
         <table>
@@ -1966,7 +2269,34 @@
       cell.appendChild(empty);
       tbody.appendChild(row);
     }
-	    const dateOnly = (value) => value ? String(value).slice(0, 10) : '';
+	    /* Calendar date from whatever the API sent, as `YYYY-MM-DD`.
+	     *
+	     * This used to be `String(value).slice(0, 10)`, which assumes ISO. The
+	     * API does not send ISO: `jsonify` renders a datetime as RFC 1123, so
+	     * `Wed, 29 Jul 2026 00:00:00 GMT` was sliced to `Wed, 29 Ju`. That is
+	     * not a valid `<input type="date">` value, so every subscription date
+	     * field rendered EMPTY — and the save path reads
+	     * `$('m_startsAt').value || null`, so opening a tenant, changing a
+	     * phone number and pressing save wrote NULL over all four dates. The
+	     * displayed `Wed, 29 Ju` in the detail modal was the same bug wearing
+	     * its other face.
+	     *
+	     * Read in UTC, deliberately. These are calendar dates, and the server
+	     * sends GMT midnight; taking local components would move the day
+	     * backwards for every operator west of Greenwich and silently shift
+	     * a subscription by one day each time the form was saved.
+	     */
+	    const dateOnly = (value) => {
+	      if (!value) return '';
+	      const raw = String(value);
+	      // Already ISO (or ISO-prefixed): trust it rather than round-tripping
+	      // through Date, which is what introduces timezone questions.
+	      if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10);
+	      const parsed = new Date(raw);
+	      if (Number.isNaN(parsed.getTime())) return '';
+	      const pad = (n) => String(n).padStart(2, '0');
+	      return `${parsed.getUTCFullYear()}-${pad(parsed.getUTCMonth() + 1)}-${pad(parsed.getUTCDate())}`;
+	    };
 	    const money = (value) => `AUD ${Number(value || 0)}`;
 	    // Locale-aware timestamp in the viewer's local timezone (audit logs
 	    // arrive as raw RFC 1123 GMT strings). zh: 2026-07-26 21:21; en:
@@ -2300,7 +2630,7 @@
 
     // Health badges reuse the pill component with an icon and the audited
     // WCAG-AA pill colour pairs (green = healthy, amber = needs action,
-    // slate = inert, purple = test fixture). Colour never carries meaning
+    // warm neutral = inert and test fixture). Colour never carries meaning
     // alone — the label text stays next to every icon.
     const PILL_CHECK = pillIcon('<path d="M2.6 6.4l2.3 2.3 4.5-5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>');
     const PILL_ALERT = STATUS_PILL_ICONS.past_due;
@@ -2331,14 +2661,106 @@
       return `${mb} MB`;
     }
 
-    function usageText(t) {
-      const plan = tenantPlan(t);
-      const students = plan.student_limit ? `${Number(t.student_count || 0)} / ${plan.student_limit} students` : `${Number(t.student_count || 0)} students`;
-      const storage = plan.storage_limit_mb
-        ? `${formatStorageMb(t.storage_used_mb)} / ${formatStorageMb(plan.storage_limit_mb)}`
-        : `${formatStorageMb(t.storage_used_mb)}`;
-      return `${students} · ${storage}`;
+    /* A subscription date field.
+     *
+     * The native picker stays: it brings a calendar, keyboard entry, locale
+     * formatting and screen-reader support that a hand-built year/month/day
+     * trio would have to reimplement and would get wrong first. What it does
+     * not bring is the two things an operator actually wants — a way to say
+     * "a year from now" without counting, and a reading of how far away the
+     * date is. Those are added around it.
+     *
+     * It looked broken before this release, but the control was never the
+     * problem: the value handed to it was `Wed, 29 Ju`, so the browser
+     * discarded it and rendered an empty field.
+     */
+    function dateField(id, label, value) {
+      const iso = dateOnly(value);
+      return `
+        <div class="form-group date-field" data-date-field="${esc(id)}">
+          <label for="${esc(id)}">${esc(label)}</label>
+          <input id="${esc(id)}" type="date" value="${esc(iso)}" oninput="refreshDateHint('${esc(id)}')">
+          <div class="date-quick">
+            <button type="button" class="chip" onclick="setDateField('${esc(id)}', 0)">Today</button>
+            <button type="button" class="chip" onclick="setDateField('${esc(id)}', 30)">+1 month</button>
+            <button type="button" class="chip" onclick="setDateField('${esc(id)}', 365)">+1 year</button>
+            <button type="button" class="chip" onclick="setDateField('${esc(id)}', null)">Clear</button>
+          </div>
+          <small class="date-hint" id="${esc(id)}_hint"></small>
+        </div>`;
     }
+
+    function isoToday(offsetDays = 0) {
+      const now = new Date();
+      const day = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+      day.setUTCDate(day.getUTCDate() + offsetDays);
+      return day.toISOString().slice(0, 10);
+    }
+
+    function setDateField(id, offsetDays) {
+      const input = $(id);
+      if (!input) return;
+      // Relative to the field's own value where it has one, so "+1 year" on a
+      // period end means a year after that end, not a year from today.
+      const base = offsetDays === null ? null
+        : (input.value && offsetDays !== 0 ? input.value : isoToday());
+      if (offsetDays === null) {
+        input.value = '';
+      } else {
+        const day = new Date(`${base}T00:00:00Z`);
+        day.setUTCDate(day.getUTCDate() + offsetDays);
+        input.value = day.toISOString().slice(0, 10);
+      }
+      refreshDateHint(id);
+      validateSubscriptionDates();
+    }
+
+    function refreshDateHint(id) {
+      const input = $(id);
+      const hint = $(`${id}_hint`);
+      if (!input || !hint) return;
+      const days = input.value ? relativeDays(input.value) : null;
+      hint.replaceChildren();
+      hint.className = 'date-hint';
+      if (days === null) return;
+      // `classList.add('')` throws, so the ordinary case adds nothing.
+      const tone = days < 0 ? 'overdue' : days <= 14 ? 'soon' : '';
+      if (tone) hint.classList.add(tone);
+      const word = document.createElement('span');
+      word.textContent = days < 0 ? 'days ago' : 'days left';
+      hint.append(document.createTextNode(`${Math.abs(days)} `), word);
+      window.AdminI18n?.localise?.(hint);
+      validateSubscriptionDates();
+    }
+
+    /* The four dates have to describe a period that could exist. Nothing
+       checked this before, so "cancelled with no cancellation date" and a
+       trial ending before it started were both saveable. */
+    function validateSubscriptionDates() {
+      const box = $('m_dateError');
+      if (!box) return true;
+      const get = (id) => ($(id) ? $(id).value : '');
+      const start = get('m_startsAt');
+      const problems = [];
+      [['m_trialEndsAt', 'Trial end'],
+       ['m_currentPeriodEndsAt', 'Current period end'],
+       ['m_endsAt', 'Cancellation / expiry']].forEach(([id, name]) => {
+        const value = get(id);
+        if (start && value && value < start) problems.push(`${name} is before the subscription start.`);
+      });
+      box.replaceChildren();
+      box.hidden = !problems.length;
+      if (problems.length) {
+        box.textContent = problems[0];
+        window.AdminI18n?.localise?.(box);
+      }
+      return !problems.length;
+    }
+
+    /* `usageText` built the same reading as a sentence and lived here. The
+       usage column renders bars now (`renderUsageCell`) and every quota
+       figure on the page goes through `quotaParts`, so there is one place
+       that decides how a limit is written. */
 
     function isTestTenant(t) {
       if (t.is_test === true) return true;
@@ -2526,18 +2948,25 @@
       editingTenantId = id;
       const formHtml = `
         <details class="form-section" open>
-          <summary>Basic</summary>
+          <summary>Basic<span class="summary-hint">${esc(t.name)} · ${esc(t.slug)}</span></summary>
           <div class="form-section-body form-grid">
             <div class="form-group"><label for="m_tenantName">Studio Name</label><input id="m_tenantName" value="${esc(t.name)}"></div>
             <div class="form-group"><label for="m_tenantSlug">Slug</label><input id="m_tenantSlug" value="${esc(t.slug)}" disabled><small>Read-only after creation because it affects URLs, workspace paths, and media paths.</small></div>
             <div class="form-group"><label for="m_tenantCategory">Category</label><select id="m_tenantCategory">${/*safe*/categoryOptions(t.category || 'general')}</select></div>
             <div class="form-group"><label for="m_tenantSlogan">Slogan</label><input id="m_tenantSlogan" value="${esc(t.slogan || presetSlogan(t.category || 'general'))}"></div>
-            <div class="form-group"><label for="m_tenantStatus">Tenant Status</label><input id="m_tenantStatus" value="${esc(t.status)}" disabled><small>Use More → Status for audited lifecycle actions.</small></div>
+            <div class="form-group">
+              <span class="form-label">Tenant Status</span>
+              <div class="derived-value">
+                <span class="pill ${esc(t.status)}">${esc(t.status)}</span>
+                <span class="derived-note">Lifecycle changes are audited and happen in their own flow.</span>
+              </div>
+              <input id="m_tenantStatus" type="hidden" value="${esc(t.status)}">
+            </div>
             <div class="form-group"><label for="m_tenantPlan">Plan</label><select id="m_tenantPlan">${/*safe*/plans.map(p => `<option value="${esc(p.code)}" ${p.code===t.plan_code?'selected':''}>${esc(p.name)}</option>`).join('')}</select></div>
           </div>
         </details>
         <details class="form-section" open>
-          <summary>Owner & Contact</summary>
+          <summary>Owner & Contact<span class="summary-hint">${esc(t.owner_email || 'Needs owner')}</span></summary>
           <div class="form-section-body">
             <div class="form-grid">
               <div class="form-group"><label for="m_ownerName">Owner Name</label><input id="m_ownerName" value="${esc(t.owner_name||'')}"></div>
@@ -2559,7 +2988,7 @@
           </div>
         </details>
         <details class="form-section">
-          <summary>Admin Login</summary>
+          <summary>Admin Login<span class="summary-hint">${/*safe*/t.studio_admin_email ? esc(t.studio_admin_email) : 'Not configured'}</span></summary>
           <div class="form-section-body form-grid">
             <div class="form-group"><label for="m_studioAdminEmail">Studio Admin Email</label><input id="m_studioAdminEmail" type="email" value="${esc(t.studio_admin_email || t.owner_email || '')}"></div>
             <div class="form-group"><label for="m_studioAdminName">Studio Admin Name</label><input id="m_studioAdminName" value="${esc(t.studio_admin_name || t.owner_name || '')}"></div>
@@ -2577,17 +3006,32 @@
           </div>
         </details>
         <details class="form-section">
-          <summary>Subscription</summary>
+          <summary>Subscription<span class="summary-hint">${esc(tenantPlan(t).name || t.plan_code)}${t.current_period_ends_at ? ` · to ${esc(dateOnly(t.current_period_ends_at))}` : ''}</span></summary>
           <div class="form-section-body form-grid">
-            <div class="form-group"><label for="m_subscriptionStatus">Subscription Status</label><input id="m_subscriptionStatus" value="${esc(t.subscription_status || '')}" disabled><small>Changed together with tenant lifecycle state.</small></div>
-            <div class="form-group"><label for="m_startsAt">Subscription Start</label><input id="m_startsAt" type="date" value="${esc(dateOnly(t.starts_at))}"></div>
-            <div class="form-group"><label for="m_currentPeriodEndsAt">Current Period Ends</label><input id="m_currentPeriodEndsAt" type="date" value="${esc(dateOnly(t.current_period_ends_at))}"></div>
-            <div class="form-group"><label for="m_endsAt">Cancellation / Expiry Date</label><input id="m_endsAt" type="date" value="${esc(dateOnly(t.ends_at))}"></div>
+            <!-- Derived, and it says so as a reading rather than as a
+                 disabled text box. A greyed-out input reads as "you should be
+                 able to type here and cannot"; a badge reads as a fact. The
+                 route that does change it is a link, not a sentence telling
+                 the operator to go and find the menu themselves. -->
+            <div class="form-group full">
+              <span class="form-label">Subscription Status</span>
+              <div class="derived-value">
+                <span class="pill ${esc(t.subscription_status || '')}">${esc(t.subscription_status || '-')}</span>
+                <span class="derived-note">Follows the tenant lifecycle state above.</span>
+                <button type="button" class="btn-secondary btn-sm" onclick="closeModal(); openTenantActions('${esc(t.id)}')">Change tenant status</button>
+              </div>
+              <input id="m_subscriptionStatus" type="hidden" value="${esc(t.subscription_status || '')}">
+            </div>
+            ${/*safe*/dateField('m_startsAt', 'Subscription Start', t.starts_at)}
+            ${/*safe*/dateField('m_trialEndsAt', 'Trial Ends', t.trial_ends_at)}
+            ${/*safe*/dateField('m_currentPeriodEndsAt', 'Current Period Ends', t.current_period_ends_at)}
+            ${/*safe*/dateField('m_endsAt', 'Cancellation / Expiry Date', t.ends_at)}
             <div class="form-group"><label for="m_billingEmail">Billing Email</label><input id="m_billingEmail" type="email" value="${esc(t.billing_email||'')}"></div>
+            <p class="form-note full" id="m_dateError" role="alert" hidden></p>
           </div>
         </details>
         <details class="form-section">
-          <summary>Limits</summary>
+          <summary>Limits<span class="summary-hint">Inherited from ${esc(tenantPlan(t).name || t.plan_code)}</span></summary>
           <div class="form-section-body form-grid">
             <div class="form-group"><label for="m_limitStudents">Student Limit</label><input id="m_limitStudents" value="${esc(text(tenantPlan(t).student_limit))}" disabled><small>Inherited from ${esc(text(tenantPlan(t).name || t.plan_code))} plan.</small></div>
             <div class="form-group"><label for="m_limitStorage">Storage Limit</label><input id="m_limitStorage" value="${esc(formatStorageMb(tenantPlan(t).storage_limit_mb))}" disabled><small>Inherited from ${esc(text(tenantPlan(t).name || t.plan_code))} plan.</small></div>
@@ -2596,14 +3040,18 @@
           </div>
         </details>
         <details class="form-section">
-          <summary>Danger Zone</summary>
+          <summary>Danger Zone<span class="summary-hint">Archive, delete, reset</span></summary>
           <div class="form-section-body">
             <p class="text-muted">Use the More actions menu for pause, archive, restore, and permanent delete so confirmation phrases stay explicit.</p>
           </div>
         </details>
       `;
-	      const footerHtml = `<button onclick="saveTenantModal()" class="btn-primary">Save Changes</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
+	      const footerHtml = `<button id="m_saveTenant" onclick="saveTenantModal()" class="btn-primary">Save Changes</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
 	      openModal(`Edit ${/*safe*/t.name}`, formHtml, footerHtml); // title renders via textContent
+	      // "14 days left" is the reading the operator opened this form for, so
+	      // it has to be there before they touch anything.
+	      ['m_startsAt', 'm_trialEndsAt', 'm_currentPeriodEndsAt', 'm_endsAt']
+	        .forEach(refreshDateHint);
 	      $('m_tenantCategory').addEventListener('change', () => {
 	        if (!$('m_tenantSlogan').value.trim()) $('m_tenantSlogan').value = presetSlogan($('m_tenantCategory').value);
 	      });
@@ -2710,7 +3158,14 @@
 	        category: $('m_tenantCategory').value,
 	        slogan: $('m_tenantSlogan').value,
 	        subscriptionStatus: $('m_subscriptionStatus').value,
+        /* All four dates, always. `trialEndsAt` was never sent, and the
+           server read it as `payload.get("trialEndsAt")` — absent meant None,
+           so every save wrote NULL over `trial_ends_at`, the column the trial
+           state and the expiring-trial counter both read from. The server
+           now distinguishes absent from null as well; sending the full set
+           means this form no longer depends on that distinction. */
         startsAt: $('m_startsAt').value || null,
+        trialEndsAt: $('m_trialEndsAt').value || null,
         endsAt: $('m_endsAt').value || null,
         currentPeriodEndsAt: $('m_currentPeriodEndsAt').value || null,
         ownerName: $('m_ownerName').value,
@@ -2733,14 +3188,53 @@
         showToast('Name and slug are required.', 'error');
         return;
       }
+      if (!validateSubscriptionDates()) {
+        // The message is already beside the fields; opening the fold is what
+        // stops it from being an error nobody can see.
+        $('m_dateError')?.closest('.form-section')?.setAttribute('open', '');
+        $('m_dateError')?.scrollIntoView({ block: 'center' });
+        showToast('Check the subscription dates.', 'error');
+        return;
+      }
 
-      await api(editingTenantId ? `/admin/tenants/${editingTenantId}` : '/admin/tenants', {
-        method: editingTenantId ? 'PATCH' : 'POST',
-        body: JSON.stringify(payload)
-      });
+      // Submitting with no visible response is the single highest-severity
+      // form rule in the UX set, and this form had none: the button stayed
+      // idle for the whole round trip.
+      const saveButton = $('m_saveTenant');
+      const finish = beginSaving(saveButton);
+      try {
+        await api(editingTenantId ? `/admin/tenants/${editingTenantId}` : '/admin/tenants', {
+          method: editingTenantId ? 'PATCH' : 'POST',
+          body: JSON.stringify(payload)
+        });
+      } catch (error) {
+        finish();
+        throw error;
+      }
+      finish();
       showToast(editingTenantId ? 'Tenant updated.' : 'Tenant created.');
       closeModal();
       await refresh();
+    }
+
+    /* Disable-and-label a submit button for the length of its request, and
+       hand back the undo. Returns a function rather than taking a callback so
+       the caller's error path is its own business. */
+    function beginSaving(button, label = 'Saving…') {
+      if (!button) return () => {};
+      const original = button.textContent;
+      const width = button.getBoundingClientRect().width;
+      // Pin the width so the button does not jump as the label changes.
+      button.style.minWidth = `${Math.ceil(width)}px`;
+      button.disabled = true;
+      button.classList.add('btn-loading');
+      relabel(button, label);
+      return () => {
+        button.disabled = false;
+        button.classList.remove('btn-loading');
+        button.style.minWidth = '';
+        relabel(button, original);
+      };
     }
 
     function changeTenantOperationalState(id, action) {
@@ -2902,60 +3396,117 @@
       openTenantDetailModal(id);
     }
 
+    /* The tenant detail view.
+     *
+     * It used to be one flat wall of twenty-five cards, and seven of the
+     * fields appeared TWICE — a `tenant-summary` block and a `detail-grid`
+     * were both rendered, and they overlapped on studio, status,
+     * subscription, plan, category, student usage, storage and owner email.
+     * Nothing about reading the code made that visible; it took a screenshot
+     * of the running modal.
+     *
+     * Now: a status bar that never scrolls out of the way, and five tabs.
+     * Tabs rather than folds because this is a reading surface — an operator
+     * opens it already knowing which kind of question they have, and wants to
+     * jump, not to unfold in sequence. The bar stays outside the tabs because
+     * health and quota are what you want visible no matter which one you are
+     * looking at.
+     */
+    const TENANT_DETAIL_TABS = [
+      ['overview', 'Overview'],
+      ['subscription', 'Subscription & Billing'],
+      ['contacts', 'Contacts'],
+      ['usage', 'Usage'],
+      ['operations', 'Operations'],
+    ];
+
     function buildTenantDetailGrid(t) {
       const plan = plans.find((item) => item.code === t.plan_code) || {};
       const container = document.createElement('div');
-      const summary = document.createElement('div');
-      summary.className = 'tenant-summary';
-      const addSummary = (label, value) => {
-        const item = document.createElement('div');
+      const slug = encodeURIComponent(String(t.slug || ''));
+
+      /* ── the bar: four readings, always on screen ──────────────────── */
+      const bar = document.createElement('div');
+      bar.className = 'detail-bar';
+      const barItem = (label, build) => {
+        const cell = document.createElement('div');
         const labelEl = document.createElement('div');
-        const valueEl = document.createElement('div');
-        item.className = 'summary-item';
-        labelEl.className = 'summary-label';
-        valueEl.className = 'summary-value';
+        labelEl.className = 'detail-bar-label';
         labelEl.textContent = label;
-        valueEl.textContent = text(value);
-        item.append(labelEl, valueEl);
-        summary.appendChild(item);
+        cell.className = 'detail-bar-item';
+        cell.appendChild(labelEl);
+        build(cell);
+        bar.appendChild(cell);
       };
-      addSummary('Studio', t.name);
-      addSummary('Tenant Status', t.status);
-      addSummary('Subscription', t.subscription_status || '-');
-      addSummary('Plan', plan.name || t.plan_code);
-      addSummary('Category', t.category || 'general');
-      addSummary('Student Usage', plan.student_limit ? `${Number(t.student_count || 0)} / ${plan.student_limit}` : Number(t.student_count || 0));
-      addSummary('Storage Usage', plan.storage_limit_mb ? `${formatStorageMb(t.storage_used_mb)} / ${formatStorageMb(plan.storage_limit_mb)}` : formatStorageMb(t.storage_used_mb));
-      addSummary('Owner Email', t.owner_email || 'Needs owner');
-      addSummary('Onboarding', onboardingProgress(t));
-      addSummary('Health', healthLabel(t));
-      container.appendChild(summary);
+      barItem('Health', (cell) => appendHealthPill(cell, t));
+      barItem('Plan', (cell) => {
+        const value = document.createElement('div');
+        value.className = 'detail-bar-value';
+        value.textContent = text(plan.name || t.plan_code);
+        cell.appendChild(value);
+      });
+      barItem('Students', (cell) => appendBarQuota(cell, t.student_count, plan.student_limit));
+      barItem('Storage', (cell) => appendBarQuota(
+        cell, t.storage_used_mb, plan.storage_limit_mb, formatStorageMb));
+      container.appendChild(bar);
 
-      const risks = tenantRisks(t);
-      const riskCard = document.createElement('div');
-      riskCard.className = 'detail-item';
-      const riskLabel = document.createElement('div');
-      riskLabel.className = 'detail-label';
-      riskLabel.textContent = 'Risk / Setup';
-      riskCard.appendChild(riskLabel);
-      if (risks.length) {
-        const list = document.createElement('div');
-        list.className = 'risk-list';
-        risks.forEach((risk) => {
-          const item = document.createElement('div');
-          item.className = 'risk-item';
-          item.textContent = risk;
-          list.appendChild(item);
+      /* ── tabs ─────────────────────────────────────────────────────── */
+      const strip = document.createElement('div');
+      strip.className = 'tab-strip';
+      strip.setAttribute('role', 'tablist');
+      const panels = document.createElement('div');
+      const built = {};
+
+      TENANT_DETAIL_TABS.forEach(([key, label], index) => {
+        const tab = document.createElement('button');
+        tab.type = 'button';
+        tab.className = 'tab';
+        tab.id = `tenantTab_${key}`;
+        tab.textContent = label;
+        tab.setAttribute('role', 'tab');
+        tab.setAttribute('aria-controls', `tenantPanel_${key}`);
+        tab.setAttribute('aria-selected', String(index === 0));
+        tab.tabIndex = index === 0 ? 0 : -1;
+
+        const panel = document.createElement('div');
+        panel.className = 'tab-panel';
+        panel.id = `tenantPanel_${key}`;
+        panel.setAttribute('role', 'tabpanel');
+        panel.setAttribute('aria-labelledby', tab.id);
+        panel.hidden = index !== 0;
+        built[key] = panel;
+
+        const select = () => {
+          strip.querySelectorAll('.tab').forEach((el) => {
+            el.setAttribute('aria-selected', String(el === tab));
+            el.tabIndex = el === tab ? 0 : -1;
+          });
+          Object.entries(built).forEach(([panelKey, el]) => { el.hidden = panelKey !== key; });
+        };
+        tab.addEventListener('click', select);
+        // Left/right move between tabs, which is what a tablist owes a
+        // keyboard user; without it the arrow keys do nothing and Tab walks
+        // into panels the reader cannot see.
+        tab.addEventListener('keydown', (event) => {
+          const order = TENANT_DETAIL_TABS.map(([k]) => k);
+          const at = order.indexOf(key);
+          let next = null;
+          if (event.key === 'ArrowRight') next = order[(at + 1) % order.length];
+          if (event.key === 'ArrowLeft') next = order[(at - 1 + order.length) % order.length];
+          if (event.key === 'Home') next = order[0];
+          if (event.key === 'End') next = order[order.length - 1];
+          if (!next) return;
+          event.preventDefault();
+          const target = strip.querySelector(`#tenantTab_${next}`);
+          target.click();
+          target.focus();
         });
-        riskCard.appendChild(list);
-      } else {
-        appendPillWithIcon(riskCard, 'Healthy', 'pill active', PILL_CHECK);
-      }
-      container.appendChild(riskCard);
+        strip.appendChild(tab);
+        panels.appendChild(panel);
+      });
+      container.append(strip, panels);
 
-      const grid = document.createElement('div');
-      grid.className = 'detail-grid';
-      const addDetail = (label, build) => {
+      const card = (panel, label, build) => {
         const item = document.createElement('div');
         const labelEl = document.createElement('div');
         item.className = 'detail-item';
@@ -2963,111 +3514,230 @@
         labelEl.textContent = label;
         item.appendChild(labelEl);
         build(item);
-        grid.appendChild(item);
+        panel.appendChild(item);
+        return item;
       };
-      const addProgress = (item, current, limit) => {
-        const pct = percent(current, limit);
-        const top = document.createElement('div');
-        const left = document.createElement('span');
-        const right = document.createElement('span');
-        const bar = document.createElement('div');
-        const fill = document.createElement('div');
-        top.style.display = 'flex';
-        top.style.justifyContent = 'space-between';
-        top.style.fontSize = '12px';
-        left.textContent = `${text(current)} / ${text(limit)}`;
-        right.textContent = `${pct}%`;
-        bar.className = 'progress-bar';
-        fill.className = `progress-fill ${pct > 90 ? 'red' : pct > 75 ? 'amber' : 'blue'}`;
-        fill.style.width = `${pct}%`;
-        top.append(left, right);
-        bar.appendChild(fill);
-        item.append(top, bar);
+      const grid = (panel, split = false) => {
+        const wrap = document.createElement('div');
+        wrap.className = split ? 'detail-grid detail-split' : 'detail-grid';
+        panel.appendChild(wrap);
+        return wrap;
       };
-      const slug = encodeURIComponent(String(t.slug || ''));
 
-      addDetail('Studio', (item) => {
-        const strong = document.createElement('strong');
-        const code = document.createElement('code');
-        strong.textContent = text(t.name);
-        code.textContent = text(t.slug);
-        item.append(strong, document.createElement('br'), code);
+      /* ── 1 · Overview: what to do about this tenant ────────────────── */
+      // 61.8 / 38.2 — the checklist is the argument, the links are the
+      // standing offer, same division the marketing pages use.
+      const overview = grid(built.overview, true);
+      const overviewMain = document.createElement('div');
+      const overviewSide = document.createElement('div');
+      overview.append(overviewMain, overviewSide);
+
+      card(overviewMain, 'Risk / Setup', (item) => {
+        const risks = tenantRisks(t);
+        if (!risks.length) {
+          appendPillWithIcon(item, 'Healthy', 'pill active', PILL_CHECK);
+          return;
+        }
+        const list = document.createElement('div');
+        list.className = 'risk-list';
+        risks.forEach((risk) => {
+          const row = document.createElement('div');
+          row.className = 'risk-item';
+          row.textContent = risk;
+          list.appendChild(row);
+        });
+        item.appendChild(list);
       });
-      addDetail('Category', (item) => addStrongMuted(item, t.category || 'general', t.slogan));
-      addDetail('Status', (item) => {
-        item.appendChild(document.createTextNode('Tenant: '));
-        appendPill(item, t.status);
-        item.appendChild(document.createElement('br'));
-        item.appendChild(document.createTextNode('Subscription: '));
-        appendPill(item, t.subscription_status || '-');
-        item.appendChild(document.createElement('br'));
-        item.appendChild(document.createTextNode('Access: '));
-        appendSmallBadge(item, accessStatus(t), accessStatus(t) === 'Enabled' ? 'pill active' : 'pill');
+      card(overviewMain, 'Onboarding Checklist', (item) => {
+        const progress = document.createElement('div');
+        progress.className = 'detail-value';
+        progress.textContent = onboardingProgress(t);
+        item.appendChild(progress);
+        onboardingChecklist(t).forEach(([label, complete]) => {
+          const row = document.createElement('div');
+          const markEl = document.createElement('span');
+          markEl.setAttribute('aria-hidden', 'true');
+          markEl.textContent = complete ? '✓ ' : '○ ';
+          row.append(markEl, document.createTextNode(label));
+          row.className = complete ? 'check-row done' : 'check-row';
+          item.appendChild(row);
+        });
       });
-      addDetail('Quick Links', (item) => {
+      card(overviewSide, 'Quick Links', (item) => {
         const links = document.createElement('div');
         links.className = 'link-grid';
         const unavailable = ['archived', 'deleted'].includes(t.status);
-        // Public pages stay direct links; tenant-scoped Studio CMS and Brand
-        // Workspace go through the audited support-mode flow (403
-        // support_session_required without an active session).
         addActionLink(links, 'Studio Website', `/${slug}`, unavailable ? 'Archived or deleted tenants cannot be opened.' : '');
         addSupportGatedLink(links, 'Studio CMS', t.id, `/${slug}/cms`, unavailable ? 'Archived or deleted tenants cannot be opened.' : '');
         addSupportGatedLink(links, 'Brand Workspace', t.id, `/${slug}/studio-admin`, unavailable ? 'Archived or deleted tenants cannot be opened.' : '');
         addActionLink(links, 'Quick Registration', `/${slug}/register`, ['paused', 'archived', 'deleted'].includes(t.status) ? 'Registration is unavailable for paused, archived, or deleted tenants.' : '');
         item.appendChild(links);
       });
-      addDetail('Onboarding Checklist', (item) => {
-        onboardingChecklist(t).forEach(([label, complete]) => {
-          const row = document.createElement('div');
-          // Mark lives in its own span so the label stays a clean text node
-          // for the admin-i18n dictionary lookup.
-          const markEl = document.createElement('span');
-          markEl.setAttribute('aria-hidden', 'true');
-          markEl.textContent = complete ? '✓ ' : '○ ';
-          row.append(markEl, document.createTextNode(label));
-          // --green-deep (4.5:1+ on this card) — var(--success) was undefined.
-          row.style.color = complete ? 'var(--green-deep)' : 'var(--muted)';
-          row.style.marginBottom = '4px';
-          item.appendChild(row);
+      card(overviewSide, 'Studio', (item) => {
+        const strong = document.createElement('strong');
+        const code = document.createElement('code');
+        strong.textContent = text(t.name);
+        code.textContent = text(t.slug);
+        item.append(strong, document.createElement('br'), code);
+        const category = document.createElement('div');
+        category.className = 'detail-sub';
+        category.textContent = `${text(t.category || 'general')}${t.slogan ? ` · ${t.slogan}` : ''}`;
+        item.appendChild(category);
+      });
+
+      /* ── 2 · Subscription & billing ────────────────────────────────── */
+      const subscription = grid(built.subscription);
+      card(subscription, 'Status', (item) => {
+        const rows = [
+          ['Tenant', () => appendPill(item, t.status)],
+          ['Subscription', () => appendPill(item, t.subscription_status || '-')],
+          ['Access', () => appendSmallBadge(item, accessStatus(t), accessStatus(t) === 'Enabled' ? 'pill active' : 'pill')],
+        ];
+        rows.forEach(([label, build], index) => {
+          if (index) item.appendChild(document.createElement('br'));
+          item.appendChild(document.createTextNode(`${label}: `));
+          build();
         });
       });
-      addDetail('Workspace', (item) => {
+      card(subscription, 'Plan', (item) => addStrongMuted(
+        item, plan.name || t.plan_code, plan.monthly_price_aud != null ? money(plan.monthly_price_aud) : ''));
+      card(subscription, 'Subscription Period', (item) => {
+        appendDateRow(item, 'Start', t.starts_at);
+        appendDateRow(item, 'Trial ends', t.trial_ends_at);
+        appendDateRow(item, 'Current period ends', t.current_period_ends_at);
+        appendDateRow(item, 'Cancellation / expiry', t.ends_at, 'Open-ended');
+      });
+      card(subscription, 'Billing', (item) => {
+        item.append(document.createTextNode(text(t.billing_email)),
+                    document.createElement('br'),
+                    document.createTextNode(`ABN ${text(t.abn)}`));
+      });
+
+      /* ── 3 · Contacts ──────────────────────────────────────────────── */
+      const contacts = grid(built.contacts);
+      card(contacts, 'Owner', (item) => addStrongMuted(item, t.owner_name, t.owner_email));
+      card(contacts, 'Studio Admin Login', (item) => addStrongMuted(item, t.studio_admin_email, t.studio_admin_name));
+      card(contacts, 'Contact', (item) => {
+        item.append(document.createTextNode(text(t.contact_phone)),
+                    document.createElement('br'),
+                    document.createTextNode(text(t.contact_email)));
+      });
+
+      /* ── 4 · Usage ─────────────────────────────────────────────────── */
+      const usage = grid(built.usage);
+      card(usage, 'Students', (item) => addProgressRow(item, t.student_count, plan.student_limit));
+      card(usage, 'Storage', (item) => addProgressRow(item, t.storage_used_mb, plan.storage_limit_mb, formatStorageMb));
+      card(usage, 'Team Users', (item) => addProgressRow(item, t.user_count, plan.user_limit));
+
+      /* ── 5 · Operations ────────────────────────────────────────────── */
+      const operations = grid(built.operations);
+      card(operations, 'Workspace', (item) => {
         const code = document.createElement('code');
         code.textContent = text(t.workspace_path);
         item.appendChild(code);
       });
-      addDetail('Owner', (item) => addStrongMuted(item, t.owner_name, t.owner_email));
-      addDetail('Studio Admin Login', (item) => addStrongMuted(item, t.studio_admin_email, t.studio_admin_name));
-      addDetail('Contact', (item) => {
-        item.append(document.createTextNode(text(t.contact_phone)), document.createElement('br'), document.createTextNode(text(t.contact_email)));
-      });
-      addDetail('Billing', (item) => {
-        item.append(document.createTextNode(text(t.billing_email)), document.createElement('br'), document.createTextNode(`ABN ${text(t.abn)}`));
-      });
-      addDetail('Students', (item) => addProgress(item, t.student_count, plan.student_limit));
-      addDetail('Storage', (item) => addProgress(item, t.storage_used_mb, plan.storage_limit_mb));
-      addDetail('Created', (item) => item.appendChild(document.createTextNode(dateOnly(t.created_at) || '-')));
+      card(operations, 'Created', (item) => appendDateValue(item, t.created_at));
       if (t.status === 'archived') {
-        addDetail('Archived', (item) => item.appendChild(document.createTextNode(dateOnly(t.archived_at) || '-')));
-        addDetail('Archive Path', (item) => {
+        card(operations, 'Archived', (item) => appendDateValue(item, t.archived_at));
+        card(operations, 'Archive Path', (item) => {
           const code = document.createElement('code');
           code.textContent = text(t.archive_path);
           item.appendChild(code);
         });
       }
-      addDetail('Subscription', (item) => {
-        // The end marker is its own node so "Open-ended" can translate; a
-        // combined "2026-01-01 to open" text node matches nothing.
-        const range = document.createElement('span');
-        range.className = 'tabular';
-        range.textContent = `${dateOnly(t.starts_at) || '-'} → `;
-        const end = document.createElement('span');
-        end.textContent = dateOnly(t.ends_at) || 'Open-ended';
-        item.append(range, end);
-      });
-      container.appendChild(grid);
       return container;
+    }
+
+    /* One quota reading, one shape. The bar and the Usage tab both call this
+       family so a figure cannot be written two ways in one modal — the old
+       code had the summary going through `formatStorageMb` (20 MB / 50 GB)
+       while the progress bar below it printed raw megabytes (20 / 51200). */
+    function quotaParts(current, limit, format = (v) => text(v)) {
+      const used = Number(current || 0);
+      const cap = Number(limit || 0);
+      return { used, cap, pct: percent(used, cap), label: cap ? `${format(used)} / ${format(cap)}` : format(used) };
+    }
+
+    function quotaTone(pct) {
+      return pct > 90 ? 'red' : pct > 75 ? 'amber' : 'blue';
+    }
+
+    function appendBarQuota(cell, current, limit, format) {
+      const { pct, label } = quotaParts(current, limit, format);
+      const value = document.createElement('div');
+      value.className = 'detail-bar-value tabular';
+      value.textContent = label;
+      const bar = document.createElement('div');
+      const fill = document.createElement('div');
+      bar.className = 'progress-bar';
+      fill.className = `progress-fill ${quotaTone(pct)}`;
+      fill.style.width = `${pct}%`;
+      bar.appendChild(fill);
+      cell.append(value, bar);
+    }
+
+    function addProgressRow(item, current, limit, format) {
+      const { pct, label } = quotaParts(current, limit, format);
+      const top = document.createElement('div');
+      const left = document.createElement('span');
+      const right = document.createElement('span');
+      const bar = document.createElement('div');
+      const fill = document.createElement('div');
+      top.className = 'progress-head tabular';
+      left.textContent = label;
+      right.textContent = `${pct}%`;
+      bar.className = 'progress-bar';
+      fill.className = `progress-fill ${quotaTone(pct)}`;
+      fill.style.width = `${pct}%`;
+      top.append(left, right);
+      bar.appendChild(fill);
+      item.append(top, bar);
+    }
+
+    /* A date, plus how far away it is. "2027-01-01" answers a question nobody
+       asked; "in 150 days" is the thing the operator was actually looking
+       for, and an expired one has to be impossible to read past. */
+    function relativeDays(value) {
+      const iso = dateOnly(value);
+      if (!iso) return null;
+      const then = new Date(`${iso}T00:00:00Z`);
+      const now = new Date();
+      const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+      return Math.round((then.getTime() - today) / 86400000);
+    }
+
+    function appendDateValue(item, value) {
+      const iso = dateOnly(value);
+      const span = document.createElement('span');
+      span.className = 'tabular';
+      span.textContent = iso || '-';
+      item.appendChild(span);
+    }
+
+    function appendDateRow(item, label, value, emptyLabel = '—') {
+      const iso = dateOnly(value);
+      const row = document.createElement('div');
+      const name = document.createElement('span');
+      const val = document.createElement('span');
+      row.className = 'date-row';
+      name.className = 'date-row-label';
+      name.textContent = label;
+      val.className = 'tabular';
+      val.textContent = iso || emptyLabel;
+      row.append(name, val);
+      const days = iso === '' ? null : relativeDays(value);
+      if (days !== null) {
+        const rel = document.createElement('span');
+        rel.className = days < 0 ? 'date-rel overdue' : days <= 14 ? 'date-rel soon' : 'date-rel';
+        // Written as a number plus a translatable word rather than one
+        // interpolated sentence, so the dictionary has something to match.
+        rel.append(document.createTextNode(String(Math.abs(days))), document.createTextNode(' '));
+        const word = document.createElement('span');
+        word.textContent = days < 0 ? 'days ago' : 'days left';
+        rel.appendChild(word);
+        row.appendChild(rel);
+      }
+      item.appendChild(row);
     }
 
     function openTenantDetailModal(id) {
@@ -3152,23 +3822,31 @@
           appendSmallBadge(studioCell, 'TEST FIXTURE', 'pill fixture');
         }
         addStrongMuted(addCell(row, '', 'Plan'), t.plan_code, t.category || 'general');
+        /* Three stacked pills in a narrow column wrapped their labels onto
+           three lines each, and a pill's radius turned "Needs setup" into an
+           amber disc. One primary pill and one secondary line, neither
+           allowed to wrap; health is only shown when it is not "Healthy",
+           because a column of green ticks is a column carrying no
+           information. */
         const statusCell = addCell(row, '', 'Status');
+        statusCell.className += ' status-cell';
         appendPill(statusCell, t.status);
-        statusCell.appendChild(document.createElement('br'));
-        const sub = document.createElement('span');
-        sub.className = 'text-muted';
+        const sub = document.createElement('div');
+        sub.className = 'status-sub';
         sub.textContent = text(t.subscription_status || '-');
         statusCell.appendChild(sub);
-        statusCell.appendChild(document.createElement('br'));
-        appendHealthPill(statusCell, t);
+        if (healthLabel(t) !== 'Healthy') appendHealthPill(statusCell, t);
         const ownerCell = addCell(row, '', 'Owner');
-        ownerCell.textContent = t.owner_email || 'Needs owner';
+        const ownerLine = document.createElement('div');
+        ownerLine.className = 'ellipsis';
+        ownerLine.textContent = t.owner_email || 'Needs owner';
+        // The full address on hover: the column truncates, and an operator
+        // who needs to read one should not have to open the tenant.
+        if (t.owner_email) ownerLine.title = t.owner_email;
+        ownerCell.appendChild(ownerLine);
         if (!t.owner_email) appendSmallBadge(ownerCell, 'Needs owner', 'pill warning');
-        if (!t.studio_admin_email) {
-          ownerCell.appendChild(document.createElement('br'));
-          appendSmallBadge(ownerCell, 'No admin login', 'pill warning');
-        }
-        addCell(row, usageText(t), 'Usage');
+        if (!t.studio_admin_email) appendSmallBadge(ownerCell, 'No admin login', 'pill warning');
+        renderUsageCell(addCell(row, '', 'Usage'), t);
         renderTenantSurfaces(addCell(row, '', 'Surfaces'), t);
         const actions = document.createElement('div');
         actions.className = 'action-row';
@@ -3177,6 +3855,40 @@
         addCell(row, '', 'Actions').appendChild(actions);
         tbody.appendChild(row);
       });
+    }
+
+    /* Usage as two hairline bars rather than a sentence.
+       `0 / 100 students · 0 MB / 2.0 GB` had to be read to be understood, and
+       the one thing this column exists to answer — who is close to a limit —
+       was the thing it made hardest. The figures stay, under the bars. */
+    function renderUsageCell(cell, t) {
+      const plan = tenantPlan(t);
+      const wrap = document.createElement('div');
+      wrap.className = 'usage-cell';
+      [['Students', t.student_count, plan.student_limit, undefined],
+       ['Storage', t.storage_used_mb, plan.storage_limit_mb, formatStorageMb],
+      ].forEach(([label, current, limit, format]) => {
+        const { pct, label: figure } = quotaParts(current, limit, format);
+        const line = document.createElement('div');
+        const name = document.createElement('span');
+        const value = document.createElement('span');
+        const bar = document.createElement('div');
+        const fill = document.createElement('div');
+        line.className = 'usage-line';
+        name.textContent = label;
+        value.className = 'tabular';
+        value.textContent = figure;
+        bar.className = 'progress-bar';
+        fill.className = `progress-fill ${quotaTone(pct)}`;
+        fill.style.width = `${pct}%`;
+        // The bar is decoration over a number that is already there, so it is
+        // hidden from assistive tech rather than announced twice.
+        bar.setAttribute('aria-hidden', 'true');
+        line.append(name, value);
+        bar.appendChild(fill);
+        wrap.append(line, bar);
+      });
+      cell.appendChild(wrap);
     }
 
     // Plan form handlers
@@ -3188,18 +3900,72 @@
       ['priority_support', 'Priority support']
     ];
 
+    /* Entitlements, grouped by who feels them.
+       Five unexplained switches in one box asked the operator to remember
+       what "Priority support" commits us to; the group tells them who it is
+       for and the line under each says what it turns on. */
+    const PLAN_FEATURE_GROUPS = [
+      ['What the studio can publish', [
+        ['public_registration', 'Public registration', 'Families can apply from the studio website without being invited.'],
+        ['portfolio', 'Student portfolio', 'Student work can be published with recorded guardian consent.'],
+      ]],
+      ['What the studio can send and take away', [
+        ['email_templates', 'Email templates', 'Reusable message templates in the operations CMS.'],
+        ['data_export', 'Data export', 'Students, credits and attendance can be exported as a spreadsheet.'],
+      ]],
+      ['What we commit to', [
+        ['priority_support', 'Priority support', 'Ahead of the standard queue. This is a commitment we have to staff.'],
+      ]],
+    ];
+
     function planFeatureEditor(features = {}) {
-      const known = new Set(KNOWN_PLAN_FEATURES.map(([key]) => key));
-      const additional = Object.fromEntries(Object.entries(features || {}).filter(([key]) => !known.has(key)));
+      const known = new Set(PLAN_FEATURE_GROUPS.flatMap(([, rows]) => rows.map(([key]) => key)));
+      const additional = Object.fromEntries(
+        Object.entries(features || {}).filter(([key]) => !known.has(key)));
+      const groups = PLAN_FEATURE_GROUPS.map(([heading, rows]) => `
+        <div class="feature-group">
+          <p class="feature-group-title">${heading}</p>
+          ${rows.map(([key, label, note]) => `
+            <label class="feature-row">
+              <input type="checkbox" data-plan-feature="${key}" ${features[key] ? 'checked' : ''}>
+              <span><span class="feature-label">${label}</span>
+              <span class="feature-note">${note}</span></span>
+            </label>`).join('')}
+        </div>`).join('');
+      /* The JSON box stays — a flag added to the database tomorrow has to be
+         reachable before this list knows about it — but it validates as you
+         type now. It used to accept anything and throw on save, after the
+         operator had already left the field. */
       return `
-        <fieldset class="form-section" style="padding:14px;">
-          <legend style="padding:0 6px;font-weight:800;">Entitlements</legend>
-          <div class="form-grid">
-            ${KNOWN_PLAN_FEATURES.map(([key, label]) => `<label style="display:flex;align-items:center;gap:9px;"><input type="checkbox" data-plan-feature="${key}" style="width:auto;" ${features[key] ? 'checked' : ''}> ${label}</label>`).join('')}
-          </div>
+        <fieldset class="form-section plan-fieldset">
+          <legend>Entitlements</legend>
+          ${groups}
+          <details class="advanced-json">
+            <summary>Flags not listed above<span class="summary-hint">${Object.keys(additional).length ? `${Object.keys(additional).length} set` : 'none'}</span></summary>
+            <label for="m_planFeaturesAdvanced">Additional entitlements (JSON)</label>
+            <textarea id="m_planFeaturesAdvanced" rows="3" oninput="validatePlanJson()">${esc(JSON.stringify(additional, null, 2))}</textarea>
+            <small class="date-hint" id="m_planFeaturesAdvanced_hint"></small>
+          </details>
         </fieldset>
-        <div class="form-group"><label for="m_planFeaturesAdvanced">Additional entitlements (JSON)</label><textarea id="m_planFeaturesAdvanced" rows="3">${esc(JSON.stringify(additional, null, 2))}</textarea><small>Only use this for feature flags not listed above.</small></div>
       `;
+    }
+
+    function validatePlanJson() {
+      const field = $('m_planFeaturesAdvanced');
+      const hint = $('m_planFeaturesAdvanced_hint');
+      if (!field || !hint) return true;
+      const raw = field.value.trim();
+      let ok = true;
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          ok = parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed);
+        } catch { ok = false; }
+      }
+      hint.className = ok ? 'date-hint' : 'date-hint overdue';
+      relabel(hint, ok ? '' : 'Must be a JSON object, for example {"beta_reports": true}');
+      field.setAttribute('aria-invalid', String(!ok));
+      return ok;
     }
 
     // Publication is not the same decision as definition: a plan exists as
@@ -3207,16 +3973,72 @@
     // when somebody says it is for sale. Before migration 0023 the two were
     // the same act, and a fixture plan reached the public grid at A$1.
     function planPublicationEditor(plan = {}) {
+      /* This block sits at the TOP of the form now. It was at the bottom,
+         below the entitlements and the JSON box — and it is the only thing on
+         this page that changes what the public website says the moment it is
+         saved. The live line underneath shows the row a visitor would read,
+         because a checkbox called "Publish" does not tell you what gets
+         published. */
       return `
-        <fieldset class="form-section" style="padding:14px;">
-          <legend style="padding:0 6px;font-weight:800;">Public pricing page</legend>
-          <div class="form-grid">
-            <label style="display:flex;align-items:center;gap:9px;"><input type="checkbox" id="m_planPublic" style="width:auto;" ${plan.is_public ? 'checked' : ''}> Publish on pwestudio.online</label>
-            <label style="display:flex;align-items:center;gap:9px;"><input type="checkbox" id="m_planRecommended" style="width:auto;" ${plan.is_recommended ? 'checked' : ''}> Mark as the recommended plan</label>
-          </div>
-          <small>Only one plan carries the badge; ticking it here clears it elsewhere.</small>
+        <fieldset class="form-section plan-fieldset publish-fieldset">
+          <legend>Public pricing page</legend>
+          <label class="feature-row">
+            <input type="checkbox" id="m_planPublic" ${plan.is_public ? 'checked' : ''} onchange="refreshPlanPreview()">
+            <span><span class="feature-label">Publish on pwestudio.online</span>
+            <span class="feature-note">Off by default. A plan exists as soon as it is created; it is for sale only when somebody says so.</span></span>
+          </label>
+          <label class="feature-row">
+            <input type="checkbox" id="m_planRecommended" ${plan.is_recommended ? 'checked' : ''} onchange="refreshPlanPreview()">
+            <span><span class="feature-label">Mark as the recommended plan</span>
+            <span class="feature-note">Only one plan carries the badge; ticking it here clears it elsewhere.</span></span>
+          </label>
+          <div class="plan-preview" id="m_planPreview" aria-live="polite"></div>
         </fieldset>
       `;
+    }
+
+    /* What the pricing grid would render, from the values in this form. */
+    function refreshPlanPreview() {
+      const box = $('m_planPreview');
+      if (!box) return;
+      box.replaceChildren();
+      if (!$('m_planPublic')?.checked) {
+        const off = document.createElement('span');
+        off.className = 'plan-preview-off';
+        off.textContent = 'Not shown on the public pricing page.';
+        box.appendChild(off);
+        window.AdminI18n?.localise?.(box);
+        return;
+      }
+      const name = $('m_planName')?.value || $('m_planCode')?.value || '';
+      const price = Number($('m_planMonthly')?.value || 0);
+      const students = Number($('m_planStudents')?.value || 0);
+      const users = Number($('m_planUsers')?.value || 0);
+      const storage = formatStorageMb(gbToMb($('m_planStorage')?.value));
+      const head = document.createElement('div');
+      head.className = 'plan-preview-head';
+      head.textContent = `${name} — A$${price}/month`;
+      if ($('m_planRecommended')?.checked) {
+        const badge = document.createElement('span');
+        badge.className = 'pill active';
+        badge.textContent = 'Recommended';
+        head.appendChild(badge);
+      }
+      const list = document.createElement('div');
+      list.className = 'plan-preview-list';
+      [['Students', students.toLocaleString()], ['Team users', String(users)], ['Storage', storage]]
+        .forEach(([label, value]) => {
+          const row = document.createElement('div');
+          const name_ = document.createElement('span');
+          const val = document.createElement('span');
+          name_.textContent = label;
+          val.className = 'tabular';
+          val.textContent = value;
+          row.append(name_, val);
+          list.appendChild(row);
+        });
+      box.append(head, list);
+      window.AdminI18n?.localise?.(box);
     }
 
     function collectPlanFeatures() {
@@ -3267,19 +4089,20 @@
       editingPlanCode = '';
       $('modalTitle').textContent = 'Add Plan';
       const bodyHtml = `
+        ${/*safe*/planPublicationEditor()}
         <div class="form-grid">
           <div class="form-group"><label for="m_planCode">Code</label><input id="m_planCode" placeholder="e.g. studio-pro" pattern="[a-z0-9][a-z0-9-]{1,62}"></div>
-          <div class="form-group"><label for="m_planName">Name</label><input id="m_planName"></div>
-          <div class="form-group"><label for="m_planMonthly">Price (AUD)</label><input id="m_planMonthly" type="number" value="149"></div>
-          <div class="form-group"><label for="m_planStudents">Students</label><input id="m_planStudents" type="number" min="1" value="800"></div>
-          <div class="form-group"><label for="m_planUsers">Users</label><input id="m_planUsers" type="number" min="1" value="12"></div>
-          <div class="form-group"><label for="m_planStorage">Storage (MB)</label><input id="m_planStorage" type="number" min="1" value="51200"></div>
+          <div class="form-group"><label for="m_planName">Name</label><input id="m_planName" oninput="refreshPlanPreview()"></div>
+          <div class="form-group"><label for="m_planMonthly">Price (AUD)</label><input id="m_planMonthly" type="number" value="149" oninput="refreshPlanPreview()"></div>
+          <div class="form-group"><label for="m_planStudents">Students</label><input id="m_planStudents" type="number" min="1" value="800" oninput="refreshPlanPreview()"></div>
+          <div class="form-group"><label for="m_planUsers">Users</label><input id="m_planUsers" type="number" min="1" value="12" oninput="refreshPlanPreview()"></div>
+          <div class="form-group"><label for="m_planStorage">Storage (GB)</label><input id="m_planStorage" type="number" min="1" step="0.5" value="50" oninput="refreshPlanPreview()"></div>
         </div>
         ${/*safe*/planFeatureEditor({ public_registration: true, portfolio: true })}
-        ${/*safe*/planPublicationEditor()}
       `;
-      const footerHtml = `<button onclick="savePlanModal()" class="btn-primary">Save Plan</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
+      const footerHtml = `<button id="m_savePlan" onclick="savePlanModal()" class="btn-primary">Save Plan</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
       openModal('Add Plan', bodyHtml, footerHtml);
+      refreshPlanPreview();
     }
 
     function editPlan(code) {
@@ -3287,22 +4110,40 @@
       if (!p) return;
       editingPlanCode = code;
       const bodyHtml = `
+        ${/*safe*/planPublicationEditor(p)}
         <div class="form-grid">
           <div class="form-group"><label for="m_planCode">Code</label><input id="m_planCode" value="${esc(p.code)}" disabled></div>
-          <div class="form-group"><label for="m_planName">Name</label><input id="m_planName" value="${esc(p.name)}"></div>
-          <div class="form-group"><label for="m_planMonthly">Price (AUD)</label><input id="m_planMonthly" type="number" value="${esc(p.monthly_price_aud)}"></div>
-          <div class="form-group"><label for="m_planStudents">Students</label><input id="m_planStudents" type="number" min="1" value="${esc(p.student_limit)}"></div>
-          <div class="form-group"><label for="m_planUsers">Users</label><input id="m_planUsers" type="number" min="1" value="${esc(p.user_limit)}"></div>
-          <div class="form-group"><label for="m_planStorage">Storage (MB)</label><input id="m_planStorage" type="number" min="1" value="${esc(p.storage_limit_mb)}"></div>
+          <div class="form-group"><label for="m_planName">Name</label><input id="m_planName" value="${esc(p.name)}" oninput="refreshPlanPreview()"></div>
+          <div class="form-group"><label for="m_planMonthly">Price (AUD)</label><input id="m_planMonthly" type="number" value="${esc(p.monthly_price_aud)}" oninput="refreshPlanPreview()"></div>
+          <div class="form-group"><label for="m_planStudents">Students</label><input id="m_planStudents" type="number" min="1" value="${esc(p.student_limit)}" oninput="refreshPlanPreview()"></div>
+          <div class="form-group"><label for="m_planUsers">Users</label><input id="m_planUsers" type="number" min="1" value="${esc(p.user_limit)}" oninput="refreshPlanPreview()"></div>
+          <div class="form-group"><label for="m_planStorage">Storage (GB)</label><input id="m_planStorage" type="number" min="1" step="0.5" value="${esc(mbToGb(p.storage_limit_mb))}" oninput="refreshPlanPreview()"><small>Stored in megabytes; <span class="tabular">${esc(p.storage_limit_mb)}</span> MB today.</small></div>
         </div>
         ${/*safe*/planFeatureEditor(p.features || {})}
-        ${/*safe*/planPublicationEditor(p)}
       `;
-      const footerHtml = `<button onclick="savePlanModal()" class="btn-primary">Save Plan</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
+      const footerHtml = `<button id="m_savePlan" onclick="savePlanModal()" class="btn-primary">Save Plan</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
       openModal(`Edit ${/*safe*/p.name}`, bodyHtml, footerHtml); // title renders via textContent
+      refreshPlanPreview();
+    }
+
+    /* Megabytes on the wire, gigabytes in front of a person. `51200` is not a
+       number anyone can check at a glance, and the field it was typed into
+       had no unit beyond a label. */
+    function mbToGb(mb) {
+      const value = Number(mb || 0) / 1024;
+      return Number.isInteger(value) ? String(value) : value.toFixed(1);
+    }
+
+    function gbToMb(gb) {
+      return Math.round(Number(gb || 0) * 1024);
     }
 
     async function savePlanModal() {
+      if (!validatePlanJson()) {
+        showToast('Additional entitlements must be a JSON object.', 'error');
+        $('m_planFeaturesAdvanced').focus();
+        return;
+      }
       let features;
       try { features = collectPlanFeatures(); }
       catch (error) { showToast(error.message, 'error'); return; }
@@ -3318,18 +4159,42 @@
         monthlyPriceAud: Number($('m_planMonthly').value),
         studentLimit: Number($('m_planStudents').value),
         userLimit: Number($('m_planUsers').value),
-        storageLimitMb: Number($('m_planStorage').value),
+        storageLimitMb: gbToMb($('m_planStorage').value),
         features,
         isPublic: $('m_planPublic').checked,
         isRecommended: $('m_planRecommended').checked
       };
-      await api(editingPlanCode ? `/plans/${editingPlanCode}` : '/plans', {
-        method: editingPlanCode ? 'PATCH' : 'POST',
-        body: JSON.stringify(payload)
-      });
+      /* A limit is not a number on a form, it is a number every studio on
+         this plan is held to from the moment Save is pressed. Editing one
+         used to be silent about that. */
+      const affected = tenants.filter((item) => item.plan_code === editingPlanCode);
+      if (editingPlanCode && affected.length) {
+        const over = affected.filter((item) =>
+          Number(item.student_count || 0) > payload.studentLimit
+          || Number(item.storage_used_mb || 0) > payload.storageLimitMb);
+        if (over.length && !window.confirm(planImpactWarning(affected.length, over))) return;
+      }
+      const saveButton = $('m_savePlan');
+      const finish = beginSaving(saveButton);
+      try {
+        await api(editingPlanCode ? `/plans/${editingPlanCode}` : '/plans', {
+          method: editingPlanCode ? 'PATCH' : 'POST',
+          body: JSON.stringify(payload)
+        });
+      } catch (error) {
+        finish();
+        throw error;
+      }
+      finish();
       showToast(editingPlanCode ? 'Plan updated.' : 'Plan created.');
       closeModal();
       await refresh();
+    }
+
+    function planImpactWarning(total, over) {
+      const names = over.slice(0, 3).map((item) => item.name).join(', ');
+      const more = over.length > 3 ? ` (+${over.length - 3})` : '';
+      return `${total} studios are on this plan. ${over.length} would be over the new limit immediately: ${names}${more}. Save anyway?`;
     }
 
     async function deletePlan(code) {
@@ -3379,7 +4244,7 @@
       sources.className = 'funnel-sources';
       [
         ['', 'Studio Websites', Number(usage.portal_registrations_30d || 0)],
-        ['purple', 'Quick Registration or campaigns', Number(usage.alternate_registrations_30d || 0)]
+        ['accent', 'Quick Registration or campaigns', Number(usage.alternate_registrations_30d || 0)]
       ].forEach(([tone, label, count]) => {
         const row = document.createElement('div');
         row.className = 'funnel-source';

@@ -1210,6 +1210,32 @@ def _clear_other_recommended(cur, plan: dict, code: str) -> None:
     )
 
 
+# A date the caller did not mention at all. Distinct from `None`, which is a
+# caller saying "clear this".
+KEEP = object()
+
+
+def _subscription_date(payload: dict, *names: str):
+    """A subscription date, distinguishing "not mentioned" from "clear it".
+
+    These were read with `payload.get(a) or payload.get(b)`, so a key the
+    caller never sent came back as `None` and the upsert wrote NULL over the
+    stored value. The Super Admin form has never sent `trialEndsAt`, so every
+    tenant save silently cleared `trial_ends_at` — the column the trial state
+    and the expiring-trial counter are both read from.
+
+    `or` was wrong for a second reason: an empty string is falsy, so
+    `{"startsAt": ""}` fell through to the snake_case key instead of being
+    read as a clear.
+    """
+
+    for name in names:
+        if name in payload:
+            value = payload[name]
+            return value if value not in ("", None) else None
+    return KEEP
+
+
 def _tenant_write_payload(payload: dict, *, require_slug: bool) -> dict:
     """Validate and normalize tenant write payloads."""
 
@@ -1311,11 +1337,11 @@ def _tenant_write_payload(payload: dict, *, require_slug: bool) -> dict:
         "address": address,
         "settings_json": json.dumps(settings),
         "subscription_status": subscription_status,
-        "starts_at": payload.get("startsAt") or payload.get("starts_at"),
-        "ends_at": payload.get("endsAt") or payload.get("ends_at"),
-        "trial_ends_at": payload.get("trialEndsAt") or payload.get("trial_ends_at"),
-        "current_period_ends_at": payload.get("currentPeriodEndsAt")
-        or payload.get("current_period_ends_at"),
+        "starts_at": _subscription_date(payload, "startsAt", "starts_at"),
+        "ends_at": _subscription_date(payload, "endsAt", "ends_at"),
+        "trial_ends_at": _subscription_date(payload, "trialEndsAt", "trial_ends_at"),
+        "current_period_ends_at": _subscription_date(
+            payload, "currentPeriodEndsAt", "current_period_ends_at"),
         "studio_admin": _studio_admin_write_payload(payload, name, slug, require_password=require_slug),
     }
 
@@ -5913,10 +5939,10 @@ def create_tenant():
                     tenant_id,
                     data["plan_code"],
                     data["subscription_status"],
-                    data["starts_at"],
-                    data["ends_at"],
-                    data["trial_ends_at"],
-                    data["current_period_ends_at"],
+                    # There is nothing to keep on a row being created, so an
+                    # unmentioned date is simply null here.
+                    *(None if data[name] is KEEP else data[name] for name in (
+                        "starts_at", "ends_at", "trial_ends_at", "current_period_ends_at")),
                 ),
             )
             cur.execute(
@@ -6008,6 +6034,13 @@ def mutate_tenant(tenant_id: str):
             if cur.rowcount == 0:
                 return _error("Tenant was not found.", 404)
             _ensure_studio_admin_account(conn, tenant_id, data["studio_admin"])
+            # A date the caller did not mention keeps whatever is stored; one
+            # sent as null is cleared. Expressed as a per-column flag rather
+            # than by building SQL, so the statement stays one readable
+            # literal and the parameters stay bound.
+            dates = ("starts_at", "ends_at", "trial_ends_at", "current_period_ends_at")
+            keep = {name: data[name] is KEEP for name in dates}
+            values = {name: (None if keep[name] else data[name]) for name in dates}
             cur.execute(
                 """
                 INSERT INTO subscriptions (
@@ -6018,20 +6051,28 @@ def mutate_tenant(tenant_id: str):
                 ON CONFLICT (tenant_id) DO UPDATE
                 SET plan_code = EXCLUDED.plan_code,
                     status = EXCLUDED.status,
-                    starts_at = EXCLUDED.starts_at,
-                    ends_at = EXCLUDED.ends_at,
-                    trial_ends_at = EXCLUDED.trial_ends_at,
-                    current_period_ends_at = EXCLUDED.current_period_ends_at,
+                    starts_at = CASE WHEN %s THEN subscriptions.starts_at
+                                     ELSE EXCLUDED.starts_at END,
+                    ends_at = CASE WHEN %s THEN subscriptions.ends_at
+                                   ELSE EXCLUDED.ends_at END,
+                    trial_ends_at = CASE WHEN %s THEN subscriptions.trial_ends_at
+                                         ELSE EXCLUDED.trial_ends_at END,
+                    current_period_ends_at = CASE WHEN %s THEN subscriptions.current_period_ends_at
+                                                  ELSE EXCLUDED.current_period_ends_at END,
                     updated_at = now()
                 """,
                 (
                     tenant_id,
                     data["plan_code"],
                     data["subscription_status"],
-                    data["starts_at"],
-                    data["ends_at"],
-                    data["trial_ends_at"],
-                    data["current_period_ends_at"],
+                    values["starts_at"],
+                    values["ends_at"],
+                    values["trial_ends_at"],
+                    values["current_period_ends_at"],
+                    keep["starts_at"],
+                    keep["ends_at"],
+                    keep["trial_ends_at"],
+                    keep["current_period_ends_at"],
                 ),
             )
         _audit(conn, tenant_id=tenant_id, action="tenant.updated", resource_type="tenant", resource_id=tenant_id)
