@@ -87,6 +87,14 @@
 
   // ── print ──────────────────────────────────────────────────────────────
   printButton.addEventListener('click', () => {
+    // The printed footer names the day it was printed. CSS cannot produce a
+    // date, and stamping it at page load would put a stale one on a tab left
+    // open overnight.
+    const today = new Date().toLocaleDateString(
+      document.documentElement.lang.startsWith('zh') ? 'zh-CN' : 'en-AU',
+      { year: 'numeric', month: 'long', day: 'numeric' },
+    );
+    document.querySelectorAll('.printed-on').forEach((slot) => { slot.textContent = today; });
     // A filtered page would print as a manual with sections missing. The
     // print stylesheet also un-hides them, but clearing the box is what keeps
     // the on-screen state and the paper honest with each other.

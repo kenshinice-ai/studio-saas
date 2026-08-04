@@ -4234,18 +4234,25 @@ document.getElementById('copybtn').addEventListener('click', function(){
     )}
 
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(250px,38.2fr)_minmax(0,61.8fr)] gap-3 items-end">
+        {/* items-start, not items-end. The two columns end at different
+            heights — the left one trails a helper line, the right one a 44px
+            checkbox — so bottom-alignment pushed the right column's label and
+            its controls a row's worth higher than the left's, and the two
+            halves of the panel never lined up. Aligning the tops puts both
+            labels on one baseline and both control rows on another; the
+            unequal tails then hang below, which is what they should do. */}
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(250px,38.2fr)_minmax(0,61.8fr)] gap-3 items-start">
             <div className="w-full">
                 <label className="text-xs font-bold text-gray-500 mb-1 block">课程日期</label>
                 <div className="flex gap-1.5 items-center">
                     <button type="button" onClick={()=>setRDate(shiftDate(rDate,-1))}
-                        className="px-2.5 py-3 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-600 active:bg-gray-50">◀</button>
+                        className="px-2.5 py-3 min-h-[50px] bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-600 active:bg-gray-50">◀</button>
                     <input type="date" value={rDate} onChange={e=>setRDate(e.target.value)}
-                        className="flex-1 px-2 py-3 border border-gray-300 rounded-xl font-bold text-indigo-900 focus:ring-2 focus:ring-indigo-500 outline-none min-w-0"/>
+                        className="flex-1 px-2 py-3 min-h-[50px] border border-gray-300 rounded-xl font-bold text-indigo-900 focus:ring-2 focus:ring-indigo-500 outline-none min-w-0"/>
                     <button type="button" onClick={()=>setRDate(shiftDate(rDate,1))}
-                        className="px-2.5 py-3 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-600 active:bg-gray-50">▶</button>
+                        className="px-2.5 py-3 min-h-[50px] bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-600 active:bg-gray-50">▶</button>
                     {rDate!==todayISO() && <button type="button" onClick={()=>setRDate(todayISO())}
-                        className="px-2.5 py-3 bg-indigo-50 border border-indigo-200 rounded-xl text-xs font-bold text-indigo-700 active:bg-indigo-100 flex-shrink-0">今天</button>}
+                        className="px-2.5 py-3 min-h-[50px] bg-indigo-50 border border-indigo-200 rounded-xl text-xs font-bold text-indigo-700 active:bg-indigo-100 flex-shrink-0">今天</button>}
                 </div>
                 <p className="text-xs text-gray-400 mt-1">{fmtDate(rDate)} {WEEKDAYS[new Date(`${rDate}T12:00:00`).getDay()]}</p>
             </div>

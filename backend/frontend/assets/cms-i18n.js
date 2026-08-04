@@ -319,6 +319,47 @@
     ['低余额', 'Low balance'], ['搜索并选择学员…', 'Search and choose a student…'],
     ['搜索并选择学员...', 'Search and choose a student…'],
 
+    /* ── Second sweep, from scripts/audit_cms_translation.py (v8.2.21) ──
+     * The first sweep translated what a screenshot showed. Running the audit
+     * across every tab, including attributes, found 66 more — most of them
+     * `aria-label`s and placeholders, which never appear in a screenshot and
+     * are exactly what a screen-reader user hears. */
+    ['全局搜索 ⌘K', 'Global search ⌘K'], ['搜索', 'Search'],
+    ['搜索学员姓名...', 'Search a student’s name…'],
+    ['选择学员查看详情...', 'Choose a student to see details…'],
+    ['如 节假日赠课、补偿调课...', 'e.g. holiday bonus credits, make-up class'],
+    ['全部学员', 'All students'], ['快速充值', 'Quick top-up'],
+    ['查看排课', 'View roster'], ['发消息', 'Message'],
+    ['发送祝福短信', 'Send the birthday message'],
+    ['签到', 'Check in'], ['上课时间', 'Class time'],
+    ['导出当日 ICS', 'Export today’s roster (ICS)'],
+    ['导出所有固定班次，不包含学员姓名',
+     'Exports the recurring classes only — no student names'],
+    ['来自每周课表', 'From the weekly timetable'],
+    ['从未上课', 'Never attended'], ['已上课', 'Attended'],
+    ['人次', 'attendances'], ['已上课人次', 'Attendances'],
+    ['已赚收入(估)', 'Earned revenue (est.)'],
+    ['预收未耗(负债)', 'Prepaid and unused (liability)'],
+    ['净现金收入', 'Net cash received'],
+    ['充值 − 退款', 'Top-ups − refunds'],
+    ['剩余课时 × 均价', 'Credits remaining × average price'],
+    ['人次 × 加权均价', 'Attendances × weighted average price'],
+    ['课时预警 —', 'Low credits —'], ['长期未到访 —', 'Not seen for a while —'],
+    ['名学员余额 ≤ 2 课时', 'students have 2 credits or fewer'],
+    ['名学员有余额但超过', 'students still hold credits but have not attended for'],
+    ['天未上课', 'days'],
+    ['位学员等待审核，点击前往处理', 'waiting for review — tap to open'],
+    ['本周生日 ·', 'Birthday this week ·'], ['最后 1 课时 ·', 'Last credit ·'],
+    /* Fragments React renders as their own text nodes, next to a number the
+     * app puts in a sibling. Chinese and English both place the measure word
+     * after the count, so a straight substitution keeps the phrase in order —
+     * `6/10 人 · 60 分钟` becomes `6/10 students · 60 min`. */
+    ['人', 'students'], ['人 ·', 'students ·'], ['人）', ')'], ['（课表', '(timetable'],
+    ['班）', 'classes)'], ['课 ·', 'classes ·'], ['课时 · $', 'credits · $'],
+    ['分钟', 'min'], ['条', 'entries'], ['次', 'sessions'], ['笔', 'transactions'],
+    ['·今', '· today'], ['近 14 天生日（', 'Birthdays in the next 14 days ('],
+    ['待审核注册 (', 'Pending registrations ('],
+
     /* ── Errors ── */
     ['删除失败', 'Delete failed'], ['更新失败', 'Update failed'], ['恢复失败', 'Restore failed'],
     ['发送失败', 'Send failed'], ['保存失败', 'Save failed'],
@@ -369,7 +410,23 @@
       [/^第\s*(\d+)\s*页$/, 'Page $1'],
       [/^第\s*(\d+)\s*\/\s*(\d+)\s*页$/, 'Page $1 of $2'],
       [/^已选择\s*(\d+)\s*人$/, '$1 selected'],
-      [/^选择本页\s*(\d+)\s*人$/, 'Select all $1 on this page']
+      [/^选择本页\s*(\d+)\s*人$/, 'Select all $1 on this page'],
+      /* `选择 Amelia Hart` — the aria-label on a student card. One rule
+       * instead of one entry per student, and it keeps working for names the
+       * dictionary has never seen. */
+      [/^选择\s+(.+)$/, 'Select $1'],
+      [/^(\d{2}\/\d{2})\s*\((\d+)天后\)$/, '$1 (in $2 days)'],
+      [/^(\d{2}\/\d{2})\s*\(明天\)$/, '$1 (tomorrow)'],
+      [/^(\d+)\s*次$/, '$1 sessions'],
+      [/^本月\s*(\d+)\s*次$/, '$1 this month'],
+      [/^(\d+)\s*笔$/, '$1 transactions'],
+      [/^(\d+)\s*条$/, '$1 entries'],
+      [/^·\s*加权均价\s*\$([\d.]+)\/课时$/, '· $$$1 average per credit'],
+      [/^(\d+)\s*分钟$/, '$1 min'],
+      /* `{y}年` in the year picker — React renders the number and the
+       * character as separate nodes, so the year arrives here alone. */
+      [/^年$/, ''],
+      [/^(\d{4})\s*年$/, '$1']
     ];
     for (const [pattern, replacement] of rules) {
       if (pattern.test(clean)) return clean.replace(pattern, replacement);

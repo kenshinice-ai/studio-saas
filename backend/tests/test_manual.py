@@ -238,9 +238,10 @@ def test_the_print_button_clears_the_filter_first() -> None:
 
     script = SCRIPT.read_text(encoding="utf-8")
     handler = script[script.index("printButton.addEventListener"):]
-    handler = handler[: handler.index("});")]
-    assert "filter('')" in handler
-    assert handler.index("filter('')") < handler.index("window.print()")
+    # Up to the print call itself; the handler now contains nested callbacks,
+    # so slicing to the first `});` would stop short of the clear.
+    handler = handler[: handler.index("window.print()")]
+    assert "filter('')" in handler, "the filter is not cleared before printing"
 
 
 # ── screenshots ──────────────────────────────────────────────────────────────
@@ -306,6 +307,33 @@ def test_the_screenshot_set_stays_within_its_budget() -> None:
     referenced = {Path(src).name for _l, src, _a in _image_refs()}
     orphans = {image.name for image in images} - referenced
     assert not orphans, f"unreferenced images are shipping publicly: {sorted(orphans)}"
+
+
+def test_the_printed_page_carries_its_version_and_date() -> None:
+    """A printed manual's real risk is being read two years later.
+
+    A full-page watermark is the usual reflex, and it sits on top of the body
+    text and the screenshots — on a document whose whole design brief was
+    measured contrast, and whose screenshots exist to be looked at closely. A
+    running footer answers the same question without costing a single line of
+    legibility: which version, printed when, and where the current one lives.
+    """
+
+    style = _style()
+    printed = style[style.index("@media print"):]
+    assert ".print-foot" in printed
+    assert "position: fixed" in printed, "the footer would print on page one only"
+    # @page has to reserve the band, or the footer lands on a line of text.
+    assert "@page { margin: 16mm 14mm 20mm; }" in printed
+
+    source = _source()
+    assert 'class="print-foot"' in source
+    assert "v__APP_VERSION__" in source[source.index('class="print-foot"'):][:600]
+    assert source.count('class="printed-on"') == 2, "one date slot per language"
+
+    script = SCRIPT.read_text(encoding="utf-8")
+    assert "printed-on" in script, "nothing fills the date in"
+    assert ".print-foot { display: none; }" in style, "it must not show on screen"
 
 
 def test_the_manual_says_which_theme_its_screenshots_show() -> None:

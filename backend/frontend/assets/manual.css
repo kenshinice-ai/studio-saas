@@ -229,6 +229,7 @@ figcaption { max-width: var(--measure); margin-top: var(--s-2); color: var(--ink
 
 /* ── search ───────────────────────────────────────────────────────────── */
 [hidden] { display: none !important; }
+.print-foot { display: none; }
 .no-hits { display: none; max-width: var(--measure); padding: var(--s-3); border: 1px dashed var(--hairline); border-radius: var(--r); color: var(--ink-faint); }
 body.searching .no-hits.on { display: block; }
 mark { padding: 0 2px; border-radius: 3px; background: var(--accent); color: var(--pwe-family-navy); }
@@ -273,9 +274,17 @@ mark { padding: 0 2px; border-radius: 3px; background: var(--accent); color: var
     --hairline: #bbb; --line-strong: #888; --shadow: none;
     font-size: 10.5pt;
   }
-  @page { margin: 16mm 14mm; }
+  @page { margin: 16mm 14mm 20mm; }
   body { background: #fff; color: #000; }
   .bar, .toc, .skip, .toc-btn, .no-hits { display: none !important; }
+  /* A fixed element repeats on every printed page, which is how a running
+     footer is done without a second document. @page reserves the space so it
+     cannot land on top of a line. */
+  .print-foot {
+    display: block !important; position: fixed; bottom: 0; left: 0; right: 0;
+    padding-top: 2mm; border-top: 1px solid var(--hairline);
+    color: var(--ink-faint); font-size: 7.5pt; text-align: center;
+  }
   .shell { display: block; max-width: none; padding: 0; }
   [hidden] { display: revert !important; }   /* search must not hide printed text */
   h1, h2, h3, h4 { break-after: avoid; page-break-after: avoid; }

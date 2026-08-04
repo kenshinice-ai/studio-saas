@@ -4410,12 +4410,12 @@ document.getElementById('copybtn').addEventListener('click', function(){
         className: "bg-indigo-600 active:bg-indigo-700 disabled:bg-gray-300 text-white px-5 py-2 rounded-xl text-sm font-bold"
       },
       schedEdit.id ? "保存修改" : "创建班次"
-    )))), /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-2xl shadow-sm border border-gray-100 p-4" }, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-[minmax(250px,38.2fr)_minmax(0,61.8fr)] gap-3 items-end" }, /* @__PURE__ */ React.createElement("div", { className: "w-full" }, /* @__PURE__ */ React.createElement("label", { className: "text-xs font-bold text-gray-500 mb-1 block" }, "课程日期"), /* @__PURE__ */ React.createElement("div", { className: "flex gap-1.5 items-center" }, /* @__PURE__ */ React.createElement(
+    )))), /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-2xl shadow-sm border border-gray-100 p-4" }, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-[minmax(250px,38.2fr)_minmax(0,61.8fr)] gap-3 items-start" }, /* @__PURE__ */ React.createElement("div", { className: "w-full" }, /* @__PURE__ */ React.createElement("label", { className: "text-xs font-bold text-gray-500 mb-1 block" }, "课程日期"), /* @__PURE__ */ React.createElement("div", { className: "flex gap-1.5 items-center" }, /* @__PURE__ */ React.createElement(
       "button",
       {
         type: "button",
         onClick: () => setRDate(shiftDate(rDate, -1)),
-        className: "px-2.5 py-3 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-600 active:bg-gray-50"
+        className: "px-2.5 py-3 min-h-[50px] bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-600 active:bg-gray-50"
       },
       "◀"
     ), /* @__PURE__ */ React.createElement(
@@ -4424,14 +4424,14 @@ document.getElementById('copybtn').addEventListener('click', function(){
         type: "date",
         value: rDate,
         onChange: (e) => setRDate(e.target.value),
-        className: "flex-1 px-2 py-3 border border-gray-300 rounded-xl font-bold text-indigo-900 focus:ring-2 focus:ring-indigo-500 outline-none min-w-0"
+        className: "flex-1 px-2 py-3 min-h-[50px] border border-gray-300 rounded-xl font-bold text-indigo-900 focus:ring-2 focus:ring-indigo-500 outline-none min-w-0"
       }
     ), /* @__PURE__ */ React.createElement(
       "button",
       {
         type: "button",
         onClick: () => setRDate(shiftDate(rDate, 1)),
-        className: "px-2.5 py-3 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-600 active:bg-gray-50"
+        className: "px-2.5 py-3 min-h-[50px] bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-600 active:bg-gray-50"
       },
       "▶"
     ), rDate !== todayISO() && /* @__PURE__ */ React.createElement(
@@ -4439,7 +4439,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
       {
         type: "button",
         onClick: () => setRDate(todayISO()),
-        className: "px-2.5 py-3 bg-indigo-50 border border-indigo-200 rounded-xl text-xs font-bold text-indigo-700 active:bg-indigo-100 flex-shrink-0"
+        className: "px-2.5 py-3 min-h-[50px] bg-indigo-50 border border-indigo-200 rounded-xl text-xs font-bold text-indigo-700 active:bg-indigo-100 flex-shrink-0"
       },
       "今天"
     )), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-1" }, fmtDate(rDate), " ", WEEKDAYS[(/* @__PURE__ */ new Date(`${rDate}T12:00:00`)).getDay()])), /* @__PURE__ */ React.createElement("div", { className: "flex-1", id: "rosterAddStudent" }, /* @__PURE__ */ React.createElement("label", { className: "text-xs font-bold text-gray-500 mb-1 block" }, "添加学员"), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 flex-wrap" }, /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-[180px]" }, /* @__PURE__ */ React.createElement(StudentPicker, { students: availRoster, value: rPick, onChange: setRPick, placeholder: "搜索并选择学员..." })), /* @__PURE__ */ React.createElement("div", { className: "min-w-[124px]" }, /* @__PURE__ */ React.createElement(
