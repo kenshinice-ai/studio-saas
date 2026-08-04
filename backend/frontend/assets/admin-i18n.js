@@ -242,6 +242,10 @@
     ['Add FAQ', '新增常见问答'], ['Answer', '答案'], ['Preview and publish', '预览与发布'],
     ['Theme Preview', '主题预览'], ['Desktop', '桌面'], ['Mobile', '手机'], ['Save Draft', '保存草稿'],
     ['Publish', '发布'], ['Publication history', '发布历史'],
+    /* Found reading the Chinese manual against the Chinese UI: these two
+     * stayed English, so the manual could not name them in Chinese. */
+    ['Restore to Draft', '恢复为草稿'],
+    ['Improve colour contrast before publishing:', '发布前请提高对比度：'],
     ['No published versions yet.', '尚无已发布版本。'],
     ['Restore a previous publication into the draft, review it in the preview, then publish when ready.', '可将历史版本恢复为草稿，预览确认后再发布。'],
     ['No unsaved changes', '没有未保存的更改'], ['Saved', '已保存'], ['Refresh', '刷新'],
