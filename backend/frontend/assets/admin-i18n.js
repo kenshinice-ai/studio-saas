@@ -304,6 +304,19 @@
     ['Registration form intro text', '报名表引导语'],
     ['/site/hero.jpg or https://...', '/site/hero.jpg 或 https://…'],
     ['/site/principal.jpg or https://...', '/site/principal.jpg 或 https://…'],
+    /* Written into the page by script rather than authored in the markup, so
+       the attribute sweep above could not see them. `No unsaved changes` had an
+       entry and `Unsaved changes` did not — the lookup is exact, so the save
+       bar reverted to English the moment anything was edited. */
+    ['Unsaved changes', '有未保存的更改'],
+    ['Draft saved — not public', '草稿已保存 —— 尚未公开'],
+    ['Saved draft loaded — not public', '已载入保存的草稿 —— 尚未公开'],
+    ['Previous draft choices restored.', '已恢复上一次的草稿选择。'],
+    ['Enter the studio URL slug to continue.', '请填写工作室网址标识后继续。'],
+    ['No public portal events in this period.', '该时间段内没有官网访问记录。'],
+    ['No studio selected. Open this console from your studio URL: /<your-studio-slug>/studio-admin.', '尚未选择工作室。请从你的工作室网址打开本控制台：/<工作室网址标识>/studio-admin。'],
+    ['Studio owner', '工作室主理人'],
+    ['Website and brand console', '官网与品牌管理'],
     ['Loading lifecycle risks…', '正在载入生命周期风险…'], ['Loading registration conversion…', '正在载入报名转化…'],
     ['Please log in with a Super Admin account.', '请使用平台管理员账号登录。'],
     ['Please log in to continue.', '请登录后继续。'], ['Email and password are required.', '请输入邮箱和密码。'],

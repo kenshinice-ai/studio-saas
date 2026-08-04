@@ -244,6 +244,42 @@ def test_every_authored_hint_has_a_chinese_translation() -> None:
     )
 
 
+def runtime_message_strings() -> set[str]:
+    """English sentences the script writes into the page at runtime.
+
+    Scoped to the three calls that put words in front of a person — assigning
+    `.textContent`, raising a toast, and setting the login error — rather than
+    to every string literal in the file, most of which are selectors and API
+    paths. Multi-word only, for the same reason.
+    """
+
+    found = set()
+    for line in script_source().splitlines():
+        if not any(call in line for call in
+                   (".textContent", "showToast(", "setLoginError(")):
+            continue
+        for value in re.findall(r"'([^'\\]{4,})'", line):
+            if re.search(r"[A-Za-z]{3}", value) and " " in value:
+                found.add(value)
+    return found
+
+
+def test_every_runtime_message_has_a_chinese_translation() -> None:
+    """`No unsaved changes` was translated and `Unsaved changes` was not.
+
+    The lookup is exact, so the save bar reverted to English the moment
+    anything was edited — a state the attribute sweep cannot reach, because
+    the string is never in the markup.
+    """
+
+    known = dictionary_keys()
+    missing = sorted(value for value in runtime_message_strings()
+                     if not re.search(r"[一-鿿]", value) and value not in known)
+    assert not missing, (
+        f"these runtime messages have no Chinese entry in admin-i18n.js: {missing}"
+    )
+
+
 def test_the_dictionary_does_not_translate_strings_the_page_no_longer_has() -> None:
     """Entries for deleted copy are claims nobody checks."""
 

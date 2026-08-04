@@ -148,19 +148,47 @@ Visible text was already clean: the only untranslated strings are the language
 switch, the tenant slug, the eight English industry sub-labels (bilingual by
 design) and the producer credit.
 
+## Two things the first cut of this release got wrong
+
+Both were caught by measuring the deployed page rather than by reading the code,
+and both are recorded because the reasoning that produced them was wrong, not
+just the output.
+
+**The switch had a hit area that did not exist.** The first attempt kept the
+26px track as the control and laid a transparent 44px `::before` over it. The
+comment said that extended the target. It does not: Chrome does not hit-test a
+form control's pseudo-element as the control. Probed on the deployed page, the
+hit area came back **1px** tall against a 44px `::before`. The control is 46x44
+now and the *track* is the pseudo-element, which measures 45px of hit area.
+**The box that has to be 44px is the box the browser dispatches the click to.**
+
+**`No unsaved changes` was translated and `Unsaved changes` was not.** The
+lookup is exact, so the save bar reverted to English the moment anything was
+edited. The attribute sweep could not have found it — the string is written by
+script and never appears in the markup. Nine runtime messages were missing;
+`test_every_runtime_message_has_a_chinese_translation` now scans the three calls
+that put words in front of a person (`.textContent`, `showToast`,
+`setLoginError`) and fails on all nine against the first cut.
+
+A related caution for anyone measuring this page: `getBoundingClientRect()` and
+`offsetParent` both report a live box for an element clipped inside a closed
+`<details>`, so a sweep that trusts them counts controls nobody can see. The
+first pass at proving the touch targets did exactly that.
+
 ## Verification
 
-**1169 tests pass** (was 1147), 3 skipped. Three checkers pass. Three new files:
+**1170 tests pass** (was 1147), 3 skipped. Three checkers pass. Three new files:
 
 - `test_theme_layering.py` (39) — layering in both modes, presets↔generator
   parity, and the reconstruction check above.
 - `test_preset_copy.py` (51) — the fork, the derivation, register-page voice,
   bilingual completeness.
-- `test_studio_console.py` (19) — chrome budget, the 44px floor, the sticky
-  phone rules, and every authored hint having a Chinese entry.
+- `test_studio_console.py` (20) — chrome budget, the 44px floor, the sticky
+  phone rules, and every authored hint and runtime message having a Chinese
+  entry.
 
 **Every one of these was run against the v8.2.31 files before being trusted.**
-`test_studio_console.py`: **15 of 19 fail** on the previous release. The layering
+`test_studio_console.py`: **16 of 20 fail** on the previous release. The layering
 rule: **8 of 8** dark palettes rejected. The copy rules: 5/8 forks, 8/8 headings,
 8/8 leads, 1/1 label. A test that passes on the code it was written to reject is
 not a test — that is the v8.2.30 lesson, and it is applied here rather than

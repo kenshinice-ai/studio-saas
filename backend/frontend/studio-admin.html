@@ -1280,24 +1280,39 @@
        rule sets 42px, which stretched the track into a rounded rectangle.
        Colours resolve through --brand-accent — this console does not define
        the --accent/--panel/--focus-ring names the CMS shell uses. */
-    /* The track is 46x26 by design; the target around it is not. A transparent
-       ::before extends the hit area to 44px vertically without moving the
-       track or disturbing the row it sits in. */
+    /* The track reads as 46x26; the target is the whole 46x44 control.
+       The element itself is the target and paints nothing — the track is
+       ::before, centred inside it. A transparent ::before laid *over* a 26px
+       control does not work: Chrome does not hit-test a form control's
+       pseudo-element as the control, which was measured on the deployed page
+       (hit area came back 1px tall against a 44px ::before). The box that has
+       to be 44px is the box the browser dispatches the click to. */
     .switch {
       position: relative;
       flex-shrink: 0;
       width: 46px;
-      height: 26px;
+      height: var(--ui-touch-target, 44px);
       min-height: 0;
       margin: 0;
       padding: 0;
       appearance: none;
       -webkit-appearance: none;
+      background: none;
+      border: 0;
+      cursor: pointer;
+    }
+    .switch::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 26px;
+      transform: translateY(-50%);
       border-radius: 999px;
       background: color-mix(in srgb, var(--line) 70%, #fff);
       border: 1px solid var(--line);
-      cursor: pointer;
-      transition: background-color .15s ease;
+      transition: background-color .15s ease, border-color .15s ease;
     }
     .switch::after {
       content: "";
@@ -1312,20 +1327,14 @@
       box-shadow: 0 1px 3px rgba(0,0,0,.28);
       transition: left .15s ease;
     }
-    .switch::before {
-      content: "";
-      position: absolute;
-      left: 0;
-      right: 0;
-      top: 50%;
-      height: var(--ui-touch-target, 44px);
-      transform: translateY(-50%);
-    }
-    .switch:checked { background: var(--brand-accent); border-color: var(--brand-accent); }
+    .switch:checked::before { background: var(--brand-accent); border-color: var(--brand-accent); }
     .switch:checked::after { left: 23px; }
-    .switch:focus-visible { outline: 3px solid var(--brand-accent); outline-offset: 2px; }
+    /* The ring hugs the track rather than the taller hit area, so focus looks
+       like the thing it is on. */
+    .switch:focus-visible { outline: none; }
+    .switch:focus-visible::before { outline: 3px solid var(--brand-accent); outline-offset: 2px; }
     @media (prefers-reduced-motion: reduce) {
-      .switch, .switch::after, .disclosure > summary::before { transition: none; }
+      .switch::before, .switch::after, .disclosure > summary::before { transition: none; }
     }
     .visually-hidden { position:absolute !important; width:1px !important; height:1px !important; padding:0 !important; margin:-1px !important; overflow:hidden !important; clip:rect(0,0,0,0) !important; white-space:nowrap !important; border:0 !important; }
 
