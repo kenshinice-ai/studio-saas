@@ -576,7 +576,12 @@ def _jsonld_script(nodes: list[dict[str, Any]] | dict[str, Any]) -> str:
         if isinstance(nodes, list) else nodes
     )
     body = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
-    return f'<script type="application/ld+json">{body.replace("</", "<\\/")}</script>'
+    # Escaped outside the f-string on purpose: a backslash inside an f-string
+    # expression is a syntax error before Python 3.12, and the production
+    # image is python:3.11-slim. Written inline it compiled on the development
+    # machine, passed 652 tests, and could not import on the instance.
+    body = body.replace("</", "<\\/")
+    return f'<script type="application/ld+json">{body}</script>'
 
 
 def organization_node() -> dict[str, Any]:
