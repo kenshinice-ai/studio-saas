@@ -1,6 +1,6 @@
 # 平台超管手册 · Super Admin
 
-> 适用版本：PWE Studio v8.2.20 · 界面：Super Admin 控制台（`/platform-admin`）
+> 适用版本：PWE Studio v8.2.21 · 界面：Super Admin 控制台（`/platform-admin`）
 > 其他角色手册见 [手册总览](README.md)
 
 ## 角色定位
