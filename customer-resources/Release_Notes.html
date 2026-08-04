@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0e1729">
   <meta name="robots" content="index,follow">
-  <meta name="description" content="PWE Studio release evidence: what each release changes, what the production deployment established, and what remains deferred. Current release v8.2.21.">
+  <meta name="description" content="PWE Studio release evidence: what each release changes, what the production deployment established, and what remains deferred. Current release v8.2.22.">
   <title>PWE Studio Release Evidence</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <!-- Brand values come from ui-tokens.css; presentation from
@@ -27,7 +27,7 @@
   <h1 data-lang="zh">发布依据</h1>
   <p class="lede" data-lang="en">A customer-readable record of what this release changes, what the production deployment established, and which commitments remain deferred.</p>
   <p class="lede" data-lang="zh">面向客户的记录：本次发布改了什么、生产部署确立了什么，以及哪些承诺仍未完成。</p>
-  <p class="status"><span data-lang="en">Current release v8.2.21 · deployed 3 August 2026 · monitoring and SLA deferred</span><span data-lang="zh">当前版本 v8.2.21 · 部署于 2026 年 8 月 3 日 · 监控与 SLA 延后</span></p>
+  <p class="status"><span data-lang="en">Current release v8.2.22 · deployed 4 August 2026 · monitoring and SLA deferred</span><span data-lang="zh">当前版本 v8.2.22 · 部署于 2026 年 8 月 4 日 · 监控与 SLA 延后</span></p>
 
   <h2 data-lang="en">Since v8.1.0</h2>
   <h2 data-lang="zh">v8.1.0 之后</h2>
@@ -58,6 +58,11 @@
       <strong data-lang="en">Data retention (v8.2.19)</strong><strong data-lang="zh">数据保留（v8.2.19）</strong>
       <p data-lang="en">Audit records, analytics events, notification records and access sessions previously had no expiry. Retention now applies on a schedule — audit records are kept two years, analytics one year — so the service does not accumulate indefinitely. Consent records are deliberately exempt and are never deleted.</p>
       <p data-lang="zh">审计记录、分析事件、通知记录与访问会话此前没有任何有效期。现已按计划应用保留策略——审计记录保留两年、分析数据保留一年——服务不会无限累积。发布同意记录属于法律证据，明确豁免，永不删除。</p>
+    </article>
+    <article class="card">
+      <strong data-lang="en">The manual prints properly (v8.2.22)</strong><strong data-lang="zh">手册的打印版已修正（v8.2.22）</strong>
+      <p data-lang="en">Printing the manual put body text on top of the page footer and produced 28 pages for what fits in 18. Both are fixed: nothing overprints, and a printed copy is a third shorter. The version and the licence are stated on the first page, and your browser's own print settings add the date and page numbers.</p>
+      <p data-lang="zh">此前打印手册时，正文会压在页脚上，且 28 页的内容其实 18 页就装得下。两者均已修正：不再有文字重叠，打印件也短了三分之一。版本号与授权说明印在第一页，日期与页码由浏览器自身的打印设置提供。</p>
     </article>
     <article class="card">
       <strong data-lang="en">User manual (v8.2.21)</strong><strong data-lang="zh">用户手册（v8.2.21）</strong>
