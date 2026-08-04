@@ -86,15 +86,23 @@
   });
 
   // ── print ──────────────────────────────────────────────────────────────
-  printButton.addEventListener('click', () => {
-    // The printed footer names the day it was printed. CSS cannot produce a
-    // date, and stamping it at page load would put a stale one on a tab left
-    // open overnight.
+  // The colophon names the day it was printed. CSS cannot produce a date, and
+  // stamping it at page load would print a stale one from a tab left open
+  // overnight — so it is written just before the dialogue opens.
+  const stampDate = () => {
     const today = new Date().toLocaleDateString(
       document.documentElement.lang.startsWith('zh') ? 'zh-CN' : 'en-AU',
       { year: 'numeric', month: 'long', day: 'numeric' },
     );
     document.querySelectorAll('.printed-on').forEach((slot) => { slot.textContent = today; });
+  };
+
+  // `beforeprint` covers Ctrl+P and the browser menu, which is how most
+  // people print; the button below is the discoverable path, not the only one.
+  window.addEventListener('beforeprint', stampDate);
+
+  printButton.addEventListener('click', () => {
+    stampDate();
     // A filtered page would print as a manual with sections missing. The
     // print stylesheet also un-hides them, but clearing the box is what keeps
     // the on-screen state and the paper honest with each other.
