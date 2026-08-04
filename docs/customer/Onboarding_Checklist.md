@@ -34,10 +34,11 @@ Exit evidence: approved mapping report and exceptions list.
 - [ ] Assign owner, manager, teacher and front-desk roles by least privilege.
 - [ ] Confirm staff departure/role-change process.
 - [ ] Configure and verify privileged MFA before production.
-- [ ] **Send the user manual** with the owner's credentials — `pwestudio.online/manual/`
-      (English) or `pwestudio.online/zh/manual/` (Chinese). Deep-link the
-      sections that match their roles, for example `#team` for the permission
-      boundaries and `#families` for the access-code workflow.
+- [ ] **Send the welcome pack** — the template is `Welcome_Pack.md`. It carries
+      the four addresses, how to change the password, the manual
+      (`pwestudio.online/manual/` or `/zh/manual/`) deep-linked to the sections
+      a new studio needs first, and the import templates.
+- [ ] **Send the temporary password separately**, not on the email thread.
 
 Exit evidence: tenant identity sheet, role roster, MFA check and the manual sent.
 
