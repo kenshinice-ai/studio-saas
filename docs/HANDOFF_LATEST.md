@@ -1,4 +1,16 @@
-# PWE Studio v8.3.0 — the console gave back half a screen, and eight dark themes were upside down (deployed 2026-08-04)
+# PWE Studio v8.3.1 — the console gave back half a screen, and eight dark themes were upside down (deployed 2026-08-04)
+
+> Shipped as 8.3.0, corrected twice, released as **8.3.1**. The second
+> correction had to carry a new version number rather than redeploy 8.3.0,
+> and that is worth understanding before the next in-place fix:
+>
+> Versioned assets are served `public, max-age=31536000, immutable` when
+> `?v=` matches `APP_VERSION`. Redeploying under the same version leaves the
+> URL `/assets/admin-i18n.js?v=8.3.0` unchanged, so **every browser that
+> loaded the console during the first 8.3.0 keeps the first 8.3.0 dictionary
+> for a year.** Measured on production: the versioned URL still answered
+> without the new entries while an unversioned fetch of the same file had
+> them. A corrected asset needs a new version, not a redeploy.
 
 Five things, all on one page and its data, done together because they are one
 page: the space the Website & Brand console spent on itself, the dark palettes
