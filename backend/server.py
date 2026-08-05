@@ -122,14 +122,14 @@ SESSION_SECRET_FILE = _data_path('.session_secret')
 PW_FILE       = _data_path('.cms_password')
 app.config['PHOTO_DIR'] = PHOTO_DIR
 MAX_BACKUPS   = 30   # 1 backup/hr rate limit → ~30 hours of rolling coverage
-APP_VERSION   = '8.3.1'
+APP_VERSION   = '8.4.0'
 app.config['APP_VERSION'] = APP_VERSION
 # The date this release was cut, in the manual's `dateModified` and in the
 # sitemap's `lastmod`. A version string alone is not a freshness signal to
 # anything that reads the page — search engines and AI systems weight recency
 # and cannot infer a date from `8.2.28`. Kept beside APP_VERSION so the two
 # are bumped in one edit, and asserted to be a real ISO date by the tests.
-RELEASE_DATE  = '2026-08-04'
+RELEASE_DATE  = '2026-08-05'
 app.config['RELEASE_DATE'] = RELEASE_DATE
 
 # Content types the standard library does not reliably know.

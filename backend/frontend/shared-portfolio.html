@@ -5,36 +5,43 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex">
 <title>学员作品集 · Student Portfolio</title>
+<link rel="stylesheet" href="/assets/ui-tokens.css?v=__APP_VERSION__">
+<link rel="stylesheet" href="/assets/portal-theme.css?v=__APP_VERSION__">
+<link rel="stylesheet" href="/assets/brand-system.css?v=__APP_VERSION__">
 <style>
-  :root{--primary:#1E40AF;--secondary:#0F766E;--bg:#F8FAFC;--surface:#FFFFFF;--text:#1E293B;--text-muted:#64748B;--border:#E2E8F0;}
+  /* v8.4.0: this page declared a SEVENTH palette — Tailwind blue-800
+     #1E40AF on cold slate — on a page a family opens from a link the
+     studio sent them. It is a public tenant surface, so it reads the
+     tenant vocabulary now and a studio's theme reaches the one page
+     that shows their student's work. */
   *{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:Inter,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
-  header{background:var(--surface);border-bottom:1px solid var(--border);padding:16px;display:flex;align-items:center;gap:12px;}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--ink);min-height:100vh;}
+  header{background:var(--surface);border-bottom:1px solid var(--line);padding:16px;display:flex;align-items:center;gap:12px;}
   header img{height:40px;width:40px;object-fit:contain;border-radius:8px;}
   header .names{line-height:1.3;}
-  header .studio{font-size:13px;color:var(--text-muted);}
+  header .studio{font-size:13px;color:var(--muted);}
   header .student{font-size:18px;font-weight:600;}
   main{max-width:960px;margin:0 auto;padding:16px;}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;}
-  .item{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+  .item{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;}
   /* A real <button>, so Tab reaches the lightbox — same rule as the tenant
      portal gallery (tenant-template/index.html renderGallery). */
   .item .thumb{display:block;width:100%;padding:0;border:0;background:none;cursor:pointer;}
-  .item .thumb:focus-visible{outline:3px solid var(--primary);outline-offset:-3px;}
+  .item .thumb:focus-visible{outline:3px solid var(--clay);outline-offset:-3px;}
   .item img{width:100%;aspect-ratio:1;object-fit:cover;display:block;}
-  .item .meta{padding:8px 10px;font-size:12px;color:var(--text-muted);}
-  .item .meta .note{color:var(--text);margin-top:2px;}
-  .state{text-align:center;padding:64px 16px;color:var(--text-muted);}
-  .expiry{text-align:center;font-size:12px;color:var(--text-muted);padding:24px 16px;}
-  .langtog{position:fixed;top:12px;right:12px;z-index:60;display:inline-flex;gap:2px;padding:3px;border:1px solid var(--border);border-radius:999px;background:var(--surface);box-shadow:0 4px 14px rgba(15,23,42,.12);}
-  .langtog button{border:0;background:transparent;color:var(--text-muted);min-width:44px;min-height:40px;padding:6px 12px;border-radius:999px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;}
-  .langtog button.active{background:var(--primary);color:#fff;}
-  .langtog button:focus-visible{outline:2px solid var(--primary);outline-offset:2px;}
-  #lightbox{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;padding:16px;cursor:zoom-out;}
+  .item .meta{padding:8px 10px;font-size:12px;color:var(--muted);}
+  .item .meta .note{color:var(--ink);margin-top:2px;}
+  .state{text-align:center;padding:64px 16px;color:var(--muted);}
+  .expiry{text-align:center;font-size:12px;color:var(--muted);padding:24px 16px;}
+  .langtog{position:fixed;top:12px;right:12px;z-index:60;display:inline-flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:999px;background:var(--surface);box-shadow:0 4px 14px color-mix(in srgb, var(--ink) 12%, transparent);}
+  .langtog button{border:0;background:transparent;color:var(--muted);min-width:44px;min-height:40px;padding:6px 12px;border-radius:999px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;}
+  .langtog button.active{background:var(--clay);color:var(--on-accent);}
+  .langtog button:focus-visible{outline:2px solid var(--clay);outline-offset:2px;}
+  #lightbox{position:fixed;inset:0;background:var(--scrim);display:none;align-items:center;justify-content:center;padding:16px;cursor:zoom-out;}
   #lightbox img{max-width:100%;max-height:100%;border-radius:8px;}
   #lightbox.open{display:flex;}
-  #lightboxClose{position:absolute;top:12px;right:12px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:0;border-radius:999px;background:rgba(255,255,255,.14);color:#fff;cursor:pointer;}
-  #lightboxClose:focus-visible{outline:2px solid #fff;outline-offset:2px;}
+  #lightboxClose{position:absolute;top:12px;right:12px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:0;border-radius:999px;background:color-mix(in srgb, var(--on-scrim) 16%, transparent);color:var(--on-scrim);cursor:pointer;}
+  #lightboxClose:focus-visible{outline:2px solid var(--on-scrim);outline-offset:2px;}
 </style>
 </head>
 <body>

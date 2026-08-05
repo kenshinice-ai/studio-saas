@@ -1089,12 +1089,20 @@ def _default_visual_theme(
 # validation honest: a scrim is not a hex value, and the derived states have a
 # sensible fallback when an older record predates them.
 _THEME_HEX_KEYS = (
-    "background_color", "background_alt_color", "panel_color",
+    "background_color", "background_alt_color", "panel_color", "surface_hover_color",
     "text_color", "text_soft_color", "muted_text_color",
     "border_color", "border_strong_color",
-    "accent_color", "accent_text_color", "accent_hover_color", "accent_pressed_color",
+    "accent_color", "accent_text_color", "accent_muted_text_color",
+    "accent_hover_color", "accent_pressed_color",
+    "accent_soft_color", "accent_on_soft_color", "accent_border_color",
     "secondary_accent_color", "secondary_text_color",
-    "success_color", "warning_color", "danger_color",
+    # Each role ships its loud form and its quiet form together. A tinted chip
+    # with a label and a border is most of what a role is actually used for,
+    # and shipping only the fill left every surface to invent its own tint.
+    "success_color", "success_soft_color", "success_on_soft_color", "success_border_color",
+    "warning_color", "warning_soft_color", "warning_on_soft_color", "warning_border_color",
+    "danger_color", "danger_soft_color", "danger_on_soft_color", "danger_border_color",
+    "info_color", "info_soft_color", "info_on_soft_color", "info_border_color",
     "focus_ring_color", "disabled_surface_color", "disabled_text_color",
 )
 _SCRIM_RE = re.compile(r"^rgba\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*(?:0|1|0?\.\d+)\s*\)$")
@@ -1155,7 +1163,62 @@ def _normalize_visual_theme(
     theme["color_scheme"] = color_scheme
     theme["button_style"] = button_style
     theme["font_mood"] = font_mood
+    theme["scheme_preference"] = _scheme_preference(data, theme, default)
     return theme
+
+
+def _scheme_preference(data: dict, theme: dict, default: dict) -> str:
+    """Who decides light or dark: the studio, or the visitor's device.
+
+    Three values. ``light`` and ``dark`` pin the site to that mode — the
+    behaviour every tenant had before v8.4.0, and still the default, because a
+    studio's brand is the studio's decision. ``system`` follows the visitor's
+    `prefers-color-scheme`, which is the one thing the studio genuinely cannot
+    know: a parent opening the enrolment page at 11pm is a fact about the
+    parent, not about the studio.
+
+    ``system`` is only offered where it can be honoured. It needs BOTH modes
+    published, so a style that ships one — arcade-lime is dark only, because
+    its accent cannot reach readable contrast on a light page — cannot take it.
+    Accepting it there would mean either a light page with a dark theme's
+    tokens, or silently ignoring the setting; both are worse than saying no.
+    """
+
+    preference = _first_text(data, "scheme_preference", "schemePreference",
+                             default=default.get("scheme_preference", ""), limit=16).lower()
+    if not preference:
+        return theme["color_scheme"]
+    if preference not in {"light", "dark", "system"}:
+        raise ValueError("Scheme preference must be light, dark, or system.")
+    if preference == "system":
+        style_id = theme.get("style_id", "")
+        modes = VISUAL_STYLE_PRESETS[style_id]["modes"] if style_id in VISUAL_STYLE_PRESETS else ("light", "dark")
+        if len(modes) < 2:
+            label = VISUAL_STYLE_PRESETS[style_id]["label"] if style_id in VISUAL_STYLE_PRESETS else "This style"
+            raise ValueError(
+                f"{label} ships {modes[0]} only, so it cannot follow the visitor's device."
+            )
+    return preference
+
+
+def _published_schemes(theme: object) -> dict:
+    """Both palettes, when the site may be asked to render either.
+
+    A page that follows the visitor's device has to hold the light tokens and
+    the dark tokens at once — it cannot fetch the other one when the OS setting
+    changes mid-visit, and a studio that publishes only the mode it happens to
+    prefer would leave half its visitors on a palette solved for the other
+    surface. So the scheme preference decides what is SENT, not just what is
+    applied.
+    """
+
+    if not isinstance(theme, dict):
+        return {}
+    style_id = theme.get("style_id") or ""
+    if theme.get("scheme_preference") != "system" or style_id not in VISUAL_STYLE_PRESETS:
+        return {}
+    return {mode: style_theme(style_id, mode)
+            for mode in VISUAL_STYLE_PRESETS[style_id]["modes"]}
 
 
 def _plan_payload(payload: dict) -> dict:
@@ -3566,6 +3629,7 @@ def public_brand(tenant_slug: str):
     row["faqItems"] = row["faq_items"]
     row["messageTemplates"] = row["message_templates"]
     row["visualTheme"] = row["visual_theme"]
+    row["visualThemes"] = _published_schemes(row["visual_theme"])
     # Industry nouns for the public template's %VENUE% / %WORK% tokens.
     row["venueNoun"] = dict(preset["venue_noun"])
     row["workNoun"] = dict(preset["work_noun"])

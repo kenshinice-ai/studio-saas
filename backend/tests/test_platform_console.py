@@ -78,29 +78,52 @@ def contrast(foreground: str, background: str) -> float:
     return round((max(first, second) + 0.05) / (min(first, second) + 0.05), 2)
 
 
-def tokens() -> dict[str, str]:
-    """Every `--name: #hex` in the console's `:root` block."""
+CONSOLE_THEME = REPOSITORY_ROOT / "backend/frontend/assets/console-theme.css"
 
-    root = console()
-    block = root[root.index(":root {"):root.index("* { box-sizing")]
+
+def tokens() -> dict[str, str]:
+    """Every `--name: #hex` in the generated console palette.
+
+    v8.4.0 moved these out of the page. They used to be a `:root` block in
+    super-admin.html, hand-declared, with a matching-but-different block in
+    studio-admin.html: same warm paper, a cold Tailwind slate ramp instead of
+    the navy one, and #3b82f6 where this file had #0E1729. Two consoles, one
+    identity, two palettes.
+
+    The values now come from docs/design/palette_gen.py, which solves them the
+    same way it solves the eight studio themes, so the pairs below are checked
+    twice — here against the shipped stylesheet, and there against the
+    generator before it is written.
+    """
+
+    block = CONSOLE_THEME.read_text(encoding="utf-8")
+    block = block[block.index(":root {"):]
     return {name: value for name, value in re.findall(r"(--[\w-]+):\s*(#[0-9a-fA-F]{6})", block)}
 
 
 # Each row is (foreground token, background token, minimum). 4.5 for text,
 # 3.0 for a control boundary or a fill that carries a reading (WCAG 1.4.11).
+#
+# The token names are the shared vocabulary now: --sunk became --bg2, --focus
+# became --focus-ring, --accent-fill/--accent became --accent-2, and the loud
+# and quiet forms of a role are --success / --success-soft rather than
+# --green / --green-light.
 CONTRAST_PAIRS = [
-    ("--ink", "--bg", 4.5), ("--ink", "--surface", 4.5), ("--ink", "--sunk", 4.5),
-    ("--ink-soft", "--bg", 4.5), ("--ink-soft", "--surface", 4.5), ("--ink-soft", "--sunk", 4.5),
-    ("--muted", "--bg", 4.5), ("--muted", "--surface", 4.5), ("--muted", "--sunk", 4.5),
+    ("--ink", "--bg", 4.5), ("--ink", "--surface", 4.5), ("--ink", "--bg2", 4.5),
+    ("--ink2", "--bg", 4.5), ("--ink2", "--surface", 4.5), ("--ink2", "--bg2", 4.5),
+    ("--muted", "--bg", 4.5), ("--muted", "--surface", 4.5), ("--muted", "--bg2", 4.5),
     ("--accent", "--bg", 4.5), ("--accent", "--surface", 4.5),
-    ("--ink", "--accent-fill", 4.5),
-    ("--green", "--green-light", 4.5),
-    ("--amber", "--amber-light", 4.5),
-    ("--red", "--red-light", 4.5),
-    ("--ink-soft", "--neutral-light", 4.5),
-    ("--control-line", "--surface", 3.0),
-    ("--focus", "--bg", 3.0), ("--focus", "--surface", 3.0), ("--focus", "--sunk", 3.0),
-    ("--fill-ok", "--track", 3.0), ("--fill-warn", "--track", 3.0), ("--fill-over", "--track", 3.0),
+    ("--on-accent-2", "--accent-2", 4.5),
+    ("--on-success-soft", "--success-soft", 4.5),
+    ("--on-warning-soft", "--warning-soft", 4.5),
+    ("--on-danger-soft", "--danger-soft", 4.5),
+    ("--on-info-soft", "--info-soft", 4.5),
+    ("--on-accent-soft", "--accent-soft", 4.5),
+    ("--ink2", "--bg2", 4.5),
+    ("--line-strong", "--surface", 3.0),
+    ("--focus-ring", "--bg", 3.0), ("--focus-ring", "--surface", 3.0),
+    ("--focus-ring", "--bg2", 3.0),
+    ("--info", "--bg2", 3.0), ("--warning", "--bg2", 3.0), ("--danger", "--bg2", 3.0),
 ]
 
 
@@ -115,44 +138,170 @@ def test_every_documented_pair_measures(foreground: str, background: str, minimu
     )
 
 
-def test_bright_amber_is_never_offered_as_a_light_surface_ink() -> None:
-    """Family Amber measures 1.70:1 on paper — it is a fill or it is nothing.
+def test_the_bright_family_amber_is_not_in_the_palette_at_all() -> None:
+    """Family Amber #F5B335 measures 1.70:1 on paper — a fill or nothing.
 
-    The dark amber is the one that can carry meaning here. Keeping both under
-    names that say which is which is what stops the bright one being reached
-    for the next time something needs to look like the brand.
+    The console used to carry both ambers, --accent (dark, legible) and
+    --accent-fill (bright, decorative), and the pair existed so nobody reached
+    for the bright one to colour text. The generated palette solves the marker
+    once, to a measured target, so there is no second amber to reach for.
     """
 
     values = tokens()
-    assert contrast(values["--accent-fill"], values["--bg"]) < 3.0
-    assert contrast(values["--ink"], values["--accent-fill"]) >= 4.5
-    assert contrast(values["--accent"], values["--bg"]) >= 4.5
+    assert "#F5B335" not in values.values()
+    assert contrast(values["--accent-2"], values["--bg"]) >= 4.5
+    assert contrast(values["--on-accent-2"], values["--accent-2"]) >= 4.5
 
 
-def test_the_cold_slate_neutrals_are_gone() -> None:
-    """Warm ground under cold furniture is the disharmony you feel first."""
-
-    body = strip_comments(console()).lower()
-    for retired in ("#64748b", "#e2e8f0", "#f1f5f9", "#f8fafc", "#cbd5e1", "#3b82f6", "#2563eb"):
-        assert retired not in body, f"retired cold value {retired} is back"
+RETIRED_COLD_SLATE = ("#64748b", "#e2e8f0", "#f1f5f9", "#f8fafc", "#cbd5e1",
+                      "#3b82f6", "#2563eb", "#94a3b8", "#475569", "#dbe3ee", "#eef2f7")
 
 
-def test_the_palette_carries_three_semantic_hues_not_five() -> None:
-    """Purple coloured one KPI stripe and named no meaning anybody could say."""
+@pytest.mark.parametrize("page", ["super-admin.html", "backend/frontend/studio-admin.html"])
+def test_the_cold_slate_neutrals_are_gone(page: str) -> None:
+    """Warm ground under cold furniture is the disharmony you feel first.
 
-    body = console()
-    assert "--purple" not in body
-    assert "#8b5cf6" not in body.lower()
+    super-admin cleared these in v8.2.x. studio-admin did not, and nothing
+    checked it: this assertion was written against one file while the other
+    console — the one a studio owner actually uses — still declared 33 of them.
+    """
+
+    body = strip_comments((REPOSITORY_ROOT / page).read_text(encoding="utf-8")).lower()
+    for retired in RETIRED_COLD_SLATE:
+        assert retired not in body, f"{page}: retired cold value {retired} is back"
+
+
+def _preview_default_block(style: str) -> str:
+    """The `.preview-device` rule, which is the one legitimate place a console
+    declares colour: it is the TENANT palette, scoped to the preview subtree."""
+
+    start = style.index(".preview-device {")
+    return style[start:style.index("}", start)]
+
+
+@pytest.mark.parametrize("page", ["super-admin.html", "backend/frontend/studio-admin.html"])
+def test_neither_console_declares_a_colour_of_its_own(page: str) -> None:
+    """One generated stylesheet, or it is two palettes again.
+
+    Shape, shadow and the measured header offset stay in the page; those are
+    not colour. Anything that parses as a colour has to come from a token, so
+    that changing the palette is one edit in one place.
+
+    The single exemption is `.preview-device`, which declares the studio's
+    vocabulary rather than the console's — see the test below, which pins
+    those values to the default style so they cannot become a private palette.
+    """
+
+    source = strip_comments((REPOSITORY_ROOT / page).read_text(encoding="utf-8"))
+    style = source[source.index("<style"):source.index("</style>")]
+    if ".preview-device {" in style:
+        style = style.replace(_preview_default_block(style), "")
+    literals = re.findall(r"#[0-9a-fA-F]{3,8}\b|rgba?\(\s*\d|:\s*(?:white|black)\b", style)
+    assert not literals, f"{page} still paints with literals: {sorted(set(literals))}"
+
+
+def test_the_preview_defaults_are_the_default_studio_theme() -> None:
+    """The preview's pre-load colours, pinned to what an unbranded page renders.
+
+    They exist because the subtree inherits the CONSOLE's --bg and --ink
+    otherwise, and has no --clay at all: between first paint and the preset
+    response the mock drew a white CTA label on a transparent button, measured
+    at 1.09:1. Given values, they are a palette, and a palette nobody checks
+    drifts — so each one has to be the value `style_theme` produces.
+    """
+
+    from studiosaas.presets import DEFAULT_STYLE_ID, style_theme
+
+    default = style_theme(DEFAULT_STYLE_ID, "light")
+    source = (REPOSITORY_ROOT / "backend/frontend/studio-admin.html").read_text(encoding="utf-8")
+    style = source[source.index("<style"):source.index("</style>")]
+    declared = dict(re.findall(r"(--[\w-]+):\s*(#[0-9a-fA-F]{6})", _preview_default_block(style)))
+    expected = {
+        "--bg": "background_color", "--bg2": "background_alt_color",
+        "--panel": "panel_color", "--surface": "panel_color",
+        "--surface-hover": "surface_hover_color",
+        "--ink": "text_color", "--ink2": "text_soft_color", "--muted": "muted_text_color",
+        "--line": "border_color", "--line-strong": "border_strong_color",
+        "--clay": "accent_color", "--accent": "accent_color",
+        "--clay-hover": "accent_hover_color", "--clay-pressed": "accent_pressed_color",
+        "--clay-d": "secondary_accent_color",
+        "--on-accent": "accent_text_color", "--on-accent-2": "secondary_text_color",
+    }
+    for name, key in expected.items():
+        assert name in declared, f"{name} is not declared on .preview-device"
+        assert declared[name].upper() == default[key].upper(), (
+            f"{name} is {declared[name]}, but {DEFAULT_STYLE_ID} light has {default[key]}"
+        )
+
+
+def test_the_console_fallback_theme_is_the_default_studio_theme() -> None:
+    """Same rule, script side.
+
+    Twenty `|| '#2563eb'` literals were scattered through studio-admin as the
+    value a colour picker shows when /v1/industry-presets does not answer. They
+    were a fifth palette — Tailwind blue on cold slate, left over from the
+    console's own pre-token era — and if an owner saved that state, that is
+    what got published.
+    """
+
+    from studiosaas.presets import DEFAULT_STYLE_ID, style_theme
+
+    default = style_theme(DEFAULT_STYLE_ID, "light")
+    source = (REPOSITORY_ROOT / "backend/frontend/studio-admin.html").read_text(encoding="utf-8")
+    block = source[source.index("const FALLBACK_THEME = {"):]
+    block = block[:block.index("};")]
+    declared = dict(re.findall(r"(\w+):\s*'(#[0-9a-fA-F]{6})'", block))
+    assert declared, "FALLBACK_THEME no longer parses"
+    for key, value in declared.items():
+        assert key in default, f"FALLBACK_THEME.{key} is not a theme token"
+        assert value.upper() == default[key].upper(), (
+            f"FALLBACK_THEME.{key} is {value}, but {DEFAULT_STYLE_ID} light has {default[key]}"
+        )
+
+
+def test_no_asset_falls_back_to_a_hardcoded_colour() -> None:
+    """`var(--accent, #4f46e5)` is a hardcoded colour with a longer fuse.
+
+    admin-i18n.js injects the language switch from a JavaScript string. It said
+    `var(--brand, #3b82f6)`. When the consoles moved from --brand to --accent
+    the token stopped resolving and CSS did exactly what it should: it used the
+    fallback. The switch went on painting itself Tailwind blue-500 in the
+    middle of a navy console — white on it measured 3.68:1 — and every
+    stylesheet assertion stayed green, because the rule lives in a .js file.
+    """
+
+    for name in ("admin-i18n.js", "cms-i18n.js"):
+        source = strip_comments(
+            (REPOSITORY_ROOT / "backend/frontend/assets" / name).read_text(encoding="utf-8"))
+        literals = re.findall(r"var\(--[\w-]+,\s*(#[0-9a-fA-F]{3,8}|rgba?\([^)]*\))", source)
+        assert not literals, f"{name} falls back to literals: {sorted(set(literals))}"
+
+
+def test_the_palette_carries_four_semantic_roles_and_names_them() -> None:
+    """Purple coloured one KPI stripe and named no meaning anybody could say.
+
+    It was doing the job `info` does — a notice that is neither good news nor
+    bad. Eight hand-picked purple/violet/sky values became one solved role with
+    a loud form, a quiet form and a border.
+    """
+
+    for page in ("super-admin.html", "backend/frontend/studio-admin.html"):
+        body = (REPOSITORY_ROOT / page).read_text(encoding="utf-8")
+        assert "--purple" not in body and "--violet" not in body, page
+        assert "#8b5cf6" not in body.lower(), page
+    values = tokens()
+    for role in ("success", "warning", "danger", "info"):
+        for form in (f"--{role}", f"--{role}-soft", f"--on-{role}-soft", f"--{role}-border"):
+            assert form in values, f"{form} is missing from the console palette"
 
 
 # ── the design system ───────────────────────────────────────────────────────
 
 def test_spacing_is_the_fibonacci_series() -> None:
-    values = tokens()
     scale = [int(re.sub(r"\D", "", console().split(f"{name}:")[1].split(";")[0]))
              for name in ("--space-1", "--space-2", "--space-3", "--space-4", "--space-6", "--space-7")]
     assert scale == [5, 8, 13, 21, 34, 55], scale
-    assert values  # the token block still parses
+    assert tokens()  # the generated palette still parses
 
 
 def test_the_type_ladder_advances_by_the_golden_ratio() -> None:

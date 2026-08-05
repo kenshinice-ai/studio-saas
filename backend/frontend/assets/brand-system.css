@@ -5,19 +5,19 @@
  * branding may override --brand / --tenant-primary at runtime.
  */
 :root {
-  --brand-accent: var(--tenant-primary, var(--brand, var(--ui-primary, #a65a43)));
-  --brand-accent-strong: var(--tenant-secondary, var(--brand-2, var(--ui-secondary, #713f32)));
+  --brand-accent: var(--tenant-primary, var(--brand, var(--ui-primary, #835D33)));
+  --brand-accent-strong: var(--tenant-secondary, var(--brand-2, var(--ui-secondary, #4C6877)));
   --brand-on-accent: #ffffff;
   --brand-on-secondary: #ffffff;
-  --brand-paper: var(--bg, var(--ui-bg, #f4f0e8));
-  --brand-paper-raised: var(--surface, var(--panel, var(--ui-surface, #fbf9f4)));
-  --brand-ink: var(--ink, var(--ui-text, #23211d));
-  --brand-ink-soft: var(--muted, var(--ink2, var(--ui-muted, #6f685d)));
-  --brand-line: var(--line, var(--ui-border, #dcd4c6));
-  --brand-success: var(--ui-success, #2f6b4f);
-  --brand-warning: var(--ui-warning, #a86b21);
-  --brand-danger: var(--ui-error, #b4473a);
-  --brand-info: #3f6384;
+  --brand-paper: var(--bg, var(--ui-bg, #F3EFEA));
+  --brand-paper-raised: var(--surface, var(--panel, var(--ui-surface, #FDFDFD)));
+  --brand-ink: var(--ink, var(--ui-text, #221E1A));
+  --brand-ink-soft: var(--muted, var(--ink2, var(--ui-muted, #6C635A)));
+  --brand-line: var(--line, var(--ui-border, #DFDAD5));
+  --brand-success: var(--ui-success, #2F7951);
+  --brand-warning: var(--ui-warning, #5B421F);
+  --brand-danger: var(--ui-error, #76332A);
+  --brand-info: var(--info, #396F95);
   --brand-font-body: "Noto Sans SC", "PingFang SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --brand-font-display: "Noto Serif SC", "Cormorant Garamond", "Songti SC", Georgia, serif;
   --brand-reading-measure: var(--ui-reading-measure, 55ch);
@@ -59,15 +59,55 @@
   accent-color: var(--brand-accent);
 }
 
+/* ── the surfaces a palette cannot reach ──────────────────────────────────
+ *
+ * `color-scheme` is the only way to tell the browser which set of NATIVE
+ * colours to draw: scrollbars, the `<select>` popup, checkbox and radio
+ * chrome, the autofill wash, spin buttons, the caret, the default
+ * `::placeholder`, and the rubber-band overscroll. None of them are styleable
+ * and none of them read a custom property.
+ *
+ * Until v8.4.0 this was declared on date and time inputs only. Measured on
+ * production, `getComputedStyle(:root).colorScheme` was `normal` on a tenant
+ * portal carrying a dark theme — so that page had 11 text inputs, 2 selects,
+ * 2 checkboxes, a textarea and a scrollbar all rendering light native chrome
+ * on a #15120D page, and not one contrast assertion could see it, because
+ * none of those colours is in the palette.
+ *
+ * It follows the STUDIO's chosen scheme, not the visitor's OS. When an owner
+ * opts into following the visitor, index.html writes data-brand-scheme from
+ * prefers-color-scheme, so this still tracks the scheme actually rendered.
+ */
+:root { color-scheme: light; }
+:root[data-brand-scheme="dark"] { color-scheme: dark; }
+
 :where(input[type="date"], input[type="time"], input[type="datetime-local"]) {
   min-height: var(--brand-control-height);
-  color-scheme: light;
   font-variant-numeric: tabular-nums;
   letter-spacing: .01em;
 }
 
-:root[data-brand-scheme="dark"] :where(input[type="date"], input[type="time"], input[type="datetime-local"]) {
-  color-scheme: dark;
+/* Selection and placeholder are drawn by the browser from its own defaults
+   unless told otherwise, and both land on theme surfaces. */
+::selection {
+  background: color-mix(in srgb, var(--brand-accent) 26%, transparent);
+  color: var(--brand-ink);
+}
+
+:where(input, textarea)::placeholder {
+  color: var(--muted, var(--brand-ink-soft));
+  opacity: 1;   /* Firefox dims placeholders by default, below the 4.5 target */
+}
+
+/* Chrome paints autofilled fields a fixed pale yellow and ignores
+   `background-color`. The inset shadow is the documented way to override it,
+   and it has to carry the field's own ink with it. */
+:where(input, textarea, select):-webkit-autofill,
+:where(input, textarea, select):-webkit-autofill:hover,
+:where(input, textarea, select):-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--brand-ink);
+  -webkit-box-shadow: 0 0 0 40rem var(--brand-paper-raised) inset;
+  caret-color: var(--brand-ink);
 }
 
 :where(.brand-action-primary) { background: var(--brand-accent); color: var(--brand-on-accent); }

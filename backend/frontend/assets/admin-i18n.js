@@ -667,10 +667,24 @@
    * accent for exactly this (5.83:1 at worst). The focus ring read --brand,
    * which is solved as a TEXT colour against the page; --focus-ring is the one
    * solved to clear 3:1 against every surface it can land on (3.86:1 on
-   * --panel, 3.55:1 on --bg at worst). */
+   * --panel, 3.55:1 on --bg at worst).
+   *
+   * v8.4.0: and then the hardcoded FALLBACKS bit, which is the more
+   * interesting half. This rule said `var(--brand, #3b82f6)`. When the
+   * consoles stopped declaring --brand and started declaring --accent, the
+   * token resolved to nothing and CSS did what it is supposed to do: it used
+   * the fallback. So the language switch went on painting itself Tailwind
+   * blue-500 in the middle of a navy-and-warm-paper console, silently, with
+   * every contrast assertion still green — because the assertions read the
+   * stylesheet, and this string lives in a JavaScript file.
+   *
+   * A fallback is a hardcoded colour with a longer fuse. These now point at
+   * the token one layer up rather than at a literal, so a missing token
+   * degrades to another token and finally to a neutral that belongs to no
+   * palette in particular. */
   function installStyles() {
     const style = document.createElement('style');
-    style.textContent = '.admin-language-switch{display:inline-flex;align-items:center;gap:3px;padding:5px;border:1px solid var(--line,#e2e8f0);border-radius:999px;background:var(--surface,#fff);white-space:nowrap}.admin-language-switch button{border:0;background:transparent;color:var(--muted,#64748b);padding:6px 10px;border-radius:999px;font:inherit;font-size:13px;font-weight:800;cursor:pointer;min-height:44px}.admin-language-switch button.active{background:var(--brand,#3b82f6);color:var(--on-accent,#fff)}.admin-language-switch button:focus-visible{outline:2px solid var(--focus-ring,var(--brand,#3b82f6));outline-offset:2px}';
+    style.textContent = '.admin-language-switch{display:inline-flex;align-items:center;gap:3px;padding:5px;border:1px solid var(--line,var(--ui-border));border-radius:999px;background:var(--panel,var(--ui-surface));white-space:nowrap}.admin-language-switch button{border:0;background:transparent;color:var(--muted,var(--ui-muted));padding:6px 10px;border-radius:999px;font:inherit;font-size:13px;font-weight:800;cursor:pointer;min-height:44px}.admin-language-switch button.active{background:var(--accent,var(--brand-accent));color:var(--on-accent,var(--brand-on-accent))}.admin-language-switch button:focus-visible{outline:2px solid var(--focus-ring,var(--accent,var(--brand-accent)));outline-offset:2px}';
     document.head.appendChild(style);
   }
 

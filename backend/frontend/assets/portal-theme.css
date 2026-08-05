@@ -14,8 +14,16 @@
  * before /brand resolves — keep the two in step.
  *
  * Every colour here was solved for a measured WCAG target by
- * docs/design/palette_gen.py, which asserts 26 pairs per theme-mode. Do not
+ * docs/design/palette_gen.py, which asserts 61 pairs per theme-mode. Do not
  * hand-edit a hex without re-running it.
+ *
+ * v8.4.0: "keep the two in step" was an instruction with nothing enforcing it,
+ * and seven of the twenty-one had drifted — --warning was #8D6426 against a
+ * generated #5B421F and --danger #B6483A against #76332A, which are not
+ * near-misses but different colours. So the unbranded state of every public
+ * page carried a warning and a danger belonging to no theme in the product.
+ * test_portal_theme_contract.py now asserts the whole set against
+ * style_theme(DEFAULT_STYLE_ID, "light").
  */
 :root {
   /* ── Surfaces ────────────────────────────────────────────────────────
@@ -46,8 +54,8 @@
    * hover/pressed move in the same direction (darker in light mode, lighter
    * in dark) so the two states are never mistaken for each other. */
   --clay: #835D33;
-  --clay-hover: #6E4E2B;
-  --clay-pressed: #5A4023;
+  --clay-hover: #6D4D2A;
+  --clay-pressed: #573E22;
   --clay-d: #4C6877;
   --brand: var(--clay);
   --brand-2: var(--clay-d);
@@ -59,8 +67,8 @@
    * lightness re-solved per surface, so contrast is identical in all eight
    * themes rather than drifting per palette. */
   --success: #2F7951;
-  --warning: #8D6426;
-  --danger: #B6483A;
+  --warning: #5B421F;
+  --danger: #76332A;
   /* Ink on a success fill. Defaults to white the same way --on-accent does;
    * a theme that lightens --success must re-solve this via palette_gen.py
    * like every other pair. */
@@ -69,9 +77,9 @@
   /* ── Interaction states ──────────────────────────────────────────────
    * Required in both light and dark. A theme that defines these for only one
    * mode is the single most common dark-mode failure. */
-  --focus-ring: #B1793E;
-  --disabled-surface: #E7DFD6;
-  --disabled-text: #847B71;   /* ~3:1 — legible, but clearly unavailable */
+  --focus-ring: #A3743F;
+  --disabled-surface: #E6DED5;
+  --disabled-text: #857E76;   /* ~3:1 — legible, but clearly unavailable */
   --scrim: rgba(0, 0, 0, 0.5);
   /* The lightbox always sits on the scrim, never on a theme surface,
    * so its ink is fixed rather than theme-derived. */

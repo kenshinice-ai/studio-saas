@@ -546,15 +546,19 @@
    * 90), which is the correct order for transient feedback. */
   function installStyles() {
     const style = document.createElement('style');
+    /* v8.4.0: the fallbacks are tokens too. A `var(--accent, #4f46e5)` keeps
+       working after --accent is renamed away — it just paints indigo forever,
+       silently, on whatever palette replaced it. The same rule in
+       admin-i18n.js did exactly that when the consoles moved off --brand. */
     style.textContent = '.cms-language-switch{position:fixed;right:21px;bottom:21px;z-index:90;'
-      + 'display:inline-flex;gap:3px;padding:5px;border:1px solid var(--line,#e2e8f0);border-radius:999px;'
-      + 'background:var(--panel,#fff);box-shadow:var(--shadow-lg,0 4px 14px rgba(15,23,42,.12));'
+      + 'display:inline-flex;gap:3px;padding:5px;border:1px solid var(--line,var(--ui-border));border-radius:999px;'
+      + 'background:var(--panel,var(--ui-surface));box-shadow:var(--shadow-lg,0 4px 14px color-mix(in srgb, var(--ink,var(--ui-text)) 12%, transparent));'
       + 'margin-bottom:env(safe-area-inset-bottom,0px)}'
-      + '.cms-language-switch button{border:0;background:transparent;color:var(--muted,#64748b);'
+      + '.cms-language-switch button{border:0;background:transparent;color:var(--muted,var(--ui-muted));'
       + 'min-width:44px;min-height:44px;padding:6px 12px;border-radius:999px;font:inherit;'
       + 'font-size:13px;font-weight:700;cursor:pointer;transition:background-color .15s ease,color .15s ease}'
-      + '.cms-language-switch button.active{background:var(--accent,#4f46e5);color:var(--on-accent,#fff)}'
-      + '.cms-language-switch button:focus-visible{outline:2px solid var(--focus-ring,#4f46e5);outline-offset:2px}'
+      + '.cms-language-switch button.active{background:var(--accent,var(--brand-accent));color:var(--on-accent,var(--brand-on-accent))}'
+      + '.cms-language-switch button:focus-visible{outline:2px solid var(--focus-ring,var(--accent,var(--brand-accent)));outline-offset:2px}'
       /* On phones the same controls live inside Settings. A floating 96px
          pill inevitably covered roster controls while the page scrolled. */
       + '@media (max-width:767px){.cms-language-switch{display:none}}'

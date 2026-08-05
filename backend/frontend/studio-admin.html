@@ -7,11 +7,12 @@
   <script src="/assets/ui-common.js?v=__APP_VERSION__"></script>
   <script src="/assets/admin-i18n.js?v=__APP_VERSION__" defer></script>
   <link rel="stylesheet" href="/assets/ui-tokens.css?v=__APP_VERSION__">
+  <link rel="stylesheet" href="/assets/console-theme.css?v=__APP_VERSION__">
   <link rel="stylesheet" href="/assets/brand-system.css?v=__APP_VERSION__">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-  <meta name="theme-color" content="#0e1729">
+  <meta name="theme-color" content="#0E1729">
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -23,60 +24,25 @@
   </script>
   <style>
     :root {
-      --bg: #f7f5f2;
-      --surface: #ffffff;
-      --ink: #0e1729;
-      --muted: #64748b;
-      --line: #e2e8f0;
-      --brand: #3b82f6;
-      --brand-dark: #2563eb;
-      --brand-light: #dbeafe;
-      --brand-ultra-light: #eff6ff;
-      --green: #10b981;
-      --green-light: #d1fae5;
-      --red: #ef4444;
-      --red-light: #fee2e2;
-      --amber: #f59e0b;
-      --amber-light: #fef3c7;
-      --support-banner: #b45309;
-      --purple: #8b5cf6;
-      --purple-light: #ede9fe;
-      /* v7.6.x hex-token sweep: every raw hex in the stylesheet below maps to
-         one of these semantic tokens. All values come from the existing
-         slate/blue palette — this is a refactor, not a redesign. */
-      --ink-deep: #0e1729;          /* PWE family navy */
-      --ink-mid: #16233d;           /* PWE family navy, raised surface */
-      --ink-soft: #475569;          /* secondary body text (slate-600) */
-      --muted-soft: #94a3b8;        /* placeholders, muted text on dark header (slate-400) */
-      --line-strong: #cbd5e1;       /* emphasised borders (slate-300) */
-      --line-card: #dbe3ee;         /* card and control borders */
-      --line-soft: #eef2f7;         /* hairline dividers */
-      --head-bg: #f8fafc;           /* table heads, subtle panel fills (slate-50) */
-      --row-hover: #fafbfc;         /* table row hover wash */
-      --brand-soft: #bfdbfe;        /* brand-tinted border (blue-200) */
-      --brand-deep: #1d4ed8;        /* brand-tinted text (blue-700) */
-      --brand-wash: #f8fbff;        /* brand-tinted hover surface */
-      --sky: #0ea5e9;               /* logo gradient companion (sky-500) */
-      --green-soft: #a7f3d0;        /* success hover fill (emerald-200) */
-      --green-line: #bbf7d0;        /* success border (green-200) */
-      --red-soft: #fecaca;          /* danger border / hover fill (red-200) */
-      --amber-line: #fde68a;        /* warning border (amber-200) */
-      --amber-wash: #fffbeb;        /* warning surface (amber-50) */
-      --amber-deep: #92400e;        /* warning text (amber-800) */
-      --purple-wash: #f3e8ff;       /* custom-theme badge fill (purple-100) */
-      --purple-deep: #7e22ce;       /* custom-theme badge text (purple-700) */
-      --violet-line: #c4b5fd;       /* preset-undo border (violet-300) */
-      --violet-wash: #f5f3ff;       /* preset-undo surface (violet-50) */
-      --violet-deep: #4c1d95;       /* preset-undo text (violet-900) */
-      --preview-paper: #f4f0e8;     /* tenant preview default page */
-      --preview-paper-panel: #fbf9f4; /* tenant preview default panel */
-      --preview-paper-ink: #23211d; /* tenant preview default ink */
-      --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
-      --shadow-md: 0 4px 12px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.05);
-      --shadow-lg: 0 10px 25px rgba(0,0,0,0.08), 0 4px 10px rgba(0,0,0,0.04);
-      --radius: 8px;
-      --radius-lg: 12px;
-      --radius-xl: 16px;
+      /* v8.4.0. The 45 colours this block used to declare are gone; they live
+         in /assets/console-theme.css, generated and asserted by
+         docs/design/palette_gen.py.
+         33 of them were verbatim Tailwind defaults — a slate grey ramp at hue
+         215 (#64748b, #94a3b8, #cbd5e1, #e2e8f0) and a blue action colour
+         (#3b82f6) sitting on warm paper at hue 36. The v7.6.x sweep below
+         tokenised the hexes without ever asking whether the palette was right,
+         and the note it left ("this is a refactor, not a redesign") is why the
+         mismatch survived four minor versions.
+         What remains here is not colour: shape, shadow, and one measured
+         offset. */
+      --shadow-sm: 0 1px 2px color-mix(in srgb, var(--ink) 4%, transparent);
+      --shadow-md: 0 4px 12px color-mix(in srgb, var(--ink) 7%, transparent), 0 1px 3px color-mix(in srgb, var(--ink) 5%, transparent);
+      --shadow-lg: 0 10px 25px color-mix(in srgb, var(--ink) 8%, transparent), 0 4px 10px color-mix(in srgb, var(--ink) 4%, transparent);
+      /* Fibonacci, matching super-admin. This console had 8/12/16 against the
+         platform console's 8/13/21 for no reason either of them recorded. */
+      --radius: var(--ui-radius-control, 8px);
+      --radius-lg: var(--ui-radius-card, 13px);
+      --radius-xl: var(--ui-radius-sheet, 21px);
       /* Measured from the live header by syncHeaderOffset() so the sticky
          preview and the scroll-margin of each section track it when the row
          wraps. The literal here is only what applies before first paint. */
@@ -95,8 +61,8 @@
 
     /* ===== HEADER ===== */
     .header {
-      background: linear-gradient(135deg, var(--ink-deep) 0%, var(--ink-mid) 100%);
-      color: white;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-pressed) 100%);
+      color: var(--on-role);
       box-shadow: var(--shadow-md);
       position: sticky;
       top: 0;
@@ -181,7 +147,7 @@
       padding: 8px 12px;
       border: 1px solid var(--line);
       border-radius: 999px;
-      background: var(--surface);
+      background: var(--panel);
       color: var(--ink);
       font-size: 13px;
       font-weight: 700;
@@ -192,7 +158,7 @@
 
     .header-menu-trigger::-webkit-details-marker { display: none; }
     .header-menu-trigger svg { width: 18px; height: 18px; flex: 0 0 auto; }
-    .header-menu[open] .header-menu-trigger { background: var(--head-bg); border-color: var(--line-strong); }
+    .header-menu[open] .header-menu-trigger { background: var(--bg2); border-color: var(--line-strong); }
 
     .header-menu-panel {
       position: absolute;
@@ -205,9 +171,9 @@
       min-width: 240px;
       max-width: min(320px, calc(100vw - 32px));
       padding: var(--ui-space-3, 13px);
-      border: 1px solid var(--line-card);
+      border: 1px solid var(--line);
       border-radius: var(--radius-lg);
-      background: var(--surface);
+      background: var(--panel);
       box-shadow: var(--shadow-lg);
     }
 
@@ -245,7 +211,7 @@
       padding: 10px 16px;
       font-size: 13px;
       font-weight: 600;
-      color: var(--muted-soft);
+      color: var(--on-accent-muted);
       text-decoration: none;
       border-bottom: 2px solid transparent;
       transition: all 0.2s ease;
@@ -258,13 +224,13 @@
     }
 
     .nav-link:hover {
-      color: white;
-      background: rgba(255,255,255,0.05);
+      color: var(--on-role);
+      background: color-mix(in srgb, var(--on-role) 5%, transparent);
     }
 
     .nav-link.active {
-      color: white;
-      border-bottom-color: var(--brand);
+      color: var(--on-role);
+      border-bottom-color: var(--accent);
     }
 
     .nav-icon {
@@ -300,40 +266,40 @@
     a:focus-visible,
     summary:focus-visible,
     [role="tab"]:focus-visible {
-      outline: 2px solid var(--brand);
+      outline: 2px solid var(--accent);
       outline-offset: 2px;
     }
 
     .btn-primary {
-      background: var(--brand);
-      color: white;
+      background: var(--accent);
+      color: var(--on-role);
     }
-    .btn-primary:hover { background: var(--brand-dark); }
+    .btn-primary:hover { background: var(--accent-hover); }
 
     .btn-secondary {
       background: var(--bg);
       color: var(--ink);
       border: 1px solid var(--line);
     }
-    .btn-secondary:hover { background: var(--line); }
+    .btn-secondary:hover { background: var(--bg2); }
 
     .btn-danger {
-      background: var(--red-light);
-      color: var(--red);
+      background: var(--danger-soft);
+      color: var(--danger);
     }
-    .btn-danger:hover { background: var(--red-soft); }
+    .btn-danger:hover { background: var(--danger-border); }
 
     .btn-success {
-      background: var(--green-light);
-      color: var(--green);
+      background: var(--success-soft);
+      color: var(--success);
     }
-    .btn-success:hover { background: var(--green-soft); }
+    .btn-success:hover { background: var(--success-border); }
 
     .btn-info {
-      background: var(--brand-light);
-      color: var(--brand-dark);
+      background: var(--accent-soft);
+      color: var(--accent-hover);
     }
-    .btn-info:hover { background: var(--brand-soft); }
+    .btn-info:hover { background: var(--accent-border); }
 
     .btn-sm { padding: 6px 12px; font-size: 13px; min-height: var(--ui-touch-target, 44px); }
 
@@ -343,9 +309,9 @@
       min-height: 34px;
       padding: 6px 10px;
       border-radius: var(--radius);
-      background: rgba(255,255,255,0.1);
-      border: 1px solid rgba(255,255,255,0.16);
-      color: var(--line-strong);
+      background: color-mix(in srgb, var(--on-role) 10%, transparent);
+      border: 1px solid color-mix(in srgb, var(--on-role) 16%, transparent);
+      color: var(--muted);
       font-size: 12px;
       font-weight: 700;
       max-width: 220px;
@@ -382,9 +348,9 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: var(--brand-ultra-light);
+      background: var(--accent-soft);
       border-radius: 8px;
-      color: var(--brand);
+      color: var(--accent);
     }
 
     .section-icon svg {
@@ -407,7 +373,7 @@
 
     /* Cards */
     .card {
-      background: var(--surface);
+      background: var(--panel);
       border-radius: var(--radius-xl);
       box-shadow: var(--shadow-sm);
       border: 1px solid var(--line);
@@ -444,7 +410,7 @@
     }
 
     .stat-card {
-      background: var(--surface);
+      background: var(--panel);
       border-radius: var(--radius-lg);
       padding: var(--ui-space-4, 21px);
       box-shadow: var(--shadow-sm);
@@ -464,9 +430,9 @@
     }
 
     .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
-    .stat-card.green::before { background: var(--green); }
-    .stat-card.amber::before { background: var(--amber); }
-    .stat-card.purple::before { background: var(--purple); }
+    .stat-card.green::before { background: var(--success); }
+    .stat-card.amber::before { background: var(--warning); }
+    .stat-card.purple::before { background: var(--info); }
 
     .stat-value {
       font-size: 30px;
@@ -510,13 +476,13 @@
       padding: 10px 12px;
       font-size: 14px;
       transition: all 0.2s ease;
-      background: var(--surface);
+      background: var(--panel);
     }
 
     input:focus, select:focus, textarea:focus {
       outline: none;
-      border-color: var(--brand);
-      box-shadow: 0 0 0 3px var(--brand-light);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
     }
 
     /* Tables */
@@ -542,7 +508,7 @@
     }
 
     th {
-      background: var(--head-bg);
+      background: var(--bg2);
       color: var(--muted);
       font-size: 11px;
       font-weight: 700;
@@ -555,14 +521,14 @@
       border-bottom: 1px solid var(--bg);
     }
 
-    tr:hover td { background: var(--row-hover); }
+    tr:hover td { background: var(--surface-hover); }
 
     /* Owner audit trail (analytics tab): compact read-only table. */
     .audit-table { min-width: 560px; }
     .audit-table td { font-size: 13px; }
     .audit-table .audit-time { white-space: nowrap; color: var(--muted); font-variant-numeric: tabular-nums; }
     .audit-table .audit-action { font-weight: 600; color: var(--ink); overflow-wrap: anywhere; }
-    .audit-table .audit-resource { color: var(--ink-soft); overflow-wrap: anywhere; }
+    .audit-table .audit-resource { color: var(--ink2); overflow-wrap: anywhere; }
 
     .toolbar {
       display: grid;
@@ -586,15 +552,15 @@
       width: 48px;
       height: 48px;
       margin: 0 auto 12px;
-      background: var(--line);
+      background: var(--bg2);
       border-radius: 50%;
       opacity: 0.5;
     }
 
     .edit-banner {
-      background: var(--brand-light);
-      border: 1px solid rgba(37, 99, 235, 0.15);
-      color: var(--brand-dark);
+      background: var(--accent-soft);
+      border: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
+      color: var(--accent-hover);
       border-radius: var(--radius);
       padding: 10px 14px;
       font-weight: 600;
@@ -642,14 +608,14 @@
       letter-spacing: 0.3px;
     }
 
-    .pill.active, .pill.trialing { background: var(--green-light); color: var(--green); }
-    .pill.pending { background: var(--amber-light); color: var(--amber); }
+    .pill.active, .pill.trialing { background: var(--success-soft); color: var(--success); }
+    .pill.pending { background: var(--warning-soft); color: var(--warning); }
     .pill.cancelled, .pill.paused, .pill.inactive, .pill.archived, .pill.contacted { background: var(--bg); color: var(--muted); }
 
     /* Progress Bars */
     .progress-bar {
       height: 6px;
-      background: var(--line);
+      background: var(--bg2);
       border-radius: 999px;
       overflow: hidden;
       margin-top: 4px;
@@ -661,10 +627,10 @@
       transition: width 0.3s ease;
     }
 
-    .progress-fill.blue { background: var(--brand); }
-    .progress-fill.green { background: var(--green); }
-    .progress-fill.amber { background: var(--amber); }
-    .progress-fill.red { background: var(--red); }
+    .progress-fill.blue { background: var(--accent); }
+    .progress-fill.green { background: var(--success); }
+    .progress-fill.amber { background: var(--warning); }
+    .progress-fill.red { background: var(--danger); }
 
     /* Forms */
     .form-grid {
@@ -706,7 +672,7 @@
       border: 1px solid var(--line);
       border-radius: var(--radius-lg);
       padding: 18px;
-      background: var(--head-bg);
+      background: var(--bg2);
       display: grid;
       gap: 12px;
       align-content: start;
@@ -726,8 +692,8 @@
 
     .surface-url {
       display: block;
-      color: var(--ink-soft);
-      background: white;
+      color: var(--ink2);
+      background: var(--panel);
       border: 1px solid var(--line);
       border-radius: var(--radius);
       padding: 8px 10px;
@@ -745,19 +711,19 @@
       width: fit-content;
       padding: 5px 8px;
       border-radius: 999px;
-      background: white;
+      background: var(--panel);
       color: var(--muted);
       font-size: 11px;
       font-weight: 800;
       border: 1px solid var(--line);
     }
 
-    .surface-health.ok { background: var(--green-light); color: var(--green); border-color: var(--green-line); }
-    .surface-health.warn { background: var(--amber-light); color: var(--amber); border-color: var(--amber-line); }
-    .surface-health.fail { background: var(--red-light); color: var(--red); border-color: var(--red-soft); }
+    .surface-health.ok { background: var(--success-soft); color: var(--success); border-color: var(--success-border); }
+    .surface-health.warn { background: var(--warning-soft); color: var(--warning); border-color: var(--warning-border); }
+    .surface-health.fail { background: var(--danger-soft); color: var(--danger); border-color: var(--danger-border); }
 
     .handoff-note {
-      background: var(--head-bg);
+      background: var(--bg2);
       border: 1px solid var(--line);
       border-radius: var(--radius-lg);
       padding: 14px 16px;
@@ -767,9 +733,9 @@
     }
 
     .warning-text {
-      color: var(--amber-deep);
-      background: var(--amber-wash);
-      border: 1px solid var(--amber-line);
+      color: var(--on-warning-soft);
+      background: var(--warning-soft);
+      border: 1px solid var(--warning-border);
       border-radius: var(--radius);
       font-size: 13px;
       margin-top: 8px;
@@ -783,7 +749,7 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(15,23,42,0.6);
+      background: var(--scrim);
       backdrop-filter: blur(4px);
       display: flex;
       align-items: center;
@@ -800,7 +766,7 @@
     }
 
     .modal {
-      background: var(--surface);
+      background: var(--panel);
       border-radius: var(--radius-xl);
       box-shadow: var(--shadow-lg);
       max-width: 700px;
@@ -823,7 +789,7 @@
       align-items: center;
       position: sticky;
       top: 0;
-      background: var(--surface);
+      background: var(--panel);
       z-index: 1;
     }
 
@@ -844,7 +810,7 @@
     }
 
     .toast {
-      background: var(--surface);
+      background: var(--panel);
       border-radius: var(--radius);
       padding: 14px 18px;
       box-shadow: var(--shadow-lg);
@@ -872,9 +838,9 @@
       outline-offset: 2px;
     }
 
-    .toast.success { border-left: 4px solid var(--green); }
-    .toast.error { border-left: 4px solid var(--red); }
-    .toast.warning { border-left: 4px solid var(--amber); }
+    .toast.success { border-left: 4px solid var(--success); }
+    .toast.error { border-left: 4px solid var(--danger); }
+    .toast.warning { border-left: 4px solid var(--warning); }
 
     @keyframes slideIn {
       from { transform: translateX(100%); opacity: 0; }
@@ -887,49 +853,12 @@
       width: 20px;
       height: 20px;
       border: 2px solid var(--line);
-      border-top-color: var(--brand);
+      border-top-color: var(--accent);
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
 
     @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* Theme Preview */
-    .theme-preview {
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      overflow: hidden;
-      margin-top: 14px;
-      box-shadow: var(--shadow-sm);
-    }
-
-    .theme-preview .top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      background: var(--preview-primary, var(--brand));
-      color: white;
-      padding: 14px 16px;
-    }
-
-    .theme-preview .body {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 12px;
-      align-items: center;
-      padding: 14px;
-      background: white;
-    }
-
-    .theme-preview .sample-btn {
-      border-radius: var(--radius);
-      background: var(--preview-secondary, var(--brand-dark));
-      color: white;
-      padding: 8px 16px;
-      font-weight: 700;
-      font-size: 13px;
-    }
 
     .brand-workbench {
       display: grid;
@@ -950,10 +879,10 @@
 
     .settings-panel,
     .preview-panel {
-      border: 1px solid var(--line-card);
+      border: 1px solid var(--line);
       border-radius: 14px;
-      background: var(--surface);
-      box-shadow: 0 18px 46px rgba(15, 23, 42, 0.07);
+      background: var(--panel);
+      box-shadow: 0 18px 46px color-mix(in srgb, var(--ink) 7%, transparent);
       overflow: hidden;
     }
 
@@ -971,7 +900,7 @@
       gap: 6px;
       padding: 10px;
       border-bottom: 1px solid var(--line);
-      background: var(--head-bg);
+      background: var(--bg2);
       overflow-x: auto;
     }
 
@@ -996,7 +925,7 @@
     .studio-tab:hover,
     .preview-tab:hover,
     .device-tab:hover {
-      background: var(--surface);
+      background: var(--panel);
       color: var(--ink);
       border-color: var(--line);
     }
@@ -1005,7 +934,7 @@
     .preview-tab.active,
     .device-tab.active {
       background: var(--ink);
-      color: var(--surface);
+      color: var(--panel);
       border-color: var(--ink);
     }
 
@@ -1025,7 +954,7 @@
       gap: var(--ui-space-3, 13px);
       margin-bottom: var(--ui-space-3, 13px);
       padding-bottom: var(--ui-space-2, 8px);
-      border-bottom: 1px solid var(--line-soft);
+      border-bottom: 1px solid var(--line);
     }
 
     .panel-heading h3 {
@@ -1060,7 +989,7 @@
     .brand-step {
       border: 1px solid var(--line);
       border-radius: 14px;
-      background: var(--surface);
+      background: var(--panel);
       padding: 18px;
     }
 
@@ -1079,7 +1008,7 @@
       height: 30px;
       border-radius: 9px;
       background: var(--ink);
-      color: var(--surface);
+      color: var(--panel);
       font-size: 11px;
       font-weight: 900;
       letter-spacing: .04em;
@@ -1106,9 +1035,9 @@
       gap: 10px;
       min-width: 0;
       min-height: 148px;
-      border: 1px solid var(--line-card);
+      border: 1px solid var(--line);
       border-radius: 12px;
-      background: var(--surface);
+      background: var(--panel);
       padding: 12px;
       text-align: left;
       cursor: pointer;
@@ -1116,28 +1045,28 @@
     }
 
     .preset-card:hover {
-      border-color: var(--muted-soft);
-      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+      border-color: var(--disabled-text);
+      box-shadow: 0 10px 24px color-mix(in srgb, var(--ink) 8%, transparent);
       transform: translateY(-1px);
     }
 
     .preset-card.active {
-      border-color: var(--brand-dark);
-      background: var(--brand-wash);
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+      border-color: var(--accent-hover);
+      background: var(--accent-soft);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
     }
 
     .preset-card-top { display: flex; align-items: center; justify-content: space-between; min-width: 0; min-height: 20px; }
     /* 3-2: replaces the three-letter key slug ("GEN" / "GAM"), which was
        indistinguishable at 10px and said nothing the name below did not. */
-    .preset-dot { width: 12px; height: 12px; border: 1px solid rgba(15,23,42,.18); border-radius: 999px; }
-    .preset-check { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 999px; background: var(--brand-dark); color: var(--surface); font-size: 11px; opacity: 0; transform: scale(.8); transition: .18s ease; }
+    .preset-dot { width: 12px; height: 12px; border: 1px solid color-mix(in srgb, var(--ink) 18%, transparent); border-radius: 999px; }
+    .preset-check { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 999px; background: var(--accent-hover); color: var(--panel); font-size: 11px; opacity: 0; transform: scale(.8); transition: .18s ease; }
     .preset-card.active .preset-check { opacity: 1; transform: scale(1); }
     .preset-name { min-width: 0; color: var(--ink); font-size: 14px; font-weight: 900; line-height: 1.2; overflow-wrap: anywhere; }
     .preset-name span { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; font-weight: 700; }
     .preset-copy { margin-top: 6px; color: var(--muted); font-size: 11px; line-height: 1.35; overflow-wrap: anywhere; }
     .preset-operation { margin-top: 7px; color: var(--ink); font-size: 11px; font-weight: 750; line-height: 1.35; overflow-wrap: anywhere; }
-    .palette-swatches { display: flex; width: 100%; height: 7px; overflow: hidden; border-radius: 999px; background: var(--line); }
+    .palette-swatches { display: flex; width: 100%; height: 7px; overflow: hidden; border-radius: 999px; background: var(--bg2); }
     .palette-swatches i { flex: 1 1 0; border: 0; }
 
     /* Was .9fr : 1.1fr, which inverted the emphasis and gave the swatch strip
@@ -1179,10 +1108,10 @@
       min-width: 0;
     }
 
-    .theme-picker-control label { margin: 0; color: var(--ink-mid); font-size: 12px; font-weight: 800; line-height: 1.3; }
+    .theme-picker-control label { margin: 0; color: var(--ink2); font-size: 12px; font-weight: 800; line-height: 1.3; }
     .theme-picker-control select { width: 100%; min-height: 46px; font-weight: 800; }
     .theme-picker-control small { color: var(--muted); font-size: 11px; line-height: 1.4; }
-    .theme-picker-control small.note-unresolved { color: var(--amber-deep); font-weight: 700; }
+    .theme-picker-control small.note-unresolved { color: var(--on-warning-soft); font-weight: 700; }
 
     .theme-selection-preview {
       display: grid;
@@ -1191,9 +1120,9 @@
       align-content: start;
       min-width: 0;
       padding: 14px;
-      border: 1px solid var(--line-card);
+      border: 1px solid var(--line);
       border-radius: 12px;
-      background: var(--theme-panel, var(--surface));
+      background: var(--theme-panel, var(--panel));
       color: var(--theme-text, var(--ink));
     }
 
@@ -1212,17 +1141,17 @@
       letter-spacing: .02em;
     }
     .theme-palette-preview .swatch { display: grid; gap: 4px; justify-items: center; min-width: 52px; }
-    .theme-palette-preview .swatch i { display: block; width: 100%; height: 22px; border: 1px solid rgba(15,23,42,.16); border-radius: 6px; }
+    .theme-palette-preview .swatch i { display: block; width: 100%; height: 22px; border: 1px solid color-mix(in srgb, var(--ink) 16%, transparent); border-radius: 6px; }
     .theme-palette-preview .swatch small { color: var(--theme-muted, var(--muted)); font-size: 10px; font-weight: 700; letter-spacing: .02em; text-align: center; }
     .theme-selection-title { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; font-size: 14px; font-weight: 900; }
     .theme-harmony { display: inline-flex; align-items: center; min-height: 22px; padding: 3px 7px; border: 1px solid var(--theme-muted, var(--line-strong)); border-radius: 999px; color: var(--theme-muted, var(--muted)); font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
     .theme-selection-copy { margin: 5px 0 0; color: var(--theme-muted, var(--muted)); font-size: 11px; line-height: 1.45; }
-    .theme-badge { display: inline-flex; align-items: center; min-height: 22px; padding: 3px 7px; border-radius: 999px; background: color-mix(in srgb, var(--theme-accent, var(--brand-dark)) 14%, var(--theme-panel, var(--surface))); color: var(--theme-text, var(--ink)); font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .04em; }
-    .theme-badge.custom { background: var(--purple-wash); color: var(--purple-deep); }
+    .theme-badge { display: inline-flex; align-items: center; min-height: 22px; padding: 3px 7px; border-radius: 999px; background: color-mix(in srgb, var(--theme-accent, var(--accent-hover)) 14%, var(--theme-panel, var(--panel))); color: var(--theme-text, var(--ink)); font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .04em; }
+    .theme-badge.custom { background: var(--info-soft); color: var(--on-info-soft); }
 
-    .preset-undo { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:12px; padding:10px 12px; border:1px solid var(--violet-line); border-radius:10px; background:var(--violet-wash); color:var(--violet-deep); font-size:12px; font-weight:700; }
+    .preset-undo { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:12px; padding:10px 12px; border:1px solid var(--info-border); border-radius:10px; background:var(--info-soft); color:var(--on-info-soft); font-size:12px; font-weight:700; }
     .theme-customization { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 12px; }
-    .theme-customization summary { cursor:pointer; color:var(--ink-mid); font-size:12px; font-weight:900; list-style-position: outside; }
+    .theme-customization summary { cursor:pointer; color:var(--ink2); font-size:12px; font-weight:900; list-style-position: outside; }
     .theme-customization > .form-grid { margin-top:14px; }
     .advanced-colours { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding-top: 4px; }
     .advanced-colours small { grid-column: 1 / -1; }
@@ -1310,7 +1239,7 @@
       height: 26px;
       transform: translateY(-50%);
       border-radius: 999px;
-      background: color-mix(in srgb, var(--line) 70%, #fff);
+      background: color-mix(in srgb, var(--line) 70%, var(--panel));
       border: 1px solid var(--line);
       transition: background-color .15s ease, border-color .15s ease;
     }
@@ -1323,8 +1252,8 @@
       height: 18px;
       transform: translateY(-50%);
       border-radius: 50%;
-      background: #fff;
-      box-shadow: 0 1px 3px rgba(0,0,0,.28);
+      background: var(--panel);
+      box-shadow: 0 1px 3px color-mix(in srgb, var(--ink) 28%, transparent);
       transition: left .15s ease;
     }
     .switch:checked::before { background: var(--brand-accent); border-color: var(--brand-accent); }
@@ -1350,7 +1279,7 @@
       padding: 14px;
       border: 1px solid var(--line);
       border-radius: 10px;
-      background: var(--head-bg);
+      background: var(--bg2);
     }
 
     .faq-card {
@@ -1364,7 +1293,7 @@
       gap: 12px;
       padding: 12px;
       border-bottom: 1px solid var(--line);
-      background: var(--head-bg);
+      background: var(--bg2);
     }
 
     .preview-tabs,
@@ -1374,7 +1303,7 @@
       padding: 4px;
       border: 1px solid var(--line);
       border-radius: 10px;
-      background: var(--surface);
+      background: var(--panel);
     }
 
     /* Language and device are separate one-of-two choices, each with its own
@@ -1402,19 +1331,49 @@
 
     .preview-stage {
       padding: 16px;
-      background: var(--line-soft);
+      background: var(--bg2);
     }
 
+    /* The preview speaks the tenant vocabulary, and it declares that
+       vocabulary HERE — custom properties inherit, so these names mean the
+       studio's palette inside this subtree and the console's everywhere else.
+       That is what replaced the old --preview-* dialect.
+
+       The values are the default style's light mode (vintage-press), matching
+       FALLBACK_THEME in the script; applyPreviewTheme() overwrites all of them
+       as soon as a theme is known. They are not decoration: without them the
+       subtree inherited the CONSOLE's --bg and --ink and had no --clay at all,
+       so between first paint and the preset response the mock rendered a white
+       CTA label on a transparent button. Measured 1.09:1 — invisible. */
     .preview-device {
+      --bg: #F3EFEA;
+      --bg2: #EAE3DB;
+      --panel: #FDFDFD;
+      --surface: #FDFDFD;
+      --surface-hover: #F7F6F6;
+      --ink: #221E1A;
+      --ink2: #46403A;
+      --muted: #6C635A;
+      --line: #DFDAD5;
+      --line-strong: #8D7F70;
+      --clay: #835D33;
+      --clay-hover: #6D4D2A;
+      --clay-pressed: #573E22;
+      --clay-d: #4C6877;
+      --accent: #835D33;
+      --on-accent: #FFFFFF;
+      --on-accent-2: #FFFFFF;
+      --radius: 8px;
+
       width: 100%;
       max-width: 620px;
       margin: 0 auto;
       overflow: hidden;
       border: 1px solid var(--line-strong);
       border-radius: 14px;
-      background: var(--preview-bg, var(--preview-paper));
-      color: var(--preview-ink, var(--preview-paper-ink));
-      box-shadow: 0 24px 54px rgba(15, 23, 42, 0.18);
+      background: var(--bg);
+      color: var(--ink);
+      box-shadow: 0 24px 54px color-mix(in srgb, var(--ink) 18%, transparent);
       transition: max-width .2s ease;
     }
 
@@ -1428,8 +1387,8 @@
       align-items: center;
       gap: 12px;
       padding: 11px 14px;
-      border-bottom: 1px solid rgba(148, 163, 184, 0.32);
-      background: rgba(255, 255, 255, 0.72);
+      border-bottom: 1px solid var(--line);
+      background: color-mix(in srgb, var(--panel) 72%, transparent);
       backdrop-filter: blur(8px);
     }
 
@@ -1446,9 +1405,9 @@
       width: 28px;
       height: 28px;
       object-fit: contain;
-      border: 1px solid rgba(148, 163, 184, 0.45);
+      border: 1px solid var(--line);
       border-radius: 7px;
-      background: var(--surface);
+      background: var(--panel);
       padding: 3px;
       flex: 0 0 auto;
     }
@@ -1461,7 +1420,7 @@
       min-width: 0;
       flex: 0 1 auto;
       overflow: hidden;
-      color: var(--preview-accent, var(--brand-dark));
+      color: var(--clay);
       font-size: 11px;
       font-weight: 900;
       white-space: nowrap;
@@ -1491,7 +1450,7 @@
     }
 
     .preview-eyebrow {
-      color: var(--preview-accent, var(--brand-dark));
+      color: var(--clay);
       font-size: 10px;
       font-weight: 900;
       letter-spacing: 0.14em;
@@ -1508,7 +1467,7 @@
 
     .preview-subtitle {
       margin-top: 12px;
-      color: var(--preview-muted, var(--muted));
+      color: var(--muted);
       font-size: 13px;
       line-height: 1.55;
     }
@@ -1526,30 +1485,30 @@
       justify-content: center;
       min-height: 34px;
       padding: 8px 13px;
-      border-radius: var(--preview-radius, 8px);
+      border-radius: var(--radius);
       font-size: 11px;
       font-weight: 900;
     }
 
     .preview-button.primary {
-      background: var(--preview-accent, var(--brand-dark));
-      color: var(--preview-accent-text, var(--surface));
+      background: var(--clay);
+      color: var(--on-accent);
     }
 
     .preview-button.secondary {
-      border: 1px solid var(--preview-border, rgba(100, 116, 139, 0.32));
-      color: var(--preview-ink, var(--ink));
-      background: rgba(255,255,255,0.46);
+      border: 1px solid var(--line-strong);
+      color: var(--ink);
+      background: color-mix(in srgb, var(--panel) 46%, transparent);
     }
 
     .preview-art {
       min-height: 190px;
-      border: 1px solid rgba(148, 163, 184, 0.36);
+      border: 1px solid var(--line);
       border-radius: 10px;
       background:
-        radial-gradient(120% 100% at 20% 15%, rgba(234, 179, 8, .25), transparent 52%),
-        radial-gradient(120% 100% at 88% 78%, rgba(14, 165, 233, .20), transparent 48%),
-        linear-gradient(145deg, var(--preview-panel, var(--preview-paper-panel)), var(--line));
+        radial-gradient(120% 100% at 20% 15%, color-mix(in srgb, var(--clay) 22%, transparent), transparent 52%),
+        radial-gradient(120% 100% at 88% 78%, color-mix(in srgb, var(--clay-d) 18%, transparent), transparent 48%),
+        linear-gradient(145deg, var(--panel), var(--bg2));
     }
 
     .preview-sections {
@@ -1563,7 +1522,7 @@
       justify-content: space-between;
       gap: 10px;
       padding: 11px 0;
-      border-top: 1px solid var(--preview-border, rgba(148, 163, 184, 0.28));
+      border-top: 1px solid var(--line);
       font-size: 12px;
     }
 
@@ -1575,16 +1534,16 @@
       display: grid;
       gap: 11px;
       padding: 18px;
-      border: 1px solid rgba(148, 163, 184, 0.34);
+      border: 1px solid var(--line);
       border-radius: 12px;
-      background: var(--preview-panel, var(--surface));
+      background: var(--panel);
     }
 
     .preview-field {
       min-height: 34px;
-      border: 1px solid rgba(148, 163, 184, 0.45);
+      border: 1px solid var(--line);
       border-radius: 8px;
-      background: var(--surface);
+      background: var(--panel);
       padding: 8px 10px;
       color: var(--muted);
       font-size: 11px;
@@ -1602,8 +1561,8 @@
       padding: 12px;
       border: 1px solid var(--line-strong);
       border-radius: 14px;
-      background: rgba(255, 255, 255, 0.94);
-      box-shadow: 0 16px 44px rgba(15, 23, 42, 0.14);
+      background: color-mix(in srgb, var(--panel) 94%, transparent);
+      box-shadow: 0 16px 44px color-mix(in srgb, var(--ink) 14%, transparent);
       backdrop-filter: blur(16px);
     }
 
@@ -1615,14 +1574,14 @@
       font-weight: 800;
     }
 
-    .save-bar-status[data-tone="dirty"] { color: var(--amber-deep); }
+    .save-bar-status[data-tone="dirty"] { color: var(--on-warning-soft); }
     .save-bar-status[data-tone="clean"] { color: var(--muted); }
 
     /* Color Warning */
     #colorWarning {
-      color: var(--amber-deep);
-      background: var(--amber-wash);
-      border: 1px solid var(--amber-line);
+      color: var(--on-warning-soft);
+      background: var(--warning-soft);
+      border: 1px solid var(--warning-border);
       border-radius: var(--radius);
       font-size: 12px;
       margin-top: 8px;
@@ -1642,10 +1601,10 @@
     .login-error {
       margin-bottom: 16px;
       padding: 10px 12px;
-      border: 1px solid var(--red-soft);
+      border: 1px solid var(--danger-border);
       border-radius: var(--radius);
-      background: var(--red-light);
-      color: var(--red);
+      background: var(--danger-soft);
+      color: var(--danger);
       font-size: 13px;
       font-weight: 600;
     }
@@ -1657,7 +1616,7 @@
     .field-error {
       display: block;
       margin-top: 6px;
-      color: var(--red);
+      color: var(--danger);
       font-size: 12px;
       font-weight: 600;
       line-height: 1.4;
@@ -1668,14 +1627,14 @@
     .form-group input[aria-invalid="true"],
     .form-group select[aria-invalid="true"],
     .form-group textarea[aria-invalid="true"] {
-      border-color: var(--red);
+      border-color: var(--danger);
     }
 
     .form-group input[aria-invalid="true"]:focus,
     .form-group select[aria-invalid="true"]:focus,
     .form-group textarea[aria-invalid="true"]:focus {
-      border-color: var(--red);
-      box-shadow: 0 0 0 3px var(--red-light);
+      border-color: var(--danger);
+      box-shadow: 0 0 0 3px var(--danger-soft);
     }
     code { background: var(--bg); padding: 2px 6px; border-radius: 4px; font-size: 12px; font-family: "SF Mono", Monaco, monospace; }
 
@@ -1685,7 +1644,7 @@
       height: 80px;
       object-fit: contain;
       border-radius: var(--radius);
-      background: white;
+      background: var(--panel);
       border: 1px solid var(--line);
       padding: 4px;
     }
@@ -1701,9 +1660,9 @@
       font-weight: 700;
     }
 
-    .badge.green { background: var(--green-light); color: var(--green); }
-    .badge.amber { background: var(--amber-light); color: var(--amber); }
-    .badge.red { background: var(--red-light); color: var(--red); }
+    .badge.green { background: var(--success-soft); color: var(--success); }
+    .badge.amber { background: var(--warning-soft); color: var(--warning); }
+    .badge.red { background: var(--danger-soft); color: var(--danger); }
 
     /* ===== RESPONSIVE ===== */
     @media (max-width: 1024px) {
@@ -1762,7 +1721,6 @@
       .modal { width: calc(100vw - 24px); }
       .toast-container { left: 12px; right: 12px; top: 12px; }
       .toast { min-width: 0; width: 100%; }
-      .theme-preview .body { grid-template-columns: 1fr; }
       .section-header { flex-wrap: wrap; }
     }
 
@@ -1782,16 +1740,16 @@
     /* ===== PILOT POLISH OVERRIDES ===== */
     body {
       background:
-        radial-gradient(circle at top left, rgba(245, 179, 53, 0.10), transparent 30rem),
-        linear-gradient(180deg, var(--head-bg) 0%, var(--line-soft) 100%);
+        radial-gradient(circle at top left, color-mix(in srgb, var(--accent-2) 12%, transparent), transparent 30rem),
+        linear-gradient(180deg, var(--bg2) 0%, var(--disabled-surface) 100%);
     }
 
     .header {
-      background: rgba(255, 255, 255, 0.92);
+      background: color-mix(in srgb, var(--panel) 92%, transparent);
       color: var(--ink);
-      border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+      border-bottom: 1px solid var(--line);
       backdrop-filter: blur(18px);
-      box-shadow: 0 12px 36px rgba(15, 23, 42, 0.08);
+      box-shadow: 0 12px 36px color-mix(in srgb, var(--ink) 8%, transparent);
     }
 
     .brand h1 { color: var(--ink); }
@@ -1812,15 +1770,15 @@
 
     .nav-link:hover {
       color: var(--ink);
-      background: var(--surface);
+      background: var(--panel);
       border-color: var(--line);
     }
 
     .nav-link.active {
       color: var(--ink);
-      background: var(--surface);
-      border-color: var(--brand-soft);
-      box-shadow: 0 8px 18px rgba(37, 99, 235, 0.1);
+      background: var(--panel);
+      border-color: var(--accent-border);
+      box-shadow: 0 8px 18px color-mix(in srgb, var(--accent) 10%, transparent);
     }
 
     /* The nav is horizontal, so the link that leaves the console gets a
@@ -1855,9 +1813,9 @@
     }
 
     .section-icon {
-      background: var(--surface);
-      border: 1px solid var(--brand-light);
-      box-shadow: 0 10px 22px rgba(37, 99, 235, 0.08);
+      background: var(--panel);
+      border: 1px solid var(--accent-soft);
+      box-shadow: 0 10px 22px color-mix(in srgb, var(--accent) 8%, transparent);
     }
 
     .section-title {
@@ -1868,18 +1826,18 @@
     .section-subtitle { font-size: 14px; color: var(--muted); }
 
     .card, .stat-card {
-      border-color: rgba(203, 213, 225, 0.86);
-      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
+      border-color: var(--line);
+      box-shadow: 0 16px 40px color-mix(in srgb, var(--ink) 6%, transparent);
     }
 
     .card:hover, .stat-card:hover {
       transform: none;
-      box-shadow: 0 18px 46px rgba(15, 23, 42, 0.08);
+      box-shadow: 0 18px 46px color-mix(in srgb, var(--ink) 8%, transparent);
     }
 
     .card-header {
       gap: 12px;
-      border-bottom-color: var(--line-soft);
+      border-bottom-color: var(--line);
     }
 
     .card-title { font-size: 17px; }
@@ -1898,7 +1856,7 @@
        base rules further up. Both read the token now. */
     input, select, textarea {
       min-height: var(--ui-touch-target, 44px);
-      border-color: var(--line-card);
+      border-color: var(--line);
       color: var(--ink);
     }
 
@@ -1919,7 +1877,7 @@
     }
 
     .form-group label, .filter-group label, .toolbar label {
-      color: var(--ink-soft);
+      color: var(--ink2);
       font-size: 12px;
       letter-spacing: 0.02em;
     }
@@ -1927,14 +1885,14 @@
     button { min-height: var(--ui-touch-target, 44px); }
 
     .btn-primary {
-      background: var(--brand-dark);
-      box-shadow: 0 8px 18px rgba(37, 99, 235, 0.18);
+      background: var(--accent-hover);
+      box-shadow: 0 8px 18px color-mix(in srgb, var(--accent) 18%, transparent);
     }
 
-    .btn-secondary { background: var(--surface); }
+    .btn-secondary { background: var(--panel); }
 
     .toolbar {
-      background: var(--head-bg);
+      background: var(--bg2);
       border: 1px solid var(--line);
       border-radius: 12px;
       padding: 12px;
@@ -1942,12 +1900,12 @@
 
     .table-wrapper {
       border: 1px solid var(--line);
-      background: var(--surface);
+      background: var(--panel);
       box-shadow: inset 0 -1px 0 var(--line);
     }
 
     th {
-      background: var(--head-bg);
+      background: var(--bg2);
       position: sticky;
       top: 0;
       z-index: 1;
@@ -1964,7 +1922,7 @@
       margin-bottom: 20px;
       border: 1px solid var(--line);
       border-radius: 14px;
-      background: linear-gradient(135deg, var(--surface), var(--head-bg));
+      background: linear-gradient(135deg, var(--panel), var(--bg2));
     }
 
     .color-field {
@@ -2000,8 +1958,8 @@
       width: 20px;
       height: 20px;
       border-radius: 999px;
-      background: var(--amber);
-      color: white;
+      background: var(--warning);
+      color: var(--on-role);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -2012,16 +1970,10 @@
 
     #colorWarning.hidden { display: none !important; }
 
-    .theme-preview {
-      border-radius: 14px;
-      border-color: var(--line-card);
-    }
 
-    .theme-preview .top { padding: 16px 18px; }
-    .theme-preview .body { padding: 18px; }
 
     .empty-state {
-      background: var(--head-bg);
+      background: var(--bg2);
       border-radius: 10px;
     }
 
@@ -2224,6 +2176,10 @@
                         <select id="settingColorScheme" aria-describedby="colorSchemeNote" data-no-translate>
                           <option value="light">Light</option>
                           <option value="dark">Dark</option>
+                          <!-- Disabled for a theme that ships one mode; the
+                               server refuses it there too, because following
+                               the visitor needs both palettes published. -->
+                          <option value="system">Follow the visitor's device</option>
                         </select>
                         <small id="colorSchemeNote">Light and dark are designed as a pair; both are checked for contrast.</small>
                       </div>
@@ -2326,7 +2282,7 @@
                 <div class="form-group"><label for="settingHeroSubtitleEn">Hero Subtitle · English</label><textarea id="settingHeroSubtitleEn" rows="3" placeholder="Short public value proposition"></textarea></div>
                 <div class="form-group"><label for="settingHeroImageUrl">Hero Image URL</label><input id="settingHeroImageUrl" placeholder="/site/hero.jpg or https://..."></div>
                 <div class="form-group"><label for="settingHeroImageFile">Upload Hero Image</label><input id="settingHeroImageFile" type="file" accept="image/jpeg,image/png,image/webp"><small>JPEG, PNG, or WebP; metadata is removed before public delivery.</small></div>
-                <div class="form-group"><label for="settingHeroStyle">Hero Style</label><select id="settingHeroStyle"><option value="soft">Soft Art Board</option><option value="image">Image Background</option><option value="minimal">Minimal</option><option value="bold">Bold Contrast</option></select></div>
+                <div class="form-group"><label for="settingHeroStyle">Hero Style</label><select id="settingHeroStyle"><option value="soft">Soft Art Board</option><option value="image">Photo panel</option><option value="minimal">Minimal</option><option value="bold">Bold Contrast</option></select></div>
                 <div class="form-group"><label for="settingPrimaryCta">Primary CTA · 中文</label><input id="settingPrimaryCta" placeholder="预约体验"></div>
                 <div class="form-group"><label for="settingPrimaryCtaEn">Primary CTA · English</label><input id="settingPrimaryCtaEn" placeholder="Book a Trial"></div>
                 <div class="form-group"><label for="settingSecondaryCta">Secondary CTA · 中文</label><input id="settingSecondaryCta" placeholder="查看课程"></div>
@@ -2728,6 +2684,39 @@
     };
     let VISUAL_STYLE_PRESETS = {};
 
+    /* What the theme controls show before /v1/industry-presets answers, and if
+     * it never does.
+     *
+     * These used to be twenty separate `|| '#2563eb'` literals scattered
+     * through the file, and they were a FIFTH palette: blue #2563eb on cold
+     * slate #64748b, left over from the console's own Tailwind era. A studio
+     * whose preset request failed saw six colour pickers pre-filled with a
+     * scheme that exists nowhere in the product, and if it saved, that is what
+     * got published.
+     *
+     * One object, taken from the default style's light mode
+     * (vintage-press — presets.py DEFAULT_STYLE_ID), so the degraded state is
+     * the same palette an unbranded page already renders.
+     * test_studio_console.py asserts these values against style_theme().
+     */
+    const FALLBACK_THEME = {
+      background_color: '#F3EFEA',
+      background_alt_color: '#EAE3DB',
+      panel_color: '#FDFDFD',
+      text_color: '#221E1A',
+      text_soft_color: '#46403A',
+      muted_text_color: '#6C635A',
+      border_color: '#DFDAD5',
+      border_strong_color: '#8D7F70',
+      accent_color: '#835D33',
+      accent_text_color: '#FFFFFF',
+      secondary_accent_color: '#4C6877',
+      success_color: '#2F7951',
+      warning_color: '#5B421F',
+      danger_color: '#76332A',
+      info_color: '#396F95',
+    };
+
     async function loadIndustryPresets() {
       try {
         const response = await fetch('/v1/industry-presets', { credentials: 'same-origin' });
@@ -2761,6 +2750,12 @@
     // Light/dark is a separate axis from the palette: a studio picks a
     // theme, then picks how it renders. Both variants are pre-solved.
     let activeColorScheme = 'light';
+    /* What the OWNER chose, which is not always what is rendered.
+       `system` renders light or dark depending on the visitor's device,
+       so the two have to be tracked separately: activeColorScheme drives
+       the preview and the swatches, activeSchemePreference is what gets
+       saved and what the Appearance control shows. */
+    let activeSchemePreference = 'light';
     let themeMode = 'preset';
     let lastPresetSnapshot = null;
 
@@ -3027,7 +3022,7 @@
       if (!support || support.slug !== currentTenantSlug()) return;
       const banner = document.createElement('div');
       banner.id = 'supportBanner';
-      banner.style.cssText = 'position:sticky;top:0;z-index:2000;background:var(--support-banner);color:var(--surface);padding:10px 16px;display:flex;align-items:center;gap:12px;font-size:14px;';
+      banner.style.cssText = 'position:sticky;top:0;z-index:2000;background:var(--on-warning-soft);color:var(--panel);padding:10px 16px;display:flex;align-items:center;gap:12px;font-size:14px;';
       const label = document.createElement('strong');
       // SVG-only (v7.3.2 icon rule): the lifebuoy emoji renders per-platform.
       // Decorative — the SUPPORT MODE text carries the meaning.
@@ -3407,8 +3402,8 @@
       const preset = INDUSTRY_PRESETS[category] || INDUSTRY_PRESETS.general;
       return {
         ...(preset.visualTheme || {}),
-        accent_color: $('settingPrimaryColor')?.value || preset.visualTheme?.accent_color || '#1E40AF',
-        secondary_accent_color: $('settingSecondaryColor')?.value || preset.visualTheme?.secondary_accent_color || '#0F766E'
+        accent_color: $('settingPrimaryColor')?.value || preset.visualTheme?.accent_color || FALLBACK_THEME.accent_color,
+        secondary_accent_color: $('settingSecondaryColor')?.value || preset.visualTheme?.secondary_accent_color || FALLBACK_THEME.secondary_accent_color
       };
     }
 
@@ -3418,22 +3413,33 @@
       return theme?.[snake] || theme?.[camel] || fallback;
     }
 
+    /* The two candidates for ink on a solid fill, and the same pair
+       palette_gen.build() picks between in `best_on`. Not palette values: a
+       label on a colour is either near-white or near-black, and which one is a
+       measurement, not a preference. */
+    const ON_FILL_LIGHT = '#FFFFFF';
+    const ON_FILL_DARK = '#10140A';
+
     function readableText(background) {
-      return contrastRatio(background, '#FFFFFF') >= contrastRatio(background, '#10140A') ? '#FFFFFF' : '#10140A';
+      return contrastRatio(background, ON_FILL_LIGHT) >= contrastRatio(background, ON_FILL_DARK)
+        ? ON_FILL_LIGHT : ON_FILL_DARK;
     }
 
     function setVisualThemeFields(theme, styleId = '') {
-      $('settingPrimaryColor').value = themeValue(theme, 'accent_color', '#255C99');
-      $('settingSecondaryColor').value = themeValue(theme, 'secondary_accent_color', '#147168');
-      $('settingThemeBackground').value = themeValue(theme, 'background_color', '#F3F6F8');
-      $('settingThemePanel').value = themeValue(theme, 'panel_color', '#FFFFFF');
-      $('settingThemeText').value = themeValue(theme, 'text_color', '#17212B');
-      $('settingThemeMuted').value = themeValue(theme, 'muted_text_color', '#5C6B78');
-      $('settingThemeBorder').value = themeValue(theme, 'border_color', '#D5DEE5');
+      $('settingPrimaryColor').value = themeValue(theme, 'accent_color', FALLBACK_THEME.accent_color);
+      $('settingSecondaryColor').value = themeValue(theme, 'secondary_accent_color', FALLBACK_THEME.secondary_accent_color);
+      $('settingThemeBackground').value = themeValue(theme, 'background_color', FALLBACK_THEME.background_color);
+      $('settingThemePanel').value = themeValue(theme, 'panel_color', FALLBACK_THEME.panel_color);
+      $('settingThemeText').value = themeValue(theme, 'text_color', FALLBACK_THEME.text_color);
+      $('settingThemeMuted').value = themeValue(theme, 'muted_text_color', FALLBACK_THEME.muted_text_color);
+      $('settingThemeBorder').value = themeValue(theme, 'border_color', FALLBACK_THEME.border_color);
       $('settingButtonStyle').value = themeValue(theme, 'button_style', 'soft');
       $('settingFontMood').value = themeValue(theme, 'font_mood', 'modern');
       activeVisualStyle = styleId || themeValue(theme, 'style_id', '');
       activeColorScheme = themeValue(theme, 'color_scheme', 'light') === 'dark' ? 'dark' : 'light';
+      const preference = themeValue(theme, 'scheme_preference', '');
+      activeSchemePreference = ['light', 'dark', 'system'].includes(preference)
+        ? preference : activeColorScheme;
       themeMode = themeValue(theme, 'theme_mode', activeVisualStyle ? 'preset' : 'custom');
       renderStylePresetGrid();
     }
@@ -3471,29 +3477,94 @@
       return (lighter + 0.05) / (darker + 0.05);
     }
 
+    /* The preview speaks the TENANT vocabulary, scoped.
+     *
+     * Custom properties inherit, so declaring --bg / --ink / --clay on the
+     * preview element itself gives that subtree the public site's names
+     * without touching the console around it. Before v8.4.0 the preview had a
+     * parallel --preview-* set precisely because the console had ALSO declared
+     * --bg and --ink to mean its own paper and its own navy; the two could not
+     * coexist in one document, so the mock got a private dialect and a
+     * --preview-paper fallback triple to go with it.
+     *
+     * The console no longer declares those names (they come from
+     * console-theme.css, and a scoped declaration wins inside the subtree), so
+     * the preview can be fed the same forty tokens the live page receives from
+     * /brand, through the same map. That is what makes a dark theme previewable
+     * at all: the mock used seven values and none of them were the alternating
+     * band, the borders on a dark surface, or the disabled state.
+     */
+    const PREVIEW_TOKENS = {
+      background_color:       ['--bg'],
+      background_alt_color:   ['--bg2'],
+      panel_color:            ['--panel', '--surface'],
+      surface_hover_color:    ['--surface-hover'],
+      text_color:             ['--ink'],
+      text_soft_color:        ['--ink2'],
+      muted_text_color:       ['--muted'],
+      border_color:           ['--line'],
+      border_strong_color:    ['--line-strong'],
+      accent_color:           ['--clay', '--accent'],
+      accent_hover_color:     ['--clay-hover', '--accent-hover'],
+      accent_pressed_color:   ['--clay-pressed', '--accent-pressed'],
+      accent_text_color:      ['--on-accent'],
+      accent_soft_color:      ['--accent-soft'],
+      accent_on_soft_color:   ['--on-accent-soft'],
+      accent_border_color:    ['--accent-border'],
+      secondary_accent_color: ['--clay-d', '--accent-2'],
+      secondary_text_color:   ['--on-accent-2'],
+      success_color:          ['--success'],
+      warning_color:          ['--warning'],
+      danger_color:           ['--danger'],
+      info_color:             ['--info'],
+      focus_ring_color:       ['--focus-ring'],
+      disabled_surface_color: ['--disabled-surface'],
+      disabled_text_color:    ['--disabled-text'],
+    };
+
+    function applyPreviewTheme(element, formValues) {
+      /* The full solved theme when a curated style is selected; the six fields
+         the Advanced panel exposes otherwise. Advanced is deliberately a
+         smaller surface — a studio hand-picking six colours does not get the
+         alternating band and the disabled state solved for it, so those fall
+         back to the selected style's. */
+      const style = VISUAL_STYLE_PRESETS[activeVisualStyle];
+      const solved = (style?.schemes && style.schemes[activeColorScheme]) || style?.visualTheme || {};
+      const override = themeMode === 'custom' ? {
+        background_color: formValues.bg,
+        panel_color: formValues.panel,
+        text_color: formValues.ink,
+        muted_text_color: formValues.muted,
+        border_color: formValues.border,
+        accent_color: formValues.accent,
+        accent_text_color: formValues.accentText,
+      } : {};
+      Object.entries(PREVIEW_TOKENS).forEach(([key, names]) => {
+        const camel = key.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+        const value = override[key] || solved[key] || solved[camel];
+        if (!value) return;
+        names.forEach((name) => element.style.setProperty(name, value));
+      });
+    }
+
     function updateThemePreview() {
-      const primary = $('settingPrimaryColor').value || '#2563eb';
-      const secondary = $('settingSecondaryColor').value || '#0f172a';
-      const bg = $('settingThemeBackground')?.value || '#F4F0E8';
-      const panel = $('settingThemePanel')?.value || '#FBF9F4';
+      const primary = $('settingPrimaryColor').value || FALLBACK_THEME.accent_color;
+      const secondary = $('settingSecondaryColor').value || FALLBACK_THEME.secondary_accent_color;
+      const bg = $('settingThemeBackground')?.value || FALLBACK_THEME.background_color;
+      const panel = $('settingThemePanel')?.value || FALLBACK_THEME.panel_color;
       const accent = primary;
-      const ink = $('settingThemeText')?.value || '#23211D';
-      const muted = $('settingThemeMuted')?.value || '#6F685D';
-      const border = $('settingThemeBorder')?.value || '#DCD4C6';
+      const ink = $('settingThemeText')?.value || FALLBACK_THEME.text_color;
+      const muted = $('settingThemeMuted')?.value || FALLBACK_THEME.muted_text_color;
+      const border = $('settingThemeBorder')?.value || FALLBACK_THEME.border_color;
       const accentText = readableText(accent);
       const preview = $('previewDevice');
       if (preview) {
-        preview.style.setProperty('--preview-bg', bg);
-        preview.style.setProperty('--preview-panel', panel);
-        preview.style.setProperty('--preview-ink', ink);
-        preview.style.setProperty('--preview-accent', accent);
-        preview.style.setProperty('--preview-accent-text', accentText);
-        preview.style.setProperty('--preview-muted', muted);
-        preview.style.setProperty('--preview-border', border);
-        preview.style.setProperty('--preview-radius', $('settingButtonStyle')?.value === 'rounded' ? '999px' : $('settingButtonStyle')?.value === 'sharp' ? '0' : '8px');
+        applyPreviewTheme(preview, { bg, panel, ink, muted, border, accent, accentText });
+        preview.style.setProperty('--radius', $('settingButtonStyle')?.value === 'rounded' ? '999px' : $('settingButtonStyle')?.value === 'sharp' ? '0' : '8px');
         preview.classList.toggle('mobile', previewDevice === 'mobile');
         preview.classList.toggle('mode-portal', previewMode === 'portal');
         preview.classList.toggle('mode-register', previewMode === 'register');
+        preview.dataset.brandScheme = activeColorScheme;
       }
       $('themePreviewTitle').textContent = localizedValue('settingHeroTitle', 'settingHeroTitleEn', `${$('settingName').value || 'Studio'} Theme`);
       $('themePreviewSlug').textContent = currentTenantSlug() || 'tenant';
@@ -3798,9 +3869,9 @@
         const secondary = adminIsZh() ? (preset.labelZh ? preset.label : '') : (preset.labelZh || '');
         return `
         <button type="button" class="preset-card ${key === selected ? 'active' : ''}" data-preset-key="${key}" aria-pressed="${key === selected ? 'true' : 'false'}">
-          <div class="preset-card-top"><span class="preset-dot" style="background:${themeValue(theme, 'accent_color', '#255c99')}" aria-hidden="true"></span><span class="preset-check" aria-hidden="true">✓</span></div>
+          <div class="preset-card-top"><span class="preset-dot" style="background:${themeValue(theme, 'accent_color', FALLBACK_THEME.accent_color)}" aria-hidden="true"></span><span class="preset-check" aria-hidden="true">✓</span></div>
           <div><div class="preset-name">${esc(primary)}${secondary ? `<span data-no-translate>${esc(secondary)}</span>` : ''}</div><div class="preset-copy">${esc(industrySlogan(preset))}</div>${industryStarterCourse(preset) ? `<div class="preset-operation">${adminIsZh() ? '建议起步课程' : 'Starter course'} · ${esc(industryStarterCourse(preset))}</div>` : ''}</div>
-          <div class="palette-swatches" aria-hidden="true"><i style="background:${themeValue(theme, 'background_color', '#fff')}"></i><i style="background:${themeValue(theme, 'accent_color', '#255c99')}"></i><i style="background:${themeValue(theme, 'secondary_accent_color', '#147168')}"></i></div>
+          <div class="palette-swatches" aria-hidden="true"><i style="background:${themeValue(theme, 'background_color', FALLBACK_THEME.background_color)}"></i><i style="background:${themeValue(theme, 'accent_color', FALLBACK_THEME.accent_color)}"></i><i style="background:${themeValue(theme, 'secondary_accent_color', FALLBACK_THEME.secondary_accent_color)}"></i></div>
         </button>
       `}).join('');
     }
@@ -3863,13 +3934,25 @@
       if (!modes.includes(activeColorScheme)) activeColorScheme = modes[0];
       const schemeSelect = $('settingColorScheme');
       if (schemeSelect) {
-        schemeSelect.innerHTML = ['light', 'dark'].map((mode) => {
-          const available = modes.includes(mode);
-          const label = isZh ? (mode === 'light' ? '明亮' : '暗色') : (mode === 'light' ? 'Light' : 'Dark');
-          return `<option value="${mode}"${available ? '' : ' disabled'}${mode === activeColorScheme ? ' selected' : ''}>`
-               + `${label}${available ? '' : (isZh ? '（此主题不提供）' : ' (not offered)')}</option>`;
+        /* `system` hands the choice to the visitor and so needs BOTH palettes
+           published. A single-mode theme cannot offer it — arcade-lime is dark
+           only because its accent turns olive on a light page — so it is
+           disabled here for the same reason the server rejects it. */
+        const bothModes = modes.length > 1;
+        const options = [
+          ['light', isZh ? '明亮' : 'Light', modes.includes('light')],
+          ['dark', isZh ? '暗色' : 'Dark', modes.includes('dark')],
+          ['system', isZh ? '跟随访客设备' : "Follow the visitor's device", bothModes],
+        ];
+        schemeSelect.innerHTML = options.map(([value, label, available]) => {
+          const why = value === 'system'
+            ? (isZh ? '（此主题只有一种模式）' : ' (needs both modes)')
+            : (isZh ? '（此主题不提供）' : ' (not offered)');
+          return `<option value="${value}"${available ? '' : ' disabled'}`
+               + `${value === activeSchemePreference ? ' selected' : ''}>`
+               + `${label}${available ? '' : why}</option>`;
         }).join('');
-        schemeSelect.value = activeColorScheme;
+        schemeSelect.value = activeSchemePreference;
         const note = $('colorSchemeNote');
         if (note) {
           note.classList.toggle('note-unresolved', !modesKnown);
@@ -3877,7 +3960,11 @@
             note.textContent = isZh
               ? '这套主题的明暗模式信息还没读到（可能是缓存的旧接口响应）。刷新页面后再确认，先不要据此保存。'
               : "This theme's light/dark availability has not loaded — likely a cached API response. Refresh before relying on it.";
-          } else if (modes.length > 1) {
+          } else if (activeSchemePreference === 'system') {
+            note.textContent = isZh
+              ? '官网会跟随访客设备的深色设置切换，两套配色都会发布。'
+              : "The site follows each visitor's device setting; both palettes are published.";
+          } else if (bothModes) {
             note.textContent = isZh
               ? '明暗为成对设计，两种模式都已通过对比度检查。'
               : 'Light and dark are designed as a pair; both are checked for contrast.';
@@ -3960,10 +4047,10 @@
           ? `${industryLabel}行业推荐${recommendedName}；当前选择同样完整支持。`
           : `${recommendedName} is recommended for ${industryLabel}, but this choice is fully supported.`);
       const preview = $('stylePresetPreview');
-      preview.style.setProperty('--theme-panel', themeValue(shownTheme, 'panel_color', '#fff'));
-      preview.style.setProperty('--theme-text', themeValue(shownTheme, 'text_color', '#0f172a'));
-      preview.style.setProperty('--theme-muted', themeValue(shownTheme, 'muted_text_color', '#64748b'));
-      preview.style.setProperty('--theme-accent', themeValue(shownTheme, 'accent_color', '#2563eb'));
+      preview.style.setProperty('--theme-panel', themeValue(shownTheme, 'panel_color', FALLBACK_THEME.panel_color));
+      preview.style.setProperty('--theme-text', themeValue(shownTheme, 'text_color', FALLBACK_THEME.text_color));
+      preview.style.setProperty('--theme-muted', themeValue(shownTheme, 'muted_text_color', FALLBACK_THEME.muted_text_color));
+      preview.style.setProperty('--theme-accent', themeValue(shownTheme, 'accent_color', FALLBACK_THEME.accent_color));
     }
 
     function switchWorkbenchTab(tab) {
@@ -4050,8 +4137,8 @@
         button.disabled = !canExport;
         button.title = canExport ? '' : 'Data export is not included in the current plan.';
       });
-      $('settingPrimaryColor').value = themeValue(visual, 'accent_color', t.primary_color || '#2563eb');
-      $('settingSecondaryColor').value = themeValue(visual, 'secondary_accent_color', t.secondary_color || '#0f172a');
+      $('settingPrimaryColor').value = themeValue(visual, 'accent_color', t.primary_color || FALLBACK_THEME.accent_color);
+      $('settingSecondaryColor').value = themeValue(visual, 'secondary_accent_color', t.secondary_color || FALLBACK_THEME.secondary_accent_color);
       $('settingCmsLayout').value = t.cms_layout || t.cmsLayout || 'bar';
       setToggle('settingShowWelcome', t.show_welcome, true);
       $('settingCategory').innerHTML = categoryOptions(category);
@@ -4202,6 +4289,11 @@
           colorScheme: themeMode === 'custom'
             ? (luminance($('settingThemeBackground').value) < 0.18 ? 'dark' : 'light')
             : activeColorScheme,
+          /* What the owner chose, which `colorScheme` cannot express: under
+             `system` the site renders light OR dark per visitor, so the two
+             fields answer different questions. A hand-mixed Advanced palette
+             has only itself to publish, so it cannot follow anything. */
+          schemePreference: themeMode === 'custom' ? undefined : activeSchemePreference,
           themeMode,
           backgroundColor: $('settingThemeBackground').value,
           panelColor: $('settingThemePanel').value,
@@ -4212,9 +4304,9 @@
           secondaryAccentColor: secondary,
           secondaryTextColor: readableText(secondary),
           borderColor: $('settingThemeBorder').value,
-          successColor: themeValue(styleTheme, 'success_color', '#247052'),
-          warningColor: themeValue(styleTheme, 'warning_color', '#8A5A14'),
-          dangerColor: themeValue(styleTheme, 'danger_color', '#A63D32'),
+          successColor: themeValue(styleTheme, 'success_color', FALLBACK_THEME.success_color),
+          warningColor: themeValue(styleTheme, 'warning_color', FALLBACK_THEME.warning_color),
+          dangerColor: themeValue(styleTheme, 'danger_color', FALLBACK_THEME.danger_color),
           buttonStyle: $('settingButtonStyle').value,
           fontMood: $('settingFontMood').value
         }
@@ -4514,9 +4606,27 @@
       formData.append('file', file);
       const data = await api('/tenant/website-media', { method: 'POST', body: formData });
       $(urlInputId).value = data.url || '';
+      /* Uploading a hero photo is a request to SHOW a hero photo.
+         This filled the URL field and stopped, while Hero Style three fields
+         below still said "Soft Art Board" — and the public page only adds
+         body.hero-image when the style is `image`, so `.hero-art img` stayed
+         display:none. Upload succeeded, Save succeeded, Publish succeeded, and
+         the photo was never on the site. Measured on production: all six
+         tenants had an empty hero_image_url, which is what that dead end
+         produces.
+         The owner can still choose the art board afterwards; what they cannot
+         do any more is choose it by accident. */
+      let switched = false;
+      if (target === 'hero' && data.url && $('settingHeroStyle')?.value !== 'image') {
+        $('settingHeroStyle').value = 'image';
+        switched = true;
+      }
       setSettingsDirty(true);
       updateThemePreview();
-      showToast(`${target === 'hero' ? 'Hero' : 'Principal'} image uploaded. Save Draft or Publish when ready.`);
+      const noun = target === 'hero' ? 'Hero' : 'Principal';
+      showToast(switched
+        ? `${noun} image uploaded and Hero Style set to Photo panel. Save Draft or Publish when ready.`
+        : `${noun} image uploaded. Save Draft or Publish when ready.`);
     }
 
     async function loadAnalytics() {
@@ -4604,6 +4714,9 @@
       const nextScheme = scheme && modes.includes(scheme) ? scheme
                        : (modes.includes(activeColorScheme) ? activeColorScheme : modes[0]);
       activeColorScheme = nextScheme;
+      // A single-mode style cannot follow the visitor; drop back to what it has.
+      if (activeSchemePreference === 'system' && modes.length < 2) activeSchemePreference = nextScheme;
+      else if (activeSchemePreference !== 'system') activeSchemePreference = nextScheme;
       if (remember) rememberPresetState(isZh ? `已将${name}应用到当前草稿。` : `${name} applied to this draft.`);
       setVisualThemeFields((style.schemes && style.schemes[nextScheme]) || style.visualTheme || {}, styleId);
       themeMode = 'preset';
@@ -4764,7 +4877,14 @@
         applyCategoryPreset();
       });
       $('stylePresetSelect').addEventListener('change', () => applyVisualStyle($('stylePresetSelect').value));
-      $('settingColorScheme').addEventListener('change', () => applyVisualStyle(activeVisualStyle, {scheme: $('settingColorScheme').value}));
+      $('settingColorScheme').addEventListener('change', () => {
+        const chosen = $('settingColorScheme').value;
+        activeSchemePreference = chosen;
+        /* `system` is not a palette. The preview has to show one of the two, so
+           it keeps showing whichever is current and the note explains that the
+           visitor's device decides on the live site. */
+        applyVisualStyle(activeVisualStyle, {scheme: chosen === 'system' ? null : chosen});
+      });
       document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape' && $('modalOverlay').classList.contains('active')) closeModal();
       });

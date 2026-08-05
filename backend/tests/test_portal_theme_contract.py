@@ -372,3 +372,50 @@ def test_dark_cms_chrome_inverts_the_asserted_pair() -> None:
     # The pill inset must be expressed relative to the page colour, not by
     # assuming darker means deeper — that assumption inverts under a dark theme.
     assert "color-mix(in srgb, var(--ink) 86%, var(--bg))" in shell
+
+
+# ── the fallback palette is a generated palette ─────────────────────────────
+
+PORTAL_DEFAULT_TOKENS = {
+    "--bg": "background_color", "--bg2": "background_alt_color",
+    "--panel": "panel_color", "--surface": "panel_color",
+    "--ink": "text_color", "--ink2": "text_soft_color", "--muted": "muted_text_color",
+    "--line": "border_color", "--line-strong": "border_strong_color",
+    "--clay": "accent_color", "--clay-hover": "accent_hover_color",
+    "--clay-pressed": "accent_pressed_color", "--clay-d": "secondary_accent_color",
+    "--on-accent": "accent_text_color", "--on-secondary": "secondary_text_color",
+    "--success": "success_color", "--warning": "warning_color", "--danger": "danger_color",
+    "--focus-ring": "focus_ring_color",
+    "--disabled-surface": "disabled_surface_color", "--disabled-text": "disabled_text_color",
+}
+
+
+def test_the_fallback_palette_matches_the_theme_it_claims_to_be() -> None:
+    """portal-theme.css says its defaults are vintage-press light. Check it.
+
+    The file has carried the instruction "keep the two in step" since it was
+    written, and nothing enforced it. At v8.4.0 seven of the twenty-one had
+    drifted, and two were not near-misses: --warning was #8D6426 where the
+    generator produces #5B421F, --danger #B6483A against #76332A. Those are the
+    colours every public page renders between first paint and the /brand
+    response, and on a page whose theme never loads they are the final answer.
+
+    This asserts the whole set rather than the seven, because the next drift
+    will be in a different token.
+    """
+
+    from studiosaas.presets import DEFAULT_STYLE_ID, style_theme
+
+    default = style_theme(DEFAULT_STYLE_ID, "light")
+    css = TOKEN_SOURCE.read_text(encoding="utf-8")
+    root = css[css.index(":root {"):css.index("\n}", css.index(":root {"))]
+    declared = dict(re.findall(r"^\s*(--[\w-]+):\s*(#[0-9a-fA-F]{6})", root, re.M))
+    drifted = []
+    for name, key in PORTAL_DEFAULT_TOKENS.items():
+        assert name in declared, f"{name} is no longer declared in portal-theme.css"
+        if declared[name].upper() != default[key].upper():
+            drifted.append(f"{name}: css={declared[name]} generated={default[key]}")
+    assert not drifted, (
+        f"portal-theme.css has drifted from {DEFAULT_STYLE_ID} light:\n  "
+        + "\n  ".join(drifted)
+    )

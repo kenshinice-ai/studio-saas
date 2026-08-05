@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Let&#x27;s Paint Studio Registration</title>
   <meta name="robots" content="index,follow">
+  <!-- Rewritten by applyVisualTheme() to the page colour of the theme actually
+       rendered. The literal is only what the browser chrome shows before
+       /brand answers; it is the default style's page, so the address bar does
+       not flash a colour from another palette. -->
+  <meta name="theme-color" content="#F3EFEA">
   <!-- 6-2: same two-language contract as the portal — ?lang= addresses each
        version, and applyLanguage() keeps these in step with what is rendered. -->
   <link id="canonicalUrl" rel="canonical" href="/lets-paint-showcase/register.html">
@@ -413,11 +418,37 @@
         disabled_text_color:    ['--disabled-text'],
         scrim_color:            ['--scrim']
       };
-      Object.entries(THEME_TOKENS).forEach(([key, cssVars]) => {
-        const camel = key.replace(/_([a-z])/g, (_, char) => char.toUpperCase());
-        const value = visual[key] || visual[camel];
-        if (value) cssVars.forEach((cssVar) => root.style.setProperty(cssVar, value));
-      });
+      /* Same rule as the portal: the studio picks light or dark unless it
+         handed the choice to the visitor, and `system` is only honoured where
+         both palettes were published. A parent who lands here from a portal
+         that followed their device must not cross into a page that did not. */
+      const published = brand.visualThemes || brand.visual_themes || null;
+      const preference = visual.scheme_preference || visual.schemePreference
+        || visual.color_scheme || visual.colorScheme || 'light';
+      const schemeNow = () => {
+        if (preference !== 'system' || !published) return preference === 'system' ? 'light' : preference;
+        return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      };
+      const paint = (scheme) => {
+        const theme = (published && published[scheme]) || visual;
+        Object.entries(THEME_TOKENS).forEach(([key, cssVars]) => {
+          const camel = key.replace(/_([a-z])/g, (_, char) => char.toUpperCase());
+          const value = theme[key] || theme[camel] || visual[key] || visual[camel];
+          if (value) cssVars.forEach((cssVar) => root.style.setProperty(cssVar, value));
+        });
+        root.dataset.brandScheme = scheme;
+        const meta = document.querySelector('meta[name="theme-color"]');
+        const page = theme.background_color || theme.backgroundColor
+          || visual.background_color || visual.backgroundColor;
+        if (meta && page) meta.setAttribute('content', page);
+      };
+      paint(schemeNow());
+      if (preference === 'system' && published && window.matchMedia) {
+        const query = window.matchMedia('(prefers-color-scheme: dark)');
+        const onChange = () => paint(schemeNow());
+        if (query.addEventListener) query.addEventListener('change', onChange);
+        else if (query.addListener) query.addListener(onChange);
+      }
       // Legacy tenants stored only a primary/secondary colour.
       const primary = visual.accent_color || visual.accentColor || brand.primary_color || brand.primaryColor;
       const secondary = visual.secondary_accent_color || visual.secondaryAccentColor || brand.secondary_color || brand.secondaryColor;
@@ -427,7 +458,6 @@
       if (secondary && !(visual.secondary_accent_color || visual.secondaryAccentColor)) {
         ['--clay-d', '--brand-2', '--brand-accent-strong'].forEach((v) => root.style.setProperty(v, secondary));
       }
-      root.dataset.brandScheme = visual.color_scheme || visual.colorScheme || 'light';
       currentBrand = brand;
       privacyNoticeVersion = String(brand.privacyNoticeVersion || brand.privacy_notice_version || privacyNoticeVersion);
       const version = document.getElementById('privacyVersion');
