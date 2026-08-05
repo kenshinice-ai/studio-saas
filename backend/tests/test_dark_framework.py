@@ -343,3 +343,40 @@ def test_the_studio_admin_exemption_is_exactly_two_blocks() -> None:
     source = strip_comments(_read(REPOSITORY_ROOT / "backend/frontend/studio-admin.html"))
     assert source.count("    .preview-device {") == 1
     assert source.count("const FALLBACK_THEME = {") == 1
+
+
+# ── themes stored before the tokens existed ─────────────────────────────────
+
+def test_a_theme_stored_before_v840_is_completed_from_its_own_style() -> None:
+    """A record written last week has 26 tokens. The palette has 44.
+
+    The page skips a token it is not sent, so the eighteen added in v8.4.0
+    would fall through to portal-theme.css — a studio on recital-plum would
+    render plum surfaces with a vintage-press `--info` and `--success-soft`.
+    Half a theme, no error, and only visible if you knew both palettes by eye.
+
+    Completion has to come from the studio's OWN style, not the default, and
+    must not disturb a single token the record does carry.
+    """
+
+    from studiosaas.api_v1 import _normalize_visual_theme
+    from studiosaas.presets import style_theme
+
+    stored = style_theme("recital-plum", "dark")
+    legacy = {k: v for k, v in stored.items()
+              if not any(k.endswith(s) for s in ("_soft_color", "_on_soft_color", "_border_color"))
+              and k not in ("info_color", "surface_hover_color", "accent_muted_text_color")}
+    assert len(legacy) < len(stored), "the fixture is not actually missing anything"
+
+    completed = _normalize_visual_theme(legacy, category="music")
+
+    for key, value in legacy.items():
+        if key in ("scheme_preference",):
+            continue
+        assert completed[key] == value, f"{key} was changed while filling gaps"
+    for key in ("info_color", "surface_hover_color", "accent_muted_text_color",
+                "success_soft_color", "accent_on_soft_color"):
+        assert completed.get(key), f"{key} is still missing"
+        assert completed[key] == stored[key], (
+            f"{key} was filled from the default style, not from recital-plum dark"
+        )

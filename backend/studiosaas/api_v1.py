@@ -3608,7 +3608,23 @@ def public_brand(tenant_slug: str):
     )
     row["faq_items"] = row["faq_items"] or _default_faq_items(category)
     row["message_templates"] = _normalize_message_templates(row["message_templates"])
-    row["visual_theme"] = row["visual_theme"] or _default_visual_theme(
+    # A stored theme is whatever set of tokens existed on the day it was saved.
+    # v8.4.0 added eighteen — the `info` role, the quiet form of every role,
+    # `--surface-hover` and `--on-accent-muted` — so every tenant record written
+    # before today is missing them.
+    #
+    # The page skips a token it is not sent, which means those eighteen would
+    # fall through to portal-theme.css: a studio on recital-plum would get plum
+    # surfaces and a vintage-press `--info` and `--success-soft`. Half a theme,
+    # and no error anywhere.
+    #
+    # Re-normalising on read fills the gaps from the studio's OWN style rather
+    # than from the default, and leaves every token the record does carry
+    # exactly as stored. It is not a migration: the record is untouched until
+    # the owner next saves.
+    row["visual_theme"] = _normalize_visual_theme(
+        row["visual_theme"], row["primary_color"], row["secondary_color"], category
+    ) if row["visual_theme"] else _default_visual_theme(
         row["primary_color"], row["secondary_color"], category
     )
     row["primaryColor"] = row["primary_color"]
