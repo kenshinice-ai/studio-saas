@@ -62,7 +62,7 @@
     html[lang="en"] .eyebrow { letter-spacing:.32em; text-transform:uppercase; font-weight:400; }
     h1 { margin:var(--space-phi-sm) 0; font-family:var(--font-display); font-size:clamp(34px,5vw,55px); font-weight:500; line-height:1.07; letter-spacing:.01em; max-width:13ch; text-wrap:balance; }
     .lead { color:var(--ink2); font-size:16px; line-height:1.7; max-width:var(--brand-reading-measure); text-wrap:pretty; }
-    .card { background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-card); padding:var(--space-phi-lg); box-shadow:0 21px 55px rgba(55,44,34,.07); }
+    .card { background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-card); padding:var(--space-phi-lg); box-shadow:0 21px 55px color-mix(in srgb, var(--ink) 9%, transparent); }
     .field { margin-bottom:16px; }
     label { display:block; margin-bottom:7px; color:var(--ink2); font-size:12px; font-weight:500; letter-spacing:.02em; }
     html[lang="en"] label { letter-spacing:.14em; text-transform:uppercase; color:var(--muted); font-weight:400; }
@@ -416,6 +416,27 @@
         focus_ring_color:       ['--focus-ring'],
         disabled_surface_color: ['--disabled-surface'],
         disabled_text_color:    ['--disabled-text'],
+        surface_hover_color:    ['--surface-hover'],
+        accent_muted_text_color:['--on-accent-muted'],
+        accent_soft_color:      ['--accent-soft'],
+        accent_on_soft_color:   ['--on-accent-soft'],
+        accent_border_color:    ['--accent-border'],
+        secondary_soft_color:   ['--accent-2-soft'],
+        secondary_on_soft_color:['--on-accent-2-soft'],
+        secondary_border_color: ['--accent-2-border'],
+        success_soft_color:     ['--success-soft'],
+        success_on_soft_color:  ['--on-success-soft'],
+        success_border_color:   ['--success-border'],
+        warning_soft_color:     ['--warning-soft'],
+        warning_on_soft_color:  ['--on-warning-soft'],
+        warning_border_color:   ['--warning-border'],
+        danger_soft_color:      ['--danger-soft'],
+        danger_on_soft_color:   ['--on-danger-soft'],
+        danger_border_color:    ['--danger-border'],
+        info_color:             ['--info'],
+        info_soft_color:        ['--info-soft'],
+        info_on_soft_color:     ['--on-info-soft'],
+        info_border_color:      ['--info-border'],
         scrim_color:            ['--scrim']
       };
       /* Same rule as the portal: the studio picks light or dark unless it

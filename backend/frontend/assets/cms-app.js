@@ -151,13 +151,6 @@ function TenantBrandLogo({ className = "" }) {
     }
   );
 }
-/* Chart colours are ROLE tokens, not chart-library defaults. They were
-   Tailwind indigo and emerald painted over a themed page, so every studio's
-   analytics looked like somebody else's product regardless of its palette.
-
-   The printed report further down deliberately keeps its own fixed warm
-   palette: it is ink on paper, there is no viewer theme to follow, and it
-   already takes the studio's accent through the :root it injects. */
 function BarChart({ items, color = "var(--info)", h = 140, prefix = "" }) {
   if (!items?.length) return /* @__PURE__ */ React.createElement("p", { className: "text-center text-gray-400 text-sm py-6" }, "暂无数据");
   const max = Math.max(...items.map((d) => d.v), 0.01);
@@ -3426,7 +3419,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
       {
         onClick: () => portfolioDoDelete(String(portLB.items[portLB.idx]?.id)),
         "aria-label": "删除",
-        className: "py-2.5 px-4 bg-red-500/80 active:bg-red-600/80 text-white rounded-xl text-sm min-h-[44px] flex items-center justify-center"
+        className: "py-2.5 px-4 bg-red-500 active:bg-red-600 text-white rounded-xl text-sm min-h-[44px] flex items-center justify-center"
       },
       /* @__PURE__ */ React.createElement(Icon, { name: "trash", className: "w-4 h-4" })
     ), /* @__PURE__ */ React.createElement(
@@ -3526,7 +3519,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
           maxLength: 50,
           className: "w-full px-3 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-400 outline-none"
         }
-      )), /* @__PURE__ */ React.createElement("label", { className: "flex items-start gap-3 rounded-xl border border-purple-100 bg-purple-50/60 p-3 text-sm text-purple-900" }, /* @__PURE__ */ React.createElement(
+      )), /* @__PURE__ */ React.createElement("label", { className: "flex items-start gap-3 rounded-xl border border-purple-100 bg-purple-50 p-3 text-sm text-purple-900" }, /* @__PURE__ */ React.createElement(
         "input",
         {
           type: "checkbox",
@@ -3600,7 +3593,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
           maxLength: 50,
           className: "w-full px-3 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-400 outline-none"
         }
-      )), /* @__PURE__ */ React.createElement("label", { className: "flex items-start gap-3 rounded-xl border border-purple-100 bg-purple-50/60 p-3 text-sm text-purple-900" }, /* @__PURE__ */ React.createElement(
+      )), /* @__PURE__ */ React.createElement("label", { className: "flex items-start gap-3 rounded-xl border border-purple-100 bg-purple-50 p-3 text-sm text-purple-900" }, /* @__PURE__ */ React.createElement(
         "input",
         {
           type: "checkbox",
@@ -4111,7 +4104,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
         className: "flex items-center justify-center rounded-lg bg-indigo-800 active:bg-indigo-700 px-2 py-2.5 text-[11px] font-bold min-h-[44px]"
       },
       "公开网站"
-    )), /* @__PURE__ */ React.createElement("div", { className: "text-xs text-green-400 text-center bg-indigo-950 rounded-lg p-1.5 border border-indigo-800" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement("span", { className: "w-2 h-2 rounded-full bg-green-400", "aria-hidden": "true" }), "已连接")), db.logs.length > 1e3 && /* @__PURE__ */ React.createElement("div", { className: "text-xs text-amber-400 text-center bg-indigo-950 rounded-lg p-1.5 border border-amber-800/40" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "warning", className: "w-3.5 h-3.5" }), "日志 ", db.logs.length, " 条")), canManageOperations && !TENANT_SLUG && /* @__PURE__ */ React.createElement("button", { onClick: exportDB, className: "inline-flex items-center gap-1.5 w-full bg-indigo-700 active:bg-indigo-600 p-2.5 rounded-xl text-xs font-bold min-h-[44px]" }, /* @__PURE__ */ React.createElement(Icon, { name: "download", className: "w-4 h-4" }), "备份导出"), /* @__PURE__ */ React.createElement("button", { onClick: load, disabled: busy, className: "inline-flex items-center gap-1.5 w-full bg-indigo-800 active:bg-indigo-700 p-2.5 rounded-xl text-xs font-bold min-h-[44px]" }, /* @__PURE__ */ React.createElement(Icon, { name: "refresh", className: "w-4 h-4" }), "刷新"), /* @__PURE__ */ React.createElement("button", { onClick: () => setShowSettings(true), className: "w-full bg-indigo-800 active:bg-indigo-700 p-2.5 rounded-xl text-xs font-bold min-h-[44px]" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "cog", className: "w-4 h-4" }), "设置")), /* @__PURE__ */ React.createElement(
+    )), /* @__PURE__ */ React.createElement("div", { className: "text-xs text-green-400 text-center bg-indigo-950 rounded-lg p-1.5 border border-indigo-800" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement("span", { className: "w-2 h-2 rounded-full bg-green-400", "aria-hidden": "true" }), "已连接")), db.logs.length > 1e3 && /* @__PURE__ */ React.createElement("div", { className: "text-xs text-amber-400 text-center bg-indigo-950 rounded-lg p-1.5 border border-amber-800" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "warning", className: "w-3.5 h-3.5" }), "日志 ", db.logs.length, " 条")), canManageOperations && !TENANT_SLUG && /* @__PURE__ */ React.createElement("button", { onClick: exportDB, className: "inline-flex items-center gap-1.5 w-full bg-indigo-700 active:bg-indigo-600 p-2.5 rounded-xl text-xs font-bold min-h-[44px]" }, /* @__PURE__ */ React.createElement(Icon, { name: "download", className: "w-4 h-4" }), "备份导出"), /* @__PURE__ */ React.createElement("button", { onClick: load, disabled: busy, className: "inline-flex items-center gap-1.5 w-full bg-indigo-800 active:bg-indigo-700 p-2.5 rounded-xl text-xs font-bold min-h-[44px]" }, /* @__PURE__ */ React.createElement(Icon, { name: "refresh", className: "w-4 h-4" }), "刷新"), /* @__PURE__ */ React.createElement("button", { onClick: () => setShowSettings(true), className: "w-full bg-indigo-800 active:bg-indigo-700 p-2.5 rounded-xl text-xs font-bold min-h-[44px]" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "cog", className: "w-4 h-4" }), "设置")), /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: () => confirm("确认退出登录？下次进入需重新输入密码。", doLogout, { confirmText: "退出登录" }),
@@ -4279,7 +4272,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
         className: "w-full bg-amber-50 border border-amber-300 rounded-2xl p-4 text-left active:bg-amber-100 transition"
       },
       /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5 text-2xl" }, /* @__PURE__ */ React.createElement(Icon, { name: "clipboard", className: "w-4 h-4" })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-amber-800 text-sm" }, "有待审核的注册申请"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-amber-600 mt-0.5" }, (db.pending || []).length, " 位学员等待审核，点击前往处理"))), /* @__PURE__ */ React.createElement("span", { className: "bg-amber-500 text-white text-sm font-bold px-3 py-1 rounded-full" }, (db.pending || []).length))
-    ), analytics.inactive.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "bg-blue-50 border border-blue-200 rounded-2xl p-4" }, /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 font-bold text-blue-800 mb-2 text-sm" }, /* @__PURE__ */ React.createElement(Icon, { name: "calendar", className: "w-4 h-4" }), "长期未到访 — ", analytics.inactive.length, " 名学员有余额但超过 ", inactiveDays, " 天未上课"), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2" }, analytics.inactive.slice(0, 12).map((s) => /* @__PURE__ */ React.createElement(
+    ), analytics.inactive.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "bg-amber-50 border border-amber-200 rounded-2xl p-4" }, /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 font-bold text-amber-800 mb-2 text-sm" }, /* @__PURE__ */ React.createElement(Icon, { name: "calendar", className: "w-4 h-4" }), "长期未到访 — ", analytics.inactive.length, " 名学员有余额但超过 ", inactiveDays, " 天未上课"), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2" }, analytics.inactive.slice(0, 12).map((s) => /* @__PURE__ */ React.createElement(
       "button",
       {
         key: s.id,
@@ -4287,7 +4280,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
           setTab("students");
           setSrch(s.name);
         },
-        className: "px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200 active:bg-blue-200 min-h-[44px]"
+        className: "px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-100 text-amber-800 border border-blue-200 active:bg-blue-200 min-h-[44px]"
       },
       s.name,
       " (",
@@ -4638,7 +4631,7 @@ ${lines.join("\n")}`;
       const s = db.students.find((x) => x.id === sid);
       if (!s || s.archived) return null;
       const lowBal = (parseInt(s.balance, 10) || 0) <= renewTh;
-      return /* @__PURE__ */ React.createElement("div", { key: sid, className: `px-4 py-3 flex flex-wrap md:flex-nowrap items-center hover-row gap-3 min-h-[64px] ${lowBal ? "bg-amber-50/60" : ""}` }, /* @__PURE__ */ React.createElement(PhotoAvatar, { photo: s.photo, name: s.name, size: "sm" }), /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-900 truncate" }, s.name, rosterMetaFor(rDate, sid).oneToOne && /* @__PURE__ */ React.createElement("span", { className: "ml-1.5 text-[11px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-full px-2 py-0.5" }, "1 对 1")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400" }, s.mobile || "未填写手机", lowBal && /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5 ml-1 text-amber-600 font-bold" }, /* @__PURE__ */ React.createElement(Icon, { name: "bolt", className: "w-4 h-4" }), "余额告急"))), TENANT_SLUG && rosterMetaFor(rDate, sid).id && /* @__PURE__ */ React.createElement(
+      return /* @__PURE__ */ React.createElement("div", { key: sid, className: `px-4 py-3 flex flex-wrap md:flex-nowrap items-center hover-row gap-3 min-h-[64px] ${lowBal ? "bg-amber-50" : ""}` }, /* @__PURE__ */ React.createElement(PhotoAvatar, { photo: s.photo, name: s.name, size: "sm" }), /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-900 truncate" }, s.name, rosterMetaFor(rDate, sid).oneToOne && /* @__PURE__ */ React.createElement("span", { className: "ml-1.5 text-[11px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-full px-2 py-0.5" }, "1 对 1")), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400" }, s.mobile || "未填写手机", lowBal && /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5 ml-1 text-amber-600 font-bold" }, /* @__PURE__ */ React.createElement(Icon, { name: "bolt", className: "w-4 h-4" }), "余额告急"))), TENANT_SLUG && rosterMetaFor(rDate, sid).id && /* @__PURE__ */ React.createElement(
         "input",
         {
           type: "time",

@@ -297,81 +297,90 @@ COLOUR_UTILITY = re.compile(
 SHELL_OVERRIDE = re.compile(r'\[class\*="([a-zA-Z0-9\\/.-]+)"\]')
 
 
-def test_every_colour_utility_the_cms_uses_is_re_pointed_at_the_theme() -> None:
-    """The CMS may not paint a single surface Tailwind's colour instead of the studio's.
+def test_the_cms_configures_tailwind_instead_of_patching_it() -> None:
+    """The CMS runs the Tailwind Play CDN, which generates utilities in the
+    browser from `tailwind.config`.
 
-    Audited 2026-07-30: cms-app.jsx carries ~1,300 colour utilities across 12
-    families, and only indigo and purple had ever been re-pointed. A studio on
-    the clay palette saw a green "网站与品牌" button, a blue absence panel, green
-    row actions and pink birthday chips — the CMS read as four products stacked
-    together.
-
-    The check derives the required list from the source rather than restating
-    it, so using a new shade fails the build at the moment it is introduced.
-    That matters more than the audit itself: the previous rules were correct
-    for the shades that existed when they were written, and rotted silently as
-    the app grew.
+    Until v8.4.2 it instead carried 68 rules of `[class*="bg-indigo-"]`
+    overrides chasing what the generator had already emitted. That layer
+    reached 84 of the 154 colour utilities the app renders; the other 70
+    painted fixed Tailwind values no theme could touch. Patching could never
+    converge, because every new component brings new utilities.
     """
 
-    overrides = SHELL_OVERRIDE.findall(_read(CMS_SHELL))
-    uncovered: dict[str, int] = {}
-    for prop, family, shade in COLOUR_UTILITY.findall(_read(CMS_APP)):
-        token = f"{prop}-{family}-{shade}"
-        if not any(token.startswith(rule) for rule in overrides):
-            uncovered[token] = uncovered.get(token, 0) + 1
+    shell = _read(CMS_SHELL)
+    assert "tailwind.config = config" in shell, "the generator is not configured"
+    # Every family the source renders must be mapped.
+    source = (REPOSITORY_ROOT / "legacy-root/src/cms-app.jsx").read_text(encoding="utf-8")
+    families = set(re.findall(
+        r"\b(?:bg|text|border|from|to|via|ring|divide|placeholder)-"
+        r"(slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|"
+        r"teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3}\b", source))
+    block = shell[shell.index("const colours = {"):]
+    block = block[:block.index("};")]
+    missing = [f for f in families if not re.search(rf"\b{f}:", block)]
+    assert not missing, f"families the CMS renders but the config never maps: {sorted(missing)}"
 
-    assert not uncovered, (
-        "cms-app.jsx uses colour utilities that legacy-root/index.html never "
-        f"re-points at the tenant theme: {sorted(uncovered)}. Add a rule mapping "
-        "each to its ROLE (structure / success / warning / danger / accent), not "
-        "to a matching hue — the role is what survives a palette change."
+
+def test_the_neutral_ramp_inverts_and_the_role_ramps_do_not() -> None:
+    """The distinction the override layer never made, and could not have.
+
+    `bg-gray-50` is a surface and `text-gray-900` is ink, and those swap in
+    dark. But `bg-red-600` is a red button in both modes, and `bg-indigo-700`
+    — every filled action in this app, 保存 / 刷新 / 签到 / 退出登录 — is a deep
+    brand slab carrying light text in both. A rule that flips everything breaks
+    the buttons; a rule that flips nothing breaks the page.
+
+    Measured in the browser at v8.4.2 with a dark theme applied: bg-gray-50
+    luminance 0.011 against text-gray-900 at 0.808 (inverted), while
+    bg-indigo-700 stayed a filled 0.378 and white-on-it measured 5.49:1.
+    """
+
+    shell = _read(CMS_SHELL)
+    neutral = shell[shell.index("const neutral = {"):]
+    neutral = neutral[:neutral.index("};")]
+    # It inverts for free only if it is built from --bg and --ink, which swap.
+    assert "'var(--bg2)'" in neutral and "'var(--ink)'" in neutral
+    assert "--accent" not in neutral, "the neutral ramp must not carry a role colour"
+
+    role = shell[shell.index("const role = (base) => ({"):]
+    role = role[:role.index("});")]
+    # A role's deep end is hover/pressed, which the generator already moves in
+    # the mode-correct direction, so a filled button stays a filled button.
+    assert "-hover" in role and "-pressed" in role
+    assert "--bg" not in role and "--ink" not in role, (
+        "a role ramp must not reach for the page or the ink; that is what flips"
     )
 
 
-def test_the_colour_takeover_maps_by_role_not_by_hue() -> None:
-    """Semantic families must land on the theme's own semantic tokens.
+def test_white_serves_both_the_card_and_the_label_on_a_fill() -> None:
+    """183 `-white` utilities, and one value for all of them.
 
-    palette_gen.py solves --success/--warning/--danger against both page and
-    panel for every theme-mode. Routing green/amber/red through them inherits
-    that; picking a replacement hue by eye would not.
+    `bg-white` is a card and `text-white` is the label on a filled button.
+    Tailwind cannot tell them apart — `colors.white` is one value — so this
+    only works if --panel clears 4.5:1 on every accent. It does: worst is 5.10
+    at arcade-lime dark, so no source change was needed.
     """
 
-    shell = _read(CMS_SHELL)
-    for family, token in (
-        ("green", "--success"), ("emerald", "--success"),
-        ("amber", "--warning"), ("orange", "--warning"),
-        ("red", "--danger"), ("rose", "--danger"),
-    ):
-        rule = re.search(rf'\[class\*="text-{family}-"\][^;]*;', shell)
-        assert rule and token in rule.group(0), (
-            f"text-{family}-* should resolve to var({token})"
-        )
+    from studiosaas.presets import VISUAL_STYLE_PRESETS, style_theme
 
-    # Soft fills must be mixed against the panel, so they stay light on a light
-    # theme and dark on a dark one instead of becoming a pale slab.
-    assert "color-mix(in srgb, var(--success)" in shell
-    assert "color-mix(in srgb, var(--warning)" in shell
-    assert "color-mix(in srgb, var(--danger)" in shell
-
-    # The shared language switch reads --brand, which the CMS never defined —
-    # it fell back to stock blue in the corner of an otherwise themed page.
-    assert "--brand:var(--accent)" in shell
+    assert "white: 'var(--panel)'" in _read(CMS_SHELL)
+    worst = min(
+        _contrast(theme["panel_color"], theme["accent_color"])
+        for key, preset in VISUAL_STYLE_PRESETS.items()
+        for theme in (style_theme(key, mode) for mode in preset["modes"])
+    )
+    assert worst >= 4.5, f"--panel only reaches {worst:.2f}:1 on the worst accent"
 
 
-def test_dark_cms_chrome_inverts_the_asserted_pair() -> None:
-    """The sidebar cannot rely on a fixed `text-white`.
-
-    `bg-indigo-900 text-white` is only readable while the surface stays dark.
-    Once the surface follows the tenant theme it has to bring its foreground
-    with it, and --ink/--bg is the pair the generator already guarantees.
-    """
-
-    shell = _read(CMS_SHELL)
-    assert 'background-color:var(--ink) !important' in shell
-    assert "color:var(--bg) !important" in shell
-    # The pill inset must be expressed relative to the page colour, not by
-    # assuming darker means deeper — that assumption inverts under a dark theme.
-    assert "color-mix(in srgb, var(--ink) 86%, var(--bg))" in shell
+def _contrast(a: str, b: str) -> float:
+    def lum(value: str) -> float:
+        value = value.lstrip("#")
+        channels = [int(value[i:i + 2], 16) / 255 for i in (0, 2, 4)]
+        channels = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in channels]
+        return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
+    first, second = lum(a), lum(b)
+    return (max(first, second) + 0.05) / (min(first, second) + 0.05)
 
 
 # ── the fallback palette is a generated palette ─────────────────────────────

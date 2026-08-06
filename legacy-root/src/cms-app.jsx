@@ -171,7 +171,7 @@ function TenantBrandLogo({ className = '' }) {
 }
 
 /* ═══════════════════ SVG BAR CHART ════════════════════════════ */
-function BarChart({ items, color='#6366f1', h=140, prefix='' }) {
+function BarChart({ items, color='var(--info)', h=140, prefix='' }) {
     if (!items?.length) return <p className="text-center text-gray-400 text-sm py-6">暂无数据</p>;
     const max = Math.max(...items.map(d=>d.v), 0.01);
     const W=54, PAD=6;
@@ -182,8 +182,8 @@ function BarChart({ items, color='#6366f1', h=140, prefix='' }) {
                 return (
                     <g key={i} transform={`translate(${i*W+PAD},0)`}>
                         <rect x={4} y={h-bh} width={W-PAD*2} height={bh} fill={color} rx={3} opacity={0.82}/>
-                        {d.v>0 && <text x={(W-PAD*2)/2+4} y={h-bh-4} textAnchor="middle" fontSize={8} fill="#374151" fontWeight="bold">{prefix}{d.v}</text>}
-                        <text x={(W-PAD*2)/2+4} y={h+16} textAnchor="middle" fontSize={7.5} fill="#9ca3af">{d.l}</text>
+                        {d.v>0 && <text x={(W-PAD*2)/2+4} y={h-bh-4} textAnchor="middle" fontSize={8} fill="var(--ink2)" fontWeight="bold">{prefix}{d.v}</text>}
+                        <text x={(W-PAD*2)/2+4} y={h+16} textAnchor="middle" fontSize={7.5} fill="var(--muted)">{d.l}</text>
                     </g>
                 );
             })}
@@ -3334,7 +3334,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         </button>
                         <button
                             onClick={()=>portfolioDoDelete(String(portLB.items[portLB.idx]?.id))}
-                            aria-label="删除" className="py-2.5 px-4 bg-red-500/80 active:bg-red-600/80 text-white rounded-xl text-sm min-h-[44px] flex items-center justify-center"><Icon name="trash" className="w-4 h-4"/></button>
+                            aria-label="删除" className="py-2.5 px-4 bg-red-500 active:bg-red-600 text-white rounded-xl text-sm min-h-[44px] flex items-center justify-center"><Icon name="trash" className="w-4 h-4"/></button>
                         <button onClick={()=>setPortLB(p=>({...p,idx:Math.min(p.items.length-1,p.idx+1)}))}
                             disabled={portLB.idx===portLB.items.length-1}
                             className="py-2.5 px-6 bg-white/20 active:bg-white/30 text-white rounded-xl font-bold text-sm disabled:opacity-30 min-h-[44px]">
@@ -3408,7 +3408,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                                 placeholder="如：水彩练习 第1期" maxLength={50}
                                                 className="w-full px-3 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-400 outline-none"/>
                                         </div>
-                                        <label className="flex items-start gap-3 rounded-xl border border-purple-100 bg-purple-50/60 p-3 text-sm text-purple-900">
+                                        <label className="flex items-start gap-3 rounded-xl border border-purple-100 bg-purple-50 p-3 text-sm text-purple-900">
                                             <input type="checkbox" checked={!!portUpFile.public}
                                                 disabled={selS?.publicationConsent?.status!=='confirmed'}
                                                 onChange={e=>setPortUpFile(p=>({...p,public:e.target.checked}))}
@@ -3471,7 +3471,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                     maxLength={50}
                                     className="w-full px-3 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-purple-400 outline-none"/>
                             </div>
-                            <label className="flex items-start gap-3 rounded-xl border border-purple-100 bg-purple-50/60 p-3 text-sm text-purple-900">
+                            <label className="flex items-start gap-3 rounded-xl border border-purple-100 bg-purple-50 p-3 text-sm text-purple-900">
                                 <input type="checkbox" checked={!!portEdit.public}
                                     disabled={selS?.publicationConsent?.status!=='confirmed'}
                                     onChange={e=>setPortEdit(p=>({...p,public:e.target.checked}))}
@@ -3830,7 +3830,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     </div>}
                     <div className="text-xs text-green-400 text-center bg-indigo-950 rounded-lg p-1.5 border border-indigo-800"><span className="inline-flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-400" aria-hidden="true"></span>已连接</span></div>
                     {db.logs.length > 1000 && (
-                        <div className="text-xs text-amber-400 text-center bg-indigo-950 rounded-lg p-1.5 border border-amber-800/40">
+                        <div className="text-xs text-amber-400 text-center bg-indigo-950 rounded-lg p-1.5 border border-amber-800">
                             <span className="inline-flex items-center gap-1.5"><Icon name="warning" className="w-3.5 h-3.5"/>日志 {db.logs.length} 条</span>
                         </div>
                     )}
@@ -4047,12 +4047,12 @@ document.getElementById('copybtn').addEventListener('click', function(){
 
     {/* 长期未到访 */}
     {analytics.inactive.length>0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4">
-            <p className="inline-flex items-center gap-1.5 font-bold text-blue-800 mb-2 text-sm"><Icon name="calendar" className="w-4 h-4"/>长期未到访 — {analytics.inactive.length} 名学员有余额但超过 {inactiveDays} 天未上课</p>
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+            <p className="inline-flex items-center gap-1.5 font-bold text-amber-800 mb-2 text-sm"><Icon name="calendar" className="w-4 h-4"/>长期未到访 — {analytics.inactive.length} 名学员有余额但超过 {inactiveDays} 天未上课</p>
             <div className="flex flex-wrap gap-2">
                 {analytics.inactive.slice(0,12).map(s => (
                     <button key={s.id} onClick={()=>{setTab('students');setSrch(s.name);}}
-                        className="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200 active:bg-blue-200 min-h-[44px]">
+                        className="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-100 text-amber-800 border border-blue-200 active:bg-blue-200 min-h-[44px]">
                         {/* daysSince returns the 9999 sentinel for "no class on
                             record"; printing it raw read as "9999天前". */}
                         {s.name} ({s.balance}课 · {daysSince(s.lastActive)<9999?`${daysSince(s.lastActive)}天前`:'从未上课'})
@@ -4435,7 +4435,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 if (!s || s.archived) return null;
                 const lowBal = (parseInt(s.balance,10)||0) <= renewTh;   /* A5: 课前低余额预警（v4.5） */
                 return (
-                    <div key={sid} className={`px-4 py-3 flex flex-wrap md:flex-nowrap items-center hover-row gap-3 min-h-[64px] ${lowBal?'bg-amber-50/60':''}`}>
+                    <div key={sid} className={`px-4 py-3 flex flex-wrap md:flex-nowrap items-center hover-row gap-3 min-h-[64px] ${lowBal?'bg-amber-50':''}`}>
                         <PhotoAvatar photo={s.photo} name={s.name} size="sm"/>
                         <div className="flex-1 min-w-0">
                             <p className="font-bold text-gray-900 truncate">{s.name}
@@ -5064,7 +5064,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 {sStu && <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-lg">全局数据</span>}
             </div>
             <div className="overflow-x-auto -mx-1 px-1"><div style={{minWidth:'580px'}}>
-            <BarChart items={analytics.chart12.map(d=>({v:d.rev,l:d.l}))} color="#6366f1" h={130}/>
+            <BarChart items={analytics.chart12.map(d=>({v:d.rev,l:d.l}))} color="var(--info)" h={130}/>
             </div></div>
         </div>
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
@@ -5073,7 +5073,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 {sStu && <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-lg">全局数据</span>}
             </div>
             <div className="overflow-x-auto -mx-1 px-1"><div style={{minWidth:'580px'}}>
-            <BarChart items={analytics.chart12.map(d=>({v:d.ci,l:d.l}))} color="#10b981" h={130}/>
+            <BarChart items={analytics.chart12.map(d=>({v:d.ci,l:d.l}))} color="var(--success)" h={130}/>
             </div></div>
         </div>
     </div>

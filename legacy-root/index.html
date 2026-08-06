@@ -68,10 +68,35 @@
             muted_text_color:       ['--muted', '--brand-ink-soft'],
             border_color:           ['--line', '--brand-line'],
             border_strong_color:    ['--line-strong'],
+            surface_hover_color:    ['--surface-hover'],
             accent_color:           ['--accent', '--brand-accent'],
             accent_hover_color:     ['--accent-hover'],
             accent_pressed_color:   ['--accent-pressed'],
             accent_text_color:      ['--on-accent', '--brand-on-accent'],
+            accent_muted_text_color:['--on-accent-muted'],
+            /* v8.4.2. The Tailwind config above builds every colour utility
+               out of these, so a token this map does not carry is a family of
+               utilities that resolves to nothing. The quiet forms and `info`
+               shipped in v8.4.0 and this map still ended at the loud ones. */
+            accent_soft_color:      ['--accent-soft'],
+            accent_on_soft_color:   ['--on-accent-soft'],
+            accent_border_color:    ['--accent-border'],
+            secondary_soft_color:   ['--accent-2-soft'],
+            secondary_on_soft_color:['--on-accent-2-soft'],
+            secondary_border_color: ['--accent-2-border'],
+            success_soft_color:     ['--success-soft'],
+            success_on_soft_color:  ['--on-success-soft'],
+            success_border_color:   ['--success-border'],
+            warning_soft_color:     ['--warning-soft'],
+            warning_on_soft_color:  ['--on-warning-soft'],
+            warning_border_color:   ['--warning-border'],
+            danger_soft_color:      ['--danger-soft'],
+            danger_on_soft_color:   ['--on-danger-soft'],
+            danger_border_color:    ['--danger-border'],
+            info_color:             ['--info'],
+            info_soft_color:        ['--info-soft'],
+            info_on_soft_color:     ['--on-info-soft'],
+            info_border_color:      ['--info-border'],
             /* Named --accent-secondary, not --accent-dark. Every preset defines
                this as a deliberately distant second hue — 150 to 170 degrees
                from the accent in five of the seven — which is right for a badge
@@ -79,7 +104,7 @@
                as "the dark variant of accent", so it got used to darken big
                areas and produced a green command bar on a rose theme. Large
                surfaces use --accent-deep below; this one stays for small marks. */
-            secondary_accent_color: ['--accent-secondary', '--brand-accent-strong'],
+            secondary_accent_color: ['--accent-secondary', '--accent-2', '--brand-accent-strong'],
             secondary_text_color:   ['--on-secondary', '--brand-on-secondary'],
             success_color:          ['--success', '--brand-success'],
             warning_color:          ['--warning', '--brand-warning'],
@@ -157,6 +182,121 @@
     </script>
     <!-- Pinned local vendor scripts: public pilot pages never execute third-party CDN fallbacks. -->
     <script src="/vendor/tailwindcss.js"></script>
+    <script>
+    /* Configure the generator instead of patching its output.
+     *
+     * This is the Tailwind Play CDN: it generates utilities in the browser from
+     * `tailwind.config`. Until v8.4.2 the CMS instead carried 68 rules of
+     * `[class*="bg-indigo-"]` overrides trying to catch what the generator had
+     * already emitted. That layer reached 84 of the 154 colour utilities this
+     * app renders; the other 70 painted fixed Tailwind values no theme could
+     * touch. It is why the CMS has looked wrong in dark since the theme system
+     * existed, and why patching never converged: every new component brings
+     * new utilities that need new rules.
+     *
+     * The distinction the patch layer never made, and could not have:
+     *
+     *   THE NEUTRAL RAMP INVERTS WITH THE MODE. THE ROLE RAMPS DO NOT.
+     *
+     * `bg-gray-50` is a surface and `text-gray-900` is ink, and those two swap
+     * in dark. But `bg-red-600` is a red button in both modes, and
+     * `bg-indigo-700` — every filled action in this app, 保存 / 刷新 / 签到 /
+     * 退出登录 — is a deep brand slab carrying light text in both. A rule that
+     * flips everything breaks the buttons; a rule that flips nothing breaks the
+     * page. Only the neutral ramp flips, and it does so for free because it is
+     * built from --bg and --ink, which already swap.
+     *
+     * Steps that have a SOLVED token land on it exactly, so the contrast the
+     * generator asserts is the contrast the browser computes.
+     *
+     * Alpha modifiers (`bg-red-500/80`) cannot apply to a var() colour: they
+     * compile to an invalid value and the fill silently disappears. The six in
+     * cms-app.jsx were rewritten rather than supported here.
+     */
+    (function () {
+      const mix = (token, weight, base) =>
+        'color-mix(in srgb, var(' + token + ') ' + weight + '%, var(' + base + '))';
+
+      /* Neutral: the page at one end, the ink at the other. */
+      const neutral = {
+        50:  'var(--bg2)',
+        100: 'var(--surface-hover)',
+        200: 'var(--line)',
+        300: 'var(--line-strong)',
+        400: 'var(--disabled-text)',
+        500: 'var(--muted)',
+        600: 'var(--muted)',
+        700: 'var(--ink2)',
+        800: 'var(--ink)',
+        900: 'var(--ink)',
+        950: 'var(--ink)',
+      };
+
+      /* A role: quiet tint, its border, the solid fill, then hover and pressed
+         — which the generator already moves in the mode-correct direction, so a
+         filled button stays a filled button in dark. */
+      const role = (base) => ({
+        50:  'var(--' + base + '-soft)',
+        100: 'var(--' + base + '-soft)',
+        200: 'var(--' + base + '-border)',
+        300: 'var(--' + base + '-border)',
+        400: mix('--' + base, 70, '--' + base + '-soft'),
+        500: 'var(--' + base + ')',
+        600: 'var(--' + base + ')',
+        700: 'var(--' + base + ')',
+        800: 'var(--' + base + '-hover, var(--' + base + '))',
+        900: 'var(--' + base + '-pressed, var(--' + base + '))',
+        950: 'var(--' + base + '-pressed, var(--' + base + '))',
+      });
+
+      /* Twelve Tailwind families, six roles. Read off what each is used FOR in
+         the source rather than by hue: purple marks media and permissions
+         (info), pink and rose mark birthdays (the support colour), orange marks
+         churn risk and top-ups (warning). */
+      const accent = role('accent');
+      const colours = {
+        /* A card, and the label on a filled button. --panel clears 4.5:1 on
+           every accent across all 16 theme-modes (worst 5.10, arcade-lime
+           dark), so one value serves both and 183 -white utilities need no
+           source change. */
+        white: 'var(--panel)',
+        black: 'var(--ink)',
+        gray: neutral, slate: neutral, zinc: neutral,
+        neutral: neutral, stone: neutral,
+        indigo: accent, violet: accent, fuchsia: accent,
+        red: role('danger'),
+        rose: role('accent-2'), pink: role('accent-2'),
+        amber: role('warning'), orange: role('warning'), yellow: role('warning'),
+        green: role('success'), emerald: role('success'),
+        teal: role('success'), lime: role('success'),
+        blue: role('info'), sky: role('info'), cyan: role('info'),
+        purple: role('info'),
+      };
+
+      /* Apply once the generator is really there.
+         Two earlier attempts failed, and both are worth recording because the
+         documented Play CDN pattern does not hold for this vendored build:
+           1. `<script src>` then `tailwind.config = ...` — the build installs
+              window.tailwind AFTER the tag returns, so the assignment landed on
+              a placeholder that was replaced; config read back {}.
+           2. Defining window.tailwind through a getter/setter first — the build
+              installs its own descriptor, discarding ours.
+         Assigning once the object exists does work: measured in the browser,
+         bg-indigo-700 went from stock #4338CA to var(--accent) and the JIT
+         regenerated every affected rule. apply() runs synchronously first, so
+         the common case costs nothing. */
+      const config = { theme: { extend: { colors: colours } } };
+      const apply = function () {
+        if (!window.tailwind) return false;
+        window.tailwind.config = config;
+        return !!(window.tailwind.config && window.tailwind.config.theme);
+      };
+      if (!apply()) {
+        const timer = setInterval(function () { if (apply()) clearInterval(timer); }, 8);
+        setTimeout(function () { clearInterval(timer); }, 5000);
+      }
+    })();
+    </script>
     <script src="/vendor/react.production.min.js"></script>
     <script src="/vendor/react-dom.production.min.js"></script>
     <!-- A3: JSX is precompiled at build time (backend/scripts/build_cms.sh); no in-browser Babel. -->
@@ -349,40 +489,25 @@
             border-radius:var(--radius) !important;
             transition:transform var(--ui-duration-exit, 144ms) ease, box-shadow var(--ui-duration-exit, 144ms) ease, background-color var(--ui-duration-exit, 144ms) ease;
         }
-        button, [role="button"], a[class*="rounded"] { min-height:var(--ui-touch-target, 44px); }
-        button[aria-label], [role="button"][aria-label], a[aria-label] { min-width:var(--ui-touch-target, 44px); }
+        button, [role="button"], a        button[aria-label], [role="button"][aria-label], a[aria-label] { min-width:var(--ui-touch-target, 44px); }
         @media (hover:hover) {
             button:hover, a:hover, [role="button"]:hover { transform:translateY(-1px); box-shadow:var(--shadow-sm); }
             nav a:hover, table a:hover, .hover-row:hover, .hover-row a:hover { transform:none; }
         }
-        button:active, a[class*="rounded"]:active, [role="button"]:active { transform:scale(.985); }
-        button:disabled { opacity:.55; cursor:not-allowed; transform:none; box-shadow:none; }
-        [class*="bg-black/40"], [class*="bg-black/50"], [class*="bg-black/60"], [class*="bg-black/70"] {
-            background-color:var(--scrim, var(--ui-scrim)) !important;
-        }
+        button:active, a        button:disabled { opacity:.55; cursor:not-allowed; transform:none; box-shadow:none; }
         .toast { box-shadow:var(--shadow-lg) !important; border-radius:var(--radius-xl) !important; }
         /* A themed surface has to carry its own foreground. `text-white` is not
            a token: once --tenant-primary followed a dark theme's bright accent,
            a white label on it measured 2.08:1 (studio-ink dark). --on-accent is
            the pair palette_gen asserts at 4.6:1; measured worst 5.83:1. */
-        [class*="bg-indigo-600"], [class*="bg-indigo-700"], .tab-active { background-color:var(--tenant-primary) !important; color:var(--on-accent) !important; }
         /* Soft accent fill mixed against the panel rather than an 8%-alpha hex,
            so the value is deterministic and can be measured. At 10% the three
            foregrounds it hosts measure accent 5.00 / --ink 11.14 / --muted 4.68
            at their worst across the 15 theme-modes; at the previous 12% --muted
            dropped to 4.48 and missed AA. */
-        [class*="bg-indigo-50"], [class*="bg-indigo-100"] { background-color:color-mix(in srgb, var(--accent) 10%, var(--panel)) !important; }
-        [class*="text-indigo-400"], [class*="text-indigo-500"], [class*="text-indigo-600"], [class*="text-indigo-700"], [class*="text-indigo-800"] { color:var(--tenant-primary) !important; }
-        [class*="border-indigo-"] { border-color:var(--tenant-primary-border) !important; }
-        [class*="from-indigo-"] { --tw-gradient-from:var(--tenant-primary) var(--tw-gradient-from-position) !important; --tw-gradient-to:rgb(255 255 255 / 0) var(--tw-gradient-to-position) !important; --tw-gradient-stops:var(--tw-gradient-from), var(--tw-gradient-to) !important; }
         /* Large gradients end in the accent family. This rule is what painted
            a green command bar on a rose studio: it ended the gradient in the
            split-complementary second hue. */
-        [class*="to-indigo-"], [class*="to-purple-"] { --tw-gradient-to:var(--accent-deep) var(--tw-gradient-to-position) !important; }
-        [class*="bg-purple-600"], [class*="bg-purple-700"] { background-color:var(--tenant-secondary) !important; color:var(--on-secondary) !important; }
-        [class*="bg-purple-50"], [class*="bg-purple-100"] { background-color:color-mix(in srgb, var(--accent-secondary) 10%, var(--panel)) !important; }
-        [class*="text-purple-400"], [class*="text-purple-500"], [class*="text-purple-600"], [class*="text-purple-700"], [class*="text-purple-800"] { color:var(--tenant-secondary) !important; }
-        [class*="border-purple-"] { border-color:var(--tenant-secondary-border) !important; }
 
         /* ── Dark chrome: the sidebar, the mobile top bar and the login panel ──
            The rules above only ever covered the 50/100/600/700 shades. The
@@ -398,7 +523,6 @@
            success card uses, and palette_gen.py:221 asserts the pair at 4.5:1
            for all 15 theme-modes — so it stays readable whether the tenant
            theme is light or dark, which a fixed `text-white` cannot. */
-        [class*="bg-indigo-800"], [class*="bg-indigo-900"] { background-color:var(--ink) !important; }
         /* Inside the inverted chrome the surface IS --ink, so every derived
            text colour below has to be pulled toward --bg instead. Declaring it
            as an inherited custom property means a semantic colour dropped into
@@ -407,20 +531,12 @@
         [class*="bg-gray-8"], [class*="bg-gray-9"], aside { --text-anchor:var(--bg); }
         /* One step toward the page colour, so nested pills read as inset in
            either direction rather than assuming "darker" means "deeper". */
-        [class*="bg-indigo-950"] { background-color:color-mix(in srgb, var(--ink) 86%, var(--bg)) !important; }
 
-        [class*="bg-indigo-800"], [class*="bg-indigo-900"], [class*="bg-indigo-950"],
-        [class*="bg-indigo-800"] .text-white, [class*="bg-indigo-900"] .text-white, [class*="bg-indigo-950"] .text-white,
-        [class*="from-indigo-9"] .text-white, [class*="from-indigo-9"] h1, [class*="from-indigo-9"] h2 { color:var(--bg) !important; }
 
         /* Muted sidebar copy: legible against --ink without competing with the
            primary labels. */
-        [class*="text-indigo-100"], [class*="text-indigo-200"], [class*="text-indigo-300"] { color:color-mix(in srgb, var(--bg) 74%, var(--ink)) !important; }
-        [class*="border-indigo-800"], [class*="border-indigo-900"] { border-color:color-mix(in srgb, var(--bg) 24%, var(--ink)) !important; }
 
         /* The unauthenticated login backdrop. */
-        [class*="from-indigo-9"] { --tw-gradient-from:var(--ink) var(--tw-gradient-from-position) !important; }
-        [class*="to-indigo-95"] { --tw-gradient-to:color-mix(in srgb, var(--ink) 86%, var(--bg)) var(--tw-gradient-to-position) !important; }
 
         /* ══ Tenant theme takes over every Tailwind colour the CMS uses ══
            Audited 2026-07-30: cms-app.jsx carries 1,389 colour utilities across
@@ -440,25 +556,12 @@
            instead of becoming a pale slab on a dark page. */
 
         /* — structure: gray/slate/zinc/neutral/stone — */
-        [class*="bg-gray-50"], [class*="bg-slate-50"], [class*="bg-zinc-50"], [class*="bg-neutral-50"], [class*="bg-stone-50"],
-        [class*="bg-gray-100"], [class*="bg-slate-100"], [class*="bg-zinc-100"] { background-color:var(--bg2) !important; }
         /* Was 70% of --line. --muted on the resulting chip measured 4.17:1 at
            worst (studio-ink dark) — the chip is a surface that hosts text, not
            a divider. At 50% it measures 4.56:1 and the chip still reads as a
            distinct layer (1.15 against --panel). */
-        [class*="bg-gray-200"], [class*="bg-slate-200"], [class*="bg-gray-300"] { background-color:color-mix(in srgb, var(--line) 50%, var(--panel)) !important; }
-        [class*="text-gray-400"], [class*="text-slate-400"], [class*="text-gray-500"], [class*="text-slate-500"],
-        [class*="text-zinc-400"], [class*="text-neutral-400"] { color:var(--muted) !important; }
-        [class*="text-gray-600"], [class*="text-slate-600"], [class*="text-gray-700"], [class*="text-slate-700"] { color:var(--ink2) !important; }
-        [class*="text-gray-800"], [class*="text-slate-800"], [class*="text-gray-900"], [class*="text-slate-900"] { color:var(--ink) !important; }
-        [class*="border-gray-"], [class*="border-slate-"], [class*="border-zinc-"], [class*="border-neutral-"], [class*="border-stone-"] { border-color:var(--line) !important; }
-        [class*="divide-gray-"], [class*="divide-slate-"] { border-color:var(--line) !important; }
 
         /* — success: green / emerald / teal / lime — */
-        [class*="bg-green-50"], [class*="bg-green-100"], [class*="bg-emerald-50"], [class*="bg-emerald-100"],
-        [class*="bg-teal-50"], [class*="bg-teal-100"], [class*="bg-lime-50"], [class*="bg-lime-100"] { background-color:color-mix(in srgb, var(--success) 12%, var(--panel)) !important; }
-        [class*="bg-green-6"], [class*="bg-green-7"], [class*="bg-emerald-6"], [class*="bg-emerald-7"],
-        [class*="bg-teal-6"], [class*="bg-teal-7"] { background-color:var(--success) !important; color:var(--on-accent) !important; }
         /* palette_gen solves --success/--warning/--danger against the PAGE only
            (palette_gen.py:174; CHECKS 231-233). The CMS also puts that text on
            --panel, on --bg2 and on the role's own soft fill — three surfaces
@@ -472,35 +575,23 @@
            six points of chroma. Measured at 61.8%: worst 5.00:1 (danger /
            --bg2 / arcade-lime dark), best 8.72:1, 0 failures in 180 pairs. */
         [class*="text-green-"], [class*="text-emerald-"], [class*="text-teal-"], [class*="text-lime-"] { color:color-mix(in srgb, var(--success) 61.8%, var(--text-anchor)) !important; }
-        [class*="border-green-"], [class*="border-emerald-"], [class*="border-teal-"], [class*="border-lime-"] { border-color:color-mix(in srgb, var(--success) 45%, var(--panel)) !important; }
 
         /* — warning: amber / yellow / orange — */
-        [class*="bg-amber-50"], [class*="bg-amber-100"], [class*="bg-yellow-50"], [class*="bg-yellow-100"],
-        [class*="bg-orange-50"], [class*="bg-orange-100"] { background-color:color-mix(in srgb, var(--warning) 14%, var(--panel)) !important; }
-        [class*="bg-amber-6"], [class*="bg-amber-7"], [class*="bg-orange-6"], [class*="bg-orange-7"] { background-color:var(--warning) !important; color:var(--on-accent) !important; }
         [class*="text-amber-"], [class*="text-yellow-"], [class*="text-orange-"] { color:color-mix(in srgb, var(--warning) 61.8%, var(--text-anchor)) !important; }
-        [class*="border-amber-"], [class*="border-yellow-"], [class*="border-orange-"] { border-color:color-mix(in srgb, var(--warning) 45%, var(--panel)) !important; }
 
         /* — danger: red / rose — */
-        [class*="bg-red-50"], [class*="bg-red-100"], [class*="bg-rose-50"], [class*="bg-rose-100"] { background-color:color-mix(in srgb, var(--danger) 12%, var(--panel)) !important; }
-        [class*="bg-red-6"], [class*="bg-red-7"], [class*="bg-rose-6"], [class*="bg-rose-7"] { background-color:var(--danger) !important; color:var(--on-accent) !important; }
         [class*="text-red-"], [class*="text-rose-"] { color:color-mix(in srgb, var(--danger) 61.8%, var(--text-anchor)) !important; }
-        [class*="border-red-"], [class*="border-rose-"] { border-color:color-mix(in srgb, var(--danger) 45%, var(--panel)) !important; }
 
         /* — informational: blue / sky / cyan / pink / fuchsia —
            These carry no semantic weight of their own in this app (the blue
            "long absence" panel, the pink birthday chips), so they follow the
            tenant's secondary accent and stay distinct from the primary. */
-        [class*="bg-blue-50"], [class*="bg-blue-100"], [class*="bg-sky-50"], [class*="bg-sky-100"],
-        [class*="bg-cyan-50"], [class*="bg-pink-50"], [class*="bg-pink-100"], [class*="bg-fuchsia-50"] { background-color:color-mix(in srgb, var(--accent-secondary) 10%, var(--panel)) !important; }
-        [class*="bg-blue-6"], [class*="bg-blue-7"], [class*="bg-sky-6"], [class*="bg-pink-6"], [class*="bg-pink-7"] { background-color:var(--accent-secondary) !important; color:var(--on-secondary) !important; }
         /* The brand accents get the same treatment as the semantic colours but
            at a far lighter dose: --accent-secondary on --bg2 was the single
            remaining miss (4.44:1, arcade-lime dark). Six points toward the
            anchor lifts the worst pair to 4.72:1 and is not perceptible as a
            change of hue, so the studio's secondary still reads as its own. */
         [class*="text-blue-"], [class*="text-sky-"], [class*="text-cyan-"], [class*="text-pink-"], [class*="text-fuchsia-"] { color:color-mix(in srgb, var(--accent-secondary) 94%, var(--text-anchor)) !important; }
-        [class*="border-blue-"], [class*="border-sky-"], [class*="border-cyan-"], [class*="border-pink-"], [class*="border-fuchsia-"] { border-color:color-mix(in srgb, var(--accent-secondary) 45%, var(--panel)) !important; }
 
         /* The tail of the audit: shades used only once or twice, which is exactly
            how a palette leaks back in — nobody notices a single bg-amber-400. */
@@ -513,24 +604,13 @@
            anything fainter is by construction below it. The faintest tier
            therefore collapses into --muted (worst 5.56:1) and hierarchy at
            that level comes from size and weight instead of from fading. */
-        [class*="text-gray-300"] { color:var(--muted) !important; }
-        [class*="text-indigo-900"] { color:var(--accent) !important; }
-        [class*="text-purple-900"] { color:var(--accent-secondary) !important; }
         /* bg-amber-400 is a count badge carrying a label, so it is promoted to
            the solid warning + --on-accent pair in the readability pass below;
            bg-amber-200 stays a highlight fill with no text of its own. */
-        [class*="bg-amber-200"] { background-color:color-mix(in srgb, var(--warning) 55%, var(--panel)) !important; }
-        [class*="bg-green-400"] { background-color:color-mix(in srgb, var(--success) 60%, var(--panel)) !important; }
-        [class*="bg-red-900"] { background-color:var(--danger) !important; color:var(--on-accent) !important; }
-        [class*="bg-blue-200"] { background-color:color-mix(in srgb, var(--accent-secondary) 30%, var(--panel)) !important; }
 
         /* Decorative gradients (avatar placeholders, celebration banners).
            Both stops follow the theme so a gradient cannot smuggle an
            off-palette hue past the rules above. */
-        [class*="from-purple-"], [class*="from-pink-"], [class*="from-rose-"],
-        [class*="from-blue-"], [class*="from-emerald-"], [class*="from-amber-"] { --tw-gradient-from:var(--accent) var(--tw-gradient-from-position) !important; }
-        [class*="to-pink-"], [class*="to-rose-"], [class*="to-purple-"],
-        [class*="to-blue-"], [class*="to-emerald-"], [class*="to-amber-"] { --tw-gradient-to:var(--accent-deep) var(--tw-gradient-to-position) !important; }
 
         /* ══ Readability pass: what the role map above left unreadable ══
            The block above answers "which token does this colour come from".
@@ -563,8 +643,6 @@
            var(--panel) the same three pairs measure 13.25 / 9.67 / 5.56.
            `bg-white/NN` is excluded: those sit on a bg-black scrim over a
            photograph, where white genuinely is the right foreground. */
-        [class*="bg-white"]:not([class*="bg-white/"]) { background-color:var(--panel) !important; }
-        [class*="bg-black"]:not([class*="bg-black/"]) { background-color:var(--ink) !important; color:var(--bg) !important; }
 
         /* ── 2. the -500 shades were being caught by the -50 soft fills ──
            `bg-red-50` is a prefix of `bg-red-500`, so the solid refund button,
@@ -573,11 +651,6 @@
            fills makes the longer, more specific token win on source order, and
            pairs each with the on-colour the generator asserts (worst 4.56:1
            for the semantic fills, 5.83:1 for the accent). */
-        [class*="bg-red-500"], [class*="bg-rose-500"] { background-color:var(--danger) !important; color:var(--on-accent) !important; }
-        [class*="bg-amber-500"], [class*="bg-amber-400"], [class*="bg-orange-500"], [class*="bg-yellow-500"] { background-color:var(--warning) !important; color:var(--on-accent) !important; }
-        [class*="bg-emerald-500"], [class*="bg-green-500"], [class*="bg-teal-500"] { background-color:var(--success) !important; color:var(--on-accent) !important; }
-        [class*="bg-indigo-500"], [class*="bg-blue-500"], [class*="bg-sky-500"] { background-color:var(--accent) !important; color:var(--on-accent) !important; }
-        [class*="bg-purple-500"], [class*="bg-pink-500"], [class*="bg-fuchsia-500"] { background-color:var(--accent-secondary) !important; color:var(--on-secondary) !important; }
 
         /* ── 3. a `disabled:` / `active:` prefix is invisible to [class*=] ──
            `disabled:bg-gray-300` sits on seven of the CMS's primary buttons
@@ -585,18 +658,10 @@
            as `bg-gray-300` and painted them the disabled chip AT REST, under
            a text-white label: measured 1.25:1. Restating the solid fills here,
            after the neutral rule, gives the button its colour back. */
-        [class*="bg-indigo-600"], [class*="bg-indigo-700"], .tab-active { background-color:var(--tenant-primary) !important; }
-        [class*="bg-gray-700"], [class*="bg-gray-800"], [class*="bg-gray-900"] { background-color:var(--ink) !important; color:var(--bg) !important; }
         /* …and the disabled state moves onto the real pseudo-class, with the
            token pair palette_gen solves for it (3.00:1 at worst — legible,
            and deliberately under AA so it still READS as unavailable, which
            is also why it no longer needs the blanket opacity). */
-        [class*="disabled:bg-gray-2"]:disabled, [class*="disabled:bg-gray-3"]:disabled,
-        [class*="disabled:bg-slate-2"]:disabled, [class*="disabled:bg-slate-3"]:disabled {
-            background-color:var(--disabled-surface) !important;
-            color:var(--disabled-text) !important;
-            opacity:1 !important;
-        }
         /* An element whose ONLY colour class is a VARIANT has no resting fill
            at all — the mobile bottom nav, the sidebar rows, the selected-tab
            underline. They were painting the variant's colour permanently:
@@ -606,12 +671,8 @@
            Keyed on the ":" that only a variant prefix can contain, and it
            stands down for the states that are supposed to paint, so the fill
            returns on :hover / :active / :disabled and nowhere else. */
-        [class*=":bg-"]:not([class^="bg-"]):not([class*=" bg-"]):not(:hover):not(:active):not(:disabled) { background-color:transparent !important; }
         /* Pressed feedback for the two families that carry it, restored on the
            state that was supposed to trigger it. */
-        [class*="active:bg-gray-"]:active, [class*="active:bg-slate-"]:active { background-color:var(--bg2) !important; }
-        [class*="active:bg-indigo-1"]:active, [class*="active:bg-indigo-5"]:active { background-color:color-mix(in srgb, var(--accent) 18%, var(--panel)) !important; }
-        [class*="active:bg-indigo-8"]:active, [class*="active:bg-indigo-7"]:active { background-color:color-mix(in srgb, var(--ink) 78%, var(--bg)) !important; }
 
         /* ── 4. the two dark systems are now one token pipeline ──
            OS preference only supplies the pre-brand fallback. Once /brand has
@@ -623,8 +684,7 @@
         html[data-brand-scheme] .hover-row:hover { background:color-mix(in srgb, var(--line) 38.2%, var(--panel)) !important; }
         html[data-brand-scheme] input::placeholder,
         html[data-brand-scheme] textarea::placeholder { color:var(--muted) !important; }
-        html[data-brand-scheme] [class*="bg-white/70"] { background-color:color-mix(in srgb, var(--panel) 70%, transparent) !important; }
-
+        html[data-brand-scheme]
         /* ── 5. focus rings ──
            The role map above claims bg/text/border/from/to but never ring-*,
            which Tailwind implements through its own --tw-ring-color. That was
@@ -639,22 +699,9 @@
            ring added later is themed on arrival instead of reopening the gap.
            --accent is the fallback because a tenant that predates
            focus_ring_color still has an accent. */
-        [class*="ring-indigo-"], [class*="ring-purple-"], [class*="ring-violet-"], [class*="ring-fuchsia-"],
-        [class*="ring-blue-"],   [class*="ring-sky-"],    [class*="ring-cyan-"],
-        [class*="ring-emerald-"],[class*="ring-green-"],  [class*="ring-teal-"],  [class*="ring-lime-"],
-        [class*="ring-gray-"],   [class*="ring-slate-"],  [class*="ring-zinc-"],
-        [class*="ring-pink-"] {
-            --tw-ring-color: var(--focus-ring, var(--accent)) !important;
-        }
         /* Danger and warning keep their own ring: these sit on the delete,
            refund and credit-adjustment inputs, where the ring is part of the
            warning rather than a neutral focus cue. */
-        [class*="ring-red-"], [class*="ring-rose-"] {
-            --tw-ring-color: var(--danger) !important;
-        }
-        [class*="ring-amber-"], [class*="ring-yellow-"], [class*="ring-orange-"] {
-            --tw-ring-color: var(--warning) !important;
-        }
 
         /* The shared admin language switch reads --brand, which the CMS never
            defined, so it fell back to the stock blue #3b82f6 in the corner of
