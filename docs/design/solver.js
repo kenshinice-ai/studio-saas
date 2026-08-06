@@ -334,13 +334,15 @@ function build(theme, dark) {
   const onAccentL = hslOf(onAccent)[2];
   const accentMuted = solve(accH, Math.min(accS * 0.18, 0.12), accent, 4.6, onAccentL < 0.5);
 
-  /* The four semantics are CONSTANTS: they used to be nudged toward the accent
-     and pulled 60% of the way to its saturation, which with a free accent knob
-     means a studio's logo decides what "saved" looks like. See the Python. */
+  /* The four semantic HUES are CONSTANTS: they used to be nudged toward the
+     accent and pulled 60% of the way to its saturation, which with a free
+     accent knob means a studio's logo decides what "saved" looks like.
+     `accentIsFixed` still runs the lightness-separation check for every
+     CURATED theme, and is off only for `free_accent`. See the Python. */
   const sem = {};
   for (const [role, [sh, ss]] of Object.entries(SEMANTIC)) {
     sem[role] = solveSemantic(sh, ss, accent, bg, bg2, panel, ink, onAccent, dark,
-      Boolean(anchored(theme, 'accent')));
+      !theme.free_accent);
   }
 
   const shift = (colour, delta) => {

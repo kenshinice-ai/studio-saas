@@ -268,42 +268,50 @@ def sec_hue_of(theme):
 def anchored(theme, role):
     return (theme.get('anchors') or {}).get(role)
 
-# ── the one studio palette ────────────────────────────────────────────────
-# Until 2026-08-06 there were eight, one per industry, and every token in this
-# file had to be simultaneously correct across fifteen theme-modes. That is
-# why every value was a compromise, and it had a cost nobody had measured:
-# because the PAPER carried the industry hue, whichever semantic role shared
-# that hue stopped being visible. Five of the seven light themes had one —
-# cedar-grove's success sat 4 degrees off its own page, harbour-calm's info 9,
-# vintage-press's warning 3. A green theme could not show "saved", a blue one
-# could not show a notice.
+# ── eight named palettes, plus one free knob ───────────────────────────────
+# 2026-08-06 collapsed these to one, because the PAPER carried the industry
+# hue and whichever semantic role shared that hue stopped being visible — five
+# of the seven light themes had one. That fix was real. Removing the eight
+# named identities to ship it was not required by the fix, and it cost the
+# product something the fix never asked for: a studio no longer chose a MOOD,
+# it turned a dial. 2026-08-06 (second pass) restores the eight, with the
+# actual defect repaired at its actual cause rather than by deleting the
+# variety that exposed it:
 #
-# The product never promised industry colour. `product-home.html:651` says
-# "Templates change the vocabulary and the forms, not just the colours", and
-# the comment above INDUSTRY_STYLE_RECOMMENDATIONS says to keep copy and
-# visual design independent. Only the code disagreed.
+#   1. `CHROMA_FLOOR` / `CHROMA_FLOOR_NEAR` (below) give every semantic's
+#      tinted chip real chroma regardless of how close the paper's hue sits —
+#      this is what makes vintage-press's paper (hue 32, 4 degrees from
+#      warning's 36) safe now: the chip is floored to chroma 32, not just
+#      whatever a contrast-only mix happens to produce.
+#   2. The neutral ramp (panel, hairline, control boundary) is derived by
+#      CHROMA rather than by tapering the paper's own saturation, so a card
+#      never goes chalk-white just because it shares a hue with a status.
+#   3. `accent_is_fixed` (passed into `solve_semantic`) is True for every
+#      curated theme below, which restores the original protection — a
+#      semantic within `SEM_HUE_GAP` of the theme's own accent is pushed to a
+#      lightness that cannot be mistaken for it. This is safe to re-enable
+#      for a CURATED accent (fixed at build time) in a way it is not safe for
+#      the free knob below: it never reacts to a tenant's live input.
 #
-# So: paper and ink are anchored and constant, the four semantics are constant,
-# and a studio gets ONE knob — the accent hue. Twenty-eight of the forty-three
-# tokens stop being variables. See `Design_Constraints.md` section 1.
+# What stays constant across every theme, curated or custom, is the four
+# semantic HUES themselves (152/36/6/212) — success is the same green whatever
+# the studio's mood is, which is what lets an owner recognise "saved" in any
+# tenant's admin panel. See Design_Constraints.md section 1.2.
 #
-# The default accent is a deep bronze ANALOGOUS to the paper, 16 degrees off
-# it, and that is a decision taken against the arithmetic rather than from it.
+# Industry no longer chooses a theme. `product-home.html:651` says "Templates
+# change the vocabulary and the forms, not just the colours" — an industry
+# still RECOMMENDS a theme (`INDUSTRY_STYLE_RECOMMENDATIONS` in presets.py,
+# shown as a badge), but selecting an industry card must not write a theme
+# into the draft. That wiring bug, not the eight-theme system, was the actual
+# 2026-08-06 defect the first pass mistook for a reason to remove the themes.
 #
-# Placing the accent to maximise its distance from the four semantic hues puts
-# it at 276 — a violet, 126 degrees from the paper and at least 90 from every
-# status colour. Measured, that is the better answer. Looked at, it is a brand
-# colour sitting on a beige page. The design this product is trying to be is
-# warm paper with a warm accent, which is what the reference studio site does
-# (paper hue 40, clay hue 13, 27 degrees apart) and what makes it read as one
-# room rather than as a palette applied to a layout.
-#
-# The cost is real and it is paid in the admin surfaces: bronze sits 10 degrees
-# from warning and 20 from danger. What makes that survivable is section 1.1 —
-# a semantic role is never a solid fill, only ever a tinted chip with its own
-# label, while the accent is the only thing on the page that fills. They are
-# told apart by SHAPE, and only secondarily by hue. Remove that rule and this
-# choice becomes wrong.
+# THE FREE KNOB. Some studios have a brand colour none of the eight matches —
+# usually because they have a logo. `custom_theme()` below solves the same
+# warm-paper base as before this restoration, at whatever accent hue the
+# studio supplies. It carries `free_accent=True`, which is the ONLY thing that
+# turns off the accent_is_fixed protection and the ACCENT_MIN_SEMANTIC_GAP
+# push-out logic below — both exist because a live, arbitrary hue needs
+# different guarantees than eight hues fixed at design time.
 DEFAULT_ACCENT_HUE = 26
 DEFAULT_ACCENT_SAT = .42
 
@@ -329,56 +337,30 @@ ACCENT_MIN_SEMANTIC_GAP = 8.0
 
 
 def studio_theme(accent_hue=DEFAULT_ACCENT_HUE, accent_sat=DEFAULT_ACCENT_SAT):
-    """The one studio palette, at a given accent hue."""
+    """The 'custom' entry: a studio's own colour, on the same warm paper.
+
+    Not one of the eight curated moods — this is what a studio reaches for
+    when its brand hue is not one of them, normally by taking it from its own
+    logo. `free_accent=True` is the flag that turns off the two protections
+    that only make sense for a hue fixed at design time: `accent_is_fixed` in
+    `solve_semantic` (a live knob must not be allowed to nudge what "saved"
+    looks like) and the softer treatment in `accent_hue_from`.
+    """
     return dict(
-        key='studio', label='Studio', label_zh='工作室',
-        industry='general',
-        # The paper family. Anchored, so it is the same warm paper whatever
-        # the accent does — this is the whole point of the 2026-08-06 change.
+        key='custom', label='Custom', label_zh='自定义',
+        industry='general', free_accent=True,
         hue=42, sat=.31,
         ink_hue=42, ink_sat=.34,
         accent_hue=accent_hue % 360, accent_sat=accent_sat,
         # Deep enough to read as ink rather than as a brand colour. Solving to
         # the usual 4.6 floor produces a mid-tone that looks like a 2015 logo.
         accent_target=6.2,
-        # The secondary is a quiet sage, not a second brand colour: section 1.1
-        # forbids it a solid fill, so it only ever appears as a tint, a label on
-        # that tint, and a border. +70 from a bronze accent lands at 96, which
-        # is 56 degrees clear of success and 60 clear of warning — a decorative
-        # note cannot be allowed to look like a status.
         sec_off=70, sec_sat=.20,
         anchors=dict(background='#F4F1EA', ink='#221F1A'),
-        harmony='warm paper / one accent',
-        mood='calm, considered, content-led',
-        desc_en='Warm paper, near-black warm ink, and a single accent the studio sets from its own logo.',
-        desc_zh='暖纸、近黑暖墨，和一支由工作室自己从 Logo 定下的强调色。')
-
-
-# A starting shelf, not a catalogue. Eight industry palettes went away because
-# the paper carried the industry hue; these carry nothing but a hue, so they
-# are eight starting points on ONE palette rather than eight palettes. The knob
-# is still free — this exists because "pick your colour" with an empty swatch
-# reads as though the choice was taken away, and choosing is part of setting up
-# a studio. Every one is outside all four semantic bands by construction.
-ACCENT_SHELF = (
-    ('bronze',    26,  '陶土赭铜', 'Bronze'),
-    ('rose',     344,  '胭脂玫瑰', 'Rose'),
-    ('plum',     288,  '幕布紫',   'Plum'),
-    ('indigo',   256,  '夜靛蓝',   'Indigo'),
-    ('teal',     186,  '深松石',   'Teal'),
-    ('pine',     108,  '松林绿',   'Pine'),
-    ('olive',     78,  '橄榄',     'Olive'),
-)
-
-
-def accent_shelf():
-    """The starting swatches, each solved so the picker shows the real colour."""
-    out = []
-    for key, hue, label_zh, label_en in ACCENT_SHELF:
-        theme = build(studio_theme(hue), False)
-        out.append({'key': key, 'hue': hue, 'label_zh': label_zh, 'label': label_en,
-                    'accent_color': theme['accent_color']})
-    return out
+        harmony='warm paper / your accent',
+        mood='set from your own logo',
+        desc_en='Warm paper, near-black warm ink, and a single accent you set from your own logo.',
+        desc_zh='暖纸、近黑暖墨，和一支由你自己从 Logo 定下的强调色。')
 
 
 def accent_hue_from(hexstr):
@@ -405,6 +387,51 @@ def accent_hue_from(hexstr):
 
 
 THEMES = [
+    dict(key='atelier-clay',   label='Atelier Clay',      label_zh='陶土工坊',
+         industry='art',      hue=16,  sat=.46, sec_off=150, sec_sat=.26,
+         harmony='split-complementary', mood='warm, tactile, gallery',
+         desc_en='Warm clay on a paper surface, the way a gallery wall behaves — for studios where the work should lead.',
+         desc_zh='陶土的暖调落在纸质表面，像画廊的墙。适合让作品自己说话的工作室。'),
+    dict(key='vintage-press',  label='Vintage Press',     label_zh='复古印刷',
+         industry='general',  hue=32,  sat=.44, sec_off=168, sec_sat=.22,
+         harmony='split-complementary', mood='editorial, cultured',
+         desc_en='The ink-and-paper restraint of an old print shop, for studios whose credibility rests on words and experience.',
+         desc_zh='老式印刷的墨与纸，克制的暖棕。适合靠文字与经验建立信任的工作室。'),
+    dict(key='studio-ink',     label='Studio Ink',        label_zh='黑白纸墨',
+         industry='general',  hue=28,  sat=.02, sec_off=0,   sec_sat=.03,
+         harmony='neutral / monochrome', mood='timeless, content-led',
+         desc_en='Near-monochrome ink on paper, with a single slate-blue note marking what can be clicked.',
+         desc_zh='近乎黑白的纸与墨，只用一抹石板蓝标出可点击之处，内容始终是主角。'),
+    dict(key='harbour-calm',   label='Harbour Calm',      label_zh='静谧海港',
+         industry='math',     hue=205, sat=.52, sec_off=-34, sec_sat=.44,
+         harmony='analogous', mood='clear, trustworthy',
+         desc_en='Still-water blues in adjacent hues — clear, trustworthy, and quiet enough to read all day.',
+         desc_zh='静水一般的蓝，色相彼此相邻。清楚、可信，长时间阅读也不吵。'),
+    dict(key='cedar-grove',    label='Cedar Grove',       label_zh='雪松林',
+         industry='sports',   hue=148, sat=.34, sec_off=-118, sec_sat=.48,
+         harmony='triadic', mood='grounded, healthy, active',
+         desc_en='Cedar green against ochre in a triadic balance — the palette of the outdoors and the training ground.',
+         desc_zh='雪松绿配赭石黄，三分色的平衡。属于户外与训练场的配色。'),
+    dict(key='recital-plum',   label='Recital Plum',      label_zh='独奏紫',
+         industry='music',    hue=286, sat=.38, sec_off=-46, sec_sat=.40,
+         harmony='analogous', mood='refined, performative',
+         desc_en='Stage-curtain plum with a neighbouring violet, for recitals, graded exams and performance.',
+         desc_zh='舞台幕布般的紫，衬以邻近的蓝紫。适合演出、考级与表演路线。'),
+    dict(key='rehearsal-rose', label='Rehearsal Rose',    label_zh='排练玫瑰',
+         industry='dance',    hue=342, sat=.44, sec_off=155, sec_sat=.36,
+         harmony='split-complementary', mood='expressive, warm, kinetic',
+         desc_en='Rehearsal-room rose against a moss green: kinetic without shouting.',
+         desc_zh='排练厅的玫红，配一抹苔绿。有动势，但不刺眼。'),
+    dict(key='arcade-lime',    label='Arcade Lime',       label_zh='街机青柠',
+         industry='game',     hue=88,  sat=.72, sec_off=170, sec_sat=.62,
+         harmony='split-complementary', mood='digital, high energy',
+         desc_en='Arcade-screen lime, dark only: on a light page it turns olive and loses the reason it exists.',
+         desc_zh='街机屏幕上的荧光青柠，只做暗色——放到浅色底上会变成橄榄绿，失去存在的理由。',
+         modes=('dark',)),
+
+    # The free knob. See the note above `studio_theme` for why `free_accent`
+    # exists — it is what tells `build()` this hue is a live tenant input
+    # rather than a curated design decision.
     studio_theme(),
 
     # ── the platform console ──────────────────────────────────────────────
@@ -719,26 +746,26 @@ def build(theme, dark):
     accent_muted = solve(acc_h, min(acc_s * .18, .12), accent, 4.6,
                          darker=on_accent_l < 0.5)
 
-    # The four semantics are CONSTANTS. They used to be nudged a few degrees
-    # toward the accent and to have their saturation pulled 60% toward it, so
-    # each of the eight industry palettes got badges that belonged to it. With
-    # one palette and a free accent knob that same code means a studio's logo
-    # drags the status colours around — the tenant's arbitrary input deciding
-    # what "saved" and "cannot undo" look like. Success is success in every
-    # studio; it is solved against the paper, which does not move, so it does
-    # not move either. See Design_Constraints.md 1.2.
+    # The four semantic HUES are CONSTANTS — success is the same green whatever
+    # the studio's mood is, which is what lets an owner recognise "saved" in
+    # any tenant's admin panel. They are no longer nudged toward the accent's
+    # hue or pulled toward its saturation, which the pre-2026-08-06 eight
+    # themes did. See Design_Constraints.md 1.2.
     #
-    # What used to keep a badge from looking like a button was a contrast floor
-    # against the accent, inside the solve. That cannot survive here either —
-    # it would make the semantics a function of the knob again — and it no
-    # longer has to: section 1.1 means a semantic is never a solid fill, and
-    # SOFT_SEPARATION below asserts the brand chip stays clear of every status
-    # chip whatever hue the knob is turned to.
+    # `accent_is_fixed` still runs the lightness-separation check against the
+    # accent for every CURATED theme (the eight above): the accent there is
+    # fixed at build time, so protecting a near-hue semantic from collapsing
+    # into it costs nothing and restores what the pre-restoration themes had.
+    # It is switched off only for `free_accent` themes — the accent there is
+    # a live tenant input, and coupling a semantic's exact lightness to it
+    # would make "saved" a function of somebody's logo. Section 1.1 (never a
+    # solid fill) and SOFT_SEPARATION below are what protect the free-accent
+    # case instead.
     sem = {}
     for role, (sh, ss) in SEMANTIC.items():
         sem[role] = solve_semantic(sh, ss, accent, bg, bg2, panel,
                                    ink, on_accent, dark,
-                                   accent_is_fixed=bool(anchored(theme, 'accent')))
+                                   accent_is_fixed=not theme.get('free_accent', False))
 
     # ── interaction states ────────────────────────────────────────────────
     # A palette without these is only half a theme: the skill's light/dark

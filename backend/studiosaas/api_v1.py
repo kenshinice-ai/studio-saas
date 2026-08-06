@@ -55,14 +55,13 @@ from .lifecycle import (
 from .models import Role
 from . import palette
 from .presets import (
-    DEFAULT_STYLE_ID,
+    FREE_ACCENT_STYLE_ID,
     INDUSTRY_PRESETS,
     INDUSTRY_SECTION_COPY,
     VISUAL_STYLE_PRESETS,
     public_industry_presets,
     public_visual_style_presets,
     accent_hue_of_colour,
-    accent_starting_points,
     style_theme,
 )
 from .services.media import (
@@ -2248,8 +2247,7 @@ def industry_presets():
     """Return the shared onboarding, copy, and theme presets."""
 
     return jsonify({"presets": public_industry_presets(),
-                    "styles": public_visual_style_presets(),
-                    "accentShelf": accent_starting_points()})
+                    "styles": public_visual_style_presets()})
 
 
 @api_v1.route("/theme-preview", methods=["GET"])
@@ -2290,8 +2288,8 @@ def theme_preview():
     return jsonify({
         "hue": round(hue, 1),
         "notes": notes,
-        "themes": {mode: style_theme(DEFAULT_STYLE_ID, mode, hue)
-                   for mode in VISUAL_STYLE_PRESETS[DEFAULT_STYLE_ID]["modes"]},
+        "themes": {mode: style_theme(FREE_ACCENT_STYLE_ID, mode, hue)
+                   for mode in VISUAL_STYLE_PRESETS[FREE_ACCENT_STYLE_ID]["modes"]},
     })
 
 

@@ -123,8 +123,8 @@
     ['Recommended', '推荐'], ['Selected', '已选择'], ['Custom', '自定义'],
     ['Fine-tune selected theme', '微调当前主题'],
     // The accent knob (v8.5.0). One palette, one colour the studio sets.
+    ['Colour theme', '颜色主题'],
     ['Accent colour', '强调色'],
-    ['Starting colours', '起始色'],
     ['Hero Shape', '首屏形状'],
     ['Artistic (organic)', '艺术（异形）'],
     ['Oval', '椭圆'],

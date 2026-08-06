@@ -29,17 +29,17 @@
   /* ── Surfaces ────────────────────────────────────────────────────────
    * Three layers, not two. page → card sits at ~1.13:1 so a card reads as
    * an actual layer instead of relying on its border to exist. */
-  --bg: #F4F1EA;
-  --bg2: #ECE7DA;
-  --panel: #FBF9F5;
-  --surface: #FBF9F5;
+  --bg: #F3EFEA;
+  --bg2: #EAE3DB;
+  --panel: #FDFDFD;
+  --surface: #FDFDFD;
 
   /* ── Ink ─────────────────────────────────────────────────────────────
    * Each level is solved against --bg2, the hardest surface it can land on,
    * so no text token fails on the darker band. */
-  --ink: #221F1A;      /* 13:1  — headings, primary copy   */
-  --ink2: #47423B;     /*  8:1  — secondary copy           */
-  --muted: #6C665B;    /*  4.6:1 — captions, helper text   */
+  --ink: #221E1A;      /* 13:1  — headings, primary copy   */
+  --ink2: #46403A;     /*  8:1  — secondary copy           */
+  --muted: #6C635A;    /*  4.6:1 — captions, helper text   */
 
   /* ── Borders ─────────────────────────────────────────────────────────
    * A1. One token could not serve both jobs: a divider wants to be quiet,
@@ -47,16 +47,16 @@
    *   --line        decorative dividers, section rules
    *   --line-strong interactive boundaries: inputs, selects, outline buttons
    */
-  --line: #E1DBCE;
-  --line-strong: #8C826C;
+  --line: #E0D8CF;
+  --line-strong: #8D7F70;
 
   /* ── Accents ─────────────────────────────────────────────────────────
    * hover/pressed move in the same direction (darker in light mode, lighter
    * in dark) so the two states are never mistaken for each other. */
-  --clay: #704B2E;
-  --clay-hover: #5A3C25;
-  --clay-pressed: #452E1C;
-  --clay-d: #576D49;
+  --clay: #835D33;
+  --clay-hover: #6D4D2A;
+  --clay-pressed: #573E22;
+  --clay-d: #4C6877;
   --brand: var(--clay);
   --brand-2: var(--clay-d);
   --on-accent: #FFFFFF;
@@ -65,9 +65,9 @@
    * A2. Fixed hue anchors (152 / 36 / 6) nudged 4% toward the theme, with
    * lightness re-solved per surface, so contrast is identical in all eight
    * themes rather than drifting per palette. */
-  --success: #307A57;
-  --warning: #8E6426;
-  --danger: #B9473B;
+  --success: #2F7856;
+  --warning: #5F4319;
+  --danger: #7B2F27;
   /* Ink on a success fill. Defaults to white the same way --on-accent does;
    * a theme that lightens --success must re-solve this via palette_gen.py
    * like every other pair. */
@@ -76,9 +76,9 @@
   /* ── Interaction states ──────────────────────────────────────────────
    * Required in both light and dark. A theme that defines these for only one
    * mode is the single most common dark-mode failure. */
-  --focus-ring: #AC7346;
-  --disabled-surface: #E9E3D3;
-  --disabled-text: #878178;   /* ~3:1 — legible, but clearly unavailable */
+  --focus-ring: #A3743F;
+  --disabled-surface: #E6DED5;
+  --disabled-text: #857E76;   /* ~3:1 — legible, but clearly unavailable */
   --scrim: rgba(0, 0, 0, 0.5);
   /* The lightbox always sits on the scrim, never on a theme surface,
    * so its ink is fixed rather than theme-derived. */

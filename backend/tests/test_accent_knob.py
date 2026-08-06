@@ -27,7 +27,7 @@ from studiosaas.palette import (
     ratio,
     studio_theme,
 )
-from studiosaas.presets import DEFAULT_STYLE_ID, style_theme
+from studiosaas.presets import FREE_ACCENT_STYLE_ID, style_theme
 
 
 def _normalize(payload: dict) -> dict:
@@ -86,13 +86,15 @@ def test_a_brand_hue_is_pushed_off_a_status_hue(role: str) -> None:
 
 
 def test_the_default_accent_survives_its_own_picker() -> None:
-    """An owner who picks the product's own default must keep it.
+    """An owner who picks the knob's own starting colour must keep it.
 
-    This is exactly what the band rule got wrong, so it is asserted rather
+    The knob was once policed by SEMANTIC_BANDS — the regions that READ as a
+    status — and its own default (hue 26, deliberately 10 degrees off warning)
+    fell inside the warning band and got pushed off itself. Asserted rather
     than remembered.
     """
 
-    default_accent = style_theme(DEFAULT_STYLE_ID, "light")["accent_color"]
+    default_accent = style_theme(FREE_ACCENT_STYLE_ID, "light")["accent_color"]
     assert hue_gap(accent_hue_from(default_accent), DEFAULT_ACCENT_HUE) < 1
 
 
@@ -140,7 +142,7 @@ def test_a_picked_colour_is_stored_as_degrees_not_as_the_hex() -> None:
     saved under, so an improvement to the solver would never reach it.
     """
 
-    theme = _normalize({"style_id": DEFAULT_STYLE_ID, "accent_source": "#39FF14"})
+    theme = _normalize({"style_id": FREE_ACCENT_STYLE_ID, "accent_source": "#39FF14"})
     assert "accent_hue" in theme
     assert theme["accent_hue"] == pytest.approx(accent_hue_from("#39FF14"), abs=0.1)
     assert theme["accent_color"] != "#39FF14"
@@ -148,18 +150,18 @@ def test_a_picked_colour_is_stored_as_degrees_not_as_the_hex() -> None:
 
 
 def test_a_saved_hue_round_trips() -> None:
-    once = _normalize({"style_id": DEFAULT_STYLE_ID, "accent_source": "#1F6FEB"})
-    twice = _normalize({"style_id": DEFAULT_STYLE_ID, "accent_hue": once["accent_hue"]})
+    once = _normalize({"style_id": FREE_ACCENT_STYLE_ID, "accent_source": "#1F6FEB"})
+    twice = _normalize({"style_id": FREE_ACCENT_STYLE_ID, "accent_hue": once["accent_hue"]})
     assert twice["accent_color"] == once["accent_color"]
 
 
 def test_a_nonsense_hue_is_refused() -> None:
     for bad in ("teal", None, "", float("nan")):
-        payload = {"style_id": DEFAULT_STYLE_ID, "accent_hue": bad}
+        payload = {"style_id": FREE_ACCENT_STYLE_ID, "accent_hue": bad}
         if bad in (None, ""):
             # No knob supplied at all is not an error; it means "keep default".
             assert _normalize(payload)["accent_color"] == \
-                style_theme(DEFAULT_STYLE_ID, "light")["accent_color"]
+                style_theme(FREE_ACCENT_STYLE_ID, "light")["accent_color"]
         else:
             with pytest.raises(ValueError):
                 _normalize(payload)
@@ -169,11 +171,11 @@ def test_following_the_visitor_publishes_both_solved_palettes() -> None:
     """A site that follows the device must ship both modes of ITS accent."""
 
     module = importlib.import_module("studiosaas.api_v1")
-    theme = _normalize({"style_id": DEFAULT_STYLE_ID, "accent_source": "#1F6FEB",
+    theme = _normalize({"style_id": FREE_ACCENT_STYLE_ID, "accent_source": "#1F6FEB",
                         "scheme_preference": "system"})
     published = module._published_schemes(theme)
     assert set(published) == {"light", "dark"}
-    default_light = style_theme(DEFAULT_STYLE_ID, "light")["accent_color"]
+    default_light = style_theme(FREE_ACCENT_STYLE_ID, "light")["accent_color"]
     assert published["light"]["accent_color"] != default_light, (
         "the published palette fell back to the default accent")
     assert published["light"]["accent_color"] != published["dark"]["accent_color"]
@@ -195,7 +197,7 @@ def test_the_preview_endpoint_solves_what_the_picker_will_save(client) -> None:
     body = response.get_json()
     assert body["hue"] == pytest.approx(accent_hue_from("#39FF14"), abs=0.1)
     assert set(body["themes"]) == {"light", "dark"}
-    saved = _normalize({"style_id": DEFAULT_STYLE_ID, "accent_source": "#39FF14"})
+    saved = _normalize({"style_id": FREE_ACCENT_STYLE_ID, "accent_source": "#39FF14"})
     assert body["themes"]["light"]["accent_color"] == saved["accent_color"], (
         "the preview and the save path disagree")
 

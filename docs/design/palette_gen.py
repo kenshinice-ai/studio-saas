@@ -184,23 +184,16 @@ if __name__ == '__main__' and not any(f in __import__('sys').argv for f in EMIT_
                     if r < 4.5:
                         fails.append((t['key'], 'dark' if dark else 'light',
                                       f'{role} text / {surface[:-6]}', round(r, 2), 4.5))
-                # This used to require the role's SOLID form to stay 30 degrees
-                # or 1.55 away from the accent, so a warning badge could not be
-                # mistaken for a button. It is retired for the studio palette,
-                # deliberately and with a replacement:
-                #
-                #   - the badge form it protected no longer exists. Section 1.1
-                #     of Design_Constraints gives a semantic role a tinted chip
-                #     and nothing else; the accent is the only thing that fills.
-                #   - meeting it would mean re-solving the semantics against the
-                #     accent, and the accent is now a free tenant input. That
-                #     makes success a function of somebody's logo, which is the
-                #     defect the single palette exists to remove.
-                #
-                # What replaces it is the pair that is actually on screen: the
-                # brand's chip against each status chip. `build` asserts it, so
-                # it holds at every hue the knob can reach, not just this one.
-                if anchored(t, 'accent'):
+                # A theme's SOLID semantic form must stay 30 degrees or 1.55
+                # away from ITS accent, so a warning badge cannot be mistaken
+                # for a button. Runs for every CURATED theme (accent fixed at
+                # build time) via `accent_is_fixed` inside `solve_semantic`,
+                # which is what makes this check pass here rather than be
+                # trusted blindly. Off only for `free_accent` themes — a live
+                # tenant hue must not be allowed to re-solve what "saved"
+                # looks like; SOFT_SEPARATION just below is what protects
+                # that case instead, at every hue the knob can reach.
+                if not t.get('free_accent'):
                     gap = hue_gap(hsl_of(col)[0], hsl_of(th['accent_color'])[0])
                     lgap = ratio(col, th['accent_color'])
                     if gap < SEM_HUE_GAP and lgap < SEM_LUM_GAP:

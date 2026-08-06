@@ -1110,19 +1110,66 @@
     .theme-picker-control small { color: var(--muted); font-size: 11px; line-height: 1.4; }
     .theme-picker-control small.note-unresolved { color: var(--on-warning-soft); font-weight: 700; }
 
-    /* The starting shelf. Round, because these are colours rather than
-       options, and the selected one carries a ring rather than a tick — a
-       tick on a colour hides the colour. */
-    .accent-shelf { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
-    .accent-shelf button {
-      width: 32px; height: 32px; padding: 0; border-radius: 999px; cursor: pointer;
-      border: 1px solid color-mix(in srgb, var(--ink) 18%, transparent);
-      box-shadow: 0 0 0 0 var(--accent); transition: box-shadow .15s, transform .15s;
+    /* The theme grid spans both columns: nine cards do not belong in half a
+       row beside the Appearance select. */
+    .theme-picker-control--wide { grid-column: 1 / -1; }
+
+    /* A theme card shows the palette it IS — paper behind, a band of its own
+       accent/support/ink under the name. A dropdown of nine names told an
+       owner nothing about the mood they were choosing, which is the whole
+       reason these are named in the first place. */
+    .theme-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+      gap: 10px;
+      min-width: 0;
     }
-    .accent-shelf button:hover { transform: translateY(-1px); }
-    .accent-shelf button[aria-pressed="true"] {
-      box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--ink);
+    .theme-card {
+      display: grid;
+      gap: 7px;
+      padding: 11px 12px 12px;
+      text-align: left;
+      cursor: pointer;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: var(--theme-card-paper, var(--surface));
+      transition: border-color .15s, box-shadow .15s, transform .15s;
     }
+    .theme-card:hover { transform: translateY(-1px); border-color: var(--line-strong); }
+    .theme-card[aria-checked="true"] {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 32%, transparent);
+    }
+    .theme-card-name {
+      display: flex; align-items: center; gap: 6px; min-width: 0;
+      color: var(--theme-card-ink, var(--ink));
+      font-size: 13px; font-weight: 800; line-height: 1.25;
+    }
+    .theme-card-name span {
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .theme-card-mood {
+      color: var(--theme-card-muted, var(--muted));
+      font-size: 11px; line-height: 1.4;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      overflow: hidden;
+      /* line-clamp alone leaves a sliver of the third line visible when the
+         box is taller than the clamp — measured on the nine real cards. The
+         explicit ceiling is the clamp expressed the way the box model
+         actually honours it. */
+      max-height: 2.8em;
+    }
+    /* Three stripes, not one dot: an owner is choosing a relationship between
+       colours, so one swatch cannot show it. */
+    .theme-card-strip { display: flex; height: 8px; border-radius: 999px; overflow: hidden; }
+    .theme-card-strip i { flex: 1 1 0; }
+    .theme-card-flags { display: flex; flex-wrap: wrap; gap: 4px; }
+    .theme-card-flag {
+      padding: 1px 6px; border-radius: 999px;
+      font-size: 10px; font-weight: 800; line-height: 1.6;
+      color: var(--on-accent-soft); background: var(--accent-soft);
+    }
+    .theme-card-flag.mode { color: var(--on-info-soft); background: var(--info-soft); }
 
     /* The accent picker. The swatch and the hex field are two views of one
        value, so they share a row and a height rather than stacking. */
@@ -1375,21 +1422,21 @@
        so between first paint and the preset response the mock rendered a white
        CTA label on a transparent button. Measured 1.09:1 — invisible. */
     .preview-device {
-      --bg: #F4F1EA;
-      --bg2: #ECE7DA;
-      --panel: #FBF9F5;
-      --surface: #FBF9F5;
-      --surface-hover: #F5F2EE;
-      --ink: #221F1A;
-      --ink2: #47423B;
-      --muted: #6C665B;
-      --line: #E1DBCE;
-      --line-strong: #8C826C;
-      --clay: #704B2E;
-      --clay-hover: #5A3C25;
-      --clay-pressed: #452E1C;
-      --clay-d: #576D49;
-      --accent: #704B2E;
+      --bg: #F3EFEA;
+      --bg2: #EAE3DB;
+      --panel: #FDFDFD;
+      --surface: #FDFDFD;
+      --surface-hover: #F7F6F6;
+      --ink: #221E1A;
+      --ink2: #46403A;
+      --muted: #6C635A;
+      --line: #E0D8CF;
+      --line-strong: #8D7F70;
+      --clay: #835D33;
+      --clay-hover: #6D4D2A;
+      --clay-pressed: #573E22;
+      --clay-d: #4C6877;
+      --accent: #835D33;
       --on-accent: #FFFFFF;
       --radius: 8px;
 
@@ -2191,34 +2238,34 @@
                        y=1149. One wrapper class, one row, one baseline. -->
                   <div class="theme-picker">
                     <div class="theme-picker-controls">
-                      <!-- 2026-08-06: this was a dropdown of eight industry
-                           palettes. There is one palette now and one knob —
-                           the accent hue, normally taken from the studio's own
-                           logo. Only the HUE of what is picked here survives;
-                           the lightness and saturation are solved, which is
-                           what makes a free colour input safe to expose. See
-                           docs/design/Design_Constraints.md section 1.4. -->
-                      <div class="theme-picker-control">
-                        <label for="accentSourceHex">Accent colour</label>
-                        <!-- A shelf, not a catalogue. Every swatch is the same
-                             palette at a different hue, so this is one theme
-                             with seven starting points rather than the seven
-                             themes it replaced. It exists because "pick your
-                             colour" beside an empty swatch reads as though the
-                             choice was taken away, and choosing is part of
-                             setting a studio up. -->
-                        <div id="accentShelf" class="accent-shelf" role="group" aria-label="Starting colours"></div>
-                        <div class="accent-picker">
-                          <!-- No literal hex here: both start empty and are
-                               filled from the loaded theme by syncAccentPicker,
-                               so this markup cannot become a stale ninth copy
-                               of the default accent. -->
-                          <input type="color" id="accentSourceSwatch" aria-label="Pick an accent colour">
-                          <input type="text" id="accentSourceHex" inputmode="text" spellcheck="false"
-                                 maxlength="7" aria-describedby="accentSourceNote" data-no-translate>
-                          <button type="button" id="accentFromLogoBtn" class="btn-secondary">From logo</button>
+                      <!-- Eight named moods, each a complete palette with its
+                           own paper, ink, accent and support, plus a ninth
+                           "Custom" card that opens the colour picker. A studio
+                           picks a MOOD here; the industry above only badges one
+                           as recommended and never writes it into the draft.
+                           The picker under Custom takes the HUE of what is
+                           chosen and nothing else — lightness and saturation
+                           are solved, which is what makes a free colour input
+                           safe to expose. See Design_Constraints.md 1.4. -->
+                      <div class="theme-picker-control theme-picker-control--wide">
+                        <label id="themeGridLabel">Colour theme</label>
+                        <div id="themeGrid" class="theme-grid" role="radiogroup"
+                             aria-labelledby="themeGridLabel"></div>
+                        <!-- Only shown once the Custom card is selected: an
+                             always-visible picker is what made the eight
+                             curated themes look optional. -->
+                        <div id="accentPickerWrap" class="accent-picker-wrap" hidden>
+                          <div class="accent-picker">
+                            <!-- No literal hex: both are filled from the loaded
+                                 theme by syncAccentPicker, so this markup can
+                                 never become a stale copy of a palette. -->
+                            <input type="color" id="accentSourceSwatch" aria-label="Pick an accent colour">
+                            <input type="text" id="accentSourceHex" inputmode="text" spellcheck="false"
+                                   maxlength="7" aria-describedby="accentSourceNote" data-no-translate>
+                            <button type="button" id="accentFromLogoBtn" class="btn-secondary">From logo</button>
+                          </div>
+                          <small id="accentSourceNote">Only the hue is used — the depth is solved so the button stays readable.</small>
                         </div>
-                        <small id="accentSourceNote">Only the hue is used — the depth is solved so the button stays readable.</small>
                         <select id="stylePresetSelect" hidden aria-hidden="true" data-no-translate></select>
                       </div>
                       <!-- Every theme ships a matched light and dark variant, so
@@ -2758,21 +2805,21 @@
      * test_studio_console.py asserts these values against style_theme().
      */
     const FALLBACK_THEME = {
-      background_color: '#F4F1EA',
-      background_alt_color: '#ECE7DA',
-      panel_color: '#FBF9F5',
-      text_color: '#221F1A',
-      text_soft_color: '#47423B',
-      muted_text_color: '#6C665B',
-      border_color: '#E1DBCE',
-      border_strong_color: '#8C826C',
-      accent_color: '#704B2E',
+      background_color: '#F3EFEA',
+      background_alt_color: '#EAE3DB',
+      panel_color: '#FDFDFD',
+      text_color: '#221E1A',
+      text_soft_color: '#46403A',
+      muted_text_color: '#6C635A',
+      border_color: '#E0D8CF',
+      border_strong_color: '#8D7F70',
+      accent_color: '#835D33',
       accent_text_color: '#FFFFFF',
-      secondary_accent_color: '#576D49',
-      success_color: '#307A57',
-      warning_color: '#8E6426',
-      danger_color: '#B9473B',
-      info_color: '#3E6FA8',
+      secondary_accent_color: '#4C6877',
+      success_color: '#2F7856',
+      warning_color: '#5F4319',
+      danger_color: '#7B2F27',
+      info_color: '#3D6DA5',
     };
 
     async function loadIndustryPresets() {
@@ -2782,7 +2829,6 @@
         const data = await response.json();
         if (data.presets && Object.keys(data.presets).length) INDUSTRY_PRESETS = data.presets;
         if (data.styles && Object.keys(data.styles).length) VISUAL_STYLE_PRESETS = data.styles;
-        if (Array.isArray(data.accentShelf)) ACCENT_SHELF = data.accentShelf;
       } catch (error) {
         console.warn('Using the generic industry preset.', error);
       }
@@ -3515,7 +3561,7 @@
       const savedHue = theme && (theme.accent_hue ?? theme.accentHue);
       activeAccentHue = Number.isFinite(Number(savedHue)) ? Number(savedHue) : null;
       syncAccentPicker(themeValue(theme, 'accent_color', FALLBACK_THEME.accent_color));
-      renderAccentShelf();
+      renderThemeGrid();
       renderStylePresetGrid();
     }
 
@@ -3533,23 +3579,74 @@
     let accentPreviewTimer = null;
     let accentPreviewSeq = 0;
 
-    let ACCENT_SHELF = [];
+    /* The id of the one theme whose accent is a live input rather than a
+       design decision. Mirrors FREE_ACCENT_STYLE_ID in presets.py. */
+    const FREE_ACCENT_STYLE_ID = 'custom';
 
-    function renderAccentShelf() {
-      const shelf = $('accentShelf');
-      if (!shelf || !ACCENT_SHELF.length) return;
+    /* Nine cards, each showing the palette it is. The industry's recommended
+       theme is badged, never auto-applied — a card is a MOOD, and choosing one
+       is the studio's job. Selecting Custom is the only thing that reveals the
+       colour picker. */
+    function renderThemeGrid() {
+      const grid = $('themeGrid');
+      if (!grid) return;
+      const entries = Object.entries(VISUAL_STYLE_PRESETS);
+      if (!entries.length) return;
       const isZh = adminIsZh();
-      const current = activeAccentHue;
-      shelf.innerHTML = ACCENT_SHELF.map((entry) => {
-        /* Within 4 degrees counts as "this one": the stored hue is rounded to
-           one decimal and a re-solve can move it a fraction. */
-        const on = current !== null && Math.min(
-          Math.abs(current - entry.hue), 360 - Math.abs(current - entry.hue)) < 4;
-        const name = isZh ? (entry.label_zh || entry.label) : entry.label;
-        return `<button type="button" data-accent-hue="${entry.hue}"
-          aria-pressed="${on ? 'true' : 'false'}" title="${esc(name)}"
-          aria-label="${esc(name)}" style="background:${entry.accent_color}"></button>`;
+      const category = $('settingCategory')?.value || 'general';
+      const industry = INDUSTRY_PRESETS[category] || INDUSTRY_PRESETS.general;
+      const recommended = industry?.recommendedStyleId;
+
+      const modesOf = (style) => (Array.isArray(style?.modes) && style.modes.length
+        ? style.modes
+        : Object.keys(style?.schemes || {}));
+      /* Recommended first, then everything with both modes, then single-mode
+         outliers, then Custom — which is last because it is the escape hatch,
+         not a competitor to the eight. */
+      const rank = ([key, style]) => {
+        if (key === FREE_ACCENT_STYLE_ID) return 3;
+        if (key === recommended) return 0;
+        return modesOf(style).length > 1 ? 1 : 2;
+      };
+      const ordered = entries.slice().sort((a, b) => {
+        const byRank = rank(a) - rank(b);
+        return byRank || styleName(a[1]).localeCompare(
+          styleName(b[1]), isZh ? 'zh-Hans-CN' : 'en');
+      });
+
+      grid.innerHTML = ordered.map(([key, style]) => {
+        const light = (style.schemes && (style.schemes.light || style.schemes.dark))
+          || style.visualTheme || {};
+        const modes = modesOf(style);
+        const flags = [];
+        if (key === recommended) {
+          flags.push(`<span class="theme-card-flag">${esc(isZh ? '推荐' : 'Recommended')}</span>`);
+        }
+        if (modes.length === 1) {
+          flags.push(`<span class="theme-card-flag mode">${
+            esc(modes[0] === 'dark' ? (isZh ? '仅暗色' : 'Dark only')
+                                    : (isZh ? '仅明亮' : 'Light only'))}</span>`);
+        }
+        const paper = themeValue(light, 'background_color', FALLBACK_THEME.background_color);
+        const ink = themeValue(light, 'text_color', FALLBACK_THEME.text_color);
+        const muted = themeValue(light, 'muted_text_color', FALLBACK_THEME.muted_text_color);
+        const strip = ['accent_color', 'secondary_accent_color', 'border_strong_color']
+          .map((token) => `<i style="background:${themeValue(light, token, ink)}"></i>`).join('');
+        return `<button type="button" role="radio" class="theme-card"
+          data-style-key="${esc(key)}" aria-checked="${key === activeVisualStyle ? 'true' : 'false'}"
+          style="--theme-card-paper:${paper};--theme-card-ink:${ink};--theme-card-muted:${muted}">
+          <span class="theme-card-name"><span>${esc(styleName(style))}</span></span>
+          <span class="theme-card-strip" aria-hidden="true">${/*safe*/ strip}</span>
+          <span class="theme-card-mood">${esc(styleDescription(style))}</span>
+          ${flags.length ? `<span class="theme-card-flags">${/*safe*/ flags.join('')}</span>` : ''}
+        </button>`;
       }).join('');
+
+      /* The picker belongs to Custom and only to Custom. Leaving it on screen
+         under the eight curated cards is what made them look like decoration
+         around a colour input. */
+      const wrap = $('accentPickerWrap');
+      if (wrap) wrap.hidden = activeVisualStyle !== FREE_ACCENT_STYLE_ID;
     }
 
     function syncAccentPicker(accentColor) {
@@ -3589,16 +3686,22 @@
     async function previewAccent(source, hue = null) {
       const seq = ++accentPreviewSeq;
       try {
-        const query = hue === null
-          ? 'accent=' + encodeURIComponent(source)
-          : 'hue=' + encodeURIComponent(hue);
-        const response = await fetch('/v1/theme-preview?' + query);
+        /* No source and no hue means "never set" — ask with neither and let
+           the endpoint supply its starting hue, rather than keeping a second
+           copy of that number in this page. */
+        const query = Number.isFinite(hue) ? 'hue=' + encodeURIComponent(hue)
+                    : source ? 'accent=' + encodeURIComponent(source)
+                    : '';
+        const response = await fetch('/v1/theme-preview' + (query ? '?' + query : ''));
         if (!response.ok) return;
         const body = await response.json();
         /* A colour input fires continuously; an older reply must never land on
            top of a newer one. */
         if (seq !== accentPreviewSeq) return;
         activeAccentHue = body.hue;
+        /* Solving a hue IS choosing the Custom theme; the save path only
+           honours accent_hue for that style, so the two must agree. */
+        activeVisualStyle = FREE_ACCENT_STYLE_ID;
         const solved = body.themes[activeColorScheme] || body.themes.light;
         if (solved) {
           $('settingPrimaryColor').value = solved.accent_color;
@@ -3611,7 +3714,7 @@
           syncAccentPicker(solved.accent_color);
         }
         accentNote(body.notes || [], body.hue);
-        renderAccentShelf();
+        renderThemeGrid();
         themeMode = 'preset';
         renderStylePresetGrid();
         setSettingsDirty(true);
@@ -4952,9 +5055,16 @@
       if (remember) rememberPresetState(isZh ? `已将${name}应用到当前草稿。` : `${name} applied to this draft.`);
       setVisualThemeFields((style.schemes && style.schemes[nextScheme]) || style.visualTheme || {}, styleId);
       themeMode = 'preset';
+      renderThemeGrid();
       renderStylePresetGrid();
       setSettingsDirty(true);
       updateThemePreview();
+      /* Custom carries no palette of its own — it is the picker. Re-solve at
+         whatever hue is already stored so selecting the card shows a real
+         result rather than the literal placeholder in the presets file. A null
+         hue means "never set"; the endpoint supplies the starting hue rather
+         than this page carrying a second copy of it. */
+      if (styleId === FREE_ACCENT_STYLE_ID) previewAccentHue(activeAccentHue);
       showToast(isZh ? `已应用${name}；发布前不会影响公开页面。` : `${name} style applied. Nothing is public until you publish.`);
     }
 
@@ -4981,13 +5091,17 @@
       $('settingRegistrationTitle').value = preset.registrationTitleZh || profile.title?.zh || profile.title || '';
       $('settingRegistrationTitleEn').value = preset.registrationTitle || profile.title?.en || profile.title || '';
       fillRegistrationFields(profile);
-      const theme = preset.visualTheme || {};
-      setVisualThemeFields(theme, preset.recommendedStyleId || themeValue(theme, 'style_id', ''));
-      themeMode = 'preset';
+      /* The industry writes COPY, FORMS and the operating template — never a
+         palette. It used to call setVisualThemeFields() with its recommended
+         theme right here, which is how clicking an industry card silently
+         repainted a studio that had already chosen its own colours. The
+         recommendation survives as a badge in the theme grid (see
+         renderThemeGrid), which is the honest form of "recommended". */
       fillFaqItems(defaultFaqItems($('settingCategory').value));
+      renderThemeGrid();
       setSettingsDirty(true);
       updateThemePreview();
-      showToast(isZh ? `已应用${industryName(preset)}行业预设及推荐主题。` : `${industryName(preset)} preset and its recommended visual style are ready in this draft.`);
+      showToast(isZh ? `已应用${industryName(preset)}行业的文案与报名问题；配色未改动。` : `${industryName(preset)} copy and registration questions applied. Your colours are unchanged.`);
     }
 
     function setLoadingState(loading) {
@@ -5109,18 +5223,17 @@
         applyCategoryPreset();
       });
       $('stylePresetSelect').addEventListener('change', () => applyVisualStyle($('stylePresetSelect').value));
-      /* The accent knob. `input` fires continuously while the swatch is
-         dragged, so the request is debounced and stale replies are dropped by
-         sequence number — see previewAccent. */
-      $('accentShelf').addEventListener('click', (event) => {
-        const swatch = event.target.closest('[data-accent-hue]');
-        if (!swatch) return;
-        /* By HUE, not by the swatch's own hex: the swatch shows the solved
-           colour, and re-deriving a hue back out of it would round-trip
-           through the solver for no reason. */
+      /* Picking a card applies that whole theme. Custom is the one card that
+         does not carry a palette of its own — it hands over to the picker. */
+      $('themeGrid').addEventListener('click', (event) => {
+        const card = event.target.closest('[data-style-key]');
+        if (!card) return;
         clearTimeout(accentPreviewTimer);
-        previewAccentHue(Number(swatch.dataset.accentHue));
+        applyVisualStyle(card.dataset.styleKey);
       });
+      /* The accent knob, revealed only under Custom. `input` fires
+         continuously while the swatch is dragged, so the request is debounced
+         and stale replies are dropped by sequence number — see previewAccent. */
       $('accentSourceSwatch').addEventListener('input', (event) => {
         $('accentSourceHex').value = event.target.value.toUpperCase();
         requestAccentPreview(event.target.value);
