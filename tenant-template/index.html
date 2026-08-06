@@ -725,7 +725,12 @@
      parse time, which meant nothing created by a fetch ever responded to EN. */
   var state = { brand:{}, programs:null, gallery:null, faq:null,
                 venueNoun:{zh:'工作室',en:'studio'}, workNoun:{zh:'作品',en:'work'},
-                privacyNoticeVersion:'2026-07-12' };
+                privacyNoticeVersion:'2026-07-12',
+                /* Which section switches are OFF. Empty until /brand answers,
+                   which is correct: a section defaults to visible, and the
+                   render functions below re-check this so neither fetch order
+                   can win. */
+                sectionsOff:{} };
 
   /* ── i18n ──
      P0-4: rendering is textContent, never innerHTML. Studio Admin lets a tenant
@@ -1147,7 +1152,7 @@
       var body=document.createElement('p'); body.textContent=nouns(answer);
       details.appendChild(summary); details.appendChild(body); list.appendChild(details);
     });
-    resolveSection('faq', list.children.length>0);
+    resolveSection('faq', list.children.length>0 && !state.sectionsOff.faq);
   }
   function renderPrograms(programs){
     state.programs=programs;
@@ -1175,7 +1180,7 @@
       card.appendChild(cta);
       grid.appendChild(card);
     });
-    resolveSection('courses', grid.children.length>0);
+    resolveSection('courses', grid.children.length>0 && !state.sectionsOff.courses);
   }
   function renderGallery(items){
     state.gallery=items;
@@ -1205,7 +1210,7 @@
       tile.onclick=function(){ openGlb(i); };
       grid.appendChild(tile);
     });
-    resolveSection('gallery', grid.children.length>0);
+    resolveSection('gallery', grid.children.length>0 && !state.sectionsOff.gallery);
   }
   function renderContactRows(b){
     var box=document.getElementById('contactRows'); if(!box) return;
@@ -1382,9 +1387,27 @@
       pi.src=principalImageUrl; pi.alt=principal.name||T('主理人','Principal'); pi.hidden=false;
     }
 
-    setNavVisible(['navCourses','mnavCourses'], String(website.show_courses ?? website.showCourses ?? true) !== 'false');
-    setNavVisible(['navGallery','mnavGallery'], String(website.show_gallery ?? website.showGallery ?? true) !== 'false');
-    setNavVisible(['navFaq','mnavFaq'], String(website.show_faq ?? website.showFaq ?? true) !== 'false');
+    /* A section switch has to reach the SECTION, not only its nav link.
+       Courses and the gallery used to call setNavVisible alone, so switching
+       one off removed the link and left the section on the page — the studio
+       saw it disappear from the menu, a visitor scrolling past still saw it.
+       Both are `data-awaits-data` sections, which their render functions
+       reveal once content arrives, so the switch is recorded here and the
+       render consults it rather than being raced by it. */
+    state.sectionsOff = {
+      courses: String(website.show_courses ?? website.showCourses ?? true) === 'false',
+      gallery: String(website.show_gallery ?? website.showGallery ?? true) === 'false',
+      faq: String(website.show_faq ?? website.showFaq ?? true) === 'false'
+    };
+    setNavVisible(['navCourses','mnavCourses'], !state.sectionsOff.courses);
+    setNavVisible(['navGallery','mnavGallery'], !state.sectionsOff.gallery);
+    setNavVisible(['navFaq','mnavFaq'], !state.sectionsOff.faq);
+    /* Content may already have arrived and revealed a section before /brand
+       answered — the two fetches are independent — so re-apply the switches
+       to whatever is on the page now. */
+    if(state.sectionsOff.courses) resolveSection('courses', false);
+    if(state.sectionsOff.gallery) resolveSection('gallery', false);
+    if(state.sectionsOff.faq) resolveSection('faq', false);
     showSection('contact', String(website.show_contact ?? website.showContact ?? true) !== 'false');
 
     renderRegistrationFields(b.registrationProfile || b.registration_profile);
