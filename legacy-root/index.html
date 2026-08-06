@@ -10,7 +10,7 @@
     <link rel="icon" href="/icon-192.png">
     <!-- G6: PWA — 添加到主屏幕 -->
     <link id="cmsManifest" rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#0e1729">
+    <meta name="theme-color" content="#F3EFEA">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Studio CMS">
@@ -41,8 +41,8 @@
           if (!brand) return;
           const root = document.documentElement;
           const visual = brand.visual_theme || brand.visualTheme || {};
-          const primary = visual.accent_color || visual.accentColor || brand.primary_color || brand.primaryColor || '#0e1729';
-	          const secondary = visual.secondary_accent_color || visual.secondaryAccentColor || brand.secondary_color || brand.secondaryColor || '#16233d';
+          const primary = visual.accent_color || visual.accentColor || brand.primary_color || brand.primaryColor || '#835D33';
+	          const secondary = visual.secondary_accent_color || visual.secondaryAccentColor || brand.secondary_color || brand.secondaryColor || '#4C6877';
 	          const rawLogo = brand.logo_url || brand.logoUrl || '';
 	          const logo = ['/logo.png', '/logo-light.png', '/favicon.svg'].includes(rawLogo) ? '' : rawLogo;
 	          const slogan = brand.slogan || 'Learn, grow, and feel confident.';
@@ -95,6 +95,10 @@
             if (value) cssVars.forEach((cssVar) => root.style.setProperty(cssVar, value));
           });
           root.dataset.brandScheme = visual.color_scheme || visual.colorScheme || 'light';
+          /* The address bar is a surface too — it followed nothing until now. */
+          const themeMeta = document.querySelector('meta[name="theme-color"]');
+          const pageColour = visual.background_color || visual.backgroundColor;
+          if (themeMeta && pageColour) themeMeta.setAttribute('content', pageColour);
           root.style.setProperty('--tenant-secondary-soft', `${secondary}14`);
           root.style.setProperty('--tenant-secondary-border', `${secondary}40`);
           /* The colour large surfaces darken toward: same hue as the accent,
@@ -102,7 +106,7 @@
              never drift into a different hue the way --accent-dark did. */
           root.style.setProperty(
             '--accent-deep',
-            `color-mix(in srgb, ${primary} 70%, ${visual.text_color || visual.textColor || '#0f172a'})`,
+            `color-mix(in srgb, ${primary} 70%, ${visual.text_color || visual.textColor || '#221E1A'})`,
           );
 		          if (brand.name) document.title = `${brand.name} CMS`;
 		          document.querySelectorAll('.tenant-slogan').forEach((el) => {
@@ -238,15 +242,22 @@
         @media (prefers-color-scheme: dark) {
             html:not([data-brand-scheme]) {
                 color-scheme:dark;
-                --bg:#0e1016;
-                --bg2:#20242f;
-                --panel:#1a1d27;
-                --surface:#1a1d27;
-                --ink:#e8eaf0;
-                --ink2:#c3c8d4;
-                --muted:#9ca3b3;
-                --line:#2c313d;
-                --line-strong:#454c5c;
+                /* v8.4.1: these nine were hand-picked, and they were INVERTED —
+                   the panel #1a1d27 sat DARKER than the band #20242f under it,
+                   so a card read as a hole. That is the defect v8.3.0 fixed in
+                   the eight tenant themes; it survived here because this is a
+                   separate palette nobody regenerated. --line-strong also
+                   measured 1.95:1 on the panel against WCAG 1.4.11's 3.0.
+                   Now the default style's dark mode, solved and asserted. */
+                --bg:#15120D;
+                --bg2:#1F1A15;
+                --panel:#362D24;
+                --surface:#362D24;
+                --ink:#E9E8E6;
+                --ink2:#CAC7C3;
+                --muted:#9C968E;
+                --line:#4A4238;
+                --line-strong:#837668;
             }
         }
         html[data-brand-scheme="dark"] { color-scheme:dark; }
@@ -256,7 +267,7 @@
         button, a, summary, label, [role="button"] { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 
         /* ── Animations ── */
-        .sp { border:3px solid rgba(255,255,255,.3); border-radius:50%; border-top:3px solid #fff; width:16px; height:16px; animation:spin 1s linear infinite; display:inline-block; vertical-align:middle; }
+        .sp { border:3px solid color-mix(in srgb, var(--on-accent) 30%, transparent); border-radius:50%; border-top:3px solid var(--on-accent); width:16px; height:16px; animation:spin 1s linear infinite; display:inline-block; vertical-align:middle; }
         @keyframes spin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
         .anim { animation: fi .2s ease-out; }
         @keyframes fi { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:translateY(0)} }
@@ -266,7 +277,7 @@
 
         /* ── Scrollbar ── */
         .sl::-webkit-scrollbar { width:4px; }
-        .sl::-webkit-scrollbar-thumb { background:#c7d2fe; border-radius:2px; }
+        .sl::-webkit-scrollbar-thumb { background:var(--line-strong); border-radius:2px; }
 
         /* ── Fix #7: safe modal scrolling on iPad ── */
         .modal-scroll { overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
@@ -281,25 +292,34 @@
         }
 
         /* ── Touch-friendly table rows ── */
-        @media (hover:none) { .hover-row:active { background:#f9fafb; } }
+        @media (hover:none) { .hover-row:active { background:var(--bg2); } }
 
         /* ── B1: Portfolio thumbnail actions — always visible on touch screens ── */
         @media (hover:none) { .port-actions { display:flex !important; } }
+        /* The pre-/brand palette. Every value is the default style's light mode
+           (vintage-press — presets.py DEFAULT_STYLE_ID), so the CMS loads on
+           the same paper an unbranded page renders instead of on the Tailwind
+           slate it used to. test_portal_theme_contract.py pins the set. */
         :root {
-            --tenant-primary:#0e1729;
-            --tenant-primary-soft:#eef2ff;
-            --tenant-primary-border:#c7d2fe;
-            --tenant-secondary:#16233d;
-            --accent-deep:#0a1020;
-            --tenant-secondary-soft:#f5f3ff;
-            --tenant-secondary-border:#ddd6fe;
-            --surface:#ffffff;
-            --ink:#0f172a;
-            --muted:#64748b;
-            --line:#e2e8f0;
-            --shadow-sm:0 1px 2px rgba(0,0,0,.04);
-            --shadow-md:0 4px 12px rgba(0,0,0,.07), 0 1px 3px rgba(0,0,0,.05);
-            --shadow-lg:0 10px 25px rgba(0,0,0,.08), 0 4px 10px rgba(0,0,0,.04);
+            --tenant-primary:#835D33;
+            --tenant-primary-soft:#EBE6DF;
+            --tenant-primary-border:#CDBFAE;
+            --tenant-secondary:#4C6877;
+            --accent-deep:#573E22;
+            --tenant-secondary-soft:#E3E7EA;
+            --tenant-secondary-border:#B8C2C9;
+            --bg:#F3EFEA;
+            --bg2:#EAE3DB;
+            --panel:#FDFDFD;
+            --surface:#FDFDFD;
+            --ink:#221E1A;
+            --ink2:#46403A;
+            --muted:#6C635A;
+            --line:#DFDAD5;
+            --line-strong:#8D7F70;
+            --shadow-sm:0 1px 2px color-mix(in srgb, var(--ink) 4%, transparent);
+            --shadow-md:0 4px 12px color-mix(in srgb, var(--ink) 7%, transparent), 0 1px 3px color-mix(in srgb, var(--ink) 5%, transparent);
+            --shadow-lg:0 10px 25px color-mix(in srgb, var(--ink) 8%, transparent), 0 4px 10px color-mix(in srgb, var(--ink) 4%, transparent);
             --radius:var(--ui-radius-control, 8px);
             --radius-xl:var(--ui-radius-sheet, 21px);
         }
@@ -307,7 +327,7 @@
            grey that outranked every tenant theme. The CMS looked identical for
            all eight palettes. --bg is set by the theme map above and falls back
            to the old value only until /brand answers. */
-        body { background:var(--bg, #f1f5f9); color:var(--ink); -webkit-font-smoothing:antialiased; }
+        body { background:var(--bg); color:var(--ink); -webkit-font-smoothing:antialiased; }
         .shadow-sm { box-shadow:var(--shadow-sm) !important; }
         .shadow-md { box-shadow:var(--shadow-md) !important; }
         .shadow-2xl { box-shadow:var(--shadow-lg) !important; }
@@ -338,7 +358,7 @@
         button:active, a[class*="rounded"]:active, [role="button"]:active { transform:scale(.985); }
         button:disabled { opacity:.55; cursor:not-allowed; transform:none; box-shadow:none; }
         [class*="bg-black/40"], [class*="bg-black/50"], [class*="bg-black/60"], [class*="bg-black/70"] {
-            background-color:var(--scrim, var(--ui-scrim, rgba(15,23,42,.60))) !important;
+            background-color:var(--scrim, var(--ui-scrim)) !important;
         }
         .toast { box-shadow:var(--shadow-lg) !important; border-radius:var(--radius-xl) !important; }
         /* A themed surface has to carry its own foreground. `text-white` is not
@@ -645,7 +665,7 @@
         .port-thumb { touch-action:manipulation; }
         .port-thumb:active { opacity:.82; transform:scale(.96); transition:opacity .08s,transform .08s; }
         /* ── M7: Image loading skeleton ── */
-        .img-skel { background:linear-gradient(90deg,#e5e7eb 25%,#f3f4f6 50%,#e5e7eb 75%); background-size:200% 100%; animation:skel-shine 1.4s infinite; }
+        .img-skel { background:linear-gradient(90deg,var(--bg2) 25%,var(--panel) 50%,var(--bg2) 75%); background-size:200% 100%; animation:skel-shine 1.4s infinite; }
         @keyframes skel-shine { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 
         /* ── A11y: respect prefers-reduced-motion (2026-07 UI audit) ──

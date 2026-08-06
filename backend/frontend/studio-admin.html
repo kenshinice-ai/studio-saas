@@ -3437,9 +3437,21 @@
       $('settingFontMood').value = themeValue(theme, 'font_mood', 'modern');
       activeVisualStyle = styleId || themeValue(theme, 'style_id', '');
       activeColorScheme = themeValue(theme, 'color_scheme', 'light') === 'dark' ? 'dark' : 'light';
+      /* This function is handed two different kinds of thing: a SAVED record,
+         which carries the owner's scheme preference, and a GENERATED style
+         palette, which cannot — a palette is a set of colours and has no
+         opinion about who picks the mode.
+         Treating the second like the first is what made "follow the visitor's
+         device" unselectable: choosing it set the preference, then
+         applyVisualStyle() called this with style.schemes[mode], the lookup
+         found no scheme_preference, and the preference was overwritten with
+         the mode. The control snapped back and would have SAVED the mode. */
       const preference = themeValue(theme, 'scheme_preference', '');
-      activeSchemePreference = ['light', 'dark', 'system'].includes(preference)
-        ? preference : activeColorScheme;
+      if (['light', 'dark', 'system'].includes(preference)) {
+        activeSchemePreference = preference;
+      } else if (activeSchemePreference !== 'system') {
+        activeSchemePreference = activeColorScheme;
+      }
       themeMode = themeValue(theme, 'theme_mode', activeVisualStyle ? 'preset' : 'custom');
       renderStylePresetGrid();
     }

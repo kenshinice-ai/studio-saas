@@ -280,6 +280,14 @@ TOKENISED_SURFACES = [
     "backend/frontend/assets/portal-theme.css",
     "backend/frontend/assets/console-theme.css",
     "backend/frontend/assets/brand-system.css",
+    # v8.4.1: the operations CMS. Its dark set was hand-built and INVERTED —
+    # the panel sat darker than the band under it, the v8.3.0 defect surviving
+    # in a palette nobody regenerated — and --line-strong measured 1.95:1 on
+    # the panel against WCAG 1.4.11's 3.0.
+    "legacy-root/index.html",
+    "legacy-root/register.html",
+    "backend/frontend/cms-entry.html",
+    "backend/frontend/assets/cms-app.js",
 ]
 
 # What a converted surface may still state literally, and why.
@@ -303,16 +311,38 @@ ALLOWED = {
     # The default the address bar shows before /brand answers.
     "tenant-template/index.html": ("theme-color",),
     "tenant-template/register.html": ("theme-color",),
+    # The pre-/brand palette, pinned to the default style below.
+    # JS fallbacks for a /brand response that has not arrived, pinned below.
+    "legacy-root/index.html": ("theme-color", "brand.primaryColor",
+                               "brand.secondaryColor", "visual.textColor"),
+    "legacy-root/register.html": ("theme-color", "brand.primaryColor",
+                                  "brand.secondaryColor", "visual.textColor"),
+    "backend/frontend/cms-entry.html": ("theme-color",),
+    # The printed report keeps a fixed warm palette: it is ink on paper, there
+    # is no viewer theme to follow, and it already takes the studio's accent
+    # through the :root it injects.
+    "backend/frontend/assets/cms-app.js": ("safeReportColor",),
+}
+
+
+# Blocks that ARE a palette, per file. Each is pinned to style_theme()
+# elsewhere; line-level matching cannot exempt them because they declare one
+# token per line and no line names the block it sits in.
+PINNED_BLOCKS = {
+    "backend/frontend/studio-admin.html": [("    .preview-device {", "\n    }"),
+                                           ("const FALLBACK_THEME = {", "};")],
+    "legacy-root/index.html": [("        :root {", "\n        }"),
+                               ("html:not([data-brand-scheme]) {", "\n            }")],
+    "legacy-root/register.html": [("  :root {", "\n  }")],
+    # The printed report keeps a fixed warm palette: it is ink on paper, there
+    # is no viewer theme to follow, and it already takes the studio's accent
+    # through the :root it injects.
+    "backend/frontend/assets/cms-app.js": [("<style>", "</style>")],
 }
 
 
 def _without_pinned_blocks(page: str, source: str) -> str:
-    """Drop the blocks that are ALLOWED to state colour, so the scan sees the
-    rest. Line-level matching does not work here: the exempt blocks declare one
-    token per line and none of those lines names the block."""
-
-    for opener, closer in (("    .preview-device {", "\n    }"),
-                           ("const FALLBACK_THEME = {", "};")):
+    for opener, closer in PINNED_BLOCKS.get(page, ()):
         while opener in source:
             head = source.index(opener)
             tail = source.index(closer, head) + len(closer)
@@ -332,8 +362,66 @@ def test_a_converted_surface_stays_converted(page: str) -> None:
             continue
         if any(token in line for token in allowed):
             continue
+        # Tailwind's gradient machinery needs a fully transparent stop.
+        # `rgb(255 255 255 / 0)` paints nothing; it is not a colour choice.
+        if "--tw-gradient-to:rgb(255 255 255 / 0)" in line:
+            continue
         offending.append(line.strip()[:90])
     assert not offending, f"{page} has new literals:\n  " + "\n  ".join(offending[:8])
+
+
+@pytest.mark.parametrize("page", ["legacy-root/index.html", "legacy-root/register.html"])
+def test_the_cms_javascript_fallbacks_are_the_default_style(page: str) -> None:
+    """The colours the CMS shows before /brand answers.
+
+    register.html carried a NINTH palette here — Tailwind indigo #312e81 and
+    #6366f1 — so a studio whose brand request was slow or failed saw its
+    registration page in somebody else's colours.
+    """
+
+    from studiosaas.presets import DEFAULT_STYLE_ID, style_theme
+
+    default = style_theme(DEFAULT_STYLE_ID, "light")
+    source = _read(REPOSITORY_ROOT / page)
+    found = re.findall(r"(brand\.primaryColor|brand\.secondaryColor|visual\.textColor)"
+                       r"\s*\|\|\s*'(#[0-9a-fA-F]{6})'", source)
+    assert found, f"{page} no longer has the fallbacks this pins"
+    expected = {"brand.primaryColor": default["accent_color"],
+                "brand.secondaryColor": default["secondary_accent_color"],
+                "visual.textColor": default["text_color"]}
+    for name, value in found:
+        assert value.upper() == expected[name].upper(), (
+            f"{page}: {name} falls back to {value}, not {DEFAULT_STYLE_ID} light's {expected[name]}"
+        )
+
+
+def test_the_cms_dark_fallback_is_not_inverted() -> None:
+    """The CMS carried its own dark set and it had the v8.3.0 defect.
+
+    #1a1d27 panel on a #20242f band: the card sat DARKER than the surface under
+    it, so it read as a hole. That release fixed the ordering in the eight
+    tenant themes and could not reach this one, because this is a separate
+    hand-written palette. Measured before: band→card 1.08 the wrong way, and
+    --line-strong at 1.95:1 on the panel against a 3.0 floor.
+    """
+
+    from studiosaas.presets import DEFAULT_STYLE_ID, style_theme
+
+    dark = style_theme(DEFAULT_STYLE_ID, "dark")
+    source = _read(REPOSITORY_ROOT / "legacy-root/index.html")
+    block = source[source.index("html:not([data-brand-scheme]) {"):]
+    block = block[:block.index("}")]
+    declared = dict(re.findall(r"(--[\w-]+):\s*(#[0-9a-fA-F]{6})", block))
+    for name, key in (("--bg", "background_color"), ("--bg2", "background_alt_color"),
+                      ("--panel", "panel_color"), ("--ink", "text_color"),
+                      ("--muted", "muted_text_color"), ("--line", "border_color"),
+                      ("--line-strong", "border_strong_color")):
+        assert declared.get(name, "").upper() == dark[key].upper(), (
+            f"{name} is {declared.get(name)}, not {DEFAULT_STYLE_ID} dark's {dark[key]}"
+        )
+    body = strip_comments(source).lower()
+    for retired in ("#1a1d27", "#20242f", "#0e1016", "#454c5c"):
+        assert retired not in body, f"the inverted value {retired} is back"
 
 
 def test_the_studio_admin_exemption_is_exactly_two_blocks() -> None:
@@ -380,3 +468,38 @@ def test_a_theme_stored_before_v840_is_completed_from_its_own_style() -> None:
         assert completed[key] == stored[key], (
             f"{key} was filled from the default style, not from recital-plum dark"
         )
+
+
+def test_choosing_follow_the_visitor_is_not_overwritten_by_the_palette() -> None:
+    """Reported as "follow-the-visitor cannot be selected", and it could not.
+
+    `setVisualThemeFields` is handed two different kinds of thing: a SAVED
+    record, which carries the owner's preference, and a GENERATED style
+    palette, which cannot — a palette is a set of colours and has no opinion
+    about who picks the mode.
+
+    Choosing `system` set the preference, then applyVisualStyle() called
+    setVisualThemeFields(style.schemes[mode]), the lookup found no
+    scheme_preference, and it was overwritten with the mode. Measured in the
+    browser: the control snapped back to `dark` and settingsPayload() would
+    have saved `dark`.
+    """
+
+    source = _read(REPOSITORY_ROOT / "backend/frontend/studio-admin.html")
+    block = source[source.index("const preference = themeValue(theme, 'scheme_preference'"):]
+    block = block[:block.index("themeMode = themeValue")]
+    # The preference may only be replaced by a real one, or when it is not the
+    # one value a palette cannot carry.
+    assert "if (['light', 'dark', 'system'].includes(preference)) {" in block
+    assert "} else if (activeSchemePreference !== 'system') {" in block
+    assert "activeSchemePreference = activeColorScheme;" in block
+
+
+def test_a_single_mode_style_still_drops_the_preference_it_cannot_honour() -> None:
+    """The guard above must not preserve `system` onto a theme that ships one
+    mode — that would leave a setting the server rejects on save."""
+
+    source = _read(REPOSITORY_ROOT / "backend/frontend/studio-admin.html")
+    block = source[source.index("function applyVisualStyle("):]
+    block = block[:block.index("function ", 40)]
+    assert "if (activeSchemePreference === 'system' && modes.length < 2) activeSchemePreference = nextScheme;" in block

@@ -8,7 +8,7 @@
 <link rel="icon" href="/icon-192.png">
 <!-- G6: PWA — 学员可把注册/查询页加到主屏幕 -->
 <link rel="manifest" href="/manifest-student.json">
-<meta name="theme-color" content="#fffdf9">
+<meta name="theme-color" content="#F3EFEA">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Studio">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -56,8 +56,8 @@
       if (!brand) return;
       const root = document.documentElement;
       const visual = brand.visual_theme || brand.visualTheme || {};
-      const primary = visual.accent_color || visual.accentColor || brand.primary_color || brand.primaryColor || '#312e81';
-      const secondary = visual.secondary_accent_color || visual.secondaryAccentColor || brand.secondary_color || brand.secondaryColor || '#6366f1';
+      const primary = visual.accent_color || visual.accentColor || brand.primary_color || brand.primaryColor || '#835D33';
+      const secondary = visual.secondary_accent_color || visual.secondaryAccentColor || brand.secondary_color || brand.secondaryColor || '#4C6877';
       const rawLogo = brand.logo_url || brand.logoUrl || '';
       const logo = ['/logo.png', '/logo-light.png', '/favicon.svg'].includes(rawLogo) ? '' : rawLogo;
       const slogan = brand.slogan || 'Learn, grow, and feel confident.';
@@ -131,27 +131,35 @@
   input, textarea, select { font-size: 16px !important; }
   .anim { animation: fi .2s ease-out; }
   @keyframes fi { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
-  .tab-active   { background:#6366f1; color:#fff; }
-  .tab-inactive { background:#f1f5f9; color:#64748b; }
+  .tab-active   { background:var(--tenant-primary); color:var(--on-accent); }
+  .tab-inactive { background:var(--bg2); color:var(--muted); }
+  /* v8.4.1: a NINTH palette — Tailwind indigo #312e81/#6366f1 on cold slate,
+     on the student registration page. Every value is now the default style's
+     light mode, the same set portal-theme.css and the CMS shell carry. */
   :root {
-    --tenant-primary:#312e81;
-    --tenant-primary-soft:#eef2ff;
-    --tenant-primary-border:#c7d2fe;
-    --tenant-secondary:#6366f1;
-    --tenant-secondary-soft:#f5f3ff;
-    --tenant-secondary-border:#ddd6fe;
-    --surface:#ffffff;
-    --ink:#0f172a;
-    --muted:#64748b;
-    --line:#e2e8f0;
-    --shadow-sm:0 1px 2px rgba(0,0,0,.04);
-    --shadow-md:0 4px 12px rgba(0,0,0,.07), 0 1px 3px rgba(0,0,0,.05);
-    --shadow-lg:0 10px 25px rgba(0,0,0,.08), 0 4px 10px rgba(0,0,0,.04);
-    --radius:8px;
-    --radius-xl:16px;
+    --tenant-primary:#835D33;
+    --tenant-primary-soft:#EBE6DF;
+    --tenant-primary-border:#CDBFAE;
+    --tenant-secondary:#4C6877;
+    --tenant-secondary-soft:#E3E7EA;
+    --tenant-secondary-border:#B8C2C9;
+    --bg:#F3EFEA;
+    --bg2:#EAE3DB;
+    --panel:#FDFDFD;
+    --surface:#FDFDFD;
+    --ink:#221E1A;
+    --ink2:#46403A;
+    --muted:#6C635A;
+    --line:#DFDAD5;
+    --line-strong:#8D7F70;
+    --shadow-sm:0 1px 2px color-mix(in srgb, var(--ink) 4%, transparent);
+    --shadow-md:0 4px 12px color-mix(in srgb, var(--ink) 7%, transparent), 0 1px 3px color-mix(in srgb, var(--ink) 5%, transparent);
+    --shadow-lg:0 10px 25px color-mix(in srgb, var(--ink) 8%, transparent), 0 4px 10px color-mix(in srgb, var(--ink) 4%, transparent);
+    --radius:var(--ui-radius-control, 8px);
+    --radius-xl:var(--ui-radius-sheet, 21px);
   }
-  body { background:#f1f5f9 !important; color:var(--ink); -webkit-font-smoothing:antialiased; }
-  header { background:rgba(255,255,255,.96) !important; border-color:var(--line) !important; box-shadow:var(--shadow-sm) !important; backdrop-filter:blur(10px); }
+  body { background:var(--bg) !important; color:var(--ink); -webkit-font-smoothing:antialiased; }
+  header { background:color-mix(in srgb, var(--panel) 96%, transparent) !important; border-color:var(--line) !important; box-shadow:var(--shadow-sm) !important; backdrop-filter:blur(10px); }
   .shadow-sm { box-shadow:var(--shadow-sm) !important; }
   .shadow-md { box-shadow:var(--shadow-md) !important; }
   .shadow-2xl { box-shadow:var(--shadow-lg) !important; }
@@ -189,9 +197,9 @@
   [class*="text-purple-400"], [class*="text-purple-500"], [class*="text-purple-600"], [class*="text-purple-700"], [class*="text-purple-800"] { color:var(--tenant-secondary) !important; }
   [class*="border-purple-"] { border-color:var(--tenant-secondary-border) !important; }
   .preview-img  { width:80px; height:80px; border-radius:50%; object-fit:cover; }
-  .avatar-ph    { width:80px; height:80px; border-radius:50%; background:#e0e7ff; display:flex; align-items:center; justify-content:center; font-size:32px; }
+  .avatar-ph    { width:80px; height:80px; border-radius:50%; background:var(--tenant-primary-soft); display:flex; align-items:center; justify-content:center; font-size:32px; }
   /* M7: image loading skeleton */
-  .img-skel { position:absolute; inset:0; background:linear-gradient(90deg,#e5e7eb 25%,#f3f4f6 50%,#e5e7eb 75%); background-size:200% 100%; animation:skel-shine 1.4s infinite; border-radius:0.75rem; }
+  .img-skel { position:absolute; inset:0; background:linear-gradient(90deg,var(--bg2) 25%,var(--panel) 50%,var(--bg2) 75%); background-size:200% 100%; animation:skel-shine 1.4s infinite; border-radius:0.75rem; }
   @keyframes skel-shine { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
   /* M6: thumbnail touch feedback */
   .port-thumb { touch-action:manipulation; cursor:pointer; }

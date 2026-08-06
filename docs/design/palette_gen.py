@@ -43,6 +43,41 @@ def hue_gap(a, b):
     d = abs(a - b) % 360
     return min(d, 360 - d)
 
+
+def oklab_l(hexstr):
+    """Perceived lightness. HSL's L is not it, and the difference is the point.
+
+    Contrast ratios say whether text can be read. Neither they nor HSL says how
+    far apart two surfaces LOOK, and HSL is badly non-uniform at the ends: the
+    same numeric step buys much less separation near black than near white.
+
+    Measured across the eight themes at v8.4.0, the light palettes lifted the
+    card off the band by 8.13 perceived units and the dark ones by 5.33 — 1.53x
+    flatter — from HSL steps that had been chosen to look comparable. That is
+    the "dark mode looks flat" report, and it is arithmetic rather than taste.
+    """
+    hx = hexstr.lstrip('#')
+    r, g, b = (_srgb(int(hx[i:i + 2], 16)) for i in (0, 2, 4))
+    l = 0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b
+    m = 0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b
+    s = 0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b
+    l_, m_, s_ = (v ** (1 / 3) if v > 0 else 0.0 for v in (l, m, s))
+    return 0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_
+
+
+def solve_perceived(h, s, above, lift, lo=0.0, hi=1.0):
+    """Lightness at which this hue sits `lift` perceived units above `above`."""
+    best = None
+    for _ in range(40):
+        mid = (lo + hi) / 2
+        cand = hexof(h, s, mid)
+        if oklab_l(cand) - oklab_l(above) >= lift:
+            best = cand
+            hi = mid
+        else:
+            lo = mid
+    return best or hexof(h, s, 1.0)
+
 def mix_to_ratio(a, b, target, lo=0.0, hi=1.0):
     """How much of `a` to stir into `b` so the result sits `target` from `b`.
 
@@ -247,6 +282,12 @@ TARGETS = dict(body=8.0, muted=4.6, accent=4.6, semantic=4.6,
                line_strong=3.05, on_accent=4.6)
 
 # The quiet forms of a role, as measured distances rather than percentages.
+# How far the card sits above the band, in PERCEIVED units, which is the one
+# thing a contrast ratio cannot state. Taken from what light mode already
+# achieves, so the two modes feel like the same design rather than merely
+# passing the same assertions.
+PANEL_LIFT = 0.0813
+
 SOFT_STEP  = 1.22   # tinted chip vs the panel it sits on: present, not a slab
 SOFT_LINE  = 1.45   # the chip's own border vs the chip
 HOVER_STEP = 1.06   # row/card hover vs rest: the smallest change that registers
@@ -358,7 +399,17 @@ def build(theme, dark):
         # dark and lifts the band only slightly, with the panel above both.
         bg    = hexof(h, min(s * .52, .38), .068)
         bg2   = hexof(h, min(s * .46, .34), .102)
-        panel = hexof(h, min(s * .44, .32), .150)
+        # v8.4.1. The panel was a flat .150, which put it 5.33 perceived units
+        # above the band where light mode puts it 8.13 — the card did not lift
+        # off the surface under it, and the whole page read as one slab.
+        #
+        # v8.3.0 fixed the ORDER of the dark surfaces. This fixes the AMOUNT,
+        # and it is the same class of mistake one level down: a number that was
+        # correct as arithmetic and wrong as an appearance. Solving to the
+        # perceived lift light mode already achieves lands each theme between
+        # .168 and .182 rather than on one shared constant, because how far
+        # .150 gets you depends on the hue.
+        panel = solve_perceived(h, min(s * .44, .32), bg2, PANEL_LIFT)
         # The lightest surface a text token can land on. It used to be bg2 for
         # the same reason the ordering was wrong; now it is the panel.
         worst = panel

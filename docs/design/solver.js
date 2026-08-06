@@ -96,6 +96,30 @@ function mix(a, b, p) {
       .toString(16).toUpperCase().padStart(2, '0')).join('');
 }
 
+/* Perceived lightness. HSL's L is not it, and the difference is the point:
+   the same numeric step buys much less separation near black than near white,
+   which is why the dark cards sat 5.33 perceived units above the band where
+   light mode puts them 8.13. */
+function oklabL(hex) {
+  const hx = hex.replace('#', '');
+  const [r, g, b] = [0, 2, 4].map((i) => srgb(parseInt(hx.substr(i, 2), 16)));
+  const l = 0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b;
+  const m = 0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b;
+  const s = 0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b;
+  const [l_, m_, s_] = [l, m, s].map((v) => (v > 0 ? Math.cbrt(v) : 0));
+  return 0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_;
+}
+
+function solvePerceived(h, s, above, lift) {
+  let lo = 0.0, hi = 1.0, best = null;
+  for (let i = 0; i < 40; i++) {
+    const mid = (lo + hi) / 2;
+    const cand = hexof(h, s, mid);
+    if (oklabL(cand) - oklabL(above) >= lift) { best = cand; hi = mid; } else { lo = mid; }
+  }
+  return best || hexof(h, s, 1.0);
+}
+
 function hueGap(a, b) {
   const d = Math.abs(a - b) % 360;
   return Math.min(d, 360 - d);
@@ -132,6 +156,7 @@ const SEM_S_PULL = 0.60, SEM_S_FLOOR = 0.32, SEM_S_CEIL = 0.72;
 const SEM_HUE_GAP = 30.0, SEM_LUM_GAP = 1.55, SEM_TEXT_MIX = 0.618;
 const TARGETS = { body: 8.0, muted: 4.6, accent: 4.6, semantic: 4.6, line_strong: 3.05, on_accent: 4.6 };
 const SOFT_STEP = 1.22, SOFT_LINE = 1.45, HOVER_STEP = 1.06;
+const PANEL_LIFT = 0.0813;
 
 const inkHue = (t) => (t.ink_hue !== undefined ? t.ink_hue : t.hue);
 const inkSat = (t) => (t.ink_sat !== undefined ? t.ink_sat : t.sat);
@@ -211,7 +236,7 @@ function build(theme, dark) {
   } else {
     bg = hexof(h, Math.min(s * 0.52, 0.38), 0.068);
     bg2 = hexof(h, Math.min(s * 0.46, 0.34), 0.102);
-    panel = hexof(h, Math.min(s * 0.44, 0.32), 0.150);
+    panel = solvePerceived(h, Math.min(s * 0.44, 0.32), bg2, PANEL_LIFT);
     worst = panel;
     ink = solve(inkH, Math.min(inkS * 0.18, 0.10), worst, 11.0, false);
     ink2 = solve(inkH, Math.min(inkS * 0.16, 0.09), worst, TARGETS.body, false);
