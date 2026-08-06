@@ -4,6 +4,8 @@ import pytest
 from importlib import import_module
 from pathlib import Path
 
+from studiosaas.presets import DEFAULT_STYLE_ID
+
 # Read the release label rather than repeating it. A hard-coded literal here
 # only ever fails the build on the version bump itself, which teaches whoever
 # is bumping to edit tests — the opposite of what this assertion is for. What
@@ -31,22 +33,17 @@ def test_industry_presets_are_complete_and_bilingual(client):
     presets = payload["presets"]
     styles = payload["styles"]
     assert set(presets) == {"art", "music", "math", "dance", "language", "sports", "game", "general"}
-    assert set(styles) == {
-        "atelier-clay", "vintage-press", "studio-ink", "harbour-calm",
-        "cedar-grove", "recital-plum", "rehearsal-rose", "arcade-lime",
-    }
-    # Every style ships a matched light/dark pair except arcade-lime, whose
-    # neon accent cannot reach 4.5:1 on a light page.
+    # One palette since 2026-08-06: an industry brings the vocabulary and the
+    # forms, never a colour. What varies per studio is the accent hue alone.
+    assert set(styles) == {DEFAULT_STYLE_ID}
     for style_id, style in styles.items():
         assert style["modes"], style_id
         assert set(style["schemes"]) == set(style["modes"]), style_id
-        if style_id == "arcade-lime":
-            assert style["modes"] == ["dark"]
-        else:
-            assert style["modes"] == ["light", "dark"], style_id
+        assert style["modes"] == ["light", "dark"], style_id
     for preset in presets.values():
         assert preset["labelZh"]
-        assert preset["recommendedStyleId"] in styles
+        # Every industry now recommends the same style, which is the point.
+        assert preset["recommendedStyleId"] == DEFAULT_STYLE_ID
         assert preset["visualTheme"]["style_id"] == preset["recommendedStyleId"]
         assert preset["localizedCopy"]["hero_title"]["zh"]
         assert preset["localizedCopy"]["hero_title"]["en"]

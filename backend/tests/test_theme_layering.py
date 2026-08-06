@@ -104,10 +104,14 @@ def test_the_alt_band_does_not_shout_louder_in_dark_mode(key: str) -> None:
 def test_the_rule_rejects_the_pre_v830_surfaces() -> None:
     """The check has to fail on the arrangement it was written to catch.
 
-    Rebuilds each dark theme with the three lightnesses that shipped through
-    v8.2.31 and asserts `layer_faults` rejects all eight. Without this, a
+    Rebuilds every dark theme with the three lightnesses that shipped through
+    v8.2.31 and asserts `layer_faults` rejects all of them. Without this, a
     later edit could relax the rule into something that passes on both the
     fixed palette and the broken one.
+
+    Counted rather than hard-coded: this said "== 8" until the eight industry
+    palettes became one on 2026-08-06, which made a test about a layering rule
+    fail for a reason that had nothing to do with layering.
     """
 
     rejected = 0
@@ -123,8 +127,8 @@ def test_the_rule_rejects_the_pre_v830_surfaces() -> None:
         built["background_alt_color"] = palette_gen.hexof(hue, min(saturation * .40, .28), .192)
         rejected += bool(palette_gen.layer_faults(spec, built))
 
-    assert len(darkening) == 8
-    assert rejected == 8, (
+    assert darkening, "no dark theme left to test the layering rule against"
+    assert rejected == len(darkening), (
         f"only {rejected} of {len(darkening)} pre-v8.3.0 dark palettes are rejected; "
         "the layering rule no longer catches the defect it exists for"
     )

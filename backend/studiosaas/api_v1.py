@@ -53,12 +53,15 @@ from .lifecycle import (
     validate_tenant_transition,
 )
 from .models import Role
+from . import palette
 from .presets import (
+    DEFAULT_STYLE_ID,
     INDUSTRY_PRESETS,
     INDUSTRY_SECTION_COPY,
     VISUAL_STYLE_PRESETS,
     public_industry_presets,
     public_visual_style_presets,
+    accent_hue_of_colour,
     style_theme,
 )
 from .services.media import (
@@ -1108,6 +1111,33 @@ _THEME_HEX_KEYS = (
 _SCRIM_RE = re.compile(r"^rgba\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*(?:0|1|0?\.\d+)\s*\)$")
 
 
+def _accent_hue(data: dict):
+    """The studio's one colour knob, as a hue, or None to keep the default.
+
+    Two ways in, because a studio thinks in colours and the stored record
+    thinks in degrees: `accent_source` is a hex the owner picked (usually out
+    of their logo) and only its HUE survives; `accent_hue` is the degrees a
+    previously saved record already resolved to. Lightness and saturation are
+    never taken from either — they are solved, which is what stops a studio
+    from producing a page nobody can read. See Design_Constraints.md 1.4.
+    """
+
+    source = _first_text(data, "accent_source", "accentSource", limit=16)
+    if source:
+        _validate_hex_color("Accent source", source)
+        return accent_hue_of_colour(source)
+    raw = data.get("accent_hue", data.get("accentHue"))
+    if raw in (None, ""):
+        return None
+    try:
+        hue = float(raw)
+    except (TypeError, ValueError):
+        raise ValueError("Accent hue must be a number of degrees.") from None
+    if hue != hue or hue in (float("inf"), float("-inf")):
+        raise ValueError("Accent hue must be a number of degrees.")
+    return hue % 360
+
+
 def _normalize_visual_theme(
     value,
     primary_color: str = "",
@@ -1121,8 +1151,9 @@ def _normalize_visual_theme(
     if style_id and style_id not in VISUAL_STYLE_PRESETS:
         raise ValueError("Visual style is not recognised.")
     requested_scheme = _first_text(data, "color_scheme", "colorScheme", limit=16).lower()
+    accent_hue = _accent_hue(data)
     if style_id:
-        default = style_theme(style_id, requested_scheme or "light")
+        default = style_theme(style_id, requested_scheme or "light", accent_hue)
     else:
         default = _default_visual_theme(primary_color, secondary_color, category)
     theme = {}
@@ -1159,6 +1190,13 @@ def _normalize_visual_theme(
             f"The {VISUAL_STYLE_PRESETS[style_id]['label']} style is only available in: {available}."
         )
     theme["style_id"] = style_id or default.get("style_id", "")
+    # Stored as degrees, not as the hex the owner picked: the hex is an
+    # input, the hue is the decision, and re-solving from the hue is what
+    # keeps a saved theme correct when the solver improves.
+    if accent_hue is not None:
+        theme["accent_hue"] = round(accent_hue % 360, 1)
+    elif isinstance(default.get("accent_hue"), (int, float)):
+        theme["accent_hue"] = round(float(default["accent_hue"]) % 360, 1)
     theme["theme_mode"] = theme_mode
     theme["color_scheme"] = color_scheme
     theme["button_style"] = button_style
@@ -1217,7 +1255,9 @@ def _published_schemes(theme: object) -> dict:
     style_id = theme.get("style_id") or ""
     if theme.get("scheme_preference") != "system" or style_id not in VISUAL_STYLE_PRESETS:
         return {}
-    return {mode: style_theme(style_id, mode)
+    hue = theme.get("accent_hue")
+    hue = float(hue) if isinstance(hue, (int, float)) else None
+    return {mode: style_theme(style_id, mode, hue)
             for mode in VISUAL_STYLE_PRESETS[style_id]["modes"]}
 
 
@@ -2195,6 +2235,49 @@ def industry_presets():
     """Return the shared onboarding, copy, and theme presets."""
 
     return jsonify({"presets": public_industry_presets(), "styles": public_visual_style_presets()})
+
+
+@api_v1.route("/theme-preview", methods=["GET"])
+def theme_preview():
+    """Solve the palette for a colour the owner is currently picking.
+
+    The accent picker needs to show the real result while the owner drags a
+    colour input, and the real result is whatever the solver says. Shipping a
+    second solver to the browser to avoid the round trip would give this
+    product three implementations of one algorithm; there are already two, and
+    they are only safe because a parity test compares them token by token.
+
+    Read-only, no tenant state, cheap: two `build` calls.
+    """
+
+    source = (request.args.get("accent") or "").strip()
+    raw_hue = (request.args.get("hue") or "").strip()
+    notes: list[str] = []
+
+    if source:
+        try:
+            _validate_hex_color("Accent", source)
+        except ValueError as error:
+            return jsonify({"error": str(error)}), 400
+        if palette.chroma(source) < palette.ACCENT_INPUT_MIN_CHROMA:
+            notes.append("achromatic")
+        hue = accent_hue_of_colour(source)
+        if not notes and abs(palette.hsl_of(source)[0] - hue) > 0.5:
+            notes.append("moved_out_of_status_band")
+    elif raw_hue:
+        try:
+            hue = float(raw_hue) % 360
+        except ValueError:
+            return jsonify({"error": "Hue must be a number of degrees."}), 400
+    else:
+        hue = palette.DEFAULT_ACCENT_HUE
+
+    return jsonify({
+        "hue": round(hue, 1),
+        "notes": notes,
+        "themes": {mode: style_theme(DEFAULT_STYLE_ID, mode, hue)
+                   for mode in VISUAL_STYLE_PRESETS[DEFAULT_STYLE_ID]["modes"]},
+    })
 
 
 def _tenant_response(conn):

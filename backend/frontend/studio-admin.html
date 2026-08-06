@@ -1113,6 +1113,24 @@
     .theme-picker-control small { color: var(--muted); font-size: 11px; line-height: 1.4; }
     .theme-picker-control small.note-unresolved { color: var(--on-warning-soft); font-weight: 700; }
 
+    /* The accent picker. The swatch and the hex field are two views of one
+       value, so they share a row and a height rather than stacking. */
+    .accent-picker { display: flex; gap: 8px; align-items: stretch; min-width: 0; }
+    .accent-picker input[type="color"] {
+      flex: 0 0 46px; width: 46px; min-height: 46px; padding: 3px;
+      background: var(--surface); border: 1px solid var(--line-strong);
+      border-radius: var(--radius); cursor: pointer;
+    }
+    .accent-picker input[type="text"] {
+      flex: 1 1 auto; min-width: 0; min-height: 46px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-weight: 800; text-transform: uppercase;
+    }
+    .accent-picker button { flex: 0 0 auto; min-height: 46px; white-space: nowrap; }
+    /* The note carries the only three things the solver may have done to the
+       picked colour. Silence there is how an owner stops trusting the picker. */
+    .theme-picker-control small.note-moved { color: var(--on-info-soft); font-weight: 700; }
+
     .theme-selection-preview {
       display: grid;
       grid-template-columns: minmax(0, 1fr);
@@ -1346,21 +1364,21 @@
        so between first paint and the preset response the mock rendered a white
        CTA label on a transparent button. Measured 1.09:1 — invisible. */
     .preview-device {
-      --bg: #F3EFEA;
-      --bg2: #EAE3DB;
-      --panel: #FDFDFD;
-      --surface: #FDFDFD;
-      --surface-hover: #F7F6F6;
-      --ink: #221E1A;
-      --ink2: #46403A;
-      --muted: #6C635A;
-      --line: #DFDAD5;
-      --line-strong: #8D7F70;
-      --clay: #835D33;
-      --clay-hover: #6D4D2A;
-      --clay-pressed: #573E22;
-      --clay-d: #4C6877;
-      --accent: #835D33;
+      --bg: #F4F1EA;
+      --bg2: #ECE7DA;
+      --panel: #FBF9F5;
+      --surface: #FBF9F5;
+      --surface-hover: #F5F2EE;
+      --ink: #221F1A;
+      --ink2: #47423B;
+      --muted: #6C665B;
+      --line: #E1DBCE;
+      --line-strong: #8C826C;
+      --clay: #704B2E;
+      --clay-hover: #5A3C25;
+      --clay-pressed: #452E1C;
+      --clay-d: #576D49;
+      --accent: #704B2E;
       --on-accent: #FFFFFF;
       --on-accent-2: #FFFFFF;
       --radius: 8px;
@@ -2163,10 +2181,27 @@
                        y=1149. One wrapper class, one row, one baseline. -->
                   <div class="theme-picker">
                     <div class="theme-picker-controls">
+                      <!-- 2026-08-06: this was a dropdown of eight industry
+                           palettes. There is one palette now and one knob —
+                           the accent hue, normally taken from the studio's own
+                           logo. Only the HUE of what is picked here survives;
+                           the lightness and saturation are solved, which is
+                           what makes a free colour input safe to expose. See
+                           docs/design/Design_Constraints.md section 1.4. -->
                       <div class="theme-picker-control">
-                        <label for="stylePresetSelect">Theme</label>
-                        <select id="stylePresetSelect" aria-describedby="themeRecommendationNote" data-no-translate></select>
-                        <small id="themeRecommendationNote">The recommended theme is selected automatically.</small>
+                        <label for="accentSourceHex">Accent colour</label>
+                        <div class="accent-picker">
+                          <!-- No literal hex here: both start empty and are
+                               filled from the loaded theme by syncAccentPicker,
+                               so this markup cannot become a stale ninth copy
+                               of the default accent. -->
+                          <input type="color" id="accentSourceSwatch" aria-label="Pick an accent colour">
+                          <input type="text" id="accentSourceHex" inputmode="text" spellcheck="false"
+                                 maxlength="7" aria-describedby="accentSourceNote" data-no-translate>
+                          <button type="button" id="accentFromLogoBtn" class="btn-secondary">From logo</button>
+                        </div>
+                        <small id="accentSourceNote">Only the hue is used — the depth is solved so the button stays readable.</small>
+                        <select id="stylePresetSelect" hidden aria-hidden="true" data-no-translate></select>
                       </div>
                       <!-- Every theme ships a matched light and dark variant, so
                            the scheme is a choice rather than a property of the
@@ -2700,21 +2735,21 @@
      * test_studio_console.py asserts these values against style_theme().
      */
     const FALLBACK_THEME = {
-      background_color: '#F3EFEA',
-      background_alt_color: '#EAE3DB',
-      panel_color: '#FDFDFD',
-      text_color: '#221E1A',
-      text_soft_color: '#46403A',
-      muted_text_color: '#6C635A',
-      border_color: '#DFDAD5',
-      border_strong_color: '#8D7F70',
-      accent_color: '#835D33',
+      background_color: '#F4F1EA',
+      background_alt_color: '#ECE7DA',
+      panel_color: '#FBF9F5',
+      text_color: '#221F1A',
+      text_soft_color: '#47423B',
+      muted_text_color: '#6C665B',
+      border_color: '#E1DBCE',
+      border_strong_color: '#8C826C',
+      accent_color: '#704B2E',
       accent_text_color: '#FFFFFF',
-      secondary_accent_color: '#4C6877',
-      success_color: '#2F7951',
-      warning_color: '#5B421F',
-      danger_color: '#76332A',
-      info_color: '#396F95',
+      secondary_accent_color: '#576D49',
+      success_color: '#307A57',
+      warning_color: '#8E6426',
+      danger_color: '#B9473B',
+      info_color: '#3E6FA8',
     };
 
     async function loadIndustryPresets() {
@@ -3453,7 +3488,135 @@
         activeSchemePreference = activeColorScheme;
       }
       themeMode = themeValue(theme, 'theme_mode', activeVisualStyle ? 'preset' : 'custom');
+      const savedHue = theme && (theme.accent_hue ?? theme.accentHue);
+      activeAccentHue = Number.isFinite(Number(savedHue)) ? Number(savedHue) : null;
+      syncAccentPicker(themeValue(theme, 'accent_color', FALLBACK_THEME.accent_color));
       renderStylePresetGrid();
+    }
+
+    /* ── the accent knob ──────────────────────────────────────────────────
+       One colour, and only its HUE is kept. The lightness and saturation are
+       the product's, solved for the contrast targets, which is what makes a
+       free colour input safe to hand an owner: a fluorescent logo becomes a
+       deep pine rather than a call to action nobody can read.
+
+       The solving happens on the server. Putting a copy of the solver in this
+       page to save the round trip would give the product a third
+       implementation of one algorithm — there are two, and they are only safe
+       because a parity test compares them token for token. */
+    let activeAccentHue = null;
+    let accentPreviewTimer = null;
+    let accentPreviewSeq = 0;
+
+    function syncAccentPicker(accentColor) {
+      const swatch = $('accentSourceSwatch');
+      const field = $('accentSourceHex');
+      if (!swatch || !field) return;
+      const shown = /^#[0-9a-f]{6}$/i.test(accentColor || '')
+        ? accentColor.toUpperCase() : FALLBACK_THEME.accent_color.toUpperCase();
+      swatch.value = shown;
+      if (document.activeElement !== field) field.value = shown;
+    }
+
+    function accentNote(notes, hue) {
+      const isZh = adminIsZh();
+      const small = $('accentSourceNote');
+      if (!small) return;
+      small.classList.remove('note-unresolved', 'note-moved');
+      if (notes.includes('achromatic')) {
+        small.classList.add('note-moved');
+        small.textContent = isZh
+          ? '这个颜色几乎没有色相，已回到默认强调色——灰色的按钮会消失在页面里。'
+          : 'That colour has almost no hue, so the default accent is used — a grey call to action disappears into the page.';
+        return;
+      }
+      if (notes.includes('moved_out_of_status_band')) {
+        small.classList.add('note-moved');
+        small.textContent = isZh
+          ? `已移到 ${Math.round(hue)}°：原色相会被读成「成功／警示／危险／提示」之一。`
+          : `Moved to ${Math.round(hue)}° — the picked hue reads as a status colour (success, warning, danger or info).`;
+        return;
+      }
+      small.textContent = isZh
+        ? '只取色相，深浅由系统求解，按钮始终可读。'
+        : 'Only the hue is used — the depth is solved so the button stays readable.';
+    }
+
+    async function previewAccent(source) {
+      const seq = ++accentPreviewSeq;
+      try {
+        const response = await fetch('/v1/theme-preview?accent=' + encodeURIComponent(source));
+        if (!response.ok) return;
+        const body = await response.json();
+        /* A colour input fires continuously; an older reply must never land on
+           top of a newer one. */
+        if (seq !== accentPreviewSeq) return;
+        activeAccentHue = body.hue;
+        const solved = body.themes[activeColorScheme] || body.themes.light;
+        if (solved) {
+          $('settingPrimaryColor').value = solved.accent_color;
+          $('settingSecondaryColor').value = solved.secondary_accent_color;
+          $('settingThemeBackground').value = solved.background_color;
+          $('settingThemePanel').value = solved.panel_color;
+          $('settingThemeText').value = solved.text_color;
+          $('settingThemeMuted').value = solved.muted_text_color;
+          $('settingThemeBorder').value = solved.border_color;
+          syncAccentPicker(solved.accent_color);
+        }
+        accentNote(body.notes || [], body.hue);
+        themeMode = 'preset';
+        renderStylePresetGrid();
+        setSettingsDirty(true);
+        updateThemePreview();
+      } catch (error) { /* offline: leave the fields as they are */ }
+    }
+
+    function requestAccentPreview(source) {
+      clearTimeout(accentPreviewTimer);
+      accentPreviewTimer = setTimeout(() => previewAccent(source), 180);
+    }
+
+    /* Reads the dominant colour out of the studio's own logo, which is where
+       an owner's answer to "what is your colour" actually lives. Averaging is
+       wrong — it turns any two-colour mark into mud — so this buckets by hue
+       and takes the most-weighted bucket among the pixels that have a hue at
+       all. */
+    function dominantHexFromImage(image) {
+      const size = 64;
+      const canvas = document.createElement('canvas');
+      canvas.width = canvas.height = size;
+      const context = canvas.getContext('2d', { willReadFrequently: true });
+      context.drawImage(image, 0, 0, size, size);
+      const { data } = context.getImageData(0, 0, size, size);
+      const buckets = new Map();
+      for (let i = 0; i < data.length; i += 4) {
+        const [r, g, b, a] = [data[i], data[i + 1], data[i + 2], data[i + 3]];
+        if (a < 128) continue;
+        const chroma = Math.max(r, g, b) - Math.min(r, g, b);
+        if (chroma < 24) continue;                    // no hue worth counting
+        const key = Math.round(rgbHue(r, g, b) / 10) * 10;
+        const entry = buckets.get(key) || { weight: 0, pixels: 0, r: 0, g: 0, b: 0 };
+        entry.weight += chroma;                       // chromatic pixels count more
+        entry.pixels += 1;
+        entry.r += r; entry.g += g; entry.b += b;
+        buckets.set(key, entry);
+      }
+      if (!buckets.size) return '';
+      let best = null;
+      for (const entry of buckets.values()) if (!best || entry.weight > best.weight) best = entry;
+      const toHex = (sum) => Math.round(sum / best.pixels).toString(16).padStart(2, '0');
+      return ('#' + toHex(best.r) + toHex(best.g) + toHex(best.b)).toUpperCase();
+    }
+
+    function rgbHue(r, g, b) {
+      const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+      if (!d) return 0;
+      let hue;
+      if (max === r) hue = ((g - b) / d) % 6;
+      else if (max === g) hue = (b - r) / d + 2;
+      else hue = (r - g) / d + 4;
+      hue *= 60;
+      return hue < 0 ? hue + 360 : hue;
     }
 
     function rememberPresetState(message) {
@@ -4051,13 +4214,11 @@
         : styleDescription(selected);
       $('themePresetBadge').textContent = window.AdminI18n?.translate(custom ? 'Custom' : activeVisualStyle === recommended ? 'Recommended' : 'Selected') || (custom ? 'Custom' : activeVisualStyle === recommended ? 'Recommended' : 'Selected');
       $('themePresetBadge').classList.toggle('custom', custom);
-      const industryLabel = industryName(industry) || (isZh ? '当前' : 'this industry');
-      const recommendedName = VISUAL_STYLE_PRESETS[recommended] ? styleName(VISUAL_STYLE_PRESETS[recommended]) : (isZh ? '另一主题' : 'Another theme');
-      $('themeRecommendationNote').textContent = activeVisualStyle === recommended
-        ? (isZh ? `${industryLabel}行业推荐主题。` : `Recommended for ${industryLabel}.`)
-        : (isZh
-          ? `${industryLabel}行业推荐${recommendedName}；当前选择同样完整支持。`
-          : `${recommendedName} is recommended for ${industryLabel}, but this choice is fully supported.`);
+      /* The "recommended theme for your industry" note went with the eight
+         industry palettes. An industry no longer recommends a colour; it
+         brings the vocabulary and the forms. The accent knob writes its own
+         note (see accentNote), which says the one thing an owner needs: what,
+         if anything, the solver did to the colour they picked. */
       const preview = $('stylePresetPreview');
       preview.style.setProperty('--theme-panel', themeValue(shownTheme, 'panel_color', FALLBACK_THEME.panel_color));
       preview.style.setProperty('--theme-text', themeValue(shownTheme, 'text_color', FALLBACK_THEME.text_color));
@@ -4298,6 +4459,11 @@
         messageTemplates: collectMessageTemplates(),
         visualTheme: {
           styleId: activeVisualStyle,
+          /* The knob, as degrees. The picked hex is an input; the hue is the
+             decision, and re-solving from it is what lets a solver improvement
+             reach a studio that saved months ago. */
+          accentHue: themeMode === 'custom' || activeAccentHue === null
+            ? undefined : activeAccentHue,
           colorScheme: themeMode === 'custom'
             ? (luminance($('settingThemeBackground').value) < 0.18 ? 'dark' : 'light')
             : activeColorScheme,
@@ -4408,6 +4574,7 @@
         secondaryTextColor: text(visual.secondary_text_color || visual.secondaryTextColor).toLowerCase(),
         borderColor: text(visual.border_color || visual.borderColor).toLowerCase(),
         styleId: text(visual.style_id || visual.styleId),
+        accentHue: visual.accent_hue ?? visual.accentHue,
         themeMode: text(visual.theme_mode || visual.themeMode),
         buttonStyle: text(visual.button_style || visual.buttonStyle),
         fontMood: text(visual.font_mood || visual.fontMood)
@@ -4889,6 +5056,40 @@
         applyCategoryPreset();
       });
       $('stylePresetSelect').addEventListener('change', () => applyVisualStyle($('stylePresetSelect').value));
+      /* The accent knob. `input` fires continuously while the swatch is
+         dragged, so the request is debounced and stale replies are dropped by
+         sequence number — see previewAccent. */
+      $('accentSourceSwatch').addEventListener('input', (event) => {
+        $('accentSourceHex').value = event.target.value.toUpperCase();
+        requestAccentPreview(event.target.value);
+      });
+      $('accentSourceHex').addEventListener('input', (event) => {
+        const value = event.target.value.trim();
+        if (/^#[0-9a-f]{6}$/i.test(value)) requestAccentPreview(value);
+      });
+      $('accentSourceHex').addEventListener('blur', () => syncAccentPicker($('settingPrimaryColor').value));
+      $('accentFromLogoBtn').addEventListener('click', () => {
+        const isZh = adminIsZh();
+        const url = $('settingLogoUrl')?.value?.trim();
+        if (!url) {
+          showToast(isZh ? '先上传 Logo，再从它取色。' : 'Upload a logo first, then take the colour from it.');
+          return;
+        }
+        const image = new Image();
+        image.crossOrigin = 'anonymous';
+        image.onload = () => {
+          const picked = dominantHexFromImage(image);
+          if (!picked) {
+            showToast(isZh ? '这个 Logo 里没有足够的颜色可取。' : 'That logo has no strong colour to take.');
+            return;
+          }
+          $('accentSourceSwatch').value = picked;
+          $('accentSourceHex').value = picked;
+          previewAccent(picked);
+        };
+        image.onerror = () => showToast(isZh ? '读不到这个 Logo。' : 'That logo could not be read.');
+        image.src = url;
+      });
       $('settingColorScheme').addEventListener('change', () => {
         const chosen = $('settingColorScheme').value;
         activeSchemePreference = chosen;

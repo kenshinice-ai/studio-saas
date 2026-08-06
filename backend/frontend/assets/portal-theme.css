@@ -29,17 +29,17 @@
   /* ── Surfaces ────────────────────────────────────────────────────────
    * Three layers, not two. page → card sits at ~1.13:1 so a card reads as
    * an actual layer instead of relying on its border to exist. */
-  --bg: #F3EFEA;
-  --bg2: #EAE3DB;
-  --panel: #FDFDFD;
-  --surface: #FDFDFD;
+  --bg: #F4F1EA;
+  --bg2: #ECE7DA;
+  --panel: #FBF9F5;
+  --surface: #FBF9F5;
 
   /* ── Ink ─────────────────────────────────────────────────────────────
    * Each level is solved against --bg2, the hardest surface it can land on,
    * so no text token fails on the darker band. */
-  --ink: #221E1A;      /* 13:1  — headings, primary copy   */
-  --ink2: #46403A;     /*  8:1  — secondary copy           */
-  --muted: #6C635A;    /*  4.6:1 — captions, helper text   */
+  --ink: #221F1A;      /* 13:1  — headings, primary copy   */
+  --ink2: #47423B;     /*  8:1  — secondary copy           */
+  --muted: #6C665B;    /*  4.6:1 — captions, helper text   */
 
   /* ── Borders ─────────────────────────────────────────────────────────
    * A1. One token could not serve both jobs: a divider wants to be quiet,
@@ -47,16 +47,16 @@
    *   --line        decorative dividers, section rules
    *   --line-strong interactive boundaries: inputs, selects, outline buttons
    */
-  --line: #DFDAD5;
-  --line-strong: #8D7F70;
+  --line: #E1DBCE;
+  --line-strong: #8C826C;
 
   /* ── Accents ─────────────────────────────────────────────────────────
    * hover/pressed move in the same direction (darker in light mode, lighter
    * in dark) so the two states are never mistaken for each other. */
-  --clay: #835D33;
-  --clay-hover: #6D4D2A;
-  --clay-pressed: #573E22;
-  --clay-d: #4C6877;
+  --clay: #704B2E;
+  --clay-hover: #5A3C25;
+  --clay-pressed: #452E1C;
+  --clay-d: #576D49;
   --brand: var(--clay);
   --brand-2: var(--clay-d);
   --on-accent: #FFFFFF;
@@ -66,9 +66,9 @@
    * A2. Fixed hue anchors (152 / 36 / 6) nudged 4% toward the theme, with
    * lightness re-solved per surface, so contrast is identical in all eight
    * themes rather than drifting per palette. */
-  --success: #2F7951;
-  --warning: #5B421F;
-  --danger: #76332A;
+  --success: #307A57;
+  --warning: #8E6426;
+  --danger: #B9473B;
   /* Ink on a success fill. Defaults to white the same way --on-accent does;
    * a theme that lightens --success must re-solve this via palette_gen.py
    * like every other pair. */
@@ -77,17 +77,39 @@
   /* ── Interaction states ──────────────────────────────────────────────
    * Required in both light and dark. A theme that defines these for only one
    * mode is the single most common dark-mode failure. */
-  --focus-ring: #A3743F;
-  --disabled-surface: #E6DED5;
-  --disabled-text: #857E76;   /* ~3:1 — legible, but clearly unavailable */
+  --focus-ring: #AC7346;
+  --disabled-surface: #E9E3D3;
+  --disabled-text: #878178;   /* ~3:1 — legible, but clearly unavailable */
   --scrim: rgba(0, 0, 0, 0.5);
   /* The lightbox always sits on the scrim, never on a theme surface,
    * so its ink is fixed rather than theme-derived. */
   --on-scrim: #EDE9E2;
 
-  /* ── Shape ───────────────────────────────────────────────────────────*/
-  --radius: 2px;
-  --radius-card: 4px;
+  /* ── Shape ───────────────────────────────────────────────────────────
+   * A five-step soft scale, replacing the two hard values (2px and 4px) the
+   * whole public site used until 2026-08-06. This is not decoration: a 2px
+   * corner reads as a form and a 20-36px corner reads as a gallery, and the
+   * public site is the surface that has to feel like the second one. Measured
+   * against the reference studio site, which carries the same five steps, it
+   * was the single largest non-colour difference between the two.
+   *
+   * Every step has a job. Adding a sixth means one of these has two.
+   */
+  --radius-xs: 10px;    /* chips, tags, icon buttons */
+  --radius: 14px;       /* buttons and inputs — the default */
+  --radius-card: 20px;  /* ordinary cards */
+  --radius-lg: 28px;    /* large panels */
+  --radius-xl: 36px;    /* gallery-scale containers and the hero */
+  --radius-pill: 999px; /* toggles, filters, small badges */
+
+  /* ── Elevation ───────────────────────────────────────────────────────
+   * Two, and only two. Anything needing more separation than `float` should
+   * change SURFACE, not add a third shadow — which is also why dark mode does
+   * not scale these: black on black is not elevation, and the dark palette
+   * carries its layering in the surface lightnesses instead.
+   */
+  --shadow-soft: 0 18px 55px color-mix(in srgb, var(--ink) 9%, transparent);
+  --shadow-float: 0 24px 70px color-mix(in srgb, var(--ink) 14%, transparent);
 
   /* ── Type ────────────────────────────────────────────────────────────
    * CJK runs on the system stack so mainland visitors never wait on

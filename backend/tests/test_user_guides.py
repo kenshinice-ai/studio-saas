@@ -126,20 +126,27 @@ def test_the_status_colour_count_is_the_real_one() -> None:
 
 
 def test_the_theme_list_matches_the_presets() -> None:
-    """Eight themes, and only one of them is dark-only."""
+    """The guide must not describe palettes the product no longer ships.
+
+    It listed eight industry themes by name; there is one since 2026-08-06.
+    A manual that names a theme an owner cannot find is worse than one that
+    says nothing.
+    """
 
     from studiosaas.presets import VISUAL_STYLE_PRESETS
 
     owner = _text("Studio_Owner_Guide.md")
+    retired = ("陶土工坊", "复古印刷", "黑白纸墨", "静谧海港",
+               "雪松林", "独奏紫", "排练玫瑰", "街机青柠")
+    still_named = [name for name in retired if name in owner]
+    assert not still_named, f"the guide still offers retired themes: {still_named}"
+    assert len(VISUAL_STYLE_PRESETS) == 1, (
+        "more than one palette ships again — the guide's single-palette "
+        "section needs rewriting, not this assertion relaxing"
+    )
     for preset in VISUAL_STYLE_PRESETS.values():
-        assert preset["label_zh"] in owner, f"{preset['label_zh']} is missing from the guide"
-    dark_only = [
-        preset["label_zh"]
-        for preset in VISUAL_STYLE_PRESETS.values()
-        if list(preset.get("themes", {})) == ["dark"]
-    ]
-    assert dark_only == ["街机青柠"], dark_only
-    assert "街机青柠仅暗色" in owner
+        assert list(preset.get("themes", {})) == ["light", "dark"], (
+            "the one palette must carry both modes")
 
 
 def test_the_image_limit_the_guides_quote_is_the_enforced_one() -> None:

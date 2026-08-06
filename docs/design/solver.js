@@ -61,7 +61,15 @@ function rgbToHls(r, g, b) {
   if (r === maxc) h = bc - gc;
   else if (g === maxc) h = 2.0 + rc - bc;
   else h = 4.0 + gc - rc;
-  h = ((h / 6.0) % 1.0 + 1.0) % 1.0;
+  /* Python's % returns a non-negative result for a positive modulus and
+     JavaScript's does not, so the sign has to be corrected — but ONLY when it
+     is actually negative. Correcting unconditionally with `(x % 1 + 1) % 1`
+     costs a mantissa bit on values that were already fine: pure blue gives
+     h/6 = 0.6666666666666666, and (0.6666666666666666 + 1) % 1 comes back
+     0.6666666666666665. That 6e-14 became a whole step of red once the hue
+     reached a channel sitting on a rounding boundary. */
+  h = (h / 6.0) % 1.0;
+  if (h < 0) h += 1.0;
   return [h, l, s];
 }
 
@@ -125,6 +133,52 @@ function hueGap(a, b) {
   return Math.min(d, 360 - d);
 }
 
+function chroma(hex) {
+  const h = hex.replace('#', '');
+  const ch = [0, 2, 4].map((i) => parseInt(h.substr(i, 2), 16));
+  return Math.max(...ch) - Math.min(...ch);
+}
+
+function atChroma(hue, lightness, target) {
+  let lo = 0.0, hi = 1.0;
+  for (let i = 0; i < 44; i++) {
+    const mid = (lo + hi) / 2;
+    if (chroma(hexof(hue, mid, lightness)) < target) lo = mid; else hi = mid;
+  }
+  return hexof(hue, hi, lightness);
+}
+
+function chipAt(hue, s, panel, baseL, step) {
+  const pl = hslOf(panel)[2];
+  let lo = 0.0, hi = 1.0;
+  for (let i = 0; i < 44; i++) {
+    const mid = (lo + hi) / 2;
+    if (ratio(hexof(hue, s, pl + mid * (baseL - pl)), panel) < step) lo = mid; else hi = mid;
+  }
+  return hexof(hue, s, pl + hi * (baseL - pl));
+}
+
+function liftChroma(hue, colour, panel, baseL, step, floor) {
+  if (chroma(colour) >= floor) return colour;
+  let best = colour;
+  const s0 = hslOf(colour)[1];
+  for (let i = Math.trunc(s0 * 100) + 1; i <= 100; i++) {
+    best = chipAt(hue, i / 100, panel, baseL, step);
+    if (chroma(best) >= floor) break;
+  }
+  return best;
+}
+
+function solveAtChroma(hue, s0, against, target, darker, chromaTarget) {
+  let best = solve(hue, s0, against, target, darker);
+  if (chroma(best) >= chromaTarget) return best;
+  for (let i = Math.trunc(s0 * 100) + 1; i <= 100; i++) {
+    best = solve(hue, i / 100, against, target, darker);
+    if (chroma(best) >= chromaTarget) break;
+  }
+  return best;
+}
+
 function mixToRatio(a, b, target) {
   let lo = 0.0, hi = 1.0, best = b;
   for (let i = 0; i < 40; i++) {
@@ -156,7 +210,10 @@ const SEM_S_PULL = 0.60, SEM_S_FLOOR = 0.32, SEM_S_CEIL = 0.72;
 const SEM_HUE_GAP = 30.0, SEM_LUM_GAP = 1.55, SEM_TEXT_MIX = 0.618;
 const TARGETS = { body: 8.0, muted: 4.6, accent: 4.6, semantic: 4.6, line_strong: 3.05, on_accent: 4.6 };
 const SOFT_STEP = 1.22, SOFT_LINE = 1.45, HOVER_STEP = 1.06;
-const PANEL_LIFT = 0.0813;
+const PANEL_LIFT = 0.0556;
+const CHROMA_FLOOR = 22, CHROMA_FLOOR_NEAR = 32, CHROMA_NEAR_HUE = 20.0;
+const PANEL_RISE = 0.034, PANEL_CHROMA = 0.60, LINE_CHROMA = 1.90, LINE_STRONG_CHROMA = 3.20;
+const ACCENT_SOFT_STEP = 1.52, SOFT_SEPARATION = 1.14;
 
 const inkHue = (t) => (t.ink_hue !== undefined ? t.ink_hue : t.hue);
 const inkSat = (t) => (t.ink_sat !== undefined ? t.ink_sat : t.sat);
@@ -166,7 +223,8 @@ const secHue = (t) => (t.sec_hue !== undefined ? ((t.sec_hue % 360) + 360) % 360
   : ((accentHue(t) + t.sec_off) % 360 + 360) % 360);
 const anchored = (t, role) => (t.anchors || {})[role];
 
-function solveSemantic(hue, targetS, accent, bg, bg2, panel, ink, onAccent, dark) {
+function solveSemantic(hue, targetS, accent, bg, bg2, panel, ink, onAccent, dark,
+                       accentIsFixed = false) {
   const accentH = hslOf(accent)[0];
   const seedL = hslOf(solve(hue, targetS, bg, TARGETS.semantic, !dark))[2];
   const nearAccent = hueGap(hue, accentH) < SEM_HUE_GAP;
@@ -183,7 +241,10 @@ function solveSemantic(hue, targetS, accent, bg, bg2, panel, ink, onAccent, dark
         if (ratio(onAccent, cand) < 4.5) continue;
         const mixed = mix(cand, ink, SEM_TEXT_MIX);
         if (ratio(mixed, bg2) < 4.5 || ratio(mixed, panel) < 4.5) continue;
-        if (nearAccent && ratio(cand, accent) < SEM_LUM_GAP) continue;
+        /* Kept only for the internal console, whose accent is pinned. A
+           tenant's accent must never reach this, or the semantics stop being
+           constants — see the note in build(). */
+        if (nearAccent && accentIsFixed && ratio(cand, accent) < SEM_LUM_GAP) continue;
         const cost = Math.abs(sTry - targetS) * 2 + step * 0.005;
         if (best === null || cost < best[0]) best = [cost, cand];
       }
@@ -220,14 +281,16 @@ function build(theme, dark) {
       bg = anchored(theme, 'background');
       const [aH, aS, aL] = hslOf(bg);
       bg2 = hexof(aH, aS, Math.max(0.0, aL - 0.047));
-      panel = hexof(aH, Math.max(0.0, aS * 0.72), Math.min(1.0, aL + 0.057));
+      panel = atChroma(aH, Math.min(1.0, aL + PANEL_RISE),
+        Math.max(1, pyRound(chroma(bg) * PANEL_CHROMA)));
     }
     worst = bg2;
     ink = solve(inkH, Math.min(inkS * 0.30, 0.20), worst, 13.0, true);
     ink2 = solve(inkH, Math.min(inkS * 0.22, 0.16), worst, TARGETS.body, true);
     muted = solve(inkH, Math.min(inkS * 0.20, 0.15), worst, TARGETS.muted, true);
-    line = hexof(h, Math.min(s * 0.28, 0.20), 0.855);
-    lineStrong = solve(h, Math.min(s * 0.26, 0.20), worst, TARGETS.line_strong, true);
+    line = atChroma(h, 0.845, Math.max(1, pyRound(chroma(bg) * LINE_CHROMA)));
+    lineStrong = solveAtChroma(h, Math.min(s * 0.26, 0.20), worst, TARGETS.line_strong, true,
+      Math.max(1, pyRound(chroma(bg) * LINE_STRONG_CHROMA)));
     accent = solve(accH, accS, worst,
       theme.accent_target !== undefined ? theme.accent_target : TARGETS.accent, true);
     secondary = solve(secH, secS, worst, TARGETS.accent, true);
@@ -254,9 +317,11 @@ function build(theme, dark) {
     secondary = solve(215, 0.14, !dark ? worst : onDark, !dark ? 5.0 : 6.6, !dark);
   }
 
-  if (anchored(theme, 'ink')) ink = anchored(theme, 'ink');
-  if (anchored(theme, 'accent')) accent = anchored(theme, 'accent');
-  if (anchored(theme, 'secondary')) secondary = anchored(theme, 'secondary');
+  if (!dark) {
+    if (anchored(theme, 'ink')) ink = anchored(theme, 'ink');
+    if (anchored(theme, 'accent')) accent = anchored(theme, 'accent');
+    if (anchored(theme, 'secondary')) secondary = anchored(theme, 'secondary');
+  }
 
   const bestOn = (colour) => {
     const lightOpt = '#FFFFFF', darkOpt = onDark || ink;
@@ -268,12 +333,13 @@ function build(theme, dark) {
   const onAccentL = hslOf(onAccent)[2];
   const accentMuted = solve(accH, Math.min(accS * 0.18, 0.12), accent, 4.6, onAccentL < 0.5);
 
+  /* The four semantics are CONSTANTS: they used to be nudged toward the accent
+     and pulled 60% of the way to its saturation, which with a free accent knob
+     means a studio's logo decides what "saved" looks like. See the Python. */
   const sem = {};
-  const accentS = hslOf(accent)[1];
   for (const [role, [sh, ss]] of Object.entries(SEMANTIC)) {
-    const blended = (((sh + ((((accH - sh + 180) % 360) + 360) % 360 - 180) * 0.04) % 360) + 360) % 360;
-    const targetS = Math.max(SEM_S_FLOOR, Math.min(SEM_S_CEIL, ss + SEM_S_PULL * (accentS - ss)));
-    sem[role] = solveSemantic(blended, targetS, accent, bg, bg2, panel, ink, onAccent, dark);
+    sem[role] = solveSemantic(sh, ss, accent, bg, bg2, panel, ink, onAccent, dark,
+      Boolean(anchored(theme, 'accent')));
   }
 
   const shift = (colour, delta) => {
@@ -313,11 +379,22 @@ function build(theme, dark) {
   for (const role of ['accent', 'secondary', ...Object.keys(SEMANTIC)]) {
     const base = role === 'accent' ? accent : role === 'secondary' ? secondary : sem[role];
     const [rh, rs] = hslOf(base);
-    const soft = mixToRatio(base, panel, SOFT_STEP);
+    const floor = hueGap(rh, hslOf(bg)[0]) < CHROMA_NEAR_HUE ? CHROMA_FLOOR_NEAR : CHROMA_FLOOR;
+    const step_ = role === 'accent' ? ACCENT_SOFT_STEP : SOFT_STEP;
+    const soft = liftChroma(rh, mixToRatio(base, panel, step_),
+      panel, hslOf(base)[2], step_, floor);
     out[`${role}_soft_color`] = soft;
     out[`${role}_on_soft_color`] = ratio(base, soft) >= 4.5
       ? base : solve(rh, Math.min(rs, 0.80), soft, 4.5, !dark);
     out[`${role}_border_color`] = mixToRatio(base, soft, SOFT_LINE);
+  }
+
+  for (const role of Object.keys(SEMANTIC)) {
+    const pair = ratio(out.accent_soft_color, out[`${role}_soft_color`]);
+    if (pair < SOFT_SEPARATION) {
+      throw new Error(`the accent chip ${out.accent_soft_color} and the ${role} chip `
+        + `${out[`${role}_soft_color`]} are ${pair.toFixed(2)}:1 apart, under ${SOFT_SEPARATION}`);
+    }
   }
   return out;
 }

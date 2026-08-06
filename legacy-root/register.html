@@ -56,8 +56,8 @@
       if (!brand) return;
       const root = document.documentElement;
       const visual = brand.visual_theme || brand.visualTheme || {};
-      const primary = visual.accent_color || visual.accentColor || brand.primary_color || brand.primaryColor || '#835D33';
-      const secondary = visual.secondary_accent_color || visual.secondaryAccentColor || brand.secondary_color || brand.secondaryColor || '#4C6877';
+      const primary = visual.accent_color || visual.accentColor || brand.primary_color || brand.primaryColor || '#704B2E';
+      const secondary = visual.secondary_accent_color || visual.secondaryAccentColor || brand.secondary_color || brand.secondaryColor || '#576D49';
       const rawLogo = brand.logo_url || brand.logoUrl || '';
       const logo = ['/logo.png', '/logo-light.png', '/favicon.svg'].includes(rawLogo) ? '' : rawLogo;
       const slogan = brand.slogan || 'Learn, grow, and feel confident.';

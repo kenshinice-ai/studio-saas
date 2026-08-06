@@ -41,8 +41,8 @@
           if (!brand) return;
           const root = document.documentElement;
           const visual = brand.visual_theme || brand.visualTheme || {};
-          const primary = visual.accent_color || visual.accentColor || brand.primary_color || brand.primaryColor || '#835D33';
-	          const secondary = visual.secondary_accent_color || visual.secondaryAccentColor || brand.secondary_color || brand.secondaryColor || '#4C6877';
+          const primary = visual.accent_color || visual.accentColor || brand.primary_color || brand.primaryColor || '#704B2E';
+	          const secondary = visual.secondary_accent_color || visual.secondaryAccentColor || brand.secondary_color || brand.secondaryColor || '#576D49';
 	          const rawLogo = brand.logo_url || brand.logoUrl || '';
 	          const logo = ['/logo.png', '/logo-light.png', '/favicon.svg'].includes(rawLogo) ? '' : rawLogo;
 	          const slogan = brand.slogan || 'Learn, grow, and feel confident.';
@@ -131,7 +131,7 @@
              never drift into a different hue the way --accent-dark did. */
           root.style.setProperty(
             '--accent-deep',
-            `color-mix(in srgb, ${primary} 70%, ${visual.text_color || visual.textColor || '#221E1A'})`,
+            `color-mix(in srgb, ${primary} 70%, ${visual.text_color || visual.textColor || '#221F1A'})`,
           );
 		          if (brand.name) document.title = `${brand.name} CMS`;
 		          document.querySelectorAll('.tenant-slogan').forEach((el) => {
@@ -389,15 +389,15 @@
                    separate palette nobody regenerated. --line-strong also
                    measured 1.95:1 on the panel against WCAG 1.4.11's 3.0.
                    Now the default style's dark mode, solved and asserted. */
-                --bg:#15120D;
-                --bg2:#1F1A15;
-                --panel:#362D24;
-                --surface:#362D24;
-                --ink:#E9E8E6;
-                --ink2:#CAC7C3;
-                --muted:#9C968E;
-                --line:#4A4238;
-                --line-strong:#837668;
+                --bg:#14120F;
+                --bg2:#1E1B16;
+                --panel:#2C2921;
+                --surface:#2C2921;
+                --ink:#E2E0DC;
+                --ink2:#C4C0BA;
+                --muted:#979187;
+                --line:#47433B;
+                --line-strong:#787366;
             }
         }
         html[data-brand-scheme="dark"] { color-scheme:dark; }

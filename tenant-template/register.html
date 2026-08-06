@@ -41,15 +41,15 @@
     .serif { font-family:var(--font-display); }
     header { position:sticky; top:0; z-index:10; display:flex; justify-content:space-between; align-items:center; gap:16px; padding:14px 24px; background:color-mix(in srgb, var(--bg) 88%, transparent); border-bottom:1px solid var(--line); backdrop-filter:blur(12px); }
     .brand { display:flex; align-items:center; gap:12px; min-width:0; }
-    .brand img { width:42px; height:42px; object-fit:contain; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); padding:4px; }
+    .brand img { width:42px; height:42px; object-fit:contain; border:1px solid var(--line); border-radius:var(--radius-xs); background:var(--surface); padding:4px; }
     .name { font-weight:500; font-size:15px; letter-spacing:.04em; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .slogan, .contact { color:var(--muted); font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:min(56vw,640px); }
     a { color:var(--clay); text-decoration:none; font-weight:500; font-size:13px; }
     .header-actions, .lang-switch { display:flex; align-items:center; gap:10px; }
-    .lang-switch { padding:3px; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); }
+    .lang-switch { padding:3px; border:1px solid var(--line); border-radius:var(--radius-pill); background:var(--surface); }
     #backLink { display:inline-flex; align-items:center; min-height:var(--tap-min); }
     /* P3-3: 44px minimum touch target, matching the portal's toggle. */
-    .lang-switch button { width:auto; min-width:var(--tap-min); min-height:var(--tap-min); padding:4px 12px; border-radius:0; background:transparent; color:var(--muted); font-weight:400; transition:background var(--dur-enter) var(--ease-out); }
+    .lang-switch button { width:auto; min-width:var(--tap-min); min-height:var(--tap-min); padding:4px 12px; border-radius:var(--radius-pill); background:transparent; color:var(--muted); font-weight:400; transition:background var(--dur-enter) var(--ease-out); }
     .lang-switch button:hover { background:var(--bg2); }
     .lang-switch button.active { background:var(--ink); color:var(--bg); }
     main { width:min(1180px,100%); margin:0 auto; padding:var(--space-phi-xl) var(--space-phi-md) var(--space-phi-2xl); display:grid; grid-template-columns:var(--golden-columns-reverse); gap:var(--space-phi-xl); align-items:start; }
@@ -62,7 +62,7 @@
     html[lang="en"] .eyebrow { letter-spacing:.32em; text-transform:uppercase; font-weight:400; }
     h1 { margin:var(--space-phi-sm) 0; font-family:var(--font-display); font-size:clamp(34px,5vw,55px); font-weight:500; line-height:1.07; letter-spacing:.01em; max-width:13ch; text-wrap:balance; }
     .lead { color:var(--ink2); font-size:16px; line-height:1.7; max-width:var(--brand-reading-measure); text-wrap:pretty; }
-    .card { background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-card); padding:var(--space-phi-lg); box-shadow:0 21px 55px color-mix(in srgb, var(--ink) 9%, transparent); }
+    .card { background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-card); padding:var(--space-phi-lg); box-shadow:var(--shadow-soft); }
     .field { margin-bottom:16px; }
     label { display:block; margin-bottom:7px; color:var(--ink2); font-size:12px; font-weight:500; letter-spacing:.02em; }
     html[lang="en"] label { letter-spacing:.14em; text-transform:uppercase; color:var(--muted); font-weight:400; }

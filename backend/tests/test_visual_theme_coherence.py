@@ -83,8 +83,10 @@ def test_every_shipped_preset_is_internally_coherent(style_id: str, mode: str) -
 
 SEMANTIC_ROLES = ("success_color", "warning_color", "danger_color")
 SEMANTIC_TEXT_MIX = 0.618
-MIN_HUE_GAP_FROM_ACCENT_DEG = 30
-MIN_CONTRAST_FROM_ACCENT = 1.55
+# The brand's tinted chip against each status chip. This replaced a hue/contrast
+# floor on the SOLID forms when the eight industry palettes became one — see the
+# test below for why the old form could not survive a free accent knob.
+MIN_CHIP_SEPARATION = 1.14
 
 
 def _relative_luminance(value: str) -> float:
@@ -145,15 +147,31 @@ def test_semantic_role_survives_every_surface_it_lands_on(
 def test_semantic_role_never_collapses_into_the_accent(
     style_id: str, mode: str, role: str
 ) -> None:
-    """A warning that looks like a button has stopped being a warning."""
+    """A warning that looks like a button has stopped being a warning.
+
+    Asserted on the CHIP rather than on the solid fill since 2026-08-06, and
+    the substitution is deliberate:
+
+    * the solid fill it used to check no longer exists. Design_Constraints
+      section 1.1 gives a semantic role a tinted chip, a label on it and a
+      border; the accent is the only role that fills.
+    * the old form could only be met by re-solving the semantics against the
+      accent, and the accent is now a free tenant input. That would make
+      "saved" a function of somebody's logo, which is the whole defect the
+      single palette exists to remove.
+
+    The chip pair is what is actually on screen together, and it is asserted
+    inside `palette.build`, so it holds at every hue the knob can reach rather
+    than only at the default one.
+    """
 
     theme = VISUAL_STYLE_PRESETS[style_id]["themes"][mode]
     if "background_color" not in theme:
         pytest.skip("mode carries no surface colours")
-    accent = theme["accent_color"]
-    gap = _separation(theme[role], accent)
-    weight = _contrast(theme[role], accent)
-    assert gap >= MIN_HUE_GAP_FROM_ACCENT_DEG or weight >= MIN_CONTRAST_FROM_ACCENT, (
-        f"{style_id}/{mode}: {role} sits {gap} degrees from the accent at only "
-        f"{weight:.2f} contrast — it reads as the accent, not as a status"
+    chip = theme[role.replace("_color", "_soft_color")]
+    weight = _contrast(chip, theme["accent_soft_color"])
+    assert weight >= MIN_CHIP_SEPARATION, (
+        f"{style_id}/{mode}: the {role} chip {chip} and the accent chip "
+        f"{theme['accent_soft_color']} are {weight:.2f}:1 apart — on a row "
+        f"showing both they are one colour"
     )

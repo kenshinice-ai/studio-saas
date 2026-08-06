@@ -31,6 +31,8 @@ from pathlib import Path
 
 import pytest
 
+from studiosaas.presets import DEFAULT_STYLE_ID
+
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 BRAND_SYSTEM = REPOSITORY_ROOT / "backend/frontend/assets/brand-system.css"
 PORTAL = REPOSITORY_ROOT / "tenant-template/index.html"
@@ -147,30 +149,46 @@ def test_the_pinned_address_bar_colour_is_gone() -> None:
 def test_the_preference_is_validated_and_system_needs_both_modes() -> None:
     from studiosaas.api_v1 import _normalize_visual_theme
 
-    both = _normalize_visual_theme({"style_id": "vintage-press", "scheme_preference": "system"})
+    both = _normalize_visual_theme({"style_id": DEFAULT_STYLE_ID, "scheme_preference": "system"})
     assert both["scheme_preference"] == "system"
 
     for value in ("light", "dark"):
-        pinned = _normalize_visual_theme({"style_id": "vintage-press", "scheme_preference": value,
+        pinned = _normalize_visual_theme({"style_id": DEFAULT_STYLE_ID, "scheme_preference": value,
                                           "color_scheme": value})
         assert pinned["scheme_preference"] == value
 
     with pytest.raises(ValueError):
-        _normalize_visual_theme({"style_id": "vintage-press", "scheme_preference": "auto"})
+        _normalize_visual_theme({"style_id": DEFAULT_STYLE_ID, "scheme_preference": "auto"})
 
 
-def test_a_single_mode_theme_cannot_follow_the_visitor() -> None:
-    """arcade-lime is dark only — its accent turns olive on a light page.
+def test_a_single_mode_theme_cannot_follow_the_visitor(monkeypatch) -> None:
+    """Accepting `system` on a one-mode style would mean either rendering a
+    dark theme's tokens on a light surface, or ignoring the setting. Both are
+    worse than refusing.
 
-    Accepting `system` there would mean either rendering a dark theme's tokens
-    on a light surface, or ignoring the setting. Both are worse than refusing.
+    This used to run against arcade-lime, which was dark only. The eight
+    industry palettes became one on 2026-08-06 and the shipped style has both
+    modes, so the guard has no live style to trip it — which is exactly when a
+    guard rots. A single-mode style is patched in instead, so the branch stays
+    covered for whenever section 9 of Design_Constraints decides the portal is
+    light only.
     """
 
-    from studiosaas.api_v1 import _normalize_visual_theme
+    import importlib
 
-    with pytest.raises(ValueError, match="dark only"):
-        _normalize_visual_theme({"style_id": "arcade-lime", "color_scheme": "dark",
-                                 "scheme_preference": "system"})
+    from studiosaas.presets import VISUAL_STYLE_PRESETS, style_theme
+
+    # `from studiosaas import api_v1` hands back the Blueprint of that name,
+    # not the module the helpers live in.
+    module = importlib.import_module("studiosaas.api_v1")
+    one_mode = {**VISUAL_STYLE_PRESETS[DEFAULT_STYLE_ID],
+                "label": "Dark Only", "modes": ["dark"],
+                "themes": {"dark": style_theme(DEFAULT_STYLE_ID, "dark")}}
+    monkeypatch.setitem(module.VISUAL_STYLE_PRESETS, "dark-only", one_mode)
+
+    with pytest.raises(ValueError, match="dark only|only available in"):
+        module._normalize_visual_theme({"style_id": "dark-only", "color_scheme": "dark",
+                                        "scheme_preference": "system"})
 
 
 def test_following_the_visitor_publishes_both_palettes() -> None:
@@ -180,12 +198,12 @@ def test_following_the_visitor_publishes_both_palettes() -> None:
 
     from studiosaas.api_v1 import _normalize_visual_theme, _published_schemes
 
-    following = _normalize_visual_theme({"style_id": "harbour-calm", "scheme_preference": "system"})
+    following = _normalize_visual_theme({"style_id": DEFAULT_STYLE_ID, "scheme_preference": "system"})
     published = _published_schemes(following)
     assert set(published) == {"light", "dark"}
     assert published["light"]["background_color"] != published["dark"]["background_color"]
 
-    pinned = _normalize_visual_theme({"style_id": "harbour-calm", "scheme_preference": "light"})
+    pinned = _normalize_visual_theme({"style_id": DEFAULT_STYLE_ID, "scheme_preference": "light"})
     assert _published_schemes(pinned) == {}, "a pinned site should not ship a palette it never renders"
 
 
@@ -195,7 +213,7 @@ def test_the_default_is_still_the_studio_deciding() -> None:
     from studiosaas.api_v1 import _normalize_visual_theme
 
     for scheme in ("light", "dark"):
-        theme = _normalize_visual_theme({"style_id": "vintage-press", "color_scheme": scheme})
+        theme = _normalize_visual_theme({"style_id": DEFAULT_STYLE_ID, "color_scheme": scheme})
         assert theme["scheme_preference"] == scheme
 
 

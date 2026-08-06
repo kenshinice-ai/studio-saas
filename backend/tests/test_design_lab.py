@@ -154,7 +154,13 @@ def test_the_javascript_solver_matches_the_python(tmp_path: Path) -> None:
     """
     result = subprocess.run([NODE, "-e", script], capture_output=True, text=True, check=True)
     report = json.loads(result.stdout)
-    assert report["checked"] > 600, "the parity check compared almost nothing"
+    # Counted from the themes rather than pinned at a number: this said 600
+    # when there were sixteen theme-modes, and would have failed the day the
+    # eight industry palettes became one for a reason that has nothing to do
+    # with parity. What it must still catch is the check comparing nothing.
+    theme_modes = sum(len(t.get("modes", palette_gen.MODES_DEFAULT))
+                      for t in palette_gen.THEMES)
+    assert report["checked"] >= theme_modes * 40, "the parity check compared almost nothing"
     assert not report["drift"], "\n".join(report["drift"][:10])
 
 
