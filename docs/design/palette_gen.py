@@ -33,7 +33,6 @@ CHECKS = [
     ('on-accent / accent', 'accent_text_color',    'accent_color',     4.5),
     ('on-accent-muted',    'accent_muted_text_color', 'accent_color',  4.5),
     ('2nd / page',         'secondary_accent_color','background_color', 4.5),
-    ('on-2nd / 2nd',       'secondary_text_color', 'secondary_accent_color', 4.5),
     ('success / page',     'success_color',        'background_color', 4.5),
     ('warning / page',     'warning_color',        'background_color', 4.5),
     ('danger / page',      'danger_color',         'background_color', 4.5),

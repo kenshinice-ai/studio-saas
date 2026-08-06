@@ -124,6 +124,11 @@
     ['Fine-tune selected theme', '微调当前主题'],
     // The accent knob (v8.5.0). One palette, one colour the studio sets.
     ['Accent colour', '强调色'],
+    ['Starting colours', '起始色'],
+    ['Hero Shape', '首屏形状'],
+    ['Artistic (organic)', '艺术（异形）'],
+    ['Oval', '椭圆'],
+    ['Rectangle', '方形'],
     ['Pick an accent colour', '选择强调色'],
     ['From logo', '从 Logo 取色'],
     ['Only the hue is used — the depth is solved so the button stays readable.',

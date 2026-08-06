@@ -7,8 +7,10 @@
 :root {
   --brand-accent: var(--tenant-primary, var(--brand, var(--ui-primary, #835D33)));
   --brand-accent-strong: var(--tenant-secondary, var(--brand-2, var(--ui-secondary, #4C6877)));
+  --brand-accent-2-soft: var(--accent-2-soft, var(--brand-paper-raised));
+  --brand-on-accent-2-soft: var(--on-accent-2-soft, var(--brand-accent-strong));
+  --brand-accent-2-border: var(--accent-2-border, var(--brand-line));
   --brand-on-accent: #ffffff;
-  --brand-on-secondary: #ffffff;
   --brand-paper: var(--bg, var(--ui-bg, #F3EFEA));
   --brand-paper-raised: var(--surface, var(--panel, var(--ui-surface, #FDFDFD)));
   --brand-ink: var(--ink, var(--ui-text, #221E1A));
@@ -111,7 +113,15 @@
 }
 
 :where(.brand-action-primary) { background: var(--brand-accent); color: var(--brand-on-accent); }
-:where(.brand-action-secondary) { background: var(--brand-accent-strong); color: var(--brand-on-secondary); }
+/* The secondary action is a TINT, not a second filled button. Design_
+   Constraints 1.1: the accent is the only role that fills, because that is
+   what lets a semantic chip and a brand chip be told apart by shape before
+   hue. A page with two filled buttons has two primary actions. */
+:where(.brand-action-secondary) {
+  background: var(--brand-accent-2-soft, var(--brand-paper-raised));
+  color: var(--brand-on-accent-2-soft, var(--brand-accent-strong));
+  border: 1px solid var(--brand-accent-2-border, var(--brand-line));
+}
 
 :where(input[type="date"], input[type="time"], input[type="datetime-local"])::-webkit-date-and-time-value {
   min-height: 1.4em;

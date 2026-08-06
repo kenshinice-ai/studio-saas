@@ -17,8 +17,9 @@ import pytest
 
 from studiosaas.palette import (
     ACCENT_INPUT_MIN_CHROMA,
+    ACCENT_MIN_SEMANTIC_GAP,
     DEFAULT_ACCENT_HUE,
-    SEMANTIC_BANDS,
+    SEMANTIC,
     accent_hue_from,
     build,
     chroma,
@@ -62,20 +63,37 @@ def test_an_achromatic_logo_does_not_produce_a_grey_button() -> None:
         assert accent_hue_from(grey) == DEFAULT_ACCENT_HUE
 
 
-@pytest.mark.parametrize("role,logo", [("danger", "#E01B24"), ("success", "#2EA043"),
-                                       ("warning", "#D68A00"), ("info", "#1F6FEB")])
-def test_a_brand_hue_is_pushed_out_of_a_status_band(role: str, logo: str) -> None:
+@pytest.mark.parametrize("role", list(SEMANTIC))
+def test_a_brand_hue_is_pushed_off_a_status_hue(role: str) -> None:
     """A brand colour that reads as a status is not a brand colour.
 
-    Pushed to just outside the nearer edge rather than silently replaced, so a
-    studio whose logo really is red still gets the reddest hue available.
+    Measured against the status's ACTUAL hue rather than the whole band that
+    would still read as that status. The band was the first rule and it was
+    wrong in a way the swatch shelf exposed: the product's own default accent
+    is hue 26, deliberately 10 degrees off warning, and the band rule would
+    have pushed an owner who picked that exact colour off it.
+
+    Pushed to the nearer side rather than silently replaced, so a studio whose
+    logo really is red still gets the reddest brand hue available.
     """
 
-    lo, hi = SEMANTIC_BANDS[role]
-    span = [h % 360 for h in (range(lo, hi + 1) if lo < hi else range(lo, hi + 361))]
-    resolved = accent_hue_from(logo)
-    assert all(hue_gap(resolved, h) >= 1 for h in span), (
-        f"{logo} resolved to {resolved}, still inside the {role} band")
+    from studiosaas.palette import hexof
+
+    sem_hue = SEMANTIC[role][0]
+    resolved = accent_hue_from(hexof(sem_hue, 0.62, 0.48))
+    assert hue_gap(resolved, sem_hue) >= ACCENT_MIN_SEMANTIC_GAP - 0.01, (
+        f"a {role}-coloured logo resolved to {resolved}, still on the status hue")
+
+
+def test_the_default_accent_survives_its_own_picker() -> None:
+    """An owner who picks the product's own default must keep it.
+
+    This is exactly what the band rule got wrong, so it is asserted rather
+    than remembered.
+    """
+
+    default_accent = style_theme(DEFAULT_STYLE_ID, "light")["accent_color"]
+    assert hue_gap(accent_hue_from(default_accent), DEFAULT_ACCENT_HUE) < 1
 
 
 # ── the solved palette keeps every rule the default one has ─────────────────
@@ -185,9 +203,13 @@ def test_the_preview_endpoint_solves_what_the_picker_will_save(client) -> None:
 def test_the_preview_says_when_it_moved_the_colour(client) -> None:
     """A silent substitution is how an owner loses trust in the picker."""
 
+    from studiosaas.palette import hexof
+
     assert client.get("/v1/theme-preview?accent=%23808080").get_json()["notes"] == ["achromatic"]
+    # Dead on the danger hue, so it must be moved and must say so.
+    on_danger = hexof(SEMANTIC["danger"][0], 0.62, 0.48).replace("#", "%23")
     assert "moved_out_of_status_band" in \
-        client.get("/v1/theme-preview?accent=%23E01B24").get_json()["notes"]
+        client.get(f"/v1/theme-preview?accent={on_danger}").get_json()["notes"]
     assert client.get("/v1/theme-preview?accent=%2339FF14").get_json()["notes"] == []
 
 

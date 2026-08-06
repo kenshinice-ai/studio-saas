@@ -83,7 +83,10 @@ def test_visual_styles_meet_wcag_aa_contrast(client):
         ("accent_text_color", "accent_hover_color"),
         ("accent_text_color", "accent_pressed_color"),
         ("secondary_accent_color", "background_color"),
-        ("secondary_text_color", "secondary_accent_color"),
+        # `secondary_text_color` is gone since v8.5.0: Design_Constraints 1.1
+        # gives the secondary a tint and a label on that tint, never a solid
+        # fill, so a "text on the secondary fill" colour describes a
+        # component that must not exist.
         ("success_color", "background_color"),
         ("warning_color", "background_color"),
         ("danger_color", "background_color"),

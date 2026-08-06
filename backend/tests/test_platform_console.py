@@ -113,7 +113,6 @@ CONTRAST_PAIRS = [
     ("--ink2", "--bg", 4.5), ("--ink2", "--surface", 4.5), ("--ink2", "--bg2", 4.5),
     ("--muted", "--bg", 4.5), ("--muted", "--surface", 4.5), ("--muted", "--bg2", 4.5),
     ("--accent", "--bg", 4.5), ("--accent", "--surface", 4.5),
-    ("--on-accent-2", "--accent-2", 4.5),
     ("--on-success-soft", "--success-soft", 4.5),
     ("--on-warning-soft", "--warning-soft", 4.5),
     ("--on-danger-soft", "--danger-soft", 4.5),
@@ -150,7 +149,6 @@ def test_the_bright_family_amber_is_not_in_the_palette_at_all() -> None:
     values = tokens()
     assert "#F5B335" not in values.values()
     assert contrast(values["--accent-2"], values["--bg"]) >= 4.5
-    assert contrast(values["--on-accent-2"], values["--accent-2"]) >= 4.5
 
 
 RETIRED_COLD_SLATE = ("#64748b", "#e2e8f0", "#f1f5f9", "#f8fafc", "#cbd5e1",
@@ -225,7 +223,7 @@ def test_the_preview_defaults_are_the_default_studio_theme() -> None:
         "--clay": "accent_color", "--accent": "accent_color",
         "--clay-hover": "accent_hover_color", "--clay-pressed": "accent_pressed_color",
         "--clay-d": "secondary_accent_color",
-        "--on-accent": "accent_text_color", "--on-accent-2": "secondary_text_color",
+        "--on-accent": "accent_text_color",
     }
     for name, key in expected.items():
         assert name in declared, f"{name} is not declared on .preview-device"

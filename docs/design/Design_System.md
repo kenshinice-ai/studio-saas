@@ -13,8 +13,8 @@ See it rendered: [`docs/design/lab.html`](lab.html) — 3 theme-modes ×
 
 No colour in this product is chosen. Every one is **solved** for a measured
 WCAG target from a small set of declared inputs — a hue, a saturation, a
-harmony — by `docs/design/palette_gen.py`. 3 theme-modes × 61
-pairs = 183 assertions run on every build, plus the semantic-role
+harmony — by `docs/design/palette_gen.py`. 3 theme-modes × 60
+pairs = 180 assertions run on every build, plus the semantic-role
 and layering checks.
 
 1 of the themes are offered to studios. One is the platform console,
@@ -63,7 +63,6 @@ A third rule has the same shape and applies to tints: `CEILINGS` asserts an
 | `--on-accent-soft` | the label on that chip | the chip | 4.5:1 |
 | `--accent-border` | the chip's own edge | the chip | 1.45 exactly |
 | `--accent-2` | the support colour | the worst surface | 4.6:1 |
-| `--on-accent-2` |  | the panel | see the generator |
 | `--accent-2-soft` | a quiet secondary chip | the panel | 1.22 exactly |
 | `--on-accent-2-soft` | a quiet secondary chip | the panel | 1.22 exactly |
 | `--accent-2-border` | a secondary chip's edge | that chip | 1.45 exactly |
@@ -102,7 +101,6 @@ A third rule has the same shape and applies to tints: `CEILINGS` asserts an
 | on-accent / accent | 4.5 | **7.65** | studio dark |
 | on-accent-muted | 4.5 | **4.61** | studio dark |
 | 2nd / page | 4.5 | **4.52** | platform-console light |
-| on-2nd / 2nd | 4.5 | **4.92** | platform-console light |
 | success / page | 4.5 | **4.60** | studio light |
 | warning / page | 4.5 | **4.60** | platform-console light |
 | danger / page | 4.5 | **4.61** | studio dark |
@@ -213,7 +211,7 @@ for.
 ## 6. Working on this
 
 1. Change the theme's entry in `THEMES` — the inputs, never a hex.
-2. `python3 docs/design/palette_gen.py` — 183 assertions.
+2. `python3 docs/design/palette_gen.py` — 180 assertions.
 3. `python3 docs/design/palette_gen.py --emit-presets` into `presets.py`, and
    `--emit-console-css` into `assets/console-theme.css`.
 4. `python3 docs/design/build_lab.py && python3 docs/design/build_spec.py`.

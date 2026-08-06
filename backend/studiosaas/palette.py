@@ -314,9 +314,18 @@ ACCENT_SAT_FLOOR = .18
 ACCENT_SAT_CEIL  = .58
 ACCENT_INPUT_MIN_CHROMA = 20   # below this the input has no hue worth keeping
 
-# A hue inside one of these bands would read as a status rather than a brand.
+# The bands a hue has to stay inside to READ as that status. Used to place the
+# semantics and to document them; NOT used to police the accent knob.
 SEMANTIC_BANDS = {'danger': (352, 16), 'warning': (26, 50),
                   'success': (132, 168), 'info': (196, 238)}
+
+# How close a brand hue may come to a semantic's ACTUAL hue. The knob was
+# policed with SEMANTIC_BANDS above, which was wrong in a way the shelf
+# exposed: the product's own default accent is hue 26, deliberately 10 degrees
+# off warning, and the band rule would have pushed an owner who picked that
+# exact colour off it. What matters is distance from where the status actually
+# sits, not from the whole region that would still read as amber.
+ACCENT_MIN_SEMANTIC_GAP = 8.0
 
 
 def studio_theme(accent_hue=DEFAULT_ACCENT_HUE, accent_sat=DEFAULT_ACCENT_SAT):
@@ -345,6 +354,33 @@ def studio_theme(accent_hue=DEFAULT_ACCENT_HUE, accent_sat=DEFAULT_ACCENT_SAT):
         desc_zh='暖纸、近黑暖墨，和一支由工作室自己从 Logo 定下的强调色。')
 
 
+# A starting shelf, not a catalogue. Eight industry palettes went away because
+# the paper carried the industry hue; these carry nothing but a hue, so they
+# are eight starting points on ONE palette rather than eight palettes. The knob
+# is still free — this exists because "pick your colour" with an empty swatch
+# reads as though the choice was taken away, and choosing is part of setting up
+# a studio. Every one is outside all four semantic bands by construction.
+ACCENT_SHELF = (
+    ('bronze',    26,  '陶土赭铜', 'Bronze'),
+    ('rose',     344,  '胭脂玫瑰', 'Rose'),
+    ('plum',     288,  '幕布紫',   'Plum'),
+    ('indigo',   256,  '夜靛蓝',   'Indigo'),
+    ('teal',     186,  '深松石',   'Teal'),
+    ('pine',     108,  '松林绿',   'Pine'),
+    ('olive',     78,  '橄榄',     'Olive'),
+)
+
+
+def accent_shelf():
+    """The starting swatches, each solved so the picker shows the real colour."""
+    out = []
+    for key, hue, label_zh, label_en in ACCENT_SHELF:
+        theme = build(studio_theme(hue), False)
+        out.append({'key': key, 'hue': hue, 'label_zh': label_zh, 'label': label_en,
+                    'accent_color': theme['accent_color']})
+    return out
+
+
 def accent_hue_from(hexstr):
     """Take the HUE of a studio's colour and nothing else.
 
@@ -357,15 +393,13 @@ def accent_hue_from(hexstr):
     if chroma(hexstr) < ACCENT_INPUT_MIN_CHROMA:
         return DEFAULT_ACCENT_HUE          # grey in, no grey call to action out
     hue = hsl_of(hexstr)[0]
-    for lo, hi in SEMANTIC_BANDS.values():
-        span = [h % 360 for h in (range(lo, hi + 1) if lo < hi
-                                  else range(lo, hi + 361))]
-        if any(hue_gap(hue, h) < 1 for h in span):
-            # Push to just OUTSIDE whichever edge is nearer, so a studio whose
+    for sem_hue, _ in SEMANTIC.values():
+        if hue_gap(hue, sem_hue) < ACCENT_MIN_SEMANTIC_GAP:
+            # Push to whichever side of the status is nearer, so a studio whose
             # logo really is red gets the reddest brand hue that is still not
-            # the danger colour, rather than a silent substitution. Landing ON
-            # the edge would leave it inside the band it was pushed out of.
-            edges = ((lo - 1) % 360, (hi + 1) % 360)
+            # the danger colour rather than a silent substitution.
+            edges = ((sem_hue - ACCENT_MIN_SEMANTIC_GAP) % 360,
+                     (sem_hue + ACCENT_MIN_SEMANTIC_GAP) % 360)
             return min(edges, key=lambda e: hue_gap(hue, e))
     return hue
 
@@ -666,7 +700,10 @@ def build(theme, dark):
         light_opt, dark_opt = '#FFFFFF', (on_dark or ink)
         return light_opt if ratio(light_opt, colour) >= ratio(dark_opt, colour) else dark_opt
     on_accent    = best_on(accent)
-    on_secondary = best_on(secondary)
+    # No `on_secondary`. Design_Constraints 1.1 gives the secondary a tint, a
+    # label on that tint and a border — never a solid fill — so a "text on the
+    # secondary fill" token describes a component that must not exist. Emitting
+    # it is what let three surfaces quietly build one.
 
     # Secondary ink for an accent-filled region — a navy header bar, a filled
     # card, a solid nav strip. The palette had no such token, so the console's
@@ -816,7 +853,7 @@ def build(theme, dark):
         accent_color=accent, accent_text_color=on_accent,
         accent_muted_text_color=accent_muted,
         accent_hover_color=accent_hover, accent_pressed_color=accent_pressed,
-        secondary_accent_color=secondary, secondary_text_color=on_secondary,
+        secondary_accent_color=secondary,
         success_color=sem['success'], warning_color=sem['warning'],
         danger_color=sem['danger'], info_color=sem['info'],
         focus_ring_color=focus_ring, disabled_surface_color=disabled_surface,
@@ -834,7 +871,7 @@ TOKEN_ORDER = [
     'accent_color', 'accent_text_color', 'accent_muted_text_color',
     'accent_hover_color', 'accent_pressed_color',
     'accent_soft_color', 'accent_on_soft_color', 'accent_border_color',
-    'secondary_accent_color', 'secondary_text_color',
+    'secondary_accent_color',
     'secondary_soft_color', 'secondary_on_soft_color', 'secondary_border_color',
     'success_color', 'success_soft_color', 'success_on_soft_color', 'success_border_color',
     'warning_color', 'warning_soft_color', 'warning_on_soft_color', 'warning_border_color',
@@ -874,7 +911,6 @@ CSS_ROLE_NAMES = {
     'accent_on_soft_color':    ['--on-accent-soft'],
     'accent_border_color':     ['--accent-border'],
     'secondary_accent_color':  ['--accent-2'],
-    'secondary_text_color':    ['--on-accent-2'],
     'secondary_soft_color':    ['--accent-2-soft'],
     'secondary_on_soft_color': ['--on-accent-2-soft'],
     'secondary_border_color':  ['--accent-2-border'],

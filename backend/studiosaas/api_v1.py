@@ -62,6 +62,7 @@ from .presets import (
     public_industry_presets,
     public_visual_style_presets,
     accent_hue_of_colour,
+    accent_starting_points,
     style_theme,
 )
 from .services.media import (
@@ -772,6 +773,12 @@ def _default_hero_profile(category: str, studio_name: str = "") -> dict:
         "secondary_cta_label": "Explore Courses",
         "show_student_login": True,
         "background_style": "soft",
+        # The hero image's outline. Separate from background_style, which says
+        # WHAT is in the hero; this says what shape it is cut to. Organic is
+        # the default because it is the one mark that makes the page read as a
+        # studio rather than a form, but it is a strong opinion and a studio
+        # showing architectural or product work will want the rectangle.
+        "hero_shape": "organic",
         "hero_image_url": "",
     }
 
@@ -790,6 +797,11 @@ def _normalize_hero_profile(value, category: str, studio_name: str = "") -> dict
     ).lower()
     if background_style not in {"soft", "image", "minimal", "bold"}:
         raise ValueError("Hero background style must be one of: soft, image, minimal, bold.")
+    hero_shape = _first_text(
+        data, "hero_shape", "heroShape", default=default["hero_shape"], limit=16,
+    ).lower()
+    if hero_shape not in {"organic", "oval", "square"}:
+        raise ValueError("Hero shape must be one of: organic, oval, square.")
     hero_image_url = _first_text(data, "hero_image_url", "heroImageUrl", limit=500)
     if hero_image_url:
         _validate_logo_url(hero_image_url)
@@ -801,6 +813,7 @@ def _normalize_hero_profile(value, category: str, studio_name: str = "") -> dict
         "secondary_cta_label": _first_text(data, "secondary_cta_label", "secondaryCtaLabel", default=default["secondary_cta_label"], limit=40),
         "show_student_login": _bool_from_json(data, "show_student_login", "showStudentLogin", default=True),
         "background_style": background_style,
+        "hero_shape": hero_shape,
         "hero_image_url": hero_image_url,
     }
 
@@ -1098,7 +1111,7 @@ _THEME_HEX_KEYS = (
     "accent_color", "accent_text_color", "accent_muted_text_color",
     "accent_hover_color", "accent_pressed_color",
     "accent_soft_color", "accent_on_soft_color", "accent_border_color",
-    "secondary_accent_color", "secondary_text_color",
+    "secondary_accent_color",
     # Each role ships its loud form and its quiet form together. A tinted chip
     # with a label and a border is most of what a role is actually used for,
     # and shipping only the fill left every surface to invent its own tint.
@@ -2234,7 +2247,9 @@ def health():
 def industry_presets():
     """Return the shared onboarding, copy, and theme presets."""
 
-    return jsonify({"presets": public_industry_presets(), "styles": public_visual_style_presets()})
+    return jsonify({"presets": public_industry_presets(),
+                    "styles": public_visual_style_presets(),
+                    "accentShelf": accent_starting_points()})
 
 
 @api_v1.route("/theme-preview", methods=["GET"])

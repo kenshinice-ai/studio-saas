@@ -81,11 +81,90 @@ def test_no_public_page_invents_its_own_shadow(page: str) -> None:
     assert not loose, f"{page} declares its own shadows: {sorted(set(loose))}"
 
 
-def test_the_hero_keeps_the_one_organic_shape() -> None:
-    """It is the single most recognisable mark on the page, and it is capped
-    at one: an organic corner on a card would read as a mistake."""
+def test_the_organic_shape_belongs_to_the_hero_and_nothing_else() -> None:
+    """It is the most recognisable mark on the page and it is capped at one
+    element: an organic corner on a card would read as a mistake.
+
+    Two declarations, not one — the rest state and the hover state — but both
+    have to be scoped to `body.hero-organic .hero-art`, which is what this
+    actually checks.
+    """
 
     source = _read(REPOSITORY_ROOT / "tenant-template/index.html")
-    organic = re.findall(r"border-radius:\s*[\d.]+%\s+[\d.]+%[^;}]*", source)
-    assert len(organic) == 1, f"expected exactly one organic radius, found {organic}"
-    assert ".hero-art{" in source.replace("\n", "")
+    for line in source.splitlines():
+        if re.search(r"border-radius:\s*[\d.]+%\s+[\d.]+%", line):
+            assert "body.hero-organic .hero-art" in line, (
+                f"an organic radius escaped the hero: {line.strip()}")
+
+
+@pytest.mark.parametrize("shape", ["organic", "oval", "square"])
+def test_every_hero_shape_is_reachable(shape: str) -> None:
+    """The shape is a studio's choice, so all three have to exist end to end.
+
+    Square is the absence of a modifier class — the base .hero-art rule — which
+    is why it is checked through the admin control rather than through CSS.
+    """
+
+    page = _read(REPOSITORY_ROOT / "tenant-template/index.html")
+    admin = _read(REPOSITORY_ROOT / "backend/frontend/studio-admin.html")
+    assert f'value="{shape}"' in admin, f"{shape} is not offered in Studio Admin"
+    if shape != "square":
+        assert f"body.hero-{shape} .hero-art" in page, f"{shape} has no rule"
+        assert f"'hero-{shape}'" in page, f"{shape} is never applied"
+
+
+# ── the type scale ──────────────────────────────────────────────────────────
+
+ALLOWED_SIZES = {11.0, 13.0, 15.0, 16.0, 20.0, 26.0, 42.0, 68.0}
+
+
+@pytest.mark.parametrize("page", PAGES)
+def test_the_public_pages_use_eight_font_sizes(page: str) -> None:
+    """A closed set, and the closure is the point.
+
+    `tenant-template/index.html` carried 23 sizes, 13 of them between 11 and
+    19px — the drift a page accumulates when every new component picks the
+    number that looks right in isolation. The scale is 11/13/15 for text and
+    16/20/26/42/68 for display, the latter a phi ladder (1.625, 1.615, 1.619).
+
+    Both ends of a clamp() count: a clamp floor is a real rendered size on a
+    narrow screen. See docs/design/Design_Constraints.md section 2.1.
+    """
+
+    source = _read(REPOSITORY_ROOT / page)
+    off = set()
+    for value in re.findall(r"font-size:\s*([^;}\"']+)", source):
+        for number in re.findall(r"(\d+(?:\.\d+)?)px", value):
+            if float(number) not in ALLOWED_SIZES:
+                off.add(float(number))
+    assert not off, (
+        f"{page} uses sizes outside the scale: {sorted(off)}. "
+        "Needing a ninth size is a levelling problem, not a scale problem — "
+        "pick the nearest semantic level instead of the nearest number."
+    )
+
+
+@pytest.mark.parametrize("page", PAGES)
+def test_no_font_shorthand_hides_a_size(page: str) -> None:
+    """`font: 500 20px serif` carries a size and contains no `font-size:`.
+
+    Also catches `font: 13px inherit`, which is invalid CSS — a shorthand
+    cannot take `inherit` as the family — so the whole declaration is dropped
+    and the element silently falls to the browser's 13.333px default. That is
+    how the reference project lost a size it thought it had set.
+    """
+
+    source = _read(REPOSITORY_ROOT / page)
+    bad = []
+    for value in re.findall(r"font:\s*([^;}\"']+)", source):
+        value = value.strip()
+        # `font: inherit` on its own is valid and is the whole declaration
+        # inheriting; only a shorthand carrying a SIZE hides a number, and a
+        # size next to `inherit` is the invalid form that gets dropped whole.
+        if re.search(r"\d+(?:\.\d+)?px", value):
+            bad.append(value)
+    assert not bad, (
+        f"{page} sets a size through the font shorthand: {bad}. "
+        "Write font-size and font-family separately, or the size is invisible "
+        "to every audit that greps for font-size."
+    )

@@ -328,7 +328,8 @@ function build(theme, dark) {
     return ratio(lightOpt, colour) >= ratio(darkOpt, colour) ? lightOpt : darkOpt;
   };
   const onAccent = bestOn(accent);
-  const onSecondary = bestOn(secondary);
+  /* No `onSecondary`: Design_Constraints 1.1 gives the secondary a tint and
+     a label on that tint, never a solid fill. */
 
   const onAccentL = hslOf(onAccent)[2];
   const accentMuted = solve(accH, Math.min(accS * 0.18, 0.12), accent, 4.6, onAccentL < 0.5);
@@ -369,7 +370,7 @@ function build(theme, dark) {
     border_color: line, border_strong_color: lineStrong,
     accent_color: accent, accent_text_color: onAccent, accent_muted_text_color: accentMuted,
     accent_hover_color: accentHover, accent_pressed_color: accentPressed,
-    secondary_accent_color: secondary, secondary_text_color: onSecondary,
+    secondary_accent_color: secondary,
     success_color: sem.success, warning_color: sem.warning,
     danger_color: sem.danger, info_color: sem.info,
     focus_ring_color: focusRing, disabled_surface_color: disabledSurface,

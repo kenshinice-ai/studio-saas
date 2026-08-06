@@ -60,7 +60,6 @@
   --brand: var(--clay);
   --brand-2: var(--clay-d);
   --on-accent: #FFFFFF;
-  --on-secondary: #FFFFFF;
 
   /* ── Semantic ────────────────────────────────────────────────────────
    * A2. Fixed hue anchors (152 / 36 / 6) nudged 4% toward the theme, with

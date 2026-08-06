@@ -1056,18 +1056,15 @@
       box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
     }
 
-    .preset-card-top { display: flex; align-items: center; justify-content: space-between; min-width: 0; min-height: 20px; }
+    .preset-card-top { display: flex; align-items: center; justify-content: flex-end; min-width: 0; min-height: 20px; }
     /* 3-2: replaces the three-letter key slug ("GEN" / "GAM"), which was
        indistinguishable at 10px and said nothing the name below did not. */
-    .preset-dot { width: 12px; height: 12px; border: 1px solid color-mix(in srgb, var(--ink) 18%, transparent); border-radius: 999px; }
     .preset-check { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 999px; background: var(--accent-hover); color: var(--panel); font-size: 11px; opacity: 0; transform: scale(.8); transition: .18s ease; }
     .preset-card.active .preset-check { opacity: 1; transform: scale(1); }
     .preset-name { min-width: 0; color: var(--ink); font-size: 14px; font-weight: 900; line-height: 1.2; overflow-wrap: anywhere; }
     .preset-name span { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; font-weight: 700; }
     .preset-copy { margin-top: 6px; color: var(--muted); font-size: 11px; line-height: 1.35; overflow-wrap: anywhere; }
     .preset-operation { margin-top: 7px; color: var(--ink); font-size: 11px; font-weight: 750; line-height: 1.35; overflow-wrap: anywhere; }
-    .palette-swatches { display: flex; width: 100%; height: 7px; overflow: hidden; border-radius: 999px; background: var(--bg2); }
-    .palette-swatches i { flex: 1 1 0; border: 0; }
 
     /* Was .9fr : 1.1fr, which inverted the emphasis and gave the swatch strip
        more width than the controls that drive it. The controls are the subject. */
@@ -1112,6 +1109,20 @@
     .theme-picker-control select { width: 100%; min-height: 46px; font-weight: 800; }
     .theme-picker-control small { color: var(--muted); font-size: 11px; line-height: 1.4; }
     .theme-picker-control small.note-unresolved { color: var(--on-warning-soft); font-weight: 700; }
+
+    /* The starting shelf. Round, because these are colours rather than
+       options, and the selected one carries a ring rather than a tick — a
+       tick on a colour hides the colour. */
+    .accent-shelf { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+    .accent-shelf button {
+      width: 32px; height: 32px; padding: 0; border-radius: 999px; cursor: pointer;
+      border: 1px solid color-mix(in srgb, var(--ink) 18%, transparent);
+      box-shadow: 0 0 0 0 var(--accent); transition: box-shadow .15s, transform .15s;
+    }
+    .accent-shelf button:hover { transform: translateY(-1px); }
+    .accent-shelf button[aria-pressed="true"] {
+      box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--ink);
+    }
 
     /* The accent picker. The swatch and the hex field are two views of one
        value, so they share a row and a height rather than stacking. */
@@ -1380,7 +1391,6 @@
       --clay-d: #576D49;
       --accent: #704B2E;
       --on-accent: #FFFFFF;
-      --on-accent-2: #FFFFFF;
       --radius: 8px;
 
       width: 100%;
@@ -2190,6 +2200,14 @@
                            docs/design/Design_Constraints.md section 1.4. -->
                       <div class="theme-picker-control">
                         <label for="accentSourceHex">Accent colour</label>
+                        <!-- A shelf, not a catalogue. Every swatch is the same
+                             palette at a different hue, so this is one theme
+                             with seven starting points rather than the seven
+                             themes it replaced. It exists because "pick your
+                             colour" beside an empty swatch reads as though the
+                             choice was taken away, and choosing is part of
+                             setting a studio up. -->
+                        <div id="accentShelf" class="accent-shelf" role="group" aria-label="Starting colours"></div>
                         <div class="accent-picker">
                           <!-- No literal hex here: both start empty and are
                                filled from the loaded theme by syncAccentPicker,
@@ -2318,6 +2336,11 @@
                 <div class="form-group"><label for="settingHeroImageUrl">Hero Image URL</label><input id="settingHeroImageUrl" placeholder="/site/hero.jpg or https://..."></div>
                 <div class="form-group"><label for="settingHeroImageFile">Upload Hero Image</label><input id="settingHeroImageFile" type="file" accept="image/jpeg,image/png,image/webp"><small>JPEG, PNG, or WebP; metadata is removed before public delivery.</small></div>
                 <div class="form-group"><label for="settingHeroStyle">Hero Style</label><select id="settingHeroStyle"><option value="soft">Soft Art Board</option><option value="image">Photo panel</option><option value="minimal">Minimal</option><option value="bold">Bold Contrast</option></select></div>
+                <!-- What the hero image is cut to, which is a separate question
+                     from what is in it. Organic is the default and the mark
+                     that makes the page read as a studio; a studio showing
+                     architectural or product work wants the rectangle. -->
+                <div class="form-group"><label for="settingHeroShape">Hero Shape</label><select id="settingHeroShape"><option value="organic">Artistic (organic)</option><option value="oval">Oval</option><option value="square">Rectangle</option></select></div>
                 <div class="form-group"><label for="settingPrimaryCta">Primary CTA · 中文</label><input id="settingPrimaryCta" placeholder="预约体验"></div>
                 <div class="form-group"><label for="settingPrimaryCtaEn">Primary CTA · English</label><input id="settingPrimaryCtaEn" placeholder="Book a Trial"></div>
                 <div class="form-group"><label for="settingSecondaryCta">Secondary CTA · 中文</label><input id="settingSecondaryCta" placeholder="查看课程"></div>
@@ -2759,6 +2782,7 @@
         const data = await response.json();
         if (data.presets && Object.keys(data.presets).length) INDUSTRY_PRESETS = data.presets;
         if (data.styles && Object.keys(data.styles).length) VISUAL_STYLE_PRESETS = data.styles;
+        if (Array.isArray(data.accentShelf)) ACCENT_SHELF = data.accentShelf;
       } catch (error) {
         console.warn('Using the generic industry preset.', error);
       }
@@ -3491,6 +3515,7 @@
       const savedHue = theme && (theme.accent_hue ?? theme.accentHue);
       activeAccentHue = Number.isFinite(Number(savedHue)) ? Number(savedHue) : null;
       syncAccentPicker(themeValue(theme, 'accent_color', FALLBACK_THEME.accent_color));
+      renderAccentShelf();
       renderStylePresetGrid();
     }
 
@@ -3507,6 +3532,25 @@
     let activeAccentHue = null;
     let accentPreviewTimer = null;
     let accentPreviewSeq = 0;
+
+    let ACCENT_SHELF = [];
+
+    function renderAccentShelf() {
+      const shelf = $('accentShelf');
+      if (!shelf || !ACCENT_SHELF.length) return;
+      const isZh = adminIsZh();
+      const current = activeAccentHue;
+      shelf.innerHTML = ACCENT_SHELF.map((entry) => {
+        /* Within 4 degrees counts as "this one": the stored hue is rounded to
+           one decimal and a re-solve can move it a fraction. */
+        const on = current !== null && Math.min(
+          Math.abs(current - entry.hue), 360 - Math.abs(current - entry.hue)) < 4;
+        const name = isZh ? (entry.label_zh || entry.label) : entry.label;
+        return `<button type="button" data-accent-hue="${entry.hue}"
+          aria-pressed="${on ? 'true' : 'false'}" title="${esc(name)}"
+          aria-label="${esc(name)}" style="background:${entry.accent_color}"></button>`;
+      }).join('');
+    }
 
     function syncAccentPicker(accentColor) {
       const swatch = $('accentSourceSwatch');
@@ -3542,10 +3586,13 @@
         : 'Only the hue is used — the depth is solved so the button stays readable.';
     }
 
-    async function previewAccent(source) {
+    async function previewAccent(source, hue = null) {
       const seq = ++accentPreviewSeq;
       try {
-        const response = await fetch('/v1/theme-preview?accent=' + encodeURIComponent(source));
+        const query = hue === null
+          ? 'accent=' + encodeURIComponent(source)
+          : 'hue=' + encodeURIComponent(hue);
+        const response = await fetch('/v1/theme-preview?' + query);
         if (!response.ok) return;
         const body = await response.json();
         /* A colour input fires continuously; an older reply must never land on
@@ -3564,11 +3611,16 @@
           syncAccentPicker(solved.accent_color);
         }
         accentNote(body.notes || [], body.hue);
+        renderAccentShelf();
         themeMode = 'preset';
         renderStylePresetGrid();
         setSettingsDirty(true);
         updateThemePreview();
       } catch (error) { /* offline: leave the fields as they are */ }
+    }
+
+    function previewAccentHue(hue) {
+      return previewAccent(null, hue);
     }
 
     function requestAccentPreview(source) {
@@ -3687,7 +3739,6 @@
       accent_on_soft_color:   ['--on-accent-soft'],
       accent_border_color:    ['--accent-border'],
       secondary_accent_color: ['--clay-d', '--accent-2'],
-      secondary_text_color:   ['--on-accent-2'],
       success_color:          ['--success'],
       warning_color:          ['--warning'],
       danger_color:           ['--danger'],
@@ -4032,21 +4083,24 @@
       const grid = $('presetGrid');
       if (!grid) return;
       grid.innerHTML = Object.entries(INDUSTRY_PRESETS).map(([key, preset]) => {
-        const theme = preset.visualTheme || {};
         /* 3-2: the top-left slug used to be key.slice(0,3) — "GEN" and "GAM"
            differ by one letter at 10px, and "DAN"/"LAN" told an owner nothing
            the name below did not already say. The card leads with the industry
-           name, and the accent dot carries the only information the code was
-           actually conveying: which palette comes with it.
+           name.
            4-1: the tagline follows the console language, so the card is no
-           longer 「艺术 / Art / Create boldly. Grow visibly.」 all at once. */
+           longer 「艺术 / Art / Create boldly. Grow visibly.」 all at once.
+           v8.5.0: the accent dot and the three-colour swatch bar are gone.
+           They were telling an owner "this industry comes with this palette",
+           which stopped being true — an industry brings the vocabulary and the
+           forms, and the colour is a separate choice one step below. Eight
+           cards each showing the same three swatches was noise pretending to
+           be information. */
         const primary = adminIsZh() ? (preset.labelZh || preset.label) : preset.label;
         const secondary = adminIsZh() ? (preset.labelZh ? preset.label : '') : (preset.labelZh || '');
         return `
         <button type="button" class="preset-card ${key === selected ? 'active' : ''}" data-preset-key="${key}" aria-pressed="${key === selected ? 'true' : 'false'}">
-          <div class="preset-card-top"><span class="preset-dot" style="background:${themeValue(theme, 'accent_color', FALLBACK_THEME.accent_color)}" aria-hidden="true"></span><span class="preset-check" aria-hidden="true">✓</span></div>
+          <div class="preset-card-top"><span class="preset-check" aria-hidden="true">✓</span></div>
           <div><div class="preset-name">${esc(primary)}${secondary ? `<span data-no-translate>${esc(secondary)}</span>` : ''}</div><div class="preset-copy">${esc(industrySlogan(preset))}</div>${industryStarterCourse(preset) ? `<div class="preset-operation">${adminIsZh() ? '建议起步课程' : 'Starter course'} · ${esc(industryStarterCourse(preset))}</div>` : ''}</div>
-          <div class="palette-swatches" aria-hidden="true"><i style="background:${themeValue(theme, 'background_color', FALLBACK_THEME.background_color)}"></i><i style="background:${themeValue(theme, 'accent_color', FALLBACK_THEME.accent_color)}"></i><i style="background:${themeValue(theme, 'secondary_accent_color', FALLBACK_THEME.secondary_accent_color)}"></i></div>
         </button>
       `}).join('');
     }
@@ -4344,6 +4398,7 @@
       $('settingSecondaryCta').value = localized.secondary_cta?.zh || hero.secondary_cta_label || hero.secondaryCtaLabel || '查看课程';
       $('settingSecondaryCtaEn').value = localized.secondary_cta?.en || hero.secondary_cta_label || hero.secondaryCtaLabel || 'Explore Courses';
       $('settingHeroStyle').value = hero.background_style || hero.backgroundStyle || 'soft';
+      $('settingHeroShape').value = hero.hero_shape || hero.heroShape || 'organic';
       setToggle('settingShowStudentLogin', hero.show_student_login ?? hero.showStudentLogin, true);
       setToggle('settingShowPrincipal', website.show_principal ?? website.showPrincipal, true);
       setToggle('settingShowCourses', website.show_courses ?? website.showCourses, true);
@@ -4433,6 +4488,7 @@
           primaryCtaLabel: $('settingPrimaryCta').value.trim(),
           secondaryCtaLabel: $('settingSecondaryCta').value.trim(),
           backgroundStyle: $('settingHeroStyle').value,
+          heroShape: $('settingHeroShape').value,
           showStudentLogin: toggleOn('settingShowStudentLogin')
         },
         websiteProfile: {
@@ -4480,7 +4536,6 @@
           accentColor: primary,
           accentTextColor: readableText(primary),
           secondaryAccentColor: secondary,
-          secondaryTextColor: readableText(secondary),
           borderColor: $('settingThemeBorder').value,
           successColor: themeValue(styleTheme, 'success_color', FALLBACK_THEME.success_color),
           warningColor: themeValue(styleTheme, 'warning_color', FALLBACK_THEME.warning_color),
@@ -4571,7 +4626,6 @@
         accentColor: text(visual.accent_color || visual.accentColor).toLowerCase(),
         accentTextColor: text(visual.accent_text_color || visual.accentTextColor).toLowerCase(),
         secondaryAccentColor: text(visual.secondary_accent_color || visual.secondaryAccentColor).toLowerCase(),
-        secondaryTextColor: text(visual.secondary_text_color || visual.secondaryTextColor).toLowerCase(),
         borderColor: text(visual.border_color || visual.borderColor).toLowerCase(),
         styleId: text(visual.style_id || visual.styleId),
         accentHue: visual.accent_hue ?? visual.accentHue,
@@ -4652,7 +4706,6 @@
         ['Muted text on page', theme.mutedTextColor, theme.backgroundColor],
         ['Muted text on panels', theme.mutedTextColor, theme.panelColor],
         ['Primary button text', theme.accentTextColor, theme.accentColor],
-        ['Secondary button text', theme.secondaryTextColor, theme.secondaryAccentColor],
       ];
       const failures = contrastChecks
         .map(([label, foreground, background]) => [label, contrastRatio(foreground, background)])
@@ -5059,6 +5112,15 @@
       /* The accent knob. `input` fires continuously while the swatch is
          dragged, so the request is debounced and stale replies are dropped by
          sequence number — see previewAccent. */
+      $('accentShelf').addEventListener('click', (event) => {
+        const swatch = event.target.closest('[data-accent-hue]');
+        if (!swatch) return;
+        /* By HUE, not by the swatch's own hex: the swatch shows the solved
+           colour, and re-deriving a hue back out of it would round-trip
+           through the solver for no reason. */
+        clearTimeout(accentPreviewTimer);
+        previewAccentHue(Number(swatch.dataset.accentHue));
+      });
       $('accentSourceSwatch').addEventListener('input', (event) => {
         $('accentSourceHex').value = event.target.value.toUpperCase();
         requestAccentPreview(event.target.value);
@@ -5133,7 +5195,7 @@
       ].forEach((id) => $(id).addEventListener('input', markThemeCustom));
       $('settingShowWelcome').addEventListener('change', () => { setSettingsDirty(true); updateThemePreview(); });
       [
-        'settingHeroStyle','settingShowStudentLogin','settingButtonStyle','settingFontMood',
+        'settingHeroStyle','settingHeroShape','settingShowStudentLogin','settingButtonStyle','settingFontMood',
         'settingShowPrincipal','settingShowCourses','settingShowGallery','settingShowFaq','settingShowContact','settingShowStudentArea',
         'settingCmsLayout'
       ].forEach((id) => $(id).addEventListener('change', () => { setSettingsDirty(true); updateThemePreview(); }));
