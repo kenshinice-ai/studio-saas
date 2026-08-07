@@ -122,14 +122,14 @@ SESSION_SECRET_FILE = _data_path('.session_secret')
 PW_FILE       = _data_path('.cms_password')
 app.config['PHOTO_DIR'] = PHOTO_DIR
 MAX_BACKUPS   = 30   # 1 backup/hr rate limit → ~30 hours of rolling coverage
-APP_VERSION   = '8.8.0'
+APP_VERSION   = '8.10.0'
 app.config['APP_VERSION'] = APP_VERSION
 # The date this release was cut, in the manual's `dateModified` and in the
 # sitemap's `lastmod`. A version string alone is not a freshness signal to
 # anything that reads the page — search engines and AI systems weight recency
 # and cannot infer a date from `8.2.28`. Kept beside APP_VERSION so the two
 # are bumped in one edit, and asserted to be a real ISO date by the tests.
-RELEASE_DATE  = '2026-08-07'
+RELEASE_DATE  = '2026-08-08'
 app.config['RELEASE_DATE'] = RELEASE_DATE
 
 # Content types the standard library does not reliably know.
@@ -1451,6 +1451,19 @@ def serve_tenant_cms_studio_admin_alias(tenant_slug):
 @app.route('/<tenant_slug>/register')
 def serve_tenant_register(tenant_slug):
     return _tenant_page(tenant_slug, 'register.html')
+
+@app.route('/<tenant_slug>/timetable')
+def serve_tenant_timetable(tenant_slug):
+    """The public timetable, on its own page and its own URL.
+
+    Served unconditionally, and that is deliberate: the switch lives on
+    `/v1/public/<slug>/timetable`, which answers `enabled: false` when a studio
+    has not published one. Gating the SHELL here would only hide the markup
+    while the data stayed reachable, and it would give a 404 to a visitor
+    following a link the studio sent last week. The page says "nothing
+    published" instead, which is the true statement.
+    """
+    return _tenant_page(tenant_slug, 'timetable.html')
 
 # ── G6: PWA assets (public — needed before login for install/icon) ───────────
 @app.route('/manifest.json')

@@ -59,6 +59,7 @@
 <link rel="preload" href="/assets/fonts/cormorant-garamond-latin.woff2"
       as="font" type="font/woff2" crossorigin>
 <script src="/assets/ui-common.js?v=__APP_VERSION__"></script>
+<script src="/assets/portal-brand.js?v=__APP_VERSION__"></script>
 <script src="/assets/public-register.js?v=__APP_VERSION__"></script>
 <script src="/assets/public-analytics.js?v=__APP_VERSION__"></script>
 <link rel="stylesheet" href="/assets/ui-tokens.css?v=__APP_VERSION__">
@@ -521,6 +522,7 @@
       <a id="navPrincipal" href="#home:artist" data-analytics-label="nav_principal" data-en="Principal">主理人</a>
       <a id="navShowcase" href="#home:showcase" data-analytics-label="nav_showcase" data-en="Selected Work">工作室作品</a>
       <a id="navCourses" href="#home:courses" data-analytics-label="nav_courses" data-en="Courses">课程</a>
+      <a id="navTimetable" href="/{{TENANT_SLUG}}/timetable" data-analytics-label="nav_timetable" data-en="Timetable" style="display:none">课程安排</a>
       <a id="navGallery" href="#home:gallery" data-analytics-label="nav_gallery" data-en="Student %WORKS%">学员%WORK%</a>
       <a id="navFaq" href="#home:faq" data-analytics-label="nav_faq" data-en="FAQ">常见问题</a>
       <a id="navStudent" href="#my" data-analytics-label="nav_student" data-en="Student Login">学员专区</a>
@@ -535,6 +537,7 @@
     <a id="mnavPrincipal" href="#home:artist" data-analytics-label="mnav_principal" data-en="Principal">主理人</a>
     <a id="mnavShowcase" href="#home:showcase" data-analytics-label="mnav_showcase" data-en="Selected Work">工作室作品</a>
     <a id="mnavCourses" href="#home:courses" data-analytics-label="mnav_courses" data-en="Courses">课程</a>
+    <a id="mnavTimetable" href="/{{TENANT_SLUG}}/timetable" data-analytics-label="mnav_timetable" data-en="Timetable" style="display:none">课程安排</a>
     <a id="mnavGallery" href="#home:gallery" data-analytics-label="mnav_gallery" data-en="Student %WORKS%">学员%WORK%</a>
     <a id="mnavFaq" href="#home:faq" data-analytics-label="mnav_faq" data-en="FAQ">常见问题</a>
     <a id="mnavStudent" href="#my" data-analytics-label="mnav_student" data-en="Student Login">学员专区</a>
@@ -1717,106 +1720,11 @@
      version mixed a loop over --brand-* with a dozen hand-written ifs for the
      page-level tokens, which is why every new token had to be added twice and
      the interaction states never got added at all. */
-  var THEME_TOKENS = {
-    background_color:       ['--bg', '--brand-paper'],
-    background_alt_color:   ['--bg2'],
-    panel_color:            ['--panel', '--surface', '--brand-paper-raised'],
-    text_color:             ['--ink', '--brand-ink'],
-    text_soft_color:        ['--ink2'],
-    muted_text_color:       ['--muted', '--brand-ink-soft'],
-    border_color:           ['--line', '--brand-line'],
-    border_strong_color:    ['--line-strong'],
-    accent_color:           ['--clay', '--brand-accent'],
-    accent_hover_color:     ['--clay-hover'],
-    accent_pressed_color:   ['--clay-pressed'],
-    accent_text_color:      ['--on-accent', '--brand-on-accent'],
-    secondary_accent_color: ['--clay-d', '--brand-accent-strong'],
-    success_color:          ['--success', '--brand-success'],
-    warning_color:          ['--warning', '--brand-warning'],
-    danger_color:           ['--danger', '--brand-danger'],
-    focus_ring_color:       ['--focus-ring'],
-    disabled_surface_color: ['--disabled-surface'],
-    disabled_text_color:    ['--disabled-text'],
-    surface_hover_color:    ['--surface-hover'],
-    accent_muted_text_color:['--on-accent-muted'],
-    accent_soft_color:      ['--accent-soft'],
-    accent_on_soft_color:   ['--on-accent-soft'],
-    accent_border_color:    ['--accent-border'],
-    secondary_soft_color:   ['--accent-2-soft'],
-    secondary_on_soft_color:['--on-accent-2-soft'],
-    secondary_border_color: ['--accent-2-border'],
-    success_soft_color:     ['--success-soft'],
-    success_on_soft_color:  ['--on-success-soft'],
-    success_border_color:   ['--success-border'],
-    warning_soft_color:     ['--warning-soft'],
-    warning_on_soft_color:  ['--on-warning-soft'],
-    warning_border_color:   ['--warning-border'],
-    danger_soft_color:      ['--danger-soft'],
-    danger_on_soft_color:   ['--on-danger-soft'],
-    danger_border_color:    ['--danger-border'],
-    info_color:             ['--info'],
-    info_soft_color:        ['--info-soft'],
-    info_on_soft_color:     ['--on-info-soft'],
-    info_border_color:      ['--info-border'],
-    scrim_color:            ['--scrim']
-  };
-  function applyVisualTheme(b){
-    var visual=b.visualTheme||b.visual_theme||{};
-    var root=document.documentElement;
-    /* Who decides light or dark.
-       The studio does, unless the studio said otherwise. `system` is the one
-       setting that hands the choice to the visitor, and it is only ever
-       offered where BOTH palettes were published — the server refuses it for a
-       single-mode style rather than letting the page render a dark theme's
-       tokens on a light surface. */
-    var published=b.visualThemes||b.visual_themes||null;
-    var preference=visual.scheme_preference||visual.schemePreference
-                   ||visual.color_scheme||visual.colorScheme||'light';
-    function schemeNow(){
-      if(preference!=='system'||!published) return preference==='system'?'light':preference;
-      return window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
-    }
-    function paint(scheme){
-      var theme=(published&&published[scheme])||visual;
-      Object.keys(THEME_TOKENS).forEach(function(key){
-        var camel=key.replace(/_([a-z])/g,function(_,c){return c.toUpperCase();});
-        var value=theme[key]||theme[camel]||visual[key]||visual[camel];
-        if(!value) return;
-        THEME_TOKENS[key].forEach(function(cssVar){ root.style.setProperty(cssVar, value); });
-      });
-      root.dataset.brandScheme=scheme;
-      /* The browser chrome is a surface too. This was pinned to #F4F0E8 in the
-         markup and never updated, so a studio on a dark theme got a cream
-         address bar above a #15120D page on every phone. */
-      var meta=document.querySelector('meta[name="theme-color"]');
-      var page=theme.background_color||theme.backgroundColor
-               ||visual.background_color||visual.backgroundColor;
-      if(meta&&page) meta.setAttribute('content', page);
-    }
-    paint(schemeNow());
-    if(preference==='system'&&published&&window.matchMedia){
-      var query=window.matchMedia('(prefers-color-scheme: dark)');
-      var onChange=function(){ paint(schemeNow()); };
-      /* Safari below 14 has no addEventListener on a MediaQueryList. */
-      if(query.addEventListener) query.addEventListener('change', onChange);
-      else if(query.addListener) query.addListener(onChange);
-    }
-    /* Legacy tenants stored only a primary/secondary colour. */
-    var accent=visual.accent_color||visual.accentColor||b.primaryColor;
-    if(accent && !(visual.accent_color||visual.accentColor)){
-      root.style.setProperty('--clay', accent);
-      root.style.setProperty('--brand-accent', accent);
-    }
-    var secondary=visual.secondary_accent_color||visual.secondaryAccentColor||b.secondaryColor||b.secondary_color;
-    if(secondary && !(visual.secondary_accent_color||visual.secondaryAccentColor)){
-      root.style.setProperty('--clay-d', secondary);
-      root.style.setProperty('--brand-accent-strong', secondary);
-    }
-    document.body.classList.toggle('button-rounded', (visual.button_style||visual.buttonStyle)==='rounded');
-    document.body.classList.toggle('button-sharp', (visual.button_style||visual.buttonStyle)==='sharp');
-    document.body.classList.toggle('font-modern', (visual.font_mood||visual.fontMood)==='modern');
-    document.body.classList.toggle('font-classic', (visual.font_mood||visual.fontMood)==='classic');
-  }
+  /* The token map and the light/dark decision live in
+     /assets/portal-brand.js — one source for three surfaces. This page kept
+     its own copy until v8.9.0, as did the register page, and the two had
+     already drifted on `accent_color`. */
+  var applyVisualTheme = window.StudioSaaS.applyVisualTheme;
   fetch(API + '/brand').then(function(r){return r.json();}).then(function(d){
     var b=(d&&d.brand)||{};
     state.brand=b;
@@ -1908,6 +1816,12 @@
     setNavVisible(['navCourses','mnavCourses'], !state.sectionsOff.courses);
     setNavVisible(['navGallery','mnavGallery'], !state.sectionsOff.gallery);
     setNavVisible(['navFaq','mnavFaq'], !state.sectionsOff.faq);
+    /* The timetable is a separate PAGE, so this switch reveals a link and
+       nothing else on this page. It is not a weaker guarantee than a section
+       switch: /v1/public/<slug>/timetable answers `enabled: false` when the
+       studio has not published one, so the data is gone, not just hidden. */
+    setNavVisible(['navTimetable','mnavTimetable'],
+      String(website.show_timetable ?? website.showTimetable ?? false) === 'true');
     /* Content may already have arrived and revealed a section before /brand
        answered — the fetches are independent — so re-apply the switches to
        whatever is on the page now. */

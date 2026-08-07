@@ -23,6 +23,7 @@
   <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
   <script src="/assets/ui-common.js?v=__APP_VERSION__"></script>
+  <script src="/assets/portal-brand.js?v=__APP_VERSION__"></script>
   <script src="/assets/public-register.js?v=__APP_VERSION__"></script>
   <script src="/assets/public-analytics.js?v=__APP_VERSION__"></script>
   <link rel="stylesheet" href="/assets/ui-tokens.css?v=__APP_VERSION__">
@@ -391,93 +392,11 @@
       if (!response || !response.ok) return;
       const data = await response.json();
       const brand = data.brand || {};
-      const visual = brand.visualTheme || brand.visual_theme || {};
-      const root = document.documentElement;
-      // Same declarative map as the portal, so the two surfaces can never
-      // apply a different subset of the theme again.
-      const THEME_TOKENS = {
-        background_color:       ['--bg', '--brand-paper'],
-        background_alt_color:   ['--bg2'],
-        panel_color:            ['--panel', '--surface', '--brand-paper-raised'],
-        text_color:             ['--ink', '--brand-ink'],
-        text_soft_color:        ['--ink2'],
-        muted_text_color:       ['--muted', '--brand-ink-soft'],
-        border_color:           ['--line', '--brand-line'],
-        border_strong_color:    ['--line-strong'],
-        accent_color:           ['--clay', '--brand', '--brand-accent'],
-        accent_hover_color:     ['--clay-hover'],
-        accent_pressed_color:   ['--clay-pressed'],
-        accent_text_color:      ['--on-accent', '--brand-on-accent'],
-        secondary_accent_color: ['--clay-d', '--brand-2', '--brand-accent-strong'],
-        success_color:          ['--success', '--brand-success'],
-        warning_color:          ['--warning', '--brand-warning'],
-        danger_color:           ['--danger', '--brand-danger'],
-        focus_ring_color:       ['--focus-ring'],
-        disabled_surface_color: ['--disabled-surface'],
-        disabled_text_color:    ['--disabled-text'],
-        surface_hover_color:    ['--surface-hover'],
-        accent_muted_text_color:['--on-accent-muted'],
-        accent_soft_color:      ['--accent-soft'],
-        accent_on_soft_color:   ['--on-accent-soft'],
-        accent_border_color:    ['--accent-border'],
-        secondary_soft_color:   ['--accent-2-soft'],
-        secondary_on_soft_color:['--on-accent-2-soft'],
-        secondary_border_color: ['--accent-2-border'],
-        success_soft_color:     ['--success-soft'],
-        success_on_soft_color:  ['--on-success-soft'],
-        success_border_color:   ['--success-border'],
-        warning_soft_color:     ['--warning-soft'],
-        warning_on_soft_color:  ['--on-warning-soft'],
-        warning_border_color:   ['--warning-border'],
-        danger_soft_color:      ['--danger-soft'],
-        danger_on_soft_color:   ['--on-danger-soft'],
-        danger_border_color:    ['--danger-border'],
-        info_color:             ['--info'],
-        info_soft_color:        ['--info-soft'],
-        info_on_soft_color:     ['--on-info-soft'],
-        info_border_color:      ['--info-border'],
-        scrim_color:            ['--scrim']
-      };
-      /* Same rule as the portal: the studio picks light or dark unless it
-         handed the choice to the visitor, and `system` is only honoured where
-         both palettes were published. A parent who lands here from a portal
-         that followed their device must not cross into a page that did not. */
-      const published = brand.visualThemes || brand.visual_themes || null;
-      const preference = visual.scheme_preference || visual.schemePreference
-        || visual.color_scheme || visual.colorScheme || 'light';
-      const schemeNow = () => {
-        if (preference !== 'system' || !published) return preference === 'system' ? 'light' : preference;
-        return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      };
-      const paint = (scheme) => {
-        const theme = (published && published[scheme]) || visual;
-        Object.entries(THEME_TOKENS).forEach(([key, cssVars]) => {
-          const camel = key.replace(/_([a-z])/g, (_, char) => char.toUpperCase());
-          const value = theme[key] || theme[camel] || visual[key] || visual[camel];
-          if (value) cssVars.forEach((cssVar) => root.style.setProperty(cssVar, value));
-        });
-        root.dataset.brandScheme = scheme;
-        const meta = document.querySelector('meta[name="theme-color"]');
-        const page = theme.background_color || theme.backgroundColor
-          || visual.background_color || visual.backgroundColor;
-        if (meta && page) meta.setAttribute('content', page);
-      };
-      paint(schemeNow());
-      if (preference === 'system' && published && window.matchMedia) {
-        const query = window.matchMedia('(prefers-color-scheme: dark)');
-        const onChange = () => paint(schemeNow());
-        if (query.addEventListener) query.addEventListener('change', onChange);
-        else if (query.addListener) query.addListener(onChange);
-      }
-      // Legacy tenants stored only a primary/secondary colour.
-      const primary = visual.accent_color || visual.accentColor || brand.primary_color || brand.primaryColor;
-      const secondary = visual.secondary_accent_color || visual.secondaryAccentColor || brand.secondary_color || brand.secondaryColor;
-      if (primary && !(visual.accent_color || visual.accentColor)) {
-        ['--clay', '--brand', '--brand-accent'].forEach((v) => root.style.setProperty(v, primary));
-      }
-      if (secondary && !(visual.secondary_accent_color || visual.secondaryAccentColor)) {
-        ['--clay-d', '--brand-2', '--brand-accent-strong'].forEach((v) => root.style.setProperty(v, secondary));
-      }
+      /* The token map and the light/dark decision live in
+         /assets/portal-brand.js. This page kept its own copy until v8.9.0 and
+         it had already drifted from the portal's on `accent_color`, which is
+         the whole argument for one source. */
+      window.StudioSaaS.applyVisualTheme(brand);
       currentBrand = brand;
       privacyNoticeVersion = String(brand.privacyNoticeVersion || brand.privacy_notice_version || privacyNoticeVersion);
       const version = document.getElementById('privacyVersion');

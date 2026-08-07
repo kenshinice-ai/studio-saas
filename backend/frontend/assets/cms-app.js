@@ -1032,6 +1032,8 @@ function App() {
   const [schedPick, setSchedPick] = useState(null);
   const [courses, setCourses] = useState([]);
   const [schedCancel, setSchedCancel] = useState(null);
+  const [bookings, setBookings] = useState([]);
+  const [pendingTab, setPendingTab] = useState("registrations");
   const [renewTh, setRenewTh] = useState(() => parseInt(localStorage.getItem("lp_renew_threshold") || "2", 10));
   const saveRenewTh = (v) => {
     const n = parseInt(v, 10);
@@ -2000,6 +2002,12 @@ function App() {
       setCourses([]);
     }
     try {
+      const b = await v1Api("/class-bookings");
+      setBookings(b.bookings || []);
+    } catch {
+      setBookings([]);
+    }
+    try {
       const dash = await v1Api("/dashboard");
       setBizStats((dash.dashboard || {}).business || null);
     } catch (e) {
@@ -2125,6 +2133,27 @@ function App() {
       showToast(`${date} 恢复上课`);
     } catch (e) {
       showToast(`恢复失败：${e.message}`, "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+  const reviewBooking = async (bk, status) => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const d = await v1Api(`/class-bookings/${bk.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status })
+      });
+      setBookings(d.bookings || []);
+      if (status === "approved") {
+        await load();
+        showToast(bk.isExistingStudent ? `已批准，${bk.matchedStudent || bk.contactName} 已排入 ${bk.date}` : "已批准，并已建立一条待审核报名");
+      } else {
+        showToast("已婉拒这条申请", "warn");
+      }
+    } catch (e) {
+      showToast(`处理失败：${e.message}`, "error");
     } finally {
       setBusy(false);
     }
@@ -3359,7 +3388,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
   };
   if (!loggedIn) return /* @__PURE__ */ React.createElement(LoginScreen, { onLogin: refreshSession });
   if (!conn) return /* @__PURE__ */ React.createElement("div", { className: "min-h-screen flex items-center justify-center bg-gray-900 text-white p-4" }, /* @__PURE__ */ React.createElement("div", { className: "text-center p-8 max-w-md bg-gray-800 rounded-2xl shadow-2xl border border-gray-700 anim w-full" }, connErr ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "flex justify-center mb-3 text-amber-400" }, /* @__PURE__ */ React.createElement(Icon, { name: "warning", className: "w-12 h-12" })), /* @__PURE__ */ React.createElement("h2", { className: "text-xl font-bold mb-3" }, "连接失败"), /* @__PURE__ */ React.createElement("p", { className: "text-gray-400 text-sm mb-3 leading-relaxed" }, "请确认终端正在运行 ", /* @__PURE__ */ React.createElement("code", { className: "text-indigo-400 bg-gray-900 px-1 rounded" }, "python3 server.py")), /* @__PURE__ */ React.createElement("p", { className: "text-red-400 text-xs font-mono bg-gray-900 p-2 rounded mb-4" }, connErr), /* @__PURE__ */ React.createElement("button", { onClick: load, className: "bg-indigo-600 active:bg-indigo-700 px-8 py-3 rounded-xl font-bold w-full" }, "重新连接")) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("span", { className: "sp mb-3 w-10 h-10 border-4 block mx-auto" }), /* @__PURE__ */ React.createElement("h2", { className: "text-xl font-bold mt-3" }, "连接中..."))));
-  const pendingCount = (db.pending || []).length;
+  const pendingCount = (db.pending || []).length + bookings.length;
   const NAV = [
     { k: "dashboard", i: "dashboard", l: "工作台", s: "工作台" },
     { k: "roster", i: "calendar", l: "每日排课", s: "排课" },
@@ -5152,7 +5181,36 @@ ${lines.join("\n")}`;
       },
       "取消"
     )))),
-    tab === "pending" && /* @__PURE__ */ React.createElement("div", { className: "anim space-y-4" }, /* @__PURE__ */ React.createElement("h2", { className: "inline-flex items-center gap-1.5 text-xl md:text-2xl font-bold text-gray-800" }, /* @__PURE__ */ React.createElement(Icon, { name: "clipboard", className: "w-4 h-4" }), "待审核注册 (", (db.pending || []).length, ")"), !(db.pending || []).length && /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-2xl shadow-sm border border-gray-100 p-10 text-center" }, /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-4xl mb-3" }, /* @__PURE__ */ React.createElement(Icon, { name: "check", className: "w-4 h-4" })), /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-600" }, "没有待审核的报名"), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-400 mt-1 max-w-sm mx-auto leading-relaxed" }, "家长在官网或报名页提交后，申请会出现在这里等你批准。把报名页链接发出去就能开始收。")), (db.pending || []).map((pen) => {
+    tab === "pending" && /* @__PURE__ */ React.createElement("div", { className: "anim space-y-4" }, /* @__PURE__ */ React.createElement("h2", { className: "inline-flex items-center gap-1.5 text-xl md:text-2xl font-bold text-gray-800" }, /* @__PURE__ */ React.createElement(Icon, { name: "clipboard", className: "w-4 h-4" }), "待审核"), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 flex-wrap" }, [
+      ["registrations", "新报名", (db.pending || []).length],
+      ["bookings", "约课", bookings.length]
+    ].map(([key, label, count]) => /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        key,
+        onClick: () => setPendingTab(key),
+        className: `px-4 py-2 rounded-xl text-sm font-bold min-h-[44px] border ${pendingTab === key ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-gray-600 border-gray-200 active:bg-gray-50"}`
+      },
+      label,
+      " ",
+      count
+    ))), pendingTab === "bookings" && /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, !bookings.length && /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-2xl shadow-sm border border-gray-100 p-10 text-center" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-600" }, "没有待处理的约课申请"), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-400 mt-1 max-w-sm mx-auto leading-relaxed" }, "在 Studio Admin 的「Timetable」里打开公开课表并允许约课后，家长可以在课表页留下姓名和手机号申请上课，申请会出现在这里。")), bookings.map((bk) => /* @__PURE__ */ React.createElement("div", { key: bk.id, className: "bg-white rounded-2xl shadow-sm border border-amber-200 p-4 space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-start justify-between gap-3 flex-wrap" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-base font-bold text-gray-800" }, bk.contactName, bk.isExistingStudent ? /* @__PURE__ */ React.createElement("span", { className: "ml-2 align-middle inline-block text-[10px] font-bold bg-green-100 text-green-700 border border-green-300 rounded-full px-2 py-0.5" }, "已是学员", bk.matchedStudent ? ` · ${bk.matchedStudent}` : "") : /* @__PURE__ */ React.createElement("span", { className: "ml-2 align-middle inline-block text-[10px] font-bold bg-gray-100 text-gray-600 border border-gray-300 rounded-full px-2 py-0.5" }, "新访客")), /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-sm text-gray-500" }, /* @__PURE__ */ React.createElement(Icon, { name: "phone", className: "w-4 h-4" }), bk.contactPhone), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-600 mt-1" }, bk.date, " ", bk.startTime, " · ", bk.title || "未命名班次"), bk.message && /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500 mt-1 whitespace-pre-wrap" }, bk.message)), /* @__PURE__ */ React.createElement("div", { className: "text-right flex-shrink-0" }, /* @__PURE__ */ React.createElement("p", { className: `text-xs font-bold ${bk.seatsLeft === 0 ? "text-gray-500" : "text-green-700"}` }, bk.seatsLeft === 0 ? "已满" : `还有 ${bk.seatsLeft} 位`), /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-400" }, "容量 ", bk.capacity))), bk.seatsLeft === 0 && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2" }, "这节课已经满了。批准会被拒绝——先提高班次容量，或婉拒并联系家长改约。"), canManageOperations && /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 justify-end" }, /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: () => reviewBooking(bk, "declined"),
+        disabled: busy,
+        className: "bg-white border border-gray-300 text-gray-600 px-4 py-2 rounded-xl text-sm font-bold active:bg-gray-50 min-h-[44px]"
+      },
+      "婉拒"
+    ), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: () => reviewBooking(bk, "approved"),
+        disabled: busy,
+        className: "bg-indigo-600 active:bg-indigo-700 disabled:bg-gray-300 text-white px-5 py-2 rounded-xl text-sm font-bold min-h-[44px]"
+      },
+      bk.isExistingStudent ? "批准并排课" : "批准并转报名"
+    ))))), pendingTab === "registrations" && /* @__PURE__ */ React.createElement(React.Fragment, null, !(db.pending || []).length && /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-2xl shadow-sm border border-gray-100 p-10 text-center" }, /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-4xl mb-3" }, /* @__PURE__ */ React.createElement(Icon, { name: "check", className: "w-4 h-4" })), /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-600" }, "没有待审核的报名"), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-400 mt-1 max-w-sm mx-auto leading-relaxed" }, "家长在官网或报名页提交后，申请会出现在这里等你批准。把报名页链接发出去就能开始收。")), (db.pending || []).map((pen) => {
       const fullName = pen.lastName ? `${pen.firstName} ${pen.lastName}` : pen.firstName;
       const normP = (p) => (p || "").replace(/[\s\-\(\)]+/g, "");
       const penMobile = normP(pen.mobile);
@@ -5219,7 +5277,7 @@ ${lines.join("\n")}`;
         },
         /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "check", className: "w-4 h-4" }), "批准建档")
       ))));
-    })),
+    }))),
     tab === "topup" && /* @__PURE__ */ React.createElement("div", { className: "anim bg-white rounded-2xl shadow-sm border border-gray-100 p-6 max-w-2xl mx-auto" }, /* @__PURE__ */ React.createElement("h2", { className: "inline-flex items-center gap-1.5 text-xl md:text-2xl font-bold mb-4 text-gray-800" }, /* @__PURE__ */ React.createElement(Icon, { name: "money", className: "w-4 h-4" }), "充值 & 结算"), TENANT_SLUG && canRefund && /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 mb-5" }, [["topup", "充值"], ["refund", "退款退课"]].map(([m, l]) => /* @__PURE__ */ React.createElement(
       "button",
       {

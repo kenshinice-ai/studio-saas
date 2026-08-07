@@ -37,6 +37,9 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 BRAND_SYSTEM = REPOSITORY_ROOT / "backend/frontend/assets/brand-system.css"
 PORTAL = REPOSITORY_ROOT / "tenant-template/index.html"
 REGISTER = REPOSITORY_ROOT / "tenant-template/register.html"
+TIMETABLE = REPOSITORY_ROOT / "tenant-template/timetable.html"
+# v8.9.0: one module applies the palette on every public page.
+BRAND_MODULE = REPOSITORY_ROOT / "backend/frontend/assets/portal-brand.js"
 
 
 def _read(path: Path) -> str:
@@ -129,10 +132,22 @@ def test_the_inverted_band_redeclares_the_tokens_it_inverts() -> None:
 
 # ── browser chrome ──────────────────────────────────────────────────────────
 
-@pytest.mark.parametrize("page", [PORTAL, REGISTER])
-def test_the_address_bar_colour_follows_the_theme(page: Path) -> None:
-    source = _read(page)
-    assert 'name="theme-color"' in source
+@pytest.mark.parametrize("page", [PORTAL, REGISTER, TIMETABLE])
+def test_the_address_bar_declares_a_starting_colour(page: Path) -> None:
+    """Every public page has to carry a literal for the pre-/brand paint..."""
+
+    assert 'name="theme-color"' in _read(page)
+
+
+def test_the_address_bar_colour_follows_the_theme() -> None:
+    """...and every public page hands the update to the same module.
+
+    v8.9.0 moved this out of the pages: it was written twice and about to be
+    written a third time. The pages are checked above for the literal; the one
+    place that rewrites it at runtime is checked here.
+    """
+
+    source = _read(BRAND_MODULE)
     assert 'meta[name="theme-color"]' in source, "nothing updates it at runtime"
     assert "setAttribute('content', page)" in source or 'setAttribute("content", page)' in source
 
@@ -217,16 +232,25 @@ def test_the_default_is_still_the_studio_deciding() -> None:
         assert theme["scheme_preference"] == scheme
 
 
-@pytest.mark.parametrize("page", [PORTAL, REGISTER])
-def test_both_public_pages_honour_the_preference(page: Path) -> None:
+@pytest.mark.parametrize("page", [PORTAL, REGISTER, TIMETABLE])
+def test_every_public_page_delegates_the_preference_to_one_module(page: Path) -> None:
     """A parent must not cross from a portal that followed their device into a
-    registration page that did not."""
+    registration page that did not.
 
-    source = _read(page)
+    Until v8.9.0 that was guaranteed by asserting the same logic twice, in two
+    files, and hoping the copies stayed equal. Now it is guaranteed by there
+    being one copy — so the page-level check is that the page uses it.
+    """
+
+    assert "/assets/portal-brand.js" in _read(page)
+
+
+def test_the_shared_module_honours_the_preference() -> None:
+    source = _read(BRAND_MODULE)
     assert "prefers-color-scheme: dark" in source
     assert "visualThemes" in source
     for listener in ("addEventListener", "addListener"):
-        assert listener in source, f"{page.name} does not react to a mid-visit change"
+        assert listener in source, "the module does not react to a mid-visit change"
 
 
 def test_the_console_offers_it_and_disables_it_where_it_cannot_work() -> None:

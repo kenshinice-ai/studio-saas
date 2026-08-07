@@ -851,6 +851,16 @@ def _default_website_profile() -> dict:
         "showcase_lead": {"zh": "", "en": ""},
         "showcase_categories": [],
         "showcase_items": [],
+        # The public timetable lives on its own page, not in this scroll, so
+        # this switch controls a LINK as much as a section. Off until a studio
+        # has marked at least one class public — a timetable page reached from
+        # the portal and showing nothing is worse than no link at all.
+        "show_timetable": False,
+        "timetable_weeks": TIMETABLE_DEFAULT_WEEKS,
+        "timetable_fields": dict(TIMETABLE_FIELD_DEFAULTS),
+        "timetable_label": {"zh": "", "en": ""},
+        "timetable_lead": {"zh": "", "en": ""},
+        "show_timetable_booking": False,
     }
 
 
@@ -899,6 +909,39 @@ SHOWCASE_CATEGORY_LIMIT = 8
 SHOWCASE_PAGE_SIZE = 12
 
 _SHOWCASE_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,24}$")
+
+# ── the public timetable ────────────────────────────────────────────────────
+#
+# How far ahead the page projects. Two weeks is enough for a parent to plan and
+# short enough that the page stays a timetable rather than a year planner. It
+# is also the ONLY boundary on how far ahead a class may be booked: a date the
+# visitor cannot see is a date they cannot ask for, and a second, separate
+# "booking horizon" setting would drift out of step with this one — and the
+# person who discovers the drift is always the parent.
+TIMETABLE_DEFAULT_WEEKS = 2
+TIMETABLE_MAX_WEEKS = 4
+
+# Which fields the page prints, as ONE structured object rather than six loose
+# booleans. Three rules make it free without becoming unmanageable:
+#
+#   1. A missing key takes the default below, so adding a field later needs no
+#      migration and no tenant is left with a half-configured record.
+#   2. Rendering is a loop over this dict, not six branches. That is what keeps
+#      64 combinations a single layout's 64 subsets instead of 64 layouts.
+#   3. The switch is a CEILING and the content is a FLOOR — intersect them. A
+#      field switched on with nothing in it prints nothing, never an empty
+#      "Room:" label.
+#
+# `price` defaults off: a timetable is a schedule, and a studio that wants to
+# talk about money on a public page has a courses section built for it.
+TIMETABLE_FIELD_DEFAULTS = {
+    "teacher": True,
+    "room": True,
+    "age_range": True,
+    "duration": False,
+    "capacity": True,
+    "price": False,
+}
 
 
 def showcase_limit_for(conn, tenant_id: str) -> int:
@@ -952,6 +995,8 @@ def _normalize_website_profile(value) -> dict:
             "show_student_area",
             "show_about",
             "show_showcase",
+            "show_timetable",
+            "show_timetable_booking",
         )
     }
     for key in ("courses_label", "gallery_label", "faq_label", "contact_label"):
@@ -1051,6 +1096,29 @@ def _normalize_website_profile(value) -> dict:
             "video_embed_url": video_embed.embed_url(provider, video_id),
         })
     profile["showcase_items"] = curated
+
+    # ── the public timetable page ───────────────────────────────────────────
+    for key in ("timetable_label", "timetable_lead"):
+        camel = "".join([key.split("_")[0], *(part.capitalize() for part in key.split("_")[1:])])
+        source = data if key in data else {key: data.get(camel)}
+        profile[key] = _localized_pair(source, key, limit=300)
+    try:
+        weeks = int(data.get("timetable_weeks", data.get("timetableWeeks", TIMETABLE_DEFAULT_WEEKS)))
+    except (TypeError, ValueError):
+        weeks = TIMETABLE_DEFAULT_WEEKS
+    profile["timetable_weeks"] = min(max(weeks, 1), TIMETABLE_MAX_WEEKS)
+    # A missing key takes the default rather than False. "Not mentioned" and
+    # "switched off" are different answers, and reading the first as the second
+    # would blank a studio's timetable the day this object gains a field.
+    raw_fields = data.get("timetable_fields", data.get("timetableFields"))
+    raw_fields = raw_fields if isinstance(raw_fields, dict) else {}
+    profile["timetable_fields"] = {
+        key: _bool_from_json(
+            raw_fields, key,
+            "".join([key.split("_")[0], *(p.capitalize() for p in key.split("_")[1:])]),
+            default=default)
+        for key, default in TIMETABLE_FIELD_DEFAULTS.items()
+    }
     return profile
 
 
@@ -4029,6 +4097,373 @@ def public_brand(tenant_slug: str):
         row["website_profile"].pop(served_separately, None)
     row["websiteProfile"] = row["website_profile"]
     return jsonify({"brand": row})
+
+
+# ──────────────────────────────────────────────
+# v8.9.0: the public timetable
+#
+# `class_schedules` stores a RULE — "every Wednesday at four". A visitor wants
+# DATES. Turning one into the other is this endpoint's whole job, and it is
+# done on the server for a reason that has already cost this product once:
+# dates.
+#
+#   The studio's week is defined in `tenants.timezone`. A parent opening the
+#   page from another timezone, or at 11pm on a Sunday, must see the studio's
+#   days — not their device's. `/v1/...` dates are RFC 1123 elsewhere in this
+#   API precisely because a client-side reinterpretation once silently shifted
+#   them by a day. Here the projection, "today", and the week boundaries are
+#   all computed against the tenant's zone before anything is serialised.
+# ──────────────────────────────────────────────
+
+def _timetable_occurrences(conn, tenant_id: str, weeks: int, timezone_name: str):
+    """Project public weekly rules onto real dates, exceptions applied.
+
+    Returns (today, [(date, schedule_row, exception_or_None)]) ordered by date
+    then start time. Cancelled dates are INCLUDED and flagged, never dropped:
+    a class that silently disappears for one week looks like a broken website,
+    while one struck through and labelled 停课 · 公众假期 looks like a studio
+    that is minding the shop.
+    """
+
+    import datetime as _dt
+
+    today = _dt.datetime.now(ZoneInfo(timezone_name)).date()
+    horizon = today + _timedelta(days=weeks * 7)
+    rows = fetch_all(
+        conn,
+        """
+        SELECT cs.id, cs.label, cs.weekday,
+               to_char(cs.start_time, 'HH24:MI') AS start_time,
+               cs.duration_minutes, cs.capacity, cs.room,
+               c.name AS course_name, c.description AS course_description,
+               c.age_range, c.price_aud_cents,
+               COALESCE(NULLIF(m.public_display_name, ''), u.full_name) AS teacher_name,
+               COALESCE(m.show_on_public_timetable, false) AS teacher_public,
+               (SELECT count(*) FROM class_schedule_students css
+                 WHERE css.schedule_id = cs.id) AS enrolled
+        FROM class_schedules cs
+        LEFT JOIN courses c ON c.id = cs.course_id
+        LEFT JOIN users u ON u.id = cs.teacher_user_id
+        LEFT JOIN memberships m
+               ON m.user_id = cs.teacher_user_id AND m.tenant_id = cs.tenant_id
+        WHERE cs.tenant_id = %s AND cs.is_active AND cs.is_public
+        ORDER BY cs.start_time, lower(cs.label)
+        """,
+        (tenant_id,),
+    )
+    exceptions = {
+        (str(r["schedule_id"]), r["on_date"]): r
+        for r in fetch_all(
+            conn,
+            "SELECT schedule_id, on_date, cancelled, note FROM class_schedule_exceptions "
+            "WHERE tenant_id = %s AND on_date >= %s AND on_date < %s",
+            (tenant_id, today, horizon),
+        )
+    }
+    # Approved bookings hold seats; pending ones deliberately do not. See
+    # `public_class_booking` — a request nobody has looked at yet must not
+    # block a family who would actually turn up.
+    booked: dict[tuple[str, object], int] = {}
+    for r in fetch_all(
+        conn,
+        "SELECT schedule_id, on_date, count(*) AS n FROM class_bookings "
+        "WHERE tenant_id = %s AND status = 'approved' AND on_date >= %s AND on_date < %s "
+        "GROUP BY schedule_id, on_date",
+        (tenant_id, today, horizon),
+    ):
+        booked[(str(r["schedule_id"]), r["on_date"])] = int(r["n"] or 0)
+
+    out = []
+    for offset in range((horizon - today).days):
+        day = today + _timedelta(days=offset)
+        # class_schedules.weekday follows JS getDay(): 0=Sunday..6=Saturday.
+        weekday = day.isoweekday() % 7
+        for row in rows:
+            if int(row["weekday"]) != weekday:
+                continue
+            key = (str(row["id"]), day)
+            out.append((day, row, exceptions.get(key), booked.get(key, 0)))
+    return today, out
+
+
+def _timetable_entry(day, row, exception, approved, fields, want_booking):
+    """One class on one date, as the public page receives it.
+
+    Two rules run through every line here:
+
+    * **The switch is a ceiling, the content is a floor — intersect them.** A
+      field turned on with nothing behind it prints nothing, so a studio never
+      publishes an empty "Room:".
+    * **No internal identifiers leave.** The occurrence is addressed by date
+      and start time. Emitting the schedule uuid would turn a primary key into
+      a public contract we could never rebuild the row without honouring.
+    """
+
+    cancelled = bool(exception and exception["cancelled"])
+    capacity = int(row["capacity"] or 0)
+    taken = int(row["enrolled"] or 0) + int(approved or 0)
+    seats_left = max(0, capacity - taken)
+
+    entry = {
+        "date": day.isoformat(),
+        "start": row["start_time"],
+        "title": row["course_name"] or row["label"] or "",
+        # The label becomes a subtitle only when it is not already the title —
+        # "Wednesday group" under "Kids Oil Painting" is useful, under itself
+        # it is noise.
+        "subtitle": row["label"] if (row["course_name"] and row["label"]) else "",
+        "cancelled": cancelled,
+        "note": (exception["note"] if exception else "") or "",
+    }
+    if fields.get("teacher") and row["teacher_public"] and row["teacher_name"]:
+        # AND, never OR. The layout preference and the person's consent are
+        # different questions, and consent wins.
+        entry["teacher"] = row["teacher_name"]
+    if fields.get("room") and row["room"]:
+        entry["room"] = row["room"]
+    if fields.get("age_range") and row["age_range"]:
+        entry["ageRange"] = row["age_range"]
+    if fields.get("duration") and row["duration_minutes"]:
+        entry["durationMinutes"] = int(row["duration_minutes"])
+        entry["end"] = _end_of_class(row["start_time"], int(row["duration_minutes"]))
+    if fields.get("price") and row["price_aud_cents"]:
+        entry["priceAudCents"] = int(row["price_aud_cents"])
+    if fields.get("capacity") and capacity > 0:
+        entry["capacity"] = capacity
+        entry["seatsLeft"] = seats_left
+        # Proportional, not absolute. Capacity runs from 1 (one-to-one) to 30
+        # (a big class), and "nearly full" at a fixed 3 is wrong at both ends.
+        entry["nearlyFull"] = 0 < seats_left <= max(1, -(-capacity * 25 // 100))
+    if want_booking and not cancelled:
+        entry["bookable"] = True
+    return entry
+
+
+def _end_of_class(start: str, minutes: int) -> str:
+    """HH:MM plus a duration, wrapping at midnight rather than overflowing."""
+
+    try:
+        hour, minute = (int(part) for part in str(start).split(":", 1))
+    except (TypeError, ValueError):
+        return ""
+    total = (hour * 60 + minute + max(0, minutes)) % (24 * 60)
+    return f"{total // 60:02d}:{total % 60:02d}"
+
+
+@api_v1.route("/public/<tenant_slug>/timetable", methods=["GET"])
+def public_timetable(tenant_slug: str):
+    """Upcoming public classes for one studio, as dates rather than rules.
+
+    Its own endpoint and its own page. `/brand` carries only the switch, for
+    the same reason the showcase board does: `/brand` is the portal's critical
+    path, and a list with no fixed upper bound does not belong in it.
+
+    Never emits a student's name. `seatsLeft` is an aggregate — a count, not a
+    roster — and the names behind it stay on the private side of this wall.
+    """
+
+    with connect() as conn:
+        try:
+            tenant = resolve_tenant(conn, tenant_slug, "path")
+        except TenantResolutionError:
+            return _error("Unknown tenant.", 404)
+        row = fetch_one(
+            conn,
+            "SELECT name, COALESCE(settings->'website_profile', '{}'::jsonb) AS website "
+            "FROM tenants WHERE id = %s",
+            (tenant.tenant_id,),
+        )
+        profile = _normalize_website_profile((row or {}).get("website") or {})
+        if not profile.get("show_timetable"):
+            # Off is not an error and not a 404. The page renders its own
+            # "nothing published yet" state rather than a failure.
+            return jsonify({"enabled": False, "days": [], "timezone": "",
+                            "weeks": 0, "booking": False})
+
+        timezone_name = _tenant_timezone(conn, tenant.tenant_id)
+        weeks = profile.get("timetable_weeks") or TIMETABLE_DEFAULT_WEEKS
+        fields = profile.get("timetable_fields") or dict(TIMETABLE_FIELD_DEFAULTS)
+        want_booking = bool(profile.get("show_timetable_booking"))
+        today, occurrences = _timetable_occurrences(
+            conn, tenant.tenant_id, weeks, timezone_name)
+
+    days: list[dict] = []
+    for day, schedule, exception, approved in occurrences:
+        entry = _timetable_entry(day, schedule, exception, approved, fields, want_booking)
+        if not days or days[-1]["date"] != entry["date"]:
+            days.append({"date": entry["date"],
+                         "weekday": day.isoweekday() % 7,
+                         "classes": []})
+        days[-1]["classes"].append(entry)
+
+    return jsonify({
+        "enabled": True,
+        "timezone": timezone_name,
+        "today": today.isoformat(),
+        "weeks": weeks,
+        "booking": want_booking,
+        "fields": fields,
+        "label": profile.get("timetable_label") or {"zh": "", "en": ""},
+        "lead": profile.get("timetable_lead") or {"zh": "", "en": ""},
+        "studio": (row or {}).get("name") or "",
+        "days": days,
+    })
+
+
+@api_v1.route("/public/<tenant_slug>/timetable/book", methods=["POST"])
+def public_class_booking(tenant_slug: str):
+    """Ask for a place in one class, on one date, without an account.
+
+    Three decisions carry this endpoint, and every one of them is about what
+    the RESPONSE says rather than what the database stores.
+
+    **1. The reply must not reveal whether this phone belongs to a student.**
+    The server does match the name and phone against existing students — the
+    CMS needs to know — but the body returned is byte-for-byte the same either
+    way. Otherwise the form stops being a form: type a number, watch for a
+    different answer, and you have a way to ask "is this person enrolled
+    here?" about anyone. That is not a hypothetical; it is the same endpoint
+    used slightly differently.
+
+    **2. A pending request does not hold a seat.** Capacity is re-checked at
+    approval, not here. A tap that nobody has looked at yet must not lock out
+    a family who would actually turn up, and by approval time this moment's
+    arithmetic is stale anyway.
+
+    **3. But the parent is told where they stand.** A class showing "1 place
+    left" that quietly collects five requests will disappoint four people. The
+    reply says how many are already waiting, and hands the choice back.
+
+    Booking is bounded by the same `timetable_weeks` the page projects: a date
+    a visitor cannot see is a date they cannot ask for. Deliberately not a
+    second setting — two horizons drift apart, and the person who finds the
+    drift is always the parent.
+    """
+
+    from .services.student_access import find_student, normalize_phone
+
+    payload = _json_payload()
+    name = _clean_text(payload, "name", _clean_text(payload, "contactName"))[:80]
+    phone_raw = _clean_text(payload, "phone", _clean_text(payload, "contactPhone"))[:40]
+    phone = normalize_phone(phone_raw)
+    message = _clean_text(payload, "message")[:300]
+    start = _clean_text(payload, "start", _clean_text(payload, "startTime"))
+    language = _clean_text(payload, "language")[:8]
+    if not name or not phone:
+        return _error("Please give a full name and a contact phone number.")
+    if not re.match(r"^\d{2}:\d{2}$", start):
+        return _error("Please choose a class from the timetable.")
+    try:
+        on_date = _roster_date(payload.get("date"))
+    except ValueError as exc:
+        return _error(str(exc))
+
+    with connect() as conn:
+        try:
+            tenant = resolve_tenant(conn, tenant_slug, "path")
+        except TenantResolutionError:
+            return _error("Unknown tenant.", 404)
+        # Same limiter shape as the balance lookup this borrows its identity
+        # rule from — the form is only worth rate-limiting because it can be
+        # asked repeatedly, which is exactly what decision 1 is about.
+        if _rate_limited(f"booking:{tenant.tenant_id}:{_client_ip()}", 10):
+            return _error("Too many requests. Please try again shortly.", 429)
+
+        row = fetch_one(
+            conn,
+            "SELECT COALESCE(settings->'website_profile', '{}'::jsonb) AS website "
+            "FROM tenants WHERE id = %s",
+            (tenant.tenant_id,),
+        )
+        profile = _normalize_website_profile((row or {}).get("website") or {})
+        if not (profile.get("show_timetable") and profile.get("show_timetable_booking")):
+            return _error("This studio is not taking booking requests here.", 404)
+
+        timezone_name = _tenant_timezone(conn, tenant.tenant_id)
+        weeks = profile.get("timetable_weeks") or TIMETABLE_DEFAULT_WEEKS
+        today, occurrences = _timetable_occurrences(
+            conn, tenant.tenant_id, weeks, timezone_name)
+
+        # Addressed by date and start time, never by uuid: the public page was
+        # never given one. This also means an occurrence that is not currently
+        # published simply cannot be booked.
+        match = next(
+            (item for item in occurrences
+             if item[0] == on_date and item[1]["start_time"] == start),
+            None,
+        )
+        if match is None:
+            return _error(
+                "That class is not on the published timetable. Please pick one from the list.",
+                404,
+            )
+        _day, schedule, exception, approved = match
+        if exception and exception["cancelled"]:
+            return _error("That class is not running on this date.")
+
+        capacity = int(schedule["capacity"] or 0)
+        taken = int(schedule["enrolled"] or 0) + int(approved or 0)
+        seats_left = max(0, capacity - taken)
+
+        # Matching happens here and the result goes ONLY into the record. It
+        # never reaches the branch that builds the response.
+        #
+        # "matched" is the service's word, and it is the ONLY status that means
+        # one unambiguous person: "ambiguous" (two students share a name and a
+        # number) and "missing" both have to fall through to the new-enquiry
+        # path. Guessing between two families is worse than asking.
+        lookup = find_student(conn, tenant_id=tenant.tenant_id, name=name, phone=phone)
+        student_id = (lookup.student or {}).get("id") if lookup.status == "matched" else None
+
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO class_bookings
+                    (tenant_id, schedule_id, on_date, student_id, contact_name,
+                     contact_phone, message, privacy_notice_version, source_language, campaign)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+                ON CONFLICT (schedule_id, on_date, contact_phone)
+                    WHERE status = 'pending' DO NOTHING
+                RETURNING id
+                """,
+                (tenant.tenant_id, schedule["id"], on_date, student_id, name, phone,
+                 message, PRIVACY_NOTICE_VERSION, language,
+                 json.dumps(_campaign_from_payload(payload), ensure_ascii=False)),
+            )
+            created = cur.fetchone()
+            cur.execute(
+                "SELECT count(*) AS n FROM class_bookings "
+                "WHERE schedule_id = %s AND on_date = %s AND status = 'pending'",
+                (schedule["id"], on_date),
+            )
+            waiting = int((cur.fetchone() or {}).get("n") or 0)
+        conn.commit()
+
+    return jsonify({
+        "ok": True,
+        # `duplicate` is not an error. A parent who is unsure the first tap
+        # worked taps again; the honest answer is "we already have it", not a
+        # red box and not a second row in somebody's queue.
+        "duplicate": created is None,
+        "seatsLeft": seats_left,
+        "waiting": waiting,
+        "date": on_date.isoformat(),
+        "start": start,
+        "title": schedule["course_name"] or schedule["label"] or "",
+    })
+
+
+def _campaign_from_payload(payload: dict) -> dict:
+    """The UTM-ish fields a public form may carry, bounded and stringified."""
+
+    raw = payload.get("campaign")
+    if not isinstance(raw, dict):
+        return {}
+    return {
+        str(key)[:40]: str(value or "")[:120]
+        for key, value in list(raw.items())[:8]
+        if str(key).strip()
+    }
 
 
 _PUBLIC_ANALYTICS_EVENTS = {
@@ -8824,6 +9259,203 @@ def restore_class_occurrence(schedule_id: str, on_date: str):
         conn.commit()
         schedules = _schedules_with_students(conn, tenant.tenant_id)
     return jsonify({"ok": True, "schedules": schedules})
+
+
+# ──────────────────────────────────────────────
+# v8.10.0: the booking queue, on the studio's side
+#
+# One inbox, two tabs. The CMS already has a 待审核 page for registrations, and
+# this does NOT become a second place to look — the counts are reported apart
+# because the two mean different things, but the front desk visits one screen.
+# ──────────────────────────────────────────────
+
+def _pending_bookings(conn, tenant_id: str, limit: int = 100) -> list[dict]:
+    """Requests awaiting a decision, newest first, with what they are for."""
+
+    rows = fetch_all(
+        conn,
+        """
+        SELECT b.id, to_char(b.on_date, 'YYYY-MM-DD') AS on_date, b.contact_name,
+               b.contact_phone, b.message, b.created_at, b.student_id,
+               cs.label, cs.capacity,
+               to_char(cs.start_time, 'HH24:MI') AS start_time,
+               c.name AS course_name,
+               s.display_name AS matched_student,
+               (SELECT count(*) FROM class_schedule_students css
+                 WHERE css.schedule_id = cs.id) AS enrolled,
+               (SELECT count(*) FROM class_bookings ab
+                 WHERE ab.schedule_id = b.schedule_id AND ab.on_date = b.on_date
+                   AND ab.status = 'approved') AS approved
+        FROM class_bookings b
+        JOIN class_schedules cs ON cs.id = b.schedule_id
+        LEFT JOIN courses c ON c.id = cs.course_id
+        LEFT JOIN students s ON s.id = b.student_id
+        WHERE b.tenant_id = %s AND b.status = 'pending'
+        ORDER BY b.on_date, cs.start_time, b.created_at
+        LIMIT %s
+        """,
+        (tenant_id, limit),
+    )
+    out = []
+    for r in rows:
+        capacity = int(r["capacity"] or 0)
+        taken = int(r["enrolled"] or 0) + int(r["approved"] or 0)
+        out.append({
+            "id": str(r["id"]),
+            "date": r["on_date"],
+            "startTime": r["start_time"],
+            "title": r["course_name"] or r["label"] or "",
+            "contactName": r["contact_name"],
+            "contactPhone": r["contact_phone"],
+            "message": r["message"],
+            # Whether this matched an existing student is shown HERE and only
+            # here. The public form's reply is identical either way — see
+            # `public_class_booking`.
+            "matchedStudent": r["matched_student"] or "",
+            "isExistingStudent": bool(r["student_id"]),
+            "capacity": capacity,
+            "seatsLeft": max(0, capacity - taken),
+        })
+    return out
+
+
+@api_v1.route("/class-bookings", methods=["GET"])
+@auth_required
+def list_class_bookings():
+    """Booking requests awaiting a decision."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        bookings = _pending_bookings(conn, tenant.tenant_id)
+    return jsonify({"bookings": bookings, "pending": len(bookings)})
+
+
+@api_v1.route("/class-bookings/<booking_id>", methods=["PATCH"])
+@tenant_admin_required
+def review_class_booking(booking_id: str):
+    """Approve or decline one request.
+
+    Capacity is checked HERE, not when the request arrived. The count taken at
+    submission time has expired by now, and two parents asking for the same
+    last place is the normal case — the first approval takes it, the second is
+    told plainly rather than silently overbooked.
+    """
+
+    try:
+        parsed_id = str(_uuid.UUID(booking_id))
+    except (ValueError, AttributeError):
+        return _error("Invalid booking id.")
+    payload = _json_payload()
+    decision = _clean_text(payload, "status").lower()
+    note = _clean_text(payload, "note", _clean_text(payload, "reviewNote"))[:300]
+    if decision not in {"approved", "declined"}:
+        return _error("status must be approved or declined.")
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT b.id, b.schedule_id, b.on_date, b.student_id, b.contact_name,
+                       b.contact_phone, b.message, b.source_language,
+                       b.privacy_notice_version, b.campaign, cs.capacity, cs.label,
+                       to_char(cs.start_time, 'HH24:MI') AS start_time
+                FROM class_bookings b
+                JOIN class_schedules cs ON cs.id = b.schedule_id
+                WHERE b.id = %s AND b.tenant_id = %s AND b.status = 'pending'
+                FOR UPDATE OF b
+                """,
+                (parsed_id, tenant.tenant_id),
+            )
+            booking = cur.fetchone()
+            if not booking:
+                return _error("Booking request not found, or already reviewed.", 404)
+
+            registration_id = None
+            if decision == "approved":
+                cur.execute(
+                    "SELECT (SELECT count(*) FROM class_schedule_students css "
+                    "         WHERE css.schedule_id = %s) "
+                    "     + (SELECT count(*) FROM class_bookings ab "
+                    "         WHERE ab.schedule_id = %s AND ab.on_date = %s "
+                    "           AND ab.status = 'approved') AS taken",
+                    (booking["schedule_id"], booking["schedule_id"], booking["on_date"]),
+                )
+                taken = int((cur.fetchone() or {}).get("taken") or 0)
+                if taken >= int(booking["capacity"] or 0):
+                    return _error(
+                        "That class is now full. Decline this request, or raise the "
+                        "class capacity first.", 409)
+
+                if booking["student_id"]:
+                    # An existing student: this is a seat on a day's roster,
+                    # and deliberately NOT a new enquiry.
+                    cur.execute(
+                        """
+                        INSERT INTO daily_roster_entries (
+                            tenant_id, roster_date, student_id, source, status,
+                            note, class_time, created_by_user_id
+                        ) VALUES (%s, %s, %s, 'booking', 'scheduled', %s, %s::time, %s)
+                        ON CONFLICT (tenant_id, roster_date, student_id) DO UPDATE
+                        SET status = 'scheduled',
+                            status_before_cancel = NULL,
+                            class_time = COALESCE(EXCLUDED.class_time,
+                                                  daily_roster_entries.class_time),
+                            cancelled_by_user_id = NULL,
+                            cancelled_at = NULL
+                        """,
+                        (tenant.tenant_id, booking["on_date"], booking["student_id"],
+                         booking["label"] or "", booking["start_time"],
+                         getattr(getattr(g, "actor", None), "user_id", None)),
+                    )
+                else:
+                    # Nobody we recognise: this IS a new enquiry, so it joins
+                    # the registration funnel and is counted there — once.
+                    parts = str(booking["contact_name"] or "").split(None, 1)
+                    cur.execute(
+                        """
+                        INSERT INTO registrations (
+                            tenant_id, status, first_name, last_name, parent_name,
+                            mobile, message, source, source_path, source_language,
+                            campaign, privacy_consent_at, privacy_notice_version
+                        ) VALUES (%s, 'pending', %s, %s, %s, %s, %s, 'class_booking',
+                                  %s, %s, %s::jsonb, now(), %s)
+                        RETURNING id
+                        """,
+                        (tenant.tenant_id, parts[0][:80],
+                         (parts[1][:80] if len(parts) > 1 else ""),
+                         booking["contact_name"][:80], booking["contact_phone"],
+                         booking["message"],
+                         f"/timetable#{booking['on_date']}",
+                         booking["source_language"],
+                         json.dumps(booking["campaign"] or {}, ensure_ascii=False),
+                         booking["privacy_notice_version"]),
+                    )
+                    registration_id = (cur.fetchone() or {}).get("id")
+
+            cur.execute(
+                """
+                UPDATE class_bookings
+                SET status = %s, review_note = %s, reviewed_at = now(),
+                    reviewed_by_user_id = %s,
+                    registration_id = COALESCE(%s, registration_id)
+                WHERE id = %s AND tenant_id = %s
+                """,
+                (decision, note, getattr(getattr(g, "actor", None), "user_id", None),
+                 registration_id, parsed_id, tenant.tenant_id),
+            )
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action=f"booking.{decision}",
+            resource_type="class_booking",
+            resource_id=parsed_id,
+            metadata={"date": str(booking["on_date"]), "start": booking["start_time"],
+                      "existingStudent": bool(booking["student_id"])},
+        )
+        conn.commit()
+        bookings = _pending_bookings(conn, tenant.tenant_id)
+    return jsonify({"ok": True, "bookings": bookings, "pending": len(bookings)})
 
 
 # ──────────────────────────────────────────────

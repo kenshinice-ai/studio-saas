@@ -2264,6 +2264,7 @@
               <button type="button" id="tab-btn-hero" role="tab" aria-selected="false" aria-controls="tab-hero" tabindex="-1" class="studio-tab" data-workbench-tab="hero">Hero</button>
               <button type="button" id="tab-btn-website" role="tab" aria-selected="false" aria-controls="tab-website" tabindex="-1" class="studio-tab" data-workbench-tab="website">Website</button>
               <button type="button" id="tab-btn-showcase" role="tab" aria-selected="false" aria-controls="tab-showcase" tabindex="-1" class="studio-tab" data-workbench-tab="showcase">Selected Work</button>
+              <button type="button" id="tab-btn-timetable" role="tab" aria-selected="false" aria-controls="tab-timetable" tabindex="-1" class="studio-tab" data-workbench-tab="timetable">Timetable</button>
               <button type="button" id="tab-btn-register" role="tab" aria-selected="false" aria-controls="tab-register" tabindex="-1" class="studio-tab" data-workbench-tab="register">Registration</button>
               <button type="button" id="tab-btn-faq" role="tab" aria-selected="false" aria-controls="tab-faq" tabindex="-1" class="studio-tab" data-workbench-tab="faq">FAQ</button>
               <button type="button" id="tab-btn-messages" role="tab" aria-selected="false" aria-controls="tab-messages" tabindex="-1" class="studio-tab" data-workbench-tab="messages">Messages</button>
@@ -2623,6 +2624,76 @@
                   </div>
                   <div id="showcaseItemsEditor"></div>
                   <button type="button" class="btn btn-secondary" id="showcaseAddItem" style="margin-top:13px;">Add a work</button>
+                </div>
+              </div>
+            </div>
+
+            <div id="tab-timetable" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-timetable" data-workbench-panel="timetable">
+              <div class="panel-heading">
+                <div>
+                  <h3>Public timetable</h3>
+                  <p>Upcoming classes on their own page at <code id="timetableUrlHint">/&lt;your studio&gt;/timetable</code>, linked from the portal. A page rather than another band on the home page: a family reading a timetable is comparing rows against a calendar, which wants width and its own URL to share.</p>
+                  <p>Only classes you have ticked <strong>“Show on the public timetable”</strong> in the CMS appear here — and only for as many weeks as you choose below. Nothing is published by simply being scheduled.</p>
+                </div>
+              </div>
+              <div class="form-grid">
+                <div class="switch-list">
+                  <div class="switch-row">
+                    <label class="switch-label" for="settingShowTimetable">Public Timetable Page</label>
+                    <input class="switch" id="settingShowTimetable" type="checkbox">
+                  </div>
+                  <div class="switch-row">
+                    <label class="switch-label" for="settingShowTimetableBooking">Accept booking requests</label>
+                    <input class="switch" id="settingShowTimetableBooking" type="checkbox">
+                  </div>
+                </div>
+                <div class="form-group" style="grid-column:1/-1;">
+                  <small>Booking asks only for a full name and a phone number — no account, no password. Requests arrive in the CMS under Pending and take a seat only once you approve them, so a request nobody has looked at never blocks a family who would actually turn up.</small>
+                </div>
+                <div class="form-group">
+                  <label for="settingTimetableWeeks">Weeks to show</label>
+                  <select id="settingTimetableWeeks">
+                    <option value="1">1 week</option>
+                    <option value="2">2 weeks</option>
+                    <option value="3">3 weeks</option>
+                    <option value="4">4 weeks</option>
+                  </select>
+                  <small>Also the booking window: a date a visitor cannot see is a date they cannot ask for. Deliberately one number rather than two — two would drift apart, and a parent would be the one to find out.</small>
+                </div>
+                <div class="form-group"><label for="settingTimetableLabel">Page Eyebrow · 中文</label><input id="settingTimetableLabel" placeholder="课程安排"></div>
+                <div class="form-group"><label for="settingTimetableLabelEn">Page Eyebrow · English</label><input id="settingTimetableLabelEn" placeholder="Timetable"></div>
+                <div class="form-group" style="grid-column:1/-1;"><label for="settingTimetableLead">Page Lead · 中文</label><input id="settingTimetableLead" placeholder="接下来两周的公开课程。"></div>
+                <div class="form-group" style="grid-column:1/-1;"><label for="settingTimetableLeadEn">Page Lead · English</label><input id="settingTimetableLeadEn" placeholder="Public classes over the next two weeks."></div>
+                <div class="form-group" style="grid-column:1/-1;">
+                  <label>What each class shows</label>
+                  <small>Switched off hides a field; switched on shows it <em>when there is something to show</em>. A class with no room recorded never prints an empty “Room”.</small>
+                  <div class="switch-list" style="margin-top:8px;">
+                    <div class="switch-row">
+                      <label class="switch-label" for="settingTimetableFieldTeacher">Teacher</label>
+                      <input class="switch" id="settingTimetableFieldTeacher" type="checkbox">
+                    </div>
+                    <div class="switch-row">
+                      <label class="switch-label" for="settingTimetableFieldRoom">Room</label>
+                      <input class="switch" id="settingTimetableFieldRoom" type="checkbox">
+                    </div>
+                    <div class="switch-row">
+                      <label class="switch-label" for="settingTimetableFieldAgeRange">Age range</label>
+                      <input class="switch" id="settingTimetableFieldAgeRange" type="checkbox">
+                    </div>
+                    <div class="switch-row">
+                      <label class="switch-label" for="settingTimetableFieldDuration">Finish time</label>
+                      <input class="switch" id="settingTimetableFieldDuration" type="checkbox">
+                    </div>
+                    <div class="switch-row">
+                      <label class="switch-label" for="settingTimetableFieldCapacity">Places left</label>
+                      <input class="switch" id="settingTimetableFieldCapacity" type="checkbox">
+                    </div>
+                    <div class="switch-row">
+                      <label class="switch-label" for="settingTimetableFieldPrice">Price</label>
+                      <input class="switch" id="settingTimetableFieldPrice" type="checkbox">
+                    </div>
+                  </div>
+                  <small style="display:block;margin-top:8px;">A teacher’s name additionally needs that teacher’s own consent, set per person in the CMS under Settings → Team. Switching “Teacher” on here does not name anyone who has not agreed.</small>
                 </div>
               </div>
             </div>
@@ -3026,6 +3097,17 @@
     let aboutImages = [];
 
     const ABOUT_IMAGE_LIMIT = 6;   // matches _normalize_website_profile
+    /* Both mirror api_v1.py. Kept as literals rather than read from /brand so
+       a first-time studio, whose record has no timetable block at all, still
+       gets the recommended layout instead of every field switched off. */
+    const TIMETABLE_DEFAULT_WEEKS = 2;
+    const TIMETABLE_FIELD_DEFAULTS = {
+      teacher: true, room: true, age_range: true,
+      duration: false, capacity: true, price: false,
+    };
+    const timetableFieldControl = (key) =>
+      'settingTimetableField' + key.split('_')
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join('');
     const ABOUT_ITEM_SLOTS = 3;
 
     /* The studio's own work — see docs/design/Showcase_Section.md.
@@ -5284,6 +5366,30 @@
       $('settingShowcaseTitleEn').value = showcaseTitle.en || '';
       $('settingShowcaseLead').value = showcaseLead.zh || '';
       $('settingShowcaseLeadEn').value = showcaseLead.en || '';
+      setToggle('settingShowTimetable', website.show_timetable ?? website.showTimetable, false);
+      setToggle('settingShowTimetableBooking',
+        website.show_timetable_booking ?? website.showTimetableBooking, false);
+      $('settingTimetableWeeks').value =
+        String(website.timetable_weeks ?? website.timetableWeeks ?? TIMETABLE_DEFAULT_WEEKS);
+      const timetableLabel = aboutPair('timetable_label', 'timetableLabel');
+      const timetableLead = aboutPair('timetable_lead', 'timetableLead');
+      $('settingTimetableLabel').value = timetableLabel.zh || '';
+      $('settingTimetableLabelEn').value = timetableLabel.en || '';
+      $('settingTimetableLead').value = timetableLead.zh || '';
+      $('settingTimetableLeadEn').value = timetableLead.en || '';
+      /* A key the record does not carry takes the recommended default, not
+         false. "Never mentioned" and "switched off" are different answers, and
+         reading the first as the second would blank a studio's timetable the
+         day this object gains a field. Mirrors the server's normalizer. */
+      const storedFields = website.timetable_fields || website.timetableFields || {};
+      Object.entries(TIMETABLE_FIELD_DEFAULTS).forEach(([key, fallback]) => {
+        const camel = key.replace(/_([a-z])/g, (_m, c) => c.toUpperCase());
+        const value = storedFields[key] ?? storedFields[camel] ?? fallback;
+        setToggle(timetableFieldControl(key), value, false);
+      });
+      if ($('timetableUrlHint')) {
+        $('timetableUrlHint').textContent = `/${TENANT_SLUG}/timetable`;
+      }
       showcaseCategories = (website.showcase_categories || website.showcaseCategories || [])
         .slice(0, SHOWCASE_CATEGORY_LIMIT)
         .map((cat) => ({ id: cat.id || '', label: cat.label || { zh: '', en: '' } }));
@@ -5430,7 +5536,19 @@
             .map((cat) => ({ id: cat.id || '', label: {
               zh: (cat.label.zh || cat.label.en || '').trim(),
               en: (cat.label.en || cat.label.zh || '').trim() } })),
-          showcaseItems: collectShowcaseItems()
+          showcaseItems: collectShowcaseItems(),
+          /* Same rule as the About block above: every key the server keeps
+             must be sent, because `_normalize_website_profile` rebuilds from
+             this object alone. A timetable field omitted here is a timetable
+             field erased on the studio's next Save. */
+          showTimetable: toggleOn('settingShowTimetable'),
+          showTimetableBooking: toggleOn('settingShowTimetableBooking'),
+          timetableWeeks: Number($('settingTimetableWeeks').value) || TIMETABLE_DEFAULT_WEEKS,
+          timetableLabel: bilingualPair('settingTimetableLabel', 'settingTimetableLabelEn'),
+          timetableLead: bilingualPair('settingTimetableLead', 'settingTimetableLeadEn'),
+          timetableFields: Object.fromEntries(
+            Object.keys(TIMETABLE_FIELD_DEFAULTS)
+              .map((key) => [key, toggleOn(timetableFieldControl(key))]))
         },
         principalProfile: {
           show: toggleOn('settingShowPrincipal'),

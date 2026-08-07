@@ -168,13 +168,17 @@ def test_consent_checkbox_restores_a_visible_native_checked_state(template: Path
 # the disabled pair and the scrim — while a `background:#f1f5f9 !important`
 # outranked whatever background did arrive. Every tenant's CMS looked the same.
 
+# v8.9.0. The three public pages no longer carry a map each — portal, register
+# and the new timetable page all call `/assets/portal-brand.js`.
+#
+# Two copies had already drifted (`accent_color` mapped to two variables in one
+# and three in the other) and a third was about to be written, which is the
+# moment the equality test below stopped being a safeguard and started being a
+# reason to keep writing copies. The CMS keeps its own map: it is a different
+# application with a different variable vocabulary, not a public surface.
 SURFACES = {
-    "portal": (
-        REPOSITORY_ROOT / "tenant-template" / "index.html",
-        r"THEME_TOKENS\s*=\s*\{(.*?)\n\s*\};",
-    ),
-    "register": (
-        REPOSITORY_ROOT / "tenant-template" / "register.html",
+    "public": (
+        REPOSITORY_ROOT / "backend" / "frontend" / "assets" / "portal-brand.js",
         r"THEME_TOKENS\s*=\s*\{(.*?)\n\s*\};",
     ),
     "cms": (
@@ -182,6 +186,15 @@ SURFACES = {
         r"themeVars\s*=\s*\{(.*?)\n\s*\};",
     ),
 }
+
+# Every page that renders a tenant's palette in public. Each must LOAD the one
+# module and must not re-declare the map — a page with its own copy is a page
+# that will one day render half a theme with no error anywhere.
+PUBLIC_PAGES = (
+    REPOSITORY_ROOT / "tenant-template" / "index.html",
+    REPOSITORY_ROOT / "tenant-template" / "register.html",
+    REPOSITORY_ROOT / "tenant-template" / "timetable.html",
+)
 
 # The API field names that /v1/public/<slug>/brand reports under visualTheme.
 # Sourced from backend/studiosaas/presets.py VISUAL_STYLE_PRESETS.
@@ -216,20 +229,45 @@ def test_surface_maps_every_theme_field(surface: str) -> None:
     )
 
 
-def test_the_three_surfaces_agree_field_for_field() -> None:
-    """Portal, register and CMS must map the identical field set.
+def test_the_two_surfaces_agree_field_for_field() -> None:
+    """The public module and the CMS must map the identical field set.
 
     Equality rather than 'each is complete': if a new token is added to the
     presets, this fails on the first surface to adopt it, which is the moment
     the drift starts — not months later when someone notices a colour is off.
     """
 
-    portal, register, cms = (_mapped_fields(s) for s in ("portal", "register", "cms"))
-    assert portal == register == cms, (
+    public, cms = (_mapped_fields(s) for s in ("public", "cms"))
+    assert public == cms, (
         "theme maps have drifted apart:\n"
-        f"  only in portal:   {sorted(portal - register - cms)}\n"
-        f"  only in register: {sorted(register - portal - cms)}\n"
-        f"  only in cms:      {sorted(cms - portal - register)}"
+        f"  only in the public module: {sorted(public - cms)}\n"
+        f"  only in the CMS:           {sorted(cms - public)}"
+    )
+
+
+@pytest.mark.parametrize("page", PUBLIC_PAGES, ids=lambda p: p.name)
+def test_a_public_page_uses_the_shared_theme_module_and_owns_no_map(page: Path) -> None:
+    """One source, three surfaces — enforced, not merely intended.
+
+    Before v8.9.0 the portal and the register page each held a full copy of the
+    token map. They had already diverged on `accent_color`, and neither test
+    nor eye caught it, because a partly-applied theme looks like a design
+    choice rather than a bug.
+
+    So the rule is both halves: load the module, and declare no map. Either one
+    alone lets a copy creep back in beside a call that still looks correct.
+    """
+
+    source = _read(page)
+    assert "/assets/portal-brand.js" in source, (
+        f"{page.name} does not load the shared theme module"
+    )
+    assert "applyVisualTheme" in source, (
+        f"{page.name} loads the module but never applies the theme"
+    )
+    assert not re.search(r"THEME_TOKENS\s*=\s*\{", source), (
+        f"{page.name} declares its own token map again — that is the drift "
+        "this module exists to end"
     )
 
 

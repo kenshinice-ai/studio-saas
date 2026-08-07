@@ -50,6 +50,24 @@ SWITCHES = {
                       "resolveSection('showcase', false)"),
 }
 
+# v8.9.0. Switches that do NOT govern a band on the portal, and so cannot be
+# checked by the rules above.
+#
+# The public timetable is its own page. Turning it off is therefore not "hide a
+# section" but "there is no page" — and that is a stronger guarantee than any
+# switch in the table above can make, because the SERVER refuses. A section
+# switch only stops markup being revealed; here the data never leaves.
+#
+# So these get the assertion that actually matters for them: the public
+# endpoint must return `enabled: False` rather than the classes.
+PAGE_SWITCHES = {
+    "show_timetable": ("settingShowTimetable", "public_timetable"),
+    # A sub-switch of the same page: the timetable can be published without
+    # accepting requests, and a studio that has not decided yet should not be
+    # collecting phone numbers by default.
+    "show_timetable_booking": ("settingShowTimetableBooking", "public_class_booking"),
+}
+
 # Sections revealed by their render function once content arrives. These are
 # the ones a switch can lose the race against.
 DATA_FED = {"courses", "gallery", "faq"}
@@ -155,10 +173,44 @@ def test_no_website_switch_is_orphaned_on_the_server() -> None:
     end = source.index("\ndef ", start + 1)
     stored = set(re.findall(r'"(show_[a-z_]+)"', source[start:end]))
 
-    orphaned = {flag for flag in stored - set(SWITCHES)}
+    orphaned = {flag for flag in stored - set(SWITCHES) - set(PAGE_SWITCHES)}
     assert not orphaned, (
         f"the server stores {sorted(orphaned)} but nothing in Studio Admin "
         f"can set it; add a control or stop storing it"
+    )
+
+
+@pytest.mark.parametrize("flag", sorted(PAGE_SWITCHES))
+def test_every_page_switch_has_an_admin_control(flag: str) -> None:
+    control, _ = PAGE_SWITCHES[flag]
+    assert f'id="{control}"' in ADMIN.read_text(encoding="utf-8"), (
+        f"{flag} has no control in Studio Admin"
+    )
+
+
+@pytest.mark.parametrize("flag", sorted(PAGE_SWITCHES))
+def test_a_page_switch_is_enforced_by_the_server_not_by_hiding_a_link(flag: str) -> None:
+    """Removing the link is not removing the page.
+
+    A visitor who has the URL — bookmarked it, was sent it, found it in a
+    search result — reaches the page whatever the portal's navigation shows.
+    So the endpoint behind it has to read the switch itself and refuse, and
+    that is what this pins.
+
+    It is a stronger promise than any section switch can make: a hidden
+    section is markup the browser was told not to reveal, while this is data
+    that never left the building.
+    """
+
+    source = API.read_text(encoding="utf-8")
+    _, endpoint = PAGE_SWITCHES[flag]
+    start = source.index(f"def {endpoint}(")
+    body = source[start:source.index("\n@api_v1.route", start)]
+    assert f'profile.get("{flag}")' in body, (
+        f"{endpoint}() never reads {flag}; the switch would only hide a link"
+    )
+    assert ('"enabled": False' in body) or ("404" in body), (
+        f"{endpoint}() reads {flag} but still serves its payload when it is off"
     )
 
 

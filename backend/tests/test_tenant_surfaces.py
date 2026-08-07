@@ -48,6 +48,10 @@ def test_new_tenant_workspace_generates_public_surface_files(tmp_path):
     assert (workspace / "index.html").is_file()
     assert (workspace / "register.html").is_file()
     assert (workspace / "studio-admin.html").is_file()
+    # v8.9.0. The public timetable is a page, so a tenant that never opens
+    # Studio Admin still has the file — the switch decides whether the endpoint
+    # answers, not whether the shell exists.
+    assert (workspace / "timetable.html").is_file()
 
     metadata = json.loads((workspace / "tenant.json").read_text(encoding="utf-8"))
     assert metadata == {
@@ -55,7 +59,7 @@ def test_new_tenant_workspace_generates_public_surface_files(tmp_path):
         "name": "New Music Studio",
         "workspace_path": "tenants/new-music-studio",
     }
-    for filename in ("index.html", "register.html", "studio-admin.html"):
+    for filename in ("index.html", "register.html", "studio-admin.html", "timetable.html"):
         content = (workspace / filename).read_text(encoding="utf-8")
         assert "{{TENANT_" not in content
         assert "new-music-studio" in content
@@ -77,9 +81,12 @@ def test_new_tenant_workspace_generates_public_surface_files(tmp_path):
     portal_html = (workspace / "index.html").read_text(encoding="utf-8")
     assert "heroProfile" in portal_html
     assert "websiteProfile" in portal_html
-    assert "visualTheme" in portal_html
-    assert "--brand-on-accent" in portal_html
-    assert "dataset.brandScheme" in portal_html
+    # The theme map and the light/dark decision moved to one shared module in
+    # v8.9.0 — two inline copies had already drifted and a third was about to
+    # be written. So the portal is checked for USING it, and the module is
+    # checked for containing it (test_portal_theme_contract.py).
+    assert "/assets/portal-brand.js" in portal_html
+    assert "applyVisualTheme" in portal_html
     assert "localizedCopy" in portal_html
     assert "StudioSaaSPublicRegister.submit(" in portal_html
     assert "privacyNoticeVersion: state.privacyNoticeVersion" in portal_html

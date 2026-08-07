@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{TENANT_NAME}} Timetable</title>
+  <meta name="robots" content="index,follow">
+  <!-- Rewritten by applyVisualTheme() to the page colour actually rendered.
+       The literal is only what the browser chrome shows before /brand answers. -->
+  <meta name="theme-color" content="#F3EFEA">
+  <link id="canonicalUrl" rel="canonical" href="/{{TENANT_SLUG}}/timetable">
+  <link id="altLangZh" rel="alternate" hreflang="zh-CN" href="/{{TENANT_SLUG}}/timetable">
+  <link id="altLangEn" rel="alternate" hreflang="en" href="/{{TENANT_SLUG}}/timetable?lang=en">
+  <link id="altLangDefault" rel="alternate" hreflang="x-default" href="/{{TENANT_SLUG}}/timetable">
+  <meta id="ogLocale" property="og:locale" content="zh_CN">
+  <meta id="ogLocaleAlternate" property="og:locale:alternate" content="en_US">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <script src="/assets/ui-common.js?v=__APP_VERSION__"></script>
+  <script src="/assets/portal-brand.js?v=__APP_VERSION__"></script>
+  <script src="/assets/public-analytics.js?v=__APP_VERSION__"></script>
+  <link rel="stylesheet" href="/assets/ui-tokens.css?v=__APP_VERSION__">
+  <link rel="stylesheet" href="/assets/portal-theme.css?v=__APP_VERSION__">
+  <link rel="stylesheet" href="/assets/brand-system.css?v=__APP_VERSION__">
+  <style>
+    /* No :root here. Every colour on this page comes from portal-theme.css and
+       is overridden per tenant by /brand — a fallback hex declared here would
+       be a second source for a colour that has one. */
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; color:var(--ink); background:var(--bg); font-family:var(--font-body); font-weight:400; line-height:1.7; -webkit-font-smoothing:antialiased; }
+    header { position:sticky; top:0; z-index:10; display:flex; justify-content:space-between; align-items:center; gap:16px; padding:14px 24px; background:color-mix(in srgb, var(--bg) 88%, transparent); border-bottom:1px solid var(--line); backdrop-filter:blur(12px); }
+    .brand { display:flex; align-items:center; gap:12px; min-width:0; }
+    .brand img { width:42px; height:42px; object-fit:contain; border:1px solid var(--line); border-radius:var(--radius-xs); background:var(--surface); padding:4px; }
+    .name { font-weight:500; font-size:15px; letter-spacing:.04em; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .contact { color:var(--muted); font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:min(56vw,640px); }
+    a { color:var(--clay); text-decoration:none; font-weight:500; font-size:13px; }
+    .header-actions, .lang-switch { display:flex; align-items:center; gap:10px; }
+    .lang-switch { padding:3px; border:1px solid var(--line); border-radius:var(--radius-pill); background:var(--surface); }
+    .lang-switch button { width:auto; min-width:var(--tap-min); min-height:var(--tap-min); padding:4px 12px; border:0; border-radius:var(--radius-pill); background:transparent; color:var(--muted); font:inherit; font-size:13px; cursor:pointer; }
+    .lang-switch button.active { background:var(--ink); color:var(--bg); }
+    #backLink { display:inline-flex; align-items:center; min-height:var(--tap-min); }
+
+    main { width:min(1100px,100%); margin:0 auto; padding:var(--space-phi-xl) var(--space-phi-md) var(--space-phi-2xl); }
+    .intro { margin-bottom:var(--space-phi-xl); }
+    .eyebrow { color:var(--muted); font-size:11px; font-weight:500; letter-spacing:.04em; }
+    html[lang="en"] .eyebrow { letter-spacing:.32em; text-transform:uppercase; font-weight:400; }
+    h1 { margin:var(--space-phi-sm) 0; font-family:var(--font-display); font-size:clamp(26px,5vw,42px); font-weight:500; line-height:1.07; letter-spacing:.01em; text-wrap:balance; }
+    .lead { color:var(--ink2); font-size:16px; line-height:1.7; max-width:var(--brand-reading-measure); text-wrap:pretty; }
+    .zone-note { margin-top:var(--space-phi-sm); color:var(--muted); font-size:13px; }
+
+    /* A day is a heading and its rows. Grouping by DATE rather than by weekday
+       is the whole reason this page exists: a rule says "every Wednesday", a
+       visitor is asking "what about this Wednesday". */
+    .day { margin-bottom:var(--space-phi-lg); }
+    .day-head { display:flex; align-items:baseline; gap:10px; padding-bottom:var(--space-phi-xs); border-bottom:1px solid var(--line); }
+    .day-date { font-family:var(--font-display); font-size:19px; font-weight:500; }
+    .day-weekday { color:var(--muted); font-size:13px; }
+    .day-today { margin-left:auto; padding:2px 10px; border:1px solid var(--accent-border); border-radius:var(--radius-pill); background:var(--accent-soft); color:var(--on-accent-soft); font-size:11px; font-weight:500; }
+
+    .class-row { display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:var(--space-phi-sm) var(--space-phi-md); align-items:start; padding:var(--space-phi-sm) 0; border-bottom:1px solid var(--line); }
+    .class-time { font-variant-numeric:tabular-nums; font-size:15px; font-weight:500; white-space:nowrap; }
+    .class-time small { display:block; color:var(--muted); font-weight:400; font-size:12px; }
+    .class-title { font-size:16px; font-weight:500; }
+    .class-sub { color:var(--muted); font-size:13px; }
+    /* Facts as a wrapped list, not a fixed set of columns: the studio decides
+       which of these exist, so the row cannot assume any of them. */
+    .class-meta { display:flex; flex-wrap:wrap; gap:4px 12px; margin-top:2px; color:var(--ink2); font-size:13px; }
+    .class-aside { display:flex; flex-direction:column; align-items:flex-end; gap:8px; }
+
+    /* Seats. Colour is the SECOND signal — every chip carries words, because a
+       colour-blind visitor, a greyscale print and a screen reader all get the
+       same three states only from the text (WCAG 1.4.1). None of them is a
+       solid fill: the one saturated fill on this page is the booking button. */
+    .chip { display:inline-flex; align-items:center; white-space:nowrap; padding:3px 11px; border-radius:var(--radius-pill); border:1px solid; font-size:12px; font-weight:500; }
+    .chip-open { background:var(--success-soft); color:var(--on-success-soft); border-color:var(--success-border); }
+    .chip-nearly { background:var(--warning-soft); color:var(--on-warning-soft); border-color:var(--warning-border); }
+    /* Full is NEUTRAL, not danger. A class that sold out is an achievement,
+       not a fault, and painting it red both misreads it and spends the colour
+       this product reserves for things that actually went wrong. */
+    .chip-full { background:transparent; color:var(--muted); border-color:var(--line-strong); }
+    .chip-off { background:transparent; color:var(--muted); border-color:var(--line-strong); }
+
+    .cancelled .class-title, .cancelled .class-time { text-decoration:line-through; text-decoration-thickness:1px; }
+    .cancelled { color:var(--muted); }
+    .cancel-note { color:var(--warning); font-size:13px; }
+
+    .book-btn { min-height:var(--tap-min); padding:8px 18px; border:1px solid var(--clay); border-radius:var(--radius-pill); background:var(--clay); color:var(--on-accent); font:inherit; font-size:13px; font-weight:500; cursor:pointer; }
+    .book-btn:hover { background:var(--clay-hover); }
+    .book-btn:disabled { background:var(--disabled-surface); border-color:var(--disabled-surface); color:var(--disabled-text); cursor:not-allowed; }
+
+    .empty { padding:var(--space-phi-xl); border:1px dashed var(--line-strong); border-radius:var(--radius-card); color:var(--muted); text-align:center; }
+
+    dialog.book { width:min(460px,92vw); padding:0; border:1px solid var(--line); border-radius:var(--radius-card); background:var(--panel); color:var(--ink); }
+    dialog.book::backdrop { background:var(--scrim); }
+    .book-body { padding:var(--space-phi-lg); }
+    .book-foot { display:flex; justify-content:flex-end; gap:10px; padding:var(--space-phi-md) var(--space-phi-lg); border-top:1px solid var(--line); }
+    .book-body h2 { margin:0 0 var(--space-phi-xs); font-family:var(--font-display); font-size:21px; font-weight:500; }
+    .book-for { margin:0 0 var(--space-phi-md); color:var(--ink2); font-size:14px; }
+    .field { margin-bottom:14px; }
+    label { display:block; margin-bottom:7px; color:var(--ink2); font-size:13px; font-weight:500; }
+    input, textarea { width:100%; min-height:var(--tap-min); border:1px solid var(--line-strong); border-radius:var(--radius); padding:12px 14px; background:var(--bg); color:var(--ink); font:inherit; }
+    input:focus, textarea:focus { outline:2px solid var(--focus-ring); outline-offset:2px; border-color:var(--clay); }
+    textarea { resize:vertical; min-height:76px; }
+    .hint { color:var(--muted); font-size:12px; margin-top:6px; }
+    .form-error { display:none; margin-bottom:12px; padding:10px 12px; border:1px solid var(--danger-border); border-radius:var(--radius); background:var(--danger-soft); color:var(--on-danger-soft); font-size:13px; }
+    .form-ok { padding:14px; border:1px solid var(--success-border); border-radius:var(--radius); background:var(--success-soft); color:var(--on-success-soft); font-size:14px; }
+    .btn-quiet { min-height:var(--tap-min); padding:8px 18px; border:1px solid var(--line-strong); border-radius:var(--radius-pill); background:transparent; color:var(--ink); font:inherit; font-size:13px; cursor:pointer; }
+
+    .tenant-credit { padding:0 24px 28px; color:var(--muted); font-size:11px; letter-spacing:.04em; text-align:center; }
+
+    @media (max-width:640px) {
+      header { padding:12px 16px; }
+      main { padding:var(--space-phi-lg) var(--space-phi-sm) var(--space-phi-xl); }
+      /* The aside drops under the content rather than squeezing it: three
+         columns at 360px would put "还有 3 位" on four lines. */
+      .class-row { grid-template-columns:auto minmax(0,1fr); }
+      .class-aside { grid-column:1/-1; flex-direction:row; align-items:center; justify-content:space-between; }
+    }
+    @media (prefers-reduced-motion:reduce) { * { transition:none !important; animation:none !important; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <img id="tenantLogo" alt="" hidden>
+      <div style="min-width:0;">
+        <div id="tenantName" class="name">{{TENANT_NAME}}</div>
+        <div id="tenantContact" class="contact"></div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <div class="lang-switch" role="group" aria-label="语言 / Language">
+        <button type="button" data-language="zh" aria-pressed="true">中</button>
+        <button type="button" data-language="en" aria-pressed="false">EN</button>
+      </div>
+      <a id="backLink" href="/{{TENANT_SLUG}}" data-zh="← 返回工作室网站" data-en="← Back to studio website">← 返回工作室网站</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="intro">
+      <div id="pageEyebrow" class="eyebrow" data-zh="课程安排" data-en="Timetable">课程安排</div>
+      <h1 id="pageTitle" data-zh="接下来的公开课程" data-en="Upcoming public classes">接下来的公开课程</h1>
+      <p id="pageLead" class="lead"></p>
+      <p id="zoneNote" class="zone-note"></p>
+    </section>
+
+    <div id="days" aria-live="polite"></div>
+
+    <div id="emptyState" class="empty" hidden>
+      <p id="emptyText" data-zh="目前还没有公开的课程安排。" data-en="No classes are published at the moment.">目前还没有公开的课程安排。</p>
+      <p><a id="emptyBack" href="/{{TENANT_SLUG}}" data-zh="返回工作室网站 →" data-en="Back to the studio website →">返回工作室网站 →</a></p>
+    </div>
+  </main>
+
+  <p class="tenant-credit" id="producerCredit" hidden>Made with PWE Studio</p>
+
+  <dialog class="book" id="bookDialog" aria-labelledby="bookTitle">
+    <form id="bookForm" novalidate>
+      <div class="book-body">
+        <h2 id="bookTitle" data-zh="预约这节课" data-en="Request a place">预约这节课</h2>
+        <p class="book-for" id="bookFor"></p>
+        <div class="form-error" id="bookError" role="alert"></div>
+        <div id="bookFields">
+          <div class="field">
+            <label for="bookName" data-zh="学员全名 *" data-en="Student's full name *">学员全名 *</label>
+            <input id="bookName" autocomplete="name" required aria-required="true">
+            <p class="hint" id="bookNameHint" data-zh="填写学员本人的姓名，工作室用它核对记录。" data-en="The student's own name — the studio uses it to check their records.">填写学员本人的姓名，工作室用它核对记录。</p>
+          </div>
+          <div class="field">
+            <label for="bookPhone" data-zh="手机号码 *" data-en="Mobile *">手机号码 *</label>
+            <input id="bookPhone" type="tel" inputmode="tel" autocomplete="tel" required aria-required="true">
+          </div>
+          <div class="field">
+            <label for="bookMessage" data-zh="备注（选填）" data-en="Note (optional)">备注（选填）</label>
+            <textarea id="bookMessage"></textarea>
+          </div>
+          <p class="hint" id="bookPrivacy"></p>
+        </div>
+        <div class="form-ok" id="bookDone" hidden></div>
+      </div>
+      <div class="book-foot">
+        <button type="button" class="btn-quiet" id="bookClose" data-zh="关闭" data-en="Close">关闭</button>
+        <button type="submit" class="book-btn" id="bookSubmit" data-zh="发送预约申请" data-en="Send request">发送预约申请</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+    const TENANT_SLUG = '{{TENANT_SLUG}}';
+    const TENANT_NAME = {{TENANT_NAME_JSON}};
+    const esc = window.StudioSaaS.esc;
+    const API = `/v1/public/${encodeURIComponent(TENANT_SLUG)}`;
+    let timetable = null;
+    let privacyNoticeVersion = '';
+
+    const pageParams = new URLSearchParams(location.search);
+    const normaliseLang = (value) => {
+      const text = String(value || '').toLowerCase();
+      if (text.startsWith('en')) return 'en';
+      if (text.startsWith('zh')) return 'zh';
+      return '';
+    };
+    let currentLanguage = normaliseLang(pageParams.get('lang')) || (() => {
+      try {
+        const stored = normaliseLang(localStorage.getItem(`pwe_lang_${TENANT_SLUG}`));
+        if (stored) return stored;
+      } catch (_) {}
+      return normaliseLang((navigator.languages && navigator.languages[0]) || navigator.language) || 'zh';
+    })();
+    function T(zh, en) { return currentLanguage === 'en' ? en : zh; }
+    function localized(pair, fallback) {
+      if (pair && typeof pair === 'object') return pair[currentLanguage] || pair.en || pair.zh || fallback || '';
+      const text = String(pair == null ? '' : pair).trim();
+      return text || fallback || '';
+    }
+
+    const WEEKDAYS_ZH = ['周日','周一','周二','周三','周四','周五','周六'];
+    const WEEKDAYS_EN = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+    /* Dates arrive as plain YYYY-MM-DD strings already resolved in the STUDIO'S
+       timezone by the server. They are split by hand rather than passed to
+       `new Date(...)`, because that would reinterpret them in the visitor's
+       zone and can move a class to the previous evening. This product has
+       shipped that bug once already. */
+    function formatDate(iso) {
+      const [y, m, d] = String(iso).split('-').map(Number);
+      return currentLanguage === 'en'
+        ? `${d} ${['January','February','March','April','May','June','July','August','September','October','November','December'][m - 1]}`
+        : `${m} 月 ${d} 日`;
+    }
+
+    function seatsChip(item) {
+      if (typeof item.seatsLeft !== 'number') return '';
+      if (item.seatsLeft === 0) {
+        return `<span class="chip chip-full">${esc(T('已满 · 可加候补', 'Full · waitlist'))}</span>`;
+      }
+      const cls = item.nearlyFull ? 'chip-nearly' : 'chip-open';
+      const text = item.nearlyFull
+        ? T(`快满了 · 还有 ${item.seatsLeft} 位`, `Nearly full · ${item.seatsLeft} left`)
+        : T(`还有 ${item.seatsLeft} 位`, `${item.seatsLeft} places left`);
+      return `<span class="chip ${cls}">${esc(text)}</span>`;
+    }
+
+    function render() {
+      const host = document.getElementById('days');
+      const empty = document.getElementById('emptyState');
+      const days = (timetable && timetable.days) || [];
+      const anyClass = days.some((day) => day.classes.length);
+      empty.hidden = anyClass;
+      if (!anyClass) { host.innerHTML = ''; return; }
+
+      host.innerHTML = days.filter((day) => day.classes.length).map((day) => {
+        const isToday = timetable.today === day.date;
+        const rows = day.classes.map((item) => {
+          /* Facts are collected then joined, so a class with none of them
+             renders no meta line at all rather than an empty one. The switch
+             is the ceiling and the content is the floor. */
+          const meta = [];
+          if (item.teacher) meta.push(T(`${item.teacher} 老师`, item.teacher));
+          if (item.room) meta.push(esc(item.room));
+          if (item.ageRange) meta.push(T(`适龄 ${item.ageRange}`, `Ages ${item.ageRange}`));
+          if (typeof item.priceAudCents === 'number') {
+            meta.push(`A$${(item.priceAudCents / 100).toFixed(2)}`);
+          }
+          const chip = item.cancelled
+            ? `<span class="chip chip-off">${esc(T('停课', 'Cancelled'))}</span>`
+            : seatsChip(item);
+          const canBook = item.bookable && item.seatsLeft !== 0;
+          const button = item.bookable && !item.cancelled
+            ? `<button type="button" class="book-btn" data-date="${esc(item.date)}" data-start="${esc(item.start)}"
+                 data-title="${esc(item.title)}"${canBook ? '' : ' disabled'}>${
+                 esc(canBook ? T('预约', 'Request') : T('已满', 'Full'))}</button>`
+            : '';
+          return `
+            <div class="class-row${item.cancelled ? ' cancelled' : ''}">
+              <div class="class-time">${esc(item.start)}${item.end ? `<small>→ ${esc(item.end)}</small>` : ''}</div>
+              <div>
+                <div class="class-title">${esc(item.title || T('课程', 'Class'))}</div>
+                ${item.subtitle ? `<div class="class-sub">${esc(item.subtitle)}</div>` : ''}
+                ${meta.length ? `<div class="class-meta">${meta.map((f) => `<span>${f}</span>`).join('')}</div>` : ''}
+                ${item.cancelled && item.note ? `<div class="cancel-note">${esc(item.note)}</div>` : ''}
+              </div>
+              <div class="class-aside">${chip}${button}</div>
+            </div>`;
+        }).join('');
+        return `
+          <section class="day">
+            <div class="day-head">
+              <span class="day-date">${esc(formatDate(day.date))}</span>
+              <span class="day-weekday">${esc((currentLanguage === 'en' ? WEEKDAYS_EN : WEEKDAYS_ZH)[day.weekday])}</span>
+              ${isToday ? `<span class="day-today">${esc(T('今天', 'Today'))}</span>` : ''}
+            </div>
+            ${rows}
+          </section>`;
+      }).join('');
+
+      host.querySelectorAll('.book-btn').forEach((button) => {
+        button.addEventListener('click', () => openBooking(button.dataset));
+      });
+    }
+
+    /* ── booking ─────────────────────────────────────────────────────────── */
+    const dialog = document.getElementById('bookDialog');
+    let booking = null;
+
+    function openBooking(data) {
+      booking = { date: data.date, start: data.start, title: data.title };
+      document.getElementById('bookFor').textContent =
+        `${formatDate(data.date)} · ${data.start} · ${data.title}`;
+      document.getElementById('bookError').style.display = 'none';
+      document.getElementById('bookDone').hidden = true;
+      document.getElementById('bookFields').hidden = false;
+      document.getElementById('bookSubmit').hidden = false;
+      document.getElementById('bookSubmit').disabled = false;
+      if (typeof dialog.showModal === 'function') dialog.showModal();
+      else dialog.setAttribute('open', '');
+      document.getElementById('bookName').focus();
+    }
+    function closeBooking() {
+      if (typeof dialog.close === 'function') dialog.close();
+      else dialog.removeAttribute('open');
+    }
+    document.getElementById('bookClose').addEventListener('click', closeBooking);
+
+    document.getElementById('bookForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!booking) return;
+      const name = document.getElementById('bookName').value.trim();
+      const phone = document.getElementById('bookPhone').value.trim();
+      const error = document.getElementById('bookError');
+      if (!name || !phone) {
+        error.textContent = T('请填写学员全名和手机号码。', 'Please enter the full name and a mobile number.');
+        error.style.display = 'block';
+        return;
+      }
+      const submit = document.getElementById('bookSubmit');
+      submit.disabled = true;
+      try {
+        const response = await fetch(`${API}/timetable/book`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            date: booking.date, start: booking.start, name, phone,
+            message: document.getElementById('bookMessage').value.trim(),
+            language: currentLanguage,
+            campaign: (window.StudioSaaSAnalytics && window.StudioSaaSAnalytics.campaign) || {},
+          }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || T('提交失败，请稍后再试。', 'Could not send the request.'));
+
+        /* Two honest sentences rather than one reassuring one. A parent who
+           can see "1 place left" and sends the fourth request deserves to know
+           that before they stop looking, not after the studio declines. */
+        const queue = data.waiting > 1
+          ? T(`目前有 ${data.waiting} 份申请在等待确认。`, `${data.waiting} requests are waiting to be confirmed.`)
+          : '';
+        const seats = typeof data.seatsLeft === 'number'
+          ? T(`这节课还有 ${data.seatsLeft} 个位置。`, `This class has ${data.seatsLeft} place(s) left.`)
+          : '';
+        const head = data.duplicate
+          ? T('已经收到了，请等待工作室确认。', 'We already have your request — please wait for the studio to confirm.')
+          : T('已收到，工作室确认后会联系你。', 'Received. The studio will contact you once it is confirmed.');
+        document.getElementById('bookDone').textContent = [head, seats, queue].filter(Boolean).join(' ');
+        document.getElementById('bookDone').hidden = false;
+        document.getElementById('bookFields').hidden = true;
+        submit.hidden = true;
+        error.style.display = 'none';
+        if (window.StudioSaaSAnalytics) window.StudioSaaSAnalytics.track('cta_click', { label: 'class_booking' });
+      } catch (exception) {
+        error.textContent = exception.message;
+        error.style.display = 'block';
+        submit.disabled = false;
+      }
+    });
+
+    /* ── language and brand ──────────────────────────────────────────────── */
+    function syncLocaleMeta() {
+      const base = location.origin + location.pathname;
+      const set = (id, attr, value) => { const el = document.getElementById(id); if (el) el[attr] = value; };
+      set('ogLocale', 'content', currentLanguage === 'en' ? 'en_US' : 'zh_CN');
+      set('ogLocaleAlternate', 'content', currentLanguage === 'en' ? 'zh_CN' : 'en_US');
+      set('altLangZh', 'href', base);
+      set('altLangEn', 'href', `${base}?lang=en`);
+      set('altLangDefault', 'href', base);
+      set('canonicalUrl', 'href', currentLanguage === 'en' ? `${base}?lang=en` : base);
+      try {
+        const params = new URLSearchParams(location.search);
+        if (currentLanguage === 'en') params.set('lang', 'en'); else params.delete('lang');
+        const query = params.toString();
+        history.replaceState(null, '', location.pathname + (query ? `?${query}` : '') + location.hash);
+      } catch (_) {}
+    }
+
+    function applyLanguage() {
+      document.documentElement.lang = currentLanguage === 'en' ? 'en' : 'zh-CN';
+      syncLocaleMeta();
+      document.querySelectorAll('[data-zh][data-en]').forEach((element) => {
+        element.textContent = element.dataset[currentLanguage];
+      });
+      document.querySelectorAll('[data-language]').forEach((button) => {
+        const active = button.dataset.language === currentLanguage;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+      if (timetable) {
+        const eyebrow = localized(timetable.label, '');
+        if (eyebrow) document.getElementById('pageEyebrow').textContent = eyebrow;
+        document.getElementById('pageLead').textContent = localized(timetable.lead, '');
+        document.getElementById('zoneNote').textContent = timetable.timezone
+          ? T(`时间以工作室所在时区为准（${timetable.timezone}）。`,
+              `Times are in the studio's timezone (${timetable.timezone}).`)
+          : '';
+      }
+      document.getElementById('bookPrivacy').textContent = privacyNoticeVersion
+        ? T(`提交即表示你同意工作室为安排课程使用这些信息。隐私说明版本：${privacyNoticeVersion}`,
+            `By sending this you agree the studio may use these details to arrange the class. Privacy note version: ${privacyNoticeVersion}`)
+        : '';
+      try { localStorage.setItem(`pwe_lang_${TENANT_SLUG}`, currentLanguage); } catch (_) {}
+      render();
+    }
+
+    document.querySelectorAll('[data-language]').forEach((button) => {
+      button.addEventListener('click', () => {
+        currentLanguage = button.dataset.language === 'en' ? 'en' : 'zh';
+        applyLanguage();
+      });
+    });
+
+    fetch(`${API}/brand`).then((r) => (r.ok ? r.json() : null)).then((data) => {
+      const brand = (data && data.brand) || {};
+      window.StudioSaaS.applyVisualTheme(brand);
+      privacyNoticeVersion = String(brand.privacyNoticeVersion || brand.privacy_notice_version || '');
+      document.getElementById('tenantName').textContent = brand.name || TENANT_NAME;
+      const logo = document.getElementById('tenantLogo');
+      const rawLogo = brand.logo_url || brand.logoUrl || '';
+      const logoUrl = ['/logo.png', '/logo-light.png', '/favicon.svg'].includes(rawLogo) ? '' : rawLogo;
+      logo.hidden = !logoUrl;
+      if (logoUrl) { logo.src = logoUrl; logo.alt = `${brand.name || TENANT_NAME} logo`; }
+      document.getElementById('tenantContact').textContent =
+        [brand.contact_phone || brand.contactPhone, brand.contact_email || brand.contactEmail]
+          .filter(Boolean).join(' · ');
+      applyLanguage();
+    }).catch(() => {});
+
+    fetch(`${API}/timetable`).then((r) => (r.ok ? r.json() : null)).then((data) => {
+      timetable = data || { enabled: false, days: [] };
+      /* Switched off is not an error: the server answers `enabled: false` and
+         the page says so plainly instead of showing a failure to a visitor who
+         did nothing wrong. */
+      if (!timetable.enabled) timetable.days = [];
+      applyLanguage();
+    }).catch(() => { timetable = { enabled: false, days: [] }; applyLanguage(); });
+
+    fetch('/v1/health', { cache: 'no-store' })
+      .then((response) => response.json())
+      .then((health) => { document.getElementById('producerCredit').hidden = !health.showProducerCredit; })
+      .catch(() => {});
+
+    applyLanguage();
+  </script>
+</body>
+</html>

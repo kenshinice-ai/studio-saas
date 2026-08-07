@@ -201,6 +201,52 @@ CREATE TABLE IF NOT EXISTS class_schedule_exceptions (
 CREATE INDEX IF NOT EXISTS idx_class_schedule_exceptions_tenant_date
     ON class_schedule_exceptions (tenant_id, on_date);
 
+-- 0026: booking a class without opening an account.
+--
+-- NOT a row in `registrations`, though that table already has a review queue:
+-- approving a new parent's trial CREATES A STUDENT, approving an existing
+-- student's session TAKES A SEAT. Only the first is a new enquiry, and filing
+-- both as registrations would permanently inflate the number a studio uses to
+-- judge whether its advertising worked.
+CREATE TABLE IF NOT EXISTS class_bookings (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    schedule_id uuid NOT NULL REFERENCES class_schedules(id) ON DELETE CASCADE,
+    on_date date NOT NULL,
+    student_id uuid REFERENCES students(id) ON DELETE SET NULL,
+    registration_id uuid REFERENCES registrations(id) ON DELETE SET NULL,
+    -- What the parent typed, kept verbatim even after a match is made: the
+    -- match is an inference, this is the evidence.
+    contact_name text NOT NULL,
+    contact_phone text NOT NULL,
+    message text NOT NULL DEFAULT '',
+    status text NOT NULL DEFAULT 'pending'
+        CHECK (status IN ('pending', 'approved', 'declined', 'cancelled')),
+    review_note text NOT NULL DEFAULT '',
+    reviewed_by_user_id uuid REFERENCES users(id) ON DELETE SET NULL,
+    reviewed_at timestamptz,
+    privacy_notice_version text NOT NULL DEFAULT '',
+    source_language text NOT NULL DEFAULT '',
+    campaign jsonb NOT NULL DEFAULT '{}'::jsonb,
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_class_bookings_pending
+    ON class_bookings (tenant_id, on_date, created_at)
+    WHERE status = 'pending';
+
+CREATE INDEX IF NOT EXISTS idx_class_bookings_approved_occurrence
+    ON class_bookings (schedule_id, on_date)
+    WHERE status = 'approved';
+
+-- One pending request per phone per occurrence, in the database rather than in
+-- a check-then-insert. A parent unsure the first tap worked taps again; the
+-- endpoint answers "already received" instead of queueing a duplicate, and
+-- this is what makes that true under two simultaneous submissions.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_class_bookings_one_pending_per_phone
+    ON class_bookings (schedule_id, on_date, contact_phone)
+    WHERE status = 'pending';
+
 CREATE TABLE IF NOT EXISTS class_schedule_students (
     schedule_id uuid NOT NULL REFERENCES class_schedules(id) ON DELETE CASCADE,
     student_id uuid NOT NULL REFERENCES students(id) ON DELETE CASCADE,
@@ -586,8 +632,10 @@ CREATE TABLE IF NOT EXISTS daily_roster_entries (
     tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     roster_date date NOT NULL,
     student_id uuid NOT NULL,
+    -- 'booking' (0026): an approved no-account request from the public
+    -- timetable, kept distinct so an approved seat stays traceable to the ask.
     source text NOT NULL DEFAULT 'manual'
-        CHECK (source IN ('manual', 'group', 'profile', 'import')),
+        CHECK (source IN ('manual', 'group', 'profile', 'import', 'booking')),
     status text NOT NULL DEFAULT 'scheduled'
         CHECK (status IN ('scheduled', 'makeup', 'cancelled')),
     status_before_cancel text

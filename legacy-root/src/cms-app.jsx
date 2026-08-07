@@ -1059,6 +1059,11 @@ function App() {
        where the description and age range live on the course. */
     const [courses, setCourses] = useState([]);
     const [schedCancel, setSchedCancel] = useState(null);   // null | {id, label, date, note}
+    /* v8.10.0: 免注册约课申请。和报名共用「待审核」这一页，分两个标签 ——
+       计数分开是因为两者含义不同（新报名 vs 老学员占座），但前台不该有
+       两个地方要看。 */
+    const [bookings, setBookings] = useState([]);
+    const [pendingTab, setPendingTab] = useState('registrations');
     /* F5: 待续课阈值（可在设置页调整） */
     const [renewTh, setRenewTh] = useState(() => parseInt(localStorage.getItem('lp_renew_threshold')||'2',10));
     const saveRenewTh = (v) => { const n=parseInt(v,10); if(n>=0){setRenewTh(n);localStorage.setItem('lp_renew_threshold',String(n));} };
@@ -2038,6 +2043,10 @@ function App() {
             setCourses((c.courses || []).filter(x => x.is_active !== false));
         } catch { setCourses([]); }
         try {
+            const b = await v1Api('/class-bookings');
+            setBookings(b.bookings || []);
+        } catch { setBookings([]); }
+        try {
             const dash = await v1Api('/dashboard');
             setBizStats((dash.dashboard || {}).business || null);
         } catch (e) {
@@ -2170,6 +2179,28 @@ function App() {
             setSchedules(d.schedules || []);
             showToast(`${date} 恢复上课`);
         } catch (e) { showToast(`恢复失败：${e.message}`, 'error'); }
+        finally { setBusy(false); }
+    };
+
+    const reviewBooking = async (bk, status) => {
+        if (busy) return;
+        setBusy(true);
+        try {
+            const d = await v1Api(`/class-bookings/${bk.id}`, {
+                method: 'PATCH', body: JSON.stringify({status}),
+            });
+            setBookings(d.bookings || []);
+            if (status === 'approved') {
+                /* 批准之后名单变了，当日排课要重新拉一次，否则前台看到的是
+                   批准之前的那一份。 */
+                await load();
+                showToast(bk.isExistingStudent
+                    ? `已批准，${bk.matchedStudent || bk.contactName} 已排入 ${bk.date}`
+                    : '已批准，并已建立一条待审核报名');
+            } else {
+                showToast('已婉拒这条申请', 'warn');
+            }
+        } catch (e) { showToast(`处理失败：${e.message}`, 'error'); }
         finally { setBusy(false); }
     };
 
@@ -3243,7 +3274,12 @@ document.getElementById('copybtn').addEventListener('click', function(){
         </div>
     );
 
-    const pendingCount = (db.pending||[]).length;
+    /* The badge counts BOTH queues, because it answers one question — "is
+       there anything waiting for me?" — and a front desk that only ever sees
+       the registration count would let booking requests sit. The two are kept
+       apart everywhere they are read as numbers; this is the one place where
+       what matters is the total. */
+    const pendingCount = (db.pending||[]).length + bookings.length;
     /* P3-10: "商业洞察" oversells what this tab shows a small studio owner —
        it is attendance, credit and revenue counts, i.e. 经营统计. */
     const NAV = [
@@ -4961,7 +4997,73 @@ document.getElementById('copybtn').addEventListener('click', function(){
 {/* ═══ PENDING ════════════════════════════════════════════════ */}
 {tab==='pending' && (
 <div className="anim space-y-4">
-    <h2 className="inline-flex items-center gap-1.5 text-xl md:text-2xl font-bold text-gray-800"><Icon name="clipboard" className="w-4 h-4"/>待审核注册 ({(db.pending||[]).length})</h2>
+    <h2 className="inline-flex items-center gap-1.5 text-xl md:text-2xl font-bold text-gray-800"><Icon name="clipboard" className="w-4 h-4"/>待审核</h2>
+    {/* v8.10.0: 一个收件箱，两个标签。计数分开写，是因为两者含义不同 ——
+        「新报名」批准后建学员，「约课」批准后占座位，把后者算进前者会让
+        「本月新报名」永远虚高，而那正是工作室用来判断投放效果的数字。
+        但前台不该有两个地方要看，所以它们在同一页。 */}
+    <div className="flex gap-2 flex-wrap">
+        {[['registrations','新报名',(db.pending||[]).length],
+          ['bookings','约课',bookings.length]].map(([key,label,count])=>(
+            <button key={key} onClick={()=>setPendingTab(key)}
+                className={`px-4 py-2 rounded-xl text-sm font-bold min-h-[44px] border ${pendingTab===key?'bg-indigo-600 text-white border-indigo-600':'bg-white text-gray-600 border-gray-200 active:bg-gray-50'}`}>
+                {label} {count}
+            </button>
+        ))}
+    </div>
+    {pendingTab==='bookings' && (
+    <div className="space-y-3">
+        {!bookings.length && (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-10 text-center">
+                <p className="font-bold text-gray-600">没有待处理的约课申请</p>
+                <p className="text-sm text-gray-400 mt-1 max-w-sm mx-auto leading-relaxed">
+                    在 Studio Admin 的「Timetable」里打开公开课表并允许约课后，家长可以在课表页留下姓名和手机号申请上课，申请会出现在这里。
+                </p>
+            </div>
+        )}
+        {bookings.map(bk => (
+            <div key={bk.id} className="bg-white rounded-2xl shadow-sm border border-amber-200 p-4 space-y-3">
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                    <div className="min-w-0">
+                        <p className="text-base font-bold text-gray-800">{bk.contactName}
+                            {/* 是否命中老学员只在这里显示。公开表单的回应无论
+                                命中与否都完全一致 —— 否则那个表单就成了「这个
+                                号码是不是你们的学员」的查询接口。 */}
+                            {bk.isExistingStudent
+                                ? <span className="ml-2 align-middle inline-block text-[10px] font-bold bg-green-100 text-green-700 border border-green-300 rounded-full px-2 py-0.5">已是学员{bk.matchedStudent?` · ${bk.matchedStudent}`:''}</span>
+                                : <span className="ml-2 align-middle inline-block text-[10px] font-bold bg-gray-100 text-gray-600 border border-gray-300 rounded-full px-2 py-0.5">新访客</span>}
+                        </p>
+                        <p className="inline-flex items-center gap-1.5 text-sm text-gray-500"><Icon name="phone" className="w-4 h-4"/>{bk.contactPhone}</p>
+                        <p className="text-sm text-gray-600 mt-1">{bk.date} {bk.startTime} · {bk.title||'未命名班次'}</p>
+                        {bk.message && <p className="text-sm text-gray-500 mt-1 whitespace-pre-wrap">{bk.message}</p>}
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                        {/* 容量在「批准」那一刻才是真的，所以这里显示的是现在
+                            的余位，而不是提交时的。 */}
+                        <p className={`text-xs font-bold ${bk.seatsLeft===0?'text-gray-500':'text-green-700'}`}>
+                            {bk.seatsLeft===0?'已满':`还有 ${bk.seatsLeft} 位`}
+                        </p>
+                        <p className="text-[11px] text-gray-400">容量 {bk.capacity}</p>
+                    </div>
+                </div>
+                {bk.seatsLeft===0 && (
+                    <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                        这节课已经满了。批准会被拒绝——先提高班次容量，或婉拒并联系家长改约。
+                    </p>
+                )}
+                {canManageOperations && <div className="flex gap-2 justify-end">
+                    <button onClick={()=>reviewBooking(bk,'declined')} disabled={busy}
+                        className="bg-white border border-gray-300 text-gray-600 px-4 py-2 rounded-xl text-sm font-bold active:bg-gray-50 min-h-[44px]">婉拒</button>
+                    <button onClick={()=>reviewBooking(bk,'approved')} disabled={busy}
+                        className="bg-indigo-600 active:bg-indigo-700 disabled:bg-gray-300 text-white px-5 py-2 rounded-xl text-sm font-bold min-h-[44px]">
+                        {bk.isExistingStudent?'批准并排课':'批准并转报名'}
+                    </button>
+                </div>}
+            </div>
+        ))}
+    </div>
+    )}
+    {pendingTab==='registrations' && <>
     {!(db.pending||[]).length && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-10 text-center">
             <p className="inline-flex items-center gap-1.5 text-4xl mb-3"><Icon name="check" className="w-4 h-4"/></p>
@@ -5044,6 +5146,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
             </div>
         );
     })}
+    </>}
 </div>
 )}
 
