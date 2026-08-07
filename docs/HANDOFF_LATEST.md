@@ -114,10 +114,37 @@ CMS 原来的 `schedOverlap()` 只比 weekday + 时间。加了老师之后它�
 - 团队管理：只对 manager / teacher 出现「可在公开课表显示姓名」+ 对外显示名。
   前台不会被排课，给他一个这样的开关只是多一个要理解的东西。
 
+## F — 发布后核对时发现的一件事：**改生成器 ≠ 改线上**
+
+每个租户**自己存着一份解好的 token**。改 `presets.py` 或改求解器，
+**在那些副本被重写之前，租户看到的东西一点都不会变**。
+
+这一版实际上不需要刷新（核对结果见下），但核对过程中发现现有的刷新工具
+**今天跑会毁数据**：
+
+- `migrate_visual_themes.py` 用 `style_theme(style_id, scheme)` 整体替换。
+  v8.5.x 之后大多数租户坐在自由强调色上、各有各的 `accent_hue`，而这个参数
+  **没有被传** —— 今天跑一次，五家工作室会被统一刷成默认强调色，还叫「迁移」。
+- 新写的 `backend/scripts/refresh_stored_themes.py` 走**请求路径同一条解法**
+  （带上租户自己的 `accent_hue`），并且**只替换 `*_color`**。
+  第一次对生产 dry-run 就暴露了另一半问题：`style_theme()` 也返回
+  `button_style` / `font_mood` / `style_id` 的**默认值**，整体 merge 会把
+  六家里四家的 `button_style rounded→soft`、`font_mood classic→serif`
+  改掉 —— **颜色是算出来的，可以重算；这三个是租户的答案。**
+  两条不变量已加断言（`test_stored_theme_tolerance.py`）。
+
+**生产核对结果：六个租户目前全部是浅色**
+（`tenants.settings.visual_theme` 与已发布的 brand payload 都是 light，
+`--scheme dark` 匹配 0 个）。所以深色变亮**当下对公网零影响**，
+也没有需要刷新的存量 —— 唯一的差异是一个租户的 hex 大小写
+（`#835d33` → `#835D33`），不值得为它写一次库。
+以后有租户切到深色时，是在运行中的服务端重新解的，直接拿到新值。
+
 ## 测试
 
 `backend/tests/test_timetable_fields.py`（20 条）+ `test_dark_framework.py`
-新增 2 条。**1505 passed, 7 skipped.**
+新增 2 条 + `test_stored_theme_tolerance.py` 新增 2 条。
+**1511 passed, 7 skipped.**
 
 其中一条是编译产物新鲜度：浏览器跑的是 `cms-app.js`，不是 `.jsx`。
 改了源码忘记 `backend/scripts/build_cms.sh`，上面每一条断言都会通过，

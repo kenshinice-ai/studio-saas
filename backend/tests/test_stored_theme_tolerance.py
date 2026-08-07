@@ -23,6 +23,7 @@ from __future__ import annotations
 import pytest
 
 import sys
+from pathlib import Path
 
 import studiosaas.api_v1  # noqa: F401  (registers the module in sys.modules)
 
@@ -142,3 +143,50 @@ def test_the_read_path_uses_the_tolerant_wrapper():
         "strict validator there is the v8.5.2 outage verbatim"
     )
     assert 'row["visual_theme"] = _normalize_visual_theme(' not in source
+
+
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+
+
+# ── v8.8.0: refreshing a stored theme must not overwrite what the studio chose ──
+
+def test_the_refresh_script_only_replaces_solved_colours() -> None:
+    """A stored theme holds two different kinds of value.
+
+    Colours are DERIVED — recomputing them from the generator is the whole
+    point of a refresh. `button_style`, `font_mood` and `style_id` are
+    ANSWERS: the studio picked them, and `style_theme()` returns its own
+    defaults for all three. A wholesale merge therefore resets a studio's
+    button shape and typeface every time anyone regenerates a palette.
+
+    Measured on production before this line existed: four of six tenants would
+    have moved `button_style rounded→soft` and `font_mood classic→serif`,
+    inside a script whose stated job was to change nothing but colour.
+    """
+
+    source = (REPOSITORY_ROOT / "backend/scripts/refresh_stored_themes.py").read_text(
+        encoding="utf-8"
+    )
+    assert 'k.endswith("_color") or k == "color_scheme"' in source, (
+        "the refresh merges every key the solver returns — it will clobber "
+        "button_style and font_mood"
+    )
+    # The unrestricted form may appear in the comment that explains why it is
+    # wrong; what must not exist is the assignment.
+    assert "merged = {**stored, **fresh}" not in source
+
+
+def test_the_refresh_script_carries_the_tenants_own_accent_hue() -> None:
+    """Since v8.5.x most tenants sit on the free-accent style.
+
+    `style_theme(style_id, scheme)` without the third argument solves the
+    DEFAULT accent, so a refresh that forgets it repaints every studio in one
+    colour. That is precisely what `migrate_visual_themes.py` would do today,
+    which is why this narrower script exists.
+    """
+
+    source = (REPOSITORY_ROOT / "backend/scripts/refresh_stored_themes.py").read_text(
+        encoding="utf-8"
+    )
+    assert "style_theme(style_id, scheme, hue)" in source
+    assert 'theme.get("accent_hue")' in source
