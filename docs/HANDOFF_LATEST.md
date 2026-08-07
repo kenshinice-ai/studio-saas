@@ -1,3 +1,167 @@
+# ⚠️ v8.7.0 IN PROGRESS — A/B/C done and committed, D/E not started, NOT DEPLOYED (2026-08-07)
+
+Plan: `docs/design/Showcase_Round_2.md` + `docs/design/Showcase_Plan_Limits.md`.
+Decisions already made by the owner — do not re-open them:
+
+- **15 / 60 / 150**, and **no unlimited tier at all** (explicitly dropped, to
+  keep server pressure down). So there is no per-tenant override and no ∞
+  sentinel anywhere.
+- Categories are **not** plan-limited. Limit the volume, not the tidiness.
+- On downgrade: keep everything, publish what the plan allows, say so plainly.
+- Lightbox and the small fixes go in the same round.
+
+Commit `4b790b7` carries A + B + C. **1470 passed, 7 skipped.**
+
+## ⛔ Read this before deploying
+
+**This branch is deployable only because C was finished.** Half of C is not a
+valid state: `/brand` no longer carries `showcase_items`, so a build with the
+new server and the old portal renders no board at all. If you need to stop
+mid-way in future, stop at a commit boundary, not inside C.
+
+The migration `0024_plan_showcase_limit.sql` **has already been applied to
+production** (starter 15 / studio 60 / growth 150 confirmed). The running
+release is still v8.6.0, which is unaffected: it names its columns explicitly
+and the new column has a DEFAULT.
+
+---
+
+## Done
+
+### A — every English-half field showed a Chinese placeholder
+
+Product-wide, pre-existing, and visible in the owner's screenshot: 「版块眉题 ·
+English」 offered 「工作室作品」 as its example. `applyAttributes()` localised
+`placeholder`, so `Founder & Principal`, `Courses & Classes`, `Short signature
+line` and the rest all rendered in Chinese under an English label.
+
+A placeholder has exactly one job — show what to type — and it was showing the
+wrong language to type in.
+
+Locked in `admin-i18n.js` by **id suffix** (`/En\d*$/`), not by a hand-applied
+attribute, because a hand-applied attribute is a thing to forget on the next
+bilingual pair. `data-i18n-lock` remains as an escape hatch. `title` and
+`aria-label` still localise — those really are interface chrome.
+
+Verified in the browser in **both** console languages: every pair now shows
+Chinese under 中文 and English under English.
+
+### B — `plans.showcase_limit`
+
+A column with a CHECK, following this table's own convention (numeric ceilings
+are columns; `features` holds booleans). Backfilled 15 / 60 / 150.
+
+**The important half is what did NOT change.** `_normalize_website_profile`
+used to truncate at `[:SHOWCASE_ITEM_LIMIT]`. Had that line survived contact
+with a per-plan cap, a studio dropping from growth (150 works) to starter (15)
+would have lost 135 works **the next time it saved any setting** — changing a
+phone number would have destroyed a portfolio, with no error. Same shape as
+the v8.5.4 outage: a harmless-looking truncation operating on someone's data.
+
+So: `SHOWCASE_STORAGE_CEILING = 500`, plan-independent, purely to bound a
+hostile request. Publishing is limited on read. `test_the_write_path_does_not_
+cap_by_plan` asserts 200 works survive normalisation.
+
+Also wired: plan editor CRUD, the public pricing cards, and `pricing.md`.
+Missing the pricing page would have meant the thing being sold was invisible
+on the page that sells it.
+
+### C — categories, and the board on its own endpoint
+
+`showcase_categories` (max 8, ordered) + `category_id` per work.
+
+- **Ids are server-generated and never derived from the label.** A derived id
+  means renaming 「油画」 detaches every work under it. `test_a_category_id_
+  survives_a_round_trip` covers create → file → rename.
+- **Deleting a category never deletes work** — the works go uncategorised.
+  A drawer does not own what is in it.
+- `GET /v1/public/<slug>/showcase?category=&offset=` — paginated, 12 a page.
+- **The plan limit is applied BEFORE the category filter.** The other order
+  lets an entry-plan studio publish its whole archive one drawer at a time:
+  measured, 10 works in a single category on a 15-work plan.
+- `showcase_limit_for()` never raises. A missing plan row costs a studio part
+  of its board for one request, never the page — the `_stored_visual_theme`
+  rule, applied before the same thing could happen twice.
+
+**The board left `/brand` on purpose.** That response is the portal's critical
+path — every word, every image, the principal's biography — and v8.5.4 proved
+what one unreadable field in it costs. An unbounded list does not belong there.
+
+**Which re-creates the v8.5.3 race**, deliberately and with the fix designed in
+rather than discovered: the switch is in `/brand`, the content is in
+`/showcase`. `state.sectionsOff.showcase` from the first line, consulted by the
+renderer. Measured in the browser:
+
+| order | result |
+|---|---|
+| board first, switch unknown | 3 tiles, nav shown |
+| then switch arrives OFF | **0 tiles, nav hidden, section unresolved** |
+| switch ON, board empty | hidden |
+| switch ON, board has works | shown |
+
+Caught during that check: the filter chips live outside the grid and survived
+the teardown, so a hidden section kept a row of filters above it. Fixed.
+
+---
+
+## Not done — D and E
+
+Both fully specified in `Showcase_Round_2.md`. Nothing about them is open.
+
+### D — upload
+
+Today: one `<input type=file>` per card, one file at a time, no compression.
+
+1. **Client-side downscale is the biggest win**: longest edge 2400px, JPEG
+   q0.82, and `createImageBitmap(blob, {imageOrientation:'from-image'})` for
+   EXIF — without that, portrait phone photos lie down. A 24MP photo goes
+   ~8MB → ~500KB, which is the difference between hitting the 10MB per-file
+   limit and not, and between minutes and seconds on a phone.
+2. One dropzone, multi-select, optimistic cards with `URL.createObjectURL`
+   previews and per-file progress, concurrency 2, per-file failure.
+3. **Keyed re-render.** `renderShowcaseItems()` currently rebuilds the whole
+   list with `textContent = ''`, so finishing an upload interrupts whatever
+   caption the owner is typing.
+4. Quota readout beside the dropzone.
+
+### E — lightbox
+
+1. `<dialog>` + `showModal()` — focus trap, Esc and inert come free. If
+   `showModal` is absent, keep today's behaviour; **do not ship a half one**.
+2. **`pushState` so the back button closes it.** Without this a phone user
+   who taps back leaves the studio's site entirely. This is the one most
+   implementations miss and it is not a nicety.
+3. ←/→, swipe, swipe-down to dismiss; **focus returns to the tile that opened
+   it**, not the top of the page.
+4. Video plays inside; the tile's play button becomes "open and play", still
+   no third-party request before the click.
+5. Preload n±1 only; reduced-motion; scroll lock with `scrollbar-gutter:
+   stable` so opening does not jolt the page sideways.
+
+### F — release
+
+Guides (Owner guide still says "最多 12 件"), release notes, version bump,
+bundle, deploy, verify. `/showcase` should be added to the post-deploy checks
+alongside `/brand`.
+
+---
+
+## Traps worth carrying forward
+
+- **`SHOWCASE_ITEM_LIMIT` is gone.** If you see it in a diff, something was
+  reverted. Publishing limits live in `plans.showcase_limit`; storage has only
+  `SHOWCASE_STORAGE_CEILING`.
+- **The admin must round-trip category ids.** Drop them from the payload and
+  the server mints new ones on every save, detaching every work.
+  `test_the_admin_sends_every_field_the_server_stores` caught exactly this
+  during the work — it reads the server's field list, so it will catch it
+  again.
+- **Regenerate `tenants/*` after editing `tenant-template/`.** The served page
+  is the generated workspace; editing the template alone changes nothing you
+  can see, and this cost a confusing measurement cycle today.
+
+---
+
 # PWE Studio v8.6.0 — the studio can finally show its own work (2026-08-07)
 
 Plan written first: `docs/design/Showcase_Section.md`. Read that for the
