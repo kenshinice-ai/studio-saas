@@ -365,3 +365,146 @@ def test_the_board_is_fetched_separately_from_brand():
     portal = PORTAL.read_text(encoding="utf-8")
     assert "fetch(API + '/showcase'" in portal
     assert "loadShowcase('', 0);" in portal
+
+
+# ── Lightbox ────────────────────────────────────────────────────────────────
+#
+# Verified by driving a real browser; asserted here so it cannot regress
+# silently. Measured on a clean page load:
+#
+#   opened from tile 2   -> dialog open, focus inside, "2 / 4", body locked
+#   Escape               -> closed, focus back on that tile, history clean
+#   back button          -> closed AND still on the same page
+#   play                 -> 0 iframes before, 1 nocookie iframe inside after
+#   close                -> 0 iframes anywhere (the video stops)
+
+def _portal_lightbox_block() -> str:
+    portal = PORTAL.read_text(encoding="utf-8")
+    return portal[portal.index("var lb = { open:false"):portal.index("function showcaseChips(")]
+
+
+def test_the_lightbox_is_a_native_dialog():
+    """showModal() supplies the focus trap, Escape and inertness.
+
+    Hand-rolled overlays get all three wrong more often than right, so this
+    asserts the primitive rather than a re-implementation of it.
+    """
+
+    portal = PORTAL.read_text(encoding="utf-8")
+    assert '<dialog id="scLightbox"' in portal
+    block = _portal_lightbox_block()
+    assert "el.showModal();" in block
+    # And a browser without it keeps the old behaviour rather than getting a
+    # half-built modal it cannot close.
+    assert "typeof el.showModal === 'function'" in block
+
+
+def test_the_back_button_closes_the_lightbox():
+    """Without this, a phone user tapping back leaves the studio's site.
+
+    Back is how people dismiss anything covering the screen. It is the most
+    commonly missed part of a lightbox and the most damaging.
+    """
+
+    block = _portal_lightbox_block()
+    assert "history.pushState({ scLightbox:true }, '');" in block
+    assert "window.addEventListener('popstate'" in block
+    assert "lbClose(true)" in block
+    # Escape closes too, and must consume the entry it pushed — otherwise the
+    # visitor's next back press is swallowed by a dead one.
+    assert "if(!fromPopstate && history.state && history.state.scLightbox){" in block
+
+
+def test_focus_returns_to_the_tile_that_opened_it():
+    block = _portal_lightbox_block()
+    assert "if(lb.opener && document.contains(lb.opener)) lb.opener.focus();" in block
+
+
+def test_closing_stops_the_video():
+    """A frame left in the DOM keeps playing behind the page."""
+
+    block = _portal_lightbox_block()
+    close = block[block.index("function lbClose("):]
+    assert "document.getElementById('scLbFigure').textContent='';" in close
+
+
+def test_only_the_neighbours_are_preloaded():
+    block = _portal_lightbox_block()
+    assert "[index-1, index+1].forEach" in block
+
+
+def test_the_scroll_lock_does_not_jolt_the_page():
+    block = _portal_lightbox_block()
+    assert "scrollbarGutter='stable'" in block
+
+
+def test_the_lightbox_answers_keyboard_and_touch():
+    block = _portal_lightbox_block()
+    for signal in ("ArrowLeft", "ArrowRight", "touchstart", "touchend"):
+        assert signal in block, f"the lightbox ignores {signal}"
+
+
+def test_a_photo_tile_is_a_real_button():
+    """It opens something, so it is a control — tabbable and announced."""
+
+    portal = PORTAL.read_text(encoding="utf-8")
+    assert "opener.type='button';" in portal
+    assert ".sc-open:focus-visible{outline:" in portal
+
+
+def test_no_icon_is_a_bare_character():
+    """Character entities render at the mercy of whatever font resolves them.
+
+    They also read as hex colour literals to the palette guard, which is how
+    this was caught.
+    """
+
+    portal = PORTAL.read_text(encoding="utf-8")
+    block = portal[portal.index('<dialog id="scLightbox"'):portal.index("</dialog>")]
+    for entity in ("&#8592;", "&#8594;", "&#10005;", "&times;", "&larr;", "&rarr;"):
+        assert entity not in block
+
+
+# ── Upload ──────────────────────────────────────────────────────────────────
+
+def test_photos_are_shrunk_in_the_browser_before_upload():
+    """Measured: a 4000x3000 JPEG became 2400x1800 at 24.5% of its size.
+
+    Without this a studio photographing its own work on a phone is one
+    portrait away from hitting the 10MB per-file limit with no explanation.
+    """
+
+    admin = ADMIN.read_text(encoding="utf-8")
+    assert "const SHOWCASE_MAX_EDGE = 2400;" in admin
+    assert "canvas.toBlob(resolve, 'image/jpeg', SHOWCASE_JPEG_QUALITY)" in admin
+    # Never send something larger than we were given.
+    assert "if (!blob || blob.size >= file.size) return file;" in admin
+
+
+def test_exif_orientation_is_applied_when_shrinking():
+    """Canvas does not rotate for you: without this every portrait phone photo
+    ships lying on its side. Verified in a browser with a hand-built JPEG
+    carrying EXIF Orientation 6."""
+
+    admin = ADMIN.read_text(encoding="utf-8")
+    assert "createImageBitmap(file, { imageOrientation: 'from-image' })" in admin
+
+
+def test_an_upload_does_not_rebuild_the_list_underneath_the_typist():
+    """`renderShowcaseItems()` rebuilds everything, which would destroy a
+    caption being typed three cards away when a background upload lands."""
+
+    admin = ADMIN.read_text(encoding="utf-8")
+    assert "function repaintShowcaseThumb(item)" in admin
+    upload = admin[admin.index("async function uploadShowcaseImage(item, file)"):]
+    upload = upload[:upload.index("async function addShowcaseFiles")]
+    assert "renderShowcaseItems()" not in upload, (
+        "the upload path rebuilds the whole editor; patch the one card instead"
+    )
+
+
+def test_one_failed_file_does_not_take_the_batch_down():
+    admin = ADMIN.read_text(encoding="utf-8")
+    upload = admin[admin.index("async function uploadShowcaseImage(item, file)"):]
+    upload = upload[:upload.index("async function addShowcaseFiles")]
+    assert "item._error = error.message" in upload

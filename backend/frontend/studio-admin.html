@@ -1301,6 +1301,24 @@
     }
     .showcase-notice[hidden] { display: none; }
     .showcase-category-row { padding-bottom: 8px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+    .dropzone {
+      display: flex; flex-direction: column; gap: 4px; align-items: center;
+      justify-content: center; text-align: center;
+      padding: 34px 21px; margin-top: 13px; cursor: pointer;
+      border: 1px dashed var(--line-strong); border-radius: var(--radius-lg);
+      background: var(--bg2); color: var(--ink2);
+      transition: background .2s ease, border-color .2s ease;
+    }
+    .dropzone span, .dropzone small { color: var(--muted); font-size: 13px; }
+    .dropzone:hover, .dropzone.is-over { background: var(--surface-hover); border-color: var(--accent, var(--ink2)); }
+    .dropzone:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+    /* Progress is drawn over the picture it belongs to, so a batch of twenty
+       reads as twenty bars rather than one number for the lot. */
+    .img-chip-progress {
+      position: absolute; left: 0; bottom: 0; height: 3px;
+      background: var(--accent, var(--ink)); transition: width .2s linear;
+    }
+    .showcase-upload-error { margin: 6px 0 0; font-size: 12px; color: var(--danger); }
     /* The lead work is genuinely different — it renders larger on the public
        page — so its rank is marked rather than left for the owner to infer
        from position alone. */
@@ -2596,6 +2614,13 @@
                   <label>Works</label>
                   <small>The first work is shown larger than the rest — put your strongest piece first. Up to 12; a work with neither a photo nor a video is not saved.</small>
                   <p id="showcasePublishNotice" class="showcase-notice" hidden></p>
+                  <div id="showcaseDropzone" class="dropzone" tabindex="0" role="button"
+                       aria-label="Add photos: drag files here, or press to choose">
+                    <strong>Drag photos here</strong>
+                    <span>or press to choose several at once</span>
+                    <small id="showcaseQuota"></small>
+                    <input id="showcaseFiles" type="file" multiple accept="image/jpeg,image/png,image/webp" hidden>
+                  </div>
                   <div id="showcaseItemsEditor"></div>
                   <button type="button" class="btn btn-secondary" id="showcaseAddItem" style="margin-top:13px;">Add a work</button>
                 </div>
@@ -3019,6 +3044,206 @@
     // studio owns regardless of what it currently pays for.
     const SHOWCASE_CATEGORY_LIMIT = 8;
 
+    /* ── Uploading ──────────────────────────────────────────────────────
+     *
+     * Shrink in the browser before sending. This is the single largest
+     * improvement available here and it is not about our bandwidth:
+     *
+     *   - a 24MP phone photo is ~8MB and the per-file limit is 10MB, so a
+     *     studio photographing its own work on a phone was one portrait away
+     *     from a rejection it could not explain;
+     *   - the same photo lands at ~500KB, so a plan's storage holds an order
+     *     of magnitude more work;
+     *   - and uploading twenty pieces over a phone connection stops being a
+     *     coffee break.
+     *
+     * 2400px is chosen against the layout, not by feel: the lead tile is at
+     * most ~1100 CSS px wide, so 2400 covers a 2× display with room spare.
+     * Anything larger is asking the visitor to download pixels nobody sees.
+     *
+     * `imageOrientation: 'from-image'` is load-bearing. Without it every
+     * portrait photo taken on a phone arrives lying on its side, because the
+     * rotation lives in EXIF and canvas does not apply it. That is the
+     * classic way a downscale "works" and ruins the picture.
+     */
+    const SHOWCASE_MAX_EDGE = 2400;
+    const SHOWCASE_JPEG_QUALITY = 0.82;
+
+    async function downscaleImage(file) {
+      if (!/^image\/(jpeg|png|webp)$/.test(file.type)) return file;
+      let bitmap;
+      try {
+        bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+      } catch {
+        return file;   // old browser, or a file the decoder refuses: send as-is
+      }
+      const longest = Math.max(bitmap.width, bitmap.height);
+      const scale = Math.min(1, SHOWCASE_MAX_EDGE / longest);
+      const width = Math.round(bitmap.width * scale);
+      const height = Math.round(bitmap.height * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext('2d').drawImage(bitmap, 0, 0, width, height);
+      bitmap.close?.();
+      const blob = await new Promise((resolve) =>
+        canvas.toBlob(resolve, 'image/jpeg', SHOWCASE_JPEG_QUALITY));
+      // Never send something bigger than what we were given. Re-encoding an
+      // already-small JPEG, or any PNG screenshot of flat colour, can easily
+      // grow it — and then "optimising" would cost the studio quota.
+      if (!blob || blob.size >= file.size) return file;
+      return new File([blob], file.name.replace(/\.[^.]+$/, '') + '.jpg',
+                      { type: 'image/jpeg' });
+    }
+
+    /* Same auth shape as `api()`, but XHR — `fetch` cannot report upload
+       progress, and a progress bar that is not measured is a lie. */
+    function apiUpload(path, formData, onProgress) {
+      const slug = currentTenantSlug();
+      if (!slug) return Promise.reject(new Error('Tenant slug is required.'));
+      return new Promise((resolve, reject) => {
+        const request = new XMLHttpRequest();
+        request.open('POST', `/s/${encodeURIComponent(slug)}/v1${path}`);
+        request.withCredentials = true;
+        request.setRequestHeader('X-Requested-With', 'StudioSaaS');
+        request.setRequestHeader('X-Tenant-Slug', slug);
+        request.upload.addEventListener('progress', (event) => {
+          if (event.lengthComputable) onProgress(event.loaded / event.total);
+        });
+        request.addEventListener('load', () => {
+          let data = {};
+          try { data = JSON.parse(request.responseText || '{}'); } catch { /* keep {} */ }
+          if (request.status >= 200 && request.status < 300) return resolve(data);
+          reject(new Error(data.message || data.error || `${request.status} ${path}`));
+        });
+        request.addEventListener('error', () => reject(new Error('Upload failed.')));
+        request.addEventListener('abort', () => reject(new Error('Upload cancelled.')));
+        request.send(formData);
+      });
+    }
+
+    /* One card's picture area, repainted alone.
+     *
+     * `renderShowcaseItems()` rebuilds the whole list, which is right for a
+     * structural change the owner just made (add, remove, reorder) and wrong
+     * for an upload finishing — that would destroy the caption they are in
+     * the middle of typing three cards down. Uploads patch; people rebuild. */
+    function paintShowcaseThumb(host, item, index) {
+      host.textContent = '';
+      const preview = item._localPreview || item.image_url;
+      if (preview) {
+        const chip = document.createElement('div');
+        chip.className = 'img-chip';
+        const img = document.createElement('img');
+        img.src = preview;      // property, never interpolated markup
+        img.alt = '';
+        chip.appendChild(img);
+        if (item._uploading) {
+          const bar = document.createElement('span');
+          bar.className = 'img-chip-progress';
+          bar.style.width = `${Math.round((item._progress || 0) * 100)}%`;
+          chip.appendChild(bar);
+        }
+        host.appendChild(chip);
+      }
+      if (item._error) {
+        const failed = document.createElement('p');
+        failed.className = 'showcase-upload-error';
+        failed.textContent = item._error;
+        host.appendChild(failed);
+      }
+      const file = document.createElement('input');
+      file.type = 'file';
+      file.accept = 'image/jpeg,image/png,image/webp';
+      file.id = `showcaseImage${index}`;
+      const fileLabel = document.createElement('label');
+      fileLabel.setAttribute('for', file.id);
+      fileLabel.textContent = item.image_url ? 'Replace photo' : 'Photo';
+      file.addEventListener('change', () => {
+        const chosen = file.files[0];
+        file.value = '';
+        if (chosen) uploadShowcaseImage(item, chosen).catch(reportApiError);
+      });
+      host.append(fileLabel, file);
+    }
+
+    function repaintShowcaseThumb(item) {
+      const index = showcaseItems.indexOf(item);
+      if (index < 0) return;
+      const host = $('showcaseItemsEditor')
+        ?.querySelector(`[data-showcase-index="${index}"] .showcase-thumb`);
+      if (host) paintShowcaseThumb(host, item, index);
+    }
+
+    async function uploadShowcaseImage(item, file) {
+      item._uploading = true;
+      item._progress = 0;
+      item._error = '';
+      // Shown from its own bytes straight away: the board takes shape while
+      // the network is still working, instead of after it.
+      if (item._localPreview) URL.revokeObjectURL(item._localPreview);
+      item._localPreview = URL.createObjectURL(file);
+      repaintShowcaseThumb(item);
+      try {
+        const prepared = await downscaleImage(file);
+        const formData = new FormData();
+        formData.append('target', 'showcase');
+        formData.append('file', prepared);
+        const data = await apiUpload('/tenant/website-media', formData, (fraction) => {
+          item._progress = fraction;
+          repaintShowcaseThumb(item);
+        });
+        item.image_url = data.url || '';
+      } catch (error) {
+        // One file failing is one card failing. The rest of the batch keeps
+        // going, and this card says what happened and can be retried.
+        item._error = error.message || 'Upload failed.';
+      } finally {
+        item._uploading = false;
+        if (item._localPreview && item.image_url) {
+          URL.revokeObjectURL(item._localPreview);
+          item._localPreview = '';
+        }
+        repaintShowcaseThumb(item);
+        renderShowcasePublishNotice();
+        setSettingsDirty(true);
+      }
+      /* Adding work is a request to SHOW the work — the same reasoning as the
+         hero photo, and the same dead end avoided. */
+      if (item.image_url && !toggleOn('settingShowShowcase')) {
+        setToggle('settingShowShowcase', true, true);
+      }
+    }
+
+    /* Drag a folder of work in, or pick several at once. Cards appear before
+       a single byte has been sent, so the wait is visible progress rather
+       than an unexplained pause. */
+    async function addShowcaseFiles(fileList) {
+      const files = [...(fileList || [])]
+        .filter((file) => /^image\/(jpeg|png|webp)$/.test(file.type));
+      if (!files.length) return;
+      const queued = files.map((file) => {
+        const item = { image_url: '', category_id: '', title: { zh: '', en: '' },
+                       caption: { zh: '', en: '' }, video_url: '',
+                       _uploading: true, _progress: 0, _error: '', _localPreview: '' };
+        showcaseItems.push(item);
+        return { file, item };
+      });
+      renderShowcaseItems();
+      setSettingsDirty(true);
+      // Two at a time. Twenty parallel uploads share the same uplink and
+      // finish no sooner, but every one of them looks stalled while they do.
+      let cursor = 0;
+      const worker = async () => {
+        while (cursor < queued.length) {
+          const next = queued[cursor++];
+          await uploadShowcaseImage(next.item, next.file);
+        }
+      };
+      await Promise.all([worker(), worker()]);
+      showToast(`${files.length} photo${files.length === 1 ? '' : 's'} added. Save Draft or Publish when ready.`);
+    }
+
     /* What the plan publishes, said plainly and only when it matters.
        A studio that has moved to a smaller plan keeps every work — the editor
        still lists all of them — but the site shows the first N. Saying so is
@@ -3031,6 +3256,17 @@
       const stored = showcaseItems.filter((i) => i.image_url || String(i.video_url || '').trim()).length;
       const add = $('showcaseAddItem');
       if (add) add.disabled = limit > 0 && stored >= limit;
+      /* Always-on, quiet: how many of your works the site is showing, and
+         that we shrink photos on the way in. Both are things a studio would
+         otherwise have to guess at — and the second explains why a 9MB photo
+         did not fail. No storage figure: there is no endpoint that reports
+         one, and inventing a number here would be worse than saying nothing. */
+      const quota = $('showcaseQuota');
+      if (quota) {
+        quota.textContent = limit
+          ? `Published on your site: ${Math.min(stored, limit)} of ${limit} on your plan · photos are resized to 2400px before upload`
+          : 'Photos are resized to 2400px before upload';
+      }
       if (!limit || stored <= limit) {
         notice.hidden = true;
         return;
@@ -3120,6 +3356,7 @@
       showcaseItems.forEach((item, index) => {
         const card = document.createElement('div');
         card.className = 'showcase-card';
+        card.dataset.showcaseIndex = String(index);
 
         const head = document.createElement('div');
         head.className = 'showcase-card-head';
@@ -3162,26 +3399,9 @@
         body.className = 'form-grid';
 
         const thumb = document.createElement('div');
-        thumb.className = 'form-group';
+        thumb.className = 'form-group showcase-thumb';
         thumb.style.gridColumn = '1/-1';
-        if (item.image_url) {
-          const chip = document.createElement('div');
-          chip.className = 'img-chip';
-          const img = document.createElement('img');
-          img.src = item.image_url;      // property, never interpolated markup
-          img.alt = '';
-          chip.appendChild(img);
-          thumb.appendChild(chip);
-        }
-        const file = document.createElement('input');
-        file.type = 'file';
-        file.accept = 'image/jpeg,image/png,image/webp';
-        file.id = `showcaseImage${index}`;
-        const fileLabel = document.createElement('label');
-        fileLabel.setAttribute('for', file.id);
-        fileLabel.textContent = item.image_url ? 'Replace photo' : 'Photo';
-        file.addEventListener('change', () => uploadShowcaseImage(index, file.id).catch(reportApiError));
-        thumb.append(fileLabel, file);
+        paintShowcaseThumb(thumb, item, index);
         body.appendChild(thumb);
 
         const field = (key, labelText, value, tag, span) => {
@@ -3271,30 +3491,6 @@
       renderShowcasePublishNotice();
     }
 
-    async function uploadShowcaseImage(index, inputId) {
-      const picker = $(inputId);
-      const file = picker.files[0];
-      if (!file) return;
-      const formData = new FormData();
-      formData.append('target', 'showcase');
-      formData.append('file', file);
-      const data = await api('/tenant/website-media', { method: 'POST', body: formData });
-      picker.value = '';
-      if (!data.url) return;
-      showcaseItems[index].image_url = data.url;
-      renderShowcaseItems();
-      setSettingsDirty(true);
-      /* Adding work is a request to SHOW the work — the same reasoning as the
-         hero photo, and the same dead end avoided. */
-      let switched = false;
-      if (!toggleOn('settingShowShowcase')) {
-        setToggle('settingShowShowcase', true, true);
-        switched = true;
-      }
-      showToast(switched
-        ? 'Photo uploaded and the Selected Work section switched on. Save Draft or Publish when ready.'
-        : 'Photo uploaded. Save Draft or Publish when ready.');
-    }
 
     function collectShowcaseItems() {
       return showcaseItems
@@ -5877,6 +6073,30 @@
         renderShowcaseItems();
         setSettingsDirty(true);
         $(`showcaseCategory${showcaseCategories.length - 1}`)?.focus();
+      });
+      const dropzone = $('showcaseDropzone');
+      const filePicker = $('showcaseFiles');
+      dropzone.addEventListener('click', () => filePicker.click());
+      // Keyboard parity: the dropzone is a real control, so it answers the
+      // keys a control answers to. Drag and drop alone is mouse-only.
+      dropzone.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); filePicker.click(); }
+      });
+      filePicker.addEventListener('change', () => {
+        const chosen = filePicker.files;
+        addShowcaseFiles(chosen).catch(reportApiError);
+        filePicker.value = '';
+      });
+      ['dragenter', 'dragover'].forEach((name) => dropzone.addEventListener(name, (event) => {
+        event.preventDefault();
+        dropzone.classList.add('is-over');
+      }));
+      ['dragleave', 'drop'].forEach((name) => dropzone.addEventListener(name, (event) => {
+        event.preventDefault();
+        dropzone.classList.remove('is-over');
+      }));
+      dropzone.addEventListener('drop', (event) => {
+        addShowcaseFiles(event.dataTransfer?.files).catch(reportApiError);
       });
       $('showcaseAddItem').addEventListener('click', () => {
         showcaseItems.push({ image_url: '', category_id: '',

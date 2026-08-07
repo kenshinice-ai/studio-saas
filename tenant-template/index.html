@@ -229,6 +229,39 @@
   .sc-chip.is-on{background:var(--accent-soft);color:var(--on-accent-soft);
     border-color:var(--accent-border);font-weight:500}
   .sc-more-wrap{margin-top:var(--ui-space-5, 34px);text-align:center}
+  /* An invisible control over the whole picture: the tile IS the button. */
+  .sc-open{position:absolute;inset:0;width:100%;height:100%;border:0;padding:0;
+    background:transparent;cursor:zoom-in}
+  .sc-open:focus-visible{outline:2px solid var(--focus-ring);outline-offset:-4px}
+  /* ── Lightbox ── */
+  .sc-lightbox{width:min(96vw,1200px);max-width:96vw;max-height:92vh;padding:0;
+    border:0;border-radius:var(--radius-lg);background:var(--panel);color:var(--ink);
+    overflow:hidden}
+  .sc-lightbox::backdrop{background:var(--scrim)}
+  .sc-lb-stage{display:grid;place-items:center;background:var(--bg2);
+    /* Reserved before the picture arrives, so opening never reflows. */
+    height:min(70vh,720px)}
+  .sc-lb-figure{margin:0;width:100%;height:100%;display:grid;place-items:center}
+  .sc-lb-figure img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+  .sc-lb-figure iframe{width:100%;height:100%;border:0}
+  .sc-lb-bar{display:flex;align-items:center;gap:var(--ui-space-4, 21px);
+    padding:var(--ui-space-3, 13px) var(--ui-space-4, 21px)}
+  .sc-lb-meta{flex:1;min-width:0}
+  .sc-lb-meta h3{font-size:16px;font-weight:500}
+  .sc-lb-meta p{font-size:13px;color:var(--muted);margin-top:2px}
+  .sc-lb-nav{display:flex;align-items:center;gap:var(--ui-space-2, 8px);flex:0 0 auto}
+  .sc-lb-count{font-size:13px;color:var(--muted);margin-right:var(--ui-space-2, 8px)}
+  .sc-lb-btn{min-width:44px;min-height:44px;border-radius:999px;cursor:pointer;
+    display:inline-grid;place-items:center;
+    border:1px solid var(--line);background:transparent;color:var(--ink)}
+  .sc-lb-btn:hover{background:var(--surface-hover)}
+  .sc-lb-btn:focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px}
+  .sc-lb-btn[hidden]{display:none}
+  @media(max-width:640px){
+    .sc-lightbox{width:100vw;max-width:100vw;height:100vh;max-height:100vh;border-radius:0}
+    .sc-lb-stage{height:calc(100vh - 96px)}
+    .sc-lb-meta h3{font-size:15px}
+  }
   .sc-more-wrap button[hidden]{display:none}
   @media(min-width:900px){
     .showcase-grid{grid-template-columns:var(--ui-golden-columns, minmax(0,1.618fr) minmax(0,1fr))}
@@ -600,6 +633,27 @@
     <div class="sc-more-wrap"><button type="button" class="btn btn-line" id="showcaseMore" hidden></button></div>
   </div>
 </section>
+
+<!-- The lightbox. A native <dialog>, because showModal() gives the focus
+     trap, Escape, and inertness of everything behind it for free — three
+     things a hand-rolled overlay gets wrong more often than right. -->
+<dialog id="scLightbox" class="sc-lightbox" aria-label="Work viewer">
+  <div class="sc-lb-stage">
+    <figure class="sc-lb-figure" id="scLbFigure"></figure>
+  </div>
+  <div class="sc-lb-bar">
+    <div class="sc-lb-meta">
+      <h3 class="serif" id="scLbTitle"></h3>
+      <p id="scLbCaption"></p>
+    </div>
+    <div class="sc-lb-nav">
+      <span class="sc-lb-count" id="scLbCount"></span>
+      <button type="button" class="sc-lb-btn" id="scLbPrev" data-en-aria="Previous work" aria-label="上一件作品"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="18" height="18"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <button type="button" class="sc-lb-btn" id="scLbNext" data-en-aria="Next work" aria-label="下一件作品"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="18" height="18"><path d="M9 5l7 7-7 7"/></svg></button>
+      <button type="button" class="sc-lb-btn" id="scLbClose" data-en-aria="Close" aria-label="关闭"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" width="18" height="18"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+  </div>
+</dialog>
 
 <section id="courses" data-awaits-data style="background:var(--bg2)">
   <div class="wrap">
@@ -1235,15 +1289,19 @@
     var path=document.createElementNS('http://www.w3.org/2000/svg','path');
     path.setAttribute('d','M8.4 4.8v14.4a.9.9 0 001.38.76l11.2-7.2a.9.9 0 000-1.52L9.78 4.04A.9.9 0 008.4 4.8z');
     svg.appendChild(path); button.appendChild(svg);
+    /* Opens the lightbox and plays there — a 400px tile was never the right
+       size for a video. If <dialog> is unavailable the frame is inserted in
+       place, which is what this did before v8.7.0 and still works.
+       Either way, no third-party request happens before this click. */
     button.addEventListener('click', function(){
+      var index=(lbItems()).indexOf(item);
+      if(index>=0 && lbOpen(index, button)) return;
       var frameEl=document.createElement('iframe');
       frameEl.src=item.video_embed_url||item.videoEmbedUrl||'';
       frameEl.title=name||T('工作室作品视频','Studio work video');
       frameEl.setAttribute('loading','lazy');
       frameEl.setAttribute('allowfullscreen','');
       frameEl.setAttribute('referrerpolicy','strict-origin-when-cross-origin');
-      // No `allow="autoplay"`: the visitor pressed play once, and a frame that
-      // can start itself is a frame that can start itself again on re-render.
       frame.textContent='';
       frame.appendChild(frameEl);
     });
@@ -1269,7 +1327,23 @@
     } else if(embed){
       frame.classList.add('is-videoonly');
     }
-    if(embed) frame.appendChild(showcasePlayButton(item, frame));
+    if(embed){
+      frame.appendChild(showcasePlayButton(item, frame));
+    } else if(image && lbSupported()){
+      /* A picture that opens is a control, so it is a <button> — not a div
+         with a click handler. That is what makes it tabbable, announced, and
+         operable by Enter and Space without any of it being written here. */
+      var opener=document.createElement('button');
+      opener.type='button';
+      opener.className='sc-open';
+      opener.setAttribute('aria-label',
+        T('查看','View')+(pickLocalized(item.title)?T('：',': ')+pickLocalized(item.title):''));
+      opener.addEventListener('click', function(){
+        var idx=(lbItems()).indexOf(item);
+        if(idx>=0) lbOpen(idx, opener);
+      });
+      frame.appendChild(opener);
+    }
     figure.appendChild(frame);
     var title=pickLocalized(item.title), caption=pickLocalized(item.caption);
     if(title||caption){
@@ -1281,6 +1355,134 @@
     }
     return figure;
   }
+  /* ── Lightbox ───────────────────────────────────────────────────────
+   *
+   * Built on <dialog>.showModal(), which supplies the focus trap, Escape,
+   * and `inert` on everything behind it. Hand-rolled overlays get all three
+   * wrong more often than right.
+   *
+   * If showModal is missing the tiles keep their old behaviour (open the
+   * image in a new tab). A lightbox you cannot close is worse than none, so
+   * there is no partial version of this.
+   */
+  var lb = { open:false, index:0, opener:null, touch:null };
+  function lbSupported(){
+    var el=document.getElementById('scLightbox');
+    return !!(el && typeof el.showModal === 'function');
+  }
+  function lbItems(){ return (state.showcase && state.showcase.items) || []; }
+  function lbPreload(index){
+    // Neighbours only. Preloading a whole board would spend the visitor's
+    // data on pictures they may never reach.
+    [index-1, index+1].forEach(function(i){
+      var item=lbItems()[i];
+      if(item && item.image_url){ var img=new Image(); img.src=item.image_url; }
+    });
+  }
+  function lbRender(){
+    var items=lbItems(), item=items[lb.index];
+    if(!item) return;
+    var figure=document.getElementById('scLbFigure');
+    figure.textContent='';
+    var embed=item.video_embed_url||item.videoEmbedUrl||'';
+    if(embed){
+      // Full size is what a video was always for; the tile only ever had room
+      // for a still. Still no third-party request until this point.
+      var frame=document.createElement('iframe');
+      frame.src=embed;
+      frame.title=pickLocalized(item.title)||T('工作室作品视频','Studio work video');
+      frame.setAttribute('allowfullscreen','');
+      frame.setAttribute('referrerpolicy','strict-origin-when-cross-origin');
+      figure.appendChild(frame);
+    } else if(item.image_url){
+      var img=document.createElement('img');
+      img.src=item.image_url;
+      img.alt=pickLocalized(item.title)||'';
+      figure.appendChild(img);
+    }
+    document.getElementById('scLbTitle').textContent=nouns(pickLocalized(item.title)||'');
+    document.getElementById('scLbCaption').textContent=nouns(pickLocalized(item.caption)||'');
+    document.getElementById('scLbCount').textContent=(lb.index+1)+' / '+items.length;
+    var single=items.length<2;
+    document.getElementById('scLbPrev').hidden=single;
+    document.getElementById('scLbNext').hidden=single;
+    lbPreload(lb.index);
+  }
+  function lbGo(step){
+    var items=lbItems();
+    if(items.length<2) return;
+    lb.index=(lb.index+step+items.length)%items.length;
+    lbRender();
+  }
+  function lbOpen(index, opener){
+    if(!lbSupported()) return false;
+    var el=document.getElementById('scLightbox');
+    lb.index=index; lb.opener=opener||null; lb.open=true;
+    lbRender();
+    el.showModal();
+    /* The back button must close this, not leave the site.
+       On a phone, "back" is how people dismiss anything that covers the
+       screen; without this entry a visitor who taps it to get out of one
+       photograph leaves the studio's website entirely. This is the single
+       most-missed part of a lightbox and it is not a nicety. */
+    try { history.pushState({ scLightbox:true }, ''); } catch(e){}
+    // Lock the page behind it without letting the scrollbar's disappearance
+    // jolt the layout sideways.
+    document.documentElement.style.scrollbarGutter='stable';
+    document.body.style.overflow='hidden';
+    return true;
+  }
+  function lbClose(fromPopstate){
+    if(!lb.open) return;
+    lb.open=false;
+    var el=document.getElementById('scLightbox');
+    document.getElementById('scLbFigure').textContent='';   // stop any video
+    if(el.open) el.close();
+    document.body.style.overflow='';
+    document.documentElement.style.scrollbarGutter='';
+    // Consume our own history entry unless the pop is what closed us.
+    if(!fromPopstate && history.state && history.state.scLightbox){
+      try { history.back(); } catch(e){}
+    }
+    /* Focus goes back to the tile it came from — not the top of the page.
+       Otherwise a keyboard visitor pays for every photograph by tabbing back
+       to where they were. */
+    if(lb.opener && document.contains(lb.opener)) lb.opener.focus();
+    lb.opener=null;
+  }
+  (function bindLightbox(){
+    var el=document.getElementById('scLightbox');
+    if(!el) return;
+    document.getElementById('scLbPrev').addEventListener('click', function(){ lbGo(-1); });
+    document.getElementById('scLbNext').addEventListener('click', function(){ lbGo(1); });
+    document.getElementById('scLbClose').addEventListener('click', function(){ lbClose(); });
+    // Escape fires `cancel`, and the browser closes the dialog itself — so the
+    // history entry has to be cleaned up here too, or one Esc would leave a
+    // dead entry that swallows the visitor's next back press.
+    el.addEventListener('cancel', function(e){ e.preventDefault(); lbClose(); });
+    el.addEventListener('click', function(e){ if(e.target===el) lbClose(); });
+    window.addEventListener('popstate', function(){ if(lb.open) lbClose(true); });
+    document.addEventListener('keydown', function(e){
+      if(!lb.open) return;
+      if(e.key==='ArrowLeft'){ e.preventDefault(); lbGo(-1); }
+      if(e.key==='ArrowRight'){ e.preventDefault(); lbGo(1); }
+    });
+    el.addEventListener('touchstart', function(e){
+      var t=e.changedTouches[0];
+      lb.touch={x:t.clientX, y:t.clientY};
+    }, {passive:true});
+    el.addEventListener('touchend', function(e){
+      if(!lb.touch) return;
+      var t=e.changedTouches[0];
+      var dx=t.clientX-lb.touch.x, dy=t.clientY-lb.touch.y;
+      lb.touch=null;
+      if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)) return lbGo(dx<0?1:-1);
+      // Swiping down to dismiss is the gesture people already have for
+      // anything covering the screen.
+      if(dy>80 && Math.abs(dy)>Math.abs(dx)) lbClose();
+    }, {passive:true});
+  })();
+
   function showcaseChips(){
     var host=document.getElementById('showcaseFilters');
     host.textContent='';
