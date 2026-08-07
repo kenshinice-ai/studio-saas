@@ -150,6 +150,91 @@
   body.font-classic .serif, body.font-classic .lat{font-family:var(--font-display)}
 
   section{padding:var(--space-phi-2xl) 0}
+  /* ── Showcase: the studio's own work ────────────────────────────────
+     A curated board has a lead piece. An even grid says every item is worth
+     the same, which is the opposite of curation — so the first tile takes the
+     golden major and the next two stack in the minor, using the φ columns
+     already declared in ui-tokens.css rather than a new ratio.
+
+     φ is in the COLUMN SPLIT — 61.8% / 38.2% — which is the proportion a
+     reader actually perceives. It is deliberately NOT also in the lead tile's
+     aspect ratio, and that was measured rather than assumed: with columns of
+     1.618k and k, a 1.618:1 lead is exactly k tall while two stacked squares
+     beside it are 2k+gap. The first attempt claimed those matched and left a
+     447px hole under the lead at 1440px. They cannot match — so the lead
+     fills its two-row span instead, and comes out portrait, which is the
+     better crop for a painting anyway.
+
+     Every tile still reserves its space before any image arrives
+     (ux-guidelines "Content Jumping", severity High): the squares by
+     aspect-ratio, the lead by the row span its neighbours define. */
+  .showcase-grid{display:grid;gap:var(--ui-space-4, 21px)}
+  .sc-item{position:relative;margin:0;min-width:0}
+  .sc-frame{position:relative;display:block;width:100%;overflow:hidden;
+    border-radius:var(--radius-lg);background:var(--bg2);
+    box-shadow:var(--shadow-soft);aspect-ratio:1}
+  .sc-item:first-child .sc-frame{aspect-ratio:4/5}
+  .sc-frame img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+    max-width:100%;transition:transform .6s var(--ease-out)}
+  .sc-item:hover .sc-frame img{transform:scale(1.03)}
+  .sc-cap{margin-top:var(--ui-space-3, 13px)}
+  .sc-cap h3{font-size:15px;font-weight:500;line-height:1.35}
+  .sc-cap p{font-size:13px;color:var(--muted);margin-top:4px}
+  /* Click-to-play. Before this button is pressed the page has made no request
+     to any third party — a bare embed would cost the visitor several hundred
+     kilobytes of provider JavaScript per tile, before they asked to watch. */
+  .sc-play{position:absolute;inset:0;width:100%;height:100%;border:0;padding:0;
+    background:transparent;cursor:pointer;display:grid;place-items:center}
+  .sc-play::before{content:'';position:absolute;inset:0;
+    background:var(--scrim);opacity:.34;transition:opacity .3s var(--ease-out)}
+  .sc-play:hover::before,.sc-play:focus-visible::before{opacity:.5}
+  .sc-play:focus-visible{outline:2px solid var(--focus-ring);outline-offset:-4px}
+  /* The glyph carries its OWN disc rather than relying on the scrim over the
+     photograph. Measured: with the scrim alone a light triangle came out at
+     1.22:1 over a near-white painting — invisible on exactly the kind of work
+     an art studio posts — and 4.47:1 over mid grey, still under AA. On an
+     opaque ink disc the contrast is the same on every image, which is the
+     only version of this that is actually true for all tenants. */
+  /* No shadow: the product has exactly two elevations and neither is meant
+     for a 54px control (test_shape_language). An opaque ink disc at 16:1
+     needs no help separating from the photograph anyway. */
+  .sc-play svg{position:relative;width:54px;height:54px;padding:15px;
+    background:var(--ink);color:var(--panel);border-radius:50%;
+    transition:transform .25s var(--ease-out)}
+  .sc-play:hover svg,.sc-play:focus-visible svg{transform:scale(1.06)}
+  .sc-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  /* A video with no still supplied is a neutral panel with the same play
+     affordance — never a blank rectangle (same rule as the empty hero). */
+  .sc-frame.is-videoonly{background:linear-gradient(160deg,var(--bg2),var(--bg))}
+  /* Tiles four and up are a separate, equal grid below the lead block —
+     a sibling rather than more rows of the φ columns, because the argument
+     has been made by then and the rest is evidence, all of it equal.
+     Two grids rather than one clever one: the alternative was a `grid-column:
+     1 / -1` override that silently fights the φ template. */
+  .showcase-rest{display:grid;grid-template-columns:1fr;
+    gap:var(--ui-space-4, 21px);margin-top:var(--ui-space-4, 21px)}
+  .showcase-rest:empty{display:none}
+  @media(min-width:900px){
+    .showcase-grid{grid-template-columns:var(--ui-golden-columns, minmax(0,1.618fr) minmax(0,1fr))}
+    /* The lead spans both rows the two squares define, and FILLS that height
+       rather than declaring its own ratio — see the note above for why the
+       two cannot both be φ. `min-height:0` is what lets a grid item shrink to
+       its track instead of to its content. */
+    .showcase-grid > .sc-item:first-child{grid-row:span 2;display:flex;flex-direction:column;min-height:0}
+    .showcase-grid > .sc-item:first-child .sc-frame{aspect-ratio:auto;flex:1;min-height:0}
+    .showcase-rest{grid-template-columns:repeat(3,minmax(0,1fr))}
+  }
+  @media(min-width:600px) and (max-width:899px){
+    .showcase-rest{grid-template-columns:repeat(2,minmax(0,1fr))}
+  }
+  /* One or two works must not leave a hole where a third tile would be. */
+  @media(min-width:900px){
+    .showcase-grid.count-1{grid-template-columns:minmax(0,1fr)}
+    .showcase-grid.count-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .showcase-grid.count-1 > .sc-item:first-child,
+    .showcase-grid.count-2 > .sc-item:first-child{grid-row:auto}
+    .showcase-grid.count-2 > .sc-item:first-child .sc-frame{aspect-ratio:1}
+  }
   .sec-head{max-width:var(--brand-reading-measure);margin-bottom:var(--space-phi-xl)}
   .sec-head h2{font-size:clamp(26px,3.4vw,42px);font-weight:500;line-height:1.2;margin-top:14px}
   .sec-head p{color:var(--ink2);margin-top:16px;font-size:15px}
@@ -385,6 +470,7 @@
     </a>
     <div class="navlinks">
       <a id="navPrincipal" href="#home:artist" data-analytics-label="nav_principal" data-en="Principal">主理人</a>
+      <a id="navShowcase" href="#home:showcase" data-analytics-label="nav_showcase" data-en="Selected Work">工作室作品</a>
       <a id="navCourses" href="#home:courses" data-analytics-label="nav_courses" data-en="Courses">课程</a>
       <a id="navGallery" href="#home:gallery" data-analytics-label="nav_gallery" data-en="Student %WORKS%">学员%WORK%</a>
       <a id="navFaq" href="#home:faq" data-analytics-label="nav_faq" data-en="FAQ">常见问题</a>
@@ -398,6 +484,7 @@
   </div>
   <div id="mnav" style="display:none;flex-direction:column;background:var(--bg);border-top:1px solid var(--line);padding:14px 28px 20px;gap:14px">
     <a id="mnavPrincipal" href="#home:artist" data-analytics-label="mnav_principal" data-en="Principal">主理人</a>
+    <a id="mnavShowcase" href="#home:showcase" data-analytics-label="mnav_showcase" data-en="Selected Work">工作室作品</a>
     <a id="mnavCourses" href="#home:courses" data-analytics-label="mnav_courses" data-en="Courses">课程</a>
     <a id="mnavGallery" href="#home:gallery" data-analytics-label="mnav_gallery" data-en="Student %WORKS%">学员%WORK%</a>
     <a id="mnavFaq" href="#home:faq" data-analytics-label="mnav_faq" data-en="FAQ">常见问题</a>
@@ -476,6 +563,23 @@
       <p id="principalBio" class="bio"></p>
       <p id="principalQuote" class="sig-line"></p>
     </div>
+  </div>
+</section>
+
+<!-- The studio's OWN work, and deliberately not the student gallery: different
+     author, different consent model, different question answered. It sits
+     directly after the principal because the reading order is an argument —
+     this is the space, this is who teaches, THIS IS THEIR WORK, here are the
+     courses, here is what students made. See docs/design/Showcase_Section.md. -->
+<section id="showcase" data-awaits-data>
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <p id="showcaseLabel" class="eyebrow" data-en="Selected Work">工作室作品</p>
+      <h2 id="showcaseTitle" class="serif" data-en="Work from this studio">出自这间%VENUE%</h2>
+      <p id="showcaseLead" data-en="A short selection, chosen by the studio."></p>
+    </div>
+    <div class="showcase-grid reveal" id="showcaseGrid"></div>
+    <div class="showcase-rest reveal" id="showcaseRest"></div>
   </div>
 </section>
 
@@ -863,6 +967,11 @@
     if(state.brand && state.brand.name){
       applyBrandCopy(state.brand);
       renderAbout(state.brand);
+      // Titles and captions are per-language, so the board is rebuilt on a
+      // language switch. Any frame the visitor had already opened is dropped
+      // with it — deliberate: an iframe surviving a re-render would keep
+      // playing behind copy that no longer describes it.
+      renderShowcase(state.brand);
       /* The contact rows build their own key labels ("地址" / "Location") in JS,
          so they are not covered by localise(). Leaving them out meant the three
          rows under Contact stayed Chinese for an English visitor. */
@@ -1087,6 +1196,96 @@
     });
     resolveSection('about', true);
     startAboutCarousel();
+  }
+  /* The studio's own work. Built with DOM calls rather than innerHTML because
+     every value below is tenant-authored, and the video URL in particular has
+     already been reduced server-side to a provider plus an id matching
+     [A-Za-z0-9_-] — the frame src is never assembled here. */
+  function showcasePlayButton(item, frame){
+    var button=document.createElement('button');
+    button.type='button';
+    button.className='sc-play';
+    var name=pickLocalized(item.title)||'';
+    // The separator is localised too: a full-width colon in an English label
+    // reads as a typo to a screen reader user, not as a style.
+    button.setAttribute('aria-label', T('播放视频','Play video')+(name?T('：',': ')+name:''));
+    var svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    // Just the triangle. The disc around it is the element's own background,
+    // so the shape stays legible whatever the photograph behind it does.
+    svg.setAttribute('viewBox','0 0 24 24'); svg.setAttribute('fill','currentColor');
+    svg.setAttribute('aria-hidden','true');
+    var path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d','M8.4 4.8v14.4a.9.9 0 001.38.76l11.2-7.2a.9.9 0 000-1.52L9.78 4.04A.9.9 0 008.4 4.8z');
+    svg.appendChild(path); button.appendChild(svg);
+    button.addEventListener('click', function(){
+      var frameEl=document.createElement('iframe');
+      frameEl.src=item.video_embed_url||item.videoEmbedUrl||'';
+      frameEl.title=name||T('工作室作品视频','Studio work video');
+      frameEl.setAttribute('loading','lazy');
+      frameEl.setAttribute('allowfullscreen','');
+      frameEl.setAttribute('referrerpolicy','strict-origin-when-cross-origin');
+      // No `allow="autoplay"`: the visitor pressed play once, and a frame that
+      // can start itself is a frame that can start itself again on re-render.
+      frame.textContent='';
+      frame.appendChild(frameEl);
+    });
+    return button;
+  }
+  function showcaseTile(item, index){
+    var figure=document.createElement('figure');
+    figure.className='sc-item';
+    var frame=document.createElement('div');
+    frame.className='sc-frame';
+    var image=String(item.image_url||item.imageUrl||'');
+    var embed=String(item.video_embed_url||item.videoEmbedUrl||'');
+    if(image){
+      var img=document.createElement('img');
+      img.src=image;
+      /* The lead tile is usually above the fold on a phone; the rest are not.
+         Decoding async on all of them keeps a large JPEG off the main thread. */
+      img.loading = index===0 ? 'eager' : 'lazy';
+      img.decoding='async';
+      img.alt=pickLocalized(item.title)||'';
+      img.onerror=function(){ this.remove(); frame.classList.add('is-videoonly'); };
+      frame.appendChild(img);
+    } else if(embed){
+      frame.classList.add('is-videoonly');
+    }
+    if(embed) frame.appendChild(showcasePlayButton(item, frame));
+    figure.appendChild(frame);
+    var title=pickLocalized(item.title), caption=pickLocalized(item.caption);
+    if(title||caption){
+      var cap=document.createElement('figcaption');
+      cap.className='sc-cap';
+      if(title){ var h=document.createElement('h3'); h.className='serif'; h.textContent=nouns(title); cap.appendChild(h); }
+      if(caption){ var p=document.createElement('p'); p.textContent=nouns(caption); cap.appendChild(p); }
+      figure.appendChild(cap);
+    }
+    return figure;
+  }
+  function renderShowcase(b){
+    var website=b.websiteProfile||b.website_profile||{};
+    var items=(website.showcase_items||website.showcaseItems||[]).slice(0,12);
+    var on=String(website.show_showcase ?? website.showShowcase ?? false)==='true'
+           || website.show_showcase===true || website.showShowcase===true;
+    var grid=document.getElementById('showcaseGrid');
+    var rest=document.getElementById('showcaseRest');
+    grid.textContent=''; rest.textContent='';
+    /* Same rule as every other section: switched off, or nothing curated, and
+       it does not appear at all. An empty board argues against the studio. */
+    if(!on || !items.length){ resolveSection('showcase', false); setNavVisible(['navShowcase','mnavShowcase'], false); return; }
+    var label=pickLocalized(website.showcase_label||website.showcaseLabel);
+    var title=pickLocalized(website.showcase_title||website.showcaseTitle);
+    var lead=pickLocalized(website.showcase_lead||website.showcaseLead);
+    if(label) document.getElementById('showcaseLabel').textContent=nouns(label);
+    if(title) document.getElementById('showcaseTitle').textContent=nouns(title);
+    document.getElementById('showcaseLead').textContent=lead?nouns(lead):'';
+    // Three in the golden block, the remainder in an equal grid beneath it.
+    grid.className='showcase-grid reveal in count-'+Math.min(items.length,3);
+    items.slice(0,3).forEach(function(item,i){ grid.appendChild(showcaseTile(item,i)); });
+    items.slice(3).forEach(function(item,i){ rest.appendChild(showcaseTile(item,i+3)); });
+    resolveSection('showcase', true);
+    setNavVisible(['navShowcase','mnavShowcase'], true);
   }
   var aboutTimer=null, aboutPaused=false;
   function startAboutCarousel(){
@@ -1396,6 +1595,7 @@
     applyBrandCopy(b);
     applySeo(b);
     renderAbout(b);
+    renderShowcase(b);
 
     /* P0-2: the principal block appears only with a real bio behind it — never
        the "【占位文案】…请将本段替换为真实介绍" that all five tenants shipped. */

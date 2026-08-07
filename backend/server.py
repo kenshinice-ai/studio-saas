@@ -4,7 +4,7 @@ import re
 from flask import (Flask, request, jsonify, redirect, send_from_directory,
                    session, make_response)
 from threading import Lock
-from studiosaas import api_v1
+from studiosaas import api_v1, video_embed
 from studiosaas.auth import init_auth_blueprints
 from studiosaas.config import is_standalone
 from studiosaas.errors import api_error
@@ -122,7 +122,7 @@ SESSION_SECRET_FILE = _data_path('.session_secret')
 PW_FILE       = _data_path('.cms_password')
 app.config['PHOTO_DIR'] = PHOTO_DIR
 MAX_BACKUPS   = 30   # 1 backup/hr rate limit → ~30 hours of rolling coverage
-APP_VERSION   = '8.5.4'
+APP_VERSION   = '8.6.0'
 app.config['APP_VERSION'] = APP_VERSION
 # The date this release was cut, in the manual's `dateModified` and in the
 # sitemap's `lastmod`. A version string alone is not a freshness signal to
@@ -835,10 +835,16 @@ def add_cors(r):
                   f'"{request.method} {request.path}" {r.status_code}', flush=True)
         except Exception:
             pass
+    # `frame-src` is spelled out rather than left to fall back to `default-src`.
+    # It used to be absent, which meant 'self' — so a studio's showcase video
+    # would have been blocked with no error anywhere, the same way the webfont
+    # was for a whole release. The three origins come from video_embed.py, so
+    # adding a provider there cannot leave the policy behind.
     r.headers.setdefault('Content-Security-Policy',
         "default-src 'self'; script-src 'self' 'unsafe-inline'; "
         "style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; "
         "font-src 'self' data:; connect-src 'self'; object-src 'none'; "
+        f"{video_embed.frame_src_directive()}; "
         "base-uri 'self'; frame-ancestors 'none'; form-action 'self'")
     r.headers.setdefault('X-Frame-Options', 'DENY')
     r.headers.setdefault('X-Content-Type-Options', 'nosniff')

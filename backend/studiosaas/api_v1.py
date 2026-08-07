@@ -54,6 +54,7 @@ from .lifecycle import (
 )
 from .models import Role
 from . import palette
+from . import video_embed
 from .presets import (
     FREE_ACCENT_STYLE_ID,
     INDUSTRY_PRESETS,
@@ -842,6 +843,13 @@ def _default_website_profile() -> dict:
         "about_title": {"zh": "", "en": ""},
         "about_body": {"zh": "", "en": ""},
         "about_items": [],
+        # Off and empty. A studio publishes a portfolio by curating one, not
+        # by existing — an empty board says less than no board.
+        "show_showcase": False,
+        "showcase_label": {"zh": "", "en": ""},
+        "showcase_title": {"zh": "", "en": ""},
+        "showcase_lead": {"zh": "", "en": ""},
+        "showcase_items": [],
     }
 
 
@@ -857,6 +865,12 @@ def _localized_pair(data: dict, key: str, *, limit: int) -> dict:
     if not zh and not en:
         return {"zh": "", "en": ""}
     return {"zh": zh or en, "en": en or zh}
+
+
+# Twelve. Not a storage limit — a curation one. A portfolio board is an
+# argument about quality, and the twenty-fifth item is always weaker than the
+# first. See docs/design/Showcase_Section.md.
+SHOWCASE_ITEM_LIMIT = 12
 
 
 def _normalize_website_profile(value) -> dict:
@@ -879,6 +893,7 @@ def _normalize_website_profile(value) -> dict:
             "show_contact",
             "show_student_area",
             "show_about",
+            "show_showcase",
         )
     }
     for key in ("courses_label", "gallery_label", "faq_label", "contact_label"):
@@ -909,6 +924,48 @@ def _normalize_website_profile(value) -> dict:
         if title["zh"] or title["en"]:
             normalized_items.append({"title": title, "body": body})
     profile["about_items"] = normalized_items
+
+    # The studio's OWN work — see docs/design/Showcase_Section.md. Separate
+    # from the student gallery on purpose: different author, different consent
+    # model, different question answered.
+    for key in ("showcase_label", "showcase_title", "showcase_lead"):
+        camel = "".join([key.split("_")[0], *(part.capitalize() for part in key.split("_")[1:])])
+        source = data if key in data else {key: data.get(camel)}
+        profile[key] = _localized_pair(source, key, limit=300)
+    showcase = data.get("showcase_items", data.get("showcaseItems"))
+    curated = []
+    for item in (showcase if isinstance(showcase, list) else [])[:SHOWCASE_ITEM_LIMIT]:
+        if not isinstance(item, dict):
+            continue
+        image = str(item.get("image_url") or item.get("imageUrl") or "").strip()[:400]
+        # Two ways in, because the owner pastes a link and the stored record
+        # already holds the parsed halves. Either way the ID is re-validated:
+        # a record is not more trustworthy than a submission just because it
+        # is older.
+        provider, video_id = video_embed.parse_video_url(
+            item.get("video_url") or item.get("videoUrl") or "")
+        if not provider:
+            stored_provider = str(item.get("video_provider") or item.get("videoProvider") or "")
+            stored_id = str(item.get("video_id") or item.get("videoId") or "")
+            if video_embed.embed_url(stored_provider, stored_id):
+                provider, video_id = stored_provider, stored_id
+        # A tile with neither a picture nor a video is an empty box, not a
+        # work. Dropped rather than rendered.
+        if not image and not provider:
+            continue
+        curated.append({
+            "image_url": image,
+            "title": _localized_pair(item, "title", limit=120),
+            "caption": _localized_pair(item, "caption", limit=300),
+            "video_provider": provider,
+            "video_id": video_id,
+            # Derived, and derived HERE rather than in the page. The portal
+            # never assembles a frame URL, so there is one place that decides
+            # what a video link becomes and one place to audit. Recomputed on
+            # every read as well as every write, so it cannot go stale.
+            "video_embed_url": video_embed.embed_url(provider, video_id),
+        })
+    profile["showcase_items"] = curated
     return profile
 
 
@@ -9495,8 +9552,8 @@ def upload_tenant_website_media():
     """Upload a safe public hero or principal image without publishing it."""
 
     target = str(request.form.get("target") or "").strip()
-    if target not in {"hero", "principal", "about"}:
-        return _error("Website media target must be hero, principal, or about.")
+    if target not in {"hero", "principal", "about", "showcase"}:
+        return _error("Website media target must be hero, principal, about, or showcase.")
     with connect() as conn:
         tenant = _tenant_context(conn)
         f = request.files.get("file")

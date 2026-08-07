@@ -45,6 +45,9 @@ SWITCHES = {
     # switch like the rest.
     "show_about": ("about", "settingShowAbout",
                    "resolveSection('about', false)"),
+    # The eighth. The studio's own portfolio — see Showcase_Section.md.
+    "show_showcase": ("showcase", "settingShowShowcase",
+                      "resolveSection('showcase', false)"),
 }
 
 # Sections revealed by their render function once content arrives. These are

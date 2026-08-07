@@ -12,12 +12,15 @@ from studiosaas.workspaces import WorkspaceError, ensure_tenant_workspace, valid
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-EXISTING_TENANTS = (
-    "lets-paint-studio",
-    "lets-play-piano",
-    "lets-play-game",
-    "dance-dance",
-)
+# Read off disk rather than typed here. This tuple used to name four tenants;
+# production had moved on to a different six, and the four local directories
+# were stale generated copies nobody was serving. Deriving the list means
+# archiving a workspace is a one-step change instead of a red suite, and a
+# workspace that stops rendering still fails.
+EXISTING_TENANTS = tuple(sorted(
+    path.name for path in (PROJECT_ROOT / "tenants").iterdir()
+    if (path / "index.html").is_file()
+))
 
 
 @pytest.mark.parametrize("slug", ["cms", "platform-admin"])

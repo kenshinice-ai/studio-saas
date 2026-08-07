@@ -1283,6 +1283,27 @@
                        border: 0; cursor: pointer; font-size: 15px; line-height: 1;
                        color: var(--on-accent); background: color-mix(in srgb, var(--ink) 72%, transparent); }
     .img-chip button:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+    /* One work per card, so a reorder moves something the eye can follow. */
+    .showcase-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: var(--panel);
+      padding: 13px;
+      margin-top: 13px;
+    }
+    .showcase-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    /* The lead work is genuinely different — it renders larger on the public
+       page — so its rank is marked rather than left for the owner to infer
+       from position alone. */
+    .showcase-rank {
+      font-size: 12px; font-weight: 700; letter-spacing: .04em;
+      color: var(--on-accent-soft, var(--ink));
+      background: var(--accent-soft, var(--bg2));
+      border: 1px solid var(--accent-border, var(--line));
+      border-radius: 999px; padding: 3px 10px;
+    }
+    .btn-sm { padding: 6px 10px; font-size: 12px; min-height: 32px; }
+    .showcase-card .form-group small { margin-top: 4px; }
     .switch-row {
       display: flex;
       align-items: center;
@@ -2215,6 +2236,7 @@
               <button type="button" id="tab-btn-brand" role="tab" aria-selected="true" aria-controls="tab-brand" class="studio-tab active" data-workbench-tab="brand">Brand</button>
               <button type="button" id="tab-btn-hero" role="tab" aria-selected="false" aria-controls="tab-hero" tabindex="-1" class="studio-tab" data-workbench-tab="hero">Hero</button>
               <button type="button" id="tab-btn-website" role="tab" aria-selected="false" aria-controls="tab-website" tabindex="-1" class="studio-tab" data-workbench-tab="website">Website</button>
+              <button type="button" id="tab-btn-showcase" role="tab" aria-selected="false" aria-controls="tab-showcase" tabindex="-1" class="studio-tab" data-workbench-tab="showcase">Selected Work</button>
               <button type="button" id="tab-btn-register" role="tab" aria-selected="false" aria-controls="tab-register" tabindex="-1" class="studio-tab" data-workbench-tab="register">Registration</button>
               <button type="button" id="tab-btn-faq" role="tab" aria-selected="false" aria-controls="tab-faq" tabindex="-1" class="studio-tab" data-workbench-tab="faq">FAQ</button>
               <button type="button" id="tab-btn-messages" role="tab" aria-selected="false" aria-controls="tab-messages" tabindex="-1" class="studio-tab" data-workbench-tab="messages">Messages</button>
@@ -2528,6 +2550,39 @@
                 <div class="form-group"><label for="settingPrincipalQuoteEn">Principal Quote · English</label><input id="settingPrincipalQuoteEn" placeholder="Short signature line"></div>
                 <div class="form-group" style="grid-column:1/-1;"><label for="settingPrincipalBio">Principal Bio · 中文</label><textarea id="settingPrincipalBio" rows="4" placeholder="面向公众的简短介绍"></textarea></div>
                 <div class="form-group" style="grid-column:1/-1;"><label for="settingPrincipalBioEn">Principal Bio · English</label><textarea id="settingPrincipalBioEn" rows="4" placeholder="Short public introduction"></textarea><small>Leave either language blank and the other is shown to everyone. The section stays hidden until a bio exists.</small></div>
+              </div>
+            </div>
+
+            <!-- Its own tab, not a fold inside Website: twelve items × (photo +
+                 two bilingual texts + a video link) would double the length of
+                 a page that is already long. -->
+            <div id="tab-showcase" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-showcase" data-workbench-panel="showcase">
+              <div class="panel-heading">
+                <div>
+                  <h3>Selected work</h3>
+                  <p>Your own work, not your students'. This is the section that answers "how good is the person teaching here?" — the Student works section answers a different question and stays separate.</p>
+                  <p>Videos are linked, never uploaded: paste a YouTube, Vimeo or Bilibili link and only the cover image uses your storage. Nothing is requested from those sites until a visitor presses play.</p>
+                </div>
+              </div>
+              <div class="form-grid">
+                <div class="switch-list">
+                  <div class="switch-row">
+                    <label class="switch-label" for="settingShowShowcase">Selected Work Section</label>
+                    <input class="switch" id="settingShowShowcase" type="checkbox">
+                  </div>
+                </div>
+                <div class="form-group"><label for="settingShowcaseLabel">Section Eyebrow · 中文</label><input id="settingShowcaseLabel" placeholder="工作室作品"></div>
+                <div class="form-group"><label for="settingShowcaseLabelEn">Section Eyebrow · English</label><input id="settingShowcaseLabelEn" placeholder="Selected Work"></div>
+                <div class="form-group"><label for="settingShowcaseTitle">Section Title · 中文</label><input id="settingShowcaseTitle" placeholder="出自这间画室"></div>
+                <div class="form-group"><label for="settingShowcaseTitleEn">Section Title · English</label><input id="settingShowcaseTitleEn" placeholder="Work from this studio"></div>
+                <div class="form-group" style="grid-column:1/-1;"><label for="settingShowcaseLead">Section Lead · 中文</label><input id="settingShowcaseLead" placeholder="一小组精选，由工作室自己挑的。"></div>
+                <div class="form-group" style="grid-column:1/-1;"><label for="settingShowcaseLeadEn">Section Lead · English</label><input id="settingShowcaseLeadEn" placeholder="A short selection, chosen by the studio."></div>
+                <div class="form-group" style="grid-column:1/-1;">
+                  <label>Works</label>
+                  <small>The first work is shown larger than the rest — put your strongest piece first. Up to 12; a work with neither a photo nor a video is not saved.</small>
+                  <div id="showcaseItemsEditor"></div>
+                  <button type="button" class="btn btn-secondary" id="showcaseAddItem" style="margin-top:13px;">Add a work</button>
+                </div>
               </div>
             </div>
 
@@ -2931,6 +2986,212 @@
 
     const ABOUT_IMAGE_LIMIT = 6;   // matches _normalize_website_profile
     const ABOUT_ITEM_SLOTS = 3;
+
+    /* The studio's own work — see docs/design/Showcase_Section.md.
+       State lives here rather than in the DOM because a work is a record with
+       five parts, and reading five inputs back out by index is how a reorder
+       silently swaps two captions. */
+    let showcaseItems = [];
+    const SHOWCASE_ITEM_LIMIT = 12;   // matches api_v1.SHOWCASE_ITEM_LIMIT
+
+    /* Recognised client-side only to tell the owner immediately whether their
+       link worked. The SERVER re-parses every link and is the only thing that
+       decides what reaches a page — this is feedback, not validation. */
+    function recogniseVideo(url) {
+      const text = String(url || '').trim();
+      if (!text) return '';
+      if (/(^|\.)youtube\.com|(^|\.)youtu\.be|youtube-nocookie\.com/i.test(text)) return 'YouTube';
+      if (/(^|\.)vimeo\.com/i.test(text)) return 'Vimeo';
+      if (/(^|\.)bilibili\.com|(^|\.)b23\.tv/i.test(text)) return 'Bilibili';
+      return '?';
+    }
+
+    /* Provider + id back to a link a person recognises. Watch URLs, not embed
+       URLs, because this goes in a text box the owner reads and re-copies. */
+    function showcaseWatchUrl(provider, videoId) {
+      if (!provider || !videoId) return '';
+      if (provider === 'youtube') return `https://youtu.be/${videoId}`;
+      if (provider === 'vimeo') return `https://vimeo.com/${videoId}`;
+      if (provider === 'bilibili') return `https://www.bilibili.com/video/${videoId}`;
+      return '';
+    }
+
+    function renderShowcaseItems() {
+      const host = $('showcaseItemsEditor');
+      if (!host) return;
+      host.textContent = '';
+      showcaseItems.forEach((item, index) => {
+        const card = document.createElement('div');
+        card.className = 'showcase-card';
+
+        const head = document.createElement('div');
+        head.className = 'showcase-card-head';
+        const badge = document.createElement('span');
+        badge.className = 'showcase-rank';
+        badge.textContent = index === 0 ? 'Lead' : String(index + 1);
+        head.appendChild(badge);
+        const spacer = document.createElement('span');
+        spacer.style.flex = '1';
+        head.appendChild(spacer);
+        [['↑', 'Move up', -1], ['↓', 'Move down', 1]].forEach(([glyph, label, delta]) => {
+          const move = document.createElement('button');
+          move.type = 'button';
+          move.className = 'btn btn-secondary btn-sm';
+          move.textContent = glyph;
+          move.setAttribute('aria-label', `${label}: work ${index + 1}`);
+          move.disabled = index + delta < 0 || index + delta >= showcaseItems.length;
+          move.addEventListener('click', () => {
+            const to = index + delta;
+            [showcaseItems[index], showcaseItems[to]] = [showcaseItems[to], showcaseItems[index]];
+            renderShowcaseItems();
+            setSettingsDirty(true);
+          });
+          head.appendChild(move);
+        });
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'btn btn-secondary btn-sm';
+        remove.textContent = 'Remove';
+        remove.setAttribute('aria-label', `Remove work ${index + 1}`);
+        remove.addEventListener('click', () => {
+          showcaseItems.splice(index, 1);
+          renderShowcaseItems();
+          setSettingsDirty(true);
+        });
+        head.appendChild(remove);
+        card.appendChild(head);
+
+        const body = document.createElement('div');
+        body.className = 'form-grid';
+
+        const thumb = document.createElement('div');
+        thumb.className = 'form-group';
+        thumb.style.gridColumn = '1/-1';
+        if (item.image_url) {
+          const chip = document.createElement('div');
+          chip.className = 'img-chip';
+          const img = document.createElement('img');
+          img.src = item.image_url;      // property, never interpolated markup
+          img.alt = '';
+          chip.appendChild(img);
+          thumb.appendChild(chip);
+        }
+        const file = document.createElement('input');
+        file.type = 'file';
+        file.accept = 'image/jpeg,image/png,image/webp';
+        file.id = `showcaseImage${index}`;
+        const fileLabel = document.createElement('label');
+        fileLabel.setAttribute('for', file.id);
+        fileLabel.textContent = item.image_url ? 'Replace photo' : 'Photo';
+        file.addEventListener('change', () => uploadShowcaseImage(index, file.id).catch(reportApiError));
+        thumb.append(fileLabel, file);
+        body.appendChild(thumb);
+
+        const field = (key, labelText, value, tag, span) => {
+          const group = document.createElement('div');
+          group.className = 'form-group';
+          if (span) group.style.gridColumn = '1/-1';
+          const label = document.createElement('label');
+          const id = `showcase${key}${index}`;
+          label.setAttribute('for', id);
+          label.textContent = labelText;
+          const input = document.createElement(tag);
+          input.id = id;
+          if (tag === 'textarea') input.rows = 2;
+          input.value = value || '';
+          group.append(label, input);
+          body.appendChild(group);
+          return input;
+        };
+
+        field('Title', 'Title · 中文', (item.title || {}).zh, 'input')
+          .addEventListener('input', (e) => { item.title = { ...(item.title || {}), zh: e.target.value }; setSettingsDirty(true); });
+        field('TitleEn', 'Title · English', (item.title || {}).en, 'input')
+          .addEventListener('input', (e) => { item.title = { ...(item.title || {}), en: e.target.value }; setSettingsDirty(true); });
+        field('Caption', 'Caption · 中文', (item.caption || {}).zh, 'textarea', true)
+          .addEventListener('input', (e) => { item.caption = { ...(item.caption || {}), zh: e.target.value }; setSettingsDirty(true); });
+        field('CaptionEn', 'Caption · English', (item.caption || {}).en, 'textarea', true)
+          .addEventListener('input', (e) => { item.caption = { ...(item.caption || {}), en: e.target.value }; setSettingsDirty(true); });
+
+        const videoGroup = document.createElement('div');
+        videoGroup.className = 'form-group';
+        videoGroup.style.gridColumn = '1/-1';
+        const videoLabel = document.createElement('label');
+        const videoId = `showcaseVideo${index}`;
+        videoLabel.setAttribute('for', videoId);
+        videoLabel.textContent = 'Video link (optional)';
+        const video = document.createElement('input');
+        video.id = videoId;
+        video.placeholder = 'https://youtu.be/… · https://vimeo.com/… · https://www.bilibili.com/video/BV…';
+        video.value = item.video_url || '';
+        const note = document.createElement('small');
+        /* Told immediately, not at Save. A studio that pastes a channel URL
+           instead of a video URL should find out while the link is still on
+           their clipboard. */
+        const describe = () => {
+          const seen = recogniseVideo(video.value);
+          note.textContent = !seen ? 'The photo is shown on its own.'
+            : seen === '?' ? 'Not a recognised link — only YouTube, Vimeo and Bilibili can be embedded.'
+            : `Recognised: ${seen}. The photo above becomes the cover; the video loads only when a visitor presses play.`;
+        };
+        video.addEventListener('input', () => {
+          item.video_url = video.value;
+          describe();
+          setSettingsDirty(true);
+        });
+        describe();
+        videoGroup.append(videoLabel, video, note);
+        body.appendChild(videoGroup);
+
+        card.appendChild(body);
+        host.appendChild(card);
+      });
+      const add = $('showcaseAddItem');
+      if (add) add.disabled = showcaseItems.length >= SHOWCASE_ITEM_LIMIT;
+    }
+
+    async function uploadShowcaseImage(index, inputId) {
+      const picker = $(inputId);
+      const file = picker.files[0];
+      if (!file) return;
+      const formData = new FormData();
+      formData.append('target', 'showcase');
+      formData.append('file', file);
+      const data = await api('/tenant/website-media', { method: 'POST', body: formData });
+      picker.value = '';
+      if (!data.url) return;
+      showcaseItems[index].image_url = data.url;
+      renderShowcaseItems();
+      setSettingsDirty(true);
+      /* Adding work is a request to SHOW the work — the same reasoning as the
+         hero photo, and the same dead end avoided. */
+      let switched = false;
+      if (!toggleOn('settingShowShowcase')) {
+        setToggle('settingShowShowcase', true, true);
+        switched = true;
+      }
+      showToast(switched
+        ? 'Photo uploaded and the Selected Work section switched on. Save Draft or Publish when ready.'
+        : 'Photo uploaded. Save Draft or Publish when ready.');
+    }
+
+    function collectShowcaseItems() {
+      return showcaseItems
+        .filter((item) => item.image_url || String(item.video_url || '').trim())
+        .slice(0, SHOWCASE_ITEM_LIMIT)
+        .map((item) => ({
+          imageUrl: item.image_url || '',
+          // One filled language serves both, same rule as the FAQ and About.
+          title: { zh: (item.title || {}).zh || (item.title || {}).en || '',
+                   en: (item.title || {}).en || (item.title || {}).zh || '' },
+          caption: { zh: (item.caption || {}).zh || (item.caption || {}).en || '',
+                     en: (item.caption || {}).en || (item.caption || {}).zh || '' },
+          // The raw link goes up; the SERVER parses it. Sending a
+          // client-parsed provider/id would put a second parser in the trust
+          // path, and the browser's copy is the one an attacker controls.
+          videoUrl: String(item.video_url || '').trim()
+        }));
+    }
 
     /* A {zh, en} pair for the server's `_localized_pair`.
        NOT `localizedValue`, which reads whichever field matches the PREVIEW
@@ -4696,6 +4957,30 @@
       renderAboutItems(website.about_items || website.aboutItems);
       $('settingSeoTitle').value = website.seo_title || website.seoTitle || '';
       $('settingSeoDescription').value = website.seo_description || website.seoDescription || '';
+      setToggle('settingShowShowcase', website.show_showcase ?? website.showShowcase, false);
+      const showcaseLabel = aboutPair('showcase_label', 'showcaseLabel');
+      const showcaseTitle = aboutPair('showcase_title', 'showcaseTitle');
+      const showcaseLead = aboutPair('showcase_lead', 'showcaseLead');
+      $('settingShowcaseLabel').value = showcaseLabel.zh || '';
+      $('settingShowcaseLabelEn').value = showcaseLabel.en || '';
+      $('settingShowcaseTitle').value = showcaseTitle.zh || '';
+      $('settingShowcaseTitleEn').value = showcaseTitle.en || '';
+      $('settingShowcaseLead').value = showcaseLead.zh || '';
+      $('settingShowcaseLeadEn').value = showcaseLead.en || '';
+      showcaseItems = (website.showcase_items || website.showcaseItems || [])
+        .slice(0, SHOWCASE_ITEM_LIMIT)
+        .map((item) => ({
+          image_url: item.image_url || item.imageUrl || '',
+          title: item.title || { zh: '', en: '' },
+          caption: item.caption || { zh: '', en: '' },
+          /* Rebuilt from the stored provider + id rather than kept as the
+             original paste. The record holds what the server accepted, and
+             showing the owner that is more honest than showing them what they
+             typed — if their link was rewritten, they should see it. */
+          video_url: showcaseWatchUrl(item.video_provider || item.videoProvider,
+                                      item.video_id || item.videoId)
+        }));
+      renderShowcaseItems();
       const sectionLabel = (key, legacyValue, fallbackZh, fallbackEn) => {
         const pair = localized[key] || {};
         $(`setting${key.split('_').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join('')}`).value = pair.zh || legacyValue || fallbackZh;
@@ -4807,7 +5092,12 @@
           aboutImages: aboutImages.slice(0, ABOUT_IMAGE_LIMIT),
           aboutItems: collectAboutItems(),
           seoTitle: $('settingSeoTitle').value.trim(),
-          seoDescription: $('settingSeoDescription').value.trim()
+          seoDescription: $('settingSeoDescription').value.trim(),
+          showShowcase: toggleOn('settingShowShowcase'),
+          showcaseLabel: bilingualPair('settingShowcaseLabel', 'settingShowcaseLabelEn'),
+          showcaseTitle: bilingualPair('settingShowcaseTitle', 'settingShowcaseTitleEn'),
+          showcaseLead: bilingualPair('settingShowcaseLead', 'settingShowcaseLeadEn'),
+          showcaseItems: collectShowcaseItems()
         },
         principalProfile: {
           show: toggleOn('settingShowPrincipal'),
@@ -4926,7 +5216,21 @@
           aboutItems: (website.about_items || website.aboutItems || [])
             .map((item) => [pairText(item.title), pairText(item.body)]),
           seoTitle: text(website.seo_title || website.seoTitle),
-          seoDescription: text(website.seo_description || website.seoDescription)
+          seoDescription: text(website.seo_description || website.seoDescription),
+          showShowcase: Boolean(website.show_showcase ?? website.showShowcase),
+          showcaseLabel: pairText(website.showcase_label || website.showcaseLabel),
+          showcaseTitle: pairText(website.showcase_title || website.showcaseTitle),
+          showcaseLead: pairText(website.showcase_lead || website.showcaseLead),
+          /* This function runs over BOTH sides of the publish check: the
+             payload (raw `videoUrl`) and the public brand (parsed
+             `video_provider` + `video_id`). So the comparison has to be
+             something both can answer — the works, their order, their photos,
+             and whether each carries a video at all. Comparing the link
+             itself would fail every publish that contained one. */
+          showcaseItems: (website.showcase_items || website.showcaseItems || [])
+            .map((item) => [text(item.image_url || item.imageUrl),
+                            pairText(item.title),
+                            (item.video_provider || item.videoProvider || item.videoUrl) ? 'video' : ''])
         }),
         principalProfile: JSON.stringify({
           show: Boolean(principal.show), name: text(principal.name), title: pairText(principal.title),
@@ -5423,6 +5727,15 @@
       $('settingHeroImageFile').addEventListener('change', () => uploadWebsiteImage('hero', 'settingHeroImageFile', 'settingHeroImageUrl').catch(reportApiError));
       $('settingPrincipalImageFile').addEventListener('change', () => uploadWebsiteImage('principal', 'settingPrincipalImageFile', 'settingPrincipalImageUrl').catch(reportApiError));
       $('settingAboutImageFile').addEventListener('change', () => uploadAboutImage().catch(reportApiError));
+      $('showcaseAddItem').addEventListener('click', () => {
+        if (showcaseItems.length >= SHOWCASE_ITEM_LIMIT) return;
+        showcaseItems.push({ image_url: '', title: { zh: '', en: '' }, caption: { zh: '', en: '' }, video_url: '' });
+        renderShowcaseItems();
+        setSettingsDirty(true);
+        // Focus the new card's first text field, so adding a work and typing
+        // is one gesture rather than add-then-hunt.
+        $(`showcaseTitle${showcaseItems.length - 1}`)?.focus();
+      });
       $('refreshAnalyticsBtn').addEventListener('click', () => loadAnalytics().catch((err) => showToast(err.message, 'error')));
       $('analyticsDays').addEventListener('change', () => loadAnalytics().catch((err) => showToast(err.message, 'error')));
       $('refreshAuditBtn').addEventListener('click', loadAuditLogs);
@@ -5553,6 +5866,8 @@
         'settingPrincipalQuote','settingPrincipalQuoteEn','settingPrincipalImageUrl',
         'settingAboutEyebrow','settingAboutEyebrowEn','settingAboutTitle','settingAboutTitleEn',
         'settingAboutBody','settingAboutBodyEn','settingSeoTitle','settingSeoDescription',
+        'settingShowcaseLabel','settingShowcaseLabelEn','settingShowcaseTitle','settingShowcaseTitleEn',
+        'settingShowcaseLead','settingShowcaseLeadEn',
         'settingThemeBackground','settingThemePanel','settingThemeText','settingThemeMuted','settingThemeBorder'
       ].forEach((id) => $(id).addEventListener('input', () => { setSettingsDirty(true); updateThemePreview(); }));
       // Inline validation errors clear as soon as the owner edits the field.
@@ -5565,7 +5880,7 @@
       [
         'settingHeroStyle','settingHeroShape','settingShowStudentLogin','settingButtonStyle','settingFontMood',
         'settingShowPrincipal','settingShowCourses','settingShowGallery','settingShowFaq','settingShowContact','settingShowStudentArea',
-        'settingShowAbout',
+        'settingShowAbout','settingShowShowcase',
         'settingCmsLayout'
       ].forEach((id) => $(id).addEventListener('change', () => { setSettingsDirty(true); updateThemePreview(); }));
       ['settingButtonStyle','settingFontMood'].forEach((id) => $(id).addEventListener('change', markThemeCustom));
