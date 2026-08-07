@@ -1270,6 +1270,19 @@
        unrelated fields. State is carried by knob POSITION as well as colour,
        so it survives a colour-blind reading (WCAG 1.4.1). */
     .switch-list { grid-column: 1 / -1; display: grid; gap: 2px; }
+    /* Uploaded About photos. Thumbnails rather than URLs, because the owner
+       recognises the room, not the media id. */
+    .chip-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+    .chip-list:empty { display: none; }
+    .img-chip { position: relative; width: 72px; height: 72px; border-radius: var(--radius);
+                overflow: hidden; border: 1px solid var(--line); background: var(--panel); }
+    .img-chip img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    /* 44px is the touch target; the visible button is inset from it so it does
+       not swallow the thumbnail it sits on. */
+    .img-chip button { position: absolute; top: 0; right: 0; width: 28px; height: 28px;
+                       border: 0; cursor: pointer; font-size: 15px; line-height: 1;
+                       color: var(--on-accent); background: color-mix(in srgb, var(--ink) 72%, transparent); }
+    .img-chip button:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
     .switch-row {
       display: flex;
       align-items: center;
@@ -2438,6 +2451,15 @@
                     <label class="switch-label" for="settingShowStudentArea">Student Area Section</label>
                     <input class="switch" id="settingShowStudentArea" type="checkbox">
                   </div>
+                  <!-- The seventh switch. `show_about` has been validated by
+                       the server and fully rendered by the portal since the
+                       flagship fork was reclaimed, with no control anywhere —
+                       so no studio has ever seen the section, and every Save
+                       from this page wiped whatever was stored in it. -->
+                  <div class="switch-row">
+                    <label class="switch-label" for="settingShowAbout">About the Space Section</label>
+                    <input class="switch" id="settingShowAbout" type="checkbox">
+                  </div>
                 </div>
                 <!-- Eight inputs that only rename headings. The switches above
                      are what this tab is for; renaming is a later refinement,
@@ -2455,6 +2477,45 @@
                       <div class="form-group"><label for="settingContactLabel">Contact Label · 中文</label><input id="settingContactLabel" placeholder="联系我们"></div>
                       <div class="form-group"><label for="settingContactLabelEn">Contact Label · English</label><input id="settingContactLabelEn" placeholder="Contact"></div>
                       <div class="form-group" style="grid-column:1/-1;"><small>%WORK% and %WORKS% are replaced with your industry's word for what a student produces, so the same label works for a piano, dance, or games studio.</small></div>
+                    </div>
+                  </div>
+                </details>
+                <!-- Folded for the same reason as Section names: the switch
+                     above is the decision, this is the filling-in. -->
+                <details class="disclosure">
+                  <summary>About the space<span class="summary-hint">Headings, copy and up to six photos</span></summary>
+                  <div class="disclosure-body">
+                    <div class="form-grid">
+                      <div class="form-group"><label for="settingAboutEyebrow">About Eyebrow · 中文</label><input id="settingAboutEyebrow" placeholder="画室 · 空间"></div>
+                      <div class="form-group"><label for="settingAboutEyebrowEn">About Eyebrow · English</label><input id="settingAboutEyebrowEn" placeholder="The Studio · Space"></div>
+                      <div class="form-group"><label for="settingAboutTitle">About Title · 中文</label><input id="settingAboutTitle" placeholder="一间温暖、有秩序的空间"></div>
+                      <div class="form-group"><label for="settingAboutTitleEn">About Title · English</label><input id="settingAboutTitleEn" placeholder="A warm, considered space"></div>
+                      <div class="form-group" style="grid-column:1/-1;"><label for="settingAboutBody">About Body · 中文</label><textarea id="settingAboutBody" rows="4" placeholder="面向公众的空间介绍"></textarea></div>
+                      <div class="form-group" style="grid-column:1/-1;"><label for="settingAboutBodyEn">About Body · English</label><textarea id="settingAboutBodyEn" rows="4" placeholder="Public description of the space"></textarea><small>Leave either language blank and the other is shown to everyone. The section stays hidden until a title or body exists.</small></div>
+                      <div class="form-group" style="grid-column:1/-1;">
+                        <label for="settingAboutImageFile">About Photos</label>
+                        <div id="settingAboutImages" class="chip-list"></div>
+                        <input id="settingAboutImageFile" type="file" accept="image/jpeg,image/png,image/webp">
+                        <small>Up to six, shown as a slow carousel. Each upload uses the tenant media quota and is served through the safe public derivative.</small>
+                      </div>
+                      <!-- Three numbered highlights under the copy. Built as
+                           fixed slots rather than an add/remove list: the
+                           portal numbers them 01-03 as a set, and a variable
+                           count buys nothing at this size. -->
+                      <div class="form-group" style="grid-column:1/-1;"><label>About Highlights</label><small>Optional. A highlight with no title is left out.</small></div>
+                      <div id="settingAboutItems" class="form-grid" style="grid-column:1/-1;"></div>
+                    </div>
+                  </div>
+                </details>
+                <!-- Two more fields that the server stores and this page used
+                     to erase on every save. Kept next to About because they
+                     share that history, not because they are related. -->
+                <details class="disclosure">
+                  <summary>Search engines<span class="summary-hint">Override the public page title and description</span></summary>
+                  <div class="disclosure-body">
+                    <div class="form-grid">
+                      <div class="form-group" style="grid-column:1/-1;"><label for="settingSeoTitle">SEO Title</label><input id="settingSeoTitle" maxlength="120" placeholder="Leave blank to use the studio name"></div>
+                      <div class="form-group" style="grid-column:1/-1;"><label for="settingSeoDescription">SEO Description</label><textarea id="settingSeoDescription" rows="2" maxlength="200" placeholder="Leave blank to use the slogan"></textarea></div>
                     </div>
                   </div>
                 </details>
@@ -2863,6 +2924,103 @@
     let activeSchemePreference = 'light';
     let themeMode = 'preset';
     let lastPresetSnapshot = null;
+    /* About photos live in JS rather than in inputs because the control is a
+       list the owner adds to and removes from, and a hidden field holding
+       comma-joined URLs would be a second representation to keep in step. */
+    let aboutImages = [];
+
+    const ABOUT_IMAGE_LIMIT = 6;   // matches _normalize_website_profile
+    const ABOUT_ITEM_SLOTS = 3;
+
+    /* A {zh, en} pair for the server's `_localized_pair`.
+       NOT `localizedValue`, which reads whichever field matches the PREVIEW
+       language and returns one string — right for drawing the preview, and it
+       would silently save half the copy. */
+    const bilingualPair = (zhId, enId) => ({
+      zh: ($(zhId)?.value || '').trim(),
+      en: ($(enId)?.value || '').trim()
+    });
+
+    function renderAboutItems(items) {
+      const host = $('settingAboutItems');
+      if (!host) return;
+      const source = Array.isArray(items) ? items : [];
+      host.textContent = '';
+      for (let i = 0; i < ABOUT_ITEM_SLOTS; i += 1) {
+        const item = source[i] || {};
+        const title = item.title || {};
+        const body = item.body || {};
+        // Built with DOM calls rather than an innerHTML template because every
+        // one of these values is tenant-authored text.
+        [
+          [`aboutItemTitle${i}`, `Highlight ${i + 1} Title · 中文`, title.zh, 'input'],
+          [`aboutItemTitleEn${i}`, `Highlight ${i + 1} Title · English`, title.en, 'input'],
+          [`aboutItemBody${i}`, `Highlight ${i + 1} Body · 中文`, body.zh, 'textarea'],
+          [`aboutItemBodyEn${i}`, `Highlight ${i + 1} Body · English`, body.en, 'textarea']
+        ].forEach(([id, labelText, value, tag]) => {
+          const group = document.createElement('div');
+          group.className = 'form-group';
+          if (tag === 'textarea') group.style.gridColumn = '1/-1';
+          const label = document.createElement('label');
+          label.setAttribute('for', id);
+          label.textContent = labelText;
+          const field = document.createElement(tag);
+          field.id = id;
+          if (tag === 'textarea') field.rows = 2;
+          field.value = value || '';
+          field.addEventListener('input', () => setSettingsDirty(true));
+          group.append(label, field);
+          host.appendChild(group);
+        });
+      }
+    }
+
+    function collectAboutItems() {
+      const items = [];
+      for (let i = 0; i < ABOUT_ITEM_SLOTS; i += 1) {
+        const read = (id) => ($(id)?.value || '').trim();
+        const titleZh = read(`aboutItemTitle${i}`);
+        const titleEn = read(`aboutItemTitleEn${i}`);
+        const bodyZh = read(`aboutItemBody${i}`);
+        const bodyEn = read(`aboutItemBodyEn${i}`);
+        // Same rule as collectFaqItems: one filled language serves both, so a
+        // studio writing only Chinese does not publish an empty English card.
+        if (!titleZh && !titleEn) continue;
+        items.push({
+          title: { zh: titleZh || titleEn, en: titleEn || titleZh },
+          body: { zh: bodyZh || bodyEn, en: bodyEn || bodyZh }
+        });
+      }
+      return items;
+    }
+
+    function renderAboutImages() {
+      const host = $('settingAboutImages');
+      if (!host) return;
+      host.textContent = '';
+      aboutImages.forEach((url, index) => {
+        const chip = document.createElement('div');
+        chip.className = 'img-chip';
+        const img = document.createElement('img');
+        // Assigned as a property, never interpolated into markup: these URLs
+        // come back from the media endpoint but are stored tenant data.
+        img.src = url;
+        img.alt = '';
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.textContent = '×';
+        remove.setAttribute('aria-label', `Remove About photo ${index + 1}`);
+        remove.addEventListener('click', () => {
+          aboutImages.splice(index, 1);
+          renderAboutImages();
+          setSettingsDirty(true);
+        });
+        chip.append(img, remove);
+        host.appendChild(chip);
+      });
+      const picker = $('settingAboutImageFile');
+      if (picker) picker.disabled = aboutImages.length >= ABOUT_IMAGE_LIMIT;
+    }
 
     /* One readout, not two. Until v8.3.0 the same fact was published to the
        save bar ("No unsaved changes") and to a hero badge ("Saved") in two
@@ -3450,7 +3608,17 @@
         courses_label: 'Courses & Classes',
         gallery_label: 'Student Works',
         faq_label: 'Questions & Answers',
-        contact_label: 'Contact'
+        contact_label: 'Contact',
+        // Off, and empty. Mirrors _default_website_profile() in api_v1.py —
+        // a studio publishes this section by writing it, not by existing.
+        show_about: false,
+        about_eyebrow: { zh: '', en: '' },
+        about_title: { zh: '', en: '' },
+        about_body: { zh: '', en: '' },
+        about_images: [],
+        about_items: [],
+        seo_title: '',
+        seo_description: ''
       };
     }
 
@@ -4509,6 +4677,25 @@
       setToggle('settingShowFaq', website.show_faq ?? website.showFaq, true);
       setToggle('settingShowContact', website.show_contact ?? website.showContact, true);
       setToggle('settingShowStudentArea', website.show_student_area ?? website.showStudentArea, true);
+      // Off by default: a studio that has written nothing about its space
+      // should not publish an empty heading the first time it opens this tab.
+      setToggle('settingShowAbout', website.show_about ?? website.showAbout, false);
+      const aboutPair = (key, camel) => website[key] || website[camel] || {};
+      const aboutEyebrow = aboutPair('about_eyebrow', 'aboutEyebrow');
+      const aboutTitle = aboutPair('about_title', 'aboutTitle');
+      const aboutBody = aboutPair('about_body', 'aboutBody');
+      $('settingAboutEyebrow').value = aboutEyebrow.zh || '';
+      $('settingAboutEyebrowEn').value = aboutEyebrow.en || '';
+      $('settingAboutTitle').value = aboutTitle.zh || '';
+      $('settingAboutTitleEn').value = aboutTitle.en || '';
+      $('settingAboutBody').value = aboutBody.zh || '';
+      $('settingAboutBodyEn').value = aboutBody.en || '';
+      aboutImages = (website.about_images || website.aboutImages || [])
+        .filter((url) => typeof url === 'string' && url).slice(0, ABOUT_IMAGE_LIMIT);
+      renderAboutImages();
+      renderAboutItems(website.about_items || website.aboutItems);
+      $('settingSeoTitle').value = website.seo_title || website.seoTitle || '';
+      $('settingSeoDescription').value = website.seo_description || website.seoDescription || '';
       const sectionLabel = (key, legacyValue, fallbackZh, fallbackEn) => {
         const pair = localized[key] || {};
         $(`setting${key.split('_').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join('')}`).value = pair.zh || legacyValue || fallbackZh;
@@ -4604,7 +4791,23 @@
           coursesLabel: $('settingCoursesLabelEn').value.trim() || $('settingCoursesLabel').value.trim(),
           galleryLabel: $('settingGalleryLabelEn').value.trim() || $('settingGalleryLabel').value.trim(),
           faqLabel: $('settingFaqLabelEn').value.trim() || $('settingFaqLabel').value.trim(),
-          contactLabel: $('settingContactLabelEn').value.trim() || $('settingContactLabel').value.trim()
+          contactLabel: $('settingContactLabelEn').value.trim() || $('settingContactLabel').value.trim(),
+          /* `_normalize_website_profile` rebuilds the profile from THIS object
+             alone — it does not merge with what is stored. So every field the
+             server keeps must be sent here, and until v8.5.4 seven were not:
+             show_about, the three About text pairs, about_images, about_items
+             and the two SEO overrides. Any save from this page silently
+             erased all of them, which is why the About section had never
+             appeared on a live site and why the flagship tenant's reclaimed
+             <title> did not survive its first Save Draft. */
+          showAbout: toggleOn('settingShowAbout'),
+          aboutEyebrow: bilingualPair('settingAboutEyebrow', 'settingAboutEyebrowEn'),
+          aboutTitle: bilingualPair('settingAboutTitle', 'settingAboutTitleEn'),
+          aboutBody: bilingualPair('settingAboutBody', 'settingAboutBodyEn'),
+          aboutImages: aboutImages.slice(0, ABOUT_IMAGE_LIMIT),
+          aboutItems: collectAboutItems(),
+          seoTitle: $('settingSeoTitle').value.trim(),
+          seoDescription: $('settingSeoDescription').value.trim()
         },
         principalProfile: {
           show: toggleOn('settingShowPrincipal'),
@@ -4710,7 +4913,20 @@
           coursesLabel: text(website.courses_label || website.coursesLabel),
           galleryLabel: text(website.gallery_label || website.galleryLabel),
           faqLabel: text(website.faq_label || website.faqLabel),
-          contactLabel: text(website.contact_label || website.contactLabel)
+          contactLabel: text(website.contact_label || website.contactLabel),
+          /* Publishing verifies the payload against what the public brand
+             actually came back with. A field missing here is a field that can
+             be dropped between Save and the live site without anyone hearing
+             about it — which is how the About copy stayed invisible. */
+          showAbout: Boolean(website.show_about ?? website.showAbout),
+          aboutEyebrow: pairText(website.about_eyebrow || website.aboutEyebrow),
+          aboutTitle: pairText(website.about_title || website.aboutTitle),
+          aboutBody: pairText(website.about_body || website.aboutBody),
+          aboutImages: (website.about_images || website.aboutImages || []).map(text),
+          aboutItems: (website.about_items || website.aboutItems || [])
+            .map((item) => [pairText(item.title), pairText(item.body)]),
+          seoTitle: text(website.seo_title || website.seoTitle),
+          seoDescription: text(website.seo_description || website.seoDescription)
         }),
         principalProfile: JSON.stringify({
           show: Boolean(principal.show), name: text(principal.name), title: pairText(principal.title),
@@ -4964,6 +5180,42 @@
         : `${noun} image uploaded. Save Draft or Publish when ready.`);
     }
 
+    /* Appends rather than replaces: the About carousel is a set of photos, not
+       one slot. Its own function for that reason — uploadWebsiteImage writes
+       into a single URL field. */
+    async function uploadAboutImage() {
+      const picker = $('settingAboutImageFile');
+      const file = picker.files[0];
+      if (!file) return;
+      if (aboutImages.length >= ABOUT_IMAGE_LIMIT) {
+        picker.value = '';
+        showToast(`About photos are limited to ${ABOUT_IMAGE_LIMIT}. Remove one first.`);
+        return;
+      }
+      const formData = new FormData();
+      formData.append('target', 'about');
+      formData.append('file', file);
+      const data = await api('/tenant/website-media', { method: 'POST', body: formData });
+      // Cleared either way, so a failed upload does not leave a filename in
+      // the control implying it was accepted.
+      picker.value = '';
+      if (!data.url) return;
+      aboutImages.push(data.url);
+      renderAboutImages();
+      setSettingsDirty(true);
+      /* Uploading a photo of the space is a request to SHOW the space —
+         the same reasoning as the hero photo above, and the same dead end
+         avoided: the section stays hidden until show_about is on. */
+      let switched = false;
+      if (!toggleOn('settingShowAbout')) {
+        setToggle('settingShowAbout', true, true);
+        switched = true;
+      }
+      showToast(switched
+        ? 'About photo uploaded and the About section switched on. Save Draft or Publish when ready.'
+        : 'About photo uploaded. Save Draft or Publish when ready.');
+    }
+
     async function loadAnalytics() {
       const days = Number($('analyticsDays').value || 30);
       const data = await api(`/tenant/analytics?days=${encodeURIComponent(days)}`);
@@ -5170,6 +5422,7 @@
       $('settingLogoFile').addEventListener('change', () => uploadLogo().catch(reportApiError));
       $('settingHeroImageFile').addEventListener('change', () => uploadWebsiteImage('hero', 'settingHeroImageFile', 'settingHeroImageUrl').catch(reportApiError));
       $('settingPrincipalImageFile').addEventListener('change', () => uploadWebsiteImage('principal', 'settingPrincipalImageFile', 'settingPrincipalImageUrl').catch(reportApiError));
+      $('settingAboutImageFile').addEventListener('change', () => uploadAboutImage().catch(reportApiError));
       $('refreshAnalyticsBtn').addEventListener('click', () => loadAnalytics().catch((err) => showToast(err.message, 'error')));
       $('analyticsDays').addEventListener('change', () => loadAnalytics().catch((err) => showToast(err.message, 'error')));
       $('refreshAuditBtn').addEventListener('click', loadAuditLogs);
@@ -5298,6 +5551,8 @@
         'settingCoursesLabelEn','settingGalleryLabelEn','settingFaqLabelEn','settingContactLabelEn',
         'settingPrincipalName','settingPrincipalTitle','settingPrincipalTitleEn','settingPrincipalBio','settingPrincipalBioEn',
         'settingPrincipalQuote','settingPrincipalQuoteEn','settingPrincipalImageUrl',
+        'settingAboutEyebrow','settingAboutEyebrowEn','settingAboutTitle','settingAboutTitleEn',
+        'settingAboutBody','settingAboutBodyEn','settingSeoTitle','settingSeoDescription',
         'settingThemeBackground','settingThemePanel','settingThemeText','settingThemeMuted','settingThemeBorder'
       ].forEach((id) => $(id).addEventListener('input', () => { setSettingsDirty(true); updateThemePreview(); }));
       // Inline validation errors clear as soon as the owner edits the field.
@@ -5310,6 +5565,7 @@
       [
         'settingHeroStyle','settingHeroShape','settingShowStudentLogin','settingButtonStyle','settingFontMood',
         'settingShowPrincipal','settingShowCourses','settingShowGallery','settingShowFaq','settingShowContact','settingShowStudentArea',
+        'settingShowAbout',
         'settingCmsLayout'
       ].forEach((id) => $(id).addEventListener('change', () => { setSettingsDirty(true); updateThemePreview(); }));
       ['settingButtonStyle','settingFontMood'].forEach((id) => $(id).addEventListener('change', markThemeCustom));

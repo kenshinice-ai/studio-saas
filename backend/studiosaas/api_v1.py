@@ -62,6 +62,7 @@ from .presets import (
     public_industry_presets,
     public_visual_style_presets,
     accent_hue_of_colour,
+    resolve_style_id,
     style_theme,
 )
 from .services.media import (
@@ -1155,13 +1156,26 @@ def _normalize_visual_theme(
     primary_color: str = "",
     secondary_color: str = "",
     category: str = "general",
+    strict: bool = True,
 ) -> dict:
-    """Validate public colour and light style settings."""
+    """Validate public colour and light style settings.
+
+    `strict` is the difference between a WRITE and a READ, and it is not a
+    convenience switch — see `_stored_visual_theme`. On a write an unusable
+    value is the owner's to fix and must be reported. On a read the owner is
+    not present, the value is already stored, and raising renders nothing.
+    """
 
     data = _coerce_json_object(value, field_name="visual_theme")
     style_id = _first_text(data, "style_id", "styleId", limit=40).lower()
-    if style_id and style_id not in VISUAL_STYLE_PRESETS:
-        raise ValueError("Visual style is not recognised.")
+    if style_id:
+        # Follows RETIRED_STYLE_ALIASES first: a record that says `studio`
+        # asked for the free-accent palette, and answering it with the default
+        # would silently repaint a studio that never changed anything.
+        resolved = resolve_style_id(style_id)
+        if not resolved and strict:
+            raise ValueError("Visual style is not recognised.")
+        style_id = resolved
     requested_scheme = _first_text(data, "color_scheme", "colorScheme", limit=16).lower()
     accent_hue = _accent_hue(data)
     if style_id:
@@ -1215,6 +1229,43 @@ def _normalize_visual_theme(
     theme["font_mood"] = font_mood
     theme["scheme_preference"] = _scheme_preference(data, theme, default)
     return theme
+
+
+def _stored_visual_theme(
+    value,
+    primary_color: str = "",
+    secondary_color: str = "",
+    category: str = "general",
+) -> dict:
+    """Re-normalise a STORED theme, and never raise doing it.
+
+    A stored record is not user input. It was written by whichever release the
+    owner last saved under, and it is read on every public page load by a
+    visitor who cannot fix anything. So the only two acceptable outcomes here
+    are the studio's theme and the default theme — never an exception.
+
+    That distinction was missing until v8.5.4 and the read path simply called
+    the write validator. When v8.5.2 renamed one style id, five of six live
+    tenants started answering 500 for their whole brand payload: not just the
+    colours, but every word and every image on the page, because the copy and
+    the palette travel in the same response. The portals looked wiped.
+
+    The alias in `RETIRED_STYLE_ALIASES` is what makes those tenants come back
+    on their OWN palette. This is the net under it: any other stored value
+    that a future release stops accepting costs that studio its theme for one
+    page load, and costs it nothing else.
+    """
+
+    try:
+        return _normalize_visual_theme(
+            value, primary_color, secondary_color, category, strict=False
+        )
+    except (ValueError, TypeError):
+        current_app.logger.warning(
+            "visual_theme could not be normalised; serving the default theme",
+            exc_info=True,
+        )
+        return _default_visual_theme(primary_color, secondary_color, category)
 
 
 def _scheme_preference(data: dict, theme: dict, default: dict) -> str:
@@ -2234,12 +2285,55 @@ def health():
         try:
             with connect() as conn:
                 fetch_one(conn, "SELECT 1 AS ok", ())
+                body["themes"] = _theme_drift(conn)
             body["db"] = "ok"
         except Exception:
             body["ok"] = False
             body["db"] = "error"
             return jsonify(body), 503
     return jsonify(body)
+
+
+def _theme_drift(conn) -> dict:
+    """How many live tenants store a theme this release no longer accepts.
+
+    "SELECT 1" proves the database answers. It does not prove this release can
+    render the tenants inside it, and that is the failure that actually
+    happened: v8.5.2 retired one style id, five of six portals began serving
+    500 for their entire content payload, and deep health stayed green through
+    the deploy and the automatic rollback window. The gate measured the
+    building, not the tenants.
+
+    Deliberately NOT fatal. Deep health drives the container healthcheck, and
+    a stale row is not a reason to restart a service that is answering every
+    request — especially now that `_stored_visual_theme` guarantees a readable
+    page regardless. It is fatal to a DEPLOY instead: pwestudio_remote.sh
+    requires `"unreadable":0` before it keeps a release. That puts the alarm
+    where the change is, without holding a healthy container hostage.
+    """
+
+    rows = fetch_all(
+        conn,
+        "SELECT slug, COALESCE(settings->'visual_theme', '{}'::jsonb) AS visual_theme, "
+        "       COALESCE(settings->>'category', 'general') AS category "
+        "FROM tenants WHERE status <> 'deleted' AND archived_at IS NULL "
+        "ORDER BY slug LIMIT 200",
+        (),
+    )
+    unreadable = []
+    for row in rows:
+        if not row["visual_theme"]:
+            continue
+        try:
+            _normalize_visual_theme(row["visual_theme"], "", "", row["category"], strict=True)
+        except (ValueError, TypeError) as error:
+            unreadable.append({"slug": row["slug"], "reason": str(error)[:120]})
+    return {
+        "tenants": len(rows),
+        "unreadable": len(unreadable),
+        "examples": unreadable[:5],
+        "status": "drifted" if unreadable else "ok",
+    }
 
 
 @api_v1.route("/industry-presets", methods=["GET"])
@@ -3718,7 +3812,7 @@ def public_brand(tenant_slug: str):
     # than from the default, and leaves every token the record does carry
     # exactly as stored. It is not a migration: the record is untouched until
     # the owner next saves.
-    row["visual_theme"] = _normalize_visual_theme(
+    row["visual_theme"] = _stored_visual_theme(
         row["visual_theme"], row["primary_color"], row["secondary_color"], category
     ) if row["visual_theme"] else _default_visual_theme(
         row["primary_color"], row["secondary_color"], category
@@ -9401,8 +9495,8 @@ def upload_tenant_website_media():
     """Upload a safe public hero or principal image without publishing it."""
 
     target = str(request.form.get("target") or "").strip()
-    if target not in {"hero", "principal"}:
-        return _error("Website media target must be hero or principal.")
+    if target not in {"hero", "principal", "about"}:
+        return _error("Website media target must be hero, principal, or about.")
     with connect() as conn:
         tenant = _tenant_context(conn)
         f = request.files.get("file")

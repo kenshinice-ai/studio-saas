@@ -45,10 +45,19 @@
 }
 </script>
 <!-- P1-11: CJK 正文与标题走系统字体栈（大陆访问不再等待 fonts.googleapis.com）。
-     西文标题的 Cormorant Garamond 以非阻塞方式加载，缺失时回退 Georgia。 -->
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" media="print" onload="this.media='all';this.onload=null"
-      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap">
+     西文标题的 Cormorant Garamond 自托管，缺失时回退 Georgia。
+
+     v8.5.4: 这两行原本链的是 fonts.googleapis.com，而本站自己的 CSP
+     （server.py, `default-src 'self'` + `font-src 'self' data:`）会把样式表和
+     字体文件双双拦掉——所以这张脸从来没有加载成功过，一直静默回退 Georgia，
+     每次访问还白发两个必然失败的请求。自托管同时解决三件事：CSP 不用放宽、
+     大陆访问不用等 Google、注释里写的意图第一次成真。
+     字体为 SIL OFL 1.1，授权原文见 /assets/fonts/OFL.txt。 -->
+<!-- No ?v= here on purpose: it must be byte-identical to the `src:` in
+     portal-theme.css, or the preload is a second URL and the face downloads
+     twice. Fonts are cached immutably by name instead (server.py). -->
+<link rel="preload" href="/assets/fonts/cormorant-garamond-latin.woff2"
+      as="font" type="font/woff2" crossorigin>
 <script src="/assets/ui-common.js?v=__APP_VERSION__"></script>
 <script src="/assets/public-register.js?v=__APP_VERSION__"></script>
 <script src="/assets/public-analytics.js?v=__APP_VERSION__"></script>
@@ -79,24 +88,24 @@
   .brand img{height:34px;width:auto;display:none}
   .brand .bn{font-size:16px;letter-spacing:.04em;font-weight:500}
   .navlinks{display:flex;align-items:center;gap:30px}
-  .navlinks a{font-size:13.5px;color:var(--ink2);letter-spacing:.02em;position:relative;padding:4px 0;cursor:pointer}
+  .navlinks a{font-size:13px;color:var(--ink2);letter-spacing:.02em;position:relative;padding:4px 0;cursor:pointer}
   .navlinks a::after{content:"";position:absolute;left:0;bottom:0;width:0;height:1px;background:var(--clay);transition:width .3s}
   .navlinks a:hover::after{width:100%}
-  .navcta{border:1px solid var(--ink);border-radius:2px;padding:10px 20px;font-size:13px;letter-spacing:.03em;transition:.3s}
+  .navcta{border:1px solid var(--ink);border-radius:var(--radius-pill);padding:10px 20px;font-size:13px;letter-spacing:.03em;transition:.3s}
   .navcta:hover{background:var(--ink);color:var(--bg)}
-  .langtog{display:inline-flex;border:1px solid var(--line);border-radius:2px;overflow:hidden;margin-left:6px}
+  .langtog{display:inline-flex;border:1px solid var(--line);border-radius:var(--radius-pill);overflow:hidden;margin-left:6px}
   /* P3-3: 44px tap target. */
-  .langtog button{background:none;border:0;min-width:var(--tap-min);min-height:var(--tap-min);padding:8px 12px;font-size:12px;letter-spacing:.06em;color:var(--muted);cursor:pointer;font-family:inherit}
+  .langtog button{background:none;border:0;min-width:var(--tap-min);min-height:var(--tap-min);padding:8px 12px;font-size:13px;letter-spacing:.06em;color:var(--muted);cursor:pointer;font-family:inherit}
   .langtog button.on{background:var(--ink);color:var(--bg)}
   .menu-btn{display:none;background:none;border:0;color:var(--ink);cursor:pointer;width:var(--tap-min);height:var(--tap-min);align-items:center;justify-content:center;padding:0}
   .menu-btn svg{width:22px;height:22px}
 
   .hero{min-height:88vh;display:flex;align-items:center;position:relative;padding-top:74px}
   .hero-grid{display:grid;grid-template-columns:var(--golden-columns);gap:var(--space-phi-xl);align-items:center;width:100%}
-  .hero h1{font-size:clamp(38px,6vw,70px);line-height:1.07;font-weight:500;letter-spacing:.01em;max-width:13ch;text-wrap:balance}
-  .hero .slogan{font-size:clamp(15px,1.5vw,18px);color:var(--ink2);margin-top:var(--space-phi-md);max-width:var(--brand-reading-measure)}
+  .hero h1{font-size:clamp(42px,6vw,68px);line-height:1.07;font-weight:500;letter-spacing:.01em;max-width:13ch;text-wrap:balance}
+  .hero .slogan{font-size:clamp(15px,1.5vw,20px);color:var(--ink2);margin-top:var(--space-phi-md);max-width:var(--brand-reading-measure)}
   .hero-cta{display:flex;gap:var(--space-phi-md);align-items:center;margin-top:var(--space-phi-lg);flex-wrap:wrap}
-  .btn{border-radius:var(--radius);padding:14px 26px;min-height:var(--tap-min);font-size:13.5px;letter-spacing:.04em;cursor:pointer;border:1px solid transparent;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  .btn{border-radius:var(--radius);padding:14px 26px;min-height:var(--tap-min);font-size:13px;letter-spacing:.04em;cursor:pointer;border:1px solid transparent;display:inline-flex;align-items:center;justify-content:center;gap:8px;
        transition:background var(--dur-enter) var(--ease-out),color var(--dur-enter) var(--ease-out),border-color var(--dur-enter) var(--ease-out)}
   .btn-fill{background:var(--clay);color:var(--on-accent)}
   .btn-fill:hover{background:var(--clay-hover)}
@@ -113,12 +122,15 @@
   .btn-line:active{background:var(--disabled-surface)}
   /* B2: the secondary action is a link, not a second button, so the hero
      has exactly one primary CTA. */
-  .hero-secondary{display:inline-flex;align-items:center;min-height:var(--tap-min);padding:0 4px;font-size:13.5px;letter-spacing:.04em;color:var(--ink2);border-bottom:1px solid var(--line-strong);cursor:pointer;transition:color var(--dur-enter) var(--ease-out),border-color var(--dur-enter) var(--ease-out)}
+  .hero-secondary{display:inline-flex;align-items:center;min-height:var(--tap-min);padding:0 4px;font-size:13px;letter-spacing:.04em;color:var(--ink2);border-bottom:1px solid var(--line-strong);cursor:pointer;transition:color var(--dur-enter) var(--ease-out),border-color var(--dur-enter) var(--ease-out)}
   .hero-secondary:hover{color:var(--clay);border-color:var(--clay)}
   body.hero-bold .hero .hero-secondary{color:var(--bg);border-color:color-mix(in srgb,var(--bg) 45%,transparent)}
-  .hero-login{display:inline-block;margin-top:20px;font-size:13.5px;letter-spacing:.04em;color:var(--muted);border-bottom:1px solid var(--line);padding-bottom:2px;cursor:pointer;transition:.25s}
+  .hero-login{display:inline-block;margin-top:20px;font-size:13px;letter-spacing:.04em;color:var(--muted);border-bottom:1px solid var(--line);padding-bottom:2px;cursor:pointer;transition:.25s}
   .hero-login:hover{color:var(--clay);border-color:var(--clay)}
-  .hero-art{aspect-ratio:4/5;border:1px solid var(--line);position:relative;overflow:hidden;background:
+  /* Three outlines, set per studio. Organic is the default and the one
+     that makes the page read as a studio; a studio showing
+     architectural or product work wants the rectangle. */
+  .hero-art{aspect-ratio:4/5;border:0;position:relative;overflow:hidden;border-radius:var(--radius-xl);box-shadow:var(--shadow-float);transition:border-radius .8s var(--ease-out),box-shadow .5s;background:
      radial-gradient(120% 90% at 20% 15%,color-mix(in srgb,var(--clay) 22%,transparent) 0%,transparent 55%),
      radial-gradient(110% 80% at 85% 80%,color-mix(in srgb,var(--clay-d) 18%,transparent) 0%,transparent 50%),
      linear-gradient(160deg,var(--bg2),var(--bg))}
@@ -126,6 +138,9 @@
   body.hero-image .hero-art img{display:block}
   body.hero-bold .hero{background:var(--ink);color:var(--bg)}
   body.hero-bold .hero .slogan, body.hero-bold .hero-login{color:color-mix(in srgb,var(--bg) 78%,var(--ink))}
+  body.hero-oval .hero-art{border-radius:50%}
+  body.hero-organic .hero-art{border-radius:42% 58% 48% 52%/34% 42% 58% 66%}
+  body.hero-organic .hero-art:hover{border-radius:48% 52% 43% 57%/41% 54% 46% 59%}
   body.hero-minimal .hero-art{display:none}
   body.hero-minimal .hero-grid{grid-template-columns:1fr}
   .hero-art .frame-tag{position:absolute;left:20px;bottom:18px;font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--muted)}
@@ -136,12 +151,12 @@
 
   section{padding:var(--space-phi-2xl) 0}
   .sec-head{max-width:var(--brand-reading-measure);margin-bottom:var(--space-phi-xl)}
-  .sec-head h2{font-size:clamp(28px,3.4vw,42px);font-weight:500;line-height:1.2;margin-top:14px}
-  .sec-head p{color:var(--ink2);margin-top:16px;font-size:15.5px}
+  .sec-head h2{font-size:clamp(26px,3.4vw,42px);font-weight:500;line-height:1.2;margin-top:14px}
+  .sec-head p{color:var(--ink2);margin-top:16px;font-size:15px}
 
   .brandband{background:var(--bg);border-top:1px solid var(--line);border-bottom:1px solid var(--line);display:none}
   .brandband .wrap{padding:64px 28px;text-align:center}
-  .brandband .cn-line{color:var(--ink2);font-size:clamp(16px,2vw,22px);letter-spacing:.04em;max-width:40ch;margin:0 auto;line-height:1.8}
+  .brandband .cn-line{color:var(--ink2);font-size:clamp(16px,2vw,20px);letter-spacing:.04em;max-width:40ch;margin:0 auto;line-height:1.8}
 
   /* P1-10: the "about the space" block and its slow carousel used to exist
      only in the hand-forked lets-paint-studio workspace, which meant every
@@ -155,7 +170,7 @@
   .about-list .it{display:flex;gap:16px}
   .about-list .n{font-family:var(--font-latin);font-size:15px;color:var(--muted);flex-shrink:0}
   .about-list h4{font-size:15px;font-weight:500}
-  .about-list p{font-size:13.5px;color:var(--ink2);margin-top:4px}
+  .about-list p{font-size:13px;color:var(--ink2);margin-top:4px}
   @media (prefers-reduced-motion: reduce){.about-img img{transition:none}}
 
   .artist-grid{display:grid;grid-template-columns:var(--golden-columns-reverse);gap:var(--space-phi-xl);align-items:center}
@@ -163,13 +178,13 @@
      radial-gradient(90% 70% at 30% 20%,color-mix(in srgb,var(--clay) 20%,transparent) 0%,transparent 55%),
      radial-gradient(90% 80% at 80% 90%,color-mix(in srgb,var(--clay-d) 16%,transparent) 0%,transparent 55%),
      linear-gradient(155deg,var(--bg2),var(--bg))}
-  .artist-portrait .nm{position:absolute;left:22px;bottom:20px;font-family:var(--font-latin);font-size:22px;color:var(--muted)}
+  .artist-portrait .nm{position:absolute;left:22px;bottom:20px;font-family:var(--font-latin);font-size:20px;color:var(--muted)}
   .roles{display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:22px;padding-top:22px;border-top:1px solid var(--line)}
   .roles span{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink2)}
   .roles span::before{content:"·";color:var(--clay);margin-right:22px;margin-left:-14px}
   .roles span:first-child::before{content:"";margin:0}
-  .artist-grid .bio{color:var(--ink2);margin-top:24px;font-size:15.5px;max-width:52ch}
-  .sig-line{font-family:var(--font-latin);font-style:italic;font-size:22px;color:var(--clay);margin-top:26px}
+  .artist-grid .bio{color:var(--ink2);margin-top:24px;font-size:15px;max-width:52ch}
+  .sig-line{font-family:var(--font-latin);font-style:italic;font-size:20px;color:var(--clay);margin-top:26px}
 
   /* P2-3: the old rule gave only :first-child a left border, so any count that
      was not a multiple of 4 lost the left edge on the second row and left a
@@ -179,12 +194,12 @@
   .course{padding:38px 26px 34px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);border-left:1px solid var(--line);transition:background .35s}
   .course:hover{background:var(--panel)}
   .course .num{font-family:var(--font-latin);font-size:15px;color:var(--muted)}
-  .course h3{font-size:19px;font-weight:500;margin:16px 0 10px}
+  .course h3{font-size:20px;font-weight:500;margin:16px 0 10px}
   /* P1-5: these sit on --bg2, where even the corrected --muted is 4.2:1.
      Small body copy on the darker surface uses --ink2 (7.3:1). */
-  .course p{font-size:13.5px;color:var(--ink2);min-height:44px}
+  .course p{font-size:13px;color:var(--ink2);min-height:44px}
   .course .cage{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--clay);margin-top:2px}
-  .course .cbtn{display:inline-block;margin-top:16px;font-size:12px;letter-spacing:.06em;color:var(--ink);border-bottom:1px solid var(--ink);padding-bottom:2px;cursor:pointer}
+  .course .cbtn{display:inline-block;margin-top:16px;font-size:13px;letter-spacing:.06em;color:var(--ink);border-bottom:1px solid var(--ink);padding-bottom:2px;cursor:pointer}
   .course .cbtn:hover{color:var(--clay);border-color:var(--clay)}
 
   .gallery{background:var(--bg2)}
@@ -195,7 +210,7 @@
   .tile:hover{transform:translateY(-4px)}
   .tile img{width:100%;height:100%;object-fit:cover;display:block}
   .tile .cap{position:absolute;left:12px;bottom:10px;font-size:11px;letter-spacing:.06em;color:var(--ink2)}
-  .tile.art{border:none;box-shadow:0 2px 14px color-mix(in srgb, var(--ink) 12%, transparent);cursor:pointer}
+  .tile.art{border:none;border-radius:var(--radius-card);overflow:hidden;box-shadow:var(--shadow-soft);cursor:pointer}
   /* Gallery tiles are real <button>s so the lightbox is keyboard-reachable;
      strip the UA button chrome but keep the .tile look. */
   button.tile{appearance:none;-webkit-appearance:none;padding:0;font:inherit;color:inherit;text-align:inherit}
@@ -205,14 +220,14 @@
   .glb.open{display:flex}
   .glb-top{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;flex-shrink:0;color:var(--on-scrim);padding-top:max(14px,env(safe-area-inset-top,14px))}
   .glb-title{font-family:var(--font-display);font-size:16px}
-  .glb-date{font-size:12px;color:color-mix(in srgb,var(--on-scrim) 72%,transparent);margin-top:2px}
+  .glb-date{font-size:13px;color:color-mix(in srgb,var(--on-scrim) 72%,transparent);margin-top:2px}
   .glb-x{background:none;border:0;color:var(--on-scrim);font-size:26px;cursor:pointer;width:44px;height:44px}
   .glb-stage{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;padding:0 14px}
-  .glb-stage img{max-width:100%;max-height:100%;object-fit:contain;border-radius:2px;box-shadow:0 10px 40px var(--scrim)}
+  .glb-stage img{max-width:100%;max-height:100%;object-fit:contain;border-radius:var(--radius);box-shadow:0 10px 40px var(--scrim)}
   .glb-nav{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;flex-shrink:0;padding-bottom:max(14px,env(safe-area-inset-bottom,14px))}
-  .glb-btn{background:color-mix(in srgb, var(--on-scrim) 16%, transparent);border:0;color:var(--on-scrim);border-radius:2px;padding:11px 24px;font-size:13px;letter-spacing:.05em;cursor:pointer;font-family:inherit}
+  .glb-btn{background:color-mix(in srgb, var(--on-scrim) 16%, transparent);border:0;color:var(--on-scrim);border-radius:var(--radius-pill);padding:11px 24px;font-size:13px;letter-spacing:.05em;cursor:pointer;font-family:inherit}
   .glb-btn:disabled{opacity:.3;cursor:default}
-  .glb-count{color:color-mix(in srgb,var(--on-scrim) 72%,transparent);font-size:12px;letter-spacing:.1em}
+  .glb-count{color:color-mix(in srgb,var(--on-scrim) 72%,transparent);font-size:13px;letter-spacing:.1em}
 
   /* An inverted band. Its own children were written as color-mix(--bg,--ink)
      pairs and invert correctly, but a GLOBAL class dropped into it does not:
@@ -236,23 +251,23 @@
     --clay:color-mix(in srgb,var(--bg) 82%,var(--ink));
   }
   .parent .wrap{display:grid;grid-template-columns:var(--golden-columns);gap:var(--space-phi-xl);align-items:center}
-  .parent h2{font-size:clamp(26px,3vw,38px);font-weight:500;line-height:1.2}
+  .parent h2{font-size:clamp(26px,3vw,42px);font-weight:500;line-height:1.2}
   .parent p{color:color-mix(in srgb,var(--bg) 78%,var(--ink));margin-top:16px;font-size:15px}
   .p-actions{display:grid;gap:12px}
-  .p-card{border:1px solid color-mix(in srgb,var(--bg) 22%,var(--ink));border-radius:var(--radius);padding:20px 22px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;
+  .p-card{border:1px solid color-mix(in srgb,var(--bg) 22%,var(--ink));border-radius:var(--radius-card);padding:20px 22px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;
           transition:background var(--dur-enter) var(--ease-out),border-color var(--dur-enter) var(--ease-out)}
   .p-card:hover{background:color-mix(in srgb,var(--bg) 10%,var(--ink));border-color:color-mix(in srgb,var(--bg) 38%,var(--ink))}
   .p-card .l h4{font-size:16px;font-weight:500;color:var(--bg)}
-  .p-card .l p{font-size:12.5px;color:color-mix(in srgb,var(--bg) 66%,var(--ink));margin-top:3px}
-  .p-card .arw{font-family:var(--font-latin);font-size:24px;color:var(--clay)}
+  .p-card .l p{font-size:13px;color:color-mix(in srgb,var(--bg) 66%,var(--ink));margin-top:3px}
+  .p-card .arw{font-family:var(--font-latin);font-size:26px;color:var(--clay)}
 
   .faqwrap{max-width:55rem;margin:0 auto}
   .faq{border-bottom:1px solid var(--line)}
   .faq summary{list-style:none;cursor:pointer;padding:22px 4px;font-size:16px;font-weight:500;display:flex;justify-content:space-between;align-items:center;gap:20px}
   .faq summary::-webkit-details-marker{display:none}
-  .faq summary::after{content:"+";font-family:var(--font-latin);font-size:24px;color:var(--clay);transition:transform .3s}
+  .faq summary::after{content:"+";font-family:var(--font-latin);font-size:26px;color:var(--clay);transition:transform .3s}
   .faq[open] summary::after{content:"–"}
-  .faq p{padding:0 4px 24px;color:var(--ink2);font-size:14.5px;max-width:70ch}
+  .faq p{padding:0 4px 24px;color:var(--ink2);font-size:15px;max-width:70ch}
 
   .contact-grid{display:grid;grid-template-columns:1fr;gap:0;max-width:55rem;margin:0 auto}
   .info-row{display:flex;gap:20px;padding:22px 0;border-bottom:1px solid var(--line)}
@@ -260,9 +275,9 @@
   .info-row .v{font-size:15px;color:var(--ink)}
 
   .page{padding-top:130px;padding-bottom:110px;min-height:100vh}
-  .form-card{max-width:560px;margin:0 auto;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:40px}
+  .form-card{max-width:560px;margin:0 auto;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-lg);padding:40px;box-shadow:var(--shadow-soft)}
   .fld{margin-bottom:20px}
-  .fld label{display:block;font-size:12px;letter-spacing:.02em;color:var(--ink2);margin-bottom:8px;font-weight:500}
+  .fld label{display:block;font-size:13px;letter-spacing:.02em;color:var(--ink2);margin-bottom:8px;font-weight:500}
   html[lang="en"] .fld label{letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:400}
   .fld .opt{color:var(--muted);font-weight:400}
   .fld input,.fld textarea,.fld select{width:100%;min-height:var(--tap-min);background:var(--panel);border:1px solid var(--line-strong);border-radius:var(--radius);padding:13px 14px;font-family:inherit;font-size:15px;color:var(--ink);appearance:none;
@@ -270,14 +285,14 @@
   /* P2-8: field-level error state so a 10-field form does not make the visitor
      hunt for which input the single global message referred to. */
   .fld input[aria-invalid="true"],.fld textarea[aria-invalid="true"],.fld select[aria-invalid="true"]{border-color:var(--danger)}
-  .fld .fld-err{display:none;margin-top:6px;font-size:12px;color:var(--danger)}
+  .fld .fld-err{display:none;margin-top:6px;font-size:13px;color:var(--danger)}
   .fld.has-error .fld-err{display:block}
   .fld select{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' fill='none' stroke='%238B8477' stroke-width='1.5'/></svg>");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;cursor:pointer}
   .fld-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
   @media(max-width:520px){.fld-row{grid-template-columns:1fr}}
   .form-step{margin:0 0 var(--space-phi-md);color:var(--muted);font-size:13px;line-height:1.6}
   .form-step strong{display:block;color:var(--ink);font-size:16px;font-weight:500}
-  .progressive{margin:var(--space-phi-md) 0;border:1px solid var(--line);border-radius:var(--radius);background:var(--bg2);overflow:hidden}
+  .progressive{margin:var(--space-phi-md) 0;border:1px solid var(--line);border-radius:var(--radius-card);background:var(--bg2);overflow:hidden}
   .progressive summary{display:flex;align-items:center;min-height:var(--tap-min);padding:var(--space-phi-sm) var(--space-phi-md);color:var(--ink);cursor:pointer;font-weight:500;list-style:none}
   .progressive summary::-webkit-details-marker{display:none}
   .progressive summary::after{content:'＋';margin-left:auto;color:var(--clay)}
@@ -292,7 +307,7 @@
   .join-submit{margin-top:var(--space-phi-md)}
   .fld input:focus,.fld textarea:focus,.fld select:focus{border-color:var(--clay)}
   .fld input:disabled,.fld textarea:disabled,.fld select:disabled{background:var(--disabled-surface);color:var(--disabled-text);cursor:not-allowed}
-  .form-note{font-size:12px;color:var(--ink2);margin-top:8px}
+  .form-note{font-size:13px;color:var(--ink2);margin-top:8px}
   .form-note a{color:var(--clay);border-bottom:1px solid var(--clay);cursor:pointer}
   /* P2-2: #surfaceStatus used to render underneath the 74px fixed nav, so the
      one message telling the visitor the page is degraded was invisible. It is
@@ -305,15 +320,15 @@
      ('body / page'), so it cannot silently fail the way the previous fixed
      #EFE9DD did — under a dark theme --ink is light and that text measured
      1.06:1, i.e. the whole success card was invisible. */
-  .result-card{max-width:560px;margin:24px auto 0;background:var(--ink);color:var(--bg);border-radius:4px;padding:32px;text-align:center;display:none}
-  .result-card .big{font-family:var(--font-latin);font-size:56px;color:var(--bg);line-height:1}
-  .big{font-family:var(--font-latin);font-size:56px;line-height:1}
+  .result-card{max-width:560px;margin:24px auto 0;background:var(--ink);color:var(--bg);border-radius:var(--radius-lg);padding:32px;text-align:center;display:none}
+  .result-card .big{font-family:var(--font-latin);font-size:68px;color:var(--bg);line-height:1}
+  .big{font-family:var(--font-latin);font-size:68px;line-height:1}
 
   footer{background:var(--bg2);border-top:1px solid var(--line);padding:52px 0 40px}
   .foot{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:24px}
   .foot .fl{display:flex;gap:26px;font-size:13px;color:var(--ink2);flex-wrap:wrap}
   .foot .fl a{cursor:pointer}
-  .foot .cp{font-size:12px;color:var(--ink2)}
+  .foot .cp{font-size:13px;color:var(--ink2)}
   .foot a:hover{color:var(--clay)}
 
   .reveal{opacity:0;transform:translateY(22px);transition:opacity .9s cubic-bezier(.2,.7,.2,1),transform .9s cubic-bezier(.2,.7,.2,1)}
@@ -325,14 +340,14 @@
   [data-awaits-data]{display:none}
   [data-awaits-data][data-resolved]{display:block}
   section[data-awaits-data][data-resolved]{display:block}
-  .skel{background:linear-gradient(90deg,var(--bg2) 25%,var(--panel) 37%,var(--bg2) 63%);background-size:400% 100%;animation:skel 1.4s ease infinite;border-radius:2px}
+  .skel{background:linear-gradient(90deg,var(--bg2) 25%,var(--panel) 37%,var(--bg2) 63%);background-size:400% 100%;animation:skel 1.4s ease infinite;border-radius:var(--radius-xs)}
   @keyframes skel{0%{background-position:100% 50%}100%{background-position:0 50%}}
   @media (prefers-reduced-motion: reduce){.skel{animation:none}}
   section[id], div[id]{scroll-margin-top:90px}
   a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px}
-  .skip-link{position:fixed;left:14px;top:-80px;z-index:100;background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:4px}
+  .skip-link{position:fixed;left:14px;top:-80px;z-index:100;background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:var(--radius)}
   .skip-link:focus{top:14px}
-  .totop{position:fixed;right:26px;bottom:26px;z-index:60;width:46px;height:46px;border-radius:50%;border:1px solid var(--line);background:color-mix(in srgb, var(--panel) 92%, transparent);backdrop-filter:blur(8px);color:var(--ink);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transform:translateY(10px);pointer-events:none;transition:opacity .35s,transform .35s;box-shadow:0 4px 16px color-mix(in srgb, var(--ink) 10%, transparent)}
+  .totop{position:fixed;right:26px;bottom:26px;z-index:60;width:46px;height:46px;border-radius:50%;border:1px solid var(--line);background:color-mix(in srgb, var(--panel) 92%, transparent);backdrop-filter:blur(8px);color:var(--ink);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transform:translateY(10px);pointer-events:none;transition:opacity .35s,transform .35s;box-shadow:var(--shadow-soft)}
   .totop.show{opacity:1;transform:none;pointer-events:auto}
   .totop:hover{background:var(--ink);color:var(--bg);border-color:var(--ink)}
   @media (prefers-reduced-motion: reduce){
@@ -410,9 +425,13 @@
     </div>
     <div class="hero-art reveal in">
       <!-- Walkthrough 2026-07-26: a dangling hero URL rendered a broken-image
-           glyph. Dropping body.hero-image falls back to the decorative
-           hero-art background, same treatment as no image at all. -->
-      <img id="heroImage" alt="Ruby Studio" onerror="document.body.classList.remove('hero-image')">
+           glyph, so body.hero-image is dropped on error.
+           Design_Constraints §5: it now collapses to the one-column hero as
+           well, because "the photo did not load" and "there is no photo" are
+           the same thing to a visitor — and falling back to the decorative
+           gradient left a shaped void exactly where the photo should be. -->
+      <img id="heroImage" alt="Ruby Studio"
+           onerror="document.body.classList.remove('hero-image');document.body.classList.add('hero-minimal')">
       <span class="frame-tag">Ruby Studio</span>
     </div>
   </div>
@@ -436,8 +455,8 @@
     <div class="about-img reveal" id="aboutSlides"></div>
     <div class="reveal">
       <p class="eyebrow" id="aboutEyebrow"></p>
-      <h2 class="serif" id="aboutTitle" style="font-size:clamp(28px,3.4vw,42px);font-weight:500;margin-top:14px"></h2>
-      <p id="aboutBody" style="color:var(--ink2);margin-top:18px;font-size:15.5px"></p>
+      <h2 class="serif" id="aboutTitle" style="font-size:clamp(26px,3.4vw,42px);font-weight:500;margin-top:14px"></h2>
+      <p id="aboutBody" style="color:var(--ink2);margin-top:18px;font-size:15px"></p>
       <div class="about-list" id="aboutList"></div>
     </div>
   </div>
@@ -448,7 +467,7 @@
     <div class="artist-portrait reveal"><img id="principalImage" alt="" hidden style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.hidden=true"><span id="principalImageLabel" class="nm" data-en="Principal">主理人</span></div>
     <div class="reveal">
       <p id="principalTitle" class="eyebrow" data-en="Founder &amp; Principal">创办人 / 主理人</p>
-      <h2 id="principalName" class="serif" style="font-size:clamp(30px,3.6vw,46px);font-weight:500;line-height:1.12;margin-top:14px"></h2>
+      <h2 id="principalName" class="serif" style="font-size:clamp(26px,3.6vw,42px);font-weight:500;line-height:1.12;margin-top:14px"></h2>
       <!-- The three "Founder / Principal / Mentor" chips that used to sit here
            were template decoration: hard-coded English, no data-zh, and a claim
            about a real person no studio had made — the same problem as the
@@ -588,7 +607,7 @@
       <div class="result-card" id="join-done" role="status" aria-live="polite" tabindex="-1">
         <p class="big" aria-hidden="true">✓</p>
         <!-- P3-6: a concrete window beats "尽快", which invites repeat submissions. -->
-        <p style="margin-top:16px;font-size:17px" data-en="Got it. The teacher will call you within 24 hours.">已提交，老师会在 24 小时内与您联系。</p>
+        <p style="margin-top:16px;font-size:16px" data-en="Got it. The teacher will call you within 24 hours.">已提交，老师会在 24 小时内与您联系。</p>
         <a class="btn btn-line" style="margin-top:22px;border-color:var(--bg);color:var(--bg)" href="#home" data-en="Back to home">返回首页</a>
       </div>
     </div>
@@ -615,33 +634,33 @@
         <button class="btn btn-fill" id="m-btn" type="submit" style="width:100%;justify-content:center;margin-top:2px" data-en="Check">查询</button>
       </form>
       <div id="m-result" role="status" aria-live="polite" tabindex="-1" style="display:none;max-width:560px;margin:24px auto 0">
-        <div id="m-bal" style="background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:32px;text-align:center">
+        <div id="m-bal" style="background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-card);padding:32px;text-align:center">
           <p id="m-bal-name" style="font-size:15px;font-weight:500"></p>
           <p class="big" id="m-bal-num" style="color:var(--clay);margin-top:8px"></p>
           <!-- P2-12: one class may draw more than one credit, so "classes
                remaining" was wrong. The unit is credits / 课时 everywhere. -->
           <p style="font-size:13px;color:var(--ink2);letter-spacing:.06em" data-en="credits remaining">剩余课时</p>
-          <p id="m-bal-warn" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--line);font-size:13.5px;font-weight:500"></p>
+          <p id="m-bal-warn" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--line);font-size:13px;font-weight:500"></p>
         </div>
-        <div id="m-next" style="display:none;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:16px 20px;margin-top:12px;align-items:center;gap:14px">
+        <div id="m-next" style="display:none;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-card);padding:16px 20px;margin-top:12px;align-items:center;gap:14px">
           <svg viewBox="0 0 24 24" fill="none" stroke="var(--clay)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;flex-shrink:0" aria-hidden="true"><path d="M6.75 5.25l9 6.75-9 6.75V5.25zM18 5.25v13.5"/></svg>
-          <div><p style="font-size:11px;letter-spacing:.06em;color:var(--muted)" data-en="Next class">下次课</p><p id="m-next-info" style="font-weight:500;font-size:14px"></p></div>
+          <div><p style="font-size:11px;letter-spacing:.06em;color:var(--muted)" data-en="Next class">下次课</p><p id="m-next-info" style="font-weight:500;font-size:13px"></p></div>
         </div>
         <div id="m-family-actions" style="display:none;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">
           <a id="m-message-studio" class="btn btn-fill" style="justify-content:center;min-height:46px" data-en="Message the studio">给工作室发信息</a>
           <a id="m-email-studio" class="btn btn-line" style="justify-content:center;min-height:46px" data-en="Email the studio">给工作室发邮件</a>
         </div>
-        <div id="m-hist" style="display:none;background:var(--panel);border:1px solid var(--line);border-radius:4px;margin-top:12px;overflow:hidden">
-          <p style="padding:14px 20px;border-bottom:1px solid var(--line);font-size:12px;letter-spacing:.04em;color:var(--ink2)" data-en="Class history">上课记录</p>
+        <div id="m-hist" style="display:none;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-card);margin-top:12px;overflow:hidden">
+          <p style="padding:14px 20px;border-bottom:1px solid var(--line);font-size:13px;letter-spacing:.04em;color:var(--ink2)" data-en="Class history">上课记录</p>
           <div id="m-hist-list" style="max-height:220px;overflow-y:auto"></div>
         </div>
-        <div id="m-port" style="display:none;background:var(--panel);border:1px solid var(--line);border-radius:4px;margin-top:12px;padding:20px">
-          <p style="font-size:12px;letter-spacing:.04em;color:var(--ink2);margin-bottom:14px" data-en="My %WORKS%">我的%WORK%集</p>
+        <div id="m-port" style="display:none;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-card);margin-top:12px;padding:20px">
+          <p style="font-size:13px;letter-spacing:.04em;color:var(--ink2);margin-bottom:14px" data-en="My %WORKS%">我的%WORK%集</p>
           <div id="m-port-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"></div>
         </div>
         <!-- P2-4: this and the thrown error at submit time used to say two
              different things about the same failure. Both now read from here. -->
-        <div id="m-nomatch" style="display:none;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:28px;text-align:center;color:var(--ink2)">
+        <div id="m-nomatch" style="display:none;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-card);padding:28px;text-align:center;color:var(--ink2)">
           <p id="m-nomatch-copy" data-en="Those three details don't match a student record. The name and mobile must be exactly what the %VENUE% has on file — try the parent's mobile if you registered with it. If they still don't match, ask the %VENUE% to reissue the code.">这三项信息没有匹配到学员记录。姓名与手机号需要和%VENUE%登记的完全一致——如果当初用的是家长手机号，请改用那个号码。仍然不匹配的话，联系%VENUE%重新发放访问码。</p>
         </div>
         <div style="text-align:center;margin-top:20px"><button type="button" class="btn btn-line" onclick="resetMy()" data-en="Sign out / check another">退出专区 / 重新查询</button></div>
@@ -658,8 +677,8 @@
         <p class="eyebrow" data-en="Privacy Note">隐私说明</p>
         <h2 class="serif" data-en="What we do with your details">您的信任，我们妥善保管</h2>
       </div>
-      <div class="reveal" style="background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:36px">
-        <div style="display:grid;gap:26px;font-size:14.5px;color:var(--ink2)">
+      <div class="reveal" style="background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-card);padding:36px">
+        <div style="display:grid;gap:26px;font-size:15px;color:var(--ink2)">
           <div><h4 style="font-weight:500;color:var(--ink);margin-bottom:8px" data-en="1 · What we collect">一 · 我们收集哪些信息</h4><p data-en="When you enrol or enquire, we collect the student's name and contact details, and — during classes — photographs of their %WORKS%.">当您报名或咨询时，我们会收集学员姓名与联系方式；在课程中，会为%WORK%拍照存档。</p></div>
           <div><h4 style="font-weight:500;color:var(--ink);margin-bottom:8px" data-en="2 · How we use it">二 · 信息的用途</h4><p data-en="Only for teaching: contacting you about classes, keeping accurate class-credit records, and each student's private records. We never sell or share your information for marketing.">仅用于教学：联系课程事宜、准确记录课时、维护学员的私人%WORK%集。我们不会将您的信息出售或用于第三方营销。</p></div>
           <div><h4 style="font-weight:500;color:var(--ink);margin-bottom:8px" data-en="3 · Photos &amp; %WORKS%">三 · 照片与%WORK%</h4><p data-en="All photos are private by default — visible only after verifying the student's name, mobile and the access code issued by the %VENUE%. Public display happens only with explicit consent, which can be withdrawn at any time.">所有照片默认私有——仅在「学员专区」验证姓名、手机号及%VENUE%发放的访问码后可见。公开展示仅在明确同意后进行，且同意可随时撤回。</p></div>
@@ -678,7 +697,7 @@
 <footer>
   <div class="wrap foot">
     <div>
-      <div class="brand" style="margin-bottom:14px;cursor:default"><span class="bn serif" style="font-size:18px" id="footName">Ruby Studio</span></div>
+      <div class="brand" style="margin-bottom:14px;cursor:default"><span class="bn serif" style="font-size:20px" id="footName">Ruby Studio</span></div>
       <p class="cp">© 2026 <span id="footName2">Ruby Studio</span><span id="producerCredit" hidden> · Powered by Paradise Production</span></p>
     </div>
     <div class="fl">
@@ -719,7 +738,12 @@
      parse time, which meant nothing created by a fetch ever responded to EN. */
   var state = { brand:{}, programs:null, gallery:null, faq:null,
                 venueNoun:{zh:'工作室',en:'studio'}, workNoun:{zh:'作品',en:'work'},
-                privacyNoticeVersion:'2026-07-12' };
+                privacyNoticeVersion:'2026-07-12',
+                /* Which section switches are OFF. Empty until /brand answers,
+                   which is correct: a section defaults to visible, and the
+                   render functions below re-check this so neither fetch order
+                   can win. */
+                sectionsOff:{} };
 
   /* ── i18n ──
      P0-4: rendering is textContent, never innerHTML. Studio Admin lets a tenant
@@ -1141,7 +1165,7 @@
       var body=document.createElement('p'); body.textContent=nouns(answer);
       details.appendChild(summary); details.appendChild(body); list.appendChild(details);
     });
-    resolveSection('faq', list.children.length>0);
+    resolveSection('faq', list.children.length>0 && !state.sectionsOff.faq);
   }
   function renderPrograms(programs){
     state.programs=programs;
@@ -1169,7 +1193,7 @@
       card.appendChild(cta);
       grid.appendChild(card);
     });
-    resolveSection('courses', grid.children.length>0);
+    resolveSection('courses', grid.children.length>0 && !state.sectionsOff.courses);
   }
   function renderGallery(items){
     state.gallery=items;
@@ -1199,7 +1223,7 @@
       tile.onclick=function(){ openGlb(i); };
       grid.appendChild(tile);
     });
-    resolveSection('gallery', grid.children.length>0);
+    resolveSection('gallery', grid.children.length>0 && !state.sectionsOff.gallery);
   }
   function renderContactRows(b){
     var box=document.getElementById('contactRows'); if(!box) return;
@@ -1233,7 +1257,6 @@
     accent_pressed_color:   ['--clay-pressed'],
     accent_text_color:      ['--on-accent', '--brand-on-accent'],
     secondary_accent_color: ['--clay-d', '--brand-accent-strong'],
-    secondary_text_color:   ['--on-secondary', '--brand-on-secondary'],
     success_color:          ['--success', '--brand-success'],
     warning_color:          ['--warning', '--brand-warning'],
     danger_color:           ['--danger', '--brand-danger'],
@@ -1349,10 +1372,25 @@
     setNavVisible(['navStudent','mnavStudent','heroStudentLogin'], showStudent);
     showSection('parent', showStudent);
     var heroStyle = hero.background_style || hero.backgroundStyle || 'soft';
-    document.body.classList.toggle('hero-image', heroStyle === 'image' && Boolean(hero.hero_image_url || hero.heroImageUrl));
-    document.body.classList.toggle('hero-minimal', heroStyle === 'minimal');
+    var heroImageUrl = hero.hero_image_url || hero.heroImageUrl || '';
+    /* Design_Constraints §5. A studio that picked the photo hero and has not
+       uploaded one yet used to get the decorative gradient in its place — a
+       large shaped void where a photograph obviously belongs, which reads as
+       a broken page rather than as a design. It collapses to the one-column
+       hero instead, which is a finished layout at any width.
+
+       Only when the photo was ASKED for. `soft` is a studio choosing the
+       gradient on purpose, and taking that away would be the same mistake in
+       the other direction. */
+    var wantsPhoto = heroStyle === 'image';
+    var heroVoid = wantsPhoto && !heroImageUrl;
+    document.body.classList.toggle('hero-image', wantsPhoto && Boolean(heroImageUrl));
+    document.body.classList.toggle('hero-minimal', heroStyle === 'minimal' || heroVoid);
     document.body.classList.toggle('hero-bold', heroStyle === 'bold');
-    if(hero.hero_image_url || hero.heroImageUrl){ var hi=document.getElementById('heroImage'); hi.src = hero.hero_image_url || hero.heroImageUrl; hi.alt=(b.name||'Studio')+' hero'; }
+    var heroShape = hero.hero_shape || hero.heroShape || 'organic';
+    document.body.classList.toggle('hero-oval', heroShape === 'oval');
+    document.body.classList.toggle('hero-organic', heroShape === 'organic');
+    if(heroImageUrl){ var hi=document.getElementById('heroImage'); hi.src = heroImageUrl; hi.alt=(b.name||'Studio')+' hero'; }
 
     localise(document);
     applyBrandCopy(b);
@@ -1374,9 +1412,27 @@
       pi.src=principalImageUrl; pi.alt=principal.name||T('主理人','Principal'); pi.hidden=false;
     }
 
-    setNavVisible(['navCourses','mnavCourses'], String(website.show_courses ?? website.showCourses ?? true) !== 'false');
-    setNavVisible(['navGallery','mnavGallery'], String(website.show_gallery ?? website.showGallery ?? true) !== 'false');
-    setNavVisible(['navFaq','mnavFaq'], String(website.show_faq ?? website.showFaq ?? true) !== 'false');
+    /* A section switch has to reach the SECTION, not only its nav link.
+       Courses and the gallery used to call setNavVisible alone, so switching
+       one off removed the link and left the section on the page — the studio
+       saw it disappear from the menu, a visitor scrolling past still saw it.
+       Both are `data-awaits-data` sections, which their render functions
+       reveal once content arrives, so the switch is recorded here and the
+       render consults it rather than being raced by it. */
+    state.sectionsOff = {
+      courses: String(website.show_courses ?? website.showCourses ?? true) === 'false',
+      gallery: String(website.show_gallery ?? website.showGallery ?? true) === 'false',
+      faq: String(website.show_faq ?? website.showFaq ?? true) === 'false'
+    };
+    setNavVisible(['navCourses','mnavCourses'], !state.sectionsOff.courses);
+    setNavVisible(['navGallery','mnavGallery'], !state.sectionsOff.gallery);
+    setNavVisible(['navFaq','mnavFaq'], !state.sectionsOff.faq);
+    /* Content may already have arrived and revealed a section before /brand
+       answered — the two fetches are independent — so re-apply the switches
+       to whatever is on the page now. */
+    if(state.sectionsOff.courses) resolveSection('courses', false);
+    if(state.sectionsOff.gallery) resolveSection('gallery', false);
+    if(state.sectionsOff.faq) resolveSection('faq', false);
     showSection('contact', String(website.show_contact ?? website.showContact ?? true) !== 'false');
 
     renderRegistrationFields(b.registrationProfile || b.registration_profile);
@@ -1626,8 +1682,8 @@
       mark.style.cssText='width:16px;height:16px;flex-shrink:0';
       var path=document.createElementNS('http://www.w3.org/2000/svg','path');
       path.setAttribute('d','M4.5 12.75l6 6 9-13.5'); mark.appendChild(path);
-      var date=document.createElement('span'); date.style.cssText='flex:1;font-size:14px'; date.textContent=item.date||'';
-      var course=document.createElement('span'); course.style.cssText='font-size:12px;color:var(--muted)'; course.textContent=item.course||T('常规课程','Class');
+      var date=document.createElement('span'); date.style.cssText='flex:1;font-size:13px'; date.textContent=item.date||'';
+      var course=document.createElement('span'); course.style.cssText='font-size:13px;color:var(--muted)'; course.textContent=item.course||T('常规课程','Class');
       row.appendChild(mark); row.appendChild(date); row.appendChild(course); list.appendChild(row);
     });
     hist.style.display=attended.length?'block':'none';

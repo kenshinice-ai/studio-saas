@@ -302,6 +302,78 @@
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
 
+        /* ── Navigation chrome ── Design_Constraints §1.1
+         *
+         * The sidebar was `bg-indigo-900` and the mobile tab bar
+         * `bg-indigo-900`, which the config above maps to --accent-pressed.
+         * So the two largest surfaces in the CMS were both a full slab of the
+         * studio's accent, before a single button had been drawn — and every
+         * filled action inside them was the same colour again. §1.1 allows one
+         * saturated fill per screen; this was several, permanently.
+         *
+         * The accent is not deleted, it is spent where it means something: the
+         * ACTIVE tab, and the one accented link out to Studio Admin. Everything
+         * else is the neutral ramp, which is what the platform console already
+         * does and what the reference studio site does.
+         *
+         * Written as tokens rather than utilities because these are the two
+         * places where a Tailwind colour name would be describing a surface
+         * instead of a role, and the surface has to follow light/dark. */
+        /* --panel, not --bg2, and the difference was measured rather than
+         * guessed. The active item is an --accent-soft chip, and that chip is
+         * solved to be legible on the PAGE. Against --bg2 it disappears: 1.00:1
+         * fill and +6 chroma, i.e. the same trap §1.3 documents for the status
+         * chips. On --panel it is 1.25:1 and +21 chroma, and its border goes
+         * from 1.66:1 to 2.07:1. A rail of panel against a --bg page, divided
+         * by --line, is also the shape the platform console already uses. */
+        .cms-chrome {
+            background: var(--panel);
+            color: var(--ink);
+            border-color: var(--line);
+        }
+        .cms-chrome-edge { border-color: var(--line); }
+        .cms-chrome-item {
+            color: var(--ink2);
+            background: transparent;
+            transition: background .15s ease, color .15s ease;
+        }
+        .cms-chrome-item:hover { background: var(--surface-hover, var(--bg)); color: var(--ink); }
+        .cms-chrome-item:active { background: var(--surface-hover, var(--bg)); }
+        /* The one place the accent appears in the chrome: where you are.
+           A tinted chip with its own border, never a solid fill — the same
+           shape rule the status colours follow.
+         *
+         * Every accent token carries a NEUTRAL fallback, and that is not
+         * belt-and-braces. Measured in the browser: on the CMS shell the whole
+         * accent family (--accent, --accent-soft, --accent-border, --on-accent,
+         * --surface-hover) is UNDEFINED until /brand answers and the runtime
+         * sets it — so a bare `var(--accent-soft)` computes to an invalid
+         * value, the declaration drops, and the current tab has no indicator
+         * at all. Worse when /brand fails outright, which is exactly what this
+         * release is fixing.
+         *
+         * The fallbacks are TOKENS, never literals, so colour still has one
+         * source (Design_Constraints §1.2) — this only chooses which of the
+         * product's own values applies before the tenant's arrives. */
+        .cms-chrome-item.is-active {
+            background: var(--accent-soft, var(--bg));
+            color: var(--on-accent-soft, var(--ink));
+            box-shadow: inset 0 0 0 1px var(--accent-border, var(--line-strong));
+        }
+        .cms-chrome-quiet { color: var(--muted); }
+        /* The mobile tab bar has no room for a chip, so position carries the
+           state and a 2px accent rule confirms it — state is never colour
+           alone (WCAG 1.4.1). */
+        .cms-chrome-tab.is-active { color: var(--accent, var(--ink)); background: transparent; }
+        .cms-chrome-tab.is-active::after {
+            content: '';
+            position: absolute;
+            left: 18%; right: 18%; top: 0;
+            height: 2px;
+            border-radius: 999px;
+            background: var(--accent, var(--ink));
+        }
+
         /* ── Fix #4: prevent iOS auto-zoom on inputs (requires font-size ≥ 16px) ── */
         input, textarea, select { font-size: 16px !important; }
 

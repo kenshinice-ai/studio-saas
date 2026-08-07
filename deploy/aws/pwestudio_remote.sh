@@ -173,9 +173,25 @@ case "$cmd" in
       if remote "curl -fsS 'http://127.0.0.1:8899/v1/health?deep=1'"; then
         echo
         say "Deep health passed — verifying from the public edge"
-        if curl -fsS --max-time 25 "$PUBLIC_URL/v1/health?deep=1"; then
-          echo
-          deployed=true
+        if edge=$(curl -fsS --max-time 25 "$PUBLIC_URL/v1/health?deep=1"); then
+          echo "$edge"
+          # A green health check is not the same as a rendered tenant.
+          #
+          # v8.5.2 retired one visual style id. Every check above passed, the
+          # rollback window closed, and five of six live portals were serving
+          # 500 for their whole content payload the entire time. So the gate
+          # now asks the release a question about the DATA it inherited: can
+          # you still read every live tenant's stored theme?
+          #
+          # `unreadable` counts the ones this release would reject. Non-zero
+          # means a contract changed under live rows — roll back, add the
+          # alias (presets.RETIRED_STYLE_ALIASES), redeploy.
+          # Whitespace-tolerant: Flask's JSON separators are not a contract.
+          if grep -Eq '"unreadable"[[:space:]]*:[[:space:]]*0[^0-9]' <<<"$edge"; then
+            deployed=true
+          else
+            say "THEME DRIFT: this release cannot read every live tenant's stored theme"
+          fi
         fi
       fi
     fi

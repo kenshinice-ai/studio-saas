@@ -46,13 +46,26 @@
   <h1 data-lang="zh">发布依据</h1>
   <p class="lede" data-lang="en">A customer-readable record of what this release changes, what the production deployment established, and which commitments remain deferred.</p>
   <p class="lede" data-lang="zh">面向客户的记录：本次发布改了什么、生产部署确立了什么，以及哪些承诺仍未完成。</p>
-  <p class="status"><span data-lang="en">Current release v__APP_VERSION__ · deployed 6 August 2026 · monitoring and SLA deferred</span><span data-lang="zh">当前版本 v__APP_VERSION__ · 部署于 2026 年 8 月 6 日 · 监控与 SLA 延后</span></p>
+  <p class="status"><span data-lang="en">Current release v__APP_VERSION__ · deployed 7 August 2026 · monitoring and SLA deferred</span><span data-lang="zh">当前版本 v__APP_VERSION__ · 部署于 2026 年 8 月 7 日 · 监控与 SLA 延后</span></p>
 
   <h2 data-lang="en">Since v8.1.0</h2>
   <h2 data-lang="zh">v8.1.0 之后</h2>
-  <p data-lang="en">Everything below shipped to production between 1 and 6 August 2026. Each line is deployed, not planned.</p>
-  <p data-lang="zh">以下内容均已于 2026 年 8 月 1 日至 6 日发布至生产环境。每一条都已上线，而非计划。</p>
+  <p data-lang="en">Everything below shipped to production between 1 and 7 August 2026. Each line is deployed, not planned.</p>
+  <p data-lang="zh">以下内容均已于 2026 年 8 月 1 日至 7 日发布至生产环境。每一条都已上线，而非计划。</p>
   <div class="grid">
+    <article class="card">
+      <strong data-lang="en">An outage we caused, and what now stops it recurring (v8.5.4)</strong><strong data-lang="zh">一次由我们造成的故障，以及现在拿什么防它再来（v8.5.4）</strong>
+      <p data-lang="en">Between 6 and 7 August, five of six studio sites served no content. The pages loaded, but the request that carries a site's words and images — its headings, its principal's biography, its contact details, its photographs — failed. Anyone who visited saw an empty page.</p>
+      <p data-lang="zh">8 月 6 日至 7 日期间，六个工作室官网中有五个没有显示任何内容。页面本身能打开，但承载网站文字与图片的那个请求失败了——标题、主理人介绍、联系方式、照片，全都在这一个请求里。这期间访问的人看到的是一张空白页面。</p>
+      <p data-lang="en">The cause was ours and it was small: v8.5.2 renamed one internal identifier for the "Custom" palette, and the sites still holding the old name could no longer be read. <strong>No studio lost anything.</strong> Every word and every image was in the database throughout, untouched, and returned the moment the fix deployed.</p>
+      <p data-lang="zh">原因在我们，而且很小：v8.5.2 重命名了「自定义」配色的一个内部标识，仍然存着旧名字的网站便读不出来了。<strong>没有任何工作室丢失过内容。</strong>期间每一个字、每一张图都完好地存在数据库里，没有被改动过，修复部署的那一刻就全部回来了。</p>
+      <p data-lang="en">The part worth stating is why we did not notice. Our deployment checks confirmed the service was running and the database was answering — and they passed, correctly, the entire time. Neither question was "can this release still read the studios inside it?" That check now exists and runs on every deployment: if a single live site cannot be read, the release is rejected and rolled back automatically before it can reach anyone.</p>
+      <p data-lang="zh">更值得说的是我们为什么没有发现。我们的部署检查确认了服务在运行、数据库在应答——而这两项在整个期间都正确地通过了。它们问的都不是「这一版还读得出里面的工作室吗？」现在这项检查存在了，并且每次部署都会跑：只要有一个线上网站读不出来，这一版就会被拒绝并自动回滚，不会送到任何人面前。</p>
+      <p data-lang="en">Also in this release: an "About the space" section for the public site — heading, description, up to six photographs and three highlights, all bilingual — which the site could already display but which no studio had any way to fill in. Its fields were being cleared on save. If you had written anything there through another route, please enter it again. The same applies to the two search-engine fields (page title and description), now editable in the same tab.</p>
+      <p data-lang="zh">本次同时发布：官网的「空间介绍」板块——小标题、标题、正文、最多六张照片与三条亮点，均为双语——这个板块网站本来就能显示，但工作室此前没有任何地方可以填写它，而且它的内容会在保存时被清空。如果你曾通过其他途径填过，请重新填一次。搜索引擎的两个字段（页面标题与描述）同理，现在在同一个标签页里可以编辑。</p>
+      <p data-lang="en">And the studio site's Latin display typeface now actually loads. It had been requested from an external service that our own security policy blocks, so every site had quietly been falling back to a system font since that policy shipped. It is served from our own servers now, which also means visitors in mainland China no longer wait on a request that would not have completed.</p>
+      <p data-lang="zh">另外，官网的西文标题字体现在真的会加载了。它此前是从一个被我们自己的安全策略拦截的外部服务请求的，所以自那条策略上线起，所有网站都在悄悄回退到系统字体。现在改为由我们自己的服务器提供——这也意味着中国大陆的访客不必再等一个本来就不会完成的请求。</p>
+    </article>
     <article class="card">
       <strong data-lang="en">Eight named themes, and an industry that recommends instead of repainting (v8.5.0–v8.5.3)</strong><strong data-lang="zh">八套命名主题，以及一个只推荐、不重刷的行业预设（v8.5.0–v8.5.3）</strong>
       <p data-lang="en">v8.5.0 found a defect nobody had measured: because each theme's PAPER carried its own hue, whichever status colour shared that hue stopped being visible. A green theme could not show "saved"; a blue one could not show a notice. Five of the seven light themes had one of these. The repair was to give every status chip a floor on how much colour it must carry, independent of the page it sits on — so success, warning, danger and info are now recognisable on any of the papers.</p>

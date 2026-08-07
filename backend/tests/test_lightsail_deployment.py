@@ -240,7 +240,13 @@ def test_deploy_rollback_restores_version_and_verifies_both_health_boundaries() 
     assert remote.index('previous_version="$(remote ') < remote.index(
         'say "Pinning STUDIOSAAS_VERSION=$version'
     )
-    assert 'if curl -fsS --max-time 25 "$PUBLIC_URL/v1/health?deep=1"; then' in remote
+    assert 'curl -fsS --max-time 25 "$PUBLIC_URL/v1/health?deep=1"' in remote
+    # The public edge answering is not proof the release can render the
+    # tenants it inherited — v8.5.2 passed every check here with five of six
+    # portals serving 500 for their whole content payload. The gate reads the
+    # theme-drift count out of that same response.
+    assert '"unreadable"' in remote
+    assert "THEME DRIFT" in remote
     assert "ROLLBACK INTERNAL HEALTH FAILED" in remote
     assert "ROLLBACK PUBLIC EDGE HEALTH FAILED" in remote
     assert "healthy internally and publicly" in remote

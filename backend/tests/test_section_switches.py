@@ -40,6 +40,11 @@ SWITCHES = {
                      "showSection('contact'"),
     "show_student_area": ("parent", "settingShowStudentArea",
                           "showSection('parent'"),
+    # The seventh. It was the orphan this file recorded in v8.5.3 — stored,
+    # validated and rendered, with no control anywhere — and it is now a
+    # switch like the rest.
+    "show_about": ("about", "settingShowAbout",
+                   "resolveSection('about', false)"),
 }
 
 # Sections revealed by their render function once content arrives. These are
@@ -132,10 +137,14 @@ def test_the_switch_record_exists_before_any_render_can_read_it() -> None:
 def test_no_website_switch_is_orphaned_on_the_server() -> None:
     """A field the server stores and nothing can set is a feature nobody has.
 
-    `show_about` is exactly that today — the portal renders an About section
-    from it, the server validates it, and Studio Admin has no control. It is
-    listed here so the gap is a recorded decision rather than a discovery, and
-    so a SECOND one cannot appear silently.
+    `show_about` was exactly that: the portal rendered a whole About section
+    from it — bilingual heading, body, a six-image carousel — the server
+    validated it, and Studio Admin had no control, so no studio ever saw it.
+    Worse than invisible: because `_normalize_website_profile` rebuilds the
+    profile from the payload alone, every Save from a page that did not send
+    those fields erased them.
+
+    The list of known orphans is now empty, and stays empty.
     """
 
     source = API.read_text(encoding="utf-8")
@@ -143,9 +152,53 @@ def test_no_website_switch_is_orphaned_on_the_server() -> None:
     end = source.index("\ndef ", start + 1)
     stored = set(re.findall(r'"(show_[a-z_]+)"', source[start:end]))
 
-    known_orphans = {"show_about"}
-    orphaned = {flag for flag in stored - set(SWITCHES) - known_orphans}
+    orphaned = {flag for flag in stored - set(SWITCHES)}
     assert not orphaned, (
         f"the server stores {sorted(orphaned)} but nothing in Studio Admin "
         f"can set it; add a control or stop storing it"
+    )
+
+
+def test_the_admin_sends_every_field_the_server_stores() -> None:
+    """A Save must not be able to erase a field it has no control for.
+
+    `_normalize_website_profile` rebuilds the profile from the payload alone —
+    it does not merge with what is stored. So any key the server keeps and
+    Studio Admin omits is deleted on the studio's next Save, silently, whether
+    or not that studio ever opened the tab.
+
+    That is how the About copy and the flagship tenant's reclaimed SEO title
+    were lost: seven fields were stored, rendered, and never sent back.
+
+    Written against the SERVER's list rather than a list kept here, so adding
+    a field to the profile without adding it to the payload fails immediately
+    instead of the next time somebody clicks Save.
+    """
+
+    source = API.read_text(encoding="utf-8")
+    start = source.index("def _normalize_website_profile")
+    end = source.index("\ndef ", start + 1)
+    body = source[start:end]
+
+    # Three ways the function writes a key, all of them counted. The loops
+    # matter most: `about_eyebrow`, `about_title` and `about_body` are only
+    # ever named inside one, so reading just the first loop would have made
+    # this test pass while three of the lost fields went unchecked.
+    stored = set(re.findall(r'profile\["([a-z_]+)"\]', body))
+    stored |= set(re.findall(r'"(show_[a-z_]+)"', body))
+    for group in re.findall(r'for key in \(\s*("[a-z_",\s]+")\s*\)', body):
+        stored |= set(re.findall(r'"([a-z_]+)"', group))
+
+    admin = ADMIN.read_text(encoding="utf-8")
+    payload = admin[admin.index("websiteProfile: {"):]
+    payload = payload[:payload.index("\n        },")]
+
+    def camel(snake: str) -> str:
+        head, *rest = snake.split("_")
+        return head + "".join(part.capitalize() for part in rest)
+
+    missing = sorted(key for key in stored if f"{camel(key)}:" not in payload)
+    assert not missing, (
+        "Studio Admin's websiteProfile payload omits "
+        f"{missing}; _normalize_website_profile will erase them on the next Save"
     )

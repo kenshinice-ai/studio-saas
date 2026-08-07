@@ -41,30 +41,30 @@
     .serif { font-family:var(--font-display); }
     header { position:sticky; top:0; z-index:10; display:flex; justify-content:space-between; align-items:center; gap:16px; padding:14px 24px; background:color-mix(in srgb, var(--bg) 88%, transparent); border-bottom:1px solid var(--line); backdrop-filter:blur(12px); }
     .brand { display:flex; align-items:center; gap:12px; min-width:0; }
-    .brand img { width:42px; height:42px; object-fit:contain; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); padding:4px; }
+    .brand img { width:42px; height:42px; object-fit:contain; border:1px solid var(--line); border-radius:var(--radius-xs); background:var(--surface); padding:4px; }
     .name { font-weight:500; font-size:15px; letter-spacing:.04em; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .slogan, .contact { color:var(--muted); font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:min(56vw,640px); }
+    .slogan, .contact { color:var(--muted); font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:min(56vw,640px); }
     a { color:var(--clay); text-decoration:none; font-weight:500; font-size:13px; }
     .header-actions, .lang-switch { display:flex; align-items:center; gap:10px; }
-    .lang-switch { padding:3px; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); }
+    .lang-switch { padding:3px; border:1px solid var(--line); border-radius:var(--radius-pill); background:var(--surface); }
     #backLink { display:inline-flex; align-items:center; min-height:var(--tap-min); }
     /* P3-3: 44px minimum touch target, matching the portal's toggle. */
-    .lang-switch button { width:auto; min-width:var(--tap-min); min-height:var(--tap-min); padding:4px 12px; border-radius:0; background:transparent; color:var(--muted); font-weight:400; transition:background var(--dur-enter) var(--ease-out); }
+    .lang-switch button { width:auto; min-width:var(--tap-min); min-height:var(--tap-min); padding:4px 12px; border-radius:var(--radius-pill); background:transparent; color:var(--muted); font-weight:400; transition:background var(--dur-enter) var(--ease-out); }
     .lang-switch button:hover { background:var(--bg2); }
     .lang-switch button.active { background:var(--ink); color:var(--bg); }
     main { width:min(1180px,100%); margin:0 auto; padding:var(--space-phi-xl) var(--space-phi-md) var(--space-phi-2xl); display:grid; grid-template-columns:var(--golden-columns-reverse); gap:var(--space-phi-xl); align-items:start; }
-    .tenant-credit { padding:0 24px 28px; color:var(--muted); font-size:10px; letter-spacing:.04em; text-align:center; }
+    .tenant-credit { padding:0 24px 28px; color:var(--muted); font-size:11px; letter-spacing:.04em; text-align:center; }
     .intro { padding-top:var(--space-phi-md); position:sticky; top:104px; }
     /* P2-7: the wide tracking and uppercase are Latin devices; under zh they
        only pull the glyphs apart, and 800/900 on a CJK face that ships 300–500
        renders as synthetic bold. Both are scoped to html[lang="en"]. */
     .eyebrow { color:var(--muted); font-size:11px; font-weight:500; letter-spacing:.04em; }
     html[lang="en"] .eyebrow { letter-spacing:.32em; text-transform:uppercase; font-weight:400; }
-    h1 { margin:var(--space-phi-sm) 0; font-family:var(--font-display); font-size:clamp(34px,5vw,55px); font-weight:500; line-height:1.07; letter-spacing:.01em; max-width:13ch; text-wrap:balance; }
+    h1 { margin:var(--space-phi-sm) 0; font-family:var(--font-display); font-size:clamp(26px,5vw,42px); font-weight:500; line-height:1.07; letter-spacing:.01em; max-width:13ch; text-wrap:balance; }
     .lead { color:var(--ink2); font-size:16px; line-height:1.7; max-width:var(--brand-reading-measure); text-wrap:pretty; }
-    .card { background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-card); padding:var(--space-phi-lg); box-shadow:0 21px 55px color-mix(in srgb, var(--ink) 9%, transparent); }
+    .card { background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-card); padding:var(--space-phi-lg); box-shadow:var(--shadow-soft); }
     .field { margin-bottom:16px; }
-    label { display:block; margin-bottom:7px; color:var(--ink2); font-size:12px; font-weight:500; letter-spacing:.02em; }
+    label { display:block; margin-bottom:7px; color:var(--ink2); font-size:13px; font-weight:500; letter-spacing:.02em; }
     html[lang="en"] label { letter-spacing:.14em; text-transform:uppercase; color:var(--muted); font-weight:400; }
     input, textarea, select { width:100%; min-height:var(--tap-min); border:1px solid var(--line-strong); border-radius:var(--radius); padding:12px 14px; background:var(--panel); color:var(--ink); font:inherit; transition:border-color var(--dur-enter) var(--ease-out); }
     input:disabled, textarea:disabled, select:disabled { background:var(--disabled-surface); color:var(--disabled-text); cursor:not-allowed; }
@@ -72,7 +72,7 @@
     input:focus, textarea:focus, select:focus { outline:2px solid var(--focus-ring); outline-offset:2px; border-color:var(--clay); }
     /* P2-8: field-level errors, matching the portal. */
     input[aria-invalid="true"], textarea[aria-invalid="true"], select[aria-invalid="true"] { border-color:var(--danger); }
-    .field-error { display:none; margin-top:6px; font-size:12px; color:var(--danger); }
+    .field-error { display:none; margin-top:6px; font-size:13px; color:var(--danger); }
     .field.has-error .field-error, .consent-block.has-error .field-error { display:block; }
     .row { display:grid; grid-template-columns:var(--golden-columns-reverse); gap:var(--space-phi-sm); }
     .form-step { margin:0 0 var(--space-phi-md); color:var(--muted); font-size:13px; }
@@ -86,7 +86,7 @@
     .consent { display:flex; gap:var(--space-phi-sm); align-items:flex-start; min-height:var(--tap-min); padding:4px 0; color:var(--ink2); font-size:13px; line-height:1.6; margin:8px 0 6px; cursor:pointer; }
     .consent input[type="checkbox"] { appearance:auto; -webkit-appearance:checkbox; width:20px; height:20px; min-height:20px; padding:0; margin-top:2px; flex:0 0 auto; accent-color:var(--clay); cursor:pointer; }
     .consent-block { margin-bottom:16px; }
-    .privacy-link { display:inline-flex; align-items:center; margin:0 0 0 33px; font-size:12px; color:var(--clay); border-bottom:1px solid var(--clay); cursor:pointer; background:none; border-left:0; border-right:0; border-top:0; padding:0; width:auto; min-height:var(--tap-min); font-weight:400; }
+    .privacy-link { display:inline-flex; align-items:center; margin:0 0 0 33px; font-size:13px; color:var(--clay); border-bottom:1px solid var(--clay); cursor:pointer; background:none; border-left:0; border-right:0; border-top:0; padding:0; width:auto; min-height:var(--tap-min); font-weight:400; }
     .privacy-link:hover { background:none; color:var(--clay-d); }
     button { width:100%; min-height:var(--tap-min); border:0; border-radius:var(--radius); background:var(--clay); color:var(--on-accent); font-weight:500; letter-spacing:.04em; cursor:pointer; transition:background var(--dur-enter) var(--ease-out); }
     button:hover { background:var(--clay-hover); }
@@ -100,9 +100,9 @@
     .submit-bar { margin-top:var(--space-phi-md); }
     .error { display:none; color:var(--danger); font-size:13px; margin:0 0 12px; }
     .done { display:none; text-align:left; padding:18px 4px 4px; }
-    .done .mark { width:52px; height:52px; display:grid; place-items:center; border-radius:50%; color:var(--on-success); background:var(--success); font-size:28px; line-height:1; }
+    .done .mark { width:52px; height:52px; display:grid; place-items:center; border-radius:50%; color:var(--on-success); background:var(--success); font-size:26px; line-height:1; }
     .done .eyebrow { margin-top:22px; }
-    .done h2 { margin:8px 0 10px; font-family:var(--font-display); font-size:clamp(28px,5vw,38px); font-weight:500; line-height:1.12; }
+    .done h2 { margin:8px 0 10px; font-family:var(--font-display); font-size:clamp(26px,5vw,42px); font-weight:500; line-height:1.12; }
     .done > p { margin:0; color:var(--ink2); line-height:1.7; }
     .next-step { margin:22px 0 0; text-align:left; }
     .next-step strong { display:block; margin-bottom:4px; }
@@ -115,12 +115,12 @@
        in a dialog here, with the version it was recorded against. */
     dialog.privacy { border:1px solid var(--line); border-radius:var(--radius-card); background:var(--surface); color:var(--ink); padding:0; max-width:640px; width:calc(100% - 32px); }
     dialog.privacy::backdrop { background:var(--scrim); }
-    .privacy-body { padding:32px; display:grid; gap:22px; font-size:14.5px; color:var(--ink2); line-height:1.75; }
-    .privacy-body h2 { margin:0; font-family:var(--font-display); font-size:24px; font-weight:500; color:var(--ink); }
+    .privacy-body { padding:32px; display:grid; gap:22px; font-size:15px; color:var(--ink2); line-height:1.75; }
+    .privacy-body h2 { margin:0; font-family:var(--font-display); font-size:26px; font-weight:500; color:var(--ink); }
     .privacy-body h3 { margin:0 0 6px; font-size:15px; font-weight:500; color:var(--ink); }
     .privacy-body p { margin:0; }
     .privacy-foot { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:16px 32px; border-top:1px solid var(--line); }
-    .privacy-foot .version { font-size:12px; color:var(--muted); }
+    .privacy-foot .version { font-size:13px; color:var(--muted); }
     .privacy-foot button { width:auto; padding:10px 22px; font-size:13px; }
     @media (max-width:760px) {
       header { align-items:center; flex-direction:row; padding:10px 13px; gap:8px; }
@@ -132,7 +132,7 @@
       #backLink::before { content:'←'; font-size:20px; }
       main { grid-template-columns:1fr; padding:var(--space-phi-md) 13px var(--space-phi-xl); gap:var(--space-phi-md); }
       .intro { position:static; padding-top:0; }
-      h1 { font-size:34px; }
+      h1 { font-size:26px; }
       .card { padding:var(--space-phi-md); }
       .row { grid-template-columns:1fr; }
       .done-actions { grid-template-columns:1fr; }
@@ -409,7 +409,6 @@
         accent_pressed_color:   ['--clay-pressed'],
         accent_text_color:      ['--on-accent', '--brand-on-accent'],
         secondary_accent_color: ['--clay-d', '--brand-2', '--brand-accent-strong'],
-        secondary_text_color:   ['--on-secondary', '--brand-on-secondary'],
         success_color:          ['--success', '--brand-success'],
         warning_color:          ['--warning', '--brand-warning'],
         danger_color:           ['--danger', '--brand-danger'],

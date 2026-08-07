@@ -122,14 +122,14 @@ SESSION_SECRET_FILE = _data_path('.session_secret')
 PW_FILE       = _data_path('.cms_password')
 app.config['PHOTO_DIR'] = PHOTO_DIR
 MAX_BACKUPS   = 30   # 1 backup/hr rate limit → ~30 hours of rolling coverage
-APP_VERSION   = '8.5.3'
+APP_VERSION   = '8.5.4'
 app.config['APP_VERSION'] = APP_VERSION
 # The date this release was cut, in the manual's `dateModified` and in the
 # sitemap's `lastmod`. A version string alone is not a freshness signal to
 # anything that reads the page — search engines and AI systems weight recency
 # and cannot infer a date from `8.2.28`. Kept beside APP_VERSION so the two
 # are bumped in one edit, and asserted to be a real ISO date by the tests.
-RELEASE_DATE  = '2026-08-06'
+RELEASE_DATE  = '2026-08-07'
 app.config['RELEASE_DATE'] = RELEASE_DATE
 
 # Content types the standard library does not reliably know.
@@ -1178,7 +1178,7 @@ def serve_cms_entry():
 # Subdirectories of frontend/assets that may be served. An allowlist rather
 # than a traversal check: `..` is not the only way to walk out of a directory,
 # and a fixed set of names cannot be talked into anything.
-ASSET_SUBDIRECTORIES = {'manual'}
+ASSET_SUBDIRECTORIES = {'manual', 'fonts'}
 
 @app.route('/assets/<path:filename>')
 def serve_shared_assets(filename):
@@ -1216,6 +1216,19 @@ def _cache_versioned_asset(resp):
     old tab is still holding names content this release may have changed, so
     it revalidates instead of being pinned for a year.
     """
+
+    # A font binary is the exception, and it is not an exception to the rule
+    # above so much as a case where the rule's premise already holds: the file
+    # is identified by the face, style and unicode subset in its own name, so
+    # a different cut is a different filename, not new bytes at the same URL.
+    #
+    # It also cannot carry `?v=`. The URL lives in a `src:` inside a static
+    # .css file, which nothing stamps — and a versioned <link rel=preload>
+    # against an unversioned `src:` is two different URLs, so the browser
+    # would download the face twice on the first paint of every page.
+    if (resp.mimetype or '').startswith('font/'):
+        resp.headers['Cache-Control'] = _IMMUTABLE
+        return resp
 
     # Assigned rather than defaulted: `send_from_directory` has already set
     # `no-cache` by the time this runs, so a `setdefault` would be a no-op.

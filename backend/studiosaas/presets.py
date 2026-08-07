@@ -454,13 +454,46 @@ def harmony_label(harmony: str) -> dict[str, str]:
 # design decision — see `studio_theme()`/`free_accent` in palette.py.
 FREE_ACCENT_STYLE_ID = "custom"
 
+# A style id that a past release wrote and this one no longer has.
+#
+# This map exists because renaming a key is a data migration whether or not
+# anyone runs one: a stored record is written by whichever release the owner
+# last saved under, and the read path meets all of them. v8.5.0 shipped the
+# single palette as `studio`; v8.5.2 renamed it to `custom` when the eight
+# curated themes came back. Five of six live tenants still said `studio`, and
+# because the read path validated the id, every one of those portals answered
+# 500 for its entire content payload — copy, images, principal, contact. The
+# palette rename was invisible in review; the blank portals were not.
+#
+# An alias is cheaper than a migration and strictly safer: a migration only
+# repairs the rows that existed when it ran, while this also catches a record
+# restored from an older backup. Entries are never removed.
+RETIRED_STYLE_ALIASES = {
+    "studio": FREE_ACCENT_STYLE_ID,   # v8.5.0-v8.5.1 single-palette key
+}
+
+
+def resolve_style_id(style_id: str) -> str:
+    """The id this release actually has, for an id from any release.
+
+    Returns "" for an id that is neither current nor a known alias, so the
+    caller decides between rejecting it (a write, where the owner should hear
+    about it) and falling back (a read, where nothing the owner can do would
+    help and the alternative is a blank page).
+    """
+
+    if style_id in VISUAL_STYLE_PRESETS:
+        return style_id
+    return RETIRED_STYLE_ALIASES.get(style_id, "")
+
 
 def style_theme(style_id: str, scheme: str = "light", accent_hue: float | None = None) -> dict:
     """Return one style's flat token map for a given light/dark scheme.
 
     Falls back to the style's only available mode when the requested one does
-    not exist, and to the default style when the id is unknown, so a stale
-    tenant setting can never render an empty theme.
+    not exist, follows `RETIRED_STYLE_ALIASES` for an id a past release wrote,
+    and lands on the default style when the id is unknown even then — so a
+    stale tenant setting can never render an empty theme.
 
     `accent_hue` is honoured ONLY for `FREE_ACCENT_STYLE_ID` — that is the
     studio's one colour knob, solved rather than read from a literal, so a
@@ -470,8 +503,8 @@ def style_theme(style_id: str, scheme: str = "light", accent_hue: float | None =
     a curated theme staying put.
     """
 
-    preset = VISUAL_STYLE_PRESETS.get(style_id) or VISUAL_STYLE_PRESETS[DEFAULT_STYLE_ID]
-    resolved_id = style_id if style_id in VISUAL_STYLE_PRESETS else DEFAULT_STYLE_ID
+    resolved_id = resolve_style_id(style_id) or DEFAULT_STYLE_ID
+    preset = VISUAL_STYLE_PRESETS[resolved_id]
     themes = preset["themes"]
     mode = scheme if scheme in themes else preset["modes"][0]
     shape = {

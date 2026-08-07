@@ -45,10 +45,19 @@
 }
 </script>
 <!-- P1-11: CJK 正文与标题走系统字体栈（大陆访问不再等待 fonts.googleapis.com）。
-     西文标题的 Cormorant Garamond 以非阻塞方式加载，缺失时回退 Georgia。 -->
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" media="print" onload="this.media='all';this.onload=null"
-      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap">
+     西文标题的 Cormorant Garamond 自托管，缺失时回退 Georgia。
+
+     v8.5.4: 这两行原本链的是 fonts.googleapis.com，而本站自己的 CSP
+     （server.py, `default-src 'self'` + `font-src 'self' data:`）会把样式表和
+     字体文件双双拦掉——所以这张脸从来没有加载成功过，一直静默回退 Georgia，
+     每次访问还白发两个必然失败的请求。自托管同时解决三件事：CSP 不用放宽、
+     大陆访问不用等 Google、注释里写的意图第一次成真。
+     字体为 SIL OFL 1.1，授权原文见 /assets/fonts/OFL.txt。 -->
+<!-- No ?v= here on purpose: it must be byte-identical to the `src:` in
+     portal-theme.css, or the preload is a second URL and the face downloads
+     twice. Fonts are cached immutably by name instead (server.py). -->
+<link rel="preload" href="/assets/fonts/cormorant-garamond-latin.woff2"
+      as="font" type="font/woff2" crossorigin>
 <script src="/assets/ui-common.js?v=__APP_VERSION__"></script>
 <script src="/assets/public-register.js?v=__APP_VERSION__"></script>
 <script src="/assets/public-analytics.js?v=__APP_VERSION__"></script>
@@ -416,9 +425,13 @@
     </div>
     <div class="hero-art reveal in">
       <!-- Walkthrough 2026-07-26: a dangling hero URL rendered a broken-image
-           glyph. Dropping body.hero-image falls back to the decorative
-           hero-art background, same treatment as no image at all. -->
-      <img id="heroImage" alt="{{TENANT_NAME}}" onerror="document.body.classList.remove('hero-image')">
+           glyph, so body.hero-image is dropped on error.
+           Design_Constraints §5: it now collapses to the one-column hero as
+           well, because "the photo did not load" and "there is no photo" are
+           the same thing to a visitor — and falling back to the decorative
+           gradient left a shaped void exactly where the photo should be. -->
+      <img id="heroImage" alt="{{TENANT_NAME}}"
+           onerror="document.body.classList.remove('hero-image');document.body.classList.add('hero-minimal')">
       <span class="frame-tag">{{TENANT_NAME}}</span>
     </div>
   </div>
@@ -1359,13 +1372,25 @@
     setNavVisible(['navStudent','mnavStudent','heroStudentLogin'], showStudent);
     showSection('parent', showStudent);
     var heroStyle = hero.background_style || hero.backgroundStyle || 'soft';
-    document.body.classList.toggle('hero-image', heroStyle === 'image' && Boolean(hero.hero_image_url || hero.heroImageUrl));
-    document.body.classList.toggle('hero-minimal', heroStyle === 'minimal');
+    var heroImageUrl = hero.hero_image_url || hero.heroImageUrl || '';
+    /* Design_Constraints §5. A studio that picked the photo hero and has not
+       uploaded one yet used to get the decorative gradient in its place — a
+       large shaped void where a photograph obviously belongs, which reads as
+       a broken page rather than as a design. It collapses to the one-column
+       hero instead, which is a finished layout at any width.
+
+       Only when the photo was ASKED for. `soft` is a studio choosing the
+       gradient on purpose, and taking that away would be the same mistake in
+       the other direction. */
+    var wantsPhoto = heroStyle === 'image';
+    var heroVoid = wantsPhoto && !heroImageUrl;
+    document.body.classList.toggle('hero-image', wantsPhoto && Boolean(heroImageUrl));
+    document.body.classList.toggle('hero-minimal', heroStyle === 'minimal' || heroVoid);
     document.body.classList.toggle('hero-bold', heroStyle === 'bold');
     var heroShape = hero.hero_shape || hero.heroShape || 'organic';
     document.body.classList.toggle('hero-oval', heroShape === 'oval');
     document.body.classList.toggle('hero-organic', heroShape === 'organic');
-    if(hero.hero_image_url || hero.heroImageUrl){ var hi=document.getElementById('heroImage'); hi.src = hero.hero_image_url || hero.heroImageUrl; hi.alt=(b.name||'Studio')+' hero'; }
+    if(heroImageUrl){ var hi=document.getElementById('heroImage'); hi.src = heroImageUrl; hi.alt=(b.name||'Studio')+' hero'; }
 
     localise(document);
     applyBrandCopy(b);

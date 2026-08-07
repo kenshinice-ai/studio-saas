@@ -4038,7 +4038,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
       },
       /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "logout", className: "w-4 h-4" }), "退出登录")
     ))))
-  ), /* @__PURE__ */ React.createElement("div", { className: "md:hidden mobile-top-bar fixed top-0 left-0 right-0 z-40 bg-indigo-900 text-white flex items-center px-3 gap-2.5 shadow-lg" }, tenantLogoUrl && /* @__PURE__ */ React.createElement("img", { src: tenantLogoUrl, alt: `${tenantDisplayName} logo`, className: "h-8 w-auto max-w-[96px] object-contain flex-shrink-0" }), /* @__PURE__ */ React.createElement("span", { className: "font-bold text-base flex-1 truncate" }, tenantDisplayName, " CMS"), /* @__PURE__ */ React.createElement(
+  ), /* @__PURE__ */ React.createElement("div", { className: "md:hidden mobile-top-bar fixed top-0 left-0 right-0 z-40 cms-chrome border-b flex items-center px-3 gap-2.5" }, tenantLogoUrl && /* @__PURE__ */ React.createElement("img", { src: tenantLogoUrl, alt: `${tenantDisplayName} logo`, className: "h-8 w-auto max-w-[96px] object-contain flex-shrink-0" }), /* @__PURE__ */ React.createElement("span", { className: "font-bold text-base flex-1 truncate" }, tenantDisplayName, " CMS"), /* @__PURE__ */ React.createElement(
     "button",
     {
       onClick: () => {
@@ -4046,7 +4046,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
         setGQ("");
       },
       "aria-label": "搜索",
-      className: "w-9 h-9 flex items-center justify-center rounded-lg bg-indigo-800 active:bg-indigo-700 text-indigo-200 flex-shrink-0"
+      className: "w-9 h-9 flex items-center justify-center rounded-lg cms-chrome-item flex-shrink-0"
     },
     /* @__PURE__ */ React.createElement(Icon, { name: "search" })
   ), /* @__PURE__ */ React.createElement(
@@ -4054,16 +4054,16 @@ document.getElementById('copybtn').addEventListener('click', function(){
     {
       onClick: () => setShowSettings(true),
       "aria-label": "设置",
-      className: "w-9 h-9 flex items-center justify-center rounded-lg bg-indigo-800 active:bg-indigo-700 text-indigo-200 flex-shrink-0"
+      className: "w-9 h-9 flex items-center justify-center rounded-lg cms-chrome-item flex-shrink-0"
     },
     /* @__PURE__ */ React.createElement(Icon, { name: "cog" })
   )), /* @__PURE__ */ React.createElement(
     "aside",
     {
-      className: "hidden md:flex w-56 bg-indigo-900 text-white flex-col shadow-xl flex-shrink-0",
+      className: "hidden md:flex w-56 cms-chrome border-r flex-col flex-shrink-0",
       style: { paddingTop: "env(safe-area-inset-top, 0px)" }
     },
-    /* @__PURE__ */ React.createElement("div", { className: "p-4 border-b border-indigo-800 flex items-center gap-2.5" }, tenantLogoUrl && /* @__PURE__ */ React.createElement("img", { src: tenantLogoUrl, alt: `${tenantDisplayName} logo`, className: "h-9 w-auto max-w-[96px] object-contain flex-shrink-0" }), /* @__PURE__ */ React.createElement("h1", { className: "hidden md:block text-base font-bold tracking-wide flex-1 truncate" }, tenantDisplayName), /* @__PURE__ */ React.createElement(
+    /* @__PURE__ */ React.createElement("div", { className: "p-4 border-b cms-chrome-edge flex items-center gap-2.5" }, tenantLogoUrl && /* @__PURE__ */ React.createElement("img", { src: tenantLogoUrl, alt: `${tenantDisplayName} logo`, className: "h-9 w-auto max-w-[96px] object-contain flex-shrink-0" }), /* @__PURE__ */ React.createElement("h1", { className: "hidden md:block text-base font-bold tracking-wide flex-1 truncate" }, tenantDisplayName), /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: () => {
@@ -4072,7 +4072,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
         },
         title: "全局搜索 ⌘K",
         "aria-label": "全局搜索",
-        className: "hidden md:flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-800 active:bg-indigo-700 text-indigo-300 hover:text-white flex-shrink-0"
+        className: "hidden md:flex items-center justify-center w-8 h-8 rounded-lg cms-chrome-item flex-shrink-0"
       },
       /* @__PURE__ */ React.createElement(Icon, { name: "search" })
     )),
@@ -4081,18 +4081,19 @@ document.getElementById('copybtn').addEventListener('click', function(){
       {
         key: k,
         onClick: () => setTab(k),
-        className: `w-full text-left px-2 py-3 rounded-xl transition flex items-center gap-2 text-sm min-h-[44px] ${tab === k ? "bg-indigo-700 font-bold" : "active:bg-indigo-800 text-indigo-200"}`
+        "aria-current": tab === k ? "page" : void 0,
+        className: `w-full text-left px-2 py-3 rounded-xl flex items-center gap-2 text-sm min-h-[44px] cms-chrome-item ${tab === k ? "is-active font-bold" : ""}`
       },
       /* @__PURE__ */ React.createElement(Icon, { name: i }),
       /* @__PURE__ */ React.createElement("span", null, l),
       k === "dashboard" && analytics.lowBalance.length > 0 && /* @__PURE__ */ React.createElement("span", { className: "ml-auto bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full" }, analytics.lowBalance.length),
       badge > 0 && /* @__PURE__ */ React.createElement("span", { className: "ml-auto bg-amber-400 text-white text-xs font-bold px-1.5 py-0.5 rounded-full" }, badge)
     ))),
-    /* @__PURE__ */ React.createElement("div", { className: "p-3 border-t border-indigo-800 space-y-1.5", style: { paddingBottom: "calc(env(safe-area-inset-bottom,0px) + 12px)" } }, TENANT_SLUG && /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-1.5 pb-1" }, /* @__PURE__ */ React.createElement(
+    /* @__PURE__ */ React.createElement("div", { className: "p-3 border-t cms-chrome-edge space-y-1.5", style: { paddingBottom: "calc(env(safe-area-inset-bottom,0px) + 12px)" } }, TENANT_SLUG && /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-1.5 pb-1" }, /* @__PURE__ */ React.createElement(
       "a",
       {
         href: `/${encodeURIComponent(TENANT_SLUG)}/studio-admin`,
-        className: "flex items-center justify-center rounded-lg bg-indigo-600 active:bg-indigo-700 px-2 py-2.5 text-[11px] font-bold min-h-[44px]"
+        className: "flex items-center justify-center rounded-lg bg-indigo-600 text-white active:bg-indigo-700 px-2 py-2.5 text-[11px] font-bold min-h-[44px]"
       },
       "网站与品牌"
     ), /* @__PURE__ */ React.createElement(
@@ -4101,14 +4102,14 @@ document.getElementById('copybtn').addEventListener('click', function(){
         href: `/${encodeURIComponent(TENANT_SLUG)}`,
         target: "_blank",
         rel: "noopener",
-        className: "flex items-center justify-center rounded-lg bg-indigo-800 active:bg-indigo-700 px-2 py-2.5 text-[11px] font-bold min-h-[44px]"
+        className: "flex items-center justify-center rounded-lg cms-chrome-item border cms-chrome-edge px-2 py-2.5 text-[11px] font-bold min-h-[44px]"
       },
       "公开网站"
-    )), /* @__PURE__ */ React.createElement("div", { className: "text-xs text-green-400 text-center bg-indigo-950 rounded-lg p-1.5 border border-indigo-800" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement("span", { className: "w-2 h-2 rounded-full bg-green-400", "aria-hidden": "true" }), "已连接")), db.logs.length > 1e3 && /* @__PURE__ */ React.createElement("div", { className: "text-xs text-amber-400 text-center bg-indigo-950 rounded-lg p-1.5 border border-amber-800" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "warning", className: "w-3.5 h-3.5" }), "日志 ", db.logs.length, " 条")), canManageOperations && !TENANT_SLUG && /* @__PURE__ */ React.createElement("button", { onClick: exportDB, className: "inline-flex items-center gap-1.5 w-full bg-indigo-700 active:bg-indigo-600 p-2.5 rounded-xl text-xs font-bold min-h-[44px]" }, /* @__PURE__ */ React.createElement(Icon, { name: "download", className: "w-4 h-4" }), "备份导出"), /* @__PURE__ */ React.createElement("button", { onClick: load, disabled: busy, className: "inline-flex items-center gap-1.5 w-full bg-indigo-800 active:bg-indigo-700 p-2.5 rounded-xl text-xs font-bold min-h-[44px]" }, /* @__PURE__ */ React.createElement(Icon, { name: "refresh", className: "w-4 h-4" }), "刷新"), /* @__PURE__ */ React.createElement("button", { onClick: () => setShowSettings(true), className: "w-full bg-indigo-800 active:bg-indigo-700 p-2.5 rounded-xl text-xs font-bold min-h-[44px]" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "cog", className: "w-4 h-4" }), "设置")), /* @__PURE__ */ React.createElement(
+    )), /* @__PURE__ */ React.createElement("div", { className: "text-xs text-center rounded-lg p-1.5 border bg-green-50 text-green-700 border-green-200" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement("span", { className: "w-2 h-2 rounded-full bg-green-500", "aria-hidden": "true" }), "已连接")), db.logs.length > 1e3 && /* @__PURE__ */ React.createElement("div", { className: "text-xs text-center rounded-lg p-1.5 border bg-amber-50 text-amber-700 border-amber-200" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "warning", className: "w-3.5 h-3.5" }), "日志 ", db.logs.length, " 条")), canManageOperations && !TENANT_SLUG && /* @__PURE__ */ React.createElement("button", { onClick: exportDB, className: "inline-flex items-center gap-1.5 w-full cms-chrome-item border cms-chrome-edge p-2.5 rounded-xl text-xs font-bold min-h-[44px]" }, /* @__PURE__ */ React.createElement(Icon, { name: "download", className: "w-4 h-4" }), "备份导出"), /* @__PURE__ */ React.createElement("button", { onClick: load, disabled: busy, className: "inline-flex items-center gap-1.5 w-full cms-chrome-item border cms-chrome-edge p-2.5 rounded-xl text-xs font-bold min-h-[44px]" }, /* @__PURE__ */ React.createElement(Icon, { name: "refresh", className: "w-4 h-4" }), "刷新"), /* @__PURE__ */ React.createElement("button", { onClick: () => setShowSettings(true), className: "w-full cms-chrome-item border cms-chrome-edge p-2.5 rounded-xl text-xs font-bold min-h-[44px]" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "cog", className: "w-4 h-4" }), "设置")), /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: () => confirm("确认退出登录？下次进入需重新输入密码。", doLogout, { confirmText: "退出登录" }),
-        className: "w-full bg-indigo-950 active:bg-red-900 p-2.5 rounded-xl text-xs font-bold min-h-[44px] text-indigo-300 active:text-white"
+        className: "w-full cms-chrome-item p-2.5 rounded-xl text-xs font-bold min-h-[44px] active:bg-red-50 active:text-red-700"
       },
       /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "logout", className: "w-4 h-4" }), "退出登录")
     ))
@@ -5565,7 +5566,7 @@ ${lines.join("\n")}`;
   ), moreOpen && /* @__PURE__ */ React.createElement("div", { className: "md:hidden fixed inset-0 z-[45]", onClick: () => setMoreOpen(false) }), moreOpen && /* @__PURE__ */ React.createElement(
     "div",
     {
-      className: "md:hidden fixed bottom-[calc(56px+env(safe-area-inset-bottom,0px))] left-0 right-0 z-[46] bg-indigo-900 border-t border-indigo-700 px-4 py-3 grid grid-cols-4 gap-2 anim",
+      className: "md:hidden fixed bottom-[calc(56px+env(safe-area-inset-bottom,0px))] left-0 right-0 z-[46] cms-chrome border-t px-4 py-3 grid grid-cols-4 gap-2 anim",
       onClick: (e) => e.stopPropagation()
     },
     [{ k: "logs", i: "", s: "日志" }, { k: "stats", i: "", s: "统计" }, { k: "pending", i: "", s: "待审核", badge: pendingCount }, { k: "new_student", i: /* @__PURE__ */ React.createElement(Icon, { name: "plus", className: "w-[22px] h-[22px]" }), s: "新建" }].filter((item) => allowedTabs.includes(item.k)).map(({ k, i, s, badge }) => /* @__PURE__ */ React.createElement(
@@ -5576,16 +5577,16 @@ ${lines.join("\n")}`;
           setTab(k);
           setMoreOpen(false);
         },
-        className: `flex flex-col items-center justify-center py-2.5 gap-0.5 rounded-xl relative ${["logs", "stats", "pending", "new_student"].includes(tab) && tab === k ? "bg-indigo-700" : "active:bg-indigo-800"}`
+        className: `flex flex-col items-center justify-center py-2.5 gap-0.5 rounded-xl relative cms-chrome-item ${["logs", "stats", "pending", "new_student"].includes(tab) && tab === k ? "is-active" : ""}`
       },
       /* @__PURE__ */ React.createElement("span", { className: "text-[22px] leading-none" }, i),
-      /* @__PURE__ */ React.createElement("span", { className: `text-[10px] font-bold leading-none tracking-tight ${["logs", "stats", "pending", "new_student"].includes(tab) && tab === k ? "text-white" : "text-indigo-300"}` }, s),
+      /* @__PURE__ */ React.createElement("span", { className: "text-[10px] font-bold leading-none tracking-tight" }, s),
       badge > 0 && /* @__PURE__ */ React.createElement("span", { className: "absolute top-1 right-2 bg-amber-400 text-white text-[9px] font-bold px-1 rounded-full min-w-[15px] text-center leading-4" }, badge)
     ))
   ), /* @__PURE__ */ React.createElement(
     "nav",
     {
-      className: "md:hidden fixed bottom-0 left-0 right-0 z-40 bg-indigo-900 border-t border-indigo-800 flex",
+      className: "md:hidden fixed bottom-0 left-0 right-0 z-40 cms-chrome border-t flex",
       style: { paddingBottom: "env(safe-area-inset-bottom,0px)", transform: "translateZ(0)", willChange: "transform" }
     },
     [{ k: "dashboard", i: "", s: "工作台" }, { k: "roster", i: "", s: "排课" }, { k: "students", i: "", s: "档案" }, { k: "topup", i: "", s: "充值" }].filter((item) => allowedTabs.includes(item.k)).map(({ k, i, s }) => /* @__PURE__ */ React.createElement(
@@ -5596,20 +5597,21 @@ ${lines.join("\n")}`;
           setTab(k);
           setMoreOpen(false);
         },
-        className: `flex-1 flex flex-col items-center justify-center py-2 gap-0.5 min-h-[52px] relative ${tab === k ? "bg-indigo-700" : "active:bg-indigo-800"}`
+        "aria-current": tab === k ? "page" : void 0,
+        className: `flex-1 flex flex-col items-center justify-center py-2 gap-0.5 min-h-[52px] relative cms-chrome-item cms-chrome-tab ${tab === k ? "is-active" : ""}`
       },
       /* @__PURE__ */ React.createElement("span", { className: "text-[22px] leading-none" }, i),
-      /* @__PURE__ */ React.createElement("span", { className: `text-[10px] font-bold leading-none tracking-tight ${tab === k ? "text-white" : "text-indigo-300"}` }, s),
+      /* @__PURE__ */ React.createElement("span", { className: "text-[10px] font-bold leading-none tracking-tight" }, s),
       k === "dashboard" && analytics.lowBalance.length > 0 && /* @__PURE__ */ React.createElement("span", { className: "absolute top-1.5 right-[18%] bg-red-500 text-white text-[9px] font-bold px-1 rounded-full min-w-[15px] text-center leading-4" }, analytics.lowBalance.length)
     )),
     /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: () => setMoreOpen((o) => !o),
-        className: `flex-1 flex flex-col items-center justify-center py-2 gap-0.5 min-h-[52px] relative ${moreOpen || ["logs", "stats", "pending", "new_student"].includes(tab) ? "bg-indigo-700" : "active:bg-indigo-800"}`
+        className: `flex-1 flex flex-col items-center justify-center py-2 gap-0.5 min-h-[52px] relative cms-chrome-item cms-chrome-tab ${moreOpen || ["logs", "stats", "pending", "new_student"].includes(tab) ? "is-active" : ""}`
       },
       /* @__PURE__ */ React.createElement("span", { className: "leading-none inline-flex items-center justify-center h-[22px]" }, moreOpen ? /* @__PURE__ */ React.createElement(Icon, { name: "close", className: "w-[22px] h-[22px]" }) : /* @__PURE__ */ React.createElement(Icon, { name: "ellipsis", className: "w-[22px] h-[22px]" })),
-      /* @__PURE__ */ React.createElement("span", { className: `text-[10px] font-bold leading-none tracking-tight ${moreOpen || ["logs", "stats", "pending", "new_student"].includes(tab) ? "text-white" : "text-indigo-300"}` }, "更多"),
+      /* @__PURE__ */ React.createElement("span", { className: "text-[10px] font-bold leading-none tracking-tight" }, "更多"),
       pendingCount > 0 && !moreOpen && /* @__PURE__ */ React.createElement("span", { className: "absolute top-1.5 right-[18%] bg-amber-400 text-white text-[9px] font-bold px-1 rounded-full min-w-[15px] text-center leading-4" }, pendingCount)
     )
   ));

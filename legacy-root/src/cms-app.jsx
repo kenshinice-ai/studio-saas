@@ -3779,29 +3779,30 @@ document.getElementById('copybtn').addEventListener('click', function(){
             )}
 
             {/* ── Mobile top bar (md:hidden) ── */}
-            <div className="md:hidden mobile-top-bar fixed top-0 left-0 right-0 z-40 bg-indigo-900 text-white flex items-center px-3 gap-2.5 shadow-lg">
+            <div className="md:hidden mobile-top-bar fixed top-0 left-0 right-0 z-40 cms-chrome border-b flex items-center px-3 gap-2.5">
                 {tenantLogoUrl && <img src={tenantLogoUrl} alt={`${tenantDisplayName} logo`} className="h-8 w-auto max-w-[96px] object-contain flex-shrink-0"/>}
                 <span className="font-bold text-base flex-1 truncate">{tenantDisplayName} CMS</span>
                 <button onClick={()=>{setGOpen(true);setGQ('');}} aria-label="搜索"
-                    className="w-9 h-9 flex items-center justify-center rounded-lg bg-indigo-800 active:bg-indigo-700 text-indigo-200 flex-shrink-0"><Icon name="search"/></button>
+                    className="w-9 h-9 flex items-center justify-center rounded-lg cms-chrome-item flex-shrink-0"><Icon name="search"/></button>
                 <button onClick={()=>setShowSettings(true)}
-                    aria-label="设置" className="w-9 h-9 flex items-center justify-center rounded-lg bg-indigo-800 active:bg-indigo-700 text-indigo-200 flex-shrink-0"><Icon name="cog"/></button>
+                    aria-label="设置" className="w-9 h-9 flex items-center justify-center rounded-lg cms-chrome-item flex-shrink-0"><Icon name="cog"/></button>
             </div>
 
             {/* Sidebar */}
             {/* P1: standalone(PWA)模式下 iPad 侧栏避开状态栏（浏览器内 env=0 无影响） */}
-            <aside className="hidden md:flex w-56 bg-indigo-900 text-white flex-col shadow-xl flex-shrink-0"
+            <aside className="hidden md:flex w-56 cms-chrome border-r flex-col flex-shrink-0"
                 style={{paddingTop:'env(safe-area-inset-top, 0px)'}}>
-                <div className="p-4 border-b border-indigo-800 flex items-center gap-2.5">
+                <div className="p-4 border-b cms-chrome-edge flex items-center gap-2.5">
                     {tenantLogoUrl && <img src={tenantLogoUrl} alt={`${tenantDisplayName} logo`} className="h-9 w-auto max-w-[96px] object-contain flex-shrink-0"/>}
                     <h1 className="hidden md:block text-base font-bold tracking-wide flex-1 truncate">{tenantDisplayName}</h1>
                     <button onClick={()=>{setGOpen(true);setGQ('');}} title="全局搜索 ⌘K" aria-label="全局搜索"
-                        className="hidden md:flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-800 active:bg-indigo-700 text-indigo-300 hover:text-white flex-shrink-0"><Icon name="search"/></button>
+                        className="hidden md:flex items-center justify-center w-8 h-8 rounded-lg cms-chrome-item flex-shrink-0"><Icon name="search"/></button>
                 </div>
                 <nav className="flex-1 px-2 py-4 space-y-0.5 overflow-y-auto">
                     {NAV.map(({k,i,l,badge}) => (
                         <button key={k} onClick={()=>setTab(k)}
-                            className={`w-full text-left px-2 py-3 rounded-xl transition flex items-center gap-2 text-sm min-h-[44px] ${tab===k?'bg-indigo-700 font-bold':'active:bg-indigo-800 text-indigo-200'}`}>
+                            aria-current={tab===k ? 'page' : undefined}
+                            className={`w-full text-left px-2 py-3 rounded-xl flex items-center gap-2 text-sm min-h-[44px] cms-chrome-item ${tab===k?'is-active font-bold':''}`}>
                             <Icon name={i}/>
                             <span>{l}</span>
                             {k==='dashboard' && analytics.lowBalance.length>0 &&
@@ -3811,7 +3812,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         </button>
                     ))}
                 </nav>
-                <div className="p-3 border-t border-indigo-800 space-y-1.5" style={{paddingBottom:'calc(env(safe-area-inset-bottom,0px) + 12px)'}}>
+                <div className="p-3 border-t cms-chrome-edge space-y-1.5" style={{paddingBottom:'calc(env(safe-area-inset-bottom,0px) + 12px)'}}>
                     {TENANT_SLUG && <div className="grid grid-cols-2 gap-1.5 pb-1">
                         {/* These two are a pair of links OUT of the CMS, not a
                             success state. The green was picked when the CMS had
@@ -3823,22 +3824,25 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             read-only one, and it takes the same chrome inset as
                             the 刷新 / 设置 buttons directly below. That contrast
                             survives a palette change; green vs blue did not. */}
+                        {/* The ONE saturated fill this surface is allowed. It
+                            is the action that leaves the CMS for the branding
+                            editor; everything below is chrome. */}
                         <a href={`/${encodeURIComponent(TENANT_SLUG)}/studio-admin`}
-                            className="flex items-center justify-center rounded-lg bg-indigo-600 active:bg-indigo-700 px-2 py-2.5 text-[11px] font-bold min-h-[44px]">网站与品牌</a>
+                            className="flex items-center justify-center rounded-lg bg-indigo-600 text-white active:bg-indigo-700 px-2 py-2.5 text-[11px] font-bold min-h-[44px]">网站与品牌</a>
                         <a href={`/${encodeURIComponent(TENANT_SLUG)}`} target="_blank" rel="noopener"
-                            className="flex items-center justify-center rounded-lg bg-indigo-800 active:bg-indigo-700 px-2 py-2.5 text-[11px] font-bold min-h-[44px]">公开网站</a>
+                            className="flex items-center justify-center rounded-lg cms-chrome-item border cms-chrome-edge px-2 py-2.5 text-[11px] font-bold min-h-[44px]">公开网站</a>
                     </div>}
-                    <div className="text-xs text-green-400 text-center bg-indigo-950 rounded-lg p-1.5 border border-indigo-800"><span className="inline-flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-400" aria-hidden="true"></span>已连接</span></div>
+                    <div className="text-xs text-center rounded-lg p-1.5 border bg-green-50 text-green-700 border-green-200"><span className="inline-flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-500" aria-hidden="true"></span>已连接</span></div>
                     {db.logs.length > 1000 && (
-                        <div className="text-xs text-amber-400 text-center bg-indigo-950 rounded-lg p-1.5 border border-amber-800">
+                        <div className="text-xs text-center rounded-lg p-1.5 border bg-amber-50 text-amber-700 border-amber-200">
                             <span className="inline-flex items-center gap-1.5"><Icon name="warning" className="w-3.5 h-3.5"/>日志 {db.logs.length} 条</span>
                         </div>
                     )}
-                    {canManageOperations && !TENANT_SLUG && <button onClick={exportDB} className="inline-flex items-center gap-1.5 w-full bg-indigo-700 active:bg-indigo-600 p-2.5 rounded-xl text-xs font-bold min-h-[44px]"><Icon name="download" className="w-4 h-4"/>备份导出</button>}
-                    <button onClick={load} disabled={busy} className="inline-flex items-center gap-1.5 w-full bg-indigo-800 active:bg-indigo-700 p-2.5 rounded-xl text-xs font-bold min-h-[44px]"><Icon name="refresh" className="w-4 h-4"/>刷新</button>
-                    <button onClick={()=>setShowSettings(true)} className="w-full bg-indigo-800 active:bg-indigo-700 p-2.5 rounded-xl text-xs font-bold min-h-[44px]"><span className="inline-flex items-center gap-1.5"><Icon name="cog" className="w-4 h-4"/>设置</span></button>
+                    {canManageOperations && !TENANT_SLUG && <button onClick={exportDB} className="inline-flex items-center gap-1.5 w-full cms-chrome-item border cms-chrome-edge p-2.5 rounded-xl text-xs font-bold min-h-[44px]"><Icon name="download" className="w-4 h-4"/>备份导出</button>}
+                    <button onClick={load} disabled={busy} className="inline-flex items-center gap-1.5 w-full cms-chrome-item border cms-chrome-edge p-2.5 rounded-xl text-xs font-bold min-h-[44px]"><Icon name="refresh" className="w-4 h-4"/>刷新</button>
+                    <button onClick={()=>setShowSettings(true)} className="w-full cms-chrome-item border cms-chrome-edge p-2.5 rounded-xl text-xs font-bold min-h-[44px]"><span className="inline-flex items-center gap-1.5"><Icon name="cog" className="w-4 h-4"/>设置</span></button>
                     <button onClick={()=>confirm('确认退出登录？下次进入需重新输入密码。', doLogout, {confirmText:'退出登录'})}
-                        className="w-full bg-indigo-950 active:bg-red-900 p-2.5 rounded-xl text-xs font-bold min-h-[44px] text-indigo-300 active:text-white"><span className="inline-flex items-center gap-1.5"><Icon name="logout" className="w-4 h-4"/>退出登录</span></button>
+                        className="w-full cms-chrome-item p-2.5 rounded-xl text-xs font-bold min-h-[44px] active:bg-red-50 active:text-red-700"><span className="inline-flex items-center gap-1.5"><Icon name="logout" className="w-4 h-4"/>退出登录</span></button>
                 </div>
             </aside>
 
@@ -5685,34 +5689,35 @@ document.getElementById('copybtn').addEventListener('click', function(){
             {/* U1: 5+more mobile nav */}
             {moreOpen && <div className="md:hidden fixed inset-0 z-[45]" onClick={()=>setMoreOpen(false)}/>}
             {moreOpen && (
-                <div className="md:hidden fixed bottom-[calc(56px+env(safe-area-inset-bottom,0px))] left-0 right-0 z-[46] bg-indigo-900 border-t border-indigo-700 px-4 py-3 grid grid-cols-4 gap-2 anim"
+                <div className="md:hidden fixed bottom-[calc(56px+env(safe-area-inset-bottom,0px))] left-0 right-0 z-[46] cms-chrome border-t px-4 py-3 grid grid-cols-4 gap-2 anim"
                      onClick={e=>e.stopPropagation()}>
                     {[{k:'logs',i:'',s:'日志'},{k:'stats',i:'',s:'统计'},{k:'pending',i:'',s:'待审核',badge:pendingCount},{k:'new_student',i:<Icon name="plus" className="w-[22px] h-[22px]"/>,s:'新建'}].filter(item=>allowedTabs.includes(item.k)).map(({k,i,s,badge})=>(
                         <button key={k} onClick={()=>{setTab(k);setMoreOpen(false);}}
-                            className={`flex flex-col items-center justify-center py-2.5 gap-0.5 rounded-xl relative ${['logs','stats','pending','new_student'].includes(tab)&&tab===k?'bg-indigo-700':'active:bg-indigo-800'}`}>
+                            className={`flex flex-col items-center justify-center py-2.5 gap-0.5 rounded-xl relative cms-chrome-item ${['logs','stats','pending','new_student'].includes(tab)&&tab===k?'is-active':''}`}>
                             <span className="text-[22px] leading-none">{i}</span>
-                            <span className={`text-[10px] font-bold leading-none tracking-tight ${['logs','stats','pending','new_student'].includes(tab)&&tab===k?'text-white':'text-indigo-300'}`}>{s}</span>
+                            <span className="text-[10px] font-bold leading-none tracking-tight">{s}</span>
                             {badge>0 && <span className="absolute top-1 right-2 bg-amber-400 text-white text-[9px] font-bold px-1 rounded-full min-w-[15px] text-center leading-4">{badge}</span>}
                         </button>
                     ))}
                 </div>
             )}
-            <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-indigo-900 border-t border-indigo-800 flex"
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 cms-chrome border-t flex"
                  style={{paddingBottom:'env(safe-area-inset-bottom,0px)', transform:'translateZ(0)', willChange:'transform'}}>
                 {[{k:'dashboard',i:'',s:'工作台'},{k:'roster',i:'',s:'排课'},{k:'students',i:'',s:'档案'},{k:'topup',i:'',s:'充值'}].filter(item=>allowedTabs.includes(item.k)).map(({k,i,s}) => (
                     <button key={k} onClick={()=>{setTab(k);setMoreOpen(false);}}
-                        className={`flex-1 flex flex-col items-center justify-center py-2 gap-0.5 min-h-[52px] relative ${tab===k?'bg-indigo-700':'active:bg-indigo-800'}`}>
+                        aria-current={tab===k ? 'page' : undefined}
+                        className={`flex-1 flex flex-col items-center justify-center py-2 gap-0.5 min-h-[52px] relative cms-chrome-item cms-chrome-tab ${tab===k?'is-active':''}`}>
                         <span className="text-[22px] leading-none">{i}</span>
-                        <span className={`text-[10px] font-bold leading-none tracking-tight ${tab===k?'text-white':'text-indigo-300'}`}>{s}</span>
+                        <span className="text-[10px] font-bold leading-none tracking-tight">{s}</span>
                         {k==='dashboard' && analytics.lowBalance.length>0 &&
                             <span className="absolute top-1.5 right-[18%] bg-red-500 text-white text-[9px] font-bold px-1 rounded-full min-w-[15px] text-center leading-4">{analytics.lowBalance.length}</span>}
                     </button>
                 ))}
                 {/* More button */}
                 <button onClick={()=>setMoreOpen(o=>!o)}
-                    className={`flex-1 flex flex-col items-center justify-center py-2 gap-0.5 min-h-[52px] relative ${moreOpen||['logs','stats','pending','new_student'].includes(tab)?'bg-indigo-700':'active:bg-indigo-800'}`}>
+                    className={`flex-1 flex flex-col items-center justify-center py-2 gap-0.5 min-h-[52px] relative cms-chrome-item cms-chrome-tab ${moreOpen||['logs','stats','pending','new_student'].includes(tab)?'is-active':''}`}>
                     <span className="leading-none inline-flex items-center justify-center h-[22px]">{moreOpen?<Icon name="close" className="w-[22px] h-[22px]"/>:<Icon name="ellipsis" className="w-[22px] h-[22px]"/>}</span>
-                    <span className={`text-[10px] font-bold leading-none tracking-tight ${moreOpen||['logs','stats','pending','new_student'].includes(tab)?'text-white':'text-indigo-300'}`}>更多</span>
+                    <span className="text-[10px] font-bold leading-none tracking-tight">更多</span>
                     {pendingCount>0 && !moreOpen && <span className="absolute top-1.5 right-[18%] bg-amber-400 text-white text-[9px] font-bold px-1 rounded-full min-w-[15px] text-center leading-4">{pendingCount}</span>}
                 </button>
             </nav>
