@@ -1030,6 +1030,8 @@ function App() {
   const [attHistory, setAttHistory] = useState(null);
   const [schedEdit, setSchedEdit] = useState(null);
   const [schedPick, setSchedPick] = useState(null);
+  const [courses, setCourses] = useState([]);
+  const [schedCancel, setSchedCancel] = useState(null);
   const [renewTh, setRenewTh] = useState(() => parseInt(localStorage.getItem("lp_renew_threshold") || "2", 10));
   const saveRenewTh = (v) => {
     const n = parseInt(v, 10);
@@ -1218,6 +1220,24 @@ function App() {
       await v1Api(`/team/${member.id}`, { method: "PATCH", body: JSON.stringify({ role: member.role, status }) });
       await loadTeam();
       showToast(status === "active" ? "成员已启用" : "成员已停用");
+    } catch (e) {
+      showToast(`更新失败：${e.message}`, "error");
+    } finally {
+      setTeamBusy(false);
+    }
+  };
+  const updateTeamPublicity = async (member, patch) => {
+    if (teamBusy || member.role === "owner") return;
+    setTeamBusy(true);
+    try {
+      await v1Api(`/team/${member.id}`, { method: "PATCH", body: JSON.stringify({
+        role: member.role,
+        status: member.status,
+        ...patch
+      }) });
+      await loadTeam();
+      await loadSchedules();
+      showToast(patch.showOnPublicTimetable === void 0 ? "对外显示名已保存" : patch.showOnPublicTimetable ? "已允许在公开课表显示姓名" : "已取消公开显示姓名");
     } catch (e) {
       showToast(`更新失败：${e.message}`, "error");
     } finally {
@@ -1974,6 +1994,12 @@ function App() {
       setScheduleLoadError(`固定课表加载失败：${e.message}`);
     }
     try {
+      const c = await v1Api("/courses");
+      setCourses((c.courses || []).filter((x) => x.is_active !== false));
+    } catch {
+      setCourses([]);
+    }
+    try {
       const dash = await v1Api("/dashboard");
       setBizStats((dash.dashboard || {}).business || null);
     } catch (e) {
@@ -1999,16 +2025,23 @@ function App() {
     const bS = toMin(b.startTime), bE = bS + (Number(b.durationMinutes) || 60);
     return aS < bE && bS < aE;
   };
+  const schedClash = (a, b) => {
+    if (!schedOverlap(a, b)) return false;
+    const at = a.teacherUserId || "", bt = b.teacherUserId || "";
+    if (!at && !bt) return true;
+    return at !== "" && at === bt;
+  };
   const saveSchedule = async (conflictConfirmed = false) => {
     if (!schedEdit || busy) return;
     if (!schedEdit.label.trim()) {
       showToast("请输入班次名称（如：周三素描班）", "error");
       return;
     }
-    const clash = schedules.find((sc) => sc.id !== schedEdit.id && schedOverlap(sc, schedEdit));
+    const clash = schedules.find((sc) => sc.id !== schedEdit.id && schedClash(sc, schedEdit));
     if (clash && !conflictConfirmed) {
+      const who = clash.teacherUserId && clash.teacherUserId === schedEdit.teacherUserId ? `${clash.teacherName || "同一位老师"}同时段已排「${clash.label}」` : `与「${clash.label}」（${WEEKDAYS[clash.weekday]} ${clash.startTime}）时段重叠`;
       confirm(
-        `「${schedEdit.label.trim()}」与「${clash.label}」（${WEEKDAYS[clash.weekday]} ${clash.startTime}）时段重叠，仍要保存吗？`,
+        `「${schedEdit.label.trim()}」${who}，仍要保存吗？`,
         () => saveSchedule(true),
         { confirmText: "仍然保存" }
       );
@@ -2022,7 +2055,11 @@ function App() {
         startTime: schedEdit.startTime,
         durationMinutes: Number(schedEdit.durationMinutes) || 60,
         capacity: Number(schedEdit.capacity) || 10,
-        studentIds: schedEdit.studentIds
+        studentIds: schedEdit.studentIds,
+        courseId: schedEdit.courseId || "",
+        teacherUserId: schedEdit.teacherUserId || "",
+        isPublic: !!schedEdit.isPublic,
+        room: (schedEdit.room || "").trim()
       });
       const d = schedEdit.id ? await v1Api(`/class-schedules/${schedEdit.id}`, { method: "PATCH", body }) : await v1Api("/class-schedules", { method: "POST", body });
       setSchedules(d.schedules || []);
@@ -2052,6 +2089,46 @@ function App() {
       }
     }, { danger: true, confirmText: "确认删除" });
   };
+  const teachableMembers = useMemo(
+    () => team.filter((m) => m.status === "active" && ["owner", "manager", "teacher"].includes(m.role)),
+    [team]
+  );
+  const nextOccurrence = (weekday) => {
+    const today = /* @__PURE__ */ new Date(`${todayISO()}T12:00:00`);
+    const delta = (Number(weekday) - today.getDay() + 7) % 7;
+    const d = new Date(today.getTime() + delta * 864e5);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+  const saveCancellation = async () => {
+    if (!schedCancel || busy) return;
+    setBusy(true);
+    try {
+      const d = await v1Api(`/class-schedules/${schedCancel.id}/cancellations`, {
+        method: "POST",
+        body: JSON.stringify({ date: schedCancel.date, note: (schedCancel.note || "").trim() })
+      });
+      setSchedules(d.schedules || []);
+      setSchedCancel(null);
+      showToast("已标记停课");
+    } catch (e) {
+      showToast(`标记停课失败：${e.message}`, "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+  const restoreCancellation = async (sc, date) => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const d = await v1Api(`/class-schedules/${sc.id}/cancellations/${date}`, { method: "DELETE" });
+      setSchedules(d.schedules || []);
+      showToast(`${date} 恢复上课`);
+    } catch (e) {
+      showToast(`恢复失败：${e.message}`, "error");
+    } finally {
+      setBusy(false);
+    }
+  };
   const groupToSchedule = () => {
     const ids = (db.groups || {})[grpSel] || [];
     if (!grpSel || !ids.length) {
@@ -2064,7 +2141,11 @@ function App() {
       startTime: defaultClassTime,
       durationMinutes: 60,
       capacity: Math.max(10, ids.length),
-      studentIds: ids
+      studentIds: ids,
+      courseId: "",
+      teacherUserId: "",
+      isPublic: false,
+      room: ""
     });
     showToast("已带入模板学员，请确认周几与时间后保存");
   };
@@ -3717,7 +3798,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
       },
       "网站、Logo、配色与注册表设置 →",
       /* @__PURE__ */ React.createElement("p", { className: "text-[11px] font-normal text-indigo-400 mt-0.5" }, "打开 Studio Admin 管理公开门户、注册表字段、品牌文案和页面展示")
-    ), canManageOperations && /* @__PURE__ */ React.createElement("div", { className: "mt-4 pt-4 border-t border-gray-100 space-y-3" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-gray-500 uppercase tracking-wide" }, "团队与权限"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-0.5" }, "Owner管理团队；Manager负责日常运营，Teacher负责签到与作品，Front Desk负责报名、学员与课时。")), /* @__PURE__ */ React.createElement("div", { className: "space-y-2" }, team.map((member) => /* @__PURE__ */ React.createElement("div", { key: member.id, className: "flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2" }, /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm font-bold text-gray-700 truncate" }, member.full_name), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 truncate" }, member.email, " · ", member.role, " · ", member.status)), ownerRoles.includes(actorRole) && member.role !== "owner" && /* @__PURE__ */ React.createElement(
+    ), canManageOperations && /* @__PURE__ */ React.createElement("div", { className: "mt-4 pt-4 border-t border-gray-100 space-y-3" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-gray-500 uppercase tracking-wide" }, "团队与权限"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-0.5" }, "Owner管理团队；Manager负责日常运营，Teacher负责签到与作品，Front Desk负责报名、学员与课时。")), /* @__PURE__ */ React.createElement("div", { className: "space-y-2" }, team.map((member) => /* @__PURE__ */ React.createElement("div", { key: member.id, className: "bg-gray-50 border border-gray-200 rounded-xl px-3 py-2" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm font-bold text-gray-700 truncate" }, member.full_name), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 truncate" }, member.email, " · ", member.role, " · ", member.status)), ownerRoles.includes(actorRole) && member.role !== "owner" && /* @__PURE__ */ React.createElement(
       "button",
       {
         type: "button",
@@ -3726,7 +3807,28 @@ document.getElementById('copybtn').addEventListener('click', function(){
         className: "text-xs font-bold px-2 py-1 rounded-lg border border-gray-200 text-gray-600"
       },
       member.status === "active" ? "停用" : "启用"
-    )))), ownerRoles.includes(actorRole) ? /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-2 bg-indigo-50 border border-indigo-100 rounded-xl p-3" }, /* @__PURE__ */ React.createElement(
+    )), ownerRoles.includes(actorRole) && member.role !== "owner" && ["manager", "teacher"].includes(member.role) && /* @__PURE__ */ React.createElement("div", { className: "mt-2 pt-2 border-t border-gray-200 space-y-2" }, /* @__PURE__ */ React.createElement("label", { className: "flex items-start gap-2.5 min-h-[44px] cursor-pointer" }, /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        type: "checkbox",
+        disabled: teamBusy,
+        checked: !!member.show_on_public_timetable,
+        onChange: (e) => updateTeamPublicity(member, { showOnPublicTimetable: e.target.checked }),
+        className: "mt-0.5 w-4 h-4 accent-indigo-600"
+      }
+    ), /* @__PURE__ */ React.createElement("span", { className: "flex-1" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs font-bold text-gray-600" }, "可在公开课表显示姓名"), /* @__PURE__ */ React.createElement("span", { className: "block text-[11px] text-gray-400 mt-0.5" }, "默认关闭。被排了一节课不等于同意把名字放到公网上，这一项由本人决定后再开。"))), member.show_on_public_timetable && /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 items-end" }, /* @__PURE__ */ React.createElement("label", { className: "flex-1 text-[11px] font-bold text-gray-500" }, "对外显示名（留空则用 ", member.full_name, "）", /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        defaultValue: member.public_display_name || "",
+        placeholder: "如：Lucy 老师",
+        disabled: teamBusy,
+        onBlur: (e) => {
+          const v = e.target.value.trim();
+          if (v !== (member.public_display_name || "")) updateTeamPublicity(member, { publicDisplayName: v });
+        },
+        className: "mt-1 w-full px-3 py-2 border border-gray-300 rounded-xl text-sm min-h-[44px]"
+      }
+    ))))))), ownerRoles.includes(actorRole) ? /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-2 bg-indigo-50 border border-indigo-100 rounded-xl p-3" }, /* @__PURE__ */ React.createElement(
       "input",
       {
         value: teamForm.fullName,
@@ -4336,18 +4438,33 @@ document.getElementById('copybtn').addEventListener('click', function(){
     ), canManageOperations && /* @__PURE__ */ React.createElement(
       "button",
       {
-        onClick: () => setSchedEdit({ label: "", weekday: (/* @__PURE__ */ new Date()).getDay(), startTime: defaultClassTime, durationMinutes: 60, capacity: 10, studentIds: [] }),
+        onClick: () => setSchedEdit({ label: "", weekday: (/* @__PURE__ */ new Date()).getDay(), startTime: defaultClassTime, durationMinutes: 60, capacity: 10, studentIds: [], courseId: "", teacherUserId: "", isPublic: false, room: "" }),
         className: "inline-flex items-center gap-1.5 bg-indigo-600 active:bg-indigo-700 text-white px-4 py-1.5 rounded-xl text-xs font-bold min-h-[44px]"
       },
       /* @__PURE__ */ React.createElement(Icon, { name: "plus", className: "w-3.5 h-3.5" }),
       "新增班次"
-    ))), schedules.length === 0 && !schedEdit && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400" }, "还没有固定班次。例如「周三 16:00 素描班」——保存后每周三会自动出现在当日排课里。"), schedules.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2" }, schedules.map((sc) => /* @__PURE__ */ React.createElement("div", { key: sc.id, className: `border rounded-xl px-3 py-2 ${sc.weekday === (/* @__PURE__ */ new Date(`${rDate}T12:00:00`)).getDay() ? "border-indigo-300 bg-indigo-50" : "border-gray-200 bg-gray-50"}` }, /* @__PURE__ */ React.createElement("p", { className: "text-sm font-bold text-gray-800" }, WEEKDAYS[sc.weekday], " ", sc.startTime, " · ", sc.label || "未命名班次"), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 mt-1" }, /* @__PURE__ */ React.createElement("span", { className: "text-[11px] text-gray-500" }, sc.students.length, "/", sc.capacity, " 人 · ", sc.durationMinutes, " 分钟"), canManageOperations && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+    ))), schedules.length === 0 && !schedEdit && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400" }, "还没有固定班次。例如「周三 16:00 素描班」——保存后每周三会自动出现在当日排课里。"), schedules.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2" }, schedules.map((sc) => /* @__PURE__ */ React.createElement("div", { key: sc.id, className: `border rounded-xl px-3 py-2 ${sc.weekday === (/* @__PURE__ */ new Date(`${rDate}T12:00:00`)).getDay() ? "border-indigo-300 bg-indigo-50" : "border-gray-200 bg-gray-50"}` }, /* @__PURE__ */ React.createElement("p", { className: "text-sm font-bold text-gray-800" }, WEEKDAYS[sc.weekday], " ", sc.startTime, " · ", sc.label || "未命名班次"), /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-500 mt-0.5" }, sc.students.length, "/", sc.capacity, " 人 · ", sc.durationMinutes, " 分钟", sc.teacherName && /* @__PURE__ */ React.createElement(React.Fragment, null, " · ", sc.teacherName, " 老师"), sc.room && /* @__PURE__ */ React.createElement(React.Fragment, null, " · ", sc.room)), /* @__PURE__ */ React.createElement("p", { className: "text-[11px] mt-0.5" }, sc.isPublic ? /* @__PURE__ */ React.createElement("span", { className: "text-green-700" }, "● 已公开", sc.teacherUserId && !sc.teacherIsPublic ? "（不显示老师姓名）" : "") : /* @__PURE__ */ React.createElement("span", { className: "text-gray-400" }, "○ 仅内部可见")), (sc.cancellations || []).length > 0 && /* @__PURE__ */ React.createElement("div", { className: "mt-1 space-y-0.5" }, sc.cancellations.map((c) => /* @__PURE__ */ React.createElement("p", { key: c.date, className: "text-[11px] text-amber-700" }, c.date, " 停课", c.note ? ` · ${c.note}` : "", canManageOperations && /* @__PURE__ */ React.createElement(
       "button",
       {
-        onClick: () => setSchedEdit({ id: sc.id, label: sc.label, weekday: sc.weekday, startTime: sc.startTime, durationMinutes: sc.durationMinutes, capacity: sc.capacity, studentIds: sc.students.map((st) => st.id) }),
+        onClick: () => restoreCancellation(sc, c.date),
+        disabled: busy,
+        className: "ml-1.5 font-bold text-indigo-600 active:text-indigo-800"
+      },
+      "恢复"
+    )))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 mt-1" }, canManageOperations && /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: () => setSchedEdit({ id: sc.id, label: sc.label, weekday: sc.weekday, startTime: sc.startTime, durationMinutes: sc.durationMinutes, capacity: sc.capacity, studentIds: sc.students.map((st) => st.id), courseId: sc.courseId || "", teacherUserId: sc.teacherUserId || "", isPublic: !!sc.isPublic, room: sc.room || "" }),
         className: "text-[11px] font-bold text-indigo-600 active:text-indigo-800"
       },
       "编辑"
+    ), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: () => setSchedCancel({ id: sc.id, label: sc.label || "未命名班次", date: nextOccurrence(sc.weekday), note: "" }),
+        className: "text-[11px] font-bold text-amber-600 active:text-amber-800"
+      },
+      "停课"
     ), /* @__PURE__ */ React.createElement("button", { onClick: () => deleteSchedule(sc), className: "text-[11px] font-bold text-red-500 active:text-red-700" }, "删除")))))), schedEdit && /* @__PURE__ */ React.createElement("div", { className: "border-t border-gray-100 pt-3 space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 lg:grid-cols-5 gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "col-span-2" }, /* @__PURE__ */ React.createElement("label", { className: "text-xs font-bold text-gray-500 mb-1 block" }, "班次名称"), /* @__PURE__ */ React.createElement(
       "input",
       {
@@ -4381,7 +4498,44 @@ document.getElementById('copybtn').addEventListener('click', function(){
         onChange: (e) => setSchedEdit((p) => ({ ...p, capacity: e.target.value })),
         className: "w-full px-2 py-2.5 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
       }
-    ))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "text-xs font-bold text-gray-500 mb-1 block" }, "班次学员（", schedEdit.studentIds.length, " 人）"), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-1.5 mb-2" }, schedEdit.studentIds.map((id) => {
+    ))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-3 gap-2" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "text-xs font-bold text-gray-500 mb-1 block" }, "关联课程", /* @__PURE__ */ React.createElement("span", { className: "font-normal text-gray-400" }, "（选填）")), /* @__PURE__ */ React.createElement(
+      "select",
+      {
+        value: schedEdit.courseId || "",
+        onChange: (e) => setSchedEdit((p) => ({ ...p, courseId: e.target.value })),
+        className: "w-full px-2 py-2.5 border border-gray-300 rounded-xl bg-white outline-none focus:ring-2 focus:ring-indigo-500"
+      },
+      /* @__PURE__ */ React.createElement("option", { value: "" }, "不关联课程"),
+      courses.map((c) => /* @__PURE__ */ React.createElement("option", { key: c.id, value: c.id }, c.name))
+    ), /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-400 mt-1" }, "关联后，课程简介和适龄段可用于公开课表；未关联时只用班次名称。")), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "text-xs font-bold text-gray-500 mb-1 block" }, "授课老师", /* @__PURE__ */ React.createElement("span", { className: "font-normal text-gray-400" }, "（选填）")), /* @__PURE__ */ React.createElement(
+      "select",
+      {
+        value: schedEdit.teacherUserId || "",
+        onChange: (e) => setSchedEdit((p) => ({ ...p, teacherUserId: e.target.value })),
+        className: "w-full px-2 py-2.5 border border-gray-300 rounded-xl bg-white outline-none focus:ring-2 focus:ring-indigo-500"
+      },
+      /* @__PURE__ */ React.createElement("option", { value: "" }, "未指定"),
+      teachableMembers.map((m) => /* @__PURE__ */ React.createElement("option", { key: m.user_id, value: m.user_id }, m.full_name))
+    ), /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-400 mt-1" }, "指定后，同一位老师同时段被排两处会提示冲突。")), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "text-xs font-bold text-gray-500 mb-1 block" }, "地点 / 教室", /* @__PURE__ */ React.createElement("span", { className: "font-normal text-gray-400" }, "（选填）")), /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        value: schedEdit.room || "",
+        onChange: (e) => setSchedEdit((p) => ({ ...p, room: e.target.value })),
+        placeholder: "如：A 教室",
+        className: "w-full px-3 py-2.5 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
+      }
+    ))), /* @__PURE__ */ React.createElement("label", { className: "flex items-start gap-2.5 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 min-h-[44px] cursor-pointer" }, /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        type: "checkbox",
+        checked: !!schedEdit.isPublic,
+        onChange: (e) => setSchedEdit((p) => ({ ...p, isPublic: e.target.checked })),
+        className: "mt-0.5 w-4 h-4 accent-indigo-600"
+      }
+    ), /* @__PURE__ */ React.createElement("span", { className: "flex-1" }, /* @__PURE__ */ React.createElement("span", { className: "text-sm font-bold text-gray-700" }, "在公开课表上展示这个班次"), /* @__PURE__ */ React.createElement("span", { className: "block text-[11px] text-gray-400 mt-0.5" }, "默认不展示。一对一时段、内部补课、留给特定家庭的试听位不应该出现在公网上。", schedEdit.teacherUserId && (() => {
+      const m = teachableMembers.find((x) => x.user_id === schedEdit.teacherUserId);
+      return m && !m.show_on_public_timetable ? /* @__PURE__ */ React.createElement("span", { className: "block text-amber-600 mt-0.5" }, m.full_name, " 尚未同意在公开课表显示姓名，课表会照常展示但不带老师。可在「设置 · 团队与权限」里逐人开启。") : null;
+    })()))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "text-xs font-bold text-gray-500 mb-1 block" }, "班次学员（", schedEdit.studentIds.length, " 人）"), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-1.5 mb-2" }, schedEdit.studentIds.map((id) => {
       const s = db.students.find((x) => x.id === id);
       return s ? /* @__PURE__ */ React.createElement("span", { key: id, className: "inline-flex items-center gap-1 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-full px-2.5 py-1 text-xs font-bold" }, s.name, /* @__PURE__ */ React.createElement("button", { onClick: () => setSchedEdit((p) => ({ ...p, studentIds: p.studentIds.filter((x) => x !== id) })), "aria-label": "移出", className: "text-indigo-400 active:text-red-500 p-1 -m-1 inline-flex items-center justify-center" }, /* @__PURE__ */ React.createElement(Icon, { name: "close", className: "w-3 h-3" }))) : null;
     })), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "flex-1" }, /* @__PURE__ */ React.createElement(StudentPicker, { students: sortedAZ.filter((s) => !schedEdit.studentIds.includes(s.id)), value: schedPick, onChange: setSchedPick, placeholder: "搜索并添加学员..." })), /* @__PURE__ */ React.createElement(
@@ -4411,6 +4565,30 @@ document.getElementById('copybtn').addEventListener('click', function(){
         className: "bg-indigo-600 active:bg-indigo-700 disabled:bg-gray-300 text-white px-5 py-2 rounded-xl text-sm font-bold"
       },
       schedEdit.id ? "保存修改" : "创建班次"
+    ))), schedCancel && /* @__PURE__ */ React.createElement("div", { className: "border-t border-gray-100 pt-3 space-y-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm font-bold text-gray-800" }, "标记停课 · ", schedCancel.label), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-2" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "text-xs font-bold text-gray-500 mb-1 block" }, "停课日期"), /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        type: "date",
+        value: schedCancel.date,
+        onChange: (e) => setSchedCancel((p) => ({ ...p, date: e.target.value })),
+        className: "w-full px-3 py-2.5 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
+      }
+    ), /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-400 mt-1" }, "必须落在这个班次上课的那一天，默认已填好下一次。")), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "text-xs font-bold text-gray-500 mb-1 block" }, "原因", /* @__PURE__ */ React.createElement("span", { className: "font-normal text-gray-400" }, "（选填，会显示给家长）")), /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        value: schedCancel.note,
+        onChange: (e) => setSchedCancel((p) => ({ ...p, note: e.target.value })),
+        placeholder: "如：公众假期 / 老师培训",
+        className: "w-full px-3 py-2.5 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
+      }
+    ))), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 justify-end" }, /* @__PURE__ */ React.createElement("button", { onClick: () => setSchedCancel(null), className: "bg-white border border-gray-300 text-gray-600 px-4 py-2 rounded-xl text-sm font-bold active:bg-gray-50" }, "取消"), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: saveCancellation,
+        disabled: busy,
+        className: "bg-amber-600 active:bg-amber-700 disabled:bg-gray-300 text-white px-5 py-2 rounded-xl text-sm font-bold"
+      },
+      "标记停课"
     )))), /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-2xl shadow-sm border border-gray-100 p-4" }, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 lg:grid-cols-[minmax(250px,38.2fr)_minmax(0,61.8fr)] gap-3 items-start" }, /* @__PURE__ */ React.createElement("div", { className: "w-full" }, /* @__PURE__ */ React.createElement("label", { className: "text-xs font-bold text-gray-500 mb-1 block" }, "课程日期"), /* @__PURE__ */ React.createElement("div", { className: "flex gap-1.5 items-center" }, /* @__PURE__ */ React.createElement(
       "button",
       {

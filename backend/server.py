@@ -122,7 +122,7 @@ SESSION_SECRET_FILE = _data_path('.session_secret')
 PW_FILE       = _data_path('.cms_password')
 app.config['PHOTO_DIR'] = PHOTO_DIR
 MAX_BACKUPS   = 30   # 1 backup/hr rate limit → ~30 hours of rolling coverage
-APP_VERSION   = '8.7.0'
+APP_VERSION   = '8.8.0'
 app.config['APP_VERSION'] = APP_VERSION
 # The date this release was cut, in the manual's `dateModified` and in the
 # sitemap's `lastmod`. A version string alone is not a freshness signal to

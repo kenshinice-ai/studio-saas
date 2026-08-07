@@ -459,16 +459,19 @@
                    the eight tenant themes; it survived here because this is a
                    separate palette nobody regenerated. --line-strong also
                    measured 1.95:1 on the panel against WCAG 1.4.11's 3.0.
-                   Now the default style's dark mode, solved and asserted. */
-                --bg: #15120D;
-                --bg2: #1F1A15;
-                --panel: #2E271F;
-                --surface: #2E271F;
-                --ink: #E1DFDC;
-                --ink2: #C3BFBA;
-                --muted: #968F86;
-                --line: #4A4238;
-                --line-strong: #7C7062;
+                   Now the default style's dark mode, solved and asserted.
+                   v8.8.0 re-copied them after the dark paper was raised —
+                   test_the_cms_dark_fallback_is_not_inverted compares this
+                   block to the generator, so it cannot silently fall behind. */
+                --bg: #251F17;
+                --bg2: #302820;
+                --panel: #3F362B;
+                --surface: #3F362B;
+                --ink: #F7F7F6;
+                --ink2: #D7D4D0;
+                --muted: #A7A199;
+                --line: #5B5246;
+                --line-strong: #8D8070;
             }
         }
         html[data-brand-scheme="dark"] { color-scheme:dark; }

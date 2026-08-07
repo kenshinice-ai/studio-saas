@@ -228,6 +228,17 @@ def solve(h, s, against, target, darker=True, lo=0.0, hi=1.0):
     return best or hexof(h, s, 0.0 if darker else 1.0)
 
 
+def lighter_of(a, b):
+    """The lighter of two solutions to the same colour.
+
+    For a role that has to clear two targets on two different surfaces, and
+    where both targets are served by moving the same way. Picking the winner
+    beats stacking a second binary search on top of the first: each solve
+    stays a statement about one surface, and this line says which one won.
+    """
+    return a if hsl_of(a)[2] >= hsl_of(b)[2] else b
+
+
 # ── theme definitions ─────────────────────────────────────────────────────
 # harmony: the hue offset from accent -> secondary, chosen per theme so the
 # eight presets span analogous / split-complementary / triadic / neutral
@@ -517,6 +528,39 @@ TARGETS = dict(body=8.0, muted=4.6, accent=4.6, semantic=4.6,
 # passing the same assertions.
 PANEL_LIFT = 0.0556
 
+# v8.8.0 — how dark the dark page is.
+#
+# It used to be an HSL lightness of .068, which lands the nine themes between
+# CIE L* 4.6 and 7.3. Material's reference dark surface (#121212) is L* 5.5, so
+# this product's page was at or BELOW the darkest value anyone recommends, and
+# several themes were nearer to pure black than to it. The report was that dark
+# mode is 过暗 — that was a correct reading, not a preference.
+#
+# .118 puts the nine between L* 10.5 and 13.5. High enough that the page is a
+# surface rather than a void; low enough that the panel above it and the band
+# between them still have somewhere to go.
+#
+# Everything else follows on its own, which is the reason this is one number:
+# ink, soft ink, muted, the strong border and the accent are all SOLVED against
+# the lightest surface they can land on, so raising the paper automatically
+# re-solves them upward to hold their ratios. The 1000-plus contrast assertions
+# either stay green or say precisely which token could not follow.
+DARK_PAPER_L = 0.118
+
+# How far the alternating band sits above the dark page, in perceived units.
+#
+# It used to be a fixed HSL lightness (.102 against a .068 page), which made
+# the step vary from .0355 to .0442 depending on hue — the same defect the
+# panel had before v8.4.1, one level down. This is the average of what those
+# nine used to produce, so the band lands where it already did, only evenly.
+# Light mode's equivalent step is .0347, so the two modes now agree.
+DARK_BAND_LIFT = 0.0395
+
+# The dark hairline, as a perceived distance above the band rather than a fixed
+# lightness. At a fixed .255 it kept its own position while the page moved,
+# which on a brighter page is a border that quietly stops separating anything.
+DARK_LINE_LIFT = 0.1590
+
 # How the light neutral ramp is derived from its anchored paper. Both are
 # ratios of the PAPER's chroma, so the card, the page and the hairline are
 # unmistakably one family — the thing that separates "warm paper" from "beige
@@ -548,6 +592,20 @@ SOFT_SEPARATION  = 1.14   # accent chip vs any semantic chip
 CHROMA_FLOOR      = 22
 CHROMA_FLOOR_NEAR = 32
 CHROMA_NEAR_HUE   = 20.0   # degrees from the paper hue that count as "near"
+
+# ...and it is a floor over the PAPER, not only an absolute one.
+#
+# 22 and 32 were absolute because the surfaces they had to beat were a near-
+# white page (chroma ~5) and a near-black one (chroma ~8) — nothing a fixed
+# number could not clear. v8.8.0 raised the dark page, and chroma in HSL grows
+# with lightness: arcade-lime's dark paper went from 8 to 22, i.e. all the way
+# up to the floor, and its info chip came out at 23 — a chip carrying one unit
+# more colour than the page it sits on is not a chip, it is a smudge.
+#
+# So the floor is whichever is higher: the absolute one, or the paper plus a
+# margin wide enough to be seen. Stated as a distance, it cannot be outrun by
+# a future change to a surface.
+CHIP_OVER_PAPER   = 10
 
 
 def solve_semantic(hue, target_s, accent, bg, bg2, panel, ink, on_accent, dark,
@@ -668,8 +726,13 @@ def build(theme, dark):
         # the arithmetic distance: the card is the nearest surface and the
         # alternating band never outranks it. So dark keeps its page properly
         # dark and lifts the band only slightly, with the panel above both.
-        bg    = hexof(h, min(s * .52, .38), .068)
-        bg2   = hexof(h, min(s * .46, .34), .102)
+        #
+        # v8.8.0 raises the page from .068 to DARK_PAPER_L and derives the band
+        # from it by a perceived distance instead of a second fixed lightness.
+        # See the constants: the page was at or below the darkest surface any
+        # reference recommends, and the band's step drifted with hue.
+        bg    = hexof(h, min(s * .52, .38), DARK_PAPER_L)
+        bg2   = solve_perceived(h, min(s * .46, .34), bg, DARK_BAND_LIFT)
         # v8.4.1. The panel was a flat .150, which put it 5.33 perceived units
         # above the band where light mode puts it 8.13 — the card did not lift
         # off the surface under it, and the whole page read as one slab.
@@ -687,13 +750,27 @@ def build(theme, dark):
         ink   = solve(ink_h, min(ink_s * .18, .10), worst, 11.0, darker=False)
         ink2  = solve(ink_h, min(ink_s * .16, .09), worst, TARGETS['body'], darker=False)
         muted = solve(ink_h, min(ink_s * .16, .10), worst, TARGETS['muted'], darker=False)
-        line       = hexof(h, min(s * .30, .22), .255)
+        # Relative to the band, not to black: a hairline pinned to a fixed
+        # lightness stays put while the page rises and stops separating things.
+        line       = solve_perceived(h, min(s * .30, .22), bg2, DARK_LINE_LIFT)
         line_strong= solve(h, min(s * .26, .20), worst, TARGETS['line_strong'], darker=False)
         # A bright accent on a dark page carries near-black text, so it is
         # solved against that on-colour as well as against the page.
+        #
+        # BOTH, not either. The accent is a fill with dark ink on it AND a link
+        # sitting on the panel, and until v8.8.0 only the first was solved: the
+        # page was dark enough that the second came out fine by accident. It
+        # stopped being an accident the moment the paper rose — lime landed at
+        # 4.37:1 on its own card, under the 4.5 a link needs. Both constraints
+        # push the same way here (a brighter accent gains on both surfaces), so
+        # taking the lighter of the two solutions satisfies each of them.
         on_dark    = hexof(acc_h, min(acc_s * .30, .22), .070)
-        accent     = solve(acc_h, min(acc_s * .92, .84), on_dark, 7.6, darker=False)
-        secondary  = solve(sec_h, min(sec_s * .92, .84), on_dark, 7.2, darker=False)
+        accent     = lighter_of(
+            solve(acc_h, min(acc_s * .92, .84), on_dark, 7.6, darker=False),
+            solve(acc_h, min(acc_s * .92, .84), worst, TARGETS['accent'], darker=False))
+        secondary  = lighter_of(
+            solve(sec_h, min(sec_s * .92, .84), on_dark, 7.2, darker=False),
+            solve(sec_h, min(sec_s * .92, .84), worst, TARGETS['accent'], darker=False))
         scheme = 'dark'
 
     if neutral:
@@ -830,40 +907,70 @@ def build(theme, dark):
     # --amber-deep; --purple-wash, --purple-deep; --violet-line, --violet-wash,
     # --violet-deep) and no measurement behind any of them. Three derived
     # tokens per role replace all fourteen, and every one is solved.
-    quiet = {}
-    for role in ('accent', 'secondary') + tuple(SEMANTIC):
-        base = {'accent': accent, 'secondary': secondary}.get(role) or sem[role]
+    def chip_set(role, base, step):
+        """One role's three quiet tokens, at a given depth from the card."""
         rh, rs, _ = hsl_of(base)
         # Mixed for contrast, then lifted for colour. Both are required: the
         # first decides whether the label on the chip can be read, the second
         # decides whether anyone sees a chip at all.
-        floor = (CHROMA_FLOOR_NEAR
-                 if hue_gap(rh, hsl_of(bg)[0]) < CHROMA_NEAR_HUE else CHROMA_FLOOR)
-        step = ACCENT_SOFT_STEP if role == 'accent' else SOFT_STEP
+        floor = max(
+            CHROMA_FLOOR_NEAR
+            if hue_gap(rh, hsl_of(bg)[0]) < CHROMA_NEAR_HUE else CHROMA_FLOOR,
+            chroma(bg) + CHIP_OVER_PAPER)
         soft = lift_chroma(rh, mix_to_ratio(base, panel, step),
                            panel, hsl_of(base)[2], step, floor)
-        quiet[f'{role}_soft_color'] = soft
-        # Label on the tint. Prefer the role's own colour: a quiet chip and a
-        # loud button are the same role and have to look like it. Only when the
-        # role itself cannot carry 4.5 on its own tint is a lighter or darker
-        # variant solved.
-        #
-        # Preferring it matters most where the role is far from the 4.5 floor.
-        # The console's accent is near-black navy at 11:1; solving to 4.5
-        # produced a mid-blue #2D66BE label sitting inside a chip whose button
-        # form is #0E1729 — measurably fine and obviously two different things.
-        quiet[f'{role}_on_soft_color'] = (
-            base if ratio(base, soft) >= 4.5
-            else solve(rh, min(rs, .80), soft, 4.5, darker=not dark))
-        # The tint's own edge, made by stirring more of the role into the tint
-        # rather than re-solving a lightness. Re-solving kept the hue and lost
-        # the proportion: a muted forest success produced a #6DD3A8 mint
-        # border, correct at 1.45 and belonging to a different palette.
-        quiet[f'{role}_border_color'] = mix_to_ratio(base, soft, SOFT_LINE)
+        return {
+            f'{role}_soft_color': soft,
+            # Label on the tint. Prefer the role's own colour: a quiet chip and
+            # a loud button are the same role and have to look like it. Only
+            # when the role itself cannot carry 4.5 on its own tint is a
+            # lighter or darker variant solved.
+            #
+            # Preferring it matters most where the role is far from the 4.5
+            # floor. The console's accent is near-black navy at 11:1; solving
+            # to 4.5 produced a mid-blue #2D66BE label sitting inside a chip
+            # whose button form is #0E1729 — measurably fine and obviously two
+            # different things.
+            f'{role}_on_soft_color': (
+                base if ratio(base, soft) >= 4.5
+                else solve(rh, min(rs, .80), soft, 4.5, darker=not dark)),
+            # The tint's own edge, made by stirring more of the role into the
+            # tint rather than re-solving a lightness. Re-solving kept the hue
+            # and lost the proportion: a muted forest success produced a
+            # #6DD3A8 mint border, correct at 1.45 and belonging to a different
+            # palette.
+            f'{role}_border_color': mix_to_ratio(base, soft, SOFT_LINE),
+        }
 
-    # The brand chip has to stay tellable from every status chip. This is the
-    # pair a contrast assertion against the CARD can never catch: both chips
-    # were correct against the panel and identical to each other.
+    quiet = {}
+    for role in ('secondary',) + tuple(SEMANTIC):
+        base = secondary if role == 'secondary' else sem[role]
+        quiet.update(chip_set(role, base, SOFT_STEP))
+
+    # The brand chip is built LAST and as deep as it needs to be.
+    #
+    # It has to stay tellable from every status chip — the one pair a contrast
+    # assertion against the CARD can never catch, because both chips are
+    # correct against the panel and identical to each other. Depth is what
+    # separates them, and it says something true: this one is the brand, that
+    # one is a state.
+    #
+    # It used to be a single constant, 1.52 against the statuses' 1.22, and the
+    # gap between the two was assumed to be enough. It is not always: a chip
+    # whose chroma had to be lifted overshoots its own step — at saturation 1.0
+    # an amber cannot get within 1.22 of a blue card whatever its lightness —
+    # and it overshoots TOWARD the accent. So the accent goes deeper until it
+    # clears, one twentieth of a step at a time, and the assertion below stays
+    # as the backstop for a palette where no depth works at all.
+    accent_step = ACCENT_SOFT_STEP
+    for _ in range(24):
+        accent_chips = chip_set('accent', accent, accent_step)
+        if all(ratio(accent_chips['accent_soft_color'], quiet[f'{role}_soft_color'])
+               >= SOFT_SEPARATION for role in SEMANTIC):
+            break
+        accent_step += 0.02
+    quiet.update(accent_chips)
+
     for role in SEMANTIC:
         pair = ratio(quiet['accent_soft_color'], quiet[f'{role}_soft_color'])
         if pair < SOFT_SEPARATION:

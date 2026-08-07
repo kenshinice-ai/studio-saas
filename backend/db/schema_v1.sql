@@ -69,6 +69,12 @@ CREATE TABLE IF NOT EXISTS memberships (
     role text NOT NULL CHECK (role IN ('super_admin', 'owner', 'manager', 'teacher', 'front_desk', 'staff', 'parent')),
     permissions jsonb NOT NULL DEFAULT '{}'::jsonb,
     status text NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'invited', 'disabled')),
+    -- Consent to appear on the public timetable, per person, default off.
+    -- Being rostered onto a class is not consent to be named on the open
+    -- internet; the display name exists so the alternative to a legal name is
+    -- 「Lucy 老师」 rather than nothing. See 0025.
+    public_display_name text NOT NULL DEFAULT '',
+    show_on_public_timetable boolean NOT NULL DEFAULT false,
     created_at timestamptz NOT NULL DEFAULT now(),
     UNIQUE (tenant_id, user_id)
 );
@@ -158,6 +164,13 @@ CREATE TABLE IF NOT EXISTS class_schedules (
     duration_minutes integer NOT NULL DEFAULT 60 CHECK (duration_minutes > 0),
     capacity integer NOT NULL DEFAULT 10 CHECK (capacity > 0),
     is_active boolean NOT NULL DEFAULT true,
+    -- SET NULL, not CASCADE: a teacher leaving must not delete the class.
+    teacher_user_id uuid REFERENCES users(id) ON DELETE SET NULL,
+    -- "Scheduled" and "advertised" are different sets, and the difference is
+    -- the sensitive part — one-to-one slots, internal make-up lessons, places
+    -- held for one family. Opt in, one row at a time. See 0025.
+    is_public boolean NOT NULL DEFAULT false,
+    room text NOT NULL DEFAULT '',
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -165,6 +178,28 @@ CREATE TABLE IF NOT EXISTS class_schedules (
 CREATE INDEX IF NOT EXISTS idx_class_schedules_tenant_weekday
     ON class_schedules (tenant_id, weekday)
     WHERE is_active;
+
+CREATE INDEX IF NOT EXISTS idx_class_schedules_public
+    ON class_schedules (tenant_id, weekday, start_time)
+    WHERE is_active AND is_public;
+
+-- class_schedules says "every Wednesday" and has no way to say "not THIS
+-- Wednesday". Without this, a public timetable is a promise the studio cannot
+-- withdraw. The row is kept and struck through rather than hidden: a class
+-- that vanishes looks like a broken site, a class marked 停课 looks managed.
+CREATE TABLE IF NOT EXISTS class_schedule_exceptions (
+    schedule_id uuid NOT NULL REFERENCES class_schedules(id) ON DELETE CASCADE,
+    tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    on_date date NOT NULL,
+    cancelled boolean NOT NULL DEFAULT true,
+    note text NOT NULL DEFAULT '',
+    created_by_user_id uuid REFERENCES users(id) ON DELETE SET NULL,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (schedule_id, on_date)
+);
+
+CREATE INDEX IF NOT EXISTS idx_class_schedule_exceptions_tenant_date
+    ON class_schedule_exceptions (tenant_id, on_date);
 
 CREATE TABLE IF NOT EXISTS class_schedule_students (
     schedule_id uuid NOT NULL REFERENCES class_schedules(id) ON DELETE CASCADE,

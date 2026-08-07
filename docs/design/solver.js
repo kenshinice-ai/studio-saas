@@ -204,6 +204,13 @@ function solve(h, s, against, target, darker = true) {
   return best || hexof(h, s, darker ? 0.0 : 1.0);
 }
 
+/* The lighter of two solutions to the same colour, for a role that has to
+   clear two targets on two different surfaces where both are served by moving
+   the same way. */
+function lighterOf(a, b) {
+  return hslOf(a)[2] >= hslOf(b)[2] ? a : b;
+}
+
 const MODES_DEFAULT = ['light', 'dark'];
 const SEMANTIC = { success: [152, 0.44], warning: [36, 0.58], danger: [6, 0.52], info: [212, 0.46] };
 const SEM_S_PULL = 0.60, SEM_S_FLOOR = 0.32, SEM_S_CEIL = 0.72;
@@ -211,7 +218,9 @@ const SEM_HUE_GAP = 30.0, SEM_LUM_GAP = 1.55, SEM_TEXT_MIX = 0.618;
 const TARGETS = { body: 8.0, muted: 4.6, accent: 4.6, semantic: 4.6, line_strong: 3.05, on_accent: 4.6 };
 const SOFT_STEP = 1.22, SOFT_LINE = 1.45, HOVER_STEP = 1.06;
 const PANEL_LIFT = 0.0556;
+const DARK_PAPER_L = 0.118, DARK_BAND_LIFT = 0.0395, DARK_LINE_LIFT = 0.1590;
 const CHROMA_FLOOR = 22, CHROMA_FLOOR_NEAR = 32, CHROMA_NEAR_HUE = 20.0;
+const CHIP_OVER_PAPER = 10;
 const PANEL_RISE = 0.034, PANEL_CHROMA = 0.60, LINE_CHROMA = 1.90, LINE_STRONG_CHROMA = 3.20;
 const ACCENT_SOFT_STEP = 1.52, SOFT_SEPARATION = 1.14;
 
@@ -297,18 +306,25 @@ function build(theme, dark) {
     onDark = null;
     scheme = 'light';
   } else {
-    bg = hexof(h, Math.min(s * 0.52, 0.38), 0.068);
-    bg2 = hexof(h, Math.min(s * 0.46, 0.34), 0.102);
+    bg = hexof(h, Math.min(s * 0.52, 0.38), DARK_PAPER_L);
+    bg2 = solvePerceived(h, Math.min(s * 0.46, 0.34), bg, DARK_BAND_LIFT);
     panel = solvePerceived(h, Math.min(s * 0.44, 0.32), bg2, PANEL_LIFT);
     worst = panel;
     ink = solve(inkH, Math.min(inkS * 0.18, 0.10), worst, 11.0, false);
     ink2 = solve(inkH, Math.min(inkS * 0.16, 0.09), worst, TARGETS.body, false);
     muted = solve(inkH, Math.min(inkS * 0.16, 0.10), worst, TARGETS.muted, false);
-    line = hexof(h, Math.min(s * 0.30, 0.22), 0.255);
+    line = solvePerceived(h, Math.min(s * 0.30, 0.22), bg2, DARK_LINE_LIFT);
     lineStrong = solve(h, Math.min(s * 0.26, 0.20), worst, TARGETS.line_strong, false);
     onDark = hexof(accH, Math.min(accS * 0.30, 0.22), 0.070);
-    accent = solve(accH, Math.min(accS * 0.92, 0.84), onDark, 7.6, false);
-    secondary = solve(secH, Math.min(secS * 0.92, 0.84), onDark, 7.2, false);
+    /* Both surfaces, not either: the accent is a fill carrying dark ink AND a
+       link sitting on the panel. A brighter accent gains on both, so the
+       lighter of the two solutions satisfies each. */
+    accent = lighterOf(
+      solve(accH, Math.min(accS * 0.92, 0.84), onDark, 7.6, false),
+      solve(accH, Math.min(accS * 0.92, 0.84), worst, TARGETS.accent, false));
+    secondary = lighterOf(
+      solve(secH, Math.min(secS * 0.92, 0.84), onDark, 7.2, false),
+      solve(secH, Math.min(secS * 0.92, 0.84), worst, TARGETS.accent, false));
     scheme = 'dark';
   }
 
@@ -379,18 +395,36 @@ function build(theme, dark) {
     disabled_text_color: disabledText, scrim_color: scrim,
   };
 
-  for (const role of ['accent', 'secondary', ...Object.keys(SEMANTIC)]) {
-    const base = role === 'accent' ? accent : role === 'secondary' ? secondary : sem[role];
+  const chipSet = (role, base, step_) => {
     const [rh, rs] = hslOf(base);
-    const floor = hueGap(rh, hslOf(bg)[0]) < CHROMA_NEAR_HUE ? CHROMA_FLOOR_NEAR : CHROMA_FLOOR;
-    const step_ = role === 'accent' ? ACCENT_SOFT_STEP : SOFT_STEP;
+    const floor = Math.max(
+      hueGap(rh, hslOf(bg)[0]) < CHROMA_NEAR_HUE ? CHROMA_FLOOR_NEAR : CHROMA_FLOOR,
+      chroma(bg) + CHIP_OVER_PAPER);
     const soft = liftChroma(rh, mixToRatio(base, panel, step_),
       panel, hslOf(base)[2], step_, floor);
-    out[`${role}_soft_color`] = soft;
-    out[`${role}_on_soft_color`] = ratio(base, soft) >= 4.5
+    const out_ = {};
+    out_[`${role}_soft_color`] = soft;
+    out_[`${role}_on_soft_color`] = ratio(base, soft) >= 4.5
       ? base : solve(rh, Math.min(rs, 0.80), soft, 4.5, !dark);
-    out[`${role}_border_color`] = mixToRatio(base, soft, SOFT_LINE);
+    out_[`${role}_border_color`] = mixToRatio(base, soft, SOFT_LINE);
+    return out_;
+  };
+
+  for (const role of ['secondary', ...Object.keys(SEMANTIC)]) {
+    Object.assign(out, chipSet(role, role === 'secondary' ? secondary : sem[role], SOFT_STEP));
   }
+
+  /* The brand chip is built last and as deep as it needs to be: a chip whose
+     chroma had to be lifted overshoots its own step, and it overshoots toward
+     the accent. */
+  let accentStep = ACCENT_SOFT_STEP, accentChips = null;
+  for (let i = 0; i < 24; i++) {
+    accentChips = chipSet('accent', accent, accentStep);
+    if (Object.keys(SEMANTIC).every((role) =>
+      ratio(accentChips.accent_soft_color, out[`${role}_soft_color`]) >= SOFT_SEPARATION)) break;
+    accentStep += 0.02;
+  }
+  Object.assign(out, accentChips);
 
   for (const role of Object.keys(SEMANTIC)) {
     const pair = ratio(out.accent_soft_color, out[`${role}_soft_color`]);

@@ -45,7 +45,7 @@ Purpose: Schema definition, table descriptions, canonical enums, migration strat
 | Table | Key Columns | Purpose |
 |---|---|---|
 | `users` | `id`, `email`, `password_hash`, `full_name`, `status` | Platform-wide user accounts. **No `role` and no `tenant_id` column.** |
-| `memberships` | `id`, `tenant_id` (nullable), `user_id`, `role`, `permissions` (JSONB), `status` | User × tenant × role. **All role assignment lives here.** `UNIQUE (tenant_id, user_id)` |
+| `memberships` | `id`, `tenant_id` (nullable), `user_id`, `role`, `permissions` (JSONB), `status`, `public_display_name`, `show_on_public_timetable` | User × tenant × role. **All role assignment lives here.** `UNIQUE (tenant_id, user_id)`. The two publicity columns (0025) are **per person and default off** — being rostered onto a class is not consent to be named on the open internet |
 
 **Current super-admin representation:** `seed_super_admin.py` maintains one
 active `super_admin` membership with `tenant_id IS NULL`. That platform row
@@ -58,7 +58,8 @@ memberships.
 |---|---|---|
 | `students` | `id`, `tenant_id`, identity/contact fields, `birthday`, `enrolled_on`, `status`, `access_code_hash`, access-code timestamps | Student profiles (soft delete via status), real editable join date, and hashed private-portal access. Legacy `enrolled_on` values may remain null. |
 | `courses` | `id`, `tenant_id`, `name`, `slug`, `credits`, `price_aud_cents` | Course definitions |
-| `class_schedules` | `id`, `tenant_id`, `student_id`, weekday/time fields, `status` | Recurring weekly schedule templates (migration 0008) |
+| `class_schedules` | `id`, `tenant_id`, `course_id`, `label`, weekday/time fields, `capacity`, `is_active`, `teacher_user_id`, `is_public`, `room` | Recurring weekly schedule templates (0008; teacher/publication/room added in 0025). `is_public` defaults **false** — "scheduled" and "advertised" are different sets |
+| `class_schedule_exceptions` | `schedule_id`, `tenant_id`, `on_date`, `cancelled`, `note` | One-off cancellations of a recurring class (0025). Without it a public timetable is a promise the studio cannot withdraw |
 | `packages` | `id`, `tenant_id`, `name`, `description`, `price_aud_cents` | Course package definitions |
 | `credit_accounts` | `id`, `tenant_id`, `student_id`, `course_id`, `balance` | Student balance accounts. Unique key: `(tenant_id, student_id, course_id)` |
 | `credit_transactions` | `id`, `tenant_id`, `student_id`, `credit_account_id`, `transaction_type`, `amount`, `description` | Ledger-style transaction log |

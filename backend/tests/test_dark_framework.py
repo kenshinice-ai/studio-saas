@@ -521,3 +521,66 @@ def test_a_single_mode_style_still_drops_the_preference_it_cannot_honour() -> No
     block = source[source.index("function applyVisualStyle("):]
     block = block[:block.index("function ", 40)]
     assert "if (activeSchemePreference === 'system' && modes.length < 2) activeSchemePreference = nextScheme;" in block
+
+
+# ── v8.8.0: how dark the dark page is allowed to be ─────────────────────────
+
+def _cie_lightness(hexstr: str) -> float:
+    """Perceived lightness, L* 0-100. Not the OKLab L the solver works in.
+
+    The distinction matters for the numbers below: the dark page's OKLab L was
+    ~0.18 and read as "not that dark", while its L* was 4.6 — darker than every
+    reference dark surface in circulation. Contrast ratios cannot say this
+    either; a page can be pitch black and pass every one of them.
+    """
+
+    raw = hexstr.lstrip("#")
+    channels = [int(raw[i:i + 2], 16) / 255 for i in (0, 2, 4)]
+    linear = [c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in channels]
+    y = 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+    return 116 * (y ** (1 / 3)) - 16 if y > 0.008856 else 903.3 * y
+
+
+def test_the_dark_page_is_a_surface_and_not_a_void() -> None:
+    """v8.8.0. The report was 过暗, and it was measurably right.
+
+    At an HSL lightness of .068 the nine dark pages landed between L* 4.6 and
+    7.3. Material's reference dark surface (#121212) is 5.5 — so this product
+    sat at or BELOW the darkest value anyone recommends, and several themes
+    were closer to pure black than to it.
+
+    The floor is what this test defends. The ceiling is here so "brighter" does
+    not creep into "grey": past ~18 the panel above it has nowhere left to go.
+    """
+
+    from studiosaas.presets import VISUAL_STYLE_PRESETS
+
+    for key, preset in VISUAL_STYLE_PRESETS.items():
+        theme = preset["themes"].get("dark")
+        if not theme:
+            continue
+        lightness = _cie_lightness(theme["background_color"])
+        assert 9.0 <= lightness <= 18.0, (
+            f"{key} dark paper is {theme['background_color']} at L* {lightness:.1f} — "
+            "outside the band where a page reads as a dark surface"
+        )
+
+
+def test_the_three_dark_surfaces_still_climb_in_the_right_order() -> None:
+    """Raising the page must not re-open the v8.3.0 defect.
+
+    In a dark UI lighter reads as nearer, so the card has to be the lightest of
+    the three and the alternating band must never outrank it. That ordering,
+    not the arithmetic distance, is what survives the mode change.
+    """
+
+    from studiosaas.presets import VISUAL_STYLE_PRESETS
+
+    for key, preset in VISUAL_STYLE_PRESETS.items():
+        theme = preset["themes"].get("dark")
+        if not theme:
+            continue
+        page = _cie_lightness(theme["background_color"])
+        band = _cie_lightness(theme["background_alt_color"])
+        card = _cie_lightness(theme["panel_color"])
+        assert page < band < card, f"{key}: {page:.1f} / {band:.1f} / {card:.1f} is not page < band < card"

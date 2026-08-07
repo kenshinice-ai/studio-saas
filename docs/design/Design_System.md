@@ -91,46 +91,46 @@ A third rule has the same shape and applies to tints: `CEILINGS` asserts an
 
 | Pair | Floor | Worst measured | Where |
 |---|---|---|---|
-| body / page | 4.5 | **13.63** | recital-plum dark |
-| body / panel | 4.5 | **11.01** | rehearsal-rose dark |
+| body / page | 4.5 | **14.40** | cedar-grove light |
+| body / panel | 4.5 | **10.52** | arcade-lime dark |
 | soft / page | 4.5 | **8.82** | custom light |
 | muted / page | 4.5 | **5.05** | custom light |
-| muted / panel | 4.5 | **4.60** | cedar-grove dark |
+| muted / panel | 4.5 | **4.60** | harbour-calm dark |
 | muted / alt | 4.5 | **4.60** | platform-console light |
 | accent / page | 4.5 | **5.13** | vintage-press light |
 | on-accent / accent | 4.5 | **5.83** | cedar-grove light |
 | on-accent-muted | 4.5 | **4.60** | studio-ink light |
 | 2nd / page | 4.5 | **4.52** | platform-console light |
 | success / page | 4.5 | **4.60** | custom light |
-| warning / page | 4.5 | **4.60** | arcade-lime dark |
-| danger / page | 4.5 | **4.61** | vintage-press dark |
-| success fill / alt | 3.0 | **4.09** | rehearsal-rose light |
-| warning fill / alt | 3.0 | **4.07** | rehearsal-rose light |
-| danger fill / alt | 3.0 | **4.07** | recital-plum light |
-| success fill / panel | 3.0 | **3.45** | arcade-lime dark |
-| warning fill / panel | 3.0 | **3.44** | arcade-lime dark |
-| danger fill / panel | 3.0 | **3.47** | arcade-lime dark |
-| label / success | 4.5 | **4.56** | atelier-clay dark |
-| label / warning | 4.5 | **4.58** | atelier-clay dark |
-| label / danger | 4.5 | **4.58** | rehearsal-rose dark |
+| warning / page | 4.5 | **4.60** | rehearsal-rose dark |
+| danger / page | 4.5 | **4.60** | cedar-grove dark |
+| success fill / alt | 3.0 | **4.01** | arcade-lime dark |
+| warning fill / alt | 3.0 | **4.00** | arcade-lime dark |
+| danger fill / alt | 3.0 | **4.00** | arcade-lime dark |
+| success fill / panel | 3.0 | **3.21** | arcade-lime dark |
+| warning fill / panel | 3.0 | **3.19** | arcade-lime dark |
+| danger fill / panel | 3.0 | **3.20** | arcade-lime dark |
+| label / success | 4.5 | **5.05** | recital-plum dark |
+| label / warning | 4.5 | **5.01** | platform-console light |
+| label / danger | 4.5 | **5.02** | platform-console light |
 | line-strong / page | 3.0 | **3.37** | custom light |
-| line-strong / panel | 3.0 | **3.05** | rehearsal-rose dark |
+| line-strong / panel | 3.0 | **3.06** | custom dark |
 | focus ring / page | 3.0 | **3.52** | custom light |
-| focus ring / panel | 3.0 | **3.20** | cedar-grove dark |
+| focus ring / panel | 3.0 | **3.20** | studio-ink dark |
 | focus ring / alt | 3.0 | **3.21** | recital-plum light |
 | on-accent / hover | 4.5 | **7.48** | recital-plum light |
 | on-accent / pressed | 4.5 | **9.28** | recital-plum light |
-| disabled text | 2.8 | **3.00** | custom dark |
-| info / page | 4.5 | **4.60** | custom light |
-| info fill / alt | 3.0 | **4.06** | rehearsal-rose light |
-| info fill / panel | 3.0 | **3.52** | arcade-lime dark |
-| label / info | 4.5 | **4.57** | rehearsal-rose dark |
-| accent label / soft | 4.5 | **4.50** | harbour-calm dark |
-| success label / soft | 4.5 | **4.50** | arcade-lime dark |
-| warning label / soft | 4.5 | **4.50** | atelier-clay dark |
-| danger label / soft | 4.5 | **4.51** | vintage-press dark |
-| info label / soft | 4.5 | **4.50** | atelier-clay light |
-| 2nd label / soft | 4.5 | **4.50** | studio-ink dark |
+| disabled text | 2.8 | **3.00** | rehearsal-rose light |
+| info / page | 4.5 | **4.60** | cedar-grove dark |
+| info fill / alt | 3.0 | **4.03** | cedar-grove dark |
+| info fill / panel | 3.0 | **3.24** | arcade-lime dark |
+| label / info | 4.5 | **5.05** | platform-console light |
+| accent label / soft | 4.5 | **4.50** | custom dark |
+| success label / soft | 4.5 | **4.50** | atelier-clay dark |
+| warning label / soft | 4.5 | **4.50** | cedar-grove dark |
+| danger label / soft | 4.5 | **4.50** | harbour-calm dark |
+| info label / soft | 4.5 | **4.50** | studio-ink dark |
+| 2nd label / soft | 4.5 | **4.50** | harbour-calm dark |
 
 ---
 

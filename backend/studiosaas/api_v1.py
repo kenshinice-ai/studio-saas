@@ -2599,6 +2599,7 @@ def list_tenant_team():
             conn,
             """
             SELECT m.id, m.role, m.status, m.created_at,
+                   m.public_display_name, m.show_on_public_timetable,
                    u.id AS user_id, u.email, u.full_name, u.last_login_at
             FROM memberships m
             JOIN users u ON u.id = m.user_id
@@ -2724,7 +2725,7 @@ def update_tenant_team_member(membership_id: str):
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT id, status
+                SELECT id, status, public_display_name, show_on_public_timetable
                 FROM memberships
                 WHERE id = %s AND tenant_id = %s AND role <> 'owner'
                 FOR UPDATE
@@ -2734,6 +2735,18 @@ def update_tenant_team_member(membership_id: str):
             existing = cur.fetchone()
             if not existing:
                 return _error("Operational team membership was not found.", 404)
+            # Omitted means unchanged, not "revoke consent". A PATCH that only
+            # meant to change a role must not quietly take a teacher's name off
+            # the public timetable — or, worse, leave it on when the caller
+            # believed it was sending the current state.
+            public_name = str(
+                payload.get("publicDisplayName",
+                            payload.get("public_display_name",
+                                        existing["public_display_name"])) or ""
+            ).strip()[:80]
+            show_publicly = _bool_from_json(
+                payload, "showOnPublicTimetable", "show_on_public_timetable",
+                default=bool(existing["show_on_public_timetable"]))
             if status == "active" and existing["status"] != "active":
                 plan_row = fetch_one(
                     conn,
@@ -2753,11 +2766,12 @@ def update_tenant_team_member(membership_id: str):
             cur.execute(
                 """
                 UPDATE memberships
-                SET role = %s, status = %s
+                SET role = %s, status = %s,
+                    public_display_name = %s, show_on_public_timetable = %s
                 WHERE id = %s AND tenant_id = %s AND role <> 'owner'
                 RETURNING id
                 """,
-                (role, status, parsed_id, tenant.tenant_id),
+                (role, status, public_name, show_publicly, parsed_id, tenant.tenant_id),
             )
             cur.fetchone()
         _refresh_tenant_usage(conn, tenant.tenant_id)
@@ -2767,7 +2781,10 @@ def update_tenant_team_member(membership_id: str):
             action="team.member_updated",
             resource_type="membership",
             resource_id=parsed_id,
-            metadata={"role": role, "status": status},
+            # The consent flag is recorded because it is a decision about a
+            # person's name on the open internet, and "who turned this on and
+            # when" is the only useful answer if they ever ask.
+            metadata={"role": role, "status": status, "showOnPublicTimetable": show_publicly},
         )
         conn.commit()
     return jsonify({"ok": True})
@@ -8118,6 +8135,27 @@ def undo_daily_roster_cancellation(entry_id: str):
 # weekday: 0=Sunday .. 6=Saturday (JS Date.getDay() convention)
 # ──────────────────────────────────────────────
 
+def _optional_reference(payload, *keys: str) -> str | None:
+    """Read an optional uuid reference, where empty deliberately means "none".
+
+    "" and null are the same answer — a class with no teacher assigned yet —
+    and both have to reach the database as NULL rather than as a string that
+    fails a foreign key. Anything present but unparseable is a client bug, and
+    saying so is better than storing None and calling it success.
+    """
+
+    for key in keys:
+        if key in payload:
+            raw = str(payload.get(key) or "").strip()
+            if not raw:
+                return None
+            try:
+                return str(_uuid.UUID(raw))
+            except (ValueError, AttributeError):
+                raise ValueError(f"{key} must be an id or empty.")
+    return None
+
+
 def _schedule_payload_fields(payload):
     """Validate and normalize class-schedule fields from a JSON payload."""
 
@@ -8141,7 +8179,55 @@ def _schedule_payload_fields(payload):
     student_ids = payload.get("studentIds", payload.get("student_ids"))
     if student_ids is not None and not isinstance(student_ids, list):
         raise ValueError("studentIds must be a list of student ids.")
-    return label, weekday, start_time, duration, capacity, student_ids
+    # v8.8.0 — what a class needs before it can face the public.
+    #
+    # `is_public` defaults to FALSE on the way in as well as in the column. A
+    # payload that forgets the field must not publish the class: the safe
+    # reading of silence is "no".
+    return {
+        "label": label,
+        "weekday": weekday,
+        "start_time": start_time,
+        "duration": duration,
+        "capacity": capacity,
+        "student_ids": student_ids,
+        "course_id": _optional_reference(payload, "courseId", "course_id"),
+        "teacher_user_id": _optional_reference(payload, "teacherUserId", "teacher_user_id"),
+        "is_public": _bool_from_json(payload, "isPublic", "is_public", default=False),
+        "room": _clean_text(payload, "room")[:80],
+    }
+
+
+def _assert_schedule_references(conn, tenant_id, fields) -> None:
+    """Both references must belong to THIS tenant.
+
+    A foreign key only proves the row exists somewhere. Without this check a
+    tenant could name another studio's course or another studio's teacher on
+    its own class, and — once v8.9.0 renders it — publish that name on its
+    public page. The database cannot catch it; this is the only place that can.
+    """
+
+    course_id = fields.get("course_id")
+    if course_id:
+        found = fetch_one(
+            conn,
+            "SELECT id FROM courses WHERE tenant_id = %s AND id = %s",
+            (tenant_id, course_id),
+        )
+        if not found:
+            raise ValueError("That course does not belong to this studio.")
+    teacher_id = fields.get("teacher_user_id")
+    if teacher_id:
+        found = fetch_one(
+            conn,
+            """
+            SELECT user_id FROM memberships
+            WHERE tenant_id = %s AND user_id = %s AND status = 'active' AND role <> 'parent'
+            """,
+            (tenant_id, teacher_id),
+        )
+        if not found:
+            raise ValueError("That teacher is not an active member of this studio's team.")
 
 
 def _replace_schedule_students(cur, tenant_id, schedule_id, student_ids) -> int:
@@ -8173,14 +8259,38 @@ def _schedules_with_students(conn, tenant_id) -> list[dict]:
         SELECT cs.id, cs.label, cs.weekday,
                to_char(cs.start_time, 'HH24:MI') AS start_time,
                cs.duration_minutes, cs.capacity, cs.is_active,
-               c.name AS course_name, cs.course_id
+               c.name AS course_name, cs.course_id, c.age_range,
+               cs.teacher_user_id, cs.is_public, cs.room,
+               u.full_name AS teacher_name,
+               COALESCE(NULLIF(m.public_display_name, ''), u.full_name) AS teacher_public_name,
+               COALESCE(m.show_on_public_timetable, false) AS teacher_public
         FROM class_schedules cs
         LEFT JOIN courses c ON c.id = cs.course_id
+        LEFT JOIN users u ON u.id = cs.teacher_user_id
+        LEFT JOIN memberships m
+               ON m.user_id = cs.teacher_user_id AND m.tenant_id = cs.tenant_id
         WHERE cs.tenant_id = %s AND cs.is_active
         ORDER BY cs.weekday, cs.start_time, lower(cs.label)
         """,
         (tenant_id,),
     )
+    # Cancellations from today onward. Past ones are history the CMS has no
+    # room for and the public page will never reach.
+    exceptions = fetch_all(
+        conn,
+        """
+        SELECT schedule_id, to_char(on_date, 'YYYY-MM-DD') AS on_date, note
+        FROM class_schedule_exceptions
+        WHERE tenant_id = %s AND cancelled AND on_date >= (now() AT TIME ZONE 'UTC')::date - 1
+        ORDER BY on_date
+        """,
+        (tenant_id,),
+    )
+    cancelled: dict[str, list[dict]] = {}
+    for row in exceptions:
+        cancelled.setdefault(str(row["schedule_id"]), []).append(
+            {"date": row["on_date"], "note": row["note"]}
+        )
     members = fetch_all(
         conn,
         """
@@ -8205,6 +8315,20 @@ def _schedules_with_students(conn, tenant_id) -> list[dict]:
             "capacity": r["capacity"],
             "courseId": str(r["course_id"]) if r["course_id"] else None,
             "courseName": r["course_name"],
+            "ageRange": r["age_range"] or "",
+            "room": r["room"],
+            "isPublic": bool(r["is_public"]),
+            "teacherUserId": str(r["teacher_user_id"]) if r["teacher_user_id"] else None,
+            # Two names, because they answer two questions. `teacherName` is
+            # for the roster — the studio's own staff list, where the legal
+            # name is the useful one. `teacherPublicName` is what the portal
+            # would print, and `teacherIsPublic` is whether it may. The CMS
+            # shows the second pair so an owner can see what a visitor sees
+            # before anything is published.
+            "teacherName": r["teacher_name"] or "",
+            "teacherPublicName": r["teacher_public_name"] or "",
+            "teacherIsPublic": bool(r["teacher_public"]),
+            "cancellations": cancelled.get(str(r["id"]), []),
             "students": by_schedule.get(str(r["id"]), []),
         }
         for r in rows
@@ -8454,31 +8578,40 @@ def create_class_schedule():
 
     payload = _json_payload()
     try:
-        label, weekday, start_time, duration, capacity, student_ids = _schedule_payload_fields(payload)
+        fields = _schedule_payload_fields(payload)
     except ValueError as exc:
         return _error(str(exc))
 
     with connect() as conn:
         tenant = _tenant_context(conn)
+        try:
+            _assert_schedule_references(conn, tenant.tenant_id, fields)
+        except ValueError as exc:
+            return _error(str(exc))
         row = fetch_one(
             conn,
             """
-            INSERT INTO class_schedules (tenant_id, label, weekday, start_time, duration_minutes, capacity)
-            VALUES (%s, %s, %s, %s::time, %s, %s)
+            INSERT INTO class_schedules (tenant_id, label, weekday, start_time, duration_minutes,
+                                         capacity, course_id, teacher_user_id, is_public, room)
+            VALUES (%s, %s, %s, %s::time, %s, %s, %s, %s, %s, %s)
             RETURNING id
             """,
-            (tenant.tenant_id, label, weekday, start_time, duration, capacity),
+            (tenant.tenant_id, fields["label"], fields["weekday"], fields["start_time"],
+             fields["duration"], fields["capacity"], fields["course_id"],
+             fields["teacher_user_id"], fields["is_public"], fields["room"]),
         )
         schedule_id = str(row["id"])
         with conn.cursor() as cur:
-            added = _replace_schedule_students(cur, tenant.tenant_id, schedule_id, student_ids)
+            added = _replace_schedule_students(cur, tenant.tenant_id, schedule_id, fields["student_ids"])
         _audit_request(
             conn,
             tenant_id=tenant.tenant_id,
             action="schedule.created",
             resource_type="class_schedule",
             resource_id=schedule_id,
-            metadata={"label": label, "weekday": weekday, "startTime": start_time, "students": added},
+            metadata={"label": fields["label"], "weekday": fields["weekday"],
+                      "startTime": fields["start_time"], "students": added,
+                      "isPublic": fields["is_public"]},
         )
         conn.commit()
         schedules = _schedules_with_students(conn, tenant.tenant_id)
@@ -8497,7 +8630,7 @@ def update_class_schedule(schedule_id: str):
             conn,
             """
             SELECT id, label, weekday, to_char(start_time, 'HH24:MI') AS start_time,
-                   duration_minutes, capacity
+                   duration_minutes, capacity, course_id, teacher_user_id, is_public, room
             FROM class_schedules
             WHERE tenant_id = %s AND id = %s AND is_active
             """,
@@ -8505,6 +8638,10 @@ def update_class_schedule(schedule_id: str):
         )
         if not existing:
             return _error("Schedule not found.", 404)
+        # PATCH means "change what I sent". Every field the caller omitted is
+        # re-supplied from the stored row, including the four v8.8.0 ones —
+        # rebuilding from the payload alone is how a save that meant to change
+        # the capacity also unpublishes the class and forgets its teacher.
         merged = {
             "label": payload.get("label", existing["label"]),
             "weekday": payload.get("weekday", existing["weekday"]),
@@ -8512,9 +8649,15 @@ def update_class_schedule(schedule_id: str):
             "durationMinutes": payload.get("durationMinutes", payload.get("duration_minutes", existing["duration_minutes"])),
             "capacity": payload.get("capacity", existing["capacity"]),
             "studentIds": payload.get("studentIds", payload.get("student_ids")),
+            "courseId": payload.get("courseId", payload.get("course_id", existing["course_id"])),
+            "teacherUserId": payload.get(
+                "teacherUserId", payload.get("teacher_user_id", existing["teacher_user_id"])),
+            "isPublic": payload.get("isPublic", payload.get("is_public", existing["is_public"])),
+            "room": payload.get("room", existing["room"]),
         }
         try:
-            label, weekday, start_time, duration, capacity, student_ids = _schedule_payload_fields(merged)
+            fields = _schedule_payload_fields(merged)
+            _assert_schedule_references(conn, tenant.tenant_id, fields)
         except ValueError as exc:
             return _error(str(exc))
         with conn.cursor() as cur:
@@ -8522,20 +8665,24 @@ def update_class_schedule(schedule_id: str):
                 """
                 UPDATE class_schedules
                 SET label = %s, weekday = %s, start_time = %s::time,
-                    duration_minutes = %s, capacity = %s, updated_at = now()
+                    duration_minutes = %s, capacity = %s, course_id = %s,
+                    teacher_user_id = %s, is_public = %s, room = %s, updated_at = now()
                 WHERE tenant_id = %s AND id = %s
                 """,
-                (label, weekday, start_time, duration, capacity, tenant.tenant_id, schedule_id),
+                (fields["label"], fields["weekday"], fields["start_time"], fields["duration"],
+                 fields["capacity"], fields["course_id"], fields["teacher_user_id"],
+                 fields["is_public"], fields["room"], tenant.tenant_id, schedule_id),
             )
-            if student_ids is not None:
-                _replace_schedule_students(cur, tenant.tenant_id, schedule_id, student_ids)
+            if fields["student_ids"] is not None:
+                _replace_schedule_students(cur, tenant.tenant_id, schedule_id, fields["student_ids"])
         _audit_request(
             conn,
             tenant_id=tenant.tenant_id,
             action="schedule.updated",
             resource_type="class_schedule",
             resource_id=schedule_id,
-            metadata={"label": label, "weekday": weekday},
+            metadata={"label": fields["label"], "weekday": fields["weekday"],
+                      "isPublic": fields["is_public"]},
         )
         conn.commit()
         schedules = _schedules_with_students(conn, tenant.tenant_id)
@@ -8567,6 +8714,112 @@ def delete_class_schedule(schedule_id: str):
             resource_type="class_schedule",
             resource_id=schedule_id,
             metadata={"label": row["label"], "weekday": row["weekday"]},
+        )
+        conn.commit()
+        schedules = _schedules_with_students(conn, tenant.tenant_id)
+    return jsonify({"ok": True, "schedules": schedules})
+
+
+# ──────────────────────────────────────────────
+# v8.8.0: one-off cancellations of a recurring class
+#
+# `class_schedules` is a rule ("every Wednesday") with no way to say "not this
+# Wednesday". Nothing else in the schema can: daily_roster_entries carries a
+# 'cancelled' status but per STUDENT, which answers a different question.
+#
+# The public timetable cannot ship without this, and that is not a preference:
+# a recurring class the studio cannot withdraw for one week is a promise made
+# to a parent who then drives across town. A timetable that cannot be corrected
+# is worse than no timetable.
+# ──────────────────────────────────────────────
+
+@api_v1.route("/class-schedules/<schedule_id>/cancellations", methods=["POST"])
+@tenant_admin_required
+def cancel_class_occurrence(schedule_id: str):
+    """Mark one dated occurrence of a recurring class as not running."""
+
+    payload = _json_payload()
+    try:
+        parsed_id = str(_uuid.UUID(schedule_id))
+    except (ValueError, AttributeError):
+        return _error("Invalid schedule id.")
+    try:
+        on_date = _roster_date(payload.get("date", payload.get("on_date")))
+    except ValueError as exc:
+        return _error(str(exc))
+    note = _clean_text(payload, "note")[:120]
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        schedule = fetch_one(
+            conn,
+            "SELECT id, label, weekday FROM class_schedules "
+            "WHERE tenant_id = %s AND id = %s AND is_active",
+            (tenant.tenant_id, parsed_id),
+        )
+        if not schedule:
+            return _error("Schedule not found.", 404)
+        # The date has to fall on the day this class actually runs, or the
+        # cancellation is silently inert: it is stored, it looks saved, and the
+        # class keeps appearing. Refusing is the only way the owner finds out.
+        if on_date.isoweekday() % 7 != int(schedule["weekday"]):
+            return _error("That date is not the weekday this class runs on.")
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO class_schedule_exceptions
+                    (schedule_id, tenant_id, on_date, cancelled, note, created_by_user_id)
+                VALUES (%s, %s, %s, true, %s, %s)
+                ON CONFLICT (schedule_id, on_date)
+                DO UPDATE SET cancelled = true, note = EXCLUDED.note
+                """,
+                (parsed_id, tenant.tenant_id, on_date, note,
+                 getattr(getattr(g, "actor", None), "user_id", None)),
+            )
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="schedule.cancelled",
+            resource_type="class_schedule",
+            resource_id=parsed_id,
+            metadata={"label": schedule["label"], "date": on_date.isoformat(), "note": note},
+        )
+        conn.commit()
+        schedules = _schedules_with_students(conn, tenant.tenant_id)
+    return jsonify({"ok": True, "schedules": schedules})
+
+
+@api_v1.route("/class-schedules/<schedule_id>/cancellations/<on_date>", methods=["DELETE"])
+@tenant_admin_required
+def restore_class_occurrence(schedule_id: str, on_date: str):
+    """Undo a cancellation — the class runs that day after all."""
+
+    try:
+        parsed_id = str(_uuid.UUID(schedule_id))
+        parsed_date = _roster_date(on_date)
+    except (ValueError, AttributeError):
+        return _error("Invalid schedule id or date.")
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        row = fetch_one(
+            conn,
+            """
+            DELETE FROM class_schedule_exceptions
+            WHERE tenant_id = %s AND schedule_id = %s AND on_date = %s
+            RETURNING on_date
+            """,
+            (tenant.tenant_id, parsed_id, parsed_date),
+        )
+        if not row:
+            return _error("That date was not marked as cancelled.", 404)
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="schedule.restored",
+            resource_type="class_schedule",
+            resource_id=parsed_id,
+            metadata={"date": parsed_date.isoformat()},
         )
         conn.commit()
         schedules = _schedules_with_students(conn, tenant.tenant_id)
