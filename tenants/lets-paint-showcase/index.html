@@ -214,6 +214,22 @@
   .showcase-rest{display:grid;grid-template-columns:1fr;
     gap:var(--ui-space-4, 21px);margin-top:var(--ui-space-4, 21px)}
   .showcase-rest:empty{display:none}
+  /* Filter chips. Tinted, bordered, never a saturated fill — the same shape
+     rule the status colours follow (Design_Constraints §1.1). */
+  .sc-filters{display:flex;flex-wrap:wrap;gap:var(--ui-space-2, 8px);
+    margin-bottom:var(--ui-space-4, 21px)}
+  .sc-filters:empty{display:none}
+  .sc-chip{min-height:44px;padding:0 var(--ui-space-3, 13px);border-radius:999px;
+    border:1px solid var(--line);background:transparent;color:var(--ink2);
+    font-size:13px;cursor:pointer;transition:background .2s var(--ease-out),color .2s var(--ease-out)}
+  .sc-chip:hover{background:var(--surface-hover);color:var(--ink)}
+  .sc-chip:focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px}
+  /* State is carried by the border and the ink as well as the tint, so it
+     survives a colour-blind reading (WCAG 1.4.1). */
+  .sc-chip.is-on{background:var(--accent-soft);color:var(--on-accent-soft);
+    border-color:var(--accent-border);font-weight:500}
+  .sc-more-wrap{margin-top:var(--ui-space-5, 34px);text-align:center}
+  .sc-more-wrap button[hidden]{display:none}
   @media(min-width:900px){
     .showcase-grid{grid-template-columns:var(--ui-golden-columns, minmax(0,1.618fr) minmax(0,1fr))}
     /* The lead spans both rows the two squares define, and FILLS that height
@@ -578,8 +594,10 @@
       <h2 id="showcaseTitle" class="serif" data-en="Work from this studio">出自这间%VENUE%</h2>
       <p id="showcaseLead" data-en="A short selection, chosen by the studio."></p>
     </div>
+    <div class="sc-filters" id="showcaseFilters"></div>
     <div class="showcase-grid reveal" id="showcaseGrid"></div>
     <div class="showcase-rest reveal" id="showcaseRest"></div>
+    <div class="sc-more-wrap"><button type="button" class="btn btn-line" id="showcaseMore" hidden></button></div>
   </div>
 </section>
 
@@ -847,7 +865,7 @@
                    which is correct: a section defaults to visible, and the
                    render functions below re-check this so neither fetch order
                    can win. */
-                sectionsOff:{} };
+                sectionsOff:{}, showcase:null, showcaseCategory:'' };
 
   /* ── i18n ──
      P0-4: rendering is textContent, never innerHTML. Studio Admin lets a tenant
@@ -1263,29 +1281,84 @@
     }
     return figure;
   }
+  function showcaseChips(){
+    var host=document.getElementById('showcaseFilters');
+    host.textContent='';
+    var cats=(state.showcase&&state.showcase.categories)||[];
+    // One drawer is not a choice. Chips appear from two upward.
+    if(cats.length<2) return;
+    [{id:'',label:{zh:'全部',en:'All'}}].concat(cats).forEach(function(cat){
+      var chip=document.createElement('button');
+      chip.type='button';
+      chip.className='sc-chip'+(state.showcaseCategory===cat.id?' is-on':'');
+      chip.textContent=nouns(pickLocalized(cat.label));
+      chip.setAttribute('aria-pressed', state.showcaseCategory===cat.id?'true':'false');
+      chip.addEventListener('click', function(){ loadShowcase(cat.id, 0); });
+      host.appendChild(chip);
+    });
+  }
   function renderShowcase(b){
-    var website=b.websiteProfile||b.website_profile||{};
-    var items=(website.showcase_items||website.showcaseItems||[]).slice(0,12);
-    var on=String(website.show_showcase ?? website.showShowcase ?? false)==='true'
-           || website.show_showcase===true || website.showShowcase===true;
+    var brand=b||state.brand||{};
+    var website=brand.websiteProfile||brand.website_profile||{};
+    var data=state.showcase;
     var grid=document.getElementById('showcaseGrid');
     var rest=document.getElementById('showcaseRest');
-    grid.textContent=''; rest.textContent='';
-    /* Same rule as every other section: switched off, or nothing curated, and
-       it does not appear at all. An empty board argues against the studio. */
-    if(!on || !items.length){ resolveSection('showcase', false); setNavVisible(['navShowcase','mnavShowcase'], false); return; }
+    /* Two independent responses again: the switch is in /brand, the works are
+       in /showcase. Either can be missing when the other arrives, and the
+       switch always wins — a section switched off must never be revealed by
+       content that answered first. */
+    if(state.sectionsOff.showcase || !data || !data.enabled || !data.items.length){
+      grid.textContent=''; rest.textContent='';
+      // The chips go too. They are outside the grid, so clearing only the
+      // tiles left a row of filters above an empty section — and worse, a
+      // stale set would flash if the board came back with different drawers.
+      document.getElementById('showcaseFilters').textContent='';
+      document.getElementById('showcaseMore').hidden=true;
+      resolveSection('showcase', false);
+      setNavVisible(['navShowcase','mnavShowcase'], false);
+      return;
+    }
     var label=pickLocalized(website.showcase_label||website.showcaseLabel);
     var title=pickLocalized(website.showcase_title||website.showcaseTitle);
     var lead=pickLocalized(website.showcase_lead||website.showcaseLead);
     if(label) document.getElementById('showcaseLabel').textContent=nouns(label);
     if(title) document.getElementById('showcaseTitle').textContent=nouns(title);
     document.getElementById('showcaseLead').textContent=lead?nouns(lead):'';
+    showcaseChips();
+
+    var items=data.items;
+    grid.textContent=''; rest.textContent='';
     // Three in the golden block, the remainder in an equal grid beneath it.
     grid.className='showcase-grid reveal in count-'+Math.min(items.length,3);
     items.slice(0,3).forEach(function(item,i){ grid.appendChild(showcaseTile(item,i)); });
     items.slice(3).forEach(function(item,i){ rest.appendChild(showcaseTile(item,i+3)); });
+
+    var more=document.getElementById('showcaseMore');
+    more.hidden=!data.hasMore;
+    more.textContent=T('查看更多作品','See more work');
     resolveSection('showcase', true);
     setNavVisible(['navShowcase','mnavShowcase'], true);
+  }
+  /* Its own request, and deliberately so: /brand is the critical path and
+     carries every word and image of this page, so an unbounded list does not
+     belong in it. A failure here costs the board and nothing else. */
+  function loadShowcase(category, offset){
+    var params='?offset='+encodeURIComponent(offset||0);
+    if(category) params+='&category='+encodeURIComponent(category);
+    return fetch(API + '/showcase' + params).then(function(r){return r.json();}).then(function(d){
+      if(!d) return;
+      var appending = (offset||0) > 0 && state.showcase && state.showcaseCategory === (category||'');
+      state.showcaseCategory = category||'';
+      if(appending){
+        state.showcase.items = state.showcase.items.concat(d.items||[]);
+        state.showcase.hasMore = !!d.hasMore;
+        state.showcase.offset = d.offset;
+      } else {
+        state.showcase = d;
+      }
+      renderShowcase(state.brand);
+      return d;
+    }).catch(function(){ /* The board is not worth a banner; the page stands without it. */ });
   }
   var aboutTimer=null, aboutPaused=false;
   function startAboutCarousel(){
@@ -1622,17 +1695,30 @@
     state.sectionsOff = {
       courses: String(website.show_courses ?? website.showCourses ?? true) === 'false',
       gallery: String(website.show_gallery ?? website.showGallery ?? true) === 'false',
-      faq: String(website.show_faq ?? website.showFaq ?? true) === 'false'
+      faq: String(website.show_faq ?? website.showFaq ?? true) === 'false',
+      /* v8.7.0: the board moved to its own endpoint, so this switch is once
+         again in a different response from the content it governs — the exact
+         shape of the v8.5.3 defect. Recorded here from the first line rather
+         than discovered later. Default OFF, unlike the others: a studio that
+         has curated nothing should not publish an empty heading. */
+      showcase: String(website.show_showcase ?? website.showShowcase ?? false) !== 'true'
     };
     setNavVisible(['navCourses','mnavCourses'], !state.sectionsOff.courses);
     setNavVisible(['navGallery','mnavGallery'], !state.sectionsOff.gallery);
     setNavVisible(['navFaq','mnavFaq'], !state.sectionsOff.faq);
     /* Content may already have arrived and revealed a section before /brand
-       answered — the two fetches are independent — so re-apply the switches
-       to whatever is on the page now. */
+       answered — the fetches are independent — so re-apply the switches to
+       whatever is on the page now. */
     if(state.sectionsOff.courses) resolveSection('courses', false);
     if(state.sectionsOff.gallery) resolveSection('gallery', false);
     if(state.sectionsOff.faq) resolveSection('faq', false);
+    if(state.sectionsOff.showcase){
+      resolveSection('showcase', false);
+      setNavVisible(['navShowcase','mnavShowcase'], false);
+    } else if(state.showcase){
+      // The board landed first. Draw it now that its headings have arrived.
+      renderShowcase(b);
+    }
     showSection('contact', String(website.show_contact ?? website.showContact ?? true) !== 'false');
 
     renderRegistrationFields(b.registrationProfile || b.registration_profile);
@@ -1644,6 +1730,13 @@
   fetch(API + '/programs').then(function(r){return r.json();}).then(function(d){
     renderPrograms((d&&d.programs)||[]);
   }).catch(function(){ showSurfaceStatus('programs', T('课程资料暂时无法加载，请稍后重试。','Course details are temporarily unavailable. Please retry later.')); });
+
+  /* ── the studio's own work (its own endpoint since v8.7.0) ── */
+  document.getElementById('showcaseMore').addEventListener('click', function(){
+    var data=state.showcase||{};
+    loadShowcase(state.showcaseCategory, (data.items||[]).length);
+  });
+  loadShowcase('', 0);
 
   /* ── public gallery ── */
   fetch(API + '/gallery').then(function(r){return r.json();}).then(function(d){

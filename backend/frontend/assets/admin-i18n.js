@@ -249,6 +249,11 @@
     ['Caption · 中文', '说明 · 中文'], ['Caption · English', '说明 · English'],
     ['Video link (optional)', '视频链接（选填）'],
     ['Lead', '主作品'],
+    ['Categories', '分类'], ['Add a category', '添加分类'], ['Remove category', '删除分类'],
+    ['Category', '分类'], ['Uncategorised', '未分类'],
+    ['Category · 中文', '分类名称 · 中文'], ['Category · English', '分类名称 · English'],
+    ['Optional. Visitors get filter buttons once you have two or more. Deleting a category never deletes work — those pieces simply become uncategorised.',
+     '选填。有两个及以上分类时，访客会看到筛选按钮。删除分类不会删除作品，那些作品只会变成未分类。'],
     ['Work from this studio', '出自这间工作室'],
     ['A short selection, chosen by the studio.', '一小组精选，由工作室自己挑选。'],
     ['The photo is shown on its own.', '只展示这张照片。'],
@@ -660,11 +665,34 @@
     }
   }
 
+  /* An English-half field's placeholder is a sample of the CONTENT, not a
+     label on the interface — so it must stay English even when the console is
+     in Chinese. Until v8.7.0 it did not: "Founder & Principal" under
+     「主理人头衔 · English」 rendered as 「创始人 / 主理人」, and every other
+     `*En` field the same. The one job a placeholder has is to show what to
+     type, and it was showing the wrong language to type in.
+
+     Keyed on the id suffix rather than on a hand-applied attribute, because a
+     hand-applied attribute is a thing to forget on the next bilingual pair.
+     The `settingXxxEn` / `xxxEn<index>` convention is already load-bearing
+     elsewhere in this console. `data-i18n-lock` stays as an escape hatch for
+     anything that cannot follow it.
+
+     `title` and `aria-label` are NOT locked: those really are interface
+     chrome and should follow the console language. */
+  const CONTENT_SAMPLE_FIELD = /En\d*$/;
+  function keepsItsOwnLanguage(element, attr) {
+    if (attr !== 'placeholder') return false;
+    return element.hasAttribute('data-i18n-lock')
+      || CONTENT_SAMPLE_FIELD.test(element.id || '');
+  }
+
   function applyAttributes(element) {
     if (!originalAttributes.has(element)) originalAttributes.set(element, {});
     const originals = originalAttributes.get(element);
     for (const attr of ['placeholder', 'title', 'aria-label']) {
       if (!element.hasAttribute(attr)) continue;
+      if (keepsItsOwnLanguage(element, attr)) continue;
       const current = element.getAttribute(attr);
       if (!(attr in originals) || current !== (element.dataset[`i18nRendered${attr.replace('-', '')}`] || originals[attr])) originals[attr] = current;
       const next = language === 'zh' ? translate(originals[attr]) : originals[attr];

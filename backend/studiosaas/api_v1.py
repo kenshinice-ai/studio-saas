@@ -849,6 +849,7 @@ def _default_website_profile() -> dict:
         "showcase_label": {"zh": "", "en": ""},
         "showcase_title": {"zh": "", "en": ""},
         "showcase_lead": {"zh": "", "en": ""},
+        "showcase_categories": [],
         "showcase_items": [],
     }
 
@@ -867,10 +868,67 @@ def _localized_pair(data: dict, key: str, *, limit: int) -> dict:
     return {"zh": zh or en, "en": en or zh}
 
 
-# Twelve. Not a storage limit — a curation one. A portfolio board is an
-# argument about quality, and the twenty-fifth item is always weaker than the
-# first. See docs/design/Showcase_Section.md.
-SHOWCASE_ITEM_LIMIT = 12
+# How many works a record may HOLD. Not how many the portal publishes — that
+# is `plans.showcase_limit`, applied when the board is read.
+#
+# The distinction is the whole design and it is worth stating once, loudly:
+#
+#   A tenant that moves from growth (150) to starter (15) KEEPS ALL 150.
+#
+# v8.6.0 truncated here, at `[:SHOWCASE_ITEM_LIMIT]`. Had the cap become a
+# per-plan number while this line stood, a studio that downgraded would have
+# lost 135 works the next time it saved ANY setting — changing a phone number
+# would have destroyed a portfolio, silently. Exactly the shape of the v8.5.4
+# outage: a harmless-looking truncation operating on somebody else's data.
+#
+# So this ceiling is deliberately plan-INDEPENDENT and generous. It exists to
+# bound a hostile request, nothing else.
+SHOWCASE_STORAGE_CEILING = 500
+
+# The fallback when a tenant's plan row cannot be read. Conservative on
+# purpose, and never an exception — a missing plan must cost a studio some of
+# its board for one request, never the whole page.
+SHOWCASE_FALLBACK_LIMIT = 15
+
+# Eight drawers is already more structure than a portfolio of this size wants;
+# past that, filtering costs the visitor more than it saves them.
+SHOWCASE_CATEGORY_LIMIT = 8
+
+# How many works one page of the public board carries. The first screen of a
+# portfolio is an argument, not an archive.
+SHOWCASE_PAGE_SIZE = 12
+
+_SHOWCASE_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,24}$")
+
+
+def showcase_limit_for(conn, tenant_id: str) -> int:
+    """How many works this tenant's plan publishes.
+
+    Never raises and never returns 0. A tenant whose plan row is missing — a
+    seed fixture, a plan renamed mid-flight, a join that came back empty —
+    gets the entry-plan number rather than an exception, because this runs on
+    a public page load and the alternative is a blank section.
+
+    That rule is not a general preference; it is what `_stored_visual_theme`
+    learned in v8.5.4, applied before the same thing can happen twice.
+    """
+
+    try:
+        row = fetch_one(
+            conn,
+            "SELECT p.showcase_limit FROM tenants t "
+            "LEFT JOIN plans p ON p.code = t.plan_code WHERE t.id = %s",
+            (tenant_id,),
+        )
+    except Exception:
+        current_app.logger.warning("showcase limit lookup failed", exc_info=True)
+        return SHOWCASE_FALLBACK_LIMIT
+    limit = (row or {}).get("showcase_limit")
+    try:
+        limit = int(limit)
+    except (TypeError, ValueError):
+        return SHOWCASE_FALLBACK_LIMIT
+    return limit if limit > 0 else SHOWCASE_FALLBACK_LIMIT
 
 
 def _normalize_website_profile(value) -> dict:
@@ -932,9 +990,30 @@ def _normalize_website_profile(value) -> dict:
         camel = "".join([key.split("_")[0], *(part.capitalize() for part in key.split("_")[1:])])
         source = data if key in data else {key: data.get(camel)}
         profile[key] = _localized_pair(source, key, limit=300)
+    # Categories are drawers, and a drawer never owns what is in it: deleting
+    # one leaves its works uncategorised rather than deleting them.
+    #
+    # The id is generated here and never derived from the label, because a
+    # derived id means renaming 「油画」 to 「油画 / Oil」 silently detaches every
+    # work filed under it.
+    raw_categories = data.get("showcase_categories", data.get("showcaseCategories"))
+    categories, seen_ids = [], set()
+    for entry in (raw_categories if isinstance(raw_categories, list) else [])[:SHOWCASE_CATEGORY_LIMIT]:
+        if not isinstance(entry, dict):
+            continue
+        label = _localized_pair(entry, "label", limit=60)
+        if not (label["zh"] or label["en"]):
+            continue
+        ident = str(entry.get("id") or entry.get("categoryId") or "").strip()[:24]
+        if not _SHOWCASE_ID_RE.match(ident) or ident in seen_ids:
+            ident = secrets.token_hex(4)
+        seen_ids.add(ident)
+        categories.append({"id": ident, "label": label})
+    profile["showcase_categories"] = categories
+
     showcase = data.get("showcase_items", data.get("showcaseItems"))
     curated = []
-    for item in (showcase if isinstance(showcase, list) else [])[:SHOWCASE_ITEM_LIMIT]:
+    for item in (showcase if isinstance(showcase, list) else [])[:SHOWCASE_STORAGE_CEILING]:
         if not isinstance(item, dict):
             continue
         image = str(item.get("image_url") or item.get("imageUrl") or "").strip()[:400]
@@ -953,8 +1032,14 @@ def _normalize_website_profile(value) -> dict:
         # work. Dropped rather than rendered.
         if not image and not provider:
             continue
+        # An id that names no category becomes "uncategorised" rather than a
+        # dangling reference — the drawer may be gone, the work is not.
+        category_id = str(item.get("category_id") or item.get("categoryId") or "").strip()[:24]
+        if category_id not in seen_ids:
+            category_id = ""
         curated.append({
             "image_url": image,
+            "category_id": category_id,
             "title": _localized_pair(item, "title", limit=120),
             "caption": _localized_pair(item, "caption", limit=300),
             "video_provider": provider,
@@ -1395,9 +1480,13 @@ def _plan_payload(payload: dict) -> dict:
         student_limit = int(payload.get("studentLimit", payload.get("student_limit", 1)))
         user_limit = int(payload.get("userLimit", payload.get("user_limit", 1)))
         storage_limit_mb = int(payload.get("storageLimitMb", payload.get("storage_limit_mb", 1)))
+        # Defaults to the entry-plan number so a plan created without the field
+        # publishes a real board rather than nothing.
+        showcase_limit = int(payload.get("showcaseLimit", payload.get("showcase_limit", 15)))
     except (TypeError, ValueError) as exc:
         raise ValueError("Plan numeric limits must be valid integers.") from exc
-    if monthly_price_aud < 0 or student_limit <= 0 or user_limit <= 0 or storage_limit_mb <= 0:
+    if (monthly_price_aud < 0 or student_limit <= 0 or user_limit <= 0
+            or storage_limit_mb <= 0 or showcase_limit <= 0):
         raise ValueError("Plan limits must be positive, and monthly price cannot be negative.")
     features = payload.get("features", {})
     if not isinstance(features, dict):
@@ -1416,6 +1505,7 @@ def _plan_payload(payload: dict) -> dict:
         "student_limit": student_limit,
         "user_limit": user_limit,
         "storage_limit_mb": storage_limit_mb,
+        "showcase_limit": showcase_limit,
         "features_json": json.dumps(features),
         "is_public": is_public,
         "is_recommended": is_recommended,
@@ -2712,7 +2802,12 @@ def get_brand_workspace():
             """,
             (tenant.tenant_id,),
         )
-    return jsonify({"draft": draft, "versions": versions})
+        # Sent rather than assumed. The console has to tell a studio how many
+        # works its site publishes, and a number invented in the browser would
+        # be a second opinion about somebody's plan.
+        showcase_limit = showcase_limit_for(conn, tenant.tenant_id)
+    return jsonify({"draft": draft, "versions": versions,
+                    "limits": {"showcase": showcase_limit}})
 
 
 @api_v1.route("/tenant/brand-draft", methods=["PUT"])
@@ -3900,6 +3995,22 @@ def public_brand(tenant_slug: str):
     # record could cite a version the visitor's page never rendered. One value,
     # served with the notice it refers to.
     row["privacyNoticeVersion"] = PRIVACY_NOTICE_VERSION
+
+    # The board itself is served by /public/<slug>/showcase, not from here.
+    #
+    # This response is the portal's critical path — every word, every image,
+    # the principal's biography, the contact details — and in v8.5.4 one
+    # unreadable field in it left five sites blank. A list with no fixed upper
+    # bound is exactly what should not grow inside it.
+    #
+    # The SWITCH stays, because the page needs to know whether to reserve the
+    # section before the board arrives. That is also the race this re-creates:
+    # the switch is here and the content is elsewhere, so the portal must hold
+    # the switch in `state.sectionsOff` and honour it in the renderer — the
+    # v8.5.3 defect, designed around rather than rediscovered.
+    for served_separately in ("showcase_items", "showcase_categories"):
+        row["website_profile"].pop(served_separately, None)
+    row["websiteProfile"] = row["website_profile"]
     return jsonify({"brand": row})
 
 
@@ -4051,6 +4162,75 @@ def _public_portfolio_copy(value: object) -> str:
     if re.match(r"^.+['’]s\s+Demo\s+Work$", text, re.IGNORECASE):
         return "Student artwork"
     return text
+
+
+@api_v1.route("/public/<tenant_slug>/showcase", methods=["GET"])
+def public_showcase(tenant_slug: str):
+    """The studio's own work, paginated, limited by the tenant's plan.
+
+    Its own endpoint rather than a field on `/brand` for one reason: `/brand`
+    is the critical path. Every word and every image of a portal arrives in
+    that one response, and in v8.5.4 a single unreadable field in it took five
+    sites blank. A list with no fixed upper bound does not belong there.
+
+    **Publishing is limited here; storing is not limited anywhere.** A tenant
+    that drops from growth (150) to starter (15) keeps all 150 works in its
+    record — this endpoint serves the first 15. Upgrading restores the rest
+    with no migration, because nothing was ever removed.
+
+    The plan limit is applied BEFORE the category filter, not after. The other
+    order would let a studio on the entry plan publish its whole archive by
+    splitting it across drawers and linking each one.
+    """
+
+    with connect() as conn:
+        try:
+            tenant = resolve_tenant(conn, tenant_slug, "path")
+        except TenantResolutionError:
+            return _error("Unknown tenant.", 404)
+        row = fetch_one(
+            conn,
+            "SELECT COALESCE(settings->'website_profile', '{}'::jsonb) AS website, "
+            "       COALESCE(settings->>'category', 'general') AS category "
+            "FROM tenants WHERE id = %s",
+            (tenant.tenant_id,),
+        )
+        limit = showcase_limit_for(conn, tenant.tenant_id)
+
+    profile = _normalize_website_profile((row or {}).get("website") or {})
+    if not profile.get("show_showcase"):
+        # Switched off is not an error, and not a 404 either: the section
+        # simply has nothing to say.
+        return jsonify({"enabled": False, "items": [], "categories": [],
+                        "total": 0, "offset": 0, "hasMore": False})
+
+    published = profile.get("showcase_items", [])[:limit]
+    categories = profile.get("showcase_categories", [])
+
+    wanted = (request.args.get("category") or "").strip()[:24]
+    if wanted and any(c["id"] == wanted for c in categories):
+        visible = [item for item in published if item.get("category_id") == wanted]
+    else:
+        wanted, visible = "", published
+
+    try:
+        offset = max(0, int(request.args.get("offset") or 0))
+    except (TypeError, ValueError):
+        offset = 0
+    page = visible[offset:offset + SHOWCASE_PAGE_SIZE]
+
+    return jsonify({
+        "enabled": True,
+        "category": wanted,
+        # Only the drawers that actually hold a published work. An empty
+        # filter chip is a dead end the visitor has to discover by pressing it.
+        "categories": [c for c in categories
+                       if any(i.get("category_id") == c["id"] for i in published)],
+        "items": page,
+        "total": len(visible),
+        "offset": offset,
+        "hasMore": offset + len(page) < len(visible),
+    })
 
 
 @api_v1.route("/public/<tenant_slug>/gallery", methods=["GET"])
@@ -6072,7 +6252,7 @@ def list_plans():
             conn,
             """
             SELECT code, name, monthly_price_aud, student_limit, user_limit,
-                   storage_limit_mb, features, is_public, is_recommended
+                   storage_limit_mb, showcase_limit, features, is_public, is_recommended
             FROM plans
             ORDER BY monthly_price_aud
             """,
@@ -6099,10 +6279,10 @@ def create_plan():
                 """
                 INSERT INTO plans (
                     code, name, monthly_price_aud, student_limit,
-                    user_limit, storage_limit_mb, features,
+                    user_limit, storage_limit_mb, showcase_limit, features,
                     is_public, is_recommended
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s::jsonb, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s, %s)
                 """,
                 (
                     plan["code"],
@@ -6111,6 +6291,7 @@ def create_plan():
                     plan["student_limit"],
                     plan["user_limit"],
                     plan["storage_limit_mb"],
+                    plan["showcase_limit"],
                     plan["features_json"],
                     plan["is_public"],
                     plan["is_recommended"],
@@ -6155,6 +6336,7 @@ def mutate_plan(code: str):
                     student_limit = %s,
                     user_limit = %s,
                     storage_limit_mb = %s,
+                    showcase_limit = %s,
                     features = %s::jsonb,
                     is_public = %s,
                     is_recommended = %s
@@ -6166,6 +6348,7 @@ def mutate_plan(code: str):
                     plan["student_limit"],
                     plan["user_limit"],
                     plan["storage_limit_mb"],
+                    plan["showcase_limit"],
                     plan["features_json"],
                     plan["is_public"],
                     plan["is_recommended"],

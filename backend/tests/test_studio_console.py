@@ -212,7 +212,28 @@ def dictionary_keys() -> set[str]:
     return set(re.findall(r"\['((?:[^'\\]|\\.)*)',", table))
 
 
+# An English-half field's placeholder is a sample of the CONTENT, so it stays
+# English in both console languages (admin-i18n `keepsItsOwnLanguage`) and
+# therefore needs no dictionary entry. Asking for one would be asking for the
+# bug: "Founder & Principal" under 「主理人头衔 · English」 rendering as
+# 「创始人 / 主理人」, which is what shipped until v8.7.0.
+ENGLISH_HALF_FIELD = re.compile(r"En\d*$")
+
+
+def _english_half_placeholders() -> set[str]:
+    """Placeholders on `<input id="…En">` / `<textarea id="…En">` tags."""
+
+    values = set()
+    for tag in re.findall(r"<(?:input|textarea)\b[^>]*>", console()):
+        ident = re.search(r'\bid="([^"]+)"', tag)
+        placeholder = re.search(r'\bplaceholder="([^"]+)"', tag)
+        if ident and placeholder and ENGLISH_HALF_FIELD.search(ident.group(1)):
+            values.add(placeholder.group(1))
+    return values
+
+
 def authored_attribute_values() -> set[str]:
+    exempt = _english_half_placeholders()
     found = set()
     for attribute in ("placeholder", "aria-label", "title"):
         for value in re.findall(rf'{attribute}="([^"]+)"', console()):
@@ -224,8 +245,35 @@ def authored_attribute_values() -> set[str]:
             # are already localised; there is no authored English to translate.
             if "${" in value or "__" in value or value.startswith("{{"):
                 continue
+            if attribute == "placeholder" and value in exempt:
+                continue
             found.add(value)
     return found
+
+
+def test_an_english_half_field_keeps_its_english_placeholder() -> None:
+    """The placeholder shows what to type; it must be in the right language.
+
+    Studio Admin renders every bilingual pair as two fields, `…` and `…En`.
+    `applyAttributes()` localised `placeholder` on both, so in a Chinese
+    console the English field's example was Chinese — the one job a
+    placeholder has, done backwards. Every `*En` field was affected.
+    """
+
+    module = DICTIONARY.read_text(encoding="utf-8")
+    assert "keepsItsOwnLanguage" in module
+    assert "if (keepsItsOwnLanguage(element, attr)) continue;" in module
+    # Locked for placeholder only: title and aria-label really are interface
+    # chrome and should follow the console language.
+    assert "if (attr !== 'placeholder') return false;" in module
+
+    # And there is something for it to protect, so the rule cannot quietly
+    # become a no-op if the naming convention drifts.
+    protected = _english_half_placeholders()
+    assert len(protected) >= 10, (
+        f"only {len(protected)} English-half placeholders found; the "
+        "`…En` naming convention this relies on may have changed"
+    )
 
 
 def test_every_authored_hint_has_a_chinese_translation() -> None:

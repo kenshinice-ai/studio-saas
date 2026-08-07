@@ -39,7 +39,7 @@ from ..db import connect, fetch_all
 # public pricing grid (migration 0023).
 PUBLIC_PLAN_QUERY = """
     SELECT code, name, monthly_price_aud, student_limit, user_limit,
-           storage_limit_mb, is_recommended
+           storage_limit_mb, showcase_limit, is_recommended
     FROM plans
     WHERE is_public
     ORDER BY monthly_price_aud
@@ -307,6 +307,9 @@ _LABELS = {
         "users": "{value} team user",
         "users_plural": "{value} team users",
         "storage": "{value} storage allowance",
+        # The board of the studio's own work. It is on the pricing card
+        # because it is the difference a studio can see before signing up.
+        "showcase": "{value} portfolio pieces on your site",
         # "Discuss Starter" asked the reader to do the thing they were trying
         # to avoid. The verb names what they get instead.
         "cta": "Start with {name}",
@@ -319,6 +322,7 @@ _LABELS = {
         "users": "{value} 个团队账号",
         "users_plural": "{value} 个团队账号",
         "storage": "{value} 存储额度",
+        "showcase": "官网展示 {value} 件工作室作品",
         "cta": "从 {name} 开始",
         "unavailable": "定价暂时无法读取，请联系我们获取当前套餐。",
     },
@@ -365,8 +369,10 @@ def _limit_items(row: dict[str, Any]) -> list[tuple[str, str]]:
     students = int(row.get("student_limit") or 0)
     users = int(row.get("user_limit") or 0)
     storage = _format_storage(row.get("storage_limit_mb"))
+    showcase = int(row.get("showcase_limit") or 0)
     items = []
-    for key, value in (("students", f"{students:,}"), ("users", str(users)), ("storage", storage)):
+    for key, value in (("students", f"{students:,}"), ("users", str(users)),
+                       ("storage", storage), ("showcase", str(showcase))):
         english = _LABELS["en"]["users_plural" if key == "users" and users != 1 else key]
         chinese = _LABELS["zh"][key]
         items.append((english.format(value=value), chinese.format(value=value)))
@@ -454,6 +460,8 @@ def render_pricing_markdown(rows: list[dict[str, Any]] | None) -> str:
             f"- Students: up to {students:,}",
             f'- Team users: {users}',
             f'- Storage: {_format_storage(row.get("storage_limit_mb"))}',
+            f'- Studio portfolio pieces published on the public site:'
+            f' {int(row.get("showcase_limit") or 0)}',
             "- Included: public site, online registration, class scheduling,"
             " attendance, class-credit ledger, refunds, student portfolios with"
             " guardian consent, role-based permissions, audit log, bilingual"

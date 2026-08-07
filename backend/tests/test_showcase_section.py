@@ -161,11 +161,32 @@ def test_a_stored_record_is_re_validated_not_trusted():
     assert profile["showcase_items"][0]["video_embed_url"] == ""
 
 
-def test_the_board_is_capped():
+def test_the_write_path_does_not_cap_by_plan():
+    """A downgrade must never destroy work. This is the load-bearing test.
+
+    v8.6.0 truncated here at a flat 12. Once the cap became a per-plan number,
+    that line would have meant: a studio on growth (150 works) that moves to
+    starter (15) loses 135 the next time it saves ANY setting — changing a
+    phone number would delete a portfolio, silently.
+
+    So the write path keeps everything up to a plan-INDEPENDENT ceiling that
+    exists only to bound a hostile request. Publishing is limited on read.
+    """
+
     profile = api_v1._normalize_website_profile({
-        "showcaseItems": [{"imageUrl": f"/m/{i}"} for i in range(40)],
+        "showcaseItems": [{"imageUrl": f"/m/{i}"} for i in range(200)],
     })
-    assert len(profile["showcase_items"]) == api_v1.SHOWCASE_ITEM_LIMIT
+    assert len(profile["showcase_items"]) == 200, (
+        "the write path is capping works; a plan downgrade would delete them"
+    )
+    assert api_v1.SHOWCASE_STORAGE_CEILING >= 500
+
+
+def test_a_hostile_payload_is_still_bounded():
+    profile = api_v1._normalize_website_profile({
+        "showcaseItems": [{"imageUrl": f"/m/{i}"} for i in range(5000)],
+    })
+    assert len(profile["showcase_items"]) == api_v1.SHOWCASE_STORAGE_CEILING
 
 
 def test_the_portal_never_assembles_a_frame_url():
@@ -243,3 +264,104 @@ def test_the_admin_has_its_own_tab_and_sends_the_raw_link():
     assert 'id="settingShowShowcase"' in admin
     # The browser's parse is feedback only; the raw link is what is submitted.
     assert "videoUrl: String(item.video_url || '').trim()" in admin
+
+
+def test_a_category_id_survives_a_round_trip():
+    """If ids were regenerated on save, every work would lose its category.
+
+    The id is generated server-side and never derived from the label, so the
+    client must send it back. This is the test that catches an admin payload
+    that forgets to.
+    """
+
+    first = api_v1._normalize_website_profile({
+        "showcaseCategories": [{"label": {"zh": "油画", "en": "Oil"}}],
+        "showcaseItems": [{"imageUrl": "/m/1"}],
+    })
+    ident = first["showcase_categories"][0]["id"]
+
+    filed = api_v1._normalize_website_profile({
+        "showcaseCategories": first["showcase_categories"],
+        "showcaseItems": [{"imageUrl": "/m/1", "categoryId": ident}],
+    })
+    assert filed["showcase_categories"][0]["id"] == ident
+    assert filed["showcase_items"][0]["category_id"] == ident
+
+    # And a rename keeps the id, so the works stay filed.
+    renamed = api_v1._normalize_website_profile({
+        "showcaseCategories": [{"id": ident, "label": {"zh": "油画 / Oil", "en": "Oil painting"}}],
+        "showcaseItems": [{"imageUrl": "/m/1", "categoryId": ident}],
+    })
+    assert renamed["showcase_categories"][0]["id"] == ident
+    assert renamed["showcase_items"][0]["category_id"] == ident
+
+
+def test_deleting_a_category_keeps_the_work():
+    """A drawer never owns what is in it."""
+
+    kept = api_v1._normalize_website_profile({
+        "showcaseCategories": [],
+        "showcaseItems": [{"imageUrl": "/m/1", "categoryId": "gone"}],
+    })
+    assert len(kept["showcase_items"]) == 1
+    assert kept["showcase_items"][0]["category_id"] == ""
+
+
+def test_the_public_brand_no_longer_carries_the_board():
+    """/brand is the critical path and must not grow an unbounded list."""
+
+    source = (REPOSITORY_ROOT / "backend/studiosaas/api_v1.py").read_text(encoding="utf-8")
+    assert 'for served_separately in ("showcase_items", "showcase_categories"):' in source
+    assert '@api_v1.route("/public/<tenant_slug>/showcase", methods=["GET"])' in source
+
+
+def test_the_plan_limit_is_applied_before_the_category_filter():
+    """Otherwise an entry-plan studio publishes its archive one drawer at a time."""
+
+    source = (REPOSITORY_ROOT / "backend/studiosaas/api_v1.py").read_text(encoding="utf-8")
+    block = source[source.index("def public_showcase"):source.index("@api_v1.route(\"/public/<tenant_slug>/gallery\"")]
+    assert block.index("published = profile.get(\"showcase_items\", [])[:limit]") < block.index("if wanted and any(")
+
+
+def test_the_limit_lookup_never_raises(app):
+    """A public page load must not depend on a plan row existing."""
+
+    import inspect
+    source = inspect.getsource(api_v1.showcase_limit_for)
+    assert "except Exception:" in source
+    assert "return SHOWCASE_FALLBACK_LIMIT" in source
+    assert api_v1.SHOWCASE_FALLBACK_LIMIT > 0
+
+
+def test_the_switch_beats_a_board_that_answered_first():
+    """v8.5.3, re-created on purpose and handled from the first line.
+
+    Moving the board to its own endpoint puts the switch (`/brand`) and the
+    content (`/showcase`) in different responses again, and either can land
+    first. A section switched off must never be left revealed by content that
+    won the race.
+
+    Measured in a browser, not read: board first with the switch unknown
+    renders 3 tiles; the switch then arriving as OFF takes the section back
+    down (resolved false, 0 tiles, nav hidden).
+    """
+
+    portal = PORTAL.read_text(encoding="utf-8")
+    assert "showcase: String(website.show_showcase" in portal, (
+        "the showcase switch is not recorded in state.sectionsOff; the board "
+        "arriving first would then win"
+    )
+    block = portal[portal.index("function renderShowcase("):]
+    block = block[:block.index("function loadShowcase(")]
+    assert "state.sectionsOff.showcase ||" in block, (
+        "renderShowcase does not consult the switch, so a late /brand cannot "
+        "take the section back down"
+    )
+    # And the teardown clears everything outside the grid too.
+    assert "document.getElementById('showcaseFilters').textContent='';" in block
+
+
+def test_the_board_is_fetched_separately_from_brand():
+    portal = PORTAL.read_text(encoding="utf-8")
+    assert "fetch(API + '/showcase'" in portal
+    assert "loadShowcase('', 0);" in portal
