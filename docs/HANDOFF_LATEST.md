@@ -154,6 +154,23 @@ subsets stay `unloaded` (correct — nothing on the page needs them), and the
 same string renders 408.3px in Cormorant vs 484.9px in Georgia, which is proof
 it is being *used* and not merely fetched.
 
+## One more thing the screenshot found
+
+With the portal rendering again, `ruby-s-studio` still showed the decorative
+gradient blob — while holding a hero photograph it had uploaded. Cause: before
+v8.4.0, uploading a hero image filled `hero_image_url` and did not move
+`background_style` off `soft`, and the portal only reveals `.hero-art img`
+under `body.hero-image`. Upload succeeded, Save succeeded, Publish succeeded,
+and the photograph was never on the site. v8.4.0 closed the dead end for new
+uploads but repaired none of the existing records, and **a studio has no way
+to discover this**: nothing is broken, there is just a shape where their
+painting should be.
+
+`backend/scripts/show_uploaded_hero_images.py` reports and repairs it (dry-run
+by default). Exactly one tenant was affected across all six; backed up, then
+applied to `ruby-s-studio`. Her painting is now the hero. Reversible from
+Studio Admin in one click, and the photograph was never at risk either way.
+
 ## Gate
 
 - **1423 passed, 7 skipped**
