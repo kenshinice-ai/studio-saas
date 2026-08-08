@@ -38,7 +38,7 @@ passed on the command line and never printed.
 
 | | |
 |---|---|
-| **Viewport** | 1440 × 900 desktop; 390 × 844 for the two screens that are used on a phone |
+| **Viewport** | 1440 × 900 desktop; 390 × 844 for the three screens that are used on a phone |
 | **Theme** | the showcase tenant's own theme, light mode |
 | **Language** | **each shot is captured twice**, `<name>.en.webp` and `<name>.zh.webp`. A Chinese screenshot in the English manual reads as a different install, not a different language |
 | **Format** | WebP, quality 82, capped at 1600px wide, `loading="lazy"` with explicit `width`/`height` |
@@ -58,7 +58,11 @@ install is wrong.
 | `01-brand-workbench` | owner | `/lets-paint-showcase/studio-admin` | desktop | signed in, Website / Brand tab, preview visible |
 | `02-portal` | public | `/lets-paint-showcase` | desktop | published portal, top of page |
 | `02-register` | public | `/lets-paint-showcase/register` | desktop | empty enquiry form |
-| `02-pending` | manager | `/lets-paint-showcase/cms` | desktop | Pending tab, showing the duplicate badge |
+| `02-pending` | manager | `/lets-paint-showcase/cms` | desktop | Pending page with New enquiries and Class bookings tabs |
+| `09-timetable` | public | `/lets-paint-showcase/timetable` | desktop | public classes, dates, seats and cancellation copy |
+| `09-booking` | public | `/lets-paint-showcase/timetable` | mobile | first enabled class's no-account booking dialog |
+| `10-showcase` | public | `/lets-paint-showcase` | desktop | studio's Selected Work section, scrolled into view |
+| `11-courses` | manager | `/lets-paint-showcase/cms` | desktop | Settings → Course management, scrolled into view |
 | `03-roster` | manager | `/lets-paint-showcase/cms` | desktop | Daily roster, moved to the next day that actually teaches |
 | `03-roster-mobile` | teacher | `/lets-paint-showcase/cms` | mobile | Daily roster as a teacher sees it |
 | `04-topup` | manager | `/lets-paint-showcase/cms` | desktop | Credits tab |

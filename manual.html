@@ -15,13 +15,13 @@
        take enrolments or track class credits had no reason to be shown it.
        The title names what the manual teaches; the brand goes at the end,
        where a brand belongs when nobody is searching for it yet. -->
-  <title data-lang="en">How to Run an Art, Music or Dance Studio — User Manual | PWE Studio</title>
-  <title data-lang="zh">工作室怎么运营：报名、排课、课时与作品 · 用户手册 | PWE Studio</title>
+  <title data-lang="en">Art Studio Manual: Timetable, Work &amp; Enrolment | PWE Studio</title>
+  <title data-lang="zh">工作室怎么运营：课表、约课、作品与报名 · 用户手册 | PWE Studio</title>
   <!-- Both under 160 characters, which is where a description is cut off.
        The Chinese ones were 64 — barely half of the ~78 characters a Chinese
        result will show, so half the space was simply unused. -->
-  <meta data-lang="en" name="description" content="Twelve sections on running a studio: brand and website setup, enrolment, roster and check-in, class credits and refunds, student work and permissions.">
-  <meta data-lang="zh" name="description" content="十二章讲清一间工作室怎么运营：品牌与官网、招生报名、排课签到、课时与退费、学员作品与公开授权、团队权限、经营报表与如何获得支持。">
+  <meta data-lang="en" name="description" content="Twelve sections on running a studio: brand, timetable and no-account booking, enrolment, credits, student and studio work, permissions and reports.">
+  <meta data-lang="zh" name="description" content="十二章讲清一间工作室怎么运营：品牌与官网、公开课表与免注册约课、招生报名、排课签到、课时与退费、学员与工作室作品、团队权限和经营报表。">
   <link data-lang="en" rel="canonical" href="https://pwestudio.online/manual/">
   <link data-lang="zh" rel="canonical" href="https://pwestudio.online/zh/manual/">
   <link rel="alternate" hreflang="en-AU" href="https://pwestudio.online/manual/">
@@ -93,9 +93,9 @@
         <li><a href="#start"><b>00</b><span data-lang="en">Before you start</span><span data-lang="zh">开始之前</span></a></li>
         <li><a href="#launch"><b>01</b><span data-lang="en">Day one: your website</span><span data-lang="zh">第一天：官网上线</span></a></li>
         <li><a href="#enrolment"><b>02</b><span data-lang="en">Enrolment</span><span data-lang="zh">招生与报名</span></a></li>
-        <li><a href="#roster"><b>03</b><span data-lang="en">Roster and check-in</span><span data-lang="zh">排课与签到</span></a></li>
+        <li><a href="#roster"><b>03</b><span data-lang="en">Roster, timetable and check-in</span><span data-lang="zh">排课、课表与签到</span></a></li>
         <li><a href="#money"><b>04</b><span data-lang="en">Money and the ledger</span><span data-lang="zh">课时、收费与退费</span></a></li>
-        <li><a href="#work"><b>05</b><span data-lang="en">Student work</span><span data-lang="zh">学员作品</span></a></li>
+        <li><a href="#work"><b>05</b><span data-lang="en">Student and studio work</span><span data-lang="zh">学员与工作室作品</span></a></li>
         <li><a href="#families"><b>06</b><span data-lang="en">For families</span><span data-lang="zh">家长这一侧</span></a></li>
         <li><a href="#team"><b>07</b><span data-lang="en">Your team</span><span data-lang="zh">团队与权限</span></a></li>
         <li><a href="#insight"><b>08</b><span data-lang="en">Reports and export</span><span data-lang="zh">经营统计与导出</span></a></li>
@@ -121,8 +121,8 @@
         <span data-lang="zh">最后更新 <time datetime="__RELEASE_DATE__">__RELEASE_DATE__</time> · 对应 v__APP_VERSION__</span>
       </p>
 
-      <p class="note" data-lang="en">Every screenshot here is Let’s Paint Studio, on its own theme in light mode. Your studio picked a different palette, so <strong>the colours will not match — the positions will</strong>. Eight themes ship, each designed in light and dark.</p>
-      <p class="note" data-lang="zh">本手册的截图统一取自 Let’s Paint Studio，用的是它自己的主题、浅色模式。你的工作室选的是另一套配色，所以<strong>颜色不会一样，位置会一样</strong>。系统共八套主题，每套都有明暗两版。</p>
+      <p class="note" data-lang="en">Every screenshot here is Let’s Paint Studio, on its own theme in light mode. Your studio picked a different palette, so <strong>the colours will not match — the positions will</strong>. Eight curated palettes are starting points; <strong>Custom</strong> lets you choose your own accent, including <strong>From logo</strong>. The system solves the readable depth for you.</p>
+      <p class="note" data-lang="zh">本手册的截图统一取自 Let’s Paint Studio，用的是它自己的主题、浅色模式。你的工作室选的是另一套配色，所以<strong>颜色不会一样，位置会一样</strong>。八张精选配色卡是起点，另有<strong>自定义</strong>可选自己的强调色，也可以<strong>从 Logo 取色</strong>；系统会自动求解可读的明度与饱和度。</p>
 
       <p class="no-hits" id="noHits" data-lang="en">Nothing matches that. Clear the filter box to see the whole manual again.</p>
       <p class="no-hits" id="noHits" data-lang="zh">没有匹配的内容。清空筛选框即可重新显示全部章节。</p>
@@ -213,8 +213,8 @@
           <li data-lang="zh">打开 <code>/&lt;slug&gt;/studio-admin</code>，用平台给你的邮箱和临时密码登录，<strong>立刻改掉初始密码</strong>（至少 8 位）。</li>
           <li data-lang="en"><strong>Pick an industry preset.</strong> It fills slogan, hero copy, enquiry questions, FAQ and a recommended theme in one go — and it <em>overwrites</em> what is there. Do it first, before you write anything. There is an Undo bar if you regret it.</li>
           <li data-lang="zh"><strong>选行业预设。</strong>它会一次性填好 slogan、首屏文案、报名问题、FAQ 和推荐主题——并且会<em>覆盖</em>已有内容。所以要最先做，写过东西之后再点就晚了。点错了顶部有 Undo 条。</li>
-          <li data-lang="en"><strong>Choose a theme.</strong> Eight palettes, each designed in light and dark. Arcade Lime is dark only; a mode a theme does not offer is greyed out rather than approximated.</li>
-          <li data-lang="zh"><strong>选配色主题。</strong>八套主题，每套都有明暗两版设计；街机青柠仅暗色，某套主题不提供的模式会置灰，而不是凑一个出来。</li>
+          <li data-lang="en"><strong>Choose a starting palette.</strong> Eight curated themes are joined by <strong>Custom</strong>. Pick a colour or use <strong>From logo</strong>; the system takes the hue and solves the lightness and saturation so the page stays readable. Arcade Lime is dark only; a mode a theme does not offer is greyed out rather than approximated.</li>
+          <li data-lang="zh"><strong>选一个配色起点。</strong>八张精选主题卡之外还有<strong>自定义</strong>。可以直接选颜色，也可以<strong>从 Logo 取色</strong>；系统只取色相，自动求解明度与饱和度，让页面保持可读。街机青柠仅暗色，某套主题不提供的模式会置灰，而不是凑一个出来。</li>
           <li data-lang="en"><strong>Fill in the studio details, hero, sections and enquiry questions.</strong> A section with no content stays hidden even when its switch is on, so an unfinished page never shows an empty shell.</li>
           <li data-lang="zh"><strong>填工作室信息、首屏、板块与报名问题。</strong>没写内容的板块即使开关打开也不会显示——没写完的页面不会露出空壳。</li>
           <li data-lang="en"><strong>Save Draft, preview, then Publish.</strong> The preview switches between the portal and the register page, both languages, desktop and mobile.</li>
@@ -224,8 +224,8 @@
         <figure>
           <div class="shot">
             <div class="shot-bar" aria-hidden="true"><i></i><i></i><i></i></div>
-            <img data-lang="en" src="/assets/manual/01-brand-workbench.en.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="Studio Admin brand workbench, settings on the left and a live preview on the right">
-            <img data-lang="zh" src="/assets/manual/01-brand-workbench.zh.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="品牌工作台：左侧设置，右侧实时预览">
+            <img data-lang="en" src="/assets/manual/01-brand-workbench.en.webp?v=__APP_VERSION__&amp;r=__RELEASE_DATE__" width="1600" height="1000" loading="lazy" decoding="async" alt="Studio Admin brand workbench, settings on the left and a live preview on the right">
+            <img data-lang="zh" src="/assets/manual/01-brand-workbench.zh.webp?v=__APP_VERSION__&amp;r=__RELEASE_DATE__" width="1600" height="1000" loading="lazy" decoding="async" alt="品牌工作台：左侧设置，右侧实时预览">
           </div>
           <ol class="marks">
             <li data-lang="en">The eight setting tabs — brand, hero, website, registration, FAQ, messages, analytics, publish.</li><li data-lang="zh">八个设置标签页——品牌、首屏、官网、报名、常见问答、家长话术、数据分析、预览与发布。</li>
@@ -249,8 +249,15 @@
 
         <h3 data-lang="en">Status colours follow the theme</h3>
         <h3 data-lang="zh">状态色会跟着主题变</h3>
-        <p data-lang="en">The theme preview shows two groups: six theme colours (page, panel, accent, support, control boundary, focus ring) and three status colours (success, warning, danger) marked <em>tuned to this theme</em>. Those three are solved per theme — 45 values in total across the eight themes and their modes — so success and warning stay readable and stay distinguishable from your accent. Changing theme changes them. That is correct, not a bug.</p>
-        <p data-lang="zh">主题预览分两组：六个主题色（页面、面板、强调色、辅助色、控件边界、聚焦环）与三个状态色（成功、警示、危险），后者标注「已按本主题调校」。这三个颜色是按主题逐一求解的——八套主题及其明暗模式合计 45 个值——保证既看得清，又不会和你的强调色撞脸。换主题它们会跟着变，这是正确行为。</p>
+        <p data-lang="en">The theme preview shows two groups: six theme colours (page, panel, accent, support, control boundary, focus ring) and three status colours (success, warning, danger) marked <em>tuned to this theme</em>. For a Custom accent, the system moves away from status hues when necessary and tells you it did so. The status colours are solved per theme — 45 values across the eight curated themes and their modes — so success and warning stay readable and distinguishable from your accent. Changing theme changes them. That is correct, not a bug.</p>
+        <p data-lang="zh">主题预览分两组：六个主题色（页面、面板、强调色、辅助色、控件边界、聚焦环）与三个状态色（成功、警示、危险），后者标注「已按本主题调校」。自定义颜色撞到状态色的色相时，系统会主动挪开并告诉你。状态色按主题逐一求解——八张精选主题卡及其明暗模式合计 45 个值——保证既看得清，又不会和你的强调色撞脸。换主题它们会跟着变，这是正确行为。</p>
+
+        <h3 data-lang="en">About the space</h3>
+        <h3 data-lang="zh">空间介绍</h3>
+        <p data-lang="en">The Website tab has an <strong>About the space</strong> group for the part of the site that answers “what is it like to be there?” Add a bilingual eyebrow, title and description, up to six photos and up to three highlights. Uploading a space photo opens the section; leaving both title and description empty keeps it hidden, so you can prepare it safely before publishing.</p>
+        <p data-lang="zh">官网标签页里的<strong>空间介绍</strong>分组，用来回答「来到这里是什么感觉？」。可以填写中英文小标题、标题和正文，上传最多六张空间照片，再加最多三条「空间亮点」。上传空间照片会自动打开这个板块；标题和正文都为空时它仍然隐藏，所以可以先准备好再发布。</p>
+        <p data-lang="en">The photos move slowly for visitors and stop for anyone who prefers reduced motion. This is separate from the principal, courses, student gallery and your own selected work.</p>
+        <p data-lang="zh">访客看到的照片会缓慢轮播；开启「减少动态效果」的访客不会自动轮播。它与主理人、课程、学员作品墙和工作室作品是不同板块。</p>
       </section>
 
       <!-- ─────────────────────────────────────────────────────── 02 ── -->
@@ -262,11 +269,14 @@
         <p data-lang="en">Families submit from the portal or the standalone register page — same form, same queue. Both feed the CMS <strong>Pending</strong> tab, which carries a red count badge in the navigation.</p>
         <p data-lang="zh">家长可以从门户或独立报名页提交——同一张表、同一个队列，都进入 CMS 的<strong>待审核</strong>标签页，导航上带红色数字角标。</p>
 
+        <p data-lang="en">Since v8.10.0, Pending has two labels: <strong>New enquiries</strong> and <strong>Class bookings</strong>. The navigation count is their total, but the tabs stay separate because approving an enquiry creates a student record while approving a booking takes a seat in one class.</p>
+        <p data-lang="zh">v8.10.0 起，「待审核」页有两个标签：<strong>新报名</strong>和<strong>约课</strong>。导航角标是两者之和，但页面分开显示，因为批准新报名会建学员档案，而批准约课会占用某一节课的座位。</p>
+
         <figure>
           <div class="shot">
             <div class="shot-bar" aria-hidden="true"><i></i><i></i><i></i></div>
-            <img data-lang="en" src="/assets/manual/02-portal.en.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="The published studio portal with courses, work and an enquiry button">
-            <img data-lang="zh" src="/assets/manual/02-portal.zh.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="已发布的工作室门户，含课程、作品与预约按钮">
+            <img data-lang="en" src="/assets/manual/02-portal.en.webp?v=__APP_VERSION__&amp;r=__RELEASE_DATE__" width="1600" height="1000" loading="lazy" decoding="async" alt="The published studio portal with timetable navigation, courses, work and an enquiry button">
+            <img data-lang="zh" src="/assets/manual/02-portal.zh.webp?v=__APP_VERSION__&amp;r=__RELEASE_DATE__" width="1600" height="1000" loading="lazy" decoding="async" alt="已发布的工作室门户，含课程安排导航、课程、作品与预约按钮">
           </div>
           <ol class="marks">
             <li data-lang="en">Only the sections you filled in appear, in the order the template sets.</li><li data-lang="zh">只有填过内容的板块会出现，顺序由行业模版决定。</li>
@@ -279,8 +289,8 @@
         <figure>
           <div class="shot">
             <div class="shot-bar" aria-hidden="true"><i></i><i></i><i></i></div>
-            <img data-lang="en" src="/assets/manual/02-register.en.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="The standalone registration page with the enquiry form">
-            <img data-lang="zh" src="/assets/manual/02-register.zh.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="独立报名页与报名表单">
+            <img data-lang="en" src="/assets/manual/02-register.en.webp?v=__APP_VERSION__&amp;r=__RELEASE_DATE__" width="1600" height="1000" loading="lazy" decoding="async" alt="The standalone registration page with the enquiry form">
+            <img data-lang="zh" src="/assets/manual/02-register.zh.webp?v=__APP_VERSION__&amp;r=__RELEASE_DATE__" width="1600" height="1000" loading="lazy" decoding="async" alt="独立报名页与报名表单">
           </div>
           <ol class="marks">
             <li data-lang="en">Your own questions, added in Studio Admin. Up to eight appear on the portal form.</li><li data-lang="zh">你自己的报名问题，在品牌工作台里添加。门户表单最多渲染八个。</li>
@@ -301,13 +311,13 @@
         <figure>
           <div class="shot">
             <div class="shot-bar" aria-hidden="true"><i></i><i></i><i></i></div>
-            <img data-lang="en" src="/assets/manual/02-pending.en.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="The Pending tab listing enquiries awaiting review">
-            <img data-lang="zh" src="/assets/manual/02-pending.zh.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="待审核标签页，列出等待处理的报名申请">
+            <img data-lang="en" src="/assets/manual/02-pending.en.webp?v=__APP_VERSION__&amp;r=__RELEASE_DATE__" width="1600" height="1000" loading="lazy" decoding="async" alt="The Pending page with New enquiries and Class bookings tabs">
+            <img data-lang="zh" src="/assets/manual/02-pending.zh.webp?v=__APP_VERSION__&amp;r=__RELEASE_DATE__" width="1600" height="1000" loading="lazy" decoding="async" alt="待审核页，含新报名和约课两个标签">
           </div>
           <ol class="marks">
-            <li data-lang="en">Source and status on every card — at a glance, which came from the portal and which from the register page.</li><li data-lang="zh">每张卡片都带来源与状态——一眼看出哪条来自门户、哪条来自报名页。</li>
-            <li data-lang="en">Set a follow-up date, or move the lead along: contacted, trial booked, still following up.</li><li data-lang="zh">设置下次跟进日期，或推进线索状态：已联系、已约试听、继续跟进。</li>
-            <li data-lang="en">Approve with a starting credit balance and the student record is created in the same step.</li><li data-lang="zh">填入初始课时数后批准，学员档案在同一步创建完成。</li>
+            <li data-lang="en">Two tabs share one inbox: New enquiries create records; Class bookings take a seat in a class.</li><li data-lang="zh">一个收件箱里的两个标签：新报名用于建档，约课用于占一个班次的座位。</li>
+            <li data-lang="en">New-enquiry cards carry source and status, with follow-up dates and the amber duplicate warning.</li><li data-lang="zh">新报名卡片带来源、状态、跟进日期和琥珀色疑似重复警告。</li>
+            <li data-lang="en">Approve a new enquiry with a starting credit balance; the student record is created in the same step.</li><li data-lang="zh">新报名填入初始课时数后批准，学员档案在同一步创建完成。</li>
           </ol>
           <figcaption data-lang="en">The review queue. The count badge in the navigation is the number waiting.</figcaption>
           <figcaption data-lang="zh">待审核队列。导航上的角标就是等待处理的条数。</figcaption>
@@ -334,6 +344,50 @@
         <p data-lang="en">Weekly classes are set up once — name, weekday, start time, length, capacity, students — and appear on that day’s list automatically from then on. You can also drop a student into a single day by hand. The default start time for new manual entries is a studio setting; changing it does not touch anything already saved.</p>
         <p data-lang="zh">固定班次只需设一次——名称、周几、开始时间、时长、容量、学员——之后每周自动出现在当日名单里；也可以把某个学员手动加进某一天。新建手动排课的默认上课时间是工作室级设置，改它不会动到已经保存的排课。</p>
 
+        <h3 data-lang="en">A public timetable starts with the class record</h3>
+        <h3 data-lang="zh">公开课表从班次资料开始</h3>
+        <p data-lang="en">Owner and Manager can give a recurring class an optional <strong>course</strong>, teacher, room and public flag. The public timetable is a separate page at <code>/&lt;slug&gt;/timetable</code>, not another block on the portal. Turn on the page in Studio Admin, choose 1–4 weeks, and — separately — decide whether to accept no-account booking. The number of weeks is also the booking window.</p>
+        <p data-lang="zh">Owner 和店长可以给固定班次选择可选的<strong>课程</strong>、授课老师、地点，并逐条设置是否公开。公开课表是独立页面 <code>/&lt;slug&gt;/timetable</code>，不是门户里的又一个板块。在品牌工作台打开页面并选择展示 1–4 周；是否接受免注册约课是另一个开关。展示周数同时就是约课时间窗。</p>
+        <ol class="steps">
+          <li data-lang="en"><strong>Course is optional.</strong> Create it in CMS → Settings → Course management: name, description, age range, duration and price. The last four are optional. The schedule editor links there beside the course dropdown.</li>
+          <li data-lang="zh"><strong>课程是可选的。</strong>在 CMS → 系统设置 → 课程管理里创建：名称、简介、适龄段、时长和价格，后四项均可选。排课编辑器的课程下拉旁边有直达链接。</li>
+          <li data-lang="en"><strong>Archive, do not delete.</strong> Archiving removes a course from new scheduling but keeps classes, accounts and history that already reference it. The confirmation tells you how many classes currently use it.</li>
+          <li data-lang="zh"><strong>归档，不是删除。</strong>归档后课程不再出现在新排课下拉里，但已经关联它的班次、账目和历史记录都保留。确认框会告诉你目前有几个班次正在使用它。</li>
+          <li data-lang="en"><strong>Public is per class and off by default.</strong> A private make-up slot or one-to-one lesson should not appear just because it exists on the internal roster. A class can be visible while its teacher name stays hidden unless that teacher has agreed in Team settings.</li>
+          <li data-lang="zh"><strong>公开按班次逐条设置，默认关闭。</strong>内部补课或一对一时段不会因为存在于内部课表就自动出现在网上。班次可以公开，但老师本人没有在团队设置里同意时，课表不会显示老师姓名。</li>
+          <li data-lang="en"><strong>Cancel an occurrence, not the whole class.</strong> Use the class card’s cancellation for a holiday or one missed date, add the reason, and restore it if plans change. The date must fall on the class’s actual weekday.</li>
+          <li data-lang="zh"><strong>停某一天，不是停整个班。</strong>遇到公众假期或某次不上课，在班次卡片上停课并填写原因；计划改变时可以恢复。日期必须落在这个班次实际授课的星期几。</li>
+        </ol>
+
+        <figure>
+          <div class="shot">
+            <div class="shot-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+            <img data-lang="en" src="/assets/manual/09-timetable.en.webp?v=__APP_VERSION__&amp;r=__RELEASE_DATE__" width="1600" height="1000" loading="lazy" decoding="async" alt="The public timetable page showing dates, classes and seat availability">
+            <img data-lang="zh" src="/assets/manual/09-timetable.zh.webp?v=__APP_VERSION__&amp;r=__RELEASE_DATE__" width="1600" height="1000" loading="lazy" decoding="async" alt="公开课表页，显示日期、班次和余位状态">
+          </div>
+          <ol class="marks">
+            <li data-lang="en">A separate timetable URL that can be forwarded to a family.</li><li data-lang="zh">独立的课表网址，可以直接转发给家长。</li>
+            <li data-lang="en">Each public class carries its own teacher, room, age and capacity choices.</li><li data-lang="zh">每个公开班次按自己的设置显示老师、地点、适龄段和容量信息。</li>
+            <li data-lang="en">A cancelled date stays visible with the reason instead of silently disappearing.</li><li data-lang="zh">停课日期会保留并写明原因，不会悄悄消失。</li>
+          </ol>
+          <figcaption data-lang="en">The public timetable. Scheduled does not automatically mean published.</figcaption>
+          <figcaption data-lang="zh">公开课表。排了课不等于自动对外招生。</figcaption>
+        </figure>
+
+        <figure>
+          <div class="shot">
+            <div class="shot-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+            <img data-lang="en" src="/assets/manual/11-courses.en.webp?v=__APP_VERSION__&amp;r=__RELEASE_DATE__" width="1600" height="1000" loading="lazy" decoding="async" alt="CMS Settings with the Course management area open">
+            <img data-lang="zh" src="/assets/manual/11-courses.zh.webp?v=__APP_VERSION__&amp;r=__RELEASE_DATE__" width="1600" height="1000" loading="lazy" decoding="async" alt="CMS 系统设置打开课程管理区域">
+          </div>
+          <ol class="marks">
+            <li data-lang="en">Course management sits in Settings because courses are reusable records, not a daily roster action.</li><li data-lang="zh">课程管理放在系统设置里，因为课程是可复用的资料，不是每天的排课动作。</li>
+            <li data-lang="en">Description, age range, duration and price can be left blank; the class still works without a course.</li><li data-lang="zh">简介、适龄段、时长和价格都可以留空；不关联课程也不影响正常排课。</li>
+          </ol>
+          <figcaption data-lang="en">Course management in CMS Settings.</figcaption>
+          <figcaption data-lang="zh">CMS 系统设置里的课程管理。</figcaption>
+        </figure>
+
         <ol class="steps">
           <li data-lang="en">Open <strong>Daily roster</strong>. It opens on today.</li>
           <li data-lang="zh">打开<strong>每日排课</strong>，默认就是今天。</li>
@@ -356,8 +410,8 @@
         <figure>
           <div class="shot">
             <div class="shot-bar" aria-hidden="true"><i></i><i></i><i></i></div>
-            <img data-lang="en" src="/assets/manual/03-roster.en.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="The daily roster showing a weekly class and the students attending">
-            <img data-lang="zh" src="/assets/manual/03-roster.zh.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="每日排课页，显示固定班次与当天到课学员">
+            <img data-lang="en" src="/assets/manual/03-roster.en.webp?v=__APP_VERSION__&amp;r=__RELEASE_DATE__" width="1600" height="1000" loading="lazy" decoding="async" alt="The daily roster showing a weekly class and the students attending">
+            <img data-lang="zh" src="/assets/manual/03-roster.zh.webp?v=__APP_VERSION__&amp;r=__RELEASE_DATE__" width="1600" height="1000" loading="lazy" decoding="async" alt="每日排课页，显示固定班次与当天到课学员">
           </div>
           <ol class="marks">
             <li data-lang="en">Recurring classes. These drop into the day list on their own; editing and deleting them is an owner or manager job.</li><li data-lang="zh">固定班次。它们会自动排入当日名单；增删改属于 Owner / 店长。</li>
@@ -371,8 +425,8 @@
         <figure>
           <div class="shot phone">
             <div class="shot-bar" aria-hidden="true"><i></i><i></i><i></i></div>
-            <img data-lang="en" src="/assets/manual/03-roster-mobile.en.webp?v=__APP_VERSION__" width="780" height="1688" loading="lazy" decoding="async" alt="The daily roster on a phone, as a teacher sees it">
-            <img data-lang="zh" src="/assets/manual/03-roster-mobile.zh.webp?v=__APP_VERSION__" width="780" height="1688" loading="lazy" decoding="async" alt="手机上的每日排课，老师看到的样子">
+            <img data-lang="en" src="/assets/manual/03-roster-mobile.en.webp?v=__APP_VERSION__&amp;r=__RELEASE_DATE__" width="780" height="1688" loading="lazy" decoding="async" alt="The daily roster on a phone, as a teacher sees it">
+            <img data-lang="zh" src="/assets/manual/03-roster-mobile.zh.webp?v=__APP_VERSION__&amp;r=__RELEASE_DATE__" width="780" height="1688" loading="lazy" decoding="async" alt="手机上的每日排课，老师看到的样子">
           </div>
           <ol class="marks">
             <li data-lang="en">A teacher sees the class list and can check students in; adding or editing a class is not their job and the buttons are not there.</li><li data-lang="zh">老师看得到名单、可以签到；增删改班次不是他们的活，按钮也不会出现。</li>
@@ -406,8 +460,8 @@
         <figure>
           <div class="shot">
             <div class="shot-bar" aria-hidden="true"><i></i><i></i><i></i></div>
-            <img data-lang="en" src="/assets/manual/04-topup.en.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="The top-up screen with a student selected">
-            <img data-lang="zh" src="/assets/manual/04-topup.zh.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="充值结算页，已选中一位学员">
+            <img data-lang="en" src="/assets/manual/04-topup.en.webp?v=__APP_VERSION__&amp;r=__RELEASE_DATE__" width="1600" height="1000" loading="lazy" decoding="async" alt="The top-up screen with a student selected">
+            <img data-lang="zh" src="/assets/manual/04-topup.zh.webp?v=__APP_VERSION__&amp;r=__RELEASE_DATE__" width="1600" height="1000" loading="lazy" decoding="async" alt="充值结算页，已选中一位学员">
           </div>
           <ol class="marks">
             <li data-lang="en">The student’s photo, current balance and last three movements — check them before you touch anything.</li><li data-lang="zh">学员头像、当前余额和最近三笔流水——动手前先核对。</li>
@@ -437,8 +491,8 @@
         <figure>
           <div class="shot">
             <div class="shot-bar" aria-hidden="true"><i></i><i></i><i></i></div>
-            <img data-lang="en" src="/assets/manual/04-log.en.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="The activity log listing recorded actions with the person and time">
-            <img data-lang="zh" src="/assets/manual/04-log.zh.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="操作日志，逐条记录动作、操作人与时间">
+            <img data-lang="en" src="/assets/manual/04-log.en.webp?v=__APP_VERSION__&amp;r=__RELEASE_DATE__" width="1600" height="1000" loading="lazy" decoding="async" alt="The activity log listing recorded actions with the person and time">
+            <img data-lang="zh" src="/assets/manual/04-log.zh.webp?v=__APP_VERSION__&amp;r=__RELEASE_DATE__" width="1600" height="1000" loading="lazy" decoding="async" alt="操作日志，逐条记录动作、操作人与时间">
           </div>
           <ol class="marks">
             <li data-lang="en">Filter by student, by action type, or by date range.</li><li data-lang="zh">可按学员、操作类型、日期范围筛选。</li>
@@ -451,9 +505,40 @@
 
       <!-- ─────────────────────────────────────────────────────── 05 ── -->
       <section id="work">
-        <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>05 · <span data-lang="en">Student work</span><span data-lang="zh">学员作品</span></p>
+        <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>05 · <span data-lang="en">Student and studio work</span><span data-lang="zh">学员与工作室作品</span></p>
         <h2 data-lang="en">Private by default, published only on a recorded decision</h2>
         <h2 data-lang="zh">默认私密；公开必须基于一次留痕的决定</h2>
+
+        <h3 data-lang="en">Your studio’s own Selected Work</h3>
+        <h3 data-lang="zh">工作室自己的 Selected Work</h3>
+        <p data-lang="en"><strong>Selected Work</strong> is not the student gallery. It answers “how good are the people teaching here?” The student gallery answers “what can someone learn here?” They have different authors, consent rules and jobs on the public site.</p>
+        <p data-lang="zh"><strong>Selected Work 工作室作品</strong>不是学员作品墙。它回答「这里授课的人水平如何？」；学员作品墙回答「在这里能学成什么样？」。两者的作者、授权规则和官网作用都不同。</p>
+        <ol class="steps">
+          <li data-lang="en">The public limit follows the plan: starter 15, studio 60, growth 150. It limits how many are published, not how many you can keep in the CMS.</li>
+          <li data-lang="zh">官网展示上限按套餐：starter 15 件、studio 60 件、growth 150 件。限制的是公开展示数量，不是后台能保存的数量。</li>
+          <li data-lang="en"><strong>Downgrading never deletes work.</strong> The extra pieces stay editable in the CMS; the public page shows the first items in your chosen order. Upgrade again and the rest returns.</li>
+          <li data-lang="zh"><strong>降级不会删除作品。</strong>超出当前上限的作品仍在后台，可以编辑和排序；官网只展示排序靠前的部分，升级后其余作品恢复展示。</li>
+          <li data-lang="en">A work can have a photo, bilingual title and description, year, medium and category. Video is a link only: the cover uses your media quota, and the third-party player is not contacted until a visitor presses Play.</li>
+          <li data-lang="zh">每件作品可以填写照片、中英文标题与说明、年份、媒介和分类。视频只保存链接，封面图占用你的媒体额度；访客按下播放前，页面不会向第三方网站发请求。</li>
+        </ol>
+
+        <figure>
+          <div class="shot">
+            <div class="shot-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+            <img data-lang="en" src="/assets/manual/10-showcase.en.webp?v=__APP_VERSION__&amp;r=__RELEASE_DATE__" width="1600" height="1000" loading="lazy" decoding="async" alt="The studio portal showing the Selected Work showcase section">
+            <img data-lang="zh" src="/assets/manual/10-showcase.zh.webp?v=__APP_VERSION__&amp;r=__RELEASE_DATE__" width="1600" height="1000" loading="lazy" decoding="async" alt="工作室门户展示 Selected Work 工作室作品板块">
+          </div>
+          <ol class="marks">
+            <li data-lang="en">The studio’s own work sits separately from the student gallery.</li><li data-lang="zh">工作室自己的作品与学员作品墙分开显示。</li>
+            <li data-lang="en">The first item gets the main position; reorder it to choose what visitors see first.</li><li data-lang="zh">第一件作品占主位；调整排序即可决定访客首先看到什么。</li>
+            <li data-lang="en">Categories appear only when there are at least two, so one category is not presented as a filter.</li><li data-lang="zh">至少有两个分类时才显示筛选按钮，只有一个分类不会硬塞一个筛选器。</li>
+          </ol>
+          <figcaption data-lang="en">Selected Work on the public studio portal.</figcaption>
+          <figcaption data-lang="zh">工作室门户上的 Selected Work 工作室作品。</figcaption>
+        </figure>
+
+        <h3 data-lang="en">Student work stays private until consent exists</h3>
+        <h3 data-lang="zh">学员作品有授权才会公开</h3>
 
         <p data-lang="en">Teachers, managers and owners can upload to a student’s portfolio: photo, title, date, note. JPEG, PNG or WebP, up to <strong>30 megapixels</strong> per image — larger files are refused with a message rather than failing silently.</p>
         <p data-lang="zh">老师、店长和 Owner 都可以往学员作品集里上传：照片、标题、日期、说明。格式限 JPEG / PNG / WebP，<strong>单张最大 3000 万像素</strong>，超限会明确拒绝，不会静默失败。</p>
@@ -469,8 +554,8 @@
         <figure>
           <div class="shot">
             <div class="shot-bar" aria-hidden="true"><i></i><i></i><i></i></div>
-            <img data-lang="en" src="/assets/manual/05-portfolio.en.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="A student record open on the portfolio block">
-            <img data-lang="zh" src="/assets/manual/05-portfolio.zh.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="学员档案打开，停在作品集区块">
+            <img data-lang="en" src="/assets/manual/05-portfolio.en.webp?v=__APP_VERSION__&amp;r=__RELEASE_DATE__" width="1600" height="1000" loading="lazy" decoding="async" alt="A student record open on the portfolio block">
+            <img data-lang="zh" src="/assets/manual/05-portfolio.zh.webp?v=__APP_VERSION__&amp;r=__RELEASE_DATE__" width="1600" height="1000" loading="lazy" decoding="async" alt="学员档案打开，停在作品集区块">
           </div>
           <ol class="marks">
             <li data-lang="en">Balance and recent movements sit with the record, so nobody is guessing about credits while a parent is waiting.</li><li data-lang="zh">余额与最近流水就在档案里，家长在等着的时候不用凭印象猜课时。</li>
@@ -496,6 +581,29 @@
         <p data-lang="en">This section is the one to read out loud to a parent. There is no account, no password and nothing to install.</p>
         <p data-lang="zh">这一章是可以直接念给家长听的。没有账号、没有密码、不用装任何东西。</p>
 
+        <h3 data-lang="en">Public timetable and booking without registration</h3>
+        <h3 data-lang="zh">公开课表与免注册约课</h3>
+        <p data-lang="en">If the studio turns it on, the portal navigation has <strong>Timetable</strong> and opens the separate <strong>Public Timetable</strong> page at <code>/&lt;slug&gt;/timetable</code>. A scheduled class is not automatically public: the studio chooses each class, and can choose which fields to show — teacher, room, age range, duration, capacity and price. Teacher names also need that teacher’s own public-display consent.</p>
+        <p data-lang="zh">如果工作室打开了功能，门户导航会出现<strong>课程安排</strong>，进入独立页面 <code>/&lt;slug&gt;/timetable</code>。排了课不等于自动公开：工作室要逐条选择班次，并决定显示老师、地点、适龄段、时长、容量和价格中的哪些字段。老师姓名还需要老师本人同意公开署名。</p>
+        <p data-lang="en">The timetable shows 1–4 weeks in the studio’s timezone. The same number is the booking window. Seat status has three readable states: <strong>Open</strong> (“N places left”), <strong>Nearly full</strong>, and <strong>Full — waitlist available</strong>. A cancelled occurrence remains visible with its reason.</p>
+        <p data-lang="zh">课表按工作室时区展示未来 1–4 周；这个数字同时就是约课时间窗。余位有三种可读状态：<strong>还有 N 位</strong>、<strong>快满了</strong>、<strong>已满 · 可加候补</strong>。停课日期仍会显示，并写明原因。</p>
+        <p data-lang="en"><strong>Accept booking requests</strong> needs no account. A family enters the student’s full name and phone number, with an optional note. A request does not hold a seat; capacity is checked again when the studio approves it. If the same phone submits the same class twice, the page says “already received” rather than creating another request. A full class can still accept a waitlist request.</p>
+        <p data-lang="zh"><strong>约课不需要注册。</strong>家长填写学员全名和手机号，可选填备注。申请不会占座，工作室批准时才重新核对容量。同一个手机号对同一节课重复提交时，页面会提示「已经收到了」，不会生成第二条申请。已满的班次仍可提交候补申请。</p>
+
+        <figure>
+          <div class="shot phone">
+            <div class="shot-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+            <img data-lang="en" src="/assets/manual/09-booking.en.webp?v=__APP_VERSION__&amp;r=__RELEASE_DATE__" width="780" height="1688" loading="lazy" decoding="async" alt="The no-account class booking dialog on a phone">
+            <img data-lang="zh" src="/assets/manual/09-booking.zh.webp?v=__APP_VERSION__&amp;r=__RELEASE_DATE__" width="780" height="1688" loading="lazy" decoding="async" alt="手机上的免注册约课对话框">
+          </div>
+          <ol class="marks">
+            <li data-lang="en">Only a full name and phone number are required; there is no account or password.</li><li data-lang="zh">只需要全名和手机号，不需要账号或密码。</li>
+            <li data-lang="en">The form explains that submitting is a request, not a reserved seat.</li><li data-lang="zh">表单会说明提交的是申请，不是已经占到座位。</li>
+          </ol>
+          <figcaption data-lang="en">Booking a class from the public timetable on a phone.</figcaption>
+          <figcaption data-lang="zh">在手机公开课表上提交约课申请。</figcaption>
+        </figure>
+
         <ol class="steps">
           <li data-lang="en">The student must have a phone number on file first — without one the system refuses to issue a code.</li>
           <li data-lang="zh">学员必须先有手机号码，否则系统不会生成访问码。</li>
@@ -511,8 +619,8 @@
         <figure>
           <div class="shot phone">
             <div class="shot-bar" aria-hidden="true"><i></i><i></i><i></i></div>
-            <img data-lang="en" src="/assets/manual/06-student-area.en.webp?v=__APP_VERSION__" width="780" height="1688" loading="lazy" decoding="async" alt="The student area lookup form on a phone">
-            <img data-lang="zh" src="/assets/manual/06-student-area.zh.webp?v=__APP_VERSION__" width="780" height="1688" loading="lazy" decoding="async" alt="手机上的学员专区查询表单">
+            <img data-lang="en" src="/assets/manual/06-student-area.en.webp?v=__APP_VERSION__&amp;r=__RELEASE_DATE__" width="780" height="1688" loading="lazy" decoding="async" alt="The student area lookup form on a phone">
+            <img data-lang="zh" src="/assets/manual/06-student-area.zh.webp?v=__APP_VERSION__&amp;r=__RELEASE_DATE__" width="780" height="1688" loading="lazy" decoding="async" alt="手机上的学员专区查询表单">
           </div>
           <ol class="marks">
             <li data-lang="en">Name and phone must match the record exactly. Nearly every “it doesn’t work” starts here.</li><li data-lang="zh">姓名和手机号必须与档案完全一致。几乎所有「登录不上」都出在这里。</li>
@@ -540,6 +648,11 @@
 
         <p data-lang="en">Only the owner adds, disables or re-roles a member (CMS → settings → team). Managers see the list and nothing more. Send temporary passwords over a channel you trust, and have people change them at first sign-in. Member count is capped by your subscription.</p>
         <p data-lang="zh">只有 Owner 能新增、停用成员或调整角色（CMS → 系统设置 → 团队与权限），Manager 只能看列表。临时密码请通过可信渠道转交，并要求对方首次登录后立即修改。成员数量受订阅套餐上限约束。</p>
+
+        <h3 data-lang="en">A teacher’s name is their choice</h3>
+        <h3 data-lang="zh">老师姓名是否公开，由老师本人同意</h3>
+        <p data-lang="en">In <strong>Settings → Team and permissions</strong>, the owner can enable public display for each teacher and choose the name shown on the timetable. This is personal consent, not a timetable layout preference. A class can be public while the teacher’s name remains hidden; being assigned to a class is not consent to publish a name.</p>
+        <p data-lang="zh">在<strong>设置 → 团队与权限</strong>里，Owner 可以逐人打开老师的公开署名，并决定课表上显示的名字。这是个人信息同意，不是课表版式偏好。班次可以公开，但老师姓名仍然隐藏；被排进班次不等于同意把姓名放到网上。</p>
 
         <div class="tw">
           <table>
@@ -590,6 +703,10 @@
                 <td class="yes">✓</td><td class="yes">✓</td><td class="no">—</td><td class="yes">✓</td><td class="yes">✓</td>
               </tr>
               <tr>
+                <td data-lang="en">Approve or decline class bookings</td><td data-lang="zh">批准或婉拒约课</td>
+                <td class="yes">✓</td><td class="yes">✓</td><td class="no">—</td><td class="no">—</td><td class="no">—</td>
+              </tr>
+              <tr>
                 <td data-lang="en">Maintain courses and packages</td><td data-lang="zh">维护课程与课包</td>
                 <td class="yes">✓</td><td class="yes">✓</td><td class="no">—</td><td class="no">—</td><td class="no">—</td>
               </tr>
@@ -615,6 +732,12 @@
           <p data-lang="zh">不是「不能编辑」，是读不到。前台账号下作品集区块根本不会出现——接待岗位不需要接触儿童照片。相关问题请转给老师或店长。</p>
         </div>
 
+        <div class="pitfall">
+          <p><b data-lang="en">Front Desk can see a booking request, but cannot decide it</b><b data-lang="zh">前台能看到约课申请，但不能审批</b></p>
+          <p data-lang="en">A front-desk account can open the Pending → Class bookings tab and see the family’s details, but the Approve and Decline actions belong to the owner or manager. Forward the request to one of them; this permission boundary is intentional for now.</p>
+          <p data-lang="zh">前台账号可以打开「待审核 → 约课」看到家长资料，但「批准」和「婉拒」只属于 Owner / 店长。请把申请转交给其中一人处理；目前权限边界就是这样设计的。</p>
+        </div>
+
         <p class="note" data-lang="en">Staff is a legacy general-purpose role, close to manager but without refunds, reports, export or share links. For new hires prefer the specific roles — a job title that matches the screen is easier to train.</p>
         <p class="note" data-lang="zh">Staff 是早期的「全能员工」角色，接近 Manager 但没有退款、统计、导出和分享链接。新建成员时建议优先用职责明确的角色——界面和岗位对得上，培训才容易。</p>
       </section>
@@ -631,8 +754,8 @@
         <figure>
           <div class="shot">
             <div class="shot-bar" aria-hidden="true"><i></i><i></i><i></i></div>
-            <img data-lang="en" src="/assets/manual/08-stats.en.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="The reporting tab with revenue and consumption figures">
-            <img data-lang="zh" src="/assets/manual/08-stats.zh.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="经营统计标签页，显示营收与消课数据">
+            <img data-lang="en" src="/assets/manual/08-stats.en.webp?v=__APP_VERSION__&amp;r=__RELEASE_DATE__" width="1600" height="1000" loading="lazy" decoding="async" alt="The reporting tab with revenue and consumption figures">
+            <img data-lang="zh" src="/assets/manual/08-stats.zh.webp?v=__APP_VERSION__&amp;r=__RELEASE_DATE__" width="1600" height="1000" loading="lazy" decoding="async" alt="经营统计标签页，显示营收与消课数据">
           </div>
           <ol class="marks">
             <li data-lang="en">Lifetime revenue, students enrolled, credits consumed, and the credits you still owe.</li><li data-lang="zh">历史总营收、建档学员、累计消课，以及你还欠着的课时。</li>
@@ -733,6 +856,21 @@
         <h4 data-lang="zh">同一个手机号提交了两次。</h4>
         <p data-lang="en">Both cards carry the amber duplicate badge. Call before approving — see <a href="#enrolment">section 02</a>.</p>
         <p data-lang="zh">两张卡片都会带琥珀色角标。批准前先打电话核实——见<a href="#enrolment">第 02 章</a>。</p>
+
+        <h4 data-lang="en">Why is the teacher missing from the public timetable?</h4>
+        <h4 data-lang="zh">为什么公开课表上没有老师名字？</h4>
+        <p data-lang="en">A public class does not automatically publish a person’s name. The teacher must have enabled public display in Settings → Team and permissions. Ask the owner to check that individual consent switch.</p>
+        <p data-lang="zh">公开班次不会自动公开个人姓名。老师必须在「设置 → 团队与权限」里打开公开署名。请 Owner 检查这位老师自己的同意开关。</p>
+
+        <h4 data-lang="en">I made a class public, but it is not on the timetable.</h4>
+        <h4 data-lang="zh">我勾选了公开，为什么课表上还是看不到？</h4>
+        <p data-lang="en">Check three gates: the timetable page itself is on, the class has its own public flag, and the class falls inside the number of weeks being shown. Also check that it has not been cancelled for that date and that the public fields are filled where you expect content.</p>
+        <p data-lang="zh">检查三道门：公开课表页面已打开、这个班次自己的公开开关已打开、日期在展示周数范围内。再确认当天没有停课，并检查你希望显示的公开字段是否真的填了内容。</p>
+
+        <h4 data-lang="en">Will downgrading delete my Selected Work?</h4>
+        <h4 data-lang="zh">降级会不会删掉我的工作室作品？</h4>
+        <p data-lang="en">No. Downgrading only reduces how many pieces are published on the portal. Everything remains in the CMS and returns to the public selection after an upgrade.</p>
+        <p data-lang="zh">不会。降级只会减少官网展示数量，后台作品不会被删除；升级后超出部分会恢复公开。</p>
 
         <p class="note" data-lang="en">Questions about hosting, backups, data location, multi-factor authentication or availability commitments are answered in the <a href="/customer-resources/FAQ.html">service FAQ</a> — that one is written for the person signing the contract, this one for the person running the studio.</p>
         <p class="note" data-lang="zh">关于部署、备份、数据存放地、多因素认证或可用性承诺的问题，见<a href="/customer-resources/FAQ.html">服务 FAQ</a>——那一份写给签合同的人，这一份写给运营工作室的人。</p>

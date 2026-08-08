@@ -420,25 +420,31 @@ def _seed_students(cur: Any, tenant_id: str, course_ids: list[str], teacher_id: 
     return student_ids
 
 
-def _seed_schedules(cur: Any, tenant_id: str, course_ids: list[str], student_ids: list[str]) -> None:
+def _seed_schedules(
+    cur: Any,
+    tenant_id: str,
+    course_ids: list[str],
+    student_ids: list[str],
+    teacher_id: str,
+) -> None:
     """Create three recurring weekly classes with realistic group rosters."""
 
     specs = (
-        (course_ids[1], "Creative Drawing · Junior", 2, "16:00", 60, 10, student_ids[:6]),
-        (course_ids[0], "Foundation Painting · Saturday", 6, "10:00", 75, 12, student_ids[4:12]),
-        (course_ids[2], "Portfolio Studio · Teen", 4, "17:00", 90, 8, student_ids[7:12]),
+        (course_ids[1], "Creative Drawing · Junior", 2, "16:00", 60, 10, "North Studio", student_ids[:6]),
+        (course_ids[0], "Foundation Painting · Saturday", 6, "10:00", 75, 12, "Garden Room", student_ids[4:12]),
+        (course_ids[2], "Portfolio Studio · Teen", 4, "17:00", 90, 8, "Gallery Room", student_ids[7:12]),
     )
-    for course_id, label, weekday, start_time, duration, capacity, roster in specs:
+    for course_id, label, weekday, start_time, duration, capacity, room, roster in specs:
         cur.execute(
             """
             INSERT INTO class_schedules (
                 tenant_id, course_id, label, weekday, start_time,
-                duration_minutes, capacity, is_active
+                duration_minutes, capacity, is_active, teacher_user_id, is_public, room
             )
-            VALUES (%s, %s, %s, %s, %s::time, %s, %s, true)
+            VALUES (%s, %s, %s, %s, %s::time, %s, %s, true, %s, true, %s)
             RETURNING id
             """,
-            (tenant_id, course_id, label, weekday, start_time, duration, capacity),
+            (tenant_id, course_id, label, weekday, start_time, duration, capacity, teacher_id, room),
         )
         schedule_id = str(cur.fetchone()["id"])
         for student_id in roster:
@@ -449,6 +455,123 @@ def _seed_schedules(cur: Any, tenant_id: str, course_ids: list[str], student_ids
                 """,
                 (schedule_id, student_id, tenant_id),
             )
+
+        # Keep one public cancellation in the next two weeks so the generated
+        # timetable documents the real exception state rather than only the
+        # happy path. The next Saturday is outside today's occurrence when
+        # the reset happens on Saturday itself.
+        if weekday == 6:
+            today = date.today()
+            today_js_weekday = (today.weekday() + 1) % 7
+            days_until_saturday = (6 - today_js_weekday) % 7 or 7
+            cur.execute(
+                """
+                INSERT INTO class_schedule_exceptions (
+                    schedule_id, tenant_id, on_date, cancelled, note
+                )
+                VALUES (%s, %s, %s, true, 'Public holiday')
+                """,
+                (schedule_id, tenant_id, today + timedelta(days=days_until_saturday)),
+            )
+
+    cur.execute(
+        """
+        UPDATE memberships
+        SET public_display_name = 'Taylor Chen', show_on_public_timetable = true
+        WHERE tenant_id = %s AND user_id = %s
+        """,
+        (tenant_id, teacher_id),
+    )
+
+
+def _seed_showcase_media(cur: Any, tenant_id: str) -> list[str]:
+    """Create public website-image derivatives for the selected-work board."""
+
+    media_root = Path(os.environ.get("STUDIOSAAS_MEDIA_DIR") or APP_ROOT / "media")
+    urls: list[str] = []
+    for filename, _title, _description in ARTWORKS:
+        source = APP_ROOT / "seed-assets" / filename
+        payload = source.read_bytes()
+        original_key = f"showcase/{SHOWCASE_SLUG}/selected-original-{filename}"
+        display_key = f"showcase/{SHOWCASE_SLUG}/selected-display-{filename}"
+        original_path = media_root / original_key
+        original_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, original_path)
+        display_size, display_checksum, display_width, display_height = _write_safe_variant(
+            source, media_root / display_key, 1600
+        )
+        cur.execute(
+            """
+            INSERT INTO media_assets (
+                tenant_id, asset_type, storage_provider, storage_key,
+                original_filename, mime_type, byte_size, checksum_sha256, visibility
+            )
+            VALUES (%s, 'website_image', 'local', %s, %s, 'image/png', %s, %s, 'private')
+            RETURNING id
+            """,
+            (tenant_id, original_key, filename, len(payload), hashlib.sha256(payload).hexdigest()),
+        )
+        media_id = str(cur.fetchone()["id"])
+        cur.execute(
+            """
+            INSERT INTO media_variants (
+                tenant_id, media_asset_id, variant, storage_key, mime_type,
+                byte_size, checksum_sha256, pixel_width, pixel_height, metadata_sanitized
+            )
+            VALUES (%s, %s, 'display', %s, 'image/png', %s, %s, %s, %s, true)
+            """,
+            (tenant_id, media_id, display_key, display_size, display_checksum,
+             display_width, display_height),
+        )
+        urls.append(f"/v1/public/{SHOWCASE_SLUG}/media/{media_id}")
+    return urls
+
+
+def _publish_demo_website(cur: Any, tenant_id: str, showcase_urls: list[str]) -> None:
+    """Turn on only the synthetic public surfaces used by the manual shots."""
+
+    profile = {
+        "show_courses": True,
+        "show_gallery": True,
+        "show_faq": True,
+        "show_contact": True,
+        "show_student_area": True,
+        "show_showcase": True,
+        "show_timetable": True,
+        "show_timetable_booking": True,
+        "timetable_weeks": 2,
+        "timetable_fields": {
+            "teacher": True,
+            "room": True,
+            "age_range": True,
+            "duration": False,
+            "capacity": True,
+            "price": False,
+        },
+        "showcase_label": {"en": "Selected Work", "zh": "工作室作品"},
+        "showcase_title": {"en": "Work from this studio", "zh": "出自这间工作室"},
+        "showcase_lead": {
+            "en": "A short selection, chosen by the studio.",
+            "zh": "工作室精选的一小组作品。",
+        },
+        "showcase_items": [
+            {
+                "image_url": url,
+                "title": {"en": title, "zh": title},
+                "caption": {"en": description, "zh": description},
+            }
+            for url, (_filename, title, description) in zip(showcase_urls, ARTWORKS)
+        ],
+    }
+    cur.execute(
+        """
+        UPDATE tenants
+        SET settings = settings || jsonb_build_object('website_profile', %s::jsonb),
+            updated_at = now()
+        WHERE id = %s
+        """,
+        (json.dumps(profile), tenant_id),
+    )
 
 
 def _seed_registrations(cur: Any, tenant_id: str, manager_id: str) -> None:
@@ -646,9 +769,10 @@ def reset_showcase(credentials_file: Path) -> dict[str, Any]:
             manager_id = next(item["user_id"] for item in credentials if item["role"] == "Studio Manager")
             owner_id = next(item["user_id"] for item in credentials if item["role"] == "Owner")
             student_ids = _seed_students(cur, tenant_id, course_ids, teacher_id)
-            _seed_schedules(cur, tenant_id, course_ids, student_ids)
+            _seed_schedules(cur, tenant_id, course_ids, student_ids, teacher_id)
             _seed_registrations(cur, tenant_id, manager_id)
             _seed_artwork(cur, tenant_id, student_ids, owner_id)
+            _publish_demo_website(cur, tenant_id, _seed_showcase_media(cur, tenant_id))
             student_code, _ = generate_access_code(conn, tenant_id=tenant_id, student_id=student_ids[0])
             cur.execute(
                 """

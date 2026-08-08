@@ -129,7 +129,7 @@ app.config['APP_VERSION'] = APP_VERSION
 # anything that reads the page — search engines and AI systems weight recency
 # and cannot infer a date from `8.2.28`. Kept beside APP_VERSION so the two
 # are bumped in one edit, and asserted to be a real ISO date by the tests.
-RELEASE_DATE  = '2026-08-08'
+RELEASE_DATE  = '2026-08-09'
 app.config['RELEASE_DATE'] = RELEASE_DATE
 
 # Content types the standard library does not reliably know.

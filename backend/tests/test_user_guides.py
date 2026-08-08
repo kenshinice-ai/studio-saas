@@ -95,6 +95,21 @@ def test_the_front_desk_portfolio_boundary_is_stated_not_implied() -> None:
     assert "portfolio:read" in _text("Front_Desk_Staff_Guide.md")
 
 
+def test_the_v8_10_role_guides_cover_the_new_operational_surface() -> None:
+    """New controls must be findable in the guide for the role using them."""
+
+    assert "公开课表" in _text("README.md")
+    assert "免注册约课" in _text("README.md")
+    assert "工作室作品" in _text("README.md")
+    assert "课程管理" in _text("Studio_Owner_Guide.md")
+    assert "余位" in _text("Teacher_Guide.md")
+    assert "候补" in _text("Teacher_Guide.md")
+    assert "showcase_limit" in _text("Super_Admin_Guide.md")
+    front_desk = _text("Front_Desk_Staff_Guide.md")
+    assert "约课申请（前台只看，不能审批）" in front_desk
+    assert "转交给 Owner 或 Manager" in front_desk
+
+
 # ── counted facts ────────────────────────────────────────────────────────────
 
 def test_the_audit_action_count_is_the_real_one() -> None:

@@ -1,5 +1,16 @@
 # 手册改善方案 · 按优先级（对照 v8.10.3）
 
+## 执行状态（2026-08-09）
+
+本手册列出的 **P0 / P1 / P2 / P3 已执行**。本轮是手册、素材与截图闭环，**没有改变前台权限**：Front Desk 仍可查看约课申请，但不能批准或婉拒；申请需转交 Owner / Manager。
+
+- **P0**：修正配色模型；补公开课表、免注册约课、余位 / 候补；补 Selected Work 的定位、套餐上限、降级不删除和视频按需加载规则。
+- **P1**：补课程、老师署名同意、停课、空间介绍、公开开关三道门和 FAQ。
+- **P2**：扩展自动截图脚本和合成 showcase fixture；重新捕获既有画面，并新增 `09-timetable`、`09-booking`、`10-showcase`、`11-courses` 共 30 张中英截图。
+- **P3**：同步总览、Owner、Manager、Teacher、Front Desk、Student/Parent、Super Admin 角色材料；明确前台转交边界。
+
+相关实现已落在 `manual.html`、`docs/guides/`、`backend/scripts/capture_manual_shots.py`、`backend/scripts/reset_professional_demo.py` 与 `backend/frontend/assets/manual/`；本次请求继续完成 Git 同步与线上部署。
+
 盘的是两套东西，它们是同一件事的两层：
 
 | | 是什么 | 谁看 | 现状 |

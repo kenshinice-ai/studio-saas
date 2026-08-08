@@ -390,6 +390,39 @@ def test_the_manual_says_which_theme_its_screenshots_show() -> None:
     assert "颜色不会一样，位置会一样" in source
 
 
+def test_the_manual_covers_the_v8_10_public_surface() -> None:
+    """The customer manual must name the features shipped after v8.5.
+
+    These are the controls and public promises a studio owner would otherwise
+    discover only by accident: the free accent, timetable, booking, showcase,
+    and course record. Keep this list small and customer-facing rather than
+    coupling the manual to internal API names.
+    """
+
+    source = _source()
+    for phrase in (
+        "Custom",
+        "From logo",
+        "公开课表",
+        "免注册约课",
+        "Selected Work",
+        "课程管理",
+        "已满 · 可加候补",
+        "Front Desk can see a booking request, but cannot decide it",
+    ):
+        assert phrase in source, f"the v8.10 manual is missing {phrase!r}"
+    assert "Eight themes ship, each designed in light and dark." not in source
+    assert "八套主题，每套都有明暗两版。" not in source
+
+
+def test_the_manual_names_each_new_public_page_control() -> None:
+    """A public switch without manual wording is an undiscoverable feature."""
+
+    source = _source()
+    for label in ("About the space", "Selected Work", "Public Timetable", "Accept booking requests"):
+        assert label in source, f"the manual is missing the control label {label!r}"
+
+
 def test_the_assets_route_serves_the_manual_directory_and_nothing_else(client) -> None:
     """It reduced every path to a basename, so the images 404'd in a way that
     looked like a blank page rather than a broken route.

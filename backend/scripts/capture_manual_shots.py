@@ -65,7 +65,7 @@ TAB = {
     "stats":    {"en": "Business Stats", "zh": "经营统计"},
 }
 
-# (name, role, path, viewport, tab, settle seconds, prepare JS or None)
+# (name, role, path, viewport, tab, settle seconds, prepare state or None)
 # `tab` is the CMS tab's visible label. Clicking by label rather than by index
 # means a renamed tab fails here loudly instead of quietly photographing the
 # wrong screen.
@@ -74,6 +74,10 @@ SHOTS = [
     ("02-portal",          None,      f"/{SLUG}",              DESKTOP, None, 2.0, None),
     ("02-register",        None,      f"/{SLUG}/register",     DESKTOP, None, 1.5, None),
     ("02-pending",         "manager", f"/{SLUG}/cms",          DESKTOP, TAB["pending"], 2.0, None),
+    ("09-timetable",       None,      f"/{SLUG}/timetable",     DESKTOP, None, 2.5, None),
+    ("09-booking",         None,      f"/{SLUG}/timetable",     MOBILE,  None, 2.5, "booking"),
+    ("10-showcase",        None,      f"/{SLUG}",              DESKTOP, None, 2.5, "showcase"),
+    ("11-courses",         "manager", f"/{SLUG}/cms",          DESKTOP, None, 2.0, "courses"),
     ("03-roster",          "manager", f"/{SLUG}/cms",          DESKTOP, TAB["roster"], 2.0, "date"),
     ("03-roster-mobile",   "teacher", f"/{SLUG}/cms",          MOBILE,  TAB["roster"], 2.0, "date"),
     ("04-topup",           "manager", f"/{SLUG}/cms",          DESKTOP, TAB["topup"], 2.0, None),
@@ -89,7 +93,7 @@ def next_class_date() -> str:
 
     Today's roster is legitimately empty on a day with no classes, and an
     empty roster is the one screenshot a reader would take as "the feature
-    does not work". The seeded classes run Wednesday, Friday and Saturday.
+    does not work". The seeded classes run Tuesday, Thursday and Saturday.
     """
 
     from datetime import date, timedelta
@@ -328,6 +332,49 @@ OPEN_FIRST_STUDENT = """
 })()
 """
 
+# Open the first public booking request. The timetable renders its class
+# buttons from data, so this stays tied to the actual public contract rather
+# than to a hard-coded date.
+OPEN_BOOKING = """
+(() => {
+  const hit = document.querySelector('#days .book-btn:not(:disabled)');
+  if (!hit) return 'MISSING';
+  hit.click();
+  return 'ok';
+})()
+"""
+
+# Scroll to the studio's own work after its independent endpoint has settled.
+SCROLL_TO_SHOWCASE = """
+(() => {
+  const section = document.getElementById('showcase');
+  if (!section) return 'MISSING';
+  section.scrollIntoView({ block: 'start' });
+  return 'ok';
+})()
+"""
+
+# The course manager is inside the CMS settings modal, not a route of its own.
+OPEN_SETTINGS = """
+(() => {
+  const hit = [...document.querySelectorAll('button')].find((button) =>
+    ['设置', 'Settings'].includes(button.getAttribute('aria-label')) ||
+    ['设置', 'Settings'].includes(button.textContent.trim()));
+  if (!hit) return 'MISSING';
+  hit.click();
+  return 'ok';
+})()
+"""
+
+SCROLL_TO_COURSE_MANAGER = """
+(() => {
+  const section = document.getElementById('courseManager');
+  if (!section) return 'MISSING';
+  section.scrollIntoView({ block: 'center' });
+  return 'ok';
+})()
+"""
+
 
 # Staff screens remember their language in localStorage; the visitor-facing
 # pages take it from `?lang=`. Seeding the key before the document exists is
@@ -377,6 +424,7 @@ def capture(browser: Browser, base: str, shot, session: str | None, language: st
                 "update SHOTS and docs/design/manual_shots.md together."
             )
         time.sleep(settle)
+    keep_position = prepare in {"booking", "showcase", "courses"}
     if prepare == "date":
         result = browser.call("Runtime.evaluate", returnByValue=True,
                               expression=SET_DATE % json.dumps(next_class_date()))
@@ -387,9 +435,33 @@ def capture(browser: Browser, base: str, shot, session: str | None, language: st
         browser.call("Runtime.evaluate", returnByValue=True,
                      expression=OPEN_FIRST_STUDENT)
         time.sleep(1.5)
+    elif prepare == "booking":
+        result = browser.call("Runtime.evaluate", returnByValue=True,
+                              expression=OPEN_BOOKING)
+        if result.get("result", {}).get("value") == "MISSING":
+            raise SystemExit(f"{name}: no enabled public booking button")
+        time.sleep(0.8)
+    elif prepare == "showcase":
+        result = browser.call("Runtime.evaluate", returnByValue=True,
+                              expression=SCROLL_TO_SHOWCASE)
+        if result.get("result", {}).get("value") == "MISSING":
+            raise SystemExit(f"{name}: no showcase section on the portal")
+        time.sleep(0.8)
+    elif prepare == "courses":
+        result = browser.call("Runtime.evaluate", returnByValue=True,
+                              expression=OPEN_SETTINGS)
+        if result.get("result", {}).get("value") == "MISSING":
+            raise SystemExit(f"{name}: no CMS settings button")
+        time.sleep(0.8)
+        result = browser.call("Runtime.evaluate", returnByValue=True,
+                              expression=SCROLL_TO_COURSE_MANAGER)
+        if result.get("result", {}).get("value") == "MISSING":
+            raise SystemExit(f"{name}: no course manager in CMS settings")
+        time.sleep(0.8)
     # Give lazy images a beat; a half-loaded hero is the one artefact a reader
     # would read as a product fault rather than a capture fault.
-    browser.call("Runtime.evaluate", expression="window.scrollTo(0, 0)")
+    if not keep_position:
+        browser.call("Runtime.evaluate", expression="window.scrollTo(0, 0)")
     time.sleep(1.0)
     return base64.b64decode(browser.call("Page.captureScreenshot", format="png")["data"])
 

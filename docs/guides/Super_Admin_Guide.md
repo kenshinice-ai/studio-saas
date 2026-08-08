@@ -119,6 +119,11 @@ No owner assigned、Website not published、Storage near limit 等）、
 表格列：Plan（名称 + code）、Price/Month（AUD）、Limits（学员/用户/存储 +
 已启用权限）、Actions（Edit / Delete）。
 
+Limits 里还有一项 **Public showcase items（`showcase_limit`）**：它控制租户官网
+最多发布多少件工作室自己的 Selected Work，当前套餐值是 starter 15、studio 60、
+growth 150。它是公开展示上限，不是后台存储上限；租户降级时不会删除超出的作品，
+只是暂时不在官网发布。
+
 表格现在多一列 **Public**，显示「Published 已发布 / Not published 未发布」，
 主推套餐另带一枚「Recommended 主推」徽章。
 

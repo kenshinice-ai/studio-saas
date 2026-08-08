@@ -1,6 +1,33 @@
-# 📖 手册审计 · 只出方案未改内容（2026-08-08，对照 v8.10.3）
+# ✅ v8.10.3 手册改善执行交接（2026-08-09）
 
-全文见 `docs/design/Manual_Improvement_Plan.md`。**这一轮只盘点、没改手册内容。**
+已按 `docs/design/Manual_Improvement_Plan.md` 执行全部 **P0 / P1 / P2 / P3**。本次交付是手册、角色材料、自动截图和合成截图 fixture 的完整闭环；**前台权限保持不变，当前进入 Git 同步与线上部署闭环**。
+
+## 当前结论
+
+- **P0 完成**：配色改为「精选起点 + Custom / From logo」；补公开课表、免注册约课、余位 / 候补和 Selected Work。
+- **P1 完成**：补课程管理、课程 / 老师 / 地点 / 公开开关 / 停课、老师公开署名同意、About the space 和三条 FAQ。
+- **P2 完成**：`capture_manual_shots.py` 已加入四组新状态并重拍全套；现有 11 组 + 新增 4 组，共 **30 张中英 WebP，1.54 MB**。打印检查：英文 22 页、中文 19 页。
+- **P3 完成**：总览、Owner、Manager、Teacher、Front Desk、Student/Parent、Super Admin 均已同步到 v8.10.3；Front Desk 明确「可看约课、不能审批，转交 Owner / Manager」。
+
+## 权限与安全边界
+
+前台权限保持现状。代码没有给 Front Desk 增加约课批准 / 婉拒能力；手册只记录转交路径。截图 fixture 仅重置受保护的 `lets-paint-showcase` 合成租户，新增公开课表、课程、Selected Work 和停课状态，未读取或复制客户数据。
+
+## 验证证据
+
+- 相关手册 / 角色 / 开关 / 公开课表 / Selected Work 测试：**196 passed**。
+- 完整后端测试：**1,911 passed, 5 skipped**；当前剩余 2 个失败均为 `/s/demo/v1/students` CSRF 测试收到 404，未涉及本次改动的手册、截图、fixture 或权限代码。
+- `git diff --check`、两个截图脚本 `py_compile`：通过。
+
+## 变更索引
+
+正文入口：[manual.html](</Users/llmacbookpro/Library/Mobile Documents/com~apple~CloudDocs/studiosaas/manual.html>)、角色材料：[docs/guides/README.md](</Users/llmacbookpro/Library/Mobile Documents/com~apple~CloudDocs/studiosaas/docs/guides/README.md>)、截图规范：[docs/design/manual_shots.md](</Users/llmacbookpro/Library/Mobile Documents/com~apple~CloudDocs/studiosaas/docs/design/manual_shots.md>)。计划的执行状态已写回 [Manual_Improvement_Plan.md](</Users/llmacbookpro/Library/Mobile Documents/com~apple~CloudDocs/studiosaas/docs/design/Manual_Improvement_Plan.md>)。
+
+---
+
+# 📖 历史审计（执行前，仅作记录；2026-08-08，对照 v8.10.3）
+
+全文见 `docs/design/Manual_Improvement_Plan.md`。以下内容记录本轮执行前的盘点，不代表当前交付状态。
 
 ## 盘的是两层，不是一份
 
