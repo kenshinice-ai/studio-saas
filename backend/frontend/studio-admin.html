@@ -5387,8 +5387,20 @@
         const value = storedFields[key] ?? storedFields[camel] ?? fallback;
         setToggle(timetableFieldControl(key), value, false);
       });
-      if ($('timetableUrlHint')) {
-        $('timetableUrlHint').textContent = `/${TENANT_SLUG}/timetable`;
+      /* `currentTenantSlug()`, not `TENANT_SLUG`. The latter is the
+         tenant-template convention (index/register/timetable are rendered per
+         tenant and carry it as a literal); this console serves every tenant
+         from one static file and reads the slug from the form.
+         v8.10.0 shipped the wrong one, and because a ReferenceError aborts the
+         rest of the function, everything below this line stopped running — the
+         theme was never applied, so the contrast check measured unstyled
+         defaults and reported 1.0:1. One undefined name, every symptom. */
+      /* Only when a slug is actually known. With none, the markup's own
+         `/<your studio>/timetable` stays — writing a placeholder from here
+         would put an untranslated English word on a Chinese page. */
+      const timetableSlug = currentTenantSlug();
+      if (timetableSlug && $('timetableUrlHint')) {
+        $('timetableUrlHint').textContent = `/${timetableSlug}/timetable`;
       }
       showcaseCategories = (website.showcase_categories || website.showcaseCategories || [])
         .slice(0, SHOWCASE_CATEGORY_LIMIT)

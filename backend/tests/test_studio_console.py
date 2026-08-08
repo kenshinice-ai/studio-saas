@@ -337,3 +337,44 @@ def test_the_dictionary_does_not_translate_strings_the_page_no_longer_has() -> N
             f"'{gone}' was removed from the page but kept in the dictionary"
         )
         assert f">{gone}<" not in markup
+
+
+# ── v8.10.1: an undefined name is a blank console ───────────────────────────
+
+def test_studio_admin_never_borrows_the_tenant_template_globals() -> None:
+    """Two files, two conventions — and v8.10.0 copied one into the other.
+
+    `TENANT_SLUG` and `TENANT_NAME` exist in tenant-template/*.html, which the
+    server renders per tenant and substitutes literals into. This console is a
+    single static file serving every tenant, and it reads the slug from a form
+    field via `currentTenantSlug()`. The names simply do not exist here.
+
+    What made it expensive is that a ReferenceError does not surface as an
+    error on the page — it aborts the rest of the enclosing function. The
+    failing line sat halfway through applying a tenant's settings, so the
+    palette was never applied, the theme picker never populated and the
+    showcase never rendered. The owner reported "the colours are wrong", "the
+    theme vanished", "I can't select anything" and a contrast warning reading
+    1.0:1: four unrelated-looking faults from one undefined name.
+
+    A general "no undeclared globals" check is the right long-term guard and is
+    harder than it looks (template literals, SVG markup and prose all produce
+    convincing false positives, and a guard people learn to allowlist is worse
+    than none). This pins the confusion that actually happened.
+    """
+
+    source = CONSOLE.read_text(encoding="utf-8")
+    scripts = "\n".join(re.findall(r"<script\b[^>]*>(.*?)</script>", source, re.S))
+    body = re.sub(r"/\*.*?\*/|//[^\n]*", "", scripts, flags=re.S)
+    for borrowed in ("TENANT_SLUG", "TENANT_NAME"):
+        assert not re.search(rf"(?<![.\w$]){borrowed}\b", body), (
+            f"Studio Admin uses {borrowed}, which only exists in "
+            "tenant-template pages. Use currentTenantSlug() — and note that "
+            "the failure is silent: it stops the rest of the function."
+        )
+
+
+def test_the_timetable_hint_reads_the_slug_from_the_form() -> None:
+    source = CONSOLE.read_text(encoding="utf-8")
+    assert "const timetableSlug = currentTenantSlug();" in source
+    assert "if (timetableSlug && $('timetableUrlHint'))" in source
