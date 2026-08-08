@@ -312,3 +312,64 @@ def test_the_room_and_course_fields_are_optional_in_the_editor() -> None:
     assert editor.count("（选填）") >= 3
     assert re.search(r'<option value="">不关联课程</option>', editor)
     assert re.search(r'<option value="">未指定</option>', editor)
+
+
+# ── v8.10.3: a dropdown must point at something the studio can fill ─────────
+
+def test_the_cms_can_create_the_courses_the_schedule_editor_offers() -> None:
+    """v8.8.0 added a 关联课程 dropdown and no way to put anything in it.
+
+    `courses` and its full CRUD have existed since A1, but the CMS never had an
+    interface for them — so the dropdown a studio met when creating a class
+    could only ever say 「不关联课程」. A control pointing at a list nothing can
+    write to is not a partial feature; it reads as a broken one.
+    """
+
+    source = _read(CMS_SOURCE)
+    assert "const saveCourse =" in source
+    assert "const archiveCourse =" in source
+    assert 'id="courseManager"' in source
+    assert "'+ 添加课程'" in source or "+ 添加课程" in source
+
+
+def test_removing_a_course_archives_it_and_says_what_still_uses_it() -> None:
+    """Deleting would orphan the schedules and ledger rows that reference it.
+
+    The endpoint already soft-deletes (`is_active = false`); the CMS has to say
+    so, and say how many classes are still pointing at this course, because
+    "archive" reads as "remove" to someone who has ten classes on it.
+    """
+
+    source = _read(CMS_SOURCE)
+    block = source[source.index("const archiveCourse ="):source.index("const reviewBooking =")]
+    assert "schedules.filter(sc => sc.courseId === course.id)" in block
+    assert "个班次正在关联它" in block
+    assert "归档" in block
+
+
+def test_the_teacher_list_is_not_loaded_only_by_the_settings_modal() -> None:
+    """The dropdown sat empty until you happened to open 设置 once.
+
+    Nothing was broken — the data simply had not been fetched, because the only
+    caller of loadTeam() was the settings modal. Two screens depend on that
+    list, so it cannot be loaded by one of them.
+    """
+
+    source = _read(CMS_SOURCE)
+    block = source[source.index("v8.10.3: the team list"):]
+    block = block[:block.index("useEffect(() => {\n        if (actorRole && !allowedTabs")]
+    assert "if (TENANT_SLUG && canManageOperations) loadTeam();" in block
+    assert "}, [actorRole]);" in block, "the unconditional load is still gated on showSettings"
+
+
+def test_the_schedule_editor_links_to_where_courses_are_managed() -> None:
+    """From the point of need to the place that answers it.
+
+    Without the link, an empty dropdown reads as a fault rather than as "no
+    courses yet" — which is exactly how it was reported.
+    """
+
+    source = _read(CMS_SOURCE)
+    assert "去添加课程 →" in source
+    assert "管理课程" in source
+    assert "getElementById('courseManager')?.scrollIntoView" in source

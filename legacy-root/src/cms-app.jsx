@@ -1064,6 +1064,10 @@ function App() {
        两个地方要看。 */
     const [bookings, setBookings] = useState([]);
     const [pendingTab, setPendingTab] = useState('registrations');
+    /* v8.10.3: 课程管理。`courses` 表和它的接口从 A1 起就有，v8.8.0 给排课加了
+       「关联课程」下拉——但 CMS 里从来没有创建课程的界面，所以那个下拉永远只有
+       「不关联课程」一个选项。一个指向谁也填不了的列表的控件，等于没有。 */
+    const [courseEdit, setCourseEdit] = useState(null);   // null | {id?, name, description, ageRange, durationMinutes, priceAud}
     /* F5: 待续课阈值（可在设置页调整） */
     const [renewTh, setRenewTh] = useState(() => parseInt(localStorage.getItem('lp_renew_threshold')||'2',10));
     const saveRenewTh = (v) => { const n=parseInt(v,10); if(n>=0){setRenewTh(n);localStorage.setItem('lp_renew_threshold',String(n));} };
@@ -1150,9 +1154,17 @@ function App() {
         return () => window.removeEventListener('studiosaas:brand', syncBrand);
     }, []);
 
+    /* v8.10.3: the team list is no longer loaded only when the settings modal
+       opens. It also feeds the schedule editor's 授课老师 dropdown, and that
+       dropdown sat empty until you happened to open 设置 once — the data was
+       simply not fetched yet, so the control looked broken rather than empty.
+       A list two screens depend on cannot be loaded by one of them. */
+    useEffect(() => {
+        if (TENANT_SLUG && canManageOperations) loadTeam();
+    }, [actorRole]);
     useEffect(() => {
         if (showSettings && TENANT_SLUG && canManageOperations) loadTeam();
-    }, [showSettings, actorRole]);
+    }, [showSettings]);
 
     useEffect(() => {
         if (actorRole && !allowedTabs.includes(tab)) setTab('dashboard');
@@ -2038,10 +2050,7 @@ function App() {
         /* Courses are optional furniture for the editor, not the roster. A
            failure here must not blank the schedule list — the dropdown just
            falls back to "不关联课程". */
-        try {
-            const c = await v1Api('/courses');
-            setCourses((c.courses || []).filter(x => x.is_active !== false));
-        } catch { setCourses([]); }
+        await loadCourses();
         try {
             const b = await v1Api('/class-bookings');
             setBookings(b.bookings || []);
@@ -2180,6 +2189,58 @@ function App() {
             showToast(`${date} 恢复上课`);
         } catch (e) { showToast(`恢复失败：${e.message}`, 'error'); }
         finally { setBusy(false); }
+    };
+
+    const loadCourses = async () => {
+        try {
+            const c = await v1Api('/courses');
+            setCourses((c.courses || []).filter(x => x.is_active !== false));
+        } catch { setCourses([]); }
+    };
+
+    const saveCourse = async () => {
+        if (!courseEdit || busy) return;
+        const name = (courseEdit.name || '').trim();
+        if (!name) { showToast('请填写课程名称', 'warn'); return; }
+        setBusy(true);
+        try {
+            const body = JSON.stringify({
+                name,
+                description: (courseEdit.description || '').trim(),
+                ageRange: (courseEdit.ageRange || '').trim(),
+                durationMinutes: Number(courseEdit.durationMinutes) || 60,
+                /* 接口收的是元，服务端转成分存。价格留空就是 0 —— 不是每家
+                   工作室都想在课程上标价，公开课表的价格开关默认也是关的。 */
+                priceAud: courseEdit.priceAud === '' ? 0 : Number(courseEdit.priceAud) || 0,
+            });
+            if (courseEdit.id) await v1Api(`/courses/${courseEdit.id}`, {method: 'PATCH', body});
+            else                await v1Api('/courses', {method: 'POST', body});
+            await loadCourses();
+            setCourseEdit(null);
+            showToast(courseEdit.id ? '课程已更新' : '课程已添加');
+        } catch (e) { showToast(`保存失败：${e.message}`, 'error'); }
+        finally { setBusy(false); }
+    };
+
+    const archiveCourse = (course) => {
+        /* 归档，不是删除。已经排过这门课的班次、已经按它记过的账都还在引用它，
+           真删掉会让历史记录指向一个不存在的东西。 */
+        const used = schedules.filter(sc => sc.courseId === course.id);
+        confirm(
+            `归档课程「${course.name}」后，它不会再出现在新排课的下拉里。`
+            + (used.length ? `\n\n注意：目前有 ${used.length} 个班次正在关联它，那些班次不受影响，公开课表仍会显示这门课的名称。` : '')
+            + '\n\n已有的排课、账目和历史记录都不受影响。',
+            async () => {
+                if (busy) return;
+                setBusy(true);
+                try {
+                    await v1Api(`/courses/${course.id}`, {method: 'DELETE'});
+                    await loadCourses();
+                    showToast(`课程「${course.name}」已归档`, 'warn');
+                } catch (e) { showToast(`归档失败：${e.message}`, 'error'); }
+                finally { setBusy(false); }
+            },
+            {danger: true, confirmText: '确认归档'});
     };
 
     const reviewBooking = async (bk, status) => {
@@ -3811,6 +3872,74 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                 ))}
                             </div>
                         </div>
+                        {/* v8.10.3: 课程管理。放在充值套餐旁边，因为它们是同一类
+                            东西——都是「先定义好、之后到处引用」的条目，而不是每天
+                            要做的事。排课编辑器里的下拉有一个链接指到这里。 */}
+                        <div id="courseManager" className="mt-4 pt-4 border-t border-gray-100 space-y-2">
+                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">课程管理</p>
+                            <p className="text-xs text-gray-400">
+                                课程是可以被固定班次「关联」的条目。关联之后，公开课表就能显示课程简介和适龄段；不关联也能正常排课，只是课表上只有班次名称。
+                            </p>
+                            {!courses.length && !courseEdit && (
+                                <p className="text-xs text-gray-400 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2">
+                                    还没有课程。例如「儿童油画基础」——添加后就能在「每日排课 → 新增班次」里关联它。
+                                </p>
+                            )}
+                            {courses.map(course => (
+                                <div key={course.id} className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs font-bold text-gray-700 truncate">{course.name}</p>
+                                        <p className="text-xs text-gray-400 truncate">
+                                            {[course.age_range && `适龄 ${course.age_range}`,
+                                              course.duration_minutes && `${course.duration_minutes} 分钟`,
+                                              course.price_aud_cents ? `$${(course.price_aud_cents/100).toFixed(2)}` : null,
+                                             ].filter(Boolean).join(' · ') || '未填写详情'}
+                                        </p>
+                                    </div>
+                                    <button onClick={()=>setCourseEdit({
+                                            id: course.id, name: course.name, description: course.description || '',
+                                            ageRange: course.age_range || '',
+                                            durationMinutes: course.duration_minutes || 60,
+                                            priceAud: course.price_aud_cents ? String(course.price_aud_cents/100) : '',
+                                        })}
+                                        className="text-xs text-indigo-600 font-bold px-3 py-1 min-h-[44px] inline-flex items-center active:text-indigo-800 flex-shrink-0">编辑</button>
+                                    <button onClick={()=>archiveCourse(course)} aria-label="归档"
+                                        className="text-red-500 font-bold px-2 py-1 min-h-[44px] min-w-[44px] inline-flex items-center justify-center active:text-red-700 flex-shrink-0"><Icon name="close" className="w-3.5 h-3.5"/></button>
+                                </div>
+                            ))}
+                            {!courseEdit ? (
+                                <button onClick={()=>setCourseEdit({name:'', description:'', ageRange:'', durationMinutes:60, priceAud:''})}
+                                    className="w-full border border-dashed border-indigo-300 text-indigo-600 rounded-xl py-2 text-xs font-bold active:bg-indigo-50">+ 添加课程</button>
+                            ) : (
+                                <div className="space-y-2 bg-indigo-50 border border-indigo-200 rounded-xl p-3">
+                                    <p className="text-xs font-bold text-indigo-700">{courseEdit.id?'编辑课程':'添加课程'}</p>
+                                    <input placeholder="课程名称，如：儿童油画基础" value={courseEdit.name}
+                                        onChange={e=>setCourseEdit(p=>({...p,name:e.target.value}))}
+                                        className="w-full px-2.5 py-2 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-400"/>
+                                    <textarea placeholder="课程简介（选填，会显示在公开课表上）" rows="2" value={courseEdit.description}
+                                        onChange={e=>setCourseEdit(p=>({...p,description:e.target.value}))}
+                                        className="w-full px-2.5 py-2 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-400"/>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <input placeholder="适龄 6-9" value={courseEdit.ageRange}
+                                            onChange={e=>setCourseEdit(p=>({...p,ageRange:e.target.value}))}
+                                            className="w-full px-2.5 py-2 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-400"/>
+                                        <input type="number" min="1" placeholder="时长(分)" value={courseEdit.durationMinutes}
+                                            onChange={e=>setCourseEdit(p=>({...p,durationMinutes:e.target.value}))}
+                                            className="w-full px-2.5 py-2 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-400"/>
+                                        <input type="number" min="0" step="0.01" placeholder="价格 $" value={courseEdit.priceAud}
+                                            onChange={e=>setCourseEdit(p=>({...p,priceAud:e.target.value}))}
+                                            className="w-full px-2.5 py-2 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-400"/>
+                                    </div>
+                                    <p className="text-[11px] text-gray-400">简介、适龄段和价格都是选填；公开课表上显示哪些，由 Studio Admin 的 Timetable 开关决定。</p>
+                                    <div className="flex gap-2">
+                                        <button onClick={()=>setCourseEdit(null)}
+                                            className="flex-1 py-2 border border-gray-300 rounded-xl text-xs font-bold text-gray-600 active:bg-gray-100">取消</button>
+                                        <button onClick={saveCourse} disabled={busy}
+                                            className="flex-1 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold disabled:bg-gray-300">{courseEdit.id?'保存':'添加'}</button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                         {/* P1-A: Package management */}
                         <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">充值套餐管理</p>
@@ -4395,7 +4524,18 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             <option value="">不关联课程</option>
                             {courses.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
                         </select>
-                        <p className="text-[11px] text-gray-400 mt-1">关联后，课程简介和适龄段可用于公开课表；未关联时只用班次名称。</p>
+                        {/* 从「需要它的地方」通向「管理它的地方」。没有这一行，
+                            一个空的下拉只会让人以为功能坏了，而不是还没建课程。 */}
+                        <p className="text-[11px] text-gray-400 mt-1">
+                            {courses.length
+                                ? '关联后，课程简介和适龄段可用于公开课表；未关联时只用班次名称。'
+                                : '还没有课程。'}
+                            <button type="button" onClick={()=>{ setShowSettings(true);
+                                    setTimeout(()=>document.getElementById('courseManager')?.scrollIntoView({block:'center'}), 80); }}
+                                className="ml-1 font-bold text-indigo-600 active:text-indigo-800 underline">
+                                {courses.length ? '管理课程' : '去添加课程 →'}
+                            </button>
+                        </p>
                     </div>
                     <div>
                         <label className="text-xs font-bold text-gray-500 mb-1 block">授课老师<span className="font-normal text-gray-400">（选填）</span></label>
