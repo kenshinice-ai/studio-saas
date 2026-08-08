@@ -253,9 +253,18 @@ def test_existing_portals_apply_published_visual_theme_and_localized_copy(client
 
     for slug in EXISTING_TENANTS:
         html = client.get(f"/{slug}").get_data(as_text=True)
-        assert "button-rounded" in html, slug
-        assert "button-sharp" in html, slug
-        assert "visual.button_style||visual.buttonStyle" in html, slug
+        # The palette — including the button/typeface classes — is applied by
+        # /assets/portal-brand.js since v8.9.0, so the page is checked for
+        # USING it rather than for containing it. The module's own contents are
+        # pinned by test_portal_theme_contract.py.
+        #
+        # This assertion only moved because a regenerated workspace made it
+        # fail: the materialised pages under tenants/ lag tenant-template until
+        # regenerate_tenant_workspaces.py runs, which the deploy entrypoint
+        # does on every boot. Worth remembering when a portal test passes
+        # locally and the same code behaves differently after a release.
+        assert "/assets/portal-brand.js" in html, slug
+        assert "applyVisualTheme" in html, slug
         assert "localized.hero_title" in html, slug
         assert "localized.primary_cta" in html, slug
         assert "language: lang()" in html, slug
