@@ -1,6 +1,6 @@
 # ✅ v8.10.3 手册改善执行交接（2026-08-09）
 
-已按 `docs/design/Manual_Improvement_Plan.md` 执行全部 **P0 / P1 / P2 / P3**。本次交付是手册、角色材料、自动截图和合成截图 fixture 的完整闭环；**前台权限保持不变，当前进入 Git 同步与线上部署闭环**。
+已按 `docs/design/Manual_Improvement_Plan.md` 执行全部 **P0 / P1 / P2 / P3**。本次交付是手册、角色材料、自动截图和合成截图 fixture 的完整闭环；**前台权限保持不变，Git 同步与线上部署已完成**。
 
 ## 当前结论
 
@@ -8,6 +8,14 @@
 - **P1 完成**：补课程管理、课程 / 老师 / 地点 / 公开开关 / 停课、老师公开署名同意、About the space 和三条 FAQ。
 - **P2 完成**：`capture_manual_shots.py` 已加入四组新状态并重拍全套；现有 11 组 + 新增 4 组，共 **30 张中英 WebP，1.54 MB**。打印检查：英文 22 页、中文 19 页。
 - **P3 完成**：总览、Owner、Manager、Teacher、Front Desk、Student/Parent、Super Admin 均已同步到 v8.10.3；Front Desk 明确「可看约课、不能审批，转交 Owner / Manager」。
+
+## 发布闭环证据
+
+- **Git**：分支 `codex/v8.10.3-manual-refresh`，本次线上发布提交 `c208de820d4dad122ead7494bc4c50c824c9ebd1` 已推送至 `origin`；本页随后以交接文档同步提交更新。
+- **Bundle**：`dist/PWE-StudioSaaS-aws-8.10.3.tar.gz`，SHA-256 `2a161d57674cc2dbedb67cdec50cde1eea3926df22e1c5adf1c807025c8ed7a7`；SaaS / standalone 两种包的 checksum、BUILD_INFO、入口和排除项门禁均通过。
+- **线上部署**：已用 SaaS bundle 部署 `pwestudio.online`，当前镜像为 `studiosaas:8.10.3`，应用健康、数据库健康、磁盘 47.27 GB 可用（17.2% 已用），6 个租户主题均可读（`unreadable: 0`）。
+- **公网验收**：`/v1/health?deep=1` 返回 `appVersion: 8.10.3`；`/manual/` 返回 `Last updated 2026-08-09`、`From logo`、`Public Timetable` 和 `Selected Work`，截图 URL 已带 `r=2026-08-09` 缓存版本。
+- **仓库边界**：用户提供的未跟踪 `AGENTS.md` 已保留，未进入提交或发布包。
 
 ## 权限与安全边界
 

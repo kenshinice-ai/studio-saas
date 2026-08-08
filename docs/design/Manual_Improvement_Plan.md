@@ -9,7 +9,7 @@
 - **P2**：扩展自动截图脚本和合成 showcase fixture；重新捕获既有画面，并新增 `09-timetable`、`09-booking`、`10-showcase`、`11-courses` 共 30 张中英截图。
 - **P3**：同步总览、Owner、Manager、Teacher、Front Desk、Student/Parent、Super Admin 角色材料；明确前台转交边界。
 
-相关实现已落在 `manual.html`、`docs/guides/`、`backend/scripts/capture_manual_shots.py`、`backend/scripts/reset_professional_demo.py` 与 `backend/frontend/assets/manual/`；本次请求继续完成 Git 同步与线上部署。
+相关实现已落在 `manual.html`、`docs/guides/`、`backend/scripts/capture_manual_shots.py`、`backend/scripts/reset_professional_demo.py` 与 `backend/frontend/assets/manual/`；已提交并推送到 `codex/v8.10.3-manual-refresh`，并部署至 `pwestudio.online`。SaaS bundle SHA-256：`2a161d57674cc2dbedb67cdec50cde1eea3926df22e1c5adf1c807025c8ed7a7`。
 
 盘的是两套东西，它们是同一件事的两层：
 
