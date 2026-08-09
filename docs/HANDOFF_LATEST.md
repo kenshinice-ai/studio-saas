@@ -1,16 +1,16 @@
 # PWE Studio v9.6.0 — Studio Admin 执行 handoff
 
-> 状态：执行中；目标版本：`9.6.0`。本节是本文件的最新交接入口，历史版本记录仍保留在下方。
+> 状态：已完成代码、文档、打包、同步、部署与公网验收；版本：`9.6.0`。本节是本文件的最新交接入口，历史版本记录仍保留在下方。
 
 ## 当前事实
 
-- 源码分支：`codex/v9.3.0-cms-information-architecture`；`VERSION` 已更新为 `9.6.0`。
-- 当前生产基线：`9.5.0`；目标生产：`https://pwestudio.online`。
+- 源码分支：`codex/v9.3.0-cms-information-architecture`；`VERSION` 已更新为 `9.6.0`；部署候选 commit：`f9007855dcaa10298bd522c82e7397d2afba0638`。
+- 当前生产：`https://pwestudio.online`；`/opt/pwestudio/current` 指向 `PWE-StudioSaaS-aws-9.6.0`，运行镜像为 `studiosaas:9.6.0`。
 - Studio Admin 负责品牌、官网、报名入口、公开课表、草稿、预览与发布；CMS 负责日常运营。
 - 家长话术不迁移数据、不新建发送系统，仍保留在 Studio Admin，入口归入「招生入口」子菜单；CMS 继续复制使用。
 - 支付、银行转账信息、Gmail/SMTP、AWS SES、短信、SSE、WebSocket、浏览器 Push 均不在本版本。
 
-## 已批准的执行队列
+## 已执行的交付队列
 
 ### P0：功能可信度
 
@@ -31,7 +31,7 @@
 
 ### P2：交接与回归
 
-同步 Studio Admin、Owner 手册、在线用户手册文字与截图、手册截图脚本、Release Notes、版本号和生成资产；执行中英文/桌面移动/键盘/权限/租户隔离/打包/部署验收。`docs/sales/` 既有未跟踪路演资料保留且不纳入提交与发布包。
+同步 Studio Admin、Owner 手册、在线用户手册文字与截图、手册截图脚本、Release Notes、版本号和生成资产；完成中英文/桌面移动/键盘/权限/租户隔离/打包/部署验收。`docs/sales/` 既有未跟踪路演资料保留且不纳入提交与发布包。
 
 ## 交接验收标准
 
@@ -39,6 +39,16 @@
 - 家长话术继续读取旧 `messageTemplates` 数据并进入现有发布载荷；没有第二个编辑器或发送服务。
 - 草稿、预览、已发布官网三者文案不混淆；发布失败有明确恢复路径。
 - 本地、双模式发布包和生产 `APP_VERSION` / `BUILD_INFO` / deep health 均为 `9.6.0`。
+
+## 发布与验证证据
+
+- SaaS 包：`dist/PWE-StudioSaaS-aws-9.6.0.tar.gz`；SHA-256：`38da495f81146d48878350fd07a8dfce25b6c30ff67782f3f4cc3d990790cdde`。
+- Edition 包：`dist/PWE-Studio-Edition-9.6.0.tar.gz`；SHA-256：`88416f04de9cf7ab88fa61a409e094e282d4ed9701218757d39b9b44db51d2a2`。
+- 两个包的 `BUILD_INFO` 均为 `version=9.6.0`，部署候选 commit 为 `f9007855dcaa10298bd522c82e7397d2afba0638`，模式分别为 `saas` / `standalone`。
+- 部署前后备份：`studiosaas_studiosaas_20260809T140039Z.dump`、`pwestudio-volumes-20260809T140040Z.tar.gz`。
+- 公网 deep health：`appVersion=9.6.0`、`db=ok`、`mode=saas`、`tenants=6`、`themes.unreadable=0`；容器 healthy，磁盘可用约 `47.03 GB`。
+- 公网 `/`、`/zh/`、展示租户门户、报名页、CMS、Studio Admin、双语在线手册、双语 Release Notes 和新增家长话术截图均返回 `200`；HTTP → HTTPS 为 `301`，TLS 校验为 `0`，HTTP/2。
+- 本地完整门禁：`1943 passed, 8 skipped`；CMS smoke：`73 passed, 0 failed`；租户隔离：`237 passed, 0 failed`；生产部署后最近 5 分钟 app/db 错误关键词计数均为 `0`。
 
 ---
 
@@ -6792,7 +6802,7 @@ vs "5 GB" — same pre-existing behaviour, not a regression). The decimal is
 load-bearing for *used*-storage display, so the formatter was left alone. The
 "Add Plan" form defaults (`149 / 800 / 12 / 51200`) describe a hypothetical new
 custom plan, not Starter/Studio/Growth, and were also left alone.
-# PWE Studio v9.6.0 — Studio Admin execution handoff
+## Appendix — v9.6.0 Studio Admin execution baseline
 
 > 状态：执行基线（先交付 handoff，再进入 P0/P1/P2）；目标版本：`9.6.0`。
 > 本 handoff 以当前源码、当前测试与生产状态为准；旧版本记录继续保留在本文档下方。

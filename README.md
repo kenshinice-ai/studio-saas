@@ -7,12 +7,12 @@ the current source tree was packaged or deployed.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | `codex/v9.3.0-cms-information-architecture`; `VERSION` = **9.6.0** | This branch, which is ahead of `main`, keeps the CMS information architecture from v9.5.0 and adds the Studio Admin P0/P1/P2 execution scope. |
-| Package | **9.6.0 SaaS + Edition pending final build** | The archives and checksums are generated only after the final committed candidate passes the release gate. |
-| Production | **9.5.0 remains the last verified deployment until v9.6.0 acceptance** | `/opt/pwestudio/current` was read before editing and reported `studiosaas:9.5.0`, `db=ok`, 6 readable tenants and `unreadable=0`; the health response does not identify the deployed commit. |
+| Source | `codex/v9.3.0-cms-information-architecture`; `VERSION` = **9.6.0** | This branch, which is ahead of `main`, produced deployed candidate commit `f9007855dcaa10298bd522c82e7397d2afba0638`; the closure docs commit is recorded separately. |
+| Package | **9.6.0 SaaS + Edition archives verified** | SaaS SHA-256 `38da495f81146d48878350fd07a8dfce25b6c30ff67782f3f4cc3d990790cdde`; Edition SHA-256 `88416f04de9cf7ab88fa61a409e094e282d4ed9701218757d39b9b44db51d2a2`; both `BUILD_INFO` records point to the deployed candidate. |
+| Production | **9.6.0 deployed and publicly accepted** | `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.6.0`, image `studiosaas:9.6.0`; deep health reports `db=ok`, 6 readable tenants and `unreadable=0`. `BUILD_INFO` separately confirms the deployed commit. |
 
 Re-verify the production health endpoint before any later release claim; do not
-infer Production from `VERSION` or from an archive filename.
+infer Production from `VERSION` or from an archive filename, which does not identify the deployed commit.
 
 ## v9.6.0 Studio Admin information architecture and publication clarity
 

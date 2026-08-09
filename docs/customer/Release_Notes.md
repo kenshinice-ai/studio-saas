@@ -16,6 +16,14 @@ distinguishes unsaved changes, saved private drafts and published content.
 Online payments, bank-transfer configuration, Gmail/SMTP, AWS SES, SMS, SSE,
 WebSocket and browser push remain deferred.
 
+Production acceptance: v9.6.0 is deployed at `https://pwestudio.online` from
+candidate commit `f9007855dcaa10298bd522c82e7397d2afba0638`. The SaaS archive
+SHA-256 is `38da495f81146d48878350fd07a8dfce25b6c30ff67782f3f4cc3d990790cdde`;
+the Edition archive SHA-256 is
+`88416f04de9cf7ab88fa61a409e094e282d4ed9701218757d39b9b44db51d2a2`.
+Deep health reports `appVersion=9.6.0`, `db=ok`, six readable tenants and
+`themes.unreadable=0`.
+
 ## v9.5.0 — CMS information architecture and operational workspaces
 
 The CMS now has one stable working model for operators: a top app bar for
