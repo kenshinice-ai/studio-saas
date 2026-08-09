@@ -151,7 +151,7 @@
       color-scheme: dark light;
 
       --serif: Georgia, "Times New Roman", "Songti SC", "Source Han Serif SC", serif;
-      --sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Source Han Sans SC", sans-serif;
+      --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
       --ease: cubic-bezier(.2, .7, .2, 1);
     }
     * { box-sizing: border-box; }
@@ -251,7 +251,7 @@
     }
     .nav-links a:hover { color: var(--ink); }
     .nav-links a:hover::after { width: 100%; }
-    .nav-links .lang, .nav-links .nav-cta { min-height: 40px; padding: 0 var(--s-3); border-radius: 999px; }
+    .nav-links .lang, .nav-links .nav-cta { min-height: 44px; padding: 0 var(--s-3); border-radius: 999px; }
     .nav-links .lang { border: 1px solid var(--control-line); font-size: var(--f-xs); }
     .nav-links .lang:hover { border-color: var(--accent); color: var(--accent); }
     .nav-links .nav-cta { background: var(--family-amber); color: var(--family-navy); font-weight: 600; }
@@ -296,6 +296,10 @@
       display: flex; flex-direction: column; height: 100%; padding: var(--s-4);
       border: 1px solid var(--card-line); border-radius: var(--r);
       background: var(--card);
+    }
+    .industries h3, .g4 h3 {
+      margin: 0 0 6px; font-family: var(--sans); font-size: var(--f-0);
+      font-weight: 600; letter-spacing: 0;
     }
     .band-2 .card { border-color: var(--card-line-2); background: var(--card-2); }
     .card p { font-size: var(--f-sm); line-height: 1.6; }
@@ -652,11 +656,11 @@
           <h2 data-lang="zh">行业模版换的是术语和表单，不只是颜色。</h2>
         </div>
         <div class="grid industries">
-          <article class="card reveal"><h4 data-lang="en">Visual arts studios</h4><h4 data-lang="zh">美术工作室</h4><p data-lang="en">Portfolio progress, publication consent, term classes and material-aware course stories.</p><p data-lang="zh">作品成长、发布授权、学期课程与材料导向的课程叙事。</p></article>
-          <article class="card reveal" data-delay="1"><h4 data-lang="en">Music schools</h4><h4 data-lang="zh">音乐学校</h4><p data-lang="en">Instrument, level, practice goals, lesson cadence and performance milestones.</p><p data-lang="zh">乐器、级别、练习目标、课程节奏与演出里程碑。</p></article>
-          <article class="card reveal" data-delay="2"><h4 data-lang="en">Dance studios</h4><h4 data-lang="zh">舞蹈工作室</h4><p data-lang="en">Style, level, timetable, attendance and rehearsal-ready communication.</p><p data-lang="zh">舞种、级别、课表、出勤与排练沟通。</p></article>
-          <article class="card reveal"><h4 data-lang="en">Tutoring centres</h4><h4 data-lang="zh">补习机构</h4><p data-lang="en">Subjects, year levels, learning goals, credits and progress evidence.</p><p data-lang="zh">科目、年级、学习目标、课时与进度证据。</p></article>
-          <article class="card reveal" data-delay="1"><h4 data-lang="en">Creative technology</h4><h4 data-lang="zh">创意科技</h4><p data-lang="en">Projects, workshops, coding pathways and shareable outcomes.</p><p data-lang="zh">项目、工作坊、编程路径与可分享成果。</p></article>
+          <article class="card reveal"><h3 data-lang="en">Visual arts studios</h3><h3 data-lang="zh">美术工作室</h3><p data-lang="en">Portfolio progress, publication consent, term classes and material-aware course stories.</p><p data-lang="zh">作品成长、发布授权、学期课程与材料导向的课程叙事。</p></article>
+          <article class="card reveal" data-delay="1"><h3 data-lang="en">Music schools</h3><h3 data-lang="zh">音乐学校</h3><p data-lang="en">Instrument, level, practice goals, lesson cadence and performance milestones.</p><p data-lang="zh">乐器、级别、练习目标、课程节奏与演出里程碑。</p></article>
+          <article class="card reveal" data-delay="2"><h3 data-lang="en">Dance studios</h3><h3 data-lang="zh">舞蹈工作室</h3><p data-lang="en">Style, level, timetable, attendance and rehearsal-ready communication.</p><p data-lang="zh">舞种、级别、课表、出勤与排练沟通。</p></article>
+          <article class="card reveal"><h3 data-lang="en">Tutoring centres</h3><h3 data-lang="zh">补习机构</h3><p data-lang="en">Subjects, year levels, learning goals, credits and progress evidence.</p><p data-lang="zh">科目、年级、学习目标、课时与进度证据。</p></article>
+          <article class="card reveal" data-delay="1"><h3 data-lang="en">Creative technology</h3><h3 data-lang="zh">创意科技</h3><p data-lang="en">Projects, workshops, coding pathways and shareable outcomes.</p><p data-lang="zh">项目、工作坊、编程路径与可分享成果。</p></article>
         </div>
       </div>
     </section>
@@ -722,25 +726,25 @@
         <div class="grid g4">
           <article class="card reveal">
             <span class="num">01</span>
-            <h4 data-lang="en">Brand setup</h4><h4 data-lang="zh">品牌配置</h4>
+            <h3 data-lang="en">Brand setup</h3><h3 data-lang="zh">品牌配置</h3>
             <p data-lang="en">Apply the industry template, then set the logo, palette, bilingual copy and registration questions.</p>
             <p data-lang="zh">套用行业模版，配好 Logo、配色、双语文案与报名问题。</p>
           </article>
           <article class="card reveal" data-delay="1">
             <span class="num">02</span>
-            <h4 data-lang="en">Data import</h4><h4 data-lang="zh">数据导入</h4>
+            <h3 data-lang="en">Data import</h3><h3 data-lang="zh">数据导入</h3>
             <p data-lang="en">Student list and class-credit balances, migrated from Excel in one reviewed pass.</p>
             <p data-lang="zh">学员名单与课时余额，从 Excel 一次性迁入，迁移结果经复核。</p>
           </article>
           <article class="card reveal" data-delay="2">
             <span class="num">03</span>
-            <h4 data-lang="en">Team training</h4><h4 data-lang="zh">团队培训</h4>
+            <h3 data-lang="en">Team training</h3><h3 data-lang="zh">团队培训</h3>
             <p data-lang="en">Each role learns only its own screen: front desk takes payment, teachers check students in, the manager reads the books.</p>
             <p data-lang="zh">按角色各教各的：前台收费、老师签到、店长看账。</p>
           </article>
           <article class="card reveal" data-delay="3">
             <span class="num">04</span>
-            <h4 data-lang="en">Go live</h4><h4 data-lang="zh">正式上线</h4>
+            <h3 data-lang="en">Go live</h3><h3 data-lang="zh">正式上线</h3>
             <p data-lang="en">Site, registration and daily operations switch over on the same day, with support alongside through the first week.</p>
             <p data-lang="zh">官网、报名、运营同日切换，上线首周伴随支持。</p>
           </article>

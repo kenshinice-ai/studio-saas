@@ -9331,9 +9331,13 @@ def list_class_bookings():
 
 
 @api_v1.route("/class-bookings/<booking_id>", methods=["PATCH"])
-@tenant_admin_required
+@permission_required("class_bookings:review")
 def review_class_booking(booking_id: str):
-    """Approve or decline one request.
+    """Approve or decline one request with reception-scoped authority.
+
+    Owners, managers and Front Desk can decide the request. This permission
+    does not grant course, capacity or schedule mutation; those remain on
+    their existing routes and permissions.
 
     Capacity is checked HERE, not when the request arrived. The count taken at
     submission time has expired by now, and two parents asking for the same

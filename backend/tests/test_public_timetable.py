@@ -195,6 +195,36 @@ def test_capacity_is_rechecked_when_the_studio_approves() -> None:
     assert "409" in body and "now full" in body
 
 
+def test_booking_review_uses_the_narrow_role_permission() -> None:
+    """Front Desk may decide a request without gaining schedule authority."""
+
+    source = _read(API)
+    route = '@api_v1.route("/class-bookings/<booking_id>", methods=["PATCH"])'
+    start = source.index(route)
+    declaration = source[start:source.index("def review_class_booking", start)]
+    assert '@permission_required("class_bookings:review")' in declaration
+    assert "@tenant_admin_required" not in declaration
+
+
+def test_front_desk_booking_review_does_not_open_schedule_mutations() -> None:
+    """Decision authority must not include course, capacity or time changes."""
+
+    from studiosaas.auth import ROLE_PERMISSIONS, Role
+
+    permissions = ROLE_PERMISSIONS[Role.FRONT_DESK]
+    assert "class_bookings:review" in permissions
+    assert "courses:write" not in permissions
+    source = _read(API)
+    for route in (
+        '@api_v1.route("/class-schedules", methods=["POST"])',
+        '@api_v1.route("/class-schedules/<schedule_id>", methods=["PATCH"])',
+        '@api_v1.route("/class-schedules/<schedule_id>", methods=["DELETE"])',
+    ):
+        start = source.index(route)
+        declaration_end = source.index("def ", start)
+        assert "@tenant_admin_required" in source[start:declaration_end]
+
+
 def test_nearly_full_is_proportional_not_a_fixed_number() -> None:
     """Capacity runs from 1 (one-to-one) to 30 (a big class).
 

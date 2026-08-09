@@ -465,3 +465,24 @@ def test_the_manual_is_reachable_from_the_product_home(client) -> None:
 
     body = client.get("/").get_data(as_text=True)
     assert 'href="/manual/"' in body
+
+
+def test_the_manual_explains_the_current_visual_style_model() -> None:
+    """Industry recommends; eight curated styles plus Custom share one engine."""
+
+    source = _source()
+    assert "eight curated starting points plus Custom" in source
+    assert "八个精选起点 + 自定义" in source
+    assert "does <em>not</em> select that style for you" in source
+    assert "不会替你选中" in source
+    assert "Custom solves its values from the chosen accent" in source
+
+
+def test_the_manual_states_the_front_desk_booking_transition_honestly() -> None:
+    """Backend authority is live while the CMS control remains a separate task."""
+
+    source = _source()
+    assert "Review class-booking requests" in source
+    assert "审核约课请求" in source
+    assert "its approve/decline buttons still show only to Owner and Manager" in source
+    assert "批准/婉拒按钮仍只向 Owner/Manager 显示" in source

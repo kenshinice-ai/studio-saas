@@ -1,6 +1,6 @@
 # StudioSaaS 使用手册总览
 
-> 适用版本：PWE Studio v8.10.3 · 最后更新：2026-08-07
+> 适用版本：PWE Studio v8.10.3 · 最后更新：2026-08-09
 > 本目录是按角色划分的最终用户手册。开发/运维文档见 `docs/` 上层
 > （[Architecture](../Architecture.md) · [Admin_Guide](../Admin_Guide.md) ·
 > [Glossary](../Glossary.md)）。
@@ -26,7 +26,7 @@ StudioSaaS 是多租户教培工作室 SaaS。每个工作室（租户）有独�
 | **Owner** 工作室主理人 | Studio Admin + CMS | 品牌与官网发布、团队账号、财务终审；CMS 全权限 | [Studio_Owner_Guide.md](Studio_Owner_Guide.md) |
 | **Manager** 店长 | CMS | 日常运营全流程：档案/排课/签到/充值/退款/审批/统计 | [CMS_Manager_Guide.md](CMS_Manager_Guide.md) |
 | **Teacher** 任课老师 | CMS | 当日排课与签到、学员作品集 | [Teacher_Guide.md](Teacher_Guide.md) |
-| **Front Desk** 前台 | CMS | 报名审批、建档、充值、访问码发放（不能签到、无财务报表） | [Front_Desk_Staff_Guide.md](Front_Desk_Staff_Guide.md) |
+| **Front Desk** 前台 | CMS | 报名审批、约课请求查看、建档、充值、访问码发放（不能签到、无财务报表） | [Front_Desk_Staff_Guide.md](Front_Desk_Staff_Guide.md) |
 | **Staff**（legacy 通用员工） | CMS | 接近 Manager 但无退款/分享链接/统计/导出 | [Front_Desk_Staff_Guide.md](Front_Desk_Staff_Guide.md) |
 | **学员 / 家长** | 不登录（访问码） | 浏览官网、在线报名、自助查询课时与作品 | [Student_Parent_Guide.md](Student_Parent_Guide.md) |
 
@@ -49,6 +49,7 @@ StudioSaaS 是多租户教培工作室 SaaS。每个工作室（租户）有独�
 | 作品集编辑 portfolio:write | ✅ | ✅ | ✅ | ❌ | ✅ |
 | **作品分享 portfolio:share** | ✅ | ✅ | ❌ | ❌ | ❌ |
 | 报名审批 registrations:write | ✅ | ✅ | ❌ | ✅ | ✅ |
+| **约课请求审核 class_bookings:review** | ✅ | ✅ | ❌ | ✅ | ❌ |
 | **经营统计 analytics:read** | ✅ | ✅ | ❌ | ❌ | ❌ |
 | 数据导出 data:export | ✅ | ✅ | ❌ | ❌ | ❌ |
 | 品牌/官网 settings:write | ✅ | ❌ | ❌ | ❌ | ❌ |
@@ -66,6 +67,11 @@ portfolio:share 是 v7.4.0 新增的独立权限，仅 Owner/Manager；分享链
 **撤销**走 portfolio:write，Teacher/Staff 也可以撤。学员专区访问码的
 生成/更换/停用属于学员资料维护（students:write）——**前台可以发放**。
 Owner 另有专属的「操作审计」面板：Studio Admin → 数据分析。）
+
+> v8.10.3 已在后端为 Front Desk 开放 `class_bookings:review`，但本轮按范围
+> **没有修改 CMS**：约课卡片的批准/婉拒按钮仍只对 Owner/Manager 显示。
+> 前台可以查看请求，但要等独立 CMS 任务完成后才从界面执行决定。课程、容量
+> 与时间表维护始终只属于 Owner/Manager。
 
 对应 CMS 导航标签页：
 
@@ -94,6 +100,7 @@ Owner 另有专属的「操作审计」面板：Studio Admin → 数据分析。
 | **数据保留策略上线**（v8.2.12）：审计 730 天、分析 365 天、通知 365 天、访问会话 30 天，每月自动执行 | Super Admin |
 | **套餐要显式发布**（v8.2.20）：新建套餐默认**不**出现在公开定价页，需在控制台勾选 | Super Admin |
 | **产品官网重做 + 语言拆分**（v8.2.20）：`pwestudio.online/` 英文、`/zh/` 中文。这是平台自己的官网，与工作室门户无关 | — |
+| **公开课表与约课队列**（v8.10.0–3）：Front Desk 的约课审核后端权限已独立；CMS 操作按钮留给单独的谨慎改造任务 | Owner · Manager · 前台 |
 
 ## 四、通用概念
 
@@ -124,7 +131,7 @@ Owner 另有专属的「操作审计」面板：Studio Admin → 数据分析。
 
 - 想改官网颜色/文案/报名问题 → [Owner 手册](Studio_Owner_Guide.md)
 - 想办充值、退款、审批报名 → [Manager 手册](CMS_Manager_Guide.md)
-- 前台审批报名、发访问码、看到「疑似重复」角标 →
+- 前台审批报名、查看约课请求、发访问码、看到「疑似重复」角标 →
   [前台/员工手册](Front_Desk_Staff_Guide.md)
 - 想给学员签到、传作品 → [Teacher 手册](Teacher_Guide.md)
 - 家长问「还剩几节课怎么查」 → [学员/家长手册](Student_Parent_Guide.md)

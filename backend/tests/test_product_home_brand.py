@@ -144,6 +144,31 @@ def test_the_page_opens_on_the_readers_problem_not_on_a_claim() -> None:
     assert "Put administration behind the scenes." not in source
 
 
+def test_product_ui_uses_the_canonical_bilingual_system_stack() -> None:
+    """Inter is not loaded here; product copy must not depend on silent fallback."""
+
+    source = _product_home_source()
+    stack = (
+        '--sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, '
+        '"Helvetica Neue", Arial, "PingFang SC", "Hiragino Sans GB", '
+        '"Microsoft YaHei", sans-serif;'
+    )
+    assert stack in source
+    assert "--sans: Inter" not in source
+
+
+def test_product_cards_do_not_skip_heading_levels() -> None:
+    """Cards use semantic H3s without turning operational labels into display type."""
+
+    source = _product_home_source()
+    industries = source[source.index('class="grid industries"'):source.index("</section>", source.index('class="grid industries"'))]
+    launch = source[source.index('class="grid g4"'):source.index("</section>", source.index('class="grid g4"'))]
+    assert "<h3" in industries and "<h4" not in industries
+    assert "<h3" in launch and "<h4" not in launch
+    assert ".industries h3, .g4 h3" in source
+    assert "font-family: var(--sans)" in source[source.index(".industries h3, .g4 h3"):source.index("}", source.index(".industries h3, .g4 h3"))]
+
+
 def test_the_page_keeps_its_commercial_boundaries() -> None:
     """Scope limits are the part of sales copy that must not quietly go missing.
 

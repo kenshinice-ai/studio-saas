@@ -4,6 +4,7 @@ import pytest
 from importlib import import_module
 from pathlib import Path
 
+from studiosaas.auth import ROLE_PERMISSIONS, Role
 from studiosaas.presets import FREE_ACCENT_STYLE_ID
 
 # Read the release label rather than repeating it. A hard-coded literal here
@@ -24,6 +25,16 @@ def test_health_returns_ok(client):
     assert payload["appVersion"] == VERSION
     assert payload["mode"] == "saas"
     assert payload["showProducerCredit"] is True
+
+
+def test_only_operational_leads_and_front_desk_can_review_class_bookings():
+    """Booking review is reception work, not schedule or teaching authority."""
+
+    permission = "class_bookings:review"
+    for role in (Role.OWNER, Role.MANAGER, Role.FRONT_DESK):
+        assert permission in ROLE_PERMISSIONS[role]
+    for role in (Role.TEACHER, Role.STAFF, Role.PARENT):
+        assert permission not in ROLE_PERMISSIONS[role]
 
 
 def test_industry_presets_are_complete_and_bilingual(client):

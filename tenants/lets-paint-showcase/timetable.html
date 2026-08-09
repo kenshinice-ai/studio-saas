@@ -37,7 +37,7 @@
     a { color:var(--clay); text-decoration:none; font-weight:500; }
     nav { position:sticky; top:0; left:0; right:0; z-index:50; background:color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter:blur(12px); border-bottom:1px solid var(--line); }
     .navrow { display:flex; align-items:center; justify-content:space-between; gap:16px; height:74px; width:min(1180px,100%); margin:0 auto; padding:0 var(--space-phi-md); }
-    .brand { display:flex; align-items:center; gap:12px; min-width:0; cursor:pointer; color:var(--ink); }
+    .brand { display:flex; align-items:center; gap:12px; min-width:0; min-height:var(--tap-min); cursor:pointer; color:var(--ink); }
     .brand img { height:34px; width:auto; display:none; }
     .brand .bn { font-size:16px; letter-spacing:.04em; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .navlinks { display:flex; align-items:center; gap:30px; }
@@ -48,7 +48,7 @@
        permanent and aria-current says the same thing to a screen reader. */
     .navlinks a[aria-current="page"] { color:var(--ink); }
     .navlinks a[aria-current="page"]::after { width:100%; }
-    .navcta { border:1px solid var(--ink); border-radius:var(--radius-pill); padding:10px 20px; font-size:13px; letter-spacing:.03em; transition:.3s; }
+    .navcta { border:1px solid var(--ink); border-radius:var(--radius-pill); padding:10px 20px; min-height:var(--tap-min); display:inline-flex; align-items:center; font-size:13px; letter-spacing:.03em; transition:.3s; }
     .navcta:hover { background:var(--ink); color:var(--bg); }
     .navcta::after { display:none; }
     .langtog { display:inline-flex; border:1px solid var(--line); border-radius:var(--radius-pill); overflow:hidden; margin-left:6px; }
@@ -136,7 +136,7 @@
     .foot .fcontact { font-size:13px; color:var(--ink2); margin:0 0 10px; }
     .foot .cp { font-size:13px; color:var(--ink2); margin:0; }
     .foot .fl { display:flex; gap:26px; font-size:13px; color:var(--ink2); flex-wrap:wrap; }
-    .foot .fl a { color:var(--ink2); }
+    .foot .fl a { color:var(--ink2); display:inline-flex; align-items:center; min-height:var(--tap-min); }
 
     @media (max-width:900px) {
       .navlinks { display:none; }

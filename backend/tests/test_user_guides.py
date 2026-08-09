@@ -95,6 +95,22 @@ def test_the_front_desk_portfolio_boundary_is_stated_not_implied() -> None:
     assert "portfolio:read" in _text("Front_Desk_Staff_Guide.md")
 
 
+def test_front_desk_booking_review_is_documented_with_the_cms_boundary() -> None:
+    """The guide must separate live backend authority from deferred CMS UI."""
+
+    from studiosaas.auth import ROLE_PERMISSIONS, Role
+
+    permission = "class_bookings:review"
+    assert permission in ROLE_PERMISSIONS[Role.FRONT_DESK]
+    assert permission not in ROLE_PERMISSIONS[Role.STAFF]
+    readme = _text("README.md")
+    front_desk = _text("Front_Desk_Staff_Guide.md")
+    assert permission in readme and permission in front_desk
+    assert "约课卡片的批准/婉拒按钮仍只对 Owner/Manager 显示" in readme
+    assert "前台 CMS 按钮待独立任务" in front_desk
+    assert "前台都不能修改\n课程、容量或上课时间" in front_desk
+
+
 # ── counted facts ────────────────────────────────────────────────────────────
 
 def test_the_audit_action_count_is_the_real_one() -> None:

@@ -291,13 +291,31 @@ def test_the_hero_style_option_says_what_it_does() -> None:
     assert "Image Background" not in console
 
 
-def test_the_public_page_still_needs_both_the_url_and_the_style() -> None:
-    """The page's own rule is unchanged; what changed is that the console can
-    no longer leave an owner on the wrong side of it."""
+def test_the_public_page_collapses_every_no_image_hero_to_text() -> None:
+    """A missing image is absence, not permission to invent a large panel."""
 
     portal = _read(PORTAL)
-    assert "heroStyle === 'image'" in portal
+    assert "var hasHeroImage = Boolean(heroImageUrl);" in portal
+    assert "heroStyle === 'image' && hasHeroImage" in portal
+    assert "!hasHeroImage || heroStyle === 'minimal'" in portal
     assert "body.hero-image .hero-art img{display:block}" in portal
+
+
+def test_portal_text_actions_keep_a_real_touch_target() -> None:
+    """Underlined actions still need a 44px hit area on a phone."""
+
+    portal = _read(PORTAL)
+    assert ".hero-login{display:inline-flex;align-items:center;min-height:var(--tap-min)" in portal
+    assert ".course .cbtn{display:inline-flex;align-items:center;min-height:var(--tap-min)" in portal
+
+
+def test_parent_cards_do_not_skip_from_h2_to_h4() -> None:
+    """Card titles are subsections of the parent-area H2, so they are H3."""
+
+    portal = _read(PORTAL)
+    cards = portal[portal.index('class="p-actions reveal"'):portal.index("</section>", portal.index('class="p-actions reveal"'))]
+    assert "<h3" in cards
+    assert "<h4" not in cards
 
 
 # ── the surfaces that read a solved palette, and the ones that do not ───────

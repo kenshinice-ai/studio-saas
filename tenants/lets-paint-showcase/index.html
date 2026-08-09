@@ -85,14 +85,14 @@
   nav{position:fixed;top:0;left:0;right:0;z-index:50;transition:background .4s,box-shadow .4s,border-color .4s;border-bottom:1px solid transparent}
   nav.solid{background:color-mix(in srgb, var(--bg) 88%, transparent);backdrop-filter:blur(12px);border-color:var(--line)}
   .navrow{display:flex;align-items:center;justify-content:space-between;height:74px}
-  .brand{display:flex;align-items:center;gap:12px;cursor:pointer}
+  .brand{display:flex;align-items:center;gap:12px;min-height:var(--tap-min);cursor:pointer}
   .brand img{height:34px;width:auto;display:none}
   .brand .bn{font-size:16px;letter-spacing:.04em;font-weight:500}
   .navlinks{display:flex;align-items:center;gap:30px}
   .navlinks a{font-size:13px;color:var(--ink2);letter-spacing:.02em;position:relative;padding:4px 0;cursor:pointer}
   .navlinks a::after{content:"";position:absolute;left:0;bottom:0;width:0;height:1px;background:var(--clay);transition:width .3s}
   .navlinks a:hover::after{width:100%}
-  .navcta{border:1px solid var(--ink);border-radius:var(--radius-pill);padding:10px 20px;font-size:13px;letter-spacing:.03em;transition:.3s}
+  .navcta{border:1px solid var(--ink);border-radius:var(--radius-pill);padding:10px 20px;min-height:var(--tap-min);display:inline-flex;align-items:center;font-size:13px;letter-spacing:.03em;transition:.3s}
   .navcta:hover{background:var(--ink);color:var(--bg)}
   .langtog{display:inline-flex;border:1px solid var(--line);border-radius:var(--radius-pill);overflow:hidden;margin-left:6px}
   /* P3-3: 44px tap target. */
@@ -126,7 +126,7 @@
   .hero-secondary{display:inline-flex;align-items:center;min-height:var(--tap-min);padding:0 4px;font-size:13px;letter-spacing:.04em;color:var(--ink2);border-bottom:1px solid var(--line-strong);cursor:pointer;transition:color var(--dur-enter) var(--ease-out),border-color var(--dur-enter) var(--ease-out)}
   .hero-secondary:hover{color:var(--clay);border-color:var(--clay)}
   body.hero-bold .hero .hero-secondary{color:var(--bg);border-color:color-mix(in srgb,var(--bg) 45%,transparent)}
-  .hero-login{display:inline-block;margin-top:20px;font-size:13px;letter-spacing:.04em;color:var(--muted);border-bottom:1px solid var(--line);padding-bottom:2px;cursor:pointer;transition:.25s}
+  .hero-login{display:inline-flex;align-items:center;min-height:var(--tap-min);margin-top:12px;font-size:13px;letter-spacing:.04em;color:var(--muted);border-bottom:1px solid var(--line);padding:0 2px;cursor:pointer;transition:.25s}
   .hero-login:hover{color:var(--clay);border-color:var(--clay)}
   /* Three outlines, set per studio. Organic is the default and the one
      that makes the page read as a studio; a studio showing
@@ -334,7 +334,7 @@
      Small body copy on the darker surface uses --ink2 (7.3:1). */
   .course p{font-size:13px;color:var(--ink2);min-height:44px}
   .course .cage{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--clay);margin-top:2px}
-  .course .cbtn{display:inline-block;margin-top:16px;font-size:13px;letter-spacing:.06em;color:var(--ink);border-bottom:1px solid var(--ink);padding-bottom:2px;cursor:pointer}
+  .course .cbtn{display:inline-flex;align-items:center;min-height:var(--tap-min);margin-top:10px;font-size:13px;letter-spacing:.06em;color:var(--ink);border-bottom:1px solid var(--ink);padding:0 2px;cursor:pointer}
   .course .cbtn:hover{color:var(--clay);border-color:var(--clay)}
 
   .gallery{background:var(--bg2)}
@@ -392,7 +392,7 @@
   .p-card{border:1px solid color-mix(in srgb,var(--bg) 22%,var(--ink));border-radius:var(--radius-card);padding:20px 22px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;
           transition:background var(--dur-enter) var(--ease-out),border-color var(--dur-enter) var(--ease-out)}
   .p-card:hover{background:color-mix(in srgb,var(--bg) 10%,var(--ink));border-color:color-mix(in srgb,var(--bg) 38%,var(--ink))}
-  .p-card .l h4{font-size:16px;font-weight:500;color:var(--bg)}
+  .p-card .l h3{font-family:var(--font-body);font-size:16px;font-weight:500;color:var(--bg)}
   .p-card .l p{font-size:13px;color:color-mix(in srgb,var(--bg) 66%,var(--ink));margin-top:3px}
   .p-card .arw{font-family:var(--font-latin);font-size:26px;color:var(--clay)}
 
@@ -692,9 +692,9 @@
       <p data-en="No account, no password. The student's name, your mobile and the code from the %VENUE% are enough to see classes and %WORKS%.">无需注册邮箱账号——使用%VENUE%发放的访问码及学员姓名、手机号，即可查看私人课时与%WORK%记录。</p>
     </div>
     <div class="p-actions reveal">
-      <a class="p-card" href="#my" data-analytics-label="parent_card_student"><div class="l"><h4 data-en="Student private area">学员私人专区</h4><p data-en="Name, mobile and access code">姓名 + 手机号 + 访问码安全验证</p></div><span class="arw">→</span></a>
-      <a class="p-card" href="#my" data-analytics-label="parent_card_portfolio"><div class="l"><h4 data-en="My %WORKS%">我的%WORK%集</h4><p data-en="Every one of them, class by class">每一次课的%WORK%记录</p></div><span class="arw">→</span></a>
-      <a class="p-card" href="#join" data-analytics-label="parent_card_join"><div class="l"><h4 data-en="Book a Trial · Enrol">预约体验 · 报名</h4><p data-en="Tell us a little about the student and we'll call within 24 hours">填写基本信息，老师会在 24 小时内与您联系</p></div><span class="arw">→</span></a>
+      <a class="p-card" href="#my" data-analytics-label="parent_card_student"><div class="l"><h3 data-en="Student private area">学员私人专区</h3><p data-en="Name, mobile and access code">姓名 + 手机号 + 访问码安全验证</p></div><span class="arw">→</span></a>
+      <a class="p-card" href="#my" data-analytics-label="parent_card_portfolio"><div class="l"><h3 data-en="My %WORKS%">我的%WORK%集</h3><p data-en="Every one of them, class by class">每一次课的%WORK%记录</p></div><span class="arw">→</span></a>
+      <a class="p-card" href="#join" data-analytics-label="parent_card_join"><div class="l"><h3 data-en="Book a Trial · Enrol">预约体验 · 报名</h3><p data-en="Tell us a little about the student and we'll call within 24 hours">填写基本信息，老师会在 24 小时内与您联系</p></div><span class="arw">→</span></a>
     </div>
   </div>
 </section>
@@ -1755,19 +1755,14 @@
     showSection('parent', showStudent);
     var heroStyle = hero.background_style || hero.backgroundStyle || 'soft';
     var heroImageUrl = hero.hero_image_url || hero.heroImageUrl || '';
-    /* Design_Constraints §5. A studio that picked the photo hero and has not
-       uploaded one yet used to get the decorative gradient in its place — a
-       large shaped void where a photograph obviously belongs, which reads as
-       a broken page rather than as a design. It collapses to the one-column
-       hero instead, which is a finished layout at any width.
-
-       Only when the photo was ASKED for. `soft` is a studio choosing the
-       gradient on purpose, and taking that away would be the same mistake in
-       the other direction. */
-    var wantsPhoto = heroStyle === 'image';
-    var heroVoid = wantsPhoto && !heroImageUrl;
-    document.body.classList.toggle('hero-image', wantsPhoto && Boolean(heroImageUrl));
-    document.body.classList.toggle('hero-minimal', heroStyle === 'minimal' || heroVoid);
+    /* Design_Constraints §5. No uploaded image means no visual panel,
+       regardless of a stored legacy style. A decorative gradient is not a
+       substitute for tenant content. When a real image exists, the explicit
+       `image` style reveals it; otherwise the one-column layout is complete. */
+    var hasHeroImage = Boolean(heroImageUrl);
+    var wantsPhoto = heroStyle === 'image' && hasHeroImage;
+    document.body.classList.toggle('hero-image', wantsPhoto);
+    document.body.classList.toggle('hero-minimal', !hasHeroImage || heroStyle === 'minimal');
     document.body.classList.toggle('hero-bold', heroStyle === 'bold');
     var heroShape = hero.hero_shape || hero.heroShape || 'organic';
     document.body.classList.toggle('hero-oval', heroShape === 'oval');

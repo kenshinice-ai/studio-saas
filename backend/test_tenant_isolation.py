@@ -614,6 +614,98 @@ def main() -> int:
     check("Front Desk can read registration API data", front_desk.get(f"/s/{TENANT_A}/v1/registrations").status_code == 200)
     check("Front Desk cannot read portfolio API data", front_desk.get(f"/s/{TENANT_A}/v1/portfolio").status_code == 403)
 
+    # v8.10.3: booking review is reception authority, kept separate from the
+    # right to change the class itself. Create the class as Owner, then insert
+    # deterministic pending requests directly so this role test does not
+    # depend on today's weekday or the public timetable horizon.
+    booking_schedule_response = owner_a.post(
+        f"/s/{TENANT_A}/v1/class-schedules",
+        json={
+            "label": "Isolation booking review",
+            "weekday": 3,
+            "startTime": "17:30",
+            "durationMinutes": 60,
+            "capacity": 4,
+            "studentIds": [],
+            "isPublic": True,
+        },
+    )
+    booking_schedule_body = booking_schedule_response.get_json() or {}
+    booking_schedule_id = booking_schedule_body.get("scheduleId")
+    check(
+        "Owner can create the booking-review fixture schedule",
+        booking_schedule_response.status_code == 201 and bool(booking_schedule_id),
+        f"got {booking_schedule_response.status_code}: {booking_schedule_body}",
+    )
+    check(
+        "Front Desk cannot change a class capacity or time",
+        front_desk.patch(
+            f"/s/{TENANT_A}/v1/class-schedules/{booking_schedule_id}",
+            json={"capacity": 99, "startTime": "08:00"},
+        ).status_code == 403,
+    )
+    if booking_schedule_id:
+        with connect() as conn:
+            first_booking = fetch_one(
+                conn,
+                """
+                INSERT INTO class_bookings (
+                    tenant_id, schedule_id, on_date, contact_name,
+                    contact_phone, privacy_notice_version
+                ) VALUES (%s, %s, CURRENT_DATE + 7, 'Front Desk Approval',
+                          '0499000001', 'v1')
+                RETURNING id
+                """,
+                (fixtures["tenant_a"], booking_schedule_id),
+            )
+            second_booking = fetch_one(
+                conn,
+                """
+                INSERT INTO class_bookings (
+                    tenant_id, schedule_id, on_date, contact_name,
+                    contact_phone, privacy_notice_version
+                ) VALUES (%s, %s, CURRENT_DATE + 14, 'Front Desk Decline',
+                          '0499000002', 'v1')
+                RETURNING id
+                """,
+                (fixtures["tenant_a"], booking_schedule_id),
+            )
+            conn.commit()
+        first_booking_id = str(first_booking["id"])
+        second_booking_id = str(second_booking["id"])
+        teacher_booking_attempt = teacher.patch(
+            f"/s/{TENANT_A}/v1/class-bookings/{second_booking_id}",
+            json={"status": "declined"},
+        )
+        check(
+            "Teacher cannot review a class booking",
+            teacher_booking_attempt.status_code == 403,
+        )
+        approve_booking = front_desk.patch(
+            f"/s/{TENANT_A}/v1/class-bookings/{first_booking_id}",
+            json={"status": "approved"},
+        )
+        decline_booking = front_desk.patch(
+            f"/s/{TENANT_A}/v1/class-bookings/{second_booking_id}",
+            json={"status": "declined", "note": "Family requested another day."},
+        )
+        check("Front Desk can approve a class booking", approve_booking.status_code == 200)
+        check("Front Desk can decline a class booking", decline_booking.status_code == 200)
+        with connect() as conn:
+            booking_rows = fetch_all(
+                conn,
+                "SELECT id, status, review_note FROM class_bookings WHERE id = ANY(%s)",
+                ([first_booking_id, second_booking_id],),
+            )
+        booking_states = {str(row["id"]): row for row in booking_rows}
+        check(
+            "Front Desk booking decisions are persisted with the review note",
+            booking_states.get(first_booking_id, {}).get("status") == "approved"
+            and booking_states.get(second_booking_id, {}).get("status") == "declined"
+            and booking_states.get(second_booking_id, {}).get("review_note")
+            == "Family requested another day.",
+        )
+
     # v7.4.0 role-boundary audit: granular financial/exposure permissions.
     student_for_boundary = (owner_a.get(f"/s/{TENANT_A}/v1/students").get_json() or {}).get("students") or []
     if student_for_boundary:

@@ -41,6 +41,7 @@ ROLE_PERMISSIONS: dict[Role, set[str]] = {
         "portfolio:share",
         "registrations:read",
         "registrations:write",
+        "class_bookings:review",
         "analytics:read",
         "data:export",
         "settings:write",
@@ -61,6 +62,7 @@ ROLE_PERMISSIONS: dict[Role, set[str]] = {
         "portfolio:share",
         "registrations:read",
         "registrations:write",
+        "class_bookings:review",
         "analytics:read",
         "data:export",
         "plans:read",
@@ -81,6 +83,7 @@ ROLE_PERMISSIONS: dict[Role, set[str]] = {
         "attendance:read",
         "registrations:read",
         "registrations:write",
+        "class_bookings:review",
         "plans:read",
     },
     Role.STAFF: {
