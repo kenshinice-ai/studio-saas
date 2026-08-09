@@ -7,12 +7,25 @@ the current source tree was packaged or deployed.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | `codex/v9.2.0-cms-notifications`; `VERSION` = **9.2.0** | This branch, which is ahead of `main`, is the release candidate for persistent CMS notifications: durable registration/booking events, per-user read state, 30-second polling and popup prompts. |
-| Package | **pending** SaaS + Edition archives | Candidate packages will be built from the verified release commit and recorded in `docs/HANDOFF_LATEST.md`. |
-| Production | reports **9.1.1** | Pre-deploy baseline is healthy; production remains on the previous release until the 9.2.0 controller deployment and public acceptance complete. The health response does not identify the deployed commit; the package `BUILD_INFO` and release symlink do. |
+| Source | `codex/v9.2.0-cms-notifications`; `VERSION` = **9.2.0** | Release commit `438e58275c9f1351fe5d57353a6112eb9df0cb24`; this branch, which is ahead of `main`, carries persistent CMS notifications: durable registration/booking events, per-user read state, 30-second polling and popup prompts. |
+| Package | **9.2.0 SaaS + Edition archives verified** | SaaS SHA-256 `627b593d1ad9bfe8a0b59b1c52017893d6dcea8c28a6363fdd48219695bcc3a0`; Edition SHA-256 `f4609d7a979450737aa7908780cf625cdc2cd830c5b1483d77d1334376297ded`; both `BUILD_INFO` records point to the release commit. |
+| Production | **9.2.0 deployed and publicly accepted** | `/opt/pwestudio/current` and the running image are `9.2.0`; internal/public deep health reports `db=ok`, 6 readable tenants and `unreadable=0`. The health response does not identify the deployed commit; the package `BUILD_INFO` and release symlink do. |
 
 Re-verify the production health endpoint before any later release claim; do not
 infer Production from `VERSION` or from an archive filename.
+
+## v9.2.0 Persistent CMS Notifications
+
+The CMS now records new public registrations and class-booking requests in a
+tenant-scoped, durable notification history. Operators with the relevant
+registration visibility see unread counts, a bell/list view, per-user read
+state and popup prompts. The first delivery refreshes every 30 seconds and
+refreshes immediately when the browser becomes visible again.
+
+This release deliberately does not include online payments, bank-transfer
+configuration, Gmail/SMTP, AWS SES, SMS, SSE, WebSocket or browser push. The
+publicly deployed package and the independent Edition package are both kept in
+`dist/` locally; internal `docs/sales/` material was preserved and excluded.
 
 PWE Studio (repo: studiosaas) is a Creative Studio Operating System for art schools, music studios, tutoring centres, creative academies, kids' activity providers, and small education businesses. One codebase supports a multi-tenant SaaS delivery model and a customer-owned standalone Edition.
 
