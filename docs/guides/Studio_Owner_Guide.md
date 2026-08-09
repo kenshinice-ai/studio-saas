@@ -1,6 +1,6 @@
 # 工作室 Owner 手册（Studio Admin + CMS 全权限）
 
-> 适用版本：PWE Studio v9.5.0 · 界面：Studio Admin（`/<工作室网址标识>/studio-admin`）
+> 适用版本：PWE Studio v9.6.0 · 界面：Studio Admin（`/<工作室网址标识>/studio-admin`）
 > 与运营 CMS（`/<工作室网址标识>/cms`）
 > 其他角色手册见 [手册总览](README.md)
 
@@ -10,7 +10,7 @@ Owner 是租户（工作室）的最高负责人，拥有两个界面的全部�
 
 - **Studio Admin**：管理对外形象——品牌与 Logo、配色主题、官网门户内容
   （主理人/课程板块标签/作品墙标签/FAQ/联系方式）、报名表自定义问题、
-  家长话术模板、公开页面的发布。**只有 Owner（和平台 Super Admin）能登录
+  招生入口下的家长话术模板、公开页面的发布。**只有 Owner（和平台 Super Admin）能登录
   这个界面**，Manager 会被拒绝。
 - **运营 CMS**：日常运营的全部功能（等同 Manager，见
   [Manager 手册](CMS_Manager_Guide.md)），外加两项 Owner 专属能力：
@@ -28,7 +28,9 @@ Owner 是租户（工作室）的最高负责人，拥有两个界面的全部�
    →「Change Password」。v8.3.0 起，登录身份、工作室标识、修改密码与退出
    登录都收在这个菜单里，顶栏因此压缩成一行。
 3. 顶部导航：**Website / Brand**（品牌工作台）、**Published Pages**
-   （已发布页面）、**Quick Registration Form**（报名表）、**Open CMS**。
+   （已发布页面）、**Registration**（报名表）、**Open CMS**。工作台左侧按
+   「品牌与官网 / 招生入口 / 发布中心 / 经营洞察」分组；家长话术位于
+   「招生入口 → Family messages」。
    打开官网、CMS、报名页这三个入口在「已发布页面」里也有卡片，带网址与
    健康状态。
 4. 界面右上角有「中文 / English」切换（记忆在本浏览器，存储键
@@ -42,7 +44,7 @@ Owner 是租户（工作室）的最高负责人，拥有两个界面的全部�
 
 ## 一、品牌工作台（Website / Brand）
 
-工作台分左右两栏：左侧是 8 个设置标签页，右侧是实时预览（可切换
+工作台使用分组导航和编辑/预览双栏：右侧是草稿预览（可切换
 Studio Website / Quick Registration 两种页面、中文/EN、Desktop/Mobile）。
 底部常驻保存条：**Apply Category Preset · Open Website · Save Draft ·
 Publish**，并显示「No unsaved changes / Unsaved changes / Draft saved —
@@ -203,11 +205,12 @@ Minimal / Bold Contrast）、Hero Shape（艺术异形 / 椭圆 / 方形）、
 「Add FAQ」添加问答，每条有问题中/英、答案中/英和「Remove」。最多 6 条、
 至少 1 条；只填一种语言时另一种语言自动沿用。
 
-### 6. Messages（家长话术）
+### 6. Admissions → Family messages（招生入口 → 家长话术）
 
-CMS 里员工一键复制发给家长的五种话术模板：签到、课时用完、购课成功、
+这里维护 CMS 里员工一键复制发给家长的五种话术模板：签到、课时用完、购课成功、
 续课提醒、生日祝福。占位符 `{student} {studio} {balance} {credits} {fee}
-{note}` 会按学员自动填充。「Reset to defaults」可恢复默认模板。
+{note}` 会按学员自动填充。「Reset to defaults」可恢复默认模板。它仍属于
+Studio Admin 的品牌/招生设置，员工在 CMS 中复制使用；本页面不会自动发送邮件或短信。
 
 ### 7. Analytics（数据分析）
 

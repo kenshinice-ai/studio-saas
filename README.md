@@ -7,12 +7,29 @@ the current source tree was packaged or deployed.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | `codex/v9.3.0-cms-information-architecture`; `VERSION` = **9.5.0** | This branch, which is ahead of `main`, carries release commit `9a976215bab9d5b32b9792f36851078a4111ff4b`, consolidating the CMS into grouped workspaces, route-aware deep links, role-specific workbenches, a dedicated settings page and persistent in-app notifications. |
-| Package | **9.5.0 SaaS + Edition archives verified** | SaaS SHA-256 `d9cd91c57467213ee81710d290b8a589c6910b4819568d136e2da9e59842802a`; Edition SHA-256 `90409a371521074252ceed90946198a5c4021319fcefb19fc55d665f74dfc97d`; both `BUILD_INFO` records point to the release commit with modes `saas` / `standalone`. |
-| Production | **9.5.0 deployed and publicly accepted** | `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.5.0`, running image `studiosaas:9.5.0`; internal/public deep health report `db=ok`, 6 readable tenants and `unreadable=0`. The health response does not identify the deployed commit, so the release symlink and package `BUILD_INFO` were checked separately. |
+| Source | `codex/v9.3.0-cms-information-architecture`; `VERSION` = **9.6.0** | This branch, which is ahead of `main`, keeps the CMS information architecture from v9.5.0 and adds the Studio Admin P0/P1/P2 execution scope. |
+| Package | **9.6.0 SaaS + Edition pending final build** | The archives and checksums are generated only after the final committed candidate passes the release gate. |
+| Production | **9.5.0 remains the last verified deployment until v9.6.0 acceptance** | `/opt/pwestudio/current` was read before editing and reported `studiosaas:9.5.0`, `db=ok`, 6 readable tenants and `unreadable=0`; the health response does not identify the deployed commit. |
 
 Re-verify the production health endpoint before any later release claim; do not
 infer Production from `VERSION` or from an archive filename.
+
+## v9.6.0 Studio Admin information architecture and publication clarity
+
+This release executes the approved Studio Admin handoff. The workbench now uses
+grouped navigation for Brand & Website, Admissions, Publish and Insights while
+preserving the editor/preview golden-ratio layout. Family messages remain in
+Studio Admin, under Admissions, and continue using the existing compatible
+`messageTemplates` payload; no message provider or automatic sending is added.
+
+P0 repairs cover real dirty-state tracking for timezone, timetable and message
+fields, a working Registration shortcut, bilingual timetable labels, safe space
+for the sticky save bar and URL-addressable workbench views. The preview now
+states that it is a private draft, while the publish center distinguishes draft,
+published and unsaved states.
+
+Payments, bank-transfer configuration, Gmail/SMTP, AWS SES, SMS, SSE, WebSocket
+and browser push remain outside this release.
 
 ## v9.5.0 CMS Information Architecture and Persistent Notifications
 
@@ -925,7 +942,7 @@ curl -i -X POST http://localhost:8901/v1/admin/tenants \
 | `docs/Deployment.md` | Deployment stages; Stage 2 (AWS Lightsail) live since 2026-07-30 |
 | `docs/Design_System.md` | UI tokens and component standards |
 | `docs/Glossary.md` | One agreed word per concept (enforced by `check_terminology.py`) |
-| `docs/guides/` | Per-role user manuals in Chinese (applicable to v9.5.0) |
+| `docs/guides/` | Per-role user manuals in Chinese (applicable to v9.6.0) |
 | `01 BRAND ASSETS/` | PWE/Paradise family delivery kit and validated asset manifest |
 
 ---

@@ -1,7 +1,7 @@
 {
   "algorithm": "sha256",
   "assets": {
-    "admin-i18n.js": "a3882422cb2684a20dd47b9d5feef16b6b3cb52b186aee6958aa50782a27720c",
+    "admin-i18n.js": "69093aaec75d3e7e5a7be48069214761ede1438f1b23da08f255c6e45af986d2",
     "brand-system.css": "150e8e2d28a00741e852a9a97c30fff6a1de2a7e5f63e320ea5c01342a2e248e",
     "cms-app.js": "e08ae1f2dc0dd4c9634fb0228dcdcc06e3099465fcb0da568febd11f83e5f444",
     "cms-i18n.js": "8492d386daba9f20ce5c0152a9fc598c6337fb66e96452cec160e8371e7b9b89",
@@ -15,8 +15,10 @@
     "fonts/cormorant-garamond-latin.woff2": "5d618c462b7a5b74f442e1548880086af71764d9cc7d35c16ab45353da934621",
     "manual.css": "a8d5e0e123e81bc032c5b301587a8854ecc282adda3cd0d8fb1123aa61a600b1",
     "manual.js": "f840dd4bd60ea72ef93e44d15d27b540f404ac01a9635888fa78ebf5de69fc8a",
-    "manual/01-brand-workbench.en.webp": "f2841c1b0b5d4b0b024f3b6880a797d7ef5e381f708436b16c0b8c34c5ea9ffe",
-    "manual/01-brand-workbench.zh.webp": "1b734f779f51bdf36167a869ca6a4ab1cdffc165096189f906eff857410d5332",
+    "manual/01-admissions-messages.en.webp": "ad8613e07eecaf3d49b78be0ba5782d5623eeafbff43396fb789855616e3d2f4",
+    "manual/01-admissions-messages.zh.webp": "920544148c620c41df748d16184c4a595e0cf9a2659866c53f66583be2fbef5a",
+    "manual/01-brand-workbench.en.webp": "7e70afba76ed381e9b5b8e3daffef24a2216d7d6b105175d08c841830cad78b1",
+    "manual/01-brand-workbench.zh.webp": "5f0f515599b771023976191fd8ba45ab94367dbce514d5a570633827af06e6a3",
     "manual/02-pending.en.webp": "6744c32e4f188c47aaefe24d323c735b72e14b9cba047bc281ec835c9506b0d0",
     "manual/02-pending.zh.webp": "d7577b87291e84a6e4295737d8ff97d7ebc7689a2cc8475a76ede2826ba1f1d3",
     "manual/02-portal.en.webp": "2264f2f829ba7d5d9dd0f46e721a5fce8ad41586c3892b89a21159674893e1ea",

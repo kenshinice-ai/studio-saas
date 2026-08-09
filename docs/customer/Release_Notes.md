@@ -1,5 +1,21 @@
 # PWE Studio — Release Notes and Acceptance Evidence
 
+## v9.6.0 — Studio Admin navigation and publication clarity
+
+Studio Admin now groups the public-brand workbench into Brand & Website,
+Admissions, Publish and Insights. Registration and public timetable controls
+are together under Admissions; family message templates remain in Studio Admin
+under the same group and remain compatible with the existing CMS copy workflow.
+
+The release also repairs dirty-state coverage for timezone, timetable and family
+message fields, makes Registration shortcuts and workbench views deep-linkable,
+completes timetable translation, reserves safe space for the sticky save bar and
+labels the right-hand panel as a private draft preview. Publication status now
+distinguishes unsaved changes, saved private drafts and published content.
+
+Online payments, bank-transfer configuration, Gmail/SMTP, AWS SES, SMS, SSE,
+WebSocket and browser push remain deferred.
+
 ## v9.5.0 — CMS information architecture and operational workspaces
 
 The CMS now has one stable working model for operators: a top app bar for

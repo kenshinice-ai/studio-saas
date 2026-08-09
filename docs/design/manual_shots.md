@@ -55,7 +55,8 @@ install is wrong.
 
 | file | role | path | viewport | page state needed |
 |---|---|---|---|---|
-| `01-brand-workbench` | owner | `/lets-paint-showcase/studio-admin` | desktop | signed in, Website / Brand tab, preview visible |
+| `01-brand-workbench` | owner | `/lets-paint-showcase/studio-admin` | desktop | signed in, Brand foundation panel, draft preview visible |
+| `01-admissions-messages` | owner | `/lets-paint-showcase/studio-admin?view=messages` | desktop | signed in, Admissions → Family messages panel |
 | `02-portal` | public | `/lets-paint-showcase` | desktop | published portal, top of page |
 | `02-register` | public | `/lets-paint-showcase/register` | desktop | empty enquiry form |
 | `02-pending` | manager | `/lets-paint-showcase/cms` | desktop | Pending / 待处理 tab, showing the duplicate badge |

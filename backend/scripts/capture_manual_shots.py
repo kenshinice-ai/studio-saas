@@ -71,6 +71,7 @@ TAB = {
 # wrong screen.
 SHOTS = [
     ("01-brand-workbench", "owner",   f"/{SLUG}/studio-admin", DESKTOP, None, 2.5, None),
+    ("01-admissions-messages", "owner", f"/{SLUG}/studio-admin?view=messages", DESKTOP, None, 2.5, None),
     ("02-portal",          None,      f"/{SLUG}",              DESKTOP, None, 2.0, None),
     ("02-register",        None,      f"/{SLUG}/register",     DESKTOP, None, 1.5, None),
     ("02-pending",         "manager", f"/{SLUG}/cms",          DESKTOP, TAB["pending"], 2.0, None),

@@ -1,3 +1,47 @@
+# PWE Studio v9.6.0 — Studio Admin 执行 handoff
+
+> 状态：执行中；目标版本：`9.6.0`。本节是本文件的最新交接入口，历史版本记录仍保留在下方。
+
+## 当前事实
+
+- 源码分支：`codex/v9.3.0-cms-information-architecture`；`VERSION` 已更新为 `9.6.0`。
+- 当前生产基线：`9.5.0`；目标生产：`https://pwestudio.online`。
+- Studio Admin 负责品牌、官网、报名入口、公开课表、草稿、预览与发布；CMS 负责日常运营。
+- 家长话术不迁移数据、不新建发送系统，仍保留在 Studio Admin，入口归入「招生入口」子菜单；CMS 继续复制使用。
+- 支付、银行转账信息、Gmail/SMTP、AWS SES、短信、SSE、WebSocket、浏览器 Push 均不在本版本。
+
+## 已批准的执行队列
+
+### P0：功能可信度
+
+补齐时区、公开课表、家长话术等字段的 dirty tracking；修复 Registration 快捷入口；补齐课表中英文映射；保留 sticky 保存条安全空间；统一 `?view=` 深链、首次载入与前进/后退行为。
+
+### P1：信息架构与发布中心
+
+用四组工作流替代十个平铺标签：
+
+```text
+品牌与官网：品牌基础 / 首屏与行动按钮 / 官网版块 / 工作室作品 / 常见问答
+招生入口：报名表 / 公开课表 / 家长话术
+发布中心：草稿预览与发布 / 历史版本 / 页面健康
+经营洞察：官网数据分析
+```
+
+预览明确标为私有草稿；保存条区分未保存、草稿未公开和已发布状态；桌面编辑区/预览区维持约 `1.618:1`，移动端改为单列且不依赖横向滚动。
+
+### P2：交接与回归
+
+同步 Studio Admin、Owner 手册、在线用户手册文字与截图、手册截图脚本、Release Notes、版本号和生成资产；执行中英文/桌面移动/键盘/权限/租户隔离/打包/部署验收。`docs/sales/` 既有未跟踪路演资料保留且不纳入提交与发布包。
+
+## 交接验收标准
+
+- `?view=register`、`?view=messages`、`?view=advanced` 能直接打开对应工作区。
+- 家长话术继续读取旧 `messageTemplates` 数据并进入现有发布载荷；没有第二个编辑器或发送服务。
+- 草稿、预览、已发布官网三者文案不混淆；发布失败有明确恢复路径。
+- 本地、双模式发布包和生产 `APP_VERSION` / `BUILD_INFO` / deep health 均为 `9.6.0`。
+
+---
+
 # PWE Studio v9.5.0 — CMS 信息架构最终交付（2026-08-09）
 
 ## 当前发布状态
@@ -6748,3 +6792,89 @@ vs "5 GB" — same pre-existing behaviour, not a regression). The decimal is
 load-bearing for *used*-storage display, so the formatter was left alone. The
 "Add Plan" form defaults (`149 / 800 / 12 / 51200`) describe a hypothetical new
 custom plan, not Starter/Studio/Growth, and were also left alone.
+# PWE Studio v9.6.0 — Studio Admin execution handoff
+
+> 状态：执行基线（先交付 handoff，再进入 P0/P1/P2）；目标版本：`9.6.0`。
+> 本 handoff 以当前源码、当前测试与生产状态为准；旧版本记录继续保留在本文档下方。
+
+## 1. 当前事实与范围边界
+
+- 当前源码分支：`codex/v9.3.0-cms-information-architecture`；生产已验证版本：`9.5.0`。
+- 当前生产目标：`https://pwestudio.online`，部署方式使用仓库内的
+  `deploy/aws/pwestudio_remote.sh` 控制器；发布前后必须分别验证 Source、Package、Production。
+- Studio Admin 负责租户品牌、官网内容、报名入口、公开课表、预览、草稿和发布。
+- CMS 负责学员、排课、签到、课时、报名审核和日常运营。
+- 家长话术本轮**不迁移数据、不新建发送系统**：仍留在 Studio Admin，编辑入口移动到
+  「招生入口」子菜单；实际复制和使用场景继续由 CMS 消费。
+- 支付、银行转账信息、Gmail/SMTP、AWS SES、短信、SSE、WebSocket、浏览器 Push 均不在本版本。
+
+## 2. 目标信息架构
+
+Studio Admin 顶部只保留租户身份、查看官网、打开 CMS、语言和账户；工作台内部改为分组导航：
+
+```text
+品牌与官网
+├── 品牌基础
+├── 首屏与行动按钮
+├── 官网版块
+├── 工作室作品
+└── 常见问答
+
+招生入口
+├── 报名表
+├── 公开课表
+└── 家长话术
+
+发布中心
+├── 草稿预览与发布
+├── 历史版本
+└── 页面健康
+
+经营洞察
+└── 官网数据分析
+```
+
+- 内部面板继续使用稳定的 `data-workbench-tab` 标识；新入口必须支持 URL deep link。
+- 桌面保留编辑区与预览区约 `1.618:1` 的黄金分割；移动端转为单列，不依赖横向滚动标签。
+- 家长话术仍进入现有 `messageTemplates` 载荷，保持旧租户数据兼容；本轮只做导航归类、说明和使用边界。
+
+## 3. 执行队列
+
+### P0：功能可信度
+
+1. 补齐所有公开字段、课表开关、时区和家长话术输入的 dirty tracking，确保离开页面保护真实有效。
+2. 修复顶部 Quick Registration 入口，使其能够打开隐藏的报名面板并保留当前草稿状态。
+3. 为 Timetable 及相关字段补齐中英文映射，禁止中文界面残留英文主标签。
+4. 修复 sticky 保存条的底部安全空间和遮挡关系。
+5. 统一 workbench tab 的 URL 参数、浏览器前进/后退与首次载入行为。
+
+### P1：信息架构与发布中心
+
+1. 用分组侧栏替换十个平铺标签，家长话术放到「招生入口」子菜单。
+2. 顶部低频操作收进账户菜单，减少跨层级重复入口。
+3. 预览明确标注为草稿预览；“打开官网”明确表示已发布页面。
+4. 发布中心展示「已发布 / 有未保存修改 / 草稿未发布 / 发布失败」四种状态。
+5. 页面健康、历史版本和发布动作保持 Owner-only 权限边界。
+
+### P2：交接质量与回归
+
+1. 更新 Studio Admin、Owner、手册总览和 Release Notes 的当前版本说明。
+2. 建立中英文、桌面/移动、键盘、脏状态、deep link、权限和租户隔离验收矩阵。
+3. 构建生成资产，执行 PostgreSQL 完整门禁、浏览器验收、双模式打包和 checksum。
+4. 只提交本版本相关的 tracked 文件；保留现有未跟踪的 `docs/sales/` 路演资料，不纳入提交与发布包。
+
+## 4. 验收定义
+
+- 任何可编辑字段改变后，状态都显示「有未保存修改」，刷新/离开会提示，保存后恢复干净。
+- `?view=register`、`?view=messages`、`?view=advanced` 等关键入口可直接打开对应面板。
+- 中文界面不会把 `Timetable` 作为主标签显示；英文界面仍保留自然英文。
+- 桌面导航不再平铺十项；移动端无主内容横向滚动，主要按钮和输入框至少 44px。
+- 家长话术仍可读取旧数据、恢复默认并进入现有发布载荷；没有第二个编辑器或新的发送服务。
+- 草稿、预览、已发布官网三者在文案上不混淆；发布失败有明确恢复路径。
+- 本地、包内和生产的 `APP_VERSION` / `BUILD_INFO` / deep health 均为 `9.6.0`。
+
+## 5. 不在本轮解决的问题
+
+- 家长话术独立迁移到 CMS、独立 API、Manager 自定义权限。
+- 邮件、短信、Gmail/SMTP、AWS SES、在线支付和银行转账。
+- SSE、WebSocket、浏览器 Push 或外部通知服务。

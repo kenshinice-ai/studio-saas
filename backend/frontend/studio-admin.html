@@ -863,6 +863,81 @@
     .brand-workbench {
       display: grid;
       gap: var(--ui-space-4, 21px);
+      padding-bottom: 72px;
+    }
+
+    /* v9.6.0: the workbench has four operator jobs, not ten unrelated tabs.
+       The rail is deliberately outside .settings-shell so the editor/preview
+       pair keeps its 1.618:1 proportion. */
+    .workbench-layout {
+      display: grid;
+      grid-template-columns: minmax(176px, 0.382fr) minmax(0, 1.618fr);
+      gap: var(--ui-space-4, 21px);
+      align-items: start;
+    }
+
+    .workbench-nav {
+      position: sticky;
+      top: calc(var(--header-h, 64px) + var(--ui-space-3, 13px));
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: var(--panel);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+
+    .workbench-nav-list {
+      display: grid;
+      gap: 4px;
+      padding: 10px;
+    }
+
+    .workbench-nav-group {
+      display: grid;
+      gap: 2px;
+      padding: 6px 0 8px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .workbench-nav-group:last-child { border-bottom: 0; padding-bottom: 4px; }
+
+    .workbench-nav-label {
+      padding: 5px 10px 4px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+    }
+
+    .workbench-nav-item {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      min-height: var(--ui-touch-target, 44px);
+      padding: 8px 10px;
+      border: 1px solid transparent;
+      border-radius: var(--radius);
+      background: transparent;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .workbench-nav-item:hover {
+      border-color: var(--line);
+      background: var(--bg2);
+      color: var(--ink);
+    }
+
+    .workbench-nav-item.active {
+      border-color: var(--accent-border);
+      background: var(--accent-soft);
+      color: var(--ink);
+      box-shadow: inset 3px 0 0 var(--accent-hover);
     }
 
     /* v8.3.0 removed .workbench-hero and its kicker/title/copy/status. It was
@@ -895,18 +970,8 @@
       top: calc(var(--header-h, 64px) + var(--ui-space-3, 13px));
     }
 
-    .studio-tabs {
-      display: flex;
-      gap: 6px;
-      padding: 10px;
-      border-bottom: 1px solid var(--line);
-      background: var(--bg2);
-      overflow-x: auto;
-    }
-
     /* WCAG 2.5.5. A CJK tab label is two characters wide, so min-width carries
        as much of the target as min-height does. */
-    .studio-tab,
     .preview-tab,
     .device-tab {
       border: 1px solid transparent;
@@ -922,7 +987,6 @@
       white-space: nowrap;
     }
 
-    .studio-tab:hover,
     .preview-tab:hover,
     .device-tab:hover {
       background: var(--panel);
@@ -930,7 +994,6 @@
       border-color: var(--line);
     }
 
-    .studio-tab.active,
     .preview-tab.active,
     .device-tab.active {
       background: var(--ink);
@@ -1424,9 +1487,9 @@
     }
 
     .preview-toolbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      align-items: start;
       gap: 12px;
       padding: 12px;
       border-bottom: 1px solid var(--line);
@@ -1443,11 +1506,22 @@
       background: var(--panel);
     }
 
+    .preview-tabs {
+      width: 100%;
+    }
+
+    .preview-tab {
+      flex: 1 1 0;
+      min-width: 0;
+    }
+
     /* Language and device are separate one-of-two choices, each with its own
        label, so a single highlighted option per group reads correctly. */
     .preview-controls {
       display: flex;
       align-items: center;
+      justify-content: space-between;
+      width: 100%;
       gap: 16px;
       flex-wrap: wrap;
     }
@@ -1456,6 +1530,7 @@
       display: flex;
       align-items: center;
       gap: 8px;
+      min-width: 0;
     }
 
     .preview-control-label {
@@ -1713,6 +1788,38 @@
     .save-bar-status[data-tone="dirty"] { color: var(--on-warning-soft); }
     .save-bar-status[data-tone="clean"] { color: var(--muted); }
 
+    .preview-state {
+      margin: 0 12px 10px;
+      padding: 8px 10px;
+      border: 1px solid var(--info-border);
+      border-radius: var(--radius);
+      background: var(--info-soft);
+      color: var(--on-info-soft);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .publication-state-card {
+      display: grid;
+      gap: 3px;
+      margin: 0 0 var(--ui-space-3, 13px);
+      padding: 13px;
+      border: 1px solid var(--info-border);
+      border-radius: var(--radius-lg);
+      background: var(--info-soft);
+      color: var(--on-info-soft);
+    }
+
+    .publication-state-kicker {
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+    }
+
+    .publication-state-card strong { font-size: 15px; }
+    .publication-state-card small { font-size: 12px; }
+
     /* Color Warning */
     #colorWarning {
       color: var(--on-warning-soft);
@@ -1825,6 +1932,22 @@
       .card-header { align-items: flex-start; gap: 12px; flex-wrap: wrap; }
       .toolbar { grid-template-columns: 1fr; }
       .form-grid { grid-template-columns: 1fr; }
+      .workbench-layout { grid-template-columns: 1fr; }
+      .workbench-nav {
+        position: static;
+      }
+      .workbench-nav-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: start;
+      }
+      .workbench-nav-group {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        padding: 4px 0;
+      }
+      .workbench-nav-group:first-child,
+      .workbench-nav-group:last-child { grid-column: 1 / -1; }
+      .workbench-nav-label { grid-column: 1 / -1; }
+      .workbench-nav-item { font-size: 11px; }
       .settings-shell { grid-template-columns: 1fr; }
       .preview-panel { position: static; }
       .question-card, .faq-card { grid-template-columns: 1fr; }
@@ -1837,12 +1960,7 @@
          worth the space. The header still scrolls away — it is 112px and the
          tab strip already names the section. */
       .settings-panel { overflow: visible; }
-      .studio-tabs {
-        position: sticky;
-        top: 0;
-        z-index: 9;
-        border-radius: 14px 14px 0 0;
-      }
+      .brand-workbench { padding-bottom: 112px; }
       .save-bar {
         position: sticky;
         bottom: 0;
@@ -2181,8 +2299,8 @@
         <a class="nav-link" href="#section-public-surfaces" data-section="public-surfaces">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418"/></svg> Published Pages
         </a>
-        <a class="nav-link" href="#registrationFieldsEditor" data-section="registration-form">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/></svg> Quick Registration Form
+        <a class="nav-link" href="#section-settings" data-workbench-shortcut="register">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/></svg> Registration
         </a>
         <a class="nav-link nav-link-external" href="#" id="openCmsLink" target="_blank" rel="noopener">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z"/></svg> Open CMS
@@ -2255,23 +2373,36 @@
     <!-- ===== Studio Settings Section ===== -->
     <section id="section-settings" class="section">
       <div class="brand-workbench">
+        <div class="workbench-layout">
+          <nav class="workbench-nav" aria-label="Website settings">
+            <div class="workbench-nav-list" role="tablist" aria-label="Studio Admin workspaces">
+              <div class="workbench-nav-group">
+                <div class="workbench-nav-label">Brand &amp; website</div>
+                <button type="button" id="tab-btn-brand" role="tab" aria-selected="true" aria-controls="tab-brand" class="workbench-nav-item active" data-workbench-tab="brand">Brand foundation</button>
+                <button type="button" id="tab-btn-hero" role="tab" aria-selected="false" aria-controls="tab-hero" tabindex="-1" class="workbench-nav-item" data-workbench-tab="hero">Hero &amp; actions</button>
+                <button type="button" id="tab-btn-website" role="tab" aria-selected="false" aria-controls="tab-website" tabindex="-1" class="workbench-nav-item" data-workbench-tab="website">Website sections</button>
+                <button type="button" id="tab-btn-showcase" role="tab" aria-selected="false" aria-controls="tab-showcase" tabindex="-1" class="workbench-nav-item" data-workbench-tab="showcase">Selected work</button>
+                <button type="button" id="tab-btn-faq" role="tab" aria-selected="false" aria-controls="tab-faq" tabindex="-1" class="workbench-nav-item" data-workbench-tab="faq">FAQ</button>
+              </div>
+              <div class="workbench-nav-group">
+                <div class="workbench-nav-label">Admissions</div>
+                <button type="button" id="tab-btn-register" role="tab" aria-selected="false" aria-controls="tab-register" tabindex="-1" class="workbench-nav-item" data-workbench-tab="register">Registration form</button>
+                <button type="button" id="tab-btn-timetable" role="tab" aria-selected="false" aria-controls="tab-timetable" tabindex="-1" class="workbench-nav-item" data-workbench-tab="timetable">Public timetable</button>
+                <button type="button" id="tab-btn-messages" role="tab" aria-selected="false" aria-controls="tab-messages" tabindex="-1" class="workbench-nav-item" data-workbench-tab="messages">Family messages</button>
+              </div>
+              <div class="workbench-nav-group">
+                <div class="workbench-nav-label">Publish</div>
+                <button type="button" id="tab-btn-advanced" role="tab" aria-selected="false" aria-controls="tab-advanced" tabindex="-1" class="workbench-nav-item" data-workbench-tab="advanced">Preview &amp; publish</button>
+              </div>
+              <div class="workbench-nav-group">
+                <div class="workbench-nav-label">Insights</div>
+                <button type="button" id="tab-btn-analytics" role="tab" aria-selected="false" aria-controls="tab-analytics" tabindex="-1" class="workbench-nav-item" data-workbench-tab="analytics">Website analytics</button>
+              </div>
+            </div>
+          </nav>
+
         <div class="settings-shell">
           <div class="settings-panel">
-            <!-- Roving tabindex: only the selected tab is in the Tab order;
-                 ArrowLeft/ArrowRight move between tabs (wired in bindEvents). -->
-            <div class="studio-tabs" role="tablist" aria-label="Website settings">
-              <button type="button" id="tab-btn-brand" role="tab" aria-selected="true" aria-controls="tab-brand" class="studio-tab active" data-workbench-tab="brand">Brand</button>
-              <button type="button" id="tab-btn-hero" role="tab" aria-selected="false" aria-controls="tab-hero" tabindex="-1" class="studio-tab" data-workbench-tab="hero">Hero</button>
-              <button type="button" id="tab-btn-website" role="tab" aria-selected="false" aria-controls="tab-website" tabindex="-1" class="studio-tab" data-workbench-tab="website">Website</button>
-              <button type="button" id="tab-btn-showcase" role="tab" aria-selected="false" aria-controls="tab-showcase" tabindex="-1" class="studio-tab" data-workbench-tab="showcase">Selected Work</button>
-              <button type="button" id="tab-btn-timetable" role="tab" aria-selected="false" aria-controls="tab-timetable" tabindex="-1" class="studio-tab" data-workbench-tab="timetable">Timetable</button>
-              <button type="button" id="tab-btn-register" role="tab" aria-selected="false" aria-controls="tab-register" tabindex="-1" class="studio-tab" data-workbench-tab="register">Registration</button>
-              <button type="button" id="tab-btn-faq" role="tab" aria-selected="false" aria-controls="tab-faq" tabindex="-1" class="studio-tab" data-workbench-tab="faq">FAQ</button>
-              <button type="button" id="tab-btn-messages" role="tab" aria-selected="false" aria-controls="tab-messages" tabindex="-1" class="studio-tab" data-workbench-tab="messages">Messages</button>
-              <button type="button" id="tab-btn-analytics" role="tab" aria-selected="false" aria-controls="tab-analytics" tabindex="-1" class="studio-tab" data-workbench-tab="analytics">Analytics</button>
-              <button type="button" id="tab-btn-advanced" role="tab" aria-selected="false" aria-controls="tab-advanced" tabindex="-1" class="studio-tab" data-workbench-tab="advanced">Preview / Publish</button>
-            </div>
-
             <div id="tab-brand" class="tab-panel active" role="tabpanel" aria-labelledby="tab-btn-brand" data-workbench-panel="brand">
               <div class="panel-heading">
                 <div>
@@ -2739,7 +2870,8 @@
               <div class="panel-heading">
                 <div>
                   <h3>Family messages</h3>
-                  <p>What your staff copy out of the CMS and send to a family. Placeholders are filled in per student: {student} {studio} {balance} {credits} {fee} {note}</p>
+                  <p>Owner-managed copy templates used by staff during admissions and daily follow-up. Staff copy them from the CMS; this page does not send email or SMS.</p>
+                  <p>Placeholders are filled in per student: {student} {studio} {balance} {credits} {fee} {note}</p>
                 </div>
                 <button type="button" id="resetMessageTemplatesBtn" class="btn-secondary btn-sm">Reset to defaults</button>
               </div>
@@ -2803,6 +2935,11 @@
                   <p>Open real tenant pages after saving, or export operational data below.</p>
                 </div>
               </div>
+              <div class="publication-state-card" aria-live="polite">
+                <span class="publication-state-kicker">Publication state</span>
+                <strong id="publicationStateLabel">Published content</strong>
+                <small id="publicationStateHelp">The preview on the right is private until you publish.</small>
+              </div>
               <div class="surface-grid">
                 <div class="surface-card"><strong>Studio Website</strong><p>Primary bilingual public experience with introduction, courses, work gallery, student area, and registration CTA.</p><code id="surfacePortalUrlPreview" class="surface-url">/tenant-slug</code><button type="button" class="btn-primary" onclick="openTenantSurface('portal')">Open Website</button></div>
                 <div class="surface-card"><strong>Quick Registration</strong><p>Alternate focused registration page for QR codes, campaigns, and direct links.</p><code id="surfaceRegisterUrlPreview" class="surface-url">/tenant-slug/register</code><button type="button" class="btn-secondary" onclick="openTenantSurface('register')">Open Quick Registration</button></div>
@@ -2817,7 +2954,7 @@
             </div>
           </div>
 
-          <aside class="preview-panel" aria-label="Live website preview">
+          <aside class="preview-panel" aria-label="Draft website preview">
             <div class="preview-toolbar">
               <div class="preview-tabs">
                 <button type="button" class="preview-tab active" data-preview-mode="portal" aria-pressed="true">Studio Website</button>
@@ -2844,6 +2981,7 @@
                 </div>
               </div>
             </div>
+            <p id="previewStateLabel" class="preview-state" aria-live="polite">Draft preview — not public until Publish</p>
             <div class="preview-stage">
               <div id="previewDevice" class="preview-device mode-portal">
                 <div class="preview-chrome">
@@ -2881,9 +3019,10 @@
             </div>
           </aside>
         </div>
+        </div>
 
         <div class="save-bar">
-          <div id="saveBarStatus" class="save-bar-status">No unsaved changes</div>
+          <div id="saveBarStatus" class="save-bar-status" aria-live="polite">No unsaved changes</div>
           <div class="action-row">
             <button id="resetPresetBtn" class="btn-secondary">Apply Category Preset</button>
             <button type="button" class="btn-secondary" onclick="openTenantSurface('portal')">Open Website</button>
@@ -3066,6 +3205,8 @@
     let plans = [];
     let currentUser = null;
     let settingsDirty = false;
+    let publicationState = 'published'; // 'published' | 'draft' | 'error'
+    let publishedVersionLabel = '';
     let previewMode = 'portal';
     let previewDevice = 'desktop';
     let previewLanguage = 'zh';
@@ -3686,12 +3827,67 @@
        save bar ("No unsaved changes") and to a hero badge ("Saved") in two
        different wordings, which meant two places to keep in step and two
        chances for them to disagree. The hero is gone; the bar is the state. */
+    function localiseAdminText(value) {
+      return window.AdminI18n?.translate?.(value) || value;
+    }
+
+    function updateWorkspaceStatus() {
+      const status = $('saveBarStatus');
+      const previewState = $('previewStateLabel');
+      const publicationLabel = $('publicationStateLabel');
+      const publicationHelp = $('publicationStateHelp');
+      const dirtyText = publicationState === 'error'
+        ? 'Publish failed — changes are not confirmed public'
+        : publicationState === 'draft'
+          ? 'Unsaved changes — saved draft is not public'
+          : 'Unsaved changes';
+      const cleanText = publicationState === 'error'
+        ? 'Publish needs attention'
+        : publicationState === 'draft'
+          ? 'Draft saved — not public'
+          : (publishedVersionLabel ? `Published version ${publishedVersionLabel}` : 'No unsaved changes');
+      if (status) {
+        status.textContent = localiseAdminText(settingsDirty ? dirtyText : cleanText);
+        status.dataset.tone = settingsDirty ? 'dirty' : 'clean';
+      }
+      if (previewState) {
+        previewState.textContent = localiseAdminText(publicationState === 'error'
+          ? 'Draft preview — publish needs attention'
+          : publicationState === 'draft'
+            ? 'Draft preview — not public until Publish'
+            : 'Draft preview — compare with the published website before publishing');
+      }
+      if (publicationLabel) {
+        publicationLabel.textContent = localiseAdminText(settingsDirty
+          ? publicationState === 'error'
+            ? 'Publish needs attention'
+            : 'Changes waiting to be saved'
+          : publicationState === 'draft'
+              ? 'Draft saved — not public'
+              : publicationState === 'error'
+                ? 'Publish needs attention'
+                : (publishedVersionLabel ? `Published version ${publishedVersionLabel}` : 'Published content'));
+      }
+      if (publicationHelp) {
+        publicationHelp.textContent = localiseAdminText(publicationState === 'error'
+          ? 'Check the error, save the draft if needed, then publish again.'
+          : settingsDirty
+            ? 'Save a draft to keep the work private, or publish after checking the preview.'
+            : publicationState === 'draft'
+              ? 'The current editor values are a private draft. Publish when the public pages are ready.'
+              : 'The current editor values match the published tenant pages.');
+      }
+    }
+
+    function setPublicationState(state, versionLabel = '') {
+      publicationState = ['draft', 'error'].includes(state) ? state : 'published';
+      publishedVersionLabel = versionLabel || '';
+      updateWorkspaceStatus();
+    }
+
     function setSettingsDirty(isDirty = true) {
       settingsDirty = isDirty;
-      const status = $('saveBarStatus');
-      if (!status) return;
-      status.textContent = isDirty ? 'Unsaved changes' : 'No unsaved changes';
-      status.dataset.tone = isDirty ? 'dirty' : 'clean';
+      updateWorkspaceStatus();
     }
 
     function showToast(message, type = 'success') {
@@ -5211,14 +5407,40 @@
       preview.style.setProperty('--theme-accent', themeValue(shownTheme, 'accent_color', FALLBACK_THEME.accent_color));
     }
 
-    function switchWorkbenchTab(tab) {
+    const WORKBENCH_TABS = Object.freeze([
+      'brand', 'hero', 'website', 'showcase', 'faq',
+      'register', 'timetable', 'messages', 'advanced', 'analytics'
+    ]);
+
+    /* Stable links such as ?view=register and ?view=messages let a shortcut,
+       browser history or a support handoff open the exact workbench panel. */
+    function requestedWorkbenchTab() {
+      const value = new URLSearchParams(window.location.search).get('view');
+      return WORKBENCH_TABS.includes(value) ? value : 'brand';
+    }
+
+    function switchWorkbenchTab(tab, { syncUrl = true, focus = false } = {}) {
+      if (!WORKBENCH_TABS.includes(tab)) return;
       document.querySelectorAll('[data-workbench-tab]').forEach((button) => {
         const active = button.dataset.workbenchTab === tab;
         button.classList.toggle('active', active);
         button.setAttribute('aria-selected', active ? 'true' : 'false');
         button.tabIndex = active ? 0 : -1;
+        if (focus && active) button.focus();
       });
-      document.querySelectorAll('[data-workbench-panel]').forEach((panel) => panel.classList.toggle('active', panel.dataset.workbenchPanel === tab));
+      document.querySelectorAll('[data-workbench-panel]').forEach((panel) => {
+        const active = panel.dataset.workbenchPanel === tab;
+        panel.classList.toggle('active', active);
+        panel.hidden = !active;
+        panel.setAttribute('aria-hidden', active ? 'false' : 'true');
+      });
+      if (syncUrl) {
+        const url = new URL(window.location.href);
+        if (url.searchParams.get('view') !== tab) {
+          url.searchParams.set('view', tab);
+          window.history.pushState({ workbenchTab: tab }, '', url);
+        }
+      }
       if (tab === 'analytics') {
         loadAnalytics().catch((err) => showToast(`Analytics failed to load: ${err.message}`, 'error'));
         loadAuditLogs(); // renders its own error state inside the panel
@@ -5444,6 +5666,7 @@
       fillFaqItems(t.faq_items || t.faqItems || defaultFaqItems(category));
       fillMessageTemplates(t.message_templates || t.messageTemplates);
       updateThemePreview();
+      setPublicationState('published');
       setSettingsDirty(false);
     }
 
@@ -5807,28 +6030,37 @@
       validateBrandFields();
       const payload = settingsPayload();
       await api('/tenant/brand-draft', { method: 'PUT', body: JSON.stringify(payload) });
+      setPublicationState('draft');
       setSettingsDirty(false);
-      $('saveBarStatus').textContent = 'Draft saved — not public';
       showToast('Draft saved. Public pages have not changed.');
     }
 
     async function publishSettings() {
-      validateBrandFields();
-      const payload = settingsPayload();
-      validatePublishPayload(payload);
-      await api('/tenant/brand-draft', { method: 'PUT', body: JSON.stringify(payload) });
-      const data = await api('/tenant', { method: 'PATCH', body: JSON.stringify(payload) });
-      tenant = data.tenant || tenant;
-      fillSettings();
-      setSettingsDirty(false);
       try {
-        await verifyPublicBrandPublished(payload);
-        await updateSurfaceHealth();
-        await loadBrandWorkspace();
-        showToast(`Version ${data.publishedVersion || ''} published to Portal, Quick Register, and CMS.`.trim());
+        validateBrandFields();
+        const payload = settingsPayload();
+        validatePublishPayload(payload);
+        await api('/tenant/brand-draft', { method: 'PUT', body: JSON.stringify(payload) });
+        const data = await api('/tenant', { method: 'PATCH', body: JSON.stringify(payload) });
+        tenant = data.tenant || tenant;
+        fillSettings();
+        setPublicationState('published', data.publishedVersion || '');
+        setSettingsDirty(false);
+        try {
+          await verifyPublicBrandPublished(payload);
+          await updateSurfaceHealth();
+          await loadBrandWorkspace();
+          showToast(`Version ${data.publishedVersion || ''} published to Portal, Quick Register, and CMS.`.trim());
+        } catch (err) {
+          setPublicationState('error');
+          setSettingsDirty(true);
+          await updateSurfaceHealth().catch((error) => console.warn('Surface health refresh failed.', error));
+          showToast(err.message || 'Saved, but public publish verification failed.', 'warning');
+        }
       } catch (err) {
-        await updateSurfaceHealth().catch((error) => console.warn('Surface health refresh failed.', error));
-        showToast(err.message || 'Saved, but public publish verification failed.', 'warning');
+        setPublicationState('error');
+        setSettingsDirty(true);
+        throw err;
       }
     }
 
@@ -5852,10 +6084,12 @@
         website_profile: payload.websiteProfile ?? tenant.website_profile,
         principal_profile: payload.principalProfile ?? tenant.principal_profile,
         faq_items: payload.faqItems ?? tenant.faq_items,
+        message_templates: payload.messageTemplates ?? tenant.message_templates,
         visual_theme: payload.visualTheme ?? tenant.visual_theme
       };
       fillSettings();
-      $('saveBarStatus').textContent = 'Saved draft loaded — not public';
+      setPublicationState('draft');
+      setSettingsDirty(false);
     }
 
     function renderBrandVersions() {
@@ -6146,6 +6380,7 @@
         brandVersions = workspaceData.versions || [];
         renderBrandVersions();
         if (workspaceData.draft?.payload) applyDraftToEditor(workspaceData.draft.payload);
+        switchWorkbenchTab(requestedWorkbenchTab(), {syncUrl: false});
       } catch (err) {
         if (err.status === 401) setAuthState(null);
         showToast(`Failed to load Studio Admin: ${err.message}`, 'error');
@@ -6264,15 +6499,16 @@
       document.querySelectorAll('[data-workbench-tab]').forEach((button) => {
         button.addEventListener('click', () => switchWorkbenchTab(button.dataset.workbenchTab));
       });
-      document.querySelector('.studio-tabs').addEventListener('keydown', (event) => {
-        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+      document.querySelector('.workbench-nav-list').addEventListener('keydown', (event) => {
+        if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return;
         const tabs = Array.from(document.querySelectorAll('[data-workbench-tab]'));
         const index = tabs.indexOf(document.activeElement);
         if (index === -1) return;
         event.preventDefault();
-        const next = tabs[(index + (event.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+        const forward = event.key === 'ArrowRight' || event.key === 'ArrowDown';
+        const next = tabs[(index + (forward ? 1 : tabs.length - 1)) % tabs.length];
         next.focus();
-        switchWorkbenchTab(next.dataset.workbenchTab);
+        switchWorkbenchTab(next.dataset.workbenchTab, {focus: false});
       });
       document.querySelectorAll('[data-preview-mode]').forEach((button) => {
         button.addEventListener('click', () => switchPreviewMode(button.dataset.previewMode));
@@ -6356,7 +6592,7 @@
       $('faqItemsEditor').addEventListener('input', () => { setSettingsDirty(true); updateThemePreview(); });
       [
         'settingName','settingLogoUrl','settingPrimaryColor','settingSecondaryColor','settingWelcome','settingSlogan',
-        'settingPortalLabel','settingRegisterIntro','settingRegistrationTitle','settingPhone','settingEmail','settingAddress',
+        'settingPortalLabel','settingRegisterIntro','settingRegistrationTitle','settingPhone','settingEmail','settingAddress','settingTimezone',
         'settingHeroEyebrow','settingHeroTitle','settingHeroTitleEn','settingHeroSubtitle','settingHeroSubtitleEn','settingHeroImageUrl',
         'settingPrimaryCta','settingPrimaryCtaEn','settingSecondaryCta','settingSecondaryCtaEn',
         'settingRegistrationTitleEn','settingRegisterIntroEn',
@@ -6369,7 +6605,9 @@
         'settingAboutBody','settingAboutBodyEn','settingSeoTitle','settingSeoDescription',
         'settingShowcaseLabel','settingShowcaseLabelEn','settingShowcaseTitle','settingShowcaseTitleEn',
         'settingShowcaseLead','settingShowcaseLeadEn',
-        'settingThemeBackground','settingThemePanel','settingThemeText','settingThemeMuted','settingThemeBorder'
+        'settingThemeBackground','settingThemePanel','settingThemeText','settingThemeMuted','settingThemeBorder',
+        'settingTimetableWeeks','settingTimetableLabel','settingTimetableLabelEn','settingTimetableLead','settingTimetableLeadEn',
+        'messageCheckin','messageCheckinEmpty','messageTopup','messageRenewal','messageBirthday'
       ].forEach((id) => $(id).addEventListener('input', () => { setSettingsDirty(true); updateThemePreview(); }));
       // Inline validation errors clear as soon as the owner edits the field.
       BRAND_ERROR_FIELDS.forEach((id) => $(id).addEventListener('input', () => clearFieldError(id)));
@@ -6382,7 +6620,9 @@
         'settingHeroStyle','settingHeroShape','settingShowStudentLogin','settingButtonStyle','settingFontMood',
         'settingShowPrincipal','settingShowCourses','settingShowGallery','settingShowFaq','settingShowContact','settingShowStudentArea',
         'settingShowAbout','settingShowShowcase',
-        'settingCmsLayout'
+        'settingCmsLayout','settingShowTimetable','settingShowTimetableBooking',
+        'settingTimetableFieldTeacher','settingTimetableFieldRoom','settingTimetableFieldAgeRange',
+        'settingTimetableFieldDuration','settingTimetableFieldCapacity','settingTimetableFieldPrice'
       ].forEach((id) => $(id).addEventListener('change', () => { setSettingsDirty(true); updateThemePreview(); }));
       ['settingButtonStyle','settingFontMood'].forEach((id) => $(id).addEventListener('change', markThemeCustom));
       document.addEventListener('studiosaas:admin-language', () => {
@@ -6394,7 +6634,13 @@
       });
       updateSurfaceLinks();
       document.querySelectorAll('.nav-link').forEach((link) => {
-        link.addEventListener('click', () => {
+        link.addEventListener('click', (event) => {
+          const workbenchTab = link.dataset.workbenchShortcut;
+          if (workbenchTab) {
+            event.preventDefault();
+            switchWorkbenchTab(workbenchTab);
+            $('section-settings')?.scrollIntoView({behavior: 'smooth', block: 'start'});
+          }
           document.querySelectorAll('.nav-link').forEach((item) => item.classList.remove('active'));
           link.classList.add('active');
         });
@@ -6419,6 +6665,7 @@
 
     bindEvents();
     syncHeaderOffset();
+    window.addEventListener('popstate', () => switchWorkbenchTab(requestedWorkbenchTab(), {syncUrl: false}));
     if ('ResizeObserver' in window) {
       new ResizeObserver(syncHeaderOffset).observe(document.querySelector('.header'));
     } else {

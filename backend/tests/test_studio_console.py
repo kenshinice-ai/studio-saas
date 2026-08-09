@@ -167,15 +167,20 @@ def test_the_touch_target_comes_from_the_shared_token() -> None:
 
 # ── mobile ───────────────────────────────────────────────────────────────────
 
-def test_the_phone_pins_the_tab_strip_and_the_publish_bar() -> None:
-    """Before v8.3.0 a phone pinned nothing: `.header` and `.save-bar` were
-    both `position: static`, so the tab being edited under and the Publish
-    button both scrolled away."""
+def test_the_phone_uses_a_non_scrolling_workbench_nav_and_pinned_publish_bar() -> None:
+    """v9.6.0 replaces the horizontal tab strip with a grouped nav.
+
+    The grouped nav is intentionally in normal flow on a phone: two-column
+    groups expose every destination without horizontal scrolling, while the
+    publish bar remains available at the bottom of the viewport.
+    """
 
     styles = style_source()
     mobile = styles[styles.index("@media (max-width: 768px)"):]
-    tabs = mobile[mobile.index(".studio-tabs {"):]
-    assert "position: sticky" in tabs[:tabs.index("}")]
+    nav = mobile[mobile.index(".workbench-nav {"):]
+    assert "position: static" in nav[:nav.index("}")]
+    assert ".workbench-nav-list" in mobile
+    assert "grid-template-columns: repeat(2" in mobile
     save = mobile[mobile.index(".save-bar {"):]
     save_rule = save[:save.index("}")]
     assert "position: sticky" in save_rule
@@ -189,6 +194,43 @@ def test_the_settings_panel_can_host_a_sticky_child_on_a_phone() -> None:
     styles = style_source()
     mobile = styles[styles.index("@media (max-width: 768px)"):]
     assert ".settings-panel { overflow: visible; }" in mobile
+
+
+def test_v96_workbench_groups_admissions_messages_and_supports_deep_links() -> None:
+    source = console()
+    assert 'class="workbench-nav"' in source
+    assert 'class="workbench-nav-label">Admissions</div>' in source
+    assert 'data-workbench-tab="messages"' in source
+    assert "?view=register" in source
+    assert "requestedWorkbenchTab" in source
+    assert "window.history.pushState" in source
+
+
+def test_v96_preview_toolbar_wraps_without_clipping_controls() -> None:
+    styles = style_source()
+    toolbar = styles[styles.index(".preview-toolbar {"):]
+    toolbar = toolbar[:toolbar.index("}") + 1]
+    assert "display: grid" in toolbar
+    assert "grid-template-columns: minmax(0, 1fr)" in toolbar
+    assert ".preview-tabs" in styles
+    assert "width: 100%" in styles[styles.index(".preview-tabs {"):]
+
+
+def test_v96_dirty_state_covers_timezone_timetable_and_family_messages() -> None:
+    source = console()
+    for field in (
+        "settingTimezone", "settingShowTimetable", "settingShowTimetableBooking",
+        "settingTimetableWeeks", "settingTimetableLabel", "settingTimetableLead",
+        "settingTimetableFieldTeacher", "settingTimetableFieldPrice",
+        "messageCheckin", "messageRenewal", "messageBirthday",
+    ):
+        assert field in source
+    assert "message_templates: payload.messageTemplates ?? tenant.message_templates" in source
+    assert "messageTemplates: collectMessageTemplates()" in source
+    assert "Unsaved changes — saved draft is not public" in source
+    assert "Draft preview — not public until Publish" in source
+    assert "publicationState = ['draft', 'error'].includes(state)" in source
+    assert "Publish needs attention" in source
 
 
 # ── bilingual coverage ───────────────────────────────────────────────────────
