@@ -24,11 +24,14 @@
 
   const en = Object.fromEntries([
     /* ── Navigation and shell ── */
-    ['工作台', 'Dashboard'], ['课程安排', 'Class Schedule'], ['学员档案', 'Students'],
-    ['待审核', 'Pending'], ['充值结算', 'Credits'], ['操作日志', 'Activity Log'],
-    ['经营统计', 'Business Stats'], ['排课', 'Roster'], ['课表', 'Schedule'], ['档案', 'Students'],
+    ['工作台', 'Dashboard'], ['今日', 'Today'], ['待处理', 'Pending'],
+    ['教学运营', 'Teaching & operations'], ['经营', 'Business'], ['记录', 'Records'],
+    ['课程安排', 'Class Schedule'], ['课程', 'Courses'], ['课程目录', 'Course catalogue'],
+    ['学员', 'Students'], ['学员档案', 'Students'], ['作品', 'Works'], ['作品管理', 'Portfolio'],
+    ['待审核', 'Pending'], ['充值结算', 'Credits'], ['充值与退款', 'Recharge & refunds'],
+    ['操作日志', 'Activity Log'], ['经营统计', 'Business Stats'], ['排课', 'Roster'], ['课表', 'Schedule'], ['档案', 'Students'],
     ['审核', 'Review'], ['充值', 'Top-up'], ['日志', 'Log'], ['统计', 'Stats'],
-    ['设置', 'Settings'], ['刷新', 'Refresh'], ['刷新数据', 'Refresh data'],
+    ['设置', 'Settings'], ['系统设置', 'System settings'], ['刷新', 'Refresh'], ['刷新数据', 'Refresh data'],
     ['已连接', 'Connected'], ['连接中...', 'Connecting…'], ['连接失败', 'Connection failed'],
     ['重新连接', 'Reconnect'], ['重试', 'Retry'], ['备份导出', 'Export backup'],
     ['退出登录', 'Log out'], ['全局搜索', 'Global search'], ['回到顶部', 'Back to top'],

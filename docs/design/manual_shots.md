@@ -58,19 +58,22 @@ install is wrong.
 | `01-brand-workbench` | owner | `/lets-paint-showcase/studio-admin` | desktop | signed in, Website / Brand tab, preview visible |
 | `02-portal` | public | `/lets-paint-showcase` | desktop | published portal, top of page |
 | `02-register` | public | `/lets-paint-showcase/register` | desktop | empty enquiry form |
-| `02-pending` | manager | `/lets-paint-showcase/cms` | desktop | Pending tab, showing the duplicate badge |
+| `02-pending` | manager | `/lets-paint-showcase/cms` | desktop | Pending / 待处理 tab, showing the duplicate badge |
+| `03-courses` | manager | `/lets-paint-showcase/cms?view=courses` | desktop | Course catalogue / 课程目录 deep link |
 | `03-roster` | manager | `/lets-paint-showcase/cms` | desktop | Course Schedule, moved to the next day that actually teaches |
 | `03-roster-mobile` | teacher | `/lets-paint-showcase/cms` | mobile | Course Schedule as a teacher sees it |
-| `04-topup` | manager | `/lets-paint-showcase/cms` | desktop | Credits tab |
+| `04-topup` | manager | `/lets-paint-showcase/cms` | desktop | Recharge & refunds / 充值与退款 tab |
 | `04-log` | manager | `/lets-paint-showcase/cms` | desktop | Operation log, unfiltered |
 | `05-portfolio` | teacher | `/lets-paint-showcase/cms` | desktop | Students tab, first record opened |
+| `05-works` | teacher | `/lets-paint-showcase/cms?view=works` | desktop | Portfolio / 作品管理 deep link |
 | `06-student-area` | public | `/lets-paint-showcase` | mobile | student area lookup form |
+| `07-settings` | owner | `/lets-paint-showcase/cms?view=settings&section=account` | desktop | Settings / 系统设置 full-page route |
 | `08-stats` | manager | `/lets-paint-showcase/cms` | desktop | Business Stats tab |
 
-Tabs inside the CMS are reached by clicking, not by URL — the CMS is a single
-page. The script drives those clicks by the tab's visible label, which is why a
-renamed tab fails the capture loudly instead of silently producing the wrong
-screen.
+Tabs inside the CMS are reached by clicking, not by URL — the CMS is a routed
+workspace shell. The script drives those clicks by the tab's visible label,
+which is why a renamed tab fails the capture loudly instead of silently
+producing the wrong screen.
 
 ## Callouts
 

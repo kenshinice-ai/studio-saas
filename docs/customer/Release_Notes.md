@@ -1,5 +1,25 @@
 # PWE Studio — Release Notes and Acceptance Evidence
 
+## v9.5.0 — CMS information architecture and operational workspaces
+
+The CMS now has one stable working model for operators: a top app bar for
+high-frequency controls, grouped navigation, a role-specific workbench and
+deep-linkable routes. Daily work is grouped into Today, Teaching & Operations,
+Business and Records; System Settings is a full page with anchored sections.
+
+Courses, works, students, pending requests and recharge/refund operations now
+have dedicated functional workspaces. The same permissions remain enforced by
+role, and the UI does not expose Studio Admin or the public portal as if they
+were CMS workspaces. The layout keeps a wide content measure beside a compact
+navigation rail, uses the existing PWE Brand tokens, and preserves 44px touch
+targets on mobile.
+
+Persistent CMS notifications remain in-app only: new registrations and
+class-booking requests are stored with the request, shown in the notification
+center, refreshed every 30 seconds and surfaced with a popup prompt. Online
+payments, bank-transfer configuration, Gmail/SMTP, AWS SES, SMS, SSE,
+WebSocket and browser push remain deferred.
+
 ## v9.2.0 — persistent CMS notifications
 
 The CMS now keeps an in-app notification history for new public registrations

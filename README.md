@@ -7,16 +7,23 @@ the current source tree was packaged or deployed.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | `codex/v9.2.0-cms-notifications`; `VERSION` = **9.2.0** | Release commit `438e58275c9f1351fe5d57353a6112eb9df0cb24`; this branch, which is ahead of `main`, carries persistent CMS notifications: durable registration/booking events, per-user read state, 30-second polling and popup prompts. |
-| Package | **9.2.0 SaaS + Edition archives verified** | SaaS SHA-256 `627b593d1ad9bfe8a0b59b1c52017893d6dcea8c28a6363fdd48219695bcc3a0`; Edition SHA-256 `f4609d7a979450737aa7908780cf625cdc2cd830c5b1483d77d1334376297ded`; both `BUILD_INFO` records point to the release commit. |
-| Production | **9.2.0 deployed and publicly accepted** | `/opt/pwestudio/current` and the running image are `9.2.0`; internal/public deep health reports `db=ok`, 6 readable tenants and `unreadable=0`. The health response does not identify the deployed commit; the package `BUILD_INFO` and release symlink do. |
+| Source | `codex/v9.3.0-cms-information-architecture`; `VERSION` = **9.5.0** | This branch, which is ahead of `main`, carries the release candidate that consolidates the CMS into grouped workspaces, route-aware deep links, role-specific workbenches, a dedicated settings page and persistent in-app notifications. |
+| Package | **9.5.0 SaaS + Edition archives pending final verification** | The release gate will record both archive SHA-256 values and confirm each `BUILD_INFO` commit after the clean release commit. |
+| Production | **9.5.0 deployment pending** | Production status is intentionally recorded only after the remote controller, public health endpoint and browser acceptance have been rechecked; the health response does not identify the deployed commit, so the release symlink and package `BUILD_INFO` must be checked separately. |
 
 Re-verify the production health endpoint before any later release claim; do not
 infer Production from `VERSION` or from an archive filename.
 
-## v9.2.0 Persistent CMS Notifications
+## v9.5.0 CMS Information Architecture and Persistent Notifications
 
-The CMS now records new public registrations and class-booking requests in a
+The CMS now uses a stable information architecture: a top app bar for high-
+frequency controls, grouped left navigation, role-specific workbenches and
+route-aware deep links. Daily work is organized under Today, Teaching &
+Operations, Business and Records; settings is a full workspace rather than a
+large modal. Courses, works, students, pending requests and recharge/refund
+operations each have a clear functional home.
+
+The CMS also records new public registrations and class-booking requests in a
 tenant-scoped, durable notification history. Operators with the relevant
 registration visibility see unread counts, a bell/list view, per-user read
 state and popup prompts. The first delivery refreshes every 30 seconds and
@@ -918,10 +925,19 @@ curl -i -X POST http://localhost:8901/v1/admin/tenants \
 | `docs/Deployment.md` | Deployment stages; Stage 2 (AWS Lightsail) live since 2026-07-30 |
 | `docs/Design_System.md` | UI tokens and component standards |
 | `docs/Glossary.md` | One agreed word per concept (enforced by `check_terminology.py`) |
-| `docs/guides/` | Per-role user manuals in Chinese (applicable to v9.2.0) |
+| `docs/guides/` | Per-role user manuals in Chinese (applicable to v9.5.0) |
 | `01 BRAND ASSETS/` | PWE/Paradise family delivery kit and validated asset manifest |
 
 ---
+
+## 9.1 Current CMS information architecture
+
+The CMS workspace is organised by work location rather than one flat list:
+「今日」 contains **工作台** and **待处理**；「教学运营」 contains
+**课程安排、课程、学员、作品**；「经营」 contains **充值与退款** and
+**经营统计**；「记录」 contains **操作日志**. 账号、团队、运营默认和
+数据维护 remain under **系统设置**. Public-site brand and registration-field
+configuration remains in Studio Admin, while the Portal remains family-facing.
 
 ## 10. Project Philosophy
 

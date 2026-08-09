@@ -58,9 +58,9 @@ LANGUAGES = ("en", "zh")
 # pair. Both come from cms-app.jsx; a rename there fails the capture.
 TAB = {
     "roster":   {"en": "Class Schedule", "zh": "课程安排"},
-    "students": {"en": "Students", "zh": "学员档案"},
-    "pending":  {"en": "Pending", "zh": "待审核"},
-    "topup":    {"en": "Credits", "zh": "充值结算"},
+    "students": {"en": "Students", "zh": "学员"},
+    "pending":  {"en": "Pending", "zh": "待处理"},
+    "topup":    {"en": "Recharge & refunds", "zh": "充值与退款"},
     "logs":     {"en": "Activity Log", "zh": "操作日志"},
     "stats":    {"en": "Business Stats", "zh": "经营统计"},
 }
@@ -74,12 +74,15 @@ SHOTS = [
     ("02-portal",          None,      f"/{SLUG}",              DESKTOP, None, 2.0, None),
     ("02-register",        None,      f"/{SLUG}/register",     DESKTOP, None, 1.5, None),
     ("02-pending",         "manager", f"/{SLUG}/cms",          DESKTOP, TAB["pending"], 2.0, None),
+    ("03-courses",         "manager", f"/{SLUG}/cms?view=courses", DESKTOP, None, 2.0, None),
     ("03-roster",          "manager", f"/{SLUG}/cms",          DESKTOP, TAB["roster"], 2.0, "date"),
     ("03-roster-mobile",   "teacher", f"/{SLUG}/cms",          MOBILE,  TAB["roster"], 2.0, "date"),
     ("04-topup",           "manager", f"/{SLUG}/cms",          DESKTOP, TAB["topup"], 2.0, None),
     ("04-log",             "manager", f"/{SLUG}/cms",          DESKTOP, TAB["logs"], 2.0, None),
     ("05-portfolio",       "teacher", f"/{SLUG}/cms",          DESKTOP, TAB["students"], 2.0, "student"),
+    ("05-works",           "teacher", f"/{SLUG}/cms?view=works", DESKTOP, None, 2.0, None),
     ("08-stats",           "manager", f"/{SLUG}/cms",          DESKTOP, TAB["stats"], 2.5, None),
+    ("07-settings",        "owner",   f"/{SLUG}/cms?view=settings&section=account", DESKTOP, None, 2.0, None),
     ("06-student-area",    None,      f"/{SLUG}",              MOBILE,  None, 2.0, None),
 ]
 
