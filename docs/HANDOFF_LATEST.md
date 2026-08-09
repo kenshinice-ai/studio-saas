@@ -6,7 +6,7 @@
 
 - **P0 完成**：配色改为「精选起点 + Custom / From logo」；补公开课表、免注册约课、余位 / 候补和 Selected Work。
 - **P1 完成**：补课程管理、课程 / 老师 / 地点 / 公开开关 / 停课、老师公开署名同意、About the space 和三条 FAQ。
-- **P2 完成**：`capture_manual_shots.py` 已加入四组新状态并重拍全套；现有 11 组 + 新增 4 组，共 **30 张中英 WebP，1.54 MB**。打印检查：英文 22 页、中文 19 页。
+- **P2 完成**：`capture_manual_shots.py` 已加入四组新状态并重拍全套；现有 11 组 + 新增 4 组，共 **30 张中英 WebP，1.54 MB**。部署后公网打印复核：英文 21 页、中文 19 页。
 - **P3 完成**：总览、Owner、Manager、Teacher、Front Desk、Student/Parent、Super Admin 均已同步到 v8.10.3；Front Desk 明确「可看约课、不能审批，转交 Owner / Manager」。
 - **本轮文案优化完成**：中英文标题、导语、章节正文、权限说明和 FAQ 已按 PWE Studio 的清晰、从容、可信语气重写；产品事实、关键 UI 术语和前台转交边界保持不变。
 
@@ -27,6 +27,7 @@
 - 相关手册 / 角色 / 开关 / 公开课表 / Selected Work 测试：**197 passed**。
 - 完整后端测试：**1,911 passed, 5 skipped**；当前剩余 2 个失败均为 `/s/demo/v1/students` CSRF 测试收到 404，未涉及本次改动的手册、截图、fixture 或权限代码。
 - `git diff --check`、两个截图脚本 `py_compile`：通过。
+- 部署后公网打印复核：`check_manual_print.py --base https://pwestudio.online`，英文 **21 页**、中文 **19 页**。
 
 ## 变更索引
 
