@@ -1653,6 +1653,34 @@ def main() -> int:
         f"got {moved.status_code} {moved_row.get('classTime')!r} {moved_row.get('source')!r}",
     )
 
+    makeup = owner_a.patch(
+        f"/s/{TENANT_A}/v1/daily-roster/{timed_entry_id}",
+        json={"status": "makeup"},
+    )
+    makeup_row = next(
+        (r for r in ((makeup.get_json() or {}).get("roster") or {}).get("entries", [])
+         if r.get("id") == timed_entry_id), {},
+    )
+    check(
+        "Roster status can switch between scheduled and make-up without re-adding",
+        makeup.status_code == 200 and makeup_row.get("status") == "makeup",
+        f"got {makeup.status_code} {makeup_row.get('status')!r}",
+    )
+    invalid_status = owner_a.patch(
+        f"/s/{TENANT_A}/v1/daily-roster/{timed_entry_id}",
+        json={"status": "leave"},
+    )
+    check(
+        "Roster status rejects unsupported silent fallbacks",
+        invalid_status.status_code == 400 and has_error_shape(invalid_status),
+        f"got {invalid_status.status_code}",
+    )
+    restored_status = owner_a.patch(
+        f"/s/{TENANT_A}/v1/daily-roster/{timed_entry_id}",
+        json={"status": "scheduled"},
+    )
+    check("Roster status can return to scheduled", restored_status.status_code == 200)
+
     # "Not set" has to stay expressible — a guessed default is worse than a gap.
     cleared = owner_a.patch(
         f"/s/{TENANT_A}/v1/daily-roster/{timed_entry_id}", json={"classTime": ""},

@@ -1,6 +1,6 @@
 # StudioSaaS 使用手册总览
 
-> 适用版本：PWE Studio v9.1.0 · 最后更新：2026-08-09
+> 适用版本：PWE Studio v9.1.1 · 最后更新：2026-08-09
 > 本目录是按角色划分的最终用户手册。开发/运维文档见 `docs/` 上层
 > （[Architecture](../Architecture.md) · [Admin_Guide](../Admin_Guide.md) ·
 > [Glossary](../Glossary.md)）。
@@ -78,7 +78,7 @@ Owner 另有专属的「操作审计」面板：Studio Admin → 数据分析。
 | 标签页 | Owner/Manager | Teacher | Front Desk | Staff |
 |---|---|---|---|---|
 | 工作台 | ✅ | ✅ | ✅ | ✅ |
-| 每日排课 | ✅ | ✅ | ❌ | ✅ |
+| 课程安排 | ✅ | ✅ | ❌ | ✅ |
 | 学员档案 | ✅ | ✅（只读+作品） | ✅ | ✅ |
 | 待审核 | ✅ | ❌ | ✅ | ✅ |
 | 充值结算 | ✅ | ❌ | ✅ | ✅ |

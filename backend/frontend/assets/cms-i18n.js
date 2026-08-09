@@ -24,9 +24,9 @@
 
   const en = Object.fromEntries([
     /* ── Navigation and shell ── */
-    ['工作台', 'Dashboard'], ['每日排课', 'Daily Roster'], ['学员档案', 'Students'],
+    ['工作台', 'Dashboard'], ['课程安排', 'Class Schedule'], ['学员档案', 'Students'],
     ['待审核', 'Pending'], ['充值结算', 'Credits'], ['操作日志', 'Activity Log'],
-    ['经营统计', 'Business Stats'], ['排课', 'Roster'], ['档案', 'Students'],
+    ['经营统计', 'Business Stats'], ['排课', 'Roster'], ['课表', 'Schedule'], ['档案', 'Students'],
     ['审核', 'Review'], ['充值', 'Top-up'], ['日志', 'Log'], ['统计', 'Stats'],
     ['设置', 'Settings'], ['刷新', 'Refresh'], ['刷新数据', 'Refresh data'],
     ['已连接', 'Connected'], ['连接中...', 'Connecting…'], ['连接失败', 'Connection failed'],
@@ -117,6 +117,11 @@
 
     /* ── Roster ── */
     ['每周课表', 'Weekly schedule'],
+    ['固定课表', 'Recurring schedule'],
+    ['创建每周自动排课班次', 'Create recurring weekly classes'],
+    ['○ 仅内部可见', '○ Internal only'], ['停课', 'Cancelled'],
+    ['前一天', 'Previous day'], ['后一天', 'Next day'],
+    ['本周课程日期', 'Class dates this week'], ['选择课程日期', 'Choose class date'],
     ['固定班次按周几自动排入当日名单', 'Recurring classes are added to the day roster automatically'],
     ['还没有固定班次。例如「周三 16:00 素描班」——保存后每周三会自动出现在当日排课里。',
      'No recurring classes yet. Add one — for example "Wed 16:00" — and it will appear on that weekday automatically.'],
@@ -133,6 +138,17 @@
     ['当前日期没有排课可保存', 'There is no roster on this date to save'],
     ['模板学员均已在当前排课中', 'Every student in the template is already on this roster'],
     ['请选择学员', 'Please choose a student'],
+    ['课程安排默认时间', 'Class schedule default time'],
+    ['加入课程安排', 'Add to schedule'], ['请先选择学员', 'Choose a student first'],
+    ['课程状态', 'Class status'], ['待上课', 'Scheduled'], ['补课', 'Make-up'],
+    ['签到并扣 1 课时', 'Check in and deduct 1 credit'],
+    ['批量签到并扣课时', 'Check in all and deduct credits'],
+    ['余额不足', 'Insufficient credits'], ['续费提醒', 'Renewal reminder'],
+    ['发短信提醒', 'Send SMS reminder'], ['标记为 1 对 1', 'Mark as one-to-one'],
+    ['改为普通班课', 'Change to group class'], ['撤销本日签到', 'Undo today’s check-in'],
+    ['时间未设置', 'Time not set'],
+    ['移出本日课程安排', 'Remove from this date'],
+    ['来自固定课表，需在上方班次中调整', 'From the recurring schedule — edit the class above'],
 
     /* ── Students ── */
     ['学员档案', 'Students'], ['活跃', 'Active'], ['低频', 'Infrequent'],
@@ -400,6 +416,14 @@
       [/^(-?\d+)\s*课时$/, '$1 credits'],
       [/^(-?\d+)\s*节$/, '$1 classes'],
       [/^(\d+)\s*人$/, '$1 students'],
+      [/^(\d+)\s*个每周班次$/, '$1 weekly classes'],
+      [/^周一\s+(.+)，(\d+)\s*人$/, 'Mon $1, $2 students'],
+      [/^周二\s+(.+)，(\d+)\s*人$/, 'Tue $1, $2 students'],
+      [/^周三\s+(.+)，(\d+)\s*人$/, 'Wed $1, $2 students'],
+      [/^周四\s+(.+)，(\d+)\s*人$/, 'Thu $1, $2 students'],
+      [/^周五\s+(.+)，(\d+)\s*人$/, 'Fri $1, $2 students'],
+      [/^周六\s+(.+)，(\d+)\s*人$/, 'Sat $1, $2 students'],
+      [/^周日\s+(.+)，(\d+)\s*人$/, 'Sun $1, $2 students'],
       [/^(\d+)\s*人次$/, '$1 attendances'],
       [/^(\d+)\s*项$/, '$1 pending'],
       [/^已上课\s*(\d+)\s*人次\s*·\s*加权均价\s*\$([\d.]+)\/课时$/,
@@ -426,7 +450,8 @@
       /* `{y}年` in the year picker — React renders the number and the
        * character as separate nodes, so the year arrives here alone. */
       [/^年$/, ''],
-      [/^(\d{4})\s*年$/, '$1']
+      [/^(\d{4})\s*年$/, '$1'],
+      [/^(\d{2}\/\d{2}\/\d{4})\s*·\s*(.+?)\s*·\s*余额\s*(-?\d+)$/, '$1 · $2 · $3 credits']
     ];
     for (const [pattern, replacement] of rules) {
       if (pattern.test(clean)) return clean.replace(pattern, replacement);

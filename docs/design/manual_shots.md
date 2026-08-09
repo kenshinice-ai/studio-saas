@@ -59,8 +59,8 @@ install is wrong.
 | `02-portal` | public | `/lets-paint-showcase` | desktop | published portal, top of page |
 | `02-register` | public | `/lets-paint-showcase/register` | desktop | empty enquiry form |
 | `02-pending` | manager | `/lets-paint-showcase/cms` | desktop | Pending tab, showing the duplicate badge |
-| `03-roster` | manager | `/lets-paint-showcase/cms` | desktop | Daily roster, moved to the next day that actually teaches |
-| `03-roster-mobile` | teacher | `/lets-paint-showcase/cms` | mobile | Daily roster as a teacher sees it |
+| `03-roster` | manager | `/lets-paint-showcase/cms` | desktop | Course Schedule, moved to the next day that actually teaches |
+| `03-roster-mobile` | teacher | `/lets-paint-showcase/cms` | mobile | Course Schedule as a teacher sees it |
 | `04-topup` | manager | `/lets-paint-showcase/cms` | desktop | Credits tab |
 | `04-log` | manager | `/lets-paint-showcase/cms` | desktop | Operation log, unfiltered |
 | `05-portfolio` | teacher | `/lets-paint-showcase/cms` | desktop | Students tab, first record opened |

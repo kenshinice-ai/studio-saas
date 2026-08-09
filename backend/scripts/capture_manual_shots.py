@@ -57,7 +57,7 @@ LANGUAGES = ("en", "zh")
 # The CMS labels its tabs in the interface language, so the click target is a
 # pair. Both come from cms-app.jsx; a rename there fails the capture.
 TAB = {
-    "roster":   {"en": "Daily Roster", "zh": "每日排课"},
+    "roster":   {"en": "Class Schedule", "zh": "课程安排"},
     "students": {"en": "Students", "zh": "学员档案"},
     "pending":  {"en": "Pending", "zh": "待审核"},
     "topup":    {"en": "Credits", "zh": "充值结算"},
@@ -328,6 +328,37 @@ OPEN_FIRST_STUDENT = """
 })()
 """
 
+ROSTER_UI_CONTRACT = """
+(() => {
+  const planner = document.querySelector('.cms-roster-planner');
+  const dateNav = planner?.querySelector('.cms-roster-date-nav');
+  const week = planner?.querySelector('.cms-roster-week');
+  const summary = planner?.querySelector('.cms-roster-summary');
+  const slots = planner?.querySelector('.cms-roster-slot-panel');
+  const add = planner?.querySelector('.cms-roster-add');
+  const row = document.querySelector('.cms-roster-row');
+  const info = row?.querySelector('.cms-roster-info');
+  const actions = row?.querySelector('.cms-roster-actions');
+  const more = row?.querySelector('.cms-roster-more');
+  if (more) more.open = true;
+  const menu = more?.querySelector('.cms-roster-menu');
+  const context = menu?.querySelector('.cms-roster-menu__context');
+  const positions = [dateNav, week, summary, slots, add].map(el => el?.getBoundingClientRect().top);
+  const desktop = innerWidth >= 760;
+  const result = {
+    named: [...document.querySelectorAll('h2')].some(el => /课程安排|Class Schedule/.test(el.textContent || '')),
+    ordered: positions.every(Number.isFinite) && positions.every((top, i) => i === 0 || top > positions[i - 1]),
+    noOverflow: document.documentElement.scrollWidth <= innerWidth + 1,
+    rowLayout: !!row && !!info && !!actions && (desktop
+      ? Math.abs(info.getBoundingClientRect().top - actions.getBoundingClientRect().top) < 10
+      : actions.getBoundingClientRect().top >= info.getBoundingClientRect().bottom),
+    menuContext: !!menu && !!context && context.textContent.trim().length > 0,
+  };
+  if (more) more.open = false;
+  return result;
+})()
+"""
+
 
 # Staff screens remember their language in localStorage; the visitor-facing
 # pages take it from `?lang=`. Seeding the key before the document exists is
@@ -387,6 +418,13 @@ def capture(browser: Browser, base: str, shot, session: str | None, language: st
         browser.call("Runtime.evaluate", returnByValue=True,
                      expression=OPEN_FIRST_STUDENT)
         time.sleep(1.5)
+    if name.startswith("03-roster"):
+        contract = browser.call(
+            "Runtime.evaluate", returnByValue=True, expression=ROSTER_UI_CONTRACT
+        ).get("result", {}).get("value") or {}
+        failed = sorted(key for key, value in contract.items() if not value)
+        if failed:
+            raise SystemExit(f"{name}: roster UI contract failed: {', '.join(failed)}")
     # Give lazy images a beat; a half-loaded hero is the one artefact a reader
     # would read as a product fault rather than a capture fault.
     browser.call("Runtime.evaluate", expression="window.scrollTo(0, 0)")

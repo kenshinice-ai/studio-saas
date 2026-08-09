@@ -8466,11 +8466,12 @@ def add_daily_roster_entries():
 @api_v1.route("/daily-roster/<entry_id>", methods=["PATCH"])
 @permission_required("attendance:write")
 def update_daily_roster_entry(entry_id: str):
-    """Change one roster entry's slot or its one-to-one flag.
+    """Change one active roster entry's slot, status, or one-to-one flag.
 
     Separate from the add route because this is the correction path: the front
     desk moves a student from 10:00 to 17:00 without re-adding them, which
-    would otherwise reset source and status.
+    would otherwise reset source and status.  Cancellation deliberately stays
+    on the DELETE/undo pair so a status edit cannot bypass its audit trail.
     """
 
     payload = request.get_json(silent=True) or {}
@@ -8486,8 +8487,14 @@ def update_daily_roster_entry(entry_id: str):
     if "oneToOne" in payload or "one_to_one" in payload:
         updates.append("one_to_one = %s")
         params.append(bool(payload.get("oneToOne", payload.get("one_to_one"))))
+    if "status" in payload:
+        status = str(payload.get("status") or "").strip().lower()
+        if status not in {"scheduled", "makeup"}:
+            return _error("status must be scheduled or makeup.")
+        updates.append("status = %s")
+        params.append(status)
     if not updates:
-        return _error("Provide classTime or oneToOne.")
+        return _error("Provide classTime, oneToOne, or status.")
 
     try:
         entry_uuid = str(_uuid.UUID(str(entry_id)))
@@ -8501,9 +8508,10 @@ def update_daily_roster_entry(entry_id: str):
             f"""
             UPDATE daily_roster_entries
                SET {', '.join(updates)}, updated_at = now()
-             WHERE tenant_id = %s AND id = %s
+             WHERE tenant_id = %s AND id = %s AND status <> 'cancelled'
             RETURNING roster_date, student_id,
-                      to_char(class_time, 'HH24:MI') AS class_time, one_to_one
+                      to_char(class_time, 'HH24:MI') AS class_time, one_to_one,
+                      status
             """,
             (*params, tenant.tenant_id, entry_uuid),
         )
@@ -8519,6 +8527,7 @@ def update_daily_roster_entry(entry_id: str):
                 "date": row["roster_date"].isoformat(),
                 "classTime": row["class_time"] or "",
                 "oneToOne": bool(row["one_to_one"]),
+                "status": row["status"],
             },
         )
         conn.commit()

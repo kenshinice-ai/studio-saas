@@ -3403,7 +3403,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
        it is attendance, credit and revenue counts, i.e. 经营统计. */
     const NAV = [
         {k:'dashboard',i:'dashboard',l:'工作台',  s:'工作台'},
-        {k:'roster',   i:'calendar', l:'每日排课', s:'排课'},
+        {k:'roster',   i:'calendar', l:'课程安排', s:'课表'},
         {k:'students', i:'users',    l:'学员档案', s:'档案'},
         {k:'pending',  i:'clipboard',l:'待审核',   s:'审核', badge: pendingCount},
         {k:'topup',    i:'money',    l:'充值结算', s:'充值'},
@@ -3904,7 +3904,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             staff device starts new bookings at the same time. */}
                         {canManageOperations && TENANT_SLUG && (
                         <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
-                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">每日排课默认时间</p>
+                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">课程安排默认时间</p>
                             <p className="text-xs text-gray-400">用于新排课、班组模板和新建固定班次；不会改动已保存的课程。</p>
                             <div className="flex gap-2 items-end">
                                 <label className="flex-1 text-xs font-bold text-gray-500">
@@ -3942,7 +3942,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             </p>
                             {!courses.length && !courseEdit && (
                                 <p className="text-xs text-gray-400 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2">
-                                    还没有课程。例如「儿童油画基础」——添加后就能在「每日排课 → 新增班次」里关联它。
+                                    还没有课程。例如「儿童油画基础」——添加后就能在「课程安排 → 新增班次」里关联它。
                                 </p>
                             )}
                             {courses.map(course => (
@@ -4490,7 +4490,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
 {/* ═══ ROSTER ═════════════════════════════════════════════════ */}
 {tab==='roster' && (
 <div className="anim space-y-4">
-    <h2 className="inline-flex items-center gap-1.5 text-xl md:text-2xl font-bold text-gray-800"><Icon name="calendar" className="w-4 h-4"/>每日排课</h2>
+    <h2 className="inline-flex items-center gap-1.5 text-xl md:text-2xl font-bold text-gray-800"><Icon name="calendar" className="w-4 h-4"/>课程安排</h2>
     {scheduleLoadError && <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
         <span className="flex-1">{scheduleLoadError}</span>
         <button onClick={loadSchedules} className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-bold min-h-[44px]">重试</button>
@@ -4517,7 +4517,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
             </div>
         </details>
     )}
-    {/* A1: 每周课表 — 固定班次自动生成每日排课 */}
+    {/* A1: 每周课表 — 固定班次自动生成当日课程安排 */}
     {TENANT_SLUG && (
     <details className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden group">
         <summary className="list-none cursor-pointer min-h-[52px] px-4 py-3 flex items-center justify-between gap-3">
@@ -4732,15 +4732,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
     </details>
     )}
 
-    <div className="cms-roster-planner bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-        {/* items-start, not items-end. The two columns end at different
-            heights — the left one trails a helper line, the right one a 44px
-            checkbox — so bottom-alignment pushed the right column's label and
-            its controls a row's worth higher than the left's, and the two
-            halves of the panel never lined up. Aligning the tops puts both
-            labels on one baseline and both control rows on another; the
-            unequal tails then hang below, which is what they should do. */}
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(250px,38.2fr)_minmax(0,61.8fr)] gap-3 items-start">
+    <div className="cms-roster-planner bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
             <div className="w-full">
                 <label className="text-xs font-bold text-gray-500 mb-1 block">课程日期</label>
                 <div className="cms-roster-date-nav">
@@ -4754,54 +4746,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         aria-label="选择课程日期"
                         className="w-full px-3 py-3 min-h-[50px] border border-gray-300 rounded-xl font-bold text-gray-900 focus:ring-2 focus:ring-indigo-500 outline-none"/>
                 </div>
-                <p className="text-xs text-gray-400 mt-1">{fmtDate(rDate)} {WEEKDAYS[new Date(`${rDate}T12:00:00`).getDay()]}</p>
             </div>
-            <div className="flex-1" id="rosterAddStudent">
-                <label className="text-xs font-bold text-gray-500 mb-1 block">添加学员</label>
-                <div className="flex gap-2 flex-wrap">
-                    <div className="flex-1 min-w-[180px]">
-                        <StudentPicker students={availRoster} value={rPick} onChange={setRPick} placeholder="搜索并选择学员..."/>
-                    </div>
-                    <div className="min-w-[124px]">
-                        <input type="time" value={rTime} onChange={e=>setRTime(e.target.value)}
-                            aria-label="上课时间"
-                            className="w-full px-3 py-3 border border-gray-300 rounded-xl bg-white text-sm font-bold min-h-[50px] outline-none focus:ring-2 focus:ring-indigo-500"/>
-                    </div>
-                    <button onClick={addToRoster} disabled={!rPick||busy}
-                        className="bg-indigo-600 active:bg-indigo-700 disabled:bg-gray-300 text-white px-5 py-3 rounded-xl font-bold text-sm min-h-[50px]">加入</button>
-                </div>
-                <label className="inline-flex items-center gap-2 mt-2 text-xs font-bold text-gray-500 min-h-[44px]">
-                    <input type="checkbox" checked={rOneToOne} onChange={e=>setROneToOne(e.target.checked)}
-                        className="w-4 h-4"/>
-                    1 对 1（同时段还有其他人时会提示冲突）
-                </label>
-            </div>
-        </div>
-        {/* F4b: Advanced batch tools stay available without permanently
-            pushing the actual day roster below the fold. */}
-        <details className="mt-3 pt-3 border-t border-gray-100 group">
-            <summary className="list-none cursor-pointer min-h-[44px] flex items-center justify-between gap-3 text-xs font-bold text-gray-600">
-                <span className="inline-flex items-center gap-1.5"><Icon name="clipboard" className="w-4 h-4"/>班组模板与批量工具</span>
-                <span className="text-indigo-600 group-open:rotate-180 transition-transform" aria-hidden="true">⌄</span>
-            </summary>
-            <div className="pt-2 flex gap-2 items-center flex-wrap">
-            <select value={grpSel} onChange={e=>setGrpSel(e.target.value)}
-                className="px-2 py-2 border border-gray-300 rounded-xl bg-white text-sm font-medium min-h-[44px] outline-none focus:ring-2 focus:ring-indigo-500">
-                <option value="">-- 选择模板 --</option>
-                {Object.keys(db.groups||{}).sort().map(g => <option key={g} value={g}>{g}（{(db.groups[g]||[]).length}人）</option>)}
-            </select>
-            <button onClick={applyGroup} disabled={!grpSel||busy}
-                className="bg-indigo-50 text-indigo-700 border border-indigo-200 active:bg-indigo-100 disabled:opacity-40 px-3 py-2 rounded-xl text-xs font-bold min-h-[44px]">套用到当前日期</button>
-            {/* B: template management stays owner/manager; applying a template to a day is a per-day attendance action */}
-            {canManageOperations && <button onClick={saveGroup} disabled={busy}
-                className="bg-white text-gray-600 border border-gray-300 active:bg-gray-50 px-3 py-2 rounded-xl text-xs font-bold min-h-[44px]">保存当前为模板</button>}
-            {canManageOperations && grpSel && <button onClick={deleteGroup} disabled={busy}
-                className="bg-white text-red-500 border border-red-200 active:bg-red-50 px-3 py-2 rounded-xl text-xs font-bold min-h-[44px]">删除</button>}
-            {canManageOperations && TENANT_SLUG && grpSel && <button onClick={groupToSchedule} disabled={busy}
-                className="inline-flex items-center gap-1.5 bg-indigo-600 active:bg-indigo-700 text-white px-3 py-2 rounded-xl text-xs font-bold min-h-[44px]"><Icon name="calendar" className="w-4 h-4"/>转为每周班次</button>}
-            </div>
-        </details>
-    </div>
 
     {/* B1: 迷你周视图 — 本周七天一键切换，含每日应到人数 */}
     <div className="cms-roster-week" role="group" aria-label="本周课程日期">
@@ -4822,7 +4767,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         className={`cms-roster-week-day ${isSel?'is-selected':''} ${isToday?'is-today':''}`}>
                         <p className="text-[10px] opacity-70">{WEEKDAYS[d.getDay()]}{isToday?'·今':''}</p>
                         <p className="text-sm font-bold">{d.getDate()}</p>
-                        <p className="text-[10px] font-bold opacity-80">{n>0?`${n}人`:'—'}</p>
+                        <p className="text-[10px] font-bold opacity-80">{n>0?n:'—'}</p>
                     </button>
                 );
             });
@@ -4890,6 +4835,55 @@ document.getElementById('copybtn').addEventListener('click', function(){
         );
     })()}
 
+    <div className="cms-roster-add border-t border-gray-100 pt-3" id="rosterAddStudent">
+        <div className="cms-roster-add-fields">
+            <div className="min-w-0">
+                <label className="text-xs font-bold text-gray-500 mb-1 block">添加学员</label>
+                <StudentPicker students={availRoster} value={rPick} onChange={setRPick} placeholder="搜索并选择学员..."/>
+            </div>
+            <div>
+                <label className="text-xs font-bold text-gray-500 mb-1 block">上课时间</label>
+                <input type="time" value={rTime} onChange={e=>setRTime(e.target.value)}
+                    aria-label="上课时间"
+                    className="w-full px-3 py-3 border border-gray-300 rounded-xl bg-white text-sm font-bold min-h-[50px] outline-none focus:ring-2 focus:ring-indigo-500"/>
+            </div>
+            <button onClick={addToRoster} disabled={!rPick||busy}
+                className="cms-roster-add-button bg-indigo-600 active:bg-indigo-700 disabled:bg-gray-300 text-white px-5 py-3 rounded-xl font-bold text-sm min-h-[50px]">
+                <Icon name="plus" className="w-4 h-4"/>{rPick?'加入课程安排':'请先选择学员'}
+            </button>
+        </div>
+        <label className="inline-flex items-center gap-2 mt-2 text-xs font-bold text-gray-500 min-h-[44px]">
+            <input type="checkbox" checked={rOneToOne} onChange={e=>setROneToOne(e.target.checked)} className="w-4 h-4"/>
+            1 对 1（同时段还有其他人时会提示冲突）
+        </label>
+    </div>
+
+    {/* F4b: Advanced batch tools stay available without permanently
+        pushing the actual day roster below the fold. */}
+    <details className="pt-3 border-t border-gray-100 group">
+        <summary className="list-none cursor-pointer min-h-[44px] flex items-center justify-between gap-3 text-xs font-bold text-gray-600">
+            <span className="inline-flex items-center gap-1.5"><Icon name="clipboard" className="w-4 h-4"/>班组模板与批量工具</span>
+            <span className="text-indigo-600 group-open:rotate-180 transition-transform" aria-hidden="true">⌄</span>
+        </summary>
+        <div className="pt-2 flex gap-2 items-center flex-wrap">
+        <select value={grpSel} onChange={e=>setGrpSel(e.target.value)}
+            className="px-2 py-2 border border-gray-300 rounded-xl bg-white text-sm font-medium min-h-[44px] outline-none focus:ring-2 focus:ring-indigo-500">
+            <option value="">-- 选择模板 --</option>
+            {Object.keys(db.groups||{}).sort().map(g => <option key={g} value={g}>{g}（{(db.groups[g]||[]).length}人）</option>)}
+        </select>
+        <button onClick={applyGroup} disabled={!grpSel||busy}
+            className="bg-indigo-50 text-indigo-700 border border-indigo-200 active:bg-indigo-100 disabled:opacity-40 px-3 py-2 rounded-xl text-xs font-bold min-h-[44px]">套用到当前日期</button>
+        {/* B: template management stays owner/manager; applying a template to a day is a per-day attendance action */}
+        {canManageOperations && <button onClick={saveGroup} disabled={busy}
+            className="bg-white text-gray-600 border border-gray-300 active:bg-gray-50 px-3 py-2 rounded-xl text-xs font-bold min-h-[44px]">保存当前为模板</button>}
+        {canManageOperations && grpSel && <button onClick={deleteGroup} disabled={busy}
+            className="bg-white text-red-500 border border-red-200 active:bg-red-50 px-3 py-2 rounded-xl text-xs font-bold min-h-[44px]">删除</button>}
+        {canManageOperations && TENANT_SLUG && grpSel && <button onClick={groupToSchedule} disabled={busy}
+            className="inline-flex items-center gap-1.5 bg-indigo-600 active:bg-indigo-700 text-white px-3 py-2 rounded-xl text-xs font-bold min-h-[44px]"><Icon name="calendar" className="w-4 h-4"/>转为每周班次</button>}
+        </div>
+    </details>
+    </div>
+
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
         <div className="bg-gray-50 border-b px-4 py-3 flex justify-between items-center gap-2 flex-wrap">
             <p className="font-bold text-sm text-gray-800">{fmtDate(rDate)} · {dayIds.filter(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived;}).length} 人{scheduledForDate.length>0 && <span className="text-xs font-normal text-indigo-500 ml-1">（课表 {scheduledForDate.length} 班）</span>}</p>
@@ -4921,7 +4915,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 )}
             </div>
         </div>
-        <div className="divide-y divide-gray-100">
+        <div className="cms-roster-list divide-y divide-gray-100">
             {!dayIds.length && <EmptyState icon={<Icon name="calendar" className="w-8 h-8"/>} main="今天还没有排课"
                 sub={TENANT_SLUG?'可以在上方「每周课表」建一个固定班次，之后每到这一天会自动排入；也可以直接在下方添加学员。':'在下方添加学员即可开始今天的排课。'}
                 action="添加学员" onAction={()=>{const el=document.getElementById('rosterAddStudent'); if(el) el.scrollIntoView({behavior:'smooth',block:'center'});}}/>}
@@ -4980,15 +4974,25 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             ? <button disabled className="cms-roster-primary is-done"><Icon name="check" className="w-4 h-4"/>已签到</button>
                             : <button onClick={()=>checkIn(s.id,s.name)} disabled={busy||s.balance<=0}
                                 aria-label={`为 ${s.name} 签到并扣 1 课时`} className="cms-roster-primary"><Icon name="check" className="w-4 h-4"/>{s.balance>0?'签到并扣 1 课时':'余额不足'}</button>}
-                        <details className="cms-roster-more">
+                        <details className="cms-roster-more" name="roster-student-actions">
                             <summary aria-label={`${s.name} 更多操作`}><Icon name="ellipsis" className="w-5 h-5"/></summary>
                             <div className="cms-roster-menu">
+                                <div className="cms-roster-menu__context">
+                                    <strong>{s.name}</strong>
+                                    <span>{fmtDate(rDate)} · {slot || '时间未设置'} · 余额 {s.balance}</span>
+                                </div>
+                                {entry.id && <>
+                                    <p className="cms-roster-menu__label">课程状态</p>
+                                    <button onClick={e=>{updateRosterEntry(entry.id,{status:'scheduled'}).then(()=>showToast(`${s.name} 已标记为待上课`)).catch(err=>showToast(err.message||'课程状态未能保存','error'));e.currentTarget.closest('details')?.removeAttribute('open');}} disabled={busy||entry.status!=='makeup'} aria-current={entry.status!=='makeup'?'true':undefined}><Icon name="check" className="w-4 h-4"/>待上课</button>
+                                    <button onClick={e=>{updateRosterEntry(entry.id,{status:'makeup'}).then(()=>showToast(`${s.name} 已标记为补课`)).catch(err=>showToast(err.message||'课程状态未能保存','error'));e.currentTarget.closest('details')?.removeAttribute('open');}} disabled={busy||entry.status==='makeup'} aria-current={entry.status==='makeup'?'true':undefined}><Icon name="refresh" className="w-4 h-4"/>补课</button>
+                                    <div className="cms-roster-menu__separator"/>
+                                </>}
                                 {s.mobile && <a href={`sms:${s.mobile.replace(/\s/g,'')}?body=${encodeURIComponent(`提醒：您的上课时间是 ${fmtDate(rDate)}${slot?` ${slot}`:''}，请准时到课。${tenantDisplayName} 期待见到您！`)}`}><Icon name="chat" className="w-4 h-4"/>发短信提醒</a>}
                                 {entry.id && <button onClick={e=>{updateRosterEntry(entry.id,{oneToOne:!entry.oneToOne}).then(()=>showToast(entry.oneToOne?'已改为普通班课':'已标记为 1 对 1')).catch(err=>showToast(err.message||'排课类型未能保存','error'));e.currentTarget.closest('details')?.removeAttribute('open');}} disabled={busy}><Icon name="users" className="w-4 h-4"/>{entry.oneToOne?'改为普通班课':'标记为 1 对 1'}</button>}
                                 {isDone && <button onClick={e=>{undoCheckIn(s.id,s.name);e.currentTarget.closest('details')?.removeAttribute('open');}} disabled={busy}><Icon name="refresh" className="w-4 h-4"/>撤销本日签到</button>}
                                 {entry.id
-                                    ? <button onClick={e=>{removeFromRoster(s.id);e.currentTarget.closest('details')?.removeAttribute('open');}} disabled={busy} className="is-danger"><Icon name="trash" className="w-4 h-4"/>移出本日排课</button>
-                                    : <p className="px-2 py-2 text-xs text-gray-400 inline-flex items-center gap-2"><Icon name="calendar" className="w-4 h-4"/>来自固定课表</p>}
+                                    ? <button onClick={e=>{removeFromRoster(s.id);e.currentTarget.closest('details')?.removeAttribute('open');}} disabled={busy} className="is-danger"><Icon name="trash" className="w-4 h-4"/>移出本日课程安排</button>
+                                    : <p className="cms-roster-menu__source"><Icon name="calendar" className="w-4 h-4"/>来自固定课表，需在上方班次中调整</p>}
                             </div>
                         </details>
                         </div>
@@ -6271,7 +6275,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
             )}
             <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 cms-chrome border-t flex"
                  style={{paddingBottom:'env(safe-area-inset-bottom,0px)', transform:'translateZ(0)', willChange:'transform'}}>
-                {[{k:'dashboard',i:'',s:'工作台'},{k:'roster',i:'',s:'排课'},{k:'students',i:'',s:'档案'},{k:'topup',i:'',s:'充值'}].filter(item=>allowedTabs.includes(item.k)).map(({k,i,s}) => (
+                {[{k:'dashboard',i:'',s:'工作台'},{k:'roster',i:'',s:'课表'},{k:'students',i:'',s:'档案'},{k:'topup',i:'',s:'充值'}].filter(item=>allowedTabs.includes(item.k)).map(({k,i,s}) => (
                     <button key={k} onClick={()=>{setTab(k);setMoreOpen(false);}}
                         aria-current={tab===k ? 'page' : undefined}
                         className={`flex-1 flex flex-col items-center justify-center py-2 gap-0.5 min-h-[52px] relative cms-chrome-item cms-chrome-tab ${tab===k?'is-active':''}`}>

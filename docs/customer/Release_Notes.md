@@ -1,5 +1,18 @@
 # PWE Studio — Release Notes and Acceptance Evidence
 
+## v9.1.1 — Course Schedule terminology and operator polish
+
+The CMS workspace formerly named Daily Roster is now Course Schedule. Its date
+and week navigation, attendance summary, time groups, add-student controls and
+batch tools form one top-to-bottom planning flow. Wide layouts keep each student
+on one compact row, while mobile retains the same task order without horizontal
+overflow.
+
+Each student's more-actions menu now opens with their date, time and credit
+balance, identifies recurring-schedule entries, and groups status, reminder,
+one-to-one, undo and removal actions. Scheduled and make-up states can be saved
+directly without removing and re-adding the student.
+
 ## v9.1.0 — faster daily scheduling and safer delivery
 
 v9.1.0 reshapes the daily roster around the work performed at the front desk:

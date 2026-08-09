@@ -5,6 +5,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "legacy-root" / "src" / "cms-app.jsx"
+SHELL = ROOT / "legacy-root" / "index.html"
+API_SOURCE = ROOT / "backend" / "studiosaas" / "api_v1.py"
 
 
 def _source() -> str:
@@ -78,8 +80,26 @@ def test_roster_default_time_is_tenant_owned_and_batch_tools_are_progressive() -
     source = _source()
     assert "d.operationalSettings?.defaultClassTime || '14:30'" in source
     assert "v1Api('/operational-settings'" in source
-    assert "每日排课默认时间" in source
-    assert '<details className="mt-3 pt-3 border-t border-gray-100 group">' in source
+    assert "课程安排默认时间" in source
+    assert '<details className="pt-3 border-t border-gray-100 group">' in source
+
+
+def test_course_schedule_layout_and_student_menu_are_complete() -> None:
+    """The desktop list must activate its compact row container contract."""
+
+    source = _source()
+    shell = SHELL.read_text(encoding="utf-8")
+    api_source = API_SOURCE.read_text(encoding="utf-8")
+    assert "l:'课程安排', s:'课表'" in source
+    assert 'className="cms-roster-list divide-y divide-gray-100"' in source
+    assert 'className="cms-roster-add-fields"' in source
+    assert 'name="roster-student-actions"' in source
+    assert "课程状态" in source
+    assert "updateRosterEntry(entry.id,{status:'scheduled'})" in source
+    assert "updateRosterEntry(entry.id,{status:'makeup'})" in source
+    assert ".cms-roster-menu__context" in shell
+    assert 'if "status" in payload:' in api_source
+    assert 'status not in {"scheduled", "makeup"}' in api_source
 
 
 def test_calendar_revision_conflict_refreshes_inside_dialog() -> None:

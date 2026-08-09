@@ -791,7 +791,7 @@ def build_roster_document(
                     [
                         f"日期：{roster_date.isoformat()}",
                         f"类型：{'1 对 1' if member['oneToOne'] else '普通班课'}",
-                        "上课时间尚未设置，可在 CMS 每日排课中补充后重新下载。",
+                        "上课时间尚未设置，可在 CMS 课程安排中补充后重新下载。",
                         "",
                         f"• {member['name']}",
                     ]

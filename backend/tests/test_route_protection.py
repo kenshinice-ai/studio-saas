@@ -76,6 +76,7 @@ MUTATIONS = [
     ("POST", "/s/demo/v1/attendance/check-in"),
     ("POST", "/s/demo/v1/attendance/00000000-0000-0000-0000-000000000000/void"),
     ("POST", "/s/demo/v1/daily-roster"),
+    ("PATCH", "/s/demo/v1/daily-roster/00000000-0000-0000-0000-000000000000"),
     ("DELETE", "/s/demo/v1/daily-roster/00000000-0000-0000-0000-000000000000"),
     ("POST", "/s/demo/v1/daily-roster/00000000-0000-0000-0000-000000000000/undo"),
     ("POST", "/s/demo/v1/students/00000000-0000-0000-0000-000000000000/access-code"),
