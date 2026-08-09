@@ -1,6 +1,6 @@
 # ✅ v8.10.3 手册改善执行交接（2026-08-09）
 
-已按 `docs/design/Manual_Improvement_Plan.md` 执行全部 **P0 / P1 / P2 / P3**，并完成本轮用户手册中英文文案优化；**前台权限保持不变，Git 已同步，线上部署待执行**。
+已按 `docs/design/Manual_Improvement_Plan.md` 执行全部 **P0 / P1 / P2 / P3**，并完成本轮用户手册中英文文案优化；**前台权限保持不变，Git 同步与线上部署已完成**。
 
 ## 当前结论
 
@@ -12,10 +12,10 @@
 
 ## 发布闭环证据
 
-- **Git**：分支 `codex/v8.10.3-manual-refresh`，本轮文案提交 `631fc3a0c09f484c0fdb875bb311327172e93195` 已推送至 `origin`。
+- **Git**：分支 `codex/v8.10.3-manual-refresh`，运行时代码 / 手册提交 `631fc3a0c09f484c0fdb875bb311327172e93195` 已推送至 `origin` 并部署；本交接更新提交随后同步。
 - **Bundle**：`dist/PWE-StudioSaaS-aws-8.10.3.tar.gz`，当前候选包 SHA-256 `f0dd1cd0cbce041cc9806bad55918b01519b37e0b4f84e3d22cce5672ba08556`；SaaS / standalone 两种包的 checksum、BUILD_INFO、入口和排除项门禁均通过。
-- **线上部署**：待使用上述候选 SaaS bundle 部署；部署前线上仍为上一份 `studiosaas:8.10.3`，当前深度健康正常。
-- **公网验收**：待部署后重新检查 `/v1/health?deep=1`、英文/中文 `/manual/`、新文案和缓存版本；不提前把候选内容称为线上事实。
+- **线上部署**：上述 SaaS bundle 已部署，运行镜像为 `studiosaas:8.10.3`；实例与数据库 healthy，线上深度健康返回 `appVersion=8.10.3`、`db=ok`、`disk.status=ok`、`themes.unreadable=0`。
+- **公网验收**：`https://pwestudio.online/v1/health?deep=1` 返回 200；英文 `/manual/` 与中文 `/zh/manual/` 均返回 200，已核对中英文新文案、`Last updated / 最后更新`、关键功能术语及无 `__APP_VERSION__ / __RELEASE_DATE__` 占位符；HTTP→HTTPS 为 301，HTTPS 为 HTTP/2 200，截图缓存版本仍为 `v8.10.3&r=2026-08-09`。
 - **仓库边界**：`AGENTS.md` 只有一个空的 Imported Claude Cowork 标题，没有实际项目规则，已可恢复地归档到 `/private/tmp/studiosaas-AGENTS.md.achieved`，未进入提交或发布包。
 
 ## 权限与安全边界
