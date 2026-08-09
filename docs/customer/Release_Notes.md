@@ -1,5 +1,20 @@
 # PWE Studio — Release Notes and Acceptance Evidence
 
+## v9.2.0 — persistent CMS notifications
+
+The CMS now keeps an in-app notification history for new public registrations
+and class-booking requests. Each event is written in the same database
+transaction as the request, so the notification cannot claim success for a
+request that was not saved, and duplicate submissions do not create duplicate
+alerts. Staff with registration visibility see a bell, unread count and
+notification list; booking notifications are limited to roles that can review
+bookings.
+
+The first delivery uses a simple 30-second refresh, an immediate refresh when
+the browser becomes visible again, a popup prompt for new events and per-user
+read state. Online payments, bank-transfer configuration, Gmail/SMTP, AWS SES,
+SMS, SSE and WebSocket push remain deferred.
+
 ## v9.1.1 — Course Schedule terminology and operator polish
 
 The CMS workspace formerly named Daily Roster is now Course Schedule. Its date

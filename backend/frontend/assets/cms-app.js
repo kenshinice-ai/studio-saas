@@ -264,6 +264,68 @@ function Toast({ msg, type, action, onDone }) {
     )
   );
 }
+function CmsNotificationCenter({
+  notifications = [],
+  unreadCount = 0,
+  open,
+  onToggle,
+  onSelect,
+  onMarkAllRead,
+  loadError = ""
+}) {
+  const formatCreatedAt = (value) => {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    return date.toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  };
+  return /* @__PURE__ */ React.createElement("div", { className: "relative flex-shrink-0" }, /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      onClick: onToggle,
+      "aria-label": "打开通知",
+      "aria-expanded": open,
+      className: "relative w-9 h-9 flex items-center justify-center rounded-lg cms-chrome-item"
+    },
+    /* @__PURE__ */ React.createElement(Icon, { name: "bell", className: "w-5 h-5" }),
+    unreadCount > 0 && /* @__PURE__ */ React.createElement(
+      "span",
+      {
+        "aria-label": `${unreadCount} 条未读通知`,
+        className: "absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold px-1 rounded-full min-w-[16px] leading-4 text-center"
+      },
+      unreadCount > 99 ? "99+" : unreadCount
+    )
+  ), open && /* @__PURE__ */ React.createElement("div", { className: "absolute right-0 top-11 z-[70] w-[min(92vw,24rem)] bg-white border border-gray-200 rounded-2xl shadow-2xl overflow-hidden text-gray-900" }, /* @__PURE__ */ React.createElement("div", { className: "px-4 py-3 border-b border-gray-100 flex items-center gap-3" }, /* @__PURE__ */ React.createElement("div", { className: "font-bold text-sm flex-1" }, "通知"), /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      onClick: onMarkAllRead,
+      disabled: unreadCount === 0,
+      className: "text-xs font-bold text-indigo-600 disabled:text-gray-300 min-h-[32px]"
+    },
+    "全部已读"
+  ), /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      onClick: onToggle,
+      "aria-label": "关闭通知",
+      className: "text-gray-400 text-xl leading-none px-1 min-h-[32px]"
+    },
+    "×"
+  )), loadError && /* @__PURE__ */ React.createElement("div", { role: "status", className: "px-4 py-2 text-xs font-bold text-amber-700 bg-amber-50 border-b border-amber-100" }, loadError), /* @__PURE__ */ React.createElement("div", { className: "max-h-[min(60vh,24rem)] overflow-y-auto" }, notifications.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "px-4 py-10 text-center text-sm text-gray-400" }, "暂无通知") : notifications.map((notification) => /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      key: notification.id,
+      onClick: () => onSelect(notification),
+      "aria-label": `${notification.title}${notification.read ? "，已读" : "，未读"}`,
+      className: `w-full text-left px-4 py-3 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 active:bg-gray-100 ${notification.read ? "bg-white" : "bg-indigo-50/60"}`
+    },
+    /* @__PURE__ */ React.createElement("div", { className: "flex items-start gap-2.5" }, /* @__PURE__ */ React.createElement("span", { className: `mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${notification.read ? "bg-gray-200" : "bg-indigo-500"}`, "aria-hidden": "true" }), /* @__PURE__ */ React.createElement("span", { className: "min-w-0 flex-1" }, /* @__PURE__ */ React.createElement("span", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "font-bold text-sm truncate" }, notification.title), /* @__PURE__ */ React.createElement("span", { className: "text-[10px] text-gray-400 flex-shrink-0" }, formatCreatedAt(notification.createdAt))), /* @__PURE__ */ React.createElement("span", { className: "block mt-1 text-xs text-gray-600 leading-relaxed break-words" }, notification.summary)))
+  )))));
+}
 function useModalFocus(isOpen, onClose, dialogRef, initialFocusRef = null) {
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
@@ -961,6 +1023,12 @@ function App() {
   const [conn, setConn] = useState(false);
   const [connErr, setConnErr] = useState(null);
   const [toast, setToast] = useState(null);
+  const [cmsNotifications, setCmsNotifications] = useState([]);
+  const [cmsNotificationUnreadCount, setCmsNotificationUnreadCount] = useState(0);
+  const [cmsNotificationOpen, setCmsNotificationOpen] = useState(false);
+  const [cmsNotificationError, setCmsNotificationError] = useState("");
+  const cmsNotificationCursorRef = useRef(0);
+  const cmsNotificationPollingRef = useRef(false);
   const [confirmDialog, setConfirmDialog] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
@@ -1108,6 +1176,7 @@ function App() {
   const canWritePortfolio = [...ownerRoles, "manager", "teacher", "staff"].includes(actorRole);
   const canWriteAttendance = [...ownerRoles, "manager", "teacher", "staff"].includes(actorRole);
   const canRefund = [...ownerRoles, "manager"].includes(actorRole);
+  const canViewCmsNotifications = ["owner", "manager", "front_desk", "staff", "platform_super_admin", "super_admin"].includes(actorRole);
   const [formPhoto, setFormPhoto] = useState("");
   const [editPhoto, setEditPhoto] = useState("");
   const cooldowns = useRef(/* @__PURE__ */ new Set());
@@ -1379,6 +1448,102 @@ function App() {
     }, 3e4);
     return () => clearInterval(id);
   }, [loggedIn]);
+  useEffect(() => {
+    if (!loggedIn || !TENANT_SLUG || !canViewCmsNotifications) {
+      setCmsNotifications([]);
+      setCmsNotificationUnreadCount(0);
+      cmsNotificationCursorRef.current = 0;
+      setCmsNotificationOpen(false);
+      setCmsNotificationError("");
+      return void 0;
+    }
+    let alive = true;
+    cmsNotificationCursorRef.current = 0;
+    const mergeNotifications = (incoming, replace = false) => {
+      setCmsNotifications((previous) => {
+        const byId = new Map((replace ? [] : previous).map((item) => [item.id, item]));
+        incoming.forEach((item) => byId.set(item.id, item));
+        return Array.from(byId.values()).sort((a, b) => Number(b.sequence || 0) - Number(a.sequence || 0)).slice(0, 50);
+      });
+    };
+    const poll = async (initial = false) => {
+      if (!alive || cmsNotificationPollingRef.current) return;
+      cmsNotificationPollingRef.current = true;
+      const cursor = cmsNotificationCursorRef.current;
+      try {
+        const query = initial ? "?limit=30" : `?after=${encodeURIComponent(String(cursor))}&limit=30`;
+        const data = await v1Api(`/notifications${query}`);
+        if (!alive) return;
+        const incoming = Array.isArray(data.notifications) ? data.notifications : [];
+        mergeNotifications(incoming, initial);
+        const nextCursor = Number(data.nextCursor ?? data.cursor ?? cursor);
+        if (Number.isFinite(nextCursor) && nextCursor >= cursor) {
+          cmsNotificationCursorRef.current = nextCursor;
+        }
+        setCmsNotificationUnreadCount(Number(data.unreadCount || 0));
+        setCmsNotificationError("");
+        if (!initial && incoming.length > 0) {
+          const latest = incoming[incoming.length - 1];
+          showToast(`${latest.title} · ${latest.summary}`, "warn", {
+            label: "查看通知",
+            onClick: () => setCmsNotificationOpen(true)
+          });
+        }
+      } catch (error) {
+        if (alive) setCmsNotificationError(error?.message || "通知暂时无法更新");
+      } finally {
+        cmsNotificationPollingRef.current = false;
+      }
+    };
+    poll(true);
+    const id = setInterval(() => {
+      if (document.visibilityState !== "hidden") poll(false);
+    }, 3e4);
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") poll(false);
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      alive = false;
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [loggedIn, actorRole]);
+  const markCmsNotificationRead = async (notification) => {
+    try {
+      const data = await v1Api(`/notifications/${encodeURIComponent(notification.id)}/read`, {
+        method: "POST",
+        body: JSON.stringify({})
+      });
+      setCmsNotifications((previous) => previous.map((item) => item.id === notification.id ? { ...item, read: true } : item));
+      setCmsNotificationUnreadCount(Number(data.unreadCount || 0));
+      return true;
+    } catch {
+      showToast("通知状态更新失败", "error");
+      return false;
+    }
+  };
+  const openCmsNotification = async (notification) => {
+    const marked = notification.read || await markCmsNotificationRead(notification);
+    if (!marked) return;
+    setCmsNotificationOpen(false);
+    if (notification.targetTab && allowedTabs.includes(notification.targetTab)) {
+      setTab(notification.targetTab);
+      if (notification.targetSubtab) setPendingTab(notification.targetSubtab);
+    }
+  };
+  const markAllCmsNotificationsRead = async () => {
+    try {
+      const data = await v1Api("/notifications/read-all", {
+        method: "POST",
+        body: JSON.stringify({})
+      });
+      setCmsNotifications((previous) => previous.map((item) => ({ ...item, read: true })));
+      setCmsNotificationUnreadCount(Number(data.unreadCount || 0));
+    } catch {
+      showToast("通知状态更新失败", "error");
+    }
+  };
   const doLogout = async () => {
     await fetch("/v1/auth/logout", { method: "POST", credentials: "include" }).catch(() => {
     });
@@ -1386,6 +1551,9 @@ function App() {
     setConn(false);
     setDb({ students: [], logs: [], rosters: {}, pending: [] });
     setShowSettings(false);
+    setCmsNotificationOpen(false);
+    setCmsNotifications([]);
+    setCmsNotificationUnreadCount(0);
   };
   const changeWebPw = async () => {
     if (!pwOld || !pwNew1) {
@@ -4381,6 +4549,17 @@ document.getElementById('copybtn').addEventListener('click', function(){
       className: "w-9 h-9 flex items-center justify-center rounded-lg cms-chrome-item flex-shrink-0"
     },
     /* @__PURE__ */ React.createElement(Icon, { name: "search" })
+  ), canViewCmsNotifications && /* @__PURE__ */ React.createElement(
+    CmsNotificationCenter,
+    {
+      notifications: cmsNotifications,
+      unreadCount: cmsNotificationUnreadCount,
+      open: cmsNotificationOpen,
+      onToggle: () => setCmsNotificationOpen((open) => !open),
+      onSelect: openCmsNotification,
+      onMarkAllRead: markAllCmsNotificationsRead,
+      loadError: cmsNotificationError
+    }
   ), /* @__PURE__ */ React.createElement(
     "button",
     {
@@ -4395,7 +4574,18 @@ document.getElementById('copybtn').addEventListener('click', function(){
       className: "hidden md:flex w-56 cms-chrome border-r flex-col flex-shrink-0",
       style: { paddingTop: "env(safe-area-inset-top, 0px)" }
     },
-    /* @__PURE__ */ React.createElement("div", { className: "p-4 border-b cms-chrome-edge flex items-center gap-2.5" }, tenantLogoUrl && /* @__PURE__ */ React.createElement("img", { src: tenantLogoUrl, alt: `${tenantDisplayName} logo`, className: "h-9 w-auto max-w-[96px] object-contain flex-shrink-0" }), /* @__PURE__ */ React.createElement("h1", { className: "hidden md:block text-base font-bold tracking-wide flex-1 truncate" }, tenantDisplayName), /* @__PURE__ */ React.createElement(
+    /* @__PURE__ */ React.createElement("div", { className: "p-4 border-b cms-chrome-edge flex items-center gap-2.5" }, tenantLogoUrl && /* @__PURE__ */ React.createElement("img", { src: tenantLogoUrl, alt: `${tenantDisplayName} logo`, className: "h-9 w-auto max-w-[96px] object-contain flex-shrink-0" }), /* @__PURE__ */ React.createElement("h1", { className: "hidden md:block text-base font-bold tracking-wide flex-1 truncate" }, tenantDisplayName), canViewCmsNotifications && /* @__PURE__ */ React.createElement(
+      CmsNotificationCenter,
+      {
+        notifications: cmsNotifications,
+        unreadCount: cmsNotificationUnreadCount,
+        open: cmsNotificationOpen,
+        onToggle: () => setCmsNotificationOpen((open) => !open),
+        onSelect: openCmsNotification,
+        onMarkAllRead: markAllCmsNotificationsRead,
+        loadError: cmsNotificationError
+      }
+    ), /* @__PURE__ */ React.createElement(
       "button",
       {
         onClick: () => {

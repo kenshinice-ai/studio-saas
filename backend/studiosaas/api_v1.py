@@ -78,6 +78,7 @@ from .services.tenant_archive import (
     permanently_delete_tenant,
     restore_tenant,
 )
+from .services import cms_notifications as _cms_notifications
 from .services import notifications as _notifications
 from .services.subscription_settlement import (
     ACTIONABLE as SETTLEMENT_ACTIONABLE,
@@ -3650,6 +3651,134 @@ def list_registrations():
         row.pop("_total", None)
     return jsonify({"registrations": rows, "total": total, "limit": limit, "offset": offset})
 
+
+def _cms_visible_notification_types() -> tuple[str, ...]:
+    """Return notification types the current CMS actor may inspect."""
+
+    types = ["registration.created"]
+    actor = getattr(g, "actor", None)
+    if actor is not None:
+        try:
+            require_permission(actor, "class_bookings:review")
+        except PermissionDeniedError:
+            pass
+        else:
+            types.append("class_booking.created")
+    return tuple(types)
+
+
+def _cms_notification_response(row: dict) -> dict:
+    """Serialize a notification without exposing internal database fields."""
+
+    created_at = row.get("created_at")
+    return {
+        "id": str(row["id"]),
+        "sequence": int(row["sequence_no"]),
+        "type": row["notification_type"],
+        "title": row["title"],
+        "summary": row["summary"],
+        "resourceType": row["resource_type"],
+        "resourceId": row["resource_id"],
+        "targetTab": row["target_tab"],
+        "targetSubtab": row["target_subtab"],
+        "createdAt": created_at.isoformat() if hasattr(created_at, "isoformat") else str(created_at or ""),
+        "read": bool(row["is_read"]),
+    }
+
+
+@api_v1.route("/notifications", methods=["GET"])
+@permission_required("registrations:read")
+def list_cms_notifications():
+    """List persistent CMS notifications and the current unread count."""
+
+    raw_after = request.args.get("after")
+    if raw_after in (None, ""):
+        after_sequence = None
+    else:
+        try:
+            after_sequence = int(raw_after)
+        except (TypeError, ValueError):
+            return _error("after must be a non-negative integer.")
+        if after_sequence < 0:
+            return _error("after must be a non-negative integer.")
+    raw_limit = request.args.get("limit", str(_cms_notifications.DEFAULT_LIMIT))
+    try:
+        limit = int(raw_limit)
+    except (TypeError, ValueError):
+        return _error(f"limit must be between 1 and {_cms_notifications.MAX_LIMIT}.")
+    if not 1 <= limit <= _cms_notifications.MAX_LIMIT:
+        return _error(f"limit must be between 1 and {_cms_notifications.MAX_LIMIT}.")
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        result = _cms_notifications.list_for_user(
+            conn,
+            tenant_id=tenant.tenant_id,
+            user_id=g.actor.user_id,
+            notification_types=_cms_visible_notification_types(),
+            after_sequence=after_sequence,
+            limit=limit,
+        )
+    return jsonify({
+        "notifications": [_cms_notification_response(row) for row in result["notifications"]],
+        "cursor": result["next_cursor"],
+        "nextCursor": result["next_cursor"],
+        "unreadCount": result["unread_count"],
+    })
+
+
+@api_v1.route("/notifications/read-all", methods=["POST"])
+@permission_required("registrations:read")
+def mark_all_cms_notifications_read():
+    """Mark every visible CMS notification read for the current user."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        _cms_notifications.mark_all_read(
+            conn,
+            tenant_id=tenant.tenant_id,
+            user_id=g.actor.user_id,
+            notification_types=_cms_visible_notification_types(),
+        )
+        conn.commit()
+        unread_count = _cms_notifications.unread_count(
+            conn,
+            tenant_id=tenant.tenant_id,
+            user_id=g.actor.user_id,
+            notification_types=_cms_visible_notification_types(),
+        )
+    return jsonify({"ok": True, "unreadCount": unread_count})
+
+
+@api_v1.route("/notifications/<notification_id>/read", methods=["POST"])
+@permission_required("registrations:read")
+def mark_cms_notification_read(notification_id: str):
+    """Mark one visible CMS notification read for the current user."""
+
+    try:
+        notification_id = str(_uuid.UUID(notification_id))
+    except (ValueError, AttributeError):
+        return _error("Notification not found.", 404)
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        found = _cms_notifications.mark_read(
+            conn,
+            tenant_id=tenant.tenant_id,
+            user_id=g.actor.user_id,
+            notification_id=notification_id,
+            notification_types=_cms_visible_notification_types(),
+        )
+        if not found:
+            return _error("Notification not found.", 404)
+        conn.commit()
+        unread_count = _cms_notifications.unread_count(
+            conn,
+            tenant_id=tenant.tenant_id,
+            user_id=g.actor.user_id,
+            notification_types=_cms_visible_notification_types(),
+        )
+    return jsonify({"ok": True, "unreadCount": unread_count})
+
 @api_v1.route("/registrations/<registration_id>", methods=["PATCH"])
 @permission_required("registrations:write")
 
@@ -4444,8 +4573,21 @@ def public_class_booking(tenant_slug: str):
                 (schedule["id"], on_date),
             )
             waiting = int((cur.fetchone() or {}).get("n") or 0)
-        # The booking must be durable before an SMTP attempt, and a duplicate
-        # submission must never send a second alert.
+        if created:
+            _cms_notifications.create(
+                conn,
+                tenant_id=tenant.tenant_id,
+                notification_type="class_booking.created",
+                title="新约课申请",
+                summary=f"{name} · {class_title or '课程'} · {on_date.isoformat()} {start}",
+                resource_type="class_booking",
+                resource_id=str(created["id"]),
+                target_tab="pending",
+                target_subtab="bookings",
+                dedupe_key=f"class_booking:{created['id']}",
+            )
+        # The booking and its CMS notification must be durable before an SMTP
+        # attempt, and a duplicate submission must never send a second alert.
         conn.commit()
         if created is not None:
             tenant_row = fetch_one(
@@ -5696,8 +5838,26 @@ def public_create_registration(tenant_slug: str):
                 "privacy_notice_version": privacy_notice_version,
             },
         )
-        # Make the lead durable before any SMTP work. Notification delivery is
-        # best-effort and must never decide whether the registration exists.
+        source_label = {
+            "portal": "门户",
+            "qr": "二维码",
+            "campaign": "活动页",
+        }.get(source, "报名页")
+        _cms_notifications.create(
+            conn,
+            tenant_id=tenant.tenant_id,
+            notification_type="registration.created",
+            title="新报名申请",
+            summary=f"{first_name} {last_name}".strip() + f" · {source_label}",
+            resource_type="registration",
+            resource_id=str(registration_id),
+            target_tab="pending",
+            target_subtab="registrations",
+            dedupe_key=f"registration:{registration_id}",
+        )
+        # Make the lead and its CMS notification durable before any SMTP work.
+        # External delivery is best-effort and must never decide whether the
+        # registration exists.
         conn.commit()
         tenant_row = fetch_one(
             conn,

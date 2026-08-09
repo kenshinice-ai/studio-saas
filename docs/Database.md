@@ -1,7 +1,7 @@
 # StudioSaaS Database
 
-Version: v3.3
-Date: 2026-07-27
+Version: v3.4
+Date: 2026-08-09
 Purpose: Schema definition, table descriptions, canonical enums, migration strategy, and operational notes.
 
 ---
@@ -11,7 +11,7 @@ Purpose: Schema definition, table descriptions, canonical enums, migration strat
 - **Engine:** PostgreSQL 16+ (local), RDS PostgreSQL (AWS production target)
 - **Local database name:** `studiosaas_local_test`
 - **Bootstrap reference:** `backend/db/schema_v1.sql`
-- **Canonical schema evolution:** ordered migrations through `0021_plan_quota_revision.sql`
+- **Canonical schema evolution:** ordered migrations through `0028_cms_notifications.sql`
 - **Isolation model:** All business data includes `tenant_id`. All queries bind tenant context.
 
 ### 1.1 Design Principles
@@ -84,6 +84,8 @@ memberships.
 |---|---|---|
 | `email_templates` | `id`, `tenant_id`, `key`, `subject`, `body` | Per-tenant email templates |
 | `notification_logs` | `id`, `tenant_id`, `user_id`, `template_id`, `status`, `sent_at` | Email/notification send records |
+| `cms_notifications` | `id`, `sequence_no`, `tenant_id`, `notification_type`, `title`, `summary`, `resource_*`, `target_*`, `dedupe_key` | Durable in-app CMS notifications created by public registration and class-booking events; tenant-scoped polling cursor and deduplication |
+| `cms_notification_reads` | `notification_id`, `user_id`, `read_at` | Per-CMS-user read state for durable in-app notifications |
 | `student_access_sessions` / `student_access_attempts` | tenant-bound token hash, expiry/revocation, lookup hash and lock window | One-hour private student sessions and non-enumerating brute-force protection |
 | `public_analytics_events` | `tenant_id`, allowlisted event, anonymous session hash, campaign, timestamp | Privacy-preserving aggregate portal analytics without student/contact/browser identifiers |
 | `tenant_archives` | `id`, `tenant_id`, archive path, snapshot metadata | Pre-deletion archive snapshots of all tenant-owned tables (migration 0005) |

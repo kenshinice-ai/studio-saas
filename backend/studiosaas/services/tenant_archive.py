@@ -38,6 +38,12 @@ SNAPSHOT_TABLES: tuple[tuple[str, str, str], ...] = (
     ("share_tokens.json", "share_tokens", "tenant_id = %s"),
     ("email_templates.json", "email_templates", "tenant_id = %s"),
     ("notification_logs.json", "notification_logs", "tenant_id = %s"),
+    ("cms_notifications.json", "cms_notifications", "tenant_id = %s"),
+    (
+        "cms_notification_reads.json",
+        "cms_notification_reads",
+        "notification_id IN (SELECT id FROM cms_notifications WHERE tenant_id = %s)",
+    ),
     ("audit_logs.json", "audit_logs", "tenant_id = %s"),
     ("subscriptions.json", "subscriptions", "tenant_id = %s"),
     ("tenant_usage.json", "tenant_usage", "tenant_id = %s"),

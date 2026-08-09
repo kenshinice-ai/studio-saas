@@ -7,9 +7,9 @@ the current source tree was packaged or deployed.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | `codex/v9.1.1-course-schedule-polish`; `VERSION` = **9.1.1** | This branch, which is ahead of `main`, carries commit `4a048f1`: the CMS workspace is renamed to Course Schedule, its planning order is unified, compact desktop rows are restored and each student's contextual action menu is expanded. |
-| Package | **9.1.1** SaaS + Edition archives | Both `BUILD_INFO` files identify commit `4a048f1`; SHA-256 is recorded in `docs/HANDOFF_LATEST.md`. |
-| Production | reports **9.1.1** | Deployed from the SaaS package at commit `4a048f1` on 2026-08-09; public deep health reports `mode=saas`, `db=ok`, six readable tenants and zero unreadable themes. The health response itself does not identify the deployed commit; the package `BUILD_INFO` and release symlink do. |
+| Source | `codex/v9.2.0-cms-notifications`; `VERSION` = **9.2.0** | This branch, which is ahead of `main`, is the release candidate for persistent CMS notifications: durable registration/booking events, per-user read state, 30-second polling and popup prompts. |
+| Package | **pending** SaaS + Edition archives | Candidate packages will be built from the verified release commit and recorded in `docs/HANDOFF_LATEST.md`. |
+| Production | reports **9.1.1** | Pre-deploy baseline is healthy; production remains on the previous release until the 9.2.0 controller deployment and public acceptance complete. The health response does not identify the deployed commit; the package `BUILD_INFO` and release symlink do. |
 
 Re-verify the production health endpoint before any later release claim; do not
 infer Production from `VERSION` or from an archive filename.
@@ -905,7 +905,7 @@ curl -i -X POST http://localhost:8901/v1/admin/tenants \
 | `docs/Deployment.md` | Deployment stages; Stage 2 (AWS Lightsail) live since 2026-07-30 |
 | `docs/Design_System.md` | UI tokens and component standards |
 | `docs/Glossary.md` | One agreed word per concept (enforced by `check_terminology.py`) |
-| `docs/guides/` | Per-role user manuals in Chinese (applicable to v9.1.1) |
+| `docs/guides/` | Per-role user manuals in Chinese (applicable to v9.2.0) |
 | `01 BRAND ASSETS/` | PWE/Paradise family delivery kit and validated asset manifest |
 
 ---

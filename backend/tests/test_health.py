@@ -475,7 +475,8 @@ def test_tenant_archive_snapshot_covers_every_tenant_owned_table():
         "courses", "packages", "class_schedules", "class_schedule_students",
         "credit_accounts", "credit_transactions", "attendance_sessions",
         "registrations", "media_assets", "portfolio_items", "share_tokens",
-        "email_templates", "notification_logs", "audit_logs", "subscriptions",
+        "email_templates", "notification_logs", "cms_notifications",
+        "cms_notification_reads", "audit_logs", "subscriptions",
         "tenant_usage", "tenant_brand_drafts", "tenant_brand_versions",
         "tenant_archives",
     }
