@@ -51,6 +51,22 @@ die()  { printf '\033[1;31mERROR: %s\033[0m\n' "$*" >&2; exit 1; }
 remote() { ssh -o ConnectTimeout=15 "$SSH_HOST" "$@"; }
 ctl()    { remote "cd $CURRENT && bash deploy/aws/lightsail_ctl.sh $*"; }
 
+wait_internal_health() {
+  # Migrations, workspace regeneration and first-time media derivatives can
+  # legitimately outlive a fixed sleep. Poll the actual readiness contract for
+  # up to 90 seconds; a single connection reset while Waitress is starting is
+  # not deployment failure.
+  remote "for attempt in \$(seq 1 30); do
+    if health=\$(curl -fsS 'http://127.0.0.1:8899/v1/health?deep=1' 2>/dev/null); then
+      printf '%s\n' \"\$health\"
+      exit 0
+    fi
+    sleep 3
+  done
+  echo 'internal deep health did not become ready within 90 seconds' >&2
+  exit 1"
+}
+
 usage() { sed -n '2,40p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
 
 cmd="${1:-}"
@@ -169,8 +185,8 @@ case "$cmd" in
     say "Rebuilding and starting"
     deployed=false
     if remote "cd $CURRENT && bash deploy/aws/lightsail_ctl.sh up"; then
-      sleep 12
-      if remote "curl -fsS 'http://127.0.0.1:8899/v1/health?deep=1'"; then
+      say "Waiting for internal deep health (up to 90 seconds)"
+      if wait_internal_health; then
         echo
         say "Deep health passed — verifying from the public edge"
         if edge=$(curl -fsS --max-time 25 "$PUBLIC_URL/v1/health?deep=1"); then
@@ -218,8 +234,7 @@ case "$cmd" in
     then
       die "ROLLBACK START FAILED. Check: ssh $SSH_HOST 'cd $CURRENT && bash deploy/aws/lightsail_ctl.sh logs'"
     fi
-    sleep 12
-    if ! remote "curl -fsS 'http://127.0.0.1:8899/v1/health?deep=1'"; then
+    if ! wait_internal_health; then
       die "ROLLBACK INTERNAL HEALTH FAILED. Check: ssh $SSH_HOST 'cd $CURRENT && bash deploy/aws/lightsail_ctl.sh logs'"
     fi
     echo

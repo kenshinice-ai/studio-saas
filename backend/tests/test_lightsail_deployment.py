@@ -76,6 +76,16 @@ def test_entrypoint_backfills_media_before_serving_responsive_urls() -> None:
     assert migration < backfill < server
 
 
+def test_remote_deploy_polls_readiness_instead_of_sleeping_once() -> None:
+    """First-start derivative work may take longer than a fixed 12 seconds."""
+
+    remote = _read("deploy/aws/pwestudio_remote.sh")
+    assert "wait_internal_health" in remote
+    assert "seq 1 30" in remote
+    assert "within 90 seconds" in remote
+    assert "sleep 12" not in remote
+
+
 def test_tls_snippet_is_shared_and_has_no_dead_ocsp_config() -> None:
     """One TLS parameter set, included by both server blocks.
 
