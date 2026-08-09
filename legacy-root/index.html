@@ -563,12 +563,56 @@
             border-radius:var(--radius) !important;
             transition:transform var(--ui-duration-exit, 144ms) ease, box-shadow var(--ui-duration-exit, 144ms) ease, background-color var(--ui-duration-exit, 144ms) ease;
         }
-        button, [role="button"], a        button[aria-label], [role="button"][aria-label], a[aria-label] { min-width:var(--ui-touch-target, 44px); }
+        button, [role="button"], a[class*="rounded"] { min-height:var(--ui-touch-target, 44px); }
+        button[aria-label], [role="button"][aria-label], a[aria-label] { min-width:var(--ui-touch-target, 44px); }
         @media (hover:hover) {
             button:hover, a:hover, [role="button"]:hover { transform:translateY(-1px); box-shadow:var(--shadow-sm); }
             nav a:hover, table a:hover, .hover-row:hover, .hover-row a:hover { transform:none; }
         }
-        button:active, a        button:disabled { opacity:.55; cursor:not-allowed; transform:none; box-shadow:none; }
+        button:active, a[class*="rounded"]:active, [role="button"]:active { transform:scale(.985); }
+        button:disabled { opacity:.55; cursor:not-allowed; transform:none; box-shadow:none; }
+        /* EmptyState is the first component-level migration away from hue
+           utilities. It consumes the tenant's solved semantic pairs directly,
+           while neutral fallbacks keep the state readable before /brand has
+           answered or if that request fails. */
+        .cms-empty-state { padding:2rem; text-align:center; }
+        .cms-empty-state__icon {
+            display:flex;
+            justify-content:center;
+            margin-bottom:.5rem;
+            color:var(--muted);
+        }
+        .cms-empty-state__title {
+            margin:0;
+            color:var(--ink2);
+            font-size:.875rem;
+            line-height:1.25rem;
+            font-weight:700;
+        }
+        .cms-empty-state__description {
+            max-width:20rem;
+            margin:.25rem auto 0;
+            color:var(--muted);
+            font-size:.75rem;
+            line-height:1.625;
+        }
+        .cms-empty-state__action {
+            min-width:var(--ui-touch-target, 44px);
+            min-height:var(--ui-touch-target, 44px);
+            margin-top:1rem;
+            padding:.625rem 1rem;
+            border:1px solid var(--accent-border, var(--line-strong));
+            border-radius:var(--radius);
+            background:var(--accent-soft, var(--bg2));
+            color:var(--on-accent-soft, var(--ink));
+            font-size:.75rem;
+            line-height:1rem;
+            font-weight:700;
+        }
+        .cms-empty-state__action:focus-visible {
+            outline:2px solid var(--focus-ring, var(--tenant-primary, var(--ink)));
+            outline-offset:2px;
+        }
         .toast { box-shadow:var(--shadow-lg) !important; border-radius:var(--radius-xl) !important; }
         /* A themed surface has to carry its own foreground. `text-white` is not
            a token: once --tenant-primary followed a dark theme's bright accent,

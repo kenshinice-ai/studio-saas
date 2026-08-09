@@ -221,11 +221,11 @@ function TabPanel({ idBase, name, active, children }) {
 }
 function EmptyState({ icon = null, main = "暂无数据", sub = "", action = null, onAction = null }) {
   const glyph = icon || /* @__PURE__ */ React.createElement(Icon, { name: "inbox", className: "w-8 h-8" });
-  return /* @__PURE__ */ React.createElement("div", { className: "p-8 text-center" }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-center mb-2 text-gray-300" }, glyph), /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-500 text-sm" }, main), sub && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-1 max-w-xs mx-auto leading-relaxed" }, sub), action && onAction && /* @__PURE__ */ React.createElement(
+  return /* @__PURE__ */ React.createElement("div", { className: "cms-empty-state" }, /* @__PURE__ */ React.createElement("div", { className: "cms-empty-state__icon" }, glyph), /* @__PURE__ */ React.createElement("p", { className: "cms-empty-state__title" }, main), sub && /* @__PURE__ */ React.createElement("p", { className: "cms-empty-state__description" }, sub), action && onAction && /* @__PURE__ */ React.createElement(
     "button",
     {
       onClick: onAction,
-      className: "mt-4 px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-bold bg-indigo-50 active:bg-indigo-100 text-indigo-700 border border-indigo-200"
+      className: "cms-empty-state__action"
     },
     action
   ));

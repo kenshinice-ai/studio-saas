@@ -258,13 +258,13 @@ function TabPanel({idBase, name, active, children}) {
 function EmptyState({icon=null, main='暂无数据', sub='', action=null, onAction=null}) {
     const glyph = icon || <Icon name="inbox" className="w-8 h-8"/>;
     return (
-        <div className="p-8 text-center">
-            <div className="flex justify-center mb-2 text-gray-300">{glyph}</div>
-            <p className="font-bold text-gray-500 text-sm">{main}</p>
-            {sub && <p className="text-xs text-gray-400 mt-1 max-w-xs mx-auto leading-relaxed">{sub}</p>}
+        <div className="cms-empty-state">
+            <div className="cms-empty-state__icon">{glyph}</div>
+            <p className="cms-empty-state__title">{main}</p>
+            {sub && <p className="cms-empty-state__description">{sub}</p>}
             {action && onAction && (
                 <button onClick={onAction}
-                    className="mt-4 px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-bold bg-indigo-50 active:bg-indigo-100 text-indigo-700 border border-indigo-200">
+                    className="cms-empty-state__action">
                     {action}
                 </button>
             )}
