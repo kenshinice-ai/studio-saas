@@ -1,89 +1,85 @@
-# PWE Studio v9.0.0 — Brand、公共体验与 CMS 迁移基线（2026-08-09）
+# PWE Studio v9.1.0 — 每日排课、运营就绪度与可靠交付（2026-08-09）
 
 ## 当前发布状态
 
-- 版本：`9.0.0`。
-- 分支：`codex/v9.0.0-brand-cms-release`。
-- 当前状态：已打包、推送、部署并通过线上与恢复验收。生产运行的应用包来自
-  commit `94d50b8d70032e657bd9fa7ef059d8734fd27d7d`；其后的提交只记录发布结果。
-- 这是大版本升级，因为它同时冻结了 Brand 权威源、跨表面视觉契约、角色权限
-  边界和 CMS 后续渐进迁移方法；不是因为数据库或 API 做了破坏性变化。
+- 版本：`9.1.0`。
+- 分支：`codex/v9.1.0-roster-polish`，已同步到 `origin`。
+- 当前状态：已打包、推送、部署并通过内部、公网、迁移、媒体与缓存验收。
+- 生产运行的应用包来自 commit
+  `8182a8834f33854ebe8eaf2ab56bf86a9a4c2e88`；其后的提交只记录发布结果。
 
 ## 本轮实际交付
 
-1. `docs/design/Brand_Identity.md` 成为唯一 Brand 权威源；
-   `docs/brand-guidelines.md` 是逐字节相同的兼容副本。
-2. 发布身份明确拆为 Source / Package / Production，未知状态允许明确写成未知。
-3. Front Desk 获得后端 `class_bookings:review`，只能批准或婉拒约课请求；课程、
-   容量和排课仍为 Owner/Manager 权限。CMS 按钮本轮没有扩大角色可见性，文档
-   继续要求 Front Desk 转交 Owner/Manager 操作。
-4. 产品首页、公开门户和公开课表统一双语系统字体、44px 触控目标、标题层级、
-   黄金比例布局契约及无图 Hero 行为；租户生成目录已由模板重新生成。
-5. CMS P0 修复被拼接损坏的 touch / active / disabled 选择器；P1 只迁移
-   `EmptyState` 内部样式到 `cms-empty-state*` 语义类。props、5 个调用点和
-   3 个 `onAction` 回调未改；浏览器加载 bundle 已重建。
-6. 根目录 `pytest` 只收集 `backend/tests`；两个 `backend/test_*.py` 是独立运行
-   的集成/冒烟程序，继续作为单独 release gate 执行，避免它们在 pytest 收集期
-   启动服务或污染 Flask 全局状态。
+1. 每日排课重构为紧凑工作台：折叠生日和固定课表，统一日期导航、周占用、
+   出勤摘要、时段分组、添加学员、批量工具及移动端操作。
+2. 每位学员只保留一个清晰的「签到并扣 1 课时」主操作；提醒、显式 `oneToOne`、
+   当日撤销和移除进入更多菜单。普通同时间班课不误报冲突。
+3. 30 日活跃度改按 `studentId` 统计；历史姓名日志只有唯一匹配时才归属。首页新增
+   学员专区、私人内容和作品发布就绪度，并可一键进入对应筛选结果。
+4. 公开课表新约课在数据库提交成功后才给管理员发邮件，重复请求不重复通知，
+   每次实际发送尝试进入 `notification_logs`。
+5. 图片新增 960px 安全中图，与 360px 缩略图和 2000px 展示图组成响应式
+   `srcset`；迁移、上传、演示数据和生产回填使用同一三变体契约。
+6. 私人媒体在鉴权后使用 checksum ETag 和 `private, no-cache`；共享静态资源
+   同时携带版本与内容哈希，缺失或陈旧 manifest 会明确阻断构建/启动。
+7. 部署控制器把固定 12 秒等待改为最多 90 秒 deep-health 轮询，覆盖首次迁移、
+   workspace 重建和媒体回填，同时保留失败自动回滚。
 
 ## CMS 真实浏览器验收
 
-本地 PostgreSQL + 真登录 + Chromium，视口 `390 × 844`：
+本地 PostgreSQL、合成展示租户、真登录和 Chrome：
 
-- 页面宽度 `390px`，无横向溢出；
-- EmptyState 操作按钮 `82 × 44px`，计算样式 `min-width/min-height = 44px`；
-- 键盘焦点实际落在按钮，焦点环 `2px`；
-- 修复后的通用按钮最小高度为 `44px`，独立 `button:disabled` 规则已进入浏览器
-  CSSOM；
-- 使用真实租户配色时标题、说明、操作按钮与焦点环均消费语义 token；静态主题
-  最差对比度分别为 `8.00:1 / 4.60:1 / 4.50:1 / 3.20:1`。
-
-浏览器验收只读取 UI。为登录而临时替换的本地测试账号密码哈希已立即恢复；
-没有触碰生产账号或生产数据。
+- 桌面中英文排课页重新拍摄为 `1600 × 1000`；
+- 移动中英文排课页按 `390 × 844` 视口拍摄为 2× 图 `780 × 1688`；
+- 日期/搜索/时间/批量区在桌面形成一行，移动端按任务顺序单列，无页面横向溢出；
+- 44px 触控目标、键盘语义、折叠区、单一主操作和底部移动导航均进入真实浏览器；
+- 截图只使用受保护的 `lets-paint-showcase` 合成数据，没有读取客户数据。
 
 ## 发布闭环
 
 ### Git 与发布包
 
-- 分支：`codex/v9.0.0-brand-cms-release`，已同步到 `origin`。
-- 部署代码 commit：`94d50b8d70032e657bd9fa7ef059d8734fd27d7d`。
-- SaaS：`dist/PWE-StudioSaaS-aws-9.0.0.tar.gz`；
-  SHA-256：`df1e5a21b66b3ee16984bc6691f5f66d6b6beeb37a80c63cd20a3b44304ad950`。
-- Edition：`dist/PWE-Studio-Edition-9.0.0.tar.gz`；
-  SHA-256：`b9c8fdc2a136814420bae6af803c1d1d7dd8214ca191a9bcde8b35d7833cc1ec`。
+- 分支：`codex/v9.1.0-roster-polish`，已同步到 `origin`。
+- 部署代码 commit：`8182a8834f33854ebe8eaf2ab56bf86a9a4c2e88`。
+- SaaS：`dist/PWE-StudioSaaS-aws-9.1.0.tar.gz`；
+  SHA-256：`3a267dee490f8b33304c4c8803033acef65b79624274bc16aac6406ee3ddeba5`。
+- Edition：`dist/PWE-Studio-Edition-9.1.0.tar.gz`；
+  SHA-256：`aacafae01491e5d0a48e90985d3f1992a73693e42a3991fd42587302ae63402b`。
 - 两个包均通过 checksum、`BUILD_INFO`、入口文件、模式和敏感/内部路径排除检查。
 
 ### 本地 release gate
 
-- 默认 pytest：`1926 passed, 7 skipped`；
+- 默认 pytest：`1930 passed, 7 skipped`；
 - PostgreSQL 租户隔离/权限：`234 passed, 0 failed`；
 - 独立 CMS smoke：`73 passed, 0 failed`；
-- CMS/认证定向回归：`124 passed, 2 skipped`；
-- 主题生成器：`18 × 60 = 1080` 对比度断言，`0 failures`；
-- CMS source 临时重编译与 tracked bundle 字节一致，SHA-256
-  `6b8bdf2537eb42bcea4b3d4d3d1776218e402283fdc725c0c05eebc99b3b760f`；
-- JS 语法、inline script、Brand 副本、Git whitespace 检查均通过。
+- 排课/媒体/通知/缓存定向回归：`130 passed`；
+- 部署控制器回归：`14 passed`；
+- migration `0027_medium_media_variant.sql` 与本地 86 个缺失中图完成回填，复核为 0；
+- CMS source、tracked bundle 与 asset manifest 一致；JS、inline script、shell
+  语法、术语和 Git whitespace 检查均通过。
 
 ### AWS 与线上验收
 
-- 部署前生产为健康的 `8.10.3`；自动发布流程先创建逻辑库备份与 volume 归档，
-  再切换 `/opt/pwestudio/current` 到 `PWE-StudioSaaS-aws-9.0.0`。
-- 部署前备份：
-  `studiosaas_studiosaas_20260809T023658Z.dump`（约 470 KB）及
-  `pwestudio-volumes-20260809T023659Z.tar.gz`（约 61 MB）。
-- 当前容器：`studiosaas:9.0.0`；PostgreSQL 容器未重建，两个容器均 healthy。
-- 内部和公网 deep health：`appVersion=9.0.0`、`mode=saas`、`db=ok`、
+- 部署前生产为健康的 `9.0.0`。第一次 9.1.0 启动在固定 12 秒探测时遇到
+  connection reset，控制器按设计自动回滚到健康 9.0.0；没有绕过门禁。
+- 修复为 90 秒实际就绪轮询、增加回归测试并重建/推送包后，第二次部署成功。
+- 成功部署前备份：`studiosaas_studiosaas_20260809T040945Z.dump`（约 473 KB）及
+  `pwestudio-volumes-20260809T040946Z.tar.gz`（约 66 MB）。
+- `/opt/pwestudio/current` 指向 `PWE-StudioSaaS-aws-9.1.0`；当前容器
+  `studiosaas:9.1.0`，应用与 PostgreSQL 均 healthy。
+- 内部和公网 deep health：`appVersion=9.1.0`、`mode=saas`、`db=ok`、
   `tenants=6`、`themes.unreadable=0`；公网 HTTP → HTTPS 301、TLS 校验 `0`、
   HTTP/2。
-- `/`、中英文手册、Studio 门户、公开课表、CMS、Release Notes 和带
-  `?v=9.0.0` 的 CMS bundle 均返回最终 `200`。
-- 线上 CMS bundle SHA-256 与本地 tracked bundle 完全一致：
-  `6b8bdf2537eb42bcea4b3d4d3d1776218e402283fdc725c0c05eebc99b3b760f`。
-- 最近十分钟 app/db 日志只有正常启动、迁移已是最新、workspace 重建和健康/
-  验收请求，无新错误。
-- 最新逻辑备份完成安全恢复演练：26 个 migration；6 tenants、20 users、
-  57 students、8 registrations、29 media assets、4718 audit logs。
-- 回滚点保留为前一版本 `PWE-StudioSaaS-aws-8.10.3`；本次不需要回滚。
+- 最新 migration 为 `0027_medium_media_variant.sql`；生产共有 29 个 medium
+  变体，`images_missing_medium=0`。
+- `/`、中文手册、Studio 门户、公开课表、CMS 和 Release Notes 均返回最终 200。
+- CMS 发出 `/assets/cms-app.js?v=9.1.0&h=d4eb2c8ca4853cea`，响应为一年
+  immutable；线上与本地 bundle SHA-256 均为
+  `d4eb2c8ca4853cea4647821e3c8f2fcdbabaf7250edc89125c964940b2f19cb1`。
+- 生产 medium JPEG 返回 checksum ETag；携带 `If-None-Match` 时返回 304。
+- 当前应用日志显示 migration 最新、媒体回填 0 缺失、10 个 workspace 重建和
+  Waitress 正常启动，无新异常。
+- 回滚点保留为前一版本 `PWE-StudioSaaS-aws-9.0.0`。
 
 ---
 
