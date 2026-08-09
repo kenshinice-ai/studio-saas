@@ -4,8 +4,8 @@
 
 - 版本：`9.0.0`。
 - 分支：`codex/v9.0.0-brand-cms-release`。
-- 当前状态：本地实现与 CMS 真实浏览器验收已通过；发布包、Git 推送、AWS
-  部署和线上验收必须以本节后续记录为准，不能由版本文件推断。
+- 当前状态：已打包、推送、部署并通过线上与恢复验收。生产运行的应用包来自
+  commit `94d50b8d70032e657bd9fa7ef059d8734fd27d7d`；其后的提交只记录发布结果。
 - 这是大版本升级，因为它同时冻结了 Brand 权威源、跨表面视觉契约、角色权限
   边界和 CMS 后续渐进迁移方法；不是因为数据库或 API 做了破坏性变化。
 
@@ -43,8 +43,47 @@
 
 ## 发布闭环
 
-发布 commit、双模式包 SHA-256、部署前备份、线上 deep health、关键路由与回滚
-点将在实际完成后写回这里。在这些证据出现之前，本节只能称为 v9.0.0 候选。
+### Git 与发布包
+
+- 分支：`codex/v9.0.0-brand-cms-release`，已同步到 `origin`。
+- 部署代码 commit：`94d50b8d70032e657bd9fa7ef059d8734fd27d7d`。
+- SaaS：`dist/PWE-StudioSaaS-aws-9.0.0.tar.gz`；
+  SHA-256：`df1e5a21b66b3ee16984bc6691f5f66d6b6beeb37a80c63cd20a3b44304ad950`。
+- Edition：`dist/PWE-Studio-Edition-9.0.0.tar.gz`；
+  SHA-256：`b9c8fdc2a136814420bae6af803c1d1d7dd8214ca191a9bcde8b35d7833cc1ec`。
+- 两个包均通过 checksum、`BUILD_INFO`、入口文件、模式和敏感/内部路径排除检查。
+
+### 本地 release gate
+
+- 默认 pytest：`1926 passed, 7 skipped`；
+- PostgreSQL 租户隔离/权限：`234 passed, 0 failed`；
+- 独立 CMS smoke：`73 passed, 0 failed`；
+- CMS/认证定向回归：`124 passed, 2 skipped`；
+- 主题生成器：`18 × 60 = 1080` 对比度断言，`0 failures`；
+- CMS source 临时重编译与 tracked bundle 字节一致，SHA-256
+  `6b8bdf2537eb42bcea4b3d4d3d1776218e402283fdc725c0c05eebc99b3b760f`；
+- JS 语法、inline script、Brand 副本、Git whitespace 检查均通过。
+
+### AWS 与线上验收
+
+- 部署前生产为健康的 `8.10.3`；自动发布流程先创建逻辑库备份与 volume 归档，
+  再切换 `/opt/pwestudio/current` 到 `PWE-StudioSaaS-aws-9.0.0`。
+- 部署前备份：
+  `studiosaas_studiosaas_20260809T023658Z.dump`（约 470 KB）及
+  `pwestudio-volumes-20260809T023659Z.tar.gz`（约 61 MB）。
+- 当前容器：`studiosaas:9.0.0`；PostgreSQL 容器未重建，两个容器均 healthy。
+- 内部和公网 deep health：`appVersion=9.0.0`、`mode=saas`、`db=ok`、
+  `tenants=6`、`themes.unreadable=0`；公网 HTTP → HTTPS 301、TLS 校验 `0`、
+  HTTP/2。
+- `/`、中英文手册、Studio 门户、公开课表、CMS、Release Notes 和带
+  `?v=9.0.0` 的 CMS bundle 均返回最终 `200`。
+- 线上 CMS bundle SHA-256 与本地 tracked bundle 完全一致：
+  `6b8bdf2537eb42bcea4b3d4d3d1776218e402283fdc725c0c05eebc99b3b760f`。
+- 最近十分钟 app/db 日志只有正常启动、迁移已是最新、workspace 重建和健康/
+  验收请求，无新错误。
+- 最新逻辑备份完成安全恢复演练：26 个 migration；6 tenants、20 users、
+  57 students、8 registrations、29 media assets、4718 audit logs。
+- 回滚点保留为前一版本 `PWE-StudioSaaS-aws-8.10.3`；本次不需要回滚。
 
 ---
 

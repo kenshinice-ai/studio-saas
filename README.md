@@ -7,9 +7,9 @@ the current source tree was packaged or deployed.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | `codex/v9.0.0-brand-cms-release`; `VERSION` = **9.0.0** | Release candidate branch, which is ahead of `main`; final release commit is recorded after validation. |
-| Package | **9.0.0 pending** | Build both SaaS and Edition archives only after the full clean-tree release gate passes. |
-| Production | reports **8.10.3** | `https://pwestudio.online/v1/health?deep=1` reported `appVersion=8.10.3`, `mode=saas`, `db=ok` before this release; the response does not identify the deployed commit. |
+| Source | `codex/v9.0.0-brand-cms-release`; `VERSION` = **9.0.0** | The branch, which is ahead of `main`, includes the v9 code plus a later documentation-only release closure. |
+| Package | **9.0.0** SaaS + Edition archives | Both `BUILD_INFO` files identify commit `94d50b8`; SHA-256 is recorded in `docs/HANDOFF_LATEST.md`. |
+| Production | reports **9.0.0** | Deployed from the SaaS package at commit `94d50b8` on 2026-08-09; public deep health reports `mode=saas`, `db=ok`, six readable tenants and zero unreadable themes. The health response itself does not identify the deployed commit; the package `BUILD_INFO` and release symlink do. |
 
 Re-verify the production health endpoint before any later release claim; do not
 infer Production from `VERSION` or from an archive filename.
