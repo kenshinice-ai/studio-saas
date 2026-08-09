@@ -40,6 +40,12 @@ done
 echo "applying migrations..."
 STUDIOSAAS_DATABASE_URL="$MIGRATION_DATABASE_URL" python scripts/run_migrations.py
 
+# A new derivative is a schema-and-filesystem migration. Generate it before
+# the server can emit responsive srcset URLs; any undecodable or missing source
+# fails startup and therefore triggers the deployment controller's rollback.
+echo "backfilling safe media derivatives..."
+STUDIOSAAS_DATABASE_URL="$MIGRATION_DATABASE_URL" python scripts/backfill_media_variants.py
+
 if [ -n "${STUDIOSAAS_DB_RUNTIME_ROLE:-}" ]; then
   echo "configuring least-privilege runtime database role..."
   STUDIOSAAS_MIGRATION_DATABASE_URL="$MIGRATION_DATABASE_URL" \

@@ -533,8 +533,23 @@ function portfolioImgSrc(studentId, item) {
 /* S3: 列表网格用 360px 缩略图（v1 媒体路由 ?thumb=1），灯箱/打印仍用原图 */
 function portfolioThumbSrc(studentId, item) {
     const src = portfolioImgSrc(studentId, item);
-    if (src.includes('/v1/media/')) return src + (src.includes('?') ? '&' : '?') + 'thumb=1';
+    if (src.includes('/v1/media/')) return mediaVariantSrc(src, 'thumb');
     return src;
+}
+
+/** Add an explicit safe media derivative without discarding signed query data. */
+function mediaVariantSrc(src, variant) {
+    const url = new URL(src, window.location.origin);
+    url.searchParams.delete('thumb');
+    url.searchParams.set('variant', variant);
+    return `${url.pathname}${url.search}${url.hash}`;
+}
+
+/** Responsive candidates for canonical media; legacy imported files stay unchanged. */
+function portfolioSrcSet(studentId, item) {
+    const src = portfolioImgSrc(studentId, item);
+    if (!src.includes('/v1/media/')) return undefined;
+    return `${mediaVariantSrc(src, 'thumb')} 360w, ${mediaVariantSrc(src, 'medium')} 960w, ${mediaVariantSrc(src, 'display')} 2000w`;
 }
 
 /* ═══════════════════ PHOTO AVATAR ════════════════════════════ */
@@ -568,6 +583,8 @@ const ICON_PATHS = {
     upload: 'M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 7.5 7.5 12M12 7.5v12',
     palette: 'M4.098 19.902a3.75 3.75 0 005.304 0l6.401-6.402M6.75 21A3.75 3.75 0 013 17.25V4.125C3 3.504 3.504 3 4.125 3h5.25c.621 0 1.125.504 1.125 1.125v4.072M6.75 21a3.75 3.75 0 003.75-3.75V8.197M6.75 21h13.125c.621 0 1.125-.504 1.125-1.125v-5.25c0-.621-.504-1.125-1.125-1.125h-4.072M10.5 8.197l2.88-2.88c.438-.439 1.15-.439 1.59 0l3.712 3.713c.44.44.44 1.152 0 1.59l-2.879 2.88M6.75 17.25h.008v.008H6.75v-.008z',
     refresh: 'M16.023 9.348h4.992V4.356m-4.993 4.992l3.181-3.183a8.25 8.25 0 00-11.667 0L3.75 9.348m0 0V4.356m0 4.992h4.992m-4.993 5.304h4.993v4.992m-4.992-4.992l3.18 3.183a8.25 8.25 0 0011.668 0l3.182-3.183m0 0h-4.99m4.99 0v4.992',
+    chevronLeft: 'M15.75 19.5L8.25 12l7.5-7.5',
+    chevronRight: 'M8.25 4.5l7.5 7.5-7.5 7.5',
     download: 'M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5 12 4.5',
     warning: 'M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-2.98-1.5-3.846 0L2.697 16.126zM12 15.75h.008v.008H12v-.008z',
     check: 'M4.5 12.75l6 6 9-13.5',
@@ -1547,19 +1564,33 @@ function App() {
     const activityMap = useMemo(() => {
         const map = {};
         const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+        const idsByName = new Map();
+        db.students.forEach(student => {
+            const ids = idsByName.get(student.name) || [];
+            ids.push(student.id);
+            idsByName.set(student.name, ids);
+        });
         db.logs.forEach(l => {
             if (l.action !== '上课签到') return;
             const m = String(l.date).match(/^(\d{2})\/(\d{2})\/(\d{4})/);
             if (m) {
                 const d = new Date(`${m[3]}-${m[2]}-${m[1]}`);
-                if (!isNaN(d) && d.getTime() >= cutoff)
-                    map[l.studentName] = (map[l.studentName]||0) + 1;
+                if (!isNaN(d) && d.getTime() >= cutoff) {
+                    /* Current logs carry the immutable student id. Historical
+                       name-only logs are assigned only when that name resolves
+                       to exactly one student; sharing an activity score between
+                       two same-name students is worse than leaving the old event
+                       unassigned. */
+                    const legacyIds = idsByName.get(l.studentName) || [];
+                    const key = l.studentId || (legacyIds.length===1 ? legacyIds[0] : '');
+                    if (key) map[key] = (map[key]||0) + 1;
+                }
             }
         });
         return map;
-    }, [db.logs]);
+    }, [db.logs, db.students]);
     const getTag = (s) => {
-        const cnt = activityMap[s.name] || 0;
+        const cnt = activityMap[s.id] || 0;
         if (cnt >= 4) return {icon:'bolt',    label:'活跃',     cls:'bg-red-100 text-red-700'};
         if (cnt >= 1) return {icon:'clock',   label:'低频',     cls:'bg-gray-100 text-gray-500'};
         if ((parseInt(s.balance,10)||0) > 0 && daysSince(s.lastActive) > inactiveDays)
@@ -1598,9 +1629,16 @@ function App() {
             if (filterBy === 'low')    list = list.filter(s => !s.archived && (parseInt(s.balance,10)||0)>0 && (parseInt(s.balance,10)||0)<=renewTh);   /* F5 */
             if (filterBy === 'zero')   list = list.filter(s => !s.archived && (parseInt(s.balance,10)||0)===0);
             // F1: activity tag filters
-            if (filterBy === 'tag-hot')  list = list.filter(s => !s.archived && (activityMap[s.name]||0) >= 4);
-            if (filterBy === 'tag-low')  list = list.filter(s => !s.archived && (activityMap[s.name]||0) >= 1 && (activityMap[s.name]||0) < 4);
-            if (filterBy === 'tag-risk') list = list.filter(s => !s.archived && (parseInt(s.balance,10)||0) > 0 && daysSince(s.lastActive) > inactiveDays && (activityMap[s.name]||0) === 0);
+            if (filterBy === 'tag-hot')  list = list.filter(s => !s.archived && (activityMap[s.id]||0) >= 4);
+            if (filterBy === 'tag-low')  list = list.filter(s => !s.archived && (activityMap[s.id]||0) >= 1 && (activityMap[s.id]||0) < 4);
+            if (filterBy === 'tag-risk') list = list.filter(s => !s.archived && (parseInt(s.balance,10)||0) > 0 && daysSince(s.lastActive) > inactiveDays && (activityMap[s.id]||0) === 0);
+            if (filterBy === 'portal-ready') list = list.filter(s => !s.archived && !!s.mobile && !!s.hasAccessCode);
+            if (filterBy === 'portal-missing-mobile') list = list.filter(s => !s.archived && !s.mobile);
+            if (filterBy === 'portal-disabled') list = list.filter(s => !s.archived && !!s.mobile && !s.hasAccessCode);
+            if (filterBy === 'portal-content-blocked') list = list.filter(s => !s.archived && (s.portfolio||[]).length>0 && (!s.mobile || !s.hasAccessCode));
+            if (filterBy === 'publication-live') list = list.filter(s => !s.archived && (s.portfolio||[]).some(item=>item.public || item.visibility==='shared'));
+            if (filterBy === 'publication-ready') list = list.filter(s => !s.archived && s.publicationConsent?.status==='confirmed');
+            if (filterBy === 'publication-missing-consent') list = list.filter(s => !s.archived && (s.portfolio||[]).length>0 && s.publicationConsent?.status!=='confirmed');
         }
         if (srch) {
             const q = srch.toLowerCase();
@@ -2422,6 +2460,26 @@ function App() {
         } catch (error) {
             showToast(`默认时间保存失败：${error.message}`, 'error');
         } finally { setOperationalSettingsBusy(false); }
+    };
+
+    /** Copy a date-bound roster summary without exposing it to a remote service. */
+    const copyRosterDaily = () => {
+        const lines = dayIds.map(id=>{
+            const student=db.students.find(item=>item.id===id);
+            return student&&!student.archived?`${student.name}（剩余${student.balance}课时）`:null;
+        }).filter(Boolean);
+        copyText(`【今日上课 ${lines.length} 人 - ${fmtDate(rDate)}】\n${lines.join('\n')}`,'日报已复制到剪贴板');
+    };
+
+    /** Copy one message per reachable student, preserving the selected roster date and slot. */
+    const copyRosterReminders = () => {
+        const lines=dayIds.map(id=>{
+            const student=db.students.find(item=>item.id===id);
+            if(!student||student.archived||!student.mobile)return null;
+            const slot=rosterSlotFor(rDate,id);
+            return `${student.name}（${student.mobile}）\n提醒：您的上课时间是 ${fmtDate(rDate)}${slot?` ${slot}`:''}，请准时到课。${tenantDisplayName} 期待见到您！`;
+        }).filter(Boolean);
+        copyText(lines.join('\n\n'),`已复制 ${lines.length} 条提醒内容`);
     };
 
     const batchCheckIn = () => {
@@ -3506,6 +3564,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         {/* #8 fix: onError shows fallback text instead of broken-image icon */}
                         <img
                             src={portfolioImgSrc(selS?.id, portLB.items[portLB.idx])}
+                            srcSet={portfolioSrcSet(selS?.id, portLB.items[portLB.idx])}
+                            sizes="100vw"
                             alt={portLB.items[portLB.idx]?.title || `${selS?.name || '学员'}的作品 ${portLB.idx + 1}`}
                             className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
                             onClick={e=>e.stopPropagation()}
@@ -4197,6 +4257,35 @@ document.getElementById('copybtn').addEventListener('click', function(){
     </div>
     </div>
 
+    {/* v9.1: readiness is operational only when every number opens the exact
+        students that need work. The same filter values are available in the
+        student list, so this is not a decorative dashboard dead-end. */}
+    {TENANT_SLUG && (()=>{
+        const students = db.students.filter(student=>!student.archived);
+        const metrics = [
+            ['专区已就绪', students.filter(s=>s.mobile&&s.hasAccessCode).length, 'portal-ready', 'lock'],
+            ['缺少手机号', students.filter(s=>!s.mobile).length, 'portal-missing-mobile', 'phone'],
+            ['专区未启用', students.filter(s=>s.mobile&&!s.hasAccessCode).length, 'portal-disabled', 'warning'],
+            ['私人内容受阻', students.filter(s=>(s.portfolio||[]).length>0&&(!s.mobile||!s.hasAccessCode)).length, 'portal-content-blocked', 'image'],
+            ['作品已公开', students.filter(s=>(s.portfolio||[]).some(item=>item.public||item.visibility==='shared')).length, 'publication-live', 'image'],
+            ['公开授权有效', students.filter(s=>s.publicationConsent?.status==='confirmed').length, 'publication-ready', 'shield'],
+            ['有作品但缺授权', students.filter(s=>(s.portfolio||[]).length>0&&s.publicationConsent?.status!=='confirmed').length, 'publication-missing-consent', 'warning'],
+        ];
+        return <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+            <div className="flex items-start justify-between gap-3 mb-3">
+                <div><p className="font-bold text-sm text-gray-800">学员专区与作品发布</p><p className="text-xs text-gray-400 mt-0.5">点击数字直接处理对应学员</p></div>
+                <Icon name="shield" className="w-5 h-5 text-indigo-500"/>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-2">
+                {metrics.map(([label,value,filter,icon])=><button key={filter} type="button" onClick={()=>{setFilterBy(filter);setTab('students');}}
+                    className="min-h-[68px] rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-left active:border-indigo-300 active:bg-indigo-50">
+                    <span className="flex items-center gap-1.5 text-xs text-gray-500"><Icon name={icon} className="w-3.5 h-3.5"/>{label}</span>
+                    <span className="mt-1 block text-xl font-bold text-gray-900 tabular-nums">{value}</span>
+                </button>)}
+            </div>
+        </div>;
+    })()}
+
     {/* A3: 经营真账（估算）— 现金 vs 已赚 vs 预收负债（v5.3） */}
     {TENANT_SLUG && bizStats && (
         <details className="bg-white rounded-2xl shadow-sm border border-emerald-100">
@@ -4224,7 +4313,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
     {(()=>{
         const todoClear   = db.students.filter(s => !s.archived && (parseInt(s.balance,10)||0) === 0 && s.lastActive);
         const todoLast    = db.students.filter(s => !s.archived && (parseInt(s.balance,10)||0) === 1);
-        const todoRisk    = db.students.filter(s => !s.archived && (parseInt(s.balance,10)||0) > 0 && daysSince(s.lastActive) > inactiveDays && (activityMap[s.name]||0) === 0);
+        const todoRisk    = db.students.filter(s => !s.archived && (parseInt(s.balance,10)||0) > 0 && daysSince(s.lastActive) > inactiveDays && (activityMap[s.id]||0) === 0);
         const now = new Date(); now.setHours(0,0,0,0); // normalise to midnight so today's birthdays are included
         const weekEnd = new Date(now); weekEnd.setDate(weekEnd.getDate()+7);
         const todoBdayWeek  = db.students.filter(s => { if(!s.birthday||s.archived) return false; const bd=new Date(now.getFullYear(),parseInt(s.birthday.slice(5,7),10)-1,parseInt(s.birthday.slice(8,10),10)); return bd>=now&&bd<=weekEnd; });
@@ -4408,11 +4497,12 @@ document.getElementById('copybtn').addEventListener('click', function(){
     </div>}
     {/* G1: 生日提醒横幅 */}
     {upcomingBirthdays.length>0 && (
-        <div className="bg-gradient-to-r from-pink-50 to-rose-50 border border-pink-200 rounded-2xl p-4">
-            <div className="flex items-center justify-between gap-2 flex-wrap mb-2">
-                <p className="inline-flex items-center gap-1.5 text-sm font-bold text-rose-700"><Icon name="cake" className="w-4 h-4"/>近 14 天生日（{upcomingBirthdays.length} 人）</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
+        <details className="bg-pink-50 border border-pink-200 rounded-2xl overflow-hidden group">
+            <summary className="list-none cursor-pointer min-h-[44px] px-4 py-2 flex items-center justify-between gap-3 text-sm font-bold text-rose-700">
+                <span className="inline-flex items-center gap-1.5"><Icon name="cake" className="w-4 h-4"/>近 14 天生日（{upcomingBirthdays.length} 人）</span>
+                <span className="group-open:rotate-180 transition-transform" aria-hidden="true">⌄</span>
+            </summary>
+            <div className="flex flex-wrap gap-2 px-4 pb-4 border-t border-pink-200 pt-3">
                 {upcomingBirthdays.map(({s,in:days,md,age})=>(
                     <button key={s.id} onClick={()=>{
                         const msg = renderMessage('birthday',
@@ -4425,11 +4515,19 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     </button>
                 ))}
             </div>
-        </div>
+        </details>
     )}
     {/* A1: 每周课表 — 固定班次自动生成每日排课 */}
     {TENANT_SLUG && (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
+    <details className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden group">
+        <summary className="list-none cursor-pointer min-h-[52px] px-4 py-3 flex items-center justify-between gap-3">
+            <span className="inline-flex items-center gap-2 min-w-0">
+                <Icon name="calendar" className="w-4 h-4 text-gray-500"/>
+                <span><span className="block text-sm font-bold text-gray-800">固定课表</span><span className="block text-xs font-normal text-gray-400">{schedules.length ? `${schedules.length} 个每周班次` : '创建每周自动排课班次'}</span></span>
+            </span>
+            <span className="text-indigo-600 group-open:rotate-180 transition-transform" aria-hidden="true">⌄</span>
+        </summary>
+        <div className="p-4 space-y-3 border-t border-gray-100">
         <div className="flex justify-between items-center gap-2 flex-wrap">
             <p className="inline-flex items-center gap-1.5 font-bold text-sm text-gray-800"><Icon name="calendar" className="w-4 h-4"/>每周课表 <span className="text-xs font-normal text-gray-400">固定班次按周几自动排入当日名单</span></p>
             <div className="flex items-center gap-2 flex-wrap">
@@ -4630,10 +4728,11 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 </div>
             </div>
         )}
-    </div>
+        </div>
+    </details>
     )}
 
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+    <div className="cms-roster-planner bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
         {/* items-start, not items-end. The two columns end at different
             heights — the left one trails a helper line, the right one a 44px
             checkbox — so bottom-alignment pushed the right column's label and
@@ -4644,15 +4743,16 @@ document.getElementById('copybtn').addEventListener('click', function(){
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(250px,38.2fr)_minmax(0,61.8fr)] gap-3 items-start">
             <div className="w-full">
                 <label className="text-xs font-bold text-gray-500 mb-1 block">课程日期</label>
-                <div className="flex gap-1.5 items-center">
+                <div className="cms-roster-date-nav">
                     <button type="button" onClick={()=>setRDate(shiftDate(rDate,-1))}
-                        className="px-2.5 py-3 min-h-[50px] bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-600 active:bg-gray-50">◀</button>
-                    <input type="date" value={rDate} onChange={e=>setRDate(e.target.value)}
-                        className="flex-1 px-2 py-3 min-h-[50px] border border-gray-300 rounded-xl font-bold text-indigo-900 focus:ring-2 focus:ring-indigo-500 outline-none min-w-0"/>
+                        aria-label="前一天" className="cms-roster-date-button"><Icon name="chevronLeft" className="w-4 h-4"/></button>
+                    <button type="button" onClick={()=>setRDate(todayISO())}
+                        aria-current={rDate===todayISO()?'date':undefined} className="cms-roster-today">今天</button>
                     <button type="button" onClick={()=>setRDate(shiftDate(rDate,1))}
-                        className="px-2.5 py-3 min-h-[50px] bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-600 active:bg-gray-50">▶</button>
-                    {rDate!==todayISO() && <button type="button" onClick={()=>setRDate(todayISO())}
-                        className="px-2.5 py-3 min-h-[50px] bg-indigo-50 border border-indigo-200 rounded-xl text-xs font-bold text-indigo-700 active:bg-indigo-100 flex-shrink-0">今天</button>}
+                        aria-label="后一天" className="cms-roster-date-button"><Icon name="chevronRight" className="w-4 h-4"/></button>
+                    <input type="date" value={rDate} onChange={e=>setRDate(e.target.value)}
+                        aria-label="选择课程日期"
+                        className="w-full px-3 py-3 min-h-[50px] border border-gray-300 rounded-xl font-bold text-gray-900 focus:ring-2 focus:ring-indigo-500 outline-none"/>
                 </div>
                 <p className="text-xs text-gray-400 mt-1">{fmtDate(rDate)} {WEEKDAYS[new Date(`${rDate}T12:00:00`).getDay()]}</p>
             </div>
@@ -4704,7 +4804,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
     </div>
 
     {/* B1: 迷你周视图 — 本周七天一键切换，含每日应到人数 */}
-    <div className="grid grid-cols-7 gap-1.5">
+    <div className="cms-roster-week" role="group" aria-label="本周课程日期">
         {(() => {
             const anchor = new Date(`${rDate}T12:00:00`);
             const monday = new Date(anchor); monday.setDate(anchor.getDate() - ((anchor.getDay() + 6) % 7));
@@ -4717,10 +4817,12 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 const isSel = iso === rDate, isToday = iso === todayISO();
                 return (
                     <button key={iso} type="button" onClick={()=>setRDate(iso)}
-                        className={`py-2 rounded-xl border text-center ${isSel?'border-indigo-500 bg-indigo-600 text-white':'border-gray-200 bg-white text-gray-600 active:border-indigo-300'}`}>
+                        aria-current={isSel?'date':undefined}
+                        aria-label={`${WEEKDAYS[d.getDay()]} ${fmtDate(iso)}，${n} 人`}
+                        className={`cms-roster-week-day ${isSel?'is-selected':''} ${isToday?'is-today':''}`}>
                         <p className="text-[10px] opacity-70">{WEEKDAYS[d.getDay()]}{isToday?'·今':''}</p>
                         <p className="text-sm font-bold">{d.getDate()}</p>
-                        <p className={`text-[10px] font-bold ${isSel?'text-indigo-100':(n>0?'text-indigo-500':'text-gray-300')}`}>{n>0?`${n}人`:'—'}</p>
+                        <p className="text-[10px] font-bold opacity-80">{n>0?`${n}人`:'—'}</p>
                     </button>
                 );
             });
@@ -4734,14 +4836,11 @@ document.getElementById('copybtn').addEventListener('click', function(){
         const low = valid.filter(id=>{const s=db.students.find(x=>x.id===id);return s&&(parseInt(s.balance,10)||0)<=renewTh;}).length;
         if (!valid.length) return null;
         return (
-            <div className="flex gap-2 flex-wrap">
-                {[['应到', valid.length, 'bg-white border-gray-200 text-gray-700'],
-                  ['已签', done, 'bg-green-50 border-green-200 text-green-700'],
-                  ['未签', valid.length-done, 'bg-indigo-50 border-indigo-200 text-indigo-700'],
-                  ['低余额', low, low>0?'bg-amber-50 border-amber-300 text-amber-700':'bg-white border-gray-200 text-gray-400'],
-                ].map(([l,v,cls]) => (
-                    <span key={l} className={`px-3 py-1.5 rounded-xl border text-xs font-bold ${cls}`}>{l} {v}</span>
-                ))}
+            <div className="cms-roster-summary" aria-live="polite">
+                <strong>{rDate===todayISO()?'今日':fmtDate(rDate)} · {valid.length} 人</strong>
+                <span className="is-success">已签到 {done}</span>
+                <span>待上课 {valid.length-done}</span>
+                {low>0 && <span className="is-warning"><Icon name="warning" className="inline-block w-3.5 h-3.5 mr-1"/>低余额 {low}</span>}
             </div>
         );
     })()}
@@ -4761,7 +4860,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
             a==='__unset' ? 1 : b==='__unset' ? -1 : a.localeCompare(b));
         const nameOf = id => db.students.find(x=>x.id===id)?.name || '';
         return (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 mb-3">
+            <div className="cms-roster-slot-panel">
                 <p className="font-bold text-sm text-gray-800 mb-2 flex items-center gap-2">
                     <Icon name="clock" className="w-4 h-4"/>时段安排
                 </p>
@@ -4770,7 +4869,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     const soloIds = arr.filter(id=>!!rosterMetaFor(rDate,id).oneToOne);
                     const clash = soloIds.length>0 && arr.length>1;
                     return (
-                        <div key={t} className={`rounded-xl px-3 py-2 border ${clash?'bg-red-50 border-red-200':'bg-gray-50 border-gray-100'}`}>
+                        <div key={t} className={`cms-roster-slot-row ${clash?'has-conflict':''}`}>
                             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
                                 <span className="font-bold text-gray-800 min-w-[56px]">{t==='__unset'?'时间未设置':t}</span>
                                 <span className="px-2 py-0.5 rounded-full bg-white border border-gray-200 font-bold">{arr.length} 人</span>
@@ -4791,10 +4890,19 @@ document.getElementById('copybtn').addEventListener('click', function(){
         );
     })()}
 
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
         <div className="bg-gray-50 border-b px-4 py-3 flex justify-between items-center gap-2 flex-wrap">
             <p className="font-bold text-sm text-gray-800">{fmtDate(rDate)} · {dayIds.filter(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived;}).length} 人{scheduledForDate.length>0 && <span className="text-xs font-normal text-indigo-500 ml-1">（课表 {scheduledForDate.length} 班）</span>}</p>
-            <div className="flex gap-2">
+            {dayIds.length>0 && <details className="cms-day-actions-mobile">
+                <summary><Icon name="ellipsis" className="w-4 h-4"/>当日操作</summary>
+                <div className="cms-roster-menu">
+                    {canExportData && <button onClick={()=>openIcsPreview('roster')} disabled={icsBusy}><Icon name="calendar" className="w-4 h-4"/>导出当日 ICS</button>}
+                    <button onClick={copyRosterDaily}><Icon name="clipboard" className="w-4 h-4"/>复制日报</button>
+                    {dayIds.some(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived&&s.mobile;}) && <button onClick={copyRosterReminders}><Icon name="chat" className="w-4 h-4"/>批量提醒</button>}
+                    {dayIds.some(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived&&s.balance>0;}) && <button onClick={batchCheckIn} disabled={busy}><Icon name="check" className="w-4 h-4"/>批量签到并扣课时</button>}
+                </div>
+            </details>}
+            <div className="cms-day-actions-desktop flex gap-2 flex-wrap">
                 {dayIds.length>0 && canExportData && (
                     <button onClick={()=>openIcsPreview('roster')} disabled={icsBusy}
                         className="border border-gray-200 bg-white text-gray-700 px-3 py-2 rounded-xl text-xs font-bold min-h-[44px] inline-flex items-center gap-1.5 disabled:opacity-50">
@@ -4802,26 +4910,14 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     </button>
                 )}
                 {dayIds.length>0 && (
-                    <button onClick={()=>{
-                        const ids = dayIds;
-                        const lines = ids.map(id=>{const s=db.students.find(x=>x.id===id); return s&&!s.archived?`${s.name}（剩余${s.balance}课时）`:null;}).filter(Boolean);
-                        const text = `【今日上课 ${lines.length} 人 - ${fmtDate(rDate)}】\n${lines.join('\n')}`;
-                        copyText(text,'日报已复制到剪贴板');
-                    }} className="bg-white border border-gray-300 active:bg-gray-50 text-gray-600 px-3 py-1.5 rounded-xl text-xs font-bold min-h-[44px]"><span className="inline-flex items-center gap-1.5"><Icon name="clipboard" className="w-4 h-4"/>日报</span></button>
+                    <button onClick={copyRosterDaily} className="bg-white border border-gray-300 active:bg-gray-50 text-gray-600 px-3 py-1.5 rounded-xl text-xs font-bold min-h-[44px]"><span className="inline-flex items-center gap-1.5"><Icon name="clipboard" className="w-4 h-4"/>日报</span></button>
                 )}
                 {dayIds.some(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived&&s.mobile;}) && (
-                    <button onClick={()=>{
-                        const ids=dayIds;
-                        const lines=ids.map(id=>{const s=db.students.find(x=>x.id===id);if(!s||s.archived||!s.mobile)return null;
-                            const slot=rosterSlotFor(rDate,id);
-                            return `${s.name}（${s.mobile}）\n提醒：您的上课时间是 ${fmtDate(rDate)}${slot?` ${slot}`:''}，请准时到课。${tenantDisplayName} 期待见到您！`;
-                        }).filter(Boolean);
-                        copyText(lines.join('\n\n'),`已复制 ${lines.length} 条提醒内容`);
-                    }} className="bg-white border border-green-300 active:bg-green-50 text-green-700 px-3 py-1.5 rounded-xl text-xs font-bold min-h-[44px]"><span className="inline-flex items-center gap-1.5"><Icon name="chat" className="w-4 h-4"/>批量提醒</span></button>
+                    <button onClick={copyRosterReminders} className="bg-white border border-green-300 active:bg-green-50 text-green-700 px-3 py-1.5 rounded-xl text-xs font-bold min-h-[44px]"><span className="inline-flex items-center gap-1.5"><Icon name="chat" className="w-4 h-4"/>批量提醒</span></button>
                 )}
                 {dayIds.some(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived&&s.balance>0;}) && (
                     <button onClick={batchCheckIn} disabled={busy}
-                        className="inline-flex items-center gap-1.5 bg-indigo-600 active:bg-indigo-700 text-white px-4 py-1.5 rounded-xl text-xs font-bold min-h-[44px]"><Icon name="bolt" className="w-4 h-4"/>批量签到/消课</button>
+                        className="inline-flex items-center gap-1.5 bg-indigo-600 active:bg-indigo-700 text-white px-4 py-1.5 rounded-xl text-xs font-bold min-h-[44px]"><Icon name="bolt" className="w-4 h-4"/>批量签到并扣课时</button>
                 )}
             </div>
         </div>
@@ -4833,34 +4929,43 @@ document.getElementById('copybtn').addEventListener('click', function(){
             {dayIds.map(sid => {
                 const s = db.students.find(x=>x.id===sid);
                 if (!s || s.archived) return null;
-                const lowBal = (parseInt(s.balance,10)||0) <= renewTh;   /* A5: 课前低余额预警（v4.5） */
+                const entry = rosterMetaFor(rDate,sid);
+                const isDone = rosterDone.has(s.id);
+                const lowBal = (parseInt(s.balance,10)||0) <= renewTh && !isDone;   /* A5: 课前低余额预警（v4.5） */
+                const slot = rosterSlotFor(rDate,sid);
+                const rosterStatus = isDone ? '已签到' : entry.status==='makeup' ? '补课' : '待上课';
                 return (
-                    <div key={sid} className={`px-4 py-3 flex flex-wrap md:flex-nowrap items-center hover-row gap-3 min-h-[64px] ${lowBal?'bg-amber-50':''}`}>
-                        <PhotoAvatar photo={s.photo} name={s.name} size="sm"/>
-                        <div className="flex-1 min-w-0">
-                            <p className="font-bold text-gray-900 truncate">{s.name}
-                                {rosterMetaFor(rDate,sid).oneToOne && <span className="ml-1.5 text-[11px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-full px-2 py-0.5">1 对 1</span>}
-                            </p>
-                            <p className="text-xs text-gray-400">{s.mobile||'未填写手机'}
-                                {lowBal && <span className="inline-flex items-center gap-1.5 ml-1 text-amber-600 font-bold"><Icon name="bolt" className="w-4 h-4"/>余额告急</span>}</p>
+                    <div key={sid} className={`cms-roster-row hover-row ${lowBal?'is-low':''}`}>
+                        <div className="cms-roster-info">
+                            <PhotoAvatar photo={s.photo} name={s.name} size="sm"/>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                                    <p className="font-bold text-gray-900 truncate">{s.name}</p>
+                                    {entry.oneToOne && <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-full px-2 py-0.5">1 对 1</span>}
+                                    <span className={`text-[11px] font-bold rounded-full px-2 py-0.5 border ${isDone?'bg-green-50 border-green-200 text-green-700':entry.status==='makeup'?'bg-blue-50 border-blue-200 text-blue-700':'bg-gray-50 border-gray-200 text-gray-600'}`}>{rosterStatus}</span>
+                                </div>
+                                <p className="text-xs text-gray-400 truncate">{[s.mobile||'未填写手机', slot, entry.note].filter(Boolean).join(' · ')}</p>
+                            </div>
+                            <BalBadge n={s.balance}/>
                         </div>
                         {/* Correcting the slot in place: re-adding the student would
                             reset their source and status. Only in tenant mode —
                             the legacy JSON store has no entry id to patch. */}
-                        {TENANT_SLUG && rosterMetaFor(rDate,sid).id && (
-                            <input type="time" defaultValue={rosterMetaFor(rDate,sid).classTime||''}
+                        <div className={`cms-roster-actions ${lowBal?'has-reminder':''}`}>
+                        {TENANT_SLUG && entry.id && (
+                            <input type="time" defaultValue={entry.classTime||''}
                                 aria-label={`${s.name} 的上课时间`}
                                 onChange={e=>{
-                                    const entryId = rosterMetaFor(rDate,sid).id;
+                                    const entryId = entry.id;
                                     updateRosterEntry(entryId, {classTime: e.target.value || ''})
                                         .then(()=>showToast(e.target.value?`${s.name} 上课时间改为 ${e.target.value}`:`${s.name} 已清除上课时间`))
                                         .catch(err=>showToast(err.message||'时间未能保存', 'error'));
                                 }}
-                                className="px-2 py-2 border border-gray-300 rounded-xl bg-white text-xs font-bold min-h-[44px] w-[104px] flex-shrink-0 outline-none focus:ring-2 focus:ring-indigo-500"/>
+                                className="cms-roster-time px-2 py-2 border border-gray-300 rounded-xl bg-white text-xs font-bold min-h-[44px] outline-none focus:ring-2 focus:ring-indigo-500"/>
                         )}
-                        {TENANT_SLUG && !rosterMetaFor(rDate,sid).id && (
-                            <span className="px-3 py-2 border border-indigo-100 rounded-xl bg-indigo-50 text-xs font-bold text-indigo-700 min-h-[44px] inline-flex items-center flex-shrink-0">
-                                {rosterSlotFor(rDate,sid) || '未设时间'}
+                        {TENANT_SLUG && !entry.id && (
+                            <span className="cms-roster-time px-3 py-2 border border-gray-200 rounded-xl bg-gray-50 text-xs font-bold text-gray-700 min-h-[44px] inline-flex items-center">
+                                {slot || '未设时间'}
                             </span>
                         )}
                         {lowBal && (
@@ -4869,25 +4974,23 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                     '{student} 家长您好！温馨提醒：您在 {studio} 的剩余课时为 {balance} 节{note}，为不影响后续上课安排，欢迎随时联系老师续课。',
                                     {student:s.name, balance:s.balance, note:(parseInt(s.balance,10)||0)===0?'（已用完）':''});
                                 copyText(msg, `已复制给 ${s.name} 的催费提醒`);
-                            }} className="px-3 py-2.5 bg-amber-100 active:bg-amber-200 text-amber-700 border border-amber-300 rounded-xl text-xs font-bold min-h-[44px] flex-shrink-0"><span className="inline-flex items-center gap-1.5"><Icon name="chat" className="w-4 h-4"/>催费</span></button>
+                            }} className="cms-roster-reminder"><Icon name="chat" className="w-4 h-4"/>续费提醒</button>
                         )}
-                        {rosterDone.has(s.id) && <span className="text-[11px] font-bold text-green-600 bg-green-50 border border-green-200 rounded-full px-2 py-0.5 flex-shrink-0">✓ 已签</span>}
-                        <BalBadge n={s.balance}/>
-                        <div className="flex gap-1.5 flex-shrink-0 max-md:w-full max-md:justify-end max-md:overflow-x-auto">
-                            {s.mobile && (
-                                <a href={`sms:${s.mobile.replace(/\s/g,'')}?body=${encodeURIComponent(`提醒：您的上课时间是 ${fmtDate(rDate)}${rosterSlotFor(rDate,s.id)?` ${rosterSlotFor(rDate,s.id)}`:''}，请准时到课。${tenantDisplayName} 期待见到您！`)}`}
-                                    aria-label="发消息" className="px-3 py-2.5 bg-green-50 active:bg-green-100 text-green-700 border border-green-200 rounded-xl text-xs font-bold min-h-[44px] flex items-center"><Icon name="chat" className="w-4 h-4"/></a>
-                            )}
-                            {(db.rosters[rDate]||[]).includes(s.id)
-                                ? <button onClick={()=>removeFromRoster(s.id)} disabled={busy}
-                                    className="px-3 py-2.5 bg-gray-100 active:bg-gray-200 text-gray-600 rounded-xl text-xs font-bold min-h-[44px] min-w-[44px]">移出</button>
-                                : <span className="px-3 py-2.5 text-indigo-500 bg-indigo-50 border border-indigo-100 rounded-xl text-xs font-bold min-h-[44px] flex items-center flex-shrink-0" title="来自每周课表"><Icon name="calendar" className="w-4 h-4"/></span>}
-                            <button onClick={()=>undoCheckIn(s.id,s.name)} disabled={busy}
-                                className="hidden md:block px-3 py-2.5 bg-amber-50 active:bg-amber-100 text-amber-700 border border-amber-200 rounded-xl text-xs font-bold min-h-[44px]">↩</button>
-                            {rosterDone.has(s.id)
-                                ? <button disabled className="px-4 py-2.5 rounded-xl text-sm font-bold text-green-700 bg-green-50 border border-green-200 min-h-[44px] cursor-default">✓</button>
-                                : <button onClick={()=>checkIn(s.id,s.name)} disabled={busy||s.balance<=0}
-                                    aria-label="签到" className={`px-4 py-2.5 rounded-xl text-sm font-bold text-white min-h-[44px] flex items-center justify-center ${s.balance>0?'bg-green-600 active:bg-green-700':'bg-gray-300 cursor-not-allowed'}`}><Icon name="check" className="w-4 h-4"/></button>}
+                        {isDone
+                            ? <button disabled className="cms-roster-primary is-done"><Icon name="check" className="w-4 h-4"/>已签到</button>
+                            : <button onClick={()=>checkIn(s.id,s.name)} disabled={busy||s.balance<=0}
+                                aria-label={`为 ${s.name} 签到并扣 1 课时`} className="cms-roster-primary"><Icon name="check" className="w-4 h-4"/>{s.balance>0?'签到并扣 1 课时':'余额不足'}</button>}
+                        <details className="cms-roster-more">
+                            <summary aria-label={`${s.name} 更多操作`}><Icon name="ellipsis" className="w-5 h-5"/></summary>
+                            <div className="cms-roster-menu">
+                                {s.mobile && <a href={`sms:${s.mobile.replace(/\s/g,'')}?body=${encodeURIComponent(`提醒：您的上课时间是 ${fmtDate(rDate)}${slot?` ${slot}`:''}，请准时到课。${tenantDisplayName} 期待见到您！`)}`}><Icon name="chat" className="w-4 h-4"/>发短信提醒</a>}
+                                {entry.id && <button onClick={e=>{updateRosterEntry(entry.id,{oneToOne:!entry.oneToOne}).then(()=>showToast(entry.oneToOne?'已改为普通班课':'已标记为 1 对 1')).catch(err=>showToast(err.message||'排课类型未能保存','error'));e.currentTarget.closest('details')?.removeAttribute('open');}} disabled={busy}><Icon name="users" className="w-4 h-4"/>{entry.oneToOne?'改为普通班课':'标记为 1 对 1'}</button>}
+                                {isDone && <button onClick={e=>{undoCheckIn(s.id,s.name);e.currentTarget.closest('details')?.removeAttribute('open');}} disabled={busy}><Icon name="refresh" className="w-4 h-4"/>撤销本日签到</button>}
+                                {entry.id
+                                    ? <button onClick={e=>{removeFromRoster(s.id);e.currentTarget.closest('details')?.removeAttribute('open');}} disabled={busy} className="is-danger"><Icon name="trash" className="w-4 h-4"/>移出本日排课</button>
+                                    : <p className="px-2 py-2 text-xs text-gray-400 inline-flex items-center gap-2"><Icon name="calendar" className="w-4 h-4"/>来自固定课表</p>}
+                            </div>
+                        </details>
                         </div>
                     </div>
                 );
@@ -4931,7 +5034,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 <option value="bal-asc">课时 低→高</option>
                 <option value="date-desc">最近活跃</option>
             </select>
-            {[['all','全部'],['active','有余额'],['low',`低余额≤${renewTh}`],['zero','已清零'],['archived','归档库'],['tag-hot','活跃'],['tag-low','低频'],['tag-risk','流失风险']].map(([v,l]) => (
+            {[['all','全部'],['active','有余额'],['low',`低余额≤${renewTh}`],['zero','已清零'],['archived','归档库'],['tag-hot','活跃'],['tag-low','低频'],['tag-risk','流失风险'],['portal-ready','专区已就绪'],['portal-missing-mobile','缺手机号'],['portal-disabled','专区未启用'],['portal-content-blocked','私人内容受阻'],['publication-live','作品已公开'],['publication-ready','公开授权有效'],['publication-missing-consent','缺公开授权']].map(([v,l]) => (
                 <button key={v} onClick={()=>setFilterBy(v)}
                     className={`px-4 py-2 rounded-xl text-xs font-bold border min-h-[44px] transition flex-shrink-0 ${filterBy===v?'bg-indigo-600 text-white border-indigo-600':'bg-white text-gray-600 border-gray-300 active:border-indigo-300'}`}>{l}{filterBy===v?` · ${sortedFiltered.length}`:''}</button>
             ))}
@@ -6006,6 +6109,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                                     <div className="img-skel absolute inset-0" id={`sk-${item.id}`}/>
                                                     <img
                                                         src={portfolioThumbSrc(selS.id, item)}
+                                                        srcSet={portfolioSrcSet(selS.id, item)}
+                                                        sizes="(max-width: 640px) 33vw, 220px"
                                                         alt={item.title || `${selS.name}的作品 ${idx + 1}`}
                                                         loading="lazy"
                                                         className="w-full h-full object-cover relative"

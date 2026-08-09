@@ -29,3 +29,4 @@ fi
   --outfile="$OUT"
 
 echo "built $(wc -l < "$OUT" | tr -d ' ') lines -> ${OUT#$ROOT/}"
+python3 "$ROOT/backend/scripts/build_asset_manifest.py"

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate privacy-safe display and thumbnail variants for existing media.
+"""Generate privacy-safe display, medium and thumbnail variants for existing media.
 
 The script never modifies original files. It reports every asset that cannot be
 decoded and exits non-zero when any requested derivative is missing, so a
@@ -47,6 +47,7 @@ def run(*, dry_run: bool = False, tenant_id: str = "", check: bool = False) -> i
             f"""
             SELECT m.id, m.tenant_id, m.storage_key, m.mime_type,
                    max(CASE WHEN v.variant = 'display' THEN v.storage_key END) AS display_key,
+                   max(CASE WHEN v.variant = 'medium' THEN v.storage_key END) AS medium_key,
                    max(CASE WHEN v.variant = 'thumb' THEN v.storage_key END) AS thumb_key
             FROM media_assets m
             LEFT JOIN media_variants v
@@ -70,7 +71,11 @@ def run(*, dry_run: bool = False, tenant_id: str = "", check: bool = False) -> i
             # "Generated variants: 0".
             missing: list[str] = []
             stale_rows: list[str] = []
-            for variant, key in (("display", row["display_key"]), ("thumb", row["thumb_key"])):
+            for variant, key in (
+                ("display", row["display_key"]),
+                ("medium", row["medium_key"]),
+                ("thumb", row["thumb_key"]),
+            ):
                 if not key:
                     missing.append(variant)
                     continue

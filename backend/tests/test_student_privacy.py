@@ -12,6 +12,7 @@ from studiosaas.auth import hash_password
 from studiosaas.services import student_access
 from studiosaas.services.media import (
     DISPLAY_MAX,
+    MEDIUM_MAX,
     THUMB_MAX,
     MediaUploadError,
     _build_safe_variants,
@@ -76,7 +77,11 @@ def test_media_derivatives_are_bounded_and_strip_exif():
     source.save(raw, format="JPEG", quality=90, exif=exif)
 
     variants = _build_safe_variants(raw.getvalue(), ".jpg")
-    for variant, limit in (("display", DISPLAY_MAX), ("thumb", THUMB_MAX)):
+    for variant, limit in (
+        ("display", DISPLAY_MAX),
+        ("medium", MEDIUM_MAX),
+        ("thumb", THUMB_MAX),
+    ):
         payload, width, height = variants[variant]
         decoded = Image.open(io.BytesIO(payload))
         assert max(width, height) <= limit

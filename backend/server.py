@@ -122,8 +122,60 @@ SESSION_SECRET_FILE = _data_path('.session_secret')
 PW_FILE       = _data_path('.cms_password')
 app.config['PHOTO_DIR'] = PHOTO_DIR
 MAX_BACKUPS   = 30   # 1 backup/hr rate limit → ~30 hours of rolling coverage
-APP_VERSION   = '9.0.0'
+APP_VERSION   = '9.1.0'
 app.config['APP_VERSION'] = APP_VERSION
+ASSET_ROOT = os.path.join(app.root_path, 'frontend', 'assets')
+ASSET_MANIFEST_PATH = os.path.join(ASSET_ROOT, 'asset-manifest.json')
+
+
+def _load_asset_manifest():
+    """Load and verify the build inventory; stale asset bytes are fatal."""
+
+    try:
+        with open(ASSET_MANIFEST_PATH, encoding='utf-8') as handle:
+            payload = json.load(handle)
+    except (OSError, ValueError) as exc:
+        raise RuntimeError('Frontend asset manifest is missing or unreadable.') from exc
+    assets = payload.get('assets') if isinstance(payload, dict) else None
+    if payload.get('schema') != 1 or payload.get('algorithm') != 'sha256' or not isinstance(assets, dict):
+        raise RuntimeError('Frontend asset manifest has an unsupported schema.')
+    for relative, expected in assets.items():
+        if (
+            not isinstance(relative, str)
+            or not isinstance(expected, str)
+            or not re.fullmatch(r'[0-9a-f]{64}', expected)
+            or relative.startswith('/')
+            or '..' in relative.split('/')
+        ):
+            raise RuntimeError('Frontend asset manifest contains an invalid entry.')
+        target = os.path.join(ASSET_ROOT, *relative.split('/'))
+        try:
+            with open(target, 'rb') as handle:
+                actual = hashlib.sha256(handle.read()).hexdigest()
+        except OSError as exc:
+            raise RuntimeError(f'Frontend asset is missing: {relative}') from exc
+        if actual != expected:
+            raise RuntimeError(f'Frontend asset does not match its manifest: {relative}')
+    return assets
+
+
+ASSET_MANIFEST = _load_asset_manifest()
+_ASSET_VERSION_PATTERN = re.compile(
+    r'(/assets/([A-Za-z0-9._/-]+)\?v=)__APP_VERSION__'
+)
+
+
+def _stamp_asset_versions(html):
+    """Stamp release and content hashes into every shared-asset URL."""
+
+    def replace(match):
+        relative = match.group(2)
+        digest = ASSET_MANIFEST.get(relative)
+        if not digest:
+            raise RuntimeError(f'HTML references an asset absent from the manifest: {relative}')
+        return f'{match.group(1)}{APP_VERSION}&h={digest[:16]}'
+
+    return _ASSET_VERSION_PATTERN.sub(replace, html).replace('__APP_VERSION__', APP_VERSION)
 # The date this release was cut, in the manual's `dateModified` and in the
 # sitemap's `lastmod`. A version string alone is not a freshness signal to
 # anything that reads the page — search engines and AI systems weight recency
@@ -989,7 +1041,7 @@ def _serve_versioned_shell(directory, filename, mimetype):
             html = handle.read()
     except OSError:
         return api_error('Not found', 404)
-    resp = make_response(html.replace('__APP_VERSION__', APP_VERSION))
+    resp = make_response(_stamp_asset_versions(html))
     resp.headers['Content-Type'] = mimetype
     # The shell itself must always be revalidated; the assets it points at are
     # the ones that may be cached hard, and they are now version-keyed.
@@ -1034,7 +1086,7 @@ def _serve_manual(language):
         '<!--MANUAL-JSONLD-->', render_manual_jsonld(html, language, RELEASE_DATE))
     html = html.replace('__RELEASE_DATE__', RELEASE_DATE)
 
-    resp = make_response(html.replace('__APP_VERSION__', APP_VERSION))
+    resp = make_response(_stamp_asset_versions(html))
     resp.headers['Content-Type'] = 'text/html; charset=utf-8'
     resp.headers['Content-Language'] = HTML_LANG[language]
     resp.headers['Cache-Control'] = 'no-cache'
@@ -1094,7 +1146,7 @@ def _serve_product_home(language):
     html = html.replace(
         '<!--PRODUCT-JSONLD-->', render_product_jsonld(plans, language, html))
 
-    resp = make_response(html.replace('__APP_VERSION__', APP_VERSION))
+    resp = make_response(_stamp_asset_versions(html))
     resp.headers['Content-Type'] = 'text/html; charset=utf-8'
     resp.headers['Content-Language'] = HTML_LANG[language]
     resp.headers['Cache-Control'] = 'no-cache'
@@ -1238,8 +1290,14 @@ def _cache_versioned_asset(resp):
 
     # Assigned rather than defaulted: `send_from_directory` has already set
     # `no-cache` by the time this runs, so a `setdefault` would be a no-op.
+    relative = str((request.view_args or {}).get('filename') or '')
+    digest = ASSET_MANIFEST.get(relative, '')
+    content_key_matches = bool(digest) and request.args.get('h') == digest[:16]
     resp.headers['Cache-Control'] = (
-        _IMMUTABLE if request.args.get('v') == APP_VERSION else 'no-cache')
+        _IMMUTABLE
+        if request.args.get('v') == APP_VERSION and content_key_matches
+        else 'no-cache'
+    )
     return resp
 
 # Matches Release_Notes_v<major>.<minor>.<patch>.html for any version, so the
@@ -1276,7 +1334,7 @@ def _serve_customer_resource_page(filename, language):
     html = html.replace(
         '<!--RESOURCE-JSONLD-->', render_resource_jsonld(html, language, filename))
 
-    resp = make_response(html.replace('__APP_VERSION__', APP_VERSION))
+    resp = make_response(_stamp_asset_versions(html))
     resp.headers['Content-Type'] = 'text/html; charset=utf-8'
     resp.headers['Content-Language'] = HTML_LANG[language]
     resp.headers['Cache-Control'] = 'no-cache'

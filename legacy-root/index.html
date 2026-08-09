@@ -609,6 +609,257 @@
             line-height:1rem;
             font-weight:700;
         }
+
+        /* ── v9.1 roster workspace ─────────────────────────────────────────
+         * The reference CMS works because the day is one workspace, not a
+         * stack of unrelated cards. These classes preserve that information
+         * hierarchy while consuming StudioSaaS's solved semantic tokens.
+         * Repeated row actions use neutral ink rather than spending the
+         * saturated accent in every row (Design_Constraints §1.1). */
+        .cms-roster-planner { container:roster-planner / inline-size; }
+        .cms-roster-date-nav {
+            display:grid;
+            grid-template-columns:44px minmax(72px,auto) 44px minmax(0,1fr);
+            gap:8px;
+            align-items:center;
+        }
+        .cms-roster-date-nav > * { min-width:0; }
+        .cms-roster-date-button {
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            min-width:44px;
+            min-height:50px;
+            border:1px solid var(--line-strong);
+            background:var(--panel);
+            color:var(--ink2);
+        }
+        .cms-roster-today {
+            min-height:50px;
+            padding:0 13px;
+            border:1px solid var(--ink);
+            background:var(--ink);
+            color:var(--bg);
+            font-size:13px;
+            font-weight:700;
+            white-space:nowrap;
+        }
+        .cms-roster-today[aria-current="date"] {
+            background:var(--accent-soft);
+            border-color:var(--accent-border);
+            color:var(--on-accent-soft);
+        }
+        .cms-roster-week {
+            display:grid;
+            grid-template-columns:repeat(7,minmax(0,1fr));
+            gap:8px;
+        }
+        .cms-roster-week-day {
+            min-width:0;
+            padding:8px 5px;
+            border:1px solid var(--line);
+            background:var(--panel);
+            color:var(--ink2);
+            text-align:center;
+        }
+        .cms-roster-week-day.is-selected {
+            border-color:var(--ink);
+            background:var(--ink);
+            color:var(--bg);
+        }
+        .cms-roster-week-day.is-today:not(.is-selected) {
+            border-color:var(--accent-border);
+            background:var(--accent-soft);
+            color:var(--on-accent-soft);
+        }
+        .cms-roster-summary {
+            display:flex;
+            flex-wrap:wrap;
+            align-items:center;
+            gap:8px 21px;
+            padding:10px 13px;
+            border:1px solid var(--line);
+            border-radius:var(--radius);
+            background:var(--bg2);
+            color:var(--ink2);
+            font-size:13px;
+        }
+        .cms-roster-summary strong { color:var(--ink); }
+        .cms-roster-summary .is-success { color:var(--success); }
+        .cms-roster-summary .is-warning { color:var(--warning); font-weight:700; }
+        .cms-roster-slot-panel {
+            padding:13px;
+            border:1px solid var(--line);
+            border-radius:var(--radius-xl);
+            background:var(--bg2);
+        }
+        .cms-roster-slot-row {
+            padding:10px 13px;
+            border:1px solid var(--line);
+            border-radius:var(--radius);
+            background:var(--panel);
+        }
+        .cms-roster-slot-row.has-conflict {
+            border-color:var(--danger-border);
+            background:var(--danger-soft);
+        }
+        .cms-roster-list { container:roster-list / inline-size; overflow:visible; }
+        .cms-roster-row {
+            position:relative;
+            display:grid;
+            grid-template-columns:minmax(0,1fr);
+            gap:8px;
+            align-items:start;
+            min-height:72px;
+            padding:13px;
+            background:var(--panel);
+        }
+        .cms-roster-row.is-low {
+            border-inline-start:4px solid var(--warning);
+            background:var(--warning-soft);
+        }
+        .cms-roster-info { display:flex; align-items:center; gap:13px; min-width:0; }
+        .cms-roster-actions {
+            display:grid;
+            grid-template-columns:minmax(96px,.8fr) minmax(0,1.55fr) 44px;
+            grid-template-areas:"time primary more";
+            gap:8px;
+            align-items:center;
+            min-width:0;
+            width:100%;
+        }
+        .cms-roster-actions.has-reminder {
+            grid-template-areas:"time primary more" "reminder reminder reminder";
+        }
+        .cms-roster-time { grid-area:time; width:100%; min-width:0; }
+        .cms-roster-primary {
+            grid-area:primary;
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            gap:8px;
+            width:100%;
+            min-width:0;
+            min-height:44px;
+            padding:8px 13px;
+            border:1px solid var(--ink);
+            background:var(--ink);
+            color:var(--bg);
+            font-size:13px;
+            font-weight:700;
+            white-space:nowrap;
+            overflow:hidden;
+            text-overflow:ellipsis;
+        }
+        .cms-roster-primary.is-done {
+            border-color:var(--success-border);
+            background:var(--success-soft);
+            color:var(--on-success-soft);
+        }
+        .cms-roster-primary:disabled:not(.is-done) {
+            border-color:var(--line);
+            background:var(--disabled-surface);
+            color:var(--disabled-text);
+        }
+        .cms-roster-reminder {
+            grid-area:reminder;
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            gap:8px;
+            width:100%;
+            min-height:44px;
+            padding:8px 13px;
+            border:1px solid var(--warning-border);
+            background:var(--warning-soft);
+            color:var(--on-warning-soft);
+            font-size:13px;
+            font-weight:700;
+        }
+        .cms-roster-more { position:relative; grid-area:more; }
+        .cms-roster-more > summary {
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            width:44px;
+            height:44px;
+            min-width:44px;
+            border:1px solid var(--line);
+            border-radius:var(--radius);
+            background:var(--bg2);
+            color:var(--ink2);
+            cursor:pointer;
+            list-style:none;
+        }
+        .cms-roster-more > summary::-webkit-details-marker { display:none; }
+        .cms-roster-menu {
+            position:absolute;
+            right:0;
+            bottom:calc(100% + 8px);
+            z-index:40;
+            width:min(230px,calc(100vw - 34px));
+            padding:8px;
+            border:1px solid var(--line-strong);
+            border-radius:var(--radius);
+            background:var(--panel);
+            box-shadow:var(--shadow-float);
+        }
+        .cms-roster-menu > button,.cms-roster-menu > a {
+            display:flex;
+            align-items:center;
+            gap:8px;
+            width:100%;
+            min-height:44px;
+            padding:8px 10px;
+            color:var(--ink2);
+            font-size:13px;
+            font-weight:600;
+            text-align:left;
+        }
+        .cms-roster-menu > .is-danger { color:var(--danger); }
+        .cms-day-actions-mobile { display:none; position:relative; }
+        .cms-day-actions-mobile > summary {
+            display:flex;
+            align-items:center;
+            gap:8px;
+            min-height:44px;
+            padding:8px 13px;
+            border:1px solid var(--line-strong);
+            border-radius:var(--radius);
+            background:var(--panel);
+            color:var(--ink2);
+            font-size:13px;
+            font-weight:700;
+            cursor:pointer;
+            list-style:none;
+        }
+        .cms-day-actions-mobile > summary::-webkit-details-marker { display:none; }
+        .cms-day-actions-mobile .cms-roster-menu { top:calc(100% + 8px); bottom:auto; }
+
+        @container roster-planner (max-width:680px) {
+            .cms-roster-date-nav { grid-template-columns:44px minmax(72px,1fr) 44px; }
+            .cms-roster-date-nav input[type="date"] { grid-column:1 / -1; }
+        }
+        @container roster-list (min-width:760px) {
+            .cms-roster-row {
+                grid-template-columns:minmax(260px,1fr) auto;
+                gap:13px;
+                align-items:center;
+                padding:13px 16px;
+            }
+            .cms-roster-actions { width:auto; grid-template-columns:108px minmax(170px,auto) 44px; }
+            .cms-roster-actions.has-reminder {
+                grid-template-columns:108px max-content minmax(170px,auto) 44px;
+                grid-template-areas:"time reminder primary more";
+            }
+            .cms-roster-reminder { width:auto; }
+        }
+        @media (max-width:639px) {
+            .cms-roster-week { gap:5px; }
+            .cms-roster-week-day { padding-inline:2px; }
+            .cms-day-actions-desktop { display:none !important; }
+            .cms-day-actions-mobile { display:block; }
+        }
         .cms-empty-state__action:focus-visible {
             outline:2px solid var(--focus-ring, var(--tenant-primary, var(--ink)));
             outline-offset:2px;

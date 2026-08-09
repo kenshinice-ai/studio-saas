@@ -1685,7 +1685,9 @@
       tile.className='tile art';
       var title=it.title ? String(it.title) : T('学员'+state.workNoun.zh,'Student '+state.workNoun.en);
       tile.setAttribute('aria-label', title);
-      var img=document.createElement('img'); img.src=it.mediaUrl; img.loading='lazy';
+      var img=document.createElement('img'); img.src=mediaVariantUrl(it.mediaUrl,'thumb'); img.loading='lazy';
+      img.srcset=mediaVariantUrl(it.mediaUrl,'thumb')+' 360w, '+mediaVariantUrl(it.mediaUrl,'medium')+' 960w, '+mediaVariantUrl(it.mediaUrl,'display')+' 2000w';
+      img.sizes='(max-width: 700px) 50vw, 320px';
       img.alt='';
       /* Walkthrough 2026-07-26: a dangling media reference left a broken-image
          glyph in the wall. Same tolerance as the about/portfolio images, but
@@ -1701,6 +1703,12 @@
       grid.appendChild(tile);
     });
     resolveSection('gallery', grid.children.length>0 && !state.sectionsOff.gallery);
+  }
+  function mediaVariantUrl(rawUrl,variant){
+    var url=new URL(rawUrl,window.location.origin);
+    url.searchParams.delete('thumb');
+    url.searchParams.set('variant',variant);
+    return url.pathname+url.search+url.hash;
   }
   function renderContactRows(b){
     var box=document.getElementById('contactRows'); if(!box) return;
@@ -2104,7 +2112,9 @@
       var d=document.createElement('div');
       d.style.cssText='aspect-ratio:1/1;border:1px solid var(--line);overflow:hidden;position:relative;background:var(--bg2)';
       var img=document.createElement('img');
-      img.src=it.mediaUrl; img.loading='lazy'; img.alt=it.title||'';
+      img.src=mediaVariantUrl(it.mediaUrl,'thumb'); img.loading='lazy'; img.alt=it.title||'';
+      img.srcset=mediaVariantUrl(it.mediaUrl,'thumb')+' 360w, '+mediaVariantUrl(it.mediaUrl,'medium')+' 960w, '+mediaVariantUrl(it.mediaUrl,'display')+' 2000w';
+      img.sizes='(max-width: 700px) 50vw, 280px';
       img.style.cssText='width:100%;height:100%;object-fit:cover';
       img.onerror=function(){ this.style.display='none'; };
       d.appendChild(img);

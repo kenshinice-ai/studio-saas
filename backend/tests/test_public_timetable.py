@@ -392,6 +392,18 @@ def test_the_duplicate_index_makes_the_second_tap_safe() -> None:
     assert '"duplicate": created is None' in body
 
 
+def test_only_a_new_durable_booking_sends_one_admin_alert() -> None:
+    """SMTP cannot decide whether the booking exists or duplicate an alert."""
+
+    body = _function("public_class_booking")
+    commit = body.index("conn.commit()")
+    created_guard = body.index("if created is not None:")
+    send = body.index("template_key=\"class_booking_admin_alert\"")
+    assert commit < created_guard < send
+    guarded = body[created_guard:body.index("return jsonify", created_guard)]
+    assert guarded.count("class_booking_admin_alert") == 1
+
+
 def test_the_reply_says_how_many_are_already_waiting() -> None:
     """A class showing "1 place left" that quietly collects five requests will
     disappoint four people. Saying so hands the choice back."""

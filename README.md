@@ -7,7 +7,7 @@ the current source tree was packaged or deployed.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | `codex/v9.0.0-brand-cms-release`; `VERSION` = **9.0.0** | The branch, which is ahead of `main`, includes the v9 code plus a later documentation-only release closure. |
+| Source | `codex/v9.1.0-roster-polish`; `VERSION` = **9.1.0** | This release-candidate branch, which is ahead of `main`, contains the roster workflow, operational readiness, booking notification, responsive media and content-hash caching changes. |
 | Package | **9.0.0** SaaS + Edition archives | Both `BUILD_INFO` files identify commit `94d50b8`; SHA-256 is recorded in `docs/HANDOFF_LATEST.md`. |
 | Production | reports **9.0.0** | Deployed from the SaaS package at commit `94d50b8` on 2026-08-09; public deep health reports `mode=saas`, `db=ok`, six readable tenants and zero unreadable themes. The health response itself does not identify the deployed commit; the package `BUILD_INFO` and release symlink do. |
 
@@ -905,7 +905,7 @@ curl -i -X POST http://localhost:8901/v1/admin/tenants \
 | `docs/Deployment.md` | Deployment stages; Stage 2 (AWS Lightsail) live since 2026-07-30 |
 | `docs/Design_System.md` | UI tokens and component standards |
 | `docs/Glossary.md` | One agreed word per concept (enforced by `check_terminology.py`) |
-| `docs/guides/` | Per-role user manuals in Chinese (applicable to v9.0.0) |
+| `docs/guides/` | Per-role user manuals in Chinese (applicable to v9.1.0) |
 | `01 BRAND ASSETS/` | PWE/Paradise family delivery kit and validated asset manifest |
 
 ---

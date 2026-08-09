@@ -66,6 +66,16 @@ def test_lightsail_single_node_preserves_roles_backups_and_volumes() -> None:
     assert "restore-dry-run" in control
 
 
+def test_entrypoint_backfills_media_before_serving_responsive_urls() -> None:
+    """A migrated CHECK constraint without matching files would ship broken srcset."""
+
+    entrypoint = _read("deploy/aws/entrypoint.sh")
+    migration = entrypoint.index("scripts/run_migrations.py")
+    backfill = entrypoint.index("scripts/backfill_media_variants.py")
+    server = entrypoint.index("exec python server.py")
+    assert migration < backfill < server
+
+
 def test_tls_snippet_is_shared_and_has_no_dead_ocsp_config() -> None:
     """One TLS parameter set, included by both server blocks.
 

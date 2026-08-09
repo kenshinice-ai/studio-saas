@@ -161,6 +161,11 @@ if [ -x "$PYTHON" ]; then
         else
             ok "CMS bundle is up to date with its source"
         fi
+        if "$PYTHON" "$SCRIPT_DIR/scripts/build_asset_manifest.py" --check >/dev/null 2>&1; then
+            ok "frontend asset manifest matches content hashes"
+        else
+            fail "frontend asset manifest is missing or stale (run: bash backend/scripts/build_cms.sh)"
+        fi
     else
         ok "node not available — skipped CMS bundle checks"
     fi
@@ -204,7 +209,7 @@ if [ -x "$PYTHON" ]; then
             fi
             if STUDIOSAAS_DATABASE_URL="${STUDIOSAAS_DATABASE_URL:-postgresql://$USER@localhost:5432/studiosaas_local_test}" \
                 "$PYTHON" "$SCRIPT_DIR/scripts/backfill_media_variants.py" --check >/dev/null 2>&1; then
-                ok "all local image media has safe display/thumbnail derivatives"
+                ok "all local image media has safe display/medium/thumbnail derivatives"
             else
                 fail "media derivative backfill is incomplete"
             fi

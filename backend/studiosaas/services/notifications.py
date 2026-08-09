@@ -24,6 +24,18 @@ from email.mime.text import MIMEText
 from typing import Any
 
 DEFAULT_TEMPLATES: dict[str, tuple[str, str]] = {
+    "class_booking_admin_alert": (
+        "New class booking request — {contact_name}",
+        "A new public timetable booking request has been saved for {studio_name}.\n\n"
+        "Class: {class_title}\n"
+        "Date: {class_date}\n"
+        "Start: {start_time}\n"
+        "Contact: {contact_name}\n"
+        "Mobile: {mobile}\n"
+        "Message: {message}\n\n"
+        "Open Studio Admin to review the request.\n"
+        "Booking ID: {booking_id}",
+    ),
     "registration_admin_alert": (
         "New registration — {student_name}",
         "A new registration has been saved for {studio_name}.\n\n"

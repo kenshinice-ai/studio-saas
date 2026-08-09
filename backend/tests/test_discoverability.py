@@ -91,16 +91,23 @@ def test_the_link_preview_image_is_served_as_an_image(client) -> None:
 # ── caching ─────────────────────────────────────────────────────────────────
 
 def test_a_version_keyed_asset_may_be_held_for_a_year(client) -> None:
-    from server import APP_VERSION
+    from server import APP_VERSION, ASSET_MANIFEST
 
-    response = client.get(f"/assets/manual.css?v={APP_VERSION}")
+    content_hash = ASSET_MANIFEST["manual.css"][:16]
+    response = client.get(f"/assets/manual.css?v={APP_VERSION}&h={content_hash}")
     assert response.headers["Cache-Control"] == "public, max-age=31536000, immutable"
 
 
 def test_an_asset_without_the_running_version_revalidates(client) -> None:
     """A stale `?v=` names content this release may have changed."""
 
-    for url in ("/assets/manual.css", "/assets/manual.css?v=1.0.0"):
+    from server import APP_VERSION
+
+    for url in (
+        "/assets/manual.css",
+        "/assets/manual.css?v=1.0.0",
+        f"/assets/manual.css?v={APP_VERSION}&h=wrong",
+    ):
         assert client.get(url).headers["Cache-Control"] == "no-cache"
 
 
@@ -111,7 +118,9 @@ def test_the_manual_asks_the_browser_to_keep_its_screenshots(client) -> None:
     screenshots = re.findall(r'src="(/assets/manual/[^"]+)"', body)
     assert screenshots, "the manual has no screenshots to cache"
     for src in screenshots:
-        assert "?v=" in src, f"{src} carries no release stamp, so it cannot be cached"
+        assert "?v=" in src and "&h=" in src, (
+            f"{src} carries no release and content stamp, so it cannot be cached"
+        )
         assert client.get(src).headers["Cache-Control"].startswith("public, max-age=31536000")
 
 

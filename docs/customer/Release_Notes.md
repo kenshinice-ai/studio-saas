@@ -1,5 +1,30 @@
 # PWE Studio — Release Notes and Acceptance Evidence
 
+## v9.1.0 — faster daily scheduling and safer delivery
+
+v9.1.0 reshapes the daily roster around the work performed at the front desk:
+date navigation, week occupancy, attendance summary, time groups, batch tools
+and student rows now form one compact planner. Each row has one clear check-in
+and credit-deduction action, while reminders, one-to-one marking, date-bound
+undo and removal live in a deliberate overflow menu. Only an explicit
+`oneToOne` flag raises a same-time conflict; ordinary group classes remain
+valid. Birthday and recurring-schedule tools stay available but collapsed so
+they no longer push today's work below the fold.
+
+The dashboard now turns student-portal and publication readiness into actionable
+filters. Thirty-day activity is keyed by immutable student ID; a historical
+name-only event is used only when the name identifies exactly one student.
+Public timetable bookings notify the studio admin only after a new request is
+durably committed, and duplicate submissions never send a second alert.
+
+Image delivery now creates 360px, 960px and 2000px metadata-free derivatives
+and publishes responsive candidates. Existing media is covered by an explicit
+backfill. Authorized private media uses checksum ETags with `private,
+no-cache`, so a repeat request can return 304 only after session, ownership and
+consent checks. Shared frontend assets likewise carry both release and content
+hashes; a missing or stale manifest fails the build/runtime contract instead of
+silently caching mismatched JavaScript.
+
 ## v9.0.0 — one Brand contract and a safe CMS migration baseline
 
 v9.0.0 establishes one product-wide contract rather than introducing a

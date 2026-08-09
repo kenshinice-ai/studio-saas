@@ -597,7 +597,7 @@ CREATE TABLE IF NOT EXISTS media_variants (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     media_asset_id uuid NOT NULL REFERENCES media_assets(id) ON DELETE CASCADE,
-    variant text NOT NULL CHECK (variant IN ('display', 'thumb')),
+    variant text NOT NULL CHECK (variant IN ('display', 'medium', 'thumb')),
     storage_key text NOT NULL,
     mime_type text NOT NULL,
     byte_size bigint NOT NULL CHECK (byte_size >= 0),

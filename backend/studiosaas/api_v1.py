@@ -2250,11 +2250,17 @@ def _send_media_asset(
 ):
     """Serve one media asset after tenant ownership has been verified.
 
-    ``?thumb=1`` serves the lazily generated list-view thumbnail (S3).
+    ``?thumb=1`` remains compatible with older clients. New clients use the
+    explicit ``?variant=thumb|medium|display`` contract.
     """
 
     requested_variant = variant
-    if requested_variant is None and str(request.args.get("thumb", "")).lower() in ("1", "true", "yes"):
+    query_variant = str(request.args.get("variant", "")).strip().lower()
+    if query_variant:
+        if query_variant not in {"thumb", "medium", "display"}:
+            return _error("Media variant is invalid.", 400)
+        requested_variant = query_variant
+    elif requested_variant is None and str(request.args.get("thumb", "")).lower() in ("1", "true", "yes"):
         requested_variant = "thumb"
     try:
         return send_media_asset(
@@ -4404,6 +4410,7 @@ def public_class_booking(tenant_slug: str):
         capacity = int(schedule["capacity"] or 0)
         taken = int(schedule["enrolled"] or 0) + int(approved or 0)
         seats_left = max(0, capacity - taken)
+        class_title = schedule["course_name"] or schedule["label"] or ""
 
         # Matching happens here and the result goes ONLY into the record. It
         # never reaches the branch that builds the response.
@@ -4437,7 +4444,42 @@ def public_class_booking(tenant_slug: str):
                 (schedule["id"], on_date),
             )
             waiting = int((cur.fetchone() or {}).get("n") or 0)
+        # The booking must be durable before an SMTP attempt, and a duplicate
+        # submission must never send a second alert.
         conn.commit()
+        if created is not None:
+            tenant_row = fetch_one(
+                conn,
+                """
+                SELECT name, contact_email,
+                       settings->>'studio_admin_email' AS studio_admin_email
+                FROM tenants
+                WHERE id = %s
+                """,
+                (tenant.tenant_id,),
+            )
+            admin_email = (
+                (tenant_row.get("studio_admin_email") or tenant_row.get("contact_email") or "").strip()
+                if tenant_row else ""
+            )
+            if admin_email:
+                _notifications.send_safely(
+                    conn,
+                    tenant_id=tenant.tenant_id,
+                    template_key="class_booking_admin_alert",
+                    to_email=admin_email,
+                    context={
+                        "booking_id": str(created["id"]),
+                        "class_title": class_title or "—",
+                        "class_date": on_date.isoformat(),
+                        "start_time": start,
+                        "contact_name": name,
+                        "mobile": phone,
+                        "message": message or "—",
+                        "studio_name": tenant_row["name"] or tenant_slug,
+                    },
+                )
+                conn.commit()
 
     return jsonify({
         "ok": True,
@@ -4449,7 +4491,7 @@ def public_class_booking(tenant_slug: str):
         "waiting": waiting,
         "date": on_date.isoformat(),
         "start": start,
-        "title": schedule["course_name"] or schedule["label"] or "",
+        "title": class_title,
     })
 
 
@@ -5252,7 +5294,7 @@ def public_student_media(tenant_slug: str, media_asset_id: str):
         )
         if isinstance(response, tuple):
             return response
-        response.headers["Cache-Control"] = "private, no-store"
+        response.headers["Cache-Control"] = "private, no-cache"
         response.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive"
         return response
 
@@ -5389,7 +5431,7 @@ def public_media_asset(tenant_slug: str, media_asset_id: str):
         )
         if isinstance(response, tuple):
             return response
-        response.headers["Cache-Control"] = "private, no-store"
+        response.headers["Cache-Control"] = "private, no-cache"
         response.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive"
         return response
 

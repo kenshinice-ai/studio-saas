@@ -196,7 +196,11 @@
       if (item.title) thumb.dataset.title = item.title;
       const img = document.createElement('img');
       img.loading = 'lazy';
-      img.src = item.mediaUrl + (item.mediaUrl.includes('?') ? '&' : '?') + 'thumb=1';
+      img.src = mediaVariantUrl(item.mediaUrl, 'thumb');
+      img.srcset = mediaVariantUrl(item.mediaUrl, 'thumb') + ' 360w, ' +
+        mediaVariantUrl(item.mediaUrl, 'medium') + ' 960w, ' +
+        mediaVariantUrl(item.mediaUrl, 'display') + ' 2000w';
+      img.sizes = '(max-width: 700px) 50vw, 300px';
       img.alt = '';
       thumb.appendChild(img);
       thumb.addEventListener('click', () => openLightbox(item.mediaUrl, item.title || item.note || ''));
@@ -222,6 +226,13 @@
       card.appendChild(meta);
       grid.appendChild(card);
     });
+  }
+
+  function mediaVariantUrl(rawUrl, variant) {
+    const url = new URL(rawUrl, window.location.origin);
+    url.searchParams.delete('thumb');
+    url.searchParams.set('variant', variant);
+    return url.pathname + url.search + url.hash;
   }
 
   renderTexts();

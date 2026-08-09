@@ -10,7 +10,7 @@ import uuid
 from pathlib import PurePath
 from typing import Any
 
-from flask import current_app, send_from_directory
+from flask import current_app, request, send_from_directory
 from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
 
@@ -43,6 +43,7 @@ DOCUMENT_EXTENSIONS = {".pdf"}
 # Safe derivatives are generated at upload time. Public and student-facing
 # routes request a derivative explicitly and never fall back to the original.
 THUMB_MAX = 360
+MEDIUM_MAX = 960
 DISPLAY_MAX = 2000
 # Decoded pixels, not file bytes: a 5 MB JPEG can expand to hundreds of MB in
 # memory, and the production host is a 1.9 GB Lightsail instance serving eight
@@ -306,7 +307,7 @@ def _jpeg_bytes(image, max_edge: int, quality: int) -> tuple[bytes, int, int]:
 
 
 def _build_safe_variants(data: bytes, ext: str) -> dict[str, tuple[bytes, int, int]]:
-    """Build display and thumbnail derivatives without copying source metadata."""
+    """Build display, medium and thumbnail derivatives without source metadata."""
 
     image = _open_raster(data, ext)
     display = _jpeg_bytes(image, DISPLAY_MAX, 88)
@@ -316,10 +317,11 @@ def _build_safe_variants(data: bytes, ext: str) -> dict[str, tuple[bytes, int, i
     # display raster is already capped at DISPLAY_MAX and is a strictly better
     # starting point for a 360px thumbnail. Peak memory for one upload is now
     # bounded by the decoded source plus ~12 MB, not by three copies of it.
-    thumb_source = _PILImage.open(io.BytesIO(display[0]))
-    thumb_source.load()
-    thumb = _jpeg_bytes(thumb_source, THUMB_MAX, 84)
-    return {"display": display, "thumb": thumb}
+    derivative_source = _PILImage.open(io.BytesIO(display[0]))
+    derivative_source.load()
+    medium = _jpeg_bytes(derivative_source, MEDIUM_MAX, 86)
+    thumb = _jpeg_bytes(derivative_source, THUMB_MAX, 84)
+    return {"display": display, "medium": medium, "thumb": thumb}
 
 
 def _enforce_tenant_quota(conn: Any, *, tenant_id: str, incoming_bytes: int) -> None:
@@ -469,17 +471,17 @@ def send_media_asset(
 ):
     """Serve one media asset after tenant ownership has been verified.
 
-    ``variant`` may be ``display`` or ``thumb``. A requested derivative must
+    ``variant`` may be ``display``, ``medium`` or ``thumb``. A requested derivative must
     exist; public callers never receive the private original as a fallback.
     """
 
     if variant:
-        if variant not in {"display", "thumb"}:
+        if variant not in {"display", "medium", "thumb"}:
             raise MediaUploadError("Media variant is invalid.")
         row = fetch_one(
             conn,
             """
-            SELECT storage_key, mime_type
+            SELECT storage_key, mime_type, checksum_sha256
             FROM media_variants
             WHERE tenant_id = %s AND media_asset_id = %s AND variant = %s
             """,
@@ -489,7 +491,7 @@ def send_media_asset(
         row = fetch_one(
             conn,
             """
-            SELECT storage_key, mime_type
+            SELECT storage_key, mime_type, checksum_sha256
             FROM media_assets
             WHERE tenant_id = %s AND id = %s AND storage_provider = 'local'
             """,
@@ -497,10 +499,17 @@ def send_media_asset(
         )
     if not row:
         raise MediaUploadError("Media asset was not found.")
+    checksum = str(row.get("checksum_sha256") or "").strip().lower()
+    if not re.fullmatch(r"[0-9a-f]{64}", checksum):
+        raise MediaUploadError("Media asset checksum is missing or invalid.")
     storage_key = str(row["storage_key"] or "")
     safe_parts = [secure_filename(part) for part in storage_key.split("/") if part]
     if len(safe_parts) < 3:
         raise MediaUploadError("Media asset path is invalid.")
     directory = os.path.join(media_root(), *safe_parts[:-1])
     filename = safe_parts[-1]
-    return send_from_directory(directory, filename)
+    response = send_from_directory(directory, filename, conditional=False)
+    response.set_etag(checksum, weak=False)
+    # Ownership, session and publication-consent checks happen in the route
+    # before this function is called. Only then may If-None-Match produce 304.
+    return response.make_conditional(request)

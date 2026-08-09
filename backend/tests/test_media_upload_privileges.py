@@ -96,15 +96,17 @@ def test_thumbnail_is_derived_from_the_display_raster() -> None:
     pytest.importorskip("PIL")
     from PIL import Image
 
-    from studiosaas.services.media import DISPLAY_MAX, THUMB_MAX, _build_safe_variants
+    from studiosaas.services.media import DISPLAY_MAX, MEDIUM_MAX, THUMB_MAX, _build_safe_variants
 
     buffer = io.BytesIO()
     Image.new("RGB", (4000, 3000), (90, 120, 150)).save(buffer, format="JPEG", quality=88)
     variants = _build_safe_variants(buffer.getvalue(), ".jpg")
 
     display_bytes, display_w, display_h = variants["display"]
+    _, medium_w, medium_h = variants["medium"]
     _, thumb_w, thumb_h = variants["thumb"]
     assert max(display_w, display_h) <= DISPLAY_MAX
+    assert max(medium_w, medium_h) <= MEDIUM_MAX
     assert max(thumb_w, thumb_h) <= THUMB_MAX
     assert display_bytes.startswith(b"\xff\xd8\xff"), "derivatives are metadata-free JPEG"
 
@@ -117,3 +119,37 @@ def test_jpeg_decoding_uses_draft_scaling() -> None:
     """
 
     assert 'image.draft("RGB", (DISPLAY_MAX, DISPLAY_MAX))' in _service_source()
+
+
+def test_checksum_etag_can_return_304_after_the_caller_authorizes(
+    app, tmp_path, monkeypatch
+) -> None:
+    """The derivative checksum is stable; conditional handling needs no file guess."""
+
+    from studiosaas.services import media
+
+    checksum = "a" * 64
+    payload = b"safe-medium-derivative"
+    path = tmp_path / "tenant" / "portfolio" / "asset.medium.jpg"
+    path.parent.mkdir(parents=True)
+    path.write_bytes(payload)
+    app.config["MEDIA_DIR"] = str(tmp_path)
+    monkeypatch.setattr(
+        media,
+        "fetch_one",
+        lambda *_args, **_kwargs: {
+            "storage_key": "tenant/portfolio/asset.medium.jpg",
+            "mime_type": "image/jpeg",
+            "checksum_sha256": checksum,
+        },
+    )
+
+    with app.test_request_context(
+        "/media/asset?variant=medium", headers={"If-None-Match": f'"{checksum}"'}
+    ):
+        response = media.send_media_asset(
+            object(), tenant_id="tenant", media_asset_id="asset", variant="medium"
+        )
+
+    assert response.status_code == 304
+    assert response.headers["ETag"] == f'"{checksum}"'

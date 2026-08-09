@@ -528,12 +528,16 @@ def _seed_artwork(cur: Any, tenant_id: str, student_ids: list[str], owner_id: st
         checksum = hashlib.sha256(payload).hexdigest()
         original_key = f"showcase/{SHOWCASE_SLUG}/original-{filename}"
         display_key = f"showcase/{SHOWCASE_SLUG}/display-{filename}"
+        medium_key = f"showcase/{SHOWCASE_SLUG}/medium-{filename}"
         thumb_key = f"showcase/{SHOWCASE_SLUG}/thumb-{filename}"
         original_path = media_root / original_key
         original_path.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, original_path)
         display_size, display_checksum, display_width, display_height = _write_safe_variant(
             source, media_root / display_key, 1600
+        )
+        medium_size, medium_checksum, medium_width, medium_height = _write_safe_variant(
+            source, media_root / medium_key, 960
         )
         thumb_size, thumb_checksum, thumb_width, thumb_height = _write_safe_variant(
             source, media_root / thumb_key, 480
@@ -554,6 +558,7 @@ def _seed_artwork(cur: Any, tenant_id: str, student_ids: list[str], owner_id: st
         media_id = str(cur.fetchone()["id"])
         variants = (
             ("display", display_key, display_size, display_checksum, display_width, display_height),
+            ("medium", medium_key, medium_size, medium_checksum, medium_width, medium_height),
             ("thumb", thumb_key, thumb_size, thumb_checksum, thumb_width, thumb_height),
         )
         for variant, key, variant_size, variant_checksum, width, height in variants:
