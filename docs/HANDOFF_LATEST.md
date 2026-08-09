@@ -1,3 +1,53 @@
+# PWE Studio v9.0.0 — Brand、公共体验与 CMS 迁移基线（2026-08-09）
+
+## 当前发布状态
+
+- 版本：`9.0.0`。
+- 分支：`codex/v9.0.0-brand-cms-release`。
+- 当前状态：本地实现与 CMS 真实浏览器验收已通过；发布包、Git 推送、AWS
+  部署和线上验收必须以本节后续记录为准，不能由版本文件推断。
+- 这是大版本升级，因为它同时冻结了 Brand 权威源、跨表面视觉契约、角色权限
+  边界和 CMS 后续渐进迁移方法；不是因为数据库或 API 做了破坏性变化。
+
+## 本轮实际交付
+
+1. `docs/design/Brand_Identity.md` 成为唯一 Brand 权威源；
+   `docs/brand-guidelines.md` 是逐字节相同的兼容副本。
+2. 发布身份明确拆为 Source / Package / Production，未知状态允许明确写成未知。
+3. Front Desk 获得后端 `class_bookings:review`，只能批准或婉拒约课请求；课程、
+   容量和排课仍为 Owner/Manager 权限。CMS 按钮本轮没有扩大角色可见性，文档
+   继续要求 Front Desk 转交 Owner/Manager 操作。
+4. 产品首页、公开门户和公开课表统一双语系统字体、44px 触控目标、标题层级、
+   黄金比例布局契约及无图 Hero 行为；租户生成目录已由模板重新生成。
+5. CMS P0 修复被拼接损坏的 touch / active / disabled 选择器；P1 只迁移
+   `EmptyState` 内部样式到 `cms-empty-state*` 语义类。props、5 个调用点和
+   3 个 `onAction` 回调未改；浏览器加载 bundle 已重建。
+6. 根目录 `pytest` 只收集 `backend/tests`；两个 `backend/test_*.py` 是独立运行
+   的集成/冒烟程序，继续作为单独 release gate 执行，避免它们在 pytest 收集期
+   启动服务或污染 Flask 全局状态。
+
+## CMS 真实浏览器验收
+
+本地 PostgreSQL + 真登录 + Chromium，视口 `390 × 844`：
+
+- 页面宽度 `390px`，无横向溢出；
+- EmptyState 操作按钮 `82 × 44px`，计算样式 `min-width/min-height = 44px`；
+- 键盘焦点实际落在按钮，焦点环 `2px`；
+- 修复后的通用按钮最小高度为 `44px`，独立 `button:disabled` 规则已进入浏览器
+  CSSOM；
+- 使用真实租户配色时标题、说明、操作按钮与焦点环均消费语义 token；静态主题
+  最差对比度分别为 `8.00:1 / 4.60:1 / 4.50:1 / 3.20:1`。
+
+浏览器验收只读取 UI。为登录而临时替换的本地测试账号密码哈希已立即恢复；
+没有触碰生产账号或生产数据。
+
+## 发布闭环
+
+发布 commit、双模式包 SHA-256、部署前备份、线上 deep health、关键路由与回滚
+点将在实际完成后写回这里。在这些证据出现之前，本节只能称为 v9.0.0 候选。
+
+---
+
 # 📖 手册审计 · 只出方案未改内容（2026-08-08，对照 v8.10.3）
 
 全文见 `docs/design/Manual_Improvement_Plan.md`。**这一轮只盘点、没改手册内容。**

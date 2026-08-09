@@ -46,13 +46,22 @@
   <h1 data-lang="zh">发布依据</h1>
   <p class="lede" data-lang="en">A customer-readable record of what this release changes, what the production deployment established, and which commitments remain deferred.</p>
   <p class="lede" data-lang="zh">面向客户的记录：本次发布改了什么、生产部署确立了什么，以及哪些承诺仍未完成。</p>
-  <p class="status"><span data-lang="en">Current release v__APP_VERSION__ · deployed 7 August 2026 · monitoring and SLA deferred</span><span data-lang="zh">当前版本 v__APP_VERSION__ · 部署于 2026 年 8 月 7 日 · 监控与 SLA 延后</span></p>
+  <p class="status"><span data-lang="en">Current release v__APP_VERSION__ · released 9 August 2026 · monitoring and SLA deferred</span><span data-lang="zh">当前版本 v__APP_VERSION__ · 发布于 2026 年 8 月 9 日 · 监控与 SLA 延后</span></p>
 
   <h2 data-lang="en">Since v8.1.0</h2>
   <h2 data-lang="zh">v8.1.0 之后</h2>
-  <p data-lang="en">Everything below shipped to production between 1 and 7 August 2026. Each line is deployed, not planned.</p>
-  <p data-lang="zh">以下内容均已于 2026 年 8 月 1 日至 7 日发布至生产环境。每一条都已上线，而非计划。</p>
+  <p data-lang="en">Everything below belongs to a released product version. Each line is delivery evidence, not a roadmap promise.</p>
+  <p data-lang="zh">以下内容均属于已发布的产品版本。每一条都是交付依据，不是路线图承诺。</p>
   <div class="grid">
+    <article class="card">
+      <strong data-lang="en">One Brand contract and a safe CMS migration baseline (v9.0.0)</strong><strong data-lang="zh">一套 Brand 契约，以及可安全延续的 CMS 迁移基线（v9.0.0）</strong>
+      <p data-lang="en">The product now has one canonical Brand document, one bilingual system type stack for operational interfaces, and one explicit release ledger that keeps source code, packages and deployed production separate. A version label alone is no longer presented as proof that the same code was packaged or deployed.</p>
+      <p data-lang="zh">产品现在只有一份 Brand 权威文档，运营界面统一使用一套双语系统字体，并通过明确的发布账本分别记录源码、发布包与线上生产状态。相同的版本号不再被当作「同一份代码已经打包并上线」的证明。</p>
+      <p data-lang="en">Front Desk can review class-booking requests through a narrow server permission, but cannot change courses, capacity or schedules. The current CMS buttons remain restricted to Owner and Manager, so this permission does not silently broaden the visible interface.</p>
+      <p data-lang="zh">Front Desk 通过一项独立的后端权限审核约课请求，但不能修改课程、容量或排课。当前 CMS 的操作按钮仍只向 Owner 和 Manager 开放，因此这项权限不会悄悄扩大界面操作范围。</p>
+      <p data-lang="en">The operational CMS also received its first deliberately small component migration: malformed touch and button-state selectors were repaired, and EmptyState now consumes semantic theme tokens without changing its data, props or callbacks. A real 390px Chromium check verified a 44px action target, visible keyboard focus and no horizontal overflow.</p>
+      <p data-lang="zh">运营 CMS 同时完成了第一次刻意保持很小的组件迁移：修复损坏的触控与按钮状态选择器，并让 EmptyState 消费语义主题 token，未改变其数据、props 或回调。真实 Chromium 在 390px 下确认操作按钮达到 44px、键盘焦点清晰且没有横向溢出。</p>
+    </article>
     <article class="card">
       <strong data-lang="en">A timetable families can read, and a place they can ask for without an account (v8.9.0 – v8.10.3)</strong><strong data-lang="zh">家长看得懂的课表，以及不用注册就能申请的位置（v8.9.0 – v8.10.3）</strong>
       <p data-lang="en">Your upcoming public classes now have a page of their own, linked from your site's navigation and reachable at its own address, so it can be forwarded to the other parent without forwarding the whole website. It is a page rather than another band on the home page because a family reading a timetable is holding rows against a calendar, and that wants width and a link of its own.</p>

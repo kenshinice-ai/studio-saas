@@ -1,4 +1,23 @@
-# PWE Studio v8.1.0 — Release Notes and Acceptance Evidence
+# PWE Studio — Release Notes and Acceptance Evidence
+
+## v9.0.0 — one Brand contract and a safe CMS migration baseline
+
+v9.0.0 establishes one product-wide contract rather than introducing a
+breaking data migration. The source, package and deployed production status are
+reported separately; `docs/design/Brand_Identity.md` is the canonical Brand
+document; public product surfaces share the same bilingual system type,
+touch-target and layout rules; and Front Desk has a narrow backend permission
+to review class-booking requests without gaining course, capacity or schedule
+authority.
+
+Inside the operational CMS, the release repairs malformed touch, active and
+disabled selectors and migrates only `EmptyState` to semantic theme tokens.
+The component's props and callbacks are unchanged. A real Chromium acceptance
+at 390px verified no horizontal overflow, a 44px action target and a visible
+2px keyboard focus ring. This is the reference pattern for later CMS migration,
+not authorization for a broad rewrite.
+
+## v8.1.0 — Production deployment and tenant theme publication
 
 Release status: production deployed to `https://pwestudio.online` on
 2026-07-30 (AWS Lightsail, Sydney). Monitoring, a contractual SLA,

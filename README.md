@@ -7,9 +7,9 @@ the current source tree was packaged or deployed.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | `main` HEAD `5f4aee9`; `VERSION` = **8.10.3** | This working tree contains the current, not-yet-packaged candidate changes. |
-| Package | **8.10.3** SaaS + Edition archives | `dist/*-8.10.3.tar.gz`; both `BUILD_INFO` files were built from `631fc3a0` on `codex/v8.10.3-manual-refresh`, which is ahead of `main`. |
-| Production | reports **8.10.3** | `https://pwestudio.online/v1/health?deep=1` returned `appVersion=8.10.3`, `mode=saas`, `db=ok` on 2026-08-09; the response does not identify the deployed commit. |
+| Source | `codex/v9.0.0-brand-cms-release`; `VERSION` = **9.0.0** | Release candidate branch, which is ahead of `main`; final release commit is recorded after validation. |
+| Package | **9.0.0 pending** | Build both SaaS and Edition archives only after the full clean-tree release gate passes. |
+| Production | reports **8.10.3** | `https://pwestudio.online/v1/health?deep=1` reported `appVersion=8.10.3`, `mode=saas`, `db=ok` before this release; the response does not identify the deployed commit. |
 
 Re-verify the production health endpoint before any later release claim; do not
 infer Production from `VERSION` or from an archive filename.
@@ -905,7 +905,7 @@ curl -i -X POST http://localhost:8901/v1/admin/tenants \
 | `docs/Deployment.md` | Deployment stages; Stage 2 (AWS Lightsail) live since 2026-07-30 |
 | `docs/Design_System.md` | UI tokens and component standards |
 | `docs/Glossary.md` | One agreed word per concept (enforced by `check_terminology.py`) |
-| `docs/guides/` | Per-role user manuals in Chinese (applicable to v8.10.3) |
+| `docs/guides/` | Per-role user manuals in Chinese (applicable to v9.0.0) |
 | `01 BRAND ASSETS/` | PWE/Paradise family delivery kit and validated asset manifest |
 
 ---
