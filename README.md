@@ -7,9 +7,9 @@ the current source tree was packaged or deployed.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | `codex/v9.3.0-cms-information-architecture`; `VERSION` = **9.5.0** | This branch, which is ahead of `main`, carries the release candidate that consolidates the CMS into grouped workspaces, route-aware deep links, role-specific workbenches, a dedicated settings page and persistent in-app notifications. |
-| Package | **9.5.0 SaaS + Edition archives pending final verification** | The release gate will record both archive SHA-256 values and confirm each `BUILD_INFO` commit after the clean release commit. |
-| Production | **9.5.0 deployment pending** | Production status is intentionally recorded only after the remote controller, public health endpoint and browser acceptance have been rechecked; the health response does not identify the deployed commit, so the release symlink and package `BUILD_INFO` must be checked separately. |
+| Source | `codex/v9.3.0-cms-information-architecture`; `VERSION` = **9.5.0** | This branch, which is ahead of `main`, carries release commit `9a976215bab9d5b32b9792f36851078a4111ff4b`, consolidating the CMS into grouped workspaces, route-aware deep links, role-specific workbenches, a dedicated settings page and persistent in-app notifications. |
+| Package | **9.5.0 SaaS + Edition archives verified** | SaaS SHA-256 `d9cd91c57467213ee81710d290b8a589c6910b4819568d136e2da9e59842802a`; Edition SHA-256 `90409a371521074252ceed90946198a5c4021319fcefb19fc55d665f74dfc97d`; both `BUILD_INFO` records point to the release commit with modes `saas` / `standalone`. |
+| Production | **9.5.0 deployed and publicly accepted** | `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.5.0`, running image `studiosaas:9.5.0`; internal/public deep health report `db=ok`, 6 readable tenants and `unreadable=0`. The health response does not identify the deployed commit, so the release symlink and package `BUILD_INFO` were checked separately. |
 
 Re-verify the production health endpoint before any later release claim; do not
 infer Production from `VERSION` or from an archive filename.

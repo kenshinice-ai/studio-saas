@@ -20,6 +20,13 @@ center, refreshed every 30 seconds and surfaced with a popup prompt. Online
 payments, bank-transfer configuration, Gmail/SMTP, AWS SES, SMS, SSE,
 WebSocket and browser push remain deferred.
 
+Production acceptance: v9.5.0 is deployed at `https://pwestudio.online` from
+commit `9a976215bab9d5b32b9792f36851078a4111ff4b`. The SaaS archive SHA-256 is
+`d9cd91c57467213ee81710d290b8a589c6910b4819568d136e2da9e59842802a`; the
+Edition archive SHA-256 is
+`90409a371521074252ceed90946198a5c4021319fcefb19fc55d665f74dfc97d`. Public
+deep health reports `db=ok` and all six stored tenant themes readable.
+
 ## v9.2.0 — persistent CMS notifications
 
 The CMS now keeps an in-app notification history for new public registrations

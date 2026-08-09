@@ -4,9 +4,10 @@
 
 - 版本：`9.5.0`。
 - 分支：`codex/v9.3.0-cms-information-architecture`；源码、发布包与生产状态
-  分开记录，最终 commit、包哈希和生产证据会在部署后补齐。
-- 当前阶段：CMS 最终信息架构已实现并通过本地门禁与合成租户浏览器验收；生产部署
-  仍待 v9.5.0 发布控制器执行。
+  分开记录；已同步到 `origin/codex/v9.3.0-cms-information-architecture`。
+- 部署代码 commit：`9a976215bab9d5b32b9792f36851078a4111ff4b`。
+- 当前生产：`/opt/pwestudio/current` 指向
+  `PWE-StudioSaaS-aws-9.5.0`，运行镜像为 `studiosaas:9.5.0`。
 
 ## 本轮实际交付
 
@@ -31,10 +32,30 @@
 - 截图工具、`manual.html` 引用和 `asset-manifest.json` 已同步，未跟踪的 `docs/sales/`
   路演资料保留在工作区且不纳入发布提交。
 
-## 发布闭环待补证据
+## 发布闭环与线上证据
 
-- SaaS / Edition 包名、`BUILD_INFO`、SHA-256、部署 commit、生产 release symlink、
-  备份、迁移、公开深健康、缓存哈希与浏览器公网验收将在生产部署后写入本文件。
+- SaaS：`dist/PWE-StudioSaaS-aws-9.5.0.tar.gz`；SHA-256：
+  `d9cd91c57467213ee81710d290b8a589c6910b4819568d136e2da9e59842802a`。
+- Edition：`dist/PWE-Studio-Edition-9.5.0.tar.gz`；SHA-256：
+  `90409a371521074252ceed90946198a5c4021319fcefb19fc55d665f74dfc97d`。
+- 两个包的 `BUILD_INFO` 均为 `version=9.5.0`、commit
+  `9a976215bab9d5b32b9792f36851078a4111ff4b`，分别为 `mode=saas` /
+  `mode=standalone`；checksum、入口文件和内部/敏感路径排除检查通过。
+- 部署控制器在切换前创建了逻辑备份
+  `studiosaas_studiosaas_20260809T123630Z.dump`（约 481 KB）及卷归档
+  `pwestudio-volumes-20260809T123632Z.tar.gz`（约 66 MB）。
+- 内部与公网 deep health 均通过：`appVersion=9.5.0`、`db=ok`、`mode=saas`、
+  `tenants=6`、`themes.unreadable=0`；当前 app/db 容器均 healthy，磁盘约 47 GB 可用。
+- 生产 `schema_migrations` 最新为 `0028_cms_notifications.sql`；
+  `backfill_media_variants.py --check` 返回 `Generated variants: 0`。
+- `/`、`/zh/`、`/zh/manual/`、展示租户门户、报名页、CMS 和 Release Notes 均通过公网
+  200；HTTP → HTTPS 为 `301`，HTTPS 为 `200`，TLS 校验为 `0`，HTTP/2。
+- CMS shell 发出 `/assets/cms-app.js?v=9.5.0&h=e08ae1f2dc0dd4c9`；响应为一年
+  `immutable`，公网响应 SHA-256 与本地发布提交中的 tracked bundle 均为
+  `e08ae1f2dc0dd4c9634fb0228dcdcc06e3099465fcb0da568febd11f83e5f444`。
+- 本地 Chrome 已使用合成 `lets-paint-showcase` 真登录验收中英文桌面/移动 CMS、课程、
+  作品、待处理、充值退款、设置深链；公网关键路由完成 HTTP 验收。生产原始日志未拉回
+  本地，以避免把潜在业务数据或凭据带出；因此日志正文不作为本次交付证据。
 
 ---
 
