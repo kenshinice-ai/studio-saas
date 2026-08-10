@@ -7,9 +7,9 @@ the current source tree was packaged or deployed.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | `codex/v9.3.0-cms-information-architecture` (which is ahead of `main`); `VERSION` = **9.8.0**; release candidate not yet committed | The three-column Platform Admin workbench implementation is in the working tree; package and production evidence are pending. |
-| Package | **9.8.0 package pending** | Build only after the candidate commit and full local gate; the prior v9.7.0 package remains the production artifact until deployment is accepted. |
-| Production | **v9.7.0 remains deployed** | Production is intentionally unchanged while the v9.8.0 candidate is verified; re-check the production health endpoint before making the new release claim. |
+| Source | `codex/v9.3.0-cms-information-architecture`; `VERSION` = **9.8.0**; deployed candidate commit `906d18549475ac35b2cabd24c31a7944b83cfc31`; pushed to `origin` | The deployed bytes are traceable to the candidate commit; the later handoff closure is documentation-only. |
+| Package | SaaS `dist/PWE-StudioSaaS-aws-9.8.0.tar.gz` · SHA-256 `af814ad66036a8c8686f3c94394fa1b1e63d2cc4fb9bb11d5878d7c8670bc29b`; Edition `dist/PWE-Studio-Edition-9.8.0.tar.gz` · SHA-256 `30731b98b66276024f1fbbefe75f0fc93e7832d0388aeac1ae9b8a44439aa6e8` | Both packages passed checksum, `BUILD_INFO`, entrypoint and exclusion checks. |
+| Production | **v9.8.0 deployed to `pwestudio.online`** | `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.8.0`; the running image is `studiosaas:9.8.0`; deep health reports `appVersion=9.8.0`, `db=ok`, `mode=saas`, `tenants=6`, `themes.unreadable=0`. |
 
 Re-verify the production health endpoint before any later release claim; do not
 infer Production from `VERSION` or from an archive filename, which does not identify the deployed commit.
@@ -36,9 +36,11 @@ SSE, WebSocket or browser push, and does not invent Groups, Invitations,
 Announcements, System Health or Settings pages that are not current
 capabilities.
 
-Release closure will record the exact candidate commit, clean SaaS/Edition
-packages, production image, deep health, public routes, asset hash and backup
-evidence in `docs/HANDOFF_LATEST.md` after deployment acceptance.
+Release closure (2026-08-10): v9.8.0 was deployed through the guarded Lightsail
+controller from the candidate commit above. Public deep health, critical routes,
+the immutable Platform Admin asset hash/cache response, and the production
+browser login boundary were accepted. Exact package, backup and verification
+evidence is recorded in `docs/HANDOFF_LATEST.md`.
 
 ## v9.6.1 Studio Admin workspace polish
 

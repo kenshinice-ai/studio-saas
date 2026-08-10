@@ -1,6 +1,6 @@
 # PWE Studio v9.8.0 — Platform Admin 三栏工作台发布 handoff
 
-> 当前阶段：v9.8.0 已完成三栏工作台、Today Needs attention、Tenant/Plan/Audit Inspector 和移动端抽屉实现；本地浏览器验收已通过，正在进行完整门禁、打包、提交同步与生产发布。生产在新包验收前仍保持 v9.7.0。历史发布证据保留在本节下方。
+> 当前阶段：v9.8.0 已完成三栏工作台、Today Needs attention、Tenant/Plan/Audit Inspector 和移动端抽屉实现，并已通过完整门禁、干净双模式打包、提交同步、生产部署和公网验收。生产已由 v9.7.0 切换为 v9.8.0。历史发布证据保留在本节下方。
 
 ## 下一阶段设计入口
 
@@ -10,17 +10,18 @@
 
 本阶段设计原则：左边找地方，中间做事情，右边做判断；Attention 是 Today 内的快捷入口，不是第二套 Dashboard；Support Mode 必须使用 reason 和审计流程；未接入的数据、支付状态和未来页面不得提前进入一级导航。
 
-## v9.8.0 发布证据（部署完成后补齐）
+## v9.8.0 最终发布证据（2026-08-10）
 
 | 层级 | 已验证事实 |
 |---|---|
-| Source | 分支 `codex/v9.3.0-cms-information-architecture`；`VERSION=9.8.0`；候选提交、推送状态待补齐。 |
-| Package | SaaS / Edition v9.8.0 待完整门禁通过后生成；SHA-256 与 `BUILD_INFO` 待补齐。 |
-| Production | v9.7.0 保持运行；v9.8.0 尚未部署。 |
-| Backup | v9.8.0 切换前逻辑备份、manifest 和卷归档待部署前补齐。 |
-| Public edge | v9.8.0 部署后的健康、关键路由、版本化 asset hash 与缓存响应待补齐。 |
-| Browser | 本地应用内 Browser 已验证桌面三栏、Tenant/Plan/Audit Inspector、Needs attention、移动端 Inspector 抽屉、无横向溢出和 Support Mode 空 reason 字段级拦截；公网验收待部署后补齐。 |
-| Local gates | 相关 Platform Admin/UI 门禁：`146 passed, 1 skipped`；完整门禁待补齐。 |
+| Source | 分支 `codex/v9.3.0-cms-information-architecture`；`VERSION=9.8.0`；部署候选 commit `906d18549475ac35b2cabd24c31a7944b83cfc31`；已推送至 `origin`。 |
+| Package | SaaS `dist/PWE-StudioSaaS-aws-9.8.0.tar.gz`，SHA-256 `af814ad66036a8c8686f3c94394fa1b1e63d2cc4fb9bb11d5878d7c8670bc29b`；Edition `dist/PWE-Studio-Edition-9.8.0.tar.gz`，SHA-256 `30731b98b66276024f1fbbefe75f0fc93e7832d0388aeac1ae9b8a44439aa6e8`。两个包均通过 checksum、`BUILD_INFO`、入口文件和排除项检查；构建时间 `2026-08-10T03:52:57Z`，模式分别为 `saas` / `standalone`。 |
+| Production | `/opt/pwestudio/current` 指向 `PWE-StudioSaaS-aws-9.8.0`，运行镜像为 `studiosaas:9.8.0`；deep health 为 `appVersion=9.8.0`、`db=ok`、`mode=saas`、`tenants=6`、`themes.unreadable=0`；容器 healthy，磁盘可用约 `46.83 GB`。 |
+| Backup | 切换前逻辑备份 `/data/backups/postgres/studiosaas_studiosaas_20260810T035741Z.dump` 与 manifest `/data/backups/postgres/studiosaas_studiosaas_20260810T035741Z.manifest.json`；卷归档 `pwestudio-volumes-20260810T035742Z.tar.gz`。 |
+| Migration / media | 最新迁移为 `0028_cms_notifications.sql`；启动日志显示数据库无需新增迁移、10 个工作室重新生成；生产媒体覆盖为 `29` 个图片资源，medium/display/thumb 缺失均为 `0`；当前应用日志错误关键词计数为 `0`。 |
+| Public edge | `https://pwestudio.online` deep health 与 `/platform-admin`、`/super-admin`、根站、中文站、手册、展示租户门户/报名/CMS/Studio Admin、双语 Release Notes/FAQ 均返回 `200`；HTTP → HTTPS 为 `301`，HTTPS TLS 校验为 `0`、HTTP/2；Platform Admin 版本化 asset hash 与本地一致，缓存头为 immutable；代表性公开媒体请求支持 ETag，`If-None-Match` 返回 `304`。 |
+| Browser | 公网应用内 Browser 已打开 `/platform-admin#overview`，确认生产双语登录壳和未登录边界；未使用生产凭据、未执行生产写操作；浏览器控制台错误数为 `0`。本地验收仍覆盖桌面三栏、Needs attention、Tenant/Plan/Audit Inspector、移动端 Inspector 抽屉、无横向溢出和 Support Mode 空 reason 字段级拦截。 |
+| Local gates | 完整门禁 `All checks passed`；CMS smoke `73 passed, 0 failed`；租户隔离 `237 passed, 0 failed`；Platform Admin/UI 定向门禁 `146 passed, 1 skipped`；`node backend/scripts/check_inline_scripts.mjs` 与 `git diff --check` 均通过。 |
 
 未跟踪的 `docs/sales/` 路演资料已保留，未纳入提交或发布包。支付、银行转账设置、Gmail/SMTP、AWS SES、短信、SSE、WebSocket 和浏览器 Push 仍不在本版本。
 
