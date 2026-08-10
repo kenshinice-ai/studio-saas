@@ -2006,6 +2006,22 @@
       box-shadow: 0 12px 36px color-mix(in srgb, var(--ink) 8%, transparent);
     }
 
+    /* v9.6.1: Studio Admin is an operating workspace, not a reading page.
+       Let the shell use the available viewport like CMS does; the readable
+       measure is still protected inside form copy and panel headings. The
+       inner editor/preview pair keeps its 1.618:1 split below. */
+    .header-top,
+    main {
+      width: 100%;
+      max-width: none;
+      padding-left: clamp(16px, 2vw, 34px);
+      padding-right: clamp(16px, 2vw, 34px);
+    }
+
+    .workbench-layout {
+      grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+    }
+
     .brand h1 { color: var(--ink); }
 
     /* The language switch injects its own 44px buttons and a 5px pad; trimmed
@@ -2242,6 +2258,20 @@
 
     .detail-row:last-child { border-bottom: 0; }
 
+    @media (min-width: 769px) and (max-width: 1180px) {
+      /* Keep the grouped rail readable on tablet widths, then stack the
+         editor and preview before either column becomes a narrow strip. */
+      .workbench-layout {
+        grid-template-columns: minmax(196px, 0.28fr) minmax(0, 1fr);
+      }
+      .settings-shell {
+        grid-template-columns: 1fr;
+      }
+      .preview-panel {
+        position: static;
+      }
+    }
+
     .modal-footer {
       padding: 16px 24px;
       border-top: 1px solid var(--line);
@@ -2258,6 +2288,7 @@
       .header { position: static; }
       .section { scroll-margin-top: var(--ui-space-4, 21px); }
       .section-title { font-size: 19px; }
+      .workbench-layout { grid-template-columns: 1fr; }
       .brand-preview { grid-template-columns: 1fr; }
       .modal-footer { justify-content: stretch; }
       .modal-footer button { flex: 1 1 160px; }
@@ -3209,7 +3240,12 @@
     let publishedVersionLabel = '';
     let previewMode = 'portal';
     let previewDevice = 'desktop';
-    let previewLanguage = 'zh';
+    /* Start the visitor preview in the same language as the admin shell. The
+       control remains independent after an owner intentionally compares the
+       other language. This prevents an English admin from opening on a
+       Chinese-looking preview while keeping side-by-side QA possible. */
+    let previewLanguage = localStorage.getItem('studiosaas_admin_language') === 'en' ? 'en' : 'zh';
+    let previewLanguageManuallySet = false;
     /* Shared by updateThemePreview and renderPreviewSections. It used to be
        declared inside updateThemePreview, which is why the section list — a
        separate function — read only the Chinese label inputs and ignored the
@@ -3914,7 +3950,7 @@
     function openTenantSurface(surface) {
       const url = tenantSurfaceUrl(surface);
       if (url === '#') {
-        showToast('Tenant slug is required.', 'error');
+        showToast(adminText('请先填写工作室网址标识。', 'Tenant slug is required.'), 'error');
         return;
       }
       window.open(url, '_blank');
@@ -3972,28 +4008,29 @@
       await updateProducerCredit();
       const slug = currentTenantSlug();
       const checks = [
-        ['surfacePortalHealth', 'portal', 'Portal'],
-        ['surfaceCmsHealth', 'cms', 'CMS'],
-        ['surfaceRegisterHealth', 'register', 'Register'],
-        ['surfaceAdminHealth', 'admin', 'Studio Admin']
+        ['surfacePortalHealth', 'portal', '官网', 'Portal'],
+        ['surfaceCmsHealth', 'cms', '运营 CMS', 'CMS'],
+        ['surfaceRegisterHealth', 'register', '报名', 'Register'],
+        ['surfaceAdminHealth', 'admin', '工作室管理', 'Studio Admin']
       ];
       if (!slug) {
-        checks.forEach(([id]) => setSurfaceHealth(id, 'warn', 'Missing slug'));
+        checks.forEach(([id]) => setSurfaceHealth(id, 'warn', adminText('缺少网址标识', 'Missing slug')));
         return;
       }
-      checks.forEach(([id]) => setSurfaceHealth(id, 'warn', 'Checking...'));
-      await Promise.all(checks.map(async ([id, surface, label]) => {
+      checks.forEach(([id]) => setSurfaceHealth(id, 'warn', adminText('检查中…', 'Checking...')));
+      await Promise.all(checks.map(async ([id, surface, labelZh, labelEn]) => {
+        const label = adminText(labelZh, labelEn);
         try {
           const response = await fetch(tenantSurfaceUrl(surface), { credentials: 'same-origin', cache: 'no-store' });
           if (response.ok) {
-            setSurfaceHealth(id, 'ok', `${label} OK`);
+            setSurfaceHealth(id, 'ok', `${label} ${adminText('正常', 'OK')}`);
           } else if ([401, 403].includes(response.status)) {
-            setSurfaceHealth(id, 'warn', `${label} requires login`);
+            setSurfaceHealth(id, 'warn', `${label} ${adminText('需要登录', 'requires login')}`);
           } else {
             setSurfaceHealth(id, 'fail', `${label} ${response.status}`);
           }
         } catch (err) {
-          setSurfaceHealth(id, 'fail', `${label} unavailable`);
+          setSurfaceHealth(id, 'fail', `${label} ${adminText('不可用', 'unavailable')}`);
         }
       }));
     }
@@ -5467,7 +5504,8 @@
       updateThemePreview();
     }
 
-    function switchPreviewLanguage(language) {
+    function switchPreviewLanguage(language, {manual = false} = {}) {
+      if (manual) previewLanguageManuallySet = true;
       previewLanguage = language === 'en' ? 'en' : 'zh';
       document.querySelectorAll('[data-preview-language]').forEach((button) => {
         const active = button.dataset.previewLanguage === previewLanguage;
@@ -5500,7 +5538,10 @@
         studioLogo.hidden = true;
         studioLogo.removeAttribute('src');
       };
-      $('studioMeta').textContent = t.slug ? `${t.slug} · ${preset.label} website and brand console` : 'Website and brand console';
+      const categoryLabel = adminIsZh() ? (preset.labelZh || preset.label) : preset.label;
+      $('studioMeta').textContent = t.slug
+        ? `${t.slug} · ${categoryLabel} ${adminText('官网与品牌管理', 'website and brand console')}`
+        : adminText('官网与品牌管理', 'Website and brand console');
       $('tenantSlug').value = t.slug || currentTenantSlug();
       updateSurfaceLinks();
       updateSurfaceHealth().catch((error) => console.warn('Surface health refresh failed.', error));
@@ -6517,7 +6558,7 @@
         button.addEventListener('click', () => switchPreviewDevice(button.dataset.previewDevice));
       });
       document.querySelectorAll('[data-preview-language]').forEach((button) => {
-        button.addEventListener('click', () => switchPreviewLanguage(button.dataset.previewLanguage));
+        button.addEventListener('click', () => switchPreviewLanguage(button.dataset.previewLanguage, {manual: true}));
       });
       $('presetGrid').addEventListener('click', (event) => {
         const card = event.target.closest('[data-preset-key]');
@@ -6625,9 +6666,14 @@
         'settingTimetableFieldDuration','settingTimetableFieldCapacity','settingTimetableFieldPrice'
       ].forEach((id) => $(id).addEventListener('change', () => { setSettingsDirty(true); updateThemePreview(); }));
       ['settingButtonStyle','settingFontMood'].forEach((id) => $(id).addEventListener('change', markThemeCustom));
-      document.addEventListener('studiosaas:admin-language', () => {
+      document.addEventListener('studiosaas:admin-language', (event) => {
+        if (!previewLanguageManuallySet) {
+          switchPreviewLanguage(event.detail?.language);
+        }
         renderStylePresetGrid();
         renderPresetGrid($('settingCategory')?.value || 'general');
+        updateWorkspaceStatus();
+        updateSurfaceHealth().catch((error) => console.warn('Surface health language refresh failed.', error));
       });
       $('settingCategory').addEventListener('change', () => {
         applyCategoryPreset();

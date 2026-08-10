@@ -7,12 +7,30 @@ the current source tree was packaged or deployed.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | `codex/v9.3.0-cms-information-architecture`; `VERSION` = **9.6.0** | This branch, which is ahead of `main`, produced deployed candidate commit `f9007855dcaa10298bd522c82e7397d2afba0638`; the closure docs commit is recorded separately. |
-| Package | **9.6.0 SaaS + Edition archives verified** | SaaS SHA-256 `38da495f81146d48878350fd07a8dfce25b6c30ff67782f3f4cc3d990790cdde`; Edition SHA-256 `88416f04de9cf7ab88fa61a409e094e282d4ed9701218757d39b9b44db51d2a2`; both `BUILD_INFO` records point to the deployed candidate. |
-| Production | **9.6.0 deployed and publicly accepted** | `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.6.0`, image `studiosaas:9.6.0`; deep health reports `db=ok`, 6 readable tenants and `unreadable=0`. `BUILD_INFO` separately confirms the deployed commit. |
+| Source | `codex/v9.3.0-cms-information-architecture`; `VERSION` = **9.6.1** | This branch, which is ahead of `main`, is the v9.6.1 candidate; the exact release and closure commits are recorded separately in `docs/HANDOFF_LATEST.md`. |
+| Package | **9.6.1 SaaS + Edition archives pending release closure** | The archives are built only from the clean v9.6.1 candidate; SHA-256 and `BUILD_INFO` evidence will be recorded after packaging. |
+| Production | **9.6.1 deployment pending release closure** | Production remains v9.6.0 until the v9.6.1 package passes the release gate and public acceptance. |
 
 Re-verify the production health endpoint before any later release claim; do not
 infer Production from `VERSION` or from an archive filename, which does not identify the deployed commit.
+
+## v9.6.1 Studio Admin workspace polish
+
+This small release keeps the approved Studio Admin information architecture and
+improves its working surface: the shell now uses the available desktop width
+like the CMS, with a compact navigation rail and a golden-ratio editor/preview
+split inside it. Tablet layouts stack the preview before content becomes cramped,
+and mobile stays single-column without horizontal overflow.
+
+The preview language starts in the admin shell language so the interface does
+not present an unexplained Chinese/English mismatch. Its own language control
+still allows an explicit independent comparison. Surface health labels, draft
+status and save status now follow the active admin language as well.
+
+No data model, permissions, publishing contract, payment, notification or
+external messaging behaviour changes in this release. Online payments,
+bank-transfer configuration, Gmail/SMTP, AWS SES, SMS, SSE, WebSocket and
+browser push remain outside scope.
 
 ## v9.6.0 Studio Admin information architecture and publication clarity
 
@@ -942,7 +960,7 @@ curl -i -X POST http://localhost:8901/v1/admin/tenants \
 | `docs/Deployment.md` | Deployment stages; Stage 2 (AWS Lightsail) live since 2026-07-30 |
 | `docs/Design_System.md` | UI tokens and component standards |
 | `docs/Glossary.md` | One agreed word per concept (enforced by `check_terminology.py`) |
-| `docs/guides/` | Per-role user manuals in Chinese (applicable to v9.6.0) |
+| `docs/guides/` | Per-role user manuals in Chinese (applicable to v9.6.1) |
 | `01 BRAND ASSETS/` | PWE/Paradise family delivery kit and validated asset manifest |
 
 ---

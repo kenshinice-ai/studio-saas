@@ -216,6 +216,41 @@ def test_v96_preview_toolbar_wraps_without_clipping_controls() -> None:
     assert "width: 100%" in styles[styles.index(".preview-tabs {"):]
 
 
+def test_v961_wide_shell_uses_available_width_before_stacking() -> None:
+    """The workbench should behave like CMS on wide screens.
+
+    The readable measure belongs to copy, not to the operating shell. The
+    editor/preview pair keeps its phi split while the outer page can use the
+    viewport and the tablet breakpoint stacks before either column collapses.
+    """
+
+    styles = style_source()
+    assert ".header-top,\n    main {" in styles
+    shell = styles[styles.index(".header-top,\n    main {"):]
+    assert "width: 100%;" in shell[:shell.index("}")]
+    assert "max-width: none;" in shell[:shell.index("}")]
+    assert "grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);" in styles
+    tablet_media = "@media (min-width: 769px) and (max-width: 1180px)"
+    assert tablet_media in styles
+    assert "grid-template-columns: 1fr;" in styles[styles.index(tablet_media):]
+
+
+def test_v961_preview_language_follows_admin_until_manually_changed() -> None:
+    """The first preview language must not contradict the admin language.
+
+    Owners can still compare the other visitor language explicitly, so the
+    follow mode stops once a preview language button is chosen by the user.
+    """
+
+    source = console()
+    assert "localStorage.getItem('studiosaas_admin_language') === 'en' ? 'en' : 'zh'" in source
+    assert "let previewLanguageManuallySet = false;" in source
+    assert "switchPreviewLanguage(event.detail?.language)" in source
+    assert "{manual: true}" in source
+    assert "adminText('正常', 'OK')" in source
+    assert "adminText('需要登录', 'requires login')" in source
+
+
 def test_v96_dirty_state_covers_timezone_timetable_and_family_messages() -> None:
     source = console()
     for field in (

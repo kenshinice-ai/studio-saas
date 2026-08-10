@@ -1,6 +1,6 @@
 # 工作室 Owner 手册（Studio Admin + CMS 全权限）
 
-> 适用版本：PWE Studio v9.6.0 · 界面：Studio Admin（`/<工作室网址标识>/studio-admin`）
+> 适用版本：PWE Studio v9.6.1 · 界面：Studio Admin（`/<工作室网址标识>/studio-admin`）
 > 与运营 CMS（`/<工作室网址标识>/cms`）
 > 其他角色手册见 [手册总览](README.md)
 
@@ -28,15 +28,15 @@ Owner 是租户（工作室）的最高负责人，拥有两个界面的全部�
    →「Change Password」。v8.3.0 起，登录身份、工作室标识、修改密码与退出
    登录都收在这个菜单里，顶栏因此压缩成一行。
 3. 顶部导航：**Website / Brand**（品牌工作台）、**Published Pages**
-   （已发布页面）、**Registration**（报名表）、**Open CMS**。工作台左侧按
+   （已发布页面）、**Registration**（报名表）、**Open CMS**。工作台现在铺满可用桌面宽度，左侧按
    「品牌与官网 / 招生入口 / 发布中心 / 经营洞察」分组；家长话术位于
    「招生入口 → Family messages」。
    打开官网、CMS、报名页这三个入口在「已发布页面」里也有卡片，带网址与
    健康状态。
 4. 界面右上角有「中文 / English」切换（记忆在本浏览器，存储键
    `studiosaas_admin_language`，与 CMS、Super Admin 共用）。它只改管理界面
-   语言；预览区里另有一组「中文 / EN」按钮，那个切换的是**访客视角**的
-   预览语言，两者互不影响。
+   语言；预览区默认跟随这个语言，另有一组「中文 / EN」按钮供你主动切换
+   **访客视角**的预览语言。主动切换后，两者可以独立对照。
 
 > 如果用 Manager 账号登录 Studio Admin，会提示
 > 「Studio Admin requires the owner role for <slug>. Open Studio CMS for

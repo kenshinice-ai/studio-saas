@@ -1,5 +1,27 @@
 # PWE Studio — Release Notes and Acceptance Evidence
 
+## v9.6.1 — Studio Admin workspace polish
+
+This small release keeps the v9.6.0 information architecture and gives the
+Studio Admin workbench a more useful canvas. On wide screens the shell uses the
+available width like the CMS, while the navigation rail stays compact and the
+editor/preview pair keeps its approximately `1.618:1` working ratio. Tablet
+layouts stack the preview before the working area becomes cramped; mobile stays
+single-column without horizontal overflow.
+
+The preview now starts in the active admin shell language, so the surrounding
+controls, draft notice and save status do not unexpectedly disagree with the
+preview. The preview language buttons remain available for an explicit,
+independent bilingual comparison.
+
+This is a presentation and language-alignment release only. It does not change
+the data model, permissions, publishing contract, payments, bank-transfer
+display, persistent CMS notifications or external messaging providers.
+
+Production acceptance will be recorded here after the v9.6.1 package, deploy
+and public deep-health gate complete; v9.6.0 remains the currently deployed
+version until then.
+
 ## v9.6.0 — Studio Admin navigation and publication clarity
 
 Studio Admin now groups the public-brand workbench into Brand & Website,
