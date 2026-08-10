@@ -1,6 +1,14 @@
 # PWE Studio v9.7.0 — Platform Admin 审计与实施 handoff
 
-> 当前阶段：v9.7.0 已完成 current-truth、真实登录逐屏审计、状态矩阵、P0/P1 实现、完整门禁、打包、生产部署和公网验收。详细合同见 [`docs/design/Platform_Admin_Audit_2026-08-10.md`](design/Platform_Admin_Audit_2026-08-10.md)。P2 保持后续队列。
+> 当前阶段：v9.7.0 已完成 current-truth、真实登录逐屏审计、状态矩阵、P0/P1 实现、完整门禁、打包、生产部署和公网验收；下一阶段已冻结三栏工作台交互合同，进入逐屏设计，仍不改代码。历史发布证据保留在本节下方。
+
+## 下一阶段设计入口
+
+- [三栏工作台交互合同](design/Platform_Admin_Workbench_Interaction_Contract_2026-08-10.md)：冻结顶部栏、左侧工作区、中间工作流、右侧 Inspector、状态、权限、品牌和 P0/P1/P2 边界。
+- [逐屏设计 handoff](design/Platform_Admin_Screen_Design_Handoff_2026-08-10.md)：Today、Tenants、Tenant Inspector、Plans、Audit、移动端和交接产物顺序。
+- [前一阶段逐屏审计与状态矩阵](design/Platform_Admin_Audit_2026-08-10.md)：记录 v9.7.0 的 current-truth、真实审计和已完成发布证据。
+
+本阶段设计冻结原则：左边找地方，中间做事情，右边做判断；Attention 是 Today 内的快捷入口，不是第二套 Dashboard；Support Mode 必须使用 reason 和审计流程；未接入的数据、支付状态和未来页面不得提前进入一级导航。
 
 ## 最终发布证据（2026-08-10）
 

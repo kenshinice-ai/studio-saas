@@ -7,6 +7,8 @@
 
 最终发布证据：release commit `ade9f90b32e46d6aeb0a681d7574bf44e9d3f5ab`；SaaS 包 SHA-256 `fda3ca5cddeef8588d8515fbdb8b1511f9f825cc4114fe23a864653450045e42`；Edition 包 SHA-256 `6bf1697a886affc25de200bb442642e923e6be86d48ebbe15007889e32e253e4`；生产 deep health `appVersion=9.7.0`、`db=ok`、`mode=saas`、`tenants=6`、`themes.unreadable=0`；公网关键路由和版本化 `admin-i18n.js` 已独立验收。
 
+下一阶段设计入口：[`Platform_Admin_Workbench_Interaction_Contract_2026-08-10.md`](Platform_Admin_Workbench_Interaction_Contract_2026-08-10.md) 与 [`Platform_Admin_Screen_Design_Handoff_2026-08-10.md`](Platform_Admin_Screen_Design_Handoff_2026-08-10.md)。本轮只冻结设计合同并进入逐屏设计，不改代码、不部署。
+
 ## 1. 当前事实与边界
 
 ### 1.1 版本、路由和部署事实
