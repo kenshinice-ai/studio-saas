@@ -18,9 +18,13 @@ This is a presentation and language-alignment release only. It does not change
 the data model, permissions, publishing contract, payments, bank-transfer
 display, persistent CMS notifications or external messaging providers.
 
-Production acceptance will be recorded here after the v9.6.1 package, deploy
-and public deep-health gate complete; v9.6.0 remains the currently deployed
-version until then.
+Production acceptance: v9.6.1 is deployed at `https://pwestudio.online` from
+candidate commit `e46a3e3f4a407e8b2ac34ce8e230165c37150ea1`. The SaaS archive
+SHA-256 is `f1465b393fefb83e962bac41402fff150430c3fcd3e9b7252911d985840aabb4`;
+the Edition archive SHA-256 is
+`3d881f7e3324b5acacc4aa89feadd23a278e5cd2cc412f0474d6c13b8deb7e0e`.
+Deep health reports `appVersion=9.6.1`, `db=ok`, six readable tenants and
+`themes.unreadable=0`.
 
 ## v9.6.0 — Studio Admin navigation and publication clarity
 

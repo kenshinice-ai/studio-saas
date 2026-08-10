@@ -1,11 +1,11 @@
 # PWE Studio v9.6.1 — Studio Admin 执行 handoff
 
-> 状态：候选版本，代码与文档已完成；待完成打包、同步、部署与公网验收。版本：`9.6.1`。本节是本文件的最新交接入口，历史版本记录仍保留在下方。
+> 状态：已完成代码、文档、打包、同步、部署与公网验收；版本：`9.6.1`。本节是本文件的最新交接入口，历史版本记录仍保留在下方。
 
 ## 当前事实
 
-- 源码分支：`codex/v9.3.0-cms-information-architecture`；`VERSION` 已更新为 `9.6.1`；部署候选 commit 将在候选提交完成后记录。
-- 当前生产：`https://pwestudio.online`；当前仍为 `PWE-StudioSaaS-aws-9.6.0`，直到 v9.6.1 通过发布门禁。
+- 源码分支：`codex/v9.3.0-cms-information-architecture`；`VERSION` 已更新为 `9.6.1`；部署候选 commit：`e46a3e3f4a407e8b2ac34ce8e230165c37150ea1`。
+- 当前生产：`https://pwestudio.online`；`/opt/pwestudio/current` 指向 `PWE-StudioSaaS-aws-9.6.1`，运行镜像为 `studiosaas:9.6.1`。
 - Studio Admin 负责品牌、官网、报名入口、公开课表、草稿、预览与发布；CMS 负责日常运营。
 - 家长话术不迁移数据、不新建发送系统，仍保留在 Studio Admin，入口归入「招生入口」子菜单；CMS 继续复制使用。
 - 支付、银行转账信息、Gmail/SMTP、AWS SES、短信、SSE、WebSocket、浏览器 Push 均不在本版本。
@@ -38,11 +38,18 @@
 - `?view=register`、`?view=messages`、`?view=advanced` 能直接打开对应工作区。
 - 家长话术继续读取旧 `messageTemplates` 数据并进入现有发布载荷；没有第二个编辑器或发送服务。
 - 草稿、预览、已发布官网三者文案不混淆；发布失败有明确恢复路径。
-- 本地候选版本为 `9.6.1`；双模式发布包和生产 `APP_VERSION` / `BUILD_INFO` / deep health 待发布闭环后补齐。
+- 本地、双模式发布包和生产 `APP_VERSION` / `BUILD_INFO` / deep health 均为 `9.6.1`。
 
-## 发布与验证证据（待补齐）
+## 发布与验证证据
 
-- 候选 commit、SaaS/Edition 包路径与 SHA-256、`BUILD_INFO`、部署备份、生产 deep health、公网路由和完整测试结果将在发布闭环后补齐。
+- SaaS 包：`dist/PWE-StudioSaaS-aws-9.6.1.tar.gz`；SHA-256：`f1465b393fefb83e962bac41402fff150430c3fcd3e9b7252911d985840aabb4`。
+- Edition 包：`dist/PWE-Studio-Edition-9.6.1.tar.gz`；SHA-256：`3d881f7e3324b5acacc4aa89feadd23a278e5cd2cc412f0474d6c13b8deb7e0e`。
+- 两个包的 `BUILD_INFO` 均为 `version=9.6.1`、部署候选 commit `e46a3e3f4a407e8b2ac34ce8e230165c37150ea1`，模式分别为 `saas` / `standalone`，构建时间为 `2026-08-10T01:16:13Z`。
+- 本次部署前备份：`studiosaas_studiosaas_20260810T011745Z.dump`、`pwestudio-volumes-20260810T011746Z.tar.gz`；逻辑备份 manifest 同时生成。
+- 公网 deep health：`appVersion=9.6.1`、`db=ok`、`mode=saas`、`tenants=6`、`themes.unreadable=0`；容器 healthy，磁盘可用约 `47.01 GB`。
+- 公网 `/`、`/zh/`、`/zh/manual/`、展示租户门户、报名页、CMS、Studio Admin、双语 Release Notes 和中英文 Studio Admin 截图资源均返回 `200`；HTTP → HTTPS 为 `301`，TLS 校验为 `0`，HTTP/2。
+- 本地完整门禁：`1945 passed, 8 skipped`；CMS smoke：`73 passed, 0 failed`；租户隔离：`237 passed, 0 failed`；生产部署后最近 5 分钟 app/db 错误关键词计数均为 `0`。
+- 浏览器验收覆盖 Studio Admin 2000px 桌面、1024px 平板和 390px 移动布局：宽屏无大块空白，编辑/预览约 `1.618:1`，平板提前堆叠，移动端无横向溢出；后台语言会同步初始预览语言，手动切换后保持独立对照。公网手册为 `zh-Hans`，Studio Admin 未登录入口无控制台错误。
 
 ---
 
