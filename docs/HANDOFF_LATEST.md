@@ -1,3 +1,77 @@
+# 🖥️ Platform Admin 三栏工作台 · 方案评审（2026-08-08，只出方案未改代码）
+
+全文见 `docs/design/Platform_Admin_Workspace.md`。**方向同意，但动工前有一批必须先改。**
+
+## 最要紧的一条：渲染稿在为一个不存在的产品做设计
+
+Owner 已自己抓到 `Payment failed`（无在线支付）。**同类问题还有九个**，逐项对过
+`/admin/*`、`schema_v1.sql`、`tenant_usage`：
+
+- **左栏六个导航项，四个指向不存在的功能** —— Announcements / Tenant Groups /
+  Invitations / Invoices，全库命中 **0**。
+- **右栏三条用量，两条是虚构指标** —— `Bandwidth` 全库唯一命中是
+  `video_embed.py` 里一句注释「zero bandwidth served」；`Projects` 的命中全是
+  编程班行业预设里的「项目」一词。
+- `MRR (USD)` 币种错（字段是 `mrr_aud`，全系统 AUD）。
+- `Storage 62% of 2 TB` **分母虚构** —— 平台级总配额不存在，配额只按租户。
+- `Plan expiring soon` 语义错 —— 字段是 `trials_ending_7d`，说的是**试用**。
+- `Impersonate login` **概念错**：没有冒名登录，有的是 `support-session`
+  （填原因、进出留痕、**租户 Owner 自己看得见**）。
+
+> 照它建 shell，要么发一批点不动的死导航，要么被迫承诺四个从没排期的子系统。
+
+**真实的用量维度是四条**：学员 / 员工 / 存储 / **作品发布上限**
+（`showcase_limit`，套餐差异化的卖点，而平台方目前在任何界面都看不到）。
+
+## 对这套布局最要紧的设计意见
+
+**Inspector 会换目标，破坏性操作不能跟着换。**
+
+渲染稿把 Support Mode 开关和 Reset / Pause / **Delete** 放在右栏同一张红卡里，
+而右栏是「选中什么显示什么」的：为租户 A 打开支持模式 → 选中项一变 →
+**Delete 静默指向了租户 B**，红框和按钮位置一模一样。
+**这是三栏布局特有的新风险，旧的单页控制台没有。**
+
+三条修正建议全部进 P0：选中项变化即**关闭 Support Mode** 并提示；
+破坏性操作**移出 Inspector**，走带租户名 + slug 的确认框；删除要求**键入 slug**。
+
+## 对 P0/P1/P2 的调整
+
+- **提到 P0**：Inspector 可折叠/固定（原 P2）—— 线上真实租户数是 **6**，
+  渲染稿画的是 128。三栏常驻 Inspector 是高频分诊的形态，6 个租户时那 380px
+  多在占地方。折叠开关是让它在当下也不别扭的那一个。
+- **提到 P1**：审计前后值对比、系统健康/备份 freshness（数据都已在
+  `/v1/health?deep=1`，接上比新建任何东西便宜，且是唯一能提前发现故障的一格）。
+- **摘掉**：多选比较、批量操作 —— 6 个租户没有这个问题，写进 P2 只会变成
+  永远排不上的技术债。
+- **P1 补一条**：`Attention Queue` 的行是「3 个租户付款失败」，而
+  **Inspector 一次只装一个租户** —— 多租户告警应进中栏筛选列表，不是右栏。
+  渲染稿没有解决这个映射。
+- **P1 补 partial 状态**：`/admin/usage` 是一条大 SQL，某个子查询失败时
+  已拿到的数字要照常显示，不能整块转圈。
+
+## 双语标签
+
+渲染稿每个标签中英并列，但右上角**同时有语言切换器**，而 super-admin 现在就有
+（`studiosaas_admin_language`，三个控制台共用）。两者矛盾：有切换器还并列，
+等于把全产品密度最高一屏的每个标签宽度翻倍。
+建议标签跟随切换器，**只有破坏性操作的确认文案保持双语**。
+
+## 文案修正表
+
+`Payment failed` → **`Subscription past due / 订阅已逾期`**；
+`MRR (USD)` → **AUD**；`Impersonate login` → **`Start support session`**；
+`Reset admin password` → **`Send password setup link`**（平台方设不了也看不到密码）；
+`Plan expiring soon` → **`Trials ending`**；`Bandwidth` / `Projects` → **删除**。
+
+## 来源说明
+
+对账每一行都查过代码。布局判断是我的 —— `ui-ux-pro-max` 规则库对
+「三栏 inspector 控制台」**返回 0 条匹配**，只确认了深链/焦点/空状态三条通用规则，
+据此取舍。
+
+---
+
 # 📖 手册审计 · 只出方案未改内容（2026-08-08，对照 v8.10.3）
 
 全文见 `docs/design/Manual_Improvement_Plan.md`。**这一轮只盘点、没改手册内容。**
