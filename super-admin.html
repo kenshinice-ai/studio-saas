@@ -394,6 +394,281 @@
     .workspace-context .btn-sm { min-height: 36px; padding: 6px 13px; }
     .workspace-context #workspaceRetryBtn[hidden] { display: none !important; }
 
+    /* v9.8.0: Platform Admin follows the Studio Admin workbench relationship
+       without copying its business navigation. The rail locates, the center
+       does the work, and the inspector carries the selected context. */
+    .legacy-workspace-nav { display: none !important; }
+    .platform-shell {
+      display: grid;
+      grid-template-columns: 236px minmax(0, 1.618fr) minmax(340px, 0.618fr);
+      gap: 21px;
+      align-items: start;
+    }
+    .platform-main {
+      min-width: 0;
+    }
+    .platform-shell.inspector-closed {
+      grid-template-columns: 236px minmax(0, 1fr);
+    }
+    .platform-rail,
+    .platform-inspector {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl, 21px);
+      background: var(--panel);
+      box-shadow: var(--shadow-sm);
+    }
+    .platform-rail {
+      position: sticky;
+      top: calc(var(--workspace-header-offset, 131px) + 13px);
+      max-height: calc(100vh - var(--workspace-header-offset, 131px) - 26px);
+      overflow: auto;
+      padding: 13px 8px;
+    }
+    .platform-rail-group {
+      padding: 8px 0 13px;
+      border-bottom: 1px solid var(--line);
+    }
+    .platform-rail-group:last-child { border-bottom: 0; padding-bottom: 4px; }
+    .platform-rail-label {
+      padding: 0 13px 6px;
+      color: var(--muted);
+      font-size: var(--f-min);
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .platform-rail-link,
+    .platform-rail-shortcut {
+      width: 100%;
+      min-height: 44px;
+      padding: 10px 13px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid transparent;
+      border-radius: var(--radius);
+      background: transparent;
+      color: var(--ink);
+      font-size: var(--f-0);
+      font-weight: 650;
+      text-align: left;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .platform-rail-link:hover,
+    .platform-rail-shortcut:hover { background: var(--bg2); border-color: var(--line); }
+    .platform-rail-link.active {
+      background: var(--accent-soft);
+      border-color: var(--accent-border);
+      color: var(--ink);
+      box-shadow: inset 3px 0 0 var(--accent);
+    }
+    .platform-rail-link svg,
+    .platform-rail-shortcut svg { width: 18px; height: 18px; flex: 0 0 auto; }
+    .platform-rail-badge {
+      margin-left: auto;
+      min-width: 22px;
+      min-height: 22px;
+      padding: 2px 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      background: var(--danger-soft);
+      color: var(--danger);
+      font-size: var(--f-min);
+      font-weight: 800;
+    }
+    .platform-inspector {
+      position: sticky;
+      top: calc(var(--workspace-header-offset, 131px) + 13px);
+      max-height: calc(100vh - var(--workspace-header-offset, 131px) - 26px);
+      overflow: auto;
+      padding: 21px;
+    }
+    .platform-inspector[hidden] { display: none !important; }
+    .platform-inspector-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 13px;
+      padding-bottom: 13px;
+      border-bottom: 1px solid var(--line);
+    }
+    .platform-inspector-kicker {
+      margin-bottom: 3px;
+      color: var(--muted);
+      font-size: var(--f-min);
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .platform-inspector-title { margin: 0; font-size: var(--f-2); line-height: 1.2; }
+    .platform-inspector-close {
+      width: 44px;
+      min-width: 44px;
+      padding: 0;
+      color: var(--muted);
+      background: transparent;
+      font-size: var(--f-3);
+    }
+    .platform-inspector-close:hover { color: var(--ink); background: var(--bg2); }
+    .inspector-placeholder {
+      display: grid;
+      gap: 8px;
+      min-height: 220px;
+      align-content: center;
+      color: var(--muted);
+      text-align: center;
+    }
+    .inspector-placeholder strong { color: var(--ink); }
+    .inspector-section {
+      display: grid;
+      gap: 8px;
+      margin-top: 13px;
+      padding: 13px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: var(--bg);
+    }
+    .inspector-section-title {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: var(--f-0);
+      font-weight: 800;
+    }
+    .inspector-section-title small { color: var(--muted); font-size: var(--f-min); font-weight: 600; }
+    .inspector-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 11px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+    }
+    .inspector-status-dot {
+      width: 9px;
+      height: 9px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: var(--success);
+    }
+    .inspector-status-dot.warning { background: var(--warning); }
+    .inspector-status-dot.danger { background: var(--danger); }
+    .inspector-alert {
+      padding: 11px;
+      border: 1px solid var(--warning-border);
+      border-radius: var(--radius);
+      background: var(--warning-soft);
+      color: var(--on-warning-soft);
+    }
+    .inspector-alert.danger {
+      border-color: var(--danger-border);
+      background: var(--danger-soft);
+      color: var(--danger);
+    }
+    .inspector-alert strong { display: block; margin-bottom: 3px; }
+    .inspector-meta-row,
+    .inspector-usage-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 13px;
+      min-height: 28px;
+      font-size: var(--f-min);
+    }
+    .inspector-usage-row { display: block; }
+    .inspector-usage-row > .text-muted { display: block; margin-bottom: 3px; }
+    .inspector-meta-row span:first-child,
+    .inspector-usage-row span:first-child { color: var(--muted); }
+    .inspector-action-list { display: grid; gap: 8px; }
+    .inspector-action {
+      width: 100%;
+      justify-content: space-between;
+      min-height: 44px;
+      padding: 10px 11px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      color: var(--ink);
+      text-align: left;
+    }
+    .inspector-action:hover { background: var(--bg2); border-color: var(--line-strong); }
+    .inspector-support {
+      border-color: var(--danger-border);
+      background: color-mix(in srgb, var(--danger-soft) 55%, var(--bg));
+    }
+    .inspector-support .inspector-section-title { color: var(--danger); }
+    .attention-queue {
+      display: grid;
+      gap: 0;
+      margin-bottom: 21px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: var(--panel);
+      overflow: hidden;
+    }
+    .attention-queue-empty { padding: 21px; color: var(--muted); }
+    .attention-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(120px, .9fr) auto;
+      align-items: center;
+      gap: 13px;
+      padding: 13px 21px;
+      border-bottom: 1px solid var(--line);
+    }
+    .attention-row:last-child { border-bottom: 0; }
+    .attention-row:hover { background: var(--bg2); }
+    .attention-copy { min-width: 0; }
+    .attention-copy strong,
+    .attention-copy span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .attention-copy span { color: var(--muted); font-size: var(--f-min); }
+    .attention-reason { color: var(--muted); font-size: var(--f-min); }
+    .attention-row .btn-sm { min-height: 36px; }
+    tr.is-inspector-selected > td { background: var(--accent-soft); }
+
+    @media (max-width: 1199px) {
+      .platform-shell { grid-template-columns: 220px minmax(0, 1fr); }
+      .platform-shell.inspector-closed { grid-template-columns: 220px minmax(0, 1fr); }
+      .platform-inspector {
+        position: fixed;
+        z-index: 80;
+        top: calc(var(--workspace-header-offset, 131px) + 8px);
+        right: 21px;
+        bottom: 21px;
+        width: min(440px, calc(100vw - 260px));
+        max-height: none;
+        transform: translateX(calc(100% + 34px));
+        transition: transform .2s ease;
+      }
+      .platform-inspector.is-open { transform: translateX(0); }
+      .platform-inspector:not(.is-open) { display: none !important; }
+    }
+
+    @media (max-width: 767px) {
+      .platform-shell,
+      .platform-shell.inspector-closed { display: block; }
+      .platform-rail {
+        position: static;
+        max-height: none;
+        margin-bottom: 13px;
+      }
+      .platform-rail-group { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
+      .platform-rail-label { grid-column: 1 / -1; }
+      .platform-inspector {
+        inset: 8px;
+        top: calc(var(--workspace-header-offset, 64px) + 8px);
+        right: 8px;
+        bottom: 8px;
+        width: auto;
+        border-radius: var(--radius-lg);
+      }
+      .attention-row { grid-template-columns: minmax(0, 1fr) auto; padding: 13px; }
+      .attention-reason { grid-column: 1 / -1; }
+    }
+
     .section-header {
       display: flex;
       align-items: center;
@@ -1993,8 +2268,8 @@
     <div class="header-top">
       <div class="brand">
         <div>
-          <h1>PWE Studio · Super Admin</h1>
-          <p>Manage tenants, plans, subscriptions, and platform analytics</p>
+          <h1>PWE Studio · Platform Admin</h1>
+          <p>Operate tenants, plans, subscriptions, and platform governance</p>
         </div>
       </div>
       <div class="header-actions">
@@ -2006,7 +2281,7 @@
         </button>
       </div>
     </div>
-    <nav id="superNav" class="nav-bar hidden" aria-label="Super Admin sections">
+    <nav id="superNav" class="nav-bar hidden legacy-workspace-nav" aria-label="Platform Admin work areas">
       <div class="nav-inner">
         <a class="nav-link active" data-workspace-nav="overview" href="#overview">Overview</a>
         <a class="nav-link" data-workspace-nav="tenants" href="#tenants">Tenants</a>
@@ -2051,6 +2326,43 @@
     </section>
 
     <div id="adminContent" class="hidden">
+      <div id="platformWorkspaceShell" class="platform-shell">
+        <aside id="platformRail" class="platform-rail requires-auth" aria-label="Platform Admin work areas">
+          <div class="platform-rail-group">
+            <div class="platform-rail-label">Main / 主要</div>
+            <a class="platform-rail-link active" data-platform-rail data-workspace-nav="overview" href="#overview">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 11.2L12 4l8.5 7.2v8.3a1 1 0 01-1 1H4.5a1 1 0 01-1-1z"/><path d="M9.2 20.5v-5.2h5.6v5.2"/></svg>
+              <span>Today / 工作台</span>
+            </a>
+            <button id="attentionShortcut" class="platform-rail-shortcut" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21a2.5 2.5 0 002.4-1.8H9.6A2.5 2.5 0 0012 21z"/><path d="M18 9.5a6 6 0 00-12 0c0 7-2.4 7-2.4 8.7h16.8C20.4 16.5 18 16.5 18 9.5z"/></svg>
+              <span>Needs attention / 待处理</span><span id="attentionCountBadge" class="platform-rail-badge">0</span>
+            </button>
+          </div>
+          <div class="platform-rail-group">
+            <div class="platform-rail-label">Customers / 客户</div>
+            <a class="platform-rail-link" data-platform-rail data-workspace-nav="tenants" href="#tenants">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.25"/><circle cx="17.2" cy="9.2" r="2.2"/><path d="M3.8 19.3c.4-3.1 2.3-5 5.2-5s4.8 1.9 5.2 5"/><path d="M15.2 14.7c2.7-.1 4.5 1.5 4.9 4.6"/></svg>
+              <span>Tenants / 工作室</span>
+            </a>
+          </div>
+          <div class="platform-rail-group">
+            <div class="platform-rail-label">Commercial / 商业</div>
+            <a class="platform-rail-link" data-platform-rail data-workspace-nav="plans" href="#plans">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7.2A2.2 2.2 0 016.2 5h11.6A2.2 2.2 0 0120 7.2v9.6a2.2 2.2 0 01-2.2 2.2H6.2A2.2 2.2 0 014 16.8z"/><path d="M4 9h16M8 14h3"/></svg>
+              <span>Plans & Pricing / 套餐</span>
+            </a>
+          </div>
+          <div class="platform-rail-group">
+            <div class="platform-rail-label">Operations / 运营</div>
+            <a class="platform-rail-link" data-platform-rail data-workspace-nav="audit" href="#audit">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4.5h10M7 8.5h10M7 12.5h6M5 3.5h14v17H5z"/><path d="M8.5 16.5h7"/></svg>
+              <span>Audit Logs / 审计</span>
+            </a>
+          </div>
+        </aside>
+
+        <div class="platform-main">
       <div id="workspaceContext" class="workspace-context requires-auth" role="status" aria-live="polite">
         <div class="workspace-context-main">
           <strong id="workspaceContextTitle" class="workspace-context-title">Overview</strong>
@@ -2084,6 +2396,9 @@
           <span>Needs attention</span>
           <span class="group-hint">Lifecycle risks that imply an action today</span>
         </h2>
+        <div id="attentionQueue" class="attention-queue" aria-live="polite">
+          <div class="attention-queue-empty">Loading attention queue…</div>
+        </div>
         <div class="stats-grid">
           <button type="button" class="stat-card amber" data-metric="past_due" aria-pressed="false">
             <div class="stat-head">
@@ -2335,6 +2650,24 @@
       </div>
     </section>
       </section>
+        </div>
+
+        <aside id="workspaceInspector" class="platform-inspector is-open" aria-label="Workspace context">
+          <div class="platform-inspector-header">
+            <div>
+              <div id="workspaceInspectorKicker" class="platform-inspector-kicker">Workspace context / 工作区上下文</div>
+              <h2 id="workspaceInspectorTitle" class="platform-inspector-title">Select an item</h2>
+            </div>
+            <button id="workspaceInspectorClose" class="platform-inspector-close" type="button" aria-label="Close inspector">×</button>
+          </div>
+          <div id="workspaceInspectorBody">
+            <div class="inspector-placeholder">
+              <strong>Make a decision from the workspace.</strong>
+              <span>Select an attention item, tenant, plan, or audit event to inspect its state and next action.</span>
+            </div>
+          </div>
+        </aside>
+      </div>
     </div>
   </main>
 
@@ -2379,6 +2712,8 @@
     let workspaceLoadError = false;
     let navLinks = [];
     let setActiveNav = () => {};
+    let inspectorMode = 'workspace';
+    let inspectorSelection = null;
 
     function workspaceFromHash() {
       const candidate = String(window.location.hash || '').replace(/^#/, '');
@@ -2414,6 +2749,340 @@
       }
     }
 
+    function inspectorText(value, fallback = '—') {
+      return value === null || value === undefined || value === '' ? fallback : text(value);
+    }
+
+    function setInspectorHeader(kicker, title) {
+      relabel($('workspaceInspectorKicker'), kicker);
+      relabel($('workspaceInspectorTitle'), title);
+    }
+
+    function inspectorSection(title, subtitle = '') {
+      const section = document.createElement('section');
+      section.className = 'inspector-section';
+      const heading = document.createElement('div');
+      heading.className = 'inspector-section-title';
+      const titleEl = document.createElement('span');
+      relabel(titleEl, title);
+      heading.appendChild(titleEl);
+      if (subtitle) {
+        const subtitleEl = document.createElement('small');
+        relabel(subtitleEl, subtitle);
+        heading.appendChild(subtitleEl);
+      }
+      section.appendChild(heading);
+      return section;
+    }
+
+    function inspectorMeta(parent, label, value) {
+      const row = document.createElement('div');
+      row.className = 'inspector-meta-row';
+      const labelEl = document.createElement('span');
+      relabel(labelEl, label);
+      const valueEl = document.createElement('strong');
+      valueEl.className = 'tabular';
+      valueEl.textContent = inspectorText(value);
+      row.append(labelEl, valueEl);
+      parent.appendChild(row);
+      return row;
+    }
+
+    function inspectorAction(parent, label, handler, className = 'inspector-action') {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = className;
+      const labelEl = document.createElement('span');
+      relabel(labelEl, label);
+      const arrow = document.createElement('span');
+      arrow.textContent = '→';
+      arrow.setAttribute('aria-hidden', 'true');
+      button.append(labelEl, arrow);
+      button.addEventListener('click', handler);
+      parent.appendChild(button);
+      return button;
+    }
+
+    function openInspector() {
+      const inspector = $('workspaceInspector');
+      const shell = $('platformWorkspaceShell');
+      if (!inspector || !shell) return;
+      inspector.hidden = false;
+      inspector.classList.add('is-open');
+      shell.classList.remove('inspector-closed');
+    }
+
+    function closeInspector() {
+      selectedTenantId = '';
+      inspectorMode = 'workspace';
+      inspectorSelection = null;
+      const inspector = $('workspaceInspector');
+      const shell = $('platformWorkspaceShell');
+      document.querySelectorAll('tr.is-inspector-selected').forEach((row) => row.classList.remove('is-inspector-selected'));
+      if (inspector) {
+        inspector.classList.remove('is-open');
+        inspector.hidden = true;
+      }
+      if (shell) shell.classList.add('inspector-closed');
+    }
+
+    function renderWorkspaceInspector() {
+      const body = $('workspaceInspectorBody');
+      if (!body) return;
+      inspectorMode = 'workspace';
+      inspectorSelection = null;
+      setInspectorHeader('Workspace context / 工作区上下文', WORKSPACE_LABELS[activeWorkspace]);
+      body.replaceChildren();
+      const intro = document.createElement('div');
+      intro.className = 'inspector-placeholder';
+      const strong = document.createElement('strong');
+      relabel(strong, activeWorkspace === 'overview' ? 'Start with what needs attention.' : 'Select a row to inspect its context.');
+      const copy = document.createElement('span');
+      const copyByWorkspace = {
+        overview: 'The workspace prioritises subscription risk, usage signals, and operator follow-up.',
+        tenants: 'Choose a tenant to review status, subscription metadata, resource usage, and safe next actions.',
+        plans: 'Choose a plan to review its commercial limits and publication state.',
+        audit: 'Choose an event to inspect the actor, resource, reason, and captured metadata.'
+      };
+      relabel(copy, copyByWorkspace[activeWorkspace]);
+      intro.append(strong, copy);
+      body.appendChild(intro);
+      const section = inspectorSection('Current area', 'Decision guide');
+      inspectorMeta(section, 'Workspace', WORKSPACE_LABELS[activeWorkspace]);
+      inspectorMeta(section, 'Data state', $('workspaceDataState')?.textContent || 'Not refreshed');
+      inspectorMeta(section, 'Attention items', $('attentionCountBadge')?.textContent || '0');
+      body.appendChild(section);
+      window.AdminI18n?.localise?.(body);
+    }
+
+    function attentionIssues(t) {
+      const plan = tenantPlan(t);
+      const usage = [];
+      [['Students', t.student_count, plan.student_limit], ['Storage', t.storage_used_mb, plan.storage_limit_mb], ['Team users', t.user_count, plan.user_limit]]
+        .forEach(([label, current, limit]) => {
+          const pct = percent(current, limit);
+          if (limit && pct >= 75) usage.push({ label, pct, value: quotaParts(current, limit, label === 'Storage' ? formatStorageMb : (v) => text(v)).label });
+        });
+      const issues = [];
+      if (t.subscription_status === 'past_due') issues.push({ priority: 0, label: 'Subscription past due', reason: 'Subscription record needs review.' });
+      if (usage.length) {
+        const highest = usage.sort((a, b) => b.pct - a.pct)[0];
+        issues.push({ priority: highest.pct >= 90 ? 1 : 2, label: 'Usage approaching limit', reason: `${highest.label} ${highest.pct}% · ${highest.value}` });
+      }
+      if (t.ends_at && new Date(t.ends_at).getTime() < Date.now()) issues.push({ priority: 1, label: 'Subscription date passed', reason: `Ended ${formatTimestamp(t.ends_at)}.` });
+      if (t.subscription_status === 'trialing' && t.trial_ends_at) {
+        const days = relativeDays(t.trial_ends_at);
+        if (days !== null && days >= 0 && days <= 7) issues.push({ priority: 2, label: 'Trial ending soon', reason: `${days} day${days === 1 ? '' : 's'} left.` });
+      }
+      if (t.status === 'onboarding' || !t.studio_admin_email) issues.push({ priority: 3, label: 'Onboarding follow-up', reason: t.studio_admin_email ? 'Workspace is still onboarding.' : 'Studio Admin login is not configured.' });
+      return issues.sort((a, b) => a.priority - b.priority);
+    }
+
+    function attentionItems() {
+      return tenants
+        .filter((t) => !['archived', 'deleted'].includes(t.status))
+        .flatMap((t) => {
+          const issue = attentionIssues(t)[0];
+          return issue ? [{ ...issue, tenant: t }] : [];
+        })
+        .sort((a, b) => a.priority - b.priority || String(a.tenant.name || '').localeCompare(String(b.tenant.name || '')));
+    }
+
+    function renderAttentionQueue() {
+      const queue = $('attentionQueue');
+      if (!queue) return;
+      const items = attentionItems();
+      queue.replaceChildren();
+      const badge = $('attentionCountBadge');
+      if (badge) badge.textContent = String(items.length);
+      if (!items.length) {
+        const empty = document.createElement('div');
+        empty.className = 'attention-queue-empty';
+        relabel(empty, 'No attention items from current tenant and subscription data.');
+        queue.appendChild(empty);
+        return;
+      }
+      items.forEach(({ tenant, label, reason }) => {
+        const row = document.createElement('div');
+        row.className = 'attention-row';
+        const copy = document.createElement('div');
+        copy.className = 'attention-copy';
+        const title = document.createElement('strong');
+        relabel(title, label);
+        const tenantName = document.createElement('span');
+        tenantName.textContent = `${text(tenant.name)} · ${text(tenant.slug)}`;
+        copy.append(title, tenantName);
+        const detail = document.createElement('div');
+        detail.className = 'attention-reason';
+        detail.textContent = reason;
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'btn-secondary btn-sm';
+        relabel(button, 'Review');
+        button.addEventListener('click', () => openTenantInspector(tenant.id));
+        row.append(copy, detail, button);
+        queue.appendChild(row);
+      });
+      window.AdminI18n?.localise?.(queue);
+    }
+
+    function renderTenantInspector(t) {
+      const body = $('workspaceInspectorBody');
+      const plan = tenantPlan(t);
+      body.replaceChildren();
+      setInspectorHeader('Tenant Inspector / 租户详情', t.name || t.slug);
+
+      const status = document.createElement('div');
+      status.className = 'inspector-status';
+      const statusDot = document.createElement('span');
+      const statusValue = t.subscription_status === 'past_due' || t.status === 'paused' ? 'danger' : ['active', 'trialing'].includes(t.subscription_status) ? 'success' : 'warning';
+      statusDot.className = `inspector-status-dot ${statusValue === 'danger' ? 'danger' : statusValue === 'warning' ? 'warning' : ''}`;
+      statusDot.setAttribute('aria-hidden', 'true');
+      const statusCopy = document.createElement('div');
+      const statusTitle = document.createElement('strong');
+      relabel(statusTitle, `${t.status || '—'} · ${t.subscription_status || '—'}`);
+      const statusSub = document.createElement('div');
+      statusSub.className = 'text-muted';
+      statusSub.textContent = `${text(t.slug)} · ${text(t.owner_email || 'No owner email')}`;
+      statusCopy.append(statusTitle, statusSub);
+      status.append(statusDot, statusCopy);
+      body.appendChild(status);
+
+      const issues = attentionIssues(t);
+      if (issues.length) {
+        const alert = document.createElement('div');
+        alert.className = issues[0].priority === 0 ? 'inspector-alert danger' : 'inspector-alert';
+        const alertTitle = document.createElement('strong');
+        relabel(alertTitle, issues[0].label);
+        const alertCopy = document.createElement('span');
+        alertCopy.textContent = issues[0].reason;
+        alert.append(alertTitle, alertCopy);
+        body.appendChild(alert);
+      }
+
+      const subscription = inspectorSection('Subscription', 'Current record');
+      inspectorMeta(subscription, 'Plan', plan.name || t.plan_code);
+      inspectorMeta(subscription, 'Monthly price', plan.monthly_price_aud === undefined ? '—' : money(plan.monthly_price_aud));
+      inspectorMeta(subscription, 'Subscription status', t.subscription_status);
+      inspectorMeta(subscription, 'Period ends', dateOnly(t.current_period_ends_at || t.ends_at));
+      body.appendChild(subscription);
+
+      const usage = inspectorSection('Resource usage', 'Current limits');
+      [['Students', t.student_count, plan.student_limit], ['Storage', t.storage_used_mb, plan.storage_limit_mb, formatStorageMb], ['Team users', t.user_count, plan.user_limit]]
+        .forEach(([label, current, limit, format]) => {
+          const item = document.createElement('div');
+          item.className = 'inspector-usage-row';
+          const labelEl = document.createElement('div');
+          labelEl.className = 'text-muted';
+          relabel(labelEl, label);
+          item.appendChild(labelEl);
+          addProgressRow(item, current, limit, format);
+          usage.appendChild(item);
+        });
+      body.appendChild(usage);
+
+      const actions = inspectorSection('Actions', 'Safe next steps');
+      const actionList = document.createElement('div');
+      actionList.className = 'inspector-action-list';
+      inspectorAction(actionList, 'View full tenant details', () => openTenantDetailModal(t.id));
+      inspectorAction(actionList, 'Open tenant actions', () => openTenantActions(t.id));
+      const portal = inspectorAction(actionList, 'Open public website', () => window.open(tenantSurfaceHref(t, 'portal'), '_blank', 'noopener'));
+      if (['archived', 'deleted'].includes(t.status)) portal.disabled = true;
+      actions.appendChild(actionList);
+      body.appendChild(actions);
+
+      const support = inspectorSection('Support Mode', 'Audited and reason-based');
+      support.classList.add('inspector-support');
+      const note = document.createElement('div');
+      relabel(note, 'Use only for a customer request or incident. A reason is required and the action is audited.');
+      support.appendChild(note);
+      const supportActions = document.createElement('div');
+      supportActions.className = 'inspector-action-list';
+      const supportButton = inspectorAction(supportActions, 'Start Support Mode', () => enterSupportMode(t.id), 'inspector-action btn-warning');
+      if (['archived', 'deleted'].includes(t.status)) supportButton.disabled = true;
+      support.appendChild(supportActions);
+      body.appendChild(support);
+      window.AdminI18n?.localise?.(body);
+    }
+
+    function openTenantInspector(id, { focus = true } = {}) {
+      const t = tenants.find((item) => item.id === id);
+      if (!t) return;
+      selectedTenantId = id;
+      inspectorMode = 'tenant';
+      inspectorSelection = id;
+      openInspector();
+      renderTenantInspector(t);
+      document.querySelectorAll('tr[data-tenant-id]').forEach((row) => row.classList.toggle('is-inspector-selected', row.dataset.tenantId === String(id)));
+      if (focus && window.matchMedia('(max-width: 1199px)').matches) $('workspaceInspector')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function openPlanInspector(plan, { focus = true } = {}) {
+      if (!plan) return;
+      selectedTenantId = '';
+      inspectorMode = 'plan';
+      inspectorSelection = plan.code;
+      openInspector();
+      setInspectorHeader('Plan Inspector / 套餐详情', plan.name || plan.code);
+      const body = $('workspaceInspectorBody');
+      body.replaceChildren();
+      const state = document.createElement('div');
+      state.className = 'inspector-status';
+      relabel(state, `${plan.is_public ? 'Published' : 'Not published'} · ${plan.is_recommended ? 'Recommended' : 'Standard plan'}`);
+      body.appendChild(state);
+      const commercial = inspectorSection('Commercial record', 'Current configuration');
+      inspectorMeta(commercial, 'Price / month', money(plan.monthly_price_aud));
+      inspectorMeta(commercial, 'Public', plan.is_public ? 'Published' : 'Not published');
+      inspectorMeta(commercial, 'Recommended', plan.is_recommended ? 'Yes' : 'No');
+      body.appendChild(commercial);
+      const limits = inspectorSection('Resource limits', 'Tenant allocation');
+      inspectorMeta(limits, 'Students', plan.student_limit);
+      inspectorMeta(limits, 'Storage', formatStorageMb(plan.storage_limit_mb));
+      inspectorMeta(limits, 'Team users', plan.user_limit);
+      inspectorMeta(limits, 'Projects', plan.project_limit);
+      body.appendChild(limits);
+      const actions = inspectorSection('Actions', 'Configuration');
+      const actionList = document.createElement('div');
+      actionList.className = 'inspector-action-list';
+      inspectorAction(actionList, 'Edit plan', () => editPlan(plan.code));
+      actions.appendChild(actionList);
+      body.appendChild(actions);
+      window.AdminI18n?.localise?.(body);
+      if (focus && window.matchMedia('(max-width: 1199px)').matches) $('workspaceInspector')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function openAuditInspector(a, { focus = true } = {}) {
+      if (!a) return;
+      selectedTenantId = '';
+      inspectorMode = 'audit';
+      inspectorSelection = a.id || `${a.created_at}:${a.resource_id}`;
+      openInspector();
+      setInspectorHeader('Audit Event Inspector / 审计事件', a.action || 'Audit event');
+      const body = $('workspaceInspectorBody');
+      body.replaceChildren();
+      const event = inspectorSection('Event record', 'Captured activity');
+      event.appendChild(buildAuditDetail(a));
+      body.appendChild(event);
+      window.AdminI18n?.localise?.(body);
+      if (focus && window.matchMedia('(max-width: 1199px)').matches) $('workspaceInspector')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function rerenderInspector() {
+      if (inspectorMode === 'tenant' && selectedTenantId) {
+        const t = tenants.find((item) => item.id === selectedTenantId);
+        if (t) return openTenantInspector(selectedTenantId, { focus: false });
+      }
+      if (inspectorMode === 'plan' && inspectorSelection) {
+        const plan = plans.find((item) => item.code === inspectorSelection);
+        if (plan) return openPlanInspector(plan, { focus: false });
+      }
+      if (inspectorMode === 'audit' && inspectorSelection) {
+        const event = auditLogs.find((item) => (item.id || `${item.created_at}:${item.resource_id}`) === inspectorSelection);
+        if (event) return openAuditInspector(event, { focus: false });
+      }
+      renderWorkspaceInspector();
+    }
+
     function setActiveWorkspace(workspace, { scroll = true } = {}) {
       activeWorkspace = WORKSPACE_IDS.has(workspace) ? workspace : 'overview';
       document.querySelectorAll('[data-workspace]').forEach((section) => {
@@ -2423,10 +3092,14 @@
       });
       setActiveNav(`#${activeWorkspace}`);
       renderWorkspaceContext();
+      selectedTenantId = '';
+      inspectorMode = 'workspace';
+      inspectorSelection = null;
+      renderWorkspaceInspector();
       if (scroll && currentUser) {
         requestAnimationFrame(() => {
-          const section = document.querySelector(`[data-workspace="${activeWorkspace}"]`);
-          if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          const main = document.querySelector('.platform-main');
+          if (main) main.scrollTo({ top: 0, behavior: 'smooth' });
         });
       }
     }
@@ -2652,7 +3325,10 @@
       document.querySelectorAll('.requires-auth').forEach((element) => element.classList.toggle('hidden', !signedIn));
       $('authStatus').textContent = signedIn ? `Signed in: ${currentUser.email || currentUser.full_name || currentUser.id}` : 'Not signed in';
       updateWorkspaceHeaderOffset();
-      if (signedIn) setActiveWorkspace(workspaceFromHash(), { scroll: true });
+      if (signedIn) {
+        if ($('workspaceInspector')?.hidden) openInspector();
+        setActiveWorkspace(workspaceFromHash(), { scroll: true });
+      }
       else renderWorkspaceContext();
     }
 
@@ -2772,6 +3448,9 @@
       $('auditBody').innerHTML = '';
       $('auditCountLabel').textContent = '';
       $('auditSearch').value = '';
+      closeInspector();
+      $('attentionQueue').replaceChildren();
+      $('attentionCountBadge').textContent = '0';
       auditPage = 0;
       setMetricFilter('');
       showToast('Logged out.');
@@ -3634,7 +4313,7 @@
         return box;
       };
       const manage = section('Manage');
-      addActionButton(manage, 'View Details', 'btn-secondary', () => selectTenant(id));
+      addActionButton(manage, 'View Details', 'btn-secondary', () => { closeModal(); selectTenant(id); });
       addActionButton(manage, 'Edit Tenant', 'btn-secondary', () => editTenant(id));
       const slug = encodeURIComponent(String(t.slug || ''));
       const open = section('Open');
@@ -3733,8 +4412,7 @@
 
     // Select tenant to view details
     function selectTenant(id) {
-      selectedTenantId = id;
-      openTenantDetailModal(id);
+      openTenantInspector(id);
     }
 
     /* The tenant detail view.
@@ -4175,6 +4853,8 @@
       }
       visible.forEach((t) => {
         const row = document.createElement('tr');
+        row.dataset.tenantId = String(t.id);
+        row.classList.toggle('is-inspector-selected', selectedTenantId === t.id);
         const studioCell = addCell(row, '', 'Studio');
         const strong = document.createElement('strong');
         const code = document.createElement('code');
@@ -4838,10 +5518,7 @@
     }
 
     function openAuditDetail(a) {
-      openModal('Audit Event Details', '<div id="m_auditDetailMount"></div>', '<button onclick="closeModal()" class="btn-secondary">Close</button>');
-      $('modalOverlay').classList.add('detail-overlay');
-      $('modalOverlay').querySelector('.modal').classList.add('detail-modal');
-      $('m_auditDetailMount').replaceChildren(buildAuditDetail(a));
+      openAuditInspector(a);
     }
 
     /* The endpoint returns 100 rows and this table used to render all of them:
@@ -4975,6 +5652,7 @@
             }
             const actions = document.createElement('div');
             actions.className = 'action-row';
+            addActionButton(actions, 'Inspect', 'btn-secondary btn-sm', () => openPlanInspector(p));
             addActionButton(actions, 'Edit', 'btn-secondary btn-sm', () => editPlan(p.code));
             addActionButton(actions, 'Delete', 'btn-danger btn-sm', () => deletePlan(p.code));
             addCell(row).appendChild(actions);
@@ -4984,6 +5662,7 @@
           appendEmptyRow(plansBody, 5, 'No plans configured.');
         }
 
+        renderAttentionQueue();
         renderTenants();
 
         if (settlementResult.status === 'fulfilled') {
@@ -5031,6 +5710,7 @@
         }
       } finally {
         setLoading(false);
+        if (currentUser) rerenderInspector();
       }
     }
 
@@ -5059,7 +5739,7 @@
       });
     });
     $('metricFilterClear').addEventListener('click', () => setMetricFilter(''));
-    navLinks = Array.from(document.querySelectorAll('[data-workspace-nav]'));
+    navLinks = Array.from(document.querySelectorAll('[data-platform-rail][data-workspace-nav]'));
     setActiveNav = (hash) => {
       navLinks.forEach((link) => {
         const active = link.getAttribute('href') === hash;
@@ -5074,6 +5754,12 @@
       history.pushState(null, '', hash);
       setActiveWorkspace(hash.replace(/^#/, ''));
     }));
+    $('attentionShortcut').addEventListener('click', () => {
+      history.pushState(null, '', '#overview');
+      setActiveWorkspace('overview');
+      requestAnimationFrame(() => $('attentionQueue')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    });
+    $('workspaceInspectorClose').addEventListener('click', closeInspector);
     window.addEventListener('hashchange', () => setActiveWorkspace(workspaceFromHash()));
     window.addEventListener('resize', updateWorkspaceHeaderOffset, { passive: true });
     $('workspaceRetryBtn').addEventListener('click', refresh);

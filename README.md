@@ -7,39 +7,38 @@ the current source tree was packaged or deployed.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | `codex/v9.3.0-cms-information-architecture` (which is ahead of `main`); `VERSION` = **9.7.0**; release commit `ade9f90b32e46d6aeb0a681d7574bf44e9d3f5ab` | The Platform Admin P0/P1 implementation is committed and the branch is pushed to `origin`. |
-| Package | **9.7.0 SaaS and Edition packages verified** | SaaS SHA-256 `fda3ca5cddeef8588d8515fbdb8b1511f9f825cc4114fe23a864653450045e42`; Edition SHA-256 `6bf1697a886affc25de200bb442642e923e6be86d48ebbe15007889e32e253e4`; both `BUILD_INFO` records point to the release commit. |
-| Production | **9.7.0 deployed and publicly accepted** | `/opt/pwestudio/current` is `PWE-StudioSaaS-aws-9.7.0`, image `studiosaas:9.7.0`; public deep health reports `appVersion=9.7.0`, `db=ok`, `mode=saas`, `tenants=6`, `themes.unreadable=0`. |
+| Source | `codex/v9.3.0-cms-information-architecture` (which is ahead of `main`); `VERSION` = **9.8.0**; release candidate not yet committed | The three-column Platform Admin workbench implementation is in the working tree; package and production evidence are pending. |
+| Package | **9.8.0 package pending** | Build only after the candidate commit and full local gate; the prior v9.7.0 package remains the production artifact until deployment is accepted. |
+| Production | **v9.7.0 remains deployed** | Production is intentionally unchanged while the v9.8.0 candidate is verified; re-check the production health endpoint before making the new release claim. |
 
 Re-verify the production health endpoint before any later release claim; do not
 infer Production from `VERSION` or from an archive filename, which does not identify the deployed commit.
 
-## v9.7.0 Platform Admin workbench
+## v9.8.0 Platform Admin workbench
 
-This candidate turns Platform Admin into a single active workspace: Overview,
-Tenants, Plans and Audit Logs remain directly addressable by hash, but unrelated
-sections no longer continue below the current task. The workspace header keeps
-refresh state and last-success evidence visible, while the sticky header offset
-is measured at runtime for desktop and mobile layouts.
+This release turns Platform Admin into a three-column operations workbench:
+the left rail locates the supported work areas, the center performs the active
+workflow, and the right Tenant/Plan/Audit Inspector carries the selected
+context. Today leads with a Needs attention queue derived from the existing
+tenant, subscription and usage data; Attention is a shortcut inside Today, not
+a second dashboard.
 
-Tenant details and audit events use a responsive reading drawer. Support Mode
-keeps its reason requirement in the field with focus-returning inline feedback;
-plan forms validate code, name, price and limits before sending a request.
-`past_due` is described as subscription lifecycle state, not as a payment-gateway
-failure. Online payments, bank-transfer configuration, Gmail/SMTP, AWS SES, SMS,
-SSE, WebSocket and browser push remain outside this release.
+The Inspector orders information as status → risk → subscription/resource
+information → safe actions. Support Mode stays visually separate at the bottom
+and still requires a reason with field-level feedback before the audited flow
+starts. Mobile turns the Inspector into a responsive sheet without horizontal
+overflow. Only capabilities that exist today are exposed in the rail: Today,
+Tenants, Plans & Pricing, and Audit Logs.
 
-Release closure (2026-08-10): the SaaS package was deployed through the
-guarded Lightsail controller. `/platform-admin`, `/super-admin`, the public
-home/manual routes and bilingual Release Notes returned HTTP 200; the public
-Platform Admin shell serves the v9.7.0 versioned assets. The production browser
-check confirmed the bilingual Platform Admin login shell renders with its
-form, versioned scripts and no authentication boundary change.
+Subscription lifecycle copy remains “Subscription past due”; this release does
+not add online payments, bank-transfer configuration, Gmail/SMTP, AWS SES, SMS,
+SSE, WebSocket or browser push, and does not invent Groups, Invitations,
+Announcements, System Health or Settings pages that are not current
+capabilities.
 
-P2 remains deliberately deferred: saved filter views, richer audit export and
-lightweight system-health freshness are not part of this release. Payments,
-bank-transfer configuration, Gmail/SMTP, AWS SES, SMS, SSE, WebSocket and
-browser push also remain outside scope.
+Release closure will record the exact candidate commit, clean SaaS/Edition
+packages, production image, deep health, public routes, asset hash and backup
+evidence in `docs/HANDOFF_LATEST.md` after deployment acceptance.
 
 ## v9.6.1 Studio Admin workspace polish
 
@@ -987,7 +986,7 @@ curl -i -X POST http://localhost:8901/v1/admin/tenants \
 | `docs/Deployment.md` | Deployment stages; Stage 2 (AWS Lightsail) live since 2026-07-30 |
 | `docs/Design_System.md` | UI tokens and component standards |
 | `docs/Glossary.md` | One agreed word per concept (enforced by `check_terminology.py`) |
-| `docs/guides/` | Per-role user manuals in Chinese (applicable to v9.7.0) |
+| `docs/guides/` | Per-role user manuals in Chinese (applicable to v9.8.0) |
 | `01 BRAND ASSETS/` | PWE/Paradise family delivery kit and validated asset manifest |
 
 ---

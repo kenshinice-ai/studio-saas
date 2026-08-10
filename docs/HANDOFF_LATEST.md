@@ -1,6 +1,6 @@
-# PWE Studio v9.7.0 — Platform Admin 审计与实施 handoff
+# PWE Studio v9.8.0 — Platform Admin 三栏工作台发布 handoff
 
-> 当前阶段：v9.7.0 已完成 current-truth、真实登录逐屏审计、状态矩阵、P0/P1 实现、完整门禁、打包、生产部署和公网验收；下一阶段已冻结三栏工作台交互合同，进入逐屏设计，仍不改代码。历史发布证据保留在本节下方。
+> 当前阶段：v9.8.0 已完成三栏工作台、Today Needs attention、Tenant/Plan/Audit Inspector 和移动端抽屉实现；本地浏览器验收已通过，正在进行完整门禁、打包、提交同步与生产发布。生产在新包验收前仍保持 v9.7.0。历史发布证据保留在本节下方。
 
 ## 下一阶段设计入口
 
@@ -8,28 +8,30 @@
 - [逐屏设计 handoff](design/Platform_Admin_Screen_Design_Handoff_2026-08-10.md)：Today、Tenants、Tenant Inspector、Plans、Audit、移动端和交接产物顺序。
 - [前一阶段逐屏审计与状态矩阵](design/Platform_Admin_Audit_2026-08-10.md)：记录 v9.7.0 的 current-truth、真实审计和已完成发布证据。
 
-本阶段设计冻结原则：左边找地方，中间做事情，右边做判断；Attention 是 Today 内的快捷入口，不是第二套 Dashboard；Support Mode 必须使用 reason 和审计流程；未接入的数据、支付状态和未来页面不得提前进入一级导航。
+本阶段设计原则：左边找地方，中间做事情，右边做判断；Attention 是 Today 内的快捷入口，不是第二套 Dashboard；Support Mode 必须使用 reason 和审计流程；未接入的数据、支付状态和未来页面不得提前进入一级导航。
 
-## 最终发布证据（2026-08-10）
+## v9.8.0 发布证据（部署完成后补齐）
 
 | 层级 | 已验证事实 |
 |---|---|
-| Source | 分支 `codex/v9.3.0-cms-information-architecture`；commit `ade9f90b32e46d6aeb0a681d7574bf44e9d3f5ab`；`VERSION=9.7.0`。分支已推送到 `origin`。 |
-| Package | SaaS `dist/PWE-StudioSaaS-aws-9.7.0.tar.gz` SHA-256：`fda3ca5cddeef8588d8515fbdb8b1511f9f825cc4114fe23a864653450045e42`；Edition `dist/PWE-Studio-Edition-9.7.0.tar.gz` SHA-256：`6bf1697a886affc25de200bb442642e923e6be86d48ebbe15007889e32e253e4`。两包 `BUILD_INFO` 均为 commit `ade9f90b32e46d6aeb0a681d7574bf44e9d3f5ab`、构建时间 `2026-08-10T02:36:31Z`，模式分别为 `saas` / `standalone`。 |
-| Production | `pwestudio.online` 当前镜像 `studiosaas:9.7.0`，容器 healthy；deep health：`appVersion=9.7.0`、`db=ok`、`mode=saas`、`tenants=6`、`themes.unreadable=0`、磁盘可用约 `46.94 GB`。 |
-| Backup | 本次切换前生成逻辑备份 `studiosaas_studiosaas_20260810T024203Z.dump` 及 manifest；卷归档为 `pwestudio-volumes-20260810T024205Z.tar.gz`。 |
-| Public edge | `/v1/health?deep=1`、`/platform-admin`、`/super-admin`、`/`、`/zh/`、`/zh/manual/` 及中英文 Release Notes 均返回 `200`。公网 `admin-i18n.js?v=9.7.0&h=466705ad3728c442` 的 SHA-256 与本地 tracked asset 均为 `466705ad3728c44252ae6147e78963f8e8b26d245214989b8507875f795383eb`，响应为一年 `immutable` 缓存。 |
-| Browser | 使用应用内 Browser 打开 `https://pwestudio.online/platform-admin#overview`，确认标题、双语登录壳、邮箱/密码字段、登录表单、版本化脚本和未登录权限边界正常；未使用生产账号写入数据。 |
-| Local gates | 完整门禁：`1954 passed, 8 skipped`；CMS smoke：`73 passed, 0 failed`；租户隔离：`237 passed, 0 failed`。 |
+| Source | 分支 `codex/v9.3.0-cms-information-architecture`；`VERSION=9.8.0`；候选提交、推送状态待补齐。 |
+| Package | SaaS / Edition v9.8.0 待完整门禁通过后生成；SHA-256 与 `BUILD_INFO` 待补齐。 |
+| Production | v9.7.0 保持运行；v9.8.0 尚未部署。 |
+| Backup | v9.8.0 切换前逻辑备份、manifest 和卷归档待部署前补齐。 |
+| Public edge | v9.8.0 部署后的健康、关键路由、版本化 asset hash 与缓存响应待补齐。 |
+| Browser | 本地应用内 Browser 已验证桌面三栏、Tenant/Plan/Audit Inspector、Needs attention、移动端 Inspector 抽屉、无横向溢出和 Support Mode 空 reason 字段级拦截；公网验收待部署后补齐。 |
+| Local gates | 相关 Platform Admin/UI 门禁：`146 passed, 1 skipped`；完整门禁待补齐。 |
 
 未跟踪的 `docs/sales/` 路演资料已保留，未纳入提交或发布包。支付、银行转账设置、Gmail/SMTP、AWS SES、短信、SSE、WebSocket 和浏览器 Push 仍不在本版本。
 
-## Platform Admin 当前判断
+## v9.8.0 本轮实际交付
 
-- v9.6.1 的 `/platform-admin` 数据、API、权限和既有 i18n 基础可复用；当前主要问题是四个工作区仍以长页锚点呈现，sticky header 会遮挡目标，详情/操作/编辑过度依赖弹窗。
-- P0 已改 active workspace、anchor offset、操作层级和 Support Mode 空 reason 反馈；不改认证/RBAC，不新增支付、银行转账、Gmail/SMTP、SES、SSE、WebSocket 或 Push。
-- P1 已补 Today 持久状态、Tenants detail drawer/full-screen、Audit detail drawer、Plans 字段级校验和订阅状态文案；loading/empty/error/retry/submit、中英文和响应式验收已通过发布门禁。
-- P2 留给保存筛选视图、审计导出/详情增强和轻量系统健康信息。
+- Platform Admin 采用顶部全局栏、左侧工作区导航、中间工作区、右侧 Inspector；保持 Studio Admin 的工作台关系，但只保留当前真实能力。
+- Today 以 Needs attention 为入口，使用现有租户、订阅、试用日期和资源使用量数据，按优先级生成一条租户一条待处理记录；Attention 是 Today 内的快捷入口。
+- Tenant Inspector 按状态 → 风险 → 订阅 → 资源使用 → 安全操作组织；Plan Inspector 和 Audit Event Inspector 复用同一右侧职责。
+- Support Mode 在 Inspector 底部单独呈现，仍通过已有 reason 字段和审计流程进入，不改认证/RBAC，不新增支付、银行转账、Gmail/SMTP、SES、SSE、WebSocket 或 Push。
+- 响应式行为：桌面保持三栏；中等宽度右侧转为抽屉；手机 Inspector 变为全屏工作表且无横向溢出。
+- 未加入 Groups、Invitations、Announcements、System Health、Security、Settings 等尚不存在或尚未纳入本轮的一级导航。
 - `past_due` 统一按订阅生命周期表达，不把它写成已接入在线支付后的“支付失败”。
 
 ## 当前实现前合同
@@ -41,7 +43,7 @@ Plans & Pricing → catalog + limits + publication state (no gateway)
 Audit Logs → search + pagination + governance detail
 ```
 
-执行顺序：先提交审计/状态矩阵 checkpoint，再新增测试合同，随后完成 P0 shell，最后按 P1 状态矩阵实现并走完整发布 handoff。
+执行顺序：完成实现与浏览器验收，跑完整门禁，提交候选，生成干净 SaaS/Edition 包，推送分支，经预部署检查后部署，完成公网验收，再以文档闭环提交 handoff。
 
 ---
 

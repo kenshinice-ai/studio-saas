@@ -26,6 +26,26 @@ def test_platform_workspaces_have_explicit_active_workspace_contract() -> None:
     assert "window.addEventListener('hashchange'" in html
 
 
+def test_platform_admin_uses_the_three_column_workbench_contract() -> None:
+    html = CONSOLE.read_text(encoding="utf-8")
+    for element_id in ("platformWorkspaceShell", "platformRail", "attentionQueue", "workspaceInspector", "attentionShortcut"):
+        assert f'id="{element_id}"' in html
+    assert 'data-platform-rail data-workspace-nav="overview"' in html
+    assert "function renderAttentionQueue" in html
+    assert "function openTenantInspector" in html
+    assert "function renderWorkspaceInspector" in html
+    assert "function openAuditInspector" in html
+
+
+def test_platform_inspector_keeps_support_mode_separate_and_reason_based() -> None:
+    html = CONSOLE.read_text(encoding="utf-8")
+    inspector = html[html.index("function renderTenantInspector") : html.index("function openTenantInspector")]
+    assert "Support Mode" in inspector
+    assert "Audited and reason-based" in html
+    assert "Start Support Mode" in html
+    assert 'id="m_supportReason"' in html
+
+
 def test_platform_workspace_scrolls_clear_the_sticky_header() -> None:
     html = CONSOLE.read_text(encoding="utf-8")
     assert ".workspace-section" in html
