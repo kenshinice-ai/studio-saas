@@ -3,7 +3,9 @@
 日期：2026-08-10  
 审计对象：`/platform-admin`（源码页面：`super-admin.html`）  
 审计基线：v9.6.1，当前分支 `codex/v9.3.0-cms-information-architecture`，审计时 HEAD `2a59854`
-实现状态：v9.7.0 已完成 P0 shell、持久化工作区状态、租户/审计 detail drawer、Support Mode 字段级反馈、Plans 字段级校验；本文件的 P2 项仍保持后续队列。
+实现/发布状态：v9.7.0 已完成 P0 shell、持久化工作区状态、租户/审计 detail drawer、Support Mode 字段级反馈、Plans 字段级校验，并已部署到 `pwestudio.online`；本文件的 P2 项仍保持后续队列。
+
+最终发布证据：release commit `ade9f90b32e46d6aeb0a681d7574bf44e9d3f5ab`；SaaS 包 SHA-256 `fda3ca5cddeef8588d8515fbdb8b1511f9f825cc4114fe23a864653450045e42`；Edition 包 SHA-256 `6bf1697a886affc25de200bb442642e923e6be86d48ebbe15007889e32e253e4`；生产 deep health `appVersion=9.7.0`、`db=ok`、`mode=saas`、`tenants=6`、`themes.unreadable=0`；公网关键路由和版本化 `admin-i18n.js` 已独立验收。
 
 ## 1. 当前事实与边界
 
@@ -11,11 +13,11 @@
 
 | 项目 | 当前事实 | 证据 |
 |---|---|---|
-| 源码版本 | `9.6.1` | `VERSION` |
+| 源码版本 | `9.7.0`，release commit `ade9f90b32e46d6aeb0a681d7574bf44e9d3f5ab` | `VERSION`、发布 `BUILD_INFO` |
 | 平台管理直达入口 | `/platform-admin`，应用登录 | `docs/Product_Surface_Model.md`、`backend/server.py` |
 | 兼容入口 | `/super-admin`，可由 Cloudflare Access 保护 | `docs/Product_Surface_Model.md` |
-| 生产页面 | `https://pwestudio.online/platform-admin` 返回 `200` | 2026-08-10 只读检查 |
-| 当前页面模型 | 一个长页面，四个 section 由 hash 锚点切换 | `super-admin.html` 的 `#overview/#tenants/#plans/#audit` |
+| 生产页面 | `https://pwestudio.online/platform-admin` 返回 `200`；`/v1/health?deep=1` 为 `appVersion=9.7.0` | 2026-08-10 部署后公网检查 |
+| 当前页面模型 | 单一 active workspace，四个 workspace 由 hash 深链切换，非当前 workspace 不占据视觉内容流 | `super-admin.html` 的 `#overview/#tenants/#plans/#audit` 与发布后 Browser 检查 |
 | 后端 API | usage、plans、tenants、audit logs、subscription settlement 均已存在 | `super-admin.html:4555` 附近、`backend/studiosaas/api_v1.py` |
 | 支付范围 | 本轮不新增在线支付、银行转账、Gmail/SMTP、SES 或付款凭证流程 | 已确认的产品边界 |
 | 权限边界 | 平台管理员管理租户生命周期、套餐、订阅、用量、审计；进入租户 CMS/Admin 必须走可审计 Support Mode | `docs/Product_Surface_Model.md` |
@@ -279,14 +281,16 @@ Platform Admin
 
 ## 8. 验收清单
 
-- [ ] `/platform-admin#overview|tenants|plans|audit` 直接打开正确工作区，不出现上一工作区视觉内容。
-- [ ] sticky header 不遮挡任何工作区标题、筛选栏、主要动作或首条数据。
-- [ ] Today 的 KPI 与后端字段定义一致；MRR 不可点击为租户筛选；past_due 不写成支付网关失败。
-- [ ] Tenants 筛选、无结果、清除筛选、分页、View、More、Support Mode 和外部表面路径可解释。
-- [ ] Support Mode 空原因不会提交；403/网络失败可重试；成功后目标表面能识别支持态和审计原因。
-- [ ] Tenant detail 在 390px 不出现不可发现的横向 tab 截断；编辑 footer、关闭、dirty/error 状态可操作。
-- [ ] Plans 的新增、编辑、公开状态、推荐状态、空表单错误、删除依赖提示均可见。
-- [ ] Audit 的搜索、无匹配、分页、detail drawer 和操作者/支持会话上下文可见。
-- [ ] 中文和英文动态标签完整；业务数据不被错误翻译。
-- [ ] 390/768/1024/1440 通过布局、键盘、焦点、44px 触控目标、无页面级横向溢出验收。
-- [ ] 现有 RBAC、租户隔离、API 合同、生产部署和未跟踪销售资料边界不被破坏。
+- [x] `/platform-admin#overview|tenants|plans|audit` 直接打开正确工作区，不出现上一工作区视觉内容。
+- [x] sticky header 不遮挡任何工作区标题、筛选栏、主要动作或首条数据。
+- [x] Today 的 KPI 与后端字段定义一致；MRR 不可点击为租户筛选；past_due 不写成支付网关失败。
+- [x] Tenants 筛选、无结果、清除筛选、分页、View、More、Support Mode 和外部表面路径可解释。
+- [x] Support Mode 空原因不会提交；403/网络失败可重试；成功后目标表面能识别支持态和审计原因。
+- [x] Tenant detail 在 390px 不出现不可发现的横向 tab 截断；编辑 footer、关闭、dirty/error 状态可操作。
+- [x] Plans 的新增、编辑、公开状态、推荐状态、空表单错误、删除依赖提示均可见。
+- [x] Audit 的搜索、无匹配、分页、detail drawer 和操作者/支持会话上下文可见。
+- [x] 中文和英文动态标签完整；业务数据不被错误翻译。
+- [x] 390/768/1024/1440 通过布局、键盘、焦点、44px 触控目标、无页面级横向溢出验收。
+- [x] 现有 RBAC、租户隔离、API 合同、生产部署和未跟踪销售资料边界不被破坏。
+
+P2 仍未纳入本版本：保存筛选视图、排序/列偏好、审计导出/前后值对比、系统健康/备份 freshness 面板和真正的事件推送。

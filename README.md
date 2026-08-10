@@ -7,9 +7,9 @@ the current source tree was packaged or deployed.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | `codex/v9.3.0-cms-information-architecture` (which is ahead of `main`); `VERSION` = **9.7.0** | Platform Admin P0/P1 implementation is in the current candidate; the exact release commit is recorded after the release gate. |
-| Package | **9.7.0 packaging pending** | The SaaS and Edition archives will be built only from the clean, committed candidate and verified against its `BUILD_INFO`. |
-| Production | **9.6.1 remains the verified production release** | `/opt/pwestudio/current` remains `PWE-StudioSaaS-aws-9.6.1`, image `studiosaas:9.6.1`; public deep health was rechecked before this candidate. |
+| Source | `codex/v9.3.0-cms-information-architecture` (which is ahead of `main`); `VERSION` = **9.7.0**; release commit `ade9f90b32e46d6aeb0a681d7574bf44e9d3f5ab` | The Platform Admin P0/P1 implementation is committed and the branch is pushed to `origin`. |
+| Package | **9.7.0 SaaS and Edition packages verified** | SaaS SHA-256 `fda3ca5cddeef8588d8515fbdb8b1511f9f825cc4114fe23a864653450045e42`; Edition SHA-256 `6bf1697a886affc25de200bb442642e923e6be86d48ebbe15007889e32e253e4`; both `BUILD_INFO` records point to the release commit. |
+| Production | **9.7.0 deployed and publicly accepted** | `/opt/pwestudio/current` is `PWE-StudioSaaS-aws-9.7.0`, image `studiosaas:9.7.0`; public deep health reports `appVersion=9.7.0`, `db=ok`, `mode=saas`, `tenants=6`, `themes.unreadable=0`. |
 
 Re-verify the production health endpoint before any later release claim; do not
 infer Production from `VERSION` or from an archive filename, which does not identify the deployed commit.
@@ -29,8 +29,17 @@ plan forms validate code, name, price and limits before sending a request.
 failure. Online payments, bank-transfer configuration, Gmail/SMTP, AWS SES, SMS,
 SSE, WebSocket and browser push remain outside this release.
 
-The candidate is not production evidence until the package, deployment and
-public acceptance rows above are updated with observed facts.
+Release closure (2026-08-10): the SaaS package was deployed through the
+guarded Lightsail controller. `/platform-admin`, `/super-admin`, the public
+home/manual routes and bilingual Release Notes returned HTTP 200; the public
+Platform Admin shell serves the v9.7.0 versioned assets. The production browser
+check confirmed the bilingual Platform Admin login shell renders with its
+form, versioned scripts and no authentication boundary change.
+
+P2 remains deliberately deferred: saved filter views, richer audit export and
+lightweight system-health freshness are not part of this release. Payments,
+bank-transfer configuration, Gmail/SMTP, AWS SES, SMS, SSE, WebSocket and
+browser push also remain outside scope.
 
 ## v9.6.1 Studio Admin workspace polish
 

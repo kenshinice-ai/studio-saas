@@ -1,12 +1,26 @@
 # PWE Studio v9.7.0 — Platform Admin 审计与实施 handoff
 
-> 当前阶段：已完成 current-truth、真实登录逐屏审计、状态矩阵以及 P0/P1 核心实现；候选版本正在进行完整门禁、打包和部署验收。详细合同见 [`docs/design/Platform_Admin_Audit_2026-08-10.md`](design/Platform_Admin_Audit_2026-08-10.md)。本节记录的是 v9.7.0 执行入口，不代表公网验收已完成。
+> 当前阶段：v9.7.0 已完成 current-truth、真实登录逐屏审计、状态矩阵、P0/P1 实现、完整门禁、打包、生产部署和公网验收。详细合同见 [`docs/design/Platform_Admin_Audit_2026-08-10.md`](design/Platform_Admin_Audit_2026-08-10.md)。P2 保持后续队列。
+
+## 最终发布证据（2026-08-10）
+
+| 层级 | 已验证事实 |
+|---|---|
+| Source | 分支 `codex/v9.3.0-cms-information-architecture`；commit `ade9f90b32e46d6aeb0a681d7574bf44e9d3f5ab`；`VERSION=9.7.0`。分支已推送到 `origin`。 |
+| Package | SaaS `dist/PWE-StudioSaaS-aws-9.7.0.tar.gz` SHA-256：`fda3ca5cddeef8588d8515fbdb8b1511f9f825cc4114fe23a864653450045e42`；Edition `dist/PWE-Studio-Edition-9.7.0.tar.gz` SHA-256：`6bf1697a886affc25de200bb442642e923e6be86d48ebbe15007889e32e253e4`。两包 `BUILD_INFO` 均为 commit `ade9f90b32e46d6aeb0a681d7574bf44e9d3f5ab`、构建时间 `2026-08-10T02:36:31Z`，模式分别为 `saas` / `standalone`。 |
+| Production | `pwestudio.online` 当前镜像 `studiosaas:9.7.0`，容器 healthy；deep health：`appVersion=9.7.0`、`db=ok`、`mode=saas`、`tenants=6`、`themes.unreadable=0`、磁盘可用约 `46.94 GB`。 |
+| Backup | 本次切换前生成逻辑备份 `studiosaas_studiosaas_20260810T024203Z.dump` 及 manifest；卷归档为 `pwestudio-volumes-20260810T024205Z.tar.gz`。 |
+| Public edge | `/v1/health?deep=1`、`/platform-admin`、`/super-admin`、`/`、`/zh/`、`/zh/manual/` 及中英文 Release Notes 均返回 `200`。公网 `admin-i18n.js?v=9.7.0&h=466705ad3728c442` 的 SHA-256 与本地 tracked asset 均为 `466705ad3728c44252ae6147e78963f8e8b26d245214989b8507875f795383eb`，响应为一年 `immutable` 缓存。 |
+| Browser | 使用应用内 Browser 打开 `https://pwestudio.online/platform-admin#overview`，确认标题、双语登录壳、邮箱/密码字段、登录表单、版本化脚本和未登录权限边界正常；未使用生产账号写入数据。 |
+| Local gates | 完整门禁：`1954 passed, 8 skipped`；CMS smoke：`73 passed, 0 failed`；租户隔离：`237 passed, 0 failed`。 |
+
+未跟踪的 `docs/sales/` 路演资料已保留，未纳入提交或发布包。支付、银行转账设置、Gmail/SMTP、AWS SES、短信、SSE、WebSocket 和浏览器 Push 仍不在本版本。
 
 ## Platform Admin 当前判断
 
 - v9.6.1 的 `/platform-admin` 数据、API、权限和既有 i18n 基础可复用；当前主要问题是四个工作区仍以长页锚点呈现，sticky header 会遮挡目标，详情/操作/编辑过度依赖弹窗。
 - P0 已改 active workspace、anchor offset、操作层级和 Support Mode 空 reason 反馈；不改认证/RBAC，不新增支付、银行转账、Gmail/SMTP、SES、SSE、WebSocket 或 Push。
-- P1 已补 Today 持久状态、Tenants detail drawer/full-screen、Audit detail drawer、Plans 字段级校验和订阅状态文案；剩余完整 loading/empty/error/retry/submit 与中英文/响应式验收进入发布门禁。
+- P1 已补 Today 持久状态、Tenants detail drawer/full-screen、Audit detail drawer、Plans 字段级校验和订阅状态文案；loading/empty/error/retry/submit、中英文和响应式验收已通过发布门禁。
 - P2 留给保存筛选视图、审计导出/详情增强和轻量系统健康信息。
 - `past_due` 统一按订阅生命周期表达，不把它写成已接入在线支付后的“支付失败”。
 
