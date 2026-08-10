@@ -7,7 +7,7 @@ the current source tree was packaged or deployed.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | `codex/v9.3.0-cms-information-architecture`; `VERSION` = **9.6.1** | This branch, which is ahead of `main`, produced deployed candidate commit `e46a3e3f4a407e8b2ac34ce8e230165c37150ea1`; the documentation-only closure commit is recorded separately. |
+| Source | `codex/v9.3.0-cms-information-architecture`; `VERSION` = **9.6.1** | This branch, which is ahead of `main`, produced deployed candidate commit `e46a3e3f4a407e8b2ac34ce8e230165c37150ea1`; documentation-only closure commit: `cf5303c`. |
 | Package | **9.6.1 SaaS + Edition archives verified** | SaaS SHA-256 `f1465b393fefb83e962bac41402fff150430c3fcd3e9b7252911d985840aabb4`; Edition SHA-256 `3d881f7e3324b5acacc4aa89feadd23a278e5cd2cc412f0474d6c13b8deb7e0e`; both `BUILD_INFO` records point to the deployed candidate. |
 | Production | **9.6.1 deployed and publicly accepted** | `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.6.1`, image `studiosaas:9.6.1`; public deep health reports `db=ok`, 6 readable tenants and `unreadable=0`. `BUILD_INFO` confirms the deployed candidate commit. |
 

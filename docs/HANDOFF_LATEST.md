@@ -5,6 +5,7 @@
 ## 当前事实
 
 - 源码分支：`codex/v9.3.0-cms-information-architecture`；`VERSION` 已更新为 `9.6.1`；部署候选 commit：`e46a3e3f4a407e8b2ac34ce8e230165c37150ea1`。
+- 文档闭环 commit：`cf5303c`（仅更新 handoff、Release Notes 和生产证据；未重新打包或重新部署）；生产仍运行上面的部署候选 commit。
 - 当前生产：`https://pwestudio.online`；`/opt/pwestudio/current` 指向 `PWE-StudioSaaS-aws-9.6.1`，运行镜像为 `studiosaas:9.6.1`。
 - Studio Admin 负责品牌、官网、报名入口、公开课表、草稿、预览与发布；CMS 负责日常运营。
 - 家长话术不迁移数据、不新建发送系统，仍保留在 Studio Admin，入口归入「招生入口」子菜单；CMS 继续复制使用。
