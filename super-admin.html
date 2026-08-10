@@ -88,6 +88,7 @@
       --radius: 8px;
       --radius-lg: 13px;
       --radius-xl: 21px;
+      --workspace-header-offset: 131px;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -348,6 +349,50 @@
     .section {
       margin-bottom: var(--ui-space-5, 34px);
     }
+
+    /* Platform workspaces are one active task at a time. The offset is
+       measured by script because the bilingual header changes height on
+       narrow screens; the fallback keeps deep links usable before the first
+       measurement. */
+    .workspace-section {
+      scroll-margin-top: calc(var(--workspace-header-offset) + 21px);
+    }
+
+    .workspace-section[hidden] { display: none !important; }
+
+    .workspace-context {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 13px;
+      min-height: 55px;
+      margin-bottom: 21px;
+      padding: 13px 21px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-left: 3px solid var(--accent);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .workspace-context-main,
+    .workspace-context-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .workspace-context-main { flex-wrap: wrap; }
+    .workspace-context-meta { justify-content: flex-end; }
+    .workspace-context-title { font-weight: 700; }
+    .workspace-context-state,
+    .workspace-context-time { color: var(--muted); font-size: var(--f-0); }
+    .workspace-context.is-partial,
+    .workspace-context.is-error { border-left-color: var(--warning); }
+    .workspace-context.is-loading { border-left-color: var(--accent-2); }
+    .workspace-context .btn-sm { min-height: 36px; padding: 6px 13px; }
+    .workspace-context #workspaceRetryBtn[hidden] { display: none !important; }
 
     .section-header {
       display: flex;
@@ -1266,6 +1311,32 @@
       transition: all 0.25s ease;
     }
 
+    /* Tenant detail is a reading workspace, not a short confirmation. On
+       desktop it enters from the trailing edge; on mobile it owns the full
+       viewport so tabs and the footer are not hidden inside a centred modal. */
+    .modal-overlay.detail-overlay {
+      justify-content: flex-end;
+      align-items: stretch;
+      padding: 21px;
+    }
+
+    .modal.detail-modal {
+      width: min(100%, 960px);
+      max-width: 960px;
+      max-height: none;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border-radius: var(--radius-xl) 0 0 var(--radius-xl);
+    }
+
+    .modal.detail-modal .modal-body {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      min-height: 0;
+    }
+
     .modal-overlay.active .modal {
       transform: scale(1) translateY(0);
     }
@@ -1382,6 +1453,31 @@
     .detail-value {
       font-weight: 600;
       color: var(--ink);
+    }
+
+    .audit-resource-detail {
+      margin-top: 8px;
+      min-height: 36px;
+      padding: 6px 10px;
+      color: var(--accent);
+      background: transparent;
+      border: 1px solid var(--line-strong);
+      font-size: var(--f-min);
+    }
+
+    .audit-resource-detail:hover { background: var(--bg2); }
+
+    .audit-metadata {
+      margin: 0;
+      padding: 13px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--bg2);
+      color: var(--ink2);
+      font: var(--f-min)/1.6 "SF Mono", Monaco, monospace;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
     }
 
 
@@ -1501,6 +1597,14 @@
       font-weight: 600;
     }
     .form-note[hidden] { display: none; }
+    .field-error {
+      display: block;
+      margin-top: var(--space-1);
+      color: var(--danger);
+      font-size: var(--f-min);
+      font-weight: 600;
+    }
+    .field-error[hidden] { display: none; }
 
     /* The reading a collapsed fold owes the reader. */
     .form-section > summary .summary-hint {
@@ -1780,6 +1884,12 @@
       .card { padding: 21px; }
       .card-header { align-items: flex-start; gap: 13px; flex-wrap: wrap; }
       .modal { width: calc(100vw - 24px); }
+      .modal-overlay.detail-overlay { padding: 0; }
+      .modal.detail-modal {
+        width: 100%;
+        max-width: none;
+        border-radius: 0;
+      }
       .modal-footer { flex-wrap: wrap; }
       .nav-inner { padding: 0 16px; }
       .toast-container { left: 12px; right: 12px; top: 12px; }
@@ -1790,6 +1900,12 @@
       .brand h1 { font-size: var(--f-2); }
       .brand p { font-size: var(--f-min); }
       .header-top { padding: 12px 16px 10px; gap: 13px; }
+      .workspace-context {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 13px;
+      }
+      .workspace-context-meta { width: 100%; justify-content: space-between; }
       /* Narrower tables (audit log, plans) still scroll sideways, so the edge
          is faded to show the row continues — a column cut flush at the screen
          edge reads as missing data. */
@@ -1892,10 +2008,10 @@
     </div>
     <nav id="superNav" class="nav-bar hidden" aria-label="Super Admin sections">
       <div class="nav-inner">
-        <a class="nav-link active" href="#overview">Overview</a>
-        <a class="nav-link" href="#tenants">Tenants</a>
-        <a class="nav-link" href="#plans">Plans</a>
-        <a class="nav-link" href="#audit">Audit Logs</a>
+        <a class="nav-link active" data-workspace-nav="overview" href="#overview">Overview</a>
+        <a class="nav-link" data-workspace-nav="tenants" href="#tenants">Tenants</a>
+        <a class="nav-link" data-workspace-nav="plans" href="#plans">Plans</a>
+        <a class="nav-link" data-workspace-nav="audit" href="#audit">Audit Logs</a>
       </div>
     </nav>
   </header>
@@ -1935,7 +2051,18 @@
     </section>
 
     <div id="adminContent" class="hidden">
-      <section id="overview" class="section">
+      <div id="workspaceContext" class="workspace-context requires-auth" role="status" aria-live="polite">
+        <div class="workspace-context-main">
+          <strong id="workspaceContextTitle" class="workspace-context-title">Overview</strong>
+          <span id="workspaceDataState" class="workspace-context-state">Not refreshed</span>
+        </div>
+        <div class="workspace-context-meta">
+          <span id="lastRefreshLabel" class="workspace-context-time">Not refreshed</span>
+          <button id="workspaceRetryBtn" class="btn-secondary btn-sm" type="button" hidden>Retry</button>
+        </div>
+      </div>
+
+      <section id="overview" data-workspace="overview" class="section workspace-section">
         <div class="section-header">
           <div class="section-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941"/></svg></div>
           <div>
@@ -1961,7 +2088,7 @@
           <button type="button" class="stat-card amber" data-metric="past_due" aria-pressed="false">
             <div class="stat-head">
               <span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M12 4.4L20.8 19.4H3.2z"/><path d="M12 10.2v3.6"/><circle cx="12" cy="16.6" r="0.55" fill="currentColor" stroke="none"/></svg></span>
-              <span class="stat-label">Past Due</span>
+              <span class="stat-label">Subscription Past Due</span>
               <span class="stat-filter-flag">Filtering</span>
             </div>
             <div id="pastDueTenantCount" class="stat-value">-</div>
@@ -2057,7 +2184,7 @@
         </details>
       </section>
 
-      <section id="tenants" class="section">
+      <section id="tenants" data-workspace="tenants" class="section workspace-section" hidden>
         <div class="section-header">
           <div class="section-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/></svg></div>
           <div>
@@ -2141,7 +2268,7 @@
         </section>
       </section>
 
-      <section id="plans" class="section">
+      <section id="plans" data-workspace="plans" class="section workspace-section" hidden>
         <div class="section-header">
           <div class="section-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z"/><path d="M6 6h.008v.008H6V6z"/></svg></div>
           <div>
@@ -2171,7 +2298,7 @@
     </section>
       </section>
 
-      <section id="audit" class="section">
+      <section id="audit" data-workspace="audit" class="section workspace-section" hidden>
         <div class="section-header">
           <div class="section-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>
           <div>
@@ -2239,6 +2366,70 @@
     const auditPageSize = 15;
     let isLoading = false;
     let currentUser = null;
+    const WORKSPACE_LABELS = {
+      overview: 'Overview',
+      tenants: 'Tenants',
+      plans: 'Plans',
+      audit: 'Audit Logs'
+    };
+    const WORKSPACE_IDS = new Set(Object.keys(WORKSPACE_LABELS));
+    let activeWorkspace = 'overview';
+    let lastRefreshAt = null;
+    let workspaceFailures = [];
+    let workspaceLoadError = false;
+    let navLinks = [];
+    let setActiveNav = () => {};
+
+    function workspaceFromHash() {
+      const candidate = String(window.location.hash || '').replace(/^#/, '');
+      return WORKSPACE_IDS.has(candidate) ? candidate : 'overview';
+    }
+
+    function setWorkspaceText(element, value) {
+      if (!element) return;
+      element.textContent = value;
+      window.AdminI18n?.localise?.(element);
+    }
+
+    function updateWorkspaceHeaderOffset() {
+      const header = document.querySelector('.header');
+      if (!header) return;
+      document.documentElement.style.setProperty('--workspace-header-offset', `${Math.ceil(header.getBoundingClientRect().height)}px`);
+    }
+
+    function renderWorkspaceContext() {
+      const context = $('workspaceContext');
+      if (!context) return;
+      const state = !currentUser ? 'Not refreshed' : isLoading ? 'Loading' : workspaceLoadError ? 'Error' : workspaceFailures.length ? 'Partial load' : lastRefreshAt ? 'Ready' : 'Not refreshed';
+      const stateClass = state === 'Loading' ? 'is-loading' : state === 'Partial load' ? 'is-partial' : state === 'Error' ? 'is-error' : '';
+      context.classList.remove('is-loading', 'is-partial', 'is-error');
+      if (stateClass) context.classList.add(stateClass);
+      setWorkspaceText($('workspaceContextTitle'), WORKSPACE_LABELS[activeWorkspace]);
+      setWorkspaceText($('workspaceDataState'), state);
+      setWorkspaceText($('lastRefreshLabel'), lastRefreshAt ? `Last refreshed: ${formatTimestamp(lastRefreshAt.toISOString())}` : 'Not refreshed');
+      const retry = $('workspaceRetryBtn');
+      if (retry) {
+        retry.hidden = !currentUser || isLoading || !workspaceFailures.length;
+        window.AdminI18n?.localise?.(retry);
+      }
+    }
+
+    function setActiveWorkspace(workspace, { scroll = true } = {}) {
+      activeWorkspace = WORKSPACE_IDS.has(workspace) ? workspace : 'overview';
+      document.querySelectorAll('[data-workspace]').forEach((section) => {
+        const active = section.dataset.workspace === activeWorkspace;
+        section.hidden = !active;
+        section.setAttribute('aria-hidden', String(!active));
+      });
+      setActiveNav(`#${activeWorkspace}`);
+      renderWorkspaceContext();
+      if (scroll && currentUser) {
+        requestAnimationFrame(() => {
+          const section = document.querySelector(`[data-workspace="${activeWorkspace}"]`);
+          if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      }
+    }
 
     /* Overview counters that name a set of tenants, and the predicate that
        reproduces that set on the client.
@@ -2423,6 +2614,7 @@
         const spinner = $('refreshIcon').querySelector('.loading');
         if (spinner) spinner.remove();
       }
+      renderWorkspaceContext();
     }
 
     // API call with error handling
@@ -2459,6 +2651,9 @@
       $('superNav').classList.toggle('hidden', !signedIn);
       document.querySelectorAll('.requires-auth').forEach((element) => element.classList.toggle('hidden', !signedIn));
       $('authStatus').textContent = signedIn ? `Signed in: ${currentUser.email || currentUser.full_name || currentUser.id}` : 'Not signed in';
+      updateWorkspaceHeaderOffset();
+      if (signedIn) setActiveWorkspace(workspaceFromHash(), { scroll: true });
+      else renderWorkspaceContext();
     }
 
     function hasSuperAdminRole(data) {
@@ -2561,6 +2756,9 @@
       tenants = [];
       plans = [];
       auditLogs = [];
+      workspaceFailures = [];
+      workspaceLoadError = false;
+      lastRefreshAt = null;
       // Reset every stat card that actually exists on this page (ids match the
       // .stats-grid markup); the null guard keeps logout from throwing if a
       // card is ever renamed again.
@@ -2614,6 +2812,8 @@
 
     function openModal(title, bodyHtml, footerHtml) {
       modalReturnFocus = document.activeElement;
+      $('modalOverlay').classList.remove('detail-overlay');
+      $('modalOverlay').querySelector('.modal').classList.remove('detail-modal');
       $('modalTitle').textContent = title;
       $('modalBody').innerHTML = bodyHtml;
       $('modalFooter').innerHTML = footerHtml;
@@ -2624,6 +2824,8 @@
 
     function closeModal() {
       $('modalOverlay').classList.remove('active');
+      $('modalOverlay').classList.remove('detail-overlay');
+      $('modalOverlay').querySelector('.modal').classList.remove('detail-modal');
       if (modalReturnFocus && typeof modalReturnFocus.focus === 'function') modalReturnFocus.focus();
       modalReturnFocus = null;
     }
@@ -2695,7 +2897,7 @@
     const HEALTH_PILLS = {
       'Healthy': ['pill active', PILL_CHECK],
       'Needs setup': ['pill warning', PILL_ALERT],
-      'Payment issue': ['pill past_due', PILL_ALERT],
+      'Subscription past due': ['pill past_due', PILL_ALERT],
       'No admin login': ['pill warning', PILL_ALERT],
       'Paused': ['pill paused', STATUS_PILL_ICONS.paused],
       'Archived': ['pill archived', STATUS_PILL_ICONS.archived],
@@ -2907,7 +3109,7 @@
       if (isTestTenant(t)) return 'Test fixture';
       if (t.status === 'archived') return 'Archived';
       if (t.status === 'paused') return 'Paused';
-      if (t.subscription_status === 'past_due') return 'Payment issue';
+      if (t.subscription_status === 'past_due') return 'Subscription past due';
       if (!t.studio_admin_email) return 'No admin login';
       if (tenantRisks(t).length) return 'Needs setup';
       return 'Healthy';
@@ -3177,14 +3379,34 @@
         : '';
       openModal(
         `Support ${/*safe*/t.name}`, // title renders via textContent
-        `<p>Every support-mode action is audited against this reason.</p>${/*safe*/targetNote}<div class="form-group mt-2"><label for="m_supportReason">Reason</label><textarea id="m_supportReason" rows="4" placeholder="Describe the customer request or incident reference"></textarea></div>`,
+        `<p>Every support-mode action is audited against this reason.</p>${/*safe*/targetNote}<div class="form-group mt-2"><label for="m_supportReason">Reason</label><textarea id="m_supportReason" aria-required="true" aria-describedby="supportReasonError" rows="4" placeholder="Describe the customer request or incident reference"></textarea><p id="supportReasonError" class="form-note" role="alert" hidden></p></div>`,
         `<button id="confirmSupportModeBtn" onclick="confirmSupportMode('${esc(tenantId)}')" class="btn-primary">Start Support Mode</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`,
       );
     }
 
+    function setSupportReasonError(message = '') {
+      const field = $('m_supportReason');
+      const error = $('supportReasonError');
+      if (!field || !error) return;
+      const hasError = Boolean(message);
+      error.hidden = !hasError;
+      error.textContent = message;
+      if (hasError) field.setAttribute('aria-invalid', 'true');
+      else field.removeAttribute('aria-invalid');
+      if (hasError) {
+        window.AdminI18n?.localise?.(error);
+        field.focus();
+      }
+    }
+
     async function confirmSupportMode(tenantId) {
       const reason = $('m_supportReason').value.trim();
-      if (!reason) { showToast('A reason is required to enter support mode.', 'error'); return; }
+      if (!reason) {
+        setSupportReasonError('A reason is required to enter support mode.');
+        showToast('A reason is required to enter support mode.', 'error');
+        return;
+      }
+      setSupportReasonError('');
       $('confirmSupportModeBtn').disabled = true;
       try {
         const data = await api(`/admin/tenants/${tenantId}/support-session`, {
@@ -3200,6 +3422,9 @@
         window.open(target || data.url, '_blank');
       } catch (err) {
         $('confirmSupportModeBtn').disabled = false;
+        setSupportReasonError(err.status === 403
+          ? 'Support mode is not available for this account.'
+          : err.message);
       }
     }
 
@@ -3570,6 +3795,8 @@
       const strip = document.createElement('div');
       strip.className = 'tab-strip';
       strip.setAttribute('role', 'tablist');
+      strip.setAttribute('aria-label', 'Tenant detail sections');
+      window.AdminI18n?.localise?.(strip);
       const panels = document.createElement('div');
       const built = {};
 
@@ -3882,6 +4109,8 @@
       const t = tenants.find((item) => item.id === id);
       if (!t) return;
       openModal(`${/*safe*/t.name} Details`, '<div id="m_tenantDetailMount"></div>', '<button onclick="closeModal()" class="btn-secondary">Close</button>'); // title renders via textContent
+      $('modalOverlay').classList.add('detail-overlay');
+      $('modalOverlay').querySelector('.modal').classList.add('detail-modal');
       $('m_tenantDetailMount').replaceChildren(buildTenantDetailGrid(t));
     }
 
@@ -4180,6 +4409,56 @@
       `;
     }
 
+    const PLAN_VALIDATION_FIELDS = ['m_planCode', 'm_planName', 'm_planMonthly', 'm_planStudents', 'm_planUsers', 'm_planStorage'];
+
+    function preparePlanValidation() {
+      PLAN_VALIDATION_FIELDS.forEach((id) => {
+        const field = $(id);
+        if (!field || $(`${id}Error`)) return;
+        const error = document.createElement('small');
+        error.id = `${id}Error`;
+        error.className = 'field-error';
+        error.hidden = true;
+        error.setAttribute('role', 'alert');
+        field.setAttribute('aria-describedby', error.id);
+        field.parentElement?.appendChild(error);
+        field.addEventListener('input', () => setPlanFieldError(id, ''));
+      });
+    }
+
+    function setPlanFieldError(id, message = '') {
+      const field = $(id);
+      const error = $(`${id}Error`);
+      if (!field || !error) return;
+      error.hidden = !message;
+      error.textContent = message;
+      if (message) field.setAttribute('aria-invalid', 'true');
+      else field.removeAttribute('aria-invalid');
+      if (message) window.AdminI18n?.localise?.(error);
+    }
+
+    function validatePlanFields() {
+      const value = (id) => $(id)?.value.trim() || '';
+      const checks = [
+        ['m_planCode', !editingPlanCode && !value('m_planCode') ? 'Plan code is required.' : ''],
+        ['m_planCode', value('m_planCode') && !/^[a-z0-9][a-z0-9-]{1,62}$/.test(value('m_planCode')) ? 'Plan code must be lowercase letters, numbers, or hyphens.' : ''],
+        ['m_planName', !value('m_planName') ? 'Plan name is required.' : ''],
+        ['m_planMonthly', !value('m_planMonthly') || !Number.isInteger(Number(value('m_planMonthly'))) || Number(value('m_planMonthly')) < 0 ? 'Monthly price must be a non-negative integer.' : ''],
+        ['m_planStudents', !value('m_planStudents') || !Number.isInteger(Number(value('m_planStudents'))) || Number(value('m_planStudents')) <= 0 ? 'Student limit must be a positive integer.' : ''],
+        ['m_planUsers', !value('m_planUsers') || !Number.isInteger(Number(value('m_planUsers'))) || Number(value('m_planUsers')) <= 0 ? 'User limit must be a positive integer.' : ''],
+        ['m_planStorage', !value('m_planStorage') || Number(value('m_planStorage')) <= 0 ? 'Storage limit must be positive.' : ''],
+      ];
+      let firstError = null;
+      PLAN_VALIDATION_FIELDS.forEach((id) => setPlanFieldError(id, ''));
+      checks.forEach(([id, message]) => {
+        if (!message || $(`${id}Error`)?.textContent) return;
+        setPlanFieldError(id, message);
+        if (!firstError) firstError = $(id);
+      });
+      if (firstError) firstError.focus();
+      return !firstError;
+    }
+
     function validatePlanJson() {
       const field = $('m_planFeaturesAdvanced');
       const hint = $('m_planFeaturesAdvanced_hint');
@@ -4332,6 +4611,7 @@
       `;
       const footerHtml = `<button id="m_savePlan" onclick="savePlanModal()" class="btn-primary">Save Plan</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
       openModal('Add Plan', bodyHtml, footerHtml);
+      preparePlanValidation();
       refreshPlanPreview();
     }
 
@@ -4353,6 +4633,7 @@
       `;
       const footerHtml = `<button id="m_savePlan" onclick="savePlanModal()" class="btn-primary">Save Plan</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
       openModal(`Edit ${/*safe*/p.name}`, bodyHtml, footerHtml); // title renders via textContent
+      preparePlanValidation();
       refreshPlanPreview();
     }
 
@@ -4369,6 +4650,7 @@
     }
 
     async function savePlanModal() {
+      if (!validatePlanFields()) return;
       if (!validatePlanJson()) {
         showToast('Additional entitlements must be a JSON object.', 'error');
         $('m_planFeaturesAdvanced').focus();
@@ -4505,6 +4787,63 @@
           .toLowerCase().includes(q));
     }
 
+    function auditMetadata(value) {
+      if (!value) return {};
+      if (typeof value === 'object') return value;
+      try { return JSON.parse(String(value)); }
+      catch (_) { return { value: String(value) }; }
+    }
+
+    function buildAuditDetail(a) {
+      const metadata = auditMetadata(a.metadata);
+      const wrap = document.createElement('div');
+      wrap.className = 'detail-grid';
+      const field = (label, value) => {
+        const item = document.createElement('div');
+        item.className = 'detail-item';
+        const labelEl = document.createElement('div');
+        labelEl.className = 'detail-label';
+        relabel(labelEl, label);
+        const valueEl = document.createElement('div');
+        valueEl.className = 'detail-value';
+        valueEl.textContent = text(value);
+        item.append(labelEl, valueEl);
+        wrap.appendChild(item);
+      };
+      field('Time', formatTimestamp(a.created_at));
+      field('Tenant', a.tenant_slug);
+      field('Action', a.action);
+      field('Resource type', a.resource_type);
+      field('Resource ID', a.resource_id);
+      field('Actor', a.actor_email || 'System');
+
+      const support = metadata && typeof metadata.support_session === 'object'
+        ? metadata.support_session : null;
+      if (support?.reason) field('Support reason', support.reason);
+
+      const metadataItem = document.createElement('div');
+      metadataItem.className = 'detail-item';
+      metadataItem.style.gridColumn = '1 / -1';
+      const metadataLabel = document.createElement('div');
+      metadataLabel.className = 'detail-label';
+      relabel(metadataLabel, 'Metadata');
+      const pre = document.createElement('pre');
+      pre.className = 'audit-metadata';
+      pre.textContent = Object.keys(metadata).length
+        ? JSON.stringify(metadata, null, 2)
+        : 'No metadata captured.';
+      metadataItem.append(metadataLabel, pre);
+      wrap.appendChild(metadataItem);
+      return wrap;
+    }
+
+    function openAuditDetail(a) {
+      openModal('Audit Event Details', '<div id="m_auditDetailMount"></div>', '<button onclick="closeModal()" class="btn-secondary">Close</button>');
+      $('modalOverlay').classList.add('detail-overlay');
+      $('modalOverlay').querySelector('.modal').classList.add('detail-modal');
+      $('m_auditDetailMount').replaceChildren(buildAuditDetail(a));
+    }
+
     /* The endpoint returns 100 rows and this table used to render all of them:
        a hundred-row wall with a UUID in every fourth cell, no filter, and the
        one line an operator came to find somewhere inside it. Same page size and
@@ -4537,17 +4876,28 @@
         const resource = addCell(row, `${text(a.resource_type)} ${text(a.resource_id)}`);
         resource.className = 'audit-resource';
         resource.title = `${text(a.resource_type)} ${text(a.resource_id)}`;
+        const detailButton = document.createElement('button');
+        detailButton.type = 'button';
+        detailButton.className = 'audit-resource-detail';
+        detailButton.textContent = 'Details';
+        detailButton.addEventListener('click', () => openAuditDetail(a));
+        resource.appendChild(detailButton);
         auditBody.appendChild(row);
       });
     }
 
     document.addEventListener('studiosaas:admin-language', () => {
+      updateWorkspaceHeaderOffset();
+      renderWorkspaceContext();
       if (currentUser) renderAuditLogs();
     });
 
     // Main refresh function
     async function refresh() {
       if (!currentUser) return;
+      workspaceFailures = [];
+      workspaceLoadError = false;
+      if ($('workspaceDataState')) renderWorkspaceContext();
       setLoading(true);
       try {
         const [usageResult, planResult, tenantResult, auditResult, settlementResult] =
@@ -4661,12 +5011,22 @@
         if (partialFailures.length) {
           showToast(`Partial load — ${partialFailures.join(' · ')}`, 'error');
         }
+        workspaceFailures = partialFailures;
+        lastRefreshAt = new Date();
+        workspaceLoadError = false;
+        renderWorkspaceContext();
 
       } catch (err) {
         if (err.status === 401) {
+          workspaceFailures = [];
+          workspaceLoadError = false;
+          lastRefreshAt = null;
           setAuthState(null);
           showToast('Please log in to continue.', 'error');
         } else {
+          workspaceFailures = [err.message];
+          workspaceLoadError = true;
+          renderWorkspaceContext();
           showToast('Failed to load data: ' + err.message, 'error');
         }
       } finally {
@@ -4694,28 +5054,31 @@
       card.addEventListener('click', () => {
         // Clicking the pressed counter releases it, so the card is its own undo.
         setMetricFilter(card.dataset.metric === metricFilter ? '' : card.dataset.metric);
-        location.hash = 'tenants';
-        setActiveNav('#tenants');
+        history.pushState(null, '', '#tenants');
+        setActiveWorkspace('tenants');
       });
     });
     $('metricFilterClear').addEventListener('click', () => setMetricFilter(''));
-    const navLinks = Array.from(document.querySelectorAll('.nav-link'));
-    const setActiveNav = (hash) => {
-      navLinks.forEach((link) => link.classList.toggle('active', link.getAttribute('href') === hash));
-    };
-    navLinks.forEach((link) => link.addEventListener('click', () => setActiveNav(link.getAttribute('href'))));
-    if ('IntersectionObserver' in window) {
-      const navObserver = new IntersectionObserver((entries) => {
-        const visible = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        if (visible) setActiveNav(`#${visible.target.id}`);
-      }, { rootMargin: '-120px 0px -55% 0px', threshold: [0.1, 0.25, 0.5] });
-      ['overview', 'tenants', 'plans', 'audit'].forEach((id) => {
-        const section = $(id);
-        if (section) navObserver.observe(section);
+    navLinks = Array.from(document.querySelectorAll('[data-workspace-nav]'));
+    setActiveNav = (hash) => {
+      navLinks.forEach((link) => {
+        const active = link.getAttribute('href') === hash;
+        link.classList.toggle('active', active);
+        if (active) link.setAttribute('aria-current', 'page');
+        else link.removeAttribute('aria-current');
       });
-    }
+    };
+    navLinks.forEach((link) => link.addEventListener('click', (event) => {
+      event.preventDefault();
+      const hash = link.getAttribute('href') || '#overview';
+      history.pushState(null, '', hash);
+      setActiveWorkspace(hash.replace(/^#/, ''));
+    }));
+    window.addEventListener('hashchange', () => setActiveWorkspace(workspaceFromHash()));
+    window.addEventListener('resize', updateWorkspaceHeaderOffset, { passive: true });
+    $('workspaceRetryBtn').addEventListener('click', refresh);
+    updateWorkspaceHeaderOffset();
+    setActiveWorkspace(workspaceFromHash(), { scroll: false });
     $('clearFiltersBtn').addEventListener('click', () => {
       $('tenantSearch').value = '';
       $('statusFilter').value = '';

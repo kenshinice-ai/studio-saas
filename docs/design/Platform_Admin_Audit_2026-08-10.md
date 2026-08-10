@@ -2,8 +2,8 @@
 
 日期：2026-08-10  
 审计对象：`/platform-admin`（源码页面：`super-admin.html`）  
-审计基线：v9.6.1，当前分支 `codex/v9.3.0-cms-information-architecture`，HEAD `2a59854`  
-本文件是代码实现前的设计检查点，不代表本轮已经完成重构。
+审计基线：v9.6.1，当前分支 `codex/v9.3.0-cms-information-architecture`，审计时 HEAD `2a59854`
+实现状态：v9.7.0 已完成 P0 shell、持久化工作区状态、租户/审计 detail drawer、Support Mode 字段级反馈、Plans 字段级校验；本文件的 P2 项仍保持后续队列。
 
 ## 1. 当前事实与边界
 
@@ -290,4 +290,3 @@ Platform Admin
 - [ ] 中文和英文动态标签完整；业务数据不被错误翻译。
 - [ ] 390/768/1024/1440 通过布局、键盘、焦点、44px 触控目标、无页面级横向溢出验收。
 - [ ] 现有 RBAC、租户隔离、API 合同、生产部署和未跟踪销售资料边界不被破坏。
-

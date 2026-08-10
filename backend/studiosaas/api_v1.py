@@ -7819,9 +7819,10 @@ def admin_audit_logs():
         rows = fetch_all(
             conn,
             """
-            SELECT a.id, a.action, a.resource_type, a.resource_id, a.created_at,
-                   t.slug AS tenant_slug
+            SELECT a.id, a.action, a.resource_type, a.resource_id, a.metadata,
+                   a.created_at, u.email AS actor_email, t.slug AS tenant_slug
             FROM audit_logs a
+            LEFT JOIN users u ON u.id = a.actor_user_id
             LEFT JOIN tenants t ON t.id = a.tenant_id
             ORDER BY a.created_at DESC
             LIMIT 100

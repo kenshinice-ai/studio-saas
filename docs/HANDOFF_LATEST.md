@@ -1,12 +1,12 @@
 # PWE Studio v9.7.0 — Platform Admin 审计与实施 handoff
 
-> 当前阶段：已完成代码实现前的 current-truth、真实登录逐屏审计和状态矩阵；下一步才进入 P0/P1 代码实现。详细合同见 [`docs/design/Platform_Admin_Audit_2026-08-10.md`](design/Platform_Admin_Audit_2026-08-10.md)。本节记录的是执行入口，不代表 v9.7.0 已部署。
+> 当前阶段：已完成 current-truth、真实登录逐屏审计、状态矩阵以及 P0/P1 核心实现；候选版本正在进行完整门禁、打包和部署验收。详细合同见 [`docs/design/Platform_Admin_Audit_2026-08-10.md`](design/Platform_Admin_Audit_2026-08-10.md)。本节记录的是 v9.7.0 执行入口，不代表公网验收已完成。
 
 ## Platform Admin 当前判断
 
 - v9.6.1 的 `/platform-admin` 数据、API、权限和既有 i18n 基础可复用；当前主要问题是四个工作区仍以长页锚点呈现，sticky header 会遮挡目标，详情/操作/编辑过度依赖弹窗。
-- P0 先改 active workspace、anchor offset、操作层级和 Support Mode 空 reason 反馈；不改认证/RBAC，不新增支付、银行转账、Gmail/SMTP、SES、SSE、WebSocket 或 Push。
-- P1 再补 Today 持久状态、Tenants detail drawer/full-screen、Plans/Audit 的完整 loading/empty/error/retry/submit 状态和中英文/响应式验收。
+- P0 已改 active workspace、anchor offset、操作层级和 Support Mode 空 reason 反馈；不改认证/RBAC，不新增支付、银行转账、Gmail/SMTP、SES、SSE、WebSocket 或 Push。
+- P1 已补 Today 持久状态、Tenants detail drawer/full-screen、Audit detail drawer、Plans 字段级校验和订阅状态文案；剩余完整 loading/empty/error/retry/submit 与中英文/响应式验收进入发布门禁。
 - P2 留给保存筛选视图、审计导出/详情增强和轻量系统健康信息。
 - `past_due` 统一按订阅生命周期表达，不把它写成已接入在线支付后的“支付失败”。
 
@@ -25,7 +25,7 @@ Audit Logs → search + pagination + governance detail
 
 # PWE Studio v9.6.1 — Studio Admin 执行 handoff
 
-> 状态：已完成代码、文档、打包、同步、部署与公网验收；版本：`9.6.1`。本节是本文件的最新交接入口，历史版本记录仍保留在下方。
+> 状态：历史版本交接记录；当前 Platform Admin 交接入口见文件顶部。版本：`9.6.1`。
 
 ## 当前事实
 

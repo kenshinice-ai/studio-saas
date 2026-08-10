@@ -1,6 +1,6 @@
 # 平台超管手册 · Super Admin
 
-> 适用版本：PWE Studio v9.6.1 · 界面：Super Admin 控制台（`/platform-admin`）
+> 适用版本：PWE Studio v9.7.0 · 界面：Super Admin 控制台（`/platform-admin`）
 > 其他角色手册见 [手册总览](README.md)
 
 ## 角色定位
@@ -19,8 +19,10 @@ Super Admin 是**平台方**（SaaS 运营者），不属于任何一家工作�
 2. 在「Super Admin Login」输入邮箱、密码（可勾选「Remember me for 30 days」），
    点「Login」。**只有平台级 super_admin 账号**（不挂在任何租户下）能进入；
    其他账号会被登出并提示「Please log in with a Super Admin account.」。
-3. 登录后顶部出现四个导航锚点：**Overview · Tenants · Plans · Audit Logs**，
-   右上角有「Change Password」「Logout」「↻ Refresh」。
+3. 登录后顶部出现四个工作区入口：**Overview · Tenants · Plans · Audit Logs**；
+   一次只显示当前工作区，地址仍可用 `#overview`、`#tenants`、`#plans`、`#audit`
+   直达。右上角有「Change Password」「Logout」「↻ Refresh」，工作区状态栏会
+   显示载入/就绪/部分载入、重试和最近刷新时间。
 4. 界面语言：右上角有运行时注入的「中文 / English」切换（默认中文，记忆键
    `studiosaas_admin_language`，与 Studio Admin/CMS 共用）。**注意：无论界面
    什么语言，各种确认框都必须输入英文原文的 slug。**
@@ -28,7 +30,7 @@ Super Admin 是**平台方**（SaaS 运营者），不属于任何一家工作�
 ## 一、Overview（商业总览）
 
 八张 KPI 卡：Total Tenants、MRR (AUD)、Paid Tenants、Trial Tenants、
-Onboarding、Past Due、Trials Ending in 7 Days、New in 30 Days。
+Onboarding、Subscription Past Due、Trials Ending in 7 Days、New in 30 Days。
 
 **其中七张是筛选按钮（v8.2.11）。** 点任何一张（MRR 除外）会直接把下方
 Tenants 列表筛成它统计的那批工作室，卡片上出现「Filtering 筛选中」标记，
@@ -59,13 +61,13 @@ archived）、Plan 下拉、Category 下拉、「Show test tenants」复选框�
 
 表格 7 列：Studio（名称+slug+行业+管理员邮箱）、Plan、Status（状态 pill +
 订阅状态 + 健康度徽标：Healthy / Needs setup / No admin login /
-Payment issue / Paused / Archived）、Owner、Usage（学员数与存储用量/上限）、
+Subscription past due / Paused / Archived）、Owner、Usage（学员数与存储用量/上限）、
 Surfaces（Portal / CMS / Register / Admin 四个链接；归档或删除的租户链接
 置灰。**Portal / Register 是公开页面直达链接；CMS / Admin 是租户内界面，
 点击会先弹出支持模式对话框**，见下文第四节）、Actions（**View** 与
 **More**）。
 
-**View** 打开详情模态：状态摘要、Risk / Setup 风险清单（如
+**View** 打开响应式详情抽屉（移动端占满屏幕）：状态摘要、Risk / Setup 风险清单（如
 No owner assigned、Website not published、Storage near limit 等）、
 6 项 Onboarding Checklist（Owner assigned → Studio Website published）、
 学员/存储用量进度条、订阅期间、归档路径等。
@@ -130,6 +132,8 @@ No owner assigned、Website not published、Storage near limit 等）、
   - **Mark as the recommended plan 设为主推套餐**（勾上会自动清除其他套餐的
     主推标记——数据库上有唯一约束，主推只能有一个）。
   **Code 创建后不可修改。**
+- **Save Plan** 会在发送请求前检查 Code、Name、月价和额度，并把错误显示在
+  对应字段下方；不会只用短暂 toast 隐藏表单问题。
 - **「+ Add Plan」现在可以填 Code 了**（旧手册写的「Code 字段禁用、无法通过
   UI 新建套餐」已过时）。
 - 套餐指派：在新建/编辑租户的 Plan 下拉里选；租户额度完全继承套餐。
@@ -158,7 +162,8 @@ session for this studio from the Super Admin console first.」
    或直接点 Surfaces 列的 **CMS / Admin** 快捷链接——这两个链接现在也会
    先弹出支持模式对话框（Portal / Register 是公开页面，仍是普通链接）。
 2. 在「Reason」里填写客户请求或工单号（**必填**，会记入审计），点
-   「Start Support Mode」。
+   「Start Support Mode」。留空时不会发送请求，输入框会获得 `aria-invalid`
+   和字段级错误提示并重新获得焦点；网络/权限错误会留在当前表单中。
 3. 新标签页自动打开该租户的 Studio Admin，顶部出现琥珀色横幅
    「🛟 SUPPORT MODE — Acting inside <租户> — every action is audited.
    Reason: …」。

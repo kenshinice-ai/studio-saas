@@ -7,12 +7,30 @@ the current source tree was packaged or deployed.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | `codex/v9.3.0-cms-information-architecture`; `VERSION` = **9.6.1** | This branch, which is ahead of `main`, produced deployed candidate commit `e46a3e3f4a407e8b2ac34ce8e230165c37150ea1`; documentation-only closure commit: `cf5303c`. |
-| Package | **9.6.1 SaaS + Edition archives verified** | SaaS SHA-256 `f1465b393fefb83e962bac41402fff150430c3fcd3e9b7252911d985840aabb4`; Edition SHA-256 `3d881f7e3324b5acacc4aa89feadd23a278e5cd2cc412f0474d6c13b8deb7e0e`; both `BUILD_INFO` records point to the deployed candidate. |
-| Production | **9.6.1 deployed and publicly accepted** | `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.6.1`, image `studiosaas:9.6.1`; public deep health reports `db=ok`, 6 readable tenants and `unreadable=0`. `BUILD_INFO` confirms the deployed candidate commit. |
+| Source | `codex/v9.3.0-cms-information-architecture` (which is ahead of `main`); `VERSION` = **9.7.0** | Platform Admin P0/P1 implementation is in the current candidate; the exact release commit is recorded after the release gate. |
+| Package | **9.7.0 packaging pending** | The SaaS and Edition archives will be built only from the clean, committed candidate and verified against its `BUILD_INFO`. |
+| Production | **9.6.1 remains the verified production release** | `/opt/pwestudio/current` remains `PWE-StudioSaaS-aws-9.6.1`, image `studiosaas:9.6.1`; public deep health was rechecked before this candidate. |
 
 Re-verify the production health endpoint before any later release claim; do not
 infer Production from `VERSION` or from an archive filename, which does not identify the deployed commit.
+
+## v9.7.0 Platform Admin workbench
+
+This candidate turns Platform Admin into a single active workspace: Overview,
+Tenants, Plans and Audit Logs remain directly addressable by hash, but unrelated
+sections no longer continue below the current task. The workspace header keeps
+refresh state and last-success evidence visible, while the sticky header offset
+is measured at runtime for desktop and mobile layouts.
+
+Tenant details and audit events use a responsive reading drawer. Support Mode
+keeps its reason requirement in the field with focus-returning inline feedback;
+plan forms validate code, name, price and limits before sending a request.
+`past_due` is described as subscription lifecycle state, not as a payment-gateway
+failure. Online payments, bank-transfer configuration, Gmail/SMTP, AWS SES, SMS,
+SSE, WebSocket and browser push remain outside this release.
+
+The candidate is not production evidence until the package, deployment and
+public acceptance rows above are updated with observed facts.
 
 ## v9.6.1 Studio Admin workspace polish
 
@@ -960,7 +978,7 @@ curl -i -X POST http://localhost:8901/v1/admin/tenants \
 | `docs/Deployment.md` | Deployment stages; Stage 2 (AWS Lightsail) live since 2026-07-30 |
 | `docs/Design_System.md` | UI tokens and component standards |
 | `docs/Glossary.md` | One agreed word per concept (enforced by `check_terminology.py`) |
-| `docs/guides/` | Per-role user manuals in Chinese (applicable to v9.6.1) |
+| `docs/guides/` | Per-role user manuals in Chinese (applicable to v9.7.0) |
 | `01 BRAND ASSETS/` | PWE/Paradise family delivery kit and validated asset manifest |
 
 ---
