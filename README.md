@@ -7,12 +7,26 @@ the current source tree was packaged or deployed.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | `codex/v9.8.2-showcase-content-recovery`; `VERSION` = **9.8.4**; deployed source commit `c0e344aa82a4a2358c0052123ba7b6dd633fb057` | The release branch is pushed to `origin`; the untracked `docs/sales/` material remains user-owned and is not part of the release. |
+| Source | `codex/v9.8.2-showcase-content-recovery`; `VERSION` = **9.8.5**; deployed source commit is still the prior release until this candidate is released | The UI/API candidate is under verification; the untracked `docs/sales/` material remains user-owned and is not part of the release. |
 | Package | v9.8.4 SaaS and Edition packages verified | SaaS SHA-256 `b323ac360b4f13386b6a76d591ac90f773371777aaa340b355176642a60f76ae`; Edition SHA-256 `b9317a92374f58e17b681206029704f8493a59d046704d32a68a722c04b506c1`; both `BUILD_INFO` records are v9.8.4, commit `c0e344aa82a4a2358c0052123ba7b6dd633fb057`, and passed bundle checks. |
 | Production | **v9.8.4 deployed to `pwestudio.online`** | `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.8.4`; image `studiosaas:9.8.4`; deep health reports `appVersion=9.8.4`, `db=ok`, `mode=saas`, `tenants=6`, `themes.unreadable=0`; disk free `46.62 GB`; HTTP→HTTPS `301`, HTTPS `200`, TLS check `0`, HTTP/2. |
 
 Re-verify the production health endpoint before any later release claim; do not
 infer Production from `VERSION` or from an archive filename, which does not identify the deployed commit.
+
+## v9.8.5 action context, editor review and plan-linked work counts
+
+The Platform Admin `Actions` column now opens an anchored command menu for
+frequent tenant and plan operations. Selecting an operation puts its review and
+explicit next step in the right Inspector; opening CMS or Studio Admin remains
+support-mode gated. Tenant editing now has section navigation, while the right
+review shows changed entitlements, preserved content, tenant notifications and
+blocking adjustments. Admin tenant usage includes active, draft and archived
+showcase counts, and plan-change impact includes active works so a downgrade
+cannot hide a works over-limit condition.
+
+This section is a release candidate until the v9.8.5 package and production
+acceptance evidence are recorded in the latest handoff.
 
 ## v9.8.4 plan-change safety and Platform Admin clarity
 

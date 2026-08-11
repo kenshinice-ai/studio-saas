@@ -54,7 +54,7 @@ def test_platform_admin_mobile_navigation_is_a_drawer_and_actions_are_hierarchic
     assert "is-mobile-open" in html
     assert "data-quick-view-row" in html
     assert "wireQuickViewRow(row, () => openPlanInspector(p)" in html
-    assert "addActionButton(actions, 'Actions', 'btn-secondary btn-sm', () => openPlanActions(p.code));" in html
+    assert "addActionButton(actions, 'Actions', 'btn-secondary btn-sm', (button) => openPlanActions(p.code, button));" in html
 
 
 def test_platform_inspector_is_read_only_and_operations_stay_in_the_center() -> None:
@@ -67,6 +67,25 @@ def test_platform_inspector_is_read_only_and_operations_stay_in_the_center() -> 
     assert "function openPlanActions" in html
     assert "Start Support Mode" in html
     assert 'id="m_supportReason"' in html
+
+
+def test_action_menu_keeps_frequent_commands_in_the_center_and_context_in_inspector() -> None:
+    html = CONSOLE.read_text(encoding="utf-8")
+    assert "function openActionMenu" in html
+    assert "action-menu-popover" in html
+    assert "function openTenantActionContext" in html
+    assert "function openPlanActionContext" in html
+    assert "High-frequency tenant actions" in html
+    assert "Needs adjustment" in html
+
+
+def test_tenant_editor_has_section_navigation_and_showcase_quota_review() -> None:
+    html = CONSOLE.read_text(encoding="utf-8")
+    for section in ("editor-section-basic", "editor-section-contacts", "editor-section-admin", "editor-section-subscription", "editor-section-limits"):
+        assert section in html
+    assert "function wireEditorSectionNav" in html
+    assert "showcase_active_count" in html
+    assert "Published Showcase Works" in html
 
 
 def test_platform_workspace_scrolls_clear_the_sticky_header() -> None:

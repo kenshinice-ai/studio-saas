@@ -1665,6 +1665,7 @@ def _plan_change_impact(
             ("student_count", "student_limit"),
             ("user_count", "user_limit"),
             ("storage_used_mb", "storage_limit_mb"),
+            ("showcase_active_count", "showcase_limit"),
         ):
             current = int(usage.get(usage_key) or 0)
             limit = int(target_plan.get(limit_key) or 0)
@@ -7254,6 +7255,9 @@ def admin_tenants():
                    COALESCE(u.student_count, 0) AS student_count,
                    COALESCE(u.user_count, 0) AS user_count,
                    COALESCE(u.storage_used_mb, 0) AS storage_used_mb,
+                   COALESCE(showcase.showcase_active_count, 0) AS showcase_active_count,
+                   COALESCE(showcase.showcase_draft_count, 0) AS showcase_draft_count,
+                   COALESCE(showcase.showcase_archived_count, 0) AS showcase_archived_count,
                    s.status AS subscription_status,
                    s.starts_at, s.ends_at, s.trial_ends_at,
                    s.current_period_ends_at,
@@ -7282,6 +7286,19 @@ def admin_tenants():
                    t.created_at, t.archived_at, t.archive_path, t.deletion_requested_at, t.deleted_at
             FROM tenants t
             LEFT JOIN tenant_usage u ON u.tenant_id = t.id
+            LEFT JOIN LATERAL (
+                SELECT
+                    count(*) FILTER (WHERE COALESCE(item->>'publication_state', 'active') = 'active') AS showcase_active_count,
+                    count(*) FILTER (WHERE item->>'publication_state' = 'draft') AS showcase_draft_count,
+                    count(*) FILTER (WHERE item->>'publication_state' = 'archived') AS showcase_archived_count
+                FROM jsonb_array_elements(
+                    CASE
+                        WHEN jsonb_typeof(t.settings->'website_profile'->'showcase_items') = 'array'
+                        THEN t.settings->'website_profile'->'showcase_items'
+                        ELSE '[]'::jsonb
+                    END
+                ) AS item
+            ) showcase ON TRUE
             LEFT JOIN subscriptions s ON s.tenant_id = t.id
             LEFT JOIN users au ON lower(au.email) = lower(t.settings->>'studio_admin_email')
             ORDER BY t.created_at DESC
@@ -7455,9 +7472,21 @@ def mutate_tenant(tenant_id: str):
                 usage_row = fetch_one(
                     conn,
                     """
-                    SELECT student_count, user_count, storage_used_mb
-                    FROM tenant_usage
-                    WHERE tenant_id = %s
+                    SELECT u.student_count, u.user_count, u.storage_used_mb,
+                           COALESCE(showcase.showcase_active_count, 0) AS showcase_active_count
+                    FROM tenants t
+                    LEFT JOIN tenant_usage u ON u.tenant_id = t.id
+                    LEFT JOIN LATERAL (
+                        SELECT count(*) FILTER (WHERE COALESCE(item->>'publication_state', 'active') = 'active') AS showcase_active_count
+                        FROM jsonb_array_elements(
+                            CASE
+                                WHEN jsonb_typeof(t.settings->'website_profile'->'showcase_items') = 'array'
+                                THEN t.settings->'website_profile'->'showcase_items'
+                                ELSE '[]'::jsonb
+                            END
+                        ) AS item
+                    ) showcase ON TRUE
+                    WHERE t.id = %s
                     """,
                     (tenant_id,),
                 ) or {}

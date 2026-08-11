@@ -501,13 +501,23 @@ def test_plan_change_impact_separates_entitlements_from_preserved_content() -> N
             "features_json": json.dumps({"portfolio": True}),
             "is_public": True,
         },
-        usage={"student_count": 120, "user_count": 2, "storage_used_mb": 3000},
+        usage={"student_count": 120, "user_count": 2, "storage_used_mb": 3000, "showcase_active_count": 16},
     )
 
     assert impact["notification_required"] is True
     assert impact["disabled_features"] == ["data_export"]
     assert impact["usage_over_new_limit"]["student_count"] == {"current": 120, "limit": 100}
+    assert impact["usage_over_new_limit"]["showcase_active_count"] == {"current": 16, "limit": 15}
     assert "website_brand_and_showcase" in impact["content_preserved"]
+
+
+def test_platform_tenant_query_exposes_showcase_counts_for_plan_review() -> None:
+    source = (REPOSITORY_ROOT / "backend/studiosaas/api_v1.py").read_text(encoding="utf-8")
+    route = source[source.index("def admin_tenants("):source.index("def create_tenant(")]
+    assert "showcase_active_count" in route
+    assert "website_profile'->'showcase_items" in route
+    assert "showcase_draft_count" in route
+    assert "showcase_archived_count" in route
 
 
 def test_plan_changes_have_ui_and_api_acknowledgement_gates() -> None:
