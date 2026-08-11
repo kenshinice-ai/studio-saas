@@ -7,14 +7,14 @@ the current source tree was packaged or deployed.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | `codex/v9.8.2-showcase-content-recovery`; `VERSION` = **9.8.3**; v9.8.3 plan-linked showcase candidate is being verified on top of the deployed v9.8.2 source, which is ahead of `main` | Do not treat this working-tree candidate as packaged or deployed until the release gates and production checks below are refreshed. |
-| Package | v9.8.3 package not built yet; previous v9.8.2 archives remain the last packaged artifacts | The previous archives are not evidence for v9.8.3. |
-| Production | **v9.8.2 deployed to `pwestudio.online`** | `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.8.2`; image `studiosaas:9.8.2`; `BUILD_INFO` commit `25d782c994b7c0de36c73c1e4f4472ed50f5f1f5`; deep health reports `appVersion=9.8.2`, `db=ok`, `mode=saas`, `tenants=6`, `themes.unreadable=0`. |
+| Source | `codex/v9.8.2-showcase-content-recovery`; `VERSION` = **9.8.3**; deployed source commit `97b041495800edd1b41dc742c399587fed289ad7` | The deployment commit is recorded independently from this documentation-closure commit; untracked `docs/sales/` material remains user-owned and is not part of the release. |
+| Package | SaaS `dist/PWE-StudioSaaS-aws-9.8.3.tar.gz` (`08b47e4bfce26bb69a7329d3bb40d6cd8f2cac55e9a148d51e430b15d249b44e`); Edition `dist/PWE-Studio-Edition-9.8.3.tar.gz` (`9169cdc3d77a54fdcf76fd857589d69d7e7fc1688db06a9646ed5d365eaa4244`) | Both packages passed checksum, `BUILD_INFO`, entry-point and exclusion checks; `BUILD_INFO` points to `97b041495800edd1b41dc742c399587fed289ad7`. |
+| Production | **v9.8.3 deployed to `pwestudio.online`** | `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.8.3`; image `studiosaas:9.8.3`; deep health reports `appVersion=9.8.3`, `db=ok`, `mode=saas`, `tenants=6`, `themes.unreadable=0`; HTTP→HTTPS `301`, HTTPS `200`, TLS check `0`, HTTP/2. |
 
 Re-verify the production health endpoint before any later release claim; do not
 infer Production from `VERSION` or from an archive filename, which does not identify the deployed commit.
 
-## v9.8.3 plan-linked showcase candidate
+## v9.8.3 plan-linked showcase release
 
 The showcase entitlement is now explicit end to end: starter publishes 15 active
 works, studio 60, and growth 150. The public endpoint still pages 12 items at a
@@ -22,8 +22,9 @@ time; it no longer treats 12 as a storage or plan cap. Work records carry an
 `active` / `draft` / `archived` state, so downgrades preserve the full portfolio
 and new uploads beyond active capacity become drafts. The Super Admin plan form
 also sends `showcaseLimit`, and PATCH requests preserve an existing value when a
-legacy caller omits the field. Production remains v9.8.2 until this candidate is
-packaged and deployed.
+legacy caller omits the field. The release is deployed to production; the public
+plans endpoint now returns 15 / 60 / 150 and Ruby Studio retains all 12 active
+works.
 
 ## v9.8.2 showcase safety hotfix
 
