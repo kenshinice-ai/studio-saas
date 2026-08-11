@@ -1,5 +1,7 @@
 # PWE Studio v9.8.7 — ranked standalone showcase production closure
 
+> 同步说明：Platform Admin 的历史优化清单与三栏工作台评审已随 `origin/main` 合并，完整方案保存在 [docs/design/Platform_Admin_Workspace.md](docs/design/Platform_Admin_Workspace.md)。本 handoff 继续只记录已发生的发布事实；方案文档不替代生产证据。
+
 > 当前阶段：v9.8.7 已完成 `featured_rank` 数据契约、首页精选预览、独立 `/showcase` 作品归档、分类 URL、C 方案分页、统一导航/footer、后台排序编辑、套餐变更内容保留、双语手册更新、完整门禁、双模式打包、分支 push、生产迁移、备份、部署和公网浏览器验收。生产运行部署代码 commit `4e1894f12a31935701f3982757bd8fe0f441e0d0`；本节以下为本轮最终证据。文档闭环提交只更新发布记录，不改变已运行的 v9.8.7 包。
 
 ## v9.8.7 修复范围与验收
