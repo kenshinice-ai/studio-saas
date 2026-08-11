@@ -4,31 +4,30 @@
 
 These are three independent facts. A matching version label is not proof that
 the current source tree was packaged or deployed; Source, Package and
-Production remain separate rows. The v9.8.7 package and production rows below
-identify the exact deployable commit; Source also includes the documentation
-closure that records the observed result.
+Production remain separate rows. Each row below identifies the exact 9.8.8
+commit, archive, or live release that was observed.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v9.8.8 candidate** from `codex/v9.8.2-showcase-content-recovery` | `VERSION` = **9.8.8**; implementation is being verified before packaging; the v9.8.7 deployed source commit remains the rollback baseline and the user-owned `docs/sales/` material remains outside the release. |
-| Package | Clean SaaS and Edition v9.8.7 packages verified | SaaS `dist/PWE-StudioSaaS-aws-9.8.7.tar.gz` SHA-256 `8181b9324ef4f66297cacb9b9d440c4ecec458f34151d887965ff850c07392c1`; Edition `dist/PWE-Studio-Edition-9.8.7.tar.gz` SHA-256 `16473b8d4ad17c57e3603cef34915aca00b6e8a2c87305b146240ce8d1d64403`; both `BUILD_INFO` records point to `4e1894f` and passed bundle checks. |
-| Production | **v9.8.7 deployed to `pwestudio.online`** | `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.8.7`; image `studiosaas:9.8.7`; deep health reports `appVersion=9.8.7`, `db=ok`, `mode=saas`, `tenants=6`, `themes.unreadable=0`; disk free `46.25 GB`; HTTP→HTTPS `301`, HTTPS `200`, TLS check `0`, HTTP/2. |
+| Source | **v9.8.8 on `main`** | `VERSION` = **9.8.8**; the deployed source commit is `4c9f5d39bf7be4504f18cf02010b629921a7072c`; `main` and the release candidate branch are pushed; user-owned `docs/sales/` material remains outside the release. |
+| Package | Clean SaaS and Edition v9.8.8 packages verified | SaaS `dist/PWE-StudioSaaS-aws-9.8.8.tar.gz` SHA-256 `e447bb5da60ccd9ba1f841df2fb037a0a47f152fdbd4f6c0fbce546db11a608c`; Edition `dist/PWE-Studio-Edition-9.8.8.tar.gz` SHA-256 `233af54c0ecb65047e2884b00a5c6f95f2950cbb91589f5d585133469a29f508`; both `BUILD_INFO` records point to `4c9f5d3` and passed bundle checks. |
+| Production | **v9.8.8 deployed to `pwestudio.online`** | `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.8.8`; image `studiosaas:9.8.8`; deep health reports `appVersion=9.8.8`, `db=ok`, `mode=saas`, `tenants=6`, `themes.unreadable=0`; disk free `46.15 GB`; HTTP→HTTPS `301`, HTTPS `200`, TLS check `0`, HTTP/2. |
 
 Re-verify the production health endpoint before any later release claim; do not
 infer Production from `VERSION` or from an archive filename, which does not identify the deployed commit.
 
-## v9.8.8 candidate scope
+## v9.8.8 released scope
 
-This candidate separates publish writes from public verification, adds a shared
+This release separates publish writes from public verification, adds a shared
 `publicSurfaceContract` for the portal, standalone showcase, timetable and
 register footer, and gives Studio Admin a light, information-tinted navigation
 rail with the existing 1.618 editor/preview split. Links now require both owner
 intent and real published content, and consent revocation / timetable horizon
 checks use the same server rules as the destination page. The bilingual manual
-and Studio Admin copy explain the pending-verification state and retry path.
-
-Package and Production remain v9.8.7 until the clean v9.8.8 build, deployment,
-health checks and browser acceptance are complete.
+and Studio Admin copy explain the pending-verification state and retry path. The
+guarded production switch created a logical database backup and volume archive
+before changing the live symlink; v9.8.7 remains available as the immediate
+rollback release.
 
 ## v9.8.7 ranked standalone showcase acceptance
 

@@ -20,6 +20,26 @@ Public navigation checks consent revocation and timetable occurrences using the
 same server-side rules as the destination pages, so an empty or stale link is
 not advertised. No tenant records are deleted or migrated by this change.
 
+### Deployment acceptance
+
+Production is running `PWE-StudioSaaS-aws-9.8.8` from commit
+`4c9f5d39bf7be4504f18cf02010b629921a7072c`. The SaaS package SHA-256 is
+`e447bb5da60ccd9ba1f841df2fb037a0a47f152fdbd4f6c0fbce546db11a608c`; the
+Edition package SHA-256 is
+`233af54c0ecb65047e2884b00a5c6f95f2950cbb91589f5d585133469a29f508`.
+
+The guarded switch created logical backup
+`studiosaas_studiosaas_20260811T115328Z.dump` with its manifest and volume
+archive `pwestudio-volumes-20260811T115329Z.tar.gz`; v9.8.7 remains available
+as the rollback release. Deep health reports `appVersion=9.8.8`, `db=ok`,
+`mode=saas`, six tenants, and `themes.unreadable=0`. Public route checks all
+returned `200`. The live showcase API reports home `pageSize=6`, archive
+`pageSize=12`, category filtering, and a valid empty page after the final
+offset. The production browser check passed at 1280px and 375px with no
+horizontal overflow; the lightbox opened `1 / 12` and closed cleanly. No fresh
+application `Traceback`, `Exception`, `Fatal`, or `ERROR` entries were found
+after deployment.
+
 ## v9.8.7 — ranked showcase archive and content-safe publishing
 
 The public showcase now has one tenant-wide `featured_rank` order. Lower
