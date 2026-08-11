@@ -7,14 +7,14 @@ the current source tree was packaged or deployed.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | `codex/v9.8.2-showcase-content-recovery`; `VERSION` = **9.8.2**; based on deployed commit `04fd53438e81b726954ad2fb248764cc6d15db71`, which is ahead of `main` | Candidate: prevent Platform Admin plan changes from replacing tenant-authored website settings and contain showcase lightbox images. |
-| Package | Current released baseline: SaaS `dist/PWE-StudioSaaS-aws-9.8.1.tar.gz` · SHA-256 `458dec5b8462ac929026782dc553498ee86ea96e7e3202afe3e1961383698b84`; Edition `dist/PWE-Studio-Edition-9.8.1.tar.gz` · SHA-256 `45eece0ec5ce88fe772d4dfafac3576586a553378a3f90c24307b4c1b92ef1cd` | The v9.8.2 archives remain pending until the candidate is committed and the full gate passes. |
-| Production | **v9.8.1 deployed to `pwestudio.online`** | `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.8.1`; image `studiosaas:9.8.1`; `BUILD_INFO` commit `04fd53438e81b726954ad2fb248764cc6d15db71`; deep health reports `appVersion=9.8.1`, `db=ok`, `mode=saas`, `tenants=6`, `themes.unreadable=0`. |
+| Source | `codex/v9.8.2-showcase-content-recovery`; `VERSION` = **9.8.2**; deployed candidate commit `25d782c994b7c0de36c73c1e4f4472ed50f5f1f5`, based on production v9.8.1 commit `04fd53438e81b726954ad2fb248764cc6d15db71`, which is ahead of `main` | The candidate passed the complete local gate before packaging. |
+| Package | SaaS `dist/PWE-StudioSaaS-aws-9.8.2.tar.gz` · SHA-256 `f11c7f9bceba0ea8bac3e5ae752af49e8cb969845bc8c84eca2e39fba73760c5`; Edition `dist/PWE-Studio-Edition-9.8.2.tar.gz` · SHA-256 `661869d273b0b3684494b767c112bbbb55bc30f7b63522923542dd1290249530` | Both archives passed checksum, exact `BUILD_INFO`, mode, entrypoint and exclusion checks. |
+| Production | **v9.8.2 deployed to `pwestudio.online`** | `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.8.2`; image `studiosaas:9.8.2`; `BUILD_INFO` commit `25d782c994b7c0de36c73c1e4f4472ed50f5f1f5`; deep health reports `appVersion=9.8.2`, `db=ok`, `mode=saas`, `tenants=6`, `themes.unreadable=0`. |
 
 Re-verify the production health endpoint before any later release claim; do not
 infer Production from `VERSION` or from an archive filename, which does not identify the deployed commit.
 
-## v9.8.2 showcase safety hotfix candidate
+## v9.8.2 showcase safety hotfix
 
 This hotfix is based on the exact v9.8.1 production commit. Platform Admin
 tenant edits now lock and preserve the stored brand/website payload when the
@@ -24,9 +24,12 @@ lightboxes now own a bounded viewport box and use centered `object-fit: contain`
 media, so portrait and landscape works cannot overflow into the action bar or
 leave the image anchored to one side.
 
-Ruby Studio's last valid published brand version remains stored as version 44
-with 12 showcase items. Production restoration and v9.8.2 deployment are not
-claimed here until backup, rollout and public browser acceptance complete.
+Ruby Studio's last valid published brand version 44 was recovered as linked
+version 45 after a fresh database and volume backup. All 12 showcase items and
+four categories are present again, the public showcase is enabled, and both the
+tenant and subscription plan remain `growth`. Public browser acceptance opened
+a real 1500×2000 work: it is centered and contained inside the stage, clears
+the metadata/action bar, and produced no browser console errors.
 
 ## v9.8.1 Platform Admin workbench polish
 
