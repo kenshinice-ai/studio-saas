@@ -7,14 +7,14 @@ the current source tree was packaged or deployed.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | `codex/v9.3.0-cms-information-architecture`; `VERSION` = **9.8.1**; candidate commit is recorded after the release commit, which is ahead of `main` | The candidate remains separate from the v9.8.0 package and production rows until deployment is independently accepted. |
-| Package | SaaS `dist/PWE-StudioSaaS-aws-9.8.0.tar.gz` · SHA-256 `af814ad66036a8c8686f3c94394fa1b1e63d2cc4fb9bb11d5878d7c8670bc29b`; Edition `dist/PWE-Studio-Edition-9.8.0.tar.gz` · SHA-256 `30731b98b66276024f1fbbefe75f0fc93e7832d0388aeac1ae9b8a44439aa6e8` | Both packages passed checksum, `BUILD_INFO`, entrypoint and exclusion checks. |
-| Production | **v9.8.0 deployed to `pwestudio.online`** | `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.8.0`; the running image is `studiosaas:9.8.0`; deep health reports `appVersion=9.8.0`, `db=ok`, `mode=saas`, `tenants=6`, `themes.unreadable=0`. |
+| Source | `codex/v9.3.0-cms-information-architecture`; `VERSION` = **9.8.1**; deployed candidate commit `04fd53438e81b726954ad2fb248764cc6d15db71`; pushed to `origin` | The deployed bytes and production release are traceable to the candidate commit. |
+| Package | SaaS `dist/PWE-StudioSaaS-aws-9.8.1.tar.gz` · SHA-256 `458dec5b8462ac929026782dc553498ee86ea96e7e3202afe3e1961383698b84`; Edition `dist/PWE-Studio-Edition-9.8.1.tar.gz` · SHA-256 `45eece0ec5ce88fe772d4dfafac3576586a553378a3f90c24307b4c1b92ef1cd` | Both packages passed checksum, `BUILD_INFO`, entrypoint and exclusion checks; both point to the deployed candidate commit. |
+| Production | **v9.8.1 deployed to `pwestudio.online`** | `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.8.1`; the running image is `studiosaas:9.8.1`; deep health reports `appVersion=9.8.1`, `db=ok`, `mode=saas`, `tenants=6`, `themes.unreadable=0`. |
 
 Re-verify the production health endpoint before any later release claim; do not
 infer Production from `VERSION` or from an archive filename, which does not identify the deployed commit.
 
-## v9.8.1 Platform Admin execution candidate
+## v9.8.1 Platform Admin workbench
 
 This candidate closes the remaining Platform Admin workbench gaps identified in
 the 2026-08-10 audit: the shell uses the full available canvas, plan and tenant
@@ -25,8 +25,10 @@ attention reasons remain aligned with the existing payment boundary; this does
 not add online payments, bank-transfer settings, external email, SSE, WebSocket
 or browser push.
 
-Source and production evidence for v9.8.1 are intentionally closed only after
-the candidate is committed, packaged, deployed and independently verified.
+v9.8.1 was committed as `04fd53438e81b726954ad2fb248764cc6d15db71`, packaged
+in both modes, pushed to the release branch, deployed through the guarded
+Lightsail controller and independently accepted from the public edge. The
+production handoff records the backup, migration, browser and cache evidence.
 
 ## v9.8.0 Platform Admin workbench
 

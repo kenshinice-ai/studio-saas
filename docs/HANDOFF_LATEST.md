@@ -1,6 +1,27 @@
-# PWE Studio v9.8.0 — Platform Admin 三栏工作台发布 handoff
+# PWE Studio v9.8.1 — Platform Admin 全屏工作台发布 handoff
 
-> 当前阶段：v9.8.0 已完成三栏工作台、Today Needs attention、Tenant/Plan/Audit Inspector 和移动端抽屉实现，并已通过完整门禁、干净双模式打包、提交同步、生产部署和公网验收。生产已由 v9.7.0 切换为 v9.8.0。历史发布证据保留在本节下方。
+> 当前阶段：v9.8.1 已完成 P0/P1 全屏布局与编辑工作区改造，并已通过完整门禁、干净双模式打包、提交同步、生产部署和公网验收。生产已由 v9.8.0 切换为 v9.8.1。历史发布证据保留在本文件下方。
+
+## v9.8.1 最终发布证据（2026-08-11）
+
+| 层级 | 已验证事实 |
+|---|---|
+| Source | 分支 `codex/v9.3.0-cms-information-architecture`；`VERSION=9.8.1`；部署候选 commit `04fd53438e81b726954ad2fb248764cc6d15db71`；已推送至 `origin`。 |
+| Package | SaaS `dist/PWE-StudioSaaS-aws-9.8.1.tar.gz`，SHA-256 `458dec5b8462ac929026782dc553498ee86ea96e7e3202afe3e1961383698b84`；Edition `dist/PWE-Studio-Edition-9.8.1.tar.gz`，SHA-256 `45eece0ec5ce88fe772d4dfafac3576586a553378a3f90c24307b4c1b92ef1cd`。两个包均通过 checksum、`BUILD_INFO`、入口文件和排除项检查；`BUILD_INFO` 均指向上述 commit，模式分别为 `saas` / `standalone`。 |
+| Production | `/opt/pwestudio/current` 指向 `PWE-StudioSaaS-aws-9.8.1`，运行镜像为 `studiosaas:9.8.1`；deep health 为 `appVersion=9.8.1`、`db=ok`、`mode=saas`、`tenants=6`、`themes.unreadable=0`；应用和数据库容器均 healthy，磁盘可用约 `47.0 GB`。 |
+| Backup | 部署切换前生成逻辑备份 `/data/backups/postgres/studiosaas_studiosaas_20260811T012400Z.dump` 与 manifest `/data/backups/postgres/studiosaas_studiosaas_20260811T012400Z.manifest.json`；卷归档 `pwestudio-volumes-20260811T012404Z.tar.gz`。 |
+| Migration / media | 生产 `schema_migrations` 最新为 `0028_cms_notifications.sql`，共 `28` 条已应用迁移；启动日志显示数据库无需新增迁移、10 个工作室重新生成，safe media derivatives 生成 `0` 个；只读查询确认 `media_assets=45`、`media_variants=135`，CMS 通知表存在。 |
+| Public edge | 公网 deep health 通过；根站、中文站、Platform Admin、Super Admin、手册、双语 Release Notes、展示租户门户/报名/CMS/Studio Admin 均返回 `200`；HTTP 返回 `301`，HTTPS 返回 `200`/HTTP2，TLS 证书有效期至 2026-10-28。 Platform Admin 的 `/assets/admin-i18n.js?v=9.8.1&h=dc04f00085ae31e1` 使用一年 `immutable` 缓存，公网正文 SHA-256 与本地 `backend/frontend/assets/admin-i18n.js` 同为 `dc04f00085ae31e1147cbd000a59eb833f2c3315e54464409c50cb572c8c1354`；公开图标的 `If-None-Match` 返回 `304`。 |
+| Browser | 公网应用内 Browser 打开 `/platform-admin`，确认生产双语登录壳、未登录边界和页面无横向溢出；未使用生产凭据、未执行生产写操作，控制台错误/警告为 `0`。本地 Browser 已验收桌面全宽三栏、Plan/ Tenant 中间编辑工作区、Inspector 状态与操作、手机工作区导航抽屉和无横向溢出。 |
+| Local gates | 完整门禁 `All checks passed`；全量 pytest `1958 passed, 8 skipped`；CMS smoke `73 passed, 0 failed`；租户隔离 `237 passed, 0 failed`；Platform Admin 定向测试 `11 passed`；`node backend/scripts/check_inline_scripts.mjs`、`git diff --check` 和双模式发布包校验均通过。 |
+
+## v9.8.1 实际交付与边界
+
+- Platform Admin 使用可用全屏画布：顶部全局栏、左侧工作区导航、中间工作区、右侧 Inspector；桌面不再保留大块无效留白。
+- Plan 与 Tenant 的编辑进入中间工作区，提供 sticky 保存条、dirty 状态、提交状态、字段级校验和取消恢复；列表默认保留 View，编辑与危险操作放入选中上下文。
+- Inspector 按状态 → 风险 → 信息 → 操作组织；Support Mode 与危险区单独隔离；移动端提供可发现的工作区导航抽屉。
+- 双语标签、待处理原因、编辑器状态和无障碍标签完成对齐；不改变支付边界，不新增在线支付、银行转账设置、Gmail/SMTP、AWS SES、短信、SSE、WebSocket 或浏览器 Push。
+- `docs/sales/` 路演资料已保留在工作区，未纳入提交或发布包。
 
 ## 下一阶段设计入口
 
@@ -10,7 +31,9 @@
 
 本阶段设计原则：左边找地方，中间做事情，右边做判断；Attention 是 Today 内的快捷入口，不是第二套 Dashboard；Support Mode 必须使用 reason 和审计流程；未接入的数据、支付状态和未来页面不得提前进入一级导航。
 
-## v9.8.0 最终发布证据（2026-08-10）
+# PWE Studio v9.8.0 — 历史 Platform Admin handoff
+
+## v9.8.0 历史发布证据（2026-08-10）
 
 | 层级 | 已验证事实 |
 |---|---|
