@@ -3,18 +3,48 @@
 ## Current release identity
 
 These are three independent facts. A matching version label is not proof that
-the current source tree was packaged or deployed; the package and production
-rows below record the verified v9.8.5 state while Source records the v9.8.6
-candidate.
+the current source tree was packaged or deployed; Source, Package and
+Production remain separate rows. The v9.8.6 package and production rows below
+identify the exact deployable commit; Source also includes the documentation
+closure that records the observed result.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v9.8.6 candidate** from `codex/v9.8.2-showcase-content-recovery` | `VERSION` = **9.8.6**; the deployed source commit remains `bcd4f1ba6ed2dcd2073a1a09b0ed5cf907f8a9ab` until this candidate is packaged and deployed; the user-owned `docs/sales/` material remains outside the release. |
-| Package | Clean SaaS and Edition packages verified | SaaS `dist/PWE-StudioSaaS-aws-9.8.5.tar.gz` SHA-256 `1bc99fd90d5e40fddbc598e5fd01aa589b1eecedaff9dd27d92c2f566cdbef9d`; Edition `dist/PWE-Studio-Edition-9.8.5.tar.gz` SHA-256 `68409b931c76b8aef72cc66e391a6f954303cda4239ef64bc32a72876b4de4b3`; both `BUILD_INFO` records point to `bcd4f1b` and passed bundle checks. |
-| Production | **v9.8.5 deployed to `pwestudio.online`** | `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.8.5`; image `studiosaas:9.8.5`; deep health reports `appVersion=9.8.5`, `db=ok`, `mode=saas`, `tenants=6`, `themes.unreadable=0`; disk free `46.44 GB`; HTTP→HTTPS `301`, HTTPS `200`, TLS check `0`, HTTP/2. |
+| Source | **v9.8.6 released** from `codex/v9.8.2-showcase-content-recovery` | `VERSION` = **9.8.6**; deployable source commit `21d2cc70bcd116250fca4780bec164a855b45258`; the documentation-only closure follows it on the same branch; the user-owned `docs/sales/` material remains outside the release. |
+| Package | Clean SaaS and Edition v9.8.6 packages verified | SaaS `dist/PWE-StudioSaaS-aws-9.8.6.tar.gz` SHA-256 `bd532a34d79ef74717218cde59a69d9b9f1fac7978ee6a52fb2509abc568536e`; Edition `dist/PWE-Studio-Edition-9.8.6.tar.gz` SHA-256 `f0c70727457ead7616958f2d051020c2cfe32f679289ff5cc2f16018a5c5df6b`; both `BUILD_INFO` records point to `21d2cc7` and passed bundle checks. |
+| Production | **v9.8.6 deployed to `pwestudio.online`** | `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.8.6`; image `studiosaas:9.8.6`; deep health reports `appVersion=9.8.6`, `db=ok`, `mode=saas`, `tenants=6`, `themes.unreadable=0`; disk free `46.35 GB`; HTTP→HTTPS `301`, HTTPS `200`, TLS check `0`, HTTP/2. |
 
 Re-verify the production health endpoint before any later release claim; do not
 infer Production from `VERSION` or from an archive filename, which does not identify the deployed commit.
+
+## v9.8.6 online manual and timetable acceptance
+
+The bilingual manual now has a dedicated public timetable and booking chapter,
+with the Studio Admin settings and mobile request dialog shown in paired
+screenshots. The release keeps the booking rule explicit: a request waits for
+CMS review and does not reserve a seat before approval. No data migration or
+customer record change was introduced.
+
+The deployable v9.8.6 commit is `21d2cc70bcd116250fca4780bec164a855b45258`.
+The documentation-only closure is pushed separately after the production
+acceptance below; it does not change the running package. The production
+controller created the logical backup
+`studiosaas_studiosaas_20260811T064145Z.dump` with its manifest and the volume
+archive `pwestudio-volumes-20260811T064146Z.tar.gz` before switching releases.
+
+Local gates passed: `STUDIOSAAS_REQUIRE_POSTGRES=1 bash backend/scripts/verify_local.sh`,
+full pytest `2283 passed, 8 skipped`, CMS smoke `73 passed`, and tenant
+isolation `237 passed, 0 failed`. The SaaS and Edition bundles passed checksum,
+mode, `BUILD_INFO`, entrypoint and exclusion checks.
+
+Production applied migrations through `0029_showcase_plan_values_and_states.sql`;
+the entrypoint reported `Database is up to date` and `Generated variants: 0`.
+The public root, bilingual manual, showcase portal and timetable, CMS, Studio
+Admin, register page, and bilingual Release Notes all returned `200`.
+The Chinese manual served the versioned timetable screenshot with the local
+and public SHA-256 `6157b883c9c46d13a5eef10888f1cf739f5c3aa26db748856216a272ded70999`;
+the resource returned immutable caching and a conditional request returned
+`304`.
 
 ## v9.8.5 action context, editor review and plan-linked work counts
 

@@ -13,6 +13,16 @@ The manual also adds four paired desktop/mobile screenshots from the synthetic
 mobile booking request dialog. This is a documentation-focused release; it
 does not add a data migration or change stored customer records.
 
+### Deployment acceptance
+
+- Production: `pwestudio.online` is running `PWE-StudioSaaS-aws-9.8.6` with
+  `appVersion=9.8.6`, `db=ok`, `mode=saas`, `tenants=6`, and
+  `themes.unreadable=0`.
+- The deployable commit is `21d2cc70bcd116250fca4780bec164a855b45258`.
+- The Chinese manual, public timetable, CMS, Studio Admin, register page, and
+  bilingual Release Notes returned `200`; the representative timetable
+  screenshot returned `304` on a matching ETag request.
+
 ## v9.6.1 — Studio Admin workspace polish
 
 This small release keeps the v9.6.0 information architecture and gives the
