@@ -1,5 +1,18 @@
 # PWE Studio — Release Notes and Acceptance Evidence
 
+## v9.8.6 — online manual: timetable and booking
+
+The bilingual online manual now has a dedicated chapter for the public
+timetable at `/<slug>/timetable` and its optional booking request flow. It
+explains the two independent publication switches, the 1–4 week display and
+booking window, field visibility, teacher-name consent, and the rule that a
+booking request does not reserve a seat before approval.
+
+The manual also adds four paired desktop/mobile screenshots from the synthetic
+`lets-paint-showcase` capture tenant: Studio Admin timetable settings and the
+mobile booking request dialog. This is a documentation-focused release; it
+does not add a data migration or change stored customer records.
+
 ## v9.6.1 — Studio Admin workspace polish
 
 This small release keeps the v9.6.0 information architecture and gives the

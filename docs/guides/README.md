@@ -1,20 +1,21 @@
 # StudioSaaS 使用手册总览
 
-> 适用版本：PWE Studio v9.8.5 · 最后更新：2026-08-11
+> 适用版本：PWE Studio v9.8.6 · 最后更新：2026-08-11
 > 本目录是按角色划分的最终用户手册。开发/运维文档见 `docs/` 上层
 > （[Architecture](../Architecture.md) · [Admin_Guide](../Admin_Guide.md) ·
 > [Glossary](../Glossary.md)）。
 
-## 一、五个界面
+## 一、六个界面
 
 StudioSaaS 是多租户教培工作室 SaaS。每个工作室（租户）有独立的网址标识
-（slug），系统共有五个界面：
+（slug），系统共有六个界面：
 
 | 界面 | 地址 | 给谁用 | 干什么 |
 |---|---|---|---|
 | **Super Admin** 平台管理 | `/platform-admin` | 平台方 | 开租户、套餐、生命周期、支持会话 |
 | **Studio Admin** 工作室管理 | `/<slug>/studio-admin` | 租户 Owner | 品牌、配色主题、官网内容、报名表、家长话术、发布 |
 | **CMS** 运营后台 | `/<slug>/cms` | 工作室员工 | 学员、排课、签到、课时、作品、报名审批 |
+| **Timetable** 公开课表 | `/<slug>/timetable` | 访客 / 学员家长 | 浏览近期公开班次，并在开启后提交约课申请 |
 | **Portal** 官网门户 | `/<slug>` | 访客 / 学员家长 | 浏览、在线报名、访问码自助查询 |
 | **Register** 快速报名页 | `/<slug>/register` | 访客 | 独立的报名表单页（可单独转发） |
 

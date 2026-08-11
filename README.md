@@ -3,12 +3,13 @@
 ## Current release identity
 
 These are three independent facts. A matching version label is not proof that
-the current source tree was packaged or deployed; the rows below record the
-verified v9.8.5 release state.
+the current source tree was packaged or deployed; the package and production
+rows below record the verified v9.8.5 state while Source records the v9.8.6
+candidate.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v9.8.5 released** from `codex/v9.8.2-showcase-content-recovery` | `VERSION` = **9.8.5**; deployed source commit `bcd4f1ba6ed2dcd2073a1a09b0ed5cf907f8a9ab` is pushed to `origin`; the user-owned `docs/sales/` material remains outside the release. |
+| Source | **v9.8.6 candidate** from `codex/v9.8.2-showcase-content-recovery` | `VERSION` = **9.8.6**; the deployed source commit remains `bcd4f1ba6ed2dcd2073a1a09b0ed5cf907f8a9ab` until this candidate is packaged and deployed; the user-owned `docs/sales/` material remains outside the release. |
 | Package | Clean SaaS and Edition packages verified | SaaS `dist/PWE-StudioSaaS-aws-9.8.5.tar.gz` SHA-256 `1bc99fd90d5e40fddbc598e5fd01aa589b1eecedaff9dd27d92c2f566cdbef9d`; Edition `dist/PWE-Studio-Edition-9.8.5.tar.gz` SHA-256 `68409b931c76b8aef72cc66e391a6f954303cda4239ef64bc32a72876b4de4b3`; both `BUILD_INFO` records point to `bcd4f1b` and passed bundle checks. |
 | Production | **v9.8.5 deployed to `pwestudio.online`** | `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.8.5`; image `studiosaas:9.8.5`; deep health reports `appVersion=9.8.5`, `db=ok`, `mode=saas`, `tenants=6`, `themes.unreadable=0`; disk free `46.44 GB`; HTTP→HTTPS `301`, HTTPS `200`, TLS check `0`, HTTP/2. |
 
