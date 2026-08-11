@@ -18,7 +18,7 @@
 | Package | SaaS `dist/PWE-StudioSaaS-aws-9.8.5.tar.gz` SHA-256 `1bc99fd90d5e40fddbc598e5fd01aa589b1eecedaff9dd27d92c2f566cdbef9d`；Edition `dist/PWE-Studio-Edition-9.8.5.tar.gz` SHA-256 `68409b931c76b8aef72cc66e391a6f954303cda4239ef64bc32a72876b4de4b3`。两个包的 `BUILD_INFO` 均对应 commit `bcd4f1b`，模式分别为 `saas` / `standalone`，并通过发布包校验。 |
 | Production | `/opt/pwestudio/current` 指向 `PWE-StudioSaaS-aws-9.8.5`，镜像 `studiosaas:9.8.5`；容器 healthy；公网 deep health 为 `appVersion=9.8.5`、`db=ok`、`mode=saas`、`tenants=6`、`themes.unreadable=0`；磁盘可用约 `46.44 GB`；HTTP→HTTPS `301`，HTTPS `200`、TLS 校验 `0`、HTTP/2。 |
 | Backup / migration | 部署前后均有逻辑库与卷备份；本轮最新逻辑库备份为 `studiosaas_studiosaas_20260811T053608Z.dump`，卷归档为 `pwestudio-volumes-20260811T053609Z.tar.gz`，manifest 同时存在。启动日志显示数据库已是最新，迁移包含 `0029_showcase_plan_values_and_states.sql`；媒体衍生图检查为 `Generated variants: 0`。 |
-| Public routes | 根站、中文手册、展示门户、timetable、CMS、Studio Admin、register、双语 Release Notes 与 Platform Admin 均返回 `200`。当前 `lets-paint-showcase` 公共作品 API 返回 `total=0`；手册中的作品截图明确为本地合成示例，不将示例误写成生产租户作品。 |
+| Public routes | 根站、中文手册、展示门户、timetable、CMS、Studio Admin、register、双语 Release Notes 与 Platform Admin 均返回 `200`。用户提到的 Ruby Studio 公共作品 API 返回 `total=12`、`3` 个分类且全部为 `active`；`lets-paint-showcase` 示例租户 API 当前为 `total=0`，因此手册中的作品截图明确为本地合成示例，不将示例误写成生产租户作品。 |
 | Assets / media | 生产 CMS immutable JavaScript 与本地 SHA-256 一致，条件请求返回 `304`；中英文手册 WebP 资源均以 immutable 缓存返回且与本地 SHA-256 一致；代表性公开品牌媒体返回 `200 image/jpeg`，带 ETag 的条件请求返回 `304`。 |
 | Logs / browser | 部署后的 app-only 日志当前请求均为健康的 `200/304`，未出现当前 Traceback / Exception / Fatal / Error；本地隔离数据库完成 Platform Admin 桌面与 390×844 移动端验收，无横向溢出，并确认行点击快速查看、`操作` 集中动作和套餐影响审查路径。未使用生产凭据或执行生产写操作。 |
 
