@@ -278,6 +278,10 @@ def test_the_admin_has_its_own_tab_and_sends_the_raw_link():
     assert 'id="settingShowShowcase"' in admin
     # The browser's parse is feedback only; the raw link is what is submitted.
     assert "videoUrl: String(item.video_url || '').trim()" in admin
+    # Host recognition must parse the URL's hostname; a plain https://youtu.be
+    # link has a slash before the host and is missed by a boundary-only regex.
+    assert "new URL(candidate).hostname" in admin
+    assert "'youtu.be'" in admin
 
 
 def test_a_category_id_survives_a_round_trip():

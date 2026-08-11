@@ -390,6 +390,26 @@ def test_the_manual_says_which_theme_its_screenshots_show() -> None:
     assert "颜色不会一样，位置会一样" in source
 
 
+def test_the_showcase_chapter_covers_limits_media_and_boundaries() -> None:
+    """The manual must describe the shipped showcase contract, not a slogan."""
+
+    source = _source()
+    for phrase in (
+        "Starter 15",
+        "Studio 60",
+        "Growth 150",
+        "500 works",
+        "12 eligible works",
+        "2,400 px",
+        "YouTube, Vimeo or Bilibili",
+        "video ID",
+        "工作台最多保留 500 条作品记录",
+        "视频观看或分享链接",
+        "01-showcase-workbench.en.webp",
+    ):
+        assert phrase in source, f"showcase chapter is missing: {phrase}"
+
+
 def test_the_assets_route_serves_the_manual_directory_and_nothing_else(client) -> None:
     """It reduced every path to a basename, so the images 404'd in a way that
     looked like a blank page rather than a broken route.

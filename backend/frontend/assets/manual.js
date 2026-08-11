@@ -18,9 +18,27 @@
   const printButton = document.getElementById('printButton');
   const tocButton = document.getElementById('tocButton');
   const sections = Array.from(document.querySelectorAll('article section[id]'));
+  const stickyBar = document.querySelector('.bar');
 
   if (!toc || !search || !printButton || !tocButton || !sections.length) {
     throw new Error('PWE Studio manual is missing a required control.');
+  }
+
+  // The tools wrap onto a second row on smaller screens. A fixed 60px offset
+  // works on desktop and lets the first heading disappear under the bar on a
+  // phone, so measure the real bar and feed the same value to CSS scrolling
+  // and the mobile contents panel.
+  const syncStickyOffset = () => {
+    if (!stickyBar) return;
+    const height = Math.ceil(stickyBar.getBoundingClientRect().height);
+    document.documentElement.style.setProperty(
+      '--manual-sticky-offset', `calc(${height}px + var(--s-3))`,
+    );
+  };
+  syncStickyOffset();
+  window.addEventListener('resize', syncStickyOffset, { passive: true });
+  if ('ResizeObserver' in window && stickyBar) {
+    new ResizeObserver(syncStickyOffset).observe(stickyBar);
   }
 
   const links = new Map(

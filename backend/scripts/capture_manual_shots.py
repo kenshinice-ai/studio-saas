@@ -71,8 +71,10 @@ TAB = {
 # wrong screen.
 SHOTS = [
     ("01-brand-workbench", "owner",   f"/{SLUG}/studio-admin", DESKTOP, None, 2.5, None),
+    ("01-showcase-workbench", "owner", f"/{SLUG}/studio-admin", DESKTOP, None, 2.5, "showcase"),
     ("01-admissions-messages", "owner", f"/{SLUG}/studio-admin?view=messages", DESKTOP, None, 2.5, None),
     ("02-portal",          None,      f"/{SLUG}",              DESKTOP, None, 2.0, None),
+    ("02-showcase-portal", None,      f"/{SLUG}",              DESKTOP, None, 2.0, "public_showcase"),
     ("02-register",        None,      f"/{SLUG}/register",     DESKTOP, None, 1.5, None),
     ("02-pending",         "manager", f"/{SLUG}/cms",          DESKTOP, TAB["pending"], 2.0, None),
     ("03-courses",         "manager", f"/{SLUG}/cms?view=courses", DESKTOP, None, 2.0, None),
@@ -332,6 +334,48 @@ OPEN_FIRST_STUDENT = """
 })()
 """
 
+# Open the actual Selected work tab and add one unsaved, link-only example so
+# the manual shows the control the prose describes. The synthetic demo tenant
+# remains unchanged: the card exists only in this browser tab and is never
+# saved through the Owner form.
+SHOWCASE_EDITOR = """
+(() => {
+  const tab = document.getElementById('tab-btn-showcase');
+  const add = document.getElementById('showcaseAddItem');
+  if (!tab || !add) return 'MISSING';
+  tab.click();
+  add.click();
+  const setter = Object.getOwnPropertyDescriptor(
+    window.HTMLInputElement.prototype, 'value').set;
+  const video = document.getElementById('showcaseVideo0');
+  if (!video || !setter) return 'MISSING';
+  setter.call(video, 'https://youtu.be/your-video-id');
+  video.dispatchEvent(new Event('input', { bubbles: true }));
+  return 'ok';
+})()
+"""
+
+PUBLIC_SHOWCASE = """
+(() => {
+  const section = document.getElementById('showcase');
+  const grid = document.getElementById('showcaseGrid');
+  if (!section || !grid || !grid.children.length) return 'MISSING';
+  const zh = document.documentElement.lang.startsWith('zh');
+  document.getElementById('showcaseTitle').textContent = zh ? '工作室精选作品' : 'A curated selection from the studio';
+  document.getElementById('showcaseLead').textContent = zh ? '一组由工作室亲自挑选的作品。' : 'A short selection, chosen by the studio.';
+  [...grid.querySelectorAll('.sc-cap p')].forEach((caption, index) => {
+    const en = ['Colour, material and light.', 'A study in colour and distance.', 'A focused observation.'][index] || 'A work selected by the studio.';
+    const zhText = ['色彩、材质与光线练习。', '色彩与空间研究。', '专注观察的一次练习。'][index] || '由工作室精选的作品。';
+    caption.textContent = zh ? zhText : en;
+  });
+  document.documentElement.style.scrollBehavior = 'auto';
+  document.body.style.scrollBehavior = 'auto';
+  const top = section.getBoundingClientRect().top + window.scrollY - 90;
+  window.scrollTo(0, Math.max(0, top));
+  return 'ok';
+})()
+"""
+
 ROSTER_UI_CONTRACT = """
 (() => {
   const planner = document.querySelector('.cms-roster-planner');
@@ -422,6 +466,21 @@ def capture(browser: Browser, base: str, shot, session: str | None, language: st
         browser.call("Runtime.evaluate", returnByValue=True,
                      expression=OPEN_FIRST_STUDENT)
         time.sleep(1.5)
+    elif prepare == "showcase":
+        result = browser.call("Runtime.evaluate", returnByValue=True,
+                              expression=SHOWCASE_EDITOR)
+        if result.get("result", {}).get("value") == "MISSING":
+            raise SystemExit(f"{name}: Selected work editor is missing its video field")
+        time.sleep(1.0)
+    elif prepare == "public_showcase":
+        for _attempt in range(5):
+            result = browser.call("Runtime.evaluate", returnByValue=True,
+                                  expression=PUBLIC_SHOWCASE)
+            if result.get("result", {}).get("value") == "ok":
+                break
+            time.sleep(1.0)
+        else:
+            raise SystemExit(f"{name}: public showcase did not load synthetic works")
     if name.startswith("03-roster"):
         contract = browser.call(
             "Runtime.evaluate", returnByValue=True, expression=ROSTER_UI_CONTRACT
@@ -432,6 +491,16 @@ def capture(browser: Browser, base: str, shot, session: str | None, language: st
     # Give lazy images a beat; a half-loaded hero is the one artefact a reader
     # would read as a product fault rather than a capture fault.
     browser.call("Runtime.evaluate", expression="window.scrollTo(0, 0)")
+    if prepare == "showcase":
+        browser.call(
+            "Runtime.evaluate",
+            expression="document.getElementById('showcaseItemsEditor')?.scrollIntoView({block:'start'})",
+        )
+    elif prepare == "public_showcase":
+        browser.call(
+            "Runtime.evaluate",
+            expression="(() => { const section = document.getElementById('showcase'); if (!section) return; document.documentElement.style.scrollBehavior = 'auto'; document.body.style.scrollBehavior = 'auto'; const top = section.getBoundingClientRect().top + window.scrollY - 90; window.scrollTo(0, Math.max(0, top)); })()",
+        )
     time.sleep(1.0)
     return base64.b64decode(browser.call("Page.captureScreenshot", format="png")["data"])
 

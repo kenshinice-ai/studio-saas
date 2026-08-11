@@ -3630,9 +3630,16 @@
     function recogniseVideo(url) {
       const text = String(url || '').trim();
       if (!text) return '';
-      if (/(^|\.)youtube\.com|(^|\.)youtu\.be|youtube-nocookie\.com/i.test(text)) return 'YouTube';
-      if (/(^|\.)vimeo\.com/i.test(text)) return 'Vimeo';
-      if (/(^|\.)bilibili\.com|(^|\.)b23\.tv/i.test(text)) return 'Bilibili';
+      let host = '';
+      try {
+        const candidate = /^[a-z][a-z\d+.-]*:\/\//i.test(text) ? text : `https://${text}`;
+        host = new URL(candidate).hostname.toLowerCase().replace(/^www\./, '');
+      } catch {
+        return '?';
+      }
+      if (['youtube.com', 'm.youtube.com', 'youtube-nocookie.com', 'youtu.be'].includes(host)) return 'YouTube';
+      if (['vimeo.com', 'player.vimeo.com'].includes(host)) return 'Vimeo';
+      if (['bilibili.com', 'm.bilibili.com', 'player.bilibili.com', 'b23.tv'].includes(host)) return 'Bilibili';
       return '?';
     }
 
@@ -3796,9 +3803,15 @@
            their clipboard. */
         const describe = () => {
           const seen = recogniseVideo(video.value);
-          note.textContent = !seen ? 'The photo is shown on its own.'
-            : seen === '?' ? 'Not a recognised link — only YouTube, Vimeo and Bilibili can be embedded.'
-            : `Recognised: ${seen}. The photo above becomes the cover; the video loads only when a visitor presses play.`;
+          const isZh = adminIsZh();
+          const provider = isZh && seen === 'Bilibili' ? '哔哩哔哩' : seen;
+          note.textContent = !seen
+            ? (isZh ? '未填写视频链接，前台只展示照片。' : 'The photo is shown on its own.')
+            : seen === '?'
+              ? (isZh ? '无法识别该链接——仅支持 YouTube、Vimeo 和哔哩哔哩。'
+                : 'Not a recognised link — only YouTube, Vimeo and Bilibili can be embedded.')
+              : (isZh ? `已识别：${provider}。上方照片会作为封面；访客点击播放后才加载视频。`
+                : `Recognised: ${provider}. The photo above becomes the cover; the video loads only when a visitor presses play.`);
         };
         video.addEventListener('input', () => {
           item.video_url = video.value;

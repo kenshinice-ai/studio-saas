@@ -44,6 +44,7 @@
   --toc: 232px;
   --r: 13px;
   --bar: 60px;
+  --manual-sticky-offset: calc(var(--bar) + var(--s-3));
 
   --surface: var(--pwe-family-navy);
   --surface-2: var(--pwe-family-navy-raised);
@@ -83,12 +84,16 @@
     --hairline: rgba(14, 23, 41, .14);
     --line-strong: rgba(14, 23, 41, .34);
     --shadow: 0 21px 55px rgba(14, 23, 41, .12);
-    --bar-bg: rgba(247, 245, 242, .9);
+    --bar-bg: rgba(247, 245, 242, .97);
   }
 }
 
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: var(--manual-sticky-offset);
+  -webkit-text-size-adjust: 100%;
+}
 body {
   margin: 0; min-width: 320px; font-family: var(--sans); line-height: var(--phi);
   color: var(--ink); background: var(--surface); -webkit-font-smoothing: antialiased;
@@ -171,7 +176,7 @@ article { min-width: 0; }
 h1 { margin: 0 0 var(--s-2); font-family: var(--serif); font-size: clamp(1.9rem, 5vw, var(--f-4)); font-weight: 500; line-height: 1.1; letter-spacing: -.012em; }
 section { padding-block: var(--s-5); border-top: 1px solid var(--hairline); }
 section:first-of-type { border-top: 0; padding-top: 0; }
-section[id] { scroll-margin-top: calc(var(--bar) + var(--s-3)); }
+section[id] { scroll-margin-top: var(--manual-sticky-offset); }
 .eyebrow { display: flex; align-items: center; gap: var(--s-1); margin: 0 0 var(--s-1); color: var(--accent); font-size: var(--f-sm); font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
 .eyebrow svg { flex: none; width: 11px; height: 11px; }
 h2 { margin: 0 0 var(--s-2); font-family: var(--serif); font-size: clamp(1.4rem, 3.2vw, var(--f-3)); font-weight: 500; line-height: 1.15; letter-spacing: -.012em; }
@@ -257,7 +262,8 @@ mark { padding: 0 2px; border-radius: 3px; background: var(--accent); color: var
   .shell { grid-template-columns: minmax(0, 1fr); }
   .toc-btn { display: inline-flex; }
   .toc {
-    position: fixed; inset: var(--bar) 0 auto; z-index: 30; max-height: calc(100dvh - var(--bar));
+    position: fixed; inset: var(--manual-sticky-offset) 0 auto; z-index: 30;
+    max-height: calc(100dvh - var(--manual-sticky-offset));
     padding: var(--s-3) clamp(21px, 4vw, 34px) var(--s-4);
     background: var(--surface); border-bottom: 1px solid var(--hairline);
   }
