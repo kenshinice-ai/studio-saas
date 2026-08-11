@@ -16,12 +16,12 @@
        The title names what the manual teaches; the brand goes at the end,
        where a brand belongs when nobody is searching for it yet. -->
   <title data-lang="en">How to Run an Art, Music or Dance Studio — User Manual | PWE Studio</title>
-  <title data-lang="zh">工作室怎么运营：报名、排课、课时与作品 · 用户手册 | PWE Studio</title>
+  <title data-lang="zh">工作室怎么运营：报名、排课、课时、学员与工作室作品 · 用户手册 | PWE Studio</title>
   <!-- Both under 160 characters, which is where a description is cut off.
        The Chinese ones were 64 — barely half of the ~78 characters a Chinese
        result will show, so half the space was simply unused. -->
-  <meta data-lang="en" name="description" content="Twelve sections on running a studio: brand and website setup, enrolment, roster and check-in, class credits and refunds, student work and permissions.">
-  <meta data-lang="zh" name="description" content="十二章讲清一间工作室怎么运营：品牌与官网、招生报名、排课签到、课时与退费、学员作品与公开授权、团队权限、经营报表与如何获得支持。">
+  <meta data-lang="en" name="description" content="Thirteen sections on studio operations: brand, enrolment, rosters, credits, student work, studio showcase, permissions and support.">
+  <meta data-lang="zh" name="description" content="十三章讲清一间工作室怎么运营：品牌与官网、招生报名、排课签到、课时与退费、学员作品、工作室作品展示、团队权限、经营报表与如何获得支持。">
   <link data-lang="en" rel="canonical" href="https://pwestudio.online/manual/">
   <link data-lang="zh" rel="canonical" href="https://pwestudio.online/zh/manual/">
   <link rel="alternate" hreflang="en-AU" href="https://pwestudio.online/manual/">
@@ -35,7 +35,7 @@
   <link rel="stylesheet" href="/assets/manual.css?v=__APP_VERSION__">
   <script src="/assets/manual.js?v=__APP_VERSION__" defer></script>
   <!-- Written by the server from the document it is about to send: the
-       questions in section 11 become the FAQ markup, so the two cannot
+       questions in section 12 become the FAQ markup, so the two cannot
        describe different answers. `dateModified` comes from the release,
        which is the only date on this page that means anything. -->
   <!--MANUAL-JSONLD-->
@@ -95,13 +95,14 @@
         <li><a href="#enrolment"><b>02</b><span data-lang="en">Enrolment</span><span data-lang="zh">招生与报名</span></a></li>
         <li><a href="#roster"><b>03</b><span data-lang="en">Roster and check-in</span><span data-lang="zh">排课与签到</span></a></li>
         <li><a href="#money"><b>04</b><span data-lang="en">Money and the ledger</span><span data-lang="zh">课时、收费与退费</span></a></li>
-        <li><a href="#work"><b>05</b><span data-lang="en">Student work</span><span data-lang="zh">学员作品</span></a></li>
-        <li><a href="#families"><b>06</b><span data-lang="en">For families</span><span data-lang="zh">家长这一侧</span></a></li>
-        <li><a href="#team"><b>07</b><span data-lang="en">Your team</span><span data-lang="zh">团队与权限</span></a></li>
-        <li><a href="#insight"><b>08</b><span data-lang="en">Reports and export</span><span data-lang="zh">经营统计与导出</span></a></li>
-        <li><a href="#platform"><b>09</b><span data-lang="en">What we can and cannot do</span><span data-lang="zh">平台方能做什么</span></a></li>
-        <li><a href="#help"><b>10</b><span data-lang="en">Getting help</span><span data-lang="zh">求助</span></a></li>
-        <li><a href="#faq"><b>11</b><span data-lang="en">Questions</span><span data-lang="zh">常见问题</span></a></li>
+        <li><a href="#work"><b>05</b><span data-lang="en">Student work and consent</span><span data-lang="zh">学员作品与授权</span></a></li>
+        <li><a href="#showcase"><b>06</b><span data-lang="en">Studio showcase</span><span data-lang="zh">工作室作品展示</span></a></li>
+        <li><a href="#families"><b>07</b><span data-lang="en">For families</span><span data-lang="zh">家长这一侧</span></a></li>
+        <li><a href="#team"><b>08</b><span data-lang="en">Your team</span><span data-lang="zh">团队与权限</span></a></li>
+        <li><a href="#insight"><b>09</b><span data-lang="en">Reports and export</span><span data-lang="zh">经营统计与导出</span></a></li>
+        <li><a href="#platform"><b>10</b><span data-lang="en">What we can and cannot do</span><span data-lang="zh">平台方能做什么</span></a></li>
+        <li><a href="#help"><b>11</b><span data-lang="en">Getting help</span><span data-lang="zh">求助</span></a></li>
+        <li><a href="#faq"><b>12</b><span data-lang="en">Questions</span><span data-lang="zh">常见问题</span></a></li>
       </ol>
     </nav>
 
@@ -149,8 +150,8 @@
               <tr>
                 <td><strong>Portal</strong> <span data-lang="zh">官网门户</span></td>
                 <td><code>/&lt;slug&gt;</code></td>
-                <td data-lang="en">Visitors and families — courses, work, enquiry form, student area</td>
-                <td data-lang="zh">访客与家长——课程、作品、报名表、学员专区</td>
+                <td data-lang="en">Visitors and families — courses, selected work, student gallery, enquiry form, student area</td>
+                <td data-lang="zh">访客与家长——课程、工作室作品、学员作品墙、报名表、学员专区</td>
               </tr>
               <tr>
                 <td><strong>Register</strong> <span data-lang="zh">快速报名</span></td>
@@ -161,14 +162,14 @@
               <tr>
                 <td><strong>CMS</strong> <span data-lang="zh">运营后台</span></td>
                 <td><code>/&lt;slug&gt;/cms</code></td>
-                <td data-lang="en">Your team — students, roster, check-in, credits, work, approvals</td>
-                <td data-lang="zh">你的团队——学员、排课、签到、课时、作品、审批</td>
+                <td data-lang="en">Your team — students, roster, check-in, credits, student work, approvals</td>
+                <td data-lang="zh">你的团队——学员、排课、签到、课时、学员作品、审批</td>
               </tr>
               <tr>
                 <td><strong>Studio Admin</strong> <span data-lang="zh">品牌工作台</span></td>
                 <td><code>/&lt;slug&gt;/studio-admin</code></td>
-                <td data-lang="en">The owner only — brand, theme, website content, enquiry form</td>
-                <td data-lang="zh">仅限 Owner——品牌、主题、官网内容、报名表</td>
+                <td data-lang="en">The owner only — brand, theme, website content, selected work, enquiry form</td>
+                <td data-lang="zh">仅限 Owner——品牌、主题、官网内容、工作室作品、报名表</td>
               </tr>
             </tbody>
           </table>
@@ -184,8 +185,8 @@
 
         <h4 data-lang="en">2 · Families do not have accounts</h4>
         <h4 data-lang="zh">2 · 家长没有账号</h4>
-        <p data-lang="en">There is no parent login. A family checks their own records with <strong>student name + registered phone + a six-digit access code</strong> your team hands them. The code is shown in plain text once, at the moment it is created, and never stored in a readable form. See <a href="#families">section 06</a>.</p>
-        <p data-lang="zh">系统没有家长登录。家庭用<strong>学员姓名 + 登记手机号 + 6 位访问码</strong>自助查询，访问码由你的团队生成后交给家长。明文只在生成时显示一次，系统只保存哈希。见<a href="#families">第 06 章</a>。</p>
+        <p data-lang="en">There is no parent login. A family checks their own records with <strong>student name + registered phone + a six-digit access code</strong> your team hands them. The code is shown in plain text once, at the moment it is created, and never stored in a readable form. See <a href="#families">section 07</a>.</p>
+        <p data-lang="zh">系统没有家长登录。家庭用<strong>学员姓名 + 登记手机号 + 6 位访问码</strong>自助查询，访问码由你的团队生成后交给家长。明文只在生成时显示一次，系统只保存哈希。见<a href="#families">第 07 章</a>。</p>
 
         <h4 data-lang="en">3 · Draft is not published</h4>
         <h4 data-lang="zh">3 · 草稿不等于已发布</h4>
@@ -479,9 +480,12 @@
 
       <!-- ─────────────────────────────────────────────────────── 05 ── -->
       <section id="work">
-        <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>05 · <span data-lang="en">Student work</span><span data-lang="zh">学员作品</span></p>
+        <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>05 · <span data-lang="en">Student work and consent</span><span data-lang="zh">学员作品与授权</span></p>
         <h2 data-lang="en">Private by default, published only on a recorded decision</h2>
         <h2 data-lang="zh">默认私密；公开必须基于一次留痕的决定</h2>
+
+        <p data-lang="en">This chapter is about <strong>student work</strong>. The studio’s own selected work is a separate public section — see <a href="#showcase">section 06</a>.</p>
+        <p data-lang="zh">这一章讲的是<strong>学员作品</strong>。工作室自己的精选作品属于独立的公开板块，见<a href="#showcase">第 06 章</a>。</p>
 
         <p data-lang="en">Teachers, managers and owners can upload to a student’s portfolio: photo, title, date, note. JPEG, PNG or WebP, up to <strong>30 megapixels</strong> per image — larger files are refused with a message rather than failing silently.</p>
         <p data-lang="zh">老师、店长和 Owner 都可以往学员作品集里上传：照片、标题、日期、说明。格式限 JPEG / PNG / WebP，<strong>单张最大 3000 万像素</strong>，超限会明确拒绝，不会静默失败。</p>
@@ -530,8 +534,109 @@
       </section>
 
       <!-- ─────────────────────────────────────────────────────── 06 ── -->
+      <section id="showcase">
+        <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>06 · <span data-lang="en">Selected Work</span><span data-lang="zh">工作室作品</span></p>
+        <h2 data-lang="en">Your studio’s own work deserves its own stage</h2>
+        <h2 data-lang="zh">工作室自己的作品，也要有自己的舞台</h2>
+
+        <p data-lang="en"><strong>Selected Work</strong> is the studio’s own portfolio: the work you choose to represent your teaching, craft or creative direction. It is separate from the student gallery, which is governed by family consent.</p>
+        <p data-lang="zh"><strong>工作室作品</strong>是工作室自己的作品集：用来展示你希望访客先看到的教学、创作或专业方向。它和学员作品墙是两个板块，后者受家庭公开授权约束。</p>
+
+        <div class="tw">
+          <table>
+            <thead>
+              <tr>
+                <th data-lang="en">Question</th><th data-lang="zh">这件事</th>
+                <th data-lang="en">Studio showcase</th><th data-lang="zh">工作室作品</th>
+                <th data-lang="en">Student gallery</th><th data-lang="zh">学员作品墙</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td data-lang="en">Content source</td><td data-lang="zh">内容来源</td>
+                <td data-lang="en">The studio or principal’s own work</td><td data-lang="zh">工作室或主理人自己的作品</td>
+                <td data-lang="en">A student’s portfolio work</td><td data-lang="zh">学员作品集里的作品</td>
+              </tr>
+              <tr>
+                <td data-lang="en">Owner</td><td data-lang="zh">归属</td>
+                <td data-lang="en">Owner curates it in Studio Admin</td><td data-lang="zh">Owner 在品牌工作台里策展</td>
+                <td data-lang="en">Teacher, manager or owner manages the student record</td><td data-lang="zh">老师、店长或 Owner 管理学员档案</td>
+              </tr>
+              <tr>
+                <td data-lang="en">Public rule</td><td data-lang="zh">公开规则</td>
+                <td data-lang="en">Only Active items in an enabled section are public</td><td data-lang="zh">只有已启用板块中的 Active 作品会公开</td>
+                <td data-lang="en">A valid family publication consent is required</td><td data-lang="zh">必须有有效的家庭公开授权</td>
+              </tr>
+              <tr>
+                <td data-lang="en">Editing home</td><td data-lang="zh">编辑入口</td>
+                <td data-lang="en">Studio Admin → Brand &amp; Website → Selected work</td><td data-lang="zh">品牌工作台 → 品牌与官网 → 工作室作品</td>
+                <td data-lang="en">CMS → student record → Portfolio</td><td data-lang="zh">运营后台 → 学员档案 → 作品集</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 data-lang="en">Configure it once, publish it deliberately</h3>
+        <h3 data-lang="zh">一次配置，审慎发布</h3>
+
+        <ol class="steps">
+          <li data-lang="en">Open <code>/&lt;slug&gt;/studio-admin</code> → <strong>Brand &amp; Website</strong> → <strong>Selected work</strong>. This is an Owner task; daily student operations remain in the CMS.</li>
+          <li data-lang="zh">打开 <code>/&lt;slug&gt;/studio-admin</code> → <strong>品牌与官网</strong> → <strong>工作室作品</strong>。这是 Owner 的工作；日常学员运营仍在 CMS 完成。</li>
+          <li data-lang="en">Set the bilingual eyebrow, title and lead. These are the section’s introduction, not the title of each work.</li>
+          <li data-lang="zh">设置板块的双语眉题、标题与导语。它们是板块介绍，不是每一件作品的标题。</li>
+          <li data-lang="en">Add images and, when useful, a bilingual title, caption and category. Reorder with <strong>Up</strong> and <strong>Down</strong>; the first work receives the primary visual position.</li>
+          <li data-lang="zh">添加图片，并按需要填写双语标题、说明与分类。用<strong>上移</strong>和<strong>下移</strong>排序；第一件作品会获得主视觉位置。</li>
+          <li data-lang="en">Choose <strong>Active</strong>, <strong>Draft</strong> or <strong>Archived</strong>. Only Active items can appear publicly; Draft is saved but private, and Archived stays in your records without being displayed.</li>
+          <li data-lang="zh">选择 <strong>Active（启用）</strong>、<strong>Draft（草稿）</strong>或<strong>Archived（归档）</strong>。只有 Active 能出现在公开页面；Draft 已保存但仍私密，Archived 保留记录但不展示。</li>
+          <li data-lang="en"><strong>Save Draft → Preview → Publish.</strong> Save Draft does not change the public portal. Publish is the deliberate boundary that makes the selected work visible.</li>
+          <li data-lang="zh"><strong>保存草稿 → 预览 → 发布。</strong>「保存草稿」不会改变公开门户；「发布」才是让精选作品对外可见的明确边界。</li>
+        </ol>
+
+        <figure>
+          <div class="shot">
+            <div class="shot-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+            <img data-lang="en" src="/assets/manual/01-brand-workbench.en.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="Studio Admin Selected work tab under Brand and Website">
+            <img data-lang="zh" src="/assets/manual/01-brand-workbench.zh.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="Studio Admin 品牌与官网下的工作室作品标签页">
+          </div>
+          <ol class="marks">
+            <li data-lang="en">Selected work has its own Owner section under Brand &amp; Website. Do not look for studio-owned work in the CMS roster.</li><li data-lang="zh">工作室作品位于「品牌与官网」下，是 Owner 的独立标签页；不要在 CMS 排课工作区里找。</li>
+            <li data-lang="en">Set the bilingual section copy here; enter each work’s title and caption in its own record.</li><li data-lang="zh">在这里设置板块双语文案；每件作品的标题与说明在各自记录里填写。</li>
+            <li data-lang="en">Save Draft, preview, then Publish. The public page does not change on Save Draft.</li><li data-lang="zh">保存草稿、预览、再发布。「保存草稿」不会改变公开页面。</li>
+          </ol>
+          <figcaption data-lang="en">Backend: curate the studio’s own work in Studio Admin before it reaches the public portal.</figcaption>
+          <figcaption data-lang="zh">后台：先在品牌工作台整理工作室自己的作品，再发布到公开门户。</figcaption>
+        </figure>
+
+        <figure>
+          <div class="shot">
+            <div class="shot-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+            <img data-lang="en" src="/assets/manual/02-portal.en.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="The public studio portal shell where Selected Work can render below the first screen">
+            <img data-lang="zh" src="/assets/manual/02-portal.zh.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="公开工作室门户首屏，工作室作品会在下方渲染">
+          </div>
+          <ol class="marks">
+            <li data-lang="en">When the section is enabled and at least one Active item exists, Selected Work renders on the public page and in its navigation.</li><li data-lang="zh">打开板块开关且至少有一件 Active 作品后，工作室作品会出现在公开页面及导航中。</li>
+            <li data-lang="en">This capture shows the portal shell at the top of the page; the showcase appears lower on the same page. Student works remains a separate gallery.</li><li data-lang="zh">这张截图展示的是门户首屏；工作室作品会在同一页面下方渲染。学员作品墙仍是独立板块。</li>
+          </ol>
+          <figcaption data-lang="en">Frontend: the published portal is the result; the showcase is conditional on the Owner’s switch and Active content.</figcaption>
+          <figcaption data-lang="zh">前台：公开门户是最终结果；工作室作品是否出现，取决于 Owner 开关和 Active 内容。</figcaption>
+        </figure>
+
+        <p class="note" data-lang="en">At v9.8.x, the public Active limits are Starter 15, Studio 60 and Growth 150. The limit applies to public display, not stored records. A downgrade keeps every record and shows the first items within the new limit; an upgrade makes the remaining Active items eligible again.</p>
+        <p class="note" data-lang="zh">在 v9.8.x，公开 Active 作品的上限为 Starter 15、Studio 60、Growth 150。上限限制的是公开展示，不是记录存储。降档会保留全部记录，只按新上限展示前面的作品；升级后其余 Active 作品会重新具备公开资格。</p>
+
+        <p data-lang="en">Images are compressed in the browser to a longest edge of <strong>2,400 px</strong> before upload. JPEG, PNG and WebP are supported. Video is stored as a provider link and supports YouTube, Vimeo and Bilibili; it is click-to-load, so no third-party player request is made before the visitor presses play.</p>
+        <p data-lang="zh">图片上传前会在浏览器内压缩到最长边<strong>2,400 px</strong>。支持 JPEG、PNG 和 WebP。视频保存为平台链接，支持 YouTube、Vimeo 和 Bilibili；采用点击加载，访客按下播放前不会请求第三方播放器。</p>
+
+        <div class="pitfall">
+          <p><b data-lang="en">Do not use one gallery to bypass the other’s rule</b><b data-lang="zh">不要用一个作品板块绕过另一个板块的规则</b></p>
+          <p data-lang="en">Studio-owned work does not need student consent because it is not a student record. Student work does need a valid family publication consent. If the subject is a student, keep it in the student portfolio and follow section 05 — do not re-enter it as studio showcase content to avoid the consent boundary.</p>
+          <p data-lang="zh">工作室自有作品不是学员档案，因此不需要学员公开授权；学员作品必须有有效的家庭公开授权。如果主体是学员，就应放在学员作品集里并遵守第 05 章，不要为了绕过授权边界而把它重新录成工作室作品。</p>
+        </div>
+      </section>
+
+      <!-- ─────────────────────────────────────────────────────── 07 ── -->
       <section id="families">
-        <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>06 · <span data-lang="en">For families</span><span data-lang="zh">家长这一侧</span></p>
+        <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>07 · <span data-lang="en">For families</span><span data-lang="zh">家长这一侧</span></p>
         <h2 data-lang="en">The student area, and the code that opens it</h2>
         <h2 data-lang="zh">学员专区，和那串打开它的数字</h2>
 
@@ -574,9 +679,9 @@
         <p class="note" data-lang="zh">授权记录永久保存。会话类数据 30 天后清除，但家庭的作品公开授权与撤回记录永不删除——那是「当初同意了什么、何时撤回」的凭证。</p>
       </section>
 
-      <!-- ─────────────────────────────────────────────────────── 07 ── -->
+      <!-- ─────────────────────────────────────────────────────── 08 ── -->
       <section id="team">
-        <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>07 · <span data-lang="en">Your team</span><span data-lang="zh">团队与权限</span></p>
+        <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>08 · <span data-lang="en">Your team</span><span data-lang="zh">团队与权限</span></p>
         <h2 data-lang="en">Five roles, enforced in the backend</h2>
         <h2 data-lang="zh">五级权限，写死在后端</h2>
 
@@ -669,8 +774,8 @@
           </table>
         </div>
 
-        <p class="note" data-lang="en">v8.10.3 backend authority already includes Front Desk for class-booking review, but this round deliberately did not change the CMS: its approve/decline buttons still show only to Owner and Manager. Front Desk can see the requests and must hand the decision over until the separate CMS task ships. Course, capacity and schedule changes remain Owner/Manager-only.</p>
-        <p class="note" data-lang="zh">v8.10.3 后端已允许 Front Desk 审核约课请求，但本轮刻意没有修改 CMS：批准/婉拒按钮仍只向 Owner/Manager 显示。独立 CMS 任务上线前，前台可以查看请求，但需转交店长或 Owner 操作。课程、容量与时间表维护始终只限 Owner/Manager。</p>
+        <p class="note" data-lang="en">At v9.8.x, backend authority already includes Front Desk for class-booking review, but this round deliberately did not change the CMS: its approve/decline buttons still show only to Owner and Manager. Front Desk can see the requests and must hand the decision over until the separate CMS task ships. Course, capacity and schedule changes remain Owner/Manager-only.</p>
+        <p class="note" data-lang="zh">在 v9.8.x，后端已允许 Front Desk 审核约课请求，但本轮刻意没有修改 CMS：批准/婉拒按钮仍只向 Owner/Manager 显示。独立 CMS 任务上线前，前台可以查看请求，但需转交店长或 Owner 操作。课程、容量与时间表维护始终只限 Owner/Manager。</p>
 
         <div class="pitfall">
           <p><b data-lang="en">Front desk cannot see student work at all</b><b data-lang="zh">前台连学员作品都看不到</b></p>
@@ -682,9 +787,9 @@
         <p class="note" data-lang="zh">Staff 是早期的「全能员工」角色，接近 Manager 但没有退款、统计、导出和分享链接。新建成员时建议优先用职责明确的角色——界面和岗位对得上，培训才容易。</p>
       </section>
 
-      <!-- ─────────────────────────────────────────────────────── 08 ── -->
+      <!-- ─────────────────────────────────────────────────────── 09 ── -->
       <section id="insight">
-        <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>08 · <span data-lang="en">Reports</span><span data-lang="zh">经营</span></p>
+        <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>09 · <span data-lang="en">Reports</span><span data-lang="zh">经营</span></p>
         <h2 data-lang="en">What the numbers are actually telling you</h2>
         <h2 data-lang="zh">这些数字到底在说什么</h2>
 
@@ -715,9 +820,9 @@
         <p data-lang="zh">导出（学员 CSV、操作日志 CSV）需要导出权限，每次导出都写入审计。该功能同时受订阅套餐开关约束，未开通时界面会提示并指向平台方。</p>
       </section>
 
-      <!-- ─────────────────────────────────────────────────────── 09 ── -->
+      <!-- ─────────────────────────────────────────────────────── 10 ── -->
       <section id="platform">
-        <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>09 · <span data-lang="en">Us</span><span data-lang="zh">平台方</span></p>
+        <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>10 · <span data-lang="en">Us</span><span data-lang="zh">平台方</span></p>
         <h2 data-lang="en">What we can do inside your studio, and what stops us</h2>
         <h2 data-lang="zh">我们能在你的工作室里做什么，以及什么拦着我们</h2>
 
@@ -734,15 +839,15 @@
         <p class="note" data-lang="zh">你的订阅档位、额度与账期由我们维护，在你自己的界面里是只读的。需要调整直接找我们。</p>
       </section>
 
-      <!-- ─────────────────────────────────────────────────────── 10 ── -->
+      <!-- ─────────────────────────────────────────────────────── 11 ── -->
       <section id="help">
-        <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>10 · <span data-lang="en">Getting help</span><span data-lang="zh">求助</span></p>
+        <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>11 · <span data-lang="en">Getting help</span><span data-lang="zh">求助</span></p>
         <h2 data-lang="en">Check three things, then call us</h2>
         <h2 data-lang="zh">先看三样，再找我们</h2>
 
         <ol class="steps">
-          <li data-lang="en"><strong>Which screen and which account?</strong> Most “it disappeared” reports are a permission boundary working correctly — check <a href="#team">section 07</a> first.</li>
-          <li data-lang="zh"><strong>哪个界面、哪个账号？</strong>大多数「东西不见了」其实是权限边界在正常工作，先看<a href="#team">第 07 章</a>。</li>
+          <li data-lang="en"><strong>Which screen and which account?</strong> Most “it disappeared” reports are a permission boundary working correctly — check <a href="#team">section 08</a> first.</li>
+          <li data-lang="zh"><strong>哪个界面、哪个账号？</strong>大多数「东西不见了」其实是权限边界在正常工作，先看<a href="#team">第 08 章</a>。</li>
           <li data-lang="en"><strong>Draft or published?</strong> If it is about the public website, confirm you pressed Publish and not just Save Draft.</li>
           <li data-lang="zh"><strong>草稿还是已发布？</strong>如果和公开网站有关，先确认你点的是「发布」，而不是只存了草稿。</li>
           <li data-lang="en"><strong>What does the operation log say?</strong> It records who did what and when, which usually answers the question faster than we can.</li>
@@ -756,9 +861,9 @@
         <p data-lang="zh">我们的承诺和它的边界都是写下来的，不靠默契：<a href="/customer-resources/Support_Policy.html">支持政策</a>、<a href="/customer-resources/Privacy_Policy.html">隐私政策</a>、<a href="/customer-resources/Terms_of_Service.html">服务条款</a>。</p>
       </section>
 
-      <!-- ─────────────────────────────────────────────────────── 11 ── -->
+      <!-- ─────────────────────────────────────────────────────── 12 ── -->
       <section id="faq">
-        <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>11 · <span data-lang="en">Questions</span><span data-lang="zh">常见问题</span></p>
+        <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>12 · <span data-lang="en">Questions</span><span data-lang="zh">常见问题</span></p>
         <h2 data-lang="en">The ones we are actually asked</h2>
         <h2 data-lang="zh">真的被问到的那些</h2>
 
@@ -779,8 +884,8 @@
 
         <h4 data-lang="en">A parent wants to log in with an email and password.</h4>
         <h4 data-lang="zh">家长想用邮箱密码登录。</h4>
-        <p data-lang="en">Families cannot sign in to the CMS; the attempt is refused. Self-service is the student area with an access code — <a href="#families">section 06</a>.</p>
-        <p data-lang="zh">家长不能登录 CMS，尝试会被拒绝。家庭自助走「学员专区」访问码——见<a href="#families">第 06 章</a>。</p>
+        <p data-lang="en">Families cannot sign in to the CMS; the attempt is refused. Self-service is the student area with an access code — <a href="#families">section 07</a>.</p>
+        <p data-lang="zh">家长不能登录 CMS，尝试会被拒绝。家庭自助走「学员专区」访问码——见<a href="#families">第 07 章</a>。</p>
 
         <h4 data-lang="en">Uploads keep failing.</h4>
         <h4 data-lang="zh">图片一直传不上去。</h4>

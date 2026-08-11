@@ -314,7 +314,7 @@ mark { padding: 0 2px; border-radius: 3px; background: var(--accent); color: var
   .shell { display: block; max-width: none; padding: 0; }
   [hidden] { display: revert !important; }   /* search must not hide printed text */
   h1, h2, h3, h4 { break-after: avoid; page-break-after: avoid; }
-  /* Sections no longer start on a fresh page. Twelve forced breaks plus
+  /* Sections no longer start on a fresh page. Thirteen forced breaks plus
      figures that cannot be split produced 28 pages for 3,800 words, with one
      page carrying two lines and nothing else. Letting them flow keeps the
      rule above each section as the divider, which is enough to find one, and

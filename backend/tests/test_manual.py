@@ -30,7 +30,7 @@ GUIDES = REPOSITORY_ROOT / "docs/guides"
 # link is written as /manual/#refunds; renaming an anchor breaks it silently.
 SECTIONS = [
     "start", "launch", "enrolment", "roster", "money", "work",
-    "families", "team", "insight", "platform", "help", "faq",
+    "showcase", "families", "team", "insight", "platform", "help", "faq",
 ]
 
 
@@ -64,7 +64,7 @@ def test_every_section_exists_and_is_in_the_contents() -> None:
 def test_the_manual_stops_short_of_the_platform_console() -> None:
     """Decided with the owner: this is a customer manual.
 
-    Section 09 tells a studio what the platform can and cannot do inside their
+    Section 10 tells a studio what the platform can and cannot do inside their
     data, which is a trust statement. Instructions for operating the console
     stay in docs/guides/Super_Admin_Guide.md, which is internal.
     """
@@ -366,7 +366,7 @@ def test_the_printed_copy_states_its_version_once_at_the_top() -> None:
 def test_printing_does_not_force_a_page_per_section() -> None:
     """It produced 28 pages for 3,800 words, one of them carrying two lines.
 
-    Twelve forced breaks plus figures that cannot be split is most of a ream
+    Thirteen forced breaks plus figures that cannot be split is most of a ream
     of white paper. Measured with scripts/check_manual_print.py: 28 → 18
     pages in English, 25 → 15 in Chinese.
     """
