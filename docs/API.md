@@ -183,6 +183,27 @@ matrix, and the aggregate CMS payload is projected by role.
 
 Creates `tenants`, `subscriptions`, `tenant_usage` rows and generates `tenants/<slug>/` workspace.
 
+### 5.2 Plan Change Acknowledgement
+
+Changing `planCode` on `PATCH /v1/admin/tenants/{tenant_id}` requires both
+boolean fields below to be explicitly `true`:
+
+```json
+{
+  "planCode": "starter",
+  "confirmPlanChange": true,
+  "tenantNotificationAcknowledged": true
+}
+```
+
+Without them the API returns `409 plan_change_confirmation_required` and a
+`details` object describing changed limits/features, current usage above the
+new limits, and the tenant-owned content that remains preserved. The same
+acknowledgement is required when editing an in-use plan through
+`PATCH /v1/plans/{code}`. Successful changes write a `tenant.plan_changed`
+audit event; no website, showcase, student, course, registration, media or
+audit records are deleted by a plan change.
+
 ---
 
 ## 6. Student Management

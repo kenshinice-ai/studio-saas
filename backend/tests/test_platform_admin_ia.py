@@ -52,15 +52,19 @@ def test_platform_admin_mobile_navigation_is_a_drawer_and_actions_are_hierarchic
     assert 'id="platformMobileNavToggle"' in html
     assert 'id="platformMobileNavScrim"' in html
     assert "is-mobile-open" in html
-    assert "View is the default path" in html
-    assert "addActionButton(actions, 'View', 'btn-secondary btn-sm', () => openPlanInspector(p));" in html
+    assert "data-quick-view-row" in html
+    assert "wireQuickViewRow(row, () => openPlanInspector(p)" in html
+    assert "addActionButton(actions, 'Actions', 'btn-secondary btn-sm', () => openPlanActions(p.code));" in html
 
 
-def test_platform_inspector_keeps_support_mode_separate_and_reason_based() -> None:
+def test_platform_inspector_is_read_only_and_operations_stay_in_the_center() -> None:
     html = CONSOLE.read_text(encoding="utf-8")
     inspector = html[html.index("function renderTenantInspector") : html.index("function openTenantInspector")]
-    assert "Support Mode" in inspector
-    assert "Audited and reason-based" in html
+    assert "Quick view" in inspector
+    assert "Use the center Actions column" in inspector
+    assert "Support Mode" not in inspector
+    assert "function openTenantActions" in html
+    assert "function openPlanActions" in html
     assert "Start Support Mode" in html
     assert 'id="m_supportReason"' in html
 

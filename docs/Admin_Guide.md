@@ -141,6 +141,8 @@ evidence before deletion. Studio owners cannot perform it.
 | Tenant List | All tenants with plan, status, usage |
 | Add Tenant | Create new tenant with branding and optional studio admin account |
 | Edit Tenant | Modify tenant details, plan, subscription |
+| Quick view / Actions | Select a tenant or plan row to inspect it; use the center `Actions` column for edits and lifecycle operations |
+| Plan change review | Plan switches show changed limits, preserved content and tenants to notify; both acknowledgement fields are required before the API accepts the change |
 | Pause / Resume | Toggle tenant availability without data loss |
 | Usage | Storage, student count, user count per tenant |
 | Audit Logs | Platform activity trail |
@@ -152,6 +154,9 @@ Super Admin 和每个租户的 Studio Admin 顶部均提供 **中文 / English**
 切换。系统默认显示中文，并在当前浏览器保存上次选择；导航、表单、按钮、
 状态、提示和确认信息会一起切换。该设置只影响界面文案，不会修改套餐代码、
 工作室网址标识或数据库中的状态值。
+
+套餐在控制台使用统一的中英文名称：**Starter / 入门版**、**Studio / 工作室版**、
+**Growth / 成长版**。套餐 code 仍保持 `starter`、`studio`、`growth`，不会因界面语言切换而改变。
 
 ### Permissions
 

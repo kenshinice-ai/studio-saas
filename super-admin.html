@@ -1353,6 +1353,9 @@
       gap: 5px;
       min-width: 260px;
     }
+    [data-quick-view-row] { cursor: pointer; }
+    [data-quick-view-row]:hover > td { background: var(--bg2); }
+    [data-quick-view-row]:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
 
     /* A fixed 2×2 rather than a wrapping row. Four entry buttons on one line
        claimed a third of the table width and then broke to 3 + 1 anyway, so
@@ -2065,6 +2068,34 @@
     }
     .plan-preview-list { display: grid; gap: 2px; color: var(--muted); font-size: var(--f-min); }
     .plan-preview-list > div { display: flex; justify-content: space-between; gap: var(--space-2); }
+
+    /* A plan switch is a commercial decision with tenant-facing consequences,
+       not a select-box detail. Keep the review beside the select so the
+       operator can see what changes, what stays, and what must be communicated
+       before the center workspace accepts the save. */
+    .plan-change-impact {
+      grid-column: 1 / -1;
+      margin-top: var(--space-2);
+      padding: var(--space-3);
+      border: 1px solid var(--warning-border);
+      border-left: 3px solid var(--warning);
+      border-radius: var(--radius);
+      background: var(--warning-soft);
+      color: var(--ink2);
+    }
+    .plan-change-impact[hidden] { display: none; }
+    .plan-change-impact.is-danger { border-color: var(--danger-border); border-left-color: var(--danger); background: var(--danger-soft); }
+    .plan-change-impact > strong { display: block; margin-bottom: var(--space-2); color: var(--ink); }
+    .plan-impact-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
+    .plan-impact-group { min-width: 0; }
+    .plan-impact-group > strong { display: block; margin-bottom: var(--space-1); font-size: var(--f-min); color: var(--ink); }
+    .plan-impact-list { display: grid; gap: 4px; margin: 0; padding-left: 18px; font-size: var(--f-min); line-height: 1.5; }
+    .plan-impact-list li::marker { color: var(--accent-2); }
+    .plan-impact-value { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--ink); overflow-wrap: anywhere; }
+    .plan-impact-ack { margin-top: var(--space-3); padding-top: var(--space-2); border-top: 1px solid var(--warning-border); }
+    .plan-impact-ack input { margin-top: 3px; }
+    .plan-impact-empty { color: var(--muted); }
+    @media (max-width: 900px) { .plan-impact-grid { grid-template-columns: 1fr; } }
 
     .detail-bar {
       display: grid;
@@ -3265,7 +3296,7 @@
       }
 
       const subscription = inspectorSection('Subscription', 'Current record');
-      inspectorMeta(subscription, 'Plan', plan.name || t.plan_code);
+      inspectorMeta(subscription, 'Plan', planDisplayName(plan.code ? plan : t.plan_code));
       inspectorMeta(subscription, 'Monthly price', plan.monthly_price_aud === undefined ? '—' : money(plan.monthly_price_aud));
       inspectorMeta(subscription, 'Subscription status', t.subscription_status);
       inspectorMeta(subscription, 'Period ends', dateOnly(t.current_period_ends_at || t.ends_at));
@@ -3285,11 +3316,10 @@
         });
       body.appendChild(usage);
 
-      const actions = inspectorSection('Actions', 'Safe next steps');
+      const actions = inspectorSection('Quick view', 'Read-only context');
       const actionList = document.createElement('div');
       actionList.className = 'inspector-action-list';
       inspectorAction(actionList, 'View full tenant details', () => openTenantDetailModal(t.id));
-      inspectorAction(actionList, 'Edit tenant', () => editTenant(t.id));
       actions.appendChild(actionList);
       body.appendChild(actions);
 
@@ -3297,40 +3327,11 @@
       renderTenantSurfaces(surfaces, t);
       body.appendChild(surfaces);
 
-      const managed = inspectorSection('Managed actions', 'Audited lifecycle changes');
-      const managedList = document.createElement('div');
-      managedList.className = 'inspector-action-list';
-      if (t.status === 'archived') {
-        inspectorAction(managedList, 'Restore tenant', () => restoreTenant(t.id), 'inspector-action btn-primary');
-      } else if (t.status !== 'deleted') {
-        inspectorAction(managedList, t.status === 'paused' ? 'Reactivate tenant' : 'Pause tenant', () => changeTenantOperationalState(t.id, t.status === 'paused' ? 'reactivate' : 'pause'), t.status === 'paused' ? 'inspector-action btn-primary' : 'inspector-action btn-warning');
-      }
-      managed.appendChild(managedList);
-      body.appendChild(managed);
-
-      const danger = inspectorSection('Danger Zone', 'Requires explicit confirmation');
-      const dangerList = document.createElement('div');
-      dangerList.className = 'inspector-action-list';
-      if (t.status === 'archived') {
-        inspectorAction(dangerList, 'Permanent delete tenant', () => permanentDeleteTenant(t.id), 'inspector-action btn-danger');
-      } else if (t.status !== 'deleted') {
-        inspectorAction(dangerList, 'Archive tenant', () => archiveTenant(t.id), 'inspector-action btn-danger-outline');
-        addDisabledNote(dangerList, 'Permanent delete is available only after archiving.');
-      }
-      danger.appendChild(dangerList);
-      body.appendChild(danger);
-
-      const support = inspectorSection('Support Mode', 'Audited and reason-based');
-      support.classList.add('inspector-support');
-      const note = document.createElement('div');
-      relabel(note, 'Use only for a customer request or incident. A reason is required and the action is audited.');
-      support.appendChild(note);
-      const supportActions = document.createElement('div');
-      supportActions.className = 'inspector-action-list';
-      const supportButton = inspectorAction(supportActions, 'Start Support Mode', () => enterSupportMode(t.id), 'inspector-action btn-warning');
-      if (['archived', 'deleted'].includes(t.status)) supportButton.disabled = true;
-      support.appendChild(supportActions);
-      body.appendChild(support);
+      const operations = inspectorSection('Operations', 'Use the center Actions column');
+      const operationNote = document.createElement('div');
+      relabel(operationNote, 'Editing, lifecycle, support and archive actions stay in the center list so the right panel remains a quick read.');
+      operations.appendChild(operationNote);
+      body.appendChild(operations);
       window.AdminI18n?.localise?.(body);
     }
 
@@ -3353,7 +3354,7 @@
       inspectorSelection = plan.code;
       openInspector();
       document.querySelectorAll('tr[data-plan-code]').forEach((row) => row.classList.toggle('is-inspector-selected', row.dataset.planCode === String(plan.code)));
-      setInspectorHeader('Plan Inspector / 套餐详情', plan.name || plan.code);
+      setInspectorHeader('Plan Inspector / 套餐详情', planDisplayName(plan));
       const body = $('workspaceInspectorBody');
       body.replaceChildren();
       const state = document.createElement('div');
@@ -3372,24 +3373,11 @@
       inspectorMeta(limits, 'Projects', plan.project_limit);
       inspectorMeta(limits, 'Tenants on plan', tenants.filter((item) => item.plan_code === plan.code).length);
       body.appendChild(limits);
-      const actions = inspectorSection('Actions', 'Configuration');
-      const actionList = document.createElement('div');
-      actionList.className = 'inspector-action-list';
-      inspectorAction(actionList, 'Edit plan', () => editPlan(plan.code));
-      actions.appendChild(actionList);
-      body.appendChild(actions);
-      const danger = inspectorSection('Danger Zone', 'Review dependencies first');
-      const dangerList = document.createElement('div');
-      dangerList.className = 'inspector-action-list';
-      const assigned = tenants.filter((item) => item.plan_code === plan.code).length;
-      const deleteButton = inspectorAction(dangerList, 'Delete plan', () => deletePlan(plan.code), 'inspector-action btn-danger');
-      if (assigned) {
-        deleteButton.disabled = true;
-        deleteButton.title = 'Move all tenants to another plan before deleting this plan.';
-        addDisabledNote(dangerList, `${assigned} tenant${assigned === 1 ? '' : 's'} still use this plan.`);
-      }
-      danger.appendChild(dangerList);
-      body.appendChild(danger);
+      const operations = inspectorSection('Operations', 'Use the center Actions column');
+      const operationNote = document.createElement('div');
+      relabel(operationNote, 'Editing and deletion stay in the center list so the right panel remains a quick read.');
+      operations.appendChild(operationNote);
+      body.appendChild(operations);
       window.AdminI18n?.localise?.(body);
       if (focus && window.matchMedia('(max-width: 1279px)').matches) $('workspaceInspector')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -3521,6 +3509,20 @@
       button.addEventListener('click', handler);
       container.appendChild(button);
       return button;
+    }
+    function wireQuickViewRow(row, handler, label) {
+      row.dataset.quickViewRow = 'true';
+      row.tabIndex = 0;
+      row.setAttribute('aria-label', label);
+      row.addEventListener('click', (event) => {
+        if (event.target.closest('button, a, input, select, textarea')) return;
+        handler();
+      });
+      row.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        handler();
+      });
     }
     function appendEmptyRow(tbody, colspan, message) {
       const row = document.createElement('tr');
@@ -3939,6 +3941,22 @@
       return plans.find((item) => item.code === t.plan_code) || {};
     }
 
+    const PLAN_DISPLAY_NAMES = {
+      starter: { en: 'Starter', zh: '入门版' },
+      studio: { en: 'Studio', zh: '工作室版' },
+      growth: { en: 'Growth', zh: '成长版' },
+    };
+
+    function planDisplayName(planOrCode) {
+      const plan = typeof planOrCode === 'object' && planOrCode
+        ? planOrCode
+        : plans.find((item) => item.code === planOrCode) || { code: planOrCode };
+      const code = String(plan.code || '').toLowerCase();
+      const canonical = PLAN_DISPLAY_NAMES[code];
+      if (canonical) return window.AdminI18n?.language === 'zh' ? canonical.zh : canonical.en;
+      return text(plan.name || code);
+    }
+
     function formatStorageMb(value) {
       const mb = Number(value || 0);
       if (mb >= 1024) return `${(mb / 1024).toFixed(mb >= 10240 ? 0 : 1)} GB`;
@@ -4249,7 +4267,7 @@
       plans.forEach((p) => {
         const option = document.createElement('option');
         option.value = text(p.code);
-        option.textContent = text(p.name);
+        option.textContent = planDisplayName(p);
         $('planFilter').appendChild(option);
       });
       const categories = [...new Set(tenants.map((tenant) => tenant.category || 'general'))].sort();
@@ -4288,7 +4306,8 @@
               </div>
               <input id="m_tenantStatus" type="hidden" value="${esc(t.status)}">
             </div>
-            <div class="form-group"><label for="m_tenantPlan">Plan</label><select id="m_tenantPlan">${/*safe*/plans.map(p => `<option value="${esc(p.code)}" ${p.code===t.plan_code?'selected':''}>${esc(p.name)}</option>`).join('')}</select></div>
+            <div class="form-group"><label for="m_tenantPlan">Plan</label><select id="m_tenantPlan">${/*safe*/plans.map(p => `<option value="${esc(p.code)}" ${p.code===t.plan_code?'selected':''}>${esc(planDisplayName(p))}</option>`).join('')}</select></div>
+            <div id="m_planChangeImpact" class="plan-change-impact" hidden aria-live="polite"></div>
           </div>
         </details>
         <details class="form-section" open>
@@ -4332,7 +4351,7 @@
           </div>
         </details>
         <details class="form-section">
-          <summary>Subscription<span class="summary-hint">${esc(tenantPlan(t).name || t.plan_code)}${t.current_period_ends_at ? ` · to ${esc(dateOnly(t.current_period_ends_at))}` : ''}</span></summary>
+          <summary>Subscription<span class="summary-hint">${esc(planDisplayName(tenantPlan(t).code ? tenantPlan(t) : t.plan_code))}${t.current_period_ends_at ? ` · to ${esc(dateOnly(t.current_period_ends_at))}` : ''}</span></summary>
           <div class="form-section-body form-grid">
             <!-- Derived, and it says so as a reading rather than as a
                  disabled text box. A greyed-out input reads as "you should be
@@ -4357,11 +4376,11 @@
           </div>
         </details>
         <details class="form-section">
-          <summary>Limits<span class="summary-hint">Inherited from ${esc(tenantPlan(t).name || t.plan_code)}</span></summary>
+          <summary>Limits<span class="summary-hint">Inherited from ${esc(planDisplayName(tenantPlan(t).code ? tenantPlan(t) : t.plan_code))}</span></summary>
           <div class="form-section-body form-grid">
-            <div class="form-group"><label for="m_limitStudents">Student Limit</label><input id="m_limitStudents" value="${esc(text(tenantPlan(t).student_limit))}" disabled><small>Inherited from ${esc(text(tenantPlan(t).name || t.plan_code))} plan.</small></div>
-            <div class="form-group"><label for="m_limitStorage">Storage Limit</label><input id="m_limitStorage" value="${esc(formatStorageMb(tenantPlan(t).storage_limit_mb))}" disabled><small>Inherited from ${esc(text(tenantPlan(t).name || t.plan_code))} plan.</small></div>
-            <div class="form-group"><label for="m_limitUsers">Admin User Limit</label><input id="m_limitUsers" value="${esc(text(tenantPlan(t).user_limit))}" disabled><small>Inherited from ${esc(text(tenantPlan(t).name || t.plan_code))} plan.</small></div>
+            <div class="form-group"><label for="m_limitStudents">Student Limit</label><input id="m_limitStudents" value="${esc(text(tenantPlan(t).student_limit))}" disabled><small>Inherited from ${esc(planDisplayName(tenantPlan(t).code ? tenantPlan(t) : t.plan_code))} plan.</small></div>
+            <div class="form-group"><label for="m_limitStorage">Storage Limit</label><input id="m_limitStorage" value="${esc(formatStorageMb(tenantPlan(t).storage_limit_mb))}" disabled><small>Inherited from ${esc(planDisplayName(tenantPlan(t).code ? tenantPlan(t) : t.plan_code))} plan.</small></div>
+            <div class="form-group"><label for="m_limitUsers">Admin User Limit</label><input id="m_limitUsers" value="${esc(text(tenantPlan(t).user_limit))}" disabled><small>Inherited from ${esc(planDisplayName(tenantPlan(t).code ? tenantPlan(t) : t.plan_code))} plan.</small></div>
             <div class="form-group"><label for="m_limitMedia">Media Upload Limit</label><input id="m_limitMedia" value="Canonical media service limits by asset type" disabled></div>
           </div>
         </details>
@@ -4381,7 +4400,9 @@
 	      });
 	      // A change made inside a fold that is then collapsed leaves no trace
 	      // at all, so the fold itself carries the mark.
-      markEditedSections();
+	      markEditedSections();
+	      $('m_tenantPlan').addEventListener('change', () => renderPlanChangeImpact(t));
+	      renderPlanChangeImpact(t);
 	      // "14 days left" is the reading the operator opened this form for, so
 	      // it has to be there before they touch anything.
 	      ['m_startsAt', 'm_trialEndsAt', 'm_currentPeriodEndsAt', 'm_endsAt']
@@ -4559,8 +4580,21 @@
         notes: $('m_tenantNotes').value
       };
 
+      const editedTenant = editingTenantId
+        ? tenants.find((item) => item.id === editingTenantId)
+        : null;
+      const planChanged = Boolean(editedTenant && editedTenant.plan_code !== payload.planCode);
+      const planChangeAcknowledged = Boolean($('m_planChangeConfirm')?.checked);
+      payload.confirmPlanChange = planChangeAcknowledged;
+      payload.tenantNotificationAcknowledged = planChangeAcknowledged;
+
       if (!payload.name || !payload.slug) {
         showToast('Name and slug are required.', 'error');
+        return;
+      }
+      if (planChanged && !planChangeAcknowledged) {
+        $('m_planChangeImpact')?.scrollIntoView({ block: 'center' });
+        showToast('Review the plan impact and acknowledge tenant notification before saving.', 'error');
         return;
       }
       if (!validateSubscriptionDates()) {
@@ -4706,6 +4740,34 @@
       }
     }
 
+    function openPlanActions(code) {
+      const plan = plans.find((item) => item.code === code);
+      if (!plan) return;
+      openModal(`${/*safe*/planDisplayName(plan)} Actions`, '<div id="m_planActionsMount" style="display:grid;gap:12px;"></div>', '<button onclick="closeModal()" class="btn-secondary">Close</button>'); // title renders via textContent
+      const mount = $('m_planActionsMount');
+      const section = (title) => {
+        const box = document.createElement('div');
+        const heading = document.createElement('div');
+        box.className = 'action-section';
+        heading.className = 'action-section-title';
+        heading.textContent = title;
+        box.appendChild(heading);
+        mount.appendChild(box);
+        return box;
+      };
+      const manage = section('Manage');
+      addActionButton(manage, 'Edit Plan', 'btn-secondary', () => { closeModal(); editPlan(plan.code); });
+      const assigned = tenants.filter((item) => item.plan_code === plan.code).length;
+      const danger = section('Danger Zone');
+      const deleteButton = addActionButton(danger, 'Delete Plan', 'btn-danger', () => { closeModal(); deletePlan(plan.code); });
+      if (assigned) {
+        deleteButton.disabled = true;
+        deleteButton.title = 'Move all tenants to another plan before deleting this plan.';
+        addDisabledNote(danger, `${assigned} tenant${assigned === 1 ? '' : 's'} still use this plan.`);
+      }
+      window.AdminI18n?.localise?.(mount);
+    }
+
     function archiveTenant(id) {
       const t = tenants.find((item) => item.id === id);
       if (!t) return;
@@ -4822,7 +4884,7 @@
       barItem('Plan', (cell) => {
         const value = document.createElement('div');
         value.className = 'detail-bar-value';
-        value.textContent = text(plan.name || t.plan_code);
+        value.textContent = planDisplayName(plan.code ? plan : t.plan_code);
         cell.appendChild(value);
       });
       barItem('Students', (cell) => appendBarQuota(cell, t.student_count, plan.student_limit));
@@ -4982,7 +5044,7 @@
         });
       });
       card(subscription, 'Plan', (item) => addStrongMuted(
-        item, plan.name || t.plan_code, plan.monthly_price_aud != null ? money(plan.monthly_price_aud) : ''));
+        item, planDisplayName(plan.code ? plan : t.plan_code), plan.monthly_price_aud != null ? money(plan.monthly_price_aud) : ''));
       card(subscription, 'Subscription Period', (item) => {
         appendDateRow(item, 'Start', t.starts_at, { deadline: false });
         appendDateRow(item, 'Trial ends', t.trial_ends_at);
@@ -5216,6 +5278,7 @@
         const row = document.createElement('tr');
         row.dataset.tenantId = String(t.id);
         row.classList.toggle('is-inspector-selected', selectedTenantId === t.id);
+        wireQuickViewRow(row, () => openTenantInspector(t.id), `View ${text(t.name)}`);
         const studioCell = addCell(row, '', 'Studio');
         const strong = document.createElement('strong');
         const code = document.createElement('code');
@@ -5229,7 +5292,7 @@
           studioCell.appendChild(document.createElement('br'));
           appendSmallBadge(studioCell, 'TEST FIXTURE', 'pill fixture');
         }
-        addStrongMuted(addCell(row, '', 'Plan'), t.plan_code, t.category || 'general');
+        addStrongMuted(addCell(row, '', 'Plan'), planDisplayName(tenantPlan(t).code ? tenantPlan(t) : t.plan_code), t.category || 'general');
         /* Three stacked pills in a narrow column wrapped their labels onto
            three lines each, and a pill's radius turned "Needs setup" into an
            amber disc. One primary pill and one secondary line, neither
@@ -5257,10 +5320,11 @@
         renderUsageCell(addCell(row, '', 'Usage'), t);
         const actions = document.createElement('div');
         actions.className = 'action-row';
-        addActionButton(actions, 'View', 'btn-secondary btn-sm', () => selectTenant(t.id));
+        addActionButton(actions, 'Actions', 'btn-secondary btn-sm', () => openTenantActions(t.id));
         addCell(row, '', 'Actions').appendChild(actions);
         tbody.appendChild(row);
       });
+      window.AdminI18n?.localise?.(tbody);
     }
 
     /* Usage as two hairline bars rather than a sentence.
@@ -5397,6 +5461,269 @@
       ['data_export', 'Data export'],
       ['priority_support', 'Priority support']
     ];
+
+    function planFeatureLabel(key) {
+      return KNOWN_PLAN_FEATURES.find(([candidate]) => candidate === key)?.[1] || key;
+    }
+
+    function planImpactValue(field, value) {
+      if (field === 'monthly_price_aud') return money(value);
+      if (field === 'storage_limit_mb') return formatStorageMb(value);
+      if (field === 'is_public') return value ? 'Published' : 'Not published';
+      return Number(value || 0).toLocaleString();
+    }
+
+    function tenantPlanChangeDetails(tenant, targetPlan) {
+      const currentPlan = tenantPlan(tenant);
+      if (!tenant || !targetPlan || !currentPlan.code || currentPlan.code === targetPlan.code) return null;
+      const limitFields = [
+        ['monthly_price_aud', 'Monthly price'],
+        ['student_limit', 'Students'],
+        ['user_limit', 'Team users'],
+        ['storage_limit_mb', 'Storage'],
+        ['showcase_limit', 'Showcase works published'],
+      ];
+      const changed = limitFields
+        .filter(([field]) => Number(currentPlan[field]) !== Number(targetPlan[field]))
+        .map(([field, label]) => ({
+          field,
+          label,
+          from: planImpactValue(field, currentPlan[field]),
+          to: planImpactValue(field, targetPlan[field]),
+          reduced: Number(targetPlan[field]) < Number(currentPlan[field]),
+        }));
+      if (Boolean(currentPlan.is_public) !== Boolean(targetPlan.is_public)) {
+        changed.push({
+          field: 'is_public',
+          label: 'Public pricing page',
+          from: planImpactValue('is_public', currentPlan.is_public),
+          to: planImpactValue('is_public', targetPlan.is_public),
+          reduced: Boolean(currentPlan.is_public) && !targetPlan.is_public,
+        });
+      }
+      const currentFeatures = currentPlan.features || {};
+      const targetFeatures = targetPlan.features || {};
+      const featureKeys = [...new Set([...Object.keys(currentFeatures), ...Object.keys(targetFeatures)])].sort();
+      const enabledFeatures = featureKeys.filter((key) => !currentFeatures[key] && targetFeatures[key]);
+      const disabledFeatures = featureKeys.filter((key) => currentFeatures[key] && !targetFeatures[key]);
+      const usageOver = [
+        ['Students', tenant.student_count, targetPlan.student_limit, 'student_count'],
+        ['Team users', tenant.user_count, targetPlan.user_limit, 'user_count'],
+        ['Storage', tenant.storage_used_mb, targetPlan.storage_limit_mb, 'storage_used_mb'],
+      ].filter(([, current, limit]) => Number(limit || 0) > 0 && Number(current || 0) > Number(limit || 0))
+        .map(([label, current, limit, field]) => ({ label, current, limit, field }));
+      return {
+        currentPlan,
+        targetPlan,
+        changed,
+        enabledFeatures,
+        disabledFeatures,
+        usageOver,
+        isDowngrade: changed.some((item) => item.reduced) || disabledFeatures.length > 0,
+      };
+    }
+
+    function appendPlanImpactBullet(list, label, value = '') {
+      const item = document.createElement('li');
+      const labelEl = document.createElement('span');
+      relabel(labelEl, label);
+      item.appendChild(labelEl);
+      if (value) {
+        const valueEl = document.createElement('span');
+        valueEl.className = 'plan-impact-value';
+        valueEl.textContent = value;
+        item.append(' · ', valueEl);
+      }
+      list.appendChild(item);
+      return item;
+    }
+
+    function appendPlanImpactGroup(grid, title, items) {
+      const group = document.createElement('div');
+      group.className = 'plan-impact-group';
+      const heading = document.createElement('strong');
+      relabel(heading, title);
+      group.appendChild(heading);
+      const list = document.createElement('ul');
+      list.className = 'plan-impact-list';
+      if (!items.length) {
+        const empty = document.createElement('li');
+        empty.className = 'plan-impact-empty';
+        relabel(empty, 'No additional change identified.');
+        list.appendChild(empty);
+      } else {
+        items.forEach((item) => appendPlanImpactBullet(list, item.label, item.value || ''));
+      }
+      group.appendChild(list);
+      grid.appendChild(group);
+      return group;
+    }
+
+    function renderPlanChangeImpact(tenant) {
+      const mount = $('m_planChangeImpact');
+      if (!mount) return;
+      mount.replaceChildren();
+      mount.hidden = true;
+      const target = plans.find((item) => item.code === $('m_tenantPlan')?.value);
+      const impact = tenantPlanChangeDetails(tenant, target);
+      if (!impact) return;
+      mount.hidden = false;
+      mount.classList.toggle('is-danger', impact.isDowngrade || impact.usageOver.length > 0);
+      const heading = document.createElement('strong');
+      relabel(heading, 'Plan change review');
+      mount.appendChild(heading);
+      const route = document.createElement('div');
+      route.className = 'text-muted';
+      const from = document.createElement('span');
+      from.textContent = planDisplayName(impact.currentPlan);
+      const arrow = document.createTextNode(' → ');
+      const to = document.createElement('span');
+      to.textContent = planDisplayName(impact.targetPlan);
+      route.append(from, arrow, to);
+      mount.appendChild(route);
+
+      const grid = document.createElement('div');
+      grid.className = 'plan-impact-grid';
+      appendPlanImpactGroup(grid, 'Will change', impact.changed.map((item) => ({
+        label: item.label,
+        value: `${item.from} → ${item.to}`,
+      })).concat(
+        impact.enabledFeatures.map((key) => ({ label: 'Feature enabled', value: planFeatureLabel(key) })),
+        impact.disabledFeatures.map((key) => ({ label: 'Feature disabled', value: planFeatureLabel(key) })),
+      ));
+      appendPlanImpactGroup(grid, 'Will be preserved', [
+        { label: 'Website, brand and showcase content' },
+        { label: 'Students, courses, registrations and media' },
+        { label: 'Audit history and tenant settings' },
+      ]);
+      const notify = [
+        { label: 'Plan, price and effective date' },
+        { label: 'New resource and showcase limits' },
+      ];
+      if (impact.disabledFeatures.length) {
+        notify.push({ label: 'Feature availability', value: impact.disabledFeatures.map(planFeatureLabel).join(', ') });
+      }
+      if (impact.usageOver.length) {
+        notify.push({ label: 'Current usage is above the new limit', value: impact.usageOver.map((item) => `${item.label} ${item.current} / ${item.limit}`).join(', ') });
+      }
+      appendPlanImpactGroup(grid, 'Notify tenant', notify);
+      mount.appendChild(grid);
+
+      const ack = document.createElement('label');
+      ack.className = 'feature-row plan-impact-ack';
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.id = 'm_planChangeConfirm';
+      checkbox.addEventListener('change', markWorkspaceEditorDirty);
+      const copy = document.createElement('span');
+      const label = document.createElement('span');
+      label.className = 'feature-label';
+      relabel(label, 'I reviewed the impact and will notify this tenant.');
+      const note = document.createElement('span');
+      note.className = 'feature-note';
+      relabel(note, 'The server will reject the plan change without this acknowledgement.');
+      copy.append(label, note);
+      ack.append(checkbox, copy);
+      mount.appendChild(ack);
+      window.AdminI18n?.localise?.(mount);
+    }
+
+    function planFormSnapshot() {
+      let features = {};
+      try {
+        features = JSON.parse($('m_planFeaturesAdvanced')?.value || '{}');
+      } catch {
+        features = {};
+      }
+      document.querySelectorAll('[data-plan-feature]').forEach((input) => {
+        features[input.dataset.planFeature] = input.checked;
+      });
+      return {
+        code: editingPlanCode,
+        name: $('m_planName')?.value || '',
+        monthly_price_aud: Number($('m_planMonthly')?.value || 0),
+        student_limit: Number($('m_planStudents')?.value || 0),
+        user_limit: Number($('m_planUsers')?.value || 0),
+        storage_limit_mb: gbToMb($('m_planStorage')?.value || 0),
+        showcase_limit: Number($('m_planShowcase')?.value || 0),
+        features,
+        is_public: Boolean($('m_planPublic')?.checked),
+        is_recommended: Boolean($('m_planRecommended')?.checked),
+      };
+    }
+
+    function renderPlanCatalogImpact(plan) {
+      const mount = $('m_planCatalogImpact');
+      if (!mount || !plan) return;
+      mount.replaceChildren();
+      mount.hidden = true;
+      const draft = planFormSnapshot();
+      const changed = [
+        ['name', 'Plan name'],
+        ['monthly_price_aud', 'Monthly price'],
+        ['student_limit', 'Students'],
+        ['user_limit', 'Team users'],
+        ['storage_limit_mb', 'Storage'],
+        ['showcase_limit', 'Showcase works published'],
+        ['is_public', 'Public pricing page'],
+      ].filter(([field]) => {
+        const before = field === 'name' ? plan.name : field === 'is_public' ? Boolean(plan.is_public) : Number(plan[field]);
+        const after = field === 'name' ? draft.name : field === 'is_public' ? draft.is_public : Number(draft[field]);
+        return before !== after;
+      }).map(([field, label]) => {
+        const before = field === 'name' ? plan.name : planImpactValue(field, plan[field]);
+        const after = field === 'name' ? draft.name : planImpactValue(field, draft[field]);
+        return { field, label, value: `${before} → ${after}` };
+      });
+      const currentFeatures = plan.features || {};
+      const featureKeys = [...new Set([...Object.keys(currentFeatures), ...Object.keys(draft.features)])].sort();
+      const disabledFeatures = featureKeys.filter((key) => currentFeatures[key] && !draft.features[key]);
+      const enabledFeatures = featureKeys.filter((key) => !currentFeatures[key] && draft.features[key]);
+      const affected = tenants.filter((item) => item.plan_code === plan.code);
+      const hasImpact = changed.length || enabledFeatures.length || disabledFeatures.length;
+      if (!hasImpact || !affected.length) return;
+      mount.hidden = false;
+      const heading = document.createElement('strong');
+      relabel(heading, 'Plan catalog change review');
+      mount.appendChild(heading);
+      const intro = document.createElement('p');
+      intro.className = 'text-muted';
+      relabel(intro, 'This change affects every tenant currently using this plan.');
+      mount.appendChild(intro);
+      const grid = document.createElement('div');
+      grid.className = 'plan-impact-grid';
+      appendPlanImpactGroup(grid, 'Will change', changed.concat(
+        enabledFeatures.map((key) => ({ label: 'Feature enabled', value: planFeatureLabel(key) })),
+        disabledFeatures.map((key) => ({ label: 'Feature disabled', value: planFeatureLabel(key) })),
+      ));
+      appendPlanImpactGroup(grid, 'Will be preserved', [
+        { label: 'Tenant settings and public content' },
+        { label: 'Students, courses, registrations and media' },
+        { label: 'Audit history' },
+      ]);
+      appendPlanImpactGroup(grid, 'Notify tenants', [
+        { label: 'Affected tenants', value: affected.map((item) => item.name || item.slug).join(', ') },
+        { label: 'New price, limits and feature availability' },
+      ]);
+      mount.appendChild(grid);
+      const ack = document.createElement('label');
+      ack.className = 'feature-row plan-impact-ack';
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.id = 'm_planCatalogConfirm';
+      checkbox.addEventListener('change', markWorkspaceEditorDirty);
+      const copy = document.createElement('span');
+      const label = document.createElement('span');
+      label.className = 'feature-label';
+      relabel(label, 'I reviewed the impact and will notify all affected tenants.');
+      const note = document.createElement('span');
+      note.className = 'feature-note';
+      relabel(note, 'The server will reject the plan update without this acknowledgement.');
+      copy.append(label, note);
+      ack.append(checkbox, copy);
+      mount.appendChild(ack);
+      window.AdminI18n?.localise?.(mount);
+    }
 
     /* Entitlements, grouped by who feels them.
        Five unexplained switches in one box asked the operator to remember
@@ -5681,6 +6008,7 @@
           <div class="form-group"><label for="m_planStorage">Storage (GB)</label><input id="m_planStorage" type="number" min="1" step="0.5" value="${esc(mbToGb(p.storage_limit_mb))}" oninput="refreshPlanPreview()"><small>Stored in megabytes; <span class="tabular">${esc(p.storage_limit_mb)}</span> MB today.</small></div>
           <div class="form-group"><label for="m_planShowcase">Showcase works published</label><input id="m_planShowcase" type="number" min="1" value="${esc(p.showcase_limit || 15)}" oninput="refreshPlanPreview()"><small>Active works visible on the public showcase. Drafts and archived works remain stored.</small></div>
         </div>
+        <div id="m_planCatalogImpact" class="plan-change-impact" hidden aria-live="polite"></div>
         ${/*safe*/planFeatureEditor(p.features || {})}
       `;
       const footerHtml = `<span class="editor-footer-note">Review affected tenants before saving limits.</span><button id="m_savePlan" onclick="savePlanModal()" class="btn-primary">Save Plan</button><button onclick="closeWorkspaceEditor()" class="btn-secondary">Cancel</button>`;
@@ -5688,13 +6016,20 @@
         workspace: 'plans',
         kind: 'plan',
         id: code,
-        title: p.name,
+        title: planDisplayName(p),
         subtitle: 'Update pricing, limits, entitlements, and publication state.',
         bodyHtml,
         footerHtml
       });
       preparePlanValidation();
       refreshPlanPreview();
+      ['m_planName', 'm_planMonthly', 'm_planStudents', 'm_planUsers', 'm_planStorage', 'm_planShowcase', 'm_planPublic', 'm_planRecommended', 'm_planFeaturesAdvanced']
+        .forEach((id) => {
+          $(id)?.addEventListener('input', () => renderPlanCatalogImpact(p));
+          $(id)?.addEventListener('change', () => renderPlanCatalogImpact(p));
+        });
+      document.querySelectorAll('[data-plan-feature]').forEach((input) => input.addEventListener('change', () => renderPlanCatalogImpact(p)));
+      renderPlanCatalogImpact(p);
     }
 
     /* Megabytes on the wire, gigabytes in front of a person. `51200` is not a
@@ -5742,6 +6077,27 @@
          used to be silent about that. */
       const affected = tenants.filter((item) => item.plan_code === editingPlanCode);
       const previousPlan = plans.find((item) => item.code === editingPlanCode);
+      const previousFeatures = previousPlan?.features || {};
+      const featureKeys = [...new Set([...Object.keys(previousFeatures), ...Object.keys(features)])];
+      const featureChanged = featureKeys.some((key) => Boolean(previousFeatures[key]) !== Boolean(features[key]));
+      const planDefinitionChanged = Boolean(previousPlan && (
+        previousPlan.name !== payload.name
+        || Number(previousPlan.monthly_price_aud) !== payload.monthlyPriceAud
+        || Number(previousPlan.student_limit) !== payload.studentLimit
+        || Number(previousPlan.user_limit) !== payload.userLimit
+        || Number(previousPlan.storage_limit_mb) !== payload.storageLimitMb
+        || Number(previousPlan.showcase_limit) !== payload.showcaseLimit
+        || Boolean(previousPlan.is_public) !== payload.isPublic
+        || featureChanged
+      ));
+      const catalogAcknowledged = Boolean($('m_planCatalogConfirm')?.checked);
+      payload.confirmPlanChange = catalogAcknowledged;
+      payload.tenantNotificationAcknowledged = catalogAcknowledged;
+      if (editingPlanCode && affected.length && planDefinitionChanged && !catalogAcknowledged) {
+        $('m_planCatalogImpact')?.scrollIntoView({ block: 'center' });
+        showToast('Review the plan impact and acknowledge tenant notification before saving.', 'error');
+        return;
+      }
       const showcaseReduced = Boolean(
         previousPlan && payload.showcaseLimit < Number(previousPlan.showcase_limit || 0)
       );
@@ -5852,6 +6208,52 @@
       });
       wrap.append(top, bar, sources);
       funnel.appendChild(wrap);
+    }
+
+    function renderPlansTable(errorMessage = '') {
+      const plansBody = $('plansBody');
+      if (!plansBody) return;
+      plansBody.replaceChildren();
+      if (errorMessage) {
+        appendEmptyRow(plansBody, 5, errorMessage);
+        return;
+      }
+      if (!plans.length) {
+        appendEmptyRow(plansBody, 5, 'No plans configured.');
+        return;
+      }
+      plans.forEach((p) => {
+        const row = document.createElement('tr');
+        row.dataset.planCode = String(p.code);
+        row.classList.toggle('is-inspector-selected', inspectorMode === 'plan' && inspectorSelection === p.code);
+        wireQuickViewRow(row, () => openPlanInspector(p), `View ${planDisplayName(p)}`);
+        const nameCell = addCell(row);
+        const strong = document.createElement('strong');
+        const code = document.createElement('code');
+        strong.textContent = planDisplayName(p);
+        code.textContent = text(p.code);
+        nameCell.append(strong, document.createElement('br'), code);
+        addCell(row, money(p.monthly_price_aud));
+        renderPlanQuota(addCell(row), p);
+        const publication = addCell(row);
+        const state = document.createElement('span');
+        state.className = p.is_public ? 'pill active' : 'pill archived';
+        state.textContent = p.is_public ? 'Published' : 'Not published';
+        publication.appendChild(state);
+        if (p.is_recommended) {
+          const badge = document.createElement('span');
+          badge.className = 'pill warning';
+          badge.style.marginLeft = '6px';
+          badge.textContent = 'Recommended';
+          publication.appendChild(badge);
+        }
+        const actions = document.createElement('div');
+        actions.className = 'action-row';
+        addActionButton(actions, 'Actions', 'btn-secondary btn-sm', () => openPlanActions(p.code));
+        addCell(row, '', 'Actions').appendChild(actions);
+        plansBody.appendChild(row);
+      });
+      window.AdminI18n?.localise?.(plansBody);
     }
 
     // Audit log table. Rendered from cached rows so a language switch can
@@ -5967,7 +6369,12 @@
     document.addEventListener('studiosaas:admin-language', () => {
       updateWorkspaceHeaderOffset();
       renderWorkspaceContext();
-      if (currentUser) renderAuditLogs();
+      if (currentUser) {
+        renderTenants();
+        renderPlansTable();
+        renderAuditLogs();
+        rerenderInspector();
+      }
     });
 
     // Main refresh function
@@ -6021,50 +6428,11 @@
           partialFailures.push(failureMessage('Usage', usageResult));
         }
 
-        const plansBody = $('plansBody');
-        plansBody.replaceChildren();
-        if (planResult.status !== 'fulfilled') {
-          appendEmptyRow(plansBody, 5, failureMessage('Plans unavailable', planResult));
-        } else if (plans.length) {
-          plans.forEach((p) => {
-            const row = document.createElement('tr');
-            row.dataset.planCode = String(p.code);
-            row.classList.toggle('is-inspector-selected', inspectorMode === 'plan' && inspectorSelection === p.code);
-            const nameCell = addCell(row);
-            const strong = document.createElement('strong');
-            const code = document.createElement('code');
-            strong.textContent = text(p.name);
-            code.textContent = text(p.code);
-            nameCell.append(strong, document.createElement('br'), code);
-            addCell(row, money(p.monthly_price_aud));
-            renderPlanQuota(addCell(row), p);
-            // Whether a plan is on the public pricing page is a commercial
-            // fact about it, so it belongs in the list rather than two clicks
-            // inside an edit dialog.
-            const publication = addCell(row);
-            const state = document.createElement('span');
-            state.className = p.is_public ? 'pill active' : 'pill archived';
-            state.textContent = p.is_public ? 'Published' : 'Not published';
-            publication.appendChild(state);
-            if (p.is_recommended) {
-              const badge = document.createElement('span');
-              badge.className = 'pill warning';
-              badge.style.marginLeft = '6px';
-              badge.textContent = 'Recommended';
-              publication.appendChild(badge);
-            }
-            const actions = document.createElement('div');
-            actions.className = 'action-row';
-            // View is the default path. Editing and deletion stay in the
-            // selected Plan Inspector so the list cannot turn three actions
-            // into one undifferentiated row-level command cluster.
-            addActionButton(actions, 'View', 'btn-secondary btn-sm', () => openPlanInspector(p));
-            addCell(row).appendChild(actions);
-            plansBody.appendChild(row);
-          });
-        } else {
-          appendEmptyRow(plansBody, 5, 'No plans configured.');
-        }
+        renderPlansTable(
+          planResult.status === 'fulfilled'
+            ? ''
+            : failureMessage('Plans unavailable', planResult),
+        );
 
         renderAttentionQueue();
         renderTenants();
@@ -6199,7 +6567,7 @@
 	        <div class="form-grid">
 	          <div class="form-group"><label for="m_tenantName">Studio Name</label><input id="m_tenantName" placeholder="Northside Art Studio"></div>
 	          <div class="form-group"><label for="m_tenantSlug">Slug</label><input id="m_tenantSlug" readonly><small>Auto-generated from studio name.</small></div>
-	          <div class="form-group"><label for="m_tenantPlan">Plan</label><select id="m_tenantPlan">${/*safe*/plans.map(p => `<option value="${esc(p.code)}">${esc(p.name)}</option>`).join('')}</select></div>
+	          <div class="form-group"><label for="m_tenantPlan">Plan</label><select id="m_tenantPlan">${/*safe*/plans.map(p => `<option value="${esc(p.code)}">${esc(planDisplayName(p))}</option>`).join('')}</select></div>
 	          <div class="form-group"><label for="m_tenantCategory">Studio Category</label><select id="m_tenantCategory">${/*safe*/categoryOptions('general')}</select></div>
 	          <div class="form-group"><label for="m_ownerName">Owner Name</label><input id="m_ownerName" placeholder="Studio Owner"></div>
 	          <div class="form-group"><label for="m_ownerEmail">Owner Email</label><input id="m_ownerEmail" type="email" placeholder="owner@studio.test"></div>

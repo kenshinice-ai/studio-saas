@@ -22,11 +22,19 @@ ERROR_BY_STATUS = {
 }
 
 
-def api_error(message: str, status: int = 400, *, error: str | None = None) -> tuple[Any, int]:
+def api_error(
+    message: str,
+    status: int = 400,
+    *,
+    error: str | None = None,
+    details: dict[str, Any] | None = None,
+) -> tuple[Any, int]:
     """Return the canonical API error body.
 
-    The public contract is always ``{"error": code, "message": text}``.
-    Internal 500 details are hidden unless Flask is running in debug mode.
+    The public contract always includes ``{"error": code, "message": text}``;
+    a caller may add structured ``details`` for an actionable conflict such as
+    a plan-change confirmation gate. Internal 500 details remain hidden unless
+    Flask is running in debug mode.
     """
 
     code = error or ERROR_BY_STATUS.get(status, "invalid_request")
@@ -35,7 +43,10 @@ def api_error(message: str, status: int = 400, *, error: str | None = None) -> t
         safe_message = HTTPStatus(status).phrase if status in HTTPStatus._value2member_map_ else "Server error"
     if not safe_message:
         safe_message = HTTPStatus(status).phrase if status in HTTPStatus._value2member_map_ else "Request failed"
-    return jsonify({"error": code, "message": safe_message}), status
+    body: dict[str, Any] = {"error": code, "message": safe_message}
+    if details is not None:
+        body["details"] = details
+    return jsonify(body), status
 
 
 def register_error_handlers(app: Any) -> None:

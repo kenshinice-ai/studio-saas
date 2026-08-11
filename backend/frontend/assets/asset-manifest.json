@@ -1,7 +1,7 @@
 {
   "algorithm": "sha256",
   "assets": {
-    "admin-i18n.js": "a5780913a6634d0b255facc2e96c2ccd7c093dc7bbd5170067f24c39e6afb64a",
+    "admin-i18n.js": "73f091375627f4de1043db45685c5faa226153e140e295c62a3831206fb0d0bb",
     "brand-system.css": "150e8e2d28a00741e852a9a97c30fff6a1de2a7e5f63e320ea5c01342a2e248e",
     "cms-app.js": "e08ae1f2dc0dd4c9634fb0228dcdcc06e3099465fcb0da568febd11f83e5f444",
     "cms-i18n.js": "8492d386daba9f20ce5c0152a9fc598c6337fb66e96452cec160e8371e7b9b89",

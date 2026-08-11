@@ -1612,6 +1612,88 @@ def _plan_payload(payload: dict, *, default_showcase_limit: int = 15) -> dict:
     }
 
 
+def _plan_change_impact(
+    current_plan: dict,
+    target_plan: dict,
+    *,
+    usage: dict | None = None,
+) -> dict:
+    """Describe the safe, reviewable consequences of changing a plan.
+
+    A plan change changes entitlements, not tenant-owned records.  Keeping
+    this calculation on the API boundary gives the UI a server-authored
+    confirmation payload and gives the audit row a durable explanation of why
+    a tenant was asked to acknowledge the change.
+    """
+
+    def _features(plan: dict) -> dict:
+        value = plan.get("features", plan.get("features_json", {}))
+        if isinstance(value, str):
+            try:
+                value = json.loads(value)
+            except (TypeError, ValueError):
+                value = {}
+        return value if isinstance(value, dict) else {}
+
+    fields = (
+        ("name", "plan_name"),
+        ("monthly_price_aud", "monthly_price_aud"),
+        ("student_limit", "student_limit"),
+        ("user_limit", "user_limit"),
+        ("storage_limit_mb", "storage_limit_mb"),
+        ("showcase_limit", "showcase_limit"),
+        ("is_public", "is_public"),
+    )
+    changed = []
+    for key, label in fields:
+        before = current_plan.get(key)
+        after = target_plan.get(key)
+        if before != after:
+            changed.append({"field": label, "from": before, "to": after})
+
+    current_features = _features(current_plan)
+    target_features = _features(target_plan)
+    feature_keys = sorted(set(current_features) | set(target_features))
+    enabled_features = [key for key in feature_keys
+                        if not current_features.get(key) and target_features.get(key)]
+    disabled_features = [key for key in feature_keys
+                         if current_features.get(key) and not target_features.get(key)]
+
+    usage_over_new_limit = {}
+    if usage:
+        for usage_key, limit_key in (
+            ("student_count", "student_limit"),
+            ("user_count", "user_limit"),
+            ("storage_used_mb", "storage_limit_mb"),
+        ):
+            current = int(usage.get(usage_key) or 0)
+            limit = int(target_plan.get(limit_key) or 0)
+            if limit and current > limit:
+                usage_over_new_limit[usage_key] = {"current": current, "limit": limit}
+
+    return {
+        "from": {
+            "code": current_plan.get("code", ""),
+            "name": current_plan.get("name", ""),
+        },
+        "to": {
+            "code": target_plan.get("code", ""),
+            "name": target_plan.get("name", ""),
+        },
+        "changed": changed,
+        "enabled_features": enabled_features,
+        "disabled_features": disabled_features,
+        "usage_over_new_limit": usage_over_new_limit,
+        "content_preserved": [
+            "tenant_settings",
+            "website_brand_and_showcase",
+            "students_courses_and_registrations",
+            "media_and_audit_history",
+        ],
+        "notification_required": True,
+    }
+
+
 def _clear_other_recommended(cur, plan: dict, code: str) -> None:
     """Recommendation is a radio, not a checkbox.
 
@@ -7057,7 +7139,17 @@ def mutate_plan(code: str):
             _audit(conn, tenant_id=None, action="plan.deleted", resource_type="plan", resource_id=code)
             conn.commit()
             return jsonify({"ok": True})
-        existing = fetch_one(conn, "SELECT showcase_limit FROM plans WHERE code = %s", (code,))
+        existing = fetch_one(
+            conn,
+            """
+            SELECT code, name, monthly_price_aud, student_limit, user_limit,
+                   storage_limit_mb, showcase_limit, features, is_public,
+                   is_recommended
+            FROM plans
+            WHERE code = %s
+            """,
+            (code,),
+        )
         if not existing:
             return _error("Plan was not found.", 404)
         try:
@@ -7069,6 +7161,29 @@ def mutate_plan(code: str):
             )
         except ValueError as exc:
             return _error(str(exc))
+        in_use = fetch_one(
+            conn,
+            "SELECT count(*) AS n FROM tenants WHERE plan_code = %s",
+            (code,),
+        )
+        affected_tenants = int((in_use or {}).get("n") or 0)
+        plan_impact = _plan_change_impact(existing, plan)
+        plan_impact_changed = bool(
+            plan_impact["changed"]
+            or plan_impact["enabled_features"]
+            or plan_impact["disabled_features"]
+        )
+        if affected_tenants and plan_impact_changed:
+            acknowledged = payload.get("confirmPlanChange") is True
+            notification_acknowledged = payload.get("tenantNotificationAcknowledged") is True
+            if not (acknowledged and notification_acknowledged):
+                plan_impact["affected_tenants"] = affected_tenants
+                return api_error(
+                    "Review the plan impact and acknowledge tenant notification before saving.",
+                    409,
+                    error="plan_change_confirmation_required",
+                    details=plan_impact,
+                )
         with conn.cursor() as cur:
             _clear_other_recommended(cur, plan, code)
             cur.execute(
@@ -7098,7 +7213,25 @@ def mutate_plan(code: str):
                     code,
                 ),
             )
-        _audit(conn, tenant_id=None, action="plan.updated", resource_type="plan", resource_id=code)
+        if affected_tenants and plan_impact_changed:
+            plan_impact["affected_tenants"] = affected_tenants
+        _audit(
+            conn,
+            tenant_id=None,
+            action="plan.updated",
+            resource_type="plan",
+            resource_id=code,
+            metadata=(
+                {
+                    "impact": plan_impact,
+                    "tenant_notification_acknowledged": payload.get(
+                        "tenantNotificationAcknowledged"
+                    ) is True,
+                }
+                if affected_tenants and plan_impact_changed
+                else None
+            ),
+        )
         conn.commit()
     return jsonify({"ok": True})
 
@@ -7283,7 +7416,7 @@ def mutate_tenant(tenant_id: str):
             conn,
             """
             SELECT slug, status, settings->>'workspace_path' AS workspace_path,
-                   settings
+                   plan_code, settings
             FROM tenants
             WHERE id = %s
             FOR UPDATE
@@ -7301,9 +7434,48 @@ def mutate_tenant(tenant_id: str):
         except ValueError as exc:
             return _error(str(exc))
         with conn.cursor() as cur:
-            cur.execute("SELECT 1 FROM plans WHERE code = %s", (data["plan_code"],))
-            if not cur.fetchone():
+            cur.execute(
+                """
+                SELECT code, name, monthly_price_aud, student_limit, user_limit,
+                       storage_limit_mb, showcase_limit, features, is_public,
+                       is_recommended
+                FROM plans
+                WHERE code IN (%s, %s)
+                """,
+                (existing["plan_code"], data["plan_code"]),
+            )
+            plan_rows = {row["code"]: row for row in cur.fetchall()}
+            target_plan = plan_rows.get(data["plan_code"])
+            if not target_plan:
                 return _error(f"Plan '{data['plan_code']}' was not found.", 404)
+            current_plan = plan_rows.get(existing["plan_code"])
+            plan_changed = data["plan_code"] != existing["plan_code"]
+            plan_impact = None
+            if plan_changed:
+                usage_row = fetch_one(
+                    conn,
+                    """
+                    SELECT student_count, user_count, storage_used_mb
+                    FROM tenant_usage
+                    WHERE tenant_id = %s
+                    """,
+                    (tenant_id,),
+                ) or {}
+                plan_impact = _plan_change_impact(
+                    current_plan or {"code": existing["plan_code"]},
+                    target_plan,
+                    usage=usage_row,
+                )
+                if not (
+                    payload.get("confirmPlanChange") is True
+                    and payload.get("tenantNotificationAcknowledged") is True
+                ):
+                    return api_error(
+                        "Review the plan impact and acknowledge tenant notification before saving.",
+                        409,
+                        error="plan_change_confirmation_required",
+                        details=plan_impact,
+                    )
             try:
                 validate_tenant_transition(str(existing["status"]), data["status"])
             except ValueError as exc:
@@ -7404,6 +7576,18 @@ def mutate_tenant(tenant_id: str):
                 ),
             )
         _audit(conn, tenant_id=tenant_id, action="tenant.updated", resource_type="tenant", resource_id=tenant_id)
+        if plan_changed and plan_impact is not None:
+            _audit(
+                conn,
+                tenant_id=tenant_id,
+                action="tenant.plan_changed",
+                resource_type="subscription",
+                resource_id=tenant_id,
+                metadata={
+                    "impact": plan_impact,
+                    "tenant_notification_acknowledged": True,
+                },
+            )
         conn.commit()
     return jsonify({"ok": True})
 

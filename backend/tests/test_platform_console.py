@@ -475,6 +475,65 @@ def test_plan_payload_keeps_showcase_limit_when_patch_omits_the_field() -> None:
     assert _plan_payload({**payload, "showcaseLimit": 150})["showcase_limit"] == 150
 
 
+def test_plan_change_impact_separates_entitlements_from_preserved_content() -> None:
+    from studiosaas.api_v1 import _plan_change_impact
+
+    impact = _plan_change_impact(
+        {
+            "code": "growth",
+            "name": "Growth",
+            "monthly_price_aud": 199,
+            "student_limit": 1000,
+            "user_limit": 20,
+            "storage_limit_mb": 51200,
+            "showcase_limit": 150,
+            "features": {"portfolio": True, "data_export": True},
+            "is_public": True,
+        },
+        {
+            "code": "starter",
+            "name": "Starter",
+            "monthly_price_aud": 49,
+            "student_limit": 100,
+            "user_limit": 1,
+            "storage_limit_mb": 2048,
+            "showcase_limit": 15,
+            "features_json": json.dumps({"portfolio": True}),
+            "is_public": True,
+        },
+        usage={"student_count": 120, "user_count": 2, "storage_used_mb": 3000},
+    )
+
+    assert impact["notification_required"] is True
+    assert impact["disabled_features"] == ["data_export"]
+    assert impact["usage_over_new_limit"]["student_count"] == {"current": 120, "limit": 100}
+    assert "website_brand_and_showcase" in impact["content_preserved"]
+
+
+def test_plan_changes_have_ui_and_api_acknowledgement_gates() -> None:
+    html = console()
+    api = (REPOSITORY_ROOT / "backend/studiosaas/api_v1.py").read_text(encoding="utf-8")
+    assert 'id="m_planChangeImpact"' in html
+    assert "checkbox.id = 'm_planChangeConfirm'" in html
+    assert 'id="m_planCatalogImpact"' in html
+    assert "tenantNotificationAcknowledged" in html
+    assert "plan_change_confirmation_required" in api
+    assert "_plan_change_impact" in api
+    assert 'action="tenant.plan_changed"' in api
+
+
+def test_plan_labels_are_normalized_in_both_console_languages() -> None:
+    html = console()
+    dictionary = DICTIONARY.read_text(encoding="utf-8")
+    assert "const PLAN_DISPLAY_NAMES" in html
+    assert "starter: { en: 'Starter', zh: '入门版' }" in html
+    assert "studio: { en: 'Studio', zh: '工作室版' }" in html
+    assert "growth: { en: 'Growth', zh: '成长版' }" in html
+    assert "function planDisplayName" in html
+    for english, chinese in (("Starter", "入门版"), ("Growth", "成长版")):
+        assert f"['{english}', '{chinese}']" in dictionary
+
+
 def test_super_admin_plan_form_sends_showcase_limit() -> None:
     source = (REPOSITORY_ROOT / "super-admin.html").read_text(encoding="utf-8")
     assert "m_planShowcase" in source
@@ -603,6 +662,14 @@ NEW_STRINGS = [
     "What we commit to", "Flags not listed above",
     "Not shown on the public pricing page.", "Team users", "Storage (GB)",
     "Not configured",
+    "Plan change review", "Plan catalog change review", "Will change", "Will be preserved",
+    "Notify tenant", "Notify tenants", "Feature enabled", "Feature disabled",
+    "Current usage is above the new limit", "I reviewed the impact and will notify this tenant.",
+    "I reviewed the impact and will notify all affected tenants.",
+    "The server will reject the plan change without this acknowledgement.",
+    "The server will reject the plan update without this acknowledgement.",
+    "Editing, lifecycle, support and archive actions stay in the center list so the right panel remains a quick read.",
+    "Editing and deletion stay in the center list so the right panel remains a quick read.",
 ]
 
 

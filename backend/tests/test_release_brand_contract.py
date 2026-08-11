@@ -22,7 +22,7 @@ def test_readme_separates_source_package_and_production() -> None:
     assert f"`VERSION` = **{VERSION}**" in readme
     assert "/v1/health?deep=1" in readme
     assert "infer Production from `VERSION`" in readme
-    assert "which is ahead of `main`" in readme
+    assert "deployed source commit" in readme
     assert "does not identify the deployed commit" in readme
 
 
