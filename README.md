@@ -7,9 +7,9 @@ the current source tree was packaged or deployed.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | `codex/v9.8.2-showcase-content-recovery`; `VERSION` = **9.8.4**; candidate commit is the current release commit | The previous v9.8.3 deployed source commit remains recorded below until the v9.8.4 deployment closes; untracked `docs/sales/` material remains user-owned and is not part of the release. |
-| Package | v9.8.4 candidate packages are rebuilt from the clean release commit | Checksums and `BUILD_INFO` are recorded here after packaging; the previous v9.8.3 package evidence remains in the handoff history. |
-| Production | **v9.8.3 deployed to `pwestudio.online`** | `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.8.3`; image `studiosaas:9.8.3`; deep health reports `appVersion=9.8.3`, `db=ok`, `mode=saas`, `tenants=6`, `themes.unreadable=0`; HTTP→HTTPS `301`, HTTPS `200`, TLS check `0`, HTTP/2. |
+| Source | `codex/v9.8.2-showcase-content-recovery`; `VERSION` = **9.8.4**; deployed source commit `c0e344aa82a4a2358c0052123ba7b6dd633fb057` | The release branch is pushed to `origin`; the untracked `docs/sales/` material remains user-owned and is not part of the release. |
+| Package | v9.8.4 SaaS and Edition packages verified | SaaS SHA-256 `b323ac360b4f13386b6a76d591ac90f773371777aaa340b355176642a60f76ae`; Edition SHA-256 `b9317a92374f58e17b681206029704f8493a59d046704d32a68a722c04b506c1`; both `BUILD_INFO` records are v9.8.4, commit `c0e344aa82a4a2358c0052123ba7b6dd633fb057`, and passed bundle checks. |
+| Production | **v9.8.4 deployed to `pwestudio.online`** | `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.8.4`; image `studiosaas:9.8.4`; deep health reports `appVersion=9.8.4`, `db=ok`, `mode=saas`, `tenants=6`, `themes.unreadable=0`; disk free `46.62 GB`; HTTP→HTTPS `301`, HTTPS `200`, TLS check `0`, HTTP/2. |
 
 Re-verify the production health endpoint before any later release claim; do not
 infer Production from `VERSION` or from an archive filename, which does not identify the deployed commit.
@@ -25,7 +25,7 @@ and records the accepted change in the audit log. Existing website, brand,
 showcase, student, course, registration, media and audit data is not deleted by
 a plan change.
 
-Platform Admin tenant and plan rows now open read-only quick views on row click;
+The release is deployed as v9.8.4. Platform Admin tenant and plan rows now open read-only quick views on row click;
 editing, lifecycle, support, archive and deletion actions are grouped under the
 center `Actions` control. Bilingual plan labels are canonical: Starter / 入门版,
 Studio / 工作室版, and Growth / 成长版, while API codes stay unchanged.
