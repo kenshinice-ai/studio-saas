@@ -7,12 +7,23 @@ the current source tree was packaged or deployed.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | `codex/v9.8.2-showcase-content-recovery`; `VERSION` = **9.8.2**; deployed candidate commit `25d782c994b7c0de36c73c1e4f4472ed50f5f1f5`, based on production v9.8.1 commit `04fd53438e81b726954ad2fb248764cc6d15db71`, which is ahead of `main` | The candidate passed the complete local gate before packaging. |
-| Package | SaaS `dist/PWE-StudioSaaS-aws-9.8.2.tar.gz` · SHA-256 `f11c7f9bceba0ea8bac3e5ae752af49e8cb969845bc8c84eca2e39fba73760c5`; Edition `dist/PWE-Studio-Edition-9.8.2.tar.gz` · SHA-256 `661869d273b0b3684494b767c112bbbb55bc30f7b63522923542dd1290249530` | Both archives passed checksum, exact `BUILD_INFO`, mode, entrypoint and exclusion checks. |
+| Source | `codex/v9.8.2-showcase-content-recovery`; `VERSION` = **9.8.3**; v9.8.3 plan-linked showcase candidate is being verified on top of the deployed v9.8.2 source, which is ahead of `main` | Do not treat this working-tree candidate as packaged or deployed until the release gates and production checks below are refreshed. |
+| Package | v9.8.3 package not built yet; previous v9.8.2 archives remain the last packaged artifacts | The previous archives are not evidence for v9.8.3. |
 | Production | **v9.8.2 deployed to `pwestudio.online`** | `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.8.2`; image `studiosaas:9.8.2`; `BUILD_INFO` commit `25d782c994b7c0de36c73c1e4f4472ed50f5f1f5`; deep health reports `appVersion=9.8.2`, `db=ok`, `mode=saas`, `tenants=6`, `themes.unreadable=0`. |
 
 Re-verify the production health endpoint before any later release claim; do not
 infer Production from `VERSION` or from an archive filename, which does not identify the deployed commit.
+
+## v9.8.3 plan-linked showcase candidate
+
+The showcase entitlement is now explicit end to end: starter publishes 15 active
+works, studio 60, and growth 150. The public endpoint still pages 12 items at a
+time; it no longer treats 12 as a storage or plan cap. Work records carry an
+`active` / `draft` / `archived` state, so downgrades preserve the full portfolio
+and new uploads beyond active capacity become drafts. The Super Admin plan form
+also sends `showcaseLimit`, and PATCH requests preserve an existing value when a
+legacy caller omits the field. Production remains v9.8.2 until this candidate is
+packaged and deployed.
 
 ## v9.8.2 showcase safety hotfix
 

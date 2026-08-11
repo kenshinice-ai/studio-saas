@@ -1,6 +1,6 @@
 # 平台超管手册 · Super Admin
 
-> 适用版本：PWE Studio v9.8.2 · 界面：Super Admin 控制台（`/platform-admin`）
+> 适用版本：PWE Studio v9.8.3 · 界面：Super Admin 控制台（`/platform-admin`）
 > 其他角色手册见 [手册总览](README.md)
 
 ## 角色定位
@@ -118,13 +118,13 @@ No owner assigned、Website not published、Storage near limit 等）、
 
 ## 三、Plans（套餐管理）
 
-表格列：Plan（名称 + code）、Price/Month（AUD）、Limits（学员/用户/存储 +
+表格列：Plan（名称 + code）、Price/Month（AUD）、Limits（学员/用户/存储/公开作品 +
 已启用权限）、Actions（Edit / Delete）。
 
 表格现在多一列 **Public**，显示「Published 已发布 / Not published 未发布」，
 主推套餐另带一枚「Recommended 主推」徽章。
 
-- **Edit**：名称、月价、学员/用户/存储上限，5 个权限开关
+- **Edit**：名称、月价、学员/用户/存储/公开作品上限，5 个权限开关
   （Public registration、Student portfolio、Email templates、Data export、
   Priority support）+「Additional entitlements (JSON)」高级字段，以及
   **Public pricing page 公开定价页**分组下的两个勾选：
@@ -257,8 +257,8 @@ More → Edit Tenant → Admin Login：直接在「Reset Password」设新密码
 「Generate link」生成一次性 24 小时密码设置链接发给对方（更安全）。
 
 **Q3：租户想换套餐？**
-Edit Tenant → Basic → Plan 下拉选择后 Save Changes。学员/用户/存储上限
-随套餐自动变化。
+Edit Tenant → Basic → Plan 下拉选择后 Save Changes。学员/用户/存储/公开作品上限
+随套餐自动变化；内置套餐的公开作品额度是 starter 15、studio 60、growth 150。
 
 **Q4：Archive 和 Permanent Delete 有什么区别？**
 Archive 是可逆下线：先写四份快照，租户 API 关闭，之后可 Restore（恢复为

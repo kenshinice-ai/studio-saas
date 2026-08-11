@@ -131,6 +131,20 @@ def test_an_item_with_neither_photo_nor_video_is_dropped():
     assert len(profile["showcase_items"]) == 2
 
 
+def test_legacy_items_are_active_and_unknown_states_are_private():
+    profile = api_v1._normalize_website_profile({
+        "showcaseItems": [
+            {"imageUrl": "/m/legacy"},
+            {"imageUrl": "/m/draft", "publicationState": "draft"},
+            {"imageUrl": "/m/archived", "publication_state": "archived"},
+            {"imageUrl": "/m/unknown", "publicationState": "something-else"},
+        ],
+    })
+    assert [item["publication_state"] for item in profile["showcase_items"]] == [
+        "active", "draft", "archived", "draft"
+    ]
+
+
 def test_a_hostile_link_reaches_the_record_as_nothing():
     profile = api_v1._normalize_website_profile({
         "showcaseItems": [{
@@ -320,7 +334,15 @@ def test_the_plan_limit_is_applied_before_the_category_filter():
 
     source = (REPOSITORY_ROOT / "backend/studiosaas/api_v1.py").read_text(encoding="utf-8")
     block = source[source.index("def public_showcase"):source.index("@api_v1.route(\"/public/<tenant_slug>/gallery\"")]
-    assert block.index("published = profile.get(\"showcase_items\", [])[:limit]") < block.index("if wanted and any(")
+    assert block.index("active_items = [") < block.index("if wanted and any(")
+    assert "published = active_items[:limit]" in block
+
+
+def test_the_admin_round_trip_preserves_publication_state():
+    admin = ADMIN.read_text(encoding="utf-8")
+    assert "publicationState: normalizeShowcasePublicationState(item.publication_state)" in admin
+    assert "publication_state: normalizeShowcasePublicationState(" in admin
+    assert "Publication status" in admin
 
 
 def test_the_limit_lookup_never_raises(app):

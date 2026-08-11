@@ -1,25 +1,26 @@
-# 作品上限挂到套餐 —— 方案讨论（待确认，未实现）
+# 作品上限挂到套餐 —— v9.8.3 已实现
 
 `Showcase_Round_2.md` §3 的补充。
 
 ---
 
-## 0. 结论先说：难度低，因为机制已经在了
+## 0. 结论先说：套餐只限制公开数量，作品记录不丢
 
 `plans` 表已经有三个数值上限，且已经在被强制执行：
 
 ```
 plans: code | monthly_price_aud | student_limit | user_limit | storage_limit_mb | features(jsonb)
-starter  $49   students=100   users=1    storage=2GB
-studio   $99   students=500   users=5    storage=10GB
-growth  $199   students=1000  users=20   storage=50GB
+starter  $49   students=100   users=1    storage=2GB   showcase=15
+studio   $99   students=500   users=5    storage=10GB  showcase=60
+growth  $199   students=1000  users=20   storage=50GB  showcase=150
 ```
 
 - 平台控制台已有套餐编辑器（`api_v1.py` 的 plan CRUD）；
 - 媒体额度已经按 `plans.storage_limit_mb` 拦截上传（`media.py:_enforce_tenant_quota`）；
 - 官网定价页与 `pricing.md` 已经从同一行渲染上限（`public_site.py:_limit_items`）。
 
-**所以这不是"建一套限额系统"，是"给已有系统加第四个数字"。约 1 个工作日。**
+**所以这不是"建一套限额系统"，是"让已有第四个数字真正贯穿后台、公开接口和
+套餐数据"。v9.8.3 已完成。**
 
 ---
 
@@ -34,16 +35,18 @@ features = {"portfolio": true, "data_export": true, "priority_support": true}
 作品上限是数值，按约定应该是列：
 
 ```sql
-ALTER TABLE plans ADD COLUMN showcase_limit integer NOT NULL DEFAULT 10
+ALTER TABLE plans ADD COLUMN showcase_limit integer NOT NULL DEFAULT 15
   CHECK (showcase_limit > 0);
 ```
 
 放进 `features` 能省一次迁移，但会破坏"数字/开关"的分野，且拿不到 CHECK 约束
-——一个手滑写成负数的上限，会变成"任何人都发不出作品"。**建议加列。**
+——一个手滑写成负数的上限，会变成"任何人都发不出作品"。**已加列并由迁移
+0024 建立约束；v9.8.3 的 0029 迁移恢复 starter / studio / growth 为
+15 / 60 / 150。**
 
 ---
 
-## 2. 加钱取消上限 —— 建议放在租户上，不新开套餐
+## 2. 加钱取消上限 —— 暂不在本次范围
 
 如果做成第四个套餐（`growth-plus`），那么"买了不限量"就等于**换套餐**——学员
 上限、用户上限、存储、价格会一起变。这不是这笔钱买的东西。
@@ -53,8 +56,8 @@ ALTER TABLE tenants ADD COLUMN showcase_limit_override integer NULL
   CHECK (showcase_limit_override IS NULL OR showcase_limit_override > 0);
 ```
 
-`NULL` = 跟随套餐。由 Super Admin 在收到款后设置——**与本产品"结算故意保持
-手动"的既有决定一致**，不做自助购买。
+本次不增加租户级 override；所有租户跟随 `plans.showcase_limit`。若未来需要
+售卖更大额度，再新增明确的租户覆盖列，由 Super Admin 在收到款后设置。
 
 ### 2.1 我建议"不限量"卖成一个大数字，而不是 ∞
 
@@ -69,8 +72,7 @@ ALTER TABLE tenants ADD COLUMN showcase_limit_override integer NULL
 3. 工程上省掉一个哨兵值（`-1` / `NULL` 表示无限），也就省掉每一处
    `if limit is None` 的分支——而每一个这样的分支都是一次可以写错的地方。
 
-如果你确实要真正的 ∞，那就再加一列 `showcase_unlimited boolean`，我不反对，
-只是要多改约 5 处判断和 3 条测试。**先按 500 做，也不妨碍以后加。**
+本次 JSON 健全上限为 500，套餐公开额度为 15 / 60 / 150；不承诺无界的 ∞。
 
 ---
 
@@ -78,7 +80,7 @@ ALTER TABLE tenants ADD COLUMN showcase_limit_override integer NULL
 
 这才是这个需求里唯一需要想清楚的问题。
 
-> growth（100 件）的工作室存了 80 件，降级到 starter（10 件）。然后呢？
+> growth（150 件）的工作室存了 80 件，降级到 starter（15 件）。然后呢？
 
 | 做法 | 评价 |
 |---|---|
@@ -91,13 +93,13 @@ ALTER TABLE tenants ADD COLUMN showcase_limit_override integer NULL
 - **作品永远不删。** 数据库里 80 件还是 80 件，后台 80 件全都看得见、可编辑、
   可排序。
 - **上限约束的是"发布几件"，不是"能存几件"。** 门户只渲染前 `limit` 件。
-- 后台明确告诉他：「你有 80 件作品，当前套餐展示前 10 件」，超出的那些打上
+- 后台明确告诉他：「你有 80 件作品，当前套餐展示前 15 件」，超出的那些打上
   「未展示」标记。**他可以通过排序决定哪 10 件被展示** —— 排序功能上一版已
   经做好了，这里刚好接上。
 - 升级即刻恢复，一件不少。这在商业上也更好：**他看得见自己少了什么。**
 
-新增仍然按上限拦：存了 10 件（上限 10）时，「添加作品」置灰并提示升级。
-这是唯一诚实的升级点位——不是弹窗，是他真的要用而用不了的那一刻。
+新增不删除也不静默拒绝：当前 active 容量用尽后，新作品自动进入 `draft`，保存
+后仍在工作台可见；运营者可升级套餐或将旧作品归档后再激活它。
 
 ---
 
@@ -127,9 +129,9 @@ for item in (showcase if isinstance(showcase, list) else [])[:SHOWCASE_ITEM_LIMI
 |---|---|---|
 | 写入 `_normalize_website_profile` | 健全上限 500 | **不按套餐截断** |
 | 公开读 `/v1/public/<slug>/showcase` | 切到有效上限 | 不改库 |
-| 后台 Studio Admin | 全部显示 + 标记未展示 + 到限禁用新增 | 不隐藏任何已存作品 |
+| 后台 Studio Admin | 全部显示 + active/draft/archived 状态 + 套餐提示 | 不隐藏任何已存作品 |
 
-有效上限 = `COALESCE(tenants.showcase_limit_override, plans.showcase_limit)`。
+有效上限 = `plans.showcase_limit`（本次不启用租户覆盖）。
 
 **注意**：`/showcase` 因此要 join `plans`。这个 join **不允许把接口打挂**——
 找不到套餐行就落到最保守的默认值，绝不抛异常。这条是这周那次事故写进
@@ -143,14 +145,14 @@ for item in (showcase if isinstance(showcase, list) else [])[:SHOWCASE_ITEM_LIMI
   学员/用户/存储三项。不加第四项，**定价页就会漏掉这个卖点**——而这恰恰是
   要拿来卖钱的那一条。
 - 平台控制台套餐编辑器：多一个字段（`api_v1.py` 的 INSERT/UPDATE 各一处）。
-- Owner 手册：把"最多 12 件"改成"按套餐"。
-- `SHOWCASE_ITEM_LIMIT` 三处副本（server / admin JS / 手册）。
+- Owner 手册：说明按套餐公开，并区分每次加载 12 件的分页大小。
+- `SHOWCASE_PAGE_SIZE` 只负责分页；作品状态和套餐额度由 server / admin JS 共同处理。
 
 ---
 
-## 7. 建议：跟 §3 合并进 v8.7.0，不单独发
+## 7. 发布
 
-分类、独立接口、取消硬上限、按套餐限额——**四件事改的是同一段代码**（写入
+分类、独立接口、取消写入硬上限、按套餐限额和状态——**改的是同一段代码**（写入
 校验 + 新的公开接口 + 后台列表）。拆成两版等于把写入路径改两遍，而写入路径
 正是上面第 4 节那个坑所在的地方。
 
@@ -166,18 +168,16 @@ for item in (showcase if isinstance(showcase, list) else [])[:SHOWCASE_ITEM_LIMI
 | 平台控制台套餐编辑器 | 1h |
 | 定价页 / pricing.md / 手册 | 1h |
 | 测试（降级不丢作品、超限不发布、到限拦新增、缺套餐不 500） | 1.5h |
-| **合计** | **约 1 天** |
+| **状态** | **v9.8.3 已实现并进入发布验证** |
 
 ---
 
-## 8. 需要你拍板的三件事
+## 8. 已确认的业务决定
 
-1. **三档数字**。你说的 10 / 50 / 100 我没有意见，但提一个商业上的疑问：
-   **作品展示是这个产品最能卖钱的那一屏**，starter 只给 10 件，可能不足以让
-   一个工作室认真用起来，也就不足以让他想升级。备选 15 / 60 / 150。
-   —— 这是你的生意，我只提出问题。
-
-2. **"不限量"卖成 500 还是真 ∞**（见 §2.1，我建议 500）。
+1. 三档公开作品额度：starter 15、studio 60、growth 150。
+2. 作品状态：`active` / `draft` / `archived`；缺失状态的旧数据按 active。
+3. 降级保留全部记录，公开接口只返回套餐额度内的 active；升级自动恢复。
+4. 分类不按套餐限；分页每次 12 件，不等同于套餐额度。
 
 3. **分类要不要也按套餐限？** 我**建议不限**——分类是整理，按套餐限制别人
    整理自己的东西，产品会显得小气。**限量，不限秩序。**

@@ -2775,7 +2775,7 @@
                 </div>
                 <div class="form-group" style="grid-column:1/-1;">
                   <label>Works</label>
-                  <small>The first work is shown larger than the rest — put your strongest piece first. Up to 12; a work with neither a photo nor a video is not saved.</small>
+                  <small>The first work is shown larger than the rest — put your strongest piece first. Your plan controls how many active works are public; this page loads 12 at a time. Drafts and archived works stay here, and a work with neither a photo nor a video is not saved.</small>
                   <p id="showcasePublishNotice" class="showcase-notice" hidden></p>
                   <div id="showcaseDropzone" class="dropzone" tabindex="0" role="button"
                        aria-label="Add photos: drag files here, or press to choose">
@@ -3302,6 +3302,32 @@
     // and is decided when the board is read, so the editor shows everything a
     // studio owns regardless of what it currently pays for.
     const SHOWCASE_CATEGORY_LIMIT = 8;
+    const SHOWCASE_PUBLICATION_STATES = ['active', 'draft', 'archived'];
+
+    function normalizeShowcasePublicationState(value) {
+      const state = String(value || '').trim().toLowerCase();
+      return SHOWCASE_PUBLICATION_STATES.includes(state) ? state : (state ? 'draft' : 'active');
+    }
+
+    function showcaseHasContent(item) {
+      return Boolean(item?.image_url || String(item?.video_url || '').trim());
+    }
+
+    function showcaseCountByState() {
+      const counts = { active: 0, draft: 0, archived: 0 };
+      showcaseItems.forEach((item) => {
+        if (!showcaseHasContent(item)) return;
+        counts[normalizeShowcasePublicationState(item.publication_state)] += 1;
+      });
+      return counts;
+    }
+
+    function defaultShowcasePublicationState() {
+      const limit = Number(currentShowcaseLimit) || 0;
+      if (!limit) return 'active';
+      const counts = showcaseCountByState();
+      return counts.active < limit ? 'active' : 'draft';
+    }
 
     /* ── Uploading ──────────────────────────────────────────────────────
      *
@@ -3481,10 +3507,14 @@
       const files = [...(fileList || [])]
         .filter((file) => /^image\/(jpeg|png|webp)$/.test(file.type));
       if (!files.length) return;
+      let activeSlots = showcaseCountByState().active;
+      const limit = Number(currentShowcaseLimit) || 0;
       const queued = files.map((file) => {
         const item = { image_url: '', category_id: '', title: { zh: '', en: '' },
                        caption: { zh: '', en: '' }, video_url: '',
+                       publication_state: !limit || activeSlots < limit ? 'active' : 'draft',
                        _uploading: true, _progress: 0, _error: '', _localPreview: '' };
+        if (item.publication_state === 'active') activeSlots += 1;
         showcaseItems.push(item);
         return { file, item };
       });
@@ -3505,16 +3535,16 @@
 
     /* What the plan publishes, said plainly and only when it matters.
        A studio that has moved to a smaller plan keeps every work — the editor
-       still lists all of them — but the site shows the first N. Saying so is
-       the whole of the "disclaimer": no modal, no interstitial, one line where
-       the works are, and the fix (reorder) is already in reach. */
+       still lists all of them — but the site shows the first N active works.
+       Drafts and archived works remain available for later promotion. */
     function renderShowcasePublishNotice() {
       const notice = $('showcasePublishNotice');
       if (!notice) return;
       const limit = Number(currentShowcaseLimit) || 0;
-      const stored = showcaseItems.filter((i) => i.image_url || String(i.video_url || '').trim()).length;
-      const add = $('showcaseAddItem');
-      if (add) add.disabled = limit > 0 && stored >= limit;
+      const counts = showcaseCountByState();
+      const visible = limit ? Math.min(counts.active, limit) : counts.active;
+      const hidden = Math.max(counts.active - visible, 0);
+      const isZh = adminIsZh();
       /* Always-on, quiet: how many of your works the site is showing, and
          that we shrink photos on the way in. Both are things a studio would
          otherwise have to guess at — and the second explains why a 9MB photo
@@ -3523,17 +3553,25 @@
       const quota = $('showcaseQuota');
       if (quota) {
         quota.textContent = limit
-          ? `Published on your site: ${Math.min(stored, limit)} of ${limit} on your plan · photos are resized to 2400px before upload`
-          : 'Photos are resized to 2400px before upload';
+          ? (isZh
+            ? `官网公开：${visible}/${limit} 件 active 作品 · 草稿 ${counts.draft} · 已归档 ${counts.archived} · 上传前会将照片缩放至 2400px`
+            : `Published on your site: ${visible} of ${limit} active works · ${counts.draft} draft · ${counts.archived} archived · photos are resized to 2400px before upload`)
+          : (isZh
+            ? `官网公开 active 作品：${visible} · 草稿 ${counts.draft} · 已归档 ${counts.archived} · 上传前会将照片缩放至 2400px`
+            : `Published active works: ${visible} · ${counts.draft} draft · ${counts.archived} archived · photos are resized to 2400px before upload`);
       }
-      if (!limit || stored <= limit) {
+      if (!hidden && !counts.draft && !counts.archived) {
         notice.hidden = true;
         return;
       }
       notice.hidden = false;
-      notice.textContent = `Your plan publishes ${limit} works. You have ${stored}; `
-        + `the first ${limit} appear on your site and the rest stay here, unpublished. `
-        + `Reorder to choose which, or move to a larger plan to show them all.`;
+      notice.textContent = limit
+        ? (isZh
+          ? `当前套餐最多公开 ${limit} 件 active 作品。当前在线 ${visible} 件；另有 ${hidden} 件 active 作品暂不公开。草稿 ${counts.draft} 件，已归档 ${counts.archived} 件。作品不会因切换套餐而删除；准备好后可将草稿设为 active，或升级套餐。`
+          : `Your plan publishes ${limit} active works. ${visible} are live; ${hidden} active work${hidden === 1 ? '' : 's'} are currently hidden. Draft: ${counts.draft}; archived: ${counts.archived}. Nothing is deleted — mark a draft active or move to a larger plan when ready.`)
+        : (isZh
+          ? `作品会按状态保存在这里。active ${visible} 件，草稿 ${counts.draft} 件，已归档 ${counts.archived} 件。切换套餐不会删除作品。`
+          : `Works are stored here by status. Active: ${visible}; draft: ${counts.draft}; archived: ${counts.archived}. Nothing is deleted when a plan changes.`);
     }
 
     function renderShowcaseCategories() {
@@ -3689,6 +3727,33 @@
         field('CaptionEn', 'Caption · English', (item.caption || {}).en, 'textarea', true)
           .addEventListener('input', (e) => { item.caption = { ...(item.caption || {}), en: e.target.value }; setSettingsDirty(true); });
 
+        const stateGroup = document.createElement('div');
+        stateGroup.className = 'form-group';
+        const stateId = `showcasePublicationState${index}`;
+        const stateLabel = document.createElement('label');
+        stateLabel.setAttribute('for', stateId);
+        stateLabel.textContent = 'Publication status';
+        const state = document.createElement('select');
+        state.id = stateId;
+        [
+          ['active', 'Active'],
+          ['draft', 'Draft'],
+          ['archived', 'Archived'],
+        ].forEach(([value, label]) => {
+          const option = document.createElement('option');
+          option.value = value;
+          option.textContent = label;
+          option.selected = normalizeShowcasePublicationState(item.publication_state) === value;
+          state.appendChild(option);
+        });
+        state.addEventListener('change', () => {
+          item.publication_state = normalizeShowcasePublicationState(state.value);
+          renderShowcasePublishNotice();
+          setSettingsDirty(true);
+        });
+        stateGroup.append(stateLabel, state);
+        body.appendChild(stateGroup);
+
         if (showcaseCategories.length) {
           const catGroup = document.createElement('div');
           catGroup.className = 'form-group';
@@ -3757,6 +3822,7 @@
         .map((item) => ({
           imageUrl: item.image_url || '',
           categoryId: item.category_id || '',
+          publicationState: normalizeShowcasePublicationState(item.publication_state),
           // One filled language serves both, same rule as the FAQ and About.
           title: { zh: (item.title || {}).zh || (item.title || {}).en || '',
                    en: (item.title || {}).en || (item.title || {}).zh || '' },
@@ -5676,6 +5742,9 @@
         .map((item) => ({
           image_url: item.image_url || item.imageUrl || '',
           category_id: item.category_id || item.categoryId || '',
+          publication_state: normalizeShowcasePublicationState(
+            item.publication_state || item.publicationState
+          ),
           title: item.title || { zh: '', en: '' },
           caption: item.caption || { zh: '', en: '' },
           /* Rebuilt from the stored provider + id rather than kept as the
@@ -5952,13 +6021,15 @@
              payload (raw `videoUrl`) and the public brand (parsed
              `video_provider` + `video_id`). So the comparison has to be
              something both can answer — the works, their order, their photos,
-             and whether each carries a video at all. Comparing the link
-             itself would fail every publish that contained one. */
+             publication state, and whether each carries a video at all.
+             Comparing the link itself would fail every publish that contained
+             one. */
           showcaseCategories: (website.showcase_categories || website.showcaseCategories || [])
             .map((cat) => [text(cat.id), pairText(cat.label)]),
           showcaseItems: (website.showcase_items || website.showcaseItems || [])
             .map((item) => [text(item.image_url || item.imageUrl),
                             pairText(item.title),
+                            normalizeShowcasePublicationState(item.publication_state || item.publicationState),
                             (item.video_provider || item.videoProvider || item.videoUrl) ? 'video' : ''])
         }),
         principalProfile: JSON.stringify({
@@ -6417,6 +6488,7 @@
         ]);
         tenant = tenantData.tenant || tenantData.settings || {};
         plans = planData.plans || [];
+        currentShowcaseLimit = Number(workspaceData.limits?.showcase) || 0;
         fillSettings();
         brandVersions = workspaceData.versions || [];
         renderBrandVersions();
@@ -6506,7 +6578,8 @@
       });
       $('showcaseAddItem').addEventListener('click', () => {
         showcaseItems.push({ image_url: '', category_id: '',
-          title: { zh: '', en: '' }, caption: { zh: '', en: '' }, video_url: '' });
+          title: { zh: '', en: '' }, caption: { zh: '', en: '' }, video_url: '',
+          publication_state: defaultShowcasePublicationState() });
         renderShowcaseItems();
         setSettingsDirty(true);
         // Focus the new card's first text field, so adding a work and typing

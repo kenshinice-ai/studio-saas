@@ -5448,7 +5448,7 @@
       `;
     }
 
-    const PLAN_VALIDATION_FIELDS = ['m_planCode', 'm_planName', 'm_planMonthly', 'm_planStudents', 'm_planUsers', 'm_planStorage'];
+    const PLAN_VALIDATION_FIELDS = ['m_planCode', 'm_planName', 'm_planMonthly', 'm_planStudents', 'm_planUsers', 'm_planStorage', 'm_planShowcase'];
 
     function preparePlanValidation() {
       PLAN_VALIDATION_FIELDS.forEach((id) => {
@@ -5487,6 +5487,7 @@
         ['m_planStudents', !value('m_planStudents') || !Number.isInteger(Number(value('m_planStudents'))) || Number(value('m_planStudents')) <= 0 ? 'Student limit must be a positive integer.' : ''],
         ['m_planUsers', !value('m_planUsers') || !Number.isInteger(Number(value('m_planUsers'))) || Number(value('m_planUsers')) <= 0 ? 'User limit must be a positive integer.' : ''],
         ['m_planStorage', !value('m_planStorage') || Number(value('m_planStorage')) <= 0 ? 'Storage limit must be positive.' : ''],
+        ['m_planShowcase', !value('m_planShowcase') || !Number.isInteger(Number(value('m_planShowcase'))) || Number(value('m_planShowcase')) <= 0 ? 'Showcase limit must be a positive integer.' : ''],
       ];
       let firstError = null;
       PLAN_VALIDATION_FIELDS.forEach((id) => setPlanFieldError(id, ''));
@@ -5565,6 +5566,7 @@
       const students = Number($('m_planStudents')?.value || 0);
       const users = Number($('m_planUsers')?.value || 0);
       const storage = formatStorageMb(gbToMb($('m_planStorage')?.value));
+      const showcase = Number($('m_planShowcase')?.value || 0);
       const head = document.createElement('div');
       head.className = 'plan-preview-head';
       head.textContent = `${name} — A$${price}/month`;
@@ -5576,7 +5578,7 @@
       }
       const list = document.createElement('div');
       list.className = 'plan-preview-list';
-      [['Students', students.toLocaleString()], ['Team users', String(users)], ['Storage', storage]]
+      [['Students', students.toLocaleString()], ['Team users', String(users)], ['Storage', storage], ['Showcase works published', showcase.toLocaleString()]]
         .forEach(([label, value]) => {
           const row = document.createElement('div');
           const name_ = document.createElement('span');
@@ -5612,7 +5614,8 @@
       [
         `${Number(plan.student_limit || 0)} students`,
         `${Number(plan.user_limit || 0)} users`,
-        formatStorageMb(plan.storage_limit_mb)
+        formatStorageMb(plan.storage_limit_mb),
+        `${Number(plan.showcase_limit || 0)} showcase works published`
       ].forEach((line) => {
         const row = document.createElement('div');
         row.textContent = line;
@@ -5646,6 +5649,7 @@
           <div class="form-group"><label for="m_planStudents">Students</label><input id="m_planStudents" type="number" min="1" value="800" oninput="refreshPlanPreview()"></div>
           <div class="form-group"><label for="m_planUsers">Users</label><input id="m_planUsers" type="number" min="1" value="12" oninput="refreshPlanPreview()"></div>
           <div class="form-group"><label for="m_planStorage">Storage (GB)</label><input id="m_planStorage" type="number" min="1" step="0.5" value="50" oninput="refreshPlanPreview()"></div>
+          <div class="form-group"><label for="m_planShowcase">Showcase works published</label><input id="m_planShowcase" type="number" min="1" value="15" oninput="refreshPlanPreview()"><small>Active works visible on the public showcase. Drafts and archived works remain stored.</small></div>
         </div>
         ${/*safe*/planFeatureEditor({ public_registration: true, portfolio: true })}
       `;
@@ -5675,6 +5679,7 @@
           <div class="form-group"><label for="m_planStudents">Students</label><input id="m_planStudents" type="number" min="1" value="${esc(p.student_limit)}" oninput="refreshPlanPreview()"></div>
           <div class="form-group"><label for="m_planUsers">Users</label><input id="m_planUsers" type="number" min="1" value="${esc(p.user_limit)}" oninput="refreshPlanPreview()"></div>
           <div class="form-group"><label for="m_planStorage">Storage (GB)</label><input id="m_planStorage" type="number" min="1" step="0.5" value="${esc(mbToGb(p.storage_limit_mb))}" oninput="refreshPlanPreview()"><small>Stored in megabytes; <span class="tabular">${esc(p.storage_limit_mb)}</span> MB today.</small></div>
+          <div class="form-group"><label for="m_planShowcase">Showcase works published</label><input id="m_planShowcase" type="number" min="1" value="${esc(p.showcase_limit || 15)}" oninput="refreshPlanPreview()"><small>Active works visible on the public showcase. Drafts and archived works remain stored.</small></div>
         </div>
         ${/*safe*/planFeatureEditor(p.features || {})}
       `;
@@ -5727,6 +5732,7 @@
         studentLimit: Number($('m_planStudents').value),
         userLimit: Number($('m_planUsers').value),
         storageLimitMb: gbToMb($('m_planStorage').value),
+        showcaseLimit: Number($('m_planShowcase').value),
         features,
         isPublic: $('m_planPublic').checked,
         isRecommended: $('m_planRecommended').checked
@@ -5735,11 +5741,16 @@
          this plan is held to from the moment Save is pressed. Editing one
          used to be silent about that. */
       const affected = tenants.filter((item) => item.plan_code === editingPlanCode);
+      const previousPlan = plans.find((item) => item.code === editingPlanCode);
+      const showcaseReduced = Boolean(
+        previousPlan && payload.showcaseLimit < Number(previousPlan.showcase_limit || 0)
+      );
       if (editingPlanCode && affected.length) {
         const over = affected.filter((item) =>
           Number(item.student_count || 0) > payload.studentLimit
           || Number(item.storage_used_mb || 0) > payload.storageLimitMb);
-        if (over.length && !window.confirm(planImpactWarning(affected.length, over))) return;
+        if ((over.length || showcaseReduced)
+            && !window.confirm(planImpactWarning(affected.length, over, showcaseReduced))) return;
       }
       const saveButton = $('m_savePlan');
       const finish = beginSaving(saveButton);
@@ -5764,10 +5775,16 @@
       await refresh();
     }
 
-    function planImpactWarning(total, over) {
+    function planImpactWarning(total, over, showcaseReduced = false) {
       const names = over.slice(0, 3).map((item) => item.name).join(', ');
       const more = over.length > 3 ? ` (+${over.length - 3})` : '';
-      return `${total} studios are on this plan. ${over.length} would be over the new limit immediately: ${names}${more}. Save anyway?`;
+      const resourceWarning = over.length
+        ? `${over.length} would be over the student/storage limit immediately: ${names}${more}.`
+        : '';
+      const showcaseWarning = showcaseReduced
+        ? 'Lowering showcase works published may hide active works until the plan is raised again.'
+        : '';
+      return `${total} studios are on this plan. ${resourceWarning} ${showcaseWarning} Save anyway?`.trim();
     }
 
     async function deletePlan(code) {

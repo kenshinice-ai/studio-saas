@@ -457,6 +457,31 @@ def test_a_plan_change_preserves_the_studios_published_content() -> None:
     assert 'current_settings=existing["settings"]' in route
 
 
+def test_plan_payload_keeps_showcase_limit_when_patch_omits_the_field() -> None:
+    """Editing an unrelated plan field must not reset its showcase quota."""
+
+    from studiosaas.api_v1 import _plan_payload
+
+    payload = {
+        "code": "studio",
+        "name": "Studio",
+        "monthlyPriceAud": 99,
+        "studentLimit": 200,
+        "userLimit": 8,
+        "storageLimitMb": 20480,
+        "features": {},
+    }
+    assert _plan_payload(payload, default_showcase_limit=60)["showcase_limit"] == 60
+    assert _plan_payload({**payload, "showcaseLimit": 150})["showcase_limit"] == 150
+
+
+def test_super_admin_plan_form_sends_showcase_limit() -> None:
+    source = (REPOSITORY_ROOT / "super-admin.html").read_text(encoding="utf-8")
+    assert "m_planShowcase" in source
+    assert "showcaseLimit: Number($('m_planShowcase').value)" in source
+    assert "showcase_limit" in source
+
+
 # ── the detail view ─────────────────────────────────────────────────────────
 
 def test_the_detail_view_renders_nothing_twice() -> None:

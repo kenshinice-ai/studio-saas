@@ -909,6 +909,25 @@ SHOWCASE_CATEGORY_LIMIT = 8
 # portfolio is an argument, not an archive.
 SHOWCASE_PAGE_SIZE = 12
 
+# A work is retained independently of its publication state.  The state is
+# deliberately small and explicit so a plan downgrade can hide a work without
+# deleting it, and an upgrade can make it visible again without a restore.
+SHOWCASE_PUBLICATION_STATES = frozenset({"active", "draft", "archived"})
+
+
+def _normalize_showcase_publication_state(value) -> str:
+    """Return a safe publication state for a stored showcase item.
+
+    Older records predate publication states, so a missing value is treated as
+    ``active`` for backwards compatibility.  An explicitly unknown value is
+    kept private as ``draft`` rather than accidentally exposing it publicly.
+    """
+
+    raw = str(value or "").strip().lower()
+    if not raw:
+        return "active"
+    return raw if raw in SHOWCASE_PUBLICATION_STATES else "draft"
+
 _SHOWCASE_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,24}$")
 
 # ── the public timetable ────────────────────────────────────────────────────
@@ -1086,6 +1105,11 @@ def _normalize_website_profile(value) -> dict:
         curated.append({
             "image_url": image,
             "category_id": category_id,
+            # Missing state means a legacy work, which remains public. Invalid
+            # explicit values are private until an operator fixes them.
+            "publication_state": _normalize_showcase_publication_state(
+                item.get("publication_state") or item.get("publicationState")
+            ),
             "title": _localized_pair(item, "title", limit=120),
             "caption": _localized_pair(item, "caption", limit=300),
             "video_provider": provider,
@@ -1535,8 +1559,13 @@ def _published_schemes(theme: object) -> dict:
             for mode in VISUAL_STYLE_PRESETS[style_id]["modes"]}
 
 
-def _plan_payload(payload: dict) -> dict:
-    """Validate and normalize a plan write payload."""
+def _plan_payload(payload: dict, *, default_showcase_limit: int = 15) -> dict:
+    """Validate and normalize a plan write payload.
+
+    ``default_showcase_limit`` is used for PATCH requests that predate the
+    showcase field.  It preserves the stored entitlement instead of silently
+    resetting an existing plan to the entry-plan value.
+    """
 
     code = _clean_text(payload, "code").lower()
     if code and not re.match(r"^[a-z0-9][a-z0-9-]{1,62}$", code):
@@ -1551,7 +1580,9 @@ def _plan_payload(payload: dict) -> dict:
         storage_limit_mb = int(payload.get("storageLimitMb", payload.get("storage_limit_mb", 1)))
         # Defaults to the entry-plan number so a plan created without the field
         # publishes a real board rather than nothing.
-        showcase_limit = int(payload.get("showcaseLimit", payload.get("showcase_limit", 15)))
+        showcase_limit = int(payload.get(
+            "showcaseLimit", payload.get("showcase_limit", default_showcase_limit)
+        ))
     except (TypeError, ValueError) as exc:
         raise ValueError("Plan numeric limits must be valid integers.") from exc
     if (monthly_price_aud < 0 or student_limit <= 0 or user_limit <= 0
@@ -4885,7 +4916,14 @@ def public_showcase(tenant_slug: str):
         return jsonify({"enabled": False, "items": [], "categories": [],
                         "total": 0, "offset": 0, "hasMore": False})
 
-    published = profile.get("showcase_items", [])[:limit]
+    # Plan capacity applies only to active works.  Drafts and archived works
+    # remain in the private workspace, so a downgrade never destroys them and
+    # an upgrade can reveal them again after the owner marks them active.
+    active_items = [
+        item for item in profile.get("showcase_items", [])
+        if item.get("publication_state") == "active"
+    ]
+    published = active_items[:limit]
     categories = profile.get("showcase_categories", [])
 
     wanted = (request.args.get("category") or "").strip()[:24]
@@ -7019,10 +7057,16 @@ def mutate_plan(code: str):
             _audit(conn, tenant_id=None, action="plan.deleted", resource_type="plan", resource_id=code)
             conn.commit()
             return jsonify({"ok": True})
+        existing = fetch_one(conn, "SELECT showcase_limit FROM plans WHERE code = %s", (code,))
+        if not existing:
+            return _error("Plan was not found.", 404)
         try:
             payload = _json_payload()
             payload["code"] = code
-            plan = _plan_payload(payload)
+            plan = _plan_payload(
+                payload,
+                default_showcase_limit=int(existing.get("showcase_limit") or SHOWCASE_FALLBACK_LIMIT),
+            )
         except ValueError as exc:
             return _error(str(exc))
         with conn.cursor() as cur:
@@ -7054,8 +7098,6 @@ def mutate_plan(code: str):
                     code,
                 ),
             )
-            if cur.rowcount == 0:
-                return _error("Plan was not found.", 404)
         _audit(conn, tenant_id=None, action="plan.updated", resource_type="plan", resource_id=code)
         conn.commit()
     return jsonify({"ok": True})
