@@ -1,3 +1,16 @@
+# PWE Studio v9.8.2 — Ruby Studio 内容恢复与作品灯箱 hotfix
+
+> 当前阶段：以生产 v9.8.1 / commit `04fd53438e81b726954ad2fb248764cc6d15db71` 为基线。已确认 Ruby Studio 在 2026-08-11 01:38:57 UTC 切换套餐时，Platform Admin 的租户 PATCH 将未提交的品牌字段重建为默认值并覆盖到 `tenants.settings`；当前行作品数为 0，但 `tenant_brand_versions` v44 仍完整保留 12 件作品。代码修复、完整门禁、发布包、部署、内容恢复与公网验收进行中；未完成前不得把 v9.8.2 写成已发布。
+
+## v9.8.2 修复范围与验收
+
+- 套餐/联系人等 Platform Admin 更新在行锁内读取现有 `settings`；请求未携带的官网、主理人、首屏、FAQ、作品、视觉主题和消息模板必须原样保留。
+- 作品灯箱使用固定居中的 viewport 容器、`minmax(0,1fr)` 媒体轨道和 `object-fit: contain`；横版/竖版图都不得溢出到底部信息栏或偏向单侧。
+- 恢复只取 Ruby Studio 已发布 v44 的品牌内容，保留刚切换的 `growth` 套餐；写入前创建新逻辑/卷备份，写入后核对 12 件作品、媒体可读性和公开页面。
+- 完整 pytest、CMS smoke、PostgreSQL 租户隔离、生成资产、双模式发布包、桌面/手机浏览器、生产 deep health、日志与回滚点均须通过。
+
+---
+
 # PWE Studio v9.8.0 — Platform Admin 三栏工作台发布 handoff
 
 > 当前阶段：v9.8.0 已完成三栏工作台、Today Needs attention、Tenant/Plan/Audit Inspector 和移动端抽屉实现，并已通过完整门禁、干净双模式打包、提交同步、生产部署和公网验收。生产已由 v9.7.0 切换为 v9.8.0。历史发布证据保留在本节下方。

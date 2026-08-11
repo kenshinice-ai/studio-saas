@@ -399,6 +399,25 @@ def test_the_lightbox_is_a_native_dialog():
     assert "typeof el.showModal === 'function'" in block
 
 
+def test_the_lightbox_contains_and_centres_every_image() -> None:
+    """A portrait work must not overflow or anchor itself to one side.
+
+    The previous grid relied on percentage ``max-height`` inside a fixed-height
+    track.  In the production screenshot the intrinsic image escaped that
+    constraint, covered part of the action bar and left a large blank column.
+    The dialog now owns the viewport box and the image owns exactly the stage.
+    """
+
+    portal = PORTAL.read_text(encoding="utf-8")
+    assert ".sc-lightbox{position:fixed;inset:0;margin:auto" in portal
+    assert ".sc-lightbox[open]{display:grid;grid-template-rows:minmax(0,1fr) auto}" in portal
+    assert "min-width:0;min-height:0;overflow:hidden;background:var(--bg2)" in portal
+    image_rule = re.search(r"\.sc-lb-figure img\{([^}]*)\}", portal)
+    assert image_rule
+    for contract in ("width:100%", "height:100%", "object-fit:contain", "object-position:center"):
+        assert contract in image_rule.group(1)
+
+
 def test_the_back_button_closes_the_lightbox():
     """Without this, a phone user tapping back leaves the studio's site.
 

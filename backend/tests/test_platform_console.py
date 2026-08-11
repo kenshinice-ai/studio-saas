@@ -24,6 +24,7 @@ a palette drifts one component at a time.
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
@@ -380,6 +381,80 @@ def test_the_upsert_keeps_a_date_it_was_not_given() -> None:
     api = (REPOSITORY_ROOT / "backend/studiosaas/api_v1.py").read_text(encoding="utf-8")
     for column in ("starts_at", "ends_at", "trial_ends_at", "current_period_ends_at"):
         assert f"{column} = CASE WHEN %s THEN subscriptions.{column}" in api, column
+
+
+def test_a_plan_change_preserves_the_studios_published_content() -> None:
+    """Platform Admin owns the plan, not the tenant's public website.
+
+    Ruby Studio reproduced the failure in production: selecting a new plan
+    sent no brand fields, yet the shared tenant payload builder normalised each
+    missing object to defaults and overlaid those defaults on ``settings``.
+    The plan changed successfully while the principal, showcase and other
+    public content disappeared.
+    """
+
+    from studiosaas.api_v1 import _tenant_write_payload
+
+    current_settings = {
+        "category": "art",
+        "slogan": "Keep making.",
+        "studio_admin_email": "owner@example.test",
+        "studio_admin_name": "Studio Owner",
+        "owner_email": "owner@example.test",
+        "owner_name": "Studio Owner",
+        "website_profile": {
+            "show_showcase": True,
+            "showcase_categories": [
+                {"id": "oil", "label": {"zh": "油画", "en": "Oil"}},
+            ],
+            "showcase_items": [
+                {
+                    "image_url": "/v1/public/ruby-s-studio/media/work-1",
+                    "category_id": "oil",
+                    "title": {"zh": "追逐光影", "en": "Chasing Light"},
+                    "caption": {"zh": "保留", "en": "Keep this"},
+                    "video_provider": "",
+                    "video_id": "",
+                    "video_embed_url": "",
+                },
+            ],
+        },
+        "principal_profile": {
+            "name": "Ruby",
+            "title": {"zh": "主理人", "en": "Principal"},
+        },
+        "hero_profile": {
+            "title": "Ruby's Studio",
+        },
+        "faq_items": [{"question": {"zh": "可以试课吗？", "en": "Trial?"},
+                       "answer": {"zh": "可以。", "en": "Yes."}}],
+    }
+    data = _tenant_write_payload(
+        {
+            "name": "Ruby's Studio",
+            "slug": "ruby-s-studio",
+            "status": "onboarding",
+            "subscriptionStatus": "trialing",
+            "planCode": "growth",
+        },
+        require_slug=False,
+        current_settings=current_settings,
+    )
+    saved = json.loads(data["settings_json"])
+
+    assert data["plan_code"] == "growth"
+    assert saved["website_profile"]["show_showcase"] is True
+    assert len(saved["website_profile"]["showcase_items"]) == 1
+    assert saved["website_profile"]["showcase_items"][0]["title"]["zh"] == "追逐光影"
+    assert saved["principal_profile"]["name"] == "Ruby"
+    assert saved["hero_profile"]["title"] == "Ruby's Studio"
+    assert saved["faq_items"][0]["answer"]["en"] == "Yes."
+
+    api_source = (REPOSITORY_ROOT / "backend/studiosaas/api_v1.py").read_text(encoding="utf-8")
+    route = api_source[api_source.index("def mutate_tenant("):
+                       api_source.index("def archive_tenant_route(")]
+    assert "FOR UPDATE" in route
+    assert 'current_settings=existing["settings"]' in route
 
 
 # ── the detail view ─────────────────────────────────────────────────────────

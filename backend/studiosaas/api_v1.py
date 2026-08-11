@@ -1624,8 +1624,53 @@ def _subscription_date(payload: dict, *names: str):
     return KEEP
 
 
-def _tenant_write_payload(payload: dict, *, require_slug: bool) -> dict:
-    """Validate and normalize tenant write payloads."""
+def _tenant_write_payload(
+    payload: dict,
+    *,
+    require_slug: bool,
+    current_settings: dict | None = None,
+) -> dict:
+    """Validate a tenant write without erasing settings the caller cannot edit.
+
+    The Platform Admin tenant form owns commercial and contact fields, not the
+    studio's public website.  Its PATCH payload therefore omits nested brand
+    records such as ``website_profile`` and ``principal_profile``.  Normalising
+    an omitted record as a fresh default and merging it into ``tenants.settings``
+    silently erased that content whenever an operator changed a plan.
+
+    On update, seed only omitted fields from the locked tenant row.  Explicit
+    values still win, while creation keeps the existing product defaults.
+    """
+
+    stored = dict(current_settings or {})
+    if stored:
+        payload = dict(payload)
+        preserved_settings = {
+            "category": "category",
+            "slogan": "slogan",
+            "registrationProfile": "registration_profile",
+            "copyPack": "copy_pack",
+            "messageTemplates": "message_templates",
+            "localizedCopy": "localized_copy",
+            "heroProfile": "hero_profile",
+            "websiteProfile": "website_profile",
+            "principalProfile": "principal_profile",
+            "faqItems": "faq_items",
+            "visualTheme": "visual_theme",
+            "ownerName": "owner_name",
+            "ownerRole": "owner_role",
+            "ownerPhone": "owner_phone",
+            "ownerEmail": "owner_email",
+            "billingEmail": "billing_email",
+            "abn": "abn",
+            "website": "website",
+            "notes": "notes",
+            "studioAdminEmail": "studio_admin_email",
+            "studioAdminName": "studio_admin_name",
+        }
+        for camel, snake in preserved_settings.items():
+            if camel not in payload and snake not in payload and snake in stored:
+                payload[snake] = stored[snake]
 
     name = _clean_text(payload, "name")
     slug = _clean_text(payload, "slug").lower()
@@ -7189,20 +7234,34 @@ def mutate_tenant(tenant_id: str):
                 405,
             )
         try:
-            data = _tenant_write_payload(_json_payload(), require_slug=False)
+            payload = _json_payload()
+        except ValueError as exc:
+            return _error(str(exc))
+        existing = fetch_one(
+            conn,
+            """
+            SELECT slug, status, settings->>'workspace_path' AS workspace_path,
+                   settings
+            FROM tenants
+            WHERE id = %s
+            FOR UPDATE
+            """,
+            (tenant_id,),
+        )
+        if not existing:
+            return _error("Tenant was not found.", 404)
+        try:
+            data = _tenant_write_payload(
+                payload,
+                require_slug=False,
+                current_settings=existing["settings"],
+            )
         except ValueError as exc:
             return _error(str(exc))
         with conn.cursor() as cur:
             cur.execute("SELECT 1 FROM plans WHERE code = %s", (data["plan_code"],))
             if not cur.fetchone():
                 return _error(f"Plan '{data['plan_code']}' was not found.", 404)
-            existing = fetch_one(
-                conn,
-                "SELECT slug, status, settings->>'workspace_path' AS workspace_path FROM tenants WHERE id = %s",
-                (tenant_id,),
-            )
-            if not existing:
-                return _error("Tenant was not found.", 404)
             try:
                 validate_tenant_transition(str(existing["status"]), data["status"])
             except ValueError as exc:

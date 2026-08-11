@@ -7,14 +7,28 @@ the current source tree was packaged or deployed.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | `codex/v9.3.0-cms-information-architecture`; `VERSION` = **9.8.1**; candidate commit is recorded after the release commit, which is ahead of `main` | The candidate remains separate from the v9.8.0 package and production rows until deployment is independently accepted. |
-| Package | SaaS `dist/PWE-StudioSaaS-aws-9.8.0.tar.gz` · SHA-256 `af814ad66036a8c8686f3c94394fa1b1e63d2cc4fb9bb11d5878d7c8670bc29b`; Edition `dist/PWE-Studio-Edition-9.8.0.tar.gz` · SHA-256 `30731b98b66276024f1fbbefe75f0fc93e7832d0388aeac1ae9b8a44439aa6e8` | Both packages passed checksum, `BUILD_INFO`, entrypoint and exclusion checks. |
-| Production | **v9.8.0 deployed to `pwestudio.online`** | `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.8.0`; the running image is `studiosaas:9.8.0`; deep health reports `appVersion=9.8.0`, `db=ok`, `mode=saas`, `tenants=6`, `themes.unreadable=0`. |
+| Source | `codex/v9.8.2-showcase-content-recovery`; `VERSION` = **9.8.2**; based on deployed commit `04fd53438e81b726954ad2fb248764cc6d15db71`, which is ahead of `main` | Candidate: prevent Platform Admin plan changes from replacing tenant-authored website settings and contain showcase lightbox images. |
+| Package | Current released baseline: SaaS `dist/PWE-StudioSaaS-aws-9.8.1.tar.gz` · SHA-256 `458dec5b8462ac929026782dc553498ee86ea96e7e3202afe3e1961383698b84`; Edition `dist/PWE-Studio-Edition-9.8.1.tar.gz` · SHA-256 `45eece0ec5ce88fe772d4dfafac3576586a553378a3f90c24307b4c1b92ef1cd` | The v9.8.2 archives remain pending until the candidate is committed and the full gate passes. |
+| Production | **v9.8.1 deployed to `pwestudio.online`** | `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.8.1`; image `studiosaas:9.8.1`; `BUILD_INFO` commit `04fd53438e81b726954ad2fb248764cc6d15db71`; deep health reports `appVersion=9.8.1`, `db=ok`, `mode=saas`, `tenants=6`, `themes.unreadable=0`. |
 
 Re-verify the production health endpoint before any later release claim; do not
 infer Production from `VERSION` or from an archive filename, which does not identify the deployed commit.
 
-## v9.8.1 Platform Admin execution candidate
+## v9.8.2 showcase safety hotfix candidate
+
+This hotfix is based on the exact v9.8.1 production commit. Platform Admin
+tenant edits now lock and preserve the stored brand/website payload when the
+operator changes commercial fields such as the plan. Omitted nested settings
+are no longer normalised to defaults and overlaid on the tenant row. Showcase
+lightboxes now own a bounded viewport box and use centered `object-fit: contain`
+media, so portrait and landscape works cannot overflow into the action bar or
+leave the image anchored to one side.
+
+Ruby Studio's last valid published brand version remains stored as version 44
+with 12 showcase items. Production restoration and v9.8.2 deployment are not
+claimed here until backup, rollout and public browser acceptance complete.
+
+## v9.8.1 Platform Admin workbench polish
 
 This candidate closes the remaining Platform Admin workbench gaps identified in
 the 2026-08-10 audit: the shell uses the full available canvas, plan and tenant
