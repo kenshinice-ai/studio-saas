@@ -23,14 +23,14 @@ not advertised. No tenant records are deleted or migrated by this change.
 ### Deployment acceptance
 
 Production is running `PWE-StudioSaaS-aws-9.8.8` from commit
-`4c9f5d39bf7be4504f18cf02010b629921a7072c`. The SaaS package SHA-256 is
-`e447bb5da60ccd9ba1f841df2fb037a0a47f152fdbd4f6c0fbce546db11a608c`; the
+`4b436e1e2df0717b7efb01d5e7d4021a6cc23860`. The SaaS package SHA-256 is
+`1d6fc1760993864c681c8f9cb5e58eac303acdb65573ba98978181f226ee3da7`; the
 Edition package SHA-256 is
-`233af54c0ecb65047e2884b00a5c6f95f2950cbb91589f5d585133469a29f508`.
+`0a75bf66059da97dc91b450933bd2a44e48200b7dda17030b62baa22ec1cd3b6`.
 
 The guarded switch created logical backup
-`studiosaas_studiosaas_20260811T115328Z.dump` with its manifest and volume
-archive `pwestudio-volumes-20260811T115329Z.tar.gz`; v9.8.7 remains available
+`studiosaas_studiosaas_20260811T121335Z.dump` with its manifest and volume
+archive `pwestudio-volumes-20260811T121336Z.tar.gz`; v9.8.7 remains available
 as the rollback release. Deep health reports `appVersion=9.8.8`, `db=ok`,
 `mode=saas`, six tenants, and `themes.unreadable=0`. Public route checks all
 returned `200`. The live showcase API reports home `pageSize=6`, archive

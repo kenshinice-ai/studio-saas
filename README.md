@@ -9,9 +9,9 @@ commit, archive, or live release that was observed.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v9.8.8 on `main`** | `VERSION` = **9.8.8**; the deployed source commit is `4c9f5d39bf7be4504f18cf02010b629921a7072c`; `main` and the release candidate branch are pushed; user-owned `docs/sales/` material remains outside the release. |
-| Package | Clean SaaS and Edition v9.8.8 packages verified | SaaS `dist/PWE-StudioSaaS-aws-9.8.8.tar.gz` SHA-256 `e447bb5da60ccd9ba1f841df2fb037a0a47f152fdbd4f6c0fbce546db11a608c`; Edition `dist/PWE-Studio-Edition-9.8.8.tar.gz` SHA-256 `233af54c0ecb65047e2884b00a5c6f95f2950cbb91589f5d585133469a29f508`; both `BUILD_INFO` records point to `4c9f5d3` and passed bundle checks. |
-| Production | **v9.8.8 deployed to `pwestudio.online`** | `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.8.8`; image `studiosaas:9.8.8`; deep health reports `appVersion=9.8.8`, `db=ok`, `mode=saas`, `tenants=6`, `themes.unreadable=0`; disk free `46.15 GB`; HTTP→HTTPS `301`, HTTPS `200`, TLS check `0`, HTTP/2. |
+| Source | **v9.8.8 on `main`** | `VERSION` = **9.8.8**; the deployed source commit is `4b436e1e2df0717b7efb01d5e7d4021a6cc23860`; `main` and the release candidate branch are pushed; user-owned `docs/sales/` material remains outside the release. |
+| Package | Clean SaaS and Edition v9.8.8 packages verified | SaaS `dist/PWE-StudioSaaS-aws-9.8.8.tar.gz` SHA-256 `1d6fc1760993864c681c8f9cb5e58eac303acdb65573ba98978181f226ee3da7`; Edition `dist/PWE-Studio-Edition-9.8.8.tar.gz` SHA-256 `0a75bf66059da97dc91b450933bd2a44e48200b7dda17030b62baa22ec1cd3b6`; both `BUILD_INFO` records point to `4b436e1` and passed bundle checks. |
+| Production | **v9.8.8 deployed to `pwestudio.online`** | `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.8.8`; image `studiosaas:9.8.8`; deep health reports `appVersion=9.8.8`, `db=ok`, `mode=saas`, `tenants=6`, `themes.unreadable=0`; disk free `46.06 GB`; HTTP→HTTPS `301`, HTTPS `200`, TLS check `0`, HTTP/2. |
 
 Re-verify the production health endpoint before any later release claim; do not
 infer Production from `VERSION` or from an archive filename, which does not identify the deployed commit.
