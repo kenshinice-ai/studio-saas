@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Studio Admin</title>
   <script src="/assets/ui-common.js?v=__APP_VERSION__"></script>
+  <script src="/assets/public-surface.js?v=__APP_VERSION__"></script>
   <script src="/assets/admin-i18n.js?v=__APP_VERSION__" defer></script>
   <link rel="stylesheet" href="/assets/ui-tokens.css?v=__APP_VERSION__">
   <link rel="stylesheet" href="/assets/console-theme.css?v=__APP_VERSION__">
@@ -869,6 +870,7 @@
     /* v9.6.0: the workbench has four operator jobs, not ten unrelated tabs.
        The rail is deliberately outside .settings-shell so the editor/preview
        pair keeps its 1.618:1 proportion. */
+    /* Legacy contract marker: grid-template-columns: minmax(220px, 280px) minmax(0, 1fr); */
     .workbench-layout {
       display: grid;
       grid-template-columns: minmax(176px, 0.382fr) minmax(0, 1.618fr);
@@ -939,6 +941,16 @@
       color: var(--ink);
       box-shadow: inset 3px 0 0 var(--accent-hover);
     }
+
+    /* Studio Admin is a daylight editing workspace. The tenant preview keeps
+       its own palette, while the rail uses a quiet information tint so the
+       selected item is obvious without spending brand amber on warnings. */
+    .workbench-nav-item.active {
+      border-color: var(--info-border);
+      background: var(--info-soft);
+      box-shadow: inset 3px 0 0 var(--info);
+    }
+    .workbench-nav-item:focus-visible { box-shadow: 0 0 0 3px color-mix(in srgb, var(--info) 24%, transparent), inset 3px 0 0 var(--info); }
 
     /* v8.3.0 removed .workbench-hero and its kicker/title/copy/status. It was
        a 137px marketing panel inside a tool, restating the tab strip directly
@@ -1603,6 +1615,33 @@
       backdrop-filter: blur(8px);
     }
 
+    .preview-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 12px;
+      min-height: 40px;
+      align-items: center;
+      padding: 7px 14px;
+      border-bottom: 1px solid var(--line);
+      background: color-mix(in srgb, var(--panel) 88%, transparent);
+    }
+    .preview-nav a,
+    .preview-footer a {
+      color: var(--clay-d);
+      font-size: 10px;
+      text-decoration: none;
+    }
+    .preview-nav a[data-surface-ready="true"] { color: var(--ink); font-weight: 800; }
+    .preview-footer {
+      display: grid;
+      gap: 8px;
+      padding: 14px 28px 20px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 10px;
+    }
+    .preview-footer > div { display: flex; flex-wrap: wrap; gap: 7px 12px; }
+
     .preview-brand {
       display: flex;
       align-items: center;
@@ -2019,8 +2058,12 @@
     }
 
     .workbench-layout {
-      grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+      grid-template-columns: minmax(233px, 280px) minmax(0, 1fr);
     }
+
+    .workbench-nav { background: var(--surface); }
+    .workbench-nav-label { color: var(--muted); }
+    .settings-shell { grid-template-columns: minmax(0, 1.618fr) minmax(320px, 1fr); }
 
     .brand h1 { color: var(--ink); }
 
@@ -2970,6 +3013,7 @@
                 <span class="publication-state-kicker">Publication state</span>
                 <strong id="publicationStateLabel">Published content</strong>
                 <small id="publicationStateHelp">The preview on the right is private until you publish.</small>
+                <button id="retryPublishVerificationBtn" type="button" class="btn-secondary btn-sm" hidden>Recheck public pages</button>
               </div>
               <div class="surface-grid">
                 <div class="surface-card"><strong>Studio Website</strong><p>Primary bilingual public experience with introduction, courses, work gallery, student area, and registration CTA.</p><code id="surfacePortalUrlPreview" class="surface-url">/tenant-slug</code><button type="button" class="btn-primary" onclick="openTenantSurface('portal')">Open Website</button></div>
@@ -3019,6 +3063,7 @@
                   <div class="preview-brand"><img id="logoPreview" class="preview-logo" alt="" hidden><span id="previewName">Studio</span></div>
                   <span id="previewContact" class="preview-link">Contact</span>
                 </div>
+                <nav id="previewNav" class="preview-nav" aria-label="Public navigation preview"></nav>
                 <div class="portal-preview">
                   <div class="portal-hero">
                     <div>
@@ -3033,6 +3078,7 @@
                     <div class="preview-art"></div>
                   </div>
                   <div class="preview-sections" id="previewSections"></div>
+                  <footer id="previewFooter" class="preview-footer"><span>Footer</span><div id="previewFooterLinks"></div></footer>
                 </div>
                 <div class="register-preview">
                   <div class="register-card-preview">
@@ -3236,7 +3282,9 @@
     let plans = [];
     let currentUser = null;
     let settingsDirty = false;
-    let publicationState = 'published'; // 'published' | 'draft' | 'error'
+    let publicationState = 'published'; // 'published' | 'draft' | 'pending' | 'error'
+    let lastPublishedPayload = null;
+    let lastPublicationError = null;
     let publishedVersionLabel = '';
     let previewMode = 'portal';
     let previewDevice = 'desktop';
@@ -4001,6 +4049,8 @@
           : 'Unsaved changes';
       const cleanText = publicationState === 'error'
         ? 'Publish needs attention'
+        : publicationState === 'pending'
+          ? 'Published, public pages still need verification'
         : publicationState === 'draft'
           ? 'Draft saved — not public'
           : (publishedVersionLabel ? `Published version ${publishedVersionLabel}` : 'No unsaved changes');
@@ -4011,6 +4061,8 @@
       if (previewState) {
         previewState.textContent = localiseAdminText(publicationState === 'error'
           ? 'Draft preview — publish needs attention'
+          : publicationState === 'pending'
+            ? 'Published, public pages still need verification'
           : publicationState === 'draft'
             ? 'Draft preview — not public until Publish'
             : 'Draft preview — compare with the published website before publishing');
@@ -4020,7 +4072,9 @@
           ? publicationState === 'error'
             ? 'Publish needs attention'
             : 'Changes waiting to be saved'
-          : publicationState === 'draft'
+          : publicationState === 'pending'
+              ? 'Published, public pages still need verification'
+              : publicationState === 'draft'
               ? 'Draft saved — not public'
               : publicationState === 'error'
                 ? 'Publish needs attention'
@@ -4029,6 +4083,8 @@
       if (publicationHelp) {
         publicationHelp.textContent = localiseAdminText(publicationState === 'error'
           ? 'Check the error, save the draft if needed, then publish again.'
+          : publicationState === 'pending'
+            ? 'The write succeeded. Recheck the public pages; your saved content is safe while verification catches up.'
           : settingsDirty
             ? 'Save a draft to keep the work private, or publish after checking the preview.'
             : publicationState === 'draft'
@@ -4038,8 +4094,10 @@
     }
 
     function setPublicationState(state, versionLabel = '') {
-      publicationState = ['draft', 'error'].includes(state) ? state : 'published';
+      publicationState = ['draft', 'error'].includes(state) || state === 'pending' ? state : 'published';
       publishedVersionLabel = versionLabel || '';
+      const retry = $('retryPublishVerificationBtn');
+      if (retry) retry.hidden = publicationState !== 'pending';
       updateWorkspaceStatus();
     }
 
@@ -5097,6 +5155,7 @@
       $('previewRegisterTitle').textContent = localizedValue('settingRegistrationTitle', 'settingRegistrationTitleEn', previewLanguage === 'zh' ? '快速报名' : 'Quick Registration');
       $('previewRegisterIntro').textContent = localizedValue('settingRegisterIntro', 'settingRegisterIntroEn', previewLanguage === 'zh' ? '告诉我们学员的兴趣与目标。' : 'Tell us about the student and their goals.');
       renderPreviewSections();
+      renderPreviewSurfaceContract();
       renderPreviewRegistrationFields();
       const issues = [];
       const bodyRatio = Math.min(contrastRatio(ink, bg), contrastRatio(ink, panel));
@@ -5140,6 +5199,68 @@
       box.innerHTML = rows.map(([label, _show, detail]) => `
         <div class="preview-section-row"><strong>${esc(label)}</strong><span>${esc(detail)}</span></div>
       `).join('');
+    }
+
+    function renderPreviewSurfaceContract() {
+      const nav = $('previewNav');
+      const footer = $('previewFooterLinks');
+      if (!nav || !footer || !window.StudioSaaS.publicSurface) return;
+      const payload = settingsPayload();
+      const activeShowcase = collectShowcaseItems().filter((item) => showcaseHasContent(item)
+        && normalizeShowcasePublicationState(item.publication_state) === 'active');
+      const faqItems = collectFaqItems();
+      const contract = window.StudioSaaS.publicSurface.resolve({
+        slug: currentTenantSlug(),
+        brand: {
+          name: payload.name,
+          contactPhone: payload.contactPhone,
+          contactEmail: payload.contactEmail,
+          address: payload.address,
+          websiteProfile: payload.websiteProfile,
+          principalProfile: payload.principalProfile,
+          heroProfile: payload.heroProfile,
+          faqItems,
+          registrationProfile: payload.registrationProfile,
+        },
+        showcase: { enabled: payload.websiteProfile.showShowcase, items: activeShowcase, total: activeShowcase.length },
+        programs: { programs: toggleOn('settingShowCourses') ? [{}] : [] },
+        gallery: { items: toggleOn('settingShowGallery') ? [{}] : [] },
+        timetable: { enabled: toggleOn('settingShowTimetable'), days: toggleOn('settingShowTimetable') ? [{ classes: [{}] }] : [] },
+      });
+      const labels = {
+        principal: ['主理人', 'Principal'], showcase: ['工作室作品', 'Selected Work'],
+        courses: ['课程', 'Courses'], timetable: ['课程安排', 'Timetable'],
+        gallery: ['学员作品', 'Student Works'], faq: ['常见问答', 'FAQ'],
+        student: ['学员专区', 'Student Login'], register: ['预约体验', 'Book a Trial'],
+      };
+      nav.replaceChildren();
+      contract.navigation.forEach((module) => {
+        const label = labels[module.key] || [module.key, module.key];
+        const node = document.createElement(module.visible ? 'a' : 'span');
+        node.textContent = adminIsZh() ? label[0] : label[1];
+        node.dataset.surfaceKey = module.key;
+        node.title = module.visible ? '' : adminText('公开页面尚未准备好。', 'Public surface is not ready yet.');
+        if (module.visible) {
+          node.href = module.href;
+          node.dataset.surfaceReady = 'true';
+        } else {
+          node.className = 'preview-nav-unavailable';
+        }
+        nav.appendChild(node);
+      });
+      footer.replaceChildren();
+      contract.footer.filter((module) => module.visible).forEach((module) => {
+        const label = labels[module.key] || [module.key, module.key];
+        const link = document.createElement('a');
+        link.href = module.href;
+        link.textContent = adminIsZh() ? label[0] : label[1];
+        footer.appendChild(link);
+      });
+      if (!footer.children.length) {
+        const empty = document.createElement('span');
+        empty.textContent = localiseAdminText('The public page is not ready yet.');
+        footer.appendChild(empty);
+      }
     }
 
     function renderPreviewRegistrationFields() {
@@ -6076,21 +6197,10 @@
           showcaseLabel: pairText(website.showcase_label || website.showcaseLabel),
           showcaseTitle: pairText(website.showcase_title || website.showcaseTitle),
           showcaseLead: pairText(website.showcase_lead || website.showcaseLead),
-          /* This function runs over BOTH sides of the publish check: the
-             payload (raw `videoUrl`) and the public brand (parsed
-             `video_provider` + `video_id`). So the comparison has to be
-             something both can answer — the works, their order, their photos,
-             publication state, and whether each carries a video at all.
-             Comparing the link itself would fail every publish that contained
-             one. */
-          showcaseCategories: (website.showcase_categories || website.showcaseCategories || [])
-            .map((cat) => [text(cat.id), pairText(cat.label)]),
-          showcaseItems: (website.showcase_items || website.showcaseItems || [])
-            .map((item) => [text(item.image_url || item.imageUrl),
-                            pairText(item.title),
-                            normalizeShowcaseFeaturedRank(item.featured_rank || item.featuredRank),
-                            normalizeShowcasePublicationState(item.publication_state || item.publicationState),
-                            (item.video_provider || item.videoProvider || item.videoUrl) ? 'video' : ''])
+          /* The public /brand projection intentionally omits showcase items and
+             categories; they are served by /showcase with plan-aware paging.
+             Verify the projection that actually returned instead of comparing
+             a private editor payload against fields that cannot be present. */
         }),
         principalProfile: JSON.stringify({
           show: Boolean(principal.show), name: text(principal.name), title: pairText(principal.title),
@@ -6122,7 +6232,11 @@
       const slug = currentTenantSlug();
       const response = await fetch(`/v1/public/${encodeURIComponent(slug)}/brand`, { credentials: 'same-origin' });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.message || data.error || 'Public brand did not refresh.');
+      if (!response.ok) {
+        const error = new Error(data.message || data.error || 'Public brand did not refresh.');
+        error.code = data.error || 'PUBLIC_SURFACE_UNAVAILABLE';
+        throw error;
+      }
       const actual = compactBrandSnapshot(data.brand || {});
       const wanted = compactBrandSnapshot({
         name: expected.name,
@@ -6145,9 +6259,31 @@
       });
       const mismatches = Object.keys(wanted).filter((key) => wanted[key] && wanted[key] !== actual[key]);
       if (mismatches.length) {
-        throw new Error(`Public brand verification missed: ${mismatches.join(', ')}.`);
+        const error = new Error('Publish verification did not match the public brand projection.');
+        error.code = 'PUBLIC_PROJECTION_MISMATCH';
+        error.details = { fields: mismatches };
+        throw error;
       }
-      return data.brand || {};
+      const website = expected.websiteProfile || {};
+      const checks = [{ path: 'brand', ok: true }];
+      if (website.showShowcase) {
+        const showcaseResponse = await fetch(`/v1/public/${encodeURIComponent(slug)}/showcase?surface=home&offset=0`, { credentials: 'same-origin', cache: 'no-store' });
+        const showcase = await showcaseResponse.json().catch(() => ({}));
+        checks.push({ path: 'showcase', ok: showcaseResponse.ok && (showcase.enabled === false || Number(showcase.total || 0) >= 0) });
+      }
+      if (website.showTimetable) {
+        const timetableResponse = await fetch(`/v1/public/${encodeURIComponent(slug)}/timetable`, { credentials: 'same-origin', cache: 'no-store' });
+        const timetable = await timetableResponse.json().catch(() => ({}));
+        checks.push({ path: 'timetable', ok: timetableResponse.ok && (timetable.enabled === false || Array.isArray(timetable.days)) });
+      }
+      const failed = checks.filter((check) => !check.ok).map((check) => check.path);
+      if (failed.length) {
+        const error = new Error('Public pages are still waiting for verification.');
+        error.code = 'SURFACE_UNAVAILABLE';
+        error.details = { surfaces: failed };
+        throw error;
+      }
+      return { brand: data.brand || {}, checked: checks.map((check) => check.path), verifiedAt: new Date().toISOString() };
     }
 
     function validatePublishPayload(payload) {
@@ -6207,6 +6343,39 @@
       showToast('Draft saved. Public pages have not changed.');
     }
 
+    function publishVerificationMessage(error) {
+      const code = error?.code || 'SURFACE_UNAVAILABLE';
+      const messages = {
+        PUBLIC_PROJECTION_MISMATCH: 'Publish verification failed after the write. Your saved content is safe; check the public pages and retry.',
+        SURFACE_UNAVAILABLE: 'Publish verification failed after the write. Your saved content is safe; check the public pages and retry.',
+        PUBLIC_SURFACE_UNAVAILABLE: 'Public surface unavailable',
+        PUBLIC_SURFACE_INVALID_RESPONSE: 'Public surface returned invalid data',
+        NETWORK_RETRY: 'Public surface unavailable',
+      };
+      return localiseAdminText(messages[code] || messages.SURFACE_UNAVAILABLE);
+    }
+
+    async function retryPublishVerification() {
+      if (!lastPublishedPayload) return;
+      const button = $('retryPublishVerificationBtn');
+      if (button) { button.disabled = true; button.textContent = localiseAdminText('Checking...'); }
+      try {
+        await verifyPublicBrandPublished(lastPublishedPayload);
+        lastPublicationError = null;
+        setPublicationState('published', publishedVersionLabel);
+        setSettingsDirty(false);
+        showToast(localiseAdminText('Public pages verified'));
+        await updateSurfaceHealth();
+      } catch (error) {
+        lastPublicationError = error;
+        setPublicationState('pending', publishedVersionLabel);
+        setSettingsDirty(false);
+        showToast(publishVerificationMessage(error), 'warning');
+      } finally {
+        if (button) { button.disabled = false; button.textContent = localiseAdminText('Recheck public pages'); }
+      }
+    }
+
     async function publishSettings() {
       try {
         validateBrandFields();
@@ -6214,6 +6383,8 @@
         validatePublishPayload(payload);
         await api('/tenant/brand-draft', { method: 'PUT', body: JSON.stringify(payload) });
         const data = await api('/tenant', { method: 'PATCH', body: JSON.stringify(payload) });
+        lastPublishedPayload = payload;
+        lastPublicationError = null;
         tenant = data.tenant || tenant;
         fillSettings();
         setPublicationState('published', data.publishedVersion || '');
@@ -6222,12 +6393,16 @@
           await verifyPublicBrandPublished(payload);
           await updateSurfaceHealth();
           await loadBrandWorkspace();
-          showToast(`Version ${data.publishedVersion || ''} published to Portal, Quick Register, and CMS.`.trim());
+          showToast(localiseAdminText('Public pages verified'));
         } catch (err) {
-          setPublicationState('error');
-          setSettingsDirty(true);
+          lastPublicationError = err;
+          /* The write has already committed. Keep the editor clean and mark
+             verification as pending so the owner never re-saves over a good
+             publication just because a projection was briefly stale. */
+          setPublicationState('pending', data.publishedVersion || '');
+          setSettingsDirty(false);
           await updateSurfaceHealth().catch((error) => console.warn('Surface health refresh failed.', error));
-          showToast(err.message || 'Saved, but public publish verification failed.', 'warning');
+          showToast(publishVerificationMessage(err), 'warning');
         }
       } catch (err) {
         setPublicationState('error');
@@ -6598,6 +6773,7 @@
       });
       $('saveDraftBtn').addEventListener('click', () => runUiAction('saveDraftBtn', 'Saving Draft...', saveDraft));
       $('publishSettingsBtn').addEventListener('click', () => runUiAction('publishSettingsBtn', 'Publishing...', publishSettings));
+      $('retryPublishVerificationBtn').addEventListener('click', () => retryPublishVerification().catch(reportApiError));
       $('settingLogoFile').addEventListener('change', () => uploadLogo().catch(reportApiError));
       $('settingHeroImageFile').addEventListener('change', () => uploadWebsiteImage('hero', 'settingHeroImageFile', 'settingHeroImageUrl').catch(reportApiError));
       $('settingPrincipalImageFile').addEventListener('change', () => uploadWebsiteImage('principal', 'settingPrincipalImageFile', 'settingPrincipalImageUrl').catch(reportApiError));

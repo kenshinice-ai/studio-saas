@@ -22,6 +22,7 @@
   <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
   <script src="/assets/ui-common.js?v=__APP_VERSION__"></script>
+  <script src="/assets/public-surface.js?v=__APP_VERSION__"></script>
   <script src="/assets/portal-brand.js?v=__APP_VERSION__"></script>
   <script src="/assets/public-analytics.js?v=__APP_VERSION__"></script>
   <link rel="stylesheet" href="/assets/ui-tokens.css?v=__APP_VERSION__">
@@ -160,11 +161,11 @@
     <div class="fl">
       <a href="/{{TENANT_SLUG}}" data-zh="首页" data-en="Home">首页</a>
       <a href="/{{TENANT_SLUG}}/showcase" data-zh="工作室作品" data-en="Selected Work">工作室作品</a>
-      <a href="/{{TENANT_SLUG}}#home:courses" data-zh="课程" data-en="Courses">课程</a>
+      <a id="footCourses" href="/{{TENANT_SLUG}}#home:courses" data-zh="课程" data-en="Courses">课程</a>
       <a id="footTimetable" href="/{{TENANT_SLUG}}/timetable" data-zh="课程安排" data-en="Timetable" style="display:none">课程安排</a>
-      <a href="/{{TENANT_SLUG}}#home:gallery" data-zh="学员作品" data-en="Student Works">学员作品</a>
-      <a href="/{{TENANT_SLUG}}#my" data-zh="学员专区" data-en="Student Login">学员专区</a>
-      <a href="/{{TENANT_SLUG}}#join" data-zh="预约体验" data-en="Book a Trial">预约体验</a>
+      <a id="footGallery" href="/{{TENANT_SLUG}}#home:gallery" data-zh="学员作品" data-en="Student Works">学员作品</a>
+      <a id="footStudent" href="/{{TENANT_SLUG}}#my" data-zh="学员专区" data-en="Student Login">学员专区</a>
+      <a id="footRegister" href="/{{TENANT_SLUG}}#join" data-zh="预约体验" data-en="Book a Trial">预约体验</a>
       <a href="/{{TENANT_SLUG}}#privacy" data-zh="隐私说明" data-en="Privacy" style="color:var(--muted)">隐私说明</a>
       <a href="/{{TENANT_SLUG}}/cms" data-zh="工作人员入口" data-en="Staff (CMS)" style="color:var(--muted)">工作人员入口</a>
       <a href="/{{TENANT_SLUG}}/studio-admin" data-zh="管理后台" data-en="Studio Admin" style="color:var(--muted)">管理后台</a>
@@ -197,6 +198,14 @@
   const websiteOf = () => state.brand.websiteProfile || state.brand.website_profile || {};
   const setVisible = (ids, visible) => ids.forEach((id) => { const node = document.getElementById(id); if (node) node.style.display = visible ? '' : 'none'; });
   const setStatus = (text) => { document.getElementById('status').textContent = text || ''; };
+  function refreshPublicSurfaceContract() {
+    if (!window.StudioSaaS.publicSurface) return;
+    state.publicSurface = window.StudioSaaS.publicSurface.resolve({
+      slug: TENANT_SLUG, brand: state.brand,
+      showcase: state.data || { enabled: true, items: state.items, total: state.total }
+    });
+    window.StudioSaaS.publicSurface.apply(state.publicSurface, document);
+  }
 
   function updateMeta() {
     const path = location.pathname;
@@ -327,6 +336,7 @@
       state.offset = Number(data.nextOffset ?? (offset + (data.items || []).length));
       state.hasMore = Boolean(data.hasMore);
       state.items = replace ? (data.items || []) : state.items.concat(data.items || []);
+      refreshPublicSurfaceContract();
       setStatus(state.hasMore ? T('继续下滑可加载更多作品。', 'Scroll to load more work.') : T('已显示全部符合条件的作品。', 'All matching work is shown.'));
       applyLanguage();
     } catch (error) {
@@ -380,9 +390,10 @@
     const title = localized(website.showcase_title || website.showcaseTitle, T('工作室作品', 'Selected Work'));
     const description = localized(website.showcase_lead || website.showcaseLead, T('工作室精选作品展示', 'Selected work from this studio.'));
     document.getElementById('pageDocumentTitle').textContent = `${name} · ${title}`; document.getElementById('pageDescription').content = description; document.getElementById('ogTitle').content = `${name} · ${title}`; document.getElementById('ogDescription').content = description;
+    refreshPublicSurfaceContract();
     applyLanguage();
   }
-  fetch('/v1/health', { cache: 'no-store' }).then((r) => r.json()).then((health) => { document.getElementById('producerCredit').hidden = !health.showProducerCredit; }).catch(() => {});
+  fetch('/v1/health', { cache: 'no-store' }).then((r) => r.json()).then((health) => { document.getElementById('producerCredit').hidden = !health.showProducerCredit; }).catch((error) => { setStatus(T('页面状态暂时无法确认。', 'Page status could not be confirmed.')); console.warn('Producer credit health unavailable.', error); });
   loadBrand().catch(() => { setStatus(T('品牌资料暂时无法加载。', 'Brand details are temporarily unavailable.')); });
   fetchPage(state.category, 0, true);
 </script>

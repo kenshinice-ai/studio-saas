@@ -197,8 +197,8 @@
 
         <h4 data-lang="en">3 · Draft is not published</h4>
         <h4 data-lang="zh">3 · 草稿不等于已发布</h4>
-        <p data-lang="en">In Studio Admin, <strong>Save Draft</strong> changes nothing the public can see. Only <strong>Publish</strong> updates the portal, the register page and the CMS — and every publish keeps a version you can roll back to.</p>
-        <p data-lang="zh">在品牌工作台里，<strong>保存草稿</strong>不会改变任何公开可见的内容，只有<strong>发布</strong>才会更新门户、报名页和 CMS——而且每次发布都留一个可回滚的版本。</p>
+        <p data-lang="en">In Studio Admin, <strong>Save Draft</strong> changes nothing the public can see. Only <strong>Publish</strong> updates the portal, the register page and the CMS — and every publish keeps a version you can roll back to. After the write, the console also checks the public projections. A successful write that is still catching up is shown as <strong>Published, public pages still need verification</strong>; the saved content is safe and <em>Recheck public pages</em> retries the check.</p>
+        <p data-lang="zh">在品牌工作台里，<strong>保存草稿</strong>不会改变任何公开可见的内容，只有<strong>发布</strong>才会更新门户、报名页和 CMS——而且每次发布都留一个可回滚的版本。写入成功后，后台还会检查公开投影；如果接口正在同步，会显示<strong>已发布，公开页面仍在确认</strong>，已保存内容安全不丢，点击<strong>重新检查公开页面</strong>即可重试。</p>
 
         <div class="pitfall">
           <p><b data-lang="en">Worth knowing</b><b data-lang="zh">先说清楚</b></p>
@@ -709,7 +709,7 @@
             <img data-lang="zh" src="/assets/manual/02-showcase-portal.zh.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="公开工作室门户中的工作室作品展示板块">
           </div>
           <ol class="marks">
-            <li data-lang="en">When the section is enabled and at least one Active item exists, Selected Work renders on the public page and in its navigation.</li><li data-lang="zh">打开板块开关且至少有一件 Active 作品后，工作室作品会出现在公开页面及导航中。</li>
+            <li data-lang="en">When the section is enabled and at least one Active item exists, Selected Work renders on the public page and in its navigation. The same ready check is shared by the portal, archive, timetable and registration footer, so an empty or withdrawn surface does not leave a dead link.</li><li data-lang="zh">打开板块开关且至少有一件 Active 作品后，工作室作品会出现在公开页面及导航中。官网、独立作品页、课表和报名页 Footer 共用同一套「已开启 + 有内容」判断，空板块或撤回授权后不会留下死链接。</li>
             <li data-lang="en">The home page shows the first six published works and links to the standalone archive; the archive uses the same ranking and stays separate from the student gallery.</li><li data-lang="zh">首页展示前 6 件公开作品，并链接到独立作品页；独立页沿用同一套排序，且与学员作品墙分开。</li>
             <li data-lang="en">The archive loads up to 12 eligible items per request. Scrolling loads the next page automatically, with a Load more button as a fallback. This page size is not the plan quota.</li><li data-lang="zh">独立作品页每次最多加载 12 件符合条件的作品；下滑会自动加载下一页，同时保留「加载更多」作为兜底。这是分页大小，不是套餐公开额度。</li>
           </ol>
@@ -1011,8 +1011,8 @@
 
         <h4 data-lang="en">I saved, but the website hasn’t changed.</h4>
         <h4 data-lang="zh">我保存了，但网站没变。</h4>
-        <p data-lang="en">Save Draft only stores a draft. Press Publish. If the image is the thing that did not change, also force-refresh your browser.</p>
-        <p data-lang="zh">「保存草稿」只存草稿，要点「发布」。如果没变的是图片，再强制刷新一次浏览器。</p>
+        <p data-lang="en">Save Draft only stores a draft. Press Publish. If the console says <em>Published, public pages still need verification</em>, the write already succeeded: wait briefly or press <em>Recheck public pages</em>. If the image is the thing that did not change, also force-refresh your browser.</p>
+        <p data-lang="zh">「保存草稿」只存草稿，要点「发布」。如果后台显示<strong>已发布，公开页面仍在确认</strong>，说明写入已经成功，可稍等或点<strong>重新检查公开页面</strong>；如果没变的是图片，再强制刷新一次浏览器。</p>
 
         <h4 data-lang="en">I published something wrong. Can I undo it?</h4>
         <h4 data-lang="zh">发布错了，能撤回吗？</h4>

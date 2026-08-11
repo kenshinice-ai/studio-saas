@@ -142,6 +142,7 @@ if [ -x "$PYTHON" ]; then
             "$SCRIPT_DIR/frontend/assets/cms-i18n.js" \
             "$SCRIPT_DIR/frontend/assets/public-analytics.js" \
             "$SCRIPT_DIR/frontend/assets/public-register.js" \
+            "$SCRIPT_DIR/frontend/assets/public-surface.js" \
             "$SCRIPT_DIR/frontend/assets/ui-common.js"; do
             if [ ! -f "$asset" ] || ! node --check "$asset" >/dev/null 2>&1; then
                 fail "$(basename "$asset") is missing or has syntax errors"

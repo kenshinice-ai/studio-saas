@@ -18,6 +18,7 @@
   <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
   <script src="/assets/ui-common.js?v=__APP_VERSION__"></script>
+  <script src="/assets/public-surface.js?v=__APP_VERSION__"></script>
   <script src="/assets/portal-brand.js?v=__APP_VERSION__"></script>
   <script src="/assets/public-analytics.js?v=__APP_VERSION__"></script>
   <link rel="stylesheet" href="/assets/ui-tokens.css?v=__APP_VERSION__">
@@ -202,6 +203,7 @@
       <h1 id="pageTitle" data-zh="接下来的公开课程" data-en="Upcoming public classes">接下来的公开课程</h1>
       <p id="pageLead" class="lead"></p>
       <p id="zoneNote" class="zone-note"></p>
+      <p id="surfaceStatus" class="zone-note" role="status" aria-live="polite"></p>
     </section>
 
     <div id="days" aria-live="polite"></div>
@@ -221,12 +223,12 @@
       </div>
       <div class="fl">
         <a href="/{{TENANT_SLUG}}" data-zh="首页" data-en="Home">首页</a>
-        <a href="/{{TENANT_SLUG}}/showcase" data-zh="工作室作品" data-en="Selected Work">工作室作品</a>
-        <a href="/{{TENANT_SLUG}}#home:courses" data-zh="课程" data-en="Courses">课程</a>
+        <a id="footShowcase" href="/{{TENANT_SLUG}}/showcase" data-zh="工作室作品" data-en="Selected Work">工作室作品</a>
+        <a id="footCourses" href="/{{TENANT_SLUG}}#home:courses" data-zh="课程" data-en="Courses">课程</a>
         <a href="/{{TENANT_SLUG}}/timetable" data-zh="课程安排" data-en="Timetable">课程安排</a>
-        <a href="/{{TENANT_SLUG}}#home:gallery" data-zh="学员作品" data-en="Student Works">学员作品</a>
-        <a href="/{{TENANT_SLUG}}#my" data-zh="学员专区" data-en="Student Login">学员专区</a>
-        <a href="/{{TENANT_SLUG}}#join" data-zh="预约体验" data-en="Book a Trial">预约体验</a>
+        <a id="footGallery" href="/{{TENANT_SLUG}}#home:gallery" data-zh="学员作品" data-en="Student Works">学员作品</a>
+        <a id="footStudent" href="/{{TENANT_SLUG}}#my" data-zh="学员专区" data-en="Student Login">学员专区</a>
+        <a id="footRegister" href="/{{TENANT_SLUG}}#join" data-zh="预约体验" data-en="Book a Trial">预约体验</a>
         <a href="/{{TENANT_SLUG}}#privacy" data-zh="隐私说明" data-en="Privacy" style="color:var(--muted)">隐私说明</a>
       </div>
     </div>
@@ -269,7 +271,16 @@
     const esc = window.StudioSaaS.esc;
     const API = `/v1/public/${encodeURIComponent(TENANT_SLUG)}`;
     let timetable = null;
+    let publicBrand = {};
     let privacyNoticeVersion = '';
+
+    function refreshPublicSurfaceContract() {
+      if (!window.StudioSaaS.publicSurface) return;
+      const contract = window.StudioSaaS.publicSurface.resolve({
+        slug: TENANT_SLUG, brand: publicBrand, timetable: timetable || { enabled: false, days: [] }
+      });
+      window.StudioSaaS.publicSurface.apply(contract, document);
+    }
 
     const pageParams = new URLSearchParams(location.search);
     const normaliseLang = (value) => {
@@ -540,6 +551,7 @@
 
     fetch(`${API}/brand`).then((r) => (r.ok ? r.json() : null)).then((data) => {
       const brand = (data && data.brand) || {};
+      publicBrand = brand;
       window.StudioSaaS.applyVisualTheme(brand);
       privacyNoticeVersion = String(brand.privacyNoticeVersion || brand.privacy_notice_version || '');
       const studioName = brand.name || TENANT_NAME;
@@ -576,8 +588,12 @@
       setNavVisible(['navFaq', 'mnavFaq'], on(website.show_faq ?? website.showFaq, true));
       setNavVisible(['navStudent', 'mnavStudent'],
         on(website.show_student_area ?? website.showStudentArea, true));
+      refreshPublicSurfaceContract();
       applyLanguage();
-    }).catch(() => {});
+    }).catch((error) => {
+      document.getElementById('surfaceStatus')?.replaceChildren(document.createTextNode(T('品牌资料暂时无法确认，请稍后重试。', 'Brand details could not be confirmed. Please retry.')));
+      console.warn('Timetable brand request failed.', error);
+    });
 
     fetch(`${API}/timetable`).then((r) => (r.ok ? r.json() : null)).then((data) => {
       timetable = data || { enabled: false, days: [] };
@@ -585,13 +601,14 @@
          the page says so plainly instead of showing a failure to a visitor who
          did nothing wrong. */
       if (!timetable.enabled) timetable.days = [];
+      refreshPublicSurfaceContract();
       applyLanguage();
-    }).catch(() => { timetable = { enabled: false, days: [] }; applyLanguage(); });
+    }).catch((error) => { timetable = { enabled: false, days: [] }; refreshPublicSurfaceContract(); applyLanguage(); console.warn('Timetable request failed.', error); });
 
     fetch('/v1/health', { cache: 'no-store' })
       .then((response) => response.json())
       .then((health) => { document.getElementById('producerCredit').hidden = !health.showProducerCredit; })
-      .catch(() => {});
+      .catch((error) => console.warn('Producer credit health unavailable.', error));
 
     applyLanguage();
   </script>

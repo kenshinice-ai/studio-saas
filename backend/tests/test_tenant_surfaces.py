@@ -132,6 +132,42 @@ def test_existing_tenants_render_all_public_surfaces(client):
             assert "text/html" in response.content_type
 
 
+def test_public_surface_contract_is_shared_by_templates_and_explains_readiness():
+    """The public shell must have one contract, not per-page switch guesses."""
+
+    import importlib
+
+    api_v1 = importlib.import_module("studiosaas.api_v1")
+
+    ready = api_v1._public_surface_entry("showcase", True, True, "/demo/showcase")
+    assert ready["visible"] is True
+    assert ready["reasonCode"] == "ready"
+    hidden = api_v1._public_surface_entry(
+        "showcase", True, False, "/demo/showcase", reason="no_published_works",
+        next_action="publish_showcase_work",
+    )
+    assert hidden == {
+        "key": "showcase",
+        "intent": True,
+        "ready": False,
+        "visible": False,
+        "href": "/demo/showcase",
+        "surface": "showcase",
+        "reasonCode": "no_published_works",
+        "nextAction": "publish_showcase_work",
+    }
+
+    public_surface = (PROJECT_ROOT / "backend/frontend/assets/public-surface.js").read_text(encoding="utf-8")
+    assert "PUBLIC_SURFACE_INVALID_RESPONSE" in public_surface
+    assert "global.StudioSaaS.publicSurface" in public_surface
+    for filename in ("index.html", "showcase.html", "timetable.html", "register.html"):
+        source = (PROJECT_ROOT / "tenant-template" / filename).read_text(encoding="utf-8")
+        assert "/assets/public-surface.js?v=__APP_VERSION__" in source
+    admin = (PROJECT_ROOT / "backend/frontend/studio-admin.html").read_text(encoding="utf-8")
+    assert "Public navigation preview" in admin
+    assert "Recheck public pages" in admin
+
+
 def test_root_studio_admin_requires_explicit_tenant_selection(client):
     response = client.get("/studio-admin", follow_redirects=False)
     assert response.status_code == 200

@@ -1,5 +1,25 @@
 # PWE Studio — Release Notes and Acceptance Evidence
 
+## v9.8.8 — truthful public surfaces and safe publish verification
+
+Studio Admin now keeps the write result and the public verification result
+separate. A successful save that is still waiting for `/brand`, `/showcase` or
+`/timetable` to settle is shown as **Published, public pages still need
+verification** rather than a false failure; the saved content stays clean and
+the owner can retry verification from the same panel. Structured error codes
+and bilingual copy replace the old raw verification warning.
+
+The portal, standalone showcase, timetable and register page now share one
+public-surface contract. Navigation and Footer entries require both owner intent
+and real published content, while the Studio Admin preview shows the same
+ready / unavailable states and next action. The light workbench rail uses the
+information tint for selection, keeps the 1.618 editor/preview split, and
+retains keyboard, focus, reduced-motion and 44px touch-target rules.
+
+Public navigation checks consent revocation and timetable occurrences using the
+same server-side rules as the destination pages, so an empty or stale link is
+not advertised. No tenant records are deleted or migrated by this change.
+
 ## v9.8.7 — ranked showcase archive and content-safe publishing
 
 The public showcase now has one tenant-wide `featured_rank` order. Lower

@@ -4365,6 +4365,146 @@ def tenant_dashboard():
     return jsonify({"dashboard": payload})
 
 
+def _public_surface_entry(key: str, intent: bool, ready: bool, href: str,
+                          *, reason: str = "no_content", next_action: str = "review_in_studio_admin",
+                          surface: str | None = None) -> dict:
+    """Build the public navigation contract used by every tenant surface.
+
+    ``intent`` is the owner's switch; ``ready`` is the smallest truthful
+    content check for that route.  Keeping both values in the response lets
+    Studio Admin explain why an entry is hidden instead of merely removing it.
+    """
+
+    visible = bool(intent and ready)
+    return {
+        "key": key,
+        "intent": bool(intent),
+        "ready": bool(ready),
+        "visible": visible,
+        "href": href,
+        "surface": surface or key,
+        "reasonCode": "ready" if visible else (reason if intent else "disabled_by_owner"),
+        "nextAction": "" if visible else next_action,
+    }
+
+
+@api_v1.route("/public/<tenant_slug>/surface", methods=["GET"])
+def public_surface(tenant_slug: str):
+    """Return one effective contract for public navigation and footer links.
+
+    The endpoint intentionally reports readiness from published data, not from
+    the admin editor. A link therefore appears only when its target can render
+    useful content, while the ``reasonCode`` remains available to previews and
+    support tooling.
+    """
+
+    with connect() as conn:
+        try:
+            tenant = resolve_tenant(conn, tenant_slug, "path")
+        except TenantResolutionError:
+            return _error("Unknown tenant.", 404)
+        row = fetch_one(
+            conn,
+            """
+            SELECT name, contact_phone, contact_email, address,
+                   COALESCE(settings->'website_profile', '{}'::jsonb) AS website,
+                   COALESCE(settings->'principal_profile', '{}'::jsonb) AS principal,
+                   COALESCE(settings->'hero_profile', '{}'::jsonb) AS hero,
+                   COALESCE(settings->'faq_items', '[]'::jsonb) AS faq,
+                   COALESCE(settings->'registration_profile', '{}'::jsonb) AS registration
+            FROM tenants WHERE id = %s
+            """,
+            (tenant.tenant_id,),
+        )
+        profile = _normalize_website_profile((row or {}).get("website") or {})
+        principal = row.get("principal") or {}
+        hero = row.get("hero") or {}
+        faq = row.get("faq") or []
+        registration = row.get("registration") or {}
+        course_row = fetch_one(
+            conn,
+            "SELECT count(*) AS n FROM courses WHERE tenant_id = %s AND is_active",
+            (tenant.tenant_id,),
+        )
+        gallery_row = fetch_one(
+            conn,
+            """
+            SELECT count(*) AS n
+            FROM portfolio_items p
+            JOIN students s ON s.id = p.student_id AND s.tenant_id = p.tenant_id
+            JOIN media_variants mv ON mv.tenant_id = p.tenant_id
+              AND mv.media_asset_id = p.media_asset_id AND mv.variant = 'display'
+            JOIN LATERAL (
+                SELECT status
+                FROM student_publication_consent_events e
+                WHERE e.tenant_id = p.tenant_id AND e.student_id = p.student_id
+                ORDER BY e.created_at DESC, e.id DESC
+                LIMIT 1
+            ) consent ON consent.status = 'confirmed'
+            WHERE p.tenant_id = %s AND p.visibility = 'shared'
+              AND p.public_consent_at IS NOT NULL AND s.status <> 'archived'
+            """,
+            (tenant.tenant_id,),
+        ) if _plan_feature_enabled(conn, tenant.tenant_id, "portfolio") else {"n": 0}
+        timetable_ready = False
+        if profile.get("show_timetable"):
+            timezone_name = _tenant_timezone(conn, tenant.tenant_id)
+            weeks = profile.get("timetable_weeks") or TIMETABLE_DEFAULT_WEEKS
+            _today, occurrences = _timetable_occurrences(
+                conn, tenant.tenant_id, weeks, timezone_name)
+            timetable_ready = bool(occurrences)
+        limit = showcase_limit_for(conn, tenant.tenant_id)
+
+    active_items = [
+        item for item in profile.get("showcase_items", [])
+        if item.get("publication_state") == "active"
+    ]
+    showcase_ready = bool(_ordered_showcase_items(active_items)[:limit])
+    contact_ready = bool(row.get("contact_phone") or row.get("contact_email") or row.get("address"))
+    principal_ready = bool(str(principal.get("bio") or "").strip())
+    modules = {
+        "principal": _public_surface_entry(
+            "principal", bool(profile.get("show_principal", True)), principal_ready,
+            "#home:artist", reason="missing_content", next_action="add_principal_bio", surface="home",
+        ),
+        "showcase": _public_surface_entry(
+            "showcase", bool(profile.get("show_showcase", False)), showcase_ready,
+            f"/{tenant.slug}/showcase", reason="no_published_works", next_action="publish_showcase_work", surface="showcase",
+        ),
+        "courses": _public_surface_entry(
+            "courses", bool(profile.get("show_courses", True)), int((course_row or {}).get("n") or 0) > 0,
+            "#home:courses", reason="no_published_courses", next_action="publish_course", surface="home",
+        ),
+        "timetable": _public_surface_entry(
+            "timetable", bool(profile.get("show_timetable", False)), timetable_ready,
+            f"/{tenant.slug}/timetable", reason="no_upcoming_classes", next_action="publish_timetable", surface="timetable",
+        ),
+        "gallery": _public_surface_entry(
+            "gallery", bool(profile.get("show_gallery", True)), int((gallery_row or {}).get("n") or 0) > 0,
+            "#home:gallery", reason="no_consented_student_work", next_action="share_student_work", surface="home",
+        ),
+        "faq": _public_surface_entry(
+            "faq", bool(profile.get("show_faq", True)), bool(faq),
+            "#home:faq", reason="no_faq_content", next_action="add_faq", surface="home",
+        ),
+        "contact": _public_surface_entry(
+            "contact", bool(profile.get("show_contact", True)), contact_ready,
+            "#home:contact", reason="missing_contact_details", next_action="add_contact_details", surface="home",
+        ),
+        "student": _public_surface_entry(
+            "student", bool(profile.get("show_student_area", hero.get("show_student_login", True))), True,
+            "#my", surface="home",
+        ),
+        "register": _public_surface_entry(
+            "register", True, bool(registration or row.get("name")), "#join",
+            reason="registration_unavailable", next_action="complete_registration_profile", surface="register",
+        ),
+    }
+    navigation = [modules[key] for key in ("principal", "showcase", "courses", "timetable", "gallery", "faq", "student", "register")]
+    footer = [modules[key] for key in ("showcase", "courses", "timetable", "gallery", "faq", "student", "register")]
+    return jsonify({"contract": {"version": 1, "modules": modules, "navigation": navigation, "footer": footer}})
+
+
 @api_v1.route("/public/<tenant_slug>/brand", methods=["GET"])
 def public_brand(tenant_slug: str):
     """Return public brand settings for registration and parent views."""

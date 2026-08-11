@@ -23,6 +23,7 @@
   <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
   <script src="/assets/ui-common.js?v=__APP_VERSION__"></script>
+  <script src="/assets/public-surface.js?v=__APP_VERSION__"></script>
   <script src="/assets/portal-brand.js?v=__APP_VERSION__"></script>
   <script src="/assets/public-register.js?v=__APP_VERSION__"></script>
   <script src="/assets/public-analytics.js?v=__APP_VERSION__"></script>
@@ -102,6 +103,7 @@
     header .lang-switch button { width:auto; }
     .submit-bar { margin-top:var(--space-phi-md); }
     .error { display:none; color:var(--danger); font-size:13px; margin:0 0 12px; }
+    .surface-status { margin:0; color:var(--muted); font-size:13px; line-height:1.5; }
     .done { display:none; text-align:left; padding:18px 4px 4px; }
     .done .mark { width:52px; height:52px; display:grid; place-items:center; border-radius:50%; color:var(--on-success); background:var(--success); font-size:26px; line-height:1; }
     .done .eyebrow { margin-top:22px; }
@@ -169,6 +171,7 @@
       <div id="heroEyebrow" class="eyebrow">快速报名</div>
       <h1 id="pageTitle">告诉我们学员的情况</h1>
       <p id="pageIntro" class="lead">留下基本信息，工作室会联系你并推荐合适的课程与时间。</p>
+      <p id="surfaceStatus" class="surface-status" role="status" aria-live="polite" hidden></p>
     </section>
 
     <section class="card brand-card">
@@ -223,8 +226,12 @@
   <footer class="tenant-credit">
     <nav class="register-footer-links" aria-label="公开页面">
       <a href="/{{TENANT_SLUG}}" data-zh="首页" data-en="Home">首页</a>
-      <a href="/{{TENANT_SLUG}}/showcase" data-zh="工作室作品" data-en="Selected Work">工作室作品</a>
-      <a href="/{{TENANT_SLUG}}/timetable" data-zh="课程安排" data-en="Timetable">课程安排</a>
+      <a id="footShowcase" href="/{{TENANT_SLUG}}/showcase" data-zh="工作室作品" data-en="Selected Work">工作室作品</a>
+      <a id="footTimetable" href="/{{TENANT_SLUG}}/timetable" data-zh="课程安排" data-en="Timetable">课程安排</a>
+      <a id="footCourses" href="/{{TENANT_SLUG}}#home:courses" data-zh="课程" data-en="Courses">课程</a>
+      <a id="footGallery" href="/{{TENANT_SLUG}}#home:gallery" data-zh="学员作品" data-en="Student Works">学员作品</a>
+      <a id="footStudent" href="/{{TENANT_SLUG}}#my" data-zh="学员专区" data-en="Student Login">学员专区</a>
+      <a id="footRegister" href="/{{TENANT_SLUG}}#join" data-zh="预约体验" data-en="Book a Trial">预约体验</a>
       <a href="/{{TENANT_SLUG}}#privacy" data-zh="隐私说明" data-en="Privacy">隐私说明</a>
     </nav>
     © 2026 <span id="footerTenantName">{{TENANT_NAME}}</span>
@@ -257,6 +264,22 @@
     /* Served by /brand so the consent record and the notice above it can never
        cite different versions (P1-3). */
     let privacyNoticeVersion = '2026-07-12';
+    function applyPublicSurfaceContract() {
+      if (!window.StudioSaaS.publicSurface) return;
+      window.StudioSaaS.publicSurface.fetch(`/v1/public/${encodeURIComponent(TENANT_SLUG)}`)
+        .then((contract) => window.StudioSaaS.publicSurface.apply(contract, document))
+        .catch((error) => {
+          window.StudioSaaS.publicSurface.clearLoading();
+          const status = document.getElementById('surfaceStatus');
+          if (status) {
+            status.hidden = false;
+            status.textContent = currentLanguage === 'zh'
+              ? '公开导航暂时无法确认，页面内容仍可继续填写。'
+              : 'Public navigation could not be confirmed yet. You can still complete the form.';
+          }
+          console.warn('Public surface contract unavailable.', error);
+        });
+    }
     const pageParams = new URLSearchParams(location.search);
     /* 6-1: `?lang=` → stored choice → browser preference. The previous chain
        stopped at the stored choice and defaulted to Chinese, so an English
@@ -423,6 +446,7 @@
       copyContactBtn.hidden = !quickContact;
       copyContactBtn.dataset.contact = quickContact;
       applyBrandContent();
+      applyPublicSurfaceContract();
     }
     document.getElementById('copyContactBtn').addEventListener('click', async (event) => {
       const button = event.currentTarget;

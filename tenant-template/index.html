@@ -58,8 +58,9 @@
      twice. Fonts are cached immutably by name instead (server.py). -->
 <link rel="preload" href="/assets/fonts/cormorant-garamond-latin.woff2"
       as="font" type="font/woff2" crossorigin>
-<script src="/assets/ui-common.js?v=__APP_VERSION__"></script>
-<script src="/assets/portal-brand.js?v=__APP_VERSION__"></script>
+  <script src="/assets/ui-common.js?v=__APP_VERSION__"></script>
+  <script src="/assets/public-surface.js?v=__APP_VERSION__"></script>
+  <script src="/assets/portal-brand.js?v=__APP_VERSION__"></script>
 <script src="/assets/public-register.js?v=__APP_VERSION__"></script>
 <script src="/assets/public-analytics.js?v=__APP_VERSION__"></script>
 <link rel="stylesheet" href="/assets/ui-tokens.css?v=__APP_VERSION__">
@@ -885,11 +886,12 @@
     <div class="fl">
       <a href="/{{TENANT_SLUG}}" data-analytics-label="foot_home" data-en="Home">首页</a>
       <a id="footShowcase" href="/{{TENANT_SLUG}}/showcase" data-analytics-label="foot_showcase" data-en="Selected Work" style="display:none">工作室作品</a>
-      <a href="#home:courses" data-analytics-label="foot_courses" data-en="Courses">课程</a>
+      <a id="footCourses" href="#home:courses" data-analytics-label="foot_courses" data-en="Courses">课程</a>
+      <a id="footGallery" href="#home:gallery" data-analytics-label="foot_gallery" data-en="Student Works">学员作品</a>
+      <a id="footFaq" href="#home:faq" data-analytics-label="foot_faq" data-en="FAQ">常见问答</a>
+      <a id="footStudent" href="#my" data-analytics-label="foot_student" data-en="Student Login">学员专区</a>
+      <a id="footRegister" href="#join" data-analytics-label="foot_register" data-en="Book a Trial">预约体验</a>
       <a id="footTimetable" href="/{{TENANT_SLUG}}/timetable" data-analytics-label="foot_timetable" data-en="Timetable" style="display:none">课程安排</a>
-      <a href="#home:gallery" data-analytics-label="foot_gallery" data-en="Gallery">%WORK%</a>
-      <a href="#my" data-analytics-label="foot_student" data-en="Student Login">学员专区</a>
-      <a href="#join" data-analytics-label="foot_join" data-en="Book a Trial">预约体验</a>
       <a href="#privacy" data-analytics-label="foot_privacy" style="color:var(--muted)" data-en="Privacy">隐私说明</a>
       <a href="/{{TENANT_SLUG}}/cms" style="color:var(--muted)" data-en="Staff (CMS)">工作人员入口</a>
       <a href="/{{TENANT_SLUG}}/studio-admin" style="color:var(--muted)" data-en="Studio Admin">管理后台</a>
@@ -929,6 +931,18 @@
                    render functions below re-check this so neither fetch order
                    can win. */
                 sectionsOff:{}, showcase:null, showcaseCategory:'' };
+
+  /* Header and footer entries are derived from the same intent/ready/visible
+     contract as the standalone pages. Each public response can arrive in a
+     different order, so this function is intentionally repeatable. */
+  function refreshPublicSurfaceContract(){
+    if(!window.StudioSaaS.publicSurface) return;
+    state.publicSurface=window.StudioSaaS.publicSurface.resolve({
+      slug:SLUG, brand:state.brand, showcase:state.showcase,
+      programs:{programs:state.programs||[]}, gallery:state.gallery||{}
+    });
+    window.StudioSaaS.publicSurface.apply(state.publicSurface, document);
+  }
 
   /* ── i18n ──
      P0-4: rendering is textContent, never innerHTML. Studio Admin lets a tenant
@@ -1553,6 +1567,7 @@
     more.textContent=T('查看全部作品','View all work');
     resolveSection('showcase', true);
     setNavVisible(['navShowcase','mnavShowcase','footShowcase'], true);
+    refreshPublicSurfaceContract();
   }
   /* Its own request, and deliberately so: /brand is the critical path and
      carries every word and image of this page, so an unbounded list does not
@@ -1572,6 +1587,7 @@
         state.showcase = d;
       }
       renderShowcase(state.brand);
+      refreshPublicSurfaceContract();
       return d;
     }).catch(function(){
       showSurfaceStatus('showcase', T('工作室作品暂时无法加载，请稍后重试。','Selected work is temporarily unavailable. Please try again later.'));
@@ -1683,6 +1699,7 @@
       grid.appendChild(card);
     });
     resolveSection('courses', grid.children.length>0 && !state.sectionsOff.courses);
+    refreshPublicSurfaceContract();
   }
   function renderGallery(items){
     state.gallery=items;
@@ -1715,6 +1732,7 @@
       grid.appendChild(tile);
     });
     resolveSection('gallery', grid.children.length>0 && !state.sectionsOff.gallery);
+    refreshPublicSurfaceContract();
   }
   function mediaVariantUrl(rawUrl,variant){
     var url=new URL(rawUrl,window.location.origin);
@@ -1794,6 +1812,7 @@
     applySeo(b);
     renderAbout(b);
     renderShowcase(b);
+    refreshPublicSurfaceContract();
 
     /* P0-2: the principal block appears only with a real bio behind it — never
        the "【占位文案】…请将本段替换为真实介绍" that all five tenants shipped. */
@@ -1855,6 +1874,7 @@
     renderRegistrationFields(b.registrationProfile || b.registration_profile);
     if(String(website.show_faq ?? website.showFaq ?? true) !== 'false') renderFaq(b.faqItems||b.faq_items||[]);
     renderContactRows(b);
+    refreshPublicSurfaceContract();
   }).catch(function(){ showSurfaceStatus('brand', T('品牌资料暂时无法加载，页面正使用默认内容。','Brand details are temporarily unavailable; default content is shown.')); });
 
   /* ── programs → course grid ── */
