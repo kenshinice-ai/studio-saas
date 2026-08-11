@@ -7,12 +7,26 @@ the current source tree was packaged or deployed.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | `codex/v9.3.0-cms-information-architecture`; `VERSION` = **9.8.0**; deployed candidate commit `906d18549475ac35b2cabd24c31a7944b83cfc31`; pushed to `origin` | The deployed bytes are traceable to the candidate commit; the later handoff closure is documentation-only. |
+| Source | `codex/v9.3.0-cms-information-architecture`; `VERSION` = **9.8.1**; candidate commit is recorded after the release commit, which is ahead of `main` | The candidate remains separate from the v9.8.0 package and production rows until deployment is independently accepted. |
 | Package | SaaS `dist/PWE-StudioSaaS-aws-9.8.0.tar.gz` · SHA-256 `af814ad66036a8c8686f3c94394fa1b1e63d2cc4fb9bb11d5878d7c8670bc29b`; Edition `dist/PWE-Studio-Edition-9.8.0.tar.gz` · SHA-256 `30731b98b66276024f1fbbefe75f0fc93e7832d0388aeac1ae9b8a44439aa6e8` | Both packages passed checksum, `BUILD_INFO`, entrypoint and exclusion checks. |
 | Production | **v9.8.0 deployed to `pwestudio.online`** | `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.8.0`; the running image is `studiosaas:9.8.0`; deep health reports `appVersion=9.8.0`, `db=ok`, `mode=saas`, `tenants=6`, `themes.unreadable=0`. |
 
 Re-verify the production health endpoint before any later release claim; do not
 infer Production from `VERSION` or from an archive filename, which does not identify the deployed commit.
+
+## v9.8.1 Platform Admin execution candidate
+
+This candidate closes the remaining Platform Admin workbench gaps identified in
+the 2026-08-10 audit: the shell uses the full available canvas, plan and tenant
+editing opens in the center workspace with a sticky save bar, the Inspector
+shows form state and validation impact, row actions keep View as the default
+path, and phones use a discoverable work-area drawer. New bilingual labels and
+attention reasons remain aligned with the existing payment boundary; this does
+not add online payments, bank-transfer settings, external email, SSE, WebSocket
+or browser push.
+
+Source and production evidence for v9.8.1 are intentionally closed only after
+the candidate is committed, packaged, deployed and independently verified.
 
 ## v9.8.0 Platform Admin workbench
 

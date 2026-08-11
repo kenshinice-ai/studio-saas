@@ -112,9 +112,10 @@
     }
 
     .header-top {
-      max-width: 1400px;
+      width: 100%;
+      max-width: none;
       margin: 0 auto;
-      padding: 18px 32px 14px;
+      padding: 16px clamp(16px, 1.7vw, 32px) 13px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -341,9 +342,10 @@
 
     /* Main Layout */
     main {
-      max-width: var(--ui-content-max, 89rem);
+      width: 100%;
+      max-width: none;
       margin: 0 auto;
-      padding: var(--ui-space-4, 21px) var(--ui-space-5, 34px) var(--ui-space-6, 55px);
+      padding: clamp(16px, 1.5vw, 24px) clamp(16px, 1.7vw, 32px) clamp(34px, 4vw, 55px);
     }
 
     .section {
@@ -400,16 +402,19 @@
     .legacy-workspace-nav { display: none !important; }
     .platform-shell {
       display: grid;
-      grid-template-columns: 236px minmax(0, 1.618fr) minmax(340px, 0.618fr);
-      gap: 21px;
+      grid-template-columns: minmax(220px, 232px) minmax(0, 1fr) clamp(360px, 23vw, 420px);
+      gap: clamp(13px, 1.25vw, 21px);
       align-items: start;
     }
     .platform-main {
       min-width: 0;
+      width: 100%;
     }
     .platform-shell.inspector-closed {
-      grid-template-columns: 236px minmax(0, 1fr);
+      grid-template-columns: minmax(220px, 232px) minmax(0, 1fr);
     }
+    .platform-mobile-nav-toggle,
+    .platform-mobile-nav-scrim { display: none; }
     .platform-rail,
     .platform-inspector {
       border: 1px solid var(--line);
@@ -601,6 +606,80 @@
       background: color-mix(in srgb, var(--danger-soft) 55%, var(--bg));
     }
     .inspector-support .inspector-section-title { color: var(--danger); }
+
+    /* v9.8.1: editing is a center workspace, not a second centered modal.
+       The inspector remains available for status, impact and recovery while
+       the main area owns the form and its sticky save bar. */
+    .workspace-editor {
+      display: flex;
+      flex-direction: column;
+      min-height: calc(100vh - var(--workspace-header-offset, 131px) - 48px);
+      margin-bottom: 0;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl, 21px);
+      background: var(--panel);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+    .workspace-editor[hidden] { display: none !important; }
+    .workspace-editor-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 21px;
+      padding: 21px 24px;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel);
+    }
+    .workspace-editor-kicker {
+      color: var(--muted);
+      font-size: var(--f-min);
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .workspace-editor-title { margin: 3px 0 0; font-size: var(--f-2); line-height: 1.2; }
+    .workspace-editor-subtitle { margin-top: 5px; color: var(--muted); font-size: var(--f-0); }
+    .workspace-editor-state {
+      flex: 0 0 auto;
+      color: var(--muted);
+      font-size: var(--f-0);
+      text-align: right;
+    }
+    .workspace-editor-close {
+      width: 44px;
+      min-width: 44px;
+      padding: 0;
+      color: var(--muted);
+      background: transparent;
+      font-size: var(--f-3);
+    }
+    .workspace-editor-close:hover { color: var(--ink); background: var(--bg2); }
+    .workspace-editor-body {
+      flex: 1 1 auto;
+      min-height: 0;
+      padding: clamp(21px, 2.2vw, 34px);
+      overflow: auto;
+    }
+    .workspace-editor-body > .form-section,
+    .workspace-editor-body > .form-grid,
+    .workspace-editor-body > .summary-item,
+    .workspace-editor-body > .form-aside { max-width: 1100px; }
+    .workspace-editor-footer {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 13px;
+      padding: 13px 24px;
+      border-top: 1px solid var(--line);
+      background: color-mix(in srgb, var(--panel) 94%, var(--bg2));
+      position: sticky;
+      bottom: 0;
+      z-index: 2;
+    }
+    .workspace-editor-footer .editor-footer-note { margin-right: auto; color: var(--muted); font-size: var(--f-min); }
+    .workspace-editor.is-dirty .workspace-editor-state { color: var(--on-warning-soft); font-weight: 700; }
+    .workspace-editor.is-submitting .workspace-editor-body { pointer-events: none; opacity: .72; }
     .attention-queue {
       display: grid;
       gap: 0;
@@ -629,7 +708,7 @@
     .attention-row .btn-sm { min-height: 36px; }
     tr.is-inspector-selected > td { background: var(--accent-soft); }
 
-    @media (max-width: 1199px) {
+    @media (max-width: 1279px) {
       .platform-shell { grid-template-columns: 220px minmax(0, 1fr); }
       .platform-shell.inspector-closed { grid-template-columns: 220px minmax(0, 1fr); }
       .platform-inspector {
@@ -651,10 +730,50 @@
       .platform-shell,
       .platform-shell.inspector-closed { display: block; }
       .platform-rail {
-        position: static;
-        max-height: none;
-        margin-bottom: 13px;
+        position: fixed;
+        z-index: 90;
+        top: calc(var(--workspace-header-offset, 64px) + 8px);
+        right: 8px;
+        left: 8px;
+        width: auto;
+        max-height: calc(100vh - var(--workspace-header-offset, 64px) - 16px);
+        margin: 0;
+        transform: translateY(-12px);
+        opacity: 0;
+        pointer-events: none;
+        transition: transform .2s ease, opacity .2s ease;
       }
+      .platform-rail.is-mobile-open {
+        transform: translateY(0);
+        opacity: 1;
+        pointer-events: auto;
+      }
+      .platform-mobile-nav-toggle {
+        width: 100%;
+        min-height: 44px;
+        margin-bottom: 13px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 13px;
+        padding: 10px 13px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius-lg);
+        background: var(--panel);
+        color: var(--ink);
+        font-weight: 700;
+        text-align: left;
+        box-shadow: var(--shadow-sm);
+      }
+      .platform-mobile-nav-toggle:hover { background: var(--bg2); }
+      .platform-mobile-nav-scrim {
+        position: fixed;
+        z-index: 89;
+        inset: 0;
+        display: block;
+        background: color-mix(in srgb, var(--ink) 32%, transparent);
+      }
+      .platform-mobile-nav-scrim[hidden] { display: none !important; }
       .platform-rail-group { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
       .platform-rail-label { grid-column: 1 / -1; }
       .platform-inspector {
@@ -665,6 +784,11 @@
         width: auto;
         border-radius: var(--radius-lg);
       }
+      .workspace-editor { min-height: calc(100vh - var(--workspace-header-offset, 64px) - 24px); border-radius: var(--radius-lg); }
+      .workspace-editor-header { padding: 16px; gap: 13px; }
+      .workspace-editor-body { padding: 16px; }
+      .workspace-editor-footer { padding: 12px 16px; flex-wrap: wrap; }
+      .workspace-editor-footer .editor-footer-note { flex-basis: 100%; margin-right: 0; }
       .attention-row { grid-template-columns: minmax(0, 1fr) auto; padding: 13px; }
       .attention-reason { grid-column: 1 / -1; }
     }
@@ -2269,7 +2393,7 @@
       <div class="brand">
         <div>
           <h1>PWE Studio · Platform Admin</h1>
-          <p>Operate tenants, plans, subscriptions, and platform governance</p>
+          <p>Manage tenants, plans, subscriptions, and platform analytics</p>
         </div>
       </div>
       <div class="header-actions">
@@ -2326,38 +2450,42 @@
     </section>
 
     <div id="adminContent" class="hidden">
+      <button id="platformMobileNavToggle" class="platform-mobile-nav-toggle" type="button" aria-expanded="false" aria-controls="platformRail">
+        <span>Work areas</span><span aria-hidden="true">☰</span>
+      </button>
+      <div id="platformMobileNavScrim" class="platform-mobile-nav-scrim" hidden></div>
       <div id="platformWorkspaceShell" class="platform-shell">
         <aside id="platformRail" class="platform-rail requires-auth" aria-label="Platform Admin work areas">
           <div class="platform-rail-group">
-            <div class="platform-rail-label">Main / 主要</div>
+            <div class="platform-rail-label">Main</div>
             <a class="platform-rail-link active" data-platform-rail data-workspace-nav="overview" href="#overview">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 11.2L12 4l8.5 7.2v8.3a1 1 0 01-1 1H4.5a1 1 0 01-1-1z"/><path d="M9.2 20.5v-5.2h5.6v5.2"/></svg>
-              <span>Today / 工作台</span>
+              <span>Today</span>
             </a>
             <button id="attentionShortcut" class="platform-rail-shortcut" type="button">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21a2.5 2.5 0 002.4-1.8H9.6A2.5 2.5 0 0012 21z"/><path d="M18 9.5a6 6 0 00-12 0c0 7-2.4 7-2.4 8.7h16.8C20.4 16.5 18 16.5 18 9.5z"/></svg>
-              <span>Needs attention / 待处理</span><span id="attentionCountBadge" class="platform-rail-badge">0</span>
+              <span>Needs attention</span><span id="attentionCountBadge" class="platform-rail-badge">0</span>
             </button>
           </div>
           <div class="platform-rail-group">
-            <div class="platform-rail-label">Customers / 客户</div>
+            <div class="platform-rail-label">Customers</div>
             <a class="platform-rail-link" data-platform-rail data-workspace-nav="tenants" href="#tenants">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.25"/><circle cx="17.2" cy="9.2" r="2.2"/><path d="M3.8 19.3c.4-3.1 2.3-5 5.2-5s4.8 1.9 5.2 5"/><path d="M15.2 14.7c2.7-.1 4.5 1.5 4.9 4.6"/></svg>
-              <span>Tenants / 工作室</span>
+              <span>Tenants</span>
             </a>
           </div>
           <div class="platform-rail-group">
-            <div class="platform-rail-label">Commercial / 商业</div>
+            <div class="platform-rail-label">Commercial</div>
             <a class="platform-rail-link" data-platform-rail data-workspace-nav="plans" href="#plans">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7.2A2.2 2.2 0 016.2 5h11.6A2.2 2.2 0 0120 7.2v9.6a2.2 2.2 0 01-2.2 2.2H6.2A2.2 2.2 0 014 16.8z"/><path d="M4 9h16M8 14h3"/></svg>
-              <span>Plans & Pricing / 套餐</span>
+              <span>Plans & Pricing</span>
             </a>
           </div>
           <div class="platform-rail-group">
-            <div class="platform-rail-label">Operations / 运营</div>
+            <div class="platform-rail-label">Operations</div>
             <a class="platform-rail-link" data-platform-rail data-workspace-nav="audit" href="#audit">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4.5h10M7 8.5h10M7 12.5h6M5 3.5h14v17H5z"/><path d="M8.5 16.5h7"/></svg>
-              <span>Audit Logs / 审计</span>
+              <span>Audit Logs</span>
             </a>
           </div>
         </aside>
@@ -2373,6 +2501,22 @@
           <button id="workspaceRetryBtn" class="btn-secondary btn-sm" type="button" hidden>Retry</button>
         </div>
       </div>
+
+      <section id="platformEditWorkspace" class="workspace-editor workspace-section" hidden aria-live="polite">
+        <div class="workspace-editor-header">
+          <div>
+            <div id="workspaceEditorKicker" class="workspace-editor-kicker">Editing</div>
+            <h2 id="workspaceEditorTitle" class="workspace-editor-title">Edit workspace</h2>
+            <p id="workspaceEditorSubtitle" class="workspace-editor-subtitle">Make changes and review their impact before saving.</p>
+          </div>
+          <div>
+            <div id="workspaceEditorState" class="workspace-editor-state">Ready</div>
+            <button id="workspaceEditorClose" class="workspace-editor-close" type="button" aria-label="Close editor">×</button>
+          </div>
+        </div>
+        <div id="workspaceEditorBody" class="workspace-editor-body"></div>
+        <div id="workspaceEditorFooter" class="workspace-editor-footer"></div>
+      </section>
 
       <section id="overview" data-workspace="overview" class="section workspace-section">
         <div class="section-header">
@@ -2393,7 +2537,7 @@
              actual tenants sits directly under them instead of below eight
              counters it has no visible relationship to. -->
         <h2 class="group-heading">
-          <span>Needs attention</span>
+              <span>Needs attention</span>
           <span class="group-hint">Lifecycle risks that imply an action today</span>
         </h2>
         <div id="attentionQueue" class="attention-queue" aria-live="polite">
@@ -2568,7 +2712,6 @@
                   <th>Status</th>
                   <th>Owner</th>
                   <th>Usage</th>
-                  <th>Surfaces</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -2655,7 +2798,7 @@
         <aside id="workspaceInspector" class="platform-inspector is-open" aria-label="Workspace context">
           <div class="platform-inspector-header">
             <div>
-              <div id="workspaceInspectorKicker" class="platform-inspector-kicker">Workspace context / 工作区上下文</div>
+              <div id="workspaceInspectorKicker" class="platform-inspector-kicker">Workspace context</div>
               <h2 id="workspaceInspectorTitle" class="platform-inspector-title">Select an item</h2>
             </div>
             <button id="workspaceInspectorClose" class="platform-inspector-close" type="button" aria-label="Close inspector">×</button>
@@ -2714,10 +2857,108 @@
     let setActiveNav = () => {};
     let inspectorMode = 'workspace';
     let inspectorSelection = null;
+    let workspaceEditorKind = '';
+    let workspaceEditorId = '';
+    let workspaceEditorReturnFocus = null;
+    let workspaceEditorDirty = false;
+    let mobileNavOpen = false;
+
+    function setMobileNavOpen(open) {
+      mobileNavOpen = Boolean(open);
+      const rail = $('platformRail');
+      const toggle = $('platformMobileNavToggle');
+      const scrim = $('platformMobileNavScrim');
+      rail?.classList.toggle('is-mobile-open', mobileNavOpen);
+      if (toggle) {
+        toggle.setAttribute('aria-expanded', String(mobileNavOpen));
+        const label = toggle.querySelector('span');
+        if (label) setWorkspaceText(label, mobileNavOpen ? 'Close work areas' : 'Work areas');
+      }
+      if (scrim) scrim.hidden = !mobileNavOpen;
+    }
 
     function workspaceFromHash() {
       const candidate = String(window.location.hash || '').replace(/^#/, '');
       return WORKSPACE_IDS.has(candidate) ? candidate : 'overview';
+    }
+
+    function isWorkspaceEditorOpen() {
+      return Boolean($('platformEditWorkspace') && !$('platformEditWorkspace').hidden);
+    }
+
+    function setWorkspaceEditorState(value, dirty = workspaceEditorDirty) {
+      const editor = $('platformEditWorkspace');
+      const state = $('workspaceEditorState');
+      if (state) setWorkspaceText(state, value);
+      editor?.classList.toggle('is-dirty', dirty);
+    }
+
+    function markWorkspaceEditorDirty() {
+      workspaceEditorDirty = true;
+      setWorkspaceEditorState('Unsaved changes', true);
+      renderEditorInspector();
+    }
+
+    function workspaceEditorRoot() {
+      return isWorkspaceEditorOpen() ? $('platformEditWorkspace') : $('modalOverlay');
+    }
+
+    function openWorkspaceEditor({ workspace, kind, id = '', title, subtitle, bodyHtml, footerHtml }) {
+      if (isWorkspaceEditorOpen() && workspaceEditorDirty && !window.confirm('Discard unsaved changes?')) return false;
+      if ($('modalOverlay')?.classList.contains('active')) closeModal();
+      workspaceEditorReturnFocus = document.activeElement;
+      activeWorkspace = WORKSPACE_IDS.has(workspace) ? workspace : activeWorkspace;
+      workspaceEditorKind = kind;
+      workspaceEditorId = id;
+      workspaceEditorDirty = false;
+      setActiveNav(`#${activeWorkspace}`);
+      document.querySelectorAll('[data-workspace]').forEach((section) => {
+        section.hidden = true;
+        section.setAttribute('aria-hidden', 'true');
+      });
+      const editor = $('platformEditWorkspace');
+      if (!editor) return false;
+      editor.hidden = false;
+      $('workspaceEditorKicker').textContent = kind === 'tenant' ? 'Tenant workspace' : 'Plan workspace';
+      $('workspaceEditorTitle').textContent = title;
+      $('workspaceEditorSubtitle').textContent = subtitle;
+      $('workspaceEditorBody').innerHTML = bodyHtml;
+      $('workspaceEditorFooter').innerHTML = footerHtml;
+      setWorkspaceEditorState('Ready', false);
+      editor.querySelectorAll('input, select, textarea').forEach((field) => {
+        field.addEventListener('input', markWorkspaceEditorDirty);
+        field.addEventListener('change', markWorkspaceEditorDirty);
+      });
+      renderEditorInspector();
+      const focusTarget = $('workspaceEditorBody').querySelector('input:not([disabled]), select, textarea, button') || $('workspaceEditorFooter').querySelector('button');
+      if (focusTarget) focusTarget.focus();
+      return true;
+    }
+
+    function closeWorkspaceEditor({ confirm = true, focus = true } = {}) {
+      if (!isWorkspaceEditorOpen()) return true;
+      if (confirm && workspaceEditorDirty && !window.confirm('Discard unsaved changes?')) return false;
+      const editor = $('platformEditWorkspace');
+      editor.hidden = true;
+      editor.classList.remove('is-dirty', 'is-submitting');
+      $('workspaceEditorBody').replaceChildren();
+      $('workspaceEditorFooter').replaceChildren();
+      workspaceEditorKind = '';
+      workspaceEditorId = '';
+      workspaceEditorDirty = false;
+      const activeSection = document.querySelector(`[data-workspace="${activeWorkspace}"]`);
+      if (activeSection) {
+        activeSection.hidden = false;
+        activeSection.setAttribute('aria-hidden', 'false');
+      }
+      rerenderInspector();
+      if (focus && workspaceEditorReturnFocus && typeof workspaceEditorReturnFocus.focus === 'function') workspaceEditorReturnFocus.focus();
+      workspaceEditorReturnFocus = null;
+      return true;
+    }
+
+    function closeActiveEditor() {
+      return closeWorkspaceEditor({ confirm: false });
     }
 
     function setWorkspaceText(element, value) {
@@ -2813,6 +3054,7 @@
     }
 
     function closeInspector() {
+      setMobileNavOpen(false);
       selectedTenantId = '';
       inspectorMode = 'workspace';
       inspectorSelection = null;
@@ -2831,7 +3073,7 @@
       if (!body) return;
       inspectorMode = 'workspace';
       inspectorSelection = null;
-      setInspectorHeader('Workspace context / 工作区上下文', WORKSPACE_LABELS[activeWorkspace]);
+      setInspectorHeader('Workspace context', WORKSPACE_LABELS[activeWorkspace]);
       body.replaceChildren();
       const intro = document.createElement('div');
       intro.className = 'inspector-placeholder';
@@ -2852,6 +3094,68 @@
       inspectorMeta(section, 'Data state', $('workspaceDataState')?.textContent || 'Not refreshed');
       inspectorMeta(section, 'Attention items', $('attentionCountBadge')?.textContent || '0');
       body.appendChild(section);
+      window.AdminI18n?.localise?.(body);
+    }
+
+    function renderEditorInspector() {
+      if (!isWorkspaceEditorOpen()) return;
+      const body = $('workspaceInspectorBody');
+      if (!body) return;
+      inspectorMode = `${workspaceEditorKind}-edit`;
+      inspectorSelection = workspaceEditorId || null;
+      const plan = workspaceEditorKind === 'plan' && workspaceEditorId
+        ? plans.find((item) => item.code === workspaceEditorId)
+        : null;
+      const tenant = workspaceEditorKind === 'tenant' && workspaceEditorId
+        ? tenants.find((item) => item.id === workspaceEditorId)
+        : null;
+      const title = plan?.name || tenant?.name || (workspaceEditorKind === 'plan' ? 'New plan' : 'New tenant');
+      setInspectorHeader(workspaceEditorKind === 'plan' ? 'Plan workspace' : 'Tenant workspace', title);
+      body.replaceChildren();
+
+      const status = document.createElement('div');
+      status.className = 'inspector-status';
+      const dot = document.createElement('span');
+      dot.className = `inspector-status-dot${workspaceEditorDirty ? ' warning' : ''}`;
+      dot.setAttribute('aria-hidden', 'true');
+      const copy = document.createElement('div');
+      const state = document.createElement('strong');
+      relabel(state, workspaceEditorDirty ? 'Unsaved changes' : 'Ready to edit');
+      const note = document.createElement('div');
+      note.className = 'text-muted';
+      relabel(note, 'Save from the center workspace when the review is complete.');
+      copy.append(state, note);
+      status.append(dot, copy);
+      body.appendChild(status);
+
+      const review = inspectorSection('Review before saving', 'Decision guide');
+      inspectorMeta(review, 'Workspace', WORKSPACE_LABELS[activeWorkspace]);
+      inspectorMeta(review, 'Form state', workspaceEditorDirty ? 'Unsaved changes' : 'Ready');
+      if (plan) {
+        const affected = tenants.filter((item) => item.plan_code === plan.code).length;
+        inspectorMeta(review, 'Tenants on plan', affected);
+      }
+      if (tenant) {
+        inspectorMeta(review, 'Current status', `${tenant.status || '—'} · ${tenant.subscription_status || '—'}`);
+      }
+      const invalidFields = Array.from(workspaceEditorRoot()?.querySelectorAll('[aria-invalid="true"]') || []);
+      inspectorMeta(review, 'Validation errors', invalidFields.length);
+      if (invalidFields.length) {
+        const alert = document.createElement('div');
+        alert.className = 'inspector-alert danger';
+        const message = document.createElement('span');
+        relabel(message, 'Resolve the highlighted fields before saving.');
+        alert.appendChild(message);
+        review.appendChild(alert);
+      }
+      body.appendChild(review);
+
+      const actions = inspectorSection('Workspace actions', 'Safe next steps');
+      const actionList = document.createElement('div');
+      actionList.className = 'inspector-action-list';
+      inspectorAction(actionList, 'Cancel editing', () => closeWorkspaceEditor());
+      actions.appendChild(actionList);
+      body.appendChild(actions);
       window.AdminI18n?.localise?.(body);
     }
 
@@ -2985,11 +3289,36 @@
       const actionList = document.createElement('div');
       actionList.className = 'inspector-action-list';
       inspectorAction(actionList, 'View full tenant details', () => openTenantDetailModal(t.id));
-      inspectorAction(actionList, 'Open tenant actions', () => openTenantActions(t.id));
-      const portal = inspectorAction(actionList, 'Open public website', () => window.open(tenantSurfaceHref(t, 'portal'), '_blank', 'noopener'));
-      if (['archived', 'deleted'].includes(t.status)) portal.disabled = true;
+      inspectorAction(actionList, 'Edit tenant', () => editTenant(t.id));
       actions.appendChild(actionList);
       body.appendChild(actions);
+
+      const surfaces = inspectorSection('Tenant surfaces', 'Public and audited entry points');
+      renderTenantSurfaces(surfaces, t);
+      body.appendChild(surfaces);
+
+      const managed = inspectorSection('Managed actions', 'Audited lifecycle changes');
+      const managedList = document.createElement('div');
+      managedList.className = 'inspector-action-list';
+      if (t.status === 'archived') {
+        inspectorAction(managedList, 'Restore tenant', () => restoreTenant(t.id), 'inspector-action btn-primary');
+      } else if (t.status !== 'deleted') {
+        inspectorAction(managedList, t.status === 'paused' ? 'Reactivate tenant' : 'Pause tenant', () => changeTenantOperationalState(t.id, t.status === 'paused' ? 'reactivate' : 'pause'), t.status === 'paused' ? 'inspector-action btn-primary' : 'inspector-action btn-warning');
+      }
+      managed.appendChild(managedList);
+      body.appendChild(managed);
+
+      const danger = inspectorSection('Danger Zone', 'Requires explicit confirmation');
+      const dangerList = document.createElement('div');
+      dangerList.className = 'inspector-action-list';
+      if (t.status === 'archived') {
+        inspectorAction(dangerList, 'Permanent delete tenant', () => permanentDeleteTenant(t.id), 'inspector-action btn-danger');
+      } else if (t.status !== 'deleted') {
+        inspectorAction(dangerList, 'Archive tenant', () => archiveTenant(t.id), 'inspector-action btn-danger-outline');
+        addDisabledNote(dangerList, 'Permanent delete is available only after archiving.');
+      }
+      danger.appendChild(dangerList);
+      body.appendChild(danger);
 
       const support = inspectorSection('Support Mode', 'Audited and reason-based');
       support.classList.add('inspector-support');
@@ -3014,7 +3343,7 @@
       openInspector();
       renderTenantInspector(t);
       document.querySelectorAll('tr[data-tenant-id]').forEach((row) => row.classList.toggle('is-inspector-selected', row.dataset.tenantId === String(id)));
-      if (focus && window.matchMedia('(max-width: 1199px)').matches) $('workspaceInspector')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (focus && window.matchMedia('(max-width: 1279px)').matches) $('workspaceInspector')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     function openPlanInspector(plan, { focus = true } = {}) {
@@ -3023,6 +3352,7 @@
       inspectorMode = 'plan';
       inspectorSelection = plan.code;
       openInspector();
+      document.querySelectorAll('tr[data-plan-code]').forEach((row) => row.classList.toggle('is-inspector-selected', row.dataset.planCode === String(plan.code)));
       setInspectorHeader('Plan Inspector / 套餐详情', plan.name || plan.code);
       const body = $('workspaceInspectorBody');
       body.replaceChildren();
@@ -3040,6 +3370,7 @@
       inspectorMeta(limits, 'Storage', formatStorageMb(plan.storage_limit_mb));
       inspectorMeta(limits, 'Team users', plan.user_limit);
       inspectorMeta(limits, 'Projects', plan.project_limit);
+      inspectorMeta(limits, 'Tenants on plan', tenants.filter((item) => item.plan_code === plan.code).length);
       body.appendChild(limits);
       const actions = inspectorSection('Actions', 'Configuration');
       const actionList = document.createElement('div');
@@ -3047,24 +3378,37 @@
       inspectorAction(actionList, 'Edit plan', () => editPlan(plan.code));
       actions.appendChild(actionList);
       body.appendChild(actions);
+      const danger = inspectorSection('Danger Zone', 'Review dependencies first');
+      const dangerList = document.createElement('div');
+      dangerList.className = 'inspector-action-list';
+      const assigned = tenants.filter((item) => item.plan_code === plan.code).length;
+      const deleteButton = inspectorAction(dangerList, 'Delete plan', () => deletePlan(plan.code), 'inspector-action btn-danger');
+      if (assigned) {
+        deleteButton.disabled = true;
+        deleteButton.title = 'Move all tenants to another plan before deleting this plan.';
+        addDisabledNote(dangerList, `${assigned} tenant${assigned === 1 ? '' : 's'} still use this plan.`);
+      }
+      danger.appendChild(dangerList);
+      body.appendChild(danger);
       window.AdminI18n?.localise?.(body);
-      if (focus && window.matchMedia('(max-width: 1199px)').matches) $('workspaceInspector')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (focus && window.matchMedia('(max-width: 1279px)').matches) $('workspaceInspector')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     function openAuditInspector(a, { focus = true } = {}) {
       if (!a) return;
       selectedTenantId = '';
       inspectorMode = 'audit';
-      inspectorSelection = a.id || `${a.created_at}:${a.resource_id}`;
+      inspectorSelection = String(a.id || `${a.created_at}:${a.resource_id}`);
       openInspector();
       setInspectorHeader('Audit Event Inspector / 审计事件', a.action || 'Audit event');
+      document.querySelectorAll('tr[data-audit-id]').forEach((row) => row.classList.toggle('is-inspector-selected', row.dataset.auditId === String(inspectorSelection)));
       const body = $('workspaceInspectorBody');
       body.replaceChildren();
       const event = inspectorSection('Event record', 'Captured activity');
       event.appendChild(buildAuditDetail(a));
       body.appendChild(event);
       window.AdminI18n?.localise?.(body);
-      if (focus && window.matchMedia('(max-width: 1199px)').matches) $('workspaceInspector')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (focus && window.matchMedia('(max-width: 1279px)').matches) $('workspaceInspector')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     function rerenderInspector() {
@@ -3077,13 +3421,14 @@
         if (plan) return openPlanInspector(plan, { focus: false });
       }
       if (inspectorMode === 'audit' && inspectorSelection) {
-        const event = auditLogs.find((item) => (item.id || `${item.created_at}:${item.resource_id}`) === inspectorSelection);
+        const event = auditLogs.find((item) => String(item.id || `${item.created_at}:${item.resource_id}`) === String(inspectorSelection));
         if (event) return openAuditInspector(event, { focus: false });
       }
       renderWorkspaceInspector();
     }
 
     function setActiveWorkspace(workspace, { scroll = true } = {}) {
+      if (isWorkspaceEditorOpen() && !closeWorkspaceEditor()) return false;
       activeWorkspace = WORKSPACE_IDS.has(workspace) ? workspace : 'overview';
       document.querySelectorAll('[data-workspace]').forEach((section) => {
         const active = section.dataset.workspace === activeWorkspace;
@@ -3448,6 +3793,7 @@
       $('auditBody').innerHTML = '';
       $('auditCountLabel').textContent = '';
       $('auditSearch').value = '';
+      closeWorkspaceEditor({ confirm: false, focus: false });
       closeInspector();
       $('attentionQueue').replaceChildren();
       $('attentionCountBadge').textContent = '0';
@@ -3920,10 +4266,11 @@
       });
     }
 
-    // Edit tenant in modal
+    // Edit tenant in the center workspace; the Inspector remains the review context.
     function editTenant(id) {
       const t = tenants.find((item) => item.id === id);
       if (!t) return;
+      if ($('modalOverlay')?.classList.contains('active')) closeModal();
       editingTenantId = id;
       const formHtml = `
         <details class="form-section" open>
@@ -3997,7 +4344,7 @@
               <div class="derived-value">
                 <span class="pill ${esc(t.subscription_status || '')}">${esc(t.subscription_status || '-')}</span>
                 <span class="derived-note">Follows the tenant lifecycle state above.</span>
-                <button type="button" class="btn-secondary btn-sm" onclick="closeModal(); openTenantActions('${esc(t.id)}')">Change tenant status</button>
+                <button type="button" class="btn-secondary btn-sm" onclick="closeWorkspaceEditor(); openTenantActions('${esc(t.id)}')">Change tenant status</button>
               </div>
               <input id="m_subscriptionStatus" type="hidden" value="${esc(t.subscription_status || '')}">
             </div>
@@ -4019,15 +4366,22 @@
           </div>
         </details>
         <p class="form-aside">
-          <span>Pause, archive, restore and permanent delete live in the More actions menu, where each one asks for its own confirmation phrase.</span>
-          <button type="button" class="btn-secondary btn-sm" onclick="closeModal(); openTenantActions('${esc(t.id)}')">More actions</button>
+          <span>Lifecycle and danger actions remain in the selected tenant Inspector.</span>
         </p>
       `;
-	      const footerHtml = `<button id="m_saveTenant" onclick="saveTenantModal()" class="btn-primary">Save Changes</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
-	      openModal(`Edit ${/*safe*/t.name}`, formHtml, footerHtml); // title renders via textContent
+	      const footerHtml = `<span class="editor-footer-note">Changes are saved to this tenant only after review.</span><button id="m_saveTenant" onclick="saveTenantModal()" class="btn-primary">Save Changes</button><button onclick="closeWorkspaceEditor()" class="btn-secondary">Cancel</button>`;
+	      openWorkspaceEditor({
+	        workspace: 'tenants',
+	        kind: 'tenant',
+	        id,
+        title: t.name,
+	        subtitle: 'Update studio profile, contact, login and subscription metadata.',
+	        bodyHtml: formHtml,
+	        footerHtml
+	      });
 	      // A change made inside a fold that is then collapsed leaves no trace
 	      // at all, so the fold itself carries the mark.
-	      markEditedSections();
+      markEditedSections();
 	      // "14 days left" is the reading the operator opened this form for, so
 	      // it has to be there before they touch anything.
 	      ['m_startsAt', 'm_trialEndsAt', 'm_currentPeriodEndsAt', 'm_endsAt']
@@ -4154,7 +4508,7 @@
 
     /* Flag any fold whose fields have been touched since the form opened. */
     function markEditedSections() {
-      document.querySelectorAll('.modal .form-section').forEach((section) => {
+      workspaceEditorRoot().querySelectorAll('.form-section').forEach((section) => {
         section.querySelectorAll('input, select, textarea').forEach((field) => {
           const initial = field.type === 'checkbox' ? field.checked : field.value;
           const check = () => {
@@ -4162,6 +4516,7 @@
             field.dataset.edited = String(now !== initial);
             const touched = Boolean(section.querySelector('[data-edited="true"]'));
             section.classList.toggle('edited', touched);
+            if (isWorkspaceEditorOpen() && now !== initial) markWorkspaceEditorDirty();
           };
           field.addEventListener('input', check);
           field.addEventListener('change', check);
@@ -4222,6 +4577,8 @@
       // idle for the whole round trip.
       const saveButton = $('m_saveTenant');
       const finish = beginSaving(saveButton);
+      $('platformEditWorkspace')?.classList.add('is-submitting');
+      setWorkspaceEditorState('Saving…', false);
       try {
         await api(editingTenantId ? `/admin/tenants/${editingTenantId}` : '/admin/tenants', {
           method: editingTenantId ? 'PATCH' : 'POST',
@@ -4229,11 +4586,15 @@
         });
       } catch (error) {
         finish();
+        $('platformEditWorkspace')?.classList.remove('is-submitting');
+        setWorkspaceEditorState('Save failed', true);
         throw error;
       }
       finish();
+      $('platformEditWorkspace')?.classList.remove('is-submitting');
+      setWorkspaceEditorState('Saved', false);
       showToast(editingTenantId ? 'Tenant updated.' : 'Tenant created.');
-      closeModal();
+      closeWorkspaceEditor({ confirm: false, focus: false });
       await refresh();
     }
 
@@ -4848,7 +5209,7 @@
       const tbody = $('tenantsBody');
       tbody.replaceChildren();
       if (!visible.length) {
-        appendEmptyRow(tbody, 7, 'No tenants match the current filters.');
+        appendEmptyRow(tbody, 6, 'No tenants match the current filters.');
         return;
       }
       visible.forEach((t) => {
@@ -4894,11 +5255,9 @@
         if (!t.owner_email) appendSmallBadge(ownerCell, 'Needs owner', 'pill warning');
         if (!t.studio_admin_email) appendSmallBadge(ownerCell, 'No admin login', 'pill warning');
         renderUsageCell(addCell(row, '', 'Usage'), t);
-        renderTenantSurfaces(addCell(row, '', 'Surfaces'), t);
         const actions = document.createElement('div');
         actions.className = 'action-row';
         addActionButton(actions, 'View', 'btn-secondary btn-sm', () => selectTenant(t.id));
-        addActionButton(actions, 'More', 'btn-secondary btn-sm', () => openTenantActions(t.id));
         addCell(row, '', 'Actions').appendChild(actions);
         tbody.appendChild(row);
       });
@@ -5115,6 +5474,7 @@
       if (message) field.setAttribute('aria-invalid', 'true');
       else field.removeAttribute('aria-invalid');
       if (message) window.AdminI18n?.localise?.(error);
+      if (isWorkspaceEditorOpen()) renderEditorInspector();
     }
 
     function validatePlanFields() {
@@ -5154,6 +5514,7 @@
       hint.className = ok ? 'date-hint' : 'date-hint overdue';
       relabel(hint, ok ? '' : 'Must be a JSON object, for example {"beta_reports": true}');
       field.setAttribute('aria-invalid', String(!ok));
+      if (isWorkspaceEditorOpen()) renderEditorInspector();
       return ok;
     }
 
@@ -5276,7 +5637,6 @@
 
     function resetPlanForm() {
       editingPlanCode = '';
-      $('modalTitle').textContent = 'Add Plan';
       const bodyHtml = `
         ${/*safe*/planPublicationEditor()}
         <div class="form-grid">
@@ -5289,8 +5649,15 @@
         </div>
         ${/*safe*/planFeatureEditor({ public_registration: true, portfolio: true })}
       `;
-      const footerHtml = `<button id="m_savePlan" onclick="savePlanModal()" class="btn-primary">Save Plan</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
-      openModal('Add Plan', bodyHtml, footerHtml);
+      const editorFooter = `<span class="editor-footer-note">New plans stay private until Publish is selected.</span><button id="m_savePlan" onclick="savePlanModal()" class="btn-primary">Save Plan</button><button onclick="closeWorkspaceEditor()" class="btn-secondary">Cancel</button>`;
+      openWorkspaceEditor({
+        workspace: 'plans',
+        kind: 'plan',
+        title: 'Add Plan',
+        subtitle: 'Define limits and publication state before creating a plan.',
+        bodyHtml,
+        footerHtml: editorFooter
+      });
       preparePlanValidation();
       refreshPlanPreview();
     }
@@ -5311,8 +5678,16 @@
         </div>
         ${/*safe*/planFeatureEditor(p.features || {})}
       `;
-      const footerHtml = `<button id="m_savePlan" onclick="savePlanModal()" class="btn-primary">Save Plan</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
-      openModal(`Edit ${/*safe*/p.name}`, bodyHtml, footerHtml); // title renders via textContent
+      const footerHtml = `<span class="editor-footer-note">Review affected tenants before saving limits.</span><button id="m_savePlan" onclick="savePlanModal()" class="btn-primary">Save Plan</button><button onclick="closeWorkspaceEditor()" class="btn-secondary">Cancel</button>`;
+      openWorkspaceEditor({
+        workspace: 'plans',
+        kind: 'plan',
+        id: code,
+        title: p.name,
+        subtitle: 'Update pricing, limits, entitlements, and publication state.',
+        bodyHtml,
+        footerHtml
+      });
       preparePlanValidation();
       refreshPlanPreview();
     }
@@ -5368,6 +5743,8 @@
       }
       const saveButton = $('m_savePlan');
       const finish = beginSaving(saveButton);
+      $('platformEditWorkspace')?.classList.add('is-submitting');
+      setWorkspaceEditorState('Saving…', false);
       try {
         await api(editingPlanCode ? `/plans/${editingPlanCode}` : '/plans', {
           method: editingPlanCode ? 'PATCH' : 'POST',
@@ -5375,11 +5752,15 @@
         });
       } catch (error) {
         finish();
+        $('platformEditWorkspace')?.classList.remove('is-submitting');
+        setWorkspaceEditorState('Save failed', true);
         throw error;
       }
       finish();
+      $('platformEditWorkspace')?.classList.remove('is-submitting');
+      setWorkspaceEditorState('Saved', false);
       showToast(editingPlanCode ? 'Plan updated.' : 'Plan created.');
-      closeModal();
+      closeWorkspaceEditor({ confirm: false, focus: false });
       await refresh();
     }
 
@@ -5542,6 +5923,9 @@
       }
       matches.slice(auditPage * auditPageSize, (auditPage + 1) * auditPageSize).forEach((a) => {
         const row = document.createElement('tr');
+        const auditId = a.id || `${a.created_at}:${a.resource_id}`;
+        row.dataset.auditId = String(auditId);
+        row.classList.toggle('is-inspector-selected', inspectorMode === 'audit' && inspectorSelection === auditId);
         const timeCell = addCell(row, formatTimestamp(a.created_at));
         timeCell.className = 'tabular';
         if (a.created_at) timeCell.title = String(a.created_at);
@@ -5627,6 +6011,8 @@
         } else if (plans.length) {
           plans.forEach((p) => {
             const row = document.createElement('tr');
+            row.dataset.planCode = String(p.code);
+            row.classList.toggle('is-inspector-selected', inspectorMode === 'plan' && inspectorSelection === p.code);
             const nameCell = addCell(row);
             const strong = document.createElement('strong');
             const code = document.createElement('code');
@@ -5652,9 +6038,10 @@
             }
             const actions = document.createElement('div');
             actions.className = 'action-row';
-            addActionButton(actions, 'Inspect', 'btn-secondary btn-sm', () => openPlanInspector(p));
-            addActionButton(actions, 'Edit', 'btn-secondary btn-sm', () => editPlan(p.code));
-            addActionButton(actions, 'Delete', 'btn-danger btn-sm', () => deletePlan(p.code));
+            // View is the default path. Editing and deletion stay in the
+            // selected Plan Inspector so the list cannot turn three actions
+            // into one undifferentiated row-level command cluster.
+            addActionButton(actions, 'View', 'btn-secondary btn-sm', () => openPlanInspector(p));
             addCell(row).appendChild(actions);
             plansBody.appendChild(row);
           });
@@ -5717,7 +6104,10 @@
     // Event listeners
     $('loginForm').addEventListener('submit', loginSuperAdmin);
     document.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape' && $('modalOverlay').classList.contains('active')) closeModal();
+      if (event.key !== 'Escape') return;
+      if (mobileNavOpen) setMobileNavOpen(false);
+      else if (isWorkspaceEditorOpen()) closeWorkspaceEditor();
+      else if ($('modalOverlay').classList.contains('active')) closeModal();
     });
     $('logoutBtn').addEventListener('click', logoutSuperAdmin);
     $('changePasswordBtn').addEventListener('click', openChangePasswordModal);
@@ -5750,16 +6140,22 @@
     };
     navLinks.forEach((link) => link.addEventListener('click', (event) => {
       event.preventDefault();
+      setMobileNavOpen(false);
       const hash = link.getAttribute('href') || '#overview';
+      if (isWorkspaceEditorOpen() && !closeWorkspaceEditor()) return;
       history.pushState(null, '', hash);
       setActiveWorkspace(hash.replace(/^#/, ''));
     }));
+    $('platformMobileNavToggle').addEventListener('click', () => setMobileNavOpen(!mobileNavOpen));
+    $('platformMobileNavScrim').addEventListener('click', () => setMobileNavOpen(false));
     $('attentionShortcut').addEventListener('click', () => {
+      setMobileNavOpen(false);
       history.pushState(null, '', '#overview');
       setActiveWorkspace('overview');
       requestAnimationFrame(() => $('attentionQueue')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
     });
     $('workspaceInspectorClose').addEventListener('click', closeInspector);
+    $('workspaceEditorClose').addEventListener('click', () => closeWorkspaceEditor());
     window.addEventListener('hashchange', () => setActiveWorkspace(workspaceFromHash()));
     window.addEventListener('resize', updateWorkspaceHeaderOffset, { passive: true });
     $('workspaceRetryBtn').addEventListener('click', refresh);
@@ -5779,7 +6175,7 @@
     $('auditPrevBtn').addEventListener('click', () => { auditPage = Math.max(0, auditPage - 1); renderAuditLogs(); });
     $('auditNextBtn').addEventListener('click', () => { auditPage += 1; renderAuditLogs(); });
 
-    // Add tenant button - open modal
+    // Add tenant button - open the center create workspace
     $('addTenantBtn').addEventListener('click', () => {
       editingTenantId = '';
 	      const bodyHtml = `
@@ -5798,8 +6194,15 @@
             <div class="summary-value">Contact email, billing email, Studio Admin login, onboarding status, and first 30-day trial period.</div>
           </div>
 	      `;
-	      const footerHtml = `<button onclick="saveNewTenant()" class="btn-primary">Create Tenant</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
-	      openModal('Add Tenant', bodyHtml, footerHtml);
+      const footerHtml = `<span class="editor-footer-note">The first 30-day trial is generated on create.</span><button id="m_saveTenant" onclick="saveNewTenant()" class="btn-primary">Create Tenant</button><button onclick="closeWorkspaceEditor()" class="btn-secondary">Cancel</button>`;
+      openWorkspaceEditor({
+        workspace: 'tenants',
+        kind: 'tenant',
+        title: 'Add Tenant',
+        subtitle: 'Create a studio workspace and prepare its first admin access.',
+        bodyHtml,
+        footerHtml
+      });
         const syncSlug = () => { $('m_tenantSlug').value = slugifyTenantName($('m_tenantName').value); };
         $('m_tenantName').addEventListener('input', syncSlug);
 	      $('m_tenantCategory').addEventListener('change', () => {
@@ -5843,9 +6246,23 @@
         return;
       }
 
-      await api('/admin/tenants', { method: 'POST', body: JSON.stringify(payload) });
+      const saveButton = $('m_saveTenant');
+      const finish = beginSaving(saveButton, 'Creating…');
+      $('platformEditWorkspace')?.classList.add('is-submitting');
+      setWorkspaceEditorState('Creating…', false);
+      try {
+        await api('/admin/tenants', { method: 'POST', body: JSON.stringify(payload) });
+      } catch (error) {
+        finish();
+        $('platformEditWorkspace')?.classList.remove('is-submitting');
+        setWorkspaceEditorState('Create failed', true);
+        throw error;
+      }
+      finish();
+      $('platformEditWorkspace')?.classList.remove('is-submitting');
+      setWorkspaceEditorState('Created', false);
       showToast('Tenant created.');
-      closeModal();
+      closeWorkspaceEditor({ confirm: false, focus: false });
       await refresh();
     }
 

@@ -37,6 +37,25 @@ def test_platform_admin_uses_the_three_column_workbench_contract() -> None:
     assert "function openAuditInspector" in html
 
 
+def test_platform_admin_uses_full_width_shell_and_center_edit_workspace() -> None:
+    html = CONSOLE.read_text(encoding="utf-8")
+    assert "max-width: none" in html
+    assert 'id="platformEditWorkspace"' in html
+    assert "function openWorkspaceEditor" in html
+    assert "function closeWorkspaceEditor" in html
+    assert "workspace-editor-footer" in html
+    assert "renderEditorInspector" in html
+
+
+def test_platform_admin_mobile_navigation_is_a_drawer_and_actions_are_hierarchical() -> None:
+    html = CONSOLE.read_text(encoding="utf-8")
+    assert 'id="platformMobileNavToggle"' in html
+    assert 'id="platformMobileNavScrim"' in html
+    assert "is-mobile-open" in html
+    assert "View is the default path" in html
+    assert "addActionButton(actions, 'View', 'btn-secondary btn-sm', () => openPlanInspector(p));" in html
+
+
 def test_platform_inspector_keeps_support_mode_separate_and_reason_based() -> None:
     html = CONSOLE.read_text(encoding="utf-8")
     inspector = html[html.index("function renderTenantInspector") : html.index("function openTenantInspector")]
