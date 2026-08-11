@@ -22,7 +22,9 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 TEMPLATES = (
     REPOSITORY_ROOT / "tenant-template" / "index.html",
     REPOSITORY_ROOT / "tenant-template" / "register.html",
+    REPOSITORY_ROOT / "tenant-template" / "showcase.html",
 )
+CONSENT_TEMPLATES = TEMPLATES[:2]
 
 # `:root` in portal-theme.css is the one place allowed to state literal colours:
 # it is the fallback palette used before /brand answers.
@@ -136,7 +138,7 @@ def test_portal_theme_css_remains_the_single_fallback_palette() -> None:
     assert "--ink" in tokens and "--bg" in tokens
 
 
-@pytest.mark.parametrize("template", TEMPLATES, ids=lambda p: p.name)
+@pytest.mark.parametrize("template", CONSENT_TEMPLATES, ids=lambda p: p.name)
 def test_consent_checkbox_restores_a_visible_native_checked_state(template: Path) -> None:
     """A checked consent control must visibly draw its tick.
 

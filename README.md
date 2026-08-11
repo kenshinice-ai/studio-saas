@@ -17,6 +17,20 @@ closure that records the observed result.
 Re-verify the production health endpoint before any later release claim; do not
 infer Production from `VERSION` or from an archive filename, which does not identify the deployed commit.
 
+## v9.8.7 showcase release candidate
+
+The candidate adds an optional tenant-wide `featured_rank`, a six-item home
+preview and a standalone `/<slug>/showcase` archive with category URLs and
+12-item C-scheme pagination. All stored works and ranks remain intact across
+plan changes; the plan still limits only the number of Active works published.
+Shared navigation/footer links, the bilingual manual and Studio Admin copy are
+updated together. Package and production evidence will be recorded here only
+after the clean commit, bundle verification and public deployment gates pass.
+
+Candidate source identity: `VERSION` = **9.8.7**; the deployed source commit,
+package and Production remain the v9.8.6 facts in the table above until the
+v9.8.7 deployment gate closes.
+
 ## v9.8.6 online manual and timetable acceptance
 
 The bilingual manual now has a dedicated public timetable and booking chapter,

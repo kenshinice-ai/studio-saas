@@ -909,6 +909,17 @@ SHOWCASE_CATEGORY_LIMIT = 8
 # portfolio is an argument, not an archive.
 SHOWCASE_PAGE_SIZE = 12
 
+# The home page is a doorway to the full portfolio, not a second archive.  It
+# asks the same endpoint for a deliberately smaller, server-controlled preview
+# so a tenant cannot accidentally turn the landing page into a 500-item feed.
+SHOWCASE_PREVIEW_SIZE = 6
+
+# ``featured_rank`` is stored inside each tenant's JSON-owned showcase record.
+# It is deliberately bounded by the storage ceiling rather than the current
+# plan: a downgrade hides excess works but must not erase their editorial
+# order, so an upgrade can reveal the same selection again.
+SHOWCASE_FEATURED_RANK_MAX = SHOWCASE_STORAGE_CEILING
+
 # A work is retained independently of its publication state.  The state is
 # deliberately small and explicit so a plan downgrade can hide a work without
 # deleting it, and an upgrade can make it visible again without a restore.
@@ -927,6 +938,72 @@ def _normalize_showcase_publication_state(value) -> str:
     if not raw:
         return "active"
     return raw if raw in SHOWCASE_PUBLICATION_STATES else "draft"
+
+
+def _normalize_showcase_featured_rank(value) -> int | None:
+    """Return a safe one-based featured rank, or ``None`` when unranked.
+
+    Ranks are an editorial hint, not a public entitlement.  Invalid values are
+    ignored rather than allowed to affect the public ordering, and the write
+    path compacts valid ranks so old records with gaps or duplicates remain
+    deterministic without losing any work.
+    """
+
+    if value in (None, ""):
+        return None
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, float) and not value.is_integer():
+        return None
+    try:
+        rank = int(value)
+    except (TypeError, ValueError):
+        return None
+    if 1 <= rank <= SHOWCASE_FEATURED_RANK_MAX:
+        return rank
+    return None
+
+
+def _compact_showcase_featured_ranks(items: list[dict]) -> list[dict]:
+    """Compact valid ranks in place while preserving the stored item order.
+
+    The rank is tenant-global.  A category filter never creates a second rank
+    space, which keeps the home preview and every category URL on one ordering
+    contract.  Ties are resolved by the existing list order, then assigned
+    contiguous values so a later admin save cannot create duplicate slots.
+    """
+
+    ranked = sorted(
+        (
+            (index, item)
+            for index, item in enumerate(items)
+            if item.get("featured_rank") is not None
+        ),
+        key=lambda pair: (pair[1]["featured_rank"], pair[0]),
+    )
+    ranked_ids = {id(item) for _, item in ranked}
+    for position, (_index, item) in enumerate(ranked, start=1):
+        item["featured_rank"] = position
+    for item in items:
+        if id(item) not in ranked_ids:
+            item["featured_rank"] = None
+    return items
+
+
+def _ordered_showcase_items(items: list[dict]) -> list[dict]:
+    """Return active works with ranked items first and stable legacy order."""
+
+    return [
+        item
+        for _index, item in sorted(
+            enumerate(items),
+            key=lambda pair: (
+                pair[1].get("featured_rank") is None,
+                pair[1].get("featured_rank") or SHOWCASE_FEATURED_RANK_MAX + 1,
+                pair[0],
+            ),
+        )
+    ]
 
 _SHOWCASE_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,24}$")
 
@@ -1105,6 +1182,11 @@ def _normalize_website_profile(value) -> dict:
         curated.append({
             "image_url": image,
             "category_id": category_id,
+            # ``None`` is meaningful: the owner has not selected this work for
+            # editorial priority, so it follows the legacy list order.
+            "featured_rank": _normalize_showcase_featured_rank(
+                item.get("featured_rank") or item.get("featuredRank")
+            ),
             # Missing state means a legacy work, which remains public. Invalid
             # explicit values are private until an operator fixes them.
             "publication_state": _normalize_showcase_publication_state(
@@ -1120,7 +1202,7 @@ def _normalize_website_profile(value) -> dict:
             # every read as well as every write, so it cannot go stale.
             "video_embed_url": video_embed.embed_url(provider, video_id),
         })
-    profile["showcase_items"] = curated
+    profile["showcase_items"] = _compact_showcase_featured_ranks(curated)
 
     # ── the public timetable page ───────────────────────────────────────────
     for key in ("timetable_label", "timetable_lead"):
@@ -1688,6 +1770,7 @@ def _plan_change_impact(
         "content_preserved": [
             "tenant_settings",
             "website_brand_and_showcase",
+            "showcase_featured_ranks",
             "students_courses_and_registrations",
             "media_and_audit_history",
         ],
@@ -4971,11 +5054,15 @@ def public_showcase(tenant_slug: str):
     **Publishing is limited here; storing is not limited anywhere.** A tenant
     that drops from growth (150) to starter (15) keeps all 150 works in its
     record — this endpoint serves the first 15. Upgrading restores the rest
-    with no migration, because nothing was ever removed.
+    with no migration, because nothing was ever removed. A valid
+    ``featured_rank`` is applied before that cap, so editorial intent survives
+    a plan change without turning the rank into a second quota.
 
     The plan limit is applied BEFORE the category filter, not after. The other
     order would let a studio on the entry plan publish its whole archive by
-    splitting it across drawers and linking each one.
+    splitting it across drawers and linking each one. ``surface=home`` is a
+    server-controlled six-item preview; all other requests use the twelve-item
+    C-scheme page size.
     """
 
     with connect() as conn:
@@ -5002,11 +5089,14 @@ def public_showcase(tenant_slug: str):
     # Plan capacity applies only to active works.  Drafts and archived works
     # remain in the private workspace, so a downgrade never destroys them and
     # an upgrade can reveal them again after the owner marks them active.
+    # Editorial rank is applied before the entitlement cap: the works the
+    # owner deliberately selected are the ones that remain public when a plan
+    # has fewer slots, while the displaced records stay stored and recoverable.
     active_items = [
         item for item in profile.get("showcase_items", [])
         if item.get("publication_state") == "active"
     ]
-    published = active_items[:limit]
+    published = _ordered_showcase_items(active_items)[:limit]
     categories = profile.get("showcase_categories", [])
 
     wanted = (request.args.get("category") or "").strip()[:24]
@@ -5019,7 +5109,9 @@ def public_showcase(tenant_slug: str):
         offset = max(0, int(request.args.get("offset") or 0))
     except (TypeError, ValueError):
         offset = 0
-    page = visible[offset:offset + SHOWCASE_PAGE_SIZE]
+    surface = (request.args.get("surface") or "").strip().lower()
+    page_size = SHOWCASE_PREVIEW_SIZE if surface == "home" else SHOWCASE_PAGE_SIZE
+    page = visible[offset:offset + page_size]
 
     return jsonify({
         "enabled": True,
@@ -5031,6 +5123,8 @@ def public_showcase(tenant_slug: str):
         "items": page,
         "total": len(visible),
         "offset": offset,
+        "pageSize": page_size,
+        "nextOffset": offset + len(page),
         "hasMore": offset + len(page) < len(visible),
     })
 

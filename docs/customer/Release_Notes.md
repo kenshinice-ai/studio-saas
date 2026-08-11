@@ -1,5 +1,31 @@
 # PWE Studio — Release Notes and Acceptance Evidence
 
+## v9.8.7 — ranked showcase archive and content-safe publishing
+
+The public showcase now has one tenant-wide `featured_rank` order. Lower
+numbers appear first, ranks `1–6` define the home-page preview, and an empty
+rank keeps the work in the stable fallback order. The same order is used for
+the independent `/<slug>/showcase` archive and its category-filtered views.
+
+The home page loads at most six selected works. The archive loads twelve
+matching works per page and continues with C-scheme offset pagination or the
+visible “Load more / 加载更多” action, including when a category is selected.
+Each work remains addressable through the shared navigation/footer shell, and
+the lightbox supports keyboard focus, Escape, previous/next and reduced-motion
+preferences.
+
+Studio Admin can edit an optional rank (1–500) and shows the resulting home
+order before publishing. Plan changes preserve all saved showcase records and
+ranks; only the number of Active works eligible for public publication follows
+the plan. The bilingual online manual, Studio Owner guide, and admin copy use
+the same Starter / 入门版, Studio / 工作室版, and Growth / 成长版 terminology.
+
+### Deployment acceptance
+
+This section is completed with the exact source commit, SaaS and Edition
+package hashes, migration/back-up evidence, production deep health, and public
+browser acceptance after the v9.8.7 deployment gate closes.
+
 ## v9.8.6 — online manual: timetable and booking
 
 The bilingual online manual now has a dedicated chapter for the public

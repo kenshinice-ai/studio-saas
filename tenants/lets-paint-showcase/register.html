@@ -55,6 +55,8 @@
     .lang-switch button.active { background:var(--ink); color:var(--bg); }
     main { width:min(1180px,100%); margin:0 auto; padding:var(--space-phi-xl) var(--space-phi-md) var(--space-phi-2xl); display:grid; grid-template-columns:var(--golden-columns-reverse); gap:var(--space-phi-xl); align-items:start; }
     .tenant-credit { padding:0 24px 28px; color:var(--muted); font-size:11px; letter-spacing:.04em; text-align:center; }
+    .register-footer-links { display:flex; justify-content:center; flex-wrap:wrap; gap:8px 20px; margin-bottom:14px; font-size:13px; letter-spacing:0; }
+    .register-footer-links a { min-height:var(--tap-min); display:inline-flex; align-items:center; }
     .intro { padding-top:var(--space-phi-md); position:sticky; top:104px; }
     /* P2-7: the wide tracking and uppercase are Latin devices; under zh they
        only pull the glyphs apart, and 800/900 on a CJK face that ships 300–500
@@ -219,6 +221,12 @@
   </main>
 
   <footer class="tenant-credit">
+    <nav class="register-footer-links" aria-label="公开页面">
+      <a href="/lets-paint-showcase" data-zh="首页" data-en="Home">首页</a>
+      <a href="/lets-paint-showcase/showcase" data-zh="工作室作品" data-en="Selected Work">工作室作品</a>
+      <a href="/lets-paint-showcase/timetable" data-zh="课程安排" data-en="Timetable">课程安排</a>
+      <a href="/lets-paint-showcase#privacy" data-zh="隐私说明" data-en="Privacy">隐私说明</a>
+    </nav>
     © 2026 <span id="footerTenantName">Let&#x27;s Paint Studio</span>
     <span id="producerCredit" hidden> · Powered by Paradise Production</span>
   </footer>

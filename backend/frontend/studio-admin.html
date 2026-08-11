@@ -2775,7 +2775,7 @@
                 </div>
                 <div class="form-group" style="grid-column:1/-1;">
                   <label>Works</label>
-                  <small>The first work is shown larger than the rest — put your strongest piece first. Your plan controls how many active works are public; this page loads 12 at a time. Drafts and archived works stay here, and a work with neither a photo nor a video is not saved.</small>
+                  <small>Set an optional featured rank to choose the public order. Ranks 1–6 appear in the home preview; blank ranks follow the existing order. Your plan controls how many active works are public; the full showcase loads 12 at a time. Drafts and archived works stay here, and a work with neither a photo nor a video is not saved.</small>
                   <p id="showcasePublishNotice" class="showcase-notice" hidden></p>
                   <div id="showcaseDropzone" class="dropzone" tabindex="0" role="button"
                        aria-label="Add photos: drag files here, or press to choose">
@@ -3302,11 +3302,19 @@
     // and is decided when the board is read, so the editor shows everything a
     // studio owns regardless of what it currently pays for.
     const SHOWCASE_CATEGORY_LIMIT = 8;
+    const SHOWCASE_FEATURED_RANK_MAX = 500;
     const SHOWCASE_PUBLICATION_STATES = ['active', 'draft', 'archived'];
 
     function normalizeShowcasePublicationState(value) {
       const state = String(value || '').trim().toLowerCase();
       return SHOWCASE_PUBLICATION_STATES.includes(state) ? state : (state ? 'draft' : 'active');
+    }
+
+    function normalizeShowcaseFeaturedRank(value) {
+      if (value === '' || value === null || value === undefined) return null;
+      const rank = Number(value);
+      return Number.isInteger(rank) && rank >= 1 && rank <= SHOWCASE_FEATURED_RANK_MAX
+        ? rank : null;
     }
 
     function showcaseHasContent(item) {
@@ -3512,6 +3520,7 @@
       const queued = files.map((file) => {
         const item = { image_url: '', category_id: '', title: { zh: '', en: '' },
                        caption: { zh: '', en: '' }, video_url: '',
+                       featured_rank: null,
                        publication_state: !limit || activeSlots < limit ? 'active' : 'draft',
                        _uploading: true, _progress: 0, _error: '', _localPreview: '' };
         if (item.publication_state === 'active') activeSlots += 1;
@@ -3544,6 +3553,10 @@
       const counts = showcaseCountByState();
       const visible = limit ? Math.min(counts.active, limit) : counts.active;
       const hidden = Math.max(counts.active - visible, 0);
+      const ranked = showcaseItems.filter((item) => normalizeShowcaseFeaturedRank(item.featured_rank) !== null);
+      const rankedHidden = limit
+        ? ranked.filter((item) => normalizeShowcaseFeaturedRank(item.featured_rank) > limit).length
+        : 0;
       const isZh = adminIsZh();
       /* Always-on, quiet: how many of your works the site is showing, and
          that we shrink photos on the way in. Both are things a studio would
@@ -3554,21 +3567,21 @@
       if (quota) {
         quota.textContent = limit
           ? (isZh
-            ? `官网公开：${visible}/${limit} 件 active 作品 · 草稿 ${counts.draft} · 已归档 ${counts.archived} · 上传前会将照片缩放至 2400px`
-            : `Published on your site: ${visible} of ${limit} active works · ${counts.draft} draft · ${counts.archived} archived · photos are resized to 2400px before upload`)
+            ? `官网公开：${visible}/${limit} 件 active 作品 · 精选排序 ${ranked.length} 件${rankedHidden ? `（${rankedHidden} 件超出当前额度）` : ''} · 草稿 ${counts.draft} · 已归档 ${counts.archived} · 上传前会将照片缩放至 2400px`
+            : `Published on your site: ${visible} of ${limit} active works · ${ranked.length} ranked${rankedHidden ? ` (${rankedHidden} beyond this plan's slots)` : ''} · ${counts.draft} draft · ${counts.archived} archived · photos are resized to 2400px before upload`)
           : (isZh
-            ? `官网公开 active 作品：${visible} · 草稿 ${counts.draft} · 已归档 ${counts.archived} · 上传前会将照片缩放至 2400px`
-            : `Published active works: ${visible} · ${counts.draft} draft · ${counts.archived} archived · photos are resized to 2400px before upload`);
+            ? `官网公开 active 作品：${visible} · 精选排序 ${ranked.length} 件 · 草稿 ${counts.draft} · 已归档 ${counts.archived} · 上传前会将照片缩放至 2400px`
+            : `Published active works: ${visible} · ${ranked.length} ranked · ${counts.draft} draft · ${counts.archived} archived · photos are resized to 2400px before upload`);
       }
-      if (!hidden && !counts.draft && !counts.archived) {
+      if (!hidden && !rankedHidden && !counts.draft && !counts.archived) {
         notice.hidden = true;
         return;
       }
       notice.hidden = false;
       notice.textContent = limit
         ? (isZh
-          ? `当前套餐最多公开 ${limit} 件 active 作品。当前在线 ${visible} 件；另有 ${hidden} 件 active 作品暂不公开。草稿 ${counts.draft} 件，已归档 ${counts.archived} 件。作品不会因切换套餐而删除；准备好后可将草稿设为 active，或升级套餐。`
-          : `Your plan publishes ${limit} active works. ${visible} are live; ${hidden} active work${hidden === 1 ? '' : 's'} are currently hidden. Draft: ${counts.draft}; archived: ${counts.archived}. Nothing is deleted — mark a draft active or move to a larger plan when ready.`)
+          ? `当前套餐最多公开 ${limit} 件 active 作品。精选排序会优先进入公开范围；当前在线 ${visible} 件，另有 ${hidden} 件 active 作品暂不公开。${rankedHidden ? `${rankedHidden} 件已保存精选排序，但超出当前套餐额度。` : ''}作品不会因切换套餐而删除，升级后会按原排序恢复。草稿 ${counts.draft} 件，已归档 ${counts.archived} 件。`
+          : `Your plan publishes ${limit} active works. Ranked works take priority; ${visible} are live and ${hidden} active work${hidden === 1 ? '' : 's'} are currently hidden. ${rankedHidden ? `${rankedHidden} ranked work${rankedHidden === 1 ? '' : 's'} sit beyond this plan's slots.` : ''} Nothing is deleted, and an upgrade restores the saved order. Draft: ${counts.draft}; archived: ${counts.archived}.`)
         : (isZh
           ? `作品会按状态保存在这里。active ${visible} 件，草稿 ${counts.draft} 件，已归档 ${counts.archived} 件。切换套餐不会删除作品。`
           : `Works are stored here by status. Active: ${visible}; draft: ${counts.draft}; archived: ${counts.archived}. Nothing is deleted when a plan changes.`);
@@ -3666,7 +3679,9 @@
         head.className = 'showcase-card-head';
         const badge = document.createElement('span');
         badge.className = 'showcase-rank';
-        badge.textContent = index === 0 ? 'Lead' : String(index + 1);
+        badge.textContent = item.featured_rank
+          ? `Featured #${item.featured_rank}`
+          : (index === 0 ? 'Order' : `Fallback ${index + 1}`);
         head.appendChild(badge);
         const spacer = document.createElement('span');
         spacer.style.flex = '1';
@@ -3761,6 +3776,33 @@
         stateGroup.append(stateLabel, state);
         body.appendChild(stateGroup);
 
+        const rankGroup = document.createElement('div');
+        rankGroup.className = 'form-group';
+        const rankId = `showcaseFeaturedRank${index}`;
+        const rankLabel = document.createElement('label');
+        rankLabel.setAttribute('for', rankId);
+        rankLabel.textContent = 'Featured rank (optional)';
+        const rank = document.createElement('input');
+        rank.id = rankId;
+        rank.type = 'number';
+        rank.min = '1';
+        rank.max = String(SHOWCASE_FEATURED_RANK_MAX);
+        rank.step = '1';
+        rank.inputMode = 'numeric';
+        rank.placeholder = '—';
+        rank.value = item.featured_rank ?? '';
+        const rankNote = document.createElement('small');
+        rankNote.textContent = 'Lower numbers appear first; ranks 1–6 are the home preview.';
+        rank.addEventListener('input', () => {
+          item.featured_rank = normalizeShowcaseFeaturedRank(rank.value);
+          if (rank.value && item.featured_rank === null) rank.setCustomValidity('Use a whole number from 1 to 500.');
+          else rank.setCustomValidity('');
+          renderShowcasePublishNotice();
+          setSettingsDirty(true);
+        });
+        rankGroup.append(rankLabel, rank, rankNote);
+        body.appendChild(rankGroup);
+
         if (showcaseCategories.length) {
           const catGroup = document.createElement('div');
           catGroup.className = 'form-group';
@@ -3835,6 +3877,7 @@
         .map((item) => ({
           imageUrl: item.image_url || '',
           categoryId: item.category_id || '',
+          featuredRank: normalizeShowcaseFeaturedRank(item.featured_rank),
           publicationState: normalizeShowcasePublicationState(item.publication_state),
           // One filled language serves both, same rule as the FAQ and About.
           title: { zh: (item.title || {}).zh || (item.title || {}).en || '',
@@ -5755,6 +5798,9 @@
         .map((item) => ({
           image_url: item.image_url || item.imageUrl || '',
           category_id: item.category_id || item.categoryId || '',
+          featured_rank: normalizeShowcaseFeaturedRank(
+            item.featured_rank ?? item.featuredRank
+          ),
           publication_state: normalizeShowcasePublicationState(
             item.publication_state || item.publicationState
           ),
@@ -6042,6 +6088,7 @@
           showcaseItems: (website.showcase_items || website.showcaseItems || [])
             .map((item) => [text(item.image_url || item.imageUrl),
                             pairText(item.title),
+                            normalizeShowcaseFeaturedRank(item.featured_rank || item.featuredRank),
                             normalizeShowcasePublicationState(item.publication_state || item.publicationState),
                             (item.video_provider || item.videoProvider || item.videoUrl) ? 'video' : ''])
         }),
@@ -6592,6 +6639,7 @@
       $('showcaseAddItem').addEventListener('click', () => {
         showcaseItems.push({ image_url: '', category_id: '',
           title: { zh: '', en: '' }, caption: { zh: '', en: '' }, video_url: '',
+          featured_rank: null,
           publication_state: defaultShowcasePublicationState() });
         renderShowcaseItems();
         setSettingsDirty(true);

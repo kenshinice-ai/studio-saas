@@ -145,6 +145,24 @@ def test_legacy_items_are_active_and_unknown_states_are_private():
     ]
 
 
+def test_featured_ranks_are_optional_compact_and_tenant_global():
+    profile = api_v1._normalize_website_profile({
+        "showcaseItems": [
+            {"imageUrl": "/m/unranked"},
+            {"imageUrl": "/m/rank-9", "featuredRank": 9},
+            {"imageUrl": "/m/rank-2", "featured_rank": 2},
+            {"imageUrl": "/m/invalid", "featuredRank": 9999},
+            {"imageUrl": "/m/fraction", "featuredRank": 2.5},
+            {"imageUrl": "/m/bool", "featuredRank": True},
+        ],
+    })
+    items = profile["showcase_items"]
+    assert [item["featured_rank"] for item in items] == [None, 2, 1, None, None, None]
+    assert [item["image_url"] for item in api_v1._ordered_showcase_items(items)] == [
+        "/m/rank-2", "/m/rank-9", "/m/unranked", "/m/invalid", "/m/fraction", "/m/bool"
+    ]
+
+
 def test_a_hostile_link_reaches_the_record_as_nothing():
     profile = api_v1._normalize_website_profile({
         "showcaseItems": [{
@@ -339,7 +357,8 @@ def test_the_plan_limit_is_applied_before_the_category_filter():
     source = (REPOSITORY_ROOT / "backend/studiosaas/api_v1.py").read_text(encoding="utf-8")
     block = source[source.index("def public_showcase"):source.index("@api_v1.route(\"/public/<tenant_slug>/gallery\"")]
     assert block.index("active_items = [") < block.index("if wanted and any(")
-    assert "published = active_items[:limit]" in block
+    assert "published = _ordered_showcase_items(active_items)[:limit]" in block
+    assert "page_size = SHOWCASE_PREVIEW_SIZE if surface == \"home\" else SHOWCASE_PAGE_SIZE" in block
 
 
 def test_the_admin_round_trip_preserves_publication_state():
@@ -391,6 +410,34 @@ def test_the_board_is_fetched_separately_from_brand():
     portal = PORTAL.read_text(encoding="utf-8")
     assert "fetch(API + '/showcase'" in portal
     assert "loadShowcase('', 0);" in portal
+
+
+def test_the_home_board_requests_the_six_item_preview_and_links_to_the_archive():
+    portal = PORTAL.read_text(encoding="utf-8")
+    assert 'id="showcaseMore" href="/{{TENANT_SLUG}}/showcase"' in portal
+    assert "?surface=home&offset=" in portal
+    assert "查看全部作品" in portal
+
+
+def test_the_standalone_showcase_surface_has_c_pagination_and_shared_shell():
+    page = (REPOSITORY_ROOT / "tenant-template/showcase.html").read_text(encoding="utf-8")
+    assert 'id="showcaseGrid"' in page
+    assert 'id="loadMore"' in page
+    assert "IntersectionObserver" in page
+    assert "offset" in page and "category" in page
+    assert 'aria-current="page"' in page
+    assert '/{{TENANT_SLUG}}/showcase' in page
+    assert 'id="footTimetable"' in page
+
+
+def test_featured_rank_migration_is_additive_and_idempotent():
+    migration = (REPOSITORY_ROOT / "backend/db/migrations/0030_showcase_featured_rank.sql").read_text(encoding="utf-8")
+    assert "jsonb_array_elements" in migration
+    assert "featured_rank" in migration
+    assert "jsonb_build_object('featured_rank', NULL)" in migration
+    # The guard only fills missing keys; it must not reorder or delete records.
+    assert "NOT (item ? 'featured_rank')" in migration
+    assert "ORDER BY ordinal" in migration
 
 
 # ── Lightbox ────────────────────────────────────────────────────────────────

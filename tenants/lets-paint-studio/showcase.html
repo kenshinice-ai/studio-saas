@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title id="pageDocumentTitle">Let&#x27;s Paint Studio · 工作室作品</title>
+  <meta id="pageDescription" name="description" content="工作室精选作品展示">
+  <meta name="robots" content="index,follow">
+  <meta name="theme-color" content="#F3EFEA">
+  <link id="canonicalUrl" rel="canonical" href="/lets-paint-studio/showcase">
+  <link id="altLangZh" rel="alternate" hreflang="zh-CN" href="/lets-paint-studio/showcase">
+  <link id="altLangEn" rel="alternate" hreflang="en" href="/lets-paint-studio/showcase?lang=en">
+  <link id="altLangDefault" rel="alternate" hreflang="x-default" href="/lets-paint-studio/showcase">
+  <meta id="ogTitle" property="og:title" content="Let&#x27;s Paint Studio · 工作室作品">
+  <meta id="ogDescription" property="og:description" content="工作室精选作品展示">
+  <meta id="ogUrl" property="og:url" content="/lets-paint-studio/showcase">
+  <meta id="ogType" property="og:type" content="website">
+  <meta id="ogImage" property="og:image" content="">
+  <meta id="ogLocale" property="og:locale" content="zh_CN">
+  <meta id="ogLocaleAlternate" property="og:locale:alternate" content="en_US">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <script src="/assets/ui-common.js?v=__APP_VERSION__"></script>
+  <script src="/assets/portal-brand.js?v=__APP_VERSION__"></script>
+  <script src="/assets/public-analytics.js?v=__APP_VERSION__"></script>
+  <link rel="stylesheet" href="/assets/ui-tokens.css?v=__APP_VERSION__">
+  <link rel="stylesheet" href="/assets/portal-theme.css?v=__APP_VERSION__">
+  <link rel="stylesheet" href="/assets/brand-system.css?v=__APP_VERSION__">
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;color:var(--ink);background:var(--bg);font-family:var(--font-body);line-height:1.7;-webkit-font-smoothing:antialiased}
+    a{color:var(--clay);text-decoration:none;font-weight:500}
+    .skip-link{position:absolute;left:12px;top:-60px;z-index:100;padding:10px 14px;border-radius:var(--radius);background:var(--ink);color:var(--bg)}
+    .skip-link:focus{top:12px}
+    nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+    .navrow{display:flex;align-items:center;justify-content:space-between;gap:16px;height:74px;width:min(1180px,100%);margin:0 auto;padding:0 var(--space-phi-md)}
+    .brand{display:flex;align-items:center;gap:12px;min-width:0;min-height:var(--tap-min);color:var(--ink)}
+    .brand img{display:none;height:34px;width:auto}
+    .brand .bn{font-size:16px;letter-spacing:.04em;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .navlinks{display:flex;align-items:center;gap:26px}
+    .navlinks a{position:relative;padding:4px 0;color:var(--ink2);font-size:13px;letter-spacing:.02em}
+    .navlinks a::after{content:"";position:absolute;left:0;bottom:0;width:0;height:1px;background:var(--clay);transition:width .25s}
+    .navlinks a:hover::after,.navlinks a[aria-current="page"]::after{width:100%}
+    .navlinks a[aria-current="page"]{color:var(--ink)}
+    .navcta{display:inline-flex;align-items:center;min-height:var(--tap-min);padding:10px 20px;border:1px solid var(--ink);border-radius:var(--radius-pill)}
+    .navcta:hover{background:var(--ink);color:var(--bg)}
+    .navcta::after{display:none!important}
+    .langtog{display:inline-flex;overflow:hidden;border:1px solid var(--line);border-radius:var(--radius-pill)}
+    .langtog button{min-width:var(--tap-min);min-height:var(--tap-min);padding:8px 12px;border:0;background:none;color:var(--muted);font:inherit;font-size:13px;cursor:pointer}
+    .langtog button.on{background:var(--ink);color:var(--bg)}
+    .menu-btn{display:none;width:var(--tap-min);height:var(--tap-min);align-items:center;justify-content:center;padding:0;border:0;background:none;color:var(--ink);cursor:pointer}
+    .menu-btn svg{width:22px;height:22px}
+    main{width:min(1180px,100%);margin:0 auto;padding:var(--space-phi-2xl) var(--space-phi-md) var(--space-phi-xl)}
+    .intro{max-width:760px;margin-bottom:var(--space-phi-xl)}
+    .eyebrow{color:var(--muted);font-size:11px;letter-spacing:.04em;font-weight:500}
+    html[lang="en"] .eyebrow{letter-spacing:.28em;text-transform:uppercase;font-weight:400}
+    h1{margin:var(--space-phi-sm) 0;font-family:var(--font-display);font-size:clamp(30px,6vw,58px);font-weight:500;line-height:1.06;letter-spacing:.01em;text-wrap:balance}
+    .lead{max-width:var(--brand-reading-measure);margin:0;color:var(--ink2);font-size:16px;text-wrap:pretty}
+    .count{margin-top:12px;color:var(--muted);font-size:13px}
+    .filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:var(--space-phi-lg)}
+    .filter{min-height:var(--tap-min);padding:8px 16px;border:1px solid var(--line-strong);border-radius:var(--radius-pill);background:transparent;color:var(--ink2);font:inherit;font-size:13px;cursor:pointer}
+    .filter:hover,.filter[aria-pressed="true"]{border-color:var(--clay);background:var(--accent-soft);color:var(--on-accent-soft)}
+    .status{min-height:24px;margin:-8px 0 12px;color:var(--muted);font-size:13px}
+    .showcase-grid{display:grid;grid-template-columns:var(--ui-golden-columns,minmax(0,1.618fr) minmax(0,1fr));gap:var(--space-phi-lg) var(--space-phi-md)}
+    .sc-item{min-width:0;margin:0}
+    .sc-item:first-child{grid-row:span 2}
+    .sc-frame{position:relative;overflow:hidden;aspect-ratio:1;border-radius:var(--radius-card);background:var(--panel);border:1px solid var(--line)}
+    .sc-item:first-child .sc-frame{aspect-ratio:4/5}
+    .sc-frame img{display:block;width:100%;height:100%;object-fit:cover;transition:transform .3s ease}
+    .sc-item:hover .sc-frame img{transform:scale(1.025)}
+    .sc-open,.sc-play{position:absolute;inset:0;width:100%;height:100%;border:0;background:transparent;cursor:pointer}
+    .sc-play{inset:auto;right:14px;bottom:14px;width:46px;height:46px;border-radius:50%;background:var(--clay);color:var(--on-accent);display:grid;place-items:center}
+    .sc-play svg{width:19px;height:19px;margin-left:2px}
+    .sc-open:focus-visible,.sc-play:focus-visible,.filter:focus-visible,.pager:focus-visible{outline:2px solid var(--focus-ring);outline-offset:3px}
+    .sc-cap{padding:12px 2px 0}
+    .sc-cap h2{margin:0;font-family:var(--font-display);font-size:20px;font-weight:500;line-height:1.25}
+    .sc-cap p{margin:5px 0 0;color:var(--ink2);font-size:13px;line-height:1.6}
+    .sc-item:nth-child(n+2) .sc-cap h2{font-size:17px}
+    .pager{display:block;width:100%;min-height:var(--tap-min);margin-top:var(--space-phi-lg);padding:10px 18px;border:1px solid var(--line-strong);border-radius:var(--radius-pill);background:transparent;color:var(--ink);font:inherit;font-size:13px;cursor:pointer}
+    .pager[hidden]{display:none}
+    .empty{padding:var(--space-phi-xl);border:1px dashed var(--line-strong);border-radius:var(--radius-card);color:var(--muted);text-align:center}
+    .empty a{display:inline-flex;align-items:center;min-height:var(--tap-min);margin-top:8px}
+    footer{margin-top:var(--space-phi-2xl);padding:52px 0 40px;background:var(--bg2);border-top:1px solid var(--line)}
+    .foot{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:24px;width:min(1180px,100%);margin:0 auto;padding:0 var(--space-phi-md)}
+    .foot .fn{display:block;margin-bottom:10px;font-family:var(--font-display);font-size:20px;font-weight:500;letter-spacing:.04em}
+    .foot .fcontact,.foot .cp{margin:0;color:var(--ink2);font-size:13px}
+    .foot .fl{display:flex;flex-wrap:wrap;gap:8px 22px;font-size:13px}
+    .foot .fl a{display:inline-flex;align-items:center;min-height:var(--tap-min);color:var(--ink2)}
+    dialog.lightbox{width:min(1080px,94vw);padding:0;border:1px solid var(--line);border-radius:var(--radius-card);background:var(--panel);color:var(--ink)}
+    dialog.lightbox::backdrop{background:var(--scrim)}
+    .lb-head,.lb-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line)}
+    .lb-foot{border-top:1px solid var(--line);border-bottom:0}
+    .lb-title{font-family:var(--font-display);font-size:18px;font-weight:500}
+    .lb-close,.lb-nav{min-width:var(--tap-min);min-height:var(--tap-min);padding:8px 14px;border:1px solid var(--line-strong);border-radius:var(--radius-pill);background:transparent;color:var(--ink);font:inherit;cursor:pointer}
+    .lb-stage{display:grid;place-items:center;min-height:min(68vh,680px);padding:18px;background:var(--bg)}
+    .lb-stage img,.lb-stage iframe{display:block;width:min(100%,980px);max-height:68vh;aspect-ratio:auto;border:0;object-fit:contain}
+    .lb-counter{color:var(--muted);font-size:13px}
+    @media(max-width:900px){.navlinks{display:none}.menu-btn{display:flex}.showcase-grid{grid-template-columns:1fr 1fr}.sc-item:first-child{grid-row:auto;grid-column:1/-1}.sc-item:first-child .sc-frame{aspect-ratio:16/10}}
+    @media(max-width:640px){.navrow{padding:0 var(--space-phi-sm)}main{padding:var(--space-phi-xl) var(--space-phi-sm) var(--space-phi-lg)}.showcase-grid{grid-template-columns:1fr}.sc-item:first-child .sc-frame{aspect-ratio:4/5}.foot{padding:0 var(--space-phi-sm)}.foot .fl{width:100%}.lb-head,.lb-foot{padding-inline:12px}}
+    @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}.sc-item:hover .sc-frame img{transform:none}}
+  </style>
+</head>
+<body data-tenant-slug="lets-paint-studio">
+<a class="skip-link" href="#main-content" data-zh="跳到主要内容" data-en="Skip to content">跳到主要内容</a>
+<nav>
+  <div class="navrow">
+    <a class="brand" href="/lets-paint-studio" aria-label="Let&#x27;s Paint Studio"><img id="tenantLogo" alt=""><span class="bn" id="tenantName">Let&#x27;s Paint Studio</span></a>
+    <div class="navlinks">
+      <a id="navPrincipal" href="/lets-paint-studio#home:artist" data-zh="主理人" data-en="Principal" style="display:none">主理人</a>
+      <a id="navShowcase" href="/lets-paint-studio/showcase" aria-current="page" data-zh="工作室作品" data-en="Selected Work">工作室作品</a>
+      <a id="navCourses" href="/lets-paint-studio#home:courses" data-zh="课程" data-en="Courses" style="display:none">课程</a>
+      <a id="navTimetable" href="/lets-paint-studio/timetable" data-zh="课程安排" data-en="Timetable" style="display:none">课程安排</a>
+      <a id="navGallery" href="/lets-paint-studio#home:gallery" data-zh="学员作品" data-en="Student Works" style="display:none">学员作品</a>
+      <a id="navFaq" href="/lets-paint-studio#home:faq" data-zh="常见问题" data-en="FAQ" style="display:none">常见问题</a>
+      <a id="navStudent" href="/lets-paint-studio#my" data-zh="学员专区" data-en="Student Login" style="display:none">学员专区</a>
+      <a class="navcta" href="/lets-paint-studio#join" data-zh="预约体验" data-en="Book a Trial">预约体验</a>
+      <span class="langtog" role="group" aria-label="语言 / Language"><button type="button" data-language="zh" aria-pressed="true">中</button><button type="button" data-language="en" aria-pressed="false">EN</button></span>
+    </div>
+    <button class="menu-btn" type="button" aria-label="打开导航菜单" data-en-aria="Open navigation menu" aria-controls="mnav" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5"/></svg></button>
+  </div>
+  <div id="mnav" style="display:none;flex-direction:column;background:var(--bg);border-top:1px solid var(--line);padding:14px 28px 20px;gap:14px">
+    <a id="mnavPrincipal" href="/lets-paint-studio#home:artist" data-zh="主理人" data-en="Principal" style="display:none">主理人</a>
+    <a id="mnavShowcase" href="/lets-paint-studio/showcase" aria-current="page" data-zh="工作室作品" data-en="Selected Work">工作室作品</a>
+    <a id="mnavCourses" href="/lets-paint-studio#home:courses" data-zh="课程" data-en="Courses" style="display:none">课程</a>
+    <a id="mnavTimetable" href="/lets-paint-studio/timetable" data-zh="课程安排" data-en="Timetable" style="display:none">课程安排</a>
+    <a id="mnavGallery" href="/lets-paint-studio#home:gallery" data-zh="学员作品" data-en="Student Works" style="display:none">学员作品</a>
+    <a id="mnavFaq" href="/lets-paint-studio#home:faq" data-zh="常见问题" data-en="FAQ" style="display:none">常见问题</a>
+    <a id="mnavStudent" href="/lets-paint-studio#my" data-zh="学员专区" data-en="Student Login" style="display:none">学员专区</a>
+    <a href="/lets-paint-studio#join" data-zh="预约体验" data-en="Book a Trial">预约体验</a>
+    <span class="langtog" role="group" aria-label="语言 / Language" style="align-self:flex-start"><button type="button" data-language="zh" aria-pressed="true">中</button><button type="button" data-language="en" aria-pressed="false">EN</button></span>
+  </div>
+</nav>
+
+<main id="main-content" tabindex="-1">
+  <section class="intro">
+    <p class="eyebrow" id="pageEyebrow" data-zh="工作室作品" data-en="Selected Work">工作室作品</p>
+    <h1 id="pageTitle" data-zh="出自这间工作室" data-en="Work from this studio">出自这间工作室</h1>
+    <p id="pageLead" class="lead"></p>
+    <p id="pageCount" class="count" aria-live="polite"></p>
+  </section>
+  <div id="filters" class="filters" role="group" aria-label="作品分类"></div>
+  <p id="status" class="status" role="status" aria-live="polite"></p>
+  <div id="showcaseGrid" class="showcase-grid" aria-live="polite"></div>
+  <div id="sentinel" aria-hidden="true" style="height:1px"></div>
+  <button id="loadMore" class="pager" type="button" hidden>加载更多</button>
+  <div id="emptyState" class="empty" hidden>
+    <p id="emptyText" data-zh="目前还没有公开的工作室作品。" data-en="No studio work is published at the moment.">目前还没有公开的工作室作品。</p>
+    <a href="/lets-paint-studio" data-zh="返回工作室网站 →" data-en="Back to the studio website →">返回工作室网站 →</a>
+  </div>
+</main>
+
+<footer>
+  <div class="foot">
+    <div>
+      <span class="fn" id="footName">Let&#x27;s Paint Studio</span>
+      <p class="fcontact" id="footContact"></p>
+      <p class="cp">© 2026 <span id="footName2">Let&#x27;s Paint Studio</span><span id="producerCredit" hidden> · Powered by Paradise Production</span></p>
+    </div>
+    <div class="fl">
+      <a href="/lets-paint-studio" data-zh="首页" data-en="Home">首页</a>
+      <a href="/lets-paint-studio/showcase" data-zh="工作室作品" data-en="Selected Work">工作室作品</a>
+      <a href="/lets-paint-studio#home:courses" data-zh="课程" data-en="Courses">课程</a>
+      <a id="footTimetable" href="/lets-paint-studio/timetable" data-zh="课程安排" data-en="Timetable" style="display:none">课程安排</a>
+      <a href="/lets-paint-studio#home:gallery" data-zh="学员作品" data-en="Student Works">学员作品</a>
+      <a href="/lets-paint-studio#my" data-zh="学员专区" data-en="Student Login">学员专区</a>
+      <a href="/lets-paint-studio#join" data-zh="预约体验" data-en="Book a Trial">预约体验</a>
+      <a href="/lets-paint-studio#privacy" data-zh="隐私说明" data-en="Privacy" style="color:var(--muted)">隐私说明</a>
+      <a href="/lets-paint-studio/cms" data-zh="工作人员入口" data-en="Staff (CMS)" style="color:var(--muted)">工作人员入口</a>
+      <a href="/lets-paint-studio/studio-admin" data-zh="管理后台" data-en="Studio Admin" style="color:var(--muted)">管理后台</a>
+    </div>
+  </div>
+</footer>
+
+<dialog id="lightbox" class="lightbox" aria-labelledby="lbTitle">
+  <div class="lb-head"><div id="lbTitle" class="lb-title"></div><button id="lbClose" class="lb-close" type="button" data-zh="关闭" data-en="Close">关闭</button></div>
+  <div id="lbStage" class="lb-stage"></div>
+  <div class="lb-foot"><button id="lbPrev" class="lb-nav" type="button" data-zh="上一幅" data-en="Previous">上一幅</button><span id="lbCounter" class="lb-counter"></span><button id="lbNext" class="lb-nav" type="button" data-zh="下一幅" data-en="Next">下一幅</button></div>
+</dialog>
+
+<script>
+  'use strict';
+  const TENANT_SLUG = 'lets-paint-studio';
+  const TENANT_NAME = "Let's Paint Studio";
+  const API = `/v1/public/${encodeURIComponent(TENANT_SLUG)}`;
+  const esc = window.StudioSaaS.esc;
+  const params = new URLSearchParams(location.search);
+  const normaliseLang = (value) => String(value || '').toLowerCase().startsWith('en') ? 'en' : String(value || '').toLowerCase().startsWith('zh') ? 'zh' : '';
+  let language = normaliseLang(params.get('lang')) || (() => { try { return normaliseLang(localStorage.getItem(`pwe_lang_${TENANT_SLUG}`)); } catch (_) { return ''; } })() || normaliseLang(navigator.language) || 'zh';
+  const state = { brand: {}, category: String(params.get('category') || '').trim().slice(0,24), items: [], total: 0, offset: 0, hasMore: false, loading: false, requestId: 0, lightboxIndex: -1 };
+  let abortController = null;
+  const T = (zh, en) => language === 'en' ? en : zh;
+  const localized = (value, fallback = '') => {
+    if (value && typeof value === 'object') return value[language] || value.en || value.zh || fallback;
+    return String(value == null ? '' : value).trim() || fallback;
+  };
+  const websiteOf = () => state.brand.websiteProfile || state.brand.website_profile || {};
+  const setVisible = (ids, visible) => ids.forEach((id) => { const node = document.getElementById(id); if (node) node.style.display = visible ? '' : 'none'; });
+  const setStatus = (text) => { document.getElementById('status').textContent = text || ''; };
+
+  function updateMeta() {
+    const path = location.pathname;
+    const next = new URLSearchParams();
+    if (state.category) next.set('category', state.category);
+    if (language === 'en') next.set('lang', 'en');
+    const query = next.toString();
+    const url = `${location.origin}${path}${query ? `?${query}` : ''}`;
+    document.getElementById('canonicalUrl').href = url;
+    document.getElementById('altLangZh').href = `${location.origin}${path}${state.category ? `?category=${encodeURIComponent(state.category)}` : ''}`;
+    document.getElementById('altLangEn').href = `${location.origin}${path}?${state.category ? `category=${encodeURIComponent(state.category)}&` : ''}lang=en`;
+    document.getElementById('altLangDefault').href = document.getElementById('altLangZh').href;
+    document.getElementById('ogUrl').content = url;
+    const leadImage = state.items[0] && (state.items[0].image_url || state.items[0].imageUrl);
+    try { document.getElementById('ogImage').content = leadImage ? new URL(leadImage, location.origin).href : ''; } catch (_) { document.getElementById('ogImage').content = ''; }
+    document.getElementById('ogLocale').content = language === 'en' ? 'en_US' : 'zh_CN';
+    document.getElementById('ogLocaleAlternate').content = language === 'en' ? 'zh_CN' : 'en_US';
+    try { history.replaceState(null, '', `${path}${query ? `?${query}` : ''}`); } catch (_) {}
+  }
+
+  function applyLanguage() {
+    document.documentElement.lang = language === 'en' ? 'en' : 'zh-CN';
+    document.querySelectorAll('[data-zh][data-en]').forEach((node) => { node.textContent = node.dataset[language]; });
+    document.querySelectorAll('[data-language]').forEach((button) => { const active = button.dataset.language === language; button.classList.toggle('on', active); button.setAttribute('aria-pressed', active ? 'true' : 'false'); });
+    document.querySelector('.menu-btn').setAttribute('aria-label', T('打开导航菜单', 'Open navigation menu'));
+    document.getElementById('filters').setAttribute('aria-label', T('作品分类', 'Work categories'));
+    document.getElementById('loadMore').textContent = T('加载更多', 'Load more');
+    const website = websiteOf();
+    const label = localized(website.showcase_label || website.showcaseLabel, T('工作室作品', 'Selected Work'));
+    const title = localized(website.showcase_title || website.showcaseTitle, T('出自这间工作室', 'Work from this studio'));
+    const lead = localized(website.showcase_lead || website.showcaseLead, '');
+    document.getElementById('pageEyebrow').textContent = label;
+    document.getElementById('pageTitle').textContent = title;
+    document.getElementById('pageLead').textContent = lead;
+    document.getElementById('pageCount').textContent = state.total ? T(`${state.total} 件公开作品`, `${state.total} published works`) : '';
+    updateMeta();
+    renderFilters();
+    renderGrid();
+    try { localStorage.setItem(`pwe_lang_${TENANT_SLUG}`, language); } catch (_) {}
+  }
+
+  function setMobileNav(open) {
+    const menu = document.getElementById('mnav');
+    const button = document.querySelector('.menu-btn');
+    menu.style.display = open ? 'flex' : 'none';
+    button.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  document.querySelector('.menu-btn').addEventListener('click', () => setMobileNav(document.getElementById('mnav').style.display === 'none'));
+  document.getElementById('mnav').addEventListener('click', (event) => { if (event.target.closest('a')) setMobileNav(false); });
+  document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && document.getElementById('mnav').style.display !== 'none') { setMobileNav(false); document.querySelector('.menu-btn').focus(); } });
+  document.querySelectorAll('[data-language]').forEach((button) => button.addEventListener('click', () => { language = button.dataset.language === 'en' ? 'en' : 'zh'; applyLanguage(); }));
+
+  function renderFilters() {
+    const host = document.getElementById('filters');
+    host.textContent = '';
+    const categories = (state.data && state.data.categories) || [];
+    if (categories.length < 2) { host.hidden = true; return; }
+    host.hidden = false;
+    [{ id: '', label: { zh: '全部', en: 'All' } }].concat(categories).forEach((category) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'filter';
+      button.textContent = localized(category.label, category.id);
+      button.setAttribute('aria-pressed', state.category === category.id ? 'true' : 'false');
+      button.addEventListener('click', () => loadCategory(category.id));
+      host.appendChild(button);
+    });
+  }
+
+  function tile(item, index) {
+    const figure = document.createElement('figure');
+    figure.className = 'sc-item';
+    const frame = document.createElement('div');
+    frame.className = 'sc-frame';
+    const image = String(item.image_url || item.imageUrl || '');
+    const video = String(item.video_embed_url || item.videoEmbedUrl || '');
+    if (image) {
+      const img = document.createElement('img');
+      img.src = image; img.alt = localized(item.title, T('工作室作品', 'Studio work')); img.loading = index === 0 ? 'eager' : 'lazy'; img.decoding = 'async';
+      img.onerror = () => img.remove();
+      frame.appendChild(img);
+    }
+    if (image || video) {
+      const open = document.createElement('button');
+      open.type = 'button'; open.className = video ? 'sc-play' : 'sc-open';
+      open.setAttribute('aria-label', `${T('查看', 'View')}${localized(item.title) ? `${T('：', ': ')}${localized(item.title)}` : ''}`);
+      if (video) open.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8.4 4.8v14.4a.9.9 0 001.38.76l11.2-7.2a.9.9 0 000-1.52L9.78 4.04A.9.9 0 008.4 4.8z"/></svg>';
+      open.addEventListener('click', () => openLightbox(state.items.indexOf(item)));
+      frame.appendChild(open);
+    }
+    figure.appendChild(frame);
+    const title = localized(item.title); const caption = localized(item.caption);
+    if (title || caption) { const cap = document.createElement('figcaption'); cap.className = 'sc-cap'; if (title) { const h = document.createElement('h2'); h.textContent = title; cap.appendChild(h); } if (caption) { const p = document.createElement('p'); p.textContent = caption; cap.appendChild(p); } figure.appendChild(cap); }
+    return figure;
+  }
+
+  function renderGrid() {
+    const grid = document.getElementById('showcaseGrid');
+    grid.textContent = '';
+    state.items.forEach((item, index) => grid.appendChild(tile(item, index)));
+    document.getElementById('pageCount').textContent = state.total ? T(`${state.total} 件公开作品`, `${state.total} published works`) : '';
+    document.getElementById('loadMore').hidden = !state.hasMore || state.loading;
+    const empty = !state.loading && (!state.data || !state.data.enabled || !state.total);
+    document.getElementById('emptyState').hidden = !empty;
+    if (empty) { grid.hidden = true; document.getElementById('filters').hidden = true; }
+    else { grid.hidden = false; }
+  }
+
+  async function fetchPage(category, offset, replace) {
+    if (state.loading) return;
+    state.loading = true;
+    const requestId = ++state.requestId;
+    abortController?.abort();
+    abortController = new AbortController();
+    setStatus(offset ? T('正在加载更多作品…', 'Loading more work…') : T('正在加载作品…', 'Loading selected work…'));
+    renderGrid();
+    const query = new URLSearchParams();
+    query.set('offset', String(offset || 0));
+    if (category) query.set('category', category);
+    try {
+      const response = await fetch(`${API}/showcase?${query}`, { signal: abortController.signal, cache: 'no-store' });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || T('作品暂时无法加载。', 'The showcase could not be loaded.'));
+      if (requestId !== state.requestId) return;
+      state.data = data;
+      state.category = data.category || '';
+      state.total = Number(data.total || 0);
+      state.offset = Number(data.nextOffset ?? (offset + (data.items || []).length));
+      state.hasMore = Boolean(data.hasMore);
+      state.items = replace ? (data.items || []) : state.items.concat(data.items || []);
+      setStatus(state.hasMore ? T('继续下滑可加载更多作品。', 'Scroll to load more work.') : T('已显示全部符合条件的作品。', 'All matching work is shown.'));
+      applyLanguage();
+    } catch (error) {
+      if (error.name !== 'AbortError') { setStatus(error.message || T('作品暂时无法加载，请重试。', 'The showcase is unavailable. Please retry.')); renderGrid(); }
+    } finally {
+      if (requestId === state.requestId) { state.loading = false; renderGrid(); }
+    }
+  }
+  function loadCategory(category) { state.category = String(category || '').trim(); state.items = []; state.total = 0; state.offset = 0; state.hasMore = false; fetchPage(state.category, 0, true); }
+  function loadNext() { if (!state.hasMore || state.loading) return; fetchPage(state.category, state.offset, false); }
+  document.getElementById('loadMore').addEventListener('click', loadNext);
+  const observer = new IntersectionObserver((entries) => { if (entries.some((entry) => entry.isIntersecting)) loadNext(); }, { rootMargin: '420px 0px' });
+  observer.observe(document.getElementById('sentinel'));
+
+  function renderLightbox() {
+    const item = state.items[state.lightboxIndex]; if (!item) return;
+    const stage = document.getElementById('lbStage'); stage.textContent = '';
+    const video = String(item.video_embed_url || item.videoEmbedUrl || '');
+    if (video) { const iframe = document.createElement('iframe'); iframe.src = video; iframe.title = localized(item.title, T('工作室作品视频', 'Studio work video')); iframe.allowFullscreen = true; iframe.referrerPolicy = 'strict-origin-when-cross-origin'; stage.appendChild(iframe); }
+    else if (item.image_url || item.imageUrl) { const image = document.createElement('img'); image.src = item.image_url || item.imageUrl; image.alt = localized(item.title, T('工作室作品', 'Studio work')); stage.appendChild(image); }
+    document.getElementById('lbTitle').textContent = localized(item.title);
+    document.getElementById('lbCounter').textContent = `${state.lightboxIndex + 1} / ${state.items.length}${state.hasMore ? ' +' : ''}`;
+    document.getElementById('lbPrev').hidden = state.items.length < 2;
+    document.getElementById('lbNext').hidden = state.items.length < 2 && !state.hasMore;
+  }
+  function openLightbox(index) { if (index < 0) return; state.lightboxIndex = index; const dialog = document.getElementById('lightbox'); renderLightbox(); if (typeof dialog.showModal === 'function') dialog.showModal(); else dialog.setAttribute('open', ''); document.body.style.overflow = 'hidden'; }
+  function closeLightbox() { const dialog = document.getElementById('lightbox'); if (dialog.open) dialog.close(); else dialog.removeAttribute('open'); document.getElementById('lbStage').textContent = ''; document.body.style.overflow = ''; state.lightboxIndex = -1; }
+  async function moveLightbox(step) { const next = state.lightboxIndex + step; if (next >= 0 && next < state.items.length) { state.lightboxIndex = next; renderLightbox(); return; } if (step > 0 && state.hasMore) { await fetchPage(state.category, state.offset, false); if (state.lightboxIndex + 1 < state.items.length) { state.lightboxIndex += 1; renderLightbox(); } } }
+  document.getElementById('lbClose').addEventListener('click', closeLightbox); document.getElementById('lbPrev').addEventListener('click', () => moveLightbox(-1)); document.getElementById('lbNext').addEventListener('click', () => moveLightbox(1));
+  document.getElementById('lightbox').addEventListener('cancel', (event) => { event.preventDefault(); closeLightbox(); });
+  document.getElementById('lightbox').addEventListener('click', (event) => { if (event.target.id === 'lightbox') closeLightbox(); });
+  document.addEventListener('keydown', (event) => { const dialog = document.getElementById('lightbox'); if (!dialog.open) return; if (event.key === 'ArrowLeft') moveLightbox(-1); if (event.key === 'ArrowRight') moveLightbox(1); });
+
+  async function loadBrand() {
+    const response = await fetch(`${API}/brand`, { cache: 'no-store' });
+    const data = await response.json(); state.brand = data.brand || {};
+    window.StudioSaaS.applyVisualTheme(state.brand);
+    const website = websiteOf();
+    const principal = state.brand.principalProfile || state.brand.principal_profile || {};
+    const name = state.brand.name || TENANT_NAME;
+    document.getElementById('tenantName').textContent = name; document.getElementById('footName').textContent = name; document.getElementById('footName2').textContent = name;
+    document.getElementById('footContact').textContent = [state.brand.contact_phone || state.brand.contactPhone, state.brand.contact_email || state.brand.contactEmail, state.brand.address].filter(Boolean).join(' · ');
+    const rawLogo = state.brand.logo_url || state.brand.logoUrl || ''; const logo = document.getElementById('tenantLogo'); if (rawLogo && !['/logo.png','/logo-light.png','/favicon.svg'].includes(rawLogo)) { logo.src = rawLogo; logo.style.display = 'block'; }
+    const hasPrincipal = String(website.show_principal ?? website.showPrincipal ?? true) !== 'false' && Boolean(principal.bio || principal.name);
+    setVisible(['navPrincipal','mnavPrincipal'], hasPrincipal);
+    setVisible(['navCourses','mnavCourses'], String(website.show_courses ?? website.showCourses ?? true) !== 'false');
+    setVisible(['navTimetable','mnavTimetable','footTimetable'], String(website.show_timetable ?? website.showTimetable ?? false) === 'true');
+    setVisible(['navGallery','mnavGallery'], String(website.show_gallery ?? website.showGallery ?? true) !== 'false');
+    setVisible(['navFaq','mnavFaq'], String(website.show_faq ?? website.showFaq ?? true) !== 'false');
+    setVisible(['navStudent','mnavStudent'], String(website.show_student_area ?? website.showStudentArea ?? true) !== 'false');
+    const title = localized(website.showcase_title || website.showcaseTitle, T('工作室作品', 'Selected Work'));
+    const description = localized(website.showcase_lead || website.showcaseLead, T('工作室精选作品展示', 'Selected work from this studio.'));
+    document.getElementById('pageDocumentTitle').textContent = `${name} · ${title}`; document.getElementById('pageDescription').content = description; document.getElementById('ogTitle').content = `${name} · ${title}`; document.getElementById('ogDescription').content = description;
+    applyLanguage();
+  }
+  fetch('/v1/health', { cache: 'no-store' }).then((r) => r.json()).then((health) => { document.getElementById('producerCredit').hidden = !health.showProducerCredit; }).catch(() => {});
+  loadBrand().catch(() => { setStatus(T('品牌资料暂时无法加载。', 'Brand details are temporarily unavailable.')); });
+  fetchPage(state.category, 0, true);
+</script>
+</body>
+</html>

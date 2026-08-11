@@ -122,7 +122,7 @@ SESSION_SECRET_FILE = _data_path('.session_secret')
 PW_FILE       = _data_path('.cms_password')
 app.config['PHOTO_DIR'] = PHOTO_DIR
 MAX_BACKUPS   = 30   # 1 backup/hr rate limit → ~30 hours of rolling coverage
-APP_VERSION   = '9.8.6'
+APP_VERSION   = '9.8.7'
 app.config['APP_VERSION'] = APP_VERSION
 ASSET_ROOT = os.path.join(app.root_path, 'frontend', 'assets')
 ASSET_MANIFEST_PATH = os.path.join(ASSET_ROOT, 'asset-manifest.json')
@@ -1522,6 +1522,18 @@ def serve_tenant_timetable(tenant_slug):
     published" instead, which is the true statement.
     """
     return _tenant_page(tenant_slug, 'timetable.html')
+
+@app.route('/<tenant_slug>/showcase')
+def serve_tenant_showcase(tenant_slug):
+    """Serve the standalone public work archive for one tenant.
+
+    The shell is intentionally served even when the studio switch is off. The
+    public showcase API owns the publication decision and returns a branded
+    empty/disabled state, which keeps old shared links stable instead of
+    turning a previously valid URL into a misleading server 404.
+    """
+
+    return _tenant_page(tenant_slug, 'showcase.html')
 
 # ── G6: PWA assets (public — needed before login for install/icon) ───────────
 @app.route('/manifest.json')

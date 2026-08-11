@@ -23,7 +23,7 @@ EXISTING_TENANTS = tuple(sorted(
 ))
 
 
-@pytest.mark.parametrize("slug", ["cms", "platform-admin"])
+@pytest.mark.parametrize("slug", ["cms", "platform-admin", "showcase"])
 def test_control_plane_and_neutral_entry_slugs_are_reserved(slug):
     """A tenant workspace must never shadow a platform or neutral entry route."""
 
@@ -52,6 +52,7 @@ def test_new_tenant_workspace_generates_public_surface_files(tmp_path):
     # Studio Admin still has the file — the switch decides whether the endpoint
     # answers, not whether the shell exists.
     assert (workspace / "timetable.html").is_file()
+    assert (workspace / "showcase.html").is_file()
 
     metadata = json.loads((workspace / "tenant.json").read_text(encoding="utf-8"))
     assert metadata == {
@@ -59,7 +60,7 @@ def test_new_tenant_workspace_generates_public_surface_files(tmp_path):
         "name": "New Music Studio",
         "workspace_path": "tenants/new-music-studio",
     }
-    for filename in ("index.html", "register.html", "studio-admin.html", "timetable.html"):
+    for filename in ("index.html", "register.html", "studio-admin.html", "timetable.html", "showcase.html"):
         content = (workspace / filename).read_text(encoding="utf-8")
         assert "{{TENANT_" not in content
         assert "new-music-studio" in content
@@ -121,11 +122,11 @@ def test_workspace_escapes_tenant_name_for_html_and_javascript(tmp_path):
     )
 
 
-def test_existing_tenants_render_all_four_surfaces(client):
-    """Current pilot tenants must expose portal, CMS, register, and Studio Admin."""
+def test_existing_tenants_render_all_public_surfaces(client):
+    """Current pilot tenants must expose the public shell and showcase page."""
 
     for slug in EXISTING_TENANTS:
-        for suffix in ("", "/cms", "/register", "/studio-admin"):
+        for suffix in ("", "/cms", "/register", "/studio-admin", "/showcase"):
             response = client.get(f"/{slug}{suffix}")
             assert response.status_code == 200, f"{slug}{suffix or '/'}"
             assert "text/html" in response.content_type

@@ -20,6 +20,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SURFACES = [
     "tenant-template/index.html",
     "tenant-template/register.html",
+    "tenant-template/showcase.html",
+    "tenant-template/timetable.html",
     "legacy-root/src/cms-app.jsx",
     "backend/frontend/studio-admin.html",
     "super-admin.html",
@@ -40,7 +42,7 @@ INDUSTRY_BANNED = [
     (r"画室", "Hard-coded art-school venue noun — use %VENUE%."),
     (r"琴行", "Hard-coded music venue noun — use %VENUE%."),
 ]
-INDUSTRY_SURFACES = ["tenant-template/index.html", "tenant-template/register.html"]
+INDUSTRY_SURFACES = ["tenant-template/index.html", "tenant-template/register.html", "tenant-template/showcase.html", "tenant-template/timetable.html"]
 
 
 def strip_comments(text: str, suffix: str) -> str:

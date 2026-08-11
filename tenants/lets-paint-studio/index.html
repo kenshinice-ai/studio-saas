@@ -235,15 +235,18 @@
     background:transparent;cursor:zoom-in}
   .sc-open:focus-visible{outline:2px solid var(--focus-ring);outline-offset:-4px}
   /* ── Lightbox ── */
-  .sc-lightbox{width:min(96vw,1200px);max-width:96vw;max-height:92vh;padding:0;
+  .sc-lightbox{position:fixed;inset:0;margin:auto;width:min(96vw,1200px);
+    max-width:96vw;height:min(92vh,860px);max-height:92vh;padding:0;
     border:0;border-radius:var(--radius-lg);background:var(--panel);color:var(--ink);
     overflow:hidden}
+  .sc-lightbox[open]{display:grid;grid-template-rows:minmax(0,1fr) auto}
   .sc-lightbox::backdrop{background:var(--scrim)}
-  .sc-lb-stage{display:grid;place-items:center;background:var(--bg2);
-    /* Reserved before the picture arrives, so opening never reflows. */
-    height:min(70vh,720px)}
-  .sc-lb-figure{margin:0;width:100%;height:100%;display:grid;place-items:center}
-  .sc-lb-figure img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+  .sc-lb-stage{display:flex;align-items:center;justify-content:center;
+    min-width:0;min-height:0;overflow:hidden;background:var(--bg2)}
+  .sc-lb-figure{margin:0;width:100%;height:100%;min-width:0;min-height:0;
+    display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .sc-lb-figure img{width:100%;height:100%;max-width:100%;max-height:100%;
+    object-fit:contain;object-position:center;display:block}
   .sc-lb-figure iframe{width:100%;height:100%;border:0}
   .sc-lb-bar{display:flex;align-items:center;gap:var(--ui-space-4, 21px);
     padding:var(--ui-space-3, 13px) var(--ui-space-4, 21px)}
@@ -259,8 +262,8 @@
   .sc-lb-btn:focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px}
   .sc-lb-btn[hidden]{display:none}
   @media(max-width:640px){
-    .sc-lightbox{width:100vw;max-width:100vw;height:100vh;max-height:100vh;border-radius:0}
-    .sc-lb-stage{height:calc(100vh - 96px)}
+    .sc-lightbox{width:100vw;max-width:100vw;height:100vh;height:100dvh;
+      max-height:100vh;max-height:100dvh;border-radius:0}
     .sc-lb-meta h3{font-size:15px}
   }
   .sc-more-wrap button[hidden]{display:none}
@@ -520,7 +523,7 @@
     </a>
     <div class="navlinks">
       <a id="navPrincipal" href="#home:artist" data-analytics-label="nav_principal" data-en="Principal">主理人</a>
-      <a id="navShowcase" href="#home:showcase" data-analytics-label="nav_showcase" data-en="Selected Work">工作室作品</a>
+      <a id="navShowcase" href="/lets-paint-studio/showcase" data-analytics-label="nav_showcase" data-en="Selected Work">工作室作品</a>
       <a id="navCourses" href="#home:courses" data-analytics-label="nav_courses" data-en="Courses">课程</a>
       <a id="navTimetable" href="/lets-paint-studio/timetable" data-analytics-label="nav_timetable" data-en="Timetable" style="display:none">课程安排</a>
       <a id="navGallery" href="#home:gallery" data-analytics-label="nav_gallery" data-en="Student %WORKS%">学员%WORK%</a>
@@ -535,7 +538,7 @@
   </div>
   <div id="mnav" style="display:none;flex-direction:column;background:var(--bg);border-top:1px solid var(--line);padding:14px 28px 20px;gap:14px">
     <a id="mnavPrincipal" href="#home:artist" data-analytics-label="mnav_principal" data-en="Principal">主理人</a>
-    <a id="mnavShowcase" href="#home:showcase" data-analytics-label="mnav_showcase" data-en="Selected Work">工作室作品</a>
+    <a id="mnavShowcase" href="/lets-paint-studio/showcase" data-analytics-label="mnav_showcase" data-en="Selected Work">工作室作品</a>
     <a id="mnavCourses" href="#home:courses" data-analytics-label="mnav_courses" data-en="Courses">课程</a>
     <a id="mnavTimetable" href="/lets-paint-studio/timetable" data-analytics-label="mnav_timetable" data-en="Timetable" style="display:none">课程安排</a>
     <a id="mnavGallery" href="#home:gallery" data-analytics-label="mnav_gallery" data-en="Student %WORKS%">学员%WORK%</a>
@@ -633,7 +636,7 @@
     <div class="sc-filters" id="showcaseFilters"></div>
     <div class="showcase-grid reveal" id="showcaseGrid"></div>
     <div class="showcase-rest reveal" id="showcaseRest"></div>
-    <div class="sc-more-wrap"><button type="button" class="btn btn-line" id="showcaseMore" hidden></button></div>
+    <div class="sc-more-wrap"><a class="btn btn-line" id="showcaseMore" href="/lets-paint-studio/showcase" hidden data-en="View all work">查看全部作品</a></div>
   </div>
 </section>
 
@@ -880,7 +883,10 @@
       <p class="cp">© 2026 <span id="footName2">Let&#x27;s Paint Studio</span><span id="producerCredit" hidden> · Powered by Paradise Production</span></p>
     </div>
     <div class="fl">
+      <a href="/lets-paint-studio" data-analytics-label="foot_home" data-en="Home">首页</a>
+      <a id="footShowcase" href="/lets-paint-studio/showcase" data-analytics-label="foot_showcase" data-en="Selected Work" style="display:none">工作室作品</a>
       <a href="#home:courses" data-analytics-label="foot_courses" data-en="Courses">课程</a>
+      <a id="footTimetable" href="/lets-paint-studio/timetable" data-analytics-label="foot_timetable" data-en="Timetable" style="display:none">课程安排</a>
       <a href="#home:gallery" data-analytics-label="foot_gallery" data-en="Gallery">%WORK%</a>
       <a href="#my" data-analytics-label="foot_student" data-en="Student Login">学员专区</a>
       <a href="#join" data-analytics-label="foot_join" data-en="Book a Trial">预约体验</a>
@@ -1498,7 +1504,11 @@
       chip.className='sc-chip'+(state.showcaseCategory===cat.id?' is-on':'');
       chip.textContent=nouns(pickLocalized(cat.label));
       chip.setAttribute('aria-pressed', state.showcaseCategory===cat.id?'true':'false');
-      chip.addEventListener('click', function(){ loadShowcase(cat.id, 0); });
+      chip.addEventListener('click', function(){
+        var path='/' + encodeURIComponent(SLUG) + '/showcase';
+        var query=cat.id ? '?category=' + encodeURIComponent(cat.id) : '';
+        window.location.href=path + query;
+      });
       host.appendChild(chip);
     });
   }
@@ -1520,7 +1530,7 @@
       document.getElementById('showcaseFilters').textContent='';
       document.getElementById('showcaseMore').hidden=true;
       resolveSection('showcase', false);
-      setNavVisible(['navShowcase','mnavShowcase'], false);
+      setNavVisible(['navShowcase','mnavShowcase','footShowcase'], false);
       return;
     }
     var label=pickLocalized(website.showcase_label||website.showcaseLabel);
@@ -1539,16 +1549,16 @@
     items.slice(3).forEach(function(item,i){ rest.appendChild(showcaseTile(item,i+3)); });
 
     var more=document.getElementById('showcaseMore');
-    more.hidden=!data.hasMore;
-    more.textContent=T('查看更多作品','See more work');
+    more.hidden=false;
+    more.textContent=T('查看全部作品','View all work');
     resolveSection('showcase', true);
-    setNavVisible(['navShowcase','mnavShowcase'], true);
+    setNavVisible(['navShowcase','mnavShowcase','footShowcase'], true);
   }
   /* Its own request, and deliberately so: /brand is the critical path and
      carries every word and image of this page, so an unbounded list does not
      belong in it. A failure here costs the board and nothing else. */
   function loadShowcase(category, offset){
-    var params='?offset='+encodeURIComponent(offset||0);
+    var params='?surface=home&offset='+encodeURIComponent(offset||0);
     if(category) params+='&category='+encodeURIComponent(category);
     return fetch(API + '/showcase' + params).then(function(r){return r.json();}).then(function(d){
       if(!d) return;
@@ -1563,7 +1573,9 @@
       }
       renderShowcase(state.brand);
       return d;
-    }).catch(function(){ /* The board is not worth a banner; the page stands without it. */ });
+    }).catch(function(){
+      showSurfaceStatus('showcase', T('工作室作品暂时无法加载，请稍后重试。','Selected work is temporarily unavailable. Please try again later.'));
+    });
   }
   var aboutTimer=null, aboutPaused=false;
   function startAboutCarousel(){
@@ -1685,7 +1697,9 @@
       tile.className='tile art';
       var title=it.title ? String(it.title) : T('学员'+state.workNoun.zh,'Student '+state.workNoun.en);
       tile.setAttribute('aria-label', title);
-      var img=document.createElement('img'); img.src=it.mediaUrl; img.loading='lazy';
+      var img=document.createElement('img'); img.src=mediaVariantUrl(it.mediaUrl,'thumb'); img.loading='lazy';
+      img.srcset=mediaVariantUrl(it.mediaUrl,'thumb')+' 360w, '+mediaVariantUrl(it.mediaUrl,'medium')+' 960w, '+mediaVariantUrl(it.mediaUrl,'display')+' 2000w';
+      img.sizes='(max-width: 700px) 50vw, 320px';
       img.alt='';
       /* Walkthrough 2026-07-26: a dangling media reference left a broken-image
          glyph in the wall. Same tolerance as the about/portfolio images, but
@@ -1701,6 +1715,12 @@
       grid.appendChild(tile);
     });
     resolveSection('gallery', grid.children.length>0 && !state.sectionsOff.gallery);
+  }
+  function mediaVariantUrl(rawUrl,variant){
+    var url=new URL(rawUrl,window.location.origin);
+    url.searchParams.delete('thumb');
+    url.searchParams.set('variant',variant);
+    return url.pathname+url.search+url.hash;
   }
   function renderContactRows(b){
     var box=document.getElementById('contactRows'); if(!box) return;
@@ -1815,7 +1835,7 @@
        nothing else on this page. It is not a weaker guarantee than a section
        switch: /v1/public/<slug>/timetable answers `enabled: false` when the
        studio has not published one, so the data is gone, not just hidden. */
-    setNavVisible(['navTimetable','mnavTimetable'],
+    setNavVisible(['navTimetable','mnavTimetable','footTimetable'],
       String(website.show_timetable ?? website.showTimetable ?? false) === 'true');
     /* Content may already have arrived and revealed a section before /brand
        answered — the fetches are independent — so re-apply the switches to
@@ -1825,7 +1845,7 @@
     if(state.sectionsOff.faq) resolveSection('faq', false);
     if(state.sectionsOff.showcase){
       resolveSection('showcase', false);
-      setNavVisible(['navShowcase','mnavShowcase'], false);
+      setNavVisible(['navShowcase','mnavShowcase','footShowcase'], false);
     } else if(state.showcase){
       // The board landed first. Draw it now that its headings have arrived.
       renderShowcase(b);
@@ -1843,10 +1863,6 @@
   }).catch(function(){ showSurfaceStatus('programs', T('课程资料暂时无法加载，请稍后重试。','Course details are temporarily unavailable. Please retry later.')); });
 
   /* ── the studio's own work (its own endpoint since v8.7.0) ── */
-  document.getElementById('showcaseMore').addEventListener('click', function(){
-    var data=state.showcase||{};
-    loadShowcase(state.showcaseCategory, (data.items||[]).length);
-  });
   loadShowcase('', 0);
 
   /* ── public gallery ── */
@@ -2104,7 +2120,9 @@
       var d=document.createElement('div');
       d.style.cssText='aspect-ratio:1/1;border:1px solid var(--line);overflow:hidden;position:relative;background:var(--bg2)';
       var img=document.createElement('img');
-      img.src=it.mediaUrl; img.loading='lazy'; img.alt=it.title||'';
+      img.src=mediaVariantUrl(it.mediaUrl,'thumb'); img.loading='lazy'; img.alt=it.title||'';
+      img.srcset=mediaVariantUrl(it.mediaUrl,'thumb')+' 360w, '+mediaVariantUrl(it.mediaUrl,'medium')+' 960w, '+mediaVariantUrl(it.mediaUrl,'display')+' 2000w';
+      img.sizes='(max-width: 700px) 50vw, 280px';
       img.style.cssText='width:100%;height:100%;object-fit:cover';
       img.onerror=function(){ this.style.display='none'; };
       d.appendChild(img);

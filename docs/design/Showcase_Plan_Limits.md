@@ -1,6 +1,8 @@
-# 作品上限挂到套餐 —— v9.8.3 已实现
+# 作品上限挂到套餐 —— v9.8.7 精选排序与独立作品页
 
-`Showcase_Round_2.md` §3 的补充。
+`Showcase_Round_2.md` §3 的补充。v9.8.7 在原有套餐公开额度之上加入租户全局
+`featured_rank`、首页 6 件精选预览和独立 `/showcase` C 方案分页；它们共享同一
+公开排序与额度合同。
 
 ---
 
@@ -20,7 +22,7 @@ growth  $199   students=1000  users=20   storage=50GB  showcase=150
 - 官网定价页与 `pricing.md` 已经从同一行渲染上限（`public_site.py:_limit_items`）。
 
 **所以这不是"建一套限额系统"，是"让已有第四个数字真正贯穿后台、公开接口和
-套餐数据"。v9.8.3 已完成。**
+套餐数据"。v9.8.3 已完成基线；v9.8.7 继续在这条合同上增加精选排序和独立页面。**
 
 ---
 
@@ -131,7 +133,8 @@ for item in (showcase if isinstance(showcase, list) else [])[:SHOWCASE_ITEM_LIMI
 | 公开读 `/v1/public/<slug>/showcase` | 切到有效上限 | 不改库 |
 | 后台 Studio Admin | 全部显示 + active/draft/archived 状态 + 套餐提示 | 不隐藏任何已存作品 |
 
-有效上限 = `plans.showcase_limit`（本次不启用租户覆盖）。
+有效上限 = `plans.showcase_limit`（本次不启用租户覆盖）。首页预览和独立页分页
+大小都不是有效上限：前者每次 6 件，后者每次 12 件。
 
 **注意**：`/showcase` 因此要 join `plans`。这个 join **不允许把接口打挂**——
 找不到套餐行就落到最保守的默认值，绝不抛异常。这条是这周那次事故写进
@@ -145,8 +148,9 @@ for item in (showcase if isinstance(showcase, list) else [])[:SHOWCASE_ITEM_LIMI
   学员/用户/存储三项。不加第四项，**定价页就会漏掉这个卖点**——而这恰恰是
   要拿来卖钱的那一条。
 - 平台控制台套餐编辑器：多一个字段（`api_v1.py` 的 INSERT/UPDATE 各一处）。
-- Owner 手册：说明按套餐公开，并区分每次加载 12 件的分页大小。
-- `SHOWCASE_PAGE_SIZE` 只负责分页；作品状态和套餐额度由 server / admin JS 共同处理。
+- Owner 手册：说明按套餐公开，并区分首页 6 件预览、独立页每次 12 件的分页大小。
+- `SHOWCASE_PREVIEW_SIZE` / `SHOWCASE_PAGE_SIZE` 只负责页面批次；作品状态、精选
+  排序和套餐额度由 server / admin JS 共同处理。
 
 ---
 
@@ -160,7 +164,7 @@ for item in (showcase if isinstance(showcase, list) else [])[:SHOWCASE_ITEM_LIMI
 
 | 项 | 估时 |
 |---|---|
-| 迁移（两列 + 回填） | 0.5h |
+| 迁移（featured_rank JSONB 兼容回填） | 0.5h |
 | 有效上限解析 + 测试 | 1h |
 | 写入路径去掉套餐截断 | 0.5h |
 | 读取路径切片 | 1h |
@@ -168,16 +172,39 @@ for item in (showcase if isinstance(showcase, list) else [])[:SHOWCASE_ITEM_LIMI
 | 平台控制台套餐编辑器 | 1h |
 | 定价页 / pricing.md / 手册 | 1h |
 | 测试（降级不丢作品、超限不发布、到限拦新增、缺套餐不 500） | 1.5h |
-| **状态** | **v9.8.3 已实现并进入发布验证** |
+| 独立 `/showcase` 页面、C 分页、共享导航/footer | 2h |
+| **状态** | **v9.8.7 已实现并进入发布验证** |
 
 ---
 
-## 8. 已确认的业务决定
+## 8. featured_rank 与公开页面合同
+
+`featured_rank` 存在于每条 `website_profile.showcase_items` 记录中，取值为
+`1..500` 或 `null`。它是租户全局的编辑排序，不按分类重新编号，也不改变作品的
+`active` / `draft` / `archived` 状态。
+
+1. 保存和读取时，合法排名按数字和原列表顺序压缩为连续的 `1..N`；重复排名不
+   会覆盖作品，先出现的记录先得到较小排名。
+2. 已排名作品优先，未排名作品按原有列表顺序作为 fallback；计划额度在这个排序
+   之后生效，因此降级仍保留主理人明确精选的作品。
+3. 首页调用 `/v1/public/<slug>/showcase?surface=home`，只展示前 6 件并链接到
+   `/<slug>/showcase`；独立页用 `offset` + `category` 每次加载 12 件，滚动触发
+   下一页，同时保留「加载更多」按钮作为无观察器/键盘兜底。
+4. 分类 URL 是同一全局顺序的过滤视图：`/<slug>/showcase?category=<id>`。
+   分类不能绕过套餐额度，`category` 过滤仍发生在计划截取之后。
+5. 首页、独立作品页、课表页、报名页使用相同的品牌导航、语言切换和 footer 入口；
+   独立页在开关关闭或无公开内容时仍返回可分享的空状态，而不是 404。
+
+数据库迁移 `0030_showcase_featured_rank.sql` 只为旧 JSON 记录补上
+`featured_rank: null`，不重排、不删除、不改变作品状态，重复运行不会继续改变数据。
+
+## 9. 已确认的业务决定
 
 1. 三档公开作品额度：starter 15、studio 60、growth 150。
 2. 作品状态：`active` / `draft` / `archived`；缺失状态的旧数据按 active。
 3. 降级保留全部记录，公开接口只返回套餐额度内的 active；升级自动恢复。
-4. 分类不按套餐限；分页每次 12 件，不等同于套餐额度。
+4. 分类不按套餐限；首页分页 6 件、独立页分页 12 件，均不等同于套餐额度。
+5. `featured_rank` 是可选的租户全局精选排序；空排名继续使用旧列表顺序。
 
-3. **分类要不要也按套餐限？** 我**建议不限**——分类是整理，按套餐限制别人
+6. **分类要不要也按套餐限？** 我**建议不限**——分类是整理，按套餐限制别人
    整理自己的东西，产品会显得小气。**限量，不限秩序。**

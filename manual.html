@@ -677,8 +677,10 @@
           <li data-lang="zh">填写板块眉题、标题和导语的中英文。这里介绍的是整个作品集；每件作品另填自己的标题与说明。</li>
           <li data-lang="en">Create each work with a photo, a recognised video link, or both. Add a bilingual title, caption and optional category. A record with neither a photo nor a recognised video is not kept when saved.</li>
           <li data-lang="zh">每件作品至少添加一张照片或一个可识别的视频链接，也可以两者都填；再补充双语标题、说明和可选分类。既没有照片也没有可识别视频的空记录，保存时不会保留。</li>
-          <li data-lang="en">Put the strongest work first. Use <strong>Up</strong> and <strong>Down</strong> to set the public order; the first item receives the lead tile. You can create up to eight categories.</li>
-          <li data-lang="zh">把最能代表工作室的一件放在第一位。用<strong>上移</strong>和<strong>下移</strong>控制公开顺序；第一件会进入主视觉位。最多可建立 8 个分类。</li>
+          <li data-lang="en">Set an optional <strong>Featured rank</strong> on the work card. Lower numbers appear first; ranks 1–6 become the home-page preview, while blank ranks follow the existing order. The ranking is studio-wide, not separate per category.</li>
+          <li data-lang="zh">在作品卡片中设置可选的<strong>精选排序</strong>。数字越小越靠前；1–6 会进入首页精选，留空则沿用现有顺序。排序属于整个工作室，不会按分类重新计算。</li>
+          <li data-lang="en">Use <strong>Up</strong> and <strong>Down</strong> only for fallback order, then create up to eight categories. The standalone archive is available at <code>/&lt;slug&gt;/showcase</code>; each category can be shared with its own URL.</li>
+          <li data-lang="zh">用<strong>上移</strong>和<strong>下移</strong>调整未设置精选排序时的备用顺序，最多可建立 8 个分类。完整作品页位于 <code>/&lt;slug&gt;/showcase</code>，每个分类都可以用独立 URL 分享。</li>
           <li data-lang="en">Choose <strong>Active</strong>, <strong>Draft</strong> or <strong>Archived</strong>. Active is eligible for public display within your plan; Draft is saved but private; Archived stays in the board but is not shown. When the Active quota is full, a new upload starts as Draft.</li>
           <li data-lang="zh">选择 <strong>Active（启用）</strong>、<strong>Draft（草稿）</strong>或<strong>Archived（归档）</strong>。Active 可按套餐额度公开；Draft 已保存但不公开；Archived 保留在工作台但不展示。当前 Active 已达到额度时，新上传会自动成为 Draft。</li>
           <li data-lang="en"><strong>Save Draft → Preview → Publish.</strong> Save Draft leaves the public portal unchanged; Publish is the step that makes the selected work live.</li>
@@ -708,8 +710,8 @@
           </div>
           <ol class="marks">
             <li data-lang="en">When the section is enabled and at least one Active item exists, Selected Work renders on the public page and in its navigation.</li><li data-lang="zh">打开板块开关且至少有一件 Active 作品后，工作室作品会出现在公开页面及导航中。</li>
-            <li data-lang="en">The showcase follows the studio introduction and stays separate from the student gallery; its order is the order you set in Studio Admin.</li><li data-lang="zh">工作室作品展示紧跟工作室介绍，并与学员作品墙分开；前台顺序就是你在 Studio Admin 中设置的顺序。</li>
-            <li data-lang="en">The portal loads up to 12 eligible items per request. This page size is not the plan quota.</li><li data-lang="zh">公开页每次最多加载 12 件符合条件的作品；这是分页大小，不是套餐公开额度。</li>
+            <li data-lang="en">The home page shows the first six published works and links to the standalone archive; the archive uses the same ranking and stays separate from the student gallery.</li><li data-lang="zh">首页展示前 6 件公开作品，并链接到独立作品页；独立页沿用同一套排序，且与学员作品墙分开。</li>
+            <li data-lang="en">The archive loads up to 12 eligible items per request. Scrolling loads the next page automatically, with a Load more button as a fallback. This page size is not the plan quota.</li><li data-lang="zh">独立作品页每次最多加载 12 件符合条件的作品；下滑会自动加载下一页，同时保留「加载更多」作为兜底。这是分页大小，不是套餐公开额度。</li>
           </ol>
           <figcaption data-lang="en">Frontend: the public portal is the result. The showcase appears only when the Owner’s switch and Active content are both ready.</figcaption>
           <figcaption data-lang="zh">前台：公开门户是最终结果。只有 Owner 打开开关且已有 Active 内容时，工作室作品展示才会出现。</figcaption>
@@ -740,6 +742,14 @@
                 <td data-lang="en">12 eligible works per request; Load more is not an extra quota.</td><td data-lang="zh">每次加载 12 件符合条件的作品；「加载更多」不会增加套餐额度。</td>
               </tr>
               <tr>
+                <td data-lang="en">Home preview</td><td data-lang="zh">首页精选</td>
+                <td data-lang="en">The first 6 published works, using Featured rank first.</td><td data-lang="zh">展示前 6 件公开作品，优先使用精选排序。</td>
+              </tr>
+              <tr>
+                <td data-lang="en">Featured rank</td><td data-lang="zh">精选排序</td>
+                <td data-lang="en">Optional, tenant-wide, 1–500; lower numbers appear first and are preserved across plan changes.</td><td data-lang="zh">选填，按工作室全局排序，范围 1–500；数字越小越靠前，切换套餐时会保留。</td>
+              </tr>
+              <tr>
                 <td data-lang="en">Categories</td><td data-lang="zh">分类数量</td>
                 <td data-lang="en">Up to 8 categories. Public filters appear once two or more categories have content.</td><td data-lang="zh">最多 8 个；至少有两个分类有内容时，前台才显示筛选器。</td>
               </tr>
@@ -747,8 +757,8 @@
           </table>
         </div>
 
-        <p class="note" data-lang="en">The quota controls how many Active works are shown, not whether your records are safe. A downgrade keeps every record and shows the first works in the current order; an upgrade makes the remaining Active works eligible again.</p>
-        <p class="note" data-lang="zh">套餐额度限制的是公开展示数量，不是记录是否保留。降档不会删除作品，只按当前排序展示前面的 Active 作品；升级后，其余 Active 作品会重新具备公开资格。</p>
+        <p class="note" data-lang="en">The quota controls how many Active works are shown, not whether your records are safe. Featured ranks are applied before the quota, so a downgrade may hide lower-ranked work without deleting it; an upgrade makes the remaining Active works eligible again in the saved order.</p>
+        <p class="note" data-lang="zh">套餐额度限制的是公开展示数量，不是记录是否保留。精选排序会先于套餐额度生效，因此降档可能暂时隐藏靠后的作品，但不会删除；升级后，其余 Active 作品会按已保存的顺序重新具备公开资格。</p>
 
         <h3 data-lang="en">Photos are uploaded; videos are linked</h3>
         <h3 data-lang="zh">图片上传，视频贴链接</h3>
@@ -1046,8 +1056,8 @@
 
         <h4 data-lang="en">If I move to a smaller plan, do I lose the selected work I published?</h4>
         <h4 data-lang="zh">换成更小的套餐，已经发布的工作室作品会丢吗？</h4>
-        <p data-lang="en">No. The plan quota limits how many Active works are shown publicly, never how many are stored. Every record stays in the board — up to 500 of them — and after a downgrade the public page simply shows the first ones in the order you set. Move back up and the rest become eligible again, in the same order, with nothing to re-enter.</p>
-        <p data-lang="zh">不会。套餐额度限制的是公开展示多少件 Active 作品，从不限制保存多少件。所有记录都留在工作台里（最多 500 条），降档后公开页只按你设定的顺序展示排在前面的那些。升回去，其余作品就按原顺序重新具备公开资格，不需要重新录入任何东西。</p>
+        <p data-lang="en">No. The plan quota limits how many Active works are shown publicly, never how many are stored. Every record and its Featured rank stays in the board — up to 500 of them. A downgrade may hide work beyond the new quota, but an upgrade makes it eligible again in the same saved order, with nothing to re-enter.</p>
+        <p data-lang="zh">不会。套餐额度限制的是公开展示多少件 Active 作品，从不限制保存多少件。所有记录及其精选排序都会留在工作台里（最多 500 条）。降档可能隐藏超出新额度的作品，但升级后会按原来保存的顺序重新具备公开资格，不需要重新录入。</p>
 
         <h4 data-lang="en">Can I see whether a staff member issued a refund?</h4>
         <h4 data-lang="zh">能查到某个员工有没有办过退款吗？</h4>

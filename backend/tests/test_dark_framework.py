@@ -337,6 +337,7 @@ TOKENISED_SURFACES = [
     "backend/frontend/shared-portfolio.html",
     "tenant-template/index.html",
     "tenant-template/register.html",
+    "tenant-template/showcase.html",
     "backend/frontend/assets/portal-theme.css",
     "backend/frontend/assets/console-theme.css",
     "backend/frontend/assets/brand-system.css",
@@ -371,6 +372,7 @@ ALLOWED = {
     # The default the address bar shows before /brand answers.
     "tenant-template/index.html": ("theme-color",),
     "tenant-template/register.html": ("theme-color",),
+    "tenant-template/showcase.html": ("theme-color",),
     # The pre-/brand palette, pinned to the default style below.
     # JS fallbacks for a /brand response that has not arrived, pinned below.
     "legacy-root/index.html": ("theme-color", "brand.primaryColor",

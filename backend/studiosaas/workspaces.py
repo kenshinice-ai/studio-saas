@@ -15,6 +15,7 @@ RESERVED_SLUGS = {
     "v1",
     "cms",
     "register",
+    "showcase",
     "platform-admin",
     "super-admin",
     "studio-admin",

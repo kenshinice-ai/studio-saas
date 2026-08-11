@@ -34,6 +34,7 @@ PAGES = [
     REPOSITORY_ROOT / "tenant-template/index.html",
     REPOSITORY_ROOT / "tenant-template/register.html",
     REPOSITORY_ROOT / "tenant-template/timetable.html",
+    REPOSITORY_ROOT / "tenant-template/showcase.html",
     REPOSITORY_ROOT / "backend/frontend/studio-admin.html",
     REPOSITORY_ROOT / "super-admin.html",
     REPOSITORY_ROOT / "legacy-root/index.html",

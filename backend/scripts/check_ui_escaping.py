@@ -43,6 +43,8 @@ FILES = [
     "legacy-root/register.html",
     "tenant-template/index.html",
     "tenant-template/register.html",
+    "tenant-template/showcase.html",
+    "tenant-template/timetable.html",
     "tenant-template/studio-admin.html",
 ]
 
