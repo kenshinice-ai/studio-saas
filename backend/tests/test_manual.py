@@ -29,7 +29,7 @@ GUIDES = REPOSITORY_ROOT / "docs/guides"
 # Every section the manual promises, in the order it promises them. A support
 # link is written as /manual/#refunds; renaming an anchor breaks it silently.
 SECTIONS = [
-    "start", "launch", "enrolment", "roster", "money", "work",
+    "start", "launch", "enrolment", "roster", "timetable", "money", "work",
     "showcase", "families", "team", "insight", "platform", "help", "faq",
 ]
 
@@ -410,6 +410,33 @@ def test_the_showcase_chapter_covers_limits_media_and_boundaries() -> None:
         assert phrase in source, f"showcase chapter is missing: {phrase}"
 
 
+def test_the_timetable_chapter_covers_the_two_switches_and_the_booking_rules() -> None:
+    """The public timetable shipped in v8.9.0 and booking in v8.10.0, and the
+    manual reached v9.8.5 without a word about either — a whole public surface,
+    and the only new thing a parent touches directly, documented nowhere.
+
+    These are the four claims a studio acts on, so these are the four asserted:
+    publishing needs both switches, the booking window is the display window,
+    a request holds no seat, and a teacher's name needs that teacher's consent.
+    """
+
+    source = _source()
+    for phrase in (
+        "/&lt;slug&gt;/timetable",
+        "Show this class on the public timetable",
+        "在公开课表上展示这个班次",
+        "1 to 4, two by default",
+        "1 到 4 周，默认 2 周",
+        "A booking request is a request, not a seat",
+        "约课申请只是申请，不是位子",
+        "The weeks you show are the weeks that can be booked",
+        "显示几周，就只能约几周",
+        "AND, never OR",
+        "「与」，不是「或」",
+    ):
+        assert phrase in source, f"timetable chapter is missing: {phrase}"
+
+
 def test_the_assets_route_serves_the_manual_directory_and_nothing_else(client) -> None:
     """It reduced every path to a basename, so the images 404'd in a way that
     looked like a blank page rather than a broken route.
@@ -498,11 +525,23 @@ def test_the_manual_explains_the_current_visual_style_model() -> None:
     assert "Custom solves its values from the chosen accent" in source
 
 
-def test_the_manual_states_the_front_desk_booking_transition_honestly() -> None:
-    """Backend authority is live while the CMS control remains a separate task."""
+def test_the_manual_states_the_front_desk_booking_authority_honestly() -> None:
+    """The transition finished, so the sentence describing it had to go.
+
+    Until v9.5.0 the CMS showed the approve/decline pair to owners and
+    managers only, and the manual said so. v9.5.0 widened the control to front
+    desk (`canReviewBookings` in legacy-root/src/cms-app.jsx) to match
+    `class_bookings:review`, and this assertion kept the old sentence alive
+    for four minor versions — a test can pin a manual to a claim the product
+    has already left behind, which is worse than not asserting it at all.
+    Assert the boundary that is true instead: front desk decides the request,
+    and nothing about the schedule underneath it.
+    """
 
     source = _source()
     assert "Review class-booking requests" in source
     assert "审核约课请求" in source
-    assert "its approve/decline buttons still show only to Owner and Manager" in source
-    assert "批准/婉拒按钮仍只向 Owner/Manager 显示" in source
+    assert "Front desk can approve or decline a class-booking request" in source
+    assert "前台可以批准或婉拒约课申请" in source
+    assert "courses, capacity and the schedule itself remain Owner and Manager only" in source
+    assert "课程、容量与课表本身的维护始终只限 Owner 和 Manager" in source

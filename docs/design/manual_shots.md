@@ -65,6 +65,8 @@ install is wrong.
 | `03-courses` | manager | `/lets-paint-showcase/cms?view=courses` | desktop | Course catalogue / 课程目录 deep link |
 | `03-roster` | manager | `/lets-paint-showcase/cms` | desktop | Course Schedule, moved to the next day that actually teaches |
 | `03-roster-mobile` | teacher | `/lets-paint-showcase/cms` | mobile | Course Schedule as a teacher sees it |
+| `04-timetable` | owner | `/lets-paint-showcase/studio-admin` | desktop | Brand & Website → Public timetable, both switches on, two-week window |
+| `04-booking` | public | `/lets-paint-showcase/timetable` | mobile | Synthetic public timetable with the booking request dialog open |
 | `04-topup` | manager | `/lets-paint-showcase/cms` | desktop | Recharge & refunds / 充值与退款 tab |
 | `04-log` | manager | `/lets-paint-showcase/cms` | desktop | Operation log, unfiltered |
 | `05-portfolio` | teacher | `/lets-paint-showcase/cms` | desktop | Students tab, first record opened |

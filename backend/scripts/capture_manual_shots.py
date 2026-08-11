@@ -80,6 +80,8 @@ SHOTS = [
     ("03-courses",         "manager", f"/{SLUG}/cms?view=courses", DESKTOP, None, 2.0, None),
     ("03-roster",          "manager", f"/{SLUG}/cms",          DESKTOP, TAB["roster"], 2.0, "date"),
     ("03-roster-mobile",   "teacher", f"/{SLUG}/cms",          MOBILE,  TAB["roster"], 2.0, "date"),
+    ("04-timetable",       "owner",   f"/{SLUG}/studio-admin", DESKTOP, None, 2.5, "timetable"),
+    ("04-booking",         None,      f"/{SLUG}/timetable",     MOBILE,  None, 2.0, "timetable_booking"),
     ("04-topup",           "manager", f"/{SLUG}/cms",          DESKTOP, TAB["topup"], 2.0, None),
     ("04-log",             "manager", f"/{SLUG}/cms",          DESKTOP, TAB["logs"], 2.0, None),
     ("05-portfolio",       "teacher", f"/{SLUG}/cms",          DESKTOP, TAB["students"], 2.0, "student"),
@@ -376,6 +378,74 @@ PUBLIC_SHOWCASE = """
 })()
 """
 
+# Open the actual Public timetable panel and turn on both switches for the
+# screenshot. The changes stay in this browser tab and are never saved.
+TIMETABLE_EDITOR = """
+(() => {
+  const tab = document.getElementById('tab-btn-timetable');
+  const page = document.getElementById('settingShowTimetable');
+  const booking = document.getElementById('settingShowTimetableBooking');
+  const weeks = document.getElementById('settingTimetableWeeks');
+  if (!tab || !page || !booking || !weeks) return 'MISSING';
+  tab.click();
+  if (!page.checked) page.click();
+  if (!booking.checked) booking.click();
+  weeks.value = '2';
+  weeks.dispatchEvent(new Event('change', { bubbles: true }));
+  return 'ok';
+})()
+"""
+
+# The demo tenant is deliberately seeded with no public timetable: it keeps
+# the capture suite from publishing a customer-facing surface by accident.
+# For the public screenshot, intercept only the timetable JSON in this browser
+# tab and feed the real page a small, clearly synthetic schedule. No database
+# write and no production API contract change is involved.
+TIMETABLE_PUBLIC_SEED = """
+(() => {
+  const nativeFetch = window.fetch.bind(window);
+  const dateAt = (offset) => {
+    const value = new Date();
+    value.setHours(12, 0, 0, 0);
+    value.setDate(value.getDate() + offset);
+    return value.toISOString().slice(0, 10);
+  };
+  const weekday = (iso) => new Date(`${iso}T12:00:00`).getDay();
+  const first = dateAt(1);
+  const second = dateAt(3);
+  const payload = {
+    enabled: true,
+    timezone: 'Australia/Melbourne',
+    weeks: 2,
+    booking: true,
+    today: dateAt(0),
+    fields: { teacher: true, room: true, age_range: true, duration: true, capacity: true, price: false },
+    label: { zh: '课程安排', en: 'Timetable' },
+    lead: { zh: '接下来两周的公开课程。', en: 'Public classes over the next two weeks.' },
+    studio: "Let's Paint Studio",
+    days: [
+      { date: first, weekday: weekday(first), classes: [
+        { date: first, start: '10:00', end: '11:00', title: 'Creative Drawing', subtitle: 'Saturday studio', teacher: 'Mia', room: 'Studio 1', ageRange: '6–12', capacity: 8, seatsLeft: 3, nearlyFull: true, bookable: true, cancelled: false },
+        { date: first, start: '14:00', end: '15:30', title: 'Watercolour Foundations', subtitle: 'Small group', teacher: 'Alex', room: 'Studio 2', ageRange: '10–16', capacity: 6, seatsLeft: 0, nearlyFull: false, bookable: true, cancelled: false }
+      ] },
+      { date: second, weekday: weekday(second), classes: [
+        { date: second, start: '16:00', end: '17:00', title: 'Open Studio', subtitle: 'Materials and light', teacher: 'Mia', room: 'Studio 1', ageRange: '8–14', capacity: 8, seatsLeft: 6, nearlyFull: false, bookable: true, cancelled: false }
+      ] }
+    ]
+  };
+  window.fetch = (input, init) => {
+    const requestUrl = typeof input === 'string' ? input : (input && input.url) || '';
+    if (new RegExp('/v1/public/[^/]+/timetable(?:\\?|$)').test(requestUrl)) {
+      return Promise.resolve(new Response(JSON.stringify(payload), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      }));
+    }
+    return nativeFetch(input, init);
+  };
+})();
+"""
+
 ROSTER_UI_CONTRACT = """
 (() => {
   const planner = document.querySelector('.cms-roster-planner');
@@ -440,6 +510,8 @@ def capture(browser: Browser, base: str, shot, session: str | None, language: st
     if browser._seed:
         browser.call("Page.removeScriptToEvaluateOnNewDocument", identifier=browser._seed)
     seed = SEED_LANGUAGE % (json.dumps(language), json.dumps(language))
+    if prepare == "timetable_booking":
+        seed += TIMETABLE_PUBLIC_SEED
     browser._seed = browser.call(
         "Page.addScriptToEvaluateOnNewDocument", source=seed)["identifier"]
     url = f"{base}{path}" + ("" if session else f"?lang={language}")
@@ -472,6 +544,24 @@ def capture(browser: Browser, base: str, shot, session: str | None, language: st
         if result.get("result", {}).get("value") == "MISSING":
             raise SystemExit(f"{name}: Selected work editor is missing its video field")
         time.sleep(1.0)
+    elif prepare == "timetable":
+        result = browser.call("Runtime.evaluate", returnByValue=True,
+                              expression=TIMETABLE_EDITOR)
+        if result.get("result", {}).get("value") == "MISSING":
+            raise SystemExit(f"{name}: Public timetable settings are missing")
+        time.sleep(1.0)
+    elif prepare == "timetable_booking":
+        for _attempt in range(8):
+            result = browser.call(
+                "Runtime.evaluate", returnByValue=True,
+                expression="(() => { const button = document.querySelector('#days .book-btn'); if (!button) return 'WAIT'; button.click(); return 'ok'; })()",
+            )
+            if result.get("result", {}).get("value") == "ok":
+                break
+            time.sleep(0.75)
+        else:
+            raise SystemExit(f"{name}: public timetable did not render a booking button")
+        time.sleep(0.75)
     elif prepare == "public_showcase":
         for _attempt in range(5):
             result = browser.call("Runtime.evaluate", returnByValue=True,
@@ -501,6 +591,13 @@ def capture(browser: Browser, base: str, shot, session: str | None, language: st
             "Runtime.evaluate",
             expression="(() => { const section = document.getElementById('showcase'); if (!section) return; document.documentElement.style.scrollBehavior = 'auto'; document.body.style.scrollBehavior = 'auto'; const top = section.getBoundingClientRect().top + window.scrollY - 90; window.scrollTo(0, Math.max(0, top)); })()",
         )
+    elif prepare == "timetable":
+        browser.call(
+            "Runtime.evaluate",
+            expression="(() => { const panel = document.getElementById('tab-timetable'); if (!panel) return; const top = panel.getBoundingClientRect().top + window.scrollY - 84; window.scrollTo(0, Math.max(0, top)); })()",
+        )
+    elif prepare == "timetable_booking":
+        browser.call("Runtime.evaluate", expression="window.scrollTo(0, 0)")
     time.sleep(1.0)
     return base64.b64decode(browser.call("Page.captureScreenshot", format="png")["data"])
 

@@ -94,15 +94,16 @@
         <li><a href="#launch"><b>01</b><span data-lang="en">Day one: your website</span><span data-lang="zh">第一天：官网上线</span></a></li>
         <li><a href="#enrolment"><b>02</b><span data-lang="en">Enrolment</span><span data-lang="zh">招生与报名</span></a></li>
         <li><a href="#roster"><b>03</b><span data-lang="en">Roster and check-in</span><span data-lang="zh">排课与签到</span></a></li>
-        <li><a href="#money"><b>04</b><span data-lang="en">Money and the ledger</span><span data-lang="zh">课时、收费与退费</span></a></li>
-        <li><a href="#work"><b>05</b><span data-lang="en">Student work and consent</span><span data-lang="zh">学员作品与授权</span></a></li>
-        <li><a href="#showcase"><b>06</b><span data-lang="en">Studio showcase</span><span data-lang="zh">工作室作品展示</span></a></li>
-        <li><a href="#families"><b>07</b><span data-lang="en">For families</span><span data-lang="zh">家长这一侧</span></a></li>
-        <li><a href="#team"><b>08</b><span data-lang="en">Your team</span><span data-lang="zh">团队与权限</span></a></li>
-        <li><a href="#insight"><b>09</b><span data-lang="en">Reports and export</span><span data-lang="zh">经营统计与导出</span></a></li>
-        <li><a href="#platform"><b>10</b><span data-lang="en">What we can and cannot do</span><span data-lang="zh">平台方能做什么</span></a></li>
-        <li><a href="#help"><b>11</b><span data-lang="en">Getting help</span><span data-lang="zh">求助</span></a></li>
-        <li><a href="#faq"><b>12</b><span data-lang="en">Questions</span><span data-lang="zh">常见问题</span></a></li>
+        <li><a href="#timetable"><b>04</b><span data-lang="en">Public timetable and booking</span><span data-lang="zh">公开课表与约课</span></a></li>
+        <li><a href="#money"><b>05</b><span data-lang="en">Money and the ledger</span><span data-lang="zh">课时、收费与退费</span></a></li>
+        <li><a href="#work"><b>06</b><span data-lang="en">Student work and consent</span><span data-lang="zh">学员作品与授权</span></a></li>
+        <li><a href="#showcase"><b>07</b><span data-lang="en">Studio showcase</span><span data-lang="zh">工作室作品展示</span></a></li>
+        <li><a href="#families"><b>08</b><span data-lang="en">For families</span><span data-lang="zh">家长这一侧</span></a></li>
+        <li><a href="#team"><b>09</b><span data-lang="en">Your team</span><span data-lang="zh">团队与权限</span></a></li>
+        <li><a href="#insight"><b>10</b><span data-lang="en">Reports and export</span><span data-lang="zh">经营统计与导出</span></a></li>
+        <li><a href="#platform"><b>11</b><span data-lang="en">What we can and cannot do</span><span data-lang="zh">平台方能做什么</span></a></li>
+        <li><a href="#help"><b>12</b><span data-lang="en">Getting help</span><span data-lang="zh">求助</span></a></li>
+        <li><a href="#faq"><b>13</b><span data-lang="en">Questions</span><span data-lang="zh">常见问题</span></a></li>
       </ol>
     </nav>
 
@@ -131,8 +132,8 @@
       <!-- ─────────────────────────────────────────────────────── 00 ── -->
       <section id="start">
         <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>00 · <span data-lang="en">Before you start</span><span data-lang="zh">开始之前</span></p>
-        <h2 data-lang="en">Four screens, and three ideas that explain the rest</h2>
-        <h2 data-lang="zh">四个界面，和三个先弄懂就不会错的概念</h2>
+        <h2 data-lang="en">Five screens, and three ideas that explain the rest</h2>
+        <h2 data-lang="zh">五个界面，和三个先弄懂就不会错的概念</h2>
 
         <p data-lang="en">Your studio has its own address on the platform — a short URL name we call the <em>slug</em>, fixed when the studio is created. Everything below hangs off it.</p>
         <p data-lang="zh">你的工作室在平台上有一个自己的网址标识（slug），开通时确定、之后不可更改。下面所有地址都挂在它下面。</p>
@@ -152,6 +153,12 @@
                 <td><code>/&lt;slug&gt;</code></td>
                 <td data-lang="en">Visitors and families — courses, selected work, student gallery, enquiry form, student area</td>
                 <td data-lang="zh">访客与家长——课程、工作室作品、学员作品墙、报名表、学员专区</td>
+              </tr>
+              <tr>
+                <td><strong>Timetable</strong> <span data-lang="zh">公开课表</span></td>
+                <td><code>/&lt;slug&gt;/timetable</code></td>
+                <td data-lang="en">Visitors and families — the classes you publish for the weeks ahead, and a booking request if you accept them</td>
+                <td data-lang="zh">访客与家长——你公开的近期班次；开启后还能提交约课申请</td>
               </tr>
               <tr>
                 <td><strong>Register</strong> <span data-lang="zh">快速报名</span></td>
@@ -185,8 +192,8 @@
 
         <h4 data-lang="en">2 · Families do not have accounts</h4>
         <h4 data-lang="zh">2 · 家长没有账号</h4>
-        <p data-lang="en">There is no parent login. A family checks their own records with <strong>student name + registered phone + a six-digit access code</strong> your team hands them. The code is shown in plain text once, at the moment it is created, and never stored in a readable form. See <a href="#families">section 07</a>.</p>
-        <p data-lang="zh">系统没有家长登录。家庭用<strong>学员姓名 + 登记手机号 + 6 位访问码</strong>自助查询，访问码由你的团队生成后交给家长。明文只在生成时显示一次，系统只保存哈希。见<a href="#families">第 07 章</a>。</p>
+        <p data-lang="en">There is no parent login. A family checks their own records with <strong>student name + registered phone + a six-digit access code</strong> your team hands them. The code is shown in plain text once, at the moment it is created, and never stored in a readable form. See <a href="#families">section 08</a>.</p>
+        <p data-lang="zh">系统没有家长登录。家庭用<strong>学员姓名 + 登记手机号 + 6 位访问码</strong>自助查询，访问码由你的团队生成后交给家长。明文只在生成时显示一次，系统只保存哈希。见<a href="#families">第 08 章</a>。</p>
 
         <h4 data-lang="en">3 · Draft is not published</h4>
         <h4 data-lang="zh">3 · 草稿不等于已发布</h4>
@@ -323,6 +330,7 @@
             <li data-lang="en">Source and status on every card — at a glance, which came from the portal and which from the register page.</li><li data-lang="zh">每张卡片都带来源与状态——一眼看出哪条来自门户、哪条来自报名页。</li>
             <li data-lang="en">Set a follow-up date, or move the lead along: contacted, trial booked, still following up.</li><li data-lang="zh">设置下次跟进日期，或推进线索状态：已联系、已约试听、继续跟进。</li>
             <li data-lang="en">Approve with a starting credit balance and the student record is created in the same step.</li><li data-lang="zh">填入初始课时数后批准，学员档案在同一步创建完成。</li>
+            <li data-lang="en">One inbox, two tabs. The second holds booking requests from the public timetable — <a href="#timetable">section 04</a>.</li><li data-lang="zh">同一个收件箱，两个标签。第二个装的是来自公开课表的约课申请——见<a href="#timetable">第 04 章</a>。</li>
           </ol>
           <figcaption data-lang="en">The review queue. The count badge in the navigation is the number waiting.</figcaption>
           <figcaption data-lang="zh">待审核队列。导航上的角标就是等待处理的条数。</figcaption>
@@ -413,8 +421,91 @@
       </section>
 
       <!-- ─────────────────────────────────────────────────────── 04 ── -->
+      <section id="timetable">
+        <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>04 · <span data-lang="en">Public timetable</span><span data-lang="zh">公开课表</span></p>
+        <h2 data-lang="en">The timetable a family can read, and the request they can send</h2>
+        <h2 data-lang="zh">家长看得懂的课表，和他们能发出的那条申请</h2>
+
+        <p data-lang="en">The roster in <a href="#roster">section 03</a> is internal. This is its public counterpart: a page at <code>/&lt;slug&gt;/timetable</code>, linked from the portal, listing the classes you chose to publish for the weeks ahead. It has its own address rather than another band on the home page, because a family reading a timetable is comparing rows against a calendar — and because a timetable is a thing people forward to each other.</p>
+        <p data-lang="zh">第 03 章的排课是内部的，这一章是它的公开版本：一个位于 <code>/&lt;slug&gt;/timetable</code> 的独立页面，从门户链接过去，列出你选择公开的、未来几周的班次。它有自己的网址，而不是首页上的又一个板块，因为家长看课表是拿一行行课程去对自己的日历——也因为课表是会被互相转发的东西。</p>
+
+        <p data-lang="en"><strong>Being scheduled does not make a class public.</strong> Two decisions have to agree: the class itself must be ticked <em>Show this class on the public timetable</em> in the CMS, and the page must be switched on in Studio Admin → Brand &amp; Website → Public timetable.</p>
+        <p data-lang="zh"><strong>排了课不等于公开。</strong>两个决定必须同时成立：班次本身要在 CMS 里勾选「<em>在公开课表上展示这个班次</em>」，页面要在品牌工作台 →「品牌与官网」→「公开课表」里打开。</p>
+
+        <ol class="steps">
+          <li data-lang="en">Switch on <strong>Public timetable page</strong>, and choose how many weeks to show — 1 to 4, two by default.</li>
+          <li data-lang="zh">打开<strong>公开课表页面</strong>，并选择显示几周——1 到 4 周，默认 2 周。</li>
+          <li data-lang="en">Write the page eyebrow and lead in both languages, the way you write any other public section.</li>
+          <li data-lang="zh">按写其他公开板块的方式，填好页面眉题与导语的中英文。</li>
+          <li data-lang="en">Decide what each class shows: teacher, room, age range, finish time, places left, price. Teacher, room, age range and places left start on; finish time and price start off.</li>
+          <li data-lang="zh">决定每个班次显示哪些信息：老师、教室、适龄范围、结束时间、余位、价格。老师、教室、适龄范围与余位默认开启，结束时间与价格默认关闭。</li>
+          <li data-lang="en">In the CMS, tick the classes you want on the page. A class left unticked stays invisible there no matter how it is scheduled.</li>
+          <li data-lang="zh">回到 CMS，勾选希望出现在页面上的班次。没有勾选的班次，无论怎么排，都不会出现在那里。</li>
+          <li data-lang="en">Optionally switch on <strong>Accept booking requests</strong>. Only then does a class carry a button a visitor can press.</li>
+          <li data-lang="zh">按需打开<strong>接受约课申请</strong>。只有打开之后，班次上才会出现访客能点的按钮。</li>
+        </ol>
+
+        <figure>
+          <div class="shot">
+            <div class="shot-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+            <img data-lang="en" src="/assets/manual/04-timetable.en.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="Studio Admin Public timetable settings with booking and display window controls">
+            <img data-lang="zh" src="/assets/manual/04-timetable.zh.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="Studio Admin 公开课表设置，含约课开关与显示周数">
+          </div>
+          <ol class="marks">
+            <li data-lang="en">Brand &amp; Website → Public timetable is where the page switch, booking switch and display window live.</li><li data-lang="zh">「品牌与官网 → 公开课表」集中管理页面开关、约课开关和显示周数。</li>
+            <li data-lang="en">Public timetable and Accept booking requests are separate decisions: publish the page first, then allow requests only if the studio wants them.</li><li data-lang="zh">「公开课表」和「接受约课申请」是两个独立决定：先发布页面，再按工作室需要开放申请。</li>
+            <li data-lang="en">The weeks setting is also the booking window. In this example, two weeks are visible and bookable.</li><li data-lang="zh">显示周数同时就是约课窗口。本示例显示并可申请未来两周。</li>
+          </ol>
+          <figcaption data-lang="en">Backend: publish the timetable and choose whether families can send a booking request.</figcaption>
+          <figcaption data-lang="zh">后台：发布公开课表，并决定家长是否可以提交约课申请。</figcaption>
+        </figure>
+
+        <figure>
+          <div class="shot phone">
+            <div class="shot-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+            <img data-lang="en" src="/assets/manual/04-booking.en.webp?v=__APP_VERSION__" width="780" height="1688" loading="lazy" decoding="async" alt="Mobile public timetable with a booking request dialog">
+            <img data-lang="zh" src="/assets/manual/04-booking.zh.webp?v=__APP_VERSION__" width="780" height="1688" loading="lazy" decoding="async" alt="手机公开课表与约课申请对话框">
+          </div>
+          <ol class="marks">
+            <li data-lang="en">The public page shows only classes selected in CMS; the Request button belongs to a specific class.</li><li data-lang="zh">公开页只显示 CMS 中勾选的班次；「预约」按钮对应的是某一节具体课程。</li>
+            <li data-lang="en">The form asks for a full name, mobile number and optional message — no account or password.</li><li data-lang="zh">表单只需姓名、手机号和选填留言，不需要账号或密码。</li>
+            <li data-lang="en">Sending the form creates a request, not a seat. The studio reviews it in Pending and checks capacity when approving.</li><li data-lang="zh">提交后得到的是约课申请，不是预留座位；工作室在「待审核」中处理，并在批准时核对容量。</li>
+          </ol>
+          <figcaption data-lang="en">Frontend: a family can ask for a class without signing in; the studio still makes the final decision.</figcaption>
+          <figcaption data-lang="zh">前台：家长无需登录即可申请课程；最终是否安排，仍由工作室审核决定。</figcaption>
+        </figure>
+
+        <p class="note" data-lang="en">A field switch is a ceiling, not an instruction. Switched on, it shows the field <em>when there is something behind it</em> — a class with no room recorded never prints an empty “Room”. Turning everything on does not produce a page of blank labels.</p>
+        <p class="note" data-lang="zh">字段开关是上限，不是命令。打开的含义是「有内容时才显示」——没填教室的班次不会印出一个空的「教室」。把开关全部打开，不会得到一页空标签。</p>
+
+        <div class="pitfall">
+          <p><b data-lang="en">A teacher’s name needs that teacher’s own agreement</b><b data-lang="zh">老师的名字，要那位老师自己同意</b></p>
+          <p data-lang="en">The <em>Teacher</em> switch is a layout preference, not permission. A name appears only when that switch is on <strong>and</strong> the person has <em>Show my name on the public timetable</em> enabled for them individually in CMS → Settings → Team. The two are read with AND, never OR. Switching the field on names nobody who has not agreed; those classes simply publish without a teacher.</p>
+          <p data-lang="zh">「老师」开关是排版偏好，不是授权。名字只有在开关打开、<strong>而且</strong>那个人在 CMS →「设置 · 团队与权限」里被逐人开启了「公开课表显示姓名」时才会出现。两者之间是「与」，不是「或」。打开这个字段不会点名任何没有同意的人，相关班次照常公开，只是不带老师。</p>
+        </div>
+
+        <h3 data-lang="en">A booking request is a request, not a seat</h3>
+        <h3 data-lang="zh">约课申请只是申请，不是位子</h3>
+
+        <p data-lang="en">A visitor gives a full name and a phone number — no account, no password — plus an optional message. The request arrives in the CMS under <strong>Pending → Booking requests</strong>, and an email goes to the studio’s notification address. <strong>Nothing is held.</strong> Capacity is re-checked at the moment you approve, because a request nobody has looked at yet must not lock out a family who would actually turn up. What the visitor is told instead is how many requests are already waiting on that class — so a class with one place left and five requests does not disappoint four people by surprise.</p>
+        <p data-lang="zh">访客填姓名和手机号——没有账号、没有密码——可选留言。申请进入 CMS 的「<strong>待审核 → 约课申请</strong>」，同时有一封邮件发到工作室的通知邮箱。<strong>系统不会为此占位。</strong>容量在你批准的那一刻才重新核对，因为一条还没人看过的申请，不该把真会到场的家庭挡在外面。取而代之，访客会被告知这个班次已经有几条申请在排队——所以「只剩 1 个位子、收到 5 条申请」不会变成 4 场措手不及。</p>
+
+        <p data-lang="en">Approving does one of two things, and it decides by itself. If the name and phone match exactly one student on file, the approval puts that student on that day’s roster. If they match nobody — or match two people equally well — it becomes a new enquiry in the Pending queue instead, so a first-time family is counted once, in the funnel they actually came through. Declining closes the request. Owner, Manager and Front Desk can make that call; see <a href="#team">section 09</a>.</p>
+        <p data-lang="zh">批准会做两件事之一，由系统自己判断。姓名与手机号能唯一匹配到一位已建档学员时，批准就是把这位学员排进当天的名单；匹配不到、或者同时匹配到两个人时，它转成一条新的报名申请进入待审核队列——这样第一次来的家庭只会被统计一次，而且是在他们真正进来的那条漏斗里。婉拒则关闭这条申请。可以做这个决定的是 Owner、Manager 和前台，见<a href="#team">第 09 章</a>。</p>
+
+        <div class="pitfall">
+          <p><b data-lang="en">The weeks you show are the weeks that can be booked</b><b data-lang="zh">显示几周，就只能约几周</b></p>
+          <p data-lang="en">One number, not two. A date a visitor cannot see is a date they cannot ask for: the form addresses a class by its date and start time rather than by an internal id, so an occurrence that is not on the published page cannot be requested at all. Two separate horizons would drift apart, and the person who found the drift would always be a parent.</p>
+          <p data-lang="zh">这里只有一个数字，不是两个。看不到的日期就约不了——表单用日期和开始时间定位班次，而不是内部编号，所以没有出现在公开页面上的那一次课根本无法被申请。如果做成两个独立的时间范围，它们迟早会对不上，而发现对不上的人一定是家长。</p>
+        </div>
+
+        <p class="note" data-lang="en">The reply a visitor gets is identical whether or not that phone number belongs to an existing student. That is deliberate: a form answering differently would be a way to ask “is this person enrolled here?” about anyone. The match is made, but it goes into the record rather than into the reply.</p>
+        <p class="note" data-lang="zh">无论手机号是否属于已建档学员，访客收到的回执都完全一样。这是刻意的：如果回执有区别，这张表单就成了一个可以拿任何人去问「这个人是不是在你们这里上课」的工具。匹配确实做了，但结果只写进记录，不写进回执。</p>
+      </section>
+
+      <!-- ─────────────────────────────────────────────────────── 05 ── -->
       <section id="money">
-        <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>04 · <span data-lang="en">Money</span><span data-lang="zh">钱</span></p>
+        <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>05 · <span data-lang="en">Money</span><span data-lang="zh">钱</span></p>
         <h2 data-lang="en">The ledger is the balance. Nobody types over it.</h2>
         <h2 data-lang="zh">余额就是账本本身，没有人能直接改它</h2>
 
@@ -478,14 +569,14 @@
         </figure>
       </section>
 
-      <!-- ─────────────────────────────────────────────────────── 05 ── -->
+      <!-- ─────────────────────────────────────────────────────── 06 ── -->
       <section id="work">
-        <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>05 · <span data-lang="en">Student work and consent</span><span data-lang="zh">学员作品与授权</span></p>
+        <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>06 · <span data-lang="en">Student work and consent</span><span data-lang="zh">学员作品与授权</span></p>
         <h2 data-lang="en">Private by default, published only on a recorded decision</h2>
         <h2 data-lang="zh">默认私密；公开必须基于一次留痕的决定</h2>
 
-        <p data-lang="en">This chapter is about <strong>student work</strong>. The studio’s own selected work is a separate public section — see <a href="#showcase">section 06</a>.</p>
-        <p data-lang="zh">这一章讲的是<strong>学员作品</strong>。工作室自己的精选作品属于独立的公开板块，见<a href="#showcase">第 06 章</a>。</p>
+        <p data-lang="en">This chapter is about <strong>student work</strong>. The studio’s own selected work is a separate public section — see <a href="#showcase">section 07</a>.</p>
+        <p data-lang="zh">这一章讲的是<strong>学员作品</strong>。工作室自己的精选作品属于独立的公开板块，见<a href="#showcase">第 07 章</a>。</p>
 
         <p data-lang="en">Teachers, managers and owners can upload to a student’s portfolio: photo, title, date, note. JPEG, PNG or WebP, up to <strong>30 megapixels</strong> per image — larger files are refused with a message rather than failing silently.</p>
         <p data-lang="zh">老师、店长和 Owner 都可以往学员作品集里上传：照片、标题、日期、说明。格式限 JPEG / PNG / WebP，<strong>单张最大 3000 万像素</strong>，超限会明确拒绝，不会静默失败。</p>
@@ -533,9 +624,9 @@
         </div>
       </section>
 
-      <!-- ─────────────────────────────────────────────────────── 06 ── -->
+      <!-- ─────────────────────────────────────────────────────── 07 ── -->
       <section id="showcase">
-        <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>06 · <span data-lang="en">Selected Work</span><span data-lang="zh">工作室作品展示</span></p>
+        <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>07 · <span data-lang="en">Selected Work</span><span data-lang="zh">工作室作品展示</span></p>
         <h2 data-lang="en">Show the work that represents your studio</h2>
         <h2 data-lang="zh">展示真正代表工作室的作品</h2>
 
@@ -667,19 +758,22 @@
 
         <div class="pitfall">
           <p><b data-lang="en">Keep student work in the student gallery</b><b data-lang="zh">学员作品请留在学员作品墙</b></p>
-          <p data-lang="en">Studio-owned work is not a student record, so this section does not use the student consent workflow. If the subject is a student, keep it in the student portfolio and follow section 05. Do not re-enter it as studio showcase content to avoid the consent boundary.</p>
-          <p data-lang="zh">工作室自有作品不是学员档案，因此不走学员授权流程。如果作品主体是学员，就应放在学员作品集里并遵循第 05 章；不要为了绕开授权边界，把它重新录入工作室作品展示。</p>
+          <p data-lang="en">Studio-owned work is not a student record, so this section does not use the student consent workflow. If the subject is a student, keep it in the student portfolio and follow section 06. Do not re-enter it as studio showcase content to avoid the consent boundary.</p>
+          <p data-lang="zh">工作室自有作品不是学员档案，因此不走学员授权流程。如果作品主体是学员，就应放在学员作品集里并遵循第 06 章；不要为了绕开授权边界，把它重新录入工作室作品展示。</p>
         </div>
       </section>
 
-      <!-- ─────────────────────────────────────────────────────── 07 ── -->
+      <!-- ─────────────────────────────────────────────────────── 08 ── -->
       <section id="families">
-        <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>07 · <span data-lang="en">For families</span><span data-lang="zh">家长这一侧</span></p>
+        <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>08 · <span data-lang="en">For families</span><span data-lang="zh">家长这一侧</span></p>
         <h2 data-lang="en">The student area, and the code that opens it</h2>
         <h2 data-lang="zh">学员专区，和那串打开它的数字</h2>
 
         <p data-lang="en">This section is the one to read out loud to a parent. There is no account, no password and nothing to install.</p>
         <p data-lang="zh">这一章是可以直接念给家长听的。没有账号、没有密码、不用装任何东西。</p>
+
+        <p data-lang="en">A family touches two things without signing in anywhere: the <strong>student area</strong> below, which shows their own records and needs the access code; and the <strong>public timetable</strong> in <a href="#timetable">section 04</a>, which needs nothing at all and is where they can ask for a place in a class. Keep the two apart when you explain them — one is private and permanent, the other is public and open to anybody.</p>
+        <p data-lang="zh">家长会用到两样东西，都不需要登录：下面的<strong>学员专区</strong>，查自己的记录，需要访问码；以及<a href="#timetable">第 04 章</a>的<strong>公开课表</strong>，什么都不需要，也是他们申请上课的地方。向家长解释时请把这两件事分开——一个是私密且长期有效的，另一个是公开的、谁都能打开。</p>
 
         <ol class="steps">
           <li data-lang="en">The student must have a phone number on file first — without one the system refuses to issue a code.</li>
@@ -717,9 +811,9 @@
         <p class="note" data-lang="zh">授权记录永久保存。会话类数据 30 天后清除，但家庭的作品公开授权与撤回记录永不删除——那是「当初同意了什么、何时撤回」的凭证。</p>
       </section>
 
-      <!-- ─────────────────────────────────────────────────────── 08 ── -->
+      <!-- ─────────────────────────────────────────────────────── 09 ── -->
       <section id="team">
-        <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>08 · <span data-lang="en">Your team</span><span data-lang="zh">团队与权限</span></p>
+        <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>09 · <span data-lang="en">Your team</span><span data-lang="zh">团队与权限</span></p>
         <h2 data-lang="en">Five roles, enforced in the backend</h2>
         <h2 data-lang="zh">五级权限，写死在后端</h2>
 
@@ -812,8 +906,8 @@
           </table>
         </div>
 
-        <p class="note" data-lang="en">At v9.8.x, backend authority already includes Front Desk for class-booking review, but this round deliberately did not change the CMS: its approve/decline buttons still show only to Owner and Manager. Front Desk can see the requests and must hand the decision over until the separate CMS task ships. Course, capacity and schedule changes remain Owner/Manager-only.</p>
-        <p class="note" data-lang="zh">在 v9.8.x，后端已允许 Front Desk 审核约课请求，但本轮刻意没有修改 CMS：批准/婉拒按钮仍只向 Owner/Manager 显示。独立 CMS 任务上线前，前台可以查看请求，但需转交店长或 Owner 操作。课程、容量与时间表维护始终只限 Owner/Manager。</p>
+        <p class="note" data-lang="en">Front desk can approve or decline a class-booking request (<a href="#timetable">section 04</a>). Reception already handles incoming enquiries, and a booking request is an enquiry wearing a different hat — a role that can approve one but not the other is a rule nobody can explain at the counter. The permission stops exactly there: courses, capacity and the schedule itself remain Owner and Manager only.</p>
+        <p class="note" data-lang="zh">前台可以批准或婉拒约课申请（<a href="#timetable">第 04 章</a>）。接待本来就在处理上门咨询，而约课申请就是换了个样子的咨询——一个能批这个、不能批那个的角色，在前台是解释不通的。这个权限也就到此为止：课程、容量与课表本身的维护始终只限 Owner 和 Manager。</p>
 
         <div class="pitfall">
           <p><b data-lang="en">Front desk cannot see student work at all</b><b data-lang="zh">前台连学员作品都看不到</b></p>
@@ -825,9 +919,9 @@
         <p class="note" data-lang="zh">Staff 是早期的「全能员工」角色，接近 Manager 但没有退款、统计、导出和分享链接。新建成员时建议优先用职责明确的角色——界面和岗位对得上，培训才容易。</p>
       </section>
 
-      <!-- ─────────────────────────────────────────────────────── 09 ── -->
+      <!-- ─────────────────────────────────────────────────────── 10 ── -->
       <section id="insight">
-        <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>09 · <span data-lang="en">Reports</span><span data-lang="zh">经营</span></p>
+        <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>10 · <span data-lang="en">Reports</span><span data-lang="zh">经营</span></p>
         <h2 data-lang="en">What the numbers are actually telling you</h2>
         <h2 data-lang="zh">这些数字到底在说什么</h2>
 
@@ -858,9 +952,9 @@
         <p data-lang="zh">导出（学员 CSV、操作日志 CSV）需要导出权限，每次导出都写入审计。该功能同时受订阅套餐开关约束，未开通时界面会提示并指向平台方。</p>
       </section>
 
-      <!-- ─────────────────────────────────────────────────────── 10 ── -->
+      <!-- ─────────────────────────────────────────────────────── 11 ── -->
       <section id="platform">
-        <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>10 · <span data-lang="en">Us</span><span data-lang="zh">平台方</span></p>
+        <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>11 · <span data-lang="en">Us</span><span data-lang="zh">平台方</span></p>
         <h2 data-lang="en">What we can do inside your studio, and what stops us</h2>
         <h2 data-lang="zh">我们能在你的工作室里做什么，以及什么拦着我们</h2>
 
@@ -877,15 +971,15 @@
         <p class="note" data-lang="zh">你的订阅档位、额度与账期由我们维护，在你自己的界面里是只读的。需要调整直接找我们。</p>
       </section>
 
-      <!-- ─────────────────────────────────────────────────────── 11 ── -->
+      <!-- ─────────────────────────────────────────────────────── 12 ── -->
       <section id="help">
-        <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>11 · <span data-lang="en">Getting help</span><span data-lang="zh">求助</span></p>
+        <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>12 · <span data-lang="en">Getting help</span><span data-lang="zh">求助</span></p>
         <h2 data-lang="en">Check three things, then call us</h2>
         <h2 data-lang="zh">先看三样，再找我们</h2>
 
         <ol class="steps">
-          <li data-lang="en"><strong>Which screen and which account?</strong> Most “it disappeared” reports are a permission boundary working correctly — check <a href="#team">section 08</a> first.</li>
-          <li data-lang="zh"><strong>哪个界面、哪个账号？</strong>大多数「东西不见了」其实是权限边界在正常工作，先看<a href="#team">第 08 章</a>。</li>
+          <li data-lang="en"><strong>Which screen and which account?</strong> Most “it disappeared” reports are a permission boundary working correctly — check <a href="#team">section 09</a> first.</li>
+          <li data-lang="zh"><strong>哪个界面、哪个账号？</strong>大多数「东西不见了」其实是权限边界在正常工作，先看<a href="#team">第 09 章</a>。</li>
           <li data-lang="en"><strong>Draft or published?</strong> If it is about the public website, confirm you pressed Publish and not just Save Draft.</li>
           <li data-lang="zh"><strong>草稿还是已发布？</strong>如果和公开网站有关，先确认你点的是「发布」，而不是只存了草稿。</li>
           <li data-lang="en"><strong>What does the operation log say?</strong> It records who did what and when, which usually answers the question faster than we can.</li>
@@ -899,9 +993,9 @@
         <p data-lang="zh">我们的承诺和它的边界都是写下来的，不靠默契：<a href="/customer-resources/Support_Policy.html">支持政策</a>、<a href="/customer-resources/Privacy_Policy.html">隐私政策</a>、<a href="/customer-resources/Terms_of_Service.html">服务条款</a>。</p>
       </section>
 
-      <!-- ─────────────────────────────────────────────────────── 12 ── -->
+      <!-- ─────────────────────────────────────────────────────── 13 ── -->
       <section id="faq">
-        <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>12 · <span data-lang="en">Questions</span><span data-lang="zh">常见问题</span></p>
+        <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>13 · <span data-lang="en">Questions</span><span data-lang="zh">常见问题</span></p>
         <h2 data-lang="en">The ones we are actually asked</h2>
         <h2 data-lang="zh">真的被问到的那些</h2>
 
@@ -922,13 +1016,38 @@
 
         <h4 data-lang="en">A parent wants to log in with an email and password.</h4>
         <h4 data-lang="zh">家长想用邮箱密码登录。</h4>
-        <p data-lang="en">Families cannot sign in to the CMS; the attempt is refused. Self-service is the student area with an access code — <a href="#families">section 07</a>.</p>
-        <p data-lang="zh">家长不能登录 CMS，尝试会被拒绝。家庭自助走「学员专区」访问码——见<a href="#families">第 07 章</a>。</p>
+        <p data-lang="en">Families cannot sign in to the CMS; the attempt is refused. Self-service is the student area with an access code — <a href="#families">section 08</a>.</p>
+        <p data-lang="zh">家长不能登录 CMS，尝试会被拒绝。家庭自助走「学员专区」访问码——见<a href="#families">第 08 章</a>。</p>
+
+        <h4 data-lang="en">Can families book a class themselves?</h4>
+        <h4 data-lang="zh">家长能自己约课吗？</h4>
+        <p data-lang="en">Yes, once you switch it on. Publish the public timetable, tick the classes you want to appear on it, then switch on <em>Accept booking requests</em>. A visitor gives only a name and a phone number. The request does not hold a place — it waits in the CMS until someone approves it, and capacity is checked at that moment. See <a href="#timetable">section 04</a>.</p>
+        <p data-lang="zh">可以，但要先打开。发布公开课表、勾选希望出现在课表上的班次，再打开「接受约课申请」。访客只需填姓名和手机号。这条申请不会占位——它在 CMS 里等人处理，容量是在批准的那一刻才核对的。见<a href="#timetable">第 04 章</a>。</p>
+
+        <h4 data-lang="en">I ticked the class as public, but it is not on the timetable.</h4>
+        <h4 data-lang="zh">我把班次勾成公开了，课表上还是看不到。</h4>
+        <p data-lang="en">Three things have to line up, and the ticked class is only the first. Check that the timetable page itself is switched on in Studio Admin, and that the class falls inside the number of weeks the page shows — one to four, and anything beyond that horizon is simply not on the page yet. A class cancelled for that date is shown as cancelled rather than hidden.</p>
+        <p data-lang="zh">要三件事同时成立，勾选班次只是第一件。再确认品牌工作台里的课表页面本身是打开的，以及这个班次落在页面显示的周数范围内——1 到 4 周，超出这个范围的日期只是还没轮到，不是没生效。某一天被停课的班次会显示为已取消，而不是消失。</p>
+
+        <h4 data-lang="en">Will my teachers’ names show on the public timetable?</h4>
+        <h4 data-lang="zh">老师的名字会出现在公开课表上吗？</h4>
+        <p data-lang="en">Only for the ones who have agreed. Two things must both be true: the <em>Teacher</em> field is switched on for the page, and that person has their own name switched on individually in CMS → Settings → Team. Turning the field on does not name anyone who has not agreed — those classes publish without a teacher.</p>
+        <p data-lang="zh">只有同意了的人才会显示。两个条件必须同时成立：页面上的「老师」字段是开启的，并且那个人在 CMS →「设置 · 团队与权限」里被单独开启了姓名显示。打开这个字段不会点名任何没有同意的人——那些班次照常公开，只是不带老师。</p>
 
         <h4 data-lang="en">Uploads keep failing.</h4>
         <h4 data-lang="zh">图片一直传不上去。</h4>
         <p data-lang="en">Check the format (JPEG, PNG, WebP) and the size — one image may not exceed 30 megapixels, roughly 6000 × 5000. Both limits are reported, never silent.</p>
         <p data-lang="zh">先看格式（JPEG / PNG / WebP）和尺寸——单张不能超过 3000 万像素，约 6000×5000。两种情况都会明确提示，不会静默失败。</p>
+
+        <h4 data-lang="en">What is the difference between selected work and the student gallery?</h4>
+        <h4 data-lang="zh">工作室作品和学员作品墙有什么区别？</h4>
+        <p data-lang="en">Who owns the work, and what makes it public. Selected work belongs to the studio or its principal; the owner curates it in Studio Admin, and it goes public within the plan quota. The student gallery is work from a student record; it goes public only on that family’s recorded consent, and it comes straight back down if the consent is withdrawn. Never move a student’s work into selected work — that would be routing around the consent, not satisfying it.</p>
+        <p data-lang="zh">区别在于作品归谁，以及靠什么公开。工作室作品属于工作室或主理人，由 Owner 在品牌工作台策展，按套餐额度公开；学员作品墙来自学员档案，只有该家庭已记录的公开授权才能上墙，授权一撤回就立即下架。永远不要把学员作品挪进工作室作品——那是绕过授权，不是取得授权。</p>
+
+        <h4 data-lang="en">If I move to a smaller plan, do I lose the selected work I published?</h4>
+        <h4 data-lang="zh">换成更小的套餐，已经发布的工作室作品会丢吗？</h4>
+        <p data-lang="en">No. The plan quota limits how many Active works are shown publicly, never how many are stored. Every record stays in the board — up to 500 of them — and after a downgrade the public page simply shows the first ones in the order you set. Move back up and the rest become eligible again, in the same order, with nothing to re-enter.</p>
+        <p data-lang="zh">不会。套餐额度限制的是公开展示多少件 Active 作品，从不限制保存多少件。所有记录都留在工作台里（最多 500 条），降档后公开页只按你设定的顺序展示排在前面的那些。升回去，其余作品就按原顺序重新具备公开资格，不需要重新录入任何东西。</p>
 
         <h4 data-lang="en">Can I see whether a staff member issued a refund?</h4>
         <h4 data-lang="zh">能查到某个员工有没有办过退款吗？</h4>
