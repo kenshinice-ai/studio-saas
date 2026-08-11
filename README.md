@@ -4,32 +4,51 @@
 
 These are three independent facts. A matching version label is not proof that
 the current source tree was packaged or deployed; Source, Package and
-Production remain separate rows. The v9.8.6 package and production rows below
+Production remain separate rows. The v9.8.7 package and production rows below
 identify the exact deployable commit; Source also includes the documentation
 closure that records the observed result.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v9.8.6 released** from `codex/v9.8.2-showcase-content-recovery` | `VERSION` = **9.8.6**; deployable source commit `21d2cc70bcd116250fca4780bec164a855b45258`; the documentation-only closure follows it on the same branch; the user-owned `docs/sales/` material remains outside the release. |
-| Package | Clean SaaS and Edition v9.8.6 packages verified | SaaS `dist/PWE-StudioSaaS-aws-9.8.6.tar.gz` SHA-256 `bd532a34d79ef74717218cde59a69d9b9f1fac7978ee6a52fb2509abc568536e`; Edition `dist/PWE-Studio-Edition-9.8.6.tar.gz` SHA-256 `f0c70727457ead7616958f2d051020c2cfe32f679289ff5cc2f16018a5c5df6b`; both `BUILD_INFO` records point to `21d2cc7` and passed bundle checks. |
-| Production | **v9.8.6 deployed to `pwestudio.online`** | `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.8.6`; image `studiosaas:9.8.6`; deep health reports `appVersion=9.8.6`, `db=ok`, `mode=saas`, `tenants=6`, `themes.unreadable=0`; disk free `46.35 GB`; HTTP→HTTPS `301`, HTTPS `200`, TLS check `0`, HTTP/2. |
+| Source | **v9.8.7 released** from `codex/v9.8.2-showcase-content-recovery` | `VERSION` = **9.8.7**; deployable source commit `4e1894f12a31935701f3982757bd8fe0f441e0d0`; the documentation-only closure follows it on the same branch; the user-owned `docs/sales/` material remains outside the release. |
+| Package | Clean SaaS and Edition v9.8.7 packages verified | SaaS `dist/PWE-StudioSaaS-aws-9.8.7.tar.gz` SHA-256 `8181b9324ef4f66297cacb9b9d440c4ecec458f34151d887965ff850c07392c1`; Edition `dist/PWE-Studio-Edition-9.8.7.tar.gz` SHA-256 `16473b8d4ad17c57e3603cef34915aca00b6e8a2c87305b146240ce8d1d64403`; both `BUILD_INFO` records point to `4e1894f` and passed bundle checks. |
+| Production | **v9.8.7 deployed to `pwestudio.online`** | `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.8.7`; image `studiosaas:9.8.7`; deep health reports `appVersion=9.8.7`, `db=ok`, `mode=saas`, `tenants=6`, `themes.unreadable=0`; disk free `46.25 GB`; HTTP→HTTPS `301`, HTTPS `200`, TLS check `0`, HTTP/2. |
 
 Re-verify the production health endpoint before any later release claim; do not
 infer Production from `VERSION` or from an archive filename, which does not identify the deployed commit.
 
-## v9.8.7 showcase release candidate
+## v9.8.7 ranked standalone showcase acceptance
 
-The candidate adds an optional tenant-wide `featured_rank`, a six-item home
-preview and a standalone `/<slug>/showcase` archive with category URLs and
-12-item C-scheme pagination. All stored works and ranks remain intact across
-plan changes; the plan still limits only the number of Active works published.
-Shared navigation/footer links, the bilingual manual and Studio Admin copy are
-updated together. Package and production evidence will be recorded here only
-after the clean commit, bundle verification and public deployment gates pass.
+The release adds an optional tenant-wide `featured_rank` (1–500). Lower
+numbers lead the global public order, ranks 1–6 define the home preview, and
+blank ranks keep the stable fallback order. The independent `/<slug>/showcase`
+archive uses the same order, supports category URLs, loads 12 matching works
+per page with C-scheme offset pagination and a visible Load more fallback, and
+keeps the shared navigation/footer shell with the home page, timetable and
+registration surfaces.
 
-Candidate source identity: `VERSION` = **9.8.7**; the deployed source commit,
-package and Production remain the v9.8.6 facts in the table above until the
-v9.8.7 deployment gate closes.
+Plan changes preserve all stored works and ranks; only the number of Active
+works eligible for public publication follows the plan. Studio Admin, the
+bilingual online manual and customer-facing release notes use the same
+Starter / 入门版, Studio / 工作室版 and Growth / 成长版 terminology.
+
+The deployable source commit is `4e1894f12a31935701f3982757bd8fe0f441e0d0`.
+Production migration `0030_showcase_featured_rank.sql` applied successfully;
+the pre-switch logical backup is
+`studiosaas_studiosaas_20260811T083534Z.dump` with manifest and the volume
+archive is `pwestudio-volumes-20260811T083535Z.tar.gz`. Public deep health is
+`appVersion=9.8.7`, `db=ok`, `mode=saas`, six tenants and
+`themes.unreadable=0`; the v9.8.7 application container has no fresh
+Traceback/Exception/Fatal/Error entries after deployment.
+
+Read-only public acceptance returned `200` for the root, bilingual manual,
+standalone showcase, timetable, register, Studio Admin, Platform Admin and
+Release Notes. Ruby Studio's public API reports home `pageSize=6` with
+`total=12`, archive `pageSize=12`, category filtering and a valid empty page at
+`offset=12`. A real 390×844 production browser viewport has no horizontal
+overflow (`documentWidth=390`), exposes the 44px mobile menu, opens a work in
+the lightbox with an image and `1 / 12` counter, and closes it with focus and
+scroll state restored.
 
 ## v9.8.6 online manual and timetable acceptance
 

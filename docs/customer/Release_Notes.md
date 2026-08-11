@@ -22,9 +22,20 @@ the same Starter / 入门版, Studio / 工作室版, and Growth / 成长版 term
 
 ### Deployment acceptance
 
-This section is completed with the exact source commit, SaaS and Edition
-package hashes, migration/back-up evidence, production deep health, and public
-browser acceptance after the v9.8.7 deployment gate closes.
+Production is running `PWE-StudioSaaS-aws-9.8.7` from deployable commit
+`4e1894f12a31935701f3982757bd8fe0f441e0d0`. The SaaS package SHA-256 is
+`8181b9324ef4f66297cacb9b9d440c4ecec458f34151d887965ff850c07392c1`; the
+Edition package SHA-256 is
+`16473b8d4ad17c57e3603cef34915aca00b6e8a2c87305b146240ce8d1d64403`.
+
+Migration `0030_showcase_featured_rank.sql` applied during the guarded switch;
+the pre-switch logical backup is
+`studiosaas_studiosaas_20260811T083534Z.dump` with manifest and the volume
+archive is `pwestudio-volumes-20260811T083535Z.tar.gz`. Deep health reports
+`appVersion=9.8.7`, `db=ok`, `mode=saas`, six readable tenants and
+`themes.unreadable=0`. Public route checks and the production 390×844 browser
+acceptance passed: the archive renders 12 works without horizontal overflow,
+the mobile menu is available, and the lightbox opens and closes correctly.
 
 ## v9.8.6 — online manual: timetable and booking
 
