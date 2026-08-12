@@ -4,17 +4,39 @@
 
 These are three independent facts. A matching version label is not proof that
 the current source tree was packaged or deployed; Source, Package and
-Production remain separate rows. v9.8.10 is the release candidate until the
-package and production rows are updated with evidence.
+Production remain separate rows. v9.8.10 completed all three milestones on
+12 August 2026; the rows below record the independent evidence.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v9.8.10 candidate** | `VERSION` = **9.8.10**; release branch `codex/v9.8.10-public-shell` is being verified before commit and push. User-owned root-worktree changes remain outside this isolated release. |
-| Package | Pending clean SaaS and Edition v9.8.10 build | Build only after the source commit is created; SHA-256 and `BUILD_INFO` evidence will be recorded here. |
-| Production | **v9.8.9 remains deployed until v9.8.10 acceptance** | Re-verify production immediately before switching; record the deployed source commit separately and do not infer production from this candidate source tree. |
+| Source | **v9.8.10 pushed** | `VERSION` = **9.8.10**; release commit `d8c11daa703c5080578931c723385e0ab79e87df` on `codex/v9.8.10-public-shell`, pushed to `origin`. User-owned root-worktree changes remain outside this isolated release. |
+| Package | Clean SaaS and Edition v9.8.10 packages verified | SaaS `dist/PWE-StudioSaaS-aws-9.8.10.tar.gz` SHA-256 `03cde6a4816308b5249ab270c12aee10b591b9140165d021dfd3963e04dcae1f`; Edition `dist/PWE-Studio-Edition-9.8.10.tar.gz` SHA-256 `d51d2cfd73c529465c8d58041bde8faf3f64bb42128faa96d3690514882074fa`; both `BUILD_INFO` records point to `d8c11daa` and passed checksum, mode, entrypoint and exclusion checks. |
+| Production | **v9.8.10 deployed to `pwestudio.online`** | `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.8.10`; image `studiosaas:9.8.10`; deep health reports `appVersion=9.8.10`, `db=ok`, `mode=saas`, `tenants=6`, `themes.unreadable=0`; disk free about `46.08 GB`; HTTP→HTTPS `301`, HTTPS `200`, TLS check `0`, HTTP/2. |
 
 Re-verify the production health endpoint before any later release claim; do not
 infer Production from `VERSION` or from an archive filename, which does not identify the deployed commit.
+
+## v9.8.10 released scope
+
+This release makes the public shell and publication status server-authoritative.
+Studio Admin now reads the publication ledger instead of deep-comparing a
+browser snapshot of `websiteProfile`; successful writes, pending public
+projection and invalid records use structured bilingual status codes. The
+portal, standalone showcase, timetable and registration page consume contract
+v3 with localized labels, shared navigation/footer/actions and safe hash-link
+resolution on standalone pages.
+
+Public footer links to staff CMS and Studio Admin were removed. Existing tenant
+workspaces were regenerated from the updated templates, and industry tokens
+`%WORK%`, `%WORKS%` and `%VENUE%` are resolved before labels reach visitors.
+The release keeps the existing Vanilla HTML/CSS runtime, tenant data model,
+featured-rank ordering, plan-safe content retention and 6/12 showcase paging.
+
+The deployed source commit is `d8c11daa703c5080578931c723385e0ab79e87df`.
+Production created the logical backup
+`studiosaas_studiosaas_20260812T104121Z.dump` with its manifest and the volume
+archive `pwestudio-volumes-20260812T104122Z.tar.gz` before switching; v9.8.9
+and v9.8.8 remain available as retained release directories.
 
 ## v9.8.9 released scope
 
