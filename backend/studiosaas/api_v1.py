@@ -4574,11 +4574,18 @@ def tenant_dashboard():
 # the whole sentence; only the entry in the bar is clipped.
 NAV_LABEL_LIMIT = {"zh": 10, "en": 24}
 
+# The call to action is tighter than the rest of the bar. It is a bordered pill
+# sitting next to the language switch, so it has the least room and the most
+# padding, and the field behind it is the one a studio is most likely to fill
+# with a sentence: one studio's reads 「原创油画 × 私人定制」. The hero button
+# still shows the whole thing — it reads that field directly, not this label.
+CTA_LABEL_LIMIT = {"zh": 7, "en": 18}
 
-def _clip_nav_label(value: str, language: str) -> str:
+
+def _clip_nav_label(value: str, language: str, limits: dict[str, int] | None = None) -> str:
     """Shorten a label to something a navigation bar can hold."""
 
-    limit = NAV_LABEL_LIMIT.get(language, 24)
+    limit = (limits or NAV_LABEL_LIMIT).get(language, 24)
     text = str(value or "").strip()
     if len(text) <= limit:
         return text
@@ -4826,11 +4833,12 @@ def public_surface(tenant_slug: str):
             .replace("%VENUE%", venue)
         )
 
-    def surface_label(value, fallback: dict[str, str], limit: int = 80) -> dict[str, str]:
+    def surface_label(value, fallback: dict[str, str], limit: int = 80,
+                      limits: dict[str, int] | None = None) -> dict[str, str]:
         pair = _localized_pair({"value": value}, "value", limit=limit)
         return {
-            "zh": _clip_nav_label(public_label_text(pair["zh"] or fallback["zh"], "zh"), "zh"),
-            "en": _clip_nav_label(public_label_text(pair["en"] or fallback["en"], "en"), "en"),
+            "zh": _clip_nav_label(public_label_text(pair["zh"] or fallback["zh"], "zh"), "zh", limits),
+            "en": _clip_nav_label(public_label_text(pair["en"] or fallback["en"], "en"), "en", limits),
         }
 
     labels = {
@@ -4841,7 +4849,8 @@ def public_surface(tenant_slug: str):
         "gallery": surface_label(localized_copy.get("gallery_label"), {"zh": "学员作品", "en": "Student Works"}),
         "faq": surface_label(localized_copy.get("faq_label"), {"zh": "常见问题", "en": "Questions & Answers"}),
         "student": {"zh": "学员专区", "en": "Student Login"},
-        "register": surface_label(localized_copy.get("primary_cta"), {"zh": "预约体验", "en": "Book a Trial"}),
+        "register": surface_label(localized_copy.get("primary_cta"), {"zh": "预约体验", "en": "Book a Trial"},
+                                  limits=CTA_LABEL_LIMIT),
     }
     secondary_label = surface_label(localized_copy.get("secondary_cta"), {"zh": "查看课程", "en": "Explore Programs"})
     modules = {

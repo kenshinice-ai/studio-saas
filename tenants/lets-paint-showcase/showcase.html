@@ -40,13 +40,13 @@
     .brand img{display:none;height:34px;width:auto}
     .brand .bn{font-size:16px;letter-spacing:.04em;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .navlinks{display:flex;align-items:center;gap:26px}
-    .navlinks a{position:relative;padding:4px 0;color:var(--ink2);font-size:13px;letter-spacing:.02em;max-width:16ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .navlinks a{position:relative;padding:4px 0;color:var(--ink2);font-size:13px;letter-spacing:.02em;max-width:13em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .navlinks a::after{content:"";position:absolute;left:0;bottom:0;width:0;height:1px;background:var(--clay);transition:width .25s}
     .navlinks a:hover::after,.navlinks a[aria-current="page"]::after{width:100%}
     .navlinks a[aria-current="page"]{color:var(--ink)}
     /* One point more specific than `.navlinks a`, which was otherwise
        drawing this pill with `padding:4px 0`. */
-    .navlinks a.navcta{display:inline-flex;align-items:center;min-height:var(--tap-min);padding:10px 20px;border:1px solid var(--ink);border-radius:var(--radius-pill);white-space:nowrap;max-width:22ch;overflow:hidden;text-overflow:ellipsis}
+    .navlinks a.navcta{display:inline-flex;align-items:center;min-height:var(--tap-min);padding:10px 20px;border:1px solid var(--ink);border-radius:var(--radius-pill);white-space:nowrap;max-width:11em;overflow:hidden;text-overflow:ellipsis}
     .navlinks a.navcta:hover{background:var(--ink);color:var(--bg)}
     .navlinks a.navcta::after{display:none!important}
     .langtog{display:inline-flex;overflow:hidden;border:1px solid var(--line);border-radius:var(--radius-pill)}

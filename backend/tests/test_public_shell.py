@@ -304,6 +304,10 @@ def test_a_studio_cannot_write_a_nav_entry_the_bar_cannot_hold():
     assert api_v1._clip_nav_label(long_en, "en") == "Oil Painting, Acrylic P…"
     assert api_v1._clip_nav_label(long_zh, "zh") == "艺术形式与课程安排…"
     assert api_v1._clip_nav_label("Timetable", "en") == "Timetable"
+    # The pill has the least room and the most padding, so it gets less.
+    assert api_v1._clip_nav_label("原创油画 × 私人定制", "zh", api_v1.CTA_LABEL_LIMIT) == "原创油画 ×…"
+    assert api_v1._clip_nav_label("Original Personalised Oil Painting", "en",
+                                  api_v1.CTA_LABEL_LIMIT) == "Original Personal…"
 
 
 def test_the_browser_clips_a_nav_entry_the_same_way_the_server_does(tmp_path):
@@ -324,3 +328,45 @@ console.log(JSON.stringify(contract.modules.courses.label));
     label = _run_probe(body, tmp_path)
     assert label["en"] == api_v1._clip_nav_label(long_en, "en")
     assert label["zh"] == api_v1._clip_nav_label(long_zh, "zh")
+
+
+def test_css_never_clips_before_the_contract_does(tmp_path):
+    """Two truncations produced an ellipsis inside an ellipsis.
+
+    `16ch` is roughly 8em, narrower than the ten Chinese characters the
+    contract already allows, so the browser cut a label the server had already
+    cut. The contract is the limit; these values are a safety net for a label
+    that somehow arrives unclipped.
+    """
+
+    for name in NAV_PAGES:
+        source = (TEMPLATE_DIR / name).read_text(encoding="utf-8")
+        for selector in (r"\.navlinks\s+a\s*\{", r"\.navlinks\s+a\.navcta\s*\{"):
+            rule = re.search(selector + r"([^}]*)\}", source).group(1)
+            width = re.search(r"max-width:\s*([0-9.]+)(ch|em|px)", rule)
+            assert width, f"{name} {selector} has no max-width"
+            assert width.group(2) == "em", f"{name} still measures in {width.group(2)}"
+            assert float(width.group(1)) >= 11, f"{name} clips at {width.group(0)}"
+
+
+def test_the_call_to_action_is_shorter_than_the_rest_of_the_bar(tmp_path):
+    """Server and browser have to agree, or a contract failure rewords the pill."""
+
+    import importlib
+
+    api_v1 = importlib.import_module("studiosaas.api_v1")
+    slogan_zh, slogan_en = "原创油画 × 私人定制", "Original Personalised Oil Painting"
+    body = f"""
+const win = {{ location: {{ pathname: '/demo-studio', search: '', href: 'https://example.test/demo-studio' }} }};
+const surface = load(win);
+const contract = surface.resolve({{ slug: 'demo-studio', brand: {{ localizedCopy: {{
+  primary_cta: {{ zh: {json.dumps(slogan_zh)}, en: {json.dumps(slogan_en)} }},
+  courses_label: {{ zh: {json.dumps(slogan_zh)}, en: {json.dumps(slogan_en)} }} }} }} }});
+console.log(JSON.stringify({{ cta: contract.modules.register.label,
+                              section: contract.modules.courses.label }}));
+"""
+    result = _run_probe(body, tmp_path)
+    assert result["cta"]["zh"] == api_v1._clip_nav_label(slogan_zh, "zh", api_v1.CTA_LABEL_LIMIT)
+    assert result["cta"]["en"] == api_v1._clip_nav_label(slogan_en, "en", api_v1.CTA_LABEL_LIMIT)
+    # A section entry keeps the roomier limit.
+    assert len(result["section"]["en"]) > len(result["cta"]["en"])

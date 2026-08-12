@@ -5376,7 +5376,14 @@
       const footer = $('previewFooterLinks');
       if (!nav || !footer || !window.StudioSaaS.publicSurface) return;
       const payload = settingsPayload();
-      const activeShowcase = collectShowcaseItems().filter((item) => showcaseHasContent(item)
+      // The editor's own records, not collectShowcaseItems() — that one maps to
+      // the API's camelCase on its way out, so `image_url` and
+      // `publication_state` are both undefined by the time this filter reads
+      // them. showcaseHasContent() therefore answered false for every work, and
+      // the draft said "no published work yet" to a studio whose site was
+      // showing two. The counter above the dropzone read from the raw records
+      // and was right, which is how the two disagreed on one screen.
+      const activeShowcase = showcaseItems.filter((item) => showcaseHasContent(item)
         && normalizeShowcasePublicationState(item.publication_state) === 'active');
       const faqItems = collectFaqItems();
       const liveModules = publishedSurfaceContract?.modules || {};

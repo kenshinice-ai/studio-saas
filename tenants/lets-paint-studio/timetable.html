@@ -42,7 +42,7 @@
     .brand img { height:34px; width:auto; display:none; }
     .brand .bn { font-size:16px; letter-spacing:.04em; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .navlinks { display:flex; align-items:center; gap:30px; }
-    .navlinks a { font-size:13px; color:var(--ink2); letter-spacing:.02em; position:relative; padding:4px 0; cursor:pointer; max-width:16ch; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .navlinks a { font-size:13px; color:var(--ink2); letter-spacing:.02em; position:relative; padding:4px 0; cursor:pointer; max-width:13em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .navlinks a::after { content:""; position:absolute; left:0; bottom:0; width:0; height:1px; background:var(--clay); transition:width .3s; }
     .navlinks a:hover::after { width:100%; }
     /* The page you are on is stated, not merely styled — the underline is
@@ -51,7 +51,7 @@
     .navlinks a[aria-current="page"]::after { width:100%; }
     /* One point more specific than `.navlinks a`, which was otherwise
        drawing this pill with `padding:4px 0`. */
-    .navlinks a.navcta { border:1px solid var(--ink); border-radius:var(--radius-pill); padding:10px 20px; min-height:var(--tap-min); display:inline-flex; align-items:center; font-size:13px; letter-spacing:.03em; transition:.3s; white-space:nowrap; max-width:22ch; overflow:hidden; text-overflow:ellipsis; }
+    .navlinks a.navcta { border:1px solid var(--ink); border-radius:var(--radius-pill); padding:10px 20px; min-height:var(--tap-min); display:inline-flex; align-items:center; font-size:13px; letter-spacing:.03em; transition:.3s; white-space:nowrap; max-width:11em; overflow:hidden; text-overflow:ellipsis; }
     .navlinks a.navcta:hover { background:var(--ink); color:var(--bg); }
     .navlinks a.navcta::after { display:none; }
     .langtog { display:inline-flex; border:1px solid var(--line); border-radius:var(--radius-pill); overflow:hidden; margin-left:6px; }

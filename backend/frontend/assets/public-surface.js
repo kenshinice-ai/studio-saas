@@ -37,8 +37,13 @@
   // course label is the full list of media it teaches, at 74 characters. The
   // heading on the page keeps the sentence, the bar gets an entry.
   const NAV_LABEL_LIMIT = { zh: 10, en: 24 };
-  const clipNavLabel = (value, language) => {
-    const limit = NAV_LABEL_LIMIT[language] || 24;
+  // The call to action is tighter: a bordered pill beside the language switch
+  // has the least room and the most padding, and its field is the one most
+  // likely to hold a sentence. The hero button reads that field directly and
+  // still shows all of it.
+  const CTA_LABEL_LIMIT = { zh: 7, en: 18 };
+  const clipNavLabel = (value, language, limits) => {
+    const limit = (limits || NAV_LABEL_LIMIT)[language] || 24;
     const source = text(value);
     return source.length <= limit ? source : `${source.slice(0, limit - 1).trimEnd()}…`;
   };
@@ -118,9 +123,9 @@
       const venue = text(venueNoun[language] || venueNoun.zh || '工作室');
       return result.split('%WORKS%').join(works).split('%WORK%').join(work).split('%VENUE%').join(venue);
     };
-    const label = (value, fallbackZh, fallbackEn) => ({
-      zh: clipNavLabel(nouns(pairText(value) || fallbackZh, 'zh'), 'zh'),
-      en: clipNavLabel(nouns((value && typeof value === 'object' ? text(value.en || value.zh) : text(value)) || fallbackEn, 'en'), 'en'),
+    const label = (value, fallbackZh, fallbackEn, limits) => ({
+      zh: clipNavLabel(nouns(pairText(value) || fallbackZh, 'zh'), 'zh', limits),
+      en: clipNavLabel(nouns((value && typeof value === 'object' ? text(value.en || value.zh) : text(value)) || fallbackEn, 'en'), 'en', limits),
     });
     const labels = {
       principal: { zh: '主理人', en: 'Principal' },
@@ -130,7 +135,7 @@
       gallery: label(localized.gallery_label || localized.galleryLabel, '学员作品', 'Student Works'),
       faq: label(localized.faq_label || localized.faqLabel, '常见问题', 'Questions & Answers'),
       student: { zh: '学员专区', en: 'Student Login' },
-      register: label(localized.primary_cta || localized.primaryCta, '预约体验', 'Book a Trial'),
+      register: label(localized.primary_cta || localized.primaryCta, '预约体验', 'Book a Trial', CTA_LABEL_LIMIT),
     };
     const contactReady = Boolean(text(brand.contactPhone || brand.contact_phone)
       || text(brand.contactEmail || brand.contact_email)

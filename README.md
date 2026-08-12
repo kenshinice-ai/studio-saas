@@ -4,20 +4,41 @@
 
 These are three independent facts. A matching version label is not proof that
 the current source tree was packaged or deployed; Source, Package and
-Production remain separate rows. v9.9.0 completed all three milestones on
-12 August 2026; the rows below record the independent evidence.
+Production remain separate rows. v9.9.1 is in release; each row below is
+updated only when that milestone has actually been verified.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v9.9.0 committed** | `VERSION` = **9.9.0**; release commit `c13d5587e4fb9b7da6424233484d310f97d3931b` on `claude/ui-ux-pro-max-audit-073a82`. Full gate green: `verify_local.sh` all checks passed, pytest `1721 passed, 5 skipped`, legacy CMS smoke `73 passed`, tenant isolation `237 passed, 0 failed`. |
-| Package | Clean SaaS and Edition v9.9.0 packages verified | SaaS `dist/PWE-StudioSaaS-aws-9.9.0.tar.gz` SHA-256 `b02854a87e18b4629eb9f46062121ec844fdc8e101cef23a46c74582738a210a`; Edition `dist/PWE-Studio-Edition-9.9.0.tar.gz` SHA-256 `689463e8705bfc91f6118d4454fe59614edb226cfb6368999fc822312ec4b0ff`. Both `BUILD_INFO` records read v9.9.0 with modes `saas` / `standalone`, and both passed checksum, entrypoint, version and exclusion checks. |
-| Production | **v9.9.0 deployed to `pwestudio.online`** | `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.9.0`; image `studiosaas:9.9.0`; deep health reports `appVersion=9.9.0`, `db=ok`, `mode=saas`, `tenants=6`, `themes.unreadable=0`, `workspaces.stale=0`; disk free about `45.96 GB`; HTTP→HTTPS `301`, HTTPS `200`, TLS check `0`, HTTP/2. |
+| Source | **v9.9.1 in release** | `VERSION` = **9.9.1**; branch `claude/ui-ux-pro-max-audit-073a82`. |
+| Package | Not built yet | No `dist/PWE-StudioSaaS-aws-9.9.1.tar.gz` recorded. |
+| Production | **still v9.9.0** | `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.9.0`. |
 
 Re-verify the production health endpoint (`/v1/health?deep=1`) before any later
 release claim; do not infer Production from `VERSION` or from an archive
 filename, which does not identify the deployed commit. The
 deployed source commit is recorded in the Source row above and in the latest
 handoff, never inferred from the version label.
+
+## v9.9.1 release scope
+
+Two corrections to v9.9.0, both reported from a real console:
+
+**The draft asked the wrong question of its own records.** `collectShowcaseItems()`
+maps to the API's camelCase on its way out, and the draft contract filtered that
+output on `image_url` and `publication_state` — undefined on every mapped item.
+`showcaseHasContent()` therefore answered false for every work, so the switch
+read "no published work yet" while the studio's site showed two and the counter
+above the dropzone agreed with the site.
+
+**A long label was clipped twice.** `16ch` is about 8em, narrower than the ten
+Chinese characters the contract already allows, so the browser cut a label the
+server had cut, leaving an ellipsis inside an ellipsis. The contract is the only
+limit now; the CSS is a safety net. The call to action gets a tighter limit than
+the rest of the bar, because it is a bordered pill next to the language switch —
+least room, most padding. The hero button reads that field directly and still
+shows all of it.
+
+---
 
 ## v9.9.0 release scope
 

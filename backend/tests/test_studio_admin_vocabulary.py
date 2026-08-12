@@ -104,3 +104,18 @@ def test_the_switch_says_why_a_section_the_owner_wants_is_not_public():
     assert "还没有学员同意公开作品" in ADMIN
     # The raw identifier must not reach the owner any more.
     assert "${module.key} · ${module.reasonCode}" not in ADMIN
+
+
+def test_the_draft_reads_the_editor_records_not_their_api_projection():
+    """collectShowcaseItems() maps to camelCase on its way to the server.
+
+    Filtering its output on `image_url` and `publication_state` therefore asked
+    two questions that are always undefined: showcaseHasContent() answered
+    false for every work, and the draft told a studio it had published nothing
+    while its site was showing two pieces and the counter above the dropzone
+    agreed with the site.
+    """
+
+    block = ADMIN.split("function renderPreviewSurfaceContract(", 1)[1].split("draftSurfaceContract", 1)[0]
+    assert "collectShowcaseItems().filter" not in block
+    assert "showcaseItems.filter((item) => showcaseHasContent(item)" in block
