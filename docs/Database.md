@@ -155,30 +155,44 @@ psql -h localhost -p 5432 -d studiosaas_local_test \
   -f backend/db/schema_v1.sql
 ```
 
-### 4.2 Import Core Let's Paint Student Data
+### 4.2 Import Latest Let's Paint Tenant Data
 
 ```bash
-# Read-only preflight: existing tenant is required; no history is imported.
+# Read-only preflight: existing tenant is required. The report includes
+# registration-date matching, packages, payments/refunds, attendance,
+# date-level rosters, consent, and source-media availability.
 cd backend
 STUDIOSAAS_DATABASE_URL=postgresql://$(whoami)@localhost:5432/studiosaas_local_test \
 ../.venv/bin/python scripts/import_lets_paint_json.py \
   /absolute/path/to/LetsPaint.json \
   --tenant-slug lets-paint-studio \
-  --expected-sha256 <verified-source-sha256>
+  --expected-sha256 <verified-source-sha256> \
+  --source-media-root /absolute/path/to/LetspaintCMS
 
-# Destructive apply requires a verified backup and all explicit confirmations.
+# Destructive apply requires a verified backup, complete source media, and all
+# explicit confirmations. It refuses unlinked history and missing media by
+# default; use the two allow flags only after reviewing the dry-run report.
 STUDIOSAAS_DATABASE_URL=postgresql://$(whoami)@localhost:5432/studiosaas_local_test \
 ../.venv/bin/python scripts/import_lets_paint_json.py \
   /absolute/path/to/LetsPaint.json \
   --tenant-slug lets-paint-studio \
   --expected-sha256 <verified-source-sha256> \
+  --source-media-root /absolute/path/to/LetspaintCMS \
+  --allow-missing-media --allow-unlinked-history \
   --apply --reset-all-students --confirm-tenant lets-paint-studio
 ```
 
-The core importer retains the legacy student ID, current contact/profile fields,
-notes, and current balance. It intentionally excludes logs, attendance, rosters,
-packages, media, access codes, privacy history, and creative-profile fields. The
-global demo-student reset and target import run in one transaction.
+The importer retains the stable legacy student ID, current contact/profile
+fields, explicitly supplied or registration-log-derived `enrolled_on`, current
+balance, packages, `充值购课`/`退款退课`/`调整课时` ledger rows, historical
+`上课签到` rows, date-level rosters, consent history, and available media. A
+missing registration date is written as `NULL`; it is never replaced by the
+database's `CURRENT_DATE` default. Source access-code hashes are not imported,
+so reset students start with blank access-code fields. Generic CMS logs and
+recurring schedule templates are not copied. Unlinked important history and
+missing media are reported and block apply unless explicitly allowed. The
+tenant reset and PostgreSQL import run in one transaction; newly written media
+is removed on rollback and old target media is cleaned after commit.
 
 ### 4.3 Optional Demo Data
 

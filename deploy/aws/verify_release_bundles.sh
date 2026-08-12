@@ -47,7 +47,8 @@ verify_bundle() {
     "/docs/Project_Review_" \
     "/codingprompt.md" \
     "/docs/Current_Sprint.md" \
-    "/docs/design/brand/round2/"; do
+    "/docs/design/brand/round2/" \
+    "/achieve/"; do
     if grep -Fq "$forbidden" <<<"$inventory"; then
       echo "Internal-only path leaked into $(basename "$archive"): $forbidden" >&2
       return 1
