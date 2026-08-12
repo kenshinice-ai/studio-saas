@@ -189,6 +189,11 @@ if [ -x "$PYTHON" ]; then
         ok "Smoke test passed"
     else
         fail "Smoke test failed (see output above)"
+        if [ -n "${CMS_DATA_DIR:-}" ]; then
+            info "CMS_DATA_DIR is set to '$CMS_DATA_DIR'. test_cms.py seeds its own"
+            info "instance; pointing it elsewhere fails five assertions that read like"
+            info "a product regression. Re-run with: env -u CMS_DATA_DIR ..."
+        fi
     fi
 else
     fail "Cannot run smoke test without Python."
@@ -223,6 +228,9 @@ if [ -x "$PYTHON" ]; then
         else
             if [ "${STUDIOSAAS_REQUIRE_POSTGRES:-0}" = "1" ]; then
                 fail "PostgreSQL is required for this release gate but is not reachable."
+                info "Probed exactly: psql -h localhost -U $USER -d studiosaas_local_test"
+                info "A cluster on another port, socket or role is invisible to this check."
+                info "Run backend/scripts/release_preflight.sh for a working recipe."
             else
                 info "PostgreSQL not reachable — database checks skipped."
                 info "For a release gate, re-run with STUDIOSAAS_REQUIRE_POSTGRES=1."

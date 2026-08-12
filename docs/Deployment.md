@@ -1,9 +1,9 @@
 # StudioSaaS Deployment Guide
 
-Version: v9.8.9
+Version: v9.9.1
 Date: 2026-08-12（Stage 2 上线记录：2026-07-30）
 Scope: 生产运行于 AWS Lightsail 单实例，域名 `https://pwestudio.online`，
-当前 SaaS 发布基线 v9.8.9；Source、Package、Production 的独立证据以
+当前 SaaS 发布基线 v9.9.1；Source、Package、Production 的独立证据以
 [`HANDOFF_LATEST.md`](HANDOFF_LATEST.md) 顶部记录为准。
 本地部署仍是开发与验证路径；**Cloudflare Tunnel 已退出生产链路，仅供本地开发**，
 不得再为该域名重新引入。生产事实与实测证据见
@@ -62,7 +62,7 @@ PORT=8901 STUDIOSAAS_DATABASE_URL=postgresql://$(whoami)@localhost:5432/studiosa
 # 或直接: ./start_studiosaas_local.sh
 ```
 
-### 1.2 验证基线（v9.8.9）
+### 1.2 验证基线（v9.9.1）
 
 | 检查 | 命令 | 期望 |
 |---|---|---|
