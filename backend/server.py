@@ -594,6 +594,29 @@ def _standalone_tenant_slug():
     return slug
 
 
+def _retired_address_response(tenant_slug):
+    """301 to the current address, or 410 if the studio is gone. None if neither.
+
+    This has to run BEFORE the filesystem is consulted. The workspace folder of
+    a former address is removed on a later sweep, not during the rename, so for
+    a while both folders exist — and whichever check runs first decides whether
+    a printed QR code reaches the studio or its own past.
+    """
+
+    from studiosaas.db import connect as db_connect
+    from studiosaas.tenant_context import retired_address_map
+
+    target = retired_address_map(db_connect).get(tenant_slug)
+    if target is None:
+        return None
+    if not target:
+        return api_error('This address is no longer in use.', 410,
+                         error='tenant_address_retired')
+    suffix = request.full_path[len('/' + tenant_slug):] if request.full_path else ''
+    suffix = suffix.rstrip('?')
+    return redirect(f'/{target}{suffix}', code=301)
+
+
 # ── F2: Phone normalization — strip spaces/dashes for comparison ──────────────
 def _norm_phone(p):
     """Normalize phone number: remove spaces, dashes, parentheses.
@@ -1452,6 +1475,9 @@ def _tenant_page(tenant_slug, filename):
         validate_tenant_slug(tenant_slug)
     except WorkspaceError:
         return api_error('Not found', 404)
+    retired = _retired_address_response(tenant_slug)
+    if retired is not None:
+        return retired
     tenant_dir = os.path.join(PROJECT_ROOT, 'tenants', tenant_slug)
     target = os.path.join(tenant_dir, filename)
     if tenant_slug in RESERVED_SLUGS or not os.path.isfile(target):
@@ -1471,6 +1497,9 @@ def serve_tenant_home(tenant_slug):
         validate_tenant_slug(tenant_slug)
     except WorkspaceError:
         return api_error('Not found', 404)
+    retired = _retired_address_response(tenant_slug)
+    if retired is not None:
+        return retired
     landing = os.path.join(PROJECT_ROOT, 'tenants', tenant_slug, 'index.html')
     if os.path.isfile(landing):
         return _tenant_page(tenant_slug, 'index.html')
@@ -1482,6 +1511,9 @@ def serve_tenant_cms_shell(tenant_slug):
         validate_tenant_slug(tenant_slug)
     except WorkspaceError:
         return api_error('Not found', 404)
+    retired = _retired_address_response(tenant_slug)
+    if retired is not None:
+        return retired
     if not os.path.isfile(os.path.join(PROJECT_ROOT, 'tenants', tenant_slug, 'tenant.json')):
         return api_error('Not found', 404)
     return _legacy_file('index.html', 'text/html; charset=utf-8', 0)
@@ -1492,6 +1524,9 @@ def serve_tenant_studio_admin(tenant_slug):
         validate_tenant_slug(tenant_slug)
     except WorkspaceError:
         return api_error('Not found', 404)
+    retired = _retired_address_response(tenant_slug)
+    if retired is not None:
+        return retired
     if not os.path.isfile(os.path.join(PROJECT_ROOT, 'tenants', tenant_slug, 'tenant.json')):
         return api_error('Not found', 404)
     return _frontend_shell('studio-admin.html')

@@ -333,13 +333,18 @@ def _request_tenant_id() -> str | None:
     try:
         from .config import load_config
         from .db import connect as db_connect
-        from .tenant_context import TenantResolutionError, resolve_tenant, slug_from_request
+        from .tenant_context import (
+            TenantGoneError,
+            TenantResolutionError,
+            resolve_tenant,
+            slug_from_request,
+        )
 
         slug, source = slug_from_request(request, load_config())
         with db_connect() as conn:
             tenant = resolve_tenant(conn, slug, source)
         return str(tenant.tenant_id)
-    except TenantResolutionError as exc:
+    except (TenantResolutionError, TenantGoneError) as exc:
         g.tenant_resolution_error = exc
         return None
 

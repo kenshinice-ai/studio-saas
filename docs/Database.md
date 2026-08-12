@@ -11,7 +11,7 @@ Purpose: Schema definition, table descriptions, canonical enums, migration strat
 - **Engine:** PostgreSQL 16+ (local), RDS PostgreSQL (AWS production target)
 - **Local database name:** `studiosaas_local_test`
 - **Bootstrap reference:** `backend/db/schema_v1.sql`
-- **Canonical schema evolution:** ordered migrations through `0028_cms_notifications.sql`
+- **Canonical schema evolution:** ordered migrations through `0031_tenant_slug_aliases.sql`
 - **Isolation model:** All business data includes `tenant_id`. All queries bind tenant context.
 
 ### 1.1 Design Principles
@@ -20,6 +20,11 @@ Purpose: Schema definition, table descriptions, canonical enums, migration strat
 - Every business table has `tenant_id` as a foreign key to `tenants.id`.
 - Fresh and existing databases converge through `backend/scripts/run_migrations.py`; `schema_v1.sql` is kept in sync with the migration chain (verified zero drift in v7.4.1) — migrations remain canonical.
 - `tenant_id` is the hard isolation boundary — no cross-tenant queries.
+- A public address is only ever superseded, never replaced or recycled. `tenant_slug_aliases`
+  is the register of every address issued; `idx_tenant_slug_aliases_one_current` (partial
+  unique, `WHERE is_current`) makes "one current address per tenant" a database fact rather
+  than a convention. Reissuing a retired address would redirect a closed studio's printed QR
+  codes into somebody else's business, which is why the foreign key is SET NULL and not CASCADE.
 
 > The ER diagram in the v2 architecture poster is a simplified illustration (it shows `users.role`, which does not exist). **This document and `schema_v1.sql` are canonical.**
 
@@ -31,7 +36,8 @@ Purpose: Schema definition, table descriptions, canonical enums, migration strat
 
 | Table | Key Columns | Purpose |
 |---|---|---|
-| `tenants` | `id`, `slug`, `name`, `status`, `plan_code`, `primary_color`, `secondary_color`, `contact_*`, `settings` (JSONB) | Studio tenant, slug, status, brand config, industry settings |
+| `tenants` | `id`, `slug`, `name`, `status`, `plan_code`, `primary_color`, `secondary_color`, `contact_*`, `settings` (JSONB), `slug_changed_at` | Studio tenant, slug, status, brand config, industry settings. `slug_changed_at` is NULL until the first address change; the cooldown reads it |
+| `tenant_slug_aliases` | `slug` (PK), `tenant_id` (ON DELETE **SET NULL**), `is_current`, `retired_at` | Every public address this platform has ever issued. A retired one 301s forever, so printed QR codes outlive a rename. `tenant_id IS NULL` is a tombstone answering 410 — an address is **never reissued** |
 | `plans` | `code`, `name`, `monthly_price_aud`, `student_limit`, `user_limit`, `storage_limit_mb` | Plan definitions (starter, studio, growth) |
 | `subscriptions` | `id`, `tenant_id`, `plan_code`, `status`, `billing_period`, `start_date`, `end_date` | Tenant subscription status |
 | `tenant_usage` | `id`, `tenant_id`, `storage_used_mb`, `student_count`, `user_count` | Per-tenant resource usage stats |

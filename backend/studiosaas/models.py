@@ -38,11 +38,21 @@ class TenantStatus(StrEnum):
 
 @dataclass(frozen=True)
 class TenantContext:
-    """Resolved tenant identity for one request."""
+    """Resolved tenant identity for one request.
+
+    ``slug`` is the address that answered; ``canonical_slug`` is the one the
+    tenant uses now. They differ when a request arrived at a retired address,
+    which keeps working forever because it is printed on things.
+    """
 
     tenant_id: str
     slug: str
     source: str
+    canonical_slug: str = ""
+
+    @property
+    def is_retired_address(self) -> bool:
+        return bool(self.canonical_slug) and self.canonical_slug != self.slug
 
 
 @dataclass(frozen=True)

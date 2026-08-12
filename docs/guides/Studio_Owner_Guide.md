@@ -462,3 +462,15 @@ Studio Admin →「数据分析」→ 操作审计（Audit Trail）面板。按�
 
 ---
 相关手册：[Manager 手册](CMS_Manager_Guide.md) · [Teacher 手册](Teacher_Guide.md) · [前台/员工手册](Front_Desk_Staff_Guide.md) · [Super Admin 手册](Super_Admin_Guide.md) · [学员/家长手册](Student_Parent_Guide.md) · [手册总览](README.md) · 角色权限矩阵见 [Admin_Guide](../Admin_Guide.md)
+
+## 我想换网址 / Changing your web address
+
+网址（`pwestudio.online/你的标识`）不在这个后台里改——它印在你的传单和二维码上，
+所以由平台来改，一年一次。联系平台说明新的地址即可。
+
+改完之后**旧地址会永久自动跳转到新地址**，已经印出去的二维码不需要重印；
+学员、课程、作品和排课都不受影响。搜索引擎大约需要几周时间更新。
+
+改**店名**则不需要联系任何人：在「品牌基础」里改，发布之后网站标题、
+分享卡片和搜索结果里的名字都会跟着变。
+

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import re
 import tempfile
 from html import escape
@@ -115,6 +116,41 @@ def head_values(name: str, head: dict | None = None) -> dict:
     if not description:
         description = DEFAULT_HEAD_DESCRIPTION.format(name=name)
     return {"title": title, "description": description[:200]}
+
+
+def copy_tenant_workspace(app_root: str | Path, old_slug: str, new_slug: str) -> Path:
+    """Copy a workspace to a new address without touching the old one.
+
+    Copy, not move, and before the database transaction rather than after: if
+    the commit fails the copy is removed and the studio's site never noticed.
+    A move would leave the site unreachable in exactly that window.
+    """
+
+    validate_tenant_slug(new_slug)
+    root = Path(app_root)
+    source = root / "tenants" / old_slug
+    destination = root / "tenants" / new_slug
+    if not source.is_dir():
+        raise WorkspaceError(f"Workspace for '{old_slug}' does not exist.")
+    if destination.exists():
+        raise WorkspaceError(f"Workspace for '{new_slug}' already exists.")
+    try:
+        shutil.copytree(source, destination)
+    except OSError as exc:
+        shutil.rmtree(destination, ignore_errors=True)
+        raise WorkspaceError(f"Could not copy the workspace to '{new_slug}'.") from exc
+    return destination
+
+
+def discard_tenant_workspace(app_root: str | Path, slug: str) -> None:
+    """Remove a workspace directory. Used to undo a copy, and to sweep later.
+
+    The only irreversible step in a rename, which is why it never runs inside
+    the request that performs one.
+    """
+
+    validate_tenant_slug(slug)
+    shutil.rmtree(Path(app_root) / "tenants" / slug, ignore_errors=True)
 
 
 def rendered_template(template_dir: str | Path, filename: str) -> str:

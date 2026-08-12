@@ -100,8 +100,21 @@ from .services.student_access import (
     revoke_access_session as _revoke_student_access_session,
     verify_access_code as _verify_student_access_code,
 )
-from .tenant_context import TenantResolutionError, resolve_tenant, slug_from_request
-from .workspaces import WorkspaceError, ensure_tenant_workspace, validate_tenant_slug
+from .tenant_context import (
+    TenantGoneError,
+    TenantResolutionError,
+    canonical_slug_for,
+    forget_retired_addresses,
+    resolve_tenant,
+    slug_from_request,
+)
+from .workspaces import (
+    WorkspaceError,
+    copy_tenant_workspace,
+    discard_tenant_workspace,
+    ensure_tenant_workspace,
+    validate_tenant_slug,
+)
 
 api_v1 = Blueprint("studiosaas_api_v1", __name__)
 
@@ -361,6 +374,17 @@ def handle_tenant_error(exc: TenantResolutionError):
     """Return a clear tenant error instead of silently picking a default."""
 
     return api_error(str(exc), 400, error="tenant_resolution_failed")
+
+
+@api_v1.errorhandler(TenantGoneError)
+def handle_tenant_gone(exc: TenantGoneError):
+    """An address that existed and no longer belongs to anyone.
+
+    410 rather than 404 so a crawler drops it, and so nobody wonders whether
+    it is a typo. Addresses are never reissued, so this answer is permanent.
+    """
+
+    return api_error(str(exc), 410, error="tenant_address_retired")
 
 
 TENANT_STATUSES = {
@@ -8601,6 +8625,169 @@ def apply_subscription_settlement():
         "changed": applied,
         "skipped": skipped,
         "counts": report["counts"],
+    })
+
+
+# A studio may change its public address once a year. The limit is a product
+# rule with no override in the interface: an operator who genuinely must break
+# it can set `slug_changed_at` directly, and making the exception leave the
+# product is what stops the exception becoming the habit.
+SLUG_CHANGE_COOLDOWN_DAYS = 365
+
+
+def _slug_change_impact(current_slug: str, new_slug: str, next_allowed_at) -> dict:
+    """What the operator is agreeing to, in the shape the plan editor uses."""
+
+    return {
+        "currentSlug": current_slug,
+        "newSlug": new_slug,
+        "nextAllowedAt": next_allowed_at,
+        "keepsWorking": [
+            "The old address redirects to the new one permanently, so printed QR codes do not need reprinting.",
+            "Students, courses, work, schedules and media are untouched.",
+            "Signed-in staff are not logged out.",
+        ],
+        "breaks": [
+            "Search engines take a few weeks to show the new address.",
+            "Visitors' saved language preference resets once.",
+            "This studio cannot change its address again until the date above.",
+        ],
+    }
+
+
+@api_v1.route("/admin/tenants/<tenant_id>/slug", methods=["PATCH"])
+@super_admin_required
+def update_tenant_slug(tenant_id: str):
+    """Change one studio's public address, keeping the old one alive forever.
+
+    Its own endpoint rather than a field on the tenant editor, because its
+    blast radius is nothing like a contact email's: the address is on flyers,
+    in QR codes and in search results. Mixing it into a form that is saved
+    routinely is how it would eventually be changed by accident.
+    """
+
+    try:
+        payload = _json_payload()
+    except ValueError as exc:
+        return _error(str(exc))
+    new_slug = _clean_text(payload, "slug").lower()
+    try:
+        validate_tenant_slug(new_slug)
+    except WorkspaceError as exc:
+        return api_error(str(exc), 400, error="invalid_slug")
+
+    with connect() as conn:
+        tenant = fetch_one(
+            conn,
+            "SELECT id, name, slug, status, slug_changed_at, settings FROM tenants WHERE id = %s",
+            (tenant_id,),
+        )
+        if not tenant:
+            return api_error("Tenant not found.", 404, error="not_found")
+        current_slug = str(tenant["slug"])
+        if new_slug == current_slug:
+            return api_error("That is already this studio's address.", 400, error="slug_unchanged")
+        if tenant["status"] not in ("trial", "onboarding", "active", "past_due"):
+            return api_error(
+                "Only an active studio can change its address.", 409, error="tenant_not_active")
+        # Every address ever issued is in this table, including the tombstones
+        # of deleted studios. An address is never reissued: doing so would
+        # redirect a closed studio's printed QR codes into somebody else's.
+        taken = fetch_one(
+            conn, "SELECT tenant_id FROM tenant_slug_aliases WHERE slug = %s", (new_slug,))
+        if taken:
+            return api_error(
+                "That address has been used before and cannot be reissued.",
+                409, error="slug_taken")
+
+        changed_at = tenant["slug_changed_at"]
+        next_allowed_at = (
+            changed_at + _timedelta(days=SLUG_CHANGE_COOLDOWN_DAYS) if changed_at else None
+        )
+        if next_allowed_at and next_allowed_at > _datetime.now(_timezone.utc):
+            return api_error(
+                "This studio changed its address within the last year.",
+                409,
+                error="slug_change_cooldown",
+                details=_slug_change_impact(current_slug, new_slug, next_allowed_at),
+            )
+
+        if not (payload.get("confirmSlugChange") is True
+                and payload.get("tenantNotificationAcknowledged") is True):
+            return api_error(
+                "Review what changes and acknowledge tenant notification before saving.",
+                409,
+                error="slug_change_confirmation_required",
+                details=_slug_change_impact(
+                    current_slug, new_slug,
+                    _datetime.now(_timezone.utc) + _timedelta(days=SLUG_CHANGE_COOLDOWN_DAYS)),
+            )
+
+        # The filesystem and Postgres cannot share a transaction, so the order
+        # is chosen to make every failure point safe rather than to make
+        # failure unlikely. Copy first: if the commit below fails, the copy is
+        # removed and the studio's site never noticed.
+        project_root = current_app.config["PROJECT_ROOT"]
+        try:
+            copy_tenant_workspace(project_root, current_slug, new_slug)
+        except WorkspaceError as exc:
+            return api_error(str(exc), 409, error="workspace_copy_failed")
+
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    UPDATE tenant_slug_aliases
+                    SET is_current = false, retired_at = now()
+                    WHERE tenant_id = %s AND is_current
+                    """,
+                    (tenant_id,),
+                )
+                cur.execute(
+                    """
+                    INSERT INTO tenant_slug_aliases (slug, tenant_id, is_current)
+                    VALUES (%s, %s, true)
+                    """,
+                    (new_slug, tenant_id),
+                )
+                settings = dict(tenant["settings"] or {})
+                settings["workspace_path"] = f"tenants/{new_slug}"
+                cur.execute(
+                    """
+                    UPDATE tenants
+                    SET slug = %s, slug_changed_at = now(), settings = %s::jsonb, updated_at = now()
+                    WHERE id = %s
+                    """,
+                    (new_slug, json.dumps(settings), tenant_id),
+                )
+            _audit_request(
+                conn,
+                tenant_id=tenant_id,
+                action="tenant.slug_changed",
+                resource_type="tenant",
+                resource_id=tenant_id,
+                metadata={"from": current_slug, "to": new_slug},
+            )
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            discard_tenant_workspace(project_root, new_slug)
+            raise
+
+    # After the commit. The copied files still carry the old slug in every
+    # link, so this is what actually finishes the move — and if it fails, the
+    # site is live at the new address with stale internal links rather than
+    # not live at all.
+    _refresh_tenant_workspace(new_slug, str(tenant["name"]), dict(tenant["settings"] or {}))
+    # The old directory is deliberately left in place. It is the one
+    # irreversible step, it is no longer routed to, and a later sweep removes
+    # any workspace whose slug is a retired alias.
+    forget_retired_addresses()
+    return jsonify({
+        "ok": True,
+        "slug": new_slug,
+        "previousSlug": current_slug,
+        "nextAllowedAt": _datetime.now(_timezone.utc) + _timedelta(days=SLUG_CHANGE_COOLDOWN_DAYS),
     })
 
 

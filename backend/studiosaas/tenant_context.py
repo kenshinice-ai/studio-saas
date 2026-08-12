@@ -1,12 +1,13 @@
 """Tenant resolution for StudioSaaS v1 requests."""
 
 import re
+import time
 from typing import Any
 
 from flask import Request, g
 
 from .config import StudioSaaSConfig
-from .db import fetch_one
+from .db import fetch_all, fetch_one
 from .models import TenantContext
 
 SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]{1,62}$")
@@ -14,6 +15,15 @@ SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]{1,62}$")
 
 class TenantResolutionError(RuntimeError):
     """Raised when a request does not map to a known tenant."""
+
+
+class TenantGoneError(RuntimeError):
+    """Raised for an address that existed and belongs to no tenant now.
+
+    Distinct from "never existed": a retired address of a deleted tenant is
+    kept as a tombstone so it can never be reissued, and a visitor who follows
+    a two-year-old QR code deserves 410 rather than 404.
+    """
 
 
 def slug_from_request(req: Request, cfg: StudioSaaSConfig) -> tuple[str, str]:
@@ -57,11 +67,82 @@ def slug_from_request(req: Request, cfg: StudioSaaSConfig) -> tuple[str, str]:
     )
 
 
+# Retired addresses and what each was superseded by. A studio may change its
+# address once a year, so this map is tiny and usually empty; it is cached
+# because the alternative is a query on every page view of every tenant site.
+RETIRED_ADDRESS_TTL = 60
+_retired_addresses: dict[str, Any] = {"map": {}, "at": 0.0}
+
+
+def forget_retired_addresses() -> None:
+    """Drop the cache after a rename, for this worker at least."""
+
+    _retired_addresses["at"] = 0.0
+
+
+def retired_address_map(connect: Any) -> dict[str, str]:
+    """Slug → the address that replaced it, or '' when the tenant is gone."""
+
+    now = time.time()
+    if now - _retired_addresses["at"] < RETIRED_ADDRESS_TTL:
+        return _retired_addresses["map"]
+    try:
+        with connect() as conn:
+            rows = fetch_all(
+                conn,
+                """
+                SELECT a.slug, COALESCE(t.slug, '') AS current_slug
+                FROM tenant_slug_aliases a
+                LEFT JOIN tenants t ON t.id = a.tenant_id
+                WHERE a.is_current = false
+                """,
+                (),
+            )
+    except Exception:
+        # Including the migration not having run yet: a missing table must not
+        # take every tenant page down.
+        return _retired_addresses["map"]
+    _retired_addresses["map"] = {str(row["slug"]): str(row["current_slug"] or "") for row in rows}
+    _retired_addresses["at"] = now
+    return _retired_addresses["map"]
+
+
+def canonical_slug_for(conn: Any, slug: str) -> str | None:
+    """Return the address this one has been superseded by, if any.
+
+    ``None`` means the slug is either current or unknown; an empty string
+    means it is a tombstone — an address whose tenant no longer exists.
+    """
+
+    row = fetch_one(
+        conn,
+        """
+        SELECT a.tenant_id, a.is_current, t.slug AS current_slug
+        FROM tenant_slug_aliases a
+        LEFT JOIN tenants t ON t.id = a.tenant_id
+        WHERE a.slug = %s
+        """,
+        (slug,),
+    )
+    if not row:
+        return None
+    if not row["tenant_id"]:
+        return ""
+    if row["is_current"]:
+        return None
+    return str(row["current_slug"] or "")
+
+
 def resolve_tenant(conn: Any, slug: str, source: str) -> TenantContext:
     """Resolve a tenant slug to an active tenant context.
 
+    A retired address resolves to the same tenant. An API call carrying an old
+    ``X-Tenant-Slug`` — a Studio Admin tab that was already open when the
+    address changed — keeps working rather than logging somebody out.
+
     Raises:
         TenantResolutionError: If the tenant does not exist or is unavailable.
+        TenantGoneError: If the address existed and its tenant is gone.
     """
 
     row = fetch_one(
@@ -74,10 +155,32 @@ def resolve_tenant(conn: Any, slug: str, source: str) -> TenantContext:
         (slug,),
     )
     if not row:
-        raise TenantResolutionError(f"Tenant '{slug}' was not found.")
+        alias = fetch_one(
+            conn,
+            """
+            SELECT a.tenant_id, t.slug, t.status
+            FROM tenant_slug_aliases a
+            LEFT JOIN tenants t ON t.id = a.tenant_id
+            WHERE a.slug = %s AND a.is_current = false
+            """,
+            (slug,),
+        )
+        if alias and not alias["tenant_id"]:
+            raise TenantGoneError(f"Address '{slug}' is no longer in use.")
+        if not alias:
+            raise TenantResolutionError(f"Tenant '{slug}' was not found.")
+        if alias["status"] not in ("trial", "onboarding", "active", "past_due"):
+            raise TenantResolutionError(f"Tenant '{slug}' is not active.")
+        return TenantContext(
+            tenant_id=str(alias["tenant_id"]), slug=slug, source=source,
+            canonical_slug=str(alias["slug"]),
+        )
     if row["status"] not in ("trial", "onboarding", "active", "past_due"):
         raise TenantResolutionError(f"Tenant '{slug}' is not active.")
-    return TenantContext(tenant_id=str(row["id"]), slug=row["slug"], source=source)
+    return TenantContext(
+        tenant_id=str(row["id"]), slug=row["slug"], source=source,
+        canonical_slug=str(row["slug"]),
+    )
 
 
 def set_current_tenant(ctx: TenantContext) -> None:
