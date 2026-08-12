@@ -1,7 +1,7 @@
 # StudioSaaS API Reference
 
-Version: v3.5
-Date: 2026-07-27
+Version: v3.6
+Date: 2026-08-12
 Purpose: Complete API endpoint reference, authentication model, tenant resolution, and public endpoints.
 
 ---
@@ -22,6 +22,15 @@ Purpose: Complete API endpoint reference, authentication model, tenant resolutio
 3. Subdomain: `{tenant_slug}.localhost:8901` (future)
 
 **Rule:** If no tenant context is resolved, tenant-scoped endpoints return a clear error. Silent fallback to a default tenant is prohibited.
+
+**Retired addresses.** A slug a studio used before a rename still resolves to
+that studio, so an `X-Tenant-Slug` held by a Studio Admin tab that was already
+open does not break. The API does **not** redirect — a 301 on an XHR would only
+complicate the CSRF `Origin` check — it simply recognises the old name, and
+`TenantContext.canonical_slug` carries the current one. Page routes are
+different: `/{old-slug}/...` answers `301` to the same path under the current
+address, preserving the query string. An address whose studio no longer exists
+answers `410 tenant_address_retired`, permanently: addresses are never reissued.
 
 ---
 
@@ -158,6 +167,7 @@ matrix, and the aggregate CMS payload is projected by role.
 | POST | `/v1/admin/tenants` | Super admin | Create tenant |
 | PATCH | `/v1/admin/tenants/{tenant_id}` | Super admin | Update tenant |
 | PATCH | `/v1/admin/tenants/{tenant_id}/status` | Super admin | Perform a validated tenant/subscription lifecycle transition |
+| PATCH | `/v1/admin/tenants/{tenant_id}/slug` | Super admin | Change the studio's public address, once a year, keeping the old one as a permanent 301 |
 | GET | `/v1/admin/usage` | Super admin | View usage stats |
 | GET | `/v1/admin/audit-logs` | Super admin | View audit trail (platform-wide) |
 | GET | `/s/<slug>/v1/audit-logs?limit=50&action=<filter>` | Tenant owner | Tenant-scoped audit trail (owners review staff-initiated refunds/exports/share links) |
@@ -183,7 +193,38 @@ matrix, and the aggregate CMS payload is projected by role.
 
 Creates `tenants`, `subscriptions`, `tenant_usage` rows and generates `tenants/<slug>/` workspace.
 
-### 5.2 Plan Change Acknowledgement
+### 5.2 Public Address Change
+
+`PATCH /v1/admin/tenants/{tenant_id}/slug` is its own endpoint rather than a
+field on the tenant editor: the address is printed on flyers and encoded into
+QR codes, so its blast radius is nothing like a contact email's, and a field
+saved with everything else is a field that eventually changes by accident.
+
+```json
+{
+  "slug": "mellow-pear-studio",
+  "confirmSlugChange": true,
+  "tenantNotificationAcknowledged": true
+}
+```
+
+| Error | Status | When |
+|---|---|---|
+| `invalid_slug` | 400 | Not `^[a-z0-9][a-z0-9-]{1,62}$`, or a reserved word |
+| `slug_unchanged` | 400 | Already this studio's address |
+| `slug_taken` | 409 | The address has been issued before — including to a studio since deleted. Addresses are never reissued |
+| `tenant_not_active` | 409 | Only trial / onboarding / active / past_due studios may move |
+| `slug_change_cooldown` | 409 | Less than 365 days since the last change. `details.nextAllowedAt` says when |
+| `slug_change_confirmation_required` | 409 | One of the two booleans is missing. `details` lists what keeps working and what changes |
+| `workspace_copy_failed` | 409 | The new workspace could not be written; nothing was changed |
+
+The one-a-year limit has **no override in the interface**. An operator who
+genuinely must break it can clear `tenants.slug_changed_at` directly; making
+the exception leave the product is what stops it becoming the habit.
+
+---
+
+### 5.3 Plan Change Acknowledgement
 
 Changing `planCode` on `PATCH /v1/admin/tenants/{tenant_id}` requires both
 boolean fields below to be explicitly `true`:

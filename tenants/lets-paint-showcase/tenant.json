@@ -1,5 +1,9 @@
 {
   "slug": "lets-paint-showcase",
   "name": "Let's Paint Studio",
+  "head": {
+    "title": "Let's Paint Studio",
+    "description": "Let's Paint Studio — 课程报名、学员课时与记录查询。"
+  },
   "workspace_path": "tenants/lets-paint-showcase"
 }

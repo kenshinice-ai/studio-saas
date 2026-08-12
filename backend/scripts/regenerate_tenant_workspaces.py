@@ -39,10 +39,14 @@ def main() -> int:
         meta = json.loads(meta_path.read_text(encoding="utf-8"))
         slug = meta.get("slug") or meta_path.parent.name
         name = meta.get("name") or slug
+        # The head strings are carried through rather than recomputed: this
+        # script deliberately does not read the database, so recomputing would
+        # mean resetting a published title to the studio's name on every boot.
+        head = meta.get("head") if isinstance(meta.get("head"), dict) else None
         if args.only_slug and slug != args.only_slug:
             continue
         try:
-            ensure_tenant_workspace(PROJECT_ROOT, slug, name)
+            ensure_tenant_workspace(PROJECT_ROOT, slug, name, head)
         except WorkspaceError as exc:
             print(f"skip {slug}: {exc}", file=sys.stderr)
             continue

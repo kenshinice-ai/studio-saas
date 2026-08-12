@@ -16,8 +16,8 @@ import time
 import hashlib
 import uuid as _uuid
 from urllib.parse import quote
-from datetime import date as _date, timedelta as _timedelta
-from pathlib import PurePath
+from datetime import date as _date, datetime as _datetime, timedelta as _timedelta, timezone as _timezone
+from pathlib import Path, PurePath
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import csv as _csv
@@ -100,8 +100,21 @@ from .services.student_access import (
     revoke_access_session as _revoke_student_access_session,
     verify_access_code as _verify_student_access_code,
 )
-from .tenant_context import TenantResolutionError, resolve_tenant, slug_from_request
-from .workspaces import WorkspaceError, ensure_tenant_workspace, validate_tenant_slug
+from .tenant_context import (
+    TenantGoneError,
+    TenantResolutionError,
+    canonical_slug_for,
+    forget_retired_addresses,
+    resolve_tenant,
+    slug_from_request,
+)
+from .workspaces import (
+    WorkspaceError,
+    copy_tenant_workspace,
+    discard_tenant_workspace,
+    ensure_tenant_workspace,
+    validate_tenant_slug,
+)
 
 api_v1 = Blueprint("studiosaas_api_v1", __name__)
 
@@ -361,6 +374,17 @@ def handle_tenant_error(exc: TenantResolutionError):
     """Return a clear tenant error instead of silently picking a default."""
 
     return api_error(str(exc), 400, error="tenant_resolution_failed")
+
+
+@api_v1.errorhandler(TenantGoneError)
+def handle_tenant_gone(exc: TenantGoneError):
+    """An address that existed and no longer belongs to anyone.
+
+    410 rather than 404 so a crawler drops it, and so nobody wonders whether
+    it is a typo. Addresses are never reissued, so this answer is permanent.
+    """
+
+    return api_error(str(exc), 410, error="tenant_address_retired")
 
 
 TENANT_STATUSES = {
@@ -773,6 +797,11 @@ def _default_hero_profile(category: str, studio_name: str = "") -> dict:
         "subtitle": preset["slogan"],
         "primary_cta_label": "Book a Trial",
         "secondary_cta_label": "Explore Courses",
+        # ``auto`` preserves old tenants without guessing at save time. The
+        # public-surface resolver chooses the first target that is actually
+        # ready; an explicitly selected target never silently falls through.
+        "secondary_cta_target": "auto",
+        "secondary_cta_href": "",
         "show_student_login": True,
         "background_style": "soft",
         # The hero image's outline. Separate from background_style, which says
@@ -807,12 +836,35 @@ def _normalize_hero_profile(value, category: str, studio_name: str = "") -> dict
     hero_image_url = _first_text(data, "hero_image_url", "heroImageUrl", limit=500)
     if hero_image_url:
         _validate_logo_url(hero_image_url)
+    secondary_cta_target = _first_text(
+        data,
+        "secondary_cta_target",
+        "secondaryCtaTarget",
+        default=default["secondary_cta_target"],
+        limit=20,
+    ).lower()
+    allowed_cta_targets = {
+        "auto", "courses", "showcase", "timetable", "register", "external", "hidden",
+    }
+    if secondary_cta_target not in allowed_cta_targets:
+        raise ValueError(
+            "Secondary CTA target must be one of: auto, courses, showcase, "
+            "timetable, register, external, hidden."
+        )
+    secondary_cta_href = _first_text(
+        data, "secondary_cta_href", "secondaryCtaHref", limit=500,
+    )
+    if secondary_cta_target == "external":
+        if not re.match(r"^https://\S+$", secondary_cta_href, re.IGNORECASE):
+            raise ValueError("Secondary CTA external URL must start with https://.")
     return {
         "eyebrow": _first_text(data, "eyebrow", default=default["eyebrow"], limit=80),
         "title": _first_text(data, "title", default=default["title"], limit=100),
         "subtitle": _first_text(data, "subtitle", default=default["subtitle"], limit=240),
         "primary_cta_label": _first_text(data, "primary_cta_label", "primaryCtaLabel", default=default["primary_cta_label"], limit=40),
         "secondary_cta_label": _first_text(data, "secondary_cta_label", "secondaryCtaLabel", default=default["secondary_cta_label"], limit=40),
+        "secondary_cta_target": secondary_cta_target,
+        "secondary_cta_href": secondary_cta_href,
         "show_student_login": _bool_from_json(data, "show_student_login", "showStudentLogin", default=True),
         "background_style": background_style,
         "hero_shape": hero_shape,
@@ -840,6 +892,7 @@ def _default_website_profile() -> dict:
         "seo_description": "",
         "show_about": False,
         "about_images": [],
+        "about_image_alts": [],
         "about_eyebrow": {"zh": "", "en": ""},
         "about_title": {"zh": "", "en": ""},
         "about_body": {"zh": "", "en": ""},
@@ -1103,13 +1156,23 @@ def _normalize_website_profile(value) -> dict:
     # the fork no longer has to exist to get it.
     profile["seo_title"] = _first_text(data, "seo_title", "seoTitle", default="", limit=120)
     profile["seo_description"] = _first_text(data, "seo_description", "seoDescription", default="", limit=200)
-    # Optional "about the space" section with a slow image carousel — also
-    # reclaimed from the fork.
+    # Optional "about the space" section. Public pages use manual image
+    # selection so visitors are never forced through an autoplay carousel.
     images = data.get("about_images", data.get("aboutImages"))
     profile["about_images"] = [
         url for url in (str(item or "").strip()[:400] for item in (images if isinstance(images, list) else []))
         if url
     ][:6]
+    raw_alts = data.get("about_image_alts", data.get("aboutImageAlts"))
+    profile["about_image_alts"] = []
+    for item in (raw_alts if isinstance(raw_alts, list) else [])[:len(profile["about_images"])]:
+        if isinstance(item, dict):
+            profile["about_image_alts"].append(_localized_pair({"alt": item}, "alt", limit=180))
+            continue
+        text = str(item or "").strip()[:180]
+        profile["about_image_alts"].append({"zh": text, "en": text})
+    while len(profile["about_image_alts"]) < len(profile["about_images"]):
+        profile["about_image_alts"].append({"zh": "", "en": ""})
     for key in ("about_eyebrow", "about_title", "about_body"):
         camel = "".join([key.split("_")[0], *(part.capitalize() for part in key.split("_")[1:])])
         source = data if key in data else {key: data.get(camel)}
@@ -2696,13 +2759,56 @@ def _find_pending_registration(cur, *, tenant_id: str, first_name: str, last_nam
     return cur.fetchone()
 
 
-def _workspace_for(slug: str, name: str) -> str:
+def _workspace_for(slug: str, name: str, head: dict | None = None) -> str:
     """Create tenant workspace files and return the relative path."""
 
     try:
-        return ensure_tenant_workspace(current_app.config["PROJECT_ROOT"], slug, name)
+        return ensure_tenant_workspace(current_app.config["PROJECT_ROOT"], slug, name, head)
     except WorkspaceError as exc:
         raise ValueError(str(exc)) from exc
+
+
+def _pick_pair(value: object) -> str:
+    """Read one string out of a {"zh", "en"} pair, Chinese first."""
+
+    if isinstance(value, dict):
+        return str(value.get("zh") or value.get("en") or "").strip()
+    return str(value or "").strip()
+
+
+def _tenant_head(name: str, settings: dict) -> dict:
+    """Compose the <head> title and description a crawler will be served.
+
+    This mirrors ``applySeo`` in the portal exactly — SEO override, then hero
+    subtitle, then slogan. The page has always computed these in the browser;
+    a link unfurler or a search crawler that runs no scripts was reading the
+    file, which said whatever the studio was called on the day it was created.
+    """
+
+    website = settings.get("website_profile") or {}
+    hero = settings.get("hero_profile") or {}
+    title = _pick_pair(website.get("seo_title"))
+    description = (
+        _pick_pair(website.get("seo_description"))
+        or _pick_pair(hero.get("subtitle"))
+        or _pick_pair(settings.get("slogan"))
+    )
+    return {"title": title or name, "description": description}
+
+
+def _refresh_tenant_workspace(slug: str, name: str, settings: dict) -> None:
+    """Re-render the public shell so it agrees with what was just published.
+
+    Publishing used to leave these files untouched, so the only way a renamed
+    studio could reach its own <title> was to create a new tenant. A failure
+    here must not fail the publish that already committed: the page still
+    renders the new name from /brand, only the served source lags.
+    """
+
+    try:
+        _workspace_for(slug, name, _tenant_head(name, settings))
+    except (ValueError, OSError) as exc:  # pragma: no cover - filesystem edge
+        current_app.logger.warning("Tenant workspace refresh failed for %s: %s", slug, exc)
 
 
 @api_v1.route("/health", methods=["GET"])
@@ -2750,6 +2856,7 @@ def health():
             with connect() as conn:
                 fetch_one(conn, "SELECT 1 AS ok", ())
                 body["themes"] = _theme_drift(conn)
+                body["workspaces"] = _workspace_drift(conn)
             body["db"] = "ok"
         except Exception:
             body["ok"] = False
@@ -2797,6 +2904,48 @@ def _theme_drift(conn) -> dict:
         "unreadable": len(unreadable),
         "examples": unreadable[:5],
         "status": "drifted" if unreadable else "ok",
+    }
+
+
+def _workspace_drift(conn) -> dict:
+    """How many live tenants are served a name they no longer call themselves.
+
+    The public shell is materialised: `tenants/<slug>/index.html` carries the
+    studio's name in <title>, in the social-preview tags and in the structured
+    data. Nothing rewrote those files after creation, so a studio that renamed
+    itself kept serving its old name to every crawler and link unfurler while
+    the page itself — which asks /brand — looked correct to a human.
+
+    Reported, never fatal, for the same reason as theme drift: a stale file is
+    not a reason to restart a container that answers every request. It is a
+    reason for a deploy to stop, and for this number to be visible.
+    """
+
+    rows = fetch_all(
+        conn,
+        "SELECT slug, name FROM tenants "
+        "WHERE status <> 'deleted' AND archived_at IS NULL ORDER BY slug LIMIT 200",
+        (),
+    )
+    root = Path(current_app.config["PROJECT_ROOT"]) / "tenants"
+    stale = []
+    for row in rows:
+        meta_path = root / str(row["slug"]) / "tenant.json"
+        if not meta_path.is_file():
+            stale.append({"slug": row["slug"], "reason": "workspace missing"})
+            continue
+        try:
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as error:
+            stale.append({"slug": row["slug"], "reason": str(error)[:120]})
+            continue
+        if str(meta.get("name") or "") != str(row["name"] or ""):
+            stale.append({"slug": row["slug"], "reason": "name differs from the database"})
+    return {
+        "tenants": len(rows),
+        "stale": len(stale),
+        "examples": stale[:5],
+        "status": "drifted" if stale else "ok",
     }
 
 
@@ -3391,7 +3540,60 @@ def update_tenant():
         )
         conn.commit()
         row = _tenant_response(conn)
+    # After the commit, so a filesystem problem can never roll back a publish
+    # that the version ledger has already recorded.
+    _refresh_tenant_workspace(tenant.slug, _clean_text(payload, "name", current["name"]), current_settings)
     return jsonify({"tenant": row, "publishedVersion": next_version})
+
+
+@api_v1.route("/tenant/brand/publication-status/<int:requested_version>", methods=["GET"])
+@tenant_owner_required
+def get_tenant_publication_status(requested_version: int):
+    """Return server-proven publication state for one saved version.
+
+    Publication writes are authoritative in the version ledger. The browser
+    must not deep-compare a normalized public JSON projection and turn a
+    harmless shape difference into ``fields: websiteProfile``.
+    """
+
+    if requested_version < 1:
+        return _error("requested_version must be a positive integer.")
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        latest = fetch_one(
+            conn,
+            """
+            SELECT version_number, published_at, payload IS NOT NULL AS has_payload
+            FROM tenant_brand_versions
+            WHERE tenant_id = %s
+            ORDER BY version_number DESC
+            LIMIT 1
+            """,
+            (tenant.tenant_id,),
+        ) or {}
+    published_version = int(latest.get("version_number") or 0)
+    has_payload = bool(latest.get("has_payload"))
+    if published_version < requested_version:
+        state = "pending"
+        version_state = "pending"
+    elif not has_payload:
+        state = "attention"
+        version_state = "invalid"
+    else:
+        # A later publish supersedes an older request; current public content
+        # is still valid and should not be reported as a failed publication.
+        state = "ready"
+        version_state = "ready" if published_version == requested_version else "superseded"
+    return jsonify({
+        "requestedVersion": requested_version,
+        "publishedVersion": published_version or None,
+        "publishedAt": latest.get("published_at"),
+        "state": state,
+        "checks": [
+            {"key": "published_version", "state": version_state, "ok": state == "ready"},
+            {"key": "stored_payload", "state": "ready" if has_payload else "invalid", "ok": has_payload},
+        ],
+    })
 
 
 @api_v1.route("/tenant/brand", methods=["GET"])
@@ -4365,9 +4567,39 @@ def tenant_dashboard():
     return jsonify({"dashboard": payload})
 
 
+# A studio names its own sections, and those names are also its nav items. One
+# studio's English course label is the full list of media it teaches — 74
+# characters, 241 pixels, and with every section switched on the bar wrapped to
+# a second line inside a header one line tall. The heading on the page keeps
+# the whole sentence; only the entry in the bar is clipped.
+NAV_LABEL_LIMIT = {"zh": 10, "en": 24}
+
+# The call to action is tighter than the rest of the bar. It is a bordered pill
+# sitting next to the language switch, so it has the least room and the most
+# padding, and the field behind it is the one a studio is most likely to fill
+# with a sentence: one studio's reads 「原创油画 × 私人定制」. The hero button
+# still shows the whole thing — it reads that field directly, not this label.
+CTA_LABEL_LIMIT = {"zh": 7, "en": 18}
+
+
+def _clip_nav_label(value: str, language: str, limits: dict[str, int] | None = None) -> str:
+    """Shorten a label to something a navigation bar can hold."""
+
+    limit = (limits or NAV_LABEL_LIMIT).get(language, 24)
+    text = str(value or "").strip()
+    if len(text) <= limit:
+        return text
+    return text[: limit - 1].rstrip() + "…"
+
+
 def _public_surface_entry(key: str, intent: bool, ready: bool, href: str,
                           *, reason: str = "no_content", next_action: str = "review_in_studio_admin",
-                          surface: str | None = None) -> dict:
+                          surface: str | None = None, placement: str = "home",
+                          navigation_eligible: bool = True, footer_eligible: bool = True,
+                          content_ready: bool | None = None,
+                          dependency_ready: bool | None = None,
+                          published_version: int | None = None,
+                          label: dict | None = None) -> dict:
     """Build the public navigation contract used by every tenant surface.
 
     ``intent`` is the owner's switch; ``ready`` is the smallest truthful
@@ -4375,17 +4607,102 @@ def _public_surface_entry(key: str, intent: bool, ready: bool, href: str,
     Studio Admin explain why an entry is hidden instead of merely removing it.
     """
 
-    visible = bool(intent and ready)
-    return {
+    effective_content_ready = bool(ready if content_ready is None else content_ready)
+    effective_dependency_ready = bool(ready if dependency_ready is None else dependency_ready)
+    effective_ready = bool(ready and effective_content_ready and effective_dependency_ready)
+    visible = bool(intent and effective_ready)
+    result = {
         "key": key,
         "intent": bool(intent),
-        "ready": bool(ready),
+        "ready": effective_ready,
+        "contentReady": effective_content_ready,
+        "dependencyReady": effective_dependency_ready,
         "visible": visible,
         "href": href,
         "surface": surface or key,
+        "placement": placement,
+        "navigationEligible": bool(navigation_eligible),
+        "footerEligible": bool(footer_eligible),
         "reasonCode": "ready" if visible else (reason if intent else "disabled_by_owner"),
         "nextAction": "" if visible else next_action,
+        "publishedVersion": published_version,
     }
+    # Keep the helper backwards-compatible for internal callers that only
+    # need readiness. Public shell entries opt into a localized label so every
+    # page can render the same navigation copy without scraping the homepage.
+    if label is not None:
+        result["label"] = {
+            "zh": str(label.get("zh") or label.get("en") or "").strip(),
+            "en": str(label.get("en") or label.get("zh") or "").strip(),
+        }
+    return result
+
+
+def _public_surface_actions(hero: dict, modules: dict[str, dict],
+                            secondary_label: dict | None = None) -> dict[str, dict]:
+    """Resolve hero actions against the same readiness contract as navigation.
+
+    A button must never point at a hidden or empty section. ``auto`` exists only
+    for pre-v9.8.9 tenants and selects the first ready public destination;
+    explicit choices fail closed so Studio Admin can explain what to fix.
+    """
+
+    register = modules["register"]
+    primary = {
+        "key": "primary",
+        "targetType": "register",
+        "href": register["href"],
+        "visible": bool(register["visible"]),
+        "reasonCode": register["reasonCode"],
+        "nextAction": register["nextAction"],
+    }
+    if register.get("label") is not None:
+        primary["label"] = register["label"]
+    requested = str(hero.get("secondary_cta_target") or "auto").strip().lower()
+    if requested == "hidden":
+        result = {
+            "primary": primary,
+            "secondary": {
+                "key": "secondary", "targetType": "hidden", "href": "", "visible": False,
+                "reasonCode": "disabled_by_owner", "nextAction": "choose_secondary_cta_target",
+            },
+        }
+        if secondary_label is not None:
+            result["secondary"]["label"] = secondary_label
+        return result
+    if requested == "external":
+        href = str(hero.get("secondary_cta_href") or "").strip()
+        if not re.match(r"^https://\S+$", href, re.IGNORECASE):
+            href = ""
+        result = {
+            "primary": primary,
+            "secondary": {
+                "key": "secondary", "targetType": "external", "href": href,
+                "visible": bool(href),
+                "reasonCode": "ready" if href else "missing_external_url",
+                "nextAction": "" if href else "add_secondary_cta_url",
+            },
+        }
+        if secondary_label is not None:
+            result["secondary"]["label"] = secondary_label
+        return result
+
+    candidates = ("courses", "showcase", "timetable", "register")
+    target = requested
+    if requested == "auto":
+        target = next((key for key in candidates if modules[key]["visible"]), "register")
+    module = modules.get(target, register)
+    result = {
+        "primary": primary,
+        "secondary": {
+            "key": "secondary", "targetType": target, "href": module["href"],
+            "visible": bool(module["visible"]), "reasonCode": module["reasonCode"],
+            "nextAction": module["nextAction"],
+        },
+    }
+    if secondary_label is not None:
+        result["secondary"]["label"] = secondary_label
+    return result
 
 
 @api_v1.route("/public/<tenant_slug>/surface", methods=["GET"])
@@ -4407,9 +4724,11 @@ def public_surface(tenant_slug: str):
             conn,
             """
             SELECT name, contact_phone, contact_email, address,
+                   COALESCE(settings->>'category', 'general') AS category,
                    COALESCE(settings->'website_profile', '{}'::jsonb) AS website,
                    COALESCE(settings->'principal_profile', '{}'::jsonb) AS principal,
                    COALESCE(settings->'hero_profile', '{}'::jsonb) AS hero,
+                   COALESCE(settings->'localized_copy', '{}'::jsonb) AS localized_copy,
                    COALESCE(settings->'faq_items', '[]'::jsonb) AS faq,
                    COALESCE(settings->'registration_profile', '{}'::jsonb) AS registration
             FROM tenants WHERE id = %s
@@ -4417,6 +4736,17 @@ def public_surface(tenant_slug: str):
             (tenant.tenant_id,),
         )
         profile = _normalize_website_profile((row or {}).get("website") or {})
+        category = str((row or {}).get("category") or "general")
+        localized_copy = _normalize_localized_copy(
+            (row or {}).get("localized_copy") or {},
+            category,
+            legacy={
+                "courses_label": profile.get("courses_label", ""),
+                "gallery_label": profile.get("gallery_label", ""),
+                "faq_label": profile.get("faq_label", ""),
+                "contact_label": profile.get("contact_label", ""),
+            },
+        )
         principal = row.get("principal") or {}
         hero = row.get("hero") or {}
         faq = row.get("faq") or []
@@ -4454,6 +4784,17 @@ def public_surface(tenant_slug: str):
                 conn, tenant.tenant_id, weeks, timezone_name)
             timetable_ready = bool(occurrences)
         limit = showcase_limit_for(conn, tenant.tenant_id)
+        published = fetch_one(
+            conn,
+            """
+            SELECT version_number, published_at
+            FROM tenant_brand_versions
+            WHERE tenant_id = %s
+            ORDER BY version_number DESC
+            LIMIT 1
+            """,
+            (tenant.tenant_id,),
+        ) or {}
 
     active_items = [
         item for item in profile.get("showcase_items", [])
@@ -4462,47 +4803,125 @@ def public_surface(tenant_slug: str):
     showcase_ready = bool(_ordered_showcase_items(active_items)[:limit])
     contact_ready = bool(row.get("contact_phone") or row.get("contact_email") or row.get("address"))
     principal_ready = bool(str(principal.get("bio") or "").strip())
+    about_ready = bool(
+        _localized_pair(profile, "about_title", limit=600)["zh"]
+        or _localized_pair(profile, "about_body", limit=600)["zh"]
+        or profile.get("about_images")
+        or profile.get("about_items")
+    )
+    published_version = published.get("version_number")
+    preset = _preset_for(category)
+    work_noun = preset.get("work_noun") or {"zh": "作品", "en": "work", "en_plural": "works"}
+    venue_noun = preset.get("venue_noun") or {"zh": "工作室", "en": "studio"}
+
+    def public_label_text(value, language: str) -> str:
+        """Resolve industry placeholders before labels enter the public shell."""
+
+        result = str(value or "").strip()
+        if not result:
+            return ""
+        work = str(work_noun.get(language) or work_noun.get("zh") or "作品")
+        works = str(
+            (work_noun.get("en_plural") or work_noun.get("en") or work)
+            if language == "en"
+            else (work_noun.get("zh") or work)
+        )
+        venue = str(venue_noun.get(language) or venue_noun.get("zh") or "工作室")
+        return (
+            result.replace("%WORKS%", works)
+            .replace("%WORK%", work)
+            .replace("%VENUE%", venue)
+        )
+
+    def surface_label(value, fallback: dict[str, str], limit: int = 80,
+                      limits: dict[str, int] | None = None) -> dict[str, str]:
+        pair = _localized_pair({"value": value}, "value", limit=limit)
+        return {
+            "zh": _clip_nav_label(public_label_text(pair["zh"] or fallback["zh"], "zh"), "zh", limits),
+            "en": _clip_nav_label(public_label_text(pair["en"] or fallback["en"], "en"), "en", limits),
+        }
+
+    labels = {
+        "principal": {"zh": "主理人", "en": "Principal"},
+        "showcase": surface_label(profile.get("showcase_label"), {"zh": "工作室作品", "en": "Selected Work"}),
+        "courses": surface_label(localized_copy.get("courses_label"), {"zh": "课程与班次", "en": "Courses & Classes"}),
+        "timetable": surface_label(profile.get("timetable_label"), {"zh": "课程安排", "en": "Timetable"}),
+        "gallery": surface_label(localized_copy.get("gallery_label"), {"zh": "学员作品", "en": "Student Works"}),
+        "faq": surface_label(localized_copy.get("faq_label"), {"zh": "常见问题", "en": "Questions & Answers"}),
+        "student": {"zh": "学员专区", "en": "Student Login"},
+        "register": surface_label(localized_copy.get("primary_cta"), {"zh": "预约体验", "en": "Book a Trial"},
+                                  limits=CTA_LABEL_LIMIT),
+    }
+    secondary_label = surface_label(localized_copy.get("secondary_cta"), {"zh": "查看课程", "en": "Explore Programs"})
     modules = {
+        "about": _public_surface_entry(
+            "about", bool(profile.get("show_about", False)), about_ready,
+            "#home:about", reason="missing_about_content", next_action="complete_space_profile",
+            surface="home", placement="after_hero", navigation_eligible=False,
+            footer_eligible=False, published_version=published_version,
+        ),
         "principal": _public_surface_entry(
             "principal", bool(profile.get("show_principal", True)), principal_ready,
             "#home:artist", reason="missing_content", next_action="add_principal_bio", surface="home",
+            placement="after_about", footer_eligible=False, published_version=published_version,
+            label=labels["principal"],
         ),
         "showcase": _public_surface_entry(
             "showcase", bool(profile.get("show_showcase", False)), showcase_ready,
             f"/{tenant.slug}/showcase", reason="no_published_works", next_action="publish_showcase_work", surface="showcase",
+            placement="after_principal", published_version=published_version, label=labels["showcase"],
         ),
         "courses": _public_surface_entry(
             "courses", bool(profile.get("show_courses", True)), int((course_row or {}).get("n") or 0) > 0,
             "#home:courses", reason="no_published_courses", next_action="publish_course", surface="home",
+            placement="after_showcase", published_version=published_version, label=labels["courses"],
         ),
         "timetable": _public_surface_entry(
             "timetable", bool(profile.get("show_timetable", False)), timetable_ready,
             f"/{tenant.slug}/timetable", reason="no_upcoming_classes", next_action="publish_timetable", surface="timetable",
+            placement="navigation", published_version=published_version, label=labels["timetable"],
         ),
         "gallery": _public_surface_entry(
             "gallery", bool(profile.get("show_gallery", True)), int((gallery_row or {}).get("n") or 0) > 0,
             "#home:gallery", reason="no_consented_student_work", next_action="share_student_work", surface="home",
+            placement="after_courses", published_version=published_version, label=labels["gallery"],
         ),
         "faq": _public_surface_entry(
             "faq", bool(profile.get("show_faq", True)), bool(faq),
             "#home:faq", reason="no_faq_content", next_action="add_faq", surface="home",
+            placement="after_gallery", published_version=published_version, label=labels["faq"],
         ),
         "contact": _public_surface_entry(
             "contact", bool(profile.get("show_contact", True)), contact_ready,
             "#home:contact", reason="missing_contact_details", next_action="add_contact_details", surface="home",
+            placement="after_faq", navigation_eligible=False, footer_eligible=False,
+            published_version=published_version,
         ),
         "student": _public_surface_entry(
             "student", bool(profile.get("show_student_area", hero.get("show_student_login", True))), True,
-            "#my", surface="home",
+            "#my", surface="home", placement="utility", published_version=published_version, label=labels["student"],
         ),
         "register": _public_surface_entry(
             "register", True, bool(registration or row.get("name")), "#join",
             reason="registration_unavailable", next_action="complete_registration_profile", surface="register",
+            placement="action", published_version=published_version, label=labels["register"],
         ),
     }
-    navigation = [modules[key] for key in ("principal", "showcase", "courses", "timetable", "gallery", "faq", "student", "register")]
-    footer = [modules[key] for key in ("showcase", "courses", "timetable", "gallery", "faq", "student", "register")]
-    return jsonify({"contract": {"version": 1, "modules": modules, "navigation": navigation, "footer": footer}})
+    navigation = [module for module in modules.values() if module["navigationEligible"]]
+    footer = [module for module in modules.values() if module["footerEligible"]]
+    actions = _public_surface_actions(hero, modules, secondary_label)
+    return jsonify({"contract": {
+        "version": 3,
+        "contractVersion": 3,
+        "generatedAt": _datetime.now(_timezone.utc).isoformat(),
+        "publishedVersion": published_version,
+        "publishedAt": published.get("published_at"),
+        "modules": modules,
+        "navigation": navigation,
+        "footer": footer,
+        "actions": actions,
+        "shell": {"navigation": navigation, "footer": footer, "actions": actions},
+    }})
 
 
 @api_v1.route("/public/<tenant_slug>/brand", methods=["GET"])
@@ -4536,6 +4955,17 @@ def public_brand(tenant_slug: str):
             """,
             (tenant.tenant_id,),
         )
+        published = fetch_one(
+            conn,
+            """
+            SELECT version_number, published_at
+            FROM tenant_brand_versions
+            WHERE tenant_id = %s
+            ORDER BY version_number DESC
+            LIMIT 1
+            """,
+            (tenant.tenant_id,),
+        ) or {}
     category = row["category"] or "general"
     preset = _preset_for(category)
     row["category_label"] = row["category_label"] or preset["label"]
@@ -4597,6 +5027,8 @@ def public_brand(tenant_slug: str):
     # record could cite a version the visitor's page never rendered. One value,
     # served with the notice it refers to.
     row["privacyNoticeVersion"] = PRIVACY_NOTICE_VERSION
+    row["publishedVersion"] = published.get("version_number")
+    row["publishedAt"] = published.get("published_at")
 
     # The board itself is served by /public/<slug>/showcase, not from here.
     #
@@ -8202,6 +8634,169 @@ def apply_subscription_settlement():
         "changed": applied,
         "skipped": skipped,
         "counts": report["counts"],
+    })
+
+
+# A studio may change its public address once a year. The limit is a product
+# rule with no override in the interface: an operator who genuinely must break
+# it can set `slug_changed_at` directly, and making the exception leave the
+# product is what stops the exception becoming the habit.
+SLUG_CHANGE_COOLDOWN_DAYS = 365
+
+
+def _slug_change_impact(current_slug: str, new_slug: str, next_allowed_at) -> dict:
+    """What the operator is agreeing to, in the shape the plan editor uses."""
+
+    return {
+        "currentSlug": current_slug,
+        "newSlug": new_slug,
+        "nextAllowedAt": next_allowed_at,
+        "keepsWorking": [
+            "The old address redirects to the new one permanently, so printed QR codes do not need reprinting.",
+            "Students, courses, work, schedules and media are untouched.",
+            "Signed-in staff are not logged out.",
+        ],
+        "breaks": [
+            "Search engines take a few weeks to show the new address.",
+            "Visitors' saved language preference resets once.",
+            "This studio cannot change its address again until the date above.",
+        ],
+    }
+
+
+@api_v1.route("/admin/tenants/<tenant_id>/slug", methods=["PATCH"])
+@super_admin_required
+def update_tenant_slug(tenant_id: str):
+    """Change one studio's public address, keeping the old one alive forever.
+
+    Its own endpoint rather than a field on the tenant editor, because its
+    blast radius is nothing like a contact email's: the address is on flyers,
+    in QR codes and in search results. Mixing it into a form that is saved
+    routinely is how it would eventually be changed by accident.
+    """
+
+    try:
+        payload = _json_payload()
+    except ValueError as exc:
+        return _error(str(exc))
+    new_slug = _clean_text(payload, "slug").lower()
+    try:
+        validate_tenant_slug(new_slug)
+    except WorkspaceError as exc:
+        return api_error(str(exc), 400, error="invalid_slug")
+
+    with connect() as conn:
+        tenant = fetch_one(
+            conn,
+            "SELECT id, name, slug, status, slug_changed_at, settings FROM tenants WHERE id = %s",
+            (tenant_id,),
+        )
+        if not tenant:
+            return api_error("Tenant not found.", 404, error="not_found")
+        current_slug = str(tenant["slug"])
+        if new_slug == current_slug:
+            return api_error("That is already this studio's address.", 400, error="slug_unchanged")
+        if tenant["status"] not in ("trial", "onboarding", "active", "past_due"):
+            return api_error(
+                "Only an active studio can change its address.", 409, error="tenant_not_active")
+        # Every address ever issued is in this table, including the tombstones
+        # of deleted studios. An address is never reissued: doing so would
+        # redirect a closed studio's printed QR codes into somebody else's.
+        taken = fetch_one(
+            conn, "SELECT tenant_id FROM tenant_slug_aliases WHERE slug = %s", (new_slug,))
+        if taken:
+            return api_error(
+                "That address has been used before and cannot be reissued.",
+                409, error="slug_taken")
+
+        changed_at = tenant["slug_changed_at"]
+        next_allowed_at = (
+            changed_at + _timedelta(days=SLUG_CHANGE_COOLDOWN_DAYS) if changed_at else None
+        )
+        if next_allowed_at and next_allowed_at > _datetime.now(_timezone.utc):
+            return api_error(
+                "This studio changed its address within the last year.",
+                409,
+                error="slug_change_cooldown",
+                details=_slug_change_impact(current_slug, new_slug, next_allowed_at),
+            )
+
+        if not (payload.get("confirmSlugChange") is True
+                and payload.get("tenantNotificationAcknowledged") is True):
+            return api_error(
+                "Review what changes and acknowledge tenant notification before saving.",
+                409,
+                error="slug_change_confirmation_required",
+                details=_slug_change_impact(
+                    current_slug, new_slug,
+                    _datetime.now(_timezone.utc) + _timedelta(days=SLUG_CHANGE_COOLDOWN_DAYS)),
+            )
+
+        # The filesystem and Postgres cannot share a transaction, so the order
+        # is chosen to make every failure point safe rather than to make
+        # failure unlikely. Copy first: if the commit below fails, the copy is
+        # removed and the studio's site never noticed.
+        project_root = current_app.config["PROJECT_ROOT"]
+        try:
+            copy_tenant_workspace(project_root, current_slug, new_slug)
+        except WorkspaceError as exc:
+            return api_error(str(exc), 409, error="workspace_copy_failed")
+
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    UPDATE tenant_slug_aliases
+                    SET is_current = false, retired_at = now()
+                    WHERE tenant_id = %s AND is_current
+                    """,
+                    (tenant_id,),
+                )
+                cur.execute(
+                    """
+                    INSERT INTO tenant_slug_aliases (slug, tenant_id, is_current)
+                    VALUES (%s, %s, true)
+                    """,
+                    (new_slug, tenant_id),
+                )
+                settings = dict(tenant["settings"] or {})
+                settings["workspace_path"] = f"tenants/{new_slug}"
+                cur.execute(
+                    """
+                    UPDATE tenants
+                    SET slug = %s, slug_changed_at = now(), settings = %s::jsonb, updated_at = now()
+                    WHERE id = %s
+                    """,
+                    (new_slug, json.dumps(settings), tenant_id),
+                )
+            _audit_request(
+                conn,
+                tenant_id=tenant_id,
+                action="tenant.slug_changed",
+                resource_type="tenant",
+                resource_id=tenant_id,
+                metadata={"from": current_slug, "to": new_slug},
+            )
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            discard_tenant_workspace(project_root, new_slug)
+            raise
+
+    # After the commit. The copied files still carry the old slug in every
+    # link, so this is what actually finishes the move — and if it fails, the
+    # site is live at the new address with stale internal links rather than
+    # not live at all.
+    _refresh_tenant_workspace(new_slug, str(tenant["name"]), dict(tenant["settings"] or {}))
+    # The old directory is deliberately left in place. It is the one
+    # irreversible step, it is no longer routed to, and a later sweep removes
+    # any workspace whose slug is a retired alias.
+    forget_retired_addresses()
+    return jsonify({
+        "ok": True,
+        "slug": new_slug,
+        "previousSlug": current_slug,
+        "nextAllowedAt": _datetime.now(_timezone.utc) + _timedelta(days=SLUG_CHANGE_COOLDOWN_DAYS),
     })
 
 

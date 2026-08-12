@@ -1,3 +1,156 @@
+# PWE Studio v9.9.1 — v9.9.0 的两处修正
+
+> 当前阶段：v9.9.1 已完成源码、完整门禁、双模式打包、生产备份、部署与公网验收。两处都由真实控制台的截图报出。
+
+## 修复内容
+
+**一 · 草稿向自己的记录问错了问题。**「工作室作品」开关显示「还没有已发布的作品」，
+而工作室的官网正在展示两件作品，**并且上传区上方的计数写着 `2/60 件 active 作品`**——
+同一个界面自相矛盾，这就是线索：计数读的是编辑器自己的记录，
+草稿契约读的却是 `collectShowcaseItems()`，而那个函数在送往服务端的路上已经把字段映射成 camelCase。
+于是过滤条件里的 `image_url` 和 `publication_state` 在每一条上都是 `undefined`，
+`showcaseHasContent()` 对每一件作品都返回 false。公开页面自始至终是对的，因为它读的是服务端契约。
+
+这个错答案从草稿契约引入时就存在；是 v9.9.0 把原因显示到开关旁边，才让它暴露出来。
+
+**二 · 长标签被截断了两次。** `16ch` 约等于 8em，比契约已经允许的 10 个汉字还窄，
+于是浏览器又剪了一次服务端已经剪过的文字——省略号套省略号，行动按钮顶到自己的边框。
+现在只有契约裁剪，CSS 退回成兜底（`13em` / `11em`，都宽于契约允许的长度）。
+行动按钮拿到比其他条目更紧的额度（`CTA_LABEL_LIMIT` 中文 7 / 英文 18）：
+它空间最小、内边距最大，而它背后那个字段最容易被店主填成一句话。
+首屏按钮直接读那个字段，仍然显示全文。
+
+## v9.9.1 最终发布证据（2026-08-12）
+
+| 层级 | 已验证事实 |
+|---|---|
+| Source | 分支 `claude/ui-ux-pro-max-audit-073a82`；部署代码 commit `aeda04e98b9faaa062c1938285a1b10cc008bd9b`；`VERSION=9.9.1`。 |
+| Local gates | `STUDIOSAAS_REQUIRE_POSTGRES=1 bash backend/scripts/verify_local.sh` **全部通过**；pytest `1726 passed, 5 skipped`；legacy CMS smoke `73 passed`；租户隔离 `237 passed, 0 failed`。 |
+| Package | SaaS SHA-256 `f62c355b6e89fde18632314945ac6058d702bd9b5dd2010825f2a8763a6c83db`；Edition SHA-256 `b7fc586677f9c5686b00384e3ec8fb8cad4b922fc64ba60a4de56917dc9f2f19`。两个 `BUILD_INFO` 均为 v9.9.1。 |
+| Production | `/opt/pwestudio/current` → `PWE-StudioSaaS-aws-9.9.1`，镜像 `studiosaas:9.9.1`；deep health `appVersion=9.9.1`、`db=ok`、`tenants=6`、`themes.unreadable=0`、`workspaces.stale=0`；磁盘 `45.93 GB`；HTTP→HTTPS `301`，HTTPS `200`、TLS `0`、HTTP/2。回滚目录保留 `9.9.0` 与 `9.8.10`。 |
+| Public evidence | 线上契约的导航标签现在只被裁剪一次：`原创油画 ×…` / `Original Personal…`（行动按钮，更紧的额度）、`Artworks…`（版块条目）。八条公开路由全部 `200`。 |
+
+## 回归测试
+
+- `test_public_shell.py`：行动按钮的额度、服务端与浏览器的 parity、CSS `max-width` 必须以 `em` 计并且不小于 `11em`（`16ch` 正是这条会拦住的写法）。
+- `test_studio_admin_vocabulary.py`：草稿契约不许再读 `collectShowcaseItems()` 的输出。
+
+---
+
+# PWE Studio v9.9.0 — 导航、店名、公开地址：六批修复的生产闭环
+
+> 当前阶段：v9.9.0 已完成源码、完整门禁、双模式打包、生产备份、部署、公网验收，以及存量租户工作区的一次性刷新。
+> 本节记录本轮最终证据；后续文档闭环只更新发布账本，不改变已运行的 v9.9.0 包。
+
+## v9.9.0 修复范围
+
+按 [docs/design/Public_Surface_UX_Audit_v9.8.10.md](design/Public_Surface_UX_Audit_v9.8.10.md)
+与 [docs/design/Tenant_Slug_Rename.md](design/Tenant_Slug_Rename.md) 的六个批次执行，全部是**已经在坏**的东西，不是缺的功能。
+
+**一 · 导航。** hash 链接在每个页面都被改写成「租户首页 + 锚点」，**包括首页自己**——
+在首页上，只要访客带着任何 query 进来，改写结果与当前 URL 的差异就不止 fragment，
+于是每一次导航点击都是整页重载，并且顺手丢掉 `?lang=` 和所有 `utm_*`。
+课表页从未在 `<body>` 上声明自己的 slug，它依赖的那次改写在那里等于没做。
+首页的契约失败分支既不到 `apply()` 也不走本地兜底，导航会在加载遮罩下隐身到页面生命周期结束——
+而它显示的提示写着「页面已按当前内容安全显示」。
+另外修掉：两个死 id、`aria-current` 在首页恒真的判断、`.navlinks a` 把 CTA 的 `padding` 压成 `4px 0`。
+
+**二 · 改名。** `tenants/<slug>/` 是物化的，店名在创建那一刻写进 `<title>`、社交预览标签和结构化数据，
+之后没有任何东西重写它。发布现在会重渲染工作区（在 commit 之后，文件系统故障不能回滚已入账的发布），
+head 文案由服务端按 portal 在浏览器里用的同一优先级组合。
+deep health 新增 `workspaces` 块——它在这次部署完成的**同一分钟**就报出了 `ruby-s-studio`。
+
+**三 · 公共 shell。** 四个公开页各自维护一份 header/footer 条目清单，已经漂移了三处。
+条目改为三个共享片段，在生成工作区时拼接；页面外壳（`<nav>` 包裹层、品牌链接、语言开关）保持各页自有，
+因为统一它们要改四个线上页面而访客看不到任何差别。导航标签在契约里截断
+（`NAV_LABEL_LIMIT` 中文 10 / 英文 24，两个实现之间有 parity 测试），页面上的版块标题一个字不动。
+
+**四 · Studio Admin。**「发布」有两个意思，其中一个只是存草稿。九个「是否公开」开关散在四个面板。
+契约的 reasonCode 以标识符形态打给店主看。三个字段有四个名字。主理人没有自己的面板。
+
+**五 · 中文。** 68 条可见英文串没有译文，包括发布仍在确认时显示的那一句。
+新增覆盖门禁，按运行时真正遍历的规则扫描。
+
+**六 · 公开地址。** 新增 `tenant_slug_aliases`（migration `0031`）：平台发放过的每一个地址都在册，
+旧地址永久 301，地址**永不回收**（`ON DELETE SET NULL` 留墓碑，返回 410）。
+每租户一年一次，仅 Platform Admin，双钥确认 + 键入当前地址。
+301 的判断发生在文件系统查找之前——旧目录故意留到后续清理，顺序反了就会把访客送回工作室的过去。
+
+未改动：套餐额度、支付能力、租户数据模型。
+
+## v9.9.0 最终发布证据（2026-08-12）
+
+| 层级 | 已验证事实 |
+|---|---|
+| Source | 分支 `claude/ui-ux-pro-max-audit-073a82`；部署代码 commit `c13d5587e4fb9b7da6424233484d310f97d3931b`；`VERSION=9.9.0`、`APP_VERSION=9.9.0`、`RELEASE_DATE=2026-08-12`。本分支已从 `codex/v9.8.10-public-shell` fast-forward，六批改动在其之上。 |
+| Local gates | `STUDIOSAAS_REQUIRE_POSTGRES=1 bash backend/scripts/verify_local.sh` **全部通过**；pytest `1721 passed, 5 skipped`；legacy CMS smoke `73 passed`；租户隔离 `237 passed, 0 failed`；Python/JS 编译、UI escaping、terminology、inline scripts、CMS bundle、asset manifest、迁移 current、媒体衍生图均通过。 |
+| Package | SaaS `dist/PWE-StudioSaaS-aws-9.9.0.tar.gz` SHA-256 `b02854a87e18b4629eb9f46062121ec844fdc8e101cef23a46c74582738a210a`；Edition `dist/PWE-Studio-Edition-9.9.0.tar.gz` SHA-256 `689463e8705bfc91f6118d4454fe59614edb226cfb6368999fc822312ec4b0ff`。两个 `BUILD_INFO` 均为 v9.9.0，模式分别 `saas` / `standalone`，通过 checksum、入口、版本与排除项校验。 |
+| Production | `/opt/pwestudio/current` → `PWE-StudioSaaS-aws-9.9.0`，镜像 `studiosaas:9.9.0`；容器 healthy；公网 deep health `appVersion=9.9.0`、`db=ok`、`mode=saas`、`tenants=6`、`themes.unreadable=0`、**`workspaces.stale=0`**；磁盘可用约 `45.96 GB`；HTTP→HTTPS `301`，HTTPS `200`、TLS 校验 `0`、HTTP/2。 |
+| Backup / migration | 切换前自动生成逻辑库备份 `studiosaas_studiosaas_20260812T123256Z.dump` 与 manifest，卷归档 `pwestudio-volumes-20260812T123257Z.tar.gz`。`0031_tenant_slug_aliases.sql` 已在启动时应用。回滚目录保留 `PWE-StudioSaaS-aws-9.8.10` 与 `9.8.9`。 |
+| 存量刷新 | 部署后 deep health 立刻报出 `workspaces.stale=1`（`ruby-s-studio`：文件里是 `Ruby's Studio`，数据库里是 `Mellow Pear Studio`）。用 `refresh_tenant_workspaces_from_db.py --only-slug ruby-s-studio` 重渲染，随后 `stale=0`。**该脚本写于打包之后，不在 9.9.0 运行包内**，本次是把文件拷进容器执行的；它已提交到仓库，下一个版本起随包发布。 |
+| Public routes | 根站、`/zh/manual/`、`/ruby-s-studio`、`/showcase`、`/timetable`、`/register`、`/lets-paint-showcase`、`/lets-paint-showcase/timetable`、`/platform-admin`、`/ruby-s-studio/studio-admin` 全部 `200`。 |
+| Public evidence | `/ruby-s-studio` 的**服务端原始 HTML** 现在是 `<title>Mellow Pear Studio</title>`，description 为工作室自己的 slogan（此前是旧店名与通用模板句）。契约里长标签已截断：`Oil Painting, Acrylic P…`（原 74 字符 / 241px）、`Original Personalised O…`、`原创油画 × 私人…`。四个公开页的 `foot*` 契约条目集合完全一致。线上 `public-surface.js` 与仓库逐字节相同，在其上复核：首页带 `?lang=en&utm_source=wechat` 时 `navFaq` 解析为 `/ruby-s-studio?lang=en&utm_source=wechat#home:faq`——同文档跳转，query 不再丢失。 |
+
+## 未做与已知项
+
+- **导航项过多时的「更多 ▾」降级没有做。** 截断之后单项宽度已受控，剩下的是项目数问题（最多 8 项），留待观察真实租户。
+- **公共 shell 只统一了条目清单，没有统一页面外壳。** `<nav>` 包裹层、品牌链接、语言开关属性（`data-set-lang` vs `data-language`）仍各页自有；这是权衡，不是遗漏——会漂移的是清单。
+- **Studio Admin 未做登录后的实际交互验证。** 本轮不处理明文密码，后台结论来自源码、静态门禁与下发的 HTML。
+- **旧工作区目录的清理 sweep 尚未实现。** 改名后旧目录会留在卷上；它不再被路由命中（301 在文件系统查找之前），但目前没有自动删除。首次真实改名之前应补上。
+- **前台是否能批准约课**：`review_class_booking` 仍是 `@tenant_admin_required`，前台持有 `registrations:write`。这条设计问题从 v8.10.0 起就记在这里，仍未拍板。
+
+---
+
+# PWE Studio v9.8.10 — public shell and honest publication-status production closure
+
+> 当前阶段：v9.8.10 已完成源码、验证、提交、推送、双模式打包、生产备份、部署和公网验收。本节记录本轮最终证据；后续文档闭环只更新发布账本，不改变已运行的 v9.8.10 包。
+
+## v9.8.10 修复范围与验收
+
+- Studio Admin 的发布复核改为读取服务端 `tenant_brand_versions` 状态，不再在浏览器深比较 `websiteProfile`；写入成功、公开投影待确认和确实无效分别使用结构化双语状态码。
+- 官网、独立作品页、公开课表和报名页继续使用统一 `publicSurfaceContract`，升级到 contract v3，补充本地化导航/CTA 标签、公共 shell 结构和跨页面 hash 链接解析。
+- 公开 Footer 移除工作人员 CMS 与 Studio Admin 链接；现有租户工作区已从 `tenant-template/` 重新生成，确保模板修复落到已存在的静态工作区。
+- public-surface 标签在服务端和本地解析器中解析 `%WORK%` / `%WORKS%` / `%VENUE%` 行业词，避免把模板占位符显示给访客。
+- 版本与双语用户手册入口更新到 v9.8.10；未改变租户数据模型、套餐额度或支付能力。
+
+## v9.8.10 最终发布证据（2026-08-12）
+
+| 层级 | 已验证事实 |
+|---|---|
+| Source | 隔离分支 `codex/v9.8.10-public-shell` 已 push 到 `origin`；部署代码 commit `d8c11daa703c5080578931c723385e0ab79e87df`；`VERSION=9.8.10`。根工作区的其他用户改动未被修改或纳入。 |
+| Local gates | `verify_local.sh` 在隔离 PostgreSQL 55432 与临时 venv 中全绿：Python/JS 编译、UI escaping、terminology、inline scripts、asset manifest、完整 pytest `1613 passed, 8 skipped`、CMS smoke `73 passed`、迁移 current、媒体衍生图 `0`、租户隔离 `237 passed, 0 failed`。公开表面本地 API 返回 contract v3，行业占位词已解析。 |
+| Package | SaaS `dist/PWE-StudioSaaS-aws-9.8.10.tar.gz` SHA-256 `03cde6a4816308b5249ab270c12aee10b591b9140165d021dfd3963e04dcae1f`；Edition `dist/PWE-Studio-Edition-9.8.10.tar.gz` SHA-256 `d51d2cfd73c529465c8d58041bde8faf3f64bb42128faa96d3690514882074fa`。两个 `BUILD_INFO` 均为 v9.8.10 / commit `d8c11daa`，模式分别为 `saas` / `standalone`，并通过 checksum、入口、版本和排除项校验。 |
+| Production | `/opt/pwestudio/current` 指向 `PWE-StudioSaaS-aws-9.8.10`，镜像 `studiosaas:9.8.10`；容器 healthy；公网 deep health 为 `appVersion=9.8.10`、`db=ok`、`mode=saas`、`tenants=6`、`themes.unreadable=0`；磁盘可用约 `46.08 GB`；HTTP→HTTPS `301`，HTTPS `200`、TLS 校验 `0`、HTTP/2。 |
+| Backup / recovery | 切换前自动生成逻辑库备份 `studiosaas_studiosaas_20260812T104121Z.dump` 与 manifest，以及卷归档 `pwestudio-volumes-20260812T104122Z.tar.gz`；v9.8.9 与 v9.8.8 仍保留为回滚目录，`STUDIOSAAS_VERSION=9.8.10` 已固定。 |
+| Public API | `https://pwestudio.online/v1/public/ruby-s-studio/surface` 返回 contract v3、`publishedVersion=45`，导航/footer/actions 共用本地化标签与统一 href；作品 API 首页返回 `pageSize=6`、`total=12`、`hasMore=true`，归档返回 `pageSize=12`、`hasMore=false`。 |
+| Public routes / browser | 根站、双语手册、Ruby 首页/作品页/课表/报名、Studio Admin、Platform Admin 与双语 Release Notes 均返回 `200`。生产桌面截图 `/private/tmp/studiosaas-v9.8.10-ruby-home.png` 确认首屏、导航、首屏 CTA 与作品入口；390×844 截图 `/private/tmp/studiosaas-v9.8.10-ruby-showcase-mobile.png` 确认独立作品页移动布局、分类筛选和作品卡片。公开四个 Ruby 页面均不包含 `/cms` 或 `/studio-admin` Footer 链接。 |
+| Logs | 部署后 app-only 日志显示迁移 current、`Generated variants: 0`、10 个租户工作区重生成以及健康的 `200` 请求；未发现部署后新的 `Traceback`、`Exception`、`Fatal` 或应用错误。 |
+
+# PWE Studio v9.8.9 — Studio Admin public surface and Edition production closure
+
+> 当前阶段：v9.8.9 已完成代码与文档范围冻结、Studio Admin 公开表面修复、统一公开契约、空间与体验模块、Draft / Live 预览、版本化发布验证，以及 standalone Edition 完整部署方案并入；已完成本地完整门禁、Git 推送、双模式打包、生产备份、部署和公网浏览器验收。
+
+## v9.8.9 候选范围
+
+- Studio Admin 将保存、发布写入和公开验证拆成明确状态，使用结构化错误码与持久错误摘要，避免网站已更新却显示英文误报；外部 CTA 只接受 HTTPS。
+- 首页、作品页、课表、报名、导航与 Footer 共用 `publicSurfaceContract` v2，输出 owner intent、内容/依赖就绪度、可见性、原因码、下一步和发布版本。
+- 空间与体验模块支持 6 条亮点、最多 6 张有序照片和中英文替代文本；公开页不自动轮播，无图片时使用约 1.618:1 的正文布局。
+- Studio Admin 提供 Draft / Live 预览、有效公开状态、导航/Footer 映射、未就绪原因和下一步；发布后按 `publishedVersion` 核对 `/brand`、`/surface` 以及实际启用的独立页面。
+- 已将任务 `019ff42b-93f5-7293-a263-9c4eafd300e2` 的 standalone 部署文档并入，并统一到 v9.8.9，包括客户前置条件、Docker Compose、TLS、PostgreSQL 16、账号/密钥、迁移、备份恢复、验收、回滚与职责边界。
+
+## 最终发布证据（2026-08-12）
+
+| 层级 | 已验证事实 |
+|---|---|
+| Source | 隔离分支 `codex/v9.8.9-studio-admin-publish` 已 push；部署代码 commit `2411ec6fc52334dcf65884060a6fc9a5f50fab0f`；`VERSION=9.8.9`。根工作区的其他用户改动未被修改或纳入。 |
+| Local gates | `STUDIOSAAS_REQUIRE_POSTGRES=1 STUDIOSAAS_MEDIA_DIR=/private/tmp/studiosaas-media-gate.zlytk0 bash backend/scripts/verify_local.sh` 全部通过；完整 pytest `1612 passed, 8 skipped`；CMS smoke `73 passed`；租户隔离 `237 passed, 0 failed`；PostgreSQL 迁移、安全媒体衍生图、Python/JS 编译、inline scripts、CMS bundle、asset manifest、shell parse 与 `git diff --check` 均通过。Standalone 与公开表面定向测试为 `92 passed, 1 skipped`。 |
+| Package | SaaS `dist/PWE-StudioSaaS-aws-9.8.9.tar.gz` SHA-256 `c6aee22bd60321d33cccfb793dc4ddbf082ff8240e8904b340ef172368c64675`；Edition `dist/PWE-Studio-Edition-9.8.9.tar.gz` SHA-256 `9bd1d37f374f86e2977081893b9c9243fac49818b1f734195800740ccfa57b0d`。两个 `BUILD_INFO` 均为 v9.8.9 / commit `2411ec6`，模式分别为 `saas` / `standalone`，并通过 checksum、入口、版本和排除项校验。Edition 包包含本轮并入的完整 standalone 部署方案。 |
+| Production | `/opt/pwestudio/current` 指向 `PWE-StudioSaaS-aws-9.8.9`，镜像 `studiosaas:9.8.9`；容器 healthy；公网 deep health 为 `appVersion=9.8.9`、`db=ok`、`mode=saas`、`tenants=6`、`themes.unreadable=0`；磁盘可用约 `46.1 GB`；HTTP→HTTPS `301`，HTTPS `200`、TLS 校验 `0`、HTTP/2。 |
+| Public API | `/v1/public/ruby-s-studio/surface` 返回 contract v2、`publishedVersion=45`，showcase intent / ready / visible 均为 true，导航、Footer 与次要 CTA 均指向 `/ruby-s-studio/showcase`。作品归档返回 12 件、3 个分类；分类 `76703d2c` 返回 9 件。 |
+| Browser | 真实生产桌面 1280px 确认首页在权威契约返回后显示 Principal、Selected Work、FAQ 与报名入口，首页精选 6 件并显示 View all work。独立作品页显示 12 件；灯箱图片加载成功、计数 `1 / 12`、body scroll lock 生效。390×844 分类 URL 保持筛选并显示 9 件，文档宽度等于视口 390px，移动菜单为 44×44。根站、双语手册、Ruby 首页/作品页、Studio Admin、Platform Admin 与 canonical 双语 Release Notes 均返回 200。 |
+| Recovery | 切换前自动生成逻辑库备份 `studiosaas_studiosaas_20260812T092107Z.dump` 与 manifest，以及卷归档 `pwestudio-volumes-20260812T092108Z.tar.gz`；v9.8.8 运行包继续作为回滚基线。 |
+| Logs / known ops note | 当前 app 日志为健康的 200/202/304 请求，未发现新的 Traceback、Exception、Fatal 或 ERROR；并发作品媒体加载期间 Waitress queue depth 短暂达到 5，健康检查持续绿色。独立 `disk` 命令打印 20% 使用率和约 47G 可用但返回 1；deep health 的磁盘状态为 `ok`，该运维命令的退出码应在下一轮单独修正。Release Notes 在 1280px 时，旧 v9.8.8 的 64 位 SHA 文本导致约 21px 横向溢出；公开核心首页与作品页验收不受影响，CSS 换行应作为下一小版本修复。 |
+
 # PWE Studio v9.8.8 — truthful public surface verification production closure
 
 > 当前阶段：v9.8.8 已完成发布写入与公开验证解耦、统一 `publicSurfaceContract`、亮色 Studio Admin 工作台、导航/Footer 可见性解析、结构化双语错误、手册同步、完整门禁、双模式打包、main 同步、最终生产备份、部署和公网浏览器验收。本节记录运行包的最终证据；本次修改之后的 handoff 文案只更新发布账本，不改变已运行的包。

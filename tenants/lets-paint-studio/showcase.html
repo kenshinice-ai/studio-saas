@@ -22,6 +22,7 @@
   <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
   <script src="/assets/ui-common.js?v=__APP_VERSION__"></script>
+  <script src="/assets/public-surface.js?v=__APP_VERSION__"></script>
   <script src="/assets/portal-brand.js?v=__APP_VERSION__"></script>
   <script src="/assets/public-analytics.js?v=__APP_VERSION__"></script>
   <link rel="stylesheet" href="/assets/ui-tokens.css?v=__APP_VERSION__">
@@ -39,13 +40,15 @@
     .brand img{display:none;height:34px;width:auto}
     .brand .bn{font-size:16px;letter-spacing:.04em;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .navlinks{display:flex;align-items:center;gap:26px}
-    .navlinks a{position:relative;padding:4px 0;color:var(--ink2);font-size:13px;letter-spacing:.02em}
+    .navlinks a{position:relative;padding:4px 0;color:var(--ink2);font-size:13px;letter-spacing:.02em;max-width:13em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .navlinks a::after{content:"";position:absolute;left:0;bottom:0;width:0;height:1px;background:var(--clay);transition:width .25s}
     .navlinks a:hover::after,.navlinks a[aria-current="page"]::after{width:100%}
     .navlinks a[aria-current="page"]{color:var(--ink)}
-    .navcta{display:inline-flex;align-items:center;min-height:var(--tap-min);padding:10px 20px;border:1px solid var(--ink);border-radius:var(--radius-pill)}
-    .navcta:hover{background:var(--ink);color:var(--bg)}
-    .navcta::after{display:none!important}
+    /* One point more specific than `.navlinks a`, which was otherwise
+       drawing this pill with `padding:4px 0`. */
+    .navlinks a.navcta{display:inline-flex;align-items:center;min-height:var(--tap-min);padding:10px 20px;border:1px solid var(--ink);border-radius:var(--radius-pill);white-space:nowrap;max-width:11em;overflow:hidden;text-overflow:ellipsis}
+    .navlinks a.navcta:hover{background:var(--ink);color:var(--bg)}
+    .navlinks a.navcta::after{display:none!important}
     .langtog{display:inline-flex;overflow:hidden;border:1px solid var(--line);border-radius:var(--radius-pill)}
     .langtog button{min-width:var(--tap-min);min-height:var(--tap-min);padding:8px 12px;border:0;background:none;color:var(--muted);font:inherit;font-size:13px;cursor:pointer}
     .langtog button.on{background:var(--ink);color:var(--bg)}
@@ -107,27 +110,41 @@
   <div class="navrow">
     <a class="brand" href="/lets-paint-studio" aria-label="Let&#x27;s Paint Studio"><img id="tenantLogo" alt=""><span class="bn" id="tenantName">Let&#x27;s Paint Studio</span></a>
     <div class="navlinks">
-      <a id="navPrincipal" href="/lets-paint-studio#home:artist" data-zh="主理人" data-en="Principal" style="display:none">主理人</a>
-      <a id="navShowcase" href="/lets-paint-studio/showcase" aria-current="page" data-zh="工作室作品" data-en="Selected Work">工作室作品</a>
-      <a id="navCourses" href="/lets-paint-studio#home:courses" data-zh="课程" data-en="Courses" style="display:none">课程</a>
-      <a id="navTimetable" href="/lets-paint-studio/timetable" data-zh="课程安排" data-en="Timetable" style="display:none">课程安排</a>
-      <a id="navGallery" href="/lets-paint-studio#home:gallery" data-zh="学员作品" data-en="Student Works" style="display:none">学员作品</a>
-      <a id="navFaq" href="/lets-paint-studio#home:faq" data-zh="常见问题" data-en="FAQ" style="display:none">常见问题</a>
-      <a id="navStudent" href="/lets-paint-studio#my" data-zh="学员专区" data-en="Student Login" style="display:none">学员专区</a>
-      <a class="navcta" href="/lets-paint-studio#join" data-zh="预约体验" data-en="Book a Trial">预约体验</a>
+<!-- The public shell's entries, in one place.
+     Four pages used to carry four hand-maintained copies of this list, and
+     they had drifted: FAQ appeared only on the home page, the timetable page
+     linked to itself with no id so the switch could never hide it, and two
+     ids in public-surface.js existed on no page at all.
+     Every entry starts hidden. The contract decides what a visitor is
+     promised; a link that has not been confirmed is not shown. -->
+      <a id="navPrincipal" href="/lets-paint-studio#home:artist" data-analytics-label="nav_principal" data-zh="主理人" data-en="Principal" style="display:none">主理人</a>
+      <a id="navShowcase" href="/lets-paint-studio/showcase" data-analytics-label="nav_showcase" data-zh="工作室作品" data-en="Selected Work" style="display:none">工作室作品</a>
+      <a id="navCourses" href="/lets-paint-studio#home:courses" data-analytics-label="nav_courses" data-zh="课程" data-en="Courses" style="display:none">课程</a>
+      <a id="navTimetable" href="/lets-paint-studio/timetable" data-analytics-label="nav_timetable" data-zh="课程安排" data-en="Timetable" style="display:none">课程安排</a>
+      <a id="navGallery" href="/lets-paint-studio#home:gallery" data-analytics-label="nav_gallery" data-zh="学员%WORK%" data-en="Student %WORKS%" style="display:none">学员%WORK%</a>
+      <a id="navFaq" href="/lets-paint-studio#home:faq" data-analytics-label="nav_faq" data-zh="常见问题" data-en="Questions &amp; Answers" style="display:none">常见问题</a>
+      <a id="navStudent" href="/lets-paint-studio#my" data-analytics-label="nav_student" data-zh="学员专区" data-en="Student Login" style="display:none">学员专区</a>
+      <a id="navPrimaryCta" class="navcta" href="/lets-paint-studio#join" data-analytics-label="nav_primary" data-zh="预约体验" data-en="Book a Trial" style="display:none">预约体验</a>
       <span class="langtog" role="group" aria-label="语言 / Language"><button type="button" data-language="zh" aria-pressed="true">中</button><button type="button" data-language="en" aria-pressed="false">EN</button></span>
     </div>
     <button class="menu-btn" type="button" aria-label="打开导航菜单" data-en-aria="Open navigation menu" aria-controls="mnav" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5"/></svg></button>
   </div>
   <div id="mnav" style="display:none;flex-direction:column;background:var(--bg);border-top:1px solid var(--line);padding:14px 28px 20px;gap:14px">
-    <a id="mnavPrincipal" href="/lets-paint-studio#home:artist" data-zh="主理人" data-en="Principal" style="display:none">主理人</a>
-    <a id="mnavShowcase" href="/lets-paint-studio/showcase" aria-current="page" data-zh="工作室作品" data-en="Selected Work">工作室作品</a>
-    <a id="mnavCourses" href="/lets-paint-studio#home:courses" data-zh="课程" data-en="Courses" style="display:none">课程</a>
-    <a id="mnavTimetable" href="/lets-paint-studio/timetable" data-zh="课程安排" data-en="Timetable" style="display:none">课程安排</a>
-    <a id="mnavGallery" href="/lets-paint-studio#home:gallery" data-zh="学员作品" data-en="Student Works" style="display:none">学员作品</a>
-    <a id="mnavFaq" href="/lets-paint-studio#home:faq" data-zh="常见问题" data-en="FAQ" style="display:none">常见问题</a>
-    <a id="mnavStudent" href="/lets-paint-studio#my" data-zh="学员专区" data-en="Student Login" style="display:none">学员专区</a>
-    <a href="/lets-paint-studio#join" data-zh="预约体验" data-en="Book a Trial">预约体验</a>
+<!-- The public shell's entries, in one place.
+     Four pages used to carry four hand-maintained copies of this list, and
+     they had drifted: FAQ appeared only on the home page, the timetable page
+     linked to itself with no id so the switch could never hide it, and two
+     ids in public-surface.js existed on no page at all.
+     Every entry starts hidden. The contract decides what a visitor is
+     promised; a link that has not been confirmed is not shown. -->
+      <a id="mnavPrincipal" href="/lets-paint-studio#home:artist" data-analytics-label="mnav_principal" data-zh="主理人" data-en="Principal" style="display:none">主理人</a>
+      <a id="mnavShowcase" href="/lets-paint-studio/showcase" data-analytics-label="mnav_showcase" data-zh="工作室作品" data-en="Selected Work" style="display:none">工作室作品</a>
+      <a id="mnavCourses" href="/lets-paint-studio#home:courses" data-analytics-label="mnav_courses" data-zh="课程" data-en="Courses" style="display:none">课程</a>
+      <a id="mnavTimetable" href="/lets-paint-studio/timetable" data-analytics-label="mnav_timetable" data-zh="课程安排" data-en="Timetable" style="display:none">课程安排</a>
+      <a id="mnavGallery" href="/lets-paint-studio#home:gallery" data-analytics-label="mnav_gallery" data-zh="学员%WORK%" data-en="Student %WORKS%" style="display:none">学员%WORK%</a>
+      <a id="mnavFaq" href="/lets-paint-studio#home:faq" data-analytics-label="mnav_faq" data-zh="常见问题" data-en="Questions &amp; Answers" style="display:none">常见问题</a>
+      <a id="mnavStudent" href="/lets-paint-studio#my" data-analytics-label="mnav_student" data-zh="学员专区" data-en="Student Login" style="display:none">学员专区</a>
+      <a id="mnavPrimaryCta" href="/lets-paint-studio#join" data-analytics-label="mnav_primary" data-zh="预约体验" data-en="Book a Trial" style="display:none">预约体验</a>
     <span class="langtog" role="group" aria-label="语言 / Language" style="align-self:flex-start"><button type="button" data-language="zh" aria-pressed="true">中</button><button type="button" data-language="en" aria-pressed="false">EN</button></span>
   </div>
 </nav>
@@ -158,16 +175,17 @@
       <p class="cp">© 2026 <span id="footName2">Let&#x27;s Paint Studio</span><span id="producerCredit" hidden> · Powered by Paradise Production</span></p>
     </div>
     <div class="fl">
-      <a href="/lets-paint-studio" data-zh="首页" data-en="Home">首页</a>
-      <a href="/lets-paint-studio/showcase" data-zh="工作室作品" data-en="Selected Work">工作室作品</a>
-      <a href="/lets-paint-studio#home:courses" data-zh="课程" data-en="Courses">课程</a>
-      <a id="footTimetable" href="/lets-paint-studio/timetable" data-zh="课程安排" data-en="Timetable" style="display:none">课程安排</a>
-      <a href="/lets-paint-studio#home:gallery" data-zh="学员作品" data-en="Student Works">学员作品</a>
-      <a href="/lets-paint-studio#my" data-zh="学员专区" data-en="Student Login">学员专区</a>
-      <a href="/lets-paint-studio#join" data-zh="预约体验" data-en="Book a Trial">预约体验</a>
-      <a href="/lets-paint-studio#privacy" data-zh="隐私说明" data-en="Privacy" style="color:var(--muted)">隐私说明</a>
-      <a href="/lets-paint-studio/cms" data-zh="工作人员入口" data-en="Staff (CMS)" style="color:var(--muted)">工作人员入口</a>
-      <a href="/lets-paint-studio/studio-admin" data-zh="管理后台" data-en="Studio Admin" style="color:var(--muted)">管理后台</a>
+<!-- Same list as the header, same rule: the contract decides. `Home` and
+     `Privacy` are not contract entries — they always exist. -->
+      <a href="/lets-paint-studio" data-analytics-label="foot_home" data-zh="首页" data-en="Home">首页</a>
+      <a id="footShowcase" href="/lets-paint-studio/showcase" data-analytics-label="foot_showcase" data-zh="工作室作品" data-en="Selected Work" style="display:none">工作室作品</a>
+      <a id="footCourses" href="/lets-paint-studio#home:courses" data-analytics-label="foot_courses" data-zh="课程" data-en="Courses" style="display:none">课程</a>
+      <a id="footTimetable" href="/lets-paint-studio/timetable" data-analytics-label="foot_timetable" data-zh="课程安排" data-en="Timetable" style="display:none">课程安排</a>
+      <a id="footGallery" href="/lets-paint-studio#home:gallery" data-analytics-label="foot_gallery" data-zh="学员%WORK%" data-en="Student %WORKS%" style="display:none">学员%WORK%</a>
+      <a id="footFaq" href="/lets-paint-studio#home:faq" data-analytics-label="foot_faq" data-zh="常见问题" data-en="Questions &amp; Answers" style="display:none">常见问题</a>
+      <a id="footStudent" href="/lets-paint-studio#my" data-analytics-label="foot_student" data-zh="学员专区" data-en="Student Login" style="display:none">学员专区</a>
+      <a id="footRegister" href="/lets-paint-studio#join" data-analytics-label="foot_register" data-zh="预约体验" data-en="Book a Trial" style="display:none">预约体验</a>
+      <a href="/lets-paint-studio#privacy" data-analytics-label="foot_privacy" style="color:var(--muted)" data-zh="隐私说明" data-en="Privacy">隐私说明</a>
     </div>
   </div>
 </footer>
@@ -187,7 +205,7 @@
   const params = new URLSearchParams(location.search);
   const normaliseLang = (value) => String(value || '').toLowerCase().startsWith('en') ? 'en' : String(value || '').toLowerCase().startsWith('zh') ? 'zh' : '';
   let language = normaliseLang(params.get('lang')) || (() => { try { return normaliseLang(localStorage.getItem(`pwe_lang_${TENANT_SLUG}`)); } catch (_) { return ''; } })() || normaliseLang(navigator.language) || 'zh';
-  const state = { brand: {}, category: String(params.get('category') || '').trim().slice(0,24), items: [], total: 0, offset: 0, hasMore: false, loading: false, requestId: 0, lightboxIndex: -1 };
+  const state = { brand: {}, category: String(params.get('category') || '').trim().slice(0,24), items: [], total: 0, offset: 0, hasMore: false, loading: false, requestId: 0, lightboxIndex: -1, authoritativeSurface: null, surfaceSettled: false };
   let abortController = null;
   const T = (zh, en) => language === 'en' ? en : zh;
   const localized = (value, fallback = '') => {
@@ -195,8 +213,30 @@
     return String(value == null ? '' : value).trim() || fallback;
   };
   const websiteOf = () => state.brand.websiteProfile || state.brand.website_profile || {};
-  const setVisible = (ids, visible) => ids.forEach((id) => { const node = document.getElementById(id); if (node) node.style.display = visible ? '' : 'none'; });
   const setStatus = (text) => { document.getElementById('status').textContent = text || ''; };
+  function refreshPublicSurfaceContract() {
+    if (!window.StudioSaaS.publicSurface) return;
+    if (state.authoritativeSurface) {
+      state.publicSurface = state.authoritativeSurface;
+      window.StudioSaaS.publicSurface.apply(state.publicSurface, document);
+      return;
+    }
+    if (!state.surfaceSettled) return;
+    state.publicSurface = window.StudioSaaS.publicSurface.resolve({
+      slug: TENANT_SLUG, brand: state.brand,
+      showcase: state.data || { enabled: true, items: state.items, total: state.total }
+    });
+    window.StudioSaaS.publicSurface.apply(state.publicSurface, document);
+  }
+  window.StudioSaaS.publicSurface.fetch(API).then((contract) => {
+    state.authoritativeSurface = contract;
+    state.surfaceSettled = true;
+    refreshPublicSurfaceContract();
+  }).catch((error) => {
+    state.surfaceSettled = true;
+    refreshPublicSurfaceContract();
+    console.warn('Public surface contract unavailable; using locally confirmed content.', error);
+  });
 
   function updateMeta() {
     const path = location.pathname;
@@ -327,6 +367,7 @@
       state.offset = Number(data.nextOffset ?? (offset + (data.items || []).length));
       state.hasMore = Boolean(data.hasMore);
       state.items = replace ? (data.items || []) : state.items.concat(data.items || []);
+      refreshPublicSurfaceContract();
       setStatus(state.hasMore ? T('继续下滑可加载更多作品。', 'Scroll to load more work.') : T('已显示全部符合条件的作品。', 'All matching work is shown.'));
       applyLanguage();
     } catch (error) {
@@ -370,19 +411,13 @@
     document.getElementById('tenantName').textContent = name; document.getElementById('footName').textContent = name; document.getElementById('footName2').textContent = name;
     document.getElementById('footContact').textContent = [state.brand.contact_phone || state.brand.contactPhone, state.brand.contact_email || state.brand.contactEmail, state.brand.address].filter(Boolean).join(' · ');
     const rawLogo = state.brand.logo_url || state.brand.logoUrl || ''; const logo = document.getElementById('tenantLogo'); if (rawLogo && !['/logo.png','/logo-light.png','/favicon.svg'].includes(rawLogo)) { logo.src = rawLogo; logo.style.display = 'block'; }
-    const hasPrincipal = String(website.show_principal ?? website.showPrincipal ?? true) !== 'false' && Boolean(principal.bio || principal.name);
-    setVisible(['navPrincipal','mnavPrincipal'], hasPrincipal);
-    setVisible(['navCourses','mnavCourses'], String(website.show_courses ?? website.showCourses ?? true) !== 'false');
-    setVisible(['navTimetable','mnavTimetable','footTimetable'], String(website.show_timetable ?? website.showTimetable ?? false) === 'true');
-    setVisible(['navGallery','mnavGallery'], String(website.show_gallery ?? website.showGallery ?? true) !== 'false');
-    setVisible(['navFaq','mnavFaq'], String(website.show_faq ?? website.showFaq ?? true) !== 'false');
-    setVisible(['navStudent','mnavStudent'], String(website.show_student_area ?? website.showStudentArea ?? true) !== 'false');
     const title = localized(website.showcase_title || website.showcaseTitle, T('工作室作品', 'Selected Work'));
     const description = localized(website.showcase_lead || website.showcaseLead, T('工作室精选作品展示', 'Selected work from this studio.'));
     document.getElementById('pageDocumentTitle').textContent = `${name} · ${title}`; document.getElementById('pageDescription').content = description; document.getElementById('ogTitle').content = `${name} · ${title}`; document.getElementById('ogDescription').content = description;
+    refreshPublicSurfaceContract();
     applyLanguage();
   }
-  fetch('/v1/health', { cache: 'no-store' }).then((r) => r.json()).then((health) => { document.getElementById('producerCredit').hidden = !health.showProducerCredit; }).catch(() => {});
+  fetch('/v1/health', { cache: 'no-store' }).then((r) => r.json()).then((health) => { document.getElementById('producerCredit').hidden = !health.showProducerCredit; }).catch((error) => { setStatus(T('页面状态暂时无法确认。', 'Page status could not be confirmed.')); console.warn('Producer credit health unavailable.', error); });
   loadBrand().catch(() => { setStatus(T('品牌资料暂时无法加载。', 'Brand details are temporarily unavailable.')); });
   fetchPage(state.category, 0, true);
 </script>

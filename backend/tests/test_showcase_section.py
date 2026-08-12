@@ -420,14 +420,21 @@ def test_the_home_board_requests_the_six_item_preview_and_links_to_the_archive()
 
 
 def test_the_standalone_showcase_surface_has_c_pagination_and_shared_shell():
-    page = (REPOSITORY_ROOT / "tenant-template/showcase.html").read_text(encoding="utf-8")
+    # The shell entries live in one partial now, so read the page a tenant is
+    # served rather than the file with the include marker in it.
+    from studiosaas.workspaces import rendered_template
+
+    page = rendered_template(REPOSITORY_ROOT / "tenant-template", "showcase.html")
     assert 'id="showcaseGrid"' in page
     assert 'id="loadMore"' in page
     assert "IntersectionObserver" in page
     assert "offset" in page and "category" in page
-    assert 'aria-current="page"' in page
     assert '/{{TENANT_SLUG}}/showcase' in page
     assert 'id="footTimetable"' in page
+    # `aria-current` is set at runtime against the current path: no entry in a
+    # shared list can be born knowing which page it is on. The CSS that styles
+    # the mark stays, of course.
+    assert 'aria-current="page"' not in page.split("</style>")[-1]
 
 
 def test_featured_rank_migration_is_additive_and_idempotent():

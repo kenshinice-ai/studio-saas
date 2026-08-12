@@ -284,6 +284,11 @@
       color: var(--ink);
       border: 1px solid var(--line);
     }
+    /* A control that belongs inside a sentence: an address change is rare
+       enough that a button would overstate it, and a link that does nothing
+       would understate it. */
+    .link-button { background: none; border: 0; padding: 0; font: inherit; color: var(--info); text-decoration: underline; cursor: pointer; }
+    .link-button:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
     .btn-secondary:hover { background: var(--bg2); }
 
     .btn-danger {
@@ -2559,7 +2564,7 @@
     <div class="header-top">
       <div class="brand">
         <div>
-          <h1>PWE Studio · Platform Admin</h1>
+          <h1 data-no-translate>PWE Studio · Platform Admin</h1>
           <p>Manage tenants, plans, subscriptions, and platform analytics</p>
         </div>
       </div>
@@ -2590,7 +2595,7 @@
       <form id="loginForm">
         <div class="form-group">
           <label for="loginEmail">Email</label>
-          <input id="loginEmail" type="email" autocomplete="username" placeholder="admin@example.com">
+          <input id="loginEmail" type="email" autocomplete="username" placeholder="admin@example.com" data-i18n-lock>
         </div>
         <div class="form-group">
           <label for="loginPassword">Password</label>
@@ -4735,7 +4740,7 @@
           <summary>Basic<span class="summary-hint">${esc(t.name)} · ${esc(t.slug)}</span></summary>
           <div class="form-section-body form-grid">
             <div class="form-group"><label for="m_tenantName">Studio Name</label><input id="m_tenantName" value="${esc(t.name)}"></div>
-            <div class="form-group"><label for="m_tenantSlug">Slug</label><input id="m_tenantSlug" value="${esc(t.slug)}" disabled><small>Read-only after creation because it affects URLs, workspace paths, and media paths.</small></div>
+            <div class="form-group"><label for="m_tenantSlug">Slug</label><input id="m_tenantSlug" value="${esc(t.slug)}" readonly><small>The studio's public address. It is on flyers and in QR codes, so it is changed on its own, not saved with this form. <button type="button" class="link-button" onclick="openSlugChange('${esc(t.id)}')">Change public address</button></small></div>
             <div class="form-group"><label for="m_tenantCategory">Category</label><select id="m_tenantCategory">${/*safe*/categoryOptions(t.category || 'general')}</select></div>
             <div class="form-group"><label for="m_tenantSlogan">Slogan</label><input id="m_tenantSlogan" value="${esc(t.slogan || presetSlogan(t.category || 'general'))}"></div>
             <div class="form-group">
@@ -5107,6 +5112,69 @@
       const confirm = `<div class="form-group mt-2"><label for="m_tenantStateConfirmSlug">Type tenant slug to confirm</label><input id="m_tenantStateConfirmSlug" placeholder="${esc(t.slug)}"></div>`;
       const footerHtml = `<button id="confirmTenantStateBtn" onclick="confirmTenantState('${esc(id)}', '${/*safe*/targetStatus}', '${/*safe*/targetSubscription}')" class="${/*safe*/isPause ? 'btn-danger' : 'btn-primary'}">${/*safe*/verb}</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
       openModal(title, body + confirm, footerHtml);
+    }
+
+    /* Its own dialog rather than a field on the tenant form. An address lives
+       on printed material, so the cost of changing it by accident is nothing
+       like the cost of a mistyped contact email — and a field that saves with
+       everything else is a field that eventually gets changed by accident. */
+    function openSlugChange(id) {
+      const t = tenants.find((item) => item.id === id);
+      if (!t) return;
+      const body = `
+        <p>${esc(t.name)} is published at <strong>/${esc(t.slug)}</strong>.</p>
+        <div class="form-group"><label for="m_newSlug">New public address</label><input id="m_newSlug" placeholder="mellow-pear-studio" autocomplete="off"><small>Lowercase letters, numbers and hyphens.</small></div>
+        <div class="mt-2">
+          <strong>Keeps working</strong>
+          <ul>
+            <li>The old address redirects to the new one permanently — printed QR codes do not need reprinting.</li>
+            <li>Students, courses, work, schedules and media are untouched.</li>
+            <li>Signed-in staff are not logged out.</li>
+          </ul>
+          <strong>What changes</strong>
+          <ul>
+            <li>Search engines take a few weeks to show the new address.</li>
+            <li>Visitors' saved language preference resets once.</li>
+            <li>This studio cannot change its address again for a year.</li>
+          </ul>
+        </div>
+        <div class="form-group mt-2"><label for="m_slugConfirm">Type the current address to confirm</label><input id="m_slugConfirm" placeholder="${esc(t.slug)}" autocomplete="off"></div>
+        <label class="switch-row mt-2"><input id="m_slugNotified" type="checkbox"> <span>I have told this studio</span></label>`;
+      const footerHtml = `<button id="confirmSlugBtn" onclick="confirmSlugChange('${esc(id)}')" class="btn-primary">Change address</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
+      openModal('Change public address', body, footerHtml);
+    }
+
+    async function confirmSlugChange(id) {
+      const t = tenants.find((item) => item.id === id);
+      if (!t) return;
+      const slug = ($('m_newSlug')?.value || '').trim().toLowerCase();
+      /* The CURRENT address, not the new one: this step confirms which studio
+         is being changed, not whether the operator can type. */
+      if (($('m_slugConfirm')?.value || '').trim() !== t.slug) {
+        showToast(`Type ${t.slug} to confirm.`, 'error');
+        return;
+      }
+      if (!$('m_slugNotified')?.checked) {
+        showToast('Confirm the studio has been told.', 'error');
+        return;
+      }
+      const btn = $('confirmSlugBtn');
+      btn.disabled = true;
+      try {
+        const result = await api(`/admin/tenants/${id}/slug`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            slug,
+            confirmSlugChange: true,
+            tenantNotificationAcknowledged: true
+          })
+        });
+        showToast(`Address changed to /${result.slug}. The old one redirects.`);
+        closeModal();
+        await refresh();
+      } catch (error) {
+        btn.disabled = false;
+      }
     }
 
     async function confirmTenantState(id, status, subscriptionStatus) {

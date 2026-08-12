@@ -78,19 +78,21 @@ def test_inline_script_parses(page: Path, tmp_path: Path) -> None:
 
 
 def test_the_timetable_helpers_are_declared_at_top_level() -> None:
-    """Where a function is declared decides whether the page works.
+    """Helpers stay callable and navigation has one authoritative owner.
 
-    While writing the v8.10.1 navigation, an edit put `setNavVisible` inside
-    `applyLanguage()`. It parses. It is also invisible to the /brand callback
-    that calls it — a ReferenceError which, like the one before it, would have
-    aborted that callback and taken the theme down with it.
+    The former per-page ``setNavVisible`` helper duplicated the public-surface
+    resolver and could disagree with the footer. Timetable now fetches the
+    authoritative contract; the remaining callable helpers still have to stay
+    at top level because nested declarations are invisible to event callbacks.
 
     Top level inside the page's one script block is four spaces of indent.
     """
 
     source = (REPOSITORY_ROOT / "tenant-template/timetable.html").read_text(encoding="utf-8")
-    for helper in ("function setNavVisible(", "function setMobileNav(", "function applyLanguage("):
+    for helper in ("function setMobileNav(", "function applyLanguage("):
         assert f"\n    {helper}" in source, (
             f"{helper} is not declared at top level — a nested declaration is "
             "invisible to the callbacks that call it, and the failure is silent"
         )
+    assert "publicSurface.fetch(API)" in source
+    assert "setNavVisible" not in source

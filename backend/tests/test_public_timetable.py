@@ -421,9 +421,11 @@ def test_the_page_is_served_and_provisioned() -> None:
 
 
 def test_the_portal_links_to_it_only_when_it_is_published() -> None:
-    portal = _read(PORTAL)
+    from studiosaas.workspaces import rendered_template
+
+    portal = rendered_template(REPOSITORY_ROOT / "tenant-template", "index.html")
     assert 'id="navTimetable"' in portal
-    assert "show_timetable" in portal
+    assert "show_timetable" in _read(PORTAL)
 
 
 def test_the_page_shell_is_not_gated_but_the_data_is() -> None:

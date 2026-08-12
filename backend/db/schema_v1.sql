@@ -39,8 +39,27 @@ CREATE TABLE IF NOT EXISTS tenants (
     archived_by uuid,
     archive_path text,
     deletion_requested_at timestamptz,
-    deleted_at timestamptz
+    deleted_at timestamptz,
+    -- NULL means the address has never changed. See 0031.
+    slug_changed_at timestamptz
 );
+
+-- Every address this platform has ever issued: the current one for each
+-- tenant, plus every retired one, which keeps answering as a 301 forever.
+-- A slug is printed on flyers months before anyone considers renaming, so an
+-- address is superseded rather than replaced, and never recycled.
+CREATE TABLE IF NOT EXISTS tenant_slug_aliases (
+    slug        text PRIMARY KEY CHECK (slug ~ '^[a-z0-9][a-z0-9-]{1,62}$'),
+    tenant_id   uuid REFERENCES tenants(id) ON DELETE SET NULL,
+    is_current  boolean NOT NULL DEFAULT false,
+    created_at  timestamptz NOT NULL DEFAULT now(),
+    retired_at  timestamptz
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_tenant_slug_aliases_one_current
+    ON tenant_slug_aliases (tenant_id) WHERE is_current;
+CREATE INDEX IF NOT EXISTS idx_tenant_slug_aliases_tenant
+    ON tenant_slug_aliases (tenant_id);
 
 CREATE TABLE IF NOT EXISTS users (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

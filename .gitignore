@@ -67,3 +67,9 @@ standalone-edition/.env.bak
 # of tracked content, and left untracked it fails the clean-tree gate in
 # deploy/aws/build_aws_bundle.sh.
 .agents/
+.venv
+
+# Workspaces created by backend/test_tenant_isolation.py. They are fixtures of
+# a test run, not tenants, and a release bundle must not carry them.
+tenants/isolation-*/
+tenants/test-*/

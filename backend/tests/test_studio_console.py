@@ -78,15 +78,16 @@ def test_the_workbench_hero_is_gone() -> None:
 def test_the_settings_section_does_not_repeat_the_nav_label() -> None:
     """`官网与品牌` used to appear as nav item, section header and page title.
 
-    The section header for #section-settings is the one that duplicated the
-    active nav item. Public Pages keeps its own, because nothing else names it.
+    Public page links now live in Preview & Publish, so neither workbench
+    section needs to repeat the active navigation label.
     """
 
     markup = console()
     settings = markup[markup.index('<section id="section-settings"'):
-                      markup.index('<section id="section-public-surfaces"')]
+                      markup.index('<footer class="tenant-footer"')]
     assert 'class="section-header"' not in settings
-    assert 'class="section-header"' in markup, "Public Pages lost its header too"
+    assert '<section id="section-public-surfaces"' not in markup
+    assert 'id="tab-advanced"' in markup
 
 
 def test_draft_state_is_reported_in_exactly_one_place() -> None:

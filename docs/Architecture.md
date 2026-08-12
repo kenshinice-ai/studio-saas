@@ -160,7 +160,9 @@ studiosaas/
 
 - `backend/` is the canonical runtime. The previous `letspaint-cms-release/` tree has been removed (2026-07-03, intentional).
 - `legacy-root/` is a runtime bridge, not an archive. Tenant wrappers use it to host the old CMS/Register UI while request interception routes data into tenant-scoped PostgreSQL APIs.
-- `tenant-template/` is the template source. When a tenant is created, StudioSaaS copies these files into `tenants/<slug>/` and renders `{{TENANT_SLUG}}` and `{{TENANT_NAME}}`.
+- `tenant-template/` is the template source. When a tenant is created, StudioSaaS copies these files into `tenants/<slug>/` and renders `{{TENANT_SLUG}}`, `{{TENANT_NAME}}` and the `{{TENANT_HEAD_*}}` pair. Files whose name begins with `_` are shell fragments spliced into the pages at their `<!--@shell:…-->` markers and are never written to a workspace of their own — the header and footer entry lists live there so four pages cannot drift into four different navigations.
+- **The workspace is rewritten on every publish, not only at creation.** It carries the studio's name into `<title>`, the social-preview tags and the structured data, and until v9.9.0 nothing rewrote it, so a renamed studio served its old name to every crawler. `regenerate_tenant_workspaces.py` still deliberately reads `tenant.json` rather than the database, which is why the published head strings are stored there.
+- **A retired address is answered before the filesystem is consulted.** After a rename the old workspace directory survives until a later sweep — deleting it is the only irreversible step — so `_retired_address_response()` runs first in every tenant page route. Reversing that order would serve a studio's own past to anyone following a printed QR code.
 - `tenants/<slug>/` are generated workspaces, one per tenant. **Policy (2026-07-03):** generated workspaces are tracked in git — they are small HTML wrappers and tracking them keeps local environments reproducible. Commit new workspaces when tenants are created; they can be regenerated from `tenant-template/` at any time.
 
 ---

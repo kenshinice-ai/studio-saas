@@ -14,6 +14,7 @@ from studiosaas.tenant_context import TenantResolutionError
 SENSITIVE_READS = [
     "/s/demo/v1/tenant",
     "/s/demo/v1/tenant/brand",
+    "/s/demo/v1/tenant/brand/publication-status/1",
     "/s/demo/v1/tenant/brand-workspace",
     "/s/demo/v1/tenant/analytics?days=30",
     "/s/demo/v1/team",

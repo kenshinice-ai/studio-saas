@@ -46,13 +46,51 @@
   <h1 data-lang="zh">发布依据</h1>
   <p class="lede" data-lang="en">A customer-readable record of what this release changes, what the production deployment established, and which commitments remain deferred.</p>
   <p class="lede" data-lang="zh">面向客户的记录：本次发布改了什么、生产部署确立了什么，以及哪些承诺仍未完成。</p>
-  <p class="status"><span data-lang="en">Current release v__APP_VERSION__ · released 11 August 2026 · monitoring and SLA deferred</span><span data-lang="zh">当前版本 v__APP_VERSION__ · 发布于 2026 年 8 月 11 日 · 监控与 SLA 延后</span></p>
+  <p class="status"><span data-lang="en">Current release v__APP_VERSION__ · released 12 August 2026 · monitoring and SLA deferred</span><span data-lang="zh">当前版本 v__APP_VERSION__ · 发布于 2026 年 8 月 12 日 · 监控与 SLA 延后</span></p>
 
   <h2 data-lang="en">Since v8.1.0</h2>
   <h2 data-lang="zh">v8.1.0 之后</h2>
   <p data-lang="en">Everything below belongs to a released product version. Each line is delivery evidence, not a roadmap promise.</p>
   <p data-lang="zh">以下内容均属于已发布的产品版本。每一条都是交付依据，不是路线图承诺。</p>
   <div class="grid">
+    <article class="card">
+      <strong data-lang="en">Two corrections to v9.9.0 (v9.9.1)</strong><strong data-lang="zh">v9.9.0 的两处修正（v9.9.1）</strong>
+      <p data-lang="en">The switch for Selected work said you had published nothing while your website was showing your pieces. The editor was asking the wrong question of its own records; the site was right all along, and the counter above the upload area was right too — which is how one screen managed to disagree with itself.</p>
+      <p data-lang="zh">「工作室作品」的开关显示「还没有已发布的作品」，而你的官网正在展示作品。是编辑器向自己的记录问错了问题；网站一直是对的，上传区上方的计数也是对的——所以同一个界面才会自相矛盾。</p>
+      <p data-lang="en">A long navigation label was being shortened twice, once by the server and again by the browser, which left an ellipsis inside an ellipsis and a call-to-action button pressed against its own border. The server now decides alone, and the button — which has the least room and the most padding — is allowed less than the other entries.</p>
+      <p data-lang="zh">过长的导航文字被截断了两次，服务端一次、浏览器又一次，于是出现省略号套省略号，行动按钮也顶到了自己的边框上。现在只由服务端决定；而那颗按钮空间最小、内边距最大，允许的字数也比其他条目更少。</p>
+    </article>
+    <article class="card">
+      <strong data-lang="en">Navigation that stays put, a name that follows you, and an address you can change (v9.9.0)</strong><strong data-lang="zh">导航不再跳走、店名跟着你走、网址可以更换（v9.9.0）</strong>
+      <p data-lang="en">Clicking an entry in your site's navigation used to reload the whole page whenever the visitor arrived with anything after the address — a language choice, or the tracking tag on an advertisement. It scrolled instead of reloading now, and the visitor's language and the advertisement they came from both survive the click.</p>
+      <p data-lang="zh">以前，只要访客带着地址后面的参数进站——选好的语言，或广告上的来源标记——点一下导航就会整页重新加载。现在是平滑滚动，访客的语言和他从哪个广告来的信息都不会丢。</p>
+      <p data-lang="en">Your four public pages now offer the same entries. Questions &amp; Answers used to appear only in the home page's footer, and the timetable page linked to itself in a way the switch could not turn off.</p>
+      <p data-lang="zh">四个公开页面现在提供同一组入口。以前「常见问题」只出现在首页页脚，课表页面还有一条自己关不掉的自链接。</p>
+      <p data-lang="en">Renaming your studio now reaches the places a machine reads: the browser tab, the card that appears when someone shares your link in WeChat or WhatsApp, and the name search engines show. Until now those kept whatever the studio was called on the day it was created, even though the page itself looked correct.</p>
+      <p data-lang="zh">改店名现在会同步到机器读的那些地方：浏览器标签页、别人把你的链接分享到微信或 WhatsApp 时出现的卡片、搜索结果里的名字。在此之前，这些一直是工作室创建当天的旧名字——尽管页面本身看起来是对的。</p>
+      <p data-lang="en">Studio Admin says one thing one way. Every section switch reads <em>Show X on the website</em>, and <em>Publish</em> now belongs only to the button that puts your draft online; a switch labelled <em>Publish</em> that merely saved a draft was a fair thing to misread. All nine switches are in one list, each saying why a section you have turned on is not public yet — <em>no student has agreed to show their work yet</em> rather than a code. The principal has a panel of its own.</p>
+      <p data-lang="zh">Studio Admin 里一件事只有一种说法。所有版块开关统一为「在官网上显示 XXX」，「发布」只留给真正把草稿推上线的那个按钮——一个叫「发布」却只是存草稿的开关，被误解并不奇怪。九个开关集中在一处，并且会说明你已经打开的版块为什么还没公开：显示「还没有学员同意公开作品」，而不是一串代码。主理人也有了自己的面板。</p>
+      <p data-lang="en">A studio can now change its public web address. The old address keeps working forever and redirects to the new one, so printed QR codes and flyers do not need reprinting; students, courses, work and schedules are untouched. Ask us to make the change — it is done once a year, from the platform side.</p>
+      <p data-lang="zh">工作室现在可以更换公开网址。旧地址会永久保留并自动跳转到新地址，已经印出去的二维码和传单不需要重印；学员、课程、作品和排课完全不受影响。需要更换时告诉我们——每年一次，由平台侧操作。</p>
+      <p data-lang="en">The Chinese console is Chinese. Sixty-eight strings had no translation, including the sentence shown when a publish is still being confirmed.</p>
+      <p data-lang="zh">中文后台是中文的。六十八条文案此前没有译文，其中包括发布仍在确认时显示的那一句。</p>
+    </article>
+    <article class="card">
+      <strong data-lang="en">A server-authoritative public shell and honest publish status (v9.8.10)</strong><strong data-lang="zh">服务端权威的公开外壳与真实发布状态（v9.8.10）</strong>
+      <p data-lang="en">Studio Admin now reads publication status from the server ledger instead of comparing a browser snapshot of <code>websiteProfile</code>. A successful write remains separate from a pending public projection, and structured bilingual status codes explain whether to retry, complete content, or wait for verification.</p>
+      <p data-lang="zh">Studio Admin 现在以服务端发布账本为准，不再在浏览器里比较 <code>websiteProfile</code> 快照。写入成功与公开投影待确认保持分离，结构化双语状态码会说明应重试、补齐内容，还是等待验证。</p>
+      <p data-lang="en">The portal, standalone showcase, timetable and registration page share a versioned public-surface contract with localized labels and common navigation, footer and CTA actions. Public footer links to staff CMS and Studio Admin are removed; operator tools stay behind authenticated entry points.</p>
+      <p data-lang="zh">官网、独立作品页、课表和报名页共用带版本的公开表面契约，并共享本地化标签、导航、Footer 与 CTA 操作。公开 Footer 不再放工作人员 CMS 和 Studio Admin 链接；运营工具只从需要认证的入口进入。</p>
+      <p data-lang="en">This release keeps the existing Vanilla HTML/CSS runtime and tenant data model. It is ready for package and production verification; the exact source, package and production evidence is recorded separately in the latest handoff.</p>
+      <p data-lang="zh">本版本继续使用现有 Vanilla HTML/CSS 运行时和租户数据模型。发布包与生产验证完成后，源码、发布包和生产证据会分别记录在最新 handoff 中。</p>
+    </article>
+    <article class="card">
+      <strong data-lang="en">A truthful Studio Admin editor and one public-surface contract (v9.8.9)</strong><strong data-lang="zh">真实可信的 Studio Admin 编辑器与统一公开入口契约（v9.8.9）</strong>
+      <p data-lang="en">The preview now separates Draft from the real Live website, lists unpublished change groups and public readiness, and keeps publish errors visible with a route back to the field that needs attention. The Hero secondary action can target courses, selected work, timetable, registration or a validated external URL; a chosen destination that is not ready stays hidden instead of silently redirecting elsewhere.</p>
+      <p data-lang="zh">预览现在明确区分草稿与真实线上官网，并列出未发布改动和公开就绪状态；发布错误会留在页面上，能够返回需要处理的字段。首屏次要按钮可指向课程、工作室作品、公开课表、报名或经过校验的外部地址；明确选择但未就绪的入口会保持隐藏，不会静默改跳到别处。</p>
+      <p data-lang="en">Space &amp; Experience is a dedicated editor for the place, atmosphere, process or online experience. It preserves six highlights, supports six ordered photos with bilingual alternative text, and uses visitor-controlled thumbnails without autoplay. The portal, showcase, timetable and registration page consume the same server-authoritative module, navigation, footer and action contract.</p>
+      <p data-lang="zh">「空间与体验」现在是独立编辑面板，用于场所、氛围、过程或线上体验。它保留六条亮点，支持六张可排序照片和中英文替代文字，公开页由访客点击缩略图换图，不自动轮播。官网、作品页、课表和报名页共用服务端权威的模块、导航、Footer 与行动按钮契约。</p>
+    </article>
     <article class="card">
       <strong data-lang="en">Truthful public navigation and safe publish verification (v9.8.8)</strong><strong data-lang="zh">公开导航真实可用，发布验证不再误报（v9.8.8）</strong>
       <p data-lang="en">Studio Admin now separates a successful write from the follow-up public check. If the content is saved but a projection is still catching up, the console keeps a clean editor, shows <em>Published, public pages still need verification</em>, and offers a retry instead of reporting a false failure. Errors use structured codes with bilingual operator copy.</p>

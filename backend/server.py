@@ -122,7 +122,7 @@ SESSION_SECRET_FILE = _data_path('.session_secret')
 PW_FILE       = _data_path('.cms_password')
 app.config['PHOTO_DIR'] = PHOTO_DIR
 MAX_BACKUPS   = 30   # 1 backup/hr rate limit → ~30 hours of rolling coverage
-APP_VERSION   = '9.8.8'
+APP_VERSION   = '9.9.1'
 app.config['APP_VERSION'] = APP_VERSION
 ASSET_ROOT = os.path.join(app.root_path, 'frontend', 'assets')
 ASSET_MANIFEST_PATH = os.path.join(ASSET_ROOT, 'asset-manifest.json')
@@ -181,7 +181,7 @@ def _stamp_asset_versions(html):
 # anything that reads the page — search engines and AI systems weight recency
 # and cannot infer a date from `8.2.28`. Kept beside APP_VERSION so the two
 # are bumped in one edit, and asserted to be a real ISO date by the tests.
-RELEASE_DATE  = '2026-08-09'
+RELEASE_DATE  = '2026-08-12'
 app.config['RELEASE_DATE'] = RELEASE_DATE
 
 # Content types the standard library does not reliably know.
@@ -592,6 +592,29 @@ def _standalone_tenant_slug():
         _standalone_slug_cache['slug'] = slug
         _standalone_slug_cache['at'] = now
     return slug
+
+
+def _retired_address_response(tenant_slug):
+    """301 to the current address, or 410 if the studio is gone. None if neither.
+
+    This has to run BEFORE the filesystem is consulted. The workspace folder of
+    a former address is removed on a later sweep, not during the rename, so for
+    a while both folders exist — and whichever check runs first decides whether
+    a printed QR code reaches the studio or its own past.
+    """
+
+    from studiosaas.db import connect as db_connect
+    from studiosaas.tenant_context import retired_address_map
+
+    target = retired_address_map(db_connect).get(tenant_slug)
+    if target is None:
+        return None
+    if not target:
+        return api_error('This address is no longer in use.', 410,
+                         error='tenant_address_retired')
+    suffix = request.full_path[len('/' + tenant_slug):] if request.full_path else ''
+    suffix = suffix.rstrip('?')
+    return redirect(f'/{target}{suffix}', code=301)
 
 
 # ── F2: Phone normalization — strip spaces/dashes for comparison ──────────────
@@ -1452,6 +1475,9 @@ def _tenant_page(tenant_slug, filename):
         validate_tenant_slug(tenant_slug)
     except WorkspaceError:
         return api_error('Not found', 404)
+    retired = _retired_address_response(tenant_slug)
+    if retired is not None:
+        return retired
     tenant_dir = os.path.join(PROJECT_ROOT, 'tenants', tenant_slug)
     target = os.path.join(tenant_dir, filename)
     if tenant_slug in RESERVED_SLUGS or not os.path.isfile(target):
@@ -1471,6 +1497,9 @@ def serve_tenant_home(tenant_slug):
         validate_tenant_slug(tenant_slug)
     except WorkspaceError:
         return api_error('Not found', 404)
+    retired = _retired_address_response(tenant_slug)
+    if retired is not None:
+        return retired
     landing = os.path.join(PROJECT_ROOT, 'tenants', tenant_slug, 'index.html')
     if os.path.isfile(landing):
         return _tenant_page(tenant_slug, 'index.html')
@@ -1482,6 +1511,9 @@ def serve_tenant_cms_shell(tenant_slug):
         validate_tenant_slug(tenant_slug)
     except WorkspaceError:
         return api_error('Not found', 404)
+    retired = _retired_address_response(tenant_slug)
+    if retired is not None:
+        return retired
     if not os.path.isfile(os.path.join(PROJECT_ROOT, 'tenants', tenant_slug, 'tenant.json')):
         return api_error('Not found', 404)
     return _legacy_file('index.html', 'text/html; charset=utf-8', 0)
@@ -1492,6 +1524,9 @@ def serve_tenant_studio_admin(tenant_slug):
         validate_tenant_slug(tenant_slug)
     except WorkspaceError:
         return api_error('Not found', 404)
+    retired = _retired_address_response(tenant_slug)
+    if retired is not None:
+        return retired
     if not os.path.isfile(os.path.join(PROJECT_ROOT, 'tenants', tenant_slug, 'tenant.json')):
         return api_error('Not found', 404)
     return _frontend_shell('studio-admin.html')
