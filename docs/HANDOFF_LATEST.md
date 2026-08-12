@@ -1,87 +1,67 @@
-# 📋 公开表面 UX 审计 + slug 改名方案（对照 v9.8.10）— 方案，未改代码
+# PWE Studio v9.9.0 — 导航、店名、公开地址：六批修复的生产闭环
 
-> **这一节不是发布记录。** 本轮只产出两份设计文档，**没有改动任何运行代码**，
-> 也没有打包或部署。生产仍是 v9.8.10（`codex/v9.8.10-public-shell`，commit `d8c11da`）。
-> 下面的发布账本从 v9.8.10 起，全部是既有事实，未被本节修改。
+> 当前阶段：v9.9.0 已完成源码、完整门禁、双模式打包、生产备份、部署、公网验收，以及存量租户工作区的一次性刷新。
+> 本节记录本轮最终证据；后续文档闭环只更新发布账本，不改变已运行的 v9.9.0 包。
 
-**日期**：2026-08-12 · **分支**：`claude/ui-ux-pro-max-audit-073a82`（docs-only）
+## v9.9.0 修复范围
 
-## 产出
+按 [docs/design/Public_Surface_UX_Audit_v9.8.10.md](design/Public_Surface_UX_Audit_v9.8.10.md)
+与 [docs/design/Tenant_Slug_Rename.md](design/Tenant_Slug_Rename.md) 的六个批次执行，全部是**已经在坏**的东西，不是缺的功能。
 
-| 文档 | 内容 |
+**一 · 导航。** hash 链接在每个页面都被改写成「租户首页 + 锚点」，**包括首页自己**——
+在首页上，只要访客带着任何 query 进来，改写结果与当前 URL 的差异就不止 fragment，
+于是每一次导航点击都是整页重载，并且顺手丢掉 `?lang=` 和所有 `utm_*`。
+课表页从未在 `<body>` 上声明自己的 slug，它依赖的那次改写在那里等于没做。
+首页的契约失败分支既不到 `apply()` 也不走本地兜底，导航会在加载遮罩下隐身到页面生命周期结束——
+而它显示的提示写着「页面已按当前内容安全显示」。
+另外修掉：两个死 id、`aria-current` 在首页恒真的判断、`.navlinks a` 把 CTA 的 `padding` 压成 `4px 0`。
+
+**二 · 改名。** `tenants/<slug>/` 是物化的，店名在创建那一刻写进 `<title>`、社交预览标签和结构化数据，
+之后没有任何东西重写它。发布现在会重渲染工作区（在 commit 之后，文件系统故障不能回滚已入账的发布），
+head 文案由服务端按 portal 在浏览器里用的同一优先级组合。
+deep health 新增 `workspaces` 块——它在这次部署完成的**同一分钟**就报出了 `ruby-s-studio`。
+
+**三 · 公共 shell。** 四个公开页各自维护一份 header/footer 条目清单，已经漂移了三处。
+条目改为三个共享片段，在生成工作区时拼接；页面外壳（`<nav>` 包裹层、品牌链接、语言开关）保持各页自有，
+因为统一它们要改四个线上页面而访客看不到任何差别。导航标签在契约里截断
+（`NAV_LABEL_LIMIT` 中文 10 / 英文 24，两个实现之间有 parity 测试），页面上的版块标题一个字不动。
+
+**四 · Studio Admin。**「发布」有两个意思，其中一个只是存草稿。九个「是否公开」开关散在四个面板。
+契约的 reasonCode 以标识符形态打给店主看。三个字段有四个名字。主理人没有自己的面板。
+
+**五 · 中文。** 68 条可见英文串没有译文，包括发布仍在确认时显示的那一句。
+新增覆盖门禁，按运行时真正遍历的规则扫描。
+
+**六 · 公开地址。** 新增 `tenant_slug_aliases`（migration `0031`）：平台发放过的每一个地址都在册，
+旧地址永久 301，地址**永不回收**（`ON DELETE SET NULL` 留墓碑，返回 410）。
+每租户一年一次，仅 Platform Admin，双钥确认 + 键入当前地址。
+301 的判断发生在文件系统查找之前——旧目录故意留到后续清理，顺序反了就会把访客送回工作室的过去。
+
+未改动：套餐额度、支付能力、租户数据模型。
+
+## v9.9.0 最终发布证据（2026-08-12）
+
+| 层级 | 已验证事实 |
 |---|---|
-| [docs/design/Public_Surface_UX_Audit_v9.8.10.md](design/Public_Surface_UX_Audit_v9.8.10.md) | 公开页导航/页脚/文案 + Studio Admin 链路审计，分 P0/P1/P2 与六个批次 |
-| [docs/design/Tenant_Slug_Rename.md](design/Tenant_Slug_Rename.md) | 工作室地址（slug）改名的完整设计：别名表、301、一年一次、Super Admin 双钥确认 |
+| Source | 分支 `claude/ui-ux-pro-max-audit-073a82`；部署代码 commit `c13d5587e4fb9b7da6424233484d310f97d3931b`；`VERSION=9.9.0`、`APP_VERSION=9.9.0`、`RELEASE_DATE=2026-08-12`。本分支已从 `codex/v9.8.10-public-shell` fast-forward，六批改动在其之上。 |
+| Local gates | `STUDIOSAAS_REQUIRE_POSTGRES=1 bash backend/scripts/verify_local.sh` **全部通过**；pytest `1721 passed, 5 skipped`；legacy CMS smoke `73 passed`；租户隔离 `237 passed, 0 failed`；Python/JS 编译、UI escaping、terminology、inline scripts、CMS bundle、asset manifest、迁移 current、媒体衍生图均通过。 |
+| Package | SaaS `dist/PWE-StudioSaaS-aws-9.9.0.tar.gz` SHA-256 `b02854a87e18b4629eb9f46062121ec844fdc8e101cef23a46c74582738a210a`；Edition `dist/PWE-Studio-Edition-9.9.0.tar.gz` SHA-256 `689463e8705bfc91f6118d4454fe59614edb226cfb6368999fc822312ec4b0ff`。两个 `BUILD_INFO` 均为 v9.9.0，模式分别 `saas` / `standalone`，通过 checksum、入口、版本与排除项校验。 |
+| Production | `/opt/pwestudio/current` → `PWE-StudioSaaS-aws-9.9.0`，镜像 `studiosaas:9.9.0`；容器 healthy；公网 deep health `appVersion=9.9.0`、`db=ok`、`mode=saas`、`tenants=6`、`themes.unreadable=0`、**`workspaces.stale=0`**；磁盘可用约 `45.96 GB`；HTTP→HTTPS `301`，HTTPS `200`、TLS 校验 `0`、HTTP/2。 |
+| Backup / migration | 切换前自动生成逻辑库备份 `studiosaas_studiosaas_20260812T123256Z.dump` 与 manifest，卷归档 `pwestudio-volumes-20260812T123257Z.tar.gz`。`0031_tenant_slug_aliases.sql` 已在启动时应用。回滚目录保留 `PWE-StudioSaaS-aws-9.8.10` 与 `9.8.9`。 |
+| 存量刷新 | 部署后 deep health 立刻报出 `workspaces.stale=1`（`ruby-s-studio`：文件里是 `Ruby's Studio`，数据库里是 `Mellow Pear Studio`）。用 `refresh_tenant_workspaces_from_db.py --only-slug ruby-s-studio` 重渲染，随后 `stale=0`。**该脚本写于打包之后，不在 9.9.0 运行包内**，本次是把文件拷进容器执行的；它已提交到仓库，下一个版本起随包发布。 |
+| Public routes | 根站、`/zh/manual/`、`/ruby-s-studio`、`/showcase`、`/timetable`、`/register`、`/lets-paint-showcase`、`/lets-paint-showcase/timetable`、`/platform-admin`、`/ruby-s-studio/studio-admin` 全部 `200`。 |
+| Public evidence | `/ruby-s-studio` 的**服务端原始 HTML** 现在是 `<title>Mellow Pear Studio</title>`，description 为工作室自己的 slogan（此前是旧店名与通用模板句）。契约里长标签已截断：`Oil Painting, Acrylic P…`（原 74 字符 / 241px）、`Original Personalised O…`、`原创油画 × 私人…`。四个公开页的 `foot*` 契约条目集合完全一致。线上 `public-surface.js` 与仓库逐字节相同，在其上复核：首页带 `?lang=en&utm_source=wechat` 时 `navFaq` 解析为 `/ruby-s-studio?lang=en&utm_source=wechat#home:faq`——同文档跳转，query 不再丢失。 |
 
-## 需要先知道的两件事实
+## 未做与已知项
 
-1. **`main` 落后生产 4 个提交**（`main` = 9.8.8，生产 = 9.8.10），且 `main` 是
-   `codex/v9.8.10-public-shell` 的严格祖先（`rev-list --left-right --count` = `0 4`），
-   可以直接 fast-forward。本分支已 fast-forward 到 `codex/v9.8.10-public-shell`
-   （commit `9c53d58`），审计文档与本节追加在该基线之上。
-2. **本分支未登录 Studio Admin**（不处理明文密码）。后台结论来自源码与生产下发的静态 HTML，
-   **未验证实际交互**；移动端菜单只验证了存在性。
-
-## 审计结论摘要（证据见文档）
-
-**P0 · 现在就在坏**
-
-| # | 问题 | 关键证据 |
-|---|---|---|
-| P0-1 | 首页带任何 query 时，导航内链退化为整页刷新并吞掉 `?lang=` / `?utm_*` | `hrefForPage()` 无条件加 slug 前缀且不带 search；实测 `sameDoc=false` |
-| P0-2 | 四个公开页不是同一套导航和页脚；**报名页完全没有导航栏与移动菜单** | id 覆盖表：`footFaq` 只在首页，`footContact` 只在作品页/课表页 |
-| P0-3 | 导航标签无长度约束，且与版块标题共用同一字段 | Ruby 全开时 `.navlinks` 宽 1008px、高 76px（导航条 75px）；`navPrimaryCta` 的 `padding: 4px 0px` |
-| P0-4 | **改名不生效**：`<title>` 与 `meta description` 仍是旧店名 | 线上原始 HTML 是 `Ruby's Studio`，API 是 `Mellow Pear Studio`；`regenerate_tenant_workspaces.py` 明写 "the database is not touched"，`ensure_tenant_workspace()` 全库只有建租户一个调用点 |
-
-**P1 · Studio Admin 文案与信息架构**
-
-- 「发布」一词两义：开关 `Publish Space & Experience`（只写草稿）vs 保存栏 `Publish`（真正上线）
-- 同一种开关五种标签语法；同三个字段四套词汇；模块名有三个写法
-- 9 个「要不要公开」的开关散在 4 个 tab；服务端已返回的 `reasonCode`/`nextAction` 前台完全没用
-- **中文缺 19%**：293 条可见英文串里 57 条无译文；发布状态机 23 条里漏 6 条，
-  含最要紧的 pending 解释句。机制是「按英文原文查表」，新增文案默认漏译且无门禁
-
-**P2 · 视觉与交互**：CTA 无横向 padding、语言开关贴着 CTA、次要 CTA 像禁用态、
-`%WORK%` 占位符暴露给店主、两处死 id、`aria-current` 清理逻辑在首页恒真、
-**首页契约失败分支既不 `clearLoading()` 也不本地兜底**（另外三页都做了），且缺 `surfaceSettled` 门闩——
-这是肉眼「导航闪变/失效」的直接来源。
-
-## 建议批次
-
-| 批次 | 内容 | 估时 |
-|---|---|---|
-| 一 | P0-1 + P2-8 首页兜底与门闩 + CTA padding + 死 id / `aria-current` | ~4h |
-| 二 | P0-4 改名回写工作区 + title/description 服务端注入 + `tenant.json` 一致性断言 | ~4h |
-| 三 | P0-2 公共 shell 统一（报名页补导航）+ P0-3 导航标签拆字段与降级 | ~8h |
-| 四 | P1-1/2/3 术语与信息架构统一 | ~6h |
-| 五 | P1-4 补 63 条中文 + i18n 覆盖门禁 | ~4h |
-| 六 | slug 改名能力（见 Tenant_Slug_Rename.md） | ~10h |
-
-建议一、二先合成一个小版本发出去：两批全部是回归修复，风险最低、见效最快。
-
-## slug 改名方案要点
-
-- **slug 只增不改**：新增 `tenant_slug_aliases`（slug 为主键，即「平台上用过的每一个地址」的注册表），
-  旧地址永久保留并 **301** 到新地址。**slug 永不回收**，包括已删除租户的（`ON DELETE SET NULL` + 墓碑 → 410）。
-- **一个租户任一时刻只有一个当前地址**：部分唯一索引 `WHERE is_current` 在数据库层保证，
-  与 `class_bookings` 的幂等索引同一个惯用法。
-- **一年只能改一次**：`tenants.slug_changed_at` + 365 天冷却，**产品内无覆盖开关**；
-  紧急情况由运维直接改数据库——刻意让例外离开界面。
-- **仅 Super Admin**，独立端点 `PATCH /v1/admin/tenants/<id>/slug`，
-  复用既有两套确认惯例：双钥（`confirmSlugChange` + `tenantNotificationAcknowledged` → 409 + 影响预览）
-  和「原样键入当前 slug」二次确认。
-- **最容易做错的一点**：301 判断必须发生在**文件系统查找之前**——
-  否则改名后残留的旧目录会被直接发出去，301 永不触发。
-- **时序**：复制目录 → DB 事务 → 重渲染 → **延后**清理旧目录。唯一不可逆的一步不放在请求里。
-- 第 3 步的「重渲染工作区」与 P0-4 的「改名回写」是同一个动作，**合并实现、一起测**。
-
-## 下一步
-
-等确认后从批次一开工。批次六建议按文档 §11 的五步走，
-其中第 2 步（别名解析 + 301，此时尚无任何别名）先单独上线观察，
-把唯一会静默出错的路由顺序放在没有真实流量依赖它的时候验证。
+- **导航项过多时的「更多 ▾」降级没有做。** 截断之后单项宽度已受控，剩下的是项目数问题（最多 8 项），留待观察真实租户。
+- **公共 shell 只统一了条目清单，没有统一页面外壳。** `<nav>` 包裹层、品牌链接、语言开关属性（`data-set-lang` vs `data-language`）仍各页自有；这是权衡，不是遗漏——会漂移的是清单。
+- **Studio Admin 未做登录后的实际交互验证。** 本轮不处理明文密码，后台结论来自源码、静态门禁与下发的 HTML。
+- **旧工作区目录的清理 sweep 尚未实现。** 改名后旧目录会留在卷上；它不再被路由命中（301 在文件系统查找之前），但目前没有自动删除。首次真实改名之前应补上。
+- **前台是否能批准约课**：`review_class_booking` 仍是 `@tenant_admin_required`，前台持有 `registrations:write`。这条设计问题从 v8.10.0 起就记在这里，仍未拍板。
 
 ---
+
 # PWE Studio v9.8.10 — public shell and honest publication-status production closure
 
 > 当前阶段：v9.8.10 已完成源码、验证、提交、推送、双模式打包、生产备份、部署和公网验收。本节记录本轮最终证据；后续文档闭环只更新发布账本，不改变已运行的 v9.8.10 包。
