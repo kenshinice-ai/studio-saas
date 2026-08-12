@@ -42,7 +42,7 @@
     .brand img { height:34px; width:auto; display:none; }
     .brand .bn { font-size:16px; letter-spacing:.04em; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .navlinks { display:flex; align-items:center; gap:30px; }
-    .navlinks a { font-size:13px; color:var(--ink2); letter-spacing:.02em; position:relative; padding:4px 0; cursor:pointer; }
+    .navlinks a { font-size:13px; color:var(--ink2); letter-spacing:.02em; position:relative; padding:4px 0; cursor:pointer; max-width:16ch; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .navlinks a::after { content:""; position:absolute; left:0; bottom:0; width:0; height:1px; background:var(--clay); transition:width .3s; }
     .navlinks a:hover::after { width:100%; }
     /* The page you are on is stated, not merely styled — the underline is
@@ -172,14 +172,21 @@
         <span class="bn" id="tenantName">Let&#x27;s Paint Studio</span>
       </a>
       <div class="navlinks">
-        <a id="navPrincipal" href="/lets-paint-studio#home:artist" data-analytics-label="nav_principal" data-zh="主理人" data-en="Principal" style="display:none">主理人</a>
-        <a id="navShowcase" href="/lets-paint-studio/showcase" data-analytics-label="nav_showcase" data-zh="工作室作品" data-en="Selected Work" style="display:none">工作室作品</a>
-        <a id="navCourses" href="/lets-paint-studio#home:courses" data-analytics-label="nav_courses" data-zh="课程" data-en="Courses" style="display:none">课程</a>
-        <a id="navTimetable" href="/lets-paint-studio/timetable" aria-current="page" data-zh="课程安排" data-en="Timetable">课程安排</a>
-        <a id="navGallery" href="/lets-paint-studio#home:gallery" data-analytics-label="nav_gallery" data-zh="学员作品" data-en="Student Works" style="display:none">学员作品</a>
-        <a id="navFaq" href="/lets-paint-studio#home:faq" data-analytics-label="nav_faq" data-zh="常见问题" data-en="FAQ" style="display:none">常见问题</a>
-        <a id="navStudent" href="/lets-paint-studio#my" data-analytics-label="nav_student" data-zh="学员专区" data-en="Student Login" style="display:none">学员专区</a>
-        <a id="navPrimaryCta" class="navcta" href="/lets-paint-studio#join" data-analytics-label="nav_primary" data-zh="预约体验" data-en="Book a Trial">预约体验</a>
+<!-- The public shell's entries, in one place.
+     Four pages used to carry four hand-maintained copies of this list, and
+     they had drifted: FAQ appeared only on the home page, the timetable page
+     linked to itself with no id so the switch could never hide it, and two
+     ids in public-surface.js existed on no page at all.
+     Every entry starts hidden. The contract decides what a visitor is
+     promised; a link that has not been confirmed is not shown. -->
+      <a id="navPrincipal" href="/lets-paint-studio#home:artist" data-analytics-label="nav_principal" data-zh="主理人" data-en="Principal" style="display:none">主理人</a>
+      <a id="navShowcase" href="/lets-paint-studio/showcase" data-analytics-label="nav_showcase" data-zh="工作室作品" data-en="Selected Work" style="display:none">工作室作品</a>
+      <a id="navCourses" href="/lets-paint-studio#home:courses" data-analytics-label="nav_courses" data-zh="课程" data-en="Courses" style="display:none">课程</a>
+      <a id="navTimetable" href="/lets-paint-studio/timetable" data-analytics-label="nav_timetable" data-zh="课程安排" data-en="Timetable" style="display:none">课程安排</a>
+      <a id="navGallery" href="/lets-paint-studio#home:gallery" data-analytics-label="nav_gallery" data-zh="学员%WORK%" data-en="Student %WORKS%" style="display:none">学员%WORK%</a>
+      <a id="navFaq" href="/lets-paint-studio#home:faq" data-analytics-label="nav_faq" data-zh="常见问题" data-en="Questions &amp; Answers" style="display:none">常见问题</a>
+      <a id="navStudent" href="/lets-paint-studio#my" data-analytics-label="nav_student" data-zh="学员专区" data-en="Student Login" style="display:none">学员专区</a>
+      <a id="navPrimaryCta" class="navcta" href="/lets-paint-studio#join" data-analytics-label="nav_primary" data-zh="预约体验" data-en="Book a Trial" style="display:none">预约体验</a>
         <span class="langtog" role="group" aria-label="语言 / Language"><button type="button" data-language="zh" aria-pressed="true">中</button><button type="button" data-language="en" aria-pressed="false">EN</button></span>
       </div>
       <button class="menu-btn" type="button" aria-label="打开导航菜单" data-en-aria="Open navigation menu" aria-controls="mnav" aria-expanded="false">
@@ -187,14 +194,21 @@
       </button>
     </div>
     <div id="mnav" style="display:none;flex-direction:column;background:var(--bg);border-top:1px solid var(--line);padding:14px 28px 20px;gap:14px">
-      <a id="mnavPrincipal" href="/lets-paint-studio#home:artist" data-zh="主理人" data-en="Principal" style="display:none">主理人</a>
-      <a id="mnavShowcase" href="/lets-paint-studio/showcase" data-zh="工作室作品" data-en="Selected Work" style="display:none">工作室作品</a>
-      <a id="mnavCourses" href="/lets-paint-studio#home:courses" data-zh="课程" data-en="Courses" style="display:none">课程</a>
-      <a id="mnavTimetable" href="/lets-paint-studio/timetable" aria-current="page" data-zh="课程安排" data-en="Timetable">课程安排</a>
-      <a id="mnavGallery" href="/lets-paint-studio#home:gallery" data-zh="学员作品" data-en="Student Works" style="display:none">学员作品</a>
-      <a id="mnavFaq" href="/lets-paint-studio#home:faq" data-zh="常见问题" data-en="FAQ" style="display:none">常见问题</a>
-      <a id="mnavStudent" href="/lets-paint-studio#my" data-zh="学员专区" data-en="Student Login" style="display:none">学员专区</a>
-      <a id="mnavPrimaryCta" href="/lets-paint-studio#join" data-zh="预约体验" data-en="Book a Trial">预约体验</a>
+<!-- The public shell's entries, in one place.
+     Four pages used to carry four hand-maintained copies of this list, and
+     they had drifted: FAQ appeared only on the home page, the timetable page
+     linked to itself with no id so the switch could never hide it, and two
+     ids in public-surface.js existed on no page at all.
+     Every entry starts hidden. The contract decides what a visitor is
+     promised; a link that has not been confirmed is not shown. -->
+      <a id="mnavPrincipal" href="/lets-paint-studio#home:artist" data-analytics-label="mnav_principal" data-zh="主理人" data-en="Principal" style="display:none">主理人</a>
+      <a id="mnavShowcase" href="/lets-paint-studio/showcase" data-analytics-label="mnav_showcase" data-zh="工作室作品" data-en="Selected Work" style="display:none">工作室作品</a>
+      <a id="mnavCourses" href="/lets-paint-studio#home:courses" data-analytics-label="mnav_courses" data-zh="课程" data-en="Courses" style="display:none">课程</a>
+      <a id="mnavTimetable" href="/lets-paint-studio/timetable" data-analytics-label="mnav_timetable" data-zh="课程安排" data-en="Timetable" style="display:none">课程安排</a>
+      <a id="mnavGallery" href="/lets-paint-studio#home:gallery" data-analytics-label="mnav_gallery" data-zh="学员%WORK%" data-en="Student %WORKS%" style="display:none">学员%WORK%</a>
+      <a id="mnavFaq" href="/lets-paint-studio#home:faq" data-analytics-label="mnav_faq" data-zh="常见问题" data-en="Questions &amp; Answers" style="display:none">常见问题</a>
+      <a id="mnavStudent" href="/lets-paint-studio#my" data-analytics-label="mnav_student" data-zh="学员专区" data-en="Student Login" style="display:none">学员专区</a>
+      <a id="mnavPrimaryCta" href="/lets-paint-studio#join" data-analytics-label="mnav_primary" data-zh="预约体验" data-en="Book a Trial" style="display:none">预约体验</a>
       <span class="langtog" role="group" aria-label="语言 / Language" style="align-self:flex-start"><button type="button" data-language="zh" aria-pressed="true">中</button><button type="button" data-language="en" aria-pressed="false">EN</button></span>
     </div>
   </nav>
@@ -224,14 +238,17 @@
         <p class="cp">© 2026 <span id="footName2">Let&#x27;s Paint Studio</span><span id="producerCredit" hidden> · Powered by Paradise Production</span></p>
       </div>
       <div class="fl">
-        <a href="/lets-paint-studio" data-zh="首页" data-en="Home">首页</a>
-        <a id="footShowcase" href="/lets-paint-studio/showcase" data-zh="工作室作品" data-en="Selected Work">工作室作品</a>
-        <a id="footCourses" href="/lets-paint-studio#home:courses" data-zh="课程" data-en="Courses">课程</a>
-        <a href="/lets-paint-studio/timetable" data-zh="课程安排" data-en="Timetable">课程安排</a>
-        <a id="footGallery" href="/lets-paint-studio#home:gallery" data-zh="学员作品" data-en="Student Works">学员作品</a>
-        <a id="footStudent" href="/lets-paint-studio#my" data-zh="学员专区" data-en="Student Login">学员专区</a>
-        <a id="footRegister" href="/lets-paint-studio#join" data-zh="预约体验" data-en="Book a Trial">预约体验</a>
-        <a href="/lets-paint-studio#privacy" data-zh="隐私说明" data-en="Privacy" style="color:var(--muted)">隐私说明</a>
+<!-- Same list as the header, same rule: the contract decides. `Home` and
+     `Privacy` are not contract entries — they always exist. -->
+      <a href="/lets-paint-studio" data-analytics-label="foot_home" data-zh="首页" data-en="Home">首页</a>
+      <a id="footShowcase" href="/lets-paint-studio/showcase" data-analytics-label="foot_showcase" data-zh="工作室作品" data-en="Selected Work" style="display:none">工作室作品</a>
+      <a id="footCourses" href="/lets-paint-studio#home:courses" data-analytics-label="foot_courses" data-zh="课程" data-en="Courses" style="display:none">课程</a>
+      <a id="footTimetable" href="/lets-paint-studio/timetable" data-analytics-label="foot_timetable" data-zh="课程安排" data-en="Timetable" style="display:none">课程安排</a>
+      <a id="footGallery" href="/lets-paint-studio#home:gallery" data-analytics-label="foot_gallery" data-zh="学员%WORK%" data-en="Student %WORKS%" style="display:none">学员%WORK%</a>
+      <a id="footFaq" href="/lets-paint-studio#home:faq" data-analytics-label="foot_faq" data-zh="常见问题" data-en="Questions &amp; Answers" style="display:none">常见问题</a>
+      <a id="footStudent" href="/lets-paint-studio#my" data-analytics-label="foot_student" data-zh="学员专区" data-en="Student Login" style="display:none">学员专区</a>
+      <a id="footRegister" href="/lets-paint-studio#join" data-analytics-label="foot_register" data-zh="预约体验" data-en="Book a Trial" style="display:none">预约体验</a>
+      <a href="/lets-paint-studio#privacy" data-analytics-label="foot_privacy" style="color:var(--muted)" data-zh="隐私说明" data-en="Privacy">隐私说明</a>
       </div>
     </div>
   </footer>

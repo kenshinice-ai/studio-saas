@@ -2745,9 +2745,13 @@
                      are what this tab is for; renaming is a later refinement,
                      so it folds. Both languages of a pair stay together. -->
                 <details class="disclosure">
-                  <summary>Section names<span class="summary-hint">Rename the public headings</span></summary>
+                  <summary>Section names<span class="summary-hint">Rename the public headings and their nav entries</span></summary>
                   <div class="disclosure-body">
                     <div class="form-grid">
+                      <!-- These names have two jobs, and only one of them was
+                           ever visible here. The heading on the page can be a
+                           sentence; the entry in the navigation bar cannot. -->
+                      <div class="form-group" style="grid-column:1/-1;"><small>Each name is both the heading on the public page and the entry in the navigation bar. The heading keeps whatever you write; the navigation entry is shortened past about 10 Chinese characters or 24 English ones, because the bar is one line tall.</small></div>
                       <div class="form-group"><label for="settingCoursesLabel">Courses Label · 中文</label><input id="settingCoursesLabel" placeholder="课程与班次"></div>
                       <div class="form-group"><label for="settingCoursesLabelEn">Courses Label · English</label><input id="settingCoursesLabelEn" placeholder="Courses & Classes"></div>
                       <div class="form-group"><label for="settingGalleryLabel">Gallery Label · 中文</label><input id="settingGalleryLabel" placeholder="学员%WORK%"></div>

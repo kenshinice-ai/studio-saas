@@ -4543,6 +4543,24 @@ def tenant_dashboard():
     return jsonify({"dashboard": payload})
 
 
+# A studio names its own sections, and those names are also its nav items. One
+# studio's English course label is the full list of media it teaches — 74
+# characters, 241 pixels, and with every section switched on the bar wrapped to
+# a second line inside a header one line tall. The heading on the page keeps
+# the whole sentence; only the entry in the bar is clipped.
+NAV_LABEL_LIMIT = {"zh": 10, "en": 24}
+
+
+def _clip_nav_label(value: str, language: str) -> str:
+    """Shorten a label to something a navigation bar can hold."""
+
+    limit = NAV_LABEL_LIMIT.get(language, 24)
+    text = str(value or "").strip()
+    if len(text) <= limit:
+        return text
+    return text[: limit - 1].rstrip() + "…"
+
+
 def _public_surface_entry(key: str, intent: bool, ready: bool, href: str,
                           *, reason: str = "no_content", next_action: str = "review_in_studio_admin",
                           surface: str | None = None, placement: str = "home",
@@ -4787,8 +4805,8 @@ def public_surface(tenant_slug: str):
     def surface_label(value, fallback: dict[str, str], limit: int = 80) -> dict[str, str]:
         pair = _localized_pair({"value": value}, "value", limit=limit)
         return {
-            "zh": public_label_text(pair["zh"] or fallback["zh"], "zh"),
-            "en": public_label_text(pair["en"] or fallback["en"], "en"),
+            "zh": _clip_nav_label(public_label_text(pair["zh"] or fallback["zh"], "zh"), "zh"),
+            "en": _clip_nav_label(public_label_text(pair["en"] or fallback["en"], "en"), "en"),
         }
 
     labels = {

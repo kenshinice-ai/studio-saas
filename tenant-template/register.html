@@ -225,16 +225,9 @@
 
   <footer class="tenant-credit">
     <nav class="register-footer-links" aria-label="公开页面">
-      <a href="/{{TENANT_SLUG}}" data-zh="首页" data-en="Home">首页</a>
-      <a id="footShowcase" href="/{{TENANT_SLUG}}/showcase" data-zh="工作室作品" data-en="Selected Work">工作室作品</a>
-      <a id="footTimetable" href="/{{TENANT_SLUG}}/timetable" data-zh="课程安排" data-en="Timetable">课程安排</a>
-      <a id="footCourses" href="/{{TENANT_SLUG}}#home:courses" data-zh="课程" data-en="Courses">课程</a>
-      <a id="footGallery" href="/{{TENANT_SLUG}}#home:gallery" data-zh="学员作品" data-en="Student Works">学员作品</a>
-      <a id="footStudent" href="/{{TENANT_SLUG}}#my" data-zh="学员专区" data-en="Student Login">学员专区</a>
-      <a id="footRegister" href="/{{TENANT_SLUG}}#join" data-zh="预约体验" data-en="Book a Trial">预约体验</a>
-      <a href="/{{TENANT_SLUG}}#privacy" data-zh="隐私说明" data-en="Privacy">隐私说明</a>
+      <!--@shell:footer-links-->
     </nav>
-    © 2026 <span id="footerTenantName">{{TENANT_NAME}}</span>
+    © 2026 <span id="footName">{{TENANT_NAME}}</span>
     <span id="producerCredit" hidden> · Powered by Paradise Production</span>
   </footer>
 
@@ -433,7 +426,7 @@
       const version = document.getElementById('privacyVersion');
       if (version) version.textContent = T('本说明版本：', 'Privacy note version: ') + privacyNoticeVersion;
       document.getElementById('tenantName').textContent = brand.name || TENANT_NAME;
-      document.getElementById('footerTenantName').textContent = brand.name || TENANT_NAME;
+      document.getElementById("footName").textContent = brand.name || TENANT_NAME;
       const logo = document.getElementById('tenantLogo');
       const rawLogoUrl = brand.logo_url || brand.logoUrl || '';
       const logoUrl = ['/logo.png', '/logo-light.png', '/favicon.svg'].includes(rawLogoUrl) ? '' : rawLogoUrl;

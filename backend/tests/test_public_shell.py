@@ -24,6 +24,8 @@ from pathlib import Path
 
 import pytest
 
+from studiosaas.workspaces import rendered_template
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SURFACE_JS = PROJECT_ROOT / "backend/frontend/assets/public-surface.js"
 TEMPLATE_DIR = PROJECT_ROOT / "tenant-template"
@@ -196,7 +198,7 @@ def test_every_id_the_shell_drives_exists_in_a_template():
     source = SURFACE_JS.read_text(encoding="utf-8")
     named = set(re.findall(r"#((?:nav|mnav|foot|hero)[A-Z][A-Za-z]*)", source))
     named |= set(re.findall(r"'((?:nav|mnav|foot|hero)[A-Z][A-Za-z]*)'", source))
-    markup = "\n".join((TEMPLATE_DIR / name).read_text(encoding="utf-8") for name in PAGES)
+    markup = "\n".join(rendered_template(TEMPLATE_DIR, name) for name in PAGES)
     defined = set(re.findall(r'id="((?:nav|mnav|foot|hero)[A-Z][A-Za-z]*)"', markup))
     assert named <= defined, f"public-surface.js drives ids no page defines: {sorted(named - defined)}"
 
@@ -245,3 +247,80 @@ def test_the_nav_call_to_action_is_more_specific_than_the_plain_nav_link():
         cta_rule = re.search(r"\.navlinks\s+a\.navcta\s*\{([^}]*)\}", source).group(1)
         assert "white-space" in cta_rule and "nowrap" in cta_rule, name
         assert "text-overflow" in cta_rule, name
+
+
+def test_the_four_pages_offer_the_same_entries():
+    """FAQ used to exist only in the home page's footer.
+
+    Four hand-maintained copies of one list is four chances to drift, and they
+    had: the timetable page linked to itself with no id, so the switch could
+    not hide it, and the register page's studio name used a different id from
+    every other page's.
+    """
+
+    footers = {}
+    for name in PAGES:
+        page = rendered_template(TEMPLATE_DIR, name)
+        footers[name] = set(re.findall(r'id="(foot(?:Showcase|Courses|Timetable|Gallery|Faq|Student|Register))"', page))
+        assert 'id="footName"' in page, f"{name} names the studio by a different id"
+    expected = {"footShowcase", "footCourses", "footTimetable", "footGallery",
+                "footFaq", "footStudent", "footRegister"}
+    for name, ids in footers.items():
+        assert ids == expected, f"{name} footer offers {sorted(ids)}"
+
+    headers = {}
+    for name in NAV_PAGES:
+        page = rendered_template(TEMPLATE_DIR, name)
+        headers[name] = set(re.findall(r'id="((?:nav|mnav)[A-Z][A-Za-z]*)"', page))
+    assert len(set(map(frozenset, headers.values()))) == 1, headers
+
+
+def test_the_entry_lists_have_exactly_one_source():
+    """A page that writes its own entries can drift from the others again."""
+
+    for name in PAGES:
+        source = (TEMPLATE_DIR / name).read_text(encoding="utf-8")
+        assert "<!--@shell:footer-links-->" in source, name
+        assert 'id="footShowcase"' not in source, f"{name} still hand-writes footer entries"
+    for name in NAV_PAGES:
+        source = (TEMPLATE_DIR / name).read_text(encoding="utf-8")
+        assert "<!--@shell:nav-links-->" in source and "<!--@shell:mnav-links-->" in source, name
+        assert 'id="navShowcase"' not in source, f"{name} still hand-writes header entries"
+
+
+def test_a_studio_cannot_write_a_nav_entry_the_bar_cannot_hold():
+    """One studio's English course label is 74 characters. The bar is one line.
+
+    The heading on the page keeps the whole sentence; only the entry is cut,
+    and the server and the browser have to cut it identically or a contract
+    failure would visibly change the wording.
+    """
+
+    import importlib
+
+    api_v1 = importlib.import_module("studiosaas.api_v1")
+    long_en = "Oil Painting, Acrylic Painting, Oil Soft Pastel, Acrylic Marker, Watercolour"
+    long_zh = "艺术形式与课程安排表格很长很长"
+    assert api_v1._clip_nav_label(long_en, "en") == "Oil Painting, Acrylic P…"
+    assert api_v1._clip_nav_label(long_zh, "zh") == "艺术形式与课程安排…"
+    assert api_v1._clip_nav_label("Timetable", "en") == "Timetable"
+
+
+def test_the_browser_clips_a_nav_entry_the_same_way_the_server_does(tmp_path):
+    """Two implementations of one rule; a parity check is what keeps them one."""
+
+    import importlib
+
+    api_v1 = importlib.import_module("studiosaas.api_v1")
+    long_en = "Oil Painting, Acrylic Painting, Oil Soft Pastel, Acrylic Marker, Watercolour"
+    long_zh = "艺术形式与课程安排表格很长很长"
+    body = f"""
+const win = {{ location: {{ pathname: '/demo-studio', search: '', href: 'https://example.test/demo-studio' }} }};
+const surface = load(win);
+const contract = surface.resolve({{ slug: 'demo-studio', brand: {{ localizedCopy: {{
+  courses_label: {{ zh: {json.dumps(long_zh)}, en: {json.dumps(long_en)} }} }} }} }});
+console.log(JSON.stringify(contract.modules.courses.label));
+"""
+    label = _run_probe(body, tmp_path)
+    assert label["en"] == api_v1._clip_nav_label(long_en, "en")
+    assert label["zh"] == api_v1._clip_nav_label(long_zh, "zh")

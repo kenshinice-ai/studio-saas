@@ -78,6 +78,27 @@ def validate_tenant_slug(slug: str) -> None:
 
 DEFAULT_HEAD_DESCRIPTION = "{name} — 课程报名、学员课时与记录查询。"
 
+SHELL_INCLUDE_RE = re.compile(r"[ \t]*<!--@shell:([a-z-]+)-->[ \t]*\n?")
+
+
+def _expand_shell_partials(content: str, partials: dict[str, str]) -> str:
+    """Splice `<!--@shell:nav-links-->` markers with the shared fragment.
+
+    The four public pages each kept their own copy of the header and footer
+    entry lists, and the copies had drifted: FAQ survived only in the home
+    page's footer, the timetable page linked to itself with no id so the
+    switch could never hide it, and two ids the shell drives existed on no
+    page at all. One file now decides, and the pages name it.
+    """
+
+    def replace(match: re.Match[str]) -> str:
+        name = f"_shell-{match.group(1)}.html"
+        if name not in partials:
+            raise WorkspaceError(f"Tenant template references a missing shell partial: {name}")
+        return partials[name]
+
+    return SHELL_INCLUDE_RE.sub(replace, content)
+
 
 def head_values(name: str, head: dict | None = None) -> dict:
     """Resolve the <head> strings a crawler sees, with the same rules as the page.
@@ -94,6 +115,23 @@ def head_values(name: str, head: dict | None = None) -> dict:
     if not description:
         description = DEFAULT_HEAD_DESCRIPTION.format(name=name)
     return {"title": title, "description": description[:200]}
+
+
+def rendered_template(template_dir: str | Path, filename: str) -> str:
+    """One page with its shell partials spliced in, `{{TOKENS}}` left alone.
+
+    The pages no longer carry their own copies of the header and footer entry
+    lists, so anything checking what a page contains has to look at the page a
+    tenant is actually served, not at the file with the marker in it.
+    """
+
+    directory = Path(template_dir)
+    partials = {
+        path.name: path.read_text(encoding="utf-8")
+        for path in directory.iterdir()
+        if path.is_file() and path.name.startswith("_")
+    }
+    return _expand_shell_partials((directory / filename).read_text(encoding="utf-8"), partials)
 
 
 def ensure_tenant_workspace(
@@ -138,12 +176,21 @@ def ensure_tenant_workspace(
             for line in keep_local_path.read_text(encoding="utf-8").splitlines()
             if line.strip() and not line.strip().startswith("#")
         }
+    # Files whose name begins with an underscore are shell fragments spliced
+    # into the pages below. They are never written to a workspace of their own.
+    partials = {
+        path.name: path.read_text(encoding="utf-8")
+        for path in template_dir.iterdir()
+        if path.is_file() and path.name.startswith("_")
+    }
     for template_file in template_dir.iterdir():
         if not template_file.is_file():
             continue
+        if template_file.name.startswith("_"):
+            continue
         if template_file.name in keep_local:
             continue
-        content = template_file.read_text(encoding="utf-8")
+        content = _expand_shell_partials(template_file.read_text(encoding="utf-8"), partials)
         for token, value in replacements.items():
             content = content.replace(token, value)
         _atomic_write_text(workspace_dir / template_file.name, content)

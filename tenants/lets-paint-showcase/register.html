@@ -225,16 +225,19 @@
 
   <footer class="tenant-credit">
     <nav class="register-footer-links" aria-label="公开页面">
-      <a href="/lets-paint-showcase" data-zh="首页" data-en="Home">首页</a>
-      <a id="footShowcase" href="/lets-paint-showcase/showcase" data-zh="工作室作品" data-en="Selected Work">工作室作品</a>
-      <a id="footTimetable" href="/lets-paint-showcase/timetable" data-zh="课程安排" data-en="Timetable">课程安排</a>
-      <a id="footCourses" href="/lets-paint-showcase#home:courses" data-zh="课程" data-en="Courses">课程</a>
-      <a id="footGallery" href="/lets-paint-showcase#home:gallery" data-zh="学员作品" data-en="Student Works">学员作品</a>
-      <a id="footStudent" href="/lets-paint-showcase#my" data-zh="学员专区" data-en="Student Login">学员专区</a>
-      <a id="footRegister" href="/lets-paint-showcase#join" data-zh="预约体验" data-en="Book a Trial">预约体验</a>
-      <a href="/lets-paint-showcase#privacy" data-zh="隐私说明" data-en="Privacy">隐私说明</a>
+<!-- Same list as the header, same rule: the contract decides. `Home` and
+     `Privacy` are not contract entries — they always exist. -->
+      <a href="/lets-paint-showcase" data-analytics-label="foot_home" data-zh="首页" data-en="Home">首页</a>
+      <a id="footShowcase" href="/lets-paint-showcase/showcase" data-analytics-label="foot_showcase" data-zh="工作室作品" data-en="Selected Work" style="display:none">工作室作品</a>
+      <a id="footCourses" href="/lets-paint-showcase#home:courses" data-analytics-label="foot_courses" data-zh="课程" data-en="Courses" style="display:none">课程</a>
+      <a id="footTimetable" href="/lets-paint-showcase/timetable" data-analytics-label="foot_timetable" data-zh="课程安排" data-en="Timetable" style="display:none">课程安排</a>
+      <a id="footGallery" href="/lets-paint-showcase#home:gallery" data-analytics-label="foot_gallery" data-zh="学员%WORK%" data-en="Student %WORKS%" style="display:none">学员%WORK%</a>
+      <a id="footFaq" href="/lets-paint-showcase#home:faq" data-analytics-label="foot_faq" data-zh="常见问题" data-en="Questions &amp; Answers" style="display:none">常见问题</a>
+      <a id="footStudent" href="/lets-paint-showcase#my" data-analytics-label="foot_student" data-zh="学员专区" data-en="Student Login" style="display:none">学员专区</a>
+      <a id="footRegister" href="/lets-paint-showcase#join" data-analytics-label="foot_register" data-zh="预约体验" data-en="Book a Trial" style="display:none">预约体验</a>
+      <a href="/lets-paint-showcase#privacy" data-analytics-label="foot_privacy" style="color:var(--muted)" data-zh="隐私说明" data-en="Privacy">隐私说明</a>
     </nav>
-    © 2026 <span id="footerTenantName">Let&#x27;s Paint Studio</span>
+    © 2026 <span id="footName">Let&#x27;s Paint Studio</span>
     <span id="producerCredit" hidden> · Powered by Paradise Production</span>
   </footer>
 
@@ -433,7 +436,7 @@
       const version = document.getElementById('privacyVersion');
       if (version) version.textContent = T('本说明版本：', 'Privacy note version: ') + privacyNoticeVersion;
       document.getElementById('tenantName').textContent = brand.name || TENANT_NAME;
-      document.getElementById('footerTenantName').textContent = brand.name || TENANT_NAME;
+      document.getElementById("footName").textContent = brand.name || TENANT_NAME;
       const logo = document.getElementById('tenantLogo');
       const rawLogoUrl = brand.logo_url || brand.logoUrl || '';
       const logoUrl = ['/logo.png', '/logo-light.png', '/favicon.svg'].includes(rawLogoUrl) ? '' : rawLogoUrl;

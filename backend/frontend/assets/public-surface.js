@@ -32,6 +32,17 @@
     ? text(value.zh || value.en)
     : text(value);
 
+  // Kept in step with NAV_LABEL_LIMIT in api_v1.py. A studio names its own
+  // sections and those names are also its nav items; one studio's English
+  // course label is the full list of media it teaches, at 74 characters. The
+  // heading on the page keeps the sentence, the bar gets an entry.
+  const NAV_LABEL_LIMIT = { zh: 10, en: 24 };
+  const clipNavLabel = (value, language) => {
+    const limit = NAV_LABEL_LIMIT[language] || 24;
+    const source = text(value);
+    return source.length <= limit ? source : `${source.slice(0, limit - 1).trimEnd()}…`;
+  };
+
   function entry(key, intent, ready, href, reasonCode, nextAction, options) {
     const config = options || {};
     const contentReady = config.contentReady === undefined ? Boolean(ready) : Boolean(config.contentReady);
@@ -108,8 +119,8 @@
       return result.split('%WORKS%').join(works).split('%WORK%').join(work).split('%VENUE%').join(venue);
     };
     const label = (value, fallbackZh, fallbackEn) => ({
-      zh: nouns(pairText(value) || fallbackZh, 'zh'),
-      en: nouns((value && typeof value === 'object' ? text(value.en || value.zh) : text(value)) || fallbackEn, 'en'),
+      zh: clipNavLabel(nouns(pairText(value) || fallbackZh, 'zh'), 'zh'),
+      en: clipNavLabel(nouns((value && typeof value === 'object' ? text(value.en || value.zh) : text(value)) || fallbackEn, 'en'), 'en'),
     });
     const labels = {
       principal: { zh: '主理人', en: 'Principal' },
@@ -204,6 +215,13 @@
     const tenantSlug = scope.body?.dataset?.tenantSlug || '';
     const tenantHome = tenantSlug ? `/${encodeURIComponent(tenantSlug)}` : '';
     const samePath = (a, b) => String(a).replace(/\/+$/, '') === String(b).replace(/\/+$/, '');
+    const pathOf = (href) => {
+      try {
+        return new URL(href, global.location?.href || 'https://surface.invalid').pathname;
+      } catch (error) {
+        return '';
+      }
+    };
     const onTenantHome = Boolean(tenantHome) && samePath(currentPath, tenantHome);
     // The visitor's language is worth carrying to the next page; a category
     // filter belongs to the page that owns it and is not.
@@ -260,6 +278,17 @@
         if (visible && node.tagName === 'A' && module?.href) node.href = hrefForPage(module.href);
         if (!visible) node.setAttribute('tabindex', '-1');
         else node.removeAttribute('tabindex');
+        // The pages share one entry list now, so no entry can be born knowing
+        // which page it is on. Whichever one resolves to the current path is
+        // the current page, and only that one.
+        if (node.tagName === 'A') {
+          const raw = node.getAttribute('href') || '';
+          if (!raw.startsWith('#') && pathOf(raw) && samePath(pathOf(raw), currentPath)) {
+            node.setAttribute('aria-current', 'page');
+          } else {
+            node.removeAttribute('aria-current');
+          }
+        }
         setLabel(node, module?.label);
         if (visible && node.tagName === 'A' && node.getAttribute('href') === '#home:' + key) {
           node.dataset.surfaceReady = 'true';
@@ -292,20 +321,15 @@
       const module = contract.modules[node.dataset.surfaceKey];
       if (module) node.hidden = !module.visible;
     });
+    // Anything outside the entry list that still claims to be the current page.
+    // The old test asked whether the href contained the last path segment; on a
+    // tenant home page that segment is the slug, and every resolved href starts
+    // with it, so the test was true for every link on the page.
     scope.querySelectorAll?.('a[aria-current="page"]').forEach((node) => {
       const raw = node.getAttribute('href') || '';
-      // A hash-only link never names another page, so it keeps the mark.
       if (!raw || raw.startsWith('#')) return;
-      // The old test asked whether the href contained the last path segment.
-      // On a tenant home page that segment is the slug, and every resolved
-      // href starts with it, so the test was true for every link on the page.
-      let target = '';
-      try {
-        target = new URL(raw, global.location?.href || 'https://surface.invalid').pathname;
-      } catch (error) {
-        return;
-      }
-      if (!samePath(target, currentPath)) node.removeAttribute('aria-current');
+      const target = pathOf(raw);
+      if (target && !samePath(target, currentPath)) node.removeAttribute('aria-current');
     });
   }
 
