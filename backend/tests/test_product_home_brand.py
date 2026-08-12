@@ -27,10 +27,20 @@ ISOLATION_SUITE = REPOSITORY_ROOT / "backend/test_tenant_isolation.py"
 VERSION = (REPOSITORY_ROOT / "VERSION").read_text(encoding="utf-8").strip()
 
 
-def _product_home_source() -> str:
-    """Return the product-home source and fail clearly if it is unavailable."""
+MARKETING_CSS = REPOSITORY_ROOT / "backend/frontend/assets/marketing.css"
 
-    return PRODUCT_HOME.read_text(encoding="utf-8")
+
+def _product_home_source() -> str:
+    """The page as a browser receives it: markup plus the sheet it links.
+
+    The stylesheet moved out of the document when the pricing page was given
+    its own address, because two marketing pages sharing one design system is
+    the point — a second copy of these tokens would be a second answer to
+    "what colour is the accent on a light surface". These assertions are about
+    what renders, so they read both halves.
+    """
+
+    return PRODUCT_HOME.read_text(encoding="utf-8") + MARKETING_CSS.read_text(encoding="utf-8")
 
 
 def _strip_comments(text: str) -> str:
@@ -90,7 +100,12 @@ def test_the_page_follows_the_system_theme() -> None:
     assert "@media (prefers-color-scheme: light)" in style
 
     light = style[style.index("@media (prefers-color-scheme: light)"):]
-    light = light[: light.index("\n    @media")]
+    # Bounded by the next media query at any indentation: the sheet moved out
+    # of a <style> block into its own file and lost four columns of indent,
+    # which a literal "\n    @media" silently stopped finding.
+    following = re.search(r"\n\s*@media", light[1:])
+    if following:
+        light = light[: following.start() + 1]
     # The whole theme has to fit inside token overrides plus the handful of
     # rules that genuinely invert; anything else means the layout was forked.
     for token in ("--surface:", "--card:", "--accent:", "--ink:", "--ink-soft:", "--hairline:"):
@@ -239,7 +254,10 @@ def test_content_is_not_hidden_from_a_visitor_without_javascript() -> None:
             assert line.strip().startswith(".js "), (
                 f"reveal hides content before any script runs: {line.strip()}"
             )
-    assert "root.classList.add('js')" in HOME_SCRIPT.read_text(encoding="utf-8")
+    # The class is added by the shared shell now: the reveal runs on every
+    # marketing page, so the switch that un-hides it moved with it.
+    shell = REPOSITORY_ROOT / "backend/frontend/assets/marketing-shell.js"
+    assert "root.classList.add('js')" in shell.read_text(encoding="utf-8")
 
 
 def test_the_producer_credit_is_a_link() -> None:

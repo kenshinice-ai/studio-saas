@@ -1,0 +1,135 @@
+/* The pricing page's own parts, on top of marketing.css.
+ *
+ * Only what the home page does not already have: the calculator, the two
+ * tick lists and the money FAQ. Everything else — tokens, grid, cards,
+ * buttons, the light/dark swap — comes from the shared sheet, because a
+ * second definition of "what colour is the accent" is a second answer.
+ */
+
+.price-hero { padding-top: var(--s-6); }
+.price-hero h1 { margin: 0 0 var(--s-2); }
+
+/* ── Calculator ────────────────────────────────────────────────────────────
+   Two sliders and one answer. Deliberately not a form: nothing is submitted,
+   nothing is validated, and there is no state to lose. */
+.calc {
+  display: grid;
+  gap: var(--s-4);
+  grid-template-columns: var(--golden) 1fr;
+  align-items: start;
+  margin-top: var(--s-4);
+}
+@media (max-width: 860px) { .calc { grid-template-columns: 1fr; } }
+
+.calc-inputs { display: grid; gap: var(--s-4); }
+.calc-field { display: grid; gap: var(--s-1); }
+.calc-field label { font-weight: 600; }
+.calc-field small { color: var(--muted); font-size: 13px; }
+
+.calc-field input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+  /* 44px of vertical room for a thumb a finger has to find. */
+  min-height: 44px;
+}
+.calc-field input[type="range"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+.calc-field output {
+  font-variant-numeric: tabular-nums;
+  font-size: 21px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.calc-result {
+  background: var(--card);
+  border: 1px solid var(--card-line);
+  border-radius: var(--r);
+  padding: var(--s-4);
+  display: grid;
+  gap: var(--s-2);
+}
+.calc-kicker {
+  margin: 0;
+  font-size: 13px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.calc-plan { margin: 0; font-size: 34px; line-height: 1.1; font-weight: 600; }
+/* Tabular figures so the number does not jump sideways as the slider moves. */
+.calc-money {
+  margin: 0;
+  font-size: 21px;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent-text, var(--accent));
+}
+.calc-lines { margin: 0; display: grid; gap: var(--s-1); }
+.calc-lines > div { display: flex; justify-content: space-between; gap: var(--s-2); }
+.calc-lines dt { color: var(--muted); font-size: 14px; }
+.calc-lines dd { margin: 0; font-variant-numeric: tabular-nums; font-size: 14px; }
+.calc-note { margin: 0; color: var(--muted); font-size: 13px; min-height: 1.4em; }
+
+/* ── Included / not included ──────────────────────────────────────────────
+   The second list is the one that earns trust, so it is styled as an equal,
+   not as fine print. */
+ul.tick { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2); }
+ul.tick li { padding-left: 26px; position: relative; }
+ul.tick li::before {
+  content: "";
+  position: absolute;
+  left: 0; top: .45em;
+  width: 12px; height: 7px;
+  border-left: 2px solid var(--accent);
+  border-bottom: 2px solid var(--accent);
+  transform: rotate(-45deg);
+}
+ul.tick-no li::before {
+  width: 12px; height: 12px;
+  top: .3em;
+  border: 0;
+  transform: none;
+  background:
+    linear-gradient(to bottom right, transparent 45%, currentColor 45%, currentColor 55%, transparent 55%),
+    linear-gradient(to bottom left, transparent 45%, currentColor 45%, currentColor 55%, transparent 55%);
+  color: var(--muted);
+  opacity: .8;
+}
+
+/* ── Money FAQ ────────────────────────────────────────────────────────────
+   `details` rather than a script: it is open-able before any JavaScript runs,
+   it is findable by the browser's own find-in-page, and it prints. */
+.faq { display: grid; gap: 0; margin-top: var(--s-4); }
+.faq details {
+  border-top: 1px solid var(--card-line);
+  padding: var(--s-3) 0;
+}
+.faq details:last-of-type { border-bottom: 1px solid var(--card-line); }
+.faq summary {
+  cursor: pointer;
+  font-weight: 600;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s-2);
+  min-height: 44px;
+  align-items: center;
+}
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after {
+  content: "+";
+  color: var(--accent);
+  font-size: 21px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.faq details[open] summary::after { content: "−"; }
+.faq summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.faq details p { margin: var(--s-2) 0 0; color: var(--muted); max-width: var(--measure); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .faq details[open] p { animation: faq-in .18s ease-out; }
+  @keyframes faq-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+}

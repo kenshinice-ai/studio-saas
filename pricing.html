@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0e1729" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f7f5f2" media="(prefers-color-scheme: light)">
+
+  <!-- ONE LANGUAGE PER URL, same rule as the home page: `/pricing` serves the
+       English subtree, `/zh/pricing` the Chinese one, and every `data-lang`
+       element for the other language is removed server-side. -->
+  <title data-lang="en">Pricing | PWE Studio</title>
+  <title data-lang="zh">定价 | PWE Studio</title>
+  <meta data-lang="en" name="description" content="What PWE Studio costs: monthly plans from AUD 49, one-time setup from AUD 299, and what each figure includes. Every number is read from the plan table the product enforces.">
+  <meta data-lang="zh" name="description" content="PWE Studio 的价格：月费从 AUD 49 起，一次性 Setup 服务费从 AUD 299 起，以及每个数字包含什么。页面上的每个额度都取自产品实际执行的套餐表。">
+  <link data-lang="en" rel="canonical" href="https://pwestudio.online/pricing">
+  <link data-lang="zh" rel="canonical" href="https://pwestudio.online/zh/pricing">
+  <link rel="alternate" hreflang="en-AU" href="https://pwestudio.online/pricing">
+  <link rel="alternate" hreflang="zh-Hans" href="https://pwestudio.online/zh/pricing">
+  <link rel="alternate" hreflang="x-default" href="https://pwestudio.online/pricing">
+  <meta name="robots" content="index, follow">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="PWE Studio">
+  <meta data-lang="en" property="og:title" content="Pricing | PWE Studio">
+  <meta data-lang="zh" property="og:title" content="定价 | PWE Studio">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <script src="/assets/marketing-shell.js?v=__APP_VERSION__" defer></script>
+  <link rel="stylesheet" href="/assets/marketing.css?v=__APP_VERSION__">
+  <link rel="stylesheet" href="/assets/pricing.css?v=__APP_VERSION__">
+</head>
+<body>
+  <a class="skip" href="/#main"><span data-lang="en">Skip to main content</span><span data-lang="zh">跳到主要内容</span></a>
+
+  <svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+    <symbol id="spark" viewBox="-16 -16 32 32"><path d="M0,-15 Q2.2,-2.2 15,0 Q2.2,2.2 0,15 Q-2.2,2.2 -15,0 Q-2.2,-2.2 0,-15 Z"/></symbol>
+  </svg>
+
+  <header class="nav" id="siteNav">
+    <div class="nav-in">
+      <a class="brand" href="/" aria-label="PWE Studio home">
+        <!-- Brand_Identity.md §7: the mark is drawn twice, navy for light
+             surfaces and near-white for dark ones. The page now follows the
+             system theme, so the asset has to follow it too — a navy mark on
+             a navy nav is invisible. `picture` does it without script. -->
+        <picture>
+          <source srcset="/pwe-mark-dark.svg" media="(prefers-color-scheme: dark)">
+          <img src="/pwe-mark.svg" alt="" width="30" height="30">
+        </picture>
+        <span>PWE Studio</span>
+      </a>
+      <!-- An icon-only control needs a name. Carrying it as visually hidden
+           text rather than aria-label means the language filter handles it
+           like every other string, and it is correct before any script runs;
+           aria-expanded carries the state. -->
+      <button class="menu-btn" id="menuButton" type="button" aria-expanded="false" aria-controls="navLinks">
+        <span class="vh" data-lang="en">Menu</span><span class="vh" data-lang="zh">菜单</span>
+        <svg aria-hidden="true"><g class="bars"><path d="M3 6h18M3 12h18M3 18h18"/></g><g class="x"><path d="M5 5l14 14M19 5L5 19"/></g></svg>
+      </button>
+      <nav class="nav-links" id="navLinks" aria-label="Primary navigation">
+        <a href="/#why"><span data-lang="en">Why</span><span data-lang="zh">痛点</span></a>
+        <a href="/#product"><span data-lang="en">Product</span><span data-lang="zh">产品</span></a>
+        <a href="/#trust"><span data-lang="en">Trust</span><span data-lang="zh">关键设计</span></a>
+        <a href="/#plans"><span data-lang="en">Pricing</span><span data-lang="zh">定价</span></a>
+        <a href="/#launch"><span data-lang="en">Launch</span><span data-lang="zh">上线</span></a>
+        <a href="/#faq"><span data-lang="en">FAQ</span><span data-lang="zh">答疑</span></a>
+        <!-- The switch is navigation now, not a DOM toggle: one language per
+             URL is the whole point of the split. -->
+        <a class="lang" data-lang="en" href="/zh/" hreflang="zh-Hans" lang="zh-Hans">中文</a>
+        <a class="lang" data-lang="zh" href="/" hreflang="en-AU" lang="en">EN</a>
+        <a class="nav-cta" href="/#contact"><span data-lang="en">Book a walkthrough</span><span data-lang="zh">预约演示</span></a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+
+    <section class="price-hero">
+      <div class="wrap">
+        <div class="head">
+          <p class="tag"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg><span data-lang="en">Pricing</span><span data-lang="zh">定价</span></p>
+          <h1 data-lang="en">What it costs, before you ask anyone.</h1>
+          <h1 data-lang="zh">先把价格说清楚，再谈别的</h1>
+          <p class="lead" data-lang="en">Two numbers: a monthly plan and a one-time setup. Every limit below is read from the same plan table the product enforces, so this page cannot quote an allowance the system does not honour.</p>
+          <p class="lead" data-lang="zh">只有两个数字：月费和一次性 Setup 服务费。下面每一条额度都取自产品实际执行的套餐表——页面写不出系统并不承认的数字。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- The calculator sits above the cards on purpose. A studio owner does
+         not want to compare three columns; they want to know which one is
+         theirs and what the first year costs. Answer that, then show the
+         columns for the person who wants to check the working. -->
+    <section class="band-2" id="calculator">
+      <div class="wrap">
+        <div class="head">
+          <h2 data-lang="en">Which plan is mine?</h2>
+          <h2 data-lang="zh">我该选哪一档？</h2>
+          <p class="lead" data-lang="en">Two questions. The answer is computed in your browser from the same plan figures shown below — nothing is sent anywhere.</p>
+          <p class="lead" data-lang="zh">两个问题。结果在你的浏览器里用下面同一份套餐数据算出，不会发送到任何地方。</p>
+        </div>
+
+        <div class="calc" id="calc" data-plans="__PLAN_DATA__">
+          <div class="calc-inputs">
+            <div class="calc-field">
+              <label for="calcStudents"><span data-lang="en">Active students</span><span data-lang="zh">在读学员数</span></label>
+              <input id="calcStudents" type="range" min="10" max="500" step="10" value="60">
+              <output id="calcStudentsOut" for="calcStudents">60</output>
+            </div>
+            <div class="calc-field">
+              <label for="calcTeam"><span data-lang="en">People who need a login</span><span data-lang="zh">需要登录的人数</span></label>
+              <input id="calcTeam" type="range" min="1" max="20" step="1" value="3">
+              <output id="calcTeamOut" for="calcTeam">3</output>
+              <small data-lang="en">Owner, managers, teachers, front desk. Families do not need one.</small>
+              <small data-lang="zh">店主、店长、老师、前台。家长不占名额。</small>
+            </div>
+          </div>
+
+          <div class="calc-result" aria-live="polite">
+            <p class="calc-kicker"><span data-lang="en">Your plan</span><span data-lang="zh">适合你的套餐</span></p>
+            <p class="calc-plan" id="calcPlan">—</p>
+            <p class="calc-money" id="calcMonthly">—</p>
+            <dl class="calc-lines">
+              <div><dt data-lang="en">First year, plan only</dt><dt data-lang="zh">首年月费合计</dt><dd id="calcYear">—</dd></div>
+              <div><dt data-lang="en">One-time setup</dt><dt data-lang="zh">一次性 Setup</dt><dd id="calcSetup">AUD 299–999</dd></div>
+            </dl>
+            <p class="calc-note" id="calcNote"></p>
+            <a class="btn" href="/#contact"><span data-lang="en">Book a walkthrough</span><span data-lang="zh">预约演示</span></a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="plans">
+      <div class="wrap">
+        <div class="head">
+          <h2 data-lang="en">Every plan in full.</h2>
+          <h2 data-lang="zh">三档的完整内容</h2>
+          <p class="lead" data-lang="en">All features are in every plan. The plans differ in size, not in capability: a Starter studio gets the same public website, the same timetable, the same consent model and the same bilingual product as a Growth one.</p>
+          <p class="lead" data-lang="zh">功能在三档里是一样的。差别只在规模，不在能力：入门版拿到的公开官网、公开课表、同意模型和双语能力，与成长版完全相同。</p>
+        </div>
+        <div class="grid g3" id="planGrid">
+          <!--PLAN-CARDS-->
+        </div>
+      </div>
+    </section>
+
+    <section class="band-2" id="setup">
+      <div class="wrap">
+        <div class="head">
+          <h2 data-lang="en">The one-time setup fee.</h2>
+          <h2 data-lang="zh">一次性 Setup 服务费</h2>
+          <p class="lead" data-lang="en">AUD 299–999, quoted after we see your data. It is work we do, not a licence — which is why it is quoted rather than listed.</p>
+          <p class="lead" data-lang="zh">AUD 299–999，看过你的数据之后报价。它买的是我们做的工作，不是许可证——所以是报价而不是标价。</p>
+        </div>
+        <div class="grid g2">
+          <article class="card">
+            <h3 data-lang="en">What it covers</h3><h3 data-lang="zh">包含</h3>
+            <ul class="tick">
+              <li><span data-lang="en">Brand configuration: logo, accent colour, bilingual copy, registration questions</span><span data-lang="zh">品牌配置：logo、强调色、双语文案、报名表问题</span></li>
+              <li><span data-lang="en">Reviewed migration of your existing student list, with a reconciliation you sign off</span><span data-lang="zh">现有学员名单的迁移，附一份需要你签字确认的对账</span></li>
+              <li><span data-lang="en">Team training for the roles you actually use</span><span data-lang="zh">按你实际使用的角色做团队培训</span></li>
+              <li><span data-lang="en">Launch support through your first week live</span><span data-lang="zh">上线第一周的陪跑支持</span></li>
+            </ul>
+          </article>
+          <article class="card">
+            <h3 data-lang="en">What it does not cover</h3><h3 data-lang="zh">不包含</h3>
+            <ul class="tick tick-no">
+              <li><span data-lang="en">Online card payments — the product does not take payments yet, and we will not imply that it does</span><span data-lang="zh">在线刷卡收款——产品目前不接受支付，我们也不会暗示它可以</span></li>
+              <li><span data-lang="en">Photography, copywriting or logo design</span><span data-lang="zh">摄影、文案撰写与 logo 设计</span></li>
+              <li><span data-lang="en">Custom development, or a layout outside the design system</span><span data-lang="zh">定制开发，或设计体系之外的版式</span></li>
+              <li><span data-lang="en">Off-site backup replication and an SLA — both are honestly listed as not yet done</span><span data-lang="zh">异地备份副本与 SLA——这两项我们如实标注为尚未完成</span></li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="money-faq">
+      <div class="wrap">
+        <div class="head">
+          <h2 data-lang="en">The questions people ask before paying.</h2>
+          <h2 data-lang="zh">掏钱之前，大家都会问的</h2>
+        </div>
+        <div class="faq">
+          <details>
+            <summary><span data-lang="en">What happens to my data if I downgrade?</span><span data-lang="zh">降级之后我的数据会怎样？</span></summary>
+            <p data-lang="en">Nothing is deleted. Plan limits govern what is <em>published</em>, never what is stored: on a smaller plan your website shows fewer works, and every record stays exactly where it was. Move back up and the same content is public again.</p>
+            <p data-lang="zh">什么都不会删。套餐上限管的是**发布**，不管存储：换到更小的档位，你的官网少展示几件作品，所有记录原封不动。换回去，同样的内容重新公开。</p>
+          </details>
+          <details>
+            <summary><span data-lang="en">Is there a contract or a minimum term?</span><span data-lang="zh">有合同或最短期限吗？</span></summary>
+            <p data-lang="en">The plan is monthly. The setup fee is one-time and is not refundable once the migration has been delivered and signed off, because by then the work is done.</p>
+            <p data-lang="zh">月费按月计。Setup 服务费是一次性的；数据迁移交付并经你签字确认之后不退，因为那时工作已经完成。</p>
+          </details>
+          <details>
+            <summary><span data-lang="en">Can I see the product before paying anything?</span><span data-lang="zh">付钱之前能先看到产品吗？</span></summary>
+            <p data-lang="en">Yes. Book a walkthrough and we will show you a working studio — the public website, the console, the timetable and the family side — with real data in it, not slides.</p>
+            <p data-lang="zh">可以。预约一次演示，我们会带你看一个真实运转的工作室——公开官网、后台、课表和家长端，里面是真数据，不是幻灯片。</p>
+          </details>
+          <details>
+            <summary><span data-lang="en">Do you take a percentage of my fees?</span><span data-lang="zh">你们会抽成吗？</span></summary>
+            <p data-lang="en">No. There is no commission, no per-enrolment fee and no payment processing cut — the product does not process payments at all.</p>
+            <p data-lang="zh">不会。没有佣金、没有按报名收费、也没有支付通道抽成——产品根本不经手支付。</p>
+          </details>
+          <details>
+            <summary><span data-lang="en">Is the website included, or does it cost extra?</span><span data-lang="zh">官网是包含的，还是要另外付费？</span></summary>
+            <p data-lang="en">Included, on every plan, with hosting. It is not an add-on: the public website reads the same records your staff work in, which is the reason the timetable on it can never disagree with the timetable they schedule.</p>
+            <p data-lang="zh">包含，三档都有，含托管。它不是附加项：公开官网读的就是员工日常操作的那份数据——这也正是官网上的课表不可能和他们排的课对不上的原因。</p>
+          </details>
+          <details>
+            <summary><span data-lang="en">What if I have more students than the plan allows?</span><span data-lang="zh">学员数超过套餐上限怎么办？</span></summary>
+            <p data-lang="en">Move up a plan. Nothing breaks at the boundary and nothing is deleted; the console tells you which limit you are near before you reach it.</p>
+            <p data-lang="zh">换到更高一档。到达上限时不会有任何东西损坏，也不会删数据；后台会在你接近上限之前告诉你。</p>
+          </details>
+          <details>
+            <summary><span data-lang="en">Can I export my data and leave?</span><span data-lang="zh">我能导出数据然后离开吗？</span></summary>
+            <p data-lang="en">Yes. Students, enrolments, attendance and credit history export as files you keep. We would rather you could leave easily than stay because you cannot.</p>
+            <p data-lang="zh">可以。学员、报名、签到与课时账本都能导出成你自己保存的文件。我们宁愿你随时能走，也不希望你因为走不了而留下。</p>
+          </details>
+          <details>
+            <summary><span data-lang="en">Is the product available in Chinese?</span><span data-lang="zh">产品有中文吗？</span></summary>
+            <p data-lang="en">Both languages, everywhere — the console, the family portal and your public website, which serves each language on its own address. Bilingual is a property of the product, not a translation layer bolted on.</p>
+            <p data-lang="zh">全线双语——后台、家长端，以及你的公开官网（每种语言有自己的网址）。双语是产品的属性，不是事后加的翻译层。</p>
+          </details>
+        </div>
+        <p class="note" data-lang="en">Still deciding? The <a href="/manual/">full user manual</a> is public, and so is the <a href="/pricing.md">machine-readable pricing file</a>.</p>
+        <p class="note" data-lang="zh">还在权衡？<a href="/zh/manual/">完整用户手册</a>是公开的，<a href="/pricing.md">机器可读的价格文件</a>也是。</p>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="foot">
+    <div class="wrap">
+      <div class="foot-grid">
+        <div>
+          <a class="brand" href="/" aria-label="PWE Studio home">
+            <img src="/pwe-mark.svg" alt="" width="30" height="30">
+            <span>PWE Studio</span>
+          </a>
+          <p class="note" data-lang="en">Studio management for art, music, dance and tutoring schools. Melbourne, Australia.</p>
+          <p class="note" data-lang="zh">面向美术、音乐、舞蹈工作室与培训机构的管理系统。澳大利亚 · 墨尔本。</p>
+        </div>
+        <div>
+          <h4 data-lang="en">Resources</h4><h4 data-lang="zh">资料</h4>
+          <!-- Release evidence lives at /platform-admin: it is an internal
+               delivery record addressed to operators, and the public link had
+               also gone stale two releases running. -->
+          <nav aria-label="Resources">
+            <!-- The manual is language-split like this page, so each footer
+                 links the matching address rather than a toggle. -->
+            <a data-lang="en" href="/manual/">User manual</a>
+            <a data-lang="zh" href="/zh/manual/">用户手册</a>
+            <a href="/customer-resources/FAQ.html"><span data-lang="en">FAQ</span><span data-lang="zh">常见问题</span></a>
+            <a href="/customer-resources/Privacy_Policy.html"><span data-lang="en">Privacy policy</span><span data-lang="zh">隐私政策</span></a>
+            <a href="/customer-resources/Support_Policy.html"><span data-lang="en">Support policy</span><span data-lang="zh">支持政策</span></a>
+            <a href="/customer-resources/Terms_of_Service.html"><span data-lang="en">Terms of service</span><span data-lang="zh">服务条款</span></a>
+            <a href="/#contact"><span data-lang="en">Contact</span><span data-lang="zh">联系</span></a>
+          </nav>
+        </div>
+      </div>
+      <div class="foot-btm">
+        <span>© <span id="year"></span> PWE Group Pty Ltd · PWE Studio · v__APP_VERSION__</span>
+        <a class="sig" href="/paradise-production/">A Paradise Production · <b>天域文创</b>出品</a>
+      </div>
+    </div>
+  </footer>
+  <script src="/assets/pricing.js?v=__APP_VERSION__" defer></script>
+</body>
+</html>

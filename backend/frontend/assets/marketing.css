@@ -1,0 +1,454 @@
+/* Marketing surface — the home page and the pricing page.
+ *
+ * Extracted from product-home.html when the pricing page was given its own
+ * address. Two pages sharing one design system is the whole point: a second
+ * copy of these tokens is a second answer to "what colour is the accent on a
+ * light surface", and the honest answer has to be one value.
+ *
+ * The page is authored dark and re-skinned light through five surface tokens,
+ * so the light theme is a token swap rather than a second stylesheet.
+ */
+/* ═══════════════════════════════════════════════════════════════════
+   PWE Studio — product home.
+
+   The design language is Paradise Production's, because both products
+   come from one studio and already share one token set: Family Navy
+   #0E1729, Family Amber #F5B335, and the golden section as the generator
+   rather than as decoration. Type advances in φ^(k/2); spacing is the
+   Fibonacci integers that φ converges from; primary splits land on
+   61.8/38.2.
+
+   This replaces a warm-paper page whose navy was held to a 38.2% anchor.
+   That page read as open, but it read as a different company than the one
+   that made it. The reference the owner chose is dark end to end, and on
+   dark the amber finally does the job it was drawn for: at 9.8:1 on navy
+   it is the only warm thing on the page, so it can mark exactly one idea
+   per screen.
+   ═══════════════════════════════════════════════════════════════════ */
+:root {
+  --phi: 1.6180339887;
+
+  /* type — φ^(k/2), the same progression as the wing's feather radii */
+  --f-xs: .618rem;
+  --f-sm: .786rem;
+  --f-0: 1rem;
+  --f-1: 1.272rem;
+  --f-2: 1.618rem;
+  --f-3: 2.058rem;
+  --f-4: 2.618rem;
+  --f-5: 3.33rem;
+  --f-6: 4.236rem;
+
+  /* space — Fibonacci */
+  --s-1: 8px;
+  --s-2: 13px;
+  --s-3: 21px;
+  --s-4: 34px;
+  --s-5: 55px;
+  --s-6: 89px;
+  --s-7: 144px;
+
+  --golden: 61.8%;
+  --golden-inv: 38.2%;
+  --maxw: 1152px;          /* 712 × φ */
+  --measure: 61.8ch;
+  --r: 13px;
+
+  --family-navy: #0e1729;
+  --family-navy-raised: #16233d;
+  --family-navy-soft: #22355a;
+  --family-amber: #f5b335;      /* dark surfaces — 9.83:1 on Family Navy */
+  --family-amber-text: #a16207; /* light surfaces — 4.52:1 on Warm Paper */
+  --warm-paper: #f7f5f2;
+  --white: #ffffff;
+
+  --slate-600: #475569;
+  --slate-muted: #5c6470;
+
+  /* SURFACE TOKENS — the page is authored dark and re-skinned light.
+     Everything below the divider is written against these five, so the
+     light theme is a token swap rather than a second stylesheet: there is
+     one layout, one set of proportions, and no chance of the two drifting.
+
+     `--accent` is the important one. Family Amber is 9.83:1 on navy and
+     1.70:1 on Warm Paper, so it cannot be the same value on both. Small
+     amber things — eyebrows, rules, borders, focus rings — read
+     `--accent`; filled amber surfaces with navy text on them (the primary
+     button, the recommended badge) keep the bright tone in both themes,
+     because there it is a background and measures 9.83:1 either way. */
+  --surface: var(--family-navy);
+  --surface-2: var(--family-navy-raised);
+  --card: var(--family-navy-raised);
+  --card-2: var(--family-navy-soft);
+  --card-line: var(--family-navy-soft);
+  --card-line-2: rgba(255, 255, 255, .16);
+  --accent: var(--family-amber);
+  /* Warm white rather than #fff for running text: on navy it measures
+     15.9:1 and keeps the paper temperature the brand is built on. */
+  --ink: var(--warm-paper);
+  --ink-soft: rgba(255, 255, 255, .72);   /* 9.68:1 on navy */
+  --ink-faint: rgba(255, 255, 255, .55);  /* labels and notes, 6.2:1 */
+  --hairline: rgba(255, 255, 255, .14);
+  --control-line: rgba(255, 255, 255, .42);  /* 3.90:1 — WCAG 1.4.11 */
+  --control-fill: rgba(255, 255, 255, .06);
+  --shadow-strong: 0 21px 55px rgba(0, 0, 0, .34);
+  --shadow-art: 0 28px 70px rgba(0, 0, 0, .45);
+  --spark-opacity: .08;
+  --nav-solid: rgba(14, 23, 41, .86);
+  --nav-panel: rgba(14, 23, 41, .97);
+  color-scheme: dark light;
+
+  --serif: Georgia, "Times New Roman", "Songti SC", "Source Han Serif SC", serif;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --ease: cubic-bezier(.2, .7, .2, 1);
+}
+* { box-sizing: border-box; }
+/* 17px root, the same as the sister site. The φ scale is relative, so
+   every step moves with it: --f-sm lands at 13.4px rather than 12.6px,
+   which is the difference between card copy that is legible and card
+   copy that is merely compliant. Back to 16px on small screens, where
+   the measure is narrower. */
+html { font-size: 17px; scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+@media (max-width: 640px) { html { font-size: 16px; } }
+body {
+  margin: 0; min-width: 320px; font-family: var(--sans);
+  line-height: var(--phi);              /* leading = φ */
+  color: var(--ink); background: var(--surface);
+  -webkit-font-smoothing: antialiased; overflow-x: hidden;
+}
+img { max-width: 100%; display: block; }
+a { color: inherit; text-decoration: none; }
+button, input, textarea, select { font: inherit; }
+button, a { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+/* Amber is the focus indicator everywhere the page is navy. The dark amber
+   is kept for the one light surface left — the skip link — where the
+   bright tone measures 1.85:1 and would fail WCAG 1.4.11. */
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+.skip {
+  position: fixed; top: -80px; left: var(--s-3); z-index: 100;
+  padding: var(--s-2) var(--s-3); border-radius: var(--r);
+  color: var(--family-navy); background: var(--warm-paper); font-weight: 600;
+}
+.skip:focus { top: var(--s-2); outline-color: var(--family-amber-text); }
+
+.wrap { max-width: var(--maxw); margin-inline: auto; padding-inline: clamp(21px, 4vw, 34px); }
+section { padding-block: clamp(55px, 8vw, var(--s-7)); }
+section[id] { scroll-margin-top: 72px; }
+/* Two navy values give the page a rhythm without leaving the brand: the
+   band alternates, and a card always sits one step lighter than the band
+   it is on, so elevation reads the same way in both. */
+.band-2 { background: var(--surface-2); }
+
+/* ── type ──────────────────────────────────────────────────────────── */
+h1, h2, h3 { font-family: var(--serif); font-weight: 500; letter-spacing: -.012em; margin: 0; }
+h1 { font-size: clamp(2.058rem, 6.2vw, var(--f-6)); line-height: 1.06; }
+h2 { font-size: clamp(1.618rem, 4vw, var(--f-4)); line-height: 1.12; }
+h3 { font-size: var(--f-1); line-height: 1.25; margin-bottom: var(--s-1); }
+h4 { font-family: var(--sans); font-size: var(--f-0); font-weight: 600; margin: 0 0 6px; }
+p { margin: 0; color: var(--ink-soft); }
+.lead { max-width: var(--measure); margin-top: var(--s-3); font-size: clamp(1rem, 1.7vw, var(--f-1)); line-height: 1.55; }
+.tag {
+  display: inline-flex; align-items: center; gap: var(--s-1); margin-bottom: var(--s-2);
+  color: var(--accent); font-size: var(--f-sm); font-weight: 600;
+  letter-spacing: .18em; text-transform: uppercase;
+}
+.tag svg { flex: none; width: 12px; height: 12px; }
+.note { max-width: var(--measure); margin-top: var(--s-3); color: var(--ink-faint); font-size: var(--f-sm); line-height: 1.6; }
+.note a { color: var(--accent); }
+.center { text-align: center; }
+.center .lead, .center .note { margin-inline: auto; }
+.center .tag { justify-content: center; }
+.head { max-width: calc(var(--maxw) * .786); }
+
+/* ── buttons ───────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--s-1);
+  min-height: 48px; padding: var(--s-2) var(--s-4); border: 1px solid transparent;
+  border-radius: 999px; background: var(--family-amber); color: var(--family-navy);
+  font-size: var(--f-0); font-weight: 600; cursor: pointer;
+  transition: transform .2s var(--ease), box-shadow .2s var(--ease), background .2s;
+}
+.btn:hover { transform: translateY(-2px); box-shadow: 0 13px 34px rgba(245, 179, 53, .28); }
+.btn:active { transform: scale(.985); }
+.btn-ghost { background: transparent; color: var(--ink); border-color: var(--control-line); }
+.btn-ghost:hover { border-color: var(--ink); background: var(--control-fill); box-shadow: none; }
+.btns { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: var(--s-4); }
+.center .btns { justify-content: center; }
+
+/* ── nav ───────────────────────────────────────────────────────────── */
+.nav {
+  position: sticky; top: 0; z-index: 50; border-bottom: 1px solid transparent;
+  background: var(--surface); transition: background .4s var(--ease), border-color .4s var(--ease);
+}
+.nav.solid {
+  background: var(--nav-solid); border-color: var(--hairline);
+  -webkit-backdrop-filter: saturate(160%) blur(14px); backdrop-filter: saturate(160%) blur(14px);
+}
+.nav-in {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--s-3);
+  max-width: var(--maxw); margin-inline: auto; min-height: 56px;
+  padding: env(safe-area-inset-top) clamp(21px, 4vw, 34px) 0;
+}
+.brand { display: inline-flex; align-items: center; gap: .55rem; min-height: 44px; font-weight: 600; letter-spacing: -.01em; }
+.brand img { width: 30px; height: 30px; }
+.nav-links { display: flex; align-items: center; gap: clamp(13px, 2.1vw, var(--s-3)); color: var(--ink-soft); font-size: var(--f-sm); }
+.nav-links a { position: relative; display: inline-flex; align-items: center; min-height: 44px; }
+.nav-links a::after {
+  content: ""; position: absolute; left: 0; bottom: 8px; width: 0; height: 1px;
+  background: var(--accent); transition: width .3s var(--ease);
+}
+.nav-links a:hover { color: var(--ink); }
+.nav-links a:hover::after { width: 100%; }
+.nav-links .lang, .nav-links .nav-cta { min-height: 44px; padding: 0 var(--s-3); border-radius: 999px; }
+.nav-links .lang { border: 1px solid var(--control-line); font-size: var(--f-xs); }
+.nav-links .lang:hover { border-color: var(--accent); color: var(--accent); }
+.nav-links .nav-cta { background: var(--family-amber); color: var(--family-navy); font-weight: 600; }
+.nav-links .nav-cta:hover { color: var(--family-navy); }
+.nav-links .lang::after, .nav-links .nav-cta::after { display: none; }
+.vh { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.menu-btn { display: none; position: relative; width: 44px; height: 44px; padding: 0; border: 0; background: transparent; color: var(--ink); cursor: pointer; place-items: center; }
+.menu-btn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+.menu-btn .x { display: none; }
+body.menu-open .menu-btn .x { display: block; }
+body.menu-open .menu-btn .bars { display: none; }
+
+/* ── hero ──────────────────────────────────────────────────────────── */
+.hero { position: relative; overflow: hidden; padding-block: clamp(64px, 12vw, var(--s-7)); }
+/* The spark is the brand's one ornament. It sits on the golden section of
+   the hero's height, at 8% so it reads as texture, never as content. */
+.hero-spark { position: absolute; right: -4%; top: var(--golden-inv); transform: translateY(-50%); opacity: var(--spark-opacity); pointer-events: none; }
+.hero-spark svg { fill: var(--accent); }
+.hero-spark svg { width: clamp(220px, 34vw, 420px); height: auto; }
+.hero-in { position: relative; z-index: 1; }
+.hero h1 { max-width: 15ch; }
+.hero .lead { margin-top: var(--s-4); }
+.split { display: grid; grid-template-columns: 61.8fr 38.2fr; gap: clamp(34px, 5vw, var(--s-6)); align-items: center; }
+.art-stack { position: relative; min-height: 340px; }
+.art { position: absolute; overflow: hidden; border: 10px solid rgba(255, 253, 248, .96); border-radius: 4px; background: var(--white); box-shadow: var(--shadow-art); }
+.art img { width: 100%; height: 100%; object-fit: cover; }
+.art-a { width: 78%; aspect-ratio: 1; top: 0; right: 0; transform: rotate(3deg); }
+.art-b { width: 54%; aspect-ratio: 1; left: 0; bottom: 2%; transform: rotate(-5deg); }
+.proof { max-width: var(--measure); margin-top: var(--s-4); padding-left: var(--s-3); border-left: 2px solid var(--accent); color: var(--ink-soft); font-size: var(--f-sm); line-height: 1.6; }
+.proof a { color: var(--accent); }
+
+/* ── grids and cards ───────────────────────────────────────────────── */
+.grid { display: grid; gap: var(--s-3); margin-top: var(--s-5); }
+.g2 { grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); }
+.g3 { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+.g4 { grid-template-columns: repeat(auto-fit, minmax(212px, 1fr)); }
+/* Five cards: minmax(250px) resolves to four columns here and leaves
+   one card alone on a second row. 300px resolves to three, so the
+   set reads as 3 + 2. */
+.industries { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.card {
+  display: flex; flex-direction: column; height: 100%; padding: var(--s-4);
+  border: 1px solid var(--card-line); border-radius: var(--r);
+  background: var(--card);
+}
+.industries h3, .g4 h3 {
+  margin: 0 0 6px; font-family: var(--sans); font-size: var(--f-0);
+  font-weight: 600; letter-spacing: 0;
+}
+.band-2 .card { border-color: var(--card-line-2); background: var(--card-2); }
+.card p { font-size: var(--f-sm); line-height: 1.6; }
+.card .num { display: block; margin-bottom: var(--s-2); color: var(--accent); font-size: var(--f-sm); font-weight: 700; letter-spacing: .08em; }
+a.card { transition: transform .25s var(--ease), border-color .25s var(--ease), box-shadow .25s var(--ease); }
+a.card:hover { transform: translateY(-3px); border-color: var(--accent); box-shadow: var(--shadow-strong); }
+a.card .arrow { margin-top: auto; padding-top: var(--s-3); color: var(--accent); font-size: var(--f-sm); font-weight: 600; }
+.phi-rule { height: 1px; margin-block: var(--s-5); background: linear-gradient(90deg, var(--accent) 0 61.8%, var(--hairline) 61.8% 100%); opacity: .6; }
+
+/* ── pricing ───────────────────────────────────────────────────────── */
+.plan { display: flex; flex-direction: column; height: 100%; padding: var(--s-4); border: 1px solid var(--card-line); border-radius: var(--r); background: var(--card); }
+.plan.feat { border-color: var(--accent); background: rgba(245, 179, 53, .09); }
+.plan-badge {
+  display: inline-flex; align-items: center; align-self: flex-start; min-height: 26px;
+  margin-bottom: var(--s-2); padding: 2px 10px; border-radius: 999px;
+  background: var(--family-amber); color: var(--family-navy);
+  font-size: var(--f-xs); font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+}
+.plan .amt { margin: 6px 0 0; font-family: var(--serif); font-size: var(--f-3); line-height: 1.1; color: var(--ink); }
+.plan .per { color: var(--ink-faint); font-size: var(--f-sm); }
+.plan ul { margin: var(--s-3) 0 var(--s-4); padding: 0; }
+.plan li { position: relative; padding: 7px 0 7px 21px; list-style: none; color: var(--ink-soft); font-size: var(--f-sm); }
+.plan li::before { content: ""; position: absolute; left: 0; top: 14px; width: 8px; height: 8px; border: 1.5px solid var(--accent); border-radius: 50%; opacity: .85; }
+.plan .btn { margin-top: auto; }
+
+/* ── FAQ ───────────────────────────────────────────────────────────── */
+/* The hero's 61.8/38.2 again, and for the same reason: one column is the
+   argument and the other is the standing offer. `align-items` has to be
+   overridden — the hero centres its two halves against each other, and a
+   six-question column centred against a short aside would float the
+   aside into the middle of nowhere. */
+.faq-split { margin-top: var(--s-5); align-items: start; }
+.faq { border-top: 1px solid var(--hairline); }
+.faq details { border-bottom: 1px solid var(--hairline); }
+.faq summary {
+  display: flex; align-items: center; gap: var(--s-2);
+  /* 21px + 21px + a line of --f-1 clears 44px without being told to. */
+  padding: var(--s-3) 0; padding-right: var(--s-4);
+  font-size: var(--f-1); line-height: 1.35; font-family: var(--serif);
+  cursor: pointer; list-style: none; position: relative;
+}
+.faq summary::-webkit-details-marker { display: none; }
+/* The marker is drawn rather than typed: a glyph would be a second
+   typeface decision, and this one rotates. */
+.faq summary::after {
+  content: ""; position: absolute; right: 2px; top: 50%;
+  width: 11px; height: 11px; margin-top: -6px;
+  border-right: 2px solid var(--accent); border-bottom: 2px solid var(--accent);
+  transform: rotate(45deg); transform-origin: 60% 60%;
+  transition: transform .25s var(--ease);
+}
+.faq details[open] summary::after { transform: rotate(-135deg); }
+.faq summary:hover { color: var(--accent); }
+.faq details > p {
+  max-width: var(--measure); margin: 0 0 var(--s-3);
+  font-size: var(--f-sm); line-height: 1.65;
+}
+.faq details > p a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+.faq code {
+  padding: 1px 5px; border-radius: 4px;
+  background: var(--control-fill); font-size: .92em;
+}
+.faq-aside {
+  position: sticky; top: calc(72px + var(--s-3));
+  padding: var(--s-4); border: 1px solid var(--card-line);
+  border-left: 2px solid var(--accent); border-radius: var(--r);
+  background: var(--card);
+}
+.faq-aside h3 { margin-bottom: var(--s-2); }
+.faq-aside p { margin-bottom: var(--s-2); font-size: var(--f-sm); line-height: 1.65; }
+.faq-aside a:not(.btn) { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+.faq-aside .btn { margin-top: var(--s-2); }
+/* Stacked, the aside is a footnote to the answers rather than a rail, so
+   it stops being sticky — a sticky block on a phone is a block that
+   covers the thing it is about. */
+@media (max-width: 860px) {
+  .faq-split { grid-template-columns: 1fr; }
+  .faq-aside { position: static; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .faq summary::after { transition: none; }
+}
+
+/* ── contact form ──────────────────────────────────────────────────── */
+.form { max-width: calc(var(--maxw) * .618); margin: var(--s-5) auto 0; text-align: left; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field.full { grid-column: 1 / -1; }
+.field label { color: var(--ink); font-size: var(--f-sm); font-weight: 600; }
+.field input, .field select, .field textarea {
+  width: 100%; min-height: 48px; padding: 13px 14px; border-radius: 10px;
+  /* .22 composites to #4A5468 on the raised navy — 2.4:1, under the 3:1
+     WCAG 1.4.11 asks of a control boundary. .42 measures 3.9:1. */
+  border: 1px solid var(--control-line);
+  background: var(--control-fill); color: var(--ink);
+  transition: border-color .2s var(--ease), background .2s var(--ease);
+}
+.field textarea { min-height: 118px; line-height: 1.55; resize: vertical; }
+.field select option { background: var(--card); color: var(--ink); }
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); background: var(--control-fill); }
+.form-actions { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: var(--s-3); }
+
+/* ── footer ────────────────────────────────────────────────────────── */
+.foot { padding: var(--s-6) 0 max(var(--s-5), env(safe-area-inset-bottom)); background: var(--surface); border-top: 1px solid var(--hairline); }
+.foot-grid { display: grid; grid-template-columns: 61.8fr 38.2fr; gap: var(--s-5); }
+.foot h4 { color: var(--ink); font-size: var(--f-xs); letter-spacing: .1em; text-transform: uppercase; }
+.foot nav { display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-3); font-size: var(--f-sm); }
+.foot nav a { display: inline-flex; align-items: center; min-height: 44px; color: var(--ink-soft); }
+.foot nav a:hover { color: var(--accent); }
+.foot-btm {
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--s-2);
+  margin-top: var(--s-5); padding-top: var(--s-3); border-top: 1px solid var(--hairline);
+  color: var(--ink-faint); font-size: var(--f-sm);
+}
+.sig { letter-spacing: .06em; }
+.sig b { color: var(--accent); font-weight: 600; }
+
+/* ── motion ────────────────────────────────────────────────────────── */
+/* The reveal is opt-in from script: `js` is set on <html> by the page
+   script before first paint. Declaring opacity:0 in CSS unconditionally —
+   the way the reference site does — hides the entire page from anyone
+   whose JavaScript failed, and from any crawler that does not run it. */
+.js .reveal { opacity: 0; transform: translateY(21px); transition: opacity .9s var(--ease), transform .9s var(--ease); }
+.js .reveal.in { opacity: 1; transform: none; }
+.js .reveal[data-delay="1"] { transition-delay: .09s; }
+.js .reveal[data-delay="2"] { transition-delay: .18s; }
+.js .reveal[data-delay="3"] { transition-delay: .27s; }
+
+/* ── light theme ───────────────────────────────────────────────────
+   The same page on paper. Only the five surface tokens and the accent
+   move; every rule above is written against them, so the proportions,
+   the type scale and the layout are literally the same declarations.
+
+   Measured on Warm Paper #F7F5F2:
+     --ink        Family Navy      15.5:1
+     --ink-soft   #475569           6.97:1
+     --ink-faint  #5C6470           5.48:1   (notes set at .786rem)
+     --accent     #A16207           4.52:1
+   The bright amber stays on filled surfaces only — a navy label on an
+   amber pill measures 9.83:1 whichever theme is showing.
+
+   Dark is the authored default rather than the fallback: a browser with
+   no `prefers-color-scheme` support gets the design this page was drawn
+   as, not a degraded copy of it. */
+@media (prefers-color-scheme: light) {
+  :root {
+    --surface: var(--warm-paper);
+    --surface-2: var(--white);
+    --card: var(--white);
+    --card-2: var(--warm-paper);
+    --card-line: rgba(14, 23, 41, .14);
+    --card-line-2: rgba(14, 23, 41, .14);
+    --accent: var(--family-amber-text);
+    --ink: var(--family-navy);
+    --ink-soft: var(--slate-600);
+    --ink-faint: var(--slate-muted);
+    --hairline: rgba(14, 23, 41, .14);
+    --control-line: rgba(14, 23, 41, .34);   /* 3.90:1 on paper */
+    --control-fill: var(--white);
+    --shadow-strong: 0 21px 55px rgba(14, 23, 41, .12);
+    --shadow-art: 0 24px 64px rgba(14, 23, 41, .22);
+    --spark-opacity: .12;
+    --nav-solid: rgba(247, 245, 242, .88);
+    --nav-panel: rgba(247, 245, 242, .97);
+  }
+  /* The card sits on white in the raised band, so it needs the paper tone
+     to stay distinguishable — the inverse of the dark theme, where the
+     card is the lighter of the two. Elevation reads correctly in both. */
+  .band-2 .card, .band-2 .plan { background: var(--card-2); }
+  .plan.feat { background: rgba(245, 179, 53, .14); }
+  /* The artwork frames were white on navy; on paper they need an edge. */
+  .art { border-color: var(--white); }
+  .btn:hover { box-shadow: 0 13px 34px rgba(161, 98, 7, .26); }
+}
+
+@media (max-width: 880px) {
+  .split { grid-template-columns: 1fr; }
+  .foot-grid { grid-template-columns: 1fr; gap: var(--s-4); }
+}
+@media (max-width: 760px) {
+  .menu-btn { display: grid; }
+  .nav-links {
+    position: fixed; inset: 56px 0 auto; flex-direction: column; align-items: stretch; gap: 0;
+    padding: var(--s-2) clamp(21px, 4vw, 34px) var(--s-3);
+    background: var(--nav-panel); border-bottom: 1px solid var(--hairline);
+    -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+    font-size: var(--f-0); max-height: calc(100dvh - 56px); overflow-y: auto;
+    opacity: 0; visibility: hidden; transform: translateY(-8px);
+    transition: opacity .26s var(--ease), transform .26s var(--ease), visibility .26s;
+  }
+  body.menu-open .nav-links { opacity: 1; visibility: visible; transform: none; }
+  .nav-links a { min-height: 52px; border-bottom: 1px solid var(--hairline); }
+  .nav-links a::after { display: none; }
+  .nav-links .lang, .nav-links .nav-cta { justify-content: center; min-height: 48px; margin-top: var(--s-2); border-bottom: 0; }
+}
+@media (max-width: 640px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .art-stack { min-height: 300px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .js .reveal { opacity: 1 !important; transform: none !important; transition: none; }
+  *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}

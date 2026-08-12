@@ -1,5 +1,6 @@
 import errno, json, mimetypes, os, re, shutil, socket, sys, time, secrets, hashlib
 from datetime import datetime, timedelta
+from html import escape as html_escape
 import re
 from flask import (Flask, request, jsonify, redirect, send_from_directory,
                    session, make_response)
@@ -1204,6 +1205,71 @@ def serve_index_zh():
 def serve_index_zh_redirect():
     # One address per language; the trailing-slash form is the canonical one.
     return redirect('/zh/', code=301)
+
+def _serve_pricing(language):
+    """The pricing page, at one address per language like every other page.
+
+    It shares `product-home.html`'s stylesheet and navigation, and it renders
+    its plan cards from the same `public_plan_rows()` call — which is also
+    what the calculator reads, through a `data-plans` attribute rather than a
+    second fetch. One query behind the cards, the calculator and
+    `/v1/public/plans` is the only arrangement where a visitor cannot be shown
+    two different prices for the same plan.
+
+    A database outage costs the numbers, not the page: the cards fall back to
+    a contact line and the calculator, finding no plans, does nothing.
+    """
+
+    target = os.path.join(PROJECT_ROOT, 'pricing.html')
+    try:
+        with open(target, encoding='utf-8') as handle:
+            html = handle.read()
+    except OSError:
+        return api_error('Not found', 404)
+
+    try:
+        plans = public_plan_rows()
+    except Exception:
+        app.logger.exception('public plans unavailable for the pricing page')
+        plans = []
+
+    html = html.replace('<!--PLAN-CARDS-->', render_plan_cards(plans))
+    # Escaped as an attribute value, so a plan name with a quote in it cannot
+    # end the attribute. The calculator only ever reads it back with JSON.parse.
+    html = html.replace('__PLAN_DATA__', html_escape(json.dumps(plans, ensure_ascii=False), quote=True))
+    html = localise_links(apply_language(html, language), language)
+
+    resp = make_response(_stamp_asset_versions(html))
+    resp.headers['Content-Type'] = 'text/html; charset=utf-8'
+    resp.headers['Content-Language'] = HTML_LANG[language]
+    resp.headers['Cache-Control'] = 'no-cache'
+    return resp
+
+
+@app.route('/pricing')
+def serve_pricing():
+    if is_standalone():
+        return api_error('Not found', 404)
+    return _serve_pricing('en')
+
+
+@app.route('/zh/pricing')
+def serve_pricing_zh():
+    if is_standalone():
+        return api_error('Not found', 404)
+    return _serve_pricing('zh')
+
+
+@app.route('/pricing/')
+def serve_pricing_slash():
+    # One address per page; the no-slash form is the canonical one.
+    return redirect('/pricing', code=301)
+
+
+@app.route('/zh/pricing/')
+def serve_pricing_zh_slash():
+    return redirect('/zh/pricing', code=301)
+
 
 @app.route('/register')
 def serve_register():

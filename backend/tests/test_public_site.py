@@ -98,7 +98,8 @@ def test_shared_markup_is_present_in_both_languages() -> None:
 
     for language in ("en", "zh"):
         document = apply_language(_source(), language)
-        assert "--phi: 1.6180339887" in document, "the stylesheet was damaged"
+        # The stylesheet is a linked file now, shared with the pricing page.
+        assert '/assets/marketing.css' in document, "the stylesheet link was damaged"
         assert 'id="supportForm"' in document
         assert 'id="spark"' in document
         assert 'href="/paradise-production/"' in document
