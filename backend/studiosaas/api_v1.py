@@ -3433,6 +3433,56 @@ def update_tenant():
     return jsonify({"tenant": row, "publishedVersion": next_version})
 
 
+@api_v1.route("/tenant/brand/publication-status/<int:requested_version>", methods=["GET"])
+@tenant_owner_required
+def get_tenant_publication_status(requested_version: int):
+    """Return server-proven publication state for one saved version.
+
+    Publication writes are authoritative in the version ledger. The browser
+    must not deep-compare a normalized public JSON projection and turn a
+    harmless shape difference into ``fields: websiteProfile``.
+    """
+
+    if requested_version < 1:
+        return _error("requested_version must be a positive integer.")
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        latest = fetch_one(
+            conn,
+            """
+            SELECT version_number, published_at, payload IS NOT NULL AS has_payload
+            FROM tenant_brand_versions
+            WHERE tenant_id = %s
+            ORDER BY version_number DESC
+            LIMIT 1
+            """,
+            (tenant.tenant_id,),
+        ) or {}
+    published_version = int(latest.get("version_number") or 0)
+    has_payload = bool(latest.get("has_payload"))
+    if published_version < requested_version:
+        state = "pending"
+        version_state = "pending"
+    elif not has_payload:
+        state = "attention"
+        version_state = "invalid"
+    else:
+        # A later publish supersedes an older request; current public content
+        # is still valid and should not be reported as a failed publication.
+        state = "ready"
+        version_state = "ready" if published_version == requested_version else "superseded"
+    return jsonify({
+        "requestedVersion": requested_version,
+        "publishedVersion": published_version or None,
+        "publishedAt": latest.get("published_at"),
+        "state": state,
+        "checks": [
+            {"key": "published_version", "state": version_state, "ok": state == "ready"},
+            {"key": "stored_payload", "state": "ready" if has_payload else "invalid", "ok": has_payload},
+        ],
+    })
+
+
 @api_v1.route("/tenant/brand", methods=["GET"])
 @auth_required
 def get_tenant_brand():
@@ -4410,7 +4460,8 @@ def _public_surface_entry(key: str, intent: bool, ready: bool, href: str,
                           navigation_eligible: bool = True, footer_eligible: bool = True,
                           content_ready: bool | None = None,
                           dependency_ready: bool | None = None,
-                          published_version: int | None = None) -> dict:
+                          published_version: int | None = None,
+                          label: dict | None = None) -> dict:
     """Build the public navigation contract used by every tenant surface.
 
     ``intent`` is the owner's switch; ``ready`` is the smallest truthful
@@ -4422,7 +4473,7 @@ def _public_surface_entry(key: str, intent: bool, ready: bool, href: str,
     effective_dependency_ready = bool(ready if dependency_ready is None else dependency_ready)
     effective_ready = bool(ready and effective_content_ready and effective_dependency_ready)
     visible = bool(intent and effective_ready)
-    return {
+    result = {
         "key": key,
         "intent": bool(intent),
         "ready": effective_ready,
@@ -4438,9 +4489,19 @@ def _public_surface_entry(key: str, intent: bool, ready: bool, href: str,
         "nextAction": "" if visible else next_action,
         "publishedVersion": published_version,
     }
+    # Keep the helper backwards-compatible for internal callers that only
+    # need readiness. Public shell entries opt into a localized label so every
+    # page can render the same navigation copy without scraping the homepage.
+    if label is not None:
+        result["label"] = {
+            "zh": str(label.get("zh") or label.get("en") or "").strip(),
+            "en": str(label.get("en") or label.get("zh") or "").strip(),
+        }
+    return result
 
 
-def _public_surface_actions(hero: dict, modules: dict[str, dict]) -> dict[str, dict]:
+def _public_surface_actions(hero: dict, modules: dict[str, dict],
+                            secondary_label: dict | None = None) -> dict[str, dict]:
     """Resolve hero actions against the same readiness contract as navigation.
 
     A button must never point at a hidden or empty section. ``auto`` exists only
@@ -4457,20 +4518,25 @@ def _public_surface_actions(hero: dict, modules: dict[str, dict]) -> dict[str, d
         "reasonCode": register["reasonCode"],
         "nextAction": register["nextAction"],
     }
+    if register.get("label") is not None:
+        primary["label"] = register["label"]
     requested = str(hero.get("secondary_cta_target") or "auto").strip().lower()
     if requested == "hidden":
-        return {
+        result = {
             "primary": primary,
             "secondary": {
                 "key": "secondary", "targetType": "hidden", "href": "", "visible": False,
                 "reasonCode": "disabled_by_owner", "nextAction": "choose_secondary_cta_target",
             },
         }
+        if secondary_label is not None:
+            result["secondary"]["label"] = secondary_label
+        return result
     if requested == "external":
         href = str(hero.get("secondary_cta_href") or "").strip()
         if not re.match(r"^https://\S+$", href, re.IGNORECASE):
             href = ""
-        return {
+        result = {
             "primary": primary,
             "secondary": {
                 "key": "secondary", "targetType": "external", "href": href,
@@ -4479,13 +4545,16 @@ def _public_surface_actions(hero: dict, modules: dict[str, dict]) -> dict[str, d
                 "nextAction": "" if href else "add_secondary_cta_url",
             },
         }
+        if secondary_label is not None:
+            result["secondary"]["label"] = secondary_label
+        return result
 
     candidates = ("courses", "showcase", "timetable", "register")
     target = requested
     if requested == "auto":
         target = next((key for key in candidates if modules[key]["visible"]), "register")
     module = modules.get(target, register)
-    return {
+    result = {
         "primary": primary,
         "secondary": {
             "key": "secondary", "targetType": target, "href": module["href"],
@@ -4493,6 +4562,9 @@ def _public_surface_actions(hero: dict, modules: dict[str, dict]) -> dict[str, d
             "nextAction": module["nextAction"],
         },
     }
+    if secondary_label is not None:
+        result["secondary"]["label"] = secondary_label
+    return result
 
 
 @api_v1.route("/public/<tenant_slug>/surface", methods=["GET"])
@@ -4514,9 +4586,11 @@ def public_surface(tenant_slug: str):
             conn,
             """
             SELECT name, contact_phone, contact_email, address,
+                   COALESCE(settings->>'category', 'general') AS category,
                    COALESCE(settings->'website_profile', '{}'::jsonb) AS website,
                    COALESCE(settings->'principal_profile', '{}'::jsonb) AS principal,
                    COALESCE(settings->'hero_profile', '{}'::jsonb) AS hero,
+                   COALESCE(settings->'localized_copy', '{}'::jsonb) AS localized_copy,
                    COALESCE(settings->'faq_items', '[]'::jsonb) AS faq,
                    COALESCE(settings->'registration_profile', '{}'::jsonb) AS registration
             FROM tenants WHERE id = %s
@@ -4524,6 +4598,17 @@ def public_surface(tenant_slug: str):
             (tenant.tenant_id,),
         )
         profile = _normalize_website_profile((row or {}).get("website") or {})
+        category = str((row or {}).get("category") or "general")
+        localized_copy = _normalize_localized_copy(
+            (row or {}).get("localized_copy") or {},
+            category,
+            legacy={
+                "courses_label": profile.get("courses_label", ""),
+                "gallery_label": profile.get("gallery_label", ""),
+                "faq_label": profile.get("faq_label", ""),
+                "contact_label": profile.get("contact_label", ""),
+            },
+        )
         principal = row.get("principal") or {}
         hero = row.get("hero") or {}
         faq = row.get("faq") or []
@@ -4587,6 +4672,47 @@ def public_surface(tenant_slug: str):
         or profile.get("about_items")
     )
     published_version = published.get("version_number")
+    preset = _preset_for(category)
+    work_noun = preset.get("work_noun") or {"zh": "作品", "en": "work", "en_plural": "works"}
+    venue_noun = preset.get("venue_noun") or {"zh": "工作室", "en": "studio"}
+
+    def public_label_text(value, language: str) -> str:
+        """Resolve industry placeholders before labels enter the public shell."""
+
+        result = str(value or "").strip()
+        if not result:
+            return ""
+        work = str(work_noun.get(language) or work_noun.get("zh") or "作品")
+        works = str(
+            (work_noun.get("en_plural") or work_noun.get("en") or work)
+            if language == "en"
+            else (work_noun.get("zh") or work)
+        )
+        venue = str(venue_noun.get(language) or venue_noun.get("zh") or "工作室")
+        return (
+            result.replace("%WORKS%", works)
+            .replace("%WORK%", work)
+            .replace("%VENUE%", venue)
+        )
+
+    def surface_label(value, fallback: dict[str, str], limit: int = 80) -> dict[str, str]:
+        pair = _localized_pair({"value": value}, "value", limit=limit)
+        return {
+            "zh": public_label_text(pair["zh"] or fallback["zh"], "zh"),
+            "en": public_label_text(pair["en"] or fallback["en"], "en"),
+        }
+
+    labels = {
+        "principal": {"zh": "主理人", "en": "Principal"},
+        "showcase": surface_label(profile.get("showcase_label"), {"zh": "工作室作品", "en": "Selected Work"}),
+        "courses": surface_label(localized_copy.get("courses_label"), {"zh": "课程与班次", "en": "Courses & Classes"}),
+        "timetable": surface_label(profile.get("timetable_label"), {"zh": "课程安排", "en": "Timetable"}),
+        "gallery": surface_label(localized_copy.get("gallery_label"), {"zh": "学员作品", "en": "Student Works"}),
+        "faq": surface_label(localized_copy.get("faq_label"), {"zh": "常见问题", "en": "Questions & Answers"}),
+        "student": {"zh": "学员专区", "en": "Student Login"},
+        "register": surface_label(localized_copy.get("primary_cta"), {"zh": "预约体验", "en": "Book a Trial"}),
+    }
+    secondary_label = surface_label(localized_copy.get("secondary_cta"), {"zh": "查看课程", "en": "Explore Programs"})
     modules = {
         "about": _public_surface_entry(
             "about", bool(profile.get("show_about", False)), about_ready,
@@ -4598,31 +4724,32 @@ def public_surface(tenant_slug: str):
             "principal", bool(profile.get("show_principal", True)), principal_ready,
             "#home:artist", reason="missing_content", next_action="add_principal_bio", surface="home",
             placement="after_about", footer_eligible=False, published_version=published_version,
+            label=labels["principal"],
         ),
         "showcase": _public_surface_entry(
             "showcase", bool(profile.get("show_showcase", False)), showcase_ready,
             f"/{tenant.slug}/showcase", reason="no_published_works", next_action="publish_showcase_work", surface="showcase",
-            placement="after_principal", published_version=published_version,
+            placement="after_principal", published_version=published_version, label=labels["showcase"],
         ),
         "courses": _public_surface_entry(
             "courses", bool(profile.get("show_courses", True)), int((course_row or {}).get("n") or 0) > 0,
             "#home:courses", reason="no_published_courses", next_action="publish_course", surface="home",
-            placement="after_showcase", published_version=published_version,
+            placement="after_showcase", published_version=published_version, label=labels["courses"],
         ),
         "timetable": _public_surface_entry(
             "timetable", bool(profile.get("show_timetable", False)), timetable_ready,
             f"/{tenant.slug}/timetable", reason="no_upcoming_classes", next_action="publish_timetable", surface="timetable",
-            placement="navigation", published_version=published_version,
+            placement="navigation", published_version=published_version, label=labels["timetable"],
         ),
         "gallery": _public_surface_entry(
             "gallery", bool(profile.get("show_gallery", True)), int((gallery_row or {}).get("n") or 0) > 0,
             "#home:gallery", reason="no_consented_student_work", next_action="share_student_work", surface="home",
-            placement="after_courses", published_version=published_version,
+            placement="after_courses", published_version=published_version, label=labels["gallery"],
         ),
         "faq": _public_surface_entry(
             "faq", bool(profile.get("show_faq", True)), bool(faq),
             "#home:faq", reason="no_faq_content", next_action="add_faq", surface="home",
-            placement="after_gallery", published_version=published_version,
+            placement="after_gallery", published_version=published_version, label=labels["faq"],
         ),
         "contact": _public_surface_entry(
             "contact", bool(profile.get("show_contact", True)), contact_ready,
@@ -4632,19 +4759,20 @@ def public_surface(tenant_slug: str):
         ),
         "student": _public_surface_entry(
             "student", bool(profile.get("show_student_area", hero.get("show_student_login", True))), True,
-            "#my", surface="home", placement="utility", published_version=published_version,
+            "#my", surface="home", placement="utility", published_version=published_version, label=labels["student"],
         ),
         "register": _public_surface_entry(
             "register", True, bool(registration or row.get("name")), "#join",
             reason="registration_unavailable", next_action="complete_registration_profile", surface="register",
-            placement="action", published_version=published_version,
+            placement="action", published_version=published_version, label=labels["register"],
         ),
     }
     navigation = [module for module in modules.values() if module["navigationEligible"]]
     footer = [module for module in modules.values() if module["footerEligible"]]
-    actions = _public_surface_actions(hero, modules)
+    actions = _public_surface_actions(hero, modules, secondary_label)
     return jsonify({"contract": {
-        "version": 2,
+        "version": 3,
+        "contractVersion": 3,
         "generatedAt": _datetime.now(_timezone.utc).isoformat(),
         "publishedVersion": published_version,
         "publishedAt": published.get("published_at"),
@@ -4652,6 +4780,7 @@ def public_surface(tenant_slug: str):
         "navigation": navigation,
         "footer": footer,
         "actions": actions,
+        "shell": {"navigation": navigation, "footer": footer, "actions": actions},
     }})
 
 

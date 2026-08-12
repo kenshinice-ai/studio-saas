@@ -4,14 +4,14 @@
 
 These are three independent facts. A matching version label is not proof that
 the current source tree was packaged or deployed; Source, Package and
-Production remain separate rows. v9.8.9 completed all three milestones on
-12 August 2026; the rows below record the independent evidence.
+Production remain separate rows. v9.8.10 is the release candidate until the
+package and production rows are updated with evidence.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v9.8.9 pushed** | `VERSION` = **9.8.9**; release commit `2411ec6fc52334dcf65884060a6fc9a5f50fab0f` on `codex/v9.8.9-studio-admin-publish`. User-owned root-worktree changes remain outside this isolated release. |
-| Package | Clean SaaS and Edition v9.8.9 packages verified | SaaS `dist/PWE-StudioSaaS-aws-9.8.9.tar.gz` SHA-256 `c6aee22bd60321d33cccfb793dc4ddbf082ff8240e8904b340ef172368c64675`; Edition `dist/PWE-Studio-Edition-9.8.9.tar.gz` SHA-256 `9bd1d37f374f86e2977081893b9c9243fac49818b1f734195800740ccfa57b0d`; both `BUILD_INFO` records point to `2411ec6` and passed checksum, mode, entrypoint and exclusion checks. |
-| Production | **v9.8.9 deployed to `pwestudio.online`** | `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.8.9`; image `studiosaas:9.8.9`; deep health reports `appVersion=9.8.9`, `db=ok`, `mode=saas`, `tenants=6`, `themes.unreadable=0`; disk free about `46.1 GB`; HTTP→HTTPS `301`, HTTPS `200`, TLS check `0`, HTTP/2. |
+| Source | **v9.8.10 candidate** | `VERSION` = **9.8.10**; release branch `codex/v9.8.10-public-shell` is being verified before commit and push. User-owned root-worktree changes remain outside this isolated release. |
+| Package | Pending clean SaaS and Edition v9.8.10 build | Build only after the source commit is created; SHA-256 and `BUILD_INFO` evidence will be recorded here. |
+| Production | **v9.8.9 remains deployed until v9.8.10 acceptance** | Re-verify production immediately before switching; record the deployed source commit separately and do not infer production from this candidate source tree. |
 
 Re-verify the production health endpoint before any later release claim; do not
 infer Production from `VERSION` or from an archive filename, which does not identify the deployed commit.

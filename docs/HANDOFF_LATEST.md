@@ -1,3 +1,25 @@
+# PWE Studio v9.8.10 — public shell and honest publication-status candidate
+
+> 当前阶段：v9.8.10 已完成源码范围、模板同步和本地验证，尚未提交、打包、推送或部署。本节只记录已经发生的 Source / Local 事实；Package 与 Production 证据必须在对应动作完成后补写。
+
+## v9.8.10 候选范围
+
+- Studio Admin 的发布复核改为读取服务端 `tenant_brand_versions` 状态，不再在浏览器深比较 `websiteProfile`；写入成功、公开投影待确认和确实无效分别使用结构化双语状态码。
+- 官网、独立作品页、公开课表和报名页继续使用统一 `publicSurfaceContract`，升级到 contract v3，补充本地化导航/CTA 标签、公共 shell 结构和跨页面 hash 链接解析。
+- 公开 Footer 移除工作人员 CMS 与 Studio Admin 链接；现有租户工作区已从 `tenant-template/` 重新生成，确保模板修复落到已存在的静态工作区。
+- public-surface 标签在服务端和本地解析器中解析 `%WORK%` / `%WORKS%` / `%VENUE%` 行业词，避免把模板占位符显示给访客。
+- 版本与双语用户手册入口更新到 v9.8.10；未改变租户数据模型、套餐额度或支付能力。
+
+## v9.8.10 候选本地证据（2026-08-12）
+
+| 层级 | 已验证事实 |
+|---|---|
+| Source | 隔离工作树 `/private/tmp/studiosaas-v9.8.10-release`，分支 `codex/v9.8.10-public-shell`，`VERSION=9.8.10`；根工作区的其他用户改动不在本范围。 |
+| Local gates | `verify_local.sh` 在隔离 PostgreSQL 55432 与临时 venv 中全绿：Python/JS 编译、UI escaping、terminology、inline scripts、asset manifest、完整 pytest `1613 passed, 8 skipped`、CMS smoke `73 passed`、迁移 current、媒体衍生图 `0`、租户隔离 `237 passed, 0 failed`。公开表面本地 API 返回 contract v3，行业占位词已解析。 |
+| Package | 尚未构建；必须从提交后的干净树构建 SaaS 与 Edition 包，并分别记录 `BUILD_INFO`、SHA-256、模式与排除项。 |
+| Production | v9.8.9 仍为当前线上基线；尚未部署 v9.8.10。 |
+| Recovery | 尚未执行 v9.8.10 生产切换；部署前需重新读取生产 deep health、磁盘、备份与当前回滚包。 |
+
 # PWE Studio v9.8.9 — Studio Admin public surface and Edition production closure
 
 > 当前阶段：v9.8.9 已完成代码与文档范围冻结、Studio Admin 公开表面修复、统一公开契约、空间与体验模块、Draft / Live 预览、版本化发布验证，以及 standalone Edition 完整部署方案并入；已完成本地完整门禁、Git 推送、双模式打包、生产备份、部署和公网浏览器验收。

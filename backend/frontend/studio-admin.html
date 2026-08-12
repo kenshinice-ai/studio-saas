@@ -1878,6 +1878,7 @@
     .publication-state-card strong { font-size: 15px; }
     .publication-state-card small { font-size: 12px; }
     .publish-error-summary { display: flex; align-items: center; justify-content: space-between; gap: 13px; margin-bottom: 13px; padding: 13px; border: 1px solid var(--danger-border); border-radius: var(--radius-lg); background: var(--danger-soft); color: var(--on-danger-soft); font-size: 13px; }
+    .publish-error-summary[data-tone="warning"] { border-color: var(--warning-border); background: var(--warning-soft); color: var(--on-warning-soft); }
     .publish-error-summary > span { min-width: 0; }
     .publish-error-summary > button { flex: 0 0 auto; }
     .publish-review-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 13px; margin-bottom: 18px; }
@@ -6281,197 +6282,103 @@
       };
     }
 
-    function compactBrandSnapshot(brand = {}) {
-      const hero = brand.heroProfile || brand.hero_profile || {};
-      const profile = brand.registrationProfile || brand.registration_profile || {};
-      const localized = snakeLocalizedCopy(brand.localizedCopy || brand.localized_copy);
-      const visual = brand.visualTheme || brand.visual_theme || {};
-      const website = brand.websiteProfile || brand.website_profile || {};
-      const principal = brand.principalProfile || brand.principal_profile || {};
-      const copy = brand.copyPack || brand.copy_pack || {};
-      const faq = brand.faqItems || brand.faq_items || [];
-      const localizedPair = (snakeKey) => localized[snakeKey] || {};
-      const pairText = (value) => (value && typeof value === 'object' ? text(value.zh || value.en) : text(value));
-      const normalizedFields = (profile.fields || []).map((field) => ({
-        key: text(field.key),
-        label_en: text(field.label_en || field.labelEn || field.label),
-        label_zh: text(field.label_zh || field.labelZh || field.label),
-        placeholder_en: text(field.placeholder_en || field.placeholderEn || field.placeholder),
-        placeholder_zh: text(field.placeholder_zh || field.placeholderZh || field.placeholder),
-        type: text(field.type || 'text'),
-        required: Boolean(field.required),
-        options: field.options || []
-      }));
-      return {
-        name: text(brand.name),
-        logoUrl: text(brand.logoUrl || brand.logo_url),
-        primaryColor: text(brand.primaryColor || brand.primary_color).toLowerCase(),
-        secondaryColor: text(brand.secondaryColor || brand.secondary_color).toLowerCase(),
-        contactPhone: text(brand.contactPhone || brand.contact_phone),
-        contactEmail: text(brand.contactEmail || brand.contact_email).toLowerCase(),
-        address: text(brand.address),
-        category: text(brand.category),
-        slogan: text(brand.slogan),
-        heroTitle: text(hero.title),
-        registerTitle: pairText(profile.title),
-        portalLabel: text(copy.portal_label || copy.portalLabel),
-        registerIntro: text(copy.register_intro || copy.registerIntro),
-        registrationFields: JSON.stringify(normalizedFields),
-        heroTitleZh: text(localizedPair('hero_title').zh),
-        heroTitleEn: text(localizedPair('hero_title').en),
-        heroSubtitleZh: text(localizedPair('hero_subtitle').zh),
-        heroSubtitleEn: text(localizedPair('hero_subtitle').en),
-        primaryCtaZh: text(localizedPair('primary_cta').zh),
-        primaryCtaEn: text(localizedPair('primary_cta').en),
-        secondaryCtaZh: text(localizedPair('secondary_cta').zh),
-        secondaryCtaEn: text(localizedPair('secondary_cta').en),
-        registrationTitleZh: text(localizedPair('registration_title').zh),
-        registrationTitleEn: text(localizedPair('registration_title').en),
-        registrationIntroZh: text(localizedPair('registration_intro').zh),
-        registrationIntroEn: text(localizedPair('registration_intro').en),
-        heroImageUrl: text(hero.hero_image_url || hero.heroImageUrl),
-        heroStyle: text(hero.background_style || hero.backgroundStyle),
-        secondaryCtaTarget: text(hero.secondary_cta_target || hero.secondaryCtaTarget || 'auto'),
-        secondaryCtaHref: text(hero.secondary_cta_href || hero.secondaryCtaHref),
-        showStudentLogin: String(Boolean(hero.show_student_login ?? hero.showStudentLogin)),
-        websiteProfile: JSON.stringify({
-          showPrincipal: Boolean(website.show_principal ?? website.showPrincipal),
-          showCourses: Boolean(website.show_courses ?? website.showCourses),
-          showGallery: Boolean(website.show_gallery ?? website.showGallery),
-          showFaq: Boolean(website.show_faq ?? website.showFaq),
-          showContact: Boolean(website.show_contact ?? website.showContact),
-          showStudentArea: Boolean(website.show_student_area ?? website.showStudentArea),
-          coursesLabel: text(website.courses_label || website.coursesLabel),
-          galleryLabel: text(website.gallery_label || website.galleryLabel),
-          faqLabel: text(website.faq_label || website.faqLabel),
-          contactLabel: text(website.contact_label || website.contactLabel),
-          /* Publishing verifies the payload against what the public brand
-             actually came back with. A field missing here is a field that can
-             be dropped between Save and the live site without anyone hearing
-             about it — which is how the About copy stayed invisible. */
-          showAbout: Boolean(website.show_about ?? website.showAbout),
-          aboutEyebrow: pairText(website.about_eyebrow || website.aboutEyebrow),
-          aboutTitle: pairText(website.about_title || website.aboutTitle),
-          aboutBody: pairText(website.about_body || website.aboutBody),
-          aboutImages: (website.about_images || website.aboutImages || []).map(text),
-          aboutImageAlts: (website.about_image_alts || website.aboutImageAlts || [])
-            .map((alt) => [pairText(alt)]),
-          aboutItems: (website.about_items || website.aboutItems || [])
-            .map((item) => [pairText(item.title), pairText(item.body)]),
-          seoTitle: text(website.seo_title || website.seoTitle),
-          seoDescription: text(website.seo_description || website.seoDescription),
-          showShowcase: Boolean(website.show_showcase ?? website.showShowcase),
-          showcaseLabel: pairText(website.showcase_label || website.showcaseLabel),
-          showcaseTitle: pairText(website.showcase_title || website.showcaseTitle),
-          showcaseLead: pairText(website.showcase_lead || website.showcaseLead),
-          showTimetable: Boolean(website.show_timetable ?? website.showTimetable),
-          showTimetableBooking: Boolean(website.show_timetable_booking ?? website.showTimetableBooking),
-          timetableWeeks: Number(website.timetable_weeks ?? website.timetableWeeks ?? TIMETABLE_DEFAULT_WEEKS),
-          timetableLabel: pairText(website.timetable_label || website.timetableLabel),
-          timetableLead: pairText(website.timetable_lead || website.timetableLead),
-          timetableFields: website.timetable_fields || website.timetableFields || {},
-          /* The public /brand projection intentionally omits showcase items and
-             categories; they are served by /showcase with plan-aware paging.
-             Verify the projection that actually returned instead of comparing
-             a private editor payload against fields that cannot be present. */
-        }),
-        principalProfile: JSON.stringify({
-          show: Boolean(principal.show), name: text(principal.name), title: pairText(principal.title),
-          bio: pairText(principal.bio), quote: pairText(principal.quote), imageUrl: text(principal.image_url || principal.imageUrl)
-        }),
-        // Keep the {zh,en} shape intact; flattening it here would drop the
-        // language the studio just typed.
-        faqItems: JSON.stringify(faq.map((item) => ({
-          question: { zh: text(faqText(item.question, 'zh')), en: text(faqText(item.question, 'en')) },
-          answer: { zh: text(faqText(item.answer, 'zh')), en: text(faqText(item.answer, 'en')) }
-        }))),
-        backgroundColor: text(visual.background_color || visual.backgroundColor).toLowerCase(),
-        panelColor: text(visual.panel_color || visual.panelColor).toLowerCase(),
-        textColor: text(visual.text_color || visual.textColor).toLowerCase(),
-        mutedTextColor: text(visual.muted_text_color || visual.mutedTextColor).toLowerCase(),
-        accentColor: text(visual.accent_color || visual.accentColor).toLowerCase(),
-        accentTextColor: text(visual.accent_text_color || visual.accentTextColor).toLowerCase(),
-        secondaryAccentColor: text(visual.secondary_accent_color || visual.secondaryAccentColor).toLowerCase(),
-        borderColor: text(visual.border_color || visual.borderColor).toLowerCase(),
-        styleId: text(visual.style_id || visual.styleId),
-        accentHue: visual.accent_hue ?? visual.accentHue,
-        themeMode: text(visual.theme_mode || visual.themeMode),
-        buttonStyle: text(visual.button_style || visual.buttonStyle),
-        fontMood: text(visual.font_mood || visual.fontMood)
-      };
-    }
-
-    async function verifyPublicBrandPublished(expected, expectedVersion = publishedVersionLabel) {
+    async function verifyPublicBrandPublished(_expectedPayload, expectedVersion = publishedVersionLabel) {
       const slug = currentTenantSlug();
-      const response = await fetch(`/v1/public/${encodeURIComponent(slug)}/brand`, { credentials: 'same-origin' });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        const error = new Error(data.message || data.error || 'Public brand did not refresh.');
-        error.code = data.error || 'PUBLIC_SURFACE_UNAVAILABLE';
-        throw error;
-      }
-      if (expectedVersion && String(data.brand?.publishedVersion || '') !== String(expectedVersion)) {
-        const error = new Error('Public brand version is still catching up.');
+      if (!expectedVersion) {
+        const error = new Error('Published version is not available yet.');
         error.code = 'PUBLIC_VERSION_PENDING';
-        error.details = { expectedVersion, actualVersion: data.brand?.publishedVersion || null, surface: 'brand' };
         throw error;
       }
-      const actual = compactBrandSnapshot(data.brand || {});
-      const wanted = compactBrandSnapshot({
-        name: expected.name,
-        logoUrl: expected.logoUrl,
-        primaryColor: expected.primaryColor,
-        secondaryColor: expected.secondaryColor,
-        contactPhone: expected.contactPhone,
-        contactEmail: expected.contactEmail,
-        address: expected.address,
-        category: expected.category,
-        slogan: expected.slogan,
-        copyPack: expected.copyPack,
-        heroProfile: expected.heroProfile,
-        registrationProfile: expected.registrationProfile,
-        localizedCopy: expected.localizedCopy,
-        websiteProfile: expected.websiteProfile,
-        principalProfile: expected.principalProfile,
-        faqItems: expected.faqItems,
-        visualTheme: expected.visualTheme
+      let status;
+      try {
+        status = await api(`/tenant/brand/publication-status/${encodeURIComponent(expectedVersion)}`, {
+          credentials: 'same-origin',
+          cache: 'no-store',
+        });
+      } catch (cause) {
+        const error = new Error('Publication status could not be checked.');
+        error.code = 'PUBLIC_STATUS_UNAVAILABLE';
+        error.cause = cause;
+        throw error;
+      }
+      if (status.state === 'attention') {
+        const error = new Error('The saved publication needs attention.');
+        error.code = 'PUBLIC_PUBLICATION_INVALID';
+        error.details = { checks: status.checks || [] };
+        throw error;
+      }
+      if (status.state !== 'ready' || Number(status.publishedVersion || 0) < Number(expectedVersion)) {
+        const error = new Error('Published content is saved; public pages are still confirming the new version.');
+        error.code = 'PUBLIC_VERSION_PENDING';
+        error.details = {
+          expectedVersion,
+          actualVersion: status.publishedVersion || null,
+          checks: status.checks || [],
+        };
+        throw error;
+      }
+
+      let surfaceContract;
+      try {
+        surfaceContract = await window.StudioSaaS.publicSurface.fetch(
+          `/v1/public/${encodeURIComponent(slug)}`,
+          { credentials: 'same-origin', cache: 'no-store' },
+        );
+      } catch (cause) {
+        const error = new Error('Published content is saved; the public navigation is still confirming.');
+        error.code = 'PUBLIC_SURFACE_UNAVAILABLE';
+        error.cause = cause;
+        throw error;
+      }
+      if (Number(surfaceContract.publishedVersion || 0) < Number(expectedVersion)) {
+        const error = new Error('Published content is saved; the public navigation is still confirming.');
+        error.code = 'PUBLIC_VERSION_PENDING';
+        error.details = {
+          expectedVersion,
+          actualVersion: surfaceContract.publishedVersion || null,
+          surface: 'surface',
+        };
+        throw error;
+      }
+
+      const checks = [{ path: 'surface', ok: true }];
+      const website = _expectedPayload?.websiteProfile || {};
+      const registerResponse = await fetch(`/${encodeURIComponent(slug)}/register`, {
+        credentials: 'same-origin',
+        cache: 'no-store',
       });
-      const mismatches = Object.keys(wanted).filter((key) => wanted[key] !== actual[key]);
-      if (mismatches.length) {
-        const error = new Error('Publish verification did not match the public brand projection.');
-        error.code = 'PUBLIC_PROJECTION_MISMATCH';
-        error.details = { fields: mismatches };
-        throw error;
-      }
-      const website = expected.websiteProfile || {};
-      const checks = [{ path: 'brand', ok: true }];
-      const surfaceContract = await window.StudioSaaS.publicSurface.fetch(
-        `/v1/public/${encodeURIComponent(slug)}`,
-        { credentials: 'same-origin' },
-      );
-      checks.push({ path: 'surface', ok: !expectedVersion || String(surfaceContract.publishedVersion || '') === String(expectedVersion) });
-      const registerResponse = await fetch(`/${encodeURIComponent(slug)}/register`, { credentials: 'same-origin', cache: 'no-store' });
       checks.push({ path: 'register', ok: registerResponse.ok });
       if (website.showShowcase) {
-        const showcaseResponse = await fetch(`/v1/public/${encodeURIComponent(slug)}/showcase?surface=home&offset=0`, { credentials: 'same-origin', cache: 'no-store' });
+        const showcaseResponse = await fetch(
+          `/v1/public/${encodeURIComponent(slug)}/showcase?surface=home&offset=0`,
+          { credentials: 'same-origin', cache: 'no-store' },
+        );
         const showcase = await showcaseResponse.json().catch(() => ({}));
         checks.push({ path: 'showcase', ok: showcaseResponse.ok && (showcase.enabled === false || Number(showcase.total || 0) >= 0) });
       }
       if (website.showTimetable) {
-        const timetableResponse = await fetch(`/v1/public/${encodeURIComponent(slug)}/timetable`, { credentials: 'same-origin', cache: 'no-store' });
+        const timetableResponse = await fetch(
+          `/v1/public/${encodeURIComponent(slug)}/timetable`,
+          { credentials: 'same-origin', cache: 'no-store' },
+        );
         const timetable = await timetableResponse.json().catch(() => ({}));
         checks.push({ path: 'timetable', ok: timetableResponse.ok && (timetable.enabled === false || Array.isArray(timetable.days)) });
       }
       const failed = checks.filter((check) => !check.ok).map((check) => check.path);
       if (failed.length) {
-        const error = new Error('Public pages are still waiting for verification.');
-        error.code = 'SURFACE_UNAVAILABLE';
+        const error = new Error('Published content is saved; one public page is still confirming.');
+        error.code = 'PUBLIC_SURFACE_UNAVAILABLE';
         error.details = { surfaces: failed };
         throw error;
       }
       publishedSurfaceContract = surfaceContract;
-      return { brand: data.brand || {}, contract: surfaceContract, checked: checks.map((check) => check.path), verifiedAt: new Date().toISOString() };
+      return {
+        contract: surfaceContract,
+        checked: checks.map((check) => check.path),
+        verifiedAt: new Date().toISOString(),
+      };
     }
+
 
     function validatePublishPayload(payload) {
       if (!payload.name) throw new Error('Studio name is required.');
@@ -6540,14 +6447,17 @@
     function publishVerificationMessage(error) {
       const code = error?.code || 'SURFACE_UNAVAILABLE';
       const messages = {
-        PUBLIC_PROJECTION_MISMATCH: 'Publish verification failed after the write. Your saved content is safe; check the public pages and retry.',
-        SURFACE_UNAVAILABLE: 'Publish verification failed after the write. Your saved content is safe; check the public pages and retry.',
-        PUBLIC_SURFACE_UNAVAILABLE: 'Public surface unavailable',
-        PUBLIC_SURFACE_INVALID_RESPONSE: 'Public surface returned invalid data',
-        PUBLIC_VERSION_PENDING: 'Published content is saved; public pages are still confirming the new version.',
-        NETWORK_RETRY: 'Public surface unavailable',
+        PUBLIC_PROJECTION_MISMATCH: ['已成功保存，但检测到公开投影异常；数据安全保留，请检查公开页面。', 'Saved successfully, but the public projection needs attention. Your data is safe; check the public page.'],
+        SURFACE_UNAVAILABLE: ['已成功发布，公开页面确认中；数据安全保留，可稍后重新检查。', 'Published successfully; public pages are still confirming. Your data is safe; try again shortly.'],
+        PUBLIC_SURFACE_UNAVAILABLE: ['已成功发布，公开导航仍在确认中；可稍后重新检查。', 'Published successfully; public navigation is still confirming. Try again shortly.'],
+        PUBLIC_SURFACE_INVALID_RESPONSE: ['已成功发布，公开接口返回格式异常；可稍后重新检查。', 'Published successfully, but the public endpoint returned an invalid response. Try again shortly.'],
+        PUBLIC_STATUS_UNAVAILABLE: ['已成功发布，发布状态暂时无法确认；可稍后重新检查。', 'Published successfully, but publication status could not be checked. Try again shortly.'],
+        PUBLIC_PUBLICATION_INVALID: ['发布记录需要处理，请联系管理员检查发布版本。', 'The publication record needs attention. Ask an administrator to check the published version.'],
+        PUBLIC_VERSION_PENDING: ['已成功发布，公开页面正在确认新版本。', 'Published successfully; public pages are confirming the new version.'],
+        NETWORK_RETRY: ['已成功发布，公开页面确认中；可稍后重新检查。', 'Published successfully; public pages are still confirming. Try again shortly.'],
       };
-      return localiseAdminText(messages[code] || messages.SURFACE_UNAVAILABLE);
+      const pair = messages[code] || messages.SURFACE_UNAVAILABLE;
+      return adminText(pair[0], pair[1]);
     }
 
     function showPublishError(message, error = null) {
@@ -6555,15 +6465,21 @@
       if (!box) return;
       if (!message) {
         box.textContent = '';
+        delete box.dataset.tone;
         box.classList.add('hidden');
         return;
       }
       const field = error?.details?.field || '';
       const targetTab = error?.details?.tab || '';
+      const warningCodes = new Set([
+        'PUBLIC_VERSION_PENDING', 'PUBLIC_STATUS_UNAVAILABLE', 'PUBLIC_SURFACE_UNAVAILABLE',
+        'SURFACE_UNAVAILABLE', 'NETWORK_RETRY',
+      ]);
+      box.dataset.tone = warningCodes.has(error?.code) ? 'warning' : 'danger';
       const details = error?.details && typeof error.details === 'object'
         ? Object.entries(error.details)
           .filter(([key]) => !['field', 'tab'].includes(key))
-          .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
+          .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.map((item) => typeof item === 'object' ? (item.key || item.path || item.state || JSON.stringify(item)) : item).join(', ') : value}`)
           .join(' · ')
         : '';
       box.replaceChildren();

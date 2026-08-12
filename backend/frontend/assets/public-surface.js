@@ -27,6 +27,7 @@
   const heroOf = (brand) => brand?.heroProfile || brand?.hero_profile || {};
   const principalOf = (brand) => brand?.principalProfile || brand?.principal_profile || {};
   const profileOf = (brand) => brand?.registrationProfile || brand?.registration_profile || {};
+  const localizedOf = (brand) => brand?.localizedCopy || brand?.localized_copy || {};
   const pairText = (value) => value && typeof value === 'object'
     ? text(value.zh || value.en)
     : text(value);
@@ -42,6 +43,7 @@
       href, surface: config.surface || key, placement: config.placement || 'home',
       navigationEligible: config.navigationEligible !== false,
       footerEligible: config.footerEligible !== false,
+      ...(config.label ? { label: config.label } : {}),
       reasonCode: visible ? 'ready' : (intent ? (reasonCode || 'no_content') : 'disabled_by_owner'),
       nextAction: visible ? '' : (nextAction || 'review_in_studio_admin'),
       publishedVersion: config.publishedVersion ?? null,
@@ -87,12 +89,38 @@
     const hero = heroOf(brand);
     const principal = principalOf(brand);
     const registration = profileOf(brand);
+    const localized = localizedOf(brand);
     const showcase = input?.showcase || {};
     const programs = input?.programs || {};
     const gallery = input?.gallery || {};
     const timetable = input?.timetable || {};
     const faqItems = list(brand.faqItems || brand.faq_items);
     const publishedVersion = input?.publishedVersion ?? brand.publishedVersion ?? null;
+    const workNoun = brand.workNoun || brand.work_noun || { zh: '作品', en: 'work', en_plural: 'works' };
+    const venueNoun = brand.venueNoun || brand.venue_noun || { zh: '工作室', en: 'studio' };
+    const nouns = (value, language) => {
+      let result = text(value);
+      const work = text(workNoun[language] || workNoun.zh || '作品');
+      const works = language === 'en'
+        ? text(workNoun.en_plural || workNoun.en || work || 'works')
+        : work;
+      const venue = text(venueNoun[language] || venueNoun.zh || '工作室');
+      return result.split('%WORKS%').join(works).split('%WORK%').join(work).split('%VENUE%').join(venue);
+    };
+    const label = (value, fallbackZh, fallbackEn) => ({
+      zh: nouns(pairText(value) || fallbackZh, 'zh'),
+      en: nouns((value && typeof value === 'object' ? text(value.en || value.zh) : text(value)) || fallbackEn, 'en'),
+    });
+    const labels = {
+      principal: { zh: '主理人', en: 'Principal' },
+      showcase: label(website.showcase_label || website.showcaseLabel, '工作室作品', 'Selected Work'),
+      courses: label(localized.courses_label || localized.coursesLabel, '课程与班次', 'Courses & Classes'),
+      timetable: label(website.timetable_label || website.timetableLabel, '课程安排', 'Timetable'),
+      gallery: label(localized.gallery_label || localized.galleryLabel, '学员作品', 'Student Works'),
+      faq: label(localized.faq_label || localized.faqLabel, '常见问题', 'Questions & Answers'),
+      student: { zh: '学员专区', en: 'Student Login' },
+      register: label(localized.primary_cta || localized.primaryCta, '预约体验', 'Book a Trial'),
+    };
     const contactReady = Boolean(text(brand.contactPhone || brand.contact_phone)
       || text(brand.contactEmail || brand.contact_email)
       || text(brand.address));
@@ -116,42 +144,51 @@
         }),
       principal: entry('principal', bool(website.show_principal ?? website.showPrincipal, true),
         fact(input, 'principal', principalReady), '#home:artist', 'missing_content', 'add_principal_bio', {
-          surface: 'home', placement: 'after_about', footerEligible: false, publishedVersion,
+          surface: 'home', placement: 'after_about', footerEligible: false, publishedVersion, label: labels.principal,
         }),
       showcase: entry('showcase', bool(website.show_showcase ?? website.showShowcase, false),
         fact(input, 'showcase', showcaseReady),
         `/${encodeURIComponent(input?.slug || '')}/showcase`, showcase.enabled ? 'no_published_works' : 'not_published',
-        'publish_showcase_work', { surface: 'showcase', placement: 'after_principal', publishedVersion }),
+        'publish_showcase_work', { surface: 'showcase', placement: 'after_principal', publishedVersion, label: labels.showcase }),
       courses: entry('courses', bool(website.show_courses ?? website.showCourses, true),
         fact(input, 'courses', courseItems.length > 0), '#home:courses', 'no_published_courses', 'publish_course', {
-          surface: 'home', placement: 'after_showcase', publishedVersion,
+          surface: 'home', placement: 'after_showcase', publishedVersion, label: labels.courses,
         }),
       timetable: entry('timetable', bool(website.show_timetable ?? website.showTimetable, false),
         fact(input, 'timetable', timetableReady),
         `/${encodeURIComponent(input?.slug || '')}/timetable`, timetable.enabled ? 'no_upcoming_classes' : 'not_published',
-        'publish_timetable', { surface: 'timetable', placement: 'navigation', publishedVersion }),
+        'publish_timetable', { surface: 'timetable', placement: 'navigation', publishedVersion, label: labels.timetable }),
       gallery: entry('gallery', bool(website.show_gallery ?? website.showGallery, true),
         fact(input, 'gallery', galleryItems.length > 0), '#home:gallery', 'no_consented_student_work', 'share_student_work', {
-          surface: 'home', placement: 'after_courses', publishedVersion,
+          surface: 'home', placement: 'after_courses', publishedVersion, label: labels.gallery,
         }),
       faq: entry('faq', bool(website.show_faq ?? website.showFaq, true), faqItems.length > 0,
-        '#home:faq', 'no_faq_content', 'add_faq', { surface: 'home', placement: 'after_gallery', publishedVersion }),
+        '#home:faq', 'no_faq_content', 'add_faq', { surface: 'home', placement: 'after_gallery', publishedVersion, label: labels.faq }),
       contact: entry('contact', bool(website.show_contact ?? website.showContact, true), contactReady,
         '#home:contact', 'missing_contact_details', 'add_contact_details', {
           surface: 'home', placement: 'after_faq', navigationEligible: false, footerEligible: false, publishedVersion,
         }),
       student: entry('student', studentIntent, true, '#my', '', '', {
-        surface: 'home', placement: 'utility', publishedVersion,
+        surface: 'home', placement: 'utility', publishedVersion, label: labels.student,
       }),
       register: entry('register', true, Boolean(Object.keys(registration).length || brand.name),
         '#join', 'registration_unavailable', 'complete_registration_profile', {
-          surface: 'register', placement: 'action', publishedVersion,
+        surface: 'register', placement: 'action', publishedVersion, label: labels.register,
         }),
     };
     const navigation = Object.values(modules).filter((module) => module.navigationEligible);
     const footer = Object.values(modules).filter((module) => module.footerEligible);
-    return { version: 2, generatedAt: new Date().toISOString(), publishedVersion,
-      modules, navigation, footer, actions: actionsFor(hero, modules) };
+    const actions = actionsFor(hero, modules);
+    if (modules.register?.label) actions.primary.label = modules.register.label;
+    if (actions.secondary && !actions.secondary.label) {
+      const requested = text(hero.secondary_cta_target || hero.secondaryCtaTarget || 'auto').toLowerCase();
+      actions.secondary.label = requested === 'showcase' ? modules.showcase.label
+        : requested === 'timetable' ? modules.timetable.label
+        : requested === 'register' ? modules.register.label
+        : { zh: '查看课程', en: 'Explore Programs' };
+    }
+    return { version: 3, contractVersion: 3, generatedAt: new Date().toISOString(), publishedVersion,
+      modules, navigation, footer, actions, shell: { navigation, footer, actions } };
   }
 
   function clearLoading() {
@@ -162,6 +199,25 @@
     const scope = root || document;
     if (!contract?.modules) return;
     clearLoading();
+    const currentPath = String(global.location?.pathname || '');
+    const tenantSlug = scope.body?.dataset?.tenantSlug || '';
+    const hrefForPage = (href) => {
+      const value = text(href);
+      if (!value || !value.startsWith('#') || !tenantSlug) return value;
+      // Hash-only links work on the homepage but not on /showcase, /timetable
+      // or /register. Resolve them to the tenant root once for every page.
+      return `/${encodeURIComponent(tenantSlug)}${value}`;
+    };
+    const setLabel = (node, label) => {
+      if (!node || !label) return;
+      const zh = text(label.zh || label.en);
+      const en = text(label.en || label.zh);
+      if (!zh && !en) return;
+      node.setAttribute('data-zh', zh || en);
+      node.setAttribute('data-en', en || zh);
+      const language = String(scope.documentElement?.lang || '').toLowerCase().startsWith('en') ? 'en' : 'zh';
+      node.textContent = language === 'en' ? (en || zh) : (zh || en);
+    };
     const ids = {
       principal: ['navPrincipal', 'mnavPrincipal', 'footPrincipal'],
       showcase: ['navShowcase', 'mnavShowcase', 'footShowcase'],
@@ -180,12 +236,22 @@
         const visible = Boolean(module?.visible);
         node.style.display = visible ? '' : 'none';
         node.setAttribute('aria-hidden', visible ? 'false' : 'true');
+        if (visible && node.tagName === 'A' && module?.href) node.href = hrefForPage(module.href);
         if (!visible) node.setAttribute('tabindex', '-1');
         else node.removeAttribute('tabindex');
+        setLabel(node, module?.label);
         if (visible && node.tagName === 'A' && node.getAttribute('href') === '#home:' + key) {
           node.dataset.surfaceReady = 'true';
         }
       });
+    });
+    const primary = contract.actions?.primary;
+    ['navPrimaryCta', 'mnavPrimaryCta', 'heroRegister', 'footRegister'].forEach((id) => {
+      const node = scope.getElementById ? scope.getElementById(id) : null;
+      if (node) {
+        setLabel(node, primary?.label);
+        if (primary?.visible && primary?.href) node.href = hrefForPage(primary.href);
+      }
     });
     const secondary = contract.actions?.secondary;
     const secondaryNode = scope.getElementById ? scope.getElementById('heroSecondaryCta') : null;
@@ -193,14 +259,14 @@
       secondaryNode.style.display = secondary?.visible ? '' : 'none';
       secondaryNode.setAttribute('aria-hidden', secondary?.visible ? 'false' : 'true');
       if (secondary?.visible) {
-        secondaryNode.href = secondary.href;
+        secondaryNode.href = hrefForPage(secondary.href);
+        setLabel(secondaryNode, secondary.label);
         secondaryNode.dataset.analyticsLabel = `hero_${secondary.targetType}`;
         secondaryNode.removeAttribute('tabindex');
       } else {
         secondaryNode.setAttribute('tabindex', '-1');
       }
     }
-    const currentPath = String(global.location?.pathname || '');
     scope.querySelectorAll?.('[data-surface-key]').forEach((node) => {
       const module = contract.modules[node.dataset.surfaceKey];
       if (module) node.hidden = !module.visible;

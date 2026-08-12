@@ -18,6 +18,7 @@
   <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
   <script src="/assets/ui-common.js?v=__APP_VERSION__"></script>
+  <script src="/assets/public-surface.js?v=__APP_VERSION__"></script>
   <script src="/assets/portal-brand.js?v=__APP_VERSION__"></script>
   <script src="/assets/public-analytics.js?v=__APP_VERSION__"></script>
   <link rel="stylesheet" href="/assets/ui-tokens.css?v=__APP_VERSION__">
@@ -202,6 +203,7 @@
       <h1 id="pageTitle" data-zh="接下来的公开课程" data-en="Upcoming public classes">接下来的公开课程</h1>
       <p id="pageLead" class="lead"></p>
       <p id="zoneNote" class="zone-note"></p>
+      <p id="surfaceStatus" class="zone-note" role="status" aria-live="polite"></p>
     </section>
 
     <div id="days" aria-live="polite"></div>
@@ -221,12 +223,12 @@
       </div>
       <div class="fl">
         <a href="/lets-paint-showcase" data-zh="首页" data-en="Home">首页</a>
-        <a href="/lets-paint-showcase/showcase" data-zh="工作室作品" data-en="Selected Work">工作室作品</a>
-        <a href="/lets-paint-showcase#home:courses" data-zh="课程" data-en="Courses">课程</a>
+        <a id="footShowcase" href="/lets-paint-showcase/showcase" data-zh="工作室作品" data-en="Selected Work">工作室作品</a>
+        <a id="footCourses" href="/lets-paint-showcase#home:courses" data-zh="课程" data-en="Courses">课程</a>
         <a href="/lets-paint-showcase/timetable" data-zh="课程安排" data-en="Timetable">课程安排</a>
-        <a href="/lets-paint-showcase#home:gallery" data-zh="学员作品" data-en="Student Works">学员作品</a>
-        <a href="/lets-paint-showcase#my" data-zh="学员专区" data-en="Student Login">学员专区</a>
-        <a href="/lets-paint-showcase#join" data-zh="预约体验" data-en="Book a Trial">预约体验</a>
+        <a id="footGallery" href="/lets-paint-showcase#home:gallery" data-zh="学员作品" data-en="Student Works">学员作品</a>
+        <a id="footStudent" href="/lets-paint-showcase#my" data-zh="学员专区" data-en="Student Login">学员专区</a>
+        <a id="footRegister" href="/lets-paint-showcase#join" data-zh="预约体验" data-en="Book a Trial">预约体验</a>
         <a href="/lets-paint-showcase#privacy" data-zh="隐私说明" data-en="Privacy" style="color:var(--muted)">隐私说明</a>
       </div>
     </div>
@@ -269,7 +271,36 @@
     const esc = window.StudioSaaS.esc;
     const API = `/v1/public/${encodeURIComponent(TENANT_SLUG)}`;
     let timetable = null;
+    let publicBrand = {};
     let privacyNoticeVersion = '';
+    let authoritativeSurface = null;
+    let surfaceSettled = false;
+
+    function refreshPublicSurfaceContract() {
+      if (!window.StudioSaaS.publicSurface) return;
+      if (authoritativeSurface) {
+        window.StudioSaaS.publicSurface.apply(authoritativeSurface, document);
+        return;
+      }
+      if (!surfaceSettled) return;
+      const contract = window.StudioSaaS.publicSurface.resolve({
+        slug: TENANT_SLUG, brand: publicBrand, timetable: timetable || { enabled: false, days: [] }
+      });
+      window.StudioSaaS.publicSurface.apply(contract, document);
+    }
+    window.StudioSaaS.publicSurface.fetch(API).then((contract) => {
+      authoritativeSurface = contract;
+      surfaceSettled = true;
+      refreshPublicSurfaceContract();
+    }).catch((error) => {
+      surfaceSettled = true;
+      refreshPublicSurfaceContract();
+      const status = document.getElementById('surfaceStatus');
+      if (status) status.textContent = currentLanguage === 'zh'
+        ? '公开导航暂时无法确认；页面只显示本地已确认的入口。'
+        : 'Public navigation could not be confirmed; only locally ready links are shown.';
+      console.warn('Public surface contract unavailable; using locally confirmed content.', error);
+    });
 
     const pageParams = new URLSearchParams(location.search);
     const normaliseLang = (value) => {
@@ -452,19 +483,6 @@
       }
     });
 
-    /* ── navigation ──────────────────────────────────────────────────────── */
-    /* Declared at top level on purpose. An earlier draft of this edit landed
-       these inside applyLanguage(), where `setNavVisible` would have been
-       invisible to the /brand callback that calls it — a ReferenceError that
-       aborts the rest of that callback and takes the theme down with it. That
-       is exactly how v8.10.0 broke Studio Admin, one release ago. */
-    function setNavVisible(ids, visible) {
-      ids.forEach((id) => {
-        const element = document.getElementById(id);
-        if (element) element.style.display = visible ? '' : 'none';
-      });
-    }
-
     /* The mobile menu, kept to what this page needs: open, close on Escape,
        close when a link is followed. No focus trap — it is a list of links,
        not a dialog, and a trap nobody can leave is worse than no trap. */
@@ -540,6 +558,7 @@
 
     fetch(`${API}/brand`).then((r) => (r.ok ? r.json() : null)).then((data) => {
       const brand = (data && data.brand) || {};
+      publicBrand = brand;
       window.StudioSaaS.applyVisualTheme(brand);
       privacyNoticeVersion = String(brand.privacyNoticeVersion || brand.privacy_notice_version || '');
       const studioName = brand.name || TENANT_NAME;
@@ -563,21 +582,12 @@
          never offers a link to a section the home page does not have. Every
          one starts hidden in the markup: showing a link and then withdrawing
          it is worse than revealing it a moment late. */
-      const website = brand.websiteProfile || brand.website_profile || {};
-      const on = (value, fallback) => String(value ?? fallback) !== 'false';
-      const principal = brand.principalProfile || brand.principal_profile || {};
-      setNavVisible(['navPrincipal', 'mnavPrincipal'],
-        on(website.show_principal ?? website.showPrincipal, true)
-        && !!(principal.bio || principal.name));
-      setNavVisible(['navShowcase', 'mnavShowcase'],
-        String(website.show_showcase ?? website.showShowcase ?? false) === 'true');
-      setNavVisible(['navCourses', 'mnavCourses'], on(website.show_courses ?? website.showCourses, true));
-      setNavVisible(['navGallery', 'mnavGallery'], on(website.show_gallery ?? website.showGallery, true));
-      setNavVisible(['navFaq', 'mnavFaq'], on(website.show_faq ?? website.showFaq, true));
-      setNavVisible(['navStudent', 'mnavStudent'],
-        on(website.show_student_area ?? website.showStudentArea, true));
+      refreshPublicSurfaceContract();
       applyLanguage();
-    }).catch(() => {});
+    }).catch((error) => {
+      document.getElementById('surfaceStatus')?.replaceChildren(document.createTextNode(T('品牌资料暂时无法确认，请稍后重试。', 'Brand details could not be confirmed. Please retry.')));
+      console.warn('Timetable brand request failed.', error);
+    });
 
     fetch(`${API}/timetable`).then((r) => (r.ok ? r.json() : null)).then((data) => {
       timetable = data || { enabled: false, days: [] };
@@ -585,13 +595,14 @@
          the page says so plainly instead of showing a failure to a visitor who
          did nothing wrong. */
       if (!timetable.enabled) timetable.days = [];
+      refreshPublicSurfaceContract();
       applyLanguage();
-    }).catch(() => { timetable = { enabled: false, days: [] }; applyLanguage(); });
+    }).catch((error) => { timetable = { enabled: false, days: [] }; refreshPublicSurfaceContract(); applyLanguage(); console.warn('Timetable request failed.', error); });
 
     fetch('/v1/health', { cache: 'no-store' })
       .then((response) => response.json())
       .then((health) => { document.getElementById('producerCredit').hidden = !health.showProducerCredit; })
-      .catch(() => {});
+      .catch((error) => console.warn('Producer credit health unavailable.', error));
 
     applyLanguage();
   </script>

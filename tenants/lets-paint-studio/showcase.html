@@ -22,6 +22,7 @@
   <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
   <script src="/assets/ui-common.js?v=__APP_VERSION__"></script>
+  <script src="/assets/public-surface.js?v=__APP_VERSION__"></script>
   <script src="/assets/portal-brand.js?v=__APP_VERSION__"></script>
   <script src="/assets/public-analytics.js?v=__APP_VERSION__"></script>
   <link rel="stylesheet" href="/assets/ui-tokens.css?v=__APP_VERSION__">
@@ -114,7 +115,7 @@
       <a id="navGallery" href="/lets-paint-studio#home:gallery" data-zh="学员作品" data-en="Student Works" style="display:none">学员作品</a>
       <a id="navFaq" href="/lets-paint-studio#home:faq" data-zh="常见问题" data-en="FAQ" style="display:none">常见问题</a>
       <a id="navStudent" href="/lets-paint-studio#my" data-zh="学员专区" data-en="Student Login" style="display:none">学员专区</a>
-      <a class="navcta" href="/lets-paint-studio#join" data-zh="预约体验" data-en="Book a Trial">预约体验</a>
+      <a id="navPrimaryCta" class="navcta" href="/lets-paint-studio#join" data-zh="预约体验" data-en="Book a Trial">预约体验</a>
       <span class="langtog" role="group" aria-label="语言 / Language"><button type="button" data-language="zh" aria-pressed="true">中</button><button type="button" data-language="en" aria-pressed="false">EN</button></span>
     </div>
     <button class="menu-btn" type="button" aria-label="打开导航菜单" data-en-aria="Open navigation menu" aria-controls="mnav" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5"/></svg></button>
@@ -127,7 +128,7 @@
     <a id="mnavGallery" href="/lets-paint-studio#home:gallery" data-zh="学员作品" data-en="Student Works" style="display:none">学员作品</a>
     <a id="mnavFaq" href="/lets-paint-studio#home:faq" data-zh="常见问题" data-en="FAQ" style="display:none">常见问题</a>
     <a id="mnavStudent" href="/lets-paint-studio#my" data-zh="学员专区" data-en="Student Login" style="display:none">学员专区</a>
-    <a href="/lets-paint-studio#join" data-zh="预约体验" data-en="Book a Trial">预约体验</a>
+    <a id="mnavPrimaryCta" href="/lets-paint-studio#join" data-zh="预约体验" data-en="Book a Trial">预约体验</a>
     <span class="langtog" role="group" aria-label="语言 / Language" style="align-self:flex-start"><button type="button" data-language="zh" aria-pressed="true">中</button><button type="button" data-language="en" aria-pressed="false">EN</button></span>
   </div>
 </nav>
@@ -159,15 +160,13 @@
     </div>
     <div class="fl">
       <a href="/lets-paint-studio" data-zh="首页" data-en="Home">首页</a>
-      <a href="/lets-paint-studio/showcase" data-zh="工作室作品" data-en="Selected Work">工作室作品</a>
-      <a href="/lets-paint-studio#home:courses" data-zh="课程" data-en="Courses">课程</a>
+      <a id="footShowcase" href="/lets-paint-studio/showcase" data-zh="工作室作品" data-en="Selected Work">工作室作品</a>
+      <a id="footCourses" href="/lets-paint-studio#home:courses" data-zh="课程" data-en="Courses">课程</a>
       <a id="footTimetable" href="/lets-paint-studio/timetable" data-zh="课程安排" data-en="Timetable" style="display:none">课程安排</a>
-      <a href="/lets-paint-studio#home:gallery" data-zh="学员作品" data-en="Student Works">学员作品</a>
-      <a href="/lets-paint-studio#my" data-zh="学员专区" data-en="Student Login">学员专区</a>
-      <a href="/lets-paint-studio#join" data-zh="预约体验" data-en="Book a Trial">预约体验</a>
+      <a id="footGallery" href="/lets-paint-studio#home:gallery" data-zh="学员作品" data-en="Student Works">学员作品</a>
+      <a id="footStudent" href="/lets-paint-studio#my" data-zh="学员专区" data-en="Student Login">学员专区</a>
+      <a id="footRegister" href="/lets-paint-studio#join" data-zh="预约体验" data-en="Book a Trial">预约体验</a>
       <a href="/lets-paint-studio#privacy" data-zh="隐私说明" data-en="Privacy" style="color:var(--muted)">隐私说明</a>
-      <a href="/lets-paint-studio/cms" data-zh="工作人员入口" data-en="Staff (CMS)" style="color:var(--muted)">工作人员入口</a>
-      <a href="/lets-paint-studio/studio-admin" data-zh="管理后台" data-en="Studio Admin" style="color:var(--muted)">管理后台</a>
     </div>
   </div>
 </footer>
@@ -187,7 +186,7 @@
   const params = new URLSearchParams(location.search);
   const normaliseLang = (value) => String(value || '').toLowerCase().startsWith('en') ? 'en' : String(value || '').toLowerCase().startsWith('zh') ? 'zh' : '';
   let language = normaliseLang(params.get('lang')) || (() => { try { return normaliseLang(localStorage.getItem(`pwe_lang_${TENANT_SLUG}`)); } catch (_) { return ''; } })() || normaliseLang(navigator.language) || 'zh';
-  const state = { brand: {}, category: String(params.get('category') || '').trim().slice(0,24), items: [], total: 0, offset: 0, hasMore: false, loading: false, requestId: 0, lightboxIndex: -1 };
+  const state = { brand: {}, category: String(params.get('category') || '').trim().slice(0,24), items: [], total: 0, offset: 0, hasMore: false, loading: false, requestId: 0, lightboxIndex: -1, authoritativeSurface: null, surfaceSettled: false };
   let abortController = null;
   const T = (zh, en) => language === 'en' ? en : zh;
   const localized = (value, fallback = '') => {
@@ -195,8 +194,30 @@
     return String(value == null ? '' : value).trim() || fallback;
   };
   const websiteOf = () => state.brand.websiteProfile || state.brand.website_profile || {};
-  const setVisible = (ids, visible) => ids.forEach((id) => { const node = document.getElementById(id); if (node) node.style.display = visible ? '' : 'none'; });
   const setStatus = (text) => { document.getElementById('status').textContent = text || ''; };
+  function refreshPublicSurfaceContract() {
+    if (!window.StudioSaaS.publicSurface) return;
+    if (state.authoritativeSurface) {
+      state.publicSurface = state.authoritativeSurface;
+      window.StudioSaaS.publicSurface.apply(state.publicSurface, document);
+      return;
+    }
+    if (!state.surfaceSettled) return;
+    state.publicSurface = window.StudioSaaS.publicSurface.resolve({
+      slug: TENANT_SLUG, brand: state.brand,
+      showcase: state.data || { enabled: true, items: state.items, total: state.total }
+    });
+    window.StudioSaaS.publicSurface.apply(state.publicSurface, document);
+  }
+  window.StudioSaaS.publicSurface.fetch(API).then((contract) => {
+    state.authoritativeSurface = contract;
+    state.surfaceSettled = true;
+    refreshPublicSurfaceContract();
+  }).catch((error) => {
+    state.surfaceSettled = true;
+    refreshPublicSurfaceContract();
+    console.warn('Public surface contract unavailable; using locally confirmed content.', error);
+  });
 
   function updateMeta() {
     const path = location.pathname;
@@ -327,6 +348,7 @@
       state.offset = Number(data.nextOffset ?? (offset + (data.items || []).length));
       state.hasMore = Boolean(data.hasMore);
       state.items = replace ? (data.items || []) : state.items.concat(data.items || []);
+      refreshPublicSurfaceContract();
       setStatus(state.hasMore ? T('继续下滑可加载更多作品。', 'Scroll to load more work.') : T('已显示全部符合条件的作品。', 'All matching work is shown.'));
       applyLanguage();
     } catch (error) {
@@ -370,19 +392,13 @@
     document.getElementById('tenantName').textContent = name; document.getElementById('footName').textContent = name; document.getElementById('footName2').textContent = name;
     document.getElementById('footContact').textContent = [state.brand.contact_phone || state.brand.contactPhone, state.brand.contact_email || state.brand.contactEmail, state.brand.address].filter(Boolean).join(' · ');
     const rawLogo = state.brand.logo_url || state.brand.logoUrl || ''; const logo = document.getElementById('tenantLogo'); if (rawLogo && !['/logo.png','/logo-light.png','/favicon.svg'].includes(rawLogo)) { logo.src = rawLogo; logo.style.display = 'block'; }
-    const hasPrincipal = String(website.show_principal ?? website.showPrincipal ?? true) !== 'false' && Boolean(principal.bio || principal.name);
-    setVisible(['navPrincipal','mnavPrincipal'], hasPrincipal);
-    setVisible(['navCourses','mnavCourses'], String(website.show_courses ?? website.showCourses ?? true) !== 'false');
-    setVisible(['navTimetable','mnavTimetable','footTimetable'], String(website.show_timetable ?? website.showTimetable ?? false) === 'true');
-    setVisible(['navGallery','mnavGallery'], String(website.show_gallery ?? website.showGallery ?? true) !== 'false');
-    setVisible(['navFaq','mnavFaq'], String(website.show_faq ?? website.showFaq ?? true) !== 'false');
-    setVisible(['navStudent','mnavStudent'], String(website.show_student_area ?? website.showStudentArea ?? true) !== 'false');
     const title = localized(website.showcase_title || website.showcaseTitle, T('工作室作品', 'Selected Work'));
     const description = localized(website.showcase_lead || website.showcaseLead, T('工作室精选作品展示', 'Selected work from this studio.'));
     document.getElementById('pageDocumentTitle').textContent = `${name} · ${title}`; document.getElementById('pageDescription').content = description; document.getElementById('ogTitle').content = `${name} · ${title}`; document.getElementById('ogDescription').content = description;
+    refreshPublicSurfaceContract();
     applyLanguage();
   }
-  fetch('/v1/health', { cache: 'no-store' }).then((r) => r.json()).then((health) => { document.getElementById('producerCredit').hidden = !health.showProducerCredit; }).catch(() => {});
+  fetch('/v1/health', { cache: 'no-store' }).then((r) => r.json()).then((health) => { document.getElementById('producerCredit').hidden = !health.showProducerCredit; }).catch((error) => { setStatus(T('页面状态暂时无法确认。', 'Page status could not be confirmed.')); console.warn('Producer credit health unavailable.', error); });
   loadBrand().catch(() => { setStatus(T('品牌资料暂时无法加载。', 'Brand details are temporarily unavailable.')); });
   fetchPage(state.category, 0, true);
 </script>

@@ -54,6 +54,15 @@
   <p data-lang="zh">以下内容均属于已发布的产品版本。每一条都是交付依据，不是路线图承诺。</p>
   <div class="grid">
     <article class="card">
+      <strong data-lang="en">A server-authoritative public shell and honest publish status (v9.8.10)</strong><strong data-lang="zh">服务端权威的公开外壳与真实发布状态（v9.8.10）</strong>
+      <p data-lang="en">Studio Admin now reads publication status from the server ledger instead of comparing a browser snapshot of <code>websiteProfile</code>. A successful write remains separate from a pending public projection, and structured bilingual status codes explain whether to retry, complete content, or wait for verification.</p>
+      <p data-lang="zh">Studio Admin 现在以服务端发布账本为准，不再在浏览器里比较 <code>websiteProfile</code> 快照。写入成功与公开投影待确认保持分离，结构化双语状态码会说明应重试、补齐内容，还是等待验证。</p>
+      <p data-lang="en">The portal, standalone showcase, timetable and registration page share a versioned public-surface contract with localized labels and common navigation, footer and CTA actions. Public footer links to staff CMS and Studio Admin are removed; operator tools stay behind authenticated entry points.</p>
+      <p data-lang="zh">官网、独立作品页、课表和报名页共用带版本的公开表面契约，并共享本地化标签、导航、Footer 与 CTA 操作。公开 Footer 不再放工作人员 CMS 和 Studio Admin 链接；运营工具只从需要认证的入口进入。</p>
+      <p data-lang="en">This release keeps the existing Vanilla HTML/CSS runtime and tenant data model. It is ready for package and production verification; the exact source, package and production evidence is recorded separately in the latest handoff.</p>
+      <p data-lang="zh">本版本继续使用现有 Vanilla HTML/CSS 运行时和租户数据模型。发布包与生产验证完成后，源码、发布包和生产证据会分别记录在最新 handoff 中。</p>
+    </article>
+    <article class="card">
       <strong data-lang="en">A truthful Studio Admin editor and one public-surface contract (v9.8.9)</strong><strong data-lang="zh">真实可信的 Studio Admin 编辑器与统一公开入口契约（v9.8.9）</strong>
       <p data-lang="en">The preview now separates Draft from the real Live website, lists unpublished change groups and public readiness, and keeps publish errors visible with a route back to the field that needs attention. The Hero secondary action can target courses, selected work, timetable, registration or a validated external URL; a chosen destination that is not ready stays hidden instead of silently redirecting elsewhere.</p>
       <p data-lang="zh">预览现在明确区分草稿与真实线上官网，并列出未发布改动和公开就绪状态；发布错误会留在页面上，能够返回需要处理的字段。首屏次要按钮可指向课程、工作室作品、公开课表、报名或经过校验的外部地址；明确选择但未就绪的入口会保持隐藏，不会静默改跳到别处。</p>

@@ -142,6 +142,11 @@ def test_public_surface_contract_is_shared_by_templates_and_explains_readiness()
     ready = api_v1._public_surface_entry("showcase", True, True, "/demo/showcase")
     assert ready["visible"] is True
     assert ready["reasonCode"] == "ready"
+    labeled = api_v1._public_surface_entry(
+        "showcase", True, True, "/demo/showcase",
+        label={"zh": "工作室作品", "en": "Selected Work"},
+    )
+    assert labeled["label"] == {"zh": "工作室作品", "en": "Selected Work"}
     hidden = api_v1._public_surface_entry(
         "showcase", True, False, "/demo/showcase", reason="no_published_works",
         next_action="publish_showcase_work",
@@ -169,6 +174,7 @@ def test_public_surface_contract_is_shared_by_templates_and_explains_readiness()
     assert "secondary_cta_target" in public_surface
     assert "heroSecondaryCta" in public_surface
     assert "#footShowcase" in public_surface
+    assert "contractVersion" in public_surface
     for filename in ("index.html", "showcase.html", "timetable.html", "register.html"):
         source = (PROJECT_ROOT / "tenant-template" / filename).read_text(encoding="utf-8")
         assert "/assets/public-surface.js?v=__APP_VERSION__" in source
@@ -176,6 +182,11 @@ def test_public_surface_contract_is_shared_by_templates_and_explains_readiness()
     admin = (PROJECT_ROOT / "backend/frontend/studio-admin.html").read_text(encoding="utf-8")
     assert "Public navigation preview" in admin
     assert "Recheck public pages" in admin
+    assert "publication-status" in admin
+    for filename in ("index.html", "showcase.html", "timetable.html", "register.html"):
+        source = (PROJECT_ROOT / "tenant-template" / filename).read_text(encoding="utf-8")
+        assert f"/{{{{TENANT_SLUG}}}}/cms" not in source
+        assert f"/{{{{TENANT_SLUG}}}}/studio-admin" not in source
 
 
 def test_about_profile_round_trip_preserves_six_highlights_and_image_alts():
