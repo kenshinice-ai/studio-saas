@@ -16,7 +16,7 @@ const fs = require("fs");
 const path = require("path");
 
 // Default brand guidelines path
-const DEFAULT_GUIDELINES_PATH = "docs/brand-guidelines.md";
+const DEFAULT_GUIDELINES_PATH = "docs/design/Brand_Identity.md";
 
 /**
  * Extract hex colors from text

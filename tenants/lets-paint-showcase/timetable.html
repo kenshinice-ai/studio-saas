@@ -49,9 +49,11 @@
        permanent and aria-current says the same thing to a screen reader. */
     .navlinks a[aria-current="page"] { color:var(--ink); }
     .navlinks a[aria-current="page"]::after { width:100%; }
-    .navcta { border:1px solid var(--ink); border-radius:var(--radius-pill); padding:10px 20px; min-height:var(--tap-min); display:inline-flex; align-items:center; font-size:13px; letter-spacing:.03em; transition:.3s; }
-    .navcta:hover { background:var(--ink); color:var(--bg); }
-    .navcta::after { display:none; }
+    /* One point more specific than `.navlinks a`, which was otherwise
+       drawing this pill with `padding:4px 0`. */
+    .navlinks a.navcta { border:1px solid var(--ink); border-radius:var(--radius-pill); padding:10px 20px; min-height:var(--tap-min); display:inline-flex; align-items:center; font-size:13px; letter-spacing:.03em; transition:.3s; white-space:nowrap; max-width:22ch; overflow:hidden; text-overflow:ellipsis; }
+    .navlinks a.navcta:hover { background:var(--ink); color:var(--bg); }
+    .navlinks a.navcta::after { display:none; }
     .langtog { display:inline-flex; border:1px solid var(--line); border-radius:var(--radius-pill); overflow:hidden; margin-left:6px; }
     .langtog button { background:none; border:0; min-width:var(--tap-min); min-height:var(--tap-min); padding:8px 12px; font-size:13px; letter-spacing:.06em; color:var(--muted); cursor:pointer; font-family:inherit; }
     .langtog button.on { background:var(--ink); color:var(--bg); }
@@ -154,7 +156,7 @@
     @media (prefers-reduced-motion:reduce) { * { transition:none !important; animation:none !important; } }
   </style>
 </head>
-<body>
+<body data-tenant-slug="lets-paint-showcase">
   <!-- The portal's navigation, not a reduced one. Every link is a real <a
        href> for the same reasons it is there: Tab reaches it, "open in new
        tab" works, and a screen reader announces it.

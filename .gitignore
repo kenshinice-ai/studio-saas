@@ -66,3 +66,4 @@ standalone-edition/.env.bak
 # of tracked content, and left untracked it fails the clean-tree gate in
 # deploy/aws/build_aws_bundle.sh.
 .agents/
+.venv

@@ -44,9 +44,11 @@
     .navlinks a::after{content:"";position:absolute;left:0;bottom:0;width:0;height:1px;background:var(--clay);transition:width .25s}
     .navlinks a:hover::after,.navlinks a[aria-current="page"]::after{width:100%}
     .navlinks a[aria-current="page"]{color:var(--ink)}
-    .navcta{display:inline-flex;align-items:center;min-height:var(--tap-min);padding:10px 20px;border:1px solid var(--ink);border-radius:var(--radius-pill)}
-    .navcta:hover{background:var(--ink);color:var(--bg)}
-    .navcta::after{display:none!important}
+    /* One point more specific than `.navlinks a`, which was otherwise
+       drawing this pill with `padding:4px 0`. */
+    .navlinks a.navcta{display:inline-flex;align-items:center;min-height:var(--tap-min);padding:10px 20px;border:1px solid var(--ink);border-radius:var(--radius-pill);white-space:nowrap;max-width:22ch;overflow:hidden;text-overflow:ellipsis}
+    .navlinks a.navcta:hover{background:var(--ink);color:var(--bg)}
+    .navlinks a.navcta::after{display:none!important}
     .langtog{display:inline-flex;overflow:hidden;border:1px solid var(--line);border-radius:var(--radius-pill)}
     .langtog button{min-width:var(--tap-min);min-height:var(--tap-min);padding:8px 12px;border:0;background:none;color:var(--muted);font:inherit;font-size:13px;cursor:pointer}
     .langtog button.on{background:var(--ink);color:var(--bg)}

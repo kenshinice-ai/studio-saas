@@ -12,7 +12,7 @@
   if (global.document) {
     global.document.documentElement.dataset.publicSurfaceLoading = 'true';
     const style = global.document.createElement('style');
-    style.textContent = 'html[data-public-surface-loading="true"] #navPrincipal,html[data-public-surface-loading="true"] #navShowcase,html[data-public-surface-loading="true"] #navCourses,html[data-public-surface-loading="true"] #navTimetable,html[data-public-surface-loading="true"] #navGallery,html[data-public-surface-loading="true"] #navFaq,html[data-public-surface-loading="true"] #navStudent,html[data-public-surface-loading="true"] #navPrimaryCta,html[data-public-surface-loading="true"] #heroSecondaryCta,html[data-public-surface-loading="true"] #mnavPrincipal,html[data-public-surface-loading="true"] #mnavShowcase,html[data-public-surface-loading="true"] #mnavCourses,html[data-public-surface-loading="true"] #mnavTimetable,html[data-public-surface-loading="true"] #mnavGallery,html[data-public-surface-loading="true"] #mnavFaq,html[data-public-surface-loading="true"] #mnavStudent,html[data-public-surface-loading="true"] #mnavPrimaryCta,html[data-public-surface-loading="true"] #footPrincipal,html[data-public-surface-loading="true"] #footShowcase,html[data-public-surface-loading="true"] #footCourses,html[data-public-surface-loading="true"] #footTimetable,html[data-public-surface-loading="true"] #footGallery,html[data-public-surface-loading="true"] #footFaq,html[data-public-surface-loading="true"] #footStudent,html[data-public-surface-loading="true"] #footRegister{visibility:hidden!important}';
+    style.textContent = 'html[data-public-surface-loading="true"] #navPrincipal,html[data-public-surface-loading="true"] #navShowcase,html[data-public-surface-loading="true"] #navCourses,html[data-public-surface-loading="true"] #navTimetable,html[data-public-surface-loading="true"] #navGallery,html[data-public-surface-loading="true"] #navFaq,html[data-public-surface-loading="true"] #navStudent,html[data-public-surface-loading="true"] #navPrimaryCta,html[data-public-surface-loading="true"] #heroSecondaryCta,html[data-public-surface-loading="true"] #mnavPrincipal,html[data-public-surface-loading="true"] #mnavShowcase,html[data-public-surface-loading="true"] #mnavCourses,html[data-public-surface-loading="true"] #mnavTimetable,html[data-public-surface-loading="true"] #mnavGallery,html[data-public-surface-loading="true"] #mnavFaq,html[data-public-surface-loading="true"] #mnavStudent,html[data-public-surface-loading="true"] #mnavPrimaryCta,html[data-public-surface-loading="true"] #footShowcase,html[data-public-surface-loading="true"] #footCourses,html[data-public-surface-loading="true"] #footTimetable,html[data-public-surface-loading="true"] #footGallery,html[data-public-surface-loading="true"] #footFaq,html[data-public-surface-loading="true"] #footStudent,html[data-public-surface-loading="true"] #footRegister{visibility:hidden!important}';
     global.document.head.appendChild(style);
   }
 
@@ -200,13 +200,34 @@
     if (!contract?.modules) return;
     clearLoading();
     const currentPath = String(global.location?.pathname || '');
+    const currentSearch = String(global.location?.search || '');
     const tenantSlug = scope.body?.dataset?.tenantSlug || '';
+    const tenantHome = tenantSlug ? `/${encodeURIComponent(tenantSlug)}` : '';
+    const samePath = (a, b) => String(a).replace(/\/+$/, '') === String(b).replace(/\/+$/, '');
+    const onTenantHome = Boolean(tenantHome) && samePath(currentPath, tenantHome);
+    // The visitor's language is worth carrying to the next page; a category
+    // filter belongs to the page that owns it and is not.
+    const langQuery = (() => {
+      try {
+        const value = new URLSearchParams(currentSearch).get('lang');
+        return value ? `?lang=${encodeURIComponent(value)}` : '';
+      } catch (error) {
+        return '';
+      }
+    })();
     const hrefForPage = (href) => {
       const value = text(href);
-      if (!value || !value.startsWith('#') || !tenantSlug) return value;
-      // Hash-only links work on the homepage but not on /showcase, /timetable
-      // or /register. Resolve them to the tenant root once for every page.
-      return `/${encodeURIComponent(tenantSlug)}${value}`;
+      if (!value || !value.startsWith('#') || !tenantHome) return value;
+      // Hash-only links work on the home page but not on /showcase, /timetable
+      // or /register, so away from home they name the home page first.
+      //
+      // On the home page they must be left alone apart from reproducing the
+      // current query. Prefixing unconditionally was the bug: `/slug#home:faq`
+      // differs from `/slug?lang=en` by more than its fragment, so the browser
+      // treated every nav click as a new document — a full reload that also
+      // dropped the visitor's language and whatever utm_* they arrived with.
+      if (onTenantHome) return `${currentPath}${currentSearch}${value}`;
+      return `${tenantHome}${langQuery}${value}`;
     };
     const setLabel = (node, label) => {
       if (!node || !label) return;
@@ -219,14 +240,14 @@
       node.textContent = language === 'en' ? (en || zh) : (zh || en);
     };
     const ids = {
-      principal: ['navPrincipal', 'mnavPrincipal', 'footPrincipal'],
+      principal: ['navPrincipal', 'mnavPrincipal'],
       showcase: ['navShowcase', 'mnavShowcase', 'footShowcase'],
       courses: ['navCourses', 'mnavCourses', 'footCourses'],
       timetable: ['navTimetable', 'mnavTimetable', 'footTimetable'],
       gallery: ['navGallery', 'mnavGallery', 'footGallery'],
       faq: ['navFaq', 'mnavFaq', 'footFaq'],
       student: ['navStudent', 'mnavStudent', 'footStudent'],
-      register: ['navPrimaryCta', 'mnavPrimaryCta', 'heroRegister', 'footRegister'],
+      register: ['navPrimaryCta', 'mnavPrimaryCta', 'footRegister'],
     };
     Object.entries(ids).forEach(([key, names]) => {
       const module = contract.modules[key];
@@ -246,7 +267,7 @@
       });
     });
     const primary = contract.actions?.primary;
-    ['navPrimaryCta', 'mnavPrimaryCta', 'heroRegister', 'footRegister'].forEach((id) => {
+    ['navPrimaryCta', 'mnavPrimaryCta', 'footRegister'].forEach((id) => {
       const node = scope.getElementById ? scope.getElementById(id) : null;
       if (node) {
         setLabel(node, primary?.label);
@@ -272,8 +293,19 @@
       if (module) node.hidden = !module.visible;
     });
     scope.querySelectorAll?.('a[aria-current="page"]').forEach((node) => {
-      const href = node.getAttribute('href') || '';
-      if (!href.includes(currentPath.split('/').filter(Boolean).pop() || '')) node.removeAttribute('aria-current');
+      const raw = node.getAttribute('href') || '';
+      // A hash-only link never names another page, so it keeps the mark.
+      if (!raw || raw.startsWith('#')) return;
+      // The old test asked whether the href contained the last path segment.
+      // On a tenant home page that segment is the slug, and every resolved
+      // href starts with it, so the test was true for every link on the page.
+      let target = '';
+      try {
+        target = new URL(raw, global.location?.href || 'https://surface.invalid').pathname;
+      } catch (error) {
+        return;
+      }
+      if (!samePath(target, currentPath)) node.removeAttribute('aria-current');
     });
   }
 
