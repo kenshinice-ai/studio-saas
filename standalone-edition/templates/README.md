@@ -1,6 +1,7 @@
 # 学员导入模板 · Student import templates
 
-给「现有系统迁入」路径用（DATABASE.md §2 路径 2 / RUNBOOK §3 路径 B）。
+给「现有系统迁入」路径用（DATABASE.md §2 路径 2 /
+DEPLOYMENT_PLAN.md §6.4）。
 全新开店和平台迁出都不需要这个文件夹。
 
 | 文件 | 给谁 | 用途 |
@@ -54,7 +55,7 @@ sudo bash standalone-edition/install.sh --domain … --studio-name … \
 
 转换输出的**学员数和期初课时合计**要和客户自己的账对上。
 `csv_to_import_json.py` 每次都会打印这两个数；抄进交接记录，安装后用
-Studio Admin → 数据分析 再核一次（RUNBOOK §6 验收清单第 3 项）。
+Studio Admin → 数据分析 再核一次（DEPLOYMENT_PLAN.md §10 数据验收）。
 
 ---
 

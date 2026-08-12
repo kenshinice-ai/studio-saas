@@ -1,6 +1,8 @@
 # PWE Studio Edition · 部署方式
 
-> v8.1.0 已实现并纳入双包发布验证（2026-07-29）。
+> 当前正式交付基线：v9.8.8。Edition 包内 `BUILD_INFO` 必须包含
+> `mode=standalone`；客户/实施人员的完整部署方案见
+> [DEPLOYMENT_PLAN.md](DEPLOYMENT_PLAN.md)。
 
 ## 1. 主路径：Docker Compose（单机同箱）
 
@@ -11,8 +13,7 @@
 │  nginx (TLS, bootstrap→certbot 流程已有)   │
 │    → app 容器 (waitress, STUDIOSAAS_MODE= │
 │       standalone, 依赖 requirements.lock)  │
-│    → db 容器 (postgres:16, 即平台版        │
-│       --profile local-db，独立版为默认)     │
+│    → db 容器 (postgres:16，独立版默认服务)  │
 │  volumes: data / media / archives /        │
 │           tenants / pgdata（五卷全持久）    │
 └───────────────────────────────────────────┘
@@ -46,16 +47,19 @@ sudo bash standalone-edition/upgrade.sh --slug <客户slug>
 检查失败时自动恢复上一代码与配置。PostgreSQL/media named volumes 不删除。
 媒体自动备份按用户决定暂缓，因此“升级保留媒体”不能等同“服务器损坏可恢复媒体”。
 
-## 2. 备选：裸机 systemd
+## 2. 备选：裸机 systemd（定制路径）
 
-客户内网无 Docker 时走 `deploy/aws/systemd/` 路径（自 v7.7.8 起已修好
-ReadWritePaths），PostgreSQL 用系统包。文档已有，独立版补 standalone
-环境变量即可。
+客户内网明确禁止 Docker 时，才考虑 `deploy/aws/systemd/` 路径和系统包
+PostgreSQL。它不会复用 Edition 的一键安装器、默认卷布局、root backup cron
+和交付 wrapper，因此不属于标准客户交付；需要单独的实施方案、备份方案和
+验收报价，不能把裸机路径与 Docker 路径混写。
 
 ## 3. 打包与版本
 
-- 交付物 = `build_aws_bundle.sh` 产物（BUILD_INFO 含版本+commit）+
-  standalone 附件（install.sh、导入模板、客户手册）
+- 交付物 = `build_aws_bundle.sh --edition` 产物（BUILD_INFO 含版本、commit、
+  `mode=standalone`）+ standalone 附件（install.sh、导入模板、客户手册）
+- 当前已验证包为 `PWE-Studio-Edition-9.8.8.tar.gz`；发送前必须在包所在目录
+  执行 `shasum -a 256 -c PWE-Studio-Edition-9.8.8.tar.gz.sha256`
 - 客户拿到的是**指定版本的完整源码包**（Apache-2.0 内核 + 交付协议
   约束商用条款——COMMERCIAL.md 详述）
 - 版本升级节奏与是否含大版本，由维护协议档位决定
@@ -67,8 +71,10 @@ ReadWritePaths），PostgreSQL 用系统包。文档已有，独立版补 standa
 - [ ] owner 登录 CMS/Studio Admin；角色账号按名单建好
 - [ ] 数据迁移计数与账本总额与源对账单一致（manifest 校验）
 - [ ] 平台迁出包的整包 SHA-256 与平台侧交接记录一致
+- [ ] 主机只公开 80/443，8899 和 5432 未暴露到公网
 - [ ] 手机 4G 提交测试报名 → CMS 待审出现 → 拒绝闭环
-- [ ] root cron 已跑出第一份 PostgreSQL dump（0600）+ 恢复 dry-run 通过
+- [ ] root cron 已跑出第一份 PostgreSQL dump 和 manifest（均 0600）+
+      恢复 dry-run 通过
 - [ ] TLS 证书自动续期 timer 生效；`/v1/health?deep=1` 返回 db ok
 - [ ] 交接：owner 密码由客户当场改掉；服务器凭据移交记录签字
 
@@ -84,8 +90,10 @@ ReadWritePaths），PostgreSQL 用系统包。文档已有，独立版补 standa
 - SaaS：**已上线生产**，`https://pwestudio.online`，AWS Lightsail 单实例，
   host nginx 终止 TLS，容器内 PostgreSQL 16 + 本机媒体卷（2026-07-30）。
   Cloudflare Tunnel 已退出生产链路，只保留本地开发用途
-- Edition：可构建、可安装、可升级的软件交付形态；交付前仍须走 RUNBOOK 验收。
-  Edition 装在客户自己的主机上，不受上述 SaaS 托管形态影响
+- Edition：可构建、可安装、可升级的软件交付形态；当前没有客户实例的
+  公网生产验收证据，交付前仍须严格走 RUNBOOK 和客户签收。Edition 装在
+  客户自己的主机上，不受上述 SaaS 托管形态影响
 - RDS/S3/SES：代码与历史方案保留，**未采用**；SaaS 生产的数据库与媒体都在
   同一实例上
-- 媒体独立备份、异地备份副本、监控与 SLA：均未完成，且在客户文档中如实披露
+- 媒体独立备份、异地备份副本、监控与 SLA：标准安装不包含，必须在合同或
+  维护协议中单独确认

@@ -1,18 +1,30 @@
-# PWE Studio Edition v8.1.0 — 交付工程师 Runbook
+# PWE Studio Edition v9.8.8 — 交付工程师 Runbook
 
 适用范围：一台 Ubuntu 主机、一个客户、一个活跃租户。平台 Super Admin 与
 `/v1/admin/*` 在 standalone 模式下必须返回 404。本文只覆盖正式 Edition
-交付；本轮不执行 AWS 部署，媒体文件备份按产品决定暂缓。
+交付；标准路径是 Docker Compose，不是 SaaS AWS 部署。完整客户方案见
+[DEPLOYMENT_PLAN.md](DEPLOYMENT_PLAN.md)。媒体文件异地备份不属于标准安装。
+
+## 0. 服务器前置条件
+
+- Ubuntu 22.04/24.04，2 vCPU、2 GB RAM、40 GB SSD 起；媒体较多时提前扩容。
+- 固定公网 IP，DNS A 记录已指向客户域名。
+- 公网只开放 80/443；SSH 22 限定维护来源；8899/5432 不得公网开放。
+- 主机有 sudo/root、bash、curl、openssl、cron/systemd；首次安装允许访问
+  Ubuntu 软件源、Docker Registry、PostgreSQL 软件源和 Let’s Encrypt。
+- Docker Engine 与 Docker Compose v2 可由安装器检查/安装；nginx、Certbot
+  和 `python3-certbot-nginx` 按第 3 节顺序安装。
+- 客户已提供工作室名称、时区、Owner 邮箱、员工角色、品牌素材和迁移资料。
 
 ## 1. 交付前硬门槛
 
-1. 只使用官方 `PWE-Studio-Edition-8.1.0.tar.gz`，同时向客户提供发布方
+1. 只使用官方 `PWE-Studio-Edition-9.8.8.tar.gz`，同时向客户提供发布方
    单独保存的 SHA-256。
 2. 验证 `BUILD_INFO`：
 
    ```bash
    grep -E '^(version|mode|commit)=' BUILD_INFO
-   # 必须包含 version=8.1.0、mode=standalone
+   # 必须包含 version=9.8.8、mode=standalone
    ```
 
 3. 如从 SaaS 迁入，导出租户包后在安全渠道单独记录整个 tar.gz 的 SHA-256；
@@ -67,7 +79,7 @@ sudo bash standalone-edition/install.sh \
 sudo nginx -t
 systemctl is-active nginx
 systemctl list-timers | grep certbot
-curl -fsS https://studio.example.com/v1/health?deep=1
+curl -fsS "https://studio.example.com/v1/health?deep=1"
 ```
 
 ## 4. 数据与权限验收
@@ -104,7 +116,8 @@ sudo bash /opt/pwe-studio/example-studio/current/standalone-edition/maintenance.
   `/var/lib/pwe-studio/<slug>/logs/postgres-backup.log`。
 - [ ] TLS 自动续期 timer 有效；deep health 返回数据库正常。
 - [ ] 客户离线保存服务器凭据、`/etc/pwe-studio/<slug>.env` 和发布 SHA-256。
-- [ ] 明确签字：v8.1.0 只承诺 PostgreSQL 备份；媒体文件备份暂缓。
+- [ ] 明确签字：v9.8.8 标准安装只承诺 PostgreSQL 本地备份；媒体文件异地
+      备份、监控、备份告警和 SLA 需另行确认。
 
 ## 6. 升级与回滚
 
@@ -134,5 +147,5 @@ sudo bash /opt/pwe-studio/example-studio/current/standalone-edition/maintenance.
 
 ## 8. 当前明确延期
 
-- 媒体文件卷的自动备份与异地副本：暂不纳入 v8.1.0 验收。
+- 媒体文件卷的自动备份与异地副本：暂不纳入 v9.8.8 标准验收。
 - AWS/RDS/S3/SES 正式部署：代码与历史方案保留，本轮不执行。

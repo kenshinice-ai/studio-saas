@@ -456,7 +456,7 @@ tenant slug in SaaS mode; the canonical operational URL remains `/<slug>/cms`.
 ```
 .
 ├── README.md                     # This file
-├── codingprompt.md               # ARCHIVED v7.0 sprint prompt — current status lives in docs/HANDOFF_LATEST.md
+├── achieve/                      # Local historical archive; not runtime or release source
 ├── START_STUDIOSAAS_LOCAL.command / start_studiosaas_local.sh
 ├── RESET_DEMO_TENANT.command      # Guarded reset for lets-paint-showcase only
 ├── product-home.html              # SaaS product gateway and role entrances
@@ -816,7 +816,7 @@ end-to-end in Docker (health, migrations, legacy-API 410).
 - **Documentation full refresh and correction** — every doc audited against the
   code on 2026-07-26: README enum tables brought back in line with the live
   schema, `docs/Architecture.md` and `docs/Design_System.md` rewritten, and
-  stale sprint files (`codingprompt.md`, `docs/Current_Sprint.md`) archived in
+  stale sprint files (`achieve/codingprompt.md`, `achieve/docs/Current_Sprint.md`) archived in
   favour of `docs/HANDOFF_LATEST.md`.
 - **UI/UX fix batch** across the three admin surfaces:
   `prefers-reduced-motion` support, `focus-visible` focus rings, touch targets
@@ -828,7 +828,7 @@ end-to-end in Docker (health, migrations, legacy-API 410).
 ### 4.16 v7.6.0 audit remediation and Super Admin UI upgrade
 
 Full remediation of the 2026-07-27 project audit
-(`docs/Project_Audit_2026-07-27.md`): all 3 HIGH, 13 MEDIUM and 20 LOW
+(`achieve/docs/Project_Audit_2026-07-27.md`): all 3 HIGH, 13 MEDIUM and 20 LOW
 findings closed, plus a professional visual upgrade of the Super Admin
 console.
 
@@ -1125,8 +1125,8 @@ curl -i -X POST http://localhost:8901/v1/admin/tenants \
 | Document | Content |
 |---|---|
 | `docs/HANDOFF_LATEST.md` | **Current status and open work — start here** |
-| `codingprompt.md` | Archived v7.0 sprint prompt (historical; no longer maintained) |
-| `docs/Current_Sprint.md` | Archived v7.0 sprint status tracking (historical) |
+| `achieve/codingprompt.md` | Archived v7.0 sprint prompt (historical; no longer maintained) |
+| `achieve/docs/Current_Sprint.md` | Archived v7.0 sprint status tracking (historical) |
 | `docs/StudioSaaS_Blueprint_v2.md` | Product vision, market, pricing, MVP acceptance criteria |
 | `docs/Product_Surface_Model.md` | Canonical surface names and responsibilities |
 | `docs/Architecture.md` | Current architecture + target architecture (v2 vision) |

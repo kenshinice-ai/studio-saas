@@ -159,7 +159,7 @@ Purpose: Phased development plan, milestones, current status, and deployment tar
   only with the multi-instance step (ALB + 2×EC2) in Deployment §3.3.
 
 > All other findings of the 2026-07-27 project audit (3 HIGH / 13 MED / 20 LOW,
-> `docs/Project_Audit_2026-07-27.md`) were fixed in the v7.6.0 round — see
+> `achieve/docs/Project_Audit_2026-07-27.md`) were fixed in the v7.6.0 round — see
 > README §4.16.
 
 ---
@@ -197,7 +197,7 @@ Purpose: Phased development plan, milestones, current status, and deployment tar
 
 ## 8. Current Sprint Priorities
 
-See `docs/HANDOFF_LATEST.md` for current status, open work, and verification commands. (`codingprompt.md` and `docs/Current_Sprint.md` are archived v7.0 sprint documents, kept for history only.)
+See `docs/HANDOFF_LATEST.md` for current status, open work, and verification commands. (`achieve/codingprompt.md` and `achieve/docs/Current_Sprint.md` are archived v7.0 sprint documents, kept for history only.)
 
 ## 8.1 Target Architecture Adoption Mapping
 

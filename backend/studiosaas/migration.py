@@ -4,14 +4,18 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import date
-from decimal import Decimal, InvalidOperation
+from datetime import date, datetime
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 
 class LegacyMigrationError(RuntimeError):
     """Raised when legacy data cannot be imported safely."""
+
+
+MELBOURNE_TIMEZONE = ZoneInfo("Australia/Melbourne")
 
 
 def _optional_text(value: Any) -> str:
@@ -20,13 +24,123 @@ def _optional_text(value: Any) -> str:
     return value.strip() if isinstance(value, str) else ""
 
 
+def parse_legacy_date(value: Any, *, field: str) -> date | None:
+    """Parse an optional ISO date and reject ambiguous date formats.
+
+    The legacy JSON stores student birthdays and enrollment dates as ISO dates.
+    A blank value is intentionally returned as ``None`` so the target database
+    keeps the field blank instead of applying its ``CURRENT_DATE`` default.
+    """
+
+    text = _optional_text(value)
+    if not text:
+        return None
+    try:
+        return date.fromisoformat(text)
+    except ValueError as exc:
+        raise LegacyMigrationError(f"Legacy {field} is not an ISO date: {text}") from exc
+
+
+def parse_legacy_datetime(value: Any, *, field: str) -> datetime:
+    """Parse a legacy operation timestamp in the studio's Melbourne timezone.
+
+    The old CMS emitted several stable, unambiguous formats over its lifetime:
+    ``DD/MM/YYYY, HH:MM:SS``, ISO-like timestamps, and ``YYYY/M/D`` values.
+    Naive timestamps are wall-clock values from the Melbourne studio and are
+    therefore made timezone-aware before they are written to PostgreSQL.
+    """
+
+    text = _optional_text(value)
+    if not text:
+        raise LegacyMigrationError(f"Legacy {field} is missing a timestamp.")
+    normalized = text.replace("Z", "+00:00")
+    parsed: datetime | None = None
+    try:
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError:
+        for fmt in (
+            "%d/%m/%Y, %H:%M:%S",
+            "%d/%m/%Y %H:%M:%S",
+            "%Y/%m/%d %H:%M:%S",
+            "%Y-%m-%d %H:%M:%S",
+        ):
+            try:
+                parsed = datetime.strptime(text, fmt)
+                break
+            except ValueError:
+                continue
+    if parsed is None:
+        raise LegacyMigrationError(f"Legacy {field} has an unsupported timestamp: {text}")
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=MELBOURNE_TIMEZONE)
+    return parsed.astimezone(MELBOURNE_TIMEZONE)
+
+
+def parse_legacy_decimal(
+    value: Any,
+    *,
+    field: str,
+    default: Decimal | None = None,
+) -> Decimal:
+    """Parse a finite decimal without passing through binary floating point."""
+
+    if value is None or (isinstance(value, str) and not value.strip()):
+        if default is not None:
+            return default
+        raise LegacyMigrationError(f"Legacy {field} is missing a number.")
+    if isinstance(value, bool):
+        raise LegacyMigrationError(f"Legacy {field} must be numeric.")
+    try:
+        parsed = Decimal(str(value).replace("+", "").strip())
+    except (InvalidOperation, ValueError) as exc:
+        raise LegacyMigrationError(f"Legacy {field} is not numeric: {value!r}") from exc
+    if not parsed.is_finite():
+        raise LegacyMigrationError(f"Legacy {field} must be finite: {value!r}")
+    return parsed
+
+
+def infer_enrollment_date(
+    student: dict[str, Any], logs: list[dict[str, Any]]
+) -> tuple[str | None, str]:
+    """Choose a registration date only from explicit or registration evidence.
+
+    ``enrollmentDate`` is authoritative when present. If it is blank, the
+    earliest ``新生注册`` or ``批准注册`` event for the same stable legacy ID
+    is a deterministic fallback. Administrative initialization, first roster
+    appearance, and the import date are deliberately not treated as a
+    registration date. The second tuple item records the evidence source for
+    the migration report.
+    """
+
+    explicit = parse_legacy_date(student.get("enrollmentDate"), field="enrollmentDate")
+    if explicit is not None:
+        return explicit.isoformat(), "student.enrollmentDate"
+
+    legacy_id = str(student.get("id") or "").strip()
+    candidates: list[tuple[datetime, str]] = []
+    for log in logs:
+        if str(log.get("studentId") or "").strip() != legacy_id:
+            continue
+        action = _optional_text(log.get("action"))
+        if action not in {"新生注册", "批准注册"}:
+            continue
+        candidates.append((parse_legacy_datetime(log.get("date"), field="log.date"), action))
+    if not candidates:
+        return None, "unmatched"
+    first_at, action = min(candidates, key=lambda item: item[0])
+    return first_at.date().isoformat(), f"logs.{action}"
+
+
 def normalize_core_student(student: dict[str, Any]) -> dict[str, Any]:
-    """Validate one legacy student for the minimal StudioSaaS import.
+    """Validate one legacy student for the canonical StudioSaaS import.
 
     Only deterministic, current-state fields are retained. Missing identifiers,
     names, invalid birthdays, and invalid or negative balances are rejected so
     the importer cannot silently invent business data.
     """
+
+    if not isinstance(student, dict):
+        raise LegacyMigrationError("Core student record must be an object.")
 
     legacy_id = str(student.get("id") or "").strip()
     if not legacy_id:
@@ -44,22 +158,13 @@ def normalize_core_student(student: dict[str, Any]) -> dict[str, Any]:
         first_name = name_parts[0]
         last_name = name_parts[1] if len(name_parts) > 1 else last_name
 
-    birthday_text = _optional_text(student.get("birthday"))
-    birthday = None
-    if birthday_text:
-        try:
-            birthday = date.fromisoformat(birthday_text).isoformat()
-        except ValueError as exc:
-            raise LegacyMigrationError(
-                f"Legacy student {legacy_id} has invalid birthday: {birthday_text}"
-            ) from exc
-
-    try:
-        balance = Decimal(str(student.get("balance", 0)))
-    except (InvalidOperation, ValueError) as exc:
-        raise LegacyMigrationError(
-            f"Legacy student {legacy_id} has invalid balance."
-        ) from exc
+    birthday_value = parse_legacy_date(student.get("birthday"), field=f"student {legacy_id}.birthday")
+    enrolled_value = parse_legacy_date(
+        student.get("enrollmentDate"), field=f"student {legacy_id}.enrollmentDate"
+    )
+    balance = parse_legacy_decimal(
+        student.get("balance", 0), field=f"student {legacy_id}.balance", default=Decimal("0")
+    )
     if not balance.is_finite() or balance < 0:
         raise LegacyMigrationError(
             f"Legacy student {legacy_id} has invalid balance: {balance}"
@@ -71,7 +176,9 @@ def normalize_core_student(student: dict[str, Any]) -> dict[str, Any]:
         "last_name": last_name,
         "display_name": display_name,
         "status": "archived" if student.get("archived") is True else "active",
-        "birthday": birthday,
+        "birthday": birthday_value.isoformat() if birthday_value else None,
+        "enrolled_on": enrolled_value.isoformat() if enrolled_value else None,
+        "parent_name": _optional_text(student.get("parentName") or student.get("parent")),
         "mobile": _optional_text(student.get("mobile")),
         "email": _optional_text(student.get("email")),
         "wechat": _optional_text(student.get("wechat")),
@@ -106,10 +213,24 @@ def load_legacy_database(path: str | Path) -> dict[str, Any]:
         data = json.loads(db_path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         raise LegacyMigrationError(f"Legacy database is invalid JSON: {exc}") from exc
+    if not isinstance(data, dict):
+        raise LegacyMigrationError("Legacy database root must be an object.")
     if not isinstance(data.get("students"), list):
         raise LegacyMigrationError("Legacy database must contain a students list.")
-    if not isinstance(data.get("logs", []), list):
-        raise LegacyMigrationError("Legacy database logs must be a list when present.")
+    expected_containers = {
+        "logs": list,
+        "packages": list,
+        "pending": list,
+        "privacyAudit": list,
+        "rosters": dict,
+        "rosterMeta": dict,
+        "groups": dict,
+    }
+    for key, expected_type in expected_containers.items():
+        if key in data and not isinstance(data[key], expected_type):
+            raise LegacyMigrationError(
+                f"Legacy database field {key!r} must be {expected_type.__name__}."
+            )
     return data
 
 
@@ -143,20 +264,45 @@ def normalize_legacy_student(student: dict[str, Any]) -> dict[str, Any]:
 
 
 def normalize_legacy_package(package: dict[str, Any]) -> dict[str, Any]:
-    """Convert one legacy package record into StudioSaaS import fields."""
+    """Convert and strictly validate one legacy package record."""
 
-    name = str(package.get("name") or "Imported Package").strip()
-    credits = package.get("credits") or package.get("sessions") or 1
-    price = package.get("price") or package.get("priceAud") or 0
-    try:
-        price_aud_cents = int(round(float(price) * 100))
-    except (TypeError, ValueError):
-        price_aud_cents = 0
+    if not isinstance(package, dict):
+        raise LegacyMigrationError("Legacy package record must be an object.")
+    name = _optional_text(package.get("name"))
+    if not name:
+        raise LegacyMigrationError("Legacy package has no name.")
+    credits = parse_legacy_decimal(
+        package.get("credits", package.get("sessions")), field=f"package {name}.credits"
+    )
+    if credits <= 0:
+        raise LegacyMigrationError(f"Legacy package {name!r} must have positive credits.")
+    price = parse_legacy_decimal(
+        package.get("price", package.get("priceAud", 0)),
+        field=f"package {name}.price",
+        default=Decimal("0"),
+    )
+    if price < 0:
+        raise LegacyMigrationError(f"Legacy package {name!r} has a negative price.")
+    price_aud_cents = int((price * 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+    expiry_raw = package.get("expiresAfterDays")
+    expires_after_days = None
+    if expiry_raw not in (None, ""):
+        try:
+            expires_after_days = int(expiry_raw)
+        except (TypeError, ValueError) as exc:
+            raise LegacyMigrationError(
+                f"Legacy package {name!r} has invalid expiresAfterDays."
+            ) from exc
+        if expires_after_days <= 0:
+            raise LegacyMigrationError(
+                f"Legacy package {name!r} must have positive expiresAfterDays."
+            )
     return {
+        "source_legacy_id": str(package.get("id") or "").strip(),
         "name": name,
         "credits": credits,
         "price_aud_cents": price_aud_cents,
-        "expires_after_days": package.get("expiresAfterDays") or None,
+        "expires_after_days": expires_after_days,
     }
 
 

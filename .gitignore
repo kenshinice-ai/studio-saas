@@ -39,6 +39,7 @@ checkpoints/
 
 # ── Local packaging artefacts ──
 *.zip
+achieve/
 
 # ── Local repair backups ──
 *.bak
