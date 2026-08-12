@@ -1884,6 +1884,15 @@
     .publish-review-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 13px; margin-bottom: 18px; }
     .publish-review-grid section { min-width: 0; padding: 13px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--bg2); }
     .publish-review-grid h4 { margin-bottom: 8px; font-size: 13px; }
+    /* The contract already knows whether a switched-on section has anything
+       to show. Saying so next to the switch is cheaper than letting an owner
+       publish, look at the site, and come back puzzled. */
+    .switch-state { flex: 0 1 auto; font-size: 12px; color: var(--muted); text-align: right; max-width: 30ch; }
+    .switch-state[data-tone="blocked"] { color: var(--on-warning-soft); }
+    .switch-state[data-tone="ready"] { color: var(--on-success-soft); }
+    .switch-pointer { color: var(--muted); font-size: 13px; margin: 0 0 8px; }
+    .link-button { background: none; border: 0; padding: 0; font: inherit; color: var(--info); text-decoration: underline; cursor: pointer; }
+    .link-button:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
     .readiness-list { display: grid; gap: 7px; color: var(--muted); font-size: 12px; }
     .readiness-list .ready { color: var(--on-success-soft); }
     .readiness-list .blocked { color: var(--on-warning-soft); }
@@ -2487,6 +2496,7 @@
                 <button type="button" id="tab-btn-hero" role="tab" aria-selected="false" aria-controls="tab-hero" tabindex="-1" class="workbench-nav-item" data-workbench-tab="hero">Hero &amp; actions</button>
                 <button type="button" id="tab-btn-website" role="tab" aria-selected="false" aria-controls="tab-website" tabindex="-1" class="workbench-nav-item" data-workbench-tab="website">Website sections</button>
                 <button type="button" id="tab-btn-about" role="tab" aria-selected="false" aria-controls="tab-about" tabindex="-1" class="workbench-nav-item" data-workbench-tab="about">Space &amp; experience</button>
+                <button type="button" id="tab-btn-principal" role="tab" aria-selected="false" aria-controls="tab-principal" tabindex="-1" class="workbench-nav-item" data-workbench-tab="principal">Principal</button>
                 <button type="button" id="tab-btn-showcase" role="tab" aria-selected="false" aria-controls="tab-showcase" tabindex="-1" class="workbench-nav-item" data-workbench-tab="showcase">Selected work</button>
                 <button type="button" id="tab-btn-faq" role="tab" aria-selected="false" aria-controls="tab-faq" tabindex="-1" class="workbench-nav-item" data-workbench-tab="faq">FAQ</button>
               </div>
@@ -2715,29 +2725,57 @@
                 <!-- One list of what the public site contains, rather than six
                      separate two-option dropdowns. Same six settings, same ids;
                      only the control changed. -->
+                <!-- Nine switches, one list. Three of them used to live in
+                     their own tabs, so there was nowhere to see what the public
+                     site contained without opening four panels. Each row also
+                     carries what the public surface contract says about it:
+                     wanting a section and having something to put in it are
+                     different questions, and only the second one is visible
+                     from outside. -->
                 <div class="switch-list">
                   <div class="switch-row">
-                    <label class="switch-label" for="settingShowPrincipal">Principal Section</label>
+                    <label class="switch-label" for="settingShowAbout">Show the space and experience on the website</label>
+                    <span class="switch-state" data-surface-state="about"></span>
+                    <input class="switch" id="settingShowAbout" type="checkbox">
+                  </div>
+                  <div class="switch-row">
+                    <label class="switch-label" for="settingShowPrincipal">Show the principal on the website</label>
+                    <span class="switch-state" data-surface-state="principal"></span>
                     <input class="switch" id="settingShowPrincipal" type="checkbox">
                   </div>
                   <div class="switch-row">
-                    <label class="switch-label" for="settingShowCourses">Courses Section</label>
+                    <label class="switch-label" for="settingShowShowcase">Show selected work on the website</label>
+                    <span class="switch-state" data-surface-state="showcase"></span>
+                    <input class="switch" id="settingShowShowcase" type="checkbox">
+                  </div>
+                  <div class="switch-row">
+                    <label class="switch-label" for="settingShowCourses">Show courses on the website</label>
+                    <span class="switch-state" data-surface-state="courses"></span>
                     <input class="switch" id="settingShowCourses" type="checkbox">
                   </div>
                   <div class="switch-row">
-                    <label class="switch-label" for="settingShowGallery">Gallery Section</label>
+                    <label class="switch-label" for="settingShowTimetable">Show the public timetable on the website</label>
+                    <span class="switch-state" data-surface-state="timetable"></span>
+                    <input class="switch" id="settingShowTimetable" type="checkbox">
+                  </div>
+                  <div class="switch-row">
+                    <label class="switch-label" for="settingShowGallery">Show student work on the website</label>
+                    <span class="switch-state" data-surface-state="gallery"></span>
                     <input class="switch" id="settingShowGallery" type="checkbox">
                   </div>
                   <div class="switch-row">
-                    <label class="switch-label" for="settingShowFaq">FAQ Section</label>
+                    <label class="switch-label" for="settingShowFaq">Show the FAQ on the website</label>
+                    <span class="switch-state" data-surface-state="faq"></span>
                     <input class="switch" id="settingShowFaq" type="checkbox">
                   </div>
                   <div class="switch-row">
-                    <label class="switch-label" for="settingShowContact">Contact Section</label>
+                    <label class="switch-label" for="settingShowContact">Show contact details on the website</label>
+                    <span class="switch-state" data-surface-state="contact"></span>
                     <input class="switch" id="settingShowContact" type="checkbox">
                   </div>
                   <div class="switch-row">
-                    <label class="switch-label" for="settingShowStudentArea">Student Area Section</label>
+                    <label class="switch-label" for="settingShowStudentArea">Show the student area on the website</label>
+                    <span class="switch-state" data-surface-state="student"></span>
                     <input class="switch" id="settingShowStudentArea" type="checkbox">
                   </div>
                 </div>
@@ -2776,6 +2814,22 @@
                     </div>
                   </div>
                 </details>
+              </div>
+            </div>
+
+            <!-- Its own panel. Nine fields about one person had been living
+                 inside a tab whose whole purpose is switches, while FAQ, the
+                 space, the work and the timetable each had a panel of their
+                 own. -->
+            <div id="tab-principal" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-principal" data-workbench-panel="principal">
+              <div class="panel-heading">
+                <div>
+                  <h3>Principal</h3>
+                  <p>Who teaches here. This is the section that answers "who am I trusting with my child", so it is worth writing properly — and the section stays hidden until there is a biography to show.</p>
+                </div>
+              </div>
+              <p class="switch-pointer">Shown on the website from <button type="button" class="link-button" data-goto-switch="settingShowPrincipal">Website sections</button>.</p>
+              <div class="form-grid">
                 <div class="form-group"><label for="settingPrincipalName">Principal Name</label><input id="settingPrincipalName" placeholder="Name shown on public page"><small>A person's name is never translated.</small></div>
                 <div class="form-group"><label for="settingPrincipalTitle">Principal Title · 中文</label><input id="settingPrincipalTitle" placeholder="创办人 / 主理人"></div>
                 <div class="form-group"><label for="settingPrincipalTitleEn">Principal Title · English</label><input id="settingPrincipalTitleEn" placeholder="Founder & Principal"></div>
@@ -2790,12 +2844,10 @@
 
             <div id="tab-about" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-about" data-workbench-panel="about">
               <div class="panel-heading">
-                <div><h3>Space and experience</h3><p>This public module follows the welcome message and appears before the principal. Use it for the place, atmosphere, process, or online experience—not for the principal biography.</p></div>
+                <div><h3>Space &amp; experience</h3><p>This public module follows the welcome message and appears before the principal. Use it for the place, atmosphere, process, or online experience—not for the principal biography.</p></div>
               </div>
               <div class="form-grid">
-                <div class="switch-list">
-                  <div class="switch-row"><label class="switch-label" for="settingShowAbout">Publish Space &amp; Experience</label><input class="switch" id="settingShowAbout" type="checkbox"></div>
-                </div>
+                <p class="switch-pointer" style="grid-column:1/-1;">Shown on the website from <button type="button" class="link-button" data-goto-switch="settingShowAbout">Website sections</button>. One switch, one place — two controls for one setting is one of them being wrong.</p>
                 <div class="readiness-note" id="aboutReadinessNote" role="status">Add a title, description, photo, or highlight before this module can appear publicly.</div>
                 <div class="form-group"><label for="settingAboutEyebrow">Eyebrow · 中文</label><input id="settingAboutEyebrow" placeholder="画室 · 空间"></div>
                 <div class="form-group"><label for="settingAboutEyebrowEn">Eyebrow · English</label><input id="settingAboutEyebrowEn" placeholder="The Studio · Space"></div>
@@ -2821,18 +2873,13 @@
                 </div>
               </div>
               <div class="form-grid">
-                <div class="switch-list">
-                  <div class="switch-row">
-                    <label class="switch-label" for="settingShowShowcase">Selected Work Section</label>
-                    <input class="switch" id="settingShowShowcase" type="checkbox">
-                  </div>
-                </div>
-                <div class="form-group"><label for="settingShowcaseLabel">Section Eyebrow · 中文</label><input id="settingShowcaseLabel" placeholder="工作室作品"></div>
-                <div class="form-group"><label for="settingShowcaseLabelEn">Section Eyebrow · English</label><input id="settingShowcaseLabelEn" placeholder="Selected Work"></div>
-                <div class="form-group"><label for="settingShowcaseTitle">Section Title · 中文</label><input id="settingShowcaseTitle" placeholder="出自这间画室"></div>
-                <div class="form-group"><label for="settingShowcaseTitleEn">Section Title · English</label><input id="settingShowcaseTitleEn" placeholder="Work from this studio"></div>
-                <div class="form-group" style="grid-column:1/-1;"><label for="settingShowcaseLead">Section Lead · 中文</label><input id="settingShowcaseLead" placeholder="一小组精选，由工作室自己挑的。"></div>
-                <div class="form-group" style="grid-column:1/-1;"><label for="settingShowcaseLeadEn">Section Lead · English</label><input id="settingShowcaseLeadEn" placeholder="A short selection, chosen by the studio."></div>
+                <p class="switch-pointer" style="grid-column:1/-1;">Shown on the website from <button type="button" class="link-button" data-goto-switch="settingShowShowcase">Website sections</button>.</p>
+                <div class="form-group"><label for="settingShowcaseLabel">Eyebrow · 中文</label><input id="settingShowcaseLabel" placeholder="工作室作品"></div>
+                <div class="form-group"><label for="settingShowcaseLabelEn">Eyebrow · English</label><input id="settingShowcaseLabelEn" placeholder="Selected Work"></div>
+                <div class="form-group"><label for="settingShowcaseTitle">Title · 中文</label><input id="settingShowcaseTitle" placeholder="出自这间画室"></div>
+                <div class="form-group"><label for="settingShowcaseTitleEn">Title · English</label><input id="settingShowcaseTitleEn" placeholder="Work from this studio"></div>
+                <div class="form-group" style="grid-column:1/-1;"><label for="settingShowcaseLead">Lead · 中文</label><input id="settingShowcaseLead" placeholder="一小组精选，由工作室自己挑的。"></div>
+                <div class="form-group" style="grid-column:1/-1;"><label for="settingShowcaseLeadEn">Lead · English</label><input id="settingShowcaseLeadEn" placeholder="A short selection, chosen by the studio."></div>
                 <div class="form-group" style="grid-column:1/-1;">
                   <label>Categories</label>
                   <small>Optional. Visitors get filter buttons once you have two or more. Deleting a category never deletes work — those pieces simply become uncategorised.</small>
@@ -2865,11 +2912,8 @@
                 </div>
               </div>
               <div class="form-grid">
+                <p class="switch-pointer" style="grid-column:1/-1;">The page is shown on the website from <button type="button" class="link-button" data-goto-switch="settingShowTimetable">Website sections</button>. Whether it takes requests is a separate decision, and it lives here.</p>
                 <div class="switch-list">
-                  <div class="switch-row">
-                    <label class="switch-label" for="settingShowTimetable">Public Timetable Page</label>
-                    <input class="switch" id="settingShowTimetable" type="checkbox">
-                  </div>
                   <div class="switch-row">
                     <label class="switch-label" for="settingShowTimetableBooking">Accept booking requests</label>
                     <input class="switch" id="settingShowTimetableBooking" type="checkbox">
@@ -2888,10 +2932,10 @@
                   </select>
                   <small>Also the booking window: a date a visitor cannot see is a date they cannot ask for. Deliberately one number rather than two — two would drift apart, and a parent would be the one to find out.</small>
                 </div>
-                <div class="form-group"><label for="settingTimetableLabel">Page Eyebrow · 中文</label><input id="settingTimetableLabel" placeholder="课程安排"></div>
-                <div class="form-group"><label for="settingTimetableLabelEn">Page Eyebrow · English</label><input id="settingTimetableLabelEn" placeholder="Timetable"></div>
-                <div class="form-group" style="grid-column:1/-1;"><label for="settingTimetableLead">Page Lead · 中文</label><input id="settingTimetableLead" placeholder="接下来两周的公开课程。"></div>
-                <div class="form-group" style="grid-column:1/-1;"><label for="settingTimetableLeadEn">Page Lead · English</label><input id="settingTimetableLeadEn" placeholder="Public classes over the next two weeks."></div>
+                <div class="form-group"><label for="settingTimetableLabel">Eyebrow · 中文</label><input id="settingTimetableLabel" placeholder="课程安排"></div>
+                <div class="form-group"><label for="settingTimetableLabelEn">Eyebrow · English</label><input id="settingTimetableLabelEn" placeholder="Timetable"></div>
+                <div class="form-group" style="grid-column:1/-1;"><label for="settingTimetableLead">Lead · 中文</label><input id="settingTimetableLead" placeholder="接下来两周的公开课程。"></div>
+                <div class="form-group" style="grid-column:1/-1;"><label for="settingTimetableLeadEn">Lead · English</label><input id="settingTimetableLeadEn" placeholder="Public classes over the next two weeks."></div>
                 <div class="form-group" style="grid-column:1/-1;">
                   <label>What each class shows</label>
                   <small>Switched off hides a field; switched on shows it <em>when there is something to show</em>. A class with no room recorded never prints an empty “Room”.</small>
@@ -3028,7 +3072,7 @@
             <div id="tab-advanced" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-advanced" data-workbench-panel="advanced">
               <div class="panel-heading">
                 <div>
-                  <h3>Preview and publish</h3>
+                  <h3>Preview &amp; publish</h3>
                   <p>Open real tenant pages after saving, or export operational data below.</p>
                 </div>
               </div>
@@ -5396,14 +5440,79 @@
       renderPublishReadiness(contract);
     }
 
+    /* The contract answers in identifiers because two implementations read it.
+       A studio owner reads sentences. `no_consented_student_work` is the one
+       that matters most: it is not a fault, it is a consent the studio has not
+       been given yet, and saying so stops the switch looking broken. */
+    const SURFACE_MODULE_NAMES = {
+      about: ['空间与体验', 'Space & experience'],
+      principal: ['主理人', 'Principal'],
+      showcase: ['工作室作品', 'Selected work'],
+      courses: ['课程', 'Courses'],
+      timetable: ['公开课表', 'Public timetable'],
+      gallery: ['学员作品', 'Student work'],
+      faq: ['常见问题', 'FAQ'],
+      contact: ['联系方式', 'Contact details'],
+      student: ['学员专区', 'Student area'],
+      register: ['报名', 'Registration'],
+    };
+    const SURFACE_REASONS = {
+      ready: ['已在网站上显示', 'Shown on the website'],
+      disabled_by_owner: ['已关闭', 'Switched off'],
+      no_content: ['还没有内容', 'Nothing to show yet'],
+      missing_content: ['还没有内容', 'Nothing to show yet'],
+      missing_about_content: ['还没有标题、正文或照片', 'No title, text or photo yet'],
+      no_published_courses: ['还没有已发布的课程', 'No published course yet'],
+      no_published_works: ['还没有已发布的作品', 'No published work yet'],
+      not_published: ['还没有发布', 'Not published yet'],
+      no_upcoming_classes: ['接下来这几周没有公开课', 'No public class in the weeks shown'],
+      no_consented_student_work: ['还没有学员同意公开作品', 'No student has agreed to show their work yet'],
+      no_faq_content: ['还没有问答', 'No question and answer yet'],
+      missing_contact_details: ['还没有填联系方式', 'No contact details yet'],
+      registration_unavailable: ['报名资料还不完整', 'The registration profile is incomplete'],
+    };
+    const SURFACE_NEXT_ACTIONS = {
+      complete_space_profile: ['补一个标题、一段正文或一张照片', 'Add a title, some text or a photo'],
+      add_principal_bio: ['写一段主理人简介', 'Write the principal a short introduction'],
+      publish_showcase_work: ['在「工作室作品」里发布一件作品', 'Publish a piece under Selected work'],
+      publish_course: ['在 CMS 里发布一门课程', 'Publish a course in the CMS'],
+      publish_timetable: ['在 CMS 里勾选要公开的课', 'Tick the classes to show, in the CMS'],
+      share_student_work: ['等学员同意后再公开', 'Wait until a student agrees'],
+      add_faq: ['写一条常见问题', 'Add a question and answer'],
+      add_contact_details: ['填一个电话、邮箱或地址', 'Add a phone, email or address'],
+      complete_registration_profile: ['把报名表填完整', 'Complete the registration form'],
+      review_in_studio_admin: ['', ''],
+    };
+
+    function surfaceStateSentence(module) {
+      if (!module) return ['状态未知', 'Status unknown'];
+      const reason = SURFACE_REASONS[module.reasonCode] || ['还不能显示', 'Not ready to show'];
+      if (module.visible || !module.intent) return reason;
+      const next = SURFACE_NEXT_ACTIONS[module.nextAction] || ['', ''];
+      if (!next[0]) return reason;
+      return [`${reason[0]} · ${next[0]}`, `${reason[1]} — ${next[1]}`];
+    }
+
+    function renderSurfaceSwitchStates(contract) {
+      document.querySelectorAll('[data-surface-state]').forEach((node) => {
+        const module = contract?.modules?.[node.dataset.surfaceState];
+        const sentence = surfaceStateSentence(module);
+        node.textContent = adminIsZh() ? sentence[0] : sentence[1];
+        node.dataset.tone = module?.visible ? 'ready' : module?.intent ? 'blocked' : 'off';
+      });
+    }
+
     function renderPublishReadiness(contract) {
+      renderSurfaceSwitchStates(contract);
       const box = $('publishReadinessList');
       if (!box) return;
       box.replaceChildren();
       Object.values(contract?.modules || {}).filter((module) => module.intent).forEach((module) => {
         const row = document.createElement('div');
         row.className = module.visible ? 'ready' : 'blocked';
-        row.textContent = `${module.visible ? '✓' : '△'} ${module.key} · ${module.reasonCode}`;
+        const name = SURFACE_MODULE_NAMES[module.key] || [module.key, module.key];
+        const sentence = surfaceStateSentence(module);
+        row.textContent = `${module.visible ? '✓' : '△'} ${adminIsZh() ? name[0] : name[1]} · ${adminIsZh() ? sentence[0] : sentence[1]}`;
         box.appendChild(row);
       });
     }
@@ -5833,7 +5942,7 @@
     }
 
     const WORKBENCH_TABS = Object.freeze([
-      'brand', 'hero', 'website', 'about', 'showcase', 'faq',
+      'brand', 'hero', 'website', 'about', 'principal', 'showcase', 'faq',
       'register', 'timetable', 'messages', 'advanced', 'analytics'
     ]);
 
@@ -6958,6 +7067,17 @@
       });
       document.addEventListener('click', (event) => {
         if (headerMenu.open && !headerMenu.contains(event.target)) headerMenu.open = false;
+      });
+      /* One switch lives in one place; the tabs that describe a module link to
+         it rather than growing a second control for the same setting. */
+      document.querySelectorAll('[data-goto-switch]').forEach((button) => {
+        button.addEventListener('click', () => {
+          switchWorkbenchTab('website');
+          const target = $(button.dataset.gotoSwitch);
+          if (!target) return;
+          target.focus({ preventScroll: false });
+          target.closest('.switch-row')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        });
       });
       $('saveDraftBtn').addEventListener('click', () => runUiAction('saveDraftBtn', 'Saving Draft...', saveDraft));
       $('publishSettingsBtn').addEventListener('click', () => runUiAction('publishSettingsBtn', 'Publishing...', publishSettings));
