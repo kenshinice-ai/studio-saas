@@ -4,22 +4,21 @@
 
 These are three independent facts. A matching version label is not proof that
 the current source tree was packaged or deployed; Source, Package and
-Production remain separate rows. The source tree is a v9.8.9 release candidate;
-package and production rows continue to record the last verified v9.8.8 facts
-until the corresponding milestones actually complete.
+Production remain separate rows. v9.8.9 completed all three milestones on
+12 August 2026; the rows below record the independent evidence.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v9.8.9 release candidate** | `VERSION` = **9.8.9** on `codex/v9.8.9-studio-admin-publish`; verification, packaging and Git publication are still pending. User-owned root-worktree changes remain outside this isolated release. |
-| Package | Clean SaaS and Edition v9.8.8 packages verified | SaaS `dist/PWE-StudioSaaS-aws-9.8.8.tar.gz` SHA-256 `1d6fc1760993864c681c8f9cb5e58eac303acdb65573ba98978181f226ee3da7`; Edition `dist/PWE-Studio-Edition-9.8.8.tar.gz` SHA-256 `0a75bf66059da97dc91b450933bd2a44e48200b7dda17030b62baa22ec1cd3b6`; both `BUILD_INFO` records point to `4b436e1` and passed bundle checks. |
-| Production | **v9.8.8 deployed to `pwestudio.online`** | The deployed source commit is `4b436e1e2df0717b7efb01d5e7d4021a6cc23860`; `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.8.8`; image `studiosaas:9.8.8`; deep health reports `appVersion=9.8.8`, `db=ok`, `mode=saas`, `tenants=6`, `themes.unreadable=0`; disk free `46.06 GB`; HTTP→HTTPS `301`, HTTPS `200`, TLS check `0`, HTTP/2. |
+| Source | **v9.8.9 pushed** | `VERSION` = **9.8.9**; release commit `2411ec6fc52334dcf65884060a6fc9a5f50fab0f` on `codex/v9.8.9-studio-admin-publish`. User-owned root-worktree changes remain outside this isolated release. |
+| Package | Clean SaaS and Edition v9.8.9 packages verified | SaaS `dist/PWE-StudioSaaS-aws-9.8.9.tar.gz` SHA-256 `c6aee22bd60321d33cccfb793dc4ddbf082ff8240e8904b340ef172368c64675`; Edition `dist/PWE-Studio-Edition-9.8.9.tar.gz` SHA-256 `9bd1d37f374f86e2977081893b9c9243fac49818b1f734195800740ccfa57b0d`; both `BUILD_INFO` records point to `2411ec6` and passed checksum, mode, entrypoint and exclusion checks. |
+| Production | **v9.8.9 deployed to `pwestudio.online`** | `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.8.9`; image `studiosaas:9.8.9`; deep health reports `appVersion=9.8.9`, `db=ok`, `mode=saas`, `tenants=6`, `themes.unreadable=0`; disk free about `46.1 GB`; HTTP→HTTPS `301`, HTTPS `200`, TLS check `0`, HTTP/2. |
 
 Re-verify the production health endpoint before any later release claim; do not
 infer Production from `VERSION` or from an archive filename, which does not identify the deployed commit.
 
-## v9.8.9 candidate scope
+## v9.8.9 released scope
 
-This candidate makes Studio Admin’s public editing and publishing model
+This release makes Studio Admin’s public editing and publishing model
 truthful end to end. The Hero secondary action has an explicit destination
 contract and hides when its chosen target is not ready. Space & Experience is
 a dedicated editor with six preserved highlights, ordered images, bilingual
