@@ -2643,7 +2643,7 @@
                     <div class="form-group"><label for="settingName">Studio Name</label><input id="settingName" aria-describedby="settingNameError"><span id="settingNameError" class="field-error" hidden></span></div>
                     <div class="form-group"><label for="settingSlogan">Slogan · 中文</label><input id="settingSlogan" placeholder="公开品牌标语"></div>
                     <div class="form-group"><label for="settingSloganEn">Slogan · English</label><input id="settingSloganEn" placeholder="Public brand slogan"></div>
-                    <div class="form-group"><label for="settingLogoUrl">Logo URL</label><input id="settingLogoUrl" placeholder="https://..." aria-describedby="settingLogoUrlError"><span id="settingLogoUrlError" class="field-error" hidden></span></div>
+                    <div class="form-group"><label for="settingLogoUrl">Logo URL</label><input id="settingLogoUrl" placeholder="https://..." data-i18n-lock aria-describedby="settingLogoUrlError"><span id="settingLogoUrlError" class="field-error" hidden></span></div>
                     <div class="form-group"><label for="settingLogoFile">Upload Logo</label><input id="settingLogoFile" type="file" accept="image/*"></div>
                     <div class="form-group"><label for="settingPlan">Plan</label><select id="settingPlan" disabled></select><small>Managed by StudioSaaS Super Admin.</small></div>
                     <!-- Contact details, welcome copy and CMS layout are set
@@ -3120,7 +3120,7 @@
                   <span class="preview-control-label">Language</span>
                   <div class="device-tabs">
                     <button type="button" class="device-tab active" data-preview-language="zh" aria-pressed="true">中文</button>
-                    <button type="button" class="device-tab" data-preview-language="en" aria-pressed="false">EN</button>
+                    <button type="button" class="device-tab" data-preview-language="en" aria-pressed="false" data-no-translate>EN</button>
                   </div>
                 </div>
                 <div class="preview-control-group" role="group" aria-label="Preview device">
@@ -3192,7 +3192,7 @@
 
   <footer class="tenant-footer">
     © 2026 <span id="studioFooterName">Studio</span>
-    <span id="studioProducerCredit" hidden> · Powered by Paradise Production</span>
+    <span id="studioProducerCredit" hidden data-no-translate> · Powered by Paradise Production</span>
   </footer>
 
   <!-- Modal for Add/Edit -->
