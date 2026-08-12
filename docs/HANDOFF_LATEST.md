@@ -1,3 +1,87 @@
+# 📋 公开表面 UX 审计 + slug 改名方案（对照 v9.8.10）— 方案，未改代码
+
+> **这一节不是发布记录。** 本轮只产出两份设计文档，**没有改动任何运行代码**，
+> 也没有打包或部署。生产仍是 v9.8.10（`codex/v9.8.10-public-shell`，commit `d8c11da`）。
+> 下面的发布账本从 v9.8.10 起，全部是既有事实，未被本节修改。
+
+**日期**：2026-08-12 · **分支**：`claude/ui-ux-pro-max-audit-073a82`（docs-only）
+
+## 产出
+
+| 文档 | 内容 |
+|---|---|
+| [docs/design/Public_Surface_UX_Audit_v9.8.10.md](design/Public_Surface_UX_Audit_v9.8.10.md) | 公开页导航/页脚/文案 + Studio Admin 链路审计，分 P0/P1/P2 与六个批次 |
+| [docs/design/Tenant_Slug_Rename.md](design/Tenant_Slug_Rename.md) | 工作室地址（slug）改名的完整设计：别名表、301、一年一次、Super Admin 双钥确认 |
+
+## 需要先知道的两件事实
+
+1. **`main` 落后生产 4 个提交**（`main` = 9.8.8，生产 = 9.8.10），且 `main` 是
+   `codex/v9.8.10-public-shell` 的严格祖先（`rev-list --left-right --count` = `0 4`），
+   可以直接 fast-forward。本分支已 fast-forward 到 `codex/v9.8.10-public-shell`
+   （commit `9c53d58`），审计文档与本节追加在该基线之上。
+2. **本分支未登录 Studio Admin**（不处理明文密码）。后台结论来自源码与生产下发的静态 HTML，
+   **未验证实际交互**；移动端菜单只验证了存在性。
+
+## 审计结论摘要（证据见文档）
+
+**P0 · 现在就在坏**
+
+| # | 问题 | 关键证据 |
+|---|---|---|
+| P0-1 | 首页带任何 query 时，导航内链退化为整页刷新并吞掉 `?lang=` / `?utm_*` | `hrefForPage()` 无条件加 slug 前缀且不带 search；实测 `sameDoc=false` |
+| P0-2 | 四个公开页不是同一套导航和页脚；**报名页完全没有导航栏与移动菜单** | id 覆盖表：`footFaq` 只在首页，`footContact` 只在作品页/课表页 |
+| P0-3 | 导航标签无长度约束，且与版块标题共用同一字段 | Ruby 全开时 `.navlinks` 宽 1008px、高 76px（导航条 75px）；`navPrimaryCta` 的 `padding: 4px 0px` |
+| P0-4 | **改名不生效**：`<title>` 与 `meta description` 仍是旧店名 | 线上原始 HTML 是 `Ruby's Studio`，API 是 `Mellow Pear Studio`；`regenerate_tenant_workspaces.py` 明写 "the database is not touched"，`ensure_tenant_workspace()` 全库只有建租户一个调用点 |
+
+**P1 · Studio Admin 文案与信息架构**
+
+- 「发布」一词两义：开关 `Publish Space & Experience`（只写草稿）vs 保存栏 `Publish`（真正上线）
+- 同一种开关五种标签语法；同三个字段四套词汇；模块名有三个写法
+- 9 个「要不要公开」的开关散在 4 个 tab；服务端已返回的 `reasonCode`/`nextAction` 前台完全没用
+- **中文缺 19%**：293 条可见英文串里 57 条无译文；发布状态机 23 条里漏 6 条，
+  含最要紧的 pending 解释句。机制是「按英文原文查表」，新增文案默认漏译且无门禁
+
+**P2 · 视觉与交互**：CTA 无横向 padding、语言开关贴着 CTA、次要 CTA 像禁用态、
+`%WORK%` 占位符暴露给店主、两处死 id、`aria-current` 清理逻辑在首页恒真、
+**首页契约失败分支既不 `clearLoading()` 也不本地兜底**（另外三页都做了），且缺 `surfaceSettled` 门闩——
+这是肉眼「导航闪变/失效」的直接来源。
+
+## 建议批次
+
+| 批次 | 内容 | 估时 |
+|---|---|---|
+| 一 | P0-1 + P2-8 首页兜底与门闩 + CTA padding + 死 id / `aria-current` | ~4h |
+| 二 | P0-4 改名回写工作区 + title/description 服务端注入 + `tenant.json` 一致性断言 | ~4h |
+| 三 | P0-2 公共 shell 统一（报名页补导航）+ P0-3 导航标签拆字段与降级 | ~8h |
+| 四 | P1-1/2/3 术语与信息架构统一 | ~6h |
+| 五 | P1-4 补 63 条中文 + i18n 覆盖门禁 | ~4h |
+| 六 | slug 改名能力（见 Tenant_Slug_Rename.md） | ~10h |
+
+建议一、二先合成一个小版本发出去：两批全部是回归修复，风险最低、见效最快。
+
+## slug 改名方案要点
+
+- **slug 只增不改**：新增 `tenant_slug_aliases`（slug 为主键，即「平台上用过的每一个地址」的注册表），
+  旧地址永久保留并 **301** 到新地址。**slug 永不回收**，包括已删除租户的（`ON DELETE SET NULL` + 墓碑 → 410）。
+- **一个租户任一时刻只有一个当前地址**：部分唯一索引 `WHERE is_current` 在数据库层保证，
+  与 `class_bookings` 的幂等索引同一个惯用法。
+- **一年只能改一次**：`tenants.slug_changed_at` + 365 天冷却，**产品内无覆盖开关**；
+  紧急情况由运维直接改数据库——刻意让例外离开界面。
+- **仅 Super Admin**，独立端点 `PATCH /v1/admin/tenants/<id>/slug`，
+  复用既有两套确认惯例：双钥（`confirmSlugChange` + `tenantNotificationAcknowledged` → 409 + 影响预览）
+  和「原样键入当前 slug」二次确认。
+- **最容易做错的一点**：301 判断必须发生在**文件系统查找之前**——
+  否则改名后残留的旧目录会被直接发出去，301 永不触发。
+- **时序**：复制目录 → DB 事务 → 重渲染 → **延后**清理旧目录。唯一不可逆的一步不放在请求里。
+- 第 3 步的「重渲染工作区」与 P0-4 的「改名回写」是同一个动作，**合并实现、一起测**。
+
+## 下一步
+
+等确认后从批次一开工。批次六建议按文档 §11 的五步走，
+其中第 2 步（别名解析 + 301，此时尚无任何别名）先单独上线观察，
+把唯一会静默出错的路由顺序放在没有真实流量依赖它的时候验证。
+
+---
 # PWE Studio v9.8.10 — public shell and honest publication-status production closure
 
 > 当前阶段：v9.8.10 已完成源码、验证、提交、推送、双模式打包、生产备份、部署和公网验收。本节记录本轮最终证据；后续文档闭环只更新发布账本，不改变已运行的 v9.8.10 包。
