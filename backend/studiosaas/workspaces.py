@@ -76,8 +76,35 @@ def validate_tenant_slug(slug: str) -> None:
         raise WorkspaceError(f"Tenant slug '{slug}' is reserved.")
 
 
-def ensure_tenant_workspace(app_root: str | Path, slug: str, name: str) -> str:
+DEFAULT_HEAD_DESCRIPTION = "{name} — 课程报名、学员课时与记录查询。"
+
+
+def head_values(name: str, head: dict | None = None) -> dict:
+    """Resolve the <head> strings a crawler sees, with the same rules as the page.
+
+    The portal's own JavaScript composes title and description from the SEO
+    override, then the hero subtitle, then the slogan. A crawler that does not
+    run scripts sees only what is written into the file, so the two have to
+    agree; this is where the file side is decided.
+    """
+
+    supplied = dict(head or {})
+    title = str(supplied.get("title") or "").strip() or name
+    description = str(supplied.get("description") or "").strip()
+    if not description:
+        description = DEFAULT_HEAD_DESCRIPTION.format(name=name)
+    return {"title": title, "description": description[:200]}
+
+
+def ensure_tenant_workspace(
+    app_root: str | Path, slug: str, name: str, head: dict | None = None
+) -> str:
     """Create or refresh the filesystem workspace for one tenant.
+
+    Called on every publish, not only at creation. A studio that renamed itself
+    used to keep its old name in <title>, in the social-preview tags and in the
+    structured data for as long as the workspace was never rewritten — which
+    was forever, because nothing rewrote it.
 
     Returns:
         Relative workspace path, for storing on the tenant record.
@@ -92,10 +119,13 @@ def ensure_tenant_workspace(app_root: str | Path, slug: str, name: str) -> str:
         raise WorkspaceError(f"Tenant template directory is missing: {template_dir}")
 
     workspace_dir.mkdir(parents=True, exist_ok=True)
+    resolved_head = head_values(name, head)
     replacements = {
         "{{TENANT_SLUG}}": slug,
         "{{TENANT_NAME}}": escape(name, quote=True),
         "{{TENANT_NAME_JSON}}": json.dumps(name, ensure_ascii=False),
+        "{{TENANT_HEAD_TITLE}}": escape(resolved_head["title"], quote=True),
+        "{{TENANT_HEAD_DESCRIPTION}}": escape(resolved_head["description"], quote=True),
     }
     # Hand-customised workspace files (e.g. a bespoke portal) list themselves
     # in tenants/<slug>/.keep-local, one filename per line; those are never
@@ -118,9 +148,12 @@ def ensure_tenant_workspace(app_root: str | Path, slug: str, name: str) -> str:
             content = content.replace(token, value)
         _atomic_write_text(workspace_dir / template_file.name, content)
 
+    # The head strings live here too, so a boot-time regeneration — which never
+    # touches the database — cannot quietly reset them to the studio's name.
     metadata = {
         "slug": slug,
         "name": name,
+        "head": resolved_head,
         "workspace_path": f"tenants/{slug}",
     }
     _atomic_write_text(

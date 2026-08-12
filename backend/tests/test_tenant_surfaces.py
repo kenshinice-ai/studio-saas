@@ -55,9 +55,16 @@ def test_new_tenant_workspace_generates_public_surface_files(tmp_path):
     assert (workspace / "showcase.html").is_file()
 
     metadata = json.loads((workspace / "tenant.json").read_text(encoding="utf-8"))
+    # `head` is stored rather than recomputed because the boot-time regeneration
+    # deliberately never reads the database; without it, every restart would
+    # reset a published SEO title back to the studio's name.
     assert metadata == {
         "slug": "new-music-studio",
         "name": "New Music Studio",
+        "head": {
+            "title": "New Music Studio",
+            "description": "New Music Studio — 课程报名、学员课时与记录查询。",
+        },
         "workspace_path": "tenants/new-music-studio",
     }
     for filename in ("index.html", "register.html", "studio-admin.html", "timetable.html", "showcase.html"):

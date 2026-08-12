@@ -17,7 +17,7 @@ import hashlib
 import uuid as _uuid
 from urllib.parse import quote
 from datetime import date as _date, datetime as _datetime, timedelta as _timedelta, timezone as _timezone
-from pathlib import PurePath
+from pathlib import Path, PurePath
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import csv as _csv
@@ -2735,13 +2735,56 @@ def _find_pending_registration(cur, *, tenant_id: str, first_name: str, last_nam
     return cur.fetchone()
 
 
-def _workspace_for(slug: str, name: str) -> str:
+def _workspace_for(slug: str, name: str, head: dict | None = None) -> str:
     """Create tenant workspace files and return the relative path."""
 
     try:
-        return ensure_tenant_workspace(current_app.config["PROJECT_ROOT"], slug, name)
+        return ensure_tenant_workspace(current_app.config["PROJECT_ROOT"], slug, name, head)
     except WorkspaceError as exc:
         raise ValueError(str(exc)) from exc
+
+
+def _pick_pair(value: object) -> str:
+    """Read one string out of a {"zh", "en"} pair, Chinese first."""
+
+    if isinstance(value, dict):
+        return str(value.get("zh") or value.get("en") or "").strip()
+    return str(value or "").strip()
+
+
+def _tenant_head(name: str, settings: dict) -> dict:
+    """Compose the <head> title and description a crawler will be served.
+
+    This mirrors ``applySeo`` in the portal exactly — SEO override, then hero
+    subtitle, then slogan. The page has always computed these in the browser;
+    a link unfurler or a search crawler that runs no scripts was reading the
+    file, which said whatever the studio was called on the day it was created.
+    """
+
+    website = settings.get("website_profile") or {}
+    hero = settings.get("hero_profile") or {}
+    title = _pick_pair(website.get("seo_title"))
+    description = (
+        _pick_pair(website.get("seo_description"))
+        or _pick_pair(hero.get("subtitle"))
+        or _pick_pair(settings.get("slogan"))
+    )
+    return {"title": title or name, "description": description}
+
+
+def _refresh_tenant_workspace(slug: str, name: str, settings: dict) -> None:
+    """Re-render the public shell so it agrees with what was just published.
+
+    Publishing used to leave these files untouched, so the only way a renamed
+    studio could reach its own <title> was to create a new tenant. A failure
+    here must not fail the publish that already committed: the page still
+    renders the new name from /brand, only the served source lags.
+    """
+
+    try:
+        _workspace_for(slug, name, _tenant_head(name, settings))
+    except (ValueError, OSError) as exc:  # pragma: no cover - filesystem edge
+        current_app.logger.warning("Tenant workspace refresh failed for %s: %s", slug, exc)
 
 
 @api_v1.route("/health", methods=["GET"])
@@ -2789,6 +2832,7 @@ def health():
             with connect() as conn:
                 fetch_one(conn, "SELECT 1 AS ok", ())
                 body["themes"] = _theme_drift(conn)
+                body["workspaces"] = _workspace_drift(conn)
             body["db"] = "ok"
         except Exception:
             body["ok"] = False
@@ -2836,6 +2880,48 @@ def _theme_drift(conn) -> dict:
         "unreadable": len(unreadable),
         "examples": unreadable[:5],
         "status": "drifted" if unreadable else "ok",
+    }
+
+
+def _workspace_drift(conn) -> dict:
+    """How many live tenants are served a name they no longer call themselves.
+
+    The public shell is materialised: `tenants/<slug>/index.html` carries the
+    studio's name in <title>, in the social-preview tags and in the structured
+    data. Nothing rewrote those files after creation, so a studio that renamed
+    itself kept serving its old name to every crawler and link unfurler while
+    the page itself — which asks /brand — looked correct to a human.
+
+    Reported, never fatal, for the same reason as theme drift: a stale file is
+    not a reason to restart a container that answers every request. It is a
+    reason for a deploy to stop, and for this number to be visible.
+    """
+
+    rows = fetch_all(
+        conn,
+        "SELECT slug, name FROM tenants "
+        "WHERE status <> 'deleted' AND archived_at IS NULL ORDER BY slug LIMIT 200",
+        (),
+    )
+    root = Path(current_app.config["PROJECT_ROOT"]) / "tenants"
+    stale = []
+    for row in rows:
+        meta_path = root / str(row["slug"]) / "tenant.json"
+        if not meta_path.is_file():
+            stale.append({"slug": row["slug"], "reason": "workspace missing"})
+            continue
+        try:
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as error:
+            stale.append({"slug": row["slug"], "reason": str(error)[:120]})
+            continue
+        if str(meta.get("name") or "") != str(row["name"] or ""):
+            stale.append({"slug": row["slug"], "reason": "name differs from the database"})
+    return {
+        "tenants": len(rows),
+        "stale": len(stale),
+        "examples": stale[:5],
+        "status": "drifted" if stale else "ok",
     }
 
 
@@ -3430,6 +3516,9 @@ def update_tenant():
         )
         conn.commit()
         row = _tenant_response(conn)
+    # After the commit, so a filesystem problem can never roll back a publish
+    # that the version ledger has already recorded.
+    _refresh_tenant_workspace(tenant.slug, _clean_text(payload, "name", current["name"]), current_settings)
     return jsonify({"tenant": row, "publishedVersion": next_version})
 
 
