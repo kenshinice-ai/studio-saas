@@ -4,39 +4,62 @@
 
 These are three independent facts. A matching version label is not proof that
 the current source tree was packaged or deployed; Source, Package and
-Production remain separate rows. v9.8.10 completed all three milestones on
-12 August 2026; the rows below record the independent evidence.
+Production remain separate rows. v9.9.0 is in release; each row below is
+updated only when that milestone has actually been verified.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v9.8.10 pushed** | `VERSION` = **9.8.10**; release commit `d8c11daa703c5080578931c723385e0ab79e87df` on `codex/v9.8.10-public-shell`, pushed to `origin`. User-owned root-worktree changes remain outside this isolated release. |
-| Package | Clean SaaS and Edition v9.8.10 packages verified | SaaS `dist/PWE-StudioSaaS-aws-9.8.10.tar.gz` SHA-256 `03cde6a4816308b5249ab270c12aee10b591b9140165d021dfd3963e04dcae1f`; Edition `dist/PWE-Studio-Edition-9.8.10.tar.gz` SHA-256 `d51d2cfd73c529465c8d58041bde8faf3f64bb42128faa96d3690514882074fa`; both `BUILD_INFO` records point to `d8c11daa` and passed checksum, mode, entrypoint and exclusion checks. |
-| Production | **v9.8.10 deployed to `pwestudio.online`** | `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.8.10`; image `studiosaas:9.8.10`; deep health reports `appVersion=9.8.10`, `db=ok`, `mode=saas`, `tenants=6`, `themes.unreadable=0`; disk free about `46.08 GB`; HTTP→HTTPS `301`, HTTPS `200`, TLS check `0`, HTTP/2. |
+| Source | **v9.9.0 in release** | `VERSION` = **9.9.0**; branch `claude/ui-ux-pro-max-audit-073a82`. Not yet pushed at the time of writing. |
+| Package | Not built yet | No `dist/PWE-StudioSaaS-aws-9.9.0.tar.gz` recorded. |
+| Production | **still v9.8.10** | `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.8.10`. Deploy has not run. |
 
-Re-verify the production health endpoint before any later release claim; do not
-infer Production from `VERSION` or from an archive filename, which does not identify the deployed commit.
+Re-verify the production health endpoint (`/v1/health?deep=1`) before any later
+release claim; do not infer Production from `VERSION` or from an archive
+filename, which does not identify the deployed commit. The
+deployed source commit is recorded in the Source row above and in the latest
+handoff, never inferred from the version label.
 
-## v9.8.10 released scope
+## v9.9.0 release scope
 
-This release makes the public shell and publication status server-authoritative.
-Studio Admin now reads the publication ledger instead of deep-comparing a
-browser snapshot of `websiteProfile`; successful writes, pending public
-projection and invalid records use structured bilingual status codes. The
-portal, standalone showcase, timetable and registration page consume contract
-v3 with localized labels, shared navigation/footer/actions and safe hash-link
-resolution on standalone pages.
+Six batches, all of them things that were already wrong rather than things
+that were missing.
 
-Public footer links to staff CMS and Studio Admin were removed. Existing tenant
-workspaces were regenerated from the updated templates, and industry tokens
-`%WORK%`, `%WORKS%` and `%VENUE%` are resolved before labels reach visitors.
-The release keeps the existing Vanilla HTML/CSS runtime, tenant data model,
-featured-rank ordering, plan-safe content retention and 6/12 showcase paging.
+**Navigation.** A hash link was rewritten to name the tenant home page on every
+page including the home page, where the result differed from the current URL
+by more than its fragment whenever the visit carried a query — so every nav
+click from an advertisement was a full reload that also dropped `?lang=` and
+every `utm_*`. The timetable page never declared its slug, so the rewrite it
+depends on did nothing there. The home page's contract-failure branch reached
+neither `apply()` nor the local fallback, leaving the header behind the loading
+mask for the life of the page.
 
-The deployed source commit is `d8c11daa703c5080578931c723385e0ab79e87df`.
-Production created the logical backup
-`studiosaas_studiosaas_20260812T104121Z.dump` with its manifest and the volume
-archive `pwestudio-volumes-20260812T104122Z.tar.gz` before switching; v9.8.9
-and v9.8.8 remain available as retained release directories.
+**A renamed studio's name.** `tenants/<slug>/` is materialised and carried the
+studio's name into `<title>`, the social-preview tags and the structured data
+at creation; nothing rewrote it afterwards. Publishing now re-renders the
+workspace, and the head strings are composed server-side with the same
+precedence the portal uses in the browser.
+
+**One shell.** The four public pages kept four hand-maintained copies of the
+header and footer entry lists, which had drifted in three places. The entries
+live in shared partials spliced in at generation. Nav labels are clipped in the
+contract — one studio's English course label is 74 characters — with a parity
+test between the two implementations of the rule.
+
+**Studio Admin.** `Publish` had two meanings, one of which only saved a draft.
+Nine "is this public" switches lived across four panels. The contract's reason
+codes were printed to owners as identifiers. Three fields had four names.
+
+**Chinese.** Sixty-eight visible strings had no translation, including the one
+shown when a publish is still being confirmed. A coverage gate now mirrors what
+the runtime walks.
+
+**Public addresses.** `tenant_slug_aliases` records every address the platform
+has issued. A studio can change its address once a year, from Platform Admin,
+with the old one 301ing forever; addresses are never reissued, and a deleted
+studio's leaves a tombstone that answers 410.
+
+New migration: `0031_tenant_slug_aliases.sql`. No change to plan limits,
+payment capability or the tenant data model.
 
 ## v9.8.9 released scope
 
