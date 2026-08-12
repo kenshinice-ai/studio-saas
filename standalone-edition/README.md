@@ -1,7 +1,7 @@
 # PWE Studio Edition（单店独立版）· 方案
 
-> **状态：✅ v8.1.0 可交付基线（2026-07-31），方案 A，定价已拍板。**
-> 基于 StudioSaaS v8.1.0。产品名：**PWE Studio Edition**。
+> **状态：✅ v9.8.9 可交付基线（2026-08-12），方案 A，定价已拍板。**
+> 基于 StudioSaaS v9.8.9。产品名：**PWE Studio Edition**。
 
 ---
 
@@ -36,19 +36,18 @@ Admin）作为**独立软件包**整体交付给客户，部署在客户自己�
 | 数据归属 | 平台库中一租户 | **客户自己的独立数据库** |
 | 更新方式 | 平台统一发布 | 发布包交付，维护协议内代装 |
 
-## 3. 技术路线选型（三选一，推荐 A）
+## 3. 技术路线（已确定）
 
-### 方案 A（推荐）：同一代码库 + `STUDIOSAAS_MODE=standalone` 运行模式
-同一仓库、同一发布流程，新增一个运行模式开关：
+### 当前交付方案：同一代码库 + `STUDIOSAAS_MODE=standalone`
+同一仓库、同一发布流程，通过 standalone 运行模式交付：
 - 启动时要求库中**恰好一个 active 租户**（安装脚本创建），否则拒绝启动；
 - `/platform-admin`、`/super-admin`、`/v1/admin/*`、`/v1/plans*` 写路径全部 404/关闭；
 - 平台成员（tenant_id IS NULL 的 super_admin）不允许存在；
 - plan 限制读取为无限（或安装时写入一个 unlimited plan 行）；
 - 根路径 `/` 直接跳转到该租户门户（而非 super-admin）。
 
-优点：**一套代码两种形态**，SaaS 的每个修复/功能独立版天然继承，打包
-沿用 `build_aws_bundle.sh` 加模式参数；工作量最小（预计一个中型轮次）。
-风险：模式开关的测试面要补（独立版专属 isolation 检查）。
+当前状态：独立版启动不变量、平台面关闭、租户边界、导入校验、升级回滚和
+独立版打包验证均已实现；每次交付仍必须以正式 Edition 包和交付日验收为准。
 
 ### 方案 B：fork 出精简代码库
 删掉平台面后单独维护。优点是包更小；缺点是**双份维护成本随时间线性
@@ -66,6 +65,7 @@ JSON 文件形态：无角色权限、无审计、无门户/品牌系统，已�
 | [REQUIREMENTS.md](REQUIREMENTS.md) | 必须环境：硬件/系统/依赖/网络/域名 |
 | [DATABASE.md](DATABASE.md) | 独立数据库、平台→独立的数据迁移路径 |
 | [DEPLOYMENT.md](DEPLOYMENT.md) | 部署方式（Docker 主路径 + 裸机备选）、更新与回滚 |
+| [DEPLOYMENT_PLAN.md](DEPLOYMENT_PLAN.md) | 面向客户与实施人员的完整部署方案、前提、安装和签收清单 |
 | [COMMERCIAL.md](COMMERCIAL.md) | 收费结构、交付边界、维护协议档位 |
 | [RUNBOOK.md](RUNBOOK.md) | **实施工程师**交付日手册（安装/TLS/备份/验收/交接/回滚） |
 | [OPERATIONS.md](OPERATIONS.md) | **客户版**操作手册（备份自查、恢复、故障自查、更新、联系方式） |
@@ -98,15 +98,15 @@ STUDIOSAAS_SHOW_PRODUCER_CREDIT=0
 除明确的 `0/false/no/off` 与 `1/true/yes/on` 外，其他值会让配置校验失败，
 不会静默猜测。
 
-## 6. 实现与 v8.0.1 交付收口（已完成，2026-07-29）
+## 6. v9.8.9 Edition 交付基线（已完成）
 
 1. ✅ 后端 `STUDIOSAAS_MODE=standalone` 开关 + 启动校验 + 路由关闭
    —— `config.is_standalone()`（每次读环境，不缓存）、`server` 启动不变量
    （恰一 active 租户 + 零平台成员，安装器可用 `STUDIOSAAS_SKIP_STANDALONE_CHECKS=1`
    越过首次引导）、`api_v1` 前置钩子关掉 `/v1/admin/*` 与套餐写路径、
    `/` 跳单租户门户、plan 限额中性化、两个 seed 脚本拒绝执行。
-   v7.7.8 进一步要求数据库**总共恰好一个租户且必须 active**，并禁止
-   任何 `tenant_id IS NULL` 平台成员，不再只检查 active 记录。
+   当前版本要求数据库**总共恰好一个租户且必须 active**，并禁止任何
+   `tenant_id IS NULL` 平台成员，不再只检查 active 记录。
 2. ✅ `standalone-edition/install.sh` 安装向导（Docker 一条命令，含首次引导、
    `/etc/pwe-studio` secrets、`/var/lib/pwe-studio` 数据库备份、root cron、
    运维 wrapper、TLS 命令打印、验收清单回显、`--force-reinstall` 二次确认）
@@ -114,8 +114,8 @@ STUDIOSAAS_SHOW_PRODUCER_CREDIT=0
    `tenant_archive.SNAPSHOT_TABLES` 单一清单）→ `tools/import_tenant_bundle.py`
    （可信整包 SHA-256、数据库与媒体逐文件哈希、空库前置、剔平台成员、
    重置密码、账本双向对账）
-4. ✅ 独立版专属 isolation 检查组（`backend/test_tenant_isolation.py`，
-   **15 项**，总数 201 → **216**）+ 打包脚本 `--edition` 参数
+4. ✅ 独立版专属 isolation 检查组（`backend/test_standalone_mode.py`、
+   `backend/test_tenant_isolation.py`）+ 打包脚本 `--edition` 参数
    （`deploy/aws/build_aws_bundle.sh`，产物 `PWE-Studio-Edition-<ver>.tar.gz`，
    `BUILD_INFO` 记 `mode=standalone`）
 5. ✅ `upgrade.sh` 使用稳定 `releases/shared/current` 边界，升级前备份，
@@ -125,9 +125,9 @@ STUDIOSAAS_SHOW_PRODUCER_CREDIT=0
    [OPERATIONS.md](OPERATIONS.md)（工作室负责人）+ 学员导入模板
    [templates/](templates/)（CSV 模板 + 转换器，转换即用服务端同一函数校验）
 
-> **用户明确延后（v7.7.8）**：媒体文件的独立备份自动化暂不实施。
-> PostgreSQL 每日备份已经闭环；媒体 Docker volume 会在应用升级中保留，
-> 但不能视为服务器故障后的可恢复副本。
+> **当前交付边界**：媒体文件的独立备份自动化和默认异地副本暂不包含在标准
+> Edition 安装中。PostgreSQL 每日备份已经闭环；媒体 Docker volume 会在
+> 应用升级中保留，但不能视为服务器故障后的可恢复副本。
 
 **端到端实测**（scratch PostgreSQL 库，两条数据路径 + 三个负例）：
 

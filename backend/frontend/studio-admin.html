@@ -1358,6 +1358,15 @@
                        border: 0; cursor: pointer; font-size: 15px; line-height: 1;
                        color: var(--on-accent); background: color-mix(in srgb, var(--ink) 72%, transparent); }
     .img-chip button:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+    .about-media-card { position: relative; display: grid; grid-template-columns: 88px minmax(0,1fr); gap: 8px 12px; width: min(100%, 340px); padding: 10px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--bg2); }
+    .about-media-card > img { grid-row: span 4; width: 88px; height: 108px; object-fit: cover; border-radius: var(--radius); }
+    .about-media-card > strong { font-size: 12px; color: var(--ink); }
+    .about-media-card > input { min-height: 36px; padding: 7px 9px; font-size: 12px; }
+    .about-media-card > button[aria-label^="Remove"] { position: absolute; top: 6px; right: 6px; width: 32px; min-height: 32px; padding: 0; border-radius: 999px; }
+    .about-media-controls { display: flex; gap: 6px; }
+    .about-media-controls button { min-width: 36px; min-height: 32px; padding: 4px 8px; }
+    .readiness-note { grid-column: 1/-1; padding: 11px 13px; border: 1px solid var(--warning-border); border-radius: var(--radius); background: var(--warning-soft); color: var(--on-warning-soft); font-size: 12px; }
+    .readiness-note[data-ready="true"] { border-color: var(--success-border); background: var(--success-soft); color: var(--on-success-soft); }
     /* One work per card, so a reorder moves something the eye can follow. */
     .showcase-card {
       border: 1px solid var(--line);
@@ -1603,6 +1612,8 @@
     .preview-device.mobile {
       max-width: 310px;
     }
+    .preview-live-frame { display: block; width: 100%; max-width: 620px; min-height: 720px; margin: 0 auto; border: 1px solid var(--line-strong); border-radius: var(--radius-lg); background: var(--panel); }
+    .preview-live-frame.mobile { max-width: 310px; min-height: 680px; }
 
     .preview-chrome {
       display: flex;
@@ -1775,6 +1786,14 @@
       border-top: 1px solid var(--line);
       font-size: 12px;
     }
+    .preview-content-section { display: grid; grid-template-columns: minmax(0,1.618fr) minmax(90px,1fr); gap: 14px; align-items: center; padding: 18px 0; border-top: 1px solid var(--line); }
+    .preview-content-section > div:last-child:first-child { grid-column: 1/-1; }
+    .preview-content-section strong { display: block; font-size: 15px; line-height: 1.25; }
+    .preview-content-section p { margin-top: 6px; color: var(--muted); font-size: 11px; line-height: 1.55; }
+    .preview-content-images { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 4px; order: 2; }
+    .preview-content-images img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; background: var(--bg2); }
+    .preview-content-about { grid-template-columns: minmax(90px,1fr) minmax(0,1.618fr); }
+    .preview-device.mobile .preview-content-section { grid-template-columns: 1fr; }
 
     .register-preview {
       padding: 24px;
@@ -1858,6 +1877,15 @@
 
     .publication-state-card strong { font-size: 15px; }
     .publication-state-card small { font-size: 12px; }
+    .publish-error-summary { display: flex; align-items: center; justify-content: space-between; gap: 13px; margin-bottom: 13px; padding: 13px; border: 1px solid var(--danger-border); border-radius: var(--radius-lg); background: var(--danger-soft); color: var(--on-danger-soft); font-size: 13px; }
+    .publish-error-summary > span { min-width: 0; }
+    .publish-error-summary > button { flex: 0 0 auto; }
+    .publish-review-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 13px; margin-bottom: 18px; }
+    .publish-review-grid section { min-width: 0; padding: 13px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--bg2); }
+    .publish-review-grid h4 { margin-bottom: 8px; font-size: 13px; }
+    .readiness-list { display: grid; gap: 7px; color: var(--muted); font-size: 12px; }
+    .readiness-list .ready { color: var(--on-success-soft); }
+    .readiness-list .blocked { color: var(--on-warning-soft); }
 
     /* Color Warning */
     #colorWarning {
@@ -1988,6 +2016,8 @@
       .workbench-nav-label { grid-column: 1 / -1; }
       .workbench-nav-item { font-size: 11px; }
       .settings-shell { grid-template-columns: 1fr; }
+      .publish-review-grid { grid-template-columns: 1fr; }
+      .about-media-card { width: 100%; }
       .preview-panel { position: static; }
       .question-card, .faq-card { grid-template-columns: 1fr; }
       .preset-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -2370,7 +2400,7 @@
         <a class="nav-link active" href="#section-settings" data-section="settings">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281zM15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg> Website / Brand
         </a>
-        <a class="nav-link" href="#section-public-surfaces" data-section="public-surfaces">
+        <a class="nav-link" href="#section-settings" data-workbench-shortcut="advanced">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418"/></svg> Published Pages
         </a>
         <a class="nav-link" href="#section-settings" data-workbench-shortcut="register">
@@ -2455,6 +2485,7 @@
                 <button type="button" id="tab-btn-brand" role="tab" aria-selected="true" aria-controls="tab-brand" class="workbench-nav-item active" data-workbench-tab="brand">Brand foundation</button>
                 <button type="button" id="tab-btn-hero" role="tab" aria-selected="false" aria-controls="tab-hero" tabindex="-1" class="workbench-nav-item" data-workbench-tab="hero">Hero &amp; actions</button>
                 <button type="button" id="tab-btn-website" role="tab" aria-selected="false" aria-controls="tab-website" tabindex="-1" class="workbench-nav-item" data-workbench-tab="website">Website sections</button>
+                <button type="button" id="tab-btn-about" role="tab" aria-selected="false" aria-controls="tab-about" tabindex="-1" class="workbench-nav-item" data-workbench-tab="about">Space &amp; experience</button>
                 <button type="button" id="tab-btn-showcase" role="tab" aria-selected="false" aria-controls="tab-showcase" tabindex="-1" class="workbench-nav-item" data-workbench-tab="showcase">Selected work</button>
                 <button type="button" id="tab-btn-faq" role="tab" aria-selected="false" aria-controls="tab-faq" tabindex="-1" class="workbench-nav-item" data-workbench-tab="faq">FAQ</button>
               </div>
@@ -2660,6 +2691,8 @@
                 <div class="form-group"><label for="settingPrimaryCtaEn">Primary CTA · English</label><input id="settingPrimaryCtaEn" placeholder="Book a Trial"></div>
                 <div class="form-group"><label for="settingSecondaryCta">Secondary CTA · 中文</label><input id="settingSecondaryCta" placeholder="查看课程"></div>
                 <div class="form-group"><label for="settingSecondaryCtaEn">Secondary CTA · English</label><input id="settingSecondaryCtaEn" placeholder="Explore Courses"></div>
+                <div class="form-group"><label for="settingSecondaryCtaTarget">Secondary CTA destination</label><select id="settingSecondaryCtaTarget"><option value="auto">Automatic · first ready destination</option><option value="courses">Courses</option><option value="showcase">Selected work</option><option value="timetable">Public timetable</option><option value="register">Registration</option><option value="external">External link</option><option value="hidden">Hide secondary action</option></select><small>An explicit destination is hidden until its public content is ready; it never redirects somewhere else silently.</small></div>
+                <div class="form-group" id="settingSecondaryCtaHrefGroup" hidden><label for="settingSecondaryCtaHref">External destination URL</label><input id="settingSecondaryCtaHref" type="url" placeholder="https://…"><small>Required only when External link is selected.</small></div>
                 <div class="switch-list">
                   <div class="switch-row">
                     <label class="switch-label" for="settingShowStudentLogin">Student Login Link</label>
@@ -2706,15 +2739,6 @@
                     <label class="switch-label" for="settingShowStudentArea">Student Area Section</label>
                     <input class="switch" id="settingShowStudentArea" type="checkbox">
                   </div>
-                  <!-- The seventh switch. `show_about` has been validated by
-                       the server and fully rendered by the portal since the
-                       flagship fork was reclaimed, with no control anywhere —
-                       so no studio has ever seen the section, and every Save
-                       from this page wiped whatever was stored in it. -->
-                  <div class="switch-row">
-                    <label class="switch-label" for="settingShowAbout">About the Space Section</label>
-                    <input class="switch" id="settingShowAbout" type="checkbox">
-                  </div>
                 </div>
                 <!-- Eight inputs that only rename headings. The switches above
                      are what this tab is for; renaming is a later refinement,
@@ -2732,33 +2756,6 @@
                       <div class="form-group"><label for="settingContactLabel">Contact Label · 中文</label><input id="settingContactLabel" placeholder="联系我们"></div>
                       <div class="form-group"><label for="settingContactLabelEn">Contact Label · English</label><input id="settingContactLabelEn" placeholder="Contact"></div>
                       <div class="form-group" style="grid-column:1/-1;"><small>%WORK% and %WORKS% are replaced with your industry's word for what a student produces, so the same label works for a piano, dance, or games studio.</small></div>
-                    </div>
-                  </div>
-                </details>
-                <!-- Folded for the same reason as Section names: the switch
-                     above is the decision, this is the filling-in. -->
-                <details class="disclosure">
-                  <summary>About the space<span class="summary-hint">Headings, copy and up to six photos</span></summary>
-                  <div class="disclosure-body">
-                    <div class="form-grid">
-                      <div class="form-group"><label for="settingAboutEyebrow">About Eyebrow · 中文</label><input id="settingAboutEyebrow" placeholder="画室 · 空间"></div>
-                      <div class="form-group"><label for="settingAboutEyebrowEn">About Eyebrow · English</label><input id="settingAboutEyebrowEn" placeholder="The Studio · Space"></div>
-                      <div class="form-group"><label for="settingAboutTitle">About Title · 中文</label><input id="settingAboutTitle" placeholder="一间温暖、有秩序的空间"></div>
-                      <div class="form-group"><label for="settingAboutTitleEn">About Title · English</label><input id="settingAboutTitleEn" placeholder="A warm, considered space"></div>
-                      <div class="form-group" style="grid-column:1/-1;"><label for="settingAboutBody">About Body · 中文</label><textarea id="settingAboutBody" rows="4" placeholder="面向公众的空间介绍"></textarea></div>
-                      <div class="form-group" style="grid-column:1/-1;"><label for="settingAboutBodyEn">About Body · English</label><textarea id="settingAboutBodyEn" rows="4" placeholder="Public description of the space"></textarea><small>Leave either language blank and the other is shown to everyone. The section stays hidden until a title or body exists.</small></div>
-                      <div class="form-group" style="grid-column:1/-1;">
-                        <label for="settingAboutImageFile">About Photos</label>
-                        <div id="settingAboutImages" class="chip-list"></div>
-                        <input id="settingAboutImageFile" type="file" accept="image/jpeg,image/png,image/webp">
-                        <small>Up to six, shown as a slow carousel. Each upload uses the tenant media quota and is served through the safe public derivative.</small>
-                      </div>
-                      <!-- Three numbered highlights under the copy. Built as
-                           fixed slots rather than an add/remove list: the
-                           portal numbers them 01-03 as a set, and a variable
-                           count buys nothing at this size. -->
-                      <div class="form-group" style="grid-column:1/-1;"><label>About Highlights</label><small>Optional. A highlight with no title is left out.</small></div>
-                      <div id="settingAboutItems" class="form-grid" style="grid-column:1/-1;"></div>
                     </div>
                   </div>
                 </details>
@@ -2783,6 +2780,27 @@
                 <div class="form-group"><label for="settingPrincipalQuoteEn">Principal Quote · English</label><input id="settingPrincipalQuoteEn" placeholder="Short signature line"></div>
                 <div class="form-group" style="grid-column:1/-1;"><label for="settingPrincipalBio">Principal Bio · 中文</label><textarea id="settingPrincipalBio" rows="4" placeholder="面向公众的简短介绍"></textarea></div>
                 <div class="form-group" style="grid-column:1/-1;"><label for="settingPrincipalBioEn">Principal Bio · English</label><textarea id="settingPrincipalBioEn" rows="4" placeholder="Short public introduction"></textarea><small>Leave either language blank and the other is shown to everyone. The section stays hidden until a bio exists.</small></div>
+              </div>
+            </div>
+
+            <div id="tab-about" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-about" data-workbench-panel="about">
+              <div class="panel-heading">
+                <div><h3>Space and experience</h3><p>This public module follows the welcome message and appears before the principal. Use it for the place, atmosphere, process, or online experience—not for the principal biography.</p></div>
+              </div>
+              <div class="form-grid">
+                <div class="switch-list">
+                  <div class="switch-row"><label class="switch-label" for="settingShowAbout">Publish Space &amp; Experience</label><input class="switch" id="settingShowAbout" type="checkbox"></div>
+                </div>
+                <div class="readiness-note" id="aboutReadinessNote" role="status">Add a title, description, photo, or highlight before this module can appear publicly.</div>
+                <div class="form-group"><label for="settingAboutEyebrow">Eyebrow · 中文</label><input id="settingAboutEyebrow" placeholder="画室 · 空间"></div>
+                <div class="form-group"><label for="settingAboutEyebrowEn">Eyebrow · English</label><input id="settingAboutEyebrowEn" placeholder="The Studio · Space"></div>
+                <div class="form-group"><label for="settingAboutTitle">Title · 中文</label><input id="settingAboutTitle" placeholder="一间温暖、有秩序的空间"></div>
+                <div class="form-group"><label for="settingAboutTitleEn">Title · English</label><input id="settingAboutTitleEn" placeholder="A warm, considered space"></div>
+                <div class="form-group" style="grid-column:1/-1;"><label for="settingAboutBody">Description · 中文</label><textarea id="settingAboutBody" rows="4" placeholder="面向公众的空间与体验介绍"></textarea></div>
+                <div class="form-group" style="grid-column:1/-1;"><label for="settingAboutBodyEn">Description · English</label><textarea id="settingAboutBodyEn" rows="4" placeholder="Public description of the space or experience"></textarea><small>One filled language is used for both until you add the translation.</small></div>
+                <div class="form-group" style="grid-column:1/-1;"><label for="settingAboutImageFile">Photos</label><div id="settingAboutImages" class="chip-list"></div><input id="settingAboutImageFile" type="file" accept="image/jpeg,image/png,image/webp"><small>Up to six. Drag-free move buttons set the lead order; the public page changes images only when a visitor chooses a thumbnail. Remove unlinks a photo from this module; it does not permanently delete the media file.</small></div>
+                <div class="form-group" style="grid-column:1/-1;"><label>Highlights</label><small>Three are recommended; all six stored highlights remain editable and are preserved on save.</small></div>
+                <div id="settingAboutItems" class="form-grid" style="grid-column:1/-1;"></div>
               </div>
             </div>
 
@@ -3015,11 +3033,16 @@
                 <small id="publicationStateHelp">The preview on the right is private until you publish.</small>
                 <button id="retryPublishVerificationBtn" type="button" class="btn-secondary btn-sm" hidden>Recheck public pages</button>
               </div>
+              <div id="publishErrorSummary" class="publish-error-summary hidden" role="alert" tabindex="-1"></div>
+              <div class="publish-review-grid">
+                <section><h4>Changes since published</h4><div id="publishChangeList" class="readiness-list">No unpublished changes.</div></section>
+                <section><h4>Public readiness</h4><div id="publishReadinessList" class="readiness-list">Checking public surfaces…</div></section>
+              </div>
               <div class="surface-grid">
-                <div class="surface-card"><strong>Studio Website</strong><p>Primary bilingual public experience with introduction, courses, work gallery, student area, and registration CTA.</p><code id="surfacePortalUrlPreview" class="surface-url">/tenant-slug</code><button type="button" class="btn-primary" onclick="openTenantSurface('portal')">Open Website</button></div>
-                <div class="surface-card"><strong>Quick Registration</strong><p>Alternate focused registration page for QR codes, campaigns, and direct links.</p><code id="surfaceRegisterUrlPreview" class="surface-url">/tenant-slug/register</code><button type="button" class="btn-secondary" onclick="openTenantSurface('register')">Open Quick Registration</button></div>
-                <div class="surface-card"><strong>CMS</strong><p>Daily operations: students, payments, check-ins, rosters, and portfolio work.</p><code id="surfaceCmsUrlPreview" class="surface-url">/tenant-slug/cms</code><button type="button" class="btn-secondary" onclick="openTenantSurface('cms')">Open CMS</button></div>
-                <div class="surface-card"><strong>Studio Admin</strong><p>This website and brand workspace.</p><code id="surfaceAdminUrlPreview" class="surface-url">/tenant-slug/studio-admin</code><button type="button" class="btn-secondary" onclick="openTenantSurface('studio-admin')">Open Studio Admin</button></div>
+                <div class="surface-card"><strong>Studio Website</strong><span id="surfacePortalHealth" class="surface-health" aria-live="polite">Checking…</span><p>Primary bilingual public experience with introduction, courses, work gallery, student area, and registration CTA.</p><code id="surfacePortalUrlPreview" class="surface-url">/tenant-slug</code><button type="button" class="btn-primary" onclick="openTenantSurface('portal')">Open Website</button></div>
+                <div class="surface-card"><strong>Quick Registration</strong><span id="surfaceRegisterHealth" class="surface-health" aria-live="polite">Checking…</span><p>Alternate focused registration page for QR codes, campaigns, and direct links.</p><code id="surfaceRegisterUrlPreview" class="surface-url">/tenant-slug/register</code><button type="button" class="btn-secondary" onclick="openTenantSurface('register')">Open Quick Registration</button></div>
+                <div class="surface-card"><strong>CMS</strong><span id="surfaceCmsHealth" class="surface-health" aria-live="polite">Checking…</span><p>Daily operations: students, payments, check-ins, rosters, and portfolio work.</p><code id="surfaceCmsUrlPreview" class="surface-url">/tenant-slug/cms</code><button type="button" class="btn-secondary" onclick="openTenantSurface('cms')">Open CMS</button></div>
+                <div class="surface-card"><strong>Studio Admin</strong><span id="surfaceAdminHealth" class="surface-health" aria-live="polite">Checking…</span><p>This website and brand workspace.</p><code id="surfaceAdminUrlPreview" class="surface-url">/tenant-slug/studio-admin</code><button type="button" class="btn-secondary" onclick="openTenantSurface('studio-admin')">Open Studio Admin</button></div>
               </div>
               <div class="card mt-2">
                 <div class="card-header"><h3 class="card-title">Publication history</h3></div>
@@ -3040,6 +3063,10 @@
                    single four-way segment with two highlighted options and no
                    way to tell what clicking one would do. -->
               <div class="preview-controls">
+                <div class="preview-control-group" role="group" aria-label="Preview source">
+                  <span class="preview-control-label">Source</span>
+                  <div class="device-tabs"><button type="button" class="device-tab active" data-preview-source="draft" aria-pressed="true">Draft</button><button type="button" class="device-tab" data-preview-source="live" aria-pressed="false">Live</button></div>
+                </div>
                 <div class="preview-control-group" role="group" aria-label="Preview language">
                   <span class="preview-control-label">Language</span>
                   <div class="device-tabs">
@@ -3092,6 +3119,7 @@
                   </div>
                 </div>
               </div>
+              <iframe id="previewLiveFrame" class="preview-live-frame hidden" title="Published website preview"></iframe>
               <div id="themePreviewSlug" class="text-muted mt-2" style="font-size:12px;text-align:center;">tenant</div>
             </div>
           </aside>
@@ -3106,46 +3134,6 @@
             <button id="saveDraftBtn" class="btn-secondary">Save Draft</button>
             <button id="publishSettingsBtn" class="btn-primary">Publish</button>
           </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="section-public-surfaces" class="section">
-      <div class="section-header">
-        <div class="section-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418"/></svg></div>
-        <div>
-          <div class="section-title">Public Pages</div>
-          <div class="section-subtitle">Check the published website, operational CMS, alternate registration entry, and this brand workspace</div>
-        </div>
-      </div>
-      <div class="surface-grid">
-        <div class="surface-card">
-          <strong>Studio Website</strong>
-          <p>The public home page parents see first: courses, gallery, contact, student lookup, and enrolment entry.</p>
-          <code id="surfacePortalUrl" class="surface-url">/tenant-slug</code>
-          <span id="surfacePortalHealth" class="surface-health">Not checked</span>
-          <button type="button" class="btn-primary" onclick="openTenantSurface('portal')">Open Website</button>
-        </div>
-        <div class="surface-card">
-          <strong>CMS</strong>
-          <p>The daily operations workspace for students, schedules, check-ins, payments, refunds, logs, and portfolio work.</p>
-          <code id="surfaceCmsUrl" class="surface-url">/tenant-slug/cms</code>
-          <span id="surfaceCmsHealth" class="surface-health">Not checked</span>
-          <button type="button" class="btn-secondary" onclick="openTenantSurface('cms')">Open CMS</button>
-        </div>
-        <div class="surface-card">
-          <strong>Quick Registration</strong>
-          <p>The tenant-specific lead capture page. Its labels, intro copy, and preferences are controlled above.</p>
-          <code id="surfaceRegisterUrl" class="surface-url">/tenant-slug/register</code>
-          <span id="surfaceRegisterHealth" class="surface-health">Not checked</span>
-          <button type="button" class="btn-secondary" onclick="openTenantSurface('register')">Open Quick Registration</button>
-        </div>
-        <div class="surface-card">
-          <strong>Studio Admin</strong>
-          <p>This control panel for how the studio appears externally. Operational editing stays in the CMS.</p>
-          <code id="surfaceAdminUrl" class="surface-url">/tenant-slug/studio-admin</code>
-          <span id="surfaceAdminHealth" class="surface-health">Not checked</span>
-          <button type="button" class="btn-secondary" onclick="openTenantSurface('admin')">Open Studio Admin</button>
         </div>
       </div>
     </section>
@@ -3320,6 +3308,11 @@
        list the owner adds to and removes from, and a hidden field holding
        comma-joined URLs would be a second representation to keep in step. */
     let aboutImages = [];
+    let aboutImageAlts = [];
+    let publishedSurfaceContract = null;
+    let draftSurfaceContract = null;
+    let previewSource = 'draft';
+    let publishedBaselinePayload = null;
 
     const ABOUT_IMAGE_LIMIT = 6;   // matches _normalize_website_profile
     /* Both mirror api_v1.py. Kept as literals rather than read from /brand so
@@ -3333,7 +3326,7 @@
     const timetableFieldControl = (key) =>
       'settingTimetableField' + key.split('_')
         .map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join('');
-    const ABOUT_ITEM_SLOTS = 3;
+    const ABOUT_ITEM_SLOTS = 6;
 
     /* The studio's own work — see docs/design/Showcase_Section.md.
        State lives here rather than in the DOM because a work is a record with
@@ -3975,7 +3968,11 @@
           field.id = id;
           if (tag === 'textarea') field.rows = 2;
           field.value = value || '';
-          field.addEventListener('input', () => setSettingsDirty(true));
+          field.addEventListener('input', () => {
+            setSettingsDirty(true);
+            renderAboutReadiness();
+            updateThemePreview();
+          });
           group.append(label, field);
           host.appendChild(group);
         });
@@ -4007,26 +4004,83 @@
       host.textContent = '';
       aboutImages.forEach((url, index) => {
         const chip = document.createElement('div');
-        chip.className = 'img-chip';
+        chip.className = 'about-media-card';
         const img = document.createElement('img');
         // Assigned as a property, never interpolated into markup: these URLs
         // come back from the media endpoint but are stored tenant data.
         img.src = url;
-        img.alt = '';
+        img.alt = (aboutImageAlts[index]?.[previewLanguage] || '').trim();
+        const lead = document.createElement('strong');
+        lead.textContent = index === 0 ? adminText('首图', 'Lead') : `${index + 1}`;
+        const controls = document.createElement('div');
+        controls.className = 'about-media-controls';
+        const moveButton = (label, delta, ariaLabel) => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'btn-secondary btn-sm';
+          button.textContent = label;
+          button.setAttribute('aria-label', ariaLabel);
+          button.disabled = index + delta < 0 || index + delta >= aboutImages.length;
+          button.addEventListener('click', () => {
+            const target = index + delta;
+            [aboutImages[index], aboutImages[target]] = [aboutImages[target], aboutImages[index]];
+            [aboutImageAlts[index], aboutImageAlts[target]] = [aboutImageAlts[target], aboutImageAlts[index]];
+            renderAboutImages();
+            setSettingsDirty(true);
+            updateThemePreview();
+          });
+          return button;
+        };
+        controls.append(
+          moveButton('←', -1, `Move About photo ${index + 1} earlier`),
+          moveButton('→', 1, `Move About photo ${index + 1} later`),
+        );
+        const altZh = document.createElement('input');
+        altZh.placeholder = '图片说明 · 中文';
+        altZh.value = aboutImageAlts[index]?.zh || '';
+        altZh.setAttribute('aria-label', `About photo ${index + 1} description in Chinese`);
+        const altEn = document.createElement('input');
+        altEn.placeholder = 'Image description · English';
+        altEn.value = aboutImageAlts[index]?.en || '';
+        altEn.setAttribute('aria-label', `About photo ${index + 1} description in English`);
+        altZh.addEventListener('input', () => {
+          aboutImageAlts[index] = { ...(aboutImageAlts[index] || {}), zh: altZh.value };
+          setSettingsDirty(true); updateThemePreview();
+        });
+        altEn.addEventListener('input', () => {
+          aboutImageAlts[index] = { ...(aboutImageAlts[index] || {}), en: altEn.value };
+          setSettingsDirty(true); updateThemePreview();
+        });
         const remove = document.createElement('button');
         remove.type = 'button';
         remove.textContent = '×';
         remove.setAttribute('aria-label', `Remove About photo ${index + 1}`);
         remove.addEventListener('click', () => {
           aboutImages.splice(index, 1);
+          aboutImageAlts.splice(index, 1);
           renderAboutImages();
           setSettingsDirty(true);
+          updateThemePreview();
         });
-        chip.append(img, remove);
+        chip.append(img, lead, controls, altZh, altEn, remove);
         host.appendChild(chip);
       });
       const picker = $('settingAboutImageFile');
       if (picker) picker.disabled = aboutImages.length >= ABOUT_IMAGE_LIMIT;
+      renderAboutReadiness();
+    }
+
+    function renderAboutReadiness() {
+      const note = $('aboutReadinessNote');
+      if (!note) return;
+      const copyReady = Boolean([
+        'settingAboutTitle', 'settingAboutTitleEn', 'settingAboutBody', 'settingAboutBodyEn',
+      ].some((id) => ($(id)?.value || '').trim()));
+      const ready = copyReady || aboutImages.length > 0 || collectAboutItems().length > 0;
+      note.dataset.ready = String(ready);
+      note.textContent = ready
+        ? adminText('内容已就绪；发布后显示在欢迎信息之后、主理人之前。', 'Content ready; after publishing it appears after the welcome and before the principal.')
+        : adminText('请添加标题、介绍、照片或亮点，模块才会公开显示。', 'Add a title, description, photo, or highlight before this module can appear publicly.');
     }
 
     /* One readout, not two. Until v8.3.0 the same fact was published to the
@@ -4104,6 +4158,31 @@
     function setSettingsDirty(isDirty = true) {
       settingsDirty = isDirty;
       updateWorkspaceStatus();
+      renderPublishChanges();
+    }
+
+    function renderPublishChanges() {
+      const box = $('publishChangeList');
+      if (!box || !publishedBaselinePayload || !tenant) return;
+      const current = settingsPayload();
+      const groups = [
+        ['Brand foundation', ['name', 'logoUrl', 'primaryColor', 'secondaryColor', 'contactPhone', 'contactEmail', 'address', 'visualTheme']],
+        ['Hero & actions', ['localizedCopy', 'heroProfile']],
+        ['Website modules', ['websiteProfile']],
+        ['Principal', ['principalProfile']],
+        ['Registration', ['registrationProfile', 'copyPack']],
+        ['FAQ & messages', ['faqItems', 'messageTemplates']],
+      ];
+      const changed = groups.filter(([, keys]) => keys.some((key) =>
+        JSON.stringify(current[key] ?? null) !== JSON.stringify(publishedBaselinePayload[key] ?? null)));
+      box.replaceChildren();
+      if (!changed.length) {
+        box.textContent = adminText('没有未发布的改动。', 'No unpublished changes.');
+        return;
+      }
+      changed.forEach(([label]) => {
+        const row = document.createElement('div'); row.textContent = `• ${localiseAdminText(label)}`; box.appendChild(row);
+      });
     }
 
     function showToast(message, type = 'success') {
@@ -4228,7 +4307,7 @@
       } catch (err) {
         // Save Draft and Publish hit the same support gate as the uploads.
         reportApiError(err);
-        throw err;
+        return false;
       } finally {
         if (button) {
           button.disabled = false;
@@ -4236,6 +4315,7 @@
           button.textContent = previous;
         }
       }
+      return true;
     }
 
     async function authApi(path, options = {}) {
@@ -4664,6 +4744,8 @@
         subtitle: preset.slogan,
         primary_cta_label: 'Book a Trial',
         secondary_cta_label: 'Explore Courses',
+        secondary_cta_target: 'auto',
+        secondary_cta_href: '',
         show_student_login: true,
         background_style: 'soft',
         hero_image_url: ''
@@ -4689,6 +4771,7 @@
         about_title: { zh: '', en: '' },
         about_body: { zh: '', en: '' },
         about_images: [],
+        about_image_alts: [],
         about_items: [],
         seo_title: '',
         seo_description: ''
@@ -5128,6 +5211,17 @@
       const border = $('settingThemeBorder')?.value || FALLBACK_THEME.border_color;
       const accentText = readableText(accent);
       const preview = $('previewDevice');
+      const liveFrame = $('previewLiveFrame');
+      if (preview) preview.classList.toggle('hidden', previewSource === 'live');
+      if (liveFrame) {
+        liveFrame.classList.toggle('hidden', previewSource !== 'live');
+        liveFrame.classList.toggle('mobile', previewDevice === 'mobile');
+        if (previewSource === 'live') {
+          const suffix = previewMode === 'register' ? '/register' : '';
+          const nextUrl = `/${encodeURIComponent(currentTenantSlug())}${suffix}?lang=${previewLanguage}`;
+          if (liveFrame.getAttribute('src') !== nextUrl) liveFrame.src = nextUrl;
+        }
+      }
       if (preview) {
         applyPreviewTheme(preview, { bg, panel, ink, muted, border, accent, accentText });
         preview.style.setProperty('--radius', $('settingButtonStyle')?.value === 'rounded' ? '999px' : $('settingButtonStyle')?.value === 'sharp' ? '0' : '8px');
@@ -5149,13 +5243,22 @@
       $('logoPreview').alt = previewLogoUrl ? `${$('settingName').value || 'Studio'} logo` : '';
       if (previewLogoUrl) $('logoPreview').src = previewLogoUrl;
       $('previewHeroEyebrow').textContent = $('settingHeroEyebrow')?.value || $('settingCategory')?.selectedOptions?.[0]?.textContent || 'Studio';
+      const heroPreviewImage = $('settingHeroImageUrl')?.value.trim();
+      const previewArt = document.querySelector('.preview-art');
+      if (previewArt) {
+        previewArt.style.backgroundImage = heroPreviewImage
+          ? `url("${heroPreviewImage.replace(/["\\]/g, '\\$&')}")`
+          : '';
+        previewArt.style.backgroundSize = heroPreviewImage ? 'cover' : '';
+        previewArt.style.backgroundPosition = heroPreviewImage ? 'center' : '';
+      }
       $('previewPrimaryCta').textContent = localizedValue('settingPrimaryCta', 'settingPrimaryCtaEn', previewLanguage === 'zh' ? '预约体验' : 'Book a Trial');
       $('previewSecondaryCta').textContent = localizedValue('settingSecondaryCta', 'settingSecondaryCtaEn', previewLanguage === 'zh' ? '查看课程' : 'Explore Courses');
       $('previewRegisterEyebrow').textContent = $('settingHeroEyebrow')?.value || 'Registration';
       $('previewRegisterTitle').textContent = localizedValue('settingRegistrationTitle', 'settingRegistrationTitleEn', previewLanguage === 'zh' ? '快速报名' : 'Quick Registration');
       $('previewRegisterIntro').textContent = localizedValue('settingRegisterIntro', 'settingRegisterIntroEn', previewLanguage === 'zh' ? '告诉我们学员的兴趣与目标。' : 'Tell us about the student and their goals.');
-      renderPreviewSections();
       renderPreviewSurfaceContract();
+      renderPreviewSections();
       renderPreviewRegistrationFields();
       const issues = [];
       const bodyRatio = Math.min(contrastRatio(ink, bg), contrastRatio(ink, panel));
@@ -5176,29 +5279,47 @@
     function renderPreviewSections() {
       const box = $('previewSections');
       if (!box) return;
-      /* Every editable label reads the pair, so the English inputs the form
-         already collects are no longer ignored; every fixed noun switches too,
-         so the list is not half-English in Chinese mode. */
-      const faqCount = collectFaqItems().length;
-      const rows = [
-        [previewNoun('主理人', 'Principal'), toggleOn('settingShowPrincipal'),
-          $('settingPrincipalName')?.value || previewNoun('工作室介绍', 'About the studio')],
-        [localizedValue('settingCoursesLabel', 'settingCoursesLabelEn', previewNoun('课程', 'Courses')),
-          toggleOn('settingShowCourses'), previewNoun('课程卡片', 'Program cards')],
-        [localizedValue('settingGalleryLabel', 'settingGalleryLabelEn', previewNoun('作品墙', 'Gallery')),
-          toggleOn('settingShowGallery'), previewNoun('学员作品', 'Student works')],
-        [previewNoun('学员专区', 'Student Area'), toggleOn('settingShowStudentArea'),
-          previewNoun('课时与作品', 'Balance and portfolio')],
-        [localizedValue('settingFaqLabel', 'settingFaqLabelEn', previewNoun('常见问答', 'FAQ')),
-          toggleOn('settingShowFaq'),
-          previewNoun(`${faqCount} 条问答`, `${faqCount} questions`)],
-        [localizedValue('settingContactLabel', 'settingContactLabelEn', previewNoun('联系我们', 'Contact')),
-          toggleOn('settingShowContact'),
-          $('settingEmail')?.value || $('settingPhone')?.value || previewNoun('联系方式', 'Contact details')],
-      ].filter((row) => row[1]);
-      box.innerHTML = rows.map(([label, _show, detail]) => `
-        <div class="preview-section-row"><strong>${esc(label)}</strong><span>${esc(detail)}</span></div>
-      `).join('');
+      box.replaceChildren();
+      const modules = draftSurfaceContract?.modules || {};
+      const append = (key, title, body, images = []) => {
+        if (!modules[key]?.visible) return;
+        const section = document.createElement('section');
+        section.className = `preview-content-section preview-content-${key}`;
+        section.dataset.previewSection = key;
+        const copy = document.createElement('div');
+        const heading = document.createElement('strong'); heading.textContent = title;
+        const paragraph = document.createElement('p'); paragraph.textContent = body;
+        copy.append(heading, paragraph);
+        if (images.length) {
+          const gallery = document.createElement('div'); gallery.className = 'preview-content-images';
+          images.slice(0, 3).forEach((url) => {
+            const img = document.createElement('img'); img.src = url; img.alt = ''; img.loading = 'lazy';
+            img.onerror = () => img.remove(); gallery.appendChild(img);
+          });
+          section.append(gallery, copy);
+        } else {
+          section.appendChild(copy);
+        }
+        box.appendChild(section);
+      };
+      append('about',
+        localizedValue('settingAboutTitle', 'settingAboutTitleEn', previewNoun('空间与体验', 'Space & experience')),
+        localizedValue('settingAboutBody', 'settingAboutBodyEn', previewNoun('介绍来访者会感受到的空间、氛围与过程。', 'Describe the place, atmosphere and experience visitors can expect.')),
+        aboutImages);
+      append('principal', $('settingPrincipalName')?.value || previewNoun('主理人', 'Principal'),
+        localizedValue('settingPrincipalBio', 'settingPrincipalBioEn', previewNoun('主理人介绍', 'Principal introduction')),
+        [$('settingPrincipalImageUrl')?.value].filter(Boolean));
+      append('showcase', localizedValue('settingShowcaseTitle', 'settingShowcaseTitleEn', previewNoun('工作室作品', 'Selected work')),
+        localizedValue('settingShowcaseLead', 'settingShowcaseLeadEn', previewNoun('由工作室精选的代表作品。', 'A selection curated by the studio.')),
+        showcaseItems.filter(showcaseHasContent).map((item) => item.image_url).filter(Boolean));
+      append('courses', localizedValue('settingCoursesLabel', 'settingCoursesLabelEn', previewNoun('课程', 'Courses')),
+        modules.courses?.ready ? previewNoun('已发布课程将显示在这里。', 'Published programs appear here.') : previewNoun('尚无已发布课程。', 'No published programs yet.'));
+      append('gallery', localizedValue('settingGalleryLabel', 'settingGalleryLabelEn', previewNoun('学员作品', 'Student works')),
+        modules.gallery?.ready ? previewNoun('已授权的学员作品将显示在这里。', 'Consented student work appears here.') : previewNoun('尚无已授权作品。', 'No consented work yet.'));
+      append('faq', localizedValue('settingFaqLabel', 'settingFaqLabelEn', previewNoun('常见问答', 'FAQ')),
+        previewNoun(`${collectFaqItems().length} 条问答`, `${collectFaqItems().length} questions`));
+      append('contact', localizedValue('settingContactLabel', 'settingContactLabelEn', previewNoun('联系我们', 'Contact')),
+        [$('settingEmail')?.value, $('settingPhone')?.value, $('settingAddress')?.value].filter(Boolean).join(' · '));
     }
 
     function renderPreviewSurfaceContract() {
@@ -5209,6 +5330,9 @@
       const activeShowcase = collectShowcaseItems().filter((item) => showcaseHasContent(item)
         && normalizeShowcasePublicationState(item.publication_state) === 'active');
       const faqItems = collectFaqItems();
+      const liveModules = publishedSurfaceContract?.modules || {};
+      const facts = Object.fromEntries(['courses', 'gallery', 'timetable']
+        .map((key) => [key, Boolean(liveModules[key]?.ready)]));
       const contract = window.StudioSaaS.publicSurface.resolve({
         slug: currentTenantSlug(),
         brand: {
@@ -5223,10 +5347,10 @@
           registrationProfile: payload.registrationProfile,
         },
         showcase: { enabled: payload.websiteProfile.showShowcase, items: activeShowcase, total: activeShowcase.length },
-        programs: { programs: toggleOn('settingShowCourses') ? [{}] : [] },
-        gallery: { items: toggleOn('settingShowGallery') ? [{}] : [] },
-        timetable: { enabled: toggleOn('settingShowTimetable'), days: toggleOn('settingShowTimetable') ? [{ classes: [{}] }] : [] },
+        moduleFacts: facts,
+        timetable: { enabled: Boolean(facts.timetable), days: [] },
       });
+      draftSurfaceContract = contract;
       const labels = {
         principal: ['主理人', 'Principal'], showcase: ['工作室作品', 'Selected Work'],
         courses: ['课程', 'Courses'], timetable: ['课程安排', 'Timetable'],
@@ -5261,6 +5385,22 @@
         empty.textContent = localiseAdminText('The public page is not ready yet.');
         footer.appendChild(empty);
       }
+      const secondary = contract.actions?.secondary;
+      $('previewSecondaryCta').hidden = !secondary?.visible;
+      $('previewSecondaryCta').title = secondary?.visible ? secondary.href : adminText('目标内容尚未准备好。', 'The destination is not ready yet.');
+      renderPublishReadiness(contract);
+    }
+
+    function renderPublishReadiness(contract) {
+      const box = $('publishReadinessList');
+      if (!box) return;
+      box.replaceChildren();
+      Object.values(contract?.modules || {}).filter((module) => module.intent).forEach((module) => {
+        const row = document.createElement('div');
+        row.className = module.visible ? 'ready' : 'blocked';
+        row.textContent = `${module.visible ? '✓' : '△'} ${module.key} · ${module.reasonCode}`;
+        box.appendChild(row);
+      });
     }
 
     function renderPreviewRegistrationFields() {
@@ -5688,7 +5828,7 @@
     }
 
     const WORKBENCH_TABS = Object.freeze([
-      'brand', 'hero', 'website', 'showcase', 'faq',
+      'brand', 'hero', 'website', 'about', 'showcase', 'faq',
       'register', 'timetable', 'messages', 'advanced', 'analytics'
     ]);
 
@@ -5731,6 +5871,16 @@
       previewMode = mode;
       document.querySelectorAll('[data-preview-mode]').forEach((button) => {
         const active = button.dataset.previewMode === mode;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', String(active));
+      });
+      updateThemePreview();
+    }
+
+    function switchPreviewSource(source) {
+      previewSource = source === 'live' ? 'live' : 'draft';
+      document.querySelectorAll('[data-preview-source]').forEach((button) => {
+        const active = button.dataset.previewSource === previewSource;
         button.classList.toggle('active', active);
         button.setAttribute('aria-pressed', String(active));
       });
@@ -5834,6 +5984,9 @@
       $('settingPrimaryCtaEn').value = localized.primary_cta?.en || hero.primary_cta_label || hero.primaryCtaLabel || 'Book a Trial';
       $('settingSecondaryCta').value = localized.secondary_cta?.zh || hero.secondary_cta_label || hero.secondaryCtaLabel || '查看课程';
       $('settingSecondaryCtaEn').value = localized.secondary_cta?.en || hero.secondary_cta_label || hero.secondaryCtaLabel || 'Explore Courses';
+      $('settingSecondaryCtaTarget').value = hero.secondary_cta_target || hero.secondaryCtaTarget || 'auto';
+      $('settingSecondaryCtaHref').value = hero.secondary_cta_href || hero.secondaryCtaHref || '';
+      $('settingSecondaryCtaHrefGroup').hidden = $('settingSecondaryCtaTarget').value !== 'external';
       $('settingHeroStyle').value = hero.background_style || hero.backgroundStyle || 'soft';
       $('settingHeroShape').value = hero.hero_shape || hero.heroShape || 'organic';
       setToggle('settingShowStudentLogin', hero.show_student_login ?? hero.showStudentLogin, true);
@@ -5858,6 +6011,10 @@
       $('settingAboutBodyEn').value = aboutBody.en || '';
       aboutImages = (website.about_images || website.aboutImages || [])
         .filter((url) => typeof url === 'string' && url).slice(0, ABOUT_IMAGE_LIMIT);
+      aboutImageAlts = (website.about_image_alts || website.aboutImageAlts || [])
+        .slice(0, aboutImages.length)
+        .map((alt) => typeof alt === 'object' && alt ? { zh: alt.zh || alt.en || '', en: alt.en || alt.zh || '' } : { zh: String(alt || ''), en: String(alt || '') });
+      while (aboutImageAlts.length < aboutImages.length) aboutImageAlts.push({ zh: '', en: '' });
       renderAboutImages();
       renderAboutItems(website.about_items || website.aboutItems);
       $('settingSeoTitle').value = website.seo_title || website.seoTitle || '';
@@ -6017,6 +6174,8 @@
           heroImageUrl: $('settingHeroImageUrl').value.trim(),
           primaryCtaLabel: $('settingPrimaryCta').value.trim(),
           secondaryCtaLabel: $('settingSecondaryCta').value.trim(),
+          secondaryCtaTarget: $('settingSecondaryCtaTarget').value,
+          secondaryCtaHref: $('settingSecondaryCtaHref').value.trim(),
           backgroundStyle: $('settingHeroStyle').value,
           heroShape: $('settingHeroShape').value,
           showStudentLogin: toggleOn('settingShowStudentLogin')
@@ -6045,6 +6204,10 @@
           aboutTitle: bilingualPair('settingAboutTitle', 'settingAboutTitleEn'),
           aboutBody: bilingualPair('settingAboutBody', 'settingAboutBodyEn'),
           aboutImages: aboutImages.slice(0, ABOUT_IMAGE_LIMIT),
+          aboutImageAlts: aboutImageAlts.slice(0, ABOUT_IMAGE_LIMIT).map((alt) => ({
+            zh: (alt?.zh || alt?.en || '').trim(),
+            en: (alt?.en || alt?.zh || '').trim(),
+          })),
           aboutItems: collectAboutItems(),
           seoTitle: $('settingSeoTitle').value.trim(),
           seoDescription: $('settingSeoDescription').value.trim(),
@@ -6168,6 +6331,8 @@
         registrationIntroEn: text(localizedPair('registration_intro').en),
         heroImageUrl: text(hero.hero_image_url || hero.heroImageUrl),
         heroStyle: text(hero.background_style || hero.backgroundStyle),
+        secondaryCtaTarget: text(hero.secondary_cta_target || hero.secondaryCtaTarget || 'auto'),
+        secondaryCtaHref: text(hero.secondary_cta_href || hero.secondaryCtaHref),
         showStudentLogin: String(Boolean(hero.show_student_login ?? hero.showStudentLogin)),
         websiteProfile: JSON.stringify({
           showPrincipal: Boolean(website.show_principal ?? website.showPrincipal),
@@ -6189,6 +6354,8 @@
           aboutTitle: pairText(website.about_title || website.aboutTitle),
           aboutBody: pairText(website.about_body || website.aboutBody),
           aboutImages: (website.about_images || website.aboutImages || []).map(text),
+          aboutImageAlts: (website.about_image_alts || website.aboutImageAlts || [])
+            .map((alt) => [pairText(alt)]),
           aboutItems: (website.about_items || website.aboutItems || [])
             .map((item) => [pairText(item.title), pairText(item.body)]),
           seoTitle: text(website.seo_title || website.seoTitle),
@@ -6197,6 +6364,12 @@
           showcaseLabel: pairText(website.showcase_label || website.showcaseLabel),
           showcaseTitle: pairText(website.showcase_title || website.showcaseTitle),
           showcaseLead: pairText(website.showcase_lead || website.showcaseLead),
+          showTimetable: Boolean(website.show_timetable ?? website.showTimetable),
+          showTimetableBooking: Boolean(website.show_timetable_booking ?? website.showTimetableBooking),
+          timetableWeeks: Number(website.timetable_weeks ?? website.timetableWeeks ?? TIMETABLE_DEFAULT_WEEKS),
+          timetableLabel: pairText(website.timetable_label || website.timetableLabel),
+          timetableLead: pairText(website.timetable_lead || website.timetableLead),
+          timetableFields: website.timetable_fields || website.timetableFields || {},
           /* The public /brand projection intentionally omits showcase items and
              categories; they are served by /showcase with plan-aware paging.
              Verify the projection that actually returned instead of comparing
@@ -6228,13 +6401,19 @@
       };
     }
 
-    async function verifyPublicBrandPublished(expected) {
+    async function verifyPublicBrandPublished(expected, expectedVersion = publishedVersionLabel) {
       const slug = currentTenantSlug();
       const response = await fetch(`/v1/public/${encodeURIComponent(slug)}/brand`, { credentials: 'same-origin' });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
         const error = new Error(data.message || data.error || 'Public brand did not refresh.');
         error.code = data.error || 'PUBLIC_SURFACE_UNAVAILABLE';
+        throw error;
+      }
+      if (expectedVersion && String(data.brand?.publishedVersion || '') !== String(expectedVersion)) {
+        const error = new Error('Public brand version is still catching up.');
+        error.code = 'PUBLIC_VERSION_PENDING';
+        error.details = { expectedVersion, actualVersion: data.brand?.publishedVersion || null, surface: 'brand' };
         throw error;
       }
       const actual = compactBrandSnapshot(data.brand || {});
@@ -6257,7 +6436,7 @@
         faqItems: expected.faqItems,
         visualTheme: expected.visualTheme
       });
-      const mismatches = Object.keys(wanted).filter((key) => wanted[key] && wanted[key] !== actual[key]);
+      const mismatches = Object.keys(wanted).filter((key) => wanted[key] !== actual[key]);
       if (mismatches.length) {
         const error = new Error('Publish verification did not match the public brand projection.');
         error.code = 'PUBLIC_PROJECTION_MISMATCH';
@@ -6266,6 +6445,13 @@
       }
       const website = expected.websiteProfile || {};
       const checks = [{ path: 'brand', ok: true }];
+      const surfaceContract = await window.StudioSaaS.publicSurface.fetch(
+        `/v1/public/${encodeURIComponent(slug)}`,
+        { credentials: 'same-origin' },
+      );
+      checks.push({ path: 'surface', ok: !expectedVersion || String(surfaceContract.publishedVersion || '') === String(expectedVersion) });
+      const registerResponse = await fetch(`/${encodeURIComponent(slug)}/register`, { credentials: 'same-origin', cache: 'no-store' });
+      checks.push({ path: 'register', ok: registerResponse.ok });
       if (website.showShowcase) {
         const showcaseResponse = await fetch(`/v1/public/${encodeURIComponent(slug)}/showcase?surface=home&offset=0`, { credentials: 'same-origin', cache: 'no-store' });
         const showcase = await showcaseResponse.json().catch(() => ({}));
@@ -6283,11 +6469,18 @@
         error.details = { surfaces: failed };
         throw error;
       }
-      return { brand: data.brand || {}, checked: checks.map((check) => check.path), verifiedAt: new Date().toISOString() };
+      publishedSurfaceContract = surfaceContract;
+      return { brand: data.brand || {}, contract: surfaceContract, checked: checks.map((check) => check.path), verifiedAt: new Date().toISOString() };
     }
 
     function validatePublishPayload(payload) {
       if (!payload.name) throw new Error('Studio name is required.');
+      if (payload.heroProfile.secondaryCtaTarget === 'external' && !payload.heroProfile.secondaryCtaHref) {
+        const error = new Error('Add an external destination URL or choose another secondary CTA destination.');
+        error.code = 'FIELD_VALIDATION';
+        error.details = { tab: 'hero', field: 'settingSecondaryCtaHref' };
+        throw error;
+      }
       const placeholderPattern = /placeholder|principal name|主理人姓名|占位文案/i;
       const pairText = (value) => (value && typeof value === 'object' ? String(value.zh || value.en || '') : String(value || ''));
       const requiredPublicCopy = [
@@ -6341,6 +6534,7 @@
       setPublicationState('draft');
       setSettingsDirty(false);
       showToast('Draft saved. Public pages have not changed.');
+      showPublishError('');
     }
 
     function publishVerificationMessage(error) {
@@ -6350,9 +6544,47 @@
         SURFACE_UNAVAILABLE: 'Publish verification failed after the write. Your saved content is safe; check the public pages and retry.',
         PUBLIC_SURFACE_UNAVAILABLE: 'Public surface unavailable',
         PUBLIC_SURFACE_INVALID_RESPONSE: 'Public surface returned invalid data',
+        PUBLIC_VERSION_PENDING: 'Published content is saved; public pages are still confirming the new version.',
         NETWORK_RETRY: 'Public surface unavailable',
       };
       return localiseAdminText(messages[code] || messages.SURFACE_UNAVAILABLE);
+    }
+
+    function showPublishError(message, error = null) {
+      const box = $('publishErrorSummary');
+      if (!box) return;
+      if (!message) {
+        box.textContent = '';
+        box.classList.add('hidden');
+        return;
+      }
+      const field = error?.details?.field || '';
+      const targetTab = error?.details?.tab || '';
+      const details = error?.details && typeof error.details === 'object'
+        ? Object.entries(error.details)
+          .filter(([key]) => !['field', 'tab'].includes(key))
+          .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
+          .join(' · ')
+        : '';
+      box.replaceChildren();
+      const copy = document.createElement('span');
+      copy.textContent = `${message}${details ? ` ${details}` : ''}`;
+      box.appendChild(copy);
+      if (field && targetTab) {
+        const jump = document.createElement('button');
+        jump.type = 'button';
+        jump.className = 'btn-secondary btn-sm';
+        jump.textContent = localiseAdminText('Go to field');
+        jump.addEventListener('click', () => {
+          switchWorkbenchTab(targetTab);
+          const control = document.getElementById(field);
+          if (control) control.focus();
+        });
+        box.appendChild(jump);
+      }
+      box.classList.remove('hidden');
+      switchWorkbenchTab('advanced');
+      box.focus();
     }
 
     async function retryPublishVerification() {
@@ -6360,17 +6592,19 @@
       const button = $('retryPublishVerificationBtn');
       if (button) { button.disabled = true; button.textContent = localiseAdminText('Checking...'); }
       try {
-        await verifyPublicBrandPublished(lastPublishedPayload);
+        await verifyPublicBrandPublished(lastPublishedPayload, publishedVersionLabel);
         lastPublicationError = null;
         setPublicationState('published', publishedVersionLabel);
         setSettingsDirty(false);
         showToast(localiseAdminText('Public pages verified'));
+        showPublishError('');
         await updateSurfaceHealth();
       } catch (error) {
         lastPublicationError = error;
         setPublicationState('pending', publishedVersionLabel);
         setSettingsDirty(false);
         showToast(publishVerificationMessage(error), 'warning');
+        showPublishError(publishVerificationMessage(error), error);
       } finally {
         if (button) { button.disabled = false; button.textContent = localiseAdminText('Recheck public pages'); }
       }
@@ -6386,14 +6620,16 @@
         lastPublishedPayload = payload;
         lastPublicationError = null;
         tenant = data.tenant || tenant;
+        publishedBaselinePayload = JSON.parse(JSON.stringify(payload));
         fillSettings();
         setPublicationState('published', data.publishedVersion || '');
         setSettingsDirty(false);
         try {
-          await verifyPublicBrandPublished(payload);
+          await verifyPublicBrandPublished(payload, data.publishedVersion || '');
           await updateSurfaceHealth();
           await loadBrandWorkspace();
           showToast(localiseAdminText('Public pages verified'));
+          showPublishError('');
         } catch (err) {
           lastPublicationError = err;
           /* The write has already committed. Keep the editor clean and mark
@@ -6403,10 +6639,12 @@
           setSettingsDirty(false);
           await updateSurfaceHealth().catch((error) => console.warn('Surface health refresh failed.', error));
           showToast(publishVerificationMessage(err), 'warning');
+          showPublishError(publishVerificationMessage(err), err);
         }
       } catch (err) {
         setPublicationState('error');
         setSettingsDirty(true);
+        showPublishError(err.message || 'Publish failed.', err);
         throw err;
       }
     }
@@ -6474,7 +6712,29 @@
       currentShowcaseLimit = Number(data.limits?.showcase) || 0;
       renderBrandVersions();
       renderShowcasePublishNotice();
+      await loadPublishedSurfaceContract();
       return data;
+    }
+
+    async function loadPublishedSurfaceContract() {
+      const slug = currentTenantSlug();
+      if (!slug || !window.StudioSaaS.publicSurface) {
+        publishedSurfaceContract = null;
+        return null;
+      }
+      try {
+        publishedSurfaceContract = await window.StudioSaaS.publicSurface.fetch(
+          `/v1/public/${encodeURIComponent(slug)}`,
+          { credentials: 'same-origin' },
+        );
+        return publishedSurfaceContract;
+      } catch (error) {
+        publishedSurfaceContract = null;
+        error.code = error.code || 'PUBLIC_SURFACE_UNAVAILABLE';
+        throw error;
+      } finally {
+        updateThemePreview();
+      }
     }
 
     async function restoreBrandVersion(versionId) {
@@ -6553,6 +6813,7 @@
       picker.value = '';
       if (!data.url) return;
       aboutImages.push(data.url);
+      aboutImageAlts.push({ zh: '', en: '' });
       renderAboutImages();
       setSettingsDirty(true);
       /* Uploading a photo of the space is a request to SHOW the space —
@@ -6725,9 +6986,16 @@
         plans = planData.plans || [];
         currentShowcaseLimit = Number(workspaceData.limits?.showcase) || 0;
         fillSettings();
+        publishedBaselinePayload = JSON.parse(JSON.stringify(settingsPayload()));
         brandVersions = workspaceData.versions || [];
         renderBrandVersions();
         if (workspaceData.draft?.payload) applyDraftToEditor(workspaceData.draft.payload);
+        renderPublishChanges();
+        try {
+          await loadPublishedSurfaceContract();
+        } catch (surfaceError) {
+          showToast(publishVerificationMessage(surfaceError), 'warning');
+        }
         switchWorkbenchTab(requestedWorkbenchTab(), {syncUrl: false});
       } catch (err) {
         if (err.status === 401) setAuthState(null);
@@ -6864,6 +7132,9 @@
       document.querySelectorAll('[data-preview-mode]').forEach((button) => {
         button.addEventListener('click', () => switchPreviewMode(button.dataset.previewMode));
       });
+      document.querySelectorAll('[data-preview-source]').forEach((button) => {
+        button.addEventListener('click', () => switchPreviewSource(button.dataset.previewSource));
+      });
       document.querySelectorAll('[data-preview-device]').forEach((button) => {
         button.addEventListener('click', () => switchPreviewDevice(button.dataset.previewDevice));
       });
@@ -6945,7 +7216,7 @@
         'settingName','settingLogoUrl','settingPrimaryColor','settingSecondaryColor','settingWelcome','settingSlogan',
         'settingPortalLabel','settingRegisterIntro','settingRegistrationTitle','settingPhone','settingEmail','settingAddress','settingTimezone',
         'settingHeroEyebrow','settingHeroTitle','settingHeroTitleEn','settingHeroSubtitle','settingHeroSubtitleEn','settingHeroImageUrl',
-        'settingPrimaryCta','settingPrimaryCtaEn','settingSecondaryCta','settingSecondaryCtaEn',
+        'settingPrimaryCta','settingPrimaryCtaEn','settingSecondaryCta','settingSecondaryCtaEn','settingSecondaryCtaHref',
         'settingRegistrationTitleEn','settingRegisterIntroEn',
         'settingSloganEn','settingWelcomeEn',
         'settingCoursesLabel','settingGalleryLabel','settingFaqLabel','settingContactLabel',
@@ -6960,6 +7231,8 @@
         'settingTimetableWeeks','settingTimetableLabel','settingTimetableLabelEn','settingTimetableLead','settingTimetableLeadEn',
         'messageCheckin','messageCheckinEmpty','messageTopup','messageRenewal','messageBirthday'
       ].forEach((id) => $(id).addEventListener('input', () => { setSettingsDirty(true); updateThemePreview(); }));
+      ['settingAboutTitle','settingAboutTitleEn','settingAboutBody','settingAboutBodyEn']
+        .forEach((id) => $(id).addEventListener('input', renderAboutReadiness));
       // Inline validation errors clear as soon as the owner edits the field.
       BRAND_ERROR_FIELDS.forEach((id) => $(id).addEventListener('input', () => clearFieldError(id)));
       [
@@ -6968,13 +7241,16 @@
       ].forEach((id) => $(id).addEventListener('input', markThemeCustom));
       $('settingShowWelcome').addEventListener('change', () => { setSettingsDirty(true); updateThemePreview(); });
       [
-        'settingHeroStyle','settingHeroShape','settingShowStudentLogin','settingButtonStyle','settingFontMood',
+        'settingHeroStyle','settingHeroShape','settingShowStudentLogin','settingSecondaryCtaTarget','settingButtonStyle','settingFontMood',
         'settingShowPrincipal','settingShowCourses','settingShowGallery','settingShowFaq','settingShowContact','settingShowStudentArea',
         'settingShowAbout','settingShowShowcase',
         'settingCmsLayout','settingShowTimetable','settingShowTimetableBooking',
         'settingTimetableFieldTeacher','settingTimetableFieldRoom','settingTimetableFieldAgeRange',
         'settingTimetableFieldDuration','settingTimetableFieldCapacity','settingTimetableFieldPrice'
       ].forEach((id) => $(id).addEventListener('change', () => { setSettingsDirty(true); updateThemePreview(); }));
+      $('settingSecondaryCtaTarget').addEventListener('change', () => {
+        $('settingSecondaryCtaHrefGroup').hidden = $('settingSecondaryCtaTarget').value !== 'external';
+      });
       ['settingButtonStyle','settingFontMood'].forEach((id) => $(id).addEventListener('change', markThemeCustom));
       document.addEventListener('studiosaas:admin-language', (event) => {
         if (!previewLanguageManuallySet) {

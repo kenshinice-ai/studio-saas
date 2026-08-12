@@ -1,3 +1,26 @@
+# PWE Studio v9.8.9 — Studio Admin public surface and Edition delivery candidate
+
+> 当前阶段：v9.8.9 已完成代码与文档范围冻结、Studio Admin 公开表面修复、统一公开契约、空间与体验模块、Draft / Live 预览、版本化发布验证，以及 standalone Edition 完整部署方案并入。候选分支已通过本地完整门禁；尚未打包、推送或部署。本节会在每个发布里程碑只记录已经发生的事实。
+
+## v9.8.9 候选范围
+
+- Studio Admin 将保存、发布写入和公开验证拆成明确状态，使用结构化错误码与持久错误摘要，避免网站已更新却显示英文误报；外部 CTA 只接受 HTTPS。
+- 首页、作品页、课表、报名、导航与 Footer 共用 `publicSurfaceContract` v2，输出 owner intent、内容/依赖就绪度、可见性、原因码、下一步和发布版本。
+- 空间与体验模块支持 6 条亮点、最多 6 张有序照片和中英文替代文本；公开页不自动轮播，无图片时使用约 1.618:1 的正文布局。
+- Studio Admin 提供 Draft / Live 预览、有效公开状态、导航/Footer 映射、未就绪原因和下一步；发布后按 `publishedVersion` 核对 `/brand`、`/surface` 以及实际启用的独立页面。
+- 已将任务 `019ff42b-93f5-7293-a263-9c4eafd300e2` 的 standalone 部署文档并入，并统一到 v9.8.9，包括客户前置条件、Docker Compose、TLS、PostgreSQL 16、账号/密钥、迁移、备份恢复、验收、回滚与职责边界。
+
+## 当前证据（local-verified）
+
+| 层级 | 已验证事实 |
+|---|---|
+| Source | 隔离分支 `codex/v9.8.9-studio-admin-publish`，基线 commit `16237253dc37ef011cebfbb0e29766d3387905a8`；`VERSION=9.8.9`。候选尚未 commit / push。根工作区的其他用户改动未被修改或纳入。 |
+| Local gates | `STUDIOSAAS_REQUIRE_POSTGRES=1 STUDIOSAAS_MEDIA_DIR=/private/tmp/studiosaas-media-gate.zlytk0 bash backend/scripts/verify_local.sh` 全部通过；完整 pytest `1612 passed, 8 skipped`；CMS smoke `73 passed`；租户隔离 `237 passed, 0 failed`；PostgreSQL 迁移、安全媒体衍生图、Python/JS 编译、inline scripts、CMS bundle、asset manifest、shell parse 与 `git diff --check` 均通过。Standalone 与公开表面定向测试为 `92 passed, 1 skipped`。 |
+| Package | 尚未生成 v9.8.9 SaaS / Edition 包。 |
+| Production | 仍为已验收的 v9.8.8；尚未切换。 |
+| Browser | 本地 URL 被 Codex 浏览器客户端拦截，属于工具环境限制；生产 HTTPS 浏览器验收将在部署后执行。 |
+| Recovery | v9.8.8 为本轮回滚基线；生产切换前必须重新生成逻辑库与卷备份。 |
+
 # PWE Studio v9.8.8 — truthful public surface verification production closure
 
 > 当前阶段：v9.8.8 已完成发布写入与公开验证解耦、统一 `publicSurfaceContract`、亮色 Studio Admin 工作台、导航/Footer 可见性解析、结构化双语错误、手册同步、完整门禁、双模式打包、main 同步、最终生产备份、部署和公网浏览器验收。本节记录运行包的最终证据；本次修改之后的 handoff 文案只更新发布账本，不改变已运行的包。

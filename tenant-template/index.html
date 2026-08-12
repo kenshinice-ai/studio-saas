@@ -297,14 +297,20 @@
   .brandband .wrap{padding:64px 28px;text-align:center}
   .brandband .cn-line{color:var(--ink2);font-size:clamp(16px,2vw,20px);letter-spacing:.04em;max-width:40ch;margin:0 auto;line-height:1.8}
 
-  /* P1-10: the "about the space" block and its slow carousel used to exist
+  /* P1-10: the "about the space" block used to exist
      only in the hand-forked lets-paint-studio workspace, which meant every
      template fix skipped the flagship tenant and every flagship improvement
      never came back. It is a brand-configured section now. */
   .about-grid{display:grid;grid-template-columns:var(--golden-columns-reverse);gap:var(--space-phi-xl);align-items:center}
+  .about-grid.no-image{grid-template-columns:minmax(0,var(--brand-reading-measure));justify-content:center}
   .about-img{position:relative;aspect-ratio:4/5;border:1px solid var(--line);overflow:hidden;background:linear-gradient(155deg,var(--bg2),var(--bg))}
-  .about-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1.2s ease}
+  .about-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .24s ease}
   .about-img img.on{opacity:1}
+  .about-thumbs{position:absolute;z-index:2;left:12px;right:12px;bottom:12px;display:flex;gap:8px;justify-content:center}
+  .about-thumb{width:44px;height:44px;padding:0;border:2px solid color-mix(in srgb,var(--panel) 86%,transparent);border-radius:var(--radius);background:var(--scrim);overflow:hidden;cursor:pointer}
+  .about-thumb img{position:static;width:100%;height:100%;opacity:1;object-fit:cover;transition:none}
+  .about-thumb[aria-pressed="true"]{outline:2px solid var(--focus-ring);outline-offset:2px}
+  .about-thumb:focus-visible{outline:3px solid var(--focus-ring);outline-offset:2px}
   .about-list{margin-top:26px;display:grid;gap:18px;border-top:1px solid var(--line);padding-top:22px}
   .about-list .it{display:flex;gap:16px}
   .about-list .n{font-family:var(--font-latin);font-size:15px;color:var(--muted);flex-shrink:0}
@@ -595,7 +601,7 @@
      fields, so it costs nothing for the tenants that do not use it. -->
 <section id="about" data-awaits-data>
   <div class="wrap about-grid">
-    <div class="about-img reveal" id="aboutSlides"></div>
+    <div class="about-img reveal" id="aboutSlides" aria-live="polite"></div>
     <div class="reveal">
       <p class="eyebrow" id="aboutEyebrow"></p>
       <h2 class="serif" id="aboutTitle" style="font-size:clamp(26px,3.4vw,42px);font-weight:500;margin-top:14px"></h2>
@@ -937,12 +943,24 @@
      different order, so this function is intentionally repeatable. */
   function refreshPublicSurfaceContract(){
     if(!window.StudioSaaS.publicSurface) return;
+    if(state.authoritativeSurface){
+      state.publicSurface=state.authoritativeSurface;
+      window.StudioSaaS.publicSurface.apply(state.publicSurface, document);
+      return;
+    }
     state.publicSurface=window.StudioSaaS.publicSurface.resolve({
       slug:SLUG, brand:state.brand, showcase:state.showcase,
       programs:{programs:state.programs||[]}, gallery:state.gallery||{}
     });
     window.StudioSaaS.publicSurface.apply(state.publicSurface, document);
   }
+  window.StudioSaaS.publicSurface.fetch(API).then(function(contract){
+    state.authoritativeSurface=contract;
+    refreshPublicSurfaceContract();
+  }).catch(function(error){
+    console.warn('Public surface contract unavailable.', error);
+    showSurfaceStatus('surface', T('导航状态暂时无法确认；页面已按当前内容安全显示。','Navigation status could not be confirmed; the page is showing only locally ready content.'));
+  });
 
   /* ── i18n ──
      P0-4: rendering is textContent, never innerHTML. Studio Admin lets a tenant
@@ -1256,31 +1274,58 @@
     var version=document.getElementById('privacyVersionLine');
     if(version) version.textContent = T('本说明版本：','Privacy note version: ') + state.privacyNoticeVersion;
   }
-  /* P1-10: the studio-space block, carousel included. */
+  /* P1-10: the studio-space block. Images change only after a visitor chooses
+     a thumbnail; there is no motion competing with the studio's copy. */
   function renderAbout(b){
     var website=b.websiteProfile||b.website_profile||{};
     var pick=pickLocalized;
     var title=pick(website.about_title||website.aboutTitle);
     var body=pick(website.about_body||website.aboutBody);
+    var images=(website.about_images||website.aboutImages||[]).slice(0,6);
+    var items=(website.about_items||website.aboutItems||[]).slice(0,6);
     var show=String(website.show_about ?? website.showAbout ?? false) === 'true'
              || (website.show_about === true || website.showAbout === true);
-    if(!show || (!title && !body)){ resolveSection('about', false); return; }
-    document.getElementById('aboutEyebrow').textContent=nouns(pick(website.about_eyebrow||website.aboutEyebrow));
-    document.getElementById('aboutTitle').textContent=nouns(title);
-    document.getElementById('aboutBody').textContent=nouns(body);
+    if(!show || (!title && !body && !images.length && !items.length)){ resolveSection('about', false); return; }
+    var eyebrow=document.getElementById('aboutEyebrow');
+    var titleNode=document.getElementById('aboutTitle');
+    var bodyNode=document.getElementById('aboutBody');
+    eyebrow.textContent=nouns(pick(website.about_eyebrow||website.aboutEyebrow)); eyebrow.hidden=!eyebrow.textContent;
+    titleNode.textContent=nouns(title); titleNode.hidden=!titleNode.textContent;
+    bodyNode.textContent=nouns(body); bodyNode.hidden=!bodyNode.textContent;
     var slides=document.getElementById('aboutSlides');
     slides.innerHTML='';
-    var images=(website.about_images||website.aboutImages||[]).slice(0,6);
+    slides.hidden=!images.length;
+    slides.closest('.about-grid').classList.toggle('no-image',!images.length);
+    var alts=website.about_image_alts||website.aboutImageAlts||[];
     images.forEach(function(url,i){
       var img=document.createElement('img');
-      img.src=url; img.loading='lazy'; img.alt=(b.name||'Studio');
+      img.src=url; img.loading='lazy'; img.alt=pick(alts[i])||(b.name||'Studio')+' '+T('空间照片','space photo')+' '+(i+1);
       if(i===0) img.className='on';
       img.onerror=function(){ this.remove(); };
       slides.appendChild(img);
     });
+    if(images.length>1){
+      var controls=document.createElement('div'); controls.className='about-thumbs';
+      images.forEach(function(url,i){
+        var button=document.createElement('button'); button.type='button'; button.className='about-thumb';
+        button.setAttribute('aria-label',T('查看空间照片 ','Show space photo ')+(i+1));
+        button.setAttribute('aria-pressed',i===0?'true':'false');
+        var thumb=document.createElement('img'); thumb.src=url; thumb.alt=''; thumb.loading='lazy';
+        button.appendChild(thumb);
+        button.addEventListener('click',function(){
+          var pictures=[].slice.call(slides.querySelectorAll(':scope > img'));
+          pictures.forEach(function(picture,index){ picture.classList.toggle('on',index===i); });
+          controls.querySelectorAll('button').forEach(function(control,index){
+            control.setAttribute('aria-pressed',index===i?'true':'false');
+          });
+        });
+        controls.appendChild(button);
+      });
+      slides.appendChild(controls);
+    }
     var list=document.getElementById('aboutList');
     list.innerHTML='';
-    (website.about_items||website.aboutItems||[]).slice(0,6).forEach(function(item,i){
+    items.forEach(function(item,i){
       var row=document.createElement('div'); row.className='it';
       var num=document.createElement('span'); num.className='n lat'; num.textContent=(i<9?'0':'')+(i+1);
       var box=document.createElement('div');
@@ -1290,7 +1335,6 @@
       row.appendChild(num); row.appendChild(box); list.appendChild(row);
     });
     resolveSection('about', true);
-    startAboutCarousel();
   }
   /* The studio's own work. Built with DOM calls rather than innerHTML because
      every value below is tenant-authored, and the video URL in particular has
@@ -1593,31 +1637,6 @@
       showSurfaceStatus('showcase', T('工作室作品暂时无法加载，请稍后重试。','Selected work is temporarily unavailable. Please try again later.'));
     });
   }
-  var aboutTimer=null, aboutPaused=false;
-  function startAboutCarousel(){
-    if(aboutTimer){ clearInterval(aboutTimer); aboutTimer=null; }
-    var slides=[].slice.call(document.querySelectorAll('#aboutSlides img'));
-    if(slides.length<2) return;
-    if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    var i=0;
-    aboutTimer=setInterval(function(){
-      if(aboutPaused) return;
-      slides[i].classList.remove('on'); i=(i+1)%slides.length; slides[i].classList.add('on');
-    }, 4500);
-  }
-  /* WCAG 2.2.2: auto-rotation stops while the visitor is looking at it —
-     hover or focus within the slide box. Attached once; the box outlives
-     the re-renders that replace its slides. */
-  (function(){
-    var box=document.getElementById('aboutSlides');
-    if(!box) return;
-    var pause=function(){ aboutPaused=true; };
-    var resume=function(){ aboutPaused=false; };
-    box.addEventListener('mouseenter', pause);
-    box.addEventListener('mouseleave', resume);
-    box.addEventListener('focusin', pause);
-    box.addEventListener('focusout', resume);
-  })();
   function tenantLogoValue(brand){
     var value=brand.logoUrl||brand.logo_url||'';
     return ['/logo.png','/logo-light.png','/favicon.svg'].indexOf(value)===-1 ? value : '';

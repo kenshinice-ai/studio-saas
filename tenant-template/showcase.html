@@ -188,7 +188,7 @@
   const params = new URLSearchParams(location.search);
   const normaliseLang = (value) => String(value || '').toLowerCase().startsWith('en') ? 'en' : String(value || '').toLowerCase().startsWith('zh') ? 'zh' : '';
   let language = normaliseLang(params.get('lang')) || (() => { try { return normaliseLang(localStorage.getItem(`pwe_lang_${TENANT_SLUG}`)); } catch (_) { return ''; } })() || normaliseLang(navigator.language) || 'zh';
-  const state = { brand: {}, category: String(params.get('category') || '').trim().slice(0,24), items: [], total: 0, offset: 0, hasMore: false, loading: false, requestId: 0, lightboxIndex: -1 };
+  const state = { brand: {}, category: String(params.get('category') || '').trim().slice(0,24), items: [], total: 0, offset: 0, hasMore: false, loading: false, requestId: 0, lightboxIndex: -1, authoritativeSurface: null, surfaceSettled: false };
   let abortController = null;
   const T = (zh, en) => language === 'en' ? en : zh;
   const localized = (value, fallback = '') => {
@@ -196,16 +196,30 @@
     return String(value == null ? '' : value).trim() || fallback;
   };
   const websiteOf = () => state.brand.websiteProfile || state.brand.website_profile || {};
-  const setVisible = (ids, visible) => ids.forEach((id) => { const node = document.getElementById(id); if (node) node.style.display = visible ? '' : 'none'; });
   const setStatus = (text) => { document.getElementById('status').textContent = text || ''; };
   function refreshPublicSurfaceContract() {
     if (!window.StudioSaaS.publicSurface) return;
+    if (state.authoritativeSurface) {
+      state.publicSurface = state.authoritativeSurface;
+      window.StudioSaaS.publicSurface.apply(state.publicSurface, document);
+      return;
+    }
+    if (!state.surfaceSettled) return;
     state.publicSurface = window.StudioSaaS.publicSurface.resolve({
       slug: TENANT_SLUG, brand: state.brand,
       showcase: state.data || { enabled: true, items: state.items, total: state.total }
     });
     window.StudioSaaS.publicSurface.apply(state.publicSurface, document);
   }
+  window.StudioSaaS.publicSurface.fetch(API).then((contract) => {
+    state.authoritativeSurface = contract;
+    state.surfaceSettled = true;
+    refreshPublicSurfaceContract();
+  }).catch((error) => {
+    state.surfaceSettled = true;
+    refreshPublicSurfaceContract();
+    console.warn('Public surface contract unavailable; using locally confirmed content.', error);
+  });
 
   function updateMeta() {
     const path = location.pathname;
@@ -380,13 +394,6 @@
     document.getElementById('tenantName').textContent = name; document.getElementById('footName').textContent = name; document.getElementById('footName2').textContent = name;
     document.getElementById('footContact').textContent = [state.brand.contact_phone || state.brand.contactPhone, state.brand.contact_email || state.brand.contactEmail, state.brand.address].filter(Boolean).join(' · ');
     const rawLogo = state.brand.logo_url || state.brand.logoUrl || ''; const logo = document.getElementById('tenantLogo'); if (rawLogo && !['/logo.png','/logo-light.png','/favicon.svg'].includes(rawLogo)) { logo.src = rawLogo; logo.style.display = 'block'; }
-    const hasPrincipal = String(website.show_principal ?? website.showPrincipal ?? true) !== 'false' && Boolean(principal.bio || principal.name);
-    setVisible(['navPrincipal','mnavPrincipal'], hasPrincipal);
-    setVisible(['navCourses','mnavCourses'], String(website.show_courses ?? website.showCourses ?? true) !== 'false');
-    setVisible(['navTimetable','mnavTimetable','footTimetable'], String(website.show_timetable ?? website.showTimetable ?? false) === 'true');
-    setVisible(['navGallery','mnavGallery'], String(website.show_gallery ?? website.showGallery ?? true) !== 'false');
-    setVisible(['navFaq','mnavFaq'], String(website.show_faq ?? website.showFaq ?? true) !== 'false');
-    setVisible(['navStudent','mnavStudent'], String(website.show_student_area ?? website.showStudentArea ?? true) !== 'false');
     const title = localized(website.showcase_title || website.showcaseTitle, T('工作室作品', 'Selected Work'));
     const description = localized(website.showcase_lead || website.showcaseLead, T('工作室精选作品展示', 'Selected work from this studio.'));
     document.getElementById('pageDocumentTitle').textContent = `${name} · ${title}`; document.getElementById('pageDescription').content = description; document.getElementById('ogTitle').content = `${name} · ${title}`; document.getElementById('ogDescription').content = description;

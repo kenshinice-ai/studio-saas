@@ -1,54 +1,98 @@
-# PWE Studio Edition · 必须环境
+# PWE Studio Edition · 部署前提与必备环境
 
-> v8.1.0 已实现并纳入发布验证（2026-07-29）。
+> 当前正式交付基线：v9.8.9 Edition，`BUILD_INFO` 必须为
+> `mode=standalone`。完整实施顺序见 [DEPLOYMENT_PLAN.md](DEPLOYMENT_PLAN.md)。
 
-## 1. 服务器（二选一）
+## 1. 标准部署形态
 
-| 形态 | 规格建议 | 适用 |
+Edition 的标准客户交付是“一台服务器、一个客户、一个 active 租户”的
+Docker Compose 单机部署：
+
+```text
+客户服务器
+├─ nginx + TLS（主机层）
+├─ app 容器（Python 3.11 / Waitress / PWE Studio）
+└─ db 容器（PostgreSQL 16）
+```
+
+客户不需要在主机上另行安装 Python、Flask、Waitress、PostgreSQL、Redis 或
+Node。应用依赖由镜像从 `deploy/aws/requirements.lock` 安装，PostgreSQL
+客户端固定为 16，与 `postgres:16-alpine` 配套。
+
+## 2. 服务器规格
+
+| 形态 | 最低交付规格 | 适用 |
 |---|---|---|
-| **云主机（推荐）** | 2 vCPU / 2GB RAM / 40GB SSD 起（AWS Lightsail $10、t4g.micro、阿里云轻量 2C2G 均可） | 绝大多数单店：≤500 学员、≤5 员工并发 |
-| 客户自有内网服务器 | 同上规格；需能出网装依赖 | 有 IT 管理能力、坚持数据不出内网的机构 |
+| 云主机（推荐） | 2 vCPU / 2 GB RAM / 40 GB SSD 起 | 单店、约 500 名学员以内、少量并发员工 |
+| 客户内网服务器 | 同上；必须允许出网安装依赖和证书，或由客户提供内部镜像/证书 | 有 IT 管理能力、数据必须留在内网 |
 
-单店负载远低于平台版：waitress 8 线程 + 本机 PostgreSQL 同机即可，
-无需独立数据库实例（客户坚持 RDS/云数据库亦支持）。
+如果媒体、备份或历史数据较多，应在上线前增加磁盘；磁盘空间属于客户或
+代管方的持续运维责任。macOS 仅用于演示，不作为客户生产环境。
 
-## 2. 软件栈（与平台版一致，安装脚本代装）
+推荐系统：Ubuntu 22.04/24.04。Debian 12 可以由实施人员适配；标准安装器
+的自动安装分支以 `apt-get`、`systemd` 和 `cron` 为前提。
 
-- **OS**：Ubuntu 22.04/24.04（推荐）；Debian 12 兼容；macOS 仅限演示
-- **运行时**：Docker + docker-compose-v2（主路径，见 DEPLOYMENT.md）
-  或裸机 Python 3.11+ / PostgreSQL 16+ / nginx
-- **依赖锁定**：沿用 `deploy/aws/requirements.lock`（生产精确版本）
-- **PostgreSQL 16+ 硬性要求**（迁移链 0016 使用 PG16 函数）
+## 3. 主机必备软件
 
-## 3. 网络与域名
+- Docker Engine
+- Docker Compose v2（`docker compose`，不是旧版 `docker-compose`）
+- nginx
+- certbot 和 `python3-certbot-nginx`
+- bash、curl、openssl、sudo、cron/systemd
 
-- 客户提供域名一个（如 `studio.example.com`），DNS A 记录指向服务器
-- 开放 80/443；TLS 用 certbot（部署脚本含 bootstrap 流程）或客户已有证书
-- **无任何回连**：独立版不向平台发送遥测/心跳/授权校验（交付即断链）
-- 邮件通知（可选）：客户提供 SMTP（或我们协助申请 SES），不配则通知
-  停留在日志模式，业务不受阻
+安装器可以在 Ubuntu 上协助安装 Docker 和 Compose。nginx、Certbot 和域名
+证书仍需按 [DEPLOYMENT_PLAN.md](DEPLOYMENT_PLAN.md) 的顺序配置。
 
-## 4. 安全基线（交付时即配好）
+## 4. 网络、DNS 和端口
 
-- 与平台版同源的全部安全机制：PBKDF2-600k 密码、CSRF 双层防护、
-  安全头、会话 Secure cookie、限流、审计日志
-- 独立随机 `SESSION_SECRET` / `API_KEY`（安装脚本生成，600 权限落盘）
-- 数据库仅本机监听（同机部署）或 `sslmode=require`（外部库）
-- PostgreSQL 每日本地备份 + 保留 14 份（安装器写 root-owned cron）；
-  媒体备份按用户决定暂缓，异地数据库副本属维护协议项
+- 客户提供一个正式域名，例如 `studio.example.com`。
+- DNS A 记录必须指向服务器固定公网 IP。
+- 公网开放 TCP `80`、`443`；SSH `22` 只允许客户或维护人员的固定来源。
+- 不开放应用端口 `8899` 和数据库端口 `5432`。
+- 首次安装需要访问 Ubuntu 软件源、Docker Registry、PostgreSQL 软件源和
+  Let’s Encrypt；内网部署必须提前准备代理、镜像或离线安装包。
+- 如果需要 `www`，必须同时准备 DNS 记录并在证书申请中明确加入该名称。
 
-## 5. 运维账号边界
+## 5. 数据库、持久化和备份
 
-- 安装命令使用 `sudo`；secrets 固定在 `/etc/pwe-studio/<slug>.env`
-- 安装器把交付操作员加入 `docker` 组，并生成
-  `/usr/local/bin/pwe-studio-<slug>`；首次安装后需重新登录一次让组权限生效
-- 数据库备份 cron 由 root 执行，不依赖个人 shell、个人 crontab 或登录状态
-- Docker 组本身等同主机高权限，只授予合同中指定的运维人员
+- 标准方案使用独立的 PostgreSQL 16 容器，不需要 RDS 或其他外部数据库。
+- 数据库总共只能有一个 tenant，且该 tenant 必须为 `active`。
+- 应用使用 `studiosaas_app` 最小权限角色；迁移、角色授权和受控恢复使用
+  数据库 owner `studiosaas`。
+- 数据库、媒体、归档、租户工作区和业务数据使用 Docker 持久卷。
+- 每日由 root-owned cron 执行 PostgreSQL 备份，默认保留 14 份。
+- 默认不包含媒体文件的异地备份；Docker volume 能保留升级数据，但不能替代
+  服务器损坏后的灾难恢复副本。
 
-## 6. 客户侧需要准备的清单（售前发给客户）
+## 6. 安全与运维账号
 
-1. 服务器（或授权我们代购，费用实报）与 SSH 访问
-2. 域名及 DNS 修改权限
-3. 品牌素材：Logo、主色偏好、公开文案（或用行业预设起步）
-4. 迁移数据：现有学员名单（Excel/JSON）、剩余课时表、套餐定义
-5. 一个负责人邮箱（owner 账号）+ 员工名单与角色分配
+- 安装命令必须使用 `sudo` 或 root。
+- 稳定配置位于 `/etc/pwe-studio/<slug>.env`；有 Docker group 时实际权限为
+  `root:docker 0640`，没有该组时为 `root:root 0600`。
+- 数据库 dump 和 manifest 为 `0600`。
+- 安装器会生成独立的 `STUDIOSAAS_SESSION_SECRET`、`STUDIOSAAS_API_KEY`
+  和数据库密码。
+- 安装器会为指定运维用户加入 Docker group。Docker group 等同主机高权限，
+  只能授予合同中指定的运维人员；首次安装后需要重新登录。
+- Edition 不向平台回连，不包含 Super Admin、支持模式或平台遥测。
+
+## 7. 客户交付前必须提供
+
+1. 服务器、云账号或内网主机，以及 SSH/控制台权限。
+2. 域名和 DNS 修改权限。
+3. 工作室名称、时区、联系人、Logo、配色和公开文案。
+4. Owner 邮箱、员工名单和角色分配。
+5. 现有学员、课程、套餐、期初课时余额和数据迁移截止时间（如需迁移）。
+6. 隐私、报名、家长/监护人和作品发布授权要求。
+7. 可选 SMTP 配置。未配置 SMTP 时，通知保持 console/log 模式，不影响核心
+   业务，但不会产生自动邮件投递。
+
+## 8. 明确不包含在标准安装中的服务
+
+- RDS、S3、Redis、SES 或其他托管 AWS 服务；
+- 媒体文件异地备份和默认灾备副本；
+- 24/7 监控、备份失败告警、值班和 SLA；
+- MFA/SSO、在线支付、自动 SMS、自动邮件投递和浏览器 Push。
+
+这些内容必须通过单独的维护协议或定制订单确认，不能从“Docker 部署成功”
+推导为已包含。

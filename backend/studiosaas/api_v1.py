@@ -16,7 +16,7 @@ import time
 import hashlib
 import uuid as _uuid
 from urllib.parse import quote
-from datetime import date as _date, timedelta as _timedelta
+from datetime import date as _date, datetime as _datetime, timedelta as _timedelta, timezone as _timezone
 from pathlib import PurePath
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -773,6 +773,11 @@ def _default_hero_profile(category: str, studio_name: str = "") -> dict:
         "subtitle": preset["slogan"],
         "primary_cta_label": "Book a Trial",
         "secondary_cta_label": "Explore Courses",
+        # ``auto`` preserves old tenants without guessing at save time. The
+        # public-surface resolver chooses the first target that is actually
+        # ready; an explicitly selected target never silently falls through.
+        "secondary_cta_target": "auto",
+        "secondary_cta_href": "",
         "show_student_login": True,
         "background_style": "soft",
         # The hero image's outline. Separate from background_style, which says
@@ -807,12 +812,35 @@ def _normalize_hero_profile(value, category: str, studio_name: str = "") -> dict
     hero_image_url = _first_text(data, "hero_image_url", "heroImageUrl", limit=500)
     if hero_image_url:
         _validate_logo_url(hero_image_url)
+    secondary_cta_target = _first_text(
+        data,
+        "secondary_cta_target",
+        "secondaryCtaTarget",
+        default=default["secondary_cta_target"],
+        limit=20,
+    ).lower()
+    allowed_cta_targets = {
+        "auto", "courses", "showcase", "timetable", "register", "external", "hidden",
+    }
+    if secondary_cta_target not in allowed_cta_targets:
+        raise ValueError(
+            "Secondary CTA target must be one of: auto, courses, showcase, "
+            "timetable, register, external, hidden."
+        )
+    secondary_cta_href = _first_text(
+        data, "secondary_cta_href", "secondaryCtaHref", limit=500,
+    )
+    if secondary_cta_target == "external":
+        if not re.match(r"^https://\S+$", secondary_cta_href, re.IGNORECASE):
+            raise ValueError("Secondary CTA external URL must start with https://.")
     return {
         "eyebrow": _first_text(data, "eyebrow", default=default["eyebrow"], limit=80),
         "title": _first_text(data, "title", default=default["title"], limit=100),
         "subtitle": _first_text(data, "subtitle", default=default["subtitle"], limit=240),
         "primary_cta_label": _first_text(data, "primary_cta_label", "primaryCtaLabel", default=default["primary_cta_label"], limit=40),
         "secondary_cta_label": _first_text(data, "secondary_cta_label", "secondaryCtaLabel", default=default["secondary_cta_label"], limit=40),
+        "secondary_cta_target": secondary_cta_target,
+        "secondary_cta_href": secondary_cta_href,
         "show_student_login": _bool_from_json(data, "show_student_login", "showStudentLogin", default=True),
         "background_style": background_style,
         "hero_shape": hero_shape,
@@ -840,6 +868,7 @@ def _default_website_profile() -> dict:
         "seo_description": "",
         "show_about": False,
         "about_images": [],
+        "about_image_alts": [],
         "about_eyebrow": {"zh": "", "en": ""},
         "about_title": {"zh": "", "en": ""},
         "about_body": {"zh": "", "en": ""},
@@ -1103,13 +1132,23 @@ def _normalize_website_profile(value) -> dict:
     # the fork no longer has to exist to get it.
     profile["seo_title"] = _first_text(data, "seo_title", "seoTitle", default="", limit=120)
     profile["seo_description"] = _first_text(data, "seo_description", "seoDescription", default="", limit=200)
-    # Optional "about the space" section with a slow image carousel — also
-    # reclaimed from the fork.
+    # Optional "about the space" section. Public pages use manual image
+    # selection so visitors are never forced through an autoplay carousel.
     images = data.get("about_images", data.get("aboutImages"))
     profile["about_images"] = [
         url for url in (str(item or "").strip()[:400] for item in (images if isinstance(images, list) else []))
         if url
     ][:6]
+    raw_alts = data.get("about_image_alts", data.get("aboutImageAlts"))
+    profile["about_image_alts"] = []
+    for item in (raw_alts if isinstance(raw_alts, list) else [])[:len(profile["about_images"])]:
+        if isinstance(item, dict):
+            profile["about_image_alts"].append(_localized_pair({"alt": item}, "alt", limit=180))
+            continue
+        text = str(item or "").strip()[:180]
+        profile["about_image_alts"].append({"zh": text, "en": text})
+    while len(profile["about_image_alts"]) < len(profile["about_images"]):
+        profile["about_image_alts"].append({"zh": "", "en": ""})
     for key in ("about_eyebrow", "about_title", "about_body"):
         camel = "".join([key.split("_")[0], *(part.capitalize() for part in key.split("_")[1:])])
         source = data if key in data else {key: data.get(camel)}
@@ -4367,7 +4406,11 @@ def tenant_dashboard():
 
 def _public_surface_entry(key: str, intent: bool, ready: bool, href: str,
                           *, reason: str = "no_content", next_action: str = "review_in_studio_admin",
-                          surface: str | None = None) -> dict:
+                          surface: str | None = None, placement: str = "home",
+                          navigation_eligible: bool = True, footer_eligible: bool = True,
+                          content_ready: bool | None = None,
+                          dependency_ready: bool | None = None,
+                          published_version: int | None = None) -> dict:
     """Build the public navigation contract used by every tenant surface.
 
     ``intent`` is the owner's switch; ``ready`` is the smallest truthful
@@ -4375,16 +4418,80 @@ def _public_surface_entry(key: str, intent: bool, ready: bool, href: str,
     Studio Admin explain why an entry is hidden instead of merely removing it.
     """
 
-    visible = bool(intent and ready)
+    effective_content_ready = bool(ready if content_ready is None else content_ready)
+    effective_dependency_ready = bool(ready if dependency_ready is None else dependency_ready)
+    effective_ready = bool(ready and effective_content_ready and effective_dependency_ready)
+    visible = bool(intent and effective_ready)
     return {
         "key": key,
         "intent": bool(intent),
-        "ready": bool(ready),
+        "ready": effective_ready,
+        "contentReady": effective_content_ready,
+        "dependencyReady": effective_dependency_ready,
         "visible": visible,
         "href": href,
         "surface": surface or key,
+        "placement": placement,
+        "navigationEligible": bool(navigation_eligible),
+        "footerEligible": bool(footer_eligible),
         "reasonCode": "ready" if visible else (reason if intent else "disabled_by_owner"),
         "nextAction": "" if visible else next_action,
+        "publishedVersion": published_version,
+    }
+
+
+def _public_surface_actions(hero: dict, modules: dict[str, dict]) -> dict[str, dict]:
+    """Resolve hero actions against the same readiness contract as navigation.
+
+    A button must never point at a hidden or empty section. ``auto`` exists only
+    for pre-v9.8.9 tenants and selects the first ready public destination;
+    explicit choices fail closed so Studio Admin can explain what to fix.
+    """
+
+    register = modules["register"]
+    primary = {
+        "key": "primary",
+        "targetType": "register",
+        "href": register["href"],
+        "visible": bool(register["visible"]),
+        "reasonCode": register["reasonCode"],
+        "nextAction": register["nextAction"],
+    }
+    requested = str(hero.get("secondary_cta_target") or "auto").strip().lower()
+    if requested == "hidden":
+        return {
+            "primary": primary,
+            "secondary": {
+                "key": "secondary", "targetType": "hidden", "href": "", "visible": False,
+                "reasonCode": "disabled_by_owner", "nextAction": "choose_secondary_cta_target",
+            },
+        }
+    if requested == "external":
+        href = str(hero.get("secondary_cta_href") or "").strip()
+        if not re.match(r"^https://\S+$", href, re.IGNORECASE):
+            href = ""
+        return {
+            "primary": primary,
+            "secondary": {
+                "key": "secondary", "targetType": "external", "href": href,
+                "visible": bool(href),
+                "reasonCode": "ready" if href else "missing_external_url",
+                "nextAction": "" if href else "add_secondary_cta_url",
+            },
+        }
+
+    candidates = ("courses", "showcase", "timetable", "register")
+    target = requested
+    if requested == "auto":
+        target = next((key for key in candidates if modules[key]["visible"]), "register")
+    module = modules.get(target, register)
+    return {
+        "primary": primary,
+        "secondary": {
+            "key": "secondary", "targetType": target, "href": module["href"],
+            "visible": bool(module["visible"]), "reasonCode": module["reasonCode"],
+            "nextAction": module["nextAction"],
+        },
     }
 
 
@@ -4454,6 +4561,17 @@ def public_surface(tenant_slug: str):
                 conn, tenant.tenant_id, weeks, timezone_name)
             timetable_ready = bool(occurrences)
         limit = showcase_limit_for(conn, tenant.tenant_id)
+        published = fetch_one(
+            conn,
+            """
+            SELECT version_number, published_at
+            FROM tenant_brand_versions
+            WHERE tenant_id = %s
+            ORDER BY version_number DESC
+            LIMIT 1
+            """,
+            (tenant.tenant_id,),
+        ) or {}
 
     active_items = [
         item for item in profile.get("showcase_items", [])
@@ -4462,47 +4580,79 @@ def public_surface(tenant_slug: str):
     showcase_ready = bool(_ordered_showcase_items(active_items)[:limit])
     contact_ready = bool(row.get("contact_phone") or row.get("contact_email") or row.get("address"))
     principal_ready = bool(str(principal.get("bio") or "").strip())
+    about_ready = bool(
+        _localized_pair(profile, "about_title", limit=600)["zh"]
+        or _localized_pair(profile, "about_body", limit=600)["zh"]
+        or profile.get("about_images")
+        or profile.get("about_items")
+    )
+    published_version = published.get("version_number")
     modules = {
+        "about": _public_surface_entry(
+            "about", bool(profile.get("show_about", False)), about_ready,
+            "#home:about", reason="missing_about_content", next_action="complete_space_profile",
+            surface="home", placement="after_hero", navigation_eligible=False,
+            footer_eligible=False, published_version=published_version,
+        ),
         "principal": _public_surface_entry(
             "principal", bool(profile.get("show_principal", True)), principal_ready,
             "#home:artist", reason="missing_content", next_action="add_principal_bio", surface="home",
+            placement="after_about", footer_eligible=False, published_version=published_version,
         ),
         "showcase": _public_surface_entry(
             "showcase", bool(profile.get("show_showcase", False)), showcase_ready,
             f"/{tenant.slug}/showcase", reason="no_published_works", next_action="publish_showcase_work", surface="showcase",
+            placement="after_principal", published_version=published_version,
         ),
         "courses": _public_surface_entry(
             "courses", bool(profile.get("show_courses", True)), int((course_row or {}).get("n") or 0) > 0,
             "#home:courses", reason="no_published_courses", next_action="publish_course", surface="home",
+            placement="after_showcase", published_version=published_version,
         ),
         "timetable": _public_surface_entry(
             "timetable", bool(profile.get("show_timetable", False)), timetable_ready,
             f"/{tenant.slug}/timetable", reason="no_upcoming_classes", next_action="publish_timetable", surface="timetable",
+            placement="navigation", published_version=published_version,
         ),
         "gallery": _public_surface_entry(
             "gallery", bool(profile.get("show_gallery", True)), int((gallery_row or {}).get("n") or 0) > 0,
             "#home:gallery", reason="no_consented_student_work", next_action="share_student_work", surface="home",
+            placement="after_courses", published_version=published_version,
         ),
         "faq": _public_surface_entry(
             "faq", bool(profile.get("show_faq", True)), bool(faq),
             "#home:faq", reason="no_faq_content", next_action="add_faq", surface="home",
+            placement="after_gallery", published_version=published_version,
         ),
         "contact": _public_surface_entry(
             "contact", bool(profile.get("show_contact", True)), contact_ready,
             "#home:contact", reason="missing_contact_details", next_action="add_contact_details", surface="home",
+            placement="after_faq", navigation_eligible=False, footer_eligible=False,
+            published_version=published_version,
         ),
         "student": _public_surface_entry(
             "student", bool(profile.get("show_student_area", hero.get("show_student_login", True))), True,
-            "#my", surface="home",
+            "#my", surface="home", placement="utility", published_version=published_version,
         ),
         "register": _public_surface_entry(
             "register", True, bool(registration or row.get("name")), "#join",
             reason="registration_unavailable", next_action="complete_registration_profile", surface="register",
+            placement="action", published_version=published_version,
         ),
     }
-    navigation = [modules[key] for key in ("principal", "showcase", "courses", "timetable", "gallery", "faq", "student", "register")]
-    footer = [modules[key] for key in ("showcase", "courses", "timetable", "gallery", "faq", "student", "register")]
-    return jsonify({"contract": {"version": 1, "modules": modules, "navigation": navigation, "footer": footer}})
+    navigation = [module for module in modules.values() if module["navigationEligible"]]
+    footer = [module for module in modules.values() if module["footerEligible"]]
+    actions = _public_surface_actions(hero, modules)
+    return jsonify({"contract": {
+        "version": 2,
+        "generatedAt": _datetime.now(_timezone.utc).isoformat(),
+        "publishedVersion": published_version,
+        "publishedAt": published.get("published_at"),
+        "modules": modules,
+        "navigation": navigation,
+        "footer": footer,
+        "actions": actions,
+    }})
 
 
 @api_v1.route("/public/<tenant_slug>/brand", methods=["GET"])
@@ -4536,6 +4686,17 @@ def public_brand(tenant_slug: str):
             """,
             (tenant.tenant_id,),
         )
+        published = fetch_one(
+            conn,
+            """
+            SELECT version_number, published_at
+            FROM tenant_brand_versions
+            WHERE tenant_id = %s
+            ORDER BY version_number DESC
+            LIMIT 1
+            """,
+            (tenant.tenant_id,),
+        ) or {}
     category = row["category"] or "general"
     preset = _preset_for(category)
     row["category_label"] = row["category_label"] or preset["label"]
@@ -4597,6 +4758,8 @@ def public_brand(tenant_slug: str):
     # record could cite a version the visitor's page never rendered. One value,
     # served with the notice it refers to.
     row["privacyNoticeVersion"] = PRIVACY_NOTICE_VERSION
+    row["publishedVersion"] = published.get("version_number")
+    row["publishedAt"] = published.get("published_at")
 
     # The board itself is served by /public/<slug>/showcase, not from here.
     #

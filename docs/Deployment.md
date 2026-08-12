@@ -1,9 +1,10 @@
 # StudioSaaS Deployment Guide
 
-Version: v8.1.0
-Date: 2026-07-31（Stage 2 上线记录：2026-07-30）
+Version: v9.8.9
+Date: 2026-08-12（Stage 2 上线记录：2026-07-30）
 Scope: 生产运行于 AWS Lightsail 单实例，域名 `https://pwestudio.online`，
-当前版本 v8.1.0（21 项迁移已应用）。
+当前 SaaS 发布基线 v9.8.9；Source、Package、Production 的独立证据以
+[`HANDOFF_LATEST.md`](HANDOFF_LATEST.md) 顶部记录为准。
 本地部署仍是开发与验证路径；**Cloudflare Tunnel 已退出生产链路，仅供本地开发**，
 不得再为该域名重新引入。生产事实与实测证据见
 [`HANDOFF_LATEST.md`](HANDOFF_LATEST.md) §0，操作命令见 §0.2。
@@ -19,6 +20,23 @@ Scope: 生产运行于 AWS Lightsail 单实例，域名 `https://pwestudio.onlin
 Stage 2 实际落地形态与下文 3.1 的早期设计不同：**未采用 RDS / S3 / SES**。
 数据库与媒体都在同一实例上，每日逻辑备份加媒体卷归档由 cron 执行，恢复演练已通过；
 异地备份副本、监控与 SLA 仍未完成，且在客户文档中如实披露为未完成。
+
+## Standalone Edition 部署入口
+
+客户自有服务器上的单店独立版不是本文件的 SaaS Stage 2 部署。它使用同一代码库
+的 `STUDIOSAAS_MODE=standalone`，标准形态是 nginx + App Docker 容器 + PostgreSQL
+16 Docker 容器，并强制数据库总共只有一个 active tenant。客户不需要单独安装
+Python、Flask 或 PostgreSQL。
+
+完整的客户前提、Docker/Compose 安装、DNS/TLS、数据库迁移、备份恢复、升级回滚、
+责任边界和交付签收清单见：
+
+[`standalone-edition/DEPLOYMENT_PLAN.md`](../standalone-edition/DEPLOYMENT_PLAN.md)
+
+现有分工文档：[`REQUIREMENTS.md`](../standalone-edition/REQUIREMENTS.md)、
+[`DEPLOYMENT.md`](../standalone-edition/DEPLOYMENT.md)、
+[`RUNBOOK.md`](../standalone-edition/RUNBOOK.md)、
+[`OPERATIONS.md`](../standalone-edition/OPERATIONS.md)。
 
 ---
 
@@ -44,7 +62,7 @@ PORT=8901 STUDIOSAAS_DATABASE_URL=postgresql://$(whoami)@localhost:5432/studiosa
 # 或直接: ./start_studiosaas_local.sh
 ```
 
-### 1.2 验证基线（v8.1.0）
+### 1.2 验证基线（v9.8.9）
 
 | 检查 | 命令 | 期望 |
 |---|---|---|
@@ -134,8 +152,8 @@ cd backend
 bash scripts/package_release.sh
 ```
 
-当前候选的逐项证据和未关闭阻塞项记录在
-[`Release_Readiness_2026-07-12.md`](Release_Readiness_2026-07-12.md)。AWS 已于
+当前候选的逐项证据和未关闭阻塞项记录在本地归档
+`achieve/docs/Release_Readiness_2026-07-12.md`。AWS 已于
 2026-07-30 上线，但这不豁免任何一项：迁移、媒体衍生图检查、真实 PostgreSQL
 隔离测试与本地浏览器链路仍是每次发布的必过项。
 
@@ -211,8 +229,8 @@ pg_dump 里）。具体命令见 `deploy/aws/README_AWS.md` §9。
 | `STUDIOSAAS_API_KEY` | 自动生成的本地文件 | 独立强随机值 | Secrets Manager |
 | `STUDIOSAAS_SESSION_SECRET` | 自动生成的本地文件 | 与 API key 不同的强随机值 | Secrets Manager |
 | `STUDIOSAAS_MEDIA_DIR` | `backend/media` | 持久化本地目录 | S3 adapter 前使用持久卷（P3-03） |
-| `STUDIOSAAS_DB_CONNECT_TIMEOUT` | 默认 5（秒，v7.4.1） | 同左 | 按需调优 |
-| `STUDIOSAAS_DB_STATEMENT_TIMEOUT_MS` | 默认 30000（v7.4.1） | 同左 | 按需调优 |
-| `STUDIOSAAS_DB_LOCK_TIMEOUT_MS` | 默认 10000（v7.4.1） | 同左 | 按需调优 |
+| `STUDIOSAAS_DB_CONNECT_TIMEOUT` | 默认 5 秒 | 同左 | 按需调优 |
+| `STUDIOSAAS_DB_STATEMENT_TIMEOUT_MS` | 默认 30000 毫秒 | 同左 | 按需调优 |
+| `STUDIOSAAS_DB_LOCK_TIMEOUT_MS` | 默认 10000 毫秒 | 同左 | 按需调优 |
 | `STUDIOSAAS_ENABLE_LEGACY_CMS` | 不设（local 下旧版 `/api/*` 可用） | 不设 | 不设——pilot/production 下旧版 `/api/*` 返回 410；仅单工作室安装显式设 `1`（v7.4.0） |
 | SMTP（notifications） | console | console/SMTP | SES SMTP |

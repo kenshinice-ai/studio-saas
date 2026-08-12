@@ -150,22 +150,97 @@ def test_public_surface_contract_is_shared_by_templates_and_explains_readiness()
         "key": "showcase",
         "intent": True,
         "ready": False,
+        "contentReady": False,
+        "dependencyReady": False,
         "visible": False,
         "href": "/demo/showcase",
         "surface": "showcase",
+        "placement": "home",
+        "navigationEligible": True,
+        "footerEligible": True,
         "reasonCode": "no_published_works",
         "nextAction": "publish_showcase_work",
+        "publishedVersion": None,
     }
 
     public_surface = (PROJECT_ROOT / "backend/frontend/assets/public-surface.js").read_text(encoding="utf-8")
     assert "PUBLIC_SURFACE_INVALID_RESPONSE" in public_surface
     assert "global.StudioSaaS.publicSurface" in public_surface
+    assert "secondary_cta_target" in public_surface
+    assert "heroSecondaryCta" in public_surface
+    assert "#footShowcase" in public_surface
     for filename in ("index.html", "showcase.html", "timetable.html", "register.html"):
         source = (PROJECT_ROOT / "tenant-template" / filename).read_text(encoding="utf-8")
         assert "/assets/public-surface.js?v=__APP_VERSION__" in source
+        assert "publicSurface.fetch(" in source
     admin = (PROJECT_ROOT / "backend/frontend/studio-admin.html").read_text(encoding="utf-8")
     assert "Public navigation preview" in admin
     assert "Recheck public pages" in admin
+
+
+def test_about_profile_round_trip_preserves_six_highlights_and_image_alts():
+    """Studio Admin must not truncate server-supported About content on save."""
+
+    import importlib
+
+    api_v1 = importlib.import_module("studiosaas.api_v1")
+    items = [
+        {"title": {"zh": f"亮点 {index}", "en": f"Highlight {index}"},
+         "body": {"zh": f"说明 {index}", "en": f"Detail {index}"}}
+        for index in range(1, 7)
+    ]
+    profile = api_v1._normalize_website_profile({
+        "showAbout": True,
+        "aboutImages": [f"/media/{index}.jpg" for index in range(1, 7)],
+        "aboutImageAlts": [
+            {"zh": f"空间照片 {index}", "en": f"Space photo {index}"}
+            for index in range(1, 7)
+        ],
+        "aboutItems": items,
+    })
+
+    assert len(profile["about_items"]) == 6
+    assert profile["about_items"][5]["title"]["en"] == "Highlight 6"
+    assert len(profile["about_image_alts"]) == 6
+    assert profile["about_image_alts"][5]["zh"] == "空间照片 6"
+
+    admin = (PROJECT_ROOT / "backend/frontend/studio-admin.html").read_text(encoding="utf-8")
+    assert "const ABOUT_ITEM_SLOTS = 6" in admin
+    assert "aboutImageAlts:" in admin
+    portal = (PROJECT_ROOT / "tenant-template/index.html").read_text(encoding="utf-8")
+    assert "about-thumbs" in portal
+    assert "setInterval(" not in portal
+    assert "about_image_alts" in portal
+
+
+def test_secondary_cta_uses_ready_contract_and_explicit_targets_fail_closed():
+    """Legacy auto actions choose a ready target; explicit broken links hide."""
+
+    import importlib
+
+    api_v1 = importlib.import_module("studiosaas.api_v1")
+    modules = {
+        key: api_v1._public_surface_entry(key, True, ready, href)
+        for key, ready, href in (
+            ("courses", False, "#home:courses"),
+            ("showcase", True, "/demo/showcase"),
+            ("timetable", False, "/demo/timetable"),
+            ("register", True, "#join"),
+        )
+    }
+
+    automatic = api_v1._public_surface_actions({"secondary_cta_target": "auto"}, modules)
+    assert automatic["secondary"]["targetType"] == "showcase"
+    assert automatic["secondary"]["href"] == "/demo/showcase"
+    explicit = api_v1._public_surface_actions({"secondary_cta_target": "courses"}, modules)
+    assert explicit["secondary"]["visible"] is False
+    assert explicit["secondary"]["href"] == "#home:courses"
+    unsafe = api_v1._public_surface_actions({
+        "secondary_cta_target": "external",
+        "secondary_cta_href": "javascript:alert(1)",
+    }, modules)
+    assert unsafe["secondary"]["visible"] is False
+    assert unsafe["secondary"]["href"] == ""
 
 
 def test_root_studio_admin_requires_explicit_tenant_selection(client):

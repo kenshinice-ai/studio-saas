@@ -4,17 +4,33 @@
 
 These are three independent facts. A matching version label is not proof that
 the current source tree was packaged or deployed; Source, Package and
-Production remain separate rows. Each row below identifies the exact 9.8.8
-commit, archive, or live release that was observed.
+Production remain separate rows. The source tree is a v9.8.9 release candidate;
+package and production rows continue to record the last verified v9.8.8 facts
+until the corresponding milestones actually complete.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v9.8.8 on `main`** | `VERSION` = **9.8.8**; the deployed source commit is `4b436e1e2df0717b7efb01d5e7d4021a6cc23860`; `main` and the release candidate branch are pushed; user-owned `docs/sales/` material remains outside the release. |
+| Source | **v9.8.9 release candidate** | `VERSION` = **9.8.9** on `codex/v9.8.9-studio-admin-publish`; verification, packaging and Git publication are still pending. User-owned root-worktree changes remain outside this isolated release. |
 | Package | Clean SaaS and Edition v9.8.8 packages verified | SaaS `dist/PWE-StudioSaaS-aws-9.8.8.tar.gz` SHA-256 `1d6fc1760993864c681c8f9cb5e58eac303acdb65573ba98978181f226ee3da7`; Edition `dist/PWE-Studio-Edition-9.8.8.tar.gz` SHA-256 `0a75bf66059da97dc91b450933bd2a44e48200b7dda17030b62baa22ec1cd3b6`; both `BUILD_INFO` records point to `4b436e1` and passed bundle checks. |
-| Production | **v9.8.8 deployed to `pwestudio.online`** | `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.8.8`; image `studiosaas:9.8.8`; deep health reports `appVersion=9.8.8`, `db=ok`, `mode=saas`, `tenants=6`, `themes.unreadable=0`; disk free `46.06 GB`; HTTP→HTTPS `301`, HTTPS `200`, TLS check `0`, HTTP/2. |
+| Production | **v9.8.8 deployed to `pwestudio.online`** | The deployed source commit is `4b436e1e2df0717b7efb01d5e7d4021a6cc23860`; `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.8.8`; image `studiosaas:9.8.8`; deep health reports `appVersion=9.8.8`, `db=ok`, `mode=saas`, `tenants=6`, `themes.unreadable=0`; disk free `46.06 GB`; HTTP→HTTPS `301`, HTTPS `200`, TLS check `0`, HTTP/2. |
 
 Re-verify the production health endpoint before any later release claim; do not
 infer Production from `VERSION` or from an archive filename, which does not identify the deployed commit.
+
+## v9.8.9 candidate scope
+
+This candidate makes Studio Admin’s public editing and publishing model
+truthful end to end. The Hero secondary action has an explicit destination
+contract and hides when its chosen target is not ready. Space & Experience is
+a dedicated editor with six preserved highlights, ordered images, bilingual
+alternative text and visitor-controlled thumbnails. Draft and Live previews
+are separated, publish errors remain visible with a path back to the field,
+and published-version verification covers the shared public-surface contract.
+
+The portal, showcase, timetable and registration page now consume the same
+server-authoritative module, navigation, footer and action contract. A local
+resolver is only a visible fail-safe after the authoritative request settles;
+it does not silently overwrite a successful server result.
 
 ## v9.8.8 released scope
 
