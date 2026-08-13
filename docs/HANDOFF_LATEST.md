@@ -1,6 +1,15 @@
 # PWE Studio v9.9.4 — 三处修正：会变的表头、炸掉的按钮、借来的房子
 
-> 当前阶段：源码与本地门禁完成。
+> 当前阶段：**已部署上线并重种**。生产 `appVersion=9.9.4`。
+
+## 发布证据（2026-08-13）
+
+| 层级 | 已验证事实 |
+|---|---|
+| Source | `origin/main` = `9.9.4` 提交；`verify_local.sh` **All checks passed**；`1801 passed, 5 skipped`。 |
+| Production | deep health `appVersion=9.9.4`、`db=ok`、`tenants=6`、`workspaces.stale=0`；部署前备份 `…20260813T061647Z.dump`。 |
+| **重置按钮（线上实测）** | 真实租户 `lets-paint-studio` → **400 拒绝**；错误短语 → **400**；正确 → **200，7.2 秒**，15 件主理人作品 / 8 件学员作品（7 件公开）/ 12 名学员 / 6 张空间照。 |
+| 文案 | 线上已是「一间朝南的后院画室 / A garden studio facing south」、三条亮点新文案、Caulfield North。 |
 
 ## 一 · 「有时对有时不对」是语言差
 
