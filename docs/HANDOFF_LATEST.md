@@ -1,6 +1,23 @@
 # PWE Studio v9.9.3 — 头部、锚点，和一个只对演示租户可见的按钮
 
-> 当前阶段：源码与本地门禁完成。四条都由真实截图或真实点击报出，全部量过再改。
+> 当前阶段：**已部署上线并重种**。生产 `appVersion=9.9.3`。
+> 四条都由真实截图或真实点击报出，全部量过再改。
+
+## 发布证据（2026-08-13）
+
+| 层级 | 已验证事实 |
+|---|---|
+| Source | `origin/main` = `256aa6c`；`VERSION=9.9.3`。 |
+| Local gates | `verify_local.sh` **All checks passed**；pytest `1797 passed, 5 skipped`。 |
+| Package | `PWE-StudioSaaS-aws-9.9.3.tar.gz`；部署前备份 `…20260813T054808Z.dump`。 |
+| Production | deep health `appVersion=9.9.3`、`db=ok`、`tenants=6`、`themes.unreadable=0`、**`workspaces.stale=0`**。 |
+| 演示密钥 | compose 透传**已生效**：容器内 `STUDIOSAAS_SHARED_DEMO_PASSWORD` 已就位（48 字符），`STUDIOSAAS_DEMO_CREDENTIALS_FILE=/data/showcase-credentials.txt`。再不需要 `docker exec -e`。 |
+| 重种 | 线上已重跑：15 件主理人作品、8 件学员作品（7 件公开）、12 名学员、7 节公开课。地址已变为 **Caulfield North**，七个版块全部 `ready`。 |
+| Public | 六条路由 200；timetable / register 的新 description 已生效。 |
+
+**注意**：地址存在数据库里，不在代码里。改 `showcase_content.py` 只决定「下次重种写什么」——
+线上要生效必须重跑重置。这一版是手动跑的；下次可以直接用 Platform Admin 的按钮。
+
 
 ## 一 · logo 压在导航上（真因不是响应式）
 
