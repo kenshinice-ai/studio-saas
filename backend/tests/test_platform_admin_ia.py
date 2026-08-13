@@ -80,10 +80,21 @@ def test_action_menu_keeps_frequent_commands_in_the_center_and_context_in_inspec
 
 
 def test_tenant_editor_has_section_navigation_and_showcase_quota_review() -> None:
+    """The five groups still exist; the navigation between them is a tablist.
+
+    v9.9.5 replaced the scroll-to-accordion strip — which had never been wired
+    at all — with the same tab component the tenant detail view uses. This test
+    asked for the old function by name and so would have passed for the whole
+    time the strip was inert, which is why it now asks whether the tabs are
+    CONNECTED rather than whether a particular function exists.
+    """
+
     html = CONSOLE.read_text(encoding="utf-8")
     for section in ("editor-section-basic", "editor-section-contacts", "editor-section-admin", "editor-section-subscription", "editor-section-limits"):
         assert section in html
-    assert "function wireEditorSectionNav" in html
+    assert "function wireEditorTabs" in html
+    assert "wireEditorTabs(focusSection)" in html, "the editor must wire the tabs it renders"
+    assert 'class="editor-tabs" role="tablist"' in html
     assert "showcase_active_count" in html
     assert "Published Showcase Works" in html
 

@@ -797,7 +797,47 @@
     ["Use the slug from /<studio-slug>/studio-admin. Tenant-specific links lock this field.", "填 /<工作室标识>/studio-admin 里的那一段。从工作室专属链接进入时，这一项会被锁定。"],
     ["Loading attention queue…", "正在载入待处理事项…"],
     ["Make a decision from the workspace.", "在工作区里做决定。"],
-    ["Select an attention item, tenant, plan, or audit event to inspect its state and next action.", "选择一条待处理事项、工作室、套餐或审计记录，查看它的状态和下一步。"]
+    ["Select an attention item, tenant, plan, or audit event to inspect its state and next action.", "选择一条待处理事项、工作室、套餐或审计记录，查看它的状态和下一步。"],
+
+    /* v9.9.5 — the strings the gate could not see until it learned to read
+       template literals. Everything below is built by JavaScript at runtime;
+       the runtime always translated it, nothing ever checked the words were
+       here. */
+    ["Basic info", "基础资料"],
+    ["Owner & Contact", "负责人与联系方式"],
+    ["Admin Login", "管理员登录"],
+    ["Subscription & Plan", "订阅与套餐"],
+    ["Limits & Works", "额度与作品"],
+    ["Inherited from plan", "随套餐继承"],
+    ["The studio's public address. It is on flyers and in QR codes, so it is changed on its own, not saved with this form.", "工作室的公开网址。它印在传单和二维码上，所以单独修改，不随这张表一起保存。"],
+    ["Change public address", "修改公开网址"],
+    ["Active works visible on the public showcase. Drafts and archived works remain stored.", "在公开作品墙上展示的作品数。草稿和已归档的作品仍然保留。"],
+    ["The first 30-day trial is generated on create.", "首次 30 天试用在创建时自动生成。"],
+    ["Change address", "修改网址"],
+    ["New public address", "新的公开网址"],
+    ["Lowercase letters, numbers and hyphens.", "只能用小写字母、数字和连字符。"],
+    ["Type the current address to confirm", "输入当前网址以确认"],
+    ["What changes", "会发生什么"],
+    ["Keeps working", "不受影响"],
+    ["The old address redirects to the new one permanently — printed QR codes do not need reprinting.", "旧网址会永久跳转到新网址——已经印好的二维码不用重印。"],
+    ["Search engines take a few weeks to show the new address.", "搜索引擎通常要几周才会显示新网址。"],
+    ["Visitors' saved language preference resets once.", "访客保存的语言偏好会重置一次。"],
+    ["Signed-in staff are not logged out.", "已登录的员工不会被退出。"],
+    ["Students, courses, work, schedules and media are untouched.", "学员、课程、作品、排课和媒体都不受影响。"],
+    ["This studio cannot change its address again for a year.", "这间工作室一年之内不能再次修改网址。"],
+    ["I have told this studio", "我已经通知过这间工作室"],
+    ["Reset demonstration data", "重置演示数据"],
+    ["Rebuild", "重建"],
+    ["from the bundled demonstration content.", "，使用随程序打包的演示内容。"],
+    ["Students, schedules, bookings and enquiries are deleted and re-created", "学员、排课、约课与报名咨询会被删除后重新生成"],
+    ["Uploaded media for this tenant is deleted and re-uploaded from the manifest", "这间工作室已上传的媒体会被删除，并按清单重新上传"],
+    ["Staff logins are reset to the shared demonstration password", "员工登录密码会重置为统一的演示密码"],
+    ["The student access code is rotated", "学员访问码会重新生成"],
+    ["No other tenant is read or written. This takes a few seconds.", "不会读写任何其他工作室。这个过程需要几秒钟。"],
+    ["Type the confirmation phrase", "输入确认短语"],
+    ["Stored in megabytes;", "以 MB 计；"],
+    ["MB today.", "MB。"],
+    ["Discard unsaved changes?", "放弃未保存的修改？"]
   ]);
 
   const originalText = new WeakMap();

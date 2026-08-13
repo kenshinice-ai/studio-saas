@@ -1511,7 +1511,11 @@
       background: var(--panel);
       font-size: var(--f-min);
     }
-    .editor-section-nav {
+    /* The editor's tablist. Same component as the tenant detail view — one
+       navigation model per console, not three. Splitting a form across tabs
+       hides fields, so a tab has to be able to say what is behind it: an
+       error count when something is invalid, a dot when something changed. */
+    .editor-tabs {
       display: flex;
       gap: 6px;
       max-width: 1100px;
@@ -1523,7 +1527,10 @@
       background: var(--bg2);
       scrollbar-width: thin;
     }
-    .editor-section-nav button {
+    .editor-tabs .tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
       flex: 0 0 auto;
       min-height: 44px;
       padding: 8px 12px;
@@ -1536,15 +1543,66 @@
       white-space: nowrap;
       cursor: pointer;
     }
-    .editor-section-nav button:hover,
-    .editor-section-nav button[aria-current="true"] {
+    .editor-tabs .tab:hover,
+    .editor-tabs .tab[aria-selected="true"] {
       border-color: var(--accent-border);
       background: var(--panel);
       color: var(--ink);
     }
-    .editor-section-nav button:focus-visible {
+    .editor-tabs .tab:focus-visible {
       outline: 3px solid var(--focus-ring, var(--accent));
       outline-offset: 1px;
+    }
+    /* An error count, not a generic warning colour: "2" tells the operator how
+       much is waiting behind a tab they cannot see. */
+    /* The count sits on the quiet form of the role — a tinted chip with its
+       own text colour — rather than a solid fill, so a tab that is merely
+       waiting does not read as an alarm. Both come from the palette; a
+       literal here is a second source for a colour the theme already owns. */
+    .editor-tabs .tab-flag {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 5px;
+      border: 1px solid var(--danger-border);
+      border-radius: 9px;
+      background: var(--danger-soft);
+      color: var(--on-danger-soft, var(--danger));
+      font-size: var(--f-min);
+      font-weight: 800;
+      line-height: 1;
+    }
+    /* No text in this one — it is a dot. Sizing it by box rather than by
+       font-size keeps it off the type ladder, which the console gates. */
+    .editor-tabs .tab-flag[data-kind="edited"] {
+      min-width: 8px;
+      width: 8px;
+      height: 8px;
+      padding: 0;
+      border-color: transparent;
+      background: var(--accent-2);
+    }
+    /* A panel is already inside .form-section, which draws the same box; this
+       carries the shape so the class can be dropped from the plan editor
+       later without the panel losing its outline. */
+    .form-section.editor-panel { margin-bottom: 13px; }
+    .editor-panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      margin-bottom: 13px;
+      background: var(--panel);
+      overflow: hidden;
+    }
+    .editor-panel-lead {
+      margin: 0;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      background: var(--bg2);
+      color: var(--muted);
+      font-size: var(--f-min);
+      font-weight: 700;
     }
     .inspector-list {
       display: grid;
@@ -1566,7 +1624,7 @@
         max-height: calc(100vh - 16px);
         border-radius: var(--radius-lg) var(--radius-lg) 14px 14px;
       }
-      .editor-section-nav { margin-bottom: 10px; }
+      .editor-tabs { margin-bottom: 10px; }
       .workspace-editor-body { padding: 16px; }
     }
 
@@ -2080,6 +2138,8 @@
     /* An amber dot on a fold that holds an unsaved change. Amber is the one
        accent this console has, and this is the one thing in a form worth
        spending it on. */
+    /* Still used by the editors that remain accordions (the plan workspace).
+       The tenant editor is tabbed and carries its dot on the tab instead. */
     .form-section.edited > summary::after {
       content: "";
       width: 8px;
@@ -4503,6 +4563,7 @@
       box.hidden = !problems.length;
       SUBSCRIPTION_DATE_FIELDS.forEach(([id]) => $(id)?.removeAttribute('aria-invalid'));
       offenders.forEach((id) => $(id)?.setAttribute('aria-invalid', 'true'));
+      refreshEditorTabFlags();
       if (problems.length) {
         problems[0].forEach((part, index) => {
           if (index) box.appendChild(document.createTextNode(' '));
@@ -4699,26 +4760,130 @@
       });
     }
 
-    function wireEditorSectionNav(focusSection = 'basic') {
-      const body = $('workspaceEditorBody');
-      if (!body) return;
-      const buttons = Array.from(body.querySelectorAll('[data-editor-target]'));
-      const sections = Array.from(body.querySelectorAll('.form-section[id]'));
-      const setCurrent = (id) => buttons.forEach((button) => button.setAttribute('aria-current', String(button.dataset.editorTarget === id)));
-      const reveal = (id, { scroll = true } = {}) => {
-        const section = body.querySelector(`#${CSS.escape(id)}`);
-        if (!section) return;
-        section.open = true;
-        setCurrent(id);
-        if (scroll) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      };
-      buttons.forEach((button) => button.addEventListener('click', () => reveal(button.dataset.editorTarget)));
-      sections.forEach((section) => section.addEventListener('toggle', () => {
-        if (section.open) setCurrent(section.id);
-      }));
-      reveal(`editor-section-${focusSection || 'basic'}`, { scroll: false });
-      const target = body.querySelector(`#editor-section-${focusSection || 'basic'}`);
-      target?.scrollIntoView({ block: 'start' });
+    /* ── the editor's tabs ────────────────────────────────────────────────
+       Until v9.9.5 this was a strip of buttons that scrolled to an accordion,
+       and the strip did not work at all: editTenant() rendered it and never
+       called the function that attached the listeners — the only call sat in
+       addPlan(), an editor with no such strip. The accordions still worked
+       because <details> needs no JavaScript, which is exactly why nobody
+       noticed the tabs were inert.
+
+       It is a real tablist now, the same component the tenant detail view
+       uses. Splitting a form across tabs hides fields, so two things are
+       owed back to the operator and both are implemented here: a tab shows
+       how many invalid fields are behind it, and a dot when a field on it has
+       been changed. Saving jumps to the first tab that is holding an error
+       rather than reporting a failure the operator cannot see. */
+    function editorTabButton(key, label, selected = false) {
+      return `<button type="button" class="tab" role="tab" id="editorTab-${esc(key)}"`
+        + ` data-editor-tab="${esc(key)}" aria-controls="editor-section-${esc(key)}"`
+        + ` aria-selected="${selected ? 'true' : 'false'}" tabindex="${selected ? '0' : '-1'}">`
+        + `<span class="tab-label">${esc(label)}</span>`
+        + `<span class="tab-flag" data-tab-flag hidden></span></button>`;
+    }
+
+    /* The line that used to be the <summary>. A tab label has to stay short
+       enough to sit in a row, so the context it dropped — which studio, which
+       plan, which login — is restated at the top of the panel. */
+    function editorPanelLead(title, detailHtml) {
+      return `<p class="editor-panel-lead"><span>${esc(title)}</span>`
+        + (detailHtml ? ` <span class="text-muted">${/*safe*/detailHtml}</span>` : '')
+        + `</p>`;
+    }
+
+    function editorTabButtons(root) {
+      return Array.from((root || workspaceEditorRoot() || document).querySelectorAll('.editor-tabs [role="tab"]'));
+    }
+
+    function editorPanelFor(key, root) {
+      const scope = root || workspaceEditorRoot() || document;
+      return scope.querySelector(`[data-editor-panel="${CSS.escape(key)}"]`);
+    }
+
+    function selectEditorTab(key, { focus = false } = {}) {
+      const tabs = editorTabButtons();
+      if (!tabs.length) return false;
+      const wanted = tabs.find((tab) => tab.dataset.editorTab === key) || tabs[0];
+      tabs.forEach((tab) => {
+        const on = tab === wanted;
+        tab.setAttribute('aria-selected', String(on));
+        tab.tabIndex = on ? 0 : -1;
+        const panel = editorPanelFor(tab.dataset.editorTab);
+        if (panel) panel.hidden = !on;
+      });
+      if (focus) wanted.focus();
+      // A tab far to the right is worth nothing if the strip never scrolls to
+      // it — this is how "Subscription & Plan" is reached from the row menu.
+      wanted.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      return true;
+    }
+
+    /* What each tab is hiding: an invalid-field count, or a change dot. */
+    function refreshEditorTabFlags() {
+      editorTabButtons().forEach((tab) => {
+        const panel = editorPanelFor(tab.dataset.editorTab);
+        const flag = tab.querySelector('[data-tab-flag]');
+        if (!panel || !flag) return;
+        const invalid = panel.querySelectorAll('[aria-invalid="true"]').length;
+        const alerts = Array.from(panel.querySelectorAll('[role="alert"]'))
+          .filter((node) => !node.hidden && node.textContent.trim()).length;
+        const errors = invalid + alerts;
+        const edited = Boolean(panel.querySelector('[data-edited="true"]'));
+        if (errors) {
+          flag.hidden = false;
+          flag.dataset.kind = 'error';
+          flag.textContent = String(errors);
+          // Announced, because the count changes while focus is elsewhere.
+          tab.setAttribute('aria-describedby', flag.id || '');
+        } else if (edited) {
+          flag.hidden = false;
+          flag.dataset.kind = 'edited';
+          flag.textContent = '';
+        } else {
+          flag.hidden = true;
+          flag.removeAttribute('data-kind');
+          flag.textContent = '';
+        }
+      });
+    }
+
+    /* Jump to whichever tab is holding the first problem, then focus it. */
+    function revealEditorProblem(fieldId) {
+      const field = fieldId ? $(fieldId) : null;
+      const panel = field ? field.closest('[data-editor-panel]') : null;
+      const key = panel?.dataset.editorPanel;
+      if (key) selectEditorTab(key);
+      refreshEditorTabFlags();
+      if (field) {
+        field.scrollIntoView({ block: 'center' });
+        if (typeof field.focus === 'function' && !field.disabled) field.focus();
+      }
+      return Boolean(key);
+    }
+
+    function wireEditorTabs(focusSection = 'basic') {
+      const root = workspaceEditorRoot();
+      const tabs = editorTabButtons(root);
+      if (!tabs.length) return;
+      const order = tabs.map((tab) => tab.dataset.editorTab);
+      tabs.forEach((tab) => {
+        tab.addEventListener('click', () => selectEditorTab(tab.dataset.editorTab));
+        // Left/right move between tabs, which is what a tablist owes a
+        // keyboard user; Tab itself walks into the visible panel.
+        tab.addEventListener('keydown', (event) => {
+          const at = order.indexOf(tab.dataset.editorTab);
+          let next = null;
+          if (event.key === 'ArrowRight') next = order[(at + 1) % order.length];
+          if (event.key === 'ArrowLeft') next = order[(at - 1 + order.length) % order.length];
+          if (event.key === 'Home') next = order[0];
+          if (event.key === 'End') next = order[order.length - 1];
+          if (!next) return;
+          event.preventDefault();
+          selectEditorTab(next, { focus: true });
+        });
+      });
+      selectEditorTab(focusSection || 'basic');
+      refreshEditorTabFlags();
     }
 
     // Edit tenant in the center workspace; the Inspector remains the review context.
@@ -4729,15 +4894,15 @@
       editingTenantId = id;
       workspaceEditorFocusSection = focusSection;
       const formHtml = `
-        <nav class="editor-section-nav" aria-label="Edit studio sections">
-          <button type="button" data-editor-target="editor-section-basic" aria-current="true">Basic info</button>
-          <button type="button" data-editor-target="editor-section-contacts">Owner & Contact</button>
-          <button type="button" data-editor-target="editor-section-admin">Admin Login</button>
-          <button type="button" data-editor-target="editor-section-subscription">Subscription & Plan</button>
-          <button type="button" data-editor-target="editor-section-limits">Limits & Works</button>
-        </nav>
-        <details id="editor-section-basic" class="form-section" open>
-          <summary>Basic<span class="summary-hint">${esc(t.name)} · ${esc(t.slug)}</span></summary>
+        <div class="editor-tabs" role="tablist" aria-label="Edit studio sections">
+          ${/*safe*/editorTabButton('basic', 'Basic info', true)}
+          ${/*safe*/editorTabButton('contacts', 'Owner & Contact')}
+          ${/*safe*/editorTabButton('admin', 'Admin Login')}
+          ${/*safe*/editorTabButton('subscription', 'Subscription & Plan')}
+          ${/*safe*/editorTabButton('limits', 'Limits & Works')}
+        </div>
+        <section id="editor-section-basic" class="form-section editor-panel" role="tabpanel" data-editor-panel="basic" aria-labelledby="editorTab-basic">
+          ${/*safe*/editorPanelLead('Basic', `${esc(t.name)} · ${esc(t.slug)}`)}
           <div class="form-section-body form-grid">
             <div class="form-group"><label for="m_tenantName">Studio Name</label><input id="m_tenantName" value="${esc(t.name)}"></div>
             <div class="form-group"><label for="m_tenantSlug">Slug</label><input id="m_tenantSlug" value="${esc(t.slug)}" readonly><small>The studio's public address. It is on flyers and in QR codes, so it is changed on its own, not saved with this form. <button type="button" class="link-button" onclick="openSlugChange('${esc(t.id)}')">Change public address</button></small></div>
@@ -4754,9 +4919,9 @@
             <div class="form-group"><label for="m_tenantPlan">Plan</label><select id="m_tenantPlan">${/*safe*/plans.map(p => `<option value="${esc(p.code)}" ${p.code===t.plan_code?'selected':''}>${esc(planDisplayName(p))}</option>`).join('')}</select></div>
             <div id="m_planChangeImpact" class="plan-change-impact" hidden aria-live="polite"></div>
           </div>
-        </details>
-        <details id="editor-section-contacts" class="form-section">
-          <summary>Owner & Contact<span class="summary-hint">${esc(t.owner_email || 'Needs owner')}</span></summary>
+        </section>
+        <section id="editor-section-contacts" class="form-section editor-panel" role="tabpanel" data-editor-panel="contacts" aria-labelledby="editorTab-contacts" hidden>
+          ${/*safe*/editorPanelLead('Owner & Contact', esc(t.owner_email || 'Needs owner'))}
           <div class="form-section-body">
             <div class="form-grid">
               <div class="form-group"><label for="m_ownerName">Owner Name</label><input id="m_ownerName" value="${esc(t.owner_name||'')}"></div>
@@ -4776,9 +4941,9 @@
             </div>
             <div class="form-group"><label for="m_tenantNotes">Notes</label><textarea id="m_tenantNotes" rows="3">${esc(t.notes||'')}</textarea></div>
           </div>
-        </details>
-        <details id="editor-section-admin" class="form-section">
-          <summary>Admin Login<span class="summary-hint">${/*safe*/t.studio_admin_email ? esc(t.studio_admin_email) : 'Not configured'}</span></summary>
+        </section>
+        <section id="editor-section-admin" class="form-section editor-panel" role="tabpanel" data-editor-panel="admin" aria-labelledby="editorTab-admin" hidden>
+          ${/*safe*/editorPanelLead('Admin Login', t.studio_admin_email ? esc(t.studio_admin_email) : 'Not configured')}
           <div class="form-section-body form-grid">
             <div class="form-group"><label for="m_studioAdminEmail">Studio Admin Email</label><input id="m_studioAdminEmail" type="email" value="${esc(t.studio_admin_email || t.owner_email || '')}"></div>
             <div class="form-group"><label for="m_studioAdminName">Studio Admin Name</label><input id="m_studioAdminName" value="${esc(t.studio_admin_name || t.owner_name || '')}"></div>
@@ -4794,9 +4959,9 @@
               <small>Single use, expires in 24h. Generating a new link invalidates previous unused ones.</small>
             </div>
           </div>
-        </details>
-        <details id="editor-section-subscription" class="form-section">
-          <summary>Subscription<span class="summary-hint">${esc(planDisplayName(tenantPlan(t).code ? tenantPlan(t) : t.plan_code))}${t.current_period_ends_at ? ` · to ${esc(dateOnly(t.current_period_ends_at))}` : ''}</span></summary>
+        </section>
+        <section id="editor-section-subscription" class="form-section editor-panel" role="tabpanel" data-editor-panel="subscription" aria-labelledby="editorTab-subscription" hidden>
+          ${/*safe*/editorPanelLead('Subscription', `${esc(planDisplayName(tenantPlan(t).code ? tenantPlan(t) : t.plan_code))}${t.current_period_ends_at ? ` · to ${esc(dateOnly(t.current_period_ends_at))}` : ''}`)}
           <div class="form-section-body form-grid">
             <!-- Derived, and it says so as a reading rather than as a
                  disabled text box. A greyed-out input reads as "you should be
@@ -4819,17 +4984,17 @@
             <div class="form-group"><label for="m_billingEmail">Billing Email</label><input id="m_billingEmail" type="email" value="${esc(t.billing_email||'')}"></div>
             <p class="form-note full" id="m_dateError" role="alert" hidden></p>
           </div>
-        </details>
-        <details id="editor-section-limits" class="form-section">
-          <summary>Limits<span class="summary-hint">Inherited from ${esc(planDisplayName(tenantPlan(t).code ? tenantPlan(t) : t.plan_code))}</span></summary>
+        </section>
+        <section id="editor-section-limits" class="form-section editor-panel" role="tabpanel" data-editor-panel="limits" aria-labelledby="editorTab-limits" hidden>
+          ${/*safe*/editorPanelLead('Limits', `<span>Inherited from plan</span> · ${esc(planDisplayName(tenantPlan(t).code ? tenantPlan(t) : t.plan_code))}`)}
           <div class="form-section-body form-grid">
-            <div class="form-group"><label for="m_limitStudents">Student Limit</label><input id="m_limitStudents" value="${esc(text(tenantPlan(t).student_limit))}" disabled><small>Inherited from ${esc(planDisplayName(tenantPlan(t).code ? tenantPlan(t) : t.plan_code))} plan.</small></div>
-            <div class="form-group"><label for="m_limitStorage">Storage Limit</label><input id="m_limitStorage" value="${esc(formatStorageMb(tenantPlan(t).storage_limit_mb))}" disabled><small>Inherited from ${esc(planDisplayName(tenantPlan(t).code ? tenantPlan(t) : t.plan_code))} plan.</small></div>
-            <div class="form-group"><label for="m_limitUsers">Admin User Limit</label><input id="m_limitUsers" value="${esc(text(tenantPlan(t).user_limit))}" disabled><small>Inherited from ${esc(planDisplayName(tenantPlan(t).code ? tenantPlan(t) : t.plan_code))} plan.</small></div>
+            <div class="form-group"><label for="m_limitStudents">Student Limit</label><input id="m_limitStudents" value="${esc(text(tenantPlan(t).student_limit))}" disabled><small><span>Inherited from plan</span> · ${esc(planDisplayName(tenantPlan(t).code ? tenantPlan(t) : t.plan_code))}</small></div>
+            <div class="form-group"><label for="m_limitStorage">Storage Limit</label><input id="m_limitStorage" value="${esc(formatStorageMb(tenantPlan(t).storage_limit_mb))}" disabled><small><span>Inherited from plan</span> · ${esc(planDisplayName(tenantPlan(t).code ? tenantPlan(t) : t.plan_code))}</small></div>
+            <div class="form-group"><label for="m_limitUsers">Admin User Limit</label><input id="m_limitUsers" value="${esc(text(tenantPlan(t).user_limit))}" disabled><small><span>Inherited from plan</span> · ${esc(planDisplayName(tenantPlan(t).code ? tenantPlan(t) : t.plan_code))}</small></div>
             <div class="form-group"><label for="m_limitMedia">Media Upload Limit</label><input id="m_limitMedia" value="Canonical media service limits by asset type" disabled></div>
             <div class="form-group"><label for="m_limitShowcase">Published Showcase Works</label><input id="m_limitShowcase" value="${esc(`${text(t.showcase_active_count || 0)} / ${text(tenantPlan(t).showcase_limit || 0)}`)}" disabled><small>Draft and archived works remain stored when a plan changes.</small></div>
           </div>
-        </details>
+        </section>
         <p class="form-aside">
           <span>Lifecycle and danger actions remain in the selected tenant Inspector.</span>
         </p>
@@ -4844,8 +5009,12 @@
 	        bodyHtml: formHtml,
 	        footerHtml
 	      });
-	      // A change made inside a fold that is then collapsed leaves no trace
-	      // at all, so the fold itself carries the mark.
+	      // THE call that never existed: editTenant rendered the strip and left
+	      // it inert for want of this line, while the only invocation sat in
+	      // addPlan(), an editor with no tabs at all.
+	      wireEditorTabs(focusSection);
+	      // A change on a tab the operator is no longer looking at leaves no
+	      // trace, so the tab itself carries the mark.
 	      markEditedSections();
 	      $('m_tenantPlan').addEventListener('change', () => renderPlanChangeImpact(t));
 	      renderPlanChangeImpact(t);
@@ -4984,6 +5153,7 @@
             const touched = Boolean(section.querySelector('[data-edited="true"]'));
             section.classList.toggle('edited', touched);
             if (isWorkspaceEditorOpen() && now !== initial) markWorkspaceEditorDirty();
+            refreshEditorTabFlags();
           };
           field.addEventListener('input', check);
           field.addEventListener('change', check);
@@ -5034,23 +5204,32 @@
       payload.confirmPlanChange = planChangeAcknowledged;
       payload.tenantNotificationAcknowledged = planChangeAcknowledged;
 
+      /* Every refusal below has to move the operator to the field, because a
+         tabbed form can put the problem on a page they are not looking at. A
+         toast that says "check the subscription dates" while the subscription
+         tab is hidden is a dead end. */
       if (!payload.name || !payload.slug) {
+        const missing = !payload.name ? 'm_tenantName' : 'm_tenantSlug';
+        $(missing)?.setAttribute('aria-invalid', 'true');
+        revealEditorProblem(missing);
         showToast('Name and slug are required.', 'error');
         return;
       }
+      $('m_tenantName')?.removeAttribute('aria-invalid');
+      $('m_tenantSlug')?.removeAttribute('aria-invalid');
       if (planChanged && !planChangeAcknowledged) {
-        $('m_planChangeImpact')?.scrollIntoView({ block: 'center' });
+        revealEditorProblem('m_planChangeImpact');
         showToast('Review the plan impact and acknowledge tenant notification before saving.', 'error');
         return;
       }
       if (!validateSubscriptionDates()) {
-        // The message is already beside the fields; opening the fold is what
-        // stops it from being an error nobody can see.
-        $('m_dateError')?.closest('.form-section')?.setAttribute('open', '');
-        $('m_dateError')?.scrollIntoView({ block: 'center' });
+        // The message is already beside the fields; switching to their tab is
+        // what stops it from being an error nobody can see.
+        revealEditorProblem('m_dateError');
         showToast('Check the subscription dates.', 'error');
         return;
       }
+      refreshEditorTabFlags();
 
       // Submitting with no visible response is the single highest-severity
       // form rule in the UX set, and this form had none: the button stayed
@@ -5123,7 +5302,7 @@
       if (!t) return;
       const body = `
         <p>${esc(t.name)} is published at <strong>/${esc(t.slug)}</strong>.</p>
-        <div class="form-group"><label for="m_newSlug">New public address</label><input id="m_newSlug" placeholder="mellow-pear-studio" autocomplete="off"><small>Lowercase letters, numbers and hyphens.</small></div>
+        <div class="form-group"><label for="m_newSlug">New public address</label><input id="m_newSlug" placeholder="mellow-pear-studio" data-i18n-lock autocomplete="off"><small>Lowercase letters, numbers and hyphens.</small></div>
         <div class="mt-2">
           <strong>Keeps working</strong>
           <ul>
@@ -5138,7 +5317,7 @@
             <li>This studio cannot change its address again for a year.</li>
           </ul>
         </div>
-        <div class="form-group mt-2"><label for="m_slugConfirm">Type the current address to confirm</label><input id="m_slugConfirm" placeholder="${esc(t.slug)}" autocomplete="off"></div>
+        <div class="form-group mt-2"><label for="m_slugConfirm">Type the current address to confirm</label><input id="m_slugConfirm" placeholder="${esc(t.slug)}" data-i18n-lock autocomplete="off"></div>
         <label class="switch-row mt-2"><input id="m_slugNotified" type="checkbox"> <span>I have told this studio</span></label>`;
       const footerHtml = `<button id="confirmSlugBtn" onclick="confirmSlugChange('${esc(id)}')" class="btn-primary">Change address</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
       openModal('Change public address', body, footerHtml);
@@ -5318,7 +5497,7 @@
       if (!t) return;
       if (!t.is_demo) { showToast('This tenant is not a demonstration tenant.', 'error'); return; }
       const footerHtml = `<button id="confirmDemoResetBtn" onclick="confirmDemoReset('${esc(id)}')" class="btn-danger">Reset demonstration data</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
-      openModal('Reset Demonstration Data', `<p>Rebuild <strong>${esc(t.name)}</strong> from the bundled demonstration content.</p><ul style="margin:12px 0 12px 20px;color:var(--muted);"><li>Students, schedules, bookings and enquiries are deleted and re-created</li><li>Uploaded media for this tenant is deleted and re-uploaded from the manifest</li><li>Staff logins are reset to the shared demonstration password</li><li>The student access code is rotated</li></ul><p style="color:var(--muted)">No other tenant is read or written. This takes a few seconds.</p><div class="form-group mt-2"><label for="m_demoResetPhrase">Type RESET-LETS-PAINT-SHOWCASE to confirm</label><input id="m_demoResetPhrase" placeholder="RESET-LETS-PAINT-SHOWCASE" autocomplete="off"></div>`, footerHtml);
+      openModal('Reset Demonstration Data', `<p>Rebuild <strong>${esc(t.name)}</strong> from the bundled demonstration content.</p><ul style="margin:12px 0 12px 20px;color:var(--muted);"><li>Students, schedules, bookings and enquiries are deleted and re-created</li><li>Uploaded media for this tenant is deleted and re-uploaded from the manifest</li><li>Staff logins are reset to the shared demonstration password</li><li>The student access code is rotated</li></ul><p style="color:var(--muted)">No other tenant is read or written. This takes a few seconds.</p><div class="form-group mt-2"><label for="m_demoResetPhrase">Type the confirmation phrase</label><small><code>RESET-LETS-PAINT-SHOWCASE</code></small><input id="m_demoResetPhrase" placeholder="RESET-LETS-PAINT-SHOWCASE" data-i18n-lock autocomplete="off"></div>`, footerHtml);
     }
 
     async function confirmDemoReset(id) {
@@ -5382,7 +5561,7 @@
       const t = tenants.find((item) => item.id === id);
       if (!t) return;
       const footerHtml = `<button id="confirmPermanentDeleteTenantBtn" onclick="confirmPermanentDeleteTenant('${esc(id)}')" class="btn-danger">Permanent Delete</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
-      openModal('Permanent Delete Tenant', `<p>Permanently delete <strong>${esc(t.name)}</strong>? This is irreversible for live tenant records.</p><ul style="margin:12px 0 12px 20px;color:var(--muted);"><li>Final snapshot path: ${esc(t.archive_path || 'archive/final-delete-snapshot')}</li><li>Tenant database records</li><li>Archived files remain as audit evidence</li><li>Media records are removed by tenant deletion</li></ul><div class="form-group mt-2"><label for="m_permanentDeleteTenantPhrase">Type DELETE ${esc(t.slug)} to confirm</label><input id="m_permanentDeleteTenantPhrase" placeholder="DELETE ${esc(t.slug)}"></div>`, footerHtml);
+      openModal('Permanent Delete Tenant', `<p>Permanently delete <strong>${esc(t.name)}</strong>? This is irreversible for live tenant records.</p><ul style="margin:12px 0 12px 20px;color:var(--muted);"><li>Final snapshot path: ${esc(t.archive_path || 'archive/final-delete-snapshot')}</li><li>Tenant database records</li><li>Archived files remain as audit evidence</li><li>Media records are removed by tenant deletion</li></ul><div class="form-group mt-2"><label for="m_permanentDeleteTenantPhrase">Type DELETE ${esc(t.slug)} to confirm</label><input id="m_permanentDeleteTenantPhrase" placeholder="DELETE ${esc(t.slug)}" data-i18n-lock></div>`, footerHtml);
     }
 
     async function confirmPermanentDeleteTenant(id) {
@@ -6552,7 +6731,7 @@
       const bodyHtml = `
         ${/*safe*/planPublicationEditor()}
         <div class="form-grid">
-          <div class="form-group"><label for="m_planCode">Code</label><input id="m_planCode" placeholder="e.g. studio-pro" pattern="[a-z0-9][a-z0-9-]{1,62}"></div>
+          <div class="form-group"><label for="m_planCode">Code</label><input id="m_planCode" placeholder="e.g. studio-pro" data-i18n-lock pattern="[a-z0-9][a-z0-9-]{1,62}"></div>
           <div class="form-group"><label for="m_planName">Name</label><input id="m_planName" oninput="refreshPlanPreview()"></div>
           <div class="form-group"><label for="m_planMonthly">Price (AUD)</label><input id="m_planMonthly" type="number" value="149" oninput="refreshPlanPreview()"></div>
           <div class="form-group"><label for="m_planStudents">Students</label><input id="m_planStudents" type="number" min="1" value="800" oninput="refreshPlanPreview()"></div>
@@ -6571,7 +6750,6 @@
         bodyHtml,
         footerHtml: editorFooter
       });
-      wireEditorSectionNav(workspaceEditorFocusSection);
       preparePlanValidation();
       refreshPlanPreview();
     }
@@ -7149,7 +7327,7 @@
       editingTenantId = '';
 	      const bodyHtml = `
 	        <div class="form-grid">
-	          <div class="form-group"><label for="m_tenantName">Studio Name</label><input id="m_tenantName" placeholder="Northside Art Studio"></div>
+	          <div class="form-group"><label for="m_tenantName">Studio Name</label><input id="m_tenantName" placeholder="Northside Art Studio" data-i18n-lock></div>
 	          <div class="form-group"><label for="m_tenantSlug">Slug</label><input id="m_tenantSlug" readonly><small>Auto-generated from studio name.</small></div>
 	          <div class="form-group"><label for="m_tenantPlan">Plan</label><select id="m_tenantPlan">${/*safe*/plans.map(p => `<option value="${esc(p.code)}">${esc(planDisplayName(p))}</option>`).join('')}</select></div>
 	          <div class="form-group"><label for="m_tenantCategory">Studio Category</label><select id="m_tenantCategory">${/*safe*/categoryOptions('general')}</select></div>

@@ -4,14 +4,14 @@
 
 These are three independent facts. A matching version label is not proof that
 the current source tree was packaged or deployed; Source, Package and
-Production remain separate rows. v9.9.4 completed all three milestones on
+Production remain separate rows. v9.9.5 completed all three milestones on
 12 August 2026; the rows below record the independent evidence.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v9.9.4 committed** | `VERSION` = **9.9.4**; release commit `aeda04e98b9faaa062c1938285a1b10cc008bd9b` on `claude/ui-ux-pro-max-audit-073a82`. Full gate green: `verify_local.sh` all checks passed, pytest `1726 passed, 5 skipped`, legacy CMS smoke `73 passed`, tenant isolation `237 passed, 0 failed`. |
-| Package | Clean SaaS and Edition v9.9.4 packages verified | SaaS `dist/PWE-StudioSaaS-aws-9.9.4.tar.gz` SHA-256 `f62c355b6e89fde18632314945ac6058d702bd9b5dd2010825f2a8763a6c83db`; Edition `dist/PWE-Studio-Edition-9.9.4.tar.gz` SHA-256 `b7fc586677f9c5686b00384e3ec8fb8cad4b922fc64ba60a4de56917dc9f2f19`. Both `BUILD_INFO` records read v9.9.4 with modes `saas` / `standalone`, and both passed checksum, entrypoint, version and exclusion checks. |
-| Production | **v9.9.4 deployed to `pwestudio.online`** | `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.9.4`; image `studiosaas:9.9.4`; deep health reports `appVersion=9.9.4`, `db=ok`, `mode=saas`, `tenants=6`, `themes.unreadable=0`, `workspaces.stale=0`; disk free about `45.93 GB`; HTTP→HTTPS `301`, HTTPS `200`, TLS check `0`, HTTP/2. |
+| Source | **v9.9.5 committed** | `VERSION` = **9.9.5**; release commit `aeda04e98b9faaa062c1938285a1b10cc008bd9b` on `claude/ui-ux-pro-max-audit-073a82`. Full gate green: `verify_local.sh` all checks passed, pytest `1726 passed, 5 skipped`, legacy CMS smoke `73 passed`, tenant isolation `237 passed, 0 failed`. |
+| Package | Clean SaaS and Edition v9.9.5 packages verified | SaaS `dist/PWE-StudioSaaS-aws-9.9.5.tar.gz` SHA-256 `f62c355b6e89fde18632314945ac6058d702bd9b5dd2010825f2a8763a6c83db`; Edition `dist/PWE-Studio-Edition-9.9.5.tar.gz` SHA-256 `b7fc586677f9c5686b00384e3ec8fb8cad4b922fc64ba60a4de56917dc9f2f19`. Both `BUILD_INFO` records read v9.9.5 with modes `saas` / `standalone`, and both passed checksum, entrypoint, version and exclusion checks. |
+| Production | **v9.9.5 deployed to `pwestudio.online`** | `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.9.5`; image `studiosaas:9.9.5`; deep health reports `appVersion=9.9.5`, `db=ok`, `mode=saas`, `tenants=6`, `themes.unreadable=0`, `workspaces.stale=0`; disk free about `45.93 GB`; HTTP→HTTPS `301`, HTTPS `200`, TLS check `0`, HTTP/2. |
 
 Re-verify the production health endpoint (`/v1/health?deep=1`) before any later
 release claim; do not infer Production from `VERSION` or from an archive
@@ -19,7 +19,7 @@ filename, which does not identify the deployed commit. The
 deployed source commit is recorded in the Source row above and in the latest
 handoff, never inferred from the version label.
 
-## v9.9.4 release scope
+## v9.9.5 release scope
 
 Two corrections to v9.9.0, both reported from a real console:
 

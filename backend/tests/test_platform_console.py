@@ -653,8 +653,17 @@ def test_the_dates_are_validated_against_each_other() -> None:
 
 
 def test_every_collapsed_section_says_what_is_inside_it() -> None:
+    """Content the operator cannot see has to announce itself.
+
+    The rule outlived the markup: the tenant editor is tabbed now, so its five
+    groups say what they hold in a panel lead rather than in a <summary>. Both
+    forms count, because the requirement was never about <details> — it was
+    about not hiding a studio's contact details behind an unlabelled fold.
+    """
+
     source = console()
-    assert source.count('class="summary-hint"') >= 6
+    labelled = source.count('class="summary-hint"') + source.count('editorPanelLead(')
+    assert labelled >= 6, f"only {labelled} hidden groups say what is inside them"
 
 
 # ── translation ─────────────────────────────────────────────────────────────

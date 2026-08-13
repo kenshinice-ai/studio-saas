@@ -1,4 +1,4 @@
-# PWE Studio Edition v9.9.4 · Standalone 完整部署方案
+# PWE Studio Edition v9.9.5 · Standalone 完整部署方案
 
 > 用途：客户售前说明、实施工程师部署、交付验收和后续运维交接。
 >
@@ -11,9 +11,9 @@
 | 项目 | 当前基线 |
 |---|---|
 | 产品 | PWE Studio Edition |
-| 版本 | `9.9.4` |
+| 版本 | `9.9.5` |
 | 运行模式 | `standalone` |
-| 官方包 | `PWE-Studio-Edition-9.9.4.tar.gz` |
+| 官方包 | `PWE-Studio-Edition-9.9.5.tar.gz` |
 | 包 SHA-256 | `0a75bf66059da97dc91b450933bd2a44e48200b7dda17030b62baa22ec1cd3b6` |
 | `BUILD_INFO` commit | `4b436e1e2df0717b7efb01d5e7d4021a6cc23860` |
 | 包构建时间 | `2026-08-11T12:11:20Z` |
@@ -158,15 +158,15 @@ SMTP 是可选项。未配置 SMTP 时，通知保持 console/log 模式，核�
 在压缩包和 `.sha256` 文件所在目录执行：
 
 ```bash
-shasum -a 256 -c PWE-Studio-Edition-9.9.4.tar.gz.sha256
-tar xzf PWE-Studio-Edition-9.9.4.tar.gz
-cd PWE-Studio-Edition-9.9.4
+shasum -a 256 -c PWE-Studio-Edition-9.9.5.tar.gz.sha256
+tar xzf PWE-Studio-Edition-9.9.5.tar.gz
+cd PWE-Studio-Edition-9.9.5
 grep -E '^(version|mode|commit|built_at)=' BUILD_INFO
 ```
 
 必须确认：
 
-- `version=9.9.4`；
+- `version=9.9.5`；
 - `mode=standalone`；
 - commit 与交付单一致；
 - 包不是从当前未提交工作区临时压缩的副本。
@@ -201,8 +201,8 @@ DNS 未生效、80 端口不可达或域名指向错误服务器时，不得进�
 ### 6.1 解包
 
 ```bash
-tar xzf PWE-Studio-Edition-9.9.4.tar.gz
-cd PWE-Studio-Edition-9.9.4
+tar xzf PWE-Studio-Edition-9.9.5.tar.gz
+cd PWE-Studio-Edition-9.9.5
 ```
 
 安装器会把稳定状态放在发布目录之外：

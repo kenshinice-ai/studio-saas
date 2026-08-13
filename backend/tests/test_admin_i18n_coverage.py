@@ -95,13 +95,95 @@ class ConsoleCopy(HTMLParser):
             return
         if not re.search(r"[A-Za-z]{2}", text):
             return
+        # A URL path is not interface copy — "/timetable" has no Chinese and
+        # translating it would break the link it describes.
+        if re.fullmatch(r"/[\w/.-]*", text):
+            return
         self.strings.add(text)
 
 
+# ── the half the gate could not see ────────────────────────────────────────
+#
+# `<script>` is opaque to the parser above, and that is correct for code — but
+# these consoles build most of what an operator reads inside template literals
+# in exactly that tag. The Platform Admin tenant editor is one 148-line
+# template. So the gate was green while eleven visible English strings had no
+# Chinese, four of which had been added the same day.
+#
+# The runtime does translate them: admin-i18n.js runs a MutationObserver and
+# localises every inserted node. Nothing was checking the table had the words.
+SCRIPT_BLOCK = re.compile(r"<script\b[^>]*>(.*?)</script>", re.S)
+
+# A sentence built around a value — "Type DELETE ${slug} to confirm" — cannot
+# be found in a table keyed by whole strings, so it is a different defect from
+# a missing entry and is not reported as one. The marker is what identifies it.
+INTERPOLATED = "\u0000"
+
+
+def template_literals(script: str) -> list[str]:
+    """Every template literal in one script, interpolations replaced.
+
+    Hand-written rather than a regex because these templates nest: a literal
+    contains `${...}` which contains another literal which contains more
+    markup. A regex that stops at the first backtick reports fragments like
+    "${/*safe*/editorPanelLead('Basic', )}" as though they were English copy.
+    """
+
+    out: list[str] = []
+    i, n = 0, len(script)
+    while i < n:
+        if script[i] == "`":
+            i += 1
+            buf: list[str] = []
+            while i < n and script[i] != "`":
+                if script[i] == "\\":
+                    i += 2
+                    continue
+                if script.startswith("${", i):
+                    depth, i = 1, i + 2
+                    while i < n and depth:
+                        if script[i] == "`":            # a nested literal
+                            i += 1
+                            while i < n and script[i] != "`":
+                                i += 2 if script[i] == "\\" else 1
+                        elif script[i] == "{":
+                            depth += 1
+                        elif script[i] == "}":
+                            depth -= 1
+                        i += 1
+                    buf.append(f" {INTERPOLATED} ")
+                    continue
+                buf.append(script[i])
+                i += 1
+            i += 1
+            out.append("".join(buf))
+            continue
+        i += 1
+    return out
+
+
+def markup_in_scripts(source: str) -> str:
+    """Return the HTML fragments a console assembles at runtime."""
+
+    fragments = [
+        literal
+        for script in SCRIPT_BLOCK.findall(source)
+        for literal in template_literals(script)
+        if "<" in literal
+    ]
+    return "\n".join(fragments)
+
+
 def console_strings(path: Path) -> set[str]:
+    source = path.read_text(encoding="utf-8")
     parser = ConsoleCopy()
-    parser.feed(path.read_text(encoding="utf-8"))
-    return parser.strings
+    parser.feed(source)
+    runtime = ConsoleCopy()
+    runtime.feed(markup_in_scripts(source))
+    # Runtime-built markup goes through the same extractor, so one rule covers
+    # both halves of the page — minus the sentences built around a value,
+    # which no whole-string table can answer.
+    return parser.strings | {text for text in runtime.strings if INTERPOLATED not in text}
 
 
 def translation_keys() -> set[str]:
