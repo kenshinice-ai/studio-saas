@@ -1,6 +1,7 @@
 # PWE Studio v9.9.2 — 定价页，和一间真的画室
 
-> 当前阶段：源码与本地门禁完成，**尚未打包、尚未部署**。生产仍在 v9.9.1。
+> 当前阶段：**已部署上线**。生产 `appVersion=9.9.2`。
+> 但演示租户的内容**还没重种**——原因见文末第八节，需要一个我不能经手的密钥。
 
 这一版有两件事：上一轮做完但没发的**定价页**，以及把 `lets-paint-showcase`
 从测试租户改造成**真样板 + 演示租户**。改造过程中挖出四个产品缺陷，都在下面。
@@ -74,7 +75,18 @@
 这不是装饰。页面用虚构人物的名义、在公开地址上展示合成作品，
 还写着「下面这些是 Janet 自己的画」。
 
-## 五 · 状态
+## 五 · 发布证据（2026-08-13）
+
+| 层级 | 已验证事实 |
+|---|---|
+| Source | `origin/main` = `34b6733`；`VERSION=9.9.2`；`RELEASE_DATE=2026-08-13`。 |
+| Local gates | `verify_local.sh` **All checks passed**；pytest `1790 passed, 5 skipped`；legacy CMS smoke `73/73`；租户隔离 `237/237`；术语、转义、版本账本全绿。 |
+| Package | `PWE-StudioSaaS-aws-9.9.2.tar.gz` 24 MB，SHA-256 `66a452e7ec55cf012b0c28a5a1b807892cc18559021e46071de4961f1eddb213`；`BUILD_INFO` commit `34b6733`。 |
+| Backup | 部署前 `studiosaas_studiosaas_20260813T032433Z.dump`。 |
+| Production | `/opt/pwestudio/current` → `PWE-StudioSaaS-aws-9.9.2`，镜像 `studiosaas:9.9.2`；deep health `appVersion=9.9.2`、`db=ok`、`tenants=6`、`themes.unreadable=0`、**`workspaces.stale=0`**；磁盘 45.44 GB 空闲。回滚目录保留 9.9.1。 |
+| Public | 七条路由全部 200（含 `/pricing`、`/zh/pricing`）；`/brand` 返回 `demoTenant=true`；四个页面都带 `demoNotice`；`index/showcase/timetable` 的 logo 上限已生效（`register` 本来就是 42×42 方框，不需要）。 |
+
+## 六 · 状态
 
 - 本地全量：**1790 passed, 5 skipped**（v9.9.1 时是 1754）。
 - 新增 `backend/tests/test_showcase_tenant.py`（29 条）、
@@ -84,13 +96,49 @@
 - **尚未打包部署。** 发布前按 `docs/Release_Runbook.md` 的九步走，
   先跑 `backend/scripts/release_preflight.sh`。
 
-## 六 · 上线时要确认的一件事
+## 七 · 已确认：标记是对的，但重置从来没跑过
 
-线上 `lets-paint-showcase` 的 `settings.professional_demo` 必须是 `true`，
-否则重置脚本会拒绝执行——**每晚重置也就根本没在跑**。
-线上那三件 `Test` / `fasd` 作品是人手敲进去的，说明这条从来没被验证过。
+上线时逐条查了：
 
-## 七 · 已知缺口（未修，已记）
+- `settings.professional_demo` = **`true`** ✅ —— 脚本不会拒绝执行。
+- `plan_code` = **`studio`** ✅。
+- **没有 cron，没有 systemd timer** ❌ —— 每晚重置**从未运行过**。
+- 容器里**没有** `STUDIOSAAS_SHARED_DEMO_PASSWORD`，
+  `/opt/pwestudio/shared/production.env` 里也没有 ❌。
+
+第四条解释了前面所有事：重置脚本要求这个密钥（≥12 字符）才肯跑，
+而它在生产环境根本不存在——所以脚本**一次都没能执行**，
+那三件 `Test` / `fasd` 只能是人手敲进去的。
+
+## 八 · 还差最后一步：重种演示租户内容
+
+代码全部上线了，但 `lets-paint-showcase` 的**数据**还是旧的
+（3 件测试作品、没有主理人、没有空间）。重种需要那个密钥，
+**这一步必须由人来做**——我不经手明文密码。
+
+在服务器上跑（密钥只经过你的手和服务器，不进任何日志）：
+
+```bash
+sudo docker exec -it -e STUDIOSAAS_SHARED_DEMO_PASSWORD \
+  -e STUDIOSAAS_DEMO_CREDENTIALS_FILE=/data/showcase-credentials.txt \
+  pwestudio-app-1 python backend/scripts/reset_professional_demo.py \
+  --confirm RESET-LETS-PAINT-SHOWCASE
+```
+
+（`-e VAR` 不带 `=` 是从当前 shell 取值，所以先 `read -s STUDIOSAAS_SHARED_DEMO_PASSWORD;
+export STUDIOSAAS_SHARED_DEMO_PASSWORD`，密码不会进 shell 历史。）
+
+**更好的做法**：把这个键写进 `/opt/pwestudio/shared/production.env`。
+它不是一次性的——每晚重置每次都要它。写进去之后这条才真正可以自动化。
+
+### 每晚重置的定时器（写 env 之后再装）
+
+装之前先想清楚一件事：`lets-paint-showcase` 现在**既是给客户看的样板，
+又是每晚重置的演示租户**。定时器一旦装上，任何人在控制台里为了让样板更好看
+而做的调整，都会在当晚被抹掉。要么接受「样板只能改 manifest 和 seeder」，
+要么就别装定时器、手动重置。
+
+## 九 · 已知缺口（未修，已记）
 
 1. `courses.name / description / category` 是单语言字段，中英门户渲染同一个字符串。
    这一轮按 `油画基础 Foundation Oil` 双语并置写。
