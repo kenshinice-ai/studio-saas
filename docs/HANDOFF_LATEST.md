@@ -1,7 +1,6 @@
 # PWE Studio v9.9.2 — 定价页，和一间真的画室
 
-> 当前阶段：**已部署上线**。生产 `appVersion=9.9.2`。
-> 但演示租户的内容**还没重种**——原因见文末第八节，需要一个我不能经手的密钥。
+> 当前阶段：**已部署上线，演示租户已重种完毕**。生产 `appVersion=9.9.2`。
 
 这一版有两件事：上一轮做完但没发的**定价页**，以及把 `lets-paint-showcase`
 从测试租户改造成**真样板 + 演示租户**。改造过程中挖出四个产品缺陷，都在下面。
@@ -110,33 +109,48 @@
 而它在生产环境根本不存在——所以脚本**一次都没能执行**，
 那三件 `Test` / `fasd` 只能是人手敲进去的。
 
-## 八 · 还差最后一步：重种演示租户内容
+## 八 · 演示密钥已配置，租户已重种（2026-08-13）
 
-代码全部上线了，但 `lets-paint-showcase` 的**数据**还是旧的
-（3 件测试作品、没有主理人、没有空间）。重种需要那个密钥，
-**这一步必须由人来做**——我不经手明文密码。
+密钥**在服务器上生成**：`openssl rand -hex 24`（48 字符，十六进制——
+env 文件没有引号语义，值里出现 `/` 或 `+` 迟早出事），
+追加进 `/opt/pwestudio/shared/production.env`（0600，改前留了 `.bak-` 备份）。
+值从未打印、从未作为命令行参数出现（`argv` 可以被 `ps` 读到），从未离开实例。
 
-在服务器上跑（密钥只经过你的手和服务器，不进任何日志）：
+重种时密码走 **stdin** 进容器，不走 `docker exec -e`，理由同上。
+凭据写在 `/data/showcase-credentials.txt`（0600）——`/data` 是 named volume，
+下次发布不会把它带走。
+
+**要看演示账号密码，在服务器上：**
 
 ```bash
-sudo docker exec -it -e STUDIOSAAS_SHARED_DEMO_PASSWORD \
-  -e STUDIOSAAS_DEMO_CREDENTIALS_FILE=/data/showcase-credentials.txt \
-  pwestudio-app-1 python backend/scripts/reset_professional_demo.py \
-  --confirm RESET-LETS-PAINT-SHOWCASE
+sudo docker exec pwestudio-app-1 cat /data/showcase-credentials.txt
 ```
 
-（`-e VAR` 不带 `=` 是从当前 shell 取值，所以先 `read -s STUDIOSAAS_SHARED_DEMO_PASSWORD;
-export STUDIOSAAS_SHARED_DEMO_PASSWORD`，密码不会进 shell 历史。）
+### 重种结果（线上实测）
 
-**更好的做法**：把这个键写进 `/opt/pwestudio/shared/production.env`。
-它不是一次性的——每晚重置每次都要它。写进去之后这条才真正可以自动化。
+| | |
+|---|---|
+| 数据库 | `works=15`、`students=12`、`public_classes=7`、`student_works=8` |
+| 契约 | 七个版块**全部 `ready`**（`gallery` 从 `no_consented_student_work` 变成 `ready`） |
+| 作品墙 | 公开 13 件，每页 12，`hasMore=true`；三个抽屉；精选 1–6 顺序正确 |
+| 图片 | 画作 `image/jpeg` 524 KB；**logo `image/png`、RGBA、角落 alpha=0** |
 
-### 每晚重置的定时器（写 env 之后再装）
+最后一行是这个产品**第一次**真的服务出一张透明 logo。
 
-装之前先想清楚一件事：`lets-paint-showcase` 现在**既是给客户看的样板，
-又是每晚重置的演示租户**。定时器一旦装上，任何人在控制台里为了让样板更好看
-而做的调整，都会在当晚被抹掉。要么接受「样板只能改 manifest 和 seeder」，
-要么就别装定时器、手动重置。
+### 为什么以前 env 文件里写了也没用
+
+`docker-compose.yml` 的 `environment:` 是一张**白名单**——
+不在里面的键，无论 `production.env` 写得多认真都到不了容器。
+这一版把 `STUDIOSAAS_SHARED_DEMO_PASSWORD` 和
+`STUDIOSAAS_DEMO_CREDENTIALS_FILE` 加了进去，
+所以**下一次发布之后**定时器可以直接调脚本，不必再用 `docker exec -e`。
+
+### 定时器还没装——先决定一件事
+
+`lets-paint-showcase` 现在**既是给客户看的样板，又是演示租户**。
+定时器一开，任何人在控制台里为了让样板更好看做的调整，当晚就会被抹掉；
+样板的唯一持久编辑入口就变成 `showcase_content.py` 和 `manifest.json`。
+接受这一点再装，别反过来。
 
 ## 九 · 已知缺口（未修，已记）
 

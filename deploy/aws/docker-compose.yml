@@ -29,6 +29,19 @@ services:
       STUDIOSAAS_API_KEY: ${STUDIOSAAS_API_KEY}
       STUDIOSAAS_PUBLIC_BASE_DOMAIN: ${STUDIOSAAS_PUBLIC_BASE_DOMAIN:-}
       STUDIOSAAS_SEED_SUPER_ADMIN: ${STUDIOSAAS_SEED_SUPER_ADMIN:-0}
+      # The showcase demonstration password. Empty by default: the guarded
+      # reset script refuses to run without it, which is the correct behaviour
+      # everywhere except the one instance that hosts the demo tenant.
+      #
+      # It is passed through HERE, not only set in production.env, because this
+      # environment block is an allow-list — a key absent from it never reaches
+      # the container however carefully it is written into the env file. That
+      # is why the nightly reset had never run: the key had nowhere to arrive.
+      STUDIOSAAS_SHARED_DEMO_PASSWORD: ${STUDIOSAAS_SHARED_DEMO_PASSWORD:-}
+      # Where the reset writes its 0600 presenter handoff. /data is a named
+      # volume, so the file survives the next release instead of leaving with
+      # the container that wrote it.
+      STUDIOSAAS_DEMO_CREDENTIALS_FILE: ${STUDIOSAAS_DEMO_CREDENTIALS_FILE:-/data/showcase-credentials.txt}
       # Email delivery (SES SMTP in production; console = log-only default)
       STUDIOSAAS_EMAIL_BACKEND: ${STUDIOSAAS_EMAIL_BACKEND:-console}
       STUDIOSAAS_SMTP_HOST: ${STUDIOSAAS_SMTP_HOST:-}
