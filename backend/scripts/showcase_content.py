@@ -86,8 +86,8 @@ LOCALIZED_COPY = {
         "en": "A small studio in Caulfield North, Melbourne. Adult classes of eight or fewer — starting from scratch is still starting.",
     },
     "welcome_message": {  # ≤240
-        "zh": "我们不赶进度。你可以每周来两小时，也可以只来一次看看合不合适。",
-        "en": "There is no schedule to keep up with. Come two hours a week, or come once to see whether it suits you.",
+        "zh": "这里不赶进度，也不比谁画得快。每周两小时，或者只来一次看看合不合适，都可以。",
+        "en": "Nothing here is a race. Two hours a week, or one afternoon to see whether it suits you — both are a reasonable way to start.",
     },
     "primary_cta": {"zh": "预约体验", "en": "Book a trial"},        # 中文 ≤7
     "secondary_cta": {"zh": "看看作品", "en": "See the work"},      # 中文 ≤7
@@ -121,26 +121,29 @@ LOCALIZED_COPY = {
 
     "registration_title": {"zh": "说说你想画什么", "en": "Tell us what you'd like to paint"},
     "registration_intro": {  # ≤300
-        "zh": "填完之后 Janet 会亲自回你，通常在一两天内。没有基础不用写「零基础」——大部分人都是。",
-        "en": "Janet answers these herself, usually within a day or two. You don't need to explain that you're a beginner — most people are.",
+        "zh": "填完之后 Janet 会亲自回你，通常一两天内。不必解释自己没有基础——多数人都没有，这不是需要说明的事。",
+        "en": "Janet answers these herself, usually within a day or two. There is no need to explain that you are a beginner; most people are, and it is not a thing that needs explaining.",
     },
 
     "principal_title": {"zh": "创办人 · 主理人", "en": "Founder & Principal"},
     "principal_bio": {  # ≤800
         "zh": (
             "Janet 在北京学的画，来墨尔本之后做了八年广告。"
-            "2019 年她租下 Caulfield North 一间旧车间，刷成白色，摆了八张画架——"
-            "最初只是想有个地方自己画画，后来有人问能不能一起。\n\n"
-            "她的课没有进度表。第一节课通常在调色盘上度过：先弄清楚你眼睛里的灰到底是什么颜色，"
-            "剩下的都好说。"
+            "2019 年她把 Caulfield North 那栋房子后院的旧马厩收拾出来，"
+            "刷成白色，摆了八张画架——"
+            "最初只是想有个地方自己画画，后来邻居敲门问能不能一起。\n\n"
+            "她的课没有进度表，也不排名次。第一节课通常在调色盘上度过："
+            "先弄清楚你眼睛里的灰到底是什么颜色，剩下的都好说。"
         ),
         "en": (
             "Janet studied painting in Beijing and spent eight years in advertising after "
-            "moving to Melbourne. In 2019 she took over an old workshop in Caulfield North, "
-            "painted it white and put in eight easels — at first only so she would have "
-            "somewhere to paint, then because people asked to join her.\n\n"
-            "Her classes have no syllabus. The first one usually happens on the palette: "
-            "work out what colour the grey in front of you actually is, and the rest follows."
+            "moving to Melbourne. In 2019 she cleared out the old stable behind a house in "
+            "Caulfield North, painted it white and put in eight easels — at first only so "
+            "she would have somewhere to paint, then because a neighbour knocked and asked "
+            "to join her.\n\n"
+            "Her classes have no syllabus and no ranking. The first one usually happens on "
+            "the palette: work out what colour the grey in front of you actually is, and "
+            "the rest follows."
         ),
     },
     "principal_quote": {  # ≤180
@@ -166,42 +169,51 @@ PRINCIPAL = {
 # the southern hemisphere the steady, colour-neutral light a painter wants
 # comes from the south. A studio boasting about its north window is a studio
 # written by somebody who has never stood at an easel.
+#
+# The room itself is written for Caulfield North — plane trees, brick, period
+# houses. The first draft described a 1960s warehouse with five-metre ceilings,
+# which was Brunswick's building, and reads as borrowed the moment anyone who
+# knows the suburb reads it.
 ABOUT = {
     "eyebrow": {"zh": "空间", "en": "The room"},
-    "title": {"zh": "一间朝南开窗的旧车间", "en": "An old workshop with a south window"},
+    "title": {"zh": "一间朝南的后院画室", "en": "A garden studio facing south"},
     "body": {  # ≤600
         "zh": (
-            "车间是 1960 年代的，天花板五米高，南墙一整排窗。"
-            "我们没装射灯——南边的光一整天都不变色，这是画画的人唯一挑不出毛病的光。\n\n"
-            "颜料、画布、画架、围裙都在。你带一件不怕脏的衣服就行。"
+            "画室在一栋 1920 年代砖房的后院，原本是马厩改的车库，"
+            "屋顶掀高了，南墙换成一整面玻璃。"
+            "我们没有装射灯——南边的光一整天不变色，这是画画的人唯一挑不出毛病的光。\n\n"
+            "门口有两棵梧桐，风大的时候能听见。"
+            "颜料、亚麻布、画架、围裙都在，你带一件不怕脏的衣服就行。"
         ),
         "en": (
-            "The building is 1960s: five metres to the ceiling and a full wall of "
-            "south-facing windows. We didn't put in spotlights — south light doesn't "
-            "change colour all day, which is the only light a painter never argues with.\n\n"
-            "Paint, canvas, easels and aprons are here. Bring a shirt you don't mind ruining."
+            "The studio is the old stable at the back of a 1920s brick house — the "
+            "roof lifted, the south wall replaced with glass. We didn't put in "
+            "spotlights: south light doesn't change colour all day, which is the "
+            "only light a painter never argues with.\n\n"
+            "Two plane trees by the gate, loud in a westerly. Paint, linen, easels "
+            "and aprons are here. Bring a shirt you don't mind ruining."
         ),
     },
     "items": [  # title ≤80, body ≤300
         {
-            "title": {"zh": "一次最多八个人", "en": "Eight easels, no more"},
+            "title": {"zh": "八张画架，不多放", "en": "Eight easels, and no ninth"},
             "body": {
-                "zh": "八张画架是硬上限。老师能在两小时里走到每个人身后三次——小班唯一的意义就在这里。",
-                "en": "Eight is a hard limit. It is what lets the teacher stand behind each person three times in two hours, which is the only thing a small class is actually for.",
+                "zh": "八个人是上限，不是目标。两小时里老师能在每个人身后站三次——小班值钱的地方只有这一条。",
+                "en": "Eight is a ceiling, not a target. In two hours the teacher can stand behind each person three times, which is the only thing a small class is really for.",
             },
         },
         {
-            "title": {"zh": "材料都在这里", "en": "Materials are included"},
+            "title": {"zh": "材料我们备好", "en": "The materials are ours"},
             "body": {
-                "zh": "油画颜料、亚麻布、松节油、围裙都由画室提供。第一次来什么都不用买。",
-                "en": "Oils, linen, solvent and aprons belong to the studio. You don't need to buy anything to come once.",
+                "zh": "油画颜料、亚麻布、松节油、围裙都由画室准备。第一次来，什么都不用买，也不用问要带什么。",
+                "en": "Oils, linen, solvent and aprons belong to the studio. Come once and buy nothing — there is no list to ask about.",
             },
         },
         {
-            "title": {"zh": "画完了可以放着", "en": "Leave the wet ones here"},
+            "title": {"zh": "没干的画留下来", "en": "Wet canvases stay"},
             "body": {
-                "zh": "油画干得慢。没画完的可以留在画室，架子上有你的位置，下周接着画。",
-                "en": "Oil takes its time. Unfinished work stays on your shelf between classes.",
+                "zh": "油画干得慢，架子上有你的位置。走的时候不必迁就一张还没想好的画。",
+                "en": "Oil takes its time and there is a shelf with your name on it. Nobody has to finish a painting because it is half past eight.",
             },
         },
     ],

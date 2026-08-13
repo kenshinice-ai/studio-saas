@@ -374,3 +374,77 @@ def test_the_confirmation_phrase_is_the_same_one_the_script_uses() -> None:
     assert 'DEMO_RESET_CONFIRMATION = "RESET-LETS-PAINT-SHOWCASE"' in API
     assert "RESET-LETS-PAINT-SHOWCASE" in SEEDER
     assert "RESET-LETS-PAINT-SHOWCASE" in CONSOLE
+
+
+# ── the header, and why it was flaky ───────────────────────────────────────
+
+
+SURFACE_JS = (PROJECT_ROOT / "backend/frontend/assets/public-surface.js").read_text(encoding="utf-8")
+
+
+def test_the_header_is_measured_more_than_once() -> None:
+    """Measuring once measures a moving target, and it showed.
+
+    The same page rendered correctly on one load and with the studio name
+    beside a row of clipped labels on the next. Three things change the answer
+    after first paint and none of them tells the caller: the web font arrives,
+    the contract swaps placeholder labels for the studio's own, and entries
+    appear as their sections turn out to have content. The language switch is
+    the loudest of them — the Chinese nav needs 726px where the English one
+    needs 926px, so the two languages get genuinely different answers.
+    """
+
+    assert "function settleNavigation(" in SURFACE_JS
+    assert "document?.fonts?.ready" in SURFACE_JS, "font metrics change every label's width"
+    assert "'load'" in SURFACE_JS
+    assert "[120, 400, 1200]" in SURFACE_JS
+    # apply() must settle rather than measure once: entries are still arriving.
+    apply_body = SURFACE_JS.split("function apply(contract, root) {", 1)[1].split("\n  }", 1)[0]
+    assert "settleNavigation(scope)" in apply_body
+
+
+def test_the_header_never_watches_its_own_output() -> None:
+    """A ResizeObserver here would observe the layout this function changes.
+
+    fitNavigation hides the studio name and then the whole nav, which resizes
+    the very elements an observer would be watching — a feedback loop that only
+    shows up on a slow machine. The schedule is fixed and bounded instead.
+    """
+
+    # The word appears in the comment explaining the choice, so this asks
+    # whether one is CONSTRUCTED, not whether it is mentioned.
+    assert "new ResizeObserver" not in SURFACE_JS
+    assert ".observe(" not in SURFACE_JS
+
+
+def test_the_header_degrades_before_it_collapses() -> None:
+    """Drop the repeated name first; the menu button is the last resort."""
+
+    body = SURFACE_JS.split("function fitNavigation(", 1)[1].split("\n  let fitQueued", 1)[0]
+    name_step = body.index("brand-name-hidden")
+    collapse_step = body.rindex("nav-tight")
+    assert name_step < collapse_step, "the name must be dropped before the navigation is"
+    # And never when there is no logo left to carry the studio's name.
+    assert "getComputedStyle(logo).display !== 'none'" in body
+
+
+def test_the_seeder_reuses_a_running_application_context() -> None:
+    """`import server` inside the web process re-registers a mounted blueprint.
+
+    From the command line there is no application, so one is created. From the
+    Platform Admin endpoint there already is one, and importing server.py again
+    re-runs it inside the live process — which Flask rejects with
+
+        AssertionError: The setup method 'register_error_handler' can no longer
+        be called on the blueprint 'studiosaas_api_v1'.
+
+    That is a 500 that cannot happen locally and did happen in production on
+    the first press of the button.
+    """
+
+    assert "def _application_context()" in SEEDER
+    assert "if has_app_context():" in SEEDER
+    assert "contextlib.nullcontext()" in SEEDER
+    reset = SEEDER.split("def reset_showcase(", 1)[1].split("\ndef ", 1)[0]
+    assert "with _application_context()" in reset
+    assert "import server" not in reset, "the reset itself must not re-import the app"

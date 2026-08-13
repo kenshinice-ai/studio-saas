@@ -1,6 +1,6 @@
 # PWE Studio Edition · 部署方式
 
-> 当前正式交付基线：v9.9.3。Edition 包内 `BUILD_INFO` 必须包含
+> 当前正式交付基线：v9.9.4。Edition 包内 `BUILD_INFO` 必须包含
 > `mode=standalone`；客户/实施人员的完整部署方案见
 > [DEPLOYMENT_PLAN.md](DEPLOYMENT_PLAN.md)。
 
@@ -58,8 +58,8 @@ PostgreSQL。它不会复用 Edition 的一键安装器、默认卷布局、root
 
 - 交付物 = `build_aws_bundle.sh --edition` 产物（BUILD_INFO 含版本、commit、
   `mode=standalone`）+ standalone 附件（install.sh、导入模板、客户手册）
-- 当前已验证包为 `PWE-Studio-Edition-9.9.3.tar.gz`；发送前必须在包所在目录
-  执行 `shasum -a 256 -c PWE-Studio-Edition-9.9.3.tar.gz.sha256`
+- 当前已验证包为 `PWE-Studio-Edition-9.9.4.tar.gz`；发送前必须在包所在目录
+  执行 `shasum -a 256 -c PWE-Studio-Edition-9.9.4.tar.gz.sha256`
 - 客户拿到的是**指定版本的完整源码包**（Apache-2.0 内核 + 交付协议
   约束商用条款——COMMERCIAL.md 详述）
 - 版本升级节奏与是否含大版本，由维护协议档位决定

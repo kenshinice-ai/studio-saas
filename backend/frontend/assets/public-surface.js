@@ -337,8 +337,9 @@
       if (target && !samePath(target, currentPath)) node.removeAttribute('aria-current');
     });
     // Labels have just changed, and how wide they are is what decides whether
-    // the header still fits.
-    queueFitNavigation(scope);
+    // the header still fits. Settle rather than measure once: entries are
+    // still appearing as their sections resolve.
+    settleNavigation(scope);
   }
 
   // ── the header, measured ────────────────────────────────────────────────
@@ -415,8 +416,36 @@
     fitQueued = true;
     raf(() => { fitQueued = false; fitNavigation(scope); });
   }
+
+  // Measuring ONCE is measuring a moving target, and the header was visibly
+  // flaky because of it: sometimes correct, sometimes the studio name beside a
+  // row of clipped labels. Three things change the answer after first paint and
+  // none of them announces itself to the caller —
+  //
+  //   * the web font arrives and every label changes width;
+  //   * the contract replaces placeholder labels with the studio's own;
+  //   * entries appear as their sections turn out to have content.
+  //
+  // So the row is re-settled a few times over the first second and on the two
+  // events that mean "text just changed size". Deliberately a fixed, bounded
+  // schedule rather than a ResizeObserver: this function CHANGES the layout it
+  // measures, and an observer watching its own output is a loop waiting for a
+  // slow machine. `fitNavigation` recomputes from the un-collapsed state every
+  // time, so running it again is free and always reaches the same answer.
+  function settleNavigation(scope) {
+    queueFitNavigation(scope);
+    if (typeof setTimeout !== 'function') return;
+    [120, 400, 1200].forEach((delay) => setTimeout(() => queueFitNavigation(scope), delay));
+  }
+
   if (global.addEventListener) {
     global.addEventListener('resize', () => queueFitNavigation());
+    global.addEventListener('load', () => settleNavigation());
+  }
+  // Font metrics are the big one: measured against a fallback face, a nav that
+  // does not fit can measure as though it does.
+  if (global.document?.fonts?.ready?.then) {
+    global.document.fonts.ready.then(() => settleNavigation()).catch(() => {});
   }
 
   async function fetchContract(api, options) {
@@ -448,6 +477,7 @@
 
   global.StudioSaaS = global.StudioSaaS || {};
   global.StudioSaaS.publicSurface = {
-    resolve, apply, clearLoading, fetch: fetchContract, fitNavigation, queueFitNavigation,
+    resolve, apply, clearLoading, fetch: fetchContract,
+    fitNavigation, queueFitNavigation, settleNavigation,
   };
 })(window);

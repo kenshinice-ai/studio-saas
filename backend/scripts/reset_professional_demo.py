@@ -39,6 +39,7 @@ in literals scattered through this file. Three consequences worth knowing:
 from __future__ import annotations
 
 import argparse
+import contextlib
 import io
 import json
 import os
@@ -49,6 +50,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
+from flask import has_app_context
 from werkzeug.datastructures import FileStorage
 
 APP_ROOT = Path(__file__).resolve().parents[1]
@@ -921,6 +923,34 @@ def _write_credentials(path: Path, credentials: list[dict[str, str]], student_co
     os.chmod(path, 0o600)
 
 
+def _application_context():
+    """An app context to run in — the existing one if we are already inside it.
+
+    `store_media_asset` reads the media root from `current_app.config`, exactly
+    as it does for a browser upload, so this needs a Flask application and not
+    only a database.
+
+    From the command line there is none, so one is created. From the Platform
+    Admin endpoint there already is, and `import server` would re-execute
+    server.py inside the running process — re-registering a blueprint Flask has
+    already mounted, which fails with
+
+        AssertionError: The setup method 'register_error_handler' can no longer
+        be called on the blueprint 'studiosaas_api_v1'.
+
+    and turns a working reset into a 500 that only ever appears in production.
+    Asking whether a context exists is the difference between the two callers.
+    """
+
+    if has_app_context():
+        return contextlib.nullcontext()
+    # Imported here rather than at module scope so `--help` and the safety
+    # guards still work on a machine where the app cannot start at all.
+    import server
+
+    return server.app.app_context()
+
+
 def reset_showcase(credentials_file: Path) -> dict[str, Any]:
     """Reset the showcase in one transaction and return non-secret evidence."""
 
@@ -931,14 +961,7 @@ def reset_showcase(credentials_file: Path) -> dict[str, Any]:
             "with at least 12 characters."
         )
     manifest = _manifest()
-    # `store_media_asset` resolves the media root from `current_app.config`,
-    # the same way it does for a browser upload — so the seed needs the app,
-    # not just the database. Importing it here rather than at module scope
-    # keeps `--help` and the safety guards working on a machine where the app
-    # cannot start at all.
-    import server
-
-    with server.app.app_context(), connect(statement_timeout_ms=0, lock_timeout_ms=0) as conn:
+    with _application_context(), connect(statement_timeout_ms=0, lock_timeout_ms=0) as conn:
         with conn.cursor() as cur:
             tenant_id = _load_or_create_tenant(cur)
             _clear_showcase(cur, tenant_id)
