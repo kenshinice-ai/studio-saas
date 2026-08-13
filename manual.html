@@ -135,8 +135,8 @@
         <h2 data-lang="en">Five screens, and three ideas that explain the rest</h2>
         <h2 data-lang="zh">五个界面，和三个先弄懂就不会错的概念</h2>
 
-        <p data-lang="en">Your studio has its own address on the platform — a short URL name we call the <em>slug</em>, fixed when the studio is created. Everything below hangs off it.</p>
-        <p data-lang="zh">你的工作室在平台上有一个自己的网址标识（slug），开通时确定、之后不可更改。下面所有地址都挂在它下面。</p>
+        <p data-lang="en">Your studio has its own address on the platform — a short URL name we call the <em>slug</em>, chosen when the studio is created. Everything below hangs off it. It is not permanent: ask us and we can change it, at most once a year. <strong>The old address keeps working forever</strong> as a redirect, because it is already on flyers and inside QR codes — and it is never given to another studio.</p>
+        <p data-lang="zh">你的工作室在平台上有一个自己的网址标识（slug），开通时确定，下面所有地址都挂在它下面。它并非永远不能改：找我们即可更换，一年最多一次。<strong>旧地址会永久有效</strong>，自动跳转到新地址——因为它早就印在传单上、编进二维码里了；而且它永远不会被分给另一间工作室。</p>
 
         <div class="tw">
           <table>
@@ -159,6 +159,12 @@
                 <td><code>/&lt;slug&gt;/timetable</code></td>
                 <td data-lang="en">Visitors and families — the classes you publish for the weeks ahead, and a booking request if you accept them</td>
                 <td data-lang="zh">访客与家长——你公开的近期班次；开启后还能提交约课申请</td>
+              </tr>
+              <tr>
+                <td><strong>Selected work</strong> <span data-lang="zh">工作室作品</span></td>
+                <td><code>/&lt;slug&gt;/showcase</code></td>
+                <td data-lang="en">Visitors — the studio’s own work in full. The home page carries a six-work taster that links here</td>
+                <td data-lang="zh">访客——工作室自己的作品全集。首页上是 6 件的引子，点进来是全部</td>
               </tr>
               <tr>
                 <td><strong>Register</strong> <span data-lang="zh">快速报名</span></td>
@@ -236,7 +242,7 @@
             <img data-lang="zh" src="/assets/manual/01-brand-workbench.zh.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="Studio Admin 分组工作台导航、编辑器与私有草稿预览">
           </div>
           <ol class="marks">
-            <li data-lang="en">The grouped workbench has ten panels under four jobs: Brand &amp; website, Admissions, Publish and Insights.</li><li data-lang="zh">分组工作台按四项工作组织十个面板：品牌与官网、招生入口、发布中心、经营洞察。</li>
+            <li data-lang="en">The grouped workbench has twelve panels under four jobs: Brand &amp; website, Admissions, Publish and Insights.</li><li data-lang="zh">分组工作台按四项工作组织十二个面板：品牌与官网、招生入口、发布中心、经营洞察。</li>
             <li data-lang="en">Draft previews the editor; Live loads the current published site. Compare either source in both languages and at desktop or phone width before publishing.</li><li data-lang="zh">草稿预览当前编辑内容；线上预览加载真实已发布官网。发布前可用两种语言和桌面 / 手机宽度对照两种来源。</li>
             <li data-lang="en">The save bar, always visible: apply a preset, open the site, save a draft, publish. It also tells you whether what you are looking at is public yet.</li><li data-lang="zh">常驻保存条：套用预设、打开官网、保存草稿、发布。它同时告诉你眼前这一版有没有公开。</li>
           </ol>
@@ -717,6 +723,21 @@
           <figcaption data-lang="zh">前台：公开门户是最终结果。只有 Owner 打开开关且已有 Active 内容时，工作室作品展示才会出现。</figcaption>
         </figure>
 
+        <figure>
+          <div class="shot">
+            <div class="shot-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+            <img data-lang="en" src="/assets/manual/02-showcase-page.en.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="The standalone Selected Work page with its own heading, published count and category filters">
+            <img data-lang="zh" src="/assets/manual/02-showcase-page.zh.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="独立的工作室作品页，含自己的标题、公开数量与分类筛选">
+          </div>
+          <ol class="marks">
+            <li data-lang="en">The page carries its own eyebrow, title and lead — the ones you wrote in Studio Admin. It is a page a family can bookmark and forward, which is why it has an address rather than a scroll position.</li><li data-lang="zh">这一页有自己的眉题、标题和导语，就是你在品牌工作台里写的那几行。它是家长可以收藏、可以转发的一页——这也是它有独立网址、而不是一个滚动位置的原因。</li>
+            <li data-lang="en">The published count is stated. It counts what a visitor can actually see, so it is the fastest way to check that a publish did what you expected.</li><li data-lang="zh">页面上写着公开作品的件数。它数的是访客真正看得到的数量，所以想确认「发布有没有生效」，看这个数字最快。</li>
+            <li data-lang="en">Category filters appear only once two or more categories have work behind them. A filter that opens onto nothing is worse than no filter.</li><li data-lang="zh">只有两个以上分类真的有作品时，筛选器才会出现。点开什么都没有的筛选器，比没有筛选器更糟。</li>
+          </ol>
+          <figcaption data-lang="en">The archive at <code>/&lt;slug&gt;/showcase</code>. The home page shows six of these and links here.</figcaption>
+          <figcaption data-lang="zh">位于 <code>/&lt;slug&gt;/showcase</code> 的独立作品页。首页只展示其中 6 件，并链接到这里。</figcaption>
+        </figure>
+
         <h3 data-lang="en">Know the limits before you publish</h3>
         <h3 data-lang="zh">发布前，先看清数量规则</h3>
 
@@ -977,6 +998,9 @@
         <p data-lang="en">Isolation between studios is verified before every release: over 200 tenant-isolation checks must all pass or the release does not ship.</p>
         <p data-lang="zh">工作室之间的隔离每次发版前都会验证：两百多项租户隔离测试必须全绿，否则不允许上线。</p>
 
+        <p data-lang="en"><strong>Changing your public address is ours to do, and deliberately slow.</strong> Ask, and we move the studio to a new slug — at most once a year. The old address is not deleted: it keeps redirecting to the new one for good, because it is already printed on flyers and encoded into QR codes, and a rename that broke those would be a rename that cost you enquiries. No address is ever handed to a different studio, even after a studio closes — its address is kept as a tombstone rather than reissued, so old printed material can never lead somebody to a business that is not yours.</p>
+        <p data-lang="zh"><strong>更换公开网址由我们操作，而且故意做得很慢。</strong>你提出，我们把工作室迁到新的 slug——一年最多一次。旧地址不会被删除，它会一直跳转到新地址，因为它早就印在传单上、编进二维码里了；一次让这些失效的改名，代价是丢掉咨询。任何地址都不会被转交给另一间工作室，哪怕这间工作室已经关停——它的地址会作为墓碑保留而不是重新分配，这样旧的印刷品永远不会把人带到别人的生意上去。</p>
+
         <p class="note" data-lang="en">Your subscription tier, its quotas and your billing dates are managed by us; they are read-only in your own screens. Ask and we will change them.</p>
         <p class="note" data-lang="zh">你的订阅档位、额度与账期由我们维护，在你自己的界面里是只读的。需要调整直接找我们。</p>
       </section>
@@ -1028,6 +1052,11 @@
         <h4 data-lang="zh">家长想用邮箱密码登录。</h4>
         <p data-lang="en">Families cannot sign in to the CMS; the attempt is refused. Self-service is the student area with an access code — <a href="#families">section 08</a>.</p>
         <p data-lang="zh">家长不能登录 CMS，尝试会被拒绝。家庭自助走「学员专区」访问码——见<a href="#families">第 08 章</a>。</p>
+
+        <h4 data-lang="en">Can we change our studio’s web address?</h4>
+        <h4 data-lang="zh">工作室的网址能改吗？</h4>
+        <p data-lang="en">Yes. Ask us and we move you to a new one, at most once a year. Nothing you have already printed stops working: the old address redirects to the new one permanently, and it is never reissued to another studio. Your QR codes, flyers and search results all keep leading to you.</p>
+        <p data-lang="zh">能。找我们即可更换，一年最多一次。已经印出去的东西不会作废：旧地址会永久跳转到新地址，而且永远不会被分配给另一间工作室。二维码、传单和搜索结果都仍然指向你。</p>
 
         <h4 data-lang="en">Can families book a class themselves?</h4>
         <h4 data-lang="zh">家长能自己约课吗？</h4>

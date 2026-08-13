@@ -60,6 +60,7 @@ install is wrong.
 | `01-admissions-messages` | owner | `/lets-paint-showcase/studio-admin?view=messages` | desktop | signed in, Admissions → Family messages panel |
 | `02-portal` | public | `/lets-paint-showcase` | desktop | published portal, top of page |
 | `02-showcase-portal` | public | `/lets-paint-showcase` | desktop | published portal, scrolled to the synthetic Selected Work section |
+| `02-showcase-page` | public | `/lets-paint-showcase/showcase` | desktop | the dedicated Selected Work page (v9.8.10 gave it its own URL); the home band is a six-work teaser that links here |
 | `02-register` | public | `/lets-paint-showcase/register` | desktop | empty enquiry form |
 | `02-pending` | manager | `/lets-paint-showcase/cms` | desktop | Pending / 待处理 tab, showing the duplicate badge |
 | `03-courses` | manager | `/lets-paint-showcase/cms?view=courses` | desktop | Course catalogue / 课程目录 deep link |

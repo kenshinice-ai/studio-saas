@@ -1,6 +1,6 @@
 # CMS 教师手册 · Teacher（任课老师）
 
-> 适用版本：PWE Studio v9.9.5 · 界面：运营 CMS（`/<工作室网址标识>/cms`）
+> 适用版本：PWE Studio v9.9.6 · 界面：运营 CMS（`/<工作室网址标识>/cms`）
 > 其他角色手册见 [手册总览](README.md)
 
 ## 角色定位

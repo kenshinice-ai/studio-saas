@@ -75,6 +75,7 @@ SHOTS = [
     ("01-admissions-messages", "owner", f"/{SLUG}/studio-admin?view=messages", DESKTOP, None, 2.5, None),
     ("02-portal",          None,      f"/{SLUG}",              DESKTOP, None, 2.0, None),
     ("02-showcase-portal", None,      f"/{SLUG}",              DESKTOP, None, 2.0, "public_showcase"),
+    ("02-showcase-page",   None,      f"/{SLUG}/showcase",     DESKTOP, None, 2.5, "showcase_page"),
     ("02-register",        None,      f"/{SLUG}/register",     DESKTOP, None, 1.5, None),
     ("02-pending",         "manager", f"/{SLUG}/cms",          DESKTOP, TAB["pending"], 2.0, None),
     ("03-courses",         "manager", f"/{SLUG}/cms?view=courses", DESKTOP, None, 2.0, None),
@@ -357,6 +358,17 @@ SHOWCASE_EDITOR = """
 })()
 """
 
+SHOWCASE_PAGE = """
+(() => {
+  // v9.8.10 gave Selected Work its own page. Unlike PUBLIC_SHOWCASE this
+  // rewrites nothing: since v9.9.2 the seeder owns the portal copy too, so
+  // what is on screen is already the synthetic text we want photographed.
+  const grid = document.getElementById('showcaseGrid');
+  return grid && grid.children.length ? 'ok' : 'MISSING';
+})()
+"""
+
+
 PUBLIC_SHOWCASE = """
 (() => {
   const section = document.getElementById('showcase');
@@ -401,50 +413,12 @@ TIMETABLE_EDITOR = """
 # For the public screenshot, intercept only the timetable JSON in this browser
 # tab and feed the real page a small, clearly synthetic schedule. No database
 # write and no production API contract change is involved.
-TIMETABLE_PUBLIC_SEED = """
-(() => {
-  const nativeFetch = window.fetch.bind(window);
-  const dateAt = (offset) => {
-    const value = new Date();
-    value.setHours(12, 0, 0, 0);
-    value.setDate(value.getDate() + offset);
-    return value.toISOString().slice(0, 10);
-  };
-  const weekday = (iso) => new Date(`${iso}T12:00:00`).getDay();
-  const first = dateAt(1);
-  const second = dateAt(3);
-  const payload = {
-    enabled: true,
-    timezone: 'Australia/Melbourne',
-    weeks: 2,
-    booking: true,
-    today: dateAt(0),
-    fields: { teacher: true, room: true, age_range: true, duration: true, capacity: true, price: false },
-    label: { zh: '课程安排', en: 'Timetable' },
-    lead: { zh: '接下来两周的公开课程。', en: 'Public classes over the next two weeks.' },
-    studio: "Let's Paint Studio",
-    days: [
-      { date: first, weekday: weekday(first), classes: [
-        { date: first, start: '10:00', end: '11:00', title: 'Creative Drawing', subtitle: 'Saturday studio', teacher: 'Mia', room: 'Studio 1', ageRange: '6–12', capacity: 8, seatsLeft: 3, nearlyFull: true, bookable: true, cancelled: false },
-        { date: first, start: '14:00', end: '15:30', title: 'Watercolour Foundations', subtitle: 'Small group', teacher: 'Alex', room: 'Studio 2', ageRange: '10–16', capacity: 6, seatsLeft: 0, nearlyFull: false, bookable: true, cancelled: false }
-      ] },
-      { date: second, weekday: weekday(second), classes: [
-        { date: second, start: '16:00', end: '17:00', title: 'Open Studio', subtitle: 'Materials and light', teacher: 'Mia', room: 'Studio 1', ageRange: '8–14', capacity: 8, seatsLeft: 6, nearlyFull: false, bookable: true, cancelled: false }
-      ] }
-    ]
-  };
-  window.fetch = (input, init) => {
-    const requestUrl = typeof input === 'string' ? input : (input && input.url) || '';
-    if (new RegExp('/v1/public/[^/]+/timetable(?:\\?|$)').test(requestUrl)) {
-      return Promise.resolve(new Response(JSON.stringify(payload), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      }));
-    }
-    return nativeFetch(input, init);
-  };
-})();
-"""
+# The public timetable used to be photographed through a hand-written fixture
+# that stubbed `/v1/public/<slug>/timetable`, because before v9.9.2 the showcase
+# tenant had no timetable worth showing. The seeder now owns that half of the
+# tenant, so the fixture had become a second source of truth — and it drifted:
+# at v9.9.5 it rendered no booking buttons at all and failed this capture. The
+# shot photographs the real seeded timetable now, like every other shot here.
 
 ROSTER_UI_CONTRACT = """
 (() => {
@@ -510,8 +484,6 @@ def capture(browser: Browser, base: str, shot, session: str | None, language: st
     if browser._seed:
         browser.call("Page.removeScriptToEvaluateOnNewDocument", identifier=browser._seed)
     seed = SEED_LANGUAGE % (json.dumps(language), json.dumps(language))
-    if prepare == "timetable_booking":
-        seed += TIMETABLE_PUBLIC_SEED
     browser._seed = browser.call(
         "Page.addScriptToEvaluateOnNewDocument", source=seed)["identifier"]
     url = f"{base}{path}" + ("" if session else f"?lang={language}")
@@ -571,6 +543,15 @@ def capture(browser: Browser, base: str, shot, session: str | None, language: st
             time.sleep(1.0)
         else:
             raise SystemExit(f"{name}: public showcase did not load synthetic works")
+    elif prepare == "showcase_page":
+        for _attempt in range(6):
+            result = browser.call("Runtime.evaluate", returnByValue=True,
+                                  expression=SHOWCASE_PAGE)
+            if result.get("result", {}).get("value") == "ok":
+                break
+            time.sleep(1.0)
+        else:
+            raise SystemExit(f"{name}: the Selected Work page rendered no works")
     if name.startswith("03-roster"):
         contract = browser.call(
             "Runtime.evaluate", returnByValue=True, expression=ROSTER_UI_CONTRACT
