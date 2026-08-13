@@ -1,6 +1,18 @@
 # PWE Studio v9.9.5 — 那排 tab 从来没有被接上过
 
-> 当前阶段：源码与本地门禁完成。审计与方案见 `docs/design/Platform_Admin_Audit_2026-08-13.md`。
+> 当前阶段：**已部署上线**。生产 `appVersion=9.9.5`。
+> 审计与方案见 `docs/design/Platform_Admin_Audit_2026-08-13.md`。
+
+## 发布证据（2026-08-13）
+
+| 层级 | 已验证事实 |
+|---|---|
+| Source | `origin/main` = `8cfc54a`；`VERSION=9.9.5`。 |
+| Local gates | `verify_local.sh` **All checks passed**；pytest `1812 passed, 5 skipped`。 |
+| Package | `PWE-StudioSaaS-aws-9.9.5.tar.gz`，SHA-256 `edf1152cfc99a8600c7f28e32488350bbed450eaf93ec741df422a8e1c3126d1`；部署前备份 `…20260813T080947Z.dump`。 |
+| Production | deep health `appVersion=9.9.5`、`db=ok`、`tenants=6`、`themes.unreadable=0`、`workspaces.stale=0`。 |
+| 线上控制台 | 七项抽查全过：渲染 tablist、`wireEditorTabs` 存在、**editTenant 确实接线**、旧的失效 nav 已消失、错误计数、保存跳转、编辑器里没有手风琴。 |
+| 线上词典 | 新词条已生效（基础资料 / 负责人与联系方式 / 随套餐继承 / 重置演示数据 / 放弃未保存的修改？ …）。 |
 
 ## 一 · 根因：接线接在了错的编辑器上
 
