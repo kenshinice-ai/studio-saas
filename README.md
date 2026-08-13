@@ -4,14 +4,14 @@
 
 These are three independent facts. A matching version label is not proof that
 the current source tree was packaged or deployed; Source, Package and
-Production remain separate rows. v9.9.6 is in flight; the rows below record
-what has been independently verified so far.
+Production remain separate rows. v9.9.6 completed all three milestones on
+13 August 2026; the rows below record the independent evidence.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v9.9.6 committed** | `VERSION` = **9.9.6**; documentation and asset release — the only runtime change is the version label itself. Full gate green: `verify_local.sh` all checks passed, pytest `1755 passed, 12 skipped`, legacy CMS smoke `73 passed`, tenant isolation `237 passed, 0 failed`. |
-| Package | pending | Build and verification for v9.9.6 not yet recorded. The v9.9.5 packages remain the last verified pair: SaaS `dist/PWE-StudioSaaS-aws-9.9.5.tar.gz` SHA-256 `f62c355b6e89fde18632314945ac6058d702bd9b5dd2010825f2a8763a6c83db`; Edition `dist/PWE-Studio-Edition-9.9.5.tar.gz` SHA-256 `b7fc586677f9c5686b00384e3ec8fb8cad4b922fc64ba60a4de56917dc9f2f19`. |
-| Production | pending | `pwestudio.online` is still running v9.9.5: `/opt/pwestudio/current` points to `PWE-StudioSaaS-aws-9.9.5`, image `studiosaas:9.9.5`, deep health `appVersion=9.9.5`, `db=ok`, `mode=saas`, `tenants=6`, `themes.unreadable=0`, `workspaces.stale=0`. |
+| Source | **v9.9.6 committed** | `VERSION` = **9.9.6**; release commit `e92dcadf89ab62b87681f14c5afa550b56c93abf` on `claude/online-manual-content-improvement-03b8f9`. Documentation and asset release — the only runtime edit is `APP_VERSION`. Full gate green: `verify_local.sh` all checks passed, pytest `1755 passed, 12 skipped`, legacy CMS smoke `73 passed`, tenant isolation `237 passed, 0 failed`. |
+| Package | Clean SaaS and Edition v9.9.6 packages verified | SaaS `dist/PWE-StudioSaaS-aws-9.9.6.tar.gz` SHA-256 `ce2672d4a739583e00bc92d20b903bdb12e62fd1f8c0000539934e35c2388ce8`; Edition `dist/PWE-Studio-Edition-9.9.6.tar.gz` SHA-256 `c766d654a30ac1a3c30af90de3a3c6c4c31723cf6464799b3682e1be28269665`. Both `BUILD_INFO` records read v9.9.6 with modes `saas` / `standalone`, and both passed checksum, entrypoint, version and exclusion checks. |
+| Production | **v9.9.6 deployed to `pwestudio.online`** | `/opt/pwestudio/current` resolves to `/opt/pwestudio/releases/PWE-StudioSaaS-aws-9.9.6`; image `studiosaas:9.9.6`; container healthy; deep health reports `appVersion=9.9.6`, `db=ok`, `mode=saas`, `tenants=6`, `themes.unreadable=0`, `workspaces.stale=0`; disk free about `44.74 GB`; twelve public routes return `200`, HTTPS with HTTP/2. Pre-deploy backup `studiosaas_studiosaas_20260813T101614Z.dump` with its manifest. |
 
 Re-verify the production health endpoint (`/v1/health?deep=1`) before any later
 release claim; do not infer Production from `VERSION` or from an archive
@@ -22,9 +22,18 @@ handoff, never inferred from the version label.
 ## v9.9.6 release scope
 
 A documentation and asset release. No runtime behaviour changes; the only code
-edit is `APP_VERSION`, and the version had to move because the manual's
-screenshots are served immutable behind `?v=<version>` — re-shooting them at
-the same label would never reach a reader.
+edit is `APP_VERSION`.
+
+One correction to what the release commit says about why: it claims a
+re-shot screenshot could not reach a reader without a version bump. That is
+not how this cache works. `_stamp_asset_versions` writes **both** `?v=` and
+`?h=<content digest>`, and `_cache_versioned_asset` grants `immutable` only
+when both match — so new bytes get a new URL from `h` regardless of the
+version. The bump is required by the release ledger, which is reason enough;
+it was not required to deliver the images. Verified on the deployed site:
+`/assets/manual/02-showcase-page.zh.webp?v=9.9.6&h=d18162fbec7e0197` returns
+`public, max-age=31536000, immutable`, and the same URL without `h` returns
+`no-cache`.
 
 **The manual said an address could never change.** It has been changeable since
 v9.9.0 (`86dc30c`): platform-side, once a year, with the old slug kept in

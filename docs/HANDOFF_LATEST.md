@@ -4,10 +4,19 @@
 > 本轮修掉手册里一处已经不成立的断言、补上一个从未被拍过的公开页面、
 > 把 20 组截图全部按 v9.9.5 重拍，并同步销售路演 deck。
 
-## 为什么必须是一次版本发布，而不是「改个文档」
+## 关于「为什么要推版本号」——发布提交里那句话是错的
 
-手册的截图带 `?v=__APP_VERSION__`，走 immutable 缓存。**同版本号重新部署，
-读者拿到的还是旧图** —— 重拍等于没拍。所以截图更新天然要求一次版本号推进。
+提交信息里写着「同版本号重拍等于没拍，读者拿到的还是旧图」。**这不是这套缓存的工作方式。**
+`_stamp_asset_versions` 同时写 `?v=` 和 `?h=<内容摘要>`，
+`_cache_versioned_asset` 只在**两者都匹配**时才发 `immutable` ——
+所以字节变了，`h` 就变了，URL 就变了，跟版本号无关。
+
+推版本号是**发布账本**的要求（`test_release_ledger.py`），这个理由本身就够；
+但它不是把新图送到读者手里的必要条件。已在线上核实：
+`/assets/manual/02-showcase-page.zh.webp?v=9.9.6&h=d18162fbec7e0197`
+返回 `public, max-age=31536000, immutable`；去掉 `h` 则返回 `no-cache`。
+
+**教训和上一轮同一个形状**：写进文档的机制说明，也要像断言一样只写真的。
 
 ## 一处主动说错的话
 
@@ -45,6 +54,18 @@
 - 版本标签 v9.8.8 → v9.9.6（第 1、8 页），第 4 页补一条「你的公开网址，换了也不会丢」。
 - 套餐页（第 9 页）逐项对过 `plans` 表：$49/$99/$199、100/500/1000 学员、
   15/60/150 作品、2/10/50 GB、Studio 推荐 —— 全部正确，未改。
+
+## 发布证据（2026-08-13）
+
+| 层级 | 已验证事实 |
+|---|---|
+| Source | 发布提交 `e92dcadf89ab62b87681f14c5afa550b56c93abf`，分支 `claude/online-manual-content-improvement-03b8f9`；`VERSION=9.9.6`。门禁全绿：`verify_local.sh` 全部通过、pytest `1755 passed, 12 skipped`、legacy CMS smoke `73 passed`、租户隔离 `237 passed, 0 failed`。 |
+| Package | SaaS `PWE-StudioSaaS-aws-9.9.6.tar.gz` SHA-256 `ce2672d4a739583e00bc92d20b903bdb12e62fd1f8c0000539934e35c2388ce8`；Edition `PWE-Studio-Edition-9.9.6.tar.gz` SHA-256 `c766d654a30ac1a3c30af90de3a3c6c4c31723cf6464799b3682e1be28269665`。两个包的 `BUILD_INFO` 均为 9.9.6，模式 `saas` / `standalone`，均通过发布包校验。 |
+| Backup | 部署前逻辑库备份 `studiosaas_studiosaas_20260813T101614Z.dump`，manifest 同时存在。 |
+| Production | `/opt/pwestudio/current` → `PWE-StudioSaaS-aws-9.9.6`，镜像 `studiosaas:9.9.6`，容器 healthy；内网与公网 deep health 均为 `appVersion=9.9.6`、`db=ok`、`mode=saas`、`tenants=6`、`themes.unreadable=0`、`workspaces.stale=0`；磁盘可用约 `44.74 GB`。 |
+| Public routes | 根站、中英文手册、pricing、Release Notes、租户门户 / timetable / showcase / register / CMS / Studio Admin、platform-admin 共 12 条全部 `200`（HTTP/2）。 |
+| Assets | 四组代表性手册截图的线上字节与本地 SHA-256 逐一相同（`01-brand-workbench`、`02-showcase-page`、`04-booking`、`07-settings`）；带 `h` 的 URL 返回 immutable，条件请求返回 `304`。 |
+| Content | 线上手册中英文都已是改正后的那句（「它并非永远不能改」/「It is not permanent」）；`FAQPage` 结构化数据 13 条问答，含新增的网址更换那条；`dateModified=2026-08-13`。 |
 
 ## 待办
 
@@ -1449,6 +1470,18 @@ CMS 里**仍然只有一个收件箱**：「待审核」分两个标签、计数
 `test_portal_theme_contract.py` / `test_dark_framework.py` /
 `test_section_switches.py`（新增 `PAGE_SWITCHES`：页面级开关**由服务端拒绝**，
 不是靠藏链接）。**1557 passed, 7 skipped.**
+
+## 发布证据（2026-08-13）
+
+| 层级 | 已验证事实 |
+|---|---|
+| Source | 发布提交 `e92dcadf89ab62b87681f14c5afa550b56c93abf`，分支 `claude/online-manual-content-improvement-03b8f9`；`VERSION=9.9.6`。门禁全绿：`verify_local.sh` 全部通过、pytest `1755 passed, 12 skipped`、legacy CMS smoke `73 passed`、租户隔离 `237 passed, 0 failed`。 |
+| Package | SaaS `PWE-StudioSaaS-aws-9.9.6.tar.gz` SHA-256 `ce2672d4a739583e00bc92d20b903bdb12e62fd1f8c0000539934e35c2388ce8`；Edition `PWE-Studio-Edition-9.9.6.tar.gz` SHA-256 `c766d654a30ac1a3c30af90de3a3c6c4c31723cf6464799b3682e1be28269665`。两个包的 `BUILD_INFO` 均为 9.9.6，模式 `saas` / `standalone`，均通过发布包校验。 |
+| Backup | 部署前逻辑库备份 `studiosaas_studiosaas_20260813T101614Z.dump`，manifest 同时存在。 |
+| Production | `/opt/pwestudio/current` → `PWE-StudioSaaS-aws-9.9.6`，镜像 `studiosaas:9.9.6`，容器 healthy；内网与公网 deep health 均为 `appVersion=9.9.6`、`db=ok`、`mode=saas`、`tenants=6`、`themes.unreadable=0`、`workspaces.stale=0`；磁盘可用约 `44.74 GB`。 |
+| Public routes | 根站、中英文手册、pricing、Release Notes、租户门户 / timetable / showcase / register / CMS / Studio Admin、platform-admin 共 12 条全部 `200`（HTTP/2）。 |
+| Assets | 四组代表性手册截图的线上字节与本地 SHA-256 逐一相同（`01-brand-workbench`、`02-showcase-page`、`04-booking`、`07-settings`）；带 `h` 的 URL 返回 immutable，条件请求返回 `304`。 |
+| Content | 线上手册中英文都已是改正后的那句（「它并非永远不能改」/「It is not permanent」）；`FAQPage` 结构化数据 13 条问答，含新增的网址更换那条；`dateModified=2026-08-13`。 |
 
 ## 待办 / 已知
 
