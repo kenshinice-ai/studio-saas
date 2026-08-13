@@ -84,6 +84,9 @@ MUTATIONS = [
     ("DELETE", "/s/demo/v1/students/00000000-0000-0000-0000-000000000000/access-code"),
     ("PUT", "/s/demo/v1/students/00000000-0000-0000-0000-000000000000/publication-consent"),
     ("DELETE", "/s/demo/v1/students/00000000-0000-0000-0000-000000000000/publication-consent"),
+    # Rebuilds a whole tenant from seed material. Platform-level and
+    # destructive, so it belongs on this list more than most.
+    ("POST", "/v1/admin/tenants/00000000-0000-0000-0000-000000000000/demo-reset"),
 ]
 
 

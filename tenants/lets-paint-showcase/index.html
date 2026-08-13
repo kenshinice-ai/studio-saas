@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Let&#x27;s Paint Studio — adult painting classes in Melbourne</title>
-<meta id="metaDescription" name="description" content="A small studio in Brunswick East, Melbourne. Adult classes of eight or fewer — starting from scratch is still starting.">
+<meta id="metaDescription" name="description" content="A small studio in Caulfield North, Melbourne. Adult classes of eight or fewer — starting from scratch is still starting.">
 <meta name="robots" content="index,follow">
 <link id="canonicalUrl" rel="canonical" href="/lets-paint-showcase/">
 <!-- 6-2: the page renders in two languages but used to advertise only one, so a
@@ -18,7 +18,7 @@
 <meta id="ogLocaleAlternate" property="og:locale:alternate" content="en_US">
 <meta property="og:type" content="website">
 <meta id="ogTitle" property="og:title" content="Let&#x27;s Paint Studio — adult painting classes in Melbourne">
-<meta id="ogDescription" property="og:description" content="A small studio in Brunswick East, Melbourne. Adult classes of eight or fewer — starting from scratch is still starting.">
+<meta id="ogDescription" property="og:description" content="A small studio in Caulfield North, Melbourne. Adult classes of eight or fewer — starting from scratch is still starting.">
 <meta id="ogUrl" property="og:url" content="/lets-paint-showcase/">
 <meta id="ogImage" property="og:image" content="">
 <meta id="ogImageWidth" property="og:image:width" content="1200">
@@ -26,7 +26,7 @@
 <meta id="ogImageAlt" property="og:image:alt" content="Let&#x27;s Paint Studio">
 <meta id="twitterCard" name="twitter:card" content="summary_large_image">
 <meta id="twitterTitle" name="twitter:title" content="Let&#x27;s Paint Studio — adult painting classes in Melbourne">
-<meta id="twitterDescription" name="twitter:description" content="A small studio in Brunswick East, Melbourne. Adult classes of eight or fewer — starting from scratch is still starting.">
+<meta id="twitterDescription" name="twitter:description" content="A small studio in Caulfield North, Melbourne. Adult classes of eight or fewer — starting from scratch is still starting.">
 <meta id="twitterImage" name="twitter:image" content="">
 <!-- Rewritten by applyVisualTheme() to the page colour of the theme actually
      rendered. It was pinned here and never updated, so every studio on a
@@ -86,19 +86,26 @@
   nav{position:fixed;top:0;left:0;right:0;z-index:50;transition:background .4s,box-shadow .4s,border-color .4s;border-bottom:1px solid transparent}
   nav.solid{background:color-mix(in srgb, var(--bg) 88%, transparent);backdrop-filter:blur(12px);border-color:var(--line)}
   .navrow{display:flex;align-items:center;justify-content:space-between;height:74px}
-  .brand{display:flex;align-items:center;gap:12px;min-height:var(--tap-min);cursor:pointer;min-width:0}
+  /* flex-shrink:0 — the studio's identity is the one thing in this row that
+     must not be squeezed. It was: at 1400px the nav wanted 1014px, the brand
+     was allotted 124px, and because the logo refused to shrink it OVERFLOWED
+     its own box by 157px and sat on top of the first nav link, while the name
+     collapsed to zero width and rendered as "L..".
+     The nav absorbs the squeeze instead, which it is built for — every label
+     is already clipped by the public-surface contract and ellipsised in CSS. */
+  .brand{display:flex;align-items:center;gap:12px;min-height:var(--tap-min);cursor:pointer;flex-shrink:0}
   /* A logo is whatever shape the studio uploaded, and a wordmark is wide: the
      showcase tenant's is 8:1, which at a fixed 34px height came to 281px and
-     left 90px of a 375px phone for the studio name and the menu button. The
-     name then stacked three lines deep behind the hamburger.
+     left 90px of a 375px phone for the name and the menu button.
      max-width bounds it, max-height replaces the fixed height so a TALL logo
      is bounded too, and object-fit keeps both from being stretched to fit. */
-  .brand img{max-height:34px;max-width:min(48vw,300px);height:auto;width:auto;object-fit:contain;display:none;flex-shrink:0}
-  /* The name must be allowed to shrink and, at the last, to ellipsise —
-     wrapping it is what collided with the menu button. */
-  .brand .bn{font-size:16px;letter-spacing:.04em;font-weight:500;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .navlinks{display:flex;align-items:center;gap:30px}
-  .navlinks a{font-size:13px;color:var(--ink2);letter-spacing:.02em;position:relative;padding:4px 0;cursor:pointer;max-width:13em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .brand img{max-height:34px;max-width:min(46vw,260px);height:auto;width:auto;object-fit:contain;display:none;flex-shrink:0}
+  .brand .bn{font-size:16px;letter-spacing:.04em;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* min-width:0 is what actually lets the links ellipsise: without it a flex
+     item refuses to shrink below its content, and the overflow lands on
+     whichever neighbour did allow itself to be shrunk. */
+  .navlinks{display:flex;align-items:center;gap:30px;min-width:0;flex-shrink:1}
+  .navlinks a{font-size:13px;color:var(--ink2);letter-spacing:.02em;position:relative;padding:4px 0;cursor:pointer;min-width:0;max-width:13em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .navlinks a::after{content:"";position:absolute;left:0;bottom:0;width:0;height:1px;background:var(--clay);transition:width .3s}
   .navlinks a:hover::after{width:100%}
   /* `.navlinks a` is one point more specific than `.navcta`, so the pill was
@@ -511,6 +518,23 @@
   @media (prefers-reduced-motion: reduce){
     .reveal{opacity:1 !important;transform:none !important;transition:none}
     html{scroll-behavior:auto}
+  }
+  /* How many entries a nav has is a per-tenant fact: this studio publishes
+     seven sections plus an action and a language toggle and wants 1279px; a
+     studio with four wants 600 and is comfortable at 900. A fixed breakpoint
+     tuned to the widest tenant makes every other one wear a hamburger on a
+     laptop, so the width below is only a FLOOR — `fitNavigation()` measures
+     the real row and sets .nav-tight when the labels would have to be clipped.
+     CSS keeps the floor so a scripting failure still yields a usable header. */
+  .navrow.nav-tight .navlinks{display:none}
+  .navrow.nav-tight .menu-btn{display:block}
+  /* Step one of the ladder in fitNavigation(): a wordmark logo already says
+     the studio's name, so printing it again beside the mark spends 159px on a
+     repetition. Dropped only when the row cannot otherwise fit, and never when
+     there is no logo to read the name from. The <img alt> still carries it. */
+  .navrow.brand-name-hidden .brand .bn{display:none}
+  @media(min-width:901px) and (max-width:1500px){
+    .navlinks{gap:20px}
   }
   @media(max-width:900px){
     .navlinks{display:none}.menu-btn{display:block}
@@ -977,6 +1001,7 @@
     if(state.authoritativeSurface){
       state.publicSurface=state.authoritativeSurface;
       window.StudioSaaS.publicSurface.apply(state.publicSurface, document);
+      queueFitNavigation();
       return;
     }
     /* The standalone pages already wait for the authoritative answer before
@@ -990,6 +1015,7 @@
       programs:{programs:state.programs||[]}, gallery:state.gallery||{}
     });
     window.StudioSaaS.publicSurface.apply(state.publicSurface, document);
+    queueFitNavigation();
   }
   window.StudioSaaS.publicSurface.fetch(API).then(function(contract){
     state.authoritativeSurface=contract;
@@ -1138,6 +1164,9 @@
       applySeo(state.brand);
     }
     syncLocaleMeta();
+    /* 「课程与班次」 and "Courses & Classes" are not the same width, so whether
+       the row still fits is a per-language question. */
+    queueFitNavigation();
   }
   /* P1-7: setCopy() used to guess a string's language by testing it for Han
      characters. A studio that filled in only Chinese therefore left English
@@ -1165,6 +1194,9 @@
     var el=document.getElementById(id); if(!el) return;
     if(hasContent) el.setAttribute('data-resolved','');
     else el.removeAttribute('data-resolved');
+    // A section becoming visible is the one event that can turn a dead anchor
+    // into a live one, so it is where the retry belongs.
+    if(hasContent) flushPendingAnchor();
   }
   function setMobileNav(open){
     var menu=document.getElementById('mnav');
@@ -1199,8 +1231,17 @@
     note.appendChild(text); note.appendChild(close);
     box.appendChild(note);
   }
+  /* One implementation, in public-surface.js, because all four public pages
+     load it and all four grew the same header. See the note there for why the
+     row is measured rather than assigned a breakpoint. */
+  function queueFitNavigation(){
+    var surface=window.StudioSaaS && window.StudioSaaS.publicSurface;
+    if(surface && surface.queueFitNavigation) surface.queueFitNavigation(document);
+  }
+
   function setNavVisible(ids, visible){
     ids.forEach(function(id){ var el=document.getElementById(id); if(el) el.style.display = visible ? '' : 'none'; });
+    queueFitNavigation();
   }
   function renderRegistrationFields(profile){
     currentRegistrationProfile = profile || currentRegistrationProfile;
@@ -1243,6 +1284,34 @@
     if(VIEWS.indexOf(view)===-1) return {view:'home', anchor:'#'+raw};
     return {view:view, anchor:parts[1] ? '#'+parts[1] : ''};
   }
+  /* Arriving from another page with an anchor — /slug#home:artist, which is
+     what every nav link on /showcase, /timetable and /register points at —
+     used to land on the home page and go no further.
+
+     The reason is a race, not a broken link: sections are `display:none` until
+     their data arrives, this ran 30ms after the script did, and
+     `scrollIntoView` on a hidden element is a silent no-op. Clicking anything
+     else fired `hashchange`, by which time the section had appeared, which is
+     exactly why it "worked the second time".
+
+     So the anchor is remembered and retried as sections become visible. */
+  var pendingAnchor='', pendingAnchorUntil=0;
+  function scrollToAnchor(anchor){
+    var target=anchor?document.querySelector(anchor):null;
+    if(!target) return false;
+    // offsetParent is null for a display:none element (and for its children),
+    // which is precisely the state we must not scroll to.
+    if(!target.offsetParent && getComputedStyle(target).position!=='fixed') return false;
+    target.scrollIntoView({behavior:'smooth'});
+    return true;
+  }
+  function flushPendingAnchor(){
+    if(!pendingAnchor) return;
+    // Give up eventually. A section whose data never arrives must not yank the
+    // page out from under someone who has started reading something else.
+    if(Date.now()>pendingAnchorUntil){ pendingAnchor=''; return; }
+    if(scrollToAnchor(pendingAnchor)) pendingAnchor='';
+  }
   function applyRoute(route, opts){
     var options=opts||{};
     document.querySelectorAll('.view').forEach(function(x){ x.classList.remove('active'); });
@@ -1252,12 +1321,14 @@
     if(route.view==='my')   resetMyView();
     revealAll();
     if(route.anchor){
-      setTimeout(function(){
-        var t=document.querySelector(route.anchor);
-        if(t) t.scrollIntoView({behavior:'smooth'});
-      }, 30);
-    } else if(!options.initial){
-      window.scrollTo({top:0,behavior:'auto'});
+      pendingAnchor=route.anchor;
+      pendingAnchorUntil=Date.now()+8000;
+      setTimeout(flushPendingAnchor, 30);
+    } else {
+      // Navigating somewhere without an anchor cancels a pending one, so a
+      // late-arriving section cannot drag the visitor back.
+      pendingAnchor='';
+      if(!options.initial) window.scrollTo({top:0,behavior:'auto'});
     }
     /* P3-1: move focus into the new view so a screen-reader user is not left
        reading the page they just navigated away from. */

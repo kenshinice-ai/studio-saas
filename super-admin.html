@@ -5235,6 +5235,13 @@
           { title: 'Danger Zone', items: [
             { label: 'Permanent delete tenant', handler: () => openTenantActionContext(id, 'delete'), disabled: t.status !== 'archived', danger: true },
           ] },
+          /* Only rendered for a tenant the SERVER has marked as a
+             demonstration. Not disabled-but-visible: an operator who can see
+             "Reset demonstration data" on a real studio's menu is one careless
+             click from wiping it, and no confirmation dialog undoes a habit. */
+          ...(t.is_demo ? [{ title: 'Demonstration', items: [
+            { label: 'Reset demonstration data', handler: () => resetDemoTenant(id), danger: true },
+          ] }] : []),
         ],
       });
     }
@@ -5300,6 +5307,40 @@
       document.querySelectorAll('tr[data-plan-code]').forEach((row) => row.classList.toggle('is-inspector-selected', row.dataset.planCode === String(code)));
       window.AdminI18n?.localise?.(body);
       if (focus && window.matchMedia('(max-width: 1279px)').matches) $('workspaceInspector')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    /* Re-seed the demonstration tenant from showcase_content.py and
+       seed-assets/showcase/manifest.json. Everything the tenant holds is
+       replaced; nothing outside it is touched. The phrase is the same one the
+       command-line script demands, so there is one thing to remember. */
+    function resetDemoTenant(id) {
+      const t = tenants.find((item) => item.id === id);
+      if (!t) return;
+      if (!t.is_demo) { showToast('This tenant is not a demonstration tenant.', 'error'); return; }
+      const footerHtml = `<button id="confirmDemoResetBtn" onclick="confirmDemoReset('${esc(id)}')" class="btn-danger">Reset demonstration data</button><button onclick="closeModal()" class="btn-secondary">Cancel</button>`;
+      openModal('Reset Demonstration Data', `<p>Rebuild <strong>${esc(t.name)}</strong> from the bundled demonstration content.</p><ul style="margin:12px 0 12px 20px;color:var(--muted);"><li>Students, schedules, bookings and enquiries are deleted and re-created</li><li>Uploaded media for this tenant is deleted and re-uploaded from the manifest</li><li>Staff logins are reset to the shared demonstration password</li><li>The student access code is rotated</li></ul><p style="color:var(--muted)">No other tenant is read or written. This takes a few seconds.</p><div class="form-group mt-2"><label for="m_demoResetPhrase">Type RESET-LETS-PAINT-SHOWCASE to confirm</label><input id="m_demoResetPhrase" placeholder="RESET-LETS-PAINT-SHOWCASE" autocomplete="off"></div>`, footerHtml);
+    }
+
+    async function confirmDemoReset(id) {
+      const phrase = ($('m_demoResetPhrase')?.value || '').trim();
+      const btn = $('confirmDemoResetBtn');
+      btn.disabled = true;
+      // It runs for several seconds; without this the button looks broken and
+      // gets pressed again.
+      const restore = btn.textContent;
+      btn.textContent = 'Rebuilding…';
+      try {
+        const result = await api(`/admin/tenants/${id}/demo-reset`, {
+          method: 'POST',
+          body: JSON.stringify({ confirm: phrase }),
+        });
+        showToast(`Demonstration rebuilt in ${result.seconds}s — ${result.studioWorks} works, ${result.publicStudentWorks}/${result.studentWorks} student works public, ${result.students} students.`);
+        closeModal();
+        await refresh();
+      } finally {
+        btn.disabled = false;
+        btn.textContent = restore;
+      }
     }
 
     function archiveTenant(id) {

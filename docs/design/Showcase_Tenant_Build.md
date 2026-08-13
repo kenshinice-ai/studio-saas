@@ -56,7 +56,7 @@ image.save(target, format="WEBP", quality=88, method=6)
 | 项 | 值 |
 |---|---|
 | 画室名 | Let's Paint Studio（沿用，slug 不变） |
-| 城市 | 墨尔本 Brunswick East |
+| 城市 | 墨尔本 Caulfield North |
 | 开办 | 2019 年，第 7 年 |
 | 教什么 | 成人为主：油画、丙烯、水彩、素描；周六一节儿童班；另有一对一 |
 | 班型 | 小班，一次最多 8 人（八张画架是硬上限） |

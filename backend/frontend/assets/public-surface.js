@@ -336,6 +336,87 @@
       const target = pathOf(raw);
       if (target && !samePath(target, currentPath)) node.removeAttribute('aria-current');
     });
+    // Labels have just changed, and how wide they are is what decides whether
+    // the header still fits.
+    queueFitNavigation(scope);
+  }
+
+  // ── the header, measured ────────────────────────────────────────────────
+  //
+  // How many entries a nav carries is a per-tenant fact: a studio that
+  // publishes seven sections needs 926px of them, one that publishes three
+  // needs 400. Any breakpoint chosen in advance is therefore wrong for one of
+  // them, and the row is capped at 1180px regardless of how wide the monitor
+  // is — so on the fullest tenant the shortfall is permanent, not responsive.
+  //
+  // Left alone it did not wrap or scroll: the logo has a fixed height and no
+  // width to give, so it OVERFLOWED its own flex box and sat on top of the
+  // first nav link, while the studio name collapsed to zero and rendered as
+  // an ellipsis with one letter in front of it.
+  //
+  // Two rungs, cheapest first:
+  //   1. drop the studio name — a wordmark logo already says it, and the
+  //      <img alt> still carries it for anyone not looking at pixels;
+  //   2. put the links behind the menu button.
+  //
+  // Lives here rather than in each page because all four public pages load
+  // this file and all four grew the same header.
+  function fitNavigation(scope) {
+    const doc = scope || document;
+    const row = doc.querySelector('.navrow');
+    const links = doc.querySelector('.navlinks');
+    const brand = doc.querySelector('.brand');
+    if (!row || !links || !brand) return;
+    // Under the CSS floor the media query owns the decision.
+    if (global.matchMedia && global.matchMedia('(max-width:900px)').matches) {
+      row.classList.remove('nav-tight', 'brand-name-hidden');
+      return;
+    }
+    // Always measure from the widest arrangement: a row that is already
+    // collapsed measures its hidden links as zero and never expands back.
+    row.classList.remove('nav-tight', 'brand-name-hidden');
+
+    let need = 0;
+    let shown = 0;
+    for (const entry of links.children) {
+      if (getComputedStyle(entry).display === 'none') continue;
+      need += entry.scrollWidth;
+      shown += 1;
+    }
+    const gap = parseFloat(getComputedStyle(links).gap) || 0;
+    if (shown > 1) need += gap * (shown - 1);
+
+    const styles = getComputedStyle(row);
+    const chrome = row.clientWidth
+      - parseFloat(styles.paddingLeft) - parseFloat(styles.paddingRight)
+      - (parseFloat(styles.gap) || 0);
+    // A few pixels of tolerance so sub-pixel text metrics cannot flip the
+    // header back and forth while the window is being dragged.
+    const fits = () => need <= chrome - brand.getBoundingClientRect().width - 4;
+
+    if (fits()) return;
+    const logo = brand.querySelector('img');
+    if (logo && getComputedStyle(logo).display !== 'none') {
+      row.classList.add('brand-name-hidden');
+      if (fits()) return;
+    }
+    row.classList.add('nav-tight');
+  }
+
+  let fitQueued = false;
+  function queueFitNavigation(scope) {
+    if (fitQueued) return;
+    // This module is also loaded headlessly — the contract tests run it in node
+    // against a DOM stub to check that hrefs and aria-current come out right.
+    // There is no layout to measure there, and `apply()` calling into an
+    // absent requestAnimationFrame is what broke nine of those tests.
+    const raf = global.requestAnimationFrame;
+    if (typeof raf !== 'function' || typeof getComputedStyle !== 'function') return;
+    fitQueued = true;
+    raf(() => { fitQueued = false; fitNavigation(scope); });
+  }
+  if (global.addEventListener) {
+    global.addEventListener('resize', () => queueFitNavigation());
   }
 
   async function fetchContract(api, options) {
@@ -366,5 +447,7 @@
   }
 
   global.StudioSaaS = global.StudioSaaS || {};
-  global.StudioSaaS.publicSurface = { resolve, apply, clearLoading, fetch: fetchContract };
+  global.StudioSaaS.publicSurface = {
+    resolve, apply, clearLoading, fetch: fetchContract, fitNavigation, queueFitNavigation,
+  };
 })(window);

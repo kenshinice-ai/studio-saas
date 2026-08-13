@@ -307,3 +307,70 @@ def test_a_wide_logo_cannot_crowd_out_the_studio_name(page) -> None:
     assert "object-fit:contain" in brand_rule.replace(" ", ""), (
         f"{page}: bounding both axes without object-fit stretches the logo"
     )
+
+
+# ── the one-click reset in Platform Admin ──────────────────────────────────
+
+
+API = (PROJECT_ROOT / "backend/studiosaas/api_v1.py").read_text(encoding="utf-8")
+CONSOLE = (PROJECT_ROOT / "super-admin.html").read_text(encoding="utf-8")
+
+
+def test_the_reset_endpoint_refuses_a_tenant_that_is_not_a_demonstration() -> None:
+    """The flag is the only thing between this button and a real studio.
+
+    Everything the reset does is destructive — students, schedules, media — so
+    the check lives at the call site as well as inside the seeder. A guard you
+    cannot see from where the damage happens is a guard that gets routed
+    around eventually.
+    """
+
+    body = API.split("def reset_demo_tenant(", 1)[1].split("\n@api_v1.route", 1)[0]
+    assert "if is_standalone():" in body, "a customer edition has no demo tenant"
+    assert "professional_demo" in body
+    assert 'if not row["is_demo"]:' in body
+    assert "DEMO_RESET_CONFIRMATION" in body
+    # And it must not proceed without the password: a half-reset tenant whose
+    # logins were never set is worse than one nobody touched.
+    assert "STUDIOSAAS_SHARED_DEMO_PASSWORD" in body
+
+
+def test_the_reset_endpoint_is_super_admin_only() -> None:
+    """It reaches across tenants, so it is a platform action, not a studio one."""
+
+    route = '@api_v1.route("/admin/tenants/<tenant_id>/demo-reset", methods=["POST"])'
+    assert route in API
+    tail = API.split(route, 1)[1]
+    assert tail.lstrip().startswith("@super_admin_required")
+
+
+def test_the_reset_never_returns_the_credentials_themselves() -> None:
+    """The seeder writes a 0600 file; the API says where, never what."""
+
+    body = API.split("def reset_demo_tenant(", 1)[1].split("\n@api_v1.route", 1)[0]
+    assert '"credentialsFile": result.get("credentials_file")' in body
+    assert "password" not in body.split("return jsonify(", 1)[1].lower()
+
+
+def test_the_console_hides_the_action_on_every_other_tenant() -> None:
+    """Disabled-but-visible is not enough on a control that deletes a studio.
+
+    An operator who sees "Reset demonstration data" in a real studio's menu is
+    one careless click away from it, and a confirmation dialog does not undo a
+    habit. The whole group is absent unless the SERVER said this tenant is a
+    demonstration.
+    """
+
+    assert "...(t.is_demo ? [{ title: 'Demonstration'" in CONSOLE
+    assert "if (!t.is_demo) { showToast(" in CONSOLE, "and the handler re-checks"
+    # The flag comes from the tenant list query, not from a JSON path guessed
+    # in the browser.
+    assert "AS is_demo," in API
+
+
+def test_the_confirmation_phrase_is_the_same_one_the_script_uses() -> None:
+    """Two half-remembered variants is one more than anybody can remember."""
+
+    assert 'DEMO_RESET_CONFIRMATION = "RESET-LETS-PAINT-SHOWCASE"' in API
+    assert "RESET-LETS-PAINT-SHOWCASE" in SEEDER
+    assert "RESET-LETS-PAINT-SHOWCASE" in CONSOLE

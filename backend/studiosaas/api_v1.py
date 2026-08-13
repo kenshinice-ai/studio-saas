@@ -11,6 +11,7 @@ import os
 import re
 import secrets
 import shutil
+import sys
 import threading
 import time
 import hashlib
@@ -7952,6 +7953,11 @@ def admin_tenants():
                    t.settings->>'slogan' AS slogan,
                    t.settings->>'workspace_path' AS workspace_path,
                    (COALESCE(t.settings->>'test_fixture', 'false') = 'true') AS is_test,
+                   -- Drives the one-click reset in Platform Admin. Exposed as a
+                   -- column rather than read from a settings blob in the browser
+                   -- so the console cannot offer the action on a real studio
+                   -- because of a typo in a JSON path.
+                   COALESCE((t.settings->>'professional_demo')::boolean, false) AS is_demo,
                    EXISTS (
                        SELECT 1 FROM tenant_brand_versions bv WHERE bv.tenant_id = t.id
                    ) AS portal_published,
@@ -8294,6 +8300,124 @@ def mutate_tenant(tenant_id: str):
             )
         conn.commit()
     return jsonify({"ok": True})
+
+
+# The reset phrase is the script's, verbatim. One phrase for both entry points
+# means an operator who has run this from a terminal already knows it, and it
+# cannot drift into two half-remembered variants.
+DEMO_RESET_CONFIRMATION = "RESET-LETS-PAINT-SHOWCASE"
+
+
+@api_v1.route("/admin/tenants/<tenant_id>/demo-reset", methods=["POST"])
+@super_admin_required
+def reset_demo_tenant(tenant_id: str):
+    """Re-seed the demonstration tenant from its content module and manifest.
+
+    Four gates, and the order matters — the cheapest refusal first:
+
+      1. SaaS mode. A customer edition has no demonstration tenant.
+      2. The tenant carries ``settings.professional_demo = true``. This is the
+         gate that matters: everything below deletes students, schedules and
+         media, and the only thing standing between that and a real studio is
+         this flag. It is checked HERE as well as inside the script, because a
+         guard you cannot see from the call site is a guard you will
+         eventually route around.
+      3. The confirmation phrase, typed by the operator.
+      4. The demonstration password must be configured. Without it the reset
+         cannot set the staff logins, and a half-reset tenant is worse than an
+         untouched one.
+
+    Synchronous on purpose. It takes a few seconds — the images go in through
+    the real upload path — and an operator who pressed a button that says
+    "reset" should be told what happened, not handed a job id.
+    """
+
+    if is_standalone():
+        return _error("The demonstration tenant exists only in SaaS mode.", 400)
+
+    payload = _json_payload()
+    with connect() as conn:
+        row = fetch_one(
+            conn,
+            "SELECT slug, COALESCE((settings->>'professional_demo')::boolean, false) AS is_demo "
+            "FROM tenants WHERE id = %s",
+            (tenant_id,),
+        )
+    if not row:
+        return _error("Tenant was not found.", 404)
+    if not row["is_demo"]:
+        return _error(
+            "This tenant is not a demonstration tenant. Reset is refused.", 400
+        )
+    if str(payload.get("confirm") or "").strip() != DEMO_RESET_CONFIRMATION:
+        return _error(f"Type {DEMO_RESET_CONFIRMATION} to confirm.", 400)
+    if len(os.environ.get("STUDIOSAAS_SHARED_DEMO_PASSWORD", "")) < 12:
+        return _error(
+            "STUDIOSAAS_SHARED_DEMO_PASSWORD is not configured on this instance, "
+            "so the demonstration logins cannot be set. Add it to the environment "
+            "and try again.",
+            400,
+        )
+
+    # Imported here, not at module scope: the seeder pulls in Pillow and the
+    # content module, and a web process that never resets a demo should not pay
+    # for either at start-up.
+    scripts = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts")
+    if scripts not in sys.path:
+        sys.path.insert(0, scripts)
+    try:
+        from reset_professional_demo import _credentials_path, reset_showcase
+    except Exception:
+        current_app.logger.exception("demo reset seeder is unavailable")
+        return _error("The demonstration seeder is not available in this build.", 500)
+
+    started = time.monotonic()
+    try:
+        result = reset_showcase(_credentials_path(None))
+    except Exception as exc:
+        current_app.logger.exception("demo reset failed")
+        return _error(f"Reset failed: {exc}", 500)
+    seconds = round(time.monotonic() - started, 1)
+
+    actor = getattr(g, "actor", None)
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO audit_logs (
+                    tenant_id, actor_user_id, action, resource_type, resource_id, metadata
+                )
+                VALUES (%s, %s, 'demo_tenant.reset', 'tenant', %s, %s::jsonb)
+                """,
+                (
+                    tenant_id,
+                    getattr(actor, "user_id", None),
+                    tenant_id,
+                    json.dumps({
+                        "slug": row["slug"],
+                        "seconds": seconds,
+                        "studio_works": result.get("studio_works"),
+                        "student_works": result.get("student_works"),
+                        "students": result.get("students"),
+                        "from": "platform_admin",
+                    }),
+                ),
+            )
+        conn.commit()
+
+    # The credential file path is returned; its contents never are.
+    return jsonify({
+        "ok": True,
+        "slug": row["slug"],
+        "seconds": seconds,
+        "students": result.get("students"),
+        "studioWorks": result.get("studio_works"),
+        "studentWorks": result.get("student_works"),
+        "publicStudentWorks": result.get("student_works_public"),
+        "roomPhotos": result.get("room_photos"),
+        "categories": result.get("categories"),
+        "credentialsFile": result.get("credentials_file"),
+    })
 
 
 @api_v1.route("/admin/tenants/<tenant_id>/archive", methods=["POST"])

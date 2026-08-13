@@ -1,6 +1,6 @@
 # PWE Studio Edition · 数据库与数据迁移
 
-> 当前正式交付基线：v9.9.2。本文描述标准 Docker Compose Edition；完整
+> 当前正式交付基线：v9.9.3。本文描述标准 Docker Compose Edition；完整
 > 安装、TLS、备份和签收顺序见 [DEPLOYMENT_PLAN.md](DEPLOYMENT_PLAN.md)。
 
 ## 1. 数据库形态

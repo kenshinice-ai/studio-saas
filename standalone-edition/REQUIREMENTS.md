@@ -1,6 +1,6 @@
 # PWE Studio Edition · 部署前提与必备环境
 
-> 当前正式交付基线：v9.9.2 Edition，`BUILD_INFO` 必须为
+> 当前正式交付基线：v9.9.3 Edition，`BUILD_INFO` 必须为
 > `mode=standalone`。完整实施顺序见 [DEPLOYMENT_PLAN.md](DEPLOYMENT_PLAN.md)。
 
 ## 1. 标准部署形态

@@ -48,7 +48,7 @@ NAME = "Let's Paint Studio"
 PLAN_CODE = "studio"
 
 IDENTITY = {
-    "address": "Brunswick East, Melbourne VIC",
+    "address": "Caulfield North, Melbourne VIC",
     "contact_phone": "0400 000 000",
     "contact_email": "hello@pwe-studio.invalid",
     "timezone": "Australia/Melbourne",
@@ -82,8 +82,8 @@ LOCALIZED_COPY = {
     "slogan": SLOGAN,
     "hero_title": SLOGAN,
     "hero_subtitle": {  # ≤240
-        "zh": "墨尔本 Brunswick East 的一间小画室。成人小班，一次不超过八个人，从握笔开始也来得及。",
-        "en": "A small studio in Brunswick East, Melbourne. Adult classes of eight or fewer — starting from scratch is still starting.",
+        "zh": "墨尔本 Caulfield North 的一间小画室。成人小班，一次不超过八个人，从握笔开始也来得及。",
+        "en": "A small studio in Caulfield North, Melbourne. Adult classes of eight or fewer — starting from scratch is still starting.",
     },
     "welcome_message": {  # ≤240
         "zh": "我们不赶进度。你可以每周来两小时，也可以只来一次看看合不合适。",
@@ -129,14 +129,14 @@ LOCALIZED_COPY = {
     "principal_bio": {  # ≤800
         "zh": (
             "Janet 在北京学的画，来墨尔本之后做了八年广告。"
-            "2019 年她租下 Brunswick East 一间旧车间，刷成白色，摆了八张画架——"
+            "2019 年她租下 Caulfield North 一间旧车间，刷成白色，摆了八张画架——"
             "最初只是想有个地方自己画画，后来有人问能不能一起。\n\n"
             "她的课没有进度表。第一节课通常在调色盘上度过：先弄清楚你眼睛里的灰到底是什么颜色，"
             "剩下的都好说。"
         ),
         "en": (
             "Janet studied painting in Beijing and spent eight years in advertising after "
-            "moving to Melbourne. In 2019 she took over an old workshop in Brunswick East, "
+            "moving to Melbourne. In 2019 she took over an old workshop in Caulfield North, "
             "painted it white and put in eight easels — at first only so she would have "
             "somewhere to paint, then because people asked to join her.\n\n"
             "Her classes have no syllabus. The first one usually happens on the palette: "
