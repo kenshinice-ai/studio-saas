@@ -1,0 +1,180 @@
+{
+  "_readme": [
+    "Every image the showcase tenant publishes, and what it says about each one.",
+    "",
+    "Adding a work is: drop the file next to this manifest and add a row. No code",
+    "changes, no migration. `file` is relative to backend/seed-assets/.",
+    "",
+    "CATEGORIES ARE DERIVED, NOT DECLARED. `categories` below is a dictionary of",
+    "available drawers; only the ones some PUBLISHED work actually files itself",
+    "under are created on the tenant. A filter button that opens onto nothing is",
+    "worse than no filter button, and the only way to guarantee that never",
+    "happens is to refuse to create the drawer before the work exists. `portrait`",
+    "is here and unused on purpose: it is the shape of the studio's curriculum,",
+    "waiting for a painting.",
+    "",
+    "`state` is active / draft / archived — the tenant keeps every work at every",
+    "state, and the plan decides only how many of the active ones get published.",
+    "`rank` orders the six featured works; the home preview and the archive page",
+    "share that one ordering.",
+    "",
+    "Studio work and student work are separate lists because they answer separate",
+    "questions — 'how good is the person teaching me' and 'what could I make",
+    "here' — and because only one of them needs a consent record. `student` is",
+    "an index into showcase_content.STUDENTS, so the credit on the public page",
+    "and the record in the CMS name the same person.",
+    "",
+    "`consent` is confirmed (default) or withdrawn, and it is a STUDENT-level",
+    "fact, separate from the per-work `shared` flag. Both gates must be open",
+    "for a piece to appear publicly. One entry here is withdrawn on purpose:",
+    "a demo where consent has only ever been granted proves nothing about what",
+    "happens when it is taken back.",
+    "",
+    "Images are WebP at 1600px: the derivative pipeline caps at 2000px anyway,",
+    "and the source PNGs were 75 MB, which every deploy bundle would have",
+    "carried for the rest of the product's life. The three original works stay",
+    "PNG because deploy/aws/verify_release_bundles.sh pins them by name."
+  ],
+
+  "categories": {
+    "still-life": { "zh": "静物", "en": "Still life" },
+    "portrait":   { "zh": "人像", "en": "Portrait" },
+    "landscape":  { "zh": "城市与风景", "en": "City & Landscape" },
+    "drawing":    { "zh": "写生与素描", "en": "Drawing & Studies" }
+  },
+
+  "studio_works": [
+    { "file": "showcase/work-09.webp", "category": "landscape", "state": "active", "rank": 1,
+      "title": { "zh": "风过果园", "en": "Orchard, After the Storm" },
+      "caption": { "zh": "布面油画与炭笔，90 × 90 cm，2025。风停之后那半小时，树还没缓过来。",
+                   "en": "Oil and charcoal on canvas, 90 × 90 cm, 2025. The half hour after the wind drops, when the trees have not caught up yet." } },
+
+    { "file": "showcase/work-03.webp", "category": "still-life", "state": "active", "rank": 2,
+      "title": { "zh": "陶罐与柠檬", "en": "Ceramic and Lemon" },
+      "caption": { "zh": "布面油画，60 × 60 cm，2025。柠檬是课上剩下的，摆了一周才画。",
+                   "en": "Oil on canvas, 60 × 60 cm, 2025. The lemon was left over from a class and sat there a week before I painted it." } },
+
+    { "file": "showcase/work-05.webp", "category": "landscape", "state": "active", "rank": 3,
+      "title": { "zh": "港口的形状", "en": "Harbour Forms" },
+      "caption": { "zh": "布面油画，刮刀，75 × 75 cm，2024。桅杆先画，剩下的都是为了托住它们。",
+                   "en": "Oil on canvas, palette knife, 75 × 75 cm, 2024. The masts went in first; everything else is there to hold them up." } },
+
+    { "file": "showcase/work-06.webp", "category": "still-life", "state": "active", "rank": 4,
+      "title": { "zh": "月下荚果", "en": "Moonlit Seedpods" },
+      "caption": { "zh": "布面丙烯与油彩，80 × 80 cm，2025。夜里画的，第二天看颜色全对，很少这样。",
+                   "en": "Acrylic and oil on canvas, 80 × 80 cm, 2025. Painted at night, and the colour still read true the next morning — which is rare." } },
+
+    { "file": "showcase-coast.png", "category": "landscape", "state": "active", "rank": 5,
+      "title": { "zh": "南岸，三点钟", "en": "Southern Coast, Three O'Clock" },
+      "caption": { "zh": "布面油画，刮刀，60 × 60 cm，2024。风大的那种下午，海是灰绿的，草是热的。",
+                   "en": "Oil on canvas, palette knife, 60 × 60 cm, 2024. One of those windy afternoons — the sea grey-green, the grass still warm." } },
+
+    { "file": "showcase/work-12.webp", "category": "landscape", "state": "active", "rank": 6,
+      "title": { "zh": "金色的田", "en": "Golden Field" },
+      "caption": { "zh": "布面油画，70 × 70 cm，2024。开车去 Castlemaine 的路上，停了二十分钟。",
+                   "en": "Oil on canvas, 70 × 70 cm, 2024. Twenty minutes at the side of the road on the way to Castlemaine." } },
+
+    { "file": "showcase/work-01.webp", "category": "landscape", "state": "active", "rank": null,
+      "title": { "zh": "海边的枝叶", "en": "Coastal Botanical" },
+      "caption": { "zh": "布面油画与拼贴，70 × 70 cm，2025。近处的叶子和远处的海，是同一种蓝。",
+                   "en": "Oil and collage on canvas, 70 × 70 cm, 2025. The leaves in front and the sea behind turned out to be the same blue." } },
+
+    { "file": "showcase/work-02.webp", "category": "landscape", "state": "active", "rank": null,
+      "title": { "zh": "高草与河", "en": "Tall Grass and River" },
+      "caption": { "zh": "布面油画，65 × 65 cm，2024。草比水难画，因为草会动。",
+                   "en": "Oil on canvas, 65 × 65 cm, 2024. The grass was harder than the water, because grass moves." } },
+
+    { "file": "showcase/work-07.webp", "category": "landscape", "state": "active", "rank": null,
+      "title": { "zh": "无花果树与潮水", "en": "Fig Tree and Tide" },
+      "caption": { "zh": "布面油画，70 × 70 cm，2025。院子里的树，背后是想象的海。",
+                   "en": "Oil on canvas, 70 × 70 cm, 2025. A tree from the courtyard, with a sea that is not there." } },
+
+    { "file": "showcase/work-10.webp", "category": "still-life", "state": "active", "rank": null,
+      "title": { "zh": "一枚红荚", "en": "Red Seed Pod" },
+      "caption": { "zh": "纸本油彩，50 × 50 cm，2025。一节课的时间，一个东西。",
+                   "en": "Oil on paper, 50 × 50 cm, 2025. One class, one object." } },
+
+    { "file": "showcase/work-11.webp", "category": "landscape", "state": "active", "rank": null,
+      "title": { "zh": "退潮笔记", "en": "Low Tide Notes" },
+      "caption": { "zh": "布面油画，60 × 60 cm，2024。退潮的沙滩有六种颜色，我只画得出四种。",
+                   "en": "Oil on canvas, 60 × 60 cm, 2024. Wet sand at low tide has six colours in it; I got four." } },
+
+    { "file": "showcase-botanical.png", "category": "still-life", "state": "active", "rank": null,
+      "title": { "zh": "金合欢与桉叶", "en": "Wattle & Eucalyptus" },
+      "caption": { "zh": "水彩与水粉，40 × 40 cm，2025。窗台上放了三天的一把花，第二天开始掉，画的是第三天。",
+                   "en": "Watercolour and gouache, 40 × 40 cm, 2025. A bunch left on the sill for three days. It started dropping on the second; this is the third." } },
+
+    { "file": "showcase-cockatoo.png", "category": "drawing", "state": "active", "rank": null,
+      "title": { "zh": "凤头鹦鹉写生", "en": "Cockatoo Study" },
+      "caption": { "zh": "炭笔与色粉，纸本，50 × 50 cm，2025。它在窗外待了十分钟，够画个大概。",
+                   "en": "Charcoal and pastel on paper, 50 × 50 cm, 2025. It stayed outside the window for about ten minutes — enough for the shape of it." } },
+
+    { "file": "showcase/work-08.webp", "category": "still-life", "state": "draft", "rank": null,
+      "title": { "zh": "画室一角（未完成）", "en": "Corner of the Studio (unfinished)" },
+      "caption": { "zh": "布面油画，80 × 80 cm，在画。椅子还不对，先不放上去。",
+                   "en": "Oil on canvas, 80 × 80 cm, in progress. The chair is still wrong, so it stays off the site for now." } },
+
+    { "file": "showcase/work-04.webp", "category": "landscape", "state": "archived", "rank": null,
+      "title": { "zh": "冬园", "en": "Winter Garden" },
+      "caption": { "zh": "布面油画，70 × 70 cm，2023。2024 年个展之后收起来了，留在记录里。",
+                   "en": "Oil on canvas, 70 × 70 cm, 2023. Taken down after the 2024 show, kept on the record." } }
+  ],
+
+  "student_works": [
+    { "file": "showcase/student-01.webp", "student": 0,
+      "title": { "zh": "苹果与马克杯", "en": "Apple and Cup" },
+      "caption": { "zh": "Priya，来了三个月。第一次把影子画成有颜色的。",
+                   "en": "Priya, three months in. The first time she painted a shadow that had a colour in it." } },
+    { "file": "showcase/student-02.webp", "student": 2,
+      "title": { "zh": "花园小径", "en": "Garden Path" },
+      "caption": { "zh": "Ana，周三上午班。照着自家后院画的。",
+                   "en": "Ana, Wednesday morning class, from her own back garden." } },
+    { "file": "showcase/student-04.webp", "student": 3,
+      "title": { "zh": "蓝瓶", "en": "Blue Vase" },
+      "caption": { "zh": "Xi，第二学期。这只瓶子他画了四遍，这是第四遍。",
+                   "en": "Xi, second term. He painted this vase four times; this is the fourth." } },
+    { "file": "showcase/student-05.webp", "student": 5,
+      "title": { "zh": "海边的船", "en": "Seaside Boat" },
+      "caption": { "zh": "Hana，来了半年。海的三条横线是一口气画完的。",
+                   "en": "Hana, six months in. The three strokes of sea went down in one go." } },
+    { "file": "showcase/student-07.webp", "student": 6,
+      "title": { "zh": "一把花", "en": "A Bunch of Flowers" },
+      "caption": { "zh": "Lucy，油画基础班。第一张自己带材料来画的。",
+                   "en": "Lucy, foundation oil. The first one she brought her own subject for." } },
+    { "file": "showcase/student-08.webp", "student": 8,
+      "title": { "zh": "形状与叶子", "en": "Shapes and Leaves" },
+      "caption": { "zh": "Xiaoman，周日水彩班。她说这张只关于颜色，不关于东西。",
+                   "en": "Xiaoman, Sunday watercolour. She says this one is about colour, not about things." } },
+    { "file": "showcase/student-03.webp", "student": 10,
+      "title": { "zh": "太阳和月亮", "en": "Sun and Moon" },
+      "caption": { "zh": "Eli，9 岁，周六儿童班。",
+                   "en": "Eli, aged 9, Saturday children's class." } },
+    { "file": "showcase/student-06.webp", "student": 11, "consent": "withdrawn",
+      "title": { "zh": "房子和树", "en": "House and Tree" },
+      "caption": { "zh": "Xiaoyu，8 岁，周六儿童班。家长后来撤回了公开同意——这一张留在后台，不在网站上。",
+                   "en": "Xiaoyu, aged 8, Saturday children's class. Consent was withdrawn afterwards, so this one stays in the console and off the site." } }
+  ],
+
+  "principal_portrait": "showcase/principal.webp",
+  "hero": "showcase/hero.webp",
+
+  "room_photos": [
+    { "file": "showcase/room-06.webp",
+      "alt": { "zh": "画室全景：长木桌、画架、南墙的窗", "en": "The studio: long timber bench, easels, the south wall of windows" } },
+    { "file": "showcase/room-01.webp",
+      "alt": { "zh": "画架区，三张画架对着窗", "en": "The easel zone, three easels facing the window" } },
+    { "file": "showcase/room-02.webp",
+      "alt": { "zh": "颜料墙与工具架", "en": "The paint wall and tool shelves" } },
+    { "file": "showcase/room-05.webp",
+      "alt": { "zh": "窗边的座位与工作台", "en": "Window seats and the work table" } },
+    { "file": "showcase/room-04.webp",
+      "alt": { "zh": "晾画架，未干的画留在这里", "en": "The drying rack, where wet work stays between classes" } },
+    { "file": "showcase/room-03.webp",
+      "alt": { "zh": "洗笔池", "en": "The wash sink" } }
+  ],
+
+  "logo": {
+    "light": "showcase/logo-wordmark-ink.png",
+    "dark": "showcase/logo-wordmark-reverse.png"
+  }
+}

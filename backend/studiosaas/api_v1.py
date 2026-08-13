@@ -4949,7 +4949,8 @@ def public_brand(tenant_slug: str):
                    settings->'principal_profile' AS principal_profile,
                    settings->'faq_items' AS faq_items,
                    settings->'message_templates' AS message_templates,
-                   settings->'visual_theme' AS visual_theme
+                   settings->'visual_theme' AS visual_theme,
+                   COALESCE((settings->>'professional_demo')::boolean, false) AS demo_tenant
             FROM tenants
             WHERE id = %s
             """,
@@ -5027,6 +5028,14 @@ def public_brand(tenant_slug: str):
     # record could cite a version the visitor's page never rendered. One value,
     # served with the notice it refers to.
     row["privacyNoticeVersion"] = PRIVACY_NOTICE_VERSION
+    # A demonstration tenant publishes synthetic work under an invented
+    # person's name on a public URL. The portal says "these are Janet's own
+    # paintings" — which is true of the fiction and false of the world, and a
+    # visitor who arrives from a search engine has no way to tell. So the
+    # tenant carries the fact into its own footer rather than relying on
+    # everyone who links to it to explain.
+    row["demoTenant"] = bool(row.get("demo_tenant"))
+    row["demo_tenant"] = row["demoTenant"]
     row["publishedVersion"] = published.get("version_number")
     row["publishedAt"] = published.get("published_at")
 

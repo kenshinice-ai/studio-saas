@@ -37,7 +37,9 @@
     nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
     .navrow{display:flex;align-items:center;justify-content:space-between;gap:16px;height:74px;width:min(1180px,100%);margin:0 auto;padding:0 var(--space-phi-md)}
     .brand{display:flex;align-items:center;gap:12px;min-width:0;min-height:var(--tap-min);color:var(--ink)}
-    .brand img{display:none;height:34px;width:auto}
+    /* Bounded: a wide wordmark at a fixed height crowds the name and the
+       menu button off a phone. See index.html for the full note. */
+    .brand img{display:none;max-height:34px;max-width:min(48vw,300px);height:auto;width:auto;object-fit:contain;flex-shrink:0}
     .brand .bn{font-size:16px;letter-spacing:.04em;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .navlinks{display:flex;align-items:center;gap:26px}
     .navlinks a{position:relative;padding:4px 0;color:var(--ink2);font-size:13px;letter-spacing:.02em;max-width:13em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -173,6 +175,7 @@
       <span class="fn" id="footName">Let&#x27;s Paint Studio</span>
       <p class="fcontact" id="footContact"></p>
       <p class="cp">© 2026 <span id="footName2">Let&#x27;s Paint Studio</span><span id="producerCredit" hidden> · Powered by Paradise Production</span></p>
+      <p class="cp" id="demoNotice" hidden data-en="Demonstration site. Everyone and everything on this page is invented, and the data resets nightly.">演示站点：本页所有人物、内容与作品均为虚构，数据每晚重置。</p>
     </div>
     <div class="fl">
 <!-- Same list as the header, same rule: the contract decides. `Home` and
@@ -404,6 +407,8 @@
   async function loadBrand() {
     const response = await fetch(`${API}/brand`, { cache: 'no-store' });
     const data = await response.json(); state.brand = data.brand || {};
+    // Demonstration disclosure — see index.html applyDemoNotice().
+    { const b = state.brand; const n = document.getElementById('demoNotice'); if (n) n.hidden = !(b && (b.demoTenant || b.demo_tenant)); }
     window.StudioSaaS.applyVisualTheme(state.brand);
     const website = websiteOf();
     const principal = state.brand.principalProfile || state.brand.principal_profile || {};

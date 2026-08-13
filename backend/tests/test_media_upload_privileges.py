@@ -102,9 +102,10 @@ def test_thumbnail_is_derived_from_the_display_raster() -> None:
     Image.new("RGB", (4000, 3000), (90, 120, 150)).save(buffer, format="JPEG", quality=88)
     variants = _build_safe_variants(buffer.getvalue(), ".jpg")
 
-    display_bytes, display_w, display_h = variants["display"]
-    _, medium_w, medium_h = variants["medium"]
-    _, thumb_w, thumb_h = variants["thumb"]
+    display_bytes, display_w, display_h, display_ext = variants["display"]
+    _, medium_w, medium_h, _ = variants["medium"]
+    _, thumb_w, thumb_h, _ = variants["thumb"]
+    assert display_ext == ".jpg", "an opaque photograph still takes the JPEG path"
     assert max(display_w, display_h) <= DISPLAY_MAX
     assert max(medium_w, medium_h) <= MEDIUM_MAX
     assert max(thumb_w, thumb_h) <= THUMB_MAX
@@ -153,3 +154,33 @@ def test_checksum_etag_can_return_304_after_the_caller_authorizes(
 
     assert response.status_code == 304
     assert response.headers["ETag"] == f'"{checksum}"'
+
+
+def test_a_transparent_source_keeps_its_transparency() -> None:
+    """Public brand media is served from the display variant, so alpha has to survive it.
+
+    Until v9.9.2 every derivative was JPEG, and `_jpeg_bytes` flattened RGBA
+    onto white. The visible result was that NO tenant could have a transparent
+    logo: a PNG cut-out came back as a white rectangle, which on a portal whose
+    background is warm paper reads as a white card stuck in the header. The
+    product never said this; the pixels simply arrived opaque.
+    """
+
+    pytest.importorskip("PIL")
+    from PIL import Image
+
+    from studiosaas.services.media import _build_safe_variants
+
+    buffer = io.BytesIO()
+    source = Image.new("RGBA", (800, 600), (0, 0, 0, 0))
+    # One opaque mark on a transparent field — the shape of every logo.
+    source.paste((30, 25, 22, 255), (200, 150, 600, 450))
+    source.save(buffer, format="PNG")
+
+    variants = _build_safe_variants(buffer.getvalue(), ".png")
+    for variant in ("display", "medium", "thumb"):
+        payload, _width, _height, ext = variants[variant]
+        assert ext == ".png", f"{variant} must stay PNG to keep its alpha channel"
+        decoded = Image.open(io.BytesIO(payload))
+        assert decoded.mode == "RGBA", f"{variant} lost its alpha channel"
+        assert decoded.getpixel((2, 2))[3] == 0, f"{variant} filled the transparent corner"

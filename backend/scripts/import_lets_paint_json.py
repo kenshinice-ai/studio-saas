@@ -1185,7 +1185,7 @@ def _remove_paths(paths: list[Path]) -> list[str]:
     return errors
 
 
-def _validated_media(path: Path, kind: str) -> tuple[str, bytes, str, dict[str, tuple[bytes, int, int]]]:
+def _validated_media(path: Path, kind: str) -> tuple[str, bytes, str, dict[str, tuple[bytes, int, int, str]]]:
     """Validate and derivative-process one source image using the upload contract."""
 
     from werkzeug.datastructures import FileStorage
@@ -1221,6 +1221,8 @@ def _write_media_asset(
 ) -> str:
     """Copy one validated source asset, insert its DB rows, and return its UUID."""
 
+    from studiosaas.services.media import detect_mime
+
     ext, data, mime_type, variants = _validated_media(source_path, kind)
     media_id = str(uuid.uuid4())
     safe_source_id = re.sub(r"[^A-Za-z0-9_-]", "_", source_id)[:80] or "unknown"
@@ -1232,12 +1234,14 @@ def _write_media_asset(
     full_path.write_bytes(data)
     created_paths.append(full_path)
 
-    variant_rows: list[tuple[str, Path, bytes, int, int]] = []
-    for variant, (variant_data, width, height) in variants.items():
-        variant_path = full_path.with_name(f"{base_name}.{variant}.jpg")
+    variant_rows: list[tuple[str, Path, bytes, int, int, str]] = []
+    for variant, (variant_data, width, height, variant_ext) in variants.items():
+        variant_path = full_path.with_name(f"{base_name}.{variant}{variant_ext}")
         variant_path.write_bytes(variant_data)
         created_paths.append(variant_path)
-        variant_rows.append((variant, variant_path, variant_data, width, height))
+        variant_rows.append(
+            (variant, variant_path, variant_data, width, height, detect_mime(variant_ext))
+        )
 
     try:
         cur.execute(
@@ -1261,8 +1265,11 @@ def _write_media_asset(
                 hashlib.sha256(data).hexdigest(),
             ),
         )
-        for variant, _path, variant_data, width, height in variant_rows:
-            variant_key = f"{tenant_id}/{safe_kind}/{base_name}.{variant}.jpg"
+        for variant, _path, variant_data, width, height, variant_mime in variant_rows:
+            variant_key = (
+                f"{tenant_id}/{safe_kind}/{base_name}.{variant}"
+                f"{'.png' if variant_mime == 'image/png' else '.jpg'}"
+            )
             cur.execute(
                 """
                 INSERT INTO media_variants (
@@ -1270,13 +1277,14 @@ def _write_media_asset(
                     byte_size, checksum_sha256, pixel_width, pixel_height,
                     metadata_sanitized
                 )
-                VALUES (%s, %s, %s, %s, 'image/jpeg', %s, %s, %s, %s, true)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, true)
                 """,
                 (
                     tenant_id,
                     media_id,
                     variant,
                     variant_key,
+                    variant_mime,
                     len(variant_data),
                     hashlib.sha256(variant_data).hexdigest(),
                     width,

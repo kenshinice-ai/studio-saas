@@ -24,10 +24,29 @@ The script:
 - writes presenter credentials to
   `.runtime/credentials/showcase-credentials.txt` with mode `0600`;
 - seeds realistic courses, packages, schedules, enquiries, attendance and balances;
-- seeds three original synthetic artworks;
+- seeds the PUBLIC side too — hero, principal, the room, the studio's own work,
+  the FAQ and the bilingual copy — from `backend/scripts/showcase_content.py`
+  and `backend/seed-assets/showcase/manifest.json`. Before v9.9.2 it seeded
+  only the CMS side, which is why the live portal was publishing works titled
+  `Test` and `fasd`;
+- seeds 15 studio works (13 published, 1 draft, 1 archived) and 8 student
+  works, one of which has WITHDRAWN publication consent so the demonstration
+  covers taking consent back, not only granting it;
+- runs the tenant on the `studio` plan, so the 60-work ceiling is a real
+  number a prospect can be shown;
 - rotates the separate family/student access code.
 
 Never screen-share the credential file.
+
+Adding artwork later needs no code change: drop the file in
+`backend/seed-assets/showcase/` and add a row to `manifest.json`. Web-size it
+first — 1600px, WebP q88 — because the deploy bundle is `git archive HEAD` and
+carries every byte of it on every release.
+
+The public pages carry a footer line reading "Demonstration site. The studio,
+the people and the artwork are invented, and the data resets nightly." It is
+driven by `settings.professional_demo` on the tenant record. Do not remove it:
+the pages present invented people and synthetic paintings at a public address.
 
 ## Pre-demo checks
 

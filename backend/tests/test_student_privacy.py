@@ -82,7 +82,7 @@ def test_media_derivatives_are_bounded_and_strip_exif():
         ("medium", MEDIUM_MAX),
         ("thumb", THUMB_MAX),
     ):
-        payload, width, height = variants[variant]
+        payload, width, height, _ext = variants[variant]
         decoded = Image.open(io.BytesIO(payload))
         assert max(width, height) <= limit
         assert decoded.getexif().get(0x0110) is None

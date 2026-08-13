@@ -289,38 +289,79 @@ def _open_raster(data: bytes, ext: str):
         raise MediaUploadError("Image content could not be decoded safely.") from exc
 
 
-def _jpeg_bytes(image, max_edge: int, quality: int) -> tuple[bytes, int, int]:
-    """Return a metadata-free RGB JPEG derivative and its pixel dimensions."""
+def _has_alpha(image) -> bool:
+    """Whether this raster carries transparency worth keeping.
+
+    ``transparency`` in ``info`` is the palette-image form of the same fact, so
+    a paletted PNG with a transparent index counts. Anything else — every
+    photograph — does not, which is what keeps JPEG the default.
+    """
+
+    return image.mode in {"RGBA", "LA", "PA"} or "transparency" in image.info
+
+
+def _raster_bytes(image, max_edge: int, quality: int, *, alpha: bool) -> tuple[bytes, int, int, str]:
+    """Return a metadata-free derivative, its pixel size and its extension.
+
+    Two formats, chosen by one fact: does the source have transparency.
+
+    Everything public is served from these derivatives, and until v9.9.2 they
+    were unconditionally JPEG — which flattens RGBA onto WHITE. The visible
+    consequence was that no tenant could have a transparent logo: uploading a
+    PNG cut-out produced a white rectangle, and a studio whose page background
+    is warm paper got a white card floating in its own header. Nothing in the
+    product said so; the pixels just arrived opaque.
+
+    PNG derivatives are larger than JPEG, which is why this is not simply the
+    default. It is gated on alpha, and alpha is what graphics have and photos
+    do not — so a phone photo still takes the JPEG path it always took.
+
+    Re-encoding through Pillow is what strips metadata, and it strips it from
+    PNG exactly as it does from JPEG: nothing is carried over unless it is
+    passed to ``save`` explicitly, and nothing here is.
+    """
 
     converted = image.copy()
     converted.thumbnail((max_edge, max_edge), _PILImage.Resampling.LANCZOS)
+    out = io.BytesIO()
+    if alpha:
+        if converted.mode != "RGBA":
+            converted = converted.convert("RGBA")
+        converted.save(out, format="PNG", optimize=True)
+        return out.getvalue(), converted.width, converted.height, ".png"
     if converted.mode in {"RGBA", "LA"}:
         background = _PILImage.new("RGB", converted.size, "white")
-        alpha = converted.getchannel("A")
-        background.paste(converted.convert("RGB"), mask=alpha)
+        background.paste(converted.convert("RGB"), mask=converted.getchannel("A"))
         converted = background
     elif converted.mode != "RGB":
         converted = converted.convert("RGB")
-    out = io.BytesIO()
     converted.save(out, format="JPEG", quality=quality, optimize=True)
-    return out.getvalue(), converted.width, converted.height
+    return out.getvalue(), converted.width, converted.height, ".jpg"
 
 
-def _build_safe_variants(data: bytes, ext: str) -> dict[str, tuple[bytes, int, int]]:
-    """Build display, medium and thumbnail derivatives without source metadata."""
+def _build_safe_variants(data: bytes, ext: str) -> dict[str, tuple[bytes, int, int, str]]:
+    """Build display, medium and thumbnail derivatives without source metadata.
+
+    Each value is ``(bytes, width, height, extension)``. The extension is part
+    of the return rather than assumed by the caller because the caller writes
+    the filename and the ``media_variants.mime_type`` row: a caller that
+    hard-codes ``.jpg`` writes a PNG to a path claiming to be a JPEG, and the
+    browser is then told the wrong content type for the life of the record.
+    """
 
     image = _open_raster(data, ext)
-    display = _jpeg_bytes(image, DISPLAY_MAX, 88)
+    alpha = _has_alpha(image)
+    display = _raster_bytes(image, DISPLAY_MAX, 88, alpha=alpha)
     # The thumbnail is derived from the display raster rather than the source.
-    # _jpeg_bytes copies whatever it is handed before resampling, so building
+    # _raster_bytes copies whatever it is handed before resampling, so building
     # both from the original meant holding two full-size copies at once; the
     # display raster is already capped at DISPLAY_MAX and is a strictly better
     # starting point for a 360px thumbnail. Peak memory for one upload is now
     # bounded by the decoded source plus ~12 MB, not by three copies of it.
     derivative_source = _PILImage.open(io.BytesIO(display[0]))
     derivative_source.load()
-    medium = _jpeg_bytes(derivative_source, MEDIUM_MAX, 86)
-    thumb = _jpeg_bytes(derivative_source, THUMB_MAX, 84)
+    medium = _raster_bytes(derivative_source, MEDIUM_MAX, 86, alpha=alpha)
+    thumb = _raster_bytes(derivative_source, THUMB_MAX, 84, alpha=alpha)
     return {"display": display, "medium": medium, "thumb": thumb}
 
 
@@ -397,14 +438,19 @@ def store_media_asset(
     with open(full_path, "wb") as fh:
         fh.write(data)
 
-    variant_paths: dict[str, tuple[str, str, bytes, int, int]] = {}
-    for variant, (variant_data, width, height) in variants.items():
-        variant_filename = f"{media_id}.{variant}.jpg"
+    variant_paths: dict[str, tuple[str, str, bytes, int, int, str]] = {}
+    for variant, (variant_data, width, height, variant_ext) in variants.items():
+        # The extension comes from the derivative, not from the source and not
+        # from a literal: a transparent logo produces PNG derivatives, and a
+        # filename that says .jpg would be served with the wrong content type.
+        variant_filename = f"{media_id}.{variant}{variant_ext}"
         variant_key = f"{tenant_part}/{safe_kind}/{variant_filename}"
         variant_path = os.path.join(media_root(), tenant_part, safe_kind, variant_filename)
         with open(variant_path, "wb") as fh:
             fh.write(variant_data)
-        variant_paths[variant] = (variant_key, variant_path, variant_data, width, height)
+        variant_paths[variant] = (
+            variant_key, variant_path, variant_data, width, height, detect_mime(variant_ext),
+        )
 
     try:
         with conn.cursor() as cur:
@@ -431,20 +477,23 @@ def store_media_asset(
                 ),
             )
             row = cur.fetchone()
-            for variant, (variant_key, _variant_path, variant_data, width, height) in variant_paths.items():
+            for variant, (
+                variant_key, _variant_path, variant_data, width, height, variant_mime,
+            ) in variant_paths.items():
                 cur.execute(
                     """
                     INSERT INTO media_variants (
                         tenant_id, media_asset_id, variant, storage_key, mime_type,
                         byte_size, checksum_sha256, pixel_width, pixel_height,
                         metadata_sanitized
-                    ) VALUES (%s, %s, %s, %s, 'image/jpeg', %s, %s, %s, %s, true)
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, true)
                     """,
                     (
                         tenant_id,
                         media_id,
                         variant,
                         variant_key,
+                        variant_mime,
                         len(variant_data),
                         hashlib.sha256(variant_data).hexdigest(),
                         width,

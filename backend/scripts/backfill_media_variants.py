@@ -24,6 +24,7 @@ from studiosaas.services.media import (  # noqa: E402
     IMAGE_EXTENSIONS,
     MediaUploadError,
     _build_safe_variants,
+    detect_mime,
     media_root,
     refresh_tenant_usage,
 )
@@ -126,8 +127,8 @@ def run(*, dry_run: bool = False, tenant_id: str = "", check: bool = False) -> i
                             (row["tenant_id"], row["id"], stale_rows),
                         )
                     for variant in missing:
-                        payload, width, height = variants[variant]
-                        filename = f"{row['id']}.{variant}.jpg"
+                        payload, width, height, variant_ext = variants[variant]
+                        filename = f"{row['id']}.{variant}{variant_ext}"
                         path = os.path.join(directory, filename)
                         Path(path).write_bytes(payload)
                         written_paths.append(path)
@@ -138,7 +139,7 @@ def run(*, dry_run: bool = False, tenant_id: str = "", check: bool = False) -> i
                                 tenant_id, media_asset_id, variant, storage_key,
                                 mime_type, byte_size, checksum_sha256, pixel_width,
                                 pixel_height, metadata_sanitized
-                            ) VALUES (%s, %s, %s, %s, 'image/jpeg', %s, %s, %s, %s, true)
+                            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, true)
                             ON CONFLICT (tenant_id, media_asset_id, variant) DO NOTHING
                             """,
                             (
@@ -146,6 +147,7 @@ def run(*, dry_run: bool = False, tenant_id: str = "", check: bool = False) -> i
                                 row["id"],
                                 variant,
                                 storage_key,
+                                detect_mime(variant_ext),
                                 len(payload),
                                 hashlib.sha256(payload).hexdigest(),
                                 width,

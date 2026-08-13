@@ -1,3 +1,104 @@
+# PWE Studio v9.9.2 — 定价页，和一间真的画室
+
+> 当前阶段：源码与本地门禁完成，**尚未打包、尚未部署**。生产仍在 v9.9.1。
+
+这一版有两件事：上一轮做完但没发的**定价页**，以及把 `lets-paint-showcase`
+从测试租户改造成**真样板 + 演示租户**。改造过程中挖出四个产品缺陷，都在下面。
+
+## 一 · 定价页（上一轮遗留）
+
+`/pricing` 与 `/zh/pricing`，一 URL 一语言、hreflang 互指、尾斜杠 301。
+计算器读服务端已渲进页面的 `data-plans`，**不发第二次请求**——
+两个数据源就是同一个套餐出现两个价格的原因。
+推荐同时看学员数和登录名额，并说出**是哪条约束决定的**（「Starter 只有 1 个登录名额」）。
+掏钱前 FAQ 八条，其中两条不许含糊：降级只影响**发布**、绝不删数据；没有任何抽成。
+
+顺带把页头做成了真共享：445 行样式抽成 `marketing.css`，
+导航/移动菜单/吸顶/reveal/页脚年份抽成 `marketing-shell.js`。
+原来的 `product-home.js` 在找不到咨询表单时会直接抛错——
+对有表单的那一页是对的，对任何复用这个页头的页面都是错的。
+
+## 二 · Let's Paint 样板租户
+
+方案与全部决策记在 `docs/design/Showcase_Tenant_Build.md`。
+
+**改造前**：三件作品标题是 `Test`、`fasd` 和两个空字符串，没有分类、没有主理人、
+没有「空间与体验」，logo 在暖纸背景上看不见。
+原因很具体——seeder 只种 CMS 侧（课程、学员、签到），
+**门户侧留给最后一个在控制台里打字的人**。
+
+**改造后**（`backend/scripts/reset_professional_demo.py` 现在两侧都管）：
+
+| | |
+|---|---|
+| 身份 | 墨尔本 Brunswick East，成人小班，主理人 **Janet M**，第 7 年 |
+| 文案 | 全部双语，写在 `backend/scripts/showcase_content.py`——文案是数据，不是散在 seeder 里的字面量 |
+| 主理人作品 | 15 件（13 active / 1 draft / 1 archived），三个抽屉，`featured_rank` 1–6 |
+| 学员作品 | 8 件署名到 8 位学员，**其中 1 件同意已撤回**，公开 7 件 |
+| 空间 | 6 张照片 + alt，手动切换不自动轮播 |
+| 套餐 | **studio 档**（作品上限 60）。`lets-paint-studio` 是真实租户，全程未碰 |
+| 图片 | 28 张生成图，75 MB PNG → **8.2 MB WebP**（部署包是 `git archive HEAD`，每次发布都要背着走） |
+
+**「人像」这个抽屉不存在**，因为还没有人像作品。
+分类由 manifest 里**实际已发布的作品**推导，不由那张分类表推导——
+一个点下去空空如也的筛选按钮，比没有这个按钮更糟。
+
+## 三 · 改造中挖出的四个产品缺陷（都已修，都带回归测试）
+
+**1. 任何租户都不可能拥有一张透明 logo。**
+公开品牌图片一律走 `display` 变体，而 `_build_safe_variants()` 只产 JPEG，
+`_jpeg_bytes()` 把 RGBA 压到白底。传 PNG 也会被拍成白方块。
+修法：源图带 alpha 时变体输出 PNG，`media_variants.mime_type` 跟随实际格式而不是写死。
+**这修的是每一个租户。**
+
+**2. 学员作品有两道同意门，seeder 只开了一道。**
+公开画廊要求学员有一条最新为 `confirmed` 的 `student_publication_consent_events`，
+**并且**作品是 `shared` 且带 `public_consent_at`。
+只写后者 → 画廊永远空着、契约报 `no_consented_student_work`——
+看起来像产品有 bug，其实是记录没建。
+
+**3. 宽 logo 会把店名挤出手机屏幕。**
+`.brand img{height:34px;width:auto}` 不设上限。8:1 的手写体 wordmark
+在 375px 手机上占 281px，店名折成三行压在汉堡按钮下面。
+两个方向都封顶 + `object-fit:contain`，店名允许省略号。
+
+**4. 分类推导依赖列表顺序。**（我自己写的，改成两趟遍历。）
+
+## 四 · 演示披露
+
+四个公开页面页脚新增一行（双语，默认隐藏）：
+「演示站点：画室、人物与作品均为虚构，数据每晚重置。」
+由 `/brand` 的 `demoTenant` 驱动，读**租户记录**而不是 slug——
+绑在名字上的标记，改名当天就不成立了。
+
+这不是装饰。页面用虚构人物的名义、在公开地址上展示合成作品，
+还写着「下面这些是 Janet 自己的画」。
+
+## 五 · 状态
+
+- 本地全量：**1790 passed, 5 skipped**（v9.9.1 时是 1754）。
+- 新增 `backend/tests/test_showcase_tenant.py`（29 条）、
+  `test_pricing_page.py`（10 条）、媒体透明度回归。
+- **模板改了 → 所有租户工作区必须重新生成**（`regenerate_tenant_workspaces.py`），
+  否则 deep health 的 `workspaces.stale` 会报。
+- **尚未打包部署。** 发布前按 `docs/Release_Runbook.md` 的九步走，
+  先跑 `backend/scripts/release_preflight.sh`。
+
+## 六 · 上线时要确认的一件事
+
+线上 `lets-paint-showcase` 的 `settings.professional_demo` 必须是 `true`，
+否则重置脚本会拒绝执行——**每晚重置也就根本没在跑**。
+线上那三件 `Test` / `fasd` 作品是人手敲进去的，说明这条从来没被验证过。
+
+## 七 · 已知缺口（未修，已记）
+
+1. `courses.name / description / category` 是单语言字段，中英门户渲染同一个字符串。
+   这一轮按 `油画基础 Foundation Oil` 双语并置写。
+2. 公开课程卡片按 `ORDER BY category, name` 排——店主无法控制顺序，
+   于是入门班可能排在最后。已开背景任务。
+
+---
+
 # PWE Studio v9.9.1 — v9.9.0 的两处修正
 
 > 当前阶段：v9.9.1 已完成源码、完整门禁、双模式打包、生产备份、部署与公网验收。两处都由真实控制台的截图报出。

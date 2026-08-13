@@ -239,6 +239,7 @@
     </nav>
     © 2026 <span id="footName">Let&#x27;s Paint Studio</span>
     <span id="producerCredit" hidden> · Powered by Paradise Production</span>
+    <p class="cp" id="demoNotice" hidden data-en="Demonstration site. Everyone and everything on this page is invented, and the data resets nightly.">演示站点：本页所有人物、内容与作品均为虚构，数据每晚重置。</p>
   </footer>
 
   <!-- P1-3: the same four sections the portal's privacy view shows, so the
@@ -426,6 +427,8 @@
       if (!response || !response.ok) return;
       const data = await response.json();
       const brand = data.brand || {};
+      // Demonstration disclosure — see index.html applyDemoNotice().
+      { const n = document.getElementById('demoNotice'); if (n) n.hidden = !(brand && (brand.demoTenant || brand.demo_tenant)); }
       /* The token map and the light/dark decision live in
          /assets/portal-brand.js. This page kept its own copy until v8.9.0 and
          it had already drifted from the portal's on `accent_color`, which is

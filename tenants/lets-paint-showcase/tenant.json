@@ -2,8 +2,8 @@
   "slug": "lets-paint-showcase",
   "name": "Let's Paint Studio",
   "head": {
-    "title": "Let's Paint Studio",
-    "description": "Let's Paint Studio — 课程报名、学员课时与记录查询。"
+    "title": "Let's Paint Studio — adult painting classes in Melbourne",
+    "description": "A small studio in Brunswick East, Melbourne. Adult classes of eight or fewer — starting from scratch is still starting."
   },
   "workspace_path": "tenants/lets-paint-showcase"
 }
