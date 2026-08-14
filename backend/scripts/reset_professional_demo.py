@@ -1318,6 +1318,26 @@ def _write_credentials(path: Path, credentials: list[dict[str, str]], student_co
     os.chmod(path, 0o600)
 
 
+def _use_owner_connection() -> None:
+    """重置是造世界，造世界是属主的活。
+
+    这个脚本建租户、建角色成员、清空又重填 20 多张租户表。v10.3.0 起那些表
+    都受行级安全约束，而应用角色在没有租户上下文时一行都写不进去 —— 它本来
+    就不该能，这正是隔离的意思。
+
+    生产的 compose 早就把两个连接串分开了（迁移用属主、应用用受限），这里只是
+    把这个脚本归到它本来属于的那一类。没配 MIGRATION URL 的环境（比如本地）
+    保持原样。
+
+    同样的道理已经用在 test_tenant_isolation.py 的种子步骤和 pytest 的夹具上：
+    造世界用属主，跑断言用受限。
+    """
+
+    owner = os.environ.get("STUDIOSAAS_MIGRATION_DATABASE_URL")
+    if owner:
+        os.environ["STUDIOSAAS_DATABASE_URL"] = owner
+
+
 def _application_context():
     """An app context to run in — the existing one if we are already inside it.
 
@@ -1356,6 +1376,7 @@ def reset_showcase(credentials_file: Path) -> dict[str, Any]:
             "with at least 12 characters."
         )
     manifest = _manifest()
+    _use_owner_connection()
     with _application_context(), connect(statement_timeout_ms=0, lock_timeout_ms=0) as conn:
         with conn.cursor() as cur:
             tenant_id = _load_or_create_tenant(cur)

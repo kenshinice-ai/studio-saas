@@ -35,6 +35,14 @@ import secrets
 import sys
 from pathlib import Path
 
+# 造世界的脚本用属主连接：v10.3.0 起租户表受 RLS 约束，应用角色在没有租户
+# 上下文时写不进去 —— 而这些脚本的工作正是建出那个上下文本身。
+try:
+    from studiosaas.db import use_owner_connection as _use_owner
+    _use_owner()
+except Exception:
+    pass
+
 APP_ROOT = Path(__file__).resolve().parents[1]
 if str(APP_ROOT) not in sys.path:
     sys.path.insert(0, str(APP_ROOT))

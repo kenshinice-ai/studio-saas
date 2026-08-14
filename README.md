@@ -4,12 +4,12 @@
 
 These are three independent facts. A matching version label is not proof that
 the current source tree was packaged or deployed; Source, Package and
-Production remain separate rows. **v10.3.0 is committed; packaging and deploy are in progress** as of
-15 August 2026 — Production still runs v10.2.2 until the row below says otherwise.
+Production remain separate rows. **v10.3.1 is committed; packaging and deploy are in progress** as of
+15 August 2026 — Production runs v10.3.0, which has a known regression this release fixes.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.3.0 committed** | `VERSION` = **10.3.0**; tenant isolation moves from convention to construction — row-level security on 71 tables, plus a restricted application role, because a superuser bypasses RLS unconditionally and the application was one. Verified before changing anything that no leak existed: 180 of 213 SQL blocks filter on tenant_id and the other 33 read platform tables. Both suites green as the restricted role: pytest `2590 passed`, isolation suite `237 passed, 0 failed` over real HTTP. All four structural guards confirmed to fail against the current production configuration. |
+| Source | **v10.3.1 committed** | `VERSION` = **10.3.1**; fixes a regression v10.3.0 shipped — the showcase reset runs as the application role, and under row-level security a script whose whole job is to build the world before any tenant context exists cannot write a single row. `db.use_owner_connection()` is now one function that the seven world-building scripts each call, rather than seven copies of an environment swap. Also corrects v10.3.0's claim that the application connected as a superuser: it did not, and never had — role separation was already complete at v7.7.7. |
 | Package | **v10.2.2 built; v10.3.0 not yet packaged** | SaaS `dist/PWE-StudioSaaS-aws-10.2.2.tar.gz` SHA-256 `8403ac32acf6a852e7da18c97442dfd216ca03683ad1bde3afab7f38d53f6962`; Edition `dist/PWE-Studio-Edition-10.2.2.tar.gz` SHA-256 `ddc13f4fc0f17fe90dbe0899031765f357ec4702e79766a21eda4409d29d8bd5`. Both passed `verify_release_bundles.sh`. |
 | Production | **v10.2.2 deployed; v10.3.0 not yet deployed** | Deployed 14 August 2026 from `PWE-StudioSaaS-aws-10.2.2.tar.gz` (SHA-256 `8403ac32…`). No migrations. Deep health reports `appVersion=10.2.2`, `db=ok`, `tenants=6`, `themes.unreadable=0`, `workspaces.stale=0`, disk free `43.9 GB`. The settings layout was checked by screenshot at 1440px and 375px on the local build — sidebar, header, tab strip, content, footer last — and the bundle production serves is byte-identical to that build, which is the strongest check available from outside without operator credentials. |
 

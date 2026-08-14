@@ -116,3 +116,28 @@ def fetch_all(conn: Any, query: str, params: tuple[Any, ...]) -> list[dict[str, 
         cur.execute(query, params)
         rows = cur.fetchall()
     return list(rows)
+
+def use_owner_connection() -> bool:
+    """把当前进程切到属主连接串。**只给造世界的脚本用，绝不给请求路径用。**
+
+    v10.3.0 起 71 张租户表受行级安全约束：没有租户上下文就一行都写不进去。
+    这是对的 —— 应用本来就不该能。但种子、导入、重置这类脚本的工作正是
+    「建出世界来」，它们跨租户、在任何租户上下文之前运行，属于属主的活。
+
+    生产的 compose 早就把两个连接串分开了（迁移用属主、应用用受限，见
+    docker-compose.lightsail.yml 里的注释）。这个函数只是让脚本能说出
+    「我是造世界的那一类」，而不是每个脚本各写一遍 os.environ 交换 ——
+    那又会变成六份会各自漂的副本。
+
+    Returns:
+        True 表示确实切到了属主；False 表示环境里没配（本地开发常见），
+        调用方照旧运行。
+    """
+
+    import os
+
+    owner = os.environ.get("STUDIOSAAS_MIGRATION_DATABASE_URL")
+    if not owner:
+        return False
+    os.environ["STUDIOSAAS_DATABASE_URL"] = owner
+    return True

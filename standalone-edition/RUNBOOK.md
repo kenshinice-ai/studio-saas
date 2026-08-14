@@ -18,7 +18,7 @@
 
 ## 1. 交付前硬门槛
 
-1. 只使用官方 `PWE-Studio-Edition-10.3.0.tar.gz`，同时向客户提供发布方
+1. 只使用官方 `PWE-Studio-Edition-10.3.1.tar.gz`，同时向客户提供发布方
    单独保存的 SHA-256。
 2. 验证 `BUILD_INFO`：
 

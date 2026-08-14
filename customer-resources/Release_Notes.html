@@ -54,7 +54,7 @@
   <p data-lang="zh">以下内容均属于已发布的产品版本。每一条都是交付依据，不是路线图承诺。</p>
   <div class="grid">
     <article class="card">
-      <strong data-lang="en">Your studio's data, separated by the database itself (v10.3.0)</strong><strong data-lang="zh">你的数据，由数据库本身隔开（v10.3.0）</strong>
+      <strong data-lang="en">Your studio's data, separated by the database itself (v10.3.1)</strong><strong data-lang="zh">你的数据，由数据库本身隔开（v10.3.1）</strong>
       <p data-lang="en">Every studio's records have always been kept apart, and we check that on every release. Until now that separation was enforced by the application asking the right question each time. It now sits in the database: a query that failed to say which studio it was for returns nothing at all, rather than depending on us never writing one.</p>
       <p data-lang="zh">每家工作室的数据一直是分开的，我们每次发版都会验证这一点。在此之前，这种分离靠的是程序每次都问对问题。现在它落在数据库里：一条没有说明"属于哪家工作室"的查询，读到的是空，而不是依赖我们永远不写错。</p>
       <p data-lang="en">The application also stopped connecting to the database with administrator rights. It can now read and write your records and nothing else — it cannot alter the shape of the database or empty a table. Neither change is visible in the product; both narrow what could go wrong.</p>

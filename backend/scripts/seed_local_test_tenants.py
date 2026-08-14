@@ -20,6 +20,14 @@ if str(APP_ROOT) not in sys.path:
 from studiosaas.auth import hash_password
 from studiosaas.config import is_standalone
 
+# 造世界的脚本用属主连接：v10.3.0 起租户表受 RLS 约束，应用角色在没有租户
+# 上下文时写不进去 —— 而这些脚本的工作正是建出那个上下文本身。
+try:
+    from studiosaas.db import use_owner_connection as _use_owner
+    _use_owner()
+except Exception:
+    pass
+
 
 def _refuse_in_standalone_mode() -> None:
     """PWE Studio Edition guard: never write test fixtures into a customer DB."""
