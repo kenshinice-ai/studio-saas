@@ -1,0 +1,812 @@
+<script>document.documentElement.setAttribute('data-lang','zh');</script>
+<title>钱这一层 · 界面方案 v10.1</title>
+<style>
+  /* ── 令牌 ──────────────────────────────────────────────────────────
+     全部取自 backend/frontend/assets/console-theme.css（生成，勿手改）
+     与 ui-tokens.css。这一页不发明任何新颜色、新间距、新字号：渲染图
+     里出现的每个值都能在那两个文件里找到。 */
+  :root{
+    --bg:#F7F5F2; --bg2:#EEEAE3; --panel:#FFFDFC; --surface:#FFFDFC;
+    --surface-hover:#F8F6F6; --ink:#0E1729; --ink2:#404550; --muted:#626977;
+    --line:#DCD8D2; --line-strong:#94836B;
+    --accent:#0E1729; --on-accent:#FFFFFF; --accent-hover:#162440;
+    --accent-soft:#C9D0DF; --on-accent-soft:#0E1729; --accent-border:#A6ADBD;
+    --accent-2:#A16207; --accent-2-soft:#F3E5D3; --on-accent-2-soft:#915C10; --accent-2-border:#DABD95;
+    --success:#307C59; --success-soft:#D6ECE2; --on-success-soft:#2D7454; --success-border:#A3C9B8;
+    --warning:#926727; --warning-soft:#F2E5D2; --on-warning-soft:#886024; --warning-border:#D4BE9D;
+    --danger:#BD493C;  --danger-soft:#F6E2E0;  --on-danger-soft:#B04438;  --danger-border:#E5B5B0;
+    --info:#3F71AB;    --info-soft:#DEE8F4;    --on-info-soft:#3B6AA1;    --info-border:#ADC3DE;
+    --on-role:#FFFFFF;
+
+    /* ui-tokens.css：φ 与斐波那契，原样搬过来 */
+    --phi:1.618;
+    --golden-columns:minmax(0,1.618fr) minmax(0,1fr);
+    --golden-columns-reverse:minmax(0,1fr) minmax(0,1.618fr);
+    --s1:5px; --s2:8px; --s3:13px; --s4:21px; --s5:34px; --s6:55px; --s7:89px;
+    --t-xs:13px; --t-sm:16px; --t-md:21px; --t-lg:34px; --t-xl:55px;
+    --r-control:8px; --r-card:13px; --r-sheet:21px;
+    --dur-exit:144ms; --dur-enter:233ms;
+
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);
+       font-size:var(--t-sm);line-height:1.618;-webkit-font-smoothing:antialiased;}
+  :root:not([data-lang="en"]) .en{display:none;}
+  :root[data-lang="en"] .zh{display:none;}
+
+  /* ── 文档外壳 ─────────────────────────────────────────────────── */
+  .bar{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:var(--s3);
+       flex-wrap:wrap;padding:var(--s2) max(var(--s4),calc((100% - 1180px)/2));
+       background:rgba(247,245,242,.93);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);}
+  .mark{font-weight:700;letter-spacing:.14em;font-size:var(--t-xs);text-transform:uppercase;
+        border-left:3px solid var(--accent-2);padding-left:var(--s2);line-height:1.3;}
+  .mark small{display:block;font-weight:500;letter-spacing:.02em;text-transform:none;
+              color:var(--muted);font-size:12px;}
+  .sp{flex:1;}
+  .btn{font:inherit;font-size:var(--t-xs);cursor:pointer;background:var(--surface);color:var(--ink2);
+       border:1px solid var(--line-strong);border-radius:var(--r-control);
+       padding:var(--s1) var(--s3);min-height:32px;}
+  .btn:hover{border-color:var(--accent-2);color:var(--accent-2);}
+  .btn:focus-visible{outline:2px solid var(--info);outline-offset:2px;}
+  .btn[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent);}
+
+  main{padding:0 max(var(--s4),calc((100% - 1180px)/2)) var(--s7);}
+  .col{max-width:min(72ch,760px);}
+  header.cover{padding:var(--s6) 0 var(--s5);border-bottom:1px solid var(--line);}
+  .eyebrow{font-size:var(--t-xs);letter-spacing:.18em;text-transform:uppercase;
+           color:var(--accent-2);font-weight:700;margin:0 0 var(--s3);}
+  h1{font-size:var(--t-lg);line-height:1.2;margin:0 0 var(--s3);max-width:22ch;font-weight:700;}
+  .deck{font-size:var(--t-md);color:var(--ink2);max-width:60ch;margin:0;line-height:1.5;}
+  section{padding-top:var(--s6);}
+  h2{font-size:var(--t-md);margin:0 0 var(--s2);font-weight:700;}
+  .num{display:block;font-family:var(--mono);font-size:12px;letter-spacing:.16em;
+       color:var(--accent-2);margin:0 0 var(--s2);}
+  h3{font-size:var(--t-sm);font-weight:700;margin:var(--s5) 0 var(--s2);}
+  p{margin:0 0 var(--s3);max-width:min(72ch,760px);}
+  ul,ol{margin:0 0 var(--s3);padding-left:1.2em;max-width:min(72ch,760px);}
+  li{margin:0 0 var(--s1);}
+  code{font-family:var(--mono);font-size:.86em;background:var(--bg2);border:1px solid var(--line);
+       border-radius:4px;padding:1px 4px;}
+
+  .note{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent-2);
+        border-radius:var(--r-card);padding:var(--s4);margin:var(--s4) 0;max-width:min(72ch,760px);}
+  .note.warn{border-left-color:var(--danger);}
+  .note .lbl{display:block;font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+             color:var(--accent-2);font-weight:700;margin-bottom:var(--s2);}
+  .note.warn .lbl{color:var(--danger);}
+  .note p:last-child{margin-bottom:0;}
+
+  .tw{overflow-x:auto;margin:var(--s3) 0 var(--s4);border:1px solid var(--line);
+      border-radius:var(--r-card);background:var(--surface);}
+  table{border-collapse:collapse;width:100%;min-width:560px;font-size:var(--t-xs);}
+  th,td{text-align:left;padding:var(--s2) var(--s3);border-bottom:1px solid var(--line);vertical-align:top;}
+  thead th{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
+           background:var(--bg2);font-weight:700;white-space:nowrap;}
+  tbody tr:last-child td{border-bottom:0;}
+  td.k{font-weight:600;white-space:nowrap;}
+  .n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+
+  /* ── 渲染图外框 ────────────────────────────────────────────────── */
+  .shot{margin:var(--s4) 0 var(--s5);}
+  .shot-cap{font-size:var(--t-xs);color:var(--muted);margin:var(--s2) 0 0;max-width:72ch;}
+  .frame{border:1px solid var(--line-strong);border-radius:var(--r-sheet);overflow:hidden;
+         background:var(--panel);box-shadow:0 var(--s4) var(--s6) -34px rgba(14,23,41,.35);}
+  .frame-scroll{overflow-x:auto;}
+  .app{display:grid;grid-template-columns:212px 1fr;min-width:900px;}
+
+  /* 左栏 */
+  .rail{background:var(--panel);border-right:1px solid var(--line);padding:var(--s3) 0;}
+  .rail-brand{display:flex;gap:var(--s2);align-items:center;padding:0 var(--s3) var(--s3);
+              border-bottom:1px solid var(--line);margin-bottom:var(--s3);}
+  .rail-logo{width:34px;height:34px;border-radius:var(--r-control);background:var(--accent-2-soft);
+             border:1px solid var(--accent-2-border);display:grid;place-items:center;
+             font-size:12px;font-weight:700;color:var(--on-accent-2-soft);}
+  .rail-name{font-size:var(--t-xs);font-weight:700;line-height:1.25;}
+  .rail-name small{display:block;font-weight:500;color:var(--muted);font-size:11px;}
+  .rail-group{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);
+              padding:var(--s3) var(--s3) var(--s1);font-weight:700;}
+  .rail-item{display:flex;align-items:center;gap:var(--s2);padding:var(--s2) var(--s3);
+             margin:1px var(--s2);border-radius:var(--r-control);font-size:var(--t-xs);
+             color:var(--ink2);min-height:36px;}
+  .rail-item .ico{width:16px;height:16px;flex:none;opacity:.75;}
+  .rail-item.on{background:var(--accent-2-soft);color:var(--on-accent-2-soft);font-weight:700;
+                box-shadow:inset 2px 0 0 var(--accent-2);}
+  .rail-item.new{position:relative;}
+  .rail-item.new::after{content:"NEW";position:absolute;right:var(--s3);font-size:9px;
+                        letter-spacing:.1em;font-weight:700;color:var(--on-info-soft);
+                        background:var(--info-soft);border:1px solid var(--info-border);
+                        border-radius:4px;padding:0 4px;}
+  .badge{margin-left:auto;font-size:11px;font-weight:700;min-width:20px;height:20px;
+         border-radius:10px;display:grid;place-items:center;padding:0 5px;
+         background:var(--danger-soft);color:var(--on-danger-soft);border:1px solid var(--danger-border);}
+  .badge.q{background:var(--warning-soft);color:var(--on-warning-soft);border-color:var(--warning-border);}
+
+  /* 主区 */
+  .main{background:var(--bg);min-width:0;}
+  .top{display:flex;align-items:center;gap:var(--s3);padding:var(--s3) var(--s4);
+       background:var(--panel);border-bottom:1px solid var(--line);}
+  .top-title{font-size:var(--t-xs);font-weight:700;line-height:1.25;}
+  .top-title small{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+                   color:var(--muted);font-weight:700;}
+  .search{flex:1;max-width:420px;height:34px;border:1px solid var(--line);border-radius:var(--r-control);
+          background:var(--bg);display:flex;align-items:center;padding:0 var(--s2);gap:var(--s2);
+          color:var(--muted);font-size:var(--t-xs);}
+  .pill{font-size:11px;font-weight:700;padding:3px var(--s2);border-radius:20px;
+        border:1px solid var(--success-border);background:var(--success-soft);color:var(--on-success-soft);}
+  .avatar{width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--on-accent);
+          display:grid;place-items:center;font-size:12px;font-weight:700;}
+  .body{padding:var(--s4);display:grid;gap:var(--s3);}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-card);}
+  .card-h{display:flex;align-items:center;gap:var(--s2);padding:var(--s3) var(--s4);
+          border-bottom:1px solid var(--line);font-size:var(--t-xs);font-weight:700;}
+  .card-b{padding:var(--s4);}
+  .card-b.tight{padding:0;}
+
+  /* KPI —— 同级，必须等宽，不许用 φ 切 */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s3);}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-card);padding:var(--s3);}
+  .kpi .lab{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700;}
+  .kpi .val{font-size:var(--t-md);font-weight:700;font-variant-numeric:tabular-nums;margin-top:2px;}
+  .kpi .sub{font-size:11px;color:var(--muted);}
+  .kpi.alert .val{color:var(--danger);}
+  .kpi.good .val{color:var(--success);}
+  /* 待办性质的数字用 warning，和「待处理」角标同一语义色 —— 它不是错误，
+     是还没轮到做。三种状态色分别对应：要追的钱、收到的钱、该写的报告。 */
+  .kpi.q .val{color:var(--warning);}
+
+  /* φ 主从 */
+  .split{display:grid;grid-template-columns:var(--golden-columns-reverse);gap:var(--s3);align-items:start;}
+  .split-major{display:grid;gap:var(--s3);min-width:0;}
+  .phi-tag{font-family:var(--mono);font-size:10px;color:var(--accent-2);letter-spacing:.1em;
+           border:1px dashed var(--accent-2-border);border-radius:4px;padding:1px 5px;
+           background:var(--accent-2-soft);white-space:nowrap;}
+
+  .list-row{display:flex;gap:var(--s2);align-items:center;padding:var(--s2) var(--s3);
+            border-bottom:1px solid var(--line);font-size:var(--t-xs);}
+  .list-row:last-child{border-bottom:0;}
+  .list-row.on{background:var(--accent-2-soft);box-shadow:inset 2px 0 0 var(--accent-2);}
+  .list-row .who{font-weight:600;}
+  .list-row .amt{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:700;}
+  .st{font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;white-space:nowrap;
+      border:1px solid var(--line);background:var(--bg2);color:var(--muted);}
+  .st.paid{background:var(--success-soft);color:var(--on-success-soft);border-color:var(--success-border);}
+  .st.part{background:var(--info-soft);color:var(--on-info-soft);border-color:var(--info-border);}
+  .st.over{background:var(--danger-soft);color:var(--on-danger-soft);border-color:var(--danger-border);}
+  .st.draft{background:var(--bg2);color:var(--muted);}
+
+  .dtable{width:100%;border-collapse:collapse;font-size:var(--t-xs);}
+  .dtable th{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
+             text-align:left;padding:var(--s2) var(--s3);border-bottom:1px solid var(--line);font-weight:700;}
+  .dtable td{padding:var(--s2) var(--s3);border-bottom:1px solid var(--line);}
+  .dtable tr:last-child td{border-bottom:0;}
+  .dtable .n{text-align:right;font-variant-numeric:tabular-nums;}
+  .dtable tfoot td{font-weight:700;background:var(--bg2);}
+
+  .btn-p{display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:var(--on-accent);
+         border:1px solid var(--accent);border-radius:var(--r-control);padding:var(--s2) var(--s3);
+         font-size:var(--t-xs);font-weight:600;min-height:36px;}
+  .btn-s{display:inline-flex;align-items:center;gap:6px;background:var(--surface);color:var(--ink2);
+         border:1px solid var(--line-strong);border-radius:var(--r-control);padding:var(--s2) var(--s3);
+         font-size:var(--t-xs);min-height:36px;}
+  .btn-d{opacity:.45;}
+  .actions{display:flex;gap:var(--s2);flex-wrap:wrap;align-items:center;}
+
+  .step{display:flex;gap:var(--s3);padding:var(--s3);border:1px solid var(--line);
+        border-radius:var(--r-card);background:var(--panel);align-items:flex-start;}
+  .step .no{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;flex:none;
+            font-size:12px;font-weight:700;background:var(--bg2);color:var(--muted);border:1px solid var(--line);}
+  .step.done .no{background:var(--success-soft);color:var(--on-success-soft);border-color:var(--success-border);}
+  .step.now{border-color:var(--accent-2-border);background:var(--accent-2-soft);}
+  .step.now .no{background:var(--accent-2);color:var(--on-role);border-color:var(--accent-2);}
+  .step .tx{font-size:var(--t-xs);}
+  .step .tx b{display:block;margin-bottom:2px;}
+  .step .tx span{color:var(--muted);}
+
+  .switch{display:flex;align-items:center;gap:var(--s2);}
+  .track{width:38px;height:22px;border-radius:11px;background:var(--bg2);border:1px solid var(--line-strong);
+         position:relative;flex:none;}
+  .track::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;
+                background:var(--panel);border:1px solid var(--line-strong);}
+  .track.on{background:var(--success);border-color:var(--success);}
+  .track.on::after{left:auto;right:2px;border-color:var(--success);}
+  .track.off{opacity:.5;}
+
+  .bars{display:grid;gap:6px;}
+  .bar-row{display:grid;grid-template-columns:76px 1fr 74px;gap:var(--s2);align-items:center;font-size:var(--t-xs);}
+  .bar{height:16px;border-radius:4px;background:var(--info-soft);border:1px solid var(--info-border);}
+  .bar.w{background:var(--warning-soft);border-color:var(--warning-border);}
+  .bar.d{background:var(--danger-soft);border-color:var(--danger-border);}
+
+  .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:var(--s3);}
+  .mini{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:var(--s3);}
+  .mini h4{margin:0 0 var(--s1);font-size:var(--t-xs);}
+  .mini p{margin:0;font-size:var(--t-xs);color:var(--ink2);}
+
+  hr.end{border:0;border-top:1px solid var(--line);margin:var(--s6) 0 0;}
+  .foot{padding-top:var(--s4);font-size:var(--t-xs);color:var(--muted);}
+
+  @media (max-width:720px){
+    .kpis{grid-template-columns:repeat(2,1fr);}
+    .split{grid-template-columns:1fr;}
+  }
+  @media print{
+    .bar{display:none;} body{background:#fff;}
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    @page{size:A4 landscape;margin:12mm;}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
+</style>
+
+<div class="bar">
+  <div class="mark">PWE Studio<small>界面方案 · v10.1</small></div>
+  <div class="sp"></div>
+  <button class="btn" id="lz" aria-pressed="true" onclick="setLang('zh')">中文</button>
+  <button class="btn" id="le" aria-pressed="false" onclick="setLang('en')">English</button>
+  <button class="btn" onclick="window.print()"><span class="zh">打印</span><span class="en">Print</span></button>
+</div>
+
+<main>
+<header class="cover">
+  <p class="eyebrow"><span class="zh">界面方案 · 只做设计，等你定</span><span class="en">Interface proposal · design only</span></p>
+  <h1><span class="zh">34 条接口，2 个新导航项</span><span class="en">34 endpoints, 2 new nav items</span></h1>
+  <p class="deck">
+    <span class="zh">v10.0.0 的钱这一层已经上线，但只有 API。这份方案把它放进现有的三个界面 —— 而关键判断是：<strong>它不需要一个新界面，也几乎不需要新导航</strong>。</span>
+    <span class="en">The v10.0.0 money layer is live, but only as an API. This proposal places it into the three existing surfaces — and the key judgement is that it needs neither a new surface nor, almost, any new navigation.</span>
+  </p>
+</header>
+
+<!-- ══ 01 ══ -->
+<section>
+  <span class="num">01</span>
+  <h2><span class="zh">先看现状：CMS 左栏已经是分组的</span><span class="en">Where things already are</span></h2>
+  <div class="col">
+    <p class="zh">这不是一块白板。CMS 的左栏早就分好了四组 —— <strong>今日 / 教学运营 / 经营 / 记录</strong> —— 而「经营」组里已经有「充值与退款」和「经营统计」。钱的功能有天然的家，不需要另起炉灶。</p>
+    <p class="en">This is not a blank slate. The CMS rail is already grouped into four clusters — Today / Teaching / Business / Records — and the Business cluster already holds top-ups and business statistics. The money layer has a natural home; it does not need a new one.</p>
+    <p class="zh">Studio Admin 的 12 个面板全部是公开网站与品牌（品牌 / 首屏 / 作品 / 课表 / 报名 / 常见问题…）。Platform Admin 是「租户与订阅 / 套餐与定价」的主从结构。<strong>三个界面的边界本来就清楚，方案只需要尊重它。</strong></p>
+    <p class="en">Studio Admin's twelve panels are all about the public website and brand. Platform Admin is a master–detail over tenants, subscriptions, plans and pricing. The three surfaces already have clear boundaries; the proposal only has to respect them.</p>
+  </div>
+
+  <div class="tw">
+    <table>
+      <thead><tr>
+        <th><span class="zh">界面</span><span class="en">Surface</span></th>
+        <th><span class="zh">它回答的问题</span><span class="en">The question it answers</span></th>
+        <th><span class="zh">钱这一层放什么</span><span class="en">What the money layer adds</span></th>
+      </tr></thead>
+      <tbody>
+        <tr><td class="k">Platform Admin</td>
+          <td><span class="zh">这家工作室买了什么、该收多少</span><span class="en">What this studio bought and owes us</span></td>
+          <td><span class="zh"><strong>加购开关</strong>（Xero）+ 套餐功能矩阵。开关一，平台侧</span><span class="en"><strong>Add-on switch</strong> (Xero) and the plan feature matrix. Switch one, platform side</span></td></tr>
+        <tr><td class="k">Studio Admin</td>
+          <td><span class="zh">我的网站长什么样、叫什么名字</span><span class="en">What my website looks like and is called</span></td>
+          <td><span class="zh"><strong>只加一处</strong>：发票外观（抬头 / 页脚 / 付款说明）。发票是带着工作室名字寄到家长手上的文件 —— 那是品牌</span><span class="en"><strong>One addition only</strong>: invoice appearance. An invoice is a document that reaches a family carrying the studio's name — that is brand</span></td></tr>
+        <tr><td class="k">CMS</td>
+          <td><span class="zh">今天要做什么、这个月赚了多少</span><span class="en">What to do today, and how the month went</span></td>
+          <td><span class="zh">其余全部。<strong>只新增两个导航项</strong>：账单、课酬</span><span class="en">Everything else. <strong>Two new nav items only</strong>: Billing and Teacher pay</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ══ 02 ══ -->
+<section>
+  <span class="num">02</span>
+  <h2><span class="zh">左栏：改动前后</span><span class="en">The rail, before and after</span></h2>
+  <div class="col">
+    <p class="zh">六个功能族，只换来两个新导航项。其余四个都接在已经存在的地方 —— 因为它们本来就是那件事的一部分，不是新的一件事。</p>
+    <p class="en">Six feature families, two new nav items. The other four attach to places that already exist, because they are part of what happens there rather than a new thing to do.</p>
+  </div>
+
+  <div class="shot">
+    <div class="frame frame-scroll" role="img" aria-label="CMS 左栏改动前后对比">
+      <div style="display:grid;grid-template-columns:1fr 1fr;min-width:620px;">
+        <div style="border-right:1px solid var(--line);">
+          <div style="padding:var(--s3) var(--s4);border-bottom:1px solid var(--line);font-size:11px;
+                      letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700;">现在 · v10.0.0</div>
+          <div class="rail" style="border-right:0;">
+            <div class="rail-group">今日</div>
+            <div class="rail-item">工作台<span class="badge">2</span></div>
+            <div class="rail-item">待处理<span class="badge">7</span></div>
+            <div class="rail-group">教学运营</div>
+            <div class="rail-item">课程安排</div>
+            <div class="rail-item">课程</div>
+            <div class="rail-item">学员</div>
+            <div class="rail-item">作品</div>
+            <div class="rail-group">经营</div>
+            <div class="rail-item">充值与退款</div>
+            <div class="rail-item">经营统计</div>
+            <div class="rail-group">记录</div>
+            <div class="rail-item">操作日志</div>
+          </div>
+        </div>
+        <div>
+          <div style="padding:var(--s3) var(--s4);border-bottom:1px solid var(--line);font-size:11px;
+                      letter-spacing:.12em;text-transform:uppercase;color:var(--on-accent-2-soft);
+                      font-weight:700;background:var(--accent-2-soft);">方案 · v10.1</div>
+          <div class="rail" style="border-right:0;">
+            <div class="rail-group">今日</div>
+            <div class="rail-item">工作台<span class="badge">2</span></div>
+            <div class="rail-item">待处理<span class="badge">9</span></div>
+            <div class="rail-group">教学运营</div>
+            <div class="rail-item">课程安排</div>
+            <div class="rail-item">课程</div>
+            <div class="rail-item">学员</div>
+            <div class="rail-item">作品</div>
+            <div class="rail-group">经营</div>
+            <div class="rail-item on new">账单<span class="badge" style="margin-right:42px">6</span></div>
+            <div class="rail-item">充值与退款</div>
+            <div class="rail-item new">课酬<span class="badge q" style="margin-right:42px">3</span></div>
+            <div class="rail-item">经营统计</div>
+            <div class="rail-group">记录</div>
+            <div class="rail-item">操作日志</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="shot-cap"><span class="zh">新增只有两项，都落在既有的「经营」组里。账单的红色角标是逾期笔数，课酬的琥珀角标是待确认的老师人数 —— 角标语义沿用现有的「待处理」写法。</span><span class="en">Two additions, both inside the existing Business cluster. The red badge on Billing counts overdue invoices; the amber one on Teacher pay counts periods awaiting a teacher's confirmation — the same badge grammar the Pending item already uses.</span></p>
+  </div>
+
+  <h3><span class="zh">另外四族接在哪</span><span class="en">Where the other four attach</span></h3>
+  <div class="tw">
+    <table>
+      <thead><tr>
+        <th><span class="zh">功能</span><span class="en">Feature</span></th>
+        <th><span class="zh">接在</span><span class="en">Attaches to</span></th>
+        <th><span class="zh">为什么不是新导航</span><span class="en">Why not a new nav item</span></th>
+      </tr></thead>
+      <tbody>
+        <tr><td class="k"><span class="zh">四张经营报表</span><span class="en">Four reports</span></td>
+          <td><span class="zh">经营统计</span><span class="en">Business statistics</span></td>
+          <td><span class="zh">那个页面已经在回答「这个月怎么样」，报表是把答案说完整</span><span class="en">That page already answers "how was the month"; the reports finish the answer</span></td></tr>
+        <tr><td class="k"><span class="zh">成长报告</span><span class="en">Progress reports</span></td>
+          <td><span class="zh">待处理（第三个标签）+ 学员详情</span><span class="en">Pending (a third tab) and the student record</span></td>
+          <td><span class="zh">「待写的报告」就是等人处理的事，和报名、约课同一性质</span><span class="en">An unwritten report is work waiting for a person — the same nature as an enquiry or a booking</span></td></tr>
+        <tr><td class="k"><span class="zh">一对一循环课 / 补课额度</span><span class="en">Recurring lessons, make-ups</span></td>
+          <td><span class="zh">课程安排</span><span class="en">The roster</span></td>
+          <td><span class="zh">排课就是排课。把 1v1 拆成第二个页面，前台每天要在两处之间跳</span><span class="en">Scheduling is scheduling. A second page for 1:1 makes the front desk hop between two every day</span></td></tr>
+        <tr><td class="k"><span class="zh">Xero / 支付 / 短信 / 日历订阅</span><span class="en">Xero, payments, SMS, calendar</span></td>
+          <td><span class="zh">系统设置 → 集成、通知</span><span class="en">Settings → Integrations, Notifications</span></td>
+          <td><span class="zh">一次性配置，不是日常工作。放进日常导航会让它每天占一格</span><span class="en">Configured once, not worked daily. In the daily rail it would occupy a slot every day for nothing</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <span class="lbl"><span class="zh">一条克制</span><span class="en">One restraint</span></span>
+    <p class="zh">我没有把「账单」和「充值与退款」合并。它们看起来像一件事，其实是<strong>两本账</strong>：充值动的是课时，账单动的是钱。产品的数据模型刻意让它们分开且互相对得上；界面如果合并，第一次出现「余额 3 节课 / 欠费 $220」这种组合时，前台就不知道该看哪个数了。</p>
+    <p class="en">Billing and Top-ups are deliberately not merged. They look like one thing and are two ledgers: a top-up moves lessons, an invoice moves money. The data model keeps them separate and reconcilable on purpose; merging them in the interface would leave the front desk unsure which number to trust the first time an account reads "3 lessons left / $220 owing".</p>
+  </div>
+</section>
+
+<!-- ══ 03 ══ -->
+<section>
+  <span class="num">03</span>
+  <h2><span class="zh">账单工作区</span><span class="en">The billing workspace</span></h2>
+  <div class="col">
+    <p class="zh">一个页面回答三个问题：谁欠钱、这张单是什么、钱到了没有。左边是列表（38.2%），右边是选中的那张单（61.8%）—— 这是 <code>--ui-golden-columns-reverse</code>，因为详情才是主体，列表是导航。</p>
+    <p class="en">One page answers three questions: who owes, what this invoice is, and whether the money arrived. The list takes 38.2% and the selected invoice 61.8% — <code>--ui-golden-columns-reverse</code>, because the detail is the subject and the list is navigation.</p>
+  </div>
+
+  <div class="shot">
+    <div class="frame frame-scroll" role="img" aria-label="账单工作区渲染图">
+      <div class="app">
+        <div class="rail">
+          <div class="rail-brand">
+            <div class="rail-logo">SB</div>
+            <div class="rail-name">Sinobeats<small>Studio CMS</small></div>
+          </div>
+          <div class="rail-group">今日</div>
+          <div class="rail-item">工作台<span class="badge">2</span></div>
+          <div class="rail-item">待处理<span class="badge">9</span></div>
+          <div class="rail-group">教学运营</div>
+          <div class="rail-item">课程安排</div>
+          <div class="rail-item">课程</div>
+          <div class="rail-item">学员</div>
+          <div class="rail-item">作品</div>
+          <div class="rail-group">经营</div>
+          <div class="rail-item on">账单<span class="badge">6</span></div>
+          <div class="rail-item">充值与退款</div>
+          <div class="rail-item">课酬<span class="badge q">3</span></div>
+          <div class="rail-item">经营统计</div>
+          <div class="rail-group">记录</div>
+          <div class="rail-item">操作日志</div>
+        </div>
+
+        <div class="main">
+          <div class="top">
+            <div class="top-title"><small>Studio CMS</small>账单</div>
+            <div class="search">⌘K &nbsp;搜索家庭、发票号或金额</div>
+            <span class="pill">已同步 Xero</span>
+            <div class="avatar">M</div>
+          </div>
+
+          <div class="body">
+            <div class="kpis">
+              <div class="kpi"><div class="lab">本月开票</div><div class="val">$18,240</div><div class="sub">42 张 · 含 GST</div></div>
+              <div class="kpi good"><div class="lab">本月收到</div><div class="val">$15,880</div><div class="sub">87% 已收</div></div>
+              <div class="kpi alert"><div class="lab">逾期</div><div class="val">$2,360</div><div class="sub">6 个家庭</div></div>
+              <div class="kpi"><div class="lab">待发草稿</div><div class="val">14</div><div class="sub">Term 1 学费</div></div>
+            </div>
+
+            <div class="split">
+              <div class="card" style="min-width:0">
+                <div class="card-h">
+                  <span>发票</span>
+                  <span class="st over" style="margin-left:auto">逾期 6</span>
+                </div>
+                <div class="card-b tight">
+                  <div class="list-row on">
+                    <input type="checkbox" checked aria-label="选中">
+                    <div><div class="who">阮氏家庭</div><div style="color:var(--muted);font-size:11px">INV-0182 · 逾期 12 天</div></div>
+                    <div class="amt" style="color:var(--danger)">$660</div>
+                  </div>
+                  <div class="list-row">
+                    <input type="checkbox" aria-label="选中">
+                    <div><div class="who">Chen 家庭</div><div style="color:var(--muted);font-size:11px">INV-0181 · 逾期 5 天</div></div>
+                    <div class="amt" style="color:var(--danger)">$440</div>
+                  </div>
+                  <div class="list-row">
+                    <input type="checkbox" aria-label="选中">
+                    <div><div class="who">Kingsley 小学</div><div style="color:var(--muted);font-size:11px">INV-0179 · 30 天账期</div></div>
+                    <div class="amt">$1,980</div>
+                  </div>
+                  <div class="list-row">
+                    <input type="checkbox" aria-label="选中">
+                    <div><div class="who">Tran 家庭</div><div style="color:var(--muted);font-size:11px">INV-0178 · 部分付款</div></div>
+                    <span class="st part">部分</span>
+                    <div class="amt">$220</div>
+                  </div>
+                  <div class="list-row">
+                    <input type="checkbox" aria-label="选中">
+                    <div><div class="who">Wu 家庭</div><div style="color:var(--muted);font-size:11px">草稿 · 未编号</div></div>
+                    <span class="st draft">草稿</span>
+                    <div class="amt">$540</div>
+                  </div>
+                </div>
+                <div class="card-h" style="border-bottom:0;border-top:1px solid var(--line);gap:var(--s2)">
+                  <span class="btn-p" style="min-height:32px">批量发出 (1)</span>
+                  <span class="btn-s" style="min-height:32px">催缴</span>
+                </div>
+              </div>
+
+              <div class="split-major">
+                <div class="card">
+                  <div class="card-h">
+                    <span>INV-0182 · 阮氏家庭</span>
+                    <span class="st over" style="margin-left:auto">逾期 12 天</span>
+                  </div>
+                  <div class="card-b">
+                    <table class="dtable">
+                      <thead><tr><th>项目</th><th>学员</th><th class="n">数量</th><th class="n">单价</th><th class="n">税</th><th class="n">小计</th></tr></thead>
+                      <tbody>
+                        <tr><td>Term 1 古筝 1v1</td><td>Emma</td><td class="n">10</td><td class="n">$55.00</td><td class="n">$55.00</td><td class="n">$605.00</td></tr>
+                        <tr><td>乐器租赁 · 古筝</td><td>Emma</td><td class="n">1</td><td class="n">$50.00</td><td class="n">$5.00</td><td class="n">$55.00</td></tr>
+                      </tbody>
+                      <tfoot>
+                        <tr><td colspan="4"></td><td class="n">GST</td><td class="n">$60.00</td></tr>
+                        <tr><td colspan="4"></td><td class="n">应付</td><td class="n">$660.00</td></tr>
+                      </tfoot>
+                    </table>
+                    <div class="actions" style="margin-top:var(--s3)">
+                      <span class="btn-p">登记收款</span>
+                      <span class="btn-s">发送提醒</span>
+                      <span class="btn-s">贷记单冲销</span>
+                      <span class="btn-s btn-d" title="已开具的发票不能改">编辑 ✕</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="card">
+                  <div class="card-h">这张单发生过什么</div>
+                  <div class="card-b tight">
+                    <div class="list-row"><span class="st">开具</span><span style="color:var(--muted)">01/02 09:12 · Manager</span><span class="amt" style="font-weight:400;color:var(--muted)">编号 INV-0182</span></div>
+                    <div class="list-row"><span class="st">短信送达</span><span style="color:var(--muted)">01/02 09:12 · 自动</span><span class="amt" style="font-weight:400;color:var(--muted)">0412 ••• 883</span></div>
+                    <div class="list-row"><span class="st part">推送 Xero</span><span style="color:var(--muted)">01/02 09:13 · 自动</span><span class="amt" style="font-weight:400;color:var(--muted)">ACCREC 已建</span></div>
+                    <div class="list-row"><span class="st over">逾期提醒</span><span style="color:var(--muted)">14/02 08:00 · 自动</span><span class="amt" style="font-weight:400;color:var(--muted)">第 1 次</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="shot-cap"><span class="zh">三处刻意的设计：<strong>「编辑」是灰的且带叉</strong>——已开具的发票不可改是数据库触发器保证的，界面必须诚实地表现这条约束，而不是给一个点了会报错的按钮；<strong>列表带多选和「批量发出」</strong>——周期账单一次生成几十张草稿，逐张点是不可用的；<strong>「这张单发生过什么」</strong>直接读 <code>invoice_events</code>，包括推送 Xero 的结果，因为家长说「我没收到」时这是唯一能回答的地方。</span><span class="en">Three deliberate choices. <strong>Edit is greyed with a cross</strong>: an issued invoice is immutable by database trigger, and the interface should say so rather than offer a button that errors. <strong>The list is multi-select with bulk issue</strong>, because a term run drafts dozens at once. And <strong>the event log</strong> reads <code>invoice_events</code> including the Xero push, because it is the only place that can answer "we never got it".</span></p>
+  </div>
+</section>
+
+<!-- ══ 04 ══ -->
+<section>
+  <span class="num">04</span>
+  <h2><span class="zh">课酬：四个数必须同屏</span><span class="en">Teacher pay: four numbers, one screen</span></h2>
+  <div class="col">
+    <p class="zh">老师看到「本期 $1,240」会问的第一句是「我记得比这个多」。所以界面不给一个数，给四个：<strong>排了多少 / 实际上了多少 / 请假按政策计费多少 / 老师取消不计费多少</strong>。差异逐条可点开。争议在发钱之前解决，而不是之后。</p>
+    <p class="en">A teacher shown "$1,240 this period" asks "I thought it was more" first. So the screen does not show one number, it shows four: scheduled, actually taught, charged-absent under policy, and teacher-cancelled unpaid. Every difference opens. Disputes get settled before anyone is paid.</p>
+  </div>
+
+  <div class="shot">
+    <div class="frame frame-scroll" role="img" aria-label="课酬期间渲染图">
+      <div class="app">
+        <div class="rail">
+          <div class="rail-brand"><div class="rail-logo">SB</div><div class="rail-name">Sinobeats<small>Studio CMS</small></div></div>
+          <div class="rail-group">经营</div>
+          <div class="rail-item">账单<span class="badge">6</span></div>
+          <div class="rail-item">充值与退款</div>
+          <div class="rail-item on">课酬<span class="badge q">3</span></div>
+          <div class="rail-item">经营统计</div>
+        </div>
+        <div class="main">
+          <div class="top">
+            <div class="top-title"><small>Studio CMS</small>课酬 · 2026 年 2 月</div>
+            <div class="search">⌘K &nbsp;搜索老师</div>
+            <span class="pill" style="background:var(--warning-soft);color:var(--on-warning-soft);border-color:var(--warning-border)">3 位待确认</span>
+            <div class="avatar">M</div>
+          </div>
+          <div class="body">
+            <div class="split">
+              <div class="card">
+                <div class="card-h">老师</div>
+                <div class="card-b tight">
+                  <div class="list-row on"><div><div class="who">陆静</div><div style="color:var(--muted);font-size:11px">承包 · ABN 已记录</div></div><div class="amt">$1,240</div></div>
+                  <div class="list-row"><div><div class="who">Priya Raman</div><div style="color:var(--muted);font-size:11px">雇员</div></div><span class="st">仅清单</span><div class="amt">$980</div></div>
+                  <div class="list-row"><div><div class="who">Tom Whelan</div><div style="color:var(--muted);font-size:11px">承包</div></div><span class="st paid">已确认</span><div class="amt">$1,510</div></div>
+                  <div class="list-row"><div><div class="who">Xi Chen</div><div style="color:var(--muted);font-size:11px">未记录用工性质</div></div><span class="st over">待补</span><div class="amt">$640</div></div>
+                </div>
+              </div>
+
+              <div class="split-major">
+                <div class="kpis" style="grid-template-columns:repeat(4,1fr)">
+                  <div class="kpi"><div class="lab">排了</div><div class="val">22</div><div class="sub">节</div></div>
+                  <div class="kpi good"><div class="lab">实际上了</div><div class="val">19</div><div class="sub">节</div></div>
+                  <div class="kpi"><div class="lab">请假计费</div><div class="val">2</div><div class="sub">按政策</div></div>
+                  <div class="kpi"><div class="lab">取消不计</div><div class="val">1</div><div class="sub">工作室取消</div></div>
+                </div>
+
+                <div class="card">
+                  <div class="card-h">陆静 · 2026-02-01 → 02-28</div>
+                  <div class="card-b">
+                    <table class="dtable">
+                      <thead><tr><th>日期</th><th>课程</th><th class="n">时长</th><th>费率基准</th><th class="n">金额</th></tr></thead>
+                      <tbody>
+                        <tr><td>02/03</td><td>古筝 1v1 · Emma</td><td class="n">30 分</td><td>每课时</td><td class="n">$50.00</td></tr>
+                        <tr><td>02/05</td><td>小组课 · 初级班</td><td class="n">60 分</td><td>按人头 ×6</td><td class="n">$90.00</td></tr>
+                        <tr style="background:var(--warning-soft)"><td>02/07</td><td>古筝 1v1 · Leo</td><td class="n">30 分</td><td>学生请假 · 按政策计费</td><td class="n">$50.00</td></tr>
+                        <tr style="opacity:.55"><td>02/12</td><td>古筝 1v1 · Emma</td><td class="n">—</td><td>工作室取消 · 不计</td><td class="n">$0.00</td></tr>
+                        <tr><td>02/14</td><td>乐团排练</td><td class="n">90 分</td><td>每场固定</td><td class="n">$120.00</td></tr>
+                      </tbody>
+                      <tfoot>
+                        <tr><td colspan="3"></td><td>课时小计</td><td class="n">$1,190.00</td></tr>
+                        <tr><td colspan="3"></td><td>调整项 · 演出交通</td><td class="n">$50.00</td></tr>
+                        <tr><td colspan="3"></td><td>本期应付</td><td class="n">$1,240.00</td></tr>
+                      </tfoot>
+                    </table>
+                    <div class="actions" style="margin-top:var(--s3)">
+                      <span class="btn-p">推送 Xero 应付账单</span>
+                      <span class="btn-s">导出 CSV</span>
+                      <span class="btn-s">加调整项</span>
+                      <span style="margin-left:auto;font-size:11px;color:var(--muted)">等老师确认后才可锁定</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="shot-cap"><span class="zh">两处是产品边界的视觉表达：<strong>Priya 标着「仅清单」</strong>——她是雇员，工资不能作为应付账单推进 Xero（会绕开薪资科目造成错账），所以她那一行根本没有推送按钮；<strong>Xi Chen 标着「待补」</strong>——用工性质没记录，系统拒绝猜，而不是默认按承包处理。请假计费那行用 warning 底色，取消不计那行降透明度：<strong>同一张表里，钱的两种「不正常」看起来就不一样</strong>。</span><span class="en">Two places where a product boundary becomes visual. Priya is marked summary-only — she is an employee, and wages must not be posted to Xero as a payable bill, so her row simply has no push button. Xi Chen is marked incomplete because her engagement type is unrecorded and the system refuses to guess. The charged-absence row is tinted warning and the unpaid cancellation is dimmed: two kinds of "not normal" that must not look alike.</span></p>
+  </div>
+</section>
+
+<!-- ══ 05 ══ -->
+<section>
+  <span class="num">05</span>
+  <h2><span class="zh">Xero：三个开关，界面上也必须是三处</span><span class="en">Xero: three switches, three places</span></h2>
+  <div class="col">
+    <p class="zh">权利在平台侧，连接和推送在租户侧。如果界面把它们并成一个开关，加购到期就会顺手断开连接，换会计看起来像退订 —— 后端已经把它们分开了，界面不能又合回去。</p>
+    <p class="en">Entitlement is platform-side; connection and pushing are the studio's. If the interface merges them, a lapsed add-on silently disconnects and changing accountant looks like cancelling. The backend keeps them apart; the interface must not put them back together.</p>
+  </div>
+
+  <div class="shot">
+    <div class="frame frame-scroll" role="img" aria-label="Platform Admin 加购开关">
+      <div style="min-width:640px">
+        <div class="top" style="background:var(--accent);color:var(--on-accent);border-bottom:0">
+          <div class="top-title" style="color:var(--on-accent)"><small style="color:var(--on-accent-muted,#7A8290)">Platform Admin</small>Sinobeats Music School</div>
+          <span class="pill" style="margin-left:auto">active · Studio $99</span>
+        </div>
+        <div class="body" style="background:var(--bg)">
+          <div class="card">
+            <div class="card-h">加购 <span style="margin-left:auto;font-weight:400;color:var(--muted);font-size:11px">开关一 · 只有平台方能动</span></div>
+            <div class="card-b">
+              <div style="display:flex;align-items:center;gap:var(--s3);padding-bottom:var(--s3);border-bottom:1px solid var(--line)">
+                <div style="flex:1">
+                  <div style="font-weight:700;font-size:var(--t-xs)">Xero 直连</div>
+                  <div style="font-size:11px;color:var(--muted)">任意档可加购 · $19/月 · 授予于 2026-02-01</div>
+                </div>
+                <div class="switch"><span style="font-size:11px;color:var(--on-success-soft);font-weight:700">已开通</span><span class="track on"></span></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:var(--s3);padding-top:var(--s3)">
+                <div style="flex:1">
+                  <div style="font-weight:700;font-size:var(--t-xs)">薪酬文件生成（RCTI / ABA）</div>
+                  <div style="font-size:11px;color:var(--muted)">未开通</div>
+                </div>
+                <div class="switch"><span style="font-size:11px;color:var(--muted)">未开通</span><span class="track off"></span></div>
+              </div>
+            </div>
+          </div>
+          <div class="note" style="margin:0;max-width:none">
+            <span class="lbl">撤销时会发生什么</span>
+            <p style="font-size:var(--t-xs);margin:0">停止<strong>新的</strong>推送。连接、科目映射、ID 对应表、错误队列、CSV 导出<strong>全部保留</strong>。已推送的凭证不动。发票是法律文件，不是配额资源 —— 这句话在界面上必须能读到，否则撤销按钮没人敢按。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="shot-cap"><span class="zh">平台侧只有一件事：给不给。撤销的后果写在开关旁边，而不是藏在文档里。</span><span class="en">The platform side does one thing: grant or withdraw. What withdrawal does is written beside the switch rather than left in a document.</span></p>
+  </div>
+
+  <div class="shot">
+    <div class="frame frame-scroll" role="img" aria-label="CMS 里的 Xero 三步向导">
+      <div style="min-width:640px">
+        <div class="top">
+          <div class="top-title"><small>Studio CMS</small>系统设置 · 集成 · Xero</div>
+          <span class="pill" style="background:var(--bg2);color:var(--muted);border-color:var(--line)">推送未开启</span>
+          <div class="avatar">O</div>
+        </div>
+        <div class="body">
+          <div class="split" style="grid-template-columns:var(--golden-columns-reverse)">
+            <div style="display:grid;gap:var(--s2)">
+              <div class="step done"><div class="no">✓</div><div class="tx"><b>连接 Xero</b><span>Demo Company (AU) · owner 授权于 02-01</span></div></div>
+              <div class="step done"><div class="no">✓</div><div class="tx"><b>科目与税率映射</b><span>会计已确认 · 10 项</span></div></div>
+              <div class="step now"><div class="no">3</div><div class="tx"><b>测试组织试跑</b><span>跑通一个完整周期后才能开生产推送</span></div></div>
+              <div class="step"><div class="no">4</div><div class="tx"><b>单一入口</b><span>Square 是否已在同步？</span></div></div>
+            </div>
+            <div class="split-major">
+              <div class="card">
+                <div class="card-h">开关三 · 生产推送</div>
+                <div class="card-b">
+                  <div class="switch" style="margin-bottom:var(--s3)">
+                    <span class="track off"></span>
+                    <span style="font-size:var(--t-xs);color:var(--muted)">还不能开启 —— 还差 2 步</span>
+                  </div>
+                  <div class="note warn" style="margin:0;max-width:none">
+                    <span class="lbl">先回答这个</span>
+                    <p style="font-size:var(--t-xs);margin:0 0 var(--s2)"><strong>你们的 Square 是不是已经在往同一个 Xero 组织同步？</strong>如果是，我们再推一遍，Xero 里就会出现两套记录 —— 在正式账套里，收拾起来比手工录入还贵。</p>
+                    <div class="actions">
+                      <span class="btn-s">已关掉 Square 侧同步</span>
+                      <span class="btn-s">保留，用清算账户对冲</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-h">未进 Xero 的单据 <span class="st over" style="margin-left:auto">0</span></div>
+                <div class="card-b" style="color:var(--muted);font-size:var(--t-xs)">失败的推送会列在这里，带原因，修好后一键重放。<strong>这是给你们看的，不是给我们看的</strong> —— 原因几乎总是会计要改的一处映射。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="shot-cap"><span class="zh">开关三是<strong>一道闸，不是勾选框</strong>：三个前置条件在数据库里是 CHECK 约束，界面把它表现成灰掉的开关加一句「还差 2 步」，而不是一个点了会报错的按钮。左栏步骤是次要的（38.2%），当前要做的事是主体（61.8%）。</span><span class="en">Switch three is a gate, not a checkbox: the three preconditions are a CHECK constraint in the database, so the interface shows a disabled switch and what is still missing rather than a button that fails. The step rail is secondary at 38.2%; the thing to do now is the subject at 61.8%.</span></p>
+  </div>
+</section>
+
+<!-- ══ 06 ══ -->
+<section>
+  <span class="num">06</span>
+  <h2><span class="zh">工作台与统计：钱进入既有页面</span><span class="en">Dashboard and statistics</span></h2>
+
+  <div class="shot">
+    <div class="frame frame-scroll" role="img" aria-label="工作台与应收账龄">
+      <div style="min-width:640px">
+        <div class="top">
+          <div class="top-title"><small>Studio CMS</small>工作台</div>
+          <div class="search">⌘K &nbsp;搜索</div>
+          <div class="avatar">M</div>
+        </div>
+        <div class="body">
+          <div class="kpis">
+            <div class="kpi"><div class="lab">今日到课</div><div class="val">24</div><div class="sub">已签到 18</div></div>
+            <div class="kpi alert"><div class="lab">逾期未收</div><div class="val">$2,360</div><div class="sub">6 个家庭 · 点开跟进</div></div>
+            <div class="kpi"><div class="lab">待发草稿</div><div class="val">14</div><div class="sub">Term 1 学费</div></div>
+            <div class="kpi q"><div class="lab">待写报告</div><div class="val">7</div><div class="sub">最久逾期 11 天</div></div>
+          </div>
+          <div class="card">
+            <div class="card-h">应收账龄 <span style="margin-left:auto;font-weight:400;font-size:11px;color:var(--muted)">每个数字可点开看到底层发票</span></div>
+            <div class="card-b">
+              <div class="bars">
+                <div class="bar-row"><span>未到期</span><div class="bar" style="width:62%"></div><span class="n">$4,180</span></div>
+                <div class="bar-row"><span>1–30 天</span><div class="bar w" style="width:28%"></div><span class="n">$1,640</span></div>
+                <div class="bar-row"><span>31–60 天</span><div class="bar d" style="width:11%"></div><span class="n">$620</span></div>
+                <div class="bar-row"><span>61–90 天</span><div class="bar d" style="width:5%"></div><span class="n">$100</span></div>
+                <div class="bar-row"><span>90 天以上</span><div class="bar d" style="width:2%"></div><span class="n">$0</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="shot-cap"><span class="zh">KPI 卡是<strong>同级元素，等宽</strong>——按 AGENTS.md §8，φ 只用于真正的主次关系，不用于重复的卡片。账龄用水平条而不是饼图：读者要比较的是「哪一档最多」和「有没有 90 天以上」，条形图对这两个问题都比角度好读。<strong>每个数字可点开</strong>——不能下钻的报表只是截图。</span><span class="en">KPI cards are peers and stay equal-width: per AGENTS.md §8, φ is for genuine primary/secondary, never for repeated cards. Ageing uses horizontal bars rather than a pie because the questions are "which bucket is largest" and "is anything past 90 days", and length answers both better than angle. Every figure drills through — a report you cannot open is a screenshot.</span></p>
+  </div>
+</section>
+
+<!-- ══ 07 ══ -->
+<section>
+  <span class="num">07</span>
+  <h2><span class="zh">φ 用在哪、不用在哪</span><span class="en">Where φ applies and where it does not</span></h2>
+  <div class="col">
+    <p class="zh">令牌里已经有 <code>--ui-golden-columns</code> 和 61.8/38.2，所以问题不是「要不要用」，是「用在哪不算装饰」。AGENTS.md §8 的规矩很清楚：只用于<strong>一侧确实是主体</strong>的场合。</p>
+    <p class="en">The tokens already carry <code>--ui-golden-columns</code> and the 61.8/38.2 split, so the question is not whether to use φ but where it is not decoration. AGENTS.md §8 is explicit: only where one side is genuinely primary.</p>
+  </div>
+  <div class="tw">
+    <table>
+      <thead><tr><th><span class="zh">位置</span><span class="en">Place</span></th><th><span class="zh">用不用</span><span class="en">φ?</span></th><th><span class="zh">理由</span><span class="en">Why</span></th></tr></thead>
+      <tbody>
+        <tr><td class="k"><span class="zh">账单：列表 / 详情</span><span class="en">Billing list / detail</span></td><td><span class="st paid">38.2 / 61.8</span></td><td><span class="zh">详情是主体，列表是导航</span><span class="en">The detail is the subject; the list is navigation</span></td></tr>
+        <tr><td class="k"><span class="zh">课酬：老师 / 期间明细</span><span class="en">Teachers / period detail</span></td><td><span class="st paid">38.2 / 61.8</span></td><td><span class="zh">同上</span><span class="en">Same</span></td></tr>
+        <tr><td class="k">Xero <span class="zh">向导：步骤 / 当前步</span><span class="en">wizard: steps / current</span></td><td><span class="st paid">38.2 / 61.8</span></td><td><span class="zh">进度是参考，当前动作是主体</span><span class="en">Progress is reference; the current action is the subject</span></td></tr>
+        <tr><td class="k">KPI <span class="zh">卡片</span><span class="en">cards</span></td><td><span class="st draft">等宽</span></td><td><span class="zh">同级元素。AGENTS.md §8 明确点名不许</span><span class="en">Peers. §8 names this case explicitly</span></td></tr>
+        <tr><td class="k"><span class="zh">发票行项表格</span><span class="en">Invoice line table</span></td><td><span class="st draft">按内容</span></td><td><span class="zh">列宽由内容决定；金额列右对齐 + 等宽数字</span><span class="en">Content-driven; amounts right-aligned with tabular numerals</span></td></tr>
+        <tr><td class="k"><span class="zh">窄屏（&lt;720px）</span><span class="en">Narrow screens</span></td><td><span class="st draft">全部单列</span></td><td><span class="zh">§8：低于断点，清晰优先于比例</span><span class="en">§8: below the breakpoint, clarity beats ratio</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note">
+    <span class="lbl"><span class="zh">这一页本身也守同一套</span><span class="en">This page obeys the same system</span></span>
+    <p class="zh">上面每一张渲染图里出现的颜色、间距、字号、圆角、动效时长，都取自 <code>console-theme.css</code>（生成文件，被 <code>test_console_theme.py</code> 断言）与 <code>ui-tokens.css</code>。<strong>没有一个新令牌</strong>。间距是 5/8/13/21/34/55/89，字号是 13/16/21/34/55 —— 两条都是斐波那契，这是项目既有的选择，我沿用而不是改成 φ 阶。</p>
+    <p class="en">Every colour, space, size, radius and duration in the mockups above comes from <code>console-theme.css</code> — a generated file asserted by <code>test_console_theme.py</code> — and <code>ui-tokens.css</code>. Not one new token. Spacing is 5/8/13/21/34/55/89 and type is 13/16/21/34/55: both Fibonacci, which is the project's existing choice, followed rather than replaced with a φ ladder.</p>
+  </div>
+</section>
+
+<!-- ══ 08 ══ -->
+<section>
+  <span class="num">08</span>
+  <h2><span class="zh">我刻意没做的</span><span class="en">What I deliberately did not do</span></h2>
+  <div class="grid2">
+    <div class="mini"><h4><span class="zh">没做「财务」一级菜单</span><span class="en">No top-level Finance section</span></h4><p><span class="zh">把账单、课酬、报表收进一个新的一级入口，会让前台每天多点一层。它们分属「经营」组里的不同日常动作</span><span class="en">Folding billing, pay and reports behind one new entry adds a click to every day. They are different daily actions inside one existing cluster</span></p></div>
+    <div class="mini"><h4><span class="zh">没合并账单与充值</span><span class="en">Billing and top-ups stay apart</span></h4><p><span class="zh">课时账与钱账是两本，数据模型刻意分开。界面合并会让「3 节课 / 欠 $220」无法解读</span><span class="en">Two ledgers, separated on purpose. Merged, "3 lessons / $220 owing" becomes unreadable</span></p></div>
+    <div class="mini"><h4><span class="zh">没给已开发票加「编辑」</span><span class="en">No edit on an issued invoice</span></h4><p><span class="zh">触发器会拒绝。界面给一个点了报错的按钮，比不给更糟</span><span class="en">The trigger refuses. A button that errors is worse than no button</span></p></div>
+    <div class="mini"><h4><span class="zh">没做报表生成器</span><span class="en">No report builder</span></h4><p><span class="zh">四张固定报表覆盖 90% 的问题；生成器是另一个产品</span><span class="en">Four fixed reports cover 90% of the questions; a builder is a different product</span></p></div>
+    <div class="mini"><h4><span class="zh">没在 Studio Admin 放钱</span><span class="en">No money in Studio Admin</span></h4><p><span class="zh">那 12 个面板是「我的网站长什么样」。唯一例外是发票外观，因为那确实是品牌</span><span class="en">Those twelve panels are about the website. The one exception is invoice appearance, which genuinely is brand</span></p></div>
+    <div class="mini"><h4><span class="zh">没做深色模式</span><span class="en">No dark mode</span></h4><p><span class="zh"><code>console-theme.css</code> 写着 light only：控制台在白天用，深色留给家长夜里看的公开页</span><span class="en"><code>console-theme.css</code> is light-only by design: consoles are worked in daylight; dark is for the public page a parent opens at night</span></p></div>
+  </div>
+</section>
+
+<!-- ══ 09 ══ -->
+<section>
+  <span class="num">09</span>
+  <h2><span class="zh">要你拍板的</span><span class="en">Decisions for you</span></h2>
+  <div class="col">
+    <ol>
+      <li class="zh"><strong>两个新导航项叫什么？</strong>我用了「账单」和「课酬」。备选：「收费」/「财务」、「老师课时」/「工资」。术语一旦进界面就会进客户嘴里，改起来贵。</li>
+      <li class="en"><strong>What do the two new nav items get called?</strong> I used Billing and Teacher pay. Terminology entering the interface enters the customer's vocabulary, and is expensive to change later.</li>
+      <li class="zh"><strong>成长报告放「待处理」还是自己一项？</strong>我放进了待处理的第三个标签，因为它确实是等人做的事；但如果你觉得它值一个独立入口，那是第三个新导航项。</li>
+      <li class="en"><strong>Progress reports: inside Pending, or their own item?</strong> I put them as a third tab in Pending because they are work waiting for a person — but they could justify their own entry.</li>
+      <li class="zh"><strong>Xero 加购定价</strong>渲染图里写了 $19/月，这个数还没定。</li>
+      <li class="en"><strong>Xero add-on price</strong> — the mockup says $19/month; that number is not decided.</li>
+      <li class="zh"><strong>先做哪一块？</strong>我的建议是<strong>账单工作区</strong>——它是唯一一个「不做就等于 API 白写」的部分，其余都能靠现有页面先撑一阵。</li>
+      <li class="en"><strong>Which first?</strong> My recommendation is the billing workspace: it is the only piece whose absence makes the API useless, while the rest can wait behind existing pages.</li>
+    </ol>
+  </div>
+</section>
+
+<hr class="end">
+<p class="foot">
+  <span class="zh">方案稿，未实现。渲染图为 HTML 静态图，非可交互原型。所有令牌取自 <code>console-theme.css</code> 与 <code>ui-tokens.css</code>。<br>PWE Studio · 对照 v10.0.0 · 2026-08-14</span>
+  <span class="en">Proposal only, not implemented. The mockups are static HTML, not an interactive prototype. All tokens from <code>console-theme.css</code> and <code>ui-tokens.css</code>.<br>PWE Studio · against v10.0.0 · 14 August 2026</span>
+</p>
+</main>
+
+<script>
+  function setLang(l){
+    document.documentElement.setAttribute('data-lang', l);
+    document.getElementById('lz').setAttribute('aria-pressed', String(l==='zh'));
+    document.getElementById('le').setAttribute('aria-pressed', String(l==='en'));
+    document.documentElement.lang = l==='zh' ? 'zh-CN' : 'en-AU';
+  }
+  const q = new URLSearchParams(location.search).get('lang');
+  setLang(q === 'en' ? 'en' : 'zh');
+</script>
