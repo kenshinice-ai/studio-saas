@@ -4170,399 +4170,6 @@ document.getElementById('copybtn').addEventListener('click', function(){
             {/* Settings is a full workspace route. The legacy compact entry
                 remains a modal only when old code opens it without changing
                 the URL; primary navigation always gets a dedicated page. */}
-            {showSettings && (
-                <div ref={settingsDialogRef}
-                    className={tab==='settings'
-                        /* 目的地，不是覆盖层。盖住侧栏才需要「返回工作台」——
-                           其他页面都不需要，因为它们从没把你带走过。 */
-                        ? 'anim'
-                        : 'fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4'}
-                    onClick={tab==='settings' ? undefined : closeSettings}
-                    role={tab==='settings' ? undefined : 'dialog'} aria-modal={tab==='settings' ? undefined : 'true'} aria-labelledby="settings-dialog-title"
-                    style={{paddingTop:tab==='settings' ? 'env(safe-area-inset-top, 0px)' : 'max(16px, env(safe-area-inset-top, 16px))', paddingBottom:'max(16px, env(safe-area-inset-bottom, 16px))'}}>
-                    <div className={tab==='settings'
-                        ? 'w-full'
-                        : 'bg-white rounded-2xl p-6 w-full max-w-2xl shadow-2xl anim overflow-y-auto modal-scroll'}
-                        style={tab==='settings' ? undefined : {maxHeight:'90dvh'}} onClick={e=>e.stopPropagation()}>
-                        <div className="flex justify-between items-center mb-5">
-                            <h3 id="settings-dialog-title"
-                                className={`inline-flex items-center gap-1.5 font-bold text-gray-800 text-xl ${tab==='settings' ? 'md:hidden' : ''}`}>
-                                <Icon name="cog" className="w-5 h-5"/>系统设置
-                            </h3>
-                            {tab!=='settings' && <button onClick={closeSettings} aria-label="关闭" className="text-gray-400 active:text-gray-700 text-xl p-1 min-h-[44px] min-w-[44px] inline-flex items-center justify-center">×</button>}
-                        </div>
-                        {/* 真标签页。之前这里写着 role="tablist"，点击执行的却是
-                            scrollIntoView —— 9 个分区始终同时渲染，高亮和你正在看的
-                            内容会对不上，而读屏软件被告知有一组标签页却找不到面板。
-                            底部下划线的样式和学员档案、待处理、课酬三处一致。 */}
-                        {tab==='settings' && <div className="mb-6 flex gap-1 overflow-x-auto border-b border-gray-200" role="tablist" aria-label="系统设置分区">
-                            {SETTINGS_SECTIONS.filter(([,,visible])=>visible!==false).map(([key,label])=>(
-                                <button key={key} type="button" role="tab" id={`settings-tab-${key}`}
-                                    aria-selected={settingsSection===key} aria-controls={`settings-${key}`}
-                                    onClick={()=>setSettingsSection(key)}
-                                    className={`whitespace-nowrap min-h-[44px] px-3 text-xs font-bold border-b-2 -mb-px ${settingsSection===key?'border-indigo-600 text-indigo-700':'border-transparent text-gray-600 hover:text-gray-800'}`}>{label}</button>
-                            ))}
-                        </div>}
-                        <div className="md:hidden mb-4 pb-4 border-b border-gray-100">
-                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">界面语言</p>
-                            <div className="grid grid-cols-2 gap-2">
-                                <button type="button" onClick={()=>document.querySelector('[data-cms-language="zh"]')?.click()}
-                                    className="min-h-[44px] rounded-xl border border-gray-200 bg-gray-50 text-sm font-bold text-gray-700">中文</button>
-                                <button type="button" onClick={()=>document.querySelector('[data-cms-language="en"]')?.click()}
-                                    className="min-h-[44px] rounded-xl border border-gray-200 bg-gray-50 text-sm font-bold text-gray-700">English</button>
-                            </div>
-                        </div>
-                        {/* A5: Public website and lead-capture settings live in Studio Admin. */}
-                        {TENANT_SLUG && ownerRoles.includes(actorRole) && (
-                            <a href={`/${TENANT_SLUG}/studio-admin`} target="_blank" rel="noopener"
-                                className="block bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3 text-sm font-bold text-indigo-700 active:bg-indigo-100">
-                                网站、Logo、配色与注册表设置 →
-                                <p className="text-[11px] font-normal text-indigo-400 mt-0.5">打开 Studio Admin 管理公开门户、注册表字段、品牌文案和页面展示</p>
-                            </a>
-                        )}
-                        {canManageOperations && <div id="settings-team" role="tabpanel" aria-labelledby="settings-tab-team" hidden={tab==='settings' && settingsSection!=='team'} className="mt-4 pt-4 border-t border-gray-100 space-y-3 scroll-mt-24">
-                            <div>
-                                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">团队与权限</p>
-                                <p className="text-xs text-gray-400 mt-0.5">Owner管理团队；Manager负责日常运营，Teacher负责签到与作品，Front Desk负责报名、学员与课时。</p>
-                            </div>
-                            <div className="space-y-2">
-                                {team.map(member=>(
-                                    <div key={member.id} className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
-                                        <div className="flex items-center gap-2">
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-bold text-gray-700 truncate">{member.full_name}</p>
-                                                <p className="text-xs text-gray-400 truncate">{member.email} · {member.role} · {member.status}</p>
-                                            </div>
-                                            {ownerRoles.includes(actorRole) && member.role!=='owner' && <button type="button" disabled={teamBusy}
-                                                onClick={()=>updateTeamMember(member,member.status==='active'?'disabled':'active')}
-                                                className="text-xs font-bold px-2 py-1 rounded-lg border border-gray-200 text-gray-600">
-                                                {member.status==='active'?'停用':'启用'}
-                                            </button>}
-                                        </div>
-                                        {/* 公开课表署名。只对会上课的角色出现 —— 前台不会被排课，
-                                            给他一个「是否公开姓名」的开关只是多一个要理解的东西。 */}
-                                        {ownerRoles.includes(actorRole) && member.role!=='owner'
-                                            && ['manager','teacher'].includes(member.role) && (
-                                        <div className="mt-2 pt-2 border-t border-gray-200 space-y-2">
-                                            <label className="flex items-start gap-2.5 min-h-[44px] cursor-pointer">
-                                                <input type="checkbox" disabled={teamBusy}
-                                                    checked={!!member.show_on_public_timetable}
-                                                    onChange={e=>updateTeamPublicity(member,{showOnPublicTimetable:e.target.checked})}
-                                                    className="mt-0.5 w-4 h-4 accent-indigo-600"/>
-                                                <span className="flex-1">
-                                                    <span className="text-xs font-bold text-gray-600">可在公开课表显示姓名</span>
-                                                    <span className="block text-[11px] text-gray-400 mt-0.5">默认关闭。被排了一节课不等于同意把名字放到公网上，这一项由本人决定后再开。</span>
-                                                </span>
-                                            </label>
-                                            {member.show_on_public_timetable && (
-                                            <div className="flex gap-2 items-end">
-                                                <label className="flex-1 text-[11px] font-bold text-gray-500">
-                                                    对外显示名（留空则用 {member.full_name}）
-                                                    <input defaultValue={member.public_display_name||''} placeholder="如：Lucy 老师" disabled={teamBusy}
-                                                        onBlur={e=>{ const v=e.target.value.trim();
-                                                            if (v !== (member.public_display_name||'')) updateTeamPublicity(member,{publicDisplayName:v}); }}
-                                                        className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-xl text-sm min-h-[44px]"/>
-                                                </label>
-                                            </div>
-                                            )}
-                                        </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                            {ownerRoles.includes(actorRole) ? <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-indigo-50 border border-indigo-100 rounded-xl p-3">
-                                <label className="text-xs font-bold text-gray-600">姓名 *
-                                    <input value={teamForm.fullName} onChange={e=>setTeamForm(p=>({...p,fullName:e.target.value}))}
-                                        placeholder="如：Lucy Wang" className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-xl text-sm min-h-[44px]"/>
-                                </label>
-                                <label className="text-xs font-bold text-gray-600">邮箱 *
-                                    <input type="email" value={teamForm.email} onChange={e=>setTeamForm(p=>({...p,email:e.target.value}))}
-                                        placeholder="name@example.com" className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-xl text-sm min-h-[44px]"/>
-                                </label>
-                                <label className="text-xs font-bold text-gray-600">角色 *
-                                    <select value={teamForm.role} onChange={e=>setTeamForm(p=>({...p,role:e.target.value}))}
-                                        className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-xl text-sm min-h-[44px]">
-                                        <option value="manager">Manager</option><option value="teacher">Teacher</option><option value="front_desk">Front Desk</option><option value="staff">Staff (legacy)</option>
-                                    </select>
-                                </label>
-                                <label className="text-xs font-bold text-gray-600">临时密码 *
-                                    <input type="password" value={teamForm.temporaryPassword} onChange={e=>setTeamForm(p=>({...p,temporaryPassword:e.target.value}))}
-                                        placeholder="至少 8 位" className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-xl text-sm min-h-[44px]"/>
-                                </label>
-                                <button type="button" onClick={createTeamMember} disabled={teamBusy}
-                                    className="sm:col-span-2 bg-indigo-600 text-white py-2.5 rounded-xl font-bold text-sm disabled:opacity-50">添加团队成员</button>
-                            </div> : <p className="text-xs text-gray-400 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2">当前角色可查看团队；只有 Owner 可以新增、停用或更改成员角色。</p>}
-                        </div>}
-                        {/* 修改登录密码 */}
-                        <div id="settings-account" role="tabpanel" aria-labelledby="settings-tab-account" hidden={tab==='settings' && settingsSection!=='account'} className="space-y-2 scroll-mt-24">
-                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">修改登录密码</p>
-                            <label className="block text-xs font-bold text-gray-600">当前密码
-                                <input type="password" autoComplete="current-password" placeholder="输入当前密码" value={pwOld} onChange={e=>setPwOld(e.target.value)}
-                                    className="mt-1 w-full p-2.5 border border-gray-300 rounded-xl outline-none text-sm min-h-[44px] focus:ring-2 focus:ring-indigo-400"/>
-                            </label>
-                            <label className="block text-xs font-bold text-gray-600">新密码 *
-                                <input type="password" autoComplete="new-password" placeholder="至少 8 位" value={pwNew1} onChange={e=>setPwNew1(e.target.value)}
-                                    className="mt-1 w-full p-2.5 border border-gray-300 rounded-xl outline-none text-sm min-h-[44px] focus:ring-2 focus:ring-indigo-400"/>
-                            </label>
-                            <label className="block text-xs font-bold text-gray-600">确认新密码 *
-                                <input type="password" autoComplete="new-password" placeholder="再次输入新密码" value={pwNew2} onChange={e=>setPwNew2(e.target.value)}
-                                    className="mt-1 w-full p-2.5 border border-gray-300 rounded-xl outline-none text-sm min-h-[44px] focus:ring-2 focus:ring-indigo-400"/>
-                            </label>
-                            {pwMsg && <p className={`text-xs font-medium ${pwMsg.tone==='ok'?'text-green-600':'text-red-500'}`}>{pwMsg.text}</p>}
-                            <button onClick={changeWebPw} disabled={pwBusy}
-                                className="w-full bg-indigo-600 active:bg-indigo-700 disabled:opacity-50 text-white py-2.5 rounded-xl font-bold text-sm">
-                                {pwBusy ? '更新中...' : '更新密码'}
-                            </button>
-                        </div>
-                        {/* Tenant-wide roster default: server-owned so every
-                            staff device starts new bookings at the same time. */}
-                        {canManageOperations && TENANT_SLUG && (
-                        <div id="settings-operational" role="tabpanel" aria-labelledby="settings-tab-operational" hidden={tab==='settings' && settingsSection!=='operational'} className="mt-4 pt-4 border-t border-gray-100 space-y-2 scroll-mt-24">
-                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">课程安排默认时间</p>
-                            <p className="text-xs text-gray-400">用于新排课、班组模板和新建固定班次；不会改动已保存的课程。</p>
-                            <div className="flex gap-2 items-end">
-                                <label className="flex-1 text-xs font-bold text-gray-500">
-                                    默认上课时间
-                                    <input type="time" value={defaultClassTimeDraft}
-                                        onChange={e=>setDefaultClassTimeDraft(e.target.value)}
-                                        className="mt-1 w-full px-3 py-2.5 border border-gray-300 rounded-xl bg-white text-sm font-bold min-h-[46px] outline-none focus:ring-2 focus:ring-indigo-500"/>
-                                </label>
-                                <button type="button" onClick={saveDefaultClassTime}
-                                    disabled={operationalSettingsBusy || defaultClassTimeDraft===defaultClassTime}
-                                    className="px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-bold min-h-[46px] disabled:opacity-40">
-                                    {operationalSettingsBusy?'保存中…':'保存'}
-                                </button>
-                            </div>
-                        </div>
-                        )}
-                        {/* Fix ⑪: configurable inactive-days threshold */}
-                        {canManageOperations && <>
-                        <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
-                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">未到访预警天数</p>
-                            <div className="flex gap-2">
-                                {[60,90,120,180].map(d=>(
-                                    <button key={d} onClick={()=>saveInactiveDays(d)}
-                                        className={`flex-1 py-2 rounded-xl text-xs font-bold border ${inactiveDays===d?'bg-indigo-600 text-white border-indigo-600':'bg-gray-50 text-gray-600 border-gray-200 active:bg-gray-100'}`}>{d}天</button>
-                                ))}
-                            </div>
-                        </div>
-                        {false && <>{/* Moved to the functional workspaces. Keep this
-                            legacy markup out of the Settings surface while the
-                            generated bundle remains backward-compatible. */}
-                        {/* v8.10.3: 课程管理。放在充值套餐旁边，因为它们是同一类
-                            东西——都是「先定义好、之后到处引用」的条目，而不是每天
-                            要做的事。排课编辑器里的下拉有一个链接指到这里。 */}
-                        <div id="courseManager" className="mt-4 pt-4 border-t border-gray-100 space-y-2">
-                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">课程管理</p>
-                            <p className="text-xs text-gray-400">
-                                课程是可以被固定班次「关联」的条目。关联之后，公开课表就能显示课程简介和适龄段；不关联也能正常排课，只是课表上只有班次名称。
-                            </p>
-                            {!courses.length && !courseEdit && (
-                                <p className="text-xs text-gray-400 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2">
-                                    还没有课程。例如「儿童油画基础」——添加后就能在「课程安排 → 新增班次」里关联它。
-                                </p>
-                            )}
-                            {courses.map(course => (
-                                <div key={course.id} className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-xs font-bold text-gray-700 truncate">{course.name}</p>
-                                        <p className="text-xs text-gray-400 truncate">
-                                            {[course.age_range && `适龄 ${course.age_range}`,
-                                              course.duration_minutes && `${course.duration_minutes} 分钟`,
-                                              course.price_aud_cents ? `$${(course.price_aud_cents/100).toFixed(2)}` : null,
-                                             ].filter(Boolean).join(' · ') || '未填写详情'}
-                                        </p>
-                                    </div>
-                                    <button onClick={()=>setCourseEdit({
-                                            id: course.id, name: course.name, description: course.description || '',
-                                            ageRange: course.age_range || '',
-                                            durationMinutes: course.duration_minutes || 60,
-                                            priceAud: course.price_aud_cents ? String(course.price_aud_cents/100) : '',
-                                        })}
-                                        className="text-xs text-indigo-600 font-bold px-3 py-1 min-h-[44px] inline-flex items-center active:text-indigo-800 flex-shrink-0">编辑</button>
-                                    <button onClick={()=>archiveCourse(course)} aria-label="归档"
-                                        className="text-red-500 font-bold px-2 py-1 min-h-[44px] min-w-[44px] inline-flex items-center justify-center active:text-red-700 flex-shrink-0"><Icon name="close" className="w-3.5 h-3.5"/></button>
-                                </div>
-                            ))}
-                            {!courseEdit ? (
-                                <button onClick={()=>setCourseEdit({name:'', description:'', ageRange:'', durationMinutes:60, priceAud:''})}
-                                    className="w-full border border-dashed border-indigo-300 text-indigo-600 rounded-xl py-2 text-xs font-bold active:bg-indigo-50">+ 添加课程</button>
-                            ) : (
-                                <div className="space-y-2 bg-indigo-50 border border-indigo-200 rounded-xl p-3">
-                                    <p className="text-xs font-bold text-indigo-700">{courseEdit.id?'编辑课程':'添加课程'}</p>
-                                    <input placeholder="课程名称，如：儿童油画基础" value={courseEdit.name}
-                                        onChange={e=>setCourseEdit(p=>({...p,name:e.target.value}))}
-                                        className="w-full px-2.5 py-2 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-400"/>
-                                    <textarea placeholder="课程简介（选填，会显示在公开课表上）" rows="2" value={courseEdit.description}
-                                        onChange={e=>setCourseEdit(p=>({...p,description:e.target.value}))}
-                                        className="w-full px-2.5 py-2 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-400"/>
-                                    <div className="grid grid-cols-3 gap-2">
-                                        <input placeholder="适龄 6-9" value={courseEdit.ageRange}
-                                            onChange={e=>setCourseEdit(p=>({...p,ageRange:e.target.value}))}
-                                            className="w-full px-2.5 py-2 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-400"/>
-                                        <input type="number" min="1" placeholder="时长(分)" value={courseEdit.durationMinutes}
-                                            onChange={e=>setCourseEdit(p=>({...p,durationMinutes:e.target.value}))}
-                                            className="w-full px-2.5 py-2 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-400"/>
-                                        <input type="number" min="0" step="0.01" placeholder="价格 $" value={courseEdit.priceAud}
-                                            onChange={e=>setCourseEdit(p=>({...p,priceAud:e.target.value}))}
-                                            className="w-full px-2.5 py-2 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-400"/>
-                                    </div>
-                                    <p className="text-[11px] text-gray-400">简介、适龄段和价格都是选填；公开课表上显示哪些，由 Studio Admin 的 Timetable 开关决定。</p>
-                                    <div className="flex gap-2">
-                                        <button onClick={()=>setCourseEdit(null)}
-                                            className="flex-1 py-2 border border-gray-300 rounded-xl text-xs font-bold text-gray-600 active:bg-gray-100">取消</button>
-                                        <button onClick={saveCourse} disabled={busy}
-                                            className="flex-1 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold disabled:bg-gray-300">{courseEdit.id?'保存':'添加'}</button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                        {/* P1-A: Package management */}
-                        <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
-                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">充值套餐管理</p>
-                            {(db.packages||[]).map(pkg=>(
-                                <div key={pkg.id} className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-xs font-bold text-gray-700 truncate">{pkg.name}</p>
-                                        <p className="text-xs text-gray-400">{pkg.credits}课时 · ${pkg.price}</p>
-                                    </div>
-                                    <button onClick={()=>{ setPkgEditId(pkg.id); setPkgName(pkg.name); setPkgCredits(String(pkg.credits)); setPkgPrice(String(pkg.price)); }}
-                                        className="text-xs text-indigo-600 font-bold px-3 py-1 min-h-[44px] inline-flex items-center active:text-indigo-800 flex-shrink-0">编辑</button>
-                                    <button onClick={()=>{ if((db.packages||[]).length<=1){showToast('至少保留一个套餐','warn');return;} confirm(`删除套餐「${pkg.name}」？`,async ()=>{ const nd={...db,packages:(db.packages||[]).filter(p=>p.id!==pkg.id)}; const ok = await save(nd); if (!ok) return; showToast('套餐已删除'); },{danger:true,confirmText:'删除'}); }}
-                                        aria-label="删除" className="text-red-500 font-bold px-2 py-1 min-h-[44px] min-w-[44px] inline-flex items-center justify-center active:text-red-700 flex-shrink-0"><Icon name="close" className="w-3.5 h-3.5"/></button>
-                                </div>
-                            ))}
-                            {pkgEditId===null ? (
-                                <button onClick={()=>{ setPkgEditId(0); setPkgName(''); setPkgCredits(''); setPkgPrice(''); }}
-                                    className="w-full border border-dashed border-indigo-300 text-indigo-600 rounded-xl py-2 text-xs font-bold active:bg-indigo-50">+ 添加套餐</button>
-                            ) : (
-                                <div className="space-y-2 bg-indigo-50 border border-indigo-200 rounded-xl p-3">
-                                    <p className="text-xs font-bold text-indigo-700">{pkgEditId===0?'添加套餐':'编辑套餐'}</p>
-                                    <input placeholder="套餐名称" value={pkgName} onChange={e=>setPkgName(e.target.value)}
-                                        className="w-full px-2.5 py-2 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-400"/>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <input type="number" placeholder="课时数" min="1" value={pkgCredits} onChange={e=>setPkgCredits(e.target.value)}
-                                            className="w-full px-2.5 py-2 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-400"/>
-                                        <input type="number" placeholder="价格 $" min="0" value={pkgPrice} onChange={e=>setPkgPrice(e.target.value)}
-                                            className="w-full px-2.5 py-2 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-400"/>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <button onClick={()=>{ setPkgEditId(null); setPkgName(''); setPkgCredits(''); setPkgPrice(''); }}
-                                            className="flex-1 py-2 border border-gray-300 rounded-xl text-xs font-bold text-gray-600 active:bg-gray-100">取消</button>
-                                        <button onClick={async ()=>{
-                                            if (!pkgName.trim()||!pkgCredits||!pkgPrice){showToast('请填写完整','warn');return;}
-                                            const cr=parseInt(pkgCredits,10), pr=parseFloat(pkgPrice);
-                                            if(isNaN(cr)||cr<1||isNaN(pr)||pr<0){showToast('课时数/价格无效','warn');return;}
-                                            let newPkgs;
-                                            if (pkgEditId===0) {
-                                                const newId = Date.now();
-                                                newPkgs = [...(db.packages||[]), {id:newId, name:pkgName.trim(), credits:cr, price:pr}];
-                                            } else {
-                                                newPkgs = (db.packages||[]).map(p=>p.id===pkgEditId?{...p,name:pkgName.trim(),credits:cr,price:pr}:p);
-                                            }
-                                            const ok = await save({...db, packages:newPkgs});
-                                            if (!ok) return;
-                                            setPkgEditId(null); setPkgName(''); setPkgCredits(''); setPkgPrice('');
-                                            showToast(pkgEditId===0?'套餐已添加':'套餐已更新');
-                                        }} className="flex-1 py-2 bg-indigo-600 active:bg-indigo-700 text-white rounded-xl text-xs font-bold">保存</button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                        </>}
-                        <div className="mt-4 pt-4 border-t border-gray-100 rounded-xl bg-indigo-50 border-indigo-100 px-4 py-3 space-y-2">
-                            <p className="text-xs font-bold text-indigo-800">课程目录与充值套餐已移到对应工作区</p>
-                            <p className="text-xs text-indigo-600 leading-relaxed">设置只保留账号、团队、运营默认和数据维护。课程请进入「课程」，套餐请进入「充值与退款」中的「套餐管理」。</p>
-                            <div className="grid grid-cols-2 gap-2">
-                                {allowedTabs.includes('courses') && <button type="button" onClick={()=>setTab('courses')} className="min-h-[44px] rounded-xl bg-white border border-indigo-200 text-indigo-700 text-xs font-bold">进入课程目录</button>}
-                                {allowedTabs.includes('topup') && <button type="button" onClick={()=>setTab('topup')} className="min-h-[44px] rounded-xl bg-white border border-indigo-200 text-indigo-700 text-xs font-bold">进入套餐管理</button>}
-                            </div>
-                        </div>
-                        </>}
-                        {/* U6: Roster cleanup */}
-                        {canManageOperations && (()=>{
-                            const cutoffStr = (() => { const d=new Date(); d.setDate(d.getDate()-90); return d.toISOString().slice(0,10); })();
-                            const oldKeys = Object.keys(db.rosters||{}).filter(d=>d<cutoffStr);
-                            const cleanRosters = () => {
-                                if (!oldKeys.length) { showToast('没有需要清理的旧排课'); return; }
-                                confirm(`清理 90 天前的排课记录（${oldKeys.length} 条）？\n此操作不影响任何统计数据。`, async ()=>{
-                                    const nd = {...db, rosters:{...db.rosters}};
-                                    oldKeys.forEach(k=>delete nd.rosters[k]);
-                                    const ok = await save(nd);
-                                    if (!ok) return;
-                                    showToast(`已清理 ${oldKeys.length} 条旧排课`);
-                                }, {confirmText:'清理'});
-                            };
-                            return (
-                                <div id="settings-maintenance" role="tabpanel" aria-labelledby="settings-tab-maintenance" hidden={tab==='settings' && settingsSection!=='maintenance'} className="mt-4 pt-4 border-t border-gray-100 space-y-2 scroll-mt-24">
-                                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">排课数据清理</p>
-                                    <div className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 flex items-center gap-2">
-                                        <span className="text-xs text-gray-500 flex-1">90天前旧排课</span>
-                                        <span className={`text-xs font-bold ${oldKeys.length>0?'text-amber-600':'text-green-600'}`}>{oldKeys.length} 条</span>
-                                    </div>
-                                    <button onClick={cleanRosters} disabled={oldKeys.length===0}
-                                        className="w-full bg-amber-50 active:bg-amber-100 disabled:opacity-40 text-amber-700 border border-amber-200 py-2.5 rounded-xl font-bold text-sm">
-                                        <span className="inline-flex items-center gap-1.5"><Icon name="broom" className="w-4 h-4"/>清理旧排课</span>
-                                    </button>
-                                </div>
-                            );
-                        })()}
-                        {/* F1/F5/F6: 数据体检 + 阈值 + 每周邮件 + 备份恢复 */}
-                        {!TENANT_SLUG && (
-                            <div id="settings-maintenance-tools" className="scroll-mt-24">
-                                <MaintSection renewTh={renewTh} saveRenewTh={saveRenewTh}
-                                    onRestored={()=>{ closeSettings(); load(); }}
-                                    confirm={confirm} notify={notify}/>
-                            </div>
-                        )}
-                        {/* 开票信息排在集成前面：Xero 是可选的，而没有开票主体
-                            身份，一张发票都开不出去。 */}
-                        <div id="settings-billing-identity" role="tabpanel" aria-labelledby="settings-tab-billing-identity" hidden={tab==='settings' && settingsSection!=='billing-identity'} className="mt-4 pt-4 border-t border-gray-100 space-y-2 scroll-mt-24">
-                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">开票信息</p>
-                            <BillingIdentityPanel api={v1Api} showToast={showToast}
-                                canManage={canManageOperations} />
-                        </div>
-                        <div id="settings-integrations" role="tabpanel" aria-labelledby="settings-tab-integrations" hidden={tab==='settings' && settingsSection!=='integrations'} className="mt-4 pt-4 border-t border-gray-100 space-y-2 scroll-mt-24">
-                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">集成</p>
-                            <IntegrationsPanel api={v1Api} showToast={showToast} canManage={ownerRoles.includes(actorRole)} />
-                        </div>
-                        <div id="settings-workspace" role="tabpanel" aria-labelledby="settings-tab-workspace" hidden={tab==='settings' && settingsSection!=='workspace'} className="mt-4 pt-4 border-t border-gray-100 space-y-2 scroll-mt-24">
-                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">学员注册页面</p>
-                            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
-                                <span className="text-xs text-gray-500 flex-1 font-mono truncate">{window.STUDIOSAAS_REGISTER_URL || `${window.location.origin}/register`}</span>
-                                <button type="button" onClick={()=>copyText(window.STUDIOSAAS_REGISTER_URL || `${window.location.origin}/register`,'链接已复制')}
-                                    className="text-xs text-indigo-600 font-bold active:text-indigo-800 flex-shrink-0">复制</button>
-                            </div>
-                        </div>
-                        <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
-                            <button onClick={requestLogout} className="w-full bg-gray-100 active:bg-gray-200 text-gray-700 py-3 rounded-xl font-bold text-sm">退出登录</button>
-                            {/* Mobile-only: sidebar actions inaccessible on phone */}
-                            <div className="md:hidden space-y-2 pt-2 border-t border-gray-100">
-                                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide pb-0.5">快捷操作</p>
-                                {TENANT_SLUG && <>
-                                {/* Same judgement as the sidebar pair. This list
-                                    already reads as filled = do it, soft accent
-                                    = secondary, neutral = read-only, danger =
-                                    destructive; 网站与品牌 is the one item worth
-                                    leading with, so it takes the single filled
-                                    slot instead of an unrelated green. */}
-                                <a href={`/${encodeURIComponent(TENANT_SLUG)}/studio-admin`}
-                                    className="flex items-center justify-center w-full bg-indigo-600 active:bg-indigo-700 py-3 rounded-xl font-bold text-sm min-h-[44px]">网站与品牌 · Studio Admin</a>
-                                <a href={`/${encodeURIComponent(TENANT_SLUG)}`} target="_blank" rel="noopener"
-                                    className="flex items-center justify-center w-full bg-gray-50 active:bg-gray-100 text-gray-700 border border-gray-200 py-3 rounded-xl font-bold text-sm min-h-[44px]">查看公开网站</a>
-                                </>}
-                                <button onClick={()=>{load();closeSettings();}} disabled={busy}
-                                    className="w-full bg-indigo-50 active:bg-indigo-100 text-indigo-700 border border-indigo-200 py-3 rounded-xl font-bold text-sm"><span className="inline-flex items-center gap-1.5"><Icon name="refresh" className="w-4 h-4"/>刷新数据</span></button>
-                                {canManageOperations && !TENANT_SLUG && <button onClick={()=>{exportDB();closeSettings();}}
-                                    className="w-full bg-indigo-50 active:bg-indigo-100 text-indigo-700 border border-indigo-200 py-3 rounded-xl font-bold text-sm"><span className="inline-flex items-center gap-1.5"><Icon name="download" className="w-4 h-4"/>备份导出</span></button>
-                                }
-                                <button onClick={()=>{closeSettings();confirm('确认退出登录？下次进入需重新输入密码。', doLogout, {confirmText:'退出登录'});}}
-                                    className="w-full bg-red-50 active:bg-red-100 text-red-600 border border-red-200 py-3 rounded-xl font-bold text-sm"><span className="inline-flex items-center gap-1.5"><Icon name="logout" className="w-4 h-4"/>退出登录</span></button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* ── Mobile top bar (md:hidden) ── */}
             <div className="md:hidden mobile-top-bar fixed top-0 left-0 right-0 z-40 cms-chrome border-b flex items-center px-3 gap-2.5">
@@ -6893,6 +6500,406 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 <footer className="mt-8 pb-6 text-center text-[10px] tracking-wide text-gray-400">
                     © 2026 {tenantDisplayName} · Powered by Paradise Production
                 </footer>
+
+                {/* v10.2.1：这一块必须待在 <main> 里面。
+                    它原本是 fixed 覆盖层，在 DOM 树里挂在哪都无所谓 —— 视口定位
+                    会把它拉到该在的地方。v10.2.0 把它改成正常流之后，它就渲染在
+                    主列之外了：设置内容跑到侧栏左边，主列只剩一个页脚。
+                    上一版我用 JS 查过标签、面板和 aria，全对 —— 元素是对的，
+                    位置是错的。查 DOM 属性查不出版面，那得看。 */}
+            {showSettings && (
+                <div ref={settingsDialogRef}
+                    className={tab==='settings'
+                        /* 目的地，不是覆盖层。盖住侧栏才需要「返回工作台」——
+                           其他页面都不需要，因为它们从没把你带走过。 */
+                        ? 'anim'
+                        : 'fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4'}
+                    onClick={tab==='settings' ? undefined : closeSettings}
+                    role={tab==='settings' ? undefined : 'dialog'} aria-modal={tab==='settings' ? undefined : 'true'} aria-labelledby="settings-dialog-title"
+                    style={{paddingTop:tab==='settings' ? 'env(safe-area-inset-top, 0px)' : 'max(16px, env(safe-area-inset-top, 16px))', paddingBottom:'max(16px, env(safe-area-inset-bottom, 16px))'}}>
+                    <div className={tab==='settings'
+                        ? 'w-full'
+                        : 'bg-white rounded-2xl p-6 w-full max-w-2xl shadow-2xl anim overflow-y-auto modal-scroll'}
+                        style={tab==='settings' ? undefined : {maxHeight:'90dvh'}} onClick={e=>e.stopPropagation()}>
+                        <div className="flex justify-between items-center mb-5">
+                            <h3 id="settings-dialog-title"
+                                className={`inline-flex items-center gap-1.5 font-bold text-gray-800 text-xl ${tab==='settings' ? 'md:hidden' : ''}`}>
+                                <Icon name="cog" className="w-5 h-5"/>系统设置
+                            </h3>
+                            {tab!=='settings' && <button onClick={closeSettings} aria-label="关闭" className="text-gray-400 active:text-gray-700 text-xl p-1 min-h-[44px] min-w-[44px] inline-flex items-center justify-center">×</button>}
+                        </div>
+                        {/* 真标签页。之前这里写着 role="tablist"，点击执行的却是
+                            scrollIntoView —— 9 个分区始终同时渲染，高亮和你正在看的
+                            内容会对不上，而读屏软件被告知有一组标签页却找不到面板。
+                            底部下划线的样式和学员档案、待处理、课酬三处一致。 */}
+                        {tab==='settings' && <div className="mb-6 flex gap-1 overflow-x-auto border-b border-gray-200" role="tablist" aria-label="系统设置分区">
+                            {SETTINGS_SECTIONS.filter(([,,visible])=>visible!==false).map(([key,label])=>(
+                                <button key={key} type="button" role="tab" id={`settings-tab-${key}`}
+                                    aria-selected={settingsSection===key} aria-controls={`settings-${key}`}
+                                    onClick={()=>setSettingsSection(key)}
+                                    className={`whitespace-nowrap min-h-[44px] px-3 text-xs font-bold border-b-2 -mb-px ${settingsSection===key?'border-indigo-600 text-indigo-700':'border-transparent text-gray-600 hover:text-gray-800'}`}>{label}</button>
+                            ))}
+                        </div>}
+                        <div className="md:hidden mb-4 pb-4 border-b border-gray-100">
+                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">界面语言</p>
+                            <div className="grid grid-cols-2 gap-2">
+                                <button type="button" onClick={()=>document.querySelector('[data-cms-language="zh"]')?.click()}
+                                    className="min-h-[44px] rounded-xl border border-gray-200 bg-gray-50 text-sm font-bold text-gray-700">中文</button>
+                                <button type="button" onClick={()=>document.querySelector('[data-cms-language="en"]')?.click()}
+                                    className="min-h-[44px] rounded-xl border border-gray-200 bg-gray-50 text-sm font-bold text-gray-700">English</button>
+                            </div>
+                        </div>
+                        {/* A5: Public website and lead-capture settings live in Studio Admin. */}
+                        {TENANT_SLUG && ownerRoles.includes(actorRole) && (
+                            <a href={`/${TENANT_SLUG}/studio-admin`} target="_blank" rel="noopener"
+                                className="block bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3 text-sm font-bold text-indigo-700 active:bg-indigo-100">
+                                网站、Logo、配色与注册表设置 →
+                                <p className="text-[11px] font-normal text-indigo-400 mt-0.5">打开 Studio Admin 管理公开门户、注册表字段、品牌文案和页面展示</p>
+                            </a>
+                        )}
+                        {canManageOperations && <div id="settings-team" role="tabpanel" aria-labelledby="settings-tab-team" hidden={tab==='settings' && settingsSection!=='team'} className="mt-4 pt-4 border-t border-gray-100 space-y-3 scroll-mt-24">
+                            <div>
+                                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">团队与权限</p>
+                                <p className="text-xs text-gray-400 mt-0.5">Owner管理团队；Manager负责日常运营，Teacher负责签到与作品，Front Desk负责报名、学员与课时。</p>
+                            </div>
+                            <div className="space-y-2">
+                                {team.map(member=>(
+                                    <div key={member.id} className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-bold text-gray-700 truncate">{member.full_name}</p>
+                                                <p className="text-xs text-gray-400 truncate">{member.email} · {member.role} · {member.status}</p>
+                                            </div>
+                                            {ownerRoles.includes(actorRole) && member.role!=='owner' && <button type="button" disabled={teamBusy}
+                                                onClick={()=>updateTeamMember(member,member.status==='active'?'disabled':'active')}
+                                                className="text-xs font-bold px-2 py-1 rounded-lg border border-gray-200 text-gray-600">
+                                                {member.status==='active'?'停用':'启用'}
+                                            </button>}
+                                        </div>
+                                        {/* 公开课表署名。只对会上课的角色出现 —— 前台不会被排课，
+                                            给他一个「是否公开姓名」的开关只是多一个要理解的东西。 */}
+                                        {ownerRoles.includes(actorRole) && member.role!=='owner'
+                                            && ['manager','teacher'].includes(member.role) && (
+                                        <div className="mt-2 pt-2 border-t border-gray-200 space-y-2">
+                                            <label className="flex items-start gap-2.5 min-h-[44px] cursor-pointer">
+                                                <input type="checkbox" disabled={teamBusy}
+                                                    checked={!!member.show_on_public_timetable}
+                                                    onChange={e=>updateTeamPublicity(member,{showOnPublicTimetable:e.target.checked})}
+                                                    className="mt-0.5 w-4 h-4 accent-indigo-600"/>
+                                                <span className="flex-1">
+                                                    <span className="text-xs font-bold text-gray-600">可在公开课表显示姓名</span>
+                                                    <span className="block text-[11px] text-gray-400 mt-0.5">默认关闭。被排了一节课不等于同意把名字放到公网上，这一项由本人决定后再开。</span>
+                                                </span>
+                                            </label>
+                                            {member.show_on_public_timetable && (
+                                            <div className="flex gap-2 items-end">
+                                                <label className="flex-1 text-[11px] font-bold text-gray-500">
+                                                    对外显示名（留空则用 {member.full_name}）
+                                                    <input defaultValue={member.public_display_name||''} placeholder="如：Lucy 老师" disabled={teamBusy}
+                                                        onBlur={e=>{ const v=e.target.value.trim();
+                                                            if (v !== (member.public_display_name||'')) updateTeamPublicity(member,{publicDisplayName:v}); }}
+                                                        className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-xl text-sm min-h-[44px]"/>
+                                                </label>
+                                            </div>
+                                            )}
+                                        </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                            {ownerRoles.includes(actorRole) ? <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-indigo-50 border border-indigo-100 rounded-xl p-3">
+                                <label className="text-xs font-bold text-gray-600">姓名 *
+                                    <input value={teamForm.fullName} onChange={e=>setTeamForm(p=>({...p,fullName:e.target.value}))}
+                                        placeholder="如：Lucy Wang" className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-xl text-sm min-h-[44px]"/>
+                                </label>
+                                <label className="text-xs font-bold text-gray-600">邮箱 *
+                                    <input type="email" value={teamForm.email} onChange={e=>setTeamForm(p=>({...p,email:e.target.value}))}
+                                        placeholder="name@example.com" className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-xl text-sm min-h-[44px]"/>
+                                </label>
+                                <label className="text-xs font-bold text-gray-600">角色 *
+                                    <select value={teamForm.role} onChange={e=>setTeamForm(p=>({...p,role:e.target.value}))}
+                                        className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-xl text-sm min-h-[44px]">
+                                        <option value="manager">Manager</option><option value="teacher">Teacher</option><option value="front_desk">Front Desk</option><option value="staff">Staff (legacy)</option>
+                                    </select>
+                                </label>
+                                <label className="text-xs font-bold text-gray-600">临时密码 *
+                                    <input type="password" value={teamForm.temporaryPassword} onChange={e=>setTeamForm(p=>({...p,temporaryPassword:e.target.value}))}
+                                        placeholder="至少 8 位" className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-xl text-sm min-h-[44px]"/>
+                                </label>
+                                <button type="button" onClick={createTeamMember} disabled={teamBusy}
+                                    className="sm:col-span-2 bg-indigo-600 text-white py-2.5 rounded-xl font-bold text-sm disabled:opacity-50">添加团队成员</button>
+                            </div> : <p className="text-xs text-gray-400 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2">当前角色可查看团队；只有 Owner 可以新增、停用或更改成员角色。</p>}
+                        </div>}
+                        {/* 修改登录密码 */}
+                        <div id="settings-account" role="tabpanel" aria-labelledby="settings-tab-account" hidden={tab==='settings' && settingsSection!=='account'} className="space-y-2 scroll-mt-24">
+                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">修改登录密码</p>
+                            <label className="block text-xs font-bold text-gray-600">当前密码
+                                <input type="password" autoComplete="current-password" placeholder="输入当前密码" value={pwOld} onChange={e=>setPwOld(e.target.value)}
+                                    className="mt-1 w-full p-2.5 border border-gray-300 rounded-xl outline-none text-sm min-h-[44px] focus:ring-2 focus:ring-indigo-400"/>
+                            </label>
+                            <label className="block text-xs font-bold text-gray-600">新密码 *
+                                <input type="password" autoComplete="new-password" placeholder="至少 8 位" value={pwNew1} onChange={e=>setPwNew1(e.target.value)}
+                                    className="mt-1 w-full p-2.5 border border-gray-300 rounded-xl outline-none text-sm min-h-[44px] focus:ring-2 focus:ring-indigo-400"/>
+                            </label>
+                            <label className="block text-xs font-bold text-gray-600">确认新密码 *
+                                <input type="password" autoComplete="new-password" placeholder="再次输入新密码" value={pwNew2} onChange={e=>setPwNew2(e.target.value)}
+                                    className="mt-1 w-full p-2.5 border border-gray-300 rounded-xl outline-none text-sm min-h-[44px] focus:ring-2 focus:ring-indigo-400"/>
+                            </label>
+                            {pwMsg && <p className={`text-xs font-medium ${pwMsg.tone==='ok'?'text-green-600':'text-red-500'}`}>{pwMsg.text}</p>}
+                            <button onClick={changeWebPw} disabled={pwBusy}
+                                className="w-full bg-indigo-600 active:bg-indigo-700 disabled:opacity-50 text-white py-2.5 rounded-xl font-bold text-sm">
+                                {pwBusy ? '更新中...' : '更新密码'}
+                            </button>
+                        </div>
+                        {/* Tenant-wide roster default: server-owned so every
+                            staff device starts new bookings at the same time. */}
+                        {canManageOperations && TENANT_SLUG && (
+                        <div id="settings-operational" role="tabpanel" aria-labelledby="settings-tab-operational" hidden={tab==='settings' && settingsSection!=='operational'} className="mt-4 pt-4 border-t border-gray-100 space-y-2 scroll-mt-24">
+                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">课程安排默认时间</p>
+                            <p className="text-xs text-gray-400">用于新排课、班组模板和新建固定班次；不会改动已保存的课程。</p>
+                            <div className="flex gap-2 items-end">
+                                <label className="flex-1 text-xs font-bold text-gray-500">
+                                    默认上课时间
+                                    <input type="time" value={defaultClassTimeDraft}
+                                        onChange={e=>setDefaultClassTimeDraft(e.target.value)}
+                                        className="mt-1 w-full px-3 py-2.5 border border-gray-300 rounded-xl bg-white text-sm font-bold min-h-[46px] outline-none focus:ring-2 focus:ring-indigo-500"/>
+                                </label>
+                                <button type="button" onClick={saveDefaultClassTime}
+                                    disabled={operationalSettingsBusy || defaultClassTimeDraft===defaultClassTime}
+                                    className="px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-bold min-h-[46px] disabled:opacity-40">
+                                    {operationalSettingsBusy?'保存中…':'保存'}
+                                </button>
+                            </div>
+                        </div>
+                        )}
+                        {/* Fix ⑪: configurable inactive-days threshold */}
+                        {canManageOperations && <>
+                        <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
+                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">未到访预警天数</p>
+                            <div className="flex gap-2">
+                                {[60,90,120,180].map(d=>(
+                                    <button key={d} onClick={()=>saveInactiveDays(d)}
+                                        className={`flex-1 py-2 rounded-xl text-xs font-bold border ${inactiveDays===d?'bg-indigo-600 text-white border-indigo-600':'bg-gray-50 text-gray-600 border-gray-200 active:bg-gray-100'}`}>{d}天</button>
+                                ))}
+                            </div>
+                        </div>
+                        {false && <>{/* Moved to the functional workspaces. Keep this
+                            legacy markup out of the Settings surface while the
+                            generated bundle remains backward-compatible. */}
+                        {/* v8.10.3: 课程管理。放在充值套餐旁边，因为它们是同一类
+                            东西——都是「先定义好、之后到处引用」的条目，而不是每天
+                            要做的事。排课编辑器里的下拉有一个链接指到这里。 */}
+                        <div id="courseManager" className="mt-4 pt-4 border-t border-gray-100 space-y-2">
+                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">课程管理</p>
+                            <p className="text-xs text-gray-400">
+                                课程是可以被固定班次「关联」的条目。关联之后，公开课表就能显示课程简介和适龄段；不关联也能正常排课，只是课表上只有班次名称。
+                            </p>
+                            {!courses.length && !courseEdit && (
+                                <p className="text-xs text-gray-400 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2">
+                                    还没有课程。例如「儿童油画基础」——添加后就能在「课程安排 → 新增班次」里关联它。
+                                </p>
+                            )}
+                            {courses.map(course => (
+                                <div key={course.id} className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs font-bold text-gray-700 truncate">{course.name}</p>
+                                        <p className="text-xs text-gray-400 truncate">
+                                            {[course.age_range && `适龄 ${course.age_range}`,
+                                              course.duration_minutes && `${course.duration_minutes} 分钟`,
+                                              course.price_aud_cents ? `$${(course.price_aud_cents/100).toFixed(2)}` : null,
+                                             ].filter(Boolean).join(' · ') || '未填写详情'}
+                                        </p>
+                                    </div>
+                                    <button onClick={()=>setCourseEdit({
+                                            id: course.id, name: course.name, description: course.description || '',
+                                            ageRange: course.age_range || '',
+                                            durationMinutes: course.duration_minutes || 60,
+                                            priceAud: course.price_aud_cents ? String(course.price_aud_cents/100) : '',
+                                        })}
+                                        className="text-xs text-indigo-600 font-bold px-3 py-1 min-h-[44px] inline-flex items-center active:text-indigo-800 flex-shrink-0">编辑</button>
+                                    <button onClick={()=>archiveCourse(course)} aria-label="归档"
+                                        className="text-red-500 font-bold px-2 py-1 min-h-[44px] min-w-[44px] inline-flex items-center justify-center active:text-red-700 flex-shrink-0"><Icon name="close" className="w-3.5 h-3.5"/></button>
+                                </div>
+                            ))}
+                            {!courseEdit ? (
+                                <button onClick={()=>setCourseEdit({name:'', description:'', ageRange:'', durationMinutes:60, priceAud:''})}
+                                    className="w-full border border-dashed border-indigo-300 text-indigo-600 rounded-xl py-2 text-xs font-bold active:bg-indigo-50">+ 添加课程</button>
+                            ) : (
+                                <div className="space-y-2 bg-indigo-50 border border-indigo-200 rounded-xl p-3">
+                                    <p className="text-xs font-bold text-indigo-700">{courseEdit.id?'编辑课程':'添加课程'}</p>
+                                    <input placeholder="课程名称，如：儿童油画基础" value={courseEdit.name}
+                                        onChange={e=>setCourseEdit(p=>({...p,name:e.target.value}))}
+                                        className="w-full px-2.5 py-2 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-400"/>
+                                    <textarea placeholder="课程简介（选填，会显示在公开课表上）" rows="2" value={courseEdit.description}
+                                        onChange={e=>setCourseEdit(p=>({...p,description:e.target.value}))}
+                                        className="w-full px-2.5 py-2 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-400"/>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <input placeholder="适龄 6-9" value={courseEdit.ageRange}
+                                            onChange={e=>setCourseEdit(p=>({...p,ageRange:e.target.value}))}
+                                            className="w-full px-2.5 py-2 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-400"/>
+                                        <input type="number" min="1" placeholder="时长(分)" value={courseEdit.durationMinutes}
+                                            onChange={e=>setCourseEdit(p=>({...p,durationMinutes:e.target.value}))}
+                                            className="w-full px-2.5 py-2 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-400"/>
+                                        <input type="number" min="0" step="0.01" placeholder="价格 $" value={courseEdit.priceAud}
+                                            onChange={e=>setCourseEdit(p=>({...p,priceAud:e.target.value}))}
+                                            className="w-full px-2.5 py-2 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-400"/>
+                                    </div>
+                                    <p className="text-[11px] text-gray-400">简介、适龄段和价格都是选填；公开课表上显示哪些，由 Studio Admin 的 Timetable 开关决定。</p>
+                                    <div className="flex gap-2">
+                                        <button onClick={()=>setCourseEdit(null)}
+                                            className="flex-1 py-2 border border-gray-300 rounded-xl text-xs font-bold text-gray-600 active:bg-gray-100">取消</button>
+                                        <button onClick={saveCourse} disabled={busy}
+                                            className="flex-1 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold disabled:bg-gray-300">{courseEdit.id?'保存':'添加'}</button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        {/* P1-A: Package management */}
+                        <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
+                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">充值套餐管理</p>
+                            {(db.packages||[]).map(pkg=>(
+                                <div key={pkg.id} className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs font-bold text-gray-700 truncate">{pkg.name}</p>
+                                        <p className="text-xs text-gray-400">{pkg.credits}课时 · ${pkg.price}</p>
+                                    </div>
+                                    <button onClick={()=>{ setPkgEditId(pkg.id); setPkgName(pkg.name); setPkgCredits(String(pkg.credits)); setPkgPrice(String(pkg.price)); }}
+                                        className="text-xs text-indigo-600 font-bold px-3 py-1 min-h-[44px] inline-flex items-center active:text-indigo-800 flex-shrink-0">编辑</button>
+                                    <button onClick={()=>{ if((db.packages||[]).length<=1){showToast('至少保留一个套餐','warn');return;} confirm(`删除套餐「${pkg.name}」？`,async ()=>{ const nd={...db,packages:(db.packages||[]).filter(p=>p.id!==pkg.id)}; const ok = await save(nd); if (!ok) return; showToast('套餐已删除'); },{danger:true,confirmText:'删除'}); }}
+                                        aria-label="删除" className="text-red-500 font-bold px-2 py-1 min-h-[44px] min-w-[44px] inline-flex items-center justify-center active:text-red-700 flex-shrink-0"><Icon name="close" className="w-3.5 h-3.5"/></button>
+                                </div>
+                            ))}
+                            {pkgEditId===null ? (
+                                <button onClick={()=>{ setPkgEditId(0); setPkgName(''); setPkgCredits(''); setPkgPrice(''); }}
+                                    className="w-full border border-dashed border-indigo-300 text-indigo-600 rounded-xl py-2 text-xs font-bold active:bg-indigo-50">+ 添加套餐</button>
+                            ) : (
+                                <div className="space-y-2 bg-indigo-50 border border-indigo-200 rounded-xl p-3">
+                                    <p className="text-xs font-bold text-indigo-700">{pkgEditId===0?'添加套餐':'编辑套餐'}</p>
+                                    <input placeholder="套餐名称" value={pkgName} onChange={e=>setPkgName(e.target.value)}
+                                        className="w-full px-2.5 py-2 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-400"/>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <input type="number" placeholder="课时数" min="1" value={pkgCredits} onChange={e=>setPkgCredits(e.target.value)}
+                                            className="w-full px-2.5 py-2 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-400"/>
+                                        <input type="number" placeholder="价格 $" min="0" value={pkgPrice} onChange={e=>setPkgPrice(e.target.value)}
+                                            className="w-full px-2.5 py-2 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-400"/>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button onClick={()=>{ setPkgEditId(null); setPkgName(''); setPkgCredits(''); setPkgPrice(''); }}
+                                            className="flex-1 py-2 border border-gray-300 rounded-xl text-xs font-bold text-gray-600 active:bg-gray-100">取消</button>
+                                        <button onClick={async ()=>{
+                                            if (!pkgName.trim()||!pkgCredits||!pkgPrice){showToast('请填写完整','warn');return;}
+                                            const cr=parseInt(pkgCredits,10), pr=parseFloat(pkgPrice);
+                                            if(isNaN(cr)||cr<1||isNaN(pr)||pr<0){showToast('课时数/价格无效','warn');return;}
+                                            let newPkgs;
+                                            if (pkgEditId===0) {
+                                                const newId = Date.now();
+                                                newPkgs = [...(db.packages||[]), {id:newId, name:pkgName.trim(), credits:cr, price:pr}];
+                                            } else {
+                                                newPkgs = (db.packages||[]).map(p=>p.id===pkgEditId?{...p,name:pkgName.trim(),credits:cr,price:pr}:p);
+                                            }
+                                            const ok = await save({...db, packages:newPkgs});
+                                            if (!ok) return;
+                                            setPkgEditId(null); setPkgName(''); setPkgCredits(''); setPkgPrice('');
+                                            showToast(pkgEditId===0?'套餐已添加':'套餐已更新');
+                                        }} className="flex-1 py-2 bg-indigo-600 active:bg-indigo-700 text-white rounded-xl text-xs font-bold">保存</button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        </>}
+                        <div className="mt-4 pt-4 border-t border-gray-100 rounded-xl bg-indigo-50 border-indigo-100 px-4 py-3 space-y-2">
+                            <p className="text-xs font-bold text-indigo-800">课程目录与充值套餐已移到对应工作区</p>
+                            <p className="text-xs text-indigo-600 leading-relaxed">设置只保留账号、团队、运营默认和数据维护。课程请进入「课程」，套餐请进入「充值与退款」中的「套餐管理」。</p>
+                            <div className="grid grid-cols-2 gap-2">
+                                {allowedTabs.includes('courses') && <button type="button" onClick={()=>setTab('courses')} className="min-h-[44px] rounded-xl bg-white border border-indigo-200 text-indigo-700 text-xs font-bold">进入课程目录</button>}
+                                {allowedTabs.includes('topup') && <button type="button" onClick={()=>setTab('topup')} className="min-h-[44px] rounded-xl bg-white border border-indigo-200 text-indigo-700 text-xs font-bold">进入套餐管理</button>}
+                            </div>
+                        </div>
+                        </>}
+                        {/* U6: Roster cleanup */}
+                        {canManageOperations && (()=>{
+                            const cutoffStr = (() => { const d=new Date(); d.setDate(d.getDate()-90); return d.toISOString().slice(0,10); })();
+                            const oldKeys = Object.keys(db.rosters||{}).filter(d=>d<cutoffStr);
+                            const cleanRosters = () => {
+                                if (!oldKeys.length) { showToast('没有需要清理的旧排课'); return; }
+                                confirm(`清理 90 天前的排课记录（${oldKeys.length} 条）？\n此操作不影响任何统计数据。`, async ()=>{
+                                    const nd = {...db, rosters:{...db.rosters}};
+                                    oldKeys.forEach(k=>delete nd.rosters[k]);
+                                    const ok = await save(nd);
+                                    if (!ok) return;
+                                    showToast(`已清理 ${oldKeys.length} 条旧排课`);
+                                }, {confirmText:'清理'});
+                            };
+                            return (
+                                <div id="settings-maintenance" role="tabpanel" aria-labelledby="settings-tab-maintenance" hidden={tab==='settings' && settingsSection!=='maintenance'} className="mt-4 pt-4 border-t border-gray-100 space-y-2 scroll-mt-24">
+                                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">排课数据清理</p>
+                                    <div className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 flex items-center gap-2">
+                                        <span className="text-xs text-gray-500 flex-1">90天前旧排课</span>
+                                        <span className={`text-xs font-bold ${oldKeys.length>0?'text-amber-600':'text-green-600'}`}>{oldKeys.length} 条</span>
+                                    </div>
+                                    <button onClick={cleanRosters} disabled={oldKeys.length===0}
+                                        className="w-full bg-amber-50 active:bg-amber-100 disabled:opacity-40 text-amber-700 border border-amber-200 py-2.5 rounded-xl font-bold text-sm">
+                                        <span className="inline-flex items-center gap-1.5"><Icon name="broom" className="w-4 h-4"/>清理旧排课</span>
+                                    </button>
+                                </div>
+                            );
+                        })()}
+                        {/* F1/F5/F6: 数据体检 + 阈值 + 每周邮件 + 备份恢复 */}
+                        {!TENANT_SLUG && (
+                            <div id="settings-maintenance-tools" className="scroll-mt-24">
+                                <MaintSection renewTh={renewTh} saveRenewTh={saveRenewTh}
+                                    onRestored={()=>{ closeSettings(); load(); }}
+                                    confirm={confirm} notify={notify}/>
+                            </div>
+                        )}
+                        {/* 开票信息排在集成前面：Xero 是可选的，而没有开票主体
+                            身份，一张发票都开不出去。 */}
+                        <div id="settings-billing-identity" role="tabpanel" aria-labelledby="settings-tab-billing-identity" hidden={tab==='settings' && settingsSection!=='billing-identity'} className="mt-4 pt-4 border-t border-gray-100 space-y-2 scroll-mt-24">
+                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">开票信息</p>
+                            <BillingIdentityPanel api={v1Api} showToast={showToast}
+                                canManage={canManageOperations} />
+                        </div>
+                        <div id="settings-integrations" role="tabpanel" aria-labelledby="settings-tab-integrations" hidden={tab==='settings' && settingsSection!=='integrations'} className="mt-4 pt-4 border-t border-gray-100 space-y-2 scroll-mt-24">
+                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">集成</p>
+                            <IntegrationsPanel api={v1Api} showToast={showToast} canManage={ownerRoles.includes(actorRole)} />
+                        </div>
+                        <div id="settings-workspace" role="tabpanel" aria-labelledby="settings-tab-workspace" hidden={tab==='settings' && settingsSection!=='workspace'} className="mt-4 pt-4 border-t border-gray-100 space-y-2 scroll-mt-24">
+                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">学员注册页面</p>
+                            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
+                                <span className="text-xs text-gray-500 flex-1 font-mono truncate">{window.STUDIOSAAS_REGISTER_URL || `${window.location.origin}/register`}</span>
+                                <button type="button" onClick={()=>copyText(window.STUDIOSAAS_REGISTER_URL || `${window.location.origin}/register`,'链接已复制')}
+                                    className="text-xs text-indigo-600 font-bold active:text-indigo-800 flex-shrink-0">复制</button>
+                            </div>
+                        </div>
+                        <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
+                            <button onClick={requestLogout} className="w-full bg-gray-100 active:bg-gray-200 text-gray-700 py-3 rounded-xl font-bold text-sm">退出登录</button>
+                            {/* Mobile-only: sidebar actions inaccessible on phone */}
+                            <div className="md:hidden space-y-2 pt-2 border-t border-gray-100">
+                                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide pb-0.5">快捷操作</p>
+                                {TENANT_SLUG && <>
+                                {/* Same judgement as the sidebar pair. This list
+                                    already reads as filled = do it, soft accent
+                                    = secondary, neutral = read-only, danger =
+                                    destructive; 网站与品牌 is the one item worth
+                                    leading with, so it takes the single filled
+                                    slot instead of an unrelated green. */}
+                                <a href={`/${encodeURIComponent(TENANT_SLUG)}/studio-admin`}
+                                    className="flex items-center justify-center w-full bg-indigo-600 active:bg-indigo-700 py-3 rounded-xl font-bold text-sm min-h-[44px]">网站与品牌 · Studio Admin</a>
+                                <a href={`/${encodeURIComponent(TENANT_SLUG)}`} target="_blank" rel="noopener"
+                                    className="flex items-center justify-center w-full bg-gray-50 active:bg-gray-100 text-gray-700 border border-gray-200 py-3 rounded-xl font-bold text-sm min-h-[44px]">查看公开网站</a>
+                                </>}
+                                <button onClick={()=>{load();closeSettings();}} disabled={busy}
+                                    className="w-full bg-indigo-50 active:bg-indigo-100 text-indigo-700 border border-indigo-200 py-3 rounded-xl font-bold text-sm"><span className="inline-flex items-center gap-1.5"><Icon name="refresh" className="w-4 h-4"/>刷新数据</span></button>
+                                {canManageOperations && !TENANT_SLUG && <button onClick={()=>{exportDB();closeSettings();}}
+                                    className="w-full bg-indigo-50 active:bg-indigo-100 text-indigo-700 border border-indigo-200 py-3 rounded-xl font-bold text-sm"><span className="inline-flex items-center gap-1.5"><Icon name="download" className="w-4 h-4"/>备份导出</span></button>
+                                }
+                                <button onClick={()=>{closeSettings();confirm('确认退出登录？下次进入需重新输入密码。', doLogout, {confirmText:'退出登录'});}}
+                                    className="w-full bg-red-50 active:bg-red-100 text-red-600 border border-red-200 py-3 rounded-xl font-bold text-sm"><span className="inline-flex items-center gap-1.5"><Icon name="logout" className="w-4 h-4"/>退出登录</span></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
             </main>
 
             {/* ── Mobile bottom nav (md:hidden) ── */}

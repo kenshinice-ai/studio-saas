@@ -99,3 +99,30 @@ def test_settings_sections_are_tabs_not_scroll_anchors():
         "a settings tab scrolled instead of switching — that is the anchor "
         "behaviour this replaced"
     )
+
+
+def test_the_settings_block_lives_inside_the_main_column():
+    """It was a fixed overlay, so its place in the tree never mattered.
+
+    Viewport positioning pulled it where it belonged no matter where it was
+    written. v10.2.0 made it a normal page without moving it, so it rendered
+    outside the content column entirely — settings content to the left of the
+    sidebar, and the main column showing nothing but a footer.
+
+    The previous session verified that release by querying the DOM: seven
+    tabpanels, one visible, aria-selected on the right tab, the URL updating.
+    Every one of those passed. The elements were right and their position was
+    wrong, and no property query can see that. This test at least pins the
+    structural half — that the block is nested inside <main> rather than
+    floating beside it.
+    """
+
+    source = cms_source_text()
+    main_open = source.index("<main className=")
+    main_close = source.index("</main>", main_open)
+    settings_at = source.index("{showSettings && (")
+
+    assert main_open < settings_at < main_close, (
+        "The settings block is outside <main>. It renders in normal flow now, "
+        "so where it sits in the tree is where it appears on screen."
+    )
