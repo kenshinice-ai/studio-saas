@@ -31,13 +31,13 @@ from pathlib import Path
 import pytest
 
 import studiosaas.api_v1  # noqa: F401
+from _cms_sources import cms_source_text
 
 api_v1 = sys.modules["studiosaas.api_v1"]
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 MIGRATION = REPOSITORY_ROOT / "backend/db/migrations/0025_timetable_teacher_and_exceptions.sql"
 SCHEMA = REPOSITORY_ROOT / "backend/db/schema_v1.sql"
-CMS_SOURCE = REPOSITORY_ROOT / "legacy-root/src/cms-app.jsx"
 CMS_BUNDLE = REPOSITORY_ROOT / "backend/frontend/assets/cms-app.js"
 
 
@@ -226,7 +226,7 @@ def test_the_cms_sends_every_field_the_server_stores() -> None:
     studio can never set, which is the same feature not existing.
     """
 
-    source = _read(CMS_SOURCE)
+    source = cms_source_text()
     block = source[source.index("const saveSchedule ="):]
     block = block[:block.index("const deleteSchedule =")]
     for key in ("courseId:", "teacherUserId:", "isPublic:", "room:"):
@@ -242,7 +242,7 @@ def test_the_clash_warning_asks_about_the_teacher_not_the_clock() -> None:
     every class it ever created and learn to click through it.
     """
 
-    source = _read(CMS_SOURCE)
+    source = cms_source_text()
     assert "const schedClash =" in source
     block = source[source.index("const schedClash ="):]
     block = block[:block.index("const saveSchedule =")]
@@ -262,12 +262,12 @@ def test_the_cms_says_out_loud_which_classes_are_public() -> None:
     reconstruct from memory.
     """
 
-    source = _read(CMS_SOURCE)
+    source = cms_source_text()
     assert "已公开" in source and "仅内部可见" in source
 
 
 def test_the_teacher_consent_switch_is_per_person_and_off_by_default() -> None:
-    source = _read(CMS_SOURCE)
+    source = cms_source_text()
     assert "可在公开课表显示姓名" in source
     assert "showOnPublicTimetable" in source
     assert "publicDisplayName" in source
@@ -281,7 +281,7 @@ def test_the_editor_warns_when_the_named_teacher_has_not_agreed() -> None:
     expected is missing.
     """
 
-    source = _read(CMS_SOURCE)
+    source = cms_source_text()
     assert "尚未同意在公开课表显示姓名" in source
 
 
@@ -306,7 +306,7 @@ def test_the_room_and_course_fields_are_optional_in_the_editor() -> None:
     room, and forcing a value teaches people to type "-".
     """
 
-    source = _read(CMS_SOURCE)
+    source = cms_source_text()
     editor = source[source.index("关联课程"):]
     editor = editor[:editor.index("班次学员")]
     assert editor.count("（选填）") >= 3
@@ -325,7 +325,7 @@ def test_the_cms_can_create_the_courses_the_schedule_editor_offers() -> None:
     write to is not a partial feature; it reads as a broken one.
     """
 
-    source = _read(CMS_SOURCE)
+    source = cms_source_text()
     assert "const saveCourse =" in source
     assert "const archiveCourse =" in source
     assert 'id="courseManager"' in source
@@ -340,7 +340,7 @@ def test_removing_a_course_archives_it_and_says_what_still_uses_it() -> None:
     "archive" reads as "remove" to someone who has ten classes on it.
     """
 
-    source = _read(CMS_SOURCE)
+    source = cms_source_text()
     block = source[source.index("const archiveCourse ="):source.index("const reviewBooking =")]
     assert "schedules.filter(sc => sc.courseId === course.id)" in block
     assert "个班次正在关联它" in block
@@ -355,7 +355,7 @@ def test_the_teacher_list_is_not_loaded_only_by_the_settings_modal() -> None:
     list, so it cannot be loaded by one of them.
     """
 
-    source = _read(CMS_SOURCE)
+    source = cms_source_text()
     block = source[source.index("v8.10.3: the team list"):]
     block = block[:block.index("useEffect(() => {\n        if (actorRole && !allowedTabs")]
     assert "if (TENANT_SLUG && canManageOperations) loadTeam();" in block
@@ -369,7 +369,7 @@ def test_the_schedule_editor_links_to_where_courses_are_managed() -> None:
     courses yet" — which is exactly how it was reported.
     """
 
-    source = _read(CMS_SOURCE)
+    source = cms_source_text()
     assert "去添加课程 →" in source
     assert "管理课程" in source
     assert "getElementById('courseManager')?.scrollIntoView" in source

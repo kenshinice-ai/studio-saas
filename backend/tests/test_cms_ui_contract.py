@@ -1,6 +1,7 @@
 """Regression guards for CMS touch, modal, and shared-token contracts."""
 
 from pathlib import Path
+from _cms_sources import cms_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -31,7 +32,7 @@ def test_shared_tokens_define_golden_spacing_and_touch_floor() -> None:
 def test_cms_has_no_sub_44px_declared_touch_target() -> None:
     """Button utilities must describe the same 44px floor enforced by CSS."""
 
-    source = _read("legacy-root/src/cms-app.jsx")
+    source = cms_source_text()
     assert "min-h-[36px]" not in source
     assert "min-h-[40px]" not in source
     assert "min-w-[40px]" not in source
@@ -55,7 +56,7 @@ def test_cms_shell_preserves_touch_and_button_state_selectors() -> None:
 def test_empty_state_uses_semantic_theme_and_touch_contracts() -> None:
     """The migration sample must avoid hue utilities and use solved token pairs."""
 
-    source = _read("legacy-root/src/cms-app.jsx")
+    source = cms_source_text()
     start = source.index("function EmptyState")
     end = source.index("function BalBadge", start)
     component = source[start:end]
@@ -95,7 +96,7 @@ def test_empty_state_uses_semantic_theme_and_touch_contracts() -> None:
 def test_primary_cms_overlays_are_named_keyboard_modals() -> None:
     """Operational sheets expose names and share a keyboard focus boundary."""
 
-    source = _read("legacy-root/src/cms-app.jsx")
+    source = cms_source_text()
     assert "function useModalFocus" in source
     for title_id in (
         "portfolio-lightbox-title",
@@ -106,3 +107,62 @@ def test_primary_cms_overlays_are_named_keyboard_modals() -> None:
     ):
         assert f'aria-labelledby="{title_id}"' in source
     assert 'role="dialog" aria-modal="true" aria-label="搜索学员"' in source
+
+
+def test_nothing_reads_the_cms_source_by_a_fixed_filename() -> None:
+    """The CMS is a directory, and every reader must treat it as one.
+
+    While the CMS was a single 6,800-line file, hardcoding
+    ``legacy-root/src/cms-app.jsx`` was correct. The moment a panel moves into
+    a sibling module it becomes silently wrong: these contract assertions keep
+    passing, against a file that no longer holds the code they police, and the
+    new panel ships with no touch-target check, no semantic-colour check and no
+    terminology check — all of them green.
+
+    This repository has now paid for that shape of bug twice, both times from an
+    inventory kept by hand: an archive manifest that dropped three tenant-scoped
+    tables including parent contact details, and an Edition importer that could
+    not run at all. This guard is the same lesson applied before the split
+    rather than after it.
+
+    String constants are read from the parsed tree with docstrings removed, so a
+    file may still *discuss* ``cms-app.jsx`` in prose without tripping.
+    """
+
+    import ast
+
+    root = ROOT
+    offenders: list[str] = []
+
+    for path in sorted((root / "backend/tests").glob("*.py")) + sorted(
+        (root / "backend/scripts").glob("*.py")
+    ):
+        if path.name == "_cms_sources.py":
+            continue  # this is the module that defines the directory
+        try:
+            tree = ast.parse(path.read_text(encoding="utf-8"))
+        except SyntaxError:  # pragma: no cover - checked elsewhere
+            continue
+
+        docstrings = set()
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+                body = getattr(node, "body", None)
+                if body and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant):
+                    docstrings.add(id(body[0].value))
+
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Constant) or id(node) in docstrings:
+                continue
+            if not isinstance(node.value, str):
+                continue
+            text = node.value
+            if text.endswith(".jsx") and ("legacy-root" in text or "cms-app" in text):
+                offenders.append(f"{path.relative_to(root)}:{node.lineno} → {text!r}")
+
+    assert not offenders, (
+        "These read the CMS source by a fixed filename and would stop covering "
+        "any panel that moves into a sibling module. Use "
+        "`_cms_sources.cms_source_text()` (tests) or derive the list from the "
+        "directory (scripts):\n  " + "\n  ".join(offenders)
+    )

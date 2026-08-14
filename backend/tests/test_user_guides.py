@@ -20,10 +20,10 @@ import re
 from pathlib import Path
 
 import pytest
+from _cms_sources import cms_source_text
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 GUIDES = REPOSITORY_ROOT / "docs/guides"
-CMS_SOURCE = REPOSITORY_ROOT / "legacy-root/src/cms-app.jsx"
 CONSOLE = REPOSITORY_ROOT / "super-admin.html"
 VERSION = (REPOSITORY_ROOT / "VERSION").read_text(encoding="utf-8").strip()
 
@@ -116,7 +116,7 @@ def test_front_desk_booking_review_is_documented_with_the_cms_boundary() -> None
 def test_the_audit_action_count_is_the_real_one() -> None:
     """The guides quote a number; the dictionary decides it."""
 
-    source = CMS_SOURCE.read_text(encoding="utf-8")
+    source = cms_source_text()
     block = source[source.index("const AUDIT_ACTION_ZH"):]
     block = block[: block.index("};")]
     actions = re.findall(r"'([a-z_.]+)':", block)
@@ -232,7 +232,7 @@ def test_the_console_metric_filters_are_documented() -> None:
 def test_the_cms_tab_list_matches_the_navigation() -> None:
     """The guides tell each role which tabs they will see."""
 
-    source = CMS_SOURCE.read_text(encoding="utf-8")
+    source = cms_source_text()
     labels = re.findall(r"\{k:'\w+',\s*i:'\w+',\s*l:'([^']+)'", source)
     assert labels, "the CMS tab definitions could not be parsed"
     readme = _text("README.md")

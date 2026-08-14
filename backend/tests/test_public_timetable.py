@@ -32,6 +32,7 @@ from pathlib import Path
 import pytest
 
 import studiosaas.api_v1  # noqa: F401
+from _cms_sources import cms_source_text
 
 api_v1 = sys.modules["studiosaas.api_v1"]
 
@@ -42,7 +43,6 @@ PORTAL = REPOSITORY_ROOT / "tenant-template/index.html"
 ADMIN = REPOSITORY_ROOT / "backend/frontend/studio-admin.html"
 SERVER = REPOSITORY_ROOT / "backend/server.py"
 MIGRATION = REPOSITORY_ROOT / "backend/db/migrations/0026_class_bookings.sql"
-CMS_SOURCE = REPOSITORY_ROOT / "legacy-root/src/cms-app.jsx"
 CMS_BUNDLE = REPOSITORY_ROOT / "backend/frontend/assets/cms-app.js"
 
 
@@ -363,7 +363,7 @@ def test_the_two_queues_are_counted_apart_but_read_in_one_place() -> None:
     a front desk with two places to look will stop visiting one of them.
     """
 
-    cms = _read(CMS_SOURCE)
+    cms = cms_source_text()
     assert "pendingTab" in cms
     assert "'新报名'" in cms and "'约课'" in cms
     # Both queues live under the same tab.
@@ -371,7 +371,7 @@ def test_the_two_queues_are_counted_apart_but_read_in_one_place() -> None:
 
 
 def test_the_cms_shows_the_match_that_the_public_reply_withholds() -> None:
-    cms = _read(CMS_SOURCE)
+    cms = cms_source_text()
     assert "isExistingStudent" in cms
     assert "已是学员" in cms and "新访客" in cms
 

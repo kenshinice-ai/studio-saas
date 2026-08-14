@@ -17,6 +17,7 @@ import re
 from pathlib import Path
 
 import pytest
+from _cms_sources import cms_source_text
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 TEMPLATES = (
@@ -320,7 +321,6 @@ def test_cms_dark_mode_has_one_token_owner() -> None:
 # unthemed slab is more conspicuous than no theming at all would have been.
 
 CMS_SHELL = REPOSITORY_ROOT / "legacy-root" / "index.html"
-CMS_APP = REPOSITORY_ROOT / "legacy-root" / "src" / "cms-app.jsx"
 BRAND_UTILITY = re.compile(r"(?:bg|text|border|from|to|via)-(?:indigo|purple)-(\d{2,3})")
 
 
@@ -351,7 +351,7 @@ def test_the_cms_configures_tailwind_instead_of_patching_it() -> None:
     shell = _read(CMS_SHELL)
     assert "tailwind.config = config" in shell, "the generator is not configured"
     # Every family the source renders must be mapped.
-    source = (REPOSITORY_ROOT / "legacy-root/src/cms-app.jsx").read_text(encoding="utf-8")
+    source = cms_source_text()
     families = set(re.findall(
         r"\b(?:bg|text|border|from|to|via|ring|divide|placeholder)-"
         r"(slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|"

@@ -17,15 +17,34 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
-SURFACES = [
+_FIXED_SURFACES = [
     "tenant-template/index.html",
     "tenant-template/register.html",
     "tenant-template/showcase.html",
     "tenant-template/timetable.html",
-    "legacy-root/src/cms-app.jsx",
     "backend/frontend/studio-admin.html",
     "super-admin.html",
 ]
+
+
+def _cms_surfaces() -> list[str]:
+    """Every JSX file that compiles into the CMS bundle.
+
+    Derived rather than listed. This entry was `legacy-root/src/cms-app.jsx`
+    while the CMS was a single file, and it would have kept passing — checking
+    a file that no longer held the code — the moment any panel moved into a
+    sibling module. The same shape of bug has already shipped twice in this
+    repository from a hardcoded inventory; ask the directory instead.
+    """
+
+    src = PROJECT_ROOT / "legacy-root" / "src"
+    return [
+        str(path.relative_to(PROJECT_ROOT))
+        for path in sorted(src.rglob("*.jsx"))
+    ]
+
+
+SURFACES = _FIXED_SURFACES + _cms_surfaces()
 
 # (pattern, human explanation). Patterns are matched against a comment-stripped
 # copy of each file, so a rule may be discussed in a comment without tripping.

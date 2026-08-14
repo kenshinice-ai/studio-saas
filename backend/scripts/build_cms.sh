@@ -1,11 +1,20 @@
 #!/usr/bin/env bash
 # A3: precompile the CMS JSX so the browser no longer runs Babel.
 #
-#   source : legacy-root/src/cms-app.jsx   (edit this)
+#   source : legacy-root/src/cms-app.jsx   (the entry point — edit this)
+#            legacy-root/src/**/*.jsx      (imported panels)
 #   output : backend/frontend/assets/cms-app.js  (served at /assets/cms-app.js)
 #
 # esbuild's classic JSX transform targets the React UMD globals already
-# loaded by legacy-root/index.html. Run after every cms-app.jsx change.
+# loaded by legacy-root/index.html. Run after every source change.
+#
+# `--bundle` is what lets the entry point import sibling panels instead of the
+# CMS staying one 6,800-line file. Without it esbuild leaves a bare `import`
+# in the output, which a plain <script> tag cannot execute — verify_local.sh
+# catches exactly that with its `new Function(...)` parse check, so a forgotten
+# flag fails the gate rather than shipping. Bundling wraps the result in an
+# IIFE; nothing outside reads globals from this file (index.html's only
+# contract is `<div id="root">`), so the wrapper is safe.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -22,6 +31,7 @@ if [ -z "$ESBUILD" ]; then
 fi
 
 "$ESBUILD" "$SRC" \
+  --bundle \
   --loader:.jsx=jsx \
   --jsx=transform \
   --charset=utf8 \

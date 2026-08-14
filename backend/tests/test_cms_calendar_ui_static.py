@@ -1,10 +1,10 @@
 """Static guards for the CMS side of the revision-bound calendar contract."""
 
 from pathlib import Path
+from _cms_sources import cms_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SOURCE = ROOT / "legacy-root" / "src" / "cms-app.jsx"
 SHELL = ROOT / "legacy-root" / "index.html"
 API_SOURCE = ROOT / "backend" / "studiosaas" / "api_v1.py"
 
@@ -12,7 +12,7 @@ API_SOURCE = ROOT / "backend" / "studiosaas" / "api_v1.py"
 def _source() -> str:
     """Return the authoritative JSX source, never the generated browser bundle."""
 
-    return SOURCE.read_text(encoding="utf-8")
+    return cms_source_text()
 
 
 def test_calendar_download_sends_preview_revision_and_recovers_from_conflict() -> None:

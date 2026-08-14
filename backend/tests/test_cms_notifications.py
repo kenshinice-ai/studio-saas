@@ -7,6 +7,7 @@ import secrets
 from pathlib import Path
 
 import pytest
+from _cms_sources import cms_source_text
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -34,7 +35,7 @@ def test_notification_routes_and_event_writes_stay_in_the_cms_scope() -> None:
     """The API must protect reads and create events in existing transactions."""
 
     source = (REPOSITORY_ROOT / "backend/studiosaas/api_v1.py").read_text(encoding="utf-8")
-    ui = (REPOSITORY_ROOT / "legacy-root/src/cms-app.jsx").read_text(encoding="utf-8")
+    ui = cms_source_text()
     assert '@api_v1.route("/notifications", methods=["GET"])' in source
     assert '@permission_required("registrations:read")' in source[source.index("@api_v1.route(\"/notifications\"",):]
     assert "notification_type=\"registration.created\"" in source
