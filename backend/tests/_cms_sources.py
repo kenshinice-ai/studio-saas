@@ -40,3 +40,32 @@ def cms_source_text() -> str:
     """
 
     return "\n".join(path.read_text(encoding="utf-8") for path in cms_source_files())
+
+# ── RLS 下的夹具约定（v10.3.0） ─────────────────────────────────────
+#
+# 夹具要造世界：建租户、建学员、塞发票。造世界是属主的活，不是应用的活 ——
+# 生产里也是这么分的（迁移与后台脚本用属主，Web 应用用受限角色）。
+#
+# 所以夹具用 STUDIOSAAS_OWNER_DATABASE_URL（没设就退回主连接串），
+# 而被测的应用代码继续用 STUDIOSAAS_DATABASE_URL。两者指向同一个库、
+# 不同的角色，这正是要验证的那种配置。
+import contextlib
+import os as _os
+
+
+@contextlib.contextmanager
+def owner_connection():
+    """A connection that may create the world. Fixtures only, never app code."""
+
+    from studiosaas.db import connect
+
+    app_url = _os.environ.get("STUDIOSAAS_DATABASE_URL")
+    owner_url = _os.environ.get("STUDIOSAAS_OWNER_DATABASE_URL")
+    if owner_url:
+        _os.environ["STUDIOSAAS_DATABASE_URL"] = owner_url
+    try:
+        with connect() as conn:
+            yield conn
+    finally:
+        if owner_url and app_url is not None:
+            _os.environ["STUDIOSAAS_DATABASE_URL"] = app_url

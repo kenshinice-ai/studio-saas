@@ -561,7 +561,13 @@ def super_admin_required(fn: F) -> F:
 
     @wraps(fn)
     def wrapper(*args: Any, **kwargs: Any) -> tuple:
-        from flask import session as flask_session
+        from flask import g as flask_g, session as flask_session
+
+        # 平台控制台本来就跨租户：列全部租户的订阅、聚合用量、读全量审计。
+        # 在 g 上打标记，connect() 读它并设成会话变量 —— 一处设、一处读，
+        # 11 条平台路由一条都不用记得做什么。标记随请求销毁。
+        # 这不是「绕过 RLS」，是把超管本来就有的权限对数据库说出来。
+        flask_g.studiosaas_platform = True
 
         user_id = flask_session.get("user_id")
         if not user_id:

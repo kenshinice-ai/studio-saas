@@ -112,6 +112,7 @@ from .services.student_access import (
     verify_access_code as _verify_student_access_code,
 )
 from .tenant_context import (
+    bind_user_session as _bind_user_session,
     TenantGoneError,
     TenantResolutionError,
     canonical_slug_for,
@@ -11820,6 +11821,10 @@ def auth_login():
         # every active membership is `parent` holds no staff permission, yet a
         # session would still pass @auth_required on read routes — so refuse
         # the session outright until the family self-service surface exists.
+        # memberships 是 RLS 下唯一带自查子句的表：登录必须先回答「这个人属于
+        # 哪些工作室」，那一刻还没有租户。绑定 user_id 让这条查询看得见自己的行，
+        # 且仅限自己的行。
+        _bind_user_session(conn, str(user["id"]))
         staff_membership = fetch_one(
             conn,
             """

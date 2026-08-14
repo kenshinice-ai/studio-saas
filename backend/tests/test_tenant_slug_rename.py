@@ -110,7 +110,7 @@ needs_postgres = pytest.mark.skipif(
 def seeded_tenant(app):
     """A tenant with one current address, cleaned up afterwards."""
 
-    from studiosaas.db import connect
+    from _cms_sources import owner_connection as connect  # 夹具造世界用属主
 
     slug = f"rename-probe-{uuid.uuid4().hex[:8]}"
     with app.app_context(), connect() as conn:
@@ -146,7 +146,7 @@ def test_a_tenant_can_only_have_one_current_address(app, seeded_tenant):
     """Enforced by a partial unique index, not by remembering to check."""
 
     import psycopg
-    from studiosaas.db import connect
+    from _cms_sources import owner_connection as connect  # 夹具造世界用属主
 
     tenant_id, _ = seeded_tenant
     with app.app_context(), connect() as conn:
@@ -163,7 +163,7 @@ def test_a_tenant_can_only_have_one_current_address(app, seeded_tenant):
 def test_a_retired_address_still_resolves_to_its_tenant(app, seeded_tenant):
     """An open Studio Admin tab keeps working through a rename."""
 
-    from studiosaas.db import connect
+    from _cms_sources import owner_connection as connect  # 夹具造世界用属主
     from studiosaas.tenant_context import canonical_slug_for, resolve_tenant
 
     tenant_id, old_slug = seeded_tenant
@@ -196,7 +196,7 @@ def test_a_retired_address_still_resolves_to_its_tenant(app, seeded_tenant):
 def test_a_deleted_studio_leaves_a_tombstone_not_a_free_address(app, seeded_tenant):
     """Reissuing one would redirect its printed QR codes into another business."""
 
-    from studiosaas.db import connect
+    from _cms_sources import owner_connection as connect  # 夹具造世界用属主
     from studiosaas.tenant_context import TenantGoneError, canonical_slug_for, resolve_tenant
 
     tenant_id, slug = seeded_tenant

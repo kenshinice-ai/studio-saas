@@ -81,6 +81,18 @@ def connect(
     except psycopg.Error as exc:
         raise DatabaseUnavailableError(str(exc)) from exc
 
+    # 平台请求的标记由 super_admin_required 放在 flask.g 上。放在这里读，
+    # 是因为这是每条请求都必经的唯一一处；放在路由里就成了 11 次「记得写」。
+    # 没有 Flask 上下文时（脚本、迁移）静默跳过 —— 那些本来就用属主角色。
+    try:
+        from flask import g as _flask_g, has_request_context
+
+        if has_request_context() and getattr(_flask_g, "studiosaas_platform", False):
+            with conn.cursor() as _cur:
+                _cur.execute("SELECT set_config('studiosaas.platform', 'on', false)")
+    except Exception:
+        pass
+
     try:
         with conn:
             yield conn

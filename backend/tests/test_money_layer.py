@@ -285,7 +285,7 @@ def test_every_money_route_declares_a_permission():
 
 def _database_available() -> bool:
     try:
-        from studiosaas.db import connect
+        from _cms_sources import owner_connection as connect  # 夹具造世界用属主
 
         with connect() as conn:
             with conn.cursor() as cur:
@@ -305,7 +305,7 @@ requires_db = pytest.mark.skipif(
 def money_tenant():
     """A throwaway tenant with one payer and one student, torn down after."""
 
-    from studiosaas.db import connect
+    from _cms_sources import owner_connection as connect  # 夹具造世界用属主
 
     tenant_id = str(uuid.uuid4())
     slug = f"t{tenant_id[:8]}"
@@ -334,6 +334,19 @@ def money_tenant():
                 (tenant_id,),
             )
             account_id = cur.fetchone()["id"]
+            # 真实工作室在开票之前一定填过开票信息 —— v10.1.1 起
+            # issuing_blockers() 会拒绝没有 ABN 的 GST 发票。夹具不填，
+            # 就比真实租户简单，于是测的是一个不存在的工作室。
+            cur.execute(
+                """
+                INSERT INTO tenant_billing_identity
+                    (tenant_id, legal_name, trading_name, abn, gst_registered)
+                VALUES (%s, 'Fixture Studio Pty Ltd', 'Fixture Studio',
+                        '53 004 085 616', true)
+                ON CONFLICT (tenant_id) DO NOTHING
+                """,
+                (tenant_id,),
+            )
         conn.commit()
 
     yield {"tenant_id": tenant_id, "student_id": str(student_id), "account_id": str(account_id)}
@@ -367,7 +380,7 @@ def _draft_with_line(conn, tenant_id, account_id, *, cents=10000, tax_bp=1000):
 def test_issued_invoice_figures_cannot_be_changed(money_tenant):
     """Enforced by trigger, so no code path can forget it."""
 
-    from studiosaas.db import connect
+    from _cms_sources import owner_connection as connect  # 夹具造世界用属主
 
     with connect() as conn:
         invoice_id = _draft_with_line(conn, money_tenant["tenant_id"], money_tenant["account_id"])
@@ -383,7 +396,7 @@ def test_issued_invoice_figures_cannot_be_changed(money_tenant):
 
 @requires_db
 def test_issued_invoice_lines_cannot_be_changed(money_tenant):
-    from studiosaas.db import connect
+    from _cms_sources import owner_connection as connect  # 夹具造世界用属主
 
     with connect() as conn:
         invoice_id = _draft_with_line(conn, money_tenant["tenant_id"], money_tenant["account_id"])
@@ -403,7 +416,7 @@ def test_issued_invoice_lines_cannot_be_changed(money_tenant):
 def test_invoice_numbers_do_not_skip_when_a_transaction_rolls_back(money_tenant):
     """A gap in the sequence is a question nobody can answer later."""
 
-    from studiosaas.db import connect
+    from _cms_sources import owner_connection as connect  # 夹具造世界用属主
 
     tenant_id = money_tenant["tenant_id"]
     with connect() as conn:
@@ -419,7 +432,7 @@ def test_invoice_numbers_do_not_skip_when_a_transaction_rolls_back(money_tenant)
 
 @requires_db
 def test_a_payment_cannot_be_allocated_beyond_its_value(money_tenant):
-    from studiosaas.db import connect
+    from _cms_sources import owner_connection as connect  # 夹具造世界用属主
     from studiosaas.services import payments
 
     tenant_id = money_tenant["tenant_id"]
@@ -447,7 +460,7 @@ def test_a_payment_cannot_be_allocated_beyond_its_value(money_tenant):
 def test_allocation_keeps_the_invoice_status_and_balance_true(money_tenant):
     """The paid total is derived by trigger; nothing writes it by hand."""
 
-    from studiosaas.db import connect
+    from _cms_sources import owner_connection as connect  # 夹具造世界用属主
     from studiosaas.services import payments
 
     tenant_id = money_tenant["tenant_id"]
@@ -487,7 +500,7 @@ def test_allocation_keeps_the_invoice_status_and_balance_true(money_tenant):
 def test_replaying_a_payment_with_the_same_key_does_not_double_post(money_tenant):
     """A retried request and a redelivered webhook look identical. They must be."""
 
-    from studiosaas.db import connect
+    from _cms_sources import owner_connection as connect  # 夹具造世界用属主
     from studiosaas.services import payments
 
     tenant_id = money_tenant["tenant_id"]
@@ -511,7 +524,7 @@ def test_replaying_a_payment_with_the_same_key_does_not_double_post(money_tenant
 def test_a_billing_account_cannot_hold_another_tenants_student(money_tenant):
     """The composite foreign key makes it unrepresentable, not merely unwise."""
 
-    from studiosaas.db import connect
+    from _cms_sources import owner_connection as connect  # 夹具造世界用属主
 
     other_tenant = str(uuid.uuid4())
     with connect() as conn:
@@ -553,7 +566,7 @@ def test_a_billing_account_cannot_hold_another_tenants_student(money_tenant):
 def test_xero_push_cannot_be_enabled_before_the_gate_is_satisfied(money_tenant):
     """The gate is a CHECK constraint: a script cannot open it either."""
 
-    from studiosaas.db import connect
+    from _cms_sources import owner_connection as connect  # 夹具造世界用属主
 
     tenant_id = money_tenant["tenant_id"]
     with connect() as conn:
@@ -571,7 +584,7 @@ def test_xero_push_cannot_be_enabled_before_the_gate_is_satisfied(money_tenant):
 def test_clearing_account_choice_requires_an_account_code(money_tenant):
     """Choosing the safe option without configuring it is the unsafe option."""
 
-    from studiosaas.db import connect
+    from _cms_sources import owner_connection as connect  # 夹具造世界用属主
 
     with connect() as conn:
         with pytest.raises(Exception):
@@ -597,7 +610,7 @@ def test_a_confirmed_pay_period_refuses_silent_corrections(money_tenant):
     after confirmation discarded the correction and told nobody.
     """
 
-    from studiosaas.db import connect
+    from _cms_sources import owner_connection as connect  # 夹具造世界用属主
 
     tenant_id = money_tenant["tenant_id"]
     with connect() as conn:
@@ -657,7 +670,7 @@ def test_a_report_draft_survives_a_student_who_has_lesson_notes(money_tenant):
 
     import json
 
-    from studiosaas.db import connect
+    from _cms_sources import owner_connection as connect  # 夹具造世界用属主
     from studiosaas.services import progress_reports
 
     tenant_id = money_tenant["tenant_id"]
@@ -874,7 +887,7 @@ def test_occurrences_skip_closures_and_pauses_but_keep_cancellations(money_tenan
     stays visible with the two money answers attached to it.
     """
 
-    from studiosaas.db import connect
+    from _cms_sources import owner_connection as connect  # 夹具造世界用属主
     from studiosaas.services import scheduling
 
     tenant_id = money_tenant["tenant_id"]
@@ -940,7 +953,7 @@ def test_occurrences_skip_closures_and_pauses_but_keep_cancellations(money_tenan
 def test_a_make_up_credit_cannot_be_spent_twice(money_tenant):
     """Two screens, one credit. Check-then-write lets both through."""
 
-    from studiosaas.db import connect
+    from _cms_sources import owner_connection as connect  # 夹具造世界用属主
     from studiosaas.services import scheduling
 
     tenant_id = money_tenant["tenant_id"]
@@ -972,7 +985,7 @@ def test_a_make_up_credit_cannot_be_spent_twice(money_tenant):
 def test_an_expired_credit_is_expired_the_moment_the_date_passes(money_tenant):
     """Derived at read time, so no nightly job can leave it stale."""
 
-    from studiosaas.db import connect
+    from _cms_sources import owner_connection as connect  # 夹具造世界用属主
     from studiosaas.services import scheduling
 
     tenant_id = money_tenant["tenant_id"]
@@ -1005,7 +1018,7 @@ def test_an_expired_credit_is_expired_the_moment_the_date_passes(money_tenant):
 def test_undoing_a_cancellation_cancels_the_credit_it_granted(money_tenant):
     """Never a delete: a family's balance may not change without a trace."""
 
-    from studiosaas.db import connect
+    from _cms_sources import owner_connection as connect  # 夹具造世界用属主
     from studiosaas.services import scheduling
 
     tenant_id = money_tenant["tenant_id"]
@@ -1038,7 +1051,7 @@ def test_undoing_a_cancellation_cancels_the_credit_it_granted(money_tenant):
 def test_a_teacher_cannot_be_booked_into_two_lessons_at_once(money_tenant):
     """Overlap, not equality — 4:15 and 4:30 collide for a 30-minute lesson."""
 
-    from studiosaas.db import connect
+    from _cms_sources import owner_connection as connect  # 夹具造世界用属主
     from studiosaas.services import scheduling
 
     tenant_id = money_tenant["tenant_id"]

@@ -133,6 +133,43 @@ def canonical_slug_for(conn: Any, slug: str) -> str | None:
     return str(row["current_slug"] or "")
 
 
+
+def _bind_tenant_session(conn: Any, tenant_id: str) -> None:
+    """Tell the database which tenant this connection is acting for.
+
+    Every tenant-scoped path in the product goes through :func:`resolve_tenant`
+    — the 120 authenticated routes reach it via ``_tenant_context``, and the 18
+    public ones call it directly. That makes this the one place the row-level
+    security variable can be set and have it cover everything.
+
+    ``SET`` rather than ``SET LOCAL`` on purpose. ``SET LOCAL`` dies with the
+    transaction, and eleven routes commit and then keep querying; under LOCAL
+    those would silently see nothing after their commit. There is no connection
+    pool — ``connect()`` opens a connection per ``with`` block and closes it in
+    a ``finally`` — so a session-level setting cannot outlive the request.
+
+    That safety depends on there being no pool. If one is ever added, this has
+    to become ``SET LOCAL`` plus a re-bind after commit, or the variable will
+    ride a pooled connection into the next tenant's request. A test asserts the
+    no-pool assumption so the two cannot drift apart silently.
+    """
+
+    with conn.cursor() as cur:
+        cur.execute("SELECT set_config('studiosaas.tenant_id', %s, false)", (str(tenant_id),))
+
+
+def bind_user_session(conn: Any, user_id: str) -> None:
+    """Tell the database who is asking, for the one policy that needs it.
+
+    Only ``memberships`` reads this. Logging in has to answer "which studios
+    does this person belong to" before any tenant is known, so its policy also
+    permits reading your own rows. Nothing else consults this variable.
+    """
+
+    with conn.cursor() as cur:
+        cur.execute("SELECT set_config('studiosaas.user_id', %s, false)", (str(user_id),))
+
+
 def resolve_tenant(conn: Any, slug: str, source: str) -> TenantContext:
     """Resolve a tenant slug to an active tenant context.
 
@@ -171,12 +208,14 @@ def resolve_tenant(conn: Any, slug: str, source: str) -> TenantContext:
             raise TenantResolutionError(f"Tenant '{slug}' was not found.")
         if alias["status"] not in ("trial", "onboarding", "active", "past_due"):
             raise TenantResolutionError(f"Tenant '{slug}' is not active.")
+        _bind_tenant_session(conn, str(alias["tenant_id"]))
         return TenantContext(
             tenant_id=str(alias["tenant_id"]), slug=slug, source=source,
             canonical_slug=str(alias["slug"]),
         )
     if row["status"] not in ("trial", "onboarding", "active", "past_due"):
         raise TenantResolutionError(f"Tenant '{slug}' is not active.")
+    _bind_tenant_session(conn, str(row["id"]))
     return TenantContext(
         tenant_id=str(row["id"]), slug=row["slug"], source=source,
         canonical_slug=str(row["slug"]),
