@@ -126,3 +126,27 @@ def test_the_settings_block_lives_inside_the_main_column():
         "The settings block is outside <main>. It renders in normal flow now, "
         "so where it sits in the tree is where it appears on screen."
     )
+
+
+def test_the_footer_is_the_last_thing_in_the_main_column():
+    """It has to come after every panel, not before whichever one is open.
+
+    While settings was a fixed overlay its position in the tree was invisible;
+    once settings became a normal page the footer sat between the tab strip and
+    the panels, so "© 2026 …" printed above the settings content.
+
+    Both of this release's bugs were the same shape — an element whose place in
+    the source did not matter until the layout stopped being absolute — and
+    neither is visible to a DOM query. Ordering is at least checkable here.
+    """
+
+    source = cms_source_text()
+    main_open = source.index("<main className=")
+    main_close = source.index("</main>", main_open)
+    footer_at = source.index('<footer className="mt-8 pb-6')
+    settings_at = source.index("{showSettings && (")
+
+    assert main_open < settings_at < footer_at < main_close, (
+        "The footer must be the last element inside <main>, after the settings "
+        "block and every other panel."
+    )

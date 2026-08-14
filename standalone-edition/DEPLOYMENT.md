@@ -58,8 +58,8 @@ PostgreSQL。它不会复用 Edition 的一键安装器、默认卷布局、root
 
 - 交付物 = `build_aws_bundle.sh --edition` 产物（BUILD_INFO 含版本、commit、
   `mode=standalone`）+ standalone 附件（install.sh、导入模板、客户手册）
-- 当前已验证包为 `PWE-Studio-Edition-10.2.1.tar.gz`；发送前必须在包所在目录
-  执行 `shasum -a 256 -c PWE-Studio-Edition-10.2.1.tar.gz.sha256`
+- 当前已验证包为 `PWE-Studio-Edition-10.2.2.tar.gz`；发送前必须在包所在目录
+  执行 `shasum -a 256 -c PWE-Studio-Edition-10.2.2.tar.gz.sha256`
 - 客户拿到的是**指定版本的完整源码包**（Apache-2.0 内核 + 交付协议
   约束商用条款——COMMERCIAL.md 详述）
 - 版本升级节奏与是否含大版本，由维护协议档位决定

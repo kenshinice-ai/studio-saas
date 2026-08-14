@@ -6497,9 +6497,6 @@ document.getElementById('copybtn').addEventListener('click', function(){
     </div>
 )}
 
-                <footer className="mt-8 pb-6 text-center text-[10px] tracking-wide text-gray-400">
-                    © 2026 {tenantDisplayName} · Powered by Paradise Production
-                </footer>
 
                 {/* v10.2.1：这一块必须待在 <main> 里面。
                     它原本是 fixed 覆盖层，在 DOM 树里挂在哪都无所谓 —— 视口定位
@@ -6900,6 +6897,13 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     </div>
                 </div>
             )}
+
+                {/* 页脚永远是内容列的最后一样东西。在设置还是覆盖层的时候，
+                    它排在哪都看不出来；设置变成正常页面之后，它就夹在标签条
+                    和面板中间了。 */}
+                <footer className="mt-8 pb-6 text-center text-[10px] tracking-wide text-gray-400">
+                    © 2026 {tenantDisplayName} · Powered by Paradise Production
+                </footer>
             </main>
 
             {/* ── Mobile bottom nav (md:hidden) ── */}
