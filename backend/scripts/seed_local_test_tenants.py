@@ -41,7 +41,28 @@ PASSWORD = "admin123456"
 
 
 def _ensure_media_schema(cur: Any) -> None:
-    """Keep existing local databases compatible with canonical media assets."""
+    """Keep existing local databases compatible with canonical media assets.
+
+    先探目录再决定要不要发 DDL —— 和 services/media.py 里那一份同样的道理，
+    而且那一份的注释记着为什么：PostgreSQL 在计算 ``IF NOT EXISTS`` **之前**
+    就检查表属主权限，所以无条件发这条语句会让非属主角色直接报
+    ``must be owner of table media_assets``。
+
+    应用侧那一份早就这么防了；这个种子脚本自带一份副本，却没跟着改 —— 两份
+    写死的同一段逻辑分了家，又一次。已经迁移好的库现在一条 DDL 都不发，
+    老的本地库照样被就地修好。
+    """
+
+    cur.execute(
+        """
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = current_schema()
+          AND table_name = 'media_assets'
+          AND column_name = 'asset_type'
+        """
+    )
+    if cur.fetchone() is not None:
+        return
 
     cur.execute(
         """

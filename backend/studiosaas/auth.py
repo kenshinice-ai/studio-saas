@@ -269,6 +269,15 @@ def _resolve_actor(user_id: str, tenant_id: str | None = None) -> ActorContext |
         return None
 
     with db_connect() as conn:
+        # 每个已登录请求都要在这里读 memberships，来确定「这个人在这个租户里
+        # 是什么角色」。这一步发生在 resolve_tenant **之前**，所以租户变量还
+        # 没绑 —— RLS 下 memberships 的自查子句是唯一能让这条查询看见东西的
+        # 依据，而自查子句需要 user_id。
+        #
+        # 登录时绑一次不够：那只覆盖登录本身，后续每个请求都会走到这里。
+        from .tenant_context import bind_user_session
+
+        bind_user_session(conn, str(user_id))
         if tenant_id:
             # Tenant-scoped resolution:
             # 1) Only the canonical platform membership may cross tenant

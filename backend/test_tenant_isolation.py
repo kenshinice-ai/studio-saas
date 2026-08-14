@@ -322,7 +322,18 @@ def main() -> int:
 
     original_passwords = snapshot_fixture_passwords()
     atexit.register(restore_fixture_passwords, original_passwords)
-    fixtures = seed_fixtures.seed()
+    # 造世界用属主，跑断言用应用角色 —— 生产也是这么分的（迁移与后台脚本
+    # 用属主，Web 应用用受限角色）。种子脚本会建表改约束，那是属主的活；
+    # 让它以应用角色跑，只会证明「应用角色不能改表结构」，而那本来就是对的。
+    _app_url = os.environ.get("STUDIOSAAS_DATABASE_URL")
+    _owner_url = os.environ.get("STUDIOSAAS_OWNER_DATABASE_URL")
+    if _owner_url:
+        os.environ["STUDIOSAAS_DATABASE_URL"] = _owner_url
+    try:
+        fixtures = seed_fixtures.seed()
+    finally:
+        if _owner_url and _app_url is not None:
+            os.environ["STUDIOSAAS_DATABASE_URL"] = _app_url
     owner_a = client_for(fixtures["owner_a_email"])
     owner_b = client_for(fixtures["owner_b_email"])
     super_admin = client_for(fixtures["super_email"])
@@ -734,7 +745,10 @@ def main() -> int:
 
     # 1. Tenant A students never appear in Tenant B.
     response = owner_a.get(f"/s/{TENANT_A}/v1/students")
-    students_a = response.get_json()["students"]
+    _payload = response.get_json()
+    if "students" not in _payload:
+        raise AssertionError(f"/v1/students -> {response.status_code}: {_payload}")
+    students_a = _payload["students"]
     response = owner_b.get(f"/s/{TENANT_B}/v1/students")
     students_b = response.get_json()["students"]
     check("Tenant A student list contains Alpha Student", "Alpha Student" in names(students_a))
