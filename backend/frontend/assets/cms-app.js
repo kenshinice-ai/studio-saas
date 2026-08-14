@@ -493,8 +493,49 @@
     ), /* @__PURE__ */ React.createElement("ul", { className: "mt-2 text-[11px] text-gray-600 list-disc pl-4" }, blockers.map((b) => /* @__PURE__ */ React.createElement("li", { key: b }, BLOCKER_TEXT[b] || b)))), /* @__PURE__ */ React.createElement("p", { className: "mt-2 text-[11px] text-gray-500" }, "暂停只停新的推送。连接、映射、ID 对应表与错误队列都保留，年末封账可以放心用。")), /* @__PURE__ */ React.createElement("div", { className: "rounded-xl border border-gray-200 bg-white p-4" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold mb-1" }, "未进 Xero 的单据"), /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-600" }, "推送失败的单据会列在这里，带失败原因，修好后一键重放 —— 重放沿用同一个幂等键， 不会在 Xero 里产生第二张。", /* @__PURE__ */ React.createElement("strong", null, "这是给你们看的"), "：原因几乎总是会计要改的一处映射。")))));
   }
 
+  // legacy-root/src/panels/progress_reports.jsx
+  var { useState: useState4, useEffect: useEffect4, useCallback: useCallback4 } = React;
+  function OverdueReports({ api, showToast, onOpenStudent }) {
+    const [rows, setRows] = useState4([]);
+    const [loading, setLoading] = useState4(true);
+    const [error, setError] = useState4("");
+    const load = useCallback4(async () => {
+      setLoading(true);
+      try {
+        const d = await api("/progress-reports/overdue");
+        setRows(d.overdue || []);
+        setError("");
+      } catch (e) {
+        setError(e.status === 403 ? "这个套餐未包含成长报告。" : `加载失败：${e.message}`);
+      } finally {
+        setLoading(false);
+      }
+    }, [api]);
+    useEffect4(() => {
+      load();
+    }, [load]);
+    if (loading) return /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500 p-4" }, "正在加载…");
+    if (error) return /* @__PURE__ */ React.createElement("p", { className: "text-sm text-red-600 p-4" }, error);
+    if (!rows.length) {
+      return /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-2xl shadow-sm border border-gray-100 p-10 text-center" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-600" }, "没有逾期未写的报告"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, "到期的草稿会自动出现在这里，并提醒对应的老师 —— 官网上那句「每 4–8 节课一份进度报告」由系统兜底。"));
+    }
+    return /* @__PURE__ */ React.createElement("div", { className: "space-y-2" }, rows.map((r) => {
+      const days = Number(r.days_overdue || 0);
+      return /* @__PURE__ */ React.createElement("div", { key: r.id, className: "bg-white rounded-2xl shadow-sm border border-gray-100 p-3 flex items-center gap-3" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-sm truncate" }, r.display_name), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, "周期至 ", fmtApiDate(r.period_end), " · 由 ", r.teacher_name || "未指派老师", " 撰写")), /* @__PURE__ */ React.createElement("span", { className: `ml-auto text-xs font-bold px-2 py-1 rounded whitespace-nowrap border
+              ${days > 14 ? "bg-red-50 text-red-700 border-red-200" : "bg-amber-50 text-amber-700 border-amber-200"}` }, "逾期 ", days, " 天"), /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          type: "button",
+          onClick: () => onOpenStudent && onOpenStudent(r.student_id),
+          className: "min-h-[44px] px-3 rounded-lg bg-indigo-600 text-white text-xs font-bold whitespace-nowrap"
+        },
+        "去写"
+      ));
+    }));
+  }
+
   // legacy-root/src/cms-app.jsx
-  var { useState: useState4, useEffect: useEffect4, useMemo: useMemo3, useRef, useCallback: useCallback4 } = React;
+  var { useState: useState5, useEffect: useEffect5, useMemo: useMemo3, useRef, useCallback: useCallback5 } = React;
   var tenantSlug = window.STUDIOSAAS_TENANT_SLUG || new URLSearchParams(location.search).get("tenant") || (location.pathname.match(/^\/([^/]+)(?:\/cms)?\/?$/) || [])[1] || "";
   var nowAU = () => (/* @__PURE__ */ new Date()).toLocaleString("en-AU", {
     timeZone: "Australia/Melbourne",
@@ -559,7 +600,7 @@
     const requested = params.get("view") || params.get("tab") || "dashboard";
     return {
       tab: CMS_ROUTE_TABS.has(requested) ? requested : "dashboard",
-      pendingTab: params.get("type") === "booking" || params.get("type") === "bookings" ? "bookings" : "registrations",
+      pendingTab: params.get("type") === "booking" || params.get("type") === "bookings" ? "bookings" : params.get("type") === "reports" ? "reports" : "registrations",
       settingsSection: params.get("section") || "account",
       recordId: params.get("id") || ""
     };
@@ -651,8 +692,8 @@
     return ["/logo.png", "/logo-light.png", "/favicon.svg"].includes(source) ? "" : source;
   };
   function TenantBrandLogo({ className = "" }) {
-    const [brand, setBrand] = useState4(() => window.STUDIOSAAS_BRAND || {});
-    useEffect4(() => {
+    const [brand, setBrand] = useState5(() => window.STUDIOSAAS_BRAND || {});
+    useEffect5(() => {
       const syncBrand = (event) => setBrand(event?.detail || window.STUDIOSAAS_BRAND || {});
       window.addEventListener("studiosaas:brand", syncBrand);
       syncBrand();
@@ -759,7 +800,7 @@
     return /* @__PURE__ */ React.createElement("span", { className: "px-2.5 py-1 rounded-lg text-xs font-bold bg-green-100 text-green-700 whitespace-nowrap" }, v);
   }
   function Toast({ msg, type, action, onDone }) {
-    useEffect4(() => {
+    useEffect5(() => {
       const t = setTimeout(onDone, action ? 6e3 : 2700);
       return () => clearTimeout(t);
     }, []);
@@ -850,7 +891,7 @@
   function useModalFocus(isOpen, onClose, dialogRef, initialFocusRef = null) {
     const closeRef = useRef(onClose);
     closeRef.current = onClose;
-    useEffect4(() => {
+    useEffect5(() => {
       if (!isOpen) return;
       const previousFocus = document.activeElement;
       const selector = [
@@ -896,11 +937,11 @@
     }, [isOpen, dialogRef, initialFocusRef]);
   }
   function ConfirmDialog({ dialog, onClose }) {
-    const [typed, setTyped] = useState4("");
+    const [typed, setTyped] = useState5("");
     const boxRef = useRef(null);
     const onCloseRef = useRef(onClose);
     onCloseRef.current = onClose;
-    useEffect4(() => {
+    useEffect5(() => {
       setTyped(dialog?.promptDefault || "");
     }, [dialog]);
     const dismiss = () => {
@@ -909,7 +950,7 @@
     };
     const dismissRef = useRef(dismiss);
     dismissRef.current = dismiss;
-    useEffect4(() => {
+    useEffect5(() => {
       if (!dialog) return;
       const prevFocus = document.activeElement;
       const onKey = (e) => {
@@ -1012,18 +1053,18 @@
     );
   }
   function StudentPicker({ students, value, onChange, placeholder = "-- 选择学员 --", showBal = true }) {
-    const [q, setQ] = useState4("");
-    const [open, setOpen] = useState4(false);
+    const [q, setQ] = useState5("");
+    const [open, setOpen] = useState5(false);
     const ref = useRef(null);
     const sel = students.find((s) => s.id === value);
-    useEffect4(() => {
+    useEffect5(() => {
       if (!value) setQ("");
     }, [value]);
     const filtered = useMemo3(
       () => q ? students.filter((s) => s.name.toLowerCase().includes(q.toLowerCase())) : students,
       [students, q]
     );
-    useEffect4(() => {
+    useEffect5(() => {
       const h = (e) => {
         if (ref.current && !ref.current.contains(e.target)) setOpen(false);
       };
@@ -1187,7 +1228,7 @@
     );
   }
   function PhotoUploader({ value, onChange, notify }) {
-    const [uploading, setUploading] = useState4(false);
+    const [uploading, setUploading] = useState5(false);
     const handleFile = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -1218,23 +1259,23 @@
     return /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-4" }, value ? /* @__PURE__ */ React.createElement("img", { src: mediaSrc(value), alt: "学员照片预览", className: "w-14 h-14 rounded-full object-cover border-2 border-indigo-100 flex-shrink-0" }) : /* @__PURE__ */ React.createElement("div", { className: "w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center text-2xl border-2 border-dashed border-gray-300 flex-shrink-0 text-gray-400" }, /* @__PURE__ */ React.createElement(Icon, { name: "camera", className: "w-6 h-6" })), /* @__PURE__ */ React.createElement("div", { className: "space-y-1.5" }, /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 flex-wrap" }, /* @__PURE__ */ React.createElement("label", { className: `cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 text-sm font-bold rounded-xl border min-h-[44px] ${btnBase || "bg-indigo-50 text-indigo-700 border-indigo-200 active:bg-indigo-100"}` }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "folder", className: "w-4 h-4" }), uploading ? "上传中..." : value ? "更换" : "选择"), /* @__PURE__ */ React.createElement("input", { type: "file", accept: "image/*", onChange: handleFile, disabled: uploading, className: "hidden" })), /* @__PURE__ */ React.createElement("label", { className: `cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 text-sm font-bold rounded-xl border min-h-[44px] ${btnBase || "bg-purple-50 text-purple-700 border-purple-200 active:bg-purple-100"}` }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "camera", className: "w-4 h-4" }), "拍照"), /* @__PURE__ */ React.createElement("input", { type: "file", accept: "image/*", capture: "environment", onChange: handleFile, disabled: uploading, className: "hidden" }))), value && /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => onChange(""), className: "text-xs text-red-400 active:text-red-600" }, "移除照片")));
   }
   function MaintSection({ onRestored, renewTh, saveRenewTh, confirm, notify }) {
-    const [hc, setHc] = useState4(null);
-    const [hcBusy, setHcBusy] = useState4(false);
-    const [cfg, setCfg] = useState4(null);
-    const [pw, setPw] = useState4("");
-    const [cfgMsg, setCfgMsg] = useState4(null);
+    const [hc, setHc] = useState5(null);
+    const [hcBusy, setHcBusy] = useState5(false);
+    const [cfg, setCfg] = useState5(null);
+    const [pw, setPw] = useState5("");
+    const [cfgMsg, setCfgMsg] = useState5(null);
     const say = (text, tone = "info") => setCfgMsg(text ? { text, tone } : null);
-    const [bks, setBks] = useState4(null);
-    const [bkSel, setBkSel] = useState4(null);
-    const [busy, setBusy] = useState4(false);
+    const [bks, setBks] = useState5(null);
+    const [bkSel, setBkSel] = useState5(null);
+    const [busy, setBusy] = useState5(false);
     const post = (url, body) => fetch(url, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body)
     });
-    const [stale, setStale] = useState4(false);
-    useEffect4(() => {
+    const [stale, setStale] = useState5(false);
+    useEffect5(() => {
       fetch("/api/config", { credentials: "include" }).then((r) => {
         if (r.status === 404) {
           setStale(true);
@@ -1469,10 +1510,10 @@
     )) : /* @__PURE__ */ React.createElement("p", { className: "text-xs text-red-500" }, "该备份文件已损坏，不可恢复")))));
   }
   function LoginScreen({ onLogin }) {
-    const [email, setEmail] = useState4(() => localStorage.getItem(`lp_admin_email_${tenantSlug}`) || "");
-    const [pw, setPw] = useState4("");
-    const [busy, setBusy] = useState4(false);
-    const [err, setErr] = useState4("");
+    const [email, setEmail] = useState5(() => localStorage.getItem(`lp_admin_email_${tenantSlug}`) || "");
+    const [pw, setPw] = useState5("");
+    const [busy, setBusy] = useState5(false);
+    const [err, setErr] = useState5("");
     const submit = async (e) => {
       e && e.preventDefault();
       if (!email || !pw) {
@@ -1533,58 +1574,58 @@
     )), /* @__PURE__ */ React.createElement("p", { className: "mt-6 pt-4 border-t border-gray-100 text-[10px] tracking-wide text-gray-400" }, "Powered by Paradise Production")));
   }
   function App() {
-    const [db, setDb] = useState4({ students: [], logs: [], rosters: {}, pending: [] });
-    const [auditEvents, setAuditEvents] = useState4([]);
+    const [db, setDb] = useState5({ students: [], logs: [], rosters: {}, pending: [] });
+    const [auditEvents, setAuditEvents] = useState5([]);
     const initialCmsRoute = useMemo3(() => readCmsRoute(), []);
-    const [tab, setTabState] = useState4(initialCmsRoute.tab);
-    const [pendingTab, setPendingTabState] = useState4(initialCmsRoute.pendingTab);
-    const [settingsSection, setSettingsSectionState] = useState4(initialCmsRoute.settingsSection);
-    const [routeRecordId, setRouteRecordId] = useState4(initialCmsRoute.recordId);
-    const [moreOpen, setMoreOpen] = useState4(false);
-    const [selS, setSelS] = useState4(null);
-    const [editP, setEditP] = useState4(false);
-    const [studentProfileTab, setStudentProfileTab] = useState4("profile");
-    const [busy, setBusy] = useState4(false);
-    const [conn, setConn] = useState4(false);
-    const [connErr, setConnErr] = useState4(null);
-    const [toast, setToast] = useState4(null);
-    const [cmsNotifications, setCmsNotifications] = useState4([]);
-    const [cmsNotificationUnreadCount, setCmsNotificationUnreadCount] = useState4(0);
-    const [cmsNotificationOpen, setCmsNotificationOpen] = useState4(false);
-    const [cmsNotificationError, setCmsNotificationError] = useState4("");
+    const [tab, setTabState] = useState5(initialCmsRoute.tab);
+    const [pendingTab, setPendingTabState] = useState5(initialCmsRoute.pendingTab);
+    const [settingsSection, setSettingsSectionState] = useState5(initialCmsRoute.settingsSection);
+    const [routeRecordId, setRouteRecordId] = useState5(initialCmsRoute.recordId);
+    const [moreOpen, setMoreOpen] = useState5(false);
+    const [selS, setSelS] = useState5(null);
+    const [editP, setEditP] = useState5(false);
+    const [studentProfileTab, setStudentProfileTab] = useState5("profile");
+    const [busy, setBusy] = useState5(false);
+    const [conn, setConn] = useState5(false);
+    const [connErr, setConnErr] = useState5(null);
+    const [toast, setToast] = useState5(null);
+    const [cmsNotifications, setCmsNotifications] = useState5([]);
+    const [cmsNotificationUnreadCount, setCmsNotificationUnreadCount] = useState5(0);
+    const [cmsNotificationOpen, setCmsNotificationOpen] = useState5(false);
+    const [cmsNotificationError, setCmsNotificationError] = useState5("");
     const cmsNotificationCursorRef = useRef(0);
     const cmsNotificationPollingRef = useRef(false);
-    const [confirmDialog, setConfirmDialog] = useState4(null);
-    const [showSettings, setShowSettings] = useState4(initialCmsRoute.tab === "settings");
-    const [userMenuOpen, setUserMenuOpen] = useState4(false);
-    const [loggedIn, setLoggedIn] = useState4(false);
-    const [pwOld, setPwOld] = useState4("");
-    const [pwNew1, setPwNew1] = useState4("");
-    const [pwNew2, setPwNew2] = useState4("");
-    const [pwBusy, setPwBusy] = useState4(false);
-    const [pwMsg, setPwMsg] = useState4(null);
-    const [gOpen, setGOpen] = useState4(false);
-    const [gQ, setGQ] = useState4("");
-    const [portLB, setPortLB] = useState4(null);
-    const [portUpload, setPortUpload] = useState4(false);
-    const [portUpFile, setPortUpFile] = useState4(null);
-    const [portEdit, setPortEdit] = useState4(null);
-    const [portBusy, setPortBusy] = useState4(false);
+    const [confirmDialog, setConfirmDialog] = useState5(null);
+    const [showSettings, setShowSettings] = useState5(initialCmsRoute.tab === "settings");
+    const [userMenuOpen, setUserMenuOpen] = useState5(false);
+    const [loggedIn, setLoggedIn] = useState5(false);
+    const [pwOld, setPwOld] = useState5("");
+    const [pwNew1, setPwNew1] = useState5("");
+    const [pwNew2, setPwNew2] = useState5("");
+    const [pwBusy, setPwBusy] = useState5(false);
+    const [pwMsg, setPwMsg] = useState5(null);
+    const [gOpen, setGOpen] = useState5(false);
+    const [gQ, setGQ] = useState5("");
+    const [portLB, setPortLB] = useState5(null);
+    const [portUpload, setPortUpload] = useState5(false);
+    const [portUpFile, setPortUpFile] = useState5(null);
+    const [portEdit, setPortEdit] = useState5(null);
+    const [portBusy, setPortBusy] = useState5(false);
     const portLightboxDialogRef = useRef(null);
     const portUploadDialogRef = useRef(null);
     const portEditDialogRef = useRef(null);
     const searchDialogRef = useRef(null);
     const settingsDialogRef = useRef(null);
     const profileDialogRef = useRef(null);
-    const [accessCodeResult, setAccessCodeResult] = useState4(null);
-    const [consentEdit, setConsentEdit] = useState4(null);
-    useEffect4(() => {
+    const [accessCodeResult, setAccessCodeResult] = useState5(null);
+    const [consentEdit, setConsentEdit] = useState5(null);
+    useEffect5(() => {
       setAccessCodeResult(null);
       setConsentEdit(null);
       setStudentProfileTab("profile");
     }, [selS?.id]);
     const lbTouchX = useRef(0);
-    const syncCmsRoute = useCallback4((patch = {}, replace = false) => {
+    const syncCmsRoute = useCallback5((patch = {}, replace = false) => {
       const current = readCmsRoute();
       const next = { ...current, ...patch };
       const url = new URL(window.location.href);
@@ -1593,6 +1634,7 @@
       else params.delete("view");
       params.delete("tab");
       if (next.tab === "pending" && next.pendingTab === "bookings") params.set("type", "booking");
+      else if (next.tab === "pending" && next.pendingTab === "reports") params.set("type", "reports");
       else params.delete("type");
       if (next.tab === "settings" && next.settingsSection && next.settingsSection !== "account") params.set("section", next.settingsSection);
       else params.delete("section");
@@ -1601,7 +1643,7 @@
       const nextUrl = `${url.pathname}${params.toString() ? `?${params.toString()}` : ""}${url.hash}`;
       window.history[replace ? "replaceState" : "pushState"]({}, "", nextUrl);
     }, []);
-    const setTab = useCallback4((nextTab, options = {}) => {
+    const setTab = useCallback5((nextTab, options = {}) => {
       const next = CMS_ROUTE_TABS.has(nextTab) ? nextTab : "dashboard";
       setTabState(next);
       setShowSettings(next === "settings");
@@ -1609,20 +1651,20 @@
       setRouteRecordId(nextRecordId);
       syncCmsRoute({ tab: next, recordId: nextRecordId }, !!options.replace);
     }, [syncCmsRoute]);
-    const setPendingTab = useCallback4((nextPendingTab) => {
-      const next = nextPendingTab === "bookings" ? "bookings" : "registrations";
+    const setPendingTab = useCallback5((nextPendingTab) => {
+      const next = ["bookings", "reports"].includes(nextPendingTab) ? nextPendingTab : "registrations";
       setPendingTabState(next);
       setTabState("pending");
       setShowSettings(false);
       syncCmsRoute({ tab: "pending", pendingTab: next });
     }, [syncCmsRoute]);
-    const setSettingsSection = useCallback4((nextSection) => {
+    const setSettingsSection = useCallback5((nextSection) => {
       setSettingsSectionState(nextSection);
       setTabState("settings");
       setShowSettings(true);
       syncCmsRoute({ tab: "settings", settingsSection: nextSection });
     }, [syncCmsRoute]);
-    useEffect4(() => {
+    useEffect5(() => {
       const onPopState = () => {
         const next = readCmsRoute();
         setTabState(next.tab);
@@ -1655,7 +1697,7 @@
       },
       profileDialogRef
     );
-    const [inactiveDays, setInactiveDays] = useState4(() => parseInt(localStorage.getItem("lp_inactive_days") || "90", 10));
+    const [inactiveDays, setInactiveDays] = useState5(() => parseInt(localStorage.getItem("lp_inactive_days") || "90", 10));
     const saveInactiveDays = (v) => {
       const n = parseInt(v, 10);
       if (n > 0) {
@@ -1663,36 +1705,36 @@
         localStorage.setItem("lp_inactive_days", String(n));
       }
     };
-    const [srch, setSrch] = useState4("");
-    const [sortBy, setSortBy] = useState4("date-desc");
-    const [filterBy, setFilterBy] = useState4("all");
+    const [srch, setSrch] = useState5("");
+    const [sortBy, setSortBy] = useState5("date-desc");
+    const [filterBy, setFilterBy] = useState5("all");
     const STUDENTS_PER_PAGE = 24;
-    const [studentPage, setStudentPage] = useState4(1);
-    const [selectedStudentIds, setSelectedStudentIds] = useState4([]);
-    const [rDate, setRDate] = useState4(todayISO);
-    const [rPick, setRPick] = useState4(null);
-    const [defaultClassTime, setDefaultClassTime] = useState4("14:30");
-    const [defaultClassTimeDraft, setDefaultClassTimeDraft] = useState4("14:30");
-    const [operationalSettingsBusy, setOperationalSettingsBusy] = useState4(false);
-    const [rTime, setRTime] = useState4("14:30");
-    const [icsPreview, setIcsPreview] = useState4(null);
-    const [icsNotice, setIcsNotice] = useState4("");
-    const [icsBusy, setIcsBusy] = useState4(false);
+    const [studentPage, setStudentPage] = useState5(1);
+    const [selectedStudentIds, setSelectedStudentIds] = useState5([]);
+    const [rDate, setRDate] = useState5(todayISO);
+    const [rPick, setRPick] = useState5(null);
+    const [defaultClassTime, setDefaultClassTime] = useState5("14:30");
+    const [defaultClassTimeDraft, setDefaultClassTimeDraft] = useState5("14:30");
+    const [operationalSettingsBusy, setOperationalSettingsBusy] = useState5(false);
+    const [rTime, setRTime] = useState5("14:30");
+    const [icsPreview, setIcsPreview] = useState5(null);
+    const [icsNotice, setIcsNotice] = useState5("");
+    const [icsBusy, setIcsBusy] = useState5(false);
     const icsDialogRef = useRef(null);
     const icsCloseButtonRef = useRef(null);
-    const [rOneToOne, setROneToOne] = useState4(false);
-    const [grpSel, setGrpSel] = useState4("");
-    const [schedules, setSchedules] = useState4([]);
-    const [scheduleLoadError, setScheduleLoadError] = useState4("");
-    const [bizStats, setBizStats] = useState4(null);
-    const [attHistory, setAttHistory] = useState4(null);
-    const [schedEdit, setSchedEdit] = useState4(null);
-    const [schedPick, setSchedPick] = useState4(null);
-    const [courses, setCourses] = useState4([]);
-    const [schedCancel, setSchedCancel] = useState4(null);
-    const [bookings, setBookings] = useState4([]);
-    const [courseEdit, setCourseEdit] = useState4(null);
-    const [renewTh, setRenewTh] = useState4(() => parseInt(localStorage.getItem("lp_renew_threshold") || "2", 10));
+    const [rOneToOne, setROneToOne] = useState5(false);
+    const [grpSel, setGrpSel] = useState5("");
+    const [schedules, setSchedules] = useState5([]);
+    const [scheduleLoadError, setScheduleLoadError] = useState5("");
+    const [bizStats, setBizStats] = useState5(null);
+    const [attHistory, setAttHistory] = useState5(null);
+    const [schedEdit, setSchedEdit] = useState5(null);
+    const [schedPick, setSchedPick] = useState5(null);
+    const [courses, setCourses] = useState5([]);
+    const [schedCancel, setSchedCancel] = useState5(null);
+    const [bookings, setBookings] = useState5([]);
+    const [courseEdit, setCourseEdit] = useState5(null);
+    const [renewTh, setRenewTh] = useState5(() => parseInt(localStorage.getItem("lp_renew_threshold") || "2", 10));
     const saveRenewTh = (v) => {
       const n = parseInt(v, 10);
       if (n >= 0) {
@@ -1700,39 +1742,39 @@
         localStorage.setItem("lp_renew_threshold", String(n));
       }
     };
-    const [tuStu, setTuStu] = useState4(null);
-    const [settleMode, setSettleMode] = useState4("topup");
-    const [rfCr, setRfCr] = useState4("");
-    const [rfAmt, setRfAmt] = useState4("");
-    const [rfReason, setRfReason] = useState4("");
-    const [tuCr, setTuCr] = useState4("");
-    const [tuFee, setTuFee] = useState4("");
-    const [tuPkg, setTuPkg] = useState4("");
-    const [tuPay, setTuPay] = useState4("微信");
-    const [lSrch, setLSrch] = useState4("");
-    const [lStu, setLStu] = useState4(null);
-    const [lAct, setLAct] = useState4("");
-    const [lDateFrom, setLDateFrom] = useState4("");
-    const [lDateTo, setLDateTo] = useState4("");
-    const [lPage, setLPage] = useState4(1);
+    const [tuStu, setTuStu] = useState5(null);
+    const [settleMode, setSettleMode] = useState5("topup");
+    const [rfCr, setRfCr] = useState5("");
+    const [rfAmt, setRfAmt] = useState5("");
+    const [rfReason, setRfReason] = useState5("");
+    const [tuCr, setTuCr] = useState5("");
+    const [tuFee, setTuFee] = useState5("");
+    const [tuPkg, setTuPkg] = useState5("");
+    const [tuPay, setTuPay] = useState5("微信");
+    const [lSrch, setLSrch] = useState5("");
+    const [lStu, setLStu] = useState5(null);
+    const [lAct, setLAct] = useState5("");
+    const [lDateFrom, setLDateFrom] = useState5("");
+    const [lDateTo, setLDateTo] = useState5("");
+    const [lPage, setLPage] = useState5(1);
     const LPP = 30;
-    const [sPeriod, setSPeriod] = useState4("monthly");
-    const [sYear, setSYear] = useState4(String((/* @__PURE__ */ new Date()).getFullYear()));
-    const [sFrom, setSFrom] = useState4("");
-    const [sTo, setSTo] = useState4("");
-    const [sStu, setSStu] = useState4(null);
-    const [sStu2, setSStu2] = useState4(null);
-    const [approveCredits, setApproveCredits] = useState4({});
-    const [followUpDates, setFollowUpDates] = useState4({});
-    const [pkgEditId, setPkgEditId] = useState4(null);
-    const [pkgName, setPkgName] = useState4("");
-    const [pkgCredits, setPkgCredits] = useState4("");
-    const [pkgPrice, setPkgPrice] = useState4("");
-    const [tenantBrand, setTenantBrand] = useState4(() => window.STUDIOSAAS_BRAND || {});
-    const [team, setTeam] = useState4([]);
-    const [teamBusy, setTeamBusy] = useState4(false);
-    const [teamForm, setTeamForm] = useState4({ fullName: "", email: "", role: "teacher", temporaryPassword: "" });
-    const [actorRole, setActorRole] = useState4("");
+    const [sPeriod, setSPeriod] = useState5("monthly");
+    const [sYear, setSYear] = useState5(String((/* @__PURE__ */ new Date()).getFullYear()));
+    const [sFrom, setSFrom] = useState5("");
+    const [sTo, setSTo] = useState5("");
+    const [sStu, setSStu] = useState5(null);
+    const [sStu2, setSStu2] = useState5(null);
+    const [approveCredits, setApproveCredits] = useState5({});
+    const [followUpDates, setFollowUpDates] = useState5({});
+    const [pkgEditId, setPkgEditId] = useState5(null);
+    const [pkgName, setPkgName] = useState5("");
+    const [pkgCredits, setPkgCredits] = useState5("");
+    const [pkgPrice, setPkgPrice] = useState5("");
+    const [tenantBrand, setTenantBrand] = useState5(() => window.STUDIOSAAS_BRAND || {});
+    const [team, setTeam] = useState5([]);
+    const [teamBusy, setTeamBusy] = useState5(false);
+    const [teamForm, setTeamForm] = useState5({ fullName: "", email: "", role: "teacher", temporaryPassword: "" });
+    const [actorRole, setActorRole] = useState5("");
     const ownerRoles = ["owner", "platform_super_admin", "super_admin"];
     const roleTabs = {
       owner: ["dashboard", "pending", "roster", "courses", "students", "works", "new_student", "billing", "topup", "finance", "logs", "stats", "settings"],
@@ -1754,24 +1796,24 @@
     const canReviewBookings = [...ownerRoles, "manager", "front_desk", "staff"].includes(actorRole);
     const canRefund = [...ownerRoles, "manager"].includes(actorRole);
     const canViewCmsNotifications = ["owner", "manager", "front_desk", "staff", "platform_super_admin", "super_admin"].includes(actorRole);
-    const [formPhoto, setFormPhoto] = useState4("");
-    const [editPhoto, setEditPhoto] = useState4("");
+    const [formPhoto, setFormPhoto] = useState5("");
+    const [editPhoto, setEditPhoto] = useState5("");
     const cooldowns = useRef(/* @__PURE__ */ new Set());
     const wasDownRef = useRef(false);
     const showToast = (msg, type = "success", action = null) => setToast({ msg, type, action, key: Date.now() });
-    useEffect4(() => {
+    useEffect5(() => {
       const syncBrand = (event) => setTenantBrand(event?.detail || window.STUDIOSAAS_BRAND || {});
       window.addEventListener("studiosaas:brand", syncBrand);
       syncBrand();
       return () => window.removeEventListener("studiosaas:brand", syncBrand);
     }, []);
-    useEffect4(() => {
+    useEffect5(() => {
       if (TENANT_SLUG && canManageOperations) loadTeam();
     }, [actorRole]);
-    useEffect4(() => {
+    useEffect5(() => {
       if (showSettings && TENANT_SLUG && canManageOperations) loadTeam();
     }, [showSettings]);
-    useEffect4(() => {
+    useEffect5(() => {
       if (actorRole && !allowedTabs.includes(tab)) setTab("dashboard");
     }, [actorRole, tab]);
     const tenantLogoUrl = tenantOwnedLogoUrl(tenantBrand);
@@ -1909,7 +1951,7 @@
         setTeamBusy(false);
       }
     };
-    useEffect4(() => {
+    useEffect5(() => {
       const h = (e) => {
         if ((e.metaKey || e.ctrlKey) && e.key === "k") {
           e.preventDefault();
@@ -1920,7 +1962,7 @@
       window.addEventListener("keydown", h);
       return () => window.removeEventListener("keydown", h);
     }, []);
-    useEffect4(() => {
+    useEffect5(() => {
       if (!icsPreview) return;
       const previousFocus = document.activeElement;
       const focusableSelector = [
@@ -1961,7 +2003,7 @@
         if (previousFocus && typeof previousFocus.focus === "function") previousFocus.focus();
       };
     }, [icsPreview]);
-    useEffect4(() => {
+    useEffect5(() => {
       const onKey = (e) => {
         if (portLB) {
           if (e.key === "ArrowRight") setPortLB((p) => p && p.idx < p.items.length - 1 ? { ...p, idx: p.idx + 1 } : p);
@@ -1971,7 +2013,7 @@
       window.addEventListener("keydown", onKey);
       return () => window.removeEventListener("keydown", onKey);
     }, [portLB]);
-    useEffect4(() => {
+    useEffect5(() => {
       setAttHistory(null);
       if (!TENANT_SLUG || !selS?.id) return;
       let alive = true;
@@ -1995,15 +2037,15 @@
       }
     }).catch(() => {
     });
-    useEffect4(() => {
+    useEffect5(() => {
       refreshSession();
     }, []);
     const apiHeaders = () => ({ "Content-Type": "application/json" });
     const revRef = useRef(0);
-    useEffect4(() => {
+    useEffect5(() => {
       if (loggedIn) load();
     }, [loggedIn]);
-    useEffect4(() => {
+    useEffect5(() => {
       if (!loggedIn) return;
       const id = setInterval(async () => {
         try {
@@ -2025,7 +2067,7 @@
       }, 3e4);
       return () => clearInterval(id);
     }, [loggedIn]);
-    useEffect4(() => {
+    useEffect5(() => {
       if (!loggedIn || !TENANT_SLUG || !canViewCmsNotifications) {
         setCmsNotifications([]);
         setCmsNotificationUnreadCount(0);
@@ -2316,7 +2358,7 @@
       });
       return out.sort((a, b) => a.in - b.in);
     }, [db.students]);
-    useEffect4(() => {
+    useEffect5(() => {
       setStudentPage(1);
       setSelectedStudentIds([]);
     }, [srch, sortBy, filterBy]);
@@ -2387,7 +2429,7 @@
       () => db.students.filter((student) => !student.archived).flatMap((student) => (student.portfolio || []).map((item) => ({ student, item }))).sort((a, b) => String(b.item.date || "").localeCompare(String(a.item.date || ""))),
       [db.students]
     );
-    useEffect4(() => {
+    useEffect5(() => {
       if (tab !== "students" || !routeRecordId) return;
       const student = db.students.find((item) => String(item.id) === String(routeRecordId));
       if (student && selS?.id !== student.id) {
@@ -2596,10 +2638,10 @@
     const logPageCount = Math.max(1, Math.ceil(filteredLogs.length / LPP));
     const pagedLogs = filteredLogs.slice((lPage - 1) * LPP, lPage * LPP);
     const logActions = useMemo3(() => [...new Set(allLogs.map((l) => l.action))].sort(), [allLogs]);
-    useEffect4(() => {
+    useEffect5(() => {
       setLPage(1);
     }, [lStu, lSrch, lAct, lDateFrom, lDateTo]);
-    useEffect4(() => {
+    useEffect5(() => {
       if (lPage > logPageCount) setLPage(logPageCount);
     }, [logPageCount]);
     const bizReport = useMemo3(() => {
@@ -6166,7 +6208,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
       )))),
       tab === "pending" && /* @__PURE__ */ React.createElement("div", { className: "anim space-y-4" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-start justify-between gap-3 flex-wrap" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", { className: "inline-flex items-center gap-1.5 text-xl md:text-2xl font-bold text-gray-800" }, /* @__PURE__ */ React.createElement(Icon, { name: "clipboard", className: "w-4 h-4" }), "待处理"), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500 mt-1" }, "新报名和约课申请共用一个收件箱，按业务类型分开处理。")), /* @__PURE__ */ React.createElement("span", { className: "rounded-full bg-amber-50 border border-amber-200 px-3 py-1 text-xs font-bold text-amber-700" }, pendingCount, " 项等待处理")), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 flex-wrap" }, [
         ["registrations", "新报名", (db.pending || []).length],
-        ["bookings", "约课", bookings.length]
+        ["bookings", "约课", bookings.length],
+        ["reports", "成长报告", ""]
       ].map(([key, label, count]) => /* @__PURE__ */ React.createElement(
         "button",
         {
@@ -6177,7 +6220,14 @@ document.getElementById('copybtn').addEventListener('click', function(){
         label,
         " ",
         count
-      ))), pendingTab === "bookings" && /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, !bookings.length && /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-2xl shadow-sm border border-gray-100 p-10 text-center" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-600" }, "没有待处理的约课申请"), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-400 mt-1 max-w-sm mx-auto leading-relaxed" }, "在 Studio Admin 的「Timetable」里打开公开课表并允许约课后，家长可以在课表页留下姓名和手机号申请上课，申请会出现在这里。")), bookings.map((bk) => /* @__PURE__ */ React.createElement("div", { key: bk.id, className: "bg-white rounded-2xl shadow-sm border border-amber-200 p-4 space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-start justify-between gap-3 flex-wrap" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-base font-bold text-gray-800" }, bk.contactName, bk.isExistingStudent ? /* @__PURE__ */ React.createElement("span", { className: "ml-2 align-middle inline-block text-[10px] font-bold bg-green-100 text-green-700 border border-green-300 rounded-full px-2 py-0.5" }, "已是学员", bk.matchedStudent ? ` · ${bk.matchedStudent}` : "") : /* @__PURE__ */ React.createElement("span", { className: "ml-2 align-middle inline-block text-[10px] font-bold bg-gray-100 text-gray-600 border border-gray-300 rounded-full px-2 py-0.5" }, "新访客")), /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-sm text-gray-500" }, /* @__PURE__ */ React.createElement(Icon, { name: "phone", className: "w-4 h-4" }), bk.contactPhone), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-600 mt-1" }, bk.date, " ", bk.startTime, " · ", bk.title || "未命名班次"), bk.message && /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500 mt-1 whitespace-pre-wrap" }, bk.message)), /* @__PURE__ */ React.createElement("div", { className: "text-right flex-shrink-0" }, /* @__PURE__ */ React.createElement("p", { className: `text-xs font-bold ${bk.seatsLeft === 0 ? "text-gray-500" : "text-green-700"}` }, bk.seatsLeft === 0 ? "已满" : `还有 ${bk.seatsLeft} 位`), /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-400" }, "容量 ", bk.capacity))), bk.seatsLeft === 0 && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2" }, "这节课已经满了。批准会被拒绝——先提高班次容量，或婉拒并联系家长改约。"), canReviewBookings && /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 justify-end" }, /* @__PURE__ */ React.createElement(
+      ))), pendingTab === "reports" && /* @__PURE__ */ React.createElement(
+        OverdueReports,
+        {
+          api: v1Api,
+          showToast,
+          onOpenStudent: (id) => setTab("students", { recordId: id })
+        }
+      ), pendingTab === "bookings" && /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, !bookings.length && /* @__PURE__ */ React.createElement("div", { className: "bg-white rounded-2xl shadow-sm border border-gray-100 p-10 text-center" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold text-gray-600" }, "没有待处理的约课申请"), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-400 mt-1 max-w-sm mx-auto leading-relaxed" }, "在 Studio Admin 的「Timetable」里打开公开课表并允许约课后，家长可以在课表页留下姓名和手机号申请上课，申请会出现在这里。")), bookings.map((bk) => /* @__PURE__ */ React.createElement("div", { key: bk.id, className: "bg-white rounded-2xl shadow-sm border border-amber-200 p-4 space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-start justify-between gap-3 flex-wrap" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-base font-bold text-gray-800" }, bk.contactName, bk.isExistingStudent ? /* @__PURE__ */ React.createElement("span", { className: "ml-2 align-middle inline-block text-[10px] font-bold bg-green-100 text-green-700 border border-green-300 rounded-full px-2 py-0.5" }, "已是学员", bk.matchedStudent ? ` · ${bk.matchedStudent}` : "") : /* @__PURE__ */ React.createElement("span", { className: "ml-2 align-middle inline-block text-[10px] font-bold bg-gray-100 text-gray-600 border border-gray-300 rounded-full px-2 py-0.5" }, "新访客")), /* @__PURE__ */ React.createElement("p", { className: "inline-flex items-center gap-1.5 text-sm text-gray-500" }, /* @__PURE__ */ React.createElement(Icon, { name: "phone", className: "w-4 h-4" }), bk.contactPhone), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-600 mt-1" }, bk.date, " ", bk.startTime, " · ", bk.title || "未命名班次"), bk.message && /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500 mt-1 whitespace-pre-wrap" }, bk.message)), /* @__PURE__ */ React.createElement("div", { className: "text-right flex-shrink-0" }, /* @__PURE__ */ React.createElement("p", { className: `text-xs font-bold ${bk.seatsLeft === 0 ? "text-gray-500" : "text-green-700"}` }, bk.seatsLeft === 0 ? "已满" : `还有 ${bk.seatsLeft} 位`), /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-400" }, "容量 ", bk.capacity))), bk.seatsLeft === 0 && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2" }, "这节课已经满了。批准会被拒绝——先提高班次容量，或婉拒并联系家长改约。"), canReviewBookings && /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 justify-end" }, /* @__PURE__ */ React.createElement(
         "button",
         {
           onClick: () => reviewBooking(bk, "declined"),

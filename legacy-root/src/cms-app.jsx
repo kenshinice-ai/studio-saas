@@ -8,6 +8,7 @@
 import { BillingPanel } from "./panels/billing.jsx";
 import { FinancePanel } from "./panels/finance.jsx";
 import { IntegrationsPanel } from "./panels/integrations.jsx";
+import { OverdueReports } from "./panels/progress_reports.jsx";
 
 const { useState, useEffect, useMemo, useRef, useCallback } = React;
 const tenantSlug = window.STUDIOSAAS_TENANT_SLUG
@@ -68,7 +69,8 @@ const readCmsRoute = () => {
     return {
         tab: CMS_ROUTE_TABS.has(requested) ? requested : 'dashboard',
         pendingTab: params.get('type') === 'booking' || params.get('type') === 'bookings'
-            ? 'bookings' : 'registrations',
+            ? 'bookings'
+            : params.get('type') === 'reports' ? 'reports' : 'registrations',
         settingsSection: params.get('section') || 'account',
         recordId: params.get('id') || '',
     };
@@ -1124,7 +1126,10 @@ function App() {
         if (next.tab && next.tab !== 'dashboard') params.set('view', next.tab);
         else params.delete('view');
         params.delete('tab');
+        // 一条 if/else 链，不是两条 if 加一个 else：后者会让 bookings 先被写入
+        // 再被下一句的 else 删掉，深链静默失效。
         if (next.tab === 'pending' && next.pendingTab === 'bookings') params.set('type', 'booking');
+        else if (next.tab === 'pending' && next.pendingTab === 'reports') params.set('type', 'reports');
         else params.delete('type');
         if (next.tab === 'settings' && next.settingsSection && next.settingsSection !== 'account') params.set('section', next.settingsSection);
         else params.delete('section');
@@ -1142,7 +1147,7 @@ function App() {
         syncCmsRoute({tab: next, recordId: nextRecordId}, !!options.replace);
     }, [syncCmsRoute]);
     const setPendingTab = useCallback((nextPendingTab) => {
-        const next = nextPendingTab === 'bookings' ? 'bookings' : 'registrations';
+        const next = ['bookings', 'reports'].includes(nextPendingTab) ? nextPendingTab : 'registrations';
         setPendingTabState(next);
         setTabState('pending');
         setShowSettings(false);
@@ -5786,13 +5791,19 @@ document.getElementById('copybtn').addEventListener('click', function(){
         但前台不该有两个地方要看，所以它们在同一页。 */}
     <div className="flex gap-2 flex-wrap">
         {[['registrations','新报名',(db.pending||[]).length],
-          ['bookings','约课',bookings.length]].map(([key,label,count])=>(
+          ['bookings','约课',bookings.length],
+          ['reports','成长报告','']].map(([key,label,count])=>(
             <button key={key} onClick={()=>setPendingTab(key)}
                 className={`px-4 py-2 rounded-xl text-sm font-bold min-h-[44px] border ${pendingTab===key?'bg-indigo-600 text-white border-indigo-600':'bg-white text-gray-600 border-gray-200 active:bg-gray-50'}`}>
                 {label} {count}
             </button>
         ))}
     </div>
+    {pendingTab==='reports' && (
+        <OverdueReports api={v1Api} showToast={showToast}
+            onOpenStudent={(id)=>setTab('students', {recordId: id})} />
+    )}
+
     {pendingTab==='bookings' && (
     <div className="space-y-3">
         {!bookings.length && (
