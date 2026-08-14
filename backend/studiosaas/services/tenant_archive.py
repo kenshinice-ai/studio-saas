@@ -64,13 +64,102 @@ SNAPSHOT_TABLES: tuple[tuple[str, str, str], ...] = (
     ("media_variants.json", "media_variants", "tenant_id = %s"),
     ("daily_roster_entries.json", "daily_roster_entries", "tenant_id = %s"),
     ("public_analytics_events.json", "public_analytics_events", "tenant_id = %s"),
+    # v10.0.0: three tenant-scoped tables had been shipping outside this
+    # inventory. `class_bookings` is the worst of them — it carries a parent's
+    # name and phone number plus the privacy notice version they accepted, so
+    # archiving a tenant was discarding both personal data and the consent
+    # evidence for it. The other two make a restored timetable a lie: without
+    # the exceptions, cancelled dates come back as if the class had run.
+    ("class_schedule_exceptions.json", "class_schedule_exceptions", "tenant_id = %s"),
+    ("class_bookings.json", "class_bookings", "tenant_id = %s"),
+    # ── v10.0.0 money layer ───────────────────────────────────────────────
+    # Ordered the way a restore has to insert them. Invoices, payments and pay
+    # periods are the records a studio would be asked to produce years later,
+    # so an archive that omitted any of them would not be an archive.
+    ("tenant_addons.json", "tenant_addons", "tenant_id = %s"),
+    ("terms.json", "terms", "tenant_id = %s"),
+    ("term_closures.json", "term_closures", "tenant_id = %s"),
+    ("scheduling_policies.json", "scheduling_policies", "tenant_id = %s"),
+    ("teacher_availability.json", "teacher_availability", "tenant_id = %s"),
+    ("lesson_series.json", "lesson_series", "tenant_id = %s"),
+    ("lesson_exceptions.json", "lesson_exceptions", "tenant_id = %s"),
+    ("makeup_credits.json", "makeup_credits", "tenant_id = %s"),
+    ("tax_codes.json", "tax_codes", "tenant_id = %s"),
+    ("billing_accounts.json", "billing_accounts", "tenant_id = %s"),
+    ("billing_account_members.json", "billing_account_members", "tenant_id = %s"),
+    # Without the counters a restored tenant would start numbering at 1 and
+    # collide with every invoice it just imported.
+    ("document_number_sequences.json", "document_number_sequences", "tenant_id = %s"),
+    ("invoices.json", "invoices", "tenant_id = %s"),
+    ("invoice_lines.json", "invoice_lines", "tenant_id = %s"),
+    ("invoice_events.json", "invoice_events", "tenant_id = %s"),
+    ("credit_notes.json", "credit_notes", "tenant_id = %s"),
+    ("credit_note_lines.json", "credit_note_lines", "tenant_id = %s"),
+    ("billing_schedules.json", "billing_schedules", "tenant_id = %s"),
+    ("payment_providers.json", "payment_providers", "tenant_id = %s"),
+    ("payments.json", "payments", "tenant_id = %s"),
+    ("payment_allocations.json", "payment_allocations", "tenant_id = %s"),
+    ("refunds.json", "refunds", "tenant_id = %s"),
+    ("bank_statement_lines.json", "bank_statement_lines", "tenant_id = %s"),
+    ("teacher_engagements.json", "teacher_engagements", "tenant_id = %s"),
+    ("teacher_pay_rates.json", "teacher_pay_rates", "tenant_id = %s"),
+    ("teacher_pay_periods.json", "teacher_pay_periods", "tenant_id = %s"),
+    ("teacher_pay_adjustments.json", "teacher_pay_adjustments", "tenant_id = %s"),
+    ("teaching_sessions.json", "teaching_sessions", "tenant_id = %s"),
+    ("xero_connections.json", "xero_connections", "tenant_id = %s"),
+    ("xero_account_mappings.json", "xero_account_mappings", "tenant_id = %s"),
+    ("xero_sync_settings.json", "xero_sync_settings", "tenant_id = %s"),
+    ("xero_object_links.json", "xero_object_links", "tenant_id = %s"),
+    ("integration_sync_jobs.json", "integration_sync_jobs", "tenant_id = %s"),
+    ("notification_channels.json", "notification_channels", "tenant_id = %s"),
+    ("notification_routes.json", "notification_routes", "tenant_id = %s"),
+    ("notification_optouts.json", "notification_optouts", "tenant_id = %s"),
+    ("calendar_subscriptions.json", "calendar_subscriptions", "tenant_id = %s"),
+    ("progress_report_settings.json", "progress_report_settings", "tenant_id = %s"),
+    ("progress_reports.json", "progress_reports", "tenant_id = %s"),
 )
+
+# Tenant-scoped tables that deliberately stay out of the snapshot, each with the
+# reason. `test_tenant_archive_snapshot_covers_every_tenant_owned_table` derives
+# the full tenant-scoped table set from the SQL files and demands that every one
+# of them appears either above or here — so a new table cannot slip through by
+# nobody remembering this file.
+SNAPSHOT_EXCLUSIONS: dict[str, str] = {
+    "payment_provider_events": (
+        "Transient webhook intake, not tenant property. Rows hold the provider's "
+        "raw payload — payer names, card metadata, addresses the studio never "
+        "asked for — and exist only so a replayed delivery can be recognised and "
+        "dropped. The durable record of the same money is the `payments` row it "
+        "produced, which carries the provider reference and does travel."
+    ),
+    "tenant_slug_aliases": (
+        "Platform-level tombstone, not tenant property. The row must outlive the "
+        "tenant in the platform database so a retired address keeps answering 410 "
+        "and is never reassigned to another studio (migration 0031). A standalone "
+        "instance is installed with its own address, so carrying the aliases over "
+        "would either collide with it or resurrect redirects the new owner never "
+        "issued."
+    ),
+}
 
 # Explicit projections for tables whose SELECT * would leak secrets into a
 # tenant archive. Any table not listed here is exported in full.
 SNAPSHOT_COLUMNS: dict[str, str] = {
     # Everything except password_hash (cross-tenant credential material).
     "users": "id, email, full_name, status, last_login_at, created_at, updated_at",
+    # Live credentials for somebody else's merchant account and accounting
+    # ledger. An archive is read by support tooling and lands in backups; a
+    # restored or exported tenant reconnects its own providers in a three-step
+    # wizard, so carrying the secrets buys nothing and risks everything. Same
+    # reasoning as users.password_hash above.
+    "payment_providers": (
+        "tenant_id, provider, display_name, mode, account_ref, surcharge_bp, "
+        "is_active, connected_by_user_id, connected_at, updated_at"
+    ),
+    "xero_connections": (
+        "tenant_id, org_id, org_name, access_token_expires_at, scopes, status, "
+        "last_error, connected_by_user_id, connected_at, updated_at"
+    ),
 }
 
 

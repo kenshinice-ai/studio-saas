@@ -54,6 +54,15 @@ from .lifecycle import (
     validate_tenant_transition,
 )
 from .models import Role
+from .services import billing as _billing
+from .services import calendar_subscriptions as _calendar_subs
+from .services import entitlements as _entitlements
+from .services import notification_channels as _channels
+from .services import payments as _payments
+from .services import progress_reports as _progress
+from .services import reports as _reports
+from .services import teaching_pay as _teaching_pay
+from .services import xero as _xero
 from . import palette
 from . import video_embed
 from .presets import (
@@ -12267,3 +12276,1435 @@ def update_student(student_id: str):
             )
 
     return jsonify({"ok": True})
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# v10.0.0 — the money layer
+#
+# Every route below follows the same three steps the rest of this file does:
+# resolve the tenant, check the actor may do this, write an audit row. The one
+# addition is `_require_feature`, which asks whether the studio is entitled to
+# the capability at all — a plan question rather than a permission question.
+#
+# The rule that governs all of them: an entitlement check may stand between a
+# studio and *new* work, never between a studio and its own records. Reading an
+# invoice, exporting a statement and downloading history stay available whatever
+# happens to a subscription, because those are the studio's documents.
+# ══════════════════════════════════════════════════════════════════════════
+
+
+def _require_feature(conn, tenant_id: str, feature: str):
+    """Assert the tenant is entitled to a capability, or raise a 402-shaped error.
+
+    Returns the resolved entitlements so a caller that needs several checks
+    resolves once.
+    """
+
+    entitlements = _entitlements.resolve(conn, tenant_id)
+    if not entitlements.has(feature):
+        raise _entitlements.FeatureUnavailableError(feature)
+    return entitlements
+
+
+def _feature_error(exc: "_entitlements.FeatureUnavailableError"):
+    """Turn a missing entitlement into an answer a studio can act on."""
+
+    label = _entitlements.FEATURE_LABELS.get(exc.feature, {})
+    return api_error(
+        str(exc),
+        403,
+        error="feature_not_available",
+        details={
+            "feature": exc.feature,
+            "label": label,
+            "addon": exc.feature in _entitlements.ADDON_FEATURES,
+        },
+    )
+
+
+def _money_cents(payload: dict, key: str, *, required: bool = True) -> int:
+    """Read an amount as integer cents, refusing anything that could round."""
+
+    raw = payload.get(key)
+    if raw is None or raw == "":
+        if required:
+            raise ValueError(f"{key} is required.")
+        return 0
+    if isinstance(raw, bool):
+        raise ValueError(f"{key} must be a number of cents.")
+    if isinstance(raw, float):
+        # A float here is a caller who has already lost precision somewhere.
+        raise ValueError(f"{key} must be an integer number of cents, not a decimal.")
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        raise ValueError(f"{key} must be an integer number of cents.")
+
+
+def _iso_date(payload: dict, key: str, *, fallback=None):
+    raw = str(payload.get(key) or "").strip()
+    if not raw:
+        return fallback
+    try:
+        return _date.fromisoformat(raw)
+    except ValueError:
+        raise ValueError(f"{key} must be an ISO date (YYYY-MM-DD).")
+
+
+# ── entitlements ─────────────────────────────────────────────────────────
+
+
+@api_v1.route("/entitlements", methods=["GET"])
+@auth_required
+def get_entitlements():
+    """What this studio can currently do. Drives the console's disabled states."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        resolved = _entitlements.resolve(conn, tenant.tenant_id)
+    return jsonify(resolved.as_payload())
+
+
+@api_v1.route("/admin/tenants/<tenant_id>/addons", methods=["GET", "POST"])
+@super_admin_required
+def admin_tenant_addons(tenant_id: str):
+    """Grant or list per-tenant add-ons. Platform side only.
+
+    This is switch one of three for an add-on like Xero: whether the studio has
+    it. Connecting it and pushing with it are the studio's own decisions and
+    live on their own routes.
+    """
+
+    if request.method == "GET":
+        with connect() as conn:
+            rows = fetch_all(
+                conn,
+                """
+                SELECT addon_key, status, granted_at, expires_at, note
+                FROM tenant_addons WHERE tenant_id = %s ORDER BY addon_key
+                """,
+                (tenant_id,),
+            )
+        return jsonify({"addons": rows, "available": list(_entitlements.known_addon_keys())})
+
+    try:
+        payload = _json_payload()
+    except ValueError as exc:
+        return _error(str(exc))
+    addon_key = _clean_text(payload, "addonKey")
+    if addon_key not in set(_entitlements.known_addon_keys()):
+        return _error(f"Unknown add-on: {addon_key or '(missing)'}")
+
+    actor = getattr(g, "actor", None)
+    with connect() as conn:
+        _entitlements.grant(
+            conn,
+            tenant_id,
+            addon_key,
+            granted_by_user_id=getattr(actor, "user_id", None),
+            note=_clean_text(payload, "note"),
+        )
+        _audit_request(
+            conn,
+            tenant_id=tenant_id,
+            action="addon.granted",
+            resource_type="tenant_addon",
+            resource_id=addon_key,
+        )
+        conn.commit()
+    return jsonify({"ok": True, "addonKey": addon_key}), 201
+
+
+@api_v1.route("/admin/tenants/<tenant_id>/addons/<addon_key>", methods=["DELETE"])
+@super_admin_required
+def admin_revoke_addon(tenant_id: str, addon_key: str):
+    """Withdraw an add-on. Suspends the grant; deletes nothing.
+
+    The studio keeps every record the add-on produced, the connection it
+    established and the errors it logged. Only new work stops.
+    """
+
+    with connect() as conn:
+        _entitlements.revoke(conn, tenant_id, addon_key, note="revoked via platform console")
+        _audit_request(
+            conn,
+            tenant_id=tenant_id,
+            action="addon.revoked",
+            resource_type="tenant_addon",
+            resource_id=addon_key,
+        )
+        conn.commit()
+    return jsonify({"ok": True})
+
+
+# ── billing accounts ─────────────────────────────────────────────────────
+
+
+@api_v1.route("/billing/accounts", methods=["GET", "POST"])
+@permission_required("billing:read")
+def billing_accounts():
+    """The payers a studio invoices — families and organisations."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        try:
+            _require_feature(conn, tenant.tenant_id, _entitlements.FEATURE_BILLING)
+        except _entitlements.FeatureUnavailableError as exc:
+            return _feature_error(exc)
+
+        if request.method == "GET":
+            rows = fetch_all(
+                conn,
+                """
+                SELECT a.id, a.name, a.kind, a.contact_name, a.email, a.mobile,
+                       a.company_name, a.payment_terms_days, a.status,
+                       COALESCE((SELECT SUM(i.balance_cents) FROM invoices i
+                                  WHERE i.tenant_id = a.tenant_id
+                                    AND i.billing_account_id = a.id
+                                    AND i.status IN ('issued','part_paid')), 0) AS balance_cents,
+                       COALESCE((SELECT count(*) FROM billing_account_members m
+                                  WHERE m.billing_account_id = a.id), 0) AS student_count
+                FROM billing_accounts a
+                WHERE a.tenant_id = %s AND a.status = 'active'
+                ORDER BY lower(a.name)
+                """,
+                (tenant.tenant_id,),
+            )
+            return jsonify({"accounts": rows})
+
+        require_permission(getattr(g, "actor", None), "billing:write")
+        try:
+            payload = _json_payload()
+            name = _clean_text(payload, "name")
+            if not name:
+                raise ValueError("An account needs a name.")
+        except (ValueError, PermissionDeniedError) as exc:
+            return _error(str(exc), 403 if isinstance(exc, PermissionDeniedError) else 400)
+
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO billing_accounts
+                    (tenant_id, name, kind, contact_name, email, mobile,
+                     company_name, abn, billing_address, payment_terms_days, language)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id, name, kind, payment_terms_days
+                """,
+                (
+                    tenant.tenant_id,
+                    name,
+                    _clean_text(payload, "kind", "family") or "family",
+                    _clean_text(payload, "contactName"),
+                    _clean_text(payload, "email"),
+                    _clean_text(payload, "mobile"),
+                    _clean_text(payload, "companyName"),
+                    _clean_text(payload, "abn"),
+                    _clean_text(payload, "billingAddress"),
+                    _positive_int(payload, "paymentTermsDays", fallback=14),
+                    _clean_text(payload, "language"),
+                ),
+            )
+            account = cur.fetchone()
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="billing_account.created",
+            resource_type="billing_account",
+            resource_id=account["id"],
+        )
+        conn.commit()
+    return jsonify({"ok": True, "account": account}), 201
+
+
+@api_v1.route("/billing/accounts/<account_id>/members", methods=["POST", "DELETE"])
+@permission_required("billing:write")
+def billing_account_members(account_id: str):
+    """Attach or detach a student from the payer who is billed for them."""
+
+    try:
+        payload = _json_payload()
+        student_id = _clean_text(payload, "studentId")
+        if not student_id:
+            raise ValueError("studentId is required.")
+    except ValueError as exc:
+        return _error(str(exc))
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        with conn.cursor() as cur:
+            if request.method == "POST":
+                # The composite foreign key refuses a student from another
+                # tenant, so this cannot be made to cross a boundary even with
+                # a guessed identifier.
+                cur.execute(
+                    """
+                    INSERT INTO billing_account_members (tenant_id, billing_account_id, student_id)
+                    VALUES (%s, %s, %s)
+                    ON CONFLICT (billing_account_id, student_id) DO NOTHING
+                    """,
+                    (tenant.tenant_id, account_id, student_id),
+                )
+            else:
+                cur.execute(
+                    """
+                    DELETE FROM billing_account_members
+                     WHERE tenant_id = %s AND billing_account_id = %s AND student_id = %s
+                    """,
+                    (tenant.tenant_id, account_id, student_id),
+                )
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="billing_account.members_changed",
+            resource_type="billing_account",
+            resource_id=account_id,
+            metadata={"studentId": student_id, "op": request.method},
+        )
+        conn.commit()
+    return jsonify({"ok": True})
+
+
+@api_v1.route("/billing/accounts/<account_id>/statement", methods=["GET"])
+@permission_required("billing:read")
+def billing_statement(account_id: str):
+    """Everything that moved on one account, invoices and payments interleaved."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        statement = _billing.account_statement(conn, tenant.tenant_id, account_id)
+    return jsonify(statement)
+
+
+# ── tax codes ────────────────────────────────────────────────────────────
+
+
+@api_v1.route("/billing/tax-codes", methods=["GET", "POST"])
+@permission_required("billing:read")
+def billing_tax_codes():
+    """Tax codes, in basis points.
+
+    Which code applies to tuition versus instrument hire is a question for the
+    studio's accountant. The product stores the answer and applies it; it does
+    not decide it.
+    """
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        if request.method == "GET":
+            rows = fetch_all(
+                conn,
+                """
+                SELECT id, code, name, rate_bp, is_default, is_active
+                FROM tax_codes WHERE tenant_id = %s ORDER BY is_default DESC, code
+                """,
+                (tenant.tenant_id,),
+            )
+            return jsonify({"taxCodes": rows})
+
+        try:
+            require_permission(getattr(g, "actor", None), "billing:write")
+            payload = _json_payload()
+            code = _clean_text(payload, "code")
+            if not code:
+                raise ValueError("A tax code needs a code.")
+            rate_bp = int(payload.get("rateBp") or 0)
+            if not 0 <= rate_bp <= 10000:
+                raise ValueError("rateBp must be between 0 and 10000.")
+        except PermissionDeniedError as exc:
+            return _error(str(exc), 403)
+        except (ValueError, TypeError) as exc:
+            return _error(str(exc))
+
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO tax_codes (tenant_id, code, name, rate_bp, is_default)
+                VALUES (%s, %s, %s, %s, %s)
+                ON CONFLICT (tenant_id, code) DO UPDATE
+                   SET name = EXCLUDED.name, rate_bp = EXCLUDED.rate_bp
+                RETURNING id, code, name, rate_bp, is_default
+                """,
+                (
+                    tenant.tenant_id,
+                    code,
+                    _clean_text(payload, "name"),
+                    rate_bp,
+                    bool(payload.get("isDefault")),
+                ),
+            )
+            tax_code = cur.fetchone()
+        conn.commit()
+    return jsonify({"ok": True, "taxCode": tax_code}), 201
+
+
+# ── invoices ─────────────────────────────────────────────────────────────
+
+
+@api_v1.route("/billing/invoices", methods=["GET", "POST"])
+@permission_required("billing:read")
+def billing_invoices():
+    """List invoices, or open a draft.
+
+    A draft carries no number. Numbers are allocated at issue, gaplessly, so a
+    draft that is abandoned never leaves a hole in the sequence for somebody to
+    explain later.
+    """
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        try:
+            _require_feature(conn, tenant.tenant_id, _entitlements.FEATURE_BILLING)
+        except _entitlements.FeatureUnavailableError as exc:
+            return _feature_error(exc)
+
+        if request.method == "GET":
+            status = (request.args.get("status") or "").strip()
+            account_id = (request.args.get("accountId") or "").strip()
+            rows = fetch_all(
+                conn,
+                """
+                SELECT i.id, i.number, i.status, i.issue_date, i.due_date,
+                       i.total_cents, i.amount_paid_cents, i.balance_cents,
+                       a.name AS account_name, a.id AS billing_account_id,
+                       (i.status IN ('issued','part_paid')
+                        AND i.due_date IS NOT NULL
+                        AND i.due_date < CURRENT_DATE) AS overdue
+                FROM invoices i
+                JOIN billing_accounts a
+                  ON a.tenant_id = i.tenant_id AND a.id = i.billing_account_id
+                WHERE i.tenant_id = %s
+                  AND (%s = '' OR i.status = %s)
+                  AND (%s = '' OR i.billing_account_id::text = %s)
+                ORDER BY COALESCE(i.issue_date, CURRENT_DATE) DESC, i.created_at DESC
+                LIMIT 500
+                """,
+                (tenant.tenant_id, status, status, account_id, account_id),
+            )
+            return jsonify({"invoices": rows})
+
+        try:
+            require_permission(getattr(g, "actor", None), "billing:write")
+            payload = _json_payload()
+            account_id = _clean_text(payload, "billingAccountId")
+            if not account_id:
+                raise ValueError("billingAccountId is required.")
+        except PermissionDeniedError as exc:
+            return _error(str(exc), 403)
+        except ValueError as exc:
+            return _error(str(exc))
+
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO invoices (tenant_id, billing_account_id, term_id, note, purchase_order_ref)
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING id, status, total_cents
+                """,
+                (
+                    tenant.tenant_id,
+                    account_id,
+                    payload.get("termId") or None,
+                    _clean_text(payload, "note"),
+                    _clean_text(payload, "purchaseOrderRef"),
+                ),
+            )
+            invoice = cur.fetchone()
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="invoice.drafted",
+            resource_type="invoice",
+            resource_id=invoice["id"],
+        )
+        conn.commit()
+    return jsonify({"ok": True, "invoice": invoice}), 201
+
+
+@api_v1.route("/billing/invoices/<invoice_id>", methods=["GET"])
+@permission_required("billing:read")
+def billing_invoice_detail(invoice_id: str):
+    """One invoice with its lines and its history."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        invoice = fetch_one(
+            conn,
+            """
+            SELECT i.*, a.name AS account_name, a.email AS account_email
+            FROM invoices i
+            JOIN billing_accounts a
+              ON a.tenant_id = i.tenant_id AND a.id = i.billing_account_id
+            WHERE i.tenant_id = %s AND i.id = %s
+            """,
+            (tenant.tenant_id, invoice_id),
+        )
+        if not invoice:
+            return _error("Invoice not found.", 404)
+        lines = fetch_all(
+            conn,
+            """
+            SELECT id, description, quantity::float AS quantity, unit_price_cents,
+                   tax_rate_bp, tax_cents, total_cents, source_kind, student_id
+            FROM invoice_lines
+            WHERE tenant_id = %s AND invoice_id = %s ORDER BY sort_order, created_at
+            """,
+            (tenant.tenant_id, invoice_id),
+        )
+        events = fetch_all(
+            conn,
+            """
+            SELECT event_type, detail, occurred_at
+            FROM invoice_events WHERE tenant_id = %s AND invoice_id = %s
+            ORDER BY occurred_at DESC LIMIT 50
+            """,
+            (tenant.tenant_id, invoice_id),
+        )
+    return jsonify({"invoice": invoice, "lines": lines, "events": events})
+
+
+@api_v1.route("/billing/invoices/<invoice_id>/lines", methods=["POST"])
+@permission_required("billing:write")
+def billing_invoice_add_line(invoice_id: str):
+    """Add a line to a draft. Refused once the invoice has been issued."""
+
+    try:
+        payload = _json_payload()
+        description = _clean_text(payload, "description")
+        if not description:
+            raise ValueError("A line needs a description.")
+        unit_price_cents = _money_cents(payload, "unitPriceCents")
+        quantity = payload.get("quantity", 1)
+        tax_rate_bp = int(payload.get("taxRateBp") or 0)
+    except (ValueError, TypeError) as exc:
+        return _error(str(exc))
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        try:
+            net, tax, total = _billing.line_amounts(quantity, unit_price_cents, tax_rate_bp)
+        except _billing.BillingError as exc:
+            return _error(str(exc))
+
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO invoice_lines
+                        (tenant_id, invoice_id, description, quantity, unit_price_cents,
+                         tax_code_id, tax_rate_bp, tax_cents, total_cents,
+                         source_kind, source_id, student_id, sort_order)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                            COALESCE((SELECT MAX(sort_order) + 1 FROM invoice_lines
+                                       WHERE invoice_id = %s), 0))
+                    RETURNING id, description, total_cents
+                    """,
+                    (
+                        tenant.tenant_id, invoice_id, description, quantity,
+                        unit_price_cents, payload.get("taxCodeId") or None, tax_rate_bp,
+                        tax, total, _clean_text(payload, "sourceKind", "manual") or "manual",
+                        payload.get("sourceId") or None, payload.get("studentId") or None,
+                        invoice_id,
+                    ),
+                )
+                line = cur.fetchone()
+            _billing.recalculate_totals(conn, tenant.tenant_id, invoice_id)
+            conn.commit()
+        except Exception as exc:  # noqa: BLE001 — surfaced as a 409, see below
+            conn.rollback()
+            # The immutability trigger raises here when the invoice has already
+            # been issued. That is a conflict rather than a server fault, and
+            # the message it carries is the one the studio needs to read.
+            return _error(str(exc).strip().splitlines()[0], 409)
+    return jsonify({"ok": True, "line": line}), 201
+
+
+@api_v1.route("/billing/invoices/<invoice_id>/issue", methods=["POST"])
+@permission_required("billing:issue")
+def billing_issue_invoice(invoice_id: str):
+    """Turn a draft into a numbered, immutable document."""
+
+    actor = getattr(g, "actor", None)
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        try:
+            issued = _billing.issue_invoice(
+                conn,
+                tenant.tenant_id,
+                invoice_id,
+                actor_user_id=getattr(actor, "user_id", None),
+            )
+        except _billing.BillingError as exc:
+            conn.rollback()
+            return _error(str(exc), 409)
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="invoice.issued",
+            resource_type="invoice",
+            resource_id=invoice_id,
+            metadata={"number": issued["number"]},
+        )
+        # Queued rather than pushed inline: a slow accounting API must never be
+        # what stands between a studio and issuing an invoice.
+        _xero.enqueue(conn, tenant.tenant_id, local_kind="invoice", local_id=invoice_id)
+        conn.commit()
+    return jsonify({"ok": True, "invoice": issued})
+
+
+@api_v1.route("/billing/invoices/<invoice_id>/void", methods=["POST"])
+@permission_required("billing:issue")
+def billing_void_invoice(invoice_id: str):
+    """Void an issued invoice that has taken no money."""
+
+    payload = request.get_json(silent=True) or {}
+    reason = str(payload.get("reason") or "").strip()
+    if not reason:
+        return _error("Voiding an invoice needs a reason.")
+
+    actor = getattr(g, "actor", None)
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        try:
+            _billing.void_invoice(
+                conn, tenant.tenant_id, invoice_id,
+                reason=reason, actor_user_id=getattr(actor, "user_id", None),
+            )
+        except _billing.BillingError as exc:
+            conn.rollback()
+            return _error(str(exc), 409)
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="invoice.voided",
+            resource_type="invoice",
+            resource_id=invoice_id,
+            metadata={"reason": reason},
+        )
+        conn.commit()
+    return jsonify({"ok": True})
+
+
+# ── payments ─────────────────────────────────────────────────────────────
+
+
+@api_v1.route("/billing/payments", methods=["POST"])
+@permission_required("payments:write")
+def billing_record_payment():
+    """Record money arriving, and apply it to the oldest debt first.
+
+    Oldest-first is the convention families and accountants both expect, and it
+    keeps the ageing report honest. Anything left over stays on the account as
+    credit, because an overpayment is still the family's money.
+    """
+
+    try:
+        payload = _json_payload()
+        account_id = _clean_text(payload, "billingAccountId")
+        if not account_id:
+            raise ValueError("billingAccountId is required.")
+        amount_cents = _money_cents(payload, "amountCents")
+        method = _clean_text(payload, "method", "bank_transfer") or "bank_transfer"
+    except ValueError as exc:
+        return _error(str(exc))
+
+    actor = getattr(g, "actor", None)
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        try:
+            payment = _payments.record_payment(
+                conn,
+                tenant.tenant_id,
+                billing_account_id=account_id,
+                amount_cents=amount_cents,
+                method=method,
+                note=_clean_text(payload, "note"),
+                idempotency_key=(
+                    _clean_text(payload, "idempotencyKey")
+                    or _payments.new_idempotency_key()
+                ),
+                recorded_by_user_id=getattr(actor, "user_id", None),
+            )
+            allocations = (
+                _payments.auto_allocate(conn, tenant.tenant_id, payment["id"])
+                if payload.get("autoAllocate", True)
+                else []
+            )
+        except _payments.PaymentError as exc:
+            conn.rollback()
+            return _error(str(exc), 409)
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="payment.recorded",
+            resource_type="payment",
+            resource_id=payment["id"],
+            metadata={"amountCents": amount_cents, "method": method},
+        )
+        conn.commit()
+    return jsonify({"ok": True, "payment": payment, "allocations": allocations}), 201
+
+
+@api_v1.route("/billing/payments/<payment_id>/refund", methods=["POST"])
+@permission_required("payments:refund")
+def billing_refund_payment(payment_id: str):
+    """Send money back, releasing the newest allocations first."""
+
+    try:
+        payload = _json_payload()
+        amount_cents = _money_cents(payload, "amountCents")
+    except ValueError as exc:
+        return _error(str(exc))
+
+    actor = getattr(g, "actor", None)
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        try:
+            refunded = _payments.refund(
+                conn,
+                tenant.tenant_id,
+                payment_id,
+                amount_cents=amount_cents,
+                reason=_clean_text(payload, "reason"),
+                actor_user_id=getattr(actor, "user_id", None),
+            )
+        except _payments.PaymentError as exc:
+            conn.rollback()
+            return _error(str(exc), 409)
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="payment.refunded",
+            resource_type="payment",
+            resource_id=payment_id,
+            metadata={"amountCents": amount_cents},
+        )
+        conn.commit()
+    return jsonify({"ok": True, "refund": refunded})
+
+
+# ── teaching hours and pay ───────────────────────────────────────────────
+
+
+@api_v1.route("/teaching/rates", methods=["GET", "POST"])
+@permission_required("payroll:read")
+def teaching_rates():
+    """Pay rates, effective-dated, on five different bases."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        try:
+            _require_feature(conn, tenant.tenant_id, _entitlements.FEATURE_TEACHER_PAYABLES)
+        except _entitlements.FeatureUnavailableError as exc:
+            return _feature_error(exc)
+
+        if request.method == "GET":
+            rows = fetch_all(
+                conn,
+                """
+                SELECT r.id, r.teacher_user_id, u.full_name, r.course_id, c.name AS course_name,
+                       r.basis, r.amount_cents, r.percent_bp, r.effective_from, r.effective_to
+                FROM teacher_pay_rates r
+                JOIN users u ON u.id = r.teacher_user_id
+                LEFT JOIN courses c ON c.id = r.course_id
+                WHERE r.tenant_id = %s
+                ORDER BY u.full_name, r.effective_from DESC
+                """,
+                (tenant.tenant_id,),
+            )
+            return jsonify({"rates": rows})
+
+        try:
+            require_permission(getattr(g, "actor", None), "payroll:write")
+            payload = _json_payload()
+            teacher_user_id = _clean_text(payload, "teacherUserId")
+            basis = _clean_text(payload, "basis")
+            if not teacher_user_id or basis not in _teaching_pay.RATE_BASES:
+                raise ValueError("teacherUserId and a valid basis are required.")
+            amount_cents = (
+                None if basis == "percent_of_tuition"
+                else _money_cents(payload, "amountCents")
+            )
+            percent_bp = int(payload.get("percentBp") or 0) if basis == "percent_of_tuition" else None
+        except PermissionDeniedError as exc:
+            return _error(str(exc), 403)
+        except (ValueError, TypeError) as exc:
+            return _error(str(exc))
+
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO teacher_pay_rates
+                    (tenant_id, teacher_user_id, course_id, basis, amount_cents,
+                     percent_bp, effective_from, note)
+                VALUES (%s, %s, %s, %s, %s, %s, COALESCE(%s, CURRENT_DATE), %s)
+                RETURNING id, basis, amount_cents, percent_bp, effective_from
+                """,
+                (
+                    tenant.tenant_id, teacher_user_id, payload.get("courseId") or None,
+                    basis, amount_cents, percent_bp,
+                    _iso_date(payload, "effectiveFrom"), _clean_text(payload, "note"),
+                ),
+            )
+            rate = cur.fetchone()
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="pay_rate.created",
+            resource_type="teacher_pay_rate",
+            resource_id=rate["id"],
+        )
+        conn.commit()
+    return jsonify({"ok": True, "rate": rate}), 201
+
+
+@api_v1.route("/teaching/timesheet", methods=["GET"])
+@auth_required
+def teaching_timesheet():
+    """Scheduled against actual, for one teacher over one period.
+
+    A teacher may read their own and only their own. The check is here rather
+    than in the permission table because "their own" is a property of the
+    request, not of the role.
+    """
+
+    actor = getattr(g, "actor", None)
+    requested = (request.args.get("teacherUserId") or "").strip()
+    actor_id = str(getattr(actor, "user_id", "") or "")
+    is_teacher_only = getattr(actor, "role", None) == Role.TEACHER
+
+    if is_teacher_only and requested and requested != actor_id:
+        return _error("A teacher may only read their own hours.", 403)
+    teacher_user_id = requested or actor_id
+    if not teacher_user_id:
+        return _error("teacherUserId is required.")
+
+    try:
+        start = _iso_date(request.args, "from") or _date.today().replace(day=1)
+        end = _iso_date(request.args, "to") or _date.today()
+    except ValueError as exc:
+        return _error(str(exc))
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        if not is_teacher_only:
+            try:
+                require_permission(actor, "payroll:read")
+            except PermissionDeniedError as exc:
+                return _error(str(exc), 403)
+        summary = _teaching_pay.variance(conn, tenant.tenant_id, teacher_user_id, start, end)
+        sessions = fetch_all(
+            conn,
+            """
+            SELECT s.occurred_on, s.start_time, s.duration_minutes, s.student_count,
+                   s.counts_for_pay, s.rate_basis, s.amount_cents, s.locked_at,
+                   c.name AS course_name
+            FROM teaching_sessions s
+            LEFT JOIN courses c ON c.id = s.course_id
+            WHERE s.tenant_id = %s AND s.teacher_user_id = %s
+              AND s.occurred_on BETWEEN %s AND %s
+            ORDER BY s.occurred_on DESC, s.start_time NULLS LAST
+            """,
+            (tenant.tenant_id, teacher_user_id, start, end),
+        )
+    return jsonify({"summary": summary, "sessions": sessions})
+
+
+@api_v1.route("/teaching/periods", methods=["POST"])
+@permission_required("payroll:write")
+def teaching_open_period():
+    """Open a pay period and roll its sessions into it."""
+
+    try:
+        payload = _json_payload()
+        teacher_user_id = _clean_text(payload, "teacherUserId")
+        start = _iso_date(payload, "periodStart")
+        end = _iso_date(payload, "periodEnd")
+        if not teacher_user_id or not start or not end:
+            raise ValueError("teacherUserId, periodStart and periodEnd are required.")
+    except ValueError as exc:
+        return _error(str(exc))
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        period = _teaching_pay.open_period(
+            conn, tenant.tenant_id, teacher_user_id, period_start=start, period_end=end
+        )
+        try:
+            totals = _teaching_pay.recalculate_period(conn, tenant.tenant_id, period["id"])
+        except _teaching_pay.PayError as exc:
+            conn.rollback()
+            return _error(str(exc), 409)
+        conn.commit()
+    return jsonify({"ok": True, "period": totals})
+
+
+@api_v1.route("/teaching/periods/<period_id>/confirm", methods=["POST"])
+@auth_required
+def teaching_confirm_period(period_id: str):
+    """The teacher's own acknowledgement of their hours.
+
+    Deliberately the teacher's action. A disagreement about hours is cheap to
+    settle before anybody is paid and expensive afterwards.
+    """
+
+    actor = getattr(g, "actor", None)
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        period = fetch_one(
+            conn,
+            "SELECT teacher_user_id FROM teacher_pay_periods WHERE tenant_id = %s AND id = %s",
+            (tenant.tenant_id, period_id),
+        )
+        if not period:
+            return _error("Pay period not found.", 404)
+
+        actor_id = str(getattr(actor, "user_id", "") or "")
+        if str(period["teacher_user_id"]) != actor_id:
+            try:
+                require_permission(actor, "payroll:write")
+            except PermissionDeniedError:
+                return _error("Only this teacher, or a manager, may confirm this period.", 403)
+
+        try:
+            confirmed = _teaching_pay.confirm_period(
+                conn, tenant.tenant_id, period_id, confirmed_by_user_id=actor_id
+            )
+        except _teaching_pay.PayError as exc:
+            conn.rollback()
+            return _error(str(exc), 409)
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="pay_period.confirmed",
+            resource_type="teacher_pay_period",
+            resource_id=period_id,
+        )
+        conn.commit()
+    return jsonify({"ok": True, "period": confirmed})
+
+
+@api_v1.route("/teaching/periods/<period_id>/summary", methods=["GET"])
+@permission_required("payroll:read")
+def teaching_period_summary(period_id: str):
+    """Everything needed to hand a period to whoever runs payroll."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        try:
+            summary = _teaching_pay.payable_summary(conn, tenant.tenant_id, period_id)
+        except _teaching_pay.PayError as exc:
+            return _error(str(exc), 404)
+
+        engagement = summary["period"]["engagement"]
+        try:
+            summary["exportKind"] = _xero.payable_export_kind(engagement)
+            summary["exportBlocked"] = ""
+        except _xero.XeroError as exc:
+            # Not an error for the caller: the summary is still correct and
+            # readable. It only means the accounting export cannot proceed
+            # until somebody records how this teacher is engaged.
+            summary["exportKind"] = None
+            summary["exportBlocked"] = str(exc)
+    return jsonify(summary)
+
+
+# ── Xero: the three switches ─────────────────────────────────────────────
+
+
+@api_v1.route("/integrations/xero", methods=["GET"])
+@permission_required("billing:read")
+def xero_status():
+    """All three switches at once, plus what is still blocking the third."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        status = _xero.gate_status(conn, tenant.tenant_id)
+        mappings = fetch_all(
+            conn,
+            """
+            SELECT item_kind, account_code, tax_type
+            FROM xero_account_mappings WHERE tenant_id = %s ORDER BY item_kind
+            """,
+            (tenant.tenant_id,),
+        )
+        settings = fetch_one(
+            conn,
+            """
+            SELECT push_enabled, single_entry_decision, clearing_account_code,
+                   mapping_confirmed_at, demo_run_completed_at, last_pushed_at
+            FROM xero_sync_settings WHERE tenant_id = %s
+            """,
+            (tenant.tenant_id,),
+        )
+        missing = _xero.missing_required_mappings(conn, tenant.tenant_id)
+    return jsonify(
+        {
+            "entitled": status.entitled,
+            "connected": status.connected,
+            "pushEnabled": status.push_enabled,
+            "canEnablePush": status.can_enable,
+            "blockers": status.blockers(),
+            "missingMappings": missing,
+            "mappableKinds": list(_xero.MAPPABLE_ITEM_KINDS),
+            "requiredKinds": list(_xero.REQUIRED_ITEM_KINDS),
+            "mappings": mappings,
+            "settings": settings or {},
+        }
+    )
+
+
+@api_v1.route("/integrations/xero/mappings", methods=["PUT"])
+@permission_required("integrations:manage")
+def xero_put_mappings():
+    """Store the chart-of-accounts mapping the studio's accountant supplied."""
+
+    try:
+        payload = _json_payload()
+        mappings = payload.get("mappings")
+        if not isinstance(mappings, list):
+            raise ValueError("mappings must be a list.")
+    except ValueError as exc:
+        return _error(str(exc))
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        try:
+            _require_feature(conn, tenant.tenant_id, _entitlements.FEATURE_XERO)
+        except _entitlements.FeatureUnavailableError as exc:
+            return _feature_error(exc)
+
+        with conn.cursor() as cur:
+            for item in mappings:
+                kind = str(item.get("itemKind") or "").strip()
+                if kind not in _xero.MAPPABLE_ITEM_KINDS:
+                    conn.rollback()
+                    return _error(f"Unknown mapping kind: {kind}")
+                cur.execute(
+                    """
+                    INSERT INTO xero_account_mappings (tenant_id, item_kind, account_code, tax_type)
+                    VALUES (%s, %s, %s, %s)
+                    ON CONFLICT (tenant_id, item_kind) DO UPDATE
+                       SET account_code = EXCLUDED.account_code,
+                           tax_type = EXCLUDED.tax_type,
+                           updated_at = now()
+                    """,
+                    (
+                        tenant.tenant_id, kind,
+                        str(item.get("accountCode") or "").strip(),
+                        str(item.get("taxType") or "").strip(),
+                    ),
+                )
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="xero.mappings_updated",
+            resource_type="xero_account_mappings",
+            resource_id=tenant.tenant_id,
+        )
+        conn.commit()
+    return jsonify({"ok": True})
+
+
+@api_v1.route("/integrations/xero/single-entry", methods=["POST"])
+@permission_required("integrations:manage")
+def xero_single_entry():
+    """Record how the studio resolved the duplicate-feed question.
+
+    Asked before pushing is allowed, because the alternative is discovering the
+    answer as two sets of records in a live accounting ledger.
+    """
+
+    try:
+        payload = _json_payload()
+        decision = _clean_text(payload, "decision")
+    except ValueError as exc:
+        return _error(str(exc))
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        try:
+            _xero.answer_single_entry(
+                conn, tenant.tenant_id,
+                decision=decision,
+                clearing_account_code=_clean_text(payload, "clearingAccountCode"),
+            )
+        except _xero.XeroError as exc:
+            conn.rollback()
+            return _error(str(exc))
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="xero.single_entry_answered",
+            resource_type="xero_sync_settings",
+            resource_id=tenant.tenant_id,
+            metadata={"decision": decision},
+        )
+        conn.commit()
+    return jsonify({"ok": True})
+
+
+@api_v1.route("/integrations/xero/gate", methods=["POST"])
+@permission_required("integrations:manage")
+def xero_gate():
+    """Advance the wizard: confirm mapping, record the demo run, or push.
+
+    One route for three steps because they are one workflow, and because the
+    gate has to be evaluated identically whichever step is being attempted.
+    """
+
+    try:
+        payload = _json_payload()
+        step = _clean_text(payload, "step")
+    except ValueError as exc:
+        return _error(str(exc))
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        try:
+            _require_feature(conn, tenant.tenant_id, _entitlements.FEATURE_XERO)
+            if step == "confirm_mapping":
+                _xero.confirm_mapping(conn, tenant.tenant_id)
+            elif step == "demo_run":
+                _xero.record_demo_run(conn, tenant.tenant_id)
+            elif step == "enable_push":
+                _xero.set_push_enabled(conn, tenant.tenant_id, True)
+            elif step == "disable_push":
+                _xero.set_push_enabled(conn, tenant.tenant_id, False)
+            else:
+                return _error(f"Unknown step: {step}")
+        except _entitlements.FeatureUnavailableError as exc:
+            return _feature_error(exc)
+        except _xero.XeroError as exc:
+            conn.rollback()
+            return _error(str(exc), 409)
+
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action=f"xero.{step}",
+            resource_type="xero_sync_settings",
+            resource_id=tenant.tenant_id,
+        )
+        conn.commit()
+        status = _xero.gate_status(conn, tenant.tenant_id)
+    return jsonify(
+        {
+            "ok": True,
+            "pushEnabled": status.push_enabled,
+            "canEnablePush": status.can_enable,
+            "blockers": status.blockers(),
+        }
+    )
+
+
+@api_v1.route("/integrations/xero/errors", methods=["GET"])
+@permission_required("billing:read")
+def xero_errors():
+    """What did not reach Xero, and why. The studio's queue, not ours."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        rows = _xero.error_queue(conn, tenant.tenant_id)
+    return jsonify({"errors": rows})
+
+
+@api_v1.route("/integrations/xero/errors/<job_id>/replay", methods=["POST"])
+@permission_required("integrations:manage")
+def xero_replay(job_id: str):
+    """Requeue a failed push, keeping its idempotency key so it cannot duplicate."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        _xero.replay(conn, tenant.tenant_id, job_id)
+        conn.commit()
+    return jsonify({"ok": True})
+
+
+# ── calendar subscriptions ───────────────────────────────────────────────
+
+
+@api_v1.route("/calendar/subscriptions", methods=["GET", "POST"])
+@permission_required("students:read")
+def calendar_subscriptions_route():
+    """Issue a family's calendar feed, or list the ones already issued.
+
+    The raw token is returned once, at creation, and never again. A family that
+    loses the link gets a new subscription, which also means the lost one can be
+    revoked on its own.
+    """
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        try:
+            _require_feature(
+                conn, tenant.tenant_id, _entitlements.FEATURE_CALENDAR_SUBSCRIPTIONS
+            )
+        except _entitlements.FeatureUnavailableError as exc:
+            return _feature_error(exc)
+
+        if request.method == "GET":
+            rows = fetch_all(
+                conn,
+                """
+                SELECT id, scope, label, billing_account_id, student_id, teacher_user_id,
+                       created_at, last_fetched_at, fetch_count
+                FROM calendar_subscriptions
+                WHERE tenant_id = %s AND revoked_at IS NULL
+                ORDER BY created_at DESC
+                """,
+                (tenant.tenant_id,),
+            )
+            return jsonify({"subscriptions": rows})
+
+        try:
+            payload = _json_payload()
+            scope = _clean_text(payload, "scope", "family") or "family"
+            raw_token, row = _calendar_subs.create(
+                conn,
+                tenant.tenant_id,
+                scope=scope,
+                billing_account_id=payload.get("billingAccountId") or None,
+                student_id=payload.get("studentId") or None,
+                teacher_user_id=payload.get("teacherUserId") or None,
+                label=_clean_text(payload, "label"),
+                created_by_user_id=getattr(getattr(g, "actor", None), "user_id", None),
+            )
+        except (ValueError, _calendar_subs.SubscriptionError) as exc:
+            conn.rollback()
+            return _error(str(exc))
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="calendar_subscription.created",
+            resource_type="calendar_subscription",
+            resource_id=row["id"],
+        )
+        conn.commit()
+
+    return jsonify(
+        {
+            "ok": True,
+            "subscription": row,
+            # Shown once. The studio hands it to the family; we cannot show it
+            # again because only its hash was kept.
+            "feedPath": f"/v1/public/calendar/{raw_token}.ics",
+        }
+    ), 201
+
+
+@api_v1.route("/calendar/subscriptions/<subscription_id>", methods=["DELETE"])
+@permission_required("students:write")
+def calendar_subscription_revoke(subscription_id: str):
+    """Cut off a feed without erasing the record that it existed."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        _calendar_subs.revoke(conn, tenant.tenant_id, subscription_id)
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="calendar_subscription.revoked",
+            resource_type="calendar_subscription",
+            resource_id=subscription_id,
+        )
+        conn.commit()
+    return jsonify({"ok": True})
+
+
+@api_v1.route("/public/calendar/<token>.ics", methods=["GET"])
+def public_calendar_feed(token: str):
+    """The family's calendar feed.
+
+    Unauthenticated by necessity: a calendar client subscribes with a URL and
+    has no session to present. The token is 256 bits, matched by hash, and the
+    tenant is read from the row it resolves to — never from anything the request
+    supplied, which is what stops a token from one studio being pointed at
+    another's data.
+    """
+
+    with connect() as conn:
+        subscription = _calendar_subs.resolve(conn, token)
+        if not subscription:
+            # Deliberately the same answer as a revoked or malformed token: a
+            # different one would let somebody probe for valid tokens.
+            return _error("Calendar not found.", 404)
+        document = _calendar_subs.build_document(conn, subscription)
+        _calendar_subs.touch(conn, subscription["id"])
+        conn.commit()
+
+    response = Response(document.to_ics(), content_type="text/calendar; charset=utf-8")
+    response.headers["Content-Disposition"] = f'inline; filename="{document.filename}"'
+    # Calendar clients poll on their own schedule; a short cache keeps a
+    # re-subscribing client from hammering the feed without making a
+    # reschedule wait noticeably longer than the client's own poll interval.
+    response.headers["Cache-Control"] = "private, max-age=900"
+    return response
+
+
+# ── progress reports ─────────────────────────────────────────────────────
+
+
+@api_v1.route("/progress-reports", methods=["POST"])
+@permission_required("progress_reports:write")
+def progress_report_create():
+    """Assemble a period into a draft for a teacher to finish."""
+
+    try:
+        payload = _json_payload()
+        student_id = _clean_text(payload, "studentId")
+        start = _iso_date(payload, "periodStart")
+        end = _iso_date(payload, "periodEnd")
+        if not student_id or not start or not end:
+            raise ValueError("studentId, periodStart and periodEnd are required.")
+    except ValueError as exc:
+        return _error(str(exc))
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        try:
+            _require_feature(conn, tenant.tenant_id, _entitlements.FEATURE_PROGRESS_REPORTS)
+        except _entitlements.FeatureUnavailableError as exc:
+            return _feature_error(exc)
+        report = _progress.create_draft(
+            conn,
+            tenant.tenant_id,
+            student_id,
+            period_start=start,
+            period_end=end,
+            teacher_user_id=getattr(getattr(g, "actor", None), "user_id", None),
+        )
+        conn.commit()
+    return jsonify({"ok": True, "report": report}), 201
+
+
+@api_v1.route("/progress-reports/<report_id>", methods=["PATCH"])
+@permission_required("progress_reports:write")
+def progress_report_update(report_id: str):
+    """Edit the teacher's comment on a draft."""
+
+    try:
+        payload = _json_payload()
+    except ValueError as exc:
+        return _error(str(exc))
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE progress_reports
+                   SET teacher_comment = %s, updated_at = now()
+                 WHERE tenant_id = %s AND id = %s AND status = 'draft'
+                RETURNING id, status
+                """,
+                (_clean_text(payload, "teacherComment"), tenant.tenant_id, report_id),
+            )
+            updated = cur.fetchone()
+        if not updated:
+            conn.rollback()
+            return _error("Only a draft report can be edited.", 409)
+        conn.commit()
+    return jsonify({"ok": True, "report": updated})
+
+
+@api_v1.route("/progress-reports/<report_id>/publish", methods=["POST"])
+@permission_required("progress_reports:publish")
+def progress_report_publish(report_id: str):
+    """Freeze a report and release it to the family."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        try:
+            published = _progress.publish(
+                conn, tenant.tenant_id, report_id,
+                published_by_user_id=getattr(getattr(g, "actor", None), "user_id", None),
+            )
+        except _progress.ProgressReportError as exc:
+            conn.rollback()
+            return _error(str(exc), 409)
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="progress_report.published",
+            resource_type="progress_report",
+            resource_id=report_id,
+        )
+        conn.commit()
+    return jsonify({"ok": True, "report": published})
+
+
+@api_v1.route("/progress-reports/overdue", methods=["GET"])
+@permission_required("progress_reports:read")
+def progress_reports_overdue():
+    """Which reports are due and unwritten, and whose they are."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        rows = _progress.overdue(conn, tenant.tenant_id)
+    return jsonify({"overdue": rows})
+
+
+# ── management reports ───────────────────────────────────────────────────
+
+
+@api_v1.route("/reports/<report_name>", methods=["GET"])
+@permission_required("reports:read")
+def management_report(report_name: str):
+    """Four reports, each drillable to the rows behind every figure."""
+
+    builders = {
+        "revenue": lambda conn, tid, start, end: _reports.revenue(conn, tid, start=start, end=end),
+        "receivables": lambda conn, tid, start, end: _reports.receivables(conn, tid, as_of=end),
+        "teacher-cost": lambda conn, tid, start, end: _reports.teacher_cost(conn, tid, start=start, end=end),
+        "attendance": lambda conn, tid, start, end: _reports.attendance(conn, tid, start=start, end=end),
+    }
+    builder = builders.get(report_name)
+    if builder is None:
+        return _error(f"Unknown report: {report_name}", 404)
+
+    try:
+        default_start, default_end = _reports.default_period()
+        start = _iso_date(request.args, "from") or default_start
+        end = _iso_date(request.args, "to") or default_end
+    except ValueError as exc:
+        return _error(str(exc))
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        try:
+            _require_feature(conn, tenant.tenant_id, _entitlements.FEATURE_REPORTS)
+        except _entitlements.FeatureUnavailableError as exc:
+            return _feature_error(exc)
+        data = builder(conn, tenant.tenant_id, start, end)
+    return jsonify({"report": report_name, "from": start.isoformat(), "to": end.isoformat(), **data})
+
+
+@api_v1.route("/notifications/usage", methods=["GET"])
+@permission_required("settings:write")
+def notification_usage():
+    """This month's message volume and spend, per channel.
+
+    The number a studio needs is not "412 messages" but "$29", and they need it
+    before the provider's invoice rather than after.
+    """
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        usage = {
+            channel: _channels.month_usage(conn, tenant.tenant_id, channel)
+            for channel in ("email", "sms")
+        }
+        routes = fetch_all(
+            conn,
+            "SELECT event_key, channels, is_active FROM notification_routes WHERE tenant_id = %s",
+            (tenant.tenant_id,),
+        )
+    return jsonify(
+        {
+            "usage": usage,
+            "routes": routes,
+            "defaultRoutes": {
+                key: list(value) for key, value in _channels.DEFAULT_ROUTES.items()
+            },
+        }
+    )

@@ -4,20 +4,39 @@
 
 These are three independent facts. A matching version label is not proof that
 the current source tree was packaged or deployed; Source, Package and
-Production remain separate rows. v9.9.6 completed all three milestones on
-13 August 2026; the rows below record the independent evidence.
+Production remain separate rows. **v10.0.0 has completed Source only** — the
+Package and Production rows still describe v9.9.6 and are not claims about
+this release.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v9.9.6 committed** | `VERSION` = **9.9.6**; release commit `e92dcadf89ab62b87681f14c5afa550b56c93abf` on `claude/online-manual-content-improvement-03b8f9`. Documentation and asset release — the only runtime edit is `APP_VERSION`. Full gate green: `verify_local.sh` all checks passed, pytest `1755 passed, 12 skipped`, legacy CMS smoke `73 passed`, tenant isolation `237 passed, 0 failed`. |
-| Package | Clean SaaS and Edition v9.9.6 packages verified | SaaS `dist/PWE-StudioSaaS-aws-9.9.6.tar.gz` SHA-256 `ce2672d4a739583e00bc92d20b903bdb12e62fd1f8c0000539934e35c2388ce8`; Edition `dist/PWE-Studio-Edition-9.9.6.tar.gz` SHA-256 `c766d654a30ac1a3c30af90de3a3c6c4c31723cf6464799b3682e1be28269665`. Both `BUILD_INFO` records read v9.9.6 with modes `saas` / `standalone`, and both passed checksum, entrypoint, version and exclusion checks. |
-| Production | **v9.9.6 deployed to `pwestudio.online`** | `/opt/pwestudio/current` resolves to `/opt/pwestudio/releases/PWE-StudioSaaS-aws-9.9.6`; image `studiosaas:9.9.6`; container healthy; deep health reports `appVersion=9.9.6`, `db=ok`, `mode=saas`, `tenants=6`, `themes.unreadable=0`, `workspaces.stale=0`; disk free about `44.74 GB`; twelve public routes return `200`, HTTPS with HTTP/2. Pre-deploy backup `studiosaas_studiosaas_20260813T101614Z.dump` with its manifest. |
+| Source | **v10.0.0 committed** | `VERSION` = **10.0.0**; the money layer — 40 tables across migrations 0032–0038, 9 service modules, 34 routes, 38 new tests. Full gate green: pytest `2536 passed, 22 skipped`, legacy CMS smoke `73 passed`, tenant isolation `237 passed, 0 failed`. Every database invariant (invoice immutability, gapless numbering, allocation ceiling, payment idempotency, cross-tenant refusal, the Xero precondition gate) verified against a real PostgreSQL, not asserted in a static test. |
+| Package | Last built: SaaS and Edition **v9.9.6** | SaaS `dist/PWE-StudioSaaS-aws-9.9.6.tar.gz` SHA-256 `ce2672d4a739583e00bc92d20b903bdb12e62fd1f8c0000539934e35c2388ce8`; Edition `dist/PWE-Studio-Edition-9.9.6.tar.gz` SHA-256 `c766d654a30ac1a3c30af90de3a3c6c4c31723cf6464799b3682e1be28269665`. **No v10.0.0 package has been built.** |
+| Production | Last deployed: **v9.9.6** on `pwestudio.online` | `/opt/pwestudio/current` resolves to `/opt/pwestudio/releases/PWE-StudioSaaS-aws-9.9.6`; deep health reported `appVersion=9.9.6`, `db=ok`, `mode=saas`. **v10.0.0 is not deployed**, and it carries seven migrations, so a deployment is a schema change requiring a pre-deploy backup. |
 
 Re-verify the production health endpoint (`/v1/health?deep=1`) before any later
 release claim; do not infer Production from `VERSION` or from an archive
 filename, which does not identify the deployed commit. The
 deployed source commit is recorded in the Source row above and in the latest
 handoff, never inferred from the version label.
+
+## v10.0.0 release scope
+
+The first release in which the product can answer "what does this family owe"
+and "what is this teacher owed". Invoicing, payments, a Xero connection sold as
+a per-tenant add-on, teacher hours and payable summaries, per-family calendar
+subscriptions, and student progress reports.
+
+Two pre-existing silent failures were found by the guards written for this
+release and fixed with it: the Edition import tool could not run at all
+(`IMPORT_ORDER` had drifted from the archive manifest and the check is a strict
+equality), and three tenant-scoped tables — one of them holding parent contact
+details and the consent version attached to them — were being dropped from every
+tenant archive and every standalone export.
+
+See `docs/HANDOFF_LATEST.md` for the boundaries this release deliberately does
+not cross, and `docs/design/Money_Layer_Plan_2026-08-14.md` for the plan it
+implements.
 
 ## v9.9.6 release scope
 

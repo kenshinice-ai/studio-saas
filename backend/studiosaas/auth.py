@@ -46,6 +46,24 @@ ROLE_PERMISSIONS: dict[Role, set[str]] = {
         "data:export",
         "settings:write",
         "plans:read",
+        # v10.0.0 money layer. The owner is the only role that may connect a
+        # merchant account or an accounting ledger: those are the studio's own
+        # credentials and the person who signs for them should be the person
+        # who holds them.
+        "billing:read",
+        "billing:write",
+        "billing:issue",
+        "payments:read",
+        "payments:write",
+        "payments:refund",
+        "payroll:read",
+        "payroll:write",
+        "integrations:manage",
+        "reports:read",
+        "scheduling:write",
+        "progress_reports:read",
+        "progress_reports:write",
+        "progress_reports:publish",
     },
     Role.MANAGER: {
         "tenant:read",
@@ -66,6 +84,21 @@ ROLE_PERMISSIONS: dict[Role, set[str]] = {
         "analytics:read",
         "data:export",
         "plans:read",
+        # Runs the money day to day, but cannot connect Stripe, Square or Xero:
+        # `integrations:manage` stays with the owner.
+        "billing:read",
+        "billing:write",
+        "billing:issue",
+        "payments:read",
+        "payments:write",
+        "payments:refund",
+        "payroll:read",
+        "payroll:write",
+        "reports:read",
+        "scheduling:write",
+        "progress_reports:read",
+        "progress_reports:write",
+        "progress_reports:publish",
     },
     Role.TEACHER: {
         "students:read",
@@ -74,6 +107,14 @@ ROLE_PERMISSIONS: dict[Role, set[str]] = {
         "portfolio:read",
         "portfolio:write",
         "plans:read",
+        # Sees their own hours and what they add up to, and nobody else's. The
+        # route enforces the "their own" half; this key only says the surface
+        # exists for them. Deliberately no billing or payments key: a teacher
+        # must not be able to read what a family owes.
+        "payroll:self:read",
+        # Writes the progress report; publishing it is a studio decision.
+        "progress_reports:read",
+        "progress_reports:write",
     },
     Role.FRONT_DESK: {
         "students:read",
@@ -85,6 +126,16 @@ ROLE_PERMISSIONS: dict[Role, set[str]] = {
         "registrations:write",
         "class_bookings:review",
         "plans:read",
+        # Raises invoices and takes payments — that is the front desk's job.
+        # Refunds and teacher pay are not: both move money in a direction that
+        # wants a second pair of eyes.
+        "billing:read",
+        "billing:write",
+        "billing:issue",
+        "payments:read",
+        "payments:write",
+        "scheduling:write",
+        "progress_reports:read",
     },
     Role.STAFF: {
         "students:read",
@@ -98,6 +149,8 @@ ROLE_PERMISSIONS: dict[Role, set[str]] = {
         "registrations:read",
         "registrations:write",
         "plans:read",
+        "billing:read",
+        "progress_reports:read",
     },
     # Reserved for the future family self-service surface. No route implements
     # these yet, and /auth/login rejects users whose only memberships are

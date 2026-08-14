@@ -464,20 +464,105 @@ def test_latest_cms_registration_and_enrolment_contracts_are_present():
     assert '"enrollmentDate": str(row["enrolled_on"] or "")' in source
 
 
+def _tenant_scoped_tables_declared_in_sql() -> dict[str, str]:
+    """Every table the SQL files give a ``tenant_id``, mapped to where it appears.
+
+    Derived, not hand-listed. The previous version of the guard below compared
+    one hardcoded set against another hardcoded tuple, which meant it could only
+    catch a table being *removed* from the manifest — never a new one being
+    forgotten. It passed for the entire life of three tenant-scoped tables that
+    were never snapshotted at all.
+    """
+
+    import re
+    from pathlib import Path
+
+    db_root = Path(__file__).resolve().parents[1] / "db"
+    sql_files = [db_root / "schema_v1.sql"] + sorted((db_root / "migrations").glob("*.sql"))
+
+    found: dict[str, str] = {}
+    for path in sql_files:
+        sql = path.read_text(encoding="utf-8")
+        for match in re.finditer(r"CREATE TABLE IF NOT EXISTS\s+([a-z_]+)\s*\(", sql, re.I):
+            # Walk to the matching close paren so the column list is exact and a
+            # later table's tenant_id cannot be attributed to this one.
+            index, depth = match.end() - 1, 0
+            while index < len(sql):
+                if sql[index] == "(":
+                    depth += 1
+                elif sql[index] == ")":
+                    depth -= 1
+                    if depth == 0:
+                        break
+                index += 1
+            if re.search(r"\btenant_id\b", sql[match.end():index]):
+                found.setdefault(match.group(1), path.name)
+        for match in re.finditer(
+            r"ALTER TABLE\s+([a-z_]+)\s+ADD COLUMN IF NOT EXISTS\s+tenant_id", sql, re.I
+        ):
+            found.setdefault(match.group(1), path.name)
+    return found
+
+
 def test_tenant_archive_snapshot_covers_every_tenant_owned_table():
-    """A permanent deletion must retain every tenant-scoped data domain."""
+    """A permanent deletion must retain every tenant-scoped data domain.
+
+    The set of tenant-scoped tables comes from the schema itself, so adding one
+    in a migration and forgetting the manifest fails the build instead of
+    silently dropping that table out of every archive and every standalone
+    export. This matters most for the tables that carry money and consent.
+    """
+
+    from studiosaas.services.tenant_archive import SNAPSHOT_EXCLUSIONS, SNAPSHOT_TABLES
+
+    snapshotted = {table for _filename, table, _predicate in SNAPSHOT_TABLES}
+    declared = _tenant_scoped_tables_declared_in_sql()
+
+    # Sanity check on the derivation: if the parser silently stopped matching,
+    # an empty result would make the assertion below vacuously true.
+    assert len(declared) > 25, f"schema parse looks broken, found only {sorted(declared)}"
+
+    unaccounted = {
+        table: source
+        for table, source in declared.items()
+        if table not in snapshotted and table not in SNAPSHOT_EXCLUSIONS
+    }
+    assert not unaccounted, (
+        "Tenant-scoped tables missing from tenant_archive.SNAPSHOT_TABLES: "
+        f"{sorted(unaccounted)}. Add each to the manifest, or to "
+        "SNAPSHOT_EXCLUSIONS with the reason it must not travel with a tenant."
+    )
+
+    # An exclusion must name a real table, or it is a stale alibi.
+    stale = sorted(set(SNAPSHOT_EXCLUSIONS) - set(declared))
+    assert not stale, f"SNAPSHOT_EXCLUSIONS names tables that no longer exist: {stale}"
+
+
+def test_standalone_import_order_matches_the_archive_manifest():
+    """The Edition importer refuses to run when these two lists disagree.
+
+    ``import_tenant_bundle.py`` compares ``IMPORT_ORDER`` against
+    ``SNAPSHOT_TABLES`` with a strict equality and raises ``SystemExit`` on a
+    mismatch. Two files added to the manifest were never added to the order,
+    so every delivery import died before reading a row. Checking it here means
+    the failure surfaces in CI rather than on a customer's server on cutover day.
+    """
+
+    import re
+    from pathlib import Path
 
     from studiosaas.services.tenant_archive import SNAPSHOT_TABLES
 
-    snapshotted = {table for _filename, table, _predicate in SNAPSHOT_TABLES}
-    required = {
-        "tenants", "users", "memberships", "password_setup_tokens", "students",
-        "courses", "packages", "class_schedules", "class_schedule_students",
-        "credit_accounts", "credit_transactions", "attendance_sessions",
-        "registrations", "media_assets", "portfolio_items", "share_tokens",
-        "email_templates", "notification_logs", "cms_notifications",
-        "cms_notification_reads", "audit_logs", "subscriptions",
-        "tenant_usage", "tenant_brand_drafts", "tenant_brand_versions",
-        "tenant_archives",
-    }
-    assert required <= snapshotted
+    importer = (
+        Path(__file__).resolve().parents[2]
+        / "standalone-edition/tools/import_tenant_bundle.py"
+    ).read_text(encoding="utf-8")
+    block = re.search(r"IMPORT_ORDER:.*?\((.*?)\n\)", importer, re.S)
+    assert block, "IMPORT_ORDER tuple not found in import_tenant_bundle.py"
+    order = set(re.findall(r'"([^"]+\.json)"', block.group(1)))
+    snapshot_files = {filename for filename, _table, _predicate in SNAPSHOT_TABLES}
+
+    assert order == snapshot_files, (
+        f"missing from IMPORT_ORDER: {sorted(snapshot_files - order)}; "
+        f"unknown in IMPORT_ORDER: {sorted(order - snapshot_files)}"
+    )
