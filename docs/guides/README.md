@@ -51,6 +51,14 @@ StudioSaaS 是多租户教培工作室 SaaS。每个工作室（租户）有独�
 | **作品分享 portfolio:share** | ✅ | ✅ | ❌ | ❌ | ❌ |
 | 报名审批 registrations:write | ✅ | ✅ | ❌ | ✅ | ✅ |
 | **约课请求审核 class_bookings:review** | ✅ | ✅ | ❌ | ✅ | ❌ |
+| 账单查看 billing:read | ✅ | ✅ | ❌ | ✅ | ✅ |
+| 开票 billing:write / billing:issue | ✅ | ✅ | ❌ | ✅ | ❌ |
+| 登记收款 payments:write | ✅ | ✅ | ❌ | ✅ | ❌ |
+| **退款 payments:refund** | ✅ | ✅ | ❌ | ❌ | ❌ |
+| **老师课酬 payroll:read / payroll:write** | ✅ | ✅ | ❌ | ❌ | ❌ |
+| 本人课时与金额 payroll:self:read | ❌ | ❌ | ✅ | ❌ | ❌ |
+| **经营报表 reports:read** | ✅ | ✅ | ❌ | ❌ | ❌ |
+| **接入 Xero / 支付 integrations:manage** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **经营统计 analytics:read** | ✅ | ✅ | ❌ | ❌ | ❌ |
 | 数据导出 data:export | ✅ | ✅ | ❌ | ❌ | ❌ |
 | 品牌/官网 settings:write | ✅ | ❌ | ❌ | ❌ | ❌ |
@@ -89,6 +97,7 @@ Owner 另有专属的「操作审计」面板：Studio Admin → 数据分析。
 | 作品 | ✅ | ✅ | ❌ | ✅ |
 | 待审核 | ✅ | ❌ | ✅ | ✅ |
 | 待处理 | ✅ | ❌ | ✅ | ✅ |
+| 账单 | ✅ | ❌ | ✅ | ✅ |
 | 充值结算 | ✅ | ❌ | ✅ | ✅ |
 | 充值与退款 | ✅ | ❌ | ✅ | ✅ |
 | 操作日志 | ✅ | ✅ | ✅ | ✅ |

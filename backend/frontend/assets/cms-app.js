@@ -1,6 +1,244 @@
 (() => {
+  // legacy-root/src/panels/billing.jsx
+  var { useState, useEffect, useCallback, useMemo } = React;
+  var centsToAud = (cents) => {
+    const n = Number(cents || 0) / 100;
+    return n.toLocaleString("en-AU", { style: "currency", currency: "AUD" });
+  };
+  var fmtApiDate = (value) => {
+    if (!value) return "";
+    const iso = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (iso) return `${iso[3]}/${iso[2]}/${iso[1]}`;
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return String(value);
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${pad(parsed.getDate())}/${pad(parsed.getMonth() + 1)}/${parsed.getFullYear()}`;
+  };
+  var STATUS_LABEL = {
+    draft: "草稿",
+    issued: "已开具",
+    part_paid: "部分付款",
+    paid: "已付清",
+    void: "已作废"
+  };
+  var isOverdue = (invoice) => {
+    if (!["issued", "part_paid"].includes(invoice.status)) return false;
+    if (!invoice.due_date) return false;
+    const due = new Date(invoice.due_date);
+    if (Number.isNaN(due.getTime())) return false;
+    return due < new Date((/* @__PURE__ */ new Date()).toDateString());
+  };
+  function StatusChip({ invoice }) {
+    const overdue = isOverdue(invoice);
+    const cls = overdue ? "bg-red-50 text-red-700 border-red-200" : invoice.status === "paid" ? "bg-green-50 text-green-700 border-green-200" : invoice.status === "part_paid" ? "bg-blue-50 text-blue-700 border-blue-200" : invoice.status === "draft" ? "bg-gray-100 text-gray-600 border-gray-200" : "bg-gray-50 text-gray-600 border-gray-200";
+    const label = overdue ? "逾期" : STATUS_LABEL[invoice.status] || invoice.status;
+    return /* @__PURE__ */ React.createElement("span", { className: `text-[10px] font-bold px-1.5 py-0.5 rounded border whitespace-nowrap ${cls}` }, label);
+  }
+  function Kpi({ label, value, sub, tone }) {
+    const toneCls = tone === "alert" ? "text-red-600" : tone === "good" ? "text-green-700" : "text-gray-900";
+    return /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-[11px] font-bold uppercase tracking-wide text-gray-500" }, label), /* @__PURE__ */ React.createElement("p", { className: `text-xl font-bold tabular-nums ${toneCls}` }, value), sub && /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-500" }, sub));
+  }
+  function BillingPanel({ api, showToast, canIssue, canTakePayment }) {
+    const [invoices, setInvoices] = useState([]);
+    const [selectedId, setSelectedId] = useState("");
+    const [detail, setDetail] = useState(null);
+    const [checked, setChecked] = useState(() => /* @__PURE__ */ new Set());
+    const [loading, setLoading] = useState(true);
+    const [busy, setBusy] = useState(false);
+    const [error, setError] = useState("");
+    const load = useCallback(async () => {
+      setLoading(true);
+      try {
+        const data = await api("/billing/invoices");
+        setInvoices(data.invoices || []);
+        setError("");
+      } catch (e) {
+        setError(e.status === 403 ? "这个工作室尚未开通开票功能。" : `账单加载失败：${e.message}`);
+      } finally {
+        setLoading(false);
+      }
+    }, [api]);
+    useEffect(() => {
+      load();
+    }, [load]);
+    useEffect(() => {
+      if (!selectedId) {
+        setDetail(null);
+        return;
+      }
+      let cancelled = false;
+      api(`/billing/invoices/${selectedId}`).then((d) => {
+        if (!cancelled) setDetail(d);
+      }).catch((e) => {
+        if (!cancelled) showToast(`发票详情加载失败：${e.message}`, "warn");
+      });
+      return () => {
+        cancelled = true;
+      };
+    }, [selectedId, api, showToast]);
+    const summary = useMemo(() => {
+      const issued = invoices.filter((i) => i.status !== "draft" && i.status !== "void");
+      const drafts = invoices.filter((i) => i.status === "draft");
+      const overdue = invoices.filter(isOverdue);
+      const billed = issued.reduce((s, i) => s + Number(i.total_cents || 0), 0);
+      const paid = issued.reduce((s, i) => s + Number(i.amount_paid_cents || 0), 0);
+      return {
+        billed,
+        paid,
+        drafts: drafts.length,
+        overdueCents: overdue.reduce((s, i) => s + Number(i.balance_cents || 0), 0),
+        overdueAccounts: new Set(overdue.map((i) => i.billing_account_id)).size,
+        collectedPercent: billed > 0 ? Math.round(paid / billed * 100) : null
+      };
+    }, [invoices]);
+    const draftIds = useMemo(
+      () => invoices.filter((i) => i.status === "draft").map((i) => String(i.id)),
+      [invoices]
+    );
+    const checkedDrafts = useMemo(
+      () => draftIds.filter((id) => checked.has(id)),
+      [draftIds, checked]
+    );
+    const toggle = (id) => {
+      setChecked((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+      });
+    };
+    const issueSelected = async () => {
+      if (!checkedDrafts.length || busy) return;
+      setBusy(true);
+      let ok = 0;
+      const failed = [];
+      for (const id of checkedDrafts) {
+        try {
+          await api(`/billing/invoices/${id}/issue`, { method: "POST" });
+          ok += 1;
+        } catch (e) {
+          failed.push(e.message);
+        }
+      }
+      setBusy(false);
+      setChecked(/* @__PURE__ */ new Set());
+      await load();
+      if (failed.length) showToast(`发出 ${ok} 张，${failed.length} 张失败：${failed[0]}`, "warn");
+      else showToast(`已发出 ${ok} 张发票`, "success");
+    };
+    const recordPayment = async () => {
+      if (!detail || busy) return;
+      const balance = Number(detail.invoice.balance_cents || 0);
+      if (balance <= 0) {
+        showToast("这张单已经没有欠款了", "warn");
+        return;
+      }
+      setBusy(true);
+      try {
+        await api("/billing/payments", {
+          method: "POST",
+          body: JSON.stringify({
+            billingAccountId: detail.invoice.billing_account_id,
+            amountCents: balance,
+            method: "bank_transfer",
+            autoAllocate: true
+          })
+        });
+        showToast(`已登记 ${centsToAud(balance)}`, "success");
+        await load();
+        const refreshed = await api(`/billing/invoices/${selectedId}`);
+        setDetail(refreshed);
+      } catch (e) {
+        showToast(`登记收款失败：${e.message}`, "warn");
+      } finally {
+        setBusy(false);
+      }
+    };
+    if (loading) return /* @__PURE__ */ React.createElement("div", { className: "p-6 text-sm text-gray-500" }, "正在加载账单…");
+    if (error) return /* @__PURE__ */ React.createElement("div", { className: "p-6 text-sm text-red-600" }, error);
+    return /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 md:grid-cols-4 gap-3" }, /* @__PURE__ */ React.createElement(Kpi, { label: "已开票", value: centsToAud(summary.billed), sub: `${invoices.length} 张 · 含 GST` }), /* @__PURE__ */ React.createElement(
+      Kpi,
+      {
+        label: "已收到",
+        value: centsToAud(summary.paid),
+        tone: "good",
+        sub: summary.collectedPercent === null ? "暂无已开具发票" : `${summary.collectedPercent}% 已收`
+      }
+    ), /* @__PURE__ */ React.createElement(
+      Kpi,
+      {
+        label: "逾期",
+        value: centsToAud(summary.overdueCents),
+        tone: summary.overdueCents > 0 ? "alert" : void 0,
+        sub: `${summary.overdueAccounts} 个家庭`
+      }
+    ), /* @__PURE__ */ React.createElement(Kpi, { label: "待发草稿", value: String(summary.drafts), sub: summary.drafts ? "勾选后可批量发出" : "没有待发的" })), /* @__PURE__ */ React.createElement("div", { className: "grid gap-3 items-start", style: { gridTemplateColumns: "var(--ui-golden-columns-reverse)" } }, /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl overflow-hidden min-w-0" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 px-4 py-3 border-b border-gray-200" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs font-bold" }, "发票"), checkedDrafts.length > 0 && canIssue && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: issueSelected,
+        disabled: busy,
+        className: "ml-auto min-h-[44px] px-3 rounded-lg bg-indigo-600 text-white text-xs font-bold disabled:opacity-50"
+      },
+      "批量发出 (",
+      checkedDrafts.length,
+      ")"
+    )), invoices.length === 0 ? /* @__PURE__ */ React.createElement("p", { className: "px-4 py-6 text-xs text-gray-500" }, "还没有发票。周期账单会自动生成草稿，前台复核后批量发出。") : invoices.map((invoice) => /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        key: invoice.id,
+        onClick: () => setSelectedId(String(invoice.id)),
+        className: `w-full text-left flex items-center gap-2 px-3 py-2 border-b border-gray-100 min-h-[44px]
+                                ${String(invoice.id) === selectedId ? "bg-indigo-50" : "hover:bg-gray-50"}`
+      },
+      invoice.status === "draft" && canIssue && /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          type: "checkbox",
+          checked: checked.has(String(invoice.id)),
+          onChange: () => toggle(String(invoice.id)),
+          onClick: (e) => e.stopPropagation(),
+          "aria-label": `选择 ${invoice.account_name} 的草稿`
+        }
+      ),
+      /* @__PURE__ */ React.createElement("span", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("span", { className: "block text-xs font-bold truncate" }, invoice.account_name), /* @__PURE__ */ React.createElement("span", { className: "block text-[11px] text-gray-500 truncate" }, invoice.number || "草稿 · 未编号", invoice.due_date ? ` · 到期 ${fmtApiDate(invoice.due_date)}` : "")),
+      /* @__PURE__ */ React.createElement("span", { className: "ml-auto flex items-center gap-2" }, /* @__PURE__ */ React.createElement(StatusChip, { invoice }), /* @__PURE__ */ React.createElement("span", { className: `text-xs font-bold tabular-nums ${isOverdue(invoice) ? "text-red-600" : ""}` }, centsToAud(invoice.balance_cents ?? invoice.total_cents)))
+    ))), /* @__PURE__ */ React.createElement("div", { className: "grid gap-3 min-w-0" }, !detail ? /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl p-6 text-xs text-gray-500" }, "选择左边的一张发票查看明细。") : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 px-4 py-3 border-b border-gray-200" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs font-bold" }, detail.invoice.number || "草稿", " · ", detail.invoice.account_name), /* @__PURE__ */ React.createElement("span", { className: "ml-auto" }, /* @__PURE__ */ React.createElement(StatusChip, { invoice: detail.invoice }))), /* @__PURE__ */ React.createElement("div", { className: "p-4 overflow-x-auto" }, /* @__PURE__ */ React.createElement("table", { className: "w-full text-xs" }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", { className: "text-[10px] uppercase tracking-wide text-gray-500" }, /* @__PURE__ */ React.createElement("th", { className: "text-left py-2" }, "项目"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "数量"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "单价"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "税"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "小计"))), /* @__PURE__ */ React.createElement("tbody", null, (detail.lines || []).map((line) => /* @__PURE__ */ React.createElement("tr", { key: line.id, className: "border-t border-gray-100" }, /* @__PURE__ */ React.createElement("td", { className: "py-2" }, line.description), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, line.quantity), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, centsToAud(line.unit_price_cents)), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, centsToAud(line.tax_cents)), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, centsToAud(line.total_cents)))), /* @__PURE__ */ React.createElement("tr", { className: "border-t border-gray-200 font-bold" }, /* @__PURE__ */ React.createElement("td", { className: "py-2", colSpan: 4 }, "应付"), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, centsToAud(detail.invoice.total_cents))), Number(detail.invoice.amount_paid_cents) > 0 && /* @__PURE__ */ React.createElement("tr", { className: "text-green-700" }, /* @__PURE__ */ React.createElement("td", { className: "py-1", colSpan: 4 }, "已付"), /* @__PURE__ */ React.createElement("td", { className: "py-1 text-right tabular-nums" }, "−", centsToAud(detail.invoice.amount_paid_cents))), /* @__PURE__ */ React.createElement("tr", { className: "font-bold" }, /* @__PURE__ */ React.createElement("td", { className: "py-1", colSpan: 4 }, "余额"), /* @__PURE__ */ React.createElement("td", { className: "py-1 text-right tabular-nums" }, centsToAud(detail.invoice.balance_cents))))), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 items-center mt-3" }, detail.invoice.status === "draft" && canIssue && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        disabled: busy,
+        onClick: async () => {
+          setBusy(true);
+          try {
+            await api(`/billing/invoices/${selectedId}/issue`, { method: "POST" });
+            showToast("已开具", "success");
+            await load();
+            setDetail(await api(`/billing/invoices/${selectedId}`));
+          } catch (e) {
+            showToast(`开具失败：${e.message}`, "warn");
+          } finally {
+            setBusy(false);
+          }
+        },
+        className: "min-h-[44px] px-3 rounded-lg bg-indigo-600 text-white text-xs font-bold disabled:opacity-50"
+      },
+      "开具发票"
+    ), detail.invoice.status !== "draft" && Number(detail.invoice.balance_cents) > 0 && canTakePayment && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: recordPayment,
+        disabled: busy,
+        className: "min-h-[44px] px-3 rounded-lg bg-indigo-600 text-white text-xs font-bold disabled:opacity-50"
+      },
+      "登记收款"
+    ), detail.invoice.status !== "draft" && /* @__PURE__ */ React.createElement("span", { className: "text-[11px] text-gray-500" }, "已开具的发票不可修改，改错请开贷记单冲销后重开。")))), /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "px-4 py-3 border-b border-gray-200 text-xs font-bold" }, "这张单发生过什么"), (detail.events || []).length === 0 ? /* @__PURE__ */ React.createElement("p", { className: "px-4 py-4 text-[11px] text-gray-500" }, "还没有记录。开具、送达、收款、推送 Xero 都会出现在这里。") : (detail.events || []).map((event, i) => /* @__PURE__ */ React.createElement("div", { key: i, className: "flex items-center gap-2 px-4 py-2 border-b border-gray-100 last:border-0 text-[11px]" }, /* @__PURE__ */ React.createElement("span", { className: "font-bold" }, event.event_type), /* @__PURE__ */ React.createElement("span", { className: "ml-auto text-gray-500" }, fmtApiDate(event.occurred_at)))))))));
+  }
+
   // legacy-root/src/cms-app.jsx
-  var { useState, useEffect, useMemo, useRef, useCallback } = React;
+  var { useState: useState2, useEffect: useEffect2, useMemo: useMemo2, useRef, useCallback: useCallback2 } = React;
   var tenantSlug = window.STUDIOSAAS_TENANT_SLUG || new URLSearchParams(location.search).get("tenant") || (location.pathname.match(/^\/([^/]+)(?:\/cms)?\/?$/) || [])[1] || "";
   var nowAU = () => (/* @__PURE__ */ new Date()).toLocaleString("en-AU", {
     timeZone: "Australia/Melbourne",
@@ -53,6 +291,7 @@
     "works",
     "new_student",
     "pending",
+    "billing",
     "topup",
     "logs",
     "stats",
@@ -155,8 +394,8 @@
     return ["/logo.png", "/logo-light.png", "/favicon.svg"].includes(source) ? "" : source;
   };
   function TenantBrandLogo({ className = "" }) {
-    const [brand, setBrand] = useState(() => window.STUDIOSAAS_BRAND || {});
-    useEffect(() => {
+    const [brand, setBrand] = useState2(() => window.STUDIOSAAS_BRAND || {});
+    useEffect2(() => {
       const syncBrand = (event) => setBrand(event?.detail || window.STUDIOSAAS_BRAND || {});
       window.addEventListener("studiosaas:brand", syncBrand);
       syncBrand();
@@ -263,7 +502,7 @@
     return /* @__PURE__ */ React.createElement("span", { className: "px-2.5 py-1 rounded-lg text-xs font-bold bg-green-100 text-green-700 whitespace-nowrap" }, v);
   }
   function Toast({ msg, type, action, onDone }) {
-    useEffect(() => {
+    useEffect2(() => {
       const t = setTimeout(onDone, action ? 6e3 : 2700);
       return () => clearTimeout(t);
     }, []);
@@ -354,7 +593,7 @@
   function useModalFocus(isOpen, onClose, dialogRef, initialFocusRef = null) {
     const closeRef = useRef(onClose);
     closeRef.current = onClose;
-    useEffect(() => {
+    useEffect2(() => {
       if (!isOpen) return;
       const previousFocus = document.activeElement;
       const selector = [
@@ -400,11 +639,11 @@
     }, [isOpen, dialogRef, initialFocusRef]);
   }
   function ConfirmDialog({ dialog, onClose }) {
-    const [typed, setTyped] = useState("");
+    const [typed, setTyped] = useState2("");
     const boxRef = useRef(null);
     const onCloseRef = useRef(onClose);
     onCloseRef.current = onClose;
-    useEffect(() => {
+    useEffect2(() => {
       setTyped(dialog?.promptDefault || "");
     }, [dialog]);
     const dismiss = () => {
@@ -413,7 +652,7 @@
     };
     const dismissRef = useRef(dismiss);
     dismissRef.current = dismiss;
-    useEffect(() => {
+    useEffect2(() => {
       if (!dialog) return;
       const prevFocus = document.activeElement;
       const onKey = (e) => {
@@ -516,18 +755,18 @@
     );
   }
   function StudentPicker({ students, value, onChange, placeholder = "-- 选择学员 --", showBal = true }) {
-    const [q, setQ] = useState("");
-    const [open, setOpen] = useState(false);
+    const [q, setQ] = useState2("");
+    const [open, setOpen] = useState2(false);
     const ref = useRef(null);
     const sel = students.find((s) => s.id === value);
-    useEffect(() => {
+    useEffect2(() => {
       if (!value) setQ("");
     }, [value]);
-    const filtered = useMemo(
+    const filtered = useMemo2(
       () => q ? students.filter((s) => s.name.toLowerCase().includes(q.toLowerCase())) : students,
       [students, q]
     );
-    useEffect(() => {
+    useEffect2(() => {
       const h = (e) => {
         if (ref.current && !ref.current.contains(e.target)) setOpen(false);
       };
@@ -691,7 +930,7 @@
     );
   }
   function PhotoUploader({ value, onChange, notify }) {
-    const [uploading, setUploading] = useState(false);
+    const [uploading, setUploading] = useState2(false);
     const handleFile = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -722,23 +961,23 @@
     return /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-4" }, value ? /* @__PURE__ */ React.createElement("img", { src: mediaSrc(value), alt: "学员照片预览", className: "w-14 h-14 rounded-full object-cover border-2 border-indigo-100 flex-shrink-0" }) : /* @__PURE__ */ React.createElement("div", { className: "w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center text-2xl border-2 border-dashed border-gray-300 flex-shrink-0 text-gray-400" }, /* @__PURE__ */ React.createElement(Icon, { name: "camera", className: "w-6 h-6" })), /* @__PURE__ */ React.createElement("div", { className: "space-y-1.5" }, /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 flex-wrap" }, /* @__PURE__ */ React.createElement("label", { className: `cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 text-sm font-bold rounded-xl border min-h-[44px] ${btnBase || "bg-indigo-50 text-indigo-700 border-indigo-200 active:bg-indigo-100"}` }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "folder", className: "w-4 h-4" }), uploading ? "上传中..." : value ? "更换" : "选择"), /* @__PURE__ */ React.createElement("input", { type: "file", accept: "image/*", onChange: handleFile, disabled: uploading, className: "hidden" })), /* @__PURE__ */ React.createElement("label", { className: `cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 text-sm font-bold rounded-xl border min-h-[44px] ${btnBase || "bg-purple-50 text-purple-700 border-purple-200 active:bg-purple-100"}` }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "camera", className: "w-4 h-4" }), "拍照"), /* @__PURE__ */ React.createElement("input", { type: "file", accept: "image/*", capture: "environment", onChange: handleFile, disabled: uploading, className: "hidden" }))), value && /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => onChange(""), className: "text-xs text-red-400 active:text-red-600" }, "移除照片")));
   }
   function MaintSection({ onRestored, renewTh, saveRenewTh, confirm, notify }) {
-    const [hc, setHc] = useState(null);
-    const [hcBusy, setHcBusy] = useState(false);
-    const [cfg, setCfg] = useState(null);
-    const [pw, setPw] = useState("");
-    const [cfgMsg, setCfgMsg] = useState(null);
+    const [hc, setHc] = useState2(null);
+    const [hcBusy, setHcBusy] = useState2(false);
+    const [cfg, setCfg] = useState2(null);
+    const [pw, setPw] = useState2("");
+    const [cfgMsg, setCfgMsg] = useState2(null);
     const say = (text, tone = "info") => setCfgMsg(text ? { text, tone } : null);
-    const [bks, setBks] = useState(null);
-    const [bkSel, setBkSel] = useState(null);
-    const [busy, setBusy] = useState(false);
+    const [bks, setBks] = useState2(null);
+    const [bkSel, setBkSel] = useState2(null);
+    const [busy, setBusy] = useState2(false);
     const post = (url, body) => fetch(url, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body)
     });
-    const [stale, setStale] = useState(false);
-    useEffect(() => {
+    const [stale, setStale] = useState2(false);
+    useEffect2(() => {
       fetch("/api/config", { credentials: "include" }).then((r) => {
         if (r.status === 404) {
           setStale(true);
@@ -973,10 +1212,10 @@
     )) : /* @__PURE__ */ React.createElement("p", { className: "text-xs text-red-500" }, "该备份文件已损坏，不可恢复")))));
   }
   function LoginScreen({ onLogin }) {
-    const [email, setEmail] = useState(() => localStorage.getItem(`lp_admin_email_${tenantSlug}`) || "");
-    const [pw, setPw] = useState("");
-    const [busy, setBusy] = useState(false);
-    const [err, setErr] = useState("");
+    const [email, setEmail] = useState2(() => localStorage.getItem(`lp_admin_email_${tenantSlug}`) || "");
+    const [pw, setPw] = useState2("");
+    const [busy, setBusy] = useState2(false);
+    const [err, setErr] = useState2("");
     const submit = async (e) => {
       e && e.preventDefault();
       if (!email || !pw) {
@@ -1037,58 +1276,58 @@
     )), /* @__PURE__ */ React.createElement("p", { className: "mt-6 pt-4 border-t border-gray-100 text-[10px] tracking-wide text-gray-400" }, "Powered by Paradise Production")));
   }
   function App() {
-    const [db, setDb] = useState({ students: [], logs: [], rosters: {}, pending: [] });
-    const [auditEvents, setAuditEvents] = useState([]);
-    const initialCmsRoute = useMemo(() => readCmsRoute(), []);
-    const [tab, setTabState] = useState(initialCmsRoute.tab);
-    const [pendingTab, setPendingTabState] = useState(initialCmsRoute.pendingTab);
-    const [settingsSection, setSettingsSectionState] = useState(initialCmsRoute.settingsSection);
-    const [routeRecordId, setRouteRecordId] = useState(initialCmsRoute.recordId);
-    const [moreOpen, setMoreOpen] = useState(false);
-    const [selS, setSelS] = useState(null);
-    const [editP, setEditP] = useState(false);
-    const [studentProfileTab, setStudentProfileTab] = useState("profile");
-    const [busy, setBusy] = useState(false);
-    const [conn, setConn] = useState(false);
-    const [connErr, setConnErr] = useState(null);
-    const [toast, setToast] = useState(null);
-    const [cmsNotifications, setCmsNotifications] = useState([]);
-    const [cmsNotificationUnreadCount, setCmsNotificationUnreadCount] = useState(0);
-    const [cmsNotificationOpen, setCmsNotificationOpen] = useState(false);
-    const [cmsNotificationError, setCmsNotificationError] = useState("");
+    const [db, setDb] = useState2({ students: [], logs: [], rosters: {}, pending: [] });
+    const [auditEvents, setAuditEvents] = useState2([]);
+    const initialCmsRoute = useMemo2(() => readCmsRoute(), []);
+    const [tab, setTabState] = useState2(initialCmsRoute.tab);
+    const [pendingTab, setPendingTabState] = useState2(initialCmsRoute.pendingTab);
+    const [settingsSection, setSettingsSectionState] = useState2(initialCmsRoute.settingsSection);
+    const [routeRecordId, setRouteRecordId] = useState2(initialCmsRoute.recordId);
+    const [moreOpen, setMoreOpen] = useState2(false);
+    const [selS, setSelS] = useState2(null);
+    const [editP, setEditP] = useState2(false);
+    const [studentProfileTab, setStudentProfileTab] = useState2("profile");
+    const [busy, setBusy] = useState2(false);
+    const [conn, setConn] = useState2(false);
+    const [connErr, setConnErr] = useState2(null);
+    const [toast, setToast] = useState2(null);
+    const [cmsNotifications, setCmsNotifications] = useState2([]);
+    const [cmsNotificationUnreadCount, setCmsNotificationUnreadCount] = useState2(0);
+    const [cmsNotificationOpen, setCmsNotificationOpen] = useState2(false);
+    const [cmsNotificationError, setCmsNotificationError] = useState2("");
     const cmsNotificationCursorRef = useRef(0);
     const cmsNotificationPollingRef = useRef(false);
-    const [confirmDialog, setConfirmDialog] = useState(null);
-    const [showSettings, setShowSettings] = useState(initialCmsRoute.tab === "settings");
-    const [userMenuOpen, setUserMenuOpen] = useState(false);
-    const [loggedIn, setLoggedIn] = useState(false);
-    const [pwOld, setPwOld] = useState("");
-    const [pwNew1, setPwNew1] = useState("");
-    const [pwNew2, setPwNew2] = useState("");
-    const [pwBusy, setPwBusy] = useState(false);
-    const [pwMsg, setPwMsg] = useState(null);
-    const [gOpen, setGOpen] = useState(false);
-    const [gQ, setGQ] = useState("");
-    const [portLB, setPortLB] = useState(null);
-    const [portUpload, setPortUpload] = useState(false);
-    const [portUpFile, setPortUpFile] = useState(null);
-    const [portEdit, setPortEdit] = useState(null);
-    const [portBusy, setPortBusy] = useState(false);
+    const [confirmDialog, setConfirmDialog] = useState2(null);
+    const [showSettings, setShowSettings] = useState2(initialCmsRoute.tab === "settings");
+    const [userMenuOpen, setUserMenuOpen] = useState2(false);
+    const [loggedIn, setLoggedIn] = useState2(false);
+    const [pwOld, setPwOld] = useState2("");
+    const [pwNew1, setPwNew1] = useState2("");
+    const [pwNew2, setPwNew2] = useState2("");
+    const [pwBusy, setPwBusy] = useState2(false);
+    const [pwMsg, setPwMsg] = useState2(null);
+    const [gOpen, setGOpen] = useState2(false);
+    const [gQ, setGQ] = useState2("");
+    const [portLB, setPortLB] = useState2(null);
+    const [portUpload, setPortUpload] = useState2(false);
+    const [portUpFile, setPortUpFile] = useState2(null);
+    const [portEdit, setPortEdit] = useState2(null);
+    const [portBusy, setPortBusy] = useState2(false);
     const portLightboxDialogRef = useRef(null);
     const portUploadDialogRef = useRef(null);
     const portEditDialogRef = useRef(null);
     const searchDialogRef = useRef(null);
     const settingsDialogRef = useRef(null);
     const profileDialogRef = useRef(null);
-    const [accessCodeResult, setAccessCodeResult] = useState(null);
-    const [consentEdit, setConsentEdit] = useState(null);
-    useEffect(() => {
+    const [accessCodeResult, setAccessCodeResult] = useState2(null);
+    const [consentEdit, setConsentEdit] = useState2(null);
+    useEffect2(() => {
       setAccessCodeResult(null);
       setConsentEdit(null);
       setStudentProfileTab("profile");
     }, [selS?.id]);
     const lbTouchX = useRef(0);
-    const syncCmsRoute = useCallback((patch = {}, replace = false) => {
+    const syncCmsRoute = useCallback2((patch = {}, replace = false) => {
       const current = readCmsRoute();
       const next = { ...current, ...patch };
       const url = new URL(window.location.href);
@@ -1105,7 +1344,7 @@
       const nextUrl = `${url.pathname}${params.toString() ? `?${params.toString()}` : ""}${url.hash}`;
       window.history[replace ? "replaceState" : "pushState"]({}, "", nextUrl);
     }, []);
-    const setTab = useCallback((nextTab, options = {}) => {
+    const setTab = useCallback2((nextTab, options = {}) => {
       const next = CMS_ROUTE_TABS.has(nextTab) ? nextTab : "dashboard";
       setTabState(next);
       setShowSettings(next === "settings");
@@ -1113,20 +1352,20 @@
       setRouteRecordId(nextRecordId);
       syncCmsRoute({ tab: next, recordId: nextRecordId }, !!options.replace);
     }, [syncCmsRoute]);
-    const setPendingTab = useCallback((nextPendingTab) => {
+    const setPendingTab = useCallback2((nextPendingTab) => {
       const next = nextPendingTab === "bookings" ? "bookings" : "registrations";
       setPendingTabState(next);
       setTabState("pending");
       setShowSettings(false);
       syncCmsRoute({ tab: "pending", pendingTab: next });
     }, [syncCmsRoute]);
-    const setSettingsSection = useCallback((nextSection) => {
+    const setSettingsSection = useCallback2((nextSection) => {
       setSettingsSectionState(nextSection);
       setTabState("settings");
       setShowSettings(true);
       syncCmsRoute({ tab: "settings", settingsSection: nextSection });
     }, [syncCmsRoute]);
-    useEffect(() => {
+    useEffect2(() => {
       const onPopState = () => {
         const next = readCmsRoute();
         setTabState(next.tab);
@@ -1159,7 +1398,7 @@
       },
       profileDialogRef
     );
-    const [inactiveDays, setInactiveDays] = useState(() => parseInt(localStorage.getItem("lp_inactive_days") || "90", 10));
+    const [inactiveDays, setInactiveDays] = useState2(() => parseInt(localStorage.getItem("lp_inactive_days") || "90", 10));
     const saveInactiveDays = (v) => {
       const n = parseInt(v, 10);
       if (n > 0) {
@@ -1167,36 +1406,36 @@
         localStorage.setItem("lp_inactive_days", String(n));
       }
     };
-    const [srch, setSrch] = useState("");
-    const [sortBy, setSortBy] = useState("date-desc");
-    const [filterBy, setFilterBy] = useState("all");
+    const [srch, setSrch] = useState2("");
+    const [sortBy, setSortBy] = useState2("date-desc");
+    const [filterBy, setFilterBy] = useState2("all");
     const STUDENTS_PER_PAGE = 24;
-    const [studentPage, setStudentPage] = useState(1);
-    const [selectedStudentIds, setSelectedStudentIds] = useState([]);
-    const [rDate, setRDate] = useState(todayISO);
-    const [rPick, setRPick] = useState(null);
-    const [defaultClassTime, setDefaultClassTime] = useState("14:30");
-    const [defaultClassTimeDraft, setDefaultClassTimeDraft] = useState("14:30");
-    const [operationalSettingsBusy, setOperationalSettingsBusy] = useState(false);
-    const [rTime, setRTime] = useState("14:30");
-    const [icsPreview, setIcsPreview] = useState(null);
-    const [icsNotice, setIcsNotice] = useState("");
-    const [icsBusy, setIcsBusy] = useState(false);
+    const [studentPage, setStudentPage] = useState2(1);
+    const [selectedStudentIds, setSelectedStudentIds] = useState2([]);
+    const [rDate, setRDate] = useState2(todayISO);
+    const [rPick, setRPick] = useState2(null);
+    const [defaultClassTime, setDefaultClassTime] = useState2("14:30");
+    const [defaultClassTimeDraft, setDefaultClassTimeDraft] = useState2("14:30");
+    const [operationalSettingsBusy, setOperationalSettingsBusy] = useState2(false);
+    const [rTime, setRTime] = useState2("14:30");
+    const [icsPreview, setIcsPreview] = useState2(null);
+    const [icsNotice, setIcsNotice] = useState2("");
+    const [icsBusy, setIcsBusy] = useState2(false);
     const icsDialogRef = useRef(null);
     const icsCloseButtonRef = useRef(null);
-    const [rOneToOne, setROneToOne] = useState(false);
-    const [grpSel, setGrpSel] = useState("");
-    const [schedules, setSchedules] = useState([]);
-    const [scheduleLoadError, setScheduleLoadError] = useState("");
-    const [bizStats, setBizStats] = useState(null);
-    const [attHistory, setAttHistory] = useState(null);
-    const [schedEdit, setSchedEdit] = useState(null);
-    const [schedPick, setSchedPick] = useState(null);
-    const [courses, setCourses] = useState([]);
-    const [schedCancel, setSchedCancel] = useState(null);
-    const [bookings, setBookings] = useState([]);
-    const [courseEdit, setCourseEdit] = useState(null);
-    const [renewTh, setRenewTh] = useState(() => parseInt(localStorage.getItem("lp_renew_threshold") || "2", 10));
+    const [rOneToOne, setROneToOne] = useState2(false);
+    const [grpSel, setGrpSel] = useState2("");
+    const [schedules, setSchedules] = useState2([]);
+    const [scheduleLoadError, setScheduleLoadError] = useState2("");
+    const [bizStats, setBizStats] = useState2(null);
+    const [attHistory, setAttHistory] = useState2(null);
+    const [schedEdit, setSchedEdit] = useState2(null);
+    const [schedPick, setSchedPick] = useState2(null);
+    const [courses, setCourses] = useState2([]);
+    const [schedCancel, setSchedCancel] = useState2(null);
+    const [bookings, setBookings] = useState2([]);
+    const [courseEdit, setCourseEdit] = useState2(null);
+    const [renewTh, setRenewTh] = useState2(() => parseInt(localStorage.getItem("lp_renew_threshold") || "2", 10));
     const saveRenewTh = (v) => {
       const n = parseInt(v, 10);
       if (n >= 0) {
@@ -1204,48 +1443,48 @@
         localStorage.setItem("lp_renew_threshold", String(n));
       }
     };
-    const [tuStu, setTuStu] = useState(null);
-    const [settleMode, setSettleMode] = useState("topup");
-    const [rfCr, setRfCr] = useState("");
-    const [rfAmt, setRfAmt] = useState("");
-    const [rfReason, setRfReason] = useState("");
-    const [tuCr, setTuCr] = useState("");
-    const [tuFee, setTuFee] = useState("");
-    const [tuPkg, setTuPkg] = useState("");
-    const [tuPay, setTuPay] = useState("微信");
-    const [lSrch, setLSrch] = useState("");
-    const [lStu, setLStu] = useState(null);
-    const [lAct, setLAct] = useState("");
-    const [lDateFrom, setLDateFrom] = useState("");
-    const [lDateTo, setLDateTo] = useState("");
-    const [lPage, setLPage] = useState(1);
+    const [tuStu, setTuStu] = useState2(null);
+    const [settleMode, setSettleMode] = useState2("topup");
+    const [rfCr, setRfCr] = useState2("");
+    const [rfAmt, setRfAmt] = useState2("");
+    const [rfReason, setRfReason] = useState2("");
+    const [tuCr, setTuCr] = useState2("");
+    const [tuFee, setTuFee] = useState2("");
+    const [tuPkg, setTuPkg] = useState2("");
+    const [tuPay, setTuPay] = useState2("微信");
+    const [lSrch, setLSrch] = useState2("");
+    const [lStu, setLStu] = useState2(null);
+    const [lAct, setLAct] = useState2("");
+    const [lDateFrom, setLDateFrom] = useState2("");
+    const [lDateTo, setLDateTo] = useState2("");
+    const [lPage, setLPage] = useState2(1);
     const LPP = 30;
-    const [sPeriod, setSPeriod] = useState("monthly");
-    const [sYear, setSYear] = useState(String((/* @__PURE__ */ new Date()).getFullYear()));
-    const [sFrom, setSFrom] = useState("");
-    const [sTo, setSTo] = useState("");
-    const [sStu, setSStu] = useState(null);
-    const [sStu2, setSStu2] = useState(null);
-    const [approveCredits, setApproveCredits] = useState({});
-    const [followUpDates, setFollowUpDates] = useState({});
-    const [pkgEditId, setPkgEditId] = useState(null);
-    const [pkgName, setPkgName] = useState("");
-    const [pkgCredits, setPkgCredits] = useState("");
-    const [pkgPrice, setPkgPrice] = useState("");
-    const [tenantBrand, setTenantBrand] = useState(() => window.STUDIOSAAS_BRAND || {});
-    const [team, setTeam] = useState([]);
-    const [teamBusy, setTeamBusy] = useState(false);
-    const [teamForm, setTeamForm] = useState({ fullName: "", email: "", role: "teacher", temporaryPassword: "" });
-    const [actorRole, setActorRole] = useState("");
+    const [sPeriod, setSPeriod] = useState2("monthly");
+    const [sYear, setSYear] = useState2(String((/* @__PURE__ */ new Date()).getFullYear()));
+    const [sFrom, setSFrom] = useState2("");
+    const [sTo, setSTo] = useState2("");
+    const [sStu, setSStu] = useState2(null);
+    const [sStu2, setSStu2] = useState2(null);
+    const [approveCredits, setApproveCredits] = useState2({});
+    const [followUpDates, setFollowUpDates] = useState2({});
+    const [pkgEditId, setPkgEditId] = useState2(null);
+    const [pkgName, setPkgName] = useState2("");
+    const [pkgCredits, setPkgCredits] = useState2("");
+    const [pkgPrice, setPkgPrice] = useState2("");
+    const [tenantBrand, setTenantBrand] = useState2(() => window.STUDIOSAAS_BRAND || {});
+    const [team, setTeam] = useState2([]);
+    const [teamBusy, setTeamBusy] = useState2(false);
+    const [teamForm, setTeamForm] = useState2({ fullName: "", email: "", role: "teacher", temporaryPassword: "" });
+    const [actorRole, setActorRole] = useState2("");
     const ownerRoles = ["owner", "platform_super_admin", "super_admin"];
     const roleTabs = {
-      owner: ["dashboard", "pending", "roster", "courses", "students", "works", "new_student", "topup", "logs", "stats", "settings"],
-      platform_super_admin: ["dashboard", "pending", "roster", "courses", "students", "works", "new_student", "topup", "logs", "stats", "settings"],
-      super_admin: ["dashboard", "pending", "roster", "courses", "students", "works", "new_student", "topup", "logs", "stats", "settings"],
-      manager: ["dashboard", "pending", "roster", "courses", "students", "works", "new_student", "topup", "logs", "stats", "settings"],
+      owner: ["dashboard", "pending", "roster", "courses", "students", "works", "new_student", "billing", "topup", "logs", "stats", "settings"],
+      platform_super_admin: ["dashboard", "pending", "roster", "courses", "students", "works", "new_student", "billing", "topup", "logs", "stats", "settings"],
+      super_admin: ["dashboard", "pending", "roster", "courses", "students", "works", "new_student", "billing", "topup", "logs", "stats", "settings"],
+      manager: ["dashboard", "pending", "roster", "courses", "students", "works", "new_student", "billing", "topup", "logs", "stats", "settings"],
       teacher: ["dashboard", "roster", "courses", "students", "works", "logs", "settings"],
-      front_desk: ["dashboard", "pending", "students", "new_student", "topup", "logs", "settings"],
-      staff: ["dashboard", "pending", "roster", "courses", "students", "works", "new_student", "topup", "logs", "settings"]
+      front_desk: ["dashboard", "pending", "students", "new_student", "billing", "topup", "logs", "settings"],
+      staff: ["dashboard", "pending", "roster", "courses", "students", "works", "new_student", "billing", "topup", "logs", "settings"]
     };
     const allowedTabs = roleTabs[actorRole] || ["dashboard"];
     const canManageOperations = [...ownerRoles, "manager"].includes(actorRole);
@@ -1258,24 +1497,24 @@
     const canReviewBookings = [...ownerRoles, "manager", "front_desk", "staff"].includes(actorRole);
     const canRefund = [...ownerRoles, "manager"].includes(actorRole);
     const canViewCmsNotifications = ["owner", "manager", "front_desk", "staff", "platform_super_admin", "super_admin"].includes(actorRole);
-    const [formPhoto, setFormPhoto] = useState("");
-    const [editPhoto, setEditPhoto] = useState("");
+    const [formPhoto, setFormPhoto] = useState2("");
+    const [editPhoto, setEditPhoto] = useState2("");
     const cooldowns = useRef(/* @__PURE__ */ new Set());
     const wasDownRef = useRef(false);
     const showToast = (msg, type = "success", action = null) => setToast({ msg, type, action, key: Date.now() });
-    useEffect(() => {
+    useEffect2(() => {
       const syncBrand = (event) => setTenantBrand(event?.detail || window.STUDIOSAAS_BRAND || {});
       window.addEventListener("studiosaas:brand", syncBrand);
       syncBrand();
       return () => window.removeEventListener("studiosaas:brand", syncBrand);
     }, []);
-    useEffect(() => {
+    useEffect2(() => {
       if (TENANT_SLUG && canManageOperations) loadTeam();
     }, [actorRole]);
-    useEffect(() => {
+    useEffect2(() => {
       if (showSettings && TENANT_SLUG && canManageOperations) loadTeam();
     }, [showSettings]);
-    useEffect(() => {
+    useEffect2(() => {
       if (actorRole && !allowedTabs.includes(tab)) setTab("dashboard");
     }, [actorRole, tab]);
     const tenantLogoUrl = tenantOwnedLogoUrl(tenantBrand);
@@ -1413,7 +1652,7 @@
         setTeamBusy(false);
       }
     };
-    useEffect(() => {
+    useEffect2(() => {
       const h = (e) => {
         if ((e.metaKey || e.ctrlKey) && e.key === "k") {
           e.preventDefault();
@@ -1424,7 +1663,7 @@
       window.addEventListener("keydown", h);
       return () => window.removeEventListener("keydown", h);
     }, []);
-    useEffect(() => {
+    useEffect2(() => {
       if (!icsPreview) return;
       const previousFocus = document.activeElement;
       const focusableSelector = [
@@ -1465,7 +1704,7 @@
         if (previousFocus && typeof previousFocus.focus === "function") previousFocus.focus();
       };
     }, [icsPreview]);
-    useEffect(() => {
+    useEffect2(() => {
       const onKey = (e) => {
         if (portLB) {
           if (e.key === "ArrowRight") setPortLB((p) => p && p.idx < p.items.length - 1 ? { ...p, idx: p.idx + 1 } : p);
@@ -1475,7 +1714,7 @@
       window.addEventListener("keydown", onKey);
       return () => window.removeEventListener("keydown", onKey);
     }, [portLB]);
-    useEffect(() => {
+    useEffect2(() => {
       setAttHistory(null);
       if (!TENANT_SLUG || !selS?.id) return;
       let alive = true;
@@ -1499,15 +1738,15 @@
       }
     }).catch(() => {
     });
-    useEffect(() => {
+    useEffect2(() => {
       refreshSession();
     }, []);
     const apiHeaders = () => ({ "Content-Type": "application/json" });
     const revRef = useRef(0);
-    useEffect(() => {
+    useEffect2(() => {
       if (loggedIn) load();
     }, [loggedIn]);
-    useEffect(() => {
+    useEffect2(() => {
       if (!loggedIn) return;
       const id = setInterval(async () => {
         try {
@@ -1529,7 +1768,7 @@
       }, 3e4);
       return () => clearInterval(id);
     }, [loggedIn]);
-    useEffect(() => {
+    useEffect2(() => {
       if (!loggedIn || !TENANT_SLUG || !canViewCmsNotifications) {
         setCmsNotifications([]);
         setCmsNotificationUnreadCount(0);
@@ -1771,7 +2010,7 @@
       a.download = `Studio_${todayISO()}.json`;
       a.click();
     };
-    const activityMap = useMemo(() => {
+    const activityMap = useMemo2(() => {
       const map = {};
       const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1e3;
       const idsByName = /* @__PURE__ */ new Map();
@@ -1802,7 +2041,7 @@
         return { icon: "warning", label: "流失风险", cls: "bg-orange-100 text-orange-600" };
       return null;
     };
-    const upcomingBirthdays = useMemo(() => {
+    const upcomingBirthdays = useMemo2(() => {
       const now = /* @__PURE__ */ new Date();
       const out = [];
       db.students.forEach((s) => {
@@ -1820,11 +2059,11 @@
       });
       return out.sort((a, b) => a.in - b.in);
     }, [db.students]);
-    useEffect(() => {
+    useEffect2(() => {
       setStudentPage(1);
       setSelectedStudentIds([]);
     }, [srch, sortBy, filterBy]);
-    const sortedFiltered = useMemo(() => {
+    const sortedFiltered = useMemo2(() => {
       let list = [...db.students];
       if (filterBy === "archived") {
         list = list.filter((s) => s.archived);
@@ -1870,11 +2109,11 @@
       return list;
     }, [db.students, srch, sortBy, filterBy, activityMap, inactiveDays, renewTh]);
     const studentPageCount = Math.max(1, Math.ceil(sortedFiltered.length / STUDENTS_PER_PAGE));
-    const pageStudents = useMemo(() => {
+    const pageStudents = useMemo2(() => {
       const page = Math.min(studentPage, studentPageCount);
       return sortedFiltered.slice((page - 1) * STUDENTS_PER_PAGE, page * STUDENTS_PER_PAGE);
     }, [sortedFiltered, studentPage, studentPageCount]);
-    const selectedStudents = useMemo(
+    const selectedStudents = useMemo2(
       () => sortedFiltered.filter((s) => selectedStudentIds.includes(s.id)),
       [sortedFiltered, selectedStudentIds]
     );
@@ -1883,15 +2122,15 @@
       const ids = pageStudents.map((s) => s.id);
       return checked ? Array.from(/* @__PURE__ */ new Set([...prev, ...ids])) : prev.filter((id) => !ids.includes(id));
     });
-    const sortedAZ = useMemo(
+    const sortedAZ = useMemo2(
       () => [...db.students].filter((s) => !s.archived).sort((a, b) => a.name.localeCompare(b.name, "zh-CN")),
       [db.students]
     );
-    const portfolioEntries = useMemo(
+    const portfolioEntries = useMemo2(
       () => db.students.filter((student) => !student.archived).flatMap((student) => (student.portfolio || []).map((item) => ({ student, item }))).sort((a, b) => String(b.item.date || "").localeCompare(String(a.item.date || ""))),
       [db.students]
     );
-    useEffect(() => {
+    useEffect2(() => {
       if (tab !== "students" || !routeRecordId) return;
       const student = db.students.find((item) => String(item.id) === String(routeRecordId));
       if (student && selS?.id !== student.id) {
@@ -1899,35 +2138,35 @@
         setEditP(false);
       }
     }, [tab, routeRecordId, db.students]);
-    const scheduledForDate = useMemo(() => {
+    const scheduledForDate = useMemo2(() => {
       if (!TENANT_SLUG || !schedules.length) return [];
       const wd = (/* @__PURE__ */ new Date(`${rDate}T12:00:00`)).getDay();
       return schedules.filter((sc) => sc.weekday === wd);
     }, [schedules, rDate]);
-    const scheduledIdSet = useMemo(
+    const scheduledIdSet = useMemo2(
       () => new Set(scheduledForDate.flatMap((sc) => sc.students.map((st) => st.id))),
       [scheduledForDate]
     );
-    const dayIds = useMemo(() => {
+    const dayIds = useMemo2(() => {
       const manual = db.rosters[rDate] || [];
       return [.../* @__PURE__ */ new Set([...scheduledIdSet, ...manual])];
     }, [db.rosters, rDate, scheduledIdSet]);
-    const todayEffectiveCount = useMemo(() => {
+    const todayEffectiveCount = useMemo2(() => {
       const manual = db.rosters[todayISO()] || [];
       const wd = (/* @__PURE__ */ new Date()).getDay();
       const sched = schedules.filter((sc) => sc.weekday === wd).flatMap((sc) => sc.students.map((st) => st.id));
       return (/* @__PURE__ */ new Set([...sched, ...manual])).size;
     }, [db.rosters, schedules]);
-    const todayCheckedCount = useMemo(() => {
+    const todayCheckedCount = useMemo2(() => {
       const d = todayISO().split("-");
       const prefix = `${d[2]}/${d[1]}/${d[0]}`;
       return new Set(db.logs.filter((l) => l.action === "上课签到" && String(l.date).startsWith(prefix)).map((l) => l.studentId || l.studentName)).size;
     }, [db.logs]);
-    const availRoster = useMemo(
+    const availRoster = useMemo2(
       () => sortedAZ.filter((s) => !dayIds.includes(s.id)),
       [sortedAZ, dayIds]
     );
-    const analytics = useMemo(() => {
+    const analytics = useMemo2(() => {
       const totalStudents = db.students.filter((s) => !s.archived).length;
       const totalBalance = db.students.reduce((a, b) => a + (parseInt(b.balance, 10) || 0), 0);
       const totalCheckins = db.logs.filter((l) => l.action === "上课签到").length;
@@ -1977,7 +2216,7 @@
       }
       return { totalStudents, totalBalance, totalCheckins, totalRevenue, lowBalance, inactive, todayRoster, monthlyReports, yearlyReports, availYears, chart12, recentGroups };
     }, [db, inactiveDays]);
-    const statsData = useMemo(() => {
+    const statsData = useMemo2(() => {
       let logs = sStu ? db.logs.filter((l) => {
         const s = db.students.find((x) => x.id === sStu);
         return s && (l.studentId === s.id || !l.studentId && l.studentName === s.name);
@@ -2011,7 +2250,7 @@
       const rows = Object.keys(byP).sort().reverse().map((k) => ({ key: k, ...byP[k] }));
       return { rows, totalRev: rows.reduce((s, r) => s + r.revenue, 0), totalCI: rows.reduce((s, r) => s + r.checkins, 0) };
     }, [db, sPeriod, sYear, sFrom, sTo, sStu]);
-    const studentStats = useMemo(() => {
+    const studentStats = useMemo2(() => {
       if (!sStu2) return null;
       const s = db.students.find((x) => x.id === sStu2);
       if (!s) return null;
@@ -2034,7 +2273,7 @@
         logs
       };
     }, [db, sStu2]);
-    const gResults = useMemo(() => {
+    const gResults = useMemo2(() => {
       if (!gQ.trim()) return [];
       const q = gQ.trim().toLowerCase();
       return db.students.filter((s) => !s.archived && (s.name.toLowerCase().includes(q) || (s.firstName || "").toLowerCase().includes(q) || (s.lastName || "").toLowerCase().includes(q) || (s.mobile || "").includes(q) || (s.wechat || "").toLowerCase().includes(q))).slice(0, 10);
@@ -2043,7 +2282,7 @@
       const m = String(ds).match(/^(\d{2})\/(\d{2})\/(\d{4})/);
       return m ? `${m[3]}-${m[2]}-${m[1]}` : "";
     };
-    const auditAsLogs = useMemo(() => {
+    const auditAsLogs = useMemo2(() => {
       if (!TENANT_SLUG || !auditEvents.length) return [];
       const nameById = new Map(db.students.map((s) => [String(s.id), s.name]));
       return auditEvents.reduce((rows, ev) => {
@@ -2082,8 +2321,8 @@
       const t = /* @__PURE__ */ new Date(`${m[3]}-${m[2]}-${m[1]}T${m[4] || "00"}:${m[5] || "00"}:${m[6] || "00"}`);
       return isNaN(t.getTime()) ? 0 : t.getTime();
     };
-    const allLogs = useMemo(() => auditAsLogs.length ? [...db.logs, ...auditAsLogs].sort((a, b) => logTimestamp(b) - logTimestamp(a)) : db.logs, [db.logs, auditAsLogs]);
-    const filteredLogs = useMemo(() => {
+    const allLogs = useMemo2(() => auditAsLogs.length ? [...db.logs, ...auditAsLogs].sort((a, b) => logTimestamp(b) - logTimestamp(a)) : db.logs, [db.logs, auditAsLogs]);
+    const filteredLogs = useMemo2(() => {
       const stuName = lStu ? (db.students.find((x) => x.id === lStu) || {}).name : null;
       return allLogs.filter((l) => {
         if (stuName && l.studentName !== stuName) return false;
@@ -2099,14 +2338,14 @@
     }, [allLogs, db.students, lStu, lSrch, lAct, lDateFrom, lDateTo]);
     const logPageCount = Math.max(1, Math.ceil(filteredLogs.length / LPP));
     const pagedLogs = filteredLogs.slice((lPage - 1) * LPP, lPage * LPP);
-    const logActions = useMemo(() => [...new Set(allLogs.map((l) => l.action))].sort(), [allLogs]);
-    useEffect(() => {
+    const logActions = useMemo2(() => [...new Set(allLogs.map((l) => l.action))].sort(), [allLogs]);
+    useEffect2(() => {
       setLPage(1);
     }, [lStu, lSrch, lAct, lDateFrom, lDateTo]);
-    useEffect(() => {
+    useEffect2(() => {
       if (lPage > logPageCount) setLPage(logPageCount);
     }, [logPageCount]);
-    const bizReport = useMemo(() => {
+    const bizReport = useMemo2(() => {
       const now = /* @__PURE__ */ new Date();
       const months = Array.from({ length: 6 }, (_, i) => {
         const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
@@ -2172,7 +2411,7 @@
       a.download = `Studio_经营月报_${todayISO()}.csv`;
       a.click();
     };
-    const payBreakdown = useMemo(() => {
+    const payBreakdown = useMemo2(() => {
       const map = {};
       db.logs.filter((l) => l.action === "充值购课").forEach((l) => {
         const pm = l.payMethod || "未记录";
@@ -2267,7 +2506,7 @@
         }
       }, { confirmText: "确认撤销" });
     };
-    const rosterDone = useMemo(() => {
+    const rosterDone = useMemo2(() => {
       const m = String(rDate).match(/^(\d{4})-(\d{2})-(\d{2})$/);
       const prefix = m ? `${m[3]}/${m[2]}/${m[1]}` : "__none__";
       const done = /* @__PURE__ */ new Set();
@@ -2389,7 +2628,7 @@
         }
       }, { danger: true, confirmText: "确认删除" });
     };
-    const teachableMembers = useMemo(
+    const teachableMembers = useMemo2(
       () => team.filter((m) => m.status === "active" && ["owner", "manager", "teacher"].includes(m.role)),
       [team]
     );
@@ -3805,6 +4044,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
         { k: "works", i: "image", l: "作品", s: "作品" }
       ] },
       { key: "business", label: "经营", items: [
+        { k: "billing", i: "money", l: "账单", s: "账单" },
         { k: "topup", i: "money", l: "充值与退款", s: "结算" },
         { k: "stats", i: "trend", l: "经营统计", s: "统计" }
       ] },
@@ -3820,6 +4060,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
       courses: "课程目录",
       students: "学员档案",
       works: "作品管理",
+      billing: "账单",
       topup: "充值与退款",
       logs: "操作日志",
       stats: "经营统计",
@@ -5760,6 +6001,15 @@ document.getElementById('copybtn').addEventListener('click', function(){
           /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "check", className: "w-4 h-4" }), "批准建档")
         ))));
       }))),
+      tab === "billing" && /* @__PURE__ */ React.createElement(
+        BillingPanel,
+        {
+          api: v1Api,
+          showToast,
+          canIssue: canWriteCredits,
+          canTakePayment: canWriteCredits
+        }
+      ),
       tab === "topup" && /* @__PURE__ */ React.createElement("div", { className: "anim bg-white rounded-2xl shadow-sm border border-gray-100 p-6 max-w-2xl mx-auto" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-start justify-between gap-3 mb-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", { className: "inline-flex items-center gap-1.5 text-xl md:text-2xl font-bold text-gray-800" }, /* @__PURE__ */ React.createElement(Icon, { name: "money", className: "w-4 h-4" }), "充值与退款"), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500 mt-1" }, "先选择学员，再完成充值或退款；支付渠道只记录实际收款方式，不在 CMS 内接入在线支付。"))), canManageOperations && /* @__PURE__ */ React.createElement("details", { open: true, className: "mb-5 rounded-2xl border border-indigo-100 bg-indigo-50/60 overflow-hidden" }, /* @__PURE__ */ React.createElement("summary", { className: "cursor-pointer select-none px-4 py-3 min-h-[48px] inline-flex items-center gap-2 text-sm font-bold text-indigo-900" }, /* @__PURE__ */ React.createElement(Icon, { name: "card", className: "w-4 h-4" }), "套餐管理 ", /* @__PURE__ */ React.createElement("span", { className: "text-xs font-normal text-indigo-500" }, (db.packages || []).length, " 个")), /* @__PURE__ */ React.createElement("div", { className: "p-4 pt-1 space-y-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-indigo-700 leading-relaxed" }, "这里定义前台充值时可快速选择的课包。修改套餐不会改动历史充值记录；删除前请确认它不再需要被新收款使用。"), (db.packages || []).map((pkg) => /* @__PURE__ */ React.createElement("div", { key: pkg.id, className: "flex items-center gap-3 rounded-xl border border-indigo-100 bg-white px-3 py-2.5" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0 flex-1" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm font-bold text-gray-800 truncate" }, pkg.name), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-0.5" }, pkg.credits, " 课时 · AUD ", Number(pkg.price || 0).toFixed(2))), /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => {
         setPkgEditId(pkg.id);
         setPkgName(pkg.name);

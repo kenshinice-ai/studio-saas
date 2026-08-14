@@ -64,7 +64,12 @@ def test_the_permission_matrix_matches_the_backend() -> None:
     # Some rows bold the whole label (`**退款 credits:refund**`), so the
     # permission is not always followed directly by the cell separator.
     rows = re.findall(
-        r"^\|[^|]*?([a-z_]+:[a-z_]+)\*{0,2} \|((?:[^|\n]*\|){5})$",
+        # Three-segment keys are real: `payroll:self:read` scopes a teacher to
+        # their own hours, and the parent role carries `student:self:read` and
+        # `portfolio:self:read`. A two-segment pattern silently captured the
+        # tail of those (`self:read`) and reported a permission the backend has
+        # never heard of.
+        r"^\|[^|]*?([a-z_]+(?::[a-z_]+)+)\*{0,2} \|((?:[^|\n]*\|){5})$",
         _text("README.md"),
         re.M,
     )

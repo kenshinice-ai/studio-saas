@@ -5,6 +5,8 @@
  * legacy-root/index.html actually loads — do not edit it by hand.
  */
 
+import { BillingPanel } from "./panels/billing.jsx";
+
 const { useState, useEffect, useMemo, useRef, useCallback } = React;
 const tenantSlug = window.STUDIOSAAS_TENANT_SLUG
     || new URLSearchParams(location.search).get('tenant')
@@ -56,7 +58,7 @@ const TENANT_SLUG = window.STUDIOSAAS_TENANT_SLUG || '';
    surface instead of losing the operator in a single in-memory tab state. */
 const CMS_ROUTE_TABS = new Set([
     'dashboard', 'roster', 'courses', 'students', 'works', 'new_student',
-    'pending', 'topup', 'logs', 'stats', 'settings'
+    'pending', 'billing', 'topup', 'logs', 'stats', 'settings'
 ]);
 const readCmsRoute = () => {
     const params = new URLSearchParams(window.location.search || '');
@@ -1279,13 +1281,13 @@ function App() {
     const [actorRole, setActorRole] = useState('');
     const ownerRoles = ['owner','platform_super_admin','super_admin'];
     const roleTabs = {
-        owner: ['dashboard','pending','roster','courses','students','works','new_student','topup','logs','stats','settings'],
-        platform_super_admin: ['dashboard','pending','roster','courses','students','works','new_student','topup','logs','stats','settings'],
-        super_admin: ['dashboard','pending','roster','courses','students','works','new_student','topup','logs','stats','settings'],
-        manager: ['dashboard','pending','roster','courses','students','works','new_student','topup','logs','stats','settings'],
+        owner: ['dashboard','pending','roster','courses','students','works','new_student','billing','topup','logs','stats','settings'],
+        platform_super_admin: ['dashboard','pending','roster','courses','students','works','new_student','billing','topup','logs','stats','settings'],
+        super_admin: ['dashboard','pending','roster','courses','students','works','new_student','billing','topup','logs','stats','settings'],
+        manager: ['dashboard','pending','roster','courses','students','works','new_student','billing','topup','logs','stats','settings'],
         teacher: ['dashboard','roster','courses','students','works','logs','settings'],
-        front_desk: ['dashboard','pending','students','new_student','topup','logs','settings'],
-        staff: ['dashboard','pending','roster','courses','students','works','new_student','topup','logs','settings'],
+        front_desk: ['dashboard','pending','students','new_student','billing','topup','logs','settings'],
+        staff: ['dashboard','pending','roster','courses','students','works','new_student','billing','topup','logs','settings'],
     };
     const allowedTabs = roleTabs[actorRole] || ['dashboard'];
     const canManageOperations = [...ownerRoles,'manager'].includes(actorRole);
@@ -3718,6 +3720,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
             {k:'works',i:'image',l:'作品',s:'作品'},
         ]},
         {key:'business', label:'经营', items:[
+            {k:'billing',i:'money',l:'账单',s:'账单'},
             {k:'topup',i:'money',l:'充值与退款',s:'结算'},
             {k:'stats',i:'trend',l:'经营统计',s:'统计'},
         ]},
@@ -3729,7 +3732,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
     const NAV = NAV_GROUPS.flatMap(group => group.items);
     const cmsPageTitle = ({
         dashboard:'工作台', pending:'待处理', roster:'课程安排', courses:'课程目录',
-        students:'学员档案', works:'作品管理', topup:'充值与退款', logs:'操作日志',
+        students:'学员档案', works:'作品管理', billing:'账单', topup:'充值与退款', logs:'操作日志',
         stats:'经营统计', settings:'系统设置', new_student:'新建学员'
     })[tab] || 'Studio CMS';
     const actorRoleLabel = ({
@@ -5923,6 +5926,15 @@ document.getElementById('copybtn').addEventListener('click', function(){
 )}
 
 {/* ═══ TOPUP ══════════════════════════════════════════════════ */}
+{tab==='billing' && (
+    <BillingPanel
+        api={v1Api}
+        showToast={showToast}
+        canIssue={canWriteCredits}
+        canTakePayment={canWriteCredits}
+    />
+)}
+
 {tab==='topup' && (
 <div className="anim bg-white rounded-2xl shadow-sm border border-gray-100 p-6 max-w-2xl mx-auto">
     <div className="flex items-start justify-between gap-3 mb-4"><div><h2 className="inline-flex items-center gap-1.5 text-xl md:text-2xl font-bold text-gray-800"><Icon name="money" className="w-4 h-4"/>充值与退款</h2><p className="text-sm text-gray-500 mt-1">先选择学员，再完成充值或退款；支付渠道只记录实际收款方式，不在 CMS 内接入在线支付。</p></div></div>
