@@ -3728,6 +3728,18 @@ document.getElementById('copybtn').addEventListener('click', function(){
        action today, teaching operations, business, then historical records.
        Course catalogue and package management are deliberately owned by
        their functional workspaces rather than hidden inside Settings. */
+    /* 一份分区清单，标签页和下面的面板都读它。两处各写一份正是「侧栏名 vs
+       页面标题」那个 bug 的形状 —— 第三个元素是可见性，因为团队与数据维护
+       只对能管运营的人开放。 */
+    const SETTINGS_SECTIONS = [
+        ['account', '账号与安全', true],
+        ['team', '团队与权限', canManageOperations],
+        ['operational', '运营默认', canManageOperations],
+        ['billing-identity', '开票信息', canManageOperations],
+        ['integrations', '集成', ownerRoles.includes(actorRole)],
+        ['maintenance', '数据维护', canManageOperations],
+        ['workspace', '工作区链接', true],
+    ];
     const NAV_GROUPS = [
         {key:'today', label:'今日', items:[
             {k:'dashboard',i:'dashboard',l:'工作台',s:'工作台'},
@@ -4161,29 +4173,35 @@ document.getElementById('copybtn').addEventListener('click', function(){
             {showSettings && (
                 <div ref={settingsDialogRef}
                     className={tab==='settings'
-                        ? 'fixed inset-0 bg-gray-50 z-[60] overflow-y-auto'
+                        /* 目的地，不是覆盖层。盖住侧栏才需要「返回工作台」——
+                           其他页面都不需要，因为它们从没把你带走过。 */
+                        ? 'anim'
                         : 'fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4'}
                     onClick={tab==='settings' ? undefined : closeSettings}
                     role={tab==='settings' ? undefined : 'dialog'} aria-modal={tab==='settings' ? undefined : 'true'} aria-labelledby="settings-dialog-title"
                     style={{paddingTop:tab==='settings' ? 'env(safe-area-inset-top, 0px)' : 'max(16px, env(safe-area-inset-top, 16px))', paddingBottom:'max(16px, env(safe-area-inset-bottom, 16px))'}}>
                     <div className={tab==='settings'
-                        ? 'min-h-full w-full max-w-6xl mx-auto px-4 py-5 md:px-8 md:py-8'
+                        ? 'w-full'
                         : 'bg-white rounded-2xl p-6 w-full max-w-2xl shadow-2xl anim overflow-y-auto modal-scroll'}
                         style={tab==='settings' ? undefined : {maxHeight:'90dvh'}} onClick={e=>e.stopPropagation()}>
                         <div className="flex justify-between items-center mb-5">
-                            <div>
-                                {tab==='settings' && <button type="button" onClick={closeSettings} className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 mb-1 min-h-[32px]"><Icon name="chevronLeft" className="w-4 h-4"/>返回工作台</button>}
-                                <h3 id="settings-dialog-title" className="inline-flex items-center gap-1.5 font-bold text-gray-800 text-xl"><Icon name="cog" className="w-5 h-5"/>系统设置</h3>
-                            </div>
-                            <button onClick={closeSettings} aria-label={tab==='settings' ? '返回工作台' : '关闭'} className="text-gray-400 active:text-gray-700 text-xl p-1 min-h-[44px] min-w-[44px] inline-flex items-center justify-center">×</button>
+                            <h3 id="settings-dialog-title"
+                                className={`inline-flex items-center gap-1.5 font-bold text-gray-800 text-xl ${tab==='settings' ? 'md:hidden' : ''}`}>
+                                <Icon name="cog" className="w-5 h-5"/>系统设置
+                            </h3>
+                            {tab!=='settings' && <button onClick={closeSettings} aria-label="关闭" className="text-gray-400 active:text-gray-700 text-xl p-1 min-h-[44px] min-w-[44px] inline-flex items-center justify-center">×</button>}
                         </div>
-                        {tab==='settings' && <div className="mb-6 rounded-2xl border border-indigo-100 bg-white p-2 shadow-sm">
-                            <div className="flex gap-1 overflow-x-auto" role="tablist" aria-label="系统设置分区">
-                                {[['account','账号与安全'],['team','团队与权限'],['operational','运营默认'],['billing-identity','开票信息'],['integrations','集成'],['maintenance','数据维护'],['workspace','工作区链接']].map(([key,label])=>(
-                                    <button key={key} type="button" onClick={()=>{setSettingsSection(key);document.getElementById(`settings-${key}`)?.scrollIntoView({behavior:'smooth',block:'start'});}}
-                                        className={`whitespace-nowrap min-h-[44px] px-3 rounded-xl text-xs font-bold ${settingsSection===key?'bg-indigo-600 text-white':'text-gray-600 hover:bg-indigo-50'}`}>{label}</button>
-                                ))}
-                            </div>
+                        {/* 真标签页。之前这里写着 role="tablist"，点击执行的却是
+                            scrollIntoView —— 9 个分区始终同时渲染，高亮和你正在看的
+                            内容会对不上，而读屏软件被告知有一组标签页却找不到面板。
+                            底部下划线的样式和学员档案、待处理、课酬三处一致。 */}
+                        {tab==='settings' && <div className="mb-6 flex gap-1 overflow-x-auto border-b border-gray-200" role="tablist" aria-label="系统设置分区">
+                            {SETTINGS_SECTIONS.filter(([,,visible])=>visible!==false).map(([key,label])=>(
+                                <button key={key} type="button" role="tab" id={`settings-tab-${key}`}
+                                    aria-selected={settingsSection===key} aria-controls={`settings-${key}`}
+                                    onClick={()=>setSettingsSection(key)}
+                                    className={`whitespace-nowrap min-h-[44px] px-3 text-xs font-bold border-b-2 -mb-px ${settingsSection===key?'border-indigo-600 text-indigo-700':'border-transparent text-gray-600 hover:text-gray-800'}`}>{label}</button>
+                            ))}
                         </div>}
                         <div className="md:hidden mb-4 pb-4 border-b border-gray-100">
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">界面语言</p>
@@ -4202,7 +4220,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                 <p className="text-[11px] font-normal text-indigo-400 mt-0.5">打开 Studio Admin 管理公开门户、注册表字段、品牌文案和页面展示</p>
                             </a>
                         )}
-                        {canManageOperations && <div id="settings-team" className="mt-4 pt-4 border-t border-gray-100 space-y-3 scroll-mt-24">
+                        {canManageOperations && <div id="settings-team" role="tabpanel" aria-labelledby="settings-tab-team" hidden={tab==='settings' && settingsSection!=='team'} className="mt-4 pt-4 border-t border-gray-100 space-y-3 scroll-mt-24">
                             <div>
                                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">团队与权限</p>
                                 <p className="text-xs text-gray-400 mt-0.5">Owner管理团队；Manager负责日常运营，Teacher负责签到与作品，Front Desk负责报名、学员与课时。</p>
@@ -4276,7 +4294,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             </div> : <p className="text-xs text-gray-400 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2">当前角色可查看团队；只有 Owner 可以新增、停用或更改成员角色。</p>}
                         </div>}
                         {/* 修改登录密码 */}
-                        <div id="settings-account" className="space-y-2 scroll-mt-24">
+                        <div id="settings-account" role="tabpanel" aria-labelledby="settings-tab-account" hidden={tab==='settings' && settingsSection!=='account'} className="space-y-2 scroll-mt-24">
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">修改登录密码</p>
                             <label className="block text-xs font-bold text-gray-600">当前密码
                                 <input type="password" autoComplete="current-password" placeholder="输入当前密码" value={pwOld} onChange={e=>setPwOld(e.target.value)}
@@ -4299,7 +4317,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         {/* Tenant-wide roster default: server-owned so every
                             staff device starts new bookings at the same time. */}
                         {canManageOperations && TENANT_SLUG && (
-                        <div id="settings-operational" className="mt-4 pt-4 border-t border-gray-100 space-y-2 scroll-mt-24">
+                        <div id="settings-operational" role="tabpanel" aria-labelledby="settings-tab-operational" hidden={tab==='settings' && settingsSection!=='operational'} className="mt-4 pt-4 border-t border-gray-100 space-y-2 scroll-mt-24">
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">课程安排默认时间</p>
                             <p className="text-xs text-gray-400">用于新排课、班组模板和新建固定班次；不会改动已保存的课程。</p>
                             <div className="flex gap-2 items-end">
@@ -4476,7 +4494,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                 }, {confirmText:'清理'});
                             };
                             return (
-                                <div id="settings-maintenance" className="mt-4 pt-4 border-t border-gray-100 space-y-2 scroll-mt-24">
+                                <div id="settings-maintenance" role="tabpanel" aria-labelledby="settings-tab-maintenance" hidden={tab==='settings' && settingsSection!=='maintenance'} className="mt-4 pt-4 border-t border-gray-100 space-y-2 scroll-mt-24">
                                     <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">排课数据清理</p>
                                     <div className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 flex items-center gap-2">
                                         <span className="text-xs text-gray-500 flex-1">90天前旧排课</span>
@@ -4499,16 +4517,16 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         )}
                         {/* 开票信息排在集成前面：Xero 是可选的，而没有开票主体
                             身份，一张发票都开不出去。 */}
-                        <div id="settings-billing-identity" className="mt-4 pt-4 border-t border-gray-100 space-y-2 scroll-mt-24">
+                        <div id="settings-billing-identity" role="tabpanel" aria-labelledby="settings-tab-billing-identity" hidden={tab==='settings' && settingsSection!=='billing-identity'} className="mt-4 pt-4 border-t border-gray-100 space-y-2 scroll-mt-24">
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">开票信息</p>
                             <BillingIdentityPanel api={v1Api} showToast={showToast}
                                 canManage={canManageOperations} />
                         </div>
-                        <div id="settings-integrations" className="mt-4 pt-4 border-t border-gray-100 space-y-2 scroll-mt-24">
+                        <div id="settings-integrations" role="tabpanel" aria-labelledby="settings-tab-integrations" hidden={tab==='settings' && settingsSection!=='integrations'} className="mt-4 pt-4 border-t border-gray-100 space-y-2 scroll-mt-24">
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">集成</p>
                             <IntegrationsPanel api={v1Api} showToast={showToast} canManage={ownerRoles.includes(actorRole)} />
                         </div>
-                        <div id="settings-workspace" className="mt-4 pt-4 border-t border-gray-100 space-y-2 scroll-mt-24">
+                        <div id="settings-workspace" role="tabpanel" aria-labelledby="settings-tab-workspace" hidden={tab==='settings' && settingsSection!=='workspace'} className="mt-4 pt-4 border-t border-gray-100 space-y-2 scroll-mt-24">
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">学员注册页面</p>
                             <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
                                 <span className="text-xs text-gray-500 flex-1 font-mono truncate">{window.STUDIOSAAS_REGISTER_URL || `${window.location.origin}/register`}</span>

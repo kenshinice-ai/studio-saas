@@ -76,3 +76,26 @@ def test_every_navigation_label_has_an_english_word():
         "These navigation labels fall through to Chinese in the English console. "
         f"Add them to cms-i18n.js: {missing}"
     )
+
+
+def test_settings_sections_are_tabs_not_scroll_anchors():
+    """The old pills declared `role="tablist"` and called `scrollIntoView`.
+
+    Every section rendered at once and the pill only scrolled, so the highlight
+    and the visible content could disagree — they did, in the screenshot that
+    started this change. A screen reader was told there was a tab list and then
+    found no tabpanel to go with it. Nothing failed, because a wrong ARIA role
+    is not an error, it is a false statement.
+    """
+
+    source = cms_source_text()
+    assert "SETTINGS_SECTIONS = [" in source, (
+        "The tab strip and the panels must read one list. Two hand-written "
+        "copies of the same sections is the bug this file already guards for "
+        "the sidebar and the page header."
+    )
+    assert 'role="tabpanel"' in source, "sections must be real tabpanels"
+    assert "scrollIntoView" not in source.split("SETTINGS_SECTIONS")[1][:4000], (
+        "a settings tab scrolled instead of switching — that is the anchor "
+        "behaviour this replaced"
+    )
