@@ -81,6 +81,12 @@ SHOTS = [
     ("03-courses",         "manager", f"/{SLUG}/cms?view=courses", DESKTOP, None, 2.0, None),
     ("03-roster",          "manager", f"/{SLUG}/cms",          DESKTOP, TAB["roster"], 2.0, "date"),
     ("03-roster-mobile",   "teacher", f"/{SLUG}/cms",          MOBILE,  TAB["roster"], 2.0, "date"),
+    # v10.2.0 的四张：钱这一层与设置容器。演示租户从 v10.1.1 起就带着一学期
+    # 的账，所以这几张拍出来是有数字的 —— 空列表的手册截图教不了任何东西。
+    ("09-billing",         "owner",   f"/{SLUG}/cms?view=billing", DESKTOP, None, 2.5, None),
+    ("09-finance",         "owner",   f"/{SLUG}/cms?view=finance", DESKTOP, None, 2.5, None),
+    ("09-billing-identity","owner",   f"/{SLUG}/cms?view=settings&section=billing-identity", DESKTOP, None, 2.5, None),
+    ("09-private-lessons", "owner",   f"/{SLUG}/cms?view=roster", DESKTOP, None, 2.5, None),
     ("04-timetable",       "owner",   f"/{SLUG}/studio-admin", DESKTOP, None, 2.5, "timetable"),
     ("04-booking",         None,      f"/{SLUG}/timetable",     MOBILE,  None, 2.0, "timetable_booking"),
     ("04-topup",           "manager", f"/{SLUG}/cms",          DESKTOP, TAB["topup"], 2.0, None),

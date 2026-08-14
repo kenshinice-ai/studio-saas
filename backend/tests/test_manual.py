@@ -30,7 +30,10 @@ GUIDES = REPOSITORY_ROOT / "docs/guides"
 # link is written as /manual/#refunds; renaming an anchor breaks it silently.
 SECTIONS = [
     "start", "launch", "enrolment", "roster", "timetable", "money", "work",
-    "showcase", "families", "team", "insight", "platform", "help", "faq",
+    # v10.2.0: `invoicing` covers the money layer — issuing identity, invoices,
+    # teacher pay and private lessons. Distinct from `money`, which is the
+    # lesson-credit ledger; the two reconcile but are not the same book.
+    "showcase", "families", "team", "invoicing", "insight", "platform", "help", "faq",
 ]
 
 

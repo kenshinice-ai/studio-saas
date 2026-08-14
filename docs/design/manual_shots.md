@@ -105,3 +105,15 @@ remains is number-adjacent fragments — `人`, `次`, `笔`, `条`, `分钟` �
 React splits into their own text nodes; translating those in isolation would
 reorder the phrase rather than translate it, so they need the dictionary to
 grow pattern support first. **Known gap, not fixed here.**
+
+## v10.2.0 新增：钱这一层的四张
+
+演示租户从 v10.1.1 起带着一学期的账，所以这四张拍出来是有数字的 ——
+一张空列表的手册截图教不了任何东西，只会让人以为功能没做完。
+
+| 名称 | 角色 | 位置 | 这张要说明什么 |
+|---|---|---|---|
+| `09-billing` | owner | `?view=billing` | 筛选栏、四种状态的发票、已开具单据没有编辑入口 |
+| `09-finance` | owner | `?view=finance` | 期间可选、老师可搜、承包/雇员决定这笔钱下一步能做什么 |
+| `09-billing-identity` | owner | `?view=settings&section=billing-identity` | 开票主体与 ABN；没有它一张发票都开不出去 |
+| `09-private-lessons` | owner | `?view=roster` | 一次请假的三个答案分开显示 |

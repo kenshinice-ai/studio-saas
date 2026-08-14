@@ -100,10 +100,11 @@
         <li><a href="#showcase"><b>07</b><span data-lang="en">Studio showcase</span><span data-lang="zh">工作室作品展示</span></a></li>
         <li><a href="#families"><b>08</b><span data-lang="en">For families</span><span data-lang="zh">家长这一侧</span></a></li>
         <li><a href="#team"><b>09</b><span data-lang="en">Your team</span><span data-lang="zh">团队与权限</span></a></li>
-        <li><a href="#insight"><b>10</b><span data-lang="en">Reports and export</span><span data-lang="zh">经营统计与导出</span></a></li>
-        <li><a href="#platform"><b>11</b><span data-lang="en">What we can and cannot do</span><span data-lang="zh">平台方能做什么</span></a></li>
-        <li><a href="#help"><b>12</b><span data-lang="en">Getting help</span><span data-lang="zh">求助</span></a></li>
-        <li><a href="#faq"><b>13</b><span data-lang="en">Questions</span><span data-lang="zh">常见问题</span></a></li>
+        <li><a href="#invoicing"><b>10</b><span data-lang="en">Invoices, pay and private lessons</span><span data-lang="zh">发票、课酬与一对一</span></a></li>
+        <li><a href="#insight"><b>11</b><span data-lang="en">Reports and export</span><span data-lang="zh">经营统计与导出</span></a></li>
+        <li><a href="#platform"><b>12</b><span data-lang="en">What we can and cannot do</span><span data-lang="zh">平台方能做什么</span></a></li>
+        <li><a href="#help"><b>13</b><span data-lang="en">Getting help</span><span data-lang="zh">求助</span></a></li>
+        <li><a href="#faq"><b>14</b><span data-lang="en">Questions</span><span data-lang="zh">常见问题</span></a></li>
       </ol>
     </nav>
 
@@ -950,9 +951,95 @@
         <p class="note" data-lang="zh">Staff 是早期的「全能员工」角色，接近 Manager 但没有退款、统计、导出和分享链接。新建成员时建议优先用职责明确的角色——界面和岗位对得上，培训才容易。</p>
       </section>
 
+      <!-- ─────────────────────────────────────────────────── 9.5 ── -->
+      <section id="invoicing">
+        <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>10 · <span data-lang="en">Invoicing</span><span data-lang="zh">开票</span></p>
+        <h2 data-lang="en">Before you can invoice anyone, tell us who you are</h2>
+        <h2 data-lang="zh">开票之前，先告诉我们你是谁</h2>
+
+        <p data-lang="en">An Australian tax invoice has to carry the ABN of the business issuing it. Without it your family's accountant cannot claim the GST, so the document comes straight back to you. Settings has an Invoice details tab: legal entity, trading name, ABN, whether you are registered for GST, your address, and how you would like to be paid. Until it is filled in, invoices will not issue at all — and if an invoice charges GST while the ABN is blank, we refuse it rather than send something your customer has to ask you to redo.</p>
+        <p data-lang="zh">澳洲的税务发票必须写明开票方的 ABN。没有它，家长的会计抵扣不了这笔 GST，单据会原路退回给你。「系统设置 → 开票信息」里填：法定主体、经营名称、ABN、是否已注册 GST、地址，以及希望怎么收款。填好之前，一张发票都开不出去；如果某张发票收了 GST 而 ABN 是空的，我们会直接拒绝，而不是发出一张客户还得回头找你重开的单据。</p>
+
+        <figure>
+          <div class="shot">
+            <div class="shot-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+            <img data-lang="en" src="/assets/manual/09-billing-identity.en.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="The invoice details tab in settings, with ABN and GST registration">
+            <img data-lang="zh" src="/assets/manual/09-billing-identity.zh.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="系统设置的开票信息标签页，包含 ABN 与 GST 注册状态">
+          </div>
+          <ol class="marks">
+            <li data-lang="en">Tick GST registered and the ABN becomes required — the database refuses to save the pair without it.</li><li data-lang="zh">勾上「已注册 GST」，ABN 就成了必填 —— 数据库不接受只有其中一项的组合。</li>
+            <li data-lang="en">Bank details and the payment note print on every invoice, so nobody retypes them per document.</li><li data-lang="zh">收款账户和付款说明会印在每一张发票上，不用每张单据重打一遍。</li>
+          </ol>
+          <figcaption data-lang="en">Settings → Invoice details. Owners and managers.</figcaption>
+          <figcaption data-lang="zh">系统设置 → 开票信息。Owner 与 Manager 可见。</figcaption>
+        </figure>
+
+        <h2 data-lang="en">Invoices, and the money against them</h2>
+        <h2 data-lang="zh">发票，以及打进来的钱</h2>
+
+        <p data-lang="en">You invoice the payer, not the student: a family with three children is one invoice, a school booking a workshop is a payer with no students attached. New invoice creates a draft — issuing is a separate press, because that is the moment the number is allocated, the due date is set from the payer's terms, and the figures stop being editable by anyone, including us. Corrections go the way they do on paper: a credit note that reverses the charge and leaves both records standing.</p>
+        <p data-lang="zh">你向付款方开票，不是向学员：一家三个孩子合一张单，一所学校订演出是一个付款方、名下没有学生。「新建发票」建的是草稿；开具是单独一下，因为那一刻才分配号码、按付款方的账期算到期日，金额从此任何人都改不了，包括我们。改错走纸面上的老办法：一张贷记单冲销，两份记录都留着。</p>
+
+        <figure>
+          <div class="shot">
+            <div class="shot-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+            <img data-lang="en" src="/assets/manual/09-billing.en.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="The billing workspace with filters, invoice list and detail">
+            <img data-lang="zh" src="/assets/manual/09-billing.zh.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="账单发票工作区，含筛选栏、发票列表与明细">
+          </div>
+          <ol class="marks">
+            <li data-lang="en">Filter by state, by payer or invoice number, and by issue date. The counts tell you whether a filter is worth clicking.</li><li data-lang="zh">按状态、付款方或发票号、开具日期筛选。计数让你不点开就知道值不值得点。</li>
+            <li data-lang="en">Overdue is worked out from the due date every time it is displayed, so it is never a day stale.</li><li data-lang="zh">逾期是每次显示时算出来的，不会隔夜就不准。</li>
+            <li data-lang="en">An issued invoice has no edit control anywhere on this screen. That is deliberate.</li><li data-lang="zh">已开具的发票在这一页上没有任何编辑入口。这是刻意的。</li>
+          </ol>
+          <figcaption data-lang="en">Billing & invoices. Front desk can issue and record payments; refunds need a manager.</figcaption>
+          <figcaption data-lang="zh">账单发票。前台可以开具与登记收款；退款需要 Manager。</figcaption>
+        </figure>
+
+        <h2 data-lang="en">What teaching cost, and what you owe each teacher</h2>
+        <h2 data-lang="zh">教学花了多少，每位老师该拿多少</h2>
+
+        <p data-lang="en">Teachers see their own hours and what they add up to, and confirm them at the end of a period — nobody else's hours, and no view of what families owe. Pick the period with the date range or one of the presets, search for a teacher by name, and the sessions behind every figure are one click away. We produce the amount and the list; paying it stays with whoever runs your payroll, because withholding and superannuation belong to your accountant and not to your scheduling software.</p>
+        <p data-lang="zh">老师能看到自己的课时和金额，并在期末确认——看不到别人的课时，也看不到家长欠费。用日期区间或快捷档选期间、按姓名搜老师，每个数字背后的课次都在一步之内。我们算出金额、出清单；发钱仍由你们做工资的人负责——代扣税和养老金是会计的事，不是排课软件该碰的。</p>
+
+        <figure>
+          <div class="shot">
+            <div class="shot-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+            <img data-lang="en" src="/assets/manual/09-finance.en.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="Teacher pay with a date range, teacher search and the sessions behind the total">
+            <img data-lang="zh" src="/assets/manual/09-finance.zh.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="课酬与报表，含日期区间、老师搜索与总额背后的课次">
+          </div>
+          <ol class="marks">
+            <li data-lang="en">This month, last month, or any two dates. The period is a filter, not a fixed month.</li><li data-lang="zh">本月、上月，或任意两个日期。期间是筛选条件，不是写死的当月。</li>
+            <li data-lang="en">Contractor or employee decides what may happen to the total next — a contractor's can become a payable bill in Xero, an employee's must not.</li><li data-lang="zh">承包还是雇员，决定这笔钱下一步能做什么 —— 承包的可以进 Xero 成为应付账单，雇员的不行。</li>
+          </ol>
+          <figcaption data-lang="en">Teacher pay & reports. Owners and managers only.</figcaption>
+          <figcaption data-lang="zh">课酬与报表。仅 Owner 与 Manager。</figcaption>
+        </figure>
+
+        <h2 data-lang="en">One-to-one lessons, and the three questions an absence asks</h2>
+        <h2 data-lang="zh">一对一课程，以及一次请假要回答的三个问题</h2>
+
+        <p data-lang="en">A private lesson is set once and repeats weekly, skipping your closures and any weeks you pause. When a lesson does not happen, recording it answers three separate questions — is the family still charged, is the teacher still paid, and is a make-up owed — because those genuinely have different answers. A student cancelling an hour before is normally charged and the teacher normally paid; a studio closing for a public holiday charges nobody and pays everybody. You set the rule once in plain words and the system applies it, then tells you what it decided.</p>
+        <p data-lang="zh">一对一课程排一次，每周自动出现，节假日和你设的暂停期会自动跳过。当一节课没上，记录这件事要回答三个各自独立的问题——这节还收不收家长的钱、老师这节还算不算课酬、要不要补一次课——因为它们的答案确实不一样。学员临上课一小时请假，通常照收钱、也照付老师；工作室因公共假期停课，不收钱、但照付老师。规则你用大白话设一次，系统按它执行，并把每次的判断当场告诉你。</p>
+
+        <figure>
+          <div class="shot">
+            <div class="shot-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+            <img data-lang="en" src="/assets/manual/09-private-lessons.en.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="The recurring private lessons panel inside class scheduling">
+            <img data-lang="zh" src="/assets/manual/09-private-lessons.zh.webp?v=__APP_VERSION__" width="1600" height="1000" loading="lazy" decoding="async" alt="课程安排里的一对一循环课面板">
+          </div>
+          <ol class="marks">
+            <li data-lang="en">Cancelling asks who called it off. Notice is measured against the studio clock, never the browser's.</li><li data-lang="zh">取消时要选是谁提出的。提前量按工作室的时钟算，不看浏览器。</li>
+            <li data-lang="en">Charged and paid are shown separately, because collapsing them into one word loses the point.</li><li data-lang="zh">「计费」和「算课酬」分开显示 —— 合成一个词就把这件事的意义丢掉了。</li>
+            <li data-lang="en">Make-up credits expire on a date, and expiry is worked out when you look, not by an overnight job.</li><li data-lang="zh">补课额度按日期过期，而过期是你看的时候算出来的，不靠夜里的定时任务。</li>
+          </ol>
+          <figcaption data-lang="en">Class scheduling → Recurring private lessons. Front desk can record absences.</figcaption>
+          <figcaption data-lang="zh">课程安排 → 一对一循环课。前台可以记录请假。</figcaption>
+        </figure>
+      </section>
+
       <!-- ─────────────────────────────────────────────────────── 10 ── -->
       <section id="insight">
-        <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>10 · <span data-lang="en">Reports</span><span data-lang="zh">经营</span></p>
+        <p class="eyebrow"><svg aria-hidden="true" fill="currentColor"><use href="#spark"/></svg>14 · <span data-lang="en">Reports</span><span data-lang="zh">经营</span></p>
         <h2 data-lang="en">What the numbers are actually telling you</h2>
         <h2 data-lang="zh">这些数字到底在说什么</h2>
 
