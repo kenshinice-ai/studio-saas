@@ -4,14 +4,14 @@
 
 These are three independent facts. A matching version label is not proof that
 the current source tree was packaged or deployed; Source, Package and
-Production remain separate rows. **v10.2.1 is committed; packaging and deploy are in progress** as of
-14 August 2026 — Production still runs v10.2.0 until the row below says otherwise.
+Production remain separate rows. **v10.2.1 has completed all three milestones** on 14 August 2026; the rows
+below record the independent evidence for each.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
 | Source | **v10.2.1 committed** | `VERSION` = **10.2.1**; fixes the settings layout shipped in v10.2.0 — the block was made a normal page without being moved inside `<main>`, so it rendered beside the content column instead of in it. Caught by looking at the page; the v10.2.0 verification had queried tabpanel counts, `aria-selected` and URL round-trips, all of which passed. A structural test now pins the block inside `<main>` and was confirmed to fail on the broken source. pytest `2563 passed, 28 skipped`. |
-| Package | **v10.2.0 built; v10.2.1 not yet packaged** | SaaS `dist/PWE-StudioSaaS-aws-10.2.0.tar.gz` SHA-256 `f30fb43a66cc33ef94a273a24c43062906231d8d831ebf4ea6d2e71a8a926d18`; Edition `dist/PWE-Studio-Edition-10.2.0.tar.gz` SHA-256 `b90e2f3e4b43d699d434917ec03e27e1036851f26bce13710af9f417d7132165`. Both passed `verify_release_bundles.sh`. |
-| Production | **v10.2.0 deployed; v10.2.1 not yet deployed** | Deployed 14 August 2026 from `PWE-StudioSaaS-aws-10.2.0.tar.gz` (SHA-256 `f30fb43a…`). No migrations in this release. Deep health reports `appVersion=10.2.0`, `db=ok`, `tenants=6`, `themes.unreadable=0`, `workspaces.stale=0`, disk free `44.0 GB`. Both manual languages serve the new `#invoicing` chapter and all four of its screenshots answer `200`. The settings rewrite was verified in a browser before shipping: seven tabpanels with one visible, `aria-selected` on the right tab, `?section=` updating on click, and the browser back button returning to the previous section — which did nothing at all before. Layout measured at both ends: 1440px gives 435/704 (φ, no horizontal overflow), 375px gives a single 339px column. Pre-deploy backup `studiosaas_studiosaas_20260814T133407Z.dump`. |
+| Package | **v10.2.1 built and verified** | SaaS `dist/PWE-StudioSaaS-aws-10.2.1.tar.gz` SHA-256 `6b954754ac93ab0ab57170c3ab9a19414c83084d5bbbbc950e4b2c4abcf671a2`; Edition `dist/PWE-Studio-Edition-10.2.1.tar.gz` SHA-256 `6a366c708586b92142c4de0983a140e05a73d1c26571ca569d485308be833aab`. Both passed `verify_release_bundles.sh`. |
+| Production | **v10.2.1 deployed to `pwestudio.online`** | Deployed 14 August 2026 from `PWE-StudioSaaS-aws-10.2.1.tar.gz` (SHA-256 `6b954754…`). No migrations. Deep health reports `appVersion=10.2.1`, `db=ok`, `tenants=6`, `themes.unreadable=0`, `workspaces.stale=0`, disk free `44.0 GB`. The layout fix itself was verified locally in a browser — content column starting at 240px after the rail, panel and tab strip at 264px width 1148, `main.contains(panel)` true, no horizontal overflow — and the served production bundle is byte-identical to that verified build, which is the strongest check available from outside without operator credentials. Both manual languages still serve `#invoicing`. |
 
 Re-verify the production health endpoint (`/v1/health?deep=1`) before any later
 release claim; do not infer Production from `VERSION` or from an archive
