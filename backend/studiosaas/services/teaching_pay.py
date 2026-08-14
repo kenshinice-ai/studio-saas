@@ -412,7 +412,9 @@ def payable_summary(conn, tenant_id: str, period_id: str) -> dict[str, Any]:
     sessions = fetch_all(
         conn,
         """
-        SELECT s.occurred_on, s.start_time, s.duration_minutes, s.student_count,
+        SELECT s.occurred_on,
+               to_char(s.start_time, 'HH24:MI') AS start_time,
+               s.duration_minutes, s.student_count,
                s.counts_for_pay, s.rate_basis, s.amount_cents, c.name AS course_name
         FROM teaching_sessions s
         LEFT JOIN courses c ON c.id = s.course_id

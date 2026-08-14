@@ -6,6 +6,7 @@
  */
 
 import { BillingPanel } from "./panels/billing.jsx";
+import { FinancePanel } from "./panels/finance.jsx";
 
 const { useState, useEffect, useMemo, useRef, useCallback } = React;
 const tenantSlug = window.STUDIOSAAS_TENANT_SLUG
@@ -58,7 +59,7 @@ const TENANT_SLUG = window.STUDIOSAAS_TENANT_SLUG || '';
    surface instead of losing the operator in a single in-memory tab state. */
 const CMS_ROUTE_TABS = new Set([
     'dashboard', 'roster', 'courses', 'students', 'works', 'new_student',
-    'pending', 'billing', 'topup', 'logs', 'stats', 'settings'
+    'pending', 'billing', 'topup', 'finance', 'logs', 'stats', 'settings'
 ]);
 const readCmsRoute = () => {
     const params = new URLSearchParams(window.location.search || '');
@@ -1281,10 +1282,10 @@ function App() {
     const [actorRole, setActorRole] = useState('');
     const ownerRoles = ['owner','platform_super_admin','super_admin'];
     const roleTabs = {
-        owner: ['dashboard','pending','roster','courses','students','works','new_student','billing','topup','logs','stats','settings'],
-        platform_super_admin: ['dashboard','pending','roster','courses','students','works','new_student','billing','topup','logs','stats','settings'],
-        super_admin: ['dashboard','pending','roster','courses','students','works','new_student','billing','topup','logs','stats','settings'],
-        manager: ['dashboard','pending','roster','courses','students','works','new_student','billing','topup','logs','stats','settings'],
+        owner: ['dashboard','pending','roster','courses','students','works','new_student','billing','topup','finance','logs','stats','settings'],
+        platform_super_admin: ['dashboard','pending','roster','courses','students','works','new_student','billing','topup','finance','logs','stats','settings'],
+        super_admin: ['dashboard','pending','roster','courses','students','works','new_student','billing','topup','finance','logs','stats','settings'],
+        manager: ['dashboard','pending','roster','courses','students','works','new_student','billing','topup','finance','logs','stats','settings'],
         teacher: ['dashboard','roster','courses','students','works','logs','settings'],
         front_desk: ['dashboard','pending','students','new_student','billing','topup','logs','settings'],
         staff: ['dashboard','pending','roster','courses','students','works','new_student','billing','topup','logs','settings'],
@@ -3722,6 +3723,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
         {key:'business', label:'经营', items:[
             {k:'billing',i:'money',l:'账单',s:'账单'},
             {k:'topup',i:'money',l:'充值与退款',s:'结算'},
+            {k:'finance',i:'trend',l:'财务',s:'财务'},
             {k:'stats',i:'trend',l:'经营统计',s:'统计'},
         ]},
         {key:'records', label:'记录', items:[
@@ -3732,7 +3734,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
     const NAV = NAV_GROUPS.flatMap(group => group.items);
     const cmsPageTitle = ({
         dashboard:'工作台', pending:'待处理', roster:'课程安排', courses:'课程目录',
-        students:'学员档案', works:'作品管理', billing:'账单', topup:'充值与退款', logs:'操作日志',
+        students:'学员档案', works:'作品管理', billing:'账单', topup:'充值与退款', finance:'财务', logs:'操作日志',
         stats:'经营统计', settings:'系统设置', new_student:'新建学员'
     })[tab] || 'Studio CMS';
     const actorRoleLabel = ({
@@ -5933,6 +5935,10 @@ document.getElementById('copybtn').addEventListener('click', function(){
         canIssue={canWriteCredits}
         canTakePayment={canWriteCredits}
     />
+)}
+
+{tab==='finance' && (
+    <FinancePanel api={v1Api} showToast={showToast} />
 )}
 
 {tab==='topup' && (

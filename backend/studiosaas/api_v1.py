@@ -13057,6 +13057,58 @@ def teaching_rates():
     return jsonify({"ok": True, "rate": rate}), 201
 
 
+@api_v1.route("/teaching/summary", methods=["GET"])
+@permission_required("payroll:read")
+def teaching_summary():
+    """Every teacher's totals for a period — the payables list.
+
+    Deliberately not `/reports/teacher-cost`. That one carries the margin
+    against tuition billed and is a management report, gated on
+    `management_reports`; this is the list a studio works through to pay
+    people, so it belongs to `teacher_payables` and is available a tier lower.
+    Serving the payroll screen from the report endpoint would have made paying
+    teachers require the reporting plan, which is not what anybody bought.
+
+    Read-only: it never opens a pay period. Opening one is a decision, and a
+    screen that creates rows just by being looked at cannot be trusted.
+    """
+
+    try:
+        default_start, default_end = _reports.default_period()
+        start = _iso_date(request.args, "from") or default_start
+        end = _iso_date(request.args, "to") or default_end
+    except ValueError as exc:
+        return _error(str(exc))
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        try:
+            _require_feature(conn, tenant.tenant_id, _entitlements.FEATURE_TEACHER_PAYABLES)
+        except _entitlements.FeatureUnavailableError as exc:
+            return _feature_error(exc)
+
+        rows = fetch_all(
+            conn,
+            """
+            SELECT s.teacher_user_id, u.full_name,
+                   COALESCE(e.engagement, 'unset') AS engagement,
+                   COUNT(*)                                                     AS sessions,
+                   COUNT(*) FILTER (WHERE NOT s.counts_for_pay)                 AS unpaid_sessions,
+                   COALESCE(SUM(s.duration_minutes) FILTER (WHERE s.counts_for_pay), 0) AS paid_minutes,
+                   COALESCE(SUM(s.amount_cents) FILTER (WHERE s.counts_for_pay), 0)     AS cost_cents
+            FROM teaching_sessions s
+            JOIN users u ON u.id = s.teacher_user_id
+            LEFT JOIN teacher_engagements e
+                   ON e.tenant_id = s.tenant_id AND e.teacher_user_id = s.teacher_user_id
+            WHERE s.tenant_id = %s AND s.occurred_on BETWEEN %s AND %s
+            GROUP BY s.teacher_user_id, u.full_name, e.engagement
+            ORDER BY cost_cents DESC
+            """,
+            (tenant.tenant_id, start, end),
+        )
+    return jsonify({"from": start.isoformat(), "to": end.isoformat(), "teachers": rows})
+
+
 @api_v1.route("/teaching/timesheet", methods=["GET"])
 @auth_required
 def teaching_timesheet():
@@ -13095,7 +13147,12 @@ def teaching_timesheet():
         sessions = fetch_all(
             conn,
             """
-            SELECT s.occurred_on, s.start_time, s.duration_minutes, s.student_count,
+            SELECT s.occurred_on,
+                   -- `time` is not JSON serializable and Flask's encoder does not
+                   -- special-case it the way it does date and datetime, so the
+                   -- cast happens here rather than being remembered downstream.
+                   to_char(s.start_time, 'HH24:MI') AS start_time,
+                   s.duration_minutes, s.student_count,
                    s.counts_for_pay, s.rate_basis, s.amount_cents, s.locked_at,
                    c.name AS course_name
             FROM teaching_sessions s

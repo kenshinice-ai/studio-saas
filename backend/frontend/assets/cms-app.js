@@ -1,12 +1,8 @@
 (() => {
-  // legacy-root/src/panels/billing.jsx
-  var { useState, useEffect, useCallback, useMemo } = React;
-  var centsToAud = (cents) => {
-    const n = Number(cents || 0) / 100;
-    return n.toLocaleString("en-AU", { style: "currency", currency: "AUD" });
-  };
+  // legacy-root/src/panels/_shared.jsx
+  var aud = (cents) => (Number(cents || 0) / 100).toLocaleString("en-AU", { style: "currency", currency: "AUD" });
   var fmtApiDate = (value) => {
-    if (!value) return "";
+    if (!value) return "—";
     const iso = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
     if (iso) return `${iso[3]}/${iso[2]}/${iso[1]}`;
     const parsed = new Date(value);
@@ -14,6 +10,14 @@
     const pad = (n) => String(n).padStart(2, "0");
     return `${pad(parsed.getDate())}/${pad(parsed.getMonth() + 1)}/${parsed.getFullYear()}`;
   };
+  var monthRange = () => {
+    const now = /* @__PURE__ */ new Date();
+    const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    return { from: iso(new Date(now.getFullYear(), now.getMonth(), 1)), to: iso(now) };
+  };
+
+  // legacy-root/src/panels/billing.jsx
+  var { useState, useEffect, useCallback, useMemo } = React;
   var STATUS_LABEL = {
     draft: "草稿",
     issued: "已开具",
@@ -75,7 +79,7 @@
       return () => {
         cancelled = true;
       };
-    }, [selectedId, api, showToast]);
+    }, [selectedId, api]);
     const summary = useMemo(() => {
       const issued = invoices.filter((i) => i.status !== "draft" && i.status !== "void");
       const drafts = invoices.filter((i) => i.status === "draft");
@@ -144,7 +148,7 @@
             autoAllocate: true
           })
         });
-        showToast(`已登记 ${centsToAud(balance)}`, "success");
+        showToast(`已登记 ${aud(balance)}`, "success");
         await load();
         const refreshed = await api(`/billing/invoices/${selectedId}`);
         setDetail(refreshed);
@@ -156,11 +160,11 @@
     };
     if (loading) return /* @__PURE__ */ React.createElement("div", { className: "p-6 text-sm text-gray-500" }, "正在加载账单…");
     if (error) return /* @__PURE__ */ React.createElement("div", { className: "p-6 text-sm text-red-600" }, error);
-    return /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 md:grid-cols-4 gap-3" }, /* @__PURE__ */ React.createElement(Kpi, { label: "已开票", value: centsToAud(summary.billed), sub: `${invoices.length} 张 · 含 GST` }), /* @__PURE__ */ React.createElement(
+    return /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 md:grid-cols-4 gap-3" }, /* @__PURE__ */ React.createElement(Kpi, { label: "已开票", value: aud(summary.billed), sub: `${invoices.length} 张 · 含 GST` }), /* @__PURE__ */ React.createElement(
       Kpi,
       {
         label: "已收到",
-        value: centsToAud(summary.paid),
+        value: aud(summary.paid),
         tone: "good",
         sub: summary.collectedPercent === null ? "暂无已开具发票" : `${summary.collectedPercent}% 已收`
       }
@@ -168,7 +172,7 @@
       Kpi,
       {
         label: "逾期",
-        value: centsToAud(summary.overdueCents),
+        value: aud(summary.overdueCents),
         tone: summary.overdueCents > 0 ? "alert" : void 0,
         sub: `${summary.overdueAccounts} 个家庭`
       }
@@ -203,8 +207,8 @@
         }
       ),
       /* @__PURE__ */ React.createElement("span", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("span", { className: "block text-xs font-bold truncate" }, invoice.account_name), /* @__PURE__ */ React.createElement("span", { className: "block text-[11px] text-gray-500 truncate" }, invoice.number || "草稿 · 未编号", invoice.due_date ? ` · 到期 ${fmtApiDate(invoice.due_date)}` : "")),
-      /* @__PURE__ */ React.createElement("span", { className: "ml-auto flex items-center gap-2" }, /* @__PURE__ */ React.createElement(StatusChip, { invoice }), /* @__PURE__ */ React.createElement("span", { className: `text-xs font-bold tabular-nums ${isOverdue(invoice) ? "text-red-600" : ""}` }, centsToAud(invoice.balance_cents ?? invoice.total_cents)))
-    ))), /* @__PURE__ */ React.createElement("div", { className: "grid gap-3 min-w-0" }, !detail ? /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl p-6 text-xs text-gray-500" }, "选择左边的一张发票查看明细。") : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 px-4 py-3 border-b border-gray-200" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs font-bold" }, detail.invoice.number || "草稿", " · ", detail.invoice.account_name), /* @__PURE__ */ React.createElement("span", { className: "ml-auto" }, /* @__PURE__ */ React.createElement(StatusChip, { invoice: detail.invoice }))), /* @__PURE__ */ React.createElement("div", { className: "p-4 overflow-x-auto" }, /* @__PURE__ */ React.createElement("table", { className: "w-full text-xs" }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", { className: "text-[10px] uppercase tracking-wide text-gray-500" }, /* @__PURE__ */ React.createElement("th", { className: "text-left py-2" }, "项目"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "数量"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "单价"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "税"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "小计"))), /* @__PURE__ */ React.createElement("tbody", null, (detail.lines || []).map((line) => /* @__PURE__ */ React.createElement("tr", { key: line.id, className: "border-t border-gray-100" }, /* @__PURE__ */ React.createElement("td", { className: "py-2" }, line.description), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, line.quantity), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, centsToAud(line.unit_price_cents)), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, centsToAud(line.tax_cents)), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, centsToAud(line.total_cents)))), /* @__PURE__ */ React.createElement("tr", { className: "border-t border-gray-200 font-bold" }, /* @__PURE__ */ React.createElement("td", { className: "py-2", colSpan: 4 }, "应付"), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, centsToAud(detail.invoice.total_cents))), Number(detail.invoice.amount_paid_cents) > 0 && /* @__PURE__ */ React.createElement("tr", { className: "text-green-700" }, /* @__PURE__ */ React.createElement("td", { className: "py-1", colSpan: 4 }, "已付"), /* @__PURE__ */ React.createElement("td", { className: "py-1 text-right tabular-nums" }, "−", centsToAud(detail.invoice.amount_paid_cents))), /* @__PURE__ */ React.createElement("tr", { className: "font-bold" }, /* @__PURE__ */ React.createElement("td", { className: "py-1", colSpan: 4 }, "余额"), /* @__PURE__ */ React.createElement("td", { className: "py-1 text-right tabular-nums" }, centsToAud(detail.invoice.balance_cents))))), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 items-center mt-3" }, detail.invoice.status === "draft" && canIssue && /* @__PURE__ */ React.createElement(
+      /* @__PURE__ */ React.createElement("span", { className: "ml-auto flex items-center gap-2" }, /* @__PURE__ */ React.createElement(StatusChip, { invoice }), /* @__PURE__ */ React.createElement("span", { className: `text-xs font-bold tabular-nums ${isOverdue(invoice) ? "text-red-600" : ""}` }, aud(invoice.balance_cents ?? invoice.total_cents)))
+    ))), /* @__PURE__ */ React.createElement("div", { className: "grid gap-3 min-w-0" }, !detail ? /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl p-6 text-xs text-gray-500" }, "选择左边的一张发票查看明细。") : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 px-4 py-3 border-b border-gray-200" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs font-bold" }, detail.invoice.number || "草稿", " · ", detail.invoice.account_name), /* @__PURE__ */ React.createElement("span", { className: "ml-auto" }, /* @__PURE__ */ React.createElement(StatusChip, { invoice: detail.invoice }))), /* @__PURE__ */ React.createElement("div", { className: "p-4 overflow-x-auto" }, /* @__PURE__ */ React.createElement("table", { className: "w-full text-xs" }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", { className: "text-[10px] uppercase tracking-wide text-gray-500" }, /* @__PURE__ */ React.createElement("th", { className: "text-left py-2" }, "项目"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "数量"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "单价"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "税"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "小计"))), /* @__PURE__ */ React.createElement("tbody", null, (detail.lines || []).map((line) => /* @__PURE__ */ React.createElement("tr", { key: line.id, className: "border-t border-gray-100" }, /* @__PURE__ */ React.createElement("td", { className: "py-2" }, line.description), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, line.quantity), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, aud(line.unit_price_cents)), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, aud(line.tax_cents)), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, aud(line.total_cents)))), /* @__PURE__ */ React.createElement("tr", { className: "border-t border-gray-200 font-bold" }, /* @__PURE__ */ React.createElement("td", { className: "py-2", colSpan: 4 }, "应付"), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, aud(detail.invoice.total_cents))), Number(detail.invoice.amount_paid_cents) > 0 && /* @__PURE__ */ React.createElement("tr", { className: "text-green-700" }, /* @__PURE__ */ React.createElement("td", { className: "py-1", colSpan: 4 }, "已付"), /* @__PURE__ */ React.createElement("td", { className: "py-1 text-right tabular-nums" }, "−", aud(detail.invoice.amount_paid_cents))), /* @__PURE__ */ React.createElement("tr", { className: "font-bold" }, /* @__PURE__ */ React.createElement("td", { className: "py-1", colSpan: 4 }, "余额"), /* @__PURE__ */ React.createElement("td", { className: "py-1 text-right tabular-nums" }, aud(detail.invoice.balance_cents))))), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 items-center mt-3" }, detail.invoice.status === "draft" && canIssue && /* @__PURE__ */ React.createElement(
       "button",
       {
         type: "button",
@@ -237,8 +241,166 @@
     ), detail.invoice.status !== "draft" && /* @__PURE__ */ React.createElement("span", { className: "text-[11px] text-gray-500" }, "已开具的发票不可修改，改错请开贷记单冲销后重开。")))), /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "px-4 py-3 border-b border-gray-200 text-xs font-bold" }, "这张单发生过什么"), (detail.events || []).length === 0 ? /* @__PURE__ */ React.createElement("p", { className: "px-4 py-4 text-[11px] text-gray-500" }, "还没有记录。开具、送达、收款、推送 Xero 都会出现在这里。") : (detail.events || []).map((event, i) => /* @__PURE__ */ React.createElement("div", { key: i, className: "flex items-center gap-2 px-4 py-2 border-b border-gray-100 last:border-0 text-[11px]" }, /* @__PURE__ */ React.createElement("span", { className: "font-bold" }, event.event_type), /* @__PURE__ */ React.createElement("span", { className: "ml-auto text-gray-500" }, fmtApiDate(event.occurred_at)))))))));
   }
 
+  // legacy-root/src/panels/finance.jsx
+  var { useState: useState2, useEffect: useEffect2, useCallback: useCallback2, useMemo: useMemo2 } = React;
+  var ENGAGEMENT = {
+    contractor: { label: "承包", cls: "bg-gray-100 text-gray-600 border-gray-200", canPush: true },
+    employee: { label: "仅清单", cls: "bg-blue-50 text-blue-700 border-blue-200", canPush: false },
+    unset: { label: "待补用工性质", cls: "bg-red-50 text-red-700 border-red-200", canPush: false }
+  };
+  function Num({ label, value, sub, tone }) {
+    const cls = tone === "warn" ? "text-amber-700" : tone === "muted" ? "text-gray-400" : "text-gray-900";
+    return /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-[11px] font-bold uppercase tracking-wide text-gray-500" }, label), /* @__PURE__ */ React.createElement("p", { className: `text-xl font-bold tabular-nums ${cls}` }, value), sub && /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-500" }, sub));
+  }
+  function PayrollView({ api, showToast, range }) {
+    const [teachers, setTeachers] = useState2([]);
+    const [selected, setSelected] = useState2(null);
+    const [sheet, setSheet] = useState2(null);
+    const [loading, setLoading] = useState2(true);
+    const [error, setError] = useState2("");
+    useEffect2(() => {
+      let cancelled = false;
+      setLoading(true);
+      api(`/teaching/summary?from=${range.from}&to=${range.to}`).then((d) => {
+        if (!cancelled) {
+          setTeachers(d.teachers || []);
+          setError("");
+        }
+      }).catch((e) => {
+        if (!cancelled) setError(e.status === 403 ? "这个套餐未包含老师课酬清单。" : `加载失败：${e.message}`);
+      }).finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }, [api, range.from, range.to]);
+    useEffect2(() => {
+      if (!selected) {
+        setSheet(null);
+        return;
+      }
+      let cancelled = false;
+      api(`/teaching/timesheet?teacherUserId=${selected}&from=${range.from}&to=${range.to}`).then((d) => {
+        if (!cancelled) setSheet(d);
+      }).catch((e) => {
+        if (!cancelled) showToast(`课时明细加载失败：${e.message}`, "warn");
+      });
+      return () => {
+        cancelled = true;
+      };
+    }, [selected, api, range.from, range.to]);
+    if (loading) return /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 p-4" }, "正在加载课酬…");
+    if (error) return /* @__PURE__ */ React.createElement("p", { className: "text-xs text-red-600 p-4" }, error);
+    if (!teachers.length) {
+      return /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 p-4" }, "本期还没有归集到课时。课时来自点名记录，点完名这里就会有数。");
+    }
+    const current = teachers.find((t) => String(t.teacher_user_id) === selected);
+    const engagement = ENGAGEMENT[current?.engagement] || ENGAGEMENT.unset;
+    return /* @__PURE__ */ React.createElement("div", { className: "grid gap-3 items-start", style: { gridTemplateColumns: "var(--ui-golden-columns-reverse)" } }, /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl overflow-hidden min-w-0" }, /* @__PURE__ */ React.createElement("div", { className: "px-4 py-3 border-b border-gray-200 text-xs font-bold" }, "老师"), teachers.map((t) => {
+      const eng = ENGAGEMENT[t.engagement] || ENGAGEMENT.unset;
+      return /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          type: "button",
+          key: t.teacher_user_id,
+          onClick: () => setSelected(String(t.teacher_user_id)),
+          className: `w-full text-left flex items-center gap-2 px-3 py-2 border-b border-gray-100 min-h-[44px]
+                                ${String(t.teacher_user_id) === selected ? "bg-indigo-50" : "hover:bg-gray-50"}`
+        },
+        /* @__PURE__ */ React.createElement("span", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("span", { className: "block text-xs font-bold truncate" }, t.full_name), /* @__PURE__ */ React.createElement("span", { className: "block text-[11px] text-gray-500" }, t.sessions, " 节 · ", Math.round((t.paid_minutes || 0) / 60), " 小时")),
+        /* @__PURE__ */ React.createElement("span", { className: "ml-auto flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: `text-[10px] font-bold px-1.5 py-0.5 rounded border whitespace-nowrap ${eng.cls}` }, eng.label), /* @__PURE__ */ React.createElement("span", { className: "text-xs font-bold tabular-nums" }, aud(t.cost_cents)))
+      );
+    })), /* @__PURE__ */ React.createElement("div", { className: "grid gap-3 min-w-0" }, !sheet ? /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl p-6 text-xs text-gray-500" }, "选择一位老师，查看本期课时明细。") : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 md:grid-cols-4 gap-3" }, /* @__PURE__ */ React.createElement(Num, { label: "实际上了", value: sheet.summary.actual_sessions, sub: "节" }), /* @__PURE__ */ React.createElement(Num, { label: "计入课酬", value: sheet.summary.paid_sessions, sub: "节" }), /* @__PURE__ */ React.createElement(Num, { label: "不计课酬", value: sheet.summary.unpaid_sessions, sub: "节", tone: sheet.summary.unpaid_sessions ? "warn" : "muted" }), /* @__PURE__ */ React.createElement(Num, { label: "本期应付", value: aud(sheet.summary.amount_cents), sub: `${Math.round((sheet.summary.paid_minutes || 0) / 60)} 小时` })), /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 px-4 py-3 border-b border-gray-200" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs font-bold" }, current?.full_name, " · ", range.from, " → ", range.to), /* @__PURE__ */ React.createElement("span", { className: `ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded border whitespace-nowrap ${engagement.cls}` }, engagement.label)), /* @__PURE__ */ React.createElement("div", { className: "p-4 overflow-x-auto" }, /* @__PURE__ */ React.createElement("table", { className: "w-full text-xs" }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", { className: "text-[10px] uppercase tracking-wide text-gray-500" }, /* @__PURE__ */ React.createElement("th", { className: "text-left py-2" }, "日期"), /* @__PURE__ */ React.createElement("th", { className: "text-left py-2" }, "课程"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "时长"), /* @__PURE__ */ React.createElement("th", { className: "text-left py-2" }, "费率基准"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "金额"))), /* @__PURE__ */ React.createElement("tbody", null, (sheet.sessions || []).map((s, i) => (
+      /* 请假但按政策计费 → warning 底；工作室取消不计 → 降透明度。
+         同一张表里，钱的两种「不正常」看起来必须不一样。 */
+      /* @__PURE__ */ React.createElement("tr", { key: i, className: `border-t border-gray-100 ${s.counts_for_pay ? "" : "opacity-50"}` }, /* @__PURE__ */ React.createElement("td", { className: "py-2" }, fmtApiDate(s.occurred_on)), /* @__PURE__ */ React.createElement("td", { className: "py-2" }, s.course_name || "—"), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, s.duration_minutes, " 分"), /* @__PURE__ */ React.createElement("td", { className: "py-2" }, s.counts_for_pay ? s.rate_basis || "未设费率" : "不计课酬"), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, aud(s.amount_cents)))
+    )), /* @__PURE__ */ React.createElement("tr", { className: "border-t border-gray-200 font-bold" }, /* @__PURE__ */ React.createElement("td", { className: "py-2", colSpan: 4 }, "本期应付"), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, aud(sheet.summary.amount_cents))))), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 items-center mt-3" }, engagement.canPush ? /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        className: "min-h-[44px] px-3 rounded-lg bg-indigo-600 text-white text-xs font-bold"
+      },
+      "推送 Xero 应付账单"
+    ) : /* @__PURE__ */ React.createElement("span", { className: "text-[11px] text-gray-500" }, current?.engagement === "employee" ? "雇员工资不作为应付账单推送 —— 那会绕开薪资科目。导出清单交给财务走薪资流程。" : "未记录用工性质，无法决定这笔钱怎么进账。请先在老师资料里选择雇员或 ABN 承包。"), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        className: "min-h-[44px] px-3 rounded-lg bg-white border border-gray-300 text-xs font-bold"
+      },
+      "导出 CSV"
+    )))))));
+  }
+  function ReportsView({ api, range }) {
+    const [data, setData] = useState2({});
+    const [error, setError] = useState2("");
+    useEffect2(() => {
+      let cancelled = false;
+      Promise.all([
+        api(`/reports/revenue?from=${range.from}&to=${range.to}`).catch((e) => ({ __err: e })),
+        api("/reports/receivables").catch((e) => ({ __err: e }))
+      ]).then(([revenue, receivables]) => {
+        if (cancelled) return;
+        const failed = [revenue, receivables].find((r) => r && r.__err);
+        if (failed) setError(failed.__err.status === 403 ? "这个套餐未包含经营报表。" : `报表加载失败：${failed.__err.message}`);
+        else setData({ revenue, receivables });
+      });
+      return () => {
+        cancelled = true;
+      };
+    }, [api, range.from, range.to]);
+    if (error) return /* @__PURE__ */ React.createElement("p", { className: "text-xs text-red-600 p-4" }, error);
+    if (!data.revenue) return /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 p-4" }, "正在加载报表…");
+    const buckets = data.receivables?.buckets || {};
+    const total = data.receivables?.totalCents || 0;
+    const BUCKETS = [
+      ["current", "未到期", ""],
+      ["d1_30", "1–30 天", "bg-amber-100 border-amber-300"],
+      ["d31_60", "31–60 天", "bg-red-100 border-red-300"],
+      ["d61_90", "61–90 天", "bg-red-100 border-red-300"],
+      ["d90_plus", "90 天以上", "bg-red-100 border-red-300"]
+    ];
+    return /* @__PURE__ */ React.createElement("div", { className: "grid gap-3" }, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 md:grid-cols-4 gap-3" }, /* @__PURE__ */ React.createElement(Num, { label: "本期开票", value: aud(data.revenue.totals?.gross_cents), sub: `${data.revenue.totals?.invoices || 0} 张` }), /* @__PURE__ */ React.createElement(Num, { label: "其中 GST", value: aud(data.revenue.totals?.tax_cents) }), /* @__PURE__ */ React.createElement(Num, { label: "贷记冲销", value: aud(data.revenue.credits?.credited_cents) }), /* @__PURE__ */ React.createElement(Num, { label: "应收未收", value: aud(total), tone: total > 0 ? "warn" : "muted" })), /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 px-4 py-3 border-b border-gray-200" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs font-bold" }, "应收账龄"), /* @__PURE__ */ React.createElement("span", { className: "ml-auto text-[11px] text-gray-500" }, "每个数字背后的发票都在下面的清单里")), /* @__PURE__ */ React.createElement("div", { className: "p-4 grid gap-1.5" }, BUCKETS.map(([key, label, cls]) => {
+      const cents = buckets[key] || 0;
+      const pct = total > 0 ? Math.round(cents / total * 100) : 0;
+      return /* @__PURE__ */ React.createElement(
+        "div",
+        {
+          key,
+          className: "grid items-center gap-2 text-xs",
+          style: { gridTemplateColumns: "80px 1fr 84px" }
+        },
+        /* @__PURE__ */ React.createElement("span", null, label),
+        /* @__PURE__ */ React.createElement("span", { className: "h-4 rounded bg-gray-100 border border-gray-200 overflow-hidden" }, /* @__PURE__ */ React.createElement(
+          "span",
+          {
+            className: `block h-full rounded border ${cls || "bg-blue-100 border-blue-300"}`,
+            style: { width: `${Math.max(pct, cents > 0 ? 2 : 0)}%` }
+          }
+        )),
+        /* @__PURE__ */ React.createElement("span", { className: "text-right tabular-nums" }, aud(cents))
+      );
+    }))), (data.revenue.byKind || []).length > 0 && /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "px-4 py-3 border-b border-gray-200 text-xs font-bold" }, "收入构成"), /* @__PURE__ */ React.createElement("div", { className: "p-4 overflow-x-auto" }, /* @__PURE__ */ React.createElement("table", { className: "w-full text-xs" }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", { className: "text-[10px] uppercase tracking-wide text-gray-500" }, /* @__PURE__ */ React.createElement("th", { className: "text-left py-2" }, "来源"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "张数"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "不含税"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "税"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "合计"))), /* @__PURE__ */ React.createElement("tbody", null, data.revenue.byKind.map((k, i) => /* @__PURE__ */ React.createElement("tr", { key: i, className: "border-t border-gray-100" }, /* @__PURE__ */ React.createElement("td", { className: "py-2" }, k.source_kind), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, k.invoices), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, aud(k.net_cents)), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, aud(k.tax_cents)), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, aud(k.gross_cents)))))))));
+  }
+  function FinancePanel({ api, showToast }) {
+    const [view, setView] = useState2("payroll");
+    const range = useMemo2(monthRange, []);
+    return /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 items-center" }, [["payroll", "课酬"], ["reports", "报表"]].map(([key, label]) => /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        key,
+        onClick: () => setView(key),
+        "aria-pressed": view === key,
+        className: `min-h-[44px] px-4 rounded-lg text-xs font-bold border
+                              ${view === key ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-gray-600 border-gray-300"}`
+      },
+      label
+    )), /* @__PURE__ */ React.createElement("span", { className: "ml-auto text-[11px] text-gray-500" }, range.from, " → ", range.to)), view === "payroll" ? /* @__PURE__ */ React.createElement(PayrollView, { api, showToast, range }) : /* @__PURE__ */ React.createElement(ReportsView, { api, range }));
+  }
+
   // legacy-root/src/cms-app.jsx
-  var { useState: useState2, useEffect: useEffect2, useMemo: useMemo2, useRef, useCallback: useCallback2 } = React;
+  var { useState: useState3, useEffect: useEffect3, useMemo: useMemo3, useRef, useCallback: useCallback3 } = React;
   var tenantSlug = window.STUDIOSAAS_TENANT_SLUG || new URLSearchParams(location.search).get("tenant") || (location.pathname.match(/^\/([^/]+)(?:\/cms)?\/?$/) || [])[1] || "";
   var nowAU = () => (/* @__PURE__ */ new Date()).toLocaleString("en-AU", {
     timeZone: "Australia/Melbourne",
@@ -293,6 +455,7 @@
     "pending",
     "billing",
     "topup",
+    "finance",
     "logs",
     "stats",
     "settings"
@@ -394,8 +557,8 @@
     return ["/logo.png", "/logo-light.png", "/favicon.svg"].includes(source) ? "" : source;
   };
   function TenantBrandLogo({ className = "" }) {
-    const [brand, setBrand] = useState2(() => window.STUDIOSAAS_BRAND || {});
-    useEffect2(() => {
+    const [brand, setBrand] = useState3(() => window.STUDIOSAAS_BRAND || {});
+    useEffect3(() => {
       const syncBrand = (event) => setBrand(event?.detail || window.STUDIOSAAS_BRAND || {});
       window.addEventListener("studiosaas:brand", syncBrand);
       syncBrand();
@@ -502,7 +665,7 @@
     return /* @__PURE__ */ React.createElement("span", { className: "px-2.5 py-1 rounded-lg text-xs font-bold bg-green-100 text-green-700 whitespace-nowrap" }, v);
   }
   function Toast({ msg, type, action, onDone }) {
-    useEffect2(() => {
+    useEffect3(() => {
       const t = setTimeout(onDone, action ? 6e3 : 2700);
       return () => clearTimeout(t);
     }, []);
@@ -593,7 +756,7 @@
   function useModalFocus(isOpen, onClose, dialogRef, initialFocusRef = null) {
     const closeRef = useRef(onClose);
     closeRef.current = onClose;
-    useEffect2(() => {
+    useEffect3(() => {
       if (!isOpen) return;
       const previousFocus = document.activeElement;
       const selector = [
@@ -639,11 +802,11 @@
     }, [isOpen, dialogRef, initialFocusRef]);
   }
   function ConfirmDialog({ dialog, onClose }) {
-    const [typed, setTyped] = useState2("");
+    const [typed, setTyped] = useState3("");
     const boxRef = useRef(null);
     const onCloseRef = useRef(onClose);
     onCloseRef.current = onClose;
-    useEffect2(() => {
+    useEffect3(() => {
       setTyped(dialog?.promptDefault || "");
     }, [dialog]);
     const dismiss = () => {
@@ -652,7 +815,7 @@
     };
     const dismissRef = useRef(dismiss);
     dismissRef.current = dismiss;
-    useEffect2(() => {
+    useEffect3(() => {
       if (!dialog) return;
       const prevFocus = document.activeElement;
       const onKey = (e) => {
@@ -755,18 +918,18 @@
     );
   }
   function StudentPicker({ students, value, onChange, placeholder = "-- 选择学员 --", showBal = true }) {
-    const [q, setQ] = useState2("");
-    const [open, setOpen] = useState2(false);
+    const [q, setQ] = useState3("");
+    const [open, setOpen] = useState3(false);
     const ref = useRef(null);
     const sel = students.find((s) => s.id === value);
-    useEffect2(() => {
+    useEffect3(() => {
       if (!value) setQ("");
     }, [value]);
-    const filtered = useMemo2(
+    const filtered = useMemo3(
       () => q ? students.filter((s) => s.name.toLowerCase().includes(q.toLowerCase())) : students,
       [students, q]
     );
-    useEffect2(() => {
+    useEffect3(() => {
       const h = (e) => {
         if (ref.current && !ref.current.contains(e.target)) setOpen(false);
       };
@@ -930,7 +1093,7 @@
     );
   }
   function PhotoUploader({ value, onChange, notify }) {
-    const [uploading, setUploading] = useState2(false);
+    const [uploading, setUploading] = useState3(false);
     const handleFile = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -961,23 +1124,23 @@
     return /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-4" }, value ? /* @__PURE__ */ React.createElement("img", { src: mediaSrc(value), alt: "学员照片预览", className: "w-14 h-14 rounded-full object-cover border-2 border-indigo-100 flex-shrink-0" }) : /* @__PURE__ */ React.createElement("div", { className: "w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center text-2xl border-2 border-dashed border-gray-300 flex-shrink-0 text-gray-400" }, /* @__PURE__ */ React.createElement(Icon, { name: "camera", className: "w-6 h-6" })), /* @__PURE__ */ React.createElement("div", { className: "space-y-1.5" }, /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 flex-wrap" }, /* @__PURE__ */ React.createElement("label", { className: `cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 text-sm font-bold rounded-xl border min-h-[44px] ${btnBase || "bg-indigo-50 text-indigo-700 border-indigo-200 active:bg-indigo-100"}` }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "folder", className: "w-4 h-4" }), uploading ? "上传中..." : value ? "更换" : "选择"), /* @__PURE__ */ React.createElement("input", { type: "file", accept: "image/*", onChange: handleFile, disabled: uploading, className: "hidden" })), /* @__PURE__ */ React.createElement("label", { className: `cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 text-sm font-bold rounded-xl border min-h-[44px] ${btnBase || "bg-purple-50 text-purple-700 border-purple-200 active:bg-purple-100"}` }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "camera", className: "w-4 h-4" }), "拍照"), /* @__PURE__ */ React.createElement("input", { type: "file", accept: "image/*", capture: "environment", onChange: handleFile, disabled: uploading, className: "hidden" }))), value && /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => onChange(""), className: "text-xs text-red-400 active:text-red-600" }, "移除照片")));
   }
   function MaintSection({ onRestored, renewTh, saveRenewTh, confirm, notify }) {
-    const [hc, setHc] = useState2(null);
-    const [hcBusy, setHcBusy] = useState2(false);
-    const [cfg, setCfg] = useState2(null);
-    const [pw, setPw] = useState2("");
-    const [cfgMsg, setCfgMsg] = useState2(null);
+    const [hc, setHc] = useState3(null);
+    const [hcBusy, setHcBusy] = useState3(false);
+    const [cfg, setCfg] = useState3(null);
+    const [pw, setPw] = useState3("");
+    const [cfgMsg, setCfgMsg] = useState3(null);
     const say = (text, tone = "info") => setCfgMsg(text ? { text, tone } : null);
-    const [bks, setBks] = useState2(null);
-    const [bkSel, setBkSel] = useState2(null);
-    const [busy, setBusy] = useState2(false);
+    const [bks, setBks] = useState3(null);
+    const [bkSel, setBkSel] = useState3(null);
+    const [busy, setBusy] = useState3(false);
     const post = (url, body) => fetch(url, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body)
     });
-    const [stale, setStale] = useState2(false);
-    useEffect2(() => {
+    const [stale, setStale] = useState3(false);
+    useEffect3(() => {
       fetch("/api/config", { credentials: "include" }).then((r) => {
         if (r.status === 404) {
           setStale(true);
@@ -1212,10 +1375,10 @@
     )) : /* @__PURE__ */ React.createElement("p", { className: "text-xs text-red-500" }, "该备份文件已损坏，不可恢复")))));
   }
   function LoginScreen({ onLogin }) {
-    const [email, setEmail] = useState2(() => localStorage.getItem(`lp_admin_email_${tenantSlug}`) || "");
-    const [pw, setPw] = useState2("");
-    const [busy, setBusy] = useState2(false);
-    const [err, setErr] = useState2("");
+    const [email, setEmail] = useState3(() => localStorage.getItem(`lp_admin_email_${tenantSlug}`) || "");
+    const [pw, setPw] = useState3("");
+    const [busy, setBusy] = useState3(false);
+    const [err, setErr] = useState3("");
     const submit = async (e) => {
       e && e.preventDefault();
       if (!email || !pw) {
@@ -1276,58 +1439,58 @@
     )), /* @__PURE__ */ React.createElement("p", { className: "mt-6 pt-4 border-t border-gray-100 text-[10px] tracking-wide text-gray-400" }, "Powered by Paradise Production")));
   }
   function App() {
-    const [db, setDb] = useState2({ students: [], logs: [], rosters: {}, pending: [] });
-    const [auditEvents, setAuditEvents] = useState2([]);
-    const initialCmsRoute = useMemo2(() => readCmsRoute(), []);
-    const [tab, setTabState] = useState2(initialCmsRoute.tab);
-    const [pendingTab, setPendingTabState] = useState2(initialCmsRoute.pendingTab);
-    const [settingsSection, setSettingsSectionState] = useState2(initialCmsRoute.settingsSection);
-    const [routeRecordId, setRouteRecordId] = useState2(initialCmsRoute.recordId);
-    const [moreOpen, setMoreOpen] = useState2(false);
-    const [selS, setSelS] = useState2(null);
-    const [editP, setEditP] = useState2(false);
-    const [studentProfileTab, setStudentProfileTab] = useState2("profile");
-    const [busy, setBusy] = useState2(false);
-    const [conn, setConn] = useState2(false);
-    const [connErr, setConnErr] = useState2(null);
-    const [toast, setToast] = useState2(null);
-    const [cmsNotifications, setCmsNotifications] = useState2([]);
-    const [cmsNotificationUnreadCount, setCmsNotificationUnreadCount] = useState2(0);
-    const [cmsNotificationOpen, setCmsNotificationOpen] = useState2(false);
-    const [cmsNotificationError, setCmsNotificationError] = useState2("");
+    const [db, setDb] = useState3({ students: [], logs: [], rosters: {}, pending: [] });
+    const [auditEvents, setAuditEvents] = useState3([]);
+    const initialCmsRoute = useMemo3(() => readCmsRoute(), []);
+    const [tab, setTabState] = useState3(initialCmsRoute.tab);
+    const [pendingTab, setPendingTabState] = useState3(initialCmsRoute.pendingTab);
+    const [settingsSection, setSettingsSectionState] = useState3(initialCmsRoute.settingsSection);
+    const [routeRecordId, setRouteRecordId] = useState3(initialCmsRoute.recordId);
+    const [moreOpen, setMoreOpen] = useState3(false);
+    const [selS, setSelS] = useState3(null);
+    const [editP, setEditP] = useState3(false);
+    const [studentProfileTab, setStudentProfileTab] = useState3("profile");
+    const [busy, setBusy] = useState3(false);
+    const [conn, setConn] = useState3(false);
+    const [connErr, setConnErr] = useState3(null);
+    const [toast, setToast] = useState3(null);
+    const [cmsNotifications, setCmsNotifications] = useState3([]);
+    const [cmsNotificationUnreadCount, setCmsNotificationUnreadCount] = useState3(0);
+    const [cmsNotificationOpen, setCmsNotificationOpen] = useState3(false);
+    const [cmsNotificationError, setCmsNotificationError] = useState3("");
     const cmsNotificationCursorRef = useRef(0);
     const cmsNotificationPollingRef = useRef(false);
-    const [confirmDialog, setConfirmDialog] = useState2(null);
-    const [showSettings, setShowSettings] = useState2(initialCmsRoute.tab === "settings");
-    const [userMenuOpen, setUserMenuOpen] = useState2(false);
-    const [loggedIn, setLoggedIn] = useState2(false);
-    const [pwOld, setPwOld] = useState2("");
-    const [pwNew1, setPwNew1] = useState2("");
-    const [pwNew2, setPwNew2] = useState2("");
-    const [pwBusy, setPwBusy] = useState2(false);
-    const [pwMsg, setPwMsg] = useState2(null);
-    const [gOpen, setGOpen] = useState2(false);
-    const [gQ, setGQ] = useState2("");
-    const [portLB, setPortLB] = useState2(null);
-    const [portUpload, setPortUpload] = useState2(false);
-    const [portUpFile, setPortUpFile] = useState2(null);
-    const [portEdit, setPortEdit] = useState2(null);
-    const [portBusy, setPortBusy] = useState2(false);
+    const [confirmDialog, setConfirmDialog] = useState3(null);
+    const [showSettings, setShowSettings] = useState3(initialCmsRoute.tab === "settings");
+    const [userMenuOpen, setUserMenuOpen] = useState3(false);
+    const [loggedIn, setLoggedIn] = useState3(false);
+    const [pwOld, setPwOld] = useState3("");
+    const [pwNew1, setPwNew1] = useState3("");
+    const [pwNew2, setPwNew2] = useState3("");
+    const [pwBusy, setPwBusy] = useState3(false);
+    const [pwMsg, setPwMsg] = useState3(null);
+    const [gOpen, setGOpen] = useState3(false);
+    const [gQ, setGQ] = useState3("");
+    const [portLB, setPortLB] = useState3(null);
+    const [portUpload, setPortUpload] = useState3(false);
+    const [portUpFile, setPortUpFile] = useState3(null);
+    const [portEdit, setPortEdit] = useState3(null);
+    const [portBusy, setPortBusy] = useState3(false);
     const portLightboxDialogRef = useRef(null);
     const portUploadDialogRef = useRef(null);
     const portEditDialogRef = useRef(null);
     const searchDialogRef = useRef(null);
     const settingsDialogRef = useRef(null);
     const profileDialogRef = useRef(null);
-    const [accessCodeResult, setAccessCodeResult] = useState2(null);
-    const [consentEdit, setConsentEdit] = useState2(null);
-    useEffect2(() => {
+    const [accessCodeResult, setAccessCodeResult] = useState3(null);
+    const [consentEdit, setConsentEdit] = useState3(null);
+    useEffect3(() => {
       setAccessCodeResult(null);
       setConsentEdit(null);
       setStudentProfileTab("profile");
     }, [selS?.id]);
     const lbTouchX = useRef(0);
-    const syncCmsRoute = useCallback2((patch = {}, replace = false) => {
+    const syncCmsRoute = useCallback3((patch = {}, replace = false) => {
       const current = readCmsRoute();
       const next = { ...current, ...patch };
       const url = new URL(window.location.href);
@@ -1344,7 +1507,7 @@
       const nextUrl = `${url.pathname}${params.toString() ? `?${params.toString()}` : ""}${url.hash}`;
       window.history[replace ? "replaceState" : "pushState"]({}, "", nextUrl);
     }, []);
-    const setTab = useCallback2((nextTab, options = {}) => {
+    const setTab = useCallback3((nextTab, options = {}) => {
       const next = CMS_ROUTE_TABS.has(nextTab) ? nextTab : "dashboard";
       setTabState(next);
       setShowSettings(next === "settings");
@@ -1352,20 +1515,20 @@
       setRouteRecordId(nextRecordId);
       syncCmsRoute({ tab: next, recordId: nextRecordId }, !!options.replace);
     }, [syncCmsRoute]);
-    const setPendingTab = useCallback2((nextPendingTab) => {
+    const setPendingTab = useCallback3((nextPendingTab) => {
       const next = nextPendingTab === "bookings" ? "bookings" : "registrations";
       setPendingTabState(next);
       setTabState("pending");
       setShowSettings(false);
       syncCmsRoute({ tab: "pending", pendingTab: next });
     }, [syncCmsRoute]);
-    const setSettingsSection = useCallback2((nextSection) => {
+    const setSettingsSection = useCallback3((nextSection) => {
       setSettingsSectionState(nextSection);
       setTabState("settings");
       setShowSettings(true);
       syncCmsRoute({ tab: "settings", settingsSection: nextSection });
     }, [syncCmsRoute]);
-    useEffect2(() => {
+    useEffect3(() => {
       const onPopState = () => {
         const next = readCmsRoute();
         setTabState(next.tab);
@@ -1398,7 +1561,7 @@
       },
       profileDialogRef
     );
-    const [inactiveDays, setInactiveDays] = useState2(() => parseInt(localStorage.getItem("lp_inactive_days") || "90", 10));
+    const [inactiveDays, setInactiveDays] = useState3(() => parseInt(localStorage.getItem("lp_inactive_days") || "90", 10));
     const saveInactiveDays = (v) => {
       const n = parseInt(v, 10);
       if (n > 0) {
@@ -1406,36 +1569,36 @@
         localStorage.setItem("lp_inactive_days", String(n));
       }
     };
-    const [srch, setSrch] = useState2("");
-    const [sortBy, setSortBy] = useState2("date-desc");
-    const [filterBy, setFilterBy] = useState2("all");
+    const [srch, setSrch] = useState3("");
+    const [sortBy, setSortBy] = useState3("date-desc");
+    const [filterBy, setFilterBy] = useState3("all");
     const STUDENTS_PER_PAGE = 24;
-    const [studentPage, setStudentPage] = useState2(1);
-    const [selectedStudentIds, setSelectedStudentIds] = useState2([]);
-    const [rDate, setRDate] = useState2(todayISO);
-    const [rPick, setRPick] = useState2(null);
-    const [defaultClassTime, setDefaultClassTime] = useState2("14:30");
-    const [defaultClassTimeDraft, setDefaultClassTimeDraft] = useState2("14:30");
-    const [operationalSettingsBusy, setOperationalSettingsBusy] = useState2(false);
-    const [rTime, setRTime] = useState2("14:30");
-    const [icsPreview, setIcsPreview] = useState2(null);
-    const [icsNotice, setIcsNotice] = useState2("");
-    const [icsBusy, setIcsBusy] = useState2(false);
+    const [studentPage, setStudentPage] = useState3(1);
+    const [selectedStudentIds, setSelectedStudentIds] = useState3([]);
+    const [rDate, setRDate] = useState3(todayISO);
+    const [rPick, setRPick] = useState3(null);
+    const [defaultClassTime, setDefaultClassTime] = useState3("14:30");
+    const [defaultClassTimeDraft, setDefaultClassTimeDraft] = useState3("14:30");
+    const [operationalSettingsBusy, setOperationalSettingsBusy] = useState3(false);
+    const [rTime, setRTime] = useState3("14:30");
+    const [icsPreview, setIcsPreview] = useState3(null);
+    const [icsNotice, setIcsNotice] = useState3("");
+    const [icsBusy, setIcsBusy] = useState3(false);
     const icsDialogRef = useRef(null);
     const icsCloseButtonRef = useRef(null);
-    const [rOneToOne, setROneToOne] = useState2(false);
-    const [grpSel, setGrpSel] = useState2("");
-    const [schedules, setSchedules] = useState2([]);
-    const [scheduleLoadError, setScheduleLoadError] = useState2("");
-    const [bizStats, setBizStats] = useState2(null);
-    const [attHistory, setAttHistory] = useState2(null);
-    const [schedEdit, setSchedEdit] = useState2(null);
-    const [schedPick, setSchedPick] = useState2(null);
-    const [courses, setCourses] = useState2([]);
-    const [schedCancel, setSchedCancel] = useState2(null);
-    const [bookings, setBookings] = useState2([]);
-    const [courseEdit, setCourseEdit] = useState2(null);
-    const [renewTh, setRenewTh] = useState2(() => parseInt(localStorage.getItem("lp_renew_threshold") || "2", 10));
+    const [rOneToOne, setROneToOne] = useState3(false);
+    const [grpSel, setGrpSel] = useState3("");
+    const [schedules, setSchedules] = useState3([]);
+    const [scheduleLoadError, setScheduleLoadError] = useState3("");
+    const [bizStats, setBizStats] = useState3(null);
+    const [attHistory, setAttHistory] = useState3(null);
+    const [schedEdit, setSchedEdit] = useState3(null);
+    const [schedPick, setSchedPick] = useState3(null);
+    const [courses, setCourses] = useState3([]);
+    const [schedCancel, setSchedCancel] = useState3(null);
+    const [bookings, setBookings] = useState3([]);
+    const [courseEdit, setCourseEdit] = useState3(null);
+    const [renewTh, setRenewTh] = useState3(() => parseInt(localStorage.getItem("lp_renew_threshold") || "2", 10));
     const saveRenewTh = (v) => {
       const n = parseInt(v, 10);
       if (n >= 0) {
@@ -1443,45 +1606,45 @@
         localStorage.setItem("lp_renew_threshold", String(n));
       }
     };
-    const [tuStu, setTuStu] = useState2(null);
-    const [settleMode, setSettleMode] = useState2("topup");
-    const [rfCr, setRfCr] = useState2("");
-    const [rfAmt, setRfAmt] = useState2("");
-    const [rfReason, setRfReason] = useState2("");
-    const [tuCr, setTuCr] = useState2("");
-    const [tuFee, setTuFee] = useState2("");
-    const [tuPkg, setTuPkg] = useState2("");
-    const [tuPay, setTuPay] = useState2("微信");
-    const [lSrch, setLSrch] = useState2("");
-    const [lStu, setLStu] = useState2(null);
-    const [lAct, setLAct] = useState2("");
-    const [lDateFrom, setLDateFrom] = useState2("");
-    const [lDateTo, setLDateTo] = useState2("");
-    const [lPage, setLPage] = useState2(1);
+    const [tuStu, setTuStu] = useState3(null);
+    const [settleMode, setSettleMode] = useState3("topup");
+    const [rfCr, setRfCr] = useState3("");
+    const [rfAmt, setRfAmt] = useState3("");
+    const [rfReason, setRfReason] = useState3("");
+    const [tuCr, setTuCr] = useState3("");
+    const [tuFee, setTuFee] = useState3("");
+    const [tuPkg, setTuPkg] = useState3("");
+    const [tuPay, setTuPay] = useState3("微信");
+    const [lSrch, setLSrch] = useState3("");
+    const [lStu, setLStu] = useState3(null);
+    const [lAct, setLAct] = useState3("");
+    const [lDateFrom, setLDateFrom] = useState3("");
+    const [lDateTo, setLDateTo] = useState3("");
+    const [lPage, setLPage] = useState3(1);
     const LPP = 30;
-    const [sPeriod, setSPeriod] = useState2("monthly");
-    const [sYear, setSYear] = useState2(String((/* @__PURE__ */ new Date()).getFullYear()));
-    const [sFrom, setSFrom] = useState2("");
-    const [sTo, setSTo] = useState2("");
-    const [sStu, setSStu] = useState2(null);
-    const [sStu2, setSStu2] = useState2(null);
-    const [approveCredits, setApproveCredits] = useState2({});
-    const [followUpDates, setFollowUpDates] = useState2({});
-    const [pkgEditId, setPkgEditId] = useState2(null);
-    const [pkgName, setPkgName] = useState2("");
-    const [pkgCredits, setPkgCredits] = useState2("");
-    const [pkgPrice, setPkgPrice] = useState2("");
-    const [tenantBrand, setTenantBrand] = useState2(() => window.STUDIOSAAS_BRAND || {});
-    const [team, setTeam] = useState2([]);
-    const [teamBusy, setTeamBusy] = useState2(false);
-    const [teamForm, setTeamForm] = useState2({ fullName: "", email: "", role: "teacher", temporaryPassword: "" });
-    const [actorRole, setActorRole] = useState2("");
+    const [sPeriod, setSPeriod] = useState3("monthly");
+    const [sYear, setSYear] = useState3(String((/* @__PURE__ */ new Date()).getFullYear()));
+    const [sFrom, setSFrom] = useState3("");
+    const [sTo, setSTo] = useState3("");
+    const [sStu, setSStu] = useState3(null);
+    const [sStu2, setSStu2] = useState3(null);
+    const [approveCredits, setApproveCredits] = useState3({});
+    const [followUpDates, setFollowUpDates] = useState3({});
+    const [pkgEditId, setPkgEditId] = useState3(null);
+    const [pkgName, setPkgName] = useState3("");
+    const [pkgCredits, setPkgCredits] = useState3("");
+    const [pkgPrice, setPkgPrice] = useState3("");
+    const [tenantBrand, setTenantBrand] = useState3(() => window.STUDIOSAAS_BRAND || {});
+    const [team, setTeam] = useState3([]);
+    const [teamBusy, setTeamBusy] = useState3(false);
+    const [teamForm, setTeamForm] = useState3({ fullName: "", email: "", role: "teacher", temporaryPassword: "" });
+    const [actorRole, setActorRole] = useState3("");
     const ownerRoles = ["owner", "platform_super_admin", "super_admin"];
     const roleTabs = {
-      owner: ["dashboard", "pending", "roster", "courses", "students", "works", "new_student", "billing", "topup", "logs", "stats", "settings"],
-      platform_super_admin: ["dashboard", "pending", "roster", "courses", "students", "works", "new_student", "billing", "topup", "logs", "stats", "settings"],
-      super_admin: ["dashboard", "pending", "roster", "courses", "students", "works", "new_student", "billing", "topup", "logs", "stats", "settings"],
-      manager: ["dashboard", "pending", "roster", "courses", "students", "works", "new_student", "billing", "topup", "logs", "stats", "settings"],
+      owner: ["dashboard", "pending", "roster", "courses", "students", "works", "new_student", "billing", "topup", "finance", "logs", "stats", "settings"],
+      platform_super_admin: ["dashboard", "pending", "roster", "courses", "students", "works", "new_student", "billing", "topup", "finance", "logs", "stats", "settings"],
+      super_admin: ["dashboard", "pending", "roster", "courses", "students", "works", "new_student", "billing", "topup", "finance", "logs", "stats", "settings"],
+      manager: ["dashboard", "pending", "roster", "courses", "students", "works", "new_student", "billing", "topup", "finance", "logs", "stats", "settings"],
       teacher: ["dashboard", "roster", "courses", "students", "works", "logs", "settings"],
       front_desk: ["dashboard", "pending", "students", "new_student", "billing", "topup", "logs", "settings"],
       staff: ["dashboard", "pending", "roster", "courses", "students", "works", "new_student", "billing", "topup", "logs", "settings"]
@@ -1497,24 +1660,24 @@
     const canReviewBookings = [...ownerRoles, "manager", "front_desk", "staff"].includes(actorRole);
     const canRefund = [...ownerRoles, "manager"].includes(actorRole);
     const canViewCmsNotifications = ["owner", "manager", "front_desk", "staff", "platform_super_admin", "super_admin"].includes(actorRole);
-    const [formPhoto, setFormPhoto] = useState2("");
-    const [editPhoto, setEditPhoto] = useState2("");
+    const [formPhoto, setFormPhoto] = useState3("");
+    const [editPhoto, setEditPhoto] = useState3("");
     const cooldowns = useRef(/* @__PURE__ */ new Set());
     const wasDownRef = useRef(false);
     const showToast = (msg, type = "success", action = null) => setToast({ msg, type, action, key: Date.now() });
-    useEffect2(() => {
+    useEffect3(() => {
       const syncBrand = (event) => setTenantBrand(event?.detail || window.STUDIOSAAS_BRAND || {});
       window.addEventListener("studiosaas:brand", syncBrand);
       syncBrand();
       return () => window.removeEventListener("studiosaas:brand", syncBrand);
     }, []);
-    useEffect2(() => {
+    useEffect3(() => {
       if (TENANT_SLUG && canManageOperations) loadTeam();
     }, [actorRole]);
-    useEffect2(() => {
+    useEffect3(() => {
       if (showSettings && TENANT_SLUG && canManageOperations) loadTeam();
     }, [showSettings]);
-    useEffect2(() => {
+    useEffect3(() => {
       if (actorRole && !allowedTabs.includes(tab)) setTab("dashboard");
     }, [actorRole, tab]);
     const tenantLogoUrl = tenantOwnedLogoUrl(tenantBrand);
@@ -1652,7 +1815,7 @@
         setTeamBusy(false);
       }
     };
-    useEffect2(() => {
+    useEffect3(() => {
       const h = (e) => {
         if ((e.metaKey || e.ctrlKey) && e.key === "k") {
           e.preventDefault();
@@ -1663,7 +1826,7 @@
       window.addEventListener("keydown", h);
       return () => window.removeEventListener("keydown", h);
     }, []);
-    useEffect2(() => {
+    useEffect3(() => {
       if (!icsPreview) return;
       const previousFocus = document.activeElement;
       const focusableSelector = [
@@ -1704,7 +1867,7 @@
         if (previousFocus && typeof previousFocus.focus === "function") previousFocus.focus();
       };
     }, [icsPreview]);
-    useEffect2(() => {
+    useEffect3(() => {
       const onKey = (e) => {
         if (portLB) {
           if (e.key === "ArrowRight") setPortLB((p) => p && p.idx < p.items.length - 1 ? { ...p, idx: p.idx + 1 } : p);
@@ -1714,7 +1877,7 @@
       window.addEventListener("keydown", onKey);
       return () => window.removeEventListener("keydown", onKey);
     }, [portLB]);
-    useEffect2(() => {
+    useEffect3(() => {
       setAttHistory(null);
       if (!TENANT_SLUG || !selS?.id) return;
       let alive = true;
@@ -1738,15 +1901,15 @@
       }
     }).catch(() => {
     });
-    useEffect2(() => {
+    useEffect3(() => {
       refreshSession();
     }, []);
     const apiHeaders = () => ({ "Content-Type": "application/json" });
     const revRef = useRef(0);
-    useEffect2(() => {
+    useEffect3(() => {
       if (loggedIn) load();
     }, [loggedIn]);
-    useEffect2(() => {
+    useEffect3(() => {
       if (!loggedIn) return;
       const id = setInterval(async () => {
         try {
@@ -1768,7 +1931,7 @@
       }, 3e4);
       return () => clearInterval(id);
     }, [loggedIn]);
-    useEffect2(() => {
+    useEffect3(() => {
       if (!loggedIn || !TENANT_SLUG || !canViewCmsNotifications) {
         setCmsNotifications([]);
         setCmsNotificationUnreadCount(0);
@@ -2010,7 +2173,7 @@
       a.download = `Studio_${todayISO()}.json`;
       a.click();
     };
-    const activityMap = useMemo2(() => {
+    const activityMap = useMemo3(() => {
       const map = {};
       const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1e3;
       const idsByName = /* @__PURE__ */ new Map();
@@ -2041,7 +2204,7 @@
         return { icon: "warning", label: "流失风险", cls: "bg-orange-100 text-orange-600" };
       return null;
     };
-    const upcomingBirthdays = useMemo2(() => {
+    const upcomingBirthdays = useMemo3(() => {
       const now = /* @__PURE__ */ new Date();
       const out = [];
       db.students.forEach((s) => {
@@ -2059,11 +2222,11 @@
       });
       return out.sort((a, b) => a.in - b.in);
     }, [db.students]);
-    useEffect2(() => {
+    useEffect3(() => {
       setStudentPage(1);
       setSelectedStudentIds([]);
     }, [srch, sortBy, filterBy]);
-    const sortedFiltered = useMemo2(() => {
+    const sortedFiltered = useMemo3(() => {
       let list = [...db.students];
       if (filterBy === "archived") {
         list = list.filter((s) => s.archived);
@@ -2109,11 +2272,11 @@
       return list;
     }, [db.students, srch, sortBy, filterBy, activityMap, inactiveDays, renewTh]);
     const studentPageCount = Math.max(1, Math.ceil(sortedFiltered.length / STUDENTS_PER_PAGE));
-    const pageStudents = useMemo2(() => {
+    const pageStudents = useMemo3(() => {
       const page = Math.min(studentPage, studentPageCount);
       return sortedFiltered.slice((page - 1) * STUDENTS_PER_PAGE, page * STUDENTS_PER_PAGE);
     }, [sortedFiltered, studentPage, studentPageCount]);
-    const selectedStudents = useMemo2(
+    const selectedStudents = useMemo3(
       () => sortedFiltered.filter((s) => selectedStudentIds.includes(s.id)),
       [sortedFiltered, selectedStudentIds]
     );
@@ -2122,15 +2285,15 @@
       const ids = pageStudents.map((s) => s.id);
       return checked ? Array.from(/* @__PURE__ */ new Set([...prev, ...ids])) : prev.filter((id) => !ids.includes(id));
     });
-    const sortedAZ = useMemo2(
+    const sortedAZ = useMemo3(
       () => [...db.students].filter((s) => !s.archived).sort((a, b) => a.name.localeCompare(b.name, "zh-CN")),
       [db.students]
     );
-    const portfolioEntries = useMemo2(
+    const portfolioEntries = useMemo3(
       () => db.students.filter((student) => !student.archived).flatMap((student) => (student.portfolio || []).map((item) => ({ student, item }))).sort((a, b) => String(b.item.date || "").localeCompare(String(a.item.date || ""))),
       [db.students]
     );
-    useEffect2(() => {
+    useEffect3(() => {
       if (tab !== "students" || !routeRecordId) return;
       const student = db.students.find((item) => String(item.id) === String(routeRecordId));
       if (student && selS?.id !== student.id) {
@@ -2138,35 +2301,35 @@
         setEditP(false);
       }
     }, [tab, routeRecordId, db.students]);
-    const scheduledForDate = useMemo2(() => {
+    const scheduledForDate = useMemo3(() => {
       if (!TENANT_SLUG || !schedules.length) return [];
       const wd = (/* @__PURE__ */ new Date(`${rDate}T12:00:00`)).getDay();
       return schedules.filter((sc) => sc.weekday === wd);
     }, [schedules, rDate]);
-    const scheduledIdSet = useMemo2(
+    const scheduledIdSet = useMemo3(
       () => new Set(scheduledForDate.flatMap((sc) => sc.students.map((st) => st.id))),
       [scheduledForDate]
     );
-    const dayIds = useMemo2(() => {
+    const dayIds = useMemo3(() => {
       const manual = db.rosters[rDate] || [];
       return [.../* @__PURE__ */ new Set([...scheduledIdSet, ...manual])];
     }, [db.rosters, rDate, scheduledIdSet]);
-    const todayEffectiveCount = useMemo2(() => {
+    const todayEffectiveCount = useMemo3(() => {
       const manual = db.rosters[todayISO()] || [];
       const wd = (/* @__PURE__ */ new Date()).getDay();
       const sched = schedules.filter((sc) => sc.weekday === wd).flatMap((sc) => sc.students.map((st) => st.id));
       return (/* @__PURE__ */ new Set([...sched, ...manual])).size;
     }, [db.rosters, schedules]);
-    const todayCheckedCount = useMemo2(() => {
+    const todayCheckedCount = useMemo3(() => {
       const d = todayISO().split("-");
       const prefix = `${d[2]}/${d[1]}/${d[0]}`;
       return new Set(db.logs.filter((l) => l.action === "上课签到" && String(l.date).startsWith(prefix)).map((l) => l.studentId || l.studentName)).size;
     }, [db.logs]);
-    const availRoster = useMemo2(
+    const availRoster = useMemo3(
       () => sortedAZ.filter((s) => !dayIds.includes(s.id)),
       [sortedAZ, dayIds]
     );
-    const analytics = useMemo2(() => {
+    const analytics = useMemo3(() => {
       const totalStudents = db.students.filter((s) => !s.archived).length;
       const totalBalance = db.students.reduce((a, b) => a + (parseInt(b.balance, 10) || 0), 0);
       const totalCheckins = db.logs.filter((l) => l.action === "上课签到").length;
@@ -2216,7 +2379,7 @@
       }
       return { totalStudents, totalBalance, totalCheckins, totalRevenue, lowBalance, inactive, todayRoster, monthlyReports, yearlyReports, availYears, chart12, recentGroups };
     }, [db, inactiveDays]);
-    const statsData = useMemo2(() => {
+    const statsData = useMemo3(() => {
       let logs = sStu ? db.logs.filter((l) => {
         const s = db.students.find((x) => x.id === sStu);
         return s && (l.studentId === s.id || !l.studentId && l.studentName === s.name);
@@ -2250,7 +2413,7 @@
       const rows = Object.keys(byP).sort().reverse().map((k) => ({ key: k, ...byP[k] }));
       return { rows, totalRev: rows.reduce((s, r) => s + r.revenue, 0), totalCI: rows.reduce((s, r) => s + r.checkins, 0) };
     }, [db, sPeriod, sYear, sFrom, sTo, sStu]);
-    const studentStats = useMemo2(() => {
+    const studentStats = useMemo3(() => {
       if (!sStu2) return null;
       const s = db.students.find((x) => x.id === sStu2);
       if (!s) return null;
@@ -2273,7 +2436,7 @@
         logs
       };
     }, [db, sStu2]);
-    const gResults = useMemo2(() => {
+    const gResults = useMemo3(() => {
       if (!gQ.trim()) return [];
       const q = gQ.trim().toLowerCase();
       return db.students.filter((s) => !s.archived && (s.name.toLowerCase().includes(q) || (s.firstName || "").toLowerCase().includes(q) || (s.lastName || "").toLowerCase().includes(q) || (s.mobile || "").includes(q) || (s.wechat || "").toLowerCase().includes(q))).slice(0, 10);
@@ -2282,7 +2445,7 @@
       const m = String(ds).match(/^(\d{2})\/(\d{2})\/(\d{4})/);
       return m ? `${m[3]}-${m[2]}-${m[1]}` : "";
     };
-    const auditAsLogs = useMemo2(() => {
+    const auditAsLogs = useMemo3(() => {
       if (!TENANT_SLUG || !auditEvents.length) return [];
       const nameById = new Map(db.students.map((s) => [String(s.id), s.name]));
       return auditEvents.reduce((rows, ev) => {
@@ -2321,8 +2484,8 @@
       const t = /* @__PURE__ */ new Date(`${m[3]}-${m[2]}-${m[1]}T${m[4] || "00"}:${m[5] || "00"}:${m[6] || "00"}`);
       return isNaN(t.getTime()) ? 0 : t.getTime();
     };
-    const allLogs = useMemo2(() => auditAsLogs.length ? [...db.logs, ...auditAsLogs].sort((a, b) => logTimestamp(b) - logTimestamp(a)) : db.logs, [db.logs, auditAsLogs]);
-    const filteredLogs = useMemo2(() => {
+    const allLogs = useMemo3(() => auditAsLogs.length ? [...db.logs, ...auditAsLogs].sort((a, b) => logTimestamp(b) - logTimestamp(a)) : db.logs, [db.logs, auditAsLogs]);
+    const filteredLogs = useMemo3(() => {
       const stuName = lStu ? (db.students.find((x) => x.id === lStu) || {}).name : null;
       return allLogs.filter((l) => {
         if (stuName && l.studentName !== stuName) return false;
@@ -2338,14 +2501,14 @@
     }, [allLogs, db.students, lStu, lSrch, lAct, lDateFrom, lDateTo]);
     const logPageCount = Math.max(1, Math.ceil(filteredLogs.length / LPP));
     const pagedLogs = filteredLogs.slice((lPage - 1) * LPP, lPage * LPP);
-    const logActions = useMemo2(() => [...new Set(allLogs.map((l) => l.action))].sort(), [allLogs]);
-    useEffect2(() => {
+    const logActions = useMemo3(() => [...new Set(allLogs.map((l) => l.action))].sort(), [allLogs]);
+    useEffect3(() => {
       setLPage(1);
     }, [lStu, lSrch, lAct, lDateFrom, lDateTo]);
-    useEffect2(() => {
+    useEffect3(() => {
       if (lPage > logPageCount) setLPage(logPageCount);
     }, [logPageCount]);
-    const bizReport = useMemo2(() => {
+    const bizReport = useMemo3(() => {
       const now = /* @__PURE__ */ new Date();
       const months = Array.from({ length: 6 }, (_, i) => {
         const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
@@ -2411,7 +2574,7 @@
       a.download = `Studio_经营月报_${todayISO()}.csv`;
       a.click();
     };
-    const payBreakdown = useMemo2(() => {
+    const payBreakdown = useMemo3(() => {
       const map = {};
       db.logs.filter((l) => l.action === "充值购课").forEach((l) => {
         const pm = l.payMethod || "未记录";
@@ -2506,7 +2669,7 @@
         }
       }, { confirmText: "确认撤销" });
     };
-    const rosterDone = useMemo2(() => {
+    const rosterDone = useMemo3(() => {
       const m = String(rDate).match(/^(\d{4})-(\d{2})-(\d{2})$/);
       const prefix = m ? `${m[3]}/${m[2]}/${m[1]}` : "__none__";
       const done = /* @__PURE__ */ new Set();
@@ -2628,7 +2791,7 @@
         }
       }, { danger: true, confirmText: "确认删除" });
     };
-    const teachableMembers = useMemo2(
+    const teachableMembers = useMemo3(
       () => team.filter((m) => m.status === "active" && ["owner", "manager", "teacher"].includes(m.role)),
       [team]
     );
@@ -4046,6 +4209,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
       { key: "business", label: "经营", items: [
         { k: "billing", i: "money", l: "账单", s: "账单" },
         { k: "topup", i: "money", l: "充值与退款", s: "结算" },
+        { k: "finance", i: "trend", l: "财务", s: "财务" },
         { k: "stats", i: "trend", l: "经营统计", s: "统计" }
       ] },
       { key: "records", label: "记录", items: [
@@ -4062,6 +4226,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
       works: "作品管理",
       billing: "账单",
       topup: "充值与退款",
+      finance: "财务",
       logs: "操作日志",
       stats: "经营统计",
       settings: "系统设置",
@@ -6010,6 +6175,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
           canTakePayment: canWriteCredits
         }
       ),
+      tab === "finance" && /* @__PURE__ */ React.createElement(FinancePanel, { api: v1Api, showToast }),
       tab === "topup" && /* @__PURE__ */ React.createElement("div", { className: "anim bg-white rounded-2xl shadow-sm border border-gray-100 p-6 max-w-2xl mx-auto" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-start justify-between gap-3 mb-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", { className: "inline-flex items-center gap-1.5 text-xl md:text-2xl font-bold text-gray-800" }, /* @__PURE__ */ React.createElement(Icon, { name: "money", className: "w-4 h-4" }), "充值与退款"), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500 mt-1" }, "先选择学员，再完成充值或退款；支付渠道只记录实际收款方式，不在 CMS 内接入在线支付。"))), canManageOperations && /* @__PURE__ */ React.createElement("details", { open: true, className: "mb-5 rounded-2xl border border-indigo-100 bg-indigo-50/60 overflow-hidden" }, /* @__PURE__ */ React.createElement("summary", { className: "cursor-pointer select-none px-4 py-3 min-h-[48px] inline-flex items-center gap-2 text-sm font-bold text-indigo-900" }, /* @__PURE__ */ React.createElement(Icon, { name: "card", className: "w-4 h-4" }), "套餐管理 ", /* @__PURE__ */ React.createElement("span", { className: "text-xs font-normal text-indigo-500" }, (db.packages || []).length, " 个")), /* @__PURE__ */ React.createElement("div", { className: "p-4 pt-1 space-y-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-indigo-700 leading-relaxed" }, "这里定义前台充值时可快速选择的课包。修改套餐不会改动历史充值记录；删除前请确认它不再需要被新收款使用。"), (db.packages || []).map((pkg) => /* @__PURE__ */ React.createElement("div", { key: pkg.id, className: "flex items-center gap-3 rounded-xl border border-indigo-100 bg-white px-3 py-2.5" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0 flex-1" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm font-bold text-gray-800 truncate" }, pkg.name), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-0.5" }, pkg.credits, " 课时 · AUD ", Number(pkg.price || 0).toFixed(2))), /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => {
         setPkgEditId(pkg.id);
         setPkgName(pkg.name);

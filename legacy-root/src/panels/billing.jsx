@@ -13,25 +13,9 @@
  * 形成循环依赖，也让这个面板可以被单独测试。
  */
 
+import { aud, fmtApiDate } from "./_shared.jsx";
+
 const { useState, useEffect, useCallback, useMemo } = React;
-
-const centsToAud = (cents) => {
-  const n = Number(cents || 0) / 100;
-  return n.toLocaleString('en-AU', { style: 'currency', currency: 'AUD' });
-};
-
-/* v1 接口返回的日期是 RFC 1123（`Fri, 28 Aug 2026 00:00:00 GMT`），不是 ISO。
-   主文件的 fmtDate 对非 ISO 的兜底是 split(' ')[0]，用在这里会得到 "Fri,"。
-   所以这里两种格式都认：ISO 走字符串切分（不经时区），其余交给 Date 解析。 */
-const fmtApiDate = (value) => {
-  if (!value) return '';
-  const iso = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (iso) return `${iso[3]}/${iso[2]}/${iso[1]}`;
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return String(value);
-  const pad = (n) => String(n).padStart(2, '0');
-  return `${pad(parsed.getDate())}/${pad(parsed.getMonth() + 1)}/${parsed.getFullYear()}`;
-};
 
 const STATUS_LABEL = {
   draft: '草稿', issued: '已开具', part_paid: '部分付款', paid: '已付清', void: '已作废',
@@ -106,7 +90,8 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment }) {
       .then(d => { if (!cancelled) setDetail(d); })
       .catch(e => { if (!cancelled) showToast(`发票详情加载失败：${e.message}`, 'warn'); });
     return () => { cancelled = true; };
-  }, [selectedId, api, showToast]);
+    // 同上：showToast 不进依赖，否则失败即无限重试。
+  }, [selectedId, api]);
 
   const summary = useMemo(() => {
     const issued = invoices.filter(i => i.status !== 'draft' && i.status !== 'void');
@@ -176,7 +161,7 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment }) {
           autoAllocate: true,
         }),
       });
-      showToast(`已登记 ${centsToAud(balance)}`, 'success');
+      showToast(`已登记 ${aud(balance)}`, 'success');
       await load();
       const refreshed = await api(`/billing/invoices/${selectedId}`);
       setDetail(refreshed);
@@ -193,10 +178,10 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment }) {
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Kpi label="已开票" value={centsToAud(summary.billed)} sub={`${invoices.length} 张 · 含 GST`} />
-        <Kpi label="已收到" value={centsToAud(summary.paid)} tone="good"
+        <Kpi label="已开票" value={aud(summary.billed)} sub={`${invoices.length} 张 · 含 GST`} />
+        <Kpi label="已收到" value={aud(summary.paid)} tone="good"
              sub={summary.collectedPercent === null ? '暂无已开具发票' : `${summary.collectedPercent}% 已收`} />
-        <Kpi label="逾期" value={centsToAud(summary.overdueCents)} tone={summary.overdueCents > 0 ? 'alert' : undefined}
+        <Kpi label="逾期" value={aud(summary.overdueCents)} tone={summary.overdueCents > 0 ? 'alert' : undefined}
              sub={`${summary.overdueAccounts} 个家庭`} />
         <Kpi label="待发草稿" value={String(summary.drafts)} sub={summary.drafts ? '勾选后可批量发出' : '没有待发的'} />
       </div>
@@ -236,7 +221,7 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment }) {
               <span className="ml-auto flex items-center gap-2">
                 <StatusChip invoice={invoice} />
                 <span className={`text-xs font-bold tabular-nums ${isOverdue(invoice) ? 'text-red-600' : ''}`}>
-                  {centsToAud(invoice.balance_cents ?? invoice.total_cents)}
+                  {aud(invoice.balance_cents ?? invoice.total_cents)}
                 </span>
               </span>
             </button>
@@ -273,24 +258,24 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment }) {
                         <tr key={line.id} className="border-t border-gray-100">
                           <td className="py-2">{line.description}</td>
                           <td className="py-2 text-right tabular-nums">{line.quantity}</td>
-                          <td className="py-2 text-right tabular-nums">{centsToAud(line.unit_price_cents)}</td>
-                          <td className="py-2 text-right tabular-nums">{centsToAud(line.tax_cents)}</td>
-                          <td className="py-2 text-right tabular-nums">{centsToAud(line.total_cents)}</td>
+                          <td className="py-2 text-right tabular-nums">{aud(line.unit_price_cents)}</td>
+                          <td className="py-2 text-right tabular-nums">{aud(line.tax_cents)}</td>
+                          <td className="py-2 text-right tabular-nums">{aud(line.total_cents)}</td>
                         </tr>
                       ))}
                       <tr className="border-t border-gray-200 font-bold">
                         <td className="py-2" colSpan={4}>应付</td>
-                        <td className="py-2 text-right tabular-nums">{centsToAud(detail.invoice.total_cents)}</td>
+                        <td className="py-2 text-right tabular-nums">{aud(detail.invoice.total_cents)}</td>
                       </tr>
                       {Number(detail.invoice.amount_paid_cents) > 0 && (
                         <tr className="text-green-700">
                           <td className="py-1" colSpan={4}>已付</td>
-                          <td className="py-1 text-right tabular-nums">−{centsToAud(detail.invoice.amount_paid_cents)}</td>
+                          <td className="py-1 text-right tabular-nums">−{aud(detail.invoice.amount_paid_cents)}</td>
                         </tr>
                       )}
                       <tr className="font-bold">
                         <td className="py-1" colSpan={4}>余额</td>
-                        <td className="py-1 text-right tabular-nums">{centsToAud(detail.invoice.balance_cents)}</td>
+                        <td className="py-1 text-right tabular-nums">{aud(detail.invoice.balance_cents)}</td>
                       </tr>
                     </tbody>
                   </table>

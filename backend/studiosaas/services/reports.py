@@ -126,6 +126,11 @@ def teacher_cost(conn, tenant_id: str, *, start: date, end: date) -> dict[str, A
         conn,
         """
         SELECT s.teacher_user_id, u.full_name,
+               -- How the teacher is engaged decides what may happen to this
+               -- figure next: a contractor's total can become a payable bill,
+               -- an employee's must not. A cost report that omits it invites
+               -- exactly the wrong action.
+               COALESCE(e.engagement, 'unset')                      AS engagement,
                COUNT(*)                                            AS sessions,
                COUNT(*) FILTER (WHERE NOT s.counts_for_pay)        AS unpaid_sessions,
                COALESCE(SUM(s.duration_minutes) FILTER (WHERE s.counts_for_pay), 0) AS paid_minutes,
@@ -133,8 +138,10 @@ def teacher_cost(conn, tenant_id: str, *, start: date, end: date) -> dict[str, A
                COALESCE(SUM(s.tuition_basis_cents), 0)             AS billed_cents
         FROM teaching_sessions s
         JOIN users u ON u.id = s.teacher_user_id
+        LEFT JOIN teacher_engagements e
+               ON e.tenant_id = s.tenant_id AND e.teacher_user_id = s.teacher_user_id
         WHERE s.tenant_id = %s AND s.occurred_on BETWEEN %s AND %s
-        GROUP BY s.teacher_user_id, u.full_name
+        GROUP BY s.teacher_user_id, u.full_name, e.engagement
         ORDER BY cost_cents DESC
         """,
         (tenant_id, start, end),

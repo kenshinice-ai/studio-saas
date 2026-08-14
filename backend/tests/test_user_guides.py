@@ -241,5 +241,14 @@ def test_the_cms_tab_list_matches_the_navigation() -> None:
     labels = re.findall(r"\{k:'\w+',\s*i:'\w+',\s*l:'([^']+)'", source)
     assert labels, "the CMS tab definitions could not be parsed"
     readme = _text("README.md")
+    # A bare substring search passes for the wrong reason: `财务` already
+    # appeared in this file as prose ("财务终审", "无财务报表") long before any
+    # tab was called that, so a new nav entry could ship undocumented and green.
+    # The contract is that each tab has a ROW in the visibility table, which is
+    # what a studio owner actually reads before handing out an account.
+    documented = set(re.findall(r"^\| ([^|]+?)(?:（[^|]*）)? \|", readme, re.M))
     for label in labels:
-        assert label in readme, f"CMS tab '{label}' is missing from the guides"
+        assert label in documented, (
+            f"CMS tab '{label}' has no row in the guides' tab-visibility table. "
+            "Mentioning the word somewhere in the file is not documentation."
+        )
