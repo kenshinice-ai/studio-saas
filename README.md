@@ -4,14 +4,13 @@
 
 These are three independent facts. A matching version label is not proof that
 the current source tree was packaged or deployed; Source, Package and
-Production remain separate rows. **v10.0.0 has completed Source only** — the
-Package and Production rows still describe v9.9.6 and are not claims about
-this release.
+Production remain separate rows. **v10.0.0 has completed Source and Package.** The Production row still
+describes v9.9.6 and is not a claim about this release.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
 | Source | **v10.0.0 committed** | `VERSION` = **10.0.0**; the money layer — 40 tables across migrations 0032–0038, 9 service modules, 34 routes, 38 new tests. Full gate green: pytest `2536 passed, 22 skipped`, legacy CMS smoke `73 passed`, tenant isolation `237 passed, 0 failed`. Every database invariant (invoice immutability, gapless numbering, allocation ceiling, payment idempotency, cross-tenant refusal, the Xero precondition gate) verified against a real PostgreSQL, not asserted in a static test. |
-| Package | Last built: SaaS and Edition **v9.9.6** | SaaS `dist/PWE-StudioSaaS-aws-9.9.6.tar.gz` SHA-256 `ce2672d4a739583e00bc92d20b903bdb12e62fd1f8c0000539934e35c2388ce8`; Edition `dist/PWE-Studio-Edition-9.9.6.tar.gz` SHA-256 `c766d654a30ac1a3c30af90de3a3c6c4c31723cf6464799b3682e1be28269665`. **No v10.0.0 package has been built.** |
+| Package | **v10.0.0 built and verified** | SaaS `dist/PWE-StudioSaaS-aws-10.0.0.tar.gz` SHA-256 `7590f6fc2e6d3cd1a10d99de08f6ad2264d166cb9b2340d8629eda47397d5fff`; Edition `dist/PWE-Studio-Edition-10.0.0.tar.gz` SHA-256 `c2a4f53c7bf98359eadb86aefcf880092279e1cde94f9e809948dca8b6b90bd3`. Both `BUILD_INFO` records read v10.0.0 with modes `saas` / `standalone`; both passed checksum, entrypoint, version and exclusion checks. 25 MB each — the showcase seed sources are `export-ignore`d, because the demo reset reads only `seed-assets/showcase/`. |
 | Production | Last deployed: **v9.9.6** on `pwestudio.online` | `/opt/pwestudio/current` resolves to `/opt/pwestudio/releases/PWE-StudioSaaS-aws-9.9.6`; deep health reported `appVersion=9.9.6`, `db=ok`, `mode=saas`. **v10.0.0 is not deployed**, and it carries seven migrations, so a deployment is a schema change requiring a pre-deploy backup. |
 
 Re-verify the production health endpoint (`/v1/health?deep=1`) before any later
