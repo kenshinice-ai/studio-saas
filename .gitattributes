@@ -30,6 +30,12 @@
 # Commercial material: pricing deck and objection handling.
 docs/sales/         export-ignore
 
+# Showcase seed *sources*. The demo reset reads seed-assets/showcase/ via its
+# manifest.json — 30 processed assets, none of them from here. This tree is the
+# unrecompressed originals kept for regeneration, and shipping it put 72 MB of
+# files the server never opens into every deployment bundle.
+backend/seed-assets/lets-paint-showcase-generated/ export-ignore
+
 # Internal engineering notes and audit findings.
 docs/HANDOFF_LATEST.md          export-ignore
 docs/HANDOFF_2026-07-26.md      export-ignore
