@@ -399,8 +399,102 @@
     )), /* @__PURE__ */ React.createElement("span", { className: "ml-auto text-[11px] text-gray-500" }, range.from, " → ", range.to)), view === "payroll" ? /* @__PURE__ */ React.createElement(PayrollView, { api, showToast, range }) : /* @__PURE__ */ React.createElement(ReportsView, { api, range }));
   }
 
+  // legacy-root/src/panels/integrations.jsx
+  var { useState: useState3, useEffect: useEffect3, useCallback: useCallback3 } = React;
+  var BLOCKER_TEXT = {
+    addon_not_active: "尚未开通 Xero 加购 —— 这一项由平台方授予",
+    not_connected: "还没有连接到 Xero 组织",
+    mapping_not_confirmed: "科目与税率映射还没有确认",
+    demo_run_not_completed: "还没有在 Xero 测试组织跑通一个完整周期",
+    single_entry_not_answered: "还没有回答「是否已有别的通道在同步」"
+  };
+  function Step({ n, done, active, title, children }) {
+    const badge = done ? "bg-green-50 text-green-700 border-green-200" : active ? "bg-indigo-600 text-white border-indigo-600" : "bg-gray-100 text-gray-500 border-gray-200";
+    return /* @__PURE__ */ React.createElement("div", { className: `flex gap-3 items-start p-3 rounded-xl border ${active ? "border-indigo-200 bg-indigo-50" : "border-gray-200 bg-white"}` }, /* @__PURE__ */ React.createElement("span", { className: `w-7 h-7 rounded-full grid place-items-center text-xs font-bold border flex-none ${badge}` }, done ? "✓" : n), /* @__PURE__ */ React.createElement("div", { className: "text-xs min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "font-bold mb-0.5" }, title), /* @__PURE__ */ React.createElement("div", { className: "text-gray-600" }, children)));
+  }
+  function IntegrationsPanel({ api, showToast, canManage }) {
+    const [state, setState] = useState3(null);
+    const [busy, setBusy] = useState3(false);
+    const [error, setError] = useState3("");
+    const load = useCallback3(async () => {
+      try {
+        setState(await api("/integrations/xero"));
+        setError("");
+      } catch (e) {
+        setError(e.status === 403 ? "" : `集成状态加载失败：${e.message}`);
+        setState(null);
+      }
+    }, [api]);
+    useEffect3(() => {
+      load();
+    }, [load]);
+    const step = async (name, extra = {}) => {
+      if (busy) return;
+      setBusy(true);
+      try {
+        const body = name === "single_entry" ? JSON.stringify(extra) : JSON.stringify({ step: name });
+        const path = name === "single_entry" ? "/integrations/xero/single-entry" : "/integrations/xero/gate";
+        await api(path, { method: "POST", body });
+        await load();
+        showToast("已更新", "success");
+      } catch (e) {
+        showToast(e.message, "warn");
+      } finally {
+        setBusy(false);
+      }
+    };
+    if (error) return /* @__PURE__ */ React.createElement("p", { className: "text-xs text-red-600" }, error);
+    if (!state) {
+      return /* @__PURE__ */ React.createElement("div", { className: "rounded-xl border border-gray-200 bg-white p-4" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold mb-1" }, "Xero 直连"), /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-600" }, "发票、收款与承包老师应付自动推送到 Xero，不用再录第二遍。 任意套餐可加购 —— 开通由平台方操作，开通后这里会出现三步接入向导。"));
+    }
+    const s = state.settings || {};
+    const blockers = state.blockers || [];
+    const has = (key) => !blockers.includes(key);
+    return /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 flex-wrap" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold" }, "Xero 直连"), /* @__PURE__ */ React.createElement("span", { className: `text-[10px] font-bold px-1.5 py-0.5 rounded border whitespace-nowrap
+          ${state.pushEnabled ? "bg-green-50 text-green-700 border-green-200" : "bg-gray-100 text-gray-600 border-gray-200"}` }, state.pushEnabled ? "推送已开启" : "推送未开启"), s.last_pushed_at && /* @__PURE__ */ React.createElement("span", { className: "text-[11px] text-gray-500" }, "上次推送 ", fmtApiDate(s.last_pushed_at))), /* @__PURE__ */ React.createElement("div", { className: "grid gap-3 items-start", style: { gridTemplateColumns: "var(--ui-golden-columns-reverse)" } }, /* @__PURE__ */ React.createElement("div", { className: "grid gap-2 min-w-0" }, /* @__PURE__ */ React.createElement(Step, { n: 1, done: state.entitled, title: "加购权利" }, state.entitled ? "已开通" : "由平台方授予，租户侧只读"), /* @__PURE__ */ React.createElement(Step, { n: 2, done: state.connected, active: state.entitled && !state.connected, title: "连接 Xero" }, state.connected ? "已连接" : "需要 owner 授权自己的 Xero 组织"), /* @__PURE__ */ React.createElement(Step, { n: 3, done: has("mapping_not_confirmed"), active: state.connected && !has("mapping_not_confirmed"), title: "科目与税率映射" }, state.missingMappings?.length ? `还差：${state.missingMappings.join("、")}` : has("mapping_not_confirmed") ? "会计已确认" : "填完后由会计确认"), /* @__PURE__ */ React.createElement(Step, { n: 4, done: has("demo_run_not_completed"), title: "测试组织试跑" }, has("demo_run_not_completed") ? "已跑通一个完整周期" : "先在 Xero 测试组织跑通，再连生产账套"), /* @__PURE__ */ React.createElement(Step, { n: 5, done: has("single_entry_not_answered"), title: "单一入口" }, has("single_entry_not_answered") ? s.single_entry_decision === "clearing_account" ? `走清算账户 ${s.clearing_account_code}` : "已关闭其他通道的同步" : "还没有回答")), /* @__PURE__ */ React.createElement("div", { className: "grid gap-3 min-w-0" }, !has("single_entry_not_answered") && state.connected && /* @__PURE__ */ React.createElement("div", { className: "rounded-xl border border-red-200 bg-red-50 p-4" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-red-700 mb-1" }, "先回答这个"), /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-700 mb-2" }, "你们的收款渠道（比如 Square）是不是", /* @__PURE__ */ React.createElement("strong", null, "已经在往同一个 Xero 组织同步"), "？ 如果是，我们再推一遍，Xero 里就会出现两套记录。"), canManage && /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2" }, /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        disabled: busy,
+        onClick: () => step("single_entry", { decision: "ours_only" }),
+        className: "min-h-[44px] px-3 rounded-lg bg-white border border-gray-300 text-xs font-bold"
+      },
+      "已关掉对方的同步"
+    ), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        disabled: busy,
+        onClick: () => {
+          const code = window.prompt("清算账户科目号");
+          if (code) step("single_entry", { decision: "clearing_account", clearingAccountCode: code });
+        },
+        className: "min-h-[44px] px-3 rounded-lg bg-white border border-gray-300 text-xs font-bold"
+      },
+      "保留，走清算账户"
+    ))), /* @__PURE__ */ React.createElement("div", { className: "rounded-xl border border-gray-200 bg-white p-4" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold mb-2" }, "开关三 · 生产推送"), state.canEnablePush ? canManage ? /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        disabled: busy,
+        onClick: () => step(state.pushEnabled ? "disable_push" : "enable_push"),
+        className: `min-h-[44px] px-4 rounded-lg text-xs font-bold
+                          ${state.pushEnabled ? "bg-white border border-gray-300 text-gray-700" : "bg-indigo-600 text-white"}`
+      },
+      state.pushEnabled ? "暂停推送" : "开启推送"
+    ) : /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-500" }, "需要 owner 权限。") : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        disabled: true,
+        className: "min-h-[44px] px-4 rounded-lg bg-gray-100 text-gray-400 text-xs font-bold cursor-not-allowed"
+      },
+      "还不能开启"
+    ), /* @__PURE__ */ React.createElement("ul", { className: "mt-2 text-[11px] text-gray-600 list-disc pl-4" }, blockers.map((b) => /* @__PURE__ */ React.createElement("li", { key: b }, BLOCKER_TEXT[b] || b)))), /* @__PURE__ */ React.createElement("p", { className: "mt-2 text-[11px] text-gray-500" }, "暂停只停新的推送。连接、映射、ID 对应表与错误队列都保留，年末封账可以放心用。")), /* @__PURE__ */ React.createElement("div", { className: "rounded-xl border border-gray-200 bg-white p-4" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold mb-1" }, "未进 Xero 的单据"), /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-600" }, "推送失败的单据会列在这里，带失败原因，修好后一键重放 —— 重放沿用同一个幂等键， 不会在 Xero 里产生第二张。", /* @__PURE__ */ React.createElement("strong", null, "这是给你们看的"), "：原因几乎总是会计要改的一处映射。")))));
+  }
+
   // legacy-root/src/cms-app.jsx
-  var { useState: useState3, useEffect: useEffect3, useMemo: useMemo3, useRef, useCallback: useCallback3 } = React;
+  var { useState: useState4, useEffect: useEffect4, useMemo: useMemo3, useRef, useCallback: useCallback4 } = React;
   var tenantSlug = window.STUDIOSAAS_TENANT_SLUG || new URLSearchParams(location.search).get("tenant") || (location.pathname.match(/^\/([^/]+)(?:\/cms)?\/?$/) || [])[1] || "";
   var nowAU = () => (/* @__PURE__ */ new Date()).toLocaleString("en-AU", {
     timeZone: "Australia/Melbourne",
@@ -557,8 +651,8 @@
     return ["/logo.png", "/logo-light.png", "/favicon.svg"].includes(source) ? "" : source;
   };
   function TenantBrandLogo({ className = "" }) {
-    const [brand, setBrand] = useState3(() => window.STUDIOSAAS_BRAND || {});
-    useEffect3(() => {
+    const [brand, setBrand] = useState4(() => window.STUDIOSAAS_BRAND || {});
+    useEffect4(() => {
       const syncBrand = (event) => setBrand(event?.detail || window.STUDIOSAAS_BRAND || {});
       window.addEventListener("studiosaas:brand", syncBrand);
       syncBrand();
@@ -665,7 +759,7 @@
     return /* @__PURE__ */ React.createElement("span", { className: "px-2.5 py-1 rounded-lg text-xs font-bold bg-green-100 text-green-700 whitespace-nowrap" }, v);
   }
   function Toast({ msg, type, action, onDone }) {
-    useEffect3(() => {
+    useEffect4(() => {
       const t = setTimeout(onDone, action ? 6e3 : 2700);
       return () => clearTimeout(t);
     }, []);
@@ -756,7 +850,7 @@
   function useModalFocus(isOpen, onClose, dialogRef, initialFocusRef = null) {
     const closeRef = useRef(onClose);
     closeRef.current = onClose;
-    useEffect3(() => {
+    useEffect4(() => {
       if (!isOpen) return;
       const previousFocus = document.activeElement;
       const selector = [
@@ -802,11 +896,11 @@
     }, [isOpen, dialogRef, initialFocusRef]);
   }
   function ConfirmDialog({ dialog, onClose }) {
-    const [typed, setTyped] = useState3("");
+    const [typed, setTyped] = useState4("");
     const boxRef = useRef(null);
     const onCloseRef = useRef(onClose);
     onCloseRef.current = onClose;
-    useEffect3(() => {
+    useEffect4(() => {
       setTyped(dialog?.promptDefault || "");
     }, [dialog]);
     const dismiss = () => {
@@ -815,7 +909,7 @@
     };
     const dismissRef = useRef(dismiss);
     dismissRef.current = dismiss;
-    useEffect3(() => {
+    useEffect4(() => {
       if (!dialog) return;
       const prevFocus = document.activeElement;
       const onKey = (e) => {
@@ -918,18 +1012,18 @@
     );
   }
   function StudentPicker({ students, value, onChange, placeholder = "-- 选择学员 --", showBal = true }) {
-    const [q, setQ] = useState3("");
-    const [open, setOpen] = useState3(false);
+    const [q, setQ] = useState4("");
+    const [open, setOpen] = useState4(false);
     const ref = useRef(null);
     const sel = students.find((s) => s.id === value);
-    useEffect3(() => {
+    useEffect4(() => {
       if (!value) setQ("");
     }, [value]);
     const filtered = useMemo3(
       () => q ? students.filter((s) => s.name.toLowerCase().includes(q.toLowerCase())) : students,
       [students, q]
     );
-    useEffect3(() => {
+    useEffect4(() => {
       const h = (e) => {
         if (ref.current && !ref.current.contains(e.target)) setOpen(false);
       };
@@ -1093,7 +1187,7 @@
     );
   }
   function PhotoUploader({ value, onChange, notify }) {
-    const [uploading, setUploading] = useState3(false);
+    const [uploading, setUploading] = useState4(false);
     const handleFile = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -1124,23 +1218,23 @@
     return /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-4" }, value ? /* @__PURE__ */ React.createElement("img", { src: mediaSrc(value), alt: "学员照片预览", className: "w-14 h-14 rounded-full object-cover border-2 border-indigo-100 flex-shrink-0" }) : /* @__PURE__ */ React.createElement("div", { className: "w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center text-2xl border-2 border-dashed border-gray-300 flex-shrink-0 text-gray-400" }, /* @__PURE__ */ React.createElement(Icon, { name: "camera", className: "w-6 h-6" })), /* @__PURE__ */ React.createElement("div", { className: "space-y-1.5" }, /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 flex-wrap" }, /* @__PURE__ */ React.createElement("label", { className: `cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 text-sm font-bold rounded-xl border min-h-[44px] ${btnBase || "bg-indigo-50 text-indigo-700 border-indigo-200 active:bg-indigo-100"}` }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "folder", className: "w-4 h-4" }), uploading ? "上传中..." : value ? "更换" : "选择"), /* @__PURE__ */ React.createElement("input", { type: "file", accept: "image/*", onChange: handleFile, disabled: uploading, className: "hidden" })), /* @__PURE__ */ React.createElement("label", { className: `cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 text-sm font-bold rounded-xl border min-h-[44px] ${btnBase || "bg-purple-50 text-purple-700 border-purple-200 active:bg-purple-100"}` }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "camera", className: "w-4 h-4" }), "拍照"), /* @__PURE__ */ React.createElement("input", { type: "file", accept: "image/*", capture: "environment", onChange: handleFile, disabled: uploading, className: "hidden" }))), value && /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => onChange(""), className: "text-xs text-red-400 active:text-red-600" }, "移除照片")));
   }
   function MaintSection({ onRestored, renewTh, saveRenewTh, confirm, notify }) {
-    const [hc, setHc] = useState3(null);
-    const [hcBusy, setHcBusy] = useState3(false);
-    const [cfg, setCfg] = useState3(null);
-    const [pw, setPw] = useState3("");
-    const [cfgMsg, setCfgMsg] = useState3(null);
+    const [hc, setHc] = useState4(null);
+    const [hcBusy, setHcBusy] = useState4(false);
+    const [cfg, setCfg] = useState4(null);
+    const [pw, setPw] = useState4("");
+    const [cfgMsg, setCfgMsg] = useState4(null);
     const say = (text, tone = "info") => setCfgMsg(text ? { text, tone } : null);
-    const [bks, setBks] = useState3(null);
-    const [bkSel, setBkSel] = useState3(null);
-    const [busy, setBusy] = useState3(false);
+    const [bks, setBks] = useState4(null);
+    const [bkSel, setBkSel] = useState4(null);
+    const [busy, setBusy] = useState4(false);
     const post = (url, body) => fetch(url, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body)
     });
-    const [stale, setStale] = useState3(false);
-    useEffect3(() => {
+    const [stale, setStale] = useState4(false);
+    useEffect4(() => {
       fetch("/api/config", { credentials: "include" }).then((r) => {
         if (r.status === 404) {
           setStale(true);
@@ -1375,10 +1469,10 @@
     )) : /* @__PURE__ */ React.createElement("p", { className: "text-xs text-red-500" }, "该备份文件已损坏，不可恢复")))));
   }
   function LoginScreen({ onLogin }) {
-    const [email, setEmail] = useState3(() => localStorage.getItem(`lp_admin_email_${tenantSlug}`) || "");
-    const [pw, setPw] = useState3("");
-    const [busy, setBusy] = useState3(false);
-    const [err, setErr] = useState3("");
+    const [email, setEmail] = useState4(() => localStorage.getItem(`lp_admin_email_${tenantSlug}`) || "");
+    const [pw, setPw] = useState4("");
+    const [busy, setBusy] = useState4(false);
+    const [err, setErr] = useState4("");
     const submit = async (e) => {
       e && e.preventDefault();
       if (!email || !pw) {
@@ -1439,58 +1533,58 @@
     )), /* @__PURE__ */ React.createElement("p", { className: "mt-6 pt-4 border-t border-gray-100 text-[10px] tracking-wide text-gray-400" }, "Powered by Paradise Production")));
   }
   function App() {
-    const [db, setDb] = useState3({ students: [], logs: [], rosters: {}, pending: [] });
-    const [auditEvents, setAuditEvents] = useState3([]);
+    const [db, setDb] = useState4({ students: [], logs: [], rosters: {}, pending: [] });
+    const [auditEvents, setAuditEvents] = useState4([]);
     const initialCmsRoute = useMemo3(() => readCmsRoute(), []);
-    const [tab, setTabState] = useState3(initialCmsRoute.tab);
-    const [pendingTab, setPendingTabState] = useState3(initialCmsRoute.pendingTab);
-    const [settingsSection, setSettingsSectionState] = useState3(initialCmsRoute.settingsSection);
-    const [routeRecordId, setRouteRecordId] = useState3(initialCmsRoute.recordId);
-    const [moreOpen, setMoreOpen] = useState3(false);
-    const [selS, setSelS] = useState3(null);
-    const [editP, setEditP] = useState3(false);
-    const [studentProfileTab, setStudentProfileTab] = useState3("profile");
-    const [busy, setBusy] = useState3(false);
-    const [conn, setConn] = useState3(false);
-    const [connErr, setConnErr] = useState3(null);
-    const [toast, setToast] = useState3(null);
-    const [cmsNotifications, setCmsNotifications] = useState3([]);
-    const [cmsNotificationUnreadCount, setCmsNotificationUnreadCount] = useState3(0);
-    const [cmsNotificationOpen, setCmsNotificationOpen] = useState3(false);
-    const [cmsNotificationError, setCmsNotificationError] = useState3("");
+    const [tab, setTabState] = useState4(initialCmsRoute.tab);
+    const [pendingTab, setPendingTabState] = useState4(initialCmsRoute.pendingTab);
+    const [settingsSection, setSettingsSectionState] = useState4(initialCmsRoute.settingsSection);
+    const [routeRecordId, setRouteRecordId] = useState4(initialCmsRoute.recordId);
+    const [moreOpen, setMoreOpen] = useState4(false);
+    const [selS, setSelS] = useState4(null);
+    const [editP, setEditP] = useState4(false);
+    const [studentProfileTab, setStudentProfileTab] = useState4("profile");
+    const [busy, setBusy] = useState4(false);
+    const [conn, setConn] = useState4(false);
+    const [connErr, setConnErr] = useState4(null);
+    const [toast, setToast] = useState4(null);
+    const [cmsNotifications, setCmsNotifications] = useState4([]);
+    const [cmsNotificationUnreadCount, setCmsNotificationUnreadCount] = useState4(0);
+    const [cmsNotificationOpen, setCmsNotificationOpen] = useState4(false);
+    const [cmsNotificationError, setCmsNotificationError] = useState4("");
     const cmsNotificationCursorRef = useRef(0);
     const cmsNotificationPollingRef = useRef(false);
-    const [confirmDialog, setConfirmDialog] = useState3(null);
-    const [showSettings, setShowSettings] = useState3(initialCmsRoute.tab === "settings");
-    const [userMenuOpen, setUserMenuOpen] = useState3(false);
-    const [loggedIn, setLoggedIn] = useState3(false);
-    const [pwOld, setPwOld] = useState3("");
-    const [pwNew1, setPwNew1] = useState3("");
-    const [pwNew2, setPwNew2] = useState3("");
-    const [pwBusy, setPwBusy] = useState3(false);
-    const [pwMsg, setPwMsg] = useState3(null);
-    const [gOpen, setGOpen] = useState3(false);
-    const [gQ, setGQ] = useState3("");
-    const [portLB, setPortLB] = useState3(null);
-    const [portUpload, setPortUpload] = useState3(false);
-    const [portUpFile, setPortUpFile] = useState3(null);
-    const [portEdit, setPortEdit] = useState3(null);
-    const [portBusy, setPortBusy] = useState3(false);
+    const [confirmDialog, setConfirmDialog] = useState4(null);
+    const [showSettings, setShowSettings] = useState4(initialCmsRoute.tab === "settings");
+    const [userMenuOpen, setUserMenuOpen] = useState4(false);
+    const [loggedIn, setLoggedIn] = useState4(false);
+    const [pwOld, setPwOld] = useState4("");
+    const [pwNew1, setPwNew1] = useState4("");
+    const [pwNew2, setPwNew2] = useState4("");
+    const [pwBusy, setPwBusy] = useState4(false);
+    const [pwMsg, setPwMsg] = useState4(null);
+    const [gOpen, setGOpen] = useState4(false);
+    const [gQ, setGQ] = useState4("");
+    const [portLB, setPortLB] = useState4(null);
+    const [portUpload, setPortUpload] = useState4(false);
+    const [portUpFile, setPortUpFile] = useState4(null);
+    const [portEdit, setPortEdit] = useState4(null);
+    const [portBusy, setPortBusy] = useState4(false);
     const portLightboxDialogRef = useRef(null);
     const portUploadDialogRef = useRef(null);
     const portEditDialogRef = useRef(null);
     const searchDialogRef = useRef(null);
     const settingsDialogRef = useRef(null);
     const profileDialogRef = useRef(null);
-    const [accessCodeResult, setAccessCodeResult] = useState3(null);
-    const [consentEdit, setConsentEdit] = useState3(null);
-    useEffect3(() => {
+    const [accessCodeResult, setAccessCodeResult] = useState4(null);
+    const [consentEdit, setConsentEdit] = useState4(null);
+    useEffect4(() => {
       setAccessCodeResult(null);
       setConsentEdit(null);
       setStudentProfileTab("profile");
     }, [selS?.id]);
     const lbTouchX = useRef(0);
-    const syncCmsRoute = useCallback3((patch = {}, replace = false) => {
+    const syncCmsRoute = useCallback4((patch = {}, replace = false) => {
       const current = readCmsRoute();
       const next = { ...current, ...patch };
       const url = new URL(window.location.href);
@@ -1507,7 +1601,7 @@
       const nextUrl = `${url.pathname}${params.toString() ? `?${params.toString()}` : ""}${url.hash}`;
       window.history[replace ? "replaceState" : "pushState"]({}, "", nextUrl);
     }, []);
-    const setTab = useCallback3((nextTab, options = {}) => {
+    const setTab = useCallback4((nextTab, options = {}) => {
       const next = CMS_ROUTE_TABS.has(nextTab) ? nextTab : "dashboard";
       setTabState(next);
       setShowSettings(next === "settings");
@@ -1515,20 +1609,20 @@
       setRouteRecordId(nextRecordId);
       syncCmsRoute({ tab: next, recordId: nextRecordId }, !!options.replace);
     }, [syncCmsRoute]);
-    const setPendingTab = useCallback3((nextPendingTab) => {
+    const setPendingTab = useCallback4((nextPendingTab) => {
       const next = nextPendingTab === "bookings" ? "bookings" : "registrations";
       setPendingTabState(next);
       setTabState("pending");
       setShowSettings(false);
       syncCmsRoute({ tab: "pending", pendingTab: next });
     }, [syncCmsRoute]);
-    const setSettingsSection = useCallback3((nextSection) => {
+    const setSettingsSection = useCallback4((nextSection) => {
       setSettingsSectionState(nextSection);
       setTabState("settings");
       setShowSettings(true);
       syncCmsRoute({ tab: "settings", settingsSection: nextSection });
     }, [syncCmsRoute]);
-    useEffect3(() => {
+    useEffect4(() => {
       const onPopState = () => {
         const next = readCmsRoute();
         setTabState(next.tab);
@@ -1561,7 +1655,7 @@
       },
       profileDialogRef
     );
-    const [inactiveDays, setInactiveDays] = useState3(() => parseInt(localStorage.getItem("lp_inactive_days") || "90", 10));
+    const [inactiveDays, setInactiveDays] = useState4(() => parseInt(localStorage.getItem("lp_inactive_days") || "90", 10));
     const saveInactiveDays = (v) => {
       const n = parseInt(v, 10);
       if (n > 0) {
@@ -1569,36 +1663,36 @@
         localStorage.setItem("lp_inactive_days", String(n));
       }
     };
-    const [srch, setSrch] = useState3("");
-    const [sortBy, setSortBy] = useState3("date-desc");
-    const [filterBy, setFilterBy] = useState3("all");
+    const [srch, setSrch] = useState4("");
+    const [sortBy, setSortBy] = useState4("date-desc");
+    const [filterBy, setFilterBy] = useState4("all");
     const STUDENTS_PER_PAGE = 24;
-    const [studentPage, setStudentPage] = useState3(1);
-    const [selectedStudentIds, setSelectedStudentIds] = useState3([]);
-    const [rDate, setRDate] = useState3(todayISO);
-    const [rPick, setRPick] = useState3(null);
-    const [defaultClassTime, setDefaultClassTime] = useState3("14:30");
-    const [defaultClassTimeDraft, setDefaultClassTimeDraft] = useState3("14:30");
-    const [operationalSettingsBusy, setOperationalSettingsBusy] = useState3(false);
-    const [rTime, setRTime] = useState3("14:30");
-    const [icsPreview, setIcsPreview] = useState3(null);
-    const [icsNotice, setIcsNotice] = useState3("");
-    const [icsBusy, setIcsBusy] = useState3(false);
+    const [studentPage, setStudentPage] = useState4(1);
+    const [selectedStudentIds, setSelectedStudentIds] = useState4([]);
+    const [rDate, setRDate] = useState4(todayISO);
+    const [rPick, setRPick] = useState4(null);
+    const [defaultClassTime, setDefaultClassTime] = useState4("14:30");
+    const [defaultClassTimeDraft, setDefaultClassTimeDraft] = useState4("14:30");
+    const [operationalSettingsBusy, setOperationalSettingsBusy] = useState4(false);
+    const [rTime, setRTime] = useState4("14:30");
+    const [icsPreview, setIcsPreview] = useState4(null);
+    const [icsNotice, setIcsNotice] = useState4("");
+    const [icsBusy, setIcsBusy] = useState4(false);
     const icsDialogRef = useRef(null);
     const icsCloseButtonRef = useRef(null);
-    const [rOneToOne, setROneToOne] = useState3(false);
-    const [grpSel, setGrpSel] = useState3("");
-    const [schedules, setSchedules] = useState3([]);
-    const [scheduleLoadError, setScheduleLoadError] = useState3("");
-    const [bizStats, setBizStats] = useState3(null);
-    const [attHistory, setAttHistory] = useState3(null);
-    const [schedEdit, setSchedEdit] = useState3(null);
-    const [schedPick, setSchedPick] = useState3(null);
-    const [courses, setCourses] = useState3([]);
-    const [schedCancel, setSchedCancel] = useState3(null);
-    const [bookings, setBookings] = useState3([]);
-    const [courseEdit, setCourseEdit] = useState3(null);
-    const [renewTh, setRenewTh] = useState3(() => parseInt(localStorage.getItem("lp_renew_threshold") || "2", 10));
+    const [rOneToOne, setROneToOne] = useState4(false);
+    const [grpSel, setGrpSel] = useState4("");
+    const [schedules, setSchedules] = useState4([]);
+    const [scheduleLoadError, setScheduleLoadError] = useState4("");
+    const [bizStats, setBizStats] = useState4(null);
+    const [attHistory, setAttHistory] = useState4(null);
+    const [schedEdit, setSchedEdit] = useState4(null);
+    const [schedPick, setSchedPick] = useState4(null);
+    const [courses, setCourses] = useState4([]);
+    const [schedCancel, setSchedCancel] = useState4(null);
+    const [bookings, setBookings] = useState4([]);
+    const [courseEdit, setCourseEdit] = useState4(null);
+    const [renewTh, setRenewTh] = useState4(() => parseInt(localStorage.getItem("lp_renew_threshold") || "2", 10));
     const saveRenewTh = (v) => {
       const n = parseInt(v, 10);
       if (n >= 0) {
@@ -1606,39 +1700,39 @@
         localStorage.setItem("lp_renew_threshold", String(n));
       }
     };
-    const [tuStu, setTuStu] = useState3(null);
-    const [settleMode, setSettleMode] = useState3("topup");
-    const [rfCr, setRfCr] = useState3("");
-    const [rfAmt, setRfAmt] = useState3("");
-    const [rfReason, setRfReason] = useState3("");
-    const [tuCr, setTuCr] = useState3("");
-    const [tuFee, setTuFee] = useState3("");
-    const [tuPkg, setTuPkg] = useState3("");
-    const [tuPay, setTuPay] = useState3("微信");
-    const [lSrch, setLSrch] = useState3("");
-    const [lStu, setLStu] = useState3(null);
-    const [lAct, setLAct] = useState3("");
-    const [lDateFrom, setLDateFrom] = useState3("");
-    const [lDateTo, setLDateTo] = useState3("");
-    const [lPage, setLPage] = useState3(1);
+    const [tuStu, setTuStu] = useState4(null);
+    const [settleMode, setSettleMode] = useState4("topup");
+    const [rfCr, setRfCr] = useState4("");
+    const [rfAmt, setRfAmt] = useState4("");
+    const [rfReason, setRfReason] = useState4("");
+    const [tuCr, setTuCr] = useState4("");
+    const [tuFee, setTuFee] = useState4("");
+    const [tuPkg, setTuPkg] = useState4("");
+    const [tuPay, setTuPay] = useState4("微信");
+    const [lSrch, setLSrch] = useState4("");
+    const [lStu, setLStu] = useState4(null);
+    const [lAct, setLAct] = useState4("");
+    const [lDateFrom, setLDateFrom] = useState4("");
+    const [lDateTo, setLDateTo] = useState4("");
+    const [lPage, setLPage] = useState4(1);
     const LPP = 30;
-    const [sPeriod, setSPeriod] = useState3("monthly");
-    const [sYear, setSYear] = useState3(String((/* @__PURE__ */ new Date()).getFullYear()));
-    const [sFrom, setSFrom] = useState3("");
-    const [sTo, setSTo] = useState3("");
-    const [sStu, setSStu] = useState3(null);
-    const [sStu2, setSStu2] = useState3(null);
-    const [approveCredits, setApproveCredits] = useState3({});
-    const [followUpDates, setFollowUpDates] = useState3({});
-    const [pkgEditId, setPkgEditId] = useState3(null);
-    const [pkgName, setPkgName] = useState3("");
-    const [pkgCredits, setPkgCredits] = useState3("");
-    const [pkgPrice, setPkgPrice] = useState3("");
-    const [tenantBrand, setTenantBrand] = useState3(() => window.STUDIOSAAS_BRAND || {});
-    const [team, setTeam] = useState3([]);
-    const [teamBusy, setTeamBusy] = useState3(false);
-    const [teamForm, setTeamForm] = useState3({ fullName: "", email: "", role: "teacher", temporaryPassword: "" });
-    const [actorRole, setActorRole] = useState3("");
+    const [sPeriod, setSPeriod] = useState4("monthly");
+    const [sYear, setSYear] = useState4(String((/* @__PURE__ */ new Date()).getFullYear()));
+    const [sFrom, setSFrom] = useState4("");
+    const [sTo, setSTo] = useState4("");
+    const [sStu, setSStu] = useState4(null);
+    const [sStu2, setSStu2] = useState4(null);
+    const [approveCredits, setApproveCredits] = useState4({});
+    const [followUpDates, setFollowUpDates] = useState4({});
+    const [pkgEditId, setPkgEditId] = useState4(null);
+    const [pkgName, setPkgName] = useState4("");
+    const [pkgCredits, setPkgCredits] = useState4("");
+    const [pkgPrice, setPkgPrice] = useState4("");
+    const [tenantBrand, setTenantBrand] = useState4(() => window.STUDIOSAAS_BRAND || {});
+    const [team, setTeam] = useState4([]);
+    const [teamBusy, setTeamBusy] = useState4(false);
+    const [teamForm, setTeamForm] = useState4({ fullName: "", email: "", role: "teacher", temporaryPassword: "" });
+    const [actorRole, setActorRole] = useState4("");
     const ownerRoles = ["owner", "platform_super_admin", "super_admin"];
     const roleTabs = {
       owner: ["dashboard", "pending", "roster", "courses", "students", "works", "new_student", "billing", "topup", "finance", "logs", "stats", "settings"],
@@ -1660,24 +1754,24 @@
     const canReviewBookings = [...ownerRoles, "manager", "front_desk", "staff"].includes(actorRole);
     const canRefund = [...ownerRoles, "manager"].includes(actorRole);
     const canViewCmsNotifications = ["owner", "manager", "front_desk", "staff", "platform_super_admin", "super_admin"].includes(actorRole);
-    const [formPhoto, setFormPhoto] = useState3("");
-    const [editPhoto, setEditPhoto] = useState3("");
+    const [formPhoto, setFormPhoto] = useState4("");
+    const [editPhoto, setEditPhoto] = useState4("");
     const cooldowns = useRef(/* @__PURE__ */ new Set());
     const wasDownRef = useRef(false);
     const showToast = (msg, type = "success", action = null) => setToast({ msg, type, action, key: Date.now() });
-    useEffect3(() => {
+    useEffect4(() => {
       const syncBrand = (event) => setTenantBrand(event?.detail || window.STUDIOSAAS_BRAND || {});
       window.addEventListener("studiosaas:brand", syncBrand);
       syncBrand();
       return () => window.removeEventListener("studiosaas:brand", syncBrand);
     }, []);
-    useEffect3(() => {
+    useEffect4(() => {
       if (TENANT_SLUG && canManageOperations) loadTeam();
     }, [actorRole]);
-    useEffect3(() => {
+    useEffect4(() => {
       if (showSettings && TENANT_SLUG && canManageOperations) loadTeam();
     }, [showSettings]);
-    useEffect3(() => {
+    useEffect4(() => {
       if (actorRole && !allowedTabs.includes(tab)) setTab("dashboard");
     }, [actorRole, tab]);
     const tenantLogoUrl = tenantOwnedLogoUrl(tenantBrand);
@@ -1815,7 +1909,7 @@
         setTeamBusy(false);
       }
     };
-    useEffect3(() => {
+    useEffect4(() => {
       const h = (e) => {
         if ((e.metaKey || e.ctrlKey) && e.key === "k") {
           e.preventDefault();
@@ -1826,7 +1920,7 @@
       window.addEventListener("keydown", h);
       return () => window.removeEventListener("keydown", h);
     }, []);
-    useEffect3(() => {
+    useEffect4(() => {
       if (!icsPreview) return;
       const previousFocus = document.activeElement;
       const focusableSelector = [
@@ -1867,7 +1961,7 @@
         if (previousFocus && typeof previousFocus.focus === "function") previousFocus.focus();
       };
     }, [icsPreview]);
-    useEffect3(() => {
+    useEffect4(() => {
       const onKey = (e) => {
         if (portLB) {
           if (e.key === "ArrowRight") setPortLB((p) => p && p.idx < p.items.length - 1 ? { ...p, idx: p.idx + 1 } : p);
@@ -1877,7 +1971,7 @@
       window.addEventListener("keydown", onKey);
       return () => window.removeEventListener("keydown", onKey);
     }, [portLB]);
-    useEffect3(() => {
+    useEffect4(() => {
       setAttHistory(null);
       if (!TENANT_SLUG || !selS?.id) return;
       let alive = true;
@@ -1901,15 +1995,15 @@
       }
     }).catch(() => {
     });
-    useEffect3(() => {
+    useEffect4(() => {
       refreshSession();
     }, []);
     const apiHeaders = () => ({ "Content-Type": "application/json" });
     const revRef = useRef(0);
-    useEffect3(() => {
+    useEffect4(() => {
       if (loggedIn) load();
     }, [loggedIn]);
-    useEffect3(() => {
+    useEffect4(() => {
       if (!loggedIn) return;
       const id = setInterval(async () => {
         try {
@@ -1931,7 +2025,7 @@
       }, 3e4);
       return () => clearInterval(id);
     }, [loggedIn]);
-    useEffect3(() => {
+    useEffect4(() => {
       if (!loggedIn || !TENANT_SLUG || !canViewCmsNotifications) {
         setCmsNotifications([]);
         setCmsNotificationUnreadCount(0);
@@ -2222,7 +2316,7 @@
       });
       return out.sort((a, b) => a.in - b.in);
     }, [db.students]);
-    useEffect3(() => {
+    useEffect4(() => {
       setStudentPage(1);
       setSelectedStudentIds([]);
     }, [srch, sortBy, filterBy]);
@@ -2293,7 +2387,7 @@
       () => db.students.filter((student) => !student.archived).flatMap((student) => (student.portfolio || []).map((item) => ({ student, item }))).sort((a, b) => String(b.item.date || "").localeCompare(String(a.item.date || ""))),
       [db.students]
     );
-    useEffect3(() => {
+    useEffect4(() => {
       if (tab !== "students" || !routeRecordId) return;
       const student = db.students.find((item) => String(item.id) === String(routeRecordId));
       if (student && selS?.id !== student.id) {
@@ -2502,10 +2596,10 @@
     const logPageCount = Math.max(1, Math.ceil(filteredLogs.length / LPP));
     const pagedLogs = filteredLogs.slice((lPage - 1) * LPP, lPage * LPP);
     const logActions = useMemo3(() => [...new Set(allLogs.map((l) => l.action))].sort(), [allLogs]);
-    useEffect3(() => {
+    useEffect4(() => {
       setLPage(1);
     }, [lStu, lSrch, lAct, lDateFrom, lDateTo]);
-    useEffect3(() => {
+    useEffect4(() => {
       if (lPage > logPageCount) setLPage(logPageCount);
     }, [logPageCount]);
     const bizReport = useMemo3(() => {
@@ -4665,7 +4759,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
           onClick: (e) => e.stopPropagation()
         },
         /* @__PURE__ */ React.createElement("div", { className: "flex justify-between items-center mb-5" }, /* @__PURE__ */ React.createElement("div", null, tab === "settings" && /* @__PURE__ */ React.createElement("button", { type: "button", onClick: closeSettings, className: "inline-flex items-center gap-1 text-xs font-bold text-indigo-600 mb-1 min-h-[32px]" }, /* @__PURE__ */ React.createElement(Icon, { name: "chevronLeft", className: "w-4 h-4" }), "返回工作台"), /* @__PURE__ */ React.createElement("h3", { id: "settings-dialog-title", className: "inline-flex items-center gap-1.5 font-bold text-gray-800 text-xl" }, /* @__PURE__ */ React.createElement(Icon, { name: "cog", className: "w-5 h-5" }), "系统设置")), /* @__PURE__ */ React.createElement("button", { onClick: closeSettings, "aria-label": tab === "settings" ? "返回工作台" : "关闭", className: "text-gray-400 active:text-gray-700 text-xl p-1 min-h-[44px] min-w-[44px] inline-flex items-center justify-center" }, "×")),
-        tab === "settings" && /* @__PURE__ */ React.createElement("div", { className: "mb-6 rounded-2xl border border-indigo-100 bg-white p-2 shadow-sm" }, /* @__PURE__ */ React.createElement("div", { className: "flex gap-1 overflow-x-auto", role: "tablist", "aria-label": "系统设置分区" }, [["account", "账号与安全"], ["team", "团队与权限"], ["operational", "运营默认"], ["maintenance", "数据维护"], ["workspace", "工作区链接"]].map(([key, label]) => /* @__PURE__ */ React.createElement(
+        tab === "settings" && /* @__PURE__ */ React.createElement("div", { className: "mb-6 rounded-2xl border border-indigo-100 bg-white p-2 shadow-sm" }, /* @__PURE__ */ React.createElement("div", { className: "flex gap-1 overflow-x-auto", role: "tablist", "aria-label": "系统设置分区" }, [["account", "账号与安全"], ["team", "团队与权限"], ["operational", "运营默认"], ["integrations", "集成"], ["maintenance", "数据维护"], ["workspace", "工作区链接"]].map(([key, label]) => /* @__PURE__ */ React.createElement(
           "button",
           {
             key,
@@ -4894,6 +4988,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
             notify
           }
         )),
+        /* @__PURE__ */ React.createElement("div", { id: "settings-integrations", className: "mt-4 pt-4 border-t border-gray-100 space-y-2 scroll-mt-24" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-gray-500 uppercase tracking-wide" }, "集成"), /* @__PURE__ */ React.createElement(IntegrationsPanel, { api: v1Api, showToast, canManage: ownerRoles.includes(actorRole) })),
         /* @__PURE__ */ React.createElement("div", { id: "settings-workspace", className: "mt-4 pt-4 border-t border-gray-100 space-y-2 scroll-mt-24" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-gray-500 uppercase tracking-wide" }, "学员注册页面"), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs text-gray-500 flex-1 font-mono truncate" }, window.STUDIOSAAS_REGISTER_URL || `${window.location.origin}/register`), /* @__PURE__ */ React.createElement(
           "button",
           {

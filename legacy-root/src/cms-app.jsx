@@ -7,6 +7,7 @@
 
 import { BillingPanel } from "./panels/billing.jsx";
 import { FinancePanel } from "./panels/finance.jsx";
+import { IntegrationsPanel } from "./panels/integrations.jsx";
 
 const { useState, useEffect, useMemo, useRef, useCallback } = React;
 const tenantSlug = window.STUDIOSAAS_TENANT_SLUG
@@ -4156,7 +4157,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         </div>
                         {tab==='settings' && <div className="mb-6 rounded-2xl border border-indigo-100 bg-white p-2 shadow-sm">
                             <div className="flex gap-1 overflow-x-auto" role="tablist" aria-label="系统设置分区">
-                                {[['account','账号与安全'],['team','团队与权限'],['operational','运营默认'],['maintenance','数据维护'],['workspace','工作区链接']].map(([key,label])=>(
+                                {[['account','账号与安全'],['team','团队与权限'],['operational','运营默认'],['integrations','集成'],['maintenance','数据维护'],['workspace','工作区链接']].map(([key,label])=>(
                                     <button key={key} type="button" onClick={()=>{setSettingsSection(key);document.getElementById(`settings-${key}`)?.scrollIntoView({behavior:'smooth',block:'start'});}}
                                         className={`whitespace-nowrap min-h-[44px] px-3 rounded-xl text-xs font-bold ${settingsSection===key?'bg-indigo-600 text-white':'text-gray-600 hover:bg-indigo-50'}`}>{label}</button>
                                 ))}
@@ -4474,6 +4475,10 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                     confirm={confirm} notify={notify}/>
                             </div>
                         )}
+                        <div id="settings-integrations" className="mt-4 pt-4 border-t border-gray-100 space-y-2 scroll-mt-24">
+                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">集成</p>
+                            <IntegrationsPanel api={v1Api} showToast={showToast} canManage={ownerRoles.includes(actorRole)} />
+                        </div>
                         <div id="settings-workspace" className="mt-4 pt-4 border-t border-gray-100 space-y-2 scroll-mt-24">
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">学员注册页面</p>
                             <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
