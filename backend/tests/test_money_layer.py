@@ -642,3 +642,58 @@ def test_a_confirmed_pay_period_refuses_silent_corrections(money_tenant):
         with conn.cursor() as cur:
             cur.execute("DELETE FROM users WHERE id = %s", (teacher_id,))
         conn.commit()
+
+
+@requires_db
+def test_a_report_draft_survives_a_student_who_has_lesson_notes(money_tenant):
+    """The assembled content has to be storable as jsonb, dates included.
+
+    ``assemble`` returns rows straight from psycopg, which hands back ``date``
+    objects; ``json.dumps`` refuses them, and the whole route 500s. Nothing
+    about that is visible without a database and without a student who actually
+    has notes — an empty studio serialises fine, so the bug hides in exactly the
+    tenants that use the feature most.
+    """
+
+    import json
+
+    from studiosaas.db import connect
+    from studiosaas.services import progress_reports
+
+    tenant_id = money_tenant["tenant_id"]
+    student_id = money_tenant["student_id"]
+    start, end = date(2026, 7, 1), date(2026, 7, 31)
+
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO attendance_sessions
+                    (tenant_id, student_id, class_date, note)
+                VALUES (%s, %s, %s, 'Worked on colour mixing.')
+                """,
+                (tenant_id, student_id, date(2026, 7, 15)),
+            )
+            cur.execute(
+                """
+                INSERT INTO daily_roster_entries
+                    (tenant_id, student_id, roster_date, status)
+                VALUES (%s, %s, %s, 'scheduled')
+                """,
+                (tenant_id, student_id, date(2026, 7, 15)),
+            )
+        conn.commit()
+
+        content = progress_reports.assemble(
+            conn, tenant_id, student_id, period_start=start, period_end=end
+        )
+        # The assertion is the round-trip, not the shape: this is the exact call
+        # create_draft makes, and it is where the route died.
+        json.dumps(content)
+        assert content["lessons"][0]["class_date"] == "2026-07-15"
+
+        draft = progress_reports.create_draft(
+            conn, tenant_id, student_id, period_start=start, period_end=end
+        )
+        conn.commit()
+        assert draft["status"] == "draft"

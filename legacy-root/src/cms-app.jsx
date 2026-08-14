@@ -9,6 +9,7 @@ import { BillingPanel } from "./panels/billing.jsx";
 import { FinancePanel } from "./panels/finance.jsx";
 import { IntegrationsPanel } from "./panels/integrations.jsx";
 import { OverdueReports } from "./panels/progress_reports.jsx";
+import { StudentProgressReports, StudentBillingAccount } from "./panels/student_reports.jsx";
 
 const { useState, useEffect, useMemo, useRef, useCallback } = React;
 const tenantSlug = window.STUDIOSAAS_TENANT_SLUG
@@ -1133,7 +1134,7 @@ function App() {
         else params.delete('type');
         if (next.tab === 'settings' && next.settingsSection && next.settingsSection !== 'account') params.set('section', next.settingsSection);
         else params.delete('section');
-        if (next.recordId && ['students','pending','works'].includes(next.tab)) params.set('id', next.recordId);
+        if (next.recordId && ['students','pending','works','billing'].includes(next.tab)) params.set('id', next.recordId);
         else params.delete('id');
         const nextUrl = `${url.pathname}${params.toString() ? `?${params.toString()}` : ''}${url.hash}`;
         window.history[replace ? 'replaceState' : 'pushState']({}, '', nextUrl);
@@ -1303,6 +1304,13 @@ function App() {
     const canWriteStudents = [...ownerRoles,'manager','front_desk','staff'].includes(actorRole);
     const canWriteCredits = [...ownerRoles,'manager','front_desk','staff'].includes(actorRole);
     const canWritePortfolio = [...ownerRoles,'manager','teacher','staff'].includes(actorRole);
+    /* Mirrors backend progress_reports:* — the teacher who taught the term
+       writes the report, and someone senior releases it to the family. That
+       split is in ROLE_PERMISSIONS, not a UI nicety: Role.TEACHER has
+       progress_reports:write without :publish, so a teacher-only publish
+       button would render, be pressed, and 403. */
+    const canWriteProgress = [...ownerRoles,'manager','teacher'].includes(actorRole);
+    const canPublishProgress = [...ownerRoles,'manager'].includes(actorRole);
     /* Mirrors backend attendance:write — teacher/staff can run the roster day
        (check-in, per-day scheduling); front_desk cannot. */
     const canWriteAttendance = [...ownerRoles,'manager','teacher','staff'].includes(actorRole);
@@ -5950,6 +5958,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
         showToast={showToast}
         canIssue={canWriteCredits}
         canTakePayment={canWriteCredits}
+        accountId={routeRecordId}
+        onClearAccount={()=>setTab('billing')}
     />
 )}
 
@@ -6438,6 +6448,10 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                 {selS.email  && <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100"><p className="inline-flex items-center gap-1.5 text-xs text-gray-400 mb-1"><Icon name="mail" className="w-4 h-4"/>邮箱</p><p className="font-bold text-gray-800 text-sm break-all">{selS.email}</p></div>}
                             </div>
                         )}
+                        {/* 「谁付账、欠多少」和「打给谁」是同一个问题的两半，
+                            前台在头五秒里两个都要。归属为空就整块不渲染。 */}
+                        {TENANT_SLUG && <StudentBillingAccount api={v1Api} studentId={selS.id}
+                            onOpenBilling={(id)=>{ setSelS(null); setTab('billing', {recordId: id}); }} />}
                         {selS.remark && <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100"><p className="text-xs text-gray-400 mb-1">备注</p><p className="text-sm text-gray-700 whitespace-pre-wrap">{selS.remark}</p></div>}
                         {!selS.mobile && !selS.wechat && !selS.email && !selS.remark &&
                             <EmptyState icon={<Icon name="phone" className="w-8 h-8"/>} main="还没有联系方式" sub="点击下方「编辑」补充电话、微信或邮箱"/>}
@@ -6481,6 +6495,12 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         </TabPanel>
 
                         <TabPanel idBase="student-profile" name="records" active={studentProfileTab==='records'}>
+                        {/* 报告排在充值与上课记录之前，因为它是唯一一件等着人做的事；
+                            下面两块是它的证据，也是查阅用的历史。老师写评语时
+                            要看的出勤和课堂笔记，就在同一屏上。 */}
+                        {TENANT_SLUG && <StudentProgressReports api={v1Api} studentId={selS.id}
+                            studentName={selS.name} canWrite={canWriteProgress}
+                            canPublish={canPublishProgress} showToast={showToast} />}
                         {/* F2: Topup history collapsible */}
                         {canWriteCredits && (()=>{
                             const topupsAll = db.logs.filter(l=>(l.studentId===selS.id || (!l.studentId && l.studentName===selS.name))&&l.action==='充值购课');   /* D3 */

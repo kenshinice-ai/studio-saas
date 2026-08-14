@@ -109,10 +109,16 @@ def assemble(
         }
 
     if config["include_notes"]:
+        # ``content`` is stored as jsonb, so every value here has to survive
+        # json.dumps. psycopg hands back date objects, which do not — and the
+        # failure is a 500 at creation time, on exactly the studios that write
+        # the most lesson notes. Casting in SQL rather than post-processing in
+        # Python keeps the stored shape identical to what the API returns.
         content["lessons"] = fetch_all(
             conn,
             """
-            SELECT a.class_date, a.note, c.name AS course_name
+            SELECT to_char(a.class_date, 'YYYY-MM-DD') AS class_date,
+                   a.note, c.name AS course_name
             FROM attendance_sessions a
             LEFT JOIN courses c ON c.id = a.course_id
             WHERE a.tenant_id = %s AND a.student_id = %s
@@ -127,7 +133,8 @@ def assemble(
         content["media"] = fetch_all(
             conn,
             """
-            SELECT p.id, p.title, p.artwork_date
+            SELECT p.id::text AS id, p.title,
+                   to_char(p.artwork_date, 'YYYY-MM-DD') AS artwork_date
             FROM portfolio_items p
             WHERE p.tenant_id = %s AND p.student_id = %s
               AND p.visibility = 'shared'

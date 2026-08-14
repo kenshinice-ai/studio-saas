@@ -57,7 +57,7 @@ function Kpi({ label, value, sub, tone }) {
   );
 }
 
-export function BillingPanel({ api, showToast, canIssue, canTakePayment }) {
+export function BillingPanel({ api, showToast, canIssue, canTakePayment, accountId, onClearAccount }) {
   const [invoices, setInvoices] = useState([]);
   const [selectedId, setSelectedId] = useState('');
   const [detail, setDetail] = useState(null);
@@ -69,7 +69,10 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment }) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await api('/billing/invoices');
+      /* accountId 来自学员档案上的深链。过滤在后端做，不在这里 —— 一个
+         两百户的工作室拉回全部发票再筛掉 199 户，第一年还行，第三年不行。 */
+      const query = accountId ? `?accountId=${encodeURIComponent(accountId)}` : '';
+      const data = await api(`/billing/invoices${query}`);
       setInvoices(data.invoices || []);
       setError('');
     } catch (e) {
@@ -79,7 +82,7 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment }) {
     } finally {
       setLoading(false);
     }
-  }, [api]);
+  }, [api, accountId]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -177,6 +180,19 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment }) {
 
   return (
     <div className="space-y-3">
+      {/* 深链进来时列表是筛过的，必须说出来。一个看不见的筛选条件，就是
+          「为什么账单里只有三张发票」这通电话。 */}
+      {accountId && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-50 border border-amber-100">
+          <span className="text-xs font-bold text-amber-800">
+            只看这个账单账户{invoices[0]?.account_name ? ` · ${invoices[0].account_name}` : ''}
+          </span>
+          <button type="button" onClick={() => onClearAccount && onClearAccount()}
+                  className="ml-auto min-h-[44px] px-3 rounded-lg border border-amber-200 bg-white text-xs font-bold text-amber-800">
+            显示全部
+          </button>
+        </div>
+      )}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Kpi label="已开票" value={aud(summary.billed)} sub={`${invoices.length} 张 · 含 GST`} />
         <Kpi label="已收到" value={aud(summary.paid)} tone="good"

@@ -12453,6 +12453,13 @@ def billing_accounts():
             return _feature_error(exc)
 
         if request.method == "GET":
+            # ``studentId`` answers a different question with the same rows:
+            # "who pays for this child", asked from the student record. Doing it
+            # here rather than in a new route keeps one definition of what an
+            # account's balance means — a second endpoint would eventually
+            # compute it slightly differently and the two screens would
+            # disagree in front of a parent.
+            student_id = (request.args.get("studentId") or "").strip()
             rows = fetch_all(
                 conn,
                 """
@@ -12466,9 +12473,14 @@ def billing_accounts():
                                   WHERE m.billing_account_id = a.id), 0) AS student_count
                 FROM billing_accounts a
                 WHERE a.tenant_id = %s AND a.status = 'active'
+                  AND (%s = '' OR EXISTS (
+                        SELECT 1 FROM billing_account_members m
+                         WHERE m.tenant_id = a.tenant_id
+                           AND m.billing_account_id = a.id
+                           AND m.student_id::text = %s))
                 ORDER BY lower(a.name)
                 """,
-                (tenant.tenant_id,),
+                (tenant.tenant_id, student_id, student_id),
             )
             return jsonify({"accounts": rows})
 
@@ -13688,6 +13700,40 @@ def progress_report_publish(report_id: str):
         )
         conn.commit()
     return jsonify({"ok": True, "report": published})
+
+
+@api_v1.route("/students/<student_id>/progress-reports", methods=["GET"])
+@permission_required("progress_reports:read")
+def student_progress_reports(student_id: str):
+    """Every report for one student, newest period first.
+
+    Returns the assembled ``content`` alongside the comment because the teacher
+    writes *while looking at* the attendance and lesson notes the draft was
+    built from. Fetching the evidence in a second call would let the screen
+    render a comment box next to an empty panel, which is how reports end up
+    saying "good progress this term" and nothing else.
+    """
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        try:
+            _require_feature(conn, tenant.tenant_id, _entitlements.FEATURE_PROGRESS_REPORTS)
+        except _entitlements.FeatureUnavailableError as exc:
+            return _feature_error(exc)
+        rows = fetch_all(
+            conn,
+            """
+            SELECT r.id, r.status, r.period_start, r.period_end, r.teacher_comment,
+                   r.content, r.published_at, r.teacher_user_id, u.full_name AS teacher_name
+            FROM progress_reports r
+            LEFT JOIN users u ON u.id = r.teacher_user_id
+            WHERE r.tenant_id = %s AND r.student_id = %s
+            ORDER BY r.period_end DESC, r.created_at DESC
+            LIMIT 24
+            """,
+            (tenant.tenant_id, student_id),
+        )
+    return jsonify({"reports": rows})
 
 
 @api_v1.route("/progress-reports/overdue", methods=["GET"])
