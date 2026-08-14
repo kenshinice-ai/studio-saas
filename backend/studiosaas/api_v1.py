@@ -60,6 +60,7 @@ from .services import entitlements as _entitlements
 from .services import notification_channels as _channels
 from .services import payments as _payments
 from .services import progress_reports as _progress
+from .services import scheduling as _scheduling
 from .services import reports as _reports
 from .services import teaching_pay as _teaching_pay
 from .services import xero as _xero
@@ -13608,6 +13609,378 @@ def public_calendar_feed(token: str):
     # reschedule wait noticeably longer than the client's own poll interval.
     response.headers["Cache-Control"] = "private, max-age=900"
     return response
+
+
+# ── recurring private lessons ────────────────────────────────────────────
+
+
+def _scheduling_error(exc: Exception, status: int = 400):
+    """A refused scheduling action is something a studio can fix, not a fault."""
+
+    return _error(str(exc), status)
+
+
+@api_v1.route("/scheduling/policy", methods=["GET", "PUT"])
+@permission_required("scheduling:read")
+def scheduling_policy():
+    """The four decisions that turn an absence into money."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        try:
+            _require_feature(conn, tenant.tenant_id, _entitlements.FEATURE_RECURRING_LESSONS)
+        except _entitlements.FeatureUnavailableError as exc:
+            return _feature_error(exc)
+
+        if request.method == "GET":
+            return jsonify({"policy": _scheduling.policy(conn, tenant.tenant_id)})
+
+        try:
+            require_permission(getattr(g, "actor", None), "scheduling:write")
+            payload = _json_payload()
+            saved = _scheduling.save_policy(conn, tenant.tenant_id, payload)
+        except PermissionDeniedError as exc:
+            return _error(str(exc), 403)
+        except (ValueError, _scheduling.SchedulingError) as exc:
+            conn.rollback()
+            return _scheduling_error(exc)
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="scheduling_policy.updated",
+            resource_type="scheduling_policy",
+            resource_id=tenant.tenant_id,
+        )
+        conn.commit()
+    return jsonify({"ok": True, "policy": saved})
+
+
+@api_v1.route("/scheduling/series", methods=["GET", "POST"])
+@permission_required("scheduling:read")
+def scheduling_series():
+    """Weekly one-to-one lessons."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        try:
+            _require_feature(conn, tenant.tenant_id, _entitlements.FEATURE_RECURRING_LESSONS)
+        except _entitlements.FeatureUnavailableError as exc:
+            return _feature_error(exc)
+
+        if request.method == "GET":
+            rows = _scheduling.list_series(
+                conn, tenant.tenant_id,
+                student_id=(request.args.get("studentId") or "").strip() or None,
+            )
+            return jsonify({"series": rows})
+
+        try:
+            require_permission(getattr(g, "actor", None), "scheduling:write")
+            payload = _json_payload()
+            student_id = _clean_text(payload, "studentId")
+            start_time = _clean_text(payload, "startTime")
+            starts_on = _iso_date(payload, "startsOn")
+            if not student_id or not start_time or not starts_on:
+                raise ValueError("studentId, startTime and startsOn are required.")
+            created = _scheduling.create_series(
+                conn,
+                tenant.tenant_id,
+                student_id=student_id,
+                weekday=int(payload.get("weekday", 0)),
+                start_time=start_time,
+                duration_minutes=_positive_int(payload, "durationMinutes", fallback=30),
+                starts_on=starts_on,
+                ends_on=_iso_date(payload, "endsOn"),
+                teacher_user_id=_clean_text(payload, "teacherUserId") or None,
+                course_id=_clean_text(payload, "courseId") or None,
+                room=_clean_text(payload, "room"),
+                price_aud_cents=payload.get("priceAudCents"),
+                note=_clean_text(payload, "note"),
+                created_by_user_id=getattr(getattr(g, "actor", None), "user_id", None),
+            )
+        except PermissionDeniedError as exc:
+            return _error(str(exc), 403)
+        except (ValueError, TypeError, _scheduling.SchedulingError) as exc:
+            conn.rollback()
+            return _scheduling_error(exc)
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="lesson_series.created",
+            resource_type="lesson_series",
+            resource_id=created["id"],
+        )
+        conn.commit()
+    return jsonify({"ok": True, "series": created}), 201
+
+
+@api_v1.route("/scheduling/series/<series_id>", methods=["PATCH"])
+@permission_required("scheduling:write")
+def scheduling_series_status(series_id: str):
+    """Pause, resume or end a series. Never a delete — see the service."""
+
+    try:
+        payload = _json_payload()
+    except ValueError as exc:
+        return _error(str(exc))
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        try:
+            updated = _scheduling.set_series_status(
+                conn, tenant.tenant_id, series_id,
+                status=_clean_text(payload, "status"),
+                paused_from=_iso_date(payload, "pausedFrom"),
+                paused_to=_iso_date(payload, "pausedTo"),
+            )
+        except (ValueError, _scheduling.SchedulingError) as exc:
+            conn.rollback()
+            return _scheduling_error(exc)
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action=f"lesson_series.{updated['status']}",
+            resource_type="lesson_series",
+            resource_id=series_id,
+        )
+        conn.commit()
+    return jsonify({"ok": True, "series": updated})
+
+
+@api_v1.route("/scheduling/occurrences", methods=["GET"])
+@permission_required("scheduling:read")
+def scheduling_occurrences():
+    """Every private lesson due in a date range, deviations applied."""
+
+    try:
+        args = request.args
+        start = _iso_date(dict(args), "start", fallback=_date.today())
+        end = _iso_date(dict(args), "end", fallback=start + _timedelta(days=13))
+    except ValueError as exc:
+        return _error(str(exc))
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        try:
+            _require_feature(conn, tenant.tenant_id, _entitlements.FEATURE_RECURRING_LESSONS)
+        except _entitlements.FeatureUnavailableError as exc:
+            return _feature_error(exc)
+        try:
+            rows = _scheduling.occurrences(
+                conn, tenant.tenant_id, start=start, end=end,
+                series_id=(args.get("seriesId") or "").strip() or None,
+                teacher_user_id=(args.get("teacherUserId") or "").strip() or None,
+            )
+        except _scheduling.SchedulingError as exc:
+            return _scheduling_error(exc)
+    return jsonify({"start": start.isoformat(), "end": end.isoformat(), "occurrences": rows})
+
+
+@api_v1.route("/scheduling/occurrences/cancel", methods=["POST"])
+@permission_required("scheduling:write")
+def scheduling_cancel_occurrence():
+    """Record an absence, and the make-up credit it may owe."""
+
+    try:
+        payload = _json_payload()
+        series_id = _clean_text(payload, "seriesId")
+        on_date = _iso_date(payload, "onDate")
+        cancelled_by = _clean_text(payload, "cancelledBy")
+        if not series_id or not on_date:
+            raise ValueError("seriesId and onDate are required.")
+    except ValueError as exc:
+        return _error(str(exc))
+
+    # Notice is computed here rather than trusted from the browser: a client
+    # clock that is a day slow would turn a late cancellation into a free one.
+    hours = payload.get("hoursNotice")
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        try:
+            _require_feature(conn, tenant.tenant_id, _entitlements.FEATURE_RECURRING_LESSONS)
+        except _entitlements.FeatureUnavailableError as exc:
+            return _feature_error(exc)
+        if hours is None:
+            row = fetch_one(
+                conn,
+                "SELECT start_time FROM lesson_series WHERE tenant_id = %s AND id = %s",
+                (tenant.tenant_id, series_id),
+            )
+            if row:
+                hours = _scheduling.hours_of_notice(
+                    lesson_on=on_date, lesson_at=row["start_time"]
+                )
+        try:
+            outcome = _scheduling.cancel_occurrence(
+                conn, tenant.tenant_id, series_id,
+                on_date=on_date,
+                cancelled_by=cancelled_by,
+                hours_notice=None if hours is None else float(hours),
+                reason=_clean_text(payload, "reason"),
+                created_by_user_id=getattr(getattr(g, "actor", None), "user_id", None),
+            )
+        except (ValueError, TypeError, _scheduling.SchedulingError) as exc:
+            conn.rollback()
+            return _scheduling_error(exc, 409)
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="lesson.cancelled",
+            resource_type="lesson_exception",
+            resource_id=outcome["exceptionId"],
+        )
+        conn.commit()
+    return jsonify({"ok": True, **outcome}), 201
+
+
+@api_v1.route("/scheduling/exceptions/<exception_id>", methods=["DELETE"])
+@permission_required("scheduling:write")
+def scheduling_undo_exception(exception_id: str):
+    """Undo a recorded change; any credit it granted is cancelled, not deleted."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        try:
+            _scheduling.undo_occurrence(conn, tenant.tenant_id, exception_id)
+        except _scheduling.SchedulingError as exc:
+            conn.rollback()
+            return _scheduling_error(exc, 404)
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="lesson.change_undone",
+            resource_type="lesson_exception",
+            resource_id=exception_id,
+        )
+        conn.commit()
+    return jsonify({"ok": True})
+
+
+@api_v1.route("/scheduling/credits", methods=["GET"])
+@permission_required("scheduling:read")
+def scheduling_credits():
+    """Make-up credits owed, with expiry derived at read time."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        try:
+            _require_feature(conn, tenant.tenant_id, _entitlements.FEATURE_RECURRING_LESSONS)
+        except _entitlements.FeatureUnavailableError as exc:
+            return _feature_error(exc)
+        rows = _scheduling.credits(
+            conn, tenant.tenant_id,
+            student_id=(request.args.get("studentId") or "").strip() or None,
+            include_spent=(request.args.get("includeSpent") or "") == "1",
+        )
+    return jsonify({"credits": rows})
+
+
+@api_v1.route("/scheduling/credits/<credit_id>/consume", methods=["POST"])
+@permission_required("scheduling:write")
+def scheduling_consume_credit(credit_id: str):
+    """Book a make-up against a credit."""
+
+    try:
+        payload = _json_payload()
+        on_date = _iso_date(payload, "onDate")
+        if not on_date:
+            raise ValueError("onDate is required.")
+    except ValueError as exc:
+        return _error(str(exc))
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        try:
+            booked = _scheduling.consume_credit(
+                conn, tenant.tenant_id, credit_id,
+                on_date=on_date,
+                series_id=_clean_text(payload, "seriesId") or None,
+                start_time=_clean_text(payload, "startTime") or None,
+                teacher_user_id=_clean_text(payload, "teacherUserId") or None,
+                created_by_user_id=getattr(getattr(g, "actor", None), "user_id", None),
+            )
+        except (ValueError, _scheduling.SchedulingError) as exc:
+            conn.rollback()
+            return _scheduling_error(exc, 409)
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="makeup_credit.consumed",
+            resource_type="makeup_credit",
+            resource_id=credit_id,
+        )
+        conn.commit()
+    return jsonify({"ok": True, **booked})
+
+
+@api_v1.route("/scheduling/terms", methods=["GET", "POST"])
+@permission_required("scheduling:read")
+def scheduling_terms():
+    """The calendar spine billing periods and report cadence both hang off."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        if request.method == "GET":
+            return jsonify({"terms": _scheduling.terms(conn, tenant.tenant_id)})
+
+        try:
+            require_permission(getattr(g, "actor", None), "scheduling:write")
+            payload = _json_payload()
+            starts_on = _iso_date(payload, "startsOn")
+            ends_on = _iso_date(payload, "endsOn")
+            if not starts_on or not ends_on:
+                raise ValueError("startsOn and endsOn are required.")
+            created = _scheduling.create_term(
+                conn, tenant.tenant_id,
+                name=_clean_text(payload, "name"),
+                starts_on=starts_on, ends_on=ends_on,
+            )
+        except PermissionDeniedError as exc:
+            return _error(str(exc), 403)
+        except (ValueError, _scheduling.SchedulingError) as exc:
+            conn.rollback()
+            return _scheduling_error(exc, 409)
+        conn.commit()
+    return jsonify({"ok": True, "term": created}), 201
+
+
+@api_v1.route("/scheduling/closures", methods=["GET", "POST", "DELETE"])
+@permission_required("scheduling:read")
+def scheduling_closures():
+    """Dates when nothing runs. A closure removes lessons; it does not cancel them."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        if request.method == "GET":
+            try:
+                args = dict(request.args)
+                start = _iso_date(args, "start", fallback=_date.today())
+                end = _iso_date(args, "end", fallback=start + _timedelta(days=180))
+            except ValueError as exc:
+                return _error(str(exc))
+            return jsonify({
+                "closures": _scheduling.closures(conn, tenant.tenant_id, start=start, end=end)
+            })
+
+        try:
+            require_permission(getattr(g, "actor", None), "scheduling:write")
+            payload = _json_payload()
+            on_date = _iso_date(payload, "onDate")
+            if not on_date:
+                raise ValueError("onDate is required.")
+        except PermissionDeniedError as exc:
+            return _error(str(exc), 403)
+        except ValueError as exc:
+            return _error(str(exc))
+
+        if request.method == "DELETE":
+            _scheduling.clear_closure(conn, tenant.tenant_id, on_date=on_date)
+        else:
+            _scheduling.set_closure(
+                conn, tenant.tenant_id, on_date=on_date, label=_clean_text(payload, "label")
+            )
+        conn.commit()
+    return jsonify({"ok": True})
 
 
 # ── progress reports ─────────────────────────────────────────────────────

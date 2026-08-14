@@ -10,6 +10,7 @@ import { FinancePanel } from "./panels/finance.jsx";
 import { IntegrationsPanel } from "./panels/integrations.jsx";
 import { OverdueReports } from "./panels/progress_reports.jsx";
 import { StudentProgressReports, StudentBillingAccount } from "./panels/student_reports.jsx";
+import { PrivateLessonsPanel } from "./panels/private_lessons.jsx";
 
 const { useState, useEffect, useMemo, useRef, useCallback } = React;
 const tenantSlug = window.STUDIOSAAS_TENANT_SLUG
@@ -1309,6 +1310,9 @@ function App() {
        split is in ROLE_PERMISSIONS, not a UI nicety: Role.TEACHER has
        progress_reports:write without :publish, so a teacher-only publish
        button would render, be pressed, and 403. */
+    /* Mirrors backend scheduling:write — owner/manager/front_desk rearrange the
+       timetable; a teacher reads it (scheduling:read) but does not move it. */
+    const canWriteScheduling = [...ownerRoles,'manager','front_desk'].includes(actorRole);
     const canWriteProgress = [...ownerRoles,'manager','teacher'].includes(actorRole);
     const canPublishProgress = [...ownerRoles,'manager'].includes(actorRole);
     /* Mirrors backend attendance:write — teacher/staff can run the roster day
@@ -5013,6 +5017,21 @@ document.getElementById('copybtn').addEventListener('click', function(){
 {tab==='roster' && (
 <div className="anim space-y-4">
     <h2 className="inline-flex items-center gap-1.5 text-xl md:text-2xl font-bold text-gray-800"><Icon name="calendar" className="w-4 h-4"/>课程安排</h2>
+    {/* 一对一循环课收在一个可折叠区块里，而不是新开一个导航项：它和班课
+        回答的是同一个问题（这周谁什么时候上课），只是重复方式不同。默认
+        折叠，因为只教班课的工作室不该被一块空面板挡住每天要看的课表。 */}
+    {TENANT_SLUG && (
+        <details className="border border-indigo-100 rounded-2xl overflow-hidden group">
+            <summary className="list-none cursor-pointer min-h-[44px] px-4 py-3 flex items-center justify-between gap-3 bg-indigo-50 text-sm font-bold text-indigo-800">
+                <span className="inline-flex items-center gap-1.5"><Icon name="calendar" className="w-4 h-4"/>一对一循环课与补课额度</span>
+                <span className="group-open:rotate-180 transition-transform" aria-hidden="true">⌄</span>
+            </summary>
+            <div className="p-3 bg-white">
+                <PrivateLessonsPanel api={v1Api} showToast={showToast}
+                    canWrite={canWriteScheduling} students={db.students.filter(s=>!s.archived)} />
+            </div>
+        </details>
+    )}
     {scheduleLoadError && <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
         <span className="flex-1">{scheduleLoadError}</span>
         <button onClick={loadSchedules} className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-bold min-h-[44px]">重试</button>

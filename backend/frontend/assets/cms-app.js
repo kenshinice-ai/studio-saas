@@ -3,8 +3,8 @@
   var aud = (cents) => (Number(cents || 0) / 100).toLocaleString("en-AU", { style: "currency", currency: "AUD" });
   var fmtApiDate = (value) => {
     if (!value) return "—";
-    const iso = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (iso) return `${iso[3]}/${iso[2]}/${iso[1]}`;
+    const iso2 = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (iso2) return `${iso2[3]}/${iso2[2]}/${iso2[1]}`;
     const parsed = new Date(value);
     if (Number.isNaN(parsed.getTime())) return String(value);
     const pad = (n) => String(n).padStart(2, "0");
@@ -12,8 +12,8 @@
   };
   var monthRange = () => {
     const now = /* @__PURE__ */ new Date();
-    const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    return { from: iso(new Date(now.getFullYear(), now.getMonth(), 1)), to: iso(now) };
+    const iso2 = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    return { from: iso2(new Date(now.getFullYear(), now.getMonth(), 1)), to: iso2(now) };
   };
 
   // legacy-root/src/panels/billing.jsx
@@ -549,8 +549,8 @@
     const now = /* @__PURE__ */ new Date();
     const end = new Date(now.getFullYear(), now.getMonth(), 0);
     const start = new Date(end.getFullYear(), end.getMonth(), 1);
-    const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    return { start: iso(start), end: iso(end) };
+    const iso2 = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    return { start: iso2(start), end: iso2(end) };
   }
   function StudentProgressReports({ api, studentId, studentName, canWrite, canPublish, showToast }) {
     const [reports, setReports] = useState5(null);
@@ -711,8 +711,490 @@
     )));
   }
 
+  // legacy-root/src/panels/private_lessons.jsx
+  var { useState: useState6, useEffect: useEffect6, useCallback: useCallback6, useMemo: useMemo3 } = React;
+  var WEEKDAYS = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+  var STATUS_LABEL2 = { active: "进行中", paused: "暂停", ended: "已结束" };
+  var WHO = [
+    { value: "student", label: "学员请假" },
+    { value: "studio", label: "工作室停课" }
+  ];
+  var iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  function PrivateLessonsPanel({ api, showToast, canWrite, students }) {
+    const [view, setView] = useState6("upcoming");
+    const [series, setSeries] = useState6([]);
+    const [occurrences, setOccurrences] = useState6([]);
+    const [credits, setCredits] = useState6([]);
+    const [policy, setPolicy] = useState6(null);
+    const [loading, setLoading] = useState6(true);
+    const [error, setError] = useState6("");
+    const [busy, setBusy] = useState6(false);
+    const [cancelling, setCancelling] = useState6(null);
+    const [creating, setCreating] = useState6(false);
+    const range = useMemo3(() => {
+      const start = /* @__PURE__ */ new Date();
+      const end = /* @__PURE__ */ new Date();
+      end.setDate(end.getDate() + 13);
+      return { start: iso(start), end: iso(end) };
+    }, []);
+    const load = useCallback6(async () => {
+      setLoading(true);
+      try {
+        const [s, o, c, p] = await Promise.all([
+          api("/scheduling/series"),
+          api(`/scheduling/occurrences?start=${range.start}&end=${range.end}`),
+          api("/scheduling/credits"),
+          api("/scheduling/policy")
+        ]);
+        setSeries(s.series || []);
+        setOccurrences(o.occurrences || []);
+        setCredits(c.credits || []);
+        setPolicy(p.policy || null);
+        setError("");
+      } catch (e) {
+        setError(e.status === 403 ? "这个工作室尚未开通一对一循环课。" : `加载失败：${e.message}`);
+      } finally {
+        setLoading(false);
+      }
+    }, [api, range.start, range.end]);
+    useEffect6(() => {
+      load();
+    }, [load]);
+    async function cancelOne(form) {
+      setBusy(true);
+      try {
+        const res = await api("/scheduling/occurrences/cancel", {
+          method: "POST",
+          body: JSON.stringify({
+            seriesId: form.seriesId,
+            onDate: form.onDate,
+            cancelledBy: form.cancelledBy,
+            reason: form.reason
+          })
+        });
+        showToast(
+          `已记录：${res.chargeable ? "照常计费" : "不计费"}、${res.counts_for_pay ? "老师照付课酬" : "不计课酬"}${res.grants_credit ? "、已发一次补课额度" : ""}`,
+          "success"
+        );
+        setCancelling(null);
+        await load();
+      } catch (e) {
+        showToast(e.message || "取消失败", "error");
+      } finally {
+        setBusy(false);
+      }
+    }
+    async function undo(exceptionId) {
+      setBusy(true);
+      try {
+        await api(`/scheduling/exceptions/${exceptionId}`, { method: "DELETE" });
+        showToast("已撤销这次变更，随之发出的补课额度也已作废", "success");
+        await load();
+      } catch (e) {
+        showToast(e.message || "撤销失败", "error");
+      } finally {
+        setBusy(false);
+      }
+    }
+    async function createSeries(form) {
+      setBusy(true);
+      try {
+        await api("/scheduling/series", {
+          method: "POST",
+          body: JSON.stringify({
+            studentId: form.studentId,
+            weekday: Number(form.weekday),
+            startTime: form.startTime,
+            durationMinutes: Number(form.durationMinutes),
+            startsOn: form.startsOn,
+            room: form.room,
+            note: form.note
+          })
+        });
+        showToast("循环课已排好", "success");
+        setCreating(false);
+        await load();
+      } catch (e) {
+        showToast(e.message || "排课失败", "error");
+      } finally {
+        setBusy(false);
+      }
+    }
+    async function useCredit(credit) {
+      const onDate = window.prompt(
+        `给 ${credit.student_name} 安排补课，日期（YYYY-MM-DD）：`,
+        range.start
+      );
+      if (!onDate) return;
+      setBusy(true);
+      try {
+        await api(`/scheduling/credits/${credit.id}/consume`, {
+          method: "POST",
+          body: JSON.stringify({ onDate })
+        });
+        showToast("补课已登记，这次额度已用掉", "success");
+        await load();
+      } catch (e) {
+        showToast(e.message || "登记失败", "error");
+      } finally {
+        setBusy(false);
+      }
+    }
+    if (loading) return /* @__PURE__ */ React.createElement("div", { className: "p-6 text-sm text-gray-500" }, "正在加载一对一课程…");
+    if (error) return /* @__PURE__ */ React.createElement("div", { className: "p-6 text-sm text-red-600" }, error);
+    const liveCredits = credits.filter((c) => !c.is_expired);
+    const expiredCredits = credits.filter((c) => c.is_expired);
+    return /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-3 gap-3" }, /* @__PURE__ */ React.createElement(
+      Stat,
+      {
+        label: "循环课",
+        value: String(series.filter((s) => s.status === "active").length),
+        sub: `${series.filter((s) => s.status === "paused").length} 个暂停中`
+      }
+    ), /* @__PURE__ */ React.createElement(
+      Stat,
+      {
+        label: "未来两周",
+        value: String(occurrences.filter((o) => !o.exception_kind).length),
+        sub: `${occurrences.filter((o) => o.exception_kind).length} 次有变更`
+      }
+    ), /* @__PURE__ */ React.createElement(
+      Stat,
+      {
+        label: "待补课",
+        value: String(liveCredits.length),
+        tone: liveCredits.length ? "warn" : void 0,
+        sub: expiredCredits.length ? `${expiredCredits.length} 次已过期` : "没有欠着的"
+      }
+    )), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap items-center gap-2" }, [["upcoming", "未来两周"], ["series", "循环课"], ["credits", "补课额度"], ["policy", "请假规则"]].map(([key, label]) => /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        key,
+        type: "button",
+        onClick: () => setView(key),
+        className: `min-h-[44px] px-4 rounded-xl text-sm font-bold border ${view === key ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-gray-700 border-gray-200"}`
+      },
+      label
+    )), canWrite && view === "series" && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: () => setCreating(true),
+        className: "ml-auto min-h-[44px] px-4 rounded-xl bg-emerald-600 text-white text-sm font-bold"
+      },
+      "排一节循环课"
+    )), view === "upcoming" && /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl overflow-hidden" }, !occurrences.length && /* @__PURE__ */ React.createElement("p", { className: "px-4 py-6 text-sm text-gray-400 text-center" }, "未来两周没有一对一课程。排课后会自动展开到这里，节假日与暂停会自动跳过。"), /* @__PURE__ */ React.createElement("div", { className: "divide-y divide-gray-50" }, occurrences.map((o) => /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        key: `${o.series_id}-${o.on_date}`,
+        className: `px-4 py-3 flex flex-wrap items-center gap-3 ${o.exception_kind ? "bg-gray-50/60" : ""}`
+      },
+      /* @__PURE__ */ React.createElement("span", { className: "text-sm font-bold text-gray-700 w-28 flex-shrink-0" }, fmtApiDate(o.on_date)),
+      /* @__PURE__ */ React.createElement("span", { className: "text-sm text-gray-500 w-14 flex-shrink-0" }, o.start_time),
+      /* @__PURE__ */ React.createElement("span", { className: `text-sm flex-1 min-w-0 truncate ${o.exception_kind ? "text-gray-400 line-through" : "text-gray-800 font-bold"}` }, o.student_name, o.teacher_name && /* @__PURE__ */ React.createElement("span", { className: "ml-2 text-xs font-normal text-gray-400" }, o.teacher_name)),
+      o.exception_kind ? /* @__PURE__ */ React.createElement("span", { className: "flex items-center gap-2 flex-shrink-0" }, /* @__PURE__ */ React.createElement("span", { className: `text-xs font-bold px-2 py-0.5 rounded-full ${o.chargeable ? "bg-amber-50 text-amber-700" : "bg-gray-100 text-gray-500"}` }, o.chargeable ? "计费" : "不计费"), /* @__PURE__ */ React.createElement("span", { className: `text-xs font-bold px-2 py-0.5 rounded-full ${o.counts_for_pay ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-500"}` }, o.counts_for_pay ? "算课酬" : "不算课酬"), canWrite && /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          type: "button",
+          onClick: () => undo(o.exception_id),
+          disabled: busy,
+          className: "min-h-[44px] px-3 rounded-lg border border-gray-200 bg-white text-xs font-bold text-gray-600 disabled:opacity-50"
+        },
+        "撤销"
+      )) : canWrite ? /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          type: "button",
+          onClick: () => setCancelling({ seriesId: o.series_id, onDate: o.on_date, name: o.student_name }),
+          className: "min-h-[44px] px-3 rounded-lg border border-gray-200 bg-white text-xs font-bold text-gray-700 flex-shrink-0"
+        },
+        "请假 / 停课"
+      ) : null
+    )))), view === "series" && /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl overflow-hidden" }, !series.length && /* @__PURE__ */ React.createElement("p", { className: "px-4 py-6 text-sm text-gray-400 text-center" }, "还没有一对一循环课。排一节后，它每周自动出现，不用每周手动加。"), /* @__PURE__ */ React.createElement("div", { className: "divide-y divide-gray-50" }, series.map((s) => /* @__PURE__ */ React.createElement("div", { key: s.id, className: "px-4 py-3 flex flex-wrap items-center gap-3" }, /* @__PURE__ */ React.createElement("span", { className: "text-sm font-bold text-gray-800 flex-1 min-w-0 truncate" }, s.student_name), /* @__PURE__ */ React.createElement("span", { className: "text-sm text-gray-500" }, WEEKDAYS[s.weekday], " ", s.start_time, " · ", s.duration_minutes, " 分钟"), s.teacher_name && /* @__PURE__ */ React.createElement("span", { className: "text-xs text-gray-400" }, s.teacher_name), /* @__PURE__ */ React.createElement("span", { className: `text-xs font-bold px-2 py-0.5 rounded-full ${s.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}` }, STATUS_LABEL2[s.status], s.status === "paused" && s.paused_to && ` 至 ${fmtApiDate(s.paused_to)}`), canWrite && /* @__PURE__ */ React.createElement(
+      SeriesActions,
+      {
+        series: s,
+        api,
+        showToast,
+        onDone: load,
+        busy,
+        setBusy
+      }
+    ))))), view === "credits" && /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl overflow-hidden" }, !credits.length && /* @__PURE__ */ React.createElement("p", { className: "px-4 py-6 text-sm text-gray-400 text-center" }, "没有欠着的补课。提前请假产生的额度会出现在这里。"), /* @__PURE__ */ React.createElement("div", { className: "divide-y divide-gray-50" }, credits.map((c) => /* @__PURE__ */ React.createElement("div", { key: c.id, className: "px-4 py-3 flex flex-wrap items-center gap-3" }, /* @__PURE__ */ React.createElement("span", { className: "text-sm font-bold text-gray-800 flex-1 min-w-0 truncate" }, c.student_name), /* @__PURE__ */ React.createElement("span", { className: "text-xs text-gray-400" }, fmtApiDate(c.earned_from_date), " 请假产生"), /* @__PURE__ */ React.createElement("span", { className: `text-xs font-bold px-2 py-0.5 rounded-full ${c.is_expired ? "bg-gray-100 text-gray-500" : "bg-amber-50 text-amber-700"}` }, c.is_expired ? "已过期" : c.expires_on ? `${fmtApiDate(c.expires_on)} 前有效` : "不过期"), canWrite && !c.is_expired && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: () => useCredit(c),
+        disabled: busy,
+        className: "min-h-[44px] px-3 rounded-lg bg-indigo-600 text-white text-xs font-bold disabled:opacity-50"
+      },
+      "安排补课"
+    ))))), view === "policy" && policy && /* @__PURE__ */ React.createElement(
+      PolicyEditor,
+      {
+        policy,
+        api,
+        showToast,
+        canWrite,
+        onSaved: load
+      }
+    ), cancelling && /* @__PURE__ */ React.createElement(
+      CancelDialog,
+      {
+        target: cancelling,
+        policy,
+        busy,
+        onClose: () => setCancelling(null),
+        onSubmit: cancelOne
+      }
+    ), creating && /* @__PURE__ */ React.createElement(
+      CreateDialog,
+      {
+        students,
+        busy,
+        onClose: () => setCreating(false),
+        onSubmit: createSeries
+      }
+    ));
+  }
+  function Stat({ label, value, sub, tone }) {
+    const accent = tone === "warn" ? "text-amber-700" : "text-gray-800";
+    return /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl p-4" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400" }, label), /* @__PURE__ */ React.createElement("p", { className: `text-2xl font-bold ${accent}` }, value), sub && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-0.5" }, sub));
+  }
+  function SeriesActions({ series, api, showToast, onDone, busy, setBusy }) {
+    async function setStatus(status) {
+      setBusy(true);
+      try {
+        await api(`/scheduling/series/${series.id}`, {
+          method: "PATCH",
+          body: JSON.stringify({ status })
+        });
+        showToast(status === "ended" ? "这门循环课已结束" : `已${status === "paused" ? "暂停" : "恢复"}`, "success");
+        await onDone();
+      } catch (e) {
+        showToast(e.message || "操作失败", "error");
+      } finally {
+        setBusy(false);
+      }
+    }
+    return /* @__PURE__ */ React.createElement("span", { className: "flex items-center gap-2 flex-shrink-0" }, series.status === "active" ? /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: () => setStatus("paused"),
+        disabled: busy,
+        className: "min-h-[44px] px-3 rounded-lg border border-gray-200 bg-white text-xs font-bold text-gray-700 disabled:opacity-50"
+      },
+      "暂停"
+    ) : /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: () => setStatus("active"),
+        disabled: busy,
+        className: "min-h-[44px] px-3 rounded-lg border border-emerald-200 bg-white text-xs font-bold text-emerald-700 disabled:opacity-50"
+      },
+      "恢复"
+    ), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: () => setStatus("ended"),
+        disabled: busy,
+        className: "min-h-[44px] px-3 rounded-lg border border-gray-200 bg-white text-xs font-bold text-gray-500 disabled:opacity-50"
+      },
+      "结束"
+    ));
+  }
+  function CancelDialog({ target, policy, busy, onClose, onSubmit }) {
+    const [cancelledBy, setCancelledBy] = useState6("student");
+    const [reason, setReason] = useState6("");
+    return /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center sm:p-4 backdrop-blur-sm" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl p-5 space-y-4" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "text-lg font-bold text-gray-800" }, target.name, " · ", fmtApiDate(target.onDate)), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500 mt-1" }, "这一下决定三件事：还收不收钱、老师算不算课酬、要不要补一次课。")), /* @__PURE__ */ React.createElement("div", { className: "space-y-2" }, WHO.map((w) => /* @__PURE__ */ React.createElement(
+      "label",
+      {
+        key: w.value,
+        className: `flex items-center gap-3 min-h-[44px] px-4 rounded-xl border cursor-pointer ${cancelledBy === w.value ? "border-indigo-500 bg-indigo-50" : "border-gray-200"}`
+      },
+      /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          type: "radio",
+          name: "cancelledBy",
+          value: w.value,
+          checked: cancelledBy === w.value,
+          onChange: () => setCancelledBy(w.value)
+        }
+      ),
+      /* @__PURE__ */ React.createElement("span", { className: "text-sm font-bold text-gray-800" }, w.label)
+    ))), policy && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400" }, cancelledBy === "studio" ? `工作室停课：${policy.studio_cancel_chargeable ? "照常计费" : "不计费"}，老师照付课酬。` : `提前 ${policy.notice_hours} 小时以上算按时请假，${policy.makeup_credit_on_notice ? "发补课额度" : "不发补课额度"}；临时请假${policy.late_absence_chargeable ? "照常计费" : "不计费"}。`, " ", "提前量由系统按工作室时钟计算。"), /* @__PURE__ */ React.createElement(
+      "textarea",
+      {
+        value: reason,
+        onChange: (e) => setReason(e.target.value),
+        rows: 2,
+        placeholder: "备注（选填）：家长来电说明的原因",
+        className: "w-full px-3 py-2 border border-gray-200 rounded-xl text-sm"
+      }
+    ), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: onClose,
+        disabled: busy,
+        className: "flex-1 min-h-[44px] rounded-xl border border-gray-200 bg-white text-sm font-bold text-gray-700 disabled:opacity-50"
+      },
+      "取消"
+    ), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        disabled: busy,
+        onClick: () => onSubmit({ ...target, cancelledBy, reason }),
+        className: "flex-1 min-h-[44px] rounded-xl bg-indigo-600 text-white text-sm font-bold disabled:opacity-50"
+      },
+      "确认记录"
+    ))));
+  }
+  function CreateDialog({ students, busy, onClose, onSubmit }) {
+    const [form, setForm] = useState6({
+      studentId: "",
+      weekday: "1",
+      startTime: "16:00",
+      durationMinutes: "30",
+      startsOn: iso(/* @__PURE__ */ new Date()),
+      room: "",
+      note: ""
+    });
+    const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
+    return /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center sm:p-4 backdrop-blur-sm" }, /* @__PURE__ */ React.createElement("div", { className: "bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl p-5 space-y-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-lg font-bold text-gray-800" }, "排一节循环课"), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, "每周同一时间自动出现，节假日与暂停会自动跳过。"), /* @__PURE__ */ React.createElement("label", { className: "block text-xs text-gray-400" }, "学员", /* @__PURE__ */ React.createElement(
+      "select",
+      {
+        value: form.studentId,
+        onChange: set("studentId"),
+        className: "block w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm"
+      },
+      /* @__PURE__ */ React.createElement("option", { value: "" }, "请选择"),
+      (students || []).map((s) => /* @__PURE__ */ React.createElement("option", { key: s.id, value: s.id }, s.name))
+    )), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-3" }, /* @__PURE__ */ React.createElement("label", { className: "block text-xs text-gray-400" }, "星期", /* @__PURE__ */ React.createElement(
+      "select",
+      {
+        value: form.weekday,
+        onChange: set("weekday"),
+        className: "block w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm"
+      },
+      WEEKDAYS.map((label, i) => /* @__PURE__ */ React.createElement("option", { key: i, value: i }, label))
+    )), /* @__PURE__ */ React.createElement("label", { className: "block text-xs text-gray-400" }, "开始时间", /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        type: "time",
+        value: form.startTime,
+        onChange: set("startTime"),
+        className: "block w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm"
+      }
+    )), /* @__PURE__ */ React.createElement("label", { className: "block text-xs text-gray-400" }, "时长（分钟）", /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        type: "number",
+        min: "5",
+        step: "5",
+        value: form.durationMinutes,
+        onChange: set("durationMinutes"),
+        className: "block w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm"
+      }
+    )), /* @__PURE__ */ React.createElement("label", { className: "block text-xs text-gray-400" }, "起始日期", /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        type: "date",
+        value: form.startsOn,
+        onChange: set("startsOn"),
+        className: "block w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm"
+      }
+    ))), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 pt-1" }, /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: onClose,
+        disabled: busy,
+        className: "flex-1 min-h-[44px] rounded-xl border border-gray-200 bg-white text-sm font-bold text-gray-700 disabled:opacity-50"
+      },
+      "取消"
+    ), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: () => onSubmit(form),
+        disabled: busy || !form.studentId,
+        className: "flex-1 min-h-[44px] rounded-xl bg-emerald-600 text-white text-sm font-bold disabled:opacity-50"
+      },
+      "排课"
+    ))));
+  }
+  function PolicyEditor({ policy, api, showToast, canWrite, onSaved }) {
+    const [form, setForm] = useState6(policy);
+    const [busy, setBusy] = useState6(false);
+    async function save() {
+      setBusy(true);
+      try {
+        await api("/scheduling/policy", { method: "PUT", body: JSON.stringify(form) });
+        showToast("请假规则已更新", "success");
+        await onSaved();
+      } catch (e) {
+        showToast(e.message || "保存失败", "error");
+      } finally {
+        setBusy(false);
+      }
+    }
+    const toggle = (key) => () => setForm((f) => ({ ...f, [key]: !f[key] }));
+    return /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl p-4 space-y-4" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500" }, "这四项决定一次请假的后果。它们是四个独立的开关，不是一个 —— 临时请假通常「收钱」且「照付老师」，工作室停课通常两者相反。"), /* @__PURE__ */ React.createElement("div", { className: "grid sm:grid-cols-2 gap-3" }, /* @__PURE__ */ React.createElement("label", { className: "block text-xs text-gray-400" }, "提前多少小时算按时请假", /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        type: "number",
+        min: "0",
+        value: form.notice_hours,
+        disabled: !canWrite,
+        onChange: (e) => setForm((f) => ({ ...f, notice_hours: Number(e.target.value) })),
+        className: "block w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm disabled:bg-gray-50"
+      }
+    )), /* @__PURE__ */ React.createElement("label", { className: "block text-xs text-gray-400" }, "补课额度多少天后过期（留空＝不过期）", /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        type: "number",
+        min: "1",
+        value: form.makeup_expiry_days ?? "",
+        disabled: !canWrite,
+        onChange: (e) => setForm((f) => ({
+          ...f,
+          makeup_expiry_days: e.target.value === "" ? null : Number(e.target.value)
+        })),
+        className: "block w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm disabled:bg-gray-50"
+      }
+    ))), /* @__PURE__ */ React.createElement("div", { className: "space-y-2" }, [
+      ["makeup_credit_on_notice", "按时请假发一次补课额度"],
+      ["late_absence_chargeable", "临时请假照常计费"],
+      ["late_absence_pays_teacher", "临时请假老师照付课酬"],
+      ["studio_cancel_chargeable", "工作室停课照常计费"]
+    ].map(([key, label]) => /* @__PURE__ */ React.createElement(
+      "label",
+      {
+        key,
+        className: `flex items-center gap-3 min-h-[44px] px-4 rounded-xl border ${canWrite ? "cursor-pointer" : ""} ${form[key] ? "border-indigo-500 bg-indigo-50" : "border-gray-200"}`
+      },
+      /* @__PURE__ */ React.createElement("input", { type: "checkbox", checked: !!form[key], disabled: !canWrite, onChange: toggle(key) }),
+      /* @__PURE__ */ React.createElement("span", { className: "text-sm font-bold text-gray-800" }, label)
+    ))), canWrite && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: save,
+        disabled: busy,
+        className: "min-h-[44px] px-5 rounded-xl bg-indigo-600 text-white text-sm font-bold disabled:opacity-50"
+      },
+      "保存规则"
+    ));
+  }
+
   // legacy-root/src/cms-app.jsx
-  var { useState: useState6, useEffect: useEffect6, useMemo: useMemo3, useRef, useCallback: useCallback6 } = React;
+  var { useState: useState7, useEffect: useEffect7, useMemo: useMemo4, useRef, useCallback: useCallback7 } = React;
   var tenantSlug = window.STUDIOSAAS_TENANT_SLUG || new URLSearchParams(location.search).get("tenant") || (location.pathname.match(/^\/([^/]+)(?:\/cms)?\/?$/) || [])[1] || "";
   var nowAU = () => (/* @__PURE__ */ new Date()).toLocaleString("en-AU", {
     timeZone: "Australia/Melbourne",
@@ -725,8 +1207,8 @@
     hour12: false
   });
   var todayISO = () => (/* @__PURE__ */ new Date()).toLocaleDateString("en-CA");
-  var shiftDate = (iso, delta) => {
-    const d = /* @__PURE__ */ new Date(`${iso}T12:00:00`);
+  var shiftDate = (iso2, delta) => {
+    const d = /* @__PURE__ */ new Date(`${iso2}T12:00:00`);
     d.setDate(d.getDate() + delta);
     return d.toLocaleDateString("en-CA");
   };
@@ -735,9 +1217,9 @@
     const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
     return m ? `${m[3]}/${m[2]}/${m[1]}` : String(s).split(" ")[0];
   };
-  var daysSince = (iso) => {
-    if (!iso) return 9999;
-    const d = new Date(iso);
+  var daysSince = (iso2) => {
+    if (!iso2) return 9999;
+    const d = new Date(iso2);
     return isNaN(d) ? 9999 : Math.floor((Date.now() - d) / 864e5);
   };
   var fmtDT = (s) => {
@@ -869,8 +1351,8 @@
     return ["/logo.png", "/logo-light.png", "/favicon.svg"].includes(source) ? "" : source;
   };
   function TenantBrandLogo({ className = "" }) {
-    const [brand, setBrand] = useState6(() => window.STUDIOSAAS_BRAND || {});
-    useEffect6(() => {
+    const [brand, setBrand] = useState7(() => window.STUDIOSAAS_BRAND || {});
+    useEffect7(() => {
       const syncBrand = (event) => setBrand(event?.detail || window.STUDIOSAAS_BRAND || {});
       window.addEventListener("studiosaas:brand", syncBrand);
       syncBrand();
@@ -977,7 +1459,7 @@
     return /* @__PURE__ */ React.createElement("span", { className: "px-2.5 py-1 rounded-lg text-xs font-bold bg-green-100 text-green-700 whitespace-nowrap" }, v);
   }
   function Toast({ msg, type, action, onDone }) {
-    useEffect6(() => {
+    useEffect7(() => {
       const t = setTimeout(onDone, action ? 6e3 : 2700);
       return () => clearTimeout(t);
     }, []);
@@ -1068,7 +1550,7 @@
   function useModalFocus(isOpen, onClose, dialogRef, initialFocusRef = null) {
     const closeRef = useRef(onClose);
     closeRef.current = onClose;
-    useEffect6(() => {
+    useEffect7(() => {
       if (!isOpen) return;
       const previousFocus = document.activeElement;
       const selector = [
@@ -1114,11 +1596,11 @@
     }, [isOpen, dialogRef, initialFocusRef]);
   }
   function ConfirmDialog({ dialog, onClose }) {
-    const [typed, setTyped] = useState6("");
+    const [typed, setTyped] = useState7("");
     const boxRef = useRef(null);
     const onCloseRef = useRef(onClose);
     onCloseRef.current = onClose;
-    useEffect6(() => {
+    useEffect7(() => {
       setTyped(dialog?.promptDefault || "");
     }, [dialog]);
     const dismiss = () => {
@@ -1127,7 +1609,7 @@
     };
     const dismissRef = useRef(dismiss);
     dismissRef.current = dismiss;
-    useEffect6(() => {
+    useEffect7(() => {
       if (!dialog) return;
       const prevFocus = document.activeElement;
       const onKey = (e) => {
@@ -1230,18 +1712,18 @@
     );
   }
   function StudentPicker({ students, value, onChange, placeholder = "-- 选择学员 --", showBal = true }) {
-    const [q, setQ] = useState6("");
-    const [open, setOpen] = useState6(false);
+    const [q, setQ] = useState7("");
+    const [open, setOpen] = useState7(false);
     const ref = useRef(null);
     const sel = students.find((s) => s.id === value);
-    useEffect6(() => {
+    useEffect7(() => {
       if (!value) setQ("");
     }, [value]);
-    const filtered = useMemo3(
+    const filtered = useMemo4(
       () => q ? students.filter((s) => s.name.toLowerCase().includes(q.toLowerCase())) : students,
       [students, q]
     );
-    useEffect6(() => {
+    useEffect7(() => {
       const h = (e) => {
         if (ref.current && !ref.current.contains(e.target)) setOpen(false);
       };
@@ -1405,7 +1887,7 @@
     );
   }
   function PhotoUploader({ value, onChange, notify }) {
-    const [uploading, setUploading] = useState6(false);
+    const [uploading, setUploading] = useState7(false);
     const handleFile = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -1436,23 +1918,23 @@
     return /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-4" }, value ? /* @__PURE__ */ React.createElement("img", { src: mediaSrc(value), alt: "学员照片预览", className: "w-14 h-14 rounded-full object-cover border-2 border-indigo-100 flex-shrink-0" }) : /* @__PURE__ */ React.createElement("div", { className: "w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center text-2xl border-2 border-dashed border-gray-300 flex-shrink-0 text-gray-400" }, /* @__PURE__ */ React.createElement(Icon, { name: "camera", className: "w-6 h-6" })), /* @__PURE__ */ React.createElement("div", { className: "space-y-1.5" }, /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 flex-wrap" }, /* @__PURE__ */ React.createElement("label", { className: `cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 text-sm font-bold rounded-xl border min-h-[44px] ${btnBase || "bg-indigo-50 text-indigo-700 border-indigo-200 active:bg-indigo-100"}` }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "folder", className: "w-4 h-4" }), uploading ? "上传中..." : value ? "更换" : "选择"), /* @__PURE__ */ React.createElement("input", { type: "file", accept: "image/*", onChange: handleFile, disabled: uploading, className: "hidden" })), /* @__PURE__ */ React.createElement("label", { className: `cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 text-sm font-bold rounded-xl border min-h-[44px] ${btnBase || "bg-purple-50 text-purple-700 border-purple-200 active:bg-purple-100"}` }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "camera", className: "w-4 h-4" }), "拍照"), /* @__PURE__ */ React.createElement("input", { type: "file", accept: "image/*", capture: "environment", onChange: handleFile, disabled: uploading, className: "hidden" }))), value && /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => onChange(""), className: "text-xs text-red-400 active:text-red-600" }, "移除照片")));
   }
   function MaintSection({ onRestored, renewTh, saveRenewTh, confirm, notify }) {
-    const [hc, setHc] = useState6(null);
-    const [hcBusy, setHcBusy] = useState6(false);
-    const [cfg, setCfg] = useState6(null);
-    const [pw, setPw] = useState6("");
-    const [cfgMsg, setCfgMsg] = useState6(null);
+    const [hc, setHc] = useState7(null);
+    const [hcBusy, setHcBusy] = useState7(false);
+    const [cfg, setCfg] = useState7(null);
+    const [pw, setPw] = useState7("");
+    const [cfgMsg, setCfgMsg] = useState7(null);
     const say = (text, tone = "info") => setCfgMsg(text ? { text, tone } : null);
-    const [bks, setBks] = useState6(null);
-    const [bkSel, setBkSel] = useState6(null);
-    const [busy, setBusy] = useState6(false);
+    const [bks, setBks] = useState7(null);
+    const [bkSel, setBkSel] = useState7(null);
+    const [busy, setBusy] = useState7(false);
     const post = (url, body) => fetch(url, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body)
     });
-    const [stale, setStale] = useState6(false);
-    useEffect6(() => {
+    const [stale, setStale] = useState7(false);
+    useEffect7(() => {
       fetch("/api/config", { credentials: "include" }).then((r) => {
         if (r.status === 404) {
           setStale(true);
@@ -1687,10 +2169,10 @@
     )) : /* @__PURE__ */ React.createElement("p", { className: "text-xs text-red-500" }, "该备份文件已损坏，不可恢复")))));
   }
   function LoginScreen({ onLogin }) {
-    const [email, setEmail] = useState6(() => localStorage.getItem(`lp_admin_email_${tenantSlug}`) || "");
-    const [pw, setPw] = useState6("");
-    const [busy, setBusy] = useState6(false);
-    const [err, setErr] = useState6("");
+    const [email, setEmail] = useState7(() => localStorage.getItem(`lp_admin_email_${tenantSlug}`) || "");
+    const [pw, setPw] = useState7("");
+    const [busy, setBusy] = useState7(false);
+    const [err, setErr] = useState7("");
     const submit = async (e) => {
       e && e.preventDefault();
       if (!email || !pw) {
@@ -1751,58 +2233,58 @@
     )), /* @__PURE__ */ React.createElement("p", { className: "mt-6 pt-4 border-t border-gray-100 text-[10px] tracking-wide text-gray-400" }, "Powered by Paradise Production")));
   }
   function App() {
-    const [db, setDb] = useState6({ students: [], logs: [], rosters: {}, pending: [] });
-    const [auditEvents, setAuditEvents] = useState6([]);
-    const initialCmsRoute = useMemo3(() => readCmsRoute(), []);
-    const [tab, setTabState] = useState6(initialCmsRoute.tab);
-    const [pendingTab, setPendingTabState] = useState6(initialCmsRoute.pendingTab);
-    const [settingsSection, setSettingsSectionState] = useState6(initialCmsRoute.settingsSection);
-    const [routeRecordId, setRouteRecordId] = useState6(initialCmsRoute.recordId);
-    const [moreOpen, setMoreOpen] = useState6(false);
-    const [selS, setSelS] = useState6(null);
-    const [editP, setEditP] = useState6(false);
-    const [studentProfileTab, setStudentProfileTab] = useState6("profile");
-    const [busy, setBusy] = useState6(false);
-    const [conn, setConn] = useState6(false);
-    const [connErr, setConnErr] = useState6(null);
-    const [toast, setToast] = useState6(null);
-    const [cmsNotifications, setCmsNotifications] = useState6([]);
-    const [cmsNotificationUnreadCount, setCmsNotificationUnreadCount] = useState6(0);
-    const [cmsNotificationOpen, setCmsNotificationOpen] = useState6(false);
-    const [cmsNotificationError, setCmsNotificationError] = useState6("");
+    const [db, setDb] = useState7({ students: [], logs: [], rosters: {}, pending: [] });
+    const [auditEvents, setAuditEvents] = useState7([]);
+    const initialCmsRoute = useMemo4(() => readCmsRoute(), []);
+    const [tab, setTabState] = useState7(initialCmsRoute.tab);
+    const [pendingTab, setPendingTabState] = useState7(initialCmsRoute.pendingTab);
+    const [settingsSection, setSettingsSectionState] = useState7(initialCmsRoute.settingsSection);
+    const [routeRecordId, setRouteRecordId] = useState7(initialCmsRoute.recordId);
+    const [moreOpen, setMoreOpen] = useState7(false);
+    const [selS, setSelS] = useState7(null);
+    const [editP, setEditP] = useState7(false);
+    const [studentProfileTab, setStudentProfileTab] = useState7("profile");
+    const [busy, setBusy] = useState7(false);
+    const [conn, setConn] = useState7(false);
+    const [connErr, setConnErr] = useState7(null);
+    const [toast, setToast] = useState7(null);
+    const [cmsNotifications, setCmsNotifications] = useState7([]);
+    const [cmsNotificationUnreadCount, setCmsNotificationUnreadCount] = useState7(0);
+    const [cmsNotificationOpen, setCmsNotificationOpen] = useState7(false);
+    const [cmsNotificationError, setCmsNotificationError] = useState7("");
     const cmsNotificationCursorRef = useRef(0);
     const cmsNotificationPollingRef = useRef(false);
-    const [confirmDialog, setConfirmDialog] = useState6(null);
-    const [showSettings, setShowSettings] = useState6(initialCmsRoute.tab === "settings");
-    const [userMenuOpen, setUserMenuOpen] = useState6(false);
-    const [loggedIn, setLoggedIn] = useState6(false);
-    const [pwOld, setPwOld] = useState6("");
-    const [pwNew1, setPwNew1] = useState6("");
-    const [pwNew2, setPwNew2] = useState6("");
-    const [pwBusy, setPwBusy] = useState6(false);
-    const [pwMsg, setPwMsg] = useState6(null);
-    const [gOpen, setGOpen] = useState6(false);
-    const [gQ, setGQ] = useState6("");
-    const [portLB, setPortLB] = useState6(null);
-    const [portUpload, setPortUpload] = useState6(false);
-    const [portUpFile, setPortUpFile] = useState6(null);
-    const [portEdit, setPortEdit] = useState6(null);
-    const [portBusy, setPortBusy] = useState6(false);
+    const [confirmDialog, setConfirmDialog] = useState7(null);
+    const [showSettings, setShowSettings] = useState7(initialCmsRoute.tab === "settings");
+    const [userMenuOpen, setUserMenuOpen] = useState7(false);
+    const [loggedIn, setLoggedIn] = useState7(false);
+    const [pwOld, setPwOld] = useState7("");
+    const [pwNew1, setPwNew1] = useState7("");
+    const [pwNew2, setPwNew2] = useState7("");
+    const [pwBusy, setPwBusy] = useState7(false);
+    const [pwMsg, setPwMsg] = useState7(null);
+    const [gOpen, setGOpen] = useState7(false);
+    const [gQ, setGQ] = useState7("");
+    const [portLB, setPortLB] = useState7(null);
+    const [portUpload, setPortUpload] = useState7(false);
+    const [portUpFile, setPortUpFile] = useState7(null);
+    const [portEdit, setPortEdit] = useState7(null);
+    const [portBusy, setPortBusy] = useState7(false);
     const portLightboxDialogRef = useRef(null);
     const portUploadDialogRef = useRef(null);
     const portEditDialogRef = useRef(null);
     const searchDialogRef = useRef(null);
     const settingsDialogRef = useRef(null);
     const profileDialogRef = useRef(null);
-    const [accessCodeResult, setAccessCodeResult] = useState6(null);
-    const [consentEdit, setConsentEdit] = useState6(null);
-    useEffect6(() => {
+    const [accessCodeResult, setAccessCodeResult] = useState7(null);
+    const [consentEdit, setConsentEdit] = useState7(null);
+    useEffect7(() => {
       setAccessCodeResult(null);
       setConsentEdit(null);
       setStudentProfileTab("profile");
     }, [selS?.id]);
     const lbTouchX = useRef(0);
-    const syncCmsRoute = useCallback6((patch = {}, replace = false) => {
+    const syncCmsRoute = useCallback7((patch = {}, replace = false) => {
       const current = readCmsRoute();
       const next = { ...current, ...patch };
       const url = new URL(window.location.href);
@@ -1820,7 +2302,7 @@
       const nextUrl = `${url.pathname}${params.toString() ? `?${params.toString()}` : ""}${url.hash}`;
       window.history[replace ? "replaceState" : "pushState"]({}, "", nextUrl);
     }, []);
-    const setTab = useCallback6((nextTab, options = {}) => {
+    const setTab = useCallback7((nextTab, options = {}) => {
       const next = CMS_ROUTE_TABS.has(nextTab) ? nextTab : "dashboard";
       setTabState(next);
       setShowSettings(next === "settings");
@@ -1828,20 +2310,20 @@
       setRouteRecordId(nextRecordId);
       syncCmsRoute({ tab: next, recordId: nextRecordId }, !!options.replace);
     }, [syncCmsRoute]);
-    const setPendingTab = useCallback6((nextPendingTab) => {
+    const setPendingTab = useCallback7((nextPendingTab) => {
       const next = ["bookings", "reports"].includes(nextPendingTab) ? nextPendingTab : "registrations";
       setPendingTabState(next);
       setTabState("pending");
       setShowSettings(false);
       syncCmsRoute({ tab: "pending", pendingTab: next });
     }, [syncCmsRoute]);
-    const setSettingsSection = useCallback6((nextSection) => {
+    const setSettingsSection = useCallback7((nextSection) => {
       setSettingsSectionState(nextSection);
       setTabState("settings");
       setShowSettings(true);
       syncCmsRoute({ tab: "settings", settingsSection: nextSection });
     }, [syncCmsRoute]);
-    useEffect6(() => {
+    useEffect7(() => {
       const onPopState = () => {
         const next = readCmsRoute();
         setTabState(next.tab);
@@ -1874,7 +2356,7 @@
       },
       profileDialogRef
     );
-    const [inactiveDays, setInactiveDays] = useState6(() => parseInt(localStorage.getItem("lp_inactive_days") || "90", 10));
+    const [inactiveDays, setInactiveDays] = useState7(() => parseInt(localStorage.getItem("lp_inactive_days") || "90", 10));
     const saveInactiveDays = (v) => {
       const n = parseInt(v, 10);
       if (n > 0) {
@@ -1882,36 +2364,36 @@
         localStorage.setItem("lp_inactive_days", String(n));
       }
     };
-    const [srch, setSrch] = useState6("");
-    const [sortBy, setSortBy] = useState6("date-desc");
-    const [filterBy, setFilterBy] = useState6("all");
+    const [srch, setSrch] = useState7("");
+    const [sortBy, setSortBy] = useState7("date-desc");
+    const [filterBy, setFilterBy] = useState7("all");
     const STUDENTS_PER_PAGE = 24;
-    const [studentPage, setStudentPage] = useState6(1);
-    const [selectedStudentIds, setSelectedStudentIds] = useState6([]);
-    const [rDate, setRDate] = useState6(todayISO);
-    const [rPick, setRPick] = useState6(null);
-    const [defaultClassTime, setDefaultClassTime] = useState6("14:30");
-    const [defaultClassTimeDraft, setDefaultClassTimeDraft] = useState6("14:30");
-    const [operationalSettingsBusy, setOperationalSettingsBusy] = useState6(false);
-    const [rTime, setRTime] = useState6("14:30");
-    const [icsPreview, setIcsPreview] = useState6(null);
-    const [icsNotice, setIcsNotice] = useState6("");
-    const [icsBusy, setIcsBusy] = useState6(false);
+    const [studentPage, setStudentPage] = useState7(1);
+    const [selectedStudentIds, setSelectedStudentIds] = useState7([]);
+    const [rDate, setRDate] = useState7(todayISO);
+    const [rPick, setRPick] = useState7(null);
+    const [defaultClassTime, setDefaultClassTime] = useState7("14:30");
+    const [defaultClassTimeDraft, setDefaultClassTimeDraft] = useState7("14:30");
+    const [operationalSettingsBusy, setOperationalSettingsBusy] = useState7(false);
+    const [rTime, setRTime] = useState7("14:30");
+    const [icsPreview, setIcsPreview] = useState7(null);
+    const [icsNotice, setIcsNotice] = useState7("");
+    const [icsBusy, setIcsBusy] = useState7(false);
     const icsDialogRef = useRef(null);
     const icsCloseButtonRef = useRef(null);
-    const [rOneToOne, setROneToOne] = useState6(false);
-    const [grpSel, setGrpSel] = useState6("");
-    const [schedules, setSchedules] = useState6([]);
-    const [scheduleLoadError, setScheduleLoadError] = useState6("");
-    const [bizStats, setBizStats] = useState6(null);
-    const [attHistory, setAttHistory] = useState6(null);
-    const [schedEdit, setSchedEdit] = useState6(null);
-    const [schedPick, setSchedPick] = useState6(null);
-    const [courses, setCourses] = useState6([]);
-    const [schedCancel, setSchedCancel] = useState6(null);
-    const [bookings, setBookings] = useState6([]);
-    const [courseEdit, setCourseEdit] = useState6(null);
-    const [renewTh, setRenewTh] = useState6(() => parseInt(localStorage.getItem("lp_renew_threshold") || "2", 10));
+    const [rOneToOne, setROneToOne] = useState7(false);
+    const [grpSel, setGrpSel] = useState7("");
+    const [schedules, setSchedules] = useState7([]);
+    const [scheduleLoadError, setScheduleLoadError] = useState7("");
+    const [bizStats, setBizStats] = useState7(null);
+    const [attHistory, setAttHistory] = useState7(null);
+    const [schedEdit, setSchedEdit] = useState7(null);
+    const [schedPick, setSchedPick] = useState7(null);
+    const [courses, setCourses] = useState7([]);
+    const [schedCancel, setSchedCancel] = useState7(null);
+    const [bookings, setBookings] = useState7([]);
+    const [courseEdit, setCourseEdit] = useState7(null);
+    const [renewTh, setRenewTh] = useState7(() => parseInt(localStorage.getItem("lp_renew_threshold") || "2", 10));
     const saveRenewTh = (v) => {
       const n = parseInt(v, 10);
       if (n >= 0) {
@@ -1919,39 +2401,39 @@
         localStorage.setItem("lp_renew_threshold", String(n));
       }
     };
-    const [tuStu, setTuStu] = useState6(null);
-    const [settleMode, setSettleMode] = useState6("topup");
-    const [rfCr, setRfCr] = useState6("");
-    const [rfAmt, setRfAmt] = useState6("");
-    const [rfReason, setRfReason] = useState6("");
-    const [tuCr, setTuCr] = useState6("");
-    const [tuFee, setTuFee] = useState6("");
-    const [tuPkg, setTuPkg] = useState6("");
-    const [tuPay, setTuPay] = useState6("微信");
-    const [lSrch, setLSrch] = useState6("");
-    const [lStu, setLStu] = useState6(null);
-    const [lAct, setLAct] = useState6("");
-    const [lDateFrom, setLDateFrom] = useState6("");
-    const [lDateTo, setLDateTo] = useState6("");
-    const [lPage, setLPage] = useState6(1);
+    const [tuStu, setTuStu] = useState7(null);
+    const [settleMode, setSettleMode] = useState7("topup");
+    const [rfCr, setRfCr] = useState7("");
+    const [rfAmt, setRfAmt] = useState7("");
+    const [rfReason, setRfReason] = useState7("");
+    const [tuCr, setTuCr] = useState7("");
+    const [tuFee, setTuFee] = useState7("");
+    const [tuPkg, setTuPkg] = useState7("");
+    const [tuPay, setTuPay] = useState7("微信");
+    const [lSrch, setLSrch] = useState7("");
+    const [lStu, setLStu] = useState7(null);
+    const [lAct, setLAct] = useState7("");
+    const [lDateFrom, setLDateFrom] = useState7("");
+    const [lDateTo, setLDateTo] = useState7("");
+    const [lPage, setLPage] = useState7(1);
     const LPP = 30;
-    const [sPeriod, setSPeriod] = useState6("monthly");
-    const [sYear, setSYear] = useState6(String((/* @__PURE__ */ new Date()).getFullYear()));
-    const [sFrom, setSFrom] = useState6("");
-    const [sTo, setSTo] = useState6("");
-    const [sStu, setSStu] = useState6(null);
-    const [sStu2, setSStu2] = useState6(null);
-    const [approveCredits, setApproveCredits] = useState6({});
-    const [followUpDates, setFollowUpDates] = useState6({});
-    const [pkgEditId, setPkgEditId] = useState6(null);
-    const [pkgName, setPkgName] = useState6("");
-    const [pkgCredits, setPkgCredits] = useState6("");
-    const [pkgPrice, setPkgPrice] = useState6("");
-    const [tenantBrand, setTenantBrand] = useState6(() => window.STUDIOSAAS_BRAND || {});
-    const [team, setTeam] = useState6([]);
-    const [teamBusy, setTeamBusy] = useState6(false);
-    const [teamForm, setTeamForm] = useState6({ fullName: "", email: "", role: "teacher", temporaryPassword: "" });
-    const [actorRole, setActorRole] = useState6("");
+    const [sPeriod, setSPeriod] = useState7("monthly");
+    const [sYear, setSYear] = useState7(String((/* @__PURE__ */ new Date()).getFullYear()));
+    const [sFrom, setSFrom] = useState7("");
+    const [sTo, setSTo] = useState7("");
+    const [sStu, setSStu] = useState7(null);
+    const [sStu2, setSStu2] = useState7(null);
+    const [approveCredits, setApproveCredits] = useState7({});
+    const [followUpDates, setFollowUpDates] = useState7({});
+    const [pkgEditId, setPkgEditId] = useState7(null);
+    const [pkgName, setPkgName] = useState7("");
+    const [pkgCredits, setPkgCredits] = useState7("");
+    const [pkgPrice, setPkgPrice] = useState7("");
+    const [tenantBrand, setTenantBrand] = useState7(() => window.STUDIOSAAS_BRAND || {});
+    const [team, setTeam] = useState7([]);
+    const [teamBusy, setTeamBusy] = useState7(false);
+    const [teamForm, setTeamForm] = useState7({ fullName: "", email: "", role: "teacher", temporaryPassword: "" });
+    const [actorRole, setActorRole] = useState7("");
     const ownerRoles = ["owner", "platform_super_admin", "super_admin"];
     const roleTabs = {
       owner: ["dashboard", "pending", "roster", "courses", "students", "works", "new_student", "billing", "topup", "finance", "logs", "stats", "settings"],
@@ -1969,30 +2451,31 @@
     const canWriteStudents = [...ownerRoles, "manager", "front_desk", "staff"].includes(actorRole);
     const canWriteCredits = [...ownerRoles, "manager", "front_desk", "staff"].includes(actorRole);
     const canWritePortfolio = [...ownerRoles, "manager", "teacher", "staff"].includes(actorRole);
+    const canWriteScheduling = [...ownerRoles, "manager", "front_desk"].includes(actorRole);
     const canWriteProgress = [...ownerRoles, "manager", "teacher"].includes(actorRole);
     const canPublishProgress = [...ownerRoles, "manager"].includes(actorRole);
     const canWriteAttendance = [...ownerRoles, "manager", "teacher", "staff"].includes(actorRole);
     const canReviewBookings = [...ownerRoles, "manager", "front_desk", "staff"].includes(actorRole);
     const canRefund = [...ownerRoles, "manager"].includes(actorRole);
     const canViewCmsNotifications = ["owner", "manager", "front_desk", "staff", "platform_super_admin", "super_admin"].includes(actorRole);
-    const [formPhoto, setFormPhoto] = useState6("");
-    const [editPhoto, setEditPhoto] = useState6("");
+    const [formPhoto, setFormPhoto] = useState7("");
+    const [editPhoto, setEditPhoto] = useState7("");
     const cooldowns = useRef(/* @__PURE__ */ new Set());
     const wasDownRef = useRef(false);
     const showToast = (msg, type = "success", action = null) => setToast({ msg, type, action, key: Date.now() });
-    useEffect6(() => {
+    useEffect7(() => {
       const syncBrand = (event) => setTenantBrand(event?.detail || window.STUDIOSAAS_BRAND || {});
       window.addEventListener("studiosaas:brand", syncBrand);
       syncBrand();
       return () => window.removeEventListener("studiosaas:brand", syncBrand);
     }, []);
-    useEffect6(() => {
+    useEffect7(() => {
       if (TENANT_SLUG && canManageOperations) loadTeam();
     }, [actorRole]);
-    useEffect6(() => {
+    useEffect7(() => {
       if (showSettings && TENANT_SLUG && canManageOperations) loadTeam();
     }, [showSettings]);
-    useEffect6(() => {
+    useEffect7(() => {
       if (actorRole && !allowedTabs.includes(tab)) setTab("dashboard");
     }, [actorRole, tab]);
     const tenantLogoUrl = tenantOwnedLogoUrl(tenantBrand);
@@ -2130,7 +2613,7 @@
         setTeamBusy(false);
       }
     };
-    useEffect6(() => {
+    useEffect7(() => {
       const h = (e) => {
         if ((e.metaKey || e.ctrlKey) && e.key === "k") {
           e.preventDefault();
@@ -2141,7 +2624,7 @@
       window.addEventListener("keydown", h);
       return () => window.removeEventListener("keydown", h);
     }, []);
-    useEffect6(() => {
+    useEffect7(() => {
       if (!icsPreview) return;
       const previousFocus = document.activeElement;
       const focusableSelector = [
@@ -2182,7 +2665,7 @@
         if (previousFocus && typeof previousFocus.focus === "function") previousFocus.focus();
       };
     }, [icsPreview]);
-    useEffect6(() => {
+    useEffect7(() => {
       const onKey = (e) => {
         if (portLB) {
           if (e.key === "ArrowRight") setPortLB((p) => p && p.idx < p.items.length - 1 ? { ...p, idx: p.idx + 1 } : p);
@@ -2192,7 +2675,7 @@
       window.addEventListener("keydown", onKey);
       return () => window.removeEventListener("keydown", onKey);
     }, [portLB]);
-    useEffect6(() => {
+    useEffect7(() => {
       setAttHistory(null);
       if (!TENANT_SLUG || !selS?.id) return;
       let alive = true;
@@ -2216,15 +2699,15 @@
       }
     }).catch(() => {
     });
-    useEffect6(() => {
+    useEffect7(() => {
       refreshSession();
     }, []);
     const apiHeaders = () => ({ "Content-Type": "application/json" });
     const revRef = useRef(0);
-    useEffect6(() => {
+    useEffect7(() => {
       if (loggedIn) load();
     }, [loggedIn]);
-    useEffect6(() => {
+    useEffect7(() => {
       if (!loggedIn) return;
       const id = setInterval(async () => {
         try {
@@ -2246,7 +2729,7 @@
       }, 3e4);
       return () => clearInterval(id);
     }, [loggedIn]);
-    useEffect6(() => {
+    useEffect7(() => {
       if (!loggedIn || !TENANT_SLUG || !canViewCmsNotifications) {
         setCmsNotifications([]);
         setCmsNotificationUnreadCount(0);
@@ -2488,7 +2971,7 @@
       a.download = `Studio_${todayISO()}.json`;
       a.click();
     };
-    const activityMap = useMemo3(() => {
+    const activityMap = useMemo4(() => {
       const map = {};
       const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1e3;
       const idsByName = /* @__PURE__ */ new Map();
@@ -2519,7 +3002,7 @@
         return { icon: "warning", label: "流失风险", cls: "bg-orange-100 text-orange-600" };
       return null;
     };
-    const upcomingBirthdays = useMemo3(() => {
+    const upcomingBirthdays = useMemo4(() => {
       const now = /* @__PURE__ */ new Date();
       const out = [];
       db.students.forEach((s) => {
@@ -2537,11 +3020,11 @@
       });
       return out.sort((a, b) => a.in - b.in);
     }, [db.students]);
-    useEffect6(() => {
+    useEffect7(() => {
       setStudentPage(1);
       setSelectedStudentIds([]);
     }, [srch, sortBy, filterBy]);
-    const sortedFiltered = useMemo3(() => {
+    const sortedFiltered = useMemo4(() => {
       let list = [...db.students];
       if (filterBy === "archived") {
         list = list.filter((s) => s.archived);
@@ -2587,11 +3070,11 @@
       return list;
     }, [db.students, srch, sortBy, filterBy, activityMap, inactiveDays, renewTh]);
     const studentPageCount = Math.max(1, Math.ceil(sortedFiltered.length / STUDENTS_PER_PAGE));
-    const pageStudents = useMemo3(() => {
+    const pageStudents = useMemo4(() => {
       const page = Math.min(studentPage, studentPageCount);
       return sortedFiltered.slice((page - 1) * STUDENTS_PER_PAGE, page * STUDENTS_PER_PAGE);
     }, [sortedFiltered, studentPage, studentPageCount]);
-    const selectedStudents = useMemo3(
+    const selectedStudents = useMemo4(
       () => sortedFiltered.filter((s) => selectedStudentIds.includes(s.id)),
       [sortedFiltered, selectedStudentIds]
     );
@@ -2600,15 +3083,15 @@
       const ids = pageStudents.map((s) => s.id);
       return checked ? Array.from(/* @__PURE__ */ new Set([...prev, ...ids])) : prev.filter((id) => !ids.includes(id));
     });
-    const sortedAZ = useMemo3(
+    const sortedAZ = useMemo4(
       () => [...db.students].filter((s) => !s.archived).sort((a, b) => a.name.localeCompare(b.name, "zh-CN")),
       [db.students]
     );
-    const portfolioEntries = useMemo3(
+    const portfolioEntries = useMemo4(
       () => db.students.filter((student) => !student.archived).flatMap((student) => (student.portfolio || []).map((item) => ({ student, item }))).sort((a, b) => String(b.item.date || "").localeCompare(String(a.item.date || ""))),
       [db.students]
     );
-    useEffect6(() => {
+    useEffect7(() => {
       if (tab !== "students" || !routeRecordId) return;
       const student = db.students.find((item) => String(item.id) === String(routeRecordId));
       if (student && selS?.id !== student.id) {
@@ -2616,35 +3099,35 @@
         setEditP(false);
       }
     }, [tab, routeRecordId, db.students]);
-    const scheduledForDate = useMemo3(() => {
+    const scheduledForDate = useMemo4(() => {
       if (!TENANT_SLUG || !schedules.length) return [];
       const wd = (/* @__PURE__ */ new Date(`${rDate}T12:00:00`)).getDay();
       return schedules.filter((sc) => sc.weekday === wd);
     }, [schedules, rDate]);
-    const scheduledIdSet = useMemo3(
+    const scheduledIdSet = useMemo4(
       () => new Set(scheduledForDate.flatMap((sc) => sc.students.map((st) => st.id))),
       [scheduledForDate]
     );
-    const dayIds = useMemo3(() => {
+    const dayIds = useMemo4(() => {
       const manual = db.rosters[rDate] || [];
       return [.../* @__PURE__ */ new Set([...scheduledIdSet, ...manual])];
     }, [db.rosters, rDate, scheduledIdSet]);
-    const todayEffectiveCount = useMemo3(() => {
+    const todayEffectiveCount = useMemo4(() => {
       const manual = db.rosters[todayISO()] || [];
       const wd = (/* @__PURE__ */ new Date()).getDay();
       const sched = schedules.filter((sc) => sc.weekday === wd).flatMap((sc) => sc.students.map((st) => st.id));
       return (/* @__PURE__ */ new Set([...sched, ...manual])).size;
     }, [db.rosters, schedules]);
-    const todayCheckedCount = useMemo3(() => {
+    const todayCheckedCount = useMemo4(() => {
       const d = todayISO().split("-");
       const prefix = `${d[2]}/${d[1]}/${d[0]}`;
       return new Set(db.logs.filter((l) => l.action === "上课签到" && String(l.date).startsWith(prefix)).map((l) => l.studentId || l.studentName)).size;
     }, [db.logs]);
-    const availRoster = useMemo3(
+    const availRoster = useMemo4(
       () => sortedAZ.filter((s) => !dayIds.includes(s.id)),
       [sortedAZ, dayIds]
     );
-    const analytics = useMemo3(() => {
+    const analytics = useMemo4(() => {
       const totalStudents = db.students.filter((s) => !s.archived).length;
       const totalBalance = db.students.reduce((a, b) => a + (parseInt(b.balance, 10) || 0), 0);
       const totalCheckins = db.logs.filter((l) => l.action === "上课签到").length;
@@ -2694,7 +3177,7 @@
       }
       return { totalStudents, totalBalance, totalCheckins, totalRevenue, lowBalance, inactive, todayRoster, monthlyReports, yearlyReports, availYears, chart12, recentGroups };
     }, [db, inactiveDays]);
-    const statsData = useMemo3(() => {
+    const statsData = useMemo4(() => {
       let logs = sStu ? db.logs.filter((l) => {
         const s = db.students.find((x) => x.id === sStu);
         return s && (l.studentId === s.id || !l.studentId && l.studentName === s.name);
@@ -2728,7 +3211,7 @@
       const rows = Object.keys(byP).sort().reverse().map((k) => ({ key: k, ...byP[k] }));
       return { rows, totalRev: rows.reduce((s, r) => s + r.revenue, 0), totalCI: rows.reduce((s, r) => s + r.checkins, 0) };
     }, [db, sPeriod, sYear, sFrom, sTo, sStu]);
-    const studentStats = useMemo3(() => {
+    const studentStats = useMemo4(() => {
       if (!sStu2) return null;
       const s = db.students.find((x) => x.id === sStu2);
       if (!s) return null;
@@ -2751,7 +3234,7 @@
         logs
       };
     }, [db, sStu2]);
-    const gResults = useMemo3(() => {
+    const gResults = useMemo4(() => {
       if (!gQ.trim()) return [];
       const q = gQ.trim().toLowerCase();
       return db.students.filter((s) => !s.archived && (s.name.toLowerCase().includes(q) || (s.firstName || "").toLowerCase().includes(q) || (s.lastName || "").toLowerCase().includes(q) || (s.mobile || "").includes(q) || (s.wechat || "").toLowerCase().includes(q))).slice(0, 10);
@@ -2760,7 +3243,7 @@
       const m = String(ds).match(/^(\d{2})\/(\d{2})\/(\d{4})/);
       return m ? `${m[3]}-${m[2]}-${m[1]}` : "";
     };
-    const auditAsLogs = useMemo3(() => {
+    const auditAsLogs = useMemo4(() => {
       if (!TENANT_SLUG || !auditEvents.length) return [];
       const nameById = new Map(db.students.map((s) => [String(s.id), s.name]));
       return auditEvents.reduce((rows, ev) => {
@@ -2799,31 +3282,31 @@
       const t = /* @__PURE__ */ new Date(`${m[3]}-${m[2]}-${m[1]}T${m[4] || "00"}:${m[5] || "00"}:${m[6] || "00"}`);
       return isNaN(t.getTime()) ? 0 : t.getTime();
     };
-    const allLogs = useMemo3(() => auditAsLogs.length ? [...db.logs, ...auditAsLogs].sort((a, b) => logTimestamp(b) - logTimestamp(a)) : db.logs, [db.logs, auditAsLogs]);
-    const filteredLogs = useMemo3(() => {
+    const allLogs = useMemo4(() => auditAsLogs.length ? [...db.logs, ...auditAsLogs].sort((a, b) => logTimestamp(b) - logTimestamp(a)) : db.logs, [db.logs, auditAsLogs]);
+    const filteredLogs = useMemo4(() => {
       const stuName = lStu ? (db.students.find((x) => x.id === lStu) || {}).name : null;
       return allLogs.filter((l) => {
         if (stuName && l.studentName !== stuName) return false;
         if (lSrch && !l.studentName.toLowerCase().includes(lSrch.toLowerCase())) return false;
         if (lAct && l.action !== lAct) return false;
         if (lDateFrom || lDateTo) {
-          const iso = logDateISO(l.date);
-          if (lDateFrom && iso < lDateFrom) return false;
-          if (lDateTo && iso > lDateTo) return false;
+          const iso2 = logDateISO(l.date);
+          if (lDateFrom && iso2 < lDateFrom) return false;
+          if (lDateTo && iso2 > lDateTo) return false;
         }
         return true;
       });
     }, [allLogs, db.students, lStu, lSrch, lAct, lDateFrom, lDateTo]);
     const logPageCount = Math.max(1, Math.ceil(filteredLogs.length / LPP));
     const pagedLogs = filteredLogs.slice((lPage - 1) * LPP, lPage * LPP);
-    const logActions = useMemo3(() => [...new Set(allLogs.map((l) => l.action))].sort(), [allLogs]);
-    useEffect6(() => {
+    const logActions = useMemo4(() => [...new Set(allLogs.map((l) => l.action))].sort(), [allLogs]);
+    useEffect7(() => {
       setLPage(1);
     }, [lStu, lSrch, lAct, lDateFrom, lDateTo]);
-    useEffect6(() => {
+    useEffect7(() => {
       if (lPage > logPageCount) setLPage(logPageCount);
     }, [logPageCount]);
-    const bizReport = useMemo3(() => {
+    const bizReport = useMemo4(() => {
       const now = /* @__PURE__ */ new Date();
       const months = Array.from({ length: 6 }, (_, i) => {
         const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
@@ -2889,7 +3372,7 @@
       a.download = `Studio_经营月报_${todayISO()}.csv`;
       a.click();
     };
-    const payBreakdown = useMemo3(() => {
+    const payBreakdown = useMemo4(() => {
       const map = {};
       db.logs.filter((l) => l.action === "充值购课").forEach((l) => {
         const pm = l.payMethod || "未记录";
@@ -2984,7 +3467,7 @@
         }
       }, { confirmText: "确认撤销" });
     };
-    const rosterDone = useMemo3(() => {
+    const rosterDone = useMemo4(() => {
       const m = String(rDate).match(/^(\d{4})-(\d{2})-(\d{2})$/);
       const prefix = m ? `${m[3]}/${m[2]}/${m[1]}` : "__none__";
       const done = /* @__PURE__ */ new Set();
@@ -2999,7 +3482,7 @@
       });
       return done;
     }, [db.logs, db.students, rDate]);
-    const WEEKDAYS = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+    const WEEKDAYS2 = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
     const loadSchedules = async () => {
       if (!TENANT_SLUG) return;
       setScheduleLoadError("");
@@ -3056,7 +3539,7 @@
       }
       const clash = schedules.find((sc) => sc.id !== schedEdit.id && schedClash(sc, schedEdit));
       if (clash && !conflictConfirmed) {
-        const who = clash.teacherUserId && clash.teacherUserId === schedEdit.teacherUserId ? `${clash.teacherName || "同一位老师"}同时段已排「${clash.label}」` : `与「${clash.label}」（${WEEKDAYS[clash.weekday]} ${clash.startTime}）时段重叠`;
+        const who = clash.teacherUserId && clash.teacherUserId === schedEdit.teacherUserId ? `${clash.teacherName || "同一位老师"}同时段已排「${clash.label}」` : `与「${clash.label}」（${WEEKDAYS2[clash.weekday]} ${clash.startTime}）时段重叠`;
         confirm(
           `「${schedEdit.label.trim()}」${who}，仍要保存吗？`,
           () => saveSchedule(true),
@@ -3106,7 +3589,7 @@
         }
       }, { danger: true, confirmText: "确认删除" });
     };
-    const teachableMembers = useMemo3(
+    const teachableMembers = useMemo4(
       () => team.filter((m) => m.status === "active" && ["owner", "manager", "teacher"].includes(m.role)),
       [team]
     );
@@ -5646,7 +6129,15 @@ document.getElementById('copybtn').addEventListener('click', function(){
         }
       ), analytics.recentGroups.map(({ date, logs }) => /* @__PURE__ */ React.createElement("div", { key: date }, /* @__PURE__ */ React.createElement("div", { className: "px-4 py-1.5 bg-gray-50 border-b border-t border-gray-100" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs font-bold text-gray-400" }, date)), logs.map((l) => /* @__PURE__ */ React.createElement("div", { key: l.id, className: "px-4 py-2.5 flex justify-between items-center border-b border-gray-50 last:border-0" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "font-bold text-gray-800 text-sm" }, l.studentName), /* @__PURE__ */ React.createElement("span", { className: "ml-2 text-gray-400 text-xs" }, l.action), l.payMethod && /* @__PURE__ */ React.createElement("span", { className: "ml-1 text-blue-400 text-xs" }, l.payMethod)), /* @__PURE__ */ React.createElement("span", { className: `font-bold text-sm ${String(l.change).startsWith("-") ? "text-orange-500" : l.change === "0" || l.change === 0 ? "text-gray-400" : "text-green-500"}` }, l.change))))))),
       tab === "courses" && /* @__PURE__ */ React.createElement("div", { className: "anim space-y-5 max-w-6xl mx-auto" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-start justify-between gap-3 flex-wrap" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h2", { className: "inline-flex items-center gap-2 text-xl md:text-2xl font-bold text-gray-800" }, /* @__PURE__ */ React.createElement(Icon, { name: "calendar", className: "w-5 h-5" }), "课程目录"), /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-500 mt-1" }, "维护可被固定课表引用的课程条目；公开课表是否展示详情仍由 Studio Admin 控制。")), /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => setTab("roster"), className: "min-h-[44px] px-4 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 text-sm font-bold" }, "查看课程安排 →")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-[1.618fr_1fr] gap-5 items-start" }, /* @__PURE__ */ React.createElement("section", { id: "courseManager", className: "bg-white rounded-2xl shadow-sm border border-gray-100 p-5 space-y-3 scroll-mt-24", "aria-labelledby": "course-list-title" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between gap-3" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h3", { id: "course-list-title", className: "font-bold text-gray-900" }, "已启用课程"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400 mt-0.5" }, courses.length, " 门课程")), canManageOperations && /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => setCourseEdit({ name: "", description: "", ageRange: "", durationMinutes: 60, priceAud: "" }), className: "min-h-[44px] px-3 rounded-xl bg-indigo-600 text-white text-xs font-bold" }, /* @__PURE__ */ React.createElement(Icon, { name: "plus", className: "w-4 h-4 inline mr-1" }), "添加课程")), courses.length === 0 && /* @__PURE__ */ React.createElement(EmptyState, { icon: /* @__PURE__ */ React.createElement(Icon, { name: "calendar", className: "w-8 h-8" }), main: "还没有课程", sub: "先添加一门课程，再回到课程安排关联固定班次。", action: canManageOperations ? "添加第一门课程" : "", onAction: canManageOperations ? () => setCourseEdit({ name: "", description: "", ageRange: "", durationMinutes: 60, priceAud: "" }) : void 0 }), /* @__PURE__ */ React.createElement("div", { className: "space-y-2" }, courses.map((course) => /* @__PURE__ */ React.createElement("article", { key: course.id, className: "rounded-2xl border border-gray-200 bg-gray-50 p-4 flex items-start gap-3" }, /* @__PURE__ */ React.createElement("div", { className: "w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 inline-flex items-center justify-center flex-shrink-0" }, /* @__PURE__ */ React.createElement(Icon, { name: "calendar", className: "w-5 h-5" })), /* @__PURE__ */ React.createElement("div", { className: "min-w-0 flex-1" }, /* @__PURE__ */ React.createElement("h4", { className: "font-bold text-gray-900 truncate" }, course.name), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, [course.age_range && `适龄 ${course.age_range}`, course.duration_minutes && `${course.duration_minutes} 分钟`, course.price_aud_cents ? `AUD ${(course.price_aud_cents / 100).toFixed(2)}` : "未标价"].filter(Boolean).join(" · ")), course.description && /* @__PURE__ */ React.createElement("p", { className: "text-sm text-gray-600 mt-2 leading-relaxed" }, course.description)), canManageOperations && /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-1 flex-shrink-0" }, /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => setCourseEdit({ id: course.id, name: course.name, description: course.description || "", ageRange: course.age_range || "", durationMinutes: course.duration_minutes || 60, priceAud: course.price_aud_cents ? String(course.price_aud_cents / 100) : "" }), className: "min-h-[44px] px-3 rounded-xl text-xs font-bold text-indigo-700 hover:bg-indigo-100" }, "编辑"), /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => archiveCourse(course), "aria-label": `归档课程 ${course.name}`, className: "min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-xl text-red-600 hover:bg-red-50" }, /* @__PURE__ */ React.createElement(Icon, { name: "archiveBox", className: "w-4 h-4" }))))))), /* @__PURE__ */ React.createElement("aside", { className: "bg-white rounded-2xl shadow-sm border border-gray-100 p-5", "aria-labelledby": "course-help-title" }, /* @__PURE__ */ React.createElement("h3", { id: "course-help-title", className: "font-bold text-gray-900" }, "这组信息会影响什么？"), /* @__PURE__ */ React.createElement("div", { className: "mt-3 space-y-3 text-sm text-gray-600 leading-relaxed" }, /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("strong", { className: "text-gray-800" }, "课程名称和简介"), "：供固定课表关联，是否对外显示取决于 Studio Admin 的公开课表开关。"), /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("strong", { className: "text-gray-800" }, "适龄段、时长和价格"), "：用于公开课程详情和内部排课参考，不会改动已经保存的排课。"), /* @__PURE__ */ React.createElement("p", { className: "rounded-xl bg-amber-50 border border-amber-100 px-3 py-2 text-xs text-amber-800" }, "归档不是删除。历史排课仍保留原课程名称，新排课不会再出现已归档课程。")))), courseEdit && canManageOperations && /* @__PURE__ */ React.createElement("div", { className: "fixed inset-0 z-[70] bg-black/40 flex items-end md:items-center justify-center p-0 md:p-4", role: "dialog", "aria-modal": "true", "aria-labelledby": "course-editor-title", onClick: () => setCourseEdit(null) }, /* @__PURE__ */ React.createElement("div", { className: "bg-white w-full md:max-w-xl rounded-t-2xl md:rounded-2xl p-5 md:p-6 space-y-4", onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h3", { id: "course-editor-title", className: "text-lg font-bold text-gray-900" }, courseEdit.id ? "编辑课程" : "添加课程"), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, "带 * 为必填；保存后可在课程安排中关联。")), /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-bold text-gray-700" }, "课程名称 *", /* @__PURE__ */ React.createElement("input", { id: "course-name", type: "text", required: true, value: courseEdit.name, onChange: (e) => setCourseEdit((p) => ({ ...p, name: e.target.value })), placeholder: "例如：儿童油画基础", className: "mt-1 w-full min-h-[46px] px-3 py-2.5 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" }), /* @__PURE__ */ React.createElement("span", { className: "block text-xs font-normal text-gray-400 mt-1" }, "用于内部排课和公开课表标题。")), /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-bold text-gray-700" }, "课程简介 ", /* @__PURE__ */ React.createElement("span", { className: "font-normal text-gray-400" }, "选填"), /* @__PURE__ */ React.createElement("textarea", { rows: "3", value: courseEdit.description, onChange: (e) => setCourseEdit((p) => ({ ...p, description: e.target.value })), placeholder: "介绍课程内容、适合的学习目标", className: "mt-1 w-full px-3 py-2.5 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" }), /* @__PURE__ */ React.createElement("span", { className: "block text-xs font-normal text-gray-400 mt-1" }, "会随公开课表配置显示给访客。")), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-3 gap-3" }, /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-bold text-gray-700" }, "适龄段 ", /* @__PURE__ */ React.createElement("span", { className: "font-normal text-gray-400" }, "选填"), /* @__PURE__ */ React.createElement("input", { type: "text", value: courseEdit.ageRange, onChange: (e) => setCourseEdit((p) => ({ ...p, ageRange: e.target.value })), placeholder: "6–9 岁", className: "mt-1 w-full min-h-[46px] px-3 py-2.5 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" })), /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-bold text-gray-700" }, "时长（分钟） *", /* @__PURE__ */ React.createElement("input", { type: "number", min: "1", required: true, value: courseEdit.durationMinutes, onChange: (e) => setCourseEdit((p) => ({ ...p, durationMinutes: e.target.value })), className: "mt-1 w-full min-h-[46px] px-3 py-2.5 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" })), /* @__PURE__ */ React.createElement("label", { className: "block text-sm font-bold text-gray-700" }, "价格（AUD） ", /* @__PURE__ */ React.createElement("span", { className: "font-normal text-gray-400" }, "选填"), /* @__PURE__ */ React.createElement("input", { type: "number", min: "0", step: "0.01", value: courseEdit.priceAud, onChange: (e) => setCourseEdit((p) => ({ ...p, priceAud: e.target.value })), placeholder: "0.00", className: "mt-1 w-full min-h-[46px] px-3 py-2.5 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" }))), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 pt-1" }, /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => setCourseEdit(null), className: "flex-1 min-h-[48px] rounded-xl border border-gray-300 text-sm font-bold text-gray-600" }, "取消"), /* @__PURE__ */ React.createElement("button", { type: "button", onClick: saveCourse, disabled: busy, className: "flex-1 min-h-[48px] rounded-xl bg-indigo-600 text-white text-sm font-bold disabled:opacity-50" }, busy ? "保存中…" : "保存课程"))))),
-      tab === "roster" && /* @__PURE__ */ React.createElement("div", { className: "anim space-y-4" }, /* @__PURE__ */ React.createElement("h2", { className: "inline-flex items-center gap-1.5 text-xl md:text-2xl font-bold text-gray-800" }, /* @__PURE__ */ React.createElement(Icon, { name: "calendar", className: "w-4 h-4" }), "课程安排"), scheduleLoadError && /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700" }, /* @__PURE__ */ React.createElement("span", { className: "flex-1" }, scheduleLoadError), /* @__PURE__ */ React.createElement("button", { onClick: loadSchedules, className: "rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-bold min-h-[44px]" }, "重试")), upcomingBirthdays.length > 0 && /* @__PURE__ */ React.createElement("details", { className: "bg-pink-50 border border-pink-200 rounded-2xl overflow-hidden group" }, /* @__PURE__ */ React.createElement("summary", { className: "list-none cursor-pointer min-h-[44px] px-4 py-2 flex items-center justify-between gap-3 text-sm font-bold text-rose-700" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "cake", className: "w-4 h-4" }), "近 14 天生日（", upcomingBirthdays.length, " 人）"), /* @__PURE__ */ React.createElement("span", { className: "group-open:rotate-180 transition-transform", "aria-hidden": "true" }, "⌄")), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 px-4 pb-4 border-t border-pink-200 pt-3" }, upcomingBirthdays.map(({ s, in: days, md, age }) => /* @__PURE__ */ React.createElement("button", { key: s.id, onClick: () => {
+      tab === "roster" && /* @__PURE__ */ React.createElement("div", { className: "anim space-y-4" }, /* @__PURE__ */ React.createElement("h2", { className: "inline-flex items-center gap-1.5 text-xl md:text-2xl font-bold text-gray-800" }, /* @__PURE__ */ React.createElement(Icon, { name: "calendar", className: "w-4 h-4" }), "课程安排"), TENANT_SLUG && /* @__PURE__ */ React.createElement("details", { className: "border border-indigo-100 rounded-2xl overflow-hidden group" }, /* @__PURE__ */ React.createElement("summary", { className: "list-none cursor-pointer min-h-[44px] px-4 py-3 flex items-center justify-between gap-3 bg-indigo-50 text-sm font-bold text-indigo-800" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "calendar", className: "w-4 h-4" }), "一对一循环课与补课额度"), /* @__PURE__ */ React.createElement("span", { className: "group-open:rotate-180 transition-transform", "aria-hidden": "true" }, "⌄")), /* @__PURE__ */ React.createElement("div", { className: "p-3 bg-white" }, /* @__PURE__ */ React.createElement(
+        PrivateLessonsPanel,
+        {
+          api: v1Api,
+          showToast,
+          canWrite: canWriteScheduling,
+          students: db.students.filter((s) => !s.archived)
+        }
+      ))), scheduleLoadError && /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700" }, /* @__PURE__ */ React.createElement("span", { className: "flex-1" }, scheduleLoadError), /* @__PURE__ */ React.createElement("button", { onClick: loadSchedules, className: "rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-bold min-h-[44px]" }, "重试")), upcomingBirthdays.length > 0 && /* @__PURE__ */ React.createElement("details", { className: "bg-pink-50 border border-pink-200 rounded-2xl overflow-hidden group" }, /* @__PURE__ */ React.createElement("summary", { className: "list-none cursor-pointer min-h-[44px] px-4 py-2 flex items-center justify-between gap-3 text-sm font-bold text-rose-700" }, /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1.5" }, /* @__PURE__ */ React.createElement(Icon, { name: "cake", className: "w-4 h-4" }), "近 14 天生日（", upcomingBirthdays.length, " 人）"), /* @__PURE__ */ React.createElement("span", { className: "group-open:rotate-180 transition-transform", "aria-hidden": "true" }, "⌄")), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 px-4 pb-4 border-t border-pink-200 pt-3" }, upcomingBirthdays.map(({ s, in: days, md, age }) => /* @__PURE__ */ React.createElement("button", { key: s.id, onClick: () => {
         const msg = renderMessage(
           "birthday",
           "{student} 您好！{studio} 全体老师祝您生日快乐！愿您在新的一岁里灵感不断、收获满满～",
@@ -5671,7 +6162,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
         },
         /* @__PURE__ */ React.createElement(Icon, { name: "plus", className: "w-3.5 h-3.5" }),
         "新增班次"
-      ))), schedules.length === 0 && !schedEdit && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400" }, "还没有固定班次。例如「周三 16:00 素描班」——保存后每周三会自动出现在当日排课里。"), schedules.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2" }, schedules.map((sc) => /* @__PURE__ */ React.createElement("div", { key: sc.id, className: `border rounded-xl px-3 py-2 ${sc.weekday === (/* @__PURE__ */ new Date(`${rDate}T12:00:00`)).getDay() ? "border-indigo-300 bg-indigo-50" : "border-gray-200 bg-gray-50"}` }, /* @__PURE__ */ React.createElement("p", { className: "text-sm font-bold text-gray-800" }, WEEKDAYS[sc.weekday], " ", sc.startTime, " · ", sc.label || "未命名班次"), /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-500 mt-0.5" }, sc.students.length, "/", sc.capacity, " 人 · ", sc.durationMinutes, " 分钟", sc.teacherName && /* @__PURE__ */ React.createElement(React.Fragment, null, " · ", sc.teacherName, " 老师"), sc.room && /* @__PURE__ */ React.createElement(React.Fragment, null, " · ", sc.room)), /* @__PURE__ */ React.createElement("p", { className: "text-[11px] mt-0.5" }, sc.isPublic ? /* @__PURE__ */ React.createElement("span", { className: "text-green-700" }, "● 已公开", sc.teacherUserId && !sc.teacherIsPublic ? "（不显示老师姓名）" : "") : /* @__PURE__ */ React.createElement("span", { className: "text-gray-400" }, "○ 仅内部可见")), (sc.cancellations || []).length > 0 && /* @__PURE__ */ React.createElement("div", { className: "mt-1 space-y-0.5" }, sc.cancellations.map((c) => /* @__PURE__ */ React.createElement("p", { key: c.date, className: "text-[11px] text-amber-700" }, c.date, " 停课", c.note ? ` · ${c.note}` : "", canManageOperations && /* @__PURE__ */ React.createElement(
+      ))), schedules.length === 0 && !schedEdit && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-400" }, "还没有固定班次。例如「周三 16:00 素描班」——保存后每周三会自动出现在当日排课里。"), schedules.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2" }, schedules.map((sc) => /* @__PURE__ */ React.createElement("div", { key: sc.id, className: `border rounded-xl px-3 py-2 ${sc.weekday === (/* @__PURE__ */ new Date(`${rDate}T12:00:00`)).getDay() ? "border-indigo-300 bg-indigo-50" : "border-gray-200 bg-gray-50"}` }, /* @__PURE__ */ React.createElement("p", { className: "text-sm font-bold text-gray-800" }, WEEKDAYS2[sc.weekday], " ", sc.startTime, " · ", sc.label || "未命名班次"), /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-500 mt-0.5" }, sc.students.length, "/", sc.capacity, " 人 · ", sc.durationMinutes, " 分钟", sc.teacherName && /* @__PURE__ */ React.createElement(React.Fragment, null, " · ", sc.teacherName, " 老师"), sc.room && /* @__PURE__ */ React.createElement(React.Fragment, null, " · ", sc.room)), /* @__PURE__ */ React.createElement("p", { className: "text-[11px] mt-0.5" }, sc.isPublic ? /* @__PURE__ */ React.createElement("span", { className: "text-green-700" }, "● 已公开", sc.teacherUserId && !sc.teacherIsPublic ? "（不显示老师姓名）" : "") : /* @__PURE__ */ React.createElement("span", { className: "text-gray-400" }, "○ 仅内部可见")), (sc.cancellations || []).length > 0 && /* @__PURE__ */ React.createElement("div", { className: "mt-1 space-y-0.5" }, sc.cancellations.map((c) => /* @__PURE__ */ React.createElement("p", { key: c.date, className: "text-[11px] text-amber-700" }, c.date, " 停课", c.note ? ` · ${c.note}` : "", canManageOperations && /* @__PURE__ */ React.createElement(
         "button",
         {
           onClick: () => restoreCancellation(sc, c.date),
@@ -5708,7 +6199,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
           onChange: (e) => setSchedEdit((p) => ({ ...p, weekday: Number(e.target.value) })),
           className: "w-full px-2 py-2.5 border border-gray-300 rounded-xl bg-white outline-none focus:ring-2 focus:ring-indigo-500"
         },
-        WEEKDAYS.map((w, i) => /* @__PURE__ */ React.createElement("option", { key: i, value: i }, w))
+        WEEKDAYS2.map((w, i) => /* @__PURE__ */ React.createElement("option", { key: i, value: i }, w))
       )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "text-xs font-bold text-gray-500 mb-1 block" }, "开始时间"), /* @__PURE__ */ React.createElement(
         "input",
         {
@@ -5871,22 +6362,22 @@ document.getElementById('copybtn').addEventListener('click', function(){
         return [0, 1, 2, 3, 4, 5, 6].map((i) => {
           const d = new Date(monday);
           d.setDate(monday.getDate() + i);
-          const iso = d.toLocaleDateString("en-CA");
-          const manual = db.rosters[iso] || [];
+          const iso2 = d.toLocaleDateString("en-CA");
+          const manual = db.rosters[iso2] || [];
           const sched = schedules.filter((sc) => sc.weekday === d.getDay()).flatMap((sc) => sc.students.map((st) => st.id));
           const n = (/* @__PURE__ */ new Set([...sched, ...manual])).size;
-          const isSel = iso === rDate, isToday = iso === todayISO();
+          const isSel = iso2 === rDate, isToday = iso2 === todayISO();
           return /* @__PURE__ */ React.createElement(
             "button",
             {
-              key: iso,
+              key: iso2,
               type: "button",
-              onClick: () => setRDate(iso),
+              onClick: () => setRDate(iso2),
               "aria-current": isSel ? "date" : void 0,
-              "aria-label": `${WEEKDAYS[d.getDay()]} ${fmtDate(iso)}，${n} 人`,
+              "aria-label": `${WEEKDAYS2[d.getDay()]} ${fmtDate(iso2)}，${n} 人`,
               className: `cms-roster-week-day ${isSel ? "is-selected" : ""} ${isToday ? "is-today" : ""}`
             },
-            /* @__PURE__ */ React.createElement("p", { className: "text-[10px] opacity-70" }, WEEKDAYS[d.getDay()], isToday ? "·今" : ""),
+            /* @__PURE__ */ React.createElement("p", { className: "text-[10px] opacity-70" }, WEEKDAYS2[d.getDay()], isToday ? "·今" : ""),
             /* @__PURE__ */ React.createElement("p", { className: "text-sm font-bold" }, d.getDate()),
             /* @__PURE__ */ React.createElement("p", { className: "text-[10px] font-bold opacity-80" }, n > 0 ? n : "—")
           );

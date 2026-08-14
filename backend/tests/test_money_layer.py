@@ -19,7 +19,7 @@ from __future__ import annotations
 import os
 import sys
 import uuid
-from datetime import date, timedelta
+from datetime import date, time, timedelta
 from decimal import Decimal
 from pathlib import Path
 
@@ -697,3 +697,384 @@ def test_a_report_draft_survives_a_student_who_has_lesson_notes(money_tenant):
         )
         conn.commit()
         assert draft["status"] == "draft"
+
+
+# ══════════════════════════════════════════════════════════════════════
+# Cancellation policy — who pays, who gets paid, who is owed a make-up
+# ══════════════════════════════════════════════════════════════════════
+#
+# These live with the money invariants rather than in a scheduling file
+# because that is what they are. `resolve_absence` is a pure function over a
+# policy dict precisely so it can be tested exhaustively here, without a
+# database: a wrong answer does not raise, it bills a family for a lesson the
+# studio cancelled and nobody notices until they ring up.
+
+
+def _policy(**overrides):
+    from studiosaas.services.scheduling import DEFAULT_POLICY
+
+    return {**DEFAULT_POLICY, **overrides}
+
+
+def test_a_studio_cancellation_never_costs_the_teacher_their_fee():
+    """The studio made the call. Docking the teacher for it loses the teacher."""
+
+    from studiosaas.services import scheduling
+
+    for chargeable in (True, False):
+        outcome = scheduling.resolve_absence(
+            _policy(studio_cancel_chargeable=chargeable),
+            cancelled_by=scheduling.CANCELLED_BY_STUDIO,
+            hours_notice=0.0,
+        )
+        assert outcome["counts_for_pay"] is True
+
+
+def test_a_studio_cancellation_ignores_notice_entirely():
+    """Otherwise a studio closing an hour before could charge the family.
+
+    The studio gave itself whatever notice it liked; measuring it against the
+    family's notice window is the wrong question.
+    """
+
+    from studiosaas.services import scheduling
+
+    late = scheduling.resolve_absence(
+        _policy(), cancelled_by=scheduling.CANCELLED_BY_STUDIO, hours_notice=0.25
+    )
+    early = scheduling.resolve_absence(
+        _policy(), cancelled_by=scheduling.CANCELLED_BY_STUDIO, hours_notice=500.0
+    )
+    assert late == early
+    assert late["chargeable"] is False
+
+
+def test_a_studio_cancellation_only_owes_a_credit_if_it_charged():
+    """A credit for a lesson nobody paid for is a second free lesson."""
+
+    from studiosaas.services import scheduling
+
+    free = scheduling.resolve_absence(
+        _policy(studio_cancel_chargeable=False),
+        cancelled_by=scheduling.CANCELLED_BY_STUDIO, hours_notice=None,
+    )
+    charged = scheduling.resolve_absence(
+        _policy(studio_cancel_chargeable=True),
+        cancelled_by=scheduling.CANCELLED_BY_STUDIO, hours_notice=None,
+    )
+    assert free["grants_credit"] is False
+    assert charged["grants_credit"] is True
+
+
+def test_notice_given_in_time_charges_nobody_and_pays_nobody():
+    from studiosaas.services import scheduling
+
+    outcome = scheduling.resolve_absence(
+        _policy(notice_hours=24), cancelled_by=scheduling.CANCELLED_BY_STUDENT,
+        hours_notice=25.0,
+    )
+    assert outcome == {"chargeable": False, "counts_for_pay": False, "grants_credit": True}
+
+
+def test_the_notice_window_is_inclusive_at_its_boundary():
+    """Exactly 24 hours is 24 hours' notice. Off-by-one here is somebody's money."""
+
+    from studiosaas.services import scheduling
+
+    on_the_line = scheduling.resolve_absence(
+        _policy(notice_hours=24), cancelled_by=scheduling.CANCELLED_BY_STUDENT,
+        hours_notice=24.0,
+    )
+    a_minute_late = scheduling.resolve_absence(
+        _policy(notice_hours=24), cancelled_by=scheduling.CANCELLED_BY_STUDENT,
+        hours_notice=23.98,
+    )
+    assert on_the_line["chargeable"] is False
+    assert a_minute_late["chargeable"] is True
+
+
+def test_a_late_cancellation_never_earns_a_make_up():
+    """That is the entire purpose of having a notice window."""
+
+    from studiosaas.services import scheduling
+
+    outcome = scheduling.resolve_absence(
+        _policy(notice_hours=24, makeup_credit_on_notice=True),
+        cancelled_by=scheduling.CANCELLED_BY_STUDENT, hours_notice=2.0,
+    )
+    assert outcome["grants_credit"] is False
+    assert outcome["chargeable"] is True
+    assert outcome["counts_for_pay"] is True
+
+
+def test_an_unrecorded_notice_time_counts_as_no_notice():
+    """A no-show entered the next morning must not become a free lesson.
+
+    None means nobody wrote down when the call came in — the safe reading is
+    that it did not come in at all, because the opposite reading turns every
+    unrecorded absence into a refund.
+    """
+
+    from studiosaas.services import scheduling
+
+    outcome = scheduling.resolve_absence(
+        _policy(notice_hours=24), cancelled_by=scheduling.CANCELLED_BY_STUDENT,
+        hours_notice=None,
+    )
+    assert outcome["chargeable"] is True
+    assert outcome["grants_credit"] is False
+
+
+def test_charging_and_paying_are_answered_separately():
+    """One boolean for both is the bug lesson_exceptions exists to prevent."""
+
+    from studiosaas.services import scheduling
+
+    outcome = scheduling.resolve_absence(
+        _policy(late_absence_chargeable=True, late_absence_pays_teacher=False),
+        cancelled_by=scheduling.CANCELLED_BY_STUDENT, hours_notice=1.0,
+    )
+    assert outcome["chargeable"] is True
+    assert outcome["counts_for_pay"] is False
+
+
+def test_an_absence_must_be_attributed_to_somebody():
+    from studiosaas.services import scheduling
+
+    with pytest.raises(scheduling.SchedulingError):
+        scheduling.resolve_absence(
+            _policy(), cancelled_by="weather", hours_notice=48.0
+        )
+
+
+def test_notice_is_negative_when_the_call_comes_after_the_lesson():
+    """A no-show is recorded the next morning more often than not."""
+
+    from datetime import datetime as _dt
+
+    from studiosaas.services import scheduling
+
+    hours = scheduling.hours_of_notice(
+        lesson_on=date(2026, 8, 10), lesson_at=time(16, 0),
+        decided_at=_dt(2026, 8, 11, 9, 0),
+    )
+    assert hours < 0
+    assert scheduling.resolve_absence(
+        _policy(), cancelled_by=scheduling.CANCELLED_BY_STUDENT, hours_notice=hours
+    )["chargeable"] is True
+
+
+@requires_db
+def test_occurrences_skip_closures_and_pauses_but_keep_cancellations(money_tenant):
+    """Three ways a lesson can not happen, and only one of them is an absence.
+
+    A term closure removes the lesson: nobody decided anything, so it produces
+    no row and must not appear in a family's history as "cancelled". A pause
+    does the same for a stretch of weeks. A cancellation is a decision, and it
+    stays visible with the two money answers attached to it.
+    """
+
+    from studiosaas.db import connect
+    from studiosaas.services import scheduling
+
+    tenant_id = money_tenant["tenant_id"]
+    student_id = money_tenant["student_id"]
+
+    with connect() as conn:
+        # Four consecutive Mondays in August 2026: 3rd, 10th, 17th, 24th.
+        series = scheduling.create_series(
+            conn, tenant_id, student_id=student_id,
+            weekday=1, start_time="16:00", duration_minutes=30,
+            starts_on=date(2026, 8, 1), ends_on=date(2026, 8, 31),
+        )
+        conn.commit()
+        series_id = str(series["id"])
+
+        window = {"start": date(2026, 8, 1), "end": date(2026, 8, 31)}
+        assert [o["on_date"] for o in scheduling.occurrences(conn, tenant_id, **window)] == [
+            "2026-08-03", "2026-08-10", "2026-08-17", "2026-08-24", "2026-08-31",
+        ]
+
+        scheduling.set_closure(conn, tenant_id, on_date=date(2026, 8, 10), label="Public holiday")
+        conn.commit()
+        after_closure = [o["on_date"] for o in scheduling.occurrences(conn, tenant_id, **window)]
+        assert "2026-08-10" not in after_closure
+
+        scheduling.cancel_occurrence(
+            conn, tenant_id, series_id, on_date=date(2026, 8, 17),
+            cancelled_by=scheduling.CANCELLED_BY_STUDENT, hours_notice=1.0,
+        )
+        conn.commit()
+        cancelled = next(
+            o for o in scheduling.occurrences(conn, tenant_id, **window)
+            if o["on_date"] == "2026-08-17"
+        )
+        # Still on the calendar, and carrying what was decided about it.
+        assert cancelled["exception_kind"] == "cancelled_by_student"
+        assert cancelled["chargeable"] is True
+
+        # A family away for the last stretch of the month. The earlier weeks
+        # must survive: "pause August" meaning "stop forever" is the failure
+        # this window exists to prevent.
+        scheduling.set_series_status(
+            conn, tenant_id, series_id, status="paused",
+            paused_from=date(2026, 8, 20), paused_to=date(2026, 8, 31),
+        )
+        conn.commit()
+        during_pause = [o["on_date"] for o in scheduling.occurrences(conn, tenant_id, **window)]
+        assert "2026-08-24" not in during_pause and "2026-08-31" not in during_pause
+        assert "2026-08-03" in during_pause and "2026-08-17" in during_pause
+
+        # An indefinite pause has no start date, and swallows everything.
+        scheduling.set_series_status(conn, tenant_id, series_id, status="paused")
+        conn.commit()
+        assert scheduling.occurrences(conn, tenant_id, **window) == []
+
+        # Ending it is the only thing that removes it from the calendar for good.
+        scheduling.set_series_status(conn, tenant_id, series_id, status="ended")
+        conn.commit()
+        assert scheduling.occurrences(conn, tenant_id, **window) == []
+
+
+@requires_db
+def test_a_make_up_credit_cannot_be_spent_twice(money_tenant):
+    """Two screens, one credit. Check-then-write lets both through."""
+
+    from studiosaas.db import connect
+    from studiosaas.services import scheduling
+
+    tenant_id = money_tenant["tenant_id"]
+    student_id = money_tenant["student_id"]
+
+    with connect() as conn:
+        series = scheduling.create_series(
+            conn, tenant_id, student_id=student_id,
+            weekday=1, start_time="16:00", duration_minutes=30,
+            starts_on=date(2026, 9, 1),
+        )
+        conn.commit()
+        outcome = scheduling.cancel_occurrence(
+            conn, tenant_id, str(series["id"]), on_date=date(2026, 9, 7),
+            cancelled_by=scheduling.CANCELLED_BY_STUDENT, hours_notice=48.0,
+        )
+        conn.commit()
+        assert outcome["grants_credit"] is True
+        credit_id = outcome["makeupCreditId"]
+
+        scheduling.consume_credit(conn, tenant_id, credit_id, on_date=date(2026, 9, 12))
+        conn.commit()
+        with pytest.raises(scheduling.SchedulingError):
+            scheduling.consume_credit(conn, tenant_id, credit_id, on_date=date(2026, 9, 19))
+        conn.rollback()
+
+
+@requires_db
+def test_an_expired_credit_is_expired_the_moment_the_date_passes(money_tenant):
+    """Derived at read time, so no nightly job can leave it stale."""
+
+    from studiosaas.db import connect
+    from studiosaas.services import scheduling
+
+    tenant_id = money_tenant["tenant_id"]
+    student_id = money_tenant["student_id"]
+
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO makeup_credits
+                    (tenant_id, student_id, earned_from_date, expires_on)
+                VALUES (%s, %s, %s, %s) RETURNING id
+                """,
+                (tenant_id, student_id, date(2026, 1, 1), date.today() - timedelta(days=1)),
+            )
+            credit_id = str(cur.fetchone()["id"])
+        conn.commit()
+
+        row = next(c for c in scheduling.credits(conn, tenant_id) if str(c["id"]) == credit_id)
+        # The stored status is untouched; the answer is still correct.
+        assert row["status"] == "available"
+        assert row["is_expired"] is True
+
+        with pytest.raises(scheduling.SchedulingError):
+            scheduling.consume_credit(conn, tenant_id, credit_id, on_date=date.today())
+        conn.rollback()
+
+
+@requires_db
+def test_undoing_a_cancellation_cancels_the_credit_it_granted(money_tenant):
+    """Never a delete: a family's balance may not change without a trace."""
+
+    from studiosaas.db import connect
+    from studiosaas.services import scheduling
+
+    tenant_id = money_tenant["tenant_id"]
+    student_id = money_tenant["student_id"]
+
+    with connect() as conn:
+        series = scheduling.create_series(
+            conn, tenant_id, student_id=student_id,
+            weekday=1, start_time="16:00", duration_minutes=30,
+            starts_on=date(2026, 10, 1),
+        )
+        conn.commit()
+        outcome = scheduling.cancel_occurrence(
+            conn, tenant_id, str(series["id"]), on_date=date(2026, 10, 5),
+            cancelled_by=scheduling.CANCELLED_BY_STUDENT, hours_notice=48.0,
+        )
+        conn.commit()
+
+        scheduling.undo_occurrence(conn, tenant_id, outcome["exceptionId"])
+        conn.commit()
+
+        credit = next(
+            c for c in scheduling.credits(conn, tenant_id, include_spent=True)
+            if str(c["id"]) == outcome["makeupCreditId"]
+        )
+        assert credit["status"] == "cancelled"
+
+
+@requires_db
+def test_a_teacher_cannot_be_booked_into_two_lessons_at_once(money_tenant):
+    """Overlap, not equality — 4:15 and 4:30 collide for a 30-minute lesson."""
+
+    from studiosaas.db import connect
+    from studiosaas.services import scheduling
+
+    tenant_id = money_tenant["tenant_id"]
+    student_id = money_tenant["student_id"]
+
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO users (email, password_hash, full_name)
+                VALUES (%s, 'x', 'Test Teacher') RETURNING id
+                """,
+                (f"teacher-{uuid.uuid4()}@example.invalid",),
+            )
+            teacher_id = str(cur.fetchone()["id"])
+            cur.execute(
+                """
+                INSERT INTO students (id, tenant_id, first_name, display_name)
+                VALUES (gen_random_uuid(), %s, 'Second', 'Second Student') RETURNING id
+                """,
+                (tenant_id,),
+            )
+            other_student = str(cur.fetchone()["id"])
+        conn.commit()
+
+        scheduling.create_series(
+            conn, tenant_id, student_id=student_id, teacher_user_id=teacher_id,
+            weekday=2, start_time="16:15", duration_minutes=30,
+            starts_on=date(2026, 11, 1),
+        )
+        conn.commit()
+
+        with pytest.raises(scheduling.SchedulingError, match="already has"):
+            scheduling.create_series(
+                conn, tenant_id, student_id=other_student, teacher_user_id=teacher_id,
+                weekday=2, start_time="16:30", duration_minutes=30,
+                starts_on=date(2026, 11, 1),
+            )
+        conn.rollback()
