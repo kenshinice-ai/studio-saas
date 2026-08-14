@@ -4,14 +4,14 @@
 
 These are three independent facts. A matching version label is not proof that
 the current source tree was packaged or deployed; Source, Package and
-Production remain separate rows. **v10.2.2 has completed all three milestones** on 14 August 2026; the rows
-below record the independent evidence for each.
+Production remain separate rows. **v10.3.0 is committed; packaging and deploy are in progress** as of
+15 August 2026 — Production still runs v10.2.2 until the row below says otherwise.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.2.2 committed** | `VERSION` = **10.2.2**; the footer moved to the end of `<main>`, where it belongs — v10.2.1 placed the settings block after it, so the copyright line printed between the tab strip and the settings content. Verified by screenshot at 1440px and 375px, not by DOM query; both bugs in this pair were positions in the source that only started mattering when the layout stopped being absolute. pytest `2564 passed, 28 skipped`. |
-| Package | **v10.2.2 built and verified** | SaaS `dist/PWE-StudioSaaS-aws-10.2.2.tar.gz` SHA-256 `8403ac32acf6a852e7da18c97442dfd216ca03683ad1bde3afab7f38d53f6962`; Edition `dist/PWE-Studio-Edition-10.2.2.tar.gz` SHA-256 `ddc13f4fc0f17fe90dbe0899031765f357ec4702e79766a21eda4409d29d8bd5`. Both passed `verify_release_bundles.sh`. |
-| Production | **v10.2.2 deployed to `pwestudio.online`** | Deployed 14 August 2026 from `PWE-StudioSaaS-aws-10.2.2.tar.gz` (SHA-256 `8403ac32…`). No migrations. Deep health reports `appVersion=10.2.2`, `db=ok`, `tenants=6`, `themes.unreadable=0`, `workspaces.stale=0`, disk free `43.9 GB`. The settings layout was checked by screenshot at 1440px and 375px on the local build — sidebar, header, tab strip, content, footer last — and the bundle production serves is byte-identical to that build, which is the strongest check available from outside without operator credentials. |
+| Source | **v10.3.0 committed** | `VERSION` = **10.3.0**; tenant isolation moves from convention to construction — row-level security on 71 tables, plus a restricted application role, because a superuser bypasses RLS unconditionally and the application was one. Verified before changing anything that no leak existed: 180 of 213 SQL blocks filter on tenant_id and the other 33 read platform tables. Both suites green as the restricted role: pytest `2590 passed`, isolation suite `237 passed, 0 failed` over real HTTP. All four structural guards confirmed to fail against the current production configuration. |
+| Package | **v10.2.2 built; v10.3.0 not yet packaged** | SaaS `dist/PWE-StudioSaaS-aws-10.2.2.tar.gz` SHA-256 `8403ac32acf6a852e7da18c97442dfd216ca03683ad1bde3afab7f38d53f6962`; Edition `dist/PWE-Studio-Edition-10.2.2.tar.gz` SHA-256 `ddc13f4fc0f17fe90dbe0899031765f357ec4702e79766a21eda4409d29d8bd5`. Both passed `verify_release_bundles.sh`. |
+| Production | **v10.2.2 deployed; v10.3.0 not yet deployed** | Deployed 14 August 2026 from `PWE-StudioSaaS-aws-10.2.2.tar.gz` (SHA-256 `8403ac32…`). No migrations. Deep health reports `appVersion=10.2.2`, `db=ok`, `tenants=6`, `themes.unreadable=0`, `workspaces.stale=0`, disk free `43.9 GB`. The settings layout was checked by screenshot at 1440px and 375px on the local build — sidebar, header, tab strip, content, footer last — and the bundle production serves is byte-identical to that build, which is the strongest check available from outside without operator credentials. |
 
 Re-verify the production health endpoint (`/v1/health?deep=1`) before any later
 release claim; do not infer Production from `VERSION` or from an archive

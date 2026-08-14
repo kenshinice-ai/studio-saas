@@ -54,6 +54,13 @@
   <p data-lang="zh">以下内容均属于已发布的产品版本。每一条都是交付依据，不是路线图承诺。</p>
   <div class="grid">
     <article class="card">
+      <strong data-lang="en">Your studio's data, separated by the database itself (v10.3.0)</strong><strong data-lang="zh">你的数据，由数据库本身隔开（v10.3.0）</strong>
+      <p data-lang="en">Every studio's records have always been kept apart, and we check that on every release. Until now that separation was enforced by the application asking the right question each time. It now sits in the database: a query that failed to say which studio it was for returns nothing at all, rather than depending on us never writing one.</p>
+      <p data-lang="zh">每家工作室的数据一直是分开的，我们每次发版都会验证这一点。在此之前，这种分离靠的是程序每次都问对问题。现在它落在数据库里：一条没有说明"属于哪家工作室"的查询，读到的是空，而不是依赖我们永远不写错。</p>
+      <p data-lang="en">The application also stopped connecting to the database with administrator rights. It can now read and write your records and nothing else — it cannot alter the shape of the database or empty a table. Neither change is visible in the product; both narrow what could go wrong.</p>
+      <p data-lang="zh">同时，程序不再以管理员身份连接数据库。它现在只能读写记录，别的做不了——改不了数据库结构，也清不空任何一张表。这两项在界面上看不出任何变化，它们缩小的是"万一出错"的范围。</p>
+    </article>
+    <article class="card">
       <strong data-lang="en">Settings page layout fix (v10.2.2)</strong><strong data-lang="zh">系统设置版面修复（v10.2.2）</strong>
       <p data-lang="en">The settings screen in v10.2.0 drew itself beside the content area instead of inside it, so the page looked broken. Fixed within the day. Nothing you had saved was affected — it was where the screen was drawn, not what it held.</p>
       <p data-lang="zh">v10.2.0 的系统设置画到了内容区旁边而不是里面，页面看起来是坏的。当天修复。已经保存过的内容不受影响——出问题的是画在哪儿，不是里面装了什么。</p>
