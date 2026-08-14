@@ -112,7 +112,21 @@ Studio 有团队所以要课酬与短信；Growth 有人看数所以要报表。
 中文短信按 UCS-2 70 字一段计费，`segments_for()` 已处理 —— 按 160 字算会把
 双语工作室的账单低估一半。
 
-## 7 · 遗留与下一步
+## 7 · 已上线（2026-08-14）
+
+`pwestudio.online` 跑的是 v10.0.0。七个迁移在生产库上逐条 `applied`，
+从 `0032_tenant_addons` 到 `0038_channels_calendar_and_progress_reports`。
+深度健康 `appVersion=10.0.0 db=ok mode=saas tenants=6 themes.unreadable=0
+workspaces.stale=0`，磁盘余 44.3 GB。预部署备份
+`studiosaas_studiosaas_20260814T031503Z.dump`。
+
+**验证方式值得记一下**：五条鉴权路由返回 `401` 而非 `404`，说明路由在线；
+公开日历订阅对无效令牌返回 `404` 而非 `500`，说明
+`calendar_subscriptions` 表**存在且可查**——这一条才是迁移真落地的证据，
+版本号本身只能证明代码换了。下次验 schema 变更用同样的办法：
+找一条会真正查新表的无鉴权路由，看它是 404 还是 500。
+
+## 8 · 遗留与下一步
 
 - **Stripe / Square 适配器只有骨架**：`payment_providers` 表、幂等回执处理、
   签名校验（`verify_stripe_signature`，用 `compare_digest`）都在，
