@@ -130,3 +130,51 @@ def test_a_query_that_forgets_the_tenant_filter_returns_nothing():
                 f"没有租户上下文时 {table} 仍然返回了 {len(rows)} 行。"
                 "RLS 要么没生效，要么这个角色能绕过它。"
             )
+
+
+@requires_db
+def test_binding_one_tenant_hides_every_other_tenants_rows():
+    """绑定 A 之后，一条**故意去问 B** 的查询也应该是空的。
+
+    上一条验的是「没绑定 = 什么都看不见」，那只证明了 fail-closed。这一条验的
+    是隔离本身：写了 WHERE tenant_id = B，策略照样把它挡回去。
+
+    不是「忘记会被接住」，是「问也问不到」—— 后者才是隔离，前者只是保险丝。
+    """
+
+    from studiosaas.db import connect, fetch_all
+    from studiosaas.tenant_context import bind_tenant_session
+
+    owner_url = os.environ.get("STUDIOSAAS_OWNER_DATABASE_URL")
+    if not owner_url:
+        pytest.skip("需要 STUDIOSAAS_OWNER_DATABASE_URL 才能取到两个租户的 id")
+
+    app_url = os.environ["STUDIOSAAS_DATABASE_URL"]
+    os.environ["STUDIOSAAS_DATABASE_URL"] = owner_url
+    try:
+        with connect() as owner:
+            tenants = fetch_all(
+                owner,
+                "SELECT DISTINCT tenant_id FROM students WHERE tenant_id IS NOT NULL LIMIT 2",
+                (),
+            )
+    finally:
+        os.environ["STUDIOSAAS_DATABASE_URL"] = app_url
+
+    if len(tenants) < 2:
+        pytest.skip("需要至少两个有学员的租户")
+    a, b = str(tenants[0]["tenant_id"]), str(tenants[1]["tenant_id"])
+
+    with connect() as conn:
+        bind_tenant_session(conn, a)
+
+        mine = fetch_all(conn, "SELECT id FROM students", ())
+        assert mine, "绑定了 A 却读不到 A 的学员 —— 策略把自己人也挡了"
+
+        # 明确去问 B。策略应当压过这条 WHERE。
+        theirs = fetch_all(
+            conn, "SELECT id FROM students WHERE tenant_id = %s", (b,)
+        )
+        assert theirs == [], (
+            f"以租户 A 的上下文读到了租户 B 的 {len(theirs)} 名学员。隔离没生效。"
+        )

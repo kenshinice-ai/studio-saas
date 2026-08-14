@@ -33,7 +33,36 @@ if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
 from scripts import seed_local_test_tenants as seed_fixtures  # noqa: E402
-from studiosaas.db import connect, fetch_all, fetch_one  # noqa: E402
+from studiosaas.db import connect as _app_connect, fetch_all, fetch_one  # noqa: E402
+import contextlib as _contextlib  # noqa: E402
+
+
+@_contextlib.contextmanager
+def connect():
+    """这个套件里的直连一律用属主 —— 造数据和查证都是。
+
+    造数据是属主的活，和生产一致（迁移与后台脚本用属主，Web 应用用受限角色）。
+
+    查证更要用属主，而且理由更硬：这些读是用来断言「B 租户的行不在这里」的。
+    如果它们走受限角色，RLS 会把那一行藏起来，断言于是**必然通过** —— 哪怕
+    数据真的泄漏了也通过。那是一次假绿，比没有这条断言更糟。
+
+    真正的隔离断言由 HTTP 请求负责：owner_a 拿不到 owner_b 的东西，那一层
+    跑在受限角色上，正是要验的配置。
+    """
+
+    import os as _os
+
+    app_url = _os.environ.get("STUDIOSAAS_DATABASE_URL")
+    owner_url = _os.environ.get("STUDIOSAAS_OWNER_DATABASE_URL")
+    if owner_url:
+        _os.environ["STUDIOSAAS_DATABASE_URL"] = owner_url
+    try:
+        with _app_connect() as conn:
+            yield conn
+    finally:
+        if owner_url and app_url is not None:
+            _os.environ["STUDIOSAAS_DATABASE_URL"] = app_url
 import server  # noqa: E402
 
 from flask.testing import FlaskClient  # noqa: E402

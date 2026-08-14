@@ -134,7 +134,7 @@ def canonical_slug_for(conn: Any, slug: str) -> str | None:
 
 
 
-def _bind_tenant_session(conn: Any, tenant_id: str) -> None:
+def bind_tenant_session(conn: Any, tenant_id: str) -> None:
     """Tell the database which tenant this connection is acting for.
 
     Every tenant-scoped path in the product goes through :func:`resolve_tenant`
@@ -208,14 +208,14 @@ def resolve_tenant(conn: Any, slug: str, source: str) -> TenantContext:
             raise TenantResolutionError(f"Tenant '{slug}' was not found.")
         if alias["status"] not in ("trial", "onboarding", "active", "past_due"):
             raise TenantResolutionError(f"Tenant '{slug}' is not active.")
-        _bind_tenant_session(conn, str(alias["tenant_id"]))
+        bind_tenant_session(conn, str(alias["tenant_id"]))
         return TenantContext(
             tenant_id=str(alias["tenant_id"]), slug=slug, source=source,
             canonical_slug=str(alias["slug"]),
         )
     if row["status"] not in ("trial", "onboarding", "active", "past_due"):
         raise TenantResolutionError(f"Tenant '{slug}' is not active.")
-    _bind_tenant_session(conn, str(row["id"]))
+    bind_tenant_session(conn, str(row["id"]))
     return TenantContext(
         tenant_id=str(row["id"]), slug=row["slug"], source=source,
         canonical_slug=str(row["slug"]),

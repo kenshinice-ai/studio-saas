@@ -49,6 +49,19 @@ CREATE POLICY tenant_isolation ON attendance_sessions
            OR current_setting('studiosaas.platform', true) = 'on')
     WITH CHECK (tenant_id = current_setting('studiosaas.tenant_id', true)::uuid
            OR current_setting('studiosaas.platform', true) = 'on');
+-- ── audit_logs：读和写的规则不一样，而且必须不一样 ────────────────
+--
+-- 审计行可以没有租户：登录失败就是这样的一条 —— 「有人用这个邮箱试了个错
+-- 密码」，那时还不知道是谁、属于哪个工作室。库里现在有 1813 条这样的行。
+--
+-- 写：无租户的行永远写得进去。一次失败的登录尝试**必须**留下记录，
+--     不能因为「当时没有租户上下文」而被策略吞掉 —— 那等于把攻击者的
+--     踩点行为静音。
+-- 读：无租户的行只有平台模式看得见。它们含有尝试登录的邮箱地址，
+--     任何一个租户都不该读到别人的。
+--
+-- 所以 USING 和 WITH CHECK 在这里是两条不同的规则。这是全库唯一一处。
+
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs FORCE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS tenant_isolation ON audit_logs;
@@ -56,6 +69,7 @@ CREATE POLICY tenant_isolation ON audit_logs
     USING (tenant_id = current_setting('studiosaas.tenant_id', true)::uuid
            OR current_setting('studiosaas.platform', true) = 'on')
     WITH CHECK (tenant_id = current_setting('studiosaas.tenant_id', true)::uuid
+           OR tenant_id IS NULL
            OR current_setting('studiosaas.platform', true) = 'on');
 ALTER TABLE bank_statement_lines ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bank_statement_lines FORCE ROW LEVEL SECURITY;

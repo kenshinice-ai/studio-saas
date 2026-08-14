@@ -113,6 +113,7 @@ from .services.student_access import (
 )
 from .tenant_context import (
     bind_user_session as _bind_user_session,
+    bind_tenant_session as _bind_tenant_session,
     TenantGoneError,
     TenantResolutionError,
     canonical_slug_for,
@@ -2087,8 +2088,20 @@ def _audit(conn, *, tenant_id, action, resource_type, resource_id="", metadata=N
 
 
 def _audit_request(conn, *, tenant_id, action, resource_type, resource_id="", metadata=None):
-    """Write an audit log row with request actor and IP when available."""
+    """Write an audit log row with request actor and IP when available.
 
+    `audit_logs` is tenant-scoped, and this helper is called from routes that
+    never resolve a tenant from a slug — ending a support session, platform
+    administration, the public forms. Those have no tenant variable bound, so
+    the insert would be refused by the row-level security policy.
+
+    It does not need resolving: the caller passes the tenant in. Binding it
+    here means every audit write from every route works, rather than 40-odd
+    call sites each remembering to do it.
+    """
+
+    if tenant_id:
+        _bind_tenant_session(conn, str(tenant_id))
     actor = getattr(g, "actor", None)
     try:
         client_ip = str(ipaddress.ip_address(_client_ip()))
