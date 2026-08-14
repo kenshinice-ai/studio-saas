@@ -65,6 +65,8 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, account
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [accounts, setAccounts] = useState([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -74,6 +76,10 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, account
       const query = accountId ? `?accountId=${encodeURIComponent(accountId)}` : '';
       const data = await api(`/billing/invoices${query}`);
       setInvoices(data.invoices || []);
+      /* 付款方列表和发票一起取：开票对话框第一件事就是选付款方，
+         等点开再去拉会让第一次点击慢一拍，而这份数据很小。 */
+      const payers = await api('/billing/accounts').catch(() => ({accounts: []}));
+      setAccounts(payers.accounts || []);
       setError('');
     } catch (e) {
       /* 读路径永不把控制台打挂：存量租户可能一张发票都没有，
@@ -114,6 +120,42 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, account
     () => invoices.filter(i => i.status === 'draft').map(i => String(i.id)),
     [invoices],
   );
+  /* 一张发票是「先有单据，再往上挂行」两步落地的，因为 issue 是原子的：
+     开具那一刻要分配号码、定日期、锁死金额。所以这里建草稿、加行，
+     开具留给操作的人按下 —— 建好不等于发出。 */
+  const createInvoice = async (form) => {
+    setBusy(true);
+    try {
+      const draft = await api('/billing/invoices', {
+        method: 'POST',
+        body: JSON.stringify({billingAccountId: form.accountId, note: form.note}),
+      });
+      const invoiceId = draft.invoice?.id || draft.id;
+      for (const line of form.lines) {
+        await api(`/billing/invoices/${invoiceId}/lines`, {
+          method: 'POST',
+          body: JSON.stringify({
+            description: line.description,
+            quantity: line.quantity,
+            unitPriceCents: Math.round(Number(line.unitPrice) * 100),
+            taxRateBp: Number(line.taxRateBp),
+            /* 课时充值走 source_kind='package' 并带上学员：两本账各自
+               记各自的，发票行只是「这笔充值是被这张单收的钱」的指路牌。
+               谁也不改谁。 */
+            sourceKind: line.isCredits ? 'package' : 'manual',
+            studentId: line.studentId || null,
+          }),
+        });
+      }
+      showToast('草稿已建好，复核后再开具', 'success');
+      setCreating(false);
+      await load();
+      setSelectedId(String(invoiceId));
+    } catch (e) {
+      showToast(`新建发票失败：${e.message}`, 'error');
+    } finally { setBusy(false); }
+  };
+
   const checkedDrafts = useMemo(
     () => draftIds.filter(id => checked.has(id)),
     [draftIds, checked],
@@ -182,6 +224,10 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, account
     <div className="space-y-3">
       {/* 深链进来时列表是筛过的，必须说出来。一个看不见的筛选条件，就是
           「为什么账单里只有三张发票」这通电话。 */}
+      {creating && (
+        <NewInvoiceDialog accounts={accounts} busy={busy}
+                          onClose={() => setCreating(false)} onSubmit={createInvoice} />
+      )}
       {accountId && (
         <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-50 border border-amber-100">
           <span className="text-xs font-bold text-amber-800">
@@ -208,6 +254,12 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, account
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden min-w-0">
           <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200">
             <span className="text-xs font-bold">发票</span>
+            {canIssue && checkedDrafts.length === 0 && (
+              <button type="button" onClick={() => setCreating(true)}
+                      className="ml-auto min-h-[44px] px-3 rounded-lg border border-indigo-200 bg-white text-xs font-bold text-indigo-700">
+                新建发票
+              </button>
+            )}
             {checkedDrafts.length > 0 && canIssue && (
               <button type="button" onClick={issueSelected} disabled={busy}
                       className="ml-auto min-h-[44px] px-3 rounded-lg bg-indigo-600 text-white text-xs font-bold disabled:opacity-50">
@@ -343,6 +395,106 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, account
               </div>
             </>
           )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+/* 新建发票。刻意只到「草稿」为止 —— 开具是另一个动作，因为开具会分配
+   永久号码、按付款条件算到期日、并让金额从此不可改。把两件事合成一个
+   按钮，就等于把「我先记一下」和「这份文件已经生效」混为一谈。 */
+function NewInvoiceDialog({ accounts, busy, onClose, onSubmit }) {
+  const [accountId, setAccountId] = useState('');
+  const [note, setNote] = useState('');
+  const [lines, setLines] = useState([
+    {description: '', quantity: '1', unitPrice: '', taxRateBp: '1000', isCredits: false, studentId: ''},
+  ]);
+
+  const setLine = (i, key) => (e) => setLines(rows =>
+    rows.map((row, idx) => idx === i ? {...row, [key]: e.target.value} : row));
+  const toggleCredits = (i) => () => setLines(rows =>
+    rows.map((row, idx) => idx === i ? {...row, isCredits: !row.isCredits} : row));
+
+  const total = lines.reduce((sum, line) => {
+    const net = Number(line.quantity || 0) * Number(line.unitPrice || 0);
+    return sum + net + net * (Number(line.taxRateBp || 0) / 10000);
+  }, 0);
+
+  const ready = accountId && lines.some(l => l.description.trim() && Number(l.unitPrice) > 0);
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center sm:p-4 backdrop-blur-sm">
+      <div className="bg-white w-full sm:max-w-xl rounded-t-2xl sm:rounded-2xl p-5 space-y-3 max-h-[90vh] overflow-y-auto">
+        <div>
+          <p className="text-lg font-bold text-gray-800">新建发票</p>
+          <p className="text-sm text-gray-500 mt-1">
+            先存成草稿。复核无误后在列表里开具 —— 开具会定号码和到期日，之后金额不能再改。
+          </p>
+        </div>
+
+        <label className="block text-xs text-gray-400">付款方
+          <select value={accountId} onChange={e => setAccountId(e.target.value)}
+                  className="block w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm">
+            <option value="">请选择</option>
+            {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </select>
+        </label>
+
+        <div className="space-y-2">
+          {lines.map((line, i) => (
+            <div key={i} className="border border-gray-200 rounded-xl p-3 space-y-2">
+              <input value={line.description} onChange={setLine(i, 'description')}
+                     placeholder="项目说明，例如「第三学期学费」"
+                     className="w-full min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm" />
+              <div className="grid grid-cols-3 gap-2">
+                <label className="block text-xs text-gray-400">数量
+                  <input type="number" min="0" step="0.01" value={line.quantity} onChange={setLine(i, 'quantity')}
+                         className="block w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm" />
+                </label>
+                <label className="block text-xs text-gray-400">单价（含税前）
+                  <input type="number" min="0" step="0.01" value={line.unitPrice} onChange={setLine(i, 'unitPrice')}
+                         className="block w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm" />
+                </label>
+                <label className="block text-xs text-gray-400">税率
+                  <select value={line.taxRateBp} onChange={setLine(i, 'taxRateBp')}
+                          className="block w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm">
+                    <option value="1000">GST 10%</option>
+                    <option value="0">不计税</option>
+                  </select>
+                </label>
+              </div>
+              {/* 与「充值与退款」的联动就在这一行：勾上之后这条发票行会以
+                  source_kind='package' 落库，课时账本与钱账本各记各的，
+                  发票行只负责说明这笔钱收的是什么。 */}
+              <label className="flex items-center gap-2 text-xs text-gray-600">
+                <input type="checkbox" checked={line.isCredits} onChange={toggleCredits(i)} />
+                这一行是课时充值（与「充值与退款」对应）
+              </label>
+            </div>
+          ))}
+          <button type="button"
+                  onClick={() => setLines(rows => [...rows, {description: '', quantity: '1', unitPrice: '', taxRateBp: '1000', isCredits: false, studentId: ''}])}
+                  className="min-h-[44px] px-3 rounded-xl border border-gray-200 bg-white text-xs font-bold text-gray-700">
+            再加一行
+          </button>
+        </div>
+
+        <input value={note} onChange={e => setNote(e.target.value)} placeholder="备注（选填）"
+               className="w-full min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm" />
+
+        <p className="text-sm text-gray-500">合计约 {aud(Math.round(total * 100))}（含税）</p>
+
+        <div className="flex gap-2">
+          <button type="button" onClick={onClose} disabled={busy}
+                  className="flex-1 min-h-[44px] rounded-xl border border-gray-200 bg-white text-sm font-bold text-gray-700 disabled:opacity-50">
+            取消
+          </button>
+          <button type="button" onClick={() => onSubmit({accountId, note, lines})} disabled={busy || !ready}
+                  className="flex-1 min-h-[44px] rounded-xl bg-indigo-600 text-white text-sm font-bold disabled:opacity-50">
+            存为草稿
+          </button>
         </div>
       </div>
     </div>

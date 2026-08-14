@@ -80,6 +80,7 @@ SNAPSHOT_TABLES: tuple[tuple[str, str, str], ...] = (
     ("terms.json", "terms", "tenant_id = %s"),
     ("term_closures.json", "term_closures", "tenant_id = %s"),
     ("scheduling_policies.json", "scheduling_policies", "tenant_id = %s"),
+    ("tenant_billing_identity.json", "tenant_billing_identity", "tenant_id = %s"),
     ("teacher_availability.json", "teacher_availability", "tenant_id = %s"),
     ("lesson_series.json", "lesson_series", "tenant_id = %s"),
     ("lesson_exceptions.json", "lesson_exceptions", "tenant_id = %s"),
@@ -477,6 +478,15 @@ def permanently_delete_tenant(
         },
     )
     with conn.cursor() as cur:
+        # Immutability protects a live document from being edited. It is not
+        # supposed to make a tenant undeletable — but it did: the cascade from
+        # `tenants` reaches invoice_lines, the trigger cannot tell a purge from
+        # somebody rewriting history, and every tenant that had ever issued an
+        # invoice refused to be removed. Saying out loud that this transaction
+        # is a purge is what lets the cascade through, and `SET LOCAL` means the
+        # permission dies with the transaction rather than riding a pooled
+        # connection into the next request.
+        cur.execute("SET LOCAL studiosaas.purging = 'on'")
         cur.execute(
             """
             UPDATE tenants

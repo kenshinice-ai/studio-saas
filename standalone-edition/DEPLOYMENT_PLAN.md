@@ -13,7 +13,7 @@
 | 产品 | PWE Studio Edition |
 | 版本 | `9.9.6` |
 | 运行模式 | `standalone` |
-| 官方包 | `PWE-Studio-Edition-10.1.0.tar.gz` |
+| 官方包 | `PWE-Studio-Edition-10.1.1.tar.gz` |
 | 包 SHA-256 | `0a75bf66059da97dc91b450933bd2a44e48200b7dda17030b62baa22ec1cd3b6` |
 | `BUILD_INFO` commit | `4b436e1e2df0717b7efb01d5e7d4021a6cc23860` |
 | 包构建时间 | `2026-08-11T12:11:20Z` |
@@ -158,9 +158,9 @@ SMTP 是可选项。未配置 SMTP 时，通知保持 console/log 模式，核�
 在压缩包和 `.sha256` 文件所在目录执行：
 
 ```bash
-shasum -a 256 -c PWE-Studio-Edition-10.1.0.tar.gz.sha256
-tar xzf PWE-Studio-Edition-10.1.0.tar.gz
-cd PWE-Studio-Edition-10.1.0
+shasum -a 256 -c PWE-Studio-Edition-10.1.1.tar.gz.sha256
+tar xzf PWE-Studio-Edition-10.1.1.tar.gz
+cd PWE-Studio-Edition-10.1.1
 grep -E '^(version|mode|commit|built_at)=' BUILD_INFO
 ```
 
@@ -201,8 +201,8 @@ DNS 未生效、80 端口不可达或域名指向错误服务器时，不得进�
 ### 6.1 解包
 
 ```bash
-tar xzf PWE-Studio-Edition-10.1.0.tar.gz
-cd PWE-Studio-Edition-10.1.0
+tar xzf PWE-Studio-Edition-10.1.1.tar.gz
+cd PWE-Studio-Edition-10.1.1
 ```
 
 安装器会把稳定状态放在发布目录之外：

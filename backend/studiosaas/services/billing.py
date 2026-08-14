@@ -121,6 +121,116 @@ def next_document_number(conn, tenant_id: str, kind: str = "invoice") -> str:
     return f"{row['prefix']}{int(row['allocated']):04d}"
 
 
+# ── who is issuing ───────────────────────────────────────────────────────
+
+
+#: A studio that has never opened the settings page has no row, which is a
+#: different state from a row full of blanks: "we never asked" versus "they
+#: left it empty". Callers need to tell those apart, so the default carries
+#: ``configured: False`` rather than pretending to be saved data.
+BILLING_IDENTITY_FIELDS = (
+    "legal_name", "trading_name", "abn", "gst_registered",
+    "address_line1", "address_line2", "suburb", "state", "postcode", "country",
+    "contact_email", "contact_phone", "website",
+    "bank_account_name", "bank_bsb", "bank_account_no", "payment_note",
+)
+
+
+def billing_identity(conn, tenant_id: str) -> dict[str, Any]:
+    """The studio's own details, as they belong on an invoice."""
+
+    row = fetch_one(
+        conn,
+        f"SELECT {', '.join(BILLING_IDENTITY_FIELDS)} FROM tenant_billing_identity "
+        "WHERE tenant_id = %s",
+        (tenant_id,),
+    )
+    if not row:
+        blank = {field: "" for field in BILLING_IDENTITY_FIELDS}
+        blank["gst_registered"] = False
+        blank["country"] = "Australia"
+        return {**blank, "configured": False}
+    return {**row, "configured": True}
+
+
+def save_billing_identity(conn, tenant_id: str, values: dict[str, Any]) -> dict[str, Any]:
+    """Upsert the issuing identity, keeping anything the caller did not send."""
+
+    current = billing_identity(conn, tenant_id)
+    merged = {field: values.get(field, current[field]) for field in BILLING_IDENTITY_FIELDS}
+    merged["gst_registered"] = bool(merged["gst_registered"])
+    merged["abn"] = str(merged["abn"] or "").strip()
+
+    # Mirrors the CHECK constraint so the studio gets a sentence rather than a
+    # constraint violation. The database still has the last word.
+    if merged["gst_registered"] and not merged["abn"]:
+        raise BillingError(
+            "A GST-registered studio has to record its ABN — without it the GST "
+            "on your invoices is not claimable by the family or their accountant."
+        )
+
+    columns = ", ".join(BILLING_IDENTITY_FIELDS)
+    placeholders = ", ".join(["%s"] * len(BILLING_IDENTITY_FIELDS))
+    updates = ", ".join(f"{field} = EXCLUDED.{field}" for field in BILLING_IDENTITY_FIELDS)
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""
+            INSERT INTO tenant_billing_identity (tenant_id, {columns})
+            VALUES (%s, {placeholders})
+            ON CONFLICT (tenant_id) DO UPDATE SET {updates}, updated_at = now()
+            RETURNING {columns}
+            """,
+            (tenant_id, *[merged[field] for field in BILLING_IDENTITY_FIELDS]),
+        )
+        saved = cur.fetchone()
+    return {**saved, "configured": True}
+
+
+def issuing_blockers(conn, tenant_id: str, invoice_id: str) -> list[dict[str, str]]:
+    """What would make this document invalid if it went out now.
+
+    Returns a list rather than the first problem, for the same reason the Xero
+    gate does: a studio that fixes one blocker and is immediately shown another
+    stops believing the screen.
+
+    Only conditions that make the *document* wrong are in here. A missing
+    address is untidy; a GST line with no supplier ABN is a document the
+    customer's accountant will reject, and it is the product's fault for
+    letting it out.
+    """
+
+    identity = billing_identity(conn, tenant_id)
+    taxed = fetch_one(
+        conn,
+        "SELECT COALESCE(SUM(tax_cents), 0) AS tax FROM invoice_lines "
+        "WHERE tenant_id = %s AND invoice_id = %s",
+        (tenant_id, invoice_id),
+    ) or {}
+    charges_gst = int(taxed.get("tax") or 0) > 0
+
+    blockers: list[dict[str, str]] = []
+    if not (identity["legal_name"] or identity["trading_name"]):
+        blockers.append({
+            "code": "no_supplier_name",
+            "message": "The invoice does not say who is issuing it. "
+                       "Add your studio's legal or trading name in Settings.",
+        })
+    if charges_gst and not identity["abn"]:
+        blockers.append({
+            "code": "gst_without_abn",
+            "message": "This invoice charges GST but your ABN is missing, so the "
+                       "family cannot claim it. Add your ABN in Settings.",
+        })
+    if charges_gst and not identity["gst_registered"]:
+        blockers.append({
+            "code": "gst_without_registration",
+            "message": "This invoice charges GST but the studio is not marked as "
+                       "GST-registered. Either register the setting or remove the "
+                       "tax rate from the lines.",
+        })
+    return blockers
+
+
 # ── invoice lifecycle ────────────────────────────────────────────────────
 
 
@@ -202,6 +312,16 @@ def issue_invoice(
     )
     if not line_count or int(line_count["n"]) == 0:
         raise BillingError("An invoice needs at least one line before it can be issued.")
+
+    # Checked here rather than in the route so no code path can issue around it
+    # — the same reasoning as putting invoice immutability in a trigger. This
+    # refuses only documents that would be *invalid*, never merely untidy ones:
+    # a studio with no address can still invoice, a studio charging GST without
+    # an ABN cannot, because that document is unusable to the person receiving
+    # it.
+    blockers = issuing_blockers(conn, tenant_id, invoice_id)
+    if blockers:
+        raise BillingError(" ".join(blocker["message"] for blocker in blockers))
 
     recalculate_totals(conn, tenant_id, invoice_id)
     number = next_document_number(conn, tenant_id, "invoice")

@@ -12591,6 +12591,41 @@ def billing_statement(account_id: str):
 # ── tax codes ────────────────────────────────────────────────────────────
 
 
+@api_v1.route("/billing/identity", methods=["GET", "PUT"])
+@permission_required("billing:read")
+def billing_identity_route():
+    """Who this studio is, as it appears on the documents it issues."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        try:
+            _require_feature(conn, tenant.tenant_id, _entitlements.FEATURE_BILLING)
+        except _entitlements.FeatureUnavailableError as exc:
+            return _feature_error(exc)
+
+        if request.method == "GET":
+            return jsonify({"identity": _billing.billing_identity(conn, tenant.tenant_id)})
+
+        try:
+            require_permission(getattr(g, "actor", None), "settings:write")
+            payload = _json_payload()
+            saved = _billing.save_billing_identity(conn, tenant.tenant_id, payload)
+        except PermissionDeniedError as exc:
+            return _error(str(exc), 403)
+        except (ValueError, _billing.BillingError) as exc:
+            conn.rollback()
+            return _error(str(exc))
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="billing_identity.updated",
+            resource_type="tenant",
+            resource_id=tenant.tenant_id,
+        )
+        conn.commit()
+    return jsonify({"ok": True, "identity": saved})
+
+
 @api_v1.route("/billing/tax-codes", methods=["GET", "POST"])
 @permission_required("billing:read")
 def billing_tax_codes():

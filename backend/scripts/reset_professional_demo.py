@@ -46,7 +46,7 @@ import os
 import shutil
 import sys
 from datetime import date, timedelta
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 from typing import Any
 
@@ -356,6 +356,24 @@ def _publish_tenant(cur: Any, tenant_id: str, settings: dict) -> None:
 def _clear_showcase(cur: Any, tenant_id: str) -> None:
     """Remove mutable showcase records while retaining the guarded tenant."""
 
+    # 重置是销毁重建，不是编辑，所以和彻底删除租户走同一条声明。没有它，
+    # 上一次演示留下的已开具发票会让整个重置失败 —— 而失败发生在清理阶段，
+    # 也就是演示租户被清空之后、重新填满之前。
+    cur.execute("SET LOCAL studiosaas.purging = 'on'")
+    # v10.1.1：钱这一层的表也要清。漏掉任何一张，每次重置就在上一批演示
+    # 发票上再叠一批，几周之后演示租户的应收账款是个越滚越大的假数字。
+    # 顺序按外键倒着来：分配 → 收款 → 行 → 单据。
+    for table in ("payment_allocations", "refunds", "payments", "credit_note_lines",
+                  "credit_notes", "invoice_lines", "invoices",
+                  "billing_account_members", "billing_accounts",
+                  "document_number_sequences", "tenant_billing_identity",
+                  "teaching_sessions", "teacher_pay_adjustments", "teacher_pay_periods",
+                  "teacher_pay_rates", "teacher_engagements",
+                  "makeup_credits", "lesson_exceptions", "lesson_series",
+                  "term_closures", "terms", "scheduling_policies",
+                  "progress_reports", "progress_report_settings",
+                  "xero_connections", "tenant_addons"):
+        cur.execute(f"DELETE FROM {table} WHERE tenant_id = %s", (tenant_id,))
     cur.execute("DELETE FROM class_bookings WHERE tenant_id = %s", (tenant_id,))
     cur.execute("DELETE FROM class_schedule_exceptions WHERE tenant_id = %s", (tenant_id,))
     cur.execute("DELETE FROM registrations WHERE tenant_id = %s", (tenant_id,))
@@ -518,6 +536,383 @@ def _seed_students(cur: Any, tenant_id: str, course_ids: list[str], teacher_id: 
                 ),
             )
     return student_ids
+
+
+# ── the money layer ────────────────────────────────────────────────────────
+#
+# The showcase exists to be walked through with a prospect, and until v10.1.1
+# every money screen in it was empty. An empty invoice list does not read as
+# "you have not billed anyone yet" — it reads as "this part is not finished".
+#
+# So the seed puts a term's worth of plausible history in: invoices in every
+# state a studio actually sees, a teacher's pay period mid-flight, a private
+# lesson with a real cancellation behind it, and progress reports both
+# published and overdue. Dates are relative to the reset, so the demo is never
+# showing last year.
+
+
+def _seed_money_layer(
+    cur: Any, tenant_id: str, student_ids: list[str], by_role: dict[str, str]
+) -> dict[str, int]:
+    """Billing, teacher pay, private lessons and reports, ready to show."""
+
+    today = date.today()
+    owner_id, teacher_id = by_role["owner"], by_role["teacher"]
+
+    # ── who is issuing ────────────────────────────────────────────────
+    # Without this the demo cannot issue a single invoice: billing.issue_invoice
+    # refuses a GST document with no supplier ABN. Seeding it is not decoration,
+    # it is the precondition.
+    cur.execute(
+        """
+        INSERT INTO tenant_billing_identity
+            (tenant_id, legal_name, trading_name, abn, gst_registered,
+             address_line1, suburb, state, postcode,
+             contact_email, contact_phone,
+             bank_account_name, bank_bsb, bank_account_no, payment_note)
+        VALUES (%s, %s, %s, %s, true, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ON CONFLICT (tenant_id) DO UPDATE SET
+            legal_name = EXCLUDED.legal_name, abn = EXCLUDED.abn,
+            gst_registered = EXCLUDED.gst_registered, updated_at = now()
+        """,
+        (tenant_id, "Paradise Production Pty Ltd", SHOWCASE_NAME, "53 004 085 616",
+         "12 Sturt Street", "Southbank", "VIC", "3006",
+         "accounts@letspaint.example", "03 9000 1234",
+         "Paradise Production Pty Ltd", "083-004", "12 345 6789",
+         "请在到期日前转账，并在备注里写上发票号。"),
+    )
+
+    # ── the payers ────────────────────────────────────────────────────
+    # A family with two children on one invoice is the case that makes the
+    # payer/student split worth explaining, so the demo has one.
+    payers = [
+        ("Whelan 一家", "family", "Rachel Whelan", "rachel.whelan@example.com", "0400000102", 14),
+        ("Raman 一家", "family", "Anil Raman", "anil.raman@example.com", "0400000101", 14),
+        ("Chen 一家", "family", "Li Chen", "li.chen@example.com", "0400000104", 7),
+        ("Southbank Primary School", "organisation", "Dana Iqbal",
+         "office@southbankprimary.example", "03 9000 5678", 30),
+    ]
+    account_ids: list[str] = []
+    for name, kind, contact, email, mobile, terms in payers:
+        cur.execute(
+            """
+            INSERT INTO billing_accounts
+                (tenant_id, name, kind, contact_name, email, mobile, payment_terms_days)
+            VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id
+            """,
+            (tenant_id, name, kind, contact, email, mobile, terms),
+        )
+        account_ids.append(str(cur.fetchone()["id"]))
+
+    # Students 0 and 1 are the two Whelans in the seeded roster; putting them on
+    # one account is what makes "one invoice, two children" demonstrable.
+    for account_index, student_index in ((0, 1), (0, 4), (1, 0), (2, 3)):
+        if student_index < len(student_ids):
+            cur.execute(
+                """
+                INSERT INTO billing_account_members (tenant_id, billing_account_id, student_id)
+                VALUES (%s, %s, %s) ON CONFLICT DO NOTHING
+                """,
+                (tenant_id, account_ids[account_index], student_ids[student_index]),
+            )
+
+    # ── the invoices ──────────────────────────────────────────────────
+    # Every state a studio meets: paid, part paid, overdue, and a draft still
+    # waiting for the front desk. A list showing only one state teaches nothing
+    # about what the screen does.
+    def _line(invoice_id: str, description: str, qty: str, unit_cents: int,
+              tax_bp: int, kind: str, student_id: str | None = None) -> int:
+        net = int(Decimal(qty) * Decimal(unit_cents))
+        tax = int((Decimal(net) * Decimal(tax_bp) / Decimal(10000)).quantize(
+            Decimal("1"), rounding=ROUND_HALF_UP))
+        cur.execute(
+            """
+            INSERT INTO invoice_lines
+                (tenant_id, invoice_id, description, quantity, unit_price_cents,
+                 tax_rate_bp, tax_cents, total_cents, source_kind, student_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            (tenant_id, invoice_id, description, Decimal(qty), unit_cents,
+             tax_bp, tax, net + tax, kind, student_id),
+        )
+        return net + tax
+
+    def _document_number(sequence: list[int]) -> str:
+        sequence[0] += 1
+        return f"INV-{sequence[0]:04d}"
+
+    counter = [0]
+    invoices: list[tuple[str, int, str]] = []   # (id, total, status)
+    plan = [
+        # (account, issued days ago, status, lines)
+        (0, 34, "paid", [("第三学期学费 · Eli Whelan", "10", 6500, 1000, "tuition"),
+                         ("第三学期学费 · Tom Whelan", "10", 6500, 1000, "tuition")]),
+        (1, 20, "part_paid", [("第三学期学费 · Priya Raman", "10", 5500, 1000, "tuition")]),
+        (2, 45, "issued", [("第三学期学费 · Xi Chen", "10", 5500, 1000, "tuition")]),
+        (3, 12, "issued", [("驻校工作坊 · 两场", "2", 48000, 1000, "engagement")]),
+        (0, None, "draft", [("第四学期学费 · Eli Whelan", "10", 6500, 1000, "tuition")]),
+    ]
+    for account_index, days_ago, status, lines in plan:
+        cur.execute(
+            "INSERT INTO invoices (tenant_id, billing_account_id) VALUES (%s, %s) RETURNING id",
+            (tenant_id, account_ids[account_index]),
+        )
+        invoice_id = str(cur.fetchone()["id"])
+        total = sum(_line(invoice_id, *line) for line in lines)
+        subtotal = int(Decimal(total) / Decimal("1.1"))
+        if status == "draft":
+            cur.execute(
+                "UPDATE invoices SET subtotal_cents = %s, tax_cents = %s, total_cents = %s "
+                "WHERE id = %s",
+                (subtotal, total - subtotal, total, invoice_id),
+            )
+        else:
+            issued_on = today - timedelta(days=days_ago)
+            terms = payers[account_index][5]
+            cur.execute(
+                """
+                UPDATE invoices
+                   SET status = 'issued', number = %s, issue_date = %s, due_date = %s,
+                       issued_at = now(), issued_by_user_id = %s,
+                       subtotal_cents = %s, tax_cents = %s, total_cents = %s
+                 WHERE id = %s
+                """,
+                (_document_number(counter), issued_on, issued_on + timedelta(days=terms),
+                 owner_id, subtotal, total - subtotal, total, invoice_id),
+            )
+        invoices.append((invoice_id, total, status))
+
+    # The counter row has to agree with the numbers already handed out, or the
+    # first invoice a visitor issues collides with a seeded one.
+    cur.execute(
+        """
+        INSERT INTO document_number_sequences (tenant_id, kind, prefix, next_value)
+        VALUES (%s, 'invoice', 'INV-', %s)
+        ON CONFLICT (tenant_id, kind) DO UPDATE SET next_value = EXCLUDED.next_value
+        """,
+        (tenant_id, counter[0] + 1),
+    )
+
+    # ── the money that arrived ────────────────────────────────────────
+    # Allocations drive the invoice status through triggers, so the demo's
+    # "paid" and "part paid" rows are true rather than typed in.
+    for index, (invoice_id, total, status) in enumerate(invoices):
+        if status not in {"paid", "part_paid"}:
+            continue
+        amount = total if status == "paid" else total // 2
+        cur.execute(
+            """
+            INSERT INTO payments
+                (tenant_id, billing_account_id, amount_cents, method, received_at,
+                 note, recorded_by_user_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id
+            """,
+            (tenant_id, account_ids[0 if index == 0 else 1], amount,
+             "bank_transfer" if index == 0 else "card",
+             today - timedelta(days=7 * (index + 1)),
+             f"演示收款 DEMO-{index + 1:03d}", owner_id),
+        )
+        payment_id = str(cur.fetchone()["id"])
+        cur.execute(
+            """
+            INSERT INTO payment_allocations
+                (tenant_id, payment_id, invoice_id, amount_cents)
+            VALUES (%s, %s, %s, %s)
+            """,
+            (tenant_id, payment_id, invoice_id, amount),
+        )
+
+    # ── what teaching costs ───────────────────────────────────────────
+    cur.execute(
+        """
+        INSERT INTO teacher_engagements (tenant_id, teacher_user_id, engagement, abn)
+        VALUES (%s, %s, 'contractor', '61 111 222 333')
+        ON CONFLICT (tenant_id, teacher_user_id) DO NOTHING
+        """,
+        (tenant_id, teacher_id),
+    )
+    cur.execute(
+        """
+        INSERT INTO teacher_pay_rates
+            (tenant_id, teacher_user_id, basis, amount_cents, effective_from)
+        VALUES (%s, %s, 'per_hour', 8500, %s)
+        ON CONFLICT DO NOTHING
+        """,
+        (tenant_id, teacher_id, today - timedelta(days=180)),
+    )
+    period_start = today.replace(day=1)
+    cur.execute(
+        """
+        INSERT INTO teacher_pay_periods
+            (tenant_id, teacher_user_id, period_start, period_end, status)
+        VALUES (%s, %s, %s, %s, 'open')
+        RETURNING id
+        """,
+        (tenant_id, teacher_id, period_start,
+         (period_start + timedelta(days=32)).replace(day=1) - timedelta(days=1)),
+    )
+    row = cur.fetchone()
+    period_id = str(row["id"]) if row else None
+    sessions = 0
+    for offset in range(1, 13):
+        occurred = period_start + timedelta(days=offset * 2)
+        if occurred > today:
+            break
+        cur.execute(
+            """
+            INSERT INTO teaching_sessions
+                (tenant_id, teacher_user_id, period_id, occurred_on, start_time,
+                 duration_minutes, student_count, source, rate_basis, rate_amount_cents,
+                 amount_cents, tuition_basis_cents, counts_for_pay, note)
+            VALUES (%s, %s, %s, %s, '16:00', 90, 6, 'roster', 'per_hour', 8500,
+                    12750, 19500, true, %s)
+            """,
+            (tenant_id, teacher_id, period_id, occurred, "常规课程"),
+        )
+        sessions += 1
+
+    # ── the private lesson, and one real absence ──────────────────────
+    cur.execute(
+        """
+        INSERT INTO scheduling_policies
+            (tenant_id, notice_hours, makeup_credit_on_notice, makeup_expiry_days)
+        VALUES (%s, 24, true, 90)
+        ON CONFLICT (tenant_id) DO NOTHING
+        """,
+        (tenant_id,),
+    )
+    series_ids: list[str] = []
+    for index, (weekday, start_time, student_index) in enumerate(
+        ((2, "16:00", 0), (4, "17:30", 3))
+    ):
+        if student_index >= len(student_ids):
+            continue
+        cur.execute(
+            """
+            INSERT INTO lesson_series
+                (tenant_id, student_id, teacher_user_id, weekday, start_time,
+                 duration_minutes, room, starts_on, created_by_user_id, note)
+            VALUES (%s, %s, %s, %s, %s::time, 30, %s, %s, %s, %s)
+            RETURNING id
+            """,
+            (tenant_id, student_ids[student_index], teacher_id, weekday, start_time,
+             "主画室 Main room" if index == 0 else "小画室 Back room",
+             today - timedelta(days=60), owner_id, "一对一"),
+        )
+        series_ids.append(str(cur.fetchone()["id"]))
+
+    credits = 0
+    if series_ids:
+        # A cancellation with enough notice: not charged, teacher not paid, and
+        # a make-up owed. Showing the three answers together is the point of the
+        # screen, so the demo has to contain a case where they differ.
+        absent_on = today - timedelta(days=(today.weekday() - 2) % 7 or 7)
+        cur.execute(
+            """
+            INSERT INTO lesson_exceptions
+                (tenant_id, series_id, on_date, kind, chargeable, counts_for_pay,
+                 reason, created_by_user_id)
+            VALUES (%s, %s, %s, 'cancelled_by_student', false, false, %s, %s)
+            ON CONFLICT (series_id, on_date) DO NOTHING
+            RETURNING id
+            """,
+            (tenant_id, series_ids[0], absent_on, "家长提前三天来电请假", owner_id),
+        )
+        exception = cur.fetchone()
+        if exception:
+            cur.execute(
+                """
+                INSERT INTO makeup_credits
+                    (tenant_id, student_id, earned_from_date, earned_from_exception_id,
+                     expires_on, reason, created_by_user_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id
+                """,
+                (tenant_id, student_ids[0], absent_on, exception["id"],
+                 absent_on + timedelta(days=90), "按时请假", owner_id),
+            )
+            cur.execute(
+                "UPDATE lesson_exceptions SET makeup_credit_id = %s WHERE id = %s",
+                (cur.fetchone()["id"], exception["id"]),
+            )
+            credits = 1
+
+    # ── progress reports ──────────────────────────────────────────────
+    # Two published so the family-facing side is visible, two overdue so the
+    # Pending worklist has something in it. An empty worklist looks like a
+    # feature that does not work.
+    reports = 0
+    for index, student_id in enumerate(student_ids[:4]):
+        published = index < 2
+        period_end = today - timedelta(days=40 if published else 25)
+        content = json.dumps({
+            "periodStart": (period_end - timedelta(days=60)).isoformat(),
+            "periodEnd": period_end.isoformat(),
+            "attendance": {"scheduled": 8, "attended": 7, "cancelled": 1,
+                           "makeups": 0, "ratePercent": 88},
+            "lessons": [
+                {"class_date": (period_end - timedelta(days=d)).isoformat(),
+                 "note": note, "course_name": "油画基础 Foundation Oil"}
+                for d, note in ((21, "调色练习，冷暖对比有进步。"),
+                                (14, "静物写生，构图更稳。"),
+                                (7, "完成第一张完整作品。"))
+            ],
+        })
+        cur.execute(
+            """
+            INSERT INTO progress_reports
+                (tenant_id, student_id, teacher_user_id, period_start, period_end,
+                 content, teacher_comment, status, published_at, published_by_user_id)
+            VALUES (%s, %s, %s, %s, %s, %s::jsonb, %s, %s, %s, %s)
+            """,
+            (tenant_id, student_id, teacher_id,
+             period_end - timedelta(days=60), period_end, content,
+             "这一段进步很明显，尤其是在色彩的冷暖关系上。下一段建议加入静物写生。"
+             if published else "",
+             "published" if published else "draft",
+             (period_end + timedelta(days=3)) if published else None,
+             owner_id if published else None),
+        )
+        reports += 1
+
+    # ── Xero, deliberately mid-setup ──────────────────────────────────
+    # Entitled and connected, but the gate is not satisfied: mapping confirmed,
+    # demo run not done, single-entry question unanswered. A wizard showing
+    # every step already ticked demonstrates nothing — the interesting screen is
+    # the one that says what is still missing.
+    cur.execute(
+        """
+        INSERT INTO tenant_addons (tenant_id, addon_key, status, note)
+        VALUES (%s, 'xero', 'active', '演示：已加购 Xero 直连')
+        ON CONFLICT (tenant_id, addon_key) DO UPDATE SET status = 'active'
+        """,
+        (tenant_id,),
+    )
+    cur.execute(
+        """
+        INSERT INTO xero_connections (tenant_id, org_name, status, connected_by_user_id)
+        VALUES (%s, %s, 'connected', %s)
+        ON CONFLICT (tenant_id) DO UPDATE SET org_name = EXCLUDED.org_name
+        """,
+        (tenant_id, "Let's Paint Studio (Demo Org)", owner_id),
+    )
+    cur.execute(
+        """
+        INSERT INTO xero_sync_settings
+            (tenant_id, push_enabled, mapping_confirmed_at, single_entry_decision)
+        VALUES (%s, false, now(), 'not_answered')
+        ON CONFLICT (tenant_id) DO NOTHING
+        """,
+        (tenant_id,),
+    )
+
+    return {
+        "billing_accounts": len(account_ids),
+        "invoices": len(invoices),
+        "teaching_sessions": sessions,
+        "lesson_series": len(series_ids),
+        "makeup_credits": credits,
+        "progress_reports": reports,
+    }
 
 
 # ── the catalogue and the week ─────────────────────────────────────────────
@@ -976,6 +1371,7 @@ def reset_showcase(credentials_file: Path) -> dict[str, Any]:
             _seed_schedule_exceptions(cur, tenant_id, schedule_ids, owner_id)
             _seed_bookings(cur, tenant_id, schedule_ids)
             _seed_registrations(cur, tenant_id, manager_id)
+            money = _seed_money_layer(cur, tenant_id, student_ids, by_role)
 
         # Media goes through the product's own upload path, which opens its own
         # cursors on this connection and stays inside this transaction.
@@ -1058,6 +1454,7 @@ def reset_showcase(credentials_file: Path) -> dict[str, Any]:
         "room_photos": len(room),
         "categories": [item["id"] for item in categories],
         "credentials_file": str(credentials_file),
+        **money,
     }
 
 
@@ -1077,6 +1474,14 @@ def main() -> int:
         f"{result['student_works']} student works "
         f"({result['student_works_public']} with current consent) and "
         f"{result['room_photos']} photographs of the room."
+    )
+    print(
+        "Money layer: "
+        f"{result['billing_accounts']} payers, {result['invoices']} invoices, "
+        f"{result['teaching_sessions']} teaching sessions, "
+        f"{result['lesson_series']} private lessons, "
+        f"{result['makeup_credits']} make-up credits, "
+        f"{result['progress_reports']} progress reports. Xero add-on active, gate unsatisfied."
     )
     print(f"Showcase categories: {', '.join(result['categories']) or '(none)'}")
     print(f"Protected presenter credentials: {result['credentials_file']} (mode 0600)")

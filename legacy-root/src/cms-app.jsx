@@ -8,6 +8,7 @@
 import { BillingPanel } from "./panels/billing.jsx";
 import { FinancePanel } from "./panels/finance.jsx";
 import { IntegrationsPanel } from "./panels/integrations.jsx";
+import { BillingIdentityPanel } from "./panels/billing_identity.jsx";
 import { OverdueReports } from "./panels/progress_reports.jsx";
 import { StudentProgressReports, StudentBillingAccount } from "./panels/student_reports.jsx";
 import { PrivateLessonsPanel } from "./panels/private_lessons.jsx";
@@ -3734,14 +3735,14 @@ document.getElementById('copybtn').addEventListener('click', function(){
         ]},
         {key:'teaching', label:'教学运营', items:[
             {k:'roster',i:'calendar',l:'课程安排', s:'课表'},
-            {k:'courses',i:'calendar',l:'课程',s:'课程'},
-            {k:'students',i:'users',l:'学员',s:'学员'},
-            {k:'works',i:'image',l:'作品',s:'作品'},
+            {k:'courses',i:'calendar',l:'课程目录',s:'课程'},
+            {k:'students',i:'users',l:'学员档案',s:'学员'},
+            {k:'works',i:'image',l:'作品管理',s:'作品'},
         ]},
         {key:'business', label:'经营', items:[
-            {k:'billing',i:'money',l:'账单',s:'账单'},
+            {k:'billing',i:'money',l:'账单发票',s:'账单'},
             {k:'topup',i:'money',l:'充值与退款',s:'结算'},
-            {k:'finance',i:'trend',l:'财务',s:'财务'},
+            {k:'finance',i:'trend',l:'课酬与报表',s:'财务'},
             {k:'stats',i:'trend',l:'经营统计',s:'统计'},
         ]},
         {key:'records', label:'记录', items:[
@@ -3750,11 +3751,15 @@ document.getElementById('copybtn').addEventListener('click', function(){
     ].map(group => ({...group, items:group.items.filter(item => allowedTabs.includes(item.k))}))
         .filter(group => group.items.length > 0);
     const NAV = NAV_GROUPS.flatMap(group => group.items);
-    const cmsPageTitle = ({
-        dashboard:'工作台', pending:'待处理', roster:'课程安排', courses:'课程目录',
-        students:'学员档案', works:'作品管理', billing:'账单', topup:'充值与退款', finance:'财务', logs:'操作日志',
-        stats:'经营统计', settings:'系统设置', new_student:'新建学员'
-    })[tab] || 'Studio CMS';
+    /* Derived from NAV, not a second hand-written map. The two of them had
+       already drifted — the sidebar said 课程/学员/作品 while the page called
+       itself 课程目录/学员档案/作品管理, so the same screen answered to two
+       names depending on where you looked. Only pages that have no sidebar
+       entry need naming here. */
+    const CMS_PAGE_TITLE_EXTRAS = {settings:'系统设置', new_student:'新建学员档案'};
+    const cmsPageTitle = CMS_PAGE_TITLE_EXTRAS[tab]
+        || (NAV.find(item => item.k === tab) || {}).l
+        || 'Studio CMS';
     const actorRoleLabel = ({
         owner:'Owner', manager:'Manager', teacher:'Teacher', front_desk:'Front Desk', staff:'Staff',
         platform_super_admin:'平台管理员', super_admin:'超级管理员'
@@ -4174,7 +4179,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         </div>
                         {tab==='settings' && <div className="mb-6 rounded-2xl border border-indigo-100 bg-white p-2 shadow-sm">
                             <div className="flex gap-1 overflow-x-auto" role="tablist" aria-label="系统设置分区">
-                                {[['account','账号与安全'],['team','团队与权限'],['operational','运营默认'],['integrations','集成'],['maintenance','数据维护'],['workspace','工作区链接']].map(([key,label])=>(
+                                {[['account','账号与安全'],['team','团队与权限'],['operational','运营默认'],['billing-identity','开票信息'],['integrations','集成'],['maintenance','数据维护'],['workspace','工作区链接']].map(([key,label])=>(
                                     <button key={key} type="button" onClick={()=>{setSettingsSection(key);document.getElementById(`settings-${key}`)?.scrollIntoView({behavior:'smooth',block:'start'});}}
                                         className={`whitespace-nowrap min-h-[44px] px-3 rounded-xl text-xs font-bold ${settingsSection===key?'bg-indigo-600 text-white':'text-gray-600 hover:bg-indigo-50'}`}>{label}</button>
                                 ))}
@@ -4492,6 +4497,13 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                     confirm={confirm} notify={notify}/>
                             </div>
                         )}
+                        {/* 开票信息排在集成前面：Xero 是可选的，而没有开票主体
+                            身份，一张发票都开不出去。 */}
+                        <div id="settings-billing-identity" className="mt-4 pt-4 border-t border-gray-100 space-y-2 scroll-mt-24">
+                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">开票信息</p>
+                            <BillingIdentityPanel api={v1Api} showToast={showToast}
+                                canManage={canManageOperations} />
+                        </div>
                         <div id="settings-integrations" className="mt-4 pt-4 border-t border-gray-100 space-y-2 scroll-mt-24">
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">集成</p>
                             <IntegrationsPanel api={v1Api} showToast={showToast} canManage={ownerRoles.includes(actorRole)} />
@@ -4674,7 +4686,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
 {/* ═══ DASHBOARD ══════════════════════════════════════════════ */}
 {tab==='dashboard' && (
 <div className="cms-dashboard-root anim space-y-5">
-    <h2 className="inline-flex items-center gap-1.5 text-xl md:text-2xl font-bold text-gray-800"><Icon name="dashboard" className="w-4 h-4"/>工作台</h2>
+    <h2 className="md:hidden inline-flex items-center gap-1.5 text-xl font-bold text-gray-800"><Icon name="dashboard" className="w-4 h-4"/>工作台</h2>
     {(()=>{
         const actionsByRole = {
             owner:[['pending','处理待处理',pendingCount,'clipboard'],['roster','查看今日课程',todayEffectiveCount,'calendar'],['students','搜索学员',analytics.totalStudents,'users'],['stats','查看经营统计',null,'trend']],
@@ -4979,7 +4991,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
 <div className="anim space-y-5 max-w-6xl mx-auto">
     <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-            <h2 className="inline-flex items-center gap-2 text-xl md:text-2xl font-bold text-gray-800"><Icon name="calendar" className="w-5 h-5"/>课程目录</h2>
+            <h2 className="md:hidden inline-flex items-center gap-2 text-xl font-bold text-gray-800"><Icon name="calendar" className="w-5 h-5"/>课程目录</h2>
             <p className="text-sm text-gray-500 mt-1">维护可被固定课表引用的课程条目；公开课表是否展示详情仍由 Studio Admin 控制。</p>
         </div>
         <button type="button" onClick={()=>setTab('roster')} className="min-h-[44px] px-4 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 text-sm font-bold">查看课程安排 →</button>
@@ -5016,7 +5028,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
 {/* ═══ ROSTER ═════════════════════════════════════════════════ */}
 {tab==='roster' && (
 <div className="anim space-y-4">
-    <h2 className="inline-flex items-center gap-1.5 text-xl md:text-2xl font-bold text-gray-800"><Icon name="calendar" className="w-4 h-4"/>课程安排</h2>
+    <h2 className="md:hidden inline-flex items-center gap-1.5 text-xl font-bold text-gray-800"><Icon name="calendar" className="w-4 h-4"/>课程安排</h2>
     {/* 一对一循环课收在一个可折叠区块里，而不是新开一个导航项：它和班课
         回答的是同一个问题（这周谁什么时候上课），只是重复方式不同。默认
         折叠，因为只教班课的工作室不该被一块空面板挡住每天要看的课表。 */}
@@ -5549,7 +5561,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
 {tab==='works' && (
 <div className="anim space-y-5 max-w-6xl mx-auto">
     <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div><h2 className="inline-flex items-center gap-2 text-xl md:text-2xl font-bold text-gray-800"><Icon name="image" className="w-5 h-5"/>作品管理</h2><p className="text-sm text-gray-500 mt-1">从这里按学员浏览作品；具体上传、编辑和公开授权仍在学员档案中完成。</p></div>
+        <div><h2 className="md:hidden inline-flex items-center gap-2 text-xl font-bold text-gray-800"><Icon name="image" className="w-5 h-5"/>作品管理</h2><p className="text-sm text-gray-500 mt-1">从这里按学员浏览作品；具体上传、编辑和公开授权仍在学员档案中完成。</p></div>
         <button type="button" onClick={()=>setTab('students')} className="min-h-[44px] px-4 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 text-sm font-bold">进入学员档案 →</button>
     </div>
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -5575,7 +5587,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
 {tab==='students' && (
 <div className="anim space-y-4">
     <div className="flex justify-between items-center gap-3 flex-wrap">
-        <h2 className="text-xl md:text-2xl font-bold text-gray-800">{`学员档案 (${sortedFiltered.length})`}</h2>
+        <h2 className="md:hidden text-xl font-bold text-gray-800">{`学员档案 (${sortedFiltered.length})`}</h2>
+        <p className="hidden md:block text-sm font-bold text-gray-500">{`共 ${sortedFiltered.length} 人`}</p>
         <div className="flex gap-2">
             {canManageOperations && <button onClick={exportStudentsCSV}
                 className="inline-flex items-center gap-1.5 bg-white border border-gray-300 active:bg-gray-50 text-gray-600 px-4 py-2.5 rounded-xl font-bold text-sm min-h-[44px]"><Icon name="download" className="w-4 h-4"/>CSV</button>
@@ -5721,7 +5734,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
 {/* ═══ NEW STUDENT ════════════════════════════════════════════ */}
 {tab==='new_student' && (
 <div className="anim bg-white rounded-2xl p-6 max-w-xl mx-auto shadow-sm border border-gray-100">
-    <h2 className="inline-flex items-center gap-2 text-xl md:text-2xl font-bold mb-5 text-gray-800"><Icon name="plus" className="w-5 h-5"/>新建学员档案</h2>
+    <h2 className="md:hidden inline-flex items-center gap-2 text-xl font-bold mb-5 text-gray-800"><Icon name="plus" className="w-5 h-5"/>新建学员档案</h2>
     <form onSubmit={handleAddStudent} className="space-y-4">
         {/* Photo */}
         <div>
@@ -5811,7 +5824,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
 {/* ═══ PENDING ════════════════════════════════════════════════ */}
 {tab==='pending' && (
 <div className="anim space-y-4">
-    <div className="flex items-start justify-between gap-3 flex-wrap"><div><h2 className="inline-flex items-center gap-1.5 text-xl md:text-2xl font-bold text-gray-800"><Icon name="clipboard" className="w-4 h-4"/>待处理</h2><p className="text-sm text-gray-500 mt-1">新报名和约课申请共用一个收件箱，按业务类型分开处理。</p></div><span className="rounded-full bg-amber-50 border border-amber-200 px-3 py-1 text-xs font-bold text-amber-700">{pendingCount} 项等待处理</span></div>
+    <div className="flex items-start justify-between gap-3 flex-wrap"><div><h2 className="md:hidden inline-flex items-center gap-1.5 text-xl font-bold text-gray-800"><Icon name="clipboard" className="w-4 h-4"/>待处理</h2><p className="text-sm text-gray-500 mt-1">新报名和约课申请共用一个收件箱，按业务类型分开处理。</p></div><span className="rounded-full bg-amber-50 border border-amber-200 px-3 py-1 text-xs font-bold text-amber-700">{pendingCount} 项等待处理</span></div>
     {/* v8.10.0: 一个收件箱，两个标签。计数分开写，是因为两者含义不同 ——
         「新报名」批准后建学员，「约课」批准后占座位，把后者算进前者会让
         「本月新报名」永远虚高，而那正是工作室用来判断投放效果的数字。
@@ -5988,7 +6001,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
 
 {tab==='topup' && (
 <div className="anim bg-white rounded-2xl shadow-sm border border-gray-100 p-6 max-w-2xl mx-auto">
-    <div className="flex items-start justify-between gap-3 mb-4"><div><h2 className="inline-flex items-center gap-1.5 text-xl md:text-2xl font-bold text-gray-800"><Icon name="money" className="w-4 h-4"/>充值与退款</h2><p className="text-sm text-gray-500 mt-1">先选择学员，再完成充值或退款；支付渠道只记录实际收款方式，不在 CMS 内接入在线支付。</p></div></div>
+    <div className="flex items-start justify-between gap-3 mb-4"><div><h2 className="md:hidden inline-flex items-center gap-1.5 text-xl font-bold text-gray-800"><Icon name="money" className="w-4 h-4"/>充值与退款</h2><p className="text-sm text-gray-500 mt-1">先选择学员，再完成充值或退款；支付渠道只记录实际收款方式，不在 CMS 内接入在线支付。</p></div></div>
     {canManageOperations && <details open className="mb-5 rounded-2xl border border-indigo-100 bg-indigo-50/60 overflow-hidden">
         <summary className="cursor-pointer select-none px-4 py-3 min-h-[48px] inline-flex items-center gap-2 text-sm font-bold text-indigo-900"><Icon name="card" className="w-4 h-4"/>套餐管理 <span className="text-xs font-normal text-indigo-500">{(db.packages||[]).length} 个</span></summary>
         <div className="p-4 pt-1 space-y-3">
@@ -6127,7 +6140,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
 {/* ═══ LOGS ═══════════════════════════════════════════════════ */}
 {tab==='logs' && (
 <div className="anim space-y-4">
-    <h2 className="inline-flex items-center gap-1.5 text-xl md:text-2xl font-bold text-gray-800"><Icon name="scroll" className="w-4 h-4"/>操作日志</h2>
+    <h2 className="md:hidden inline-flex items-center gap-1.5 text-xl font-bold text-gray-800"><Icon name="scroll" className="w-4 h-4"/>操作日志</h2>
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
         <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex-1">
@@ -6220,7 +6233,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
 {/* ═══ STATS ══════════════════════════════════════════════════ */}
 {tab==='stats' && (
 <div className="anim space-y-5">
-    <h2 className="text-xl md:text-2xl font-bold text-gray-800 flex items-center gap-2"><Icon name="trend" className="w-6 h-6"/> 经营统计</h2>
+    <h2 className="md:hidden text-xl font-bold text-gray-800 flex items-center gap-2"><Icon name="trend" className="w-6 h-6"/> 经营统计</h2>
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="bg-gradient-to-br from-indigo-500 to-indigo-700 p-4 rounded-2xl text-white shadow-md">
             <p className="text-indigo-100 text-xs mb-1">历史总营收</p><p className="text-2xl md:text-3xl font-bold">${analytics.totalRevenue.toFixed(0)}</p></div>

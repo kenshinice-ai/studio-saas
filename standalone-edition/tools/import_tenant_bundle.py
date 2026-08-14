@@ -102,6 +102,7 @@ IMPORT_ORDER: tuple[str, ...] = (
     "terms.json",
     "term_closures.json",
     "scheduling_policies.json",
+    "tenant_billing_identity.json",
     "teacher_availability.json",
     "lesson_series.json",
     # These two reference each other; the constraints are DEFERRABLE INITIALLY
