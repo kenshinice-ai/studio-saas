@@ -106,3 +106,55 @@ def test_panels_stringify_request_bodies():
         "These calls pass an object as `body`; fetch will send the literal "
         f"string '[object Object]'. Wrap them in JSON.stringify: {offenders}"
     )
+
+
+def test_every_pay_basis_has_a_human_name():
+    """`per_hour` reached a teacher's pay sheet, printed as `per_hour`.
+
+    The five bases are a database enum. A panel that renders the raw value is
+    not broken in any way a test notices — it renders, it is even correct — it
+    is simply English machine vocabulary on a document a person is meant to
+    read and query. Missing one basis only shows up at the studio that happens
+    to pay that way, which is the worst kind of gap to leave to chance.
+    """
+
+    from pathlib import Path
+
+    backend_root = Path(__file__).resolve().parents[1]
+    service = (backend_root / "studiosaas/services/teaching_pay.py").read_text(encoding="utf-8")
+    bases = set(re.search(r"RATE_BASES = \(([^)]*)\)", service).group(1).replace('"', "").split(", "))
+    bases = {basis.strip() for basis in bases if basis.strip()}
+
+    panel = (CMS_SRC_DIR / "panels" / "finance.jsx").read_text(encoding="utf-8")
+    labelled = set(re.findall(r"^\s{2}(\w+):\s*'", panel, re.M))
+
+    missing = sorted(bases - labelled)
+    assert not missing, (
+        f"These pay bases would print as their raw enum value on a pay sheet: {missing}"
+    )
+
+
+def test_no_panel_hardcodes_the_golden_grid_without_a_breakpoint():
+    """φ splits a wide screen. On a phone it splits 375px into 143px.
+
+    The panels each wrote `gridTemplateColumns: var(--ui-golden-columns-reverse)`
+    as an inline style, which applies at every width — so the master/detail
+    layout stayed two columns on a phone, where the secondary column is too
+    narrow for a date input. It rendered, so nothing failed; it was simply
+    unusable, and only visible by looking at the page at that width.
+
+    `.ui-golden-split` in ui-tokens.css stacks by default and applies φ from
+    768px up. One definition, so a new panel cannot forget the breakpoint.
+    """
+
+    offenders = []
+    for path in sorted((CMS_SRC_DIR / "panels").glob("*.jsx")):
+        text = _code_only(path.read_text(encoding="utf-8"))
+        if "gridTemplateColumns: 'var(--ui-golden-columns" in text:
+            offenders.append(path.name)
+
+    assert not offenders, (
+        "These panels apply the golden ratio at every width, including phone "
+        f"widths where the secondary column collapses: {offenders}. "
+        "Use className=\"ui-golden-split\"."
+    )

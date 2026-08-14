@@ -63,3 +63,25 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ── 主从分栏，只在放得下的时候才分 ────────────────────────────────
+ *
+ * φ 是给「宽屏上确实有主次」的版面用的。手机上没有两栏的余地：把 375px
+ * 按 1:1.618 切开，次栏剩 143px —— 日期框溢出、表格被截断、按钮换行成
+ * 一列。这不是审美问题，是这一版筛选栏落到账单页时当场看见的。
+ *
+ * 面板原本各自写内联 style 调用这个令牌，于是每个面板都得自己记得加断点。
+ * 收成一个类：默认单栏堆叠，md 以上才启用 φ。AGENTS.md §8 那条「不许把 φ
+ * 用在平级控件上」不受影响 —— 这里是主从，不是平级。
+ */
+.ui-golden-split {
+  display: grid;
+  gap: var(--ui-space-3, 13px);
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 768px) {
+  .ui-golden-split {
+    grid-template-columns: var(--ui-golden-columns-reverse);
+  }
+}

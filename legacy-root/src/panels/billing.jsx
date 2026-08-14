@@ -14,6 +14,7 @@
  */
 
 import { aud, fmtApiDate } from "./_shared.jsx";
+import { FilterBar, presetRange } from "./filter_bar.jsx";
 
 const { useState, useEffect, useCallback, useMemo } = React;
 
@@ -67,6 +68,9 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, account
   const [error, setError] = useState('');
   const [creating, setCreating] = useState(false);
   const [accounts, setAccounts] = useState([]);
+  const [query, setQuery] = useState('');
+  const [bucket, setBucket] = useState('all');
+  const [range, setRange] = useState(() => ({ start: '', end: '' }));
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -155,6 +159,31 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, account
       showToast(`新建发票失败：${e.message}`, 'error');
     } finally { setBusy(false); }
   };
+
+  /* 筛选在本地做：这一页已经把发票全取回来了，再为了筛选跑一趟网络，
+     只会让点一下药丸有半秒的空白。数量大到需要服务端筛时，FilterBar
+     的形状不用变，换的是这个 useMemo。 */
+  const visible = useMemo(() => {
+    const text = query.trim().toLowerCase();
+    return invoices.filter(invoice => {
+      if (bucket === 'overdue' && !isOverdue(invoice)) return false;
+      if (bucket === 'unpaid' && !(Number(invoice.balance_cents) > 0 && invoice.status !== 'draft')) return false;
+      if (bucket === 'draft' && invoice.status !== 'draft') return false;
+      if (range.start && invoice.issue_date && String(invoice.issue_date) < range.start) return false;
+      if (range.end && invoice.issue_date && String(invoice.issue_date) > range.end) return false;
+      if (!text) return true;
+      /* 前台接电话时手上只有一个号，对账时手上只有一个姓 —— 两条路都要通。 */
+      return `${invoice.account_name || ''} ${invoice.number || ''}`.toLowerCase().includes(text);
+    });
+  }, [invoices, query, bucket, range]);
+
+  const buckets = useMemo(() => [
+    { key: 'all', label: '全部', count: invoices.length },
+    { key: 'overdue', label: '逾期', count: invoices.filter(isOverdue).length },
+    { key: 'unpaid', label: '未付清',
+      count: invoices.filter(i => Number(i.balance_cents) > 0 && i.status !== 'draft').length },
+    { key: 'draft', label: '草稿', count: invoices.filter(i => i.status === 'draft').length },
+  ], [invoices]);
 
   const checkedDrafts = useMemo(
     () => draftIds.filter(id => checked.has(id)),
@@ -250,7 +279,14 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, account
 
       {/* φ 主从：详情是主体（61.8%），列表是导航（38.2%）。
           令牌来自 ui-tokens.css，不是这里编出来的比例。 */}
-      <div className="grid gap-3 items-start" style={{ gridTemplateColumns: 'var(--ui-golden-columns-reverse)' }}>
+      <div className="ui-golden-split">
+        <div className="min-w-0 space-y-2">
+          <FilterBar
+            range={range} onRange={setRange}
+            query={query} onQuery={setQuery}
+            searchPlaceholder="搜付款方或发票号"
+            buckets={buckets} bucket={bucket} onBucket={setBucket}
+            total={visible.length} totalNoun="张" />
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden min-w-0">
           <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200">
             <span className="text-xs font-bold">发票</span>
@@ -269,7 +305,10 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, account
           </div>
           {invoices.length === 0 ? (
             <p className="px-4 py-6 text-xs text-gray-500">还没有发票。周期账单会自动生成草稿，前台复核后批量发出。</p>
-          ) : invoices.map(invoice => (
+          ) : visible.length === 0 ? (
+            /* 「一张都没有」和「筛完没剩下」是两句话。第二句要告诉人怎么退出去。 */
+            <p className="px-4 py-6 text-xs text-gray-500">没有符合当前筛选的发票。清除筛选可以看到全部 {invoices.length} 张。</p>
+          ) : visible.map(invoice => (
             <button type="button" key={invoice.id} onClick={() => setSelectedId(String(invoice.id))}
                     className={`w-full text-left flex items-center gap-2 px-3 py-2 border-b border-gray-100 min-h-[44px]
                                 ${String(invoice.id) === selectedId ? 'bg-indigo-50' : 'hover:bg-gray-50'}`}>
@@ -294,6 +333,7 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, account
               </span>
             </button>
           ))}
+        </div>
         </div>
 
         <div className="grid gap-3 min-w-0">

@@ -9,8 +9,20 @@
  */
 
 import { aud, fmtApiDate, monthRange } from "./_shared.jsx";
+import { FilterBar, presetRange } from "./filter_bar.jsx";
 
 const { useState, useEffect, useCallback, useMemo } = React;
+
+/* 计费方式在库里是枚举，给人看的表里不该出现 per_hour。五种都要有名字，
+   缺一种就会在某个工作室的课酬单上露出英文。RATE_BASES 在
+   services/teaching_pay.py，两边必须同步。 */
+const RATE_BASIS_LABEL = {
+  per_lesson: '按节',
+  per_session: '按场',
+  per_hour: '按小时',
+  per_head: '按人头',
+  percent_of_tuition: '按学费比例',
+};
 
 /* 用工性质决定这笔钱能怎么进 Xero，所以它是个动作提示而不是标签。
    雇员的工资作为应付账单推进 Xero 会绕开薪资科目造成错账；没记录的
@@ -32,8 +44,9 @@ function Num({ label, value, sub, tone }) {
   );
 }
 
-function PayrollView({ api, showToast, range }) {
+function PayrollView({ api, showToast, range, onRange }) {
   const [teachers, setTeachers] = useState([]);
+  const [query, setQuery] = useState('');
   const [selected, setSelected] = useState(null);
   const [sheet, setSheet] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -71,14 +84,29 @@ function PayrollView({ api, showToast, range }) {
     );
   }
 
+  /* 老师搜索筛的是这一列，不是顶部那条 ⌘K —— 全局搜索找的是学员和功能，
+     两件事混在一起，就会有人在全局框里输老师名字然后一无所获。 */
+  const visible = teachers.filter(t =>
+    !query.trim() || String(t.full_name || '').toLowerCase().includes(query.trim().toLowerCase()));
+
   const current = teachers.find(t => String(t.teacher_user_id) === selected);
   const engagement = ENGAGEMENT[current?.engagement] || ENGAGEMENT.unset;
 
   return (
-    <div className="grid gap-3 items-start" style={{ gridTemplateColumns: 'var(--ui-golden-columns-reverse)' }}>
+    <div className="ui-golden-split">
+      <div className="min-w-0 space-y-2">
+      <FilterBar
+        range={{ start: range.from, end: range.to }}
+        onRange={next => onRange({ from: next.start, to: next.end })}
+        query={query} onQuery={setQuery}
+        searchPlaceholder="搜老师姓名"
+        total={visible.length} totalNoun="位" />
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden min-w-0">
         <div className="px-4 py-3 border-b border-gray-200 text-xs font-bold">老师</div>
-        {teachers.map(t => {
+        {visible.length === 0 && (
+          <p className="px-4 py-6 text-xs text-gray-500">没有匹配的老师。清除筛选可以看到全部 {teachers.length} 位。</p>
+        )}
+        {visible.map(t => {
           const eng = ENGAGEMENT[t.engagement] || ENGAGEMENT.unset;
           return (
             <button type="button" key={t.teacher_user_id}
@@ -96,6 +124,7 @@ function PayrollView({ api, showToast, range }) {
             </button>
           );
         })}
+      </div>
       </div>
 
       <div className="grid gap-3 min-w-0">
@@ -139,8 +168,10 @@ function PayrollView({ api, showToast, range }) {
                       <tr key={i} className={`border-t border-gray-100 ${s.counts_for_pay ? '' : 'opacity-50'}`}>
                         <td className="py-2">{fmtApiDate(s.occurred_on)}</td>
                         <td className="py-2">{s.course_name || '—'}</td>
-                        <td className="py-2 text-right tabular-nums">{s.duration_minutes} 分</td>
-                        <td className="py-2">{s.counts_for_pay ? (s.rate_basis || '未设费率') : '不计课酬'}</td>
+                        <td className="py-2 text-right tabular-nums">{s.duration_minutes} 分钟</td>
+                        <td className="py-2">{s.counts_for_pay
+                          ? (RATE_BASIS_LABEL[s.rate_basis] || s.rate_basis || '未设费率')
+                          : '不计课酬'}</td>
                         <td className="py-2 text-right tabular-nums">{aud(s.amount_cents)}</td>
                       </tr>
                     ))}
@@ -279,7 +310,8 @@ function ReportsView({ api, range }) {
 
 export function FinancePanel({ api, showToast }) {
   const [view, setView] = useState('payroll');
-  const range = useMemo(monthRange, []);
+  /* 期间从只读常量变成 state：它现在是筛选条件，不再是「本月，没得商量」。 */
+  const [range, setRange] = useState(monthRange);
 
   return (
     <div className="space-y-3">
@@ -293,11 +325,10 @@ export function FinancePanel({ api, showToast }) {
             {label}
           </button>
         ))}
-        <span className="ml-auto text-[11px] text-gray-500">{range.from} → {range.to}</span>
       </div>
 
       {view === 'payroll'
-        ? <PayrollView api={api} showToast={showToast} range={range} />
+        ? <PayrollView api={api} showToast={showToast} range={range} onRange={setRange} />
         : <ReportsView api={api} range={range} />}
     </div>
   );

@@ -3,8 +3,8 @@
   var aud = (cents) => (Number(cents || 0) / 100).toLocaleString("en-AU", { style: "currency", currency: "AUD" });
   var fmtApiDate = (value) => {
     if (!value) return "—";
-    const iso2 = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (iso2) return `${iso2[3]}/${iso2[2]}/${iso2[1]}`;
+    const iso3 = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (iso3) return `${iso3[3]}/${iso3[2]}/${iso3[1]}`;
     const parsed = new Date(value);
     if (Number.isNaN(parsed.getTime())) return String(value);
     const pad = (n) => String(n).padStart(2, "0");
@@ -12,12 +12,105 @@
   };
   var monthRange = () => {
     const now = /* @__PURE__ */ new Date();
-    const iso2 = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    return { from: iso2(new Date(now.getFullYear(), now.getMonth(), 1)), to: iso2(now) };
+    const iso3 = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    return { from: iso3(new Date(now.getFullYear(), now.getMonth(), 1)), to: iso3(now) };
   };
 
+  // legacy-root/src/panels/filter_bar.jsx
+  var { useMemo } = React;
+  var RANGE_PRESETS = [
+    { key: "this_month", label: "本月" },
+    { key: "last_month", label: "上月" },
+    { key: "last_30", label: "近 30 天" }
+  ];
+  var iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  function presetRange(key, today = /* @__PURE__ */ new Date()) {
+    const y = today.getFullYear(), m = today.getMonth();
+    if (key === "this_month") return { start: iso(new Date(y, m, 1)), end: iso(new Date(y, m + 1, 0)) };
+    if (key === "last_month") return { start: iso(new Date(y, m - 1, 1)), end: iso(new Date(y, m, 0)) };
+    if (key === "last_30") {
+      const from = new Date(today);
+      from.setDate(from.getDate() - 29);
+      return { start: iso(from), end: iso(today) };
+    }
+    return { start: "", end: "" };
+  }
+  function FilterBar({
+    range,
+    onRange,
+    searchPlaceholder = "搜索…",
+    query,
+    onQuery,
+    buckets,
+    bucket,
+    onBucket,
+    total,
+    totalNoun = "条"
+  }) {
+    const dirty = useMemo(() => Boolean(
+      query && query.trim() || buckets && bucket && bucket !== buckets[0]?.key || range && (range.start || range.end)
+    ), [query, bucket, buckets, range]);
+    function clearAll() {
+      if (onQuery) onQuery("");
+      if (onBucket && buckets?.length) onBucket(buckets[0].key);
+      if (onRange) onRange(presetRange("this_month"));
+    }
+    return /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl p-3 space-y-2" }, range && /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap items-end gap-2" }, /* @__PURE__ */ React.createElement("label", { className: "text-[11px] text-gray-500" }, "起", /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        type: "date",
+        value: range.start || "",
+        onChange: (e) => onRange({ ...range, start: e.target.value }),
+        className: "block mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm"
+      }
+    )), /* @__PURE__ */ React.createElement("label", { className: "text-[11px] text-gray-500" }, "止", /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        type: "date",
+        value: range.end || "",
+        onChange: (e) => onRange({ ...range, end: e.target.value }),
+        className: "block mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm"
+      }
+    )), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-1.5" }, RANGE_PRESETS.map((preset) => /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        key: preset.key,
+        type: "button",
+        onClick: () => onRange(presetRange(preset.key)),
+        className: "min-h-[44px] px-3 rounded-xl border border-gray-200 bg-white text-xs font-bold text-gray-700"
+      },
+      preset.label
+    )))), query !== null && query !== void 0 && /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        value: query,
+        onChange: (e) => onQuery(e.target.value),
+        placeholder: searchPlaceholder,
+        className: "w-full min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm"
+      }
+    ), buckets && buckets.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-1.5" }, buckets.map((item) => /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        key: item.key,
+        type: "button",
+        onClick: () => onBucket(item.key),
+        className: `min-h-[44px] px-3 rounded-xl text-xs font-bold border ${bucket === item.key ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-gray-700 border-gray-200"}`
+      },
+      item.label,
+      typeof item.count === "number" ? ` ${item.count}` : ""
+    ))), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 text-[11px] text-gray-500" }, /* @__PURE__ */ React.createElement("span", null, "共 ", total, " ", totalNoun), dirty && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: clearAll,
+        className: "min-h-[44px] px-2 font-bold text-indigo-600"
+      },
+      "清除筛选"
+    )));
+  }
+
   // legacy-root/src/panels/billing.jsx
-  var { useState, useEffect, useCallback, useMemo } = React;
+  var { useState, useEffect, useCallback, useMemo: useMemo2 } = React;
   var STATUS_LABEL = {
     draft: "草稿",
     issued: "已开具",
@@ -52,11 +145,14 @@
     const [error, setError] = useState("");
     const [creating, setCreating] = useState(false);
     const [accounts, setAccounts] = useState([]);
+    const [query, setQuery] = useState("");
+    const [bucket, setBucket] = useState("all");
+    const [range, setRange] = useState(() => ({ start: "", end: "" }));
     const load = useCallback(async () => {
       setLoading(true);
       try {
-        const query = accountId ? `?accountId=${encodeURIComponent(accountId)}` : "";
-        const data = await api(`/billing/invoices${query}`);
+        const query2 = accountId ? `?accountId=${encodeURIComponent(accountId)}` : "";
+        const data = await api(`/billing/invoices${query2}`);
         setInvoices(data.invoices || []);
         const payers = await api("/billing/accounts").catch(() => ({ accounts: [] }));
         setAccounts(payers.accounts || []);
@@ -85,7 +181,7 @@
         cancelled = true;
       };
     }, [selectedId, api]);
-    const summary = useMemo(() => {
+    const summary = useMemo2(() => {
       const issued = invoices.filter((i) => i.status !== "draft" && i.status !== "void");
       const drafts = invoices.filter((i) => i.status === "draft");
       const overdue = invoices.filter(isOverdue);
@@ -100,7 +196,7 @@
         collectedPercent: billed > 0 ? Math.round(paid / billed * 100) : null
       };
     }, [invoices]);
-    const draftIds = useMemo(
+    const draftIds = useMemo2(
       () => invoices.filter((i) => i.status === "draft").map((i) => String(i.id)),
       [invoices]
     );
@@ -138,7 +234,29 @@
         setBusy(false);
       }
     };
-    const checkedDrafts = useMemo(
+    const visible = useMemo2(() => {
+      const text = query.trim().toLowerCase();
+      return invoices.filter((invoice) => {
+        if (bucket === "overdue" && !isOverdue(invoice)) return false;
+        if (bucket === "unpaid" && !(Number(invoice.balance_cents) > 0 && invoice.status !== "draft")) return false;
+        if (bucket === "draft" && invoice.status !== "draft") return false;
+        if (range.start && invoice.issue_date && String(invoice.issue_date) < range.start) return false;
+        if (range.end && invoice.issue_date && String(invoice.issue_date) > range.end) return false;
+        if (!text) return true;
+        return `${invoice.account_name || ""} ${invoice.number || ""}`.toLowerCase().includes(text);
+      });
+    }, [invoices, query, bucket, range]);
+    const buckets = useMemo2(() => [
+      { key: "all", label: "全部", count: invoices.length },
+      { key: "overdue", label: "逾期", count: invoices.filter(isOverdue).length },
+      {
+        key: "unpaid",
+        label: "未付清",
+        count: invoices.filter((i) => Number(i.balance_cents) > 0 && i.status !== "draft").length
+      },
+      { key: "draft", label: "草稿", count: invoices.filter((i) => i.status === "draft").length }
+    ], [invoices]);
+    const checkedDrafts = useMemo2(
       () => draftIds.filter((id) => checked.has(id)),
       [draftIds, checked]
     );
@@ -231,7 +349,21 @@
         tone: summary.overdueCents > 0 ? "alert" : void 0,
         sub: `${summary.overdueAccounts} 个家庭`
       }
-    ), /* @__PURE__ */ React.createElement(Kpi, { label: "待发草稿", value: String(summary.drafts), sub: summary.drafts ? "勾选后可批量发出" : "没有待发的" })), /* @__PURE__ */ React.createElement("div", { className: "grid gap-3 items-start", style: { gridTemplateColumns: "var(--ui-golden-columns-reverse)" } }, /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl overflow-hidden min-w-0" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 px-4 py-3 border-b border-gray-200" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs font-bold" }, "发票"), canIssue && checkedDrafts.length === 0 && /* @__PURE__ */ React.createElement(
+    ), /* @__PURE__ */ React.createElement(Kpi, { label: "待发草稿", value: String(summary.drafts), sub: summary.drafts ? "勾选后可批量发出" : "没有待发的" })), /* @__PURE__ */ React.createElement("div", { className: "ui-golden-split" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0 space-y-2" }, /* @__PURE__ */ React.createElement(
+      FilterBar,
+      {
+        range,
+        onRange: setRange,
+        query,
+        onQuery: setQuery,
+        searchPlaceholder: "搜付款方或发票号",
+        buckets,
+        bucket,
+        onBucket: setBucket,
+        total: visible.length,
+        totalNoun: "张"
+      }
+    ), /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl overflow-hidden min-w-0" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 px-4 py-3 border-b border-gray-200" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs font-bold" }, "发票"), canIssue && checkedDrafts.length === 0 && /* @__PURE__ */ React.createElement(
       "button",
       {
         type: "button",
@@ -250,7 +382,10 @@
       "批量发出 (",
       checkedDrafts.length,
       ")"
-    )), invoices.length === 0 ? /* @__PURE__ */ React.createElement("p", { className: "px-4 py-6 text-xs text-gray-500" }, "还没有发票。周期账单会自动生成草稿，前台复核后批量发出。") : invoices.map((invoice) => /* @__PURE__ */ React.createElement(
+    )), invoices.length === 0 ? /* @__PURE__ */ React.createElement("p", { className: "px-4 py-6 text-xs text-gray-500" }, "还没有发票。周期账单会自动生成草稿，前台复核后批量发出。") : visible.length === 0 ? (
+      /* 「一张都没有」和「筛完没剩下」是两句话。第二句要告诉人怎么退出去。 */
+      /* @__PURE__ */ React.createElement("p", { className: "px-4 py-6 text-xs text-gray-500" }, "没有符合当前筛选的发票。清除筛选可以看到全部 ", invoices.length, " 张。")
+    ) : visible.map((invoice) => /* @__PURE__ */ React.createElement(
       "button",
       {
         type: "button",
@@ -271,7 +406,7 @@
       ),
       /* @__PURE__ */ React.createElement("span", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("span", { className: "block text-xs font-bold truncate" }, invoice.account_name), /* @__PURE__ */ React.createElement("span", { className: "block text-[11px] text-gray-500 truncate" }, invoice.number || "草稿 · 未编号", invoice.due_date ? ` · 到期 ${fmtApiDate(invoice.due_date)}` : "")),
       /* @__PURE__ */ React.createElement("span", { className: "ml-auto flex items-center gap-2" }, /* @__PURE__ */ React.createElement(StatusChip, { invoice }), /* @__PURE__ */ React.createElement("span", { className: `text-xs font-bold tabular-nums ${isOverdue(invoice) ? "text-red-600" : ""}` }, aud(invoice.balance_cents ?? invoice.total_cents)))
-    ))), /* @__PURE__ */ React.createElement("div", { className: "grid gap-3 min-w-0" }, !detail ? /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl p-6 text-xs text-gray-500" }, "选择左边的一张发票查看明细。") : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 px-4 py-3 border-b border-gray-200" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs font-bold" }, detail.invoice.number || "草稿", " · ", detail.invoice.account_name), /* @__PURE__ */ React.createElement("span", { className: "ml-auto" }, /* @__PURE__ */ React.createElement(StatusChip, { invoice: detail.invoice }))), /* @__PURE__ */ React.createElement("div", { className: "p-4 overflow-x-auto" }, /* @__PURE__ */ React.createElement("table", { className: "w-full text-xs" }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", { className: "text-[10px] uppercase tracking-wide text-gray-500" }, /* @__PURE__ */ React.createElement("th", { className: "text-left py-2" }, "项目"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "数量"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "单价"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "税"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "小计"))), /* @__PURE__ */ React.createElement("tbody", null, (detail.lines || []).map((line) => /* @__PURE__ */ React.createElement("tr", { key: line.id, className: "border-t border-gray-100" }, /* @__PURE__ */ React.createElement("td", { className: "py-2" }, line.description), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, line.quantity), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, aud(line.unit_price_cents)), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, aud(line.tax_cents)), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, aud(line.total_cents)))), /* @__PURE__ */ React.createElement("tr", { className: "border-t border-gray-200 font-bold" }, /* @__PURE__ */ React.createElement("td", { className: "py-2", colSpan: 4 }, "应付"), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, aud(detail.invoice.total_cents))), Number(detail.invoice.amount_paid_cents) > 0 && /* @__PURE__ */ React.createElement("tr", { className: "text-green-700" }, /* @__PURE__ */ React.createElement("td", { className: "py-1", colSpan: 4 }, "已付"), /* @__PURE__ */ React.createElement("td", { className: "py-1 text-right tabular-nums" }, "−", aud(detail.invoice.amount_paid_cents))), /* @__PURE__ */ React.createElement("tr", { className: "font-bold" }, /* @__PURE__ */ React.createElement("td", { className: "py-1", colSpan: 4 }, "余额"), /* @__PURE__ */ React.createElement("td", { className: "py-1 text-right tabular-nums" }, aud(detail.invoice.balance_cents))))), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 items-center mt-3" }, detail.invoice.status === "draft" && canIssue && /* @__PURE__ */ React.createElement(
+    )))), /* @__PURE__ */ React.createElement("div", { className: "grid gap-3 min-w-0" }, !detail ? /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl p-6 text-xs text-gray-500" }, "选择左边的一张发票查看明细。") : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 px-4 py-3 border-b border-gray-200" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs font-bold" }, detail.invoice.number || "草稿", " · ", detail.invoice.account_name), /* @__PURE__ */ React.createElement("span", { className: "ml-auto" }, /* @__PURE__ */ React.createElement(StatusChip, { invoice: detail.invoice }))), /* @__PURE__ */ React.createElement("div", { className: "p-4 overflow-x-auto" }, /* @__PURE__ */ React.createElement("table", { className: "w-full text-xs" }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", { className: "text-[10px] uppercase tracking-wide text-gray-500" }, /* @__PURE__ */ React.createElement("th", { className: "text-left py-2" }, "项目"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "数量"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "单价"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "税"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "小计"))), /* @__PURE__ */ React.createElement("tbody", null, (detail.lines || []).map((line) => /* @__PURE__ */ React.createElement("tr", { key: line.id, className: "border-t border-gray-100" }, /* @__PURE__ */ React.createElement("td", { className: "py-2" }, line.description), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, line.quantity), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, aud(line.unit_price_cents)), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, aud(line.tax_cents)), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, aud(line.total_cents)))), /* @__PURE__ */ React.createElement("tr", { className: "border-t border-gray-200 font-bold" }, /* @__PURE__ */ React.createElement("td", { className: "py-2", colSpan: 4 }, "应付"), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, aud(detail.invoice.total_cents))), Number(detail.invoice.amount_paid_cents) > 0 && /* @__PURE__ */ React.createElement("tr", { className: "text-green-700" }, /* @__PURE__ */ React.createElement("td", { className: "py-1", colSpan: 4 }, "已付"), /* @__PURE__ */ React.createElement("td", { className: "py-1 text-right tabular-nums" }, "−", aud(detail.invoice.amount_paid_cents))), /* @__PURE__ */ React.createElement("tr", { className: "font-bold" }, /* @__PURE__ */ React.createElement("td", { className: "py-1", colSpan: 4 }, "余额"), /* @__PURE__ */ React.createElement("td", { className: "py-1 text-right tabular-nums" }, aud(detail.invoice.balance_cents))))), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 items-center mt-3" }, detail.invoice.status === "draft" && canIssue && /* @__PURE__ */ React.createElement(
       "button",
       {
         type: "button",
@@ -400,7 +535,14 @@
   }
 
   // legacy-root/src/panels/finance.jsx
-  var { useState: useState2, useEffect: useEffect2, useCallback: useCallback2, useMemo: useMemo2 } = React;
+  var { useState: useState2, useEffect: useEffect2, useCallback: useCallback2, useMemo: useMemo3 } = React;
+  var RATE_BASIS_LABEL = {
+    per_lesson: "按节",
+    per_session: "按场",
+    per_hour: "按小时",
+    per_head: "按人头",
+    percent_of_tuition: "按学费比例"
+  };
   var ENGAGEMENT = {
     contractor: { label: "承包", cls: "bg-gray-100 text-gray-600 border-gray-200", canPush: true },
     employee: { label: "仅清单", cls: "bg-blue-50 text-blue-700 border-blue-200", canPush: false },
@@ -410,8 +552,9 @@
     const cls = tone === "warn" ? "text-amber-700" : tone === "muted" ? "text-gray-400" : "text-gray-900";
     return /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-[11px] font-bold uppercase tracking-wide text-gray-500" }, label), /* @__PURE__ */ React.createElement("p", { className: `text-xl font-bold tabular-nums ${cls}` }, value), sub && /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-500" }, sub));
   }
-  function PayrollView({ api, showToast, range }) {
+  function PayrollView({ api, showToast, range, onRange }) {
     const [teachers, setTeachers] = useState2([]);
+    const [query, setQuery] = useState2("");
     const [selected, setSelected] = useState2(null);
     const [sheet, setSheet] = useState2(null);
     const [loading, setLoading] = useState2(true);
@@ -453,9 +596,21 @@
     if (!teachers.length) {
       return /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 p-4" }, "本期还没有归集到课时。课时来自点名记录，点完名这里就会有数。");
     }
+    const visible = teachers.filter((t) => !query.trim() || String(t.full_name || "").toLowerCase().includes(query.trim().toLowerCase()));
     const current = teachers.find((t) => String(t.teacher_user_id) === selected);
     const engagement = ENGAGEMENT[current?.engagement] || ENGAGEMENT.unset;
-    return /* @__PURE__ */ React.createElement("div", { className: "grid gap-3 items-start", style: { gridTemplateColumns: "var(--ui-golden-columns-reverse)" } }, /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl overflow-hidden min-w-0" }, /* @__PURE__ */ React.createElement("div", { className: "px-4 py-3 border-b border-gray-200 text-xs font-bold" }, "老师"), teachers.map((t) => {
+    return /* @__PURE__ */ React.createElement("div", { className: "ui-golden-split" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0 space-y-2" }, /* @__PURE__ */ React.createElement(
+      FilterBar,
+      {
+        range: { start: range.from, end: range.to },
+        onRange: (next) => onRange({ from: next.start, to: next.end }),
+        query,
+        onQuery: setQuery,
+        searchPlaceholder: "搜老师姓名",
+        total: visible.length,
+        totalNoun: "位"
+      }
+    ), /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl overflow-hidden min-w-0" }, /* @__PURE__ */ React.createElement("div", { className: "px-4 py-3 border-b border-gray-200 text-xs font-bold" }, "老师"), visible.length === 0 && /* @__PURE__ */ React.createElement("p", { className: "px-4 py-6 text-xs text-gray-500" }, "没有匹配的老师。清除筛选可以看到全部 ", teachers.length, " 位。"), visible.map((t) => {
       const eng = ENGAGEMENT[t.engagement] || ENGAGEMENT.unset;
       return /* @__PURE__ */ React.createElement(
         "button",
@@ -469,10 +624,10 @@
         /* @__PURE__ */ React.createElement("span", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("span", { className: "block text-xs font-bold truncate" }, t.full_name), /* @__PURE__ */ React.createElement("span", { className: "block text-[11px] text-gray-500" }, t.sessions, " 节 · ", Math.round((t.paid_minutes || 0) / 60), " 小时")),
         /* @__PURE__ */ React.createElement("span", { className: "ml-auto flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: `text-[10px] font-bold px-1.5 py-0.5 rounded border whitespace-nowrap ${eng.cls}` }, eng.label), /* @__PURE__ */ React.createElement("span", { className: "text-xs font-bold tabular-nums" }, aud(t.cost_cents)))
       );
-    })), /* @__PURE__ */ React.createElement("div", { className: "grid gap-3 min-w-0" }, !sheet ? /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl p-6 text-xs text-gray-500" }, "选择一位老师，查看本期课时明细。") : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 md:grid-cols-4 gap-3" }, /* @__PURE__ */ React.createElement(Num, { label: "实际上了", value: sheet.summary.actual_sessions, sub: "节" }), /* @__PURE__ */ React.createElement(Num, { label: "计入课酬", value: sheet.summary.paid_sessions, sub: "节" }), /* @__PURE__ */ React.createElement(Num, { label: "不计课酬", value: sheet.summary.unpaid_sessions, sub: "节", tone: sheet.summary.unpaid_sessions ? "warn" : "muted" }), /* @__PURE__ */ React.createElement(Num, { label: "本期应付", value: aud(sheet.summary.amount_cents), sub: `${Math.round((sheet.summary.paid_minutes || 0) / 60)} 小时` })), /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 px-4 py-3 border-b border-gray-200" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs font-bold" }, current?.full_name, " · ", range.from, " → ", range.to), /* @__PURE__ */ React.createElement("span", { className: `ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded border whitespace-nowrap ${engagement.cls}` }, engagement.label)), /* @__PURE__ */ React.createElement("div", { className: "p-4 overflow-x-auto" }, /* @__PURE__ */ React.createElement("table", { className: "w-full text-xs" }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", { className: "text-[10px] uppercase tracking-wide text-gray-500" }, /* @__PURE__ */ React.createElement("th", { className: "text-left py-2" }, "日期"), /* @__PURE__ */ React.createElement("th", { className: "text-left py-2" }, "课程"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "时长"), /* @__PURE__ */ React.createElement("th", { className: "text-left py-2" }, "费率基准"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "金额"))), /* @__PURE__ */ React.createElement("tbody", null, (sheet.sessions || []).map((s, i) => (
+    }))), /* @__PURE__ */ React.createElement("div", { className: "grid gap-3 min-w-0" }, !sheet ? /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl p-6 text-xs text-gray-500" }, "选择一位老师，查看本期课时明细。") : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 md:grid-cols-4 gap-3" }, /* @__PURE__ */ React.createElement(Num, { label: "实际上了", value: sheet.summary.actual_sessions, sub: "节" }), /* @__PURE__ */ React.createElement(Num, { label: "计入课酬", value: sheet.summary.paid_sessions, sub: "节" }), /* @__PURE__ */ React.createElement(Num, { label: "不计课酬", value: sheet.summary.unpaid_sessions, sub: "节", tone: sheet.summary.unpaid_sessions ? "warn" : "muted" }), /* @__PURE__ */ React.createElement(Num, { label: "本期应付", value: aud(sheet.summary.amount_cents), sub: `${Math.round((sheet.summary.paid_minutes || 0) / 60)} 小时` })), /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 px-4 py-3 border-b border-gray-200" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs font-bold" }, current?.full_name, " · ", range.from, " → ", range.to), /* @__PURE__ */ React.createElement("span", { className: `ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded border whitespace-nowrap ${engagement.cls}` }, engagement.label)), /* @__PURE__ */ React.createElement("div", { className: "p-4 overflow-x-auto" }, /* @__PURE__ */ React.createElement("table", { className: "w-full text-xs" }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", { className: "text-[10px] uppercase tracking-wide text-gray-500" }, /* @__PURE__ */ React.createElement("th", { className: "text-left py-2" }, "日期"), /* @__PURE__ */ React.createElement("th", { className: "text-left py-2" }, "课程"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "时长"), /* @__PURE__ */ React.createElement("th", { className: "text-left py-2" }, "费率基准"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "金额"))), /* @__PURE__ */ React.createElement("tbody", null, (sheet.sessions || []).map((s, i) => (
       /* 请假但按政策计费 → warning 底；工作室取消不计 → 降透明度。
          同一张表里，钱的两种「不正常」看起来必须不一样。 */
-      /* @__PURE__ */ React.createElement("tr", { key: i, className: `border-t border-gray-100 ${s.counts_for_pay ? "" : "opacity-50"}` }, /* @__PURE__ */ React.createElement("td", { className: "py-2" }, fmtApiDate(s.occurred_on)), /* @__PURE__ */ React.createElement("td", { className: "py-2" }, s.course_name || "—"), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, s.duration_minutes, " 分"), /* @__PURE__ */ React.createElement("td", { className: "py-2" }, s.counts_for_pay ? s.rate_basis || "未设费率" : "不计课酬"), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, aud(s.amount_cents)))
+      /* @__PURE__ */ React.createElement("tr", { key: i, className: `border-t border-gray-100 ${s.counts_for_pay ? "" : "opacity-50"}` }, /* @__PURE__ */ React.createElement("td", { className: "py-2" }, fmtApiDate(s.occurred_on)), /* @__PURE__ */ React.createElement("td", { className: "py-2" }, s.course_name || "—"), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, s.duration_minutes, " 分钟"), /* @__PURE__ */ React.createElement("td", { className: "py-2" }, s.counts_for_pay ? RATE_BASIS_LABEL[s.rate_basis] || s.rate_basis || "未设费率" : "不计课酬"), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, aud(s.amount_cents)))
     )), /* @__PURE__ */ React.createElement("tr", { className: "border-t border-gray-200 font-bold" }, /* @__PURE__ */ React.createElement("td", { className: "py-2", colSpan: 4 }, "本期应付"), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, aud(sheet.summary.amount_cents))))), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 items-center mt-3" }, engagement.canPush ? /* @__PURE__ */ React.createElement(
       "button",
       {
@@ -542,7 +697,7 @@
   }
   function FinancePanel({ api, showToast }) {
     const [view, setView] = useState2("payroll");
-    const range = useMemo2(monthRange, []);
+    const [range, setRange] = useState2(monthRange);
     return /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 items-center" }, [["payroll", "课酬"], ["reports", "报表"]].map(([key, label]) => /* @__PURE__ */ React.createElement(
       "button",
       {
@@ -554,7 +709,7 @@
                               ${view === key ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-gray-600 border-gray-300"}`
       },
       label
-    )), /* @__PURE__ */ React.createElement("span", { className: "ml-auto text-[11px] text-gray-500" }, range.from, " → ", range.to)), view === "payroll" ? /* @__PURE__ */ React.createElement(PayrollView, { api, showToast, range }) : /* @__PURE__ */ React.createElement(ReportsView, { api, range }));
+    ))), view === "payroll" ? /* @__PURE__ */ React.createElement(PayrollView, { api, showToast, range, onRange: setRange }) : /* @__PURE__ */ React.createElement(ReportsView, { api, range }));
   }
 
   // legacy-root/src/panels/integrations.jsx
@@ -609,7 +764,7 @@
     const blockers = state.blockers || [];
     const has = (key) => !blockers.includes(key);
     return /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 flex-wrap" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold" }, "Xero 直连"), /* @__PURE__ */ React.createElement("span", { className: `text-[10px] font-bold px-1.5 py-0.5 rounded border whitespace-nowrap
-          ${state.pushEnabled ? "bg-green-50 text-green-700 border-green-200" : "bg-gray-100 text-gray-600 border-gray-200"}` }, state.pushEnabled ? "推送已开启" : "推送未开启"), s.last_pushed_at && /* @__PURE__ */ React.createElement("span", { className: "text-[11px] text-gray-500" }, "上次推送 ", fmtApiDate(s.last_pushed_at))), /* @__PURE__ */ React.createElement("div", { className: "grid gap-3 items-start", style: { gridTemplateColumns: "var(--ui-golden-columns-reverse)" } }, /* @__PURE__ */ React.createElement("div", { className: "grid gap-2 min-w-0" }, /* @__PURE__ */ React.createElement(Step, { n: 1, done: state.entitled, title: "加购权利" }, state.entitled ? "已开通" : "由平台方授予，租户侧只读"), /* @__PURE__ */ React.createElement(Step, { n: 2, done: state.connected, active: state.entitled && !state.connected, title: "连接 Xero" }, state.connected ? "已连接" : "需要 owner 授权自己的 Xero 组织"), /* @__PURE__ */ React.createElement(Step, { n: 3, done: has("mapping_not_confirmed"), active: state.connected && !has("mapping_not_confirmed"), title: "科目与税率映射" }, state.missingMappings?.length ? `还差：${state.missingMappings.join("、")}` : has("mapping_not_confirmed") ? "会计已确认" : "填完后由会计确认"), /* @__PURE__ */ React.createElement(Step, { n: 4, done: has("demo_run_not_completed"), title: "测试组织试跑" }, has("demo_run_not_completed") ? "已跑通一个完整周期" : "先在 Xero 测试组织跑通，再连生产账套"), /* @__PURE__ */ React.createElement(Step, { n: 5, done: has("single_entry_not_answered"), title: "单一入口" }, has("single_entry_not_answered") ? s.single_entry_decision === "clearing_account" ? `走清算账户 ${s.clearing_account_code}` : "已关闭其他通道的同步" : "还没有回答")), /* @__PURE__ */ React.createElement("div", { className: "grid gap-3 min-w-0" }, !has("single_entry_not_answered") && state.connected && /* @__PURE__ */ React.createElement("div", { className: "rounded-xl border border-red-200 bg-red-50 p-4" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-red-700 mb-1" }, "先回答这个"), /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-700 mb-2" }, "你们的收款渠道（比如 Square）是不是", /* @__PURE__ */ React.createElement("strong", null, "已经在往同一个 Xero 组织同步"), "？ 如果是，我们再推一遍，Xero 里就会出现两套记录。"), canManage && /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2" }, /* @__PURE__ */ React.createElement(
+          ${state.pushEnabled ? "bg-green-50 text-green-700 border-green-200" : "bg-gray-100 text-gray-600 border-gray-200"}` }, state.pushEnabled ? "推送已开启" : "推送未开启"), s.last_pushed_at && /* @__PURE__ */ React.createElement("span", { className: "text-[11px] text-gray-500" }, "上次推送 ", fmtApiDate(s.last_pushed_at))), /* @__PURE__ */ React.createElement("div", { className: "ui-golden-split" }, /* @__PURE__ */ React.createElement("div", { className: "grid gap-2 min-w-0" }, /* @__PURE__ */ React.createElement(Step, { n: 1, done: state.entitled, title: "加购权利" }, state.entitled ? "已开通" : "由平台方授予，租户侧只读"), /* @__PURE__ */ React.createElement(Step, { n: 2, done: state.connected, active: state.entitled && !state.connected, title: "连接 Xero" }, state.connected ? "已连接" : "需要 owner 授权自己的 Xero 组织"), /* @__PURE__ */ React.createElement(Step, { n: 3, done: has("mapping_not_confirmed"), active: state.connected && !has("mapping_not_confirmed"), title: "科目与税率映射" }, state.missingMappings?.length ? `还差：${state.missingMappings.join("、")}` : has("mapping_not_confirmed") ? "会计已确认" : "填完后由会计确认"), /* @__PURE__ */ React.createElement(Step, { n: 4, done: has("demo_run_not_completed"), title: "测试组织试跑" }, has("demo_run_not_completed") ? "已跑通一个完整周期" : "先在 Xero 测试组织跑通，再连生产账套"), /* @__PURE__ */ React.createElement(Step, { n: 5, done: has("single_entry_not_answered"), title: "单一入口" }, has("single_entry_not_answered") ? s.single_entry_decision === "clearing_account" ? `走清算账户 ${s.clearing_account_code}` : "已关闭其他通道的同步" : "还没有回答")), /* @__PURE__ */ React.createElement("div", { className: "grid gap-3 min-w-0" }, !has("single_entry_not_answered") && state.connected && /* @__PURE__ */ React.createElement("div", { className: "rounded-xl border border-red-200 bg-red-50 p-4" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-red-700 mb-1" }, "先回答这个"), /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-700 mb-2" }, "你们的收款渠道（比如 Square）是不是", /* @__PURE__ */ React.createElement("strong", null, "已经在往同一个 Xero 组织同步"), "？ 如果是，我们再推一遍，Xero 里就会出现两套记录。"), canManage && /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2" }, /* @__PURE__ */ React.createElement(
       "button",
       {
         type: "button",
@@ -786,8 +941,8 @@
     const now = /* @__PURE__ */ new Date();
     const end = new Date(now.getFullYear(), now.getMonth(), 0);
     const start = new Date(end.getFullYear(), end.getMonth(), 1);
-    const iso2 = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    return { start: iso2(start), end: iso2(end) };
+    const iso3 = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    return { start: iso3(start), end: iso3(end) };
   }
   function StudentProgressReports({ api, studentId, studentName, canWrite, canPublish, showToast }) {
     const [reports, setReports] = useState6(null);
@@ -949,14 +1104,14 @@
   }
 
   // legacy-root/src/panels/private_lessons.jsx
-  var { useState: useState7, useEffect: useEffect7, useCallback: useCallback7, useMemo: useMemo3 } = React;
+  var { useState: useState7, useEffect: useEffect7, useCallback: useCallback7, useMemo: useMemo4 } = React;
   var WEEKDAYS = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
   var STATUS_LABEL2 = { active: "进行中", paused: "暂停", ended: "已结束" };
   var WHO = [
     { value: "student", label: "学员请假" },
     { value: "studio", label: "工作室停课" }
   ];
-  var iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  var iso2 = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   function PrivateLessonsPanel({ api, showToast, canWrite, students }) {
     const [view, setView] = useState7("upcoming");
     const [series, setSeries] = useState7([]);
@@ -968,11 +1123,11 @@
     const [busy, setBusy] = useState7(false);
     const [cancelling, setCancelling] = useState7(null);
     const [creating, setCreating] = useState7(false);
-    const range = useMemo3(() => {
+    const range = useMemo4(() => {
       const start = /* @__PURE__ */ new Date();
       const end = /* @__PURE__ */ new Date();
       end.setDate(end.getDate() + 13);
-      return { start: iso(start), end: iso(end) };
+      return { start: iso2(start), end: iso2(end) };
     }, []);
     const load = useCallback7(async () => {
       setLoading(true);
@@ -1298,7 +1453,7 @@
       weekday: "1",
       startTime: "16:00",
       durationMinutes: "30",
-      startsOn: iso(/* @__PURE__ */ new Date()),
+      startsOn: iso2(/* @__PURE__ */ new Date()),
       room: "",
       note: ""
     });
@@ -1431,7 +1586,7 @@
   }
 
   // legacy-root/src/cms-app.jsx
-  var { useState: useState8, useEffect: useEffect8, useMemo: useMemo4, useRef, useCallback: useCallback8 } = React;
+  var { useState: useState8, useEffect: useEffect8, useMemo: useMemo5, useRef, useCallback: useCallback8 } = React;
   var tenantSlug = window.STUDIOSAAS_TENANT_SLUG || new URLSearchParams(location.search).get("tenant") || (location.pathname.match(/^\/([^/]+)(?:\/cms)?\/?$/) || [])[1] || "";
   var nowAU = () => (/* @__PURE__ */ new Date()).toLocaleString("en-AU", {
     timeZone: "Australia/Melbourne",
@@ -1444,8 +1599,8 @@
     hour12: false
   });
   var todayISO = () => (/* @__PURE__ */ new Date()).toLocaleDateString("en-CA");
-  var shiftDate = (iso2, delta) => {
-    const d = /* @__PURE__ */ new Date(`${iso2}T12:00:00`);
+  var shiftDate = (iso3, delta) => {
+    const d = /* @__PURE__ */ new Date(`${iso3}T12:00:00`);
     d.setDate(d.getDate() + delta);
     return d.toLocaleDateString("en-CA");
   };
@@ -1454,9 +1609,9 @@
     const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
     return m ? `${m[3]}/${m[2]}/${m[1]}` : String(s).split(" ")[0];
   };
-  var daysSince = (iso2) => {
-    if (!iso2) return 9999;
-    const d = new Date(iso2);
+  var daysSince = (iso3) => {
+    if (!iso3) return 9999;
+    const d = new Date(iso3);
     return isNaN(d) ? 9999 : Math.floor((Date.now() - d) / 864e5);
   };
   var fmtDT = (s) => {
@@ -1956,7 +2111,7 @@
     useEffect8(() => {
       if (!value) setQ("");
     }, [value]);
-    const filtered = useMemo4(
+    const filtered = useMemo5(
       () => q ? students.filter((s) => s.name.toLowerCase().includes(q.toLowerCase())) : students,
       [students, q]
     );
@@ -2472,7 +2627,7 @@
   function App() {
     const [db, setDb] = useState8({ students: [], logs: [], rosters: {}, pending: [] });
     const [auditEvents, setAuditEvents] = useState8([]);
-    const initialCmsRoute = useMemo4(() => readCmsRoute(), []);
+    const initialCmsRoute = useMemo5(() => readCmsRoute(), []);
     const [tab, setTabState] = useState8(initialCmsRoute.tab);
     const [pendingTab, setPendingTabState] = useState8(initialCmsRoute.pendingTab);
     const [settingsSection, setSettingsSectionState] = useState8(initialCmsRoute.settingsSection);
@@ -3208,7 +3363,7 @@
       a.download = `Studio_${todayISO()}.json`;
       a.click();
     };
-    const activityMap = useMemo4(() => {
+    const activityMap = useMemo5(() => {
       const map = {};
       const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1e3;
       const idsByName = /* @__PURE__ */ new Map();
@@ -3239,7 +3394,7 @@
         return { icon: "warning", label: "流失风险", cls: "bg-orange-100 text-orange-600" };
       return null;
     };
-    const upcomingBirthdays = useMemo4(() => {
+    const upcomingBirthdays = useMemo5(() => {
       const now = /* @__PURE__ */ new Date();
       const out = [];
       db.students.forEach((s) => {
@@ -3261,7 +3416,7 @@
       setStudentPage(1);
       setSelectedStudentIds([]);
     }, [srch, sortBy, filterBy]);
-    const sortedFiltered = useMemo4(() => {
+    const sortedFiltered = useMemo5(() => {
       let list = [...db.students];
       if (filterBy === "archived") {
         list = list.filter((s) => s.archived);
@@ -3307,11 +3462,11 @@
       return list;
     }, [db.students, srch, sortBy, filterBy, activityMap, inactiveDays, renewTh]);
     const studentPageCount = Math.max(1, Math.ceil(sortedFiltered.length / STUDENTS_PER_PAGE));
-    const pageStudents = useMemo4(() => {
+    const pageStudents = useMemo5(() => {
       const page = Math.min(studentPage, studentPageCount);
       return sortedFiltered.slice((page - 1) * STUDENTS_PER_PAGE, page * STUDENTS_PER_PAGE);
     }, [sortedFiltered, studentPage, studentPageCount]);
-    const selectedStudents = useMemo4(
+    const selectedStudents = useMemo5(
       () => sortedFiltered.filter((s) => selectedStudentIds.includes(s.id)),
       [sortedFiltered, selectedStudentIds]
     );
@@ -3320,11 +3475,11 @@
       const ids = pageStudents.map((s) => s.id);
       return checked ? Array.from(/* @__PURE__ */ new Set([...prev, ...ids])) : prev.filter((id) => !ids.includes(id));
     });
-    const sortedAZ = useMemo4(
+    const sortedAZ = useMemo5(
       () => [...db.students].filter((s) => !s.archived).sort((a, b) => a.name.localeCompare(b.name, "zh-CN")),
       [db.students]
     );
-    const portfolioEntries = useMemo4(
+    const portfolioEntries = useMemo5(
       () => db.students.filter((student) => !student.archived).flatMap((student) => (student.portfolio || []).map((item) => ({ student, item }))).sort((a, b) => String(b.item.date || "").localeCompare(String(a.item.date || ""))),
       [db.students]
     );
@@ -3336,35 +3491,35 @@
         setEditP(false);
       }
     }, [tab, routeRecordId, db.students]);
-    const scheduledForDate = useMemo4(() => {
+    const scheduledForDate = useMemo5(() => {
       if (!TENANT_SLUG || !schedules.length) return [];
       const wd = (/* @__PURE__ */ new Date(`${rDate}T12:00:00`)).getDay();
       return schedules.filter((sc) => sc.weekday === wd);
     }, [schedules, rDate]);
-    const scheduledIdSet = useMemo4(
+    const scheduledIdSet = useMemo5(
       () => new Set(scheduledForDate.flatMap((sc) => sc.students.map((st) => st.id))),
       [scheduledForDate]
     );
-    const dayIds = useMemo4(() => {
+    const dayIds = useMemo5(() => {
       const manual = db.rosters[rDate] || [];
       return [.../* @__PURE__ */ new Set([...scheduledIdSet, ...manual])];
     }, [db.rosters, rDate, scheduledIdSet]);
-    const todayEffectiveCount = useMemo4(() => {
+    const todayEffectiveCount = useMemo5(() => {
       const manual = db.rosters[todayISO()] || [];
       const wd = (/* @__PURE__ */ new Date()).getDay();
       const sched = schedules.filter((sc) => sc.weekday === wd).flatMap((sc) => sc.students.map((st) => st.id));
       return (/* @__PURE__ */ new Set([...sched, ...manual])).size;
     }, [db.rosters, schedules]);
-    const todayCheckedCount = useMemo4(() => {
+    const todayCheckedCount = useMemo5(() => {
       const d = todayISO().split("-");
       const prefix = `${d[2]}/${d[1]}/${d[0]}`;
       return new Set(db.logs.filter((l) => l.action === "上课签到" && String(l.date).startsWith(prefix)).map((l) => l.studentId || l.studentName)).size;
     }, [db.logs]);
-    const availRoster = useMemo4(
+    const availRoster = useMemo5(
       () => sortedAZ.filter((s) => !dayIds.includes(s.id)),
       [sortedAZ, dayIds]
     );
-    const analytics = useMemo4(() => {
+    const analytics = useMemo5(() => {
       const totalStudents = db.students.filter((s) => !s.archived).length;
       const totalBalance = db.students.reduce((a, b) => a + (parseInt(b.balance, 10) || 0), 0);
       const totalCheckins = db.logs.filter((l) => l.action === "上课签到").length;
@@ -3414,7 +3569,7 @@
       }
       return { totalStudents, totalBalance, totalCheckins, totalRevenue, lowBalance, inactive, todayRoster, monthlyReports, yearlyReports, availYears, chart12, recentGroups };
     }, [db, inactiveDays]);
-    const statsData = useMemo4(() => {
+    const statsData = useMemo5(() => {
       let logs = sStu ? db.logs.filter((l) => {
         const s = db.students.find((x) => x.id === sStu);
         return s && (l.studentId === s.id || !l.studentId && l.studentName === s.name);
@@ -3448,7 +3603,7 @@
       const rows = Object.keys(byP).sort().reverse().map((k) => ({ key: k, ...byP[k] }));
       return { rows, totalRev: rows.reduce((s, r) => s + r.revenue, 0), totalCI: rows.reduce((s, r) => s + r.checkins, 0) };
     }, [db, sPeriod, sYear, sFrom, sTo, sStu]);
-    const studentStats = useMemo4(() => {
+    const studentStats = useMemo5(() => {
       if (!sStu2) return null;
       const s = db.students.find((x) => x.id === sStu2);
       if (!s) return null;
@@ -3471,7 +3626,7 @@
         logs
       };
     }, [db, sStu2]);
-    const gResults = useMemo4(() => {
+    const gResults = useMemo5(() => {
       if (!gQ.trim()) return [];
       const q = gQ.trim().toLowerCase();
       return db.students.filter((s) => !s.archived && (s.name.toLowerCase().includes(q) || (s.firstName || "").toLowerCase().includes(q) || (s.lastName || "").toLowerCase().includes(q) || (s.mobile || "").includes(q) || (s.wechat || "").toLowerCase().includes(q))).slice(0, 10);
@@ -3480,7 +3635,7 @@
       const m = String(ds).match(/^(\d{2})\/(\d{2})\/(\d{4})/);
       return m ? `${m[3]}-${m[2]}-${m[1]}` : "";
     };
-    const auditAsLogs = useMemo4(() => {
+    const auditAsLogs = useMemo5(() => {
       if (!TENANT_SLUG || !auditEvents.length) return [];
       const nameById = new Map(db.students.map((s) => [String(s.id), s.name]));
       return auditEvents.reduce((rows, ev) => {
@@ -3519,31 +3674,31 @@
       const t = /* @__PURE__ */ new Date(`${m[3]}-${m[2]}-${m[1]}T${m[4] || "00"}:${m[5] || "00"}:${m[6] || "00"}`);
       return isNaN(t.getTime()) ? 0 : t.getTime();
     };
-    const allLogs = useMemo4(() => auditAsLogs.length ? [...db.logs, ...auditAsLogs].sort((a, b) => logTimestamp(b) - logTimestamp(a)) : db.logs, [db.logs, auditAsLogs]);
-    const filteredLogs = useMemo4(() => {
+    const allLogs = useMemo5(() => auditAsLogs.length ? [...db.logs, ...auditAsLogs].sort((a, b) => logTimestamp(b) - logTimestamp(a)) : db.logs, [db.logs, auditAsLogs]);
+    const filteredLogs = useMemo5(() => {
       const stuName = lStu ? (db.students.find((x) => x.id === lStu) || {}).name : null;
       return allLogs.filter((l) => {
         if (stuName && l.studentName !== stuName) return false;
         if (lSrch && !l.studentName.toLowerCase().includes(lSrch.toLowerCase())) return false;
         if (lAct && l.action !== lAct) return false;
         if (lDateFrom || lDateTo) {
-          const iso2 = logDateISO(l.date);
-          if (lDateFrom && iso2 < lDateFrom) return false;
-          if (lDateTo && iso2 > lDateTo) return false;
+          const iso3 = logDateISO(l.date);
+          if (lDateFrom && iso3 < lDateFrom) return false;
+          if (lDateTo && iso3 > lDateTo) return false;
         }
         return true;
       });
     }, [allLogs, db.students, lStu, lSrch, lAct, lDateFrom, lDateTo]);
     const logPageCount = Math.max(1, Math.ceil(filteredLogs.length / LPP));
     const pagedLogs = filteredLogs.slice((lPage - 1) * LPP, lPage * LPP);
-    const logActions = useMemo4(() => [...new Set(allLogs.map((l) => l.action))].sort(), [allLogs]);
+    const logActions = useMemo5(() => [...new Set(allLogs.map((l) => l.action))].sort(), [allLogs]);
     useEffect8(() => {
       setLPage(1);
     }, [lStu, lSrch, lAct, lDateFrom, lDateTo]);
     useEffect8(() => {
       if (lPage > logPageCount) setLPage(logPageCount);
     }, [logPageCount]);
-    const bizReport = useMemo4(() => {
+    const bizReport = useMemo5(() => {
       const now = /* @__PURE__ */ new Date();
       const months = Array.from({ length: 6 }, (_, i) => {
         const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
@@ -3609,7 +3764,7 @@
       a.download = `Studio_经营月报_${todayISO()}.csv`;
       a.click();
     };
-    const payBreakdown = useMemo4(() => {
+    const payBreakdown = useMemo5(() => {
       const map = {};
       db.logs.filter((l) => l.action === "充值购课").forEach((l) => {
         const pm = l.payMethod || "未记录";
@@ -3704,7 +3859,7 @@
         }
       }, { confirmText: "确认撤销" });
     };
-    const rosterDone = useMemo4(() => {
+    const rosterDone = useMemo5(() => {
       const m = String(rDate).match(/^(\d{4})-(\d{2})-(\d{2})$/);
       const prefix = m ? `${m[3]}/${m[2]}/${m[1]}` : "__none__";
       const done = /* @__PURE__ */ new Set();
@@ -3826,7 +3981,7 @@
         }
       }, { danger: true, confirmText: "确认删除" });
     };
-    const teachableMembers = useMemo4(
+    const teachableMembers = useMemo5(
       () => team.filter((m) => m.status === "active" && ["owner", "manager", "teacher"].includes(m.role)),
       [team]
     );
@@ -6594,19 +6749,19 @@ document.getElementById('copybtn').addEventListener('click', function(){
         return [0, 1, 2, 3, 4, 5, 6].map((i) => {
           const d = new Date(monday);
           d.setDate(monday.getDate() + i);
-          const iso2 = d.toLocaleDateString("en-CA");
-          const manual = db.rosters[iso2] || [];
+          const iso3 = d.toLocaleDateString("en-CA");
+          const manual = db.rosters[iso3] || [];
           const sched = schedules.filter((sc) => sc.weekday === d.getDay()).flatMap((sc) => sc.students.map((st) => st.id));
           const n = (/* @__PURE__ */ new Set([...sched, ...manual])).size;
-          const isSel = iso2 === rDate, isToday = iso2 === todayISO();
+          const isSel = iso3 === rDate, isToday = iso3 === todayISO();
           return /* @__PURE__ */ React.createElement(
             "button",
             {
-              key: iso2,
+              key: iso3,
               type: "button",
-              onClick: () => setRDate(iso2),
+              onClick: () => setRDate(iso3),
               "aria-current": isSel ? "date" : void 0,
-              "aria-label": `${WEEKDAYS2[d.getDay()]} ${fmtDate(iso2)}，${n} 人`,
+              "aria-label": `${WEEKDAYS2[d.getDay()]} ${fmtDate(iso3)}，${n} 人`,
               className: `cms-roster-week-day ${isSel ? "is-selected" : ""} ${isToday ? "is-today" : ""}`
             },
             /* @__PURE__ */ React.createElement("p", { className: "text-[10px] opacity-70" }, WEEKDAYS2[d.getDay()], isToday ? "·今" : ""),

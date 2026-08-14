@@ -114,7 +114,7 @@ export function IntegrationsPanel({ api, showToast, canManage }) {
       </div>
 
       {/* φ：左边是进度（次要），右边是当前要做的事（主体）。 */}
-      <div className="grid gap-3 items-start" style={{ gridTemplateColumns: 'var(--ui-golden-columns-reverse)' }}>
+      <div className="ui-golden-split">
         <div className="grid gap-2 min-w-0">
           <Step n={1} done={state.entitled} title="加购权利">
             {state.entitled ? '已开通' : '由平台方授予，租户侧只读'}

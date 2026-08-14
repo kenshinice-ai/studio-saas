@@ -1,0 +1,655 @@
+<title>三处界面的筛选与容器</title>
+<style>
+  /* Fibonacci spacing and the φ scale, same tokens the product ships.
+     Colours are the warm-paper palette the showcase tenant renders with. */
+  :root {
+    --paper: #f2ebe5;
+    --surface: #ffffff;
+    --ink: #2c2622;
+    --muted: #8b7d73;
+    --line: #e4d9d0;
+    --accent: #8a4b34;
+    --accent-soft: #e8d5cb;
+    --accent-tint: #f7efe9;
+    --good: #4a7c59;
+    --warn: #b07d3c;
+    --bad: #a8453a;
+    --bad-wash: #f8e4e1;
+    --bad-ink: #a8453a;
+    --good-wash: #e2ede5;
+    --good-ink: #4a7c59;
+    --s1: 5px; --s2: 8px; --s3: 13px; --s4: 21px; --s5: 34px; --s6: 55px;
+    --r: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #1c1815; --surface: #262019; --ink: #efe6dd; --muted: #a89a8e;
+      --line: #3a322b; --accent: #d08a68; --accent-soft: #4a3428; --accent-tint: #33281f;
+      --bad-wash: #4a2a26; --bad-ink: #e6a89f;
+      --good-wash: #2a3a2e; --good-ink: #a3c7ad;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #1c1815; --surface: #262019; --ink: #efe6dd; --muted: #a89a8e;
+    --line: #3a322b; --accent: #d08a68; --accent-soft: #4a3428; --accent-tint: #33281f;
+    --bad-wash: #4a2a26; --bad-ink: #e6a89f;
+    --good-wash: #2a3a2e; --good-ink: #a3c7ad;
+  }
+
+  body {
+    background: var(--paper); color: var(--ink); margin: 0;
+    font: 15px/1.6 -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
+    padding: var(--s5) var(--s4) var(--s6);
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+  h1 { font-size: 30px; margin: 0 0 var(--s2); letter-spacing: -0.01em; }
+  .lede { color: var(--muted); max-width: 62ch; margin: 0 0 var(--s5); }
+  h2 {
+    font-size: 21px; margin: var(--s6) 0 var(--s2);
+    padding-bottom: var(--s2); border-bottom: 1px solid var(--line);
+  }
+  h3 { font-size: 16px; margin: var(--s4) 0 var(--s2); }
+  p { max-width: 68ch; }
+  .note { color: var(--muted); font-size: 13.5px; max-width: 68ch; }
+
+  /* ── the fake browser frame ── */
+  .shot {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--r); overflow: hidden; margin: var(--s3) 0 var(--s4);
+    box-shadow: 0 1px 3px rgba(0,0,0,.05);
+  }
+  .shot-label {
+    display: flex; align-items: center; gap: var(--s2);
+    padding: var(--s2) var(--s3); background: var(--accent-tint);
+    border-bottom: 1px solid var(--line); font-size: 12px; font-weight: 700;
+  }
+  .tag { padding: 1px 7px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+  .tag-bad { background: var(--bad-wash); color: var(--bad-ink); }
+  .tag-good { background: var(--good-wash); color: var(--good-ink); }
+
+  .app { display: grid; grid-template-columns: 156px 1fr; min-height: 320px; }
+  .app.no-rail { grid-template-columns: 1fr; }
+  .rail {
+    background: var(--surface); border-right: 1px solid var(--line);
+    padding: var(--s3) var(--s2); font-size: 12px;
+  }
+  .rail-group { color: var(--muted); font-size: 10px; font-weight: 700;
+                letter-spacing: .08em; margin: var(--s3) var(--s2) var(--s1); }
+  .rail-item {
+    display: flex; align-items: center; gap: 6px;
+    padding: 7px var(--s2); border-radius: 9px; margin-bottom: 1px; color: var(--ink);
+  }
+  .rail-item.on { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+  .rail-item.dim { color: var(--muted); }
+  .rail-foot { margin-top: var(--s4); padding-top: var(--s3); border-top: 1px solid var(--line); }
+
+  .main { padding: 0; background: var(--paper); }
+  .topbar {
+    display: flex; align-items: center; gap: var(--s3);
+    padding: var(--s3) var(--s4); border-bottom: 1px solid var(--line);
+    background: var(--surface);
+  }
+  .eyebrow { font-size: 9.5px; font-weight: 700; letter-spacing: .16em;
+             color: var(--accent); text-transform: uppercase; }
+  .pagename { font-size: 17px; font-weight: 700; }
+  .search {
+    flex: 1; max-width: 340px; padding: 7px var(--s3);
+    border: 1px solid var(--line); border-radius: 10px;
+    color: var(--muted); font-size: 12px; background: var(--paper);
+  }
+  .body { padding: var(--s4); }
+
+  /* ── tabs ── */
+  .tabs { display: flex; gap: 3px; flex-wrap: wrap; margin-bottom: var(--s4);
+          border-bottom: 1px solid var(--line); }
+  .tab {
+    padding: 9px var(--s3); font-size: 12.5px; font-weight: 700; color: var(--muted);
+    border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap;
+  }
+  .tab.on { color: var(--accent); border-bottom-color: var(--accent); }
+  .pills { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: var(--s4); }
+  .pill {
+    padding: 7px var(--s3); font-size: 12px; font-weight: 700; border-radius: 10px;
+    background: var(--surface); border: 1px solid var(--line); color: var(--muted);
+    white-space: nowrap;
+  }
+  .pill.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .card { background: var(--surface); border: 1px solid var(--line);
+          border-radius: 11px; padding: var(--s3); margin-bottom: var(--s2); }
+  .card-title { font-weight: 700; font-size: 13.5px; }
+  .card-sub { color: var(--muted); font-size: 11.5px; margin-top: 2px; }
+  .field { background: var(--paper); border: 1px solid var(--line);
+           border-radius: 9px; padding: 8px var(--s3); color: var(--muted);
+           font-size: 12px; margin-top: 6px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); }
+  .ghost { height: 9px; background: var(--line); border-radius: 4px; opacity: .55; }
+  .ghost.w70 { width: 70%; } .ghost.w45 { width: 45%; } .ghost.w85 { width: 85%; }
+  .stack > * + * { margin-top: 7px; }
+
+  /* annotations */
+  .callout {
+    display: flex; gap: var(--s2); align-items: flex-start;
+    border-left: 3px solid var(--accent); background: var(--accent-tint);
+    padding: var(--s3); border-radius: 0 10px 10px 0; margin: var(--s3) 0;
+    font-size: 13.5px; max-width: 72ch;
+  }
+  .callout.bad { border-left-color: var(--bad); }
+  .num {
+    flex: none; width: 19px; height: 19px; border-radius: 50%;
+    background: var(--accent); color: #fff; font-size: 11px; font-weight: 700;
+    display: grid; place-items: center; margin-top: 1px;
+  }
+  .callout.bad .num { background: var(--bad); }
+
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; margin: var(--s3) 0; }
+  th, td { text-align: left; padding: var(--s2) var(--s3);
+           border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 11.5px; letter-spacing: .04em; color: var(--muted); text-transform: uppercase; }
+  code { font-family: ui-monospace, "SF Mono", monospace; font-size: 12.5px;
+         background: var(--accent-tint); padding: 1px 5px; border-radius: 5px; }
+  .scroll-x { overflow-x: auto; }
+  .two-up { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s4); align-items: start; }
+  @media (max-width: 860px) { .two-up, .grid2 { grid-template-columns: 1fr; } }
+  .phone { max-width: 258px; }
+  .phone .app { grid-template-columns: 1fr; min-height: 300px; }
+</style>
+
+<div class="wrap">
+
+<h1>三处界面：一个容器，两个筛选栏</h1>
+<p class="lede">
+  等你决定。第一件是系统设置那块覆盖层——它需要「返回工作台」，而别的页面都不需要，
+  因为它们从来没把你带走过。第二、三件是课酬与发票两页：期间写死、名字不能搜，
+  而列表左下方那一大片空白，正好是筛选条件该待的地方。
+</p>
+
+<h2>一、现在是什么样，以及为什么怪</h2>
+
+<div class="shot">
+  <div class="shot-label"><span class="tag tag-bad">现状</span> 系统设置 · 覆盖层</div>
+  <div class="app no-rail">
+    <div class="main">
+      <div class="body" style="background:var(--paper)">
+        <div style="font-size:12px;color:var(--accent);font-weight:700;margin-bottom:var(--s2)">
+          ‹ 返回工作台 &nbsp;·&nbsp; ⚙ 系统设置 <span style="float:right;color:var(--muted)">×</span>
+        </div>
+        <div class="pills">
+          <span class="pill">账号与安全</span>
+          <span class="pill">团队与权限</span>
+          <span class="pill on">运营默认</span>
+          <span class="pill">开票信息</span>
+          <span class="pill">集成</span>
+          <span class="pill">数据维护</span>
+          <span class="pill">工作区链接</span>
+        </div>
+        <div class="card">
+          <div class="card-title">团队与权限 <span style="color:var(--bad);font-weight:400;font-size:11.5px">← 高亮在「运营默认」，显示的却是这块</span></div>
+          <div class="card-sub">Owner 管理团队；Manager 负责日常运营⋯</div>
+          <div class="stack" style="margin-top:var(--s2)">
+            <div class="ghost w85"></div><div class="ghost w70"></div><div class="ghost w45"></div>
+          </div>
+        </div>
+        <div class="card"><div class="card-title">运营默认</div>
+          <div class="stack" style="margin-top:var(--s2)"><div class="ghost w70"></div><div class="ghost w45"></div></div></div>
+        <div class="card"><div class="card-title">开票信息</div>
+          <div class="stack" style="margin-top:var(--s2)"><div class="ghost w85"></div></div></div>
+        <div class="card" style="opacity:.5"><div class="card-title">⋯ 另外 5 个分区，同时都在这一页上</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="callout bad">
+  <span class="num">1</span>
+  <div><strong>那排药丸不是标签页。</strong>代码里写了 <code>role="tablist"</code>，但点击执行的是
+  <code>scrollIntoView</code>——9 个分区始终同时渲染，药丸只负责滚动和高亮。所以高亮和你正在看的
+  内容会对不上（截图里就是）。读屏软件被告知「这里有一组标签页」，然后找不到任何面板。</div>
+</div>
+
+<div class="callout bad">
+  <span class="num">2</span>
+  <div><strong>它是 <code>fixed inset-0</code> 覆盖层</strong>，把侧栏一起盖掉了。「返回工作台」和右上角的
+  「×」都是为了修补这件事——两个按钮做同一件事，而这件事本来不必发生。</div>
+</div>
+
+<div class="callout bad">
+  <span class="num">3</span>
+  <div><strong>浏览器后退键失灵，链接分享不了。</strong>分区不在 URL 里，所以没法把「开票信息」这一页
+  发给同事。其他每个页面都能。</div>
+</div>
+
+<h2>二、推荐方案：和其他页面一模一样</h2>
+
+<div class="shot">
+  <div class="shot-label"><span class="tag tag-good">推荐</span> 系统设置 · 作为导航目的地，分区是真标签页</div>
+  <div class="app">
+    <div class="rail">
+      <div class="rail-group">今日</div>
+      <div class="rail-item dim">▤ 工作台</div>
+      <div class="rail-item dim">▤ 待处理</div>
+      <div class="rail-group">教学运营</div>
+      <div class="rail-item dim">▤ 课程安排</div>
+      <div class="rail-item dim">▤ 课程目录</div>
+      <div class="rail-item dim">▤ 学员档案</div>
+      <div class="rail-item dim">▤ 作品管理</div>
+      <div class="rail-group">经营</div>
+      <div class="rail-item dim">▤ 账单发票</div>
+      <div class="rail-item dim">▤ 课酬与报表</div>
+      <div class="rail-foot">
+        <div class="rail-item on">⚙ 系统设置</div>
+        <div class="rail-item dim">⇥ 退出登录</div>
+      </div>
+    </div>
+    <div class="main">
+      <div class="topbar">
+        <div>
+          <div class="eyebrow">Studio CMS</div>
+          <div class="pagename">系统设置</div>
+        </div>
+        <div class="search">搜索学员、手机号或功能</div>
+      </div>
+      <div class="body">
+        <div class="tabs">
+          <span class="tab">账号与安全</span>
+          <span class="tab">团队与权限</span>
+          <span class="tab">运营默认</span>
+          <span class="tab on">开票信息</span>
+          <span class="tab">集成</span>
+          <span class="tab">数据维护</span>
+          <span class="tab">工作区链接</span>
+        </div>
+        <div class="card">
+          <div class="card-title">开票信息</div>
+          <div class="card-sub">这些内容会印在每一张发票上。没有它们，开具会被拒绝。</div>
+        </div>
+        <div class="grid2">
+          <div class="card"><div class="card-sub">法定主体名称</div><div class="field">Paradise Production Pty Ltd</div></div>
+          <div class="card"><div class="card-sub">ABN</div><div class="field">53 004 085 616</div></div>
+          <div class="card"><div class="card-sub">经营名称</div><div class="field">Let's Paint Studio</div></div>
+          <div class="card"><div class="card-sub">已注册 GST</div><div class="field">✔ 是</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="callout">
+  <span class="num">1</span>
+  <div><strong>侧栏还在，位置也没变</strong>——设置依旧在最下方，远离每天要用的东西。变的是它现在
+  <em>高亮</em>，而不是把自己盖在别人身上。没有「返回工作台」，因为你从没离开过。</div>
+</div>
+
+<div class="callout">
+  <span class="num">2</span>
+  <div><strong>一次只渲染一个分区。</strong>底部下划线式标签，和这个产品里已有的三处一致：
+  学员档案的 5 个标签、待处理的 3 个、课酬与报表的 2 个。不是新样式，是复用已经在用的那个。</div>
+</div>
+
+<div class="callout">
+  <span class="num">3</span>
+  <div><strong>分区进 URL</strong>：<code>?view=settings&amp;section=billing-identity</code>。后退键管用，
+  链接能发给会计，而「填开票信息」这件事本来就常常是发给别人做的。</div>
+</div>
+
+<h2>三、手机上</h2>
+
+<div class="two-up">
+  <div>
+    <div class="shot phone">
+      <div class="shot-label"><span class="tag tag-good">推荐</span> 手机</div>
+      <div class="app">
+        <div class="main">
+          <div class="topbar" style="padding:var(--s2) var(--s3)">
+            <div class="pagename" style="font-size:14px">Let's Paint CMS</div>
+          </div>
+          <div class="body" style="padding:var(--s3)">
+            <div style="font-weight:700;font-size:16px;margin-bottom:var(--s3)">⚙ 系统设置</div>
+            <div class="tabs scroll-x" style="flex-wrap:nowrap">
+              <span class="tab">账号</span>
+              <span class="tab">团队</span>
+              <span class="tab on">开票</span>
+              <span class="tab">集成</span>
+              <span class="tab" style="opacity:.4">⋯</span>
+            </div>
+            <div class="card"><div class="card-sub">法定主体名称</div><div class="field">Paradise Production…</div></div>
+            <div class="card"><div class="card-sub">ABN</div><div class="field">53 004 085 616</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div>
+    <h3>手机上留下的那个标题</h3>
+    <p class="note">
+      桌面的常驻顶栏在手机上是隐藏的（<code>hidden md:flex</code>），所以手机顶部那行
+      「⚙ 系统设置」要保留——这正是 v10.1.1 处理其他 10 个重复标题时用的同一条规则：
+      桌面归顶栏、手机归正文，各一份，不重不漏。
+    </p>
+    <p class="note">
+      标签横向滚动，和学员档案的 5 个标签现在的行为一样。7 个中文标签在手机上放不下，
+      这是已知的、已经在用的处理方式，不需要为设置单独发明一种。
+    </p>
+  </div>
+</div>
+
+<h2>四、要不要用左侧竖排子导航？</h2>
+
+<div class="two-up">
+  <div>
+    <div class="shot">
+      <div class="shot-label"><span class="tag tag-bad">不推荐</span> 竖排子导航</div>
+      <div class="app">
+        <div class="rail" style="opacity:.45">
+          <div class="rail-group">今日</div>
+          <div class="rail-item dim">▤ 工作台</div>
+          <div class="rail-item dim">▤ 待处理</div>
+          <div class="rail-item dim">▤ 课程安排</div>
+          <div class="rail-foot"><div class="rail-item on">⚙ 系统设置</div></div>
+        </div>
+        <div class="main">
+          <div class="topbar" style="padding:var(--s2) var(--s3)">
+            <div><div class="eyebrow">Studio CMS</div><div class="pagename" style="font-size:14px">系统设置</div></div>
+          </div>
+          <div class="body" style="display:grid;grid-template-columns:118px 1fr;gap:var(--s3);padding:var(--s3)">
+            <div style="font-size:11.5px">
+              <div class="rail-item dim">账号与安全</div>
+              <div class="rail-item dim">团队与权限</div>
+              <div class="rail-item on">开票信息</div>
+              <div class="rail-item dim">集成</div>
+              <div class="rail-item dim">数据维护</div>
+            </div>
+            <div>
+              <div class="card"><div class="card-sub">法定主体名称</div><div class="field">Paradise Production…</div></div>
+              <div class="card"><div class="card-sub">ABN</div><div class="field">53 004 085 616</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div>
+    <h3>它更能装，但会多出第二条竖栏</h3>
+    <p class="note">
+      分区多到十几个时，竖排确实比横排好。现在是 7 个，而且短期内不会翻倍——
+      开票信息是这一年里加的第一个新分区。
+    </p>
+    <p class="note">
+      代价是实打实的：屏幕上同时出现两条竖向导航，眼睛要先分辨「哪一条是主的」。
+      而横排标签在这个产品里已经出现三次，操作的人不用再学一遍。
+    </p>
+    <p class="note">
+      <strong>建议：先用横排。</strong>如果分区涨到 10 个以上，那时再换竖排，
+      换的成本只是一个容器——因为那时标签已经是真标签，面板已经是真面板。
+    </p>
+  </div>
+</div>
+
+<h2>五、这一改会动到什么</h2>
+
+<div class="scroll-x">
+<table>
+  <tr><th>改动</th><th>为什么</th><th>影响面</th></tr>
+  <tr>
+    <td>设置不再是 <code>fixed inset-0</code>，改为正常内容区渲染</td>
+    <td>侧栏、顶栏、页面标题全部自动继承，「返回工作台」和「×」一起消失</td>
+    <td>一处容器，约 10 行</td>
+  </tr>
+  <tr>
+    <td>药丸 → 真标签页（<code>role="tab"</code> + <code>role="tabpanel"</code>）</td>
+    <td>现在的 <code>role="tablist"</code> 是不成立的声明。一次只渲染一个分区，长页面也变短</td>
+    <td>9 个分区各包一层，无逻辑改动</td>
+  </tr>
+  <tr>
+    <td><code>section</code> 进 URL</td>
+    <td>后退键、可分享链接。路由里已经有 <code>section</code> 参数，只是没被当作标签用</td>
+    <td>路由序列化一行</td>
+  </tr>
+  <tr>
+    <td>手机顶栏的齿轮图标改为跳转而非弹窗</td>
+    <td>同一个东西两种行为，是现在这套怪异的来源</td>
+    <td>一个回调</td>
+  </tr>
+  <tr>
+    <td>把「设置」并入 ⌘K 全局搜索</td>
+    <td>它成了目的地就该被搜到，和其他页面一样</td>
+    <td>搜索索引一条</td>
+  </tr>
+</table>
+</div>
+
+<p class="note">
+  数据、权限、后端一律不动。这是一次纯粹的容器与可达性整改，
+  和 v10.1.1 把「侧栏名」与「页面标题」合并成一个来源是同一类工作：
+  少一处自己发明的例外，就少一处会漂的东西。
+</p>
+
+
+<h2>六、课酬与报表：期间要能选，老师要能搜</h2>
+
+<div class="shot">
+  <div class="shot-label"><span class="tag tag-bad">现状</span> 课酬与报表</div>
+  <div class="app no-rail">
+    <div class="main"><div class="body">
+      <div style="display:flex;align-items:center;gap:var(--s2);margin-bottom:var(--s3)">
+        <span class="pill on">课酬</span><span class="pill">报表</span>
+        <span style="margin-left:auto;color:var(--muted);font-size:11.5px">2026-08-01 → 2026-08-14</span>
+      </div>
+      <div style="display:grid;grid-template-columns:38.2% 1fr;gap:var(--s3)">
+        <div>
+          <div class="card" style="margin-bottom:0;border-radius:11px 11px 0 0"><div class="card-sub">老师</div></div>
+          <div class="card" style="border-radius:0 0 11px 11px;background:var(--accent-soft)">
+            <div class="card-title">Marika Lund</div><div class="card-sub">6 节 · 9 小时 · $765.00</div>
+          </div>
+          <div style="height:96px;display:grid;place-items:center;color:var(--bad);font-size:11.5px;text-align:center">
+            ↑ 一位老师就占满了<br>下面全是空的
+          </div>
+        </div>
+        <div>
+          <div class="grid2"><div class="card"><div class="card-sub">实际上了</div><div class="card-title">6 节</div></div>
+          <div class="card"><div class="card-sub">本期应付</div><div class="card-title">$765.00</div></div></div>
+          <div class="card"><div class="card-sub">13/08/2026 · 90 分<span style="color:var(--bad)">per_hour</span> · $127.50</div>
+          <div class="card-sub" style="color:var(--bad)">↑ 后端枚举直接漏到界面，中间还少一个空格</div></div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+</div>
+
+<div class="shot">
+  <div class="shot-label"><span class="tag tag-good">推荐</span> 课酬与报表 · 筛选栏落在空着的那一列</div>
+  <div class="app no-rail">
+    <div class="main"><div class="body">
+      <div class="tabs"><span class="tab on">课酬</span><span class="tab">报表</span></div>
+      <div style="display:grid;grid-template-columns:38.2% 1fr;gap:var(--s3)">
+        <div>
+          <div class="card">
+            <div class="card-sub">期间</div>
+            <div style="display:flex;gap:6px;margin-top:6px">
+              <span class="field" style="flex:1;margin:0">2026-08-01</span>
+              <span class="field" style="flex:1;margin:0">2026-08-14</span>
+            </div>
+            <div style="display:flex;gap:4px;margin-top:7px;flex-wrap:wrap">
+              <span class="pill on" style="font-size:11px;padding:5px 9px">本月</span>
+              <span class="pill" style="font-size:11px;padding:5px 9px">上月</span>
+              <span class="pill" style="font-size:11px;padding:5px 9px">本学期</span>
+            </div>
+          </div>
+          <div class="card"><div class="field" style="margin:0">🔍 搜老师姓名</div></div>
+          <div class="card" style="background:var(--accent-soft)">
+            <div class="card-title">Marika Lund</div><div class="card-sub">6 节 · 9 小时 · $765.00</div>
+          </div>
+          <div class="card" style="opacity:.6"><div class="card-title">Janet M</div><div class="card-sub">2 节 · 3 小时 · $255.00</div></div>
+        </div>
+        <div>
+          <div class="grid2"><div class="card"><div class="card-sub">实际上了</div><div class="card-title">6 节</div></div>
+          <div class="card"><div class="card-sub">本期应付</div><div class="card-title">$765.00</div></div></div>
+          <div class="card"><div class="card-sub">13/08/2026 · 90 分钟 · <strong>按小时</strong> · $127.50</div></div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+</div>
+
+<div class="callout">
+  <span class="num">1</span>
+  <div><strong>期间从只读文字变成两个日期框加三个常用档。</strong>「本月／上月／本学期」是发工资时
+  真正会用的三个，学期档读的是 <code>terms</code> 表——那张表已经在了，一直没人用它。</div>
+</div>
+
+<div class="callout">
+  <span class="num">2</span>
+  <div><strong>老师搜索放在列表上方，不是页面顶部。</strong>顶部那条 ⌘K 是全局搜索，搜的是学员和功能；
+  这里要筛的是当前这一列。两件事分开，才不会有人在全局框里输老师名字然后什么都搜不到。</div>
+</div>
+
+<div class="callout bad">
+  <span class="num">3</span>
+  <div><strong>顺带一个真 bug：<code>per_hour</code> 是后端枚举，直接印在了给人看的表里</strong>，
+  而且 <code>{'{'}s.duration_minutes{'}'} 分</code> 和它之间没有分隔，渲染成「90 分per_hour」。
+  应该是「90 分钟 · 按小时」。五种计费方式都要有中文名。</div>
+</div>
+
+<h2>七、账单发票：同理，再加一个状态筛选</h2>
+
+<div class="shot">
+  <div class="shot-label"><span class="tag tag-good">推荐</span> 账单发票 · 筛选 + 搜索</div>
+  <div class="app no-rail">
+    <div class="main"><div class="body">
+      <div class="grid2" style="grid-template-columns:repeat(4,1fr);margin-bottom:var(--s3)">
+        <div class="card"><div class="card-sub">已开票</div><div class="card-title">$3,696.00</div></div>
+        <div class="card"><div class="card-sub">已收到</div><div class="card-title">$1,732.50</div></div>
+        <div class="card"><div class="card-sub">逾期</div><div class="card-title" style="color:var(--bad)">$907.50</div></div>
+        <div class="card"><div class="card-sub">待发草稿</div><div class="card-title">1</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:38.2% 1fr;gap:var(--s3)">
+        <div>
+          <div class="card">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span class="card-sub" style="flex:1">发票</span>
+              <span class="pill on" style="font-size:11px;padding:5px 9px">新建发票</span>
+            </div>
+            <div class="field" style="margin-top:7px">🔍 搜付款方或发票号</div>
+            <div style="display:flex;gap:4px;margin-top:7px;flex-wrap:wrap">
+              <span class="pill on" style="font-size:11px;padding:5px 9px">全部 5</span>
+              <span class="pill" style="font-size:11px;padding:5px 9px">逾期 2</span>
+              <span class="pill" style="font-size:11px;padding:5px 9px">未付清 3</span>
+              <span class="pill" style="font-size:11px;padding:5px 9px">草稿 1</span>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:7px">
+              <span class="field" style="flex:1;margin:0">开具起</span>
+              <span class="field" style="flex:1;margin:0">开具止</span>
+            </div>
+          </div>
+          <div class="card"><div class="card-title">Whelan 一家</div><div class="card-sub">草稿 · 未编号 · $715.00</div></div>
+          <div class="card"><div class="card-title">Raman 一家</div><div class="card-sub">INV-0002 · 逾期 · $302.50</div></div>
+          <div class="card" style="opacity:.6"><div class="card-title">Chen 一家</div><div class="card-sub">INV-0003 · 逾期 · $605.00</div></div>
+        </div>
+        <div>
+          <div class="card"><div class="card-title">选择左边的一张发票查看明细。</div></div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+</div>
+
+<div class="callout">
+  <span class="num">1</span>
+  <div><strong>状态筛选带计数。</strong>「逾期 2」比一个光秃秃的「逾期」有用——不点开就知道要不要点。
+  计数是从已经加载的列表里算的，不额外请求。</div>
+</div>
+
+<div class="callout">
+  <span class="num">2</span>
+  <div><strong>搜索同时认付款方和发票号。</strong>前台接到电话时手上只有一个号；对账时手上只有一个姓。
+  两条路都要通。</div>
+</div>
+
+<div class="callout">
+  <span class="num">3</span>
+  <div><strong>后端已经支持了。</strong><code>/billing/invoices</code> 早就接受 <code>status</code> 和
+  <code>accountId</code>，只是界面从没给过入口。日期区间要加两个参数，是这三件事里唯一动到后端的。</div>
+</div>
+
+<h2>八、别写三个筛选栏，写一个</h2>
+
+<p>
+  课酬、发票、学员档案、作品、操作日志、待处理——这些页面要的是同一组东西：
+  <strong>一段时间、一个名字、一个分类</strong>。分三次手写，就是三份会各自漂的实现，
+  这一轮已经在「侧栏名 vs 页面标题」和「归档清单 vs 导入顺序」上各吃过一次。
+</p>
+
+<div class="shot">
+  <div class="shot-label"><span class="tag tag-good">推荐</span> 共享筛选栏 · 每页只声明要哪几格</div>
+  <div class="app no-rail">
+    <div class="main"><div class="body">
+      <div class="card">
+        <div class="card-sub" style="margin-bottom:7px">&lt;FilterBar&gt; — 四种格子，按需组合</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s2)">
+          <div><div class="card-sub">① 时间</div><div class="field">起 → 止</div>
+            <div style="display:flex;gap:4px;margin-top:5px;flex-wrap:wrap">
+              <span class="pill on" style="font-size:10.5px;padding:4px 8px">本月</span>
+              <span class="pill" style="font-size:10.5px;padding:4px 8px">上月</span>
+              <span class="pill" style="font-size:10.5px;padding:4px 8px">本学期</span>
+            </div></div>
+          <div><div class="card-sub">② 搜索</div><div class="field">🔍 姓名 / 编号</div></div>
+          <div><div class="card-sub">③ 分类</div>
+            <div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap">
+              <span class="pill on" style="font-size:10.5px;padding:4px 8px">全部 5</span>
+              <span class="pill" style="font-size:10.5px;padding:4px 8px">逾期 2</span>
+            </div></div>
+          <div><div class="card-sub">④ 结果</div><div class="field">5 条 · 清除筛选</div></div>
+        </div>
+      </div>
+      <div class="grid2" style="grid-template-columns:repeat(3,1fr)">
+        <div class="card"><div class="card-title">账单发票</div><div class="card-sub">①②③ — 分类＝状态</div></div>
+        <div class="card"><div class="card-title">课酬与报表</div><div class="card-sub">①② — 无分类</div></div>
+        <div class="card"><div class="card-title">学员档案</div><div class="card-sub">②③ — 已有筛选片，换成同一个</div></div>
+        <div class="card"><div class="card-title">作品管理</div><div class="card-sub">②③ — 分类＝作品类别</div></div>
+        <div class="card"><div class="card-title">操作日志</div><div class="card-sub">①②③ — 分类＝动作类型</div></div>
+        <div class="card"><div class="card-title">待处理</div><div class="card-sub">②③ — 分类＝三个标签本身</div></div>
+      </div>
+    </div></div>
+  </div>
+</div>
+
+<div class="callout">
+  <span class="num">1</span>
+  <div><strong>四种格子，不是四个必选项。</strong>课酬不需要分类，学员档案不需要时间。
+  每页传自己要的那几个，缺的那格不渲染——不是渲染一个空壳。</div>
+</div>
+
+<div class="callout">
+  <span class="num">2</span>
+  <div><strong>筛选进 URL，和分区一样。</strong>「逾期的那几张」要能发给同事，
+  「上个月的课酬」要能发给会计。今天这两件事都只能靠口述。</div>
+</div>
+
+<div class="callout">
+  <span class="num">3</span>
+  <div><strong>「清除筛选」和结果计数必须一直在。</strong>看不见的筛选条件就是那通
+  「为什么账单里只有三张发票」的电话——v10.1.0 的账户深链已经因为这个加过一条横幅，
+  同一个道理，这次一次性做对。</div>
+</div>
+
+<h2>九、三件事的取舍</h2>
+
+<div class="scroll-x">
+<table>
+  <tr><th>提案</th><th>动到什么</th><th>是修 bug 还是加功能</th></tr>
+  <tr><td>系统设置 → 目的地 + 真标签页</td><td>一处容器、9 个分区包一层、路由一行</td><td>修：<code>role="tablist"</code> 现在是不成立的声明</td></tr>
+  <tr><td><code>per_hour</code> 漏进界面</td><td>一个映射表</td><td>修：给人看的表里不该有枚举值</td></tr>
+  <tr><td>共享 <code>&lt;FilterBar&gt;</code></td><td>一个新面板文件，六页各接一次</td><td>加（一次，而不是六次）</td></tr>
+  <tr><td>课酬：期间 + 老师搜索</td><td>接上 FilterBar，接口已有 <code>start</code>/<code>end</code></td><td>加</td></tr>
+  <tr><td>发票：状态 / 日期 / 搜索</td><td>接上 FilterBar；日期区间要加两个后端参数</td><td>加</td></tr>
+  <tr><td>其余四页逐步换用</td><td>可以之后再做，不阻塞前面</td><td>整理</td></tr>
+</table>
+</div>
+
+<p class="note">
+  建议顺序：先修那两个（一个是错的声明，一个是错的显示），再落 <code>&lt;FilterBar&gt;</code>
+  并接上课酬与发票两页，其余四页之后逐步换。四件事互不依赖，也可以只挑一件先做。
+  <strong>等你点头再动手。</strong>
+</p>
+
+</div>
