@@ -73,3 +73,13 @@ standalone-edition/.env.bak
 # a test run, not tenants, and a release bundle must not carry them.
 tenants/isolation-*/
 tenants/test-*/
+
+# Client proposals. This repository is PUBLIC, and a proposal names the
+# prospect, quotes them a price we told them was theirs, and shows our own
+# cost structure. `docs/sales/` keeps its marketing material — the roadshow
+# deck and the WeChat ads are meant to be seen — but anything written FOR a
+# named client lives under clients/ and never leaves this machine.
+#
+# Structural on purpose: the rule is the directory, so it cannot be forgotten
+# by whoever writes the next one.
+docs/sales/clients/
