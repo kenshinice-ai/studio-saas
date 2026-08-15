@@ -470,12 +470,22 @@
       letter-spacing: 0.5px;
     }
 
+    /* --line is a divider between panels; on a form control it is the control's
+       only visible boundary, and WCAG 2.1 SC 1.4.11 asks that boundary for 3:1.
+       Measured on production: --line #DCD8D2 on --panel #FFFDFC is 1.40:1, which
+       is why every field on the login screen looked like it had no box at all.
+       --line-strong is 3.62:1 and the generator already emits it.
+
+       16px is not a taste call either: iOS Safari zooms the page whenever a
+       focused input is under 16px, so 14px meant the studio owner's phone
+       lurched on every tap into a field. It also puts the control back on
+       --ui-type-sm, which the scale had said all along. */
     input, select, textarea {
       width: 100%;
-      border: 1px solid var(--line);
+      border: 1px solid var(--line-strong);
       border-radius: var(--radius);
       padding: 10px 12px;
-      font-size: 14px;
+      font-size: 16px;
       transition: all 0.2s ease;
       background: var(--panel);
     }
@@ -864,7 +874,14 @@
     .brand-workbench {
       display: grid;
       gap: var(--ui-space-4, 21px);
-      padding-bottom: 72px;
+      /* Clearance for the sticky save bar. 72px was less than the bar plus its
+         16px offset, so the last row of cards sat under it — visible on an iPad
+         at 820px, which is the width that falls between the phone rules
+         (max-width: 768px, where 112px was already granted) and a desktop wide
+         enough that the bar rarely meets content. A sticky bottom bar always
+         overlaps the end of its scroll container unless the container reserves
+         the room, at every width. */
+      padding-bottom: 112px;
     }
 
     /* v9.6.0: the workbench has four operator jobs, not ten unrelated tabs.
@@ -1141,6 +1158,15 @@
     .preset-copy { margin-top: 6px; color: var(--muted); font-size: 11px; line-height: 1.35; overflow-wrap: anywhere; }
     .preset-operation { margin-top: 7px; color: var(--ink); font-size: 11px; font-weight: 750; line-height: 1.35; overflow-wrap: anywhere; }
 
+    /* A selected card swaps its ground to --accent-soft but kept --muted for the
+       secondary lines, which is 3.57:1 there — the only contrast failure in 202
+       measured text nodes on this console. --on-accent-soft is generated for
+       exactly this pairing and clears 4.5:1; it just was not wired up. */
+    .preset-card.active .preset-name span,
+    .preset-card.active .preset-copy { color: var(--on-accent-soft, var(--ink)); }
+    .preset-card.active .preset-name,
+    .preset-card.active .preset-operation { color: var(--on-accent-soft, var(--ink)); }
+
     /* Was .9fr : 1.1fr, which inverted the emphasis and gave the swatch strip
        more width than the controls that drive it. The controls are the subject. */
     /* 1.618 : 1, with both minimums at 0 so the ratio actually governs. A
@@ -1413,7 +1439,12 @@
       border: 1px solid var(--accent-border, var(--line));
       border-radius: 999px; padding: 3px 10px;
     }
-    .btn-sm { padding: 6px 10px; font-size: 12px; min-height: 32px; }
+    /* .btn-sm is declared twice in this file. The first says
+       min-height: var(--ui-touch-target, 44px); this one said 32px and, being
+       later, won — which is how the password-reveal button on the login screen
+       measured 32px while the token that governs it said 44. Two declarations
+       of one class is the defect; keeping the token in both is the repair. */
+    .btn-sm { padding: 6px 10px; font-size: 12px; min-height: var(--ui-touch-target, 44px); }
     .showcase-card .form-group small { margin-top: 4px; }
     .switch-row {
       display: flex;

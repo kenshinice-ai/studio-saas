@@ -1,4 +1,4 @@
-import errno, json, mimetypes, os, re, shutil, socket, sys, time, secrets, hashlib
+import errno, ipaddress as _ipaddress, json, mimetypes, os, re, shutil, socket, sys, time, secrets, hashlib
 from datetime import datetime, timedelta
 from html import escape as html_escape
 import re
@@ -34,16 +34,73 @@ _rate_lock    = Lock()
 _rate_last_sweep = [time.time()]
 RATE_SWEEP_EVERY = 600          # purge stale IPs every 10 minutes
 
+
+# ── Trusted proxy hops (v10.5.0) ─────────────────────────────────────────────
+#
+# Verified on production before changing this: every audit row written today —
+# logins, support sessions, invoices, the lot — carried 172.18.0.1, the Docker
+# bridge gateway. Not one carried a visitor's address. The old rule trusted
+# forwarding headers only from 127.0.0.1, which was right for the cloudflared
+# tunnel this code grew up on, where the app shared a loopback with the tunnel.
+# It is wrong for the current topology: nginx runs on the host and proxies to a
+# published container port, so the container sees the bridge gateway and the
+# headers were discarded.
+#
+# Two things were broken by that, and neither announced itself:
+#   * every audit row named the gateway, so "which address did this come from"
+#     had no answer at all;
+#   * `login-ip` counted the whole internet into ONE bucket, which turns a
+#     30-per-minute brute-force guard into a 30-per-minute denial of service
+#     against every studio at once.
+#
+# Trusting the header is only safe because the container port is published on
+# 127.0.0.1 (deploy/aws/docker-compose.yml), so nginx is the only thing that can
+# reach it. A deployment that exposes the port more widely MUST narrow this.
+_DEFAULT_TRUSTED_PROXIES = ('127.0.0.1', '::1', 'localhost', '172.16.0.0/12', '10.0.0.0/8', '192.168.0.0/16')
+
+
+def _load_trusted_proxies():
+    raw = os.environ.get('STUDIOSAAS_TRUSTED_PROXIES', '')
+    entries = [p.strip() for p in raw.split(',') if p.strip()] or list(_DEFAULT_TRUSTED_PROXIES)
+    nets, names = [], set()
+    for entry in entries:
+        try:
+            nets.append(_ipaddress.ip_network(entry, strict=False))
+        except ValueError:
+            names.add(entry)
+    return nets, names
+
+
+_TRUSTED_PROXY_NETS, _TRUSTED_PROXY_NAMES = _load_trusted_proxies()
+
+
+def _is_trusted_proxy(addr):
+    """Whether a forwarding header from this peer may be believed."""
+    if not addr:
+        return False
+    if addr in _TRUSTED_PROXY_NAMES:
+        return True
+    try:
+        ip = _ipaddress.ip_address(addr)
+    except ValueError:
+        return False
+    return any(ip in net for net in _TRUSTED_PROXY_NETS)
+
+
 def _client_ip():
-    """Real client IP. Proxy headers (CF-Connecting-IP / X-Forwarded-For) are
-    only trusted when the request arrives from localhost — i.e. through the
-    local cloudflared tunnel. Direct LAN clients can't spoof their way past
-    the rate limiter by sending fake headers."""
+    """Real client IP, for rate limiting and audit.
+
+    Forwarding headers are believed only when the peer is a trusted proxy (see
+    above). A client that reaches the app directly cannot spoof its way past the
+    rate limiter by inventing a header, because its own address is not trusted.
+    """
     ra = (request.remote_addr or 'unknown')
-    if ra in ('127.0.0.1', '::1', 'localhost'):
-        return ((request.headers.get('CF-Connecting-IP')
-                 or request.headers.get('X-Forwarded-For')
-                 or ra).split(',')[0].strip())
+    if _is_trusted_proxy(ra):
+        forwarded = (request.headers.get('CF-Connecting-IP')
+                     or request.headers.get('X-Real-IP')
+                     or request.headers.get('X-Forwarded-For')
+                     or ra)
+        return forwarded.split(',')[0].strip() or ra
     return ra
 
 def _rate_ok(bucket, max_calls, window):
@@ -123,7 +180,7 @@ SESSION_SECRET_FILE = _data_path('.session_secret')
 PW_FILE       = _data_path('.cms_password')
 app.config['PHOTO_DIR'] = PHOTO_DIR
 MAX_BACKUPS   = 30   # 1 backup/hr rate limit → ~30 hours of rolling coverage
-APP_VERSION   = '10.5.0'
+APP_VERSION   = '10.6.0'
 app.config['APP_VERSION'] = APP_VERSION
 ASSET_ROOT = os.path.join(app.root_path, 'frontend', 'assets')
 ASSET_MANIFEST_PATH = os.path.join(ASSET_ROOT, 'asset-manifest.json')
@@ -935,7 +992,14 @@ def add_cors(r):
         marker in request.path for marker in ('/student/', '/auth/', '/admin/')
     ):
         r.headers.setdefault('Cache-Control', 'private, no-store')
-    if request.path.startswith('/v1/') or request.path.endswith(('/cms', '/studio-admin', '/register')):
+    # /platform-admin and /super-admin were the two consoles missing from this
+    # list. robots.txt disallowed them, but robots.txt is a request, not a
+    # control: a URL discovered through a link can still be indexed. The staff
+    # consoles all carry the header; the platform console is the one that most
+    # needs it.
+    if request.path.startswith('/v1/') or request.path.rstrip('/').endswith(
+        ('/cms', '/studio-admin', '/register', '/platform-admin', '/super-admin')
+    ):
         r.headers.setdefault('X-Robots-Tag', 'noindex, nofollow, noarchive')
     return r
 

@@ -10,6 +10,7 @@ import { FinancePanel } from "./panels/finance.jsx";
 import { IntegrationsPanel } from "./panels/integrations.jsx";
 import { BillingIdentityPanel } from "./panels/billing_identity.jsx";
 import { OverdueReports } from "./panels/progress_reports.jsx";
+import { FilterBar } from "./panels/filter_bar.jsx";
 import { StudentProgressReports, StudentBillingAccount } from "./panels/student_reports.jsx";
 import { PrivateLessonsPanel } from "./panels/private_lessons.jsx";
 
@@ -1982,6 +1983,33 @@ function App() {
         .sort((a,b) => String(b.item.date || '').localeCompare(String(a.item.date || ''))),
     [db.students]);
 
+    /* 作品管理接上共享筛选栏。这一页此前没有任何筛选，只有一个「最多显示最近
+       50 条」的硬上限 —— 作品一多，想找某个学员的某件作品就只能靠滚动。
+       用 FilterBar 而不是再写一遍：账单和课酬已经在用它，而「清除筛选」这类
+       东西每重写一次就多一份会各自漂的实现。 */
+    const [worksQuery, setWorksQuery] = useState('');
+    const [worksBucket, setWorksBucket] = useState('all');
+    const worksIsShared = (item) => Boolean(item.public || item.visibility === 'shared');
+    const worksBuckets = useMemo(() => {
+        const consented = ({student}) => student.publicationConsent?.status === 'confirmed';
+        return [
+            {key:'all',      label:'全部',   count: portfolioEntries.length},
+            {key:'shared',   label:'已公开', count: portfolioEntries.filter(({item}) => worksIsShared(item)).length},
+            {key:'private',  label:'未公开', count: portfolioEntries.filter(({item}) => !worksIsShared(item)).length},
+            {key:'noconsent',label:'待授权', count: portfolioEntries.filter(e => !consented(e)).length},
+        ];
+    }, [portfolioEntries]);
+    const worksVisible = useMemo(() => {
+        const needle = worksQuery.trim().toLowerCase();
+        return portfolioEntries.filter(({student, item}) => {
+            if (worksBucket === 'shared'    && !worksIsShared(item)) return false;
+            if (worksBucket === 'private'   &&  worksIsShared(item)) return false;
+            if (worksBucket === 'noconsent' && student.publicationConsent?.status === 'confirmed') return false;
+            if (!needle) return true;
+            return [student.name, item.title, item.note].some(v => String(v || '').toLowerCase().includes(needle));
+        });
+    }, [portfolioEntries, worksQuery, worksBucket]);
+
     useEffect(() => {
         if (tab !== 'students' || !routeRecordId) return;
         const student = db.students.find(item => String(item.id) === String(routeRecordId));
@@ -2942,7 +2970,16 @@ function App() {
         const port     = (s.portfolio||[]);
         // 近 6 个月上课分布
         const now = new Date();
-        const months = Array.from({length:6},(_,i)=>{ const d=new Date(now.getFullYear(),now.getMonth()-5+i,1);
+        /* Start the footprint at enrolment. A student who joined in July was
+           charted from March, so four flat months opened a document whose whole
+           job is to show a child growing — the chart said "inactive" about a
+           period before they had arrived. Never fewer than two columns, so the
+           row still reads as a chart rather than a single bar. */
+        const monthsSinceJoin = joinDate
+            ? (now.getFullYear()-joinDate.getFullYear())*12 + (now.getMonth()-joinDate.getMonth()) + 1
+            : 6;
+        const monthSpan = Math.max(2, Math.min(6, monthsSinceJoin));
+        const months = Array.from({length:monthSpan},(_,i)=>{ const d=new Date(now.getFullYear(),now.getMonth()-(monthSpan-1)+i,1);
             return {k:`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`, l:`${d.getMonth()+1}月`, n:0}; });
         const mIdx = Object.fromEntries(months.map((m,i)=>[m.k,i]));
         checkins.forEach(l=>{ const d=parseD(l.date); if(!d)return; const k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; if(k in mIdx) months[mIdx[k]].n++; });
@@ -2958,9 +2995,18 @@ function App() {
         const reportAccentDark = safeReportColor(reportBrand.secondary_color||reportBrand.secondaryColor, '#6f5b3e');
         /* C5: 零数据兜底 — 新学员尚无记录时用欢迎语 */
         const isNew = checkins.length === 0;
+        /* The generated paragraph read the four numbers back to the parent in an
+           exclamation-mark voice and called their child TA. It sat directly under
+           a caption a teacher had actually written — and next to a real sentence,
+           a template does not read as neutral, it reads as the studio having
+           nothing to say. So the block is now the teacher's or it is absent:
+           blank space says "no note this time", boilerplate says something worse.
+           `shareMsg` still carries a fallback because the copy-to-clipboard button
+           needs text; `teacherNote` is what the printed report shows. */
+        const teacherNote = String(s.reportNote || s.teacherNote || '').trim();
         const shareMsg = isNew
             ? `欢迎 ${s.name} 加入 ${reportStudioName}！学习旅程刚刚启程，期待记录每一份成长与快乐。`
-            : `${s.name} 在 ${reportStudioName} 已经学习了 ${days} 天，累计上课 ${checkins.length} 次，完成${workNoun} ${port.length} 份！每一次练习都是成长的印记，期待继续陪伴 TA 自信探索。`;
+            : `${s.name} 在 ${reportStudioName} 已经学习了 ${days} 天，累计上课 ${checkins.length} 次，完成${workNoun} ${port.length} 份。`;
 
         const portHTML = port.length ? port.map(p=>`
             <figure class="art">
@@ -2979,7 +3025,29 @@ function App() {
 	            : '学习旅程刚刚启程';
 
 	        /* C6+v4.3.2: 暖色美术馆风 — 暖米白展墙 + 金铜强调色，作品做彩色主角 */
-        const html = `<!doctype html><html lang="zh"><head><meta charset="utf-8"/>
+        /* The report opens in a NEW WINDOW, so cms-i18n.js — which translates the
+           rendered DOM of this document — can never reach it. That is why an
+           English-speaking studio still sent parents a page whose headings were
+           Chinese while the artwork captions were English. The report reads the
+           same language the operator is working in and emits its own chrome in
+           that language. One document, one language. */
+        const rlang = (()=>{ try { return localStorage.getItem('studiosaas_admin_language')==='en' ? 'en' : 'zh'; } catch(e) { return 'zh'; } })();
+        const RT = rlang==='en' ? {
+            htmlLang:'en', tag:'Student Growth Report',
+            attended:'Lessons attended', works:'Works completed', balance:'Lessons remaining', days:'Days with us',
+            footprint:(n)=>`Last ${n} months`, gallery:(n)=>`Portfolio (${n})`, note:'A note from the teacher',
+            generated:(d,n)=>`Report generated ${d} · ${n}`,
+            joined:(n,d,days)=>`${days} days at ${n} · joined ${d}`, welcome:(n)=>`Welcome to ${n}`,
+            emptyWorks:'No works recorded yet', print:'Print / Save as PDF', copy:'Copy note', copied:'✓ Copied',
+        } : {
+            htmlLang:'zh', tag:'学员成长报告',
+            attended:'累计上课', works:'完成作品', balance:'剩余课时', days:'陪伴天数',
+            footprint:(n)=>`近 ${n} 个月上课足迹`, gallery:(n)=>`作品集（${n} 幅）`, note:'老师寄语',
+            generated:(d,n)=>`报告生成于 ${d} · ${n}`,
+            joined:(n,d,days)=>`已在 ${n} 成长陪伴 <b>${days}</b> 天 · 入学于 ${d}`, welcome:(n)=>`欢迎加入 ${n}`,
+            emptyWorks:'暂无作品记录', print:'打印 / 存为 PDF', copy:'复制寄语', copied:'✓ 已复制寄语',
+        };
+        const html = `<!doctype html><html lang="${RT.htmlLang}"><head><meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>${esc(s.name)} · 成长报告 · ${esc(reportStudioName)}</title>
 <style>
@@ -3021,7 +3089,20 @@ body{font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;backgr
 .toolbar{max-width:760px;margin:0 auto 16px;display:flex;gap:10px;justify-content:flex-end}
 .toolbar button{border:0;border-radius:12px;padding:11px 18px;font-size:14px;font-weight:700;cursor:pointer}
 .b1{background:var(--accent-dark);color:#fff}.b2{background:#fffdf9;color:var(--accent-dark);border:1px solid #ddd0bb}
-@media print{body{background:#fff;padding:0}.toolbar{display:none}.sheet{box-shadow:none;border-radius:0}}
+/* The report is opened into a blank window, so the browser's own print header
+   and footer stamped about:blank and a timestamp across a document a parent
+   receives. @page removes them and gives the sheet real paper margins.
+   break-inside keeps a section from being split across two pages, which is what
+   pushed a two-line teacher note onto a second sheet of its own. */
+@page{size:A4;margin:12mm}
+@media print{
+  body{background:#fff;padding:0}
+  .toolbar{display:none}
+  .sheet{box-shadow:none;border-radius:0;max-width:none}
+  .sec,.stats,.hero,.brandbar,.foot{break-inside:avoid;page-break-inside:avoid}
+  .gallery{break-inside:auto}
+  .art{break-inside:avoid;page-break-inside:avoid}
+}
 @media(max-width:560px){.stats{grid-template-columns:repeat(2,1fr)}.gallery{grid-template-columns:repeat(2,1fr)}.hero{padding:6px 22px 22px}.sec{padding:20px 22px}}
 </style></head><body>
 <div class="toolbar">
@@ -3036,32 +3117,32 @@ body{font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;backgr
   <div class="hero">
     ${photoHTML}
     <div>
-      <span class="tag">学员成长报告 · Growth Report</span>
+      <span class="tag">${RT.tag}</span>
       <h1>${esc(s.name)}</h1>
 	      <div class="sub">${isNew ? `${esc(reportJoinText)} · 欢迎加入 ${esc(reportStudioName)}` : `已在 ${esc(reportStudioName)} 成长陪伴 <b>${days}</b> 天 · 入学于 ${fmtD(joinDate)}`}</div>
     </div>
   </div>
   <div class="stats">
-    <div class="stat"><div class="v">${checkins.length}</div><div class="l">累计上课</div></div>
-    <div class="stat"><div class="v">${port.length}</div><div class="l">完成作品</div></div>
-    <div class="stat"><div class="v">${bal}</div><div class="l">剩余课时</div></div>
-    <div class="stat"><div class="v">${isNew ? '—' : days}</div><div class="l">陪伴天数</div></div>
+    <div class="stat"><div class="v">${checkins.length}</div><div class="l">${RT.attended}</div></div>
+    <div class="stat"><div class="v">${port.length}</div><div class="l">${RT.works}</div></div>
+    <div class="stat"><div class="v">${bal}</div><div class="l">${RT.balance}</div></div>
+    <div class="stat"><div class="v">${isNew ? '—' : days}</div><div class="l">${RT.days}</div></div>
   </div>
   <div class="sec">
-    <h2 className="inline-flex items-center gap-1.5"><Icon name="trend" className="w-4 h-4"/>近 6 个月上课足迹</h2>
+    <h2 className="inline-flex items-center gap-1.5"><Icon name="trend" className="w-4 h-4"/>${RT.footprint(monthSpan)}</h2>
     <div class="chart">${barsHTML}</div>
   </div>
   <div class="sec gal">
-    <h2 className="inline-flex items-center gap-1.5"><Icon name="image" className="w-4 h-4"/>作品集（${port.length} 幅）</h2>
+    <h2 className="inline-flex items-center gap-1.5"><Icon name="image" className="w-4 h-4"/>${RT.gallery(port.length)}</h2>
     <div class="gallery">${portHTML}</div>
   </div>
-  <div class="sec">
-    <h2 className="inline-flex items-center gap-1.5"><Icon name="heart" className="w-4 h-4"/>老师寄语</h2>
-    <div class="msg">${esc(shareMsg)}</div>
-  </div>
+  ${teacherNote ? `<div class="sec">
+    <h2 className="inline-flex items-center gap-1.5"><Icon name="heart" className="w-4 h-4"/>${RT.note}</h2>
+    <div class="msg">${esc(teacherNote)}</div>
+  </div>` : ''}
   <div class="foot">
 	    <div class="fslogan">${esc(reportSlogan)}</div>
-	    报告生成于 ${fmtD(new Date())} · ${esc(reportStudioName)}
+	    ${RT.generated(fmtD(new Date()), esc(reportStudioName))}
   </div>
 </div>
 <script>
@@ -5192,9 +5273,16 @@ document.getElementById('copybtn').addEventListener('click', function(){
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[['作品总数',portfolioEntries.length,'text-gray-900'],['已公开',portfolioEntries.filter(({item})=>item.public||item.visibility==='shared').length,'text-emerald-700'],['待授权',portfolioEntries.filter(({student})=>student.publicationConsent?.status!=='confirmed').length,'text-amber-700'],['有作品学员',new Set(portfolioEntries.map(({student})=>student.id)).size,'text-indigo-700']].map(([label,value,color])=><div key={label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4"><p className="text-xs text-gray-400">{label}</p><p className={`text-2xl font-bold mt-1 ${color}`}>{value}</p></div>)}
     </div>
+    <FilterBar
+        query={worksQuery} onQuery={setWorksQuery}
+        searchPlaceholder="搜学员姓名或作品说明"
+        buckets={worksBuckets} bucket={worksBucket} onBucket={setWorksBucket}
+        total={worksVisible.length} totalNoun="件" />
     <section className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5" aria-labelledby="works-list-title">
-        <div className="flex items-center justify-between gap-3 mb-3"><div><h3 id="works-list-title" className="font-bold text-gray-900">最近作品</h3><p className="text-xs text-gray-400 mt-0.5">按作品日期倒序 · 最多显示最近 50 条</p></div><span className="text-xs font-bold text-gray-500">{portfolioEntries.length} 条</span></div>
-        {!portfolioEntries.length ? <EmptyState icon={<Icon name="image" className="w-8 h-8"/>} main="还没有作品" sub="打开学员档案后，在作品区上传第一件作品。" action="查看学员" onAction={()=>setTab('students')}/> : <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">{portfolioEntries.slice(0,50).map(({student,item})=>{
+        <div className="flex items-center justify-between gap-3 mb-3"><div><h3 id="works-list-title" className="font-bold text-gray-900">最近作品</h3><p className="text-xs text-gray-400 mt-0.5">按作品日期倒序 · 最多显示最近 50 件</p></div><span className="text-xs font-bold text-gray-500">{worksVisible.length} 件</span></div>
+        {!portfolioEntries.length ? <EmptyState icon={<Icon name="image" className="w-8 h-8"/>} main="还没有作品" sub="打开学员档案后，在作品区上传第一件作品。" action="查看学员" onAction={()=>setTab('students')}/>
+         : !worksVisible.length ? <EmptyState icon={<Icon name="image" className="w-8 h-8"/>} main="没有符合筛选的作品" sub="换一个分类，或清空搜索词。"/>
+         : <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">{worksVisible.slice(0,50).map(({student,item})=>{
             const shared = item.public || item.visibility === 'shared';
             return <article key={`${student.id}-${item.id||item.filename||item.date}`} className="overflow-hidden rounded-2xl border border-gray-200 bg-gray-50">
                 <button type="button" onClick={()=>{setTab('students',{recordId:student.id});setSelS(student);setEditP(false);setTimeout(()=>setStudentProfileTab('portfolio'),0);}} className="block w-full text-left focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500">
@@ -5224,13 +5312,23 @@ document.getElementById('copybtn').addEventListener('click', function(){
         </div>
     </div>
 
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
+    {/* 学员档案接上共享筛选栏。这里刻意 NOT 把 15 个分类片塞进 FilterBar 的
+        `buckets`：那是一维数组，15 个平铺会换行成三行，而且这一排本来就带
+        横向滚动、够用。它们和排序下拉一起走 extra 插槽 —— 页面保留自己需要
+        的控件，共享的是「常驻结果计数」和「一键清除全部」，那两样正是六页
+        各写各的、每次都写漏一点的东西。
+        搜索框回车打开唯一匹配是这一页特有的加速器，所以它也留在插槽里。 */}
+    <FilterBar
+        total={sortedFiltered.length} totalNoun="人"
+        extraDirty={Boolean(filterBy !== 'all' || srch)}
+        onClearExtra={()=>{ setFilterBy('all'); setSrch(''); }}
+        extra={<div className="space-y-3">
         <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"><Icon name="search"/></span>
             <input type="text" placeholder="搜索姓名 / 电话 / 微信 / 邮箱…（回车打开唯一匹配）" value={srch} onChange={e=>setSrch(e.target.value)}
                 onKeyDown={e=>{ if (e.key==='Enter' && sortedFiltered.length===1) { setSelS(sortedFiltered[0]); setEditP(false); } }}
                 aria-label="搜索学员"
-                className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"/>
+                className="w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none"/>
         </div>
         <div className="overflow-x-auto -mx-1 px-1 pb-1"><div className="flex gap-2 items-center" style={{minWidth:'max-content'}}>
             <select value={sortBy} onChange={e=>setSortBy(e.target.value)}
@@ -5247,10 +5345,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 <button key={v} onClick={()=>setFilterBy(v)}
                     className={`px-4 py-2 rounded-xl text-xs font-bold border min-h-[44px] transition flex-shrink-0 ${filterBy===v?'bg-indigo-600 text-white border-indigo-600':'bg-white text-gray-600 border-gray-300 active:border-indigo-300'}`}>{l}{filterBy===v?` · ${sortedFiltered.length}`:''}</button>
             ))}
-            {(filterBy!=='all'||srch) && <button onClick={()=>{setFilterBy('all');setSrch('');}}
-                className="inline-flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-bold border border-red-200 text-red-500 bg-white active:bg-red-50 min-h-[44px] flex-shrink-0"><Icon name="close" className="w-3.5 h-3.5"/>清除</button>}
         </div></div>
-    </div>
+        </div>} />
 
     {/* P2-14: multi-select toolbar. Bulk archive and bulk reminders used to be
         reachable only through the low-balance filter's single "copy all" button. */}
@@ -5766,21 +5862,30 @@ document.getElementById('copybtn').addEventListener('click', function(){
 {tab==='logs' && (
 <div className="anim space-y-4">
     <h2 className="md:hidden inline-flex items-center gap-1.5 text-xl font-bold text-gray-800"><Icon name="scroll" className="w-4 h-4"/>操作日志</h2>
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
-        <div className="flex flex-col sm:flex-row gap-3">
-            <div className="flex-1">
-                <StudentPicker students={sortedAZ} value={lStu} onChange={setLStu} placeholder="精确筛选学员…" showBal={false}/>
+    {/* 日志页接上共享筛选栏。它原本是六页里唯一自带「清除」的一页，
+        其余四页各写各的 —— 现在计数与清除由 FilterBar 统一提供，
+        学员选择器和操作下拉走 extra 插槽，一样能力不丢。 */}
+    <FilterBar
+        range={{start:lDateFrom, end:lDateTo}}
+        onRange={(next)=>{ setLDateFrom(next.start||''); setLDateTo(next.end||''); }}
+        query={lStu ? null : lSrch} onQuery={setLSrch}
+        searchPlaceholder="或输入关键字搜索…"
+        total={filteredLogs.length} totalNoun="条"
+        extraDirty={Boolean(lStu || lAct)}
+        onClearExtra={()=>{ setLStu(null); setLAct(''); }}
+        extra={
+            <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex-1">
+                    <StudentPicker students={sortedAZ} value={lStu} onChange={setLStu} placeholder="精确筛选学员…" showBal={false}/>
+                </div>
+                <select value={lAct} onChange={e=>setLAct(e.target.value)}
+                    className="px-3 py-3 border border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-indigo-500 outline-none min-h-[44px]">
+                    <option value="">全部操作</option>
+                    {logActions.map(a => <option key={a} value={a}>{a}</option>)}
+                </select>
             </div>
-            <select value={lAct} onChange={e=>setLAct(e.target.value)}
-                className="px-3 py-3 border border-gray-300 rounded-xl bg-white focus:ring-2 focus:ring-indigo-500 outline-none min-h-[50px]">
-                <option value="">全部操作</option>
-                {logActions.map(a => <option key={a} value={a}>{a}</option>)}
-            </select>
-        </div>
-        {!lStu && (
-            <input type="text" placeholder="或输入关键字搜索…" value={lSrch} onChange={e=>setLSrch(e.target.value)}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm"/>
-        )}
+        } />
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
         {/* Quick date presets */}
         <div className="flex flex-wrap gap-2">
             {[
@@ -5792,26 +5897,13 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     className="px-3 py-1.5 bg-indigo-50 active:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold min-h-[44px]">{l}</button>
             ))}
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm w-full sm:w-auto">
-                <span className="font-medium text-gray-500">日期范围</span>
-                <div className="flex items-center gap-2">
-                    <input type="date" value={lDateFrom} onChange={e=>setLDateFrom(e.target.value)}
-                        className="flex-1 sm:flex-none px-2 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-400 outline-none min-h-[44px] text-sm"/>
-                    <span className="text-gray-400 text-xs">至</span>
-                    <input type="date" value={lDateTo} onChange={e=>setLDateTo(e.target.value)}
-                        className="flex-1 sm:flex-none px-2 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-400 outline-none min-h-[44px] text-sm"/>
-                </div>
+        {/* 日期范围、清除与计数都归 FilterBar 了；这里只留导出。 */}
+        {canManageOperations && (
+            <div className="flex">
+                <button onClick={exportLogsCSV}
+                    className="inline-flex items-center gap-1.5 ml-auto bg-white border border-gray-200 active:bg-gray-50 text-gray-600 px-3 py-2 rounded-xl font-bold text-xs min-h-[44px]"><Icon name="download" className="w-4 h-4"/>CSV</button>
             </div>
-            {(lStu||lSrch||lAct||lDateFrom||lDateTo) && (
-                <button onClick={()=>{setLStu(null);setLSrch('');setLAct('');setLDateFrom('');setLDateTo('');}}
-                    className="inline-flex items-center gap-1 px-3 py-2 bg-gray-100 active:bg-gray-200 text-gray-500 rounded-xl text-xs font-bold min-h-[44px]"><Icon name="close" className="w-3.5 h-3.5"/>清除</button>
-            )}
-            <span className="text-sm text-gray-400">{filteredLogs.length} 条</span>
-            {canManageOperations && <button onClick={exportLogsCSV}
-                className="inline-flex items-center gap-1.5 ml-auto bg-white border border-gray-300 active:bg-gray-50 text-gray-600 px-3 py-2 rounded-xl font-bold text-xs min-h-[44px]"><Icon name="download" className="w-4 h-4"/>CSV</button>
-            }
-        </div>
+        )}
     </div>
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
@@ -6257,12 +6349,19 @@ document.getElementById('copybtn').addEventListener('click', function(){
 
                         {canWritePortfolio && (
                           <TabPanel idBase="student-profile" name="portfolio" active={studentProfileTab==='portfolio'}>
+                        {/* The ground follows the consent status. It used to be emerald
+                            whatever the badge said, so a student with NO consent on file sat
+                            under a success-green header — the colour claimed the job was done
+                            while the badge beside it read 未记录. A role colour that contradicts
+                            the state it wraps is worse than no colour: green is now the reward
+                            for confirmed, amber marks a withdrawal, and unrecorded is neutral,
+                            which is what "nothing has happened yet" actually looks like. */}
                         {TENANT_SLUG && (
-                            <div className="border border-emerald-100 rounded-2xl overflow-hidden">
-                                <div className="bg-emerald-50 px-4 py-3 flex items-center justify-between gap-3">
+                            <div className={`border rounded-2xl overflow-hidden ${selS.publicationConsent?.status==='confirmed'?'border-emerald-100':selS.publicationConsent?.status==='withdrawn'?'border-amber-100':'border-gray-200'}`}>
+                                <div className={`px-4 py-3 flex items-center justify-between gap-3 ${selS.publicationConsent?.status==='confirmed'?'bg-emerald-50':selS.publicationConsent?.status==='withdrawn'?'bg-amber-50':'bg-gray-50'}`}>
                                     <div>
-                                        <p className="inline-flex items-center gap-1.5 text-sm font-bold text-emerald-800"><Icon name="shield" className="w-4 h-4"/>官网作品公开授权</p>
-                                        <p className="text-xs text-emerald-600 mt-0.5">授权与撤回均追加为不可覆盖的审计记录。</p>
+                                        <p className="inline-flex items-center gap-1.5 text-sm font-bold text-gray-900"><Icon name="shield" className="w-4 h-4"/>官网作品公开授权</p>
+                                        <p className="text-xs text-gray-500 mt-0.5">授权与撤回均追加为不可覆盖的审计记录。</p>
                                     </div>
                                     <span className={`text-xs font-bold px-2 py-1 rounded-full shrink-0 ${selS.publicationConsent?.status==='confirmed'?'bg-emerald-600 text-white':selS.publicationConsent?.status==='withdrawn'?'bg-amber-100 text-amber-700':'bg-gray-100 text-gray-500'}`}>
                                         {selS.publicationConsent?.status==='confirmed'?'有效':selS.publicationConsent?.status==='withdrawn'?'已撤回':'未记录'}
@@ -6295,7 +6394,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                                 className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm resize-none"/>
                                             <div className="flex gap-2">
                                                 <button onClick={()=>setConsentEdit(null)} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-bold text-gray-500">取消</button>
-                                                <button disabled={busy} onClick={savePublicationConsent} className="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-bold disabled:opacity-50">记录授权</button>
+                                                <button disabled={busy} onClick={savePublicationConsent} className="flex-1 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-bold disabled:opacity-50">记录授权</button>
                                             </div>
                                         </div>
                                     )}
@@ -6329,13 +6428,18 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         {(()=>{
                             const items = selS.portfolio || [];
                             return (
-                                <div className="border border-purple-100 rounded-2xl overflow-hidden">
-                                    <div className="bg-purple-50 px-4 py-3 flex items-center justify-between">
-                                        <span className="text-sm font-bold text-purple-700 flex items-center gap-1.5"><Icon name="image" className="w-4 h-4"/> {workNoun}集
-                                            <span className="font-normal text-purple-400 text-xs ml-1">({items.length} 张)</span>
+                                /* purple maps to the info role, and a section heading is not a
+                                   state — it was painting a whole panel blue for no reason a reader
+                                   could act on. Headings take the neutral ramp; the upload button is
+                                   the primary action here and takes the accent, like every other
+                                   filled action in this console. */
+                                <div className="border border-gray-200 rounded-2xl overflow-hidden">
+                                    <div className="bg-gray-50 px-4 py-3 flex items-center justify-between">
+                                        <span className="text-sm font-bold text-gray-900 flex items-center gap-1.5"><Icon name="image" className="w-4 h-4"/> {workNoun}集
+                                            <span className="font-normal text-gray-500 text-xs ml-1">({items.length} 张)</span>
                                         </span>
                                         <button onClick={()=>setPortUpload(true)}
-                                            className="text-xs bg-purple-600 active:bg-purple-700 text-white px-3 py-1.5 rounded-lg font-bold">
+                                            className="text-xs bg-indigo-600 active:bg-indigo-700 text-white px-3 py-1.5 rounded-lg font-bold">
                                             + 上传
                                         </button>
                                     </div>
@@ -6395,7 +6499,10 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             it is the one action that belongs to a tab rather
                             than to the student. */}
                         {canWritePortfolio && <button onClick={()=>openGrowthReport(selS)}
-                            className="w-full py-3 rounded-xl text-sm font-bold bg-gradient-to-r from-purple-500 to-pink-500 active:from-purple-600 active:to-pink-600 text-white min-h-[50px] shadow-sm">
+                            /* Was a purple→pink gradient: info blended into the support colour,
+                               so the button's colour named two roles and therefore none. A filled
+                               action is the accent. */
+                            className="w-full py-3 rounded-xl text-sm font-bold bg-indigo-600 active:bg-indigo-700 text-white min-h-[50px] shadow-sm">
                             <span className="inline-flex items-center gap-1.5"><Icon name="star" className="w-4 h-4"/>生成成长报告（发给家长）</span>
                         </button>
                         }

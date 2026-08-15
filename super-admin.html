@@ -1141,12 +1141,16 @@
       letter-spacing: 0.5px;
     }
 
+    /* Same two rules as Studio Admin: --line is 1.40:1 against --panel and a
+       form control's boundary needs 3:1, and a focused input under 16px makes
+       iOS Safari zoom the page. --f-0 is the body step; max() floors it at 16px
+       without flattening the scale on the surfaces where --f-0 is larger. */
     input, select, textarea {
       width: 100%;
-      border: 1px solid var(--line);
+      border: 1px solid var(--line-strong);
       border-radius: var(--radius);
       padding: 10px 12px;
-      font-size: var(--f-0);
+      font-size: max(16px, var(--f-0));
       transition: all 0.2s ease;
       background: var(--panel);
     }

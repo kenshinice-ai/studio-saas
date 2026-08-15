@@ -43,6 +43,13 @@
   --ui-border: #e2e8f0;
   --ui-error: #dc2626;
   --ui-success: #16a34a;
+  /* brand-system.css has referenced --ui-warning since it was written, and the
+     name was never defined here — so `var(--ui-warning, #5B421F)` always took
+     its fallback and a literal shipped wearing a token's clothes. The value is
+     the amber that already clears 4.9:1 on this surface (it is the same one
+     --pwe-family-amber-text carries); the point of defining it is that the
+     reference now resolves and moves when the palette moves. */
+  --ui-warning: #a16207;
   --ui-radius-control: 8px;
   --ui-radius-card: 13px;
   --ui-radius-sheet: 21px;

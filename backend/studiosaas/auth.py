@@ -186,6 +186,28 @@ def hash_password(password: str) -> str:
     return f"pbkdf2${PBKDF2_ITERATIONS}${salt.hex()}${digest.hex()}"
 
 
+# A hash of a value nobody can supply. Verifying against it costs exactly what
+# verifying a real account costs, which is the point: see equalise_login_timing.
+_DUMMY_PASSWORD_HASH = hash_password(secrets.token_urlsafe(32))
+
+
+def equalise_login_timing(password: str) -> None:
+    """Burn the same PBKDF2 work a real verification would have cost.
+
+    Measured on production before this existed: a login for an address with no
+    account answered in about 20ms of server time, while a real account had to
+    clear 600,000 PBKDF2 rounds first. The response text was identical — that
+    part was always right — but the clock told an attacker which addresses were
+    worth attacking. On a product that now carries invoices and payment records,
+    that list is a phishing target.
+
+    Call this on every path that rejects a login before reaching a password
+    check. It deliberately does the work and discards the answer.
+    """
+
+    verify_password(password or "", _DUMMY_PASSWORD_HASH)
+
+
 def is_legacy_sha256_hash(value: str) -> bool:
     """Return true for the old unsalted v1 SHA-256 password hash format."""
 

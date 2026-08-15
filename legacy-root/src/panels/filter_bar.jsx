@@ -45,20 +45,36 @@ export function presetRange(key, today = new Date()) {
  * @param onBucket  (key) => void
  * @param total     筛选后剩多少条 —— 一直显示，不是只在有筛选时显示
  */
+/*
+ * `extra` exists because the operations log needs a student picker and an action
+ * select, and neither is a date, a search box or a bucket. Without a slot the
+ * choice was: rewrite the log's filter as four generic boxes and LOSE the picker,
+ * or leave the page out of the shared bar and keep the drift. A slot is the third
+ * answer — the page contributes the control only it needs, and still inherits the
+ * one thing every page was getting wrong on its own: a visible result count and a
+ * clear-filters button that actually clears everything.
+ *
+ * `extraDirty` / `onClearExtra` let those page-specific controls take part in
+ * "清除筛选" instead of quietly surviving it, which would be worse than not
+ * sharing at all.
+ */
 export function FilterBar({
     range, onRange, searchPlaceholder = '搜索…', query, onQuery,
     buckets, bucket, onBucket, total, totalNoun = '条',
+    extra = null, extraDirty = false, onClearExtra = null,
 }) {
     const dirty = useMemo(() => Boolean(
         (query && query.trim()) ||
         (buckets && bucket && bucket !== buckets[0]?.key) ||
-        (range && (range.start || range.end))
-    ), [query, bucket, buckets, range]);
+        (range && (range.start || range.end)) ||
+        extraDirty
+    ), [query, bucket, buckets, range, extraDirty]);
 
     function clearAll() {
         if (onQuery) onQuery('');
         if (onBucket && buckets?.length) onBucket(buckets[0].key);
         if (onRange) onRange(presetRange('this_month'));
+        if (onClearExtra) onClearExtra();
     }
 
     return (
@@ -88,6 +104,8 @@ export function FilterBar({
                     </div>
                 </div>
             )}
+
+            {extra}
 
             {query !== null && query !== undefined && (
                 <input value={query} onChange={e => onQuery(e.target.value)}

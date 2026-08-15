@@ -27,6 +27,7 @@ import io as _io
 from flask import Blueprint, Response, current_app, g, jsonify, make_response, request, send_from_directory
 from werkzeug.utils import secure_filename
 
+from . import auth as _auth
 from .auth import (
     PermissionDeniedError,
     auth_required,
@@ -233,16 +234,27 @@ def _tenant_timezone(conn, tenant_id: str) -> str:
 def _client_ip() -> str:
     """Real client IP for rate limiting and audit.
 
-    Proxy headers (CF-Connecting-IP / X-Forwarded-For) are only trusted when
-    the request arrives from localhost — i.e. through the local cloudflared
-    tunnel. Direct LAN clients can't spoof their way past the rate limiter
-    by sending fake headers. Mirrors server.py's _client_ip().
+    Delegates the trust decision to server.py so the two cannot drift: this
+    module and the legacy app share one rate-limit story, and a peer that is
+    trusted in one and not the other would mean an attacker could pick whichever
+    entry point believed them.
+
+    Until v10.5.0 both trusted forwarding headers only from 127.0.0.1, which was
+    correct when the app shared a loopback with a cloudflared tunnel and wrong
+    once nginx began proxying to a published container port: every audit row on
+    production named the Docker bridge gateway, and every visitor shared one
+    rate-limit bucket.
     """
 
     ra = request.remote_addr or "unknown"
-    if ra in ("127.0.0.1", "::1", "localhost"):
+    try:
+        from server import _is_trusted_proxy as _trusted  # type: ignore
+    except Exception:  # pragma: no cover - the v1 API can run without the legacy app
+        _trusted = lambda addr: addr in ("127.0.0.1", "::1", "localhost")
+    if _trusted(ra):
         forwarded = (
             request.headers.get("CF-Connecting-IP")
+            or request.headers.get("X-Real-IP")
             or request.headers.get("X-Forwarded-For")
             or ra
         )
@@ -2996,12 +3008,55 @@ def _workspace_drift(conn) -> dict:
     }
 
 
+
+def _cacheable_json(payload: dict, *, max_age: int, immutable: bool = False):
+    """Answer with an ETag so a repeat visitor gets 304 instead of the body.
+
+    Measured on production before this existed: /v1/industry-presets returned
+    88,625 bytes to an unauthenticated caller with no Cache-Control, no ETag and
+    no rate limit — eight rapid requests, eight full bodies. /brand was 42,288
+    bytes on the same terms, and every visitor to a studio's home page fetched
+    all of it again. Neither changes more than a few times a week.
+
+    The ETag is over the serialised body, so it moves exactly when the answer
+    does; correctness never depends on the max-age being tuned right.
+    """
+
+    body = json.dumps(payload, ensure_ascii=False, sort_keys=True, default=str)
+    etag = '"' + hashlib.sha256(body.encode("utf-8")).hexdigest()[:32] + '"'
+    if request.headers.get("If-None-Match", "") == etag:
+        response = make_response("", 304)
+    else:
+        response = make_response(body, 200)
+        response.headers["Content-Type"] = "application/json"
+    response.headers["ETag"] = etag
+    directive = f"public, max-age={max_age}"
+    if immutable:
+        directive += ", immutable"
+    else:
+        directive += f", stale-while-revalidate={max_age * 4}"
+    response.headers["Cache-Control"] = directive
+    # These answers do not vary by who is asking, and Vary: Cookie would stop
+    # every shared cache from ever reusing them.
+    response.headers.pop("Vary", None)
+    return response
+
+
 @api_v1.route("/industry-presets", methods=["GET"])
 def industry_presets():
-    """Return the shared onboarding, copy, and theme presets."""
+    """Return the shared onboarding, copy, and theme presets.
 
-    return jsonify({"presets": public_industry_presets(),
-                    "styles": public_visual_style_presets()})
+    Public, unauthenticated, 88KB, and identical for every caller — which made
+    it the cheapest amplifier on the surface. It is now conditional, and shares
+    the public rate limiter so a flood costs the sender something too.
+    """
+
+    if _rate_limited(f"presets:{_client_ip()}", 60):
+        return _error("Too many requests. Please slow down.", 429)
+    return _cacheable_json(
+        {"presets": public_industry_presets(), "styles": public_visual_style_presets()},
+        max_age=900,
+    )
 
 
 @api_v1.route("/theme-preview", methods=["GET"])
@@ -5101,7 +5156,12 @@ def public_brand(tenant_slug: str):
     for served_separately in ("showcase_items", "showcase_categories"):
         row["website_profile"].pop(served_separately, None)
     row["websiteProfile"] = row["website_profile"]
-    return jsonify({"brand": row})
+    # 42KB that every visitor to a studio's home page fetched in full, on every
+    # load, with no ETag and a Vary: Cookie that stopped any shared cache from
+    # helping. A studio's brand changes when someone edits it, which the ETag
+    # notices; 60 seconds is short enough that an owner clicking Publish sees the
+    # result while they are still looking at it.
+    return _cacheable_json({"brand": row}, max_age=60)
 
 
 # ──────────────────────────────────────────────
@@ -11828,6 +11888,11 @@ def auth_login():
         if not user or user["status"] != "active":
             user = _repair_local_super_admin_login(conn, email, password)
             if not user or user["status"] != "active":
+                # Spend what a real verification would have spent. Without this
+                # the miss answers in ~20ms and a hit in a few hundred, so the
+                # clock enumerates which addresses hold accounts even though the
+                # message never does.
+                _auth.equalise_login_timing(password)
                 _audit_request(
                     conn,
                     tenant_id=None,
