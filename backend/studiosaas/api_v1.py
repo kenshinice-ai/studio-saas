@@ -47,6 +47,7 @@ from .calendar_export import (
 )
 from .db import DatabaseUnavailableError, connect, fetch_all, fetch_one
 from .errors import api_error
+from .netaddr import client_ip_from
 from .lifecycle import (
     canonical_subscription_status,
     validate_subscription_dates,
@@ -234,33 +235,12 @@ def _tenant_timezone(conn, tenant_id: str) -> str:
 def _client_ip() -> str:
     """Real client IP for rate limiting and audit.
 
-    Delegates the trust decision to server.py so the two cannot drift: this
-    module and the legacy app share one rate-limit story, and a peer that is
-    trusted in one and not the other would mean an attacker could pick whichever
-    entry point believed them.
-
-    Until v10.5.0 both trusted forwarding headers only from 127.0.0.1, which was
-    correct when the app shared a loopback with a cloudflared tunnel and wrong
-    once nginx began proxying to a published container port: every audit row on
-    production named the Docker bridge gateway, and every visitor shared one
-    rate-limit bucket.
+    The trust decision lives in studiosaas/netaddr.py so this module and the
+    legacy app cannot drift — a peer trusted by one and not the other would let
+    an attacker pick whichever entry point believed them.
     """
 
-    ra = request.remote_addr or "unknown"
-    try:
-        from server import _is_trusted_proxy as _trusted  # type: ignore
-    except Exception:  # pragma: no cover - the v1 API can run without the legacy app
-        _trusted = lambda addr: addr in ("127.0.0.1", "::1", "localhost")
-    if _trusted(ra):
-        forwarded = (
-            request.headers.get("CF-Connecting-IP")
-            or request.headers.get("X-Real-IP")
-            or request.headers.get("X-Forwarded-For")
-            or ra
-        )
-        return forwarded.split(",")[0].strip() or ra
-    return ra
-
+    return client_ip_from(request.remote_addr, request.headers)
 
 def _student_cookie_secure() -> bool:
     """Return whether public student cookies must use HTTPS-only semantics."""

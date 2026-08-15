@@ -35,73 +35,17 @@ _rate_last_sweep = [time.time()]
 RATE_SWEEP_EVERY = 600          # purge stale IPs every 10 minutes
 
 
-# ── Trusted proxy hops (v10.5.0) ─────────────────────────────────────────────
-#
-# Verified on production before changing this: every audit row written today —
-# logins, support sessions, invoices, the lot — carried 172.18.0.1, the Docker
-# bridge gateway. Not one carried a visitor's address. The old rule trusted
-# forwarding headers only from 127.0.0.1, which was right for the cloudflared
-# tunnel this code grew up on, where the app shared a loopback with the tunnel.
-# It is wrong for the current topology: nginx runs on the host and proxies to a
-# published container port, so the container sees the bridge gateway and the
-# headers were discarded.
-#
-# Two things were broken by that, and neither announced itself:
-#   * every audit row named the gateway, so "which address did this come from"
-#     had no answer at all;
-#   * `login-ip` counted the whole internet into ONE bucket, which turns a
-#     30-per-minute brute-force guard into a 30-per-minute denial of service
-#     against every studio at once.
-#
-# Trusting the header is only safe because the container port is published on
-# 127.0.0.1 (deploy/aws/docker-compose.yml), so nginx is the only thing that can
-# reach it. A deployment that exposes the port more widely MUST narrow this.
-_DEFAULT_TRUSTED_PROXIES = ('127.0.0.1', '::1', 'localhost', '172.16.0.0/12', '10.0.0.0/8', '192.168.0.0/16')
-
-
-def _load_trusted_proxies():
-    raw = os.environ.get('STUDIOSAAS_TRUSTED_PROXIES', '')
-    entries = [p.strip() for p in raw.split(',') if p.strip()] or list(_DEFAULT_TRUSTED_PROXIES)
-    nets, names = [], set()
-    for entry in entries:
-        try:
-            nets.append(_ipaddress.ip_network(entry, strict=False))
-        except ValueError:
-            names.add(entry)
-    return nets, names
-
-
-_TRUSTED_PROXY_NETS, _TRUSTED_PROXY_NAMES = _load_trusted_proxies()
-
-
-def _is_trusted_proxy(addr):
-    """Whether a forwarding header from this peer may be believed."""
-    if not addr:
-        return False
-    if addr in _TRUSTED_PROXY_NAMES:
-        return True
-    try:
-        ip = _ipaddress.ip_address(addr)
-    except ValueError:
-        return False
-    return any(ip in net for net in _TRUSTED_PROXY_NETS)
+# Trusted proxy hops live in studiosaas/netaddr.py so this module and the v1 API
+# answer identically; see that file for why the peer is the Docker gateway and
+# why trusting it is only safe while the container port is published on
+# 127.0.0.1.
+from studiosaas.netaddr import client_ip_from as _client_ip_from, is_trusted_proxy as _is_trusted_proxy  # noqa: E402
 
 
 def _client_ip():
-    """Real client IP, for rate limiting and audit.
+    """Real client IP, for rate limiting and audit."""
+    return _client_ip_from(request.remote_addr, request.headers)
 
-    Forwarding headers are believed only when the peer is a trusted proxy (see
-    above). A client that reaches the app directly cannot spoof its way past the
-    rate limiter by inventing a header, because its own address is not trusted.
-    """
-    ra = (request.remote_addr or 'unknown')
-    if _is_trusted_proxy(ra):
-        forwarded = (request.headers.get('CF-Connecting-IP')
-                     or request.headers.get('X-Real-IP')
-                     or request.headers.get('X-Forwarded-For')
-                     or ra)
-        return forwarded.split(',')[0].strip() or ra
-    return ra
 
 def _rate_ok(bucket, max_calls, window):
     """Return True if this IP may make another call in `bucket`."""
@@ -180,7 +124,7 @@ SESSION_SECRET_FILE = _data_path('.session_secret')
 PW_FILE       = _data_path('.cms_password')
 app.config['PHOTO_DIR'] = PHOTO_DIR
 MAX_BACKUPS   = 30   # 1 backup/hr rate limit → ~30 hours of rolling coverage
-APP_VERSION   = '10.6.0'
+APP_VERSION   = '10.6.1'
 app.config['APP_VERSION'] = APP_VERSION
 ASSET_ROOT = os.path.join(app.root_path, 'frontend', 'assets')
 ASSET_MANIFEST_PATH = os.path.join(ASSET_ROOT, 'asset-manifest.json')
