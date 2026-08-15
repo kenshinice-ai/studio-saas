@@ -147,6 +147,32 @@ def allocate(
                 (tenant_id, payment_id, item.invoice_id, item.amount_cents),
             )
             written.append(cur.fetchone())
+
+    # An invoice's history recorded exactly two things — issued and voided — so
+    # "这张单发生过什么" answered "issued" for a document that had since been paid
+    # in full. Money arriving is the event a studio is most likely to be asked
+    # about ("we paid that in July"), and it was the one thing the ledger did not
+    # keep. Read the status back AFTER the insert, because the invoice totals are
+    # resynced by a trigger: this records what the invoice became, not what the
+    # caller hoped it would become.
+    from .billing import record_event
+
+    for row in written:
+        state = fetch_one(
+            conn,
+            "SELECT status, balance_cents FROM invoices WHERE tenant_id = %s AND id = %s",
+            (tenant_id, str(row["invoice_id"])),
+        ) or {}
+        record_event(
+            conn, tenant_id, str(row["invoice_id"]),
+            "paid" if state.get("status") == "paid" else "part_paid",
+            None,
+            {
+                "amount_cents": int(row["amount_cents"]),
+                "balance_cents": int(state.get("balance_cents") or 0),
+                "payment_id": str(payment_id),
+            },
+        )
     return written
 
 
@@ -260,6 +286,7 @@ def refund(
         (tenant_id, payment_id),
     )
     with conn.cursor() as cur:
+        touched_invoices: set[str] = set()
         for item in allocations:
             if remaining <= 0:
                 break
@@ -273,6 +300,7 @@ def refund(
                     (new_amount, item["id"]),
                 )
             remaining -= take
+            touched_invoices.add(str(item["invoice_id"]))
 
         cur.execute(
             """
@@ -294,7 +322,25 @@ def refund(
             (tenant_id, payment_id, credit_note_id, amount_cents, provider_ref,
              reason, actor_user_id),
         )
-        return cur.fetchone()
+        refund_row = cur.fetchone()
+
+    # A refund puts an invoice back into debt, and an invoice whose history stops
+    # at "issued" cannot answer why. Recorded after the cursor closes so the
+    # trigger-maintained totals are the ones being read.
+    from .billing import record_event
+
+    for invoice_id in sorted(touched_invoices):
+        state = fetch_one(
+            conn,
+            "SELECT status, balance_cents FROM invoices WHERE tenant_id = %s AND id = %s",
+            (tenant_id, invoice_id),
+        ) or {}
+        record_event(
+            conn, tenant_id, invoice_id, "refunded", actor_user_id,
+            {"balance_cents": int(state.get("balance_cents") or 0),
+             "payment_id": str(payment_id), "reason": reason or ""},
+        )
+    return refund_row
 
 
 # ── provider webhooks ────────────────────────────────────────────────────

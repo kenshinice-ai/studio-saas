@@ -382,22 +382,32 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, account
                           <td className="py-2 text-right tabular-nums">{aud(line.total_cents)}</td>
                         </tr>
                       ))}
-                      <tr className="border-t border-gray-200 font-bold">
-                        <td className="py-2" colSpan={4}>应付</td>
-                        <td className="py-2 text-right tabular-nums">{aud(detail.invoice.total_cents)}</td>
-                      </tr>
-                      {Number(detail.invoice.amount_paid_cents) > 0 && (
-                        <tr className="text-green-700">
-                          <td className="py-1" colSpan={4}>已付</td>
-                          <td className="py-1 text-right tabular-nums">−{aud(detail.invoice.amount_paid_cents)}</td>
-                        </tr>
-                      )}
-                      <tr className="font-bold">
-                        <td className="py-1" colSpan={4}>余额</td>
-                        <td className="py-1 text-right tabular-nums">{aud(detail.invoice.balance_cents)}</td>
-                      </tr>
                     </tbody>
                   </table>
+                </div>
+
+                {/* The three numbers that answer "what does this family owe" used
+                    to be the last column of a five-column table. In the detail
+                    column that table has to scroll sideways, so 应付 / 已付 / 余额
+                    rendered as labels with nothing beside them — the figures were
+                    in the response all along, just pushed off-screen. They are
+                    not line-item detail; they are the answer, and they belong
+                    where they cannot be scrolled away from. */}
+                <div className="px-4 pb-4 -mt-1 space-y-1 text-xs">
+                  <div className="flex items-baseline gap-3 border-t border-gray-200 pt-2 font-bold">
+                    <span>应付</span>
+                    <span className="ml-auto tabular-nums">{aud(detail.invoice.total_cents)}</span>
+                  </div>
+                  {Number(detail.invoice.amount_paid_cents) > 0 && (
+                    <div className="flex items-baseline gap-3 text-green-700">
+                      <span>已付</span>
+                      <span className="ml-auto tabular-nums">−{aud(detail.invoice.amount_paid_cents)}</span>
+                    </div>
+                  )}
+                  <div className="flex items-baseline gap-3 font-bold">
+                    <span>余额</span>
+                    <span className="ml-auto tabular-nums">{aud(detail.invoice.balance_cents)}</span>
+                  </div>
 
                   <div className="flex flex-wrap gap-2 items-center mt-3">
                     {detail.invoice.status === 'draft' && canIssue && (
@@ -437,12 +447,29 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, account
                 <div className="px-4 py-3 border-b border-gray-200 text-xs font-bold">这张单发生过什么</div>
                 {(detail.events || []).length === 0 ? (
                   <p className="px-4 py-4 text-[11px] text-gray-500">还没有记录。开具、送达、收款、推送 Xero 都会出现在这里。</p>
-                ) : (detail.events || []).map((event, i) => (
-                  <div key={i} className="flex items-center gap-2 px-4 py-2 border-b border-gray-100 last:border-0 text-[11px]">
-                    <span className="font-bold">{event.event_type}</span>
-                    <span className="ml-auto text-gray-500">{fmtApiDate(event.occurred_at)}</span>
-                  </div>
-                ))}
+                ) : (detail.events || []).map((event, i) => {
+                  /* The raw enum was printed straight onto the screen, so a
+                     studio read "issued" in an otherwise Chinese interface. The
+                     labels are Chinese here because cms-i18n.js translates zh→en
+                     for the whole CMS — writing English here would be the one
+                     string the language switch could not move. */
+                  const LABEL = {
+                    issued: '已开具', sent: '已送达', part_paid: '部分付款',
+                    paid: '已付清', refunded: '已退款', voided: '已作废',
+                    overdue: '已逾期', xero_pushed: '已推送 Xero',
+                  };
+                  const d = event.detail || {};
+                  const amount = Number(d.amount_cents || 0);
+                  const balance = d.balance_cents === undefined ? null : Number(d.balance_cents);
+                  return (
+                    <div key={i} className="flex items-baseline gap-2 px-4 py-2 border-b border-gray-100 last:border-0 text-[11px]">
+                      <span className="font-bold">{LABEL[event.event_type] || event.event_type}</span>
+                      {amount > 0 && <span className="text-gray-500">{aud(amount)}</span>}
+                      {balance !== null && <span className="text-gray-400">余额 {aud(balance)}</span>}
+                      <span className="ml-auto text-gray-500 tabular-nums">{fmtApiDate(event.occurred_at)}</span>
+                    </div>
+                  );
+                })}
               </div>
             </>
           )}

@@ -72,6 +72,8 @@
     ['待发草稿', 'Drafts to send'], ['没有待发的', 'None waiting'],
     ['暂无已开具发票', 'No issued invoices yet'], ['发票', 'Invoices'],
     ['已付清', 'Paid'], ['部分付款', 'Part paid'], ['已开具', 'Issued'],
+    ['已送达', 'Sent'], ['已退款', 'Refunded'], ['已作废', 'Voided'],
+    ['已逾期', 'Overdue'], ['已推送 Xero', 'Pushed to Xero'], ['余额', 'Balance'],
     ['已作废', 'Void'], ['勾选后可批量发出', 'Tick to issue in bulk'],
     ['选择左边的一张发票查看明细。', 'Select an invoice on the left to see its detail.'],
     ['还没有发票。周期账单会自动生成草稿，前台复核后批量发出。',
