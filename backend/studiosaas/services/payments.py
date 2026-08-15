@@ -150,7 +150,12 @@ def allocate(
     return written
 
 
-def auto_allocate(conn, tenant_id: str, payment_id: str) -> list[dict[str, Any]]:
+def auto_allocate(
+    conn,
+    tenant_id: str,
+    payment_id: str,
+    prefer_invoice_id: str | None = None,
+) -> list[dict[str, Any]]:
     """Spend a payment against the account's oldest unpaid invoices first.
 
     Oldest-first is the convention families and accountants both expect, and it
@@ -181,6 +186,13 @@ def auto_allocate(conn, tenant_id: str, payment_id: str) -> list[dict[str, Any]]
     if remaining <= 0:
         return []
 
+    # `prefer_invoice_id` is what an operator means when they press 登记收款 while
+    # looking at ONE invoice. Without it the money went to the oldest open debt —
+    # correct as a default, and wrong as an answer to "record payment for THIS
+    # invoice". On production it read as the button doing nothing: the invoice on
+    # screen never changed, so the operator pressed again, and each press paid
+    # down a different older invoice. Oldest-first still governs whatever is left
+    # over, because an overpayment is still the family's money.
     open_invoices = fetch_all(
         conn,
         """
@@ -188,9 +200,9 @@ def auto_allocate(conn, tenant_id: str, payment_id: str) -> list[dict[str, Any]]
         FROM invoices
         WHERE tenant_id = %s AND billing_account_id = %s
           AND status IN ('issued', 'part_paid') AND balance_cents > 0
-        ORDER BY due_date NULLS LAST, issue_date, number
+        ORDER BY (id = %s) DESC, due_date NULLS LAST, issue_date, number
         """,
-        (tenant_id, payment["billing_account_id"]),
+        (tenant_id, payment["billing_account_id"], prefer_invoice_id),
     )
 
     plan: list[Allocation] = []

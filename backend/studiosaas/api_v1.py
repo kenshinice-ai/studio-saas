@@ -13057,8 +13057,13 @@ def billing_record_payment():
                 ),
                 recorded_by_user_id=getattr(actor, "user_id", None),
             )
+            # invoiceId was accepted and thrown away, which is how pressing
+            # 登记收款 on one invoice ended up paying a different one.
             allocations = (
-                _payments.auto_allocate(conn, tenant.tenant_id, payment["id"])
+                _payments.auto_allocate(
+                    conn, tenant.tenant_id, payment["id"],
+                    prefer_invoice_id=_clean_text(payload, "invoiceId") or None,
+                )
                 if payload.get("autoAllocate", True)
                 else []
             )

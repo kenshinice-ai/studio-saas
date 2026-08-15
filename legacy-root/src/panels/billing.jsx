@@ -230,6 +230,10 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, account
         method: 'POST',
         body: JSON.stringify({
           billingAccountId: detail.invoice.billing_account_id,
+          // Name the invoice the operator is looking at. Without it the server
+          // allocated oldest-first and this invoice never moved, so the button
+          // looked broken and each press quietly paid down a different one.
+          invoiceId: detail.invoice.id,
           amountCents: balance,
           method: 'bank_transfer',
           autoAllocate: true,
@@ -351,7 +355,14 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, account
                   <span className="ml-auto"><StatusChip invoice={detail.invoice} /></span>
                 </div>
                 <div className="p-4 overflow-x-auto">
-                  <table className="w-full text-xs">
+                  {/* min-width is what makes the overflow-x-auto above mean
+                      anything. With `w-full` alone the table can never exceed its
+                      container, so in the narrow detail column the last three
+                      money columns compressed toward zero and 应付 / 余额 read as
+                      blank rows — the figures were in the response the whole time.
+                      A width floor lets the table overflow and the container
+                      scroll, which is what that class was there for. */}
+                  <table className="w-full min-w-[26rem] text-xs">
                     <thead>
                       <tr className="text-[10px] uppercase tracking-wide text-gray-500">
                         <th className="text-left py-2">项目</th>

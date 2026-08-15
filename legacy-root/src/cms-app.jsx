@@ -6412,8 +6412,13 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                     )}
                                     {!consentEdit && (
                                         <div className="flex gap-2">
+                                            {/* An action, not a state. Green here said "this is done" about a
+                                                button whose whole purpose is that something is NOT done yet — and
+                                                it stayed green even once consent was on file, where the panel and
+                                                the badge are already carrying the good news. Filled actions are
+                                                the accent, the same as ＋上传 and 生成成长报告 beside it. */}
                                             <button onClick={()=>setConsentEdit({mode:'confirm',by:'',relationship:'',method:'',note:''})}
-                                                className="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-bold min-h-[44px]">
+                                                className="flex-1 py-2.5 rounded-xl bg-indigo-600 active:bg-indigo-700 text-white text-sm font-bold min-h-[44px]">
                                                 {selS.publicationConsent?.status==='confirmed'?'追加新授权记录':'记录授权'}
                                             </button>
                                             {selS.publicationConsent?.status==='confirmed' && <button onClick={()=>setConsentEdit({mode:'withdraw',note:''})}
