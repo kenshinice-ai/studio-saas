@@ -203,10 +203,20 @@ def test_the_page_keeps_its_commercial_boundaries() -> None:
         assert excluded in source, f"the scope limit '{excluded}' is no longer published"
     assert "campus runs as its own tenant" in source
     assert "PWE Studio does not silently transmit or store the form." in source
-    assert f"PWE Studio · v{VERSION}" not in source, (
-        "the version is stamped at serve time from APP_VERSION"
+    # The marketing page does not publish a build number. It said
+    # "PWE Studio · v10.3.0" in the hero and again in the footer, which tells a
+    # prospective studio nothing it can act on and tells everyone else exactly
+    # which build is running. Cache keys (`?v=__APP_VERSION__`) stay — those are
+    # addresses, not chrome — and `/v1/health` still reports appVersion, which
+    # is where an operator should read it. The user manual keeps its own version
+    # on purpose: a printed manual with no version cannot be matched to a system.
+    assert f"PWE Studio · v{VERSION}" not in source
+    assert "PWE Studio · v__APP_VERSION__" not in source, (
+        "the marketing page must not print a build number in visible copy"
     )
-    assert "PWE Studio · v__APP_VERSION__" in source
+    assert "?v=__APP_VERSION__" in source, (
+        "asset cache keys are not chrome and must survive"
+    )
 
 
 def test_every_role_entrance_survived_the_rebuild() -> None:

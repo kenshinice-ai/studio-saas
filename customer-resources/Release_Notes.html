@@ -54,6 +54,15 @@
   <p data-lang="zh">以下内容均属于已发布的产品版本。每一条都是交付依据，不是路线图承诺。</p>
   <div class="grid">
     <article class="card">
+      <strong data-lang="en">Your website's menu, back on screen (v10.5.0)</strong><strong data-lang="zh">官网菜单回到屏幕上（v10.5.0）</strong>
+      <p data-lang="en">On a desktop your studio site was folding its whole menu into a single ☰ button, on every screen size — even a very large one. Four of the menu entries also did nothing when clicked. Both are fixed: the menu now opens across the top on a normal desktop, and every entry goes where it says.</p>
+      <p data-lang="zh">在电脑上，你的工作室官网会把整条菜单收进一个 ☰ 按钮里——任何屏幕尺寸都是，再大的屏也一样。其中四个菜单项点了还没有反应。两件事都修好了：现在桌面上菜单会横向展开，每一项都会去它写的地方。</p>
+      <p data-lang="en">If you filled in your own page title for search engines, it was being stored in a form that showed up as programming text in the browser tab, in Google's results and in link previews when someone shared your site. Studios that had left the field blank were never affected. The title is stored correctly now, and pages saved earlier display correctly too.</p>
+      <p data-lang="zh">如果你填过用于搜索引擎的自定义标题，它被存成了一种会在浏览器标签、Google 结果和别人分享你网站时的预览卡片里显示成一串程序文字的形式。没填过这个字段的工作室不受影响。现在标题会被正确保存，之前保存过的页面也能正常显示了。</p>
+      <p data-lang="en">Pages also load faster: the largest files were being sent uncompressed, which we have corrected. A first visit to the operations console now transfers about a third of what it did.</p>
+      <p data-lang="zh">页面加载也更快了：最大的几个文件之前是未压缩发送的，已经修正。首次打开运营后台的传输量降到原来的约三分之一。</p>
+    </article>
+    <article class="card">
       <strong data-lang="en">Your studio's data, separated by the database itself (v10.3.1)</strong><strong data-lang="zh">你的数据，由数据库本身隔开（v10.3.1）</strong>
       <p data-lang="en">Every studio's records have always been kept apart, and we check that on every release. Until now that separation was enforced by the application asking the right question each time. It now sits in the database: a query that failed to say which studio it was for returns nothing at all, rather than depending on us never writing one.</p>
       <p data-lang="zh">每家工作室的数据一直是分开的，我们每次发版都会验证这一点。在此之前，这种分离靠的是程序每次都问对问题。现在它落在数据库里：一条没有说明"属于哪家工作室"的查询，读到的是空，而不是依赖我们永远不写错。</p>

@@ -1167,8 +1167,30 @@ def _normalize_website_profile(value) -> dict:
     # Per-tenant SEO overrides. The flagship tenant had a hand-edited <title>
     # in its forked workspace; this is the same capability as a brand field, so
     # the fork no longer has to exist to get it.
-    profile["seo_title"] = _first_text(data, "seo_title", "seoTitle", default="", limit=120)
-    profile["seo_description"] = _first_text(data, "seo_description", "seoDescription", default="", limit=200)
+    # These two are BILINGUAL PAIRS, and reading them with _first_text was a
+    # silent corruption: that helper ends in `str(value)`, so a {"zh": …,
+    # "en": …} arrived as the literal text `{'en': "…", 'zh': "…"}` — a Python
+    # repr — and `limit` then truncated the repr mid-string. The value went
+    # straight into <title>, og:title and the meta description, so a studio saw
+    # a dict in its browser tab, in its bookmarks, in Google's result and in
+    # every WhatsApp/WeChat share card.
+    #
+    # Both readers already handled the pair (`_pick_pair` server-side,
+    # `pickLocalized` in the portal), which is why this looked like a rendering
+    # bug for as long as nobody compared the stored shape to the written one.
+    # Only tenants that actually FILLED these fields were affected — doing the
+    # right thing was the trigger.
+    # _localized_pair reads a single key; _first_text accepted the camelCase
+    # alias too. Dropping that alias would be the payload-rebuild defect all
+    # over again — the console posts one spelling, the reader looks for the
+    # other, and the field is wiped on every save. So resolve the alias first.
+    profile["seo_title"] = _localized_pair(
+        {"seo_title": data.get("seo_title", data.get("seoTitle"))}, "seo_title", limit=120
+    )
+    profile["seo_description"] = _localized_pair(
+        {"seo_description": data.get("seo_description", data.get("seoDescription"))},
+        "seo_description", limit=200,
+    )
     # Optional "about the space" section. Public pages use manual image
     # selection so visitors are never forced through an autoplay carousel.
     images = data.get("about_images", data.get("aboutImages"))

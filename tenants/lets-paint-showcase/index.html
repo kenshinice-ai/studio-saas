@@ -86,6 +86,17 @@
   nav{position:fixed;top:0;left:0;right:0;z-index:50;transition:background .4s,box-shadow .4s,border-color .4s;border-bottom:1px solid transparent}
   nav.solid{background:color-mix(in srgb, var(--bg) 88%, transparent);backdrop-filter:blur(12px);border-color:var(--line)}
   .navrow{display:flex;align-items:center;justify-content:space-between;height:74px}
+  /* The header is chrome, not prose, so it does not owe .wrap's 1180px reading
+     measure anything — and that measure was the whole reason the nav collapsed.
+     Because .wrap caps the row, `budget` in fitNavigation() is a CONSTANT: the
+     row is 1180px wide on a 1366 laptop, on 1920, and on a 5K display alike.
+     Measured on production: need 1006px against budget 874px, so the English
+     nav failed to fit at EVERY desktop width — there was no screen on which it
+     could open. (Chinese labels are shorter, need lands under 874, which is why
+     it read as an English-only fault.) At 1600px the budget is 1294px and the
+     row fits with the brand name still showing. Under 1600px this is inert:
+     the row is width-constrained by the viewport, exactly as before. */
+  .navrow{max-width:1600px}
   /* flex-shrink:0 — the studio's identity is the one thing in this row that
      must not be squeezed. It was: at 1400px the nav wanted 1014px, the brand
      was allotted 124px, and because the logo refused to shrink it OVERFLOWED
@@ -1100,7 +1111,21 @@
   function pickLocalized(value){
     if(value==null) return '';
     if(typeof value==='object') return String(value[lang()]||value.zh||value.en||'');
-    return String(value);
+    /* Stored records are not user input: a bilingual pair that was once written
+       through a string-only reader comes back as the literal text
+       `{'en': "…", 'zh': "…"}` — a Python repr — and printing it verbatim put a
+       dict in <title>, in og:title and in every share card. The write path is
+       fixed, but rows written before that fix still exist, and a read path must
+       never make the page worse than the data. Recover the language we want and
+       fall through to the raw string only if this is not a repr at all. */
+    var text=String(value);
+    if(text.charAt(0)==='{' && text.indexOf("'")!==-1){
+      var want=lang();
+      var hit=new RegExp("['\"]"+want+"['\"]\\s*:\\s*(\"((?:[^\"\\\\]|\\\\.)*)\"|'((?:[^'\\\\]|\\\\.)*)')").exec(text)
+           || /['"](?:zh|en)['"]\s*:\s*("((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)')/.exec(text);
+      if(hit) return (hit[2]!==undefined?hit[2]:hit[3]).replace(/\\(['"\\])/g,'$1');
+    }
+    return text;
   }
   function localise(root){
     var scope = root || document;

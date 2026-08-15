@@ -238,8 +238,24 @@
         return '';
       }
     })();
+    // `#home:courses` is a CONTRACT key, not an address. The part before the
+    // colon names the surface — information the entry already carries in its
+    // own `surface` field — and the part after it is the only half a browser
+    // can resolve. Written into an href unchanged, all four composite entries
+    // (artist / courses / gallery / faq) pointed at element ids that do not
+    // exist: clicking them moved the page zero pixels, in both languages, on
+    // every tenant, with no script fallback. The colon-free entries (`#my`,
+    // `#join`) always worked, which is what made it look intermittent.
+    //
+    // Normalising HERE keeps the contract intact and fixes the desktop nav,
+    // the mobile nav and the footer from one place.
+    const anchorOf = (value) => {
+      if (!value || !value.startsWith('#')) return value;
+      const colon = value.indexOf(':');
+      return colon === -1 ? value : '#' + value.slice(colon + 1);
+    };
     const hrefForPage = (href) => {
-      const value = text(href);
+      const value = anchorOf(text(href));
       if (!value || !value.startsWith('#') || !tenantHome) return value;
       // Hash-only links work on the home page but not on /showcase, /timetable
       // or /register, so away from home they name the home page first.
@@ -295,7 +311,12 @@
           }
         }
         setLabel(node, module?.label);
-        if (visible && node.tagName === 'A' && node.getAttribute('href') === '#home:' + key) {
+        // Compare against the CONTRACT href, not the rendered one: the rendered
+        // one is now normalised (and was already page-prefixed away from home),
+        // so reading it back could only ever match by accident. It matched for
+        // three of eight entries before — `principal` carries `#home:artist`,
+        // never `#home:principal` — so this marker was quietly half-dead.
+        if (visible && node.tagName === 'A' && text(module?.href).startsWith('#')) {
           node.dataset.surfaceReady = 'true';
         }
       });

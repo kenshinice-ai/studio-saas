@@ -1,3 +1,312 @@
+# PWE Studio v10.5.0 — 四个缺陷，没有一个是 10.3.0 带来的
+
+> 这一版的四条修复全部来自**在生产上用真实会话跑一遍**：租户 owner、平台超管
+> （含 support 模式）各一轮，30 条租户路径、23 个界面分区、真实分辨率量渲染。
+>
+> **先说一件必须写在最前面的事**：这四个缺陷，git 逐条核对下来在 **v10.2.2 与
+> v10.3.0 里逐字相同**。它们比 10.2.2 更老。「回退到 10.2.2」修不好其中任何一个，
+> 只会丢掉 RLS。10.3.0 的失败在别处 —— 造世界脚本的身份，以及发布说明连续两次
+> 写错事实。那是发布纪律的问题，和这四条是两件事。
+>
+> **也必须写下来：前两版的离线体检有四条结论是错的**（对比度失败的令牌线上引用
+> 为 0、「两界面配色不一致」其实是 `.preview-device` 预览子树、控制台触控目标违规
+> 实为 0、「付款不核销」实为 oldest-first 正确工作）。数 CSS 声明数不出界面，
+> 读代码读不出行为。这一版的每一条都是量出来的。
+
+## 四个修复
+
+### 1. `gzip_types` 少了一个词，每次首访多传 582KB
+
+nginx 的压缩白名单里有 `application/javascript`，没有 `text/javascript`。
+而 Flask 给 `/assets/*.js` 发的正是后者（Python 的 mimetypes 这样映射 `.js`），
+`/vendor/` 下由 nginx 直接从磁盘发的才是前者。
+
+**于是同一个页面上一半脚本压缩、一半原样发出**，而且不压缩的恰好是最大的那些：
+
+```
+cms-app.js       589,893 → 118,611     省 471KB
+admin-i18n.js     97,477 →  35,335     省  62KB
+cms-i18n.js       48,821 →  18,861     省  30KB
+public-surface.js 26,806 →   8,261     省  18KB
+CMS 首访合计      855KB  →  273KB
+```
+
+两种拼写按 RFC 9239 都合法，所以白名单必须两个都写 —— 否则它静默地取决于
+「这个文件碰巧由谁来发」。
+
+### 2. 头部继承了正文的阅读宽度，于是导航在任何屏幕上都收起
+
+`.wrap{max-width:1180px}` 同时作用在头部行上。`fitNavigation()` 的算术是对的，
+但它的**预算因此成了常数**：1366 的笔记本、1920、5K 显示器，行宽都是 1180px。
+
+```
+need   = 1006px  （8 个链接 + 语言键，含 8×30px 间距）
+budget = 1138 − 260(logo) − 4 = 874px
+→ 英文导航在 901px 以上的每一个宽度都 fits=false
+```
+
+**不存在能展开英文导航的屏幕尺寸。** 中文标签短，need 落在 874 以下，所以它
+读起来像「只有英文坏」—— 与语言无关，只是英文更长。
+
+修法是 `.navrow{max-width:1600px}`：头部是 chrome，不是正文，不欠 1180px 的
+阅读宽度。1600px 下预算 1294px，导航展开且品牌名保留。1600px 以下这条是惰性的。
+
+### 3. contract 的键不是地址
+
+`#home:courses` 里冒号前是 surface（这个信息条目本身已经用 `surface` 字段带着），
+冒号后才是浏览器能解析的那一半。它被原样写进 href，于是 **artist / courses /
+gallery / faq 四个入口指向不存在的元素 id** —— 点下去页面纹丝不动，中英文都是，
+每个租户都是，没有任何 JS 兜底。不带冒号的（`#my`、`#join`）一直正常，
+这就是它看起来时好时坏的原因。
+
+归一化放在**写进 href 的那一处**，contract 保持不变，一处修好桌面导航、
+移动导航和页脚三套。
+
+顺带修掉一个半死的标记：`data-surfaceReady` 原本拿渲染后的 href 去比
+`'#home:' + key`，而 `principal` 携带的是 `#home:artist` —— 八个条目里只有三个
+碰巧匹配。现在比的是 contract 里的 href。
+
+### 4. 双语字段被字符串读取器写坏
+
+```python
+profile["seo_title"] = _first_text(data, "seo_title", "seoTitle", ..., limit=120)
+```
+
+`_first_text` 结尾是 `str(value)`。`seo_title` 是 `{"zh": …, "en": …}`，
+于是存进库的是 **Python 的 repr** —— `{'en': "…", 'zh': "…"}` —— 而 `limit`
+还会把这串东西从中间截断。
+
+它直接进了 `<title>`、`og:title` 和 meta description。**工作室在自己的浏览器
+标签、书签、Google 结果和每一张微信/WhatsApp 分享卡片上看到一个字典。**
+
+两侧的读取器（服务端 `_pick_pair`、门户 `pickLocalized`）本来就能处理双语对，
+所以在没人比对「存进去的形状」和「写进去的形状」之前，它一直像个渲染 bug。
+
+**触发条件是最扎心的地方：把字段认真填完的租户才会中招。** 没填的租户回退到
+工作室名字，永远是干净的。
+
+写路径改用 `_localized_pair`（并保留 camelCase 别名 —— 丢掉别名就是
+「保存即清字段」那类事故重演）。读路径同时加固：存量脏行不许再进 `<title>`。
+
+## 版本号不再印在页面上
+
+官网首屏与页脚、定价页页脚的 `v10.x` 标签移除。资源 URL 的 `?v=` 是**缓存键**，
+保留；`/v1/health` 的 `appVersion` 是内部事实，保留。
+
+**用户手册保留自己的版本号** —— 一份打印出来的手册没有版本号，工作室就无法
+判断它和自己的系统对不对得上。那是文档惯例，不是产品 chrome。
+
+## 一条真正的守卫
+
+`test_public_shell.py` 里那七条断言原本把 `#home:faq` 当期望值写死了 ——
+它们检查的是「不要重载页面、不要丢查询参数」，锚点形状只是顺带被固化。
+**所以这个坏锚点通过了每一次测试。** 现在多了一条直说的断言：
+
+```python
+assert ":" not in href.partition("#")[2]
+```
+
+浏览器能解析的锚点里没有冒号。这一条独立于任何未来的 contract 改动。
+
+---
+
+# 线上演习 2026-08-15 — 在生产上按真实身份跑一遍，以及我上一版审计的四条撤回
+
+> 这不是一次发版。这是在 **v10.3.0 的生产系统**上，用真实的 owner 会话
+> （Janet M / lets-paint-showcase）把读写路径跑了一遍，外加按真实分辨率
+> （1920×1080 桌面、820×1180 iPad）量渲染结果。
+>
+> **写在最前面的是撤回，不是发现。** 上一版审计（`docs/Audit_2026-08-15_Live_v10.3.0.md`
+> 的初稿）里有四条是错的，错法是同一个：**我数的是 CSS 声明，不是屏幕。**
+> 这正是 v10.2.1 已经写过一次的教训——「查 DOM 属性查不出版面」——我换了个
+> 姿势又犯了一遍：用正则数 `font-size` 和 `--token:`，不管选择器作用域，
+> 也不管那条规则在线上到底有没有元素命中。
+
+## 一、四条撤回
+
+| 上一版的说法 | 实际 |
+|---|---|
+| `--ui-success` 3.30、`--ui-accent` 2.15 是「用在家长晚上打开的那一面」的对比度失败 | 这两个令牌在**全部 18 个线上资源 + 8 个线上页面里被引用 0 次**。`ui-tokens.css` 的色值层基本是死的，只被 `brand-system.css` 的回退链引用 |
+| `--ui-warning` 未定义 → 「同一状态在两个界面上两个颜色」 | 未定义是真的（引用 1 次，定义 0 次），但那条规则是 `.brand-status[data-tone="warning"]`，**线上没有任何元素命中它**。是个会在下一个人写 `class="brand-status"` 时静默取到 `#5B421F` 的陷阱，不是现行缺陷 |
+| studio-admin「覆盖了生成的调色板，12 个角色里 11 个不一致」 | **完全错**。那 11 个值的作用域是 `.preview-device`——租户官网预览子树。自定义属性会继承，所以同名令牌在预览里指租户色、在别处指控制台色。源码注释把这个设计和它修掉的 1.09:1 bug 都写清楚了。是我的正则不认作用域 |
+| 「两个触控目标 <44px」「84 处字号低于 14px」 | 控制台里**低于 44px 的控件是 0**。那两个不合格的在**登录页**（「显示」32px、`×` 42px）。110 处字号里 16 处属于预览子树 |
+
+**结论性的一句**：这套系统的设计系统比我上一版说的健康得多。真正该改的，
+是「量的方法」，不是「颜色」。
+
+## 二、这一轮真正量到的
+
+### 2.1 租户官网的 title 是一个 Python dict —— 目前最贵的一个
+
+线上 `lets-paint-showcase`：
+
+```
+document.title = {'en': "Let's Paint Studio — adult painting classes in Melbourne", 'zh': "Let's Paint Studio · 墨尔本成人绘画小班"}
+og:title、meta[name=description] 同样
+```
+
+**服务端发出的 HTML 是对的**（`<title>` 是干净的英文）。是页面内联 JS 的
+`document.title = seoTitle || b.name` 把 `websiteProfile.seo_title` 这个双语
+字典直接赋了上去。同一个 `/brand` payload 里 `about_title`、`about_body`、
+`about_eyebrow` 都正确地选了语言 —— **只有 SEO 那三个字段漏掉了选语言那一步。**
+
+影响：浏览器标签、书签、**搜索结果的标题与摘要**、微信/WhatsApp 分享卡片。
+
+触发条件是最扎心的地方：`lets-paint-studio`（没填双语 SEO 字段）**是干净的**，
+`lets-paint-showcase`（填了）是坏的。**认真把字段填完的租户才会中招**，
+而那个恰好是拿去给客户看的演示站。
+
+这是 `payload-rebuild-erases-fields` / `stored-records-are-not-user-input`
+同一家族的第三个变体：**存了 ≠ 显示了 ≠ 显示对了。**
+
+### 2.2 【已撤回】「付款不核销」是我读错了 —— 钱层是对的
+
+我一度报了一条「记了付款、发票分文未动」的严重缺陷。**它不存在。**
+
+`auto_allocate` 的 docstring 写得清清楚楚：**apply it to the oldest debt first**。
+我每次却去读**自己刚建的那张新发票**，看到 `paid=0` 就判定没核销。
+
+租户重置后干净复现三次，决定性证据：
+
+```
+POST /v1/billing/payments ×3  →  1000 + 1000 + 2500 分
+响应 allocations: [{amount_cents: 2500, invoice_id: 6ab88132…}]   ← 指向别的发票
+INV-0003（01 Jul 2026 签发，最老的一张）→ paid = 4500  bal 60500 → 56000
+```
+
+4500 分不多不少。**系统一直在正确地把钱记到最老的欠款上。**
+
+同时撤回两条附带的错判：
+- 「付款在对账单里看不见」—— 看不见是因为我当场全额退款了。重测下来
+  对账单的付款笔数 1 → 2 → 3，一笔不少。
+- 「全租户 0 笔付款」—— 那是把 `GET /v1/billing/payments` 的 **405**
+  （该路径只有 POST）响应体当成了空列表。
+
+**这一条留在这里是因为它是今天最贵的教训**：我连续三次把「我查错了对象」
+报成「系统坏了」。金额、状态、审计三样都摆在那里，我读的是第四样。
+
+### 2.3 写路径在 RLS 下是活的（推翻了担心）
+
+学员创建、发票起草/加行/签发/作废、学员归档：全部落库、可读回、审计齐全。
+学员总数 12 → 13 → 12（演习数据已清理）。
+
+**所以 v10.3.0 没有普遍打挂写入。** 坏的是特定路径，不是 RLS 本身。
+
+### 2.4 API 契约不一致（写接口的命名法按资源随机）
+
+```
+POST /v1/students          要 display_name        （蛇形）
+POST /v1/billing/invoices  要 billingAccountId    （驼峰）
+POST .../lines             要 unitPriceCents      （驼峰）
+```
+
+读接口则两种都发 —— 这和 `/v1/public/<slug>/brand` 有 31%（19 组键、约
+13.3KB / 42.3KB）是逐字重复，是同一个根：**没有一处地方决定过大小写。**
+
+### 2.5 两个静默丢弃
+
+- 建发票时传 `dueDate: 2026-09-15` → 201 不报错 → 签发后变成 `8/22`
+  （按 payment_terms_days 重算）。收下了又不用。
+- `POST /v1/billing/payments` 收了 `invoiceId`，不报错，也不用。
+
+### 2.6 界面（真实分辨率）
+
+桌面 1920×1080：
+
+- **202 个文本节点，真实对比度不达标的只有 1 处**：选中的行业预设卡背景变成
+  `--accent-soft (#C9D0DF)`，卡内次要文字仍是 `--muted (#626977)` → **3.57:1**。
+  `--on-accent-soft (#0E1729)` 已经由生成器算好，只是没接上。**一处 CSS。**
+- studio-admin 12 个分区、CMS 11 个分区：**全部渲染，零 JS 错误，切分区零网络请求**。
+- 控制台中文正文最小落在 11px（行业预设卡说明），侧栏分组标签 10px。
+  这是密度取舍不是违规，但**中文在同 px 下比拉丁文吃力**，值得单独定一档。
+
+iPad 820×1180：无横向溢出，预览面板下沉保留，控制台触控目标全部 ≥44px。
+**唯一真问题：底部保存条压住颜色主题卡。**
+
+登录页（两个控制台共用）：
+- `input, select, textarea` 的边框是 `--line #DCD8D2` on `--panel #FFFDFC`
+  = **1.40:1**，WCAG 2.1 SC 1.4.11 要 3:1。`--line-strong` = 3.62:1 已存在，
+  只用在取色器上。**一行。**
+- 输入框 `font-size: 14px` → iOS Safari 聚焦强制缩放；且不在字阶上
+  （`--ui-type-sm` = 16px）。**一处，修两件事。**
+- 「显示」按钮 32px、`×` 42px，低于自己定义的 `--ui-touch-target: 44px`。
+
+### 2.7 每一个租户官网的主导航有 4 个死链（Lee 报的，已确认）
+
+```
+<a href="…#home:artist">   → getElementById('home:artist') = null   （'artist'  存在）
+<a href="…#home:courses">  → null                                   （'courses' 存在）
+<a href="…#home:gallery">  → null                                   （'gallery' 存在）
+<a href="…#home:faq">      → null                                   （'faq'     存在）
+```
+
+`page:section` 这个内部路由键被整个拼进了 href 的锚点，没有在冒号处拆开。
+**冒号后面那一半正是页面上真实存在的 id。**
+
+实测点击「课程与班次」：`scrollY` 0 → 0，目标区块在 4399px，URL 变成
+`#home:courses`，**没有任何 JS 兜底**。凡是不带冒号的锚点（`home` / `my` /
+`join` / `privacy` / `main-content`）全部正常。
+
+范围：**中英文都坏，`lets-paint-showcase` 和 `lets-paint-studio` 都坏**
+—— 是租户官网模板级缺陷，等于每一个租户的对外网站主导航都有 4 个死链。
+Lee 只在英文站注意到，实际与语言无关。
+
+## 三、演示重置：我把「脚本坏了」错报成「按钮坏了」
+
+`showcase-demo-reset-never-ran` 那条 memory 记的是「缺 demo 密钥，也没装定时器」，
+我据此建议装 systemd timer。**Lee 说不需要定时器** —— 重置是 platform-admin
+里的一键操作，和「结算故意保持手动」是同一个取舍：自动化是商业决策。
+
+我接着又断言「那个按钮现在按下去会失败」。**Lee 当场点了，7.5 秒重建完成：**
+
+```
+demo_tenant.reset   from=platform_admin  seconds=7.5
+students=12  student_works=8  studio_works=15
+```
+
+**区别在这里，v10.3.1 的说明没有说清**：
+
+- **按钮**走 HTTP 路由 → `super_admin_required` 在 `g` 上打平台标记 →
+  `connect()` 设 `studiosaas.platform='on'` → 无条件绕过所有策略。**一直是好的。**
+- **命令行脚本**没有 Flask 上下文 → 拿不到平台标记 → 以受限的应用角色跑 →
+  RLS 下一行写不进去。**这才是 v10.3.1 用 `use_owner_connection()` 修的东西。**
+
+所以 v10.3.1 该发，但它修的是运维脚本，不是产品功能。**生产上没有坏掉的按钮。**
+
+## 四、平台控制台与 support 模式（super_admin 会话实测）
+
+平台侧全部正常，无一失败：
+
+```
+/v1/admin/tenants                      200  114ms   6 租户
+/v1/admin/usage                        200  103ms
+/v1/admin/audit-logs                   200  104ms   100 条
+/v1/admin/subscriptions/settlement     200   95ms   findings: 0
+/v1/plans                              200   66ms   3 个套餐
+```
+
+support 模式实测是**按设计工作**的：`/v1/auth/me` 回的 support 上下文带
+`reason`（必填）、`slug`、`tenant_id`、`started`，审计里 `support.session_started`
+一条不落。破坏性操作有打字确认闸门：不带确认调 demo-reset 返回
+`400 Type RESET-LETS-PAINT-SHOWCASE to confirm.`
+
+showcase 租户内 30 条路径全扫，**零 500、零异常**（400/405/404 都是我参数
+或方法写错）。最慢 228ms。
+
+## 五、没能覆盖的
+
+- **跨租户隔离的线上验证被安全分类器拦下**：我想用 showcase 的会话去读
+  `lets-paint-studio` / `isolation-alpha`，确认 RLS 在生产上真的挡得住。
+  这个动作在形式上与攻击无异，没有绕过。需要 Lee 明确点头再跑。
+  （隔离套件 237 条在本地是绿的，但那不是生产。）
+- **iPhone 宽度没量**：Chrome 窗口有最小宽度限制。
+- **数据库内部状态**：表大小、索引命中、慢查询、audit_logs 的真实 IP 分布，
+  都要在机器上执行。
+- **演习残留**：三张试验发票（INV-0005/0006/0007）和 4500 分已核销到
+  INV-0003。**点一次 rebuild 即可复原**（已验证 7.5 秒）。
+
+---
+
 # PWE Studio v10.3.1 — 造世界的脚本归属主
 
 > v10.3.0 让 RLS 在生产上真正生效，同时**打挂了演示重置**：那个脚本以应用

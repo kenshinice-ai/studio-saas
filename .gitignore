@@ -83,3 +83,11 @@ tenants/test-*/
 # Structural on purpose: the rule is the directory, so it cannot be forgotten
 # by whoever writes the next one.
 docs/sales/clients/
+
+# Live-system audits name unfixed weaknesses in a system that is running right
+# now, and this repository is public. A report describing, say, how to exhaust a
+# login rate limiter is a disclosure the moment it is pushed — before the fix
+# ships it helps only an attacker. Keep them here until the findings they
+# describe are deployed, then move the write-up into docs/ if it is still worth
+# keeping.
+docs/security/

@@ -5421,7 +5421,12 @@
         node.dataset.surfaceKey = module.key;
         node.title = module.visible ? '' : adminText('公开页面尚未准备好。', 'Public surface is not ready yet.');
         if (module.visible) {
-          node.href = module.href;
+          // Same contract-key-is-not-an-address rule as public-surface.js:
+          // `#home:courses` names a surface and an anchor, and only the second
+          // half is a fragment a browser can resolve.
+          node.href = /^#[^:]+:/.test(module.href || '')
+            ? '#' + module.href.slice(module.href.indexOf(':') + 1)
+            : module.href;
           node.dataset.surfaceReady = 'true';
         } else {
           node.className = 'preview-nav-unavailable';

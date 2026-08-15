@@ -121,17 +121,24 @@ def _run_probe(script_body: str, tmp_path: Path) -> dict:
     ("path", "search", "expected"),
     [
         # On the home page the link must stay in the same document, which means
-        # reproducing the query exactly. `/slug#home:faq` against `/slug?lang=en`
+        # reproducing the query exactly. `/slug#faq` against `/slug?lang=en`
         # is a different URL, so the browser reloaded and dropped `lang`.
-        ("/demo-studio", "?lang=en", "/demo-studio?lang=en#home:faq"),
-        ("/demo-studio/", "?lang=en", "/demo-studio/?lang=en#home:faq"),
-        ("/demo-studio", "?utm_source=wechat", "/demo-studio?utm_source=wechat#home:faq"),
-        ("/demo-studio", "", "/demo-studio#home:faq"),
+        #
+        # The fragment is `#faq`, not `#home:faq`: the contract key names a
+        # surface AND an anchor, and only the second half is an element id. The
+        # composite used to reach the href unchanged, so all four of these links
+        # pointed at ids that do not exist and moved the page zero pixels. This
+        # test asserted the composite as a side effect of checking the query,
+        # which is how the broken fragment survived every run.
+        ("/demo-studio", "?lang=en", "/demo-studio?lang=en#faq"),
+        ("/demo-studio/", "?lang=en", "/demo-studio/?lang=en#faq"),
+        ("/demo-studio", "?utm_source=wechat", "/demo-studio?utm_source=wechat#faq"),
+        ("/demo-studio", "", "/demo-studio#faq"),
         # Away from home the link has to name the home page. The visitor's
         # language travels with them; a page-local filter does not.
-        ("/demo-studio/showcase", "?lang=en&category=abc", "/demo-studio?lang=en#home:faq"),
-        ("/demo-studio/showcase", "", "/demo-studio#home:faq"),
-        ("/demo-studio/timetable", "?lang=zh", "/demo-studio?lang=zh#home:faq"),
+        ("/demo-studio/showcase", "?lang=en&category=abc", "/demo-studio?lang=en#faq"),
+        ("/demo-studio/showcase", "", "/demo-studio#faq"),
+        ("/demo-studio/timetable", "?lang=zh", "/demo-studio?lang=zh#faq"),
     ],
 )
 def test_hash_links_stay_in_the_document_they_belong_to(path, search, expected, tmp_path):
@@ -145,7 +152,13 @@ const scope = makeScope('demo-studio', 'zh');
 surface.apply(contractFor('#home:faq'), scope);
 console.log(JSON.stringify({{ href: scope.getElementById('navFaq').href }}));
 """
-    assert _run_probe(body, tmp_path)["href"] == expected
+    href = _run_probe(body, tmp_path)["href"]
+    assert href == expected
+    # The real guard, stated once rather than implied by seven expectations: a
+    # fragment a browser can resolve carries no colon. Without this line the
+    # composite could return through any future contract change and every
+    # assertion above would still be about query strings.
+    assert ":" not in href.partition("#")[2]
 
 
 def test_absolute_links_are_left_alone(tmp_path):
