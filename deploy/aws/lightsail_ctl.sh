@@ -118,7 +118,14 @@ case "${1:-}" in
     # WORKDIR is /app and the script lives at /app/backend/scripts/. The old
     # `scripts/backup_postgres.py` never existed in the image, so every daily
     # backup failed with "can't open file" — and nothing read the output.
-    dc exec -T app python backend/scripts/backup_postgres.py backup \
+    # pg_dump must use the database owner: tenant tables are FORCE RLS, so the
+    # bounded runtime role cannot create a complete restorable dump. The owner
+    # URL is injected for this one-shot backup only, just like restore-dry-run;
+    # the app process never receives it.
+    dc exec -T \
+      -e STUDIOSAAS_DATABASE_URL="$(sudo sh -c "sed -n 's/^LOCAL_DB_PASSWORD=//p' '$ENV_FILE' | tail -1" | \
+          sed 's#^#postgresql://studiosaas:#; s#$#@db:5432/studiosaas#')" \
+      app python backend/scripts/backup_postgres.py backup \
       --backup-dir /data/backups/postgres
     # Dumps had no retention while the volume tarballs below delete at +7 days,
     # so this directory was the one store on the box that only ever grew — one
