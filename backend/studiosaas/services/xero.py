@@ -33,6 +33,7 @@ number with no way to tell which is true.
 from __future__ import annotations
 
 import hashlib
+import json
 from dataclasses import dataclass
 from typing import Any
 
@@ -49,6 +50,83 @@ INTEGRATION_STAGE = "live" if TRANSPORT_AVAILABLE else "preview"
 
 class XeroError(RuntimeError):
     """A Xero operation was refused, with a reason a studio can act on."""
+
+
+def _stable_json(value: Any) -> str:
+    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def prepare_document_export(
+    document: dict[str, Any], *, source_revision: str = ""
+) -> dict[str, Any]:
+    """Map an immutable InvoiceDocument DTO to a Xero Preview payload.
+
+    This is intentionally a pure mapper.  It accepts the document DTO returned
+    by ``invoice_documents`` rather than an invoice row, so an issued payer
+    snapshot and each original line tax rate are the only legal inputs.  No
+    OAuth, transport, queue write, or live payer lookup belongs here.
+    """
+
+    required = {"document", "supplier", "recipient", "lines", "totals", "paymentSummary"}
+    if not isinstance(document, dict) or not required.issubset(document):
+        raise XeroError("Xero Preview requires an InvoiceDocument DTO, not a live billing row.")
+    meta = document["document"]
+    if not isinstance(meta, dict):
+        raise XeroError("InvoiceDocument DTO has an invalid document metadata object.")
+    kind = str(meta.get("kind") or "invoice")
+    if kind not in {"invoice", "credit_note"}:
+        raise XeroError("InvoiceDocument DTO kind must be invoice or credit_note.")
+
+    lines: list[dict[str, Any]] = []
+    for line in document["lines"]:
+        if not isinstance(line, dict) or "taxRateBp" not in line:
+            raise XeroError("InvoiceDocument DTO lines must include the original taxRateBp.")
+        tax_rate_bp = int(line["taxRateBp"])
+        if not 0 <= tax_rate_bp <= 10000:
+            raise XeroError("InvoiceDocument DTO taxRateBp is outside the supported range.")
+        lines.append({
+            "description": str(line.get("description") or ""),
+            "quantity": str(line.get("quantity") or "0"),
+            "unitPriceCents": int(line.get("unitPriceCents") or 0),
+            "taxRateBp": tax_rate_bp,
+            "taxRate": f"{tax_rate_bp / 100:.2f}%",
+            "netCents": int(line.get("netCents") or 0),
+            "taxCents": int(line.get("taxCents") or 0),
+            "totalCents": int(line.get("totalCents") or 0),
+            "sourceKind": str(line.get("sourceKind") or "manual"),
+        })
+
+    canonical = {
+        "document": document["document"],
+        "supplier": document["supplier"],
+        "recipient": document["recipient"],
+        "lines": lines,
+        "totals": document["totals"],
+        "paymentSummary": document["paymentSummary"],
+    }
+    document_hash = hashlib.sha256(_stable_json(canonical).encode("utf-8")).hexdigest()
+    revision = str(source_revision or meta.get("revision") or document_hash[:16])
+    return {
+        "stage": "preview",
+        "transportAvailable": False,
+        "object": {
+            "kind": kind,
+            "id": str(meta.get("id") or ""),
+            "number": meta.get("number"),
+            "status": str(meta.get("status") or "draft"),
+            "currency": str(meta.get("currency") or "AUD"),
+            "revision": revision,
+            "hash": document_hash,
+        },
+        "contact": {
+            "displayName": str(document["recipient"].get("displayName") or ""),
+            "email": str(document["recipient"].get("email") or ""),
+            "kind": str(document["recipient"].get("kind") or "family"),
+        },
+        "lines": lines,
+        "totals": document["totals"],
+        "payment": document["paymentSummary"],
+    }
 
 
 #: Every kind of line that needs somewhere to land in the chart of accounts.

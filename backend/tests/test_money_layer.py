@@ -516,6 +516,26 @@ def test_0043_declares_the_single_snapshot_bridge_and_idempotency_contract():
         assert required in migration
 
 
+def test_0044_declares_source_credit_transaction_provenance_and_safe_backfill():
+    """Every refund must name its purchase source in the ledger itself."""
+
+    migration_path = BACKEND_ROOT / "db/migrations/0044_credit_refund_source.sql"
+    assert migration_path.is_file()
+    migration = migration_path.read_text(encoding="utf-8")
+    for required in (
+        "source_credit_transaction_id",
+        "FOREIGN KEY (tenant_id, source_credit_transaction_id)",
+        "ON DELETE RESTRICT",
+        "credit_transactions_source_credit_transaction_idx",
+        "related_credit_transaction_id",
+        "unresolved",
+        "transaction_type = 'refund'",
+        "transaction_type = 'purchase'",
+        "source_credit_transaction_id <> id",
+    ):
+        assert required in migration
+
+
 def test_billing_account_api_has_two_recipient_paths_without_auto_merge():
     """The payer API exposes search/parse/create contracts, not a second model."""
 

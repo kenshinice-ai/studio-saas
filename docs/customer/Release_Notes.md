@@ -1,5 +1,20 @@
 # PWE Studio — Release Notes and Acceptance Evidence
 
+## v10.7.1 source candidate — invoice print repair and money-contract closure
+
+This local source candidate is verified but not committed, packaged, pushed,
+synced to `main`, or deployed. Production remains v10.7.0 until the explicit
+release STOP GATE is authorised.
+
+The candidate completes the v10.7.1 repair checklist around tenant-scoped
+credit-refund sources, stable credit-note tax-rate snapshots, payer review,
+aggregate invoice drafts, accounting exports, and the customer-document print
+fallback. In particular, the browser print CSS now keeps the issued
+`InvoiceDocument` visible instead of hiding it behind the CMS root, and the
+generated browser PDF title identifies the selected document (for example
+`Tax Invoice · INV-0007`). Xero remains Preview-only; no OAuth, transport,
+worker, or webhook is included.
+
 ## v10.7.0 — invoice operations and explicit credit settlement
 
 This source candidate has passed the internal A–F checklist gates in the

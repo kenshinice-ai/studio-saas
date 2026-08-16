@@ -60,6 +60,7 @@ from .services import billing as _billing
 from .services import credit_settlements as _credit_settlements
 from .services import credit_refunds as _credit_refunds
 from .services import invoice_documents as _invoice_documents
+from .services import invoice_drafts as _invoice_drafts
 from .services import calendar_subscriptions as _calendar_subs
 from .services import entitlements as _entitlements
 from .services import notification_channels as _channels
@@ -9601,12 +9602,13 @@ def create_credit_refund(student_id: str):
     actor = getattr(g, "actor", None)
     try:
         if not adjust_documents:
-            # The UI uses the legacy endpoint for this deliberate branch. Keep
-            # the service strict so a caller cannot accidentally report a
-            # credits-only operation as a document-adjusting refund.
-            raise ValueError("Credits-only refunds use the legacy endpoint.")
-        require_permission(actor, "payments:refund")
-        require_permission(actor, "billing:issue")
+            # Credits-only is still source-aware and idempotent, but it does
+            # not touch money documents, so the document permissions are not
+            # required for this explicit branch.
+            pass
+        else:
+            require_permission(actor, "payments:refund")
+            require_permission(actor, "billing:issue")
     except (PermissionDeniedError, ValueError) as exc:
         return _error(str(exc), 403 if isinstance(exc, PermissionDeniedError) else 400)
 
@@ -12269,6 +12271,11 @@ def auth_me():
         if not user or user["status"] != "active":
             return _error("Authentication required. Please log in.", 401)
 
+        # Memberships are protected by tenant-isolation RLS. Bind the session
+        # user before reading them so a valid post-login session can see its
+        # own memberships without relying on a tenant cookie/context.
+        _bind_user_session(conn, str(user_id))
+
         # LEFT JOIN keeps the platform membership (tenant_id IS NULL),
         # which the Super Admin UI uses to gate access.
         memberships = fetch_all(
@@ -12956,6 +12963,166 @@ def billing_accounts():
     }), 201
 
 
+@api_v1.route("/billing/accounts/<account_id>", methods=["GET", "PATCH"])
+@permission_required("billing:read")
+def billing_account_detail(account_id: str):
+    """View or edit the live payer; issued document snapshots stay untouched."""
+
+    try:
+        account_uuid = str(_uuid.UUID(account_id))
+    except ValueError:
+        return _error("account_id must be a valid ID.")
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        account = fetch_one(
+            conn,
+            """
+            SELECT id, name, kind, contact_name, email, mobile, company_name, abn,
+                   billing_address, payment_terms_days, purchase_order_ref, language,
+                   note, status, created_at, updated_at
+              FROM billing_accounts
+             WHERE tenant_id = %s AND id = %s
+            """,
+            (tenant.tenant_id, account_uuid),
+        )
+        if not account:
+            return _error("Billing account not found.", 404)
+        if request.method == "GET":
+            members = fetch_all(
+                conn,
+                """
+                SELECT s.id, s.display_name
+                  FROM billing_account_members m
+                  JOIN students s ON s.tenant_id = m.tenant_id AND s.id = m.student_id
+                 WHERE m.tenant_id = %s AND m.billing_account_id = %s
+                 ORDER BY lower(s.display_name), s.id
+                """,
+                (tenant.tenant_id, account_uuid),
+            )
+            return jsonify({"account": account, "members": members})
+
+        try:
+            require_permission(getattr(g, "actor", None), "billing:write")
+            payload = _json_payload()
+            allowed = {
+                "name", "kind", "contactName", "email", "mobile", "companyName", "abn",
+                "billingAddress", "paymentTermsDays", "purchaseOrderRef", "language", "note",
+                "allowPossibleDuplicate",
+            }
+            _reject_unknown_keys(payload, allowed, "billing account update")
+            allow_duplicate = _strict_boolean(
+                payload, "allowPossibleDuplicate", default=False
+            )
+            name = _clean_text(payload, "name", account["name"])
+            kind = _clean_text(payload, "kind", account["kind"])
+            if kind not in {"person", "family", "organisation"}:
+                raise ValueError("kind must be person, family, or organisation.")
+            company_name = _clean_text(payload, "companyName", account["company_name"])
+            if kind == "organisation" and not (name or company_name):
+                raise ValueError("An organisation needs a company name.")
+            if kind != "organisation" and not name:
+                raise ValueError("A personal or family account needs a name.")
+            email = _clean_text(payload, "email", account["email"]).lower()
+            if email and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
+                raise ValueError("email must be a valid email address or empty.")
+            mobile = _clean_text(payload, "mobile", account["mobile"])
+            if mobile and not re.fullmatch(r"[+0-9() .-]{6,32}", mobile):
+                raise ValueError("mobile must contain phone characters only.")
+            abn = _clean_text(payload, "abn", account["abn"])
+            abn_digits = re.sub(r"\D", "", abn)
+            if abn and len(abn_digits) != 11:
+                raise ValueError("abn must contain 11 digits, with spaces optional.")
+            language = _clean_text(payload, "language", account["language"])
+            if language not in {"", "zh", "en"}:
+                raise ValueError("language must be empty, zh, or en.")
+            payment_terms_days = int(payload.get("paymentTermsDays", account["payment_terms_days"]))
+            if not 0 <= payment_terms_days <= 3650:
+                raise ValueError("paymentTermsDays must be between 0 and 3650.")
+        except PermissionDeniedError as exc:
+            return _error(str(exc), 403)
+        except (TypeError, ValueError) as exc:
+            return _error(str(exc))
+
+        duplicate_where = ["tenant_id = %s", "status = 'active'", "id <> %s"]
+        duplicate_params: list[object] = [tenant.tenant_id, account_uuid]
+        duplicate_parts: list[str] = []
+        if abn_digits:
+            duplicate_parts.append("regexp_replace(COALESCE(abn, ''), '[^0-9]', '', 'g') = %s")
+            duplicate_params.append(abn_digits)
+        if email:
+            duplicate_parts.append("lower(trim(email)) = %s")
+            duplicate_params.append(email)
+        if mobile:
+            duplicate_parts.append("regexp_replace(COALESCE(mobile, ''), '[^0-9]', '', 'g') = %s")
+            duplicate_params.append(re.sub(r"\D", "", mobile))
+        duplicates = []
+        if duplicate_parts:
+            duplicates = fetch_all(
+                conn,
+                f"""
+                SELECT id, name, kind, company_name, email, mobile, abn
+                  FROM billing_accounts
+                 WHERE {' AND '.join(duplicate_where)}
+                   AND ({' OR '.join(duplicate_parts)})
+                 ORDER BY lower(name), id LIMIT 10
+                """,
+                tuple(duplicate_params),
+            )
+        if duplicates and not allow_duplicate:
+            return api_error(
+                "A possible duplicate payer was found. Review before saving.",
+                409,
+                details={
+                    "requiresReview": True,
+                    "possibleDuplicates": [{**row, "id": str(row["id"])} for row in duplicates],
+                },
+            )
+
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE billing_accounts
+                   SET name = %s, kind = %s, contact_name = %s, email = %s, mobile = %s,
+                       company_name = %s, abn = %s, billing_address = %s,
+                       payment_terms_days = %s, purchase_order_ref = %s,
+                       language = %s, note = %s, updated_at = now()
+                 WHERE tenant_id = %s AND id = %s
+                 RETURNING id, name, kind, contact_name, email, mobile, company_name, abn,
+                           billing_address, payment_terms_days, purchase_order_ref, language,
+                           note, status, created_at, updated_at
+                """,
+                (
+                    name, kind, _clean_text(payload, "contactName", account["contact_name"]),
+                    email, mobile, company_name, abn,
+                    _clean_text(payload, "billingAddress", account["billing_address"]),
+                    payment_terms_days,
+                    _clean_text(payload, "purchaseOrderRef", account["purchase_order_ref"]),
+                    language, _clean_text(payload, "note", account["note"]),
+                    tenant.tenant_id, account_uuid,
+                ),
+            )
+            updated = cur.fetchone()
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="billing_account.updated",
+            resource_type="billing_account",
+            resource_id=account_uuid,
+            metadata={
+                "possibleDuplicateCount": len(duplicates),
+                "possibleDuplicateReview": bool(duplicates and allow_duplicate),
+                "issuedDocumentsRemainSnapshot": True,
+            },
+        )
+        conn.commit()
+    return jsonify({
+        "ok": True,
+        "account": updated,
+        "possibleDuplicates": [{**row, "id": str(row["id"])} for row in duplicates],
+    })
+
+
 @api_v1.route("/billing/accounts/<account_id>/members", methods=["POST", "DELETE"])
 @permission_required("billing:write")
 def billing_account_members(account_id: str):
@@ -13161,8 +13328,8 @@ def _invoice_export_date(raw: str, label: str):
 
 def _invoice_export_filters():
     view = (request.args.get("view") or "summary").strip().lower()
-    if view not in {"summary", "lines"}:
-        raise ValueError("view must be summary or lines.")
+    if view not in {"summary", "lines", "ledger"}:
+        raise ValueError("view must be summary, lines, or ledger.")
 
     raw_status = (request.args.get("status") or "").strip().lower()
     statuses = [value for value in raw_status.split(",") if value]
@@ -13255,6 +13422,114 @@ def billing_invoice_export_csv():
         where_sql, params = _invoice_export_where(
             tenant.tenant_id, statuses, include_drafts, start, end, account_id,
         )
+        if view == "ledger":
+            invoice_where = ["i.tenant_id = %s"]
+            invoice_params: list[object] = [tenant.tenant_id]
+            if statuses:
+                invoice_where.append("i.status IN (" + ", ".join(["%s"] * len(statuses)) + ")")
+                invoice_params.extend(statuses)
+            if not include_drafts:
+                invoice_where.append("i.status <> 'draft'")
+            if start:
+                invoice_where.append("i.issue_date >= %s")
+                invoice_params.append(start)
+            if end:
+                invoice_where.append("i.issue_date <= %s")
+                invoice_params.append(end)
+            if account_id:
+                invoice_where.append("i.billing_account_id = %s")
+                invoice_params.append(account_id)
+
+            note_where = ["n.tenant_id = %s", "n.status <> 'draft'"]
+            note_params: list[object] = [tenant.tenant_id]
+            if start:
+                note_where.append("n.issue_date >= %s")
+                note_params.append(start)
+            if end:
+                note_where.append("n.issue_date <= %s")
+                note_params.append(end)
+            if account_id:
+                note_where.append("n.billing_account_id = %s")
+                note_params.append(account_id)
+
+            payment_where = ["p.tenant_id = %s", "p.status <> 'failed'"]
+            payment_params: list[object] = [tenant.tenant_id]
+            if start:
+                payment_where.append("p.received_at::date >= %s")
+                payment_params.append(start)
+            if end:
+                payment_where.append("p.received_at::date <= %s")
+                payment_params.append(end)
+            if account_id:
+                payment_where.append("p.billing_account_id = %s")
+                payment_params.append(account_id)
+
+            refund_where = ["r.tenant_id = %s", "r.status = 'succeeded'"]
+            refund_params: list[object] = [tenant.tenant_id]
+            if start:
+                refund_where.append("r.created_at::date >= %s")
+                refund_params.append(start)
+            if end:
+                refund_where.append("r.created_at::date <= %s")
+                refund_params.append(end)
+            if account_id:
+                refund_where.append("p.billing_account_id = %s")
+                refund_params.append(account_id)
+
+            ledger_rows = fetch_all(
+                conn,
+                f"""
+                SELECT 'invoice' AS record_type, i.id AS record_id, i.number AS document_number,
+                       COALESCE(i.issue_date, i.created_at::date)::text AS occurred_on,
+                       a.name AS payer, i.status, i.total_cents AS amount_cents,
+                       i.amount_paid_cents AS paid_cents, i.amount_credited_cents AS credited_cents,
+                       i.balance_cents, i.note AS description
+                  FROM invoices i
+                  JOIN billing_accounts a ON a.tenant_id = i.tenant_id AND a.id = i.billing_account_id
+                 WHERE {' AND '.join(invoice_where)}
+                UNION ALL
+                SELECT 'credit_note', n.id, n.number, COALESCE(n.issue_date, n.created_at::date)::text,
+                       a.name, n.status, -n.total_cents, 0, n.total_cents, 0, n.reason
+                  FROM credit_notes n
+                  JOIN billing_accounts a ON a.tenant_id = n.tenant_id AND a.id = n.billing_account_id
+                 WHERE {' AND '.join(note_where)}
+                UNION ALL
+                SELECT 'payment', p.id, NULL, p.received_at::date::text, a.name, p.status,
+                       p.amount_cents, p.amount_cents - p.refunded_cents, 0, 0, p.note
+                  FROM payments p
+                  JOIN billing_accounts a ON a.tenant_id = p.tenant_id AND a.id = p.billing_account_id
+                 WHERE {' AND '.join(payment_where)}
+                UNION ALL
+                SELECT 'refund', r.id, NULL, r.created_at::date::text, a.name, r.status,
+                       -r.amount_cents, -r.amount_cents, 0, 0, r.reason
+                  FROM refunds r
+                  JOIN payments p ON p.tenant_id = r.tenant_id AND p.id = r.payment_id
+                  JOIN billing_accounts a ON a.tenant_id = p.tenant_id AND a.id = p.billing_account_id
+                 WHERE {' AND '.join(refund_where)}
+                ORDER BY occurred_on DESC, record_type, record_id
+                LIMIT %s
+                """,
+                tuple(invoice_params + note_params + payment_params + refund_params + [_INVOICE_EXPORT_MAX_ROWS + 1]),
+            )
+            if len(ledger_rows) > _INVOICE_EXPORT_MAX_ROWS:
+                return _error("Too many accounting ledger rows for one export; narrow the date range.", 413)
+            header = [
+                "Record Type", "Record ID", "Document Number", "Occurred On", "Payer",
+                "Status", "Amount (cents)", "Paid (cents)", "Credited (cents)",
+                "Balance (cents)", "Description",
+            ]
+            data = [
+                [
+                    row["record_type"], row["record_id"], row["document_number"] or "",
+                    row["occurred_on"] or "", row["payer"] or "", row["status"] or "",
+                    row["amount_cents"], row["paid_cents"], row["credited_cents"],
+                    row["balance_cents"], row["description"] or "",
+                ]
+                for row in ledger_rows
+            ]
+            _export_audit(conn, tenant, "accounting-ledger", len(data))
+            safe_rows = ([_invoice_documents.csv_safe_cell(value) for value in row] for row in data)
+            return _csv_response(f"{tenant.slug}-accounting-ledger.csv", header, safe_rows)
         if view == "summary":
             rows = fetch_all(
                 conn,
@@ -13366,6 +13641,42 @@ def billing_invoice_export_csv():
         return _csv_response(f"{tenant.slug}-invoices-lines.csv", header, safe_rows)
 
 
+@api_v1.route("/billing/invoice-drafts", methods=["POST"])
+@permission_required("billing:write")
+def billing_invoice_draft_aggregate():
+    """Create payer (when requested), draft, and lines as one command."""
+
+    try:
+        payload = _json_payload()
+    except ValueError as exc:
+        return _error(str(exc))
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        try:
+            _require_feature(conn, tenant.tenant_id, _entitlements.FEATURE_BILLING)
+            result = _invoice_drafts.create_invoice_draft(
+                conn,
+                tenant.tenant_id,
+                payload,
+                actor_user_id=getattr(getattr(g, "actor", None), "user_id", None),
+            )
+        except _entitlements.FeatureUnavailableError as exc:
+            conn.rollback()
+            return _feature_error(exc)
+        except _invoice_drafts.InvoiceDraftConflict as exc:
+            conn.rollback()
+            return _error(str(exc), 409) if not exc.details else api_error(
+                str(exc), 409, details=exc.details,
+            )
+        except _invoice_drafts.InvoiceDraftError as exc:
+            conn.rollback()
+            return _error(str(exc), 400)
+        conn.commit()
+
+    return jsonify({"ok": True, **result}), 200 if result.get("replayed") else 201
+
+
 @api_v1.route("/billing/invoices", methods=["GET", "POST"])
 @permission_required("billing:read")
 def billing_invoices():
@@ -13390,7 +13701,26 @@ def billing_invoices():
                 conn,
                 """
                 SELECT i.id, i.number, i.status, i.issue_date, i.due_date,
-                       i.total_cents, i.amount_paid_cents, i.balance_cents,
+                       i.total_cents, i.amount_paid_cents, i.amount_credited_cents,
+                       COALESCE((
+                           SELECT SUM(r.amount_cents)
+                           FROM refunds r
+                           JOIN credit_notes cn
+                             ON cn.tenant_id = r.tenant_id AND cn.id = r.credit_note_id
+                           WHERE r.tenant_id = i.tenant_id
+                             AND cn.invoice_id = i.id
+                             AND r.status = 'succeeded'
+                       ), 0) AS amount_refunded_cents,
+                       GREATEST(0, i.amount_paid_cents - COALESCE((
+                           SELECT SUM(r.amount_cents)
+                           FROM refunds r
+                           JOIN credit_notes cn
+                             ON cn.tenant_id = r.tenant_id AND cn.id = r.credit_note_id
+                           WHERE r.tenant_id = i.tenant_id
+                             AND cn.invoice_id = i.id
+                             AND r.status = 'succeeded'
+                       ), 0)) AS net_received_cents,
+                       i.balance_cents,
                        CASE WHEN i.status <> 'draft' AND i.recipient_snapshot <> '{}'::jsonb
                             THEN i.recipient_snapshot->>'displayName' ELSE a.name END AS account_name,
                        a.id AS billing_account_id,
@@ -13465,6 +13795,24 @@ def billing_invoice_detail(invoice_id: str):
             conn,
             """
             SELECT i.*,
+                   COALESCE((
+                       SELECT SUM(r.amount_cents)
+                       FROM refunds r
+                       JOIN credit_notes cn
+                         ON cn.tenant_id = r.tenant_id AND cn.id = r.credit_note_id
+                       WHERE r.tenant_id = i.tenant_id
+                         AND cn.invoice_id = i.id
+                         AND r.status = 'succeeded'
+                   ), 0) AS amount_refunded_cents,
+                   GREATEST(0, i.amount_paid_cents - COALESCE((
+                       SELECT SUM(r.amount_cents)
+                       FROM refunds r
+                       JOIN credit_notes cn
+                         ON cn.tenant_id = r.tenant_id AND cn.id = r.credit_note_id
+                       WHERE r.tenant_id = i.tenant_id
+                         AND cn.invoice_id = i.id
+                         AND r.status = 'succeeded'
+                   ), 0)) AS net_received_cents,
                    a.name AS account_name, a.kind AS account_kind,
                    a.contact_name AS account_contact_name, a.email AS account_email,
                    a.mobile AS account_mobile, a.company_name AS account_company_name,
@@ -13562,6 +13910,78 @@ def billing_invoice_detail(invoice_id: str):
         "creditNotes": credit_notes,
         "document": document,
     })
+
+
+@api_v1.route("/billing/credit-notes/<credit_note_id>", methods=["GET"])
+@permission_required("billing:read")
+def billing_credit_note_detail(credit_note_id: str):
+    """Return a credit-note document using the same immutable DTO primitives."""
+
+    language = (request.args.get("lang") or request.args.get("locale") or "zh").strip().lower()
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        note = fetch_one(
+            conn,
+            """
+            SELECT n.*,
+                   a.name AS account_name, a.kind AS account_kind,
+                   a.contact_name AS account_contact_name, a.email AS account_email,
+                   a.mobile AS account_mobile, a.company_name AS account_company_name,
+                   a.abn AS account_abn, a.billing_address AS account_billing_address,
+                   a.payment_terms_days AS account_payment_terms_days,
+                   a.purchase_order_ref AS account_purchase_order_ref,
+                   a.language AS account_language,
+                   bi.legal_name AS supplier_legal_name,
+                   bi.trading_name AS supplier_trading_name,
+                   bi.abn AS supplier_abn,
+                   bi.gst_registered AS supplier_gst_registered,
+                   bi.address_line1 AS supplier_address_line1,
+                   bi.address_line2 AS supplier_address_line2,
+                   bi.suburb AS supplier_suburb, bi.state AS supplier_state,
+                   bi.postcode AS supplier_postcode, bi.country AS supplier_country,
+                   bi.contact_email AS supplier_contact_email,
+                   bi.contact_phone AS supplier_contact_phone,
+                   bi.website AS supplier_website,
+                   bi.bank_account_name AS supplier_bank_account_name,
+                   bi.bank_bsb AS supplier_bank_bsb,
+                   bi.bank_account_no AS supplier_bank_account_no,
+                   bi.payment_note AS supplier_payment_note
+              FROM credit_notes n
+              JOIN billing_accounts a
+                ON a.tenant_id = n.tenant_id AND a.id = n.billing_account_id
+              LEFT JOIN tenant_billing_identity bi ON bi.tenant_id = n.tenant_id
+             WHERE n.tenant_id = %s AND n.id = %s
+            """,
+            (tenant.tenant_id, credit_note_id),
+        )
+        if not note:
+            return _error("Credit note not found.", 404)
+        lines = fetch_all(
+            conn,
+            """
+            SELECT id, description, quantity::text AS quantity, unit_price_cents,
+                   tax_rate_bp, (total_cents - tax_cents) AS net_cents,
+                   tax_cents, total_cents
+              FROM credit_note_lines
+             WHERE tenant_id = %s AND credit_note_id = %s
+             ORDER BY created_at, id
+            """,
+            (tenant.tenant_id, credit_note_id),
+        )
+        refunds = fetch_all(
+            conn,
+            """
+            SELECT r.id, r.payment_id, r.amount_cents, r.status, r.reason, r.created_at
+              FROM refunds r
+             WHERE r.tenant_id = %s AND r.credit_note_id = %s
+             ORDER BY r.created_at, r.id
+            """,
+            (tenant.tenant_id, credit_note_id),
+        )
+        document = _invoice_documents.build_credit_note_document(
+            note, lines, language=language,
+        )
+    return jsonify({"creditNote": note, "lines": lines, "refunds": refunds, "document": document})
 
 
 @api_v1.route("/billing/invoices/<invoice_id>/lines", methods=["POST"])

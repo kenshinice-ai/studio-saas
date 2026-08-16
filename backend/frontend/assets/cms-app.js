@@ -122,6 +122,22 @@
     paid: "已付清",
     void: "已作废"
   };
+  function invoiceFinancialState(invoice) {
+    const total = Math.max(0, Number(invoice?.total_cents || 0));
+    const paid = Math.max(0, Number(invoice?.amount_paid_cents || 0));
+    const credited = Math.max(0, Number(invoice?.amount_credited_cents || 0));
+    const refunded = Math.max(0, Number(invoice?.amount_refunded_cents || 0));
+    const balance = Number.isFinite(Number(invoice?.balance_cents)) ? Number(invoice.balance_cents) : total - paid - credited;
+    const netReceivedCents = Math.max(0, Number(invoice?.net_received_cents ?? paid - refunded));
+    let creditState = "none";
+    if (total > 0 && credited >= total) creditState = "fully_credited";
+    else if (credited > 0) creditState = "partially_credited";
+    return { total, paid, credited, refunded, balance, netReceivedCents, creditState };
+  }
+  var CREDIT_STATE_LABEL = {
+    partially_credited: "部分贷记",
+    fully_credited: "已全额贷记"
+  };
   var isOverdue = (invoice) => {
     if (!["issued", "part_paid"].includes(invoice.status)) return false;
     if (!invoice.due_date) return false;
@@ -131,13 +147,33 @@
   };
   function StatusChip({ invoice }) {
     const overdue = isOverdue(invoice);
+    const financial = invoiceFinancialState(invoice);
     const cls = overdue ? "bg-red-50 text-red-700 border-red-200" : invoice.status === "paid" ? "bg-green-50 text-green-700 border-green-200" : invoice.status === "part_paid" ? "bg-blue-50 text-blue-700 border-blue-200" : invoice.status === "draft" ? "bg-gray-100 text-gray-600 border-gray-200" : "bg-gray-50 text-gray-600 border-gray-200";
     const label = overdue ? "逾期" : STATUS_LABEL[invoice.status] || invoice.status;
-    return /* @__PURE__ */ React.createElement("span", { className: `text-[10px] font-bold px-1.5 py-0.5 rounded border whitespace-nowrap ${cls}` }, label);
+    return /* @__PURE__ */ React.createElement("span", { className: "inline-flex items-center gap-1" }, /* @__PURE__ */ React.createElement("span", { className: `text-[10px] font-bold px-1.5 py-0.5 rounded border whitespace-nowrap ${cls}` }, label), financial.creditState !== "none" && /* @__PURE__ */ React.createElement("span", { className: "text-[10px] font-bold px-1.5 py-0.5 rounded border border-indigo-200 bg-indigo-50 text-indigo-700 whitespace-nowrap" }, CREDIT_STATE_LABEL[financial.creditState]));
   }
   function Kpi({ label, value, sub, tone }) {
     const toneCls = tone === "alert" ? "text-red-600" : tone === "good" ? "text-green-700" : "text-gray-900";
     return /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-[11px] font-bold uppercase tracking-wide text-gray-500" }, label), /* @__PURE__ */ React.createElement("p", { className: `text-xl font-bold tabular-nums ${toneCls}` }, value), sub && /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-500" }, sub));
+  }
+  function printableAddress(address) {
+    if (!address) return "";
+    if (typeof address === "string") return address;
+    return [address.line1, address.line2, address.suburb, address.state, address.postcode, address.country].filter(Boolean).join(", ");
+  }
+  function InvoicePrintableDocument({ document: document2 }) {
+    if (!document2) return null;
+    const meta = document2.document || {};
+    const supplier = document2.supplier || {};
+    const recipient = document2.recipient || {};
+    const totals = document2.totals || {};
+    const payment = document2.paymentSummary || {};
+    const bank = supplier.bank || {};
+    const issued = meta.status !== "draft";
+    const title = meta.kind === "credit_note" ? "Credit Note" : supplier.gstRegistered ? "Tax Invoice" : "Invoice";
+    const status = meta.statusLabel || meta.status || "";
+    const optional = (label, value) => value ? /* @__PURE__ */ React.createElement("div", { className: "invoice-field", key: label }, /* @__PURE__ */ React.createElement("dt", null, label), /* @__PURE__ */ React.createElement("dd", null, value)) : null;
+    return /* @__PURE__ */ React.createElement("article", { className: "invoice-customer-document bg-white text-gray-900 border border-gray-200 rounded-xl p-6 sm:p-8" }, /* @__PURE__ */ React.createElement("header", { className: "flex flex-wrap items-start justify-between gap-6 border-b border-gray-300 pb-5" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("p", { className: "text-2xl font-bold tracking-tight" }, title), /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500 mt-1" }, status)), /* @__PURE__ */ React.createElement("div", { className: "text-right text-xs tabular-nums" }, meta.number && /* @__PURE__ */ React.createElement("p", { className: "font-bold text-base" }, meta.number), meta.issueDate && /* @__PURE__ */ React.createElement("p", null, "Issue date: ", fmtApiDate(meta.issueDate)), meta.dueDate && /* @__PURE__ */ React.createElement("p", null, "Due date: ", fmtApiDate(meta.dueDate)), /* @__PURE__ */ React.createElement("p", null, "Currency: ", meta.currency || "AUD"), !issued && /* @__PURE__ */ React.createElement("p", { className: "invoice-draft-watermark", "aria-label": "Draft" }, "DRAFT"))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-6 py-5 border-b border-gray-200 text-xs" }, /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("h2", { className: "font-bold text-gray-500 uppercase tracking-wide mb-2" }, "Supplier"), /* @__PURE__ */ React.createElement("dl", { className: "space-y-1" }, optional("Legal name", supplier.legalName), optional("Trading name", supplier.tradingName), optional("ABN", supplier.abn), optional("Address", printableAddress(supplier.address)), optional("Email", supplier.contactEmail), optional("Phone", supplier.contactPhone), optional("Website", supplier.website))), /* @__PURE__ */ React.createElement("section", null, /* @__PURE__ */ React.createElement("h2", { className: "font-bold text-gray-500 uppercase tracking-wide mb-2" }, "Bill to"), /* @__PURE__ */ React.createElement("dl", { className: "space-y-1" }, optional("Name", recipient.displayName), optional("Company", recipient.companyName), optional("Contact", recipient.contactName), optional("ABN", recipient.abn), optional("Address", recipient.billingAddress), optional("Email", recipient.email), optional("Mobile", recipient.mobile), optional("PO reference", recipient.purchaseOrderRef)))), /* @__PURE__ */ React.createElement("table", { className: "w-full text-xs my-5 invoice-lines-table" }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", { className: "border-b border-gray-300 text-left" }, /* @__PURE__ */ React.createElement("th", { className: "py-2 pr-2" }, "Description"), /* @__PURE__ */ React.createElement("th", { className: "py-2 px-2 text-right" }, "Qty"), /* @__PURE__ */ React.createElement("th", { className: "py-2 px-2 text-right" }, "Unit"), /* @__PURE__ */ React.createElement("th", { className: "py-2 px-2 text-right" }, "Net"), /* @__PURE__ */ React.createElement("th", { className: "py-2 px-2 text-right" }, "Tax rate"), /* @__PURE__ */ React.createElement("th", { className: "py-2 pl-2 text-right" }, "Tax"), /* @__PURE__ */ React.createElement("th", { className: "py-2 pl-2 text-right" }, "Gross"))), /* @__PURE__ */ React.createElement("tbody", null, (document2.lines || []).map((line) => /* @__PURE__ */ React.createElement("tr", { key: line.id || `${line.description}-${line.quantity}`, className: "border-b border-gray-100 align-top" }, /* @__PURE__ */ React.createElement("td", { className: "py-2 pr-2" }, line.description), /* @__PURE__ */ React.createElement("td", { className: "py-2 px-2 text-right tabular-nums" }, line.quantity), /* @__PURE__ */ React.createElement("td", { className: "py-2 px-2 text-right tabular-nums" }, aud(line.unitPriceCents)), /* @__PURE__ */ React.createElement("td", { className: "py-2 px-2 text-right tabular-nums" }, aud(line.netCents)), /* @__PURE__ */ React.createElement("td", { className: "py-2 px-2 text-right tabular-nums" }, (Number(line.taxRateBp || 0) / 100).toFixed(2), "%"), /* @__PURE__ */ React.createElement("td", { className: "py-2 pl-2 text-right tabular-nums" }, aud(line.taxCents)), /* @__PURE__ */ React.createElement("td", { className: "py-2 pl-2 text-right tabular-nums" }, aud(line.totalCents)))))), /* @__PURE__ */ React.createElement("div", { className: "ml-auto w-full max-w-sm space-y-1 text-xs tabular-nums" }, /* @__PURE__ */ React.createElement("div", { className: "flex justify-between" }, /* @__PURE__ */ React.createElement("span", null, "Subtotal"), /* @__PURE__ */ React.createElement("span", null, aud(totals.subtotalCents))), /* @__PURE__ */ React.createElement("div", { className: "flex justify-between" }, /* @__PURE__ */ React.createElement("span", null, "GST / tax"), /* @__PURE__ */ React.createElement("span", null, aud(totals.taxCents))), /* @__PURE__ */ React.createElement("div", { className: "flex justify-between border-t border-gray-300 pt-2 font-bold text-sm" }, /* @__PURE__ */ React.createElement("span", null, "Total"), /* @__PURE__ */ React.createElement("span", null, aud(totals.totalCents))), /* @__PURE__ */ React.createElement("div", { className: "flex justify-between" }, /* @__PURE__ */ React.createElement("span", null, "Paid"), /* @__PURE__ */ React.createElement("span", null, aud(payment.amountPaidCents))), /* @__PURE__ */ React.createElement("div", { className: "flex justify-between" }, /* @__PURE__ */ React.createElement("span", null, "Refunded"), /* @__PURE__ */ React.createElement("span", null, aud(payment.amountRefundedCents))), /* @__PURE__ */ React.createElement("div", { className: "flex justify-between" }, /* @__PURE__ */ React.createElement("span", null, "Net received"), /* @__PURE__ */ React.createElement("span", null, aud(payment.netReceivedCents))), /* @__PURE__ */ React.createElement("div", { className: "flex justify-between" }, /* @__PURE__ */ React.createElement("span", null, "Credited"), /* @__PURE__ */ React.createElement("span", null, aud(payment.amountCreditedCents))), /* @__PURE__ */ React.createElement("div", { className: "flex justify-between font-bold" }, /* @__PURE__ */ React.createElement("span", null, "Balance"), /* @__PURE__ */ React.createElement("span", null, aud(payment.balanceCents)))), (meta.note || recipient.purchaseOrderRef || supplier.paymentNote || bank.accountName || (payment.payments || []).length > 0) && /* @__PURE__ */ React.createElement("footer", { className: "border-t border-gray-200 mt-6 pt-4 text-xs space-y-2" }, meta.note && /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("strong", null, "Notes:"), " ", meta.note), recipient.purchaseOrderRef && /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("strong", null, "PO reference:"), " ", recipient.purchaseOrderRef), supplier.paymentNote && /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("strong", null, "Payment:"), " ", supplier.paymentNote), bank.accountName && /* @__PURE__ */ React.createElement("p", null, /* @__PURE__ */ React.createElement("strong", null, "Remittance:"), " ", bank.accountName, bank.bsb ? ` · BSB ${bank.bsb}` : "", bank.accountNo ? ` · ${bank.accountNo}` : ""), (payment.payments || []).map((item) => /* @__PURE__ */ React.createElement("p", { key: item.id || item.receivedAt }, /* @__PURE__ */ React.createElement("strong", null, "Payment received:"), " ", aud(item.amountCents), " · ", item.method || item.status))));
   }
   function BillingPanel({
     api,
@@ -163,6 +199,9 @@
     const [query, setQuery] = useState("");
     const [bucket, setBucket] = useState("all");
     const [range, setRange] = useState(() => ({ start: "", end: "" }));
+    const [payerEdit, setPayerEdit] = useState(null);
+    const [payerSaving, setPayerSaving] = useState(false);
+    const [creditNoteDetail, setCreditNoteDetail] = useState(null);
     const load = useCallback(async () => {
       setLoading(true);
       try {
@@ -201,14 +240,18 @@
       const drafts = invoices.filter((i) => i.status === "draft");
       const overdue = invoices.filter(isOverdue);
       const billed = issued.reduce((s, i) => s + Number(i.total_cents || 0), 0);
-      const paid = issued.reduce((s, i) => s + Number(i.amount_paid_cents || 0), 0);
+      const netReceivedCents = issued.reduce((s, i) => s + invoiceFinancialState(i).netReceivedCents, 0);
+      const credited = issued.reduce((s, i) => s + invoiceFinancialState(i).credited, 0);
+      const refunded = issued.reduce((s, i) => s + invoiceFinancialState(i).refunded, 0);
       return {
         billed,
-        paid,
+        netReceivedCents,
+        credited,
+        refunded,
         drafts: drafts.length,
         overdueCents: overdue.reduce((s, i) => s + Number(i.balance_cents || 0), 0),
         overdueAccounts: new Set(overdue.map((i) => i.billing_account_id)).size,
-        collectedPercent: billed > 0 ? Math.round(paid / billed * 100) : null
+        collectedPercent: billed > 0 ? Math.round(netReceivedCents / billed * 100) : null
       };
     }, [invoices]);
     const draftIds = useMemo2(
@@ -218,33 +261,18 @@
     const createInvoice = async (form) => {
       setBusy(true);
       try {
-        const draft = await api("/billing/invoices", {
+        const draft = await api("/billing/invoice-drafts", {
           method: "POST",
-          body: JSON.stringify({ billingAccountId: form.accountId, note: form.note })
+          body: JSON.stringify(form)
         });
-        const invoiceId = draft.invoice?.id || draft.id;
-        for (const line of form.lines) {
-          await api(`/billing/invoices/${invoiceId}/lines`, {
-            method: "POST",
-            body: JSON.stringify({
-              description: line.description,
-              quantity: line.quantity,
-              unitPriceCents: Math.round(Number(line.unitPrice) * 100),
-              taxRateBp: Number(line.taxRateBp),
-              /* 课时充值走 source_kind='package' 并带上学员：两本账各自
-                 记各自的，发票行只是「这笔充值是被这张单收的钱」的指路牌。
-                 谁也不改谁。 */
-              sourceKind: line.sourceKind || "manual",
-              studentId: line.studentId || null
-            })
-          });
-        }
+        const invoiceId = draft.invoice?.id || draft.invoiceId;
         showToast("草稿已建好，复核后再开具", "success");
         setCreating(false);
         await load();
         setSelectedId(String(invoiceId));
       } catch (e) {
         showToast(`新建发票失败：${e.message}`, "error");
+        throw e;
       } finally {
         setBusy(false);
       }
@@ -349,13 +377,68 @@
         setBusy(false);
       }
     };
+    const printCustomerDocument = (customerDocument) => {
+      if (!customerDocument) return;
+      const meta = customerDocument.document || {};
+      const title = meta.kind === "credit_note" ? "Credit Note" : customerDocument.supplier?.gstRegistered ? "Tax Invoice" : "Invoice";
+      const number = meta.number || "Draft";
+      const previousTitle = document.title;
+      const cleanup = () => document.body.classList.remove("invoice-print-mode");
+      const restore = () => {
+        cleanup();
+        document.title = previousTitle;
+      };
+      document.title = `${title} · ${number}`;
+      document.body.classList.add("invoice-print-mode");
+      window.addEventListener("afterprint", restore, { once: true });
+      window.print();
+      window.setTimeout(restore, 1500);
+    };
     const printInvoice = () => {
       if (!detail) return;
-      const cleanup = () => document.body.classList.remove("invoice-print-mode");
-      document.body.classList.add("invoice-print-mode");
-      window.addEventListener("afterprint", cleanup, { once: true });
-      window.print();
-      window.setTimeout(cleanup, 1500);
+      printCustomerDocument(detail.document);
+    };
+    const openPayerEditor = () => {
+      if (!detail?.invoice) return;
+      setPayerEdit({
+        name: detail.invoice.account_name || "",
+        kind: detail.invoice.account_kind || "family",
+        contactName: detail.invoice.account_contact_name || "",
+        email: detail.invoice.account_email || "",
+        mobile: detail.invoice.account_mobile || "",
+        companyName: detail.invoice.account_company_name || "",
+        abn: detail.invoice.account_abn || "",
+        billingAddress: detail.invoice.account_billing_address || "",
+        paymentTermsDays: String(detail.invoice.account_payment_terms_days ?? 14),
+        purchaseOrderRef: detail.invoice.account_purchase_order_ref || "",
+        language: detail.invoice.account_language || "",
+        note: ""
+      });
+    };
+    const savePayer = async () => {
+      if (!detail?.invoice?.billing_account_id || !payerEdit || payerSaving) return;
+      setPayerSaving(true);
+      try {
+        await api(`/billing/accounts/${detail.invoice.billing_account_id}`, {
+          method: "PATCH",
+          body: JSON.stringify(payerEdit)
+        });
+        showToast("付款方资料已更新；已开具发票继续读取冻结快照", "success");
+        setPayerEdit(null);
+        await load();
+        setDetail(await api(`/billing/invoices/${selectedId}`));
+      } catch (e) {
+        showToast(`付款方更新失败：${e.message}`, "warn");
+      } finally {
+        setPayerSaving(false);
+      }
+    };
+    const openCreditNote = async (noteId) => {
+      try {
+        setCreditNoteDetail(await api(`/billing/credit-notes/${noteId}`));
+      } catch (e) {
+        showToast(`贷记单加载失败：${e.message}`, "warn");
+      }
     };
     if (loading) return /* @__PURE__ */ React.createElement("div", { className: "p-6 text-sm text-gray-500" }, "正在加载账单…");
     if (error) return /* @__PURE__ */ React.createElement("div", { className: "p-6 text-sm text-red-600" }, error);
@@ -381,10 +464,10 @@
     )), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 md:grid-cols-4 gap-3" }, /* @__PURE__ */ React.createElement(Kpi, { label: "已开票", value: aud(summary.billed), sub: `${invoices.length} 张 · 含 GST` }), /* @__PURE__ */ React.createElement(
       Kpi,
       {
-        label: "已收到",
-        value: aud(summary.paid),
+        label: "净收款（扣除退款）",
+        value: aud(summary.netReceivedCents),
         tone: "good",
-        sub: summary.collectedPercent === null ? "暂无已开具发票" : `${summary.collectedPercent}% 已收`
+        sub: summary.collectedPercent === null ? "暂无已开具发票" : `${summary.collectedPercent}% · 贷记 ${aud(summary.credited)} · 退款 ${aud(summary.refunded)}`
       }
     ), /* @__PURE__ */ React.createElement(
       Kpi,
@@ -424,6 +507,14 @@
         className: "min-h-[44px] px-3 rounded-lg border border-gray-200 bg-white text-xs font-bold text-gray-700"
       },
       "行项目 CSV"
+    ), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        onClick: () => exportCsv("ledger"),
+        className: "min-h-[44px] px-3 rounded-lg border border-gray-200 bg-white text-xs font-bold text-gray-700"
+      },
+      "会计流水 CSV"
     )), canIssue && checkedDrafts.length === 0 && /* @__PURE__ */ React.createElement(
       "button",
       {
@@ -466,8 +557,11 @@
         }
       ),
       /* @__PURE__ */ React.createElement("span", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("span", { className: "block text-xs font-bold truncate" }, invoice.account_name), /* @__PURE__ */ React.createElement("span", { className: "block text-[11px] text-gray-500 truncate" }, invoice.number || "草稿 · 未编号", invoice.due_date ? ` · 到期 ${fmtApiDate(invoice.due_date)}` : "")),
-      /* @__PURE__ */ React.createElement("span", { className: "ml-auto flex items-center gap-2" }, /* @__PURE__ */ React.createElement(StatusChip, { invoice }), /* @__PURE__ */ React.createElement("span", { className: `text-xs font-bold tabular-nums ${isOverdue(invoice) ? "text-red-600" : ""}` }, aud(invoice.balance_cents ?? invoice.total_cents)))
-    )))), /* @__PURE__ */ React.createElement("div", { className: "invoice-printable grid gap-3 min-w-0" }, !detail ? /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl p-6 text-xs text-gray-500" }, "选择左边的一张发票查看明细。") : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 px-4 py-3 border-b border-gray-200" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs font-bold" }, detail.invoice.number || "草稿", " · ", detail.invoice.account_name), /* @__PURE__ */ React.createElement("span", { className: "ml-auto" }, /* @__PURE__ */ React.createElement(StatusChip, { invoice: detail.invoice }))), /* @__PURE__ */ React.createElement("div", { className: "p-4 overflow-x-auto" }, /* @__PURE__ */ React.createElement("table", { className: "w-full min-w-[26rem] text-xs" }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", { className: "text-[10px] uppercase tracking-wide text-gray-500" }, /* @__PURE__ */ React.createElement("th", { className: "text-left py-2" }, "项目"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "数量"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "单价"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "税"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "小计"))), /* @__PURE__ */ React.createElement("tbody", null, (detail.lines || []).map((line) => /* @__PURE__ */ React.createElement("tr", { key: line.id, className: "border-t border-gray-100" }, /* @__PURE__ */ React.createElement("td", { className: "py-2" }, line.description), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, line.quantity), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, aud(line.unit_price_cents)), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, aud(line.tax_cents)), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, aud(line.total_cents))))))), /* @__PURE__ */ React.createElement("div", { className: "px-4 pb-4 -mt-1 space-y-1 text-xs" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-baseline gap-3 border-t border-gray-200 pt-2 font-bold" }, /* @__PURE__ */ React.createElement("span", null, "应付"), /* @__PURE__ */ React.createElement("span", { className: "ml-auto tabular-nums" }, aud(detail.invoice.total_cents))), Number(detail.invoice.amount_paid_cents) > 0 && /* @__PURE__ */ React.createElement("div", { className: "flex items-baseline gap-3 text-green-700" }, /* @__PURE__ */ React.createElement("span", null, "已付"), /* @__PURE__ */ React.createElement("span", { className: "ml-auto tabular-nums" }, "−", aud(detail.invoice.amount_paid_cents))), Number(detail.invoice.amount_credited_cents) > 0 && /* @__PURE__ */ React.createElement("div", { className: "flex items-baseline gap-3 text-indigo-700" }, /* @__PURE__ */ React.createElement("span", null, "已贷记"), /* @__PURE__ */ React.createElement("span", { className: "ml-auto tabular-nums" }, "−", aud(detail.invoice.amount_credited_cents))), /* @__PURE__ */ React.createElement("div", { className: "flex items-baseline gap-3 font-bold" }, /* @__PURE__ */ React.createElement("span", null, "余额"), /* @__PURE__ */ React.createElement("span", { className: "ml-auto tabular-nums" }, aud(detail.invoice.balance_cents))), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 items-center mt-3" }, detail.invoice.status === "draft" && canIssue && /* @__PURE__ */ React.createElement(
+      /* @__PURE__ */ React.createElement("span", { className: "ml-auto flex items-center gap-2" }, /* @__PURE__ */ React.createElement(StatusChip, { invoice }), /* @__PURE__ */ React.createElement("span", { className: `text-xs font-bold tabular-nums ${isOverdue(invoice) ? "text-red-600" : ""}` }, aud(invoiceFinancialState(invoice).balance ?? invoice.total_cents)))
+    )))), /* @__PURE__ */ React.createElement("div", { className: "invoice-printable grid gap-3 min-w-0" }, !detail ? /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl p-6 text-xs text-gray-500" }, "选择左边的一张发票查看明细。") : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(InvoicePrintableDocument, { document: detail.document }), /* @__PURE__ */ React.createElement("div", { className: "payer-edit bg-white border border-gray-200 rounded-xl overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-start gap-3 px-4 py-3 border-b border-gray-200" }, /* @__PURE__ */ React.createElement("div", { className: "min-w-0" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold" }, "付款方资料"), /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-500 mt-1" }, "当前发票收件人：", detail.invoice.account_name, " · ", detail.invoice.account_kind || "family", detail.invoice.account_email ? ` · ${detail.invoice.account_email}` : "", detail.invoice.account_mobile ? ` · ${detail.invoice.account_mobile}` : ""), /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-indigo-700 mt-1" }, "已开具发票不会改变：客户文档继续使用 issued snapshot。")), canIssue && !payerEdit && /* @__PURE__ */ React.createElement("button", { type: "button", onClick: openPayerEditor, className: "ml-auto min-h-[44px] px-3 rounded-lg border border-indigo-200 bg-white text-xs font-bold text-indigo-700" }, "查看 / 编辑付款方")), payerEdit && /* @__PURE__ */ React.createElement("div", { className: "p-4 space-y-3" }, /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-2" }, /* @__PURE__ */ React.createElement("label", { className: "text-xs text-gray-500" }, "姓名 / 名称", /* @__PURE__ */ React.createElement("input", { value: payerEdit.name, onChange: (e) => setPayerEdit({ ...payerEdit, name: e.target.value }), className: "mt-1 w-full min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm" })), /* @__PURE__ */ React.createElement("label", { className: "text-xs text-gray-500" }, "类型", /* @__PURE__ */ React.createElement("select", { value: payerEdit.kind, onChange: (e) => setPayerEdit({ ...payerEdit, kind: e.target.value }), className: "mt-1 w-full min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm" }, /* @__PURE__ */ React.createElement("option", { value: "person" }, "个人"), /* @__PURE__ */ React.createElement("option", { value: "family" }, "家庭"), /* @__PURE__ */ React.createElement("option", { value: "organisation" }, "机构"))), /* @__PURE__ */ React.createElement("label", { className: "text-xs text-gray-500" }, "邮箱", /* @__PURE__ */ React.createElement("input", { type: "email", value: payerEdit.email, onChange: (e) => setPayerEdit({ ...payerEdit, email: e.target.value }), className: "mt-1 w-full min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm" })), /* @__PURE__ */ React.createElement("label", { className: "text-xs text-gray-500" }, "手机", /* @__PURE__ */ React.createElement("input", { value: payerEdit.mobile, onChange: (e) => setPayerEdit({ ...payerEdit, mobile: e.target.value }), className: "mt-1 w-full min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm" })), /* @__PURE__ */ React.createElement("label", { className: "text-xs text-gray-500" }, "联系人", /* @__PURE__ */ React.createElement("input", { value: payerEdit.contactName, onChange: (e) => setPayerEdit({ ...payerEdit, contactName: e.target.value }), className: "mt-1 w-full min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm" })), /* @__PURE__ */ React.createElement("label", { className: "text-xs text-gray-500" }, "付款期限（天）", /* @__PURE__ */ React.createElement("input", { type: "number", min: "0", max: "3650", value: payerEdit.paymentTermsDays, onChange: (e) => setPayerEdit({ ...payerEdit, paymentTermsDays: e.target.value }), className: "mt-1 w-full min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm" }))), /* @__PURE__ */ React.createElement("label", { className: "block text-xs text-gray-500" }, "账单地址", /* @__PURE__ */ React.createElement("input", { value: payerEdit.billingAddress, onChange: (e) => setPayerEdit({ ...payerEdit, billingAddress: e.target.value }), className: "mt-1 w-full min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm" })), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => setPayerEdit(null), disabled: payerSaving, className: "flex-1 min-h-[44px] rounded-xl border border-gray-200 text-xs font-bold" }, "取消"), /* @__PURE__ */ React.createElement("button", { type: "button", onClick: savePayer, disabled: payerSaving, className: "flex-1 min-h-[44px] rounded-xl bg-indigo-600 text-white text-xs font-bold disabled:opacity-50" }, payerSaving ? "保存中…" : "保存付款方")))), /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 px-4 py-3 border-b border-gray-200" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs font-bold" }, detail.invoice.number || "草稿", " · ", detail.invoice.account_name), /* @__PURE__ */ React.createElement("span", { className: "ml-auto" }, /* @__PURE__ */ React.createElement(StatusChip, { invoice: detail.invoice }))), /* @__PURE__ */ React.createElement("div", { className: "p-4 overflow-x-auto" }, /* @__PURE__ */ React.createElement("table", { className: "w-full min-w-[26rem] text-xs" }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", { className: "text-[10px] uppercase tracking-wide text-gray-500" }, /* @__PURE__ */ React.createElement("th", { className: "text-left py-2" }, "项目"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "数量"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "单价"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "税"), /* @__PURE__ */ React.createElement("th", { className: "text-right py-2" }, "小计"))), /* @__PURE__ */ React.createElement("tbody", null, (detail.lines || []).map((line) => /* @__PURE__ */ React.createElement("tr", { key: line.id, className: "border-t border-gray-100" }, /* @__PURE__ */ React.createElement("td", { className: "py-2" }, line.description), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, line.quantity), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, aud(line.unit_price_cents)), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, aud(line.tax_cents)), /* @__PURE__ */ React.createElement("td", { className: "py-2 text-right tabular-nums" }, aud(line.total_cents))))))), /* @__PURE__ */ React.createElement("div", { className: "px-4 pb-4 -mt-1 space-y-1 text-xs" }, (() => {
+      const financial = invoiceFinancialState(detail.invoice);
+      return /* @__PURE__ */ React.createElement("div", { className: "mb-2 rounded-lg border border-indigo-100 bg-indigo-50/60 p-2 text-[11px] text-indigo-900" }, /* @__PURE__ */ React.createElement("span", { className: "font-bold" }, financial.creditState === "fully_credited" ? "已全额贷记" : financial.creditState === "partially_credited" ? "部分贷记" : "未贷记"), /* @__PURE__ */ React.createElement("span", { className: "ml-2" }, "净收款 ", aud(financial.netReceivedCents), "（原收款 ", aud(financial.paid), "，退款 ", aud(financial.refunded), "）"));
+    })(), /* @__PURE__ */ React.createElement("div", { className: "flex items-baseline gap-3 border-t border-gray-200 pt-2 font-bold" }, /* @__PURE__ */ React.createElement("span", null, "应付"), /* @__PURE__ */ React.createElement("span", { className: "ml-auto tabular-nums" }, aud(detail.invoice.total_cents))), Number(detail.invoice.amount_paid_cents) > 0 && /* @__PURE__ */ React.createElement("div", { className: "flex items-baseline gap-3 text-green-700" }, /* @__PURE__ */ React.createElement("span", null, "已付"), /* @__PURE__ */ React.createElement("span", { className: "ml-auto tabular-nums" }, "−", aud(detail.invoice.amount_paid_cents))), Number(detail.invoice.amount_credited_cents) > 0 && /* @__PURE__ */ React.createElement("div", { className: "flex items-baseline gap-3 text-indigo-700" }, /* @__PURE__ */ React.createElement("span", null, "已贷记"), /* @__PURE__ */ React.createElement("span", { className: "ml-auto tabular-nums" }, "−", aud(detail.invoice.amount_credited_cents))), /* @__PURE__ */ React.createElement("div", { className: "flex items-baseline gap-3 font-bold" }, /* @__PURE__ */ React.createElement("span", null, "余额"), /* @__PURE__ */ React.createElement("span", { className: "ml-auto tabular-nums" }, aud(detail.invoice.balance_cents))), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 items-center mt-3" }, detail.invoice.status === "draft" && canIssue && /* @__PURE__ */ React.createElement(
       "button",
       {
         type: "button",
@@ -505,7 +599,7 @@
         className: "no-print min-h-[44px] px-3 rounded-lg border border-gray-200 bg-white text-xs font-bold text-gray-700"
       },
       "打印 / 存为 PDF"
-    ), detail.invoice.status !== "draft" && /* @__PURE__ */ React.createElement("span", { className: "text-[11px] text-gray-500" }, "已开具的发票不可修改，改错请开贷记单冲销后重开。")))), (detail.creditNotes || []).length > 0 && /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "px-4 py-3 border-b border-gray-200 text-xs font-bold" }, "关联贷记单与退款"), (detail.creditNotes || []).map((note) => /* @__PURE__ */ React.createElement("div", { key: note.id, className: "flex flex-wrap items-baseline gap-x-3 gap-y-1 px-4 py-2 border-b border-gray-100 last:border-0 text-[11px]" }, /* @__PURE__ */ React.createElement("span", { className: "font-bold" }, note.number || "贷记单草稿"), /* @__PURE__ */ React.createElement("span", null, note.status === "issued" ? "已开具" : note.status), /* @__PURE__ */ React.createElement("span", { className: "tabular-nums" }, "−", aud(note.total_cents)), note.refund_id && /* @__PURE__ */ React.createElement("span", { className: "text-green-700" }, "已退款 ", aud(note.refunded_cents)), note.payment_status && /* @__PURE__ */ React.createElement("span", { className: "text-gray-500" }, "付款：", note.payment_status), note.reason && /* @__PURE__ */ React.createElement("span", { className: "text-gray-500 truncate" }, note.reason)))), /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "px-4 py-3 border-b border-gray-200 text-xs font-bold" }, "这张单发生过什么"), (detail.events || []).length === 0 ? /* @__PURE__ */ React.createElement("p", { className: "px-4 py-4 text-[11px] text-gray-500" }, "还没有记录。开具、送达、收款、推送 Xero 都会出现在这里。") : (detail.events || []).map((event, i) => {
+    ), detail.invoice.status !== "draft" && /* @__PURE__ */ React.createElement("span", { className: "text-[11px] text-gray-500" }, "已开具的发票不可修改，改错请开贷记单冲销后重开。")))), (detail.creditNotes || []).length > 0 && /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "px-4 py-3 border-b border-gray-200 text-xs font-bold" }, "关联贷记单与退款"), (detail.creditNotes || []).map((note) => /* @__PURE__ */ React.createElement("div", { key: note.id, className: "flex flex-wrap items-baseline gap-x-3 gap-y-1 px-4 py-2 border-b border-gray-100 last:border-0 text-[11px]" }, /* @__PURE__ */ React.createElement("span", { className: "font-bold" }, note.number || "贷记单草稿"), /* @__PURE__ */ React.createElement("span", null, note.status === "issued" ? "已开具" : note.status), /* @__PURE__ */ React.createElement("span", { className: "tabular-nums" }, "−", aud(note.total_cents)), note.refund_id && /* @__PURE__ */ React.createElement("span", { className: "text-green-700" }, "已退款 ", aud(note.refunded_cents)), note.payment_status && /* @__PURE__ */ React.createElement("span", { className: "text-gray-500" }, "付款：", note.payment_status), note.reason && /* @__PURE__ */ React.createElement("span", { className: "text-gray-500 truncate" }, note.reason), /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => openCreditNote(note.id), className: "ml-auto min-h-[44px] px-2 rounded-lg border border-gray-200 text-[11px] font-bold text-indigo-700" }, "查看 / 打印贷记单")))), creditNoteDetail && /* @__PURE__ */ React.createElement("div", { className: "credit-note-document space-y-2" }, /* @__PURE__ */ React.createElement(InvoicePrintableDocument, { document: creditNoteDetail.document }), /* @__PURE__ */ React.createElement("button", { type: "button", onClick: () => printCustomerDocument(creditNoteDetail.document), className: "no-print min-h-[44px] px-3 rounded-lg border border-gray-200 bg-white text-xs font-bold text-gray-700" }, "打印贷记单")), /* @__PURE__ */ React.createElement("div", { className: "bg-white border border-gray-200 rounded-xl overflow-hidden" }, /* @__PURE__ */ React.createElement("div", { className: "px-4 py-3 border-b border-gray-200 text-xs font-bold" }, "这张单发生过什么"), (detail.events || []).length === 0 ? /* @__PURE__ */ React.createElement("p", { className: "px-4 py-4 text-[11px] text-gray-500" }, "还没有记录。开具、送达、收款、推送 Xero 都会出现在这里。") : (detail.events || []).map((event, i) => {
       const LABEL = {
         issued: "已开具",
         sent: "已送达",
@@ -546,6 +640,7 @@
     const [query, setQuery] = useState("");
     const [searchResults, setSearchResults] = useState([]);
     const [creating, setCreating] = useState(false);
+    const [createConfirmed, setCreateConfirmed] = useState(false);
     const [kind, setKind] = useState("person");
     const [fields, setFields] = useState({
       name: "",
@@ -560,8 +655,25 @@
       language: "en",
       note: ""
     });
+    const [studentDraft, setStudentDraft] = useState({
+      kind: "family",
+      name: "",
+      contactName: "",
+      email: "",
+      mobile: "",
+      billingAddress: "",
+      paymentTermsDays: "14",
+      language: "en"
+    });
     const [linkedStudentIds, setLinkedStudentIds] = useState([]);
-    const setField = (key) => (e) => setFields((prev) => ({ ...prev, [key]: e.target.value }));
+    const setField = (key) => (e) => {
+      setCreateConfirmed(false);
+      setFields((prev) => ({ ...prev, [key]: e.target.value }));
+    };
+    const setStudentDraftField = (key) => (e) => {
+      setCreateConfirmed(false);
+      setStudentDraft((prev) => ({ ...prev, [key]: e.target.value }));
+    };
     const selectedStudent = students.find((student) => String(student.id) === String(studentId));
     useEffect(() => {
       if (initialStudentId === void 0) return;
@@ -569,6 +681,7 @@
       setStudentId(initialStudentId || "");
       setQuery("");
       setCreating(false);
+      setCreateConfirmed(false);
       setLinkedStudentIds(initialStudentId ? [initialStudentId] : []);
     }, [initialStudentId]);
     useEffect(() => {
@@ -590,6 +703,20 @@
         const payers = data.accounts || [];
         setStudentPayers(payers);
         setStudentSuggestion(data.suggestedPayer || null);
+        if (payers.length === 0) {
+          const suggestion = data.suggestedPayer || {};
+          setStudentDraft((prev) => ({
+            ...prev,
+            kind: suggestion.kind || "family",
+            name: suggestion.name || selectedStudent?.name || "",
+            contactName: suggestion.contactName || "",
+            email: suggestion.email || "",
+            mobile: suggestion.mobile || "",
+            billingAddress: suggestion.billingAddress || "",
+            paymentTermsDays: String(suggestion.paymentTermsDays ?? prev.paymentTermsDays ?? "14"),
+            language: suggestion.language || "en"
+          }));
+        }
         if (payers.length === 1) onStateChange({ mode, accountId: String(payers[0].id), createPayload: null, linkedStudentIds: [studentId] });
         else if (!payers.some((payer) => String(payer.id) === String(value))) onStateChange({ mode, accountId: "", createPayload: null, linkedStudentIds: [] });
       }).catch((error) => {
@@ -600,7 +727,7 @@
       return () => {
         alive = false;
       };
-    }, [api, mode, studentId]);
+    }, [api, mode, studentId, selectedStudent?.name]);
     useEffect(() => {
       if (mode !== "custom" || !query.trim()) {
         setSearchResults([]);
@@ -621,24 +748,16 @@
     }, [api, mode, query]);
     const createPayload = useMemo2(() => {
       if (mode === "student") {
-        if (!studentId || studentPayers.length > 0) return null;
-        const suggestion = studentSuggestion || {
-          name: selectedStudent?.name || "",
-          contactName: "",
-          email: "",
-          mobile: ""
-        };
-        if (!String(suggestion.name || "").trim()) return null;
+        if (!studentId || studentPayers.length > 0 || !createConfirmed) return null;
+        if (!String(studentDraft.name || "").trim()) return null;
         return {
-          kind: "family",
-          name: suggestion.name,
-          contactName: suggestion.contactName || "",
-          email: suggestion.email || "",
-          mobile: suggestion.mobile || "",
+          ...studentDraft,
+          kind: studentDraft.kind || "family",
+          name: String(studentDraft.name).trim(),
           studentId
         };
       }
-      if (!creating) return null;
+      if (!creating || !createConfirmed) return null;
       const displayName = String(kind === "organisation" ? fields.companyName : fields.name).trim();
       if (!displayName) return null;
       return {
@@ -648,25 +767,31 @@
         kind,
         studentIds: linkedStudentIds
       };
-    }, [mode, studentId, studentPayers, studentSuggestion, selectedStudent, creating, kind, fields, linkedStudentIds]);
+    }, [mode, studentId, studentPayers, createConfirmed, studentDraft, creating, kind, fields, linkedStudentIds]);
     useEffect(() => {
       onStateChange({
         mode,
         accountId: mode === "student" && studentPayers.length === 1 ? String(studentPayers[0].id) : String(value || ""),
         createPayload,
+        createConfirmed,
         linkedStudentIds: mode === "student" ? studentId ? [studentId] : [] : linkedStudentIds
       });
-    }, [mode, value, studentId, studentPayers, linkedStudentIds, createPayload]);
+    }, [mode, value, studentId, studentPayers, linkedStudentIds, createPayload, createConfirmed]);
     const chooseMode = (nextMode) => {
       setMode(nextMode);
       onPayerError("");
       setCreating(false);
+      setCreateConfirmed(false);
       setQuery("");
       setLinkedStudentIds([]);
       if (nextMode === "student") onStateChange({ mode: nextMode, accountId: "", createPayload: null, linkedStudentIds: [] });
     };
     const visibleAccounts = query.trim() ? searchResults : accounts.slice(0, 20);
     const selectedPayer = [...accounts, ...studentPayers, ...searchResults].find((payer) => String(payer.id) === String(value));
+    const toggleLinkedStudent = (studentKey) => {
+      setLinkedStudentIds((prev) => prev.includes(String(studentKey)) ? prev.filter((id) => id !== String(studentKey)) : [...prev, String(studentKey)]);
+      setCreateConfirmed(false);
+    };
     return /* @__PURE__ */ React.createElement("fieldset", { className: "space-y-2", "aria-describedby": "billing-account-help" }, /* @__PURE__ */ React.createElement("legend", { className: "block text-xs font-bold text-gray-600" }, "开给谁"), /* @__PURE__ */ React.createElement("p", { id: "billing-account-help", className: "text-[11px] text-gray-500" }, "学员是服务对象；付款方是发票收件人。两条入口最终都选择同一个付款方记录。"), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-2" }, /* @__PURE__ */ React.createElement(
       "button",
       {
@@ -691,6 +816,7 @@
         students,
         value: studentId || null,
         onChange: (next) => {
+          setCreateConfirmed(false);
           setStudentId(next || "");
           onStateChange({ mode, accountId: "", createPayload: null, linkedStudentIds: next ? [next] : [] });
         },
@@ -701,28 +827,113 @@
       "select",
       {
         value: studentId,
-        onChange: (event) => setStudentId(event.target.value),
+        onChange: (event) => {
+          setCreateConfirmed(false);
+          setStudentId(event.target.value);
+        },
         "aria-label": "选择学员",
         className: "w-full min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm"
       },
       /* @__PURE__ */ React.createElement("option", { value: "" }, "请选择学员"),
       students.map((student) => /* @__PURE__ */ React.createElement("option", { key: student.id, value: student.id }, student.name))
-    ) : /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-600" }, "当前学员：", /* @__PURE__ */ React.createElement("strong", null, selectedStudent?.name || "—"), "；下面只选择这次发票的付款方。"), studentLoading && /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-500" }, "正在查询该学员的付款方…"), !studentLoading && studentId && studentPayers.length === 0 && /* @__PURE__ */ React.createElement("div", { className: "space-y-2 rounded-lg bg-amber-50 border border-amber-100 p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-amber-900" }, "这个学员还没有付款方"), /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-amber-800" }, "可以从资料预填创建，但保存前请人工复核付款方姓名和联系方式。"), /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-600" }, "预填：", studentSuggestion?.name || selectedStudent?.name || "—")), !studentLoading && studentPayers.length > 0 && /* @__PURE__ */ React.createElement("label", { className: "block text-xs text-gray-500" }, "已关联付款方（", studentPayers.length, " 个，必须明确选择）", /* @__PURE__ */ React.createElement(
+    ) : /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-600" }, "当前学员：", /* @__PURE__ */ React.createElement("strong", null, selectedStudent?.name || "—"), "；下面只选择这次发票的付款方。"), studentLoading && /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-500" }, "正在查询该学员的付款方…"), !studentLoading && studentId && studentPayers.length === 0 && /* @__PURE__ */ React.createElement("div", { className: "space-y-2 rounded-lg bg-amber-50 border border-amber-100 p-3" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-amber-900" }, "0 个付款方：这个学员还没有付款方"), /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-amber-800" }, "资料只用于预填；填写或修改后，必须明确点击“创建并使用此付款方”才会创建记录。"), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-2" }, /* @__PURE__ */ React.createElement("label", { className: "block text-[11px] text-gray-600" }, "付款方类型", /* @__PURE__ */ React.createElement(
+      "select",
+      {
+        value: studentDraft.kind,
+        onChange: setStudentDraftField("kind"),
+        className: "block w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm"
+      },
+      /* @__PURE__ */ React.createElement("option", { value: "person" }, "个人 / Person"),
+      /* @__PURE__ */ React.createElement("option", { value: "family" }, "家庭 / Family"),
+      /* @__PURE__ */ React.createElement("option", { value: "organisation" }, "机构 / Organisation")
+    )), /* @__PURE__ */ React.createElement("label", { className: "block text-[11px] text-gray-600" }, "姓名 / 名称 *", /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        value: studentDraft.name,
+        onChange: setStudentDraftField("name"),
+        className: "block w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm"
+      }
+    )), /* @__PURE__ */ React.createElement("label", { className: "block text-[11px] text-gray-600" }, "联系人（可选）", /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        value: studentDraft.contactName,
+        onChange: setStudentDraftField("contactName"),
+        className: "block w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm"
+      }
+    )), /* @__PURE__ */ React.createElement("label", { className: "block text-[11px] text-gray-600" }, "邮箱 / Email", /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        type: "email",
+        value: studentDraft.email,
+        onChange: setStudentDraftField("email"),
+        className: "block w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm"
+      }
+    )), /* @__PURE__ */ React.createElement("label", { className: "block text-[11px] text-gray-600" }, "手机 / Mobile", /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        value: studentDraft.mobile,
+        onChange: setStudentDraftField("mobile"),
+        className: "block w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm"
+      }
+    )), /* @__PURE__ */ React.createElement("label", { className: "block text-[11px] text-gray-600" }, "语言 / Language", /* @__PURE__ */ React.createElement(
+      "select",
+      {
+        value: studentDraft.language,
+        onChange: setStudentDraftField("language"),
+        className: "block w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm"
+      },
+      /* @__PURE__ */ React.createElement("option", { value: "zh" }, "中文"),
+      /* @__PURE__ */ React.createElement("option", { value: "en" }, "English")
+    ))), /* @__PURE__ */ React.createElement("label", { className: "block text-[11px] text-gray-600" }, "账单地址 / Billing address（可选）", /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        value: studentDraft.billingAddress,
+        onChange: setStudentDraftField("billingAddress"),
+        className: "block w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm"
+      }
+    )), /* @__PURE__ */ React.createElement("label", { className: "block text-[11px] text-gray-600" }, "付款期限 / Payment terms（天）", /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        type: "number",
+        min: "0",
+        max: "3650",
+        value: studentDraft.paymentTermsDays,
+        onChange: setStudentDraftField("paymentTermsDays"),
+        className: "block w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm"
+      }
+    )), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        type: "button",
+        disabled: !String(studentDraft.name || "").trim(),
+        onClick: () => {
+          setCreateConfirmed(true);
+          onStateChange({ mode, accountId: "", createPayload: null, linkedStudentIds: [studentId], createConfirmed: true });
+        },
+        className: "w-full min-h-[44px] rounded-xl bg-indigo-600 text-white text-sm font-bold disabled:opacity-50"
+      },
+      "创建并使用此付款方 ",
+      /* @__PURE__ */ React.createElement("span", { className: "text-[11px] font-normal" }, "/ Create and use this payer")
+    ), createConfirmed && /* @__PURE__ */ React.createElement("p", { className: "text-[11px] font-bold text-emerald-700" }, "已确认创建；提交草稿或开票时才会写入付款方记录。")), !studentLoading && studentPayers.length > 0 && /* @__PURE__ */ React.createElement("label", { className: "block text-xs text-gray-500" }, "已关联付款方（", studentPayers.length, " 个，", studentPayers.length === 1 ? "已默认选中，可切换" : "不会默认选择，必须明确选择", "）", /* @__PURE__ */ React.createElement(
       "select",
       {
         value: value || "",
-        onChange: (event) => onStateChange({ mode, accountId: event.target.value, createPayload: null, linkedStudentIds: [studentId] }),
+        onChange: (event) => {
+          setCreateConfirmed(false);
+          onStateChange({ mode, accountId: event.target.value, createPayload: null, linkedStudentIds: [studentId] });
+        },
         "aria-describedby": "billing-account-payer-help",
         className: "block w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm"
       },
       /* @__PURE__ */ React.createElement("option", { value: "" }, "请选择付款方"),
-      studentPayers.map((payer) => /* @__PURE__ */ React.createElement("option", { key: payer.id, value: payer.id }, payer.name, " · ", payer.kind))
-    ), /* @__PURE__ */ React.createElement("span", { id: "billing-account-payer-help", className: "block mt-1 text-[11px] text-gray-400" }, studentPayers.length === 1 ? `已默认选中：${studentPayers[0].name}` : "有多个付款方时不会自动猜测或合并。"))), mode === "custom" && /* @__PURE__ */ React.createElement("div", { className: "space-y-2 rounded-xl border border-gray-200 p-3" }, /* @__PURE__ */ React.createElement("label", { className: "block text-xs text-gray-500" }, "先搜索已有付款方", /* @__PURE__ */ React.createElement(
+      studentPayers.map((payer) => /* @__PURE__ */ React.createElement("option", { key: payer.id, value: payer.id }, payer.name, " · ", payer.kind, payer.email ? ` · ${payer.email}` : "", payer.mobile ? ` · ${payer.mobile}` : ""))
+    ), /* @__PURE__ */ React.createElement("span", { id: "billing-account-payer-help", className: "block mt-1 text-[11px] text-gray-400" }, studentPayers.length === 1 ? `已默认选中：${studentPayers[0].name}（${studentPayers[0].kind || "payer"}；${studentPayers[0].email || studentPayers[0].mobile || "无联系方式"}）` : "有多个付款方时不会自动猜测或合并；请核对类型和联系方式后选择。", /* @__PURE__ */ React.createElement("span", { className: "block mt-1" }, "付款方快照会在开具时冻结；之后修改付款方资料不会改写已开具发票。")))), mode === "custom" && /* @__PURE__ */ React.createElement("div", { className: "space-y-2 rounded-xl border border-gray-200 p-3" }, /* @__PURE__ */ React.createElement("label", { className: "block text-xs text-gray-500" }, "先搜索已有付款方 / Search before creating", /* @__PURE__ */ React.createElement(
       "input",
       {
         value: query,
         onChange: (event) => {
           setQuery(event.target.value);
+          setCreateConfirmed(false);
           onPayerError("");
         },
         placeholder: "姓名、机构、邮箱、电话或 ABN",
@@ -735,29 +946,35 @@
         key: payer.id,
         type: "button",
         onClick: () => {
+          setCreateConfirmed(false);
           onStateChange({ mode, accountId: String(payer.id), createPayload: null, linkedStudentIds });
           setCreating(false);
         },
         className: `w-full min-h-[44px] px-3 text-left text-sm border-b border-gray-100 last:border-0 ${String(payer.id) === String(value) ? "bg-indigo-50" : "bg-white hover:bg-gray-50"}`
       },
       /* @__PURE__ */ React.createElement("span", { className: "font-bold" }, payer.name),
-      /* @__PURE__ */ React.createElement("span", { className: "ml-2 text-[11px] text-gray-500" }, payer.kind, payer.email ? ` · ${payer.email}` : "")
+      /* @__PURE__ */ React.createElement("span", { className: "ml-2 text-[11px] text-gray-500" }, payer.kind, payer.email ? ` · ${payer.email}` : "", payer.mobile ? ` · ${payer.mobile}` : "")
     ))), selectedPayer && !creating && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-indigo-700" }, "已选付款方：", selectedPayer.name), /* @__PURE__ */ React.createElement(
       "button",
       {
         type: "button",
+        disabled: !query.trim(),
         onClick: () => {
           setCreating(true);
+          setCreateConfirmed(false);
           onStateChange({ mode, accountId: "", createPayload: null, linkedStudentIds });
         },
-        className: "min-h-[44px] px-3 rounded-xl border border-indigo-200 bg-white text-xs font-bold text-indigo-700"
+        className: "min-h-[44px] px-3 rounded-xl border border-indigo-200 bg-white text-xs font-bold text-indigo-700 disabled:opacity-50"
       },
-      "新建个人或机构付款方"
-    ), creating && /* @__PURE__ */ React.createElement("div", { className: "space-y-2 border-t border-gray-100 pt-2" }, /* @__PURE__ */ React.createElement("label", { className: "block text-xs text-gray-500" }, "类型", /* @__PURE__ */ React.createElement(
+      query.trim() ? "仍未找到？新建个人或机构付款方" : "先搜索，仍未找到再新建付款方"
+    ), !query.trim() && /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-gray-500" }, "为避免同名重复，请先搜索姓名、机构、邮箱、电话或 ABN。"), creating && /* @__PURE__ */ React.createElement("div", { className: "space-y-2 border-t border-gray-100 pt-2" }, /* @__PURE__ */ React.createElement("label", { className: "block text-xs text-gray-500" }, "类型", /* @__PURE__ */ React.createElement(
       "select",
       {
         value: kind,
-        onChange: (event) => setKind(event.target.value),
+        onChange: (event) => {
+          setKind(event.target.value);
+          setCreateConfirmed(false);
+        },
         className: "block w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm"
       },
       /* @__PURE__ */ React.createElement("option", { value: "person" }, "个人"),
@@ -840,23 +1057,40 @@
       },
       /* @__PURE__ */ React.createElement("option", { value: "en" }, "English"),
       /* @__PURE__ */ React.createElement("option", { value: "zh" }, "中文")
-    ))), /* @__PURE__ */ React.createElement("label", { className: "block text-xs text-gray-500" }, "可选关联服务对象（0..N）", /* @__PURE__ */ React.createElement(
-      "select",
+    ))), /* @__PURE__ */ React.createElement("div", { className: "block text-xs text-gray-500" }, "可选关联服务对象（0..N）", /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-2 mt-1", "aria-label": "可选关联服务对象" }, students.map((student) => {
+      const selected = linkedStudentIds.includes(String(student.id));
+      return /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          key: student.id,
+          type: "button",
+          className: `payer-chip min-h-[44px] px-3 rounded-full border text-xs font-bold ${selected ? "border-indigo-500 bg-indigo-50 text-indigo-700" : "border-gray-200 bg-white text-gray-600"}`,
+          "aria-pressed": selected,
+          onClick: () => toggleLinkedStudent(student.id)
+        },
+        selected ? "✓ " : "",
+        student.name
+      );
+    }), !students.length && /* @__PURE__ */ React.createElement("span", { className: "text-[11px] text-gray-400" }, "暂无可关联服务对象"))), /* @__PURE__ */ React.createElement(
+      "button",
       {
-        multiple: true,
-        value: linkedStudentIds,
-        onChange: (event) => setLinkedStudentIds(Array.from(event.target.selectedOptions, (option) => option.value)),
-        "aria-label": "可选关联服务对象",
-        className: "block w-full mt-1 min-h-[88px] px-3 border border-gray-200 rounded-xl text-sm"
+        type: "button",
+        disabled: !String(kind === "organisation" ? fields.companyName : fields.name).trim(),
+        onClick: () => setCreateConfirmed(true),
+        className: "w-full min-h-[44px] rounded-xl bg-indigo-600 text-white text-sm font-bold disabled:opacity-50"
       },
-      students.map((student) => /* @__PURE__ */ React.createElement("option", { key: student.id, value: student.id }, student.name))
-    )))), payerError && /* @__PURE__ */ React.createElement("p", { id: "billing-payer-name-error", ref: payerErrorRef, tabIndex: "-1", role: "alert", className: "text-xs text-red-600" }, payerError));
+      "创建并使用此付款方 ",
+      /* @__PURE__ */ React.createElement("span", { className: "text-[11px] font-normal" }, "/ Create and use this payer")
+    ), createConfirmed && /* @__PURE__ */ React.createElement("p", { className: "text-[11px] font-bold text-emerald-700" }, "已确认创建；提交草稿或开票时才会写入付款方记录。"))), payerError && /* @__PURE__ */ React.createElement("p", { id: "billing-payer-name-error", ref: payerErrorRef, tabIndex: "-1", role: "alert", className: "text-xs text-red-600" }, payerError));
   }
   function NewInvoiceDialog({ api, accounts, students = [], studentPicker, busy, onClose, onSubmit }) {
     const Picker = studentPicker;
     const payerErrorRef = useRef(null);
+    const invoiceDraftRequestRef = useRef({ signature: "", id: "" });
     const [payerState, setPayerState] = useState({ accountId: "", createPayload: null, linkedStudentIds: [], mode: "student" });
     const [payerError, setPayerError] = useState("");
+    const [possibleDuplicates, setPossibleDuplicates] = useState([]);
+    const [allowPossibleDuplicate, setAllowPossibleDuplicate] = useState(false);
     const [note, setNote] = useState("");
     const [lines, setLines] = useState([
       { description: "", quantity: "1", unitPrice: "", taxRateBp: "1000", sourceKind: "manual", studentId: "" }
@@ -868,6 +1102,13 @@
     }, 0);
     const payerReady = Boolean(payerState.accountId || payerState.createPayload);
     const ready = payerReady && lines.some((l) => l.description.trim() && Number(l.unitPrice) > 0);
+    const nextInvoiceDraftRequestId = (signature) => {
+      if (invoiceDraftRequestRef.current.signature !== signature) {
+        const id = window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : `invoice-draft-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        invoiceDraftRequestRef.current = { signature, id };
+      }
+      return invoiceDraftRequestRef.current.id;
+    };
     useEffect(() => {
       if (payerError && payerErrorRef.current) payerErrorRef.current.focus();
     }, [payerError]);
@@ -881,28 +1122,41 @@
     const submit = async () => {
       setPayerError("");
       try {
-        let accountId = payerState.accountId;
-        if (!accountId && payerState.createPayload) {
-          const payload = { ...payerState.createPayload };
-          if (payload.studentId) delete payload.studentIds;
-          const created = await api("/billing/accounts", {
-            method: "POST",
-            body: JSON.stringify(payload)
-          });
-          accountId = String(created.account?.id || "");
+        let payer = null;
+        if (payerState.accountId) {
+          payer = { accountId: String(payerState.accountId) };
+        } else if (payerState.createPayload) {
+          const { studentId: _studentId, studentIds: _studentIds, ...create } = payerState.createPayload;
+          payer = { create, linkedStudentIds: payerState.linkedStudentIds };
         }
-        if (!accountId) {
+        if (!payer) {
           setPayerError("请选择或创建付款方。");
           return;
         }
-        if (payerState.mode === "custom" && payerState.linkedStudentIds.length) {
-          await api(`/billing/accounts/${accountId}/members`, {
-            method: "POST",
-            body: JSON.stringify({ studentIds: payerState.linkedStudentIds })
-          });
-        }
-        await onSubmit({ accountId, note, lines });
+        const aggregateLines = lines.map((line) => ({
+          description: line.description.trim(),
+          quantity: line.quantity,
+          unitPriceCents: Math.round(Number(line.unitPrice) * 100),
+          taxRateBp: Number(line.taxRateBp),
+          sourceKind: line.sourceKind || "manual",
+          studentId: line.studentId || null
+        }));
+        const signature = JSON.stringify({ payer, note, lines: aggregateLines, allowPossibleDuplicate });
+        const requestId = nextInvoiceDraftRequestId(signature);
+        await onSubmit({
+          requestId,
+          payer,
+          invoice: { note },
+          lines: aggregateLines,
+          allowPossibleDuplicate
+        });
+        setPossibleDuplicates([]);
+        setAllowPossibleDuplicate(false);
       } catch (error) {
+        if (error.status === 409 && error.details?.possibleDuplicates) {
+          setPossibleDuplicates(error.details.possibleDuplicates);
+          setAllowPossibleDuplicate(false);
+        }
         setPayerError(error.message || "付款方保存失败，请检查输入后重试。");
       }
     };
@@ -918,7 +1172,7 @@
         payerError,
         onPayerError: setPayerError
       }
-    ), /* @__PURE__ */ React.createElement("div", { className: "space-y-2" }, lines.map((line, i) => /* @__PURE__ */ React.createElement("div", { key: i, className: "border border-gray-200 rounded-xl p-3 space-y-2" }, /* @__PURE__ */ React.createElement("label", { className: "block text-xs text-gray-500" }, "项目说明", /* @__PURE__ */ React.createElement(
+    ), possibleDuplicates.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-2", role: "alert" }, /* @__PURE__ */ React.createElement("p", { className: "text-xs font-bold text-amber-900" }, "发现可能重复的付款方，请先核对"), /* @__PURE__ */ React.createElement("ul", { className: "text-[11px] text-amber-900 list-disc pl-4 space-y-1" }, possibleDuplicates.map((payer) => /* @__PURE__ */ React.createElement("li", { key: payer.id }, payer.name, " · ", payer.kind, payer.email ? ` · ${payer.email}` : "", payer.mobile ? ` · ${payer.mobile}` : ""))), /* @__PURE__ */ React.createElement("label", { className: "flex items-start gap-2 min-h-[44px] text-xs text-amber-900" }, /* @__PURE__ */ React.createElement("input", { type: "checkbox", checked: allowPossibleDuplicate, onChange: (event) => setAllowPossibleDuplicate(event.target.checked), className: "mt-1 w-5 h-5 accent-amber-600" }), /* @__PURE__ */ React.createElement("span", null, "我已核对并明确允许新建，不自动合并；继续时会记录原因和候选付款方。"))), /* @__PURE__ */ React.createElement("div", { className: "space-y-2" }, lines.map((line, i) => /* @__PURE__ */ React.createElement("div", { key: i, className: "border border-gray-200 rounded-xl p-3 space-y-2" }, /* @__PURE__ */ React.createElement("label", { className: "block text-xs text-gray-500" }, "项目说明", /* @__PURE__ */ React.createElement(
       "input",
       {
         value: line.description,
@@ -2159,6 +2413,7 @@
     if (!r.ok) {
       const err = new Error(d.message || d.error || `HTTP ${r.status}`);
       err.status = r.status;
+      err.details = d.details || null;
       throw err;
     }
     return d;
@@ -3285,6 +3540,7 @@
     const [settleMode, setSettleMode] = useState8("topup");
     const [rfCr, setRfCr] = useState8("");
     const [rfAmt, setRfAmt] = useState8("");
+    const [rfAmountTouched, setRfAmountTouched] = useState8(false);
     const [rfReason, setRfReason] = useState8("");
     const [rfSourceId, setRfSourceId] = useState8("");
     const [refundSources, setRefundSources] = useState8([]);
@@ -5416,13 +5672,16 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 })
               });
             } else {
-              await v1Api(`/students/${s.id}/credit-transactions`, {
+              settlement = await v1Api(`/students/${s.id}/credit-settlements`, {
                 method: "POST",
                 body: JSON.stringify({
-                  transactionType: "purchase",
-                  amount: credits,
-                  feeAudCents: amountCents,
-                  note: noteStr
+                  requestId,
+                  credits: String(credits),
+                  amountCents,
+                  paymentMethod: settlementPaymentMethod[tuPay] || "other",
+                  packageId: tuPkg || null,
+                  note: noteStr,
+                  billing: { createInvoice: false }
                 })
               });
             }
@@ -5543,20 +5802,23 @@ document.getElementById('copybtn').addEventListener('click', function(){
               })
             });
           } else {
-            await v1Api(`/students/${s.id}/credit-transactions`, {
+            result = await v1Api(`/students/${encodeURIComponent(s.id)}/credit-refunds`, {
               method: "POST",
               body: JSON.stringify({
-                transactionType: "refund",
-                legacy_type: "refund_out",
-                amount: credits,
-                feeAudCents: amountCents,
-                note: `退款退课 | 原充值: ${rfSourceId} | 原因: ${rfReason.trim()} | 方式: ${tuPay}`
+                requestId,
+                sourceCreditTransactionId: rfSourceId,
+                credits: String(credits),
+                amountCents,
+                paymentMethod: settlementPaymentMethod[tuPay] || "other",
+                reason: rfReason.trim(),
+                billing: { adjustDocuments: false }
               })
             });
           }
           await load();
           setRfCr("");
           setRfAmt("");
+          setRfAmountTouched(false);
           setRfReason("");
           setRfSourceId("");
           setRfAdjustDocuments(false);
@@ -7897,7 +8159,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
         const recent = !s ? [] : db.logs.filter((l) => (l.studentId === s.id || !l.studentId && l.studentName === s.name) && (l.action === "充值购课" || l.action === "退款退课")).slice(0, 3);
         if (!recent.length) return null;
         return /* @__PURE__ */ React.createElement("div", { className: "mt-2 border border-gray-100 rounded-xl divide-y divide-gray-50 text-xs" }, recent.map((l) => /* @__PURE__ */ React.createElement("div", { key: l.id, className: "flex items-center justify-between px-3 py-2" }, /* @__PURE__ */ React.createElement("span", { className: l.action === "退款退课" ? "text-red-500 font-bold" : "text-gray-600 font-bold" }, l.action), /* @__PURE__ */ React.createElement("span", { className: `font-bold ${l.action === "退款退课" ? "text-red-500" : "text-gray-700"}` }, String(l.change), " 课时 · $", l.feePaid || 0), /* @__PURE__ */ React.createElement("span", { className: "text-gray-400" }, String(l.date).split(",")[0]))));
-      })()), settleMode === "refund" ? /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, /* @__PURE__ */ React.createElement("div", { className: "rounded-2xl border border-red-100 bg-red-50/50 p-3 space-y-2" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm font-bold text-red-900" }, "先选择原充值"), /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-red-700" }, "退款必须从一笔明确的 purchase 开始；系统不会按学员余额猜来源。"), refundSourcesBusy && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, "正在加载可退充值…"), refundSourceError && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-red-600", role: "alert" }, refundSourceError), !refundSourcesBusy && !refundSources.length && !refundSourceError && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, "没有可识别的原充值。仍可在选择来源后走旧的 credits-only 退款，但不会改发票或付款记录。"), /* @__PURE__ */ React.createElement("div", { className: "space-y-2" }, refundSources.map((source) => {
+      })()), settleMode === "refund" ? /* @__PURE__ */ React.createElement("div", { className: "space-y-4" }, /* @__PURE__ */ React.createElement("div", { className: "rounded-2xl border border-red-100 bg-red-50/50 p-3 space-y-2" }, /* @__PURE__ */ React.createElement("p", { className: "text-sm font-bold text-red-900" }, "先选择原充值"), /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-red-700" }, "退款必须从一笔明确的 purchase 开始；系统不会按学员余额猜来源。"), refundSourcesBusy && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, "正在加载可退充值…"), refundSourceError && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-red-600", role: "alert" }, refundSourceError), !refundSourcesBusy && !refundSources.filter((source) => Number(source.availableCredits || 0) > 0).length && !refundSourceError && /* @__PURE__ */ React.createElement("p", { className: "text-xs text-gray-500" }, "没有剩余课时可退的原充值。已全部退完的来源会保留在账本中，但不会再出现在可选列表。"), /* @__PURE__ */ React.createElement("div", { className: "space-y-2" }, refundSources.filter((source) => Number(source.availableCredits || 0) > 0).map((source) => {
         const selected = String(source.sourceTransactionId) === String(rfSourceId);
         return /* @__PURE__ */ React.createElement(
           "button",
@@ -7906,6 +8168,9 @@ document.getElementById('copybtn').addEventListener('click', function(){
             type: "button",
             onClick: () => {
               setRfSourceId(String(source.sourceTransactionId));
+              setRfCr(String(source.availableCredits || ""));
+              setRfAmt((Number(source.availableAmountCents || 0) / 100).toFixed(2));
+              setRfAmountTouched(false);
               setRfAdjustDocuments(Boolean(source.syncAvailable && canSyncRefund));
             },
             className: `w-full text-left rounded-xl border p-3 min-h-[68px] ${selected ? "border-red-400 bg-white ring-2 ring-red-100" : "border-gray-200 bg-white"}`
@@ -7913,7 +8178,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
           /* @__PURE__ */ React.createElement("div", { className: "flex items-start gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "flex-1 min-w-0" }, /* @__PURE__ */ React.createElement("span", { className: "block text-xs font-bold text-gray-800 truncate" }, source.invoiceNumber || "Credits-only purchase", " · ", source.purchasedCredits, " 课时"), /* @__PURE__ */ React.createElement("span", { className: "block text-[11px] text-gray-500 mt-1" }, "剩余 ", source.availableCredits, " 节 · 可退 $", (Number(source.availableAmountCents || 0) / 100).toFixed(2), " · 已退 ", source.refundCount, " 次")), /* @__PURE__ */ React.createElement("span", { className: `text-[10px] font-bold px-2 py-1 rounded-full ${source.syncAvailable ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-500"}` }, source.syncAvailable ? "可同步单据" : "无完整桥接")),
           /* @__PURE__ */ React.createElement("span", { className: "block text-[11px] text-gray-400 mt-1" }, "发票 ", source.invoiceStatus || "—", " · 付款 ", source.paymentStatus || "—")
         );
-      }))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-3" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "text-sm font-bold text-gray-500 mb-1 block" }, "退课节数 *"), /* @__PURE__ */ React.createElement(
+      }))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-3" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "text-sm font-bold text-gray-500 mb-1 block" }, "退课节数 *"), /* @__PURE__ */ React.createElement(
         "input",
         {
           type: "number",
@@ -7921,7 +8186,17 @@ document.getElementById('copybtn').addEventListener('click', function(){
           step: "0.01",
           required: true,
           value: rfCr,
-          onChange: (e) => setRfCr(e.target.value),
+          onChange: (e) => {
+            const next = e.target.value;
+            setRfCr(next);
+            if (!rfAmountTouched) {
+              const selectedSource = refundSources.find((item) => String(item.sourceTransactionId) === String(rfSourceId));
+              const credits = Number(next || 0);
+              const availableCredits = Number(selectedSource?.availableCredits || 0);
+              const availableAmount = Number(selectedSource?.availableAmountCents || 0);
+              if (selectedSource && availableCredits > 0) setRfAmt((availableAmount * credits / availableCredits / 100).toFixed(2));
+            }
+          },
           className: "w-full px-3 py-3 border border-red-200 rounded-xl font-bold text-2xl focus:ring-2 focus:ring-red-400 outline-none text-red-600"
         }
       )), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "text-sm font-bold text-gray-500 mb-1 block" }, "退款金额 (AUD) *"), /* @__PURE__ */ React.createElement(
@@ -7932,10 +8207,21 @@ document.getElementById('copybtn').addEventListener('click', function(){
           step: "0.01",
           required: true,
           value: rfAmt,
-          onChange: (e) => setRfAmt(e.target.value),
+          onChange: (e) => {
+            setRfAmountTouched(true);
+            setRfAmt(e.target.value);
+          },
           className: "w-full px-3 py-3 border border-red-200 rounded-xl font-bold text-2xl focus:ring-2 focus:ring-red-400 outline-none text-red-600"
         }
       ))), (() => {
+        const source = refundSources.find((item) => String(item.sourceTransactionId) === String(rfSourceId));
+        const credits = Number(rfCr || 0);
+        const availableCredits = Number(source?.availableCredits || 0);
+        const suggested = source && availableCredits > 0 ? Math.round(Number(source.availableAmountCents || 0) * credits / availableCredits) : 0;
+        const actual = Math.round((parseFloat(rfAmt) || 0) * 100);
+        const variance = actual - suggested;
+        return source && Number.isFinite(variance) && Math.abs(variance) > 0 ? /* @__PURE__ */ React.createElement("p", { className: "text-[11px] text-amber-800 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2", role: "status" }, "按原充值未退比例建议退款 ", `$${(suggested / 100).toFixed(2)}`, "；当前人工金额 ", `$${(actual / 100).toFixed(2)}`, "，偏差 ", `${variance > 0 ? "+" : ""}$${(variance / 100).toFixed(2)}`, "。请确认有效单价并填写退款原因，系统不会替你猜税务决定。") : null;
+      })(), (() => {
         const source = refundSources.find((item) => String(item.sourceTransactionId) === String(rfSourceId));
         return /* @__PURE__ */ React.createElement("label", { className: "flex items-start gap-2.5 min-h-[44px] rounded-xl border border-red-100 bg-white p-3 cursor-pointer" }, /* @__PURE__ */ React.createElement(
           "input",

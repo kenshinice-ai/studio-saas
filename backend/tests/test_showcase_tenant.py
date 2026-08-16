@@ -14,6 +14,7 @@ These tests pin the parts that are easy to get wrong again.
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -298,13 +299,13 @@ def test_a_wide_logo_cannot_crowd_out_the_studio_name(page) -> None:
     """
 
     text = (PROJECT_ROOT / "tenant-template" / page).read_text(encoding="utf-8")
-    brand_rule = next(
-        (line for line in text.splitlines() if ".brand img" in line and "{" in line), ""
-    )
-    assert brand_rule, f"{page} has no .brand img rule"
-    assert "max-width" in brand_rule, f"{page}: logo width is unbounded — {brand_rule.strip()}"
-    assert "max-height" in brand_rule, f"{page}: logo height is unbounded — {brand_rule.strip()}"
-    assert "object-fit:contain" in brand_rule.replace(" ", ""), (
+    shared_shell = (PROJECT_ROOT / "backend/frontend/assets/public-shell.css").read_text(encoding="utf-8")
+    brand_rule = re.search(r"\.brand img\s*\{[^}]*\}", shared_shell, re.DOTALL)
+    assert brand_rule, f"{page}: shared public shell has no .brand img rule"
+    brand_css = brand_rule.group(0)
+    assert "max-width" in brand_css, f"{page}: logo width is unbounded — {brand_css.strip()}"
+    assert "max-height" in brand_css, f"{page}: logo height is unbounded — {brand_css.strip()}"
+    assert "object-fit:contain" in brand_css.replace(" ", ""), (
         f"{page}: bounding both axes without object-fit stretches the logo"
     )
 

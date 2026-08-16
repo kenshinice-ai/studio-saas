@@ -1,6 +1,9 @@
 """The CMS must describe Xero's current preview boundary, not the roadmap."""
 
 from pathlib import Path
+import json
+
+import pytest
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -39,3 +42,41 @@ def test_xero_preview_copy_has_english_dictionary_entries():
     for phrase in expected:
         assert phrase in panel, phrase
         assert f"['{phrase}'" in i18n, phrase
+
+
+def test_xero_preview_mapper_uses_document_dto_and_preserves_original_tax_rate():
+    from studiosaas.services import xero
+
+    document = {
+        "document": {
+            "id": "invoice-1", "kind": "invoice", "number": "INV-0001",
+            "status": "issued", "currency": "AUD",
+        },
+        "recipient": {"displayName": "Snapshot Payer", "email": "payer@example.test"},
+        "supplier": {"legalName": "Studio Pty Ltd"},
+        "lines": [{
+            "description": "GST line", "quantity": "1.00", "unitPriceCents": 10000,
+            "taxRateBp": 875, "netCents": 10000, "taxCents": 875, "totalCents": 10875,
+            "sourceKind": "tuition",
+        }],
+        "totals": {"subtotalCents": 10000, "taxCents": 875, "totalCents": 10875},
+        "paymentSummary": {"amountPaidCents": 0, "amountCreditedCents": 0, "balanceCents": 10875},
+    }
+    prepared = xero.prepare_document_export(document)
+    assert prepared["stage"] == "preview"
+    assert prepared["transportAvailable"] is False
+    assert prepared["object"]["kind"] == "invoice"
+    assert prepared["object"]["number"] == "INV-0001"
+    assert prepared["object"]["revision"]
+    assert len(prepared["object"]["hash"]) == 64
+    assert prepared["lines"][0]["taxRateBp"] == 875
+    assert prepared["lines"][0]["taxRate"] == "8.75%"
+    assert "Snapshot Payer" in json.dumps(prepared, ensure_ascii=False)
+
+
+def test_xero_preview_mapper_rejects_live_record_reconstruction_and_no_transport():
+    from studiosaas.services import xero
+
+    with pytest.raises(xero.XeroError, match="InvoiceDocument DTO"):
+        xero.prepare_document_export({"id": "live-invoice", "account_name": "Live payer"})
+    assert xero.TRANSPORT_AVAILABLE is False

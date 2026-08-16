@@ -94,6 +94,7 @@ const v1Api = async (path, options = {}) => {
     if (!r.ok) {
         const err = new Error(d.message || d.error || `HTTP ${r.status}`);
         err.status = r.status;
+        err.details = d.details || null;
         throw err;
     }
     return d;
@@ -1253,6 +1254,7 @@ function App() {
     const [settleMode, setSettleMode] = useState('topup');
     const [rfCr, setRfCr] = useState('');
     const [rfAmt, setRfAmt] = useState('');
+    const [rfAmountTouched, setRfAmountTouched] = useState(false);
     const [rfReason, setRfReason] = useState('');
     const [rfSourceId, setRfSourceId] = useState('');
     const [refundSources, setRefundSources] = useState([]);
@@ -3376,14 +3378,17 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             }),
                         });
                     } else {
-                        /* Compatibility path: without the checkbox this remains
-                           the existing credits-only endpoint and never mentions
-                           an invoice in its confirmation copy. */
-                        await v1Api(`/students/${s.id}/credit-transactions`, {
+                        /* Every top-up uses the idempotent settlement contract.
+                           The no-invoice payload is deliberately minimal: it
+                           cannot create an account, tax code, issue, or payment
+                           as a side effect. */
+                        settlement = await v1Api(`/students/${s.id}/credit-settlements`, {
                             method: 'POST',
                             body: JSON.stringify({
-                                transactionType: 'purchase', amount: credits,
-                                feeAudCents: amountCents, note: noteStr,
+                                requestId, credits: String(credits), amountCents,
+                                paymentMethod: settlementPaymentMethod[tuPay] || 'other',
+                                packageId: tuPkg || null, note: noteStr,
+                                billing: {createInvoice: false},
                             }),
                         });
                     }
@@ -3430,9 +3435,9 @@ document.getElementById('copybtn').addEventListener('click', function(){
         return refundRequestRef.current.id;
     };
 
-    /* E-01: a document-adjusting refund always starts from one selected
-       purchase bridge. The old endpoint is intentionally retained only for
-       the explicit credits-only branch. */
+    /* E-01: both refund modes start from one selected source. The endpoint
+       decides whether documents are adjusted; the old free-form adjustment
+       route is no longer a refund UI path. */
     const handleRefund = async (e) => {
         e.preventDefault();
         if (!canRefund) { showToast('当前角色无退款权限', 'error'); return; }
@@ -3481,17 +3486,19 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         }),
                     });
                 } else {
-                    await v1Api(`/students/${s.id}/credit-transactions`, {
+                    result = await v1Api(`/students/${encodeURIComponent(s.id)}/credit-refunds`, {
                         method: 'POST',
                         body: JSON.stringify({
-                            transactionType: 'refund', legacy_type: 'refund_out',
-                            amount: credits, feeAudCents: amountCents,
-                            note: `退款退课 | 原充值: ${rfSourceId} | 原因: ${rfReason.trim()} | 方式: ${tuPay}`,
+                            requestId,
+                            sourceCreditTransactionId: rfSourceId,
+                            credits: String(credits), amountCents,
+                            paymentMethod: settlementPaymentMethod[tuPay] || 'other',
+                            reason: rfReason.trim(), billing: {adjustDocuments: false},
                         }),
                     });
                 }
                 await load();
-                setRfCr(''); setRfAmt(''); setRfReason(''); setRfSourceId('');
+                setRfCr(''); setRfAmt(''); setRfAmountTouched(false); setRfReason(''); setRfSourceId('');
                 setRfAdjustDocuments(false); setRefundSources([]); setTuStu(null);
                 const newBal = (parseFloat(s.balance) || 0) - credits;
                 const cMsg = `${s.name} 您好！已为您办理退课 ${credits} 节、退款 $${(amountCents / 100).toFixed(2)}（${tuPay}），当前剩余 ${newBal} 课时。感谢您的理解与支持。`;
@@ -5991,16 +5998,19 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 <p className="text-[11px] text-red-700">退款必须从一笔明确的 purchase 开始；系统不会按学员余额猜来源。</p>
                 {refundSourcesBusy && <p className="text-xs text-gray-500">正在加载可退充值…</p>}
                 {refundSourceError && <p className="text-xs text-red-600" role="alert">{refundSourceError}</p>}
-                {!refundSourcesBusy && !refundSources.length && !refundSourceError && (
-                    <p className="text-xs text-gray-500">没有可识别的原充值。仍可在选择来源后走旧的 credits-only 退款，但不会改发票或付款记录。</p>
+                {!refundSourcesBusy && !refundSources.filter(source => Number(source.availableCredits || 0) > 0).length && !refundSourceError && (
+                    <p className="text-xs text-gray-500">没有剩余课时可退的原充值。已全部退完的来源会保留在账本中，但不会再出现在可选列表。</p>
                 )}
                 <div className="space-y-2">
-                    {refundSources.map(source => {
+                    {refundSources.filter(source => Number(source.availableCredits || 0) > 0).map(source => {
                         const selected = String(source.sourceTransactionId) === String(rfSourceId);
                         return (
                             <button key={source.sourceTransactionId} type="button"
                                 onClick={()=>{
                                     setRfSourceId(String(source.sourceTransactionId));
+                                    setRfCr(String(source.availableCredits || ''));
+                                    setRfAmt((Number(source.availableAmountCents || 0) / 100).toFixed(2));
+                                    setRfAmountTouched(false);
                                     setRfAdjustDocuments(Boolean(source.syncAvailable && canSyncRefund));
                                 }}
                                 className={`w-full text-left rounded-xl border p-3 min-h-[68px] ${selected ? 'border-red-400 bg-white ring-2 ring-red-100' : 'border-gray-200 bg-white'}`}>
@@ -6025,18 +6035,43 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     })}
                 </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                     <label className="text-sm font-bold text-gray-500 mb-1 block">退课节数 *</label>
-                    <input type="number" min="0.01" step="0.01" required value={rfCr} onChange={e=>setRfCr(e.target.value)}
+                    <input type="number" min="0.01" step="0.01" required value={rfCr} onChange={e=>{
+                        const next = e.target.value;
+                        setRfCr(next);
+                        if (!rfAmountTouched) {
+                            const selectedSource = refundSources.find(item => String(item.sourceTransactionId) === String(rfSourceId));
+                            const credits = Number(next || 0);
+                            const availableCredits = Number(selectedSource?.availableCredits || 0);
+                            const availableAmount = Number(selectedSource?.availableAmountCents || 0);
+                            if (selectedSource && availableCredits > 0) setRfAmt((availableAmount * credits / availableCredits / 100).toFixed(2));
+                        }
+                    }}
                         className="w-full px-3 py-3 border border-red-200 rounded-xl font-bold text-2xl focus:ring-2 focus:ring-red-400 outline-none text-red-600"/>
                 </div>
                 <div>
                     <label className="text-sm font-bold text-gray-500 mb-1 block">退款金额 (AUD) *</label>
-                    <input type="number" min="0" step="0.01" required value={rfAmt} onChange={e=>setRfAmt(e.target.value)}
+                    <input type="number" min="0" step="0.01" required value={rfAmt} onChange={e=>{ setRfAmountTouched(true); setRfAmt(e.target.value); }}
                     className="w-full px-3 py-3 border border-red-200 rounded-xl font-bold text-2xl focus:ring-2 focus:ring-red-400 outline-none text-red-600"/>
                 </div>
             </div>
+            {(() => {
+                const source = refundSources.find(item => String(item.sourceTransactionId) === String(rfSourceId));
+                const credits = Number(rfCr || 0);
+                const availableCredits = Number(source?.availableCredits || 0);
+                const suggested = source && availableCredits > 0
+                    ? Math.round(Number(source.availableAmountCents || 0) * credits / availableCredits)
+                    : 0;
+                const actual = Math.round((parseFloat(rfAmt) || 0) * 100);
+                const variance = actual - suggested;
+                return source && Number.isFinite(variance) && Math.abs(variance) > 0 ? (
+                    <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2" role="status">
+                        按原充值未退比例建议退款 {`$${(suggested / 100).toFixed(2)}`}；当前人工金额 {`$${(actual / 100).toFixed(2)}`}，偏差 {`${variance > 0 ? '+' : ''}$${(variance / 100).toFixed(2)}`}。请确认有效单价并填写退款原因，系统不会替你猜税务决定。
+                    </p>
+                ) : null;
+            })()}
             {(() => {
                 const source = refundSources.find(item => String(item.sourceTransactionId) === String(rfSourceId));
                 return (

@@ -54,13 +54,13 @@ def _credits(value: Any) -> Decimal:
 
 def _cents(value: Any) -> int:
     if isinstance(value, bool):
-        raise CreditRefundError("amountCents must be a positive integer.")
+        raise CreditRefundError("amountCents must be a non-negative integer.")
     try:
         amount = int(value)
     except (TypeError, ValueError) as exc:
-        raise CreditRefundError("amountCents must be a positive integer.") from exc
-    if str(value).strip() != str(amount) or amount <= 0:
-        raise CreditRefundError("amountCents must be a positive integer.")
+        raise CreditRefundError("amountCents must be a non-negative integer.") from exc
+    if str(value).strip() != str(amount) or amount < 0:
+        raise CreditRefundError("amountCents must be a non-negative integer.")
     return amount
 
 
@@ -107,6 +107,7 @@ def refundable_purchases(conn, tenant_id: str, student_id: str) -> list[dict[str
         """
         SELECT ct.id AS source_transaction_id,
                ct.amount::numeric AS purchased_credits,
+               ct.fee_aud_cents AS source_fee_aud_cents,
                ct.occurred_at,
                l.invoice_id, l.invoice_line_id, l.payment_id,
                i.number AS invoice_number, i.status AS invoice_status,
@@ -132,17 +133,27 @@ def refundable_purchases(conn, tenant_id: str, student_id: str) -> list[dict[str
           LEFT JOIN payments p
             ON p.tenant_id = l.tenant_id AND p.id = l.payment_id
           LEFT JOIN (
-              SELECT rl.related_credit_transaction_id AS source_transaction_id,
+              SELECT COALESCE(rt.source_credit_transaction_id,
+                              rl.related_credit_transaction_id) AS source_transaction_id,
                      SUM((-rt.amount)::numeric) AS refunded_credits,
-                     SUM(r.amount_cents) AS refunded_amount_cents,
+                     SUM(CASE WHEN r.amount_cents IS NOT NULL
+                              THEN r.amount_cents
+                              ELSE GREATEST(0, -rt.fee_aud_cents)
+                         END) AS refunded_amount_cents,
                      COUNT(*) AS refund_count
-                FROM credit_financial_links rl
-                JOIN credit_transactions rt
-                  ON rt.tenant_id = rl.tenant_id AND rt.id = rl.credit_transaction_id
-                JOIN refunds r
+                FROM credit_transactions rt
+                LEFT JOIN credit_financial_links rl
+                  ON rl.tenant_id = rt.tenant_id
+                 AND rl.credit_transaction_id = rt.id
+                 AND rl.related_credit_transaction_id IS NOT NULL
+                LEFT JOIN refunds r
                   ON r.tenant_id = rl.tenant_id AND r.id = rl.refund_id
-               WHERE rl.tenant_id = %s
-               GROUP BY rl.related_credit_transaction_id
+               WHERE rt.tenant_id = %s
+                 AND rt.transaction_type = 'refund'
+                 AND (rt.source_credit_transaction_id IS NOT NULL
+                      OR rl.related_credit_transaction_id IS NOT NULL)
+               GROUP BY COALESCE(rt.source_credit_transaction_id,
+                                 rl.related_credit_transaction_id)
           ) rf ON rf.source_transaction_id = ct.id
          WHERE ct.tenant_id = %s
            AND ct.student_id = %s
@@ -155,14 +166,17 @@ def refundable_purchases(conn, tenant_id: str, student_id: str) -> list[dict[str
     for row in rows:
         purchased_credits = Decimal(str(row["purchased_credits"] or 0)).quantize(Decimal("0.01"))
         refunded_credits = Decimal(str(row["refunded_credits"] or 0)).quantize(Decimal("0.01"))
-        line_total = int(row["line_total_cents"] or 0)
+        line_total = int(row["line_total_cents"] or row["source_fee_aud_cents"] or 0)
         refunded_amount = int(row["refunded_amount_cents"] or 0)
         payment_available = (
             int(row["payment_amount_cents"] or 0)
             - int(row["payment_refunded_cents"] or 0)
             if row["payment_id"] else 0
         )
-        available_amount = max(0, min(line_total - refunded_amount, payment_available))
+        if row["invoice_id"]:
+            available_amount = max(0, min(line_total - refunded_amount, payment_available))
+        else:
+            available_amount = max(0, line_total - refunded_amount)
         available_credits = max(Decimal("0"), purchased_credits - refunded_credits)
         complete_bridge = bool(
             row["invoice_id"] and row["invoice_line_id"] and row["payment_id"]
@@ -255,9 +269,6 @@ def create_credit_refund(
     adjust_documents = _strict_bool(
         billing_payload.get("adjustDocuments"), "billing.adjustDocuments", default=True
     )
-    if not adjust_documents:
-        raise CreditRefundError("Credits-only refunds use the legacy endpoint; this service adjusts documents.")
-
     digest = payload_hash({**dict(payload), "studentId": student_id})
     operation, replayed = _operation_start(
         conn, tenant_id, request_id, "credit_refund", digest
@@ -270,6 +281,7 @@ def create_credit_refund(
         conn,
         """
         SELECT id, student_id, account_id, amount::numeric AS amount,
+               fee_aud_cents,
                balance_after::numeric AS balance_after
           FROM credit_transactions
          WHERE tenant_id = %s AND id = %s AND transaction_type = 'purchase'
@@ -279,6 +291,119 @@ def create_credit_refund(
     )
     if not source or str(source["student_id"]) != student_id:
         raise CreditRefundError("The original purchase was not found.")
+
+    # Credits-only refunds use the same source-aware endpoint. They never
+    # create or mutate an invoice/payment, but still participate in the source
+    # aggregate and write provenance directly on the refund row.
+    if not adjust_documents:
+        prior = fetch_one(
+            conn,
+            """
+            SELECT COALESCE(SUM((-rt.amount)::numeric), 0)::numeric AS refunded_credits,
+                   COALESCE(SUM(GREATEST(0, -rt.fee_aud_cents)), 0)::bigint
+                       AS refunded_amount_cents
+              FROM credit_transactions rt
+              LEFT JOIN credit_financial_links rl
+                ON rl.tenant_id = rt.tenant_id
+               AND rl.credit_transaction_id = rt.id
+               AND rl.related_credit_transaction_id IS NOT NULL
+             WHERE rt.tenant_id = %s
+               AND rt.transaction_type = 'refund'
+               AND COALESCE(rt.source_credit_transaction_id,
+                            rl.related_credit_transaction_id) = %s
+            """,
+            (tenant_id, source_tx_id),
+        ) or {}
+        purchased_credits = Decimal(str(source["amount"] or 0)).quantize(Decimal("0.01"))
+        refunded_credits = Decimal(str(prior.get("refunded_credits") or 0)).quantize(Decimal("0.01"))
+        available_credits = purchased_credits - refunded_credits
+        original_amount = max(0, int(source["fee_aud_cents"] or 0))
+        refunded_amount = int(prior.get("refunded_amount_cents") or 0)
+        available_amount = max(0, original_amount - refunded_amount)
+        if credits > available_credits:
+            raise CreditRefundError(
+                f"Refundable credits are {format(max(available_credits, Decimal('0')), 'f')}."
+            )
+        if amount_cents > available_amount:
+            raise CreditRefundError(f"Refundable amount is {available_amount} cents.")
+
+        account = fetch_one(
+            conn,
+            """
+            SELECT id, balance::numeric AS balance
+              FROM credit_accounts
+             WHERE tenant_id = %s AND student_id = %s AND course_id IS NULL
+             FOR UPDATE
+            """,
+            (tenant_id, student_id),
+        )
+        if not account:
+            raise CreditRefundError("The student's credit account was not found.")
+        balance = Decimal(str(account["balance"] or 0)).quantize(Decimal("0.01"))
+        if credits > balance:
+            raise CreditRefundError("Refundable credits exceed the student's current balance.")
+        new_balance = balance - credits
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO credit_transactions
+                    (tenant_id, student_id, account_id, actor_user_id, transaction_type,
+                     source_credit_transaction_id, amount, balance_after, fee_aud_cents, note)
+                VALUES (%s, %s, %s, %s, 'refund', %s, %s, %s, %s, %s)
+                RETURNING id
+                """,
+                (
+                    tenant_id, student_id, account["id"], actor_user_id, source_tx_id,
+                    -credits, new_balance, -amount_cents, reason,
+                ),
+            )
+            refund_transaction_id = str(cur.fetchone()["id"])
+            cur.execute(
+                """
+                UPDATE credit_accounts SET balance = %s, updated_at = now()
+                 WHERE tenant_id = %s AND id = %s
+                """,
+                (new_balance, tenant_id, account["id"]),
+            )
+        result = {
+            "requestId": request_id,
+            "sourceTransactionId": source_tx_id,
+            "refundTransactionId": refund_transaction_id,
+            "invoiceId": None,
+            "invoiceLineId": None,
+            "creditNoteId": None,
+            "creditNoteLineId": None,
+            "creditNoteNumber": None,
+            "paymentId": None,
+            "refundId": None,
+            "financialLinkId": None,
+            "creditsRefunded": format(credits, "f"),
+            "amountRefundedCents": amount_cents,
+            "netRefundedCents": 0,
+            "taxRefundedCents": 0,
+            "newBalance": format(new_balance, "f"),
+            "adjustDocuments": False,
+            "replayed": False,
+        }
+        _finish_operation(conn, tenant_id, request_id, result)
+        record_audit_event(
+            conn,
+            action="credit.refunded",
+            resource_type="credit_transaction",
+            tenant_id=tenant_id,
+            actor_user_id=actor_user_id,
+            resource_id=refund_transaction_id,
+            metadata_json=json.dumps(
+                {
+                    "requestId": request_id,
+                    "sourceTransactionId": source_tx_id,
+                    "amountCents": amount_cents,
+                    "adjustDocuments": False,
+                },
+                ensure_ascii=False,
+            ),
+        )
+        return result
 
     link = fetch_one(
         conn,
@@ -337,16 +462,24 @@ def create_credit_refund(
         conn,
         """
         SELECT COALESCE(SUM((-rt.amount)::numeric), 0)::numeric AS refunded_credits,
-               COALESCE(SUM(r.amount_cents), 0)::bigint AS refunded_amount_cents,
+               COALESCE(SUM(CASE WHEN r.amount_cents IS NOT NULL
+                                 THEN r.amount_cents
+                                 ELSE GREATEST(0, -rt.fee_aud_cents)
+                            END), 0)::bigint AS refunded_amount_cents,
                COALESCE(SUM(cnl.total_cents - cnl.tax_cents), 0)::bigint AS refunded_net_cents,
                COALESCE(SUM(cnl.tax_cents), 0)::bigint AS refunded_tax_cents
-          FROM credit_financial_links rl
-          JOIN credit_transactions rt
-            ON rt.tenant_id = rl.tenant_id AND rt.id = rl.credit_transaction_id
-          JOIN refunds r ON r.tenant_id = rl.tenant_id AND r.id = rl.refund_id
-          JOIN credit_note_lines cnl
+          FROM credit_transactions rt
+          LEFT JOIN credit_financial_links rl
+            ON rl.tenant_id = rt.tenant_id
+           AND rl.credit_transaction_id = rt.id
+           AND rl.related_credit_transaction_id IS NOT NULL
+          LEFT JOIN refunds r ON r.tenant_id = rl.tenant_id AND r.id = rl.refund_id
+          LEFT JOIN credit_note_lines cnl
             ON cnl.tenant_id = rl.tenant_id AND cnl.credit_note_id = rl.credit_note_id
-         WHERE rl.tenant_id = %s AND rl.related_credit_transaction_id = %s
+         WHERE rt.tenant_id = %s
+           AND rt.transaction_type = 'refund'
+           AND COALESCE(rt.source_credit_transaction_id,
+                        rl.related_credit_transaction_id) = %s
         """,
         (tenant_id, source_tx_id),
     ) or {}
@@ -396,12 +529,12 @@ def create_credit_refund(
             """
             INSERT INTO credit_transactions
                 (tenant_id, student_id, account_id, actor_user_id, transaction_type,
-                 amount, balance_after, fee_aud_cents, note)
-            VALUES (%s, %s, %s, %s, 'refund', %s, %s, %s, %s)
+                 source_credit_transaction_id, amount, balance_after, fee_aud_cents, note)
+            VALUES (%s, %s, %s, %s, 'refund', %s, %s, %s, %s, %s)
             RETURNING id
             """,
             (
-                tenant_id, student_id, account["id"], actor_user_id,
+                tenant_id, student_id, account["id"], actor_user_id, source_tx_id,
                 -credits, new_balance, -amount_cents, reason,
             ),
         )
@@ -436,16 +569,13 @@ def create_credit_refund(
                 (tenant_id, credit_note_id, description, quantity, unit_price_cents,
                  tax_rate_bp, tax_cents, total_cents)
             SELECT %s, %s, concat('Refund: ', description), 1,
-                   %s, CASE WHEN total_cents > 0 THEN round(tax_rate_bp::numeric * %s / %s)::integer ELSE 0 END,
-                   %s, %s
+                   %s, tax_rate_bp, %s, %s
               FROM invoice_lines
              WHERE tenant_id = %s AND id = %s
             RETURNING id
             """,
-            (
-                tenant_id, credit_note_id, net_refund, tax_refund, amount_cents,
-                tax_refund, amount_cents, tenant_id, link["invoice_line_id"],
-            ),
+            (tenant_id, credit_note_id, net_refund, tax_refund, amount_cents,
+             tenant_id, link["invoice_line_id"]),
         )
         credit_note_line_id = str(cur.fetchone()["id"])
         cur.execute(

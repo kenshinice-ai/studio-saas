@@ -253,13 +253,12 @@ def test_the_nav_call_to_action_is_more_specific_than_the_plain_nav_link():
     line inside a bar that is only as tall as one line.
     """
 
-    for name in NAV_PAGES:
-        source = (TEMPLATE_DIR / name).read_text(encoding="utf-8")
-        assert re.search(r"\.navlinks\s+a\.navcta\s*\{", source), name
-        assert not re.search(r"(?m)^\s*\.navcta\s*[{:]", source), f"{name} still has a bare .navcta rule"
-        cta_rule = re.search(r"\.navlinks\s+a\.navcta\s*\{([^}]*)\}", source).group(1)
-        assert "white-space" in cta_rule and "nowrap" in cta_rule, name
-        assert "text-overflow" in cta_rule, name
+    source = (PROJECT_ROOT / "backend/frontend/assets/public-shell.css").read_text(encoding="utf-8")
+    assert re.search(r"\.navlinks\s+a\.navcta\s*\{", source)
+    assert not re.search(r"(?m)^\s*\.navcta\s*[{:]", source)
+    cta_rule = re.search(r"\.navlinks\s+a\.navcta\s*\{([^}]*)\}", source).group(1)
+    assert "white-space" in cta_rule and "nowrap" in cta_rule
+    assert "text-overflow" in cta_rule
 
 
 def test_public_nav_brand_and_menu_have_a_non_overflowing_flex_contract():
@@ -271,17 +270,21 @@ def test_public_nav_brand_and_menu_have_a_non_overflowing_flex_contract():
     cannot reintroduce the same mobile defect in only one document.
     """
 
+    source = (PROJECT_ROOT / "backend/frontend/assets/public-shell.css").read_text(encoding="utf-8")
+    brand = re.search(r"(?m)^\.brand\s*\{([^}]*)\}", source)
+    menu = re.search(r"(?m)^\.menu-btn\s*\{([^}]*)\}", source)
+    assert brand and menu
+    brand_rule = brand.group(1).replace(" ", "")
+    menu_rule = menu.group(1).replace(" ", "")
+    assert "min-width:0" in brand_rule
+    # Desktop uses a bounded identity column so natural text measurement does
+    # not consume the whole row at the 1226px compact-navigation boundary;
+    # the mobile media rule restores a flexible brand beside the menu button.
+    assert "flex:0125%" in brand_rule
+    assert re.search(r"@media\s*\(max-width:900px\)[\s\S]*?\.brand\s*\{\s*flex:1 1 auto", source)
+    assert "flex:00var(--tap-min)" in menu_rule
     for name in NAV_PAGES:
-        source = (TEMPLATE_DIR / name).read_text(encoding="utf-8")
-        brand = re.search(r"(?m)^\s*\.brand\s*\{([^}]*)\}", source)
-        menu = re.search(r"(?m)^\s*\.menu-btn\s*\{([^}]*)\}", source)
-        assert brand and menu, name
-        brand_rule = brand.group(1).replace(" ", "")
-        menu_rule = menu.group(1).replace(" ", "")
-        assert "min-width:0" in brand_rule, name
-        assert "flex:11auto" in brand_rule, name
-        assert "flex:00var(--tap-min)" in menu_rule, name
-        assert "overflow-x:hidden" not in source, name
+        assert "overflow-x:hidden" not in (TEMPLATE_DIR / name).read_text(encoding="utf-8"), name
 
 
 def test_home_courses_collapse_before_phone_width():
@@ -384,14 +387,13 @@ def test_css_never_clips_before_the_contract_does(tmp_path):
     that somehow arrives unclipped.
     """
 
-    for name in NAV_PAGES:
-        source = (TEMPLATE_DIR / name).read_text(encoding="utf-8")
-        for selector in (r"\.navlinks\s+a\s*\{", r"\.navlinks\s+a\.navcta\s*\{"):
-            rule = re.search(selector + r"([^}]*)\}", source).group(1)
-            width = re.search(r"max-width:\s*([0-9.]+)(ch|em|px)", rule)
-            assert width, f"{name} {selector} has no max-width"
-            assert width.group(2) == "em", f"{name} still measures in {width.group(2)}"
-            assert float(width.group(1)) >= 11, f"{name} clips at {width.group(0)}"
+    source = (PROJECT_ROOT / "backend/frontend/assets/public-shell.css").read_text(encoding="utf-8")
+    for selector in (r"\.navlinks\s+a\s*\{", r"\.navlinks\s+a\.navcta\s*\{"):
+        rule = re.search(selector + r"([^}]*)\}", source).group(1)
+        width = re.search(r"max-width:\s*([0-9.]+)(ch|em|px)", rule)
+        assert width, f"shared public shell {selector} has no max-width"
+        assert width.group(2) == "em"
+        assert float(width.group(1)) >= 11
 
 
 def test_the_call_to_action_is_shorter_than_the_rest_of_the_bar(tmp_path):
@@ -415,3 +417,35 @@ console.log(JSON.stringify({{ cta: contract.modules.register.label,
     assert result["cta"]["en"] == api_v1._clip_nav_label(slogan_en, "en", api_v1.CTA_LABEL_LIMIT)
     # A section entry keeps the roomier limit.
     assert len(result["section"]["en"]) > len(result["cta"]["en"])
+
+
+def test_public_nav_uses_one_wide_shell_and_four_measurement_rungs():
+    """Desktop public navigation must share the same measurable contract.
+
+    The production browser defect was not horizontal overflow; the home page
+    kept its links at 1440px while the showcase and timetable silently chose
+    the hamburger.  Pin the contract before changing the templates so this
+    regression cannot be hidden by a page-local CSS patch.
+    """
+
+    shared = PROJECT_ROOT / "backend/frontend/assets/public-shell.css"
+    assert shared.is_file(), "public navigation has no shared stylesheet"
+    css = re.sub(r"\s+", "", shared.read_text(encoding="utf-8"))
+    assert ".navrow" in css
+    assert "max-width:1600px" in css
+
+    surface = SURFACE_JS.read_text(encoding="utf-8")
+    rung_order = re.search(
+        r"nav-compact.*?nav-tight", surface, re.S
+    )
+    assert rung_order and "brand-name-hidden" in surface, (
+        "fitNavigation must measure full -> brand-name-hidden -> nav-compact -> nav-tight"
+    )
+
+    for name in NAV_PAGES:
+        source = (TEMPLATE_DIR / name).read_text(encoding="utf-8")
+        assert '/assets/public-shell.css?v=__APP_VERSION__' in source, name
+        assert not re.search(
+            r"(?m)^\s*\.navrow\s*\{[^}]*width\s*:\s*min\(1180px",
+            source,
+        ), f"{name} still owns a conflicting 1180px nav width"

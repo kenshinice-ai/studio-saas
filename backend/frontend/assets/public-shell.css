@@ -1,0 +1,154 @@
+/* Public navigation shell shared by home, showcase and timetable.
+   Page templates own only the positioning of <nav> and the page body.  The
+   row width and every state that can change its geometry live here so a
+   tenant does not get a different header merely by following a link. */
+.navrow {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  width:min(1600px,100%);
+  max-width:1600px;
+  height:74px;
+  margin:0 auto;
+  padding:0 var(--space-phi-md);
+}
+.brand {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-width:0;
+  min-height:var(--tap-min);
+  cursor:pointer;
+  color:var(--ink);
+  /* Keep a bounded identity column so the visible navigation retains a
+     predictable desktop budget.  A flex-growing brand consumed the entire
+     row while the measurement rung was being evaluated, forcing 1226px
+     desktop pages into the menu even though the links fit when visible. */
+  flex:0 1 25%;
+}
+.brand img {
+  display:none;
+  max-height:34px;
+  max-width:min(48vw,300px);
+  height:auto;
+  width:auto;
+  object-fit:contain;
+  flex-shrink:0;
+}
+.brand .bn {
+  min-width:0;
+  font-size:16px;
+  letter-spacing:.04em;
+  font-weight:500;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.navlinks {
+  display:flex;
+  align-items:center;
+  gap:30px;
+  min-width:0;
+  flex-shrink:1;
+}
+.navlinks a {
+  position:relative;
+  padding:4px 0;
+  color:var(--ink2);
+  font-size:13px;
+  letter-spacing:.02em;
+  cursor:pointer;
+  min-width:0;
+  max-width:13em;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.navlinks a::after {
+  content:"";
+  position:absolute;
+  left:0;
+  bottom:0;
+  width:0;
+  height:1px;
+  background:var(--clay);
+  transition:width .25s;
+}
+.navlinks a:hover::after,
+.navlinks a[aria-current="page"]::after { width:100%; }
+.navlinks a[aria-current="page"] { color:var(--ink); }
+.navlinks a.navcta {
+  display:inline-flex;
+  align-items:center;
+  min-height:var(--tap-min);
+  padding:10px 20px;
+  border:1px solid var(--ink);
+  border-radius:var(--radius-pill);
+  font-size:13px;
+  letter-spacing:.03em;
+  white-space:nowrap;
+  max-width:11em;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.navlinks a.navcta:hover { background:var(--ink); color:var(--bg); }
+.navlinks a.navcta::after { display:none; }
+.langtog {
+  display:inline-flex;
+  overflow:hidden;
+  border:1px solid var(--line);
+  border-radius:var(--radius-pill);
+  margin-left:6px;
+}
+.langtog button {
+  min-width:var(--tap-min);
+  min-height:var(--tap-min);
+  padding:8px 12px;
+  border:0;
+  background:none;
+  color:var(--muted);
+  font:inherit;
+  font-size:13px;
+  letter-spacing:.06em;
+  cursor:pointer;
+}
+.langtog button.on { background:var(--ink); color:var(--bg); }
+.menu-btn {
+  display:none;
+  flex:0 0 var(--tap-min);
+  width:var(--tap-min);
+  height:var(--tap-min);
+  align-items:center;
+  justify-content:center;
+  padding:0;
+  border:0;
+  background:none;
+  color:var(--ink);
+  cursor:pointer;
+}
+.menu-btn svg { width:22px; height:22px; }
+#mnav a { font-size:15px; color:var(--ink2); }
+
+/* Measurement rung 3: remove only non-critical spacing. Links, CTA, language
+   controls and their 44px targets remain visible. */
+.navrow.nav-compact { gap:8px; }
+.navrow.nav-compact .navlinks { gap:12px; }
+.navrow.nav-compact .brand { gap:8px; }
+.navrow.nav-compact .langtog { margin-left:2px; }
+.navrow.nav-compact .navlinks a { max-width:11em; }
+.navrow.nav-compact .navlinks a.navcta { max-width:11em; padding-inline:14px; }
+
+/* Measurement rung 4: the menu is the safe fallback after the two visible
+   desktop arrangements cannot fit. */
+.navrow.nav-tight .navlinks { display:none; }
+.navrow.nav-tight .menu-btn { display:flex; }
+.navrow.brand-name-hidden .brand .bn { display:none; }
+
+@media (max-width:900px) {
+  .navrow { padding:0 var(--space-phi-sm); }
+  .brand { flex:1 1 auto; }
+  .navlinks { display:none !important; }
+  .menu-btn { display:flex !important; }
+  .navrow.nav-compact .navlinks { gap:30px; }
+}

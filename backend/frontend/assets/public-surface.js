@@ -391,38 +391,53 @@
     if (!row || !links || !brand) return;
     // Under the CSS floor the media query owns the decision.
     if (global.matchMedia && global.matchMedia('(max-width:900px)').matches) {
-      row.classList.remove('nav-tight', 'brand-name-hidden');
+      row.classList.remove('nav-tight', 'nav-compact', 'brand-name-hidden');
       return;
     }
-    // Always measure from the widest arrangement: a row that is already
-    // collapsed measures its hidden links as zero and never expands back.
-    row.classList.remove('nav-tight', 'brand-name-hidden');
 
-    let need = 0;
-    let shown = 0;
-    for (const entry of links.children) {
-      if (getComputedStyle(entry).display === 'none') continue;
-      need += entry.scrollWidth;
-      shown += 1;
-    }
-    const gap = parseFloat(getComputedStyle(links).gap) || 0;
-    if (shown > 1) need += gap * (shown - 1);
+    // Every rung is measured from a clean output state.  Measuring a row while
+    // it is already hidden is how the old two-rung implementation stayed in
+    // `nav-tight` after a desktop resize and how one page diverged from the
+    // other two.
+    const resetStates = () => row.classList.remove('nav-tight', 'nav-compact', 'brand-name-hidden');
+    const fitsCurrentState = () => {
+      let need = 0;
+      let shown = 0;
+      for (const entry of links.children) {
+        if (getComputedStyle(entry).display === 'none') continue;
+        need += entry.scrollWidth;
+        shown += 1;
+      }
+      const gap = parseFloat(getComputedStyle(links).gap) || 0;
+      if (shown > 1) need += gap * (shown - 1);
 
-    const styles = getComputedStyle(row);
-    const chrome = row.clientWidth
-      - parseFloat(styles.paddingLeft) - parseFloat(styles.paddingRight)
-      - (parseFloat(styles.gap) || 0);
-    // A few pixels of tolerance so sub-pixel text metrics cannot flip the
-    // header back and forth while the window is being dragged.
-    const fits = () => need <= chrome - brand.getBoundingClientRect().width - 4;
+      const styles = getComputedStyle(row);
+      const chrome = row.clientWidth
+        - parseFloat(styles.paddingLeft) - parseFloat(styles.paddingRight)
+        - (parseFloat(styles.gap) || 0);
+      // A few pixels of tolerance so sub-pixel text metrics cannot flip the
+      // header back and forth while the window is being dragged.
+      return need <= chrome - brand.getBoundingClientRect().width - 4;
+    };
+    const fitsWith = (state) => {
+      resetStates();
+      if (state) row.classList.add(state);
+      return fitsCurrentState();
+    };
 
-    if (fits()) return;
+    // Rung 1: full links and the studio name.
+    if (fitsWith(null)) return;
     const logo = brand.querySelector('img');
     if (logo && getComputedStyle(logo).display !== 'none') {
-      row.classList.add('brand-name-hidden');
-      if (fits()) return;
+      // Rung 2: a visible wordmark already identifies the studio.
+      if (fitsWith('brand-name-hidden')) return;
     }
-    row.classList.add('nav-tight');
+    // Rung 3: compress non-critical spacing only; links, CTA and 44px targets
+    // remain present and keyboard reachable.
+    if (fitsWith('nav-compact')) return;
+    // Rung 4: the menu is the safe fallback after both visible arrangements
+    // have been measured and rejected.
+    fitsWith('nav-tight');
   }
 
   let fitQueued = false;
@@ -459,8 +474,17 @@
     [120, 400, 1200].forEach((delay) => setTimeout(() => queueFitNavigation(scope), delay));
   }
 
+  function resetMobileNavOnDesktop() {
+    if (!global.matchMedia || global.matchMedia('(max-width:900px)').matches) return;
+    const doc = global.document;
+    const menu = doc && doc.getElementById ? doc.getElementById('mnav') : null;
+    const button = doc && doc.querySelector ? doc.querySelector('.menu-btn') : null;
+    if (menu && menu.style && menu.style.display === 'flex') menu.style.display = 'none';
+    if (button) button.setAttribute('aria-expanded', 'false');
+  }
+
   if (global.addEventListener) {
-    global.addEventListener('resize', () => queueFitNavigation());
+    global.addEventListener('resize', () => { resetMobileNavOnDesktop(); queueFitNavigation(); });
     global.addEventListener('load', () => settleNavigation());
   }
   // Font metrics are the big one: measured against a fallback face, a nav that

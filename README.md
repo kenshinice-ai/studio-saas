@@ -1,6 +1,18 @@
 # PWE Studio
 
-## Current release identity
+## Current source candidate — v10.7.1 (not released)
+
+`VERSION` = **10.7.1** and `backend/server.py` reports `APP_VERSION=10.7.1`.
+This working tree is a locally verified source candidate for the invoice/PDF
+repair and money-contract closure. It has not been committed, packaged,
+pushed, synced to `main`, or deployed. Production remains v10.7.0 until the
+v10.7.1 STOP GATE is explicitly authorised.
+
+The table below is the preserved v10.7.0 release baseline. Source, Package and
+Production are separate facts; do not infer Production from `VERSION` or from
+an archive filename.
+
+## v10.7.0 release identity (historical baseline)
 
 These are three independent facts. A matching version label is not proof that
 the current source tree was packaged or deployed; Source, Package and
@@ -11,8 +23,7 @@ Xero transport remains a later Preview/Beta boundary. See
 | Layer | Verified state | Evidence |
 |---|---|---|
 | Source | **v10.7.0 committed and pushed** | `main`/`origin/main` = `913c6f168052213535fbeae9da0197de9e655959`; `VERSION` = **10.7.0**. |
-| Package / SaaS | **v10.7.0 built and verified** | `PWE-StudioSaaS-aws-10.7.0.tar.gz`; SHA-256 `5c31847b3583889ac5613f4d73915f08ef65282632a07cd7acccaaba07441b22`; `BUILD_INFO` mode `saas`, commit `913c6f1…`. |
-| Package / Edition | **v10.7.0 built and verified** | `PWE-Studio-Edition-10.7.0.tar.gz`; SHA-256 `1bc04e0c0bab5960d05936a096ed26607651827363b1dc2c0341c195e11d9a3e`; `BUILD_INFO` mode `standalone`, commit `913c6f1…`. |
+| Package | **v10.7.0 SaaS and Edition archives built and verified** | SaaS: `PWE-StudioSaaS-aws-10.7.0.tar.gz`, SHA-256 `5c31847b3583889ac5613f4d73915f08ef65282632a07cd7acccaaba07441b22`; Edition: `PWE-Studio-Edition-10.7.0.tar.gz`, SHA-256 `1bc04e0c0bab5960d05936a096ed26607651827363b1dc2c0341c195e11d9a3e`; both `BUILD_INFO` commit `913c6f1…`. |
 | Production | **v10.7.0 deployed and verified** | `pwestudio.online` reports `appVersion=10.7.0`, `mode=saas`, `db=ok`, `tenants=6`, `themes.unreadable=0`, `workspaces.stale=0`, 43.4 GB free; current symlink and `BUILD_INFO` identify `913c6f1…`. |
 
 The v10.7.0 implementation passed the internal A–F checks, was committed and
@@ -23,8 +34,8 @@ passed internal/public deep health plus stored-theme readability.
 
 Re-verify the production health endpoint (`/v1/health?deep=1`) before any later
 release claim; do not infer Production from `VERSION` or from an archive
-filename, which does not identify the deployed commit. The deployed runtime
-commit is recorded in the table above and in the latest handoff.
+filename, which does not identify the deployed commit. The deployed runtime commit
+is recorded in the table above and in the latest handoff.
 
 ## v10.0.0 release scope
 

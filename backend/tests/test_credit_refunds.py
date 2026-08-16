@@ -105,11 +105,11 @@ def settlement_tenant():
         conn.commit()
 
 
-def _paid_purchase(conn, tenant: dict):
+def _paid_purchase(conn, tenant: dict, *, amount_cents: int = 55_000, credits: str = "10"):
     payload = {
         "requestId": str(uuid.uuid4()),
-        "credits": "10",
-        "amountCents": 55_000,
+        "credits": credits,
+        "amountCents": amount_cents,
         "paymentMethod": "bank_transfer",
         "billing": {
             "createInvoice": True,
@@ -198,7 +198,7 @@ def test_full_refund_reverses_credit_payment_invoice_and_bridge(settlement_tenan
 @requires_db
 def test_partial_refunds_accumulate_exact_tax_and_reject_overage(settlement_tenant):
     from _cms_sources import owner_connection
-    from studiosaas.db import fetch_one
+    from studiosaas.db import fetch_all, fetch_one
 
     t = settlement_tenant
     with owner_connection() as conn:
@@ -227,20 +227,37 @@ def test_partial_refunds_accumulate_exact_tax_and_reject_overage(settlement_tena
         )
         assert a["taxRefundedCents"] == 1_000
         assert b["taxRefundedCents"] == 1_500
+        third = {
+            **first,
+            "requestId": str(uuid.uuid4()),
+            "credits": "5",
+            "amountCents": 27_500,
+            "reason": "最后一笔退课",
+        }
+        c = credit_refunds.create_credit_refund(
+            conn, t["tenant_id"], t["student_id"], third
+        )
+        assert c["taxRefundedCents"] == 2_500
         conn.commit()
         totals = fetch_one(
             conn,
             "SELECT sum(total_cents) AS total, sum(tax_cents) AS tax FROM credit_notes WHERE tenant_id = %s",
             (t["tenant_id"],),
         )
-        assert totals["total"] == 27_500
-        assert totals["tax"] == 2_500
+        assert totals["total"] == 55_000
+        assert totals["tax"] == 5_000
+        rates = fetch_all(
+            conn,
+            "SELECT tax_rate_bp FROM credit_note_lines WHERE tenant_id = %s ORDER BY created_at, id",
+            (t["tenant_id"],),
+        )
+        assert [row["tax_rate_bp"] for row in rates] == [1000, 1000, 1000]
         invoice_state = fetch_one(
             conn,
             "SELECT amount_credited_cents, balance_cents FROM invoices WHERE tenant_id = %s AND id = %s",
             (t["tenant_id"], purchase["invoiceId"]),
         )
-        assert invoice_state["amount_credited_cents"] == 27_500
+        assert invoice_state["amount_credited_cents"] == 55_000
         assert invoice_state["balance_cents"] == 0
 
         over = {
@@ -259,7 +276,107 @@ def test_partial_refunds_accumulate_exact_tax_and_reject_overage(settlement_tena
             conn,
             "SELECT count(*) AS n FROM credit_financial_links WHERE tenant_id = %s",
             (t["tenant_id"],),
-        )["n"] == 3
+        )["n"] == 4
+
+
+@pytest.mark.parametrize(
+    ("amount_cents", "remaining_net", "remaining_tax", "original_total", "original_net", "expected"),
+    [
+        (1, 1, 0, 1, 1, (1, 0)),  # non-GST one-cent line
+        (100, 400, 35, 435, 400, (92, 8)),  # 8.75% custom tax rounding
+    ],
+)
+def test_refund_tax_split_handles_non_gst_custom_rate_and_one_cent_rounding(
+    amount_cents, remaining_net, remaining_tax, original_total, original_net, expected
+):
+    assert credit_refunds._refund_tax_split(
+        amount_cents, remaining_net, remaining_tax, original_total, original_net
+    ) == expected
+
+
+@requires_db
+def test_custom_tax_rate_reaches_credit_note_document(settlement_tenant):
+    from _cms_sources import owner_connection
+    from studiosaas.db import fetch_all, fetch_one
+    from studiosaas.services.invoice_documents import build_credit_note_document
+
+    t = settlement_tenant
+    with owner_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("UPDATE tax_codes SET rate_bp = 875 WHERE tenant_id = %s", (t["tenant_id"],))
+        purchase = _paid_purchase(conn, t)
+        refund = credit_refunds.create_credit_refund(
+            conn,
+            t["tenant_id"],
+            t["student_id"],
+            {
+                "requestId": str(uuid.uuid4()),
+                "sourceCreditTransactionId": purchase["transactionId"],
+                "credits": "10",
+                "amountCents": 55_000,
+                "paymentMethod": "bank_transfer",
+                "reason": "custom tax refund",
+                "billing": {"adjustDocuments": True},
+            },
+        )
+        note = fetch_one(
+            conn,
+            "SELECT id, status, number, subtotal_cents, tax_cents, total_cents, supplier_snapshot, recipient_snapshot FROM credit_notes WHERE tenant_id = %s AND id = %s",
+            (t["tenant_id"], refund["creditNoteId"]),
+        )
+        lines = fetch_all(
+            conn,
+            "SELECT id, description, quantity, unit_price_cents, tax_rate_bp, tax_cents, total_cents FROM credit_note_lines WHERE tenant_id = %s AND credit_note_id = %s",
+            (t["tenant_id"], refund["creditNoteId"]),
+        )
+        document = build_credit_note_document(note, lines)
+        assert document["document"]["kind"] == "credit_note"
+        assert document["lines"][0]["taxRateBp"] == 875
+        assert document["totals"]["totalCents"] == 55_000
+        assert document["totals"]["taxCents"] == refund["taxRefundedCents"]
+        conn.commit()
+
+
+@requires_db
+def test_non_gst_one_cent_refund_document_is_zero_tax(settlement_tenant):
+    from _cms_sources import owner_connection
+    from studiosaas.db import fetch_all, fetch_one
+    from studiosaas.services.invoice_documents import build_credit_note_document
+
+    t = settlement_tenant
+    with owner_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute("UPDATE tax_codes SET rate_bp = 0 WHERE tenant_id = %s", (t["tenant_id"],))
+        purchase = _paid_purchase(conn, t, amount_cents=1)
+        refund = credit_refunds.create_credit_refund(
+            conn,
+            t["tenant_id"],
+            t["student_id"],
+            {
+                "requestId": str(uuid.uuid4()),
+                "sourceCreditTransactionId": purchase["transactionId"],
+                "credits": "1",
+                "amountCents": 1,
+                "paymentMethod": "bank_transfer",
+                "reason": "one cent no GST refund",
+                "billing": {"adjustDocuments": True},
+            },
+        )
+        note = fetch_one(
+            conn,
+            "SELECT id, status, number, subtotal_cents, tax_cents, total_cents, supplier_snapshot, recipient_snapshot FROM credit_notes WHERE tenant_id = %s AND id = %s",
+            (t["tenant_id"], refund["creditNoteId"]),
+        )
+        lines = fetch_all(
+            conn,
+            "SELECT id, description, quantity, unit_price_cents, tax_rate_bp, tax_cents, total_cents FROM credit_note_lines WHERE tenant_id = %s AND credit_note_id = %s",
+            (t["tenant_id"], refund["creditNoteId"]),
+        )
+        document = build_credit_note_document(note, lines)
+        assert refund["taxRefundedCents"] == 0
+        assert document["lines"][0]["taxRateBp"] == 0
+        assert document["totals"] == {"subtotalCents": 1, "taxCents": 0, "totalCents": 1}
+        conn.commit()
 
 
 @requires_db
@@ -308,3 +425,56 @@ def test_unbridged_purchase_and_cross_tenant_source_are_business_errors(settleme
                     "billing": {"adjustDocuments": True},
                 },
             )
+
+
+@requires_db
+def test_credits_only_refund_uses_the_same_source_and_is_idempotent(settlement_tenant):
+    """The checkbox-off branch still uses the strict source-aware endpoint."""
+
+    from _cms_sources import owner_connection
+    from studiosaas.db import fetch_one
+
+    t = settlement_tenant
+    with owner_connection() as conn:
+        purchase = credit_settlements.create_credit_settlement(
+            conn,
+            t["tenant_id"],
+            t["student_id"],
+            {
+                "requestId": str(uuid.uuid4()),
+                "credits": "5",
+                "amountCents": 0,
+                "billing": {"createInvoice": False},
+            },
+        )
+        payload = {
+            "requestId": str(uuid.uuid4()),
+            "sourceCreditTransactionId": purchase["transactionId"],
+            "credits": "2",
+            "amountCents": 0,
+            "paymentMethod": "bank_transfer",
+            "reason": "credits-only correction",
+            "billing": {"adjustDocuments": False},
+        }
+        refunded = credit_refunds.create_credit_refund(
+            conn, t["tenant_id"], t["student_id"], payload
+        )
+        replay = credit_refunds.create_credit_refund(
+            conn, t["tenant_id"], t["student_id"], payload
+        )
+        assert replay["replayed"] is True
+        assert replay["refundTransactionId"] == refunded["refundTransactionId"]
+        assert refunded["invoiceId"] is None
+        assert refunded["amountRefundedCents"] == 0
+        source = fetch_one(
+            conn,
+            "SELECT source_credit_transaction_id FROM credit_transactions WHERE tenant_id = %s AND id = %s",
+            (t["tenant_id"], refunded["refundTransactionId"]),
+        )
+        assert str(source["source_credit_transaction_id"]) == purchase["transactionId"]
+        assert fetch_one(
+            conn,
+            "SELECT balance FROM credit_accounts WHERE tenant_id = %s AND student_id = %s AND course_id IS NULL",
+            (t["tenant_id"], t["student_id"]),
+        )["balance"] == 3
+        conn.commit()

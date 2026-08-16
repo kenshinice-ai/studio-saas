@@ -46,13 +46,20 @@
   <h1 data-lang="zh">发布依据</h1>
   <p class="lede" data-lang="en">A customer-readable record of what this release changes, what the production deployment established, and which commitments remain deferred.</p>
   <p class="lede" data-lang="zh">面向客户的记录：本次发布改了什么、生产部署确立了什么，以及哪些承诺仍未完成。</p>
-  <p class="status"><span data-lang="en">Released v__APP_VERSION__ · package and production deployment verified</span><span data-lang="zh">已发布 v__APP_VERSION__ · 归档包与生产部署均已验证</span></p>
+  <p class="status"><span data-lang="en">Source candidate v__APP_VERSION__ · package and production deployment pending (production remains v10.7.0)</span><span data-lang="zh">源码候选 v__APP_VERSION__ · 归档包与生产部署待授权（生产仍为 v10.7.0）</span></p>
 
   <h2 data-lang="en">Since v8.1.0</h2>
   <h2 data-lang="zh">v8.1.0 之后</h2>
   <p data-lang="en">Everything below belongs to a released product version. Each line is delivery evidence, not a roadmap promise.</p>
   <p data-lang="zh">以下内容均属于已发布的产品版本。每一条都是交付依据，不是路线图承诺。</p>
   <div class="grid">
+    <article class="card">
+      <strong data-lang="en">Invoice print correctness and v10.7.1 repair candidate</strong><strong data-lang="zh">发票打印正确性与 v10.7.1 修复候选</strong>
+      <p data-lang="en">This source candidate closes the v10.7.0 repair checklist around explicit credit-refund sources, stable tax-rate snapshots, payer review, aggregate invoice drafts, accounting exports, and customer-document printing. The browser print fallback now isolates the issued snapshot document from the CMS shell and names the generated PDF header for the selected invoice, such as Tax Invoice · INV-0007. Xero remains Preview-only.</p>
+      <p data-lang="zh">本源码候选收口 v10.7.0 修复清单：退款来源关系、稳定税率快照、付款方复核、发票聚合草稿、会计导出和客户单据打印。浏览器打印 fallback 现在只打印已开具快照，并为所选发票设置 PDF 页眉标题，例如 Tax Invoice · INV-0007。Xero 仍为 Preview。</p>
+      <p data-lang="en">The candidate is locally verified but not committed, packaged, pushed, synced to main, or deployed. Production remains v10.7.0 until an explicit release authorization closes the STOP GATE.</p>
+      <p data-lang="zh">候选版已在本地验证，但尚未提交、打包、推送、同步 main 或部署。除非收到明确发布授权并关闭 STOP GATE，生产仍为 v10.7.0。</p>
+    </article>
     <article class="card">
       <strong data-lang="en">Invoice operations and explicit credit settlement (v10.7.0)</strong><strong data-lang="zh">发票运营与明确的充值退款联动（v10.7.0）</strong>
       <p data-lang="en">The candidate unifies mobile timetable overflow fixes, payer selection, immutable issued-document snapshots, one InvoiceDocument contract, audited CSV exports, and truthful print/save-as-PDF fallback when a portable PDF renderer is not available. It adds one atomic, idempotent path for a credit top-up to create an invoice and optional payment, plus an explicit-source refund path that issues a credit note, records the payment refund, and leaves a tenant-scoped bridge between the two ledgers.</p>

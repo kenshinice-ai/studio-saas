@@ -1,7 +1,8 @@
 # StudioSaaS Database
 
 Version: v3.4
-Date: 2026-08-09
+Date: 2026-08-16
+Source candidate: v10.7.1 (migration 0044 prepared locally; production remains v10.7.0)
 Purpose: Schema definition, table descriptions, canonical enums, migration strategy, and operational notes.
 
 ---
@@ -11,7 +12,7 @@ Purpose: Schema definition, table descriptions, canonical enums, migration strat
 - **Engine:** PostgreSQL 16+ (local), RDS PostgreSQL (AWS production target)
 - **Local database name:** `studiosaas_local_test`
 - **Bootstrap reference:** `backend/db/schema_v1.sql`
-- **Canonical schema evolution:** ordered migrations through `0031_tenant_slug_aliases.sql`
+- **Canonical schema evolution:** ordered migrations through `0044_credit_refund_source.sql`
 - **Isolation model:** All business data includes `tenant_id`. All queries bind tenant context.
 
 ### 1.1 Design Principles

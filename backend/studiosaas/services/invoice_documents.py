@@ -248,6 +248,8 @@ def build_document(
     amount_paid = _integer(document.get("amount_paid_cents"))
     amount_credited = _integer(document.get("amount_credited_cents"))
     balance = _integer(document.get("balance_cents"), total - amount_paid - amount_credited)
+    amount_refunded = sum(_integer(payment.get("refunded_cents")) for payment in (payments or ()))
+    net_received = max(0, amount_paid - amount_refunded)
     metadata = {
         "id": _id(document.get("id")),
         "kind": kind,
@@ -277,6 +279,8 @@ def build_document(
         },
         "paymentSummary": {
             "amountPaidCents": amount_paid,
+            "amountRefundedCents": amount_refunded,
+            "netReceivedCents": net_received,
             "amountCreditedCents": amount_credited,
             "balanceCents": balance,
             "payments": [_payment(payment) for payment in (payments or ())],

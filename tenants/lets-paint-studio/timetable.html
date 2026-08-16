@@ -27,50 +27,22 @@
   <link rel="stylesheet" href="/assets/ui-tokens.css?v=__APP_VERSION__">
   <link rel="stylesheet" href="/assets/portal-theme.css?v=__APP_VERSION__">
   <link rel="stylesheet" href="/assets/brand-system.css?v=__APP_VERSION__">
+  <link rel="stylesheet" href="/assets/public-shell.css?v=__APP_VERSION__">
   <style>
     /* No :root here. Every colour on this page comes from portal-theme.css and
        is overridden per tenant by /brand — a fallback hex declared here would
        be a second source for a colour that has one. */
     * { box-sizing:border-box; }
     body { margin:0; min-height:100vh; color:var(--ink); background:var(--bg); font-family:var(--font-body); font-weight:400; line-height:1.7; -webkit-font-smoothing:antialiased; }
-    /* The navigation is the portal's, class for class. A visitor who taps
-       「课程安排」 must not arrive somewhere that looks like a different
-       company — this page is one click from the home page and has to belong to
-       it. Values copied from tenant-template/index.html rather than
-       re-invented, so the two stay recognisably one site. */
     a { color:var(--clay); text-decoration:none; font-weight:500; }
     nav { position:sticky; top:0; left:0; right:0; z-index:50; background:color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter:blur(12px); border-bottom:1px solid var(--line); }
-    .navrow { display:flex; align-items:center; justify-content:space-between; gap:16px; height:74px; width:min(1180px,100%); margin:0 auto; padding:0 var(--space-phi-md); }
-    .brand { display:flex; align-items:center; gap:12px; min-width:0; min-height:var(--tap-min); cursor:pointer; color:var(--ink); flex:1 1 auto; }
     /* Bounded: a wide wordmark at a fixed height crowds the name and the
        menu button off a phone. See index.html for the full note. */
-    .brand img { display:none; max-height:34px; max-width:min(48vw,300px); height:auto; width:auto; object-fit:contain; flex-shrink:0 }
-    .navrow.nav-tight .navlinks{display:none}
-    .navrow.nav-tight .menu-btn{display:block}
     /* A wordmark logo already says the studio's name; printing it again beside
        the mark is what pushed the nav off the row. Dropped only when the row
        cannot otherwise fit, and never when there is no logo to read it from. */
-    .navrow.brand-name-hidden .brand .bn{display:none}
-    .brand .bn { min-width:0; font-size:16px; letter-spacing:.04em; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .navlinks { display:flex; align-items:center; gap:30px; min-width:0;flex-shrink:1}
-    .navlinks a { font-size:13px; color:var(--ink2); letter-spacing:.02em; position:relative; padding:4px 0; cursor:pointer; max-width:13em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .navlinks a::after { content:""; position:absolute; left:0; bottom:0; width:0; height:1px; background:var(--clay); transition:width .3s; }
-    .navlinks a:hover::after { width:100%; }
     /* The page you are on is stated, not merely styled — the underline is
        permanent and aria-current says the same thing to a screen reader. */
-    .navlinks a[aria-current="page"] { color:var(--ink); }
-    .navlinks a[aria-current="page"]::after { width:100%; }
-    /* One point more specific than `.navlinks a`, which was otherwise
-       drawing this pill with `padding:4px 0`. */
-    .navlinks a.navcta { border:1px solid var(--ink); border-radius:var(--radius-pill); padding:10px 20px; min-height:var(--tap-min); display:inline-flex; align-items:center; font-size:13px; letter-spacing:.03em; transition:.3s; white-space:nowrap; max-width:11em; overflow:hidden; text-overflow:ellipsis; }
-    .navlinks a.navcta:hover { background:var(--ink); color:var(--bg); }
-    .navlinks a.navcta::after { display:none; }
-    .langtog { display:inline-flex; border:1px solid var(--line); border-radius:var(--radius-pill); overflow:hidden; margin-left:6px; }
-    .langtog button { background:none; border:0; min-width:var(--tap-min); min-height:var(--tap-min); padding:8px 12px; font-size:13px; letter-spacing:.06em; color:var(--muted); cursor:pointer; font-family:inherit; }
-    .langtog button.on { background:var(--ink); color:var(--bg); }
-    .menu-btn { display:none; flex:0 0 var(--tap-min); background:none; border:0; color:var(--ink); cursor:pointer; width:var(--tap-min); height:var(--tap-min); align-items:center; justify-content:center; padding:0; }
-    .menu-btn svg { width:22px; height:22px; }
-    #mnav a { font-size:15px; color:var(--ink2); }
 
     main { width:min(1100px,100%); margin:0 auto; padding:var(--space-phi-xl) var(--space-phi-md) var(--space-phi-2xl); }
     .intro { margin-bottom:var(--space-phi-xl); }
@@ -152,12 +124,7 @@
     .foot .fl { display:flex; gap:26px; font-size:13px; color:var(--ink2); flex-wrap:wrap; }
     .foot .fl a { color:var(--ink2); display:inline-flex; align-items:center; min-height:var(--tap-min); }
 
-    @media (max-width:900px) {
-      .navlinks { display:none; }
-      .menu-btn { display:flex; }
-    }
     @media (max-width:640px) {
-      .navrow { padding:0 var(--space-phi-sm); }
       main { padding:var(--space-phi-lg) var(--space-phi-sm) var(--space-phi-xl); }
       /* The aside drops under the content rather than squeezing it: three
          columns at 360px would put "还有 3 位" on four lines. */

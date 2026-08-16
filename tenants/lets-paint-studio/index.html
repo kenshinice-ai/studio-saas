@@ -66,6 +66,7 @@
 <link rel="stylesheet" href="/assets/ui-tokens.css?v=__APP_VERSION__">
 <link rel="stylesheet" href="/assets/portal-theme.css?v=__APP_VERSION__">
 <link rel="stylesheet" href="/assets/brand-system.css?v=__APP_VERSION__">
+<link rel="stylesheet" href="/assets/public-shell.css?v=__APP_VERSION__">
 <style>
   /* Palette, radii and font stacks live in /assets/portal-theme.css so the
      portal and the register page cannot drift apart again. */
@@ -85,7 +86,6 @@
 
   nav{position:fixed;top:0;left:0;right:0;z-index:50;transition:background .4s,box-shadow .4s,border-color .4s;border-bottom:1px solid transparent}
   nav.solid{background:color-mix(in srgb, var(--bg) 88%, transparent);backdrop-filter:blur(12px);border-color:var(--line)}
-  .navrow{display:flex;align-items:center;justify-content:space-between;height:74px}
   /* The header is chrome, not prose, so it does not owe .wrap's 1180px reading
      measure anything — and that measure was the whole reason the nav collapsed.
      Because .wrap caps the row, `budget` in fitNavigation() is a CONSTANT: the
@@ -96,7 +96,6 @@
      it read as an English-only fault.) At 1600px the budget is 1294px and the
      row fits with the brand name still showing. Under 1600px this is inert:
      the row is width-constrained by the viewport, exactly as before. */
-  .navrow{max-width:1600px}
   /* flex-shrink:0 — the studio's identity is the one thing in this row that
      must not be squeezed. It was: at 1400px the nav wanted 1014px, the brand
      was allotted 124px, and because the logo refused to shrink it OVERFLOWED
@@ -104,34 +103,16 @@
      collapsed to zero width and rendered as "L..".
      The nav absorbs the squeeze instead, which it is built for — every label
      is already clipped by the public-surface contract and ellipsised in CSS. */
-  .brand{display:flex;align-items:center;gap:12px;min-width:0;min-height:var(--tap-min);cursor:pointer;flex:1 1 auto}
   /* A logo is whatever shape the studio uploaded, and a wordmark is wide: the
      showcase tenant's is 8:1, which at a fixed 34px height came to 281px and
      left 90px of a 375px phone for the name and the menu button.
      max-width bounds it, max-height replaces the fixed height so a TALL logo
      is bounded too, and object-fit keeps both from being stretched to fit. */
-  .brand img{max-height:34px;max-width:min(46vw,260px);height:auto;width:auto;object-fit:contain;display:none;flex-shrink:0}
-  .brand .bn{min-width:0;font-size:16px;letter-spacing:.04em;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   /* min-width:0 is what actually lets the links ellipsise: without it a flex
      item refuses to shrink below its content, and the overflow lands on
      whichever neighbour did allow itself to be shrunk. */
-  .navlinks{display:flex;align-items:center;gap:30px;min-width:0;flex-shrink:1}
-  .navlinks a{font-size:13px;color:var(--ink2);letter-spacing:.02em;position:relative;padding:4px 0;cursor:pointer;min-width:0;max-width:13em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .navlinks a::after{content:"";position:absolute;left:0;bottom:0;width:0;height:1px;background:var(--clay);transition:width .3s}
-  .navlinks a:hover::after{width:100%}
-  /* `.navlinks a` is one point more specific than `.navcta`, so the pill was
-     being drawn with the plain link's `padding:4px 0` — a border flush
-     against the glyphs. The studio writes this label, and a studio that
-     writes a long one should get an ellipsis, not a two-line pill. */
-  .navlinks a.navcta{border:1px solid var(--ink);border-radius:var(--radius-pill);padding:10px 20px;min-height:var(--tap-min);display:inline-flex;align-items:center;font-size:13px;letter-spacing:.03em;transition:.3s;white-space:nowrap;max-width:11em;overflow:hidden;text-overflow:ellipsis}
-  .navlinks a.navcta::after{content:none}
-  .navlinks a.navcta:hover{background:var(--ink);color:var(--bg)}
-  .langtog{display:inline-flex;border:1px solid var(--line);border-radius:var(--radius-pill);overflow:hidden;margin-left:6px}
   /* P3-3: 44px tap target. */
-  .langtog button{background:none;border:0;min-width:var(--tap-min);min-height:var(--tap-min);padding:8px 12px;font-size:13px;letter-spacing:.06em;color:var(--muted);cursor:pointer;font-family:inherit}
-  .langtog button.on{background:var(--ink);color:var(--bg)}
-  .menu-btn{display:none;flex:0 0 var(--tap-min);background:none;border:0;color:var(--ink);cursor:pointer;width:var(--tap-min);height:var(--tap-min);align-items:center;justify-content:center;padding:0}
-  .menu-btn svg{width:22px;height:22px}
+
 
   .hero{min-height:88vh;display:flex;align-items:center;position:relative;padding-top:74px}
   .hero-grid{display:grid;grid-template-columns:var(--golden-columns);gap:var(--space-phi-xl);align-items:center;width:100%}
@@ -537,18 +518,11 @@
      laptop, so the width below is only a FLOOR — `fitNavigation()` measures
      the real row and sets .nav-tight when the labels would have to be clipped.
      CSS keeps the floor so a scripting failure still yields a usable header. */
-  .navrow.nav-tight .navlinks{display:none}
-  .navrow.nav-tight .menu-btn{display:block}
   /* Step one of the ladder in fitNavigation(): a wordmark logo already says
      the studio's name, so printing it again beside the mark spends 159px on a
      repetition. Dropped only when the row cannot otherwise fit, and never when
      there is no logo to read the name from. The <img alt> still carries it. */
-  .navrow.brand-name-hidden .brand .bn{display:none}
-  @media(min-width:901px) and (max-width:1500px){
-    .navlinks{gap:20px}
-  }
   @media(max-width:900px){
-    .navlinks{display:none}.menu-btn{display:block}
     .hero-grid,.parent .wrap,.artist-grid,.about-grid{grid-template-columns:1fr;gap:var(--space-phi-lg)}
     .hero-art,.artist-portrait,.about-img{max-height:50vh}
     .course-grid{grid-template-columns:1fr 1fr}
@@ -570,7 +544,7 @@
      so Tab reaches them, screen readers announce them, "open in new tab" works,
      Back returns to the previous view, and /{slug}/#join is an ad-landable URL. -->
 <nav id="nav">
-  <div class="wrap navrow">
+  <div class="navrow">
     <a class="brand" href="#home">
       <!-- Same lesson as the principal photo: a configured-but-missing image
            must disappear, not leave a broken-image glyph in the nav. -->

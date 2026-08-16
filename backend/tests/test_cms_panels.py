@@ -214,13 +214,35 @@ def test_billing_account_picker_has_student_and_custom_payer_paths():
     assert "已有学员" in panel
     assert "其他个人或机构" in panel
     assert "studentId=${encodeURIComponent(studentId)}" in panel
-    assert "possibleDuplicates" not in panel  # suggestions are returned by API, never silently merged in UI
+    assert "possibleDuplicates" in panel  # duplicates are shown for explicit operator review
     assert "studentIds" in panel
     assert "0..N" in panel
     assert "billing-account-help" in panel
     assert "grid-cols-1 md:grid-cols-3" in panel
     assert "保留发票行" in panel or "Keep payer fields" in panel
     assert "不改变课时余额" in panel
+
+
+def test_billing_account_picker_requires_explicit_create_and_uses_accessible_payer_chips():
+    """A missing payer must remain a reviewable choice, never an implicit POST.
+
+    The same picker is used by invoice drafts and top-up billing.  A 0-payer
+    suggestion therefore needs an explicit create/use action, while an N-payer
+    result must stay unselected until the operator chooses one.  Custom linked
+    subjects are chips/buttons rather than a native multi-select so the flow is
+    usable at 375px and keyboard accessible.
+    """
+
+    panel = (CMS_SRC_DIR / "panels" / "billing.jsx").read_text(encoding="utf-8")
+
+    assert "createConfirmed" in panel
+    assert "创建并使用此付款方" in panel
+    assert "Create and use this payer" in panel
+    assert "0 个付款方" in panel or "没有付款方" in panel
+    assert "付款方快照" in panel or "payer snapshot" in panel
+    assert "payer-chip" in panel
+    assert "select multiple" not in panel
+    assert "type=\"button\"" in panel
 
 
 def test_billing_panel_exposes_bounded_summary_and_line_exports():
@@ -244,6 +266,45 @@ def test_billing_detail_keeps_print_save_as_pdf_fallback_until_server_renderer_e
     assert "invoice-printable" in panel
     assert "invoice-print-mode" in shell
     assert "Print / Save as PDF" not in panel  # source remains Chinese for CMS i18n
+
+
+def test_invoice_print_css_does_not_hide_the_snapshot_document_with_root_id_specificity():
+    """The printable customer document must survive the CMS print isolation rule."""
+
+    shell = (CMS_SRC_DIR.parent / "index.html").read_text(encoding="utf-8")
+    assert "body.invoice-print-mode #root > * { visibility:hidden !important; }" in shell
+    assert "body.invoice-print-mode #root * { visibility:hidden !important; }" not in shell
+    assert "body.invoice-print-mode .invoice-customer-document * { visibility:visible !important; }" in shell
+
+
+def test_invoice_print_temporarily_names_the_customer_document_for_pdf_headers():
+    """Browser-generated PDF headers must identify the selected invoice, not CMS."""
+
+    panel = (CMS_SRC_DIR / "panels" / "billing.jsx").read_text(encoding="utf-8")
+    assert "const previousTitle = document.title" in panel
+    assert "customerDocument.supplier?.gstRegistered ? 'Tax Invoice' : 'Invoice'" in panel
+    assert "Tax Invoice" in panel and "Credit Note" in panel
+    assert "document.title = `${title} · ${number}`" in panel
+    assert "document.title = previousTitle" in panel
+
+
+def test_invoice_print_document_is_snapshot_dto_only():
+    """The customer-facing print root must not read live payer fields."""
+
+    panel = (CMS_SRC_DIR / "panels" / "billing.jsx").read_text(encoding="utf-8")
+    assert "function InvoicePrintableDocument" in panel
+    start = panel.index("function InvoicePrintableDocument")
+    end = panel.index("export function BillingPanel", start)
+    printable = panel[start:end]
+    assert "document.document" in printable
+    assert "document.supplier" in printable
+    assert "document.recipient" in printable
+    assert "document.lines" in printable
+    assert "document.totals" in printable
+    assert "detail.invoice" not in printable
+    assert "invoice-customer-document" in printable
+    assert "Tax Invoice" in printable
+    assert "打印 / 存为 PDF" in panel
 
 
 def test_topup_settlement_ui_has_layered_invoice_controls_and_stable_retry_contract():
@@ -275,3 +336,20 @@ def test_refund_ui_requires_a_purchase_source_and_gates_document_adjustment():
     assert "canSyncRefund" in app
     assert "不会改变发票或付款记录" in app
     assert "nextRefundRequestId" in app
+
+
+def test_credit_money_flows_have_no_legacy_ui_fallback():
+    """Every top-up/refund checkbox branch carries its source and request key."""
+
+    app = cms_source_text()
+    topup = app[app.index("const handleTopUp = async"):app.index("const nextRefundRequestId")]
+    assert "/credit-settlements" in topup
+    assert "billing: {createInvoice: false}" in topup
+    assert "/credit-transactions" not in topup
+
+    refund = app[app.index("const handleRefund = async"):app.index("const handleAddStudent")]
+    assert refund.count("/credit-refunds") >= 2
+    assert "billing: {adjustDocuments: false}" in refund
+    assert "sourceCreditTransactionId: rfSourceId" in refund
+    assert "requestId," in refund
+    assert "/credit-transactions" not in refund

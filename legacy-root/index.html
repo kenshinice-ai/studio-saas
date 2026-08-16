@@ -1159,19 +1159,43 @@
         }
         /* C-03 renderer gate: until a licensed server-side renderer is
            available in every release mode, invoice documents use the browser
-           print dialog. The selected detail surface is the only printable
-           content, so operators can choose "Save as PDF" without exporting
-           the CMS navigation or the invoice list. */
+           print dialog. Only the snapshot-based customer document is printable;
+           operator history, actions and CMS navigation never enter the paper. */
         @media print {
-            body.invoice-print-mode #root * { visibility:hidden !important; }
-            body.invoice-print-mode .invoice-printable,
-            body.invoice-print-mode .invoice-printable * { visibility:visible !important; }
-            body.invoice-print-mode .invoice-printable {
+            @page { size:A4; margin:14mm; }
+            body.invoice-print-mode { background:Canvas !important; color:CanvasText !important;
+                font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",Arial,sans-serif !important; }
+            /* Hide the CMS shell at the root-child boundary.  Targeting
+               `#root *` gives the ID selector more specificity than the
+               document reveal rule, so the customer document itself becomes
+               invisible and the browser saves a blank PDF. */
+            body.invoice-print-mode #root > * { visibility:hidden !important; }
+            body.invoice-print-mode .invoice-customer-document,
+            body.invoice-print-mode .invoice-customer-document * { visibility:visible !important; }
+            body.invoice-print-mode .invoice-customer-document {
                 position:absolute !important;
                 inset:0 !important;
                 width:100% !important;
                 max-width:none !important;
+                margin:0 !important;
+                border:0 !important;
+                border-radius:0 !important;
+                padding:0 !important;
+                color:CanvasText !important;
+                background:Canvas !important;
+                box-shadow:none !important;
+                font-size:10pt !important;
+                line-height:1.45 !important;
+                break-after:auto;
             }
+            body.invoice-print-mode .invoice-customer-document h1,
+            body.invoice-print-mode .invoice-customer-document h2,
+            body.invoice-print-mode .invoice-customer-document p { color:CanvasText !important; }
+            body.invoice-print-mode .invoice-customer-document header,
+            body.invoice-print-mode .invoice-customer-document section,
+            body.invoice-print-mode .invoice-customer-document footer { break-inside:avoid; }
+            body.invoice-print-mode .invoice-customer-document tr { break-inside:avoid; break-after:auto; }
+            body.invoice-print-mode .invoice-draft-watermark { letter-spacing:.18em; font-weight:700; }
         }
     </style>
 </head>

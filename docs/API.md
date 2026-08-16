@@ -2,7 +2,7 @@
 
 Version: v3.6
 Date: 2026-08-16
-Product release: v10.7.0 (deployed to pwestudio.online)
+Source candidate: v10.7.1 (not deployed); production remains v10.7.0
 Purpose: Complete API endpoint reference, authentication model, tenant resolution, and public endpoints.
 
 ---
