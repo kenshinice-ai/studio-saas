@@ -21,16 +21,35 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 SRC="$ROOT/legacy-root/src/cms-app.jsx"
 OUT="$ROOT/backend/frontend/assets/cms-app.js"
 
-ESBUILD="$(command -v esbuild 2>/dev/null || true)"
-if [ -z "$ESBUILD" ] && [ -d "$HOME/.npm/_npx" ]; then
-  ESBUILD="$(find "$HOME/.npm/_npx" -path '*/node_modules/esbuild/bin/esbuild' -type f 2>/dev/null | head -n 1)"
+# REL-04: the compiler version decides the bytes of the shipped bundle, so it
+# is pinned in the root package.json/package-lock.json and resolved with
+# `npx --no-install` (local node_modules only, never a network fetch). The
+# global fallback exists for machines that have not run `npm ci` yet, but its
+# output is only trustworthy if the global version happens to match the pin.
+PINNED_ESBUILD="0.25.12"   # keep equal to devDependencies.esbuild in package.json
+run_esbuild() { "${ESBUILD_CMD[@]}" "$@"; }
+if (cd "$ROOT" && npx --no-install esbuild --version >/dev/null 2>&1); then
+  ESBUILD_CMD=(npx --no-install esbuild)
+  FOUND_VERSION="$(cd "$ROOT" && npx --no-install esbuild --version)"
+else
+  GLOBAL_ESBUILD="$(command -v esbuild 2>/dev/null || true)"
+  if [ -z "$GLOBAL_ESBUILD" ]; then
+    echo "esbuild is not installed. Install the release-pinned compiler with:" >&2
+    echo "  (cd \"$ROOT\" && npm ci)   # installs esbuild@$PINNED_ESBUILD from package-lock.json" >&2
+    exit 1
+  fi
+  ESBUILD_CMD=("$GLOBAL_ESBUILD")
+  FOUND_VERSION="$("$GLOBAL_ESBUILD" --version)"
+  echo "WARNING: using unpinned global esbuild $FOUND_VERSION from $GLOBAL_ESBUILD." >&2
+  echo "         The release pin is $PINNED_ESBUILD; a different compiler can change the" >&2
+  echo "         shipped bundle bytes. Prefer: (cd \"$ROOT\" && npm ci)" >&2
 fi
-if [ -z "$ESBUILD" ]; then
-  echo "esbuild is not installed. Install the release-pinned compiler with: npm install --global esbuild@0.25.12" >&2
-  exit 1
+if [ "$FOUND_VERSION" != "$PINNED_ESBUILD" ]; then
+  echo "WARNING: esbuild $FOUND_VERSION != release pin $PINNED_ESBUILD — do not commit a bundle built with it." >&2
 fi
 
-"$ESBUILD" "$SRC" \
+cd "$ROOT"   # npx resolves ./node_modules relative to the working directory
+run_esbuild "$SRC" \
   --bundle \
   --loader:.jsx=jsx \
   --jsx=transform \

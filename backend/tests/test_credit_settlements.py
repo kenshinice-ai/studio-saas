@@ -101,9 +101,11 @@ def settlement_tenant():
             cur.execute(
                 """
                 INSERT INTO tenant_billing_identity
-                    (tenant_id, legal_name, trading_name, abn, gst_registered)
+                    (tenant_id, legal_name, trading_name, abn, gst_registered,
+                     address_line1, suburb, state, postcode)
                 VALUES (%s, 'Settlement Studio Pty Ltd', 'Settlement Studio',
-                        '53 004 085 616', true)
+                        '53 004 085 616', true,
+                        '4 Fixture Lane', 'Carlton', 'VIC', '3053')
                 """,
                 (tenant_id,),
             )

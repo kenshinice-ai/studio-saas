@@ -21,21 +21,32 @@
   min-height:var(--tap-min);
   cursor:pointer;
   color:var(--ink);
-  /* Keep a bounded identity column so the visible navigation retains a
-     predictable desktop budget.  A flex-growing brand consumed the entire
-     row while the measurement rung was being evaluated, forcing 1226px
-     desktop pages into the menu even though the links fit when visible. */
-  flex:0 1 25%;
+  /* Content-sized with a hard cap, never growing.  A flex-growing brand
+     consumed the entire row while the measurement rung was being evaluated,
+     forcing 1226px desktop pages into the menu even though the links fit
+     when visible.  The old fixed 25% basis had the opposite failure: it
+     clamped the studio name at every width, so a wide monitor still showed
+     "Let's Pai…" — fitNavigation() now measures the brand's full content
+     width, and this box only bounds the pathological case. */
+  flex:0 1 auto;
+  max-width:50%;
 }
+/* The brand lockup has ONE rule, shared by home, showcase and timetable:
+   the logo is sized by HEIGHT (a studio uploads any aspect ratio; a fixed
+   square turned an 8:1 wordmark into a smudge), and when a logo renders it
+   IS the studio name — the text hides and the accessible name moves to the
+   link's aria-label.  Without a logo the full text name shows.  The name is
+   never ellipsised into gibberish: it shows whole, or brand-name-hidden /
+   nav-tight (measured in fitNavigation) takes the row apart instead. */
 .brand img {
   display:none;
-  max-height:34px;
-  max-width:min(48vw,300px);
-  height:auto;
+  height:40px;
   width:auto;
+  max-width:140px;
   object-fit:contain;
   flex-shrink:0;
 }
+.brand.has-logo .bn { display:none; }
 .brand .bn {
   min-width:0;
   font-size:16px;
@@ -147,7 +158,9 @@
 
 @media (max-width:900px) {
   .navrow { padding:0 var(--space-phi-sm); }
-  .brand { flex:1 1 auto; }
+  /* Below the floor the links live behind the menu button, so the brand is
+     the row and the desktop 50% cap would only shorten the name for nothing. */
+  .brand { flex:1 1 auto; max-width:none; }
   .navlinks { display:none !important; }
   .menu-btn { display:flex !important; }
   .navrow.nav-compact .navlinks { gap:30px; }

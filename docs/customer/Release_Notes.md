@@ -1,5 +1,13 @@
 # PWE Studio — Release Notes and Acceptance Evidence
 
+## v10.8.0 — 账务工作台、学员时间线与品牌/导航修复
+
+财务方面：学员详情新增「学员时间线」，把报名、充值、扣课、发票、收款、贷记与成长报告合成一条只读流水；付款方新增「月结单」（期初/流水/期末，可打印）；发票可「记录提醒」（只入历史，不发送任何消息）；工作台新增应收卡片与低课时一键续费；报名审批在建档前给出疑似重复档案的显式选择（并入或新建，绝不自动合并）；开具发票前会检查开票信息完整度（名称、地址、ABN），缺失时拒绝并指引补齐。打印通道现在一次只打印所选单据（发票、贷记单、月结单互不串印）。
+
+界面方面：公开页品牌区统一为「有 logo 只显示 logo、无 logo 显示完整店名」，语言切换后导航重新测量（不再出现整排省略号）；带锚点的链接冷加载后能正确定位；CMS 与 Studio Admin 在无权限时给出明确的权限说明而非误导性的连接错误，Studio Admin 载入失败时进入阻断态以防误存。租户隐私说明扩写为对齐澳大利亚隐私原则（APP）的十节详版（未成年人、存储与保留、披露、投诉渠道等），版本 2026-08-16。
+
+本版本已提交、SaaS 与 Edition 归档包 checksum 验证、部署生产并完成浏览器验收；精确的运行时 commit、归档 hash、备份与深健康证据见最新 handoff。Xero 仍为 Preview（不发送数据）。
+
 ## v10.7.1 — invoice print repair and money-contract closure
 
 This release is committed, packaged, pushed to `main`, deployed through the

@@ -274,7 +274,22 @@ def test_invoice_print_css_does_not_hide_the_snapshot_document_with_root_id_spec
     shell = (CMS_SRC_DIR.parent / "index.html").read_text(encoding="utf-8")
     assert "body.invoice-print-mode #root > * { visibility:hidden !important; }" in shell
     assert "body.invoice-print-mode #root * { visibility:hidden !important; }" not in shell
-    assert "body.invoice-print-mode .invoice-customer-document * { visibility:visible !important; }" in shell
+    # v10.8.0: the reveal is scoped to the chosen print target. An unscoped
+    # reveal printed every mounted customer document at once (invoice + credit
+    # note + statement stacked on the same paper).
+    assert "body.invoice-print-mode .invoice-print-target .invoice-customer-document * { visibility:visible !important; }" in shell
+    assert "body.invoice-print-mode .invoice-customer-document * { visibility:visible !important; }" not in shell
+
+
+def test_invoice_print_targets_exactly_one_customer_document():
+    """Every print entry point must name the container it prints."""
+
+    panel = (CMS_SRC_DIR / "panels" / "billing.jsx").read_text(encoding="utf-8")
+    assert "printCustomerDocument(detail.document, '.invoice-printable')" in panel
+    assert "printCustomerDocument(creditNoteDetail.document, '.credit-note-document')" in panel
+    assert "'.statement-document', 'Statement'" in panel
+    assert "classList.add('invoice-print-target')" in panel
+    assert "classList.remove('invoice-print-target')" in panel
 
 
 def test_invoice_print_temporarily_names_the_customer_document_for_pdf_headers():

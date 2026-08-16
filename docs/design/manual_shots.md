@@ -117,3 +117,15 @@ grow pattern support first. **Known gap, not fixed here.**
 | `09-finance` | owner | `?view=finance` | 期间可选、老师可搜、承包/雇员决定这笔钱下一步能做什么 |
 | `09-billing-identity` | owner | `?view=settings&section=billing-identity` | 开票主体与 ABN；没有它一张发票都开不出去 |
 | `09-private-lessons` | owner | `?view=roster` | 一次请假的三个答案分开显示 |
+
+## v10.8.0 — pending capture (next shot run)
+
+| file | role | path | viewport | page state needed |
+|---|---|---|---|---|
+| `10-statement` | owner | `/lets-paint-showcase/cms?view=billing` | desktop | an invoice selected, Statement panel open on its payer, current month |
+| `10-timeline` | owner | `/lets-paint-showcase/cms?view=students` | desktop | a student profile open on 记录 tab, 学员时间线 expanded |
+| `10-receivables` | owner | `/lets-paint-showcase/cms` | desktop | dashboard with the receivables card visible (seed leaves one unpaid invoice) |
+
+These three ship in the manual as prose in v10.8.0; the figures join at the
+next capture run (the seed needs one unpaid invoice and one issued statement
+month to photograph honestly).

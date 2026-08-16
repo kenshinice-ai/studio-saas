@@ -66,6 +66,43 @@ passed.
 | 8 | Deploy | `bash deploy/aws/pwestudio_remote.sh deploy dist/PWE-StudioSaaS-aws-<version>.tar.gz` |
 | 9 | Close | record evidence in README's three rows and the handoff; push; sync `main` |
 
+### release.sh — the orchestration shell
+
+`backend/scripts/release.sh <version>` walks the table above so the operator
+makes decisions instead of transcriptions. **It is a shell around the nine
+steps, not a replacement for them**: every step calls the exact script from
+the table, the first failure stops in that step's own vocabulary, and none of
+the discipline below is waived.
+
+```bash
+bash backend/scripts/release.sh 10.8.0 --until verify   # bump ledger, gate
+# … write the handoff section (step 3), fill both release-notes skeletons,
+#   review the diff, COMMIT YOURSELF (it never commits), push and sync main …
+bash backend/scripts/release.sh 10.8.0 --from build     # build → verify → deploy
+```
+
+What it adds beyond sequencing:
+
+- **`bump`** rewrites every ledger position in one shot — `VERSION`,
+  `server.py` (`APP_VERSION` + `RELEASE_DATE`), the seven role guides, the
+  README rows, the Edition documents — and inserts *skeleton* sections into
+  both customer release-notes files. Each edit asserts the old string before
+  and the new string after, so a moved ledger fails loudly instead of
+  silently missing. It never touches `docs/HANDOFF_LATEST.md`: step 3 is
+  yours, and preflight failing until the handoff names the new version is
+  that rule working, not a bug.
+- **The three-way commit guard** (between steps 7 and 8): the bundle's
+  `BUILD_INFO` commit, local `HEAD`, and a freshly fetched `origin/main` must
+  be identical or the deploy is refused. This makes "nothing may be added
+  after step 6" a machine check — and it means `main` is synced **before**
+  the deploy, not after it; step 9's push becomes a verification that this
+  already happened, plus the evidence rows.
+- Two interactive confirmations, before build and before deploy, and a public
+  deep-health summary at the end.
+- `--until <step>` / `--from <step>` with steps `bump preflight verify commit
+  build verify-bundles guard deploy health` — resume from where a failure
+  stopped you instead of re-typing the table.
+
 ### Rules the sequence encodes
 
 **Nothing may be added after step 6.** The bundle is `git archive HEAD`, so a

@@ -47,7 +47,9 @@ const CREDIT_STATE_LABEL = {
 
 /* 逾期是推导的，不是存的 —— 后端刻意不存这个状态，因为存了就需要夜间任务
    维护，而两次运行之间它是错的。这里用同一条规则算。 */
-const isOverdue = (invoice) => {
+/* Exported for the dashboard receivables card (E3) — one definition of
+   "overdue" for the whole CMS, not two drifting copies. */
+export const isOverdue = (invoice) => {
   if (!['issued', 'part_paid'].includes(invoice.status)) return false;
   if (!invoice.due_date) return false;
   const due = new Date(invoice.due_date);
@@ -405,15 +407,25 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, canExpo
     }
   };
 
-  const printCustomerDocument = (customerDocument) => {
+  /* containerSelector narrows WHICH customer document prints. The print CSS
+     shows `.invoice-print-target .invoice-customer-document`; before this,
+     every mounted customer document was visible at once, so printing a credit
+     note (or now a statement) would also print the invoice sitting above it. */
+  const printCustomerDocument = (customerDocument, containerSelector, titleOverride) => {
     if (!customerDocument) return;
     const meta = customerDocument.document || {};
-    const title = meta.kind === 'credit_note'
+    const title = titleOverride || (meta.kind === 'credit_note'
       ? 'Credit Note'
-      : (customerDocument.supplier?.gstRegistered ? 'Tax Invoice' : 'Invoice');
+      : (customerDocument.supplier?.gstRegistered ? 'Tax Invoice' : 'Invoice'));
     const number = meta.number || 'Draft';
+    const container = containerSelector ? document.querySelector(containerSelector) : null;
+    if (containerSelector && !container) return;   // stale selector: refuse silently-wrong output
     const previousTitle = document.title;
-    const cleanup = () => document.body.classList.remove('invoice-print-mode');
+    if (container) container.classList.add('invoice-print-target');
+    const cleanup = () => {
+      document.body.classList.remove('invoice-print-mode');
+      if (container) container.classList.remove('invoice-print-target');
+    };
     const restore = () => {
       cleanup();
       document.title = previousTitle;
@@ -428,8 +440,50 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, canExpo
 
   const printInvoice = () => {
     if (!detail) return;
-    printCustomerDocument(detail.document);
+    printCustomerDocument(detail.document, '.invoice-printable');
   };
+
+  /* E3: a reminder is a bookkeeping fact ("we chased this"), not a message —
+     no email goes out. It lands in the invoice's event history via the same
+     idempotent request-id pattern as settlements. */
+  const [reminderNote, setReminderNote] = useState(null);   // null = closed
+  const recordReminder = async () => {
+    if (!detail || busy) return;
+    setBusy(true);
+    try {
+      await api(`/billing/invoices/${detail.invoice.id}/reminders`, {
+        method: 'POST',
+        body: JSON.stringify({
+          note: (reminderNote || '').trim() || undefined,
+          requestId: crypto.randomUUID(),
+        }),
+      });
+      showToast('已记录提醒', 'success');
+      setReminderNote(null);
+      setDetail(await api(`/billing/invoices/${selectedId}`));
+    } catch (e) {
+      showToast(`记录提醒失败：${e.message}`, 'warn');
+    } finally { setBusy(false); }
+  };
+
+  /* E2: payer monthly statement — read-only view over the same ledger the
+     exports use; the closing balance is the account's receivable truth for
+     that month, so the dialog is also the pre-Xero reconciliation surface. */
+  const [statement, setStatement] = useState(null);         // {month, data|null, accountId, accountName}
+  const openStatement = (acctId, acctName) => {
+    const now = new Date();
+    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    setStatement({month, data: null, accountId: acctId, accountName: acctName});
+  };
+  useEffect(() => {
+    if (!statement?.accountId || !statement.month) return;
+    let cancelled = false;
+    api(`/billing/payers/${statement.accountId}/statement?month=${encodeURIComponent(statement.month)}`)
+      .then(d => { if (!cancelled) setStatement(s => s && {...s, data: d}); })
+      .catch(e => { if (!cancelled) showToast(`月结单加载失败：${e.message}`, 'warn'); });
+    return () => { cancelled = true; };
+    // showToast deliberately not a dependency — same rule as the detail fetch.
+  }, [statement?.accountId, statement?.month, api]);
 
   const openPayerEditor = () => {
     if (!detail?.invoice) return;
@@ -595,7 +649,11 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, canExpo
                     <p className="text-[11px] text-gray-500 mt-1">当前发票收件人：{detail.invoice.account_name} · {detail.invoice.account_kind || 'family'}{detail.invoice.account_email ? ` · ${detail.invoice.account_email}` : ''}{detail.invoice.account_mobile ? ` · ${detail.invoice.account_mobile}` : ''}</p>
                     <p className="text-[11px] text-indigo-700 mt-1">已开具发票不会改变：客户文档继续使用 issued snapshot。</p>
                   </div>
-                  {canIssue && !payerEdit && <button type="button" onClick={openPayerEditor} className="ml-auto min-h-[44px] px-3 rounded-lg border border-indigo-200 bg-white text-xs font-bold text-indigo-700">查看 / 编辑付款方</button>}
+                  <span className="ml-auto flex gap-2">
+                    <button type="button" onClick={() => openStatement(detail.invoice.billing_account_id, detail.invoice.account_name)}
+                            className="min-h-[44px] px-3 rounded-lg border border-gray-200 bg-white text-xs font-bold text-gray-700">月结单</button>
+                    {canIssue && !payerEdit && <button type="button" onClick={openPayerEditor} className="min-h-[44px] px-3 rounded-lg border border-indigo-200 bg-white text-xs font-bold text-indigo-700">查看 / 编辑付款方</button>}
+                  </span>
                 </div>
                 {payerEdit && (
                   <div className="p-4 space-y-3">
@@ -718,7 +776,14 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, canExpo
                                   showToast('已开具', 'success');
                                   await load();
                                   setDetail(await api(`/billing/invoices/${selectedId}`));
-                                } catch (e) { showToast(`开具失败：${e.message}`, 'warn'); }
+                                } catch (e) {
+                                  /* E6: an incomplete invoice profile is a fixable
+                                     setup gap, not a mysterious failure. */
+                                  if (e.status === 409 && e.code === 'invoice_profile_incomplete') {
+                                    const missing = (e.payload?.missing || []).join('、');
+                                    showToast(`开票信息不全${missing ? `（缺：${missing}）` : ''}——请到 系统设置 → 开票信息 补齐后再开具。`, 'warn');
+                                  } else showToast(`开具失败：${e.message}`, 'warn');
+                                }
                                 finally { setBusy(false); }
                               }}
                               className="min-h-[44px] px-3 rounded-lg bg-indigo-600 text-white text-xs font-bold disabled:opacity-50">
@@ -737,6 +802,14 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, canExpo
                         打印 / 存为 PDF
                       </button>
                     )}
+                    {detail.invoice.status !== 'draft' && detail.invoice.status !== 'void'
+                      && Number(detail.invoice.balance_cents) > 0 && canTakePayment && (
+                      <button type="button" onClick={() => setReminderNote('')}
+                              disabled={busy}
+                              className="no-print min-h-[44px] px-3 rounded-lg border border-amber-200 bg-amber-50 text-xs font-bold text-amber-800 disabled:opacity-50">
+                        记录提醒
+                      </button>
+                    )}
                     {/* 已开具的发票不可改 —— 这是数据库触发器保证的。给一个点了会报错的
                         按钮比不给更糟，所以这里明确说明它为什么不在。 */}
                     {detail.invoice.status !== 'draft' && (
@@ -745,6 +818,20 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, canExpo
                       </span>
                     )}
                   </div>
+                  {reminderNote !== null && (
+                    <div className="no-print mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2">
+                      <p className="text-[11px] text-amber-900 font-bold">记录一次催款提醒（只入历史，不发送任何消息）</p>
+                      <input value={reminderNote} onChange={e => setReminderNote(e.target.value)}
+                             maxLength={500} placeholder="备注（选填）：如 已电话联系家长，约定周五转账"
+                             className="w-full min-h-[44px] px-3 border border-amber-200 rounded-xl text-sm bg-white" />
+                      <div className="flex gap-2">
+                        <button type="button" onClick={() => setReminderNote(null)} disabled={busy}
+                                className="flex-1 min-h-[44px] rounded-xl border border-gray-200 text-xs font-bold bg-white">取消</button>
+                        <button type="button" onClick={recordReminder} disabled={busy}
+                                className="flex-1 min-h-[44px] rounded-xl bg-amber-600 text-white text-xs font-bold disabled:opacity-50">{busy ? '记录中…' : '确认记录'}</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -768,7 +855,65 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, canExpo
               {creditNoteDetail && (
                 <div className="credit-note-document space-y-2">
                   <InvoicePrintableDocument document={creditNoteDetail.document} />
-                  <button type="button" onClick={() => printCustomerDocument(creditNoteDetail.document)} className="no-print min-h-[44px] px-3 rounded-lg border border-gray-200 bg-white text-xs font-bold text-gray-700">打印贷记单</button>
+                  <button type="button" onClick={() => printCustomerDocument(creditNoteDetail.document, '.credit-note-document')} className="no-print min-h-[44px] px-3 rounded-lg border border-gray-200 bg-white text-xs font-bold text-gray-700">打印贷记单</button>
+                </div>
+              )}
+
+              {statement && (
+                <div className="statement-document bg-white border border-gray-200 rounded-xl overflow-hidden">
+                  <div className="no-print flex flex-wrap items-center gap-2 px-4 py-3 border-b border-gray-200">
+                    <span className="text-xs font-bold">月结单 · {statement.accountName}</span>
+                    <input type="month" value={statement.month}
+                           onChange={e => setStatement(s => s && {...s, month: e.target.value, data: null})}
+                           className="min-h-[44px] px-2 border border-gray-200 rounded-lg text-xs" />
+                    <span className="ml-auto flex gap-2">
+                      {statement.data && (
+                        <button type="button"
+                                onClick={() => printCustomerDocument({document: {number: `${statement.accountName} · ${statement.month}`}}, '.statement-document', 'Statement')}
+                                className="min-h-[44px] px-3 rounded-lg border border-gray-200 bg-white text-xs font-bold text-gray-700">打印 / 存为 PDF</button>
+                      )}
+                      <button type="button" onClick={() => setStatement(null)}
+                              className="min-h-[44px] px-3 rounded-lg border border-gray-200 bg-white text-xs font-bold text-gray-500">关闭</button>
+                    </span>
+                  </div>
+                  {!statement.data ? (
+                    <p className="px-4 py-4 text-xs text-gray-500">月结单加载中…</p>
+                  ) : (
+                    <article className="invoice-customer-document p-4 text-xs">
+                      <header className="flex items-baseline justify-between border-b border-gray-300 pb-2 mb-2">
+                        <div>
+                          <p className="text-base font-bold">Statement · 月结单</p>
+                          <p className="text-gray-500">{statement.data.payer?.name} · {fmtApiDate(statement.data.periodStart)} — {fmtApiDate(statement.data.periodEnd)}</p>
+                        </div>
+                        <p className="tabular-nums text-right">
+                          期初 {aud(statement.data.openingBalanceCents)}<br/>
+                          <span className="font-bold">期末 {aud(statement.data.closingBalanceCents)}</span>
+                        </p>
+                      </header>
+                      {(statement.data.lines || []).length === 0 ? (
+                        <p className="text-gray-500 py-2">本期没有账务往来。</p>
+                      ) : (
+                        <table className="w-full text-[11px]">
+                          <thead><tr className="text-[10px] uppercase tracking-wide text-gray-500">
+                            <th className="text-left py-1.5">日期</th><th className="text-left py-1.5">单据</th>
+                            <th className="text-right py-1.5">应收</th><th className="text-right py-1.5">收款/贷记</th>
+                            <th className="text-right py-1.5">余额</th>
+                          </tr></thead>
+                          <tbody>
+                            {statement.data.lines.map((line, i) => (
+                              <tr key={i} className="border-t border-gray-100">
+                                <td className="py-1.5 tabular-nums">{fmtApiDate(line.ts)}</td>
+                                <td className="py-1.5">{line.number ? `${line.number} · ` : ''}{line.description}</td>
+                                <td className="py-1.5 text-right tabular-nums">{Number(line.debitCents) > 0 ? aud(line.debitCents) : ''}</td>
+                                <td className="py-1.5 text-right tabular-nums">{Number(line.creditCents) > 0 ? `−${aud(line.creditCents)}` : ''}</td>
+                                <td className="py-1.5 text-right tabular-nums">{aud(line.balanceCents)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </article>
+                  )}
                 </div>
               )}
 
@@ -786,7 +931,7 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, canExpo
                     issued: '已开具', sent: '已送达', part_paid: '部分付款',
                     paid: '已付清', refunded: '已退款', voided: '已作废',
                     overdue: '已逾期', credited: '已贷记', credit_settled: '充值已结算',
-                    xero_pushed: '已推送 Xero',
+                    xero_pushed: '已推送 Xero', reminder_recorded: '已记录提醒',
                   };
                   const d = event.detail || {};
                   const amount = Number(d.amount_cents || 0);
@@ -796,6 +941,7 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, canExpo
                       <span className="font-bold">{LABEL[event.event_type] || event.event_type}</span>
                       {amount > 0 && <span className="text-gray-500">{aud(amount)}</span>}
                       {balance !== null && <span className="text-gray-400">余额 {aud(balance)}</span>}
+                      {d.note && <span className="text-gray-500 truncate max-w-[16rem]">{d.note}</span>}
                       <span className="ml-auto text-gray-500 tabular-nums">{fmtApiDate(event.occurred_at)}</span>
                     </div>
                   );

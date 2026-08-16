@@ -1,4 +1,23 @@
 #!/usr/bin/env bash
+# ============================================================================
+# 已弃用 / DEPRECATED — 请用 deploy/aws/build_aws_bundle.sh
+#
+# 这个脚本产出的包没有 BUILD_INFO（version/mode/commit 戳），部署护栏
+# （pwestudio_remote.sh 的 mode=saas 检查、verify_release_bundles.sh 的
+# BUILD_INFO 门禁）都无法验证它，所以它打出的东西不可部署。
+# 现行打包流程见 docs/Release_Runbook.md 第 6 步：
+#
+#     bash deploy/aws/build_aws_bundle.sh <version>            # SaaS
+#     bash deploy/aws/build_aws_bundle.sh <version> --edition  # Edition
+#
+# 原脚本正文保留在下方仅作 git 史留档，永不再执行。
+# ============================================================================
+echo "已弃用：请用 deploy/aws/build_aws_bundle.sh（见 docs/Release_Runbook.md 第 6 步）。" >&2
+echo "DEPRECATED: use deploy/aws/build_aws_bundle.sh — its bundles carry BUILD_INFO," >&2
+echo "which every deploy guard checks; this script's output is undeployable." >&2
+exit 1
+
+# ── 以下为历史留档，不再执行 ────────────────────────────────────────────────
 # Build a reproducible source release from the current Git commit.
 # Local databases, media, credentials, virtual environments and logs are excluded.
 

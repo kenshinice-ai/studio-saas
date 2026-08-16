@@ -415,9 +415,24 @@
       const chrome = row.clientWidth
         - parseFloat(styles.paddingLeft) - parseFloat(styles.paddingRight)
         - (parseFloat(styles.gap) || 0);
+      // The brand is measured by what it NEEDS, not by the box flexbox
+      // happened to allot it. getBoundingClientRect() on a shrunk brand
+      // reported the clamped width, so the check passed while the studio
+      // name rendered as "Let's Pai…" — an ellipsis is not a fit. scrollWidth
+      // sees through the overflow clip to the full text.
+      let brandNeed = 0;
+      let brandShown = 0;
+      for (const child of brand.children) {
+        if (getComputedStyle(child).display === 'none') continue;
+        brandNeed += Math.max(child.scrollWidth || 0, child.getBoundingClientRect().width);
+        brandShown += 1;
+      }
+      const brandGap = parseFloat(getComputedStyle(brand).gap) || 0;
+      if (brandShown > 1) brandNeed += brandGap * (brandShown - 1);
+      if (!brandShown) brandNeed = brand.getBoundingClientRect().width;
       // A few pixels of tolerance so sub-pixel text metrics cannot flip the
       // header back and forth while the window is being dragged.
-      return need <= chrome - brand.getBoundingClientRect().width - 4;
+      return need <= chrome - brandNeed - 4;
     };
     const fitsWith = (state) => {
       resetStates();
@@ -474,6 +489,57 @@
     [120, 400, 1200].forEach((delay) => setTimeout(() => queueFitNavigation(scope), delay));
   }
 
+  // ── the brand lockup, decided once for every public page ───────────────
+  //
+  // Three pages made three different calls: the home page showed logo THEN
+  // text, the showcase page filtered platform-default logos, the timetable
+  // page showed both and let the text ellipsise to "Let's…". One function now
+  // decides, with one rule: a logo IS the studio name, so when one renders
+  // the text name hides and the name moves to the link's aria-label/title;
+  // without a logo the full text name shows. The platform's own marks are
+  // never a tenant logo.
+  const PLATFORM_MARKS = ['/logo.png', '/logo-light.png', '/favicon.svg'];
+  function applyBrandLockup(brandData, root) {
+    const doc = root || global.document;
+    if (!doc || !doc.querySelectorAll) return;
+    const data = brandData || {};
+    const name = text(data.name);
+    const raw = text(data.logoUrl || data.logo_url);
+    const logoUrl = PLATFORM_MARKS.includes(raw) ? '' : raw;
+    doc.querySelectorAll('.navrow .brand').forEach((node) => {
+      const img = node.querySelector ? node.querySelector('img') : null;
+      const label = node.querySelector ? node.querySelector('.bn') : null;
+      if (name && label) label.textContent = name;
+      if (name) {
+        node.setAttribute('aria-label', name);
+        node.setAttribute('title', name);
+      }
+      if (img && logoUrl) {
+        // A configured-but-missing image must fall back to the TEXT name,
+        // not to an empty lockup: the error handler undoes the hide.
+        if (img.addEventListener && !(img.dataset && img.dataset.brandLockupBound)) {
+          if (img.dataset) img.dataset.brandLockupBound = 'true';
+          img.addEventListener('error', () => {
+            img.style.display = 'none';
+            img.removeAttribute('src');
+            node.classList.remove('has-logo');
+            settleNavigation(doc);
+          });
+        }
+        img.alt = '';
+        if (img.getAttribute('src') !== logoUrl) img.src = logoUrl;
+        img.style.display = 'block';
+        node.classList.add('has-logo');
+      } else if (img) {
+        img.removeAttribute('src');
+        img.style.display = 'none';
+        node.classList.remove('has-logo');
+      }
+    });
+    // The lockup just changed width; the header must be re-measured.
+    settleNavigation(doc);
+  }
+
   function resetMobileNavOnDesktop() {
     if (!global.matchMedia || global.matchMedia('(max-width:900px)').matches) return;
     const doc = global.document;
@@ -486,6 +552,32 @@
   if (global.addEventListener) {
     global.addEventListener('resize', () => { resetMobileNavOnDesktop(); queueFitNavigation(); });
     global.addEventListener('load', () => settleNavigation());
+  }
+  // UI-05: a language switch rewrites every nav label in place, and the old
+  // clamp classes were computed against the OTHER language's widths — Chinese
+  // labels fit, the wider English ones then arrived into a row still marked
+  // "fits", and every link ellipsised. Each page owns its own switch handler
+  // (data-set-lang on the home page, data-language on showcase/timetable), so
+  // the re-measure hooks the shared click surface here rather than trusting
+  // three handlers to remember. settleNavigation() → fitNavigation() starts
+  // from resetStates() every run, so the stale clamp cannot survive it; the
+  // extra fonts.ready pass covers a face that only starts loading once the
+  // new language's glyphs are first used. Bounded, same as first paint —
+  // still no self-feeding ResizeObserver.
+  if (global.document?.addEventListener) {
+    global.document.addEventListener('click', (event) => {
+      const control = event.target && event.target.closest
+        ? event.target.closest('[data-set-lang],[data-language]')
+        : null;
+      if (!control) return;
+      settleNavigation();
+      if (typeof setTimeout === 'function') {
+        setTimeout(() => {
+          const ready = global.document?.fonts?.ready;
+          if (ready?.then) ready.then(() => settleNavigation()).catch(() => {});
+        }, 0);
+      }
+    });
   }
   // Font metrics are the big one: measured against a fallback face, a nav that
   // does not fit can measure as though it does.
@@ -523,6 +615,6 @@
   global.StudioSaaS = global.StudioSaaS || {};
   global.StudioSaaS.publicSurface = {
     resolve, apply, clearLoading, fetch: fetchContract,
-    fitNavigation, queueFitNavigation, settleNavigation,
+    fitNavigation, queueFitNavigation, settleNavigation, applyBrandLockup,
   };
 })(window);

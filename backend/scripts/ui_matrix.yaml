@@ -1,0 +1,54 @@
+# UI acceptance matrix (REL-06) — pages × widths × languages × actions.
+#
+# Consumed by backend/scripts/ui_matrix.py (Playwright). This is the
+# re-runnable form of the browser acceptance the audits keep doing by hand;
+# it complements the release gate, it does not replace真机复核.
+#
+# First version deliberately covers only the nav/brand semantic contract from
+# public-surface.js fitNavigation():
+#   * no nav label and no brand name may be clipped (scrollWidth <= clientWidth)
+#   * when the row is in brand-name-hidden state, a logo must be visible and
+#     the brand name must actually be hidden
+#   * the page must never scroll horizontally
+#
+# Language is a real query parameter on the public surfaces (?lang=zh / en).
+# `default` means: load the page exactly as a first visitor would.
+
+defaults:
+  widths: [375, 768, 1280]
+  height: 900
+  languages: [default, zh, en]
+  # Selectors are the public-shell contract; override per page if a surface
+  # names them differently.
+  selectors:
+    navrow: ".navrow"
+    navlinks: ".navlinks"
+    brand: ".brand"
+
+pages:
+  - name: showcase_portal
+    path: /lets-paint-showcase/
+    assert_nav: true
+
+  - name: showcase_register
+    path: /lets-paint-showcase/register
+    assert_nav: true
+
+  - name: showcase_showcase
+    path: /lets-paint-showcase/showcase.html
+    assert_nav: true
+
+  - name: showcase_timetable
+    path: /lets-paint-showcase/timetable.html
+    assert_nav: true
+
+  # Example of an action sequence (kept minimal on purpose — grow this file
+  # instead of writing one-off scripts):
+  #
+  # - name: showcase_portal_menu
+  #   path: /lets-paint-showcase/
+  #   assert_nav: true
+  #   widths: [375]
+  #   actions:
+  #     - click: ".nav-menu-button"
+  #     - wait: 300

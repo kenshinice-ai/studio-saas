@@ -224,6 +224,23 @@ def _create_tenant(cur: Any, *, slug: str, name: str) -> str:
         """,
         (tenant_id,),
     )
+    # v10.8.0 (E6): issuing refuses a tenant whose invoice profile lacks a
+    # name, street address or ABN.  A fixture tenant without one would make the
+    # legal-issue checks fail for a reason that has nothing to do with
+    # isolation, so the world seeds the same complete profile a real studio
+    # must configure before its first invoice.
+    cur.execute(
+        """
+        INSERT INTO tenant_billing_identity
+            (tenant_id, legal_name, trading_name, abn, gst_registered,
+             address_line1, suburb, state, postcode)
+        VALUES (%s, 'Isolation Fixture Pty Ltd', 'Isolation Fixture',
+                '53 004 085 616', true,
+                '9 Fixture Lane', 'Carlton', 'VIC', '3053')
+        ON CONFLICT (tenant_id) DO NOTHING
+        """,
+        (tenant_id,),
+    )
     return tenant_id
 
 

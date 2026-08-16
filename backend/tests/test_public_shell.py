@@ -277,10 +277,13 @@ def test_public_nav_brand_and_menu_have_a_non_overflowing_flex_contract():
     brand_rule = brand.group(1).replace(" ", "")
     menu_rule = menu.group(1).replace(" ", "")
     assert "min-width:0" in brand_rule
-    # Desktop uses a bounded identity column so natural text measurement does
-    # not consume the whole row at the 1226px compact-navigation boundary;
-    # the mobile media rule restores a flexible brand beside the menu button.
-    assert "flex:0125%" in brand_rule
+    # Desktop brand is content-sized, never growing, with a hard cap. The old
+    # fixed 25% basis clamped the studio name at EVERY width — a wide monitor
+    # still showed "Let's Pai…" because the box, not the space, was the limit.
+    # fitNavigation() measures the brand's full content width now, so the box
+    # only has to bound the pathological case.
+    assert "flex:01auto" in brand_rule
+    assert "max-width:50%" in brand_rule
     assert re.search(r"@media\s*\(max-width:900px\)[\s\S]*?\.brand\s*\{\s*flex:1 1 auto", source)
     assert "flex:00var(--tap-min)" in menu_rule
     for name in NAV_PAGES:
@@ -417,6 +420,158 @@ console.log(JSON.stringify({{ cta: contract.modules.register.label,
     assert result["cta"]["en"] == api_v1._clip_nav_label(slogan_en, "en", api_v1.CTA_LABEL_LIMIT)
     # A section entry keeps the roomier limit.
     assert len(result["section"]["en"]) > len(result["cta"]["en"])
+
+
+BRAND_SHIM = """
+function brandScope(withImg) {
+  const made = [];
+  function el(tag, cls) {
+    const store = {};
+    const classes = new Set(cls ? [cls] : []);
+    const children = [];
+    const self = {
+      tagName: tag,
+      style: {},
+      dataset: {},
+      textContent: '',
+      children,
+      classList: {
+        add: (name) => classes.add(name),
+        remove: (name) => classes.delete(name),
+        contains: (name) => classes.has(name),
+      },
+      addEventListener: () => {},
+      getAttribute: (name) => (name in store ? store[name] : null),
+      setAttribute: (name, value) => { store[name] = String(value); },
+      removeAttribute: (name) => { delete store[name]; },
+      set src(value) { store.src = String(value); },
+      get src() { return store.src || ''; },
+      set alt(value) { store.alt = String(value); },
+      get alt() { return store.alt || ''; },
+      querySelector: (selector) => {
+        if (selector === 'img') return children.find((c) => c.tagName === 'IMG') || null;
+        if (selector === '.bn') return children.find((c) => c.isBn) || null;
+        return null;
+      },
+    };
+    made.push(self);
+    return self;
+  }
+  const brand = el('A', 'brand');
+  const img = el('IMG');
+  const bn = el('SPAN');
+  bn.isBn = true;
+  bn.textContent = 'Template Name';
+  brand.children.push(img, bn);
+  return {
+    brand, img, bn,
+    doc: { querySelectorAll: (selector) => (selector === '.navrow .brand' ? [brand] : []) },
+  };
+}
+"""
+
+
+def test_the_brand_lockup_shows_the_logo_or_the_full_name_never_a_stub(tmp_path):
+    """Logo present: the wordmark IS the name, the text hides, and the name
+    survives on the link's aria-label. Logo absent (or a platform default
+    mark): the full text name shows. Timetable used to render both and cut
+    the text to "Let's…"; index and showcase never showed the logo at all.
+    """
+
+    body = """
+const win = { location: { pathname: '/demo-studio', search: '', href: 'https://example.test/demo-studio' } };
+const surface = load(win);
+const withLogo = brandScope();
+surface.applyBrandLockup({ name: "Let's Paint Studio", logo_url: '/media/wordmark.png' }, withLogo.doc);
+const noLogo = brandScope();
+noLogo.brand.classList.add('has-logo');
+surface.applyBrandLockup({ name: "Let's Paint Studio" }, noLogo.doc);
+const platformMark = brandScope();
+surface.applyBrandLockup({ name: "Let's Paint Studio", logo_url: '/logo.png' }, platformMark.doc);
+console.log(JSON.stringify({
+  logoShown: withLogo.img.style.display,
+  logoClass: withLogo.brand.classList.contains('has-logo'),
+  logoAria: withLogo.brand.getAttribute('aria-label'),
+  logoSrc: withLogo.img.src,
+  plainClass: noLogo.brand.classList.contains('has-logo'),
+  plainHidden: noLogo.img.style.display,
+  plainName: noLogo.bn.textContent,
+  markClass: platformMark.brand.classList.contains('has-logo'),
+}));
+"""
+    result = _run_probe("\n" + BRAND_SHIM + body, tmp_path)
+    assert result["logoShown"] == "block"
+    assert result["logoClass"] is True
+    assert result["logoAria"] == "Let's Paint Studio"
+    assert result["logoSrc"] == "/media/wordmark.png"
+    # No logo: the stale has-logo class is withdrawn and the full name shows.
+    assert result["plainClass"] is False
+    assert result["plainHidden"] == "none"
+    assert result["plainName"] == "Let's Paint Studio"
+    # The platform's own marks are never a tenant logo.
+    assert result["markClass"] is False
+
+
+def test_the_lockup_rule_lives_in_css_once():
+    """`.brand.has-logo .bn` hiding the text is what makes "logo replaces
+    name" a rule instead of three page-local display toggles."""
+
+    css = re.sub(r"\s+", "", (PROJECT_ROOT / "backend/frontend/assets/public-shell.css").read_text(encoding="utf-8"))
+    assert ".brand.has-logo.bn{display:none;}" in css or ".brand.has-logo.bn{display:none}" in css
+    # The logo is sized by height, keeps its aspect ratio, and is bounded:
+    # a fixed square is what turned an 8:1 wordmark into a smudge.
+    img_rule = re.search(r"(?m)^\.brand img\s*\{([^}]*)\}", (PROJECT_ROOT / "backend/frontend/assets/public-shell.css").read_text(encoding="utf-8"))
+    assert img_rule
+    flat = img_rule.group(1).replace(" ", "")
+    assert "height:40px" in flat
+    assert "width:auto" in flat
+    assert "max-width:140px" in flat
+    assert "object-fit:contain" in flat
+
+
+def test_the_three_nav_pages_share_one_brand_structure_and_one_lockup_call():
+    """index/showcase/timetable each carry logo + text in `.brand`, and each
+    hands the decision to the shared applyBrandLockup — a page deciding for
+    itself is how the three headers diverged in the first place."""
+
+    for name in NAV_PAGES:
+        page = rendered_template(TEMPLATE_DIR, name)
+        brand = re.search(r'<a class="brand"[^>]*>([\s\S]*?)</a>', page)
+        assert brand, f"{name} has no .brand link in its header"
+        assert "<img" in brand.group(1), f"{name} brand carries no logo slot"
+        assert 'class="bn"' in brand.group(1), f"{name} brand carries no text name"
+        assert "applyBrandLockup(" in page, f"{name} does not call the shared brand lockup"
+        # No page-local logo reveal survives: the shared rule is the only one.
+        assert not re.search(r"(?:tenantLogo|brandLogo)\W[\s\S]{0,120}?style\.display\s*=\s*'block'", page), (
+            f"{name} still toggles the logo on its own")
+
+
+def test_a_language_switch_re_measures_the_header(tmp_path):
+    """UI-05: switching 中 → EN rewrites every nav label wider, but the clamp
+    classes were measured against the Chinese widths, so every link truncated
+    on a monitor with room to spare.
+
+    The re-measure hooks the shared click surface (`data-set-lang` on the
+    home page, `data-language` on showcase/timetable), and the state machine
+    is re-entered through settleNavigation → fitNavigation, whose fitsWith()
+    starts from resetStates() on every rung — a static shape this test pins
+    because no headless run can measure real layout.
+    """
+
+    source = SURFACE_JS.read_text(encoding="utf-8")
+    handler = re.search(r"addEventListener\('click',[\s\S]{0,600}?\}\);", source)
+    assert handler, "public-surface.js has no shared click listener"
+    block = handler.group(0)
+    assert "[data-set-lang],[data-language]" in block
+    assert "settleNavigation()" in block
+    assert "fonts?.ready" in block, "the re-measure must wait for late-loading glyphs"
+    # The rungs are only trustworthy if every measurement starts clean.
+    fits_with = re.search(r"const fitsWith = \(state\) => \{([\s\S]*?)\};", source)
+    assert fits_with and "resetStates()" in fits_with.group(1)
+    # And the brand is measured by need (scrollWidth through the overflow
+    # clip), not by the box it was allotted — an ellipsis is not a fit.
+    fits_current = re.search(r"const fitsCurrentState = \(\) => \{([\s\S]*?)\n    \};", source)
+    assert fits_current and "scrollWidth" in fits_current.group(1)
 
 
 def test_public_nav_uses_one_wide_shell_and_four_measurement_rungs():

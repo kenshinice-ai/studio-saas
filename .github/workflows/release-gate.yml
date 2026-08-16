@@ -48,7 +48,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install -r backend/requirements-dev.txt
-          npm install --global esbuild@0.25.12
+          npm ci
 
       - name: Apply migrations
         working-directory: backend

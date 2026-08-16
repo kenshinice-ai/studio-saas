@@ -5,7 +5,7 @@
  * legacy-root/index.html actually loads — do not edit it by hand.
  */
 
-import { BillingPanel, BillingAccountPicker } from "./panels/billing.jsx";
+import { BillingPanel, BillingAccountPicker, isOverdue } from "./panels/billing.jsx";
 import { FinancePanel } from "./panels/finance.jsx";
 import { IntegrationsPanel } from "./panels/integrations.jsx";
 import { BillingIdentityPanel } from "./panels/billing_identity.jsx";
@@ -95,6 +95,10 @@ const v1Api = async (path, options = {}) => {
         const err = new Error(d.message || d.error || `HTTP ${r.status}`);
         err.status = r.status;
         err.details = d.details || null;
+        /* Typed error handling (e.g. invoice_profile_incomplete) needs the
+           machine code and payload, not the human sentence in message. */
+        err.code = d.error || null;
+        err.payload = d;
         throw err;
     }
     return d;
@@ -768,6 +772,70 @@ function PhotoUploader({ value, onChange, notify }) {
     );
 }
 
+/* ═══════════════ STUDENT TIMELINE（E1）════════════════════════════ */
+/* One chronological answer to "这孩子这半年发生了什么" — enrolment, credits,
+   invoices, reports in a single stream. Read-only; every money entry links to
+   the invoice centre. Fetched lazily on first expand so the profile modal
+   stays as fast as before for people who never open it. */
+function StudentTimeline({ api, studentId, openInvoice }) {
+    const [state, setState] = useState({loading: false, data: null, error: null});
+    const KIND = {
+        registration: ['clipboard', '报名'], approval: ['check', '批准建档'],
+        topup: ['card', '充值'], refund: ['card', '退款'], deduction: ['calendar', '扣课'],
+        invoice: ['money', '发票'], payment: ['money', '收款'],
+        credit_note: ['money', '贷记'], report: ['star', '成长报告'],
+    };
+    const load = async () => {
+        setState(s => ({...s, loading: true, error: null}));
+        try {
+            const d = await api(`/students/${encodeURIComponent(studentId)}/timeline?limit=50`);
+            setState({loading: false, data: d, error: null});
+        } catch (e) {
+            setState({loading: false, data: null, error: e.message});
+        }
+    };
+    return (
+        <details className="border border-gray-200 rounded-2xl overflow-hidden"
+                 onToggle={e => { if (e.currentTarget.open && !state.data && !state.loading) load(); }}>
+            <summary className="px-4 py-3 text-sm font-bold text-gray-500 cursor-pointer select-none bg-gray-50 active:bg-gray-100 flex items-center gap-2">
+                <Icon name="clock" className="w-4 h-4"/>学员时间线
+                <span className="font-normal text-gray-400 text-xs">报名 · 课时 · 账务 · 报告，一条流水</span>
+            </summary>
+            <div className="divide-y divide-gray-50">
+                {state.loading && <p className="px-4 py-3 text-xs text-gray-400">加载中…</p>}
+                {state.error && (
+                    <div className="px-4 py-3 text-xs text-red-500 flex items-center gap-3">
+                        <span>时间线加载失败：{state.error}</span>
+                        <button onClick={load} className="min-h-[44px] px-2.5 rounded-lg border border-red-200 font-bold">重试</button>
+                    </div>
+                )}
+                {state.data && (state.data.entries || []).length === 0 &&
+                    <p className="px-4 py-3 text-xs text-gray-400">还没有可显示的记录。</p>}
+                {state.data && (state.data.entries || []).map((entry, i) => {
+                    const [icon, label] = KIND[entry.kind] || ['info', entry.kind];
+                    return (
+                        <div key={i} className="px-4 py-2.5 flex items-baseline gap-2 text-sm">
+                            <span className="inline-flex items-center gap-1.5 font-bold text-gray-700 flex-shrink-0">
+                                <Icon name={icon} className="w-3.5 h-3.5 text-gray-400"/>{label}
+                            </span>
+                            <span className="text-xs text-gray-600 truncate">{entry.title}</span>
+                            {Number.isFinite(entry.credits) && entry.credits !== null && entry.credits !== 0 &&
+                                <span className={`text-xs font-bold ${entry.credits > 0 ? 'text-indigo-700' : 'text-gray-500'}`}>{entry.credits > 0 ? `+${entry.credits}` : entry.credits} 课时</span>}
+                            {Number.isFinite(entry.amountCents) && entry.amountCents !== null && entry.amountCents !== 0 &&
+                                <span className="text-xs font-bold text-emerald-700">${(entry.amountCents / 100).toFixed(2)}</span>}
+                            {entry.invoiceId && openInvoice &&
+                                <button onClick={() => openInvoice(entry.invoiceId)}
+                                        className="text-xs font-bold text-indigo-600 underline decoration-dotted">查看单据</button>}
+                            <span className="ml-auto text-xs text-gray-400 tabular-nums flex-shrink-0">{String(entry.ts).slice(0, 10)}</span>
+                        </div>
+                    );
+                })}
+                {state.data?.hasMore && <p className="px-4 py-2 text-[11px] text-gray-400">只显示最近 50 条；更早的记录见充值/上课记录与账单中心。</p>}
+            </div>
+        </details>
+    );
+}
+
 /* ═══════════════ MAINTENANCE PANEL（体检/邮件/备份恢复）═══════════ */
 /* confirm/notify come from the app shell so this panel uses the same dialog
    as the other 20+ call sites instead of the browser's native ones. */
@@ -1080,6 +1148,11 @@ function App() {
     const [busy, setBusy] = useState(false);
     const [conn, setConn] = useState(false);
     const [connErr, setConnErr] = useState(null);
+    /* UI-02: a 403 is not a connection failure. Kept separate from connErr so
+       the guard can render a permission screen instead of the retry screen —
+       retrying a support-gate denial can never succeed and the old copy told
+       production users to start a local dev server. */
+    const [accessDenied, setAccessDenied] = useState(null);   // {code, message}
     const [toast, setToast] = useState(null);
     const [cmsNotifications, setCmsNotifications] = useState([]);
     const [cmsNotificationUnreadCount, setCmsNotificationUnreadCount] = useState(0);
@@ -1299,6 +1372,12 @@ function App() {
 
     // Pending approvals state
     const [approveCredits, setApproveCredits] = useState({}); // {pendingId: creditValue}
+    /* E5: pending duplicate decision — {pid, fullName, credits, candidates[]} */
+    const [dupPick, setDupPick] = useState(null);
+    /* E3: receivables snapshot for the workbench. Loaded only when the
+       dashboard is open for a role that can see billing — money must appear
+       where the day starts, not only inside the invoice centre. */
+    const [arSummary, setArSummary] = useState(null);
     const [followUpDates, setFollowUpDates] = useState({}); // {registrationId: YYYY-MM-DD}
 
     // Package management state (settings)
@@ -1666,6 +1745,23 @@ function App() {
     const revRef = useRef(0);
 
     useEffect(() => { if (loggedIn) load(); }, [loggedIn]);
+    /* E3: refresh the receivables card whenever the operator lands on the
+       dashboard; a silent failure只清空卡片，不打扰工作台。 */
+    useEffect(() => {
+        if (tab !== 'dashboard' || !TENANT_SLUG || !canUseSettlementBilling) return;
+        let gone = false;
+        v1Api('/billing/invoices').then(d => {
+            if (gone) return;
+            const issued = (d.invoices || []).filter(i => i.status !== 'draft' && i.status !== 'void');
+            const unpaid = issued.filter(i => Number(i.balance_cents) > 0);
+            setArSummary({
+                unpaidCents: unpaid.reduce((s, i) => s + Number(i.balance_cents || 0), 0),
+                unpaidCount: unpaid.length,
+                overdueCount: unpaid.filter(isOverdue).length,
+            });
+        }).catch(() => { if (!gone) setArSummary(null); });
+        return () => { gone = true; };
+    }, [tab, loggedIn]);
 
     /* ── B3 fix: heartbeat — detect server restart, auto-reload on reconnect ── */
     useEffect(() => {
@@ -1831,11 +1927,16 @@ function App() {
     };
 
     const load = async () => {
-        setBusy(true); setConnErr(null);
+        setBusy(true); setConnErr(null); setAccessDenied(null);
         try {
             /* S2: session cookie is the auth — no token round-trip needed */
             const r = await fetch('/api/data', {credentials:'include'});
             if (r.status === 401) { setLoggedIn(false); setBusy(false); return; }
+            if (r.status === 403) {
+                const body = await r.json().catch(() => ({}));
+                setAccessDenied({code: body.error || 'forbidden', message: body.message || ''});
+                setBusy(false); return;
+            }
             if (!r.ok) throw new Error(`HTTP ${r.status}`);
             const d = await r.json();
             if (!d.rosters) d.rosters = {};
@@ -3855,6 +3956,31 @@ document.getElementById('copybtn').addEventListener('click', function(){
     };
 
     /* ── Pending: approve ── */
+    /* E5: tenant approval with an explicit duplicate decision. existingStudentId
+       null = create a new student (unchanged behaviour); an id = attach the
+       registration to that student instead. Never merged automatically. */
+    const approveTenant = async (pid, fullName, credits, existingStudentId) => {
+        setBusy(true);
+        try {
+            const res = await v1Api(`/registrations/${pid}`, {
+                method: 'PATCH',
+                body: JSON.stringify({status: 'approved', ...(existingStudentId ? {existingStudentId} : {})}),
+            });
+            const newSid = existingStudentId || res.student_id || (res.registration && res.registration.student_id);
+            if (credits > 0 && newSid) {
+                await v1Api(`/students/${newSid}/credit-transactions`, {
+                    method: 'POST',
+                    body: JSON.stringify({transactionType: 'migration', amount: credits, note: '注册审批初始课时'}),
+                });
+            }
+            await load();
+            showToast(existingStudentId
+                ? `${fullName} 的报名已并入既有档案`
+                : `${fullName} 已批准建档，家长将收到确认邮件`);
+            setApproveCredits(p => { const n={...p}; delete n[pid]; return n; });
+        } catch(e) { showToast(`批准失败：${e.message}`, 'error'); }
+        finally { setBusy(false); setDupPick(null); }
+    };
     const approveStudent = async (pid) => {
         const pen = (db.pending||[]).find(p=>p.id===pid); if (!pen) return;
         if (busy) return;
@@ -3867,19 +3993,17 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 if (TENANT_SLUG) {
                     /* A4: 与 Studio Admin 同一审核状态机 —— 批准即转化建学生、
                        家长自动收到确认邮件；初始课时走期初流水入账本 */
-                    const res = await v1Api(`/registrations/${pid}`, {
-                        method: 'PATCH',
-                        body: JSON.stringify({status: 'approved'}),
-                    });
-                    const newSid = res.student_id || (res.registration && res.registration.student_id);
-                    if (credits > 0 && newSid) {
-                        await v1Api(`/students/${newSid}/credit-transactions`, {
-                            method: 'POST',
-                            body: JSON.stringify({transactionType: 'migration', amount: credits, note: '注册审批初始课时'}),
-                        });
+                    /* E5: candidates come from the server BEFORE anything is
+                       written; a failure to fetch them must not block approval
+                       (the old behaviour), only skip the hint. */
+                    const dc = await v1Api(`/registrations/${pid}/duplicate-candidates`).catch(() => ({candidates: []}));
+                    if ((dc.candidates || []).length) {
+                        setBusy(false);
+                        setDupPick({pid, fullName, credits, candidates: dc.candidates});
+                        return;
                     }
-                    await load();
-                    showToast(`${fullName} 已批准建档，家长将收到确认邮件`);
+                    await approveTenant(pid, fullName, credits, null);
+                    return;
                 } else {
                     const ns = {
                         id: Date.now(), firstName:fn, lastName:ln, name:fullName,
@@ -3986,13 +4110,37 @@ document.getElementById('copybtn').addEventListener('click', function(){
 
     /* ── Guards ── */
     if (!loggedIn) return <LoginScreen onLogin={refreshSession}/>;
+    /* UI-02: permission denials get their own screen. Retrying cannot fix a
+       support-gate 403, so the primary action explains the path (Super Admin →
+       support session) instead of offering a doomed reconnect loop. */
+    if (!conn && accessDenied) return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white p-4">
+            <div className="text-center p-8 max-w-md bg-gray-800 rounded-2xl shadow-2xl border border-gray-700 anim w-full">
+                <div className="flex justify-center mb-3 text-amber-400"><Icon name="warning" className="w-12 h-12"/></div>
+                <h2 className="text-xl font-bold mb-3">无权访问该工作室 / Access denied</h2>
+                {accessDenied.code === 'support_session_required' ? (
+                    <p className="text-gray-400 text-sm mb-3 leading-relaxed">平台账号需要先在 Super Admin 控制台为该工作室开启支持会话（含原因）后才能进入。<br/>Start an audited support session for this studio from the Super Admin console first.</p>
+                ) : (
+                    <p className="text-gray-400 text-sm mb-3 leading-relaxed">当前账号没有访问该工作室的权限。如需协助请联系工作室负责人。<br/>This account does not have access to this studio.</p>
+                )}
+                {accessDenied.message && <p className="text-gray-500 text-xs bg-gray-900 p-2 rounded mb-4">{accessDenied.message}</p>}
+                <button onClick={load} className="bg-indigo-600 active:bg-indigo-700 px-8 py-3 rounded-xl font-bold w-full mb-2">重新检查 / Check again</button>
+                <button onClick={doLogout} className="bg-gray-700 active:bg-gray-600 px-8 py-3 rounded-xl font-bold w-full">退出登录 / Log out</button>
+            </div>
+        </div>
+    );
     if (!conn) return (
         <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white p-4">
             <div className="text-center p-8 max-w-md bg-gray-800 rounded-2xl shadow-2xl border border-gray-700 anim w-full">
                 {connErr ? (<>
                     <div className="flex justify-center mb-3 text-amber-400"><Icon name="warning" className="w-12 h-12"/></div>
-                    <h2 className="text-xl font-bold mb-3">连接失败</h2>
-                    <p className="text-gray-400 text-sm mb-3 leading-relaxed">请确认终端正在运行 <code className="text-indigo-400 bg-gray-900 px-1 rounded">python3 server.py</code></p>
+                    <h2 className="text-xl font-bold mb-3">连接失败 / Connection failed</h2>
+                    {TENANT_SLUG ? (
+                        <p className="text-gray-400 text-sm mb-3 leading-relaxed">服务暂时不可达，请稍后重试；如持续出现请联系支持。<br/>The service is temporarily unreachable — please retry shortly.</p>
+                    ) : (
+                        /* Standalone edition only: the local dev hint stays accurate there. */
+                        <p className="text-gray-400 text-sm mb-3 leading-relaxed">请确认终端正在运行 <code className="text-indigo-400 bg-gray-900 px-1 rounded">python3 server.py</code></p>
+                    )}
                     <p className="text-red-400 text-xs font-mono bg-gray-900 p-2 rounded mb-4">{connErr}</p>
                     <button onClick={load} className="bg-indigo-600 active:bg-indigo-700 px-8 py-3 rounded-xl font-bold w-full">重新连接</button>
                 </>) : (<>
@@ -4635,11 +4783,19 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 <div><p className="text-xs text-indigo-200 tracking-wider">TODAY · 今日指挥台</p><p className="font-bold mt-0.5">先处理最需要行动的事项</p></div>
                 <span className="text-xs bg-white/10 border border-white/20 px-2.5 py-1 rounded-full">{fmtDate(todayISO())}</span>
             </div>
+            {/* E4: every command-strip number opens the exact list it counts —
+                低课时 lands on the pre-filtered student list whose cards carry
+                the one-tap 快速充值 button (student preselected). */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
                 {[
-                    ['应到',todayEffectiveCount,'人'],['已签到',todayCheckedCount,'人'],
-                    ['待审核',pendingCount,'项'],['低课时',analytics.lowBalance.length,'人'],
-                ].map(([label,value,unit])=><div key={label} className="rounded-xl bg-white/10 border border-white/10 p-2.5"><p className="text-[11px] text-indigo-200">{label}</p><p className="text-xl font-bold">{value}<span className="text-xs font-normal ml-1">{unit}</span></p></div>)}
+                    ['应到',todayEffectiveCount,'人',()=>{setRDate(todayISO());setTab('roster');}],
+                    ['已签到',todayCheckedCount,'人',()=>{setRDate(todayISO());setTab('roster');}],
+                    ['待审核',pendingCount,'项',allowedTabs.includes('pending')?()=>setTab('pending'):null],
+                    ['低课时',analytics.lowBalance.length,'人',()=>{setSortBy('bal-asc');setFilterBy('low');setTab('students');}],
+                ].map(([label,value,unit,go])=><button key={label} type="button" onClick={go||undefined} disabled={!go}
+                    className={`rounded-xl bg-white/10 border border-white/10 p-2.5 text-left ${go?'active:bg-white/20':''}`}>
+                    <p className="text-[11px] text-indigo-200">{label}{go && <span className="ml-1">→</span>}</p>
+                    <p className="text-xl font-bold">{value}<span className="text-xs font-normal ml-1">{unit}</span></p></button>)}
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {canWriteAttendance && <button onClick={()=>{setRDate(todayISO());setTab('roster');}} className="bg-white text-indigo-800 rounded-xl py-2.5 text-xs font-bold min-h-[44px]"><span className="inline-flex items-center gap-1.5"><Icon name="calendar" className="w-4 h-4"/>今日排课</span></button>}
@@ -4851,16 +5007,37 @@ document.getElementById('copybtn').addEventListener('click', function(){
         </div>
     )}
 
+    {/* E3: 应收提醒 — 钱的待办出现在一天开始的地方 */}
+    {arSummary && arSummary.unpaidCount > 0 && (
+        <div className="bg-white border border-gray-200 rounded-2xl p-4 flex flex-wrap items-center gap-3">
+            <p className="text-sm">
+                <span className="font-bold">应收 {`$${(arSummary.unpaidCents/100).toFixed(2)}`}</span>
+                <span className="text-gray-500 text-xs ml-2">未付清 {arSummary.unpaidCount} 张{arSummary.overdueCount > 0 ? ` · 其中逾期 ${arSummary.overdueCount} 张` : ''}</span>
+            </p>
+            <button onClick={()=>setTab('billing')}
+                className="ml-auto min-h-[44px] px-4 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 text-xs font-bold active:bg-indigo-100">进入账单中心</button>
+        </div>
+    )}
+
     {/* 低余额预警 */}
     {analytics.lowBalance.length>0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
             <p className="inline-flex items-center gap-1.5 font-bold text-amber-800 mb-2 text-sm"><Icon name="bolt" className="w-4 h-4"/>课时预警 — {analytics.lowBalance.length} 名学员余额 ≤ 2 课时</p>
             <div className="flex flex-wrap gap-2">
                 {analytics.lowBalance.map(s => (
-                    <button key={s.id} onClick={()=>{setTab('students');setSrch(s.name);}}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold border min-h-[44px] ${parseInt(s.balance,10)===0?'bg-red-100 text-red-700 border-red-200':'bg-amber-100 text-amber-800 border-amber-200'}`}>
+                    <span key={s.id} className="inline-flex items-stretch">
+                    <button onClick={()=>{setTab('students');setSrch(s.name);}}
+                        className={`px-3 py-1.5 rounded-l-lg text-xs font-bold border min-h-[44px] ${parseInt(s.balance,10)===0?'bg-red-100 text-red-700 border-red-200':'bg-amber-100 text-amber-800 border-amber-200'}`}>
                         {s.name} ({s.balance})
                     </button>
+                    {/* E4: renewal is the point of this card — one tap lands on
+                        the top-up form with this student preselected. */}
+                    {canWriteCredits && <button onClick={()=>{setTuStu(s.id);setTab('topup');}}
+                        title="去充值" aria-label={`为 ${s.name} 充值`}
+                        className="px-2.5 rounded-r-lg text-xs font-bold border border-l-0 min-h-[44px] bg-emerald-50 text-emerald-700 border-emerald-200 active:bg-emerald-100">
+                        <Icon name="money" className="w-4 h-4"/>
+                    </button>}
+                    </span>
                 ))}
             </div>
         </div>
@@ -5905,6 +6082,32 @@ document.getElementById('copybtn').addEventListener('click', function(){
         );
     })}
     </>}
+    {/* E5: explicit duplicate decision — merge or create, never automatic. */}
+    {dupPick && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-5 space-y-3">
+                <p className="font-bold text-sm">疑似已有档案 — {dupPick.fullName}</p>
+                <p className="text-xs text-gray-500">发现下列可能是同一名学员的既有档案。并入会把这次报名归到既有学员名下（初始课时也入其账本）；确认是新学员则继续新建。不会自动合并。</p>
+                <div className="space-y-2">
+                    {dupPick.candidates.map(c => (
+                        <button key={c.studentId} disabled={busy}
+                            onClick={()=>approveTenant(dupPick.pid, dupPick.fullName, dupPick.credits, c.studentId)}
+                            className="w-full text-left px-3 py-2.5 rounded-xl border border-indigo-200 bg-indigo-50 active:bg-indigo-100 min-h-[44px]">
+                            <span className="text-sm font-bold text-indigo-800">{c.name}</span>
+                            <span className="block text-xs text-gray-500">{[c.phone, c.email].filter(Boolean).join(' · ')}{c.matchedOn?.length ? ` · 命中：${c.matchedOn.join('/')}` : ''}</span>
+                            <span className="block text-xs font-bold text-indigo-600 mt-0.5">并入这个档案 →</span>
+                        </button>
+                    ))}
+                </div>
+                <div className="flex gap-2 pt-1">
+                    <button onClick={()=>setDupPick(null)} disabled={busy}
+                        className="flex-1 min-h-[44px] rounded-xl border border-gray-200 text-xs font-bold">取消</button>
+                    <button onClick={()=>approveTenant(dupPick.pid, dupPick.fullName, dupPick.credits, null)} disabled={busy}
+                        className="flex-1 min-h-[44px] rounded-xl bg-indigo-600 text-white text-xs font-bold">确认是新学员，新建档案</button>
+                </div>
+            </div>
+        </div>
+    )}
 </div>
 )}
 
@@ -6584,6 +6787,11 @@ document.getElementById('copybtn').addEventListener('click', function(){
                         {/* 报告排在充值与上课记录之前，因为它是唯一一件等着人做的事；
                             下面两块是它的证据，也是查阅用的历史。老师写评语时
                             要看的出勤和课堂笔记，就在同一屏上。 */}
+                        {/* E1: the merged timeline sits first — it is the reading
+                            view; the collapsibles below stay as the working
+                            views (report editing, per-source detail). */}
+                        {TENANT_SLUG && <StudentTimeline api={v1Api} studentId={selS.id}
+                            openInvoice={canUseSettlementBilling ? (iid)=>{setSelS(null);setEditP(false);setTab('billing',{recordId:String(iid)});} : null} />}
                         {TENANT_SLUG && <StudentProgressReports api={v1Api} studentId={selS.id}
                             studentName={selS.name} canWrite={canWriteProgress}
                             canPublish={canPublishProgress} showToast={showToast} />}

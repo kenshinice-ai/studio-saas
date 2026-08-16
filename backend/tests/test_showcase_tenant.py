@@ -292,21 +292,28 @@ def test_the_brand_payload_carries_the_demonstration_flag() -> None:
 
 @pytest.mark.parametrize("page", ("index.html", "showcase.html", "timetable.html"))
 def test_a_wide_logo_cannot_crowd_out_the_studio_name(page) -> None:
-    """A wordmark is wide. At a fixed height it took 281px of a 375px phone.
+    """A wordmark is wide. At `max-width:min(48vw,300px)` it took 281px of a
+    375px phone, and the studio name ellipsised to "Let's…" beside it.
 
-    The studio name then wrapped three lines deep behind the menu button. The
-    logo is bounded in both axes and the name is allowed to ellipsise.
+    v10.8.0 replaced the loose two-axis bound with the brand-lockup height
+    contract: a fixed 40px height, natural width capped hard at 140px, and
+    object-fit so nothing stretches. The name cannot be crowded at all any
+    more — when a logo renders, the text name hides (`.brand.has-logo .bn`)
+    and moves to the link's aria-label.
     """
 
-    text = (PROJECT_ROOT / "tenant-template" / page).read_text(encoding="utf-8")
     shared_shell = (PROJECT_ROOT / "backend/frontend/assets/public-shell.css").read_text(encoding="utf-8")
     brand_rule = re.search(r"\.brand img\s*\{[^}]*\}", shared_shell, re.DOTALL)
     assert brand_rule, f"{page}: shared public shell has no .brand img rule"
-    brand_css = brand_rule.group(0)
-    assert "max-width" in brand_css, f"{page}: logo width is unbounded — {brand_css.strip()}"
-    assert "max-height" in brand_css, f"{page}: logo height is unbounded — {brand_css.strip()}"
-    assert "object-fit:contain" in brand_css.replace(" ", ""), (
+    brand_css = brand_rule.group(0).replace(" ", "")
+    assert "max-width:140px" in brand_css, f"{page}: logo width is unbounded — {brand_css.strip()}"
+    assert "height:40px" in brand_css, f"{page}: logo height is unbounded — {brand_css.strip()}"
+    assert "width:auto" in brand_css, f"{page}: a fixed width squeezes a wide wordmark"
+    assert "object-fit:contain" in brand_css, (
         f"{page}: bounding both axes without object-fit stretches the logo"
+    )
+    assert re.search(r"\.brand\.has-logo\s+\.bn\s*\{\s*display:\s*none", shared_shell), (
+        "the lockup rule that retires the crowding problem is missing"
     )
 
 

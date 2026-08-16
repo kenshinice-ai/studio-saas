@@ -61,6 +61,8 @@ from .services import credit_settlements as _credit_settlements
 from .services import credit_refunds as _credit_refunds
 from .services import invoice_documents as _invoice_documents
 from .services import invoice_drafts as _invoice_drafts
+from .services import invoice_reminders as _invoice_reminders
+from .services import student_timeline as _student_timeline
 from .services import calendar_subscriptions as _calendar_subs
 from .services import entitlements as _entitlements
 from .services import notification_channels as _channels
@@ -3868,6 +3870,65 @@ def get_student_credits(student_id: str):
     return jsonify({"account": account, "transactions": transactions})
 
 
+@api_v1.route("/students/<student_id>/timeline", methods=["GET"])
+@permission_required("students:read")
+def student_timeline_route(student_id: str):
+    """E1 — one student's merged history, newest first. Strictly read-only."""
+
+    try:
+        limit = int(request.args.get("limit") or 50)
+        if not 1 <= limit <= 200:
+            raise ValueError
+    except (TypeError, ValueError):
+        return _error("limit must be an integer between 1 and 200.")
+    before = None
+    raw_before = (request.args.get("before") or "").strip()
+    if raw_before:
+        try:
+            before = _datetime.fromisoformat(raw_before)
+        except ValueError:
+            return _error("before must be an ISO 8601 timestamp.")
+        if before.tzinfo is None:
+            before = before.replace(tzinfo=_timezone.utc)
+
+    # Sources a role may only see with the matching read permission. What a
+    # permission switches off is *named* in the response's omittedSources — a
+    # teacher's timeline says the money entries were withheld, it does not
+    # pretend the student had no financial history.
+    permission_sources = (
+        ("registrations:read", ("registrations",)),
+        ("credits:read", ("credits",)),
+        ("billing:read", ("invoices", "payments", "credit_notes")),
+        ("progress_reports:read", ("reports",)),
+    )
+    include: set[str] = set()
+    for permission, sources in permission_sources:
+        try:
+            require_permission(getattr(g, "actor", None), permission)
+        except PermissionDeniedError:
+            continue
+        include.update(sources)
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        student = fetch_one(
+            conn,
+            "SELECT id FROM students WHERE tenant_id = %s AND id = %s",
+            (tenant.tenant_id, student_id),
+        )
+        if not student:
+            return _error("Student was not found.", 404)
+        result = _student_timeline.student_timeline(
+            conn,
+            tenant.tenant_id,
+            student_id,
+            limit=limit,
+            before=before,
+            include=include,
+        )
+    return jsonify(result)
+
+
 @api_v1.route("/courses", methods=["GET"])
 @auth_required
 def list_courses():
@@ -4201,6 +4262,95 @@ def list_registrations():
     return jsonify({"registrations": rows, "total": total, "limit": limit, "offset": offset})
 
 
+def _normalised_person_name(*parts: str) -> str:
+    """Lower-case a name and collapse internal whitespace for comparison."""
+
+    return " ".join(" ".join(str(part or "") for part in parts).split()).lower()
+
+
+def registration_duplicate_candidates(conn, tenant_id: str, registration: dict) -> list[dict]:
+    """E5 — students who look like the person a registration describes.
+
+    Pure read, exact semantics: full phone-digit match, full lower-cased
+    email match, or whitespace/case-normalised name equality. Fuzzier ideas
+    (edit distance, pinyin) are deliberately absent — a wrong suggestion in
+    an approval flow costs more than a missed one. At most five candidates,
+    the strongest matches first, and never any write.
+    """
+
+    phone_digits = _phone_digits(str(registration.get("mobile") or ""))
+    email = str(registration.get("email") or "").strip().lower()
+    name = _normalised_person_name(
+        registration.get("first_name"), registration.get("last_name")
+    )
+    rows = fetch_all(
+        conn,
+        r"""
+        SELECT id, display_name, first_name, last_name, mobile, email
+        FROM students
+        WHERE tenant_id = %s AND status <> 'archived'
+          AND (
+                (%s <> '' AND regexp_replace(COALESCE(mobile, ''), '[^0-9]', '', 'g') = %s)
+             OR (%s <> '' AND lower(trim(email)) = %s)
+             OR (%s <> '' AND lower(regexp_replace(trim(display_name), '\s+', ' ', 'g')) = %s)
+             OR (%s <> '' AND lower(regexp_replace(trim(first_name || ' ' || last_name), '\s+', ' ', 'g')) = %s)
+          )
+        ORDER BY updated_at DESC
+        LIMIT 25
+        """,
+        (
+            tenant_id,
+            phone_digits, phone_digits,
+            email, email,
+            name, name,
+            name, name,
+        ),
+    )
+    candidates = []
+    for row in rows:
+        matched_on = []
+        if phone_digits and _phone_digits(str(row["mobile"] or "")) == phone_digits:
+            matched_on.append("phone")
+        if email and str(row["email"] or "").strip().lower() == email:
+            matched_on.append("email")
+        if name and name in (
+            _normalised_person_name(row["display_name"]),
+            _normalised_person_name(row["first_name"], row["last_name"]),
+        ):
+            matched_on.append("name")
+        if matched_on:
+            candidates.append({
+                "studentId": str(row["id"]),
+                "name": row["display_name"],
+                "phone": row["mobile"] or "",
+                "email": row["email"] or "",
+                "matchedOn": matched_on,
+            })
+    candidates.sort(key=lambda item: -len(item["matchedOn"]))
+    return candidates[:5]
+
+
+@api_v1.route("/registrations/<registration_id>/duplicate-candidates", methods=["GET"])
+@permission_required("registrations:read")
+def registration_duplicate_candidates_route(registration_id: str):
+    """E5 — surface likely existing students before an approval creates one."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        registration = fetch_one(
+            conn,
+            """
+            SELECT id, first_name, last_name, mobile, email
+            FROM registrations WHERE tenant_id = %s AND id = %s
+            """,
+            (tenant.tenant_id, registration_id),
+        )
+        if not registration:
+            return _error("Registration not found.", 404)
+        candidates = registration_duplicate_candidates(conn, tenant.tenant_id, registration)
+    return jsonify({"candidates": candidates})
+
+
 def _cms_visible_notification_types() -> tuple[str, ...]:
     """Return notification types the current CMS actor may inspect."""
 
@@ -4344,6 +4494,17 @@ def update_registration_status(registration_id: str):
         follow_up_supplied = "nextFollowUpAt" in payload or "next_follow_up_at" in payload
         loss_reason = _clean_text(payload, "lossReason", _clean_text(payload, "loss_reason", ""))[:500]
 
+        # E5 (v10.8.0): the operator may name an existing student instead of
+        # letting approval create one. This is always an explicit choice — the
+        # API never auto-merges; the silent name+mobile auto-link below stays
+        # exactly as it was for requests that do not send the field.
+        existing_student_id = _clean_text(payload, "existingStudentId")
+        if existing_student_id:
+            try:
+                existing_student_id = str(_uuid.UUID(existing_student_id))
+            except ValueError:
+                return _error("existingStudentId must be a valid student ID.")
+
         allowed_statuses = {
             "pending", "contacted", "trial_booked", "waiting", "approved",
             "converted", "rejected", "duplicate", "lost", "archived",
@@ -4352,6 +4513,9 @@ def update_registration_status(registration_id: str):
             return _error(f"status must be one of: {', '.join(sorted(allowed_statuses))}.")
         if new_status in {"rejected", "lost", "archived"} and not (review_note or loss_reason):
             return _error("A review note or loss reason is required when closing a registration.")
+        converting = convert_to_student or new_status in {"approved", "converted"}
+        if existing_student_id and not converting:
+            return _error("existingStudentId is only valid when approving or converting.")
 
         with conn.cursor() as cur:
             created_student_id = None
@@ -4377,7 +4541,29 @@ def update_registration_status(registration_id: str):
             except ValueError as exc:
                 return _error(str(exc), 409)
 
-            if convert_to_student or new_status in {"approved", "converted"}:
+            attached_to_existing = False
+            if converting and existing_student_id:
+                # The named student must be real,同租户, and not archived —
+                # attaching a live registration to an archived record would
+                # bury it. Credits are NOT moved or created here: the credit
+                # account is ensured and later top-ups land on this student
+                # through the normal settlement path.
+                cur.execute(
+                    "SELECT id, status FROM students WHERE tenant_id = %s AND id = %s",
+                    (tenant.tenant_id, existing_student_id),
+                )
+                named_student = cur.fetchone()
+                if not named_student:
+                    return _error("Student was not found.", 404)
+                if named_student["status"] == "archived":
+                    return _error(
+                        "Cannot attach a registration to an archived student.", 409
+                    )
+                created_student_id = str(named_student["id"])
+                linked_student_id = created_student_id
+                attached_to_existing = True
+                _ensure_default_credit_account(cur, tenant.tenant_id, linked_student_id)
+            elif converting:
                 display_name = f"{reg['first_name']} {reg['last_name']}".strip()
                 existing_student = _find_matching_student(
                     cur,
@@ -4519,6 +4705,15 @@ def update_registration_status(registration_id: str):
             resource_id=registration_id,
             metadata={"student_id": linked_student_id, "review_note": review_note},
         )
+        if attached_to_existing:
+            _audit_request(
+                conn,
+                tenant_id=tenant.tenant_id,
+                action="registration_attached_to_existing",
+                resource_type="registration",
+                resource_id=registration_id,
+                metadata={"student_id": linked_student_id},
+            )
         if new_status in ("approved", "rejected") and reg.get("email"):
             tenant_row = fetch_one(conn, "SELECT name FROM tenants WHERE id = %s", (tenant.tenant_id,))
             _notifications.send_safely(
@@ -9560,6 +9755,20 @@ def create_credit_settlement(student_id: str):
         except _credit_settlements.CreditSettlementError as exc:
             conn.rollback()
             return _error(str(exc), 400)
+        except _billing.InvoiceProfileIncomplete as exc:
+            # E6: the issueNow branch calls billing.issue_invoice, so the
+            # same completeness gate answers here with the same 409 shape.
+            conn.rollback()
+            return jsonify({
+                "error": "invoice_profile_incomplete",
+                "message": str(exc),
+                "missing": exc.missing,
+            }), 409
+        except _billing.BillingError as exc:
+            # Issue-time refusals (e.g. GST without registration) used to
+            # escape this route as a 500; they are conflicts, not faults.
+            conn.rollback()
+            return _error(str(exc), 409)
         conn.commit()
 
     return jsonify({"ok": True, "settlement": result, **result}), (
@@ -13212,6 +13421,31 @@ def billing_statement(account_id: str):
     return jsonify(statement)
 
 
+@api_v1.route("/billing/payers/<payer_id>/statement", methods=["GET"])
+@permission_required("billing:read")
+def billing_payer_monthly_statement(payer_id: str):
+    """E2 — one payer's month as an accounting statement.
+
+    Opening balance, dated movement, closing balance, with
+    ``closing == opening + Σ(debit − credit)`` guaranteed by construction:
+    the closing figure *is* the running balance after the last line.
+    """
+
+    month = (request.args.get("month") or "").strip()
+    try:
+        _billing.parse_statement_month(month)
+    except _billing.BillingError as exc:
+        return _error(str(exc))
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        statement = _billing.payer_monthly_statement(
+            conn, tenant.tenant_id, payer_id, month=month
+        )
+    if statement is None:
+        return _error("Billing account not found.", 404)
+    return jsonify(statement)
+
+
 # ── tax codes ────────────────────────────────────────────────────────────
 
 
@@ -13862,7 +14096,7 @@ def billing_invoice_detail(invoice_id: str):
         events = fetch_all(
             conn,
             """
-            SELECT event_type, detail, occurred_at
+            SELECT event_type, detail, occurred_at, actor_user_id
             FROM invoice_events WHERE tenant_id = %s AND invoice_id = %s
             ORDER BY occurred_at DESC LIMIT 50
             """,
@@ -14063,6 +14297,15 @@ def billing_issue_invoice(invoice_id: str):
                 invoice_id,
                 actor_user_id=getattr(actor, "user_id", None),
             )
+        except _billing.InvoiceProfileIncomplete as exc:
+            # E6: a structured refusal the CMS can link to the settings page,
+            # with the missing field names at the top level of the body.
+            conn.rollback()
+            return jsonify({
+                "error": "invoice_profile_incomplete",
+                "message": str(exc),
+                "missing": exc.missing,
+            }), 409
         except _billing.BillingError as exc:
             conn.rollback()
             return _error(str(exc), 409)
@@ -14112,6 +14355,56 @@ def billing_void_invoice(invoice_id: str):
         )
         conn.commit()
     return jsonify({"ok": True})
+
+
+@api_v1.route("/billing/invoices/<invoice_id>/reminders", methods=["POST"])
+@permission_required("billing:write")
+def billing_invoice_record_reminder(invoice_id: str):
+    """E3 — record that this invoice was chased, in its event history.
+
+    A manual mark only: nothing is sent anywhere. Idempotent per requestId;
+    drafts and voided documents answer 409 ``invoice_not_remindable``.
+    """
+
+    try:
+        payload = _json_payload()
+    except ValueError as exc:
+        return _error(str(exc))
+
+    actor = getattr(g, "actor", None)
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        try:
+            result = _invoice_reminders.record_reminder(
+                conn,
+                tenant.tenant_id,
+                invoice_id,
+                payload,
+                actor_user_id=getattr(actor, "user_id", None),
+            )
+        except _invoice_reminders.InvoiceReminderNotFound as exc:
+            conn.rollback()
+            return _error(str(exc), 404)
+        except _invoice_reminders.InvoiceNotRemindable as exc:
+            conn.rollback()
+            return api_error(str(exc), 409, error="invoice_not_remindable")
+        except _invoice_reminders.InvoiceReminderConflict as exc:
+            conn.rollback()
+            return _error(str(exc), 409)
+        except _invoice_reminders.InvoiceReminderError as exc:
+            conn.rollback()
+            return _error(str(exc), 400)
+        if not result.get("replayed"):
+            _audit_request(
+                conn,
+                tenant_id=tenant.tenant_id,
+                action="invoice.reminder_recorded",
+                resource_type="invoice",
+                resource_id=invoice_id,
+                metadata={"requestId": result["requestId"]},
+            )
+        conn.commit()
+    return jsonify({"ok": True, **result}), 200 if result.get("replayed") else 201
 
 
 # ── payments ─────────────────────────────────────────────────────────────

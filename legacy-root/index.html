@@ -1170,9 +1170,14 @@
                document reveal rule, so the customer document itself becomes
                invisible and the browser saves a blank PDF. */
             body.invoice-print-mode #root > * { visibility:hidden !important; }
-            body.invoice-print-mode .invoice-customer-document,
-            body.invoice-print-mode .invoice-customer-document * { visibility:visible !important; }
-            body.invoice-print-mode .invoice-customer-document {
+            /* v10.8.0: reveal only the customer document inside the container
+               the operator chose to print (.invoice-print-target). Several
+               customer documents can be mounted at once — invoice, credit
+               note, payer statement — and without the target scope they all
+               printed on top of each other. */
+            body.invoice-print-mode .invoice-print-target .invoice-customer-document,
+            body.invoice-print-mode .invoice-print-target .invoice-customer-document * { visibility:visible !important; }
+            body.invoice-print-mode .invoice-print-target .invoice-customer-document {
                 position:absolute !important;
                 inset:0 !important;
                 width:100% !important;

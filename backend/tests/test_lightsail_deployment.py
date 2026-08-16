@@ -59,8 +59,13 @@ def test_lightsail_single_node_preserves_roles_backups_and_volumes() -> None:
     assert "backend/scripts/backup_postgres.py" in control
     assert "python scripts/backup_postgres.py" not in control
     # FORCE RLS applies to pg_dump too; backups must use the owner URL for a
-    # complete dump, while the runtime role remains bounded.
-    assert 'STUDIOSAAS_DATABASE_URL="$(sudo sh -c "sed -n \'s/^LOCAL_DB_PASSWORD=//p\'' in control
+    # complete dump, while the runtime role remains bounded. The URL is
+    # assembled by owner_db_url with a percent-encoded password (OPS-04) —
+    # the old raw sed splice broke on any password containing @ : / ? # or %.
+    assert 'STUDIOSAAS_DATABASE_URL="$(owner_db_url)"' in control
+    assert "urlencode" in control
+    assert control.count('STUDIOSAAS_DATABASE_URL="$(owner_db_url)"') == 2  # backup + restore rehearsal
+    assert "sed 's#^#postgresql://studiosaas:#" not in control  # the raw splice must not come back
     # The bind-mounted backup directory must be writable by the image user and
     # readable by the operator, asserted on every run rather than at install.
     assert "ensure_backup_dir_writable" in control

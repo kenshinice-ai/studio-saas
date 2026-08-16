@@ -385,9 +385,11 @@ def money_tenant():
             cur.execute(
                 """
                 INSERT INTO tenant_billing_identity
-                    (tenant_id, legal_name, trading_name, abn, gst_registered)
+                    (tenant_id, legal_name, trading_name, abn, gst_registered,
+                        address_line1, suburb, state, postcode)
                 VALUES (%s, 'Fixture Studio Pty Ltd', 'Fixture Studio',
-                        '53 004 085 616', true)
+                        '53 004 085 616', true,
+                        '1 Fixture Lane', 'Carlton', 'VIC', '3053')
                 ON CONFLICT (tenant_id) DO NOTHING
                 """,
                 (tenant_id,),
@@ -954,9 +956,11 @@ def test_preferred_invoice_rejects_wrong_account_and_cross_tenant_targets(
             cur.execute(
                 """
                 INSERT INTO tenant_billing_identity
-                    (tenant_id, legal_name, trading_name, abn, gst_registered)
+                    (tenant_id, legal_name, trading_name, abn, gst_registered,
+                     address_line1, suburb, state, postcode)
                 VALUES (%s, 'Foreign Fixture Pty Ltd', 'Foreign Fixture',
-                        '53 004 085 616', true)
+                        '53 004 085 616', true,
+                        '2 Fixture Lane', 'Carlton', 'VIC', '3053')
                 """,
                 (foreign_tenant_id,),
             )

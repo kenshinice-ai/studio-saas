@@ -31,6 +31,25 @@ class BillingError(RuntimeError):
     """A billing rule was violated in a way the caller should hear about."""
 
 
+class InvoiceProfileIncomplete(BillingError):
+    """The studio's invoice profile is missing fields an issued document needs.
+
+    Carries the machine-readable ``missing`` list ("name", "address", "abn")
+    so the API can answer with a structured 409 the settings page can link
+    from, instead of prose the CMS would have to parse.
+    """
+
+    def __init__(self, missing: list[str]):
+        labels = {"name": "studio name", "address": "street address", "abn": "ABN"}
+        readable = ", ".join(labels.get(field, field) for field in missing)
+        super().__init__(
+            "开票信息不完整，请先在 设置 → 开票信息 补齐后再签发。 "
+            f"The invoice profile is incomplete ({readable} missing). "
+            "Complete it in Settings → Billing identity before issuing."
+        )
+        self.missing = list(missing)
+
+
 # ── arithmetic ───────────────────────────────────────────────────────────
 
 
@@ -262,6 +281,29 @@ def save_billing_identity(conn, tenant_id: str, values: dict[str, Any]) -> dict[
     return {**saved, "configured": True}
 
 
+def invoice_profile_missing(identity: dict[str, Any]) -> list[str]:
+    """Which of the three issue-time essentials the stored identity lacks.
+
+    v10.8.0 (E6): a document that leaves the studio has to say who issued it,
+    from where, and under which ABN. ``name`` is satisfied by either the legal
+    or the trading name; ``address`` by ``address_line1``; ``abn`` by a
+    non-blank ABN. The check reads the same stored fields the snapshot is
+    built from, so what the gate accepts is exactly what the document prints.
+    """
+
+    missing: list[str] = []
+    if not (
+        str(identity.get("legal_name") or "").strip()
+        or str(identity.get("trading_name") or "").strip()
+    ):
+        missing.append("name")
+    if not str(identity.get("address_line1") or "").strip():
+        missing.append("address")
+    if not str(identity.get("abn") or "").strip():
+        missing.append("abn")
+    return missing
+
+
 def issuing_blockers(conn, tenant_id: str, invoice_id: str) -> list[dict[str, str]]:
     """What would make this document invalid if it went out now.
 
@@ -389,6 +431,15 @@ def issue_invoice(
     # transaction commits.  The resulting JSON is the legal document identity;
     # later edits to either live record must not rewrite history.
     identity = _locked_billing_identity(conn, tenant_id)
+
+    # E6 (v10.8.0): the completeness gate lives here, beside the snapshot it
+    # protects, so the direct issue route and the settlement issueNow branch
+    # cannot diverge. Drafting is deliberately not gated — only the moment a
+    # numbered document would leave the studio.
+    profile_missing = invoice_profile_missing(identity)
+    if profile_missing:
+        raise InvoiceProfileIncomplete(profile_missing)
+
     supplier = supplier_snapshot(identity)
     recipient = recipient_snapshot(invoice)
 
@@ -642,4 +693,187 @@ def account_statement(
         "payments": payments,
         "outstandingCents": outstanding,
         "creditOnAccountCents": max(0, int((unallocated or {}).get("credit_cents") or 0)),
+    }
+
+
+#: The order two same-day statement events print in. Charges before receipts,
+#: receipts before corrections: the reading a family expects.
+_STATEMENT_KIND_ORDER = {"invoice": 0, "payment": 1, "credit_note": 2, "refund": 3}
+
+
+def parse_statement_month(raw: str) -> tuple[date, date]:
+    """Turn ``YYYY-MM`` into an inclusive (first day, last day) pair."""
+
+    try:
+        year_text, month_text = (raw or "").strip().split("-", 1)
+        year, month = int(year_text), int(month_text)
+        if len(year_text) != 4 or len(month_text) != 2:
+            raise ValueError
+        period_start = date(year, month, 1)
+    except (ValueError, TypeError) as exc:
+        raise BillingError("month must be formatted YYYY-MM.") from exc
+    if month == 12:
+        period_end = date(year + 1, 1, 1) - timedelta(days=1)
+    else:
+        period_end = date(year, month + 1, 1) - timedelta(days=1)
+    return period_start, period_end
+
+
+def payer_monthly_statement(
+    conn, tenant_id: str, billing_account_id: str, *, month: str
+) -> dict[str, Any] | None:
+    """One payer's month: opening balance, movement, closing balance.
+
+    The running balance is the receivable position — invoices increase it,
+    payments and credit notes decrease it, a refund of money already taken
+    increases it again. Every amount is read from issued-snapshot data
+    (document number, issue date, frozen totals), never from the live
+    ``balance_cents``/``amount_paid_cents`` rollups, so re-printing a past
+    month keeps saying what it said.
+
+    Voided invoices are excluded on both sides of the period boundary: a void
+    annuls the receivable the document created, and a statement that kept
+    charging it would disagree with what the family owes.
+
+    Returns ``None`` when the payer does not exist in this tenant.
+    """
+
+    account = fetch_one(
+        conn,
+        "SELECT id, name FROM billing_accounts WHERE tenant_id = %s AND id = %s",
+        (tenant_id, billing_account_id),
+    )
+    if not account:
+        return None
+    period_start, period_end = parse_statement_month(month)
+
+    def _scalar(query: str, params: tuple) -> int:
+        row = fetch_one(conn, query, params)
+        return int((row or {}).get("total") or 0)
+
+    opening = (
+        _scalar(
+            """
+            SELECT COALESCE(SUM(total_cents), 0) AS total FROM invoices
+            WHERE tenant_id = %s AND billing_account_id = %s
+              AND status NOT IN ('draft', 'void') AND issue_date < %s
+            """,
+            (tenant_id, billing_account_id, period_start),
+        )
+        - _scalar(
+            """
+            SELECT COALESCE(SUM(amount_cents), 0) AS total FROM payments
+            WHERE tenant_id = %s AND billing_account_id = %s
+              AND status = 'succeeded' AND received_at::date < %s
+            """,
+            (tenant_id, billing_account_id, period_start),
+        )
+        - _scalar(
+            """
+            SELECT COALESCE(SUM(total_cents), 0) AS total FROM credit_notes
+            WHERE tenant_id = %s AND billing_account_id = %s
+              AND status = 'issued' AND issue_date < %s
+            """,
+            (tenant_id, billing_account_id, period_start),
+        )
+        + _scalar(
+            """
+            SELECT COALESCE(SUM(r.amount_cents), 0) AS total
+            FROM refunds r
+            JOIN payments p ON p.tenant_id = r.tenant_id AND p.id = r.payment_id
+            WHERE r.tenant_id = %s AND p.billing_account_id = %s
+              AND r.status = 'succeeded' AND r.created_at::date < %s
+            """,
+            (tenant_id, billing_account_id, period_start),
+        )
+    )
+
+    events: list[dict[str, Any]] = []
+    for row in fetch_all(
+        conn,
+        """
+        SELECT number, issue_date, total_cents, note, created_at FROM invoices
+        WHERE tenant_id = %s AND billing_account_id = %s
+          AND status NOT IN ('draft', 'void')
+          AND issue_date BETWEEN %s AND %s
+        """,
+        (tenant_id, billing_account_id, period_start, period_end),
+    ):
+        events.append({
+            "_date": row["issue_date"], "_created": row["created_at"],
+            "ts": row["issue_date"].isoformat(),
+            "kind": "invoice", "number": row["number"],
+            "description": row["note"] or f"Invoice {row['number']}",
+            "debitCents": int(row["total_cents"]), "creditCents": 0,
+        })
+    for row in fetch_all(
+        conn,
+        """
+        SELECT method, amount_cents, received_at, note, created_at FROM payments
+        WHERE tenant_id = %s AND billing_account_id = %s
+          AND status = 'succeeded' AND received_at::date BETWEEN %s AND %s
+        """,
+        (tenant_id, billing_account_id, period_start, period_end),
+    ):
+        events.append({
+            "_date": row["received_at"].date(), "_created": row["created_at"],
+            "ts": row["received_at"].isoformat(),
+            "kind": "payment", "number": None,
+            "description": row["note"] or f"Payment received ({row['method']})",
+            "debitCents": 0, "creditCents": int(row["amount_cents"]),
+        })
+    for row in fetch_all(
+        conn,
+        """
+        SELECT number, issue_date, total_cents, reason, created_at FROM credit_notes
+        WHERE tenant_id = %s AND billing_account_id = %s
+          AND status = 'issued' AND issue_date BETWEEN %s AND %s
+        """,
+        (tenant_id, billing_account_id, period_start, period_end),
+    ):
+        events.append({
+            "_date": row["issue_date"], "_created": row["created_at"],
+            "ts": row["issue_date"].isoformat(),
+            "kind": "credit_note", "number": row["number"],
+            "description": row["reason"] or f"Credit note {row['number']}",
+            "debitCents": 0, "creditCents": int(row["total_cents"]),
+        })
+    for row in fetch_all(
+        conn,
+        """
+        SELECT r.amount_cents, r.reason, r.created_at
+        FROM refunds r
+        JOIN payments p ON p.tenant_id = r.tenant_id AND p.id = r.payment_id
+        WHERE r.tenant_id = %s AND p.billing_account_id = %s
+          AND r.status = 'succeeded' AND r.created_at::date BETWEEN %s AND %s
+        """,
+        (tenant_id, billing_account_id, period_start, period_end),
+    ):
+        events.append({
+            "_date": row["created_at"].date(), "_created": row["created_at"],
+            "ts": row["created_at"].isoformat(),
+            "kind": "refund", "number": None,
+            "description": row["reason"] or "Refund",
+            "debitCents": int(row["amount_cents"]), "creditCents": 0,
+        })
+
+    events.sort(key=lambda e: (e["_date"], _STATEMENT_KIND_ORDER[e["kind"]], e["_created"]))
+    balance = opening
+    lines: list[dict[str, Any]] = []
+    for event in events:
+        balance += event["debitCents"] - event["creditCents"]
+        lines.append({
+            "ts": event["ts"], "kind": event["kind"], "number": event["number"],
+            "description": event["description"],
+            "debitCents": event["debitCents"], "creditCents": event["creditCents"],
+            "balanceCents": balance,
+        })
+
+    return {
+        "payer": {"id": str(account["id"]), "name": account["name"]},
+        "periodStart": period_start.isoformat(),
+        "periodEnd": period_end.isoformat(),
+        "openingBalanceCents": opening,
+        "closingBalanceCents": balance,
+        "lines": lines,
     }

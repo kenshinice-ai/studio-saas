@@ -91,3 +91,4 @@ docs/sales/clients/
 # describe are deployed, then move the write-up into docs/ if it is still worth
 # keeping.
 docs/security/
+node_modules/

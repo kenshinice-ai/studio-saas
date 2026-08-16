@@ -91,9 +91,14 @@
       gap: var(--ui-space-2, 8px);
     }
 
+    /* Height contract, not a square: a studio uploads any aspect ratio, and
+       a fixed 28x28 box squeezed a wide wordmark into a ~7px-tall smudge.
+       The logo keeps its shape at 28px tall, bounded so a very wide mark
+       cannot eat the header row. */
     .tenant-brand-logo {
-      width: 28px;
       height: 28px;
+      width: auto;
+      max-width: 140px;
       object-fit: contain;
       flex: 0 0 auto;
     }
@@ -2018,6 +2023,14 @@
     /* ===== RESPONSIVE ===== */
     @media (max-width: 1024px) {
       main, .header-top, .nav-inner { padding-left: 16px; padding-right: 16px; }
+      /* The row is allowed to wrap here, but deterministically: the section
+         nav takes a full second line instead of competing with the brand and
+         the account controls for the first one. Mid-wrap, the language /
+         refresh / account buttons landed wherever flexbox broke the line and
+         sat over the content below; a header that grows in flow cannot —
+         syncHeaderOffset() already measures the real height into --header-h
+         for everything that offsets against it. */
+      .nav-bar { flex: 1 1 100%; order: 3; }
       .stats-grid { grid-template-columns: repeat(2, 1fr); }
       .toolbar { grid-template-columns: 1fr 1fr; }
     }
@@ -2089,6 +2102,11 @@
     }
 
     @media (max-width: 480px) {
+      /* The name never truncates below legibility (12ch): beside a logo it
+         yields entirely — the logo is the identity, and the full name stays
+         on the element's title and in the account menu. Without a logo the
+         name is all there is and keeps its 14ch bound above. */
+      .brand.brand-with-logo h1 { display: none; }
       .preset-grid { gap: 8px; }
       .preset-card { min-height: 132px; }
       .advanced-colours { grid-template-columns: 1fr; }
@@ -2511,6 +2529,23 @@
           <button id="loginBtn" type="submit" class="btn-primary">Login</button>
         </div>
       </form>
+    </section>
+
+    <!-- Load-failure blocking state. When the tenant data cannot be loaded
+         (e.g. 403 support_session_required), the console must NOT render an
+         editable default form: a save from that state would overwrite the
+         real tenant with placeholder values. The whole editing surface,
+         including the Save Draft / Publish bar, stays hidden until a retry
+         succeeds. Texts are written by setLoadBlockedState() in the current
+         admin language. -->
+    <section id="loadErrorPanel" class="card login-card hidden" role="alert" aria-live="assertive">
+      <h2 id="loadErrorTitle"></h2>
+      <p id="loadErrorMessage"></p>
+      <p id="loadErrorSupportHint" class="text-muted" style="font-size:13px;"></p>
+      <div class="form-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button id="loadErrorRetryBtn" type="button" class="btn-primary"></button>
+        <a id="loadErrorSupportLink" class="btn-secondary hidden" href="/platform-admin#tenants" target="_blank" rel="noopener"></a>
+      </div>
     </section>
 
     <div id="adminContent" class="hidden">
@@ -4474,7 +4509,13 @@
       currentUser = user;
       const signedIn = Boolean(user);
       $('loginPanel').classList.toggle('hidden', signedIn);
-      $('adminContent').classList.toggle('hidden', !signedIn);
+      /* While the load-blocked panel is up the editor stays hidden even for
+         a signed-in user; only a successful refresh() lifts it. */
+      $('adminContent').classList.toggle('hidden', !signedIn || loadBlocked);
+      if (!signedIn) {
+        loadBlocked = false;
+        $('loadErrorPanel').classList.add('hidden');
+      }
       $('changePasswordBtn').classList.toggle('hidden', !signedIn);
       $('logoutBtn').classList.toggle('hidden', !signedIn);
       $('studioNav').classList.toggle('hidden', !signedIn);
@@ -6075,18 +6116,24 @@
       const visual = t.visual_theme || t.visualTheme || defaultVisualTheme(category);
       const localized = snakeLocalizedCopy(t.localized_copy || t.localizedCopy);
       $('studioName').textContent = t.name || 'Studio Admin';
+      /* The h1 may truncate at its CSS bound or hide beside a logo on a
+         phone; the full name stays reachable on the element itself. */
+      $('studioName').title = t.name || '';
       $('studioFooterName').textContent = t.name || 'Studio';
       const rawStudioLogoUrl = t.logo_url || t.logoUrl || '';
       const studioLogoUrl = ['/logo.png', '/logo-light.png', '/favicon.svg'].includes(rawStudioLogoUrl)
         ? ''
         : rawStudioLogoUrl;
       const studioLogo = $('studioLogo');
+      const headerBrand = studioLogo.closest('.brand');
       studioLogo.hidden = !studioLogoUrl;
       studioLogo.alt = studioLogoUrl ? `${t.name || 'Studio'} logo` : '';
       if (studioLogoUrl) studioLogo.src = studioLogoUrl;
+      if (headerBrand) headerBrand.classList.toggle('brand-with-logo', Boolean(studioLogoUrl));
       studioLogo.onerror = () => {
         studioLogo.hidden = true;
         studioLogo.removeAttribute('src');
+        if (headerBrand) headerBrand.classList.remove('brand-with-logo');
       };
       const categoryLabel = adminIsZh() ? (preset.labelZh || preset.label) : preset.label;
       $('studioMeta').textContent = t.slug
@@ -7046,6 +7093,40 @@
       $('refreshIcon').textContent = loading ? '...' : '↻';
     }
 
+    /* Tenant data failed to load. Rendering the editable DEFAULT form here
+       was the defect: Save Draft / Publish stayed clickable over placeholder
+       values, and one click would overwrite the real tenant. The editor is
+       replaced by a blocking state until a retry succeeds. */
+    let loadBlocked = false;
+    function setLoadBlockedState(err) {
+      loadBlocked = true;
+      $('adminContent').classList.add('hidden');
+      $('loadErrorPanel').classList.remove('hidden');
+      const blockedTitle = adminText('工作室数据载入失败',
+        'Studio data could not be loaded');
+      $('loadErrorTitle').textContent = blockedTitle;
+      $('loadErrorMessage').textContent = adminText(
+        `编辑区已锁定，避免用默认值覆盖线上内容。错误：${err.message}`,
+        `Editing is locked so default values cannot overwrite the live studio. Error: ${err.message}`);
+      const needsSupport = Boolean(err && err.needsSupportSession);
+      $('loadErrorSupportHint').textContent = needsSupport
+        ? adminText('这家工作室需要支持会话：请先在 Super Admin（平台控制台）开启支持会话，再回来重试。',
+                    'This studio requires a support session: start one from Super Admin (platform console), then retry here.')
+        : adminText('如果你是平台操作员且需要支持会话，请先在 Super Admin 开启，再重试。',
+                    'If you are a platform operator and a support session is required, start one from Super Admin first, then retry.');
+      $('loadErrorSupportLink').classList.toggle('hidden', !needsSupport);
+      $('loadErrorRetryBtn').textContent = adminText('重试', 'Retry');
+      const supportLinkLabel = adminText('打开 Super Admin',
+        'Open Super Admin');
+      $('loadErrorSupportLink').textContent = supportLinkLabel;
+    }
+
+    function clearLoadBlockedState() {
+      loadBlocked = false;
+      $('loadErrorPanel').classList.add('hidden');
+      if (currentUser) $('adminContent').classList.remove('hidden');
+    }
+
     async function refresh() {
       if (!currentUser) return;
       localStorage.setItem('studiosaas_tenant_slug', currentTenantSlug());
@@ -7054,6 +7135,7 @@
         const [tenantData, planData, workspaceData] = await Promise.all([
           api('/tenant'), authApi('/plans'), api('/tenant/brand-workspace')
         ]);
+        clearLoadBlockedState();
         tenant = tenantData.tenant || tenantData.settings || {};
         plans = planData.plans || [];
         currentShowcaseLimit = Number(workspaceData.limits?.showcase) || 0;
@@ -7070,7 +7152,14 @@
         }
         switchWorkbenchTab(requestedWorkbenchTab(), {syncUrl: false});
       } catch (err) {
-        if (err.status === 401) setAuthState(null);
+        if (err.status === 401) {
+          clearLoadBlockedState();
+          setAuthState(null);
+        } else {
+          /* Any other failure blocks the editor instead of leaving a
+             default form with live Save/Publish buttons behind a toast. */
+          setLoadBlockedState(err);
+        }
         showToast(`Failed to load Studio Admin: ${err.message}`, 'error');
       } finally {
         setLoadingState(false);
@@ -7092,6 +7181,9 @@
       $('logoutBtn').addEventListener('click', logoutStudioAdmin);
       $('changePasswordBtn').addEventListener('click', openChangePasswordModal);
       $('refreshBtn').addEventListener('click', refresh);
+      /* The blocked state offers the one action that can resolve it. A retry
+         that fails again simply re-renders the same blocked panel. */
+      $('loadErrorRetryBtn').addEventListener('click', () => { checkSession(); });
       $('tenantSlug').addEventListener('change', () => {
         localStorage.setItem('studiosaas_tenant_slug', currentTenantSlug());
         updateSurfaceLinks();

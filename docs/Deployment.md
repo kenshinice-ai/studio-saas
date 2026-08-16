@@ -147,9 +147,14 @@ curl -sS https://studiosaas.cc.cd/v1/health
 
 所有验证通过并提交后生成可复现发布包：
 
+> **历史留痕（Stage 1 试点期）**：`package_release.sh` 已弃用并硬性退出——
+> 它的产物没有 `BUILD_INFO`，部署护栏无法验证。现行打包与发布流程见
+> [`Release_Runbook.md`](Release_Runbook.md)（第 6 步 `deploy/aws/build_aws_bundle.sh`）。
+> 下面的命令仅保留作为当时流程的记录。
+
 ```bash
 cd backend
-bash scripts/package_release.sh
+bash scripts/package_release.sh   # ← 已弃用，脚本本身会拒绝执行
 ```
 
 当前候选的逐项证据和未关闭阻塞项记录在本地归档

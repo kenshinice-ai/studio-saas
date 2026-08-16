@@ -126,6 +126,14 @@ then use the separately guarded permanent-delete workflow with the exact
 confirmation phrase. The workflow creates database/media snapshots and audit
 evidence before deletion. Studio owners cannot perform it.
 
+### Demo Tenant (lets-paint-showcase)
+
+演示租户（`lets-paint-showcase`）的数据由运营**手动**重置（跑
+`RESET_DEMO_TENANT.command`），**刻意不设自动定时** —— 这是既定决策，不是
+缺失的功能：样板数据何时该回到基线，取决于上一场演示做了什么，由人判断。
+The showcase demo tenant is reset manually by the operator
+(`RESET_DEMO_TENANT.command`); there is deliberately no automated schedule.
+
 ---
 
 ## Super-Admin Dashboard

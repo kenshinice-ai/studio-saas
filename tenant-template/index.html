@@ -877,10 +877,20 @@
       </div>
       <div class="reveal" style="background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-card);padding:36px">
         <div style="display:grid;gap:26px;font-size:15px;color:var(--ink2)">
-          <div><h4 style="font-weight:500;color:var(--ink);margin-bottom:8px" data-en="1 · What we collect">一 · 我们收集哪些信息</h4><p data-en="When you enrol or enquire, we collect the student's name and contact details, and — during classes — photographs of their %WORKS%.">当您报名或咨询时，我们会收集学员姓名与联系方式；在课程中，会为%WORK%拍照存档。</p></div>
-          <div><h4 style="font-weight:500;color:var(--ink);margin-bottom:8px" data-en="2 · How we use it">二 · 信息的用途</h4><p data-en="Only for teaching: contacting you about classes, keeping accurate class-credit records, and each student's private records. We never sell or share your information for marketing.">仅用于教学：联系课程事宜、准确记录课时、维护学员的私人%WORK%集。我们不会将您的信息出售或用于第三方营销。</p></div>
-          <div><h4 style="font-weight:500;color:var(--ink);margin-bottom:8px" data-en="3 · Photos &amp; %WORKS%">三 · 照片与%WORK%</h4><p data-en="All photos are private by default — visible only after verifying the student's name, mobile and the access code issued by the %VENUE%. Public display happens only with explicit consent, which can be withdrawn at any time.">所有照片默认私有——仅在「学员专区」验证姓名、手机号及%VENUE%发放的访问码后可见。公开展示仅在明确同意后进行，且同意可随时撤回。</p></div>
-          <div><h4 style="font-weight:500;color:var(--ink);margin-bottom:8px" data-en="4 · Your choices">四 · 您的权利</h4><p data-en="You may ask us at any time to view, correct or delete the information we hold, or to withdraw photo consent.">您可以随时要求查看、更正或删除我们保存的信息，或撤回照片使用同意。</p></div>
+          <!-- v10.8.0: expanded to align with the Australian Privacy Principles
+               (collection, use, minors, storage/retention, disclosure, access,
+               complaints). Same bilingual data-en mechanism and industry tokens;
+               the studio remains the party the notice speaks for. -->
+          <div><h4 style="font-weight:500;color:var(--ink);margin-bottom:8px" data-en="1 · Who we are">一 · 我们是谁</h4><p data-en="This notice covers the personal information handled by this %VENUE% through its website, enrolment forms and student records system. Questions or requests about your information can be made in person, or through the contact details on this site.">本说明适用于本%VENUE%通过官网、报名表和学员档案系统处理的个人信息。任何关于您信息的疑问或请求，都可以当面提出，或通过本站的联系方式联系我们。</p></div>
+          <div><h4 style="font-weight:500;color:var(--ink);margin-bottom:8px" data-en="2 · What we collect">二 · 我们收集哪些信息</h4><p data-en="When you enrol or enquire: the student's name and contact details, and for students under 18 a parent or guardian's name and contact. During classes: attendance and class-credit records, teachers' notes, and photographs of the student's %WORKS%. For billing: invoices, payments received and how they were paid — we do not take card payments through this site, so we never hold card numbers. The website itself stores only your language preference; there are no advertising trackers.">报名或咨询时：学员姓名与联系方式；未满 18 岁的学员，另需一位家长或监护人的姓名与联系方式。课程中：出勤与课时记录、教师备注，以及%WORK%的照片。账务上：发票、已收款项及其付款方式——本站不经手银行卡支付，因此我们从不持有卡号。网站本身只存储您的语言偏好，没有广告追踪。</p></div>
+          <div><h4 style="font-weight:500;color:var(--ink);margin-bottom:8px" data-en="3 · Why we collect it">三 · 为什么收集</h4><p data-en="Only to run the %VENUE%: contacting you about classes, keeping accurate class-credit and attendance records, issuing invoices and receipts, keeping each student's private records, and meeting legal obligations such as tax record-keeping. We never sell personal information, and we do not use it for third-party marketing.">只为经营本%VENUE%：就课程与您联系、准确记录课时与出勤、开具发票与收据、维护每位学员的私密档案，以及履行税务留档等法定义务。我们从不出售个人信息，也不将其用于第三方营销。</p></div>
+          <div><h4 style="font-weight:500;color:var(--ink);margin-bottom:8px" data-en="4 · Students under 18">四 · 未成年学员</h4><p data-en="For students under 18 we deal with a parent or guardian: enrolment, photo consent and account matters all go through them, and they may exercise every right in this notice on the student's behalf.">未满 18 岁的学员，我们只与其家长或监护人对接：报名、照片授权与账务事项均经由他们处理；本说明中的各项权利也都可由他们代学员行使。</p></div>
+          <div><h4 style="font-weight:500;color:var(--ink);margin-bottom:8px" data-en="5 · Photos &amp; %WORKS%">五 · 照片与%WORK%</h4><p data-en="All photographs are private by default — visible only after verifying the student's name, mobile and the access code issued by the %VENUE%. Public display happens only with explicit consent, recorded with its date and wording, and can be withdrawn at any time; withdrawal takes the %WORK% off the public site immediately. Photos that show the student themselves are only taken or displayed with separate, explicit consent.">所有照片默认私密——须验证学员姓名、手机号和%VENUE%发放的访问码后方可查看。公开展示仅在获得明确授权后进行；授权连同日期与文本一起留档，并可随时撤回，撤回后%WORK%立即从公开页面下架。出现学员本人的照片，只在另行明确同意后拍摄或展示。</p></div>
+          <div><h4 style="font-weight:500;color:var(--ink);margin-bottom:8px" data-en="6 · Where it is kept &amp; for how long">六 · 存放在哪里、保存多久</h4><p data-en="Records are stored on servers located in Australia (Sydney), in an access-controlled system where staff see only what their role requires and administrative actions are logged. Financial records are kept for the period required by Australian tax law (currently five years); other records are kept while the student is enrolled and removed on request after that, except where the law requires retention.">档案存放在位于澳大利亚（悉尼）的服务器上；系统按角色控制访问权限，员工只能看到其职责所需的内容，管理操作均有日志。财务记录按澳大利亚税法要求的期限保存（目前为五年）；其他记录在学员在读期间保存，之后可应请求删除，法律要求留存的除外。</p></div>
+          <div><h4 style="font-weight:500;color:var(--ink);margin-bottom:8px" data-en="7 · Who we share it with">七 · 会与谁共享</h4><p data-en="Only with the service providers needed to run the %VENUE% — such as the hosting of this system in Australia — and, where the %VENUE% uses an accountant or bookkeeping software, the billing records needed for its accounts. We disclose personal information to government bodies only where the law requires it. We do not send personal information overseas.">只与经营所必需的服务提供方共享——例如本系统在澳大利亚的托管服务；若%VENUE%使用会计师或记账软件，则共享记账所需的账务记录。只有在法律要求时，才会向政府机构披露个人信息。我们不会将个人信息传送至海外。</p></div>
+          <div><h4 style="font-weight:500;color:var(--ink);margin-bottom:8px" data-en="8 · Your choices &amp; rights">八 · 您的选择与权利</h4><p data-en="You may ask at any time to view, correct or delete the information we hold, to withdraw photo consent, or to ask how your information has been used. We respond within 30 days. Deletion requests are honoured except for records the law requires us to keep, and we will tell you which those are.">您可以随时要求查看、更正或删除我们持有的信息，撤回照片授权，或询问信息的使用情况。我们会在 30 天内答复。删除请求都会执行，法律要求保留的记录除外——哪些属于此类，我们会明确告知。</p></div>
+          <div><h4 style="font-weight:500;color:var(--ink);margin-bottom:8px" data-en="9 · Complaints">九 · 投诉</h4><p data-en="If you believe we have mishandled your information, please raise it with us first — we will investigate and reply. If you are not satisfied with our response, you can complain to the Office of the Australian Information Commissioner (OAIC) at oaic.gov.au.">如果您认为我们对您的信息处理不当，请先向我们提出——我们会调查并答复。若您对处理结果不满意，可向澳大利亚信息专员办公室（OAIC，oaic.gov.au）投诉。</p></div>
+          <div><h4 style="font-weight:500;color:var(--ink);margin-bottom:8px" data-en="10 · Changes to this notice">十 · 本说明的修订</h4><p data-en="When this notice changes, the version date below changes with it, and the enrolment form always links to the current version. Continuing enrolment after a change does not reduce any consent you have already given or declined.">本说明修订时，下方的版本日期会随之更新，报名表始终链接到当前版本。修订不会削弱您此前已给出或已拒绝的任何授权。</p></div>
         </div>
       </div>
       <div style="text-align:center;margin-top:28px" class="reveal">
@@ -931,7 +941,7 @@
      parse time, which meant nothing created by a fetch ever responded to EN. */
   var state = { brand:{}, programs:null, gallery:null, faq:null,
                 venueNoun:{zh:'工作室',en:'studio'}, workNoun:{zh:'作品',en:'work'},
-                privacyNoticeVersion:'2026-07-12',
+                privacyNoticeVersion:'2026-08-16',
                 /* Which section switches are OFF. Empty until /brand answers,
                    which is correct: a section defaults to visible, and the
                    render functions below re-check this so neither fetch order
@@ -1895,10 +1905,11 @@
 
     applyVisualTheme(b);
     if(b.name){ ['brandName','footName','footName2'].forEach(function(id){ var el=document.getElementById(id); if(el) el.textContent=b.name; }); }
-    var tenantLogo=tenantLogoValue(b);
-    var lg=document.getElementById('brandLogo');
-    if(tenantLogo){ lg.alt=(b.name||'Studio')+' logo'; lg.src=tenantLogo; lg.style.display='block'; }
-    else { lg.alt=''; lg.removeAttribute('src'); lg.style.display='none'; }
+    /* Brand lockup — one shared rule in public-surface.js: a logo replaces
+       the text name (which moves to aria-label); no logo means full text.
+       This page, showcase and timetable all call the same function so the
+       header cannot differ between them again. */
+    window.StudioSaaS.publicSurface.applyBrandLockup(b, document);
 
     var showStudent = String(hero.show_student_login ?? hero.showStudentLogin ?? website.show_student_area ?? website.showStudentArea ?? true) !== 'false';
     setNavVisible(['navStudent','mnavStudent','heroStudentLogin'], showStudent);

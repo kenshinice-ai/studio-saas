@@ -268,6 +268,22 @@ bash deploy/aws/pwestudio_remote.sh ssh
 删卷 / 删库 / 真实恢复这类命令故意不在这里，它们留在实例上，运维能在上下文里
 读到确认提示。
 
+### 6.7 线上 nginx 配置的 canonical 基线（OPS-03）
+
+线上文件叫 `pwestudio.conf` 且与仓库模板**已经分化**（gzip_types 是在机器上
+原地改的；见 handoff 009 的「不要整体覆盖」）。分化的记录不能靠口口相传：
+
+```bash
+bash deploy/aws/fetch_live_nginx.sh   # 只读；抓回 deploy/aws/nginx/live/pwestudio.conf
+```
+
+抓回的 `deploy/aws/nginx/live/pwestudio.conf` 是 canonical 基线。此后改 nginx
+的流程是：**先改仓库里的这个文件（diff 可审），再把同样的行手工上机**，
+`sudo nginx -t` 通过后 reload，最后重跑一次 fetch 脚本确认 `unchanged`。
+永远不要拿仓库模板整体覆盖线上文件。（脚本默认路径
+`/etc/nginx/sites-available/pwestudio.conf`，不对可用
+`PWESTUDIO_NGINX_REMOTE_PATH` 覆盖。）
+
 ## 7. 数据迁移（本地试点 → AWS）
 
 ```bash
@@ -414,3 +430,37 @@ bash deploy/aws/lightsail_ctl.sh restore-dry-run --dump <file>
 **迁移媒体后必跑**：还原数据库而媒体树不完整（或来自另一套安装）会留下
 「variant 行在、文件不在」的状态，公开面每个 logo 都 404。
 `backend/scripts/backfill_media_variants.py --check` 会校验**文件**而非只看行。
+
+**9.4 异地副本与备份失败告警（OPS-01/02 —— 未激活）**
+
+> **状态：脚本就绪、刻意未激活。** 当前全部为内测租户（Lee 2026-08-16 决定）。
+> **触发条件（写死）：第一个真实付费租户签约上线前，本节两项必须先行启用。**
+> 在那之前，备份仍与生产同在一台 Lightsail 上 —— Runbook 说得明白：同机 cron
+> 输出**不是**灾难恢复。
+
+**异地副本** `deploy/aws/offsite_backup.sh`：把最新 dump + manifest + 卷 tarball
+推到 rclone remote（S3 / B2 / R2 均可，成本 < $5/月），远端每个快照自带
+SHA-256 清单，保留最新 14 份。没有 `/opt/pwestudio/offsite.env` 时它只打印
+配置指引并退出 0 —— **装了才生效**，激活步骤脚本自己会告诉你。
+
+**备份年龄告警** `deploy/aws/backup_age_check.sh`：最新 dump 或卷 tarball
+超过 26 小时就输出告警行并退出 1；健康时零输出。历史教训：每日备份 cron 曾
+静默失败数周，唯一的见证是没人读的日志 —— 这个脚本就是「读日志的东西」。
+
+激活时装这两条 cron（**现在不要装**）：
+
+```bash
+# /etc/cron.d/pwestudio-offsite —— 每日 04:45 UTC（在 03:15 备份之后），root
+45 4 * * * root cd /opt/pwestudio/current && \
+  bash deploy/aws/offsite_backup.sh >> /var/log/pwestudio-offsite.log 2>&1
+
+# /etc/cron.d/pwestudio-backup-age —— 每日 07:00 UTC，root
+# 只在超龄时有输出，cron 只在那时才发邮件（MAILTO 要先配好）。
+0 7 * * * root cd /opt/pwestudio/current && bash deploy/aws/backup_age_check.sh
+```
+
+激活后第一件事：手跑一次 `offsite_backup.sh`，用 `rclone lsf` 确认远端出现
+`offsite-<stamp>/`，再手动把远端 dump 拉回来走一次
+`lightsail_ctl.sh restore-dry-run --dump <file>` —— 没演练过的异地副本仍然
+只是希望。外部 uptime 拨测（UptimeRobot 级，盯 `/` 与 `/v1/health?deep=1`）
+是控制台操作，不在本仓库脚本内，激活时一并配。

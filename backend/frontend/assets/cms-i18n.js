@@ -97,6 +97,26 @@
     ['缺公开授权', 'Consent missing'], ['充值记录', 'Top-up history'],
     ['加入今日排课', "Add to today's roster"],
 
+    /* ── v10.8.0: timeline, statement, reminders, duplicate decision ── */
+    ['学员时间线', 'Student timeline'],
+    ['报名 · 课时 · 账务 · 报告，一条流水', 'Enrolment · credits · billing · reports in one stream'],
+    ['还没有可显示的记录。', 'Nothing to show yet.'],
+    ['只显示最近 50 条；更早的记录见充值/上课记录与账单中心。', 'Showing the latest 50 entries; older history lives in the top-up/attendance records and the invoice centre.'],
+    ['批准建档', 'Approve & create record'], ['查看单据', 'View document'],
+    ['月结单', 'Statement'], ['期初', 'Opening'], ['期末', 'Closing'],
+    ['本期没有账务往来。', 'No activity in this period.'],
+    ['月结单加载中…', 'Loading statement…'],
+    ['日期', 'Date'], ['单据', 'Document'], ['应收', 'Charged'], ['收款/贷记', 'Payments / credits'],
+    ['记录提醒', 'Record reminder'], ['已记录提醒', 'Reminder recorded'],
+    ['记录一次催款提醒（只入历史，不发送任何消息）', 'Record a payment reminder (history only — nothing is sent)'],
+    ['确认记录', 'Record it'], ['记录中…', 'Recording…'],
+    ['应收提醒', 'Receivables'], ['进入账单中心', 'Open invoice centre'],
+    ['疑似已有档案', 'Possible existing record'],
+    ['并入这个档案 →', 'Attach to this record →'],
+    ['确认是新学员，新建档案', 'This is a new student — create a record'],
+    ['无权访问该工作室 / Access denied', 'Access denied'],
+    ['重新检查 / Check again', 'Check again'], ['退出登录 / Log out', 'Log out'],
+
     /* ── Billing workspace (v10.1) ── */
     ['已开票', 'Invoiced'], ['已收到', 'Received'], ['逾期', 'Overdue'],
     ['1 张 · 含 GST', '1 invoice · incl. GST'], ['1 个家庭', '1 family'],

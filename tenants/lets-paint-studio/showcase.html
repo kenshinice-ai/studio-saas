@@ -400,7 +400,9 @@
     const name = state.brand.name || TENANT_NAME;
     document.getElementById('tenantName').textContent = name; document.getElementById('footName').textContent = name; document.getElementById('footName2').textContent = name;
     document.getElementById('footContact').textContent = [state.brand.contact_phone || state.brand.contactPhone, state.brand.contact_email || state.brand.contactEmail, state.brand.address].filter(Boolean).join(' · ');
-    const rawLogo = state.brand.logo_url || state.brand.logoUrl || ''; const logo = document.getElementById('tenantLogo'); if (rawLogo && !['/logo.png','/logo-light.png','/favicon.svg'].includes(rawLogo)) { logo.src = rawLogo; logo.style.display = 'block'; }
+    /* Brand lockup — one shared rule in public-surface.js: a logo replaces
+       the text name (which moves to aria-label); no logo means full text. */
+    window.StudioSaaS.publicSurface.applyBrandLockup(state.brand, document);
     const title = localized(website.showcase_title || website.showcaseTitle, T('工作室作品', 'Selected Work'));
     const description = localized(website.showcase_lead || website.showcaseLead, T('工作室精选作品展示', 'Selected work from this studio.'));
     document.getElementById('pageDocumentTitle').textContent = `${name} · ${title}`; document.getElementById('pageDescription').content = description; document.getElementById('ogTitle').content = `${name} · ${title}`; document.getElementById('ogDescription').content = description;

@@ -533,12 +533,11 @@
       document.getElementById('footContact').textContent =
         [brand.contact_phone || brand.contactPhone, brand.contact_email || brand.contactEmail,
          brand.address].filter(Boolean).join(' · ');
-      const logo = document.getElementById('tenantLogo');
-      const rawLogo = brand.logo_url || brand.logoUrl || '';
-      /* A configured-but-missing image must disappear, not leave a broken
-         glyph in the nav — the same rule the portal applies to it. */
-      const logoUrl = ['/logo.png', '/logo-light.png', '/favicon.svg'].includes(rawLogo) ? '' : rawLogo;
-      if (logoUrl) { logo.src = logoUrl; logo.alt = ''; logo.style.display = 'block'; }
+      /* Brand lockup — one shared rule in public-surface.js: a logo replaces
+         the text name (which moves to aria-label); no logo means full text.
+         This page used to render BOTH, and the text ellipsised to "Let's…"
+         beside the wordmark that already said it. */
+      window.StudioSaaS.publicSurface.applyBrandLockup(brand, document);
 
       /* The nav links follow the studio's own section switches, so this page
          never offers a link to a section the home page does not have. Every

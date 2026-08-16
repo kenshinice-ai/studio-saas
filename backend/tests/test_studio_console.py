@@ -456,3 +456,80 @@ def test_the_timetable_hint_reads_the_slug_from_the_form() -> None:
     source = CONSOLE.read_text(encoding="utf-8")
     assert "const timetableSlug = currentTenantSlug();" in source
     assert "if (timetableSlug && $('timetableUrlHint'))" in source
+
+
+# ── v10.8.0: the header brand and the load-blocked editor ────────────────────
+
+def test_the_tenant_logo_is_sized_by_height_and_keeps_its_shape() -> None:
+    """A fixed 28x28 box squeezed a wide wordmark into a ~7px-tall smudge.
+
+    The logo is a height contract now: 28px tall, natural width, bounded so a
+    very wide mark cannot eat the header row, contained so nothing stretches.
+    """
+
+    rule = re.search(r"\.tenant-brand-logo\s*\{([^}]*)\}", style_source())
+    assert rule, "the header logo has no rule"
+    flat = rule.group(1).replace(" ", "").replace("\n", "")
+    assert "height:28px" in flat
+    assert "width:auto" in flat
+    assert "max-width:140px" in flat
+    assert "object-fit:contain" in flat
+    assert "width:28px" not in flat.replace("max-width:140px", "")
+
+
+def test_the_studio_name_yields_to_the_logo_rather_than_truncating_away() -> None:
+    """The h1 never ellipsises below legibility: its CSS bounds stay at or
+    above 12ch, and on a narrow screen with a logo present the name hides
+    entirely (the logo is the identity; the title attribute keeps the name)."""
+
+    styles = style_source()
+    for bound in re.finditer(r"\.brand h1[^{]*\{([^}]*)\}", styles):
+        width = re.search(r"max-width:\s*([0-9.]+)ch", bound.group(1))
+        if width:
+            assert float(width.group(1)) >= 12, "the studio name may truncate below 12ch"
+    assert ".brand.brand-with-logo h1 { display: none; }" in styles
+    script = script_source()
+    assert "classList.toggle('brand-with-logo'" in script
+    assert "$('studioName').title = t.name" in script
+
+
+def test_the_header_wrap_is_deterministic_below_1024() -> None:
+    """Mid-wrap, the language / refresh / account controls landed wherever
+    flexbox broke the line. The section nav takes a full second row instead."""
+
+    block = re.search(r"@media \(max-width: 1024px\) \{([\s\S]*?)\n    \}", style_source())
+    assert block, "no 1024px media block"
+    assert re.search(r"\.nav-bar\s*\{\s*flex:\s*1 1 100%;\s*order:\s*3;\s*\}", block.group(1))
+
+
+def test_a_failed_tenant_load_blocks_the_editor_instead_of_defaulting() -> None:
+    """403 support_session_required used to leave the DEFAULT form rendered
+    and editable, with Save Draft / Publish clickable — one click away from
+    overwriting the live tenant with placeholder values.
+
+    The failure path must render the blocking panel (explanation, retry, the
+    Super Admin route for the support-session gate) and hide the entire
+    editing surface, save bar included.
+    """
+
+    markup = console()
+    for element in ('id="loadErrorPanel"', 'id="loadErrorMessage"',
+                    'id="loadErrorRetryBtn"', 'id="loadErrorSupportLink"',
+                    'id="loadErrorSupportHint"'):
+        assert element in markup, f"{element} missing from the blocked state"
+
+    script = script_source()
+    # The refresh() failure branch reaches the blocked state for every
+    # non-auth error; 401 stays a login problem.
+    catch_block = script.split("Failed to load Studio Admin", 1)[0]
+    assert "setLoadBlockedState(err)" in catch_block
+    blocked = re.search(r"function setLoadBlockedState\(err\) \{([\s\S]*?)\n    \}", script)
+    assert blocked, "setLoadBlockedState is not defined"
+    assert "$('adminContent').classList.add('hidden')" in blocked.group(1)
+    assert "needsSupportSession" in blocked.group(1)
+    # Success is what unblocks — and only success.
+    assert "clearLoadBlockedState()" in script
+    assert re.search(r"\$\('loadErrorRetryBtn'\)\.addEventListener\('click'", script)
+    # A signed-in user with a blocked load must not get the editor back as a
+    # side effect of an auth-state repaint.
+    assert re.search(r"classList\.toggle\('hidden', !signedIn \|\| loadBlocked\)", script)
