@@ -1,12 +1,13 @@
 # PWE Studio — Release Notes and Acceptance Evidence
 
-## v10.7.1 source candidate — invoice print repair and money-contract closure
+## v10.7.1 — invoice print repair and money-contract closure
 
-This local source candidate is verified but not committed, packaged, pushed,
-synced to `main`, or deployed. Production remains v10.7.0 until the explicit
-release STOP GATE is authorised.
+This release is committed, packaged, pushed to `main`, deployed through the
+guarded production controller, and browser-checked. Production reports
+`appVersion=10.7.1`, `db=ok`, and `mode=saas`; exact source/package/backup
+evidence is kept in `docs/HANDOFF_LATEST.md`.
 
-The candidate completes the v10.7.1 repair checklist around tenant-scoped
+The release completes the v10.7.1 repair checklist around tenant-scoped
 credit-refund sources, stable credit-note tax-rate snapshots, payer review,
 aggregate invoice drafts, accounting exports, and the customer-document print
 fallback. In particular, the browser print CSS now keeps the issued

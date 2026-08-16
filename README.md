@@ -1,16 +1,24 @@
 # PWE Studio
 
-## Current source candidate — v10.7.1 (not released)
+## v10.7.1 release identity — invoice/PDF repair and money-contract closure
 
 `VERSION` = **10.7.1** and `backend/server.py` reports `APP_VERSION=10.7.1`.
-This working tree is a locally verified source candidate for the invoice/PDF
-repair and money-contract closure. It has not been committed, packaged,
-pushed, synced to `main`, or deployed. Production remains v10.7.0 until the
-v10.7.1 STOP GATE is explicitly authorised.
+The v10.7.1 repair checklist is implemented, committed, packaged, pushed to
+`main`, deployed through the guarded production controller, and browser-checked.
+The exact source commit, archive hashes, backup names, and deployed runtime
+identity are recorded in `docs/HANDOFF_LATEST.md`; the four layers below remain
+separate facts.
 
-The table below is the preserved v10.7.0 release baseline. Source, Package and
-Production are separate facts; do not infer Production from `VERSION` or from
-an archive filename.
+| Layer | Verified state | Evidence |
+|---|---|---|
+| Source | **v10.7.1 repair implementation released** | `VERSION` and `APP_VERSION` agree; the release chain is recorded in the latest handoff. |
+| Package | **v10.7.1 SaaS and Edition archives built and guarded checks passed** | `deploy/aws/verify_release_bundles.sh` and archive smoke gates passed; hashes are recorded in the latest handoff. |
+| Production | **v10.7.1 deployed and deep-health/browser verified** | `pwestudio.online` reports `appVersion=10.7.1`, `db=ok`, `mode=saas`; exact tenant/theme/workspace counts and asset evidence are in the latest handoff. |
+
+Source, Package and Production are separate facts; do not infer Production
+from `VERSION` or from an archive filename.
+
+The v10.7.0 table below is the preserved historical release baseline.
 
 ## v10.7.0 release identity (historical baseline)
 

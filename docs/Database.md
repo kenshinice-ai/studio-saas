@@ -2,7 +2,7 @@
 
 Version: v3.4
 Date: 2026-08-16
-Source candidate: v10.7.1 (migration 0044 prepared locally; production remains v10.7.0)
+Release: v10.7.1 deployed; migration `0044_credit_refund_source.sql` is current in production
 Purpose: Schema definition, table descriptions, canonical enums, migration strategy, and operational notes.
 
 ---

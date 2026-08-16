@@ -2,7 +2,7 @@
 
 Version: v3.6
 Date: 2026-08-16
-Source candidate: v10.7.1 (not deployed); production remains v10.7.0
+Release: v10.7.1 deployed; production deep health reports `db=ok` and `mode=saas`
 Purpose: Complete API endpoint reference, authentication model, tenant resolution, and public endpoints.
 
 ---

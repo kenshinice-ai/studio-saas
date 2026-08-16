@@ -1,10 +1,12 @@
-# PWE Studio v10.7.1 — candidate repair update (PDF INV-0007)
+# PWE Studio v10.7.1 — released repair and production handoff
 
 > 更新时间：2026-08-16（Australia/Melbourne）
 >
-> 本节是当前未发布候选状态；严格受
-> `docs/design/Repair_Execution_Checklist_v10.7.1_Luna_Max.md` 的唯一 STOP
-> GATE 约束。未 commit、package、push、同步 main 或 deploy。
+> v10.7.1 已按
+> `docs/design/Repair_Execution_Checklist_v10.7.1_Luna_Max.md` 完成
+> commit → package → push/sync main → production deploy → browser acceptance。
+> Source、Runtime、Package、Production 仍按四层分别记录；后续 docs-only
+> closure 不会被误写成已部署运行时代码。
 
 ## 本次修复
 
@@ -15,6 +17,13 @@
 - 已重新构建 `backend/frontend/assets/cms-app.js` 与 `asset-manifest.json`；公共 workspace 生成输出保持同步。
 - 逐项证据记录在 `docs/design/Repair_Execution_Acceptance_Evidence_v10.7.1.md`；该文件
   明确区分 source/runtime/package/production，并保留 N-payer 与 credits-only 浏览器覆盖限制。
+
+## 发布闭环（v10.7.1）
+
+- SaaS/Edition 包均通过 checksum、`BUILD_INFO`、entrypoint exclusion 和 archive smoke gates；最终 artifact、部署 commit、备份与生产深健康的精确值见本文件下方的四层表格与发布证据。
+- production `pwestudio.online` 已切换至 v10.7.1；内部/公开 deep health 均为 `db=ok`、`mode=saas`、`themes.unreadable=0`、`workspaces.stale=0`。
+- 生产租户数从部署前的 6 变为 5，审计记录显示这是你主动归档 `hong-s-studio` 与 `jjl-s-studio` 的操作，不是部署丢数；剩余租户和 `0044_credit_refund_source.sql` 已在生产核对。
+- 公开页面、CMS shell、桌面/移动导航、immutable CMS bundle hash、ETag 304、以及本地真实 `INV-0007` customer print flow 已验收；生产 CMS 只做未登录 shell 验收，未使用生产凭据或写入生产财务数据。
 
 ## INV-0007 当前核对
 
@@ -33,7 +42,8 @@
 ## 发布边界
 
 - v10.7.0 production/package 事实保持历史基线，不重写、不复用。
-- v10.7.1 仍是本地候选；当前 STOP GATE 未授权 commit/package/push/sync main/deploy。
+- v10.7.1 的 Xero 仍是 Preview；本轮没有 OAuth、provider transport、worker 或 webhook。
+- 浏览器未在生产环境登录并保存新的金融 PDF；本地真实 `INV-0007` 已完成 DOM/CSS/标题/清理生命周期验证。N-payer 多候选和 credits-only 新退款交易继续由 PostgreSQL 合同覆盖，未凭空制造生产金融数据。
 
 # PWE Studio v10.7.0 — 第二轮审计完成，v10.7.1 待执行
 

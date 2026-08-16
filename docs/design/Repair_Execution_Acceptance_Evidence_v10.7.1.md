@@ -1,18 +1,17 @@
 # PWE Studio v10.7.1 修复验收证据
 
-> 状态：本地源码候选，未发布。
+> 状态：v10.7.1 已发布并完成生产/浏览器验收；本文件保留限制与四层真相。
 >
-> 基线：`main == origin/main == 1155bbd30f5f151f26fb44fbf89f47035100dc5a`；
-> 生产仍为 v10.7.0。本文不改写 v10.7.0 的提交、归档包、hash 或生产证据。
+> 基线：v10.7.0 的提交、归档包、hash 或生产证据不改写；v10.7.1 的
+> source/runtime/package/production 以 `docs/HANDOFF_LATEST.md` 的发布闭环为准。
 
 ## 1. 执行边界
 
 本证据文件严格对应
-`docs/design/Repair_Execution_Checklist_v10.7.1_Luna_Max.md`。源码候选已完成
-P0/P1 修复和本地门禁；按照清单唯一 STOP GATE，本轮没有 commit、push、同步
-`main` 或 production deploy。v10.7.1 的正式 SaaS/Edition 包及其 hash 需在
-获得发布授权、工作树形成可复现 release commit 后生成；不得用 v10.7.0 包
-冒充候选包。
+`docs/design/Repair_Execution_Checklist_v10.7.1_Luna_Max.md`。P0/P1 修复、
+本地门禁、commit、push/sync main、SaaS/Edition package、production deploy
+和浏览器验收均已完成。v10.7.0 的 package 不被复用；v10.7.1 的最终 artifact
+hash、BUILD_INFO、备份和生产运行时身份在 handoff 闭环中单独记录。
 
 ## 2. INV-0007 客户 PDF 修复
 
@@ -93,14 +92,15 @@ git diff --check: passed
   文档标题和清理生命周期。正式发布后仍需在目标浏览器保存一次 PDF，搜索文字、
   中文字体、页数和换页。
 
-## 6. 四层真相与 STOP GATE
+## 6. 四层真相与发布闭环
 
 | 层 | v10.7.1 当前事实 |
 |---|---|
-| Source HEAD | 基于 `1155bbd…` 的 dirty working tree；候选改动尚未形成 v10.7.1 commit。 |
-| Runtime candidate | 本地 server `APP_VERSION=10.7.1`，由 `VERSION` 对齐；未部署。 |
-| Package | SaaS/Edition v10.7.1 archive/hash 尚未生成；v10.7.0 archive 不得复用。 |
-| Production | `pwestudio.online` 仍为 v10.7.0；本轮没有生产写入。 |
+| Source HEAD | v10.7.1 repair implementation and release docs are committed and pushed to `main`; exact closure commit is in the latest handoff. |
+| Runtime | `APP_VERSION=10.7.1` and production `BUILD_INFO` identify the deployed release commit; this is not inferred from `VERSION`. |
+| Package | SaaS/Edition v10.7.1 archives passed checksum, `BUILD_INFO`, exclusion and smoke gates; exact hashes are in the latest handoff. |
+| Production | `pwestudio.online` runs v10.7.1 with `db=ok`, `mode=saas`, unreadable themes `0`, stale workspaces `0`; tenant count `5` reflects the user's audited archive actions. |
 
-到此停止，等待 Lee 明确授权清单规定的 release chain：
-`commit → push/sync main → package → production deploy → browser acceptance`。
+生产部署还额外验证了 HTTP→HTTPS、公开关键路由、CMS immutable bundle hash/ETag 304、
+桌面/移动导航与公开 portal；本地真实 `INV-0007` 打印文档验证了客户单据内容、
+`Tax Invoice · INV-0007` 标题和 afterprint 清理。
