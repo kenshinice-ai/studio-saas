@@ -1,3 +1,34 @@
+# PWE Studio v10.6.4 — 候选版本账本（未提交、未打包、未部署）
+
+> 更新时间：2026-08-16（Australia/Melbourne）
+>
+> 这是 v10.6.3 基线之后的本地候选工作树，不是发布证明或授权。清单
+> `docs/design/Repair_Execution_Checklist_v10.6.3_Luna_Max.md` 已按顺序执行至
+> STOP GATE；没有 commit、push、package rebuild 或 production deploy。
+
+## Source / Package / Production 分层
+
+| 层 | 当前事实 | 证据 |
+|---|---|---|
+| Source | **v10.6.4 candidate，当前工作树未提交** | `VERSION=10.6.4`；基于 `main`/v10.6.3 基线 `1103b4ca2c6c6fe41d8fa32685980db5c2e126d2`；P0 综合门禁已通过。 |
+| Package / SaaS | **仍为已验证的 v10.6.3** | `PWE-StudioSaaS-aws-10.6.3.tar.gz`；SHA-256 `11a5e95c563a49ee3a8fdef31da9486b53239039006b68579a9275fc414041a5`；没有为候选重建包。 |
+| Package / Edition | **仍为已验证的 v10.6.3** | `PWE-Studio-Edition-10.6.3.tar.gz`；SHA-256 `cff9f7c326279930acc24fbfbc215fe35a02967335c8d09302ab3814173c752b`；没有为候选重建包。 |
+| Production | **仍运行 v10.6.3** | `/opt/pwestudio/current` 与线上 `BUILD_INFO` 仍指向 v10.6.3；本轮没有远程检查或部署。 |
+
+## v10.6.4 candidate 内容与证据
+
+- 钱款：指定发票优先、错误账户/跨租户目标显式拒绝、付款与退款事件金额/余额/actor 可追溯、API 写入字段严格校验。
+- 产品真相：Xero 明确为 Preview；transport 不可用时不创建推送任务、不允许生产推送；CMS 不再承诺不存在的周期账单草稿自动生成。
+- 可重复验收：clean-checkout 静态合同与 SaaS/Edition archive runtime smoke 已加入；`verify_local.sh` 支持 app 与 migration owner 分离，应用测试不会继承 owner-only URL。
+- 验证结果：P0 targeted **140 passed, 1 skipped**；完整 pytest **2619 passed, 7 skipped**；clean-checkout **28 passed**；legacy smoke **73/73**；tenant isolation **254/254**；migration、媒体衍生物、CMS bundle/manifest、Python/JS/shell/terminology 检查全绿。
+- 数据库：无 migration 文件新增或应用；测试只使用本地测试库和临时 fixture，未改生产数据。
+
+## STOP GATE
+
+候选目前停在提交/打包/推送/部署之前。下一步必须由 Lee 明确授权后，才可按
+`docs/Release_Runbook.md` 执行 commit → build → verify bundles → push → deploy →
+browser/public acceptance → handoff closure。
+
 # PWE Studio v10.6.3 — `main` 基线与下一轮执行清单
 
 > 更新时间：2026-08-16（Australia/Melbourne）
@@ -5,6 +36,9 @@
 > 这份记录把 Source、Package、Production 三条证据重新对齐。`main` 已从
 > v9.9.6 **纯快进**到 v10.6.3 运行时提交 `02e3d41a0b02b23da1d5ba6b0f2f34ee39471701`；
 > 本次只追加基线与方案文档，不改变 10.6.3 的运行字节，因此不重打包、不重部署。
+>
+> 面向 `5.6-luna-max` 的逐项实施文件：
+> `docs/design/Repair_Execution_Checklist_v10.6.3_Luna_Max.md`。
 
 ## 已确认基线
 

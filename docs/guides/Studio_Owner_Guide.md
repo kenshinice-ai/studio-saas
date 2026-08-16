@@ -1,6 +1,6 @@
 # 工作室 Owner 手册（Studio Admin + CMS 全权限）
 
-> 适用版本：PWE Studio v10.6.3 · 界面：Studio Admin（`/<工作室网址标识>/studio-admin`）
+> 适用版本：PWE Studio v10.6.4 · 界面：Studio Admin（`/<工作室网址标识>/studio-admin`）
 > 与运营 CMS（`/<工作室网址标识>/cms`）
 > 其他角色手册见 [手册总览](README.md)
 
@@ -473,4 +473,3 @@ Studio Admin →「数据分析」→ 操作审计（Audit Trail）面板。按�
 
 改**店名**则不需要联系任何人：在「品牌基础」里改，发布之后网站标题、
 分享卡片和搜索结果里的名字都会跟着变。
-

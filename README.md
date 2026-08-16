@@ -4,14 +4,15 @@
 
 These are three independent facts. A matching version label is not proof that
 the current source tree was packaged or deployed; Source, Package and
-Production remain separate rows. **v10.6.3 is the current runtime baseline on
-`main`, in both release archives, and in production** as verified on 16 August
-2026. Documentation-only commits after the runtime baseline do not change the
-bytes in the checksum-verified archives or the deployed image.
+Production remain separate rows. **v10.6.4 is the current source candidate**;
+the last packaged and deployed runtime remains v10.6.3 until a clean commit,
+rebuild and production acceptance close the release. Documentation-only commits
+after the runtime baseline do not change the bytes in the checksum-verified
+archives or the deployed image.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.6.3 on `main`** | `VERSION` = **10.6.3**. Runtime baseline commit: `02e3d41a0b02b23da1d5ba6b0f2f34ee39471701`. The full PostgreSQL-required local release gate passed on 16 August 2026: legacy smoke **73/73** and tenant-isolation suite **237/237**. |
+| Source | **v10.6.4 candidate (working tree, not committed)** | `VERSION` = **10.6.4**; based on the v10.6.3 `main` baseline `1103b4ca2c6c6fe41d8fa32685980db5c2e126d2`. P0 candidate gate passed locally; commit and package are intentionally pending the STOP GATE. |
 | Package | **v10.6.3 built and verified** | SaaS: `PWE-StudioSaaS-aws-10.6.3.tar.gz`, SHA-256 `11a5e95c563a49ee3a8fdef31da9486b53239039006b68579a9275fc414041a5`. Edition: `PWE-Studio-Edition-10.6.3.tar.gz`, SHA-256 `cff9f7c326279930acc24fbfbc215fe35a02967335c8d09302ab3814173c752b`. Both `BUILD_INFO` files identify commit `02e3d41…`. |
 | Production | **v10.6.3 deployed and verified** | `/opt/pwestudio/current` resolves to `PWE-StudioSaaS-aws-10.6.3`; its `BUILD_INFO` identifies commit `02e3d41…`. Deep health reports `appVersion=10.6.3`, `db=ok`, `tenants=6`, `themes.unreadable=0`, `workspaces.stale=0`, and 43.52 GB disk free. |
 

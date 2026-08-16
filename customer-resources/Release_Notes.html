@@ -54,6 +54,13 @@
   <p data-lang="zh">以下内容均属于已发布的产品版本。每一条都是交付依据，不是路线图承诺。</p>
   <div class="grid">
     <article class="card">
+      <strong data-lang="en">Source candidate: money contracts and honest boundaries (v10.6.4)</strong><strong data-lang="zh">源码候选：钱款合同与诚实边界（v10.6.4）</strong>
+      <p data-lang="en">This is a source candidate prepared from v10.6.3. It has not been committed, packaged, pushed, or deployed; the verified packages and production runtime remain v10.6.3.</p>
+      <p data-lang="zh">这是基于 v10.6.3 准备的源码候选，尚未提交、打包、推送或部署；已验证的归档包与生产运行时仍为 v10.6.3。</p>
+      <p data-lang="en">The candidate locks invoice allocation to the selected account and invoice, records payment and refund amounts, balances, and the acting user, rejects unsupported money fields, and describes Xero as Preview until real transport exists. It also adds clean-checkout and archive smoke gates. No migration was added or applied.</p>
+      <p data-lang="zh">候选版锁定付款账户与指定发票的分配，记录收款和退款的金额、余额及操作人，拒绝不支持的钱款字段；在真实 transport 存在前，Xero 明确为 Preview。候选版还加入干净检出与归档 smoke 门禁；没有新增或应用 migration。</p>
+    </article>
+    <article class="card">
       <strong data-lang="en">Clearer screens, and a report worth sending (v10.6.3)</strong><strong data-lang="zh">更清楚的界面，和一份值得寄出的报告（v10.6.3）</strong>
       <p data-lang="en">Form fields now have a visible edge — the outline was so faint it was easy to miss where a box began — and tapping one on a phone no longer zooms the page. On an iPad the save bar no longer sits on top of the last row of theme cards.</p>
       <p data-lang="zh">输入框现在有看得见的边框了——之前那道线淡到很难看出框从哪里开始——在手机上点它也不会再把页面放大。iPad 上的保存条不再压住最后一排主题卡。</p>
@@ -101,8 +108,8 @@
     </article>
     <article class="card">
       <strong data-lang="en">The money layer, on screen — and the private lesson (v10.1.0)</strong><strong data-lang="zh">钱这一层长出界面，以及一对一循环课（v10.1.0）</strong>
-      <p data-lang="en">Everything described in the entry below was built in v10.0.0 and reachable only through the interface your developer uses. It now has screens. Billing shows who owes what and lets you issue and record against it; Finance shows what teaching cost and what it billed; the Xero connection is a short guided setup that tells you plainly what is still missing before it will send anything.</p>
-      <p data-lang="zh">下面那条里写的一切，在 v10.0.0 就已经做好了，但只有开发者用的接口能碰到。现在它有界面了。「账单」告诉你谁欠多少，并且可以在同一页开票、登记收款；「财务」告诉你教学的成本和它开出去的钱；Xero 连接是一个三步向导，在它发出任何东西之前，会把还差什么直说给你听。</p>
+      <p data-lang="en">Everything described in the entry below was built in v10.0.0 and reachable only through the interface your developer uses. It now has screens. Billing shows who owes what and lets you issue and record against it; Finance shows what teaching cost and what it billed; Xero is a Preview-only preparation screen. Its mapping and gate state are visible, but there is no provider transport and no data is sent to Xero.</p>
+      <p data-lang="zh">下面那条里写的一切，在 v10.0.0 就已经做好了，但只有开发者用的接口能碰到。现在它有界面了。「账单」告诉你谁欠多少，并且可以在同一页开票、登记收款；「财务」告诉你教学的成本和它开出去的钱；Xero 现在只是预接入（Preview）准备页，可以查看映射和 gate 状态，但没有 provider transport，也不会向 Xero 发出数据。</p>
       <p data-lang="en">Progress reports are written where the child's record is, next to the attendance and lesson notes the report was assembled from — and the ones that are overdue now appear in the same place you already look for work waiting on someone. Writing a report and knowing whose reports are late are different questions, so they get different screens.</p>
       <p data-lang="zh">成长报告在学员档案里写，就挨着它汇总自的出勤和课堂笔记；而「还有谁的没写」出现在你本来就会去看的待处理收件箱里。写报告和知道谁的报告晚了，是两个问题，所以给了两个位置。</p>
       <p data-lang="en">And the one-to-one lesson is now a first-class thing rather than a class with one seat. Set it once and it repeats weekly, skipping your holidays and any weeks you pause. When a lesson does not happen, recording it answers three separate questions — is the family still charged, is the teacher still paid, and is a make-up owed — because those genuinely have different answers. A student cancelling an hour before is normally charged and the teacher normally paid; a studio closing for a public holiday charges nobody and pays everybody. You set the rule once, in plain words, and the system applies it and shows you what it decided.</p>
@@ -114,8 +121,8 @@
       <p data-lang="zh">在此之前，系统把课时记得很清楚，钱一分没记。现在它可以向付款方开票——一个家庭三个孩子合一张单，一所学校订演出是一个付款方、名下没有学生——记录收到的每一笔，并随时告诉你每个家庭欠多少、欠了多久。</p>
       <p data-lang="en">An invoice you have issued can no longer be edited, by anyone, including us. That is deliberate: a document a family and an accountant have both seen has to stay the document they saw. Corrections happen the way they do on paper, with a credit note that reverses the charge and leaves both records standing.</p>
       <p data-lang="zh">已经开出的发票不能再被修改——任何人都不行，包括我们。这是刻意的：家长和会计都看过的单据，必须还是他们看过的那一张。改错走纸面上的老办法，用一张贷记单冲销，两份记录都留着。</p>
-      <p data-lang="en">Your accountant can be connected to Xero directly, on any plan, so invoices and receipts stop being typed twice. Before it will send anything to your live ledger it asks three things: that your accountant has confirmed which account each kind of income belongs to, that a full cycle has run against a test organisation first, and whether something else — a card terminal's own connector, usually — is already sending the same receipts. Two feeds writing the same money is the one mistake that costs more to clean up than the typing it replaced.</p>
-      <p data-lang="zh">会计可以直连 Xero，任意套餐都能加购，发票和收款不用再录两遍。在向你的正式账套发出任何东西之前，它会先问三件事：会计是否已确认每类收入进哪个科目、是否先在测试组织跑通过一个完整周期、以及是否还有别的东西（通常是刷卡机自带的同步）在推同样的收款。两条通道写同一笔钱，是唯一一种收拾起来比手工录入还贵的错误。</p>
+      <p data-lang="en">Xero is currently a Preview boundary, not a live connection. The product keeps account and tax mapping, gate state, idempotency keys and queue/replay structures ready for future work, but there is no OAuth or provider transport in this release and no invoices or receipts are sent. Any live accounting integration needs separate implementation and acceptance.</p>
+      <p data-lang="zh">Xero 目前是预接入边界，不是已经上线的连接。系统保留科目与税率映射、gate 状态、幂等键和 queue/replay 结构作为后续准备，但本版本没有 OAuth 或 provider transport，也不会发送发票或收款。任何正式账务集成都需要单独实施与验收。</p>
       <p data-lang="en">Teachers can see their own hours and what they add up to, and confirm them at the end of a period. Nobody else's hours, and no view of what families owe. We work out the amount and produce the list; paying it stays with whoever runs your payroll, because tax withholding and superannuation belong to your accountant and not to your scheduling software.</p>
       <p data-lang="zh">老师能看到自己的课时和金额，并在期末确认。看不到别人的课时，也看不到家长欠费。我们算出金额、出清单；发钱仍由你们做工资的人负责——代扣税和养老金是会计的事，不是排课软件该碰的。</p>
       <p data-lang="en">Families can subscribe to their child's lessons once and have them appear in their own phone calendar from then on, rescheduled lessons included. This is free and it replaces the reminder message you would otherwise pay for every week. It does not replace a same-day cancellation: phone calendars refresh on their own schedule, so those still go by text.</p>

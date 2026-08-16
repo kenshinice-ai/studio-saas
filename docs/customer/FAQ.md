@@ -44,7 +44,7 @@ Per-studio custom domains are deferred. Every studio is reached today as a path 
 
 ## Which integrations are included?
 
-v8.1.0 includes CSV/Excel templates and exports, ICS calendar export, and device-native Mail/Messages links. Stripe, Xero, Google/Outlook Calendar APIs and webhooks are documented extension points, not active integrations unless a signed order specifically includes them.
+The current release includes CSV/Excel templates and exports, ICS calendar export, and device-native Mail/Messages links. Xero is a **Preview** only: its mapping and gate preparation records are visible, but there is no provider transport and no data is sent to Xero. Stripe, Google/Outlook Calendar APIs and webhooks are documented extension points, not active integrations unless a signed order specifically includes implementation and acceptance.
 
 ## What happens if we cancel?
 

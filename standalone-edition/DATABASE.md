@@ -1,6 +1,7 @@
 # PWE Studio Edition · 数据库与数据迁移
 
-> 当前正式交付基线：v9.9.6。本文描述标准 Docker Compose Edition；完整
+> 当前源码候选：v10.6.4（未提交、未打包、未交付）。最后验证的 Edition
+> 运行包仍为 v10.6.3。本文描述标准 Docker Compose Edition；完整
 > 安装、TLS、备份和签收顺序见 [DEPLOYMENT_PLAN.md](DEPLOYMENT_PLAN.md)。
 
 ## 1. 数据库形态

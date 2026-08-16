@@ -1,5 +1,29 @@
 # PWE Studio — Release Notes and Acceptance Evidence
 
+## v10.6.4 candidate — money contracts, truthful integrations, and release gates
+
+This is a source candidate prepared from the v10.6.3 baseline. It has not been
+committed, packaged, pushed, or deployed; the verified SaaS and Edition packages
+and production runtime remain v10.6.3.
+
+The candidate makes invoice allocation explicit when a staff member records a
+payment from an invoice detail view, rejects an invoice target from the wrong
+account or tenant instead of silently falling back, and records payment/refund
+amounts, balances, and the acting user in invoice history. The payment and
+refund endpoints now reject unknown or contradictory fields rather than
+accepting a field and doing something else.
+
+Xero is labelled **Preview** until OAuth, outbound transport, and an observable
+worker exist. Preview mappings and queues do not send data or create new push
+jobs. The billing empty state now describes the capability that exists today:
+staff create and review drafts before issuing them; no recurring invoice
+generator is implied.
+
+The candidate also adds clean-checkout and archive runtime smoke checks. Local
+release evidence is PostgreSQL-backed: targeted contracts 140 passed with one
+non-P0 skip, full pytest 2619 passed with seven skips, legacy smoke 73/73, and
+tenant isolation 254/254. No migration was added or applied.
+
 ## v9.8.8 — truthful public surfaces and safe publish verification
 
 Studio Admin now keeps the write result and the public verification result
