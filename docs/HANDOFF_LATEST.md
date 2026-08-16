@@ -20,10 +20,10 @@
 | Source | main == origin/main；v10.7.1 运行时 commit `9b7dfdcc12b33a8e448dc59270bab17dfd5d748b`（docs closure `501c741`） |
 | Package / SaaS | `dist/PWE-StudioSaaS-aws-10.7.1.tar.gz`，SHA-256 `a087abe6…c14215`，BUILD_INFO commit `9b7dfdcc…` |
 | Package / Edition | `dist/PWE-Studio-Edition-10.7.1.tar.gz`，SHA-256 `e4b9dc3d…87b1`，BUILD_INFO commit `9b7dfdcc…` |
-| Production | `pwestudio.online` = v10.7.1；deep health `db=ok`、`mode=saas`、`themes.unreadable=0`、`workspaces.stale=0`；6 租户（2 active / 2 onboarding / 1 archived / 1 paused） |
+| Production | `pwestudio.online` = v10.8.0（deploy exit 0，深健康通过）；deep health `db=ok`、`mode=saas`、`themes.unreadable=0`、`workspaces.stale=0`；6 租户（2 active / 2 onboarding / 1 archived / 1 paused） |
 | Backup / migration | dump `studiosaas_studiosaas_20260816T124139Z.dump` + volume `pwestudio-volumes-20260816T124140Z.tar.gz`；schema 至 `0044_credit_refund_source.sql` |
 
-完整证据见 `docs/handoff/codex/001-pwe-studio-v10.7.1-released-repair-and-production-handoff.md`。
+完整证据见 `docs/handoff/claude/2026-08-16-v10.8.0-round.md`（v10.8.0）与 codex/001（v10.7.1 历史）。
 
 ## 最新轮次
 
