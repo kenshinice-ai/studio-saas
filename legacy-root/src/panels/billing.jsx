@@ -198,7 +198,7 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, account
     });
   };
 
-  /* 批量发出：周期账单一次生成几十张草稿，逐张点是不可用的。
+  /* 批量发出：人工创建的多张草稿可以一次复核后发出。
      逐张调用而不是一个批量接口 —— 每张发票的编号分配都要自己的事务，
      一张失败不该把其余的一起回滚掉。 */
   const issueSelected = async () => {
@@ -308,7 +308,7 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, account
             )}
           </div>
           {invoices.length === 0 ? (
-            <p className="px-4 py-6 text-xs text-gray-500">还没有发票。周期账单会自动生成草稿，前台复核后批量发出。</p>
+            <p className="px-4 py-6 text-xs text-gray-500">还没有发票。点击“新建发票”创建草稿，复核后再开具。</p>
           ) : visible.length === 0 ? (
             /* 「一张都没有」和「筛完没剩下」是两句话。第二句要告诉人怎么退出去。 */
             <p className="px-4 py-6 text-xs text-gray-500">没有符合当前筛选的发票。清除筛选可以看到全部 {invoices.length} 张。</p>
