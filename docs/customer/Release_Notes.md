@@ -1,6 +1,6 @@
 # PWE Studio — Release Notes and Acceptance Evidence
 
-## v10.7.0 candidate — invoice operations and explicit credit settlement
+## v10.7.0 — invoice operations and explicit credit settlement
 
 This source candidate has passed the internal A–F checklist gates in the
 working tree, including PostgreSQL-backed money/tenant checks and a real local
@@ -17,11 +17,13 @@ create a credit note, payment refund, negative credit movement and legal bridge
 in one transaction. Invoice detail now exposes the linked credit notes and
 credited totals; CSV and print views therefore remain reconcilable.
 
-This is not a release claim. v10.7.0 has not been committed, packaged, pushed,
-or deployed; the last verified package and production runtime remain v10.6.4.
-Xero OAuth/transport remains a later Preview/Beta project. The next action is
-the single STOP GATE: explicit authorization before commit → package → push →
-production deployment.
+Release evidence: commit `913c6f168052213535fbeae9da0197de9e655959` is on
+`main`/`origin/main`; the SaaS and Edition packages were checksum-verified and
+production `pwestudio.online` now reports `appVersion=10.7.0`, `db=ok`, six
+tenants, zero unreadable themes and zero stale workspaces. The deployment
+created PostgreSQL/volume backups and applied migration
+`0043_invoice_and_credit_settlements.sql`. Xero OAuth/transport remains a
+later Preview/Beta project.
 
 ## v10.6.4 candidate — money contracts, truthful integrations, and release gates
 

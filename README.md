@@ -4,27 +4,27 @@
 
 These are three independent facts. A matching version label is not proof that
 the current source tree was packaged or deployed; Source, Package and
-Production remain separate rows. **v10.7.0 is the current uncommitted source
-candidate**; the last packaged and deployed baseline remains v10.6.4. Xero
-transport remains a later Preview/Beta boundary. See
+Production remain separate rows. **v10.7.0 is committed, packaged and deployed**;
+Xero transport remains a later Preview/Beta boundary. See
 `docs/design/Invoice_Operations_Execution_Checklist_v10.6.4_Luna_Max.md`.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.7.0 candidate (uncommitted)** | Working tree `VERSION` = **10.7.0**; `main`/`origin/main` baseline remains commit `1043fe3f30e49c89358065a7ab07878f9f23e5cd`. |
-| Package | **v10.6.4 built and verified** | SaaS SHA-256 `d11296d32bf8132a26b87b80ab04b000b9e8869bc69501711fd92331141c319c`; Edition SHA-256 `c90da5ca9fff91af711463f1b429231eeeedba8df33bf88bb5155b31891cddc3`. Both archive `BUILD_INFO` files identify `1043fe3…`. |
-| Production | **v10.6.4 deployed and verified** | A read-only deep-health check on 2026-08-16 reports `appVersion=10.6.4`, `db=ok`, `tenants=6`, `themes.unreadable=0`, `workspaces.stale=0`, and 43.67 GB disk free. v10.7.0 has not been packaged, pushed, or deployed. |
+| Source | **v10.7.0 committed and pushed** | `main`/`origin/main` = `913c6f168052213535fbeae9da0197de9e655959`; `VERSION` = **10.7.0**. |
+| Package / SaaS | **v10.7.0 built and verified** | `PWE-StudioSaaS-aws-10.7.0.tar.gz`; SHA-256 `5c31847b3583889ac5613f4d73915f08ef65282632a07cd7acccaaba07441b22`; `BUILD_INFO` mode `saas`, commit `913c6f1…`. |
+| Package / Edition | **v10.7.0 built and verified** | `PWE-Studio-Edition-10.7.0.tar.gz`; SHA-256 `1bc04e0c0bab5960d05936a096ed26607651827363b1dc2c0341c195e11d9a3e`; `BUILD_INFO` mode `standalone`, commit `913c6f1…`. |
+| Production | **v10.7.0 deployed and verified** | `pwestudio.online` reports `appVersion=10.7.0`, `mode=saas`, `db=ok`, `tenants=6`, `themes.unreadable=0`, `workspaces.stale=0`, 43.4 GB free; current symlink and `BUILD_INFO` identify `913c6f1…`. |
 
-The v10.7.0 implementation has passed its internal A–F checks in the working
-tree, including real local top-up/refund browser acceptance. This is the single
-STOP GATE: wait for explicit authorization before commit, package, push, or
-production deployment.
+The v10.7.0 implementation passed the internal A–F checks, was committed and
+pushed, packaged in both forms, and deployed through the guarded production
+controller. The controller created fresh PostgreSQL and volume backups before
+switching, applied migration `0043_invoice_and_credit_settlements.sql`, and
+passed internal/public deep health plus stored-theme readability.
 
 Re-verify the production health endpoint (`/v1/health?deep=1`) before any later
 release claim; do not infer Production from `VERSION` or from an archive
-filename, which does not identify the deployed commit. The
-deployed runtime commit is recorded in the table above and in the latest
-handoff, never inferred from the version label or a later documentation commit.
+filename, which does not identify the deployed commit. The deployed runtime
+commit is recorded in the table above and in the latest handoff.
 
 ## v10.0.0 release scope
 
