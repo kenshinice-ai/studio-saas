@@ -40,6 +40,13 @@ from ..db import fetch_all, fetch_one
 from . import entitlements
 
 
+# The schema and gate are deliberately shipped ahead of the provider client.
+# Keep this false until OAuth, token refresh, HTTP retries, worker delivery,
+# and provider-response handling have been implemented and accepted together.
+TRANSPORT_AVAILABLE = False
+INTEGRATION_STAGE = "live" if TRANSPORT_AVAILABLE else "preview"
+
+
 class XeroError(RuntimeError):
     """A Xero operation was refused, with a reason a studio can act on."""
 
@@ -65,6 +72,7 @@ class GateStatus:
     demo_run_completed: bool
     single_entry_answered: bool
     push_enabled: bool
+    transport_available: bool = TRANSPORT_AVAILABLE
 
     @property
     def can_enable(self) -> bool:
@@ -74,6 +82,7 @@ class GateStatus:
             and self.mapping_confirmed
             and self.demo_run_completed
             and self.single_entry_answered
+            and self.transport_available
         )
 
     def blockers(self) -> list[str]:
@@ -90,6 +99,8 @@ class GateStatus:
             missing.append("demo_run_not_completed")
         if not self.single_entry_answered:
             missing.append("single_entry_not_answered")
+        if not self.transport_available:
+            missing.append("transport_not_available")
         return missing
 
 
@@ -121,6 +132,7 @@ def gate_status(conn, tenant_id: str) -> GateStatus:
             settings.get("single_entry_decision", "not_answered") != "not_answered"
         ),
         push_enabled=bool(settings.get("push_enabled")),
+        transport_available=TRANSPORT_AVAILABLE,
     )
 
 
@@ -264,7 +276,7 @@ def enqueue(
     """
 
     status = gate_status(conn, tenant_id)
-    if not status.push_enabled:
+    if not status.push_enabled or not status.transport_available:
         return None
 
     key = idempotency_key(tenant_id, local_kind, local_id, revision)

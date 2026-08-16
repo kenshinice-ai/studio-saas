@@ -24,6 +24,7 @@ const BLOCKER_TEXT = {
   mapping_not_confirmed: '科目与税率映射还没有确认',
   demo_run_not_completed: '还没有在 Xero 测试组织跑通一个完整周期',
   single_entry_not_answered: '还没有回答「是否已有别的通道在同步」',
+  transport_not_available: '当前版本尚未接入 Xero transport',
 };
 
 function Step({ n, done, active, title, children }) {
@@ -87,10 +88,10 @@ export function IntegrationsPanel({ api, showToast, canManage }) {
   if (!state) {
     return (
       <div className="rounded-xl border border-gray-200 bg-white p-4">
-        <p className="text-xs font-bold mb-1">Xero 直连</p>
+        <p className="text-xs font-bold mb-1">Xero 预接入（Preview）</p>
         <p className="text-[11px] text-gray-600">
-          发票、收款与承包老师应付自动推送到 Xero，不用再录第二遍。
-          任意套餐可加购 —— 开通由平台方操作，开通后这里会出现三步接入向导。
+          当前版本只展示接入准备状态，不会向 Xero 发送任何数据。
+          映射、连接与 gate 状态会保留，真实 transport 上线后再开放生产操作。
         </p>
       </div>
     );
@@ -99,19 +100,27 @@ export function IntegrationsPanel({ api, showToast, canManage }) {
   const s = state.settings || {};
   const blockers = state.blockers || [];
   const has = (key) => !blockers.includes(key);
+  const transportAvailable = state.transportAvailable === true;
+  const preview = !transportAvailable;
 
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <p className="text-xs font-bold">Xero 直连</p>
+        <p className="text-xs font-bold">Xero 预接入（Preview）</p>
         <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border whitespace-nowrap
-          ${state.pushEnabled ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-100 text-gray-600 border-gray-200'}`}>
-          {state.pushEnabled ? '推送已开启' : '推送未开启'}
+          ${preview ? 'bg-blue-50 text-blue-700 border-blue-200' : state.pushEnabled ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+          {preview ? '预览状态 · 不发送数据' : state.pushEnabled ? '推送已开启' : '推送未开启'}
         </span>
         {s.last_pushed_at && (
-          <span className="text-[11px] text-gray-500">上次推送 {fmtApiDate(s.last_pushed_at)}</span>
+          <span className="text-[11px] text-gray-500">历史记录：上次推送 {fmtApiDate(s.last_pushed_at)}</span>
         )}
       </div>
+      {preview && (
+        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-[11px] text-blue-900">
+          <p className="font-bold mb-1">Xero 预接入说明</p>
+          <p>这里可以查看已有的映射与 gate 准备状态；当前版本不会向 Xero 发送任何数据，也不会创建新的推送任务。</p>
+        </div>
+      )}
 
       {/* φ：左边是进度（次要），右边是当前要做的事（主体）。 */}
       <div className="ui-golden-split">
@@ -120,7 +129,9 @@ export function IntegrationsPanel({ api, showToast, canManage }) {
             {state.entitled ? '已开通' : '由平台方授予，租户侧只读'}
           </Step>
           <Step n={2} done={state.connected} active={state.entitled && !state.connected} title="连接 Xero">
-            {state.connected ? '已连接' : '需要 owner 授权自己的 Xero 组织'}
+            {state.connected
+              ? (preview ? '已记录连接状态（只读）' : '已连接')
+              : (preview ? '当前版本不发起 OAuth 连接' : '需要 owner 授权自己的 Xero 组织')}
           </Step>
           <Step n={3} done={has('mapping_not_confirmed')} active={state.connected && !has('mapping_not_confirmed')} title="科目与税率映射">
             {state.missingMappings?.length
@@ -128,7 +139,9 @@ export function IntegrationsPanel({ api, showToast, canManage }) {
               : has('mapping_not_confirmed') ? '会计已确认' : '填完后由会计确认'}
           </Step>
           <Step n={4} done={has('demo_run_not_completed')} title="测试组织试跑">
-            {has('demo_run_not_completed') ? '已跑通一个完整周期' : '先在 Xero 测试组织跑通，再连生产账套'}
+            {has('demo_run_not_completed')
+              ? '已跑通一个完整周期'
+              : (preview ? '预览版只显示准备状态，不会发起试跑' : '先在 Xero 测试组织跑通，再连生产账套')}
           </Step>
           <Step n={5} done={has('single_entry_not_answered')} title="单一入口">
             {has('single_entry_not_answered')
@@ -149,7 +162,7 @@ export function IntegrationsPanel({ api, showToast, canManage }) {
                 你们的收款渠道（比如 Square）是不是<strong>已经在往同一个 Xero 组织同步</strong>？
                 如果是，我们再推一遍，Xero 里就会出现两套记录。
               </p>
-              {canManage && (
+              {canManage && !preview && (
                 <div className="flex flex-wrap gap-2">
                   <button type="button" disabled={busy}
                           onClick={() => step('single_entry', { decision: 'ours_only' })}
@@ -164,14 +177,20 @@ export function IntegrationsPanel({ api, showToast, canManage }) {
                           className="min-h-[44px] px-3 rounded-lg bg-white border border-gray-300 text-xs font-bold">
                     保留，走清算账户
                   </button>
-                </div>
+                  </div>
               )}
+              {preview && <p className="text-[11px] text-gray-500">预览阶段只读显示，不修改 gate。</p>}
             </div>
           )}
 
           <div className="rounded-xl border border-gray-200 bg-white p-4">
-            <p className="text-xs font-bold mb-2">开关三 · 生产推送</p>
-            {state.canEnablePush ? (
+            <p className="text-xs font-bold mb-2">Xero 推送</p>
+            {preview ? (
+              <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-[11px] text-blue-900">
+                <p className="font-bold">当前版本尚未开放生产推送</p>
+                <p className="mt-1">Xero transport 尚未上线；不会向 Xero 发送任何数据。</p>
+              </div>
+            ) : state.canEnablePush ? (
               canManage ? (
                 <button type="button" disabled={busy}
                         onClick={() => step(state.pushEnabled ? 'disable_push' : 'enable_push')}
@@ -194,15 +213,19 @@ export function IntegrationsPanel({ api, showToast, canManage }) {
               </>
             )}
             <p className="mt-2 text-[11px] text-gray-500">
-              暂停只停新的推送。连接、映射、ID 对应表与错误队列都保留，年末封账可以放心用。
+              {preview
+                ? '已有映射、ID 对应表与错误队列仍可查看；真实 transport 上线后再开放推送。'
+                : '暂停只停新的推送。连接、映射、ID 对应表与错误队列都保留，年末封账可以放心用。'}
             </p>
           </div>
 
           <div className="rounded-xl border border-gray-200 bg-white p-4">
             <p className="text-xs font-bold mb-1">未进 Xero 的单据</p>
             <p className="text-[11px] text-gray-600">
-              推送失败的单据会列在这里，带失败原因，修好后一键重放 —— 重放沿用同一个幂等键，
-              不会在 Xero 里产生第二张。<strong>这是给你们看的</strong>：原因几乎总是会计要改的一处映射。
+              {preview
+                ? '预接入阶段只保留已有历史记录与映射状态；不会创建新的 Xero 推送任务。'
+                : <>推送失败的单据会列在这里，带失败原因，修好后一键重放 —— 重放沿用同一个幂等键，
+                  不会在 Xero 里产生第二张。<strong>这是给你们看的</strong>：原因几乎总是会计要改的一处映射。</>}
             </p>
           </div>
         </div>
