@@ -99,7 +99,7 @@ git diff --check: passed
 | Source HEAD | v10.7.1 repair implementation and release docs are committed and pushed to `main`; exact closure commit is in the latest handoff. |
 | Runtime | `APP_VERSION=10.7.1` and production `BUILD_INFO` identify the deployed release commit; this is not inferred from `VERSION`. |
 | Package | SaaS/Edition v10.7.1 archives passed checksum, `BUILD_INFO`, exclusion and smoke gates; exact hashes are in the latest handoff. |
-| Production | `pwestudio.online` runs v10.7.1 with `db=ok`, `mode=saas`, unreadable themes `0`, stale workspaces `0`; tenant count `5` reflects the user's audited archive actions. |
+| Production | `pwestudio.online` runs v10.7.1 with `db=ok`, `mode=saas`, `themes.tenants=4`, `themes.unreadable=0`, `workspaces.tenants=4`, `workspaces.stale=0`; the database still has six tenant rows, with archived/paused status changes audited to the user. |
 
 生产部署还额外验证了 HTTP→HTTPS、公开关键路由、CMS immutable bundle hash/ETag 304、
 桌面/移动导航与公开 portal；本地真实 `INV-0007` 打印文档验证了客户单据内容、

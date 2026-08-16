@@ -21,9 +21,26 @@
 ## 发布闭环（v10.7.1）
 
 - SaaS/Edition 包均通过 checksum、`BUILD_INFO`、entrypoint exclusion 和 archive smoke gates；最终 artifact、部署 commit、备份与生产深健康的精确值见本文件下方的四层表格与发布证据。
-- production `pwestudio.online` 已切换至 v10.7.1；内部/公开 deep health 均为 `db=ok`、`mode=saas`、`themes.unreadable=0`、`workspaces.stale=0`。
-- 生产租户数从部署前的 6 变为 5，审计记录显示这是你主动归档 `hong-s-studio` 与 `jjl-s-studio` 的操作，不是部署丢数；剩余租户和 `0044_credit_refund_source.sql` 已在生产核对。
+- production `pwestudio.online` 已切换至 v10.7.1；内部/公开 deep health 均为 `db=ok`、`mode=saas`、`themes.unreadable=0`、`workspaces.stale=0`，主题/工作区健康计数为 `4`。
+- 生产数据库仍有 6 个租户记录：`lets-paint-showcase`、`lets-paint-studio` active，`n-piano-studio`、`ruby-s-studio` onboarding，`hong-s-studio` archived，`jjl-s-studio` paused。归档、恢复再暂停均有你的审计操作记录，不是部署丢数；`0044_credit_refund_source.sql` 已在生产核对。
 - 公开页面、CMS shell、桌面/移动导航、immutable CMS bundle hash、ETag 304、以及本地真实 `INV-0007` customer print flow 已验收；生产 CMS 只做未登录 shell 验收，未使用生产凭据或写入生产财务数据。
+
+## 四层精确身份（v10.7.1）
+
+| 层 | 精确事实 | 证据 |
+|---|---|---|
+| Source | v10.7.1 运行时代码与发布台账已提交并推送；当前工作树仅包含本次事实闭环文档 | `main == origin/main`；运行时 commit 为 `9b7dfdcc12b33a8e448dc59270bab17dfd5d748b`。 |
+| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.7.1.tar.gz` | SHA-256 `a087abe657fa1b8c0490ff1e430b0f3a21b0c535cdba5993ebf3798ea6c14215`；`BUILD_INFO` mode `saas`、commit `9b7dfdcc…`、built_at `2026-08-16T12:40:44Z`。 |
+| Package / Edition | `dist/PWE-Studio-Edition-10.7.1.tar.gz` | SHA-256 `e4b9dc3da0be6e1f18f2eda4636323b1d81ce3a0749fe49165dcf269c31f87b1`；`BUILD_INFO` mode `standalone`、commit `9b7dfdcc…`、built_at `2026-08-16T12:40:45Z`。 |
+| Production | `/opt/pwestudio/current` → `PWE-StudioSaaS-aws-10.7.1`; image `studiosaas:10.7.1` healthy | `appVersion=10.7.1`、`db=ok`、`mode=saas`、`themes.tenants=4`、`themes.unreadable=0`、`workspaces.tenants=4`、`workspaces.stale=0`、约 `43.26 GB` free；production `BUILD_INFO` 同上。 |
+| Backup / migration | 最终切换前备份已生成 | dump `studiosaas_studiosaas_20260816T124139Z.dump` + manifest；volume `pwestudio-volumes-20260816T124140Z.tar.gz`；schema `0044_credit_refund_source.sql` current。 |
+| Public asset | CMS bundle bytes match the committed local asset | `/assets/cms-app.js?v=10.7.1&h=1ff09a1e8aadd7a0`；SHA-256 `1ff09a1e8aadd7a0c9b40a80e7d3ad9fa6a882237c656daf19251ae57cb9a209`；`immutable` cache and conditional `304` verified. |
+
+The first two deployment attempts stopped before switching `current`: the first
+hit the production backup role/RLS boundary, and the second exposed that the
+controller itself had to be staged before the backup. Commits `5de3bab` and
+`b77e0ed` fixed those release-controller causes; the final v10.7.1 deployment
+completed with the owner-role backup and candidate-controller staging gates.
 
 ## INV-0007 当前核对
 
