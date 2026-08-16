@@ -199,6 +199,245 @@ def has_error_shape(response) -> bool:
     return response.status_code >= 400 and isinstance(body.get("error"), str) and isinstance(body.get("message"), str)
 
 
+def check_money_api_payload_contract(owner_a, owner_b, fixtures: dict[str, Any]) -> None:
+    """Exercise the money mutation JSON contract through real tenant HTTP."""
+
+    path_a = f"/s/{TENANT_A}/v1"
+    path_b = f"/s/{TENANT_B}/v1"
+
+    xero_status = owner_a.get(f"{path_a}/integrations/xero")
+    xero_body = xero_status.get_json() or {}
+    check(
+        "Xero API states preview stage and unavailable transport",
+        xero_status.status_code == 200
+        and xero_body.get("integrationStage") == "preview"
+        and xero_body.get("transportAvailable") is False
+        and isinstance(xero_body.get("mappings"), list)
+        and isinstance(xero_body.get("settings"), dict),
+        f"got {xero_status.status_code}",
+    )
+
+    account_a_response = owner_a.post(
+        f"{path_a}/billing/accounts",
+        json={"name": "Contract Family", "paymentTermsDays": 14},
+    )
+    account_a = str(((account_a_response.get_json() or {}).get("account") or {}).get("id") or "")
+    check(
+        "Money contract fixture creates tenant A billing account",
+        account_a_response.status_code == 201 and bool(account_a),
+        f"got {account_a_response.status_code}",
+    )
+    account_b_response = owner_b.post(
+        f"{path_b}/billing/accounts",
+        json={"name": "Foreign Contract Family", "paymentTermsDays": 14},
+    )
+    account_b = str(((account_b_response.get_json() or {}).get("account") or {}).get("id") or "")
+    check(
+        "Money contract fixture creates tenant B billing account",
+        account_b_response.status_code == 201 and bool(account_b),
+        f"got {account_b_response.status_code}",
+    )
+    if not account_a or not account_b:
+        return
+
+    # A due date is deliberately derived at issue time from payment terms; it
+    # must not be accepted and silently discarded during draft creation.
+    invoice_count_before = db_count(
+        "SELECT count(*) AS n FROM invoices WHERE tenant_id = %s", (fixtures["tenant_a"],)
+    )
+    due_date = owner_a.post(
+        f"{path_a}/billing/invoices",
+        json={"billingAccountId": account_a, "dueDate": "2026-08-31"},
+    )
+    invoice_count_after = db_count(
+        "SELECT count(*) AS n FROM invoices WHERE tenant_id = %s", (fixtures["tenant_a"],)
+    )
+    check(
+        "Invoice dueDate is rejected without creating a draft",
+        due_date.status_code == 400 and has_error_shape(due_date)
+        and invoice_count_after == invoice_count_before,
+        f"got {due_date.status_code}",
+    )
+
+    invoice_response = owner_a.post(
+        f"{path_a}/billing/invoices",
+        json={
+            "billingAccountId": account_a,
+            "termId": None,
+            "note": "Contract invoice",
+            "purchaseOrderRef": "PO-CONTRACT-001",
+        },
+    )
+    invoice_a = str(((invoice_response.get_json() or {}).get("invoice") or {}).get("id") or "")
+    check(
+        "Legal invoice draft payload remains 201",
+        invoice_response.status_code == 201 and bool(invoice_a),
+        f"got {invoice_response.status_code}",
+    )
+    line_response = owner_a.post(
+        f"{path_a}/billing/invoices/{invoice_a}/lines",
+        json={
+            "description": "Contract line",
+            "quantity": 1,
+            "unitPriceCents": 1000,
+            "taxCodeId": None,
+            "taxRateBp": 0,
+            "sourceKind": "manual",
+            "sourceId": None,
+            "studentId": None,
+        },
+    )
+    check(
+        "Legal invoice line payload remains 201",
+        line_response.status_code == 201,
+        f"got {line_response.status_code}",
+    )
+
+    # Configure both fixture tenants so the two invoices can be issued and
+    # the foreign-target request reaches the payment allocator's business gate.
+    for client, path, trading_name in (
+        (owner_a, path_a, "Contract Alpha Studio"),
+        (owner_b, path_b, "Contract Beta Studio"),
+    ):
+        identity = client.put(
+            f"{path}/billing/identity",
+            json={"trading_name": trading_name},
+        )
+        check(
+            f"Money contract fixture configures {trading_name}",
+            identity.status_code == 200,
+            f"got {identity.status_code}",
+        )
+
+    issue_a = owner_a.post(f"{path_a}/billing/invoices/{invoice_a}/issue", json={})
+    check("Legal invoice issue remains 200", issue_a.status_code == 200, f"got {issue_a.status_code}")
+
+    invoice_b_response = owner_b.post(
+        f"{path_b}/billing/invoices",
+        json={"billingAccountId": account_b, "note": "Foreign contract invoice"},
+    )
+    invoice_b = str(((invoice_b_response.get_json() or {}).get("invoice") or {}).get("id") or "")
+    owner_b.post(
+        f"{path_b}/billing/invoices/{invoice_b}/lines",
+        json={"description": "Foreign line", "quantity": 1, "unitPriceCents": 1000, "taxRateBp": 0},
+    )
+    issue_b = owner_b.post(f"{path_b}/billing/invoices/{invoice_b}/issue", json={})
+    check("Foreign invoice fixture is issued", issue_b.status_code == 200, f"got {issue_b.status_code}")
+
+    payment_count_before = db_count(
+        "SELECT count(*) AS n FROM payments WHERE tenant_id = %s", (fixtures["tenant_a"],)
+    )
+    typo_payment = owner_a.post(
+        f"{path_a}/billing/payments",
+        json={"billingAccountId": account_a, "amountCents": 100, "invoiceID": invoice_a},
+    )
+    payment_count_after = db_count(
+        "SELECT count(*) AS n FROM payments WHERE tenant_id = %s", (fixtures["tenant_a"],)
+    )
+    check(
+        "Payment typo invoiceID is rejected without a payment",
+        typo_payment.status_code == 400 and has_error_shape(typo_payment)
+        and payment_count_after == payment_count_before,
+        f"got {typo_payment.status_code}",
+    )
+
+    false_target = owner_a.post(
+        f"{path_a}/billing/payments",
+        json={
+            "billingAccountId": account_a,
+            "amountCents": 100,
+            "invoiceId": invoice_a,
+            "autoAllocate": False,
+        },
+    )
+    check(
+        "Payment target with autoAllocate false is rejected",
+        false_target.status_code == 400 and has_error_shape(false_target),
+        f"got {false_target.status_code}",
+    )
+    string_false = owner_a.post(
+        f"{path_a}/billing/payments",
+        json={
+            "billingAccountId": account_a,
+            "amountCents": 100,
+            "autoAllocate": "false",
+        },
+    )
+    check(
+        "Payment autoAllocate rejects string false instead of coercing it",
+        string_false.status_code == 400 and has_error_shape(string_false),
+        f"got {string_false.status_code}",
+    )
+
+    legal_payment = owner_a.post(
+        f"{path_a}/billing/payments",
+        json={
+            "billingAccountId": account_a,
+            "amountCents": 1000,
+            "method": "bank_transfer",
+            "note": "Contract payment",
+            "idempotencyKey": "money-contract-payment-001",
+            "autoAllocate": True,
+            "invoiceId": invoice_a,
+        },
+    )
+    legal_payment_body = legal_payment.get_json() or {}
+    payment_id = str(((legal_payment_body.get("payment") or {}).get("id")) or "")
+    check(
+        "Legal CMS payment payload remains 201 and targets the selected invoice",
+        legal_payment.status_code == 201 and bool(payment_id)
+        and any(str(row.get("invoice_id")) == invoice_a for row in legal_payment_body.get("allocations") or []),
+        f"got {legal_payment.status_code}",
+    )
+
+    foreign_count_before = db_count(
+        "SELECT count(*) AS n FROM payments WHERE tenant_id = %s", (fixtures["tenant_a"],)
+    )
+    foreign_payment = owner_a.post(
+        f"{path_a}/billing/payments",
+        json={
+            "billingAccountId": account_a,
+            "amountCents": 100,
+            "idempotencyKey": "money-contract-payment-foreign",
+            "autoAllocate": True,
+            "invoiceId": invoice_b,
+        },
+    )
+    foreign_count_after = db_count(
+        "SELECT count(*) AS n FROM payments WHERE tenant_id = %s", (fixtures["tenant_a"],)
+    )
+    foreign_body = foreign_payment.get_json() or {}
+    check(
+        "Foreign invoice target returns a business error without cross-tenant payment",
+        foreign_payment.status_code == 409 and has_error_shape(foreign_payment)
+        and foreign_count_after == foreign_count_before
+        and invoice_b not in str(foreign_body),
+        f"got {foreign_payment.status_code}",
+    )
+
+    refund_count_before = db_count(
+        "SELECT count(*) AS n FROM refunds WHERE tenant_id = %s", (fixtures["tenant_a"],)
+    )
+    unknown_refund = owner_a.post(
+        f"{path_a}/billing/payments/{payment_id}/refund",
+        json={"amountCents": 100, "reason": "Contract refund", "refundReason": "typo"},
+    )
+    refund_count_after = db_count(
+        "SELECT count(*) AS n FROM refunds WHERE tenant_id = %s", (fixtures["tenant_a"],)
+    )
+    check(
+        "Refund unknown field is rejected without a refund",
+        unknown_refund.status_code == 400 and has_error_shape(unknown_refund)
+        and refund_count_after == refund_count_before,
+        f"got {unknown_refund.status_code}",
+    )
+    legal_refund = owner_a.post(
+        f"{path_a}/billing/payments/{payment_id}/refund",
+        json={"amountCents": 100, "reason": "Contract refund"},
+    )
+    check("Legal refund payload keeps its existing 200 response", legal_refund.status_code == 200, f"got {legal_refund.status_code}")
+
+
 def check_standalone_edition(owner_a, owner_b, super_admin) -> None:
     """PWE Studio Edition (STUDIOSAAS_MODE=standalone) boundary checks.
 
@@ -367,6 +606,7 @@ def main() -> int:
     owner_b = client_for(fixtures["owner_b_email"])
     super_admin = client_for(fixtures["super_email"])
     tenant_admin = client_for(fixtures["tenant_admin_email"])
+    check_money_api_payload_contract(owner_a, owner_b, fixtures)
     tenant_admin_usage = tenant_admin.get("/v1/admin/usage")
     tenant_admin_a = tenant_admin.get(f"/s/{TENANT_A}/v1/students")
     tenant_admin_b = tenant_admin.get(f"/s/{TENANT_B}/v1/students")

@@ -415,6 +415,25 @@ def _json_payload() -> dict:
     return payload
 
 
+def _reject_unknown_keys(payload: dict, allowed: set[str], context: str) -> None:
+    """Reject fields a money mutation cannot apply, rather than dropping them."""
+
+    unknown = sorted(set(payload) - set(allowed))
+    if unknown:
+        raise ValueError(f"Unknown field(s) for {context}: {', '.join(unknown)}.")
+
+
+def _strict_boolean(payload: dict, key: str, *, default: bool) -> bool:
+    """Read a JSON boolean without treating strings such as ``\"false\"`` as true."""
+
+    if key not in payload:
+        return default
+    value = payload[key]
+    if not isinstance(value, bool):
+        raise ValueError(f"{key} must be a boolean.")
+    return value
+
+
 def _ensure_default_credit_account(cur, tenant_id: str, student_id: str, balance: float | None = None) -> None:
     """Create or update the tenant-wide credit account where ``course_id`` is NULL."""
 
@@ -12818,6 +12837,11 @@ def billing_invoices():
         try:
             require_permission(getattr(g, "actor", None), "billing:write")
             payload = _json_payload()
+            _reject_unknown_keys(
+                payload,
+                {"billingAccountId", "termId", "note", "purchaseOrderRef"},
+                "invoice draft",
+            )
             account_id = _clean_text(payload, "billingAccountId")
             if not account_id:
                 raise ValueError("billingAccountId is required.")
@@ -12902,6 +12926,14 @@ def billing_invoice_add_line(invoice_id: str):
 
     try:
         payload = _json_payload()
+        _reject_unknown_keys(
+            payload,
+            {
+                "description", "quantity", "unitPriceCents", "taxCodeId",
+                "taxRateBp", "sourceKind", "sourceId", "studentId",
+            },
+            "invoice line",
+        )
         description = _clean_text(payload, "description")
         if not description:
             raise ValueError("A line needs a description.")
@@ -13032,11 +13064,22 @@ def billing_record_payment():
 
     try:
         payload = _json_payload()
+        _reject_unknown_keys(
+            payload,
+            {
+                "billingAccountId", "amountCents", "method", "note",
+                "idempotencyKey", "autoAllocate", "invoiceId",
+            },
+            "payment",
+        )
         account_id = _clean_text(payload, "billingAccountId")
         if not account_id:
             raise ValueError("billingAccountId is required.")
         amount_cents = _money_cents(payload, "amountCents")
         method = _clean_text(payload, "method", "bank_transfer") or "bank_transfer"
+        auto_allocate = _strict_boolean(payload, "autoAllocate", default=True)
+        if not auto_allocate and "invoiceId" in payload:
+            raise ValueError("invoiceId cannot be used when autoAllocate is false.")
     except ValueError as exc:
         return _error(str(exc))
 
@@ -13063,8 +13106,9 @@ def billing_record_payment():
                 _payments.auto_allocate(
                     conn, tenant.tenant_id, payment["id"],
                     prefer_invoice_id=_clean_text(payload, "invoiceId") or None,
+                    actor_user_id=getattr(actor, "user_id", None),
                 )
-                if payload.get("autoAllocate", True)
+                if auto_allocate
                 else []
             )
         except _payments.PaymentError as exc:
@@ -13089,6 +13133,7 @@ def billing_refund_payment(payment_id: str):
 
     try:
         payload = _json_payload()
+        _reject_unknown_keys(payload, {"amountCents", "reason"}, "refund")
         amount_cents = _money_cents(payload, "amountCents")
     except ValueError as exc:
         return _error(str(exc))
@@ -13434,6 +13479,8 @@ def xero_status():
         missing = _xero.missing_required_mappings(conn, tenant.tenant_id)
     return jsonify(
         {
+            "integrationStage": _xero.INTEGRATION_STAGE,
+            "transportAvailable": status.transport_available,
             "entitled": status.entitled,
             "connected": status.connected,
             "pushEnabled": status.push_enabled,
@@ -13585,6 +13632,8 @@ def xero_gate():
     return jsonify(
         {
             "ok": True,
+            "integrationStage": _xero.INTEGRATION_STAGE,
+            "transportAvailable": status.transport_available,
             "pushEnabled": status.push_enabled,
             "canEnablePush": status.can_enable,
             "blockers": status.blockers(),

@@ -123,6 +123,8 @@ def allocate(
     tenant_id: str,
     payment_id: str,
     allocations: Sequence[Allocation],
+    *,
+    actor_user_id: str | None = None,
 ) -> list[dict[str, Any]]:
     """Apply a payment to one or more invoices.
 
@@ -166,7 +168,7 @@ def allocate(
         record_event(
             conn, tenant_id, str(row["invoice_id"]),
             "paid" if state.get("status") == "paid" else "part_paid",
-            None,
+            actor_user_id,
             {
                 "amount_cents": int(row["amount_cents"]),
                 "balance_cents": int(state.get("balance_cents") or 0),
@@ -181,6 +183,8 @@ def auto_allocate(
     tenant_id: str,
     payment_id: str,
     prefer_invoice_id: str | None = None,
+    *,
+    actor_user_id: str | None = None,
 ) -> list[dict[str, Any]]:
     """Spend a payment against the account's oldest unpaid invoices first.
 
@@ -212,6 +216,25 @@ def auto_allocate(
     if remaining <= 0:
         return []
 
+    if prefer_invoice_id:
+        # A named target comes from an operator looking at one invoice. It is
+        # not an ordering hint: silently falling back to another account (or
+        # another tenant) would make a successful payment explain the wrong
+        # document. Scope the lookup by both tenant and billing account so a
+        # foreign ID is deliberately indistinguishable from a missing one.
+        preferred = fetch_one(
+            conn,
+            """
+            SELECT id
+            FROM invoices
+            WHERE tenant_id = %s AND billing_account_id = %s AND id = %s
+              AND status IN ('issued', 'part_paid') AND balance_cents > 0
+            """,
+            (tenant_id, payment["billing_account_id"], prefer_invoice_id),
+        )
+        if not preferred:
+            raise PaymentError("Preferred invoice is not open for this billing account.")
+
     # `prefer_invoice_id` is what an operator means when they press 登记收款 while
     # looking at ONE invoice. Without it the money went to the oldest open debt —
     # correct as a default, and wrong as an answer to "record payment for THIS
@@ -239,7 +262,17 @@ def auto_allocate(
         plan.append(Allocation(invoice_id=str(invoice["id"]), amount_cents=take))
         remaining -= take
 
-    return allocate(conn, tenant_id, payment_id, plan) if plan else []
+    return (
+        allocate(
+            conn,
+            tenant_id,
+            payment_id,
+            plan,
+            actor_user_id=actor_user_id,
+        )
+        if plan
+        else []
+    )
 
 
 def refund(
@@ -286,7 +319,7 @@ def refund(
         (tenant_id, payment_id),
     )
     with conn.cursor() as cur:
-        touched_invoices: set[str] = set()
+        released_by_invoice: dict[str, int] = {}
         for item in allocations:
             if remaining <= 0:
                 break
@@ -300,7 +333,10 @@ def refund(
                     (new_amount, item["id"]),
                 )
             remaining -= take
-            touched_invoices.add(str(item["invoice_id"]))
+            invoice_id = str(item["invoice_id"])
+            released_by_invoice[invoice_id] = (
+                released_by_invoice.get(invoice_id, 0) + take
+            )
 
         cur.execute(
             """
@@ -329,7 +365,7 @@ def refund(
     # trigger-maintained totals are the ones being read.
     from .billing import record_event
 
-    for invoice_id in sorted(touched_invoices):
+    for invoice_id, released_cents in released_by_invoice.items():
         state = fetch_one(
             conn,
             "SELECT status, balance_cents FROM invoices WHERE tenant_id = %s AND id = %s",
@@ -337,7 +373,8 @@ def refund(
         ) or {}
         record_event(
             conn, tenant_id, invoice_id, "refunded", actor_user_id,
-            {"balance_cents": int(state.get("balance_cents") or 0),
+            {"amount_cents": released_cents,
+             "balance_cents": int(state.get("balance_cents") or 0),
              "payment_id": str(payment_id), "reason": reason or ""},
         )
     return refund_row

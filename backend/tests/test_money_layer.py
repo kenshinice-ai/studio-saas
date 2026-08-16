@@ -194,18 +194,63 @@ def test_xero_gate_lists_every_blocker_not_just_the_first():
     status = xero.GateStatus(
         entitled=False, connected=False, mapping_confirmed=False,
         demo_run_completed=False, single_entry_answered=False, push_enabled=False,
+        transport_available=False,
     )
     assert not status.can_enable
     assert status.blockers() == [
         "addon_not_active", "not_connected", "mapping_not_confirmed",
-        "demo_run_not_completed", "single_entry_not_answered",
+        "demo_run_not_completed", "single_entry_not_answered", "transport_not_available",
     ]
 
     ready = xero.GateStatus(
         entitled=True, connected=True, mapping_confirmed=True,
         demo_run_completed=True, single_entry_answered=True, push_enabled=False,
+        transport_available=True,
     )
     assert ready.can_enable and ready.blockers() == []
+
+
+def test_xero_transport_blocks_enable_even_when_every_gate_step_is_complete(monkeypatch):
+    status = xero.GateStatus(
+        entitled=True, connected=True, mapping_confirmed=True,
+        demo_run_completed=True, single_entry_answered=True, push_enabled=False,
+        transport_available=False,
+    )
+    assert status.blockers() == ["transport_not_available"]
+    assert not status.can_enable
+
+    monkeypatch.setattr(xero, "gate_status", lambda conn, tenant_id: status)
+    with pytest.raises(xero.XeroError, match="transport_not_available"):
+        xero.set_push_enabled(object(), "tenant", True)
+
+
+def test_xero_enqueue_never_creates_a_job_when_history_says_push_enabled(monkeypatch):
+    status = xero.GateStatus(
+        entitled=True, connected=True, mapping_confirmed=True,
+        demo_run_completed=True, single_entry_answered=True, push_enabled=True,
+        transport_available=False,
+    )
+    monkeypatch.setattr(xero, "gate_status", lambda conn, tenant_id: status)
+
+    class NoWriteConnection:
+        def cursor(self):
+            raise AssertionError("transport-unavailable enqueue must not open a write cursor")
+
+    assert xero.enqueue(NoWriteConnection(), "tenant", local_kind="invoice", local_id="invoice") is None
+
+
+def test_xero_disable_remains_safe_when_transport_is_unavailable(monkeypatch):
+    status = xero.GateStatus(
+        entitled=True, connected=True, mapping_confirmed=True,
+        demo_run_completed=True, single_entry_answered=True, push_enabled=False,
+        transport_available=False,
+    )
+    writes = []
+    monkeypatch.setattr(xero, "_upsert_settings", lambda conn, tenant_id, **columns: writes.append(columns))
+    monkeypatch.setattr(xero, "gate_status", lambda conn, tenant_id: status)
+
+    assert xero.set_push_enabled(object(), "tenant", False) is status
+    assert writes == [{"push_enabled": "false"}]
 
 
 def test_pay_bases_cover_the_five_ways_studios_actually_pay():
@@ -494,6 +539,600 @@ def test_allocation_keeps_the_invoice_status_and_balance_true(money_tenant):
         row = fetch_one(conn, "SELECT status, balance_cents FROM invoices WHERE id = %s", (invoice_id,))
         assert row["status"] == "paid"
         assert int(row["balance_cents"]) == 0
+
+
+@requires_db
+def test_preferred_invoice_is_paid_before_older_debt_and_overpayment_falls_back(
+    money_tenant,
+):
+    """A detail-panel payment names its target, then keeps oldest-first for the rest."""
+
+    from _cms_sources import owner_connection as connect  # 夹具造世界用属主
+    from studiosaas.services import payments
+
+    tenant_id = money_tenant["tenant_id"]
+    with connect() as conn:
+        older_id = _draft_with_line(
+            conn, tenant_id, money_tenant["account_id"], cents=10000, tax_bp=0
+        )
+        target_id = _draft_with_line(
+            conn, tenant_id, money_tenant["account_id"], cents=4000, tax_bp=0
+        )
+        billing.issue_invoice(conn, tenant_id, older_id)
+        billing.issue_invoice(conn, tenant_id, target_id)
+
+        payment = payments.record_payment(
+            conn,
+            tenant_id,
+            billing_account_id=money_tenant["account_id"],
+            amount_cents=9000,
+            method="bank_transfer",
+            idempotency_key=payments.new_idempotency_key(),
+        )
+        allocations = payments.auto_allocate(
+            conn, tenant_id, payment["id"], prefer_invoice_id=target_id
+        )
+        conn.commit()
+
+        assert [(str(row["invoice_id"]), int(row["amount_cents"])) for row in allocations] == [
+            (target_id, 4000),
+            (older_id, 5000),
+        ]
+
+        from studiosaas.db import fetch_all, fetch_one
+
+        rows = fetch_all(
+            conn,
+            """
+            SELECT invoice_id, amount_cents
+            FROM payment_allocations
+            WHERE tenant_id = %s AND payment_id = %s
+            ORDER BY created_at, id
+            """,
+            (tenant_id, payment["id"]),
+        )
+        assert {
+            str(row["invoice_id"]): int(row["amount_cents"])
+            for row in rows
+        } == {
+            target_id: 4000,
+            older_id: 5000,
+        }
+        target = fetch_one(
+            conn,
+            "SELECT status, balance_cents FROM invoices WHERE tenant_id = %s AND id = %s",
+            (tenant_id, target_id),
+        )
+        older = fetch_one(
+            conn,
+            "SELECT status, balance_cents FROM invoices WHERE tenant_id = %s AND id = %s",
+            (tenant_id, older_id),
+        )
+        assert (target["status"], int(target["balance_cents"])) == ("paid", 0)
+        assert (older["status"], int(older["balance_cents"])) == ("part_paid", 5000)
+
+
+@requires_db
+def test_auto_allocate_without_preference_keeps_oldest_first(money_tenant):
+    """The explicit target override must not change the default ageing policy."""
+
+    from _cms_sources import owner_connection as connect  # 夹具造世界用属主
+    from studiosaas.services import payments
+
+    tenant_id = money_tenant["tenant_id"]
+    with connect() as conn:
+        older_id = _draft_with_line(
+            conn, tenant_id, money_tenant["account_id"], cents=6000, tax_bp=0
+        )
+        newer_id = _draft_with_line(
+            conn, tenant_id, money_tenant["account_id"], cents=6000, tax_bp=0
+        )
+        billing.issue_invoice(conn, tenant_id, older_id)
+        billing.issue_invoice(conn, tenant_id, newer_id)
+        payment = payments.record_payment(
+            conn,
+            tenant_id,
+            billing_account_id=money_tenant["account_id"],
+            amount_cents=6000,
+            method="cash",
+            idempotency_key=payments.new_idempotency_key(),
+        )
+
+        allocations = payments.auto_allocate(conn, tenant_id, payment["id"])
+        conn.commit()
+
+        assert [(str(row["invoice_id"]), int(row["amount_cents"])) for row in allocations] == [
+            (older_id, 6000)
+        ]
+
+        from studiosaas.db import fetch_one
+
+        older = fetch_one(
+            conn,
+            "SELECT status, balance_cents FROM invoices WHERE tenant_id = %s AND id = %s",
+            (tenant_id, older_id),
+        )
+        newer = fetch_one(
+            conn,
+            "SELECT status, balance_cents FROM invoices WHERE tenant_id = %s AND id = %s",
+            (tenant_id, newer_id),
+        )
+        assert (older["status"], int(older["balance_cents"])) == ("paid", 0)
+        assert (newer["status"], int(newer["balance_cents"])) == ("issued", 6000)
+
+
+@requires_db
+def test_preferred_invoice_rejects_wrong_account_and_cross_tenant_targets(
+    money_tenant,
+):
+    """A named target must fail closed instead of silently paying another debt."""
+
+    from _cms_sources import owner_connection as connect  # 夹具造世界用属主
+    from studiosaas.services import payments
+
+    tenant_id = money_tenant["tenant_id"]
+    foreign_tenant_id = str(uuid.uuid4())
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO tenants (id, name, slug, status, plan_code)
+                VALUES (%s, 'Foreign Money Test', %s, 'active', 'starter')
+                """,
+                (foreign_tenant_id, f"foreign-{foreign_tenant_id[:8]}"),
+            )
+            cur.execute(
+                """
+                INSERT INTO tenant_billing_identity
+                    (tenant_id, legal_name, trading_name, abn, gst_registered)
+                VALUES (%s, 'Foreign Fixture Pty Ltd', 'Foreign Fixture',
+                        '53 004 085 616', true)
+                """,
+                (foreign_tenant_id,),
+            )
+            cur.execute(
+                """
+                INSERT INTO billing_accounts (tenant_id, name, payment_terms_days)
+                VALUES (%s, 'Foreign Family', 14) RETURNING id
+                """,
+                (foreign_tenant_id,),
+            )
+            foreign_account_id = str(cur.fetchone()["id"])
+            cur.execute(
+                """
+                INSERT INTO billing_accounts (tenant_id, name, payment_terms_days)
+                VALUES (%s, 'Wrong Account Family', 14) RETURNING id
+                """,
+                (tenant_id,),
+            )
+            wrong_account_id = str(cur.fetchone()["id"])
+        conn.commit()
+
+        wrong_account_invoice = _draft_with_line(
+            conn, tenant_id, wrong_account_id, cents=1000, tax_bp=0
+        )
+        billing.issue_invoice(conn, tenant_id, wrong_account_invoice)
+        foreign_invoice = _draft_with_line(
+            conn, foreign_tenant_id, foreign_account_id, cents=1000, tax_bp=0
+        )
+        billing.issue_invoice(conn, foreign_tenant_id, foreign_invoice)
+        paid_invoice = _draft_with_line(
+            conn, tenant_id, money_tenant["account_id"], cents=500, tax_bp=0
+        )
+        billing.issue_invoice(conn, tenant_id, paid_invoice)
+        paid_payment = payments.record_payment(
+            conn,
+            tenant_id,
+            billing_account_id=money_tenant["account_id"],
+            amount_cents=500,
+            method="cash",
+            idempotency_key=payments.new_idempotency_key(),
+        )
+        payments.auto_allocate(conn, tenant_id, paid_payment["id"])
+        conn.commit()
+
+        for target_id in (
+            wrong_account_invoice,
+            foreign_invoice,
+            paid_invoice,
+            str(uuid.uuid4()),
+        ):
+            payment = payments.record_payment(
+                conn,
+                tenant_id,
+                billing_account_id=money_tenant["account_id"],
+                amount_cents=1000,
+                method="cash",
+                idempotency_key=payments.new_idempotency_key(),
+            )
+            with pytest.raises(payments.PaymentError, match="not open for this billing account"):
+                payments.auto_allocate(
+                    conn, tenant_id, payment["id"], prefer_invoice_id=target_id
+                )
+
+            from studiosaas.db import fetch_one
+
+            allocation_count = fetch_one(
+                conn,
+                "SELECT count(*) AS n FROM payment_allocations WHERE payment_id = %s",
+                (payment["id"],),
+            )
+            assert int(allocation_count["n"]) == 0
+
+        conn.rollback()
+
+
+@requires_db
+def test_payment_events_capture_actor_and_status_chain(money_tenant):
+    """The invoice history says who recorded each money state transition."""
+
+    from _cms_sources import owner_connection as connect  # 夹具造世界用属主
+    from studiosaas.services import payments
+
+    tenant_id = money_tenant["tenant_id"]
+    actor_id = str(uuid.uuid4())
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO users (id, email, password_hash, full_name)
+                VALUES (%s, %s, 'test-hash', 'Money Operator')
+                """,
+                (actor_id, f"money-operator-{actor_id[:8]}@example.test"),
+            )
+        conn.commit()
+        try:
+            invoice_id = _draft_with_line(
+                conn, tenant_id, money_tenant["account_id"], cents=10000, tax_bp=0
+            )
+            billing.issue_invoice(
+                conn, tenant_id, invoice_id, actor_user_id=actor_id
+            )
+
+            payment = payments.record_payment(
+                conn,
+                tenant_id,
+                billing_account_id=money_tenant["account_id"],
+                amount_cents=5000,
+                method="cash",
+                idempotency_key=payments.new_idempotency_key(),
+                recorded_by_user_id=actor_id,
+            )
+            payments.auto_allocate(
+                conn,
+                tenant_id,
+                payment["id"],
+                actor_user_id=actor_id,
+            )
+            conn.commit()
+
+            from studiosaas.db import fetch_all
+
+            events = fetch_all(
+                conn,
+                """
+                SELECT event_type, actor_user_id, detail
+                FROM invoice_events
+                WHERE tenant_id = %s AND invoice_id = %s
+                ORDER BY occurred_at,
+                    CASE event_type
+                        WHEN 'issued' THEN 0
+                        WHEN 'part_paid' THEN 1
+                        WHEN 'paid' THEN 2
+                        ELSE 3
+                    END,
+                    id
+                """,
+                (tenant_id, invoice_id),
+            )
+            assert [row["event_type"] for row in events] == ["issued", "part_paid"]
+            assert [str(row["actor_user_id"]) for row in events] == [actor_id, actor_id]
+            assert events[1]["detail"] == {
+                "amount_cents": 5000,
+                "balance_cents": 5000,
+                "payment_id": str(payment["id"]),
+            }
+
+            remainder = payments.record_payment(
+                conn,
+                tenant_id,
+                billing_account_id=money_tenant["account_id"],
+                amount_cents=5000,
+                method="cash",
+                idempotency_key=payments.new_idempotency_key(),
+                recorded_by_user_id=actor_id,
+            )
+            payments.auto_allocate(
+                conn,
+                tenant_id,
+                remainder["id"],
+                actor_user_id=actor_id,
+            )
+            conn.commit()
+            events = fetch_all(
+                conn,
+                """
+                SELECT event_type, actor_user_id, detail
+                FROM invoice_events
+                WHERE tenant_id = %s AND invoice_id = %s
+                ORDER BY occurred_at,
+                    CASE event_type
+                        WHEN 'issued' THEN 0
+                        WHEN 'part_paid' THEN 1
+                        WHEN 'paid' THEN 2
+                        ELSE 3
+                    END,
+                    id
+                """,
+                (tenant_id, invoice_id),
+            )
+            assert [row["event_type"] for row in events] == [
+                "issued", "part_paid", "paid"
+            ]
+            assert str(events[2]["actor_user_id"]) == actor_id
+            assert events[2]["detail"]["amount_cents"] == 5000
+            assert events[2]["detail"]["balance_cents"] == 0
+        finally:
+            conn.rollback()
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM users WHERE id = %s", (actor_id,))
+            conn.commit()
+
+
+@requires_db
+def test_refund_history_records_partial_and_full_release_amounts(money_tenant):
+    """Refund events carry the allocation released by that refund."""
+
+    from _cms_sources import owner_connection as connect  # 夹具造世界用属主
+    from studiosaas.services import payments
+
+    tenant_id = money_tenant["tenant_id"]
+    with connect() as conn:
+        invoice_id = _draft_with_line(
+            conn, tenant_id, money_tenant["account_id"], cents=10000, tax_bp=0
+        )
+        billing.issue_invoice(conn, tenant_id, invoice_id)
+        payment = payments.record_payment(
+            conn,
+            tenant_id,
+            billing_account_id=money_tenant["account_id"],
+            amount_cents=10000,
+            method="bank_transfer",
+            idempotency_key=payments.new_idempotency_key(),
+        )
+        payments.auto_allocate(conn, tenant_id, payment["id"])
+        conn.commit()
+
+        payments.refund(
+            conn,
+            tenant_id,
+            payment["id"],
+            amount_cents=2500,
+            reason="First partial refund",
+        )
+        conn.commit()
+
+        from studiosaas.db import fetch_all, fetch_one
+
+        events = fetch_all(
+            conn,
+            """
+            SELECT event_type, detail
+            FROM invoice_events
+            WHERE tenant_id = %s AND invoice_id = %s AND event_type = 'refunded'
+            ORDER BY occurred_at, id
+            """,
+            (tenant_id, invoice_id),
+        )
+        assert events[0]["detail"] == {
+            "amount_cents": 2500,
+            "balance_cents": 2500,
+            "payment_id": str(payment["id"]),
+            "reason": "First partial refund",
+        }
+
+        payments.refund(
+            conn,
+            tenant_id,
+            payment["id"],
+            amount_cents=7500,
+            reason="Final refund",
+        )
+        conn.commit()
+        events = fetch_all(
+            conn,
+            """
+            SELECT event_type, detail
+            FROM invoice_events
+            WHERE tenant_id = %s AND invoice_id = %s AND event_type = 'refunded'
+            ORDER BY occurred_at, id
+            """,
+            (tenant_id, invoice_id),
+        )
+        assert [event["detail"]["amount_cents"] for event in events] == [2500, 7500]
+        assert events[-1]["detail"]["balance_cents"] == 10000
+        state = fetch_one(
+            conn,
+            "SELECT status, balance_cents FROM invoices WHERE tenant_id = %s AND id = %s",
+            (tenant_id, invoice_id),
+        )
+        assert (state["status"], int(state["balance_cents"])) == ("issued", 10000)
+
+
+@requires_db
+def test_refund_history_records_each_invoice_amount_when_refund_spans_allocations(
+    money_tenant,
+):
+    """A cross-invoice refund reports each invoice's actual released amount."""
+
+    from _cms_sources import owner_connection as connect  # 夹具造世界用属主
+    from studiosaas.services import payments
+
+    tenant_id = money_tenant["tenant_id"]
+    with connect() as conn:
+        older_id = _draft_with_line(
+            conn, tenant_id, money_tenant["account_id"], cents=4000, tax_bp=0
+        )
+        newer_id = _draft_with_line(
+            conn, tenant_id, money_tenant["account_id"], cents=6000, tax_bp=0
+        )
+        billing.issue_invoice(conn, tenant_id, older_id)
+        billing.issue_invoice(conn, tenant_id, newer_id)
+        payment = payments.record_payment(
+            conn,
+            tenant_id,
+            billing_account_id=money_tenant["account_id"],
+            amount_cents=10000,
+            method="bank_transfer",
+            idempotency_key=payments.new_idempotency_key(),
+        )
+        payments.allocate(
+            conn,
+            tenant_id,
+            payment["id"],
+            [payments.Allocation(invoice_id=older_id, amount_cents=4000)],
+        )
+        conn.commit()
+        payments.allocate(
+            conn,
+            tenant_id,
+            payment["id"],
+            [payments.Allocation(invoice_id=newer_id, amount_cents=6000)],
+        )
+        conn.commit()
+
+        payments.refund(
+            conn,
+            tenant_id,
+            payment["id"],
+            amount_cents=8000,
+            reason="Cross-invoice refund",
+        )
+        conn.commit()
+
+        from studiosaas.db import fetch_all, fetch_one
+
+        refunded = fetch_all(
+            conn,
+            """
+            SELECT invoice_id, detail
+            FROM invoice_events
+            WHERE tenant_id = %s AND event_type = 'refunded'
+            ORDER BY invoice_id
+            """,
+            (tenant_id,),
+        )
+        assert {
+            str(event["invoice_id"]): event["detail"]["amount_cents"]
+            for event in refunded
+        } == {newer_id: 6000, older_id: 2000}
+        older = fetch_one(
+            conn,
+            "SELECT status, balance_cents FROM invoices WHERE tenant_id = %s AND id = %s",
+            (tenant_id, older_id),
+        )
+        newer = fetch_one(
+            conn,
+            "SELECT status, balance_cents FROM invoices WHERE tenant_id = %s AND id = %s",
+            (tenant_id, newer_id),
+        )
+        assert (older["status"], int(older["balance_cents"])) == ("part_paid", 2000)
+        assert (newer["status"], int(newer["balance_cents"])) == ("issued", 6000)
+
+
+@requires_db
+def test_refund_history_does_not_fabricate_invoice_amount_for_unallocated_credit(
+    money_tenant,
+):
+    """An account-credit refund has no invoice event for its unallocated part."""
+
+    from _cms_sources import owner_connection as connect  # 夹具造世界用属主
+    from studiosaas.services import payments
+
+    tenant_id = money_tenant["tenant_id"]
+    with connect() as conn:
+        invoice_id = _draft_with_line(
+            conn, tenant_id, money_tenant["account_id"], cents=4000, tax_bp=0
+        )
+        billing.issue_invoice(conn, tenant_id, invoice_id)
+        payment = payments.record_payment(
+            conn,
+            tenant_id,
+            billing_account_id=money_tenant["account_id"],
+            amount_cents=10000,
+            method="bank_transfer",
+            idempotency_key=payments.new_idempotency_key(),
+        )
+        payments.auto_allocate(conn, tenant_id, payment["id"])
+        conn.commit()
+
+        payments.refund(
+            conn,
+            tenant_id,
+            payment["id"],
+            amount_cents=5000,
+            reason="Credit refund",
+        )
+        conn.commit()
+
+        from studiosaas.db import fetch_all
+
+        events = fetch_all(
+            conn,
+            """
+            SELECT detail
+            FROM invoice_events
+            WHERE tenant_id = %s AND invoice_id = %s AND event_type = 'refunded'
+            """,
+            (tenant_id, invoice_id),
+        )
+        assert len(events) == 1
+        assert events[0]["detail"]["amount_cents"] == 4000
+
+
+@requires_db
+def test_refund_over_available_amount_has_no_refund_or_history_side_effect(
+    money_tenant,
+):
+    """An invalid refund is rejected before either ledger table is changed."""
+
+    from _cms_sources import owner_connection as connect  # 夹具造世界用属主
+    from studiosaas.services import payments
+
+    tenant_id = money_tenant["tenant_id"]
+    with connect() as conn:
+        invoice_id = _draft_with_line(
+            conn, tenant_id, money_tenant["account_id"], cents=1000, tax_bp=0
+        )
+        billing.issue_invoice(conn, tenant_id, invoice_id)
+        payment = payments.record_payment(
+            conn,
+            tenant_id,
+            billing_account_id=money_tenant["account_id"],
+            amount_cents=1000,
+            method="cash",
+            idempotency_key=payments.new_idempotency_key(),
+        )
+        conn.commit()
+
+        with pytest.raises(payments.PaymentError, match="Refundable amount is 1000 cents"):
+            payments.refund(conn, tenant_id, payment["id"], amount_cents=1001)
+        conn.rollback()
+
+        from studiosaas.db import fetch_one
+
+        refund_count = fetch_one(
+            conn,
+            "SELECT count(*) AS n FROM refunds WHERE tenant_id = %s AND payment_id = %s",
+            (tenant_id, payment["id"]),
+        )
+        event_count = fetch_one(
+            conn,
+            "SELECT count(*) AS n FROM invoice_events WHERE tenant_id = %s AND invoice_id = %s AND event_type = 'refunded'",
+            (tenant_id, invoice_id),
+        )
+        assert int(refund_count["n"]) == 0
+        assert int(event_count["n"]) == 0
 
 
 @requires_db

@@ -158,3 +158,34 @@ def test_no_panel_hardcodes_the_golden_grid_without_a_breakpoint():
         f"widths where the secondary column collapses: {offenders}. "
         "Use className=\"ui-golden-split\"."
     )
+
+
+def test_billing_detail_payment_targets_invoice_refreshes_detail_and_renders_real_amounts():
+    """The detail drawer must pay the invoice being viewed and show its new history."""
+
+    panel = (CMS_SRC_DIR / "panels" / "billing.jsx").read_text(encoding="utf-8")
+    start = panel.index("  const recordPayment = async () =>")
+    end = panel.index("\n  if (loading)", start)
+    payment = _code_only(panel[start:end])
+
+    assert "billingAccountId: detail.invoice.billing_account_id" in payment
+    assert "invoiceId: detail.invoice.id" in payment
+    assert "autoAllocate: true" in payment
+    assert "await load();" in payment
+    assert "const refreshed = await api(`/billing/invoices/${selectedId}`);" in payment
+    assert "setDetail(refreshed);" in payment
+
+    events_start = panel.index("                  const d = event.detail || {};")
+    events_end = panel.index("                })}", events_start)
+    events = _code_only(panel[events_start:events_end])
+    assert "d.amount_cents" in events
+    assert "amount > 0" in events
+    assert "d.balance_cents === undefined ? null" in events
+
+
+def test_billing_empty_state_describes_manual_invoice_creation_only():
+    panel = (CMS_SRC_DIR / "panels" / "billing.jsx").read_text(encoding="utf-8")
+
+    assert "还没有发票。点击“新建发票”创建草稿，复核后再开具。" in panel
+    assert "周期账单会自动生成草稿" not in panel
+    assert "周期账单一次生成几十张草稿" not in panel
