@@ -4,21 +4,22 @@
 
 These are three independent facts. A matching version label is not proof that
 the current source tree was packaged or deployed; Source, Package and
-Production remain separate rows. **v10.6.3 is committed; packaging and deploy are in progress** as of
-15 August 2026. v10.5.0 is deployed and verified; 10.6.0 exists as a separate
-number because 10.5.0 already identifies a build that is running.
+Production remain separate rows. **v10.6.3 is the current runtime baseline on
+`main`, in both release archives, and in production** as verified on 16 August
+2026. Documentation-only commits after the runtime baseline do not change the
+bytes in the checksum-verified archives or the deployed image.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.6.3 committed** | `VERSION` = **10.6.3**. Completes the audit backlog v10.5.0 started. Interface: form-control borders move to `--line-strong` (WCAG 2.1 SC 1.4.11 — `--line` measured 1.40:1 against `--panel`), inputs to 16px so iOS Safari stops zooming on focus, `.btn-sm` stops being declared twice with the second declaration undoing the 44px touch target, the selected preset card takes `--on-accent-soft` (the one contrast failure in 202 measured text nodes), the sticky save bar reserves clearance at every width rather than only under 768px, and both platform consoles carry `X-Robots-Tag`. Portfolio drawer: role colours stop being decoration — the consent panel's ground follows the consent status instead of showing success-green above a 未记录 badge, section headings take the neutral ramp, and the report button's info→success gradient goes. Growth report: `@page` removes the `about:blank` browser chrome from a document parents receive, the generated teacher's note is replaced by absence when no teacher wrote one, the chart starts at enrolment instead of four flat months before it, and the sheet commits to one language. Security: trusted-proxy handling corrected after verifying that every audit row on production recorded the Docker gateway — which also meant one shared login rate-limit bucket for the entire internet; constant-work added to the login miss path; ETag and caching on the two large public endpoints; and two guards that fail the build — one against connection pooling (which would break the `SET`-not-`SET LOCAL` tenant binding) and one against `var(--token, literal)` where the token is never defined, which caught `--ui-warning` the day it was written. FilterBar rolled from 2 call sites to 5 via a new `extra` slot that lets a page keep controls the four generic boxes cannot express. |
-| Package | **v10.5.0 built and verified; v10.6.0 not yet packaged** | The v10.5.0 bundles passed `verify_release_bundles.sh` — checksum, BUILD_INFO, entrypoint and exclusion checks. |
-| Production | **v10.5.0 deployed and verified** | Deployed 15 August 2026 from `PWE-StudioSaaS-aws-10.5.0.tar.gz`. No migrations. Deep health reports `appVersion=10.5.0`, `db=ok`, `tenants=6`, `themes.unreadable=0`, `workspaces.stale=0`, disk free 43.6 GB, from inside the container and again from the public edge. The nginx `gzip_types` line is host configuration and does NOT travel in the bundle: it was edited in place on the instance after a backup, `nginx -t` passed, and the reload was verified by response headers — `/assets/cms-app.js` now returns `content-encoding: gzip` at 149,379 bytes against 589,893 uncompressed. The tenant nav was checked by real input at 1920×1080: eight entries open across the header with the studio name beside the mark, and clicking "Courses & Classes" lands on the courses section. `document.title` and `og:title` are plain strings. |
+| Source | **v10.6.3 on `main`** | `VERSION` = **10.6.3**. Runtime baseline commit: `02e3d41a0b02b23da1d5ba6b0f2f34ee39471701`. The full PostgreSQL-required local release gate passed on 16 August 2026: legacy smoke **73/73** and tenant-isolation suite **237/237**. |
+| Package | **v10.6.3 built and verified** | SaaS: `PWE-StudioSaaS-aws-10.6.3.tar.gz`, SHA-256 `11a5e95c563a49ee3a8fdef31da9486b53239039006b68579a9275fc414041a5`. Edition: `PWE-Studio-Edition-10.6.3.tar.gz`, SHA-256 `cff9f7c326279930acc24fbfbc215fe35a02967335c8d09302ab3814173c752b`. Both `BUILD_INFO` files identify commit `02e3d41…`. |
+| Production | **v10.6.3 deployed and verified** | `/opt/pwestudio/current` resolves to `PWE-StudioSaaS-aws-10.6.3`; its `BUILD_INFO` identifies commit `02e3d41…`. Deep health reports `appVersion=10.6.3`, `db=ok`, `tenants=6`, `themes.unreadable=0`, `workspaces.stale=0`, and 43.52 GB disk free. |
 
 Re-verify the production health endpoint (`/v1/health?deep=1`) before any later
 release claim; do not infer Production from `VERSION` or from an archive
 filename, which does not identify the deployed commit. The
-deployed source commit is recorded in the Source row above and in the latest
-handoff, never inferred from the version label.
+deployed runtime commit is recorded in the table above and in the latest
+handoff, never inferred from the version label or a later documentation commit.
 
 ## v10.0.0 release scope
 
