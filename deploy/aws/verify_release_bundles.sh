@@ -91,4 +91,10 @@ EDITION_PREFIX="PWE-Studio-Edition-$VERSION"
 verify_bundle "dist/$SAAS_PREFIX.tar.gz" "saas" "$SAAS_PREFIX"
 verify_bundle "dist/$EDITION_PREFIX.tar.gz" "standalone" "$EDITION_PREFIX"
 
+# The repository tests run from a clean checkout. Archives need their own
+# bounded runtime smoke because they intentionally exclude Git metadata and
+# internal tooling such as `.claude/`.
+bash backend/scripts/smoke_release_archive.sh \
+  "dist/$SAAS_PREFIX.tar.gz" "dist/$EDITION_PREFIX.tar.gz"
+
 echo "Both v$VERSION bundles passed checksum, BUILD_INFO, entrypoint, and exclusion checks."

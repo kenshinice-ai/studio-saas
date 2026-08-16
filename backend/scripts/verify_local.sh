@@ -33,6 +33,13 @@ info() { echo -e "  ${YELLOW}ℹ️  $1${NC}"; }
 
 FAILURES=0
 
+# Keep the URL used by the application checks separate from the privileged URL
+# used by migration/media maintenance checks.  The deploy entrypoint removes
+# the migration URL before serving requests; this gate must test that same
+# boundary instead of allowing an owner URL to leak into pytest.
+APP_DATABASE_URL="${STUDIOSAAS_DATABASE_URL:-postgresql://$USER@localhost:5432/studiosaas_local_test}"
+MIGRATION_DATABASE_URL="${STUDIOSAAS_MIGRATION_DATABASE_URL:-$APP_DATABASE_URL}"
+
 echo "══════════════════════════════════════════════════════════════════"
 echo "  StudioSaaS Local Verification"
 echo "══════════════════════════════════════════════════════════════════"
@@ -172,7 +179,9 @@ if [ -x "$PYTHON" ]; then
     fi
 
     # Pytest unit/boundary suite (requires requirements-dev.txt installed)
-    if "$PYTHON" -m pytest -q --no-header -x "$SCRIPT_DIR/tests" >/dev/null 2>&1; then
+    if env -u STUDIOSAAS_MIGRATION_DATABASE_URL \
+        STUDIOSAAS_DATABASE_URL="$APP_DATABASE_URL" \
+        "$PYTHON" -m pytest -q --no-header -x "$SCRIPT_DIR/tests" >/dev/null 2>&1; then
         ok "pytest suite passes"
     else
         fail "pytest suite failed (run: cd backend && pytest -q)"
@@ -207,20 +216,26 @@ if [ -x "$PYTHON" ]; then
     if command -v psql >/dev/null 2>&1; then
         if psql -h localhost -U "$USER" -d studiosaas_local_test -c "SELECT 1" >/dev/null 2>&1; then
             info "PostgreSQL available — checking migrations and safe media derivatives..."
-            if STUDIOSAAS_DATABASE_URL="${STUDIOSAAS_DATABASE_URL:-postgresql://$USER@localhost:5432/studiosaas_local_test}" \
+            # The application role is intentionally not allowed to create or
+            # alter schema objects.  Release checks may therefore provide a
+            # separate owner URL, matching deploy/aws/entrypoint.sh.  Keep the
+            # app URL unchanged for pytest and tenant-isolation checks below.
+            if STUDIOSAAS_DATABASE_URL="$MIGRATION_DATABASE_URL" \
                 "$PYTHON" "$SCRIPT_DIR/scripts/run_migrations.py" --check >/dev/null 2>&1; then
                 ok "database migrations are current"
             else
                 fail "database has pending migrations"
             fi
-            if STUDIOSAAS_DATABASE_URL="${STUDIOSAAS_DATABASE_URL:-postgresql://$USER@localhost:5432/studiosaas_local_test}" \
+            if STUDIOSAAS_DATABASE_URL="$MIGRATION_DATABASE_URL" \
                 "$PYTHON" "$SCRIPT_DIR/scripts/backfill_media_variants.py" --check >/dev/null 2>&1; then
                 ok "all local image media has safe display/medium/thumbnail derivatives"
             else
                 fail "media derivative backfill is incomplete"
             fi
             info "Running tenant isolation tests..."
-            if "$PYTHON" "$SCRIPT_DIR/test_tenant_isolation.py" 2>&1; then
+            if env -u STUDIOSAAS_MIGRATION_DATABASE_URL \
+                STUDIOSAAS_DATABASE_URL="$APP_DATABASE_URL" \
+                "$PYTHON" "$SCRIPT_DIR/test_tenant_isolation.py" 2>&1; then
                 ok "Tenant isolation tests passed"
             else
                 fail "Tenant isolation tests failed (see output above)"

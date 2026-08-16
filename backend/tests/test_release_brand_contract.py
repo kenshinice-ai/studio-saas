@@ -22,7 +22,7 @@ def test_readme_separates_source_package_and_production() -> None:
     assert f"`VERSION` = **{VERSION}**" in readme
     assert "/v1/health?deep=1" in readme
     assert "infer Production from `VERSION`" in readme
-    assert "deployed source commit" in readme
+    assert "deployed runtime commit" in readme
     assert "does not identify the deployed commit" in readme
 
 
@@ -56,6 +56,6 @@ def test_brand_prompt_injection_defaults_to_the_canonical_document() -> None:
     """Compatibility tooling must read the authority, not a possibly stale copy."""
 
     script = (
-        REPOSITORY_ROOT / ".agents/skills/brand/scripts/inject-brand-context.cjs"
+        REPOSITORY_ROOT / ".claude/skills/brand/scripts/inject-brand-context.cjs"
     ).read_text(encoding="utf-8")
     assert 'DEFAULT_GUIDELINES_PATH = "docs/design/Brand_Identity.md"' in script
