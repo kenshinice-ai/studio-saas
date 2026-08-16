@@ -16,7 +16,7 @@
 import { aud, fmtApiDate } from "./_shared.jsx";
 import { FilterBar, presetRange } from "./filter_bar.jsx";
 
-const { useState, useEffect, useCallback, useMemo } = React;
+const { useState, useEffect, useCallback, useMemo, useRef } = React;
 
 const STATUS_LABEL = {
   draft: '草稿', issued: '已开具', part_paid: '部分付款', paid: '已付清', void: '已作废',
@@ -58,7 +58,8 @@ function Kpi({ label, value, sub, tone }) {
   );
 }
 
-export function BillingPanel({ api, showToast, canIssue, canTakePayment, accountId, onClearAccount }) {
+export function BillingPanel({ api, showToast, canIssue, canTakePayment, canExportData, tenantSlug,
+  accountId, onClearAccount, students, studentPicker }) {
   const [invoices, setInvoices] = useState([]);
   const [selectedId, setSelectedId] = useState('');
   const [detail, setDetail] = useState(null);
@@ -146,7 +147,7 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, account
             /* 课时充值走 source_kind='package' 并带上学员：两本账各自
                记各自的，发票行只是「这笔充值是被这张单收的钱」的指路牌。
                谁也不改谁。 */
-            sourceKind: line.isCredits ? 'package' : 'manual',
+            sourceKind: line.sourceKind || 'manual',
             studentId: line.studentId || null,
           }),
         });
@@ -184,6 +185,22 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, account
       count: invoices.filter(i => Number(i.balance_cents) > 0 && i.status !== 'draft').length },
     { key: 'draft', label: '草稿', count: invoices.filter(i => i.status === 'draft').length },
   ], [invoices]);
+
+  const exportCsv = view => {
+    if (!canExportData || !tenantSlug) return;
+    const params = new URLSearchParams({view, includeDrafts: '0'});
+    if (range.start) params.set('from', range.start);
+    if (range.end) params.set('to', range.end);
+    if (accountId) params.set('accountId', accountId);
+    const link = document.createElement('a');
+    link.href = `/s/${encodeURIComponent(tenantSlug)}/v1/billing/invoices/export.csv?${params.toString()}`;
+    link.download = `invoices-${view}.csv`;
+    link.rel = 'noopener';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    showToast(view === 'summary' ? '发票汇总 CSV 已开始下载' : '发票行项目 CSV 已开始下载', 'success');
+  };
 
   const checkedDrafts = useMemo(
     () => draftIds.filter(id => checked.has(id)),
@@ -250,6 +267,16 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, account
     }
   };
 
+  const printInvoice = () => {
+    if (!detail) return;
+    const cleanup = () => document.body.classList.remove('invoice-print-mode');
+    document.body.classList.add('invoice-print-mode');
+    window.addEventListener('afterprint', cleanup, {once: true});
+    window.print();
+    /* WebKit can omit afterprint when the operator cancels immediately. */
+    window.setTimeout(cleanup, 1500);
+  };
+
   if (loading) return <div className="p-6 text-sm text-gray-500">正在加载账单…</div>;
   if (error) return <div className="p-6 text-sm text-red-600">{error}</div>;
 
@@ -258,7 +285,7 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, account
       {/* 深链进来时列表是筛过的，必须说出来。一个看不见的筛选条件，就是
           「为什么账单里只有三张发票」这通电话。 */}
       {creating && (
-        <NewInvoiceDialog accounts={accounts} busy={busy}
+        <NewInvoiceDialog api={api} accounts={accounts} students={students} studentPicker={studentPicker} busy={busy}
                           onClose={() => setCreating(false)} onSubmit={createInvoice} />
       )}
       {accountId && (
@@ -292,11 +319,24 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, account
             buckets={buckets} bucket={bucket} onBucket={setBucket}
             total={visible.length} totalNoun="张" />
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden min-w-0">
-          <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-200">
+          <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-gray-200">
             <span className="text-xs font-bold">发票</span>
+            {canExportData && (
+              <div className="ml-auto flex flex-wrap items-center gap-2">
+                <span className="text-[11px] text-gray-500">会计导出不含草稿 · 当前筛选范围</span>
+                <button type="button" onClick={() => exportCsv('summary')}
+                        className="min-h-[44px] px-3 rounded-lg border border-gray-200 bg-white text-xs font-bold text-gray-700">
+                  发票汇总 CSV
+                </button>
+                <button type="button" onClick={() => exportCsv('lines')}
+                        className="min-h-[44px] px-3 rounded-lg border border-gray-200 bg-white text-xs font-bold text-gray-700">
+                  行项目 CSV
+                </button>
+              </div>
+            )}
             {canIssue && checkedDrafts.length === 0 && (
               <button type="button" onClick={() => setCreating(true)}
-                      className="ml-auto min-h-[44px] px-3 rounded-lg border border-indigo-200 bg-white text-xs font-bold text-indigo-700">
+                      className={`${canExportData ? '' : 'ml-auto '}min-h-[44px] px-3 rounded-lg border border-indigo-200 bg-white text-xs font-bold text-indigo-700`}>
                 新建发票
               </button>
             )}
@@ -340,7 +380,7 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, account
         </div>
         </div>
 
-        <div className="grid gap-3 min-w-0">
+        <div className="invoice-printable grid gap-3 min-w-0">
           {!detail ? (
             <div className="bg-white border border-gray-200 rounded-xl p-6 text-xs text-gray-500">
               选择左边的一张发票查看明细。
@@ -404,6 +444,12 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, account
                       <span className="ml-auto tabular-nums">−{aud(detail.invoice.amount_paid_cents)}</span>
                     </div>
                   )}
+                  {Number(detail.invoice.amount_credited_cents) > 0 && (
+                    <div className="flex items-baseline gap-3 text-indigo-700">
+                      <span>已贷记</span>
+                      <span className="ml-auto tabular-nums">−{aud(detail.invoice.amount_credited_cents)}</span>
+                    </div>
+                  )}
                   <div className="flex items-baseline gap-3 font-bold">
                     <span>余额</span>
                     <span className="ml-auto tabular-nums">{aud(detail.invoice.balance_cents)}</span>
@@ -432,6 +478,12 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, account
                         登记收款
                       </button>
                     )}
+                    {detail.invoice.status !== 'draft' && (
+                      <button type="button" onClick={printInvoice}
+                              className="no-print min-h-[44px] px-3 rounded-lg border border-gray-200 bg-white text-xs font-bold text-gray-700">
+                        打印 / 存为 PDF
+                      </button>
+                    )}
                     {/* 已开具的发票不可改 —— 这是数据库触发器保证的。给一个点了会报错的
                         按钮比不给更糟，所以这里明确说明它为什么不在。 */}
                     {detail.invoice.status !== 'draft' && (
@@ -442,6 +494,22 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, account
                   </div>
                 </div>
               </div>
+
+              {(detail.creditNotes || []).length > 0 && (
+                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                  <div className="px-4 py-3 border-b border-gray-200 text-xs font-bold">关联贷记单与退款</div>
+                  {(detail.creditNotes || []).map(note => (
+                    <div key={note.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-4 py-2 border-b border-gray-100 last:border-0 text-[11px]">
+                      <span className="font-bold">{note.number || '贷记单草稿'}</span>
+                      <span>{note.status === 'issued' ? '已开具' : note.status}</span>
+                      <span className="tabular-nums">−{aud(note.total_cents)}</span>
+                      {note.refund_id && <span className="text-green-700">已退款 {aud(note.refunded_cents)}</span>}
+                      {note.payment_status && <span className="text-gray-500">付款：{note.payment_status}</span>}
+                      {note.reason && <span className="text-gray-500 truncate">{note.reason}</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
                 <div className="px-4 py-3 border-b border-gray-200 text-xs font-bold">这张单发生过什么</div>
@@ -456,7 +524,8 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, account
                   const LABEL = {
                     issued: '已开具', sent: '已送达', part_paid: '部分付款',
                     paid: '已付清', refunded: '已退款', voided: '已作废',
-                    overdue: '已逾期', xero_pushed: '已推送 Xero',
+                    overdue: '已逾期', credited: '已贷记', credit_settled: '充值已结算',
+                    xero_pushed: '已推送 Xero',
                   };
                   const d = event.detail || {};
                   const amount = Number(d.amount_cents || 0);
@@ -480,58 +549,387 @@ export function BillingPanel({ api, showToast, canIssue, canTakePayment, account
 }
 
 
-/* 新建发票。刻意只到「草稿」为止 —— 开具是另一个动作，因为开具会分配
-   永久号码、按付款条件算到期日、并让金额从此不可改。把两件事合成一个
-   按钮，就等于把「我先记一下」和「这份文件已经生效」混为一谈。 */
-function NewInvoiceDialog({ accounts, busy, onClose, onSubmit }) {
-  const [accountId, setAccountId] = useState('');
+/* A single payer picker for both invoice and (later) settlement entry points.
+   Students are service subjects; this component only resolves the tenant-scoped
+   billing account that receives the document. */
+export function BillingAccountPicker({
+  api, accounts, students = [], studentPicker, value, onStateChange,
+  payerError, onPayerError, initialStudentId = '', hideStudentSelector = false,
+}) {
+  const StudentPicker = studentPicker;
+  const payerErrorRef = useRef(null);
+  const [mode, setMode] = useState('student');
+  const [studentId, setStudentId] = useState(initialStudentId || '');
+  const [studentPayers, setStudentPayers] = useState([]);
+  const [studentSuggestion, setStudentSuggestion] = useState(null);
+  const [studentLoading, setStudentLoading] = useState(false);
+  const [query, setQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [creating, setCreating] = useState(false);
+  const [kind, setKind] = useState('person');
+  const [fields, setFields] = useState({
+    name: '', contactName: '', email: '', mobile: '', companyName: '', abn: '',
+    billingAddress: '', paymentTermsDays: '14', purchaseOrderRef: '', language: 'en', note: '',
+  });
+  const [linkedStudentIds, setLinkedStudentIds] = useState([]);
+
+  const setField = key => e => setFields(prev => ({...prev, [key]: e.target.value}));
+  const selectedStudent = students.find(student => String(student.id) === String(studentId));
+
+  useEffect(() => {
+    if (initialStudentId === undefined) return;
+    setMode('student');
+    setStudentId(initialStudentId || '');
+    setQuery('');
+    setCreating(false);
+    setLinkedStudentIds(initialStudentId ? [initialStudentId] : []);
+  }, [initialStudentId]);
+
+  useEffect(() => {
+    if (payerError && payerErrorRef.current) payerErrorRef.current.focus();
+  }, [payerError]);
+
+  useEffect(() => {
+    if (mode !== 'student' || !studentId) {
+      setStudentPayers([]);
+      setStudentSuggestion(null);
+      setStudentLoading(false);
+      if (mode === 'student') onStateChange({mode, accountId: '', createPayload: null, linkedStudentIds: []});
+      return undefined;
+    }
+    let alive = true;
+    setStudentLoading(true);
+    onPayerError('');
+    api(`/billing/accounts?studentId=${encodeURIComponent(studentId)}&limit=100`)
+      .then(data => {
+        if (!alive) return;
+        const payers = data.accounts || [];
+        setStudentPayers(payers);
+        setStudentSuggestion(data.suggestedPayer || null);
+        if (payers.length === 1) onStateChange({mode, accountId: String(payers[0].id), createPayload: null, linkedStudentIds: [studentId]});
+        else if (!payers.some(payer => String(payer.id) === String(value))) onStateChange({mode, accountId: '', createPayload: null, linkedStudentIds: []});
+      })
+      .catch(error => { if (alive) onPayerError(`付款方加载失败：${error.message}`); })
+      .finally(() => { if (alive) setStudentLoading(false); });
+    return () => { alive = false; };
+  }, [api, mode, studentId]);
+
+  useEffect(() => {
+    if (mode !== 'custom' || !query.trim()) {
+      setSearchResults([]);
+      return undefined;
+    }
+    let alive = true;
+    const timer = setTimeout(() => {
+      api(`/billing/accounts?q=${encodeURIComponent(query.trim())}&limit=50`)
+        .then(data => { if (alive) setSearchResults(data.accounts || []); })
+        .catch(error => { if (alive) onPayerError(`付款方搜索失败：${error.message}`); });
+    }, 180);
+    return () => { alive = false; clearTimeout(timer); };
+  }, [api, mode, query]);
+
+  const createPayload = useMemo(() => {
+    if (mode === 'student') {
+      if (!studentId || studentPayers.length > 0) return null;
+      const suggestion = studentSuggestion || {
+        name: selectedStudent?.name || '', contactName: '', email: '', mobile: '',
+      };
+      if (!String(suggestion.name || '').trim()) return null;
+      return {
+        kind: 'family', name: suggestion.name, contactName: suggestion.contactName || '',
+        email: suggestion.email || '', mobile: suggestion.mobile || '', studentId,
+      };
+    }
+    if (!creating) return null;
+    /* An organisation's legal/display name is its company name. Keep an
+       optional contact separate so a contact cannot become the invoice
+       recipient identity by accident. */
+    const displayName = String(kind === 'organisation' ? fields.companyName : fields.name).trim();
+    if (!displayName) return null;
+    return {
+      ...fields,
+      name: displayName,
+      contactName: kind === 'organisation'
+        ? String(fields.contactName || fields.name).trim()
+        : fields.contactName,
+      kind,
+      studentIds: linkedStudentIds,
+    };
+  }, [mode, studentId, studentPayers, studentSuggestion, selectedStudent, creating, kind, fields, linkedStudentIds]);
+
+  useEffect(() => {
+    onStateChange({
+      mode,
+      accountId: mode === 'student' && studentPayers.length === 1
+        ? String(studentPayers[0].id) : String(value || ''),
+      createPayload,
+      linkedStudentIds: mode === 'student' ? (studentId ? [studentId] : []) : linkedStudentIds,
+    });
+  }, [mode, value, studentId, studentPayers, linkedStudentIds, createPayload]);
+
+  const chooseMode = nextMode => {
+    setMode(nextMode);
+    onPayerError('');
+    setCreating(false);
+    setQuery('');
+    setLinkedStudentIds([]);
+    if (nextMode === 'student') onStateChange({mode: nextMode, accountId: '', createPayload: null, linkedStudentIds: []});
+  };
+
+  const visibleAccounts = query.trim() ? searchResults : accounts.slice(0, 20);
+  const selectedPayer = [...accounts, ...studentPayers, ...searchResults]
+    .find(payer => String(payer.id) === String(value));
+
+  return (
+    <fieldset className="space-y-2" aria-describedby="billing-account-help">
+      <legend className="block text-xs font-bold text-gray-600">开给谁</legend>
+      <p id="billing-account-help" className="text-[11px] text-gray-500">
+        学员是服务对象；付款方是发票收件人。两条入口最终都选择同一个付款方记录。
+      </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+        <button type="button" onClick={() => chooseMode('student')}
+                aria-pressed={mode === 'student'}
+                className={`min-h-[44px] rounded-xl border text-sm font-bold ${mode === 'student' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 bg-white text-gray-700'}`}>
+          已有学员
+        </button>
+        <button type="button" onClick={() => chooseMode('custom')}
+                aria-pressed={mode === 'custom'}
+                className={`min-h-[44px] rounded-xl border text-sm font-bold ${mode === 'custom' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 bg-white text-gray-700'}`}>
+          其他个人或机构
+        </button>
+      </div>
+
+      {mode === 'student' && (
+        <div className="space-y-2 rounded-xl border border-gray-200 p-3">
+          {!hideStudentSelector && StudentPicker ? (
+            <StudentPicker students={students} value={studentId || null}
+              onChange={next => { setStudentId(next || ''); onStateChange({mode, accountId: '', createPayload: null, linkedStudentIds: next ? [next] : []}); }}
+              placeholder="搜索并选择学员" showBal={false} />
+          ) : !hideStudentSelector ? (
+            <select value={studentId} onChange={event => setStudentId(event.target.value)}
+                    aria-label="选择学员" className="w-full min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm">
+              <option value="">请选择学员</option>
+              {students.map(student => <option key={student.id} value={student.id}>{student.name}</option>)}
+            </select>
+          ) : (
+            <p className="text-xs text-gray-600">当前学员：<strong>{selectedStudent?.name || '—'}</strong>；下面只选择这次发票的付款方。</p>
+          )}
+          {studentLoading && <p className="text-[11px] text-gray-500">正在查询该学员的付款方…</p>}
+          {!studentLoading && studentId && studentPayers.length === 0 && (
+            <div className="space-y-2 rounded-lg bg-amber-50 border border-amber-100 p-3">
+              <p className="text-xs font-bold text-amber-900">这个学员还没有付款方</p>
+              <p className="text-[11px] text-amber-800">可以从资料预填创建，但保存前请人工复核付款方姓名和联系方式。</p>
+              <p className="text-[11px] text-gray-600">预填：{studentSuggestion?.name || selectedStudent?.name || '—'}</p>
+            </div>
+          )}
+          {!studentLoading && studentPayers.length > 0 && (
+            <label className="block text-xs text-gray-500">已关联付款方（{studentPayers.length} 个，必须明确选择）
+              <select value={value || ''} onChange={event => onStateChange({mode, accountId: event.target.value, createPayload: null, linkedStudentIds: [studentId]})}
+                      aria-describedby="billing-account-payer-help"
+                      className="block w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm">
+                <option value="">请选择付款方</option>
+                {studentPayers.map(payer => <option key={payer.id} value={payer.id}>{payer.name} · {payer.kind}</option>)}
+              </select>
+              <span id="billing-account-payer-help" className="block mt-1 text-[11px] text-gray-400">
+                {studentPayers.length === 1 ? `已默认选中：${studentPayers[0].name}` : '有多个付款方时不会自动猜测或合并。'}
+              </span>
+            </label>
+          )}
+        </div>
+      )}
+
+      {mode === 'custom' && (
+        <div className="space-y-2 rounded-xl border border-gray-200 p-3">
+          <label className="block text-xs text-gray-500">先搜索已有付款方
+            <input value={query} onChange={event => { setQuery(event.target.value); onPayerError(''); }}
+                   placeholder="姓名、机构、邮箱、电话或 ABN" aria-label="搜索已有付款方"
+                   className="block w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm" />
+          </label>
+          {visibleAccounts.length > 0 && (
+            <div className="max-h-40 overflow-y-auto rounded-lg border border-gray-100">
+              {visibleAccounts.map(payer => (
+                <button key={payer.id} type="button" onClick={() => { onStateChange({mode, accountId: String(payer.id), createPayload: null, linkedStudentIds}); setCreating(false); }}
+                        className={`w-full min-h-[44px] px-3 text-left text-sm border-b border-gray-100 last:border-0 ${String(payer.id) === String(value) ? 'bg-indigo-50' : 'bg-white hover:bg-gray-50'}`}>
+                  <span className="font-bold">{payer.name}</span>
+                  <span className="ml-2 text-[11px] text-gray-500">{payer.kind}{payer.email ? ` · ${payer.email}` : ''}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          {selectedPayer && !creating && <p className="text-xs text-indigo-700">已选付款方：{selectedPayer.name}</p>}
+          <button type="button" onClick={() => { setCreating(true); onStateChange({mode, accountId: '', createPayload: null, linkedStudentIds}); }}
+                  className="min-h-[44px] px-3 rounded-xl border border-indigo-200 bg-white text-xs font-bold text-indigo-700">
+            新建个人或机构付款方
+          </button>
+          {creating && (
+            <div className="space-y-2 border-t border-gray-100 pt-2">
+              <label className="block text-xs text-gray-500">类型
+                <select value={kind} onChange={event => setKind(event.target.value)}
+                        className="block w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm">
+                  <option value="person">个人</option>
+                  <option value="organisation">机构</option>
+                  <option value="family">个人/家庭（兼容旧类型）</option>
+                </select>
+              </label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <label className="block text-xs text-gray-500">{kind === 'organisation' ? '联系人姓名（可选）' : '姓名'}
+                  <input value={kind === 'organisation' ? fields.contactName : fields.name}
+                         onChange={setField(kind === 'organisation' ? 'contactName' : 'name')}
+                         aria-describedby="billing-payer-name-error"
+                         className="block w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm" />
+                </label>
+                {kind === 'organisation' && (
+                  <label className="block text-xs text-gray-500">机构名称
+                    <input value={fields.companyName} onChange={setField('companyName')}
+                           className="block w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm" />
+                  </label>
+                )}
+                {kind !== 'organisation' && (
+                  <label className="block text-xs text-gray-500">联系人（可选）
+                    <input value={fields.contactName} onChange={setField('contactName')}
+                           className="block w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm" />
+                  </label>
+                )}
+                <label className="block text-xs text-gray-500">邮箱
+                  <input type="email" value={fields.email} onChange={setField('email')}
+                         className="block w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm" />
+                </label>
+                <label className="block text-xs text-gray-500">电话
+                  <input value={fields.mobile} onChange={setField('mobile')}
+                         className="block w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm" />
+                </label>
+                <label className="block text-xs text-gray-500">ABN（可选）
+                  <input value={fields.abn} onChange={setField('abn')}
+                         className="block w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm" />
+                </label>
+              </div>
+              <label className="block text-xs text-gray-500">账单地址（可选）
+                <input value={fields.billingAddress} onChange={setField('billingAddress')}
+                       className="block w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm" />
+              </label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                <label className="block text-xs text-gray-500">付款期限（天）
+                  <input type="number" min="0" max="3650" value={fields.paymentTermsDays}
+                         onChange={setField('paymentTermsDays')}
+                         className="block w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm" />
+                </label>
+                <label className="block text-xs text-gray-500">PO reference（可选）
+                  <input value={fields.purchaseOrderRef} onChange={setField('purchaseOrderRef')}
+                         className="block w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm" />
+                </label>
+                <label className="block text-xs text-gray-500">语言
+                  <select value={fields.language} onChange={setField('language')}
+                          className="block w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm">
+                    <option value="en">English</option>
+                    <option value="zh">中文</option>
+                  </select>
+                </label>
+              </div>
+              <label className="block text-xs text-gray-500">可选关联服务对象（0..N）
+                <select multiple value={linkedStudentIds} onChange={event => setLinkedStudentIds(Array.from(event.target.selectedOptions, option => option.value))}
+                        aria-label="可选关联服务对象" className="block w-full mt-1 min-h-[88px] px-3 border border-gray-200 rounded-xl text-sm">
+                  {students.map(student => <option key={student.id} value={student.id}>{student.name}</option>)}
+                </select>
+              </label>
+            </div>
+          )}
+        </div>
+      )}
+      {payerError && <p id="billing-payer-name-error" ref={payerErrorRef} tabIndex="-1" role="alert" className="text-xs text-red-600">{payerError}</p>}
+    </fieldset>
+  );
+}
+
+/* New invoice: save a draft only. Issuing is a separate action because it
+   allocates a permanent number and freezes the document identity. */
+function NewInvoiceDialog({ api, accounts, students = [], studentPicker, busy, onClose, onSubmit }) {
+  const Picker = studentPicker;
+  const payerErrorRef = useRef(null);
+  const [payerState, setPayerState] = useState({accountId: '', createPayload: null, linkedStudentIds: [], mode: 'student'});
+  const [payerError, setPayerError] = useState('');
   const [note, setNote] = useState('');
   const [lines, setLines] = useState([
-    {description: '', quantity: '1', unitPrice: '', taxRateBp: '1000', isCredits: false, studentId: ''},
+    {description: '', quantity: '1', unitPrice: '', taxRateBp: '1000', sourceKind: 'manual', studentId: ''},
   ]);
 
   const setLine = (i, key) => (e) => setLines(rows =>
     rows.map((row, idx) => idx === i ? {...row, [key]: e.target.value} : row));
-  const toggleCredits = (i) => () => setLines(rows =>
-    rows.map((row, idx) => idx === i ? {...row, isCredits: !row.isCredits} : row));
-
   const total = lines.reduce((sum, line) => {
     const net = Number(line.quantity || 0) * Number(line.unitPrice || 0);
     return sum + net + net * (Number(line.taxRateBp || 0) / 10000);
   }, 0);
+  const payerReady = Boolean(payerState.accountId || payerState.createPayload);
+  const ready = payerReady && lines.some(l => l.description.trim() && Number(l.unitPrice) > 0);
 
-  const ready = accountId && lines.some(l => l.description.trim() && Number(l.unitPrice) > 0);
+  useEffect(() => {
+    if (payerError && payerErrorRef.current) payerErrorRef.current.focus();
+  }, [payerError]);
+
+  useEffect(() => {
+    const closeOnEscape = event => {
+      if (event.key === 'Escape' && !busy) onClose();
+    };
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
+  }, [busy, onClose]);
+
+  const submit = async () => {
+    setPayerError('');
+    try {
+      let accountId = payerState.accountId;
+      if (!accountId && payerState.createPayload) {
+        const payload = {...payerState.createPayload};
+        if (payload.studentId) delete payload.studentIds;
+        const created = await api('/billing/accounts', {
+          method: 'POST', body: JSON.stringify(payload),
+        });
+        accountId = String(created.account?.id || '');
+      }
+      if (!accountId) {
+        setPayerError('请选择或创建付款方。');
+        return;
+      }
+      if (payerState.mode === 'custom' && payerState.linkedStudentIds.length) {
+        await api(`/billing/accounts/${accountId}/members`, {
+          method: 'POST', body: JSON.stringify({studentIds: payerState.linkedStudentIds}),
+        });
+      }
+      await onSubmit({accountId, note, lines});
+    } catch (error) {
+      /* Keep payer fields, note, and line items in place so a validation/network
+         failure is recoverable rather than forcing the operator to start over. */
+      setPayerError(error.message || '付款方保存失败，请检查输入后重试。');
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center sm:p-4 backdrop-blur-sm">
-      <div className="bg-white w-full sm:max-w-xl rounded-t-2xl sm:rounded-2xl p-5 space-y-3 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white w-full sm:max-w-xl rounded-t-2xl sm:rounded-2xl p-5 space-y-3 max-h-[90vh] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="new-invoice-title">
         <div>
-          <p className="text-lg font-bold text-gray-800">新建发票</p>
+          <p id="new-invoice-title" className="text-lg font-bold text-gray-800">新建发票</p>
           <p className="text-sm text-gray-500 mt-1">
             先存成草稿。复核无误后在列表里开具 —— 开具会定号码和到期日，之后金额不能再改。
           </p>
         </div>
 
-        <label className="block text-xs text-gray-400">付款方
-          <select value={accountId} onChange={e => setAccountId(e.target.value)}
-                  className="block w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm">
-            <option value="">请选择</option>
-            {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-          </select>
-        </label>
+        <BillingAccountPicker api={api} accounts={accounts} students={students} studentPicker={Picker}
+          value={payerState.accountId} onStateChange={setPayerState}
+          payerError={payerError} onPayerError={setPayerError} />
 
         <div className="space-y-2">
           {lines.map((line, i) => (
             <div key={i} className="border border-gray-200 rounded-xl p-3 space-y-2">
-              <input value={line.description} onChange={setLine(i, 'description')}
-                     placeholder="项目说明，例如「第三学期学费」"
-                     className="w-full min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm" />
-              <div className="grid grid-cols-3 gap-2">
+              <label className="block text-xs text-gray-500">项目说明
+                <input value={line.description} onChange={setLine(i, 'description')}
+                       placeholder="例如「第三学期学费」" aria-describedby={`invoice-line-${i}-help`}
+                       className="w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm" />
+              </label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                 <label className="block text-xs text-gray-400">数量
                   <input type="number" min="0" step="0.01" value={line.quantity} onChange={setLine(i, 'quantity')}
                          className="block w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm" />
                 </label>
-                <label className="block text-xs text-gray-400">单价（含税前）
+                <label className="block text-xs text-gray-400">单价（未税）
                   <input type="number" min="0" step="0.01" value={line.unitPrice} onChange={setLine(i, 'unitPrice')}
                          className="block w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm" />
                 </label>
@@ -543,24 +941,42 @@ function NewInvoiceDialog({ accounts, busy, onClose, onSubmit }) {
                   </select>
                 </label>
               </div>
-              {/* 与「充值与退款」的联动就在这一行：勾上之后这条发票行会以
-                  source_kind='package' 落库，课时账本与钱账本各记各的，
-                  发票行只负责说明这笔钱收的是什么。 */}
-              <label className="flex items-center gap-2 text-xs text-gray-600">
-                <input type="checkbox" checked={line.isCredits} onChange={toggleCredits(i)} />
-                这一行是课时充值（与「充值与退款」对应）
+              <label className="block text-xs text-gray-400">收入分类
+                <select value={line.sourceKind} onChange={setLine(i, 'sourceKind')}
+                        className="block w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm">
+                  <option value="manual">手工收入</option>
+                  <option value="package">课包/课时收入（仅分类）</option>
+                </select>
+              </label>
+              <label className="block text-xs text-gray-400">服务对象（可选）
+                {Picker ? (
+                  <div className="mt-1">
+                    <Picker students={students} value={line.studentId || null}
+                      onChange={value => setLines(rows => rows.map((row, idx) => idx === i ? {...row, studentId: value || ''} : row))}
+                      placeholder="搜索并选择学员（仅报告归属）" showBal={false} />
+                  </div>
+                ) : (
+                  <select value={line.studentId} onChange={setLine(i, 'studentId')}
+                          className="block w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm">
+                    <option value="">不关联学员</option>
+                    {students.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                )}
+                <span id={`invoice-line-${i}-help`} className="block mt-1 text-[11px] text-gray-400">只表达收入报告归属，不改变课时余额；未选择时发送 null。</span>
               </label>
             </div>
           ))}
           <button type="button"
-                  onClick={() => setLines(rows => [...rows, {description: '', quantity: '1', unitPrice: '', taxRateBp: '1000', isCredits: false, studentId: ''}])}
+                  onClick={() => setLines(rows => [...rows, {description: '', quantity: '1', unitPrice: '', taxRateBp: '1000', sourceKind: 'manual', studentId: ''}])}
                   className="min-h-[44px] px-3 rounded-xl border border-gray-200 bg-white text-xs font-bold text-gray-700">
             再加一行
           </button>
         </div>
 
-        <input value={note} onChange={e => setNote(e.target.value)} placeholder="备注（选填）"
-               className="w-full min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm" />
+        <label className="block text-xs text-gray-500">备注（选填）
+          <input value={note} onChange={e => setNote(e.target.value)}
+                 className="w-full mt-1 min-h-[44px] px-3 border border-gray-200 rounded-xl text-sm" />
+        </label>
 
         <p className="text-sm text-gray-500">合计约 {aud(Math.round(total * 100))}（含税）</p>
 
@@ -569,7 +985,7 @@ function NewInvoiceDialog({ accounts, busy, onClose, onSubmit }) {
                   className="flex-1 min-h-[44px] rounded-xl border border-gray-200 bg-white text-sm font-bold text-gray-700 disabled:opacity-50">
             取消
           </button>
-          <button type="button" onClick={() => onSubmit({accountId, note, lines})} disabled={busy || !ready}
+          <button type="button" onClick={submit} disabled={busy || !ready}
                   className="flex-1 min-h-[44px] rounded-xl bg-indigo-600 text-white text-sm font-bold disabled:opacity-50">
             存为草稿
           </button>

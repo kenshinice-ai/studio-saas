@@ -5,7 +5,7 @@
  * legacy-root/index.html actually loads — do not edit it by hand.
  */
 
-import { BillingPanel } from "./panels/billing.jsx";
+import { BillingPanel, BillingAccountPicker } from "./panels/billing.jsx";
 import { FinancePanel } from "./panels/finance.jsx";
 import { IntegrationsPanel } from "./panels/integrations.jsx";
 import { BillingIdentityPanel } from "./panels/billing_identity.jsx";
@@ -1254,10 +1254,29 @@ function App() {
     const [rfCr, setRfCr] = useState('');
     const [rfAmt, setRfAmt] = useState('');
     const [rfReason, setRfReason] = useState('');
+    const [rfSourceId, setRfSourceId] = useState('');
+    const [refundSources, setRefundSources] = useState([]);
+    const [refundSourcesBusy, setRefundSourcesBusy] = useState(false);
+    const [refundSourceError, setRefundSourceError] = useState('');
+    const [rfAdjustDocuments, setRfAdjustDocuments] = useState(false);
     const [tuCr,  setTuCr]  = useState('');
     const [tuFee, setTuFee] = useState('');
     const [tuPkg, setTuPkg] = useState('');
     const [tuPay, setTuPay] = useState('微信');
+    /* v10.7 settlement controls: the legacy credits-only path remains the
+       default; these states only become visible for tenant money operations. */
+    const [tuCreateInvoice, setTuCreateInvoice] = useState(false);
+    const [tuPaymentReceived, setTuPaymentReceived] = useState(true);
+    const [settlementAccounts, setSettlementAccounts] = useState([]);
+    const [settlementTaxCodes, setSettlementTaxCodes] = useState([]);
+    const [settlementPayerState, setSettlementPayerState] = useState({
+        mode: 'student', accountId: '', createPayload: null, linkedStudentIds: [],
+    });
+    const [settlementPayerError, setSettlementPayerError] = useState('');
+    const settlementResolvedAccountRef = useRef('');
+    const settlementPayerIntentRef = useRef('');
+    const settlementRequestRef = useRef({signature: '', id: ''});
+    const refundRequestRef = useRef({signature: '', id: ''});
 
     // Logs tab
     const [lSrch,     setLSrch]     = useState('');
@@ -1306,6 +1325,8 @@ function App() {
     const canViewFinancialAnalytics = [...ownerRoles,'manager'].includes(actorRole);
     const canWriteStudents = [...ownerRoles,'manager','front_desk','staff'].includes(actorRole);
     const canWriteCredits = [...ownerRoles,'manager','front_desk','staff'].includes(actorRole);
+    const canUseSettlementBilling = TENANT_SLUG && ['owner','manager','front_desk','platform_super_admin','super_admin'].includes(actorRole);
+    const canRegisterSettlementPayment = TENANT_SLUG && ['owner','manager','front_desk','platform_super_admin','super_admin'].includes(actorRole);
     const canWritePortfolio = [...ownerRoles,'manager','teacher','staff'].includes(actorRole);
     /* Mirrors backend progress_reports:* — the teacher who taught the term
        writes the report, and someone senior releases it to the family. That
@@ -1326,6 +1347,7 @@ function App() {
     const canReviewBookings = [...ownerRoles,'manager','front_desk','staff'].includes(actorRole);
     /* Mirrors backend credits:refund — refunds are owner/manager only. */
     const canRefund = [...ownerRoles,'manager'].includes(actorRole);
+    const canSyncRefund = TENANT_SLUG && ['owner','manager','platform_super_admin','super_admin'].includes(actorRole);
     /* Mirrors backend portfolio:share — share-link creation is owner/manager only. */
     const canViewCmsNotifications = ['owner','manager','front_desk','staff','platform_super_admin','super_admin'].includes(actorRole);
 
@@ -1343,6 +1365,44 @@ function App() {
         syncBrand();
         return () => window.removeEventListener('studiosaas:brand', syncBrand);
     }, []);
+
+    useEffect(() => {
+        if (!canUseSettlementBilling || tab !== 'topup') return undefined;
+        let alive = true;
+        Promise.all([
+            v1Api('/billing/accounts?limit=100').catch(() => ({accounts: []})),
+            v1Api('/billing/tax-codes').catch(() => ({taxCodes: []})),
+        ]).then(([accountsData, taxData]) => {
+            if (!alive) return;
+            setSettlementAccounts(accountsData.accounts || []);
+            setSettlementTaxCodes((taxData.taxCodes || []).filter(code => code.is_active !== false));
+        });
+        return () => { alive = false; };
+    }, [canUseSettlementBilling, tab]);
+
+    useEffect(() => {
+        if (!TENANT_SLUG || settleMode !== 'refund' || !tuStu || !canRefund) {
+            setRefundSources([]);
+            setRefundSourcesBusy(false);
+            setRefundSourceError('');
+            setRfSourceId('');
+            setRfAdjustDocuments(false);
+            return undefined;
+        }
+        let alive = true;
+        setRefundSourcesBusy(true);
+        setRefundSourceError('');
+        v1Api(`/students/${encodeURIComponent(tuStu)}/credit-refunds`)
+            .then(data => {
+                if (!alive) return;
+                const sources = data.sources || [];
+                setRefundSources(sources);
+                if (!sources.some(source => String(source.sourceTransactionId) === String(rfSourceId))) setRfSourceId('');
+            })
+            .catch(error => { if (alive) setRefundSourceError(`可退充值加载失败：${error.message}`); })
+            .finally(() => { if (alive) setRefundSourcesBusy(false); });
+        return () => { alive = false; };
+    }, [settleMode, tuStu, canRefund]);
 
     /* v8.10.3: the team list is no longer loaded only when the settings modal
        opens. It also feeds the schedule editor's 授课老师 dropdown, and that
@@ -3220,94 +3280,231 @@ document.getElementById('copybtn').addEventListener('click', function(){
         }, {confirmText:`归档 ${targets.length} 人`, danger:true});
     };
 
+    const settlementPaymentMethod = {'现金':'cash', '银行转账':'bank_transfer', '其他':'other', '微信':'other'};
+    const nextSettlementRequestId = (signature) => {
+        if (settlementRequestRef.current.signature !== signature) {
+            const id = (window.crypto && window.crypto.randomUUID)
+                ? window.crypto.randomUUID()
+                : `settlement-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+            settlementRequestRef.current = {signature, id};
+        }
+        return settlementRequestRef.current.id;
+    };
+    const setSettlementPayer = (next) => {
+        const payerIntent = next.createPayload
+            ? `create:${JSON.stringify(next.createPayload)}`
+            : `account:${next.accountId || ''}`;
+        if (settlementPayerIntentRef.current !== payerIntent) {
+            settlementResolvedAccountRef.current = '';
+            settlementPayerIntentRef.current = payerIntent;
+        }
+        setSettlementPayerState(next);
+    };
+
     const handleTopUp = async (e) => {
         e.preventDefault();
-        const fd      = new FormData(e.target);
-        const credits = parseInt(fd.get('credits'),10);
-        const fee     = parseFloat(fd.get('fee'))||0;
-        if (!tuStu)                     { showToast('请选择学员','error'); return; }
-        if (isNaN(credits)||credits<=0) { showToast('请输入有效课时数','error'); return; }
+        const fd = new FormData(e.target);
+        const credits = parseInt(fd.get('credits'), 10);
+        const fee = parseFloat(fd.get('fee')) || 0;
+        const amountCents = Math.round(fee * 100);
+        const tuRemark = (fd.get('tuRemark') || '').trim();
+        const createInvoice = Boolean(TENANT_SLUG && canUseSettlementBilling && tuCreateInvoice);
+        const paymentReceived = Boolean(createInvoice && canRegisterSettlementPayment && tuPaymentReceived && amountCents > 0);
+        const taxCode = settlementTaxCodes.find(code => code.is_default) || settlementTaxCodes[0] || null;
+        if (!tuStu) { showToast('请选择学员', 'error'); return; }
+        if (isNaN(credits) || credits <= 0) { showToast('请输入有效课时数', 'error'); return; }
+        if (fee < 0) { showToast('金额无效', 'error'); return; }
+        if (createInvoice && amountCents <= 0) { showToast('金额为 0 时不能创建发票，请关闭“同时创建发票”。', 'error'); return; }
 
-        const tuRemark = (fd.get('tuRemark')||'').trim();
+        const payerIntent = settlementPayerState.createPayload
+            ? `create:${JSON.stringify(settlementPayerState.createPayload)}`
+            : `account:${settlementPayerState.accountId || ''}`;
+        const signature = JSON.stringify({
+            studentId: tuStu, credits, amountCents, packageId: tuPkg || null,
+            paymentMethod: settlementPaymentMethod[tuPay] || 'other', note: tuRemark,
+            createInvoice, paymentReceived, taxCodeId: taxCode?.id || null, payerIntent,
+        });
+        const requestId = nextSettlementRequestId(signature);
+        const s0 = db.students.find(x => x.id === tuStu);
+        const payerName = settlementPayerState.accountId
+            ? (settlementAccounts.find(a => String(a.id) === String(settlementPayerState.accountId))?.name || '已选付款方')
+            : (settlementPayerState.createPayload?.name || '待创建付款方');
+        const grossLabel = `$${fee.toFixed(2)}`;
+        const rateBp = Number(taxCode?.rate_bp || 0);
+        const taxEstimate = amountCents > 0 ? Math.max(0, amountCents - Math.round(amountCents * 10000 / (10000 + rateBp || 10000))) : 0;
+        const confirmation = createInvoice
+            ? `确认 ${s0?.name || ''} 充值 ${credits} 课时，gross ${grossLabel}（预计税额 $${(taxEstimate / 100).toFixed(2)}），付款方：${payerName}；${paymentReceived ? `开票并登记已收款（${tuPay}）` : '开票但暂不登记收款'}？`
+            : `确认为 ${s0?.name || ''} 充值 ${credits} 课时，实收 ${grossLabel}（${tuPay}）${fee === 0 ? '——免费充课' : ''}？`;
+
         const doTopUp = async () => {
             if (busy) return;
             setBusy(true);
             try {
-                const s = db.students.find(x=>x.id===tuStu); if (!s) return;
-                const noteStr = [`套餐: ${tuPkg||'自定义'}`, `付款: ${tuPay}`, ...(tuRemark?[tuRemark]:[])].join(' | ');
+                const s = db.students.find(x => x.id === tuStu);
+                if (!s) throw new Error('学员不存在或已改变。');
+                const noteStr = [`套餐: ${tuPkg || '自定义'}`, `付款: ${tuPay}`, ...(tuRemark ? [tuRemark] : [])].join(' | ');
+                let settlement = null;
                 if (TENANT_SLUG) {
-                    /* A2: 充值走 v1 账本（purchase 流水，含实收金额） */
-                    await v1Api(`/students/${s.id}/credit-transactions`, {
-                        method: 'POST',
-                        body: JSON.stringify({
-                            transactionType: 'purchase',
-                            amount: credits,
-                            feeAudCents: Math.round(fee * 100),
-                            note: noteStr,
-                        }),
-                    });
+                    if (createInvoice) {
+                        let billingAccountId = settlementResolvedAccountRef.current || settlementPayerState.accountId;
+                        if (!billingAccountId && settlementPayerState.createPayload) {
+                            const payload = {...settlementPayerState.createPayload};
+                            if (payload.studentId) delete payload.studentIds;
+                            const created = await v1Api('/billing/accounts', {
+                                method: 'POST', body: JSON.stringify(payload),
+                            });
+                            billingAccountId = String(created.account?.id || '');
+                            settlementResolvedAccountRef.current = billingAccountId;
+                        }
+                        if (!billingAccountId) throw new Error('请选择或创建付款方。');
+                        if (settlementPayerState.mode === 'custom' && settlementPayerState.linkedStudentIds.length) {
+                            await v1Api(`/billing/accounts/${billingAccountId}/members`, {
+                                method: 'POST', body: JSON.stringify({studentIds: settlementPayerState.linkedStudentIds}),
+                            });
+                        }
+                        settlement = await v1Api(`/students/${s.id}/credit-settlements`, {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                requestId, credits: String(credits), amountCents,
+                                paymentMethod: settlementPaymentMethod[tuPay] || 'other',
+                                packageId: tuPkg || null, note: noteStr,
+                                billing: {
+                                    createInvoice: true, billingAccountId,
+                                    taxCodeId: taxCode?.id || null, issueNow: true,
+                                    paymentReceived,
+                                },
+                            }),
+                        });
+                    } else {
+                        /* Compatibility path: without the checkbox this remains
+                           the existing credits-only endpoint and never mentions
+                           an invoice in its confirmation copy. */
+                        await v1Api(`/students/${s.id}/credit-transactions`, {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                transactionType: 'purchase', amount: credits,
+                                feeAudCents: amountCents, note: noteStr,
+                            }),
+                        });
+                    }
                     await load();
                 } else {
-                    const ns = db.students.map(x=>x.id===tuStu?{...x,balance:(parseInt(x.balance,10)||0)+credits,lastActive:todayISO()}:x);
-                    const ok = await save({...db, students:ns, logs:[mkLog(s.name,'充值购课',`+${credits}`,noteStr,fee,{payMethod:tuPay,studentId:s.id}),...db.logs]});
+                    const ns = db.students.map(x => x.id === tuStu
+                        ? {...x, balance: (parseInt(x.balance, 10) || 0) + credits, lastActive: todayISO()}
+                        : x);
+                    const ok = await save({...db, students: ns, logs: [mkLog(s.name, '充值购课', `+${credits}`, noteStr, fee, {payMethod: tuPay, studentId: s.id}), ...db.logs]});
                     if (!ok) return;
                 }
                 e.target.reset();
-                setTuCr(''); setTuFee(''); setTuPkg('');
-                setTuPay('微信'); setTuStu(null);
-                /* G2: 充值确认话术 */
-                const newBal = (parseInt(s.balance,10)||0)+credits;
+                setTuCr(''); setTuFee(''); setTuPkg(''); setTuPay('微信'); setTuStu(null);
+                setTuCreateInvoice(false); setTuPaymentReceived(true);
+                setSettlementPayerState({mode: 'student', accountId: '', createPayload: null, linkedStudentIds: []});
+                settlementResolvedAccountRef.current = '';
+                settlementPayerIntentRef.current = '';
+                const newBal = (parseInt(s.balance, 10) || 0) + credits;
                 const cMsg = renderMessage('topup',
                     '{student} 您好！已为您成功充值 {credits} 课时{fee}，当前账户共 {balance} 课时。感谢您对 {studio} 的信任！',
-                    {student:s.name, credits, fee: fee ? `（实收 $${fee}）` : '', balance:newBal});
-                showToast(`${s.name} 充值 ${credits} 课时 / $${fee}`, 'success',
-                    {label:'复制充值确认（发家长）', onClick:()=>copyText(cMsg,'充值确认已复制')});
-            } catch(err) { showToast(`充值失败：${err.message}`, 'error'); }
+                    {student: s.name, credits, fee: fee ? `（实收 $${fee.toFixed(2)}）` : '', balance: newBal});
+                const invoiceAction = settlement?.invoiceId
+                    ? {label: '查看发票', onClick: () => setTab('billing', {recordId: settlement.invoiceId})}
+                    : {label: '复制充值确认（发家长）', onClick: () => copyText(cMsg, '充值确认已复制')};
+                showToast(createInvoice
+                    ? `${s.name} 充值 ${credits} 课时，已${paymentReceived ? '开票并登记收款' : '开票待收款'}`
+                    : `${s.name} 充值 ${credits} 课时 / $${fee.toFixed(2)}`,
+                    'success', invoiceAction);
+            } catch (err) { showToast(`充值失败：${err.message}`, 'error'); }
             finally { setBusy(false); }
         };
 
-        /* A4: 充值一律二次确认，核对学员/课时/金额 */
-        const s0 = db.students.find(x=>x.id===tuStu);
-        confirm(`确认为 ${s0?s0.name:''} 充值 ${credits} 课时，实收 $${fee}（${tuPay}）${fee===0?'——免费充课':''}？`,
-            doTopUp, {confirmText: fee===0?'确认免费充课':'确认入账'});
+        /* A4/D-03: show all money decisions before the atomic request starts. */
+        confirm(confirmation, doTopUp, {confirmText: createInvoice ? '确认开票并入账' : (fee === 0 ? '确认免费充课' : '确认入账')});
     };
 
-    /* A2: 退款退课 — 节数 ≤ 余额直接扣减，退款金额以负数计入营收（净额自动） */
+    const nextRefundRequestId = (signature) => {
+        if (refundRequestRef.current.signature !== signature) {
+            const id = (window.crypto && window.crypto.randomUUID)
+                ? window.crypto.randomUUID()
+                : `refund-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+            refundRequestRef.current = {signature, id};
+        }
+        return refundRequestRef.current.id;
+    };
+
+    /* E-01: a document-adjusting refund always starts from one selected
+       purchase bridge. The old endpoint is intentionally retained only for
+       the explicit credits-only branch. */
     const handleRefund = async (e) => {
         e.preventDefault();
-        /* E: mirrors backend credits:refund — the toggle is hidden for other
-           roles, this guard covers any stale settleMode state */
         if (!canRefund) { showToast('当前角色无退款权限', 'error'); return; }
-        const credits = parseInt(rfCr, 10);
-        const amt = parseFloat(rfAmt) || 0;
-        const s = db.students.find(x=>x.id===tuStu);
-        if (!s)                          { showToast('请选择学员','error'); return; }
-        if (isNaN(credits)||credits<=0)  { showToast('请输入有效退课节数','error'); return; }
-        if (credits > (parseInt(s.balance,10)||0)) { showToast(`退课节数不能超过剩余课时（${s.balance}）`,'error'); return; }
-        if (amt < 0)                     { showToast('退款金额无效','error'); return; }
-        if (!rfReason.trim())            { showToast('请填写退款原因','error'); return; }
-        confirm(`确认为 ${s.name} 退课 ${credits} 节、退款 $${amt}（${tuPay}）？余额将从 ${s.balance} 减为 ${(parseInt(s.balance,10)||0)-credits}。`, async () => {
+        const credits = Number(rfCr);
+        const amountCents = Math.round((parseFloat(rfAmt) || 0) * 100);
+        const source = refundSources.find(item => String(item.sourceTransactionId) === String(rfSourceId));
+        const s = db.students.find(x => x.id === tuStu);
+        if (!s) { showToast('请选择学员', 'error'); return; }
+        if (!source) { showToast('请选择一笔原充值，再继续退款', 'error'); return; }
+        if (!Number.isFinite(credits) || credits <= 0) { showToast('请输入有效退课节数', 'error'); return; }
+        if (credits > Number(source.availableCredits || 0)) {
+            showToast(`退课节数不能超过所选原充值剩余 ${source.availableCredits} 节`, 'error'); return;
+        }
+        if (amountCents < 0) { showToast('退款金额无效', 'error'); return; }
+        if (rfAdjustDocuments && (amountCents <= 0 || amountCents > Number(source.availableAmountCents || 0))) {
+            showToast(`同步退款金额不能超过所选原充值剩余 $${(Number(source.availableAmountCents || 0) / 100).toFixed(2)}`, 'error'); return;
+        }
+        if (!rfReason.trim()) { showToast('请填写退款原因', 'error'); return; }
+        if (rfAdjustDocuments && (!canSyncRefund || !source.syncAvailable)) {
+            showToast('该充值没有完整的发票/付款桥，不能同步调整钱款单据。', 'error'); return;
+        }
+        const signature = JSON.stringify({
+            studentId: tuStu, sourceCreditTransactionId: rfSourceId, credits,
+            amountCents, paymentMethod: settlementPaymentMethod[tuPay] || 'other',
+            reason: rfReason.trim(), adjustDocuments: rfAdjustDocuments,
+        });
+        const requestId = nextRefundRequestId(signature);
+        const invoiceLabel = source.invoiceNumber || '未关联发票';
+        const confirmation = rfAdjustDocuments
+            ? `确认 ${s.name} 从原充值 ${invoiceLabel} 退 ${credits} 节、退款 $${(amountCents / 100).toFixed(2)}（${tuPay}），同时开具贷记单并登记付款退款？`
+            : `确认 ${s.name} 从原充值 ${invoiceLabel} 退 ${credits} 节、退款 $${(amountCents / 100).toFixed(2)}（${tuPay}）？只改课时账本和现金净额，不改变发票或付款记录。`;
+        confirm(confirmation, async () => {
             if (busy) return;
             setBusy(true);
             try {
-                await v1Api(`/students/${s.id}/credit-transactions`, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        transactionType: 'refund',
-                        legacy_type: 'refund_out',
-                        amount: credits,
-                        feeAudCents: Math.round(amt * 100),
-                        note: `退款退课 | 原因: ${rfReason.trim()} | 方式: ${tuPay}`,
-                    }),
-                });
+                let result = null;
+                if (rfAdjustDocuments) {
+                    result = await v1Api(`/students/${encodeURIComponent(s.id)}/credit-refunds`, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            requestId,
+                            sourceCreditTransactionId: rfSourceId,
+                            credits: String(credits), amountCents,
+                            paymentMethod: settlementPaymentMethod[tuPay] || 'other',
+                            reason: rfReason.trim(), billing: {adjustDocuments: true},
+                        }),
+                    });
+                } else {
+                    await v1Api(`/students/${s.id}/credit-transactions`, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            transactionType: 'refund', legacy_type: 'refund_out',
+                            amount: credits, feeAudCents: amountCents,
+                            note: `退款退课 | 原充值: ${rfSourceId} | 原因: ${rfReason.trim()} | 方式: ${tuPay}`,
+                        }),
+                    });
+                }
                 await load();
-                setRfCr(''); setRfAmt(''); setRfReason(''); setTuStu(null);
-                const cMsg = `${s.name} 您好！已为您办理退课 ${credits} 节${amt?`、退款 $${amt}（${tuPay}）`:''}，当前剩余 ${(parseInt(s.balance,10)||0)-credits} 课时。感谢您的理解与支持。`;
-                showToast(`${s.name} 退课 ${credits} 节 / 退款 $${amt}`, 'warn',
-                    {label:'复制退款确认（发家长）', onClick:()=>copyText(cMsg,'退款确认已复制')});
-            } catch(err) { showToast(`退款失败：${err.message}`, 'error'); }
+                setRfCr(''); setRfAmt(''); setRfReason(''); setRfSourceId('');
+                setRfAdjustDocuments(false); setRefundSources([]); setTuStu(null);
+                const newBal = (parseFloat(s.balance) || 0) - credits;
+                const cMsg = `${s.name} 您好！已为您办理退课 ${credits} 节、退款 $${(amountCents / 100).toFixed(2)}（${tuPay}），当前剩余 ${newBal} 课时。感谢您的理解与支持。`;
+                const action = result?.invoiceId
+                    ? {label: '查看原发票', onClick: () => setTab('billing', {recordId: result.invoiceId})}
+                    : {label: '复制退款确认（发家长）', onClick: () => copyText(cMsg, '退款确认已复制')};
+                showToast(rfAdjustDocuments
+                    ? `${s.name} 已退款并开具贷记单 $${(amountCents / 100).toFixed(2)}`
+                    : `${s.name} 退课 ${credits} 节 / 退款 $${(amountCents / 100).toFixed(2)}`,
+                    'warn', action);
+            } catch (err) { showToast(`退款失败：${err.message}`, 'error'); }
             finally { setBusy(false); }
-        }, {danger:true, confirmText:`确认退课 ${credits} 节`});
+        }, {danger:true, confirmText: rfAdjustDocuments ? '确认退款并开贷记单' : `确认退课 ${credits} 节`});
     };
 
     const handleAddStudent = (e) => {
@@ -5711,6 +5908,10 @@ document.getElementById('copybtn').addEventListener('click', function(){
         showToast={showToast}
         canIssue={canWriteCredits}
         canTakePayment={canWriteCredits}
+        canExportData={canExportData}
+        tenantSlug={TENANT_SLUG}
+        students={sortedAZ.filter(s => !s.archived)}
+        studentPicker={StudentPicker}
         accountId={routeRecordId}
         onClearAccount={()=>setTab('billing')}
     />
@@ -5744,7 +5945,12 @@ document.getElementById('copybtn').addEventListener('click', function(){
     <form onSubmit={settleMode==='refund'?handleRefund:handleTopUp} className="space-y-5">
         <div>
             <label className="text-sm font-bold text-gray-500 mb-1.5 block">选择学员</label>
-            <StudentPicker students={sortedAZ} value={tuStu} onChange={setTuStu} placeholder="搜索学员姓名..."/>
+            <StudentPicker students={sortedAZ} value={tuStu} onChange={next=>{
+                setTuStu(next);
+                setSettlementPayerState({mode:'student', accountId:'', createPayload:null, linkedStudentIds:next?[next]:[]});
+                settlementResolvedAccountRef.current = '';
+                settlementPayerIntentRef.current = '';
+            }} placeholder="搜索学员姓名..."/>
             {tuStu && (()=>{const s=db.students.find(x=>x.id===tuStu); return s?(
                 <div className="mt-2 flex items-center gap-3 bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3">
                     <PhotoAvatar photo={s.photo} name={s.name} size="sm"/>
@@ -5780,18 +5986,74 @@ document.getElementById('copybtn').addEventListener('click', function(){
         </div>
         {settleMode==='refund' ? (
         <div className="space-y-4">
+            <div className="rounded-2xl border border-red-100 bg-red-50/50 p-3 space-y-2">
+                <p className="text-sm font-bold text-red-900">先选择原充值</p>
+                <p className="text-[11px] text-red-700">退款必须从一笔明确的 purchase 开始；系统不会按学员余额猜来源。</p>
+                {refundSourcesBusy && <p className="text-xs text-gray-500">正在加载可退充值…</p>}
+                {refundSourceError && <p className="text-xs text-red-600" role="alert">{refundSourceError}</p>}
+                {!refundSourcesBusy && !refundSources.length && !refundSourceError && (
+                    <p className="text-xs text-gray-500">没有可识别的原充值。仍可在选择来源后走旧的 credits-only 退款，但不会改发票或付款记录。</p>
+                )}
+                <div className="space-y-2">
+                    {refundSources.map(source => {
+                        const selected = String(source.sourceTransactionId) === String(rfSourceId);
+                        return (
+                            <button key={source.sourceTransactionId} type="button"
+                                onClick={()=>{
+                                    setRfSourceId(String(source.sourceTransactionId));
+                                    setRfAdjustDocuments(Boolean(source.syncAvailable && canSyncRefund));
+                                }}
+                                className={`w-full text-left rounded-xl border p-3 min-h-[68px] ${selected ? 'border-red-400 bg-white ring-2 ring-red-100' : 'border-gray-200 bg-white'}`}>
+                                <div className="flex items-start gap-2">
+                                    <span className="flex-1 min-w-0">
+                                        <span className="block text-xs font-bold text-gray-800 truncate">
+                                            {source.invoiceNumber || 'Credits-only purchase'} · {source.purchasedCredits} 课时
+                                        </span>
+                                        <span className="block text-[11px] text-gray-500 mt-1">
+                                            剩余 {source.availableCredits} 节 · 可退 ${(Number(source.availableAmountCents || 0) / 100).toFixed(2)} · 已退 {source.refundCount} 次
+                                        </span>
+                                    </span>
+                                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${source.syncAvailable ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
+                                        {source.syncAvailable ? '可同步单据' : '无完整桥接'}
+                                    </span>
+                                </div>
+                                <span className="block text-[11px] text-gray-400 mt-1">
+                                    发票 {source.invoiceStatus || '—'} · 付款 {source.paymentStatus || '—'}
+                                </span>
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
             <div className="grid grid-cols-2 gap-3">
                 <div>
                     <label className="text-sm font-bold text-gray-500 mb-1 block">退课节数 *</label>
-                    <input type="number" min="1" required value={rfCr} onChange={e=>setRfCr(e.target.value)}
+                    <input type="number" min="0.01" step="0.01" required value={rfCr} onChange={e=>setRfCr(e.target.value)}
                         className="w-full px-3 py-3 border border-red-200 rounded-xl font-bold text-2xl focus:ring-2 focus:ring-red-400 outline-none text-red-600"/>
                 </div>
                 <div>
                     <label className="text-sm font-bold text-gray-500 mb-1 block">退款金额 (AUD) *</label>
                     <input type="number" min="0" step="0.01" required value={rfAmt} onChange={e=>setRfAmt(e.target.value)}
-                        className="w-full px-3 py-3 border border-red-200 rounded-xl font-bold text-2xl focus:ring-2 focus:ring-red-400 outline-none text-red-600"/>
+                    className="w-full px-3 py-3 border border-red-200 rounded-xl font-bold text-2xl focus:ring-2 focus:ring-red-400 outline-none text-red-600"/>
                 </div>
             </div>
+            {(() => {
+                const source = refundSources.find(item => String(item.sourceTransactionId) === String(rfSourceId));
+                return (
+                    <label className="flex items-start gap-2.5 min-h-[44px] rounded-xl border border-red-100 bg-white p-3 cursor-pointer">
+                        <input type="checkbox" checked={rfAdjustDocuments}
+                            disabled={!canSyncRefund || !source?.syncAvailable}
+                            onChange={event=>setRfAdjustDocuments(event.target.checked)}
+                            className="mt-1 w-5 h-5 accent-red-600" />
+                        <span className="flex-1 text-sm font-bold text-red-900">
+                            同步处理原发票与付款
+                            <span className="block text-[11px] font-normal text-red-700 mt-0.5">
+                                {!source ? '先选择一笔原充值。' : source.syncAvailable && canSyncRefund ? '将同时开具贷记单、登记付款退款并保留桥接证据。' : '没有完整 bridge，或当前角色缺少 credits:refund / payments:refund / billing:issue。'}
+                            </span>
+                        </span>
+                    </label>
+                );
+            })()}
             <div>
                 <label className="text-sm font-bold text-gray-500 mb-1.5 block">退款方式</label>
                 <div className="flex gap-2 flex-wrap">
@@ -5806,7 +6068,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 <input type="text" required value={rfReason} onChange={e=>setRfReason(e.target.value)} placeholder="如 搬家、时间冲突、课程不合适..."
                     className="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-400 outline-none text-sm"/>
             </div>
-            <p className="text-xs text-gray-400 bg-red-50 border border-red-100 rounded-xl px-3 py-2">退款金额将以负数计入营收（净额自动核减）；退课节数直接从剩余课时扣减。此操作会记入账本与操作日志。</p>
+            <p className="text-xs text-gray-400 bg-red-50 border border-red-100 rounded-xl px-3 py-2">勾选同步时会生成贷记单并调整付款；不勾选时只改课时账本和现金净额，不会改变发票或付款记录。所有操作都会记入账本与操作日志。</p>
         </div>
         ) : (
         <div>
@@ -5843,6 +6105,46 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     ))}
                 </div>
             </div>
+            {TENANT_SLUG && canUseSettlementBilling && (
+                <div className="space-y-3 rounded-2xl border border-indigo-100 bg-indigo-50/50 p-3">
+                    <label className="flex items-start gap-2.5 min-h-[44px] cursor-pointer">
+                        <input type="checkbox" checked={tuCreateInvoice}
+                            disabled={Number(tuFee || 0) <= 0}
+                            onChange={event=>setTuCreateInvoice(event.target.checked)}
+                            className="mt-1 w-5 h-5 accent-indigo-600" />
+                        <span className="flex-1 text-sm font-bold text-indigo-900">
+                            同时创建发票
+                            <span className="block text-[11px] font-normal text-indigo-700 mt-0.5">只有金额大于 0 才能开票；开具后金额和抬头会冻结。</span>
+                        </span>
+                    </label>
+                    {tuCreateInvoice && (
+                        <>
+                            <BillingAccountPicker api={v1Api} accounts={settlementAccounts}
+                                students={sortedAZ} studentPicker={StudentPicker}
+                                initialStudentId={tuStu || ''} hideStudentSelector
+                                value={settlementPayerState.accountId}
+                                onStateChange={setSettlementPayer}
+                                payerError={settlementPayerError}
+                                onPayerError={setSettlementPayerError} />
+                            <p className="text-[11px] text-indigo-700">
+                                {settlementTaxCodes.length
+                                    ? `税码：${(settlementTaxCodes.find(code=>code.is_default)||settlementTaxCodes[0]).code} · ${Number((settlementTaxCodes.find(code=>code.is_default)||settlementTaxCodes[0]).rate_bp || 0) / 100}%`
+                                    : '当前未配置税码，发票将按 0% 税率计算。'}
+                            </p>
+                            <label className="flex items-start gap-2.5 min-h-[44px] cursor-pointer">
+                                <input type="checkbox" checked={tuPaymentReceived}
+                                    disabled={!canRegisterSettlementPayment || Number(tuFee || 0) <= 0}
+                                    onChange={event=>setTuPaymentReceived(event.target.checked)}
+                                    className="mt-1 w-5 h-5 accent-indigo-600" />
+                                <span className="flex-1 text-sm font-bold text-indigo-900">
+                                    款项已经收到，同时登记付款
+                                    <span className="block text-[11px] font-normal text-indigo-700 mt-0.5">关闭后只开具未付款发票，不会猜测或冲销旧发票。</span>
+                                </span>
+                            </label>
+                        </>
+                    )}
+                </div>
+            )}
             <div>
                 <label className="text-sm font-bold text-gray-500 mb-1 block">备注 <span className="font-normal text-gray-400">选填</span></label>
                 <input type="text" name="tuRemark" placeholder="如 节假日赠课、补偿调课..."

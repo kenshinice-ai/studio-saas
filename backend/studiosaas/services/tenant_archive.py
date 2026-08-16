@@ -101,6 +101,12 @@ SNAPSHOT_TABLES: tuple[tuple[str, str, str], ...] = (
     ("payments.json", "payments", "tenant_id = %s"),
     ("payment_allocations.json", "payment_allocations", "tenant_id = %s"),
     ("refunds.json", "refunds", "tenant_id = %s"),
+    ("credit_financial_links.json", "credit_financial_links", "tenant_id = %s"),
+    (
+        "financial_operation_requests.json",
+        "financial_operation_requests",
+        "tenant_id = %s",
+    ),
     ("bank_statement_lines.json", "bank_statement_lines", "tenant_id = %s"),
     ("teacher_engagements.json", "teacher_engagements", "tenant_id = %s"),
     ("teacher_pay_rates.json", "teacher_pay_rates", "tenant_id = %s"),

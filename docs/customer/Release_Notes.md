@@ -1,5 +1,28 @@
 # PWE Studio — Release Notes and Acceptance Evidence
 
+## v10.7.0 candidate — invoice operations and explicit credit settlement
+
+This source candidate has passed the internal A–F checklist gates in the
+working tree, including PostgreSQL-backed money/tenant checks and a real local
+browser top-up/refund flow. It adds payer dual-entry resolution, issued
+supplier/recipient snapshots, the shared InvoiceDocument DTO, audited summary
+and line CSV exports, and print/save-as-PDF fallback after the portable PDF
+renderer compatibility spike did not pass.
+
+Credit top-ups that opt into billing now run as one idempotent transaction:
+credit purchase, optional invoice, gross-to-net/tax split, optional payment,
+allocation, bridge and audit either all commit or all roll back. Refunds require
+an explicit purchase source and, when the full bridge and permissions exist,
+create a credit note, payment refund, negative credit movement and legal bridge
+in one transaction. Invoice detail now exposes the linked credit notes and
+credited totals; CSV and print views therefore remain reconcilable.
+
+This is not a release claim. v10.7.0 has not been committed, packaged, pushed,
+or deployed; the last verified package and production runtime remain v10.6.4.
+Xero OAuth/transport remains a later Preview/Beta project. The next action is
+the single STOP GATE: explicit authorization before commit → package → push →
+production deployment.
+
 ## v10.6.4 candidate — money contracts, truthful integrations, and release gates
 
 This is a source candidate prepared from the v10.6.3 baseline. It has not been

@@ -21,6 +21,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, timedelta
 from decimal import Decimal, ROUND_HALF_UP
+import json
 from typing import Any, Iterable, Sequence
 
 from ..db import fetch_all, fetch_one
@@ -135,6 +136,84 @@ BILLING_IDENTITY_FIELDS = (
     "bank_account_name", "bank_bsb", "bank_account_no", "payment_note",
 )
 
+SNAPSHOT_SCHEMA_VERSION = 1
+
+
+def _blank_billing_identity() -> dict[str, Any]:
+    """Return the same safe blank identity used before settings are configured."""
+
+    blank = {field: "" for field in BILLING_IDENTITY_FIELDS}
+    blank["gst_registered"] = False
+    blank["country"] = "Australia"
+    blank["configured"] = False
+    return blank
+
+
+def _locked_billing_identity(conn, tenant_id: str) -> dict[str, Any]:
+    """Read the issuer identity while holding a share lock for issuance.
+
+    The lock makes an identity update wait until the document has taken its
+    snapshot.  If the tenant has never opened settings there is no row to lock;
+    the empty identity is the truthful state at that point in time.
+    """
+
+    row = fetch_one(
+        conn,
+        f"SELECT {', '.join(BILLING_IDENTITY_FIELDS)} "
+        "FROM tenant_billing_identity WHERE tenant_id = %s FOR SHARE",
+        (tenant_id,),
+    )
+    return {**row, "configured": True} if row else _blank_billing_identity()
+
+
+def supplier_snapshot(identity: dict[str, Any]) -> dict[str, Any]:
+    """Build the frozen supplier side of an issued document."""
+
+    return {
+        "schemaVersion": SNAPSHOT_SCHEMA_VERSION,
+        "configured": bool(identity.get("configured")),
+        "legalName": str(identity.get("legal_name") or ""),
+        "tradingName": str(identity.get("trading_name") or ""),
+        "abn": str(identity.get("abn") or ""),
+        "gstRegistered": bool(identity.get("gst_registered")),
+        "address": {
+            "line1": str(identity.get("address_line1") or ""),
+            "line2": str(identity.get("address_line2") or ""),
+            "suburb": str(identity.get("suburb") or ""),
+            "state": str(identity.get("state") or ""),
+            "postcode": str(identity.get("postcode") or ""),
+            "country": str(identity.get("country") or "Australia"),
+        },
+        "contactEmail": str(identity.get("contact_email") or ""),
+        "contactPhone": str(identity.get("contact_phone") or ""),
+        "website": str(identity.get("website") or ""),
+        "bank": {
+            "accountName": str(identity.get("bank_account_name") or ""),
+            "bsb": str(identity.get("bank_bsb") or ""),
+            "accountNo": str(identity.get("bank_account_no") or ""),
+        },
+        "paymentNote": str(identity.get("payment_note") or ""),
+    }
+
+
+def recipient_snapshot(account: dict[str, Any]) -> dict[str, Any]:
+    """Build the frozen payer side of an issued document."""
+
+    return {
+        "schemaVersion": SNAPSHOT_SCHEMA_VERSION,
+        "displayName": str(account.get("name") or ""),
+        "kind": str(account.get("kind") or "family"),
+        "contactName": str(account.get("contact_name") or ""),
+        "companyName": str(account.get("company_name") or ""),
+        "abn": str(account.get("abn") or ""),
+        "email": str(account.get("email") or ""),
+        "mobile": str(account.get("mobile") or ""),
+        "billingAddress": str(account.get("billing_address") or ""),
+        "paymentTermsDays": int(account.get("payment_terms_days") or 0),
+        "purchaseOrderRef": str(account.get("purchase_order_ref") or ""),
+        "language": str(account.get("language") or ""),
+    }
+
 
 def billing_identity(conn, tenant_id: str) -> dict[str, Any]:
     """The studio's own details, as they belong on an invoice."""
@@ -146,10 +225,7 @@ def billing_identity(conn, tenant_id: str) -> dict[str, Any]:
         (tenant_id,),
     )
     if not row:
-        blank = {field: "" for field in BILLING_IDENTITY_FIELDS}
-        blank["gst_registered"] = False
-        blank["country"] = "Australia"
-        return {**blank, "configured": False}
+        return _blank_billing_identity()
     return {**row, "configured": True}
 
 
@@ -292,11 +368,15 @@ def issue_invoice(
     invoice = fetch_one(
         conn,
         """
-        SELECT i.id, i.status, i.total_cents, a.payment_terms_days
+        SELECT i.id, i.status, i.total_cents, i.billing_account_id,
+               a.name, a.kind, a.contact_name, a.email, a.mobile,
+               a.company_name, a.abn, a.billing_address,
+               a.payment_terms_days, a.purchase_order_ref, a.language
         FROM invoices i
         JOIN billing_accounts a
           ON a.tenant_id = i.tenant_id AND a.id = i.billing_account_id
         WHERE i.tenant_id = %s AND i.id = %s
+        FOR UPDATE OF i, a
         """,
         (tenant_id, invoice_id),
     )
@@ -304,6 +384,13 @@ def issue_invoice(
         raise BillingError("Invoice not found.")
     if invoice["status"] != "draft":
         raise BillingError("Only a draft invoice can be issued.")
+
+    # The account and identity are read under locks held until the caller's
+    # transaction commits.  The resulting JSON is the legal document identity;
+    # later edits to either live record must not rewrite history.
+    identity = _locked_billing_identity(conn, tenant_id)
+    supplier = supplier_snapshot(identity)
+    recipient = recipient_snapshot(invoice)
 
     line_count = fetch_one(
         conn,
@@ -336,13 +423,26 @@ def issue_invoice(
                    number = %s,
                    issue_date = %s,
                    due_date = %s,
+                   supplier_snapshot = %s::jsonb,
+                   recipient_snapshot = %s::jsonb,
+                   snapshot_schema_version = %s,
                    issued_at = now(),
                    issued_by_user_id = %s,
                    updated_at = now()
              WHERE tenant_id = %s AND id = %s AND status = 'draft'
             RETURNING id, number, status, issue_date, due_date, total_cents, balance_cents
             """,
-            (number, issued_on, due_on, actor_user_id, tenant_id, invoice_id),
+            (
+                number,
+                issued_on,
+                due_on,
+                json.dumps(supplier, ensure_ascii=False, sort_keys=True),
+                json.dumps(recipient, ensure_ascii=False, sort_keys=True),
+                SNAPSHOT_SCHEMA_VERSION,
+                actor_user_id,
+                tenant_id,
+                invoice_id,
+            ),
         )
         issued = cur.fetchone()
     if not issued:

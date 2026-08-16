@@ -46,13 +46,20 @@
   <h1 data-lang="zh">发布依据</h1>
   <p class="lede" data-lang="en">A customer-readable record of what this release changes, what the production deployment established, and which commitments remain deferred.</p>
   <p class="lede" data-lang="zh">面向客户的记录：本次发布改了什么、生产部署确立了什么，以及哪些承诺仍未完成。</p>
-  <p class="status"><span data-lang="en">Current release v__APP_VERSION__ · released 13 August 2026 · monitoring and SLA deferred</span><span data-lang="zh">当前版本 v__APP_VERSION__ · 发布于 2026 年 8 月 13 日 · 监控与 SLA 延后</span></p>
+  <p class="status"><span data-lang="en">Source candidate v__APP_VERSION__ · package and production deployment pending explicit release authorization</span><span data-lang="zh">源码候选 v__APP_VERSION__ · 等待明确发布授权后再打包并部署生产</span></p>
 
   <h2 data-lang="en">Since v8.1.0</h2>
   <h2 data-lang="zh">v8.1.0 之后</h2>
   <p data-lang="en">Everything below belongs to a released product version. Each line is delivery evidence, not a roadmap promise.</p>
   <p data-lang="zh">以下内容均属于已发布的产品版本。每一条都是交付依据，不是路线图承诺。</p>
   <div class="grid">
+    <article class="card">
+      <strong data-lang="en">Invoice operations and explicit credit settlement (v10.7.0 candidate)</strong><strong data-lang="zh">发票运营与明确的充值退款联动（v10.7.0 源码候选）</strong>
+      <p data-lang="en">The candidate unifies mobile timetable overflow fixes, payer selection, immutable issued-document snapshots, one InvoiceDocument contract, audited CSV exports, and truthful print/save-as-PDF fallback when a portable PDF renderer is not available. It adds one atomic, idempotent path for a credit top-up to create an invoice and optional payment, plus an explicit-source refund path that issues a credit note, records the payment refund, and leaves a tenant-scoped bridge between the two ledgers.</p>
+      <p data-lang="zh">源码候选把移动端课表溢出、付款方选择、已开具单据快照、统一 InvoiceDocument、可审计 CSV 导出，以及在没有可携带 PDF renderer 时诚实提供的打印/另存为 PDF 合并起来。充值可通过单一原子幂等路径创建发票和可选收款；退款必须明确选择原充值，并在同一事务中开具贷记单、登记付款退款，留下租户范围内的两账桥接。</p>
+      <p data-lang="en">This is a source candidate only. It has not been committed, packaged, pushed, or deployed; production remains v10.6.4. Xero OAuth and transport remain a later Preview/Beta project.</p>
+      <p data-lang="zh">这只是源码候选，尚未提交、打包、推送或部署；生产仍为 v10.6.4。Xero OAuth 与 transport 仍是后续 Preview/Beta 项目。</p>
+    </article>
     <article class="card">
       <strong data-lang="en">Source candidate: money contracts and honest boundaries (v10.6.4)</strong><strong data-lang="zh">源码候选：钱款合同与诚实边界（v10.6.4）</strong>
       <p data-lang="en">This is a source candidate prepared from v10.6.3. It has not been committed, packaged, pushed, or deployed; the verified packages and production runtime remain v10.6.3.</p>

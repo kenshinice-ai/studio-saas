@@ -262,6 +262,38 @@ def test_the_nav_call_to_action_is_more_specific_than_the_plain_nav_link():
         assert "text-overflow" in cta_rule, name
 
 
+def test_public_nav_brand_and_menu_have_a_non_overflowing_flex_contract():
+    """A logo plus name must yield space to the menu on narrow viewports.
+
+    ``flex-shrink:0`` on the brand combined with a shrinkable menu button
+    pushed the latter beyond a 375px viewport on timetable and showcase.
+    Keep the invariant in all three public shells so a future template edit
+    cannot reintroduce the same mobile defect in only one document.
+    """
+
+    for name in NAV_PAGES:
+        source = (TEMPLATE_DIR / name).read_text(encoding="utf-8")
+        brand = re.search(r"(?m)^\s*\.brand\s*\{([^}]*)\}", source)
+        menu = re.search(r"(?m)^\s*\.menu-btn\s*\{([^}]*)\}", source)
+        assert brand and menu, name
+        brand_rule = brand.group(1).replace(" ", "")
+        menu_rule = menu.group(1).replace(" ", "")
+        assert "min-width:0" in brand_rule, name
+        assert "flex:11auto" in brand_rule, name
+        assert "flex:00var(--tap-min)" in menu_rule, name
+        assert "overflow-x:hidden" not in source, name
+
+
+def test_home_courses_collapse_before_phone_width():
+    """The four-column course grid must not create a 320px page overflow."""
+
+    source = (TEMPLATE_DIR / "index.html").read_text(encoding="utf-8")
+    mobile_blocks = re.findall(r"@media\s*\(max-width:520px\)\s*\{([^}]*)\}", source, re.S)
+    mobile = next((block for block in mobile_blocks if "course-grid" in block), "")
+    assert mobile
+    assert re.search(r"\.course-grid\s*\{[^}]*grid-template-columns\s*:\s*1fr", mobile)
+
+
 def test_the_four_pages_offer_the_same_entries():
     """FAQ used to exist only in the home page's footer.
 

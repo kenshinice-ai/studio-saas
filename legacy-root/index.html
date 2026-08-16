@@ -1157,6 +1157,22 @@
             body { background:white !important; }
             .print-card { break-inside:avoid; }
         }
+        /* C-03 renderer gate: until a licensed server-side renderer is
+           available in every release mode, invoice documents use the browser
+           print dialog. The selected detail surface is the only printable
+           content, so operators can choose "Save as PDF" without exporting
+           the CMS navigation or the invoice list. */
+        @media print {
+            body.invoice-print-mode #root * { visibility:hidden !important; }
+            body.invoice-print-mode .invoice-printable,
+            body.invoice-print-mode .invoice-printable * { visibility:visible !important; }
+            body.invoice-print-mode .invoice-printable {
+                position:absolute !important;
+                inset:0 !important;
+                width:100% !important;
+                max-width:none !important;
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800">

@@ -104,14 +104,14 @@
      collapsed to zero width and rendered as "L..".
      The nav absorbs the squeeze instead, which it is built for — every label
      is already clipped by the public-surface contract and ellipsised in CSS. */
-  .brand{display:flex;align-items:center;gap:12px;min-height:var(--tap-min);cursor:pointer;flex-shrink:0}
+  .brand{display:flex;align-items:center;gap:12px;min-width:0;min-height:var(--tap-min);cursor:pointer;flex:1 1 auto}
   /* A logo is whatever shape the studio uploaded, and a wordmark is wide: the
      showcase tenant's is 8:1, which at a fixed 34px height came to 281px and
      left 90px of a 375px phone for the name and the menu button.
      max-width bounds it, max-height replaces the fixed height so a TALL logo
      is bounded too, and object-fit keeps both from being stretched to fit. */
   .brand img{max-height:34px;max-width:min(46vw,260px);height:auto;width:auto;object-fit:contain;display:none;flex-shrink:0}
-  .brand .bn{font-size:16px;letter-spacing:.04em;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .brand .bn{min-width:0;font-size:16px;letter-spacing:.04em;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   /* min-width:0 is what actually lets the links ellipsise: without it a flex
      item refuses to shrink below its content, and the overflow lands on
      whichever neighbour did allow itself to be shrunk. */
@@ -130,7 +130,7 @@
   /* P3-3: 44px tap target. */
   .langtog button{background:none;border:0;min-width:var(--tap-min);min-height:var(--tap-min);padding:8px 12px;font-size:13px;letter-spacing:.06em;color:var(--muted);cursor:pointer;font-family:inherit}
   .langtog button.on{background:var(--ink);color:var(--bg)}
-  .menu-btn{display:none;background:none;border:0;color:var(--ink);cursor:pointer;width:var(--tap-min);height:var(--tap-min);align-items:center;justify-content:center;padding:0}
+  .menu-btn{display:none;flex:0 0 var(--tap-min);background:none;border:0;color:var(--ink);cursor:pointer;width:var(--tap-min);height:var(--tap-min);align-items:center;justify-content:center;padding:0}
   .menu-btn svg{width:22px;height:22px}
 
   .hero{min-height:88vh;display:flex;align-items:center;position:relative;padding-top:74px}
@@ -557,6 +557,7 @@
     .totop{right:16px;bottom:16px;width:42px;height:42px}
   }
   @media(max-width:520px){
+    .course-grid{grid-template-columns:1fr}
     .form-card{padding:var(--space-phi-md)}
     .join-submit{position:sticky;bottom:0;z-index:5;margin-inline:calc(var(--space-phi-md) * -1);padding:var(--space-phi-sm) var(--space-phi-md) calc(var(--space-phi-sm) + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);background:color-mix(in srgb,var(--panel) 94%,transparent);backdrop-filter:blur(12px)}
   }

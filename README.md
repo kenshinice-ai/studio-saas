@@ -4,17 +4,21 @@
 
 These are three independent facts. A matching version label is not proof that
 the current source tree was packaged or deployed; Source, Package and
-Production remain separate rows. **v10.6.4 is the current source candidate**;
-the last packaged and deployed runtime remains v10.6.3 until a clean commit,
-rebuild and production acceptance close the release. Documentation-only commits
-after the runtime baseline do not change the bytes in the checksum-verified
-archives or the deployed image.
+Production remain separate rows. **v10.7.0 is the current uncommitted source
+candidate**; the last packaged and deployed baseline remains v10.6.4. Xero
+transport remains a later Preview/Beta boundary. See
+`docs/design/Invoice_Operations_Execution_Checklist_v10.6.4_Luna_Max.md`.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.6.4 candidate (working tree, not committed)** | `VERSION` = **10.6.4**; based on the v10.6.3 `main` baseline `1103b4ca2c6c6fe41d8fa32685980db5c2e126d2`. P0 candidate gate passed locally; commit and package are intentionally pending the STOP GATE. |
-| Package | **v10.6.3 built and verified** | SaaS: `PWE-StudioSaaS-aws-10.6.3.tar.gz`, SHA-256 `11a5e95c563a49ee3a8fdef31da9486b53239039006b68579a9275fc414041a5`. Edition: `PWE-Studio-Edition-10.6.3.tar.gz`, SHA-256 `cff9f7c326279930acc24fbfbc215fe35a02967335c8d09302ab3814173c752b`. Both `BUILD_INFO` files identify commit `02e3d41…`. |
-| Production | **v10.6.3 deployed and verified** | `/opt/pwestudio/current` resolves to `PWE-StudioSaaS-aws-10.6.3`; its `BUILD_INFO` identifies commit `02e3d41…`. Deep health reports `appVersion=10.6.3`, `db=ok`, `tenants=6`, `themes.unreadable=0`, `workspaces.stale=0`, and 43.52 GB disk free. |
+| Source | **v10.7.0 candidate (uncommitted)** | Working tree `VERSION` = **10.7.0**; `main`/`origin/main` baseline remains commit `1043fe3f30e49c89358065a7ab07878f9f23e5cd`. |
+| Package | **v10.6.4 built and verified** | SaaS SHA-256 `d11296d32bf8132a26b87b80ab04b000b9e8869bc69501711fd92331141c319c`; Edition SHA-256 `c90da5ca9fff91af711463f1b429231eeeedba8df33bf88bb5155b31891cddc3`. Both archive `BUILD_INFO` files identify `1043fe3…`. |
+| Production | **v10.6.4 deployed and verified** | A read-only deep-health check on 2026-08-16 reports `appVersion=10.6.4`, `db=ok`, `tenants=6`, `themes.unreadable=0`, `workspaces.stale=0`, and 43.67 GB disk free. v10.7.0 has not been packaged, pushed, or deployed. |
+
+The v10.7.0 implementation has passed its internal A–F checks in the working
+tree, including real local top-up/refund browser acceptance. This is the single
+STOP GATE: wait for explicit authorization before commit, package, push, or
+production deployment.
 
 Re-verify the production health endpoint (`/v1/health?deep=1`) before any later
 release claim; do not infer Production from `VERSION` or from an archive

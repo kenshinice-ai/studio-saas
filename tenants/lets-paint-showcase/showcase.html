@@ -36,7 +36,7 @@
     .skip-link:focus{top:12px}
     nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
     .navrow{display:flex;align-items:center;justify-content:space-between;gap:16px;height:74px;width:min(1180px,100%);margin:0 auto;padding:0 var(--space-phi-md)}
-    .brand{display:flex;align-items:center;gap:12px;flex-shrink:0;min-height:var(--tap-min);color:var(--ink)}
+    .brand{display:flex;align-items:center;gap:12px;min-width:0;min-height:var(--tap-min);color:var(--ink);flex:1 1 auto}
     /* Bounded: a wide wordmark at a fixed height crowds the name and the
        menu button off a phone. See index.html for the full note. */
     .brand img{display:none;max-height:34px;max-width:min(48vw,300px);height:auto;width:auto;object-fit:contain;flex-shrink:0}
@@ -46,7 +46,7 @@
        the mark is what pushed the nav off the row. Dropped only when the row
        cannot otherwise fit, and never when there is no logo to read it from. */
     .navrow.brand-name-hidden .brand .bn{display:none}
-    .brand .bn{font-size:16px;letter-spacing:.04em;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .brand .bn{min-width:0;font-size:16px;letter-spacing:.04em;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .navlinks{display:flex;align-items:center;gap:26px;min-width:0;flex-shrink:1}
     .navlinks a{position:relative;padding:4px 0;color:var(--ink2);font-size:13px;letter-spacing:.02em;max-width:13em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .navlinks a::after{content:"";position:absolute;left:0;bottom:0;width:0;height:1px;background:var(--clay);transition:width .25s}
@@ -60,7 +60,7 @@
     .langtog{display:inline-flex;overflow:hidden;border:1px solid var(--line);border-radius:var(--radius-pill)}
     .langtog button{min-width:var(--tap-min);min-height:var(--tap-min);padding:8px 12px;border:0;background:none;color:var(--muted);font:inherit;font-size:13px;cursor:pointer}
     .langtog button.on{background:var(--ink);color:var(--bg)}
-    .menu-btn{display:none;width:var(--tap-min);height:var(--tap-min);align-items:center;justify-content:center;padding:0;border:0;background:none;color:var(--ink);cursor:pointer}
+    .menu-btn{display:none;flex:0 0 var(--tap-min);width:var(--tap-min);height:var(--tap-min);align-items:center;justify-content:center;padding:0;border:0;background:none;color:var(--ink);cursor:pointer}
     .menu-btn svg{width:22px;height:22px}
     main{width:min(1180px,100%);margin:0 auto;padding:var(--space-phi-2xl) var(--space-phi-md) var(--space-phi-xl)}
     .intro{max-width:760px;margin-bottom:var(--space-phi-xl)}

@@ -124,6 +124,8 @@ IMPORT_ORDER: tuple[str, ...] = (
     "payments.json",
     "payment_allocations.json",
     "refunds.json",
+    "credit_financial_links.json",
+    "financial_operation_requests.json",
     "bank_statement_lines.json",
     "teacher_engagements.json",
     "teacher_pay_rates.json",

@@ -1,33 +1,54 @@
-# PWE Studio v10.6.4 — 候选版本账本（未提交、未打包、未部署）
+# PWE Studio v10.7.0 — A–F 已验收、唯一 STOP GATE 待授权
 
 > 更新时间：2026-08-16（Australia/Melbourne）
 >
-> 这是 v10.6.3 基线之后的本地候选工作树，不是发布证明或授权。清单
-> `docs/design/Repair_Execution_Checklist_v10.6.3_Luna_Max.md` 已按顺序执行至
-> STOP GATE；没有 commit、push、package rebuild 或 production deploy。
+> 依据清单逐项执行完成 A–F；当前是**未提交、未打包、未推送、未部署的
+> v10.7.0 源码候选**。唯一 STOP GATE 已形成，等待 Lee 对 v10.7.0 与生产主机
+> 的明确授权。逐项执行文件是
+> `docs/design/Invoice_Operations_Execution_Checklist_v10.6.4_Luna_Max.md`。
+>
+> F-01 证据包：`docs/design/Invoice_Operations_Acceptance_Evidence_v10.7.0.md`。
 
 ## Source / Package / Production 分层
 
 | 层 | 当前事实 | 证据 |
 |---|---|---|
-| Source | **v10.6.4 candidate，当前工作树未提交** | `VERSION=10.6.4`；基于 `main`/v10.6.3 基线 `1103b4ca2c6c6fe41d8fa32685980db5c2e126d2`；P0 综合门禁已通过。 |
-| Package / SaaS | **仍为已验证的 v10.6.3** | `PWE-StudioSaaS-aws-10.6.3.tar.gz`；SHA-256 `11a5e95c563a49ee3a8fdef31da9486b53239039006b68579a9275fc414041a5`；没有为候选重建包。 |
-| Package / Edition | **仍为已验证的 v10.6.3** | `PWE-Studio-Edition-10.6.3.tar.gz`；SHA-256 `cff9f7c326279930acc24fbfbc215fe35a02967335c8d09302ab3814173c752b`；没有为候选重建包。 |
-| Production | **仍运行 v10.6.3** | `/opt/pwestudio/current` 与线上 `BUILD_INFO` 仍指向 v10.6.3；本轮没有远程检查或部署。 |
+| Source | **v10.7.0 candidate，工作树未提交** | `VERSION=10.7.0`；`main`/`origin/main` 仍为 v10.6.4 基线 commit `1043fe3f30e49c89358065a7ab07878f9f23e5cd`。 |
+| Package / SaaS | **v10.6.4 已构建并校验** | `PWE-StudioSaaS-aws-10.6.4.tar.gz`；SHA-256 `d11296d32bf8132a26b87b80ab04b000b9e8869bc69501711fd92331141c319c`；archive `BUILD_INFO` 指向 `1043fe3…`。 |
+| Package / Edition | **v10.6.4 已构建并校验** | `PWE-Studio-Edition-10.6.4.tar.gz`；SHA-256 `c90da5ca9fff91af711463f1b429231eeeedba8df33bf88bb5155b31891cddc3`；archive `BUILD_INFO` 指向 `1043fe3…`。 |
+| Production | **仍在运行 v10.6.4** | 2026-08-16 只读 deep health：`appVersion=10.6.4`、`db=ok`、`tenants=6`、`themes.unreadable=0`、`workspaces.stale=0`；v10.7.0 未部署。 |
 
-## v10.6.4 candidate 内容与证据
+## v10.7.0 已完成内容
 
-- 钱款：指定发票优先、错误账户/跨租户目标显式拒绝、付款与退款事件金额/余额/actor 可追溯、API 写入字段严格校验。
-- 产品真相：Xero 明确为 Preview；transport 不可用时不创建推送任务、不允许生产推送；CMS 不再承诺不存在的周期账单草稿自动生成。
-- 可重复验收：clean-checkout 静态合同与 SaaS/Edition archive runtime smoke 已加入；`verify_local.sh` 支持 app 与 migration owner 分离，应用测试不会继承 owner-only URL。
-- 验证结果：P0 targeted **140 passed, 1 skipped**；完整 pytest **2619 passed, 7 skipped**；clean-checkout **28 passed**；legacy smoke **73/73**；tenant isolation **254/254**；migration、媒体衍生物、CMS bundle/manifest、Python/JS/shell/terminology 检查全绿。
-- 数据库：无 migration 文件新增或应用；测试只使用本地测试库和临时 fixture，未改生产数据。
+- 公共页面：portal/showcase/timetable/index shell 收缩契约、320–1440px 中英无横向溢出、键盘菜单回归；清理旧“课时充值发票行”伪联动。
+- 付款方与发票：`billing_accounts.kind=person|family|organisation`、学员 0/1/N 付款方解析、重复提示、tenant-scoped atomic link、issued supplier/recipient snapshot 与 immutability。
+- 文档与导出：InvoiceDocument DTO、整数分/Decimal quantity、summary/lines UTF-8 BOM CSV、公式注入保护；PDF renderer spike 未通过，因此仅提供诚实的“打印 / 存为 PDF”。
+- 充值与退款：单一 migration 0043、bridge/idempotency、`credit-settlements` 与 `credit-refunds` 原子服务/API/UI；贷记金额累计回原发票 `amount_credited_cents`，invoice detail 暴露 credit notes，账本/付款/贷记单/余额一致。
+- Xero：仍为 Preview；没有 OAuth、provider transport、worker 或 webhook，不把入队称为已同步。
 
-## STOP GATE
+## v10.7.0 验收证据（本地候选）
 
-候选目前停在提交/打包/推送/部署之前。下一步必须由 Lee 明确授权后，才可按
-`docs/Release_Runbook.md` 执行 commit → build → verify bundles → push → deploy →
-browser/public acceptance → handoff closure。
+- 浏览器真实流程：Ana Bianchi top-up → `INV-0006` paid → explicit-source refund → `CN-0002` issued、payment `refunded`、invoice `Credited $110 / Balance $0`、credit balance 回滚；`375/768/1024/1440` billing/refund shell 无溢出，light/dark/中英与 public shell 回归已核对。
+- 目标测试：invoice/document/export、settlement/refund、CMS source/bundle contracts **36 passed**；全套 pytest **2664 passed, 7 skipped**。
+- 完整 gate：`verify_local.sh` **all checks passed**；legacy CMS smoke **73/73**；tenant isolation + Edition checks **254/254**；migration、媒体衍生物、CMS bundle/manifest、Python/JS/shell/terminology 全绿。
+- 数据库：migration 0043 已在本地 PostgreSQL upgrade 库执行且幂等；浏览器 fixture 仅使用本地测试租户，未触及生产数据。
+- 发布证据：SaaS/Edition v10.6.4 包和生产 v10.6.4 证据保留为上一个已发布基线；v10.7.0 尚无 package hash、commit、push 或 production health。
+
+## 唯一 STOP GATE
+
+**停止在这里。** 没有 Lee 对 v10.7.0 和生产主机的明确授权，不执行
+`commit → package → push → production deploy`。授权后还必须按清单补齐最终
+package/source/production 对照、浏览器公网验收与部署回滚证据；本轮不把本地
+runtime 或旧 v10.6.4 生产状态写成 v10.7.0 已发布。
+
+## 当前决策账本
+
+| 主题 | 上一版方案 | 当前决定 | 状态 | 置信度 |
+|---|---|---|---|---|
+| 发布边界 | v10.6.5 → v10.7.0 → v10.7.1 三次发布 | 合并为一次 v10.7.0 | **Superseded** | 高：三部分共享 payer/snapshot/document/settlement 合同 |
+| 数据迁移 | 0043 snapshots、0044 bridge/idempotency | 单一 0043 同时建立全部不变量 | **Superseded** | 高：没有中间生产版本需要兼容 |
+| 执行门禁 | 每个小版本各自 STOP GATE | A–E 为内部 targeted gate，F 为唯一发布 STOP GATE | **Superseded** | 高：保留质量控制但减少重复发布链 |
+| Xero transport | v10.8.0 Beta 独立实现 | 仍为后续独立 Beta，v10.7.0 只准备可靠输入合同 | **Unchanged** | 高：仍缺 OAuth、真实 transport、worker 与 demo org 验收 |
 
 # PWE Studio v10.6.3 — `main` 基线与下一轮执行清单
 

@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import re
 
-from _cms_sources import CMS_SRC_DIR
+from _cms_sources import CMS_SRC_DIR, cms_source_text
 
 #: Real globals: the page loads React and ReactDOM from /vendor before the
 #: bundle, and index.html's only other contract is `<div id="root">`.
@@ -189,3 +189,89 @@ def test_billing_empty_state_describes_manual_invoice_creation_only():
     assert "还没有发票。点击“新建发票”创建草稿，复核后再开具。" in panel
     assert "周期账单会自动生成草稿" not in panel
     assert "周期账单一次生成几十张草稿" not in panel
+
+
+def test_manual_invoice_lines_do_not_claim_credit_settlement_and_use_explicit_classification():
+    panel = (CMS_SRC_DIR / "panels" / "billing.jsx").read_text(encoding="utf-8")
+
+    assert "isCredits" not in panel
+    assert "这一行是课时充值" not in panel
+    assert "与「充值与退款」对应" not in panel
+    assert "value={line.sourceKind}" in panel
+    assert 'value="package"' in panel
+    assert "sourceKind: line.sourceKind || 'manual'" in panel
+    assert "studentId: line.studentId || null" in panel
+    assert "studentPicker" in panel
+    assert "只表达收入报告归属，不改变课时余额" in panel
+    assert "同时创建发票" not in panel
+    assert "同步处理原发票与付款" not in panel
+
+
+def test_billing_account_picker_has_student_and_custom_payer_paths():
+    panel = (CMS_SRC_DIR / "panels" / "billing.jsx").read_text(encoding="utf-8")
+
+    assert "function BillingAccountPicker" in panel
+    assert "已有学员" in panel
+    assert "其他个人或机构" in panel
+    assert "studentId=${encodeURIComponent(studentId)}" in panel
+    assert "possibleDuplicates" not in panel  # suggestions are returned by API, never silently merged in UI
+    assert "studentIds" in panel
+    assert "0..N" in panel
+    assert "billing-account-help" in panel
+    assert "grid-cols-1 md:grid-cols-3" in panel
+    assert "保留发票行" in panel or "Keep payer fields" in panel
+    assert "不改变课时余额" in panel
+
+
+def test_billing_panel_exposes_bounded_summary_and_line_exports():
+    panel = (CMS_SRC_DIR / "panels" / "billing.jsx").read_text(encoding="utf-8")
+    app = cms_source_text()
+
+    assert "发票汇总 CSV" in panel
+    assert "行项目 CSV" in panel
+    assert "includeDrafts: '0'" in panel
+    assert "当前筛选范围" in panel
+    assert "canExportData" in panel and "tenantSlug" in panel
+    assert "canExportData={canExportData}" in app
+    assert "tenantSlug={TENANT_SLUG}" in app
+
+
+def test_billing_detail_keeps_print_save_as_pdf_fallback_until_server_renderer_exists():
+    panel = (CMS_SRC_DIR / "panels" / "billing.jsx").read_text(encoding="utf-8")
+    shell = (CMS_SRC_DIR.parent / "index.html").read_text(encoding="utf-8")
+    assert "const printInvoice = () =>" in panel
+    assert "window.print()" in panel
+    assert "invoice-printable" in panel
+    assert "invoice-print-mode" in shell
+    assert "Print / Save as PDF" not in panel  # source remains Chinese for CMS i18n
+
+
+def test_topup_settlement_ui_has_layered_invoice_controls_and_stable_retry_contract():
+    app = cms_source_text()
+    picker = (CMS_SRC_DIR / "panels" / "billing.jsx").read_text(encoding="utf-8")
+
+    assert "BillingAccountPicker" in app
+    assert "同时创建发票" in app
+    assert "款项已经收到，同时登记付款" in app
+    assert "createInvoice: true" in app
+    assert "paymentReceived" in app
+    assert "nextSettlementRequestId" in app
+    assert "requestId" in app
+    assert "查看发票" in app
+    assert "/credit-settlements" in app
+    assert "/credit-transactions" in app
+    assert "hideStudentSelector" in picker
+    assert "amountCents" in app
+    assert "税码" in app
+
+
+def test_refund_ui_requires_a_purchase_source_and_gates_document_adjustment():
+    app = cms_source_text()
+    assert "先选择原充值" in app
+    assert "sourceCreditTransactionId" in app
+    assert "/credit-refunds" in app
+    assert "同步处理原发票与付款" in app
+    assert "source.syncAvailable" in app
+    assert "canSyncRefund" in app
+    assert "不会改变发票或付款记录" in app
+    assert "nextRefundRequestId" in app

@@ -440,6 +440,256 @@ def test_issued_invoice_figures_cannot_be_changed(money_tenant):
 
 
 @requires_db
+def test_issued_invoice_identity_snapshot_survives_live_edits(money_tenant):
+    """Issued documents keep the names and addresses that were actually sent."""
+
+    from _cms_sources import owner_connection as connect  # 夹具造世界用属主
+    from studiosaas.db import fetch_one
+
+    tenant_id = money_tenant["tenant_id"]
+    with connect() as conn:
+        invoice_id = _draft_with_line(
+            conn, tenant_id, money_tenant["account_id"], cents=1000, tax_bp=0
+        )
+        billing.issue_invoice(conn, tenant_id, invoice_id)
+        before = fetch_one(
+            conn,
+            """
+            SELECT supplier_snapshot, recipient_snapshot, snapshot_schema_version
+            FROM invoices WHERE tenant_id = %s AND id = %s
+            """,
+            (tenant_id, invoice_id),
+        )
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE billing_accounts SET name = 'Renamed Family', email = 'new@example.test' "
+                "WHERE tenant_id = %s AND id = %s",
+                (tenant_id, money_tenant["account_id"]),
+            )
+            cur.execute(
+                "UPDATE tenant_billing_identity SET legal_name = 'New Legal Pty Ltd', "
+                "trading_name = 'New Trading' WHERE tenant_id = %s",
+                (tenant_id,),
+            )
+        conn.commit()
+
+        after = fetch_one(
+            conn,
+            """
+            SELECT supplier_snapshot, recipient_snapshot, snapshot_schema_version
+            FROM invoices WHERE tenant_id = %s AND id = %s
+            """,
+            (tenant_id, invoice_id),
+        )
+        assert after == before
+
+        new_invoice_id = _draft_with_line(
+            conn, tenant_id, money_tenant["account_id"], cents=1000, tax_bp=0
+        )
+        billing.issue_invoice(conn, tenant_id, new_invoice_id)
+        newer = fetch_one(
+            conn,
+            "SELECT supplier_snapshot, recipient_snapshot FROM invoices WHERE id = %s",
+            (new_invoice_id,),
+        )
+        assert newer["supplier_snapshot"]["legalName"] == "New Legal Pty Ltd"
+        assert newer["recipient_snapshot"]["displayName"] == "Renamed Family"
+
+
+def test_0043_declares_the_single_snapshot_bridge_and_idempotency_contract():
+    """The forward migration cannot silently lose one of the v10.7.0 invariants."""
+
+    migration = (
+        BACKEND_ROOT / "db/migrations/0043_invoice_and_credit_settlements.sql"
+    ).read_text(encoding="utf-8")
+    for required in (
+        "kind IN ('person', 'family', 'organisation')",
+        "supplier_snapshot",
+        "recipient_snapshot",
+        "credit_financial_links",
+        "financial_operation_requests",
+        "UNIQUE (tenant_id, request_id, operation_kind)",
+        "assert_issued_invoice_is_immutable",
+        "assert_credit_financial_link_is_legal",
+        "ROW LEVEL SECURITY",
+    ):
+        assert required in migration
+
+
+def test_billing_account_api_has_two_recipient_paths_without_auto_merge():
+    """The payer API exposes search/parse/create contracts, not a second model."""
+
+    source = (BACKEND_ROOT / "studiosaas/api_v1.py").read_text(encoding="utf-8")
+    start = source.index('def billing_accounts():')
+    end = source.index('@api_v1.route("/billing/accounts/<account_id>/members"', start)
+    route = source[start:end]
+    for required in (
+        "request.args.get(\"q\")",
+        "request.args.get(\"kind\")",
+        "request.args.get(\"studentId\")",
+        "LIMIT %s OFFSET %s",
+        "possibleDuplicates",
+        "requiresReview",
+        "_reject_unknown_keys",
+        "student_id",
+        "billing_account_members",
+        "person, family, or organisation",
+    ):
+        assert required in route
+    assert "ON CONFLICT (billing_account_id, student_id) DO NOTHING" in route
+    assert "自动合并" not in route
+
+
+@requires_db
+def test_credit_financial_link_is_unique_legal_and_tenant_scoped(money_tenant):
+    """A purchase bridge is one-to-one and cannot borrow another tenant's row."""
+
+    from _cms_sources import owner_connection as connect  # 夹具造世界用属主
+    from studiosaas.db import fetch_one
+
+    tenant_id = money_tenant["tenant_id"]
+    foreign_tenant_id = str(uuid.uuid4())
+    with connect() as conn:
+        invoice_id = _draft_with_line(
+            conn, tenant_id, money_tenant["account_id"], cents=1000, tax_bp=0
+        )
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id FROM invoice_lines WHERE tenant_id = %s AND invoice_id = %s",
+                (tenant_id, invoice_id),
+            )
+            line_id = cur.fetchone()["id"]
+            cur.execute(
+                """
+                INSERT INTO credit_transactions
+                    (tenant_id, student_id, transaction_type, amount, fee_aud_cents)
+                VALUES (%s, %s, 'purchase', 10, 1000) RETURNING id
+                """,
+                (tenant_id, money_tenant["student_id"]),
+            )
+            purchase_id = cur.fetchone()["id"]
+            cur.execute(
+                """
+                INSERT INTO credit_financial_links
+                    (tenant_id, credit_transaction_id, invoice_id, invoice_line_id)
+                VALUES (%s, %s, %s, %s)
+                """,
+                (tenant_id, purchase_id, invoice_id, line_id),
+            )
+        conn.commit()
+
+        with pytest.raises(Exception):
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO credit_financial_links
+                        (tenant_id, credit_transaction_id, invoice_id, invoice_line_id)
+                    VALUES (%s, %s, %s, %s)
+                    """,
+                    (tenant_id, purchase_id, invoice_id, line_id),
+                )
+        conn.rollback()
+        assert fetch_one(
+            conn,
+            "SELECT count(*) AS n FROM credit_financial_links WHERE tenant_id = %s",
+            (tenant_id,),
+        )["n"] == 1
+
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO tenants (id, name, slug, status, plan_code)
+                    VALUES (%s, 'Foreign Bridge Test', %s, 'active', 'starter')
+                    """,
+                    (foreign_tenant_id, f"foreign-bridge-{foreign_tenant_id[:8]}"),
+                )
+                cur.execute(
+                    """
+                    INSERT INTO students (tenant_id, first_name, display_name)
+                    VALUES (%s, 'Foreign', 'Foreign Student') RETURNING id
+                    """,
+                    (foreign_tenant_id,),
+                )
+                foreign_student_id = cur.fetchone()["id"]
+                cur.execute(
+                    """
+                    INSERT INTO credit_transactions
+                        (tenant_id, student_id, transaction_type, amount)
+                    VALUES (%s, %s, 'purchase', 1) RETURNING id
+                    """,
+                    (foreign_tenant_id, foreign_student_id),
+                )
+                foreign_purchase_id = cur.fetchone()["id"]
+            conn.commit()
+
+            with pytest.raises(Exception):
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """
+                        INSERT INTO credit_financial_links
+                            (tenant_id, credit_transaction_id, invoice_id, invoice_line_id)
+                        VALUES (%s, %s, %s, %s)
+                        """,
+                        (tenant_id, foreign_purchase_id, invoice_id, line_id),
+                    )
+            conn.rollback()
+        finally:
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM tenants WHERE id = %s", (foreign_tenant_id,))
+            conn.commit()
+
+
+@requires_db
+def test_financial_operation_request_rejects_payload_reuse(money_tenant):
+    """Retries may read one result, never reinterpret a key with new input."""
+
+    from _cms_sources import owner_connection as connect  # 夹具造世界用属主
+    from studiosaas.db import fetch_one
+
+    tenant_id = money_tenant["tenant_id"]
+    with connect() as conn:
+        request_id = f"request-{uuid.uuid4()}"
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO financial_operation_requests
+                    (tenant_id, request_id, operation_kind, payload_hash, status)
+                VALUES (%s, %s, 'credit_settlement', 'hash-a', 'succeeded')
+                RETURNING id
+                """,
+                (tenant_id, request_id),
+            )
+            operation_id = cur.fetchone()["id"]
+        conn.commit()
+
+        with pytest.raises(Exception):
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO financial_operation_requests
+                        (tenant_id, request_id, operation_kind, payload_hash)
+                    VALUES (%s, %s, 'credit_settlement', 'hash-b')
+                    """,
+                    (tenant_id, request_id),
+                )
+        conn.rollback()
+
+        with pytest.raises(Exception):
+            with conn.cursor() as cur:
+                cur.execute(
+                    "UPDATE financial_operation_requests SET payload_hash = 'hash-b' WHERE id = %s",
+                    (operation_id,),
+                )
+        conn.rollback()
+        assert fetch_one(
+            conn,
+            "SELECT payload_hash FROM financial_operation_requests WHERE id = %s",
+            (operation_id,),
+        )["payload_hash"] == "hash-a"
+
+
+@requires_db
 def test_issued_invoice_lines_cannot_be_changed(money_tenant):
     from _cms_sources import owner_connection as connect  # 夹具造世界用属主
 

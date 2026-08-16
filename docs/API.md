@@ -1,7 +1,8 @@
 # StudioSaaS API Reference
 
 Version: v3.6
-Date: 2026-08-12
+Date: 2026-08-16
+Product candidate: v10.7.0 (not packaged or deployed)
 Purpose: Complete API endpoint reference, authentication model, tenant resolution, and public endpoints.
 
 ---
@@ -431,6 +432,115 @@ disabled (410) whenever `STUDIOSAAS_ENV` is `pilot` or `production`** (except
 must not coexist with multi-tenant data. A genuine single-studio install keeps
 it by running `STUDIOSAAS_ENV=local` or explicitly setting
 `STUDIOSAAS_ENABLE_LEGACY_CMS=1`.
+
+---
+
+## 11.5 Billing accounts (v10.7.0 foundation)
+
+`billing_accounts` are the tenant-scoped payer/recipient records. Students are
+service subjects and are never substituted for a payer. Existing `family`
+records remain valid; new records may use `person` or `organisation`.
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/v1/billing/accounts?q=&kind=&studentId=&limit=50&offset=0` | `billing:read` | Search active payers, or return only payers already linked to one student |
+| POST | `/v1/billing/accounts` | `billing:write` (plus `billing:read` route session) | Create a payer; optional `studentId` creates the payer-member edge in the same transaction |
+| POST/DELETE | `/v1/billing/accounts/{account_id}/members` | `billing:write` | Add/remove an existing student edge |
+
+Search matches name, contact name, company, email, mobile, or ABN. `kind` is
+validated as `person`, `family`, or `organisation`; the default is `active`
+records only. `studentId` is tenant-scoped: a foreign or unknown ID returns the
+same `Student not found` response and never reveals another tenant's payer list.
+`limit` is clamped to 1–100 and the response includes the applied pagination.
+
+Create payload (unknown fields are rejected):
+
+```json
+{
+  "name": "Alex Chen",
+  "kind": "person",
+  "contactName": "Alex Chen",
+  "email": "alex@example.test",
+  "mobile": "0400 000 000",
+  "companyName": "",
+  "abn": "",
+  "billingAddress": "1 Example Street, Melbourne VIC 3000",
+  "paymentTermsDays": 14,
+  "purchaseOrderRef": "",
+  "language": "en",
+  "studentIds": ["optional-student-uuid"]
+}
+```
+
+Organisation records need a company name; personal/family records need a
+display name. Email, phone, ABN, language, and payment-term values are validated
+before the database write. The response includes `possibleDuplicates` based on
+exact normalised ABN/email/phone matches. These are suggestions only: the API
+never auto-merges accounts. When a student has no payer, the student-scoped GET
+also returns `suggestedPayer` with `requiresReview: true`; it is a prefill, not an
+automatic save.
+
+## 11.6 Invoice documents and CSV export (v10.7.0 foundation)
+
+`GET /s/<slug>/v1/billing/invoices/<invoice_id>?lang=zh|en` keeps the legacy
+`invoice`, `lines`, and `events` fields for the CMS and also returns a stable
+`document` DTO. The DTO contains `supplier`, `recipient`, document metadata,
+integer-cent `totals`, Decimal-string line `quantity`, and a `paymentSummary`.
+Drafts use the current identity/account as a preview. Issued, part-paid, paid,
+and void invoices use only their stored supplier/recipient snapshots, so later
+profile edits cannot rewrite a historical document. `lang=en` changes only the
+status label; money remains integer cents.
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/s/<slug>/v1/billing/invoices/export.csv?view=summary|lines&status=&from=&to=&accountId=&includeDrafts=` | `billing:read` + `data:export` | UTF-8-BOM CSV export, audited and tenant-scoped |
+
+`view` defaults to `summary`; a direct summary request includes drafts and marks
+them `DRAFT`. The CMS accounting buttons send `includeDrafts=0`, so normal
+accounting downloads exclude drafts. `status` accepts a comma-separated subset
+of `draft`, `issued`, `part_paid`, `paid`, and `void`. `from`/`to` are inclusive
+ISO issue dates and may span at most 366 days; `accountId` must be a valid UUID.
+Each response is capped at 5,000 rows; narrow the date/status/account filters
+when the cap is exceeded. CSV text beginning with `=`, `+`, `-`, or `@` is
+prefixed with an apostrophe to prevent spreadsheet formula execution. Historical
+identity fields are read from snapshots; tenant and permission checks happen
+before any export query, and the route does not require the billing feature
+entitlement to export retained historical invoices.
+
+`studentId` remains accepted as a one-student compatibility alias. For a new
+payer, prefer `studentIds` (zero to many); account creation and all requested
+member edges commit or roll back together. The member route accepts the same
+array for adding/removing edges on an existing payer.
+
+## 11.7 Credit settlement and refund linkage (v10.7.0)
+
+Top-ups that intentionally create financial documents use one atomic endpoint;
+the legacy credit-transactions route remains available for credits-only entries.
+The request id is tenant-scoped and its payload hash is stored, so a retry with
+the same request id and changed input returns `409` rather than creating a second
+purchase.
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| POST | `/s/<slug>/v1/students/{student_id}/credit-settlements` | `credits:write`; invoice adds `billing:write` + `billing:issue`; received payment adds `payments:write` | Atomic purchase, optional invoice, optional payment/allocation, bridge and audit |
+| GET | `/s/<slug>/v1/students/{student_id}/credit-refunds` | `credits:read` | List explicit refundable purchase sources and remaining credit/amount limits |
+| POST | `/s/<slug>/v1/students/{student_id}/credit-refunds` | `credits:refund` + `payments:refund` + `billing:issue` | Atomic negative credit, issued credit note, payment refund, bridge and audit |
+
+Settlement payloads carry `credits` as a decimal string and `amountCents` as an
+integer gross amount. `billing.createInvoice` chooses the invoice path; when
+`paymentReceived` is true the new payment is allocated only to that invoice.
+The service reverses the whole transaction on validation or database failure.
+
+Refund payloads must name `sourceCreditTransactionId`, a decimal `credits`, an
+integer gross `amountCents`, a reason, and
+`billing.adjustDocuments: true`. The UI requires an explicit source selection;
+the service locks the original purchase, bridge, payment and credit account and
+rejects cross-tenant IDs, missing bridges, over-refunds, or an insufficient
+current balance. Each issued refund appears in the invoice detail response as
+`creditNotes`, while `amount_credited_cents`, payment status and the bridge keep
+the CSV/document totals consistent. Setting `adjustDocuments: false` is not a
+second document path: the CMS deliberately uses the legacy credits-only endpoint
+and states that no invoice or payment record changes.
 
 ---
 
