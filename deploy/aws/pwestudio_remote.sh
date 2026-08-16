@@ -142,8 +142,6 @@ case "$cmd" in
     fi
     tar xzOf "$tarball" "$name/BUILD_INFO" | sed 's/^/  /'
 
-    say "Backing up before touching anything"
-    ctl backup >/dev/null
     previous="$(remote "readlink -f $CURRENT")"
     previous_version="$(remote "sudo sed -n 's/^STUDIOSAAS_VERSION=//p' /opt/pwestudio/shared/production.env | tail -1")"
     [ -n "$previous_version" ] || die "production.env carries no current STUDIOSAAS_VERSION — refusing an unrollbackable deploy"
@@ -154,6 +152,19 @@ case "$cmd" in
 
     say "Uploading $base"
     scp -q "$tarball" "$SSH_HOST:/opt/pwestudio/shared/incoming/$base"
+
+    # The currently running release may not know how to back up a newly added
+    # FORCE-RLS table. Stage the candidate first, but do not move `current`; run
+    # its controller against the unchanged Compose project so the pre-switch
+    # backup uses the candidate's owner-role backup fix. If staging or backup
+    # fails, production is still on the previous symlink and version.
+    say "Staging candidate backup controller"
+    remote "set -e
+      cd $RELEASES
+      rm -rf '$name'
+      tar xzf /opt/pwestudio/shared/incoming/$base --exclude='._*'
+      cd $RELEASES/$name
+      bash deploy/aws/lightsail_ctl.sh backup >/dev/null"
 
     # docker-compose.yml tags the image `studiosaas:${STUDIOSAAS_VERSION}`, and
     # that variable lives in the shared env file, which deliberately survives a

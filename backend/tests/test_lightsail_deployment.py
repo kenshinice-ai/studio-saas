@@ -188,7 +188,8 @@ def test_remote_operator_script_carries_no_credentials_and_cannot_destroy() -> N
     assert "certbot delete" not in remote
     # A deploy backs up first, verifies deep health, and rolls back on failure.
     assert "lightsail_ctl.sh" in remote  # delegates to the on-instance script
-    assert "ctl backup" in remote        # deploy takes a backup before switching
+    assert "ctl backup" in remote or "lightsail_ctl.sh backup" in remote
+    assert remote.index("Staging candidate backup controller") < remote.index("Unpacking and switching the current symlink")
     assert "rolling back" in remote.lower()
     # A standalone tarball on the SaaS host would refuse to boot after the
     # symlink already moved, so the mode is checked before upload.
