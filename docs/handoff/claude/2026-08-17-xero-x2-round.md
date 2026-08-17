@@ -38,3 +38,12 @@ per-tenant token 加密存储 + 自动 refresh；先只接 Xero Demo Company；�
 - `deploy/aws/set_xero_env.sh`：凭据只走一条 SSH 的 stdin（不进 argv/history/仓库），token key 服务器生成，改完走 lightsail_ctl up。
 - 依赖：backend/requirements.txt + cryptography>=42,<46。
 - 测试：`test_xero_oauth.py` 7 项全过；全量 pytest 2758 passed / 7 skipped。
+
+## 发布证据（2026-08-17 闭环）
+
+- 第一次部署失败并自动回滚（10.8.0 全程健康）：requirements.lock 缺 cryptography，容器 import 崩、深健康 90s 超时。修复 + 新增 lock 漂移台账测试后二次部署成功。
+- Source：release commit `9c9c851` 后接 lock 修复 commit `85b13b498`；main == origin/main。
+- Package/SaaS：SHA-256 `b445de62cf9cd555eb9b53a8a1f2b677b678311babe3fb1a85e1242eb33f06fb`；Package/Edition：SHA-256 `442c941580c76ecd0ce82993dd3a6e38bb5276932574c16ca83eb45519cd01e8`（重建于 lock 修复后，guard 三方一致）。
+- Production：`Deployed: PWE-StudioSaaS-aws-10.9.0`，deep health `appVersion=10.9.0`、`db=ok`；迁移 0045 已应用。
+- 浏览器验收（生产）：集成页如实显示「服务器未配置，缺 XERO_CLIENT_ID / XERO_CLIENT_SECRET / STUDIOSAAS_XERO_TOKEN_KEY」并指向 set_xero_env.sh。
+- 待 Lee：跑 set_xero_env.sh 放凭据 → 浏览器里完成 Xero 登录与 Allow（Demo Company）→ 我做 连接/自愈/断开重连 三项验收。
