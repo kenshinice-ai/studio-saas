@@ -115,3 +115,29 @@ def test_no_test_fixture_workspace_is_tracked() -> None:
     assert not tracked, (
         f"test fixture workspaces are tracked and would ship: {tracked[:5]}"
     )
+
+
+def test_every_runtime_dependency_is_pinned_in_the_production_lock() -> None:
+    """backend/requirements.txt is the dev contract; deploy/aws/requirements.lock
+    is what production images actually install. The v10.9.0 first deploy failed
+    exactly here: cryptography added to requirements.txt but not the lock, so
+    the container built fine and crashed on import. Names must stay in sync."""
+
+    import re
+
+    def names(path: Path) -> set[str]:
+        found = set()
+        for line in (PROJECT_ROOT / path).read_text(encoding="utf-8").splitlines():
+            line = line.split("#")[0].strip()
+            if not line:
+                continue
+            found.add(re.split(r"[\[<>=!~]", line)[0].strip().lower().replace("-", "_"))
+        return found
+
+    dev = names("backend/requirements.txt")
+    lock = names("deploy/aws/requirements.lock")
+    missing = dev - lock
+    assert not missing, (
+        f"deploy/aws/requirements.lock is missing pins for {sorted(missing)} — "
+        "production installs the lock, so this dependency would not exist in the image."
+    )
