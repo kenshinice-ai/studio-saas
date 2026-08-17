@@ -40,11 +40,15 @@ private-lessons）完好。
   `payments:refund`（Manager+）✓、请假记录要 `scheduling:write`（前台有）✓、
   GST→ABN 数据库约束存在 ✓。
 
-## 四层身份（发布时回填）
+## 四层身份（2026-08-17 发布闭环）
 
 | 层 | 事实 |
 |---|---|
-| Source | （提交后回填 commit） |
-| Package | （构建后回填 SHA-256） |
-| Production | （部署后回填 deep health） |
-| Backup | （部署前备份名） |
+| Source | 发布提交 `3e725fd`，分支 `claude/online-manual-content-improvement-03b8f9`；`VERSION=10.9.2`。门禁全绿（app 连接走 `studiosaas_leastpriv`，fixture 走 `STUDIOSAAS_OWNER_DATABASE_URL`，迁移走 `STUDIOSAAS_MIGRATION_DATABASE_URL`）：pytest `1949 passed`、legacy smoke `73 passed`、租户隔离 `254 passed, 0 failed`。 |
+| Package | SaaS `PWE-StudioSaaS-aws-10.9.2.tar.gz` SHA-256 `e3cca0f1cf233bf5ceb1d8158b7dd33a2eec1578604767aba5675da966948f92`；Edition `PWE-Studio-Edition-10.9.2.tar.gz` SHA-256 `cd9353bee7a71cce49b976012e059ad42d8234e0c52a61526b37ad4c98f2ac83`；均通过 checksum / BUILD_INFO / entrypoint / exclusion / smoke。 |
+| Production | `pwestudio.online` deep health `appVersion=10.9.2`、`db=ok`、`mode=saas`、`workspaces.stale=0`；第 10 章四组截图线上字节与本地 SHA-256 逐一相同；修正后的图注与眉题编号（11/12/13/14）已上线。 |
+| Backup | 部署前逻辑库备份 `studiosaas_studiosaas_20260817T103221Z.dump` + manifest。 |
+
+> 口径备注：deep health 的 `themes.tenants=4` 只统计 active+onboarding；
+> 库里 6 个租户一个不少（2 active / 2 onboarding / 1 archived / 1 paused）。
+> 上一轮 handoff 写的「tenants=6」按当时口径，两者都对，别当回归追。

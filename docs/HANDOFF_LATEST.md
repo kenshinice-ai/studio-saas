@@ -17,11 +17,11 @@
 
 | 层 | 精确事实 |
 |---|---|
-| Source | main == origin/main；v10.8.0 运行时 commit `9c9c85118d254c85b9fb86f03ae6aca43716c8e6`（docs closure `32bc9d0`） |
-| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.8.0.tar.gz`，SHA-256 `67ef4771…65c1f`，BUILD_INFO commit `9c9c8511…` |
-| Package / Edition | `dist/PWE-Studio-Edition-10.8.0.tar.gz`，SHA-256 `b6811839…fdb3c2`，BUILD_INFO commit `9c9c8511…` |
-| Production | `pwestudio.online` = v10.9.1（见 claude/2026-08-17-xero-x2-round.md）；deep health `db=ok`、`mode=saas`、`themes.unreadable=0`、`workspaces.stale=0`；6 租户（2 active / 2 onboarding / 1 archived / 1 paused） |
-| Backup / migration | 本次部署预切换备份由 controller 生成（见部署日志）；上一基线 dump `studiosaas_studiosaas_20260816T124139Z.dump` + volume `pwestudio-volumes-20260816T124140Z.tar.gz`；schema 至 `0044_credit_refund_source.sql` |
+| Source | v10.9.2 发布提交 `3e725fd`（docs+assets；运行时基线仍为 v10.8.0 `9c9c8511…`） |
+| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.9.2.tar.gz`，SHA-256 `e3cca0f1…48f92` |
+| Package / Edition | `dist/PWE-Studio-Edition-10.9.2.tar.gz`，SHA-256 `cd9353be…2ac83` |
+| Production | `pwestudio.online` = v10.9.2（见 claude/2026-08-17-manual-invoicing-screenshots.md）；deep health `db=ok`、`mode=saas`、`themes.unreadable=0`、`workspaces.stale=0`；6 租户（2 active / 2 onboarding / 1 archived / 1 paused） |
+| Backup / migration | v10.9.2 部署前 dump `studiosaas_studiosaas_20260817T103221Z.dump` + manifest；schema 至 `0044_credit_refund_source.sql` |
 
 完整证据见 `docs/handoff/claude/2026-08-16-v10.8.0-round.md`（v10.8.0）与 codex/001（v10.7.1 历史）。
 
