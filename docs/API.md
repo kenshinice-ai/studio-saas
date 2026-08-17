@@ -596,3 +596,13 @@ internal exception text. `503 database_unavailable` behaves the same way in
 pilot/production (`STUDIOSAAS_ENV`): the message is the fixed text
 "Database unavailable. Please try again later." — driver and connection
 detail is only included in local development.
+
+### Xero connection (X2, v10.9.0)
+
+- `POST /s/<slug>/v1/integrations/xero/connect-url` — begin the OAuth handshake (permission `integrations:manage`); returns `{url}` for a full-page redirect to Xero. `409` with a named reason when the server is unconfigured.
+- `GET /xero/callback` — root-level OAuth redirect target (no tenant in the URL; the pending state row is the tenant resolution). Redirects back to `/{slug}/cms?view=settings&section=integrations&xero=connected|cancelled|error`.
+- `POST /s/<slug>/v1/integrations/xero/disconnect` — best-effort revocation at Xero plus unconditional local token wipe; returns the new `connection` state.
+- `POST /s/<slug>/v1/integrations/xero/refresh-check` — proves a working access token now (silently refreshing if stale); a dead refresh token flips the connection to `expired` with the error recorded, `409`.
+- `GET /s/<slug>/v1/integrations/xero` now includes `connection: {configured, configMissing, connected, status, orgName, lastError, connectedAt, accessTokenExpiresAt}`.
+
+Tokens are Fernet-encrypted at rest (`STUDIOSAAS_XERO_TOKEN_KEY`); server credentials come from `XERO_CLIENT_ID`/`XERO_CLIENT_SECRET` set via `deploy/aws/set_xero_env.sh`. Pushing documents remains behind the X3 gate — the connection sends nothing to the accounting API.

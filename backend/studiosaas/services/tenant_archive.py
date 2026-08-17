@@ -132,6 +132,12 @@ SNAPSHOT_TABLES: tuple[tuple[str, str, str], ...] = (
 # of them appears either above or here — so a new table cannot slip through by
 # nobody remembering this file.
 SNAPSHOT_EXCLUSIONS: dict[str, str] = {
+    "xero_oauth_states": (
+        "Minutes-long OAuth handshakes in flight (0045), not tenant property. "
+        "A row is consumed by the callback or expires; archiving one would "
+        "preserve an encrypted PKCE verifier that is useless outside the "
+        "originating server's key and must not travel with a tenant."
+    ),
     "payment_provider_events": (
         "Transient webhook intake, not tenant property. Rows hold the provider's "
         "raw payload — payer names, card metadata, addresses the studio never "

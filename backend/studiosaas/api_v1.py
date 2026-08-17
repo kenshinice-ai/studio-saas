@@ -63,6 +63,7 @@ from .services import invoice_documents as _invoice_documents
 from .services import invoice_drafts as _invoice_drafts
 from .services import invoice_reminders as _invoice_reminders
 from .services import student_timeline as _student_timeline
+from .services import xero_oauth as _xero_oauth
 from .services import calendar_subscriptions as _calendar_subs
 from .services import entitlements as _entitlements
 from .services import notification_channels as _channels
@@ -14835,6 +14836,9 @@ def xero_status():
             (tenant.tenant_id,),
         )
         missing = _xero.missing_required_mappings(conn, tenant.tenant_id)
+        # Evaluated here, not in the jsonify literal below — that dict is
+        # built after the with-block closes the connection.
+        connection = _xero_oauth.connection_status(conn, tenant.tenant_id)
     return jsonify(
         {
             "integrationStage": _xero.INTEGRATION_STAGE,
@@ -14849,8 +14853,68 @@ def xero_status():
             "requiredKinds": list(_xero.REQUIRED_ITEM_KINDS),
             "mappings": mappings,
             "settings": settings or {},
+            # X2: the OAuth connection is its own object — configured-ness of
+            # the server, connection state, org name, and any stored error.
+            "connection": connection,
         }
     )
+
+
+@api_v1.route("/integrations/xero/connect-url", methods=["POST"])
+@permission_required("integrations:manage")
+def xero_connect_url():
+    """Start the OAuth handshake; the browser follows the returned URL.
+
+    POST rather than GET because it writes a pending-state row; the actual
+    redirect is the client's job so the API surface stays JSON-only.
+    """
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        try:
+            url = _xero_oauth.begin_connect(conn, tenant.tenant_id, getattr(g.actor, "user_id", None))
+        except _xero_oauth.XeroOAuthError as exc:
+            return _error(str(exc), 409)
+        conn.commit()
+    return jsonify({"url": url})
+
+
+@api_v1.route("/integrations/xero/disconnect", methods=["POST"])
+@permission_required("integrations:manage")
+def xero_disconnect():
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        try:
+            _xero_oauth.disconnect(conn, tenant.tenant_id)
+        except _xero_oauth.XeroOAuthError as exc:
+            return _error(str(exc), 409)
+        conn.commit()
+        status = _xero_oauth.connection_status(conn, tenant.tenant_id)
+    return jsonify({"connection": status})
+
+
+@api_v1.route("/integrations/xero/refresh-check", methods=["POST"])
+@permission_required("integrations:manage")
+def xero_refresh_check():
+    """The 过期自愈 acceptance button: prove we hold a working token NOW.
+
+    Forces ensure_access_token(), which silently refreshes if the access
+    token is stale and records an honest 'expired' state if the refresh
+    token itself is dead. Returns the resulting connection state; the token
+    itself never leaves the server.
+    """
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        try:
+            _xero_oauth.ensure_access_token(conn, tenant.tenant_id)
+            conn.commit()
+        except _xero_oauth.XeroOAuthError as exc:
+            conn.commit()  # the 'expired' state write above must survive
+            status = _xero_oauth.connection_status(conn, tenant.tenant_id)
+            return jsonify({"ok": False, "message": str(exc), "connection": status}), 409
+        status = _xero_oauth.connection_status(conn, tenant.tenant_id)
+    return jsonify({"ok": True, "connection": status})
 
 
 @api_v1.route("/integrations/xero/mappings", methods=["PUT"])

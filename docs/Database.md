@@ -2,7 +2,7 @@
 
 Version: v3.4
 Date: 2026-08-16
-Release: v10.7.1 deployed; migration `0044_credit_refund_source.sql` is current in production
+Release: v10.9.0; migration `0045_xero_oauth_state.sql` is current (pending OAuth handshakes for the Xero connection flow)
 Purpose: Schema definition, table descriptions, canonical enums, migration strategy, and operational notes.
 
 ---

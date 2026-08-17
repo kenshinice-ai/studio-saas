@@ -64,6 +64,61 @@ export function IntegrationsPanel({ api, showToast, canManage }) {
 
   useEffect(() => { load(); }, [load]);
 
+  /* X2: the OAuth callback lands back here with ?xero=connected|cancelled|
+     error. Toast once, then strip the params so a reload doesn't re-toast. */
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const flag = params.get('xero');
+    if (!flag) return;
+    const message = params.get('xeroMessage') || '';
+    if (flag === 'connected') showToast('Xero 已连接', 'success');
+    else if (flag === 'cancelled') showToast('已取消 Xero 授权，未做任何更改', 'warn');
+    else showToast(`Xero 连接失败：${message || '未知原因'}`, 'warn');
+    params.delete('xero'); params.delete('xeroMessage');
+    const rest = params.toString();
+    window.history.replaceState({}, '', window.location.pathname + (rest ? `?${rest}` : ''));
+    // The toast is enough; load() below already runs on mount and reflects state.
+  }, []);
+
+  const [armDisconnect, setArmDisconnect] = useState(false);
+  const connectNow = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const d = await api('/integrations/xero/connect-url', { method: 'POST', body: '{}' });
+      /* Full-page navigation, not a popup: Xero's consent screen owns the
+         next step, and the callback route brings the operator back here. */
+      window.location.href = d.url;
+    } catch (e) {
+      showToast(e.message, 'warn');
+      setBusy(false);
+    }
+  };
+  const disconnectNow = async () => {
+    if (busy) return;
+    if (!armDisconnect) { setArmDisconnect(true); return; }
+    setBusy(true);
+    try {
+      await api('/integrations/xero/disconnect', { method: 'POST', body: '{}' });
+      showToast('已断开 Xero 连接', 'success');
+      await load();
+    } catch (e) {
+      showToast(e.message, 'warn');
+    } finally { setBusy(false); setArmDisconnect(false); }
+  };
+  const refreshCheck = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await api('/integrations/xero/refresh-check', { method: 'POST', body: '{}' });
+      showToast('令牌有效（必要时已自动续期）', 'success');
+      await load();
+    } catch (e) {
+      showToast(`令牌检查未通过：${e.message}`, 'warn');
+      await load();
+    } finally { setBusy(false); }
+  };
+
   const step = async (name, extra = {}) => {
     if (busy) return;
     setBusy(true);
@@ -118,9 +173,57 @@ export function IntegrationsPanel({ api, showToast, canManage }) {
       {preview && (
         <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-[11px] text-blue-900">
           <p className="font-bold mb-1">Xero 预接入说明</p>
-          <p>这里可以查看已有的映射与 gate 准备状态；当前版本不会向 Xero 发送任何数据，也不会创建新的推送任务。</p>
+          <p>可以连接 / 断开自己的 Xero 组织（建议先用 Demo Company 测试）；当前版本仍不会向 Xero 推送任何单据数据。</p>
         </div>
       )}
+
+      {/* X2: the real connection card. Config comes from the server env, so
+          an unconfigured install says which variable is missing instead of
+          hiding the button — a blank here costs an accountant an afternoon. */}
+      {(() => {
+        const cx = state.connection || {};
+        if (!cx.configured) return (
+          <div className="rounded-xl border border-gray-200 bg-white p-4 text-[11px] text-gray-600">
+            <p className="font-bold text-gray-800 mb-1">Xero 连接 · 服务器未配置</p>
+            <p>缺少：{(cx.configMissing || []).join('、') || '凭据'}。请运营方在服务器上运行 deploy/aws/set_xero_env.sh 配置后重启。</p>
+          </div>
+        );
+        if (cx.connected) return (
+          <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-[11px] text-green-900">
+            <p className="font-bold mb-1">已连接 Xero · {cx.orgName || '组织'}</p>
+            <p className="mb-2">连接于 {cx.connectedAt ? cx.connectedAt.slice(0, 10) : '—'}；访问令牌到期后会自动续期。</p>
+            {canManage && (
+              <span className="flex gap-2 flex-wrap">
+                <button type="button" onClick={refreshCheck} disabled={busy}
+                        className="min-h-[44px] px-3 rounded-lg border border-green-300 bg-white text-[11px] font-bold text-green-800 disabled:opacity-50">测试令牌自愈</button>
+                <button type="button" onClick={disconnectNow} disabled={busy}
+                        className={`min-h-[44px] px-3 rounded-lg border text-[11px] font-bold disabled:opacity-50 ${armDisconnect ? 'bg-red-600 text-white border-red-600' : 'border-red-200 bg-white text-red-700'}`}>
+                  {armDisconnect ? '再点一次，确认断开' : '断开连接'}
+                </button>
+                {armDisconnect && <button type="button" onClick={() => setArmDisconnect(false)}
+                        className="min-h-[44px] px-3 rounded-lg border border-gray-200 bg-white text-[11px] font-bold text-gray-600">取消</button>}
+              </span>
+            )}
+          </div>
+        );
+        return (
+          <div className={`rounded-xl border p-4 text-[11px] ${cx.status === 'expired' || cx.status === 'error' ? 'border-amber-300 bg-amber-50 text-amber-900' : 'border-gray-200 bg-white text-gray-700'}`}>
+            <p className="font-bold mb-1">
+              {cx.status === 'expired' ? 'Xero 连接已过期，需要重新授权'
+                : cx.status === 'error' ? 'Xero 连接出错，需要重新授权'
+                : cx.status === 'revoked' ? 'Xero 已断开' : '尚未连接 Xero'}
+            </p>
+            {cx.lastError && <p className="mb-2 text-[10px] opacity-80">{cx.lastError}</p>}
+            <p className="mb-2">授权后本工作室即与你的 Xero 组织建立连接（建议先选 Demo Company）；连接本身不推送任何数据。</p>
+            {canManage
+              ? <button type="button" onClick={connectNow} disabled={busy}
+                        className="min-h-[44px] px-4 rounded-lg bg-indigo-600 text-white text-[11px] font-bold disabled:opacity-50">
+                  {cx.status === 'expired' || cx.status === 'error' || cx.status === 'revoked' ? '重新连接 Xero' : '连接 Xero'}
+                </button>
+              : <p className="text-[10px] text-gray-500">需要 Owner / Manager 权限发起连接。</p>}
+          </div>
+        );
+      })()}
 
       {/* φ：左边是进度（次要），右边是当前要做的事（主体）。 */}
       <div className="ui-golden-split">
@@ -128,10 +231,11 @@ export function IntegrationsPanel({ api, showToast, canManage }) {
           <Step n={1} done={state.entitled} title="加购权利">
             {state.entitled ? '已开通' : '由平台方授予，租户侧只读'}
           </Step>
-          <Step n={2} done={state.connected} active={state.entitled && !state.connected} title="连接 Xero">
-            {state.connected
-              ? (preview ? '已记录连接状态（只读）' : '已连接')
-              : (preview ? '当前版本不发起 OAuth 连接' : '需要 owner 授权自己的 Xero 组织')}
+          <Step n={2} done={state.connection?.connected || state.connected}
+                active={state.entitled && !(state.connection?.connected || state.connected)} title="连接 Xero">
+            {state.connection?.connected
+              ? `已连接 ${state.connection.orgName || ''}`
+              : '用上方「连接 Xero」按钮授权自己的组织（先用 Demo Company）'}
           </Step>
           <Step n={3} done={has('mapping_not_confirmed')} active={state.connected && !has('mapping_not_confirmed')} title="科目与税率映射">
             {state.missingMappings?.length

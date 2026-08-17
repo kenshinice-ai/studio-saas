@@ -1,4 +1,5 @@
 import errno, ipaddress as _ipaddress, json, mimetypes, os, re, shutil, socket, sys, time, secrets, hashlib
+import urllib.parse
 from datetime import datetime, timedelta
 from html import escape as html_escape
 import re
@@ -124,7 +125,7 @@ SESSION_SECRET_FILE = _data_path('.session_secret')
 PW_FILE       = _data_path('.cms_password')
 app.config['PHOTO_DIR'] = PHOTO_DIR
 MAX_BACKUPS   = 30   # 1 backup/hr rate limit → ~30 hours of rolling coverage
-APP_VERSION   = '10.8.0'
+APP_VERSION   = '10.9.0'
 app.config['APP_VERSION'] = APP_VERSION
 ASSET_ROOT = os.path.join(app.root_path, 'frontend', 'assets')
 ASSET_MANIFEST_PATH = os.path.join(ASSET_ROOT, 'asset-manifest.json')
@@ -1296,6 +1297,62 @@ def serve_super_admin():
     if is_standalone():
         return api_error('Not found', 404)
     return _public_file('super-admin.html', 'text/html; charset=utf-8', 0)
+
+@app.route('/xero/callback')
+def xero_oauth_callback():
+    """Xero OAuth redirect target (X2) — registered as the app's redirect URI.
+
+    Root-level because the redirect URI is fixed at app registration time and
+    carries no tenant; the pending-state row written by /integrations/xero/
+    connect-url is the tenant resolution. On any failure the operator lands
+    back on the integrations panel with a readable reason in the query string
+    — an OAuth dead-end page helps nobody.
+    """
+
+    if is_standalone():
+        return api_error('Not found', 404)
+    from studiosaas.db import connect, fetch_one
+    from studiosaas.services import xero_oauth as _xero_oauth
+
+    state = (request.args.get('state') or '').strip()
+    code = (request.args.get('code') or '').strip()
+    oauth_error = (request.args.get('error') or '').strip()
+
+    def _panel(slug, flag, message=''):
+        target = f'/{slug}/cms?view=settings&section=integrations&xero={flag}'
+        if message:
+            target += '&xeroMessage=' + urllib.parse.quote(message[:200])
+        return redirect(target)
+
+    with connect() as conn:
+        # Resolve the slug first so even a refused consent returns the
+        # operator to their own integrations panel rather than a bare error.
+        slug_row = None
+        if state:
+            slug_row = fetch_one(
+                conn,
+                """
+                SELECT t.slug FROM xero_oauth_states s
+                JOIN tenants t ON t.id = s.tenant_id
+                WHERE s.state_hash = %s
+                """,
+                (_xero_oauth._hash_state(state),),
+            )
+        if not slug_row:
+            return api_error('This Xero connection attempt is unknown or has expired.', 400)
+        slug = slug_row['slug']
+        if oauth_error or not code:
+            # The operator pressed Cancel on Xero's consent screen (or Xero
+            # reported an error). Consume nothing; the pending row expires.
+            return _panel(slug, 'cancelled', oauth_error or 'no code returned')
+        try:
+            _xero_oauth.finish_connect(conn, state, code)
+            conn.commit()
+        except _xero_oauth.XeroOAuthError as exc:
+            conn.rollback()
+            return _panel(slug, 'error', str(exc))
+    return _panel(slug, 'connected')
+
 
 @app.route('/_legacy/register')
 def serve_legacy_register():

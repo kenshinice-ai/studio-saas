@@ -1,9 +1,9 @@
 # PWE Studio
 
-## v10.8.0 release identity — invoice/PDF repair and money-contract closure
+## v10.9.0 release identity — invoice/PDF repair and money-contract closure
 
-`VERSION` = **10.8.0** and `backend/server.py` reports `APP_VERSION=10.8.0`.
-The v10.8.0 repair checklist is implemented, committed, packaged, pushed to
+`VERSION` = **10.9.0** and `backend/server.py` reports `APP_VERSION=10.9.0`.
+The v10.9.0 repair checklist is implemented, committed, packaged, pushed to
 `main`, deployed through the guarded production controller, and browser-checked.
 The exact source commit, archive hashes, backup names, and deployed runtime
 identity are recorded in `docs/HANDOFF_LATEST.md`; the four layers below remain
@@ -11,9 +11,9 @@ separate facts.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.8.0 repair implementation released** | `VERSION` and `APP_VERSION` agree; the release chain is recorded in the latest handoff. |
-| Package | **v10.8.0 SaaS and Edition archives built and guarded checks passed** | `deploy/aws/verify_release_bundles.sh` and archive smoke gates passed; hashes are recorded in the latest handoff. |
-| Production | **v10.8.0 deployed and deep-health/browser verified** | `pwestudio.online` reports `appVersion=10.8.0`, `db=ok`, `mode=saas`; exact tenant/theme/workspace counts and asset evidence are in the latest handoff. |
+| Source | **v10.9.0 repair implementation released** | `VERSION` and `APP_VERSION` agree; the release chain is recorded in the latest handoff. |
+| Package | **v10.9.0 SaaS and Edition archives built and guarded checks passed** | `deploy/aws/verify_release_bundles.sh` and archive smoke gates passed; hashes are recorded in the latest handoff. |
+| Production | **v10.9.0 deployed and deep-health/browser verified** | `pwestudio.online` reports `appVersion=10.9.0`, `db=ok`, `mode=saas`; exact tenant/theme/workspace counts and asset evidence are in the latest handoff. |
 
 Source, Package and Production are separate facts; do not infer Production
 from `VERSION` or from an archive filename.

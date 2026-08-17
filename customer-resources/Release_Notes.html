@@ -54,6 +54,11 @@
   <p data-lang="zh">以下内容均属于已发布的产品版本。每一条都是交付依据，不是路线图承诺。</p>
   <div class="grid">
     <article class="card">
+      <strong data-lang="en">v10.9.0 — Xero connection (X2)</strong><strong data-lang="zh">v10.9.0 —— Xero 连接（X2）</strong>
+      <p data-lang="en">A studio can now connect its own Xero organisation from Settings → Integrations: OAuth2 authorization-code with PKCE, tokens encrypted at rest on the server, silent access-token renewal, an honest "expired — reconnect" state when the refresh token dies, and a disconnect that revokes at Xero and wipes local tokens. The connection pushes no accounting data — document push stays behind the next stage's gate. Try it against the Xero Demo Company first.</p>
+      <p data-lang="zh">工作室可在「系统设置 → 集成」连接自己的 Xero 组织：OAuth2 授权码 + PKCE，令牌在服务器加密存储，访问令牌自动续期，刷新令牌失效时如实显示「已过期，需重新授权」；断开会同时向 Xero 撤销并清除本地令牌。连接本身不推送任何单据数据——推送仍在下一阶段的门后。建议先用 Demo Company 演练。</p>
+    </article>
+    <article class="card">
       <strong data-lang="en">v10.8.0 — billing workbench, student timeline, brand &amp; navigation repairs</strong><strong data-lang="zh">v10.8.0 —— 账务工作台、学员时间线与品牌/导航修复</strong>
       <p data-lang="en">Money: a read-only student timeline merges enrolment, credits, invoices, payments, credit notes and progress reports into one stream; payers gain a printable monthly statement; invoices can record a chase reminder (history only — nothing is sent); the dashboard shows receivables and one-tap renewal for low-credit students; approval offers an explicit merge-or-create choice when a registration looks like an existing student; and issuing now checks the invoice profile (name, address, ABN) before a document can leave the studio. Printing outputs exactly the selected document — invoice, credit note and statement no longer print on top of each other.</p>
       <p data-lang="zh">财务：只读「学员时间线」把报名、课时、发票、收款、贷记与成长报告合成一条流水；付款方新增可打印「月结单」；发票可「记录提醒」（只入历史，不发送消息）；工作台新增应收卡片与低课时一键续费；审批在建档前给出并入既有档案或新建的显式选择；开具发票前检查开票信息（名称、地址、ABN）完整。打印一次只出所选单据，发票、贷记单、月结单互不串印。</p>
