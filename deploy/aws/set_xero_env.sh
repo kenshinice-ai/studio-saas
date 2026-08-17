@@ -64,7 +64,11 @@ fi
 [ -n "$REDIRECT" ] && set_kv XERO_REDIRECT_URI "$REDIRECT"
 sudo cp "$ENV_FILE" "${ENV_FILE}.bak-xero-$(date +%Y%m%dT%H%M%S)"
 sudo mv "$TMP" "$ENV_FILE"
-sudo chown root:root "$ENV_FILE"; sudo chmod 600 "$ENV_FILE"
+# root:ubuntu 640, NOT root:600 — the deploy controller reads this file
+# without sudo (lightsail_ctl backup_dir_from_env), and the first v10.9.1
+# deploy died on exactly that. The operator group can sudo anyway, so 640
+# gives up nothing.
+sudo chown root:ubuntu "$ENV_FILE"; sudo chmod 640 "$ENV_FILE"
 echo "production.env updated; applying via the guarded controller..."
 # lightsail_ctl owns project name, both compose files and the profile —
 # calling docker compose directly here would start a second stack.
