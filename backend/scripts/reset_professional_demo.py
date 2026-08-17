@@ -66,6 +66,8 @@ from studiosaas.auth import hash_password  # noqa: E402
 from studiosaas.config import is_standalone  # noqa: E402
 from studiosaas.db import connect  # noqa: E402
 from studiosaas.services.media import store_media_asset  # noqa: E402
+from studiosaas.services.billing import (  # noqa: E402
+    SNAPSHOT_SCHEMA_VERSION, recipient_snapshot, supplier_snapshot)
 from studiosaas.services.student_access import generate_access_code  # noqa: E402
 from studiosaas.workspaces import ensure_tenant_workspace  # noqa: E402
 
@@ -641,6 +643,33 @@ def _seed_money_layer(
         sequence[0] += 1
         return f"INV-{sequence[0]:04d}"
 
+    # 0043 forbids a non-draft document with empty snapshots — the same rule
+    # the real issue route enforces. Built with the SAME functions it uses, so
+    # this seeder can never define a second snapshot shape. The dict mirrors
+    # the identity INSERT above; reading it back would also work, but the
+    # cursor here is mid-transaction and the values are these by construction.
+    supplier = supplier_snapshot({
+        "configured": True,
+        "legal_name": "Paradise Production Pty Ltd",
+        "trading_name": SHOWCASE_NAME,
+        "abn": "53 004 085 616",
+        "gst_registered": True,
+        "address_line1": "12 Sturt Street", "suburb": "Southbank",
+        "state": "VIC", "postcode": "3006",
+        "contact_email": "accounts@letspaint.example",
+        "contact_phone": "03 9000 1234",
+        "bank_account_name": "Paradise Production Pty Ltd",
+        "bank_bsb": "083-004", "bank_account_no": "12 345 6789",
+        "payment_note": "请在到期日前转账，并在备注里写上发票号。",
+    })
+    recipients = [
+        recipient_snapshot({
+            "name": name, "kind": kind, "contact_name": contact,
+            "email": email, "mobile": mobile, "payment_terms_days": terms,
+        })
+        for name, kind, contact, email, mobile, terms in payers
+    ]
+
     counter = [0]
     invoices: list[tuple[str, int, str]] = []   # (id, total, status)
     plan = [
@@ -674,11 +703,16 @@ def _seed_money_layer(
                 UPDATE invoices
                    SET status = 'issued', number = %s, issue_date = %s, due_date = %s,
                        issued_at = now(), issued_by_user_id = %s,
-                       subtotal_cents = %s, tax_cents = %s, total_cents = %s
+                       subtotal_cents = %s, tax_cents = %s, total_cents = %s,
+                       supplier_snapshot = %s::jsonb, recipient_snapshot = %s::jsonb,
+                       snapshot_schema_version = %s
                  WHERE id = %s
                 """,
                 (_document_number(counter), issued_on, issued_on + timedelta(days=terms),
-                 owner_id, subtotal, total - subtotal, total, invoice_id),
+                 owner_id, subtotal, total - subtotal, total,
+                 json.dumps(supplier, ensure_ascii=False),
+                 json.dumps(recipients[account_index], ensure_ascii=False),
+                 SNAPSHOT_SCHEMA_VERSION, invoice_id),
             )
         invoices.append((invoice_id, total, status))
 

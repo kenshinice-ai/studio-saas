@@ -1,19 +1,19 @@
 # PWE Studio
 
-## v10.9.1 release identity — invoice/PDF repair and money-contract closure
+## v10.9.2 release identity — the invoicing chapter's screenshots repaired
 
-`VERSION` = **10.9.1** and `backend/server.py` reports `APP_VERSION=10.9.1`.
-The v10.9.1 repair checklist is implemented, committed, packaged, pushed to
-`main`, deployed through the guarded production controller, and browser-checked.
-The exact source commit, archive hashes, backup names, and deployed runtime
-identity are recorded in `docs/HANDOFF_LATEST.md`; the four layers below remain
-separate facts.
+`VERSION` = **10.9.2** and `backend/server.py` reports `APP_VERSION=10.9.2`.
+A documentation and asset release: the manual's invoicing chapter re-shot
+against the running product, two factual copy corrections, an animation-settled
+guard in the capture tooling, and a seeder repair (issued invoices now carry
+the 0043 snapshots). No runtime behaviour changes beyond the version label.
+Layer evidence lives in `docs/handoff/claude/2026-08-17-manual-invoicing-screenshots.md`.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.9.1 repair implementation released** | `VERSION` and `APP_VERSION` agree; the release chain is recorded in the latest handoff. |
-| Package | **v10.9.1 SaaS and Edition archives built and guarded checks passed** | `deploy/aws/verify_release_bundles.sh` and archive smoke gates passed; hashes are recorded in the latest handoff. |
-| Production | **v10.9.1 deployed and deep-health/browser verified** | `pwestudio.online` reports `appVersion=10.9.1`, `db=ok`, `mode=saas`; exact tenant/theme/workspace counts and asset evidence are in the latest handoff. |
+| Source | **v10.9.2 committed** | `VERSION` and `APP_VERSION` agree; commit recorded in the round file. |
+| Package | pending | build and verification recorded in the round file at close. |
+| Production | pending | deployment and deep-health evidence recorded in the round file at close. |
 
 Source, Package and Production are separate facts; do not infer Production
 from `VERSION` or from an archive filename.

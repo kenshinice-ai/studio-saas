@@ -565,6 +565,22 @@ def capture(browser: Browser, base: str, shot, session: str | None, language: st
         failed = sorted(key for key, value in contract.items() if not value)
         if failed:
             raise SystemExit(f"{name}: roster UI contract failed: {', '.join(failed)}")
+    # Wait for motion to finish before framing anything. The v10.x CMS slides
+    # its settings page in, and a fixed settle raced that transition once in
+    # production: 09-billing-identity shipped with the panel halfway across the
+    # viewport and the search tooltip torn off mid-render. Asking the page
+    # whether anything is still animating is cheap and cannot be outrun by a
+    # slow first paint the way a sleep can.
+    for _attempt in range(20):
+        running = browser.call(
+            "Runtime.evaluate", returnByValue=True,
+            expression="document.getAnimations().filter(a => a.playState === 'running' && a.effect && a.effect.getTiming().iterations !== Infinity).length",
+        ).get("result", {}).get("value")
+        if running == 0:
+            break
+        time.sleep(0.5)
+    else:
+        raise SystemExit(f"{name}: the page is still animating after 10 seconds")
     # Give lazy images a beat; a half-loaded hero is the one artefact a reader
     # would read as a product fault rather than a capture fault.
     browser.call("Runtime.evaluate", expression="window.scrollTo(0, 0)")

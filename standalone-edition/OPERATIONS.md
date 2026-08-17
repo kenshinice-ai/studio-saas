@@ -1,4 +1,4 @@
-# PWE Studio Edition v10.9.1 candidate — 客户运维手册（未发布）
+# PWE Studio Edition v10.9.2 candidate — 客户运维手册（未发布）
 
 本文给已经完成交付的单店客户使用。把下文 `<slug>` 换成交付工程师提供的
 工作室标识，例如 `example-studio`。
@@ -60,7 +60,7 @@ sudo bash /opt/pwe-studio/<slug>/current/standalone-edition/maintenance.sh \
 
 看到 `ok: true` 且关键表计数一致才算通过。不要只检查文件存在。
 
-当前 v10.9.1 candidate 的明确边界：自动化覆盖 PostgreSQL；媒体文件异地备份暂不包含。
+当前 v10.9.2 candidate 的明确边界：自动化覆盖 PostgreSQL；媒体文件异地备份暂不包含。
 上传图片仍在独立 Docker volume 中，升级不会删除它，但这不等于已有灾备副本。
 
 ## 4. 升级
@@ -122,5 +122,5 @@ sudo nginx -t
 ## 8. 当前不包含的服务
 
 - PWE 平台方不会自动获得客户服务器访问权；
-- v10.9.1 candidate 标准安装不包含媒体文件异地备份；
+- v10.9.2 candidate 标准安装不包含媒体文件异地备份；
 - 本轮没有 AWS/RDS/S3/SES 上线承诺。

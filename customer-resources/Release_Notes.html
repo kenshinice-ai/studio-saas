@@ -54,6 +54,13 @@
   <p data-lang="zh">以下内容均属于已发布的产品版本。每一条都是交付依据，不是路线图承诺。</p>
   <div class="grid">
     <article class="card">
+      <strong data-lang="en">The invoicing chapter's pictures match the product again (v10.9.2)</strong><strong data-lang="zh">开票章节的截图重新对上了产品（v10.9.2）</strong>
+      <p data-lang="en">One screenshot in the manual's invoicing chapter had been captured mid-animation — the settings page frozen halfway across the screen. All four of the chapter's screenshots were re-taken, and the capture tooling now waits for the page to stop moving before it looks, so this class of picture cannot ship again.</p>
+      <p data-lang="zh">手册开票章节里有一张截图拍在了动画进行到一半——设置页停在屏幕中间。该章四张截图已全部重拍，截图工具现在会等页面完全静止再取景，这一类图不会再发出去。</p>
+      <p data-lang="en">One caption also overstated who can edit your invoice identity: a manager can read it, but saving it belongs to the owner alone. The manual now says exactly that.</p>
+      <p data-lang="zh">另有一条图注把「谁能改开票信息」说宽了：Manager 看得到，但能保存的只有 Owner。手册现在写的就是这个边界。</p>
+    </article>
+    <article class="card">
       <strong data-lang="en">v10.9.1 — Xero environment passthrough fix</strong><strong data-lang="zh">v10.9.1 —— Xero 环境透传修复</strong>
       <p data-lang="en">The v10.9.0 integrations page reported "unconfigured" even with credentials correctly written on the server: the container environment block is an allow-list and the four XERO variables were not forwarded. This release adds only that passthrough.</p>
       <p data-lang="zh">v10.9.0 集成页在服务器凭据已写好的情况下仍显示「未配置」：容器环境块是 allow-list，四个 XERO 变量未透传。本版本只补这一处。</p>

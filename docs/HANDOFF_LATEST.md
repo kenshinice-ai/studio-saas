@@ -1,4 +1,4 @@
-# PWE Studio v10.9.1 — Handoff 索引（2026-08-16 起按 AI 分目录）
+# PWE Studio v10.9.2 — Handoff 索引（2026-08-16 起按 AI 分目录）
 
 > 首标题始终点名当前版本 —— `test_release_ledger.py` 据此机器强制「索引不过期」；
 > 每次发布随四层身份表一起更新。
@@ -13,7 +13,7 @@
 > - 其余纪律不变：Source / Package / Production / Backup 四层分别记录；docs-only
 >   closure 不得写成已部署运行时代码；发布必经 STOP GATE。
 
-## 当前四层身份（v10.9.1，2026-08-17）
+## 当前四层身份（v10.9.2，2026-08-17）
 
 | 层 | 精确事实 |
 |---|---|
@@ -26,6 +26,10 @@
 完整证据见 `docs/handoff/claude/2026-08-16-v10.8.0-round.md`（v10.8.0）与 codex/001（v10.7.1 历史）。
 
 ## 最新轮次
+
+- **2026-08-17（Claude Fable）v10.9.2 手册第 10 章截图修复轮**：
+  `docs/handoff/claude/2026-08-17-manual-invoicing-screenshots.md`
+  —— docs+assets 最小发布；播种器与捕捉脚本各修一处。
 
 - **2026-08-17（Claude Fable）v10.9.0 Xero X2 轮**：`docs/handoff/claude/2026-08-17-xero-x2-round.md`
   —— OAuth 连接流（发布证据随部署闭环）。
