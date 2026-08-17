@@ -42,6 +42,15 @@ services:
       # volume, so the file survives the next release instead of leaving with
       # the container that wrote it.
       STUDIOSAAS_DEMO_CREDENTIALS_FILE: ${STUDIOSAAS_DEMO_CREDENTIALS_FILE:-/data/showcase-credentials.txt}
+      # Xero OAuth (X2). Same allow-list rule as the demo password above:
+      # set_xero_env.sh writes these into production.env, but a key absent
+      # from this block never reaches the container — the v10.9.0 integrations
+      # page said "unconfigured" with a fully written env file for exactly
+      # this reason. Secrets stay in production.env; these lines only forward.
+      XERO_CLIENT_ID: ${XERO_CLIENT_ID:-}
+      XERO_CLIENT_SECRET: ${XERO_CLIENT_SECRET:-}
+      STUDIOSAAS_XERO_TOKEN_KEY: ${STUDIOSAAS_XERO_TOKEN_KEY:-}
+      XERO_REDIRECT_URI: ${XERO_REDIRECT_URI:-}
       # Email delivery (SES SMTP in production; console = log-only default)
       STUDIOSAAS_EMAIL_BACKEND: ${STUDIOSAAS_EMAIL_BACKEND:-console}
       STUDIOSAAS_SMTP_HOST: ${STUDIOSAAS_SMTP_HOST:-}

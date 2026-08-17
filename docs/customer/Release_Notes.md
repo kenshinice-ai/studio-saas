@@ -1,5 +1,9 @@
 # PWE Studio — Release Notes and Acceptance Evidence
 
+## v10.9.1 — Xero 环境透传修复
+
+v10.9.0 的集成页在服务器已写好凭据的情况下仍显示「未配置」：容器环境块是 allow-list，四个 XERO 变量没有列入 docker-compose.yml，值写进 production.env 也到不了进程。本版本只补这一处透传（凭据本身不动）。
+
 ## v10.9.0 — Xero 连接（X2）
 
 工作室现在可以在「系统设置 → 集成」里连接自己的 Xero 组织：OAuth2 授权码 + PKCE 流程，令牌在服务器上加密存储，访问令牌到期自动续期，失效则显示「已过期，需要重新授权」而不是无声失败；可随时断开（同时向 Xero 撤销授权并清除本地令牌）。连接本身**不向 Xero 推送任何单据数据**——推送仍在后续阶段的门后。服务器凭据由运营方通过 `deploy/aws/set_xero_env.sh` 配置，密钥不进入代码库。建议先用 Xero Demo Company 完成连接演练。
