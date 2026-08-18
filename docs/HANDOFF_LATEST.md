@@ -27,6 +27,13 @@
 
 ## 最新轮次
 
+- **2026-08-18（Claude Fable）销售材料对齐 v10.9（docs/sales 素材轮）**：
+  `docs/handoff/claude/2026-08-18-roadshow-deck-refresh.md`
+  —— deck 定价页对齐线上 plans 表（$189/50/250/500/席位）并新增「账务与 Xero」页（10→11 页），
+  13 张截图全部换本地实拍；朋友圈软广告 v10.9 包重制；播种器发票快照缺陷与 v10.9.2 轮
+  独立撞出同一修法，以已发布的 v10.9.2 版本为准；capture 脚本「学员」TAB 漂移已知未修，
+  挡住手册整套刷新（已挂后台任务）。
+
 - **2026-08-17（Claude Fable）v10.9.2 手册第 10 章截图修复轮**：
   `docs/handoff/claude/2026-08-17-manual-invoicing-screenshots.md`
   —— docs+assets 最小发布；播种器与捕捉脚本各修一处。
