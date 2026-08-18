@@ -4982,7 +4982,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     <span className="inline-flex items-center gap-1.5 text-2xl"><Icon name="clipboard" className="w-4 h-4"/></span>
                     <div>
                         <p className="font-bold text-amber-800 text-sm">有待审核的注册申请</p>
-                        <p className="text-xs text-amber-600 mt-0.5">{(db.pending||[]).length} 位学员等待审核，点击前往处理</p>
+                        <p className="text-xs text-amber-600 mt-0.5">{`${(db.pending||[]).length} 位学员等待审核，点击前往处理`}</p>
                     </div>
                 </div>
                 <span className="bg-amber-500 text-white text-sm font-bold px-3 py-1 rounded-full">{(db.pending||[]).length}</span>
@@ -5012,7 +5012,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
         <div className="bg-white border border-gray-200 rounded-2xl p-4 flex flex-wrap items-center gap-3">
             <p className="text-sm">
                 <span className="font-bold">应收 {`$${(arSummary.unpaidCents/100).toFixed(2)}`}</span>
-                <span className="text-gray-500 text-xs ml-2">未付清 {arSummary.unpaidCount} 张{arSummary.overdueCount > 0 ? ` · 其中逾期 ${arSummary.overdueCount} 张` : ''}</span>
+                <span className="text-gray-500 text-xs ml-2">{`未付清 ${arSummary.unpaidCount} 张`}{arSummary.overdueCount > 0 ? ` · 其中逾期 ${arSummary.overdueCount} 张` : ''}</span>
             </p>
             <button onClick={()=>setTab('billing')}
                 className="ml-auto min-h-[44px] px-4 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 text-xs font-bold active:bg-indigo-100">进入账单中心</button>
@@ -5139,7 +5139,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
     {upcomingBirthdays.length>0 && (
         <details className="bg-pink-50 border border-pink-200 rounded-2xl overflow-hidden group">
             <summary className="list-none cursor-pointer min-h-[44px] px-4 py-2 flex items-center justify-between gap-3 text-sm font-bold text-rose-700">
-                <span className="inline-flex items-center gap-1.5"><Icon name="cake" className="w-4 h-4"/>近 14 天生日（{upcomingBirthdays.length} 人）</span>
+                <span className="inline-flex items-center gap-1.5"><Icon name="cake" className="w-4 h-4"/>{`近 14 天生日（${upcomingBirthdays.length} 人）`}</span>
                 <span className="group-open:rotate-180 transition-transform" aria-hidden="true">⌄</span>
             </summary>
             <div className="flex flex-wrap gap-2 px-4 pb-4 border-t border-pink-200 pt-3">
@@ -5309,7 +5309,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     </span>
                 </label>
                 <div>
-                    <label className="text-xs font-bold text-gray-500 mb-1 block">班次学员（{schedEdit.studentIds.length} 人）</label>
+                    <label className="text-xs font-bold text-gray-500 mb-1 block">{`班次学员（${schedEdit.studentIds.length} 人）`}</label>
                     <div className="flex flex-wrap gap-1.5 mb-2">
                         {schedEdit.studentIds.map(id => {
                             const s = db.students.find(x=>x.id===id);
@@ -5508,7 +5508,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
         <select value={grpSel} onChange={e=>setGrpSel(e.target.value)}
             className="px-2 py-2 border border-gray-300 rounded-xl bg-white text-sm font-medium min-h-[44px] outline-none focus:ring-2 focus:ring-indigo-500">
             <option value="">-- 选择模板 --</option>
-            {Object.keys(db.groups||{}).sort().map(g => <option key={g} value={g}>{g}（{(db.groups[g]||[]).length}人）</option>)}
+            {Object.keys(db.groups||{}).sort().map(g => <option key={g} value={g}>{`${g}（${(db.groups[g]||[]).length} 人）`}</option>)}
         </select>
         <button onClick={applyGroup} disabled={!grpSel||busy}
             className="bg-indigo-50 text-indigo-700 border border-indigo-200 active:bg-indigo-100 disabled:opacity-40 px-3 py-2 rounded-xl text-xs font-bold min-h-[44px]">套用到当前日期</button>
@@ -5525,7 +5525,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
 
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
         <div className="bg-gray-50 border-b px-4 py-3 flex justify-between items-center gap-2 flex-wrap">
-            <p className="font-bold text-sm text-gray-800">{fmtDate(rDate)} · {dayIds.filter(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived;}).length} 人{scheduledForDate.length>0 && <span className="text-xs font-normal text-indigo-500 ml-1">（课表 {scheduledForDate.length} 班）</span>}</p>
+            <p className="font-bold text-sm text-gray-800">{fmtDate(rDate)} · {dayIds.filter(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived;}).length} 人{scheduledForDate.length>0 && <span className="text-xs font-normal text-indigo-500 ml-1">{`（课表 ${scheduledForDate.length} 班）`}</span>}</p>
             {dayIds.length>0 && <details className="cms-day-actions-mobile">
                 <summary><Icon name="ellipsis" className="w-4 h-4"/>当日操作</summary>
                 <div className="cms-roster-menu">
@@ -6135,7 +6135,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
 <div className="anim bg-white rounded-2xl shadow-sm border border-gray-100 p-6 max-w-2xl mx-auto">
     <div className="flex items-start justify-between gap-3 mb-4"><div><h2 className="md:hidden inline-flex items-center gap-1.5 text-xl font-bold text-gray-800"><Icon name="money" className="w-4 h-4"/>充值与退款</h2><p className="text-sm text-gray-500 mt-1">先选择学员，再完成充值或退款；支付渠道只记录实际收款方式，不在 CMS 内接入在线支付。</p></div></div>
     {canManageOperations && <details open className="mb-5 rounded-2xl border border-indigo-100 bg-indigo-50/60 overflow-hidden">
-        <summary className="cursor-pointer select-none px-4 py-3 min-h-[48px] inline-flex items-center gap-2 text-sm font-bold text-indigo-900"><Icon name="card" className="w-4 h-4"/>套餐管理 <span className="text-xs font-normal text-indigo-500">{(db.packages||[]).length} 个</span></summary>
+        <summary className="cursor-pointer select-none px-4 py-3 min-h-[48px] inline-flex items-center gap-2 text-sm font-bold text-indigo-900"><Icon name="card" className="w-4 h-4"/>套餐管理 <span className="text-xs font-normal text-indigo-500">{`${(db.packages||[]).length} 个套餐`}</span></summary>
         <div className="p-4 pt-1 space-y-3">
             <p className="text-xs text-indigo-700 leading-relaxed">这里定义前台充值时可快速选择的课包。修改套餐不会改动历史充值记录；删除前请确认它不再需要被新收款使用。</p>
             {(db.packages||[]).map(pkg=><div key={pkg.id} className="flex items-center gap-3 rounded-xl border border-indigo-100 bg-white px-3 py-2.5"><div className="min-w-0 flex-1"><p className="text-sm font-bold text-gray-800 truncate">{pkg.name}</p><p className="text-xs text-gray-500 mt-0.5">{pkg.credits} 课时 · AUD {Number(pkg.price||0).toFixed(2)}</p></div><button type="button" onClick={()=>{setPkgEditId(pkg.id);setPkgName(pkg.name);setPkgCredits(String(pkg.credits));setPkgPrice(String(pkg.price));}} className="min-h-[44px] px-3 rounded-xl text-xs font-bold text-indigo-700 hover:bg-indigo-50">编辑</button><button type="button" onClick={()=>archivePackage(pkg)} aria-label={`删除套餐 ${pkg.name}`} className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-xl text-red-600 hover:bg-red-50"><Icon name="trash" className="w-4 h-4"/></button></div>)}
@@ -6986,7 +6986,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                 <div className="border border-gray-200 rounded-2xl overflow-hidden">
                                     <div className="bg-gray-50 px-4 py-3 flex items-center justify-between">
                                         <span className="text-sm font-bold text-gray-900 flex items-center gap-1.5"><Icon name="image" className="w-4 h-4"/> {workNoun}集
-                                            <span className="font-normal text-gray-500 text-xs ml-1">({items.length} 张)</span>
+                                            <span className="font-normal text-gray-500 text-xs ml-1">{`(${items.length} 张)`}</span>
                                         </span>
                                         <button onClick={()=>setPortUpload(true)}
                                             className="text-xs bg-indigo-600 active:bg-indigo-700 text-white px-3 py-1.5 rounded-lg font-bold">

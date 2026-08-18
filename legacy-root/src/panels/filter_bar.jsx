@@ -132,7 +132,11 @@ export function FilterBar({
             {/* 结果计数常驻。一个看不见的筛选条件，就是那通「为什么只剩三条」的
                 电话 —— v10.1.0 给账户深链加过一条横幅，同一个道理。 */}
             <div className="flex items-center gap-2 text-[11px] text-gray-500">
-                <span>共 {total} {totalNoun}</span>
+                {/* One node, not three: the count sits between two Chinese
+                    fragments, and a measure word translated on its own cannot
+                    tell 张-invoices from 张-works. cms-i18n.js matches the
+                    whole phrase per noun instead. */}
+                <span>{`共 ${total} ${totalNoun}`}</span>
                 {dirty && (
                     <button type="button" onClick={clearAll}
                             className="min-h-[44px] px-2 font-bold text-indigo-600">

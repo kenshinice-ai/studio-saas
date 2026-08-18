@@ -27,7 +27,7 @@
     ['工作台', 'Dashboard'], ['今日', 'Today'], ['待处理', 'Pending'],
     ['教学运营', 'Teaching & operations'], ['经营', 'Business'], ['记录', 'Records'],
     ['课程安排', 'Class Schedule'], ['课程', 'Courses'], ['课程目录', 'Course catalogue'],
-    ['学员', 'Students'], ['学员档案', 'Students'], ['作品', 'Works'], ['作品管理', 'Portfolio'],
+    ['学员档案', 'Students'], ['作品管理', 'Portfolio'],
     /* v10.1 的经营两页。侧栏说的是这一页管什么，不是它属于哪一类 ——
        「账单」和「财务」都太像分类名，两个都点开才知道差别。 */
     ['账单', 'Billing'], ['账单发票', 'Billing & invoices'], ['结算', 'Settle'],
@@ -76,9 +76,9 @@
     ['收款户名', 'Account name'], ['银行账号', 'Account number'],
     ['财务', 'Finance'], ['课酬与报表', 'Teacher pay & reports'],
     ['待审核', 'Pending'], ['充值结算', 'Credits'], ['充值与退款', 'Recharge & refunds'],
-    ['操作日志', 'Activity Log'], ['经营统计', 'Business Stats'], ['排课', 'Roster'], ['课表', 'Schedule'], ['档案', 'Students'],
+    ['操作日志', 'Activity Log'], ['经营统计', 'Business Stats'], ['课表', 'Schedule'], ['档案', 'Students'],
     ['审核', 'Review'], ['充值', 'Top-up'], ['日志', 'Log'], ['统计', 'Stats'],
-    ['设置', 'Settings'], ['系统设置', 'System settings'], ['刷新', 'Refresh'], ['刷新数据', 'Refresh data'],
+    ['设置', 'Settings'], ['刷新', 'Refresh'], ['刷新数据', 'Refresh data'],
     ['已连接', 'Connected'], ['连接中...', 'Connecting…'], ['连接失败', 'Connection failed'],
     ['重新连接', 'Reconnect'], ['重试', 'Retry'], ['备份导出', 'Export backup'],
     ['退出登录', 'Log out'], ['全局搜索', 'Global search'], ['回到顶部', 'Back to top'],
@@ -90,7 +90,7 @@
     ['刷新 CMS 数据', 'Refresh CMS data'], ['搜索', 'Search'],
 
     /* ── Student list chips and profile tabs ── */
-    ['概览', 'Overview'], ['资料', 'Details'], ['记录', 'Records'], ['专区', 'Portal'],
+    ['概览', 'Overview'], ['资料', 'Details'], ['记录', 'Records'],
     ['专区已就绪', 'Portal ready'], ['缺手机号', 'No phone number'],
     ['专区未启用', 'Portal not enabled'], ['私人内容受阻', 'Private items blocked'],
     ['作品已公开', 'Works published'], ['公开授权有效', 'Consent valid'],
@@ -102,14 +102,14 @@
     ['报名 · 课时 · 账务 · 报告，一条流水', 'Enrolment · credits · billing · reports in one stream'],
     ['还没有可显示的记录。', 'Nothing to show yet.'],
     ['只显示最近 50 条；更早的记录见充值/上课记录与账单中心。', 'Showing the latest 50 entries; older history lives in the top-up/attendance records and the invoice centre.'],
-    ['批准建档', 'Approve & create record'], ['查看单据', 'View document'],
+    ['查看单据', 'View document'],
     ['月结单', 'Statement'], ['期初', 'Opening'], ['期末', 'Closing'],
     ['本期没有账务往来。', 'No activity in this period.'],
     ['月结单加载中…', 'Loading statement…'],
     ['日期', 'Date'], ['单据', 'Document'], ['应收', 'Charged'], ['收款/贷记', 'Payments / credits'],
     ['记录提醒', 'Record reminder'], ['已记录提醒', 'Reminder recorded'],
     ['记录一次催款提醒（只入历史，不发送任何消息）', 'Record a payment reminder (history only — nothing is sent)'],
-    ['确认记录', 'Record it'], ['记录中…', 'Recording…'],
+    ['记录中…', 'Recording…'],
     ['应收提醒', 'Receivables'], ['进入账单中心', 'Open invoice centre'],
     ['疑似已有档案', 'Possible existing record'],
     ['并入这个档案 →', 'Attach to this record →'],
@@ -135,7 +135,7 @@
     ['已贷记', 'Credited'], ['关联贷记单与退款', 'Linked credit notes and refunds'],
     ['充值已结算', 'Credit settlement recorded'],
     ['贷记单草稿', 'Credit note draft'], ['付款：', 'Payment: '],
-    ['已作废', 'Void'], ['勾选后可批量发出', 'Tick to issue in bulk'],
+    ['勾选后可批量发出', 'Tick to issue in bulk'],
     ['选择左边的一张发票查看明细。', 'Select an invoice on the left to see its detail.'],
     ['还没有发票。点击“新建发票”创建草稿，复核后再开具。',
      'No invoices yet. Create a draft invoice, review it, then issue it.'],
@@ -216,7 +216,7 @@
     ['整理这一段', 'Assemble this period'], ['草稿', 'Draft'], ['已发布', 'Published'],
     ['保存草稿', 'Save draft'], ['发布给家长', 'Publish to family'],
     ['老师评语 · 已冻结', "Teacher's comment · frozen"],
-    ['应到', 'Scheduled'], ['已到', 'Attended'], ['出勤率', 'Attendance'],
+    ['已到', 'Attended'], ['出勤率', 'Attendance'],
     ['去写', 'Write it'], ['逾期未写', 'Overdue'],
     ['写完评语才能发布 —— 后端也是这么拦的。',
      'A comment is required before publishing — the server enforces this too.'],
@@ -289,7 +289,7 @@
     ['初始课时', 'Starting credits'], ['初始课时数', 'Starting credits'],
     ['课时数 *', 'Credits *'], ['实收金额 (AUD) *', 'Amount received (AUD) *'],
     ['付款方式', 'Payment method'], ['现金', 'Cash'], ['银行转账', 'Bank transfer'],
-    ['其他', 'Other'], ['人', ''], ['至', 'to'], ['时间', 'Time'], ['操作', 'Action'],
+    ['其他', 'Other'], ['至', 'to'], ['时间', 'Time'], ['操作', 'Action'],
     ['变动', 'Change'], ['月份', 'Month'], ['营收', 'Revenue'], ['消课', 'Credits used'],
     ['充值次数', 'Top-ups'], ['周期', 'Period'], ['合计:', 'Total:'], ['筛选:', 'Filter:'],
     ['均价/课', 'Avg / class'], ['均价/课:', 'Avg / class:'], ['消课:', 'Used:'],
@@ -559,14 +559,149 @@
     ['位学员等待审核，点击前往处理', 'waiting for review — tap to open'],
     ['本周生日 ·', 'Birthday this week ·'], ['最后 1 课时 ·', 'Last credit ·'],
     /* Fragments React renders as their own text nodes, next to a number the
-     * app puts in a sibling. Chinese and English both place the measure word
-     * after the count, so a straight substitution keeps the phrase in order —
-     * `6/10 人 · 60 分钟` becomes `6/10 students · 60 min`. */
-    ['人', 'students'], ['人 ·', 'students ·'], ['人）', ')'], ['（课表', '(timetable'],
-    ['班）', 'classes)'], ['课 ·', 'classes ·'], ['课时 · $', 'credits · $'],
+     * app puts in a sibling. These survive substitution because Chinese and
+     * English both place the measure word after the count, so the phrase keeps
+     * its order — `6/10 人 · 60 分钟` becomes `6/10 students · 60 min`.
+     *
+     * A fragment that needs to DISAPPEAR in English cannot be handled here:
+     * `人）` once mapped to `)`, which rendered `近 14 天生日（12 人）` as
+     * `Birthdays in the next 14 days (12 )` — the space the source put before
+     * the measure word survives, because applyText keeps each node's own
+     * whitespace. Those phrases are now emitted whole by the source and
+     * translated by a rule below; see cms-app.jsx. */
+    ['人', 'students'], ['人 ·', 'students ·'],
+    ['课 ·', 'classes ·'], ['课时 · $', 'credits · $'],
     ['分钟', 'min'], ['条', 'entries'], ['次', 'sessions'], ['笔', 'transactions'],
-    ['·今', '· today'], ['近 14 天生日（', 'Birthdays in the next 14 days ('],
+    ['·今', '· today'],
+    /* Safe to substitute because the noun is the same wherever the app counts
+     * with them. `张` (invoices, but also pieces of work), `个` and `位` are
+     * deliberately absent: one English word cannot serve both readings, so
+     * those phrases have to be emitted whole and matched by a rule. */
+    ['件', 'works'], ['节', 'classes'], ['门课程', 'courses'], ['天', 'days'],
+    ['节 ·', 'classes ·'], ['共', 'Total'], ['项等待处理', 'waiting'],
+    ['· 余额', '· balance'], ['课时 · AUD', 'credits · AUD'],
+    ['对外显示名（留空则用', 'Public display name (leave blank to use '], ['）', ')'],
     ['待审核注册 (', 'Pending registrations ('],
+
+    /* ── Surfaces that shipped after the last sweep (v10.8 / v10.9) ──
+     * Found by walking every CMS view in English and collecting the text
+     * nodes that still held Chinese: the workbench, the works and money
+     * workspaces, every settings section and the whole Xero panel arrived
+     * without dictionary entries. Seeded tenant content — course names,
+     * package names, the families' own messages — is deliberately absent:
+     * that is the studio's copy, not ours to translate. */
+    ['当前账号', 'Signed in as'],
+
+    /* Workbench */
+    ['今日重点', "Today's focus"],
+    ['按你的角色排列最常用的工作入口', 'The entries you use most, ordered by your role'],
+    ['处理待处理', 'Work the pending queue'], ['查看今日课程', "See today's classes"],
+    ['查看经营统计', 'Open business stats'], ['搜索学员', 'Search students'],
+    ['查找学员', 'Find a student'], ['学员专区与作品发布', 'Student area and work publishing'],
+    ['点击数字直接处理对应学员', 'Tap a number to act on those students'],
+    ['缺少手机号', 'No mobile number'], ['有作品但缺授权', 'Work without consent'],
+    ['本月生日 ·', 'Birthday this month ·'], ['未付清', 'Unpaid'],
+
+    /* Pending */
+    ['新报名和约课申请共用一个收件箱，按业务类型分开处理。',
+     'Registrations and booking requests share one inbox, worked separately by type.'],
+    ['新报名', 'Registrations'], ['约课', 'Bookings'],
+
+    /* Course catalogue */
+    ['维护可被固定课表引用的课程条目；公开课表是否展示详情仍由 Studio Admin 控制。',
+     'Maintain the courses a recurring class can reference; whether the public timetable shows their detail stays with Studio Admin.'],
+    ['查看课程安排 →', 'Open the class schedule →'], ['已启用课程', 'Active courses'],
+    ['添加课程', 'Add course'], ['这组信息会影响什么？', 'What does this affect?'],
+    ['课程名称和简介', 'Course name and summary'],
+    ['：供固定课表关联，是否对外显示取决于 Studio Admin 的公开课表开关。',
+     ': linked from recurring classes; public display depends on the timetable switch in Studio Admin.'],
+    ['适龄段、时长和价格', 'Age range, duration and price'],
+    ['：用于公开课程详情和内部排课参考，不会改动已经保存的排课。',
+     ': used for the public course detail and internal scheduling; saved classes are not changed.'],
+    ['归档不是删除。历史排课仍保留原课程名称，新排课不会再出现已归档课程。',
+     'Archiving is not deleting. Past classes keep the original course name; archived courses stop appearing in new ones.'],
+    ['适龄', 'Ages'],
+
+    /* Works */
+    ['从这里按学员浏览作品；具体上传、编辑和公开授权仍在学员档案中完成。',
+     'Browse work by student here; uploading, editing and public consent stay in the student record.'],
+    ['进入学员档案 →', 'Open student records →'], ['作品总数', 'Works in total'],
+    ['已公开', 'Public'], ['未公开', 'Not public'], ['待授权', 'Consent pending'],
+    ['有作品学员', 'Students with work'], ['最近作品', 'Recent work'],
+    ['按作品日期倒序 · 最多显示最近 50 件', 'Newest first · the 50 most recent'],
+    ['在该学员下继续上传', 'Continue uploading under this student'],
+
+    /* Billing and money */
+    ['净收款（扣除退款）', 'Net received (after refunds)'],
+    ['会计流水 CSV', 'Accounting ledger CSV'], ['草稿 · 未编号', 'Draft · unnumbered'],
+    ['上月', 'Last month'], ['近 30 天', 'Last 30 days'], ['起', 'From'], ['止', 'To'],
+    ['先选择学员，再完成充值或退款；支付渠道只记录实际收款方式，不在 CMS 内接入在线支付。',
+     'Choose the student first, then top up or refund; the payment channel records how money actually arrived — the CMS takes no online payments.'],
+    ['套餐管理', 'Packages'], ['添加套餐', 'Add package'],
+    ['这里定义前台充值时可快速选择的课包。修改套餐不会改动历史充值记录；删除前请确认它不再需要被新收款使用。',
+     'These are the packages the front desk can pick during a top-up. Editing one leaves past top-ups untouched; delete only once no new payment needs it.'],
+    ['同时创建发票', 'Create an invoice as well'],
+    ['只有金额大于 0 才能开票；开具后金额和抬头会冻结。',
+     'An invoice needs an amount above 0; once issued, the amount and the addressee freeze.'],
+    ['清除筛选', 'Clear filters'],
+    ['这些内容会印在每一张发票上。没有它们，开具会被拒绝 —— 一张收了 GST 却不写 ABN 的单据，家长的会计用不了。',
+     'This is printed on every invoice. Without it, issuing is refused — a document that charges GST without an ABN is useless to the family’s accountant.'],
+
+    /* Activity log */
+    ['解锁家长访问', 'Unlock family access'],
+    ['查看今日排课', 'Open today’s schedule'],
+
+    /* Settings sections */
+    ['账号与安全', 'Account & security'], ['团队与权限', 'Team & permissions'],
+    ['运营默认', 'Operating defaults'], ['集成', 'Integrations'], ['数据维护', 'Data maintenance'],
+    ['工作区链接', 'Workspace links'],
+    ['当前密码', 'Current password'], ['新密码 *', 'New password *'],
+    ['确认新密码 *', 'Confirm new password *'], ['更新密码', 'Update password'],
+    ['课程目录与充值套餐已移到对应工作区', 'Courses and packages moved to their own workspaces'],
+    ['设置只保留账号、团队、运营默认和数据维护。课程请进入「课程」，套餐请进入「充值与退款」中的「套餐管理」。',
+     'Settings keeps account, team, operating defaults and data maintenance. Courses live under Courses; packages under Packages in Recharge & refunds.'],
+    ['进入课程目录', 'Open course catalogue'], ['进入套餐管理', 'Open packages'],
+    ['停用', 'Deactivate'], ['可在公开课表显示姓名', 'May show their name on the public timetable'],
+    ['默认关闭。被排了一节课不等于同意把名字放到公网上，这一项由本人决定后再开。',
+     'Off by default. Being scheduled for a class is not consent to appear on the public web; the teacher decides this one.'],
+    ['姓名 *', 'Name *'], ['邮箱 *', 'Email *'], ['角色 *', 'Role *'],
+    ['临时密码 *', 'Temporary password *'],
+
+    /* Placeholders and screen-reader labels. The switch already rewrites
+     * placeholder / title / aria-label; these simply had no entry. */
+    ['搜学员姓名或作品说明', 'Search student names or work descriptions'],
+    ['搜付款方或发票号', 'Search payers or invoice numbers'],
+    ['搜老师姓名', 'Search teacher names'],
+    ['学员档案分类', 'Student record sections'], ['系统设置分区', 'Settings sections'],
+    ['去充值', 'Top up'],
+    ['如：Lucy 老师', 'e.g. Lucy'], ['如：Lucy Wang', 'e.g. Lucy Wang'],
+    ['至少 8 位', 'At least 8 characters'], ['输入当前密码', 'Enter your current password'],
+    ['再次输入新密码', 'Enter the new password again'],
+    ['开票主体的注册名，例如 Paradise Production Pty Ltd',
+     'Registered name of the invoicing entity, e.g. Paradise Production Pty Ltd'],
+    ['对外使用的工作室名，可与法定名称不同',
+     'The studio name you trade under; it may differ from the legal name'],
+    ['11 位澳洲商业号码', '11-digit Australian Business Number'],
+    ['家长回信会到这里', 'Family replies arrive here'],
+    ['例如：请在到期日前转账，并在备注里写上发票号。',
+     'e.g. Transfer before the due date and quote the invoice number.'],
+
+    /* Integrations · Xero */
+    ['可以连接 / 断开自己的 Xero 组织（建议先用 Demo Company 测试）；当前版本仍不会向 Xero 推送任何单据数据。',
+     'Connect or disconnect your own Xero organisation (try the Demo Company first). This version still pushes no document data to Xero.'],
+    ['Xero 连接 · 服务器未配置', 'Xero connection · not configured on the server'],
+    ['缺少：', 'Missing: '],
+    ['。请运营方在服务器上运行 deploy/aws/set_xero_env.sh 配置后重启。',
+     '. Ask the operator to run deploy/aws/set_xero_env.sh on the server and restart.'],
+    ['加购权利', 'Add-on entitlement'], ['已开通', 'Active'], ['连接 Xero', 'Connect Xero'],
+    ['断开连接', 'Disconnect'], ['科目与税率映射', 'Account and tax mapping'],
+    ['测试组织试跑', 'Dry run against a test organisation'], ['单一入口', 'One way in'],
+    ['还没有回答', 'Not answered yet'], ['先回答这个', 'Answer this first'],
+    ['你们的收款渠道（比如 Square）是不是', 'Is your payment channel (Square, for example)'],
+    ['已经在往同一个 Xero 组织同步', 'already syncing into the same Xero organisation'],
+    ['？ 如果是，我们再推一遍，Xero 里就会出现两套记录。',
+     '? If it is, pushing again would leave two sets of records in Xero.'],
+    ['未进 Xero 的单据', 'Documents not yet in Xero'],
 
     /* ── Errors ── */
     ['删除失败', 'Delete failed'], ['更新失败', 'Update failed'], ['恢复失败', 'Restore failed'],
@@ -605,6 +740,11 @@
     /* Shapes the dictionary would otherwise need one entry per value for. */
     const rules = [
       [/^共\s*(\d+)\s*人$/, '$1 students'],
+      /* The shared filter bar's result count. The measure word decides the
+       * noun, which is why it has to arrive in the same node as the number. */
+      [/^共\s*(\d+)\s*张$/, '$1 invoices'],
+      [/^共\s*(\d+)\s*件$/, '$1 works'],
+      [/^共\s*(\d+)\s*位$/, '$1 teachers'],
       [/^\((\d+)\s*份\)$/, '($1)'],
       [/^(\d+)\s*张\s*·\s*含\s*GST$/, '$1 invoices · incl. GST'],
       [/^已关联付款方（(\d+)\s*个，必须明确选择）$/, 'Linked payers ($1) — choose explicitly'],
@@ -624,6 +764,28 @@
       [/^(-?\d+)\s*课时$/, '$1 credits'],
       [/^(-?\d+)\s*节$/, '$1 classes'],
       [/^(\d+)\s*人$/, '$1 students'],
+      /* Phrases that wrap the count in Chinese punctuation. English drops the
+       * measure word entirely, so they only translate correctly as one node —
+       * cms-app.jsx emits each of these as a single template literal. */
+      [/^近\s*14\s*天生日（(\d+)\s*人）$/, 'Birthdays in the next 14 days ($1)'],
+      [/^班次学员（(\d+)\s*人）$/, 'Class students ($1)'],
+      [/^（课表\s*(\d+)\s*班）$/, '($1 scheduled)'],
+      [/^(.+)（(\d+)\s*人）$/, '$1 ($2)'],
+      /* Phrases that carry a value the dictionary can never enumerate. */
+      [/^适龄\s*(.+?)\s*·\s*(\d+)\s*分钟\s*·\s*AUD\s*([\d.]+)$/, 'Ages $1 · $2 min · AUD $3'],
+      [/^(\d+)%\s*·\s*贷记\s*\$([\d.]+)\s*·\s*退款\s*\$([\d.]+)$/,
+       '$1% · credited $$$2 · refunded $$$3'],
+      [/^·\s*其中逾期\s*(\d+)\s*张$/, '· $1 overdue'],
+      [/^未付清\s*(\d+)\s*张$/, '$1 unpaid'],
+      [/^没有符合当前筛选的发票。清除筛选可以看到全部\s*(\d+)\s*张。$/,
+       'No invoice matches the current filters. Clear them to see all $1.'],
+      [/^\((\d+)\s*张\)$/, '($1)'],
+      [/^(\d+)\s*位学员等待审核，点击前往处理$/, '$1 waiting for review — tap to open'],
+      [/^(\d+)\s*个套餐$/, '$1 packages'],
+      [/^没有匹配的老师。清除筛选可以看到全部\s*(\d+)\s*位。$/,
+       'No teacher matches. Clear the filters to see all $1.'],
+      [/^还差：(.+)$/, (_m, rest) => `Still missing: ${rest.replace(/、/g, ', ')}`],
+      [/^已连接\s+(.+)$/, 'Connected to $1'],
       [/^(\d+)\s*个每周班次$/, '$1 weekly classes'],
       [/^周一\s+(.+)，(\d+)\s*人$/, 'Mon $1, $2 students'],
       [/^周二\s+(.+)，(\d+)\s*人$/, 'Tue $1, $2 students'],
@@ -643,6 +805,19 @@
       [/^第\s*(\d+)\s*\/\s*(\d+)\s*页$/, 'Page $1 of $2'],
       [/^已选择\s*(\d+)\s*人$/, '$1 selected'],
       [/^选择本页\s*(\d+)\s*人$/, 'Select all $1 on this page'],
+      /* Screen-reader labels that name a record. They read as one string to
+       * the dictionary, so each needs a rule — and the more specific ones have
+       * to be tried before the bare `选择 …` below or they never match. */
+      [/^选择\s+(.+?)\s*的草稿$/, 'Select the draft for $1'],
+      [/^为\s+(.+?)\s+充值$/, 'Top up $1'],
+      [/^为\s+(.+?)\s+签到并扣\s*(\d+)\s*课时$/, 'Check in $1 and deduct $2 credits'],
+      [/^(.+?)\s+更多操作$/, 'More actions for $1'],
+      [/^归档课程\s+(.+)$/, 'Archive course $1'],
+      [/^删除套餐\s+(.+)$/, 'Delete package $1'],
+      [/^周([一二三四五六日])\s*(\d{2}\/\d{2}\/\d{4})，\s*(\d+)\s*人$/,
+       (_m, day, date, count) =>
+         `${{'一': 'Mon', '二': 'Tue', '三': 'Wed', '四': 'Thu',
+             '五': 'Fri', '六': 'Sat', '日': 'Sun'}[day]} ${date}, ${count} students`],
       /* `选择 Amelia Hart` — the aria-label on a student card. One rule
        * instead of one entry per student, and it keeps working for names the
        * dictionary has never seen. */
@@ -810,11 +985,22 @@
           if (renderedText.get(mutation.target) === mutation.target.nodeValue) continue;
           applyText(mutation.target);
         }
+        /* An element that is already mounted keeps its identity while React
+         * rewrites its label — the roster's day buttons re-announce their date
+         * and headcount on every navigation. Without this branch those values
+         * were localised once, at insertion, and every later one stayed
+         * Chinese no matter what the dictionary said. */
+        if (mutation.type === 'attributes') applyAttributes(mutation.target);
         mutation.addedNodes.forEach(localise);
       }
       updateSwitch();
     });
-    observer.observe(document.body, { subtree: true, childList: true, characterData: true });
+    observer.observe(document.body, {
+      subtree: true, childList: true, characterData: true,
+      /* Filtered on purpose: applyAttributes stamps its result in a data-
+       * attribute, and an unfiltered watch would call itself back forever. */
+      attributes: true, attributeFilter: ['placeholder', 'title', 'aria-label'],
+    });
   }
 
   window.CmsI18n = {

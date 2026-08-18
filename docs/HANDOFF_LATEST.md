@@ -27,6 +27,13 @@
 
 ## 最新轮次
 
+- **2026-08-18（Claude Fable）CMS 英文界面三处修复**：
+  `docs/handoff/claude/2026-08-18-cms-i18n-measure-words.md`
+  —— 量词短语改为整句渲染（碎片条目 `['人）', ')']` 靠删字蒙混，渲染成 `(12 )`）；
+  字典 10 个重复键（`已作废` 曾被动作词覆盖成 `Void`）；observer 不监听属性，
+  导致 placeholder/title/aria-label 只在挂载时翻译过一次。界面文案残留中文
+  214→0（余下 34 处是租户数据）；未升版本号，未部署。
+
 - **2026-08-18（Claude Fable）销售材料对齐 v10.9 + 手册截图整套刷新**：
   `docs/handoff/claude/2026-08-18-roadshow-deck-refresh.md`
   —— deck 定价页对齐线上 plans 表（$189/50/250/500/席位）并新增「账务与 Xero」页（10→11 页），

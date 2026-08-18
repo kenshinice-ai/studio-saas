@@ -104,7 +104,7 @@ function PayrollView({ api, showToast, range, onRange }) {
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden min-w-0">
         <div className="px-4 py-3 border-b border-gray-200 text-xs font-bold">老师</div>
         {visible.length === 0 && (
-          <p className="px-4 py-6 text-xs text-gray-500">没有匹配的老师。清除筛选可以看到全部 {teachers.length} 位。</p>
+          <p className="px-4 py-6 text-xs text-gray-500">{`没有匹配的老师。清除筛选可以看到全部 ${teachers.length} 位。`}</p>
         )}
         {visible.map(t => {
           const eng = ENGAGEMENT[t.engagement] || ENGAGEMENT.unset;
