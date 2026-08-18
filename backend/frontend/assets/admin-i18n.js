@@ -380,6 +380,11 @@
     ['Questions', '报名问题'], ['Question', '问题'], ['Add Question', '新增问题'], ['Add Item', '新增项目'],
     ['Label · 中文', '标签 · 中文'], ['Label · English', '标签 · English'],
     ['Placeholder · 中文', '提示文字 · 中文'], ['Placeholder · English', '提示文字 · English'],
+    /* The option labels of the registration field-type selector. The
+       <option value> stays the stored enum (text / textarea / select);
+       only what an operator reads changes, which is why the enum keeps
+       its English while these three do not. */
+    ['Short text', '单行文本'], ['Long text', '多行文本'], ['Dropdown', '下拉选择'],
     ['Type', '类型'], ['Required', '必填'], ['Optional', '选填'], ['Required / Options', '必填与选项'],
     ['Select options, comma separated', '下拉选项，用逗号分隔'],
     ['Remove', '移除'], ['Short text, long text, and select fields are supported.', '支持短文本、长文本和下拉选择字段。'],

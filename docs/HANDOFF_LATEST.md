@@ -27,6 +27,12 @@
 
 ## 最新轮次
 
+- **2026-08-19（Claude Fable）两处漂移按线上对齐**：
+  `docs/handoff/claude/2026-08-19-two-drifts-aligned.md`
+  —— 套餐学员上限 100/500/1000 → 50/250/500（新增 `0046`；只改基线种子无效，
+  因为 `0021` 会把 growth 抬回 1000，实测新库才发现），价格只改基线不进迁移；
+  报名字段类型下拉不再把枚举当标签（value 仍是 text/textarea/select）。未部署。
+
 - **2026-08-19（Claude Fable）admin-i18n.js 审计（Studio Admin / Super Admin）**：
   `docs/handoff/claude/2026-08-19-admin-i18n-audit.md`
   —— 与 CMS 同三类缺陷：13 个重复键（`Support` 被「支持」覆盖掉配色角色「辅助色」）、

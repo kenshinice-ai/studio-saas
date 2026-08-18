@@ -5635,7 +5635,7 @@
           <div class="form-group">
             <label for="regType${index}">Type</label>
             <select id="regType${index}" data-reg-type="${index}">
-              ${['text','textarea','select'].map((type) => `<option value="${type}" ${type === (field.type || 'text') ? 'selected' : ''}>${type}</option>`).join('')}
+              ${[['text', 'Short text'], ['textarea', 'Long text'], ['select', 'Dropdown']].map(([type, label]) => `<option value="${type}" ${type === (field.type || 'text') ? 'selected' : ''}>${label}</option>`).join('')}
             </select>
           </div>
           <div class="form-group">

@@ -564,9 +564,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS plans_one_recommended
 
 INSERT INTO plans (code, name, monthly_price_aud, student_limit, user_limit, storage_limit_mb, features, is_public, is_recommended)
 VALUES
-    ('starter', 'Starter', 49, 100, 1, 2048, '{"public_registration": true, "portfolio": true}'::jsonb, true, false),
-    ('studio', 'Studio', 99, 500, 5, 10240, '{"public_registration": true, "portfolio": true, "email_templates": true, "data_export": true}'::jsonb, true, true),
-    ('growth', 'Growth', 199, 1000, 20, 51200, '{"public_registration": true, "portfolio": true, "email_templates": true, "data_export": true, "priority_support": true}'::jsonb, true, false)
+    ('starter', 'Starter', 49, 50, 1, 2048, '{"public_registration": true, "portfolio": true}'::jsonb, true, false),
+    ('studio', 'Studio', 99, 250, 5, 10240, '{"public_registration": true, "portfolio": true, "email_templates": true, "data_export": true}'::jsonb, true, true),
+    ('growth', 'Growth', 189, 500, 20, 51200, '{"public_registration": true, "portfolio": true, "email_templates": true, "data_export": true, "priority_support": true}'::jsonb, true, false)
 ON CONFLICT (code) DO NOTHING;
 
 ALTER TABLE subscriptions
