@@ -27,6 +27,13 @@
 
 ## 最新轮次
 
+- **2026-08-19（Claude Fable）admin-i18n.js 审计（Studio Admin / Super Admin）**：
+  `docs/handoff/claude/2026-08-19-admin-i18n-audit.md`
+  —— 与 CMS 同三类缺陷：13 个重复键（`Support` 被「支持」覆盖掉配色角色「辅助色」）、
+  About 的 24 个生成式字段名读作「Highlight 3 Body · 中文」、observer 不监听属性。
+  另修一条为页面从未产出的措辞而写的规则（`Signed in: ` vs 实际的 `Signed in as `）。
+  未改 JSX，未升版本号，未部署。
+
 - **2026-08-18（Claude Fable）CMS 英文界面三处修复**：
   `docs/handoff/claude/2026-08-18-cms-i18n-measure-words.md`
   —— 量词短语改为整句渲染（碎片条目 `['人）', ')']` 靠删字蒙混，渲染成 `(12 )`）；

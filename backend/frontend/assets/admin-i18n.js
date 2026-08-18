@@ -19,7 +19,7 @@
     ['Starter', '入门版'], ['Growth', '成长版'],
     ['Analytics', '数据分析'], ['Brand', '品牌'], ['Hero', '首屏'], ['Registration', '报名'],
     ['Public Pages', '公开页面'], ['Preview / Publish', '预览与发布'], ['Website / Brand', '官网与品牌'],
-    ['Brand & website', '品牌与官网'], ['Admissions', '招生入口'], ['Publish', '发布中心'], ['Insights', '经营洞察'],
+    ['Brand & website', '品牌与官网'], ['Admissions', '招生入口'], ['Insights', '经营洞察'],
     ['Studio Admin workspaces', '工作室管理工作区'], ['Draft website preview', '官网草稿预览'],
     ['Preview source', '预览来源'], ['Published website preview', '已发布官网预览'],
     ['No unpublished changes.', '没有未发布的改动。'], ['https://…', 'https://…'],
@@ -30,8 +30,8 @@
     ['Timetable', '课程安排'], ['Selected Work', '工作室作品'],
     ['Manage tenants, plans, subscriptions, and platform analytics', '管理工作室、套餐、订阅与平台数据'],
     ['Manage studios, subscriptions, and safe operational state', '管理工作室、订阅与安全运营状态'],
-    ['Platform Admin work areas', '平台管理工作区'], ['Workspace context', '工作区上下文'], ['Close inspector', '关闭详情'], ['Close editor', '关闭编辑器'], ['Remove this filter', '移除筛选'], ['Close dialog', '关闭对话框'], ['Tenant detail sections', '工作室详情分区'],
-    ['Main', '主要'], ['Customers', '客户'], ['Commercial', '商业'], ['Operations', '运营'],
+    ['Platform Admin work areas', '平台管理工作区'], ['Workspace context', '工作区上下文'], ['Close inspector', '关闭详情'], ['Close editor', '关闭编辑器'], ['Close dialog', '关闭对话框'], ['Tenant detail sections', '工作室详情分区'],
+    ['Main', '主要'], ['Customers', '客户'], ['Commercial', '商业'],
     ['Work areas', '工作区'], ['Close work areas', '关闭工作区'],
     ['Tenant lifecycle, recurring revenue, activation, and platform usage', '工作室生命周期、经常性收入、启用情况与平台用量'],
     ['Tenants & Subscriptions', '工作室与订阅'], ['Plans & Pricing', '套餐与定价'],
@@ -46,7 +46,6 @@
        and they match the swatch labels in the preview beside them. */
     ['Accent', '强调色'],
     ['Buttons, links and selected states', '按钮、链接与选中状态'],
-    ['Support', '辅助色'],
     ['Badges and small highlights only', '仅用于徽章与小面积点缀'],
     /* Studio Admin: disclosure summaries. Each fold hides settings a studio
        sets once, never a language half of a bilingual pair. */
@@ -80,18 +79,16 @@
     ['No events match this filter.', '没有符合此筛选的事件。'],
     // Plan publication (v8.2.20): a plan row is not automatically an offer.
     ['Public', '公开'], ['Published', '已发布'], ['Not published', '未发布'],
-    ['Recommended', '主推'], ['Public pricing page', '公开定价页'],
+    ['Public pricing page', '公开定价页'],
     ['Publish on pwestudio.online', '发布到 pwestudio.online'],
     ['Mark as the recommended plan', '设为主推套餐'],
-    ['Only one plan carries the badge; ticking it here clears it elsewhere.',
-     '主推徽章只能有一个；在此勾选会清除其他套餐的主推标记。'],
-    ['+ Add Tenant', '+ 新增工作室'], ['Add Tenant', '新增工作室'], ['Create Tenant', '创建工作室'],
+        ['+ Add Tenant', '+ 新增工作室'], ['Add Tenant', '新增工作室'], ['Create Tenant', '创建工作室'],
     ['+ Add Plan', '+ 新增套餐'], ['Save Plan', '保存套餐'], ['Save Changes', '保存更改'],
     ['Add Plan', '新增套餐'], ['Edit plan', '编辑套餐'], ['Edit tenant', '编辑工作室'], ['View', '查看'], ['Inspect', '检查'], ['Edit', '编辑'],
     ['Delete plan', '删除套餐'], ['Delete', '删除'], ['Review', '查看处理'],
     ['Tenant workspace', '工作室工作区'], ['Plan workspace', '套餐工作区'],
     ['Editing', '编辑中'], ['Edit workspace', '编辑工作区'], ['Make changes and review their impact before saving.', '修改内容，并在保存前检查影响范围。'],
-    ['Ready', '就绪'], ['Ready to edit', '可以编辑'], ['Unsaved changes', '有未保存更改'], ['Save from the center workspace when the review is complete.', '完成检查后，请在中间工作区保存。'],
+    ['Ready', '就绪'], ['Ready to edit', '可以编辑'], ['Save from the center workspace when the review is complete.', '完成检查后，请在中间工作区保存。'],
     ['Select an item', '选择一项'], ['Start with what needs attention.', '从需要处理的事项开始。'], ['Select a row to inspect its context.', '选择一行查看上下文。'],
     ['The workspace prioritises subscription risk, usage signals, and operator follow-up.', '工作台优先展示订阅风险、用量信号和待跟进事项。'],
     ['Choose a tenant to review status, subscription metadata, resource usage, and safe next actions.', '选择工作室查看状态、订阅资料、资源用量和安全下一步。'],
@@ -119,12 +116,12 @@
     ['Current record', '当前记录'], ['Current configuration', '当前配置'], ['Safe next steps', '安全下一步'], ['Configuration', '配置'], ['Tenant allocation', '工作室额度'],
     ['Review before saving', '保存前检查'], ['Form state', '表单状态'], ['Tenants on plan', '使用此套餐的工作室'], ['Current status', '当前状态'], ['Validation errors', '校验错误'],
     ['Action context', '操作上下文'], ['High-frequency tenant actions', '高频工作室操作'], ['High-frequency plan actions', '高频套餐操作'],
-    ['Manage', '管理'], ['Open', '打开'], ['Support', '支持'], ['What happens next', '下一步会发生什么'],
+    ['Manage', '管理'], ['Open', '打开'], ['What happens next', '下一步会发生什么'],
     ['Review before action', '操作前检查'], ['Explicit confirmation', '明确确认'], ['Action', '操作'], ['Plan usage', '套餐使用情况'],
     ['Filter tenants by this plan', '按此套餐筛选工作室'], ['View tenants on this plan', '查看使用此套餐的工作室'],
     ['Subscription & Plan', '订阅与套餐'], ['View Audit History', '查看审计历史'], ['Open Studio Website', '打开工作室官网'],
-    ['Open CMS', '打开 CMS'], ['Open Studio Admin', '打开工作室管理'], ['Open Quick Registration', '打开快速报名'],
-    ['Enter Support Mode', '进入支持模式'], ['Start Support Mode', '启动支持模式'], ['Pause tenant', '暂停工作室'],
+    ['Open Studio Admin', '打开工作室管理'], ['Open Quick Registration', '打开快速报名'],
+    ['Enter Support Mode', '进入支持模式'], ['Pause tenant', '暂停工作室'],
     ['Reactivate tenant', '重新启用工作室'], ['Archive tenant', '归档工作室'], ['Restore tenant', '恢复工作室'],
     ['Permanent delete tenant', '永久删除工作室'], ['Delete Plan', '删除套餐'], ['View audit history', '查看审计历史'],
     ['Edit studio sections', '编辑工作室分区'], ['Basic info', '基础资料'], ['Limits & Works', '额度与作品'],
@@ -150,7 +147,7 @@
     ['Tenant surfaces', '工作室入口'], ['Public and audited entry points', '公开入口与需审计入口'], ['Managed actions', '管理操作'], ['Audited lifecycle changes', '带审计记录的生命周期变更'], ['Requires explicit confirmation', '需要明确确认'],
     ['Restore tenant', '恢复工作室'], ['Reactivate tenant', '重新启用工作室'], ['Pause tenant', '暂停工作室'], ['Archive tenant', '归档工作室'], ['Permanent delete tenant', '永久删除工作室'],
     ['Permanent delete is available only after archiving.', '只有归档后才能永久删除。'], ['Move all tenants to another plan before deleting this plan.', '请先将所有工作室迁移到其他套餐，再删除此套餐。'], ['Review dependencies first', '请先检查依赖关系'],
-    ['New plan', '新套餐'], ['New tenant', '新工作室'], ['Save failed', '保存失败'], ['Created', '已创建'], ['Creating…', '创建中…'], ['Saving…', '保存中…'],
+    ['New plan', '新套餐'], ['New tenant', '新工作室'], ['Save failed', '保存失败'], ['Creating…', '创建中…'], ['Saving…', '保存中…'],
     ['New plans stay private until Publish is selected.', '选择公开前，新套餐不会显示在公开页面。'],
     ['Review affected tenants before saving limits.', '保存额度前请检查受影响的工作室。'],
     ['Define limits and publication state before creating a plan.', '创建套餐前先定义额度和公开状态。'],
@@ -165,7 +162,7 @@
     ['Changed together with tenant lifecycle state.', '此项会随工作室生命周期状态一起变更。'],
     ['Use More → Status for audited lifecycle actions.', '请使用“更多 → 状态”执行带审计记录的生命周期操作。'],
     ['Name', '名称'], ['Studio', '工作室'], ['Studio Name', '工作室名称'], ['Studio Category', '工作室类别'],
-    ['Category', '类别'], ['Slug', '网址标识'], ['Code', '代码'], ['Status', '状态'], ['Plan', '套餐'],
+    ['Slug', '网址标识'], ['Code', '代码'], ['Status', '状态'], ['Plan', '套餐'],
     ['Price (AUD)', '价格（澳元）'], ['Price/Month', '月费'], ['Limits', '额度'], ['Entitlements', '功能权限'],
     ['Additional entitlements (JSON)', '其他功能权限（JSON）'],
     ['Only use this for feature flags not listed above.', '仅用于上方未列出的功能开关。'],
@@ -206,6 +203,15 @@
        subtitle. Their entries are gone too: a dictionary that keeps entries
        for strings the product no longer renders is a list of claims nobody
        checks. */
+    ['Website modules', '官网版块'], ['FAQ & messages', '常见问题与话术'],
+    ['Principal', '负责人'],
+    /* Field labels that pair a name with the language of the field's own
+       content. The hand-written pairs live further up; these three were
+       added when the About and Selected work panels grew. */
+    ['Eyebrow · 中文', '小标题 · 中文'], ['Eyebrow · English', '小标题 · English'],
+    ['Lead · 中文', '引导语 · 中文'], ['Lead · English', '引导语 · English'],
+    ['Description · 中文', '简介 · 中文'], ['Description · English', '简介 · English'],
+    ['(direct)', '（直接访问）'],
     ['Brand foundation', '品牌基础'],
     ['Build the foundation in three clear steps: industry, visual theme, then studio details.', '按三个清晰步骤完成品牌基础：行业、视觉主题、工作室资料。'],
     ['Choose an industry foundation', '选择行业基础'],
@@ -415,7 +421,7 @@
     ['Draft preview — compare with the published website before publishing', '草稿预览 — 发布前请与已发布官网对照'],
     ['Draft preview — publish needs attention', '草稿预览 — 发布需要处理'],
     ['Unsaved changes — saved draft is not public', '有未保存修改 — 已保存草稿不会公开'],
-    ['Draft saved — not public', '草稿已保存 — 尚未公开'], ['Published content', '已发布内容'],
+    ['Published content', '已发布内容'],
     ['Changes waiting to be saved', '有修改等待保存'],
     ['Publish failed — changes are not confirmed public', '发布失败 — 尚未确认公开'],
     ['Published, public pages still need verification', '已发布，公开页面仍在确认'],
@@ -636,7 +642,7 @@
     ['Additional entitlements must be a JSON object.', '附加功能权限必须是 JSON 对象。'],
     ['Off by default. A plan exists as soon as it is created; it is for sale only when somebody says so.',
      '默认关闭。套餐创建后即存在，但只有明确发布后才对外销售。'],
-    ['Only one plan carries the badge; ticking it here clears it elsewhere.', '主推徽章只能有一个；在此勾选会清除其他套餐的标记。'],
+    ['Only one plan carries the badge; ticking it here clears it elsewhere.', '推荐徽章只能有一个；在此勾选会清除其他套餐的标记。'],
     ['Not shown on the public pricing page.', '不会出现在公开定价页。'],
     ['Team users', '团队账号'],
     ['Storage (GB)', '存储（GB）'],
@@ -858,6 +864,19 @@
       [/^(\d+) of (\d+) events$/i, '$1 / $2 条事件'],
       [/^Type (.+) to confirm\.?$/i, '请输入 $1 以确认。'],
       [/^Signed in: (.+)$/i, '已登录：$1'],
+      /* studio-admin.html writes `Signed in as <email>`; the rule above
+         was written for wording the page never produced, so the status
+         line stayed English no matter which language was chosen. */
+      [/^Signed in as (.+)$/i, '已登录：$1'],
+      /* The six About highlights are generated as `Highlight 3 Body · 中文`,
+         so a dictionary would need 24 entries to say one thing. The language
+         marker stays English on purpose — it names the language of the
+         content, exactly as the hand-written pairs above it do. */
+      [/^Highlight (\d+) (Title|Body) · (中文|English)$/,
+       (_m, index, part, lang) =>
+         `亮点 ${index} ${part === 'Title' ? '标题' : '正文'} · ${lang}`],
+      [/^(\d+) views · (\d+) registrations$/i, '$1 次浏览 · $2 次报名'],
+      [/^View (.+)$/, '查看 $1'],
       [/^Last refreshed: (.+)$/i, '最近刷新：$1'],
       [/^Support (.+)$/i, '支持：$1'],
       [/^(.+) Details$/, '$1 · 详情'],
@@ -1053,11 +1072,21 @@
           if (renderedText.get(mutation.target) === mutation.target.nodeValue) continue;
           applyText(mutation.target);
         }
+        /* A mounted element keeps its identity while the console rewrites
+           its label — the tenant rows re-announce `View <tenant>` on every
+           refresh. Without this branch those values were localised once, at
+           insertion, and every later one stayed English for screen readers. */
+        if (mutation.type === 'attributes') applyAttributes(mutation.target);
         mutation.addedNodes.forEach(localise);
       }
       updateSwitch();
     });
-    observer.observe(document.body, {subtree: true, childList: true, characterData: true});
+    observer.observe(document.body, {
+      subtree: true, childList: true, characterData: true,
+      /* Filtered on purpose: applyAttributes stamps its result in a data-
+         attribute, and an unfiltered watch would call itself back forever. */
+      attributes: true, attributeFilter: ['placeholder', 'title', 'aria-label'],
+    });
   }
 
   window.AdminI18n = {get language() { return language; }, setLanguage, translate: (value) => language === 'zh' ? translate(value) : value, localise};
