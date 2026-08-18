@@ -70,7 +70,7 @@ install is wrong.
 | `04-booking` | public | `/lets-paint-showcase/timetable` | mobile | Synthetic public timetable with the booking request dialog open |
 | `04-topup` | manager | `/lets-paint-showcase/cms` | desktop | Recharge & refunds / 充值与退款 tab |
 | `04-log` | manager | `/lets-paint-showcase/cms` | desktop | Operation log, unfiltered |
-| `05-portfolio` | teacher | `/lets-paint-showcase/cms` | desktop | Students tab, first record opened |
+| `05-portfolio` | teacher | `/lets-paint-showcase/cms` | desktop | Students / 学员档案 tab, first record opened |
 | `05-works` | teacher | `/lets-paint-showcase/cms?view=works` | desktop | Portfolio / 作品管理 deep link |
 | `06-student-area` | public | `/lets-paint-showcase` | mobile | student area lookup form |
 | `07-settings` | owner | `/lets-paint-showcase/cms?view=settings&section=account` | desktop | Settings / 系统设置 full-page route |

@@ -58,7 +58,10 @@ LANGUAGES = ("en", "zh")
 # pair. Both come from cms-app.jsx; a rename there fails the capture.
 TAB = {
     "roster":   {"en": "Class Schedule", "zh": "课程安排"},
-    "students": {"en": "Students", "zh": "学员"},
+    # The sidebar renders each item's long label (`l` in NAV_GROUPS), not the
+    # short one it also carries: 学员档案, not 学员. Both translate to
+    # "Students", so only the Chinese pass noticed when this drifted.
+    "students": {"en": "Students", "zh": "学员档案"},
     "pending":  {"en": "Pending", "zh": "待处理"},
     "topup":    {"en": "Recharge & refunds", "zh": "充值与退款"},
     "logs":     {"en": "Activity Log", "zh": "操作日志"},
@@ -333,13 +336,24 @@ SET_DATE = """
 """
 
 # Open the first student record so the portfolio block is on screen.
-OPEN_FIRST_STUDENT = """
+# The student record is a dialog with its own tabs, so this shot is two clicks:
+# open the first card's Details, then move to the Portfolio tab the manual's
+# caption and alt text both name ("停在作品集区块"). The previous matcher looked
+# for "(12课" in any element — no card has read that way since the list became
+# cards — and the caller discarded its result, so the figure quietly showed the
+# student list instead. Both halves are fixed: the labels are the rendered ones,
+# and a miss is fatal.
+STUDENT_DETAILS = {"en": "Details", "zh": "详情"}
+STUDENT_PORTFOLIO = {"en": "Portfolio", "zh": "作品集"}
+
+CLICK_EXACT_BUTTON = """
 (() => {
-  const card = document.querySelector('[class*="cursor-pointer"], li, tr');
-  const hit = [...document.querySelectorAll('button, li, tr, div')]
-    .find(el => /\\(\\d+课/.test(el.textContent || ''));
-  (hit || card)?.click();
-  return hit ? 'ok' : 'MISSING';
+  const wanted = %s;
+  const hits = [...document.querySelectorAll('button')]
+    .filter(el => (el.textContent || '').trim() === wanted);
+  if (!hits.length) return 'MISSING';
+  hits[0].click();
+  return 'ok';
 })()
 """
 
@@ -513,9 +527,17 @@ def capture(browser: Browser, base: str, shot, session: str | None, language: st
             raise SystemExit(f"{name}: no date input on the roster screen")
         time.sleep(1.5)
     elif prepare == "student":
-        browser.call("Runtime.evaluate", returnByValue=True,
-                     expression=OPEN_FIRST_STUDENT)
-        time.sleep(1.5)
+        for labels, missing in ((STUDENT_DETAILS, "no student card carries"),
+                                (STUDENT_PORTFOLIO, "the open record has no tab")):
+            label = labels[language]
+            result = browser.call("Runtime.evaluate", returnByValue=True,
+                                  expression=CLICK_EXACT_BUTTON % json.dumps(label))
+            if result.get("result", {}).get("value") == "MISSING":
+                raise SystemExit(
+                    f"{name}: {missing} a control labelled {label!r}. The record "
+                    "was rebuilt — update the label pairs here and "
+                    "docs/design/manual_shots.md together.")
+            time.sleep(1.5)
     elif prepare == "showcase":
         result = browser.call("Runtime.evaluate", returnByValue=True,
                               expression=SHOWCASE_EDITOR)
