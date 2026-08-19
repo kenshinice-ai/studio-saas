@@ -54,6 +54,13 @@
   <p data-lang="zh">以下内容均属于已发布的产品版本。每一条都是交付依据，不是路线图承诺。</p>
   <div class="grid">
     <article class="card">
+      <strong data-lang="en">v10.9.3 — Xero authorisation on the new scope scheme, and interface-language purity</strong><strong data-lang="zh">v10.9.3 —— Xero 授权按新版 scope 规范接入 + 界面语言纯净度</strong>
+      <p data-lang="en">Xero apps created after March 2026 only accept the new granular scopes — the old broad scope was refused at the consent page before it ever appeared. The connection flow now requests the minimal granular set (invoices, payments, contacts, read-only settings, connections), granted once so the later document-push stage will not ask every studio to reconsent. The connection still pushes no accounting data.</p>
+      <p data-lang="zh">2026 年 3 月之后创建的 Xero 应用只接受新版细粒度 scope——旧的宽 scope 在授权页出现之前就会被拒。连接流程改为请求细粒度最小集（invoices、payments、contacts、settings 只读、connections），一次授权到位，后续单据推送阶段无需全体重新授权。连接本身仍不推送任何单据数据。</p>
+      <p data-lang="en">Interface: the English CMS and both admin consoles fix the same three defect families — phrases now render as whole sentences (no more fragments like "(12 )"), duplicate dictionary keys no longer overwrite each other, and placeholders/tooltips stay translated instead of only on first load. The registration field-type picker shows labels again. Plan student limits are aligned across environments, and the online manual's 48 screenshots were re-taken on a single v10.9.2 baseline.</p>
+      <p data-lang="zh">界面：英文 CMS 与两个管理控制台修复同源三类缺陷——短语整句渲染（不再出现「(12 )」碎片）、字典重复键互相覆盖、placeholder/提示只在首次载入翻译。报名表字段类型下拉恢复显示标签。套餐学员上限各环境对齐，在线手册 48 张截图按 v10.9.2 单一基线整套重拍。</p>
+    </article>
+    <article class="card">
       <strong data-lang="en">The invoicing chapter's pictures match the product again (v10.9.2)</strong><strong data-lang="zh">开票章节的截图重新对上了产品（v10.9.2）</strong>
       <p data-lang="en">One screenshot in the manual's invoicing chapter had been captured mid-animation — the settings page frozen halfway across the screen. All four of the chapter's screenshots were re-taken, and the capture tooling now waits for the page to stop moving before it looks, so this class of picture cannot ship again.</p>
       <p data-lang="zh">手册开票章节里有一张截图拍在了动画进行到一半——设置页停在屏幕中间。该章四张截图已全部重拍，截图工具现在会等页面完全静止再取景，这一类图不会再发出去。</p>

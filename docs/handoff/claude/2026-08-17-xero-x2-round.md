@@ -21,7 +21,8 @@ per-tenant token 加密存储 + 自动 refresh；先只接 Xero Demo Company；�
 
 1. 在 developer.xero.com 用自己的 Xero 账号建一个 **Web app**（OAuth 2.0 auth code）：
    - redirect URI 填 `https://pwestudio.online/xero/callback`（本地联调另加 `http://localhost:8100/xero/callback`）。
-   - scopes：`openid profile email accounting.transactions accounting.contacts offline_access`。
+   - scopes：应用侧无需选择；服务端请求细粒度集（见下方 2026-08-19 更正——
+     2026-03-02 之后创建的 app 不再接受宽 scope `accounting.transactions`）。
 2. 把 Client ID / Client Secret 放进生产 env（`XERO_CLIENT_ID` / `XERO_CLIENT_SECRET`，
    路径照 `deploy/aws` 现有 env 惯例）——**由 Lee 自己放，不要把 secret 发进对话**。
 3. Xero 账号里启用 Demo Company（AU）作为测试组织。
@@ -47,3 +48,18 @@ per-tenant token 加密存储 + 自动 refresh；先只接 Xero Demo Company；�
 - Production：`Deployed: PWE-StudioSaaS-aws-10.9.0`，deep health `appVersion=10.9.0`、`db=ok`；迁移 0045 已应用。
 - 浏览器验收（生产）：集成页如实显示「服务器未配置，缺 XERO_CLIENT_ID / XERO_CLIENT_SECRET / STUDIOSAAS_XERO_TOKEN_KEY」并指向 set_xero_env.sh。
 - 待 Lee：跑 set_xero_env.sh 放凭据 → 浏览器里完成 Xero 登录与 Allow（Demo Company）→ 我做 连接/自愈/断开重连 三项验收。
+
+## 2026-08-19 invalid_scope 更正（v10.9.3）
+
+- 现象：凭据放好后点「重新连接 Xero」，login.xero.com 直接报 `Error: invalid_scope (500)`。
+- 排查：connect-url 探针显示我方 authorize 请求规范（scope/redirect/client_id 均正确）；
+  Lee 授权我用他登录的 Chrome 查 developer.xero.com——应用类型是 Web app、
+  redirect URI 一字不差、secret 为 2026-08-17 所建，全部无误。
+- 根因：Xero scope 换代。**2026-03-02 之后创建的应用只拿得到细粒度 scope**，
+  应用配置页的可用清单里没有宽 scope `accounting.transactions`，authorize 端点直接拒绝。
+  （Luna Max 执行清单 130 行早有此警告，X2 实现时未遵循，此处偿还。）
+- 修复：`xero_oauth.py` SCOPES 改为
+  `openid profile email app.connections accounting.invoices accounting.payments
+  accounting.contacts accounting.settings.read offline_access`
+  ——`app.connections` 供 finish_connect 查组织；invoice/payment/contact/settings.read
+  为 X3 推送面一次授权到位，免得 X3 上线时全体租户重新授权。

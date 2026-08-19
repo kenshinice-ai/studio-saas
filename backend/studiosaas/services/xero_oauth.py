@@ -46,7 +46,16 @@ TOKEN_URL = "https://identity.xero.com/connect/token"
 REVOKE_URL = "https://identity.xero.com/connect/revocation"
 CONNECTIONS_URL = "https://api.xero.com/connections"
 DEFAULT_REDIRECT = "https://pwestudio.online/xero/callback"
-SCOPES = "openid profile email accounting.transactions accounting.contacts offline_access"
+# Granular scopes only: apps created after 2 March 2026 are refused the broad
+# accounting.transactions scope at the authorize endpoint (invalid_scope, seen
+# live 2026-08-19). app.connections covers GET /connections in finish_connect;
+# invoices/payments/contacts/settings.read are the X3 push surface, granted now
+# so shipping X3 does not force every studio to reconsent.
+SCOPES = (
+    "openid profile email app.connections "
+    "accounting.invoices accounting.payments accounting.contacts "
+    "accounting.settings.read offline_access"
+)
 STATE_TTL_MINUTES = 10
 # Refresh when the access token has less than this left. Xero access tokens
 # live 30 minutes; two minutes of slack absorbs clock skew and a slow request.

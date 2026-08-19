@@ -1,5 +1,22 @@
 # PWE Studio — Release Notes and Acceptance Evidence
 
+## v10.9.3 — Xero 授权按新版 scope 规范接入 + 界面语言纯净度修复
+
+Xero：2026 年 3 月之后在 Xero 创建的应用只接受新版细粒度 scope，旧的宽 scope
+`accounting.transactions` 会在授权页直接被拒（invalid_scope）。连接流程改为请求
+细粒度最小集（invoices、payments、contacts、settings 只读、connections），一次授权
+覆盖后续单据推送所需权限，届时无需重新授权。连接本身仍不推送任何单据数据。
+
+界面：CMS 英文界面与两个管理控制台（Studio Admin / Super Admin）修复三类同源缺陷
+——量词短语整句渲染（不再出现 `(12 )` 之类碎片）、字典重复键互相覆盖、翻译观察器
+不监听属性导致 placeholder/title 只翻译一次。报名表字段类型下拉不再把枚举当标签。
+
+对齐：套餐学员上限迁移 `0046` 使各环境与线上一致（50/250/500）；在线手册 48 张截图
+按 v10.9.2 单一基线整套重拍，路演材料同步。
+
+验证：Xero OAuth 7 项测试通过；完整 pytest + 真 Postgres 验证随发布链执行；
+连接演练对 Xero Demo Company 完成（证据见最新 handoff）。
+
 ## v10.9.1 — Xero 环境透传修复
 
 v10.9.0 的集成页在服务器已写好凭据的情况下仍显示「未配置」：容器环境块是 allow-list，四个 XERO 变量没有列入 docker-compose.yml，值写进 production.env 也到不了进程。本版本只补这一处透传（凭据本身不动）。
