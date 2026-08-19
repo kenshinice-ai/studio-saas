@@ -369,7 +369,7 @@ def test_the_two_queues_are_counted_apart_but_read_in_one_place() -> None:
     assert "pendingTab" in cms
     assert "'新报名'" in cms and "'约课'" in cms
     # Both queues live under the same tab.
-    assert cms.count("{tab==='pending' && (") == 1
+    assert cms.count("{tab==='pending' && ") == 1
 
 
 def test_the_cms_shows_the_match_that_the_public_reply_withholds() -> None:
