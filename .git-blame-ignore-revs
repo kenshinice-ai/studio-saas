@@ -1,0 +1,6 @@
+# Mechanical refactor commits — exclude from git blame.
+# Configure locally once: git config blame.ignoreRevsFile .git-blame-ignore-revs
+# GitHub honors this file automatically.
+
+# v10.11.0: api_v1.py -> api_v1/ package split (pure move)
+cfab504b9271d144d372e3f9483ef2290172ac57
