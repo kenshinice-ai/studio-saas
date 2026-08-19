@@ -297,7 +297,23 @@ def set_push_enabled(conn, tenant_id: str, enabled: bool) -> GateStatus:
             raise XeroError(
                 "Xero pushing cannot be enabled yet: " + ", ".join(status.blockers())
             )
-    _upsert_settings(conn, tenant_id, push_enabled="true" if enabled else "false")
+        # A plain UPDATE, deliberately not the upsert: PostgreSQL evaluates
+        # CHECK constraints on the INSERT candidate row even when ON CONFLICT
+        # would take the update branch, and the candidate row (push on,
+        # every precondition NULL) always violates the 0037 gate. The row is
+        # guaranteed to exist here — the preconditions can_enable just
+        # verified live in it.
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                UPDATE xero_sync_settings
+                   SET push_enabled = true, updated_at = now()
+                 WHERE tenant_id = %s
+                """,
+                (tenant_id,),
+            )
+    else:
+        _upsert_settings(conn, tenant_id, push_enabled="false")
     return gate_status(conn, tenant_id)
 
 

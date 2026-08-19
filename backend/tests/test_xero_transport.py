@@ -373,6 +373,37 @@ def test_demo_cycle_is_clean_only_when_pushed_and_reconciled(pushable_world, fak
     assert idle["pushed"] == 0 and idle["clean"] is False
 
 
+# ── the gate, walked exactly as the wizard walks it ──────────────────────
+
+
+@requires_db
+def test_enabling_push_through_the_walked_gate_survives_the_check_constraint(pushable_world):
+    """Regression: v10.10.0 enabled the transport and the very first live
+    enable_push hit the 0037 CHECK — the upsert's INSERT candidate row (push
+    on, preconditions NULL) is constraint-checked by PostgreSQL even when ON
+    CONFLICT would update. The gate must be walked with the real service
+    functions, then flip on, against the real constraint."""
+
+    from studiosaas.services import xero
+
+    tenant_id = pushable_world["tenant_id"]
+    with owner_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO tenant_addons (tenant_id, addon_key, status) VALUES (%s, 'xero', 'active')",
+                (tenant_id,),
+            )
+        xero.confirm_mapping(conn, tenant_id)
+        xero.record_demo_run(conn, tenant_id)
+        xero.answer_single_entry(conn, tenant_id, decision="ours_only")
+        status = xero.set_push_enabled(conn, tenant_id, True)
+        assert status.push_enabled is True
+        # And off again — pausing must always be allowed.
+        status = xero.set_push_enabled(conn, tenant_id, False)
+        conn.rollback()
+    assert status.push_enabled is False
+
+
 # ── the enqueue hooks ────────────────────────────────────────────────────
 
 

@@ -56,9 +56,20 @@
 drain 依赖排序+org 链接、付款依赖延迟、校验死信 vs 退避、换 org 重推、对账 0 差异/1 分钱、
 demo cycle clean 判定、allocate 钩子）。全量 pytest 2857 passed / 7 skipped。
 
-## 发布与验收证据（随部署闭环补）
+## 发布与验收证据
 
-- [ ] v10.10.0 打包、guard、部署，迁移 0047 应用
-- [ ] 生产 showcase：映射（200/OUTPUT、090）→ 确认 → 试跑 clean → 单一入口 → 开推送
-- [ ] Demo Company (AU) 里肉眼可见 INV-000x 与收款；逐张对账 0 差异
-- [ ] systemd timer 安装并跑过一轮（journalctl 证据）
+- v10.10.0 部署 ✔（deep health appVersion=10.10.0、迁移 0047 应用）；
+  systemd timer 安装并首跑 ✔（`xero-push: tenants=6 gate-closed=6 jobs=0 tenant-errors=0`）。
+- 生产 showcase 向导实走：映射 tuition/package=200/OUTPUT、bank=090 保存 → 会计确认 →
+  **第一次试跑：排队 15 / 推送 13 / 失败 1 / 对账差异 0**——失败的一张正是设计要抓的：
+  「No account mapping for line kind 'engagement'」，其收款按依赖正确延后；
+  补 engagement 映射 → 「修好了，重放」 → 立即推送 → 已推 15。
+- 为拿单次 clean 试跑，经 API 开具 INV-0008（$22.00，Chen 一家）→ 再试跑：
+  **排队 1 / 推送 1 / 失败 0 / 对账差异 0 → 试跑通过**，demo_run 落账。
+- 单一入口答 ours_only → 「开启推送」→ **500**：`xero_push_requires_preconditions`
+  CHECK 违反。根因：`_upsert_settings` 的 INSERT 候选行（push=true、前置全 NULL）
+  在 PG 里先于 ON CONFLICT 被 CHECK 评估——transport 关闭时代不可达的缺陷，
+  首次真实过闸暴露。**v10.10.1** 修复：合闸改纯 UPDATE；回归测试
+  `test_enabling_push_through_the_walked_gate_survives_the_check_constraint`
+  用真实服务函数走完整向导对真约束验证（13 项 transport 测试全过）。
+- v10.10.1 部署与开闸后验收（推送开启、新单据自动入列、Xero 界面肉眼可见）见下补。

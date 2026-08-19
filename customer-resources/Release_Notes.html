@@ -54,6 +54,11 @@
   <p data-lang="zh">以下内容均属于已发布的产品版本。每一条都是交付依据，不是路线图承诺。</p>
   <div class="grid">
     <article class="card">
+      <strong data-lang="en">v10.10.1 — the "enable pushing" switch clears its own gate</strong><strong data-lang="zh">v10.10.1 ——「开启推送」过闸修复</strong>
+      <p data-lang="en">Live acceptance of v10.10.0 reached the final wizard step and found the enable-switch upsert always tripped the database gate: PostgreSQL checks constraints on the INSERT candidate row (push on, preconditions empty) even when the update branch would run. Unreachable while the transport was off; the first real walk exposed it. Enabling is now a plain UPDATE of the row whose preconditions the gate just verified. A regression test walks the whole wizard against the real constraint.</p>
+      <p data-lang="zh">v10.10.0 生产验收走到向导最后一步时发现：合闸的 upsert 必然触发数据库门约束——PostgreSQL 会先对 INSERT 候选行（推送开、前置条件全空）评估 CHECK，即使实际会走更新分支。transport 关闭时代此路不可达，首次真实过闸即暴露。现改为对刚被 gate 校验过的那一行做纯 UPDATE；新增回归测试用真实向导流程对真约束验证。</p>
+    </article>
+    <article class="card">
       <strong data-lang="en">v10.10.0 — Xero one-way push (X3): queue, reconciliation, wizard</strong><strong data-lang="zh">v10.10.0 —— Xero 单向推送（X3）：队列、对账与向导闭环</strong>
       <p data-lang="en">Issued invoices, credit notes and recorded payments now queue into the studio's own Xero organisation — amounts pushed in our exact cents (Xero never re-derives the tax), under local document numbers, with payments split per invoice allocation. Pushing stays off until the wizard is walked: connect, accountant-confirmed account mapping, a real trial run against the Demo Company (push everything, read everything back, zero difference required), and the single-entry question. Strictly one-way: nothing is read back or edited from Xero.</p>
       <p data-lang="zh">已开具的发票、贷记单与收款现在按队列推入工作室自己的 Xero 组织——金额按本地分值原样推送（不让 Xero 重算税）、以本地单号入账、收款按分配拆到对应发票。开关在走完向导前保持关闭：连接、会计确认科目映射、对 Demo Company 真实试跑（全部推送并逐张读回，0 差异才算过）、回答单一入口问题。严格单向：不从 Xero 回读或回改任何本地单据。</p>
