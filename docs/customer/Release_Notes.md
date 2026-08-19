@@ -1,5 +1,13 @@
 # PWE Studio — Release Notes and Acceptance Evidence
 
+## v10.10.2 — 多组织时连接选对组织（X4 前置）
+
+同一个 Xero 用户可以为不同工作室授权不同组织（演示账套 + 真实账套）。此前回调
+取 `/connections` 列表的第一行——单组织时代恒正确，多组织并存后取到哪个取决于
+Xero 的排序。现在按**本次授权事件**精确匹配（access token 的
+`authentication_event_id` ↔ 连接行的 `authEventId`），点了哪个组织的 Allow 就连
+哪个组织；无法匹配时回退到最新的连接（最近一次人的决定），绝不静默取第一行。
+
 ## v10.10.1 — 「开启推送」过闸修复
 
 v10.10.0 生产验收走到最后一步「开启推送」时发现：合闸用的 upsert 在 PostgreSQL 下

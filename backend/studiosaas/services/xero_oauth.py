@@ -187,6 +187,45 @@ def _hash_state(state: str) -> str:
     return hashlib.sha256(state.encode("ascii")).hexdigest()
 
 
+def _auth_event_id(access_token: str) -> str:
+    """The authentication_event_id claim from Xero's access token.
+
+    Read, not verified: the token arrived seconds ago over TLS from Xero's
+    own token endpoint, and the claim only disambiguates which consent this
+    is — it authorises nothing by itself.
+    """
+
+    try:
+        payload = access_token.split(".")[1]
+        payload += "=" * (-len(payload) % 4)
+        claims = json.loads(base64.urlsafe_b64decode(payload.encode("ascii")))
+        return str(claims.get("authentication_event_id") or "")
+    except Exception:
+        return ""
+
+
+def _select_consented_org(orgs: list[dict[str, Any]], access_token: str) -> dict[str, Any]:
+    """Pick the organisation THIS consent granted, not merely the first row.
+
+    GET /connections returns every organisation the user has ever authorised
+    for this app — the same Xero user connects the Demo Company for one
+    studio and the real ledger for another, and ``orgs[0]`` is then whichever
+    Xero lists first. Each connection row carries the authEventId of the
+    consent that created it; matching it against the access token's
+    authentication_event_id names the org the operator just clicked Allow
+    for. Fallback (claim missing, or a re-consent of an existing org that
+    kept its original event id): the newest connection, which is still the
+    most recent human decision on record.
+    """
+
+    event_id = _auth_event_id(access_token)
+    if event_id:
+        matching = [o for o in orgs if str(o.get("authEventId") or "") == event_id]
+        if matching:
+            return matching[0]
+    return max(orgs, key=lambda o: str(o.get("createdDateUtc") or ""))
+
+
 def finish_connect(conn, state: str, code: str) -> dict[str, Any]:
     """Exchange the callback code; returns {tenantId, slug-ish info for redirect}."""
     row = fetch_one(
@@ -225,7 +264,7 @@ def finish_connect(conn, state: str, code: str) -> dict[str, Any]:
     ))
     if not isinstance(orgs, list) or not orgs:
         raise XeroOAuthError("The Xero account granted access to no organisation.")
-    org = orgs[0]
+    org = _select_consented_org(orgs, access)
 
     with conn.cursor() as cur:
         cur.execute(

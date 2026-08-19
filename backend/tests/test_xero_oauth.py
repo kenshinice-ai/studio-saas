@@ -62,6 +62,38 @@ def test_config_missing_names_each_absent_variable(monkeypatch):
     ]
 
 
+def test_finish_connect_selects_the_org_this_consent_granted():
+    """Regression guard for X4: one Xero user, several organisations.
+
+    /connections returns every org ever authorised for the app; the org this
+    handshake is FOR is the one whose authEventId matches the access token's
+    authentication_event_id claim. Order in the response must not matter,
+    and a missing claim falls back to the newest connection."""
+
+    import base64 as b64
+    import json as jsonlib
+
+    from studiosaas.services import xero_oauth
+
+    def token_with(event_id: str) -> str:
+        claims = b64.urlsafe_b64encode(
+            jsonlib.dumps({"authentication_event_id": event_id}).encode()
+        ).rstrip(b"=").decode()
+        return f"header.{claims}.sig"
+
+    orgs = [
+        {"tenantId": "demo", "tenantName": "Demo Company (AU)",
+         "authEventId": "event-demo", "createdDateUtc": "2026-08-19T05:00:00"},
+        {"tenantId": "real", "tenantName": "PWE GROUP PTY LTD",
+         "authEventId": "event-real", "createdDateUtc": "2026-08-19T12:00:00"},
+    ]
+    # The consent that granted the REAL org wins even when listed second.
+    assert xero_oauth._select_consented_org(orgs, token_with("event-real"))["tenantId"] == "real"
+    assert xero_oauth._select_consented_org(orgs, token_with("event-demo"))["tenantId"] == "demo"
+    # No claim → the newest connection, never silently the first row.
+    assert xero_oauth._select_consented_org(orgs, "not-a-jwt")["tenantId"] == "real"
+
+
 def test_tokens_are_encrypted_at_rest_roundtrip(xero_env):
     from studiosaas.services import xero_oauth
 

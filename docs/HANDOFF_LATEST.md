@@ -1,4 +1,4 @@
-# PWE Studio v10.10.1 — Handoff 索引（2026-08-16 起按 AI 分目录）
+# PWE Studio v10.10.2 — Handoff 索引（2026-08-16 起按 AI 分目录）
 
 > 首标题始终点名当前版本 —— `test_release_ledger.py` 据此机器强制「索引不过期」；
 > 每次发布随四层身份表一起更新。
@@ -26,6 +26,14 @@
 完整证据见 `docs/handoff/claude/2026-08-16-v10.8.0-round.md`（v10.8.0）与 codex/001（v10.7.1 历史）。
 
 ## 最新轮次
+
+- **2026-08-19（Claude Fable）X4 开轮 + v10.10.2 —— 真实账本接入**：
+  `docs/handoff/claude/2026-08-19-xero-x4-real-ledger.md`
+  —— 真租户是 `lets-paint-studio`（44 学员、账务面为零；showcase 合成数据绝不入真账本）。
+  已：授 xero 加购、审计支持会话进真租户 CMS、连 Demo Company、映射 200/090、
+  PWE GROUP 科目表核对 + ANZ AU LETS PAINT 设 code 090（Lee 授权）。
+  v10.10.2：多组织时 finish_connect 按授权事件选组织（切真账本硬前置）。
+  待 Lee 填开票信息（E6）后：测试单 → 试跑 → 切 PWE GROUP → 开推送 → 结算月。
 
 - **2026-08-19（Claude Fable）v10.10.0 + v10.10.1 —— Xero X3 外发 transport 与过闸修复**：
   `docs/handoff/claude/2026-08-19-xero-x3-transport.md`

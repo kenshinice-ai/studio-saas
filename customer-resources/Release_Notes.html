@@ -54,6 +54,11 @@
   <p data-lang="zh">以下内容均属于已发布的产品版本。每一条都是交付依据，不是路线图承诺。</p>
   <div class="grid">
     <article class="card">
+      <strong data-lang="en">v10.10.2 — connecting picks the organisation you just consented to</strong><strong data-lang="zh">v10.10.2 —— 多组织时连接选对组织（X4 前置）</strong>
+      <p data-lang="en">One Xero user can authorise different organisations for different studios (a demo ledger and a real one). The callback used to take the first row of /connections — always right with one org, order-dependent with several. It now matches the exact consent event (the access token's authentication_event_id against each connection's authEventId): the org whose Allow you clicked is the org that connects. If no match exists it falls back to the newest connection — the most recent human decision — never silently the first row.</p>
+      <p data-lang="zh">同一个 Xero 用户可为不同工作室授权不同组织（演示账套与真实账套）。回调此前取 /connections 第一行——单组织恒正确，多组织则取决于排序。现在按本次授权事件精确匹配（access token 的 authentication_event_id ↔ 连接行的 authEventId）：点了哪个组织的 Allow，连的就是哪个组织；无法匹配时回退到最新连接（最近一次人的决定），绝不静默取第一行。</p>
+    </article>
+    <article class="card">
       <strong data-lang="en">v10.10.1 — the "enable pushing" switch clears its own gate</strong><strong data-lang="zh">v10.10.1 ——「开启推送」过闸修复</strong>
       <p data-lang="en">Live acceptance of v10.10.0 reached the final wizard step and found the enable-switch upsert always tripped the database gate: PostgreSQL checks constraints on the INSERT candidate row (push on, preconditions empty) even when the update branch would run. Unreachable while the transport was off; the first real walk exposed it. Enabling is now a plain UPDATE of the row whose preconditions the gate just verified. A regression test walks the whole wizard against the real constraint.</p>
       <p data-lang="zh">v10.10.0 生产验收走到向导最后一步时发现：合闸的 upsert 必然触发数据库门约束——PostgreSQL 会先对 INSERT 候选行（推送开、前置条件全空）评估 CHECK，即使实际会走更新分支。transport 关闭时代此路不可达，首次真实过闸即暴露。现改为对刚被 gate 校验过的那一行做纯 UPDATE；新增回归测试用真实向导流程对真约束验证。</p>
