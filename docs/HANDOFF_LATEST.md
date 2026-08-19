@@ -13,15 +13,15 @@
 > - 其余纪律不变：Source / Package / Production / Backup 四层分别记录；docs-only
 >   closure 不得写成已部署运行时代码；发布必经 STOP GATE。
 
-## 当前四层身份（v10.9.2，2026-08-17）
+## 当前四层身份（v10.9.4，2026-08-19）
 
 | 层 | 精确事实 |
 |---|---|
-| Source | v10.9.2 发布提交 `3e725fd`（docs+assets；运行时基线仍为 v10.8.0 `9c9c8511…`） |
-| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.9.2.tar.gz`，SHA-256 `e3cca0f1…48f92` |
-| Package / Edition | `dist/PWE-Studio-Edition-10.9.2.tar.gz`，SHA-256 `cd9353be…2ac83` |
-| Production | `pwestudio.online` = v10.9.2（见 claude/2026-08-17-manual-invoicing-screenshots.md）；deep health `db=ok`、`mode=saas`、`themes.unreadable=0`、`workspaces.stale=0`；6 租户（2 active / 2 onboarding / 1 archived / 1 paused） |
-| Backup / migration | v10.9.2 部署前 dump `studiosaas_studiosaas_20260817T103221Z.dump` + manifest；schema 至 `0044_credit_refund_source.sql` |
+| Source | v10.9.4 发布提交 `4fd0ee1cce485170885933fe3b2430ee8cc77a45`（前一提交 `af038ba` = v10.9.3；两版同日：Xero scope 修复两跳 + 四轮压队修复） |
+| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.9.4.tar.gz`，SHA-256 `0a50f774b0133d4eeb62c210e5c5b1221524f746305f2b1889be3f4a5a46f2c8` |
+| Package / Edition | `dist/PWE-Studio-Edition-10.9.4.tar.gz`，SHA-256 `3478d64b5581a3a7b5c65eae6ab9a97d78f88d22eca0f894129e1dfab23f69d8` |
+| Production | `pwestudio.online` = v10.9.4；deep health `db=ok`、`mode=saas`、`themes.unreadable=0`、`workspaces.stale=0`；showcase 租户已连接 Xero Demo Company (AU)（连接/自愈/断开重连三点验收 ✔） |
+| Backup / migration | v10.9.4 部署前 dump `studiosaas_studiosaas_20260819T050507Z.dump` + manifest（同日 v10.9.3 前为 `…044744Z.dump`）；schema 至 `0046_plan_student_limits_match_published.sql` |
 
 完整证据见 `docs/handoff/claude/2026-08-16-v10.8.0-round.md`（v10.8.0）与 codex/001（v10.7.1 历史）。
 

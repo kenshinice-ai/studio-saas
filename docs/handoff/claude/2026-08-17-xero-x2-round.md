@@ -74,6 +74,8 @@ per-tenant token 加密存储 + 自动 refresh；先只接 Xero Demo Company；�
     卡片「已连接 Xero · Demo Company (AU)，连接于 2026-08-19」；组织名来自
     /connections，证明无 app.connections 也可用。取消分支 ✔（Cancel → 回集成页带原因）。
   - 自愈 ✔：「测试令牌自愈」refresh-check 200，状态保持已连接（真实令牌通路）。
-  - 断开重连：随 v10.9.4 收口（按钮需带终稿 scope 才能重连）。
+  - 断开重连 ✔（v10.9.4 上线后）：两击确认断开 → 卡片翻「Xero 已断开」→
+    产品「重新连接 Xero」按钮（终稿 scope）→ 授权页选 Demo Company (AU) → Allow →
+    「已连接 Xero · Demo Company (AU)」。X2 三点验收全数完成，X2 关账。
   - 纪律注：授权下拉里同时出现 PWE GROUP PTY LTD（真实公司）——测试永远只选
     Demo Company (AU)。
