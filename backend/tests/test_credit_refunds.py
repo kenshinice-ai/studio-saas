@@ -17,7 +17,7 @@ from test_credit_settlements import requires_db  # noqa: E402
 
 
 def test_refund_api_contract_is_tenant_scoped_and_permission_gated():
-    source = (BACKEND_ROOT / "studiosaas/api_v1.py").read_text(encoding="utf-8")
+    source = "\n".join(p.read_text(encoding="utf-8") for p in sorted((BACKEND_ROOT / "studiosaas/api_v1").glob("*.py")))
     start = source.index('@api_v1.route("/students/<student_id>/credit-refunds"')
     route_block = source[start : source.index('@api_v1.route("/attendance"', start)]
     assert '@permission_required("credits:read")' in route_block

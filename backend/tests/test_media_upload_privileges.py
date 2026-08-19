@@ -16,7 +16,7 @@ import pytest
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 MEDIA_SERVICE = REPOSITORY_ROOT / "backend/studiosaas/services/media.py"
-API_V1 = REPOSITORY_ROOT / "backend/studiosaas/api_v1.py"
+API_V1 = REPOSITORY_ROOT / "backend/studiosaas/api_v1"
 
 
 def _service_source() -> str:
@@ -55,7 +55,7 @@ def test_no_unconditional_ddl_remains_on_the_upload_path() -> None:
 def test_stale_duplicate_helper_is_gone() -> None:
     """One definition of the schema guard, so only one can drift."""
 
-    assert "def _ensure_media_schema" not in API_V1.read_text(encoding="utf-8")
+    assert "def _ensure_media_schema" not in "\n".join(p.read_text(encoding="utf-8") for p in sorted(API_V1.glob("*.py")))
 
 
 def test_decode_ceiling_is_enforced_by_pillow_too() -> None:

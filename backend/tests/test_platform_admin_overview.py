@@ -152,7 +152,7 @@ def test_deep_health_reports_disk_headroom(client) -> None:
 def _health_source() -> str:
     """The body of api_v1.health(), up to the next route."""
 
-    source = (Path(__file__).resolve().parents[1] / "studiosaas/api_v1.py").read_text(encoding="utf-8")
+    source = "\n".join(p.read_text(encoding="utf-8") for p in sorted((Path(__file__).resolve().parents[1] / "studiosaas/api_v1").glob("*.py")))
     start = source.index("def health():")
     return source[start:source.index("@api_v1.route", start)]
 
@@ -196,7 +196,7 @@ def test_public_plans_needs_no_auth(client) -> None:
 
 
 def _public_plans_source() -> str:
-    source = (Path(__file__).resolve().parents[1] / "studiosaas/api_v1.py").read_text(encoding="utf-8")
+    source = "\n".join(p.read_text(encoding="utf-8") for p in sorted((Path(__file__).resolve().parents[1] / "studiosaas/api_v1").glob("*.py")))
     start = source.index("def public_plans():")
     return source[start:source.index("@api_v1.route", start)]
 

@@ -164,7 +164,7 @@ def test_paid_and_void_statuses_keep_status_labels_and_credit_note_reuses_primit
 
 
 def test_detail_route_requests_decimal_quantities_and_returns_the_document_dto():
-    api = (BACKEND_ROOT / "studiosaas" / "api_v1.py").read_text(encoding="utf-8")
+    api = "\n".join(p.read_text(encoding="utf-8") for p in sorted((BACKEND_ROOT / "studiosaas" / "api_v1").glob("*.py")))
     detail = api.split('def billing_invoice_detail(', 1)[1].split(
         '@api_v1.route("/billing/invoices/<invoice_id>/lines"', 1
     )[0]
@@ -178,7 +178,7 @@ def test_detail_route_requests_decimal_quantities_and_returns_the_document_dto()
 
 
 def test_invoice_csv_export_is_tenant_scoped_permission_gated_and_formula_safe():
-    api = (BACKEND_ROOT / "studiosaas" / "api_v1.py").read_text(encoding="utf-8")
+    api = "\n".join(p.read_text(encoding="utf-8") for p in sorted((BACKEND_ROOT / "studiosaas" / "api_v1").glob("*.py")))
     start = api.index('@api_v1.route("/billing/invoices/export.csv"')
     export = api[start:api.index('@api_v1.route("/billing/invoices",', start)]
     assert '@permission_required("billing:read")' in export

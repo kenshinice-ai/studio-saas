@@ -28,7 +28,7 @@ def test_cms_uses_server_session_not_browser_local_pin() -> None:
 def test_auth_me_binds_user_context_before_membership_rls_query() -> None:
     """The post-login membership read must run with the session user's RLS context."""
 
-    source = (ROOT / "backend" / "studiosaas" / "api_v1.py").read_text()
+    source = "\n".join(p.read_text(encoding="utf-8") for p in sorted((ROOT / "backend" / "studiosaas" / "api_v1").glob("*.py")))
     start = source.index('@api_v1.route("/auth/me"')
     end = source.find("\n# ─", start)
     if end == -1:

@@ -53,7 +53,7 @@ def test_profile_missing_is_computed_from_stored_identity_fields():
 
 
 def test_gate_error_shape_is_declared_in_both_issue_paths():
-    source = (BACKEND_ROOT / "studiosaas/api_v1.py").read_text(encoding="utf-8")
+    source = "\n".join(p.read_text(encoding="utf-8") for p in sorted((BACKEND_ROOT / "studiosaas/api_v1").glob("*.py")))
     assert source.count("invoice_profile_incomplete") >= 2, (
         "both the issue route and the settlement route must map the gate"
     )

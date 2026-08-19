@@ -277,7 +277,7 @@ def test_publishing_defaults_to_off_for_a_new_plan() -> None:
     assert "is_public boolean NOT NULL DEFAULT false" in statements
     assert "plans_one_recommended" in statements, "nothing stops two recommended plans"
 
-    api = (REPOSITORY_ROOT / "backend/studiosaas/api_v1.py").read_text(encoding="utf-8")
+    api = "\n".join(p.read_text(encoding="utf-8") for p in sorted((REPOSITORY_ROOT / "backend/studiosaas/api_v1").glob("*.py")))
     assert 'payload.get("isPublic", payload.get("is_public", False))' in api
 
 
@@ -332,7 +332,7 @@ def test_structured_data_cannot_close_its_own_script_tag() -> None:
 def test_the_public_endpoint_and_the_page_share_one_query() -> None:
     """Two queries would be two chances to disagree about what is public."""
 
-    api = (REPOSITORY_ROOT / "backend/studiosaas/api_v1.py").read_text(encoding="utf-8")
+    api = "\n".join(p.read_text(encoding="utf-8") for p in sorted((REPOSITORY_ROOT / "backend/studiosaas/api_v1").glob("*.py")))
     handler = api[api.index("def public_plans():"):api.index("@api_v1.route", api.index("def public_plans():"))]
     code = "\n".join(line.split("#", 1)[0] for line in handler.splitlines())
     assert "public_plan_rows()" in code

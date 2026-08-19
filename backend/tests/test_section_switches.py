@@ -21,7 +21,7 @@ import pytest
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 PORTAL = REPOSITORY_ROOT / "tenant-template/index.html"
 ADMIN = REPOSITORY_ROOT / "backend/frontend/studio-admin.html"
-API = REPOSITORY_ROOT / "backend/studiosaas/api_v1.py"
+API = REPOSITORY_ROOT / "backend/studiosaas/api_v1"
 
 # switch -> (portal section id, admin control id, the expression that carries
 # the flag to that section). The third element is the point: it names HOW each
@@ -87,7 +87,7 @@ def test_every_switch_has_an_admin_control(flag: str) -> None:
 
 @pytest.mark.parametrize("flag", sorted(SWITCHES))
 def test_every_switch_is_validated_by_the_server(flag: str) -> None:
-    source = API.read_text(encoding="utf-8")
+    source = "\n".join(p.read_text(encoding="utf-8") for p in sorted(API.glob("*.py")))
     start = source.index("def _normalize_website_profile")
     end = source.index("\ndef ", start + 1)
     assert f'"{flag}"' in source[start:end], (
@@ -168,7 +168,7 @@ def test_no_website_switch_is_orphaned_on_the_server() -> None:
     The list of known orphans is now empty, and stays empty.
     """
 
-    source = API.read_text(encoding="utf-8")
+    source = "\n".join(p.read_text(encoding="utf-8") for p in sorted(API.glob("*.py")))
     start = source.index("def _normalize_website_profile")
     end = source.index("\ndef ", start + 1)
     stored = set(re.findall(r'"(show_[a-z_]+)"', source[start:end]))
@@ -202,7 +202,7 @@ def test_a_page_switch_is_enforced_by_the_server_not_by_hiding_a_link(flag: str)
     that never left the building.
     """
 
-    source = API.read_text(encoding="utf-8")
+    source = "\n".join(p.read_text(encoding="utf-8") for p in sorted(API.glob("*.py")))
     _, endpoint = PAGE_SWITCHES[flag]
     start = source.index(f"def {endpoint}(")
     body = source[start:source.index("\n@api_v1.route", start)]
@@ -230,7 +230,7 @@ def test_the_admin_sends_every_field_the_server_stores() -> None:
     instead of the next time somebody clicks Save.
     """
 
-    source = API.read_text(encoding="utf-8")
+    source = "\n".join(p.read_text(encoding="utf-8") for p in sorted(API.glob("*.py")))
     start = source.index("def _normalize_website_profile")
     end = source.index("\ndef ", start + 1)
     body = source[start:end]

@@ -285,7 +285,7 @@ def test_every_public_page_can_disclose_that_it_is_a_demonstration(page) -> None
 def test_the_brand_payload_carries_the_demonstration_flag() -> None:
     """The pages read it from the tenant record, so the API has to send it."""
 
-    api = (PROJECT_ROOT / "backend/studiosaas/api_v1.py").read_text(encoding="utf-8")
+    api = "\n".join(p.read_text(encoding="utf-8") for p in sorted((PROJECT_ROOT / "backend/studiosaas/api_v1").glob("*.py")))
     assert "professional_demo')::boolean, false) AS demo_tenant" in api
     assert 'row["demoTenant"]' in api
 
@@ -320,7 +320,7 @@ def test_a_wide_logo_cannot_crowd_out_the_studio_name(page) -> None:
 # ── the one-click reset in Platform Admin ──────────────────────────────────
 
 
-API = (PROJECT_ROOT / "backend/studiosaas/api_v1.py").read_text(encoding="utf-8")
+API = "\n".join(p.read_text(encoding="utf-8") for p in sorted((PROJECT_ROOT / "backend/studiosaas/api_v1").glob("*.py")))
 CONSOLE = (PROJECT_ROOT / "super-admin.html").read_text(encoding="utf-8")
 
 

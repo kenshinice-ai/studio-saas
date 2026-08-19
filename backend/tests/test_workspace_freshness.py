@@ -23,7 +23,7 @@ from pathlib import Path
 from studiosaas.workspaces import ensure_tenant_workspace, head_values
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-API_SOURCE = (PROJECT_ROOT / "backend/studiosaas/api_v1.py").read_text(encoding="utf-8")
+API_SOURCE = "\n".join(p.read_text(encoding="utf-8") for p in sorted((PROJECT_ROOT / "backend/studiosaas/api_v1").glob("*.py")))
 
 
 def _workspace(tmp_path, name, head=None, slug="head-studio"):

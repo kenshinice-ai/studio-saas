@@ -442,7 +442,7 @@ def test_registration_routes_do_not_mutate_database_schema_at_request_time():
 
     from pathlib import Path
 
-    source = (Path(__file__).resolve().parents[1] / "studiosaas/api_v1.py").read_text(encoding="utf-8")
+    source = "\n".join(p.read_text(encoding="utf-8") for p in sorted((Path(__file__).resolve().parents[1] / "studiosaas/api_v1").glob("*.py")))
     assert "_ensure_registration_status_constraint" not in source
     assert 'ALTER TABLE registrations ADD COLUMN IF NOT EXISTS' not in source
 
@@ -457,7 +457,7 @@ def test_latest_cms_registration_and_enrolment_contracts_are_present():
     migration = (backend_root / "db/migrations/0018_student_enrolment_date.sql").read_text(
         encoding="utf-8"
     )
-    source = (backend_root / "studiosaas/api_v1.py").read_text(encoding="utf-8")
+    source = "\n".join(p.read_text(encoding="utf-8") for p in sorted((backend_root / "studiosaas/api_v1").glob("*.py")))
     assert "ADD COLUMN IF NOT EXISTS enrolled_on date" in migration
     assert "registration_admin_alert" in DEFAULT_TEMPLATES
     assert 'template_key="registration_admin_alert"' in source

@@ -6,7 +6,7 @@ from _cms_sources import cms_source_text
 
 ROOT = Path(__file__).resolve().parents[2]
 SHELL = ROOT / "legacy-root" / "index.html"
-API_SOURCE = ROOT / "backend" / "studiosaas" / "api_v1.py"
+API_SOURCE = ROOT / "backend" / "studiosaas" / "api_v1"
 
 
 def _source() -> str:
@@ -89,7 +89,7 @@ def test_course_schedule_layout_and_student_menu_are_complete() -> None:
 
     source = _source()
     shell = SHELL.read_text(encoding="utf-8")
-    api_source = API_SOURCE.read_text(encoding="utf-8")
+    api_source = "\n".join(p.read_text(encoding="utf-8") for p in sorted(API_SOURCE.glob("*.py")))
     assert "l:'课程安排', s:'课表'" in source
     assert 'className="cms-roster-list divide-y divide-gray-100"' in source
     assert 'className="cms-roster-add-fields"' in source

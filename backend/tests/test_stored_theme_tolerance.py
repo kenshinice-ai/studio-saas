@@ -137,7 +137,9 @@ def test_the_read_path_uses_the_tolerant_wrapper():
     # Anchored on the assignment rather than on an enclosing function name, so
     # renaming the serialiser cannot turn this into a test that passes by
     # finding nothing.
-    source = inspect.getsource(api_v1)
+    from pathlib import Path as _Path
+    source = "\n".join(q.read_text(encoding="utf-8")
+                       for q in sorted(_Path(api_v1.__path__[0]).glob("*.py")))
     assert 'row["visual_theme"] = _stored_visual_theme(' in source, (
         "the brand read path must call _stored_visual_theme; calling the "
         "strict validator there is the v8.5.2 outage verbatim"

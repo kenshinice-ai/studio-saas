@@ -34,7 +34,7 @@ requires_db = pytest.mark.skipif(
 
 
 def test_statement_route_is_declared_and_permission_gated():
-    source = (BACKEND_ROOT / "studiosaas/api_v1.py").read_text(encoding="utf-8")
+    source = "\n".join(p.read_text(encoding="utf-8") for p in sorted((BACKEND_ROOT / "studiosaas/api_v1").glob("*.py")))
     start = source.index('@api_v1.route("/billing/payers/<payer_id>/statement"')
     route = source[start : source.index("\n\n\n", start)]
     assert '@permission_required("billing:read")' in route

@@ -47,7 +47,7 @@ from studiosaas.services.subscription_settlement import (
 )
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
-API = REPOSITORY_ROOT / "backend/studiosaas/api_v1.py"
+API = REPOSITORY_ROOT / "backend/studiosaas/api_v1"
 CONSOLE = REPOSITORY_ROOT / "super-admin.html"
 
 
@@ -80,7 +80,7 @@ def test_no_password_updates_the_login_instead_of_raising() -> None:
     is gone from that branch.
     """
 
-    source = API.read_text(encoding="utf-8")
+    source = "\n".join(p.read_text(encoding="utf-8") for p in sorted(API.glob("*.py")))
     start = source.index("def _ensure_studio_admin_account(")
     end = source.index("\ndef ", start + 1)
     body = source[start:end]
@@ -101,13 +101,14 @@ def test_a_new_login_still_demands_a_credential() -> None:
     one, which the onboarding checklist then ticked as configured.
     """
 
-    source = API.read_text(encoding="utf-8")
-    creation = source[source.index("        if not user_id:"):source.index("INSERT INTO memberships")]
+    source = "\n".join(p.read_text(encoding="utf-8") for p in sorted(API.glob("*.py")))
+    fn = source.index("def _ensure_studio_admin_account(")
+    creation = source[source.index("        if not user_id:", fn):source.index("INSERT INTO memberships", fn)]
     assert "Set a password for the Studio Admin login" in creation
 
 
 def test_a_business_rule_does_not_arrive_as_a_fault() -> None:
-    source = API.read_text(encoding="utf-8")
+    source = "\n".join(p.read_text(encoding="utf-8") for p in sorted(API.glob("*.py")))
     patch = source[source.index("def mutate_tenant("):source.index("def archive_tenant_route(")]
     assert "_ensure_studio_admin_account(conn, tenant_id, data[\"studio_admin\"])" in patch
     # Wrapped, rolled back, and answered as a 400 carrying its own sentence.
@@ -171,7 +172,7 @@ def test_an_unmentioned_date_asserts_nothing() -> None:
 
 
 def test_both_write_paths_validate() -> None:
-    source = API.read_text(encoding="utf-8")
+    source = "\n".join(p.read_text(encoding="utf-8") for p in sorted(API.glob("*.py")))
     # Once as the import, once in create, once in update.
     assert source.count("validate_subscription_dates(") == 2, (
         "create and update must both validate, not just one of them"
@@ -270,7 +271,7 @@ def test_every_offered_transition_is_legal() -> None:
 def test_applying_is_the_argument_you_have_to_make(client) -> None:
     """The endpoint rehearses unless explicitly told otherwise."""
 
-    source = API.read_text(encoding="utf-8")
+    source = "\n".join(p.read_text(encoding="utf-8") for p in sorted(API.glob("*.py")))
     route = source[source.index("def apply_subscription_settlement("):
                    source.index("def update_tenant_status(")]
     assert 'payload.get("apply") is True' in route, "applying must be opt-in"

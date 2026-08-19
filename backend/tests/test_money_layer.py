@@ -295,9 +295,34 @@ def test_every_money_route_declares_a_permission():
 
     import re
 
-    source = (BACKEND_ROOT / "studiosaas/api_v1.py").read_text(encoding="utf-8")
-    marker = source.index("v10.0.0 — the money layer")
-    section = source[marker:]
+    source = "\n".join(p.read_text(encoding="utf-8") for p in sorted((BACKEND_ROOT / "studiosaas/api_v1").glob("*.py")))
+
+    # Before the api_v1 package split this set was positional — every route
+    # below the "v10.0.0 — the money layer" banner. Position died with the
+    # split, so the same set is pinned by name (extracted from the pre-split
+    # file at the marker). A new money route must be added here to be guarded.
+    money_layer_routes = {
+        "admin_revoke_addon", "admin_tenant_addons", "billing_account_detail",
+        "billing_account_members", "billing_accounts", "billing_credit_note_detail",
+        "billing_identity_route", "billing_invoice_add_line", "billing_invoice_detail",
+        "billing_invoice_draft_aggregate", "billing_invoice_export_csv",
+        "billing_invoice_record_reminder", "billing_invoices", "billing_issue_invoice",
+        "billing_payer_monthly_statement", "billing_record_payment",
+        "billing_refund_payment", "billing_statement", "billing_tax_codes",
+        "billing_void_invoice", "calendar_subscription_revoke",
+        "calendar_subscriptions_route", "get_entitlements", "management_report",
+        "notification_usage", "progress_report_create", "progress_report_publish",
+        "progress_report_update", "progress_reports_overdue", "public_calendar_feed",
+        "scheduling_cancel_occurrence", "scheduling_closures",
+        "scheduling_consume_credit", "scheduling_credits", "scheduling_occurrences",
+        "scheduling_policy", "scheduling_series", "scheduling_series_status",
+        "scheduling_terms", "scheduling_undo_exception", "student_progress_reports",
+        "teaching_confirm_period", "teaching_open_period", "teaching_period_summary",
+        "teaching_rates", "teaching_summary", "teaching_timesheet", "xero_backfill",
+        "xero_connect_url", "xero_disconnect", "xero_errors", "xero_gate",
+        "xero_push_now", "xero_put_mappings", "xero_queue", "xero_reconciliation",
+        "xero_refresh_check", "xero_replay", "xero_single_entry", "xero_status",
+    }
 
     intentionally_auth_only = {
         # Resolves the caller's own entitlements; every authenticated role may
@@ -312,15 +337,22 @@ def test_every_money_route_declares_a_permission():
     }
     public_by_design = {"public_calendar_feed"}
 
+    seen = set()
     for match in re.finditer(
-        r"@api_v1\.route\((.*?)\)\n((?:@\w+.*\n)*)def (\w+)", section
+        r"@api_v1\.route\((.*?)\)\n((?:@\w+.*\n)*)def (\w+)", source
     ):
         decorators, name = match.group(2), match.group(3)
+        if name not in money_layer_routes:
+            continue
+        seen.add(name)
         if name in public_by_design or name in intentionally_auth_only:
             continue
         assert (
             "permission_required" in decorators or "super_admin_required" in decorators
         ), f"{name} is reachable with a session but no permission check"
+    assert seen == money_layer_routes, (
+        f"money-layer routes not found in source: {sorted(money_layer_routes - seen)}"
+    )
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -541,7 +573,7 @@ def test_0044_declares_source_credit_transaction_provenance_and_safe_backfill():
 def test_billing_account_api_has_two_recipient_paths_without_auto_merge():
     """The payer API exposes search/parse/create contracts, not a second model."""
 
-    source = (BACKEND_ROOT / "studiosaas/api_v1.py").read_text(encoding="utf-8")
+    source = "\n".join(p.read_text(encoding="utf-8") for p in sorted((BACKEND_ROOT / "studiosaas/api_v1").glob("*.py")))
     start = source.index('def billing_accounts():')
     end = source.index('@api_v1.route("/billing/accounts/<account_id>/members"', start)
     route = source[start:end]

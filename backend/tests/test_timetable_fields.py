@@ -137,7 +137,7 @@ def test_the_patch_path_resupplies_the_new_fields_from_the_stored_row() -> None:
     because both new fields default to "off" and "none".
     """
 
-    source = _read(REPOSITORY_ROOT / "backend/studiosaas/api_v1.py")
+    source = "\n".join(_read(p) for p in sorted((REPOSITORY_ROOT / "backend/studiosaas/api_v1").glob("*.py")))
     block = source[source.index("def update_class_schedule("):]
     block = block[:block.index("def delete_class_schedule(")]
     for key, column in (
@@ -152,7 +152,7 @@ def test_the_patch_path_resupplies_the_new_fields_from_the_stored_row() -> None:
 def test_both_references_are_checked_against_this_tenant() -> None:
     """A foreign key proves the row exists; it does not prove whose it is."""
 
-    source = _read(REPOSITORY_ROOT / "backend/studiosaas/api_v1.py")
+    source = "\n".join(_read(p) for p in sorted((REPOSITORY_ROOT / "backend/studiosaas/api_v1").glob("*.py")))
     guard = source[source.index("def _assert_schedule_references("):]
     guard = guard[:guard.index("def _replace_schedule_students(")]
     assert "FROM courses WHERE tenant_id = %s AND id = %s" in guard
@@ -172,7 +172,7 @@ def test_the_consent_flag_is_not_revoked_by_a_patch_that_never_mentioned_it() ->
     decisions nobody made.
     """
 
-    source = _read(REPOSITORY_ROOT / "backend/studiosaas/api_v1.py")
+    source = "\n".join(_read(p) for p in sorted((REPOSITORY_ROOT / "backend/studiosaas/api_v1").glob("*.py")))
     block = source[source.index("def update_tenant_team_member("):]
     block = block[:block.index("@api_v1.route", 10)]
     assert 'existing["show_on_public_timetable"]' in block
@@ -189,7 +189,7 @@ def test_a_cancellation_must_fall_on_the_day_the_class_runs() -> None:
     is the only way they find out in time.
     """
 
-    source = _read(REPOSITORY_ROOT / "backend/studiosaas/api_v1.py")
+    source = "\n".join(_read(p) for p in sorted((REPOSITORY_ROOT / "backend/studiosaas/api_v1").glob("*.py")))
     block = source[source.index("def cancel_class_occurrence("):]
     block = block[:block.index("@api_v1.route", 10)]
     assert "isoweekday() % 7" in block
@@ -197,7 +197,7 @@ def test_a_cancellation_must_fall_on_the_day_the_class_runs() -> None:
 
 
 def test_a_cancellation_can_be_undone() -> None:
-    source = _read(REPOSITORY_ROOT / "backend/studiosaas/api_v1.py")
+    source = "\n".join(_read(p) for p in sorted((REPOSITORY_ROOT / "backend/studiosaas/api_v1").glob("*.py")))
     assert '"/class-schedules/<schedule_id>/cancellations/<on_date>", methods=["DELETE"]' in source
     assert "def restore_class_occurrence(" in source
 
@@ -209,7 +209,7 @@ def test_cancellations_reach_the_cms_with_their_reason() -> None:
     holiday", and the second is what stops the phone ringing.
     """
 
-    source = _read(REPOSITORY_ROOT / "backend/studiosaas/api_v1.py")
+    source = "\n".join(_read(p) for p in sorted((REPOSITORY_ROOT / "backend/studiosaas/api_v1").glob("*.py")))
     reader = source[source.index("def _schedules_with_students("):]
     reader = reader[:reader.index("@api_v1.route")]
     assert "FROM class_schedule_exceptions" in reader

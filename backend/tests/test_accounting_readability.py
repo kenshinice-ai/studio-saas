@@ -6,7 +6,7 @@ from _cms_sources import CMS_SRC_DIR
 
 
 ROOT = Path(__file__).resolve().parents[1]
-API = (ROOT / "studiosaas/api_v1.py").read_text(encoding="utf-8")
+API = "\n".join(p.read_text(encoding="utf-8") for p in sorted((ROOT / "studiosaas/api_v1").glob("*.py")))
 PANEL = (CMS_SRC_DIR / "panels/billing.jsx").read_text(encoding="utf-8")
 
 

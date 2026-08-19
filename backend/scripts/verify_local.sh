@@ -90,9 +90,9 @@ if [ -x "$PYTHON" ]; then
         fail "server.py has syntax errors"
     fi
 
-    # Compile all studiosaas/*.py
+    # Compile all studiosaas/*.py (including subpackages such as api_v1/)
     COMPILE_OK=true
-    for f in "$SCRIPT_DIR/studiosaas"/*.py; do
+    for f in "$SCRIPT_DIR/studiosaas"/*.py "$SCRIPT_DIR/studiosaas"/*/*.py; do
         [ -f "$f" ] || continue
         if ! "$PYTHON" -m py_compile "$f" 2>/dev/null; then
             fail "$f has syntax errors"

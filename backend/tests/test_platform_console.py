@@ -378,7 +378,7 @@ def test_an_unmentioned_date_is_kept_rather_than_cleared() -> None:
 def test_the_upsert_keeps_a_date_it_was_not_given() -> None:
     """The SQL has to honour the sentinel, not just the payload builder."""
 
-    api = (REPOSITORY_ROOT / "backend/studiosaas/api_v1.py").read_text(encoding="utf-8")
+    api = "\n".join(p.read_text(encoding="utf-8") for p in sorted((REPOSITORY_ROOT / "backend/studiosaas/api_v1").glob("*.py")))
     for column in ("starts_at", "ends_at", "trial_ends_at", "current_period_ends_at"):
         assert f"{column} = CASE WHEN %s THEN subscriptions.{column}" in api, column
 
@@ -450,7 +450,7 @@ def test_a_plan_change_preserves_the_studios_published_content() -> None:
     assert saved["hero_profile"]["title"] == "Ruby's Studio"
     assert saved["faq_items"][0]["answer"]["en"] == "Yes."
 
-    api_source = (REPOSITORY_ROOT / "backend/studiosaas/api_v1.py").read_text(encoding="utf-8")
+    api_source = "\n".join(p.read_text(encoding="utf-8") for p in sorted((REPOSITORY_ROOT / "backend/studiosaas/api_v1").glob("*.py")))
     route = api_source[api_source.index("def mutate_tenant("):
                        api_source.index("def archive_tenant_route(")]
     assert "FOR UPDATE" in route
@@ -512,7 +512,7 @@ def test_plan_change_impact_separates_entitlements_from_preserved_content() -> N
 
 
 def test_platform_tenant_query_exposes_showcase_counts_for_plan_review() -> None:
-    source = (REPOSITORY_ROOT / "backend/studiosaas/api_v1.py").read_text(encoding="utf-8")
+    source = "\n".join(p.read_text(encoding="utf-8") for p in sorted((REPOSITORY_ROOT / "backend/studiosaas/api_v1").glob("*.py")))
     route = source[source.index("def admin_tenants("):source.index("def create_tenant(")]
     assert "showcase_active_count" in route
     assert "website_profile'->'showcase_items" in route
@@ -522,7 +522,7 @@ def test_platform_tenant_query_exposes_showcase_counts_for_plan_review() -> None
 
 def test_plan_changes_have_ui_and_api_acknowledgement_gates() -> None:
     html = console()
-    api = (REPOSITORY_ROOT / "backend/studiosaas/api_v1.py").read_text(encoding="utf-8")
+    api = "\n".join(p.read_text(encoding="utf-8") for p in sorted((REPOSITORY_ROOT / "backend/studiosaas/api_v1").glob("*.py")))
     assert 'id="m_planChangeImpact"' in html
     assert "checkbox.id = 'm_planChangeConfirm'" in html
     assert 'id="m_planCatalogImpact"' in html

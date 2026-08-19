@@ -33,16 +33,16 @@ requires_db = pytest.mark.skipif(
 
 
 def test_candidates_route_is_declared_and_permission_gated():
-    source = (BACKEND_ROOT / "studiosaas/api_v1.py").read_text(encoding="utf-8")
+    source = "\n".join(p.read_text(encoding="utf-8") for p in sorted((BACKEND_ROOT / "studiosaas/api_v1").glob("*.py")))
     start = source.index('@api_v1.route("/registrations/<registration_id>/duplicate-candidates"')
     route = source[start : source.index("\n\n\n", start)]
     assert '@permission_required("registrations:read")' in route
 
 
 def test_approval_supports_explicit_attach_and_never_auto_merges():
-    source = (BACKEND_ROOT / "studiosaas/api_v1.py").read_text(encoding="utf-8")
+    source = "\n".join(p.read_text(encoding="utf-8") for p in sorted((BACKEND_ROOT / "studiosaas/api_v1").glob("*.py")))
     start = source.index("def update_registration_status(")
-    route = source[start : source.index('@api_v1.route("/portfolio"', start)]
+    route = source[start : source.index("\n@api_v1.route", start)]
     assert "existingStudentId" in route
     assert "registration_attached_to_existing" in route
     assert "auto_merge" not in route and "自动合并" not in route

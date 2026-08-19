@@ -91,7 +91,8 @@ def test_cancelled_explicit_entry_removes_inherited_student_but_is_retained(monk
         "student_name": "Ruby",
     }
     calls = iter(([cancelled], [weekly]))
-    monkeypatch.setattr(api_v1, "fetch_all", lambda *_args, **_kwargs: next(calls))
+    _api_scheduling = importlib.import_module("studiosaas.api_v1.scheduling")
+    monkeypatch.setattr(_api_scheduling, "fetch_all", lambda *_args, **_kwargs: next(calls))
 
     roster = api_v1._daily_roster_for_date(
         SimpleNamespace(), "tenant-1", date(2026, 7, 29)

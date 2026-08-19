@@ -51,7 +51,7 @@ def test_deferred_xero_has_no_explicit_live_claim_in_customer_surfaces():
 
 
 def test_xero_status_contract_exposes_live_transport_fields():
-    api_source = (PROJECT_ROOT / "backend/studiosaas/api_v1.py").read_text(encoding="utf-8")
+    api_source = "\n".join(p.read_text(encoding="utf-8") for p in sorted((PROJECT_ROOT / "backend/studiosaas/api_v1").glob("*.py")))
     # X3: the transport exists, and the API must keep saying so explicitly —
     # the stage and the switch stay separate facts the UI renders honestly.
     assert xero.TRANSPORT_AVAILABLE is True

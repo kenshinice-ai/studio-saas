@@ -44,7 +44,7 @@ def test_gross_split_is_integer_exact_and_tax_rounds_half_up():
 
 
 def test_settlement_contract_is_atomic_and_separate_from_legacy_endpoint():
-    source = (BACKEND_ROOT / "studiosaas/api_v1.py").read_text(encoding="utf-8")
+    source = "\n".join(p.read_text(encoding="utf-8") for p in sorted((BACKEND_ROOT / "studiosaas/api_v1").glob("*.py")))
     start = source.index('@api_v1.route("/students/<student_id>/credit-settlements"')
     route = source[start : source.index('@api_v1.route("/attendance"', start)]
     assert '@permission_required("credits:write")' in route

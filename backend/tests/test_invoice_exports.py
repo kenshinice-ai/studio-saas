@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-API_SOURCE = (PROJECT_ROOT / "backend/studiosaas/api_v1.py").read_text(encoding="utf-8")
+API_SOURCE = "\n".join(p.read_text(encoding="utf-8") for p in sorted((PROJECT_ROOT / "backend/studiosaas/api_v1").glob("*.py")))
 
 
 def test_invoice_export_contract_is_bounded_snapshot_based_and_audited():

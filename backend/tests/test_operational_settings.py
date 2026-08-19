@@ -46,7 +46,8 @@ class _Connection:
 def test_default_class_time_requires_a_real_hhmm(app, monkeypatch):
     """Malformed defaults fail before any tenant setting can be changed."""
 
-    monkeypatch.setattr(api_v1, "connect", lambda: (_ for _ in ()).throw(AssertionError("no DB")))
+    for _m in (api_v1.tenant, api_v1._shared):
+        monkeypatch.setattr(_m, "connect", lambda: (_ for _ in ()).throw(AssertionError("no DB")))
     with app.test_request_context(json={"defaultClassTime": "25:90"}):
         response, status = api_v1.update_operational_settings.__wrapped__()
     assert status == 400
@@ -58,13 +59,14 @@ def test_default_class_time_is_saved_without_brand_publication(app, monkeypatch)
 
     connection = _Connection()
     audit = []
-    monkeypatch.setattr(api_v1, "connect", lambda: connection)
+    for _m in (api_v1.tenant, api_v1._shared):
+        monkeypatch.setattr(_m, "connect", lambda: connection)
     monkeypatch.setattr(
-        api_v1,
+        api_v1.tenant,
         "_tenant_context",
         lambda _conn: SimpleNamespace(tenant_id="tenant-1"),
     )
-    monkeypatch.setattr(api_v1, "_audit_request", lambda *_args, **kwargs: audit.append(kwargs))
+    monkeypatch.setattr(api_v1.tenant, "_audit_request", lambda *_args, **kwargs: audit.append(kwargs))
 
     with app.test_request_context(json={"defaultClassTime": "14:30"}):
         response = api_v1.update_operational_settings.__wrapped__()

@@ -12,7 +12,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CONSOLE = PROJECT_ROOT / "super-admin.html"
 I18N = PROJECT_ROOT / "backend/frontend/assets/admin-i18n.js"
-API_V1 = PROJECT_ROOT / "backend/studiosaas/api_v1.py"
+API_V1 = PROJECT_ROOT / "backend/studiosaas/api_v1"
 
 
 def test_platform_workspaces_have_explicit_active_workspace_contract() -> None:
@@ -142,7 +142,7 @@ def test_detail_surfaces_have_a_mobile_safe_drawer_contract() -> None:
 
 
 def test_platform_audit_detail_includes_actor_and_metadata() -> None:
-    source = API_V1.read_text(encoding="utf-8")
+    source = "\n".join(p.read_text(encoding="utf-8") for p in sorted(API_V1.glob("*.py")))
     start = source.index('def admin_audit_logs')
     block = source[start : source.index('@api_v1.route("/students"', start)]
     assert "a.metadata" in block

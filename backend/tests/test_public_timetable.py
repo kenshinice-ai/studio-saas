@@ -37,7 +37,7 @@ from _cms_sources import cms_source_text
 api_v1 = sys.modules["studiosaas.api_v1"]
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
-API = REPOSITORY_ROOT / "backend/studiosaas/api_v1.py"
+API = REPOSITORY_ROOT / "backend/studiosaas/api_v1"
 PAGE = REPOSITORY_ROOT / "tenant-template/timetable.html"
 PORTAL = REPOSITORY_ROOT / "tenant-template/index.html"
 ADMIN = REPOSITORY_ROOT / "backend/frontend/studio-admin.html"
@@ -47,6 +47,8 @@ CMS_BUNDLE = REPOSITORY_ROOT / "backend/frontend/assets/cms-app.js"
 
 
 def _read(path: Path) -> str:
+    if path.is_dir():  # the api_v1 package — concatenate its modules
+        return "\n".join(q.read_text(encoding="utf-8") for q in sorted(path.glob("*.py")))
     return path.read_text(encoding="utf-8")
 
 

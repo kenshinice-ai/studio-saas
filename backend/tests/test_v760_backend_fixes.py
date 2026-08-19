@@ -126,7 +126,9 @@ def test_rate_limiter_prunes_expired_keys_lazily():
     api_module._public_rate_limit[stale_key] = [time.time() - 3600]
     try:
         # Force the next recorded check to run a sweep.
-        api_module._rate_limit_calls_since_prune = api_module._RATE_LIMIT_PRUNE_EVERY - 1
+        import importlib as _importlib
+        _api_shared = _importlib.import_module("studiosaas.api_v1._shared")
+        _api_shared._rate_limit_calls_since_prune = _api_shared._RATE_LIMIT_PRUNE_EVERY - 1
         api_module._rate_limited(live_key, 5)
         assert stale_key not in api_module._public_rate_limit
         assert live_key in api_module._public_rate_limit

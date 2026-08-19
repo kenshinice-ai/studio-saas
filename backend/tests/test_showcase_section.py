@@ -346,7 +346,7 @@ def test_deleting_a_category_keeps_the_work():
 def test_the_public_brand_no_longer_carries_the_board():
     """/brand is the critical path and must not grow an unbounded list."""
 
-    source = (REPOSITORY_ROOT / "backend/studiosaas/api_v1.py").read_text(encoding="utf-8")
+    source = "\n".join(p.read_text(encoding="utf-8") for p in sorted((REPOSITORY_ROOT / "backend/studiosaas/api_v1").glob("*.py")))
     assert 'for served_separately in ("showcase_items", "showcase_categories"):' in source
     assert '@api_v1.route("/public/<tenant_slug>/showcase", methods=["GET"])' in source
 
@@ -354,7 +354,7 @@ def test_the_public_brand_no_longer_carries_the_board():
 def test_the_plan_limit_is_applied_before_the_category_filter():
     """Otherwise an entry-plan studio publishes its archive one drawer at a time."""
 
-    source = (REPOSITORY_ROOT / "backend/studiosaas/api_v1.py").read_text(encoding="utf-8")
+    source = "\n".join(p.read_text(encoding="utf-8") for p in sorted((REPOSITORY_ROOT / "backend/studiosaas/api_v1").glob("*.py")))
     block = source[source.index("def public_showcase"):source.index("@api_v1.route(\"/public/<tenant_slug>/gallery\"")]
     assert block.index("active_items = [") < block.index("if wanted and any(")
     assert "published = _ordered_showcase_items(active_items)[:limit]" in block

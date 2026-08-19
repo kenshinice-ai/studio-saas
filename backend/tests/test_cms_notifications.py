@@ -34,7 +34,7 @@ def test_notification_schema_is_migration_backed_and_tenant_scoped() -> None:
 def test_notification_routes_and_event_writes_stay_in_the_cms_scope() -> None:
     """The API must protect reads and create events in existing transactions."""
 
-    source = (REPOSITORY_ROOT / "backend/studiosaas/api_v1.py").read_text(encoding="utf-8")
+    source = "\n".join(p.read_text(encoding="utf-8") for p in sorted((REPOSITORY_ROOT / "backend/studiosaas/api_v1").glob("*.py")))
     ui = cms_source_text()
     assert '@api_v1.route("/notifications", methods=["GET"])' in source
     assert '@permission_required("registrations:read")' in source[source.index("@api_v1.route(\"/notifications\"",):]

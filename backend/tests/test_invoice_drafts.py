@@ -11,7 +11,7 @@ from test_credit_settlements import requires_db, settlement_tenant
 
 
 ROOT = Path(__file__).resolve().parents[1]
-API_SOURCE = (ROOT / "studiosaas/api_v1.py").read_text(encoding="utf-8")
+API_SOURCE = "\n".join(p.read_text(encoding="utf-8") for p in sorted((ROOT / "studiosaas/api_v1").glob("*.py")))
 
 
 def test_invoice_draft_aggregate_command_is_strict_atomic_and_idempotent():
