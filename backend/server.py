@@ -400,31 +400,15 @@ if secrets.compare_digest(API_SECRET, SESSION_SECRET):
 app.secret_key = SESSION_SECRET
 
 
-# ── Password helpers (S3: PBKDF2 with per-password random salt) ──────────────
-PBKDF2_ITER = 600_000
+# ── Password helpers ─────────────────────────────────────────────────────────
+# v10.11.0: the PBKDF2 implementation lives ONLY in studiosaas/auth.py. This
+# file carried its own copy (same storage format, different legacy fallback);
+# auth.verify_password now also accepts the legacy CMS sha256('lps-cms:'+pw)
+# file format, so these are aliases rather than a second implementation.
+from studiosaas.auth import hash_password, verify_password
 
-def _hash_pw_legacy(pw):
-    """Old scheme (SHA-256, fixed salt) — kept only to verify+migrate old files."""
-    return hashlib.sha256(f'lps-cms:{pw}'.encode('utf-8')).hexdigest()
-
-def _hash_pw(pw, salt_hex=None):
-    """PBKDF2-HMAC-SHA256, stored as  pbkdf2$<iterations>$<salt>$<hash>."""
-    salt = bytes.fromhex(salt_hex) if salt_hex else secrets.token_bytes(16)
-    dk   = hashlib.pbkdf2_hmac('sha256', pw.encode('utf-8'), salt, PBKDF2_ITER)
-    return f'pbkdf2${PBKDF2_ITER}${salt.hex()}${dk.hex()}'
-
-def _verify_pw(pw, stored):
-    """Check pw against stored hash. Returns (ok, needs_upgrade)."""
-    if stored.startswith('pbkdf2$'):
-        try:
-            _, it, salt_hex, hash_hex = stored.split('$')
-            dk = hashlib.pbkdf2_hmac('sha256', pw.encode('utf-8'),
-                                     bytes.fromhex(salt_hex), int(it))
-            return (secrets.compare_digest(dk.hex(), hash_hex), False)
-        except Exception:
-            return (False, False)
-    # Legacy 64-char SHA-256 hex → verify, then caller upgrades transparently
-    return (secrets.compare_digest(_hash_pw_legacy(pw), stored), True)
+_hash_pw = hash_password
+_verify_pw = verify_password
 
 def _legacy_cms_enabled():
     """Whether the legacy single-studio surface (/api/*) is reachable at all."""

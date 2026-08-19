@@ -246,8 +246,15 @@ def verify_password(password: str, expected_hash: str) -> tuple[bool, bool]:
         return bool(_bcrypt.checkpw(password.encode("utf-8"), stored.encode("utf-8"))), True
 
     if is_legacy_sha256_hash(stored):
+        # Two historical unsalted formats share this shape: the v1 user table
+        # stored sha256(password); the legacy CMS password file stored
+        # sha256('lps-cms:' + password). Both digests are always computed so a
+        # miss costs the same as a hit on either.
         legacy_digest = hashlib.sha256(password.encode("utf-8")).hexdigest()
-        return secrets.compare_digest(legacy_digest, stored), True
+        legacy_cms_digest = hashlib.sha256(f"lps-cms:{password}".encode("utf-8")).hexdigest()
+        matches_bare = secrets.compare_digest(legacy_digest, stored)
+        matches_cms = secrets.compare_digest(legacy_cms_digest, stored)
+        return matches_bare or matches_cms, True
 
     return False, False
 
