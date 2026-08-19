@@ -1,8 +1,8 @@
 # PWE Studio
 
-## v10.10.2 release identity — the invoicing chapter's screenshots repaired
+## v10.10.3 release identity — the invoicing chapter's screenshots repaired
 
-`VERSION` = **10.10.2** and `backend/server.py` reports `APP_VERSION=10.10.2`.
+`VERSION` = **10.10.3** and `backend/server.py` reports `APP_VERSION=10.10.3`.
 A documentation and asset release: the manual's invoicing chapter re-shot
 against the running product, two factual copy corrections, an animation-settled
 guard in the capture tooling, and a seeder repair (issued invoices now carry
@@ -11,9 +11,9 @@ Layer evidence lives in `docs/handoff/claude/2026-08-17-manual-invoicing-screens
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.10.2 committed** | release commit `3e725fd`; full gate green with split app/owner/migration database roles. |
-| Package | **v10.10.2 SaaS and Edition archives verified** | SaaS SHA-256 `e3cca0f1cf233bf5ceb1d8158b7dd33a2eec1578604767aba5675da966948f92`; Edition SHA-256 `cd9353bee7a71cce49b976012e059ad42d8234e0c52a61526b37ad4c98f2ac83`; checksum, BUILD_INFO, entrypoint, exclusion and smoke checks all passed. |
-| Production | **v10.10.2 deployed to `pwestudio.online`** | deep health `appVersion=10.10.2`, `db=ok`, `mode=saas`, `workspaces.stale=0`; the four re-shot chapter-10 screenshots match local bytes; pre-deploy backup `studiosaas_studiosaas_20260817T103221Z.dump`. |
+| Source | **v10.10.3 committed** | release commit `3e725fd`; full gate green with split app/owner/migration database roles. |
+| Package | **v10.10.3 SaaS and Edition archives verified** | SaaS SHA-256 `e3cca0f1cf233bf5ceb1d8158b7dd33a2eec1578604767aba5675da966948f92`; Edition SHA-256 `cd9353bee7a71cce49b976012e059ad42d8234e0c52a61526b37ad4c98f2ac83`; checksum, BUILD_INFO, entrypoint, exclusion and smoke checks all passed. |
+| Production | **v10.10.3 deployed to `pwestudio.online`** | deep health `appVersion=10.10.3`, `db=ok`, `mode=saas`, `workspaces.stale=0`; the four re-shot chapter-10 screenshots match local bytes; pre-deploy backup `studiosaas_studiosaas_20260817T103221Z.dump`. |
 
 Source, Package and Production are separate facts; do not infer Production
 from `VERSION` or from an archive filename.

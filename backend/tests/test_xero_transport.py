@@ -163,12 +163,18 @@ def pushable_world():
 
 
 class FakeXero:
-    """Records every call; answers like the Accounting API's happy path."""
+    """Records every call; answers like the Accounting API's happy path.
+
+    GET /Invoices/{x} serves two real purposes the fake must keep apart:
+    reconcile reads back by xero id (our fakes start "inv-"/"cn-"), and the
+    collision guard probes by document number — a free number answers 404.
+    """
 
     def __init__(self):
         self.calls: list[tuple[str, str]] = []
         self.fail_with: Exception | None = None
         self.totals = {"invoice": 110.0, "payment": 110.0}
+        self.taken_numbers: set[str] = set()
 
     def __call__(self, conn, tenant_id, org_id, method, path, payload=None):
         from studiosaas.services import xero_transport as t
@@ -181,13 +187,25 @@ class FakeXero:
         if path == "/Invoices" and method == "POST":
             return {"Invoices": [{"InvoiceID": "inv-" + org_id}]}
         if path.startswith("/Invoices/") and method == "GET":
-            return {"Invoices": [{"Total": self.totals["invoice"], "Status": "AUTHORISED"}]}
+            name = path.split("/")[-1]
+            if name.startswith("inv-"):
+                return {"Invoices": [{"Total": self.totals["invoice"], "Status": "AUTHORISED"}]}
+            if name in self.taken_numbers:
+                return {"Invoices": [{"InvoiceID": "foreign", "Status": "PAID"}]}
+            raise t.TransportError("not_found")
         if path == "/Payments" and method == "PUT":
             return {"Payments": [{"PaymentID": "pay-" + org_id}]}
         if path.startswith("/Payments/") and method == "GET":
             return {"Payments": [{"Amount": self.totals["payment"]}]}
         if path == "/CreditNotes" and method == "POST":
             return {"CreditNotes": [{"CreditNoteID": "cn-" + org_id, "Total": 0, "RemainingCredit": 0}]}
+        if path.startswith("/CreditNotes/") and method == "GET":
+            name = path.split("/")[-1]
+            if name.startswith("cn-"):
+                return {"CreditNotes": [{"Total": 0}]}
+            if name in self.taken_numbers:
+                return {"CreditNotes": [{"CreditNoteID": "foreign"}]}
+            raise t.TransportError("not_found")
         raise t.TransportError(f"unexpected call {method} {path}")
 
 
@@ -371,6 +389,37 @@ def test_demo_cycle_is_clean_only_when_pushed_and_reconciled(pushable_world, fak
         idle = t.run_demo_cycle(conn, tenant_id)
         conn.rollback()
     assert idle["pushed"] == 0 and idle["clean"] is False
+
+
+@requires_db
+def test_a_number_the_org_already_holds_is_refused_not_overwritten(pushable_world, fake_api):
+    """X4 live discovery: Xero's POST upserts by document number, so pushing
+    INV-0001 into an organisation that already has one UPDATES someone
+    else's (possibly paid) invoice. The guard must dead-letter with an
+    actionable message instead."""
+
+    from studiosaas.services import xero_transport as t
+    from studiosaas.db import fetch_one
+
+    tenant_id = pushable_world["tenant_id"]
+    with owner_connection() as conn:
+        number = fetch_one(
+            conn,
+            "SELECT number FROM invoices WHERE tenant_id = %s AND id = %s",
+            (tenant_id, pushable_world["invoice_id"]),
+        )["number"]
+        fake_api.taken_numbers.add(number)
+        t.backfill(conn, tenant_id)
+        result = t.drain(conn, tenant_id, limit=1)
+        assert result["failed"] == 1 and result["sent"] == 0
+        job = fetch_one(
+            conn,
+            "SELECT last_error FROM integration_sync_jobs WHERE tenant_id = %s AND status = 'failed'",
+            (tenant_id,),
+        )
+        conn.rollback()
+    assert number in job["last_error"]
+    assert "overwrite" in job["last_error"].lower() or "已存在" in job["last_error"]
 
 
 # ── the gate, walked exactly as the wizard walks it ──────────────────────

@@ -300,6 +300,31 @@ def _load_invoice_dto(conn, tenant_id: str, invoice_id: str) -> tuple[dict[str, 
     return dto, str(invoice["billing_account_id"])
 
 
+def _refuse_foreign_number(conn, tenant_id: str, org_id: str, path: str, number: str) -> None:
+    """Refuse to create a document whose number the org already holds.
+
+    Xero's POST endpoints upsert by document number: creating "INV-0001" in
+    an organisation that already has one silently UPDATES the existing
+    document — someone else's, possibly paid, possibly another system's.
+    X4 discovered this live: the real ledger already carried years of
+    INV-#### documents. A number that exists but is not OUR link is
+    therefore a hard, human-actionable refusal, never an update.
+    """
+
+    try:
+        _api(conn, tenant_id, org_id, "GET", f"{path}/{urllib.parse.quote(number)}")
+    except TransportError as exc:
+        if str(exc) == "not_found":
+            return  # the number is free — safe to create
+        raise
+    raise TransportError(
+        f"Document number '{number}' already exists in the connected Xero "
+        "organisation and does not belong to this studio's pushes. Pushing "
+        "would overwrite it. Ask the operator for a distinct document-number "
+        "prefix for this studio, or connect a dedicated organisation."
+    )
+
+
 def push_invoice(conn, tenant_id: str, org_id: str, invoice_id: str) -> dict[str, Any]:
     dto, account_id = _load_invoice_dto(conn, tenant_id, invoice_id)
     meta = dto["document"]
@@ -314,6 +339,8 @@ def push_invoice(conn, tenant_id: str, org_id: str, invoice_id: str) -> dict[str
         })
         return {"xeroId": existing, "status": "VOIDED"}
 
+    if not existing:
+        _refuse_foreign_number(conn, tenant_id, org_id, "/Invoices", str(meta.get("number")))
     contact_id = _ensure_contact(
         conn, tenant_id, org_id, account_id,
         str(dto["recipient"].get("displayName") or ""),
@@ -373,6 +400,8 @@ def push_credit_note(conn, tenant_id: str, org_id: str, credit_note_id: str) -> 
     )
     mappings = _mappings(conn, tenant_id)
     existing = _link(conn, tenant_id, org_id, "credit_note", credit_note_id)
+    if not existing:
+        _refuse_foreign_number(conn, tenant_id, org_id, "/CreditNotes", str(note["number"]))
     payload: dict[str, Any] = {
         "Type": "ACCRECCREDIT",
         "Contact": {"ContactID": contact_id},

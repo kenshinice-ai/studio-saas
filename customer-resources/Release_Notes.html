@@ -54,6 +54,11 @@
   <p data-lang="zh">以下内容均属于已发布的产品版本。每一条都是交付依据，不是路线图承诺。</p>
   <div class="grid">
     <article class="card">
+      <strong data-lang="en">v10.10.3 — the number-collision guard: never overwrite someone else’s document</strong><strong data-lang="zh">v10.10.3 —— 同号冲突守卫：绝不覆盖账本里别人的单据</strong>
+      <p data-lang="en">Connecting the first real ledger surfaced a sharp edge: Xero’s create endpoints upsert by document number, so pushing an INV-0001 into an organisation that already holds one UPDATES the existing — possibly paid — invoice. The create path now probes the target organisation by number first; a number that exists and is not this studio’s own push dead-letters immediately with an actionable reason (a distinct number prefix, or a dedicated organisation). Nothing is ever silently rewritten.</p>
+      <p data-lang="zh">接入第一个真实账本时发现的锋利边缘：Xero 的创建接口按单号 upsert，推送 INV-0001 到已有同号发票的组织会更新那张现存（可能已付款）的发票。创建路径现在先按单号探测目标组织：号已存在且不属于本工作室的推送记录，立即死信并给出可操作原因（独立单号前缀，或专用组织）。任何单据都不会被静默改写。</p>
+    </article>
+    <article class="card">
       <strong data-lang="en">v10.10.2 — connecting picks the organisation you just consented to</strong><strong data-lang="zh">v10.10.2 —— 多组织时连接选对组织（X4 前置）</strong>
       <p data-lang="en">One Xero user can authorise different organisations for different studios (a demo ledger and a real one). The callback used to take the first row of /connections — always right with one org, order-dependent with several. It now matches the exact consent event (the access token's authentication_event_id against each connection's authEventId): the org whose Allow you clicked is the org that connects. If no match exists it falls back to the newest connection — the most recent human decision — never silently the first row.</p>
       <p data-lang="zh">同一个 Xero 用户可为不同工作室授权不同组织（演示账套与真实账套）。回调此前取 /connections 第一行——单组织恒正确，多组织则取决于排序。现在按本次授权事件精确匹配（access token 的 authentication_event_id ↔ 连接行的 authEventId）：点了哪个组织的 Allow，连的就是哪个组织；无法匹配时回退到最新连接（最近一次人的决定），绝不静默取第一行。</p>
