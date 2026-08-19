@@ -72,4 +72,17 @@ demo cycle clean 判定、allocate 钩子）。全量 pytest 2857 passed / 7 ski
   首次真实过闸暴露。**v10.10.1** 修复：合闸改纯 UPDATE；回归测试
   `test_enabling_push_through_the_walked_gate_survives_the_check_constraint`
   用真实服务函数走完整向导对真约束验证（13 项 transport 测试全过）。
-- v10.10.1 部署与开闸后验收（推送开启、新单据自动入列、Xero 界面肉眼可见）见下补。
+- v10.10.1 部署 ✔（deep health appVersion=10.10.1；提交 `e5aaefd`；
+  Package/SaaS SHA-256 `1c047fff…54faef`、Edition `d3a74a16…992f85`；
+  部署前 dump `…055431Z.dump`）。
+- **开闸 ✔**：enable_push 返回 `{"ok":true,"pushEnabled":true}`；界面徽章
+  「推送已开启 · 上次推送 19/08/2026」，五步全勾。
+- **端到端（生产管线原样）✔**：API 登记 INV-0008 的 $22.00 收款（05:58 入列，
+  allocate 钩子）→ **systemd 定时器 05:58:56 自动推送**：journal
+  `[lets-paint-showcase] processed=1 sent=1 failed=0 deferred=0`；
+  此后每 5 分钟 `tenants=6 gate-closed=5 jobs=0 tenant-errors=0` 连续数小时。
+- **最终对账 ✔**：`GET /integrations/xero/reconciliation` → `checked=17,
+  diffCount=0`——8 发票 + 全部收款（含定时器推的那笔）逐张从 Xero API 读回，
+  分值零差异。X3 出口标准（全量单据往返对账 0 差异）在生产达成，X3 关账。
+- 未走 Xero 网页端肉眼核对（go.xero.com 业务会话过期需重新登录，凭据不代输）；
+  API 逐张读回即更强证据，Lee 可随时登录 Demo Company 目视 INV-0001–0008。
