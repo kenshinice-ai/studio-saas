@@ -13,27 +13,28 @@
 > - 其余纪律不变：Source / Package / Production / Backup 四层分别记录；docs-only
 >   closure 不得写成已部署运行时代码；发布必经 STOP GATE。
 
-## 当前四层身份（v10.10.1，2026-08-19）
+## 当前四层身份（v10.10.3，2026-08-19）
 
 | 层 | 精确事实 |
 |---|---|
-| Source | v10.10.1 发布提交 `e5aaefddfa9437ea2b08b1037d32e4c54ec4f2d1`（同日链：`4fd0ee1`=v10.9.4 → `e158997`=v10.10.0 X3 transport → `e5aaefd`=过闸修复） |
-| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.10.1.tar.gz`，SHA-256 `1c047fffdd2d6c8d030992f203f48e47e0ac13d8805098ba1251d1337d54faef` |
-| Package / Edition | `dist/PWE-Studio-Edition-10.10.1.tar.gz`，SHA-256 `d3a74a163ba1e73b854356b491e5077a26a146c05a5c1fb283892e6cec992f85` |
-| Production | `pwestudio.online` = v10.10.1；deep health `db=ok`、`mode=saas`、`themes.unreadable=0`、`workspaces.stale=0`；showcase 租户 Xero **推送已开启**（向导四步实走 + 试跑 clean + 对账 0 差异）；`xero-push.timer` 每 5 分钟 drain（systemd 已装） |
-| Backup / migration | v10.10.1 部署前 dump `studiosaas_studiosaas_20260819T055431Z.dump` + manifest（同日更早：`…050507Z` v10.9.4 前、`…044744Z` v10.9.3 前）；schema 至 `0047_xero_transport.sql` |
+| Source | v10.10.3 发布提交 `dae3fd4`（同日链：`4fd0ee1` v10.9.4 → `e158997` v10.10.0 → `e5aaefd` v10.10.1 → `338b9b5` v10.10.2 → `dae3fd4` v10.10.3 同号守卫） |
+| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.10.3.tar.gz`，SHA-256 `9db6217b94448680c29b7fbdc29f168a59264fc142774679ec94de3fa756d631` |
+| Package / Edition | `dist/PWE-Studio-Edition-10.10.3.tar.gz`，SHA-256 `948073bc17b62980c36974b4f13c24be8b00d3cfd0c3b231e4496edd06559154` |
+| Production | `pwestudio.online` = v10.10.3；deep health `db=ok`、`mode=saas`；**真租户 `lets-paint-studio` 推送已开启 → PWE GROUP PTY LTD（真账本，X4 结算月进行时；LPS- 单号前缀；首单 LPS-INV-0002 已在账本可见，对账 0 差异）**；showcase → Demo Company 推送开启作 soak；`xero-push.timer` 每 5 分钟 drain |
+| Backup / migration | v10.10.3 部署前 dump `studiosaas_studiosaas_20260819T105709Z.dump` + manifest；schema 至 `0047_xero_transport.sql` |
 
 完整证据见 `docs/handoff/claude/2026-08-16-v10.8.0-round.md`（v10.8.0）与 codex/001（v10.7.1 历史）。
 
 ## 最新轮次
 
-- **2026-08-19（Claude Fable）X4 开轮 + v10.10.2 —— 真实账本接入**：
+- **2026-08-19（Claude Fable）X4 接入完成 + v10.10.2/v10.10.3 —— 真实账本推送开启**：
   `docs/handoff/claude/2026-08-19-xero-x4-real-ledger.md`
-  —— 真租户是 `lets-paint-studio`（44 学员、账务面为零；showcase 合成数据绝不入真账本）。
-  已：授 xero 加购、审计支持会话进真租户 CMS、连 Demo Company、映射 200/090、
-  PWE GROUP 科目表核对 + ANZ AU LETS PAINT 设 code 090（Lee 授权）。
-  v10.10.2：多组织时 finish_connect 按授权事件选组织（切真账本硬前置）。
-  待 Lee 填开票信息（E6）后：测试单 → 试跑 → 切 PWE GROUP → 开推送 → 结算月。
+  —— 真租户 `lets-paint-studio` 全向导对真账套走通：连 PWE GROUP PTY LTD
+  （v10.10.2 按授权事件选组织实测生效）、试跑 clean、推送开启；
+  首单 **LPS-INV-0002** 在真账本肉眼可见、对账 0 差异。
+  途中现场抓到 **Xero POST 按单号 upsert 会改写账本现存单据** → v10.10.3
+  同号冲突守卫（创建前按号预查，撞号死信）+ 真租户单号改 LPS- 前缀。
+  结算月进行时；X4 出口 = 一个自然月 0 人工修账。
 
 - **2026-08-19（Claude Fable）v10.10.0 + v10.10.1 —— Xero X3 外发 transport 与过闸修复**：
   `docs/handoff/claude/2026-08-19-xero-x3-transport.md`

@@ -36,11 +36,37 @@
   可能静默连回 Demo Company）。回归测试
   `test_finish_connect_selects_the_org_this_consent_granted`。
 
-## 待办（依赖顺序）
+## 接入完成（2026-08-19 关账，v10.10.3）
 
-1. Lee 在 CMS 填开票信息（E6）→ 我建付款方「X4 Acceptance Test」+ $1+GST 测试单并开具。
-2. 试跑（推 Demo Company）clean → 单一入口 ours_only → 断开 → 重连选 **PWE GROUP
-   PTY LTD**（v10.10.2 保证选对）→ 开启推送 → 排队积压（即那张测试单）→ 定时器推送
-   → 对账 0 差异 → PWE GROUP 界面肉眼可见。
-3. 集成页标 Beta（真组织推送期间）；月度对账报告的取数路径即 reconciliation API。
-4. 结算月开始：Lee 正常开票收款，队列自动推送；月末出对账报告，0 人工修账 = X4 出口。
+- 开票信息：Lee 自填后我修两处——法定名称笔误「PWE GROU」→ PWE GROUP PTY LTD、
+  勾 GST 注册（其 200 Sales 用 GST on Income 且有真实 GST 流水，事实即已注册；
+  ABN 55606664546 校验位验证通过）。E6 门放行，INV-0001（$1.10 测试单）开具。
+- **同号冲突现场发现（→ v10.10.3）**：试跑把真租户 INV-0001 推向 Demo Company 时，
+  Xero 报「不能改已付发票」——**Xero 的 POST 按单号 upsert**，同号会静默更新
+  别人的现存单据。查 PWE GROUP：已有 36 张真实已付 INV-0026…0051。若无守卫，
+  推送将改写真账本。v10.10.3 上创建路径按单号预查（`GET /Invoices/{number}`），
+  号已存在且非本工作室链接 → 立即死信带可操作原因；测试
+  `test_a_number_the_org_already_holds_is_refused_not_overwritten`。
+- 单号系列：真租户序列改用独立前缀 **LPS-INV- / LPS-CN-**（`document_number_sequences`
+  数据变更，next_value 连续不断号）；INV-0001 作废（原因记档），重开
+  **LPS-INV-0002**。前缀在正式开票前仍可按 Lee 意愿更换。
+- 组织切换：断开 Demo Company → 重连授权页选 **PWE GROUP PTY LTD** →
+  卡片显示已连接 PWE GROUP PTY LTD——v10.10.2 的 authEventId 匹配在多组织下
+  实测选对（此前 orgs[0] 会看 Xero 排序脸色）。
+- 向导收口（全部对真账套）：映射确认 ✔ → **试跑 clean（排队 1 / 推送 1 / 失败 0 /
+  对账差异 0）** ✔ → 单一入口 ours_only ✔ → **推送开启（blockers=[]）** ✔。
+- **肉眼证据**：PWE GROUP 发票列表首行 `LPS-INV-0002 · Ref "PWE LPS-INV-0002" ·
+  X4 Acceptance Test · 19 Aug 2026 · Due 1.10 · Awaiting Payment`，
+  与 36 张历史 INV-#### 序列并存互不干扰（37 items）。
+- 发布链：v10.10.3 提交 `dae3fd4`；SaaS SHA-256 `9db6217b…6d631`、Edition
+  `948073bc…59154`；部署前 dump `…105709Z.dump`；deep health appVersion=10.10.3。
+
+## 结算月（进行时）
+
+- Lee 正常开票收款：新单据经 allocate/issue 钩子自动入列，`xero-push.timer`
+  每 5 分钟推送；失败进集成页错误队列（原因几乎总是映射）。
+- 月度对账 = `GET /integrations/xero/reconciliation`（逐张读回按分比对）。
+- X4 出口：一个自然月 0 人工修账。届时出对账报告，集成页转正（X5 按套餐开放门已在）。
+- 备忘：集成页 Beta 徽标未做（纯文案，随下轮 UI 顺带）；showcase 仍连 Demo Company
+  推送开启作长期 soak；LPS-INV-0002 为 $1.10 真实应收，Lee 可收款或作废，两条路
+  都会被队列/对账如实跟进。
