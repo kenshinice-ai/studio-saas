@@ -290,11 +290,19 @@ def test_admin_surfaces_share_persistent_language_switch(client):
         assert response.status_code == 200
         assert "/assets/admin-i18n.js" in response.get_data(as_text=True)
 
+    # The language choice persists in the shared engine (i18n-runtime.js
+    # since v10.11.0); the dictionary file mounts onto it.
+    runtime = (PROJECT_ROOT / "backend/frontend/assets/i18n-runtime.js").read_text(
+        encoding="utf-8"
+    )
+    assert "studiosaas_admin_language" in runtime
     javascript = (PROJECT_ROOT / "backend/frontend/assets/admin-i18n.js").read_text(
         encoding="utf-8"
     )
-    assert "studiosaas_admin_language" in javascript
-    assert "data-admin-language" in javascript
+    # The consoles hand their data-attribute namespace to the engine, which
+    # builds data-admin-language / data-admin-language-switch from it.
+    assert "prefix: 'admin-language'" in javascript
+    assert "`data-${config.prefix}`" in runtime
     assert "中文" in javascript
     assert "English" in javascript
 

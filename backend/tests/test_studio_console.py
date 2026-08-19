@@ -340,7 +340,11 @@ def test_an_english_half_field_keeps_its_english_placeholder() -> None:
 
     module = DICTIONARY.read_text(encoding="utf-8")
     assert "keepsItsOwnLanguage" in module
-    assert "if (keepsItsOwnLanguage(element, attr)) continue;" in module
+    # The policy is handed to the shared engine (i18n-runtime.js since
+    # v10.11.0), which must honour it before touching any attribute.
+    assert "attrKeepsOwnLanguage: keepsItsOwnLanguage" in module
+    runtime = (DICTIONARY.parent / "i18n-runtime.js").read_text(encoding="utf-8")
+    assert "if (attrKeepsOwnLanguage(element, attr)) continue;" in runtime
     # Locked for placeholder only: title and aria-label really are interface
     # chrome and should follow the console language.
     assert "if (attr !== 'placeholder') return false;" in module

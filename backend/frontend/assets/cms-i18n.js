@@ -63,7 +63,7 @@
     ['收入分类', 'Income category'], ['手工收入', 'Manual income'],
     ['课包/课时收入（仅分类）', 'Package/credit income (classification only)'],
     ['服务对象（可选）', 'Service subject (optional)'],
-    ['搜索并选择学员', 'Search and select a student'],
+    
     ['搜索并选择学员（仅报告归属）', 'Search and select a student (reporting only)'],
     ['只表达收入报告归属，不改变课时余额；未选择时发送 null。',
      'For income reporting only; does not change credit balances. Sends null when unselected.'],
@@ -90,7 +90,7 @@
     ['刷新 CMS 数据', 'Refresh CMS data'], ['搜索', 'Search'],
 
     /* ── Student list chips and profile tabs ── */
-    ['概览', 'Overview'], ['资料', 'Details'], ['记录', 'Records'],
+    ['概览', 'Overview'], ['资料', 'Details'], 
     ['专区已就绪', 'Portal ready'], ['缺手机号', 'No phone number'],
     ['专区未启用', 'Portal not enabled'], ['私人内容受阻', 'Private items blocked'],
     ['作品已公开', 'Works published'], ['公开授权有效', 'Consent valid'],
@@ -281,7 +281,7 @@
     ['添加学员', 'Add student'], ['添加团队成员', 'Add team member'],
 
     /* ── Fields ── */
-    ['姓名', 'Name'], ['学员', 'Student'], ['电话', 'Phone'], ['邮箱', 'Email'],
+     ['学员', 'Student'],  
     ['微信', 'WeChat'], ['微信号', 'WeChat ID'], ['备注', 'Notes'],
     ['入学日期', 'Join date'], ['选填', 'optional'], ['选填 / Optional', 'Optional'],
     ['自定义', 'Custom'], ['未设置', 'Not set'], ['未记录', 'Not recorded'],
@@ -317,7 +317,7 @@
     ['固定班次按周几自动排入当日名单', 'Recurring classes are added to the day roster automatically'],
     ['还没有固定班次。例如「周三 16:00 素描班」——保存后每周三会自动出现在当日排课里。',
      'No recurring classes yet. Add one — for example "Wed 16:00" — and it will appear on that weekday automatically.'],
-    ['班次名称', 'Class name'], ['周几', 'Weekday'], ['开始时间', 'Start time'],
+    ['班次名称', 'Class name'], ['周几', 'Weekday'], 
     ['容量', 'Capacity'], ['加入班次', 'Join class'], ['课程日期', 'Class date'],
     ['今天', 'Today'], ['班组模板', 'Group templates'],
     ['-- 选择模板 --', '-- Choose a template --'], ['-- 选择学员 --', '-- Choose a student --'],
@@ -343,7 +343,7 @@
     ['来自固定课表，需在上方班次中调整', 'From the recurring schedule — edit the class above'],
 
     /* ── Students ── */
-    ['学员档案', 'Students'], ['活跃', 'Active'], ['低频', 'Infrequent'],
+     ['活跃', 'Active'], ['低频', 'Infrequent'],
     ['流失风险', 'At risk'], ['CSV', 'CSV'],
     ['搜索姓名 / 电话 / 微信 / 邮箱…（回车打开唯一匹配）',
      'Search name / phone / WeChat / email… (Enter opens a single match)'],
@@ -404,7 +404,7 @@
     ['历史总营收', 'Total revenue'], ['累计消课', 'Credits used'], ['全局数据', 'All time'],
     ['近 12 个月营收 (AUD)', 'Revenue, last 12 months (AUD)'],
     ['近 12 个月消课次数', 'Credits used, last 12 months'],
-    ['付款方式分布', 'Payment methods'], ['经营月报（近 6 个月）', 'Monthly report (last 6 months)'],
+    ['付款方式分布', 'Payment methods'], 
     ['导出 CSV', 'Export CSV'], ['新学员', 'New students'],
     ['课包销量排行（历史累计）', 'Pack sales (all time)'], ['暂无充值记录', 'No top-ups yet'],
     ['消课节奏（近 180 天）', 'Usage pace (last 180 days)'], ['天/次', 'days per class'],
@@ -532,7 +532,7 @@
      * across every tab, including attributes, found 66 more — most of them
      * `aria-label`s and placeholders, which never appear in a screenshot and
      * are exactly what a screen-reader user hears. */
-    ['全局搜索 ⌘K', 'Global search ⌘K'], ['搜索', 'Search'],
+    ['全局搜索 ⌘K', 'Global search ⌘K'], 
     ['搜索学员姓名...', 'Search a student’s name…'],
     ['选择学员查看详情...', 'Choose a student to see details…'],
     ['如 节假日赠课、补偿调课...', 'e.g. holiday bonus credits, make-up class'],
@@ -596,7 +596,7 @@
     ['今日重点', "Today's focus"],
     ['按你的角色排列最常用的工作入口', 'The entries you use most, ordered by your role'],
     ['处理待处理', 'Work the pending queue'], ['查看今日课程', "See today's classes"],
-    ['查看经营统计', 'Open business stats'], ['搜索学员', 'Search students'],
+    ['查看经营统计', 'Open business stats'], 
     ['查找学员', 'Find a student'], ['学员专区与作品发布', 'Student area and work publishing'],
     ['点击数字直接处理对应学员', 'Tap a number to act on those students'],
     ['缺少手机号', 'No mobile number'], ['有作品但缺授权', 'Work without consent'],
@@ -652,7 +652,7 @@
     ['查看今日排课', 'Open today’s schedule'],
 
     /* Settings sections */
-    ['账号与安全', 'Account & security'], ['团队与权限', 'Team & permissions'],
+    ['账号与安全', 'Account & security'], 
     ['运营默认', 'Operating defaults'], ['集成', 'Integrations'], ['数据维护', 'Data maintenance'],
     ['工作区链接', 'Workspace links'],
     ['当前密码', 'Current password'], ['新密码 *', 'New password *'],
@@ -718,15 +718,14 @@
    * back afterwards, so one dictionary entry covers both forms. */
   const AFFIX = /^([\s -　←-⇿①-➿️\u{1F000}-\u{1FAFF}✓✕✅❌⚠️➕⬇️🔓🔄🟢]*)(.*?)([\s -　←-⇿①-➿️\u{1F000}-\u{1FAFF}]*)$/u;
 
-  const originalText = new WeakMap();
-  const renderedText = new WeakMap();
-  const originalAttributes = new WeakMap();
-  let language = localStorage.getItem('studiosaas_admin_language') === 'en' ? 'en' : 'zh';
-  let observer;
+  /* ── Engine handoff ─────────────────────────────────────────────
+   * v10.11.0: the rendering engine (observer, attribute watching, switch,
+   * language state) moved to i18n-runtime.js — ONE engine for the CMS and
+   * both consoles, so the historical defect classes can only be fixed once.
+   * This file keeps what is the CMS's own: the zh→en dictionary above and
+   * the sentence rules below. */
 
-  function translate(value) {
-    const clean = String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
-    if (!clean || language === 'zh') return clean;
+  function translateCore(clean) {
     if (en[clean]) return en[clean];
     const parts = clean.match(AFFIX);
     if (parts && parts[2] && parts[2] !== clean) {
@@ -737,7 +736,6 @@
     const counted = clean.match(/^(.+?)\s*\((\d+)\)$/);
     if (counted && en[counted[1].trim()]) return `${en[counted[1].trim()]} (${counted[2]})`;
 
-    /* Shapes the dictionary would otherwise need one entry per value for. */
     const rules = [
       [/^共\s*(\d+)\s*人$/, '$1 students'],
       /* The shared filter bar's result count. The measure word decides the
@@ -844,91 +842,6 @@
     return clean;
   }
 
-  function isIgnored(node) {
-    return !node.parentElement
-      || /^(SCRIPT|STYLE|CODE|PRE|TEXTAREA)$/.test(node.parentElement.tagName)
-      || node.parentElement.closest('[data-cms-language-switch]');
-  }
-
-  function applyText(node) {
-    if (isIgnored(node)) return;
-    const current = node.nodeValue;
-    if (!originalText.has(node) || (renderedText.has(node) && current !== renderedText.get(node))) {
-      originalText.set(node, current);
-    }
-    const source = originalText.get(node);
-    const clean = String(source).replace(/\s+/g, ' ').trim();
-    const leading = (String(source).match(/^\s*/) || [''])[0];
-    const trailing = (String(source).match(/\s*$/) || [''])[0];
-    const next = language === 'en' && clean ? `${leading}${translate(clean)}${trailing}` : source;
-    if (current !== next) {
-      renderedText.set(node, next);
-      node.nodeValue = next;
-    } else {
-      renderedText.set(node, current);
-    }
-  }
-
-  function applyAttributes(element) {
-    if (!originalAttributes.has(element)) originalAttributes.set(element, {});
-    const originals = originalAttributes.get(element);
-    for (const attr of ['placeholder', 'title', 'aria-label']) {
-      if (!element.hasAttribute(attr)) continue;
-      const key = `i18nRendered${attr.replace('-', '')}`;
-      const current = element.getAttribute(attr);
-      if (!(attr in originals) || current !== (element.dataset[key] || originals[attr])) originals[attr] = current;
-      const next = language === 'en' ? translate(originals[attr]) : originals[attr];
-      if (current !== next) element.setAttribute(attr, next);
-      element.dataset[key] = next;
-    }
-  }
-
-  function localise(root) {
-    if (!root) return;
-    if (root.nodeType === Node.TEXT_NODE) return applyText(root);
-    if (![Node.ELEMENT_NODE, Node.DOCUMENT_NODE, Node.DOCUMENT_FRAGMENT_NODE].includes(root.nodeType)) return;
-    if (root.nodeType === Node.ELEMENT_NODE) applyAttributes(root);
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-    let node;
-    while ((node = walker.nextNode())) applyText(node);
-    if (root.querySelectorAll) root.querySelectorAll('[placeholder],[title],[aria-label]').forEach(applyAttributes);
-  }
-
-  function updateSwitch() {
-    document.querySelectorAll('[data-cms-language]').forEach((button) => {
-      const active = button.dataset.cmsLanguage === language;
-      button.classList.toggle('active', active);
-      button.setAttribute('aria-pressed', String(active));
-    });
-  }
-
-  function setLanguage(next) {
-    language = next === 'en' ? 'en' : 'zh';
-    /* Shared with Studio Admin and Super Admin so one choice covers the day. */
-    localStorage.setItem('studiosaas_admin_language', language);
-    document.documentElement.lang = language === 'zh' ? 'zh-CN' : 'en';
-    localise(document);
-    updateSwitch();
-    document.dispatchEvent(new CustomEvent('studiosaas:cms-language', { detail: { language } }));
-  }
-
-  function installSwitch() {
-    if (document.querySelector('[data-cms-language-switch]')) return;
-    const holder = document.createElement('div');
-    holder.dataset.cmsLanguageSwitch = '';
-    holder.className = 'cms-language-switch';
-    holder.setAttribute('role', 'group');
-    holder.setAttribute('aria-label', 'Language / 语言');
-    holder.innerHTML = '<button type="button" data-cms-language="zh">中</button>'
-                     + '<button type="button" data-cms-language="en">EN</button>';
-    document.body.appendChild(holder);
-    holder.addEventListener('click', (event) => {
-      const button = event.target.closest('[data-cms-language]');
-      if (button) setLanguage(button.dataset.cmsLanguage);
-    });
-    updateSwitch();
-  }
-
   /* The switch is the one control that is on screen on every page of the CMS,
    * so it was also the one control that stayed Tailwind-indigo on a themed
    * page. Every colour below is a theme token with the pre-theme palette as
@@ -952,13 +865,7 @@
    * happened to scroll beneath it, so the same two 44px controls live inside
    * Settings instead. Toasts still outrank the desktop switch (z-index 999 vs
    * 90), which is the correct order for transient feedback. */
-  function installStyles() {
-    const style = document.createElement('style');
-    /* v8.4.0: the fallbacks are tokens too. A `var(--accent, #4f46e5)` keeps
-       working after --accent is renamed away — it just paints indigo forever,
-       silently, on whatever palette replaced it. The same rule in
-       admin-i18n.js did exactly that when the consoles moved off --brand. */
-    style.textContent = '.cms-language-switch{position:fixed;right:21px;bottom:21px;z-index:90;'
+  const SWITCH_STYLE = '.cms-language-switch{position:fixed;right:21px;bottom:21px;z-index:90;'
       + 'display:inline-flex;gap:3px;padding:5px;border:1px solid var(--line,var(--ui-border));border-radius:999px;'
       + 'background:var(--panel,var(--ui-surface));box-shadow:var(--shadow-lg,0 4px 14px color-mix(in srgb, var(--ink,var(--ui-text)) 12%, transparent));'
       + 'margin-bottom:env(safe-area-inset-bottom,0px)}'
@@ -972,43 +879,22 @@
       + '@media (max-width:767px){.cms-language-switch{display:none}}'
       + '@media (prefers-reduced-motion:reduce){.cms-language-switch button{transition:none}}'
       + '@media print{.cms-language-switch{display:none}}';
-    document.head.appendChild(style);
-  }
 
-  function start() {
-    installStyles();
-    installSwitch();
-    setLanguage(language);
-    observer = new MutationObserver((mutations) => {
-      for (const mutation of mutations) {
-        if (mutation.type === 'characterData') {
-          if (renderedText.get(mutation.target) === mutation.target.nodeValue) continue;
-          applyText(mutation.target);
-        }
-        /* An element that is already mounted keeps its identity while React
-         * rewrites its label — the roster's day buttons re-announce their date
-         * and headcount on every navigation. Without this branch those values
-         * were localised once, at insertion, and every later one stayed
-         * Chinese no matter what the dictionary said. */
-        if (mutation.type === 'attributes') applyAttributes(mutation.target);
-        mutation.addedNodes.forEach(localise);
-      }
-      updateSwitch();
-    });
-    observer.observe(document.body, {
-      subtree: true, childList: true, characterData: true,
-      /* Filtered on purpose: applyAttributes stamps its result in a data-
-       * attribute, and an unfiltered watch would call itself back forever. */
-      attributes: true, attributeFilter: ['placeholder', 'title', 'aria-label'],
-    });
+  if (!window.StudioI18n) {
+    /* Fail open, loudly: the CMS stays readable in Chinese. */
+    console.error('[cms-i18n] i18n-runtime.js is missing; the language switch is unavailable.');
+    return;
   }
-
-  window.CmsI18n = {
-    get language() { return language; },
-    setLanguage,
-    translate: (value) => (language === 'en' ? translate(value) : value),
-    localise
-  };
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
-  else start();
+  window.StudioI18n.mount({
+    globalName: 'CmsI18n',
+    targetLanguage: 'en',
+    translateCore,
+    prefix: 'cms-language',
+    switchClass: 'cms-language-switch',
+    switchButtons: [['zh', '中'], ['en', 'EN']],
+    placeSwitch: (holder) => document.body.appendChild(holder),
+    styleText: SWITCH_STYLE,
+    wrapNativeDialogs: false,
+    eventName: 'studiosaas:cms-language',
+  });
 })();

@@ -145,6 +145,7 @@ if [ -x "$PYTHON" ]; then
         fi
         STATIC_JS_OK=true
         for asset in \
+            "$SCRIPT_DIR/frontend/assets/i18n-runtime.js" \
             "$SCRIPT_DIR/frontend/assets/admin-i18n.js" \
             "$SCRIPT_DIR/frontend/assets/cms-i18n.js" \
             "$SCRIPT_DIR/frontend/assets/public-analytics.js" \
@@ -158,6 +159,11 @@ if [ -x "$PYTHON" ]; then
         done
         if $STATIC_JS_OK; then
             ok "shared frontend assets compile"
+        fi
+        if "$PYTHON" "$SCRIPT_DIR/scripts/check_i18n_dictionaries.py" >/dev/null 2>&1; then
+            ok "i18n dictionaries have no duplicate keys"
+        else
+            fail "duplicate i18n dictionary keys (run: python3 backend/scripts/check_i18n_dictionaries.py)"
         fi
         if [ -f "$CMS_OUT" ] && node -e "new Function(require('fs').readFileSync('$CMS_OUT','utf8'))" 2>/dev/null; then
             ok "cms-app.js compiled bundle is valid JS"

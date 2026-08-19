@@ -8,7 +8,7 @@
     ['PWE Studio · Super Admin', 'PWE Studio · 平台管理'],
     ['Studio Admin', '工作室管理'],
     ['Super Admin Login', '平台管理员登录'], ['Studio Admin Login', '工作室管理员登录'],
-    ['Super Admin', '平台管理'], ['Studio Admin', '工作室管理'],
+    ['Super Admin', '平台管理'], 
     ['Super Admin sections', '平台管理页面'], ['Studio Admin sections', '工作室管理页面'],
     ['Login', '登录'], ['Logout', '退出登录'], ['Email', '邮箱'], ['Password', '密码'],
     ['Enter your password', '请输入密码'], ['Remember me for 30 days', '30 天内保持登录'],
@@ -119,16 +119,16 @@
     ['Manage', '管理'], ['Open', '打开'], ['What happens next', '下一步会发生什么'],
     ['Review before action', '操作前检查'], ['Explicit confirmation', '明确确认'], ['Action', '操作'], ['Plan usage', '套餐使用情况'],
     ['Filter tenants by this plan', '按此套餐筛选工作室'], ['View tenants on this plan', '查看使用此套餐的工作室'],
-    ['Subscription & Plan', '订阅与套餐'], ['View Audit History', '查看审计历史'], ['Open Studio Website', '打开工作室官网'],
+     ['View Audit History', '查看审计历史'], ['Open Studio Website', '打开工作室官网'],
     ['Open Studio Admin', '打开工作室管理'], ['Open Quick Registration', '打开快速报名'],
     ['Enter Support Mode', '进入支持模式'], ['Pause tenant', '暂停工作室'],
     ['Reactivate tenant', '重新启用工作室'], ['Archive tenant', '归档工作室'], ['Restore tenant', '恢复工作室'],
     ['Permanent delete tenant', '永久删除工作室'], ['Delete Plan', '删除套餐'], ['View audit history', '查看审计历史'],
-    ['Edit studio sections', '编辑工作室分区'], ['Basic info', '基础资料'], ['Limits & Works', '额度与作品'],
+    ['Edit studio sections', '编辑工作室分区'],  
     ['No commercial plan change selected.', '未选择商业套餐变更。'], ['Needs adjustment', '需要调整'], ['Before save', '保存前'],
     ['No blocking adjustment identified.', '未发现阻止保存的问题。'], ['Plan impact', '套餐影响'], ['Content safety', '内容安全'],
     ['Communication checklist', '通知清单'], ['Current selection', '当前选择'], ['Review and acknowledge plan change', '检查并确认套餐变更'],
-    ['Fix', '修正'], ['No additional change identified.', '暂未识别其他变化。'],
+    ['Fix', '修正'], 
     ['This public surface opens in a new tab and does not require support mode.', '此公开页面会在新标签页打开，无需支持模式。'],
     ['This public registration surface opens in a new tab when the tenant is accepting registrations.', '工作室接受报名时，此公开报名页面会在新标签页打开。'],
     ['This tenant-scoped surface opens only after an audited support session starts.', '此工作室专属页面只有在启动带审计记录的支持会话后才会打开。'],
@@ -145,7 +145,7 @@
     ['Showcase works', '作品数'],
     ['Resolve the highlighted fields before saving.', '请先修正已标出的字段，再保存。'], ['Workspace actions', '工作区操作'], ['Cancel editing', '取消编辑'],
     ['Tenant surfaces', '工作室入口'], ['Public and audited entry points', '公开入口与需审计入口'], ['Managed actions', '管理操作'], ['Audited lifecycle changes', '带审计记录的生命周期变更'], ['Requires explicit confirmation', '需要明确确认'],
-    ['Restore tenant', '恢复工作室'], ['Reactivate tenant', '重新启用工作室'], ['Pause tenant', '暂停工作室'], ['Archive tenant', '归档工作室'], ['Permanent delete tenant', '永久删除工作室'],
+        
     ['Permanent delete is available only after archiving.', '只有归档后才能永久删除。'], ['Move all tenants to another plan before deleting this plan.', '请先将所有工作室迁移到其他套餐，再删除此套餐。'], ['Review dependencies first', '请先检查依赖关系'],
     ['New plan', '新套餐'], ['New tenant', '新工作室'], ['Save failed', '保存失败'], ['Creating…', '创建中…'], ['Saving…', '保存中…'],
     ['New plans stay private until Publish is selected.', '选择公开前，新套餐不会显示在公开页面。'],
@@ -169,11 +169,11 @@
     ['Student Limit', '学员上限'], ['Admin User Limit', '管理员上限'], ['Storage Limit', '存储上限'],
     ['Showcase works published', '公开作品上限'],
     ['Media Upload Limit', '媒体上传上限'], ['Storage (MB)', '存储（MB）'], ['Students', '学员数'],
-    ['Users', '用户数'], ['Usage', '用量'], ['Owner', '负责人'], ['Owner & Contact', '负责人和联系方式'],
+    ['Users', '用户数'], ['Usage', '用量'], ['Owner', '负责人'], 
     ['Owner Name', '负责人姓名'], ['Owner Email', '负责人邮箱'], ['Owner Phone', '负责人电话'],
     ['Owner Role', '负责人角色'], ['Contact Email', '联系邮箱'], ['Contact Phone', '联系电话'],
     ['Billing Email', '账单邮箱'], ['Address', '地址'], ['ABN', '澳洲商业号码'], ['Notes', '备注'],
-    ['Slogan', '品牌标语'], ['Admin Login', '管理员登录'], ['Studio Admin Email', '工作室管理员邮箱'],
+    ['Slogan', '品牌标语'],  ['Studio Admin Email', '工作室管理员邮箱'],
     ['Studio Admin Name', '工作室管理员姓名'], ['Temporary Admin Password', '临时管理员密码'],
     ['Use owner email for contact', '联系邮箱使用负责人邮箱'],
     ['Use owner email for billing', '账单邮箱使用负责人邮箱'],
@@ -182,12 +182,12 @@
     ['Leave blank to keep existing password.', '留空可保留现有密码。'],
     ['Password Setup Link', '密码设置链接'], ['Generate link', '生成链接'],
     ['Single use, expires in 24h. Generating a new link invalidates previous unused ones.', '仅可使用一次，24 小时后到期；生成新链接会让旧的未使用链接失效。'],
-    ['Copy', '复制'], ['Actions', '操作'], ['Action', '操作'], ['Resource', '对象'], ['Time', '时间'],
+    ['Copy', '复制'], ['Actions', '操作'],  ['Resource', '对象'], ['Time', '时间'],
     ['Details', '详情'], ['Audit Event Details', '审计事件详情'], ['Resource type', '对象类型'],
     ['Resource ID', '对象 ID'], ['Metadata', '元数据'], ['Support reason', '支持原因'],
     ['System', '系统'], ['No metadata captured.', '未记录元数据。'],
     ['Previous', '上一页'], ['Next', '下一页'], ['Page 1', '第 1 页'], ['More', '更多'],
-    ['Close', '关闭'], ['Cancel', '取消'], ['Undo', '撤销'], ['Delete', '删除'], ['Archive', '归档'], ['Pause', '暂停'],
+    ['Close', '关闭'], ['Cancel', '取消'], ['Undo', '撤销'],  ['Archive', '归档'], ['Pause', '暂停'],
     ['Reactivate', '重新启用'], ['Reset Password', '重置密码'], ['Danger Zone', '危险操作区'],
     ['Archive Tenant', '归档工作室'], ['Permanent Delete', '永久删除'], ['Permanently delete', '永久删除'],
     ['Type tenant slug to confirm', '输入工作室网址标识以确认'], ['Reason', '原因'],
@@ -204,15 +204,15 @@
        for strings the product no longer renders is a list of claims nobody
        checks. */
     ['Website modules', '官网版块'], ['FAQ & messages', '常见问题与话术'],
-    ['Principal', '负责人'],
+    
     /* Field labels that pair a name with the language of the field's own
        content. The hand-written pairs live further up; these three were
        added when the About and Selected work panels grew. */
-    ['Eyebrow · 中文', '小标题 · 中文'], ['Eyebrow · English', '小标题 · English'],
-    ['Lead · 中文', '引导语 · 中文'], ['Lead · English', '引导语 · English'],
-    ['Description · 中文', '简介 · 中文'], ['Description · English', '简介 · English'],
+    ['Eyebrow · 中文', '小标题 · 中文'], 
+    ['Lead · 中文', '引导语 · 中文'], 
+    ['Description · 中文', '简介 · 中文'], 
     ['(direct)', '（直接访问）'],
-    ['Brand foundation', '品牌基础'],
+    
     ['Build the foundation in three clear steps: industry, visual theme, then studio details.', '按三个清晰步骤完成品牌基础：行业、视觉主题、工作室资料。'],
     ['Choose an industry foundation', '选择行业基础'],
     ['This sets the recommended copy, registration questions, and starting theme.', '用于设置推荐文案、报名问题与初始主题。'],
@@ -289,7 +289,7 @@
     ['Neutral / monochrome', '单色中性'],
     ['Colour relationship', '色相关系'],
     ['Light + dark', '明暗双模'], ['Dark only', '仅暗色'],
-    ['Page', '页面'], ['Panel', '面板'], ['Accent', '强调色'], ['Support', '辅助色'],
+    ['Page', '页面'], ['Panel', '面板'],  ['Support', '辅助色'],
     ['Control boundary', '控件边界'], ['Focus ring', '聚焦环'],
     ['Success', '成功'], ['Warning', '警示'], ['Danger', '危险'],
     ['Core identity, industry preset, colours, contact, and CMS shell presentation.', '设置核心品牌、行业预设、颜色、联系方式与 CMS 外观。'],
@@ -310,7 +310,7 @@
     ['Upload Logo', '上传 Logo'], ['Upload Principal Image', '上传主理人图片'],
     ['JPEG, PNG, or WebP; metadata is removed before public delivery.', '支持 JPEG、PNG 或 WebP；公开展示前会移除图片元数据。'],
     ['Uses the tenant media quota and safe public derivative.', '使用本工作室媒体额度，并生成安全公开副本。'],
-    ['Website sections', '官网版块'],
+    
     ['Control which public sections appear and the about/principal content.', '控制公开版块以及工作室和主理人介绍。'],
     ['Courses Section', '课程版块'], ['Gallery Section', '作品墙版块'], ['Student Area Section', '学员专区版块'],
     ['Principal Section', '主理人版块'], ['FAQ Section', '常见问答版块'], ['Courses Label', '课程标题'],
@@ -334,8 +334,8 @@
      '最多六张，以缓慢轮播展示。每次上传都会占用媒体额度，并通过安全的公开副本对外提供。'],
     ['SEO Title', '搜索标题'], ['SEO Description', '搜索描述'],
     // Selected Work — the studio's own portfolio, not the students'.
-    ['Selected Work', '工作室作品'], ['Selected Work Section', '工作室作品版块'],
-    ['Selected work', '工作室作品'],
+     ['Selected Work Section', '工作室作品版块'],
+    
     ['Section Eyebrow · 中文', '版块眉题 · 中文'], ['Section Eyebrow · English', '版块眉题 · English'],
     ['Section Title · 中文', '版块标题 · 中文'], ['Section Title · English', '版块标题 · English'],
     ['Section Lead · 中文', '版块引导语 · 中文'], ['Section Lead · English', '版块引导语 · English'],
@@ -373,7 +373,7 @@
     ['Show', '显示'], ['Hide', '隐藏'], ['Contact', '联系信息'], ['Contact Label', '联系区标题'],
     ['Welcome Message', '欢迎语'], ['Show Welcome', '显示欢迎语'], ['Show on CMS/Register', '在 CMS/报名页显示'],
     ['Welcome message appears on CMS and Register when enabled.', '启用后，欢迎语会显示在 CMS 与报名页。'],
-    ['Registration form', '报名表'],
+    
     ['Lead capture copy and questions shown on the portal and register page.', '设置官网和报名页显示的获客文案与问题。'],
     ['Registration Title · 中文', '报名标题 · 中文'], ['Registration Title · English', '报名标题 · English'],
     ['Registration Intro · 中文', '报名简介 · 中文'], ['Registration Intro · English', '报名简介 · English'],
@@ -405,7 +405,7 @@
      '员工从 CMS 复制、发送给家长的文案。占位符会按学员自动替换：{student} {studio} {balance} {credits} {fee} {note}'],
     ['Light and dark are designed as a pair; both are checked for contrast.',
      '明暗为成对设计，两种模式都已通过对比度检查。'],
-    ['Messages', '家长话术'], ['Family messages', '家长话术'],
+    ['Messages', '家长话术'], 
     ['Owner-managed copy templates used by staff during admissions and daily follow-up. Staff copy them from the CMS; this page does not send email or SMS.',
      '负责人维护的招生与日常跟进话术。员工在 CMS 中复制使用；此页面不会发送邮件或短信。'],
     ['Placeholders are filled in per student: {student} {studio} {balance} {credits} {fee} {note}',
@@ -462,8 +462,8 @@
     ['Registrations submitted', '已提交报名'], ['Campaign summary', '推广来源汇总'],
     ['30 days', '30 天'], ['7 days', '7 天'], ['90 days', '90 天'],
     ['Check the published website, operational CMS, alternate registration entry, and this brand workspace', '检查已发布官网、运营 CMS、独立报名入口与本品牌工作区'],
-    ['Open Website', '打开官网'], ['Open CMS', '打开运营 CMS'], ['Open Quick Registration', '打开快速报名'],
-    ['Open Studio Admin', '打开工作室管理'], ['Studio Website', '工作室官网'], ['Quick Registration', '快速报名'],
+    ['Open Website', '打开官网'], ['Open CMS', '打开运营 CMS'], 
+     ['Studio Website', '工作室官网'], ['Quick Registration', '快速报名'],
     ['CMS', '运营 CMS'], ['This website and brand workspace.', '当前官网与品牌管理工作区。'],
     ['The daily operations workspace for students, schedules, check-ins, payments, refunds, logs, and portfolio work.', '用于学员、排课、签到、收费退款、日志与作品管理的日常运营工作区。'],
     ['The tenant-specific lead capture page. Its labels, intro copy, and preferences are controlled above.', '本工作室专属获客报名页；标签、介绍和偏好问题由上方设置控制。'],
@@ -488,7 +488,7 @@
     ['Website settings', '官网设置'],
     ['Analytics period', '统计周期'],
     ['Live website preview', '官网实时预览'],
-    ['Close dialog', '关闭对话框'],
+    
     ['Public brand slogan', '对外品牌标语'],
     ['Studio address', '工作室地址'],
     ['Welcome text shown above the website and register page', '显示在官网与报名页顶部的欢迎语'],
@@ -536,7 +536,7 @@
     ['Student limit must be a positive integer.', '学员额度必须是正整数。'],
     ['User limit must be a positive integer.', '用户额度必须是正整数。'],
     ['Storage limit must be positive.', '存储额度必须大于 0。'],
-    ['Ready', '就绪'], ['Loading', '正在载入'], ['Partial load', '部分载入'],
+     ['Loading', '正在载入'], ['Partial load', '部分载入'],
     ['Error', '错误'], ['Not refreshed', '尚未刷新'], ['Retry', '重试'],
     ['Subscription past due', '订阅已逾期'], ['Subscription Past Due', '订阅已逾期'],
     ['Subscription record needs review.', '订阅记录需要检查。'], ['Usage approaching limit', '用量接近上限'],
@@ -581,7 +581,7 @@
     ['Healthy', '状态良好'], ['Needs setup', '待完善设置'],
     ['Test fixture', '测试数据'], ['TEST FIXTURE', '测试数据'],
     ['No admin login', '无管理员登录'], ['Needs owner', '待指定负责人'],
-    ['Paused', '已暂停'], ['Archived', '已归档'],
+    ['Paused', '已暂停'], 
     ['Onboarding Checklist', '启用清单'], ['Risk / Setup', '风险与待办'],
     ['Quick Links', '快捷链接'], ['Health', '健康状态'],
     /* Tenant detail tabs. The view was one flat wall of cards with seven
@@ -616,7 +616,7 @@
     ['Applying…', '执行中…'],
     ['Subscription dates are unavailable. Refresh and try again.', '订阅日期数据不可用，请刷新后重试。'],
     ['Subscription start', '订阅开始'], ['Trial end', '试用结束'],
-    ['Current period end', '当前周期结束'], ['Cancellation / expiry', '取消或到期'],
+    ['Current period end', '当前周期结束'], 
     ['A trialing subscription needs a trial end date.', '试用中的订阅必须填写试用结束日。'],
     ['A cancelled subscription needs a cancellation date.', '已取消的订阅必须填写取消日期。'],
     /* Derived status: shown as a badge with the audited route beside it,
@@ -631,7 +631,7 @@
     ['Trial end is before the subscription start.', '试用结束早于订阅开始。'],
     ['Current period end is before the subscription start.', '当前周期结束早于订阅开始。'],
     ['Cancellation / expiry is before the subscription start.', '取消或到期日早于订阅开始。'],
-    ['Saving…', '保存中…'],
+    
     /* Plan editor: entitlements grouped by who feels them, publication first. */
     ['What the studio can publish', '工作室可以公开什么'],
     ['What the studio can send and take away', '工作室可以发送和带走什么'],
@@ -668,9 +668,9 @@
     ['Surfaces disabled', '入口已停用'], ['Register paused', '报名已暂停'],
     ['Disabled', '已停用'], ['Limited', '受限'], ['Enabled', '已启用'],
     ['Tenant:', '工作室：'], ['Subscription:', '订阅：'], ['Access:', '访问：'],
-    ['View', '查看'], ['View Details', '查看详情'], ['Edit Tenant', '编辑工作室'],
-    ['Manage', '管理'], ['Open', '打开'], ['Support Mode', '支持模式'],
-    ['Enter Support Mode', '进入支持模式'], ['Restore Tenant', '恢复工作室'],
+     ['View Details', '查看详情'], ['Edit Tenant', '编辑工作室'],
+      ['Support Mode', '支持模式'],
+     ['Restore Tenant', '恢复工作室'],
     ['Pause Tenant', '暂停工作室'], ['Reactivate Tenant', '重新启用工作室'],
     ['Permanent Delete Tenant', '永久删除工作室'],
     ['Permanent Delete is available only after the tenant is archived.', '永久删除仅在工作室归档后可用。'],
@@ -678,8 +678,8 @@
     ['Archived or deleted tenants cannot be supported.', '已归档或已删除的工作室无法进入支持模式。'],
     ['Registration is unavailable for paused, archived, or deleted tenants.', '已暂停、已归档或已删除的工作室不可报名。'],
     ['Studio Admin login is not configured.', '尚未配置工作室管理员登录。'],
-    ['Open Studio Website', '打开工作室官网'], ['Portal', '官网'], ['Register', '报名'], ['Admin', '管理'],
-    ['Add Plan', '新增套餐'], ['Edit Plan', '编辑套餐'], ['Delete Plan', '删除套餐'],
+     ['Portal', '官网'], ['Register', '报名'], ['Admin', '管理'],
+     ['Edit Plan', '编辑套餐'], 
     ['? Public tenant pages stay present, but the tenant will be marked paused for operations and billing review.',
      '？公开页面会保留，但该工作室将被标记为暂停，用于运营与账单审查。'],
     ['? This restores active tenant status and subscription state.', '？这会恢复工作室的正常状态与订阅状态。'],
@@ -705,9 +705,9 @@
     // Round 2 (2026-07-27, live-walkthrough fixes): plans table quota lines,
     // plan row actions, tenant detail quick links, support-gated navigation,
     // and audit timestamp formatting.
-    ['Edit', '编辑'], ['trialing', '试用中'],
+     ['trialing', '试用中'],
     ['Studio CMS', '运营 CMS'], ['Brand Workspace', '品牌工作区'],
-    ['Studio Admin Login', '工作室管理员登录'],
+    
     ['Public registration', '公开报名'], ['Student portfolio', '学员作品集'],
     ['Email templates', '邮件模板'], ['Data export', '数据导出'],
     ['Priority support', '优先支持'],
@@ -851,15 +851,13 @@
     ["Discard unsaved changes?", "放弃未保存的修改？"]
   ]);
 
-  const originalText = new WeakMap();
-  const renderedText = new WeakMap();
-  const originalAttributes = new WeakMap();
-  let language = localStorage.getItem('studiosaas_admin_language') === 'en' ? 'en' : 'zh';
-  let observer;
+  /* ── Engine handoff ─────────────────────────────────────────────
+   * v10.11.0: the rendering engine moved to i18n-runtime.js — one engine for
+   * the CMS and both consoles. This file keeps the consoles' own things: the
+   * en→zh dictionary above, the sentence rules, and the `*En` placeholder
+   * policy below. */
 
-  function translate(value) {
-    const clean = String(value || '').replace(/\s+/g, ' ').trim();
-    if (!clean || language === 'en') return clean;
+  function translateCore(clean) {
     if (zh[clean]) return zh[clean];
     const rules = [
       // Super Admin dynamic strings (audit U7). Specific patterns come first
@@ -918,36 +916,6 @@
     return clean;
   }
 
-  function isIgnored(node) {
-    if (!node.parentElement) return true;
-    if (/^(SCRIPT|STYLE|CODE|PRE|TEXTAREA)$/.test(node.parentElement.tagName)) return true;
-    /* data-no-translate marks text that is already in its final language: the
-       language switch itself, and content the page localised on its own. The
-       industry cards print the Chinese name with the English one beneath it, and
-       without this the dictionary turned "Language" into 语言 — so the card read
-       「语言 / 语言」. */
-    return Boolean(node.parentElement.closest('[data-admin-language-switch],[data-no-translate]'));
-  }
-
-  function applyText(node) {
-    if (isIgnored(node)) return;
-    const current = node.nodeValue;
-    if (!originalText.has(node) || (renderedText.has(node) && current !== renderedText.get(node))) {
-      originalText.set(node, current);
-    }
-    const source = originalText.get(node);
-    const clean = String(source).replace(/\s+/g, ' ').trim();
-    const leading = (String(source).match(/^\s*/) || [''])[0];
-    const trailing = (String(source).match(/\s*$/) || [''])[0];
-    const next = language === 'zh' && clean ? `${leading}${translate(clean)}${trailing}` : source;
-    if (current !== next) {
-      renderedText.set(node, next);
-      node.nodeValue = next;
-    } else {
-      renderedText.set(node, current);
-    }
-  }
-
   /* An English-half field's placeholder is a sample of the CONTENT, not a
      label on the interface — so it must stay English even when the console is
      in Chinese. Until v8.7.0 it did not: "Founder & Principal" under
@@ -968,65 +936,6 @@
     if (attr !== 'placeholder') return false;
     return element.hasAttribute('data-i18n-lock')
       || CONTENT_SAMPLE_FIELD.test(element.id || '');
-  }
-
-  function applyAttributes(element) {
-    if (!originalAttributes.has(element)) originalAttributes.set(element, {});
-    const originals = originalAttributes.get(element);
-    for (const attr of ['placeholder', 'title', 'aria-label']) {
-      if (!element.hasAttribute(attr)) continue;
-      if (keepsItsOwnLanguage(element, attr)) continue;
-      const current = element.getAttribute(attr);
-      if (!(attr in originals) || current !== (element.dataset[`i18nRendered${attr.replace('-', '')}`] || originals[attr])) originals[attr] = current;
-      const next = language === 'zh' ? translate(originals[attr]) : originals[attr];
-      if (current !== next) element.setAttribute(attr, next);
-      element.dataset[`i18nRendered${attr.replace('-', '')}`] = next;
-    }
-  }
-
-  function localise(root) {
-    if (!root) return;
-    if (root.nodeType === Node.TEXT_NODE) return applyText(root);
-    if (![Node.ELEMENT_NODE, Node.DOCUMENT_NODE, Node.DOCUMENT_FRAGMENT_NODE].includes(root.nodeType)) return;
-    if (root.nodeType === Node.ELEMENT_NODE) applyAttributes(root);
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-    let node;
-    while ((node = walker.nextNode())) applyText(node);
-    if (root.querySelectorAll) root.querySelectorAll('[placeholder],[title],[aria-label]').forEach(applyAttributes);
-  }
-
-  function updateSwitch() {
-    document.querySelectorAll('[data-admin-language]').forEach((button) => {
-      const active = button.dataset.adminLanguage === language;
-      button.classList.toggle('active', active);
-      button.setAttribute('aria-pressed', String(active));
-    });
-  }
-
-  function setLanguage(next) {
-    language = next === 'en' ? 'en' : 'zh';
-    localStorage.setItem('studiosaas_admin_language', language);
-    document.documentElement.lang = language === 'zh' ? 'zh-CN' : 'en';
-    localise(document);
-    updateSwitch();
-    document.dispatchEvent(new CustomEvent('studiosaas:admin-language', {detail: {language}}));
-  }
-
-  function installSwitch() {
-    if (document.querySelector('[data-admin-language-switch]')) return;
-    const holder = document.createElement('div');
-    holder.dataset.adminLanguageSwitch = '';
-    holder.className = 'admin-language-switch';
-    holder.setAttribute('role', 'group');
-    holder.setAttribute('aria-label', 'Language / 语言');
-    holder.innerHTML = '<button type="button" data-admin-language="zh">中文</button><button type="button" data-admin-language="en">English</button>';
-    const host = document.querySelector('.header-actions') || document.body;
-    host.insertBefore(holder, host.firstChild);
-    holder.addEventListener('click', (event) => {
-      const button = event.target.closest('[data-admin-language]');
-      if (button) setLanguage(button.dataset.adminLanguage);
-    });
-    updateSwitch();
   }
 
   /* Two fixed values survived the move to tokens and both are contrast pairs:
@@ -1051,50 +960,28 @@
    * the token one layer up rather than at a literal, so a missing token
    * degrades to another token and finally to a neutral that belongs to no
    * palette in particular. */
-  function installStyles() {
-    const style = document.createElement('style');
-    style.textContent = '.admin-language-switch{display:inline-flex;align-items:center;gap:3px;padding:5px;border:1px solid var(--line,var(--ui-border));border-radius:999px;background:var(--panel,var(--ui-surface));white-space:nowrap}.admin-language-switch button{border:0;background:transparent;color:var(--muted,var(--ui-muted));padding:6px 10px;border-radius:999px;font:inherit;font-size:13px;font-weight:800;cursor:pointer;min-height:44px}.admin-language-switch button.active{background:var(--accent,var(--brand-accent));color:var(--on-accent,var(--brand-on-accent))}.admin-language-switch button:focus-visible{outline:2px solid var(--focus-ring,var(--accent,var(--brand-accent)));outline-offset:2px}';
-    document.head.appendChild(style);
-  }
+  const SWITCH_STYLE = '.admin-language-switch{display:inline-flex;align-items:center;gap:3px;padding:5px;border:1px solid var(--line,var(--ui-border));border-radius:999px;background:var(--panel,var(--ui-surface));white-space:nowrap}.admin-language-switch button{border:0;background:transparent;color:var(--muted,var(--ui-muted));padding:6px 10px;border-radius:999px;font:inherit;font-size:13px;font-weight:800;cursor:pointer;min-height:44px}.admin-language-switch button.active{background:var(--accent,var(--brand-accent));color:var(--on-accent,var(--brand-on-accent))}.admin-language-switch button:focus-visible{outline:2px solid var(--focus-ring,var(--accent,var(--brand-accent)));outline-offset:2px}';
 
-  function wrapDialogs() {
-    const nativeAlert = window.alert.bind(window);
-    const nativeConfirm = window.confirm.bind(window);
-    const nativePrompt = window.prompt.bind(window);
-    window.alert = (message) => nativeAlert(language === 'zh' ? translate(message) : message);
-    window.confirm = (message) => nativeConfirm(language === 'zh' ? translate(message) : message);
-    window.prompt = (message, value) => nativePrompt(language === 'zh' ? translate(message) : message, value);
+  if (!window.StudioI18n) {
+    /* Fail open, loudly: the consoles stay readable in English. */
+    console.error('[admin-i18n] i18n-runtime.js is missing; the language switch is unavailable.');
+    return;
   }
-
-  function start() {
-    installStyles();
-    installSwitch();
-    wrapDialogs();
-    setLanguage(language);
-    observer = new MutationObserver((mutations) => {
-      for (const mutation of mutations) {
-        if (mutation.type === 'characterData') {
-          if (renderedText.get(mutation.target) === mutation.target.nodeValue) continue;
-          applyText(mutation.target);
-        }
-        /* A mounted element keeps its identity while the console rewrites
-           its label — the tenant rows re-announce `View <tenant>` on every
-           refresh. Without this branch those values were localised once, at
-           insertion, and every later one stayed English for screen readers. */
-        if (mutation.type === 'attributes') applyAttributes(mutation.target);
-        mutation.addedNodes.forEach(localise);
-      }
-      updateSwitch();
-    });
-    observer.observe(document.body, {
-      subtree: true, childList: true, characterData: true,
-      /* Filtered on purpose: applyAttributes stamps its result in a data-
-         attribute, and an unfiltered watch would call itself back forever. */
-      attributes: true, attributeFilter: ['placeholder', 'title', 'aria-label'],
-    });
-  }
-
-  window.AdminI18n = {get language() { return language; }, setLanguage, translate: (value) => language === 'zh' ? translate(value) : value, localise};
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, {once: true});
-  else start();
+  window.StudioI18n.mount({
+    globalName: 'AdminI18n',
+    targetLanguage: 'zh',
+    translateCore,
+    prefix: 'admin-language',
+    switchClass: 'admin-language-switch',
+    switchButtons: [['zh', '中文'], ['en', 'English']],
+    placeSwitch: (holder) => {
+      const host = document.querySelector('.header-actions') || document.body;
+      host.insertBefore(holder, host.firstChild);
+    },
+    ignoreSelector: '[data-no-translate]',
+    attrKeepsOwnLanguage: keepsItsOwnLanguage,
+    styleText: SWITCH_STYLE,
+    wrapNativeDialogs: true,
+    eventName: 'studiosaas:admin-language',
+  });
 })();

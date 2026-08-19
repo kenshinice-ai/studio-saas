@@ -1,10 +1,10 @@
 {
   "algorithm": "sha256",
   "assets": {
-    "admin-i18n.js": "faa6f4445278e11cf9c5f65f5521f56174ede9be035c48a74a25fc07464ef0a4",
+    "admin-i18n.js": "f66957bfa25aba25297dfe5464a7883cfaae98ae1a62ced01eae8554da6aa66a",
     "brand-system.css": "150e8e2d28a00741e852a9a97c30fff6a1de2a7e5f63e320ea5c01342a2e248e",
     "cms-app.js": "2d6995d30445ae581f48af058970dc455edf9ee5c43585a8cfd67fece813307a",
-    "cms-i18n.js": "99719e2413eb9d80caf3da0cdd13e0e157bf9b3ce3e23efedbff0976b2c553f5",
+    "cms-i18n.js": "e37b4ea7f5bf54aae29e49a39285c25358b7fad347a24dd12f7c1a468282abca",
     "console-theme.css": "9491adc6e31eda5e0dc1eb514ad451831114295f7c7314a00e973a3daedebbfe",
     "customer-resources.css": "2343e5e91990a3d3ded9d2191f31d2267ac180923e3781de6e415daea3042d5a",
     "customer-resources.js": "e03eefff798e442996d32c9c76e9639474b1fe53e321bd1717e2388a4281ef1d",
@@ -13,6 +13,7 @@
     "fonts/cormorant-garamond-latin-ext.woff2": "9dc38267bdee93a653200ef3c1e8060e3f1399073432c415c683b419d3b50464",
     "fonts/cormorant-garamond-latin-italic.woff2": "e6d6d1d73858aa9b66f3a3539f9dec22faab2276e61ad1d813bc04dd59c9c122",
     "fonts/cormorant-garamond-latin.woff2": "5d618c462b7a5b74f442e1548880086af71764d9cc7d35c16ab45353da934621",
+    "i18n-runtime.js": "25cb4b33fd61170d7246bc8e5029522aaad09f700ebcb1ca43d1458c3ec48fa6",
     "manual.css": "bf4b9916c0d69ac8030cdde41f8c4ab09d90afe150deb8e3cdbf6010cb423d5b",
     "manual.js": "0ad590b9407043c53f51253126c2ba9e1ca5707dc6df0fe5778c59a26cb6cfc3",
     "manual/01-admissions-messages.en.webp": "a4b0a125df8ed66a70ef49805e9076d2d4f6a8ea31f212954df1c65d1606f89f",
