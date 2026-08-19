@@ -58,8 +58,22 @@ per-tenant token 加密存储 + 自动 refresh；先只接 Xero Demo Company；�
 - 根因：Xero scope 换代。**2026-03-02 之后创建的应用只拿得到细粒度 scope**，
   应用配置页的可用清单里没有宽 scope `accounting.transactions`，authorize 端点直接拒绝。
   （Luna Max 执行清单 130 行早有此警告，X2 实现时未遵循，此处偿还。）
-- 修复：`xero_oauth.py` SCOPES 改为
-  `openid profile email app.connections accounting.invoices accounting.payments
-  accounting.contacts accounting.settings.read offline_access`
-  ——`app.connections` 供 finish_connect 查组织；invoice/payment/contact/settings.read
-  为 X3 推送面一次授权到位，免得 X3 上线时全体租户重新授权。
+- 第一次修复（v10.9.3）：SCOPES 改为含 `app.connections` + `accounting.settings.read`
+  的细粒度集——线上实测仍被拒，错误变为 `access_denied: Requested wrong apps scopes`。
+- 线上二分（v10.9.3 部署后，用 connect-url 改写 scope 参数逐组试）：
+  - `openid profile email` → 到达授权页 ✔（身份 scope 无问题）
+  - `… + accounting.invoices` → 到达组织选择授权页 ✔
+  - `… + accounting.payments accounting.contacts offline_access` → 授权页 ✔
+  - 任何含 `app.connections` 或 `accounting.settings.read` 的组合 → 被拒。
+  结论：这两个 scope 虽出现在应用 Configuration 的清单里，但 authorize 端点不放行
+  （Starter plan Web app）。`GET /connections` 实测**无需** `app.connections`。
+- 终稿（v10.9.4）：SCOPES =
+  `openid profile email accounting.invoices accounting.payments accounting.contacts offline_access`。
+- 生产验收（2026-08-19，Demo Company (AU)，Lee 授权的登录会话）：
+  - 连接 ✔：授权页选 Demo Company (AU) → Allow → 回调落库 →
+    卡片「已连接 Xero · Demo Company (AU)，连接于 2026-08-19」；组织名来自
+    /connections，证明无 app.connections 也可用。取消分支 ✔（Cancel → 回集成页带原因）。
+  - 自愈 ✔：「测试令牌自愈」refresh-check 200，状态保持已连接（真实令牌通路）。
+  - 断开重连：随 v10.9.4 收口（按钮需带终稿 scope 才能重连）。
+  - 纪律注：授权下拉里同时出现 PWE GROUP PTY LTD（真实公司）——测试永远只选
+    Demo Company (AU)。

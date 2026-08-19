@@ -54,6 +54,13 @@
   <p data-lang="zh">以下内容均属于已发布的产品版本。每一条都是交付依据，不是路线图承诺。</p>
   <div class="grid">
     <article class="card">
+      <strong data-lang="en">v10.9.4 — the first successful Xero connection: scopes finalised</strong><strong data-lang="zh">v10.9.4 —— Xero 首个成功连接：scope 终稿</strong>
+      <p data-lang="en">The v10.9.3 scope set was still refused at Xero's consent page. Live bisection located the two offenders — app.connections and accounting.settings.read appear in the app's own configuration list but the authorize endpoint refuses them for this app class. The final set (invoices, payments, contacts, identity, offline access) reaches consent, connects, and covers the whole later document-push surface in one grant.</p>
+      <p data-lang="zh">v10.9.3 的 scope 集在 Xero 授权页仍被拒。线上逐组二分找到了两个元凶——app.connections 与 accounting.settings.read 虽在应用自己的配置清单里，authorize 端点却对本类应用不放行。终稿集（invoices、payments、contacts、身份、offline access）能到达授权页并完成连接，且一次授权覆盖后续单据推送全部所需。</p>
+      <p data-lang="en">Accepted live against the Xero Demo Company (AU): connect, cancel branch, and token self-heal all verified; the organisation name on the connected card is fetched without app.connections, proving that scope was never needed.</p>
+      <p data-lang="zh">已对 Xero Demo Company (AU) 实测验收：连接、取消分支、令牌自愈全部通过；已连接卡片上的组织名在没有 app.connections 的情况下取回，证明该 scope 本就不需要。</p>
+    </article>
+    <article class="card">
       <strong data-lang="en">v10.9.3 — Xero authorisation on the new scope scheme, and interface-language purity</strong><strong data-lang="zh">v10.9.3 —— Xero 授权按新版 scope 规范接入 + 界面语言纯净度</strong>
       <p data-lang="en">Xero apps created after March 2026 only accept the new granular scopes — the old broad scope was refused at the consent page before it ever appeared. The connection flow now requests the minimal granular set (invoices, payments, contacts, read-only settings, connections), granted once so the later document-push stage will not ask every studio to reconsent. The connection still pushes no accounting data.</p>
       <p data-lang="zh">2026 年 3 月之后创建的 Xero 应用只接受新版细粒度 scope——旧的宽 scope 在授权页出现之前就会被拒。连接流程改为请求细粒度最小集（invoices、payments、contacts、settings 只读、connections），一次授权到位，后续单据推送阶段无需全体重新授权。连接本身仍不推送任何单据数据。</p>

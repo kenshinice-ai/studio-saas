@@ -1,4 +1,4 @@
-# PWE Studio v10.9.3 — Handoff 索引（2026-08-16 起按 AI 分目录）
+# PWE Studio v10.9.4 — Handoff 索引（2026-08-16 起按 AI 分目录）
 
 > 首标题始终点名当前版本 —— `test_release_ledger.py` 据此机器强制「索引不过期」；
 > 每次发布随四层身份表一起更新。
@@ -27,15 +27,17 @@
 
 ## 最新轮次
 
-- **2026-08-19（Claude Fable）v10.9.3 —— Xero invalid_scope 根因修复 + 压队修复合并发布**：
+- **2026-08-19（Claude Fable）v10.9.3+v10.9.4 —— Xero 连接打通（invalid_scope →
+  wrong apps scopes → 首个成功连接）**：
   `docs/handoff/claude/2026-08-17-xero-x2-round.md`（2026-08-19 更正节）
-  —— 生产实测 `invalid_scope` 根因是 Xero scope 换代（2026-03-02 后创建的应用
-  只拿细粒度 scope，宽 scope `accounting.transactions` 被 authorize 端点拒绝；
-  应用类型/redirect/secret 三查无误）。SCOPES 改为
-  `openid profile email app.connections accounting.invoices accounting.payments
-  accounting.contacts accounting.settings.read offline_access`。
-  本次发布同时携带下方四轮「未部署」修复（0046 套餐上限、字段类型下拉、
-  CMS 与 admin i18n、手册截图/路演材料）。四层身份表随部署闭环更新。
+  —— v10.9.3：`invalid_scope` 根因是 Xero scope 换代（2026-03-02 后创建的应用只拿
+  细粒度 scope），改细粒度集并携带四轮压队修复（0046 套餐上限、字段类型下拉、
+  CMS 与 admin i18n、手册截图/路演材料）一并发布。
+  v10.9.4：细粒度集仍被拒（`Requested wrong apps scopes`），线上二分定位
+  `app.connections` 与 `accounting.settings.read` 不被 authorize 放行，终稿
+  `openid profile email accounting.invoices accounting.payments accounting.contacts
+  offline_access`；Demo Company (AU) 连接 ✔ / 取消 ✔ / 自愈 ✔，断开重连随 v10.9.4 收口。
+  四层身份表随部署闭环更新。
 
 - **2026-08-19（Claude Fable）两处漂移按线上对齐**：
   `docs/handoff/claude/2026-08-19-two-drifts-aligned.md`

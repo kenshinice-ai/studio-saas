@@ -48,13 +48,16 @@ CONNECTIONS_URL = "https://api.xero.com/connections"
 DEFAULT_REDIRECT = "https://pwestudio.online/xero/callback"
 # Granular scopes only: apps created after 2 March 2026 are refused the broad
 # accounting.transactions scope at the authorize endpoint (invalid_scope, seen
-# live 2026-08-19). app.connections covers GET /connections in finish_connect;
-# invoices/payments/contacts/settings.read are the X3 push surface, granted now
-# so shipping X3 does not force every studio to reconsent.
+# live 2026-08-19). Two scopes from the app's own Configuration list are ALSO
+# refused when requested ("access_denied: Requested wrong apps scopes",
+# bisected live the same day): app.connections and accounting.settings.read.
+# GET /connections works without app.connections (verified: the org name on
+# the connected card came from it), so this is the full working set — and the
+# whole X3 push surface, granted now so shipping push never forces reconsent.
 SCOPES = (
-    "openid profile email app.connections "
+    "openid profile email "
     "accounting.invoices accounting.payments accounting.contacts "
-    "accounting.settings.read offline_access"
+    "offline_access"
 )
 STATE_TTL_MINUTES = 10
 # Refresh when the access token has less than this left. Xero access tokens

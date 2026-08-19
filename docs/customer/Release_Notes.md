@@ -1,5 +1,17 @@
 # PWE Studio — Release Notes and Acceptance Evidence
 
+## v10.9.4 — Xero 首个成功连接：scope 终稿
+
+v10.9.3 的 scope 集在授权页仍被拒（`access_denied: Requested wrong apps scopes`）。
+线上逐组二分定位：`app.connections` 与 `accounting.settings.read` 虽出现在应用
+配置清单里，但 authorize 端点对本类应用不放行；其余全部可用。本版本把 scope 定稿为
+`openid profile email accounting.invoices accounting.payments accounting.contacts
+offline_access`——组织查询实测无需 `app.connections`，推送所需权限一次授权到位。
+
+验收（2026-08-19，Xero Demo Company (AU)）：连接 ✔（授权→回调→卡片显示
+「已连接 Xero · Demo Company (AU)」，组织名来自 /connections）；取消分支 ✔；
+令牌自愈 ✔（refresh-check 200，状态保持已连接）；断开→重新连接随本版本收口。
+
 ## v10.9.3 — Xero 授权按新版 scope 规范接入 + 界面语言纯净度修复
 
 Xero：2026 年 3 月之后在 Xero 创建的应用只接受新版细粒度 scope，旧的宽 scope
