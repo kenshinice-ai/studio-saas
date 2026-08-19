@@ -4712,21 +4712,30 @@
         setLoginError('Email and password are required.', !email ? $('loginEmail') : $('loginPassword'));
         return;
       }
-      await runUiAction('loginBtn', 'Logging in...', async () => {
-        try {
-          await authApi('/auth/login', { method: 'POST', body: JSON.stringify({ email, password, rememberMe: $('loginRemember').checked }) });
-        } catch (err) {
-          if (err.status === 429) throw new Error('Too many login attempts — please wait a minute and try again.');
-          if (err.status === 401) throw new Error('Invalid email or password.');
-          throw err;
-        }
+      /* Not runUiAction: that helper CATCHES internally (toast + return
+       * false), so a .catch chained on it never fires — which left a failed
+       * login with a 3-second toast and no persistent error. The login box
+       * (role=alert) is the durable, accessible feedback; render it here,
+       * the way Super Admin's login always has. */
+      const btn = $('loginBtn');
+      btn.disabled = true;
+      const originalLabel = btn.textContent;
+      btn.textContent = 'Logging in...';
+      try {
+        await authApi('/auth/login', { method: 'POST', body: JSON.stringify({ email, password, rememberMe: $('loginRemember').checked }) });
         $('loginPassword').value = '';
         showToast('Logged in.');
         await checkSession();
-      }).catch((err) => {
-        const message = err.message || 'Login failed.';
-        setLoginError(message, message === 'Invalid email or password.' ? $('loginPassword') : null);
-      });
+      } catch (err) {
+        const message = err.status === 429
+          ? 'Too many login attempts — please wait a minute and try again.'
+          : err.status === 401 ? 'Invalid email or password.' : (err.message || 'Login failed.');
+        showToast(message, 'error');
+        setLoginError(message, err.status === 401 ? $('loginPassword') : null);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalLabel;
+      }
     }
 
     (function wireLoginPwToggle() {
