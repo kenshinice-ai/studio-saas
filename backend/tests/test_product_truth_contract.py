@@ -50,16 +50,20 @@ def test_deferred_xero_has_no_explicit_live_claim_in_customer_surfaces():
         assert phrase not in visible, f"deferred Xero claim leaked into customer surface: {phrase}"
 
 
-def test_xero_status_contract_exposes_preview_transport_fields():
+def test_xero_status_contract_exposes_live_transport_fields():
     api_source = (PROJECT_ROOT / "backend/studiosaas/api_v1.py").read_text(encoding="utf-8")
-    assert xero.TRANSPORT_AVAILABLE is False
-    assert xero.INTEGRATION_STAGE == "preview"
+    # X3: the transport exists, and the API must keep saying so explicitly —
+    # the stage and the switch stay separate facts the UI renders honestly.
+    assert xero.TRANSPORT_AVAILABLE is True
+    assert xero.INTEGRATION_STAGE == "live"
     assert '"integrationStage": _xero.INTEGRATION_STAGE' in api_source
     assert '"transportAvailable": status.transport_available' in api_source
 
 
-def test_customer_docs_call_xero_preview_not_active_integration():
+def test_customer_docs_describe_xero_as_gated_one_way_push():
     faq = (PROJECT_ROOT / "docs/customer/FAQ.md").read_text(encoding="utf-8").lower()
     runbook = (PROJECT_ROOT / "docs/customer/Demo_Runbook.md").read_text(encoding="utf-8").lower()
-    assert "preview" in faq and "no data is sent to xero" in faq
-    assert "preview-only" in runbook and "no data is sent to xero" in runbook
+    # The honest claims after X3: pushing exists, is one-way, and is OFF
+    # until the studio itself walks the gate. Nothing about reading back.
+    assert "one-way push" in faq and "no data is sent to xero" in faq
+    assert "demo company" in runbook and "no data is sent to xero" in runbook

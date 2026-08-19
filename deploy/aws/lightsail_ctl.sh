@@ -120,9 +120,12 @@ dc() {
 
 usage() {
   cat <<'EOF'
-Usage: deploy/aws/lightsail_ctl.sh <up|status|logs|backup|prune|restore-dry-run|stop-app>
+Usage: deploy/aws/lightsail_ctl.sh <up|status|logs|backup|prune|restore-dry-run|stop-app|exec-app>
 
   up        Build/start PostgreSQL and the application.
+  exec-app <cmd...>
+            Run a command inside the app container (bounded app env).
+            Used by the Xero push timer; also handy for one-off scripts.
   status    Show containers and require deep application health.
   logs      Print the latest bounded app/database logs.
   backup    Back up PostgreSQL plus persistent media/data/archive volumes.
@@ -317,6 +320,14 @@ case "${1:-}" in
 
   stop-app)
     dc stop app
+    ;;
+  exec-app)
+    # Run a command inside the app container with the app's own (bounded)
+    # environment — the Xero push timer's entry point. Kept here so systemd
+    # units never encode the compose project/file/profile set themselves.
+    shift
+    [ $# -gt 0 ] || die "exec-app needs a command"
+    dc exec -T app "$@"
     ;;
   -h|--help|"")
     usage

@@ -73,6 +73,7 @@ from .services import scheduling as _scheduling
 from .services import reports as _reports
 from .services import teaching_pay as _teaching_pay
 from .services import xero as _xero
+from .services import xero_transport as _xero_transport
 from . import palette
 from . import video_embed
 from .presets import (
@@ -14354,6 +14355,12 @@ def billing_void_invoice(invoice_id: str):
             resource_id=invoice_id,
             metadata={"reason": reason},
         )
+        # X3: a void must reach the ledger too. Distinct revision, so the
+        # original push job (already 'sent') does not swallow this one.
+        _xero.enqueue(
+            conn, tenant.tenant_id,
+            local_kind="invoice", local_id=invoice_id, revision="void",
+        )
         conn.commit()
     return jsonify({"ok": True})
 
@@ -15029,7 +15036,32 @@ def xero_gate():
             if step == "confirm_mapping":
                 _xero.confirm_mapping(conn, tenant.tenant_id)
             elif step == "demo_run":
-                _xero.record_demo_run(conn, tenant.tenant_id)
+                # X3: the demo run is a real act now — backfill, drain,
+                # reconcile against the connected (demo) organisation, and
+                # record completion only when the report comes back clean.
+                report = _xero_transport.run_demo_cycle(conn, tenant.tenant_id)
+                if report["clean"]:
+                    _xero.record_demo_run(conn, tenant.tenant_id)
+                _audit_request(
+                    conn,
+                    tenant_id=tenant.tenant_id,
+                    action="xero.demo_run",
+                    resource_type="xero_sync_settings",
+                    resource_id=tenant.tenant_id,
+                    metadata={"pushed": report["pushed"], "failed": report["failed"],
+                              "diffCount": report["reconciliation"]["diffCount"],
+                              "clean": report["clean"]},
+                )
+                conn.commit()
+                status = _xero.gate_status(conn, tenant.tenant_id)
+                return jsonify({
+                    "ok": report["clean"],
+                    "demoRun": report,
+                    "transportAvailable": status.transport_available,
+                    "pushEnabled": status.push_enabled,
+                    "canEnablePush": status.can_enable,
+                    "blockers": status.blockers(),
+                })
             elif step == "enable_push":
                 _xero.set_push_enabled(conn, tenant.tenant_id, True)
             elif step == "disable_push":
@@ -15038,7 +15070,7 @@ def xero_gate():
                 return _error(f"Unknown step: {step}")
         except _entitlements.FeatureUnavailableError as exc:
             return _feature_error(exc)
-        except _xero.XeroError as exc:
+        except (_xero.XeroError, _xero_transport.TransportError) as exc:
             conn.rollback()
             return _error(str(exc), 409)
 
@@ -15084,6 +15116,118 @@ def xero_replay(job_id: str):
         _xero.replay(conn, tenant.tenant_id, job_id)
         conn.commit()
     return jsonify({"ok": True})
+
+
+@api_v1.route("/integrations/xero/push-now", methods=["POST"])
+@permission_required("integrations:manage")
+def xero_push_now():
+    """Drain this tenant's due queue right now, in the request.
+
+    The systemd timer is the normal engine; this button exists so an
+    operator watching the queue never has to wait for a tick to learn
+    whether a fix worked. Bounded, and every outcome is returned.
+    """
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        try:
+            _require_feature(conn, tenant.tenant_id, _entitlements.FEATURE_XERO)
+            result = _xero_transport.drain(conn, tenant.tenant_id, limit=20)
+            # Payments defer while their invoice's id is still landing; a
+            # second pass inside the same click clears them.
+            if result["deferred"]:
+                second = _xero_transport.drain(conn, tenant.tenant_id, limit=20)
+                for key in ("processed", "sent", "failed", "deferred"):
+                    result[key] = result[key] + second[key] if key != "deferred" else second[key]
+                result["jobs"] += second["jobs"]
+        except _entitlements.FeatureUnavailableError as exc:
+            conn.rollback()
+            return _feature_error(exc)
+        except _xero_transport.TransportError as exc:
+            conn.rollback()
+            return _error(str(exc), 409)
+        conn.commit()
+    return jsonify({"ok": True, **result})
+
+
+@api_v1.route("/integrations/xero/backfill", methods=["POST"])
+@permission_required("integrations:manage")
+def xero_backfill():
+    """Queue every issued document the current organisation has never seen."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        try:
+            _require_feature(conn, tenant.tenant_id, _entitlements.FEATURE_XERO)
+            counts = _xero_transport.backfill(conn, tenant.tenant_id)
+        except _entitlements.FeatureUnavailableError as exc:
+            conn.rollback()
+            return _feature_error(exc)
+        except _xero_transport.TransportError as exc:
+            conn.rollback()
+            return _error(str(exc), 409)
+        _audit_request(
+            conn,
+            tenant_id=tenant.tenant_id,
+            action="xero.backfill",
+            resource_type="integration_sync_jobs",
+            resource_id=tenant.tenant_id,
+            metadata=counts,
+        )
+        conn.commit()
+    return jsonify({"ok": True, "queued": counts})
+
+
+@api_v1.route("/integrations/xero/reconciliation", methods=["GET"])
+@permission_required("billing:read")
+def xero_reconciliation():
+    """Live read-back of every pushed document, compared in cents.
+
+    Slow by design (one GET per document) and honest by design: the exit
+    criterion for pushing at all is that this reports zero differences.
+    """
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        try:
+            report = _xero_transport.reconcile(conn, tenant.tenant_id)
+        except _xero_transport.TransportError as exc:
+            return _error(str(exc), 409)
+        conn.commit()
+    return jsonify({"ok": True, **report})
+
+
+@api_v1.route("/integrations/xero/queue", methods=["GET"])
+@permission_required("billing:read")
+def xero_queue():
+    """The queue as the studio sees it: due, waiting, failed, recently sent."""
+
+    with connect() as conn:
+        tenant = _tenant_context(conn)
+        rows = fetch_all(
+            conn,
+            """
+            SELECT id, local_kind, local_id, status, attempts, last_error,
+                   queued_at, next_attempt_at, completed_at
+            FROM integration_sync_jobs
+            WHERE tenant_id = %s
+            ORDER BY CASE status WHEN 'failed' THEN 0 WHEN 'queued' THEN 1 ELSE 2 END,
+                     queued_at DESC
+            LIMIT 100
+            """,
+            (tenant.tenant_id,),
+        )
+        pending = fetch_one(
+            conn,
+            """
+            SELECT count(*) FILTER (WHERE status = 'queued') AS queued,
+                   count(*) FILTER (WHERE status = 'failed') AS failed,
+                   count(*) FILTER (WHERE status = 'sent') AS sent
+            FROM integration_sync_jobs WHERE tenant_id = %s
+            """,
+            (tenant.tenant_id,),
+        )
+    return jsonify({"jobs": rows, "counts": pending or {}})
 
 
 # ── calendar subscriptions ───────────────────────────────────────────────

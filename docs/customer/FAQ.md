@@ -44,7 +44,7 @@ Per-studio custom domains are deferred. Every studio is reached today as a path 
 
 ## Which integrations are included?
 
-The current release includes CSV/Excel templates and exports, ICS calendar export, and device-native Mail/Messages links. Xero is a **Preview** only: its mapping and gate preparation records are visible, but there is no provider transport and no data is sent to Xero. Stripe, Google/Outlook Calendar APIs and webhooks are documented extension points, not active integrations unless a signed order specifically includes implementation and acceptance.
+The current release includes CSV/Excel templates and exports, ICS calendar export, and device-native Mail/Messages links. Xero is a gated one-way push (an add-on): issued invoices, credit notes and recorded payments are queued into your own Xero organisation after the studio connects it, confirms the account mapping, completes a trial run against the Xero Demo Company, and switches pushing on — until that switch is on, no data is sent to Xero, and nothing is ever read back or edited from Xero. Stripe, Google/Outlook Calendar APIs and webhooks are documented extension points, not active integrations unless a signed order specifically includes implementation and acceptance.
 
 ## What happens if we cancel?
 

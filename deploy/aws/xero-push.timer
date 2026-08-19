@@ -1,0 +1,13 @@
+# Every 5 minutes, plus a couple of minutes after boot. Backoff for a
+# rate-limited or unreachable Xero lives in the queue rows themselves
+# (next_attempt_at), so the cadence here can stay dumb and boring.
+[Unit]
+Description=StudioSaaS Xero push queue timer
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+RandomizedDelaySec=30
+
+[Install]
+WantedBy=timers.target

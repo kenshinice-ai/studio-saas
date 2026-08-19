@@ -41,10 +41,10 @@ from ..db import fetch_all, fetch_one
 from . import entitlements
 
 
-# The schema and gate are deliberately shipped ahead of the provider client.
-# Keep this false until OAuth, token refresh, HTTP retries, worker delivery,
-# and provider-response handling have been implemented and accepted together.
-TRANSPORT_AVAILABLE = False
+# X3 (v10.10.0): OAuth (X2), token refresh, HTTP transport with retry
+# classification, queue delivery and reconciliation all exist and are
+# accepted together — the switch the schema shipped ahead of is now on.
+TRANSPORT_AVAILABLE = True
 INTEGRATION_STAGE = "live" if TRANSPORT_AVAILABLE else "preview"
 
 
@@ -357,6 +357,16 @@ def enqueue(
     if not status.push_enabled or not status.transport_available:
         return None
 
+    if not revision:
+        # The org id is part of the key: a link only means something inside
+        # one ledger, so after reconnecting to a different organisation the
+        # same document is, for that ledger, genuinely new.
+        row = fetch_one(
+            conn,
+            "SELECT org_id FROM xero_connections WHERE tenant_id = %s",
+            (tenant_id,),
+        )
+        revision = str(row["org_id"]) if row else ""
     key = idempotency_key(tenant_id, local_kind, local_id, revision)
     with conn.cursor() as cur:
         cur.execute(

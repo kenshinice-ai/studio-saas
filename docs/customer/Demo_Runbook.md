@@ -78,7 +78,7 @@ the pages present invented people and synthetic paintings at a public address.
 
 - Do say the service is deployed on AWS — it is, since 30 July 2026. Do **not** extend that into an availability claim: there is no uptime monitoring, no backup-failure alerting, no on-call ownership and no SLA, and the backup copies still live on the same instance.
 - Do not promise automated SMS/email delivery.
-- Do not imply online payments or Xero/Stripe integration are live. Xero is a Preview-only preparation screen in v10.6.4 candidate; no data is sent to Xero.
+- Do not imply online payments or Stripe integration are live. Xero is a gated one-way push behind an add-on: until a studio connects its organisation, confirms mapping, passes the demo-company trial run and enables the switch, no data is sent to Xero. Demo against the Xero Demo Company only — never a live ledger.
 - Do not say arbitrary spreadsheets import automatically.
 - Do not claim MFA/SSO is complete.
 - Do not imply multiple campuses share one tenant.

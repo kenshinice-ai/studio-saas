@@ -208,10 +208,13 @@ def check_money_api_payload_contract(owner_a, owner_b, fixtures: dict[str, Any])
     xero_status = owner_a.get(f"{path_a}/integrations/xero")
     xero_body = xero_status.get_json() or {}
     check(
-        "Xero API states preview stage and unavailable transport",
+        # X3: the transport exists; what the contract protects now is that the
+        # API says so explicitly AND that pushing stays gated off by default.
+        "Xero API states live transport with pushing gated off by default",
         xero_status.status_code == 200
-        and xero_body.get("integrationStage") == "preview"
-        and xero_body.get("transportAvailable") is False
+        and xero_body.get("integrationStage") == "live"
+        and xero_body.get("transportAvailable") is True
+        and xero_body.get("pushEnabled") is False
         and isinstance(xero_body.get("mappings"), list)
         and isinstance(xero_body.get("settings"), dict),
         f"got {xero_status.status_code}",

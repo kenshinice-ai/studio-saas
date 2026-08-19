@@ -79,4 +79,6 @@ def test_xero_preview_mapper_rejects_live_record_reconstruction_and_no_transport
 
     with pytest.raises(xero.XeroError, match="InvoiceDocument DTO"):
         xero.prepare_document_export({"id": "live-invoice", "account_name": "Live payer"})
-    assert xero.TRANSPORT_AVAILABLE is False
+    # X3: the transport is real now; the mapper's refusal to reconstruct a
+    # live record is unchanged — pushes read the issued DTO, never raw rows.
+    assert xero.TRANSPORT_AVAILABLE is True

@@ -175,6 +175,15 @@ def allocate(
                 "payment_id": str(payment_id),
             },
         )
+
+    # X3: the allocation is Xero's unit of money-on-an-invoice, so it is the
+    # thing that queues — a split payment queues once per invoice touched.
+    # enqueue() is a no-op unless the push gate is open, and idempotent under
+    # it, so every allocation path shares this single hook.
+    from . import xero as _xero
+
+    for row in written:
+        _xero.enqueue(conn, tenant_id, local_kind="payment", local_id=str(row["id"]))
     return written
 
 

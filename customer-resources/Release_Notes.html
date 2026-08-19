@@ -54,6 +54,13 @@
   <p data-lang="zh">以下内容均属于已发布的产品版本。每一条都是交付依据，不是路线图承诺。</p>
   <div class="grid">
     <article class="card">
+      <strong data-lang="en">v10.10.0 — Xero one-way push (X3): queue, reconciliation, wizard</strong><strong data-lang="zh">v10.10.0 —— Xero 单向推送（X3）：队列、对账与向导闭环</strong>
+      <p data-lang="en">Issued invoices, credit notes and recorded payments now queue into the studio's own Xero organisation — amounts pushed in our exact cents (Xero never re-derives the tax), under local document numbers, with payments split per invoice allocation. Pushing stays off until the wizard is walked: connect, accountant-confirmed account mapping, a real trial run against the Demo Company (push everything, read everything back, zero difference required), and the single-entry question. Strictly one-way: nothing is read back or edited from Xero.</p>
+      <p data-lang="zh">已开具的发票、贷记单与收款现在按队列推入工作室自己的 Xero 组织——金额按本地分值原样推送（不让 Xero 重算税）、以本地单号入账、收款按分配拆到对应发票。开关在走完向导前保持关闭：连接、会计确认科目映射、对 Demo Company 真实试跑（全部推送并逐张读回，0 差异才算过）、回答单一入口问题。严格单向：不从 Xero 回读或回改任何本地单据。</p>
+      <p data-lang="en">Failed pushes are listed with Xero's own reason and replay under the same idempotency key — a retry can never create a second document. Rate limits and outages back off automatically; the queue drains every five minutes on the server, or on demand from the integrations page, which also offers per-document reconciliation.</p>
+      <p data-lang="zh">失败的推送带 Xero 原文原因列出，修好后一键重放且沿用同一幂等键——重试绝不会产生第二张单据。限流与故障自动退避；队列在服务器上每 5 分钟处理一次，集成页也可随时「立即推送」与「逐张对账」。</p>
+    </article>
+    <article class="card">
       <strong data-lang="en">v10.9.4 — the first successful Xero connection: scopes finalised</strong><strong data-lang="zh">v10.9.4 —— Xero 首个成功连接：scope 终稿</strong>
       <p data-lang="en">The v10.9.3 scope set was still refused at Xero's consent page. Live bisection located the two offenders — app.connections and accounting.settings.read appear in the app's own configuration list but the authorize endpoint refuses them for this app class. The final set (invoices, payments, contacts, identity, offline access) reaches consent, connects, and covers the whole later document-push surface in one grant.</p>
       <p data-lang="zh">v10.9.3 的 scope 集在 Xero 授权页仍被拒。线上逐组二分找到了两个元凶——app.connections 与 accounting.settings.read 虽在应用自己的配置清单里，authorize 端点却对本类应用不放行。终稿集（invoices、payments、contacts、身份、offline access）能到达授权页并完成连接，且一次授权覆盖后续单据推送全部所需。</p>

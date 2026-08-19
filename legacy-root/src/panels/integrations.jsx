@@ -50,11 +50,26 @@ export function IntegrationsPanel({ api, showToast, canManage }) {
   const [state, setState] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [queue, setQueue] = useState(null);
+  const [mapDraft, setMapDraft] = useState(null);
+  const [demoReport, setDemoReport] = useState(null);
+  const [reconcileReport, setReconcileReport] = useState(null);
 
   const load = useCallback(async () => {
     try {
-      setState(await api('/integrations/xero'));
+      const st = await api('/integrations/xero');
+      setState(st);
       setError('');
+      /* 映射编辑器的草稿以服务端为准初始化一次；正在编辑时不覆盖。 */
+      setMapDraft(prev => prev || Object.fromEntries(
+        (st.mappableKinds || []).map(k => {
+          const row = (st.mappings || []).find(m => m.item_kind === k) || {};
+          return [k, { accountCode: row.account_code || '', taxType: row.tax_type || '' }];
+        })
+      ));
+      if (st.transportAvailable) {
+        try { setQueue(await api('/integrations/xero/queue')); } catch { /* 队列读不动不阻塞主状态 */ }
+      }
     } catch (e) {
       /* 读路径不把设置页打挂：没开通加购只是"没买"，不是故障。 */
       setError(e.status === 403 ? '' : `集成状态加载失败：${e.message}`);
@@ -139,6 +154,72 @@ export function IntegrationsPanel({ api, showToast, canManage }) {
     }
   };
 
+  const saveMappings = async () => {
+    if (busy || !mapDraft) return;
+    setBusy(true);
+    try {
+      const mappings = Object.entries(mapDraft).map(([itemKind, v]) => ({
+        itemKind, accountCode: v.accountCode.trim(), taxType: v.taxType.trim(),
+      }));
+      await api('/integrations/xero/mappings', { method: 'PUT', body: JSON.stringify({ mappings }) });
+      showToast('映射已保存', 'success');
+      await load();
+    } catch (e) { showToast(e.message, 'warn'); } finally { setBusy(false); }
+  };
+
+  const demoRun = async () => {
+    if (busy) return;
+    setBusy(true);
+    setDemoReport(null);
+    try {
+      const r = await api('/integrations/xero/gate', { method: 'POST', body: JSON.stringify({ step: 'demo_run' }) });
+      setDemoReport(r.demoRun || null);
+      showToast(r.ok ? '试跑通过：全部推送成功，对账 0 差异' : '试跑未通过，看下方报告', r.ok ? 'success' : 'warn');
+      await load();
+    } catch (e) { showToast(e.message, 'warn'); } finally { setBusy(false); }
+  };
+
+  const pushNow = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const r = await api('/integrations/xero/push-now', { method: 'POST', body: '{}' });
+      showToast(`已处理 ${r.processed} 项：成功 ${r.sent}，失败 ${r.failed}，稍后重试 ${r.deferred}`, r.failed ? 'warn' : 'success');
+      await load();
+    } catch (e) { showToast(e.message, 'warn'); } finally { setBusy(false); }
+  };
+
+  const backfillNow = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const r = await api('/integrations/xero/backfill', { method: 'POST', body: '{}' });
+      showToast(`已排队 ${r.queued.total} 张（发票 ${r.queued.invoice} / 贷记 ${r.queued.credit_note} / 收款 ${r.queued.payment}）`, 'success');
+      await load();
+    } catch (e) { showToast(e.message, 'warn'); } finally { setBusy(false); }
+  };
+
+  const replayJob = async (jobId) => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await api(`/integrations/xero/errors/${jobId}/replay`, { method: 'POST', body: '{}' });
+      showToast('已重新入队（沿用同一幂等键）', 'success');
+      await load();
+    } catch (e) { showToast(e.message, 'warn'); } finally { setBusy(false); }
+  };
+
+  const runReconcile = async () => {
+    if (busy) return;
+    setBusy(true);
+    setReconcileReport(null);
+    try {
+      const r = await api('/integrations/xero/reconciliation');
+      setReconcileReport(r);
+      showToast(r.diffCount === 0 ? `对账通过：${r.checked} 张全部一致` : `发现 ${r.diffCount} 处差异`, r.diffCount === 0 ? 'success' : 'warn');
+    } catch (e) { showToast(e.message, 'warn'); } finally { setBusy(false); }
+  };
+
   if (error) return <p className="text-xs text-red-600">{error}</p>;
   if (!state) {
     return (
@@ -161,7 +242,7 @@ export function IntegrationsPanel({ api, showToast, canManage }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
-        <p className="text-xs font-bold">Xero 预接入（Preview）</p>
+        <p className="text-xs font-bold">{preview ? 'Xero 预接入（Preview）' : 'Xero 集成'}</p>
         <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border whitespace-nowrap
           ${preview ? 'bg-blue-50 text-blue-700 border-blue-200' : state.pushEnabled ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-100 text-gray-600 border-gray-200'}`}>
           {preview ? '预览状态 · 不发送数据' : state.pushEnabled ? '推送已开启' : '推送未开启'}
@@ -170,10 +251,16 @@ export function IntegrationsPanel({ api, showToast, canManage }) {
           <span className="text-[11px] text-gray-500">历史记录：上次推送 {fmtApiDate(s.last_pushed_at)}</span>
         )}
       </div>
-      {preview && (
+      {preview ? (
         <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-[11px] text-blue-900">
           <p className="font-bold mb-1">Xero 预接入说明</p>
           <p>可以连接 / 断开自己的 Xero 组织（建议先用 Demo Company 测试）；当前版本仍不会向 Xero 推送任何单据数据。</p>
+        </div>
+      ) : (
+        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-[11px] text-blue-900">
+          <p className="font-bold mb-1">单向推送</p>
+          <p>已开具的发票、贷记单与收款按队列推入你的 Xero 组织；不做双向同步，不从 Xero 回改任何本地单据。
+            先用 Demo Company 完成试跑，再连正式账套。</p>
         </div>
       )}
 
@@ -287,6 +374,80 @@ export function IntegrationsPanel({ api, showToast, canManage }) {
             </div>
           )}
 
+          {/* X3：科目与税率映射编辑器。tuition 与 bank 是硬前置；lesson/manual
+              行按 tuition 科目入账（声明的规则，不是静默兜底）。 */}
+          {!preview && state.connection?.connected && mapDraft && (
+            <div className="rounded-xl border border-gray-200 bg-white p-4">
+              <p className="text-xs font-bold mb-1">科目与税率映射</p>
+              <p className="text-[11px] text-gray-500 mb-2">
+                科目号与税率代码来自你的 Xero 账套（会计提供）。必填：tuition（学费收入）、bank（收款入账账户）；
+                lesson / manual 行按 tuition 科目入账。
+              </p>
+              <div className="grid gap-1.5">
+                {(state.mappableKinds || []).map(kind => (
+                  <div key={kind} className="flex items-center gap-2 flex-wrap">
+                    <span className={`text-[11px] w-28 flex-none ${state.requiredKinds?.includes(kind) ? 'font-bold' : 'text-gray-500'}`}>
+                      {kind}{state.requiredKinds?.includes(kind) ? ' *' : ''}
+                    </span>
+                    <input value={mapDraft[kind]?.accountCode || ''} disabled={!canManage || busy}
+                           onChange={e => setMapDraft({ ...mapDraft, [kind]: { ...mapDraft[kind], accountCode: e.target.value } })}
+                           placeholder="科目号，如 200"
+                           className="w-28 min-h-[44px] px-2 rounded-lg border border-gray-300 text-[11px]" />
+                    <input value={mapDraft[kind]?.taxType || ''} disabled={!canManage || busy}
+                           onChange={e => setMapDraft({ ...mapDraft, [kind]: { ...mapDraft[kind], taxType: e.target.value } })}
+                           placeholder="税率代码，如 OUTPUT"
+                           className="w-32 min-h-[44px] px-2 rounded-lg border border-gray-300 text-[11px]" />
+                  </div>
+                ))}
+              </div>
+              {canManage && (
+                <div className="flex gap-2 mt-2 flex-wrap">
+                  <button type="button" onClick={saveMappings} disabled={busy}
+                          className="min-h-[44px] px-3 rounded-lg border border-gray-300 bg-white text-[11px] font-bold disabled:opacity-50">保存映射</button>
+                  <button type="button" onClick={() => step('confirm_mapping')} disabled={busy || !!state.missingMappings?.length}
+                          className="min-h-[44px] px-3 rounded-lg bg-indigo-600 text-white text-[11px] font-bold disabled:opacity-50">
+                    会计已确认映射
+                  </button>
+                </div>
+              )}
+              {!!state.missingMappings?.length && (
+                <p className="text-[11px] text-amber-700 mt-1.5">还差必填映射：{state.missingMappings.join('、')}</p>
+              )}
+            </div>
+          )}
+
+          {/* X3：测试组织试跑 —— 真推送 + 真对账，干净才算过。 */}
+          {!preview && state.connection?.connected && (
+            <div className="rounded-xl border border-gray-200 bg-white p-4">
+              <p className="text-xs font-bold mb-1">测试组织试跑</p>
+              <p className="text-[11px] text-gray-600 mb-2">
+                把已开具的单据全部推入当前连接的组织（应为 Demo Company），随后逐张读回对账。
+                推送成功且对账 0 差异，这一步才算完成。
+              </p>
+              {canManage && (
+                <button type="button" onClick={demoRun} disabled={busy || !has('mapping_not_confirmed')}
+                        className="min-h-[44px] px-4 rounded-lg bg-indigo-600 text-white text-[11px] font-bold disabled:opacity-50">
+                  {has('demo_run_not_completed') ? '再跑一次（推送新增单据）' : '开始试跑'}
+                </button>
+              )}
+              {!has('mapping_not_confirmed') && (
+                <p className="text-[11px] text-gray-500 mt-1.5">先完成并确认上方映射。</p>
+              )}
+              {demoReport && (
+                <div className={`mt-2 rounded-lg border p-3 text-[11px] ${demoReport.clean ? 'border-green-200 bg-green-50 text-green-900' : 'border-amber-300 bg-amber-50 text-amber-900'}`}>
+                  <p className="font-bold">
+                    {demoReport.clean ? '试跑通过' : '试跑未通过'} ·
+                    排队 {demoReport.queued?.total ?? 0} / 推送 {demoReport.pushed} / 失败 {demoReport.failed} ·
+                    对账差异 {demoReport.reconciliation?.diffCount ?? '—'}
+                  </p>
+                  {(demoReport.jobs || []).filter(j => j.outcome !== 'sent').slice(0, 5).map(j => (
+                    <p key={j.id} className="mt-1 opacity-80">{j.kind}: {j.error}</p>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="rounded-xl border border-gray-200 bg-white p-4">
             <p className="text-xs font-bold mb-2">Xero 推送</p>
             {preview ? (
@@ -324,13 +485,51 @@ export function IntegrationsPanel({ api, showToast, canManage }) {
           </div>
 
           <div className="rounded-xl border border-gray-200 bg-white p-4">
-            <p className="text-xs font-bold mb-1">未进 Xero 的单据</p>
-            <p className="text-[11px] text-gray-600">
-              {preview
-                ? '预接入阶段只保留已有历史记录与映射状态；不会创建新的 Xero 推送任务。'
-                : <>推送失败的单据会列在这里，带失败原因，修好后一键重放 —— 重放沿用同一个幂等键，
-                  不会在 Xero 里产生第二张。<strong>这是给你们看的</strong>：原因几乎总是会计要改的一处映射。</>}
-            </p>
+            <p className="text-xs font-bold mb-1">推送队列</p>
+            {preview ? (
+              <p className="text-[11px] text-gray-600">预接入阶段只保留已有历史记录与映射状态；不会创建新的 Xero 推送任务。</p>
+            ) : (
+              <>
+                <p className="text-[11px] text-gray-600 mb-2">
+                  队列每 5 分钟自动处理一次。失败的单据带原因列在下面，修好后一键重放 ——
+                  重放沿用同一个幂等键，不会在 Xero 里产生第二张。
+                  <strong>原因几乎总是会计要改的一处映射。</strong>
+                </p>
+                {queue?.counts && (
+                  <p className="text-[11px] text-gray-700 mb-2">
+                    待推 {queue.counts.queued ?? 0} · 失败 {queue.counts.failed ?? 0} · 已推 {queue.counts.sent ?? 0}
+                  </p>
+                )}
+                {canManage && (
+                  <div className="flex gap-2 flex-wrap mb-2">
+                    <button type="button" onClick={backfillNow} disabled={busy}
+                            className="min-h-[44px] px-3 rounded-lg border border-gray-300 bg-white text-[11px] font-bold disabled:opacity-50">排队积压单据</button>
+                    <button type="button" onClick={pushNow} disabled={busy}
+                            className="min-h-[44px] px-3 rounded-lg bg-indigo-600 text-white text-[11px] font-bold disabled:opacity-50">立即推送</button>
+                    <button type="button" onClick={runReconcile} disabled={busy}
+                            className="min-h-[44px] px-3 rounded-lg border border-gray-300 bg-white text-[11px] font-bold disabled:opacity-50">逐张对账</button>
+                  </div>
+                )}
+                {(queue?.jobs || []).filter(j => j.status === 'failed').slice(0, 8).map(j => (
+                  <div key={j.id} className="rounded-lg border border-red-200 bg-red-50 p-2 mb-1.5 text-[11px] text-red-900">
+                    <p className="font-bold">{j.local_kind} · 第 {j.attempts} 次尝试失败</p>
+                    <p className="opacity-90 break-all">{j.last_error}</p>
+                    {canManage && (
+                      <button type="button" onClick={() => replayJob(j.id)} disabled={busy}
+                              className="mt-1 min-h-[44px] px-2.5 rounded-lg border border-red-300 bg-white text-[11px] font-bold text-red-700 disabled:opacity-50">修好了，重放</button>
+                    )}
+                  </div>
+                ))}
+                {reconcileReport && (
+                  <div className={`rounded-lg border p-2 text-[11px] ${reconcileReport.diffCount === 0 ? 'border-green-200 bg-green-50 text-green-900' : 'border-amber-300 bg-amber-50 text-amber-900'}`}>
+                    <p className="font-bold">对账：检查 {reconcileReport.checked} 张，差异 {reconcileReport.diffCount} 处</p>
+                    {(reconcileReport.diffs || []).slice(0, 6).map((d, i) => (
+                      <p key={i} className="mt-0.5 opacity-90">{d.kind} {d.number} · {d.field}：本地 {String(d.local)} ↔ Xero {String(d.xero)}</p>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
       </div>

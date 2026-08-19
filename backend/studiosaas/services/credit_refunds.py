@@ -668,6 +668,13 @@ def create_credit_refund(
             "reason": reason,
         },
     )
+
+    # X3: an issued credit note is a pushable document. No-op unless the
+    # push gate is open; idempotent under it.
+    from . import xero as _xero
+
+    _xero.enqueue(conn, tenant_id, local_kind="credit_note", local_id=credit_note_id)
+
     result = {
         "requestId": request_id,
         "sourceTransactionId": source_tx_id,

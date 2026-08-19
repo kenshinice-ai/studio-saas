@@ -1,0 +1,15 @@
+# Xero push queue consumer — one bounded drain per activation.
+# Installed by deploy/aws/install_xero_push_timer.sh; paired with
+# xero-push.timer. Oneshot: an activation that is still running simply
+# absorbs the next tick, so two drains never race.
+[Unit]
+Description=StudioSaaS Xero push queue drain
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+# lightsail_ctl owns the compose project name and file set; going through it
+# keeps this unit correct even when the compose layout changes.
+ExecStart=/usr/bin/env bash -c 'cd /opt/pwestudio/current && bash deploy/aws/lightsail_ctl.sh exec-app python backend/scripts/xero_push_worker.py'
+TimeoutStartSec=270

@@ -1,4 +1,4 @@
-# PWE Studio v10.9.4 — Handoff 索引（2026-08-16 起按 AI 分目录）
+# PWE Studio v10.10.0 — Handoff 索引（2026-08-16 起按 AI 分目录）
 
 > 首标题始终点名当前版本 —— `test_release_ledger.py` 据此机器强制「索引不过期」；
 > 每次发布随四层身份表一起更新。
@@ -26,6 +26,16 @@
 完整证据见 `docs/handoff/claude/2026-08-16-v10.8.0-round.md`（v10.8.0）与 codex/001（v10.7.1 历史）。
 
 ## 最新轮次
+
+- **2026-08-19（Claude Fable）v10.10.0 —— Xero X3 外发 transport**：
+  `docs/handoff/claude/2026-08-19-xero-x3-transport.md`
+  —— 队列消费真上线：迁移 0047（退避住行里 + 链接带 org）；`xero_transport.py`
+  （精确分值推送、Contact 客户键 upsert、invoice/credit_note/payment(按 allocation)、
+  失败分类退避/死信、backfill、逐张对账、demo cycle）；三处入队钩子；
+  push-now/backfill/reconciliation/queue 四条 API；gate 的 demo_run 变真跑；
+  systemd timer + `lightsail_ctl exec-app` + 安装脚本；集成页映射编辑器与队列操作面；
+  产品真话契约与 FAQ/Demo_Runbook 翻到「门后单向推送」。
+  测试 12 项新增，全量 2857 通过。四层身份表随部署闭环更新。
 
 - **2026-08-19（Claude Fable）v10.9.3+v10.9.4 —— Xero 连接打通（invalid_scope →
   wrong apps scopes → 首个成功连接）**：
