@@ -69,13 +69,47 @@ build_aws_bundle），且每个已发布 SHA-256 都在 handoff 账本里可比�
 
 **OPS-04 备份口令**：此前 `docker compose exec -e STUDIOSAAS_DATABASE_URL=<url>`
 把口令放进命令行，而 `/proc/<pid>/cmdline` 在主机上是**全局可读**的——备份运行
-期间任何本地账号都能从 `ps` 里读到数据库口令。现在 `owner_db_password` 只返回
-口令，用 `-e STUDIOSAAS_DB_PASSWORD`（**不带 =值**）转发，compose 从自己的环境
-取值，`/proc/<pid>/environ` 只有同用户与 root 可读。URL 由
-`backup_postgres.py._database_url()` 组装并 percent-encode，bash 手写的
-`urlencode()` 随之删除（不留死代码）。测试先行：含 `@ : / ? # % & =` 的口令
-往返完整、显式 URL 仍优先、没有任何凭据时**大声失败**而不是退回默认连接——
-这条路径是写备份的。
+期间任何本地账号都能从 `ps` 里读到数据库口令。现在 URL 仍由 shell 的
+`owner_db_url()`（含既有 bash `urlencode`）组装，但**用 `-e STUDIOSAAS_DATABASE_URL`
+（不带 =值）经环境转发**，赋值前缀只作用于那一条命令；compose 从自己的环境取值，
+`/proc/<pid>/environ` 只有同用户与 root 可读。容器侧脚本**一行未改**。
+
+### 这里翻过一次车，教训值钱（第一次 v10.11.1 部署被自己的预备份拦下）
+
+第一版改法是新建 `STUDIOSAAS_DB_PASSWORD` 契约、让 `backup_postgres.py` 自己
+组装 URL。部署直接失败：
+
+```
+pg_dump: error: query failed: ERROR:  query would be affected by
+row-level security policy for table "credit_financial_links"
+```
+
+**结构性原因**：`pwestudio_remote.sh` 是「**先铺候选控制器 → 用它做预备份 →
+再切版本**」。所以预备份永远是**新控制器 + 上一版镜像**。脚本是从**镜像内**跑的
+（WORKDIR /app），不是从主机发布树跑的——我把修好的脚本 copy 到主机发布树、
+再跑一次仍然失败，就是这么证实的（容器里 `grep -c STUDIOSAAS_DB_PASSWORD` = 0）。
+换言之：**任何控制器↔容器脚本的契约改动，都会在引入它的那次部署上打断预备份。**
+要改这个契约得分两版走：先教会脚本，下一版再切控制器。
+
+第一版还叠了第二个错：容器本来就带着 `STUDIOSAAS_DATABASE_URL`（受限角色
+`studiosaas_app`），而我让「已有 URL」优先于「注入的口令」，于是 pg_dump 用受限
+角色跑、撞 FORCE RLS。**而我写的测试断言的正是这个错误的优先级**——测试锁住了
+形状，没锁住真实环境里的相互作用。
+
+**护栏表现正确**：备份失败 → 部署拒绝切换 → 生产始终停在 v10.11.0，未受影响。
+但「保护部署的那份备份」不该是发现版本错配的地方。
+
+**定稿前的实测**（不再只信测试）：
+1. 主机上用部署同款命令真跑备份 → 产出真 dump
+   `studiosaas_studiosaas_20260820T063152Z.dump`；
+2. `-e VAR` 透传能**覆盖**容器内同名变量（实测 `role=OVERRIDE_PROBE`）；
+3. 哨兵探针（非密钥）确认 **0 个进程**在 argv 里暴露该值——旧写法下
+   docker compose 进程会明文显示。
+
+`test_backup_credential_path.py` 现在锁的是：只按名转发不按值、`owner_db_url`
+组装、bash `urlencode` 对含 `@ : / ? # % & =` 的口令真跑一遍，以及
+**容器契约不许再变**（断言 `backup_postgres.py` 里没有 `STUDIOSAAS_DB_PASSWORD`，
+并在断言里写明原因）。
 
 ## 门禁与发布证据
 

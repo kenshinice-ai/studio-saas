@@ -11,7 +11,6 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-import urllib.parse
 from urllib.parse import urlparse
 import re
 
@@ -53,41 +52,12 @@ def _warn_synced_path(path: Path) -> None:
 
 
 def _database_url() -> str:
-    """Return the configured PostgreSQL URL or fail clearly.
-
-    Two ways in, and the second exists for a reason (OPS-04). Passing a
-    ready-made URL means the password travels as a command-line argument to
-    `docker compose exec -e VAR=<url>` — and argv is world-readable on the
-    host through /proc/<pid>/cmdline for as long as the backup runs. Any
-    local account could read the database password by watching `ps`.
-
-    So the caller may instead hand over the parts, with the password in
-    STUDIOSAAS_DB_PASSWORD passed through the *environment* rather than argv
-    (/proc/<pid>/environ is readable only by the same user and root). This
-    function assembles the URL here, percent-encoding the password so a
-    password containing @ : / ? # or % cannot corrupt the URL — the failure
-    the old shell splice produced silently.
-    """
+    """Return the configured PostgreSQL URL or fail clearly."""
 
     url = (os.environ.get("STUDIOSAAS_DATABASE_URL") or os.environ.get("DATABASE_URL") or "").strip()
-    if url:
-        return url
-
-    password = os.environ.get("STUDIOSAAS_DB_PASSWORD")
-    if password is None or password == "":
-        raise SystemExit(
-            "Set STUDIOSAAS_DATABASE_URL, or STUDIOSAAS_DB_PASSWORD plus "
-            "STUDIOSAAS_DB_USER/HOST/PORT/NAME, before running this script."
-        )
-    user = os.environ.get("STUDIOSAAS_DB_USER", "studiosaas")
-    host = os.environ.get("STUDIOSAAS_DB_HOST", "db")
-    port = os.environ.get("STUDIOSAAS_DB_PORT", "5432")
-    name = os.environ.get("STUDIOSAAS_DB_NAME", "studiosaas")
-    return (
-        f"postgresql://{urllib.parse.quote(user, safe='')}:"
-        f"{urllib.parse.quote(password, safe='')}@{host}:{port}/"
-        f"{urllib.parse.quote(name, safe='')}"
-    )
+    if not url:
+        raise SystemExit("Set STUDIOSAAS_DATABASE_URL before running this script.")
+    return url
 
 
 def _run(cmd: list[str], *, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:

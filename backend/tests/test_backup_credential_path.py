@@ -2,90 +2,100 @@
 
 `docker compose exec -e VAR=<url>` puts whatever it is given on the command
 line, and /proc/<pid>/cmdline is world-readable on the host: any local account
-could read the database password out of `ps` for as long as a backup ran.
-The password now moves through the environment, and the URL is assembled
-inside backup_postgres.py where percent-encoding is a library call rather than
-a hand-written shell loop.
+could read the database password out of `ps` for as long as a backup ran. The
+URL is still assembled in the controller, but it is handed over through the
+environment (`-e VAR` with no `=value`, which tells compose to take the value
+from its own environment).
 
-These tests pin both halves — the shell no longer builds a URL, and the Python
-assembles one that survives a hostile password.
+The container-side contract is deliberately UNCHANGED — backup_postgres.py
+still reads STUDIOSAAS_DATABASE_URL and nothing else. That is not laziness,
+it is the fix to the first attempt at this change, which introduced a new
+STUDIOSAAS_DB_PASSWORD contract and stopped the v10.11.1 deploy dead at its
+own pre-deploy backup:
+
+    pg_dump: error: query failed: ERROR:  query would be affected by
+    row-level security policy for table "credit_financial_links"
+
+Why: pwestudio_remote.sh stages the CANDIDATE controller and takes the
+pre-deploy backup with it while the PREVIOUS release's image is still running.
+So a controller/script contract change always meets last release's script, and
+breaks the one backup that protects the deploy. (The guard held — the deploy
+refused to switch and production stayed on the old version — but the backup a
+deploy depends on must not be the thing that discovers a version skew.)
+
+Verified live on 2026-08-20 before the redeploy: the backup produced a real
+dump, and a sentinel probe found the value in zero process command lines.
 """
 
-import importlib.util
-import os
+import re
+import subprocess
 from pathlib import Path
-from urllib.parse import unquote, urlparse
-
-import pytest
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 CTL = REPOSITORY_ROOT / "deploy/aws/lightsail_ctl.sh"
+BACKUP_SCRIPT = REPOSITORY_ROOT / "backend/scripts/backup_postgres.py"
 
 # A password holding every character that breaks a naive URL splice.
 HOSTILE = "p@ss:w/rd?#%&=x"
 
 
-def _module():
-    spec = importlib.util.spec_from_file_location(
-        "backup_postgres", REPOSITORY_ROOT / "backend/scripts/backup_postgres.py"
+def _directives(text: str) -> str:
+    """Only the lines that run. Comments name the old form on purpose."""
+
+    return "\n".join(
+        line for line in text.splitlines() if not line.lstrip().startswith("#")
     )
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
 
 
-@pytest.fixture
-def clean_env(monkeypatch):
-    for name in ("STUDIOSAAS_DATABASE_URL", "DATABASE_URL", "STUDIOSAAS_DB_PASSWORD",
-                 "STUDIOSAAS_DB_USER", "STUDIOSAAS_DB_HOST", "STUDIOSAAS_DB_PORT",
-                 "STUDIOSAAS_DB_NAME"):
-        monkeypatch.delenv(name, raising=False)
-    return monkeypatch
-
-
-def test_a_hostile_password_survives_url_assembly(clean_env):
-    clean_env.setenv("STUDIOSAAS_DB_PASSWORD", HOSTILE)
-    parsed = urlparse(_module()._database_url())
-    assert unquote(parsed.password) == HOSTILE, "the password did not survive encoding"
-    assert parsed.username == "studiosaas"
-    assert parsed.hostname == "db" and parsed.port == 5432
-    assert parsed.path == "/studiosaas"
-
-
-def test_an_explicit_url_still_wins(clean_env):
-    """Local and CI callers pass a URL directly; that path is unchanged."""
-
-    clean_env.setenv("STUDIOSAAS_DATABASE_URL", "postgresql://someone@localhost:5432/db")
-    assert _module()._database_url() == "postgresql://someone@localhost:5432/db"
-
-
-def test_no_credential_at_all_fails_loudly(clean_env):
-    """Never a silent fallback to a default connection — this writes backups."""
-
-    with pytest.raises(SystemExit) as raised:
-        _module()._database_url()
-    assert "STUDIOSAAS_DATABASE_URL" in str(raised.value)
-    assert "STUDIOSAAS_DB_PASSWORD" in str(raised.value)
-
-
-def test_an_empty_password_is_not_accepted_as_a_password(clean_env):
-    clean_env.setenv("STUDIOSAAS_DB_PASSWORD", "")
-    with pytest.raises(SystemExit):
-        _module()._database_url()
-
-
-def test_the_controller_hands_over_a_password_not_a_url():
-    """The shell must not splice a URL, and must not pass a value in argv."""
-
-    script = CTL.read_text(encoding="utf-8")
-    assert "owner_db_url" not in script, (
-        "owner_db_url is back — a URL in argv is the exposure this closed"
-    )
-    assert "owner_db_password()" in script
-    # `-e VAR` with no `=value`: compose forwards the value from its own
-    # environment, so it never becomes a command-line argument.
-    assert script.count("-e STUDIOSAAS_DB_PASSWORD \\") == 2, (
+def test_the_credential_is_forwarded_by_name_never_by_value():
+    script = _directives(CTL.read_text(encoding="utf-8"))
+    # `-e VAR` with no `=`: compose reads the value from its own environment.
+    assert script.count("-e STUDIOSAAS_DATABASE_URL \\") == 2, (
         "both the backup and the restore rehearsal must forward it this way"
     )
-    assert "-e STUDIOSAAS_DB_PASSWORD=" not in script, "that would be argv again"
-    assert "-e STUDIOSAAS_DATABASE_URL=" not in script, "that would be argv again"
+    assert '-e STUDIOSAAS_DATABASE_URL="' not in script, "that is argv again"
+    assert "-e STUDIOSAAS_DATABASE_URL=" not in script, "that is argv again"
+    # And the value is put in the environment for exactly one command.
+    assert script.count('STUDIOSAAS_DATABASE_URL="$(owner_db_url)" \\') == 2
+
+
+def test_the_container_contract_is_unchanged():
+    """The pre-deploy backup pairs a new controller with the running image.
+
+    If this file starts requiring an environment variable the previous
+    release's copy of the script does not know about, the next deploy's
+    pre-deploy backup fails. Changing this contract is possible, but it takes
+    two releases: teach the script first, switch the controller after.
+    """
+
+    source = BACKUP_SCRIPT.read_text(encoding="utf-8")
+    assert "STUDIOSAAS_DATABASE_URL" in source
+    assert "STUDIOSAAS_DB_PASSWORD" not in source, (
+        "a new controller-to-script contract breaks the pre-deploy backup of "
+        "the release that introduces it — see this module's docstring"
+    )
+
+
+def test_the_shell_encoder_survives_a_hostile_password():
+    """The encoding is the controller's job, so test the controller's encoder.
+
+    Extracted and run rather than eyeballed: a password containing @ : / ? # %
+    silently corrupted the URL under the old sed splice, and 'it looks right'
+    is what let that ship.
+    """
+
+    script = CTL.read_text(encoding="utf-8")
+    match = re.search(r"^urlencode\(\) \{.*?^\}", script, re.S | re.M)
+    assert match, "urlencode() is gone — the controller no longer encodes the password"
+    program = match.group(0) + f'\nurlencode "{HOSTILE}"\n'
+    result = subprocess.run(["bash", "-c", program], capture_output=True, text=True, check=False)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == "p%40ss%3Aw%2Frd%3F%23%25%26%3Dx", result.stdout
+
+
+def test_the_owner_url_is_assembled_from_the_encoded_password():
+    script = CTL.read_text(encoding="utf-8")
+    assert "owner_db_url()" in script
+    assert "postgresql://studiosaas:%s@db:5432/studiosaas" in script
+    assert '"$(urlencode "$pw")"' in script
+    assert "sed 's#^#postgresql://studiosaas:#" not in script  # the raw splice must not come back
