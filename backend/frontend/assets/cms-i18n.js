@@ -702,6 +702,8 @@
     ['？ 如果是，我们再推一遍，Xero 里就会出现两套记录。',
      '? If it is, pushing again would leave two sets of records in Xero.'],
     ['未进 Xero 的单据', 'Documents not yet in Xero'],
+    ['功能处于 Beta：正在用一个完整结算月的真实账目验证，期间请照常核对 Xero 里的单据。',
+     'This feature is in Beta: it is being proven across one full settlement month against a real ledger. Keep checking the documents in Xero as you normally would.'],
 
     /* ── Errors ── */
     ['删除失败', 'Delete failed'], ['更新失败', 'Update failed'], ['恢复失败', 'Restore failed'],

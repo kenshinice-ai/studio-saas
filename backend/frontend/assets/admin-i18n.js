@@ -753,9 +753,14 @@
     [". Whether it takes requests is a separate decision, and it lives here.", "里设置。是否接受约课申请是另一个决定，放在这里。"],
     ["Principal", "主理人"],
     ["Who teaches here. This is the section that answers \"who am I trusting with my child\", so it is worth writing properly — and the section stays hidden until there is a biography to show.", "这里由谁来教。家长看这一段是在问「我要把孩子交给谁」，值得认真写——没有简介之前，这个版块不会公开。"],
-    ["Eyebrow · English", "眉标题 · English"],
+    /* 与上面的 `Eyebrow · 中文 → 小标题` 成对：这两个标签在同一个 form-group
+       里并排显示，去重（v10.11.0）暴露出它们此前译成了两个词。 */
+    ["Eyebrow · English", "小标题 · English"],
     ["Lead · English", "引导语 · English"],
-    ["Description · English", "正文 · English"],
+    /* 同理与 `Description · 中文 → 简介` 成对。另外 Body 已经由
+       `Highlight N Body` 规则译作「正文」，Description 再占用「正文」
+       会让两个不同的英文词落到同一个中文词上。 */
+    ["Description · English", "简介 · English"],
     ["Rename the public headings and their nav entries", "自定义公开页面的标题与导航文字"],
     ["Each name is both the heading on the public page and the entry in the navigation bar. The heading keeps whatever you write; the navigation entry is shortened past about 10 Chinese characters or 24 English ones, because the bar is one line tall.", "每个名称同时是公开页面上的版块标题和导航栏里的文字。标题保留你写的全部内容；导航文字超过约 10 个汉字或 24 个英文字符会被截断，因为导航条只有一行高。"],
     ["Changes since published", "与已发布版本的差异"],

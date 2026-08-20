@@ -243,6 +243,14 @@ export function IntegrationsPanel({ api, showToast, canManage }) {
     <div className="space-y-3">
       <div className="flex items-center gap-2 flex-wrap">
         <p className="text-xs font-bold">{preview ? 'Xero 预接入（Preview）' : 'Xero 集成'}</p>
+        {/* X4 阶段徽标。amber 在 index.html 里映射到 --warning，语义是「还没定稿，
+            按此对待」——正是 Beta 要说的话。**移除触发条件**：X4 出口达成
+            （一个自然月 0 人工修账）后转 X5 GA，这个 span 随之删掉。 */}
+        {!preview && (
+          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border whitespace-nowrap bg-amber-50 text-amber-800 border-amber-200">
+            Beta
+          </span>
+        )}
         <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border whitespace-nowrap
           ${preview ? 'bg-blue-50 text-blue-700 border-blue-200' : state.pushEnabled ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-100 text-gray-600 border-gray-200'}`}>
           {preview ? '预览状态 · 不发送数据' : state.pushEnabled ? '推送已开启' : '推送未开启'}
@@ -261,6 +269,7 @@ export function IntegrationsPanel({ api, showToast, canManage }) {
           <p className="font-bold mb-1">单向推送</p>
           <p>已开具的发票、贷记单与收款按队列推入你的 Xero 组织；不做双向同步，不从 Xero 回改任何本地单据。
             先用 Demo Company 完成试跑，再连正式账套。</p>
+          <p className="mt-1.5">功能处于 Beta：正在用一个完整结算月的真实账目验证，期间请照常核对 Xero 里的单据。</p>
         </div>
       )}
 
