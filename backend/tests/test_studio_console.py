@@ -20,6 +20,7 @@ it was changed and each of which regresses silently if nothing holds it:
 from __future__ import annotations
 
 import re
+from _console_sources import console_page_source
 from pathlib import Path
 
 import pytest
@@ -30,6 +31,10 @@ DICTIONARY = REPOSITORY_ROOT / "backend" / "frontend" / "assets" / "admin-i18n.j
 
 
 def console() -> str:
+    return console_page_source(CONSOLE)
+
+
+def console_markup() -> str:
     return CONSOLE.read_text(encoding="utf-8")
 
 
@@ -41,7 +46,9 @@ def script_source() -> str:
     the whole file. Behaviour is asserted against `<script>` contents here.
     """
 
-    return "\n".join(re.findall(r"<script>(.*?)</script>", console(), re.S))
+    inline = "\n".join(re.findall(r"<script>(.*?)</script>", console_markup(), re.S))
+    asset = REPOSITORY_ROOT / "backend" / "frontend" / "assets" / "studio-admin.js"
+    return inline + "\n" + asset.read_text(encoding="utf-8")
 
 
 def style_source() -> str:
@@ -445,7 +452,7 @@ def test_studio_admin_never_borrows_the_tenant_template_globals() -> None:
     than none). This pins the confusion that actually happened.
     """
 
-    source = CONSOLE.read_text(encoding="utf-8")
+    source = console_page_source(CONSOLE)
     scripts = "\n".join(re.findall(r"<script\b[^>]*>(.*?)</script>", source, re.S))
     body = re.sub(r"/\*.*?\*/|//[^\n]*", "", scripts, flags=re.S)
     for borrowed in ("TENANT_SLUG", "TENANT_NAME"):
@@ -457,7 +464,7 @@ def test_studio_admin_never_borrows_the_tenant_template_globals() -> None:
 
 
 def test_the_timetable_hint_reads_the_slug_from_the_form() -> None:
-    source = CONSOLE.read_text(encoding="utf-8")
+    source = console_page_source(CONSOLE)
     assert "const timetableSlug = currentTenantSlug();" in source
     assert "if (timetableSlug && $('timetableUrlHint'))" in source
 

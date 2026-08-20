@@ -9,6 +9,7 @@ honouring. Neither raises anything.
 from __future__ import annotations
 
 import re
+from _console_sources import console_page_source
 from html.parser import HTMLParser
 from pathlib import Path
 
@@ -284,7 +285,7 @@ def test_publishing_defaults_to_off_for_a_new_plan() -> None:
 def test_the_console_can_publish_a_plan_and_says_so_in_both_languages() -> None:
     """A flag with no control is a flag nobody can change."""
 
-    console = (REPOSITORY_ROOT / "super-admin.html").read_text(encoding="utf-8")
+    console = console_page_source(REPOSITORY_ROOT / "super-admin.html")
     assert 'id="m_planPublic"' in console
     assert 'id="m_planRecommended"' in console
     assert "isPublic: $('m_planPublic').checked" in console

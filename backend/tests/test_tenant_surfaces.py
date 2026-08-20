@@ -2,6 +2,7 @@
 
 import json
 import re
+from _console_sources import console_page_source
 import shutil
 import subprocess
 from pathlib import Path
@@ -186,7 +187,7 @@ def test_public_surface_contract_is_shared_by_templates_and_explains_readiness()
         source = (PROJECT_ROOT / "tenant-template" / filename).read_text(encoding="utf-8")
         assert "/assets/public-surface.js?v=__APP_VERSION__" in source
         assert "publicSurface.fetch(" in source
-    admin = (PROJECT_ROOT / "backend/frontend/studio-admin.html").read_text(encoding="utf-8")
+    admin = console_page_source(PROJECT_ROOT / "backend/frontend/studio-admin.html")
     assert "Public navigation preview" in admin
     assert "Recheck public pages" in admin
     assert "publication-status" in admin
@@ -222,7 +223,7 @@ def test_about_profile_round_trip_preserves_six_highlights_and_image_alts():
     assert len(profile["about_image_alts"]) == 6
     assert profile["about_image_alts"][5]["zh"] == "空间照片 6"
 
-    admin = (PROJECT_ROOT / "backend/frontend/studio-admin.html").read_text(encoding="utf-8")
+    admin = console_page_source(PROJECT_ROOT / "backend/frontend/studio-admin.html")
     assert "const ABOUT_ITEM_SLOTS = 6" in admin
     assert "aboutImageAlts:" in admin
     portal = (PROJECT_ROOT / "tenant-template/index.html").read_text(encoding="utf-8")
@@ -265,6 +266,7 @@ def test_root_studio_admin_requires_explicit_tenant_selection(client):
     response = client.get("/studio-admin", follow_redirects=False)
     assert response.status_code == 200
     html = response.get_data(as_text=True)
+    html += (PROJECT_ROOT / "backend/frontend/assets/studio-admin.js").read_text(encoding="utf-8")
     assert 'id="tenantSlug" type="text" required' in html
     assert "localStorage.getItem('studiosaas_tenant_slug')" not in html
     assert "Enter the studio URL slug to continue." in html
@@ -309,6 +311,7 @@ def test_admin_surfaces_share_persistent_language_switch(client):
 
 def test_studio_admin_supports_curated_styles_custom_mode_and_undo(client):
     html = client.get("/lets-paint-studio/studio-admin").get_data(as_text=True)
+    html += (PROJECT_ROOT / "backend/frontend/assets/studio-admin.js").read_text(encoding="utf-8")
     assert 'id="stylePresetSelect"' in html
     assert 'id="stylePresetPreview"' in html
     assert 'id="themePalettePreview"' in html

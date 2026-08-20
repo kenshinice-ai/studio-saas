@@ -7,6 +7,7 @@ long-canvas or payment-implying copy.
 """
 
 from pathlib import Path
+from _console_sources import console_page_source
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -16,7 +17,7 @@ API_V1 = PROJECT_ROOT / "backend/studiosaas/api_v1"
 
 
 def test_platform_workspaces_have_explicit_active_workspace_contract() -> None:
-    html = CONSOLE.read_text(encoding="utf-8")
+    html = console_page_source(CONSOLE)
     for workspace in ("overview", "tenants", "plans", "audit"):
         assert f'data-workspace="{workspace}"' in html
         assert f'data-workspace-nav="{workspace}"' in html
@@ -27,7 +28,7 @@ def test_platform_workspaces_have_explicit_active_workspace_contract() -> None:
 
 
 def test_platform_admin_uses_the_three_column_workbench_contract() -> None:
-    html = CONSOLE.read_text(encoding="utf-8")
+    html = console_page_source(CONSOLE)
     for element_id in ("platformWorkspaceShell", "platformRail", "attentionQueue", "workspaceInspector", "attentionShortcut"):
         assert f'id="{element_id}"' in html
     assert 'data-platform-rail data-workspace-nav="overview"' in html
@@ -38,7 +39,7 @@ def test_platform_admin_uses_the_three_column_workbench_contract() -> None:
 
 
 def test_platform_admin_uses_full_width_shell_and_center_edit_workspace() -> None:
-    html = CONSOLE.read_text(encoding="utf-8")
+    html = console_page_source(CONSOLE)
     assert "max-width: none" in html
     assert 'id="platformEditWorkspace"' in html
     assert "function openWorkspaceEditor" in html
@@ -48,7 +49,7 @@ def test_platform_admin_uses_full_width_shell_and_center_edit_workspace() -> Non
 
 
 def test_platform_admin_mobile_navigation_is_a_drawer_and_actions_are_hierarchical() -> None:
-    html = CONSOLE.read_text(encoding="utf-8")
+    html = console_page_source(CONSOLE)
     assert 'id="platformMobileNavToggle"' in html
     assert 'id="platformMobileNavScrim"' in html
     assert "is-mobile-open" in html
@@ -58,7 +59,7 @@ def test_platform_admin_mobile_navigation_is_a_drawer_and_actions_are_hierarchic
 
 
 def test_platform_inspector_is_read_only_and_operations_stay_in_the_center() -> None:
-    html = CONSOLE.read_text(encoding="utf-8")
+    html = console_page_source(CONSOLE)
     inspector = html[html.index("function renderTenantInspector") : html.index("function openTenantInspector")]
     assert "Quick view" in inspector
     assert "Use the center Actions column" in inspector
@@ -70,7 +71,7 @@ def test_platform_inspector_is_read_only_and_operations_stay_in_the_center() -> 
 
 
 def test_action_menu_keeps_frequent_commands_in_the_center_and_context_in_inspector() -> None:
-    html = CONSOLE.read_text(encoding="utf-8")
+    html = console_page_source(CONSOLE)
     assert "function openActionMenu" in html
     assert "action-menu-popover" in html
     assert "function openTenantActionContext" in html
@@ -89,7 +90,7 @@ def test_tenant_editor_has_section_navigation_and_showcase_quota_review() -> Non
     CONNECTED rather than whether a particular function exists.
     """
 
-    html = CONSOLE.read_text(encoding="utf-8")
+    html = console_page_source(CONSOLE)
     for section in ("editor-section-basic", "editor-section-contacts", "editor-section-admin", "editor-section-subscription", "editor-section-limits"):
         assert section in html
     assert "function wireEditorTabs" in html
@@ -100,14 +101,14 @@ def test_tenant_editor_has_section_navigation_and_showcase_quota_review() -> Non
 
 
 def test_platform_workspace_scrolls_clear_the_sticky_header() -> None:
-    html = CONSOLE.read_text(encoding="utf-8")
+    html = console_page_source(CONSOLE)
     assert ".workspace-section" in html
     assert "scroll-margin-top: calc(var(--workspace-header-offset)" in html
     assert "--workspace-header-offset" in html
 
 
 def test_support_mode_reason_has_field_level_validation_contract() -> None:
-    html = CONSOLE.read_text(encoding="utf-8")
+    html = console_page_source(CONSOLE)
     assert 'id="m_supportReason"' in html
     assert "aria-required=\"true\"" in html
     assert 'id="supportReasonError"' in html
@@ -116,7 +117,7 @@ def test_support_mode_reason_has_field_level_validation_contract() -> None:
 
 
 def test_subscription_copy_does_not_claim_a_payment_gateway_failure() -> None:
-    html = CONSOLE.read_text(encoding="utf-8")
+    html = console_page_source(CONSOLE)
     dictionary = I18N.read_text(encoding="utf-8")
     assert "Subscription past due" in html
     assert "订阅已逾期" in dictionary
@@ -124,7 +125,7 @@ def test_subscription_copy_does_not_claim_a_payment_gateway_failure() -> None:
 
 
 def test_workspace_partial_state_is_persistent_not_toast_only() -> None:
-    html = CONSOLE.read_text(encoding="utf-8")
+    html = console_page_source(CONSOLE)
     assert 'id="workspaceDataState"' in html
     assert 'id="workspaceRetryBtn"' in html
     assert "partialFailures" in html
@@ -133,7 +134,7 @@ def test_workspace_partial_state_is_persistent_not_toast_only() -> None:
 
 
 def test_detail_surfaces_have_a_mobile_safe_drawer_contract() -> None:
-    html = CONSOLE.read_text(encoding="utf-8")
+    html = console_page_source(CONSOLE)
     assert "detail-overlay" in html
     assert "detail-modal" in html
     assert "openAuditDetail" in html

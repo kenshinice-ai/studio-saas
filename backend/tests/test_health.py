@@ -207,6 +207,9 @@ def test_super_admin_is_commercial_control_plane(client):
     """The platform entrypoint should foreground lifecycle and revenue."""
 
     html = client.get("/platform-admin").get_data(as_text=True)
+    # v10.11.0: the console script the page loads is part of the page.
+    html += (Path(__file__).resolve().parents[2]
+             / "backend/frontend/assets/super-admin.js").read_text(encoding="utf-8")
     assert "Commercial Overview" in html
     assert "MRR (AUD)" in html
     assert "Trials Ending in 7 Days" in html

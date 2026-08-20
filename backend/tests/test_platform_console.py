@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import json
 import re
+from _console_sources import console_page_source
 from pathlib import Path
 
 import pytest
@@ -36,7 +37,7 @@ DICTIONARY = REPOSITORY_ROOT / "backend/frontend/assets/admin-i18n.js"
 
 
 def console() -> str:
-    return CONSOLE.read_text(encoding="utf-8")
+    return console_page_source(CONSOLE)
 
 
 def script_source() -> str:
@@ -55,8 +56,9 @@ def script_source() -> str:
     testing the thing it names.
     """
 
-    blocks = re.findall(r"<script>(.*?)</script>", console(), re.S)
-    return "\n".join(blocks)
+    blocks = re.findall(r"<script>(.*?)</script>", CONSOLE.read_text(encoding="utf-8"), re.S)
+    asset = REPOSITORY_ROOT / "backend" / "frontend" / "assets" / "super-admin.js"
+    return "\n".join(blocks) + "\n" + asset.read_text(encoding="utf-8")
 
 
 def strip_comments(text: str) -> str:
@@ -212,7 +214,7 @@ def test_the_preview_defaults_are_the_default_studio_theme() -> None:
     from studiosaas.presets import DEFAULT_STYLE_ID, style_theme
 
     default = style_theme(DEFAULT_STYLE_ID, "light")
-    source = (REPOSITORY_ROOT / "backend/frontend/studio-admin.html").read_text(encoding="utf-8")
+    source = console_page_source(REPOSITORY_ROOT / "backend/frontend/studio-admin.html")
     style = source[source.index("<style"):source.index("</style>")]
     declared = dict(re.findall(r"(--[\w-]+):\s*(#[0-9a-fA-F]{6})", _preview_default_block(style)))
     expected = {
@@ -246,7 +248,7 @@ def test_the_console_fallback_theme_is_the_default_studio_theme() -> None:
     from studiosaas.presets import DEFAULT_STYLE_ID, style_theme
 
     default = style_theme(DEFAULT_STYLE_ID, "light")
-    source = (REPOSITORY_ROOT / "backend/frontend/studio-admin.html").read_text(encoding="utf-8")
+    source = console_page_source(REPOSITORY_ROOT / "backend/frontend/studio-admin.html")
     block = source[source.index("const FALLBACK_THEME = {"):]
     block = block[:block.index("};")]
     declared = dict(re.findall(r"(\w+):\s*'(#[0-9a-fA-F]{6})'", block))
@@ -545,7 +547,7 @@ def test_plan_labels_are_normalized_in_both_console_languages() -> None:
 
 
 def test_super_admin_plan_form_sends_showcase_limit() -> None:
-    source = (REPOSITORY_ROOT / "super-admin.html").read_text(encoding="utf-8")
+    source = console_page_source(REPOSITORY_ROOT / "super-admin.html")
     assert "m_planShowcase" in source
     assert "showcaseLimit: Number($('m_planShowcase').value)" in source
     assert "showcase_limit" in source

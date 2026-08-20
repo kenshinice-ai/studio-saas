@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import os
 import re
+from _console_sources import console_page_source
 import uuid
 from pathlib import Path
 
@@ -84,7 +85,7 @@ def test_the_rules_that_have_no_override_in_the_interface():
     assert decorator.split("def ", 1)[0].strip().endswith("@super_admin_required")
     # The console asks for the CURRENT address: the question is which studio,
     # not whether the operator can type.
-    console = (PROJECT_ROOT / "super-admin.html").read_text(encoding="utf-8")
+    console = console_page_source(PROJECT_ROOT / "super-admin.html")
     assert "Type the current address to confirm" in console
     assert "!== t.slug" in console
 

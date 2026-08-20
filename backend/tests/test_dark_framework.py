@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import json
 import re
+from _console_sources import console_page_source
 from pathlib import Path
 
 import pytest
@@ -254,7 +255,7 @@ def test_the_shared_module_honours_the_preference() -> None:
 
 
 def test_the_console_offers_it_and_disables_it_where_it_cannot_work() -> None:
-    console = _read(REPOSITORY_ROOT / "backend/frontend/studio-admin.html")
+    console = console_page_source(REPOSITORY_ROOT / "backend/frontend/studio-admin.html")
     assert "Follow the visitor's device" in console
     assert "跟随访客设备" in console
     assert "activeSchemePreference" in console
@@ -273,7 +274,7 @@ def test_uploading_a_hero_photo_selects_the_style_that_shows_it() -> None:
     hero_image_url, which is what that dead end produces.
     """
 
-    console = _read(REPOSITORY_ROOT / "backend/frontend/studio-admin.html")
+    console = console_page_source(REPOSITORY_ROOT / "backend/frontend/studio-admin.html")
     block = console[console.index("async function uploadWebsiteImage("):]
     block = block[:block.index("\n    }")]
     assert "$('settingHeroStyle').value = 'image'" in block
@@ -286,7 +287,7 @@ def test_the_hero_style_option_says_what_it_does() -> None:
     It fills the 4:5 panel beside the headline.
     """
 
-    console = _read(REPOSITORY_ROOT / "backend/frontend/studio-admin.html")
+    console = console_page_source(REPOSITORY_ROOT / "backend/frontend/studio-admin.html")
     assert '<option value="image">Photo panel</option>' in console
     assert "Image Background" not in console
 
@@ -490,7 +491,7 @@ def test_the_studio_admin_exemption_is_exactly_two_blocks() -> None:
     """The exemption is narrow on purpose. Both blocks are pinned to
     style_theme() by test_platform_console.py; a third would not be."""
 
-    source = strip_comments(_read(REPOSITORY_ROOT / "backend/frontend/studio-admin.html"))
+    source = strip_comments(console_page_source(REPOSITORY_ROOT / "backend/frontend/studio-admin.html"))
     assert source.count("    .preview-device {") == 1
     assert source.count("const FALLBACK_THEME = {") == 1
 
@@ -547,7 +548,7 @@ def test_choosing_follow_the_visitor_is_not_overwritten_by_the_palette() -> None
     have saved `dark`.
     """
 
-    source = _read(REPOSITORY_ROOT / "backend/frontend/studio-admin.html")
+    source = console_page_source(REPOSITORY_ROOT / "backend/frontend/studio-admin.html")
     block = source[source.index("const preference = themeValue(theme, 'scheme_preference'"):]
     block = block[:block.index("themeMode = themeValue")]
     # The preference may only be replaced by a real one, or when it is not the
@@ -561,7 +562,7 @@ def test_a_single_mode_style_still_drops_the_preference_it_cannot_honour() -> No
     """The guard above must not preserve `system` onto a theme that ships one
     mode — that would leave a setting the server rejects on save."""
 
-    source = _read(REPOSITORY_ROOT / "backend/frontend/studio-admin.html")
+    source = console_page_source(REPOSITORY_ROOT / "backend/frontend/studio-admin.html")
     block = source[source.index("function applyVisualStyle("):]
     block = block[:block.index("function ", 40)]
     assert "if (activeSchemePreference === 'system' && modes.length < 2) activeSchemePreference = nextScheme;" in block

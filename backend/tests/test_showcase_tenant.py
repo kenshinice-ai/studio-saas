@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import re
+from _console_sources import console_page_source
 import sys
 from pathlib import Path
 
@@ -321,7 +322,7 @@ def test_a_wide_logo_cannot_crowd_out_the_studio_name(page) -> None:
 
 
 API = "\n".join(p.read_text(encoding="utf-8") for p in sorted((PROJECT_ROOT / "backend/studiosaas/api_v1").glob("*.py")))
-CONSOLE = (PROJECT_ROOT / "super-admin.html").read_text(encoding="utf-8")
+CONSOLE = console_page_source(PROJECT_ROOT / "super-admin.html")
 
 
 def test_the_reset_endpoint_refuses_a_tenant_that_is_not_a_demonstration() -> None:

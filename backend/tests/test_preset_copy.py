@@ -145,7 +145,7 @@ def test_the_console_placeholder_matches_the_general_preset() -> None:
     """
 
     console = (Path(__file__).resolve().parents[1] / "frontend"
-               / "studio-admin.html").read_text(encoding="utf-8")
+               / "assets" / "studio-admin.js").read_text(encoding="utf-8")
     block = console[console.index("let INDUSTRY_PRESETS = {"):]
     block = block[:block.index("let VISUAL_STYLE_PRESETS")]
     general = INDUSTRY_PRESETS["general"]

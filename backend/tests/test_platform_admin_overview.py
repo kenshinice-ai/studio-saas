@@ -19,6 +19,7 @@ one label in English.
 from __future__ import annotations
 
 import re
+from _console_sources import console_page_source
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -34,7 +35,7 @@ TENANT_SCOPED = ("all", "onboarding", "new_30d")
 def _metric_block(metric: str) -> str:
     """The METRIC_FILTERS entry for one metric, up to the next entry."""
 
-    html = SUPER_ADMIN.read_text(encoding="utf-8")
+    html = console_page_source(SUPER_ADMIN)
     start = html.index(f"      {metric}:")
     rest = html[start + 1:]
     end = re.search(r"\n      [a-z_]+: +\{|\n    \};", rest)
@@ -44,7 +45,7 @@ def _metric_block(metric: str) -> str:
 def test_every_actionable_counter_is_a_button() -> None:
     """A div with a click handler is not reachable by keyboard."""
 
-    html = SUPER_ADMIN.read_text(encoding="utf-8")
+    html = console_page_source(SUPER_ADMIN)
     for metric in SUBSCRIPTION_SCOPED + TENANT_SCOPED:
         assert f'<button type="button" class="stat-card' in html
         assert f'data-metric="{metric}"' in html, f"{metric} counter is missing"
@@ -58,7 +59,7 @@ def test_every_actionable_counter_is_a_button() -> None:
 def test_mrr_is_not_a_filter() -> None:
     """A currency total names no set of rows, so a click has nothing to show."""
 
-    html = SUPER_ADMIN.read_text(encoding="utf-8")
+    html = console_page_source(SUPER_ADMIN)
     marker = html.index('id="mrrCount"')
     card_start = html.rindex('class="stat-card', 0, marker)
     opening = html.rindex("<", 0, card_start)
@@ -113,7 +114,7 @@ def test_dynamic_labels_have_translation_rules() -> None:
 def test_labels_rewritten_by_script_are_re_localised() -> None:
     """A label set after load is past the dictionary pass that ran at load."""
 
-    html = SUPER_ADMIN.read_text(encoding="utf-8")
+    html = console_page_source(SUPER_ADMIN)
     assert "const relabel = (el, value) =>" in html
     for label in ("tenantPageLabel", "auditPageLabel", "auditCountLabel", "metricFilterLabel"):
         assert f"relabel($('{label}')" in html, (
@@ -124,7 +125,7 @@ def test_labels_rewritten_by_script_are_re_localised() -> None:
 def test_audit_log_is_paginated() -> None:
     """The endpoint returns 100 rows; the table must not render all of them."""
 
-    html = SUPER_ADMIN.read_text(encoding="utf-8")
+    html = console_page_source(SUPER_ADMIN)
     assert "const auditPageSize = 15;" in html
     assert 'id="auditPrevBtn"' in html and 'id="auditNextBtn"' in html
     assert 'id="auditSearch"' in html
@@ -134,7 +135,7 @@ def test_audit_log_is_paginated() -> None:
 def test_the_duplicated_attention_card_is_gone() -> None:
     """It listed the same three metrics as the counters directly above it."""
 
-    html = SUPER_ADMIN.read_text(encoding="utf-8")
+    html = console_page_source(SUPER_ADMIN)
     assert "commercialAttention" not in html
     assert "renderCommercialAttention" not in html
 

@@ -13,10 +13,11 @@ panels — so there was nowhere to see what the public site contained.
 from __future__ import annotations
 
 import re
+from _console_sources import console_page_source
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-ADMIN = (PROJECT_ROOT / "backend/frontend/studio-admin.html").read_text(encoding="utf-8")
+ADMIN = console_page_source(PROJECT_ROOT / "backend/frontend/studio-admin.html")
 
 SECTION_SWITCHES = (
     "settingShowAbout",

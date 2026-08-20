@@ -15,6 +15,7 @@ nothing in the industry path writes one.
 from __future__ import annotations
 
 import re
+from _console_sources import console_page_source
 from pathlib import Path
 
 import pytest
@@ -169,7 +170,7 @@ def test_applying_an_industry_preset_does_not_write_a_palette() -> None:
     card — which is exactly what happened and what this catches.
     """
 
-    source = ADMIN.read_text(encoding="utf-8")
+    source = console_page_source(ADMIN)
     start = source.index("function applyCategoryPreset(")
     end = source.index("\n    function ", start + 1)
     # Comments explaining why the call is gone are not the call. Stripping
@@ -206,7 +207,7 @@ def test_the_admin_only_reveals_the_picker_for_the_custom_card() -> None:
     """An always-visible colour input is what made eight curated themes read
     as decoration around a dial."""
 
-    source = ADMIN.read_text(encoding="utf-8")
+    source = console_page_source(ADMIN)
     assert 'id="accentPickerWrap"' in source
     assert re.search(r"accentPickerWrap'\)[^\n]*\n[^\n]*hidden = activeVisualStyle !== FREE_ACCENT_STYLE_ID",
                      source), "the picker is not gated on the Custom card"

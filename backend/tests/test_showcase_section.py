@@ -15,6 +15,7 @@ happened once this release, to the webfont, for weeks.
 from __future__ import annotations
 
 import re
+from _console_sources import console_page_source
 import sys
 from pathlib import Path
 
@@ -290,7 +291,7 @@ def test_the_play_control_is_a_real_button():
 
 
 def test_the_admin_has_its_own_tab_and_sends_the_raw_link():
-    admin = ADMIN.read_text(encoding="utf-8")
+    admin = console_page_source(ADMIN)
     assert 'data-workbench-tab="showcase"' in admin
     assert 'data-workbench-panel="showcase"' in admin
     assert 'id="settingShowShowcase"' in admin
@@ -362,7 +363,7 @@ def test_the_plan_limit_is_applied_before_the_category_filter():
 
 
 def test_the_admin_round_trip_preserves_publication_state():
-    admin = ADMIN.read_text(encoding="utf-8")
+    admin = console_page_source(ADMIN)
     assert "publicationState: normalizeShowcasePublicationState(item.publication_state)" in admin
     assert "publication_state: normalizeShowcasePublicationState(" in admin
     assert "Publication status" in admin
@@ -573,7 +574,7 @@ def test_photos_are_shrunk_in_the_browser_before_upload():
     portrait away from hitting the 10MB per-file limit with no explanation.
     """
 
-    admin = ADMIN.read_text(encoding="utf-8")
+    admin = console_page_source(ADMIN)
     assert "const SHOWCASE_MAX_EDGE = 2400;" in admin
     assert "canvas.toBlob(resolve, 'image/jpeg', SHOWCASE_JPEG_QUALITY)" in admin
     # Never send something larger than we were given.
@@ -585,7 +586,7 @@ def test_exif_orientation_is_applied_when_shrinking():
     ships lying on its side. Verified in a browser with a hand-built JPEG
     carrying EXIF Orientation 6."""
 
-    admin = ADMIN.read_text(encoding="utf-8")
+    admin = console_page_source(ADMIN)
     assert "createImageBitmap(file, { imageOrientation: 'from-image' })" in admin
 
 
@@ -593,7 +594,7 @@ def test_an_upload_does_not_rebuild_the_list_underneath_the_typist():
     """`renderShowcaseItems()` rebuilds everything, which would destroy a
     caption being typed three cards away when a background upload lands."""
 
-    admin = ADMIN.read_text(encoding="utf-8")
+    admin = console_page_source(ADMIN)
     assert "function repaintShowcaseThumb(item)" in admin
     upload = admin[admin.index("async function uploadShowcaseImage(item, file)"):]
     upload = upload[:upload.index("async function addShowcaseFiles")]
@@ -603,7 +604,7 @@ def test_an_upload_does_not_rebuild_the_list_underneath_the_typist():
 
 
 def test_one_failed_file_does_not_take_the_batch_down():
-    admin = ADMIN.read_text(encoding="utf-8")
+    admin = console_page_source(ADMIN)
     upload = admin[admin.index("async function uploadShowcaseImage(item, file)"):]
     upload = upload[:upload.index("async function addShowcaseFiles")]
     assert "item._error = error.message" in upload

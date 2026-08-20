@@ -17,6 +17,7 @@ Only checkable claims live here. Prose is not the subject.
 from __future__ import annotations
 
 import re
+from _console_sources import console_page_source
 from pathlib import Path
 
 import pytest
@@ -205,7 +206,7 @@ def test_the_retention_windows_match_the_pruner() -> None:
 def test_the_guides_do_not_repeat_the_claims_the_product_outgrew() -> None:
     """Each of these was true once and is now the opposite."""
 
-    console = CONSOLE.read_text(encoding="utf-8")
+    console = console_page_source(CONSOLE)
     guides = _all_guides()
 
     # v8.2.11 removed the card.
@@ -224,7 +225,7 @@ def test_the_guides_do_not_repeat_the_claims_the_product_outgrew() -> None:
 def test_the_console_metric_filters_are_documented() -> None:
     """Seven counters filter; MRR does not, because it counts money."""
 
-    console = CONSOLE.read_text(encoding="utf-8")
+    console = console_page_source(CONSOLE)
     metrics = set(re.findall(r'data-metric="([a-z_0-9]+)"', console))
     guide = _text("Super_Admin_Guide.md")
     assert len(metrics) == 7, metrics

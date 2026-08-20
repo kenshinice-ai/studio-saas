@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import datetime
 from pathlib import Path
+from _console_sources import console_page_source
 
 import pytest
 
@@ -52,7 +53,7 @@ CONSOLE = REPOSITORY_ROOT / "super-admin.html"
 
 
 def console() -> str:
-    return CONSOLE.read_text(encoding="utf-8")
+    return console_page_source(CONSOLE)
 
 
 def console_script() -> str:
@@ -66,7 +67,9 @@ def console_script() -> str:
 
     import re
 
-    return "\n".join(re.findall(r"<script>(.*?)</script>", CONSOLE.read_text(encoding="utf-8"), re.S))
+    inline = "\n".join(re.findall(r"<script>(.*?)</script>", CONSOLE.read_text(encoding="utf-8"), re.S))
+    asset = REPOSITORY_ROOT / "backend/frontend/assets/super-admin.js"
+    return inline + "\n" + asset.read_text(encoding="utf-8")
 TODAY = datetime.date(2026, 8, 4)
 
 

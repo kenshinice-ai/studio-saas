@@ -16,12 +16,13 @@ invisible: markup that renders, and a handler that is never reached.
 from __future__ import annotations
 
 import re
+from _console_sources import console_page_source
 from pathlib import Path
 
 import pytest
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-CONSOLE = (PROJECT_ROOT / "super-admin.html").read_text(encoding="utf-8")
+CONSOLE = console_page_source(PROJECT_ROOT / "super-admin.html")
 
 TAB_KEYS = ("basic", "contacts", "admin", "subscription", "limits")
 

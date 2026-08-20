@@ -68,7 +68,15 @@ def _inline_javascript(page: Path) -> str:
 @pytest.mark.parametrize("page", PAGES, ids=lambda p: f"{p.parent.name}-{p.name}")
 def test_inline_script_parses(page: Path, tmp_path: Path) -> None:
     javascript = _inline_javascript(page)
-    assert javascript.strip(), f"{page.name} has no inline script — did the extraction break?"
+    # v10.11.0: the two consoles' main script moved to versioned assets; the
+    # page's runnable JS is its remaining inline blocks plus that asset.
+    console_asset = {
+        "studio-admin.html": REPOSITORY_ROOT / "backend/frontend/assets/studio-admin.js",
+        "super-admin.html": REPOSITORY_ROOT / "backend/frontend/assets/super-admin.js",
+    }.get(page.name)
+    if console_asset is not None:
+        javascript = javascript + "\n;\n" + console_asset.read_text(encoding="utf-8")
+    assert javascript.strip(), f"{page.name} has no script at all — did the extraction break?"
     candidate = tmp_path / "inline.js"
     candidate.write_text(javascript, encoding="utf-8")
     result = subprocess.run([NODE, "--check", str(candidate)], capture_output=True, text=True)

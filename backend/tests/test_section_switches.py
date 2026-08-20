@@ -14,6 +14,7 @@ whichever answers last wins. That race is what these assert.
 from __future__ import annotations
 
 import re
+from _console_sources import console_page_source
 from pathlib import Path
 
 import pytest
@@ -80,7 +81,7 @@ def _portal() -> str:
 @pytest.mark.parametrize("flag", sorted(SWITCHES))
 def test_every_switch_has_an_admin_control(flag: str) -> None:
     _, control, _ = SWITCHES[flag]
-    assert f'id="{control}"' in ADMIN.read_text(encoding="utf-8"), (
+    assert f'id="{control}"' in console_page_source(ADMIN), (
         f"{flag} has no control in Studio Admin"
     )
 
@@ -183,7 +184,7 @@ def test_no_website_switch_is_orphaned_on_the_server() -> None:
 @pytest.mark.parametrize("flag", sorted(PAGE_SWITCHES))
 def test_every_page_switch_has_an_admin_control(flag: str) -> None:
     control, _ = PAGE_SWITCHES[flag]
-    assert f'id="{control}"' in ADMIN.read_text(encoding="utf-8"), (
+    assert f'id="{control}"' in console_page_source(ADMIN), (
         f"{flag} has no control in Studio Admin"
     )
 
@@ -244,7 +245,7 @@ def test_the_admin_sends_every_field_the_server_stores() -> None:
     for group in re.findall(r'for key in \(\s*("[a-z_",\s]+")\s*\)', body):
         stored |= set(re.findall(r'"([a-z_]+)"', group))
 
-    admin = ADMIN.read_text(encoding="utf-8")
+    admin = console_page_source(ADMIN)
     payload = admin[admin.index("websiteProfile: {"):]
     payload = payload[:payload.index("\n        },")]
 
