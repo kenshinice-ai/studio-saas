@@ -1,4 +1,4 @@
-# PWE Studio v10.10.3 — Handoff 索引（2026-08-16 起按 AI 分目录）
+# PWE Studio v10.11.0 — Handoff 索引（2026-08-16 起按 AI 分目录）
 
 > 首标题始终点名当前版本 —— `test_release_ledger.py` 据此机器强制「索引不过期」；
 > 每次发布随四层身份表一起更新。
@@ -26,6 +26,15 @@
 完整证据见 `docs/handoff/claude/2026-08-16-v10.8.0-round.md`（v10.8.0）与 codex/001（v10.7.1 历史）。
 
 ## 最新轮次
+
+- **2026-08-20（Claude Fable）v10.11.0 结构重构轮 —— P1–P4 全案一步到位**：
+  `docs/handoff/claude/2026-08-20-structure-refactor.md`
+  —— api_v1.py 15,926 行拆为 11 域包（url_map 191 条 + AST 394 符号机器等价）；
+  cms-app.jsx 拆出 components.jsx + 7 panel（48 张截图流水线实拍验证）；
+  i18n 引擎合一（fail-open）+ 重复键门禁（首跑清 52 个存量重复）；
+  PBKDF2 合一（双 legacy 格式兼容，测试先行）；两控制台 4,200 行内联脚本
+  外置为版本化资产 + 新增真浏览器冒烟（首跑抓出 studio-admin 登录静默失败
+  并修复）。行为零变化；发布证据见下方四层身份表。
 
 - **2026-08-19（Claude Fable）X4 接入完成 + v10.10.2/v10.10.3 —— 真实账本推送开启**：
   `docs/handoff/claude/2026-08-19-xero-x4-real-ledger.md`
