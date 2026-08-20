@@ -53,41 +53,25 @@ backup_dir_from_env() {
   sed -n 's/^STUDIOSAAS_BACKUP_DIR=//p' "$ENV_FILE" | tail -1
 }
 
-# Percent-encode one string for the userinfo field of a database URL. Pure
-# bash on purpose: this runs on the host before any container is involved, and
-# guessing at a host interpreter is how the daily backup silently failed for
-# weeks. LC_ALL=C makes the loop walk bytes, so a multibyte character encodes
-# as its UTF-8 bytes rather than a codepoint.
-urlencode() {
-  local LC_ALL=C
-  local s="$1" out='' c i byte
-  for ((i = 0; i < ${#s}; i++)); do
-    c="${s:i:1}"
-    case "$c" in
-      [A-Za-z0-9.~_-]) out+="$c" ;;
-      *)
-        # "'$c" yields the byte value, sign-extended for bytes >127 under
-        # LC_ALL=C — mask to one byte or 0xE4 prints as FFFFFFFFFFFFFFE4.
-        printf -v byte '%d' "'$c"
-        printf -v c '%%%02X' "$((byte & 0xFF))"
-        out+="$c"
-        ;;
-    esac
-  done
-  printf '%s' "$out"
-}
-
-# The owner-role database URL for one-shot maintenance commands (backup,
-# restore rehearsal). FORCE RLS applies to pg_dump too, so the bounded runtime
-# role cannot produce a complete dump; the owner URL is injected per command
-# and the app process never receives it. The password is percent-encoded
-# before URL assembly — the old sed splice broke, silently, on any password
-# containing @ : / ? # or %.
-owner_db_url() {
+# The owner-role password for one-shot maintenance commands (backup, restore
+# rehearsal). FORCE RLS applies to pg_dump too, so the bounded runtime role
+# cannot produce a complete dump; the owner credential is injected per command
+# and the app process never receives it.
+#
+# OPS-04: this returns the PASSWORD, not a URL, and callers pass it through the
+# environment (`-e STUDIOSAAS_DB_PASSWORD` with no `=value`, which tells
+# compose to forward the variable's value from its own environment).  A URL
+# spliced into `-e VAR=<url>` puts the database password into argv, and argv is
+# world-readable on this host via /proc/<pid>/cmdline for as long as the backup
+# runs — any local account could read it out of `ps`.  /proc/<pid>/environ is
+# readable only by the same user and root.  backup_postgres.py assembles the
+# URL and percent-encodes the password (see _database_url there); the old shell
+# splice broke silently on any password containing @ : / ? # or %.
+owner_db_password() {
   local pw
   pw="$(sudo sh -c "sed -n 's/^LOCAL_DB_PASSWORD=//p' '$ENV_FILE' | tail -1")"
   [ -n "$pw" ] || die "LOCAL_DB_PASSWORD is not set in $ENV_FILE"
-  printf 'postgresql://studiosaas:%s@db:5432/studiosaas' "$(urlencode "$pw")"
+  printf '%s' "$pw"
 }
 
 ensure_backup_dir_writable() {
@@ -161,9 +145,11 @@ case "${1:-}" in
     # pg_dump must use the database owner: tenant tables are FORCE RLS, so the
     # bounded runtime role cannot create a complete restorable dump. The owner
     # URL is injected for this one-shot backup only, just like restore-dry-run;
-    # the app process never receives it. See owner_db_url for the encoding.
+    # the app process never receives it. See owner_db_password for why the
+    # password travels in the environment rather than in argv.
+    STUDIOSAAS_DB_PASSWORD="$(owner_db_password)" \
     dc exec -T \
-      -e STUDIOSAAS_DATABASE_URL="$(owner_db_url)" \
+      -e STUDIOSAAS_DB_PASSWORD \
       app python backend/scripts/backup_postgres.py backup \
       --backup-dir /data/backups/postgres
     # Dumps had no retention while the volume tarballs below delete at +7 days,
@@ -312,8 +298,9 @@ case "${1:-}" in
     # The rehearsal creates and drops a throwaway database, which the bounded
     # runtime role (studiosaas_app) deliberately cannot do. Hand it the owner
     # URL for this one command only — the application process never sees it.
+    STUDIOSAAS_DB_PASSWORD="$(owner_db_password)" \
     dc exec -T \
-      -e STUDIOSAAS_DATABASE_URL="$(owner_db_url)" \
+      -e STUDIOSAAS_DB_PASSWORD \
       app python backend/scripts/backup_postgres.py restore-dry-run \
       "/data/backups/postgres/$target"
     ;;

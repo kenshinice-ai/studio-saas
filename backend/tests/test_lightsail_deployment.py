@@ -58,13 +58,16 @@ def test_lightsail_single_node_preserves_roles_backups_and_volumes() -> None:
     # backup failed while the cron log was the only witness.
     assert "backend/scripts/backup_postgres.py" in control
     assert "python scripts/backup_postgres.py" not in control
-    # FORCE RLS applies to pg_dump too; backups must use the owner URL for a
-    # complete dump, while the runtime role remains bounded. The URL is
-    # assembled by owner_db_url with a percent-encoded password (OPS-04) —
-    # the old raw sed splice broke on any password containing @ : / ? # or %.
-    assert 'STUDIOSAAS_DATABASE_URL="$(owner_db_url)"' in control
-    assert "urlencode" in control
-    assert control.count('STUDIOSAAS_DATABASE_URL="$(owner_db_url)"') == 2  # backup + restore rehearsal
+    # FORCE RLS applies to pg_dump too; backups must use the owner credential
+    # for a complete dump, while the runtime role remains bounded. Since
+    # v10.11.1 the credential is a PASSWORD forwarded through the environment
+    # (`-e VAR` with no `=value`), not a URL spliced into argv where
+    # /proc/<pid>/cmdline would expose it. backup_postgres.py assembles and
+    # percent-encodes the URL; see test_backup_credential_path.py.
+    assert "owner_db_password()" in control
+    assert control.count("-e STUDIOSAAS_DB_PASSWORD \\") == 2  # backup + restore rehearsal
+    assert "-e STUDIOSAAS_DB_PASSWORD=" not in control  # a value here is argv again
+    assert "-e STUDIOSAAS_DATABASE_URL=" not in control  # and so is this
     assert "sed 's#^#postgresql://studiosaas:#" not in control  # the raw splice must not come back
     # The bind-mounted backup directory must be writable by the image user and
     # readable by the operator, asserted on every run rather than at install.
