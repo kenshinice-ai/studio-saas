@@ -43,10 +43,17 @@ Adding artwork later needs no code change: drop the file in
 first — 1600px, WebP q88 — because the deploy bundle is `git archive HEAD` and
 carries every byte of it on every release.
 
-The public pages carry a footer line reading "Demonstration site. The studio,
-the people and the artwork are invented, and the data resets nightly." It is
+The public pages carry a footer line reading "Demonstration site. Everyone and
+everything on this page is invented, and the data is reset by hand." It is
 driven by `settings.professional_demo` on the tenant record. Do not remove it:
 the pages present invented people and synthetic paintings at a public address.
+
+The wording says "by hand" because that is the decision, not a shortfall: the
+demo tenant is reset by the operator with `RESET_DEMO_TENANT.command`, when the
+last demo has left it somewhere a fresh demo should not start from. There is no
+nightly timer and none is planned — whether the sample data should return to
+baseline depends on what the previous demo did, which is a judgement call. The
+pages claimed a nightly reset until v10.11.1; that claim was never true.
 
 ## Pre-demo checks
 

@@ -134,6 +134,11 @@ evidence before deletion. Studio owners cannot perform it.
 The showcase demo tenant is reset manually by the operator
 (`RESET_DEMO_TENANT.command`); there is deliberately no automated schedule.
 
+演示站点的页脚一度写着「数据每晚重置」——那个定时器从未存在，所以那句话对访客
+是不实陈述。v10.11.1 已把四个公开页（portal / showcase / register / timetable）
+的措辞改为「数据由运营手动重置」，与这里的决策一致。**若将来有人再把「每晚」
+写回去，先装定时器再改文案，不要反过来。**
+
 ---
 
 ## Super-Admin Dashboard
