@@ -13,15 +13,15 @@
 > - 其余纪律不变：Source / Package / Production / Backup 四层分别记录；docs-only
 >   closure 不得写成已部署运行时代码；发布必经 STOP GATE。
 
-## 当前四层身份（v10.11.0，2026-08-20）
+## 当前四层身份（v10.11.1，2026-08-20）
 
 | 层 | 精确事实 |
 |---|---|
-| Source | v10.11.0 发布提交 `3edd569`（重构链：`cfab504` P1 api_v1 包化 → `0bff84b` P2 CMS 面板 → `a5b52dd` P3① i18n 引擎 → `6798d4b` P4 哈希合一 → `774505b` 冒烟网+登录修复 → `45988f1` P3② 控制台外置 → `3edd569` 发布账本）；源码回滚点 tag `pre-restructure-v10.10.3`（已推 origin） |
-| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.11.0.tar.gz`，SHA-256 `ab00c3a8d0b8697d1fd2ffae7e033768bcc4dbe7859d4bbec27a03b94de1c696`（BUILD_INFO commit=3edd569，三方守卫全等） |
-| Package / Edition | `dist/PWE-Studio-Edition-10.11.0.tar.gz`，SHA-256 `d8d294c229897e0d42b3cf31c600c81b35792b456efa474c24dcd51afa1def6c` |
-| Production | `pwestudio.online` = v10.11.0；deep health（内部+公网边缘）`db=ok`、`mode=saas`、`stale=0`；部署后首个 `xero-push` tick 干净（`tenants=6 gate-closed=4 jobs=0 tenant-errors=0`）；三个新资产（i18n-runtime / studio-admin / super-admin .js）200 且带 v+h 戳；**真租户 `lets-paint-studio` 推送开启 → PWE GROUP PTY LTD（X4 结算月进行时；LPS- 前缀）**；showcase → Demo Company soak 不变 |
-| Backup / migration | v10.11.0 部署前 dump `studiosaas_studiosaas_20260820T053426Z.dump` + manifest；schema 仍至 `0047_xero_transport.sql`（本轮零迁移——纯重构） |
+| Source | v10.11.1 发布提交 `4ff7efe`（链：`49555c9` Beta 徽标+双语标签 → `daf0203` 演示页不实声明 → `291f853` 冒烟进门禁 → `b69a363` prune_dist → `6a1b95a` OPS-03 nginx → `eb9ef05` OPS-04 首版 → `65622a6` 发布账本 → `4ff7efe` **OPS-04 改正**） |
+| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.11.1.tar.gz`，SHA-256 `292993ef8025738ddd6ab2767e950c653ee16a167a25930d8212bfbfecdbf5ed`（BUILD_INFO commit=4ff7efe，三方守卫全等） |
+| Package / Edition | `dist/PWE-Studio-Edition-10.11.1.tar.gz`，SHA-256 `35f42cd561b656af79051deda35d76b838d48a03f469bd922c15c05310cab019` |
+| Production | `pwestudio.online` = v10.11.1；deep health `db=ok`、`mode=saas`、`stale=0`；四个公开演示页已换成「数据由运营手动重置」（线上实测 nightly 残留 0）；集成页 Beta 徽标已在线上 bundle；`xero-push` tick 干净（`tenants=6 gate-closed=4 jobs=0 tenant-errors=0`）；**真租户 `lets-paint-studio` 推送开启 → PWE GROUP PTY LTD（X4 结算月进行时）**；showcase → Demo Company soak 不变 |
+| Backup / migration | v10.11.1 部署前 dump `studiosaas_studiosaas_20260820T063742Z.dump` + manifest（**经改正后的凭据路径产出，这本身就是 OPS-04 的验收**）；schema 仍至 `0047_xero_transport.sql`（本轮零迁移） |
 
 完整证据见 `docs/handoff/claude/2026-08-16-v10.8.0-round.md`（v10.8.0）与 codex/001（v10.7.1 历史）。
 

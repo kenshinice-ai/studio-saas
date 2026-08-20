@@ -111,9 +111,18 @@ row-level security policy for table "credit_financial_links"
 **容器契约不许再变**（断言 `backup_postgres.py` 里没有 `STUDIOSAAS_DB_PASSWORD`，
 并在断言里写明原因）。
 
-## 门禁与发布证据
+## 门禁与发布证据（2026-08-20 闭环）
 
-（随部署闭环补齐；见下方与 `HANDOFF_LATEST.md` 四层身份表。）
+- 门禁：`All checks passed`（leastpriv 三变量形状），**控制台冒烟首次跑在门禁里**；
+  全量 pytest 2,825 通过。
+- 发布提交 `4ff7efe`；SaaS SHA-256 `292993ef…bf5ed`、Edition `35f42cd5…cab019`；
+  三方守卫全等。
+- 部署前 dump `studiosaas_studiosaas_20260820T063742Z.dump`——**经改正后的凭据
+  路径产出，这就是 OPS-04 的验收**（第一次部署正是死在这一步）。
+- deep health `appVersion=10.11.1 / db=ok / mode=saas / stale=0`。
+- 线上实测：四个公开演示页均已换成「数据由运营手动重置」，`nightly` 残留 **0**；
+  集成页 Beta 文案已在线上 bundle；`xero-push` tick 干净
+  （`tenants=6 gate-closed=4 jobs=0 tenant-errors=0`）。
 
 ## 后续留意
 
