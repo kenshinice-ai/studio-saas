@@ -1,8 +1,8 @@
 # PWE Studio
 
-## v10.11.0 release identity — the structure refactor round
+## v10.11.1 release identity — the structure refactor round
 
-`VERSION` = **10.11.0** and `backend/server.py` reports `APP_VERSION=10.11.0`.
+`VERSION` = **10.11.1** and `backend/server.py` reports `APP_VERSION=10.11.1`.
 A pure-refactor release, behaviour unchanged and machine-verified: api_v1.py
 split into an 11-domain package (191 routes and 394 top-level symbols compared
 identical), the CMS App() split into panels (verified against the 48-shot
@@ -13,9 +13,9 @@ Layer evidence lives in `docs/handoff/claude/2026-08-20-structure-refactor.md`.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.11.0 committed** | release commit `3edd569`; full gate green with split app/owner/migration database roles (pytest 2896 with Postgres, isolation 254, legacy smoke 73). |
-| Package | **v10.11.0 SaaS and Edition archives verified** | SaaS SHA-256 `ab00c3a8d0b8697d1fd2ffae7e033768bcc4dbe7859d4bbec27a03b94de1c696`; Edition SHA-256 `d8d294c229897e0d42b3cf31c600c81b35792b456efa474c24dcd51afa1def6c`; checksum, BUILD_INFO (`commit=3edd569`), entrypoint, exclusion and smoke checks all passed. |
-| Production | **v10.11.0 deployed to `pwestudio.online`** | deep health (internal and public edge) `appVersion=10.11.0`, `db=ok`, `mode=saas`, `workspaces.stale=0`; pre-deploy backup `studiosaas_studiosaas_20260820T053426Z.dump` + manifest; first post-deploy xero-push tick clean (`tenants=6 gate-closed=4 jobs=0 tenant-errors=0`); the three new assets (`i18n-runtime.js`, `studio-admin.js`, `super-admin.js`) serve 200 with v+h stamps. |
+| Source | **v10.11.1 committed** | release commit `3edd569`; full gate green with split app/owner/migration database roles (pytest 2896 with Postgres, isolation 254, legacy smoke 73). |
+| Package | **v10.11.1 SaaS and Edition archives verified** | SaaS SHA-256 `ab00c3a8d0b8697d1fd2ffae7e033768bcc4dbe7859d4bbec27a03b94de1c696`; Edition SHA-256 `d8d294c229897e0d42b3cf31c600c81b35792b456efa474c24dcd51afa1def6c`; checksum, BUILD_INFO (`commit=3edd569`), entrypoint, exclusion and smoke checks all passed. |
+| Production | **v10.11.1 deployed to `pwestudio.online`** | deep health (internal and public edge) `appVersion=10.11.1`, `db=ok`, `mode=saas`, `workspaces.stale=0`; pre-deploy backup `studiosaas_studiosaas_20260820T053426Z.dump` + manifest; first post-deploy xero-push tick clean (`tenants=6 gate-closed=4 jobs=0 tenant-errors=0`); the three new assets (`i18n-runtime.js`, `studio-admin.js`, `super-admin.js`) serve 200 with v+h stamps. |
 
 Source, Package and Production are separate facts; do not infer Production
 from `VERSION` or from an archive filename.

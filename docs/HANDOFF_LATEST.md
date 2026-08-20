@@ -1,4 +1,4 @@
-# PWE Studio v10.11.0 — Handoff 索引（2026-08-16 起按 AI 分目录）
+# PWE Studio v10.11.1 — Handoff 索引（2026-08-16 起按 AI 分目录）
 
 > 首标题始终点名当前版本 —— `test_release_ledger.py` 据此机器强制「索引不过期」；
 > 每次发布随四层身份表一起更新。
@@ -26,6 +26,16 @@
 完整证据见 `docs/handoff/claude/2026-08-16-v10.8.0-round.md`（v10.8.0）与 codex/001（v10.7.1 历史）。
 
 ## 最新轮次
+
+- **2026-08-20（Claude Fable）v10.11.1 运维卫生轮 —— A/B 两档清单一次做完**：
+  `docs/handoff/claude/2026-08-20-ops-hygiene-round.md`
+  —— 集成页 Beta 徽标（含移除触发条件）；两组双语标签对齐；**演示页「数据每晚
+  重置」不实声明纠正**（定时器从未存在，手动重置是既定决策；模板改动随部署经
+  entrypoint 的 regenerate 生效）；控制台冒烟进入发布门禁（自起实例、无 Chrome
+  显式跳过）；`prune_dist.py` 释放 1.20 GB（dist 1.3G→178M）；**OPS-03** 线上
+  nginx 收编（发现仓库零记录的 paradise-production 片段）；**OPS-04** 备份口令
+  离开 argv（此前 `/proc/*/cmdline` 全局可读）。另：仓库根一份 0644 私钥在
+  iCloud 里——核实从未进过 git，与 `~/.ssh` 正本逐字节相同，已移出。
 
 - **2026-08-20（Claude Fable）v10.11.0 结构重构轮 —— P1–P4 全案一步到位**：
   `docs/handoff/claude/2026-08-20-structure-refactor.md`
