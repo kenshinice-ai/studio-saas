@@ -13,15 +13,15 @@
 > - 其余纪律不变：Source / Package / Production / Backup 四层分别记录；docs-only
 >   closure 不得写成已部署运行时代码；发布必经 STOP GATE。
 
-## 当前四层身份（v10.10.3，2026-08-19）
+## 当前四层身份（v10.11.0，2026-08-20）
 
 | 层 | 精确事实 |
 |---|---|
-| Source | v10.10.3 发布提交 `dae3fd4`（同日链：`4fd0ee1` v10.9.4 → `e158997` v10.10.0 → `e5aaefd` v10.10.1 → `338b9b5` v10.10.2 → `dae3fd4` v10.10.3 同号守卫） |
-| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.10.3.tar.gz`，SHA-256 `9db6217b94448680c29b7fbdc29f168a59264fc142774679ec94de3fa756d631` |
-| Package / Edition | `dist/PWE-Studio-Edition-10.10.3.tar.gz`，SHA-256 `948073bc17b62980c36974b4f13c24be8b00d3cfd0c3b231e4496edd06559154` |
-| Production | `pwestudio.online` = v10.10.3；deep health `db=ok`、`mode=saas`；**真租户 `lets-paint-studio` 推送已开启 → PWE GROUP PTY LTD（真账本，X4 结算月进行时；LPS- 单号前缀；首单 LPS-INV-0002 已在账本可见，对账 0 差异）**；showcase → Demo Company 推送开启作 soak；`xero-push.timer` 每 5 分钟 drain |
-| Backup / migration | v10.10.3 部署前 dump `studiosaas_studiosaas_20260819T105709Z.dump` + manifest；schema 至 `0047_xero_transport.sql` |
+| Source | v10.11.0 发布提交 `3edd569`（重构链：`cfab504` P1 api_v1 包化 → `0bff84b` P2 CMS 面板 → `a5b52dd` P3① i18n 引擎 → `6798d4b` P4 哈希合一 → `774505b` 冒烟网+登录修复 → `45988f1` P3② 控制台外置 → `3edd569` 发布账本）；源码回滚点 tag `pre-restructure-v10.10.3`（已推 origin） |
+| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.11.0.tar.gz`，SHA-256 `ab00c3a8d0b8697d1fd2ffae7e033768bcc4dbe7859d4bbec27a03b94de1c696`（BUILD_INFO commit=3edd569，三方守卫全等） |
+| Package / Edition | `dist/PWE-Studio-Edition-10.11.0.tar.gz`，SHA-256 `d8d294c229897e0d42b3cf31c600c81b35792b456efa474c24dcd51afa1def6c` |
+| Production | `pwestudio.online` = v10.11.0；deep health（内部+公网边缘）`db=ok`、`mode=saas`、`stale=0`；部署后首个 `xero-push` tick 干净（`tenants=6 gate-closed=4 jobs=0 tenant-errors=0`）；三个新资产（i18n-runtime / studio-admin / super-admin .js）200 且带 v+h 戳；**真租户 `lets-paint-studio` 推送开启 → PWE GROUP PTY LTD（X4 结算月进行时；LPS- 前缀）**；showcase → Demo Company soak 不变 |
+| Backup / migration | v10.11.0 部署前 dump `studiosaas_studiosaas_20260820T053426Z.dump` + manifest；schema 仍至 `0047_xero_transport.sql`（本轮零迁移——纯重构） |
 
 完整证据见 `docs/handoff/claude/2026-08-16-v10.8.0-round.md`（v10.8.0）与 codex/001（v10.7.1 历史）。
 

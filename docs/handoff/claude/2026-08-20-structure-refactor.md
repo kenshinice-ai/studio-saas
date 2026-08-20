@@ -97,8 +97,12 @@
 - 全量 pytest **2,817 通过**（拆分适配后新增 13 项：哈希 5 + 其余为适配中
   收紧的断言）；`test_cms.py` legacy 冒烟绿；console_smoke 两页绿；
   三界面浏览器实测绿。
-- 发布证据（bundle SHA、dump、生产 deep health）随部署在
-  `HANDOFF_LATEST.md` 四层身份表闭环。
+- **发布闭环（2026-08-20）**：发布提交 `3edd569`；SaaS SHA-256
+  `ab00c3a8…1c696`、Edition `d8d294c2…def6c`；三方守卫全等；部署前 dump
+  `studiosaas_studiosaas_20260820T053426Z.dump`；deep health 内外两侧
+  `appVersion=10.11.0 / db=ok / stale=0`；部署后首个 xero-push tick
+  `tenants=6 gate-closed=4 jobs=0 tenant-errors=0`；三个新资产在生产 200
+  带 v+h 戳。本轮零迁移（schema 仍 0047）。
 
 ## 后续留意
 
