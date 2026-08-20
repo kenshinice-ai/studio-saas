@@ -246,6 +246,25 @@ if [ -x "$PYTHON" ]; then
             else
                 fail "Tenant isolation tests failed (see output above)"
             fi
+            # The two consoles are the thinnest-tested surface in the repo:
+            # plain script, where one ReferenceError silently aborts the
+            # function that raised it and nothing else notices. This drives a
+            # real browser over both pages (it boots its own instance on a free
+            # port). It skips itself, saying so, when Chrome is absent — a
+            # machine without Chrome must not fail a release gate for it, but a
+            # machine WITH Chrome must not skip it silently either.
+            info "Running console smoke..."
+            CONSOLE_SMOKE_OUT="$(env -u STUDIOSAAS_MIGRATION_DATABASE_URL \
+                STUDIOSAAS_DATABASE_URL="$APP_DATABASE_URL" \
+                "$PYTHON" "$SCRIPT_DIR/scripts/console_smoke.py" 2>&1 || true)"
+            if printf '%s' "$CONSOLE_SMOKE_OUT" | grep -q "all green"; then
+                ok "console smoke: both consoles boot, mount i18n and render login errors"
+            elif printf '%s' "$CONSOLE_SMOKE_OUT" | grep -q "SKIPPED"; then
+                info "$(printf '%s' "$CONSOLE_SMOKE_OUT" | grep 'SKIPPED' | head -1)"
+            else
+                fail "console smoke failed (run: python3 backend/scripts/console_smoke.py)"
+                printf '%s\n' "$CONSOLE_SMOKE_OUT" | sed 's/^/      /'
+            fi
         else
             if [ "${STUDIOSAAS_REQUIRE_POSTGRES:-0}" = "1" ]; then
                 fail "PostgreSQL is required for this release gate but is not reachable."

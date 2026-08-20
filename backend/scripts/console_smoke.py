@@ -19,13 +19,14 @@ Usage:
 """
 import argparse
 import json
+import os
 import sys
 import tempfile
 import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from capture_manual_shots import Browser  # noqa: E402  (the CDP framing)
+from capture_manual_shots import CHROME, Browser  # noqa: E402  (the CDP framing)
 
 HOOK = """
 window.__smokeErrors = [];
@@ -109,19 +110,99 @@ def smoke(browser, base, name, path, switch_selector):
     return not failures
 
 
+def _free_port() -> int:
+    import socket
+
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        return probe.getsockname()[1]
+
+
+class _OwnServer:
+    """Boot backend/server.py on a free port so the gate needs no operator.
+
+    verify_local.sh has a database but no running application; starting one
+    here is what lets this check be a gate step rather than a thing somebody
+    remembers to run. Inherits the environment, so STUDIOSAAS_DATABASE_URL
+    from the gate reaches the server unchanged.
+    """
+
+    def __init__(self) -> None:
+        import subprocess
+        import urllib.error
+        import urllib.request
+
+        self.port = _free_port()
+        root = Path(__file__).resolve().parents[2]
+        env = dict(os.environ, PORT=str(self.port))
+        self._log = open(  # noqa: SIM115 — closed in stop()
+            Path(tempfile.gettempdir()) / f"console-smoke-server-{self.port}.log", "w"
+        )
+        self._process = subprocess.Popen(
+            [sys.executable, str(root / "backend" / "server.py")],
+            cwd=str(root), env=env, stdout=self._log, stderr=subprocess.STDOUT,
+        )
+        self.base = f"http://127.0.0.1:{self.port}"
+        deadline = time.time() + 40
+        while time.time() < deadline:
+            if self._process.poll() is not None:
+                raise SystemExit(
+                    f"server exited with {self._process.returncode}; see {self._log.name}"
+                )
+            try:
+                with urllib.request.urlopen(f"{self.base}/v1/health", timeout=2) as response:
+                    if response.status == 200:
+                        return
+            except (urllib.error.URLError, OSError):
+                pass
+            time.sleep(0.4)
+        self.stop()
+        raise SystemExit(f"server did not become healthy; see {self._log.name}")
+
+    def stop(self) -> None:
+        import subprocess
+
+        self._process.terminate()
+        try:
+            self._process.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            self._process.kill()
+        self._log.close()
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--base", default="http://localhost:8899")
+    parser.add_argument(
+        "--base",
+        default=None,
+        help="An already-running instance. Omit to boot one for the run.",
+    )
     args = parser.parse_args()
 
+    if not Path(CHROME).exists():
+        print(f"console smoke: SKIPPED — no Chrome at {CHROME}")
+        return 0
+
+    server = None
+    if args.base:
+        base = args.base
+    else:
+        server = _OwnServer()
+        base = server.base
+        print(f"console smoke: booted its own instance on {base}")
+
     ok = True
-    with tempfile.TemporaryDirectory(prefix="console-smoke-") as profile:
-        browser = Browser(Path(profile))
-        try:
-            for name, path, switch in PAGES:
-                ok = smoke(browser, args.base, name, path, switch) and ok
-        finally:
-            browser.close()
+    try:
+        with tempfile.TemporaryDirectory(prefix="console-smoke-") as profile:
+            browser = Browser(Path(profile))
+            try:
+                for name, path, switch in PAGES:
+                    ok = smoke(browser, base, name, path, switch) and ok
+            finally:
+                browser.close()
+    finally:
+        if server is not None:
+            server.stop()
     print("console smoke:", "all green" if ok else "FAILURES")
     return 0 if ok else 1
 
