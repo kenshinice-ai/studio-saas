@@ -3,18 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Let&#x27;s Paint Studio Timetable</title>
+  <title>Zhiyin Music Timetable</title>
   <!-- Without this a link to the timetable unfurls as a bare URL in every
        chat app a parent forwards it through. -->
-  <meta id="pageDescription" name="description" content="Let&#x27;s Paint Studio 未来两周的公开课程安排与余位。">
+  <meta id="pageDescription" name="description" content="Zhiyin Music 未来两周的公开课程安排与余位。">
   <meta name="robots" content="index,follow">
   <!-- Rewritten by applyVisualTheme() to the page colour actually rendered.
        The literal is only what the browser chrome shows before /brand answers. -->
   <meta name="theme-color" content="#F3EFEA">
-  <link id="canonicalUrl" rel="canonical" href="/lets-paint-showcase/timetable">
-  <link id="altLangZh" rel="alternate" hreflang="zh-CN" href="/lets-paint-showcase/timetable">
-  <link id="altLangEn" rel="alternate" hreflang="en" href="/lets-paint-showcase/timetable?lang=en">
-  <link id="altLangDefault" rel="alternate" hreflang="x-default" href="/lets-paint-showcase/timetable">
+  <link id="canonicalUrl" rel="canonical" href="/music-studio-showcase/timetable">
+  <link id="altLangZh" rel="alternate" hreflang="zh-CN" href="/music-studio-showcase/timetable">
+  <link id="altLangEn" rel="alternate" hreflang="en" href="/music-studio-showcase/timetable?lang=en">
+  <link id="altLangDefault" rel="alternate" hreflang="x-default" href="/music-studio-showcase/timetable">
   <meta id="ogLocale" property="og:locale" content="zh_CN">
   <meta id="ogLocaleAlternate" property="og:locale:alternate" content="en_US">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
@@ -134,7 +134,7 @@
     @media (prefers-reduced-motion:reduce) { * { transition:none !important; animation:none !important; } }
   </style>
 </head>
-<body data-tenant-slug="lets-paint-showcase">
+<body data-tenant-slug="music-studio-showcase">
   <!-- The portal's navigation, not a reduced one. Every link is a real <a
        href> for the same reasons it is there: Tab reaches it, "open in new
        tab" works, and a screen reader announces it.
@@ -145,9 +145,9 @@
        index.html, and it is why these are written out rather than copied. -->
   <nav>
     <div class="navrow">
-      <a class="brand" href="/lets-paint-showcase" aria-label="Let&#x27;s Paint Studio">
+      <a class="brand" href="/music-studio-showcase" aria-label="Zhiyin Music">
         <img id="tenantLogo" alt="" onerror="this.style.display='none'">
-        <span class="bn" id="tenantName">Let&#x27;s Paint Studio</span>
+        <span class="bn" id="tenantName">Zhiyin Music</span>
       </a>
       <div class="navlinks">
 <!-- The public shell's entries, in one place.
@@ -157,14 +157,14 @@
      ids in public-surface.js existed on no page at all.
      Every entry starts hidden. The contract decides what a visitor is
      promised; a link that has not been confirmed is not shown. -->
-      <a id="navPrincipal" href="/lets-paint-showcase#home:artist" data-analytics-label="nav_principal" data-zh="主理人" data-en="Principal" style="display:none">主理人</a>
-      <a id="navShowcase" href="/lets-paint-showcase/showcase" data-analytics-label="nav_showcase" data-zh="工作室作品" data-en="Selected Work" style="display:none">工作室作品</a>
-      <a id="navCourses" href="/lets-paint-showcase#home:courses" data-analytics-label="nav_courses" data-zh="课程" data-en="Courses" style="display:none">课程</a>
-      <a id="navTimetable" href="/lets-paint-showcase/timetable" data-analytics-label="nav_timetable" data-zh="课程安排" data-en="Timetable" style="display:none">课程安排</a>
-      <a id="navGallery" href="/lets-paint-showcase#home:gallery" data-analytics-label="nav_gallery" data-zh="学员%WORK%" data-en="Student %WORKS%" style="display:none">学员%WORK%</a>
-      <a id="navFaq" href="/lets-paint-showcase#home:faq" data-analytics-label="nav_faq" data-zh="常见问题" data-en="Questions &amp; Answers" style="display:none">常见问题</a>
-      <a id="navStudent" href="/lets-paint-showcase#my" data-analytics-label="nav_student" data-zh="学员专区" data-en="Student Login" style="display:none">学员专区</a>
-      <a id="navPrimaryCta" class="navcta" href="/lets-paint-showcase#join" data-analytics-label="nav_primary" data-zh="预约体验" data-en="Book a Trial" style="display:none">预约体验</a>
+      <a id="navPrincipal" href="/music-studio-showcase#home:artist" data-analytics-label="nav_principal" data-zh="主理人" data-en="Principal" style="display:none">主理人</a>
+      <a id="navShowcase" href="/music-studio-showcase/showcase" data-analytics-label="nav_showcase" data-zh="工作室作品" data-en="Selected Work" style="display:none">工作室作品</a>
+      <a id="navCourses" href="/music-studio-showcase#home:courses" data-analytics-label="nav_courses" data-zh="课程" data-en="Courses" style="display:none">课程</a>
+      <a id="navTimetable" href="/music-studio-showcase/timetable" data-analytics-label="nav_timetable" data-zh="课程安排" data-en="Timetable" style="display:none">课程安排</a>
+      <a id="navGallery" href="/music-studio-showcase#home:gallery" data-analytics-label="nav_gallery" data-zh="学员%WORK%" data-en="Student %WORKS%" style="display:none">学员%WORK%</a>
+      <a id="navFaq" href="/music-studio-showcase#home:faq" data-analytics-label="nav_faq" data-zh="常见问题" data-en="Questions &amp; Answers" style="display:none">常见问题</a>
+      <a id="navStudent" href="/music-studio-showcase#my" data-analytics-label="nav_student" data-zh="学员专区" data-en="Student Login" style="display:none">学员专区</a>
+      <a id="navPrimaryCta" class="navcta" href="/music-studio-showcase#join" data-analytics-label="nav_primary" data-zh="预约体验" data-en="Book a Trial" style="display:none">预约体验</a>
         <span class="langtog" role="group" aria-label="语言 / Language"><button type="button" data-language="zh" aria-pressed="true">中</button><button type="button" data-language="en" aria-pressed="false">EN</button></span>
       </div>
       <button class="menu-btn" type="button" aria-label="打开导航菜单" data-en-aria="Open navigation menu" aria-controls="mnav" aria-expanded="false">
@@ -179,14 +179,14 @@
      ids in public-surface.js existed on no page at all.
      Every entry starts hidden. The contract decides what a visitor is
      promised; a link that has not been confirmed is not shown. -->
-      <a id="mnavPrincipal" href="/lets-paint-showcase#home:artist" data-analytics-label="mnav_principal" data-zh="主理人" data-en="Principal" style="display:none">主理人</a>
-      <a id="mnavShowcase" href="/lets-paint-showcase/showcase" data-analytics-label="mnav_showcase" data-zh="工作室作品" data-en="Selected Work" style="display:none">工作室作品</a>
-      <a id="mnavCourses" href="/lets-paint-showcase#home:courses" data-analytics-label="mnav_courses" data-zh="课程" data-en="Courses" style="display:none">课程</a>
-      <a id="mnavTimetable" href="/lets-paint-showcase/timetable" data-analytics-label="mnav_timetable" data-zh="课程安排" data-en="Timetable" style="display:none">课程安排</a>
-      <a id="mnavGallery" href="/lets-paint-showcase#home:gallery" data-analytics-label="mnav_gallery" data-zh="学员%WORK%" data-en="Student %WORKS%" style="display:none">学员%WORK%</a>
-      <a id="mnavFaq" href="/lets-paint-showcase#home:faq" data-analytics-label="mnav_faq" data-zh="常见问题" data-en="Questions &amp; Answers" style="display:none">常见问题</a>
-      <a id="mnavStudent" href="/lets-paint-showcase#my" data-analytics-label="mnav_student" data-zh="学员专区" data-en="Student Login" style="display:none">学员专区</a>
-      <a id="mnavPrimaryCta" href="/lets-paint-showcase#join" data-analytics-label="mnav_primary" data-zh="预约体验" data-en="Book a Trial" style="display:none">预约体验</a>
+      <a id="mnavPrincipal" href="/music-studio-showcase#home:artist" data-analytics-label="mnav_principal" data-zh="主理人" data-en="Principal" style="display:none">主理人</a>
+      <a id="mnavShowcase" href="/music-studio-showcase/showcase" data-analytics-label="mnav_showcase" data-zh="工作室作品" data-en="Selected Work" style="display:none">工作室作品</a>
+      <a id="mnavCourses" href="/music-studio-showcase#home:courses" data-analytics-label="mnav_courses" data-zh="课程" data-en="Courses" style="display:none">课程</a>
+      <a id="mnavTimetable" href="/music-studio-showcase/timetable" data-analytics-label="mnav_timetable" data-zh="课程安排" data-en="Timetable" style="display:none">课程安排</a>
+      <a id="mnavGallery" href="/music-studio-showcase#home:gallery" data-analytics-label="mnav_gallery" data-zh="学员%WORK%" data-en="Student %WORKS%" style="display:none">学员%WORK%</a>
+      <a id="mnavFaq" href="/music-studio-showcase#home:faq" data-analytics-label="mnav_faq" data-zh="常见问题" data-en="Questions &amp; Answers" style="display:none">常见问题</a>
+      <a id="mnavStudent" href="/music-studio-showcase#my" data-analytics-label="mnav_student" data-zh="学员专区" data-en="Student Login" style="display:none">学员专区</a>
+      <a id="mnavPrimaryCta" href="/music-studio-showcase#join" data-analytics-label="mnav_primary" data-zh="预约体验" data-en="Book a Trial" style="display:none">预约体验</a>
       <span class="langtog" role="group" aria-label="语言 / Language" style="align-self:flex-start"><button type="button" data-language="zh" aria-pressed="true">中</button><button type="button" data-language="en" aria-pressed="false">EN</button></span>
     </div>
   </nav>
@@ -204,30 +204,30 @@
 
     <div id="emptyState" class="empty" hidden>
       <p id="emptyText" data-zh="目前还没有公开的课程安排。" data-en="No classes are published at the moment.">目前还没有公开的课程安排。</p>
-      <p><a id="emptyBack" href="/lets-paint-showcase" data-zh="返回工作室网站 →" data-en="Back to the studio website →">返回工作室网站 →</a></p>
+      <p><a id="emptyBack" href="/music-studio-showcase" data-zh="返回工作室网站 →" data-en="Back to the studio website →">返回工作室网站 →</a></p>
     </div>
   </main>
 
   <footer>
     <div class="foot">
       <div>
-        <span class="fn" id="footName">Let&#x27;s Paint Studio</span>
+        <span class="fn" id="footName">Zhiyin Music</span>
         <p class="fcontact" id="footContact"></p>
-        <p class="cp">© 2026 <span id="footName2">Let&#x27;s Paint Studio</span><span id="producerCredit" hidden> · Powered by Paradise Production</span></p>
+        <p class="cp">© 2026 <span id="footName2">Zhiyin Music</span><span id="producerCredit" hidden> · Powered by Paradise Production</span></p>
       <p class="cp" id="demoNotice" hidden data-en="Demonstration site. Everyone and everything on this page is invented, and the data is reset by hand.">演示站点：本页所有人物、内容与作品均为虚构，数据由运营手动重置。</p>
       </div>
       <div class="fl">
 <!-- Same list as the header, same rule: the contract decides. `Home` and
      `Privacy` are not contract entries — they always exist. -->
-      <a href="/lets-paint-showcase" data-analytics-label="foot_home" data-zh="首页" data-en="Home">首页</a>
-      <a id="footShowcase" href="/lets-paint-showcase/showcase" data-analytics-label="foot_showcase" data-zh="工作室作品" data-en="Selected Work" style="display:none">工作室作品</a>
-      <a id="footCourses" href="/lets-paint-showcase#home:courses" data-analytics-label="foot_courses" data-zh="课程" data-en="Courses" style="display:none">课程</a>
-      <a id="footTimetable" href="/lets-paint-showcase/timetable" data-analytics-label="foot_timetable" data-zh="课程安排" data-en="Timetable" style="display:none">课程安排</a>
-      <a id="footGallery" href="/lets-paint-showcase#home:gallery" data-analytics-label="foot_gallery" data-zh="学员%WORK%" data-en="Student %WORKS%" style="display:none">学员%WORK%</a>
-      <a id="footFaq" href="/lets-paint-showcase#home:faq" data-analytics-label="foot_faq" data-zh="常见问题" data-en="Questions &amp; Answers" style="display:none">常见问题</a>
-      <a id="footStudent" href="/lets-paint-showcase#my" data-analytics-label="foot_student" data-zh="学员专区" data-en="Student Login" style="display:none">学员专区</a>
-      <a id="footRegister" href="/lets-paint-showcase#join" data-analytics-label="foot_register" data-zh="预约体验" data-en="Book a Trial" style="display:none">预约体验</a>
-      <a href="/lets-paint-showcase#privacy" data-analytics-label="foot_privacy" style="color:var(--muted)" data-zh="隐私说明" data-en="Privacy">隐私说明</a>
+      <a href="/music-studio-showcase" data-analytics-label="foot_home" data-zh="首页" data-en="Home">首页</a>
+      <a id="footShowcase" href="/music-studio-showcase/showcase" data-analytics-label="foot_showcase" data-zh="工作室作品" data-en="Selected Work" style="display:none">工作室作品</a>
+      <a id="footCourses" href="/music-studio-showcase#home:courses" data-analytics-label="foot_courses" data-zh="课程" data-en="Courses" style="display:none">课程</a>
+      <a id="footTimetable" href="/music-studio-showcase/timetable" data-analytics-label="foot_timetable" data-zh="课程安排" data-en="Timetable" style="display:none">课程安排</a>
+      <a id="footGallery" href="/music-studio-showcase#home:gallery" data-analytics-label="foot_gallery" data-zh="学员%WORK%" data-en="Student %WORKS%" style="display:none">学员%WORK%</a>
+      <a id="footFaq" href="/music-studio-showcase#home:faq" data-analytics-label="foot_faq" data-zh="常见问题" data-en="Questions &amp; Answers" style="display:none">常见问题</a>
+      <a id="footStudent" href="/music-studio-showcase#my" data-analytics-label="foot_student" data-zh="学员专区" data-en="Student Login" style="display:none">学员专区</a>
+      <a id="footRegister" href="/music-studio-showcase#join" data-analytics-label="foot_register" data-zh="预约体验" data-en="Book a Trial" style="display:none">预约体验</a>
+      <a href="/music-studio-showcase#privacy" data-analytics-label="foot_privacy" style="color:var(--muted)" data-zh="隐私说明" data-en="Privacy">隐私说明</a>
       </div>
     </div>
   </footer>
@@ -264,8 +264,8 @@
   </dialog>
 
   <script>
-    const TENANT_SLUG = 'lets-paint-showcase';
-    const TENANT_NAME = "Let's Paint Studio";
+    const TENANT_SLUG = 'music-studio-showcase';
+    const TENANT_NAME = "Zhiyin Music";
     const esc = window.StudioSaaS.esc;
     const API = `/v1/public/${encodeURIComponent(TENANT_SLUG)}`;
     let timetable = null;

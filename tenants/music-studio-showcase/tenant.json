@@ -1,0 +1,9 @@
+{
+  "slug": "music-studio-showcase",
+  "name": "Zhiyin Music",
+  "head": {
+    "title": "Zhiyin Music — music lessons in Glen Waverley, Melbourne",
+    "description": "A teaching studio in Glen Waverley, Melbourne. Piano, violin and voice; guzheng, erhu and pipa. One-on-one lessons, groups of four to six, and an ensemble that rehearses on Saturday afternoons."
+  },
+  "workspace_path": "tenants/music-studio-showcase"
+}

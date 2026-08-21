@@ -40,6 +40,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import importlib
 import io
 import json
 import os
@@ -71,12 +72,98 @@ from studiosaas.services.billing import (  # noqa: E402
 from studiosaas.services.student_access import generate_access_code  # noqa: E402
 from studiosaas.workspaces import ensure_tenant_workspace  # noqa: E402
 
-SHOWCASE_SLUG = content.SLUG
-SHOWCASE_NAME = content.NAME
-CONFIRMATION = "RESET-LETS-PAINT-SHOWCASE"
 DEMO_PASSWORD_ENV = "STUDIOSAAS_SHARED_DEMO_PASSWORD"
 SEED_ASSETS = APP_ROOT / "seed-assets"
-MANIFEST = SEED_ASSETS / "showcase" / "manifest.json"
+
+#: The demonstration packs. Adding an industry is a row here plus its two files
+#: — a content module and a manifest beside its images. No branch below knows
+#: which industry it is seeding.
+#:
+#: The confirmation phrase names its own tenant on purpose: an operator who
+#: typed RESET-LETS-PAINT-SHOWCASE while looking at the music studio should be
+#: refused, not obeyed.
+PACKS: dict[str, dict[str, str]] = {
+    "art": {
+        "module": "showcase_content",
+        "assets": "showcase",
+        "confirm": "RESET-LETS-PAINT-SHOWCASE",
+        "credentials": "showcase-credentials.txt",
+    },
+    "music": {
+        "module": "music_showcase_content",
+        "assets": "music-showcase",
+        "confirm": "RESET-MUSIC-STUDIO-SHOWCASE",
+        "credentials": "music-showcase-credentials.txt",
+    },
+}
+DEFAULT_PACK = "art"
+
+# Rebound by _select_pack() before anything is written. They start on the art
+# pack so that importing this module behaves exactly as it always did.
+PACK = DEFAULT_PACK
+SHOWCASE_SLUG = content.SLUG
+SHOWCASE_NAME = content.NAME
+CONFIRMATION = PACKS[DEFAULT_PACK]["confirm"]
+MANIFEST = SEED_ASSETS / PACKS[DEFAULT_PACK]["assets"] / "manifest.json"
+CREDENTIALS_NAME = PACKS[DEFAULT_PACK]["credentials"]
+
+
+def pack_for_slug(slug: str) -> str | None:
+    """Which pack owns this tenant slug, or None if no demonstration pack does.
+
+    Public because the Platform Admin reset button needs it: the tenant decides
+    which pack runs, never the other way round.
+    """
+
+    for name, spec in PACKS.items():
+        module = importlib.import_module(spec["module"])
+        if getattr(module, "SLUG", None) == slug:
+            return name
+    return None
+
+
+def confirmation_for_pack(name: str) -> str:
+    """The exact phrase that authorises resetting this pack's studio."""
+
+    if name not in PACKS:
+        raise KeyError(name)
+    return PACKS[name]["confirm"]
+
+
+def _select_pack(name: str) -> None:
+    """Point the module at one pack, once, before anything is written."""
+
+    global PACK, content, SHOWCASE_SLUG, SHOWCASE_NAME, CONFIRMATION
+    global MANIFEST, CREDENTIALS_NAME
+
+    if name not in PACKS:
+        raise SystemExit(f"Unknown demonstration pack: {name}. Known: {', '.join(PACKS)}")
+    spec = PACKS[name]
+    try:
+        module = importlib.import_module(spec["module"])
+    except ModuleNotFoundError as exc:
+        raise SystemExit(
+            f"Pack '{name}' has no content module: scripts/{spec['module']}.py is "
+            f"missing ({exc}). A pack is that file plus "
+            f"seed-assets/{spec['assets']}/manifest.json beside its images."
+        ) from None
+    required = ("SLUG", "NAME", "PLAN_CODE", "PAYERS", "INVOICE_PLAN",
+                "ROOM_NAMES", "PROGRESS_REPORTS", "PAYMENT_NOTE",
+                "BILLING_LINKS", "ATTENDANCE_COURSE_INDEX",
+                "REGISTRATION_ANSWERS",
+                "SEO_TAGLINE")
+    missing = [n for n in required if not hasattr(module, n)]
+    if missing:
+        raise SystemExit(
+            f"Pack '{name}' module {spec['module']} is missing: {', '.join(missing)}"
+        )
+    PACK = name
+    content = module
+    SHOWCASE_SLUG = module.SLUG
+    SHOWCASE_NAME = module.NAME
+    CONFIRMATION = spec["confirm"]
+    MANIFEST = SEED_ASSETS / spec["assets"] / "manifest.json"
+    CREDENTIALS_NAME = spec["credentials"]
 
 
 # ── plumbing ───────────────────────────────────────────────────────────────
@@ -87,9 +174,15 @@ def _parse_args() -> argparse.Namespace:
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
+        "--pack",
+        default=DEFAULT_PACK,
+        choices=sorted(PACKS),
+        help="Which demonstration studio to reset.",
+    )
+    parser.add_argument(
         "--confirm",
         required=True,
-        help=f"Required exact safety phrase: {CONFIRMATION}",
+        help="Required exact safety phrase; each pack has its own, naming its tenant.",
     )
     parser.add_argument(
         "--credentials-file",
@@ -100,14 +193,26 @@ def _parse_args() -> argparse.Namespace:
 
 
 def _credentials_path(explicit: Path | None) -> Path:
-    """Resolve the protected credential handoff path."""
+    """Resolve the protected credential handoff path for the ACTIVE pack.
+
+    The environment variable names a location, and the pack names the file
+    inside it. It was written when one demonstration studio existed and so it
+    named a file outright — which, with two packs, means resetting the music
+    studio writes its credentials over the art studio's file. Production sets
+    it to `/data/showcase-credentials.txt`, so taking the directory from it and
+    the filename from the pack leaves the art path byte-for-byte what it was
+    and gives music its own sibling.
+
+    An explicit `--credentials-file` still wins outright: that one is a person
+    naming a path for this run.
+    """
 
     if explicit:
         return explicit.expanduser().resolve()
     configured = os.environ.get("STUDIOSAAS_DEMO_CREDENTIALS_FILE", "").strip()
     if configured:
-        return Path(configured).expanduser().resolve()
-    return Path.home() / ".studiosaas" / "showcase-credentials.txt"
+        return Path(configured).expanduser().resolve().parent / CREDENTIALS_NAME
+    return Path.home() / ".studiosaas" / CREDENTIALS_NAME
 
 
 def _refuse_unsafe_context(confirmation: str) -> None:
@@ -132,7 +237,9 @@ def _manifest() -> dict:
     """The artwork manifest, or a clear failure naming the missing file."""
 
     if not MANIFEST.is_file():
-        raise RuntimeError(f"Showcase artwork manifest is missing: {MANIFEST}")
+        raise RuntimeError(
+            f"Demonstration manifest is missing for pack '{PACK}': {MANIFEST}"
+        )
     return json.loads(MANIFEST.read_text(encoding="utf-8"))
 
 
@@ -245,8 +352,8 @@ def _website_profile(
         "faq_label": content.LOCALIZED_COPY["faq_label"]["en"],
         "contact_label": content.LOCALIZED_COPY["contact_label"]["en"],
         "seo_title": {
-            "zh": f"{SHOWCASE_NAME} · 墨尔本成人绘画小班",
-            "en": f"{SHOWCASE_NAME} — adult painting classes in Melbourne",
+            "zh": f"{SHOWCASE_NAME} · {content.SEO_TAGLINE['zh']}",
+            "en": f"{SHOWCASE_NAME} — {content.SEO_TAGLINE['en']}",
         },
         "seo_description": content.LOCALIZED_COPY["hero_subtitle"],
         "show_about": True,
@@ -530,7 +637,7 @@ def _seed_students(cur: Any, tenant_id: str, course_ids: list[str], teacher_id: 
                 (
                     tenant_id,
                     student_id,
-                    course_ids[3 if is_child else index % 3],
+                    course_ids[content.ATTENDANCE_COURSE_INDEX[index]],
                     teacher_id,
                     transaction_id,
                     class_date,
@@ -581,19 +688,13 @@ def _seed_money_layer(
          "12 Sturt Street", "Southbank", "VIC", "3006",
          "accounts@letspaint.example", "03 9000 1234",
          "Paradise Production Pty Ltd", "083-004", "12 345 6789",
-         "请在到期日前转账，并在备注里写上发票号。"),
+         content.PAYMENT_NOTE),
     )
 
     # ── the payers ────────────────────────────────────────────────────
     # A family with two children on one invoice is the case that makes the
     # payer/student split worth explaining, so the demo has one.
-    payers = [
-        ("Whelan 一家", "family", "Rachel Whelan", "rachel.whelan@example.com", "0400000102", 14),
-        ("Raman 一家", "family", "Anil Raman", "anil.raman@example.com", "0400000101", 14),
-        ("Chen 一家", "family", "Li Chen", "li.chen@example.com", "0400000104", 7),
-        ("Southbank Primary School", "organisation", "Dana Iqbal",
-         "office@southbankprimary.example", "03 9000 5678", 30),
-    ]
+    payers = content.PAYERS
     account_ids: list[str] = []
     for name, kind, contact, email, mobile, terms in payers:
         cur.execute(
@@ -606,9 +707,11 @@ def _seed_money_layer(
         )
         account_ids.append(str(cur.fetchone()["id"]))
 
-    # Students 0 and 1 are the two Whelans in the seeded roster; putting them on
-    # one account is what makes "one invoice, two children" demonstrable.
-    for account_index, student_index in ((0, 1), (0, 4), (1, 0), (2, 3)):
+    # Which students share an account is a fact about the pack's roster, not
+    # about billing: the seeder cannot know that two of these surnames are
+    # siblings. Putting a pair of them on one account is what makes "one
+    # invoice, two children" demonstrable, so every pack is expected to have one.
+    for account_index, student_index in content.BILLING_LINKS:
         if student_index < len(student_ids):
             cur.execute(
                 """
@@ -660,7 +763,7 @@ def _seed_money_layer(
         "contact_phone": "03 9000 1234",
         "bank_account_name": "Paradise Production Pty Ltd",
         "bank_bsb": "083-004", "bank_account_no": "12 345 6789",
-        "payment_note": "请在到期日前转账，并在备注里写上发票号。",
+        "payment_note": content.PAYMENT_NOTE,
     })
     recipients = [
         recipient_snapshot({
@@ -672,15 +775,7 @@ def _seed_money_layer(
 
     counter = [0]
     invoices: list[tuple[str, int, str]] = []   # (id, total, status)
-    plan = [
-        # (account, issued days ago, status, lines)
-        (0, 34, "paid", [("第三学期学费 · Eli Whelan", "10", 6500, 1000, "tuition"),
-                         ("第三学期学费 · Tom Whelan", "10", 6500, 1000, "tuition")]),
-        (1, 20, "part_paid", [("第三学期学费 · Priya Raman", "10", 5500, 1000, "tuition")]),
-        (2, 45, "issued", [("第三学期学费 · Xi Chen", "10", 5500, 1000, "tuition")]),
-        (3, 12, "issued", [("驻校工作坊 · 两场", "2", 48000, 1000, "engagement")]),
-        (0, None, "draft", [("第四学期学费 · Eli Whelan", "10", 6500, 1000, "tuition")]),
-    ]
+    plan = content.INVOICE_PLAN
     for account_index, days_ago, status, lines in plan:
         cur.execute(
             "INSERT INTO invoices (tenant_id, billing_account_id) VALUES (%s, %s) RETURNING id",
@@ -830,7 +925,7 @@ def _seed_money_layer(
             RETURNING id
             """,
             (tenant_id, student_ids[student_index], teacher_id, weekday, start_time,
-             "主画室 Main room" if index == 0 else "小画室 Back room",
+             content.ROOM_NAMES[index % len(content.ROOM_NAMES)],
              today - timedelta(days=60), owner_id, "一对一"),
         )
         series_ids.append(str(cur.fetchone()["id"]))
@@ -878,17 +973,16 @@ def _seed_money_layer(
     for index, student_id in enumerate(student_ids[:4]):
         published = index < 2
         period_end = today - timedelta(days=40 if published else 25)
-        content = json.dumps({
+        report = content.PROGRESS_REPORTS[index % len(content.PROGRESS_REPORTS)]
+        report_body = json.dumps({
             "periodStart": (period_end - timedelta(days=60)).isoformat(),
             "periodEnd": period_end.isoformat(),
             "attendance": {"scheduled": 8, "attended": 7, "cancelled": 1,
                            "makeups": 0, "ratePercent": 88},
             "lessons": [
                 {"class_date": (period_end - timedelta(days=d)).isoformat(),
-                 "note": note, "course_name": "油画基础 Foundation Oil"}
-                for d, note in ((21, "调色练习，冷暖对比有进步。"),
-                                (14, "静物写生，构图更稳。"),
-                                (7, "完成第一张完整作品。"))
+                 "note": note, "course_name": report["course_name"]}
+                for d, note in report["lessons"]
             ],
         })
         cur.execute(
@@ -899,9 +993,8 @@ def _seed_money_layer(
             VALUES (%s, %s, %s, %s, %s, %s::jsonb, %s, %s, %s, %s)
             """,
             (tenant_id, student_id, teacher_id,
-             period_end - timedelta(days=60), period_end, content,
-             "这一段进步很明显，尤其是在色彩的冷暖关系上。下一段建议加入静物写生。"
-             if published else "",
+             period_end - timedelta(days=60), period_end, report_body,
+             report["comment"] if published else "",
              "published" if published else "draft",
              (period_end + timedelta(days=3)) if published else None,
              owner_id if published else None),
@@ -1130,9 +1223,9 @@ def _seed_registrations(cur: Any, tenant_id: str, manager_id: str) -> None:
                 email,
                 message,
                 json.dumps({
-                    "experience": "Painted years ago",
-                    "goals": "Somewhere to switch off",
-                    "availability": "Weeknights",
+                    **content.REGISTRATION_ANSWERS[
+                        index % len(content.REGISTRATION_ANSWERS)
+                    ],
                 }),
                 manager_id,
                 status,
@@ -1400,9 +1493,14 @@ def _application_context():
     return server.app.app_context()
 
 
-def reset_showcase(credentials_file: Path) -> dict[str, Any]:
-    """Reset the showcase in one transaction and return non-secret evidence."""
+def reset_showcase(credentials_file: Path, pack: str = DEFAULT_PACK) -> dict[str, Any]:
+    """Reset one demonstration studio in a transaction, and return evidence.
 
+    `pack` is resolved here rather than inherited, so a process that reset the
+    art studio earlier cannot seed its content into the music one.
+    """
+
+    _select_pack(pack)
     password = os.environ.get(DEMO_PASSWORD_ENV, "")
     if len(password) < 12:
         raise RuntimeError(
@@ -1517,9 +1615,16 @@ def main() -> int:
     """Run the guarded reset and print only non-secret acceptance evidence."""
 
     args = _parse_args()
+    # Select first, then guard, then seed — in that order. Guarding before the
+    # pack is resolved compares the typed phrase against whichever pack happened
+    # to be bound at import, so `--pack music --confirm <the art phrase>` passed
+    # the check and then rebuilt the art studio: a flag that lies is worse than
+    # no flag. The same ordering mistake, one layer down, is what made the
+    # Platform Admin reset button reset the wrong tenant.
+    _select_pack(args.pack)
     _refuse_unsafe_context(args.confirm)
     credentials_file = _credentials_path(args.credentials_file)
-    result = reset_showcase(credentials_file)
+    result = reset_showcase(credentials_file, pack=args.pack)
     print(f"Professional showcase ready: /{SHOWCASE_SLUG} ({content.PLAN_CODE} plan)")
     print(
         "Created "

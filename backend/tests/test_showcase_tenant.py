@@ -338,10 +338,31 @@ def test_the_reset_endpoint_refuses_a_tenant_that_is_not_a_demonstration() -> No
     assert "if is_standalone():" in body, "a customer edition has no demo tenant"
     assert "professional_demo" in body
     assert 'if not row["is_demo"]:' in body
-    assert "DEMO_RESET_CONFIRMATION" in body
+    # The phrase is per pack, and the pack comes from the tenant. Pinning the
+    # name of one constant is what let the endpoint check a flag on the tenant
+    # you pressed and then rebuild a different studio: the seeder it called was
+    # wired to one slug. Assert the dispatch, not a spelling.
+    assert "pack_for_slug(row[" in body, "the tenant must choose the pack"
+    assert "confirmation_for_pack(pack)" in body, "the phrase must be the pack's own"
+    assert "reset_showcase(_credentials_path(None), pack=pack)" in body, (
+        "the resolved pack must be the one that gets seeded"
+    )
     # And it must not proceed without the password: a half-reset tenant whose
     # logins were never set is worse than one nobody touched.
     assert "STUDIOSAAS_SHARED_DEMO_PASSWORD" in body
+
+
+def test_a_demonstration_tenant_no_pack_owns_is_refused() -> None:
+    """The flag alone is not enough to say WHICH studio to rebuild.
+
+    settings.professional_demo is set by hand. A tenant carrying it that no pack
+    claims used to fall through to whichever slug the seeder was wired to, which
+    is how pressing reset on one demonstration studio could rebuild another.
+    """
+
+    body = API.split("def reset_demo_tenant(", 1)[1].split("\n@api_v1.route", 1)[0]
+    assert "if pack is None:" in body
+    assert "Reset is refused." in body
 
 
 def test_the_reset_endpoint_is_super_admin_only() -> None:
@@ -457,3 +478,88 @@ def test_the_seeder_reuses_a_running_application_context() -> None:
     reset = SEEDER.split("def reset_showcase(", 1)[1].split("\ndef ", 1)[0]
     assert "with _application_context()" in reset
     assert "import server" not in reset, "the reset itself must not re-import the app"
+
+
+def test_each_pack_writes_its_own_credential_file(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Two packs must not hand their credentials to the same file.
+
+    `STUDIOSAAS_DEMO_CREDENTIALS_FILE` was written when one demonstration
+    studio existed, so it names a file outright — and production sets it to
+    `/data/showcase-credentials.txt`. Left alone, resetting the music studio
+    (from the CLI or from the Platform Admin button, which passes no explicit
+    path) overwrites the art studio's credentials with the music studio's.
+
+    The variable names the directory; the pack names the file. Art therefore
+    resolves to exactly the path it always did.
+    """
+
+    import reset_professional_demo as seeder
+
+    monkeypatch.setenv("STUDIOSAAS_DEMO_CREDENTIALS_FILE", "/data/showcase-credentials.txt")
+    resolved = {}
+    for pack in sorted(seeder.PACKS):
+        seeder._select_pack(pack)
+        resolved[pack] = seeder._credentials_path(None)
+    seeder._select_pack(seeder.DEFAULT_PACK)
+
+    assert resolved["art"] == Path("/data/showcase-credentials.txt"), "the art path must not move"
+    assert len(set(resolved.values())) == len(resolved), f"packs share a file: {resolved}"
+    for pack, path in resolved.items():
+        assert path.name == seeder.PACKS[pack]["credentials"]
+
+
+def test_a_pack_names_its_own_confirmation_and_tenant() -> None:
+    """The phrase an operator types must name the studio they are looking at.
+
+    A shared phrase means the muscle memory built on one demonstration tenant
+    authorises destroying the other one.
+    """
+
+    import reset_professional_demo as seeder
+
+    phrases = {spec["confirm"] for spec in seeder.PACKS.values()}
+    assert len(phrases) == len(seeder.PACKS), "two packs share a confirmation phrase"
+    for pack, spec in seeder.PACKS.items():
+        seeder._select_pack(pack)
+        assert seeder.SHOWCASE_SLUG.upper() in spec["confirm"].upper(), (
+            f"{pack}'s phrase does not name its tenant"
+        )
+        assert seeder.pack_for_slug(seeder.SHOWCASE_SLUG) == pack
+    seeder._select_pack(seeder.DEFAULT_PACK)
+    assert seeder.pack_for_slug("some-real-customer") is None
+
+
+def test_every_pack_agrees_with_its_own_roster() -> None:
+    """The index arithmetic the seeder used to hold is per-roster data now.
+
+    `BILLING_LINKS` and `ATTENDANCE_COURSE_INDEX` encode one studio's roster.
+    Pointed at another they throw nothing — they quietly bill an unrelated
+    child to a family and file a guzheng student's attendance under theory.
+    """
+
+    import importlib
+
+    import reset_professional_demo as seeder
+
+    for pack, spec in seeder.PACKS.items():
+        module = importlib.import_module(spec["module"])
+        students, courses = len(module.STUDENTS), len(module.COURSES)
+
+        assert len(module.ATTENDANCE_COURSE_INDEX) == students, (
+            f"{pack}: one course per student, not {len(module.ATTENDANCE_COURSE_INDEX)}"
+        )
+        assert all(0 <= i < courses for i in module.ATTENDANCE_COURSE_INDEX), pack
+
+        for account_index, student_index in module.BILLING_LINKS:
+            assert 0 <= account_index < len(module.PAYERS), pack
+            assert 0 <= student_index < students, pack
+        assert any(
+            sum(1 for a, _ in module.BILLING_LINKS if a == account) > 1
+            for account, _ in module.BILLING_LINKS
+        ), f"{pack}: no account carries two students, so one invoice for two children is undemonstrable"
+
+        form_keys = {field["key"] for field in module.REGISTRATION_PROFILE["fields"]}
+        for answers in module.REGISTRATION_ANSWERS:
+            assert set(answers) == form_keys, (
+                f"{pack}: enquiry answers use {sorted(answers)}, form asks {sorted(form_keys)}"
+            )

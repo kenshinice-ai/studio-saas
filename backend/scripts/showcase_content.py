@@ -486,3 +486,83 @@ REGISTRATIONS = (
     ("converted", "Evie", "Hall", "", "0400000205", "evie@example.com",
      "已购十次课包，周二晚。 / Bought the ten-class pack, Tuesday evenings.", None),
 )
+
+
+# ── what the seeder used to hold ─────────────────────────────────────────────
+#
+# These six lived as literals inside reset_professional_demo.py, which meant the
+# seeder knew it was seeding a painting studio. They are the same strings, moved
+# to where the rest of this studio's copy already lives, so that a second
+# industry is a second module rather than a branch in the seeder.
+
+#: Follows the studio name in the public page title.
+SEO_TAGLINE = {
+    "zh": "墨尔本成人绘画小班",
+    "en": "adult painting classes in Melbourne",
+}
+
+#: Printed on every issued invoice, under the bank details.
+PAYMENT_NOTE = "请在到期日前转账，并在备注里写上发票号。"
+
+#: The rooms a recurring class can be scheduled into. Index 0 is the room a
+#: one-to-one lesson lands in by default.
+ROOM_NAMES = ["主画室 Main room", "小画室 Back room"]
+
+#: (name, kind, contact_name, email, mobile, payment_terms_days)
+#: A family with two children on one invoice is the case that makes the
+#: payer/student split worth explaining, so the demo has one.
+PAYERS = [
+    ("Whelan 一家", "family", "Rachel Whelan", "rachel.whelan@example.com", "0400000102", 14),
+    ("Raman 一家", "family", "Anil Raman", "anil.raman@example.com", "0400000101", 14),
+    ("Chen 一家", "family", "Li Chen", "li.chen@example.com", "0400000104", 7),
+    ("Southbank Primary School", "organisation", "Dana Iqbal",
+     "office@southbankprimary.example", "03 9000 5678", 30),
+]
+
+#: (payer index, issued days ago, status, [(description, qty, unit_cents, tax_bp, kind)])
+#: Every state a studio meets: paid, part paid, overdue, issued, and a draft the
+#: front desk has not sent. A list showing one state teaches nothing.
+INVOICE_PLAN = [
+    (0, 34, "paid", [("第三学期学费 · Eli Whelan", "10", 6500, 1000, "tuition"),
+                     ("第三学期学费 · Tom Whelan", "10", 6500, 1000, "tuition")]),
+    (1, 20, "part_paid", [("第三学期学费 · Priya Raman", "10", 5500, 1000, "tuition")]),
+    (2, 45, "issued", [("第三学期学费 · Xi Chen", "10", 5500, 1000, "tuition")]),
+    (3, 12, "issued", [("驻校工作坊 · 两场", "2", 48000, 1000, "engagement")]),
+    (0, None, "draft", [("第四学期学费 · Eli Whelan", "10", 6500, 1000, "tuition")]),
+]
+
+#: What a generated progress report says. `lessons` is (days before period end,
+#: the teacher's note); the seeder supplies the dates and the attendance roll-up.
+PROGRESS_REPORTS = [
+    {
+        "course_name": "油画基础 Foundation Oil",
+        "lessons": (
+            (21, "调色练习，冷暖对比有进步。"),
+            (14, "静物写生，构图更稳。"),
+            (7, "完成第一张完整作品。"),
+        ),
+        "comment": "这一段进步很明显，尤其是在色彩的冷暖关系上。下一段建议加入静物写生。",
+    },
+]
+
+
+#: (billing account index, student index) — who shares an account with whom.
+#: The Whelans are the pair: one invoice, two children.
+BILLING_LINKS = ((0, 1), (0, 4), (1, 0), (2, 3))
+
+#: One course index per student, positionally — which class that student's
+#: attendance history is written against. Ten adults rotating through the three
+#: adult courses, then the two children in the Saturday class.
+ATTENDANCE_COURSE_INDEX = (0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 3, 3)
+
+
+#: What a seeded enquiry answered on the registration form. The KEYS must be
+#: the `key` of each field in REGISTRATION_PROFILE, or the CMS opens the row
+#: onto questions this studio never asked. Cycled by enquiry index; one entry
+#: means every enquiry answered the same, which is what this pack did before
+#: these answers were a pack's business at all.
+REGISTRATION_ANSWERS = (
+    {"experience": "Painted years ago",
+     "goals": "Somewhere to switch off",
+     "availability": "Weeknights"},
+)

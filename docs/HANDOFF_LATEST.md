@@ -27,6 +27,19 @@
 
 ## 最新轮次
 
+- **2026-08-21（Claude Opus 5）音乐样板租户 —— 播种器泛化成「行业内容包」**：
+  `docs/handoff/claude/2026-08-21-music-showcase-pack.md`
+  —— `reset_professional_demo.py` 改为按包播种（`--pack art|music`），每个包自带
+  确认短语；**修掉「重置演示租户」按钮永远重建美术租户的地雷**（租户决定包，无包
+  认领即拒绝）。九组文案/数据从播种器搬进包模块，其中 `BILLING_LINKS`／
+  `ATTENDANCE_COURSE_INDEX`／`REGISTRATION_ANSWERS` 原本是**写死的索引算术**，
+  在音乐名册上会安静产出自相矛盾的演示。新增音乐包 `music-studio-showcase`
+  （知音音乐，growth，12 学员／9 课／22 个素材），装配时另修 logo 被切断、
+  manifest 学员索引错位、「两台钢琴」标题与正文矛盾、凭空多出第五个房间。
+  以及两个包把凭据写进同一个文件（环境变量改为给目录、包给文件名）。
+  美术包输出逐字未变；全量 `2832 passed`。**上线须先手工给线上租户打
+  `settings.professional_demo=true`，否则播种器会（正确地）拒绝。**
+
 - **2026-08-20（Claude Fable）v10.11.1 运维卫生轮 —— A/B 两档清单一次做完**：
   `docs/handoff/claude/2026-08-20-ops-hygiene-round.md`
   —— 集成页 Beta 徽标（含移除触发条件）；两组双语标签对齐；**演示页「数据每晚

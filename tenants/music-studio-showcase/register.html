@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Let&#x27;s Paint Studio Registration</title>
+  <title>Zhiyin Music Registration</title>
   <!-- Same reason as the timetable: this is the page people forward. -->
-  <meta id="pageDescription" name="description" content="Let&#x27;s Paint Studio 报名与预约体验。">
+  <meta id="pageDescription" name="description" content="Zhiyin Music 报名与预约体验。">
   <meta name="robots" content="index,follow">
   <!-- Rewritten by applyVisualTheme() to the page colour of the theme actually
        rendered. The literal is only what the browser chrome shows before
@@ -14,13 +14,13 @@
   <meta name="theme-color" content="#F3EFEA">
   <!-- 6-2: same two-language contract as the portal — ?lang= addresses each
        version, and applyLanguage() keeps these in step with what is rendered. -->
-  <link id="canonicalUrl" rel="canonical" href="/lets-paint-showcase/register.html">
-  <link id="altLangZh" rel="alternate" hreflang="zh-CN" href="/lets-paint-showcase/register.html?lang=zh">
-  <link id="altLangEn" rel="alternate" hreflang="en" href="/lets-paint-showcase/register.html?lang=en">
-  <link id="altLangDefault" rel="alternate" hreflang="x-default" href="/lets-paint-showcase/register.html">
+  <link id="canonicalUrl" rel="canonical" href="/music-studio-showcase/register.html">
+  <link id="altLangZh" rel="alternate" hreflang="zh-CN" href="/music-studio-showcase/register.html?lang=zh">
+  <link id="altLangEn" rel="alternate" hreflang="en" href="/music-studio-showcase/register.html?lang=en">
+  <link id="altLangDefault" rel="alternate" hreflang="x-default" href="/music-studio-showcase/register.html">
   <meta id="ogLocale" property="og:locale" content="zh_CN">
   <meta id="ogLocaleAlternate" property="og:locale:alternate" content="en_US">
-  <link rel="manifest" href="/lets-paint-showcase/manifest-student.json">
+  <link rel="manifest" href="/music-studio-showcase/manifest-student.json">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
@@ -147,14 +147,14 @@
     }
   </style>
 </head>
-<body data-tenant-slug="lets-paint-showcase">
+<body data-tenant-slug="music-studio-showcase">
   <header>
     <div class="brand">
       <!-- A configured-but-missing logo must disappear, not leave a broken
            image glyph next to the studio name. -->
       <img id="tenantLogo" alt="" hidden onerror="this.hidden=true;this.removeAttribute('src')">
       <div>
-        <div id="tenantName" class="name">Let&#x27;s Paint Studio</div>
+        <div id="tenantName" class="name">Zhiyin Music</div>
         <div id="tenantSlogan" class="slogan"></div>
         <div id="tenantContact" class="contact"></div>
       </div>
@@ -164,7 +164,7 @@
         <button type="button" data-language="zh" aria-pressed="true">中</button>
         <button type="button" data-language="en" aria-pressed="false">EN</button>
       </div>
-      <a id="backLink" href="/lets-paint-showcase" data-zh="← 返回工作室网站" data-en="← Back to studio website">← 返回工作室网站</a>
+      <a id="backLink" href="/music-studio-showcase" data-zh="← 返回工作室网站" data-en="← Back to studio website">← 返回工作室网站</a>
     </div>
   </header>
 
@@ -219,7 +219,7 @@
         </div>
         <div class="done-actions">
           <button id="copyContactBtn" type="button" hidden data-zh="复制工作室联系方式" data-en="Copy studio contact">复制工作室联系方式</button>
-          <a href="/lets-paint-showcase" data-zh="返回工作室网站" data-en="Back to studio website">返回工作室网站</a>
+          <a href="/music-studio-showcase" data-zh="返回工作室网站" data-en="Back to studio website">返回工作室网站</a>
         </div>
       </div>
     </section>
@@ -229,17 +229,17 @@
     <nav class="register-footer-links" aria-label="公开页面">
 <!-- Same list as the header, same rule: the contract decides. `Home` and
      `Privacy` are not contract entries — they always exist. -->
-      <a href="/lets-paint-showcase" data-analytics-label="foot_home" data-zh="首页" data-en="Home">首页</a>
-      <a id="footShowcase" href="/lets-paint-showcase/showcase" data-analytics-label="foot_showcase" data-zh="工作室作品" data-en="Selected Work" style="display:none">工作室作品</a>
-      <a id="footCourses" href="/lets-paint-showcase#home:courses" data-analytics-label="foot_courses" data-zh="课程" data-en="Courses" style="display:none">课程</a>
-      <a id="footTimetable" href="/lets-paint-showcase/timetable" data-analytics-label="foot_timetable" data-zh="课程安排" data-en="Timetable" style="display:none">课程安排</a>
-      <a id="footGallery" href="/lets-paint-showcase#home:gallery" data-analytics-label="foot_gallery" data-zh="学员%WORK%" data-en="Student %WORKS%" style="display:none">学员%WORK%</a>
-      <a id="footFaq" href="/lets-paint-showcase#home:faq" data-analytics-label="foot_faq" data-zh="常见问题" data-en="Questions &amp; Answers" style="display:none">常见问题</a>
-      <a id="footStudent" href="/lets-paint-showcase#my" data-analytics-label="foot_student" data-zh="学员专区" data-en="Student Login" style="display:none">学员专区</a>
-      <a id="footRegister" href="/lets-paint-showcase#join" data-analytics-label="foot_register" data-zh="预约体验" data-en="Book a Trial" style="display:none">预约体验</a>
-      <a href="/lets-paint-showcase#privacy" data-analytics-label="foot_privacy" style="color:var(--muted)" data-zh="隐私说明" data-en="Privacy">隐私说明</a>
+      <a href="/music-studio-showcase" data-analytics-label="foot_home" data-zh="首页" data-en="Home">首页</a>
+      <a id="footShowcase" href="/music-studio-showcase/showcase" data-analytics-label="foot_showcase" data-zh="工作室作品" data-en="Selected Work" style="display:none">工作室作品</a>
+      <a id="footCourses" href="/music-studio-showcase#home:courses" data-analytics-label="foot_courses" data-zh="课程" data-en="Courses" style="display:none">课程</a>
+      <a id="footTimetable" href="/music-studio-showcase/timetable" data-analytics-label="foot_timetable" data-zh="课程安排" data-en="Timetable" style="display:none">课程安排</a>
+      <a id="footGallery" href="/music-studio-showcase#home:gallery" data-analytics-label="foot_gallery" data-zh="学员%WORK%" data-en="Student %WORKS%" style="display:none">学员%WORK%</a>
+      <a id="footFaq" href="/music-studio-showcase#home:faq" data-analytics-label="foot_faq" data-zh="常见问题" data-en="Questions &amp; Answers" style="display:none">常见问题</a>
+      <a id="footStudent" href="/music-studio-showcase#my" data-analytics-label="foot_student" data-zh="学员专区" data-en="Student Login" style="display:none">学员专区</a>
+      <a id="footRegister" href="/music-studio-showcase#join" data-analytics-label="foot_register" data-zh="预约体验" data-en="Book a Trial" style="display:none">预约体验</a>
+      <a href="/music-studio-showcase#privacy" data-analytics-label="foot_privacy" style="color:var(--muted)" data-zh="隐私说明" data-en="Privacy">隐私说明</a>
     </nav>
-    © 2026 <span id="footName">Let&#x27;s Paint Studio</span>
+    © 2026 <span id="footName">Zhiyin Music</span>
     <span id="producerCredit" hidden> · Powered by Paradise Production</span>
     <p class="cp" id="demoNotice" hidden data-en="Demonstration site. Everyone and everything on this page is invented, and the data is reset by hand.">演示站点：本页所有人物、内容与作品均为虚构，数据由运营手动重置。</p>
   </footer>
@@ -262,8 +262,8 @@
   </dialog>
 
   <script>
-    const TENANT_SLUG = 'lets-paint-showcase';
-    const TENANT_NAME = "Let's Paint Studio";
+    const TENANT_SLUG = 'music-studio-showcase';
+    const TENANT_NAME = "Zhiyin Music";
     const esc = window.StudioSaaS.esc;
     let registrationProfile = { title: 'Quick Registration', fields: [] };
     let currentBrand = {};

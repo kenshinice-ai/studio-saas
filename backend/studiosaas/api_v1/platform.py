@@ -849,6 +849,8 @@ def mutate_tenant(tenant_id: str):
 # The reset phrase is the script's, verbatim. One phrase for both entry points
 # means an operator who has run this from a terminal already knows it, and it
 # cannot drift into two half-remembered variants.
+#: Kept for callers that still import it; the phrase actually required is the
+#: one belonging to the tenant being reset (see reset_demo_tenant).
 DEMO_RESET_CONFIRMATION = "RESET-LETS-PAINT-SHOWCASE"
 
 
@@ -894,8 +896,6 @@ def reset_demo_tenant(tenant_id: str):
         return _error(
             "This tenant is not a demonstration tenant. Reset is refused.", 400
         )
-    if str(payload.get("confirm") or "").strip() != DEMO_RESET_CONFIRMATION:
-        return _error(f"Type {DEMO_RESET_CONFIRMATION} to confirm.", 400)
     if len(os.environ.get("STUDIOSAAS_SHARED_DEMO_PASSWORD", "")) < 12:
         return _error(
             "STUDIOSAAS_SHARED_DEMO_PASSWORD is not configured on this instance, "
@@ -912,14 +912,28 @@ def reset_demo_tenant(tenant_id: str):
     if scripts not in sys.path:
         sys.path.insert(0, scripts)
     try:
-        from reset_professional_demo import _credentials_path, reset_showcase
+        from reset_professional_demo import (
+            _credentials_path, confirmation_for_pack, pack_for_slug, reset_showcase,
+        )
     except Exception:
         current_app.logger.exception("demo reset seeder is unavailable")
         return _error("The demonstration seeder is not available in this build.", 500)
 
+    # The tenant chooses the pack. A demonstration tenant that no pack claims is
+    # a flag someone set by hand, and rebuilding it as some other studio is the
+    # one outcome worse than refusing.
+    pack = pack_for_slug(row["slug"])
+    if pack is None:
+        return _error(
+            f"No demonstration pack owns '{row['slug']}'. Reset is refused.", 400
+        )
+    required = confirmation_for_pack(pack)
+    if str(payload.get("confirm") or "").strip() != required:
+        return _error(f"Type {required} to confirm.", 400)
+
     started = time.monotonic()
     try:
-        result = reset_showcase(_credentials_path(None))
+        result = reset_showcase(_credentials_path(None), pack=pack)
     except Exception as exc:
         current_app.logger.exception("demo reset failed")
         return _error(f"Reset failed: {exc}", 500)
