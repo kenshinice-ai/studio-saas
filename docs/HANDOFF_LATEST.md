@@ -1,4 +1,4 @@
-# PWE Studio v10.11.1 — Handoff 索引（2026-08-16 起按 AI 分目录）
+# PWE Studio v10.12.0 — Handoff 索引（2026-08-16 起按 AI 分目录）
 
 > 首标题始终点名当前版本 —— `test_release_ledger.py` 据此机器强制「索引不过期」；
 > 每次发布随四层身份表一起更新。
@@ -13,7 +13,7 @@
 > - 其余纪律不变：Source / Package / Production / Backup 四层分别记录；docs-only
 >   closure 不得写成已部署运行时代码；发布必经 STOP GATE。
 
-## 当前四层身份（v10.11.1，2026-08-20）
+## 当前四层身份（v10.12.0，2026-08-21）
 
 | 层 | 精确事实 |
 |---|---|

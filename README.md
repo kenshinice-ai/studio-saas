@@ -1,8 +1,8 @@
 # PWE Studio
 
-## v10.11.1 release identity — the ops hygiene round
+## v10.12.0 release identity — the ops hygiene round
 
-`VERSION` = **10.11.1** and `backend/server.py` reports `APP_VERSION=10.11.1`.
+`VERSION` = **10.12.0** and `backend/server.py` reports `APP_VERSION=10.12.0`.
 Small, mostly non-runtime: the demo pages stop claiming a nightly reset that
 never existed, the Xero integration page is marked Beta for the settlement
 month, two bilingual labels are aligned, the console browser smoke check moved
@@ -14,9 +14,9 @@ Layer evidence lives in `docs/handoff/claude/2026-08-20-ops-hygiene-round.md`.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.11.1 committed** | release commit `4ff7efe`; full gate green under the split app/owner/migration database roles, now including the console smoke check inside the gate. |
-| Package | **v10.11.1 SaaS and Edition archives verified** | SaaS SHA-256 `292993ef8025738ddd6ab2767e950c653ee16a167a25930d8212bfbfecdbf5ed`; Edition SHA-256 `35f42cd561b656af79051deda35d76b838d48a03f469bd922c15c05310cab019`; checksum, BUILD_INFO (`commit=4ff7efe`), entrypoint, exclusion and smoke checks all passed. |
-| Production | **v10.11.1 deployed to `pwestudio.online`** | deep health `appVersion=10.11.1`, `db=ok`, `mode=saas`, `workspaces.stale=0`; pre-deploy backup `studiosaas_studiosaas_20260820T063742Z.dump` — produced through the reworked credential path, which is what proves it; all four public demo pages now serve the corrected wording and zero pages still say "nightly"; xero-push tick clean (`tenants=6 gate-closed=4 jobs=0 tenant-errors=0`). |
+| Source | **v10.12.0 committed** | release commit `4ff7efe`; full gate green under the split app/owner/migration database roles, now including the console smoke check inside the gate. |
+| Package | **v10.12.0 SaaS and Edition archives verified** | SaaS SHA-256 `292993ef8025738ddd6ab2767e950c653ee16a167a25930d8212bfbfecdbf5ed`; Edition SHA-256 `35f42cd561b656af79051deda35d76b838d48a03f469bd922c15c05310cab019`; checksum, BUILD_INFO (`commit=4ff7efe`), entrypoint, exclusion and smoke checks all passed. |
+| Production | **v10.12.0 deployed to `pwestudio.online`** | deep health `appVersion=10.12.0`, `db=ok`, `mode=saas`, `workspaces.stale=0`; pre-deploy backup `studiosaas_studiosaas_20260820T063742Z.dump` — produced through the reworked credential path, which is what proves it; all four public demo pages now serve the corrected wording and zero pages still say "nightly"; xero-push tick clean (`tenants=6 gate-closed=4 jobs=0 tenant-errors=0`). |
 
 Source, Package and Production are separate facts; do not infer Production
 from `VERSION` or from an archive filename.
