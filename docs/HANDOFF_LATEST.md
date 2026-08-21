@@ -17,11 +17,11 @@
 
 | 层 | 精确事实 |
 |---|---|
-| Source | v10.11.1 发布提交 `4ff7efe`（链：`49555c9` Beta 徽标+双语标签 → `daf0203` 演示页不实声明 → `291f853` 冒烟进门禁 → `b69a363` prune_dist → `6a1b95a` OPS-03 nginx → `eb9ef05` OPS-04 首版 → `65622a6` 发布账本 → `4ff7efe` **OPS-04 改正**） |
-| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.11.1.tar.gz`，SHA-256 `292993ef8025738ddd6ab2767e950c653ee16a167a25930d8212bfbfecdbf5ed`（BUILD_INFO commit=4ff7efe，三方守卫全等） |
-| Package / Edition | `dist/PWE-Studio-Edition-10.11.1.tar.gz`，SHA-256 `35f42cd561b656af79051deda35d76b838d48a03f469bd922c15c05310cab019` |
-| Production | `pwestudio.online` = v10.11.1；deep health `db=ok`、`mode=saas`、`stale=0`；四个公开演示页已换成「数据由运营手动重置」（线上实测 nightly 残留 0）；集成页 Beta 徽标已在线上 bundle；`xero-push` tick 干净（`tenants=6 gate-closed=4 jobs=0 tenant-errors=0`）；**真租户 `lets-paint-studio` 推送开启 → PWE GROUP PTY LTD（X4 结算月进行时）**；showcase → Demo Company soak 不变 |
-| Backup / migration | v10.11.1 部署前 dump `studiosaas_studiosaas_20260820T063742Z.dump` + manifest（**经改正后的凭据路径产出，这本身就是 OPS-04 的验收**）；schema 仍至 `0047_xero_transport.sql`（本轮零迁移） |
+| Source | v10.12.0 发布提交 `4a6d5e7`（链：`485b2e3` 音乐样板包 + 播种器按包分化 → `4a6d5e7` 发布账本） |
+| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.12.0.tar.gz`，SHA-256 `a43ee0cd39f04502efa145083592495894414dd45a70b04ed98ee5387048453d`（BUILD_INFO commit=4a6d5e7，三方守卫全等：bundle == HEAD == origin/main） |
+| Package / Edition | `dist/PWE-Studio-Edition-10.12.0.tar.gz`，SHA-256 `3dcefb3c59705073772067ff066e62024679b2410a8ae7908a1312854684f5ff` |
+| Production | `pwestudio.online` = v10.12.0；deep health `db=ok`、`mode=saas`、`stale=0`；**新增第二间样板租户 `music-studio-showcase`（知音音乐，growth，active）** —— 12 学员 / 9 课 / 5 发票 / 4 学员作品（公开 3，一件同意已撤回），workspace 于部署时重生成；凭据落在 `/data/music-showcase-credentials.txt`，**美术那份 `/data/showcase-credentials.txt` 未被覆盖**（按包分化的验收）；`lets-paint-showcase`、`lets-paint-studio` 均 200，X4 真账本推送不受影响 |
+| Backup / migration | v10.12.0 部署前 dump `studiosaas_studiosaas_20260821T104933Z.dump` + manifest，卷备份 `pwestudio-volumes-20260821T104935Z.tar.gz`；schema 仍至 `0047_xero_transport.sql`（本轮零迁移） |
 
 完整证据见 `docs/handoff/claude/2026-08-16-v10.8.0-round.md`（v10.8.0）与 codex/001（v10.7.1 历史）。
 
