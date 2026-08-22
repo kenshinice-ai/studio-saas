@@ -17,11 +17,11 @@
 
 | 层 | 精确事实 |
 |---|---|
-| Source | v10.12.0 发布提交 `4a6d5e7`（链：`485b2e3` 音乐样板包 + 播种器按包分化 → `4a6d5e7` 发布账本） |
-| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.12.0.tar.gz`，SHA-256 `a43ee0cd39f04502efa145083592495894414dd45a70b04ed98ee5387048453d`（BUILD_INFO commit=4a6d5e7，三方守卫全等：bundle == HEAD == origin/main） |
-| Package / Edition | `dist/PWE-Studio-Edition-10.12.0.tar.gz`，SHA-256 `3dcefb3c59705073772067ff066e62024679b2410a8ae7908a1312854684f5ff` |
-| Production | `pwestudio.online` = v10.12.0；deep health `db=ok`、`mode=saas`、`stale=0`；**新增第二间样板租户 `music-studio-showcase`（知音音乐，growth，active）** —— 12 学员 / 9 课 / 5 发票 / 4 学员作品（公开 3，一件同意已撤回），workspace 于部署时重生成；凭据落在 `/data/music-showcase-credentials.txt`，**美术那份 `/data/showcase-credentials.txt` 未被覆盖**（按包分化的验收）；`lets-paint-showcase`、`lets-paint-studio` 均 200，X4 真账本推送不受影响 |
-| Backup / migration | v10.12.0 部署前 dump `studiosaas_studiosaas_20260821T104933Z.dump` + manifest，卷备份 `pwestudio-volumes-20260821T104935Z.tar.gz`；schema 仍至 `0047_xero_transport.sql`（本轮零迁移） |
+| Source | v10.12.3 发布提交 `474a4d8`（链：`822f136` 卫生+钱与权限 → `0d272cd` 结算租户可重置 → `38b7131` **CMS 登录修复** → `474a4d8` 发布账本） |
+| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.12.3.tar.gz`，SHA-256 `11a5a141b15e7216f752a2ee6bf3c3869e7a65de81cf687981e6f1d548ef891c`（三方守卫全等） |
+| Package / Edition | `dist/PWE-Studio-Edition-10.12.3.tar.gz`，SHA-256 `e0477d2d246d0e1e982cc47e47d8ed8f0e17b9552a974c161d4417a113b54c66` |
+| Production | `pwestudio.online` = v10.12.3；deep health `db=ok`、`mode=saas`、`stale=0`。**CMS 登录已恢复**（自 v10.11.0 起对所有租户 404，线上实测：错口令 401 带人话、未知 slug 仍 404、家长预约 400 走校验不再 500）。两间样板租户已按新内容包重播种：开票主体各自独立（Paradise Production / Zhiyin Music Pty Ltd，ABN 均为校验位不合法号），单号 `INV-####` 与 `music-####`，生日铺满全年、14 天窗口各 1 人，启蒙班学员 6 岁与 5 岁落在适龄内；Xero 侧各 0 连接 0 网关状态、加购有效（不再伪造无 token 连接） |
+| Backup / migration | v10.12.1 部署前 dump（deploy 自动产出）；schema 仍至 `0047_xero_transport.sql`（三个补丁版本零迁移） |
 
 完整证据见 `docs/handoff/claude/2026-08-16-v10.8.0-round.md`（v10.8.0）与 codex/001（v10.7.1 历史）。
 
