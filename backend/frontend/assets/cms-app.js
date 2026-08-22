@@ -3781,7 +3781,7 @@
           localStorage.setItem(`lp_admin_email_${tenantSlug}`, email);
           onLogin();
         } else {
-          setErr(d.error || "密码错误");
+          setErr(d.message || d.error || "密码错误");
           setPw("");
         }
       } catch {

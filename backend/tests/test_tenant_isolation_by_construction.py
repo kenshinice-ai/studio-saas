@@ -178,3 +178,51 @@ def test_binding_one_tenant_hides_every_other_tenants_rows():
         assert theirs == [], (
             f"以租户 A 的上下文读到了租户 B 的 {len(theirs)} 名学员。隔离没生效。"
         )
+
+
+def test_every_relative_import_inside_api_v1_resolves():
+    """拆包把单点相对导入的含义改了，而函数体内的导入不会在启动时报错。
+
+    `api_v1.py` 曾经是包根的一个模块，`from .tenant_context import ...` 指的是
+    `studiosaas.tenant_context`。cfab504 把它拆成 `api_v1/` 包之后，同一行指向
+    `studiosaas.api_v1.tenant_context` —— 不存在。那次是「纯搬移」，没人改这些行。
+
+    两处因此坏掉，都藏了两天：
+      * `auth.py` 的 CMS 登录，ModuleNotFoundError 被一个 `except Exception`
+        收成 404「Unknown tenant」，对每一个租户都登不进去；
+      * `public.py` 的家长预约接口，每次提交 500。
+
+    两处都是**函数体内**的导入，所以 `import studiosaas.api_v1.auth` 一路绿灯。
+    只有静态走一遍 AST 才看得见。
+    """
+
+    import ast
+    import pathlib
+
+    package_dir = pathlib.Path(__file__).resolve().parents[1] / "studiosaas" / "api_v1"
+    broken: list[str] = []
+
+    def exists(root: pathlib.Path, dotted: str) -> bool:
+        """这个点分名在磁盘上有没有对应的模块或包。
+
+        故意不用 importlib.find_spec：它要求父包能被导入，于是**一处**坏掉会
+        让同包的其它导入全部跟着报缺失，真正那一条淹没在级联噪声里。
+        """
+
+        target = root.joinpath(*dotted.split("."))
+        return target.with_suffix(".py").is_file() or (target / "__init__.py").is_file()
+
+    for source_file in sorted(package_dir.glob("*.py")):
+        tree = ast.parse(source_file.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ImportFrom) or not node.level or not node.module:
+                continue
+            # level 1 = 本包（api_v1/），level 2 = 上一层（studiosaas/）
+            root = package_dir if node.level == 1 else package_dir.parent
+            if not exists(root, node.module):
+                broken.append(
+                    f"{source_file.name}:{node.lineno} → "
+                    f"{'.' * node.level}{node.module} 在 {root.name}/ 下不存在"
+                )
+
+    assert not broken, "api_v1 里有解析不到的相对导入：\n  " + "\n  ".join(broken)

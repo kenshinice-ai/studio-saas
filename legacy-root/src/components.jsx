@@ -1067,7 +1067,10 @@ export function LoginScreen({ onLogin }) {
             });
             const d = await r.json();
             if (d.ok) { localStorage.setItem(`lp_admin_email_${tenantSlug}`, email); onLogin(); }
-            else { setErr(d.error || '密码错误'); setPw(''); }
+            /* `error` 是机器码，`message` 才是给人看的那句。以前先读 error，
+               于是登录框上出现过一个孤零零的 `not_found` —— 而服务端同时
+               送来的 "Unknown tenant." 被丢掉了，没人知道该去查什么。 */
+            else { setErr(d.message || d.error || '密码错误'); setPw(''); }
         } catch { setErr('连接失败，请重试'); }
         finally { setBusy(false); }
     };

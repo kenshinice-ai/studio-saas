@@ -1016,7 +1016,9 @@ def public_class_booking(tenant_slug: str):
     drift is always the parent.
     """
 
-    from .services.student_access import find_student, normalize_phone
+    # 同 auth.py 的那一处：包根的 services，不是 api_v1 下的。函数体内的导入
+    # 不会在启动时报错，所以这条只在家长真的按下「预约」时才 500。
+    from ..services.student_access import find_student, normalize_phone
 
     payload = _json_payload()
     name = _clean_text(payload, "name", _clean_text(payload, "contactName"))[:80]

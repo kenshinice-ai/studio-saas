@@ -675,11 +675,19 @@ def auth_legacy_login():
     if not path_slug:
         return _error("Tenant context required for legacy login.", 400)
 
+    # resolve_tenant 走文件顶部那次导入（`..tenant_context`，包根）。这里原本
+    # 有一次函数体内的 `from .tenant_context import` —— 拆包（cfab504）之前
+    # api_v1 是包根的一个模块，那一行正好指对；拆成包之后它指向了
+    # api_v1.tenant_context，一个不存在的模块。「纯搬移」没改这一行，而下面
+    # 原本的 `except Exception` 把 ModuleNotFoundError 一起收了，于是 CMS 登录
+    # 对每一个租户都回 404「Unknown tenant」，两天没人看见：大家手里的会话还
+    # 有效，直到一次重播种把所有人踢下线。
     with connect() as conn:
         try:
-            from .tenant_context import resolve_tenant
             tenant = resolve_tenant(conn, path_slug, "path")
-        except Exception:
+        except (TenantResolutionError, TenantGoneError):
+            # 只收「这个 slug 没有对应租户」。任何别的异常都必须往上抛：
+            # 把编程错误报成「租户不存在」，正是这个 bug 能活下来的原因。
             return _error("Unknown tenant.", 404)
 
         user = fetch_one(
