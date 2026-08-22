@@ -1,4 +1,4 @@
-# PWE Studio v10.12.2 — Handoff 索引（2026-08-16 起按 AI 分目录）
+# PWE Studio v10.12.3 — Handoff 索引（2026-08-16 起按 AI 分目录）
 
 > 首标题始终点名当前版本 —— `test_release_ledger.py` 据此机器强制「索引不过期」；
 > 每次发布随四层身份表一起更新。
@@ -13,7 +13,7 @@
 > - 其余纪律不变：Source / Package / Production / Backup 四层分别记录；docs-only
 >   closure 不得写成已部署运行时代码；发布必经 STOP GATE。
 
-## 当前四层身份（v10.12.2，2026-08-22）
+## 当前四层身份（v10.12.3，2026-08-22）
 
 | 层 | 精确事实 |
 |---|---|
@@ -26,6 +26,18 @@
 完整证据见 `docs/handoff/claude/2026-08-16-v10.8.0-round.md`（v10.8.0）与 codex/001（v10.7.1 历史）。
 
 ## 最新轮次
+
+- **2026-08-22（Claude Opus 5）v10.12.3 —— CMS 登录自 v10.11.0 起就是坏的**：
+  `docs/handoff/claude/2026-08-22-hygiene-and-money-paths.md`（「四·六」节）
+  —— 拆包（`cfab504`）把 `api_v1.py` 变成包，两处**函数体内**的单点相对导入
+  含义随之改变：`auth.py` 的 `from .tenant_context import`（CMS 登录）与
+  `public.py` 的 `from .services.student_access import`（家长预约）。
+  前者的 `ModuleNotFoundError` 被 `except Exception` 收成 404「Unknown tenant」，
+  **对每个租户、每次登录**；两天没人发现，因为大家都还揣着有效会话——直到
+  重播种把会话清掉。后者每次提交 500。两处改回包根，except 收窄到真正表示
+  「无此租户」的两个异常，登录框改显示 `message` 而非机器码 `not_found`。
+  新增 AST 静态测试（函数体内导入靠 import 模块测不到；用文件系统而非
+  `find_spec`，否则一处坏会让同包全部误报）。全量 `2840 passed`。
 
 - **2026-08-22（Claude Opus 5）v10.12.2 —— 记过结算的演示租户重置不了**：
   同上一条 handoff 的「四·五」节。`_clear_showcase` 漏清两张引用钱层的表：

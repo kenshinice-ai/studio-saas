@@ -54,6 +54,11 @@
   <p data-lang="zh">以下内容均属于已发布的产品版本。每一条都是交付依据，不是路线图承诺。</p>
   <div class="grid">
     <article class="card">
+      <strong data-lang="en">v10.12.3 — fixed: Studio CMS sign-in, and the parent booking form</strong><strong data-lang="zh">v10.12.3 —— 修复：CMS 登录与家长预约（自 v10.11.0 起）</strong>
+      <p data-lang="en">An internal code reorganisation in v10.11.0 changed how one module was referenced, and two paths stopped working. Signing in to the Studio CMS returned "not found" for every studio — browsers holding a live session were unaffected, so this only appeared when somebody needed to sign in again. And submitting the booking form on the public timetable returned a server error. Both are fixed. The sign-in box also used to show the internal error code rather than a readable sentence. Automated checks now cover both paths so a change of this kind cannot pass silently again.</p>
+      <p data-lang="zh">v10.11.0 的一次内部代码整理改动了一个模块引用，两条路径因此失效。登录 Studio CMS 对**所有工作室**返回「找不到」—— 浏览器里还持有有效会话的不受影响，所以只有在需要重新登录时才会遇到；公开课程表上家长提交预约表单则会报服务器错误。两条均已修复。登录框此前只显示内部错误代码，现在显示可读说明。两条路径都补了自动检查，同类改动不会再无声通过。</p>
+    </article>
+    <article class="card">
       <strong data-lang="en">v10.12.2 — a sample studio that recorded a settlement can be reset again</strong><strong data-lang="zh">v10.12.2 —— 记过结算的样板工作室可以重置了</strong>
       <p data-lang="en">Once a sample demonstration studio had actually recorded a settlement — credits attached to a payment on the top-up screen — resetting it failed and rolled back, and kept failing every time after that. The reset was missing two tables that hold references to payment records. Both are cleared now. This affects sample demonstration studios only; no real studio's data is involved.</p>
       <p data-lang="zh">样板演示工作室一旦真的记过一次结算（在「充值与退款」里把课时挂到某笔收款上），「重置演示租户」就会失败并回滚，而且此后每次都失败。原因是重置漏清了两张持有收款记录引用的表，现已补上。此项只影响样板演示工作室，不涉及任何真实工作室的数据。</p>

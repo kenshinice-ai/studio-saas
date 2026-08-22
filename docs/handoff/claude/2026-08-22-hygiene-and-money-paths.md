@@ -135,6 +135,39 @@ ForeignKeyViolation: update or delete on table "payments" violates
 然后带着它重播种，通过。第一次修完只加了 `credit_financial_links`，
 重跑才炸出第二张表；**静态断言看不见这个，是行为验证捞出来的**。
 
+## 四·六、v10.12.3：CMS 登录自 v10.11.0 起就是坏的
+
+重播种把演示租户的成员关系删了重建，所有人的会话随之失效。Lee 重新登录时看到
+登录框上孤零零一个 `not_found`。
+
+根因不在本轮的任何改动，而在 8/20 的拆包 `cfab504`：`api_v1.py` 原本是包根的
+一个模块，`from .tenant_context import` 指的是 `studiosaas.tenant_context`；
+拆成 `api_v1/` 包之后，同一行指向 `studiosaas.api_v1.tenant_context` —— 不存在。
+那次是「纯搬移」，没人改这些行。
+
+两处中招，**都是函数体内的导入**，所以 `import studiosaas.api_v1.auth` 一路绿灯：
+
+| 位置 | 后果 | 为什么两天没人发现 |
+|---|---|---|
+| `auth.py` CMS 登录 | `ModuleNotFoundError` 被 `except Exception` 收成 404「Unknown tenant」，**对每个租户、每次登录** | 大家手里的会话还有效，没人需要重新登录 |
+| `public.py` 家长预约 | 每次提交 500 | 演示时没人真按过公开课表上的「预约」 |
+
+修四处：
+
+1. 两处导入改 `..`（包根）；`auth.py` 顶部本来就有一次正确的模块级导入，
+   函数体内那次是冗余的，直接删掉
+2. `except Exception` 收窄到 `TenantResolutionError` / `TenantGoneError` ——
+   **把编程错误报成「租户不存在」，正是这个 bug 能活两天的原因**
+3. 登录框改显示 `d.message`（「Unknown tenant.」）而不是 `d.error`（`not_found`）
+4. 新增静态测试：走 `api_v1/*.py` 的 AST，逐条解析相对导入。必须是静态的——
+   这两处都在函数体内，导入模块测不出来。用**文件系统**判断而不是
+   `importlib.find_spec`：后者要求父包能导入，一处坏会让同包所有导入一起误报，
+   真正那一行淹没在噪声里（第一版就是这样，实测过才改）
+
+**验证**（本地重启后逐条实测）：错误口令 401 带人话；正确口令 200 `ok:true`；
+真正不存在的 slug 仍 404「Unknown tenant」；预约接口 400 走校验而非 500。
+并把两处修复各自改回去跑过一次，确认测试精确点名出错的文件与行号、且只报那一条。
+
 ## 五、留给下一轮
 
 - **前台签到权**：Lee 会后明确「前台是可以有签到权限的，这点需要好好讨论」。
