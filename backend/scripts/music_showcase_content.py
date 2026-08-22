@@ -952,3 +952,78 @@ REGISTRATION_ANSWERS = (
     {"instrument": "Not sure yet — whatever suits a five-year-old",
      "level": "Never played", "availability": "Saturday morning"},
 )
+
+
+# ── 身份、单号与不该由 index 算出来的那些数 ─────────────────────────────────
+#
+# 与美术包同一组导出。这一组以前写死在播种器里，于是这间音乐教室的发票上
+# 印着画室的公司名、地址和银行账号，学员年龄由 index 公式推出来。
+
+#: 这间教室开出去的单据上印的是谁。**必须与美术包不同** —— 上一版两间样板
+#: 共用 Paradise Production 的主体，音乐租户的发票抬头、ABN、收款账户全是
+#: 画室的。ABN 是故意选的校验位不合法的号（详见美术包同一段的说明）。
+BILLING_IDENTITY = {
+    "legal_name": "Zhiyin Music Pty Ltd",
+    "trading_name": NAME,
+    "abn": "12 345 678 901",
+    "gst_registered": True,
+    "address_line1": "18 Kingsway",
+    "address_line2": "",
+    "suburb": "Glen Waverley",
+    "state": "VIC",
+    "postcode": "3150",
+    "contact_email": IDENTITY["billing_email"],
+    "contact_phone": IDENTITY["contact_phone"],
+    "bank_account_name": "Zhiyin Music Pty Ltd",
+    "bank_bsb": "063-182",
+    "bank_account_no": "1029 3847",
+}
+
+#: 单据号前缀。两间样板连的是**同一个** Xero Demo Company，都从 INV-0001 起
+#: 会撞号 —— 撞号守卫 `_refuse_foreign_number` 会逐张拒绝推送，那个守卫是对的
+#: （Xero 的 POST 按单号 upsert，会静默覆盖别人的单据），要改的是前缀。
+INVOICE_PREFIX = "music-"
+
+#: 每个学员今天几岁、生日是几月几日（与 STUDENTS 同序、同长）。
+#:
+#: 年龄以前是 `today - timedelta(days=365 * ((8 + index % 4) if is_child ...))`
+#: 推出来的，后果有两个都对外可见：12 个人的生日全挤在同一周；Chloe 被算成
+#: 10 岁却坐在「适龄 4–6」的启蒙班里，而她的学习报告写着「六岁的第一个学期」。
+#:
+#: 年龄必须同时满足**该学员一对一课程**与**他所在每个班次**的 age_range：
+#:   3 Chloe / 4 Jasmine  在音乐启蒙（4–6）
+#:   5 Angela             小组课 · 弦乐（7–16）
+#:   6–11                 少年乐团（9–17），其中 6/7 还在小组课（7–16）
+#: 所以 Ethan 不能是 8 岁 —— 他在乐团里。`test_showcase_tenant.py` 会断言。
+#:
+#: 月-日铺满全年，只有 Isabella（08-29）落在八月底，让横幅现在正好显示一个人。
+#: 换个月份重新播种横幅会是空的，那是真实分布，不是故障。
+STUDENT_BIRTHDAYS = (
+    (25, "04-12"), (28, "11-05"), (31, "02-23"),
+    (6, "06-30"), (5, "01-17"), (9, "09-14"), (10, "03-08"),
+    (12, "12-02"), (9, "07-21"), (13, "05-26"),
+    (11, "08-29"), (10, "10-11"),
+)
+
+#: 前台代客充值那一笔。金额取本店钢琴十次课包（55000），不是画室的 58500。
+CREDIT_PURCHASE = {
+    "fee_cents": 55000,
+    "note": "钢琴十次课包，前台代收。 / Piano ten-lesson pack, taken at the front desk.",
+}
+
+#: 教课的成本。Hannah 在 SCHEDULES 里的三个班全是 60 分钟，所以这里是 60，
+#: 不是画室的 90。小组课实到 3 人：3 × $50（不含 GST）= 15000 的学费基数，
+#: 按 $85/小时计酬 8500。
+TEACHER_PAY = {
+    "abn": "61 111 222 333",
+    "rate_basis": "per_hour",
+    "rate_cents": 8500,
+    "session": {
+        "start_time": "12:00",
+        "duration_minutes": 60,
+        "student_count": 3,
+        "amount_cents": 8500,
+        "tuition_basis_cents": 15000,
+        "note": "小组课 · 弦乐 Strings small group",
+    },
+}

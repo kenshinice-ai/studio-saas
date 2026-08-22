@@ -27,6 +27,16 @@
 
 ## 最新轮次
 
+- **2026-08-22（Claude Fable 5）Sinobeats 会后 —— Xero 链路诊断，只读不动**：
+  `docs/handoff/claude/2026-08-22-xero-meeting-followup.md`
+  —— Demo Company 没收到发票是**从未推送**：音乐租户 `push_enabled=false`、试跑从未
+  完成、队列 0 条；「不流畅」是播种器伪造的无 token 连接让 `refresh-check` 409。
+  即便开关打开，音乐 `INV-0001..6` 会与美术样板撞号（同一个 Demo Company）被守卫
+  逐张拒绝 → 音乐包要自带单号前缀。Q2：发票与付款都到 Xero，但付款在 Demo Company
+  里全部 Unreconciled（无流水行可配）；**`clearing_account` 选项传输层从未实现**，
+  而 Sinobeats 用 Square，这是它的必经路径。真账本有一条死作业（本地已作废，重放即
+  skipped）。UI 三份方案原样未动。
+
 - **2026-08-21（Claude Opus 5）音乐样板租户 —— 播种器泛化成「行业内容包」**：
   `docs/handoff/claude/2026-08-21-music-showcase-pack.md`
   —— `reset_professional_demo.py` 改为按包播种（`--pack art|music`），每个包自带

@@ -563,3 +563,182 @@ def test_every_pack_agrees_with_its_own_roster() -> None:
             assert set(answers) == form_keys, (
                 f"{pack}: enquiry answers use {sorted(answers)}, form asks {sorted(form_keys)}"
             )
+
+
+def _age_range(text: str) -> tuple[int, int] | None:
+    """The numeric bounds a course advertises, or None if it states none."""
+
+    numbers = [int(n) for n in re.findall(r"\d+", text or "")]
+    if text.strip().endswith("+") and len(numbers) == 1:
+        return (numbers[0], 200)
+    if len(numbers) == 2:
+        return (numbers[0], numbers[1])
+    return None
+
+
+def test_every_student_is_old_enough_for_the_class_they_are_in() -> None:
+    """A ten-year-old in a class advertised "ages 4–6" is visible on the roster.
+
+    Ages used to be `today - timedelta(days=365 * (8 + index % 4))` — derived
+    from a position in a tuple, so nothing tied them to the course the same
+    student was enrolled in. The music pack's own progress report called Chloe
+    six years old while the arithmetic made her ten, and the早教 class she sits
+    in advertises 4–6. Three sources, three different answers, all on screen.
+    """
+
+    import importlib
+
+    import reset_professional_demo as seeder
+
+    for pack, spec in seeder.PACKS.items():
+        module = importlib.import_module(spec["module"])
+        ages = [age for age, _ in module.STUDENT_BIRTHDAYS]
+        assert len(ages) == len(module.STUDENTS), f"{pack}: one birthday per student"
+
+        # The one-to-one course each student's attendance is written against.
+        for index, age in enumerate(ages):
+            course = module.COURSES[module.ATTENDANCE_COURSE_INDEX[index]]
+            bounds = _age_range(course[3])
+            if bounds:
+                assert bounds[0] <= age <= bounds[1], (
+                    f"{pack}: {module.STUDENTS[index][0]} is {age}, "
+                    f"but {course[0]} says {course[3]}"
+                )
+
+        # And every group class, whose roster is a contiguous slice.
+        for schedule in module.SCHEDULES:
+            course = module.COURSES[schedule[0]]
+            bounds = _age_range(course[3])
+            if not bounds:
+                continue
+            start, end = schedule[8]
+            for index in range(start, end):
+                age = ages[index]
+                assert bounds[0] <= age <= bounds[1], (
+                    f"{pack}: {module.STUDENTS[index][0]} is {age}, "
+                    f"but {schedule[1]} advertises {course[3]}"
+                )
+
+
+def test_birthdays_are_spread_across_the_year() -> None:
+    """`today - 365 * N` puts every birthday in the week it was seeded.
+
+    Twelve students all born within seven days is the tell that a fixture was
+    computed rather than written, and it shows up as "12 birthdays in the next
+    fortnight" on a twelve-student roster. The honest expectation for a
+    fortnight window is len(roster) * 14 / 365 — well under one person.
+    """
+
+    import importlib
+    from collections import Counter
+
+    import reset_professional_demo as seeder
+
+    for pack, spec in seeder.PACKS.items():
+        module = importlib.import_module(spec["module"])
+        days = [month_day for _, month_day in module.STUDENT_BIRTHDAYS]
+
+        repeated = {d: n for d, n in Counter(days).items() if n > 1}
+        assert not repeated, f"{pack}: birthdays share a date: {repeated}"
+
+        months = {int(d.split("-")[0]) for d in days}
+        assert len(months) >= 8, (
+            f"{pack}: birthdays only fall in months {sorted(months)} — "
+            "that reads as computed, not written"
+        )
+
+
+def test_each_pack_issues_documents_under_its_own_number_prefix() -> None:
+    """Both demonstration studios connect to the SAME Xero demo organisation.
+
+    One Xero account has exactly one demo organisation, so the art and music
+    tenants share it. Xero's POST upserts by document number, and the transport
+    refuses a number the organisation already holds that is not ours — so two
+    packs both numbering from INV-0001 means the second one to push is rejected
+    document by document. The guard is right; the prefix is what has to differ.
+    """
+
+    import importlib
+
+    import reset_professional_demo as seeder
+
+    prefixes = {}
+    for pack, spec in seeder.PACKS.items():
+        module = importlib.import_module(spec["module"])
+        prefix = module.INVOICE_PREFIX
+        assert prefix.strip(), f"{pack}: needs a document-number prefix"
+        prefixes[pack] = prefix
+    assert len(set(prefixes.values())) == len(prefixes), (
+        f"two packs share a document-number prefix: {prefixes}"
+    )
+
+
+def test_each_pack_issues_under_its_own_billing_identity() -> None:
+    """The identity is printed on every invoice, so it cannot be shared.
+
+    It used to be a literal in the seeder: the music studio's invoices carried
+    the painting studio's company name, ABN, address and bank account.
+    """
+
+    import importlib
+
+    import reset_professional_demo as seeder
+
+    seen: dict[str, str] = {}
+    for pack, spec in seeder.PACKS.items():
+        module = importlib.import_module(spec["module"])
+        identity = module.BILLING_IDENTITY
+        for field in ("legal_name", "abn", "bank_account_no", "contact_email"):
+            assert str(identity.get(field) or "").strip(), f"{pack}: {field} is blank"
+        fingerprint = f"{identity['legal_name']}|{identity['abn']}|{identity['bank_account_no']}"
+        assert fingerprint not in seen, (
+            f"{pack} and {seen[fingerprint]} issue under the same identity"
+        )
+        seen[fingerprint] = pack
+
+
+def test_demo_abns_do_not_pass_the_real_check_digit() -> None:
+    """A demo tax invoice must not carry a number that validates.
+
+    `53 004 085 616` passed both the ABN and the ACN algorithm — indistinguishable
+    from an allocated number by eye or by an ABR lookup.
+    """
+
+    import importlib
+
+    import reset_professional_demo as seeder
+
+    def abn_valid(value: str) -> bool:
+        digits = [int(c) for c in value if c.isdigit()]
+        if len(digits) != 11:
+            return False
+        digits[0] -= 1
+        weights = (10, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19)
+        return sum(w * d for w, d in zip(weights, digits)) % 89 == 0
+
+    for pack, spec in seeder.PACKS.items():
+        module = importlib.import_module(spec["module"])
+        abn = module.BILLING_IDENTITY["abn"]
+        assert not abn_valid(abn), (
+            f"{pack}: demo ABN {abn} passes the real check digit"
+        )
+
+
+def test_the_seeder_does_not_fake_a_xero_connection() -> None:
+    """A seeded connection has no token, so the wizard lies and then 409s.
+
+    The demo tenant used to be seeded with `status='connected'` and a
+    `mapping_confirmed_at`, while holding neither a token nor a single mapping
+    row. On screen: "connected", and a ticked mapping step sitting next to
+    "still missing: tuition, bank". On the first click of the token self-heal
+    button: 409, in front of the customer.
+    """
+
+    assert "INSERT INTO xero_connections" not in SEEDER, (
+        "the seeder must not manufacture a connection it holds no token for"
+    )
+    assert "mapping_confirmed_at, single_entry_decision" not in SEEDER, (
+        "the seeder must not pre-tick the mapping step it wrote no mappings for"
+    )
+    # The entitlement is a real product fact and stays.
+    assert "INSERT INTO tenant_addons" in SEEDER

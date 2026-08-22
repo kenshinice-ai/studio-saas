@@ -1381,6 +1381,10 @@ function App() {
     const checkIn = async (sid, sname) => {
         if (cooldowns.current.has(sid)) { showToast('请稍候再次操作', 'warn'); return; }
         if (busy) return;
+        /* 服务端会拒绝窗口外的日期，但错误是一句英文原文；而「明天」它会放行，
+           于是一节还没上的课被静默扣掉一个课时。在这里先拦，用中文说清楚。 */
+        if (!checkInWindow.ok) { showToast(`${fmtDate(rDate)}：${checkInWindow.reason}`, 'warn'); return; }
+        if (checkInWindow.future && !window.confirm(`${fmtDate(rDate)} 是${checkInWindow.reason}。确定现在就为 ${sname} 扣 1 课时吗？`)) return;
         const student = db.students.find(s=>s.id===sid);
         if (!student||student.balance<=0) { showToast(`${sname} 课时余额不足`, 'error'); return; }
         cooldowns.current.add(sid); setTimeout(() => cooldowns.current.delete(sid), 3000);
@@ -1454,10 +1458,36 @@ function App() {
     /* F4a: ids already checked in on the roster date — the batch action must
        skip them, otherwise tapping a few students then hitting 批量签到/消课
        deducts those students TWICE. */
+    /* 选中这一天的考勤本身。以前「谁已经签到了」是从 db.logs 里筛出来的，
+       而那份日志是全局 `ORDER BY occurred_at DESC LIMIT 500`（tenant.py）——
+       一间每月流水超过五百条的工作室，四十多天前的签到就掉出了窗口，界面
+       于是显示「待上课」，再按一次批量签到就是第二次扣课时。按日期查考勤
+       没有这个窗口，`/attendance?date=` 本来就支持（students.py:1363）。 */
+    const [rosterAttendance, setRosterAttendance] = useState(null);
+    useEffect(() => {
+        if (!TENANT_SLUG) { setRosterAttendance(null); return undefined; }
+        let cancelled = false;
+        (async () => {
+            try {
+                const d = await v1Api(`/attendance?date=${encodeURIComponent(rDate)}&limit=500`);
+                if (!cancelled) setRosterAttendance(d.attendance || []);
+            } catch (e) {
+                /* 查不到就退回日志推导：宁可少标几个「已签到」（会被服务端
+                   的重复校验或操作者自己拦下），也不要在这里假装知道。 */
+                if (!cancelled) setRosterAttendance(null);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [rDate]);
+
     const rosterDone = useMemo(() => {
+        const done = new Set();
+        if (rosterAttendance) {
+            rosterAttendance.forEach(a => { if (!a.reversed_at) done.add(a.student_id); });
+            return done;
+        }
         const m = String(rDate).match(/^(\d{4})-(\d{2})-(\d{2})$/);
         const prefix = m ? `${m[3]}/${m[2]}/${m[1]}` : '__none__';
-        const done = new Set();
         db.logs.forEach(l => {
             if (l.action === '上课签到' && String(l.date).startsWith(prefix)) {
                 if (l.studentId) done.add(l.studentId);
@@ -1465,7 +1495,24 @@ function App() {
             }
         });
         return done;
-    }, [db.logs, db.students, rDate]);
+    }, [rosterAttendance, db.logs, db.students, rDate]);
+
+    /* 服务端只接受 [今天-90, 今天+1] 的签到日期（students.py 的 check-in）。
+       界面以前在任何日期都照常渲染那颗蓝色主按钮：选下周三点下去，弹回一句
+       英文原文；选明天则**静默成功**，为一节还没上的课扣掉一个课时。 */
+    const checkInWindow = useMemo(() => {
+        const picked = new Date(`${rDate}T00:00:00`);
+        const midnight = new Date(); midnight.setHours(0, 0, 0, 0);
+        const days = Math.round((picked - midnight) / 86400000);
+        if (Number.isNaN(days)) return {ok: true, future: false, reason: ''};
+        /* 服务端接受 [今天-90, 今天+1]，那个 +1 是刻意留的跨时区余量，不是
+           这里该推翻的东西。要修的是「静默」：明天这一天它会**成功**，为一节
+           还没上的课扣掉课时，而界面一个字都不说。所以 +1 天仍然放行，但要
+           当面问一次；窗口之外才拦。 */
+        if (days > 1) return {ok: false, future: true, reason: '这一天还没到，不能签到扣课时'};
+        if (days < -90) return {ok: false, future: false, reason: '超过 90 天的课程不能再补签'};
+        return {ok: true, future: days > 0, reason: days > 0 ? '这是明天的课，现在签到就会先扣掉课时' : ''};
+    }, [rDate]);
 
     /* ── A1: 每周课表 ────────────────────────────────────────── */
     const WEEKDAYS = ['周日','周一','周二','周三','周四','周五','周六'];
@@ -1909,8 +1956,13 @@ function App() {
             return s&&!s.archived&&s.balance<=0&&!rosterDone.has(id);
         }).length;
         const elig    = ids.filter(id => { const s=db.students.find(x=>x.id===id); return s&&!s.archived&&s.balance>0&&!rosterDone.has(id); });
-        if (!elig.length) { showToast(already ? '今日排课学员均已签到 ✓' : '今日无可签到/消课学员', 'warn'); return; }
-        confirm(`批量签到确认：排课 ${ids.length} 人；已签到 ${already} 人；余额不足 ${insufficient} 人；已归档 ${archived} 人；本次实际执行 ${elig.length} 人。`, async () => {
+        if (!checkInWindow.ok) { showToast(`${fmtDate(rDate)}：${checkInWindow.reason}`, 'warn'); return; }
+        if (!elig.length) { showToast(already ? '这一天排课的学员均已签到 ✓' : '这一天没有可签到/消课的学员', 'warn'); return; }
+        /* 日期写在第一句。这句话以前从「今日」开头，而它读的是任意选中日期——
+           排下周三的课时顺手点了批量签到，扣的是那一天的课时，确认框里却一个
+           日期字都没有。 */
+        const futureWarning = checkInWindow.future ? `⚠ ${checkInWindow.reason}。` : '';
+        confirm(`批量签到确认 · ${fmtDate(rDate)}：${futureWarning}排课 ${ids.length} 人；已签到 ${already} 人；余额不足 ${insufficient} 人；已归档 ${archived} 人；本次实际执行 ${elig.length} 人。`, async () => {
             if (busy) return; // Fix ④
             setBusy(true);
             try {
@@ -1924,11 +1976,13 @@ function App() {
                                 method: 'POST',
                                 body: JSON.stringify({studentId: id, note: '批量签到/消课', classDate: rDate}),
                             });
-                        } catch(e) { failed.push(s.name); }
+                        } catch(e) { failed.push(`${s.name}（${e.message||'原因未知'}）`); }
                     }
                     await load();
                     const succeeded=elig.length-failed.length;
-                    if (failed.length) showToast(`批量签到完成：成功 ${succeeded} 人，失败 ${failed.length} 人（${failed.join('、')}）`, 'warn');
+                    /* 失败要带原因。只报「失败 3 人（张三、李四、王五）」，
+                       操作者拿不到任何可以据以行动的东西。 */
+                    if (failed.length) showToast(`批量签到完成：成功 ${succeeded} 人，失败 ${failed.length} 人 —— ${failed.join('；')}`, 'warn');
                     else showToast(`批量签到完成：实际成功 ${succeeded} 人`);
                 } else {
                     let cur = {...db};
@@ -3644,13 +3698,13 @@ document.getElementById('copybtn').addEventListener('click', function(){
                 </header>
 
 {/* ═══ DASHBOARD ══════════════════════════════════════════════ */}
-{tab==='dashboard' && <DashboardSection {...{activityMap, actorRole, actorRoleLabel, allowedTabs, analytics, arSummary, bizStats, canViewFinancialAnalytics, canWriteAttendance, canWriteCredits, canWriteStudents, copyText, db, inactiveDays, loadSchedules, pendingCount, scheduleLoadError, setFilterBy, setGOpen, setGQ, setRDate, setSortBy, setSrch, setTab, setTuStu, showToast, todayCheckedCount, todayEffectiveCount}}/>}
+{tab==='dashboard' && <DashboardSection {...{activityMap, actorRole, actorRoleLabel, allowedTabs, analytics, arSummary, bizStats, canViewFinancialAnalytics, canWriteAttendance, canWriteCredits, canWriteStudents, copyText, db, inactiveDays, loadSchedules, pendingCount, renderMessage, scheduleLoadError, setFilterBy, setGOpen, setGQ, setRDate, setSortBy, setSrch, setTab, setTuStu, showToast, todayCheckedCount, todayEffectiveCount}}/>}
 
 {/* ═══ COURSES ════════════════════════════════════════════════ */}
 {tab==='courses' && <CoursesSection {...{archiveCourse, busy, canManageOperations, courseEdit, courses, saveCourse, setCourseEdit, setTab}}/>}
 
 {/* ═══ ROSTER ═════════════════════════════════════════════════ */}
-{tab==='roster' && <RosterSection {...{WEEKDAYS, addToRoster, applyGroup, availRoster, batchCheckIn, busy, canExportData, canManageOperations, canWriteScheduling, checkIn, copyRosterDaily, copyRosterReminders, copyText, courses, dayIds, db, defaultClassTime, deleteGroup, deleteSchedule, groupToSchedule, grpSel, icsBusy, loadSchedules, nextOccurrence, openIcsPreview, rDate, rOneToOne, rPick, rTime, removeFromRoster, renderMessage, renewTh, restoreCancellation, rosterDone, rosterMetaFor, rosterSlotFor, saveCancellation, saveGroup, saveSchedule, schedCancel, schedEdit, schedOverlap, schedPick, scheduleLoadError, scheduledForDate, schedules, setGrpSel, setRDate, setROneToOne, setRPick, setRTime, setSchedCancel, setSchedEdit, setSchedPick, setTab, showToast, sortedAZ, teachableMembers, tenantDisplayName, undoCheckIn, upcomingBirthdays, updateRosterEntry}}/>}
+{tab==='roster' && <RosterSection {...{WEEKDAYS, addToRoster, applyGroup, availRoster, batchCheckIn, busy, canExportData, canManageOperations, canWriteScheduling, checkIn, checkInWindow, copyRosterDaily, copyRosterReminders, copyText, courses, dayIds, db, defaultClassTime, deleteGroup, deleteSchedule, groupToSchedule, grpSel, icsBusy, loadSchedules, nextOccurrence, openIcsPreview, rDate, rOneToOne, rPick, rTime, removeFromRoster, renderMessage, renewTh, restoreCancellation, rosterDone, rosterMetaFor, rosterSlotFor, saveCancellation, saveGroup, saveSchedule, schedCancel, schedEdit, schedOverlap, schedPick, scheduleLoadError, scheduledForDate, schedules, setGrpSel, setRDate, setROneToOne, setRPick, setRTime, setSchedCancel, setSchedEdit, setSchedPick, setTab, showToast, sortedAZ, teachableMembers, tenantDisplayName, undoCheckIn, upcomingBirthdays, updateRosterEntry}}/>}
 
 {/* ═══ STUDENTS ════════════════════════════════════════════════ */}
 {/* ═══ WORKS ══════════════════════════════════════════════════ */}
@@ -4052,8 +4106,14 @@ document.getElementById('copybtn').addEventListener('click', function(){
                             身份，一张发票都开不出去。 */}
                         <div id="settings-billing-identity" role="tabpanel" aria-labelledby="settings-tab-billing-identity" hidden={tab==='settings' && settingsSection!=='billing-identity'} className="mt-4 pt-4 border-t border-gray-100 space-y-2 scroll-mt-24">
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">开票信息</p>
+                            {/* 能编辑开票主体的是持有 settings:write 的人，只有
+                                owner —— PUT /billing/identity 自己就是这么判的
+                                （billing.py 的 require_permission）。这里以前传的是
+                                canManageOperations，于是 manager 拿到一张能填满、
+                                按保存必定 403 的表单。面板本来就有只读态，
+                                传对这一个布尔值就够了。 */}
                             <BillingIdentityPanel api={v1Api} showToast={showToast}
-                                canManage={canManageOperations} />
+                                canManage={ownerRoles.includes(actorRole)} />
                         </div>
                         <div id="settings-integrations" role="tabpanel" aria-labelledby="settings-tab-integrations" hidden={tab==='settings' && settingsSection!=='integrations'} className="mt-4 pt-4 border-t border-gray-100 space-y-2 scroll-mt-24">
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">集成</p>

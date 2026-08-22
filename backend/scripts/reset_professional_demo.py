@@ -108,6 +108,22 @@ MANIFEST = SEED_ASSETS / PACKS[DEFAULT_PACK]["assets"] / "manifest.json"
 CREDENTIALS_NAME = PACKS[DEFAULT_PACK]["credentials"]
 
 
+def _birthday(today: date, age_years: int, month_day: str) -> date:
+    """某人今天 `age_years` 岁、生日是 MM-DD，求其出生日期。
+
+    包里存的是「这个人在演示里几岁」而不是出生年份：存年份的夹具每过一个月
+    就老一个月，迟早和他所报课程的 age_range 打架。只有月-日是固定的，
+    这也正是让整份名册的生日铺满全年、而不是挤在播种当天的那一半。
+    """
+
+    month, day = (int(part) for part in month_day.split("-"))
+    year = today.year - age_years
+    if (month, day) > (today.month, today.day):
+        # 今年的生日还没到，所以他是去年生日那天满的这个岁数。
+        year -= 1
+    return date(year, month, day)
+
+
 def pack_for_slug(slug: str) -> str | None:
     """Which pack owns this tenant slug, or None if no demonstration pack does.
 
@@ -151,7 +167,9 @@ def _select_pack(name: str) -> None:
                 "ROOM_NAMES", "PROGRESS_REPORTS", "PAYMENT_NOTE",
                 "BILLING_LINKS", "ATTENDANCE_COURSE_INDEX",
                 "REGISTRATION_ANSWERS",
-                "SEO_TAGLINE")
+                "SEO_TAGLINE",
+                "BILLING_IDENTITY", "INVOICE_PREFIX", "STUDENT_BIRTHDAYS",
+                "CREDIT_PURCHASE", "TEACHER_PAY")
     missing = [n for n in required if not hasattr(module, n)]
     if missing:
         raise SystemExit(
@@ -481,6 +499,13 @@ def _clear_showcase(cur: Any, tenant_id: str) -> None:
                   "makeup_credits", "lesson_exceptions", "lesson_series",
                   "term_closures", "terms", "scheduling_policies",
                   "progress_reports", "progress_report_settings",
+                  # 集成侧的痕迹也要清。发票在上面几行已经删了，而
+                  # xero_object_links / integration_sync_jobs 是按 local_id
+                  # 指向它们的——不清就会留下一批指向不存在单据的链接和
+                  # 永远排不出去的作业。映射与网关进度同理：它们是针对
+                  # 那一批单据验过的，单据没了，结论也就不成立了。
+                  "xero_object_links", "integration_sync_jobs",
+                  "xero_account_mappings", "xero_sync_settings",
                   "xero_connections", "tenant_addons"):
         cur.execute(f"DELETE FROM {table} WHERE tenant_id = %s", (tenant_id,))
     cur.execute("DELETE FROM class_bookings WHERE tenant_id = %s", (tenant_id,))
@@ -568,9 +593,10 @@ def _seed_students(cur: Any, tenant_id: str, course_ids: list[str], teacher_id: 
                 first,
                 last,
                 f"{first} {last}",
-                # Adults read as adults. A roster of 34-year-olds with 2019
-                # birthdays is the tell that a children's fixture was renamed.
-                today - timedelta(days=365 * ((8 + index % 4) if is_child else (26 + index * 3))),
+                # 生日来自内容包，不再由 index 推。`today - 365 * N` 必然
+                # 落回今天附近，会让整份名册的生日挤在同一周；而按 index 算
+                # 出来的年龄也保证不了学员落在他所排课程的 age_range 内。
+                _birthday(today, *content.STUDENT_BIRTHDAYS[index]),
                 today - timedelta(days=38 + index * 8),
                 parent,
                 mobile,
@@ -598,11 +624,13 @@ def _seed_students(cur: Any, tenant_id: str, course_ids: list[str], teacher_id: 
                 transaction_type, amount, balance_after, fee_aud_cents,
                 note, occurred_at
             )
-            VALUES (%s, %s, %s, %s, 'purchase', %s, %s, 58500,
-                    'Ten-class pack recorded by staff.',
+            VALUES (%s, %s, %s, %s, 'purchase', %s, %s, %s,
+                    %s,
                     now() - (%s * interval '1 day'))
             """,
-            (tenant_id, student_id, account_id, teacher_id, purchased, purchased, 32 + index),
+            (tenant_id, student_id, account_id, teacher_id, purchased, purchased,
+             content.CREDIT_PURCHASE["fee_cents"], content.CREDIT_PURCHASE["note"],
+             32 + index),
         )
         for attendance_index in range(4):
             class_date = today - timedelta(days=(attendance_index + 1) * 7 + index % 3)
@@ -684,10 +712,19 @@ def _seed_money_layer(
             legal_name = EXCLUDED.legal_name, abn = EXCLUDED.abn,
             gst_registered = EXCLUDED.gst_registered, updated_at = now()
         """,
-        (tenant_id, "Paradise Production Pty Ltd", SHOWCASE_NAME, "53 004 085 616",
-         "12 Sturt Street", "Southbank", "VIC", "3006",
-         "accounts@letspaint.example", "03 9000 1234",
-         "Paradise Production Pty Ltd", "083-004", "12 345 6789",
+        (tenant_id,
+         content.BILLING_IDENTITY["legal_name"],
+         content.BILLING_IDENTITY["trading_name"],
+         content.BILLING_IDENTITY["abn"],
+         content.BILLING_IDENTITY["address_line1"],
+         content.BILLING_IDENTITY["suburb"],
+         content.BILLING_IDENTITY["state"],
+         content.BILLING_IDENTITY["postcode"],
+         content.BILLING_IDENTITY["contact_email"],
+         content.BILLING_IDENTITY["contact_phone"],
+         content.BILLING_IDENTITY["bank_account_name"],
+         content.BILLING_IDENTITY["bank_bsb"],
+         content.BILLING_IDENTITY["bank_account_no"],
          content.PAYMENT_NOTE),
     )
 
@@ -744,7 +781,7 @@ def _seed_money_layer(
 
     def _document_number(sequence: list[int]) -> str:
         sequence[0] += 1
-        return f"INV-{sequence[0]:04d}"
+        return f"{content.INVOICE_PREFIX}{sequence[0]:04d}"
 
     # 0043 forbids a non-draft document with empty snapshots — the same rule
     # the real issue route enforces. Built with the SAME functions it uses, so
@@ -753,16 +790,7 @@ def _seed_money_layer(
     # cursor here is mid-transaction and the values are these by construction.
     supplier = supplier_snapshot({
         "configured": True,
-        "legal_name": "Paradise Production Pty Ltd",
-        "trading_name": SHOWCASE_NAME,
-        "abn": "53 004 085 616",
-        "gst_registered": True,
-        "address_line1": "12 Sturt Street", "suburb": "Southbank",
-        "state": "VIC", "postcode": "3006",
-        "contact_email": "accounts@letspaint.example",
-        "contact_phone": "03 9000 1234",
-        "bank_account_name": "Paradise Production Pty Ltd",
-        "bank_bsb": "083-004", "bank_account_no": "12 345 6789",
+        **content.BILLING_IDENTITY,
         "payment_note": content.PAYMENT_NOTE,
     })
     recipients = [
@@ -816,10 +844,10 @@ def _seed_money_layer(
     cur.execute(
         """
         INSERT INTO document_number_sequences (tenant_id, kind, prefix, next_value)
-        VALUES (%s, 'invoice', 'INV-', %s)
+        VALUES (%s, 'invoice', %s, %s)
         ON CONFLICT (tenant_id, kind) DO UPDATE SET next_value = EXCLUDED.next_value
         """,
-        (tenant_id, counter[0] + 1),
+        (tenant_id, content.INVOICE_PREFIX, counter[0] + 1),
     )
 
     # ── the money that arrived ────────────────────────────────────────
@@ -855,19 +883,20 @@ def _seed_money_layer(
     cur.execute(
         """
         INSERT INTO teacher_engagements (tenant_id, teacher_user_id, engagement, abn)
-        VALUES (%s, %s, 'contractor', '61 111 222 333')
+        VALUES (%s, %s, 'contractor', %s)
         ON CONFLICT (tenant_id, teacher_user_id) DO NOTHING
         """,
-        (tenant_id, teacher_id),
+        (tenant_id, teacher_id, content.TEACHER_PAY["abn"]),
     )
     cur.execute(
         """
         INSERT INTO teacher_pay_rates
             (tenant_id, teacher_user_id, basis, amount_cents, effective_from)
-        VALUES (%s, %s, 'per_hour', 8500, %s)
+        VALUES (%s, %s, %s, %s, %s)
         ON CONFLICT DO NOTHING
         """,
-        (tenant_id, teacher_id, today - timedelta(days=180)),
+        (tenant_id, teacher_id, content.TEACHER_PAY["rate_basis"],
+         content.TEACHER_PAY["rate_cents"], today - timedelta(days=180)),
     )
     period_start = today.replace(day=1)
     cur.execute(
@@ -893,10 +922,18 @@ def _seed_money_layer(
                 (tenant_id, teacher_user_id, period_id, occurred_on, start_time,
                  duration_minutes, student_count, source, rate_basis, rate_amount_cents,
                  amount_cents, tuition_basis_cents, counts_for_pay, note)
-            VALUES (%s, %s, %s, %s, '16:00', 90, 6, 'roster', 'per_hour', 8500,
-                    12750, 19500, true, %s)
+            VALUES (%s, %s, %s, %s, %s::time, %s, %s, 'roster', %s, %s,
+                    %s, %s, true, %s)
             """,
-            (tenant_id, teacher_id, period_id, occurred, "常规课程"),
+            (tenant_id, teacher_id, period_id, occurred,
+             content.TEACHER_PAY["session"]["start_time"],
+             content.TEACHER_PAY["session"]["duration_minutes"],
+             content.TEACHER_PAY["session"]["student_count"],
+             content.TEACHER_PAY["rate_basis"],
+             content.TEACHER_PAY["rate_cents"],
+             content.TEACHER_PAY["session"]["amount_cents"],
+             content.TEACHER_PAY["session"]["tuition_basis_cents"],
+             content.TEACHER_PAY["session"]["note"]),
         )
         sessions += 1
 
@@ -1001,35 +1038,22 @@ def _seed_money_layer(
         )
         reports += 1
 
-    # ── Xero, deliberately mid-setup ──────────────────────────────────
-    # Entitled and connected, but the gate is not satisfied: mapping confirmed,
-    # demo run not done, single-entry question unanswered. A wizard showing
-    # every step already ticked demonstrates nothing — the interesting screen is
-    # the one that says what is still missing.
+    # ── Xero：只种「已加购」，其余留给真人点 ────────────────────────────
+    # 上一版还种了一条 status='connected' 的连接和一个 mapping_confirmed_at。
+    # 两条都是假的：连接**没有 token**，所以集成页显示「已连接」而「测试令牌
+    # 自愈」必然 409（会面现场就是这样，只能当着客户重连）；而「映射已确认」
+    # 旁边同时列着「还差 tuition、bank」，因为一行映射也没种。
+    #
+    # `confirm_mapping()` 本来就会拒绝空映射，播种器等于绕过了自己的守卫。
+    # 现在只种加购：向导显示「已加购 ✓ / 未连接」，是真的，而且连接是一次
+    # 真正能成功的点击。
     cur.execute(
         """
         INSERT INTO tenant_addons (tenant_id, addon_key, status, note)
-        VALUES (%s, 'xero', 'active', '演示：已加购 Xero 直连')
+        VALUES (%s, 'xero', 'active', %s)
         ON CONFLICT (tenant_id, addon_key) DO UPDATE SET status = 'active'
         """,
-        (tenant_id,),
-    )
-    cur.execute(
-        """
-        INSERT INTO xero_connections (tenant_id, org_name, status, connected_by_user_id)
-        VALUES (%s, %s, 'connected', %s)
-        ON CONFLICT (tenant_id) DO UPDATE SET org_name = EXCLUDED.org_name
-        """,
-        (tenant_id, "Let's Paint Studio (Demo Org)", owner_id),
-    )
-    cur.execute(
-        """
-        INSERT INTO xero_sync_settings
-            (tenant_id, push_enabled, mapping_confirmed_at, single_entry_decision)
-        VALUES (%s, false, now(), 'not_answered')
-        ON CONFLICT (tenant_id) DO NOTHING
-        """,
-        (tenant_id,),
+        (tenant_id, "演示：已加购 Xero 直连（连接与映射由操作者本人完成）"),
     )
 
     return {

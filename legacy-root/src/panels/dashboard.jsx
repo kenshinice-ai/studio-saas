@@ -13,7 +13,19 @@ export function DashboardSection(props) {
         db, inactiveDays, loadSchedules, pendingCount, scheduleLoadError, setFilterBy,
         setGOpen, setGQ, setRDate, setSortBy, setSrch, setTab,
         setTuStu, showToast, todayCheckedCount, todayEffectiveCount,
+        renderMessage,
     } = props;
+    /* 生日祝福必须走租户自己的文案模板。这里以前把「愿新的一年里画艺大进」
+       写死了四处（两处复制、两处 sms: 的 body），于是钢琴、舞蹈、游戏租户的
+       家长会收到一句祝他画技进步的短信 —— 而 cms-app.jsx 的注释里，同一类
+       坑（写死 "Studio" 一词、结尾调色板 emoji）已经修过一次，这四处是漏网。
+       `birthday` 是服务端模板白名单里的键（_shared.py 的 MESSAGE_TEMPLATE_KEYS），
+       自带默认文案，不需要新增任何管道。 */
+    const birthdayWish = (name) => renderMessage(
+        'birthday',
+        '{student} 您好！{studio} 全体老师祝您生日快乐！愿您在新的一岁里灵感不断、收获满满～',
+        {student: name},
+    );
     return (
 <div className="cms-dashboard-root anim space-y-5">
     <h2 className="md:hidden inline-flex items-center gap-1.5 text-xl font-bold text-gray-800"><Icon name="dashboard" className="w-4 h-4"/>工作台</h2>
@@ -210,14 +222,14 @@ export function DashboardSection(props) {
                         <div className="px-4 py-3 space-y-2">
                             <div className="flex items-center justify-between gap-3">
                                 <p className="inline-flex items-center gap-1.5 text-sm font-bold text-pink-600"><Icon name="cake" className="w-4 h-4"/>本周生日 · {todoBdayWeek.length} 人</p>
-                                <button onClick={()=>{ const msg=todoBdayWeek.map(s=>`祝 ${s.name} 生日快乐！愿新的一年里画艺大进，心想事成！`).join('\n'); copyText(msg,'祝福语已复制'); }}
+                                <button onClick={()=>{ const msg=todoBdayWeek.map(s=>birthdayWish(s.name)).join('\n'); copyText(msg,'祝福语已复制'); }}
                                     className="flex-shrink-0 text-xs text-pink-600 font-bold bg-pink-50 active:bg-pink-100 border border-pink-200 px-3 py-1.5 rounded-xl min-h-[38px]">复制祝福 →</button>
                             </div>
                             <div className="flex flex-wrap gap-1.5">
                                 {todoBdayWeek.map(s=>(
                                     <span key={s.id} className="inline-flex items-center gap-1 bg-pink-50 border border-pink-100 rounded-full px-2.5 py-1 text-xs text-pink-700">
                                         {s.name}
-                                        {s.mobile && <a href={`sms:${s.mobile.replace(/\s/g,'')}?body=${encodeURIComponent('祝 '+s.name+' 生日快乐！愿新的一年里画艺大进，心想事成！')}`} aria-label="发送祝福短信" className="text-pink-400 ml-0.5 active:text-pink-600 inline-flex"><Icon name="chat" className="w-3.5 h-3.5"/></a>}
+                                        {s.mobile && <a href={`sms:${s.mobile.replace(/\s/g,'')}?body=${encodeURIComponent(birthdayWish(s.name))}`} aria-label="发送祝福短信" className="text-pink-400 ml-0.5 active:text-pink-600 inline-flex"><Icon name="chat" className="w-3.5 h-3.5"/></a>}
                                     </span>
                                 ))}
                             </div>
@@ -227,14 +239,14 @@ export function DashboardSection(props) {
                         <div className="px-4 py-3 space-y-2">
                             <div className="flex items-center justify-between gap-3">
                                 <p className="inline-flex items-center gap-1.5 text-sm font-bold text-pink-400"><Icon name="cake" className="w-4 h-4"/>本月生日 · {todoBdayMonth.length} 人</p>
-                                <button onClick={()=>{ const msg=todoBdayMonth.map(s=>`祝 ${s.name} 生日快乐！愿新的一年里画艺大进，心想事成！`).join('\n'); copyText(msg,'祝福语已复制'); }}
+                                <button onClick={()=>{ const msg=todoBdayMonth.map(s=>birthdayWish(s.name)).join('\n'); copyText(msg,'祝福语已复制'); }}
                                     className="flex-shrink-0 text-xs text-pink-400 font-bold bg-pink-50 active:bg-pink-100 border border-pink-100 px-3 py-1.5 rounded-xl min-h-[38px]">复制祝福 →</button>
                             </div>
                             <div className="flex flex-wrap gap-1.5">
                                 {todoBdayMonth.map(s=>(
                                     <span key={s.id} className="inline-flex items-center gap-1 bg-pink-50 border border-pink-100 rounded-full px-2.5 py-1 text-xs text-pink-700">
                                         {s.name}
-                                        {s.mobile && <a href={`sms:${s.mobile.replace(/\s/g,'')}?body=${encodeURIComponent('祝 '+s.name+' 生日快乐！愿新的一年里画艺大进，心想事成！')}`} aria-label="发送祝福短信" className="text-pink-400 ml-0.5 active:text-pink-600 inline-flex"><Icon name="chat" className="w-3.5 h-3.5"/></a>}
+                                        {s.mobile && <a href={`sms:${s.mobile.replace(/\s/g,'')}?body=${encodeURIComponent(birthdayWish(s.name))}`} aria-label="发送祝福短信" className="text-pink-400 ml-0.5 active:text-pink-600 inline-flex"><Icon name="chat" className="w-3.5 h-3.5"/></a>}
                                     </span>
                                 ))}
                             </div>

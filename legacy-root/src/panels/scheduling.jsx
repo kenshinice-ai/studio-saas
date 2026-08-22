@@ -56,7 +56,7 @@ export function CoursesSection(props) {
 export function RosterSection(props) {
     const {
         WEEKDAYS, addToRoster, applyGroup, availRoster, batchCheckIn, busy,
-        canExportData, canManageOperations, canWriteScheduling, checkIn, copyRosterDaily, copyRosterReminders,
+        canExportData, canManageOperations, canWriteScheduling, checkIn, checkInWindow, copyRosterDaily, copyRosterReminders,
         copyText, courses, dayIds, db, defaultClassTime, deleteGroup,
         deleteSchedule, groupToSchedule, grpSel, icsBusy, loadSchedules, nextOccurrence,
         openIcsPreview, rDate, rOneToOne, rPick, rTime, removeFromRoster,
@@ -379,6 +379,8 @@ export function RosterSection(props) {
                 <span className="is-success">已签到 {done}</span>
                 <span>待上课 {valid.length-done}</span>
                 {low>0 && <span className="is-warning"><Icon name="warning" className="inline-block w-3.5 h-3.5 mr-1"/>低余额 {low}</span>}
+                {/* 按钮灰掉了要说得出为什么。概览条是这一天唯一的说明位置。 */}
+                {checkInWindow.reason && <span className="is-warning"><Icon name="warning" className="inline-block w-3.5 h-3.5 mr-1"/>{checkInWindow.reason}</span>}
             </div>
         );
     })()}
@@ -486,7 +488,7 @@ export function RosterSection(props) {
                     {canExportData && <button onClick={()=>openIcsPreview('roster')} disabled={icsBusy}><Icon name="calendar" className="w-4 h-4"/>导出当日 ICS</button>}
                     <button onClick={copyRosterDaily}><Icon name="clipboard" className="w-4 h-4"/>复制日报</button>
                     {dayIds.some(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived&&s.mobile;}) && <button onClick={copyRosterReminders}><Icon name="chat" className="w-4 h-4"/>批量提醒</button>}
-                    {dayIds.some(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived&&s.balance>0;}) && <button onClick={batchCheckIn} disabled={busy}><Icon name="check" className="w-4 h-4"/>批量签到并扣课时</button>}
+                    {dayIds.some(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived&&s.balance>0;}) && <button onClick={batchCheckIn} disabled={busy||!checkInWindow.ok} title={checkInWindow.ok ? undefined : checkInWindow.reason}><Icon name="check" className="w-4 h-4"/>批量签到并扣课时</button>}
                 </div>
             </details>}
             <div className="cms-day-actions-desktop flex gap-2 flex-wrap">
@@ -503,8 +505,9 @@ export function RosterSection(props) {
                     <button onClick={copyRosterReminders} className="bg-white border border-green-300 active:bg-green-50 text-green-700 px-3 py-1.5 rounded-xl text-xs font-bold min-h-[44px]"><span className="inline-flex items-center gap-1.5"><Icon name="chat" className="w-4 h-4"/>批量提醒</span></button>
                 )}
                 {dayIds.some(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived&&s.balance>0;}) && (
-                    <button onClick={batchCheckIn} disabled={busy}
-                        className="inline-flex items-center gap-1.5 bg-indigo-600 active:bg-indigo-700 text-white px-4 py-1.5 rounded-xl text-xs font-bold min-h-[44px]"><Icon name="bolt" className="w-4 h-4"/>批量签到并扣课时</button>
+                    <button onClick={batchCheckIn} disabled={busy||!checkInWindow.ok}
+                        title={checkInWindow.ok ? undefined : checkInWindow.reason}
+                        className="inline-flex items-center gap-1.5 bg-indigo-600 active:bg-indigo-700 disabled:opacity-40 text-white px-4 py-1.5 rounded-xl text-xs font-bold min-h-[44px]"><Icon name="bolt" className="w-4 h-4"/>批量签到并扣课时</button>
                 )}
             </div>
         </div>
@@ -565,8 +568,9 @@ export function RosterSection(props) {
                         )}
                         {isDone
                             ? <button disabled className="cms-roster-primary is-done"><Icon name="check" className="w-4 h-4"/>已签到</button>
-                            : <button onClick={()=>checkIn(s.id,s.name)} disabled={busy||s.balance<=0}
-                                aria-label={`为 ${s.name} 签到并扣 1 课时`} className="cms-roster-primary"><Icon name="check" className="w-4 h-4"/>{s.balance>0?'签到并扣 1 课时':'余额不足'}</button>}
+                            : <button onClick={()=>checkIn(s.id,s.name)} disabled={busy||s.balance<=0||!checkInWindow.ok}
+                                title={checkInWindow.ok ? undefined : checkInWindow.reason}
+                                aria-label={`为 ${s.name} 签到并扣 1 课时`} className="cms-roster-primary"><Icon name="check" className="w-4 h-4"/>{!checkInWindow.ok?'不可签到':(s.balance>0?'签到并扣 1 课时':'余额不足')}</button>}
                         <details className="cms-roster-more" name="roster-student-actions">
                             <summary aria-label={`${s.name} 更多操作`}><Icon name="ellipsis" className="w-5 h-5"/></summary>
                             <div className="cms-roster-menu">

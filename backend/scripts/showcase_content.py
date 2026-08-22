@@ -566,3 +566,81 @@ REGISTRATION_ANSWERS = (
      "goals": "Somewhere to switch off",
      "availability": "Weeknights"},
 )
+
+
+# ── 身份、单号与不该由 index 算出来的那些数 ─────────────────────────────────
+#
+# 这一组以前写死在 reset_professional_demo.py 里。它们能写死，是因为当时只有
+# 一间演示工作室；有了第二间之后，同一份开票主体会被两个租户共用，同一段
+# `today - 365*N` 会让所有学员的生日挤在同一周。
+
+#: 这间工作室开出去的单据上印的是谁。两间样板必须各有各的主体，否则音乐
+#: 租户的发票上印着画室的银行账号。
+#:
+#: ABN 是**故意选的校验位不合法的号**。上一版用的 53 004 085 616 同时通过
+#: ABN 与 ACN 两套校验算法 —— 一个在 ABR 上查得到、肉眼也分辨不出的税号，
+#: 印在演示税务发票上不合适。付款说明另见 PAYMENT_NOTE。
+BILLING_IDENTITY = {
+    "legal_name": "Paradise Production Pty Ltd",
+    "trading_name": NAME,
+    "abn": "53 111 222 333",
+    "gst_registered": True,
+    "address_line1": "12 Sturt Street",
+    "address_line2": "",
+    "suburb": "Southbank",
+    "state": "VIC",
+    "postcode": "3006",
+    "contact_email": "accounts@letspaint.example",
+    "contact_phone": "03 9000 1234",
+    "bank_account_name": "Paradise Production Pty Ltd",
+    "bank_bsb": "083-004",
+    "bank_account_no": "12 345 6789",
+}
+
+#: 单据号前缀。**两间样板连的是同一个 Xero Demo Company**（一个 Xero 账号
+#: 只有一个演示组织），所以两边都从 INV-0001 开始的话，后推的那间会被
+#: `_refuse_foreign_number` 逐张拒绝 —— 那个守卫是对的，改的是前缀。
+INVOICE_PREFIX = "INV-"
+
+#: 每个学员今天几岁、生日是几月几日（与 STUDENTS 同序、同长）。
+#:
+#: 以前是 `today - timedelta(days=365 * N)` 算出来的，而 365×N 必然落回今天
+#: 附近 —— 12 个人的生日于是全挤在同一周，「近 14 天生日（12 人）」在一份
+#: 12 人的名册上一眼就是假的。真实分布下 14 天窗口的期望值是 0.4 人。
+#:
+#: 月-日铺满全年，只有一个（Xiaoyu，08-27）落在八月底：现在播种，横幅正好
+#: 显示一个人 —— 期望值附近，且功能看得见。**如果三月重新播种，横幅会是空的，
+#: 那是对的**，不要因此以为坏了。
+#:
+#: 年龄要落在该学员所排课程的 age_range 内：0–9 号是成人班（18+），
+#: 10–11 号在「周六儿童创作」（6–11）。`test_showcase_tenant.py` 会断言这件事。
+STUDENT_BIRTHDAYS = (
+    (34, "03-14"), (29, "07-02"), (41, "11-23"), (26, "01-08"),
+    (37, "05-19"), (45, "09-30"), (31, "02-11"), (52, "10-05"),
+    (28, "06-27"), (39, "12-16"),
+    (9, "04-21"), (11, "08-27"),
+)
+
+#: 前台代客充值那一笔：手续费与备注。金额取自本店自己的十次课包（58500），
+#: 以前写死在播种器里，于是音乐租户的首页累计收款也是按画室的课包价算的。
+CREDIT_PURCHASE = {
+    "fee_cents": 58500,
+    "note": "Ten-class pack recorded by staff.",
+}
+
+#: 教课的成本。`session` 描述一节被计酬的课，要和这间工作室 SCHEDULES 里
+#: 真实的课长、班额对得上 —— 以前写死 90 分钟 6 人，音乐租户的老师三个班
+#: 全是 60 分钟。
+TEACHER_PAY = {
+    "abn": "61 111 222 333",
+    "rate_basis": "per_hour",
+    "rate_cents": 8500,
+    "session": {
+        "start_time": "16:00",
+        "duration_minutes": 90,
+        "student_count": 6,
+        "amount_cents": 12750,
+        "tuition_basis_cents": 19500,
+        "note": "常规课程",
+    },
+}
