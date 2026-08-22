@@ -742,3 +742,29 @@ def test_the_seeder_does_not_fake_a_xero_connection() -> None:
     )
     # The entitlement is a real product fact and stays.
     assert "INSERT INTO tenant_addons" in SEEDER
+
+
+def test_the_reset_clears_settlement_links_before_the_money_they_point_at() -> None:
+    """A demo tenant that ever recorded a settlement could not be reset again.
+
+    `credit_financial_links` holds ON DELETE RESTRICT foreign keys into
+    payments, refunds, invoices, invoice_lines and credit_notes. Deleting the
+    money before the links raises ForeignKeyViolation and rolls the whole reset
+    back — permanently, because the links stay. It never fired locally because
+    a seeded tenant has no settlements until somebody uses the top-up screen;
+    it fired on the first production reset after a demonstration.
+    """
+
+    body = SEEDER.split("def _clear_showcase(", 1)[1].split("\ndef ", 1)[0]
+    money = ("payments", "refunds", "invoices", "credit_notes")
+    # Two tables reference the money and refuse to be cut loose from it:
+    # credit_financial_links RESTRICTs, and financial_operation_requests is
+    # SET NULL but carries a BEFORE UPDATE trigger that rejects the update
+    # ("an idempotency request key cannot be reused with a different payload"),
+    # which surfaces as a completely unrelated-looking unique violation.
+    for first in ("credit_financial_links", "financial_operation_requests"):
+        assert f'"{first}"' in body, f"the reset must clear {first}"
+        for later in money:
+            assert body.index(f'"{first}"') < body.index(f'"{later}"'), (
+                f"{first} must be deleted before {later}"
+            )

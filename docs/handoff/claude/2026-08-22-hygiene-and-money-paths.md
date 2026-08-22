@@ -108,6 +108,33 @@ manager 只读态）**没有在浏览器里逐个看过**，只核对了被加�
 
 ---
 
+## 四·五、部署时才炸出来的一条：做过结算的演示租户重置不了
+
+线上重播种第一步就崩了，本地从来没有：
+
+```
+ForeignKeyViolation: update or delete on table "payments" violates
+  foreign key constraint "credit_financial_links_payment_tenant_fkey"
+```
+
+`_clear_showcase` 的清理名单里少两张表，**都只在这间租户真的记过一次结算之后
+才会有行**（充值与退款里把课时挂到某笔收款上）。本地只播种、从没点过那个界面，
+所以一次都没触发。
+
+| 表 | 为什么挡住 |
+|---|---|
+| `credit_financial_links` | 对 payments / refunds / invoices / invoice_lines / credit_notes 全是 `ON DELETE RESTRICT` |
+| `financial_operation_requests` | 对同一批是 `ON DELETE SET NULL`，但 `trg_financial_operation_payload_immutable` 这个 BEFORE UPDATE 触发器**拒绝**那次 SET NULL，报出来是一句看似毫不相干的「幂等键不能配不同的载荷」 |
+
+两张都排到删钱之前。**这条是既有缺口，不是本轮引入的** —— 只是本轮第一次有人
+在演示租户上真的走了一遍结算，于是它从此再也重置不了。
+
+验证走的是真实路径，不是手造行：先用 `POST /students/<id>/credit-settlements`
+（开票 + 已收款）造出一条真的结算链接 —— 手工 INSERT 会被
+`assert_credit_financial_link_is_legal` 挡下，正好印证「别手造全行」——
+然后带着它重播种，通过。第一次修完只加了 `credit_financial_links`，
+重跑才炸出第二张表；**静态断言看不见这个，是行为验证捞出来的**。
+
 ## 五、留给下一轮
 
 - **前台签到权**：Lee 会后明确「前台是可以有签到权限的，这点需要好好讨论」。

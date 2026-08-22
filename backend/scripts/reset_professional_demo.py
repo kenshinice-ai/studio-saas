@@ -490,7 +490,21 @@ def _clear_showcase(cur: Any, tenant_id: str) -> None:
     # v10.1.1：钱这一层的表也要清。漏掉任何一张，每次重置就在上一批演示
     # 发票上再叠一批，几周之后演示租户的应收账款是个越滚越大的假数字。
     # 顺序按外键倒着来：分配 → 收款 → 行 → 单据。
-    for table in ("payment_allocations", "refunds", "payments", "credit_note_lines",
+    for table in (
+                  # 这一张必须排在最前面。它对 payments / refunds / invoices /
+                  # invoice_lines / credit_notes 全是 ON DELETE RESTRICT，所以
+                  # 只要这间演示租户**曾经记过一次结算**（充值与退款里把课时
+                  # 挂到某笔收款上），后面删 payments 就会被外键顶回来，
+                  # 整个重置事务回滚 —— 演示租户从此再也重置不了。
+                  # 本地测不出来：本地只播种、从没点过那个界面。
+                  "credit_financial_links",
+                  # 幂等请求账本。它对 payments / invoices / credit_notes /
+                  # refunds 是 ON DELETE SET NULL，而 trg_financial_operation_
+                  # payload_immutable 这个 BEFORE UPDATE 触发器会**拒绝**那次
+                  # SET NULL（「幂等键不能配不同的载荷」）。所以删钱之前它也
+                  # 必须先走，否则报的错会指向一个看起来毫不相干的幂等冲突。
+                  "financial_operation_requests",
+                  "payment_allocations", "refunds", "payments", "credit_note_lines",
                   "credit_notes", "invoice_lines", "invoices",
                   "billing_account_members", "billing_accounts",
                   "document_number_sequences", "tenant_billing_identity",
