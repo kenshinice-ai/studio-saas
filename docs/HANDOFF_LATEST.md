@@ -1,4 +1,4 @@
-# PWE Studio v10.12.0 — Handoff 索引（2026-08-16 起按 AI 分目录）
+# PWE Studio v10.12.1 — Handoff 索引（2026-08-16 起按 AI 分目录）
 
 > 首标题始终点名当前版本 —— `test_release_ledger.py` 据此机器强制「索引不过期」；
 > 每次发布随四层身份表一起更新。
@@ -13,7 +13,7 @@
 > - 其余纪律不变：Source / Package / Production / Backup 四层分别记录；docs-only
 >   closure 不得写成已部署运行时代码；发布必经 STOP GATE。
 
-## 当前四层身份（v10.12.0，2026-08-21）
+## 当前四层身份（v10.12.1，2026-08-22）
 
 | 层 | 精确事实 |
 |---|---|
@@ -26,6 +26,18 @@
 完整证据见 `docs/handoff/claude/2026-08-16-v10.8.0-round.md`（v10.8.0）与 codex/001（v10.7.1 历史）。
 
 ## 最新轮次
+
+- **2026-08-22（Claude Opus 5）会面卫生 + 钱与权限 —— v10.12.1**：
+  `docs/handoff/claude/2026-08-22-hygiene-and-money-paths.md`
+  —— 播种器里最后十处美术字面量与 index 算术搬进内容包（开票主体、ABN、单号前缀
+  `music-`、生日与年龄、充值手续费、教师薪酬），并停止伪造无 token 的 Xero 连接与
+  「映射已确认」。签到路径三修：已签到改按日期查考勤（原先全局 `LIMIT 500` 会导致
+  四十天前的记录掉窗、批量签到二次扣课时）、未来日期当面确认、批量确认框点名日期、
+  失败给原因。工作台四处写死的「画艺大进」改走租户模板（其中两处在 `sms:` body 里）。
+  **并降级了我自己两轮前报错的一条**：front_desk 读到银行账号不是越权 —— 同样的字段
+  经 `GET /billing/invoices/<id>`（`billing:read`）本来就到他手里，因为收款账户印在
+  每张发票上；真正成立的只是开票面板把 `canManage` 传成了 owner+manager。
+  全量 `2838 passed`；门禁 All checks passed。
 
 - **2026-08-22（Claude Fable 5）Sinobeats 会后 —— Xero 链路诊断，只读不动**：
   `docs/handoff/claude/2026-08-22-xero-meeting-followup.md`
