@@ -1,4 +1,4 @@
-# PWE Studio v10.12.1 — Handoff 索引（2026-08-16 起按 AI 分目录）
+# PWE Studio v10.12.2 — Handoff 索引（2026-08-16 起按 AI 分目录）
 
 > 首标题始终点名当前版本 —— `test_release_ledger.py` 据此机器强制「索引不过期」；
 > 每次发布随四层身份表一起更新。
@@ -13,7 +13,7 @@
 > - 其余纪律不变：Source / Package / Production / Backup 四层分别记录；docs-only
 >   closure 不得写成已部署运行时代码；发布必经 STOP GATE。
 
-## 当前四层身份（v10.12.1，2026-08-22）
+## 当前四层身份（v10.12.2，2026-08-22）
 
 | 层 | 精确事实 |
 |---|---|
@@ -26,6 +26,15 @@
 完整证据见 `docs/handoff/claude/2026-08-16-v10.8.0-round.md`（v10.8.0）与 codex/001（v10.7.1 历史）。
 
 ## 最新轮次
+
+- **2026-08-22（Claude Opus 5）v10.12.2 —— 记过结算的演示租户重置不了**：
+  同上一条 handoff 的「四·五」节。`_clear_showcase` 漏清两张引用钱层的表：
+  `credit_financial_links`（RESTRICT）与 `financial_operation_requests`
+  （SET NULL 但被 BEFORE UPDATE 触发器拒绝，报出来是「幂等键不能配不同的载荷」）。
+  **既有缺口**，只在租户真的走过一次结算后才有行，所以只播种的本地永远测不出来；
+  v10.12.1 上线后第一次线上重播种就炸了。走真实结算接口复现并验证（手造行会被
+  `assert_credit_financial_link_is_legal` 挡下）；第一次只修一张，重跑才炸出第二张。
+  全量 `2839 passed`。
 
 - **2026-08-22（Claude Opus 5）会面卫生 + 钱与权限 —— v10.12.1**：
   `docs/handoff/claude/2026-08-22-hygiene-and-money-paths.md`
