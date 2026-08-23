@@ -1,4 +1,4 @@
-# PWE Studio v10.12.3 — Handoff 索引（2026-08-16 起按 AI 分目录）
+# PWE Studio v10.13.0 — Handoff 索引（2026-08-16 起按 AI 分目录）
 
 > 首标题始终点名当前版本 —— `test_release_ledger.py` 据此机器强制「索引不过期」；
 > 每次发布随四层身份表一起更新。
@@ -13,7 +13,19 @@
 > - 其余纪律不变：Source / Package / Production / Backup 四层分别记录；docs-only
 >   closure 不得写成已部署运行时代码；发布必经 STOP GATE。
 
-## 当前四层身份（v10.12.3，2026-08-22）
+## 当前四层身份（v10.13.0，2026-08-23）
+
+| 层 | 精确事实 |
+|---|---|
+| Source | v10.13.0 发布提交（待填 · 见本轮 close 提交）；内容：角色模型（前台整拿 `attendance:write`、staff→助教收为 teacher 真子集）、课时账本补 `actor_user_id` 与 audit 行、设置页换 `Tabs`/`TabPanel`、排课页重排 |
+| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.13.0.tar.gz`（SHA-256 待填） |
+| Package / Edition | `dist/PWE-Studio-Edition-10.13.0.tar.gz`（SHA-256 待填） |
+| Production | 待部署 |
+| Backup / migration | 部署前 dump（deploy 自动产出）；schema 仍至 `0047_xero_transport.sql`（**本版零迁移**） |
+
+> 上表的包哈希与线上事实在部署后由 close 提交补齐——与 v10.12.x 同一惯例。
+
+## 上一版四层身份（v10.12.3，2026-08-22）
 
 | 层 | 精确事实 |
 |---|---|
@@ -27,6 +39,33 @@
 
 ## 最新轮次
 
+- **2026-08-23（Claude Opus 5）层 2 前两步落地 + 角色权限的事实与取舍**（**未发布、未提交**）：
+  `docs/handoff/claude/2026-08-23-two-page-refactor-and-roles.md`
+  —— 层 2 ①`?section=` 按 tab 作用域解析并按角色收敛；层 2 ②设置页七个
+  `hidden` 面板换成 `Tabs`/`TabPanel`，六块共享内容各归其位，删掉不可达的
+  弹窗分支与 133 行 `{false && …}` 死代码；排课页删掉重复的生日横幅，并修掉
+  工作台生日**跨年那一周整周漏人**的算法。实测 4 角色 × 8 section = 32 例、
+  全量 `2840 passed`。两个只有跑起来才会现形的坑：hook 写在
+  `cms-app.jsx:3098` 的 `if (!loggedIn) return` 之下会触发 React #310 整页空白；
+  `actorRole` 首帧为空会把合法的 `?section=` 提前收敛掉。
+  同一轮内接着定了角色（前台整拿 `attendance:write`、staff=助教收成 teacher
+  的真子集）、按 `/code-review` 的四条判定全修，并**落地了排课页重排**：
+  第一行学员的 top 桌面 898→**542**（首屏 900）、手机 1124→**634**（首屏 844），
+  桌面首屏从 0 行学员变成 5 行；顺手修掉排课 #4/#5/#6/#7 与截图脚本
+  `next_class_date()` 往后找日期导致**手册最忙的一页每个按钮都是灰的**。
+  排课 #8「≤360px 周视图重叠」实测**不复现**，未改。
+  已复核 `PATCH /students/<id>` 只带 `balance` 时**既无 `actor_user_id`
+  也无 audit 行**（已修）。排课页阶段二（页内标签）尚未开始，清单见
+  `docs/design/CMS_Roster_Split_Plan.md` 第 9–19 步。
+  **发布前又跑了一轮对抗式复查（该文「十一」节），推送前拦下一个越权**：
+  给前台 roster 标签页，把 `canWriteScheduling` 里那条我自己判定为「死代码」的
+  `front_desk` 激活了，于是前台能改「请假规则」——课酬与账单口径——而同一版
+  明确不给它 `payroll:read`。新增 `scheduling:policy:write`（仅 Owner/Manager）
+  修掉。同轮还修：`GET /class-bookings` 一直无权限判断却返回每个约课家庭的
+  姓名与手机（改判 `class_bookings:review`，teacher 实测 403）；本轮新加的
+  `firstRowInFold` 断言**在 bug 上也通过**（898 < 900）；改中文把 i18n 字典键
+  改成了孤儿，英文界面回退成中文；课时流水的 `actor_user_id` 存了但日志查询
+  没 select（60/60 现在带操作人）。全量 `2848 passed`，门禁 `All checks passed`。
 - **2026-08-22（Claude Opus 5）v10.12.3 —— CMS 登录自 v10.11.0 起就是坏的**：
   `docs/handoff/claude/2026-08-22-hygiene-and-money-paths.md`（「四·六」节）
   —— 拆包（`cfab504`）把 `api_v1.py` 变成包，两处**函数体内**的单点相对导入
