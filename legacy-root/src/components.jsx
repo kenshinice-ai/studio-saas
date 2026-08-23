@@ -55,15 +55,43 @@ export const CMS_ROUTE_TABS = new Set([
     'dashboard', 'roster', 'courses', 'students', 'works', 'new_student',
     'pending', 'billing', 'topup', 'finance', 'logs', 'stats', 'settings'
 ]);
+/* `?section=` is ONE parameter shared by every tab, so it can only be read in
+   the scope of the tab it arrived with. Before this it was returned raw and
+   unchecked — `?section=nonsense` left the settings page on a section that
+   does not exist (no panel matched, so every panel hid and the page rendered
+   empty), and a section belonging to one tab leaked into another's state.
+   Register a tab here to give it a whitelist and a fallback; tabs absent from
+   this map ignore `section` entirely. One table, every tab. */
+export const CMS_ROUTE_SECTIONS = Object.assign(Object.create(null), {
+    settings: {
+        allowed: ['account', 'team', 'operational', 'billing-identity',
+                  'integrations', 'maintenance', 'workspace'],
+        fallback: 'account',
+    },
+});
+export const readCmsSection = (tab, params) => {
+    /* 原型链上没有东西 —— 这张表用 Object.create(null) 建。否则
+       readCmsSection('constructor') 会拿到 Object 的构造函数，绕过下面这行
+       判空，再在 scope.allowed.includes 上抛 TypeError；而这个文件里一个
+       未捕获的异常会静默掐掉整段渲染。readCmsRoute 自己先过了
+       CMS_ROUTE_TABS 白名单，但这个函数是导出的，下一个调用方没这个保证。 */
+    const scope = CMS_ROUTE_SECTIONS[tab];
+    if (!scope || !Array.isArray(scope.allowed)) return '';
+    const requested = params.get('section') || '';
+    return scope.allowed.includes(requested) ? requested : scope.fallback;
+};
 export const readCmsRoute = () => {
     const params = new URLSearchParams(window.location.search || '');
     const requested = params.get('view') || params.get('tab') || 'dashboard';
+    const tab = CMS_ROUTE_TABS.has(requested) ? requested : 'dashboard';
     return {
-        tab: CMS_ROUTE_TABS.has(requested) ? requested : 'dashboard',
+        tab,
         pendingTab: params.get('type') === 'booking' || params.get('type') === 'bookings'
             ? 'bookings'
             : params.get('type') === 'reports' ? 'reports' : 'registrations',
-        settingsSection: params.get('section') || 'account',
+        /* Scoped, not raw: a `section` that arrived with another tab must not
+           become the settings page's state. */
+        settingsSection: tab === 'settings' ? readCmsSection(tab, params) : 'account',
         recordId: params.get('id') || '',
     };
 };

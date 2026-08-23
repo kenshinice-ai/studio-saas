@@ -102,12 +102,21 @@ SHOTS = [
 ]
 
 
-def next_class_date() -> str:
-    """The next day the showcase actually teaches.
+def recent_class_date() -> str:
+    """The most recent day the showcase actually taught.
 
-    Today's roster is legitimately empty on a day with no classes, and an
-    empty roster is the one screenshot a reader would take as "the feature
-    does not work". The seeded classes run Wednesday, Friday and Saturday.
+    Two constraints meet on this line. An empty roster is the one screenshot a
+    reader would take as "the feature does not work", so the date has to be a
+    day that has classes. And check-in is refused outside `[today-90, today+1]`
+    — so a *future* class day photographs the roster with a warning across the
+    overview bar and every primary button greyed out, which teaches the reader
+    something worse than nothing.
+
+    Walking forward hit that second case on any Sunday, Monday, Wednesday or
+    Friday: the capture landed two days out and the manual shipped a screen
+    where nobody can be checked in. So walk backwards — today when today
+    teaches, otherwise the last day that did, which is always inside the
+    window and always has a live check-in button.
     """
 
     from datetime import date, timedelta
@@ -118,7 +127,7 @@ def next_class_date() -> str:
     scheduled = {2, 4, 6}
     today = date.today()
     for offset in range(8):
-        candidate = today + timedelta(days=offset)
+        candidate = today - timedelta(days=offset)
         if candidate.weekday() + 1 in scheduled:
             return candidate.isoformat()
     return today.isoformat()
@@ -447,7 +456,8 @@ ROSTER_UI_CONTRACT = """
   const week = planner?.querySelector('.cms-roster-week');
   const summary = planner?.querySelector('.cms-roster-summary');
   const slots = planner?.querySelector('.cms-roster-slot-panel');
-  const add = planner?.querySelector('.cms-roster-add');
+  const list = document.querySelector('.cms-roster-list');
+  const add = document.querySelector('.cms-roster-add');
   const row = document.querySelector('.cms-roster-row');
   const info = row?.querySelector('.cms-roster-info');
   const actions = row?.querySelector('.cms-roster-actions');
@@ -455,11 +465,19 @@ ROSTER_UI_CONTRACT = """
   if (more) more.open = true;
   const menu = more?.querySelector('.cms-roster-menu');
   const context = menu?.querySelector('.cms-roster-menu__context');
-  const positions = [dateNav, week, summary, slots, add].map(el => el?.getBoundingClientRect().top);
+  const positions = [dateNav, week, summary, slots, list, add]
+    .map(el => el?.getBoundingClientRect().top);
   const desktop = innerWidth >= 760;
   const result = {
     named: [...document.querySelectorAll('h2')].some(el => /课程安排|Class Schedule/.test(el.textContent || '')),
     ordered: positions.every(Number.isFinite) && positions.every((top, i) => i === 0 || top > positions[i - 1]),
+    // v10.13: the roster-editing block sits below the list it edits. Keeping it
+    // out of the planner card is the whole reorder, so assert it directly and
+    // not only through the ordering above.
+    addOutsidePlanner: !!add && !!planner && !planner.contains(add),
+    // The point of the reorder: on both captured viewports the first student
+    // has to be visible without scrolling. Measured, not assumed.
+    firstRowInFold: !!row && row.getBoundingClientRect().top < innerHeight,
     noOverflow: document.documentElement.scrollWidth <= innerWidth + 1,
     rowLayout: !!row && !!info && !!actions && (desktop
       ? Math.abs(info.getBoundingClientRect().top - actions.getBoundingClientRect().top) < 10
@@ -522,7 +540,7 @@ def capture(browser: Browser, base: str, shot, session: str | None, language: st
         time.sleep(settle)
     if prepare == "date":
         result = browser.call("Runtime.evaluate", returnByValue=True,
-                              expression=SET_DATE % json.dumps(next_class_date()))
+                              expression=SET_DATE % json.dumps(recent_class_date()))
         if result.get("result", {}).get("value") == "MISSING":
             raise SystemExit(f"{name}: no date input on the roster screen")
         time.sleep(1.5)

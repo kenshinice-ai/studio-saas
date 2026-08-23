@@ -1001,7 +1001,12 @@ def _project_legacy_data_for_role(data: dict, role: Role | None) -> dict:
     """Return the aggregate CMS payload permitted for one operational role."""
 
     projected = {**data}
-    if role is Role.TEACHER:
+    # 助教 sees exactly what the teacher sees. ROLE_PERMISSIONS makes STAFF a
+    # strict subset of TEACHER, and this projection is the other half of the
+    # role model — leaving STAFF out of this branch would hand an assistant
+    # the package list, the enquiry inbox and every log row with the fee on
+    # it, which is strictly MORE than the teacher they assist gets.
+    if role is Role.TEACHER or role is Role.STAFF:
         projected["packages"] = []
         projected["pending"] = []
         projected["logs"] = [

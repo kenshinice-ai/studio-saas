@@ -125,6 +125,14 @@ ROLE_PERMISSIONS: dict[Role, set[str]] = {
         "credits:read",
         "credits:write",
         "attendance:read",
+        # The counter runs the day: it seats a walk-in on today's roster and
+        # checks people in. It already held `credits:write`, i.e. it could
+        # already take a credit off a balance — but only through the raw
+        # ledger route, which writes no attendance row and (before this
+        # release) no actor either. Withholding `attendance:write` did not
+        # stop the front desk deducting credits; it only pushed the deduction
+        # onto the path nobody can audit.
+        "attendance:write",
         "registrations:read",
         "registrations:write",
         "class_bookings:review",
@@ -141,19 +149,28 @@ ROLE_PERMISSIONS: dict[Role, set[str]] = {
         "scheduling:write",
         "progress_reports:read",
     },
+    # 助教 / Assistant: in the room, not yet the teacher of record.
+    #
+    # This set is deliberately a STRICT SUBSET of Role.TEACHER — asserted in
+    # test_role_boundaries.py, because the only thing that made the old staff
+    # role unreadable was that it differed from teacher in BOTH directions: it
+    # could top up and deduct a balance, edit a student record and read the
+    # studio's bank details (via billing:read), none of which a teacher can do,
+    # while lacking the timetable a teacher can see.
+    #
+    # Staff is now teacher minus authorship: no `progress_reports:write` (the
+    # report is signed by whoever taught the term) and no `payroll:self:read`
+    # (an assistant's engagement is not recorded as a payable yet). Everything
+    # an assistant needs to run a class — see who is enrolled, read the
+    # timetable, check people in, upload the work — is here.
     Role.STAFF: {
         "students:read",
-        "students:write",
-        "credits:read",
-        "credits:write",
+        "scheduling:read",
         "attendance:read",
         "attendance:write",
         "portfolio:read",
         "portfolio:write",
-        "registrations:read",
-        "registrations:write",
         "plans:read",
-        "billing:read",
         "progress_reports:read",
     },
     # Reserved for the future family self-service surface. No route implements

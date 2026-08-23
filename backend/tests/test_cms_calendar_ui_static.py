@@ -1,7 +1,7 @@
 """Static guards for the CMS side of the revision-bound calendar contract."""
 
 from pathlib import Path
-from _cms_sources import cms_source_text
+from _cms_sources import cms_source_files, cms_source_text
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -81,7 +81,13 @@ def test_roster_default_time_is_tenant_owned_and_batch_tools_are_progressive() -
     assert "d.operationalSettings?.defaultClassTime || '14:30'" in source
     assert "v1Api('/operational-settings'" in source
     assert "课程安排默认时间" in source
-    assert '<details className="pt-3 border-t border-gray-100 group">' in source
+    # The batch tools stay folded. Since v10.13 they live in the roster-tools
+    # card below the list, where the separator above them only exists when the
+    # add-student block is there to be separated from — so assert the fold and
+    # the placement, not the literal class list that used to encode both.
+    assert "班组模板与批量工具" in source
+    assert "canWriteAttendance?'pt-3 border-t border-gray-100':''" in source
+    assert 'className="cms-roster-tools' in source
 
 
 def test_course_schedule_layout_and_student_menu_are_complete() -> None:
@@ -108,3 +114,35 @@ def test_calendar_revision_conflict_refreshes_inside_dialog() -> None:
     source = _source()
     assert "setIcsNotice('排课刚刚发生变化，预览已自动刷新。请核对后再次下载。')" in source
     assert "<div role=\"status\"" in source
+
+
+def test_the_roster_edits_sit_below_the_list_they_edit() -> None:
+    """v10.13: the day's students are the first thing on the page, not the last.
+
+    The planner card used to carry the date nav, the week strip, the overview
+    bar, the slot panel *and* the add-student block, with the班组模板 tools
+    folded underneath — so on a 1440x900 desktop the first student row started
+    at y=898, below a 900px fold, and at y=1124 on a 390x844 phone. Every role
+    that can open this page walks in with a student in front of them; the block
+    that edits the list belongs after the list, not in front of it.
+
+    Reordering alone put both inside the fold (542 and 634, measured). This
+    test guards the order in the source. ``ROSTER_UI_CONTRACT`` in
+    ``capture_manual_shots.py`` measures the rendered result in a browser.
+    """
+
+    panels = [path for path in cms_source_files()
+              if 'className="cms-roster-planner' in path.read_text(encoding="utf-8")]
+    assert len(panels) == 1, "exactly one CMS source file renders the roster planner card"
+    source = panels[0].read_text(encoding="utf-8")
+    order = [
+        'className="cms-roster-planner',
+        'className="cms-roster-list',
+        'className="cms-roster-tools',
+        'className="cms-roster-add"',
+        "一对一循环课与补课额度",
+        'id="rosterSchedules"',
+    ]
+    found = [source.index(marker) for marker in order]
+    assert found == sorted(found), (
+        "roster blocks are out of order; expected " + " -> ".join(order))

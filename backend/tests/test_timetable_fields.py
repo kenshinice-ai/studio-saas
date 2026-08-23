@@ -329,7 +329,11 @@ def test_the_cms_can_create_the_courses_the_schedule_editor_offers() -> None:
     assert "const saveCourse =" in source
     assert "const archiveCourse =" in source
     assert 'id="courseManager"' in source
-    assert "'+ 添加课程'" in source or "+ 添加课程" in source
+    # 断言活着的那个按钮。`'+ 添加课程'` 这个写法只存在于设置页里一段
+    # `{false && ...}` 的死代码中 —— 课程管理搬去「课程」工作区之后它就再没
+    # 渲染过，而这条断言仍然绿着，因为 cms_source_text() 读的是源码不是行为。
+    # 死代码删掉的那一刻它才现形。见 [静态测试看不见错常量]。
+    assert "<Icon name=\"plus\" className=\"w-4 h-4 inline mr-1\"/>添加课程" in source
 
 
 def test_removing_a_course_archives_it_and_says_what_still_uses_it() -> None:

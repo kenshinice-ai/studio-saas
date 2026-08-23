@@ -36,7 +36,7 @@ export function DashboardSection(props) {
             super_admin:[['pending','处理待处理',pendingCount,'clipboard'],['roster','查看今日课程',todayEffectiveCount,'calendar'],['students','搜索学员',analytics.totalStudents,'users'],['stats','查看经营统计',null,'trend']],
             manager:[['pending','处理待处理',pendingCount,'clipboard'],['roster','查看今日课程',todayEffectiveCount,'calendar'],['topup','充值与退款',null,'money'],['stats','查看经营统计',null,'trend']],
             teacher:[['roster','今日课程名单',todayEffectiveCount,'calendar'],['students','查找学员',analytics.totalStudents,'users'],['works','上传作品',null,'image'],['logs','查看操作记录',null,'scroll']],
-            front_desk:[['pending','处理报名与约课',pendingCount,'clipboard'],['new_student','新建学员',null,'plus'],['topup','充值与退款',null,'money'],['students','查找学员',analytics.totalStudents,'users']],
+            front_desk:[['pending','处理报名与约课',pendingCount,'clipboard'],['roster','查看今日课程',todayEffectiveCount,'calendar'],['new_student','新建学员',null,'plus'],['topup','充值与退款',null,'money']],
             staff:[['pending','处理待处理',pendingCount,'clipboard'],['roster','查看今日课程',todayEffectiveCount,'calendar'],['students','查找学员',analytics.totalStudents,'users'],['works','管理作品',null,'image']],
         };
         const actions = (actionsByRole[actorRole] || actionsByRole.staff).filter(([key])=>allowedTabs.includes(key));
@@ -164,8 +164,27 @@ export function DashboardSection(props) {
         const todoLast    = db.students.filter(s => !s.archived && (parseInt(s.balance,10)||0) === 1);
         const todoRisk    = db.students.filter(s => !s.archived && (parseInt(s.balance,10)||0) > 0 && daysSince(s.lastActive) > inactiveDays && (activityMap[s.id]||0) === 0);
         const now = new Date(); now.setHours(0,0,0,0); // normalise to midnight so today's birthdays are included
-        const weekEnd = new Date(now); weekEnd.setDate(weekEnd.getDate()+7);
-        const todoBdayWeek  = db.students.filter(s => { if(!s.birthday||s.archived) return false; const bd=new Date(now.getFullYear(),parseInt(s.birthday.slice(5,7),10)-1,parseInt(s.birthday.slice(8,10),10)); return bd>=now&&bd<=weekEnd; });
+        /* 逐日向前扫，不要把生日拼成「今年的那一天」再比大小：12 月 29 号看
+           1 月 3 号的生日，new Date(今年,0,3) 落在过去，`bd>=now` 为假，这个人
+           在跨年那一周整周消失。课程安排页删掉的那块横幅用的就是这个扫法，
+           它是两份实现里算得对的那一份。 */
+        const bdayWithin = (s, span) => {
+            if (!s.birthday || s.archived) return false;
+            const mm = parseInt(s.birthday.slice(5,7),10), dd = parseInt(s.birthday.slice(8,10),10);
+            if (!mm || !dd) return false;
+            for (let i=0;i<span;i++) {
+                const d = new Date(now.getFullYear(), now.getMonth(), now.getDate()+i);
+                if (d.getMonth()+1===mm && d.getDate()===dd) return true;
+                /* 2 月 29 日出生的人，平年没有那一天。旧写法靠 JS 日期溢出
+                   （new Date(y,1,29) 自动变成 3 月 1 日）误打误撞接住了他们，
+                   精确比对月日就接不住了 —— 平年会整整三年收不到提醒。
+                   平年按 3 月 1 日过，这是澳洲常见的处理，也和旧行为一致。 */
+                if (mm===2 && dd===29 && d.getMonth()===2 && d.getDate()===1
+                    && new Date(d.getFullYear(), 1, 29).getDate() !== 29) return true;
+            }
+            return false;
+        };
+        const todoBdayWeek  = db.students.filter(s => bdayWithin(s, 8));
         const todoBdayMonth = db.students.filter(s => { if(!s.birthday||s.archived) return false; return s.birthday.slice(5,7)===String(now.getMonth()+1).padStart(2,'0') && !todoBdayWeek.includes(s); });
         const todoFollowUp = (db.pending||[]).filter(item=>item.nextFollowUpAt && String(item.nextFollowUpAt).slice(0,10)<=todayISO());
         const total = todoClear.length + todoLast.length + todoRisk.length + todoBdayWeek.length + todoBdayMonth.length + todoFollowUp.length;

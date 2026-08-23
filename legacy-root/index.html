@@ -616,7 +616,12 @@
          * hierarchy while consuming StudioSaaS's solved semantic tokens.
          * Repeated row actions use neutral ink rather than spending the
          * saturated accent in every row (Design_Constraints §1.1). */
-        .cms-roster-planner { container:roster-planner / inline-size; }
+        /* Two cards, one container name: the day-planner card and the
+         * roster-tools card below the list both host controls whose narrow
+         * layout is written in `@container roster-planner`. Same padding on
+         * both, so the 680px breakpoint lands in the same place. */
+        .cms-roster-planner,
+        .cms-roster-tools { container:roster-planner / inline-size; }
         .cms-roster-date-nav {
             display:grid;
             grid-template-columns:44px minmax(72px,auto) 44px minmax(0,1fr);

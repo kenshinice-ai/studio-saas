@@ -93,10 +93,16 @@ with the list.
 
 **The roster was empty.** Today had no class — the showcase teaches Tuesday,
 Thursday and Saturday — so the most-used screen in the product would have been
-photographed as an empty state. `next_class_date()` moves the capture to the
-next day that actually teaches. (`class_schedules.weekday` is 1 = Monday;
+photographed as an empty state. `recent_class_date()` moves the capture to a
+day that actually teaches. (`class_schedules.weekday` is 1 = Monday;
 Python's `date.weekday()` is 0 = Monday, and the first version of this was off
 by one in a way that still produced a plausible screenshot.)
+
+It walks **backwards**, not forwards. The forward version was written before
+check-in grew a date window: since then the server refuses check-in outside
+`[today-90, today+1]`, so on a Sunday the capture landed on Tuesday and the
+manual's busiest screen shipped with a warning banner and every primary button
+greyed out. The last day that taught is always inside the window.
 
 **The English CMS was incomplete.** Capturing every screen in English put the
 gaps on a contact sheet: 22 Chinese strings on the roster alone. The

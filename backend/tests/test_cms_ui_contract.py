@@ -102,10 +102,15 @@ def test_primary_cms_overlays_are_named_keyboard_modals() -> None:
         "portfolio-lightbox-title",
         "portfolio-upload-title",
         "portfolio-edit-title",
-        "settings-dialog-title",
         "student-profile-title",
     ):
         assert f'aria-labelledby="{title_id}"' in source
+    # 系统设置曾经是一张覆盖层，所以它一度也在这张名单上。它现在是一个页面
+    # （?view=settings），带一条真正的标签条；覆盖层那条渲染分支不可达已久，
+    # 随 TabPanel 改造一并删除。页面不该声明 aria-modal，也不该有焦点陷阱 ——
+    # 所以这里断言的是「它不再假装自己是弹窗」。
+    assert 'id="settings-page-title"' in source
+    assert 'aria-labelledby="settings-dialog-title"' not in source
     assert 'role="dialog" aria-modal="true" aria-label="搜索学员"' in source
 
 

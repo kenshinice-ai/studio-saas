@@ -1,6 +1,6 @@
 # StudioSaaS 使用手册总览
 
-> 适用版本：PWE Studio v10.12.3 · 最后更新：2026-08-16
+> 适用版本：PWE Studio v10.13.0 · 最后更新：2026-08-16
 > 本目录是按角色划分的最终用户手册。开发/运维文档见 `docs/` 上层
 > （[Architecture](../Architecture.md) · [Admin_Guide](../Admin_Guide.md) ·
 > [Glossary](../Glossary.md)）。
@@ -40,18 +40,20 @@ StudioSaaS 是多租户教培工作室 SaaS。每个工作室（租户）有独�
 | 权限 | Owner | Manager | Teacher | Front Desk | Staff |
 |---|---|---|---|---|---|
 | 学员查看 students:read | ✅ | ✅ | ✅ | ✅ | ✅ |
-| 学员建档/编辑 students:write | ✅ | ✅ | ❌ | ✅ | ✅ |
+| 学员建档/编辑 students:write | ✅ | ✅ | ❌ | ✅ | ❌ |
 | 课程与课包维护 courses:write | ✅ | ✅ | ❌ | ❌ | ❌ |
-| 课时查看 credits:read | ✅ | ✅ | ❌ | ✅ | ✅ |
-| 充值 credits:write | ✅ | ✅ | ❌ | ✅ | ✅ |
+| 课时查看 credits:read | ✅ | ✅ | ❌ | ✅ | ❌ |
+| 充值 credits:write | ✅ | ✅ | ❌ | ✅ | ❌ |
 | **退款 credits:refund** | ✅ | ✅ | ❌ | ❌ | ❌ |
-| 签到 attendance:write | ✅ | ✅ | ✅ | ❌ | ✅ |
+| 课表查看 scheduling:read | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 排课 scheduling:write | ✅ | ✅ | ❌ | ✅ | ❌ |
+| 签到 attendance:write | ✅ | ✅ | ✅ | ✅ | ✅ |
 | 作品查看 portfolio:read | ✅ | ✅ | ✅ | ❌ | ✅ |
 | 作品集编辑 portfolio:write | ✅ | ✅ | ✅ | ❌ | ✅ |
 | **作品分享 portfolio:share** | ✅ | ✅ | ❌ | ❌ | ❌ |
-| 报名审批 registrations:write | ✅ | ✅ | ❌ | ✅ | ✅ |
+| 报名审批 registrations:write | ✅ | ✅ | ❌ | ✅ | ❌ |
 | **约课请求审核 class_bookings:review** | ✅ | ✅ | ❌ | ✅ | ❌ |
-| 账单查看 billing:read | ✅ | ✅ | ❌ | ✅ | ✅ |
+| 账单查看 billing:read | ✅ | ✅ | ❌ | ✅ | ❌ |
 | 开票 billing:write / billing:issue | ✅ | ✅ | ❌ | ✅ | ❌ |
 | 登记收款 payments:write | ✅ | ✅ | ❌ | ✅ | ❌ |
 | **退款 payments:refund** | ✅ | ✅ | ❌ | ❌ | ❌ |
@@ -68,6 +70,18 @@ StudioSaaS 是多租户教培工作室 SaaS。每个工作室（租户）有独�
 > 不是界面观察的结果——界面藏起来的按钮和后端拒绝的请求是两回事，本产品
 > 用的是后者。**前台（Front Desk）连作品都读不到**（没有 `portfolio:read`），
 > 不只是不能编辑。
+>
+> **v10.13 起的两处改动**：
+> 1. **前台可以签到**。它一直就能通过课时台账直接扣课时（`credits:write`），
+>    只是那条路不写考勤行、也不记是为哪一节课扣的。给它 `attendance:write`
+>    不是放宽，是把同一个动作挪到记得清楚的那条路上。退款（`credits:refund`
+>    / `payments:refund`）仍然不给。
+> 2. **Staff 重新定义为「助教 Assistant」= Teacher 减去署名权**，即
+>    `ROLE_PERMISSIONS[STAFF] ⊂ ROLE_PERMISSIONS[TEACHER]`（有测试锁着）。
+>    以前的 staff 和 teacher 在**两个方向**上都不一样：它能改学员档案、能
+>    充值扣课时、能通过 `billing:read` 看到工作室的收款账户，却看不到自己
+>    正在协助的课表。助教与老师的差别只剩两把钥匙：不写学习报告
+>    （`progress_reports:write`）、没有本人课酬（`payroll:self:read`）。
 
 （Super Admin 拥有全部权限 `*`，但 v7.7.7 起进入任一租户的 CMS/Studio
 Admin **必须先在 Super Admin 控制台开启支持模式**（填写原因、全程审计），

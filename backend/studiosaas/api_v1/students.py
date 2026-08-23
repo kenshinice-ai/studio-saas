@@ -1165,14 +1165,22 @@ def create_credit_transaction(student_id: str):
 
         # The ledger stores the SIGNED movement so exports and the CMS log
         # view are self-describing (adjustment_out / refund_out are negative).
+        # `actor_user_id` is not optional on a row that moves a balance. The
+        # check-in path has always written it; this one did not, so every
+        # manual adjustment in the ledger read as having been made by nobody.
+        # Both paths stay open by design — a studio needs to be able to correct
+        # a balance without inventing an attendance — but the adjustment is the
+        # blunter of the two, which makes knowing who made it matter more.
         cur.execute(
             """
             INSERT INTO credit_transactions (
-                tenant_id, student_id, transaction_type, amount, balance_after, fee_aud_cents, note
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                tenant_id, student_id, actor_user_id, transaction_type, amount,
+                balance_after, fee_aud_cents, note
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
             """,
-            (tenant.tenant_id, student_id, tx_type, delta, new_balance, fee_cents, note),
+            (tenant.tenant_id, student_id, getattr(g.actor, "user_id", None),
+             tx_type, delta, new_balance, fee_cents, note),
         )
         tx_id = str(cur.fetchone()["id"])
 
@@ -1840,29 +1848,66 @@ def update_student(student_id: str):
                 return
             cur.execute(
                 """
-                INSERT INTO credit_transactions (tenant_id, student_id, transaction_type, amount, balance_after)
-                VALUES (%s, %s, 'adjustment', %s, %s)
+                INSERT INTO credit_transactions (
+                    tenant_id, student_id, actor_user_id, transaction_type,
+                    amount, balance_after
+                )
+                VALUES (%s, %s, %s, 'adjustment', %s, %s)
                 RETURNING id
                 """,
-                (tenant.tenant_id, student_id, delta, target_value),
+                (tenant.tenant_id, student_id, getattr(g.actor, "user_id", None),
+                 delta, target_value),
             )
             _ensure_default_credit_account(cur, tenant.tenant_id, student_id, target_value)
+            # This was the only credit-moving path in the whole API with NO
+            # attribution at all: the ledger row carried no actor, and the
+            # audit row below is written inside `if updates:` — which a PATCH
+            # carrying only `balance` never enters, because `balance` is
+            # applied here rather than added to `updates`. So a request that
+            # set any student's balance to any number left nothing behind that
+            # named who sent it. Audit here, where the movement happens.
+            _audit_request(
+                conn,
+                tenant_id=tenant.tenant_id,
+                action="credit.adjusted",
+                resource_type="student",
+                resource_id=student_id,
+                metadata={"student_id": student_id, "transaction_type": "adjustment",
+                          "delta": delta, "balance_after": target_value,
+                          "surface": "student.patch"},
+            )
 
+        # `balance` and `creditHours` are two names for ONE quantity, and both
+        # set it absolutely. Applying them in sequence — which is what this did
+        # — writes two adjustment rows and (since the audit row moved next to
+        # the movement) two `credit.adjusted` entries for what the caller meant
+        # as a single correction, with the second silently winning. No shipped
+        # client sends `creditHours` at all, so there is no compatibility
+        # surface to preserve; resolve to one target and refuse the genuinely
+        # ambiguous case rather than picking the later key by accident.
         new_balance_raw = payload.get("balance")
+        new_credit_raw = payload.get("creditHours")
         if new_balance_raw is not None:
             try:
-                new_balance = float(new_balance_raw)
+                target_balance = float(new_balance_raw)
             except (TypeError, ValueError):
                 return _error("Invalid balance value.")
-            _apply_absolute_balance(new_balance)
-
-        new_credit_raw = payload.get("creditHours")
         if new_credit_raw is not None:
             try:
-                new_credit_val = float(new_credit_raw)
+                target_credit = float(new_credit_raw)
             except (TypeError, ValueError):
                 return _error("Invalid credit hours value.")
-            _apply_absolute_balance(new_credit_val)
+        if new_balance_raw is not None and new_credit_raw is not None:
+            if target_balance != target_credit:
+                return _error(
+                    "balance and creditHours set the same value; send one of them, "
+                    "or send the same number in both."
+                )
+            _apply_absolute_balance(target_balance)
+        elif new_balance_raw is not None:
+            _apply_absolute_balance(target_balance)
+        elif new_credit_raw is not None:
+            _apply_absolute_balance(target_credit)
 
         # Build SQL UPDATE
         if updates:

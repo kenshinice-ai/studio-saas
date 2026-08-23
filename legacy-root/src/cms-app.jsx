@@ -18,7 +18,7 @@ import { AUDIT_ACTION_ZH, BalBadge, CMS_ROUTE_TABS, CmsNotificationCenter, Confi
 import { LoginScreen, MaintSection, PhotoAvatar, StudentPicker, TENANT_SLUG, Toast } from "./components.jsx";
 import { auditNote, daysSince, fmtDate, mediaSrc, nowAU, parseMonthKey } from "./components.jsx";
 import { portfolioImgSrc, portfolioSrcSet, readCmsRoute, tenantOwnedLogoUrl, tenantSlug, todayISO } from "./components.jsx";
-import { useModalFocus, v1Api } from "./components.jsx";
+import { Tabs, TabPanel, useModalFocus, v1Api } from "./components.jsx";
 import { DashboardSection } from "./panels/dashboard.jsx";
 import { CoursesSection, RosterSection } from "./panels/scheduling.jsx";
 import { WorksSection } from "./panels/media.jsx";
@@ -161,7 +161,10 @@ function App() {
     }, portUploadDialogRef);
     useModalFocus(Boolean(portEdit) && !confirmDialog, () => setPortEdit(null), portEditDialogRef);
     useModalFocus(Boolean(gOpen) && !confirmDialog, () => { setGOpen(false); setGQ(''); }, searchDialogRef);
-    useModalFocus(Boolean(showSettings && tab !== 'settings') && !confirmDialog, () => setShowSettings(false), settingsDialogRef);
+    /* 设置页曾经也是弹窗，这里原本有一次 useModalFocus 守着它。条件是
+       `showSettings && tab !== 'settings'` —— 而 showSettings 只在
+       tab==='settings' 时为真，所以它从来没有激活过。覆盖层那条渲染分支
+       已经删了，这一行跟着删。 */
     useModalFocus(Boolean(selS) && !portLB && !portUpload && !portEdit && !confirmDialog,
         () => { setSelS(null); setEditP(false); }, profileDialogRef);
     // Fix ⑪: configurable inactive-days threshold (stored in localStorage)
@@ -299,15 +302,22 @@ function App() {
         super_admin: ['dashboard','pending','roster','courses','students','works','new_student','billing','topup','finance','logs','stats','settings'],
         manager: ['dashboard','pending','roster','courses','students','works','new_student','billing','topup','finance','logs','stats','settings'],
         teacher: ['dashboard','roster','courses','students','works','logs','settings'],
-        front_desk: ['dashboard','pending','students','new_student','billing','topup','logs','settings'],
-        staff: ['dashboard','pending','roster','courses','students','works','new_student','billing','topup','logs','settings'],
+        /* 前台带 roster。后端早就给了 scheduling:write（一对一循环课、停课、
+           补课），本轮又加了 attendance:write —— 但这一页不在名单里，那两个
+           权限在界面上就是死的：canWriteScheduling 里的 front_desk 只在
+           RosterSection 内部被消费，而前台打开 ?view=roster 会被踢回工作台。 */
+        front_desk: ['dashboard','pending','roster','students','new_student','billing','topup','logs','settings'],
+        /* 助教 = 老师的可见面，一个不多。ROLE_PERMISSIONS 里 STAFF ⊂ TEACHER，
+           这一行是它在导航上的对应物；以前 staff 比 teacher 多出待处理、
+           新建学员、账单和充值四项，正好是它不该有的那几件。 */
+        staff: ['dashboard','roster','courses','students','works','logs','settings'],
     };
     const allowedTabs = roleTabs[actorRole] || ['dashboard'];
     const canManageOperations = [...ownerRoles,'manager'].includes(actorRole);
     const canExportData = [...ownerRoles,'manager'].includes(actorRole);
     const canViewFinancialAnalytics = [...ownerRoles,'manager'].includes(actorRole);
-    const canWriteStudents = [...ownerRoles,'manager','front_desk','staff'].includes(actorRole);
-    const canWriteCredits = [...ownerRoles,'manager','front_desk','staff'].includes(actorRole);
+    const canWriteStudents = [...ownerRoles,'manager','front_desk'].includes(actorRole);
+    const canWriteCredits = [...ownerRoles,'manager','front_desk'].includes(actorRole);
     const canUseSettlementBilling = TENANT_SLUG && ['owner','manager','front_desk','platform_super_admin','super_admin'].includes(actorRole);
     const canRegisterSettlementPayment = TENANT_SLUG && ['owner','manager','front_desk','platform_super_admin','super_admin'].includes(actorRole);
     const canWritePortfolio = [...ownerRoles,'manager','teacher','staff'].includes(actorRole);
@@ -321,18 +331,63 @@ function App() {
     const canWriteScheduling = [...ownerRoles,'manager','front_desk'].includes(actorRole);
     const canWriteProgress = [...ownerRoles,'manager','teacher'].includes(actorRole);
     const canPublishProgress = [...ownerRoles,'manager'].includes(actorRole);
-    /* Mirrors backend attendance:write — teacher/staff can run the roster day
-       (check-in, per-day scheduling); front_desk cannot. */
-    const canWriteAttendance = [...ownerRoles,'manager','teacher','staff'].includes(actorRole);
+    /* Mirrors backend attendance:write — everyone who is in the building on
+       the day. Front desk was the odd one out: it could already take a credit
+       off a balance through the raw ledger route, just not through the audited
+       one that records an attendance against a class date. */
+    const canWriteAttendance = [...ownerRoles,'manager','teacher','staff','front_desk'].includes(actorRole);
     /* Backend grants class_bookings:review to Front Desk without granting
        schedule mutation.  Keep that distinction visible in the UI: review
        is an inbox action, not a timetable permission. */
-    const canReviewBookings = [...ownerRoles,'manager','front_desk','staff'].includes(actorRole);
+    const canReviewBookings = [...ownerRoles,'manager','front_desk'].includes(actorRole);
     /* Mirrors backend credits:refund — refunds are owner/manager only. */
     const canRefund = [...ownerRoles,'manager'].includes(actorRole);
     const canSyncRefund = TENANT_SLUG && ['owner','manager','platform_super_admin','super_admin'].includes(actorRole);
     /* Mirrors backend portfolio:share — share-link creation is owner/manager only. */
-    const canViewCmsNotifications = ['owner','manager','front_desk','staff','platform_super_admin','super_admin'].includes(actorRole);
+    /* 报名与预约的提醒，跟着「谁处理它们」走。助教不再有
+       registrations:* / class_bookings:review，所以也不该收到这些提醒
+       —— 收到了也点不进去。 */
+    const canViewCmsNotifications = ['owner','manager','front_desk','platform_super_admin','super_admin'].includes(actorRole);
+
+    /* 一份分区清单，标签页和下面的面板都读它。两处各写一份正是「侧栏名 vs
+       页面标题」那个 bug 的形状 —— 第三个元素是可见性，因为团队与数据维护
+       只对能管运营的人开放。
+       定义在这里而不是渲染体旁边，是因为下面那个 effect 要用它，而 effect
+       必须待在 `if (!loggedIn) return <LoginScreen/>`（本文件 :3098）之上：
+       那三个提前 return 之下的任何 hook，在登录前后会被调用不同的次数，
+       React 直接抛 #310「渲染的 hook 比上一次多」，整页空白。 */
+    const SETTINGS_SECTIONS = [
+        ['account', '账号与安全', true],
+        ['team', '团队与权限', canManageOperations],
+        ['operational', '运营默认', canManageOperations],
+        ['billing-identity', '开票信息', canManageOperations],
+        ['integrations', '集成', ownerRoles.includes(actorRole)],
+        ['maintenance', '数据维护', canManageOperations],
+        ['workspace', '工作区链接', true],
+    ];
+    /* 设置 #3 的第二半。`readCmsSection` 只做结构白名单 —— 它不知道谁登录了，
+       所以拦不住「这个角色看不到的分区」：manager 打开 ?section=integrations
+       是一个合法的 key，却没有对应的标签，于是标签条一个都不选中、面板一个
+       都不渲染，整屏是空的。可见性只有上面那张表知道，收敛就只能放在这里。
+       用 replaceState 而不是 pushState：这是在纠正一个无效地址，不是一次导航。
+       push 会把无效地址留在历史里，用户按一次返回就又掉回空页面。 */
+    useEffect(() => {
+        /* `!actorRole` 是这里最重要的一个字。角色是登录后异步取回来的，首帧是
+           空字符串 —— 那一帧每个按角色开放的分区都「不可见」，于是一个完全
+           合法的 ?section=integrations 会在会话回来之前就被收敛成 account，
+           连 URL 一起改掉，角色到位后也救不回来。实测过：不带这个判断，
+           owner 打开集成、manager 打开团队都会掉回账号页。 */
+        if (tab !== 'settings' || !actorRole) return;
+        const visible = SETTINGS_SECTIONS.filter(([,,ok]) => ok !== false).map(([key]) => key);
+        if (!visible.length) return;
+        const resolved = visible.includes(settingsSection) ? settingsSection : visible[0];
+        /* 地址栏里原本写的那个值 —— 结构白名单在解析时已经把它兜底过一次，
+           所以 settingsSection 看不到它。要把 ?section=乱写 从地址里清掉，
+           得拿原值来比。 */
+        const raw = new URLSearchParams(window.location.search || '').get('section') || 'account';
+        if (resolved !== settingsSection) setSettingsSectionState(resolved);
+        if (raw !== resolved) syncCmsRoute({tab:'settings', settingsSection: resolved}, true);
+    }, [tab, settingsSection, actorRole, canManageOperations]);
 
     // Photo state for forms (shared — forms can't be open simultaneously)
     const [formPhoto, setFormPhoto] = useState('');
@@ -950,22 +1005,6 @@ function App() {
     };
 
     /* G1: 未来 14 天内生日的学员（只比月-日，忽略年份） */
-    const upcomingBirthdays = useMemo(() => {
-        const now = new Date(); const out = [];
-        db.students.forEach(s => {
-            if (s.archived) return;
-            const m = String(s.birthday||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);
-            if (!m) return;
-            for (let i=0;i<14;i++) {
-                const d = new Date(now.getFullYear(), now.getMonth(), now.getDate()+i);
-                if (d.getMonth()+1===parseInt(m[2],10) && d.getDate()===parseInt(m[3],10)) {
-                    const age = d.getFullYear() - parseInt(m[1],10);
-                    out.push({s, in:i, md:`${m[3]}/${m[2]}`, age}); break;
-                }
-            }
-        });
-        return out.sort((a,b)=>a.in-b.in);
-    }, [db.students]);
 
     /* ── Sorted / filtered lists ── */
     useEffect(() => { setStudentPage(1); setSelectedStudentIds([]); }, [srch, sortBy, filterBy]);
@@ -1775,6 +1814,14 @@ function App() {
         setSchedEdit({label: grpSel, weekday: new Date().getDay(), startTime: defaultClassTime,
                       durationMinutes: 60, capacity: Math.max(10, ids.length), studentIds: ids,
                       courseId: '', teacherUserId: '', isPublic: false, room: ''});
+        /* Opening the editor is not enough: it renders inside the 固定课表
+           block, which is collapsed and (since the roster reorder) sits at the
+           end of the page. Without this the button reads as a no-op. */
+        const block = document.getElementById('rosterSchedules');
+        if (block) {
+            block.open = true;
+            requestAnimationFrame(() => block.scrollIntoView({behavior:'smooth', block:'start'}));
+        }
         showToast('已带入模板学员，请确认周几与时间后保存');
     };
 
@@ -1933,7 +1980,10 @@ function App() {
             const student=db.students.find(item=>item.id===id);
             return student&&!student.archived?`${student.name}（剩余${student.balance}课时）`:null;
         }).filter(Boolean);
-        copyText(`【今日上课 ${lines.length} 人 - ${fmtDate(rDate)}】\n${lines.join('\n')}`,'日报已复制到剪贴板');
+        /* The heading has to agree with the date beside it: this gets pasted
+           into a group chat, where nobody can see which day was selected. */
+        const heading = rDate===todayISO() ? '今日上课' : '上课名单';
+        copyText(`【${heading} ${lines.length} 人 - ${fmtDate(rDate)}】\n${lines.join('\n')}`,'日报已复制到剪贴板');
     };
 
     /** Copy one message per reachable student, preserving the selected roster date and slot. */
@@ -2005,7 +2055,10 @@ function App() {
 
     /* F4b: 班组模板 — 保存常用班次组合，任意日期一键套用 */
     const saveGroup = () => {
-        const ids = db.rosters[rDate]||[];
+        /* What the page shows for this day is manual ∪ timetable. Saving only
+           `db.rosters[rDate]` produced a template missing every student the
+           weekly schedule contributed — with no sign anything was left out. */
+        const ids = dayIds.filter(id => db.students.some(s => s.id===id && !s.archived));
         if (!ids.length) { showToast('当前日期没有排课可保存', 'warn'); return; }
         confirm(`将当前日期的 ${ids.length} 位学员保存为可复用的班组模板。`, async (raw) => {
             const name = String(raw||'').trim();
@@ -2019,7 +2072,9 @@ function App() {
     const applyGroup = async () => {
         if (!grpSel) return;
         const ids = (db.groups||{})[grpSel]||[];
-        const cur = db.rosters[rDate]||[];
+        /* Same union: a student already on the day via the timetable must not be
+           added a second time as a manual entry. */
+        const cur = dayIds;
         const add = ids.filter(id => !cur.includes(id) && db.students.some(s=>s.id===id&&!s.archived));
         if (!add.length) { showToast('模板学员均已在当前排课中', 'warn'); return; }
         /* A group template is a set of students who sit the same slot, so the
@@ -3117,18 +3172,6 @@ document.getElementById('copybtn').addEventListener('click', function(){
        action today, teaching operations, business, then historical records.
        Course catalogue and package management are deliberately owned by
        their functional workspaces rather than hidden inside Settings. */
-    /* 一份分区清单，标签页和下面的面板都读它。两处各写一份正是「侧栏名 vs
-       页面标题」那个 bug 的形状 —— 第三个元素是可见性，因为团队与数据维护
-       只对能管运营的人开放。 */
-    const SETTINGS_SECTIONS = [
-        ['account', '账号与安全', true],
-        ['team', '团队与权限', canManageOperations],
-        ['operational', '运营默认', canManageOperations],
-        ['billing-identity', '开票信息', canManageOperations],
-        ['integrations', '集成', ownerRoles.includes(actorRole)],
-        ['maintenance', '数据维护', canManageOperations],
-        ['workspace', '工作区链接', true],
-    ];
     const NAV_GROUPS = [
         {key:'today', label:'今日', items:[
             {k:'dashboard',i:'dashboard',l:'工作台',s:'工作台'},
@@ -3704,7 +3747,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
 {tab==='courses' && <CoursesSection {...{archiveCourse, busy, canManageOperations, courseEdit, courses, saveCourse, setCourseEdit, setTab}}/>}
 
 {/* ═══ ROSTER ═════════════════════════════════════════════════ */}
-{tab==='roster' && <RosterSection {...{WEEKDAYS, addToRoster, applyGroup, availRoster, batchCheckIn, busy, canExportData, canManageOperations, canWriteScheduling, checkIn, checkInWindow, copyRosterDaily, copyRosterReminders, copyText, courses, dayIds, db, defaultClassTime, deleteGroup, deleteSchedule, groupToSchedule, grpSel, icsBusy, loadSchedules, nextOccurrence, openIcsPreview, rDate, rOneToOne, rPick, rTime, removeFromRoster, renderMessage, renewTh, restoreCancellation, rosterDone, rosterMetaFor, rosterSlotFor, saveCancellation, saveGroup, saveSchedule, schedCancel, schedEdit, schedOverlap, schedPick, scheduleLoadError, scheduledForDate, schedules, setGrpSel, setRDate, setROneToOne, setRPick, setRTime, setSchedCancel, setSchedEdit, setSchedPick, setTab, showToast, sortedAZ, teachableMembers, tenantDisplayName, undoCheckIn, upcomingBirthdays, updateRosterEntry}}/>}
+{tab==='roster' && <RosterSection {...{WEEKDAYS, addToRoster, applyGroup, availRoster, batchCheckIn, busy, canExportData, canManageOperations, canWriteAttendance, canWriteScheduling, checkIn, checkInWindow, copyRosterDaily, copyRosterReminders, copyText, courses, dayIds, db, defaultClassTime, deleteGroup, deleteSchedule, groupToSchedule, grpSel, icsBusy, loadSchedules, nextOccurrence, openIcsPreview, rDate, rOneToOne, rPick, rTime, removeFromRoster, renderMessage, renewTh, restoreCancellation, rosterDone, rosterMetaFor, rosterSlotFor, saveCancellation, saveGroup, saveSchedule, schedCancel, schedEdit, schedOverlap, schedPick, scheduleLoadError, scheduledForDate, schedules, setGrpSel, setRDate, setROneToOne, setRPick, setRTime, setSchedCancel, setSchedEdit, setSchedPick, setTab, showToast, sortedAZ, teachableMembers, tenantDisplayName, undoCheckIn, updateRosterEntry}}/>}
 
 {/* ═══ STUDENTS ════════════════════════════════════════════════ */}
 {/* ═══ WORKS ══════════════════════════════════════════════════ */}
@@ -3757,39 +3800,32 @@ document.getElementById('copybtn').addEventListener('click', function(){
                     主列之外了：设置内容跑到侧栏左边，主列只剩一个页脚。
                     上一版我用 JS 查过标签、面板和 aria，全对 —— 元素是对的，
                     位置是错的。查 DOM 属性查不出版面，那得看。 */}
+            {/* 设置是一个页面，不是弹窗。这里以前还有一条把同一段内容渲染成
+                `fixed inset-0` 覆盖层的分支 —— 它不可达：showSettings 只在
+                tab==='settings' 时为真（setTab :124、setSettingsSection :139、
+                popstate :150 三处都这么写，没有一条路径能让它在别的 tab 上为
+                真）。那条分支和同样不可达的 useModalFocus 一起删掉了。 */}
             {showSettings && (
-                <div ref={settingsDialogRef}
-                    className={tab==='settings'
-                        /* 目的地，不是覆盖层。盖住侧栏才需要「返回工作台」——
-                           其他页面都不需要，因为它们从没把你带走过。 */
-                        ? 'anim'
-                        : 'fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4'}
-                    onClick={tab==='settings' ? undefined : closeSettings}
-                    role={tab==='settings' ? undefined : 'dialog'} aria-modal={tab==='settings' ? undefined : 'true'} aria-labelledby="settings-dialog-title"
-                    style={{paddingTop:tab==='settings' ? 'env(safe-area-inset-top, 0px)' : 'max(16px, env(safe-area-inset-top, 16px))', paddingBottom:'max(16px, env(safe-area-inset-bottom, 16px))'}}>
-                    <div className={tab==='settings'
-                        ? 'w-full'
-                        : 'bg-white rounded-2xl p-6 w-full max-w-2xl shadow-2xl anim overflow-y-auto modal-scroll'}
-                        style={tab==='settings' ? undefined : {maxHeight:'90dvh'}} onClick={e=>e.stopPropagation()}>
+                <div ref={settingsDialogRef} className="anim"
+                    style={{paddingTop:'env(safe-area-inset-top, 0px)', paddingBottom:'max(16px, env(safe-area-inset-bottom, 16px))'}}>
+                    <div className="w-full">
                         <div className="flex justify-between items-center mb-5">
-                            <h3 id="settings-dialog-title"
-                                className={`inline-flex items-center gap-1.5 font-bold text-gray-800 text-xl ${tab==='settings' ? 'md:hidden' : ''}`}>
+                            <h3 id="settings-page-title"
+                                className="md:hidden inline-flex items-center gap-1.5 font-bold text-gray-800 text-xl">
                                 <Icon name="cog" className="w-5 h-5"/>系统设置
                             </h3>
-                            {tab!=='settings' && <button onClick={closeSettings} aria-label="关闭" className="text-gray-400 active:text-gray-700 text-xl p-1 min-h-[44px] min-w-[44px] inline-flex items-center justify-center">×</button>}
                         </div>
-                        {/* 真标签页。之前这里写着 role="tablist"，点击执行的却是
-                            scrollIntoView —— 9 个分区始终同时渲染，高亮和你正在看的
-                            内容会对不上，而读屏软件被告知有一组标签页却找不到面板。
-                            底部下划线的样式和学员档案、待处理、课酬三处一致。 */}
-                        {tab==='settings' && <div className="mb-6 flex gap-1 overflow-x-auto border-b border-gray-200" role="tablist" aria-label="系统设置分区">
-                            {SETTINGS_SECTIONS.filter(([,,visible])=>visible!==false).map(([key,label])=>(
-                                <button key={key} type="button" role="tab" id={`settings-tab-${key}`}
-                                    aria-selected={settingsSection===key} aria-controls={`settings-${key}`}
-                                    onClick={()=>setSettingsSection(key)}
-                                    className={`whitespace-nowrap min-h-[44px] px-3 text-xs font-bold border-b-2 -mb-px ${settingsSection===key?'border-indigo-600 text-indigo-700':'border-transparent text-gray-600 hover:text-gray-800'}`}>{label}</button>
-                            ))}
-                        </div>}
+                        {/* 共用原语，不再手写 strip。Tabs 自带 roving tabindex 与
+                            Arrow/Home/End；TabPanel 的 `if (!active) return null`
+                            正是这一页需要的条件渲染。手写版用 hidden，于是「忘了写
+                            hidden」的块会在七个分区里同时出现 —— 这一页六块共享内容
+                            就是这么攒出来的，而漏的那块（MaintSection）连
+                            role="tabpanel" 都没有，所以历次盘点都少数一个。
+                            学员档案（student_profile.jsx:49）是同一对原语的既有用法。 */}
+                        <Tabs idBase="settings" label="系统设置分区" className="mb-6"
+                            value={settingsSection} onChange={setSettingsSection}
+                            items={SETTINGS_SECTIONS.filter(([,,visible])=>visible!==false)
+                                .map(([value,label])=>({value,label}))}/>
                         <div className="md:hidden mb-4 pb-4 border-b border-gray-100">
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">界面语言</p>
                             <div className="grid grid-cols-2 gap-2">
@@ -3807,10 +3843,10 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                 <p className="text-[11px] font-normal text-indigo-400 mt-0.5">打开 Studio Admin 管理公开门户、注册表字段、品牌文案和页面展示</p>
                             </a>
                         )}
-                        {canManageOperations && <div id="settings-team" role="tabpanel" aria-labelledby="settings-tab-team" hidden={tab==='settings' && settingsSection!=='team'} className="mt-4 pt-4 border-t border-gray-100 space-y-3 scroll-mt-24">
+                        {canManageOperations && <TabPanel idBase="settings" name="team" active={settingsSection==='team'}>
                             <div>
                                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">团队与权限</p>
-                                <p className="text-xs text-gray-400 mt-0.5">Owner管理团队；Manager负责日常运营，Teacher负责签到与作品，Front Desk负责报名、学员与课时。</p>
+                                <p className="text-xs text-gray-400 mt-0.5">Owner 管理团队与对外身份；Manager 负责日常运营与钱；Front Desk 负责报名、建档、充值与当天的排课签到；Teacher 负责课表、签到、作品与学习报告；助教是 Teacher 去掉署名权的版本，不碰钱也不碰报名。</p>
                             </div>
                             <div className="space-y-2">
                                 {team.map(member=>(
@@ -3869,7 +3905,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                 <label className="text-xs font-bold text-gray-600">角色 *
                                     <select value={teamForm.role} onChange={e=>setTeamForm(p=>({...p,role:e.target.value}))}
                                         className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-xl text-sm min-h-[44px]">
-                                        <option value="manager">Manager</option><option value="teacher">Teacher</option><option value="front_desk">Front Desk</option><option value="staff">Staff (legacy)</option>
+                                        <option value="manager">Manager 店长</option><option value="teacher">Teacher 老师</option><option value="front_desk">Front Desk 前台</option><option value="staff">Assistant 助教</option>
                                     </select>
                                 </label>
                                 <label className="text-xs font-bold text-gray-600">临时密码 *
@@ -3879,9 +3915,9 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                 <button type="button" onClick={createTeamMember} disabled={teamBusy}
                                     className="sm:col-span-2 bg-indigo-600 text-white py-2.5 rounded-xl font-bold text-sm disabled:opacity-50">添加团队成员</button>
                             </div> : <p className="text-xs text-gray-400 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2">当前角色可查看团队；只有 Owner 可以新增、停用或更改成员角色。</p>}
-                        </div>}
+                        </TabPanel>}
                         {/* 修改登录密码 */}
-                        <div id="settings-account" role="tabpanel" aria-labelledby="settings-tab-account" hidden={tab==='settings' && settingsSection!=='account'} className="space-y-2 scroll-mt-24">
+                        <TabPanel idBase="settings" name="account" active={settingsSection==='account'}>
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">修改登录密码</p>
                             <label className="block text-xs font-bold text-gray-600">当前密码
                                 <input type="password" autoComplete="current-password" placeholder="输入当前密码" value={pwOld} onChange={e=>setPwOld(e.target.value)}
@@ -3900,11 +3936,14 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                 className="w-full bg-indigo-600 active:bg-indigo-700 disabled:opacity-50 text-white py-2.5 rounded-xl font-bold text-sm">
                                 {pwBusy ? '更新中...' : '更新密码'}
                             </button>
-                        </div>
-                        {/* Tenant-wide roster default: server-owned so every
-                            staff device starts new bookings at the same time. */}
-                        {canManageOperations && TENANT_SLUG && (
-                        <div id="settings-operational" role="tabpanel" aria-labelledby="settings-tab-operational" hidden={tab==='settings' && settingsSection!=='operational'} className="mt-4 pt-4 border-t border-gray-100 space-y-2 scroll-mt-24">
+                        </TabPanel>
+                        {/* 「运营默认」两组：默认上课时间由服务端持有（每台设备开新
+                            排课都从同一时间起步），未到访预警天数存在本机
+                            localStorage。后者以前挂在所有面板之外，于是七个分区里
+                            各出现一次 —— 这次一并收进本分区。 */}
+                        {canManageOperations && (
+                        <TabPanel idBase="settings" name="operational" active={settingsSection==='operational'}>
+                            {TENANT_SLUG && <>
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">课程安排默认时间</p>
                             <p className="text-xs text-gray-400">用于新排课、班组模板和新建固定班次；不会改动已保存的课程。</p>
                             <div className="flex gap-2 items-end">
@@ -3920,11 +3959,9 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                     {operationalSettingsBusy?'保存中…':'保存'}
                                 </button>
                             </div>
-                        </div>
-                        )}
-                        {/* Fix ⑪: configurable inactive-days threshold */}
-                        {canManageOperations && <>
-                        <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
+                            </>}
+                            {/* Fix ⑪: 未到访预警天数存在本机 localStorage，不随租户走 */}
+                            <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">未到访预警天数</p>
                             <div className="flex gap-2">
                                 {[60,90,120,180].map(d=>(
@@ -3933,139 +3970,8 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                 ))}
                             </div>
                         </div>
-                        {false && <>{/* Moved to the functional workspaces. Keep this
-                            legacy markup out of the Settings surface while the
-                            generated bundle remains backward-compatible. */}
-                        {/* v8.10.3: 课程管理。放在充值套餐旁边，因为它们是同一类
-                            东西——都是「先定义好、之后到处引用」的条目，而不是每天
-                            要做的事。排课编辑器里的下拉有一个链接指到这里。 */}
-                        <div id="courseManager" className="mt-4 pt-4 border-t border-gray-100 space-y-2">
-                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">课程管理</p>
-                            <p className="text-xs text-gray-400">
-                                课程是可以被固定班次「关联」的条目。关联之后，公开课表就能显示课程简介和适龄段；不关联也能正常排课，只是课表上只有班次名称。
-                            </p>
-                            {!courses.length && !courseEdit && (
-                                <p className="text-xs text-gray-400 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2">
-                                    还没有课程。例如「儿童油画基础」——添加后就能在「课程安排 → 新增班次」里关联它。
-                                </p>
-                            )}
-                            {courses.map(course => (
-                                <div key={course.id} className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-xs font-bold text-gray-700 truncate">{course.name}</p>
-                                        <p className="text-xs text-gray-400 truncate">
-                                            {[course.age_range && `适龄 ${course.age_range}`,
-                                              course.duration_minutes && `${course.duration_minutes} 分钟`,
-                                              course.price_aud_cents ? `$${(course.price_aud_cents/100).toFixed(2)}` : null,
-                                             ].filter(Boolean).join(' · ') || '未填写详情'}
-                                        </p>
-                                    </div>
-                                    <button onClick={()=>setCourseEdit({
-                                            id: course.id, name: course.name, description: course.description || '',
-                                            ageRange: course.age_range || '',
-                                            durationMinutes: course.duration_minutes || 60,
-                                            priceAud: course.price_aud_cents ? String(course.price_aud_cents/100) : '',
-                                        })}
-                                        className="text-xs text-indigo-600 font-bold px-3 py-1 min-h-[44px] inline-flex items-center active:text-indigo-800 flex-shrink-0">编辑</button>
-                                    <button onClick={()=>archiveCourse(course)} aria-label="归档"
-                                        className="text-red-500 font-bold px-2 py-1 min-h-[44px] min-w-[44px] inline-flex items-center justify-center active:text-red-700 flex-shrink-0"><Icon name="close" className="w-3.5 h-3.5"/></button>
-                                </div>
-                            ))}
-                            {!courseEdit ? (
-                                <button onClick={()=>setCourseEdit({name:'', description:'', ageRange:'', durationMinutes:60, priceAud:''})}
-                                    className="w-full border border-dashed border-indigo-300 text-indigo-600 rounded-xl py-2 text-xs font-bold active:bg-indigo-50">+ 添加课程</button>
-                            ) : (
-                                <div className="space-y-2 bg-indigo-50 border border-indigo-200 rounded-xl p-3">
-                                    <p className="text-xs font-bold text-indigo-700">{courseEdit.id?'编辑课程':'添加课程'}</p>
-                                    <input placeholder="课程名称，如：儿童油画基础" value={courseEdit.name}
-                                        onChange={e=>setCourseEdit(p=>({...p,name:e.target.value}))}
-                                        className="w-full px-2.5 py-2 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-400"/>
-                                    <textarea placeholder="课程简介（选填，会显示在公开课表上）" rows="2" value={courseEdit.description}
-                                        onChange={e=>setCourseEdit(p=>({...p,description:e.target.value}))}
-                                        className="w-full px-2.5 py-2 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-400"/>
-                                    <div className="grid grid-cols-3 gap-2">
-                                        <input placeholder="适龄 6-9" value={courseEdit.ageRange}
-                                            onChange={e=>setCourseEdit(p=>({...p,ageRange:e.target.value}))}
-                                            className="w-full px-2.5 py-2 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-400"/>
-                                        <input type="number" min="1" placeholder="时长(分)" value={courseEdit.durationMinutes}
-                                            onChange={e=>setCourseEdit(p=>({...p,durationMinutes:e.target.value}))}
-                                            className="w-full px-2.5 py-2 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-400"/>
-                                        <input type="number" min="0" step="0.01" placeholder="价格 $" value={courseEdit.priceAud}
-                                            onChange={e=>setCourseEdit(p=>({...p,priceAud:e.target.value}))}
-                                            className="w-full px-2.5 py-2 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-400"/>
-                                    </div>
-                                    <p className="text-[11px] text-gray-400">简介、适龄段和价格都是选填；公开课表上显示哪些，由 Studio Admin 的 Timetable 开关决定。</p>
-                                    <div className="flex gap-2">
-                                        <button onClick={()=>setCourseEdit(null)}
-                                            className="flex-1 py-2 border border-gray-300 rounded-xl text-xs font-bold text-gray-600 active:bg-gray-100">取消</button>
-                                        <button onClick={saveCourse} disabled={busy}
-                                            className="flex-1 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold disabled:bg-gray-300">{courseEdit.id?'保存':'添加'}</button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                        {/* P1-A: Package management */}
-                        <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
-                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">充值套餐管理</p>
-                            {(db.packages||[]).map(pkg=>(
-                                <div key={pkg.id} className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-xs font-bold text-gray-700 truncate">{pkg.name}</p>
-                                        <p className="text-xs text-gray-400">{pkg.credits}课时 · ${pkg.price}</p>
-                                    </div>
-                                    <button onClick={()=>{ setPkgEditId(pkg.id); setPkgName(pkg.name); setPkgCredits(String(pkg.credits)); setPkgPrice(String(pkg.price)); }}
-                                        className="text-xs text-indigo-600 font-bold px-3 py-1 min-h-[44px] inline-flex items-center active:text-indigo-800 flex-shrink-0">编辑</button>
-                                    <button onClick={()=>{ if((db.packages||[]).length<=1){showToast('至少保留一个套餐','warn');return;} confirm(`删除套餐「${pkg.name}」？`,async ()=>{ const nd={...db,packages:(db.packages||[]).filter(p=>p.id!==pkg.id)}; const ok = await save(nd); if (!ok) return; showToast('套餐已删除'); },{danger:true,confirmText:'删除'}); }}
-                                        aria-label="删除" className="text-red-500 font-bold px-2 py-1 min-h-[44px] min-w-[44px] inline-flex items-center justify-center active:text-red-700 flex-shrink-0"><Icon name="close" className="w-3.5 h-3.5"/></button>
-                                </div>
-                            ))}
-                            {pkgEditId===null ? (
-                                <button onClick={()=>{ setPkgEditId(0); setPkgName(''); setPkgCredits(''); setPkgPrice(''); }}
-                                    className="w-full border border-dashed border-indigo-300 text-indigo-600 rounded-xl py-2 text-xs font-bold active:bg-indigo-50">+ 添加套餐</button>
-                            ) : (
-                                <div className="space-y-2 bg-indigo-50 border border-indigo-200 rounded-xl p-3">
-                                    <p className="text-xs font-bold text-indigo-700">{pkgEditId===0?'添加套餐':'编辑套餐'}</p>
-                                    <input placeholder="套餐名称" value={pkgName} onChange={e=>setPkgName(e.target.value)}
-                                        className="w-full px-2.5 py-2 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-400"/>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <input type="number" placeholder="课时数" min="1" value={pkgCredits} onChange={e=>setPkgCredits(e.target.value)}
-                                            className="w-full px-2.5 py-2 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-400"/>
-                                        <input type="number" placeholder="价格 $" min="0" value={pkgPrice} onChange={e=>setPkgPrice(e.target.value)}
-                                            className="w-full px-2.5 py-2 border border-gray-300 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-400"/>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <button onClick={()=>{ setPkgEditId(null); setPkgName(''); setPkgCredits(''); setPkgPrice(''); }}
-                                            className="flex-1 py-2 border border-gray-300 rounded-xl text-xs font-bold text-gray-600 active:bg-gray-100">取消</button>
-                                        <button onClick={async ()=>{
-                                            if (!pkgName.trim()||!pkgCredits||!pkgPrice){showToast('请填写完整','warn');return;}
-                                            const cr=parseInt(pkgCredits,10), pr=parseFloat(pkgPrice);
-                                            if(isNaN(cr)||cr<1||isNaN(pr)||pr<0){showToast('课时数/价格无效','warn');return;}
-                                            let newPkgs;
-                                            if (pkgEditId===0) {
-                                                const newId = Date.now();
-                                                newPkgs = [...(db.packages||[]), {id:newId, name:pkgName.trim(), credits:cr, price:pr}];
-                                            } else {
-                                                newPkgs = (db.packages||[]).map(p=>p.id===pkgEditId?{...p,name:pkgName.trim(),credits:cr,price:pr}:p);
-                                            }
-                                            const ok = await save({...db, packages:newPkgs});
-                                            if (!ok) return;
-                                            setPkgEditId(null); setPkgName(''); setPkgCredits(''); setPkgPrice('');
-                                            showToast(pkgEditId===0?'套餐已添加':'套餐已更新');
-                                        }} className="flex-1 py-2 bg-indigo-600 active:bg-indigo-700 text-white rounded-xl text-xs font-bold">保存</button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                        </>}
-                        <div className="mt-4 pt-4 border-t border-gray-100 rounded-xl bg-indigo-50 border-indigo-100 px-4 py-3 space-y-2">
-                            <p className="text-xs font-bold text-indigo-800">课程目录与充值套餐已移到对应工作区</p>
-                            <p className="text-xs text-indigo-600 leading-relaxed">设置只保留账号、团队、运营默认和数据维护。课程请进入「课程」，套餐请进入「充值与退款」中的「套餐管理」。</p>
-                            <div className="grid grid-cols-2 gap-2">
-                                {allowedTabs.includes('courses') && <button type="button" onClick={()=>setTab('courses')} className="min-h-[44px] rounded-xl bg-white border border-indigo-200 text-indigo-700 text-xs font-bold">进入课程目录</button>}
-                                {allowedTabs.includes('topup') && <button type="button" onClick={()=>setTab('topup')} className="min-h-[44px] rounded-xl bg-white border border-indigo-200 text-indigo-700 text-xs font-bold">进入套餐管理</button>}
-                            </div>
-                        </div>
-                        </>}
+                        </TabPanel>
+                        )}
                         {/* U6: Roster cleanup */}
                         {canManageOperations && (()=>{
                             const cutoffStr = (() => { const d=new Date(); d.setDate(d.getDate()-90); return d.toISOString().slice(0,10); })();
@@ -4081,7 +3987,7 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                 }, {confirmText:'清理'});
                             };
                             return (
-                                <div id="settings-maintenance" role="tabpanel" aria-labelledby="settings-tab-maintenance" hidden={tab==='settings' && settingsSection!=='maintenance'} className="mt-4 pt-4 border-t border-gray-100 space-y-2 scroll-mt-24">
+                                <TabPanel idBase="settings" name="maintenance" active={settingsSection==='maintenance'}>
                                     <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">排课数据清理</p>
                                     <div className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 flex items-center gap-2">
                                         <span className="text-xs text-gray-500 flex-1">90天前旧排课</span>
@@ -4091,20 +3997,22 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                         className="w-full bg-amber-50 active:bg-amber-100 disabled:opacity-40 text-amber-700 border border-amber-200 py-2.5 rounded-xl font-bold text-sm">
                                         <span className="inline-flex items-center gap-1.5"><Icon name="broom" className="w-4 h-4"/>清理旧排课</span>
                                     </button>
-                                </div>
+                                    {/* F1/F5/F6: 数据体检 + 阈值 + 每周邮件 + 备份恢复。
+                                        只有根目录单店模式才有。它以前挂在所有面板
+                                        之外、而且只有 id 没有 role="tabpanel" ——
+                                        所以它既在七个分区里都露着，又在历次「共享块
+                                        有几个」的盘点里被漏数。 */}
+                                    {!TENANT_SLUG && (
+                                        <MaintSection renewTh={renewTh} saveRenewTh={saveRenewTh}
+                                            onRestored={()=>{ closeSettings(); load(); }}
+                                            confirm={confirm} notify={notify}/>
+                                    )}
+                                </TabPanel>
                             );
                         })()}
-                        {/* F1/F5/F6: 数据体检 + 阈值 + 每周邮件 + 备份恢复 */}
-                        {!TENANT_SLUG && (
-                            <div id="settings-maintenance-tools" className="scroll-mt-24">
-                                <MaintSection renewTh={renewTh} saveRenewTh={saveRenewTh}
-                                    onRestored={()=>{ closeSettings(); load(); }}
-                                    confirm={confirm} notify={notify}/>
-                            </div>
-                        )}
                         {/* 开票信息排在集成前面：Xero 是可选的，而没有开票主体
                             身份，一张发票都开不出去。 */}
-                        <div id="settings-billing-identity" role="tabpanel" aria-labelledby="settings-tab-billing-identity" hidden={tab==='settings' && settingsSection!=='billing-identity'} className="mt-4 pt-4 border-t border-gray-100 space-y-2 scroll-mt-24">
+                        {canManageOperations && <TabPanel idBase="settings" name="billing-identity" active={settingsSection==='billing-identity'}>
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">开票信息</p>
                             {/* 能编辑开票主体的是持有 settings:write 的人，只有
                                 owner —— PUT /billing/identity 自己就是这么判的
@@ -4114,19 +4022,27 @@ document.getElementById('copybtn').addEventListener('click', function(){
                                 传对这一个布尔值就够了。 */}
                             <BillingIdentityPanel api={v1Api} showToast={showToast}
                                 canManage={ownerRoles.includes(actorRole)} />
-                        </div>
-                        <div id="settings-integrations" role="tabpanel" aria-labelledby="settings-tab-integrations" hidden={tab==='settings' && settingsSection!=='integrations'} className="mt-4 pt-4 border-t border-gray-100 space-y-2 scroll-mt-24">
+                        </TabPanel>}
+                        {/* 这两块以前没有角色判断，只有 hidden。于是 teacher /
+                            front_desk / staff 打开设置时，标签条只有 2 个，面板却
+                            渲染了 4 个 —— 开票信息与集成都会照常挂载并发请求。
+                            TabPanel 让未激活的分支 return null，结构上堵住了这个
+                            洞；判断仍要补，否则一个 ?section=billing-identity
+                            照样能把它挂起来。判断与 SETTINGS_SECTIONS 同源。 */}
+                        {ownerRoles.includes(actorRole) && <TabPanel idBase="settings" name="integrations" active={settingsSection==='integrations'}>
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">集成</p>
                             <IntegrationsPanel api={v1Api} showToast={showToast} canManage={ownerRoles.includes(actorRole)} />
-                        </div>
-                        <div id="settings-workspace" role="tabpanel" aria-labelledby="settings-tab-workspace" hidden={tab==='settings' && settingsSection!=='workspace'} className="mt-4 pt-4 border-t border-gray-100 space-y-2 scroll-mt-24">
+                        </TabPanel>}
+                        <TabPanel idBase="settings" name="workspace" active={settingsSection==='workspace'}>
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">学员注册页面</p>
                             <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
                                 <span className="text-xs text-gray-500 flex-1 font-mono truncate">{window.STUDIOSAAS_REGISTER_URL || `${window.location.origin}/register`}</span>
                                 <button type="button" onClick={()=>copyText(window.STUDIOSAAS_REGISTER_URL || `${window.location.origin}/register`,'链接已复制')}
                                     className="text-xs text-indigo-600 font-bold active:text-indigo-800 flex-shrink-0">复制</button>
                             </div>
-                        </div>
+                        </TabPanel>
+                        {/* 共享页脚：退出登录与手机端快捷操作，属于整个设置页而不是
+                            任何一个分区，所以刻意留在全部 TabPanel 之外。 */}
                         <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
                             <button onClick={requestLogout} className="w-full bg-gray-100 active:bg-gray-200 text-gray-700 py-3 rounded-xl font-bold text-sm">退出登录</button>
                             {/* Mobile-only: sidebar actions inaccessible on phone */}

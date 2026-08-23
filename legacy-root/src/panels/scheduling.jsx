@@ -53,10 +53,16 @@ export function CoursesSection(props) {
 }
 
 
+/* 排课 #7: a <details> popover is not a menu — the browser leaves it open
+   after an item is chosen, so it kept covering the row it had just changed.
+   Closing on the container catches every item, including the `sms:` link that
+   the five hand-written closers below it never covered. */
+const closeMenu = (e) => { const menu = e.currentTarget.closest('details'); if (menu) menu.open = false; };
+
 export function RosterSection(props) {
     const {
         WEEKDAYS, addToRoster, applyGroup, availRoster, batchCheckIn, busy,
-        canExportData, canManageOperations, canWriteScheduling, checkIn, checkInWindow, copyRosterDaily, copyRosterReminders,
+        canExportData, canManageOperations, canWriteAttendance, canWriteScheduling, checkIn, checkInWindow, copyRosterDaily, copyRosterReminders,
         copyText, courses, dayIds, db, defaultClassTime, deleteGroup,
         deleteSchedule, groupToSchedule, grpSel, icsBusy, loadSchedules, nextOccurrence,
         openIcsPreview, rDate, rOneToOne, rPick, rTime, removeFromRoster,
@@ -65,11 +71,304 @@ export function RosterSection(props) {
         schedPick, scheduleLoadError, scheduledForDate, schedules, setGrpSel, setRDate,
         setROneToOne, setRPick, setRTime, setSchedCancel, setSchedEdit, setSchedPick,
         setTab, showToast, sortedAZ, teachableMembers, tenantDisplayName, undoCheckIn,
-        upcomingBirthdays, updateRosterEntry,
+        updateRosterEntry,
     } = props;
     return (
 <div className="anim space-y-4">
     <h2 className="md:hidden inline-flex items-center gap-1.5 text-xl font-bold text-gray-800"><Icon name="calendar" className="w-4 h-4"/>课程安排</h2>
+    {scheduleLoadError && <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+        <span className="flex-1">{scheduleLoadError}</span>
+        <button onClick={loadSchedules} className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-bold min-h-[44px]">重试</button>
+    </div>}
+
+    <div className="cms-roster-planner bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
+            <div className="w-full">
+                <label className="text-xs font-bold text-gray-500 mb-1 block">课程日期</label>
+                <div className="cms-roster-date-nav">
+                    <button type="button" onClick={()=>setRDate(shiftDate(rDate,-1))}
+                        aria-label="前一天" className="cms-roster-date-button"><Icon name="chevronLeft" className="w-4 h-4"/></button>
+                    <button type="button" onClick={()=>setRDate(todayISO())}
+                        aria-current={rDate===todayISO()?'date':undefined} className="cms-roster-today">今天</button>
+                    <button type="button" onClick={()=>setRDate(shiftDate(rDate,1))}
+                        aria-label="后一天" className="cms-roster-date-button"><Icon name="chevronRight" className="w-4 h-4"/></button>
+                    <input type="date" value={rDate} onChange={e=>setRDate(e.target.value)}
+                        aria-label="选择课程日期"
+                        className="w-full px-3 py-3 min-h-[50px] border border-gray-300 rounded-xl font-bold text-gray-900 focus:ring-2 focus:ring-indigo-500 outline-none"/>
+                </div>
+            </div>
+
+    {/* B1: 迷你周视图 — 本周七天一键切换，含每日应到人数 */}
+    <div className="cms-roster-week" role="group" aria-label="本周课程日期">
+        {(() => {
+            const anchor = new Date(`${rDate}T12:00:00`);
+            const monday = new Date(anchor); monday.setDate(anchor.getDate() - ((anchor.getDay() + 6) % 7));
+            return [0,1,2,3,4,5,6].map(i => {
+                const d = new Date(monday); d.setDate(monday.getDate() + i);
+                const iso = d.toLocaleDateString('en-CA');
+                const manual = db.rosters[iso] || [];
+                const sched = schedules.filter(sc => sc.weekday === d.getDay()).flatMap(sc => sc.students.map(st => st.id));
+                const n = new Set([...sched, ...manual]).size;
+                const isSel = iso === rDate, isToday = iso === todayISO();
+                return (
+                    <button key={iso} type="button" onClick={()=>setRDate(iso)}
+                        aria-current={isSel?'date':undefined}
+                        aria-label={`${WEEKDAYS[d.getDay()]} ${fmtDate(iso)}，${n} 人`}
+                        className={`cms-roster-week-day ${isSel?'is-selected':''} ${isToday?'is-today':''}`}>
+                        <p className="text-[10px] opacity-70">{WEEKDAYS[d.getDay()]}{isToday?'·今':''}</p>
+                        <p className="text-sm font-bold">{d.getDate()}</p>
+                        <p className="text-[10px] font-bold opacity-80">{n>0?n:'—'}</p>
+                    </button>
+                );
+            });
+        })()}
+    </div>
+
+    {/* B1: 当日概览条 — 应到/已签/未签/低余额 */}
+    {(() => {
+        const valid = dayIds.filter(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived;});
+        const done = valid.filter(id=>rosterDone.has(id)).length;
+        const low = valid.filter(id=>{const s=db.students.find(x=>x.id===id);return s&&(parseInt(s.balance,10)||0)<=renewTh;}).length;
+        if (!valid.length) return null;
+        return (
+            <div className="cms-roster-summary" aria-live="polite">
+                <strong>{rDate===todayISO()?'今日':fmtDate(rDate)} · {valid.length} 人</strong>
+                <span className="is-success">已签到 {done}</span>
+                <span>待上课 {valid.length-done}</span>
+                {low>0 && <span className="is-warning"><Icon name="warning" className="inline-block w-3.5 h-3.5 mr-1"/>低余额 {low}</span>}
+                {/* 按钮灰掉了要说得出为什么。概览条是这一天唯一的说明位置。 */}
+                {checkInWindow.reason && <span className="is-warning"><Icon name="warning" className="inline-block w-3.5 h-3.5 mr-1"/>{checkInWindow.reason}</span>}
+            </div>
+        );
+    })()}
+
+    {/* 0022: slots. Several people at the same time may be one class, or may be
+        a one-to-one that was booked into an occupied hour — which the flat
+        list could not show, so it surfaced when both families arrived. */}
+    {(()=>{
+        const ids = dayIds.filter(id=>{const st=db.students.find(x=>x.id===id);return st&&!st.archived;});
+        if (!ids.length) return null;
+        const slots = {};
+        ids.forEach(id=>{
+            const t = (rosterSlotFor(rDate,id) || '').trim() || '__unset';
+            (slots[t] = slots[t] || []).push(id);
+        });
+        const groups = Object.entries(slots).sort(([a],[b]) =>
+            a==='__unset' ? 1 : b==='__unset' ? -1 : a.localeCompare(b));
+        const nameOf = id => db.students.find(x=>x.id===id)?.name || '';
+        return (
+            <div className="cms-roster-slot-panel">
+                <p className="font-bold text-sm text-gray-800 mb-2 flex items-center gap-2">
+                    <Icon name="clock" className="w-4 h-4"/>时段安排
+                </p>
+                <div className="space-y-1.5">
+                {groups.map(([t,arr])=>{
+                    const soloIds = arr.filter(id=>!!rosterMetaFor(rDate,id).oneToOne);
+                    const clash = soloIds.length>0 && arr.length>1;
+                    return (
+                        <div key={t} className={`cms-roster-slot-row ${clash?'has-conflict':''}`}>
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+                                <span className="font-bold text-gray-800 min-w-[56px]">{t==='__unset'?'时间未设置':t}</span>
+                                <span className="px-2 py-0.5 rounded-full bg-white border border-gray-200 font-bold">{arr.length} 人</span>
+                                <span className="text-gray-500">{arr.map(nameOf).filter(Boolean).join('、')}</span>
+                            </div>
+                            {soloIds.length>0 && (
+                                <p className={`mt-1 text-xs font-bold ${clash?'text-red-700':'text-indigo-600'}`}>
+                                    {clash
+                                        ? `1 对 1 时间冲突：${soloIds.map(nameOf).join('、')} 与同时段其他排课重叠`
+                                        : `1 对 1：${soloIds.map(nameOf).join('、')}`}
+                                </p>
+                            )}
+                        </div>
+                    );
+                })}
+                </div>
+            </div>
+        );
+    })()}
+    </div>
+
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
+        <div className="bg-gray-50 border-b px-4 py-3 flex justify-between items-center gap-2 flex-wrap">
+            <p className="font-bold text-sm text-gray-800">{fmtDate(rDate)} · {dayIds.filter(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived;}).length} 人{scheduledForDate.length>0 && <span className="text-xs font-normal text-indigo-500 ml-1">{`（课表 ${scheduledForDate.length} 班）`}</span>}</p>
+            {dayIds.length>0 && <details className="cms-day-actions-mobile">
+                <summary><Icon name="ellipsis" className="w-4 h-4"/>当日操作</summary>
+                <div className="cms-roster-menu" onClick={closeMenu}>
+                    {canExportData && <button onClick={()=>openIcsPreview('roster')} disabled={icsBusy}><Icon name="calendar" className="w-4 h-4"/>导出当日 ICS</button>}
+                    <button onClick={copyRosterDaily}><Icon name="clipboard" className="w-4 h-4"/>复制日报</button>
+                    {dayIds.some(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived&&s.mobile;}) && <button onClick={copyRosterReminders}><Icon name="chat" className="w-4 h-4"/>批量提醒</button>}
+                    {canWriteAttendance && dayIds.some(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived&&s.balance>0;}) && <button onClick={batchCheckIn} disabled={busy||!checkInWindow.ok} title={checkInWindow.ok ? undefined : checkInWindow.reason}><Icon name="check" className="w-4 h-4"/>批量签到并扣课时</button>}
+                </div>
+            </details>}
+            <div className="cms-day-actions-desktop flex gap-2 flex-wrap">
+                {dayIds.length>0 && canExportData && (
+                    <button onClick={()=>openIcsPreview('roster')} disabled={icsBusy}
+                        className="border border-gray-200 bg-white text-gray-700 px-3 py-2 rounded-xl text-xs font-bold min-h-[44px] inline-flex items-center gap-1.5 disabled:opacity-50">
+                        <Icon name="calendar" className="w-4 h-4"/>导出当日 ICS
+                    </button>
+                )}
+                {dayIds.length>0 && (
+                    <button onClick={copyRosterDaily} className="bg-white border border-gray-300 active:bg-gray-50 text-gray-600 px-3 py-1.5 rounded-xl text-xs font-bold min-h-[44px]"><span className="inline-flex items-center gap-1.5"><Icon name="clipboard" className="w-4 h-4"/>日报</span></button>
+                )}
+                {dayIds.some(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived&&s.mobile;}) && (
+                    <button onClick={copyRosterReminders} className="bg-white border border-green-300 active:bg-green-50 text-green-700 px-3 py-1.5 rounded-xl text-xs font-bold min-h-[44px]"><span className="inline-flex items-center gap-1.5"><Icon name="chat" className="w-4 h-4"/>批量提醒</span></button>
+                )}
+                {canWriteAttendance && dayIds.some(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived&&s.balance>0;}) && (
+                    <button onClick={batchCheckIn} disabled={busy||!checkInWindow.ok}
+                        title={checkInWindow.ok ? undefined : checkInWindow.reason}
+                        className="inline-flex items-center gap-1.5 bg-indigo-600 active:bg-indigo-700 disabled:opacity-40 text-white px-4 py-1.5 rounded-xl text-xs font-bold min-h-[44px]"><Icon name="bolt" className="w-4 h-4"/>批量签到并扣课时</button>
+                )}
+            </div>
+        </div>
+        <div className="cms-roster-list divide-y divide-gray-100">
+            {!dayIds.length && <EmptyState icon={<Icon name="calendar" className="w-8 h-8"/>} main="今天还没有排课"
+                sub={TENANT_SLUG?'在下方「调整这一天的名单」加人；要让每周都自动排入，用页尾的「固定课表」建一个班次。':'在下方「调整这一天的名单」添加学员即可开始今天的排课。'}
+                action={canWriteAttendance ? '添加学员' : ''} onAction={canWriteAttendance ? ()=>{const el=document.getElementById('rosterAddStudent'); if(el) el.scrollIntoView({behavior:'smooth',block:'center'});} : undefined}/>}
+            {/* Fix #3: skip archived students in roster */}
+            {dayIds.map(sid => {
+                const s = db.students.find(x=>x.id===sid);
+                if (!s || s.archived) return null;
+                const entry = rosterMetaFor(rDate,sid);
+                const isDone = rosterDone.has(s.id);
+                const lowBal = (parseInt(s.balance,10)||0) <= renewTh && !isDone;   /* A5: 课前低余额预警（v4.5） */
+                const slot = rosterSlotFor(rDate,sid);
+                const rosterStatus = isDone ? '已签到' : entry.status==='makeup' ? '补课' : '待上课';
+                return (
+                    <div key={sid} className={`cms-roster-row hover-row ${lowBal?'is-low':''}`}>
+                        <div className="cms-roster-info">
+                            <PhotoAvatar photo={s.photo} name={s.name} size="sm"/>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                                    <p className="font-bold text-gray-900 truncate">{s.name}</p>
+                                    {entry.oneToOne && <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-full px-2 py-0.5">1 对 1</span>}
+                                    <span className={`text-[11px] font-bold rounded-full px-2 py-0.5 border ${isDone?'bg-green-50 border-green-200 text-green-700':entry.status==='makeup'?'bg-blue-50 border-blue-200 text-blue-700':'bg-gray-50 border-gray-200 text-gray-600'}`}>{rosterStatus}</span>
+                                </div>
+                                <p className="text-xs text-gray-400 truncate">{[s.mobile||'未填写手机', slot, entry.note].filter(Boolean).join(' · ')}</p>
+                            </div>
+                            <BalBadge n={s.balance}/>
+                        </div>
+                        {/* Correcting the slot in place: re-adding the student would
+                            reset their source and status. Only in tenant mode —
+                            the legacy JSON store has no entry id to patch. */}
+                        <div className={`cms-roster-actions ${lowBal?'has-reminder':''}`}>
+                        {TENANT_SLUG && entry.id && canWriteAttendance && (
+                            <input type="time" defaultValue={entry.classTime||''}
+                                aria-label={`${s.name} 的上课时间`}
+                                onChange={e=>{
+                                    const entryId = entry.id;
+                                    updateRosterEntry(entryId, {classTime: e.target.value || ''})
+                                        .then(()=>showToast(e.target.value?`${s.name} 上课时间改为 ${e.target.value}`:`${s.name} 已清除上课时间`))
+                                        .catch(err=>showToast(err.message||'时间未能保存', 'error'));
+                                }}
+                                className="cms-roster-time px-2 py-2 border border-gray-300 rounded-xl bg-white text-xs font-bold min-h-[44px] outline-none focus:ring-2 focus:ring-indigo-500"/>
+                        )}
+                        {TENANT_SLUG && (!entry.id || !canWriteAttendance) && (
+                            <span className="cms-roster-time px-3 py-2 border border-gray-200 rounded-xl bg-gray-50 text-xs font-bold text-gray-700 min-h-[44px] inline-flex items-center">
+                                {slot || '未设时间'}
+                            </span>
+                        )}
+                        {lowBal && (
+                            <button onClick={()=>{
+                                const msg = renderMessage('renewal',
+                                    '{student} 家长您好！温馨提醒：您在 {studio} 的剩余课时为 {balance} 节{note}，为不影响后续上课安排，欢迎随时联系老师续课。',
+                                    {student:s.name, balance:s.balance, note:(parseInt(s.balance,10)||0)===0?'（已用完）':''});
+                                copyText(msg, `已复制给 ${s.name} 的催费提醒`);
+                            }} className="cms-roster-reminder"><Icon name="chat" className="w-4 h-4"/>续费提醒</button>
+                        )}
+                        {(isDone || !canWriteAttendance)
+                            ? <button disabled className="cms-roster-primary is-done"><Icon name="check" className="w-4 h-4"/>{isDone?'已签到':'待上课'}</button>
+                            : <button onClick={()=>checkIn(s.id,s.name)} disabled={busy||s.balance<=0||!checkInWindow.ok}
+                                title={checkInWindow.ok ? undefined : checkInWindow.reason}
+                                aria-label={`为 ${s.name} 签到并扣 1 课时`} className="cms-roster-primary"><Icon name="check" className="w-4 h-4"/>{!checkInWindow.ok?'不可签到':(s.balance>0?'签到并扣 1 课时':'余额不足')}</button>}
+                        <details className="cms-roster-more" name="roster-student-actions">
+                            <summary aria-label={`${s.name} 更多操作`}><Icon name="ellipsis" className="w-5 h-5"/></summary>
+                            <div className="cms-roster-menu" onClick={closeMenu}>
+                                <div className="cms-roster-menu__context">
+                                    <strong>{s.name}</strong>
+                                    <span>{fmtDate(rDate)} · {slot || '时间未设置'} · 余额 {s.balance}</span>
+                                </div>
+                                {entry.id && canWriteAttendance && <>
+                                    <p className="cms-roster-menu__label">课程状态</p>
+                                    <button onClick={()=>{updateRosterEntry(entry.id,{status:'scheduled'}).then(()=>showToast(`${s.name} 已标记为待上课`)).catch(err=>showToast(err.message||'课程状态未能保存','error'));}} disabled={busy||entry.status!=='makeup'} aria-current={entry.status!=='makeup'?'true':undefined}><Icon name="check" className="w-4 h-4"/>待上课</button>
+                                    <button onClick={()=>{updateRosterEntry(entry.id,{status:'makeup'}).then(()=>showToast(`${s.name} 已标记为补课`)).catch(err=>showToast(err.message||'课程状态未能保存','error'));}} disabled={busy||entry.status==='makeup'} aria-current={entry.status==='makeup'?'true':undefined}><Icon name="refresh" className="w-4 h-4"/>补课</button>
+                                    <div className="cms-roster-menu__separator"/>
+                                </>}
+                                {s.mobile && <a href={`sms:${s.mobile.replace(/\s/g,'')}?body=${encodeURIComponent(`提醒：您的上课时间是 ${fmtDate(rDate)}${slot?` ${slot}`:''}，请准时到课。${tenantDisplayName} 期待见到您！`)}`}><Icon name="chat" className="w-4 h-4"/>发短信提醒</a>}
+                                {entry.id && canWriteAttendance && <button onClick={()=>{updateRosterEntry(entry.id,{oneToOne:!entry.oneToOne}).then(()=>showToast(entry.oneToOne?'已改为普通班课':'已标记为 1 对 1')).catch(err=>showToast(err.message||'排课类型未能保存','error'));}} disabled={busy}><Icon name="users" className="w-4 h-4"/>{entry.oneToOne?'改为普通班课':'标记为 1 对 1'}</button>}
+                                {isDone && canWriteAttendance && <button onClick={()=>{undoCheckIn(s.id,s.name);}} disabled={busy}><Icon name="refresh" className="w-4 h-4"/>撤销本日签到</button>}
+                                {entry.id && canWriteAttendance
+                                    ? <button onClick={()=>{removeFromRoster(s.id);}} disabled={busy} className="is-danger"><Icon name="trash" className="w-4 h-4"/>移出本日课程安排</button>
+                                    : <p className="cms-roster-menu__source"><Icon name="calendar" className="w-4 h-4"/>{entry.id?'当前角色只读':'来自固定课表，需在页尾的固定课表中调整'}</p>}
+                            </div>
+                        </details>
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
+    </div>
+
+    {/* 「加人」和「套模板」是当天的收尾动作，不是开场动作：走进教室先看的是
+        名单，改名单是发现少了谁之后才做的事。放在名单之后，两个工作室都
+        少滚一屏 —— 小工作室的 owner 一天改几次，成熟机构的老师一周不改一次。
+        `.cms-roster-tools` 复用 planner 的容器名，否则 `.cms-roster-add-fields`
+        的窄屏栅格会跟着它一起搬出 `@container roster-planner` 的作用域。 */}
+    {(canWriteAttendance || canManageOperations) && (
+    <div className="cms-roster-tools bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
+        <p className="inline-flex items-center gap-1.5 font-bold text-sm text-gray-800"><Icon name="plus" className="w-4 h-4"/>调整这一天的名单</p>
+    {/* 这一段以下每一个控件打的都是要 `attendance:write` 的接口（/daily-roster
+        的增删改、签到、撤销签到）。在此之前它们只由 `busy` 把关 —— 能看到这一页
+        的角色恰好都有那把钥匙，所以没出过事，但那是导航表在保护钱路径，不是权限
+        在保护。加一个角色进 roleTabs 就会翻车。 */}
+    {canWriteAttendance && <div className="cms-roster-add" id="rosterAddStudent">
+        <div className="cms-roster-add-fields">
+            <div className="min-w-0">
+                <label className="text-xs font-bold text-gray-500 mb-1 block">添加学员</label>
+                <StudentPicker students={availRoster} value={rPick} onChange={setRPick} placeholder="搜索并选择学员..."/>
+            </div>
+            <div>
+                <label className="text-xs font-bold text-gray-500 mb-1 block">上课时间</label>
+                <input type="time" value={rTime} onChange={e=>setRTime(e.target.value)}
+                    aria-label="上课时间"
+                    className="w-full px-3 py-3 border border-gray-300 rounded-xl bg-white text-sm font-bold min-h-[50px] outline-none focus:ring-2 focus:ring-indigo-500"/>
+            </div>
+            <button onClick={addToRoster} disabled={!rPick||busy}
+                className="cms-roster-add-button bg-indigo-600 active:bg-indigo-700 disabled:bg-gray-300 text-white px-5 py-3 rounded-xl font-bold text-sm min-h-[50px]">
+                <Icon name="plus" className="w-4 h-4"/>{rPick?'加入课程安排':'请先选择学员'}
+            </button>
+        </div>
+        <label className="inline-flex items-center gap-2 mt-2 text-xs font-bold text-gray-500 min-h-[44px]">
+            <input type="checkbox" checked={rOneToOne} onChange={e=>setROneToOne(e.target.checked)} className="w-4 h-4"/>
+            1 对 1（同时段还有其他人时会提示冲突）
+        </label>
+    </div>}
+
+    {/* F4b: Advanced batch tools stay available without permanently
+        pushing the actual day roster below the fold. */}
+    <details className={`group ${canWriteAttendance?'pt-3 border-t border-gray-100':''}`}>
+        <summary className="list-none cursor-pointer min-h-[44px] flex items-center justify-between gap-3 text-xs font-bold text-gray-600">
+            <span className="inline-flex items-center gap-1.5"><Icon name="clipboard" className="w-4 h-4"/>班组模板与批量工具</span>
+            <span className="text-indigo-600 group-open:rotate-180 transition-transform" aria-hidden="true">⌄</span>
+        </summary>
+        <div className="pt-2 flex gap-2 items-center flex-wrap">
+        <select value={grpSel} onChange={e=>setGrpSel(e.target.value)}
+            className="px-2 py-2 border border-gray-300 rounded-xl bg-white text-sm font-medium min-h-[44px] outline-none focus:ring-2 focus:ring-indigo-500">
+            <option value="">-- 选择模板 --</option>
+            {Object.keys(db.groups||{}).sort().map(g => <option key={g} value={g}>{`${g}（${(db.groups[g]||[]).length} 人）`}</option>)}
+        </select>
+        {canWriteAttendance && <button onClick={applyGroup} disabled={!grpSel||busy}
+            className="bg-indigo-50 text-indigo-700 border border-indigo-200 active:bg-indigo-100 disabled:opacity-40 px-3 py-2 rounded-xl text-xs font-bold min-h-[44px]">套用到当前日期</button>}
+        {/* B: template management stays owner/manager; applying a template to a day is a per-day attendance action */}
+        {canManageOperations && <button onClick={saveGroup} disabled={busy}
+            className="bg-white text-gray-600 border border-gray-300 active:bg-gray-50 px-3 py-2 rounded-xl text-xs font-bold min-h-[44px]">保存当前为模板</button>}
+        {canManageOperations && grpSel && <button onClick={deleteGroup} disabled={busy}
+            className="bg-white text-red-500 border border-red-200 active:bg-red-50 px-3 py-2 rounded-xl text-xs font-bold min-h-[44px]">删除</button>}
+        {canManageOperations && TENANT_SLUG && grpSel && <button onClick={groupToSchedule} disabled={busy}
+            className="inline-flex items-center gap-1.5 bg-indigo-600 active:bg-indigo-700 text-white px-3 py-2 rounded-xl text-xs font-bold min-h-[44px]"><Icon name="calendar" className="w-4 h-4"/>转为每周班次</button>}
+        </div>
+    </details>
+    </div>
+    )}
+
     {/* 一对一循环课收在一个可折叠区块里，而不是新开一个导航项：它和班课
         回答的是同一个问题（这周谁什么时候上课），只是重复方式不同。默认
         折叠，因为只教班课的工作室不该被一块空面板挡住每天要看的课表。 */}
@@ -85,35 +384,10 @@ export function RosterSection(props) {
             </div>
         </details>
     )}
-    {scheduleLoadError && <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-        <span className="flex-1">{scheduleLoadError}</span>
-        <button onClick={loadSchedules} className="rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-bold min-h-[44px]">重试</button>
-    </div>}
-    {/* G1: 生日提醒横幅 */}
-    {upcomingBirthdays.length>0 && (
-        <details className="bg-pink-50 border border-pink-200 rounded-2xl overflow-hidden group">
-            <summary className="list-none cursor-pointer min-h-[44px] px-4 py-2 flex items-center justify-between gap-3 text-sm font-bold text-rose-700">
-                <span className="inline-flex items-center gap-1.5"><Icon name="cake" className="w-4 h-4"/>{`近 14 天生日（${upcomingBirthdays.length} 人）`}</span>
-                <span className="group-open:rotate-180 transition-transform" aria-hidden="true">⌄</span>
-            </summary>
-            <div className="flex flex-wrap gap-2 px-4 pb-4 border-t border-pink-200 pt-3">
-                {upcomingBirthdays.map(({s,in:days,md,age})=>(
-                    <button key={s.id} onClick={()=>{
-                        const msg = renderMessage('birthday',
-                            '{student} 您好！{studio} 全体老师祝您生日快乐！愿您在新的一岁里灵感不断、收获满满～',
-                            {student:s.name});
-                        copyText(msg, `已复制给 ${s.name} 的生日祝福`);
-                    }} className="bg-white border border-pink-200 active:bg-pink-50 rounded-xl px-3 py-2 text-left">
-                        <p className="text-sm font-bold text-gray-800">{s.name} <span className="text-xs font-normal text-rose-400">{days===0?'今天':`${md} (${days}天后)`}</span></p>
-                        <p className="text-[11px] text-gray-400">点击复制生日祝福话术</p>
-                    </button>
-                ))}
-            </div>
-        </details>
-    )}
+
     {/* A1: 每周课表 — 固定班次自动生成当日课程安排 */}
     {TENANT_SLUG && (
-    <details className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden group">
+    <details id="rosterSchedules" className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden group">
         <summary className="list-none cursor-pointer min-h-[52px] px-4 py-3 flex items-center justify-between gap-3">
             <span className="inline-flex items-center gap-2 min-w-0">
                 <Icon name="calendar" className="w-4 h-4 text-gray-500"/>
@@ -324,280 +598,6 @@ export function RosterSection(props) {
         </div>
     </details>
     )}
-
-    <div className="cms-roster-planner bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
-            <div className="w-full">
-                <label className="text-xs font-bold text-gray-500 mb-1 block">课程日期</label>
-                <div className="cms-roster-date-nav">
-                    <button type="button" onClick={()=>setRDate(shiftDate(rDate,-1))}
-                        aria-label="前一天" className="cms-roster-date-button"><Icon name="chevronLeft" className="w-4 h-4"/></button>
-                    <button type="button" onClick={()=>setRDate(todayISO())}
-                        aria-current={rDate===todayISO()?'date':undefined} className="cms-roster-today">今天</button>
-                    <button type="button" onClick={()=>setRDate(shiftDate(rDate,1))}
-                        aria-label="后一天" className="cms-roster-date-button"><Icon name="chevronRight" className="w-4 h-4"/></button>
-                    <input type="date" value={rDate} onChange={e=>setRDate(e.target.value)}
-                        aria-label="选择课程日期"
-                        className="w-full px-3 py-3 min-h-[50px] border border-gray-300 rounded-xl font-bold text-gray-900 focus:ring-2 focus:ring-indigo-500 outline-none"/>
-                </div>
-            </div>
-
-    {/* B1: 迷你周视图 — 本周七天一键切换，含每日应到人数 */}
-    <div className="cms-roster-week" role="group" aria-label="本周课程日期">
-        {(() => {
-            const anchor = new Date(`${rDate}T12:00:00`);
-            const monday = new Date(anchor); monday.setDate(anchor.getDate() - ((anchor.getDay() + 6) % 7));
-            return [0,1,2,3,4,5,6].map(i => {
-                const d = new Date(monday); d.setDate(monday.getDate() + i);
-                const iso = d.toLocaleDateString('en-CA');
-                const manual = db.rosters[iso] || [];
-                const sched = schedules.filter(sc => sc.weekday === d.getDay()).flatMap(sc => sc.students.map(st => st.id));
-                const n = new Set([...sched, ...manual]).size;
-                const isSel = iso === rDate, isToday = iso === todayISO();
-                return (
-                    <button key={iso} type="button" onClick={()=>setRDate(iso)}
-                        aria-current={isSel?'date':undefined}
-                        aria-label={`${WEEKDAYS[d.getDay()]} ${fmtDate(iso)}，${n} 人`}
-                        className={`cms-roster-week-day ${isSel?'is-selected':''} ${isToday?'is-today':''}`}>
-                        <p className="text-[10px] opacity-70">{WEEKDAYS[d.getDay()]}{isToday?'·今':''}</p>
-                        <p className="text-sm font-bold">{d.getDate()}</p>
-                        <p className="text-[10px] font-bold opacity-80">{n>0?n:'—'}</p>
-                    </button>
-                );
-            });
-        })()}
-    </div>
-
-    {/* B1: 当日概览条 — 应到/已签/未签/低余额 */}
-    {(() => {
-        const valid = dayIds.filter(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived;});
-        const done = valid.filter(id=>rosterDone.has(id)).length;
-        const low = valid.filter(id=>{const s=db.students.find(x=>x.id===id);return s&&(parseInt(s.balance,10)||0)<=renewTh;}).length;
-        if (!valid.length) return null;
-        return (
-            <div className="cms-roster-summary" aria-live="polite">
-                <strong>{rDate===todayISO()?'今日':fmtDate(rDate)} · {valid.length} 人</strong>
-                <span className="is-success">已签到 {done}</span>
-                <span>待上课 {valid.length-done}</span>
-                {low>0 && <span className="is-warning"><Icon name="warning" className="inline-block w-3.5 h-3.5 mr-1"/>低余额 {low}</span>}
-                {/* 按钮灰掉了要说得出为什么。概览条是这一天唯一的说明位置。 */}
-                {checkInWindow.reason && <span className="is-warning"><Icon name="warning" className="inline-block w-3.5 h-3.5 mr-1"/>{checkInWindow.reason}</span>}
-            </div>
-        );
-    })()}
-
-    {/* 0022: slots. Several people at the same time may be one class, or may be
-        a one-to-one that was booked into an occupied hour — which the flat
-        list could not show, so it surfaced when both families arrived. */}
-    {(()=>{
-        const ids = dayIds.filter(id=>{const st=db.students.find(x=>x.id===id);return st&&!st.archived;});
-        if (!ids.length) return null;
-        const slots = {};
-        ids.forEach(id=>{
-            const t = (rosterSlotFor(rDate,id) || '').trim() || '__unset';
-            (slots[t] = slots[t] || []).push(id);
-        });
-        const groups = Object.entries(slots).sort(([a],[b]) =>
-            a==='__unset' ? 1 : b==='__unset' ? -1 : a.localeCompare(b));
-        const nameOf = id => db.students.find(x=>x.id===id)?.name || '';
-        return (
-            <div className="cms-roster-slot-panel">
-                <p className="font-bold text-sm text-gray-800 mb-2 flex items-center gap-2">
-                    <Icon name="clock" className="w-4 h-4"/>时段安排
-                </p>
-                <div className="space-y-1.5">
-                {groups.map(([t,arr])=>{
-                    const soloIds = arr.filter(id=>!!rosterMetaFor(rDate,id).oneToOne);
-                    const clash = soloIds.length>0 && arr.length>1;
-                    return (
-                        <div key={t} className={`cms-roster-slot-row ${clash?'has-conflict':''}`}>
-                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-                                <span className="font-bold text-gray-800 min-w-[56px]">{t==='__unset'?'时间未设置':t}</span>
-                                <span className="px-2 py-0.5 rounded-full bg-white border border-gray-200 font-bold">{arr.length} 人</span>
-                                <span className="text-gray-500">{arr.map(nameOf).filter(Boolean).join('、')}</span>
-                            </div>
-                            {soloIds.length>0 && (
-                                <p className={`mt-1 text-xs font-bold ${clash?'text-red-700':'text-indigo-600'}`}>
-                                    {clash
-                                        ? `1 对 1 时间冲突：${soloIds.map(nameOf).join('、')} 与同时段其他排课重叠`
-                                        : `1 对 1：${soloIds.map(nameOf).join('、')}`}
-                                </p>
-                            )}
-                        </div>
-                    );
-                })}
-                </div>
-            </div>
-        );
-    })()}
-
-    <div className="cms-roster-add border-t border-gray-100 pt-3" id="rosterAddStudent">
-        <div className="cms-roster-add-fields">
-            <div className="min-w-0">
-                <label className="text-xs font-bold text-gray-500 mb-1 block">添加学员</label>
-                <StudentPicker students={availRoster} value={rPick} onChange={setRPick} placeholder="搜索并选择学员..."/>
-            </div>
-            <div>
-                <label className="text-xs font-bold text-gray-500 mb-1 block">上课时间</label>
-                <input type="time" value={rTime} onChange={e=>setRTime(e.target.value)}
-                    aria-label="上课时间"
-                    className="w-full px-3 py-3 border border-gray-300 rounded-xl bg-white text-sm font-bold min-h-[50px] outline-none focus:ring-2 focus:ring-indigo-500"/>
-            </div>
-            <button onClick={addToRoster} disabled={!rPick||busy}
-                className="cms-roster-add-button bg-indigo-600 active:bg-indigo-700 disabled:bg-gray-300 text-white px-5 py-3 rounded-xl font-bold text-sm min-h-[50px]">
-                <Icon name="plus" className="w-4 h-4"/>{rPick?'加入课程安排':'请先选择学员'}
-            </button>
-        </div>
-        <label className="inline-flex items-center gap-2 mt-2 text-xs font-bold text-gray-500 min-h-[44px]">
-            <input type="checkbox" checked={rOneToOne} onChange={e=>setROneToOne(e.target.checked)} className="w-4 h-4"/>
-            1 对 1（同时段还有其他人时会提示冲突）
-        </label>
-    </div>
-
-    {/* F4b: Advanced batch tools stay available without permanently
-        pushing the actual day roster below the fold. */}
-    <details className="pt-3 border-t border-gray-100 group">
-        <summary className="list-none cursor-pointer min-h-[44px] flex items-center justify-between gap-3 text-xs font-bold text-gray-600">
-            <span className="inline-flex items-center gap-1.5"><Icon name="clipboard" className="w-4 h-4"/>班组模板与批量工具</span>
-            <span className="text-indigo-600 group-open:rotate-180 transition-transform" aria-hidden="true">⌄</span>
-        </summary>
-        <div className="pt-2 flex gap-2 items-center flex-wrap">
-        <select value={grpSel} onChange={e=>setGrpSel(e.target.value)}
-            className="px-2 py-2 border border-gray-300 rounded-xl bg-white text-sm font-medium min-h-[44px] outline-none focus:ring-2 focus:ring-indigo-500">
-            <option value="">-- 选择模板 --</option>
-            {Object.keys(db.groups||{}).sort().map(g => <option key={g} value={g}>{`${g}（${(db.groups[g]||[]).length} 人）`}</option>)}
-        </select>
-        <button onClick={applyGroup} disabled={!grpSel||busy}
-            className="bg-indigo-50 text-indigo-700 border border-indigo-200 active:bg-indigo-100 disabled:opacity-40 px-3 py-2 rounded-xl text-xs font-bold min-h-[44px]">套用到当前日期</button>
-        {/* B: template management stays owner/manager; applying a template to a day is a per-day attendance action */}
-        {canManageOperations && <button onClick={saveGroup} disabled={busy}
-            className="bg-white text-gray-600 border border-gray-300 active:bg-gray-50 px-3 py-2 rounded-xl text-xs font-bold min-h-[44px]">保存当前为模板</button>}
-        {canManageOperations && grpSel && <button onClick={deleteGroup} disabled={busy}
-            className="bg-white text-red-500 border border-red-200 active:bg-red-50 px-3 py-2 rounded-xl text-xs font-bold min-h-[44px]">删除</button>}
-        {canManageOperations && TENANT_SLUG && grpSel && <button onClick={groupToSchedule} disabled={busy}
-            className="inline-flex items-center gap-1.5 bg-indigo-600 active:bg-indigo-700 text-white px-3 py-2 rounded-xl text-xs font-bold min-h-[44px]"><Icon name="calendar" className="w-4 h-4"/>转为每周班次</button>}
-        </div>
-    </details>
-    </div>
-
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
-        <div className="bg-gray-50 border-b px-4 py-3 flex justify-between items-center gap-2 flex-wrap">
-            <p className="font-bold text-sm text-gray-800">{fmtDate(rDate)} · {dayIds.filter(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived;}).length} 人{scheduledForDate.length>0 && <span className="text-xs font-normal text-indigo-500 ml-1">{`（课表 ${scheduledForDate.length} 班）`}</span>}</p>
-            {dayIds.length>0 && <details className="cms-day-actions-mobile">
-                <summary><Icon name="ellipsis" className="w-4 h-4"/>当日操作</summary>
-                <div className="cms-roster-menu">
-                    {canExportData && <button onClick={()=>openIcsPreview('roster')} disabled={icsBusy}><Icon name="calendar" className="w-4 h-4"/>导出当日 ICS</button>}
-                    <button onClick={copyRosterDaily}><Icon name="clipboard" className="w-4 h-4"/>复制日报</button>
-                    {dayIds.some(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived&&s.mobile;}) && <button onClick={copyRosterReminders}><Icon name="chat" className="w-4 h-4"/>批量提醒</button>}
-                    {dayIds.some(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived&&s.balance>0;}) && <button onClick={batchCheckIn} disabled={busy||!checkInWindow.ok} title={checkInWindow.ok ? undefined : checkInWindow.reason}><Icon name="check" className="w-4 h-4"/>批量签到并扣课时</button>}
-                </div>
-            </details>}
-            <div className="cms-day-actions-desktop flex gap-2 flex-wrap">
-                {dayIds.length>0 && canExportData && (
-                    <button onClick={()=>openIcsPreview('roster')} disabled={icsBusy}
-                        className="border border-gray-200 bg-white text-gray-700 px-3 py-2 rounded-xl text-xs font-bold min-h-[44px] inline-flex items-center gap-1.5 disabled:opacity-50">
-                        <Icon name="calendar" className="w-4 h-4"/>导出当日 ICS
-                    </button>
-                )}
-                {dayIds.length>0 && (
-                    <button onClick={copyRosterDaily} className="bg-white border border-gray-300 active:bg-gray-50 text-gray-600 px-3 py-1.5 rounded-xl text-xs font-bold min-h-[44px]"><span className="inline-flex items-center gap-1.5"><Icon name="clipboard" className="w-4 h-4"/>日报</span></button>
-                )}
-                {dayIds.some(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived&&s.mobile;}) && (
-                    <button onClick={copyRosterReminders} className="bg-white border border-green-300 active:bg-green-50 text-green-700 px-3 py-1.5 rounded-xl text-xs font-bold min-h-[44px]"><span className="inline-flex items-center gap-1.5"><Icon name="chat" className="w-4 h-4"/>批量提醒</span></button>
-                )}
-                {dayIds.some(id=>{const s=db.students.find(x=>x.id===id);return s&&!s.archived&&s.balance>0;}) && (
-                    <button onClick={batchCheckIn} disabled={busy||!checkInWindow.ok}
-                        title={checkInWindow.ok ? undefined : checkInWindow.reason}
-                        className="inline-flex items-center gap-1.5 bg-indigo-600 active:bg-indigo-700 disabled:opacity-40 text-white px-4 py-1.5 rounded-xl text-xs font-bold min-h-[44px]"><Icon name="bolt" className="w-4 h-4"/>批量签到并扣课时</button>
-                )}
-            </div>
-        </div>
-        <div className="cms-roster-list divide-y divide-gray-100">
-            {!dayIds.length && <EmptyState icon={<Icon name="calendar" className="w-8 h-8"/>} main="今天还没有排课"
-                sub={TENANT_SLUG?'可以在上方「每周课表」建一个固定班次，之后每到这一天会自动排入；也可以直接在下方添加学员。':'在下方添加学员即可开始今天的排课。'}
-                action="添加学员" onAction={()=>{const el=document.getElementById('rosterAddStudent'); if(el) el.scrollIntoView({behavior:'smooth',block:'center'});}}/>}
-            {/* Fix #3: skip archived students in roster */}
-            {dayIds.map(sid => {
-                const s = db.students.find(x=>x.id===sid);
-                if (!s || s.archived) return null;
-                const entry = rosterMetaFor(rDate,sid);
-                const isDone = rosterDone.has(s.id);
-                const lowBal = (parseInt(s.balance,10)||0) <= renewTh && !isDone;   /* A5: 课前低余额预警（v4.5） */
-                const slot = rosterSlotFor(rDate,sid);
-                const rosterStatus = isDone ? '已签到' : entry.status==='makeup' ? '补课' : '待上课';
-                return (
-                    <div key={sid} className={`cms-roster-row hover-row ${lowBal?'is-low':''}`}>
-                        <div className="cms-roster-info">
-                            <PhotoAvatar photo={s.photo} name={s.name} size="sm"/>
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                                    <p className="font-bold text-gray-900 truncate">{s.name}</p>
-                                    {entry.oneToOne && <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-full px-2 py-0.5">1 对 1</span>}
-                                    <span className={`text-[11px] font-bold rounded-full px-2 py-0.5 border ${isDone?'bg-green-50 border-green-200 text-green-700':entry.status==='makeup'?'bg-blue-50 border-blue-200 text-blue-700':'bg-gray-50 border-gray-200 text-gray-600'}`}>{rosterStatus}</span>
-                                </div>
-                                <p className="text-xs text-gray-400 truncate">{[s.mobile||'未填写手机', slot, entry.note].filter(Boolean).join(' · ')}</p>
-                            </div>
-                            <BalBadge n={s.balance}/>
-                        </div>
-                        {/* Correcting the slot in place: re-adding the student would
-                            reset their source and status. Only in tenant mode —
-                            the legacy JSON store has no entry id to patch. */}
-                        <div className={`cms-roster-actions ${lowBal?'has-reminder':''}`}>
-                        {TENANT_SLUG && entry.id && (
-                            <input type="time" defaultValue={entry.classTime||''}
-                                aria-label={`${s.name} 的上课时间`}
-                                onChange={e=>{
-                                    const entryId = entry.id;
-                                    updateRosterEntry(entryId, {classTime: e.target.value || ''})
-                                        .then(()=>showToast(e.target.value?`${s.name} 上课时间改为 ${e.target.value}`:`${s.name} 已清除上课时间`))
-                                        .catch(err=>showToast(err.message||'时间未能保存', 'error'));
-                                }}
-                                className="cms-roster-time px-2 py-2 border border-gray-300 rounded-xl bg-white text-xs font-bold min-h-[44px] outline-none focus:ring-2 focus:ring-indigo-500"/>
-                        )}
-                        {TENANT_SLUG && !entry.id && (
-                            <span className="cms-roster-time px-3 py-2 border border-gray-200 rounded-xl bg-gray-50 text-xs font-bold text-gray-700 min-h-[44px] inline-flex items-center">
-                                {slot || '未设时间'}
-                            </span>
-                        )}
-                        {lowBal && (
-                            <button onClick={()=>{
-                                const msg = renderMessage('renewal',
-                                    '{student} 家长您好！温馨提醒：您在 {studio} 的剩余课时为 {balance} 节{note}，为不影响后续上课安排，欢迎随时联系老师续课。',
-                                    {student:s.name, balance:s.balance, note:(parseInt(s.balance,10)||0)===0?'（已用完）':''});
-                                copyText(msg, `已复制给 ${s.name} 的催费提醒`);
-                            }} className="cms-roster-reminder"><Icon name="chat" className="w-4 h-4"/>续费提醒</button>
-                        )}
-                        {isDone
-                            ? <button disabled className="cms-roster-primary is-done"><Icon name="check" className="w-4 h-4"/>已签到</button>
-                            : <button onClick={()=>checkIn(s.id,s.name)} disabled={busy||s.balance<=0||!checkInWindow.ok}
-                                title={checkInWindow.ok ? undefined : checkInWindow.reason}
-                                aria-label={`为 ${s.name} 签到并扣 1 课时`} className="cms-roster-primary"><Icon name="check" className="w-4 h-4"/>{!checkInWindow.ok?'不可签到':(s.balance>0?'签到并扣 1 课时':'余额不足')}</button>}
-                        <details className="cms-roster-more" name="roster-student-actions">
-                            <summary aria-label={`${s.name} 更多操作`}><Icon name="ellipsis" className="w-5 h-5"/></summary>
-                            <div className="cms-roster-menu">
-                                <div className="cms-roster-menu__context">
-                                    <strong>{s.name}</strong>
-                                    <span>{fmtDate(rDate)} · {slot || '时间未设置'} · 余额 {s.balance}</span>
-                                </div>
-                                {entry.id && <>
-                                    <p className="cms-roster-menu__label">课程状态</p>
-                                    <button onClick={e=>{updateRosterEntry(entry.id,{status:'scheduled'}).then(()=>showToast(`${s.name} 已标记为待上课`)).catch(err=>showToast(err.message||'课程状态未能保存','error'));e.currentTarget.closest('details')?.removeAttribute('open');}} disabled={busy||entry.status!=='makeup'} aria-current={entry.status!=='makeup'?'true':undefined}><Icon name="check" className="w-4 h-4"/>待上课</button>
-                                    <button onClick={e=>{updateRosterEntry(entry.id,{status:'makeup'}).then(()=>showToast(`${s.name} 已标记为补课`)).catch(err=>showToast(err.message||'课程状态未能保存','error'));e.currentTarget.closest('details')?.removeAttribute('open');}} disabled={busy||entry.status==='makeup'} aria-current={entry.status==='makeup'?'true':undefined}><Icon name="refresh" className="w-4 h-4"/>补课</button>
-                                    <div className="cms-roster-menu__separator"/>
-                                </>}
-                                {s.mobile && <a href={`sms:${s.mobile.replace(/\s/g,'')}?body=${encodeURIComponent(`提醒：您的上课时间是 ${fmtDate(rDate)}${slot?` ${slot}`:''}，请准时到课。${tenantDisplayName} 期待见到您！`)}`}><Icon name="chat" className="w-4 h-4"/>发短信提醒</a>}
-                                {entry.id && <button onClick={e=>{updateRosterEntry(entry.id,{oneToOne:!entry.oneToOne}).then(()=>showToast(entry.oneToOne?'已改为普通班课':'已标记为 1 对 1')).catch(err=>showToast(err.message||'排课类型未能保存','error'));e.currentTarget.closest('details')?.removeAttribute('open');}} disabled={busy}><Icon name="users" className="w-4 h-4"/>{entry.oneToOne?'改为普通班课':'标记为 1 对 1'}</button>}
-                                {isDone && <button onClick={e=>{undoCheckIn(s.id,s.name);e.currentTarget.closest('details')?.removeAttribute('open');}} disabled={busy}><Icon name="refresh" className="w-4 h-4"/>撤销本日签到</button>}
-                                {entry.id
-                                    ? <button onClick={e=>{removeFromRoster(s.id);e.currentTarget.closest('details')?.removeAttribute('open');}} disabled={busy} className="is-danger"><Icon name="trash" className="w-4 h-4"/>移出本日课程安排</button>
-                                    : <p className="cms-roster-menu__source"><Icon name="calendar" className="w-4 h-4"/>来自固定课表，需在上方班次中调整</p>}
-                            </div>
-                        </details>
-                        </div>
-                    </div>
-                );
-            })}
-        </div>
-    </div>
 </div>
     );
 }
