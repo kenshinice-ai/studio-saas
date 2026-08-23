@@ -1,22 +1,28 @@
 # PWE Studio
 
-## v10.13.0 release identity — the ops hygiene round
+## v10.13.0 release identity — the front desk can check people in
 
 `VERSION` = **10.13.0** and `backend/server.py` reports `APP_VERSION=10.13.0`.
-Small, mostly non-runtime: the demo pages stop claiming a nightly reset that
-never existed, the Xero integration page is marked Beta for the settlement
-month, two bilingual labels are aligned, the console browser smoke check moved
-inside the release gate, and two deferred ops items landed (the live nginx
-configuration is now version-controlled; the database password no longer
-travels on a command line). The first attempt at that last one broke the
-pre-deploy backup and the deploy refused to switch — see the handoff.
-Layer evidence lives in `docs/handoff/claude/2026-08-20-ops-hygiene-round.md`.
+Roles and one page. The front desk gains `attendance:write` — it already held
+`credits:write`, so withholding the lightest, most-audited action only pushed
+the deduction onto the path that recorded neither an attendance row nor an
+actor. `staff` becomes 助教/Assistant and a strict subset of `teacher`; it
+previously held more than the teacher it assists. The leave policy is split
+out of `scheduling:write` into `scheduling:policy:write` (owner/manager),
+because handing the front desk the roster page turned a permission that no
+navigation reached into two clicks onto payroll configuration. `GET
+/class-bookings` had no permission at all and returns every waiting family's
+contact details; it now needs `class_bookings:review`. Credit movements carry
+an operator and the operations log finally displays it. And the roster page
+shows the day's register first: the first student row moved from y=898 to
+y=542 on a 1440x900 desktop, and from y=1124 to inside the fold on a phone.
+Layer evidence lives in `docs/handoff/claude/2026-08-23-two-page-refactor-and-roles.md`.
 
 | Layer | Verified state | Evidence |
 |---|---|---|
-| Source | **v10.13.0 committed** | release commit `4ff7efe`; full gate green under the split app/owner/migration database roles, now including the console smoke check inside the gate. |
-| Package | **v10.13.0 SaaS and Edition archives verified** | SaaS SHA-256 `292993ef8025738ddd6ab2767e950c653ee16a167a25930d8212bfbfecdbf5ed`; Edition SHA-256 `35f42cd561b656af79051deda35d76b838d48a03f469bd922c15c05310cab019`; checksum, BUILD_INFO (`commit=4ff7efe`), entrypoint, exclusion and smoke checks all passed. |
-| Production | **v10.13.0 deployed to `pwestudio.online`** | deep health `appVersion=10.13.0`, `db=ok`, `mode=saas`, `workspaces.stale=0`; pre-deploy backup `studiosaas_studiosaas_20260820T063742Z.dump` — produced through the reworked credential path, which is what proves it; all four public demo pages now serve the corrected wording and zero pages still say "nightly"; xero-push tick clean (`tenants=6 gate-closed=4 jobs=0 tenant-errors=0`). |
+| Source | **v10.13.0 committed** | release commit `78ff836` (chain `6ccbe0b` roles + roster reorder → `3a92f1f` pre-release review fixes → `78ff836` ledger); gate green under the split app/owner/migration database roles: `2848 passed`, tenant isolation `254 passed, 0 failed`, legacy smoke `73`, console smoke green. **Zero migrations** — schema stays at `0047_xero_transport.sql`. |
+| Package | **v10.13.0 SaaS and Edition archives verified** | SaaS SHA-256 `f1158690b8d56d56459e908ab2454914fa5d581b9e550818424ee1cf5396d6af`; Edition SHA-256 `7533c6a36b30aa146b70148af8c449254102d082b334311c05c5c19067a8ff0c`; checksum, BUILD_INFO (`commit=78ff836c89ffdb9770116b4baef84ff8b72ce68b`), entrypoint, exclusion and smoke checks all passed; three-way guard (bundle == local HEAD == origin/main) identical. |
+| Production | **v10.13.0 deployed to `pwestudio.online`** | deep health `appVersion=10.13.0`, `db=ok`, `mode=saas`, `workspaces.stale=0`, `themes.unreadable=0`, 5 tenants, disk 19.6% used — confirmed both internally and from the public edge; `http -> 301`, `https -> 200 tls=0 proto=2`; pre-deploy backup `studiosaas_studiosaas_20260823T031503Z.dump` with its manifest; the re-shot manual images are served byte-identical to the built tree. |
 
 Source, Package and Production are separate facts; do not infer Production
 from `VERSION` or from an archive filename.

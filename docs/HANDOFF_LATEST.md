@@ -17,13 +17,11 @@
 
 | 层 | 精确事实 |
 |---|---|
-| Source | v10.13.0 发布提交（待填 · 见本轮 close 提交）；内容：角色模型（前台整拿 `attendance:write`、staff→助教收为 teacher 真子集）、课时账本补 `actor_user_id` 与 audit 行、设置页换 `Tabs`/`TabPanel`、排课页重排 |
-| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.13.0.tar.gz`（SHA-256 待填） |
-| Package / Edition | `dist/PWE-Studio-Edition-10.13.0.tar.gz`（SHA-256 待填） |
-| Production | 待部署 |
-| Backup / migration | 部署前 dump（deploy 自动产出）；schema 仍至 `0047_xero_transport.sql`（**本版零迁移**） |
-
-> 上表的包哈希与线上事实在部署后由 close 提交补齐——与 v10.12.x 同一惯例。
+| Source | v10.13.0 发布提交 `78ff836`（链：`6ccbe0b` 角色模型 + 排课页重排 → `3a92f1f` 发布前复查的越权/隐私/假守卫修复 → `78ff836` 发布账本）。门禁全绿（leastpriv 三变量形状）：`2848 passed`、租户隔离 `254 passed, 0 failed`、legacy smoke `73`、控制台冒烟通过 |
+| Package / SaaS | `dist/PWE-StudioSaaS-aws-10.13.0.tar.gz`，SHA-256 `f1158690b8d56d56459e908ab2454914fa5d581b9e550818424ee1cf5396d6af`（三方守卫全等：bundle BUILD_INFO == 本地 HEAD == origin/main == `78ff836c89ffdb9770116b4baef84ff8b72ce68b`） |
+| Package / Edition | `dist/PWE-Studio-Edition-10.13.0.tar.gz`，SHA-256 `7533c6a36b30aa146b70148af8c449254102d082b334311c05c5c19067a8ff0c` |
+| Production | `pwestudio.online` = v10.13.0；deep health `db=ok`、`mode=saas`、`workspaces.stale=0`、`themes.unreadable=0`、5 个租户、磁盘 19.6%，内网与公网边缘各验一次；`http -> 301`、`https -> 200 tls=0 proto=2`。重截的手册图线上与构建树逐字节相同（03-roster-mobile.zh.webp 48200 bytes） |
+| Backup / migration | 部署前 dump `studiosaas_studiosaas_20260823T031503Z.dump` 及同名 manifest（deploy 自动产出）；schema 仍至 `0047_xero_transport.sql`（**本版零迁移**） |
 
 ## 上一版四层身份（v10.12.3，2026-08-22）
 
@@ -39,7 +37,7 @@
 
 ## 最新轮次
 
-- **2026-08-23（Claude Opus 5）层 2 前两步落地 + 角色权限的事实与取舍**（**未发布、未提交**）：
+- **2026-08-23（Claude Opus 5）层 2 前两步落地 + 角色权限的事实与取舍**（**已发布 v10.13.0**）：
   `docs/handoff/claude/2026-08-23-two-page-refactor-and-roles.md`
   —— 层 2 ①`?section=` 按 tab 作用域解析并按角色收敛；层 2 ②设置页七个
   `hidden` 面板换成 `Tabs`/`TabPanel`，六块共享内容各归其位，删掉不可达的
